@@ -1,0 +1,50 @@
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+//#define USE_FOG 1
+//#define USE_CLIP_VERTEX 1
+//#define USE_BUILTIN_MATRICES 1
+#define USE_BUILTIN_VERTEX 1
+
+#ifdef USE_BUILTIN_MATRICES
+#define ProjectionMatrix gl_ProjectionMatrix
+#define ModelViewMatrix gl_ModelViewMatrix
+#define NormalMatrix gl_NormalMatrix
+#else
+uniform mat4 ProjectionMatrix;
+uniform mat4 ModelViewMatrix;
+uniform mat3 NormalMatrix;
+#endif
+
+varying vec3 N;
+varying vec3 v;
+varying vec4 fcolor;
+
+#ifdef USE_BUILTIN_VERTEX
+#define position gl_Vertex
+#else
+attribute vec4 position;
+#endif
+attribute vec3 normal;
+attribute vec4 color;
+attribute mat4 instanceTransform;
+attribute vec3 instanceScale;
+
+void main(void)
+{
+  vec3 vi = vec3(vec4(instanceScale * vec3(position), 1) * instanceTransform);
+  v = vec3(ModelViewMatrix * vec4(vi, position.w));
+  N = normalize(NormalMatrix * vec3(vec4(normal,0) * instanceTransform));
+
+  gl_Position = ProjectionMatrix * vec4(v, 1.0);
+  fcolor = color;
+
+#ifdef USE_FOG
+  gl_FogFragCoord = abs(v.z);
+#endif
+
+#ifdef USE_CLIP_VERTEX
+  gl_ClipVertex = ModelViewMatrix * vec4(vi, position.w);
+#endif
+}
