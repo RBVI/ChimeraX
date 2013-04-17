@@ -1,0 +1,76 @@
+Not in any particular order:
+
+	document that you can't have a class named "error" because one is
+	created for you.
+
+	alter keyword arguments that are are Python keywords to have a
+		trailing underscore (likewise, strip a trailing underscore
+		off of a C++ keyword if used as a Python argument keyword).
+
+	Add eliminate compiler warnings for size_t to int conversions by
+		not using ints.
+
+	Need to extend operator methods to handle global operators
+		(vec operator*(float, vec)) as well as operator methods
+		(vec vec::operator*(float)).  AND don't generate nb_coerce
+		for Python 2.1+.
+
+	default arguments of value 0/NULL/null need to be cast
+	to appropriate type, so they are wrapped correctly.
+
+	containers as input arguments
+
+	C arrays as input and output arguments
+
+	numpy arrays as input and output arguments
+
+	add annotation for member functions that indirectly manipulate
+	attributes
+
+	a class can have a private destructor and public constructor.
+		need an annotation telling which member function to
+		call to destroy an instance.
+
+	need annotation for functions that return NEW objects,
+		arguments that maintain "lists", ?
+
+	(const) reference arguments of wrappy classes
+
+	recursive conversion of types (half done).
+
+	C++ exceptions as Python Exceptions (throw signatures)
+
+	template base classes
+		workaround add base class methods to class interface
+
+	add automatic conversion of C++ abstract base class to a Python
+	one by creating a C++ subclass with virtual functions that call
+	into Python and wrapping that
+
+From goddard@cgl.ucsf.edu Fri Jan 18 13:08:05 2002
+Return-Path: <goddard@cgl.ucsf.edu>
+Date: Fri, 18 Jan 2002 13:08:04 -0800 (PST)
+Message-Id: <200201182108.g0IL84Um704819@adenine.cgl.ucsf.edu>
+From: Thomas Goddard <goddard@cgl.ucsf.edu>
+To: gregc@cgl.ucsf.edu
+In-reply-to: <Pine.OSF.4.21.0201181005140.684729-100000@adenine.cgl.ucsf.edu>
+	(message from Greg Couch on Fri, 18 Jan 2002 10:08:58 -0800 (PST))
+Subject: Re: Python 2.2 out
+References:  <Pine.OSF.4.21.0201181005140.684729-100000@adenine.cgl.ucsf.edu>
+Status: RO
+
+Hi Greg,
+
+  When you get time for a wrappy overhaul I have some much desired features.
+I would like wrappy to handle array arguments like float xyz[3].  And I'd
+like not to have to patch the wrappy output code because of the namespace
+problem.  Also I'd like no compiler warnings from the compiling wrappy code.
+I currently get warnings about unused variables and size_t being implicitly
+cast to int.
+
+  The current wrappy is well worth dealing with these glitches for the time
+it save not having to wrappy C++ code by hand.  But it could be nicer in
+the above ways.
+
+Thanks,
+	Tom

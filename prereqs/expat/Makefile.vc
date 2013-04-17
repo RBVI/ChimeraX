@@ -1,0 +1,27 @@
+INSTDIR = $(SYSTEMDRIVE)/chimera-build/build
+SRCS	= lib/xmlparse.c lib/xmlrole.c lib/xmltok.c
+OBJS	= $(SRCS:.c=.obj)
+DEFS	= -DCOMPILED_FROM_DSP
+LIBS	= /link /DEF:lib/libexpat.def msvcrt.lib /NODEFAULTLIB:libc
+
+.SUFFIXES: .obj
+.c.obj:
+	$(CC) $(CFLAGS) -c /Fo$@ $<
+
+TARGET_ARCH = /MD /Zl
+OPT	= /Ox
+CC	= cl /nologo /Zc:forScope /GR /EHsc /GF $(TARGET_ARCH)
+CFLAGS	= $(OPT) $(INCS) $(DEFS)
+
+LIBRARY = lib/libexpat.dll
+
+buildlib $(LIBRARY): $(OBJS)
+	$(CC) /LD /Fe$(LIBRARY) $(OBJS) $(LIBS)
+
+installlib: $(LIBRARY)
+	-mkdir $(INSTDIR)/lib $(INSTDIR)/include
+	cp -uv $(LIBRARY) $(LIBRARY:.dll=.lib) $(INSTDIR)/lib
+	cp -uv lib/expat.h lib/expat_external.h $(INSTDIR)/include
+
+clean:
+	rm $(OBJS) $(LIBRARY) $(LIBRARY:.dll=.lib) $(LIBRARY:.dll=.exp)

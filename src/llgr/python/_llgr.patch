@@ -1,0 +1,444 @@
+--- _llgr.cpp.orig	2012-10-31 22:46:30.000000000 -0700
++++ _llgr.cpp	2012-10-31 22:51:25.000000000 -0700
+@@ -4,6 +4,8 @@
+ #include "../c++/llgr_ui.h"
+ #include <stdlib.h>	/* for getenv() and atoi() */
+ #include <typeinfo>
++#include <numpy/arrayobject.h>
++#include <GL/glew.h>
+ 
+ #ifndef PY_STUPID
+ // workaround for Python API missing const's.
+@@ -63,6 +65,80 @@
+ 	}
+ }
+ 
++static bool
++sequence_to_AttributeInfos(PyObject *seq, AttributeInfos *vec)
++{
++	if (!PySequence_Check(seq))
++		return false;
++	Py_ssize_t count = PySequence_Size(seq);
++	vec->reserve(count);
++	for (int i = 0; i < count; ++i) {
++		PyObject *o = PySequence_GetItem(seq, i);
++		if (!wrappy::Type<AttributeInfo>::check(o)) {
++			Py_XDECREF(o);
++			return false;
++		}
++		const AttributeInfo& inst = *static_cast<AttributeInfo_object*>(o)->_inst();
++		vec->push_back(inst);
++		Py_DECREF(o);
++	}
++	return true;
++}
++
++static bool
++sequence_to_vector_int(PyObject *seq, std::vector<int> *vec)
++{
++	if (!PySequence_Check(seq))
++		return false;
++	Py_ssize_t count = PySequence_Size(seq);
++	vec->reserve(count);
++	for (int i = 0; i < count; ++i) {
++		PyObject *o = PySequence_GetItem(seq, i);
++		if (!PyInt_Check(o)) {
++			Py_XDECREF(o);
++			return false;
++		}
++		int inst = PyInt_AsLong(o);
++		vec->push_back(inst);
++		Py_DECREF(o);
++	}
++	return true;
++}
++
++static bool
++sequence_to_array_double(PyObject *seq, double *vec, Py_ssize_t size)
++{
++	if (!PySequence_Check(seq))
++		return false;
++	Py_ssize_t count = PySequence_Size(seq);
++	if (count != size)
++		return false;
++	for (int i = 0; i < count; ++i) {
++		PyObject *o = PySequence_GetItem(seq, i);
++		if (!PyFloat_Check(o)) {
++			Py_XDECREF(o);
++			return false;
++		}
++		float inst = PyFloat_AsDouble(o);
++		vec[i] = inst;
++		Py_DECREF(o);
++	}
++	return true;
++}
++
++static bool
++numpy_to_mat4x4_float(PyObject *a, float mat[4][4])
++{
++	if (!PyArray_Check(a) || PyArray_NDIM(a) != 2
++	|| PyArray_TYPE(a) != NPY_FLOAT)
++		return false;
++	npy_intp *dims = PyArray_DIMS(a);
++	if (dims[0] != 4 || dims[1] != 4)
++		return false;
++	memcpy(mat, PyArray_DATA(a), sizeof (float [4][4]));
++	return true;
++}
++
+ static PyObject*
+ _llgr_add_cylinder(PyObject*, PyObject* _args, PyObject* _keywds)
+ {
+@@ -83,9 +159,9 @@
+ 		float cppArg3 = _ptArg3;
+ 		Id cppArg4 = _ptArg4;
+ 		Id cppArg5 = _ptArg5;
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 6 should be a list of AttributeInfo");
+-		const AttributeInfos& cppArg6 = ?TODO?;
++		AttributeInfos cppArg6;
++		if (!sequence_to_AttributeInfos(_ptArg6, &cppArg6))
++			throw std::invalid_argument("argument 6 should be a sequence of AttributeInfo");
+ 		std::string cppArg7;
+ 		if (_ptArg7 == NULL)
+ 			cppArg7 = "gl_Vertex";
+@@ -110,7 +186,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgradd_cylinder_doc[] = "add_cylinder(obj_id: int, radius: float, length: float, program_id: int, matrix_id: int, ais: list of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
++static const char _llgradd_cylinder_doc[] = "add_cylinder(obj_id: int, radius: float, length: float, program_id: int, matrix_id: int, ais: sequence of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
+ 
+ static PyObject*
+ _llgr_add_sphere(PyObject*, PyObject* _args, PyObject* _keywds)
+@@ -130,9 +206,9 @@
+ 		float cppArg2 = _ptArg2;
+ 		Id cppArg3 = _ptArg3;
+ 		Id cppArg4 = _ptArg4;
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 5 should be a list of AttributeInfo");
+-		const AttributeInfos& cppArg5 = ?TODO?;
++		AttributeInfos cppArg5;
++		if (!sequence_to_AttributeInfos(_ptArg5, &cppArg5))
++			throw std::invalid_argument("argument 5 should be a sequence of AttributeInfo");
+ 		std::string cppArg6;
+ 		if (_ptArg6 == NULL)
+ 			cppArg6 = "gl_Vertex";
+@@ -157,7 +233,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgradd_sphere_doc[] = "add_sphere(obj_id: int, radius: float, program_id: int, matrix_id: int, ais: list of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
++static const char _llgradd_sphere_doc[] = "add_sphere(obj_id: int, radius: float, program_id: int, matrix_id: int, ais: sequence of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
+ 
+ static PyObject*
+ _llgr_apply_matrix(PyObject*, PyObject* _args)
+@@ -274,14 +350,13 @@
+ {
+ 	int _ptArg1;
+ 	int _ptArg2;
+-	unsigned _ptArg3;
+ 	Py_buffer _ptArg4;
+-	if (!PyArg_ParseTuple(_args, "iiIs*:create_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4))
++	if (!PyArg_ParseTuple(_args, "iis*:create_buffer", &_ptArg1, &_ptArg2, &_ptArg4))
+ 		return NULL;
+ 	try {
+ 		Id cppArg1 = _ptArg1;
+ 		BufferTarget cppArg2 = static_cast<BufferTarget>(_ptArg2);
+-		uint32_t cppArg3 = _ptArg3;
++		uint32_t cppArg3 = _ptArg4.len;
+ 		Bytes cppArg4 = _ptArg4.buf;
+ 		create_buffer(cppArg1, cppArg2, cppArg3, cppArg4);
+ 		PyBuffer_Release(&_ptArg4);
+@@ -293,7 +368,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrcreate_buffer_doc[] = "create_buffer(data_id: int, target: int, data_length: unsigned int, data: bytes)";
++static const char _llgrcreate_buffer_doc[] = "create_buffer(data_id: int, target: int, data: bytes)";
+ 
+ static PyObject*
+ _llgr_create_matrix(PyObject*, PyObject* _args, PyObject* _keywds)
+@@ -306,9 +381,9 @@
+ 		return NULL;
+ 	try {
+ 		Id cppArg1 = _ptArg1;
+-		if (!(PySequence_Check(_ptArg2) && PySequence_Size(_ptArg2) == 4][4))
+-			throw std::invalid_argument("argument 2 should be a 4][4-tuple of float");
+-		float cppArg2[4][4] = ?TODO?;
++		float cppArg2[4][4];
++		if (!numpy_to_mat4x4_float(_ptArg2, cppArg2))
++			throw std::invalid_argument("argument 2 should be a nump [4][4] of float");
+ 		bool cppArg3(_ptArg3);
+ 		create_matrix(cppArg1, cppArg2, cppArg3);
+ 		return (Py_INCREF(Py_None), Py_None);
+@@ -318,7 +393,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrcreate_matrix_doc[] = "create_matrix(matrix_id: int, matrix: 4][4-tuple of float, renormalize: bool = false)";
++static const char _llgrcreate_matrix_doc[] = "create_matrix(matrix_id: int, matrix: numpy [4][4] of float, renormalize: bool = false)";
+ 
+ static PyObject*
+ _llgr_create_object(PyObject*, PyObject* _args, PyObject* _keywds)
+@@ -339,9 +414,9 @@
+ 		Id cppArg1 = _ptArg1;
+ 		Id cppArg2 = _ptArg2;
+ 		Id cppArg3 = _ptArg3;
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 4 should be a list of AttributeInfo");
+-		const AttributeInfos& cppArg4 = ?TODO?;
++		AttributeInfos cppArg4;
++		if (!sequence_to_AttributeInfos(_ptArg4, &cppArg4))
++			throw std::invalid_argument("argument 4 should be a sequence of AttributeInfo");
+ 		PrimitiveType cppArg5 = static_cast<PrimitiveType>(_ptArg5);
+ 		uint32_t cppArg6 = _ptArg6;
+ 		uint32_t cppArg7 = _ptArg7;
+@@ -355,7 +430,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrcreate_object_doc[] = "create_object(obj_id: int, program_id: int, matrix_id: int, ais: list of AttributeInfo, pt: int, first: unsigned int, count: unsigned int, index_data_id: int = 0, index_data_type: int = Byte)";
++static const char _llgrcreate_object_doc[] = "create_object(obj_id: int, program_id: int, matrix_id: int, ais: sequence of AttributeInfo, pt: int, first: unsigned int, count: unsigned int, index_data_id: int = 0, index_data_type: int = Byte)";
+ 
+ static PyObject*
+ _llgr_create_program(PyObject*, PyObject* _args)
+@@ -387,13 +462,12 @@
+ _llgr_create_singleton(PyObject*, PyObject* _args)
+ {
+ 	int _ptArg1;
+-	unsigned _ptArg2;
+ 	Py_buffer _ptArg3;
+-	if (!PyArg_ParseTuple(_args, "iIs*:create_singleton", &_ptArg1, &_ptArg2, &_ptArg3))
++	if (!PyArg_ParseTuple(_args, "is*:create_singleton", &_ptArg1, &_ptArg3))
+ 		return NULL;
+ 	try {
+ 		Id cppArg1 = _ptArg1;
+-		uint32_t cppArg2 = _ptArg2;
++		uint32_t cppArg2 = _ptArg3.len;
+ 		Bytes cppArg3 = _ptArg3.buf;
+ 		create_singleton(cppArg1, cppArg2, cppArg3);
+ 		PyBuffer_Release(&_ptArg3);
+@@ -405,7 +479,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrcreate_singleton_doc[] = "create_singleton(data_id: int, data_length: unsigned int, data: bytes)";
++static const char _llgrcreate_singleton_doc[] = "create_singleton(data_id: int, data: bytes)";
+ 
+ static PyObject*
+ _llgr_delete_buffer(PyObject*, PyObject* _ptArg)
+@@ -479,9 +553,9 @@
+ _llgr_hide_objects(PyObject*, PyObject* _ptArg)
+ {
+ 	try {
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 1 should be a list of int");
+-		const Objects& cppArg1 = ?TODO?;
++		Objects cppArg1;
++		if (!sequence_to_vector_int(_ptArg, &cppArg1))
++			throw std::invalid_argument("argument 1 should be a sequence of int");
+ 		hide_objects(cppArg1);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -490,15 +564,15 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrhide_objects_doc[] = "hide_objects(objs: list of int)";
++static const char _llgrhide_objects_doc[] = "hide_objects(objs: sequence of int)";
+ 
+ static PyObject*
+ _llgr_opaque(PyObject*, PyObject* _ptArg)
+ {
+ 	try {
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 1 should be a list of int");
+-		const Objects& cppArg1 = ?TODO?;
++		Objects cppArg1;
++		if (!sequence_to_vector_int(_ptArg, &cppArg1))
++			throw std::invalid_argument("argument 1 should be a sequence of int");
+ 		opaque(cppArg1);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -507,7 +581,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgropaque_doc[] = "opaque(objs: list of int)";
++static const char _llgropaque_doc[] = "opaque(objs: sequence of int)";
+ 
+ static PyObject*
+ _llgr_render(PyObject*, PyObject* /* = NULL */)
+@@ -527,9 +601,9 @@
+ _llgr_selection_add(PyObject*, PyObject* _ptArg)
+ {
+ 	try {
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 1 should be a list of int");
+-		const Objects& cppArg1 = ?TODO?;
++		Objects cppArg1;
++		if (!sequence_to_vector_int(_ptArg, &cppArg1))
++			throw std::invalid_argument("argument 1 should be a sequence of int");
+ 		selection_add(cppArg1);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -538,7 +612,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrselection_add_doc[] = "selection_add(objs: list of int)";
++static const char _llgrselection_add_doc[] = "selection_add(objs: sequence of int)";
+ 
+ static PyObject*
+ _llgr_selection_clear(PyObject*, PyObject* /* = NULL */)
+@@ -558,9 +632,9 @@
+ _llgr_selection_remove(PyObject*, PyObject* _ptArg)
+ {
+ 	try {
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 1 should be a list of int");
+-		const Objects& cppArg1 = ?TODO?;
++		Objects cppArg1;
++		if (!sequence_to_vector_int(_ptArg, &cppArg1))
++			throw std::invalid_argument("argument 1 should be a sequence of int");
+ 		selection_remove(cppArg1);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -569,7 +643,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrselection_remove_doc[] = "selection_remove(objs: list of int)";
++static const char _llgrselection_remove_doc[] = "selection_remove(objs: sequence of int)";
+ 
+ static PyObject*
+ _llgr_set_clear_color(PyObject*, PyObject* _args)
+@@ -670,9 +744,8 @@
+ 	int _ptArg1;
+ 	PyObject* _ptArg2;
+ 	int _ptArg3;
+-	unsigned _ptArg4;
+ 	Py_buffer _ptArg5;
+-	if (!PyArg_ParseTuple(_args, "iOiIs*:set_uniform", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
++	if (!PyArg_ParseTuple(_args, "iOis*:set_uniform", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg5))
+ 		return NULL;
+ 	try {
+ 		Id cppArg1 = _ptArg1;
+@@ -680,7 +753,7 @@
+ 			throw std::invalid_argument("argument 2 should be a str");
+ 		std::string cppArg2 = wrappy::PythonBaseString_AsCppString(_ptArg2);
+ 		ShaderType cppArg3 = static_cast<ShaderType>(_ptArg3);
+-		uint32_t cppArg4 = _ptArg4;
++		uint32_t cppArg4 = _ptArg5.len;
+ 		Bytes cppArg5 = _ptArg5.buf;
+ 		set_uniform(cppArg1, cppArg2.c_str(), cppArg3, cppArg4, cppArg5);
+ 		PyBuffer_Release(&_ptArg5);
+@@ -692,7 +765,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrset_uniform_doc[] = "set_uniform(program_id: int, name: str, type: int, data_length: unsigned int, data: bytes)";
++static const char _llgrset_uniform_doc[] = "set_uniform(program_id: int, name: str, type: int, data: bytes)";
+ 
+ static PyObject*
+ _llgr_set_uniform_matrix(PyObject*, PyObject* _args)
+@@ -701,9 +774,8 @@
+ 	PyObject* _ptArg2;
+ 	int _ptArg3;
+ 	int _ptArg4;
+-	unsigned _ptArg5;
+ 	Py_buffer _ptArg6;
+-	if (!PyArg_ParseTuple(_args, "iOiiIs*:set_uniform_matrix", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5, &_ptArg6))
++	if (!PyArg_ParseTuple(_args, "iOiis*:set_uniform_matrix", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg6))
+ 		return NULL;
+ 	try {
+ 		Id cppArg1 = _ptArg1;
+@@ -712,7 +784,7 @@
+ 		std::string cppArg2 = wrappy::PythonBaseString_AsCppString(_ptArg2);
+ 		bool cppArg3(_ptArg3);
+ 		ShaderType cppArg4 = static_cast<ShaderType>(_ptArg4);
+-		uint32_t cppArg5 = _ptArg5;
++		uint32_t cppArg5 = _ptArg6.len;
+ 		Bytes cppArg6 = _ptArg6.buf;
+ 		set_uniform_matrix(cppArg1, cppArg2.c_str(), cppArg3, cppArg4, cppArg5, cppArg6);
+ 		PyBuffer_Release(&_ptArg6);
+@@ -724,15 +796,15 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrset_uniform_matrix_doc[] = "set_uniform_matrix(program_id: int, name: str, transpose: bool, type: int, data_length: unsigned int, data: bytes)";
++static const char _llgrset_uniform_matrix_doc[] = "set_uniform_matrix(program_id: int, name: str, transpose: bool, type: int, data: bytes)";
+ 
+ static PyObject*
+ _llgr_show_objects(PyObject*, PyObject* _ptArg)
+ {
+ 	try {
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 1 should be a list of int");
+-		const Objects& cppArg1 = ?TODO?;
++		Objects cppArg1;
++		if (!sequence_to_vector_int(_ptArg, &cppArg1))
++			throw std::invalid_argument("argument 1 should be a sequence of int");
+ 		show_objects(cppArg1);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -741,15 +813,15 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrshow_objects_doc[] = "show_objects(objs: list of int)";
++static const char _llgrshow_objects_doc[] = "show_objects(objs: sequence of int)";
+ 
+ static PyObject*
+ _llgr_transparent(PyObject*, PyObject* _ptArg)
+ {
+ 	try {
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 1 should be a list of int");
+-		const Objects& cppArg1 = ?TODO?;
++		Objects cppArg1;
++		if (!sequence_to_vector_int(_ptArg, &cppArg1))
++			throw std::invalid_argument("argument 1 should be a sequence of int");
+ 		transparent(cppArg1);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -758,7 +830,7 @@
+ 	return NULL;
+ }
+ 
+-static const char _llgrtransparent_doc[] = "transparent(objs: list of int)";
++static const char _llgrtransparent_doc[] = "transparent(objs: sequence of int)";
+ 
+ static PyObject*
+ _llgr_vsphere_drag(PyObject*, PyObject* _args)
+@@ -835,9 +907,9 @@
+ 	try {
+ 		Id cppArg1 = _ptArg1;
+ 		double cppArg2 = _ptArg2;
+-		if (!(PySequence_Check(_ptArg3) && PySequence_Size(_ptArg3) == 2))
++		double cppArg3[2];
++		if (!sequence_to_array_double(_ptArg3, cppArg3, 2))
+ 			throw std::invalid_argument("argument 3 should be a 2-tuple of float");
+-		double cppArg3[2] = ?TODO?;
+ 		vsphere_setup(cppArg1, cppArg2, cppArg3);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -1001,6 +1073,16 @@
+ PyMODINIT_FUNC
+ init_llgr()
+ {
++	GLenum err = glewInit();
++	if (err != GLEW_OK) {
++		PyErr_WarnEx(PyExc_RuntimeWarning,
++			"unable to initialize glew library:", 1);
++		PyErr_WarnEx(PyExc_RuntimeWarning,
++			reinterpret_cast<const char *>(glewGetErrorString(err)), 1);
++	}
++
++	import_array();		// required for numpy
++
+ 	PyObject* module = Py_InitModule4("_llgr", llgr::_llgrMethods,
+ 			llgr::_llgr_doc, NULL, PYTHON_API_VERSION);
+ 	if (module == NULL)

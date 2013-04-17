@@ -1,0 +1,263 @@
+SYSTEM = msvc
+
+GLEW_DEST ?= /usr
+BINDIR    ?= $(GLEW_DEST)/bin
+LIBDIR    ?= $(GLEW_DEST)/lib
+INCDIR    ?= $(GLEW_DEST)/include/GL
+
+NAME = glew32
+# use cl for linking, with ld it does not work
+CC = cl /nologo
+LN :=
+RM := rm
+INSTALL := install
+LDFLAGS.GL = opengl32.lib gdi32.lib user32.lib kernel32.lib
+LDFLAGS.EXTRA =
+WARN = /W3
+ifeq ($(MAKECMDGOALS), debug)
+OPT = /Zi
+else
+OPT = /Ox
+endif
+TMPDIR = tmp/msvc/default
+LIB.SHARED    = $(NAME).dll
+LIB.DEVLNK    = $(NAME).lib
+LIB.STATIC    = lib$(NAME).lib
+LDFLAGS.SO    = /MD /link /implib:lib/$(LIB.DEVLNK)
+TMPDIR.MX = tmp/msvc/mx
+LIB.SHARED.MX = $(NAME)mx.dll
+LIB.DEVLNK.MX = $(NAME)mx.lib
+LIB.STATIC.MX = lib$(NAME)mx.lib
+LDFLAGS.SO.MX = /MD /link /implib:lib/$(LIB.DEVLNK.MX)
+
+CFLAGS.SO = /MD -DGLEW_BUILD
+
+# can't call make variable INCLUDE because it gets passed in enviroment
+# and confuses cl
+INC = -Iinclude
+CFLAGS = $(OPT) $(WARN) $(INC) $(CFLAGS.EXTRA)
+
+all debug: glew.lib glew.lib.mx glew.bin
+
+# GLEW shared and static libraries
+
+LIB.LDFLAGS        := $(LDFLAGS.EXTRA) $(LDFLAGS.GL)
+LIB.LIBS           := $(GL_LDFLAGS)
+
+LIB.SRCS           := src/glew.c build/glew.rc
+LIB.SRCS.NAMES     := $(notdir $(LIB.SRCS))
+
+LIB.OBJS           := $(addprefix tmp/$(SYSTEM)/default/static/,$(LIB.SRCS.NAMES))
+LIB.OBJS           := $(LIB.OBJS:.c=.obj)
+LIB.OBJS           := $(LIB.OBJS:.rc=rc.obj)
+LIB.SOBJS          := $(addprefix tmp/$(SYSTEM)/default/shared/,$(LIB.SRCS.NAMES))
+LIB.SOBJS          := $(LIB.SOBJS:.c=.obj)
+LIB.SOBJS          := $(LIB.SOBJS:.rc=rc.obj)
+
+LIB.OBJS.MX        := $(addprefix tmp/$(SYSTEM)/mx/static/,$(LIB.SRCS.NAMES))
+LIB.OBJS.MX        := $(LIB.OBJS.MX:.c=.obj)
+LIB.OBJS.MX        := $(LIB.OBJS.MX:.rc=rc.obj)
+LIB.SOBJS.MX       := $(addprefix tmp/$(SYSTEM)/mx/shared/,$(LIB.SRCS.NAMES))
+LIB.SOBJS.MX       := $(LIB.SOBJS.MX:.c=.obj)
+LIB.SOBJS.MX       := $(LIB.SOBJS.MX:.rc=rc.obj)
+
+
+glew.lib: lib bin/$(LIB.SHARED) lib/$(LIB.STATIC) glew.pc
+
+lib:
+	mkdir lib
+
+lib/$(LIB.STATIC): lib $(LIB.OBJS)
+	lib /OUT:$@ $(LIB.OBJS)
+
+bin/$(LIB.SHARED): lib bin $(LIB.SOBJS)
+	$(CC) /LD /Febin/$(LIB.SHARED) $(LIB.SOBJS) $(LDFLAGS.SO) $(LDFLAGS.GL)
+	if [ -e bin/$(LIB.SHARED).manifest ] ; then \
+		mt -nologo -manifest bin/$(LIB.SHARED).manifest -outputresource:bin/$(LIB.SHARED)\;2 ; \
+	fi
+
+tmp/$(SYSTEM)/default/static/glew.obj: src/glew.c include/GL/glew.h include/GL/wglew.h include/GL/glxew.h
+	@mkdir -p $(dir $@)
+	$(CC) -DGLEW_NO_GLU -DGLEW_STATIC $(CFLAGS) $(CFLAGS.SO) /Fo$@ -c $<
+
+tmp/$(SYSTEM)/default/static/glewrc.obj: build/glew.rc
+	@mkdir -p $(dir $@)
+	rc /v -DGLEW_NO_GLU -DGLEW_STATIC /Fo$@ $<
+
+tmp/$(SYSTEM)/default/shared/glew.obj: src/glew.c include/GL/glew.h include/GL/wglew.h include/GL/glxew.h
+	@mkdir -p $(dir $@)
+	$(CC) -DGLEW_NO_GLU $(CFLAGS) $(PICFLAG) $(CFLAGS.SO) /Fo$@ -c $<
+
+tmp/$(SYSTEM)/default/shared/glewrc.obj: build/glew.rc
+	@mkdir -p $(dir $@)
+	rc /v -DGLEW_NO_GLU /Fo$@ $<
+
+glew.pc: glew.pc.in
+	sed \
+		-e "s|@prefix@|$(GLEW_DEST)|g" \
+		-e "s|@libdir@|$(LIBDIR)|g" \
+		-e "s|@exec_prefix@|$(BINDIR)|g" \
+		-e "s|@includedir@|$(INCDIR)|g" \
+		-e "s|@version@|$(GLEW_VERSION)|g" \
+		-e "s|@cflags@||g" \
+		-e "s|@libname@|GLEW|g" \
+		< $< > $@
+
+# GLEW MX static and shared libraries
+
+glew.lib.mx:  lib bin/$(LIB.SHARED.MX) lib/$(LIB.STATIC.MX) glewmx.pc
+
+lib/$(LIB.STATIC.MX): lib $(LIB.OBJS.MX)
+	lib /OUT:$@ $(LIB.OBJS.MX)
+
+bin/$(LIB.SHARED.MX): lib bin $(LIB.SOBJS.MX)
+	$(CC) /LD /Febin/$(LIB.SHARED.MX) $(LIB.SOBJS.MX) $(LDFLAGS.SO.MX) $(LDFLAGS.GL)
+	if [ -e bin/$(LIB.SHARED.MX).manifest ] ; then \
+		mt -nologo -manifest bin/$(LIB.SHARED.MX).manifest -outputresource:bin/$(LIB.SHARED.MX)\;2 ; \
+	fi
+
+tmp/$(SYSTEM)/mx/static/glew.obj: src/glew.c include/GL/glew.h include/GL/wglew.h include/GL/glxew.h
+	@mkdir -p $(dir $@)
+	$(CC) -DGLEW_NO_GLU -DGLEW_MX -DGLEW_STATIC $(CFLAGS) $(CFLAGS.SO) /Fo$@ -c $<
+
+tmp/$(SYSTEM)/mx/static/glewrc.obj: build/glew.rc
+	@mkdir -p $(dir $@)
+	rc -DGLEW_NO_GLU -DGLEW_MX -DGLEW_STATIC /Fo$@ $<
+
+tmp/$(SYSTEM)/mx/shared/glew.obj: src/glew.c include/GL/glew.h include/GL/wglew.h include/GL/glxew.h
+	@mkdir -p $(dir $@)
+	$(CC) -DGLEW_NO_GLU -DGLEW_MX $(CFLAGS) $(PICFLAG) $(CFLAGS.SO) /Fo$@ -c $<
+
+tmp/$(SYSTEM)/mx/shared/glewrc.obj: build/glew.rc
+	@mkdir -p $(dir $@)
+	rc -DGLEW_NO_GLU -DGLEW_MX /Fo$@ $<
+
+glewmx.pc: glew.pc.in
+	sed \
+		-e "s|@prefix@|$(GLEW_DEST)|g" \
+		-e "s|@libdir@|$(LIBDIR)|g" \
+		-e "s|@exec_prefix@|$(BINDIR)|g" \
+		-e "s|@includedir@|$(INCDIR)|g" \
+		-e "s|@version@|$(GLEW_VERSION)|g" \
+		-e "s|@cflags@|-DGLEW_MX|g" \
+		-e "s|@libname@|GLEWmx|g" \
+		< $< > $@
+
+# GLEW utility programs
+
+BIN.LIBS = /link /LIBPATH:lib $(LDFLAGS.DYNAMIC) $(LIB.STATIC) $(LDFLAGS.EXTRA) $(LDFLAGS.GL)
+
+GLEWINFO.BIN       := glewinfo$(BIN.SUFFIX)
+GLEWINFO.BIN.SRCS  := src/glewinfo.c build/glewinfo.rc
+GLEWINFO.BIN.OBJS  := $(addprefix tmp/$(SYSTEM)/default/shared/,$(notdir $(GLEWINFO.BIN.SRCS)))
+GLEWINFO.BIN.OBJS  := $(GLEWINFO.BIN.OBJS:.c=.obj)
+GLEWINFO.BIN.OBJS  := $(GLEWINFO.BIN.OBJS:.rc=rc.obj)
+
+VISUALINFO.BIN     := visualinfo$(BIN.SUFFIX)
+VISUALINFO.BIN.SRCS:= src/visualinfo.c build/visualinfo.rc
+VISUALINFO.BIN.OBJS:= $(addprefix tmp/$(SYSTEM)/default/shared/,$(notdir $(VISUALINFO.BIN.SRCS)))
+VISUALINFO.BIN.OBJS:= $(VISUALINFO.BIN.OBJS:.c=.obj)
+VISUALINFO.BIN.OBJS:= $(VISUALINFO.BIN.OBJS:.rc=rc.obj)
+
+glew.bin: glew.lib bin bin/$(GLEWINFO.BIN) bin/$(VISUALINFO.BIN) 
+
+bin:
+	mkdir bin
+
+bin/$(GLEWINFO.BIN): $(GLEWINFO.BIN.OBJS) bin/$(LIB.SHARED)
+	$(CC) $(CFLAGS) /Fe$@ $(GLEWINFO.BIN.OBJS) $(BIN.LIBS)
+	if [ -e bin/$(GLEWINFO.BIN).manifest ] ; then \
+		mt -nologo -manifest bin/$(GLEWINFO.BIN).manifest -outputresource:bin/$(GLEWINFO.BIN)\;1 ; \
+	fi
+
+bin/$(VISUALINFO.BIN): $(VISUALINFO.BIN.OBJS) bin/$(LIB.SHARED)
+	$(CC) $(CFLAGS) /Fe$@ $(VISUALINFO.BIN.OBJS) $(BIN.LIBS)
+	if [ -e bin/$(VISUALINFO.BIN).manifest ] ; then \
+		mt -nologo -manifest bin/$(VISUALINFO.BIN).manifest -outputresource:bin/$(VISUALINFO.BIN)\;1 ; \
+	fi
+
+tmp/$(SYSTEM)/default/shared/glewinfo.obj: src/glewinfo.c include/GL/glew.h include/GL/wglew.h include/GL/glxew.h
+	@mkdir -p $(dir $@)
+	$(CC) -DGLEW_NO_GLU $(CFLAGS) $(CFLAGS.SO) /Fo$@ -c $<
+
+tmp/$(SYSTEM)/default/shared/glewinforc.obj: build/glewinfo.rc
+	@mkdir -p $(dir $@)
+	rc /v -DGLEW_NO_GLU /Fo$@ $<
+
+tmp/$(SYSTEM)/default/shared/visualinfo.obj: src/visualinfo.c include/GL/glew.h include/GL/wglew.h include/GL/glxew.h
+	@mkdir -p $(dir $@)
+	$(CC) -DGLEW_NO_GLU $(CFLAGS) $(CFLAGS.SO) /Fo$@ -c $<
+
+tmp/$(SYSTEM)/default/shared/visualinforc.obj: build/visualinfo.rc
+	@mkdir -p $(dir $@)
+	rc /v -DGLEW_NO_GLU /Fo$@ $<
+
+# Install targets
+
+install.all: install install.mx install.bin
+
+install:     install.include install.lib install.pkgconfig
+
+install.mx:  install.include install.lib.mx install.pkgconfig.mx
+
+install.lib: glew.lib
+	$(INSTALL) -d -m 0755 $(LIBDIR)
+# runtime
+	$(INSTALL) -d -m 0755 $(BINDIR)
+	$(INSTALL) -m 0755 bin/$(LIB.SHARED) $(BINDIR)/
+# development files
+	$(INSTALL) -m 0644 lib/$(LIB.DEVLNK) $(LIBDIR)/
+	$(INSTALL) -m 0644 lib/$(LIB.STATIC) $(LIBDIR)/
+
+install.lib.mx: glew.lib.mx
+	$(INSTALL) -d -m 0755 $(LIBDIR)
+# runtime
+	$(INSTALL) -d -m 0755 $(BINDIR)
+	$(INSTALL) -m 0755 bin/$(LIB.SHARED.MX) $(BINDIR)/
+# development files
+	$(INSTALL) -m 0644 lib/$(LIB.DEVLNK.MX) $(LIBDIR)/
+	$(INSTALL) -m 0644 lib/$(LIB.STATIC.MX) $(LIBDIR)/
+
+install.bin: glew.bin
+	$(INSTALL) -d -m 0755 $(BINDIR)
+	$(INSTALL) -s -m 0755 bin/$(GLEWINFO.BIN) bin/$(VISUALINFO.BIN) $(BINDIR)/
+
+install.include:
+	$(INSTALL) -d -m 0755 $(INCDIR)
+	$(INSTALL) -m 0644 include/GL/wglew.h $(INCDIR)/
+	$(INSTALL) -m 0644 include/GL/glew.h $(INCDIR)/
+	$(INSTALL) -m 0644 include/GL/glxew.h $(INCDIR)/
+
+install.pkgconfig: glew.pc
+	$(INSTALL) -d -m 0755 $(LIBDIR)
+	$(INSTALL) -d -m 0755 $(LIBDIR)/pkgconfig
+	$(INSTALL) -m 0644 glew.pc $(LIBDIR)/pkgconfig/
+
+install.pkgconfig.mx: glewmx.pc
+	$(INSTALL) -d -m 0755 $(LIBDIR)
+	$(INSTALL) -d -m 0755 $(LIBDIR)/pkgconfig
+	$(INSTALL) -m 0644 glewmx.pc $(LIBDIR)/pkgconfig/
+
+uninstall:
+	$(RM) $(INCDIR)/wglew.h
+	$(RM) $(INCDIR)/glew.h
+	$(RM) $(INCDIR)/glxew.h
+	$(RM) $(LIBDIR)/$(LIB.DEVLNK) $(LIBDIR)/$(LIB.DEVLNK.MX)
+ifeq ($(filter-out mingw% cygwin,$(SYSTEM)),)
+	$(RM) $(BINDIR)/$(LIB.SHARED) $(BINDIR)/$(LIB.SHARED.MX)
+else
+	$(RM) $(LIBDIR)/$(LIB.SONAME) $(LIBDIR)/$(LIB.SONAME.MX)
+	$(RM) $(LIBDIR)/$(LIB.SHARED) $(LIBDIR)/$(LIB.SHARED.MX)
+endif
+	$(RM) $(LIBDIR)/$(LIB.STATIC) $(LIBDIR)/$(LIB.STATIC.MX)
+	$(RM) $(BINDIR)/$(GLEWINFO.BIN) $(BINDIR)/$(VISUALINFO.BIN)
+
+clean:
+	$(RM) -rf tmp/
+	$(RM) -rf lib/
+	$(RM) -rf bin/
+	$(RM) -f glew.pc glewmx.pc
+
+distclean: clean
+	find . -name \*~ | xargs $(RM)
+	find . -name .\*.sw\? | xargs $(RM)

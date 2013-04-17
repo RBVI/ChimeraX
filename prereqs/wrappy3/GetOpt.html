@@ -1,0 +1,202 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 3.0//EN">
+<html>
+<!-- $Id: GetOpt.html 26655 2009-01-07 22:02:30Z gregc $ -->
+<!--
+.\" Copyright (c) 1988, 1991, 1993
+.\"	The Regents of the University of California.  All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\" 3. All advertising materials mentioning features or use of this software
+.\"    must display the following acknowledgement:
+.\"	This product includes software developed by the University of
+.\"	California, Berkeley and its contributors.
+.\" 4. Neither the name of the University nor the names of its contributors
+.\"    may be used to endorse or promote products derived from this software
+.\"    without specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\"     @(#)getopt.3	8.4 (Berkeley) 4/19/94
+.\"
+-->
+<head>
+<a href="../../Copyright.html">Copyright</a> &copy; 1988, 1991, 1993, 1998 by the Regents of the University of California.
+<title>GetOpt Class Reference</title>
+<link rev=Made href="mailto:gregc@cgl.ucsf.edu">
+</head>
+<body>
+This product includes software developed by the University of
+California, Berkeley and its contributors.
+Specifically, this <strong>GetOpt</strong> class
+is based on <i>getopt</i>(3) from 4.3 <small>BSD</small>, April 19, 1994.
+Parts of that manual page have been incorporated into this text.
+<p>
+<strong>GetOpt</strong> processes options from command line argument list.
+<h1>Synopsis</h1>
+<code><pre>
+#include &lt;GetOpt.h&gt;
+
+GetOpt getopt(int <var>argc</var>, char * const *<var>argv</var>, const char *<var>optstring</var>);
+</pre></code>
+<h1>Description</h1>
+An <strong>GetOpt</strong>
+instance incrementally parses a command line argument list
+<var>argv</var>
+and returns the next <em>known</em> option character.
+An option character is
+<em>known</em>
+if it has been specified in the string of accepted option characters,
+<var>optstring</var>.
+<p>
+The option string
+<var>optstring</var>
+may contain the following elements: individual characters, and
+characters followed by a colon to indicate an option argument
+is to follow.
+For example, an option string
+<code>"x"</code>
+recognizes an option
+"<code><b>-x</b></code>",
+and an option string
+<code>"x:"</code>
+recognizes an option and argument
+"<code><b>-x</b> <i>argument</i></code>".
+It does not matter to
+<strong>GetOpt</strong>
+if a following argument has leading white space.
+<p>
+On return from
+<code>getopt()</code>,
+<code>getopt.arg()</code>
+points to an option argument, if it is anticipated,
+and the variable
+<code>getopt.index()</code>
+contains the index to the next
+<var>argv</var>
+argument for a subsequent call to
+<code>getopt()</code>.
+<p>
+<code>getopt.option()</code>
+returns the last
+<em>known</em>
+option character returned by
+<code>getopt()</code>.
+<p>
+<code>getopt.skip(int <var>count</var>)</code>
+may be called before a set of calls to
+<code>getopt()</code>
+in order to skip over more or less argv entries.
+<p>
+In order to use
+<code>getopt</code>
+to evaluate multiple sets of arguments, or to evaluate a single set of
+arguments multiple times,
+<code>getopt.reset()</code>
+must be called before the second and each additional set of calls to
+<code>getopt()</code>.
+<p>
+The
+<code>getopt()</code>
+returns <code>-1</code>
+when the argument list is exhausted,
+or a non-recognized option is encountered.
+The interpretation of options in the argument list may be cancelled
+by the option
+<code>--</code>
+(double dash) which causes
+<code>getopt</code>
+to signal the end of argument processing.
+<h1>Diagnostics</h1>
+If
+<code>getopt()</code>
+encounters a character not found in the string
+<var>optarg</var>
+or detects
+a missing option argument it writes an error message to standard error
+and returns a <code>'?'</code>.
+Calling
+<code>getopt.printErrors(false)</code>
+will disable these error messages.
+If
+<var>optstring</var>
+has a leading 
+<code>:</code>
+then a missing option argument causes a
+<code>:</code>
+to be returned in addition to suppressing any error messages.
+<p>
+Option arguments are allowed to begin with
+<code>-</code>;
+this is reasonable but
+reduces the amount of error checking possible.
+<h1>Extensions</h1>
+The <code>reset</code>
+function was added to make it possible to call the
+<code>getopt</code>
+multiple times.
+This is an extension to the POSIX p1003.2 specification.
+<h1>Example</h1>
+<code><pre>
+#include &lt;GetOpt.h&gt;
+
+int bflag = 0;
+int fd = 0;
+int opt;
+GetOpt getopt(argc, argv, "bf:");
+while ((opt = getopt()) != -1)
+	switch (opt) {
+	case 'b':
+		bflag = 1;
+		break;
+	case 'f':
+		if ((fd = open(getopt.arg(), O_RDONLY, 0)) &lt; 0) {
+			int saved_errno = errno;
+			std::cerr &lt;&lt; argv[0] &lt;&lt; ": " &lt;&lt; getopt.arg() &lt;&lt; ": "
+					&lt;&lt; strerror(saved_errno) &lt;&lt; "\n";
+			exit(1);
+		}
+		break;
+	case '?':
+	default:
+		usage();
+	}
+argc -= getopt.index();
+argv += getopt.index();
+</pre></code>
+<h1>Bugs</h1>
+A single dash
+<code>-</code>
+may be specified as an character in <var>optstring</var>,
+however it should <em>never</em> have an argument associated with it.
+This allows
+<code>getopt</code>
+to be used with programs that expect
+<code>-</code>
+as an option flag.
+This practice is wrong, and should not be used in any current development.
+It is provided for backward compatibility
+<em>only</em>.
+By default, a single dash causes
+<code>getopt()</code>
+to return
+<code>-1</code>.
+This is, we believe, compatible with System V.
+</body>
+</html>

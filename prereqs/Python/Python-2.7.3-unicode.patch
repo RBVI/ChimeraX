@@ -1,0 +1,8 @@
+diff -rN -u Python-2.7.orig/Lib/sitecustomize.py Python-2.7/Lib/sitecustomize.py
+--- Lib/sitecustomize.py.orig	1969-12-31 16:00:00.000000000 -0800
++++ Lib/sitecustomize.py	2011-03-09 12:53:24.000000000 -0800
+@@ -0,0 +1,4 @@
++# Set the default str <-> unicode conversion to UTF-8 instead of ASCII,
++# just like Python 3!
++import sys
++sys.setdefaultencoding('utf-8')

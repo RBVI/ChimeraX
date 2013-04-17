@@ -1,0 +1,10 @@
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+varying vec4 f_pickId;
+
+void main (void)
+{
+  gl_FragColor = f_pickId;
+}

@@ -1,0 +1,59 @@
+Anatomy of a Python Stub Generator for C++
+
+Goals:
+	Embed C++ library into Python.
+
+	Want C++ classes to have corresponding Python types.
+
+	Desire C++ classes subclassible in Python.
+
+	Allow resulting Python types to have extra attributes
+		(accessible from C++?).
+
+	Performance is important.
+
+	Documentation is nice.
+
+Issues:
+
+	supported types (char, short, int, long, float, double, struct, class,
+		union?, enumeration, array, sequence, dictionary)
+	automatic type coercion (i.e., tuple -> array)
+	exceptions (map from library exceptions to Python exceptions)
+	garbage collection (Python reference counting)
+	global variables
+	read-only member variables, global variables
+	mapping of argument and return types
+	modifications needed to C++ classes?  (add mixin, need
+		logical constness -- use mutable)
+	ownership of C++ objects
+
+	preproccesor effects
+
+	default arguments
+	making get()/set() functions appears as Python attributes
+
+Choice of an Interface Description Language:
+
+	Use C++ subset:
+		advantages: simple editting of C++ header files, remove methods
+			you don't want stubs for, add documentation,
+			annotate arguments with meta-information
+		disadvantages:
+			C++ specific
+
+	Use CORBA's IDL or ILU's ISL:
+		advantages: standard, may allow switching to distributed
+			objects
+		disadvantages: no experienced with, may still need argument
+			meta-information for reference counting
+
+Classifying C++ Classes:
+
+	Type 1: C++ classes whose instances have lifetimes that are independent
+		of the corresponding Python objects, i.e. owned by library.
+
+	Type 2: C++ classes whose instances are created/destroyed through
+		Python interface, i.e. owned by application.
+
+	Type 2 classes must have Python accessible constructors.  Type 1 might.
