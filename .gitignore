@@ -1,0 +1,14 @@
+*.[oa]
+*.so
+*.obj
+*.lib
+*.dll
+*.orig
+*.rej
+*.pyc
+*.pyo
+# OS generated
+.DS_Store
+.DS_Store?
+.Trashes
+Thumbs.db
