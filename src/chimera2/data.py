@@ -203,7 +203,7 @@ def fetch_format(format):
 		return format
 
 def categorized_formats():
-	"""Return know formats by category
+	"""Return known formats by category
 
 	categorized_formats() -> { category: formats() }
 	"""
