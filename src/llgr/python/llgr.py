@@ -2,15 +2,28 @@
 llgr: Provide access to low-level graphics library
 --------------------------------------------------
 
-Provide a Python interface to the :doc:`/llgr`.
+Provide a Python interface to the C++ :doc:`/llgr`.
+The interface is primarily documented in the C++ interface,
+and the corresponding Python function signatures are given below.
+Since the interface is a wrapped C++ interface,
+the argument types are important.
 
-The interface is extended to provide Ids
-with the :py:function: next_data_id\ , :py:function: next_matrix_id\ ,
-:py:function: next_object_id\ , :py:function: next_program_id\ , and
-:py:function: next_texture_id functions.
+The interface is extended to optionally manage Ids
+with the :py:func:`next_data_id`, :py:func:`next_matrix_id`,
+:py:func:`next_object_id`, :py:func:`next_program_id`,
+and :py:func:`next_texture_id` functions.
 
+Python interface
+^^^^^^^^^^^^^^^^
 """
 __all__ = [
+	## from this module
+	"next_data_id",
+	"next_matrix_id",
+	"next_object_id",
+	"next_program_id",
+	#"next_texture_id",
+	## from _llgr
 	# functions
 	"add_cylinder", "add_sphere",
 	"clear_all", "clear_buffers", "clear_matrices",
@@ -123,21 +136,21 @@ def clear_all():
 	_init()
 
 def next_data_id():
-	"""Return next available data id"""
+	"""Return next available integer data id"""
 	return _data_id.next()
 
 def next_matrix_id():
-	"""Return next available matrix id"""
+	"""Return next available integer matrix id"""
 	return _matrix_id.next()
 
 def next_object_id():
-	"""Return next available object id"""
+	"""Return next available integer object id"""
 	return _object_id.next()
 
 def next_program_id():
-	"""Return next available program id"""
+	"""Return next available integer program id"""
 	return _program_id.next()
 
 #def next_texture_id():
-#	"""Return next available data id"""
+#	"""Return next available integer data id"""
 #	return _texture_id.next()

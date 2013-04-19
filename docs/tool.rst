@@ -1,6 +1,5 @@
-
 Tool Interface
-~~~~~~~~~~~~~~
+==============
 
 The tool interface provides abstraction of command line, GUI, and graphics.
 
@@ -9,7 +8,7 @@ The tool interface provides abstraction of command line, GUI, and graphics.
     3. Graphics abstraction (WebGL/OpenGL/SVG).
 
 Modules
-+++++++
+-------
 
 .. toctree::
 

@@ -11,7 +11,7 @@ and the :doc:`tool interface </tool>`.
 The user interface provides access to the tools that manipulate the data
 and is documented in the User's Manual.
 This manual documents the data interface, the tool interface,
-and various useful miscellaneous other Python modules.
+and various other useful Python modules.
 
 The various interfaces are implemented in `Python <http://www.python.org/>`_
 with occasional help from C or C++ code.
@@ -27,4 +27,4 @@ with occasional help from C or C++ code.
 
    examples.rst
 
-   style.rst
+   conventions.rst

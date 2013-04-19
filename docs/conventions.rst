@@ -1,6 +1,5 @@
-
-Coding Style
-~~~~~~~~~~~~
+Coding Conventions
+==================
 
 Python code should follow the Python Style Guide: :pep:`8`.
 
@@ -10,6 +9,9 @@ Documentation Strings should follow Python's documentation style
 given in `Chapter 7 <http://docs.python.org/devguide/documenting.html>`_
 of the `Python Developer's Guide <http://docs.python.org/devguide/index.html>`_.
 So use `reStructuredText (reST) as extended by Sphinx <http://sphinx-doc.org/latest/rest.html>`_.
+
+Editor defaults
+---------------
 
 From <http://wiki.python.org/moin/Vim>:
 All python files should have the following modeline at the top:

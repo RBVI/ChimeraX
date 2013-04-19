@@ -1,8 +1,8 @@
 Data Interface
-~~~~~~~~~~~~~~
+==============
 
 Architecture
-++++++++++++
+------------
 
 Data I/O is managed by the :py:mod:`chimera2.data` module.
 Data formats need to be registered with information about how
@@ -28,7 +28,7 @@ to recognize files of that type and functions to read and/or write them.
     to register common interface support.
 
 Modules
-+++++++
+-------
 
 .. toctree::
 

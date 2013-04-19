@@ -2,7 +2,9 @@
 Chimera 2 documentation
 #######################
 
+*********
 Contents:
+*********
 
 .. toctree::
    :maxdepth: 2
