@@ -2,9 +2,10 @@
 cmds: Support for application command lines
 ===========================================
 
-To add a command, first register() it
-and then process_text() it to parse the text and call the appropriate function.
-The register()ed command functions are introspected to
+To add a command, first :py:func:`register` it
+and then :py:func:`process_command` it to parse the text
+and call the appropriate function.
+The registered command functions are introspected to
 figure out their positional and keyword arguments.
 Keyword arguments can be abbreviated to their unique prefixes.
 Keywords that start with an underscore are ignored.
@@ -30,11 +31,21 @@ Argument values may be quoted.
 
 """
 
+__all__ = [
+	'register',
+	'process_command',
+	'UserError',
+]
+
 # _commands is a map of comamnd_name to command_function
 _commands = {}
 
-def register(command_name, command_function):
-	"""register function that implements command"""
+def register(name, function):
+	"""register function that implements command
+	
+	:param name: the name of the command
+	:param funtion: the callback function
+	"""
 	_commands[command_name] = command_function
 
 class UserError(ValueError):
@@ -79,7 +90,7 @@ def keyword_match(keyword, keywords, unique=True, case_independent=False):
 	in lowercase, and lowercase the given keyword to find a match.
 	"""
 	if case_independent:
-		keyword = keyword.lower()
+		keyword = keyword.lower()	# TODO: in Python 3 use casefold
 	if not unique:
 		for i, k in enumerate(keywords):
 			if k.startswith(keyword):

@@ -2,7 +2,7 @@
 stl: STL format support
 =======================
 
-Read STL binary format.
+Read little-endian STL binary format.
 """
 
 # code taken from chimera 1.7
@@ -13,6 +13,13 @@ from .cmds import UserError
 _builtin_open = open
 
 def open(filename, average_normals=True, *args, **kw):
+	"""Populate the scene with the geometry from a STL file
+
+	:param filename: either the name of a file or a file-like object
+	
+	Extra arguments are ignored.
+	"""
+
 	if hasattr(filename, 'read'):
 		# it's really a file-like object
 		input = filename

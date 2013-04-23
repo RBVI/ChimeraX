@@ -2,7 +2,22 @@
 scene: scene management
 =======================
 
+The scene module is placeholder for demostration purposes.
+A real scene module would have camera, lights, and more.
+
+.. py:data:: bbox
+
+   The current bounding box.  See :py:class:`BBox`.
+
 """
+
+__all__ = [
+	'BBox', 'bbox', 
+	'reset',
+	'add_sphere',
+	'add_cylinder',
+	'render'
+]
 
 from .math3d import Point, Vector, Translation, frustum, look_at, weighted_point, cross
 from numpy import array
@@ -12,13 +27,23 @@ Position = "gl_Vertex"
 Normal = "normal"
 
 class BBox:
-	"""axis-aligned bounding box"""
+	"""axis-aligned bounding box
+
+	If either :py:attr:`BBox.llf` or :py:attr:`BBox.urb` are None,
+	then the bounding box is uninitialized.
+	"""
+
+	__slots__ = ['llf', 'urb']
 
 	def __init__(self):
-		self.llf = None
-		self.urb = None
+		self.llf = None	#: lower-left-front corner coordinates
+		self.urb = None	#: upper-right-back corner coordinates
 
 	def add_point(self, pt):
+		"""extend bounding box to include given point
+
+		:param pt: a :py:class:`~chimera2.math3d.Point`
+		"""
 		if self.llf is None:
 			self.llf = Point(pt)
 			self.urb = Point(pt)
@@ -30,11 +55,22 @@ class BBox:
 				self.urb[i] = pt[i]
 
 	def center(self):
+		"""return center of bounding box
+		
+		:rtype: a :py:class:`~chimera2.math3d.Point`
+		"""
+
 		if self.llf is None:
-			raise ValueError("no value set")
+			raise ValueError("empty bounding box")
 		return weighted_point([self.llf, self.urb])
 
 	def size(self):
+		"""return length of sides of bounding box
+		
+		:rtype: a :py:class:`~chimera2.math3d.Vector`
+		"""
+		if self.llf is None:
+			raise ValueError("empty bounding box")
 		return self.urb - self.llf
 
 bbox = BBox()
@@ -61,7 +97,12 @@ def reset():
 	bbox = BBox()
 
 def add_sphere(radius, center, color):
-	"""add sphere to scene"""
+	"""add sphere to scene
+	
+	:param radius: the radius of the sphere
+	:param center: the center of the sphere, :py:class:`~chimera2.math3d.Point`
+	:param color: the RGBA color of the sphere (either a sequence of 4 floats, or an integer referring to a previously defined color)
+	"""
 	import llgr
 	bbox.add_point(center - radius)
 	bbox.add_point(center + radius)
@@ -84,7 +125,13 @@ def add_sphere(radius, center, color):
 			[ai], Position, Normal)
 
 def add_cylinder(radius, p0, p1, color):
-	"""add cylinder to scene"""
+	"""add cylinder to scene
+	
+	:param radius: the radius of the cylinder
+	:param p0: one endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
+	:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
+	:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
+	"""
 	bbox.add_point(p0 - radius)
 	bbox.add_point(p0 + radius)
 	bbox.add_point(p1 - radius)
@@ -120,7 +167,19 @@ def add_cylinder(radius, p0, p1, color):
 			Position, Normal)
 
 def render(viewport, vertical_fov, globalXform):
-	"""render scene"""
+	"""render scene
+	
+	:param viewport: is a (lower-left, lower-right, width, height) tuple
+	:param vertical_fov: is the veitical field of view
+	:param globalXform: is a :py:class:`~chimera2.math3d.Xform`
+	   that rotates and translates the data after the camera is setup
+
+	The camera is a simple one that takes the :param vertical_fov: and
+	the current bounding box, and calculates the eye position and looks
+	at the bounding box down the negative z-axis.
+
+	There are two lights and the directions are fixed.
+	"""
 	import llgr
 	one = array([1, 1, 1, 1], dtype='f')
 	ambient = array([0.197, 0.197, 0.197, 1], dtype='f')

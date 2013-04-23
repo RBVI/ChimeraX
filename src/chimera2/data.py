@@ -1,7 +1,48 @@
 """
 data: manage information about file formats that can be opened and saved
 ========================================================================
+
+.. Note:
+
+   This module's interface will change.
+
+The data module keeps track of the functions that can open and save
+various data formats.
+The functions do I/O to a named file or, optionally, to a file stream.
+
+.. todo:
+
+   If file streams are supported,
+   then various registered compression schemes are available as well.
 """
+
+__all__ = [
+	'register_format',
+	'DEFAULT_CATEGORY',
+	'DYNAMICS',
+	'GENERIC3D',
+	'SCRIPT',
+	'SEQUENCE',
+	'STRUCTURE',
+	'SURFACE',
+	'VOLUME',
+	'open',
+	'prefixes',
+	'extensions',
+	'open_function',
+	'fetch_function',
+	'save_function',
+	'mime_types',
+	'can_decompress',
+	'dangerous',
+	'category',
+	'formats',
+	'fetch_format',
+	'categorized_formats',
+	'deduce_format',
+	'compression_suffixes',
+]
+
 
 import collections
 
@@ -19,8 +60,8 @@ def compression_suffixes():
 	return _compression.keys()
 
 # some well known file format categories
-DEFAULT_CATEGORY = "Miscellaneous"
-DYNAMICS = "Molecular trajectory"
+DEFAULT_CATEGORY = "Miscellaneous"	#: default file format category
+DYNAMICS = "Molecular trajectory"	#: trajectory
 GENERIC3D = "Generic 3D objects"
 SCRIPT = "Command script"
 SEQUENCE = "Sequence alignment"
@@ -60,13 +101,14 @@ _file_formats = {}
 #TODO: _triggers.addTrigger(NEWFILEFORMAT)
 
 
-def register_format(format, open_function, fetch_function, save_function,
+def register_format(name, open_function, fetch_function, save_function,
 		extensions, prefixes,
 		mime=(), can_decompress=True, dangerous=None,
 		category=DEFAULT_CATEGORY, fetch_format=None,
 		reference=None, save_notes=None):
 	"""Register file format's I/O functions and meta-data
 
+	:param name: format's name
 	:param extensions: is a sequence of filename suffixes starting
 	   with a period.  If the format doesn't open from a filename
 	   (e.g., PDB ID code), then extensions should be an empty sequence.
@@ -93,99 +135,99 @@ def register_format(format, open_function, fetch_function, save_function,
 		prefixes = ()
 	if prefixes and not fetch_function:
 		import sys
-		print >> sys.stderr, "missing fetch function for format with prefix support:", format
+		print >> sys.stderr, "missing fetch function for format with prefix support:", name
 	if mime is None:
 		mime = ()
-	_file_formats[format] = _FileFormatInfo(
+	_file_formats[name] = _FileFormatInfo(
 			open_function, fetch_function, save_function,
 			exts, prefixes, mime,
 			can_decompress, dangerous, category,
 			fetch_format, reference, save_notes)
-	#TODO: _triggers.activateTrigger(NEW_FILE_FORMAT, format)
+	#TODO: _triggers.activateTrigger(NEW_FILE_FORMAT, name)
 
-def prefixes(format):
-	"""Return filename prefixes for given format.
+def prefixes(name):
+	"""Return filename prefixes for named format.
 
-	prefixes(format) -> [filename-prefix(es)]
+	prefixes(name) -> [filename-prefix(es)]
 	"""
 	try:
-		return _file_formats[format].prefixes
+		return _file_formats[name].prefixes
 	except KeyError:
 		return ()
 
-def extensions(format):
-	"""Return filename extensions for given format.
+def extensions(name):
+	"""Return filename extensions for named format.
 
-	extensions(format) -> [filename-extension(s)]
+	extensions(name) -> [filename-extension(s)]
 	"""
 	try:
-		exts = _file_formats[format].extensions
+		exts = _file_formats[name].extensions
 	except KeyError:
 		return ()
 	return exts
 
-def open_function(format):
-	"""Return open callback for given format.
+def open_function(name):
+	"""Return open callback for named format.
 
-	open_function(format) -> function
+	open_function(name) -> function
 	"""
 	try:
-		return _file_formats[format].open_func
+		return _file_formats[name].open_func
 	except KeyError:
 		return None
 
-def fetch_function(format):
-	"""Return fetch callback for given format.
+def fetch_function(name):
+	"""Return fetch callback for named format.
 
-	fetch_function(format) -> function
+	fetch_function(name) -> function
 	"""
 	try:
-		return _file_formats[format].fetch_func
+		return _file_formats[name].fetch_func
 	except KeyError:
 		return None
 
-def save_function(format):
-	"""Return save callback for given format.
+def save_function(name):
+	"""Return save callback for named format.
 
-	save_function(format) -> function
+	save_function(name) -> function
 	"""
 	try:
-		return _file_formats[format].save_func
+		return _file_formats[name].save_func
 	except KeyError:
 		return None
 
-def mime_types(format):
-	"""Return mime types for given format."""
+def mime_types(name):
+	"""Return mime types for named format."""
 	try:
-		return _file_formats[format].mime_types
+		return _file_formats[name].mime_types
 	except KeyError:
 		return None
 
-def can_decompress(format):
-	"""Return whether this format can open compressed files"""
+def can_decompress(name):
+	"""Return whether named format can open compressed files"""
 	try:
-		return _file_formats[format].can_decompress
+		return _file_formats[name].can_decompress
 	except KeyError:
 		return False
 
-def dangerous(format):
-	"""Return whether this format can write to files"""
+def dangerous(name):
+	"""Return whether named format can write to files"""
 	try:
-		return _file_formats[format].dangerous
+		return _file_formats[name].dangerous
 	except KeyError:
 		return False
 
-def category(format):
-	"""Return category of this format"""
+def category(name):
+	"""Return category of named format"""
 	try:
-		return _file_formats[format].category
+		return _file_formats[name].category
 	except KeyError:
 		return "Unknown"
 
 def formats(source_is_file=False):
-	"""Return known formats.
+	"""Return known format names.
 
-	formats() -> [format(s)]
+	formats() -> [format-name(s)]
 	"""
 	if source_is_file:
 		formats = []
@@ -195,12 +237,12 @@ def formats(source_is_file=False):
 		return formats
 	return _file_formats.keys()
 
-def fetch_format(format):
-	"""Return format to display when fetched via the web"""
+def fetch_format(name):
+	"""Return format name to display when fetched via the web"""
 	try:
-		return _file_formats[format].fetch_format or format
+		return _file_formats[name].fetch_format or name
 	except KeyError:
-		return format
+		return name
 
 def categorized_formats():
 	"""Return known formats by category
@@ -208,18 +250,18 @@ def categorized_formats():
 	categorized_formats() -> { category: formats() }
 	"""
 	result = {}
-	for format, info in _file_formats.iteritems():
+	for name, info in _file_formats.iteritems():
 		formats = result.setdefault(info.category, [])
-		formats.append(format)
+		formats.append(name)
 	return result
 
 def deduce_format(filename, default_format=None, prefixable_format=True):
-	"""Figure out format associated with filename
+	"""Figure out named format associated with filename
 	
 	Return tuple of deduced format, whether it was a prefix reference,
 	and the unmangled filename.  If it is a prefix reference, then
 	it needs to be fetched."""
-	format = None
+	name = None
 	prefixed = False
 	if prefixable_format:
 		# format may be specified as colon-separated prefix
@@ -230,11 +272,11 @@ def deduce_format(filename, default_format=None, prefixable_format=True):
 		else:
 			for t, info in _file_formats.iteritems():
 				if prefix in info.prefixes:
-					format = t
+					name = t
 					filename = fname
 					prefixed = True
 					break
-	if format == None:
+	if name == None:
 		import os
 		for cs in compression_suffixes():
 			if filename.endswith(cs):
@@ -246,18 +288,18 @@ def deduce_format(filename, default_format=None, prefixable_format=True):
 		ext = ext.lower()
 		for t, info in _file_formats.iteritems():
 			if ext in info.extensions:
-				format = t
+				name = t
 				break
-		if format == None:
-			format = default_format
-	return format, prefixed, filename
+		if name == None:
+			name = default_format
+	return name, prefixed, filename
 
 def open(filename, identify_as=None):
-	format, prefix, filename = deduce_format(filename)
+	name, prefix, filename = deduce_format(filename)
 	if prefix:
-		func = fetch_function(format)
+		func = fetch_function(name)
 	else:
-		func = open_function(format)
+		func = open_function(name)
 	if func is None:
 		from . import cmds
 		raise cmds.UserError("unknown file type")

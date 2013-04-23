@@ -2,7 +2,7 @@
 llgr: Provide access to low-level graphics library
 --------------------------------------------------
 
-Provide a Python interface to the C++ :doc:`/llgr`.
+Provide a Python interface to the C++ :doc:`/devel/llgr`.
 The interface is primarily documented in the C++ interface,
 and the corresponding Python function signatures are given below.
 Since the interface is a wrapped C++ interface,

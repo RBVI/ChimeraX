@@ -12,4 +12,8 @@ Modules
 
 .. toctree::
 
-    toolsupport.rst
+        cmds.rst
+
+        qtutils.rst
+
+        llgr_opengl.rst

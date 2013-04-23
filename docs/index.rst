@@ -9,9 +9,9 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   user.rst
+   user/index.rst
 
-   developer.rst
+   devel/index.rst
 
 ******************
 Indices and tables

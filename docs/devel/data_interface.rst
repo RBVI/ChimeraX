@@ -32,4 +32,10 @@ Modules
 
 .. toctree::
 
-    datasupport.rst
+    data.rst
+
+    scene.rst
+
+    bild.rst
+
+    stl.rst

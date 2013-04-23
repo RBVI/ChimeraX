@@ -1,10 +1,13 @@
 """
 bild: bild format support
 =========================
-"""
 
-# implement subset of Chimera's bild format
-#  .comment, .color, .transparency, .sphere, and .cylinder
+Read a subset of Chimera's
+`bild format <http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html>`_:
+.comment, .color, .transparency, .sphere, and .cylinder.
+
+The plan is to suport all of the existing bild format.
+"""
 
 from . import scene
 from .cmds import UserError
@@ -13,6 +16,14 @@ from .math3d import Point
 _builtin_open = open
 
 def open(filename, *args, **kw):
+	"""Populate the scene with the geometry from a bild file
+	
+
+	:param filename: either the name of a file or a file-like object
+
+	Extra arguments are ignored.
+	"""
+
 	if hasattr(filename, 'read'):
 		# it's really a file-like object
 		input = filename
