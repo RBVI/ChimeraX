@@ -1,5 +1,5 @@
 """
-Dump llgr calls.  Emit when render() is called.  Can 
+Dump llgr calls.  Emit when render() is called.
 
 The basic llgr interface is extended to manage Ids.
 

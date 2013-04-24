@@ -44,7 +44,7 @@ endif
 	touch wrappy
 
 clean:
-	rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej
+	rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej *.pyc
 ifeq ($(WIN32),msvc)
 	rm -f $(PYMOD).manifest $(PYMOD_NAME).{lib,exp,ilk,pdb} vc90.pdb
 endif

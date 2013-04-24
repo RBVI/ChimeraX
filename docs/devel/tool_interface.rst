@@ -16,4 +16,4 @@ Modules
 
         qtutils.rst
 
-        llgr_opengl.rst
+        llgr.rst
