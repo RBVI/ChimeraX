@@ -15,8 +15,6 @@ the Python interface is extended to optionally manage :cpp:type:`Id`'s
 with the :py:func:`next_data_id`, :py:func:`next_matrix_id`,
 :py:func:`next_object_id`, and :py:func:`next_program_id` functions.
 
-Before any of the 
-
 Python interface
 ^^^^^^^^^^^^^^^^
 """
@@ -54,7 +52,7 @@ _llgr_syms = [
 	"Triangle_strip",
 	"Triangle_fan",
 ]
-__all__ = [
+_local_syms = [
 	## from this module
 	"set_output",
 	"next_data_id",
@@ -62,10 +60,10 @@ __all__ = [
 	"next_object_id",
 	"next_program_id",
 	#"next_texture_id",
-] + _llgr_syms
+]
 
 # symbols that are wrapped with local versions
-_wrapped_sym = set([
+_wrapped_syms = set([
 	"clear_all", "clear_buffers", "clear_matrices",
 	"clear_objects", "clear_programs"
 ])
@@ -77,6 +75,9 @@ def set_output(type):
 	The type may be **opengl** for OpenGL output, or one of several
 	textual types: **json**, **c++**, or **js**.
 	Textual output goes to :py:data:`sys.stdout`.
+
+	Note: this funtion must be called before calling the llgr functions,
+	*i.e.*, there is no default.
 	"""
 	use_opengl = type == 'opengl'
 	if use_opengl:
@@ -88,11 +89,11 @@ def set_output(type):
 		llgr.set_dump_format(type)
 	gsyms = globals()
 	for sym in _llgr_syms:
-		if sym not in _wrapped_sym:
+		if sym not in _wrapped_syms:
 			gsyms[sym] = llgr[sym]
 		else:
 			gsyms['_%s' % sym] = llgr[sym]
-
+	gsyms['__all__'] = _llgr_syms + list[_wrapped_syms] + _local_syms
 
 import itertools
 

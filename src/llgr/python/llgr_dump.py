@@ -6,7 +6,6 @@ The basic llgr interface is extended to manage Ids.
 Add typechecking to function arguments to protect against arguments with the
 wrong type being decoded by matching backend in JavaScript.
 """
-import itertools
 import numpy
 import typecheck
 from typecheck import accepts
@@ -247,32 +246,6 @@ def render():
 				print >> f, "%s;" % call
 			print >> f, "}"
 
-# next line is for pyflakes
-_data_id, _matrix_id, _object_id, _program_id, _texture_id = 0, 0, 0, 0, 0
-def _init():
-	global _data_id, _matrix_id, _object_id, _program_id, _texture_id
-	_data_id = itertools.count(start=1)
-	_matrix_id = itertools.count(start=1)
-	_object_id = itertools.count(start=1)
-	_program_id = itertools.count(start=1)
-	_texture_id = itertools.count(start=1)
-_init()
-
-def next_data_id():
-	return _data_id.next()
-
-def next_matrix_id():
-	return _matrix_id.next()
-
-def next_object_id():
-	return _object_id.next()
-
-def next_program_id():
-	return _program_id.next()
-
-def next_texture_id():
-	return _texture_id.next()
-
 @accepts(Id, String, String, String)
 def create_program(program_id, vertex_shader, fragment_shader, pick_vertex_shader):
 	if _dump_format == JSON_FORMAT:
@@ -292,8 +265,7 @@ def delete_program(program_id):
 @save_args
 @accepts()
 def clear_programs():
-	global _program_id
-	_program_id = itertools.count(start=1)
+	pass
 
 @accepts(Id, String, ShaderType, IsBuffer)
 def set_uniform(program_id, name, shader_type, data):
@@ -342,8 +314,7 @@ def delete_buffer(data_id):
 @save_args
 @accepts()
 def clear_buffers():
-	global _data_id
-	_data_id = itertools.count(start=1)
+	pass
 
 # create singleton "buffer" data
 @accepts(Id, IsBuffer)
@@ -391,8 +362,7 @@ def delete_texture(data_id):
 @save_args
 @accepts()
 def clear_textures():
-	global _texture_id
-	_texture_id = itertools.count(start=1)
+	pass
 
 # matrices
 
@@ -446,8 +416,7 @@ def delete_matrix(matrix_id):
 @save_args
 @accepts()
 def clear_matrices():
-	global _matrix_id
-	_matrix_id = itertools.count(start=1)
+	pass
 
 # flat scene graph
 
@@ -507,8 +476,7 @@ def delete_object(obj_id):
 @save_args
 @accepts()
 def clear_objects():
-	global _object_id
-	_object_id = itertools.count(start=1)
+	pass
 
 # indicate whether to draw object or not
 @save_args
@@ -563,8 +531,13 @@ def add_cylinder(obj_id, radius, length,
 
 @save_args
 @accepts()
+def clear_primitives():
+	pass
+
+@save_args
+@accepts()
 def clear_all():
-	_init()
+	pass
 
 @save_args
 @accepts(Number, Number, Number, Number)

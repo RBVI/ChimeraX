@@ -6,8 +6,9 @@ Overview
 ========
 
 There are three major components of Chimera 2:
-the :doc:`user interface </user/index>`, the :doc:`data interface <data>`,
-and the :doc:`tool interface <tool>`.
+the :doc:`user interface </user/index>`,
+the :doc:`data interface <data_interface>`,
+and the :doc:`tool interface <tool_interface>`.
 The user interface provides access to the tools that manipulate the data
 and is documented in the User's Manual.
 This manual documents the data interface, the tool interface,
