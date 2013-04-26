@@ -32,7 +32,11 @@ Types
 
 .. cpp:type:: Id
 
-    provided identifier
+    API client provided identifier.
+    Negative values are reserved for internal use
+    and should not appear in client code.
+    Zero has special meaning depending on where it is used,
+    so all user-generated content should have postive identifiers.
 
 .. cpp:type:: BufferTarget
 
