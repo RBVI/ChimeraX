@@ -307,6 +307,16 @@ Objects
 	uint32_t first, uint32_t count, \
 	Id index_data_id = 0, DataType index_data_type = Byte)
 
+    :param obj_id: provided object identifier
+    :param program_id: provided program identifier
+    :param matrix_id: provided matrix identifier
+    :param ais: vector of attribute information
+    :param pt: primitive type
+    :param first:
+    :param count:
+    :param index_data_id: provided data identifier for index data, zero if none
+    :param index_data_type:
+
 .. cpp:function:: void delete_object(Gluint obj_id)
 
     :param obj_id: existing object identifier
@@ -353,13 +363,34 @@ LOD primitives
 
 Level-of-detail primitives. *TODO: implement LOD*
 
-.. cpp:function void add_sphere(Id obj_id, float radius, \
-	Id program_id, Id matrix_id, const AttributeInfos\& ais, \
-	const char *position = "gl_Vertex", const char *normal = "gl_Normal")
+.. cpp:function:: void add_sphere(Id obj_id, float radius, \
+	Id program_id, Id matrix_id, const AttributeInfos& ais, \
+	const char *position = "position", const char *normal = "normal")
+
+     Add sphere.
+
+    :param obj_id: provided object identifier
+    :param radius: the sphere's radius
+    :param program_id: provided program identifier
+    :param matrix_id: provided matrix identifier
+    :param ais: vector of attribute information
+    :param position: optional override for shader program's postion attribute
+    :param normal: optional override for shader program's normal attribute
 
 .. cpp:function:: void add_cylinder(Id obj_id, float radius, float length, \
-	Id program_id, Id matrix_id, const AttributeInfos\& ais,
-	const char *position = "gl_Vertex", const char *normal = "gl_Normal")
+	Id program_id, Id matrix_id, const AttributeInfos& ais, \
+	const char *position = "position", const char *normal = "normal")
+
+     Add cylinder.
+
+    :param obj_id: provided object identifier
+    :param radius: the cylinder's radius
+    :param length: the cylinder's length
+    :param program_id: provided program identifier
+    :param matrix_id: provided matrix identifier
+    :param ais: vector of attribute information
+    :param position: optional override for shader program's postion attribute
+    :param normal: optional override for shader program's normal attribute
 
 .. cpp:function:: void clear_primitives()
 
