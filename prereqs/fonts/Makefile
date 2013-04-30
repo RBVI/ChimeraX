@@ -1,19 +1,19 @@
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-FREEFONT_VERSION = 20120719
-FREEFONT_PACKAGE = freefont-ttf-$(FREEFONT_VERSION).tar.gz
-FREEFONT_SOURCE = $(tmpdir)/freefont-$(FREEFONT_VERSION)
+VERSION = 20120719
+DISTRIBUTION = freefont-ttf-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/freefont-$(VERSION)
 
 all:
 
-install: $(FREEFONT_SOURCE)
+install: $(SOURCE)
 	-mkdir $(datadir)/fonts
 	-mkdir $(datadir)/fonts/freefont
-	$(RSYNC) $(FREEFONT_SOURCE)/* $(datadir)/fonts/freefont
+	$(RSYNC) $(SOURCE)/* $(datadir)/fonts/freefont
 
-$(FREEFONT_SOURCE):
-	tar zxf $(FREEFONT_PACKAGE) -C $(tmpdir)
+$(SOURCE):
+	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 
 clean:
-	rm -rf $(FREEFONT_SOURCE)
+	rm -rf $(SOURCE)

@@ -95,7 +95,9 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+blockdiag.install: Python.install funcparserlib.install webcolors.install
 docutils.install: Python.install
+funcparserlib.install: Python.install
 jinja2.install: Python.install setuptools.install
 numpy.install: Python.install
 pcre.install: zlib.install
@@ -107,6 +109,8 @@ qt.install: openssl.install zlib.install
 # qt.install: tiff.install mng.install png.install jpeg.install
 setuptools.install: Python.install
 sphinx.install: docutils.install jinja2.install setuptools.install
+sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
+webcolors.install: Python.install
 wrappy3.install: pcre.install Python.install
 xml2.install: Python.install zlib.install
 xslt.install: xml2.install

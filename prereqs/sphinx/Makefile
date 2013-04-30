@@ -2,9 +2,9 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-SPHINX_VERSION = 1.2b1
-SPHINX_PACKAGE = Sphinx-$(SPHINX_VERSION).tar.gz
-SPHINX_SOURCE = $(tmpdir)/Sphinx-$(SPHINX_VERSION)
+VERSION = 1.2b1
+DISTRIBUTION = Sphinx-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/Sphinx-$(VERSION)
 
 SETUP_BUILD =
 ifdef DEBUG
@@ -16,11 +16,11 @@ endif
 all:
 
 
-install: $(SPHINX_SOURCE)
-	cd $(SPHINX_SOURCE) && python setup.py $(SETUP_BUILD) install
+install: $(SOURCE)
+	cd $(SOURCE) && python setup.py $(SETUP_BUILD) install
 
-$(SPHINX_SOURCE):
-	tar zxf $(SPHINX_PACKAGE) -C $(tmpdir)
+$(SOURCE):
+	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 
 clean:
-	rm -rf $(SPHINX_SOURCE)
+	rm -rf $(SOURCE)

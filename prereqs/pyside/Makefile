@@ -4,11 +4,11 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 SHIBOKEN_VERSION = 1.1.2
-SHIBOKEN_PACKAGE = shiboken-$(SHIBOKEN_VERSION).tar.bz2
+SHIBOKEN_DISTRIBUTION = shiboken-$(SHIBOKEN_VERSION).tar.bz2
 SHIBOKEN_SOURCE = $(tmpdir)/shiboken-$(SHIBOKEN_VERSION)
 
 PYSIDE_VERSION = qt4.8+1.1.2
-PYSIDE_PACKAGE = pyside-$(PYSIDE_VERSION).tar.bz2
+PYSIDE_DISTRIBUTION = pyside-$(PYSIDE_VERSION).tar.bz2
 PYSIDE_SOURCE = $(tmpdir)/pyside-$(PYSIDE_VERSION)
 
 CMAKE_ENV = env CC='gcc -I$(includedir)' CXX='g++ -I$(includedir)'
@@ -48,16 +48,16 @@ install: shiboken.install pyside.install
 shiboken.install: $(SHIBOKEN_SOURCE)
 	cd $(SHIBOKEN_SOURCE)/build && $(MAKE) install
 
-$(SHIBOKEN_SOURCE): $(SHIBOKEN_PACKAGE)
-	tar jxf $(SHIBOKEN_PACKAGE) -C $(tmpdir)
+$(SHIBOKEN_SOURCE): $(SHIBOKEN_DISTRIBUTION)
+	tar jxf $(SHIBOKEN_DISTRIBUTION) -C $(tmpdir)
 	mkdir $(SHIBOKEN_SOURCE)/build
 	cd $(SHIBOKEN_SOURCE)/build && $(CMAKE_ENV) cmake $(CMAKE_OPTS) $(SHIBOKEN_OPTS) ..
 	
 pyside.install: shiboken.install $(PYSIDE_SOURCE)
 	cd $(PYSIDE_SOURCE)/build && $(MAKE) install
 
-$(PYSIDE_SOURCE): $(PYSIDE_PACKAGE)
-	tar jxf $(PYSIDE_PACKAGE) -C $(tmpdir)
+$(PYSIDE_SOURCE): $(PYSIDE_DISTRIBUTION)
+	tar jxf $(PYSIDE_DISTRIBUTION) -C $(tmpdir)
 	mkdir $(PYSIDE_SOURCE)/build
 	cd $(PYSIDE_SOURCE)/build && $(CMAKE_ENV) cmake $(CMAKE_OPTS) ..
 

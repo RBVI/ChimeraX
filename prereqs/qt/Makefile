@@ -2,11 +2,11 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-QT_VERSION = 4.8.4
-QT_PACKAGE = qt-everywhere-opensource-src-$(QT_VERSION).tar.gz
-QT_SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(QT_VERSION)
+VERSION = 4.8.4
+DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
-PATCHES	= $(wildcard qt-src-$(QT_VERSION)-*.patch)
+PATCHES	= $(wildcard qt-src-$(VERSION)-*.patch)
 
 ifdef USE_MAC_FRAMEWORK
 ENV = env CC='gcc -I$(includedir) -F$(frameworkdir)' \
@@ -36,11 +36,11 @@ endif
 
 all:
 
-install: $(QT_SOURCE)
+install: $(SOURCE)
 ifeq ($(OS),Windows)
-	cd $(QT_SOURCE) && ./configure.exe $(CONFIG_OPTS) && nmake && nmake install
+	cd $(SOURCE) && ./configure.exe $(CONFIG_OPTS) && nmake && nmake install
 else
-	cd $(QT_SOURCE) && $(ENV) ./configure $(CONFIG_OPTS) && $(MAKE) && $(MAKE) -j1 install
+	cd $(SOURCE) && $(ENV) ./configure $(CONFIG_OPTS) && $(MAKE) && $(MAKE) -j1 install
 endif
 	rm -f $(build_prefix)/q3porting.xml
 ifdef USE_MAC_FRAMEWORKS
@@ -50,13 +50,13 @@ ifdef USE_MAC_FRAMEWORKS
 	done
 endif
 
-$(QT_SOURCE): $(QT_PACKAGE)
-	tar zxf $(QT_PACKAGE) -C $(tmpdir)
+$(SOURCE): $(DISTRIBUTION)
+	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
-		(cd $(QT_SOURCE) && patch -f -p0) < $$p ; \
+		(cd $(SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
 
 clean:
-	rm -rf $(QT_SOURCE)
+	rm -rf $(SOURCE)

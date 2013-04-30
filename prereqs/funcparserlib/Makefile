@@ -2,9 +2,9 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = main
-DISTRIBUTION = pyflakes-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/pyflakes-$(VERSION)
+VERSION = 0.3.5
+DISTRIBUTION = funcparserlib-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/funcparserlib-$(VERSION)
 
 SETUP_BUILD =
 ifdef DEBUG
@@ -15,12 +15,8 @@ endif
 
 all:
 
-
 install: $(SOURCE)
 	cd $(SOURCE) && python setup.py $(SETUP_BUILD) install
-ifdef USE_MAC_FRAMEWORKS
-	cp -p $(PYTHON_FRAMEWORK)/bin/pyflakes $(bindir)
-endif
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

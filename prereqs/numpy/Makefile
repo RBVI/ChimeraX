@@ -2,9 +2,9 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-NUMPY_VERSION = 1.7.0
-NUMPY_PACKAGE = numpy-$(NUMPY_VERSION).tar.gz
-NUMPY_SOURCE = $(tmpdir)/numpy-$(NUMPY_VERSION)
+VERSION = 1.7.0
+DISTRIBUTION = numpy-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/numpy-$(VERSION)
 
 SETUP_BUILD = build --fcompiler=none
 ifdef DEBUG
@@ -13,9 +13,9 @@ SETUP_BUILD += --debug
 endif
 endif
 
-VER	:= $(shell expr $(NUMPY_VERSION) : '\(.*\..*\..*\)\.')
+VER	:= $(shell expr $(VERSION) : '\(.*\..*\..*\)\.')
 ifeq ($(VER),)
-VER	= $(NUMPY_VERSION)
+VER	= $(VERSION)
 endif
 
 PATCHES = $(wildcard numpy-$(VER)-fcompiler.patch)
@@ -26,16 +26,16 @@ endif
 
 all:
 
-install: $(NUMPY_SOURCE)
-	cd $(NUMPY_SOURCE) && python setup.py $(SETUP_BUILD) install
+install: $(SOURCE)
+	cd $(SOURCE) && python setup.py $(SETUP_BUILD) install
 
-$(NUMPY_SOURCE):
-	tar zxf $(NUMPY_PACKAGE) -C $(tmpdir)
+$(SOURCE):
+	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq ($(PATCHES),)
 	for p in $(PATCHES); do \
-		(cd $(NUMPY_SOURCE) && patch -f -p0) < $$p ; \
+		(cd $(SOURCE) && patch -f -p0) < $$p ; \
 	done
 endif
 
 clean:
-	rm -rf $(NUMPY_SOURCE)
+	rm -rf $(SOURCE)

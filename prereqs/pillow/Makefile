@@ -2,9 +2,9 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = main
-DISTRIBUTION = pyflakes-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/pyflakes-$(VERSION)
+VERSION = 2.0.0
+DISTRIBUTION = Pillow-$(VERSION).zip
+SOURCE = $(tmpdir)/Pillow-$(VERSION)
 
 SETUP_BUILD =
 ifdef DEBUG
@@ -18,12 +18,9 @@ all:
 
 install: $(SOURCE)
 	cd $(SOURCE) && python setup.py $(SETUP_BUILD) install
-ifdef USE_MAC_FRAMEWORKS
-	cp -p $(PYTHON_FRAMEWORK)/bin/pyflakes $(bindir)
-endif
 
 $(SOURCE):
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+	unzip $(DISTRIBUTION) -d $(tmpdir)
 
 clean:
 	rm -rf $(SOURCE)

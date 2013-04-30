@@ -2,12 +2,12 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-EXPAT_VERSION = 2.1.0
-EXPAT_PACKAGE = expat-$(EXPAT_VERSION).tar.gz
-EXPAT_SOURCE = $(tmpdir)/expat-$(EXPAT_VERSION)
-EXPAT_SHLIB_VER = 1
+VERSION = 2.1.0
+DISTRIBUTION = expat-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/expat-$(VERSION)
+SHLIB_VER = 1
 
-PATCHES = $(wildcard expat-$(EXPAT_VER)*.patch)
+PATCHES = $(wildcard expat-$(VER)*.patch)
 
 ifdef WIN32
 RSYNC = cp -uv
@@ -19,44 +19,44 @@ QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 # Make Python use our compiler options
 ENV_CONFIGURE = env CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)' LDFLAGS="$(TARGET_ARCH) $(LDFLAGS)"
 
-EXPAT_HEADERS = expat.h expat_external.h
+HEADERS = expat.h expat_external.h
 
 all:
 
-install: $(EXPAT_SOURCE)
+install: $(SOURCE)
 ifeq ($(LDFLAGS),)
-	cd $(EXPAT_SOURCE) && $(MAKE) buildlib
+	cd $(SOURCE) && $(MAKE) buildlib
 else
-	cd $(EXPAT_SOURCE) && $(MAKE) LDFLAGS="$(LDFLAGS)" buildlib
+	cd $(SOURCE) && $(MAKE) LDFLAGS="$(LDFLAGS)" buildlib
 endif
-	cd $(EXPAT_SOURCE) && $(MAKE) installlib
+	cd $(SOURCE) && $(MAKE) installlib
 ifeq ($(OS),Darwin)
 	install_name_tool -id \
-	  @executable_path/../lib/libexpat.$(EXPAT_SHLIBVER).$(SHLIB_EXT) \
+	  @executable_path/../lib/libexpat.$(SHLIBVER).$(SHLIB_EXT) \
 	  $(libdir)/libexpat.$(SHLIB_EXT)
 endif
 
-$(EXPAT_SOURCE):
-	tar zxf $(EXPAT_PACKAGE) -C $(tmpdir)
+$(SOURCE):
+	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for i in $(PATCHES) ; do \
-		(cd $(EXPAT_SOURCE) && patch -f -p0) < $$i; \
+		(cd $(SOURCE) && patch -f -p0) < $$i; \
 	done
 endif
 ifeq ($(OS),Windows)
 ifeq ($(WIN32),mingw)
-	cd $(EXPAT_SOURCE) && \
+	cd $(SOURCE) && \
 	  $(ENV_CONFIGURE) ./configure --prefix=$(build_prefix) \
 					--build=i686-pc-mingw32
-	(cd $(EXPAT_SOURCE) && patch -f -p0) < libtool.patch
+	(cd $(SOURCE) && patch -f -p0) < libtool.patch
 endif
 ifeq ($(WIN32),msvc)
-	sed 's;^INSTDIR.*;INSTDIR=$(build_prefix);' < Makefile.vc > $(EXPAT_SOURCE)/Makefile
+	sed 's;^INSTDIR.*;INSTDIR=$(build_prefix);' < Makefile.vc > $(SOURCE)/Makefile
 endif
 else
-	cd $(EXPAT_SOURCE) && \
+	cd $(SOURCE) && \
 	  $(ENV_CONFIGURE) ./configure --prefix=$(build_prefix)
 endif
 
 clean:
-	rm -rf $(EXPAT_SOURCE)
+	rm -rf $(SOURCE)

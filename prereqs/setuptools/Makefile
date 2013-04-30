@@ -2,9 +2,9 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-SETUPTOOLS_VERSION = 0.6c11
-SETUPTOOLS_PACKAGE = setuptools-$(SETUPTOOLS_VERSION).tar.gz
-SETUPTOOLS_SOURCE = $(tmpdir)/setuptools-$(SETUPTOOLS_VERSION)
+VERSION = 0.6c11
+DISTRIBUTION = setuptools-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/setuptools-$(VERSION)
 
 SETUP_BUILD =
 ifdef DEBUG
@@ -16,11 +16,11 @@ endif
 all:
 
 
-install: $(SETUPTOOLS_SOURCE)
-	cd $(SETUPTOOLS_SOURCE) && python setup.py $(SETUP_BUILD) install
+install: $(SOURCE)
+	cd $(SOURCE) && python setup.py $(SETUP_BUILD) install
 
-$(SETUPTOOLS_SOURCE):
-	tar zxf $(SETUPTOOLS_PACKAGE) -C $(tmpdir)
+$(SOURCE):
+	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 
 clean:
-	rm -rf $(SETUPTOOLS_SOURCE)
+	rm -rf $(SOURCE)

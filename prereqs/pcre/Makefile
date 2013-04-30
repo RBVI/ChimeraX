@@ -2,9 +2,9 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-PCRE_VERSION = 8.32
-PCRE_PACKAGE = pcre-$(PCRE_VERSION).tar.bz2
-PCRE_SOURCE = $(tmpdir)/pcre-$(PCRE_VERSION)
+VERSION = 8.32
+DISTRIBUTION = pcre-$(VERSION).tar.bz2
+SOURCE = $(tmpdir)/pcre-$(VERSION)
 
 ifdef UNIX
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
@@ -49,27 +49,27 @@ endif # OS == Windows
 
 all:
 
-install: $(PCRE_SOURCE)
+install: $(SOURCE)
 ifeq ($(OS),Windows)
-	cd $(PCRE_SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
-	cd $(PCRE_SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
-	cd $(PCRE_SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
-	$(RSYNC) $(PCRE_SOURCE)/build/Release/*.$(SHLIB_EXT) $(shlibdir)
-	$(RSYNC) $(PCRE_SOURCE)/build/Release/*.$(LIB_EXT) $(libdir)
-	$(RSYNC) $(PCRE_SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
-	$(RSYNC) $(PCRE_SOURCE)/build/pcre{,cpparg,_stringpiece}.h $(includedir)
+	cd $(SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcre
+	cd $(SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcreposix
+	cd $(SOURCE)/build && devenv.com PCRE.sln /build $(CONFIG_PLATFORM) /project pcrecpp
+	$(RSYNC) $(SOURCE)/build/Release/*.$(SHLIB_EXT) $(shlibdir)
+	$(RSYNC) $(SOURCE)/build/Release/*.$(LIB_EXT) $(libdir)
+	$(RSYNC) $(SOURCE)/pcre{cpp,posix,_scanner}.h $(includedir)
+	$(RSYNC) $(SOURCE)/build/pcre{,cpparg,_stringpiece}.h $(includedir)
 else
-	cd $(PCRE_SOURCE) && $(MAKE) $(MAKE_ARGS) && $(MAKE) $(MAKE_ARGS) install
+	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) && $(MAKE) $(MAKE_ARGS) install
 endif
 
-$(PCRE_SOURCE):
-	tar jxf $(PCRE_PACKAGE) -C $(tmpdir)
+$(SOURCE):
+	tar jxf $(DISTRIBUTION) -C $(tmpdir)
 ifdef UNIX
-	cd $(PCRE_SOURCE) && $(ENV_CONFIGURE) ./configure $(CONF_ARGS)
+	cd $(SOURCE) && $(ENV_CONFIGURE) ./configure $(CONF_ARGS)
 endif
 ifeq ($(OS),Windows)
-	mkdir $(PCRE_SOURCE)/build && cd $(PCRE_SOURCE)/build && cmake $(CMAKE_OPTS) ..
+	mkdir $(SOURCE)/build && cd $(SOURCE)/build && cmake $(CMAKE_OPTS) ..
 endif
 
 clean:
-	rm -rf $(PCRE_SOURCE)
+	rm -rf $(SOURCE)
