@@ -101,12 +101,8 @@ template <> struct TypeToShaderType<float [3][4]>
 template <> struct TypeToShaderType<float [4][3]>
 		{ static const ShaderType value = Mat4x3; };
 
-// TODO: eventually the shader program support will be constrained to those
-// that support the features (e.g., shadows, picking) that the
-// rendering engine supports
-// Perhaps like:
-// http://svn.code.sf.net/p/castle-engine/code/trunk/castle_game_engine/src/x3d/opengl/glsl
-//
+// Shapder programs
+
 LLGR_IMEX extern void create_program(Id program_id, const char *vertex_shader, const char *fragment_shader, const char *pick_vertex_shader = NULL);
 LLGR_IMEX extern void delete_program(Id program_id);
 LLGR_IMEX extern void clear_programs();

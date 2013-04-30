@@ -11,24 +11,68 @@ Except for the rendering code,
 it is a thin-layer over the underlying graphics library,
 and exposes shader programs, program uniforms, vertex attributes,
 and vertex attribute buffers.
-
-To display the contents of those buffers,
-a flat scene graph of objects is used.
-Objects contain references to a particular shader program
-and the attributes buffers needed to draw the object.
-
-All data is limited to 32-bits.
+Additional OpenGL concepts, eg., uniform buffers, may be exposed later.
 
 .. _WebGL: http://www.webgl.org/
 .. _OpenGL: http://www.opengl.org/
 
+Typical Usage
+-------------
+
+To display the contents of those buffers,
+a flat scene graph of objects is used.
+Objects contain references to a particular shader program,
+a transformation matrix,
+and the attributes needed to draw the object.
+All attributes refer to buffers, but should refer to a singleton buffer
+when the value of the attribute is constant within the object.
+Objects that only differ only by their singleton attributes
+can be automatically instanced for faster drawing.
+
+The default rendering code expects various uniforms and attributes
+to be present, and they are documented below.
+
+Typical Usage
+-------------
+
+A reasonable scenario would be to:
+
+    #. Instantiate the shader programs with :cpp:func:`create_program`
+
+    #. Instantiate the vertex coordinate (and vertex index) buffers
+           with :cpp:func:`create_buffer`
+
+    #. Instantiate other vertex attributes, such as color,
+           as buffers with :cpp:func:`create_buffer`
+           or singletons with :cpp:func:`create_singleton`
+
+    #. For each object create a std::vector describing its attributes
+           with :cpp:class:`AttributeInfo`
+           and instantiate it with :cpp:func:`create_object`
+
+    #. Set shader program uniforms with :cpp:func:`set_uniform`
+           and :cpp:func:`set_uniform_matrix`
+
+    #. :cpp:func:`render`
+
 C++ API
 -------
+
+All data types are limited to 32-bit quantities or less.
+In the future, we might allow 64-bit quantities for desktop OpenGL.
 
 Types
 ~~~~~
 
 .. cpp:namespace: llgr
+
+    All of the public symbols are in the **llgr** namespace.
+
+.. cpp:type:: Bytes
+
+    For C++, Bytes is just **'void *'**.
+    It is a separate type,
+    so a Python wrapper generator can easily find byte arguments.
 
 .. cpp:type:: Id
 
@@ -36,55 +80,110 @@ Types
     Negative values are reserved for internal use
     and should not appear in client code.
     Zero has special meaning depending on where it is used,
-    so all user-generated content should have postive identifiers.
+    so all user-generated content should have positive identifiers.
 
 .. cpp:type:: BufferTarget
 
-    buffer array types: ARRAY for array of data,
-    ELEMENT_ARRAY for array of indices
+    Buffer array types:
+
+    ARRAY
+        for array of data,
+
+    ELEMENT_ARRAY
+        for array of indices
 
 .. cpp:type:: DataType
 
-    buffer data types: Byte, UByte, Short, UShort, Int, UInt, Float
+    Buffer data types:
+
+    Byte
+        8-bit integer
+
+    UByte
+        8-bit unsigned integer
+
+    Short
+        16-bit integer
+
+    UShort
+        16-bit unsigned integer
+
+    Int
+        32-bit integer
+
+    UInt
+        32-bit unsigned integer
+
+    Float
+        32-bit IEEE floating point
 
 .. cpp:type:: ShaderType
 
-    shader variable types: IVec1, IVec2, IVec3, IVec4,
-    UVec1, UVec2, UVec3, UVec4,
-    FVec1, FVec2, FVec3, FVec4,
-    Mat2x2, Mat3x3, Mat4x4,
-    Mat2x3, Mat3x2, Mat2x4, Mat4x2, Mat3x4, Mat4x3
+    Shader variable types:
 
-    Note: [IUF]Vec1 instead of Int, UInt, Float to avoid clash with DataType's
-    values.
-    Note: UVec[1234] (unsigned integers)
-    and asymmetrical matrices are for a future compatibility with a  WebGL 
-    that is based on OpenGL ES 3.0.
+    IVec1, IVec2, IVec3, IVec4
+        Integer vectors of 1-4 elements
+
+
+    UVec1, UVec2, UVec3, UVec4
+        Unsigned integer vectors of 1-4 elements
+        *Not implemented.
+        Reserved for forward compatibility
+        with a WebGL that is based on OpenGL ES 3.0.*
+
+    FVec1, FVec2, FVec3, FVec4
+        Floating point vectors of 1-4 elements
+
+    Mat2x2, Mat3x3, Mat4x4
+        Square matrices
+
+    Mat2x3, Mat3x2, Mat2x4, Mat4x2, Mat3x4, Mat4x3
+        Rectangular matrices.
+        *Not implemented.
+        Reserved for forward compatibility
+        with a WebGL that is based on OpenGL ES 3.0.*
+
+    .. Note:
+
+        [IUF]Vec1 instead of Int, UInt, Float to avoid clash with DataType's
+        identifiers.
 
 .. cpp:type:: PrimitiveType
 
-    drawing primitive types: Points, Lines, Line_loop, Line_strip,
-    Triangles, Triangle_strip, Triangle_fan
+    Drawing primitive types:
+
+    Points, Lines, Line_loop, Line_strip, Triangles, Triangle_strip, Triangle_fan
+        Same primitives that WebGL provides.
+
+.. cpp:type:: Objects
+
+    A std::vector of object identifiers
 
 Shader Programs
 ~~~~~~~~~~~~~~~
 
-TODO: eventually the shader support will be constrained to those
-that support the features (e.g., shadows, picking) that the
-rendering engine supports
-Perhaps like:
-http://svn.code.sf.net/p/castle-engine/code/trunk/castle_game_engine/src/x3d/opengl/glsl
+Shaders problems need to be compatible with the rendering code.
+Since the rendering code may change,
+or there might be more than one way to render objects,
+those requirements are documented below with the rendering code.
 
-TODO: decide whether to annotate shader programs with expected OpenGL state,
-e.g., GL_DEPTH_TEST, and/or names of well-known uniform or vertex attributes,
-e.g., instancematrix, position, normal.
+Managing shader programs is expected to be done
+by a library layered on top of llgr.
+
+.. Todo:
+
+    Decide whether to annotate shader programs with expected OpenGL state,
+    e.g., GL_DEPTH_TEST, and/or names of well-known uniform or vertex attributes,
+    e.g., instance matrix, position, normal.
 
 .. cpp:function:: void create_program(Id program_id, const char *vertex_shader, const char *fragment_shader)
 
     :param program_id: user-provided identifier to reference in other functions
-        (zero is reserved)
+        (zero is reserved, see :cpp:func:`set_uniform`)
     :param vertex_shader: vertex shader text
-    :param fragment_shader: fragement shader text
+    :param fragment_shader: fragment shader text
+
+    To reuse a program_id, just recreate it.
 
 .. cpp:function:: void delete_program(Id program_id)
 
@@ -96,9 +195,9 @@ e.g., instancematrix, position, normal.
 
     Remove all existing programs.
 
-.. cpp:function:: void set_uniform(Id program_id, const char *name, DataType type, uint32_t data_length, void *data)
+.. cpp:function:: void set_uniform(Id program_id, const char *name, DataType type, uint32_t data_length, Bytes data)
 
-    :param program_id: existing program identifer
+    :param program_id: existing program identifier
         (program id zero means to set uniform in all existing programs)
     :param name: uniform name
     :param type: data type
@@ -107,13 +206,15 @@ e.g., instancematrix, position, normal.
 
 .. cpp:function:: template \<typename T> void set_uniform(Id program_id, const char *name, const T *data)
 
-    Templated versions for all of the shader variable types,
-    where the type and size are infered from the data argument's type.
+    Template versions for all of the shader variable types,
+    where the type and size are inferred from the data argument's type.
 
 Buffers
 ~~~~~~~
 
-.. cpp:function:: void create_buffer(Id data_id, BufferTarget target, uint32_t data_length, void *data)
+Buffers contain coordinate and attribute data.
+
+.. cpp:function:: void create_buffer(Id data_id, BufferTarget target, uint32_t data_length, Bytes data)
 
     :param data_id: provided buffer data id
     :param target: type of buffer
@@ -121,18 +222,16 @@ Buffers
     :param data: the actual data
 
     Create buffer data.
-    Data length in bytes = length * size * "sizeof"(type).
-    So buffer only contains one type, unlike OpenGL.
 
-.. cpp:function:: void create_singleton(Id data_id, uint32_t data_length, type, Bytes *data)
+.. cpp:function:: void create_singleton(Id data_id, uint32_t data_length, Bytes data)
 
     :param data_id: provided buffer data id
     :param data_length: size of the data in bytes
     :param data: the actual data
 
-.. cpp:function:: void update_buffer(Id data_id, uint32_t offset, uint32_t stride, uint32_t data_length, Bytes *data)
+.. cpp:function:: void update_buffer(Id data_id, uint32_t offset, uint32_t stride, uint32_t data_length, Bytes data)
 
-    TODO: update column of existing buffer
+    TODO: future function to update column of existing buffer
 
 .. cpp:function:: void delete_buffer(Id buffer_id)
 
@@ -148,39 +247,13 @@ Matrices
 ~~~~~~~~
 
 A matrix_id of zero is always the identity matrix.
+Matrices are a separate kind of data
 
-.. cpp:function:: void set_projection_matrix(float matrix[16], const char *uniform_name)
-
-    :param matrix: the matrix in OpenGL order
-    :param uniform_name: 
-
-    This provides compatibility between OpenGL 2 graphics drivers
-    and newer graphics drivers,
-    by setting the projection matrix stack if the uniform_name is
-    gl_ProjectionMatrix.
-    Otherwise, broadcast uniform change to all current programs.
-    TODO: get uniform name from program annotation or just eliminate
-
-.. cpp:function:: void set_modelview_matrix(float matrix[16], const char *modelview_name, const char *normal_name)
-
-    :param matrix: the matrix in OpenGL order
-    :param modelview_name: name of modelview matrix uniform
-    :param normal_name: name of normal matrix uniform
-
-    This provides compatibility between OpenGL 2 graphics drivers
-    and newer graphics drivers,
-    by setting the modelview matrix stack if the uniform_name is
-    gl_ModelViewMatrix.
-    The rotation part of the modelview matrix is assumed to be orthonormal,
-    so the normal matrix is just the rotation part of the modelview matrix
-    (i.e., the inverse transpose is an identity operation).
-    Otherwise, broadcast uniform change to all current programs.
-    TODO: get uniform name from program annotation or just eliminate
-
-.. cpp:function:: void matrix(Id matrix_id, float mat[16])
+.. cpp:function:: void create_matrix(Id matrix_id, const float matrix[4][4], bool renormalize = false)
 
     :param data_id: provided matrix id
-    :param mat: the matrix in OpenGL order
+    :param matrix: the matrix
+    :param renormalize: true if shear or scale matrix (*TODO: not implemented*)
 
 .. cpp:function:: void delete_matrix(Id matrix_id)
 
@@ -192,56 +265,118 @@ A matrix_id of zero is always the identity matrix.
 
     Remove all existing matrices.
 
-// flat scene graph
+Objects
+~~~~~~~
 
 .. cpp:type:: AttributeInfo
 
 .. cpp:member:: std::string name
 
+    name of attribute
+
 .. cpp:member:: Id data_id
+
+    Data to use for attribute
 
 .. cpp:member:: uint32_t offset
 
+    Byte offset into data for first attribute value
+
 .. cpp:member:: uint32_t stride
+
+    Byte stride through data to next attribute value
 
 .. cpp:member:: uint32_t count
 
+    Number of data type (1-4)
+
 .. cpp:member:: DataType type
+
+    Type of attribute
 
 .. cpp:member:: bool normalized
 
+    For integer types, true if attribute values should be normalized to 0.0-1.0
+
 .. cpp:type:: AttributeInfos
 
-    std::vector<AttributeInfo>
+    std::vector\<AttributeInfo>
 
-// state-sorting scene graph of arrays and instances
-	// glVertexAttributePointer per attribute (glVertexAttrib if singleton)
-	// sort by program, then attribute
-	// automatic instancing: if attributes identical except for singletons,
-	//   then they can be combined (need private data_id for new array of
-	//   singleton values)
-
-.. cpp:function:: void add_object(Id obj_id, Id program_id, Id matrix_id, \
-	const AttributeInfo& ai)
+.. cpp:function void create_object(Id obj_id, Id program_id, Id matrix_id, \
+	const AttributeInfos\& ais, PrimitiveType pt, \
+	uint32_t first, uint32_t count, \
+	Id index_data_id = 0, DataType index_data_type = Byte)
 
 .. cpp:function:: void delete_object(Gluint obj_id)
 
-// LOD primitives: ignore initially
-.. cpp:function:: void add_sphere(Id obj_id, GLfloat radius, Id program_id, \
-	Id matrix_id, const AttributeInfo& ai)
+    :param obj_id: existing object identifier
 
-.. cpp:function:: void add_cylinder(Id obj_id, GLfloat radius, Id program_id, \
-	Id matrix_id, const AttributeInfo& ai)
+    Remove resources associated with object identifier.
 
-typedef std::vector<Id> ObjectList;
+.. cpp:function:: void clear_objects()
 
-// selection highlights
-.. cpp:function:: void selection(const ObjectList& ol)
+    Remove all existing objects.
 
-// translucency
-.. cpp:function:: void tranlucent(const ObjectList& ol)
+Object annotations
+~~~~~~~~~~~~~~~~~~
 
-// picking
-.. cpp:function:: Id pick(int x, int y)
+.. cpp:function:: void hide_objects(const Objects& objs)
 
-.. cpp:function:: ObjectList pickarea(int x, int y, int width, int height)
+    Don't draw given objects.
+
+.. cpp:function:: void show_objects(const Objects& objs)
+
+    Draw given objects (default).
+
+.. cpp:function:: void transparent(const Objects& objs)
+
+    Object is transparent, so draw it with extra code.
+
+.. cpp:function:: void opaque(const Objects& objs)
+
+    Object is opaque, so draw it normally (default).
+
+.. cpp:function:: void selection_add(const Objects& objs)
+
+    Add objects to selection set.
+
+.. cpp:function:: void selection_remove(const Objects& objs)
+
+    Remove objects from selection set.
+
+.. cpp:function:: void selection_clear()
+
+    Clear selection set.
+
+LOD primitives
+~~~~~~~~~~~~~~
+
+Level-of-detail primitives. *TODO: implement LOD*
+
+.. cpp:function void add_sphere(Id obj_id, float radius, \
+	Id program_id, Id matrix_id, const AttributeInfos\& ais, \
+	const char *position = "gl_Vertex", const char *normal = "gl_Normal")
+
+.. cpp:function:: void add_cylinder(Id obj_id, float radius, float length, \
+	Id program_id, Id matrix_id, const AttributeInfos\& ais,
+	const char *position = "gl_Vertex", const char *normal = "gl_Normal")
+
+.. cpp:function:: void clear_primitives()
+
+    Remove all existing primitive objects and associated internal data.
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+.. cpp:function:: void clear_all()
+
+    Remove data for all existing identifiers.
+
+.. cpp:function:: void set_clear_color(float red, float green, float blue, float alpha)
+
+    Set background clear color.
+
+.. cpp:function:: void render()
+
+    Render objects.
+    Will invoke optimizer if some types of data have changed.
