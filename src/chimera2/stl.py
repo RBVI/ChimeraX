@@ -39,18 +39,17 @@ def open(filename, average_normals=True, *args, **kw):
 	# Next read 50 bytes per triangle containing float32 normal vector
 	# followed three float32 vertices, followed by two "attribute bytes"
 	# sometimes used to hold color information, but ignored by this reader.
-	nv = empty((tc,12), float32)
+	nv = empty((tc, 12), float32)
 	for t in range(tc):
 		nt = input.read(12*4 + 2)
-		nv[t,:] = fromstring(nt[:48], float32)
+		nv[t, :] = fromstring(nt[:48], float32)
 
 	if input != filename:
 		input.close()
 
 	va, na, ta = stl_geometry(nv, average_normals)
 
-	for pt in va:
-	    scene.bbox.add_point(pt)
+	scene.bbox.bulk_add(va)
 
 	import llgr
 	vn_id = llgr.next_data_id()
@@ -104,21 +103,21 @@ def stl_geometry(nv, average_normals=True):
     tri = empty((tc, 3), index_type)
     vnum = {}
     for t in range(tc):
-        v0, v1, v2 = nv[t,3:6], nv[t,6:9], nv[t,9:12]
+        v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]
         for a, v in enumerate((v0, v1, v2)):
-            tri[t,a] = vnum.setdefault(tuple(v), len(vnum))
+            tri[t, a] = vnum.setdefault(tuple(v), len(vnum))
 
     # Make vertex coordinate array.
     vc = len(vnum)
-    vert = empty((vc,3), float32)
+    vert = empty((vc, 3), float32)
     for v, vn in vnum.items():
-        vert[vn,:] = v
+        vert[vn, :] = v
 
     # Make average normals array.
-    normals = zeros((vc,3), float32)
-    for t,tvi in enumerate(tri):
+    normals = zeros((vc, 3), float32)
+    for t, tvi in enumerate(tri):
         for i in tvi:
-            normals[i,:] += nv[t,0:3]
+            normals[i, :] += nv[t, 0:3]
     normals /= sqrt((normals ** 2).sum(1))[:, newaxis]
 
     return vert, normals, tri
@@ -132,17 +131,17 @@ def stl_geometry_with_creases(nv):
     tri = empty((tc, 3), uint32)
     vnum = {}
     for t in range(tc):
-        normal = nv[t,0:3]
-        v0, v1, v2 = nv[t,3:6], nv[t,6:9], nv[t,9:12]
+        normal = nv[t, 0:3]
+        v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]
         for a, v in enumerate((v0, v1, v2)):
-            tri[t,a] = vnum.setdefault((v,normal), len(vnum))
+            tri[t, a] = vnum.setdefault((v, normal), len(vnum))
 
     nv = len(vnum)
     vert = empty((vnum, 3), float32)
     normals = empty((vnum, 3), float32)
     for (v, n), vn in vnum.items():
-        vert[vn,:] = v
-        normals[vn,:] = n
+        vert[vn, :] = v
+        normals[vn, :] = n
 
   # If two triangle edges have the same vertex positions in opposite order
   # but use different normals then stictch them together with zero area

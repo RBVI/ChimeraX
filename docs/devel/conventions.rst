@@ -1,5 +1,48 @@
-Coding Conventions
-==================
+Code Conventions
+================
+
+Code Repository
+---------------
+
+Chimera2 uses `git <git-scm.com>`_ for source code management.
+
+Here are a minimal set of commands to get started using git:
+
+    #. Git associates a user name and email address with all check-ins.
+           The defaults are based on your :envvar:`USERNAME` and your computer's
+           hostname.
+           The email address is usually wrong.
+           To explicitly set those values::
+
+                git config --global user.name "Your Name"
+                git config --global user.email you@example.com
+
+    #. Make local copy of repository::
+
+        git clone ssh://usr/local/projects/chimera2/git/chimera.git
+
+    #. Work on development branch::
+
+        git checkout develop
+
+    #. Update repository to latest version::
+
+        git pull
+
+    #. Add current state of file to the repository::
+
+        git add
+
+    #. Commit all changes to repository (added files and changes to those added files)::
+
+        git commit -a
+
+    #. Copy local repository changes to master repository::
+
+        git push
+
+Coding Style
+------------
 
 Python code should follow the Python Style Guide: :pep:`8`.
 

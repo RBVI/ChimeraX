@@ -24,8 +24,6 @@ with occasional help from C or C++ code.
 
    tool_interface.rst
 
-   examples.rst
-
    conventions.rst
 
 

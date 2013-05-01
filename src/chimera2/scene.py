@@ -4,11 +4,21 @@ scene: scene management
 
 The scene module is placeholder for demostration purposes.
 A real scene module would have camera, lights, and more.
+Instead, the camera is computed from a field-of-view angle and viewport
+when :py:func:`render` is called, the two lights have fixed directions,
+and the names of the shader program uniforms are fixed too.
 
-.. py:data:: bbox
+Geometry may added to the scene in two ways:
+(1) by adding a known shape primitive, *e.g.*, with :py:func:`add_sphere`,
+or (2) by creating geometry directly with :py:mod:`llgr`
+and updating the scene's bounding box.
+For example, given *xyzs* as an :py:class:`~numpy.array` of XYZ coordinates::
 
-   The current bounding box.  See :py:class:`BBox`.
-
+        import scene
+        # if using a non-identity instance matrix, the coordinates would
+        # have to be transformed first
+        scene.bbox.bulk_add(xyzs)
+	# llgr code
 """
 
 __all__ = [
@@ -36,13 +46,13 @@ class BBox:
 	__slots__ = ['llf', 'urb']
 
 	def __init__(self):
-		self.llf = None	#: lower-left-front corner coordinates
-		self.urb = None	#: upper-right-back corner coordinates
+		self.llf = None	#: lower-left-front corner coordinates, a :py:class:`~chimera2.math3d.Point`
+		self.urb = None	#: upper-right-back corner coordinates, a :py:class:`~chimera2.math3d.Point`
 
-	def add_point(self, pt):
-		"""extend bounding box to include given point
+	def add(self, pt):
+		"""expand bounding box to encompass given point
 
-		:param pt: a :py:class:`~chimera2.math3d.Point`
+		:param pt: a :py:class:`~chimera2.math3d.Point or other XYZ-tuple`
 		"""
 		if self.llf is None:
 			self.llf = Point(pt)
@@ -53,6 +63,24 @@ class BBox:
 				self.llf[i] = pt[i]
 			elif pt[i] > self.urb[i]:
 				self.urb[i] = pt[i]
+
+	def bulk_add(self, pts):
+		"""expand bounding box to encompass all given points
+
+		:param pts: a numpy array of XYZ coordinates
+		"""
+		from numpy import min, max
+		mi = min(pts, axis=1)
+		ma = max(pts, axis=1)
+		if self.llf is None:
+			self.llf = Point(mi)
+			self.urb = Point(ma)
+			return
+		for i in range(3):
+			if mi[i] < self.llf[i]:
+				self.llf[i] = mi[i]
+			if ma[i] > self.urb[i]:
+				self.urb[i] = ma[i]
 
 	def center(self):
 		"""return center of bounding box
@@ -73,7 +101,7 @@ class BBox:
 			raise ValueError("empty bounding box")
 		return self.urb - self.llf
 
-bbox = BBox()
+bbox = BBox() #: The current bounding box.
 _program_id = 0
 
 def reset():
@@ -104,8 +132,8 @@ def add_sphere(radius, center, color):
 	:param color: the RGBA color of the sphere (either a sequence of 4 floats, or an integer referring to a previously defined color)
 	"""
 	import llgr
-	bbox.add_point(center - radius)
-	bbox.add_point(center + radius)
+	bbox.add(center - radius)
+	bbox.add(center + radius)
 	if isinstance(color, int):
 		data_id = color
 	else:
@@ -132,10 +160,10 @@ def add_cylinder(radius, p0, p1, color):
 	:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
 	:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
 	"""
-	bbox.add_point(p0 - radius)
-	bbox.add_point(p0 + radius)
-	bbox.add_point(p1 - radius)
-	bbox.add_point(p1 + radius)
+	bbox.add(p0 - radius)
+	bbox.add(p0 + radius)
+	bbox.add(p1 - radius)
+	bbox.add(p1 + radius)
 	import llgr, math
 	if isinstance(color, int):
 		data_id = color

@@ -2,6 +2,8 @@
 qtutils: helper code for Qt
 ===========================
 
+These are convenience functions to make using Qt easier.
+
 """
 
 from PySide import QtCore, QtUiTools, QtGui, QtOpenGL
