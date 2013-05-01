@@ -267,7 +267,10 @@ epub_copyright = u'2013, UCSF RBVI'
 
 todo_include_todos = True
 
-# Example configuration for intersphinx: refer to the Python standard library.
+# intersphinx configuration:
 intersphinx_mapping = {
-	'python': ('http://docs.python.org/PYTHON_VERSION', None),
+	'matplotlib': ('http://matplotlib.sourceforge.net', None),
+	'numpy': ('http://docs.scipy.org/doc/numpy', None),
+	'python': ('http://docs.python.org/2.7', None),
+	'sphinx': ('http://sphinx.pocoo.org', None),
 }
