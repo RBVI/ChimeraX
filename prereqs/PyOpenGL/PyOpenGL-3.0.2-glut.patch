@@ -49,26 +49,30 @@
  
      DEFAULT_FUNCTION_TYPE = staticmethod( ctypes.CFUNCTYPE )
  
---- OpenGL/platform/win32.py.orig	2012-11-29 20:23:58.000000000 -0800
-+++ OpenGL/platform/win32.py	2012-11-29 20:26:44.000000000 -0800
-@@ -21,27 +21,7 @@
+--- OpenGL/platform/win32.py.orig	2012-09-14 21:27:23.000000000 -0700
++++ OpenGL/platform/win32.py	2013-04-30 17:17:18.376908685 -0700
+@@ -33,31 +33,7 @@
          GLU = None
-     
-     GLUT = None 
--    for possible in ('glut32','freeglut32','freeglut'):
--        # load first-up of the possible names...
+ 
+     GLUT = None
+-    for possible in ('freeglut%s'%(size,),'freeglut', 'glut%s'%(size,)):
+-        # Prefer FreeGLUT if the user has installed it, fallback to the included 
+-        # GLUT if it is installed
 -        try:
--            GLUT = ctypesloader.loadLibrary( 
--                ctypes.windll, possible, mode = ctypes.RTLD_GLOBAL 
+-            GLUT = ctypesloader.loadLibrary(
+-                ctypes.windll, possible, mode = ctypes.RTLD_GLOBAL
 -            )
 -        except WindowsError, err:
 -            GLUT = None
 -        else:
 -            break
--    del possible 
--    
+-    try:
+-        del possible
+-    except NameError, err:
+-        pass
+-
      GLE = None
--    for libName in ('gle32','opengle32'):
+-    for libName in ('opengle%s.%s'%(size,vc,),'gle%s'%(size,)):
 -        try:
 -            GLE = ctypesloader.loadLibrary( ctypes.cdll, libName )
 -            GLE.FunctionType = ctypes.CFUNCTYPE
@@ -76,6 +80,6 @@
 -            pass
 -        else:
 -            break
-     
+ 
      DEFAULT_FUNCTION_TYPE = staticmethod( ctypes.WINFUNCTYPE )
      # Win32 GLUT uses different types for callbacks and functions...
