@@ -9,7 +9,7 @@ tmpdir = $(build_prefix)/tmp
 
 # version numbers that leak out of prerequisites
 
-PYTHON_VERSION = 2.7
+PYTHON_VERSION = 3.3
 # Windows uses python22.dll instead of libpython2.2.so
 PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
 
