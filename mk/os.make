@@ -89,7 +89,7 @@ endif
 ifdef USE_MAC_FRAMEWORKS
 	PYTHON_LIB = -F$(frameworkdir) -framework Python
 else
-	PYTHON_LIB = -L$(libdir) -lpython2.7
+	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)
 endif
 	PYMOD_EXT = so
 	PYMOD_LINK = $(LOADER) -bundle -bundle_loader `which python` -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
