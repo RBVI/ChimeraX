@@ -31,7 +31,7 @@ Here are a minimal set of commands to get started using git:
 
     #. Add current state of file to the repository::
 
-        git add
+        git add "filename(s)"
 
     #. Commit all changes to repository (added files and changes to those added files)::
 

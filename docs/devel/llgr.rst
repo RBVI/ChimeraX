@@ -5,21 +5,25 @@
 Example
 -------
 
-    This example show how to add a 
+    This example shows how to add an object made of triangles::
 
-        # va: numpy array of 32-bit floating point XYZ vertices
+        # va: numpy array of 32-bit floating point XYZ coordinates
         # na: numpy array of 32-bit floating point XYZ normals
-        # ta: numpy array of integer indices of triangles
+        # ta: numpy array of 16-bit unsigned integer indices of triangles
 
+        vn = numpy.concatenate([va, na])     # combine coordinates and normals
         import llgr
+
         vn_id = llgr.next_data_id()
-        vn = concatenate([va, na])
         llgr.create_buffer(vn_id, llgr.ARRAY, vn)
+
         tri_id = llgr.next_data_id()
         llgr.create_buffer(tri_id, llgr.ELEMENT_ARRAY, ta)
+
         color_id = llgr.next_data_id()
         rgba = array(cur_color, dtype=float32)
         llgr.create_singleton(color_id, rgba)
+
         uniform_scale_id = llgr.next_data_id()
         llgr.create_singleton(uniform_scale_id, array([1, 1, 1], dtype=float32))
 
@@ -32,12 +36,5 @@ Example
                 AI("instanceScale", uniform_scale_id, 0, 0, 3, llgr.Float),
         ]
 
-        tc = len(ta)
-        if tc >= pow(2, 16):
-                index_type = llgr.UInt
-        elif tc >= pow(2, 8):
-                index_type = llgr.UShort
-        else:
-                index_type = llgr.UByte
         llgr.create_object(obj_id, scene._program_id, 0, mai, llgr.Triangles,
-                0, ta.size, tri_id, index_type)
+                0, ta.size, tri_id, llgr.UShort)
