@@ -2,11 +2,17 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.2
-PYOPENGL_DISTRIBUTION = PyOpenGL-$(VERSION).tar.gz
+# Got 2013/05/02 PyOpenGL source by running:
+#
+#     bzr export PyOpenGL-20130502.tar.bz2 lp:pyopengl
+#
+
+VERSION = 20130502
+PYOPENGL_DISTRIBUTION = PyOpenGL-$(VERSION).tar.bz2
 PYOPENGL_SOURCE = $(tmpdir)/PyOpenGL-$(VERSION)
-ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(VERSION).tar.gz
-ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(VERSION)
+#ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(VERSION).tar.gz
+#ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(VERSION)
+ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-$(VERSION)/OpenGL_accelerate
 
 SETUP_BUILD = build_clib build_ext --force
 ifdef DEBUG
@@ -26,7 +32,7 @@ install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 	cd $(ACCELERATE_SOURCE) && python setup.py $(SETUP_BUILD) install
 
 $(PYOPENGL_SOURCE):
-	tar zxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)
+	tar jxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)
 
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
@@ -34,8 +40,9 @@ ifneq (,$(PATCHES))
 	done
 endif
 
-$(ACCELERATE_SOURCE):
-	tar zxf $(ACCELERATE_DISTRIBUTION) -C $(tmpdir)
+#$(ACCELERATE_SOURCE):
+#	tar zxf $(ACCELERATE_DISTRIBUTION) -C $(tmpdir)
+$(ACCELERATE_SOURCE): $(PYOPENGL_SOURCE)
 
 clean:
 	rm -rf $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
