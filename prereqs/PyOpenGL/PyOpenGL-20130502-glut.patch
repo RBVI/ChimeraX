@@ -15,11 +15,11 @@
  
      # GLE is handled by GLUT under OS X
      GLE = GLUT
---- OpenGL/platform/glx.py.orig	2012-11-29 20:23:53.000000000 -0800
-+++ OpenGL/platform/glx.py	2012-11-29 20:25:31.000000000 -0800
-@@ -26,29 +26,13 @@
+--- OpenGL/platform/glx.py.orig	2013-05-02 14:59:25.000000000 -0700
++++ OpenGL/platform/glx.py	2013-05-02 15:14:22.000000000 -0700
+@@ -23,29 +23,13 @@
          )
-     except OSError, err:
+     except OSError as err:
          GLU = None
 -    # glut shouldn't need to be global, but just in case a dependent library makes
 -    # the same assumption GLUT does...
@@ -29,7 +29,7 @@
 -            'glut', 
 -            mode=ctypes.RTLD_GLOBAL 
 -        )
--    except OSError, err:
+-    except OSError as err:
 -        GLUT = None
 +    GLUT = None
      # GLX doesn't seem to have its own loadable module?
@@ -43,15 +43,15 @@
 -            'gle', 
 -            mode=ctypes.RTLD_GLOBAL 
 -        )
--    except OSError, err:
+-    except OSError as err:
 -        GLE = None
 +    GLE = None
  
      DEFAULT_FUNCTION_TYPE = staticmethod( ctypes.CFUNCTYPE )
  
---- OpenGL/platform/win32.py.orig	2012-09-14 21:27:23.000000000 -0700
-+++ OpenGL/platform/win32.py	2013-04-30 17:17:18.376908685 -0700
-@@ -33,31 +33,7 @@
+--- OpenGL/platform/win32.py.orig	2013-05-02 14:59:25.000000000 -0700
++++ OpenGL/platform/win32.py	2013-05-02 15:15:10.000000000 -0700
+@@ -33,31 +33,8 @@
          GLU = None
  
      GLUT = None
@@ -62,21 +62,21 @@
 -            GLUT = ctypesloader.loadLibrary(
 -                ctypes.windll, possible, mode = ctypes.RTLD_GLOBAL
 -            )
--        except WindowsError, err:
+-        except WindowsError as err:
 -            GLUT = None
 -        else:
 -            break
 -    try:
 -        del possible
--    except NameError, err:
+-    except NameError as err:
 -        pass
--
+ 
      GLE = None
 -    for libName in ('opengle%s.%s'%(size,vc,),'gle%s'%(size,)):
 -        try:
 -            GLE = ctypesloader.loadLibrary( ctypes.cdll, libName )
 -            GLE.FunctionType = ctypes.CFUNCTYPE
--        except WindowsError, err:
+-        except WindowsError as err:
 -            pass
 -        else:
 -            break
