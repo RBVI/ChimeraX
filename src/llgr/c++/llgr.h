@@ -178,7 +178,7 @@ struct AttributeInfo {
 	uint32_t count;		// number of data type
 	DataType type;
 	bool	normalized;	// only for integer types
-	AttributeInfo(const char *n, Id d, uint32_t o, uint32_t s, uint32_t c, DataType t, bool norm = false): name(n), data_id(d), offset(o), stride(s), count(c), type(t), normalized(norm) {}
+	AttributeInfo(const std::string& n, Id d, uint32_t o, uint32_t s, uint32_t c, DataType t, bool norm = false): name(n), data_id(d), offset(o), stride(s), count(c), type(t), normalized(norm) {}
 };
 typedef std::vector<AttributeInfo> AttributeInfos;
 
@@ -218,12 +218,13 @@ LLGR_IMEX extern void selection_clear();
 // TODO: text primitives
 
 // LOD primitives
+
+LLGR_IMEX extern void set_primitive_attribute_name(const std::string& name,
+	const std::string& value);
 LLGR_IMEX extern void add_sphere(Id obj_id, float radius,
-	Id program_id, Id matrix_id, const AttributeInfos& ais,
-	const char *position = "gl_Vertex", const char *normal = "gl_Normal");
+	Id program_id, Id matrix_id, const AttributeInfos& ais);
 LLGR_IMEX extern void add_cylinder(Id obj_id, float radius, float length,
-	Id program_id, Id matrix_id, const AttributeInfos& ais,
-	const char *position = "gl_Vertex", const char *normal = "gl_Normal");
+	Id program_id, Id matrix_id, const AttributeInfos& ais);
 LLGR_IMEX extern void clear_primitives();
 
 // misc

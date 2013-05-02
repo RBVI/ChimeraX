@@ -1,5 +1,7 @@
 #include "llgr_int.h"
 #include "spiral.h"
+#include <string>
+#include <map>
 #include <math.h>
 #include <stdexcept>
 
@@ -7,7 +9,29 @@
 #define	 M_PI	3.14159265358979323846
 #endif
 
+using std::string;
+
+namespace {
+
+typedef std::map<string, string> NameMap;
+NameMap name_map;
+
+void
+init_name_map()
+{
+	name_map["position"] = "position";
+	name_map["normal"] = "normal";
+}
+
+}
+
 namespace llgr {
+
+void
+set_primitive_attribute_name(const string& name, const string& value)
+{
+	name_map[name] = value;
+}
 
 void build_sphere(float radius);
 void build_cylinder(float radius);
@@ -56,16 +80,19 @@ clear_primitives()
 
 void
 add_sphere(Id obj_id, float radius,
-	Id program_id, Id matrix_id, const AttributeInfos& ais,
-	const char *position, const char *normal)
+	Id program_id, Id matrix_id, const AttributeInfos& ais)
 {
+	if (name_map.empty())
+		init_name_map();
 	ProtoGeom::iterator i = proto_spheres.find(radius);
 	if (i == proto_spheres.end())
 		build_sphere(radius);
 	const PrimitiveInfo &pi = proto_spheres[radius];
 	AttributeInfos mai(ais);
-	mai.push_back(AttributeInfo(normal, pi.data_id, 0, 24, 3, Float));
-	mai.push_back(AttributeInfo(position, pi.data_id, 12, 24, 3, Float));
+	mai.push_back(AttributeInfo(name_map["normal"],
+				pi.data_id, 0, 24, 3, Float));
+	mai.push_back(AttributeInfo(name_map["position"],
+				pi.data_id, 12, 24, 3, Float));
 	if (!uniform_scale_id) {
 		uniform_scale_id = --internal_buffer_id;
 		static const float uniform_scale[3] = { 1, 1, 1 };
@@ -78,16 +105,19 @@ add_sphere(Id obj_id, float radius,
 
 void
 add_cylinder(Id obj_id, float radius, float length,
-	Id program_id, Id matrix_id, const AttributeInfos& ais,
-	const char *position, const char *normal)
+	Id program_id, Id matrix_id, const AttributeInfos& ais)
 {
+	if (name_map.empty())
+		init_name_map();
 	ProtoGeom::iterator i = proto_cylinders.find(radius);
 	if (i == proto_cylinders.end())
 		build_cylinder(radius);
 	const PrimitiveInfo &pi = proto_cylinders[radius];
 	AttributeInfos mai(ais);
-	mai.push_back(AttributeInfo(normal, pi.data_id, 0, 24, 3, Float));
-	mai.push_back(AttributeInfo(position, pi.data_id, 12, 24, 3, Float));
+	mai.push_back(AttributeInfo(name_map["normal"],
+				pi.data_id, 0, 24, 3, Float));
+	mai.push_back(AttributeInfo(name_map["position"],
+				pi.data_id, 12, 24, 3, Float));
 	Id scale_id = --internal_buffer_id;
 	float scale[3] = { 1, length / 2, 1 };
 	create_singleton(scale_id, sizeof scale, scale);

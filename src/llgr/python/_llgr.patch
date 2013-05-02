@@ -100,15 +100,15 @@
 +		AttributeInfos cppArg6;
 +		if (!sequence_to_AttributeInfos(_ptArg6, &cppArg6))
 +			throw std::invalid_argument("argument 6 should be a sequence of AttributeInfo");
- 		std::string cppArg7;
- 		if (_ptArg7 == NULL)
- 			cppArg7 = "gl_Vertex";
+ 		add_cylinder(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5, cppArg6);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
 @@ -110,7 +186,7 @@
  	return NULL;
  }
  
--static const char _llgradd_cylinder_doc[] = "add_cylinder(obj_id: int, radius: float, length: float, program_id: int, matrix_id: int, ais: list of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
-+static const char _llgradd_cylinder_doc[] = "add_cylinder(obj_id: int, radius: float, length: float, program_id: int, matrix_id: int, ais: sequence of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
+-static const char _llgradd_cylinder_doc[] = "add_cylinder(obj_id: int, radius: float, length: float, program_id: int, matrix_id: int, ais: list of AttributeInfo)";
++static const char _llgradd_cylinder_doc[] = "add_cylinder(obj_id: int, radius: float, length: float, program_id: int, matrix_id: int, ais: sequence of AttributeInfo)";
  
  static PyObject*
  _llgr_add_sphere(PyObject*, PyObject* _args, PyObject* _keywds)
@@ -122,15 +122,15 @@
 +		AttributeInfos cppArg5;
 +		if (!sequence_to_AttributeInfos(_ptArg5, &cppArg5))
 +			throw std::invalid_argument("argument 5 should be a sequence of AttributeInfo");
- 		std::string cppArg6;
- 		if (_ptArg6 == NULL)
- 			cppArg6 = "gl_Vertex";
+ 		add_sphere(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
 @@ -157,7 +233,7 @@
  	return NULL;
  }
  
--static const char _llgradd_sphere_doc[] = "add_sphere(obj_id: int, radius: float, program_id: int, matrix_id: int, ais: list of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
-+static const char _llgradd_sphere_doc[] = "add_sphere(obj_id: int, radius: float, program_id: int, matrix_id: int, ais: sequence of AttributeInfo, position: str = \"gl_Vertex\", normal: str = \"gl_Normal\")";
+-static const char _llgradd_sphere_doc[] = "add_sphere(obj_id: int, radius: float, program_id: int, matrix_id: int, ais: list of AttributeInfo)";
++static const char _llgradd_sphere_doc[] = "add_sphere(obj_id: int, radius: float, program_id: int, matrix_id: int, ais: sequence of AttributeInfo)";
  
  static PyObject*
  _llgr_apply_matrix(PyObject*, PyObject* _args)

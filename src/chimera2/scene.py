@@ -32,10 +32,6 @@ __all__ = [
 from .math3d import Point, Vector, Translation, frustum, look_at, weighted_point, cross
 from numpy import array
 
-# attribute names
-Position = "gl_Vertex"
-Normal = "normal"
-
 class BBox:
 	"""axis-aligned bounding box
 
@@ -149,8 +145,7 @@ def add_sphere(radius, center, color):
 
 	obj_id = llgr.next_object_id()
 	ai = llgr.AttributeInfo("color", data_id, 0, 0, 4, llgr.Float)
-	llgr.add_sphere(obj_id, radius, _program_id, matrix_id,
-			[ai], Position, Normal)
+	llgr.add_sphere(obj_id, radius, _program_id, matrix_id, [ai])
 
 def add_cylinder(radius, p0, p1, color):
 	"""add cylinder to scene
@@ -191,8 +186,7 @@ def add_cylinder(radius, p0, p1, color):
 
 	obj_id = llgr.next_object_id()
 	ai = llgr.AttributeInfo("color", data_id, 0, 0, 4, llgr.Float)
-	llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai],
-			Position, Normal)
+	llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
 
 def render(viewport, vertical_fov, globalXform):
 	"""render scene

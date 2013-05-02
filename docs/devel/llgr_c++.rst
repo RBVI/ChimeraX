@@ -363,25 +363,35 @@ LOD primitives
 
 Level-of-detail primitives. *TODO: implement LOD*
 
-.. cpp:function:: void add_sphere(Id obj_id, float radius, \
-	Id program_id, Id matrix_id, const AttributeInfos& ais, \
-	const char *position = "position", const char *normal = "normal")
+.. cpp:function:: void set_primitive_attribute_name(const std::string& name, const std::string& value)
 
-     Add sphere.
+    Set the vertex attribute names used for the position and normal attributes
+    in the add primitive routines, *e.g.*, :cpp:func::`add_sphere`.
+    The default attribute names are "position" and "normal",
+    but they should overridden to match their what the shader program expects.
+
+    For example, for OpenGL 2, you should::
+
+        llgr.set_primitive_attribute_name("position", "gl_Vertex")
+
+    since in OpenGL, glVertex has to be called
+    instead of using a vertex attribute.
+
+.. cpp:function:: void add_sphere(Id obj_id, float radius, \
+	Id program_id, Id matrix_id, const AttributeInfos& ais)
+
+    Add sphere.
 
     :param obj_id: provided object identifier
     :param radius: the sphere's radius
     :param program_id: provided program identifier
     :param matrix_id: provided matrix identifier
     :param ais: vector of attribute information
-    :param position: optional override for shader program's postion attribute
-    :param normal: optional override for shader program's normal attribute
 
 .. cpp:function:: void add_cylinder(Id obj_id, float radius, float length, \
-	Id program_id, Id matrix_id, const AttributeInfos& ais, \
-	const char *position = "position", const char *normal = "normal")
+	Id program_id, Id matrix_id, const AttributeInfos& ais)
 
-     Add cylinder.
+    Add cylinder.
 
     :param obj_id: provided object identifier
     :param radius: the cylinder's radius
@@ -389,8 +399,6 @@ Level-of-detail primitives. *TODO: implement LOD*
     :param program_id: provided program identifier
     :param matrix_id: provided matrix identifier
     :param ais: vector of attribute information
-    :param position: optional override for shader program's postion attribute
-    :param normal: optional override for shader program's normal attribute
 
 .. cpp:function:: void clear_primitives()
 

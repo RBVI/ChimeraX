@@ -501,23 +501,29 @@ def opaque(list_of_objects):
 # TODO: text primitives
 
 # LOD primitives
-@accepts(Id, float, Id, Id, _AttributeInfos, String, String)
-def add_sphere(obj_id, radius, program_id, matrix_id, list_of_attributeInfo, position, normal):
+
+@save_args
+@accepts(String, String)
+def set_primitive_attribute_name(name, value):
+	pass
+
+@accepts(Id, float, Id, Id, _AttributeInfos)
+def add_sphere(obj_id, radius, program_id, matrix_id, list_of_attributeInfo):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['add_sphere', [obj_id, radius, program_id, matrix_id, list_of_attributeInfo, position, normal]])
+		_calls.append(['add_sphere', [obj_id, radius, program_id, matrix_id, list_of_attributeInfo]])
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
 	for ai in list_of_attributeInfo:
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
-	_calls.append('\tadd_sphere(%r, %r, %r, %r, %s, "%s", "%s");' % (obj_id,
-			radius, program_id, matrix_id, aname, position, normal))
+	_calls.append('\tadd_sphere(%r, %r, %r, %r, %s, "%s", "%s");'
+			% (obj_id, radius, program_id, matrix_id, aname))
 
-@accepts(Id, float, float, Id, Id, _AttributeInfos, String, String)
+@accepts(Id, float, float, Id, Id, _AttributeInfos)
 def add_cylinder(obj_id, radius, length,
-		program_id, matrix_id, list_of_attributeInfo, position, normal):
+		program_id, matrix_id, list_of_attributeInfo):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['add_cylinder', [obj_id, radius, length, program_id, matrix_id, list_of_attributeInfo, position, normal]])
+		_calls.append(['add_cylinder', [obj_id, radius, length, program_id, matrix_id, list_of_attributeInfo]])
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
@@ -525,7 +531,7 @@ def add_cylinder(obj_id, radius, length,
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
 	_calls.append('\tadd_cylinder(%r, %r, %r, %r, %r, %s, "%s", "%s");'
 			% (obj_id, radius, length, program_id,
-			matrix_id, aname, position, normal))
+			matrix_id, aname))
 
 # misc
 
