@@ -366,7 +366,7 @@ Level-of-detail primitives. *TODO: implement LOD*
 .. cpp:function:: void set_primitive_attribute_name(const std::string& name, const std::string& value)
 
     Set the vertex attribute names used for the position and normal attributes
-    in the add primitive routines, *e.g.*, :cpp:func::`add_sphere`.
+    in the add primitive routines, *e.g.*, :cpp:func:`add_sphere`.
     The default attribute names are "position" and "normal",
     but they should overridden to match their what the shader program expects.
 
