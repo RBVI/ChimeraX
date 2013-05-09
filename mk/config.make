@@ -10,6 +10,7 @@ tmpdir = $(build_prefix)/tmp
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.3
+PYTHON_ABI = m
 # Windows uses python22.dll instead of libpython2.2.so
 PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
 
@@ -25,7 +26,7 @@ else
 RSYNC = $(bindir)/rsync.convert -CrlptWv
 endif
 
-PYTHON_INCLUDE_DIR = $(includedir)/python$(PYTHON_VERSION)
+PYTHON_INCLUDE_DIR = $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 ifdef WIN32
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
 pymoddir = $(bindir)/DLLs

@@ -17,8 +17,8 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE)/blockdiag && python setup.py $(SETUP_BUILD) install
-	cd $(SOURCE)/traclinks && python setup.py $(SETUP_BUILD) install
+	cd $(SOURCE)/blockdiag && python3 setup.py $(SETUP_BUILD) install
+	cd $(SOURCE)/traclinks && python3 setup.py $(SETUP_BUILD) install
 
 $(SOURCE):
 	unzip $(DISTRIBUTION) -d $(tmpdir)

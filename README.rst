@@ -31,3 +31,8 @@ Prerequisite package installation is simplified:
     * 'clean' removes the unarchived directory
     * Python packages are installed in '$(PYTHON_SITE_PACKAGES)' instead of '$(PYSITEDIR)'
     * Python C/C++ libraries are installed in '$(pymoddir)'
+
+Porting to Python 3
+-------------------
+
+Check out `<http://python3porting.com/cextensions.html>`_.

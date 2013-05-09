@@ -17,7 +17,7 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && python setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && python3 setup.py $(SETUP_BUILD) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

@@ -20,10 +20,10 @@ endif
 	CC = gcc -pipe -fPIC
 	CXX = g++ -pipe -fPIC
 
-	PYDEF = -fvisibility-ms-compat -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) void'
+	PYDEF = -fvisibility-ms-compat -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 	PYMOD_EXT = so
 	PYMOD_LINK = $(LOADER) -shared -o $(PYMOD) $(OBJS) $(LIBS)
-	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)
+	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -lGL
 
@@ -85,11 +85,11 @@ endif
 	CXX = g++ -pipe -isysroot $(SDK)
 	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
 
-	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) void'
+	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 ifdef USE_MAC_FRAMEWORKS
 	PYTHON_LIB = -F$(frameworkdir) -framework Python
 else
-	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)
+	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 	PYMOD_EXT = so
 	PYMOD_LINK = $(LOADER) -bundle -bundle_loader `which python` -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)

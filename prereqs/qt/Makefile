@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 4.8.4
+VERSION = 5.0.2
 DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
@@ -14,19 +14,21 @@ ENV = env CC='gcc -I$(includedir) -F$(frameworkdir)' \
 endif
 
 CONFIG_OPTS = -opensource -confirm-license \
-	      -no-qt3support -no-webkit \
-	      -no-multimedia -no-audio-backend -no-phonon \
+	      -no-audio-backend \
 	      -qt-libtiff -qt-libpng -qt-libmng -qt-libjpeg
 ifeq ($(OS),Windows)
 	CONFIG_OPTS += -mp -prefix '$(shell cygpath -m '$(build_prefix)')'
 else
-	CONFIG_OPTS += -prefix '$(build_prefix)' -prefix-install -no-glib
+	CONFIG_OPTS += -prefix '$(build_prefix)' -no-glib
 endif
 ifdef MAC_USE_FRAMEWORKS
 	CONFIG_OPTS += -framework
 endif
 ifeq ($(OS),Darwin)
 	CONFIG_OPTS += -sdk $(SDK)
+endif
+ifeq ($(OS),Linux)
+	CONFIG_OPTS += -qt-xcb
 endif
 ifdef DEBUG
 	CONFIG_OPTS += -debug

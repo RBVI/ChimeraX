@@ -17,7 +17,7 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && python setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && python3 setup.py $(SETUP_BUILD) install
 ifdef USE_MAC_FRAMEWORKS
 	cp -p $(PYTHON_FRAMEWORK)/bin/pyflakes $(bindir)
 endif

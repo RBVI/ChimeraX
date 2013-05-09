@@ -2,9 +2,9 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.2.4
-DISTRIBUTION = blockdiag-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/blockdiag-$(VERSION)
+VERSION = 0.6.36
+DISTRIBUTION = distribute-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/distribute-$(VERSION)
 
 SETUP_BUILD =
 ifdef DEBUG

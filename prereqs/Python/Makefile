@@ -81,23 +81,23 @@ all:
 install: $(SOURCE)
 ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
-	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
+	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
 	test -n '$(PYDIR)'
 	$(RSYNC) --include=*.exe --exclude='site-packages/*' \
 	  $(PYDIR)/DLLs \
 	  $(PYDIR)/Lib \
 	  $(PYDIR)/include \
 	  $(PYDIR)/libs \
-	  $(PYDIR)/python.exe \
-	  $(PYDIR)/pythonw.exe \
+	  $(PYDIR)/python3.exe \
+	  $(PYDIR)/python3w.exe \
 	  $(bindir)
 else ifndef USE_MAC_FRAMEWORKS
 	cd $(SOURCE) && $(MAKE) install
 else
 	cd $(SOURCE) && $(MAKE)
 	cd $(SOURCE) && $(MAKE) -j1 frameworkinstall DESTDIR=$(build_prefix)
-	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)
-	cd $(bindir) && ln -fs python$(PYTHON_VERSION) python
+	cp $(SOURCE)/python3.exe $(bindir)/python$(PYTHON_VERSION)
+	cd $(bindir) && ln -fs python3$(PYTHON_VERSION) python3
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
 	rm -rf $(build_prefix)/usr $(build_prefix)/Users
 	cd $(libdir) && \

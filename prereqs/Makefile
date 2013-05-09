@@ -41,9 +41,9 @@ else
 Mesa.install:
 endif
 
-SUBDIRS	+= cmake docutils expat fonts glew jinja2 numpy openssl \
-	   pcre PyOpenGL pyflakes pyside Python qt \
-	   setuptools sphinx xml2 xslt wrappy3 zlib
+SUBDIRS	+= docutils distribute expat fonts glew jinja2 numpy openssl \
+	   pcre PyOpenGL pyflakes Python qt \
+	   sphinx wrappy3 zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -98,18 +98,18 @@ endif
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 docutils.install: Python.install
 funcparserlib.install: Python.install
-jinja2.install: Python.install setuptools.install
+jinja2.install: Python.install distribute.install
 numpy.install: Python.install
 pcre.install: zlib.install
 pyflakes.install: Python.install
-PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
+PyOpenGL.install: Python.install numpy.install Mesa.install distribute.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
 Python.install: zlib.install openssl.install expat.install
 qt.install: openssl.install zlib.install
 # qt.install: tiff.install mng.install png.install jpeg.install
-setuptools.install: Python.install
-sphinx.install: docutils.install jinja2.install setuptools.install
-sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
+distribute.install: Python.install
+sphinx.install: docutils.install jinja2.install distribute.install
+sphinx-contrib.install: sphinx.install blockdiag.install distribute.install
 webcolors.install: Python.install
 wrappy3.install: pcre.install Python.install
 xml2.install: Python.install zlib.install
