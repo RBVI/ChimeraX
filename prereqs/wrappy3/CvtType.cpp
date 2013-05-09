@@ -150,12 +150,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		// TODO: need to differeniate between char* and const char*
 		if (noneOk) {
 			pyToCppPattern = "@ == Py_None ? NULL : ";
-			pyToCppPattern += "PyString_AsString(@)";
+			pyToCppPattern += "PyUnicode_AsUTF8(@)";
 			aptType_ = "const char*";
 			aptFormat_ = 'z';
 			aptToCppPattern = '@';
 			// cppToAptPattern = bvPattern;
-			typeCheckPattern += "PyString_Check(@)";
+			typeCheckPattern += "PyUnicode_Check(@)";
 			typeCheckPattern = "(@ == Py_None || "
 						+ typeCheckPattern + ')';
 			bvFormat_ = 'z';
@@ -164,14 +164,14 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 			python_type = "(str|None)";
 		} else {
 			cppType_ = "std::string";
-			pyToCppPattern = "wrappy::PythonBaseString_AsCppString(@)";
+			pyToCppPattern = "wrappy::PythonUnicode_AsCppString(@)";
 			aptType_ = "PyObject*";
 			aptFormat_ = 'O';
 			aptNeedCheck = true;
 			// aptToCppPattern = pyToCppPattern;
 			cppToActualPattern = "@.c_str()";
 			// cppToAptPattern = bvPattern;
-			typeCheckPattern = "PyObject_TypeCheck(@, &PyBaseString_Type)";
+			typeCheckPattern = "PyUnicode_Check(@)";
 			bvFormat_ = 'z';
 			bvPattern = "@";
 			python_type = "str";
@@ -224,14 +224,14 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	}
 
 	if (type_ == "void*") {
-		pyToCppPattern = "PyCObject_AsVoidPtr(@)";
+		pyToCppPattern = "PyCapsule_AsVoidPtr(@)";
 		aptType_ = "PyObject*";
 		aptFormat_ = 'O';
 		aptNeedCheck = true;
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "PyCObject_Check(@)";
+		typeCheckPattern = "PyCapsule_Check(@)";
 		bvFormat_ = 'N';
-		bvPattern = "PyCObject_FromVoidPtr(@, NULL)";
+		bvPattern = "PyCapsule_New(@, NULL, NULL)";
 		python_type = "PyCObject";
 		return;
 	}
@@ -240,12 +240,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 
 	if (type_ == "signed char" || type_ == "unsigned char") {
 		// TODO: limit 0 <= unsigned <= 255
-		pyToCppPattern = "static_cast<" + type_ + ">(PyInt_AsLong(@))";
+		pyToCppPattern = "static_cast<" + type_ + ">(PyLong_AsLong(@))";
 		aptType_ = "char";
 		aptFormat_ = 'b';
 		aptToCppPattern = '@';
 		cppToAptPattern = "static_cast<" + aptType_ + ">(@)";
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'b';
 		bvPattern = '@';
 		if (type_ == "signed char") {
@@ -260,13 +260,13 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	if (type_ == "char") {
 		// To get C/C++ char semantics of a null character being
 		// false, we use an empty string for the null character.
-		pyToCppPattern = "wrappy::PythonBaseString_AsCChar(@)"; // has trailing null
+		pyToCppPattern = "wrappy::PythonUnicode_AsCChar(@)"; // has trailing null
 		aptType_ = "PyObject*";
 		aptFormat_ = 'O';
 		aptNeedCheck = true;
 		// aptToCppPattern = pyToCppPattern;
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "PyObject_TypeCheck(@, &PyBaseString_Type)";
+		typeCheckPattern = "PyUnicode_Check(@)";
 		bvFormat_ = 'N';
 		bvPattern = "wrappy::pyObject<char>(@)";
 		pymemberdef_type = "T_CHAR";
@@ -274,12 +274,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		return;
 	}
 	if (type_ == "int") {
-		pyToCppPattern = "static_cast<int>(PyInt_AsLong(@))";
+		pyToCppPattern = "static_cast<int>(PyLong_AsLong(@))";
 		aptType_ = "int";
 		aptFormat_ = 'i';
 		aptToCppPattern = '@';
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'i';
 		bvPattern = '@';
 		pymemberdef_type = "T_INT";
@@ -288,12 +288,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	}
 	if (type_ == "unsigned" || type_ == "unsigned int") {
 		// TODO: limit int >= 0
-		pyToCppPattern = "static_cast<unsigned>(PyInt_AsUnsignedLongMask(@))";
+		pyToCppPattern = "static_cast<unsigned>(PyLong_AsUnsignedLongMask(@))";
 		aptType_ = "unsigned";
 		aptFormat_ = 'I';
 		aptToCppPattern = '@';
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'H';
 		bvPattern = '@';
 		pymemberdef_type = "T_UINT";
@@ -301,12 +301,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		return;
 	}
 	if (type_ == "short" || type_ == "short int") {
-		pyToCppPattern = "static_cast<short>(PyInt_AsLong(@))";
+		pyToCppPattern = "static_cast<short>(PyLong_AsLong(@))";
 		aptType_ = "short int";
 		aptFormat_ = 'h';
 		aptToCppPattern = '@';
 		// aptToCppPattern = pyToCppPattern;
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'h';
 		bvPattern = '@';
 		pymemberdef_type = "T_SHORT";
@@ -315,12 +315,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	}
 	if (type_ == "unsigned short" || type_ == "unsigned short int") {
 		// TODO: limit int >= 0
-		pyToCppPattern = "static_cast<unsigned short>(PyInt_AsLong(@))";
+		pyToCppPattern = "static_cast<unsigned short>(PyLong_AsLong(@))";
 		aptType_ = "unsigned short";
 		aptFormat_ = 'h';
 		aptToCppPattern = '@';
 		// aptToCppPattern = pyToCppPattern;
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'H';
 		bvPattern = '@';
 		pymemberdef_type = "T_USHORT";
@@ -328,12 +328,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		return;
 	}
 	if (type_ == "long" || type_ == "long int") {
-		pyToCppPattern = "PyInt_AsLong(@)";
+		pyToCppPattern = "PyLong_AsLong(@)";
 		aptType_ = "long";
 		aptFormat_ = 'l';
 		aptToCppPattern = '@';
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'l';
 		bvPattern = '@';
 		pymemberdef_type = "T_LONG";
@@ -341,12 +341,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		return;
 	}
 	if (type_ == "unsigned long" || type_ == "unsigned long int") {
-		pyToCppPattern = "PyInt_AsUnsignedLongMask(@)";
+		pyToCppPattern = "PyLong_AsUnsignedLongMask(@)";
 		aptType_ = "unsigned long";
 		aptFormat_ = 'k';
 		aptToCppPattern = '@';
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'k';
 		bvPattern = '@';
 		pymemberdef_type = "T_ULONG";
@@ -366,7 +366,7 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		return;
 	}
 	if (type_ == "unsigned long long") {
-		pyToCppPattern = "PyInt_AsUnsignedLongLongMask(@)";
+		pyToCppPattern = "PyLong_AsUnsignedLongLongMask(@)";
 		aptType_ = "unsigned long long";
 		aptFormat_ = 'K';
 		aptToCppPattern = '@';
@@ -378,12 +378,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		return;
 	}
 	if (type_ == "bool") {
-		pyToCppPattern = "bool(PyInt_AsLong(@))";
+		pyToCppPattern = "bool(PyLong_AsLong(@))";
 		aptType_ = "int";
 		aptFormat_ = 'i';
 		aptToCppPattern = "bool(@)";
 		cppToAptPattern = "int(@)";
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'N';
 		bvPattern = "wrappy::pyObject(bool(@))";
 		python_type = "bool";
@@ -416,12 +416,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		return;
 	}
 	if (type_ == "ptrdiff_t" || type_ == "ssize_t" || type_ == "Py_ssize_t") {
-		pyToCppPattern = "static_cast<" + type_ + ">(PyInt_AsSsize_t(@))";
+		pyToCppPattern = "static_cast<" + type_ + ">(PyLong_AsSsize_t(@))";
 		aptType_ = type_;
 		aptFormat_ = 'n';
 		aptToCppPattern = '@';
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "PyIndex_Check(@)";
 		bvFormat_ = 'n';
 		bvPattern = '@';
 		python_type = "ssize_t";
@@ -429,12 +429,12 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	}
 	if (type_.compare(0, 5, "enum ") == 0) {
 		cppType_ = type_.substr(5);
-		pyToCppPattern = "static_cast<" + cppType_ + ">(PyInt_AsLong(@))";
+		pyToCppPattern = "static_cast<" + cppType_ + ">(PyLong_AsLong(@))";
 		aptType_ = "int";
 		aptFormat_ = 'i';
 		aptToCppPattern = "static_cast<" + cppType_ + ">(@)";
 		cppToAptPattern = '@';
-		typeCheckPattern = "wrappy::Int_Check(@)";
+		typeCheckPattern = "wrappy::Long_Check(@)";
 		bvFormat_ = 'i';
 		bvPattern = '@';
 		python_type = "int";	// TODO: may have enum types
@@ -442,30 +442,30 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	}
 	if (type_ == "std::string" || type_ == "string") {
 		// C++ strings preserve length in the presense of null bytes
-		pyToCppPattern = "wrappy::PythonBaseString_AsCppString(@)";
+		pyToCppPattern = "wrappy::PythonUnicode_AsCppString(@)";
 		aptType_ = "PyObject*";
 		aptFormat_ = 'O';
 		aptNeedCheck = true;
 		// aptToCppPattern = pyToCppPattern;
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "PyObject_TypeCheck(@, &PyBaseString_Type)";
+		typeCheckPattern = "PyUnicode_Check(@)";
 		bvFormat_ = 'N';
 		bvPattern = "wrappy::pyObject(@)";
-		python_type = "unicode";
+		python_type = "str";
 		return;
 	}
 #if 0
 	if (type_ == "otf::Symbol" || type_ == "Symbol") {
-		pyToCppPattern = "otf::Symbol(wrappy::PythonBaseString_AsCppString(@))";
+		pyToCppPattern = "otf::Symbol(wrappy::PythonUnicode_AsCppString(@))";
 		aptType_ = "PyObject*";
 		aptFormat_ = 'O';
 		aptNeedCheck = true;
 		// aptToCppPattern = pyToCppPattern;
 		// cppToAptPattern = bvPattern;
-		typeCheckPattern = "PyObject_TypeCheck(@, &PyBaseString_Type)";
+		typeCheckPattern = "PyUnicode_Check(@)";
 		bvFormat_ = 'N';
 		bvPattern = "PyUnicode_Decode(@.str().data(), @.size(), \"utf-8\", \"replace\")";
-		python_type = "unicode";
+		python_type = "str";
 		return;
 	}
 #endif

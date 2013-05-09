@@ -63,14 +63,26 @@ make_buildvalue(const string &format, const string &args)
 		  case 'h':
 		  case 'i':
 		  case 'l':
-			return "PyInt_FromLong(" + tmp + ')';
+			return "PyLong_FromLong(" + tmp + ')';
 		  case 'L':
 			return "PyLong_FromLongLong(" + tmp + ')';
+		  case 'B':
+		  case 'H':
+		  case 'I':
+		  case 'k':
+			return "PyLong_FromUnsignedLong(" + tmp + ')';
+		  case 'K':
+			return "PyLong_FromUnsignedLongLong(" + tmp + ')';
 		  case 'f':
 		  case 'd':
 			return "PyFloat_FromDouble(" + tmp + ')';
+		  case 'y':
+			return "PyBytes_FromString(" + tmp + ')';
+		  case 's':
 		  case 'z':
-			return "PyString_FromString(" + tmp + ')';
+			return "PyUnicode_FromString(" + tmp + ')';
+		  case 'n':
+			return "PyLong_FromSsize_t(" + tmp + ')';
 		}
 	}
 	return "Py_BuildValue(\"" + format + "\", " + tmp + ')';

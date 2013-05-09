@@ -438,7 +438,7 @@ dumpDeallocator(std::ostream &output, const ClassInfo *ci, const string &fname)
 	output <<
 		"\tif (has_error)\n"
 		"\t\tPyErr_Restore(err_type, err_value, err_traceback);\n"
-		"\tobj->ob_type->tp_free(obj);\n"
+		"\tPy_TYPE(obj)->tp_free(obj);\n"
 		"}\n";
 }
 
@@ -530,7 +530,7 @@ dumpCompare(std::ostream &output, const ClassInfo *ci, const string &fname)
 		"static int\n" <<
 		fname << "(PyObject* _obj0, PyObject* _obj1)\n"
 		"{\n"
-		"\tif (_obj0->ob_type != _obj1->ob_type)\n"
+		"\tif (Py_TYPE(_obj0) != Py_TYPE(_obj1))\n"
 		"\t\treturn -2;\n"
 		"\ttry {\n"
 		"\t\t" << cppName << "* _o0 = getInst(static_cast<"
@@ -558,7 +558,7 @@ dumpRichCompare(std::ostream &output, const ClassInfo *ci, const string &fname)
 		"static PyObject*\n" <<
 		fname << "(PyObject* _obj0, PyObject* _obj1, int _op)\n"
 		"{\n"
-		"\tif (_obj0->ob_type != _obj1->ob_type) {\n"
+		"\tif (Py_Type(_obj0) != Py_Type(_obj1)) {\n"
 		"\t\tPy_INCREF(Py_NotImplemented);\n"
 		"\t\treturn Py_NotImplemented;\n"
 		"\t}\n"
@@ -730,7 +730,7 @@ dumpAttributes(std::ostream &output, const ClassInfo *ci,
 					"\t\treturn NULL;\n"
 					"\tstatic PyObject* key = NULL;\n"
 					"\tif (key == NULL)\n"
-					"\t\tkey = PyString_InternFromString(\"__cached_"
+					"\t\tkey = PyUnicode_InternFromString(\"__cached_"
 							<< ai.name << "__\");\n"
 					"\tPyDict_SetItem(static_cast<"
 						<< objectName
@@ -762,7 +762,7 @@ dumpAttributes(std::ostream &output, const ClassInfo *ci,
 					"\t// cache attribute\n"
 					"\tstatic PyObject* key = NULL;\n"
 					"\tif (key == NULL)\n"
-					"\t\tkey = PyString_InternFromString(\"__cached_"
+					"\t\tkey = PyUnicode_InternFromString(\"__cached_"
 							<< ai.name << "__\");\n"
 					"\tPyDict_SetItem(static_cast<"
 						<< objectName
@@ -875,9 +875,9 @@ dumpMethods(std::ostream &output, const ClassInfo *ci, string *tp_methods)
 			"\t\treturn NULL;\n"
 			"\tPy_INCREF(_obj);\n"
 			"\tPyTuple_SetItem(_tmp, 0, _obj);\n"
-			"\tPyObject* _result = _obj->ob_type->tp_new(_obj->ob_type, _tmp, NULL);\n"
+			"\tPyObject* _result = Py_Type(_obj)->tp_new(Py_Type(_obj), _tmp, NULL);\n"
 			"\tif (_result != NULL\n"
-			"\t&& _obj->ob_type->tp_init(_result, _tmp, NULL) < 0) {\n"
+			"\t&& Py_Type(_obj)->tp_init(_result, _tmp, NULL) < 0) {\n"
 			"\t\tPy_DECREF(_result);\n"
 			"\t\t_result = NULL;\n"
 			"\t}\n"

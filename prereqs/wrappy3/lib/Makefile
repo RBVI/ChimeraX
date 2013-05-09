@@ -7,7 +7,7 @@ include $(TOP)/mk/config.make
 # generated code and so it works to leave it as a regular shared library.
 
 LIBNAME	= wrappy3
-SRCS	= WrapPy.cpp WrapPyModule.cpp WrapPyFile.cpp
+SRCS	= WrapPy.cpp WrapPyModule.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 ifneq ($(WIN32),msvc)
 INCS	+= -I'$(PYTHON_INCLUDE_DIR)'

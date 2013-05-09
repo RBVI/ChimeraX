@@ -389,15 +389,27 @@ dumpModuleCode()
 
 	output <<
 		"\n"
+		"static PyModuleDef moduledef = {\n"
+		"\tPyModuleDef_HEAD_INIT,\n"
+		"\t\"" << module << "\", // m_name \n"
+		"\t" << nsPrefix << module << "_doc, // m_doc\n"
+		"\t-1, // m_size\n"
+		"\t" << nsPrefix << module << "Methods, // m_methods\n"
+		"\tNULL, // m_reload\n"
+		"\tNULL, // m_traverse\n"
+		"\tNULL, // m_clear\n"
+		"\tNULL, // m_free\n"
+		"};\n"
+		"\n"
 		"PyMODINIT_FUNC\n"
-		"init" << module << "()\n"
+		"PyInit_" << module << "()\n"
 		"{\n";
 	output <<
-		"\tPyObject* module = Py_InitModule4(\"" << module
-				<< "\", " << nsPrefix << module << "Methods,\n"
-		"\t\t\t" << nsPrefix << module << "_doc, NULL, PYTHON_API_VERSION);\n"
+		"\tif (!PyInit_libwrappy2())\n"
+		"\t\treturn NULL;\n"
+		"\tPyObject* module = PyModule_Create(&moduledef);\n"
 		"\tif (module == NULL)\n"
-		"\t\treturn;\n"
+		"\t\treturn NULL;\n"
 		"\n"
 		"\tconst char* debug = getenv(\"" << module << "Debug\");\n"
 		"\tif (debug != NULL)\n"
@@ -407,11 +419,10 @@ dumpModuleCode()
 				<< "ErrorObj = PyErr_NewException(PY_STUPID \"" 
 				<< module << ".error\", NULL, NULL);\n"
 		"\tif (" << nsPrefix << module << "ErrorObj == NULL)\n"
-		"\t\treturn;\n"
+		"\t\treturn NULL;\n"
 		"\tPy_INCREF(" << nsPrefix << module << "ErrorObj);\n"
 		"\tPyModule_AddObject(module, \"error\", " << nsPrefix
-						<< module << "ErrorObj);\n"
-		"\tinitlibwrappy2();\n";
+						<< module << "ErrorObj);\n";
 
 	// module constants
 	output <<
@@ -447,6 +458,7 @@ dumpModuleCode()
 	dumpInitTypes(output);
 
 	output <<
+		"\treturn module;\n"
 		"}\n";
 
 	// flush output and check return status

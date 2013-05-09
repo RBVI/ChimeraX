@@ -31,13 +31,6 @@
 namespace wrappy {
 
 bool
-Int_Check(PyObject *o)
-{
-	return o && o->ob_type->tp_as_number
-					&& o->ob_type->tp_as_number->nb_int;
-}
-
-bool
 Float_Check(PyObject *o)
 {
 	return o && o->ob_type->tp_as_number
@@ -48,7 +41,7 @@ bool
 Long_Check(PyObject *o)
 {
 	return o && o->ob_type->tp_as_number
-					&& o->ob_type->tp_as_number->nb_long;
+					&& o->ob_type->tp_as_number->nb_int;
 }
 
 PyObject*
@@ -104,9 +97,9 @@ Obj::~Obj()
 		Py_ssize_t pos = 0;
 		PyObject* key = 0;
 		while (PyDict_Next(self->_inst_dict, &pos, &key, NULL)) {
-			if (!PyString_Check(key))
+			if (!PyUnicode_Check(key))
 				continue;
-			char const* s = PyString_AS_STRING(key);
+			char const* s = reinterpret_cast<char *>(PyUnicode_DATA(key));
 			if (s[0] == '_' && strncmp(s, "__cached_", 9) == 0)
 				PyDict_DelItem(self->_inst_dict, key);
 		}
@@ -160,8 +153,7 @@ const char Obj_doc[] = "\n\
 Not instantiable from Python";
 
 PyTypeObject Object_Type = {
-	PyObject_HEAD_INIT(NULL)
-	0, // ob_size
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"libwrappy2.Obj", // tp_name
 	sizeof (Object), // tp_basicsize
 	0, // tp_itemsize
@@ -180,7 +172,7 @@ PyTypeObject Object_Type = {
 	0, // tp_getattro
 	0, // tp_setattro
 	0, // tp_as_buffer
-	Py_TPFLAGS_DEFAULT_CORE | Py_TPFLAGS_BASETYPE
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE
 		| Py_TPFLAGS_IS_ABSTRACT, // tp_flags
 	Obj_doc, // tp_doc
 	0, // tp_traverse

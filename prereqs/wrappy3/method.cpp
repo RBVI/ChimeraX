@@ -197,7 +197,7 @@ dumpParseArgs(std::ostream &output, int indent, bool single, const FuncDecl *fd,
 									<< ";\n"
 				<< bi << "\tif (ca" << argCount << " == NULL)\n"
 				<< bi << "\t\tca" << argCount
-					<< " = PyString_InternFromString(\"__cached_"
+					<< " = PyUnicode_InternFromString(\"__cached_"
 					<< fd->attrName << "__\");\n"
 				<< bi << "\tPyDict_SetItem(self->_inst_dict, ca"
 					<< argCount << ", " << ptArg << ");\n";
@@ -432,7 +432,7 @@ dumpMethodBody(std::ostream &output, int indent, bool single,
 		output << bi << "// cache attribute\n"
 			<< bi << "static PyObject* ca;\n"
 			<< bi << "if (ca == NULL)\n"
-			<< bi << "\tca = PyString_InternFromString(\"__cached_"
+			<< bi << "\tca = PyUnicode_InternFromString(\"__cached_"
 						<< pi.cacheReturn << "__\");\n"
 			<< bi << "PyObject* pyResult = ";
 	else

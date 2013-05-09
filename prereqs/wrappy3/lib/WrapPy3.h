@@ -69,12 +69,11 @@ typedef int Py_ssize_t;
 #  undef toupper
 # endif
 # include <iostream>
-# include "WrapPyFile.h"
+//TODO: # include "WrapPyFile.h"
 
 namespace wrappy {
 
 // like PyNumber_Check, but only check if convertible to int or float, not both
-extern WRAPPY_IMEX bool Int_Check(PyObject* obj);
 extern WRAPPY_IMEX bool Float_Check(PyObject* obj);
 extern WRAPPY_IMEX bool Long_Check(PyObject* obj);
 
@@ -156,7 +155,7 @@ pyObject<_c*>(_c* xp)
 # endif
 
 template <> inline PyObject*
-pyObject(char _x) { return PyString_FromStringAndSize(&_x, int(_x != '\0')); }
+pyObject(char _x) { return PyUnicode_FromStringAndSize(&_x, int(_x != '\0')); }
 
 template <> inline PyObject*
 pyObject(bool _x)
@@ -170,17 +169,17 @@ pyObject(bool _x)
 template <> inline PyObject*
 pyObject(std::vector<bool>::reference _x)
 {
-	return PyInt_FromLong(static_cast<long>(_x));
+	return PyLong_FromLong(static_cast<long>(_x));
 }
 
 template <> inline PyObject*
-pyObject(short _x) { return PyInt_FromLong(static_cast<long>(_x)); }
+pyObject(short _x) { return PyLong_FromLong(static_cast<long>(_x)); }
 
 template <> inline PyObject*
-pyObject(int _x) { return PyInt_FromLong(static_cast<long>(_x)); }
+pyObject(int _x) { return PyLong_FromLong(static_cast<long>(_x)); }
 
 template <> inline PyObject*
-pyObject(long _x) { return PyInt_FromLong(_x); }
+pyObject(long _x) { return PyLong_FromLong(_x); }
 
 template <> inline PyObject*
 pyObject(unsigned long _x) { return PyLong_FromUnsignedLong(_x); }
@@ -485,8 +484,8 @@ extern WRAPPY_IMEX int MutableType_Ready(PyTypeObject* t);
 extern WRAPPY_IMEX int PyType_AddObject(PyTypeObject* t, const char* name,
 								PyObject* o);
 
-extern WRAPPY_IMEX std::string PythonBaseString_AsCppString(PyObject *obj);
-extern WRAPPY_IMEX char PythonBaseString_AsCChar(PyObject *obj);
+extern WRAPPY_IMEX std::string PythonUnicode_AsCppString(PyObject *obj);
+extern WRAPPY_IMEX char PythonUnicode_AsCChar(PyObject *obj);
   
 #ifdef _WIN32
 class WRAPPY_IMEX SE_Exception: public std::exception {

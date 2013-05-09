@@ -22,6 +22,7 @@
 #define WRAPPY_EXPORT
 #include "WrapPy3.h"
 #include <structmember.h>
+#include <unicodeobject.h>
 #ifdef _WIN32
 # include <stdio.h>
 # define WIN32_LEAN_AND_MEAN
@@ -64,38 +65,26 @@ SE_Exception::what() throw ()
 #endif
 
 char
-PythonBaseString_AsCChar(PyObject *obj)
+PythonUnicode_AsCChar(PyObject *obj)
 {
-	if (PyUnicode_Check(obj)) {
-		obj = PyUnicode_AsEncodedString(obj, "ascii", "strict");
-		if (obj == NULL)
-			throw wrappy::PythonError();
-	} else if (PyString_Check(obj)) {
-		Py_INCREF(obj);
-	} else {
-		throw std::invalid_argument("expected string or unicode object");
-	}
-	if (PyString_GET_SIZE(obj) > 1) {
-		Py_DECREF(obj);
+	if (!PyUnicode_Check(obj))
+		throw std::invalid_argument("expected str object");
+	if (PyUnicode_GetLength(obj) > 1)
 		throw std::invalid_argument("too many characters");
-	}
-	char result = PyString_AS_STRING(obj)[0];
-	Py_DECREF(obj);
+	Py_UCS4 result = PyUnicode_ReadChar(obj, 0);
+	if (result > 0x7f)
+		throw std::invalid_argument("does not fit in C character");
 	return result;
 }
 
 std::string
-PythonBaseString_AsCppString(PyObject *obj)
+PythonUnicode_AsCppString(PyObject *obj)
 {
-	if (PyUnicode_Check(obj)) {
-		obj = PyUnicode_AsUTF8String(obj);
-	} else if (PyString_Check(obj)) {
-		Py_INCREF(obj);
-	} else {
-		throw std::invalid_argument("expected string or unicode object");
-	}
-	std::string result(PyString_AS_STRING(obj), PyString_GET_SIZE(obj));
-	Py_DECREF(obj);
+	if (!PyUnicode_Check(obj))
+		throw std::invalid_argument("expected str object");
+	Py_ssize_t size;
+	const char *data = PyUnicode_AsUTF8AndSize(obj, &size);
+	std::string result(data, size);
 	return result;
 }
 
@@ -123,7 +112,7 @@ PyType_AddObject(PyTypeObject* tp, const char* name, PyObject* o)
 		goto cleanup;
 	}
 
-	s = PyString_InternFromString(name);
+	s = PyUnicode_InternFromString(name);
 	if (s == NULL) {
 		err = -1;
 		goto cleanup;
@@ -148,9 +137,9 @@ MutableType_Ready(PyTypeObject* type)
 	/* Initialize ob_type if NULL.  This means extensions that want to be
 	   compilable separately on Windows can call PyType_Ready() instead of
 	   initializing the ob_type field of their type objects. */
-	if (type->ob_type == NULL) {
-		type->ob_type = &Mutable_Type;
-		if (Mutable_Type.ob_type == NULL) {
+	if (Py_TYPE(type) == NULL) {
+		Py_TYPE(type) = &Mutable_Type;
+		if (Py_TYPE(&Mutable_Type) == NULL) {
 			if (PyType_Ready(&Mutable_Type) < 0)
 				return -1;
 		}
@@ -187,8 +176,7 @@ static const char Mutable_doc[] = "\n\
 Modified 'type' that allows methods to be added/changed";
 
 PyTypeObject Mutable_Type = {
-	PyObject_HEAD_INIT(NULL)
-	0, // ob_size
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"libwrappy2.mutable", // tp_name
 	sizeof (PyHeapTypeObject), // tp_basicsize
 	sizeof (PyMemberDef), // tp_itemsize
@@ -207,7 +195,7 @@ PyTypeObject Mutable_Type = {
 	0 /*Mutable_GetAttr*/, // tp_getattro
 	Mutable_SetAttr, // tp_setattro
 	0, // tp_as_buffer
-	Py_TPFLAGS_DEFAULT_CORE | Py_TPFLAGS_HAVE_GC
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC
 		| Py_TPFLAGS_BASETYPE | Py_TPFLAGS_TYPE_SUBCLASS, // tp_flags
 	Mutable_doc, // tp_doc
 	0, // tp_traverse
@@ -241,7 +229,18 @@ PyTypeObject Mutable_Type = {
 // loaded by Python before other wrappy generated modules thus preloading
 // the runtime linker/loader.
 
-static PyMethodDef methods [] = { { NULL, NULL, 0, NULL } };
+static PyMethodDef methods[] = { { NULL, NULL, 0, NULL } };
+
+static PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	"libwrappy2",
+	"wrappy2 Python/C++ glue",
+	-1,
+	methods,
+	NULL,
+	NULL,
+	NULL
+};
 
 } // extern "C"
 
@@ -254,7 +253,7 @@ trans_func(unsigned int u, EXCEPTION_POINTERS* /*pExp*/)
 #endif
 
 PyMODINIT_FUNC
-initlibwrappy2()
+PyInit_libwrappy2()
 {
 #ifdef _WIN32
 	// TODO: initialize once per thread
@@ -263,12 +262,11 @@ initlibwrappy2()
 
 	static bool initialized = false;
 	if (initialized)
-		return;
+		return NULL;
 
-	PyObject* module = Py_InitModule4("libwrappy2", methods,
-		"wrappy2 Python/C++ glue", NULL, PYTHON_API_VERSION);
+	PyObject* module = PyModule_Create(&moduledef);
 	if (module == NULL)
-		return;
+		return NULL;
 
 	wrappy::Mutable_Type.tp_base = &PyType_Type;
 	Py_INCREF(wrappy::Mutable_Type.tp_base);
@@ -287,6 +285,7 @@ initlibwrappy2()
 		reinterpret_cast<PyObject*>(&wrappy::Object_Type));
 
 	initialized = true;
+	return module;
 }
 
 #ifdef __APPLE__
