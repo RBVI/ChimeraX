@@ -19,7 +19,7 @@ Here are a minimal set of commands to get started using git:
 
     #. Make local copy of repository::
 
-        git clone ssh://usr/local/projects/chimera2/git/chimera.git
+        git clone ssh://plato.cgl.ucsf.edu/usr/local/projects/chimera2/git/chimera2.git
 
     #. Work on development branch::
 
