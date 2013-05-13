@@ -87,64 +87,63 @@ def open(filename, average_normals=True, *args, **kw):
 #
 def stl_geometry(nv, average_normals=True):
 
-    if not average_normals:
-        return stl_geometry_with_creases(nv)
+	if not average_normals:
+		return stl_geometry_with_creases(nv)
 
-    tc = nv.shape[0]
+	tc = nv.shape[0]
 
-    # Assign numbers to vertices.
-    from numpy import empty, uint8, uint16, uint32, float32, zeros, sqrt, newaxis
-    if tc >= pow(2, 16):
-	index_type = uint32
-    elif tc >= pow(2, 8):
-	index_type = uint16
-    else:
-	index_type = uint8
-    tri = empty((tc, 3), index_type)
-    vnum = {}
-    for t in range(tc):
-        v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]
-        for a, v in enumerate((v0, v1, v2)):
-            tri[t, a] = vnum.setdefault(tuple(v), len(vnum))
+	# Assign numbers to vertices.
+	from numpy import empty, uint8, uint16, uint32, float32, zeros, sqrt, newaxis
+	if tc >= pow(2, 16):
+		index_type = uint32
+	elif tc >= pow(2, 8):
+		index_type = uint16
+	else:
+		index_type = uint8
+	tri = empty((tc, 3), index_type)
+	vnum = {}
+	for t in range(tc):
+		v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]
+		for a, v in enumerate((v0, v1, v2)):
+			tri[t, a] = vnum.setdefault(tuple(v), len(vnum))
 
-    # Make vertex coordinate array.
-    vc = len(vnum)
-    vert = empty((vc, 3), float32)
-    for v, vn in vnum.items():
-        vert[vn, :] = v
+	# Make vertex coordinate array.
+	vc = len(vnum)
+	vert = empty((vc, 3), float32)
+	for v, vn in vnum.items():
+		vert[vn, :] = v
 
-    # Make average normals array.
-    normals = zeros((vc, 3), float32)
-    for t, tvi in enumerate(tri):
-        for i in tvi:
-            normals[i, :] += nv[t, 0:3]
-    normals /= sqrt((normals ** 2).sum(1))[:, newaxis]
+	# Make average normals array.
+	normals = zeros((vc, 3), float32)
+	for t, tvi in enumerate(tri):
+		for i in tvi:
+			normals[i, :] += nv[t, 0:3]
+	normals /= sqrt((normals ** 2).sum(1))[:, newaxis]
 
-    return vert, normals, tri
+	return vert, normals, tri
   
 # -----------------------------------------------------------------------------
 #
 def stl_geometry_with_creases(nv):
+	# Combine identical vertices.  The must have identical normals too.
+	from numpy import empty, uint32, float32
+	tri = empty((tc, 3), uint32)
+	vnum = {}
+	for t in range(tc):
+		normal = nv[t, 0:3]
+		v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]
+		for a, v in enumerate((v0, v1, v2)):
+			tri[t, a] = vnum.setdefault((v, normal), len(vnum))
 
-    # Combine identical vertices.  The must have identical normals too.
-    from numpy import empty, uint32, float32
-    tri = empty((tc, 3), uint32)
-    vnum = {}
-    for t in range(tc):
-        normal = nv[t, 0:3]
-        v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]
-        for a, v in enumerate((v0, v1, v2)):
-            tri[t, a] = vnum.setdefault((v, normal), len(vnum))
+	nv = len(vnum)
+	vert = empty((vnum, 3), float32)
+	normals = empty((vnum, 3), float32)
+	for (v, n), vn in vnum.items():
+		vert[vn, :] = v
+		normals[vn, :] = n
 
-    nv = len(vnum)
-    vert = empty((vnum, 3), float32)
-    normals = empty((vnum, 3), float32)
-    for (v, n), vn in vnum.items():
-        vert[vn, :] = v
-        normals[vn, :] = n
+	# If two triangle edges have the same vertex positions in opposite order
+	# but use different normals then stictch them together with zero area
+	# triangles.
 
-  # If two triangle edges have the same vertex positions in opposite order
-  # but use different normals then stictch them together with zero area
-  # triangles.
-
-  # TODO: Not finished.
+	# TODO: Not finished.

@@ -6,7 +6,7 @@ These are convenience functions to make using Qt easier.
 
 """
 
-from PySide import QtCore, QtUiTools, QtGui, QtOpenGL
+from PyQt4 import QtCore, QtGui, QtOpenGL
 from contextlib import closing
 
 def create_form(ui_file, parent=None, opengl = {}, connections = {}):
@@ -26,18 +26,23 @@ def create_form(ui_file, parent=None, opengl = {}, connections = {}):
 	i.e., "object_name.slot_name", or an explicit reference to the slot.
 	"""
 
-	loader = QtUiTools.QUiLoader()
+	#from PySide import QUiTools
+	#loader = QtUiTools.QUiLoader()
 	# TODO: add ability to add plugins
-	with closing(QtCore.QFile(ui_file)) as uif:
-		uif.open(QtCore.QFile.ReadOnly)
-		form = loader.load(uif, parent)
+	#with closing(QtCore.QFile(ui_file)) as uif:
+	#	uif.open(QtCore.QFile.ReadOnly)
+	#	form = loader.load(uif, parent)
 
-	for object_name, widget_factory in opengl.iteritems():
+	from PyQt4 import uic
+	form = uic.loadUi(ui_file, parent)
+
+	for object_name, widget_factory in opengl.items():
 		obj = form.findChild(QtCore.QObject, object_name)
 		if obj is None:
 			raise ValueError("missing graphics placeholder")
 		# TODO: use layout to replace obj with graphics in layout
 		#layout = obj.layout()
+		import sys
 		graphics = widget_factory(obj)
 		graphics.setObjectName(object_name + "GL")
 		grid = QtGui.QGridLayout()
@@ -46,7 +51,7 @@ def create_form(ui_file, parent=None, opengl = {}, connections = {}):
 
 	from collections import Callable
 	obj_cache = {}
-	for src, dest in connections.iteritems():
+	for src, dest in connections.items():
 		object_name, signal_name = src.split('.')
 		obj = obj_cache.get(object_name, None)
 		if obj is None:
@@ -80,7 +85,14 @@ class OpenGLWidget(QtOpenGL.QGLWidget):
 	"""
 
 	def __init__(self, format, parent=None, share=None, flags=0):
-		super(OpenGLWidget, self).__init__(format, parent, share, flags)
+		import sys
+		if share == 0:
+			share = None
+		if isinstance(flags, int):
+			from PyQt4.QtCore import Qt
+			flags = Qt.WindowFlags(flags)
+		#super().__init__(format, parent, share, flags)
+		super().__init__(parent, share, flags)
 		#self.setFlag(QtGui.QGraphicsItem.ItemHasNoContents, False)
 		self.viewport = None	# (left, bottom, width, height)
 
@@ -108,30 +120,30 @@ class OpenGLWidget(QtOpenGL.QGLWidget):
 	def resizeGL(self, width, height):
 		self.viewport = (0, 0, width, height)
 
-	mousePress = QtCore.Signal(QtGui.QMouseEvent)
+	mousePress = QtCore.pyqtSignal(QtGui.QMouseEvent)
 	def mousePressEvent(self, event):
 		self.mousePress.emit(event)
 
-	mouseRelease = QtCore.Signal(QtGui.QMouseEvent)
+	mouseRelease = QtCore.pyqtSignal(QtGui.QMouseEvent)
 	def mouseReleaseEvent(self, event):
 		self.mouseRelease.emit(event)
 
-	mouseDoubleClick = QtCore.Signal(QtGui.QMouseEvent)
+	mouseDoubleClick = QtCore.pyqtSignal(QtGui.QMouseEvent)
 	def mouseDoubleClickEvent(self, event):
 		self.mouseDoubleClick.emit(event)
 
-	mouseMove = QtCore.Signal(QtGui.QMouseEvent)
+	mouseMove = QtCore.pyqtSignal(QtGui.QMouseEvent)
 	def mouseMoveEvent(self, event):
 		self.mouseMove.emit(event)
 
-	wheel = QtCore.Signal(QtGui.QWheelEvent)
+	wheel = QtCore.pyqtSignal(QtGui.QWheelEvent)
 	def wheelEvent(self, event):
 		self.wheel.emit(event)
 
-	keyPress = QtCore.Signal(QtGui.QKeyEvent)
+	keyPress = QtCore.pyqtSignal(QtGui.QKeyEvent)
 	def keyPressEvent(self, event):
 		self.keyPress.emit(event)
 
-	keyRelease = QtCore.Signal(QtGui.QKeyEvent)
+	keyRelease = QtCore.pyqtSignal(QtGui.QKeyEvent)
 	def keyReleaseEvent(self, event):
 		self.keyRelease.emit(event)

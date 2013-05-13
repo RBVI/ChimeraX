@@ -17,7 +17,7 @@ GENHDRS += $(GENSRCS:.cpp=.h)
 OBJS = $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _llgr
 
-PKG_DIR = $(PYTHON_SITE_PACKAGES)
+PKG_DIR = $(PYSITEDIR)
 PYSRCS = llgr.py llgr_dump.py
 PYOBJS = $(PYSRCS:.py=.pyc)
 
@@ -26,8 +26,8 @@ HDRS = ../c++/llgr.h ../c++/llgr_ui.h
 all: $(PYMOD) $(PYOBJS)
 
 install: all
-	cp $(PYMOD) $(pymoddir)
-	$(RSYNC) $(PYSRCS) typecheck $(PKG_DIR)
+	cp $(PYMOD) $(PYSITEDIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

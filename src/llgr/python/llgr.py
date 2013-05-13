@@ -81,21 +81,21 @@ def set_output(type):
 	"""
 	use_opengl = type == 'opengl'
 	if use_opengl:
-		llgr = __import__('llgr_opengl')
+		llgr = __import__('_llgr')
 		# default to OpenGL 2 for now
 		llgr.set_primitive_attribute_name("position", "gl_Vertex")
 	else:
 		llgr = __import__('llgr_dump')
 		if type not in llgr.FORMATS:
-			raise ValueError('type should be one: %s, or opengl' % ', '.join(llgr.FORMAT))
+			raise ValueError('type should be one: %s, or opengl' % ', '.join(llgr.FORMATS))
 		llgr.set_dump_format(type)
 	gsyms = globals()
 	for sym in _llgr_syms:
 		if sym not in _wrapped_syms:
-			gsyms[sym] = llgr[sym]
+			gsyms[sym] = getattr(llgr, sym)
 		else:
-			gsyms['_%s' % sym] = llgr[sym]
-	gsyms['__all__'] = _llgr_syms + list[_wrapped_syms] + _local_syms
+			gsyms['_%s' % sym] = getattr(llgr, sym)
+	gsyms['__all__'] = _llgr_syms + list(_wrapped_syms) + _local_syms
 
 import itertools
 
@@ -144,29 +144,29 @@ def next_data_id():
 	
 	Reset when :py:func:`clear_all` or :py:func:`clear_buffers` is called.
 	"""
-	return _data_id.next()
+	return next(_data_id)
 
 def next_matrix_id():
 	"""Return next available integer matrix id
 	
 	Reset when :py:func:`clear_all` or :py:func:`clear_matrices` is called.
 	"""
-	return _matrix_id.next()
+	return next(_matrix_id)
 
 def next_object_id():
 	"""Return next available integer object id
 	
 	Reset when :py:func:`clear_all` and :py:func:`clear_objects` is called.
 	"""
-	return _object_id.next()
+	return next(_object_id)
 
 def next_program_id():
 	"""Return next available integer program id
 	
 	Reset when :py:func:`clear_all` or :py:func:`clear_programs` is called.
 	"""
-	return _program_id.next()
+	return next(_program_id)
 
 #def next_texture_id():
 #	"""Return next available integer data id
-#	return _texture_id.next()
+#	return next(_texture_id)

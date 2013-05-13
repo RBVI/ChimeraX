@@ -42,8 +42,8 @@ Mesa.install:
 endif
 
 SUBDIRS	+= docutils distribute expat fonts glew jinja2 numpy openssl \
-	   pcre PyOpenGL pyflakes Python qt \
-	   sphinx wrappy3 zlib
+	   pcre PyOpenGL pyflakes Python PyQt qt \
+	   sip sphinx wrappy3 zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -96,6 +96,7 @@ endif
 # target of the other packages.
 
 blockdiag.install: Python.install funcparserlib.install webcolors.install
+distribute.install: Python.install
 docutils.install: Python.install
 funcparserlib.install: Python.install
 jinja2.install: Python.install distribute.install
@@ -105,9 +106,10 @@ pyflakes.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install distribute.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
 Python.install: zlib.install openssl.install expat.install
+PyQt.install: Python.install qt.install
 qt.install: openssl.install zlib.install
-# qt.install: tiff.install mng.install png.install jpeg.install
-distribute.install: Python.install
+# qt.install: png.install jpeg.install
+sip.install: Python.install
 sphinx.install: docutils.install jinja2.install distribute.install
 sphinx-contrib.install: sphinx.install blockdiag.install distribute.install
 webcolors.install: Python.install

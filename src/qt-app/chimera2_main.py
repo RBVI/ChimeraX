@@ -4,7 +4,7 @@
 
 import sys
 
-from PySide import QtCore, QtGui, QtOpenGL
+from PyQt4 import QtCore, QtGui, QtOpenGL
 from chimera2 import math3d, qtutils
 
 app = None	# QApplication
@@ -22,7 +22,8 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		self._samples = 4	# 0 turns off multisampling
 		format = QtOpenGL.QGLFormat()
 		format.setSampleBuffers(True)
-		super(ChimeraGraphics, self).__init__(parent, share, flags)
+		# TODO: add format to below
+		super().__init__(parent, share, flags)
 		self.vsphere_id = 1
 		self.globalXform = math3d.Identity()
 
@@ -37,18 +38,13 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		self._samples = value
 		self.updateGL()
 
-	samples = QtCore.Property(int, _getSamples, _setSamples)
+	samples = QtCore.pyqtProperty(int, _getSamples, _setSamples)
 
 	def paintGL(self):
 		if app is None:
 			# not initialized yet
 			return
 		from chimera2 import scene
-		if dump_format and 'llgr' not in sys.modules:
-			import llgr_dump
-			sys.modules['llgr'] = llgr_dump
-			llgr_dump.set_dump_format(dump_format)
-			scene.Position = "position"
 		# assume 18 inches from screen
 		dist_mm = 18 * 25.4
 		height_mm = self.height() / app.DPmm
@@ -106,24 +102,71 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		self.makeCurrent()
 		import llgr
 		y = int(self.height()) - y
-		print llgr.pick(x, y)
+		print(llgr.pick(x, y))
 
 class TextStatus:
 
 	def showMessage(self, text, timeout=0):
-		print text
+		print(text)
 
-class Application(QtGui.QApplication):
-	# TODO: figure out how to catch close/delete window from window frame
+class BaseApplication:
 
 	def __init__(self, *args, **kw):
-		super(Application, self).__init__(*args, **kw)
 		self.setApplicationName("Chimera2")
+		self.setApplicationVersion("0.9")	# TODO
+		self.setOrganizationDomain("cgl.ucsf.edu")
+		self.setOrganizationName("UCSF RBVI")
 
-		self._cmd = ""
 		from chimera2 import cmds
 		cmds.register('exit', self.cmd_exit)
 		cmds.register('open', self.cmd_open)
+
+		self._cmd = ""
+
+	def process_command(self, cmd):
+		from chimera2 import cmds
+		cmds.process_command(cmd)
+
+	def cmd_exit(self):
+		# TODO: if nogui starts using event loop, then just self.quit
+		if self.graphics:
+			self.quit()
+		else:
+			raise SystemExit(0)
+
+	def cmd_open(self, filename):
+		if self.graphics:
+			self.graphics.makeCurrent()
+		from chimera2 import scene
+		scene.reset()
+
+		try:
+			from chimera2 import data
+			data.open(filename)
+		except:
+			raise
+		finally:
+			if self.graphics:
+				self.graphics.globalXform = math3d.Identity()
+				self.graphics.updateGL()
+
+class ConsoleApplication(QtCore.QCoreApplication, BaseApplication):
+
+	def __init__(self, *args, **kw):
+		QtCore.QCoreApplication.__init__(self, *args, **kw)
+		BaseApplication.__init__(self)
+
+		self.graphics = None
+		self.statusbar = TextStatus()
+
+
+class GuiApplication(QtGui.QApplication, BaseApplication):
+	# TODO: figure out how to catch close/delete window from window frame
+
+	def __init__(self, *args, **kw):
+		QtGui.QApplication.__init__(self, *args, **kw)
+		BaseApplication.__init__(self)
+
 		# calculate DPmm -- dots (pixels) per mm
 		desktop = self.desktop()
 		if desktop.widthMM() == 0:
@@ -145,7 +188,7 @@ class Application(QtGui.QApplication):
 			#"graphicsViewGL.keyPress": "lineEdit.event",
 			#"graphicsViewGL.keyRelease": "lineEdit.event",
 		})
-		self.view.setWindowTitle("Chimera2")
+		self.view.setWindowTitle(self.applicationName())
 		self.statusbar = self.find_object("statusbar")
 		assert self.statusbar is not None
 		self.graphics = self.find_object("graphicsViewGL")
@@ -178,7 +221,7 @@ class Application(QtGui.QApplication):
 		else:
 			self.graphics.setCursor(QtGui.QCursor())
 
-	@QtCore.Slot(QtCore.QEvent)
+	@QtCore.pyqtSlot(QtCore.QEvent)
 	def mouse_press(self, event):
 		buttons = event.buttons()
 		x = event.x()
@@ -196,13 +239,13 @@ class Application(QtGui.QApplication):
 			else:
 				self.mouse_mode = "vsphere_rot"
 
-	@QtCore.Slot(QtCore.QEvent)
+	@QtCore.pyqtSlot(QtCore.QEvent)
 	def mouse_release(self, event):
 		if self.mouse_mode in ("vsphere_z", "vsphere_rot"):
 			self.graphics.vsphere_release()
 		self.mouse_mode = None
 
-	@QtCore.Slot(QtCore.QEvent)
+	@QtCore.pyqtSlot(QtCore.QEvent)
 	def mouse_drag(self, event):
 		if self.mouse_mode in ("vsphere_z", "vsphere_rot"):
 			x = event.x()
@@ -223,65 +266,68 @@ class Application(QtGui.QApplication):
 		# 2000 == 2 seconds
 		self.statusbar.showMessage(message, timeout)
 
-	@QtCore.Slot(str)
+	@QtCore.pyqtSlot(str)
 	def save_command(self, cmd):
 		self._cmd = cmd
 
-	@QtCore.Slot()
-	def process_command(self):
+	@QtCore.pyqtSlot()
+	def process_command(self, cmd=None):
 		from chimera2 import cmds
+		if cmd is None:
+			cmd = self._cmd
 		try:
-			cmds.process_command(self._cmd)
+			BaseApplication.process_command(self, cmd)
 			self.status("")
 		except cmds.UserError as e:
 			self.status(str(e))
 
-	def cmd_exit(self):
-		if self.graphics:
-			self.quit()
-		else:
-			raise SystemExit(0)
-
-	def cmd_open(self, filename):
-		self.graphics.makeCurrent()
-		from chimera2 import scene
-		scene.reset()
-
-		try:
-			from chimera2 import data
-			data.open(filename)
-		except:
-			raise
-		finally:
-			self.graphics.globalXform = math3d.Identity()
-			self.graphics.updateGL()
-
 def main():
 	# typical Qt application startup
 	global app
-	app = Application(sys.argv)
-	#argv = app.arguments() # TODO -- has python.exe at front, but shouldn't
+	if '--nogui' in sys.argv:
+		app = ConsoleApplication(sys.argv)
+	else:
+		app = GuiApplication(sys.argv)
 	argv = sys.argv
+	argv[0] = app.applicationName().lower()
 	import getopt
 	try:
-		opts, args = getopt.getopt(argv[1:], 'd:', ['dump='])
+		opts, args = getopt.getopt(argv[1:], 'd:', ['dump=', 'nogui'])
 	except getopt.error:
-		print >> sys.stderr, "usage: %s [-d|--dump format]" % argv[0]
-		raise SystemExit, 2
+		print("usage: %s [--nogui] [-d|--dump format]" % argv[0],
+				file=sys.stderr)
+		raise SystemExit(2)
 	global dump_format
-	for o in opts:
-		if o[0] in ("-d", "--dump"):
-			dump_format = o[1]
+	for option, value in opts:
+		if option in ("-d", "--dump"):
+			dump_format = value
+		elif option == '--nogui':
+			pass
+
+	sys.path.insert(0, '../../build/lib')
+
 	import llgr_dump
+	if not app.graphics and not dump_format:
+		print("%s: need non-opengl dump format in nogui mode"
+				% sys.argv[0], file=sys.stderr)
+		print("    available formats: %s" % ' '.join(llgr_dump.FORMATS),
+				file=sys.stderr)
+		raise SystemExit(1)
 	if dump_format and dump_format not in llgr_dump.FORMATS:
-		print >> sys.stderr, "%s: bad format: %s" % (argv[0],
-								dump_format)
-		print >> sys.stderr, "    available formats: %s" % (
-						' '.join(llgr_dump.FORMATS))
-		raise SystemExit, 1
+		print("%s: bad format: %s" % (argv[0], dump_format),
+				file=sys.stderr)
+		print("    available formats: %s" % ' '.join(llgr_dump.FORMATS),
+				file=sys.stderr)
+		raise SystemExit(1)
+
+	import llgr
+	if dump_format:
+		llgr.set_output(dump_format)
+	else:
+		llgr.set_output('opengl')
 	if len(args) > 0:
-		print >> sys.stderr, "%s: ignoring extra arguments: %s" % (
-						argv[0], ' '.join(args))
+		print("%s: ignoring extra arguments: %s"
+				% (argv[0], ' '.join(args)), file=sys.stderr)
 	from chimera2 import data, bild, stl
 	data.register_format("BILD",
 		bild.open, None, None, (".bild",), (),
@@ -296,10 +342,10 @@ def main():
 	else:
 		while 1:
 			try:
-				app._cmd = raw_input('chimera2: ')
+				cmd = input('chimera2: ')
 			except EOFError:
 				raise SystemExit(0)
-			app.process_command()
+			app.process_command(cmd)
 
 if __name__ in ( "__main__", "chimeraOpenSandbox"):
 	main()

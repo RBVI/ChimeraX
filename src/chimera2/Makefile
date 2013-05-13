@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYTHON_SITE_PACKAGES)/chimera2
+PKG_DIR = $(PYSITEDIR)/chimera2
 
 PYSRCS = $(wildcard *.py)
 PYOBJS = $(PYSRCS:.py=.pyc)

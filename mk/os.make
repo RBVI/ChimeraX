@@ -92,7 +92,7 @@ else
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 	PYMOD_EXT = so
-	PYMOD_LINK = $(LOADER) -bundle -bundle_loader `which python` -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
+	PYMOD_LINK = $(LOADER) -bundle -bundle_loader `which python3` -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -framework OpenGL
 
@@ -165,7 +165,7 @@ SHLIB = lib$(LIBNAME).$(SHLIB_EXT)
 PYMOD = $(PYMOD_NAME).$(PYMOD_EXT)
 PROG = $(PROG_NAME)$(PROG_EXT)
 
-NUMPY_INC += -I"$(shell python -c "import numpy; print numpy.get_include()")"
+NUMPY_INC += -I"$(shell python3 -c "import numpy; print numpy.get_include()")"
 
 .SUFFIXES: .rst .html
 .rst.html:
@@ -175,20 +175,20 @@ NUMPY_INC += -I"$(shell python -c "import numpy; print numpy.get_include()")"
 ifdef UNIX
 .py.pyc:
 	@rm -f $@
-	python -t -m py_compile '$<'
+	python3 -t -m py_compile '$<'
 
 .py.pyo:
 	@rm -f $@
-	python -t -OO -m py_compile '$<'
+	python3 -t -OO -m py_compile '$<'
 endif
 
 ifdef WIN32
 .py.pyc:
 	@rm -f $@
-	python -t -m py_compile '$(shell cygpath -m $<)'
+	python3 -t -m py_compile '$(shell cygpath -m $<)'
 
 .py.pyo:
 	@rm -f $@
-	python -t -OO -m py_compile '$(shell cygpath -m $<)'
+	python3 -t -OO -m py_compile '$(shell cygpath -m $<)'
 endif
 

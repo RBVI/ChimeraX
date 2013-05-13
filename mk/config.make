@@ -29,13 +29,10 @@ endif
 PYTHON_INCLUDE_DIR = $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 ifdef WIN32
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
-pymoddir = $(bindir)/DLLs
 else ifdef USE_MAC_FRAMEWORKS
 PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 PYTHON_LIBRARY_DIR = $(PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION)
-pymoddir = $(PYTHON_LIBRARY_DIR)/lib-dynload
 else
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
-pymoddir = $(PYTHON_LIBRARY_DIR)/lib-dynload
 endif
-PYTHON_SITE_PACKAGES = $(PYTHON_LIBRARY_DIR)/site-packages
+PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages

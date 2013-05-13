@@ -16,11 +16,16 @@ namespace {
 typedef std::map<string, string> NameMap;
 NameMap name_map;
 
+bool name_map_initialized = false;
+
 void
 init_name_map()
 {
-	name_map["position"] = "position";
-	name_map["normal"] = "normal";
+	if (name_map.find("position") == name_map.end())
+		name_map["position"] = "position";
+	if (name_map.find("normal") == name_map.end())
+		name_map["normal"] = "normal";
+	name_map_initialized = true;
 }
 
 }
@@ -82,7 +87,7 @@ void
 add_sphere(Id obj_id, float radius,
 	Id program_id, Id matrix_id, const AttributeInfos& ais)
 {
-	if (name_map.empty())
+	if (!name_map_initialized)
 		init_name_map();
 	ProtoGeom::iterator i = proto_spheres.find(radius);
 	if (i == proto_spheres.end())
@@ -107,7 +112,7 @@ void
 add_cylinder(Id obj_id, float radius, float length,
 	Id program_id, Id matrix_id, const AttributeInfos& ais)
 {
-	if (name_map.empty())
+	if (!name_map_initialized)
 		init_name_map();
 	ProtoGeom::iterator i = proto_cylinders.find(radius);
 	if (i == proto_cylinders.end())

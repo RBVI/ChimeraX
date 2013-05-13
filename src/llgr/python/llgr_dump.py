@@ -7,8 +7,7 @@ Add typechecking to function arguments to protect against arguments with the
 wrong type being decoded by matching backend in JavaScript.
 """
 import numpy
-import typecheck
-from typecheck import accepts
+from typecheck import typecheck, Checker, EitherChecker
 
 JSON_FORMAT = 'json'
 CPP_FORMAT = 'c++'
@@ -18,11 +17,10 @@ FORMATS = (JSON_FORMAT, CPP_FORMAT, JS_FORMAT)
 
 _dump_format = JSON_FORMAT
 
-class Array(typecheck.TypeAnnotation):
+class Array(Checker):
 	"""type annotation for numpy arrays"""
 
 	def __init__(self, shape=None, dtype=None):
-		self.type = self
 		self._shape = shape
 		self._dtype = numpy.dtype(dtype)
 
@@ -37,7 +35,7 @@ class Array(typecheck.TypeAnnotation):
 	def __repr__(self):
 		return "IsArray(%s, %s)" % (self._shape, self._dtype)
 
-	def __typecheck__(self, func, to_check):
+	def check(self, value):
 		try:
 			if not isinstance(to_check, numpy.ndarray):
 				raise RuntimeError
@@ -45,7 +43,7 @@ class Array(typecheck.TypeAnnotation):
 				raise RuntimeError
 			if self._dtype and to_check.dtype != self._dtype:
 				raise RuntimeError
-			return
+			return True
 		except RuntimeError:
 			msg = ''
 			if self._shape:
@@ -60,61 +58,43 @@ class Array(typecheck.TypeAnnotation):
 				msg = "an array"
 			raise typecheck._TC_TypeError(to_check, msg)
 
-class _IsBuffer(typecheck.TypeAnnotation):
+class _IsBuffer(Checker):
 	"""type annotation for Python buffers"""
-
-	def __init__(self):
-		self.type = self
-
-	def __eq__(self, other):
-		return self.__class__ is other.__class__
-
-	# They're all the same
-	def __hash__(self):
-		return id(self.__class__)
 
 	def __repr__(self):
 		return "IsBuffer"
 
-	def __typecheck__(self, func, to_check):
+	def check(self, value):
 		try:
-			memoryview(to_check)
+			memoryview(value)
 		except TypeError:
-			raise typecheck._TC_TypeError(to_check, "a buffer")
+			return False
+		return True
 IsBuffer = _IsBuffer()
 
-class _nonnegative(typecheck.TypeAnnotation):
+class _nonnegative(Checker):
 	"""type annonation for non-negative integers"""
-
-	def __init__(self):
-		self.type = self
-
-	def __eq__(self, other):
-		return self.__class__ is other.__class__
-
-	# They're all the same
-	def __hash__(self):
-		return id(self.__class__)
 
 	def __repr__(self):
 		return "NonNeg"
 
-	def __typecheck__(self, func, to_check):
-		if not isinstance(to_check, int) or to_check < 0:
-			raise typecheck._TC_TypeError(to_check, "non-negative integer")
+	def check(self, value):
+		return isinstance(value, int) and value >= 0
 NonNeg = _nonnegative()
 Id = NonNeg		# negative Ids are reserved for llgr internal use
 
-from typecheck.typeclasses import Number, String
-
-class Enum(typecheck.TypeAnnotation):
-	"""sublass for type annotation of enumerated type"""
+class Enum(Checker):
+	"""subclass for C++-style enumerated type
+	
+	C++-style enumerated types' constants are in the same scope
+	as the declaration.
+	Also supports type annotations.
+	"""
 
 	values = ()
 	labels = ()
 
 	def __init__(self):
-		self.type = self
 		self.reinit()
 
 	def reinit(self, as_string=False):
@@ -127,35 +107,22 @@ class Enum(typecheck.TypeAnnotation):
 			for l, v in zip(self.labels, self.values):
 				g[l] = v
 
-	def __eq__(self, other):
-		return self.__class__ is other.__class__
-
-	# They're all the same
-	def __hash__(self):
-		return id(self.__class__)
-
 	def __repr__(self):
 		return self.__class__.__name__
 
-	def __typecheck__(self, func, to_check):
+	def check(self, value):
 		if _dump_format == JSON_FORMAT:
-			if to_check not in self.values:
-				raise typecheck._TC_TypeError(to_check, "enum")
-		if to_check not in self.labels:
-			raise typecheck._TC_TypeError(to_check, "enum")
+			if value not in self.values:
+				return False
+		if value not in self.labels:
+			return False
+		return True
 
-# next line is for pyflakes
-Byte, UByte, Short, UShort, Int, UInt, Float = 0, 0, 0, 0, 0, 0, 0
 class _DataType(Enum):
 	values = list(range(7))
 	labels = ('Byte', 'UByte', 'Short', 'UShort', 'Int', 'UInt', 'Float')
 DataType = _DataType()
 
-# next three lines are for pyflakes
-IVec1, IVec2, IVec3, IVec4 = 0, 0, 0, 0
-UVec1, UVec2, UVec3, UVec4 = 0, 0, 0, 0
-FVec1, FVec2, FVec3, FVec4 = 0, 0, 0, 0
-Mat2x2, Mat3x3, Mat4x4 = 0, 0, 0
 class _ShaderType(Enum):
 	values = list(range(15))
 	labels = ('IVec1', 'IVec2', 'IVec3', 'IVec4', 'UVec1', 'UVec2', 'UVec3', 'UVec4', 'FVec1', 'FVec2', 'FVec3', 'FVec4', 'Mat2x2', 'Mat3x3', 'Mat4x4')
@@ -226,28 +193,27 @@ def render():
 		import json
 		with open("render.json", "w") as f:
 			json.dump(tmp, f)
-			print >> f	# trailing newline
+			print(file=f)	# trailing newline
 		return
 	if _dump_format == CPP_FORMAT:
 		with open("render.cpp", "w") as f:
-			print >> f, "#include <llgr.h>\n"
-			print >> f, "#define False 0\n"
-			print >> f, "#define True 1\n"
-			print >> f, "using namespace llgr;\n"
-			print >> f, "void\ninit_objects()\n{"
+			print("#include <llgr.h>\n", file=f)
+			print("#define False 0\n", file=f)
+			print("#define True 1\n", file=f)
+			print("using namespace llgr;\n", file=f)
+			print("void\ninit_objects()\n{", file=f)
 			for call in tmp:
-				print >> f, '%s' % call
-			print >> f, "}"
+				print('%s' % call, file=f)
+			print("}", file=f)
 		return
 	if _dump_format == JS_FORMAT:
 		with open("render.js", "w") as f:
-			print >> f, "function init_objects()\n{"
+			print("function init_objects()\n{", file=f)
 			for call in tmp:
-				print >> f, "%s;" % call
-			print >> f, "}"
+				print("%s;" % call, file=f)
+			print("}", file=f)
 
-@accepts(Id, String, String, String)
-def create_program(program_id, vertex_shader, fragment_shader, pick_vertex_shader):
+def create_program(program_id: Id, vertex_shader: str, fragment_shader: str, pick_vertex_shader: str):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['create_program', [program_id, vertex_shader, fragment_shader]])
 		return
@@ -259,16 +225,13 @@ def create_program(program_id, vertex_shader, fragment_shader, pick_vertex_shade
 	pvs = fs.replace('"', '\\"').replace('\\n', '\\n\\\n')
 	_calls.append('\tcreate_program(%s, "%s", "%s", "%s");' % (program_id, vs, fs, pvs))
 @save_args
-@accepts(Id)
-def delete_program(program_id):
+def delete_program(program_id: Id):
 	pass
 @save_args
-@accepts()
 def clear_programs():
 	pass
 
-@accepts(Id, String, ShaderType, IsBuffer)
-def set_uniform(program_id, name, shader_type, data):
+def set_uniform(program_id: Id, name: str, shader_type: ShaderType, data: IsBuffer):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['set_uniform', [program_id, name, shader_type, convert_buffer(data)]])
 		return
@@ -278,8 +241,7 @@ def set_uniform(program_id, name, shader_type, data):
 	_calls.append('\tset_uniform(%s, "%s", %s, %s, %s);'
 			% (program_id, name, shader_type, num_bytes, uname))
 
-@accepts(Id, String, bool, ShaderType, IsBuffer)
-def set_uniform_matrix(program_id, name, transpose, shader_type, data):
+def set_uniform_matrix(program_id: Id, name: str, transpose: bool, shader_type: ShaderType, data: IsBuffer):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['set_uniform_matrix', [program_id, name, transpose, shader_type, convert_buffer(data)]])
 		return
@@ -297,8 +259,7 @@ class _BufferTarget(Enum):
 BufferTarget = _BufferTarget()
 
 # Create buffer of array data
-@accepts(Id, BufferTarget, IsBuffer)
-def create_buffer(data_id, buffer_target, data):
+def create_buffer(data_id: Id, buffer_target: BufferTarget, data: IsBuffer):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['create_buffer', [data_id, buffer_target, convert_buffer(data)]])
 		return
@@ -308,17 +269,14 @@ def create_buffer(data_id, buffer_target, data):
 	_calls.append('\tcreate_buffer(%s, %s, %s, %s);'
 				% (data_id, buffer_target, num_bytes, dname))
 @save_args
-@accepts(Id)
-def delete_buffer(data_id):
+def delete_buffer(data_id: Id):
 	pass
 @save_args
-@accepts()
 def clear_buffers():
 	pass
 
 # create singleton "buffer" data
-@accepts(Id, IsBuffer)
-def create_singleton(data_id, data):
+def create_singleton(data_id: Id, data: IsBuffer):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['create_singleton', [data_id, convert_buffer(data)]])
 		return
@@ -330,13 +288,11 @@ def create_singleton(data_id, data):
 """
 # TODO
 @save_args
-@accepts(Id, Id, NonNeg, NonNeg)
-def create_singleton_index(data_id, reference_data_id, size, offset):
+def create_singleton_index(data_id: Id, reference_data_id: Id, size: NonNeg, offset: NonNeg):
 	pass # TODO
 
 # update column of existing buffer data
-@accepts(Id, NonNeg, NonNeg, NonNeg, IsBuffer):
-def update_buffer(data_id, offset, stride, count, data):
+def update_buffer(data_id: Id, offset: NonNeg, stride: NonNeg, count: NonNeg, data: IsBuffer):
 	pass # TODO
 """
 
@@ -349,42 +305,21 @@ class TextureFormat(int): pass
 class TextureFilter(int): pass
 (Nearest, Linear, NearestMimapNearest, NearestMipmapNearest,
 LinearMimapNearest, LinearMipmapLinear) = [TextureFilter(i) for i in range(6)]
-@accepts(int, TextureFormat, TextureFilter, TextureFilter, DataType, NonNeg, NonNeg, IsBuffer)
-def create_2d_texture(tex_id, texture_format, texture_min_filter, texture_max_filter, data_type, width, height, data):
+def create_2d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg, height: NonNeg, data: IsBuffer):
 	pass # TODO
-@accepts(int, TextureFormat, TextureFilter, TextureFilter, DataType, NonNeg, NonNeg, NonNeg, IsBuffer)
-def create_3d_texture(tex_id, texture_format, texture_min_filter, texture_max_filter, data_type, width, height, depth, data):
+def create_3d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg, height: NonNeg, depth: NonNeg, data: IsBuffer):
 	pass # TODO
 @save_args
-@accepts(Id)
-def delete_texture(data_id):
+def delete_texture(data_id: Id):
 	pass # TODO
 @save_args
-@accepts()
 def clear_textures():
 	pass
 
 # matrices
 
-def set_projection_matrix(matrix_4x4, name="ProjectionMatrix"):
-	# program_id of zero means all programs
-	matrix_4x4 = numpy.array(list(matrix_4x4), dtype='f')
-	bytes = matrix_4x4.tostring()
-	set_uniform(0, name, Mat4x4, bytes)
-def set_modelview_matrix(matrix_4x4, mv="ModelViewMatrix", normal="NormalMatrix"):
-	# Matrix is assumed to be pure rotation and translation.
-	# program_id of zero means all programs
-	flat = list(matrix_4x4)
-	matrix_4x4 = numpy.array(flat, dtype='f')
-	bytes = matrix_4x4.tostring()
-	set_uniform(0, mv, Mat4x4, bytes)
-	# TODO: remove assumption that  rotation part is orthonormal
-	matrix_3x3 = numpy.array(flat[0:3] + flat[4:7] + flat[8:11], dtype='f')
-	bytes = matrix_3x3.tostring()
-	set_uniform(0, normal, Mat3x3, bytes)
-
 # type check for 4x4 array, dtype='f' (aka dtype('float32'))
-Matrix_4x4 = typecheck.Or(Array(shape=(4,4), dtype='f'), (
+Matrix_4x4 = EitherChecker(Array(shape=(4,4), dtype='f'), (
 	float, float, float, float,
 	float, float, float, float,
 	float, float, float, float,
@@ -394,8 +329,7 @@ Matrix_4x4 = typecheck.Or(Array(shape=(4,4), dtype='f'), (
 # matrix_id of zero is reserved for identity matrix
 # renormalize should be true when the rotation part of the matrix
 # has shear or scaling, or if it is a projection matrix. 
-@accepts(Id, Matrix_4x4, bool)
-def create_matrix(matrix_id, matrix_4x4, renormalize = False):
+def create_matrix(matrix_id: Id, matrix_4x4: Matrix_4x4, renormalize:bool=False):
 	if isinstance(matrix_4x4, numpy.ndarray):
 		m = [float(f) for f in matrix_4x4.flat]
 	else:
@@ -410,11 +344,9 @@ def create_matrix(matrix_id, matrix_4x4, renormalize = False):
 	_calls.append('\tcreate_matrix(%s, %s, %s);'
 					% (matrix_id, mname, renormalize))
 @save_args
-@accepts(Id)
-def delete_matrix(matrix_id):
+def delete_matrix(matrix_id: Id):
 	pass
 @save_args
-@accepts()
 def clear_matrices():
 	pass
 
@@ -450,8 +382,7 @@ class _AttributeInfo(object):
 			self.name, self.data_id, self.offset, self.stride,
 			self.count, self.data_type, self.normalize)
 
-@accepts(String, Id, NonNeg, NonNeg, NonNeg, DataType, norm=bool)
-def AttributeInfo(name, data_id, offset, stride, count, data_type, norm=False):
+def AttributeInfo(name: str, data_id: Id, offset: NonNeg, stride: NonNeg, count: NonNeg, data_type: DataType, norm:bool=False):
 	return _AttributeInfo(name, data_id, offset, stride, count, data_type, norm)
 _AttributeInfos = [_AttributeInfo]
 
@@ -463,39 +394,32 @@ class _PrimitiveType(Enum):
 PrimitiveType = _PrimitiveType()
 
 @save_args
-@accepts(Id, Id, Id, _AttributeInfos, PrimitiveType, NonNeg, NonNeg, index_data_id=Id, index_buffer_type=DataType)
-def create_object(obj_id, program_id, matrix_id,
-		list_of_attributeInfo, primitive_type,
-		first, count,
-		index_data_id = 0, index_buffer_type = UByte):
+def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
+		list_of_attributeInfo: _AttributeInfos,
+		primitive_type: PrimitiveType, first: NonNeg, count: NonNeg,
+		index_data_id:Id=0, index_buffer_type:DataType=UByte):
 	pass
 @save_args
-@accepts(Id)
-def delete_object(obj_id):
+def delete_object(obj_id: Id):
 	pass
 @save_args
-@accepts()
 def clear_objects():
 	pass
 
 # indicate whether to draw object or not
 @save_args
-@accepts([Id])
-def hide_objects(list_of_objects):
+def hide_objects(list_of_objects: [Id]):
 	pass
 @save_args
-@accepts([Id])
-def show_objects(list_of_objects):
+def show_objects(list_of_objects: [Id]):
 	pass
 
 # indicate whether an object is transparent or opaque (default opaque)
 @save_args
-@accepts([Id])
-def transparent(list_of_objects):
+def transparent(list_of_objects: [Id]):
 	pass
 @save_args
-@accepts([Id])
-def opaque(list_of_objects):
+def opaque(list_of_objects: [Id]):
 	pass
 
 # TODO: text primitives
@@ -503,12 +427,10 @@ def opaque(list_of_objects):
 # LOD primitives
 
 @save_args
-@accepts(String, String)
-def set_primitive_attribute_name(name, value):
+def set_primitive_attribute_name(name: str, value: str):
 	pass
 
-@accepts(Id, float, Id, Id, _AttributeInfos)
-def add_sphere(obj_id, radius, program_id, matrix_id, list_of_attributeInfo):
+def add_sphere(obj_id: Id, radius: float, program_id: Id, matrix_id: Id, list_of_attributeInfo: _AttributeInfos):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['add_sphere', [obj_id, radius, program_id, matrix_id, list_of_attributeInfo]])
 		return
@@ -519,9 +441,8 @@ def add_sphere(obj_id, radius, program_id, matrix_id, list_of_attributeInfo):
 	_calls.append('\tadd_sphere(%r, %r, %r, %r, %s, "%s", "%s");'
 			% (obj_id, radius, program_id, matrix_id, aname))
 
-@accepts(Id, float, float, Id, Id, _AttributeInfos)
-def add_cylinder(obj_id, radius, length,
-		program_id, matrix_id, list_of_attributeInfo):
+def add_cylinder(obj_id: Id, radius: float, length: float,
+		program_id: Id, matrix_id: Id, list_of_attributeInfo: _AttributeInfos):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['add_cylinder', [obj_id, radius, length, program_id, matrix_id, list_of_attributeInfo]])
 		return
@@ -536,18 +457,15 @@ def add_cylinder(obj_id, radius, length,
 # misc
 
 @save_args
-@accepts()
 def clear_primitives():
 	pass
 
 @save_args
-@accepts()
 def clear_all():
 	pass
 
 @save_args
-@accepts(Number, Number, Number, Number)
-def set_clear_color(red, green, blue, alpha):
+def set_clear_color(red: float, green: float, blue: float, alpha: float):
 	pass
 
 def set_dump_format(f):

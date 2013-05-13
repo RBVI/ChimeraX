@@ -7,6 +7,12 @@ PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.bz2
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
+ifdef WIN32
+DYNLOAD_DIR = $(bindir)/DLLs
+else
+DYNLOAD_DIR = $(PYTHON_LIBRARY_DIR)/lib-dynload
+endif
+
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
 QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
 
@@ -107,7 +113,7 @@ else
 	  ln -fs ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/include/python$(PYTHON_VERSION) .
 endif
 	# double check that pyexpat was successfully made
-	test -f $(pymoddir)/pyexpat.*
+	test -f $(DYNLOAD_DIR)/pyexpat.*
 
 $(SOURCE):
 ifneq ($(OS),Windows)

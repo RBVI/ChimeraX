@@ -503,6 +503,6 @@ public:
 } // namespace wrappy
 
 // Python module init function
-extern "C" WRAPPY_IMEX void initlibwrappy2();
+extern "C" WRAPPY_IMEX PyObject* PyInit_libwrappy3();
 
 #endif

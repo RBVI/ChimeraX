@@ -1388,7 +1388,7 @@ dumpTypeCode(const ClassInfo *ci)
 	string tp_getattro("0");
 	string tp_setattro("0");
 	string tp_as_buffer("0");
-	string tp_flags("Py_TPFLAGS_DEFAULT_CORE");
+	string tp_flags("Py_TPFLAGS_DEFAULT");
 	string tp_doc("0");
 	string tp_traverse("0");
 	string tp_clear("0");

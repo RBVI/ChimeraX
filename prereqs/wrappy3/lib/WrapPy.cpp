@@ -154,7 +154,7 @@ Not instantiable from Python";
 
 PyTypeObject Object_Type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"libwrappy2.Obj", // tp_name
+	"libwrappy3.Obj", // tp_name
 	sizeof (Object), // tp_basicsize
 	0, // tp_itemsize
 	0, // tp_dealloc

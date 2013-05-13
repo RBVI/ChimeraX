@@ -135,7 +135,7 @@ def register_format(name, open_function, fetch_function, save_function,
 		prefixes = ()
 	if prefixes and not fetch_function:
 		import sys
-		print >> sys.stderr, "missing fetch function for format with prefix support:", name
+		print("missing fetch function for format with prefix support:", name, file=sys.stderr)
 	if mime is None:
 		mime = ()
 	_file_formats[name] = _FileFormatInfo(
@@ -231,7 +231,7 @@ def formats(source_is_file=False):
 	"""
 	if source_is_file:
 		formats = []
-		for t, info in _file_formats.iteritems():
+		for t, info in _file_formats.items():
 			if info.extensions:
 				formats.append(t)
 		return formats
@@ -250,7 +250,7 @@ def categorized_formats():
 	categorized_formats() -> { category: formats() }
 	"""
 	result = {}
-	for name, info in _file_formats.iteritems():
+	for name, info in _file_formats.items():
 		formats = result.setdefault(info.category, [])
 		formats.append(name)
 	return result
@@ -270,7 +270,7 @@ def deduce_format(filename, default_format=None, prefixable_format=True):
 		except ValueError:
 			pass
 		else:
-			for t, info in _file_formats.iteritems():
+			for t, info in _file_formats.items():
 				if prefix in info.prefixes:
 					name = t
 					filename = fname
@@ -286,7 +286,7 @@ def deduce_format(filename, default_format=None, prefixable_format=True):
 			stripped = filename
 		base, ext = os.path.splitext(stripped)
 		ext = ext.lower()
-		for t, info in _file_formats.iteritems():
+		for t, info in _file_formats.items():
 			if ext in info.extensions:
 				name = t
 				break

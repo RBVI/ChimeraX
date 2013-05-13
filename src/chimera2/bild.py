@@ -62,7 +62,7 @@ def open(filename, *args, **kw):
 			scene.add_cylinder(radius, p0, p1, cur_color)
 		elif tokens[0] not in warned:
 			import sys
-			print >> sys.stderr, tokens[0], 'is not supported'
+			print(tokens[0], 'is not supported', file=sys.stderr)
 			warned.add(tokens[0])
 
 	if input != filename:

@@ -37,7 +37,7 @@ __all__ = [
 	'UserError',
 ]
 
-# _commands is a map of comamnd_name to command_function
+# _commands is a map of comamnd name to command function
 _commands = {}
 
 def register(name, function):
@@ -46,7 +46,7 @@ def register(name, function):
 	:param name: the name of the command
 	:param funtion: the callback function
 	"""
-	_commands[command_name] = command_function
+	_commands[name] = function
 
 class UserError(ValueError):
 	"""Use for cases where user provided input causes an error"""

@@ -47,19 +47,19 @@ class Point(ndarray):
     # TODO: add point operations
 
 def weighted_point(points, weights=None):
-	"""return weighted sum of Points
+    """return weighted sum of Points
 
-	If no weights are given, then return average.
-	"""
-	if weights is None:
-		weight = len(points)
-		p = sum(p.__array__() for p in points)
-	else:
-		from itertools import izip
-		weight = sum(weights)
-		p = sum(w * p.__array__() for w, p in izip(weights, points))
-	p /= weight
-	return Point(p)
+    If no weights are given, then return average.
+    """
+    if weights is None:
+        weight = len(points)
+        p = sum(p.__array__() for p in points)
+    else:
+        from itertools import izip
+        weight = sum(weights)
+        p = sum(w * p.__array__() for w, p in izip(weights, points))
+    p /= weight
+    return Point(p)
 
 class Vector(ndarray):
     """Floating point triplet representing a vector"""
@@ -76,9 +76,9 @@ class Vector(ndarray):
         return ndarray.__add__(self, a)
 
     def __mul__(self, a):
-	    if isinstance(a, Vector):
-		    return dot(self, a)
-	    return Vector(self.__array__() * a)
+        if isinstance(a, Vector):
+            return dot(self, a)
+        return Vector(self.__array__() * a)
 
     def length(self):
         """compute length of vector"""
@@ -90,7 +90,7 @@ class Vector(ndarray):
 
     def normalize(self):
         """convert to unit length vector"""
-	# faster than using numpy.linalg.norm()
+        # faster than using numpy.linalg.norm()
         self /= sqrt(dot(self, self.conj()))
 
 def cross(v1, v2):
@@ -187,17 +187,17 @@ class Xform:
         if isinstance(xpv, ndarray) and xpv.shape == (4, 4):
             return Xform(dot(self._matrix, xpv))
         # TODO: handle arrays of Points and Vectors
-        raise TypeError, "expected a Xform, a Point, or a Vector"
+        raise TypeError("expected a Xform, a Point, or a Vector")
 
     def rotate(self, axis, angle):
         """Further rotate"""
-	rot = Rotation(axis, angle)
-	self._matrix = dot(self._matrix, rot._matrix)
+        rot = Rotation(axis, angle)
+        self._matrix = dot(self._matrix, rot._matrix)
 
     def translate(self, offset):
         """Further translate"""
-	rot = Translation(offset)
-	self._matrix = dot(self._matrix, rot._matrix)
+        rot = Translation(offset)
+        self._matrix = dot(self._matrix, rot._matrix)
 
     #TODO: and more
 

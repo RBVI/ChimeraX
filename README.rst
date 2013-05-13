@@ -29,8 +29,7 @@ Prerequisite package installation is simplified:
     * The 'libs' and 'apps' directories are combined into 'src'
     * Source can optionally be unarchived in a directory in '$(tmpdir)'
     * 'clean' removes the unarchived directory
-    * Python packages are installed in '$(PYTHON_SITE_PACKAGES)' instead of '$(PYSITEDIR)'
-    * Python C/C++ libraries are installed in '$(pymoddir)'
+    * All Python packages are installed in site-packages, *a.k.a.*,'$(PYSITEDIR)'
 
 Porting to Python 3
 -------------------

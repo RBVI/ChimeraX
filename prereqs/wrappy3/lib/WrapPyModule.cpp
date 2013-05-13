@@ -177,7 +177,7 @@ Modified 'type' that allows methods to be added/changed";
 
 PyTypeObject Mutable_Type = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"libwrappy2.mutable", // tp_name
+	"libwrappy3.mutable", // tp_name
 	sizeof (PyHeapTypeObject), // tp_basicsize
 	sizeof (PyMemberDef), // tp_itemsize
 	0, // tp_dealloc
@@ -233,8 +233,8 @@ static PyMethodDef methods[] = { { NULL, NULL, 0, NULL } };
 
 static PyModuleDef moduledef = {
 	PyModuleDef_HEAD_INIT,
-	"libwrappy2",
-	"wrappy2 Python/C++ glue",
+	"libwrappy3",
+	"wrappy3 Python/C++ glue",
 	-1,
 	methods,
 	NULL,
@@ -253,7 +253,7 @@ trans_func(unsigned int u, EXCEPTION_POINTERS* /*pExp*/)
 #endif
 
 PyMODINIT_FUNC
-PyInit_libwrappy2()
+PyInit_libwrappy3()
 {
 #ifdef _WIN32
 	// TODO: initialize once per thread

@@ -121,7 +121,7 @@ dumpInitTypes(std::ostream &output)
 			output <<
 				"\tif (" << ready << "(&" << objectType
 								<< ") < 0)\n"
-				"\t\treturn;\n"
+				"\t\treturn NULL;\n"
 				"\tPy_INCREF(&" << objectType << ");\n";
 			if (j == classInfoMap.end())
 				output <<
@@ -381,7 +381,7 @@ dumpModuleCode()
 	// generate module documentation string
 	output <<
 		"\n"
-		"static const char " << module << "_doc[] = \"wrappy2 generated module.\\n\\\nFunction signature documentation only.\\n\\\nSee C++ headers for more documentation.\";\n";
+		"static const char " << module << "_doc[] = \"wrappy3 generated module.\\n\\\nFunction signature documentation only.\\n\\\nSee C++ headers for more documentation.\";\n";
 	if (!nameSpace.empty())
 		output <<
 			"\n"
@@ -405,7 +405,7 @@ dumpModuleCode()
 		"PyInit_" << module << "()\n"
 		"{\n";
 	output <<
-		"\tif (!PyInit_libwrappy2())\n"
+		"\tif (!PyInit_libwrappy3())\n"
 		"\t\treturn NULL;\n"
 		"\tPyObject* module = PyModule_Create(&moduledef);\n"
 		"\tif (module == NULL)\n"
