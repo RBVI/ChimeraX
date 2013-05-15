@@ -13,4 +13,4 @@ install: all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:
-	rm -rf $(PYOBJS) __pycache__
+	rm -rf __pycache__

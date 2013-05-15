@@ -15,4 +15,4 @@ nogui:
 	./chimera2 --nogui -d json
 
 clean:
-	rm -f *.pyc
+	rm -rf __pycache__
