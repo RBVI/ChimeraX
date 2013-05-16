@@ -12,4 +12,4 @@ install: _proxy.$(SHLIB_EXT)
 	cp _proxy.$(SHLIB_EXT) $(shlibdir)
 
 clean:
-	rm -rf *.pyc _proxy.$(SHLIB_EXT) build
+	rm -rf __pycache__ _proxy.$(SHLIB_EXT) build
