@@ -1,0 +1,12 @@
+--- Mac/Makefile.in.orig	2013-04-06 00:41:48.000000000 -0700
++++ Mac/Makefile.in	2013-05-16 11:10:00.000000000 -0700
+@@ -49,6 +49,9 @@
+ installapps: install_Python install_pythonw install_PythonLauncher install_IDLE
+ 
+ install_pythonw: pythonw
++	if [ ! -d "$(DESTDIR)$(prefix)/bin" ]; then  \
++		$(INSTALL) -d -m $(DIRMODE) "$(DESTDIR)$(prefix)/bin" ;\
++	fi
+ 	$(INSTALL_PROGRAM) $(STRIPFLAG) pythonw "$(DESTDIR)$(prefix)/bin/pythonw$(VERSION)"
+ 	$(INSTALL_PROGRAM) $(STRIPFLAG) pythonw "$(DESTDIR)$(prefix)/bin/python$(VERSION)"
+ 	ln -sf python$(VERSION) "$(DESTDIR)$(prefix)/bin/python3"
