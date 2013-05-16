@@ -53,6 +53,7 @@ ifeq ($(OS),Darwin)
 	XCODE4_SDK_ROOT = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
 ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
 	ifneq (,$(wildcard $(XCODE4_SDK_ROOT)))
+		USE_XCODE4=1
 		SDK = $(XCODE4_SDK_ROOT)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
 	else ifneq (,$(wildcard $(XCODE3_SDK_ROOT)))
 		SDK = $(XCODE3_SDK_ROOT)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
@@ -61,12 +62,15 @@ ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
 		$(error unable to find SDK for $(MACOSX_DEPLOYMENT_TARGET))
 	endif
 else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk))
+	USE_XCODE4=1
 	export MACOSX_DEPLOYMENT_TARGET=10.6
 	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk
 else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk))
+	USE_XCODE4=1
 	export MACOSX_DEPLOYMENT_TARGET=10.7
 	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk
 else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.8.sdk))
+	USE_XCODE4=1
 	export MACOSX_DEPLOYMENT_TARGET=10.8
 	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.8.sdk
 else ifneq (,$(wildcard $(XCODE3_SDK_ROOT)/MacOSX10.6.sdk))
@@ -80,9 +84,14 @@ ifdef DEBUG
 else
 	OPT = -O4
 endif
+ifdef USE_XCODE4
+	CC = clang --sysroot $(SDK)
+	CXX = clang++ --sysroot $(SDK)
+else
 	CC = gcc -pipe -isysroot $(SDK)
-	EXTRA_CFLAGS = -fPIC -pipe
 	CXX = g++ -pipe -isysroot $(SDK)
+endif
+	EXTRA_CFLAGS = -fPIC
 	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
 
 	PYDEF = -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'

@@ -24,7 +24,7 @@ build-dirs:
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif
-ifdef USE_MAC_FRAMEWORK
+ifdef USE_MAC_FRAMEWORKS
 	-mkdir -p $(frameworkdir)
 endif
 

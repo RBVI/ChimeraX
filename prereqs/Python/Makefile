@@ -10,7 +10,7 @@ SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
 else
-DYNLOAD_DIR = $(PYTHON_LIBRARY_DIR)/lib-dynload
+DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
 endif
 
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
@@ -34,15 +34,14 @@ LIBREPLACE = $(wildcard Python-$(PYTHON_PATCH_LEVEL)-*.py)
 
 ifeq ($(OS),Linux)
 # On linux have to disable IPV6 socket support or _socket doesn't compile.
-# Use UCS-4 to be compatible with Ubuntu and RedHat/Fedora
-CONFIG_OPTIONS += --disable-ipv6 --enable-unicode=ucs4 --enable-shared
+CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
 
 ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 else
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-CONFIG_OPTIONS += --enable-framework DESTDIR=$(build_prefix)
+CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --exec_prefix=$(build_prefix)
 PYTHON_FW = $(frameworkdir)/Python.framework
 endif
 
@@ -97,20 +96,11 @@ ifeq ($(OS),Windows)
 	  $(PYDIR)/python3.exe \
 	  $(PYDIR)/python3w.exe \
 	  $(bindir)
-else ifndef USE_MAC_FRAMEWORKS
-	cd $(SOURCE) && $(MAKE) install
 else
-	cd $(SOURCE) && $(MAKE)
-	cd $(SOURCE) && $(MAKE) -j1 frameworkinstall DESTDIR=$(build_prefix)
-	cp $(SOURCE)/python3.exe $(bindir)/python$(PYTHON_VERSION)
-	cd $(bindir) && ln -fs python3$(PYTHON_VERSION) python3
+	cd $(SOURCE) && $(MAKE) && $(MAKE) install
+ifdef USE_MAC_FRAMEWORKS
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
-	rm -rf $(build_prefix)/usr $(build_prefix)/Users
-	cd $(libdir) && \
-	  ln -fs ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/lib/python$(PYTHON_VERSION) . && \
-	  ln -fs ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/lib/libpython$(PYTHON_VERSION).$(SHLIB_EXT) .
-	cd $(includedir) && \
-	  ln -fs ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/include/python$(PYTHON_VERSION) .
+endif
 endif
 	# double check that pyexpat was successfully made
 	test -f $(DYNLOAD_DIR)/pyexpat.*

@@ -4,6 +4,7 @@
 *.obj
 *.lib
 *.dll
+*.dylib
 # patch generated
 *.orig
 *.rej
