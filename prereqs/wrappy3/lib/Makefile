@@ -9,11 +9,7 @@ include $(TOP)/mk/config.make
 LIBNAME	= wrappy3
 SRCS	= WrapPy.cpp WrapPyModule.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-ifneq ($(WIN32),msvc)
-INCS	+= $(shell python$(PYTHON_VERSION)-config --includes)
-else
-INCS	+= -I'$(shell cygpath -w '$(PYTHON_INCLUDE_DIR)')'
-endif
+INCS	+= $(PYTHON_INCLUDE_DIRS)
 LIBS	= $(PYTHON_LIB)
 
 DEFS += $(PYDEF)

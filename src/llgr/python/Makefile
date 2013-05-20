@@ -10,7 +10,7 @@ else
 LIBS = -L$(libdir) -lllgr -lwrappy3 $(OPENGL_LIBS)
 endif
 
-CXXFLAGS += -I$(includedir) -I$(PYTHON_INCLUDE_DIR) $(NUMPY_INC) $(PYDEF)
+CXXFLAGS += -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) $(PYDEF)
 
 GENSRCS += _llgr.cpp AttributeInfo_Object.cpp
 GENHDRS += $(GENSRCS:.cpp=.h)
