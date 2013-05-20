@@ -61,18 +61,18 @@ ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
 	else
 		$(error unable to find SDK for $(MACOSX_DEPLOYMENT_TARGET))
 	endif
-else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk))
-	USE_XCODE4=1
-	export MACOSX_DEPLOYMENT_TARGET=10.6
-	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk
-else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk))
-	USE_XCODE4=1
-	export MACOSX_DEPLOYMENT_TARGET=10.7
-	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk
 else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.8.sdk))
 	USE_XCODE4=1
 	export MACOSX_DEPLOYMENT_TARGET=10.8
 	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.8.sdk
+else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk))
+	USE_XCODE4=1
+	export MACOSX_DEPLOYMENT_TARGET=10.7
+	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk
+else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk))
+	USE_XCODE4=1
+	export MACOSX_DEPLOYMENT_TARGET=10.6
+	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk
 else ifneq (,$(wildcard $(XCODE3_SDK_ROOT)/MacOSX10.6.sdk))
 	export MACOSX_DEPLOYMENT_TARGET=10.6
 	SDK = $(XCODE3_SDK_ROOT)/MacOSX10.6.sdk

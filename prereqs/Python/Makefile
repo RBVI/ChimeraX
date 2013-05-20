@@ -100,6 +100,7 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifdef USE_MAC_FRAMEWORKS
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
+	cp $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)/pyconfig.h $(frameworkdir)/Python.framework/Headers/
 endif
 endif
 	# double check that pyexpat was successfully made

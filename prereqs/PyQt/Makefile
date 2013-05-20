@@ -2,19 +2,24 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 4.10.1
-DISTRIBUTION = PyQt-win-gpl-$(VERSION).zip
-SOURCE = $(tmpdir)/PyQt-win-gpl-$(VERSION)
+VERSION = 5.0-snapshot-49dc741ba538
+DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
+
+CONFIG_ARGS = --confirm-license --verbose
+ifdef USE_MAC_FRAMEWORKS
+CONFIG_ARGS += -d $(libdir)
+endif
 
 all:
 
 install: $(SOURCE)
 	-mkdir $(PYSITEDIR)/PyQt4
 	-mkdir -p $(datadir)/sip/PyQt4
-	cd $(SOURCE) && python3 configure-ng.py --confirm-license && $(MAKE) && $(MAKE) install
+	cd $(SOURCE) && python3 configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
 $(SOURCE): $(DISTRIBUTION)
-	unzip -d $(tmpdir) -q $(DISTRIBUTION)
+	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 
 clean:
 	rm -rf $(SOURCE)

@@ -15,7 +15,8 @@ endif
 
 CONFIG_OPTS = -opensource -confirm-license \
 	      -no-audio-backend \
-	      -qt-libpng -qt-libjpeg
+	      -qt-libpng -qt-libjpeg \
+              -nomake examples
 ifeq ($(OS),Windows)
 	CONFIG_OPTS += -mp -prefix '$(shell cygpath -m '$(build_prefix)')'
 else
