@@ -10,6 +10,10 @@ run:
 	# by running within make, the right environment variables are setup
 	./chimera2
 
+run-python:
+	# by running within make, the right environment variables are setup
+	$(bindir)/python3
+
 nogui:
 	# by running within make, the right environment variables are setup
 	./chimera2 --nogui -d json

@@ -28,11 +28,10 @@ _llgr_syms = [
 	"create_buffer", "create_matrix", "create_object",
 	"create_program", "create_singleton",
 	"delete_buffer", "delete_matrix", "delete_object", "delete_program",
-	"hide_objects", "opaque", "pick", "render",
+	"hide_objects", "opaque", "render",
 	"selection_add", "selection_clear", "selection_remove",
 	"set_clear_color", "set_uniform", "set_uniform_matrix",
 	"show_objects", "transparent",
-	"vsphere_drag", "vsphere_press", "vsphere_release", "vsphere_setup",
 	# classes
 	"AttributeInfo",
 	# enums
@@ -51,6 +50,10 @@ _llgr_syms = [
 	"Triangles",
 	"Triangle_strip",
 	"Triangle_fan",
+]
+_llgr_ui_syms = [
+	"pick",
+	"vsphere_drag", "vsphere_press", "vsphere_release", "vsphere_setup",
 ]
 _local_syms = [
 	## from this module
@@ -96,6 +99,15 @@ def set_output(type):
 		else:
 			gsyms['_%s' % sym] = getattr(llgr, sym)
 	gsyms['__all__'] = _llgr_syms + list(_wrapped_syms) + _local_syms
+	has_ui_syms = False
+	for sym in _llgr_ui_syms:
+		if hasattr(llgr, sym):
+			gsyms[sym] = getattr(llgr, sym)
+			has_ui_syms = True
+		elif hasattr(gsyms, sym):
+			del gsyms[sym]
+	if has_ui_syms:
+		gsyms['__all__'] += _llgr_ui_syms
 
 import itertools
 

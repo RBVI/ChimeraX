@@ -7,15 +7,10 @@ DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
 
 CONFIG_ARGS = --confirm-license --verbose
-ifdef USE_MAC_FRAMEWORKS
-CONFIG_ARGS += -d $(libdir)
-endif
 
 all:
 
 install: $(SOURCE)
-	-mkdir $(PYSITEDIR)/PyQt4
-	-mkdir -p $(datadir)/sip/PyQt4
 	cd $(SOURCE) && python3 configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
 $(SOURCE): $(DISTRIBUTION)

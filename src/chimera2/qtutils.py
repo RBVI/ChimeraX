@@ -6,7 +6,7 @@ These are convenience functions to make using Qt easier.
 
 """
 
-from PyQt4 import QtCore, QtGui, QtOpenGL
+from PyQt5 import QtCore, QtGui, QtOpenGL
 from contextlib import closing
 
 def create_form(ui_file, parent=None, opengl = {}, connections = {}):

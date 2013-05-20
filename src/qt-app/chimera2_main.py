@@ -4,10 +4,10 @@
 
 import sys
 
-from PyQt4 import QtCore, QtGui, QtOpenGL
+from PyQt5 import QtCore, QtGui, QtOpenGL
 from chimera2 import math3d, qtutils
 
-app = None	# QApplication
+app = None	# QGuiApplication or QCoreApplication
 dump_format = None
 
 class ChimeraGraphics(qtutils.OpenGLWidget):
@@ -160,11 +160,11 @@ class ConsoleApplication(QtCore.QCoreApplication, BaseApplication):
 		self.statusbar = TextStatus()
 
 
-class GuiApplication(QtGui.QApplication, BaseApplication):
+class GuiApplication(QtGui.QGuiApplication, BaseApplication):
 	# TODO: figure out how to catch close/delete window from window frame
 
 	def __init__(self, *args, **kw):
-		QtGui.QApplication.__init__(self, *args, **kw)
+		QtGui.QGuiApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
 		# calculate DPmm -- dots (pixels) per mm
