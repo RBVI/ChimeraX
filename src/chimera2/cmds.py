@@ -45,6 +45,7 @@ Argument values may be quoted with either single or double quotes.
 __all__ = [
 	'register',
 	'process_command',
+	'fullname',
 	'UserError',
 ]
 
@@ -69,13 +70,26 @@ def process_command(text):
 	:py:exc:`UserError` is thrown if there is a parsing error."""
 
 	cmd_name, arg_text = first_arg(text)
+	cmd_name = fullname(cmd_name)
 	cmd_func = _commands.get(cmd_name, None)
-	if not cmd_func:
-		raise UserError('unknown command: %s' % cmd_name)
 	try:
 		return exec_with_args(cmd_func, arg_text)
 	except UserError as exc:
 		raise UserError('bad command: %s: %s' % (cmd_name, exc))
+
+def fullname(cmd_name):
+	"""Return full name of command given an abbreviated name"""
+
+	# TODO: implement chimera 1's preferential abbreviations
+	if cmd_name in _commands:
+		return cmd_name
+	matches = [c for c in _commands if c.startswith(cmd_name)]
+	if not matches:
+		raise UserError('unknown command: %s' % cmd_name)
+	if len(matches) == 1:
+		return matches[0]
+	raise UserError("'%s' matches multiple known commands: %s"
+					 % (cmd_name, ' '.join(matches)))
 
 def convert(arg, annotation):
 	"""Convert argument to type given a parameter annotation
