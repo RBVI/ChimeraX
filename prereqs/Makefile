@@ -105,7 +105,7 @@ pcre.install: zlib.install
 pyflakes.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install distribute.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
-pythomnic.install: Python.install
+pythomnic3k.install: Python.install
 Python.install: zlib.install openssl.install expat.install
 PyQt.install: Python.install qt.install sip.install
 qt.install: openssl.install zlib.install
