@@ -42,7 +42,7 @@ Mesa.install:
 endif
 
 SUBDIRS	+= docutils distribute expat fonts glew jinja2 numpy openssl \
-	   pcre PyOpenGL pyflakes pythomnic Python PyQt qt \
+	   pcre PyOpenGL pyflakes pythomnic3k Python PyQt qt \
 	   sip sphinx wrappy3 zlib
 
 # All needed subdirectories must be set by now.

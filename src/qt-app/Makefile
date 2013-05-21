@@ -18,5 +18,8 @@ nogui:
 	# by running within make, the right environment variables are setup
 	./chimera2 --nogui -d json
 
+gdb:
+	gdb $(bindir)/python3 core
+
 clean:
 	rm -rf __pycache__

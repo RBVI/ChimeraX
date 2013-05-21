@@ -192,6 +192,9 @@ enum PrimitiveType {
 	Triangle_fan = 6,	// same as GL_TRIANGLE_FAN
 };
 
+LLGR_IMEX extern void set_attribute_alias(const std::string& name,
+	const std::string& value);
+
 LLGR_IMEX extern void create_object(Id obj_id, Id program_id, Id matrix_id,
 	const AttributeInfos& ais, PrimitiveType pt,
 	uint32_t first, uint32_t count,
@@ -219,8 +222,6 @@ LLGR_IMEX extern void selection_clear();
 
 // LOD primitives
 
-LLGR_IMEX extern void set_primitive_attribute_name(const std::string& name,
-	const std::string& value);
 LLGR_IMEX extern void add_sphere(Id obj_id, float radius,
 	Id program_id, Id matrix_id, const AttributeInfos& ais);
 LLGR_IMEX extern void add_cylinder(Id obj_id, float radius, float length,

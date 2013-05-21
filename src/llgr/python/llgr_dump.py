@@ -432,6 +432,11 @@ PrimitiveType.class_init()
 
 @save_args
 @typecheck
+def set_attribute_alias(name: str, value: str):
+	pass
+
+@save_args
+@typecheck
 def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
 		list_of_attributeInfo: _AttributeInfos,
 		primitive_type: PrimitiveType, first: NonNeg, count: NonNeg,
@@ -488,11 +493,6 @@ def selection_clear():
 # TODO: text primitives
 
 # LOD primitives
-
-@save_args
-@typecheck
-def set_primitive_attribute_name(name: str, value: str):
-	pass
 
 @typecheck
 def add_sphere(obj_id: Id, radius: float, program_id: Id, matrix_id: Id, list_of_attributeInfo: _AttributeInfos):

@@ -302,6 +302,25 @@ Objects
 
     std::vector\<AttributeInfo>
 
+.. cpp:function:: void set_attribute_alias(const std::string& name, const std::string& value)
+
+    Create an alias for a vertex attribute name.
+    This can be used to make common object creation code
+    work with different shader programs,
+    or hide differences between different versions of OpenGL.
+    To remove an alias, either set it to itself or the empty string.
+
+    For example, the built-in primitives use "position" and "normal",
+    but for OpenGL 2, you should minimally::
+
+        llgr.set_attribute_alias("position", "gl_Vertex")
+
+    Since in OpenGL 2, glVertex has to be called
+    instead of using a vertex attribute,
+    but the normal could be be given
+    either as a vertex attribute or with ``glNormal``
+    depending on the shader program.
+
 .. cpp:function void create_object(Id obj_id, Id program_id, Id matrix_id, \
 	const AttributeInfos\& ais, PrimitiveType pt, \
 	uint32_t first, uint32_t count, \
@@ -363,20 +382,6 @@ LOD primitives
 
 Level-of-detail primitives. *TODO: implement LOD*
 
-.. cpp:function:: void set_primitive_attribute_name(const std::string& name, const std::string& value)
-
-    Set the vertex attribute names used for the position and normal attributes
-    in the add primitive routines, *e.g.*, :cpp:func:`add_sphere`.
-    The default attribute names are "position" and "normal",
-    but they should overridden to match their what the shader program expects.
-
-    For example, for OpenGL 2, you should::
-
-        llgr.set_primitive_attribute_name("position", "gl_Vertex")
-
-    since in OpenGL, glVertex has to be called
-    instead of using a vertex attribute.
-
 .. cpp:function:: void add_sphere(Id obj_id, float radius, \
 	Id program_id, Id matrix_id, const AttributeInfos& ais)
 
@@ -387,6 +392,9 @@ Level-of-detail primitives. *TODO: implement LOD*
     :param program_id: provided program identifier
     :param matrix_id: provided matrix identifier
     :param ais: vector of attribute information
+
+    The default vertex attribute names are "position" and "normal".
+    See :cpp:func:`set_attribute_alias` to change them.
 
 .. cpp:function:: void add_cylinder(Id obj_id, float radius, float length, \
 	Id program_id, Id matrix_id, const AttributeInfos& ais)
@@ -399,6 +407,9 @@ Level-of-detail primitives. *TODO: implement LOD*
     :param program_id: provided program identifier
     :param matrix_id: provided matrix identifier
     :param ais: vector of attribute information
+
+    The default vertex attribute names are "position" and "normal".
+    See :cpp:func:`set_attribute_alias` to change them.
 
 .. cpp:function:: void clear_primitives()
 

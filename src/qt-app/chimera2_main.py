@@ -4,10 +4,10 @@
 
 import sys
 
-from PyQt5 import QtCore, QtGui, QtOpenGL
+from PyQt5 import QtCore, QtGui, QtWidgets, QtOpenGL
 from chimera2 import math3d, qtutils
 
-app = None	# QGuiApplication or QCoreApplication
+app = None	# QApplication or QCoreApplication
 dump_format = None
 
 class ChimeraGraphics(qtutils.OpenGLWidget):
@@ -104,11 +104,6 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		y = int(self.height()) - y
 		print(llgr.pick(x, y))
 
-class TextStatus:
-
-	def showMessage(self, text, timeout=0):
-		print(text)
-
 class BaseApplication:
 
 	def __init__(self, *args, **kw):
@@ -121,11 +116,27 @@ class BaseApplication:
 		cmds.register('exit', self.cmd_exit)
 		cmds.register('open', self.cmd_open)
 
-		self._cmd = ""
+		# potentially changed in subclass:
+		self.graphics = None
+		self.statusbar = None
+
+	def status(self, message, timeout=2000):
+		# 2000 == 2 seconds
+		if self.statusbar:
+			self.statusbar.showMessage(message, timeout)
+		else:
+			print(message)
 
 	def process_command(self, cmd):
 		from chimera2 import cmds
-		cmds.process_command(cmd)
+		try:
+			cmds.process_command(cmd)
+		except cmds.UserError as e:
+			self.status(str(e))
+		except Exception:
+			# TODO: report error
+			import traceback
+			traceback.print_exc()
 
 	def cmd_exit(self):
 		# TODO: if nogui starts using event loop, then just self.quit
@@ -157,21 +168,18 @@ class ConsoleApplication(QtCore.QCoreApplication, BaseApplication):
 		BaseApplication.__init__(self)
 
 		self.graphics = None
-		self.statusbar = TextStatus()
 
 
-class GuiApplication(QtGui.QGuiApplication, BaseApplication):
+class GuiApplication(QtWidgets.QApplication, BaseApplication):
 	# TODO: figure out how to catch close/delete window from window frame
 
 	def __init__(self, *args, **kw):
-		QtGui.QGuiApplication.__init__(self, *args, **kw)
+		QtWidgets.QApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
 		# calculate DPmm -- dots (pixels) per mm
 		desktop = self.desktop()
 		if desktop.widthMM() == 0:
-			self.graphics = None
-			self.statusbar = TextStatus()
 			return
 		self.DPmm = min(desktop.width() / desktop.widthMM(),
 					desktop.height() / desktop.heightMM())
@@ -262,24 +270,16 @@ class GuiApplication(QtGui.QGuiApplication, BaseApplication):
 			self.xy = xy
 			self.graphics.translate_xy(delta)
 
-	def status(self, message, timeout=2000):
-		# 2000 == 2 seconds
-		self.statusbar.showMessage(message, timeout)
-
 	@QtCore.pyqtSlot(str)
 	def save_command(self, cmd):
 		self._cmd = cmd
 
 	@QtCore.pyqtSlot()
 	def process_command(self, cmd=None):
-		from chimera2 import cmds
+		self.status("")
 		if cmd is None:
 			cmd = self._cmd
-		try:
-			BaseApplication.process_command(self, cmd)
-			self.status("")
-		except cmds.UserError as e:
-			self.status(str(e))
+		BaseApplication.process_command(self, cmd)
 
 def main():
 	# typical Qt application startup

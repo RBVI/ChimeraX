@@ -5,7 +5,7 @@ include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = python $(bindir)/sphinx-build
+SPHINXBUILD   = python3 $(bindir)/sphinx-build
 PAPER         =
 BUILDDIR      = _build
 
@@ -158,5 +158,5 @@ doctest: conf.py
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 llgr:
-	which python
-	python $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html
+	which python3
+	python3 $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html

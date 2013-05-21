@@ -67,8 +67,8 @@ def open(filename, average_normals=True, *args, **kw):
 	AI = llgr.AttributeInfo
 	mai = [
 		AI("color", color_id, 0, 0, 4, llgr.Float),
-		AI(scene.Position, vn_id, 0, 0, 3, llgr.Float),
-		AI(scene.Normal, vn_id, va.nbytes, 0, 3, llgr.Float),
+		AI("position", vn_id, 0, 0, 3, llgr.Float),
+		AI("normal", vn_id, va.nbytes, 0, 3, llgr.Float),
 		AI("instanceScale", uniform_scale_id, 0, 0, 3, llgr.Float),
 	]
 

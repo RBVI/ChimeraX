@@ -1,9 +1,51 @@
 #include "llgr_int.h"
 #include <algorithm>
 
+using std::string;
+
+namespace {
+
+typedef std::map<string, string> NameMap;
+NameMap name_map;
+
+bool name_map_initialized = false;
+
+void
+init_name_map()
+{
+	if (name_map.find("position") == name_map.end())
+		name_map["position"] = "position";
+	if (name_map.find("normal") == name_map.end())
+		name_map["normal"] = "normal";
+	name_map_initialized = true;
+}
+
+const string&
+attribute_alias(const string& name)
+{
+	NameMap::const_iterator i = name_map.find(name);
+	if (i != name_map.end())
+		return i->second;
+	return name;
+}
+
+}
+
 namespace llgr {
 
 AllObjects all_objects;
+
+void
+set_attribute_alias(const string& name, const string& value)
+{
+	if (name != value && !value.empty())
+		name_map[name] = value;
+	else {
+		NameMap::iterator i = name_map.find(name);
+		if (i != name_map.end())
+			name_map.erase(i);
+	}
+}
 
 void
 check_attributes(Id obj_id, Id program_id, const AttributeInfos &ais)
@@ -31,13 +73,19 @@ check_attributes(Id obj_id, Id program_id, const AttributeInfos &ais)
 void
 create_object(Id obj_id, Id program_id, Id matrix_id, const AttributeInfos& ais, PrimitiveType pt, unsigned first, unsigned count, Id ib, DataType t)
 {
-	check_attributes(obj_id, program_id, ais);
+	if (!name_map_initialized)
+		init_name_map();
 	// TODO: if (ib != 0) then t in (UByte, UShort, UInt)
 
 	delete_object(obj_id);
 	ObjectInfo *oi = new ObjectInfo(program_id, matrix_id, ais, pt, first, count, ib, t);
 	all_objects[obj_id] = oi;
 	dirty = true;
+	for (AttributeInfos::iterator aii = oi->ais.begin();
+						aii != oi->ais.end(); ++aii) {
+		aii->name = attribute_alias(aii->name);
+	}
+	check_attributes(obj_id, program_id, oi->ais);
 }
 
 void

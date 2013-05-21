@@ -6,7 +6,7 @@ These are convenience functions to make using Qt easier.
 
 """
 
-from PyQt5 import QtCore, QtGui, QtOpenGL
+from PyQt5 import QtCore, QtWidgets, QtGui, QtOpenGL
 from contextlib import closing
 
 def create_form(ui_file, parent=None, opengl = {}, connections = {}):
@@ -33,7 +33,7 @@ def create_form(ui_file, parent=None, opengl = {}, connections = {}):
 	#	uif.open(QtCore.QFile.ReadOnly)
 	#	form = loader.load(uif, parent)
 
-	from PyQt4 import uic
+	from PyQt5 import uic
 	form = uic.loadUi(ui_file, parent)
 
 	for object_name, widget_factory in opengl.items():
@@ -45,7 +45,7 @@ def create_form(ui_file, parent=None, opengl = {}, connections = {}):
 		import sys
 		graphics = widget_factory(obj)
 		graphics.setObjectName(object_name + "GL")
-		grid = QtGui.QGridLayout()
+		grid = QtWidgets.QGridLayout()
 		grid.addWidget(graphics, 0, 0)
 		obj.setLayout(grid)
 
@@ -89,7 +89,7 @@ class OpenGLWidget(QtOpenGL.QGLWidget):
 		if share == 0:
 			share = None
 		if isinstance(flags, int):
-			from PyQt4.QtCore import Qt
+			from PyQt5.QtCore import Qt
 			flags = Qt.WindowFlags(flags)
 		#super().__init__(format, parent, share, flags)
 		super().__init__(parent, share, flags)

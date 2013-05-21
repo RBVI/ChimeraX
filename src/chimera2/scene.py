@@ -30,7 +30,7 @@ __all__ = [
 ]
 
 from .math3d import Point, Vector, Translation, frustum, look_at, weighted_point, cross
-from numpy import array
+from numpy import array, amin, amax
 
 class BBox:
 	"""axis-aligned bounding box
@@ -65,9 +65,8 @@ class BBox:
 
 		:param pts: a numpy array of XYZ coordinates
 		"""
-		from numpy import min, max
-		mi = min(pts, axis=1)
-		ma = max(pts, axis=1)
+		mi = amin(pts, axis=0)
+		ma = amax(pts, axis=0)
 		if self.llf is None:
 			self.llf = Point(mi)
 			self.urb = Point(ma)
