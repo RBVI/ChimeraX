@@ -17,6 +17,6 @@
  
 -#include "expat.h"
 +#include "expat/expat.h"
- 
- #if defined(USE_PYEXPAT_CAPI)
  #include "pyexpat.h"
+ static struct PyExpat_CAPI *expat_capi;
+ #define EXPAT(func) (expat_capi->func)
