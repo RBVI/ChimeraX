@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).1
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.bz2
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -96,12 +96,12 @@ ifeq ($(OS),Windows)
 	  $(PYDIR)/python3.exe \
 	  $(PYDIR)/python3w.exe \
 	  $(bindir)
-else
+else ifndef USE_MAC_FRAMEWORKS
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
-ifdef USE_MAC_FRAMEWORKS
+else
+	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
 	cp $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)/pyconfig.h $(frameworkdir)/Python.framework/Headers/
-endif
 endif
 	# double check that pyexpat was successfully made
 	test -f $(DYNLOAD_DIR)/pyexpat.*
