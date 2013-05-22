@@ -19,6 +19,9 @@ install:
 	$(MAKE) -C docs html
 	@echo 'Finished install at' `date`
 
+docs.install:
+	$(MAKE) -C docs html
+
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir)
 ifneq ($(libdir), $(shlibdir))
