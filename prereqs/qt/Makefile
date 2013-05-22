@@ -16,7 +16,7 @@ endif
 CONFIG_OPTS = -opensource -confirm-license \
 	      -no-audio-backend \
 	      -qt-libpng -qt-libjpeg \
-              -nomake examples
+	      -nomake examples
 ifeq ($(OS),Windows)
 	CONFIG_OPTS += -mp -prefix '$(shell cygpath -m '$(build_prefix)')'
 else
@@ -29,7 +29,9 @@ ifeq ($(OS),Darwin)
 	CONFIG_OPTS += -sdk $(SDK)
 endif
 ifeq ($(OS),Linux)
-	CONFIG_OPTS += -qt-xcb
+	# In 5.0.2, build fails if icu library is not present,
+	# so have configure fail if it is not present
+	CONFIG_OPTS += -qt-xcb -icu
 endif
 ifdef DEBUG
 	CONFIG_OPTS += -debug

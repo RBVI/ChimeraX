@@ -12,7 +12,7 @@ all:
 	@echo "'make install' to build everything"
 
 install:
-	@echo 'Started install at' `date`
+	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
 	$(MAKE) -C prereqs install.prebuilt
 	$(MAKE) -C src install
