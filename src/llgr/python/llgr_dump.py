@@ -7,7 +7,7 @@ Add typechecking to function arguments to protect against arguments with the
 wrong type being decoded by matching backend in JavaScript.
 """
 import numpy
-from typecheck import typecheck, Checker, EitherChecker, list_of, TypeCheckError
+from typecheck import typecheck, Checker, either, list_of, TypeCheckError
 
 JSON_FORMAT = 'json'
 CPP_FORMAT = 'c++'
@@ -72,16 +72,39 @@ class _IsBuffer(Checker):
 		return True
 IsBuffer = _IsBuffer()
 
+class _GLint(Checker):
+	"""type annotation for OpenGL GLint"""
+
+	def __repr__(self):
+		return "GLint"
+
+	def check(self, value):
+		return isinstance(value, int) and value >= 0 and value < 2147483648
+GLint = _GLint()
+
+class _GLclampf(Checker):
+	"""type annotation for OpenGL GLclampf"""
+
+	def __repr__(self):
+		return "GLclampf"
+
+	def check(self, value):
+		return isinstance(value, (int, float)) and 0 <= value <= 1
+GLclampf = _GLclampf()
+
 class _nonnegative(Checker):
 	"""type annonation for non-negative integers"""
 
 	def __repr__(self):
-		return "NonNeg"
+		return "NonNeg32"
 
 	def check(self, value):
-		return isinstance(value, int) and value >= 0
-NonNeg = _nonnegative()
-Id = NonNeg		# negative Ids are reserved for llgr internal use
+		return isinstance(value, int) and 0 <= value < 2147483648
+NonNeg32 = _nonnegative()
+
+Number = either(int, float)
+
+Id = NonNeg32		# negative Ids are reserved for llgr internal use
 
 class Enum(Checker):
 	"""subclass for C++-style enumerated type
@@ -103,7 +126,6 @@ class Enum(Checker):
 
 	@classmethod
 	def class_init(cls, as_string=False):
-		import sys
 		# inject enum constants into modeule's globals
 		Enum._as_string[cls] = as_string
 		if cls not in Enum._initialized:
@@ -116,7 +138,7 @@ class Enum(Checker):
 		if Enum._as_string[self.__class__]:
 			return self.labels[self.value]
 		else:
-			return self.value
+			return str(self.value)
 
 	def check(self, value):
 		if _dump_format == JSON_FORMAT:
@@ -142,18 +164,17 @@ def convert_buffer(b):
 	"""return [little-endian, size, [unsigned integers]]"""
 	b = memoryview(b)
 	if _dump_format != JSON_FORMAT:
-		type = "missing"
+		ctype = "missing"
 		if _dump_format == CPP_FORMAT:
-			type = "const char*"
+			ctype = "const char*"
 		elif _dump_format == JS_FORMAT:
-			type = "var"
+			ctype = "var"
 		text = repr(bytes(b))[1:-1].replace('"', '\\"')
-		return type, '"%s"' % text, len(b)
+		return ctype, '"%s"' % text, len(b)
 	import struct
-	size = len(b)
-	fmt = 'I' * (size // 4)
-	fmt = '<' + fmt + ['', 'B', 'H', 'HB'][size % 4]
-	return [True, size, struct.unpack(fmt, b)]
+	fmt = 'I' * (b.nbytes // 4)
+	fmt = '<' + fmt + ['', 'B', 'H', 'HB'][b.nbytes % 4]
+	return [True, b.nbytes, struct.unpack(fmt, b)]
 
 _calls = []
 
@@ -199,8 +220,16 @@ def render():
 	_calls = []
 	if _dump_format == JSON_FORMAT:
 		import json
+		from json.encoder import JSONEncoder
+		class DumpEncoder(JSONEncoder):
+			def default(self, obj):
+				if isinstance(obj, Enum):
+					return obj.value
+				if isinstance(obj, AttributeInfo):
+					return obj.json()
+				return JSONEncoder.default(self, obj)
 		with open("render.json", "w") as f:
-			json.dump(tmp, f)
+			json.dump(tmp, f, cls=DumpEncoder)
 			print(file=f)	# trailing newline
 		return
 	if _dump_format == CPP_FORMAT:
@@ -310,12 +339,12 @@ def create_singleton(data_id: Id, data: IsBuffer):
 # TODO
 @save_args
 @typecheck
-def create_singleton_index(data_id: Id, reference_data_id: Id, size: NonNeg, offset: NonNeg):
+def create_singleton_index(data_id: Id, reference_data_id: Id, size: NonNeg32, offset: NonNeg32):
 	pass # TODO
 
 # update column of existing buffer data
 @typecheck
-def update_buffer(data_id: Id, offset: NonNeg, stride: NonNeg, count: NonNeg, data: IsBuffer):
+def update_buffer(data_id: Id, offset: NonNeg32, stride: NonNeg32, count: NonNeg32, data: IsBuffer):
 	pass # TODO
 """
 
@@ -330,11 +359,11 @@ class TextureFilter(int): pass
 LinearMimapNearest, LinearMipmapLinear) = [TextureFilter(i) for i in range(6)]
 
 @typecheck
-def create_2d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg, height: NonNeg, data: IsBuffer):
+def create_2d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg32, height: NonNeg32, data: IsBuffer):
 	pass # TODO
 
 @typecheck
-def create_3d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg, height: NonNeg, depth: NonNeg, data: IsBuffer):
+def create_3d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg32, height: NonNeg32, depth: NonNeg32, data: IsBuffer):
 	pass # TODO
 
 @save_args
@@ -350,7 +379,7 @@ def clear_textures():
 # matrices
 
 # type check for 4x4 array, dtype='f' (aka dtype('float32'))
-Matrix_4x4 = EitherChecker(Array(shape=(4,4), dtype='f'), (
+Matrix_4x4 = either(Array(shape=(4,4), dtype='f'), (
 	float, float, float, float,
 	float, float, float, float,
 	float, float, float, float,
@@ -400,9 +429,10 @@ def clear_matrices():
 #};
 #typedef std::vector<AttributeInfo> AttributeInfos;
 
-class _AttributeInfo(object):
+class AttributeInfo(object):
 
-	def __init__(self, name, data_id, offset, stride, count, data_type, norm=False):
+	@typecheck
+	def __init__(self, name: str, data_id: Id, offset: NonNeg32, stride: NonNeg32, count: NonNeg32, data_type: DataType, norm: bool=False):
 		self.name = name
 		self.data_id = data_id
 		self.offset = offset
@@ -412,16 +442,12 @@ class _AttributeInfo(object):
 		self.normalize = norm
 
 	def __repr__(self):
-		if _dump_format == JSON_FORMAT:
-			return (self.name, self.data_id, self.offset, self.stride, self.count, self.data_type, self.norm)
 		return 'AttributeInfo("%s", %r, %r, %r, %r, %r, %r)' % (
 			self.name, self.data_id, self.offset, self.stride,
 			self.count, self.data_type, self.normalize)
 
-@typecheck
-def AttributeInfo(name: str, data_id: Id, offset: NonNeg, stride: NonNeg, count: NonNeg, data_type: DataType, norm:bool=False):
-	return _AttributeInfo(name, data_id, offset, stride, count, data_type, norm)
-_AttributeInfos = [_AttributeInfo]
+	def json(self):
+		return (self.name, self.data_id, self.offset, self.stride, self.count, self.data_type, self.normalize)
 
 # enum PrimitiveType
 class PrimitiveType(Enum):
@@ -438,8 +464,8 @@ def set_attribute_alias(name: str, value: str):
 @save_args
 @typecheck
 def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
-		list_of_attributeInfo: _AttributeInfos,
-		primitive_type: PrimitiveType, first: NonNeg, count: NonNeg,
+		list_of_attributeInfo: list_of(AttributeInfo),
+		primitive_type: PrimitiveType, first: NonNeg32, count: NonNeg32,
 		index_data_id:Id=0, index_buffer_type:DataType=UByte):
 	pass
 
@@ -495,7 +521,7 @@ def selection_clear():
 # LOD primitives
 
 @typecheck
-def add_sphere(obj_id: Id, radius: float, program_id: Id, matrix_id: Id, list_of_attributeInfo: _AttributeInfos):
+def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id, list_of_attributeInfo: list_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['add_sphere', [obj_id, radius, program_id, matrix_id, list_of_attributeInfo]])
 		return
@@ -507,8 +533,8 @@ def add_sphere(obj_id: Id, radius: float, program_id: Id, matrix_id: Id, list_of
 			% (obj_id, radius, program_id, matrix_id, aname))
 
 @typecheck
-def add_cylinder(obj_id: Id, radius: float, length: float,
-		program_id: Id, matrix_id: Id, list_of_attributeInfo: _AttributeInfos):
+def add_cylinder(obj_id: Id, radius: Number, length: Number,
+		program_id: Id, matrix_id: Id, list_of_attributeInfo: list_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['add_cylinder', [obj_id, radius, length, program_id, matrix_id, list_of_attributeInfo]])
 		return
@@ -534,7 +560,7 @@ def clear_all():
 
 @save_args
 @typecheck
-def set_clear_color(red: float, green: float, blue: float, alpha: float):
+def set_clear_color(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf):
 	pass
 
 def set_dump_format(f):
