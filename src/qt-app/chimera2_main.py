@@ -167,7 +167,27 @@ class ConsoleApplication(QtCore.QCoreApplication, BaseApplication):
 		QtCore.QCoreApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
-		self.graphics = None
+		# assume 100 dpi
+		self.DPmm = 100 / 25.4
+
+		self.window_size = (200, 200)
+
+		from chimera2 import cmds
+		cmds.register('render', self.cmd_render)
+		cmds.register('windowsize', self.cmd_window_size)
+
+	def cmd_render(self):
+		from chimera2 import scene
+		# assume 18 inches from screen
+		dist_mm = 18 * 25.4
+		height_mm = self.window_size[1] / self.DPmm
+		import math
+		vertical_fov = 2 * math.atan2(height_mm, dist_mm)
+		viewport = (0, 0) + self.window_size
+		scene.render(viewport, vertical_fov, math3d.Identity())
+
+	def cmd_window_size(self, width: int, height: int):
+		self.window_size = (width, height)
 
 
 class GuiApplication(QtWidgets.QApplication, BaseApplication):
