@@ -4,7 +4,7 @@ Code Conventions
 Code Repository
 ---------------
 
-Chimera2 uses `git <git-scm.com>`_ for source code management.
+Chimera2 uses `git <http://git-scm.com/>`_ for source code management.
 
 Here are a minimal set of commands to get started using git:
 

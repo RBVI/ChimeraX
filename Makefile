@@ -12,12 +12,15 @@ all:
 	@echo "'make install' to build everything"
 
 install:
-	@echo 'Started install at' `date`
+	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
 	$(MAKE) -C prereqs install.prebuilt
 	$(MAKE) -C src install
 	$(MAKE) -C docs html
 	@echo 'Finished install at' `date`
+
+docs.install:
+	$(MAKE) -C docs html
 
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir)
