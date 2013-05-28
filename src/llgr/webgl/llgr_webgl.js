@@ -323,7 +323,7 @@ function convert_data(data)
 	size = data[1];
 	words = data[2];
 	data = new ArrayBuffer(size);
-	var view = new DataView(data);
+	var view = new DataView(data, 0);
 	var i = 0, w = 0;
 	while (size >= 4) {
 		view.setUint32(i, words[w], little_endian);
@@ -544,6 +544,9 @@ llgr = {
 		var program = gl.createProgram();
 		gl.attachShader(program, vs);
 		gl.attachShader(program, fs);
+		// bind to 0 for efficient desktop emulation
+		// TODO: allow for other name than position
+		gl.bindAttribLocation(program, 0, "position");
 		gl.linkProgram(program);
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
 			console.log(gl.getProgramInfoLog(program));
