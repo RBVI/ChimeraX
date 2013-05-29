@@ -43,6 +43,9 @@ ifneq (,$(PATCHES))
 endif
 	touch wrappy
 
+lint:
+	pyflakes $(PYSRCS)
+
 clean:
 	rm -rf $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej __pycache__
 ifeq ($(WIN32),msvc)
