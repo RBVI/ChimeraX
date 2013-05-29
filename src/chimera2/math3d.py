@@ -12,8 +12,8 @@ simple translation and pure rotation transformations.
 """
 
 __all__ = [
-    'Point', 'Vector', 'Xform', 'weighted_point',
-    'Identity', 'Rotation', 'Translation',
+    'Point', 'Vector', 'Xform', 'weighted_point', 'cross',
+    'Identity', 'Rotation', 'Translation', 'Scale',
     'transform',
     'look_at', 'ortho', 'frustum', 'perspective'
 ]
@@ -193,11 +193,19 @@ class Xform:
         """Further rotate"""
         rot = Rotation(axis, angle)
         self._matrix = dot(self._matrix, rot._matrix)
+        self.isIdentity = False
 
     def translate(self, offset):
         """Further translate"""
-        rot = Translation(offset)
-        self._matrix = dot(self._matrix, rot._matrix)
+        tran = Translation(offset)
+        self._matrix = dot(self._matrix, tran._matrix)
+        self.isIdentity = False
+
+    def scale(self, vector):
+        """Further scale"""
+        sc = Scale(vector)
+        self._matrix = dot(self._matrix, sc._matrix)
+        self.isIdentity = False
 
     #TODO: and more
 

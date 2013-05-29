@@ -26,10 +26,11 @@ __all__ = [
 	'reset',
 	'add_sphere',
 	'add_cylinder',
+	'add_box',
 	'render'
 ]
 
-from .math3d import Point, Vector, Translation, frustum, look_at, weighted_point, cross
+from .math3d import Point, Vector, Identity, frustum, look_at, weighted_point, cross
 from numpy import array, amin, amax, float32, uint8
 
 class BBox:
@@ -41,9 +42,13 @@ class BBox:
 
 	__slots__ = ['llb', 'urf']
 
-	def __init__(self):
+	def __init__(self, llb=None, urf=None):
 		self.llb = None	#: lower-left-back corner coordinates, a :py:class:`~chimera2.math3d.Point`
 		self.urf = None	#: upper-right-front corner coordinates, a :py:class:`~chimera2.math3d.Point`
+		if llb is not None:
+			self.llb = Point(llb)
+		if urf is not None:
+			self.urf = Point(urf)
 
 	def add(self, pt):
 		"""expand bounding box to encompass given point
@@ -59,6 +64,21 @@ class BBox:
 				self.llb[i] = pt[i]
 			elif pt[i] > self.urf[i]:
 				self.urf[i] = pt[i]
+
+	def add_bbox(self, box):
+		"""expand bounding box to encompass given bounding box
+		
+		:param box: a :py:class:`BBox`
+		"""
+		if self.llb is None:
+			self.llb = box.llb
+			self.urf = box.urf
+			return
+		for i in range(3):
+			if box.llb[i] < self.llb[i]:
+				self.llb[i] = box.llb[i]
+			if box.urf[i] > self.urf[i]:
+				self.urf[i] = box.urf[i]
 
 	def bulk_add(self, pts):
 		"""expand bounding box to encompass all given points
@@ -96,6 +116,26 @@ class BBox:
 			raise ValueError("empty bounding box")
 		return self.urf - self.llb
 
+	def xform(self, xf):
+		"""transform bounding box in place"""
+		if xf.isIdentity:
+			return
+		b = BBox([0., 0., 0.], [0., 0., 0.])
+		for i in range(3):
+			b.llb[i] = b.urf[i] = xf._matrix[i][3]
+			for j in range(3):
+				coeff = xf._matrix[i][j]
+				if coeff == 0:
+					continue
+				if coeff > 0:
+					b.llb[i] += self.llb[j] * coeff
+					b.urf[i] += self.urf[j] * coeff
+				else:
+					b.llb[i] += self.urf[j] * coeff
+					b.urf[i] += self.llb[j] * coeff
+		self.llb = b.llb
+		self.urf = b.urf
+
 bbox = BBox() #: The current bounding box.
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
@@ -123,16 +163,19 @@ def reset():
 						pick_vertex_shader)
 	bbox = BBox()
 
-def add_sphere(radius, center, color):
+def add_sphere(radius, center, color, xform=None):
 	"""add sphere to scene
 	
 	:param radius: the radius of the sphere
 	:param center: the center of the sphere, :py:class:`~chimera2.math3d.Point`
 	:param color: the RGBA color of the sphere (either a sequence of 4 floats, or an integer referring to a previously defined color)
 	"""
+	if xform is None:
+		xform = Identity()
 	import llgr
-	bbox.add(center - radius)
-	bbox.add(center + radius)
+	b = BBox(center - radius, center + radius)
+	b.xform(xform)
+	bbox.add_bbox(b)
 	if isinstance(color, int):
 		data_id = color
 	else:
@@ -142,15 +185,15 @@ def add_sphere(radius, center, color):
 		llgr.create_singleton(data_id, rgba)
 
 	matrix_id = llgr.next_matrix_id()
-	tmat = Translation(center)
-	mat = array(tmat._matrix, dtype=float32)
+	xform.translate(center)
+	mat = array(xform._matrix, dtype=float32)
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
 	ai = llgr.AttributeInfo("color", data_id, 0, 0, 4, llgr.Float)
 	llgr.add_sphere(obj_id, radius, _program_id, matrix_id, [ai])
 
-def add_cylinder(radius, p0, p1, color):
+def add_cylinder(radius, p0, p1, color, xform=None):
 	"""add cylinder to scene
 	
 	:param radius: the radius of the cylinder
@@ -158,10 +201,13 @@ def add_cylinder(radius, p0, p1, color):
 	:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
 	:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
 	"""
-	bbox.add(p0 - radius)
-	bbox.add(p0 + radius)
-	bbox.add(p1 - radius)
-	bbox.add(p1 + radius)
+	if xform is None:
+		xform = Identity()
+	b = BBox(p0 - radius, p0 + radius)
+	b.add(p1 - radius)
+	b.add(p1 + radius)
+	b.xform(xform)
+	bbox.add_bbox(b)
 	import llgr, math
 	if isinstance(color, int):
 		data_id = color
@@ -173,7 +219,7 @@ def add_cylinder(radius, p0, p1, color):
 
 	# create translation matrix
 	matrix_id = llgr.next_matrix_id()
-	cmat = Translation(weighted_point([p0, p1]))
+	xform.translate(weighted_point([p0, p1]))
 	delta = p1 - p0
 	height = delta.length()
 	cylAxis = Vector([0, 1, 0])
@@ -181,10 +227,10 @@ def add_cylinder(radius, p0, p1, color):
 	cosine = (cylAxis * delta) / height
 	angle = math.acos(cosine)
 	if axis.sqlength() > 0:
-		cmat.rotate(axis, angle)
+		xform.rotate(axis, angle)
 	elif cosine < 0:	# delta == -cylAxis
-		cmat.rotate(1, 0, 0, 180)
-	mat = array(cmat._matrix, dtype=float32)
+		xform.rotate(1, 0, 0, 180)
+	mat = array(xform._matrix, dtype=float32)
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
@@ -259,11 +305,14 @@ def make_box_primitive():
 	_box_indices_id = llgr.next_data_id()
 	llgr.create_buffer(_box_indices_id, llgr.ELEMENT_ARRAY, _box_indices)
 
-def add_box(p0, p1, color):
-	llb = amin([p0, p1], axis=0)
-	urf = amax([p0, p1], axis=0)
-	bbox.add(llb)
-	bbox.add(urf)
+def add_box(p0, p1, color, xform=None):
+	if xform is None:
+		xform = Identity()
+	llb = Point(amin([p0, p1], axis=0))
+	urf = Point(amax([p0, p1], axis=0))
+	b = BBox(llb, urf)
+	b.xform(xform)
+	bbox.add_bbox(b)
 	import llgr
 	if isinstance(color, int):
 		data_id = color
@@ -281,8 +330,8 @@ def add_box(p0, p1, color):
 	llgr.create_singleton(scale_id, array(scale, dtype=float32))
 
 	matrix_id = llgr.next_matrix_id()
-	tmat = Translation(llb)
-	mat = array(tmat._matrix, dtype=float32)
+	xform.translate(llb)
+	mat = array(xform._matrix, dtype=float32)
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
