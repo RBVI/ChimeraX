@@ -15,11 +15,10 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-"use strict";
-
-var llgr = {};
+var llgr = {};	// only llgr is exported
 
 (function () {
+"use strict";
 
 var programs = {};
 var buffers = null;
@@ -30,6 +29,19 @@ var gl;	// set with set_context()
 
 var internal_buffer_id = 0;	// decrement before using
 var current_program = null;
+
+var name_map = {
+	position: "position",
+	normal: "normal",
+};
+function attribute_alias(name)
+{
+	var alias = name_map[name];
+	if (alias !== undefined) {
+		return alias;
+	}
+	return name;
+}
 
 // primitive caches
 function PrimitiveInfo(data_id, index_count, index_id, index_type)
@@ -476,10 +488,10 @@ llgr = {
 	IVec2: 1,
 	IVec3: 2,
 	IVec4: 3,
-	UVec1: 4,
-	UVec2: 5,
-	UVec3: 6,
-	UVec4: 7,
+	UVec1: 4,		// OpenGL ES 3 placeholder
+	UVec2: 5,		// ditto
+	UVec3: 6,		// ditto
+	UVec4: 7,		// ditto
 	FVec1: 8,
 	FVec2: 9,
 	FVec3: 10,
@@ -487,12 +499,12 @@ llgr = {
 	Mat2x2: 12,
 	Mat3x3: 13,
 	Mat4x4: 14,
-	//Mat2x3: 15,
-	//Mat3x2: 16,
-	//Mat2x4: 17,
-	//Mat4x2: 18,
-	//Mat3x4: 19,
-	//Mat4x3: 20,
+	Mat2x3: 15,		// ditto
+	Mat3x2: 16,		// ditto
+	Mat2x4: 17,		// ditto
+	Mat4x2: 18,		// ditto
+	Mat3x4: 19,		// ditto
+	Mat4x3: 20,		// ditto
 	// enum BufferTarget
 	ARRAY: 0x8892,		// same as GL_ARRAY_BUFFER
 	ELEMENT_ARRAY: 0x8893,	// same as GL_ELEMENT_ARRAY_BUFFER
@@ -721,6 +733,14 @@ llgr = {
 		matrices = {};
 	},
 
+	set_attribute_alias: function (name, value) {
+		if (name == value || !value) {
+			delete name_map[name];
+		} else {
+			name_map[name] = value;
+		}
+	},
+
 	create_object: function (obj_id, program_id, matrix_id,
 			list_of_attributeInfo, primitive_type, first, count,
 			index_buffer_id, index_buffer_type) {
@@ -730,24 +750,36 @@ llgr = {
 		var ais = [];
 		for (var i = 0; i < list_of_attributeInfo.length; ++i) {
 			var args = list_of_attributeInfo[i];
-			if (args instanceof llgr.AttributeInfo) {
-				ais.push(args);
-				continue;
-			}
-			var name, data_id, offset, stride, cnt, data_type,
+			var name, data_id, offset, stride, cnt, type,
 								normalized;
-			//[name, data_id, offset, stride, cnt, data_type,
-			//				normalized] = args;
-			name = args[0];
-			data_id = args[1];
-			offset = args[2];
-			stride = args[3];
-			cnt = args[4];
-			data_type = args[5];
-			normalized = args[6];
+			if (args instanceof llgr.AttributeInfo) {
+				var alias = attribute_alias(args.name);
+				if (name == alias) {
+					ais.push(args);
+					continue;
+				}
+				name = alias;
+				data_id = args.data_id;
+				offset = args.offset;
+				stride = args.stride;
+				cnt = args.count;
+				type = args.type;
+				normalized = args.normalized;
+			} else {
+				//[name, data_id, offset, stride, cnt, type,
+				//			normalized] = args;
+				name = attribute_alias(args[0]);
+				data_id = args[1];
+				offset = args[2];
+				stride = args[3];
+				cnt = args[4];
+				type = args[5];
+				normalized = args[6];
+			}
 			ais.push(new llgr.AttributeInfo(name, data_id, offset,
-					stride, cnt, data_type, normalized));
+					stride, cnt, type, normalized));
 		}
+		check_attributes(obj_id, program_id, ais);
 		objects[obj_id] = new ObjectInfo(program_id, matrix_id,
 			ais, primitive_type,
 			first, count, index_buffer_id, index_buffer_type);
@@ -756,9 +788,7 @@ llgr = {
 		delete objects[obj_id];
 	},
 	clear_objects: function () {
-		objects = {};
-	},
-
+		objects = {}; }, 
 	hide_objects: function (list_of_objects) {
 		for (var obj_id in list_of_objects) {
 			if (obj_id in objects)
@@ -785,6 +815,16 @@ llgr = {
 		}
 	},
 
+	selection_add: function (list_of_objects) {
+		// TODO
+	},
+	selection_remove: function (list_of_objects) {
+		// TODO
+	},
+	selection_clear: function () {
+		// TODO
+	},
+
 	clear_primitives: function () {
 		if (buffers !== null) {
 			var radius, info;
@@ -803,18 +843,15 @@ llgr = {
 		proto_cylinders = {};
 	},
 	add_sphere: function (obj_id, radius, program_id, matrix_id,
-				list_of_attributeInfo, position, normal) {
-		if (position == undefined) position = "position";
-		if (normal == undefined) normal = "normal";
-
+				list_of_attributeInfo) {
 		if (!(radius in proto_spheres)) {
 			build_sphere(radius, 100 /* TODO: LOD */);
 		}
 		var pi = proto_spheres[radius];
 		var mai = list_of_attributeInfo.slice(0);
-		mai.push(new llgr.AttributeInfo(normal, pi.data_id, 0, 24, 3,
+		mai.push(new llgr.AttributeInfo("normal", pi.data_id, 0, 24, 3,
 								llgr.Float));
-		mai.push(new llgr.AttributeInfo(position, pi.data_id, 12, 24,
+		mai.push(new llgr.AttributeInfo("position", pi.data_id, 12, 24,
 								3, llgr.Float));
 		var scale_id = --internal_buffer_id;
 		var scale = new Float32Array([1, 1, 1]);
@@ -826,18 +863,15 @@ llgr = {
 				pi.index_count, pi.index_id, pi.index_type);
 	},
 	add_cylinder: function (obj_id, radius, length, program_id, matrix_id,
-				list_of_attributeInfo, position, normal) {
-		if (position == undefined) position = "position";
-		if (normal == undefined) normal = "normal";
-
+				list_of_attributeInfo) {
 		if (!(radius in proto_cylinders)) {
 			build_cylinder(radius, 12 /* TODO: LOD */);
 		}
 		var pi = proto_cylinders[radius];
 		var mai = list_of_attributeInfo.slice(0);
-		mai.push(new llgr.AttributeInfo(normal, pi.data_id, 0, 24, 3,
+		mai.push(new llgr.AttributeInfo("normal", pi.data_id, 0, 24, 3,
 								llgr.Float));
-		mai.push(new llgr.AttributeInfo(position, pi.data_id, 12, 24,
+		mai.push(new llgr.AttributeInfo("position", pi.data_id, 12, 24,
 								3, llgr.Float));
 		var scale_id = --internal_buffer_id;
 		var scale = new Float32Array([1, length / 2, 1]);
@@ -873,6 +907,7 @@ llgr = {
 			create_matrix: llgr.create_matrix,
 			delete_matrix: llgr.delete_matrix,
 			clear_matrices: llgr.clear_matrices,
+			set_attribute_alias: llgr.set_attribute_alias,
 			create_object: llgr.create_object,
 			delete_object: llgr.delete_objects,
 			clear_objects: llgr.clear_objects,
@@ -880,6 +915,10 @@ llgr = {
 			show_objects: llgr.show_objects,
 			transparent: llgr.transparent,
 			opaque: llgr.opaque,
+			selection_add: llgr.selection_add,
+			selection_remove: llgr.selection_remove,
+			selection_clear: llgr.selection_clear,
+			clear_primitives: llgr.clear_primitives,
 			add_sphere: llgr.add_sphere,
 			add_cylinder: llgr.add_cylinder,
 			clear_all: llgr.clear_all,
