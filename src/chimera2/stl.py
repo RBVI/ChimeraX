@@ -62,9 +62,11 @@ def open(filename, average_normals=True, *args, **kw):
 	uniform_scale_id = llgr.next_data_id()
 	llgr.create_singleton(uniform_scale_id, array([1, 1, 1], dtype=float32))
 
+	matrix_id = 0		# default identity matrix
+
 	obj_id = llgr.next_object_id()
 	AI = llgr.AttributeInfo
-	mai = [
+	ais = [
 		AI("color", color_id, 0, 0, 4, llgr.Float),
 		AI("position", vn_id, 0, 0, 3, llgr.Float),
 		AI("normal", vn_id, va.nbytes, 0, 3, llgr.Float),
@@ -78,8 +80,8 @@ def open(filename, average_normals=True, *args, **kw):
 		index_type = llgr.UShort
 	else:
 		index_type = llgr.UByte
-	llgr.create_object(obj_id, scene._program_id, 0, mai, llgr.Triangles,
-		0, ta.size, tri_id, index_type)
+	llgr.create_object(obj_id, scene._program_id, matrix_id, ais,
+			llgr.Triangles, 0, ta.size, tri_id, index_type)
 
 
 # -----------------------------------------------------------------------------
