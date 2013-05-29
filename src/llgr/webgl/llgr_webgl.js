@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Regents of the University of California.
+ * Copyright (c) 2013 The Regents of the University of California.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -220,7 +220,6 @@ function check_attributes(obj_id, program_id, ai)
 function cvt_DataType(dt)
 {
 	switch (dt) {
-	  default: return 0;
 	  case llgr.Byte: return gl.BYTE;
 	  case llgr.UByte: return gl.UNSIGNED_BYTE;
 	  case llgr.Short: return gl.SHORT;
@@ -228,17 +227,18 @@ function cvt_DataType(dt)
 	  case llgr.Int: return gl.INT;
 	  case llgr.UInt: return gl.UNSIGNED_INT;
 	  case llgr.Float: return gl.FLOAT;
+	  default: return 0;
 	}
 }
 
 function data_size(type)
 {
 	switch (type) {
-	  default: return 0;
 	  case llgr.Byte: case llgr.UByte: return 1;
 	  case llgr.Short: case llgr.UShort: return 2;
 	  case llgr.Int: case llgr.UInt: return 4;
 	  case llgr.Float: return 4;
+	  default: return 0;
 	}
 }
 
@@ -929,7 +929,7 @@ llgr = {
 			}
 			// setup instance matrix attribute
 			if (oi.matrix_id != current_matrix_id) {
-				if (oi.matrix_id == 0) {
+				if (oi.matrix_id === 0) {
 					matrix_ai.data_id = 0;
 				} else {
 					var mi = matrices[oi.matrix_id];
