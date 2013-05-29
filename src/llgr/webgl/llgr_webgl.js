@@ -22,7 +22,7 @@ var llgr = {};
 (function () {
 
 var programs = {};
-var buffers = {};
+var buffers = null;
 var matrices = {};
 var objects = {};
 
@@ -158,12 +158,14 @@ function BufferInfo()
 function init_buffers()
 {
 	// buffer zero hold the identity matrix
-	var identity = new Float32Array(
+	var identity = new Float32Array([
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
-		0, 0, 0, 1);
-	buffers[0] = BufferInfo(llgr.ARRAY, identity.byteLength, identity);
+		0, 0, 0, 1
+	]);
+	buffers = {};
+	buffers[0] = new BufferInfo(llgr.ARRAY, identity.byteLength, identity);
 }
 
 function MatrixInfo(id, renorm)
@@ -243,7 +245,7 @@ function data_size(type)
 function setup_attribute(sp, ai)
 {
 	var  bi = buffers[ai.data_id];
-	if (bi == undefined)
+	if (bi === undefined)
 		return;
 	if (!(ai.name in sp.attributes))
 		return;
@@ -285,7 +287,7 @@ function setup_attribute(sp, ai)
 		// so far, WebGL only supports Float attributes
 		return;
 	}
-	var bfa = new Float32Array(bi.data);
+	var bfa = new Float32Array(bi.data, 0);
 	var offset = 0;
 	while (total > 0) {
 		gl.disableVertexAttribArray(loc);
@@ -656,7 +658,7 @@ llgr = {
 	},
 
 	create_buffer: function (data_id, buffer_target, data) {
-		if (!buffers)
+		if (buffers === null)
 			init_buffers();
 		data = convert_data(data);
 		var bi = buffers[data_id];
@@ -679,12 +681,12 @@ llgr = {
 			var bi = buffer[bid];
 			if (bi.buffer) gl.deleteBuffer(bi.buffer);
 		}
-		buffers = {};
+		buffers = null;
 		llgr.clear_matrices();
 		llgr.clear_primitives();
 	},
 	create_singleton: function (data_id, data) {
-		if (!buffers)
+		if (buffers === null)
 			init_buffers();
 		data = convert_data(data);
 		var bi = buffers[data_id];
@@ -710,7 +712,7 @@ llgr = {
 		delete matrices[matrix_id];
 	},
 	clear_matrices: function () {
-		if (buffers) {
+		if (buffers !== null) {
 			for (mid in matrices) {
 				var info = matrices[mid];
 				llgr.delete_buffer(info.data_id);
@@ -784,7 +786,7 @@ llgr = {
 	},
 
 	clear_primitives: function () {
-		if (buffers) {
+		if (buffers !== null) {
 			var radius, info;
 			for (radius in proto_spheres) {
 				info = proto_spheres[radius];
@@ -948,6 +950,10 @@ llgr = {
 				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 				gl.drawArrays(oi.ptype, oi.first, oi.count);
 			} else {
+				if (oi.index_buffer_type == llgr.UInt
+				&& !gl.getExtension("OES_element_index_uint")) {
+					console.warn("unsigned integer indices are not supported");
+				}
 				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,
 								ibi.buffer);
 				gl.drawElements(oi.ptype, oi.count,
