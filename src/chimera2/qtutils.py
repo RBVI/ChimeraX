@@ -7,7 +7,7 @@ These are convenience functions to make using Qt easier.
 """
 
 from PyQt5 import QtCore, QtWidgets, QtGui, QtOpenGL
-from contextlib import closing
+#from contextlib import closing
 
 def create_form(ui_file, parent=None, opengl = {}, connections = {}):
 	"""create GUI from .ui file
@@ -42,7 +42,6 @@ def create_form(ui_file, parent=None, opengl = {}, connections = {}):
 			raise ValueError("missing graphics placeholder")
 		# TODO: use layout to replace obj with graphics in layout
 		#layout = obj.layout()
-		import sys
 		graphics = widget_factory(obj)
 		graphics.setObjectName(object_name + "GL")
 		grid = QtWidgets.QGridLayout()
@@ -85,7 +84,6 @@ class OpenGLWidget(QtOpenGL.QGLWidget):
 	"""
 
 	def __init__(self, format, parent=None, share=None, flags=0):
-		import sys
 		if share == 0:
 			share = None
 		if isinstance(flags, int):

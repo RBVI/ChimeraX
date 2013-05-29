@@ -170,7 +170,7 @@ def exec_with_args(function, text):
 			# private argument
 			if (p.kind == Param.POSITIONAL_ONLY
 			or (p.kind == Param.POSITIONAL_OR_KEYWORD
-						and p.default == P.empty)):
+						and p.default == Param.empty)):
 				raise ValueError("can not handle private positional arguments")
 			continue
 		if p.kind == Param.POSITIONAL_OR_KEYWORD:

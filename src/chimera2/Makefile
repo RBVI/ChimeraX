@@ -12,5 +12,8 @@ install: all
 	-mkdir $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
+lint:
+	pyflakes $(PYSRCS)
+
 clean:
 	rm -rf __pycache__

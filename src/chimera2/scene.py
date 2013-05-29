@@ -30,35 +30,35 @@ __all__ = [
 ]
 
 from .math3d import Point, Vector, Translation, frustum, look_at, weighted_point, cross
-from numpy import array, amin, amax
+from numpy import array, amin, amax, float32, uint8
 
 class BBox:
-	"""axis-aligned bounding box
+	"""right-handed axis-aligned bounding box
 
-	If either :py:attr:`BBox.llf` or :py:attr:`BBox.urb` are None,
+	If either :py:attr:`BBox.llb` or :py:attr:`BBox.urf` are None,
 	then the bounding box is uninitialized.
 	"""
 
-	__slots__ = ['llf', 'urb']
+	__slots__ = ['llb', 'urf']
 
 	def __init__(self):
-		self.llf = None	#: lower-left-front corner coordinates, a :py:class:`~chimera2.math3d.Point`
-		self.urb = None	#: upper-right-back corner coordinates, a :py:class:`~chimera2.math3d.Point`
+		self.llb = None	#: lower-left-back corner coordinates, a :py:class:`~chimera2.math3d.Point`
+		self.urf = None	#: upper-right-front corner coordinates, a :py:class:`~chimera2.math3d.Point`
 
 	def add(self, pt):
 		"""expand bounding box to encompass given point
 
 		:param pt: a :py:class:`~chimera2.math3d.Point or other XYZ-tuple`
 		"""
-		if self.llf is None:
-			self.llf = Point(pt)
-			self.urb = Point(pt)
+		if self.llb is None:
+			self.llb = Point(pt)
+			self.urf = Point(pt)
 			return
 		for i in range(3):
-			if pt[i] < self.llf[i]:
-				self.llf[i] = pt[i]
-			elif pt[i] > self.urb[i]:
-				self.urb[i] = pt[i]
+			if pt[i] < self.llb[i]:
+				self.llb[i] = pt[i]
+			elif pt[i] > self.urf[i]:
+				self.urf[i] = pt[i]
 
 	def bulk_add(self, pts):
 		"""expand bounding box to encompass all given points
@@ -67,15 +67,15 @@ class BBox:
 		"""
 		mi = amin(pts, axis=0)
 		ma = amax(pts, axis=0)
-		if self.llf is None:
-			self.llf = Point(mi)
-			self.urb = Point(ma)
+		if self.llb is None:
+			self.llb = Point(mi)
+			self.urf = Point(ma)
 			return
 		for i in range(3):
-			if mi[i] < self.llf[i]:
-				self.llf[i] = mi[i]
-			if ma[i] > self.urb[i]:
-				self.urb[i] = ma[i]
+			if mi[i] < self.llb[i]:
+				self.llb[i] = mi[i]
+			if ma[i] > self.urf[i]:
+				self.urf[i] = ma[i]
 
 	def center(self):
 		"""return center of bounding box
@@ -83,21 +83,23 @@ class BBox:
 		:rtype: a :py:class:`~chimera2.math3d.Point`
 		"""
 
-		if self.llf is None:
+		if self.llb is None:
 			raise ValueError("empty bounding box")
-		return weighted_point([self.llf, self.urb])
+		return weighted_point([self.llb, self.urf])
 
 	def size(self):
 		"""return length of sides of bounding box
 		
 		:rtype: a :py:class:`~chimera2.math3d.Vector`
 		"""
-		if self.llf is None:
+		if self.llb is None:
 			raise ValueError("empty bounding box")
-		return self.urb - self.llf
+		return self.urf - self.llb
 
 bbox = BBox() #: The current bounding box.
 _program_id = 0
+_box_pn_id = None	# primitive box vertex position and normals
+_box_indices_id = None	# primitive box indices
 
 def reset():
 	"""reinitialze scene
@@ -105,7 +107,9 @@ def reset():
 	Removes all objects, resets lights, bounding box,
 	viewing transformation.
 	"""
-	global bbox, _program_id
+	global bbox, _program_id, _box_pn_id, _box_indices_id
+	_box_pn_id = None
+	_box_indices_id = None
 	import llgr
 	llgr.clear_all()
 	_program_id = llgr.next_program_id()
@@ -134,12 +138,12 @@ def add_sphere(radius, center, color):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype='f').tostring()
+		rgba = array(color, dtype=float32).tostring()
 		llgr.create_singleton(data_id, rgba)
 
 	matrix_id = llgr.next_matrix_id()
 	tmat = Translation(center)
-	mat = array(tmat._matrix, dtype='f')
+	mat = array(tmat._matrix, dtype=float32)
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
@@ -164,7 +168,7 @@ def add_cylinder(radius, p0, p1, color):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype='f').tostring()
+		rgba = array(color, dtype=float32).tostring()
 		llgr.create_singleton(data_id, rgba)
 
 	# create translation matrix
@@ -180,12 +184,117 @@ def add_cylinder(radius, p0, p1, color):
 		cmat.rotate(axis, angle)
 	elif cosine < 0:	# delta == -cylAxis
 		cmat.rotate(1, 0, 0, 180)
-	mat = array(cmat._matrix, dtype='f')
+	mat = array(cmat._matrix, dtype=float32)
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
 	ai = llgr.AttributeInfo("color", data_id, 0, 0, 4, llgr.Float)
 	llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
+
+def make_box_primitive():
+	global _box_pn_id, _box_indices_id
+	global _box_pn, _box_indices
+	import llgr
+
+	#       v2 ---- v3
+	#        |\      |\
+	#        | v6 ---- v7 = urf
+	#        |  |    | |
+	#        |  |    | |
+	# llb = v0 -|---v1 |
+	#         \ |     \|
+	#          v4 ---- v5
+	#
+	# WebGL does not support "flat" variables, so duplicate everything
+
+	# interleave vertex position and normal (px, py, pz, nx, ny, nz)
+	_box_pn = array([
+		# -x, v0-v4-v2-v6
+		[0, 0, 0,  -1, 0, 0],
+		[0, 0, 1,  -1, 0, 0],
+		[0, 1, 0,  -1, 0, 0],
+		[0, 1, 1,  -1, 0, 0],
+
+		# -y, v0-v1-v4-v5
+		[0, 0, 0,  0, -1, 0],
+		[1, 0, 0,  0, -1, 0],
+		[0, 0, 1,  0, -1, 0],
+		[1, 0, 1,  0, -1, 0],
+
+		# -z, v1-v0-v3-v2
+		[1, 0, 0,  0, 0, -1],
+		[0, 0, 0,  0, 0, -1],
+		[1, 1, 0,  0, 0, -1],
+		[0, 1, 0,  0, 0, -1],
+
+		# x, v5-v1-v7-v3
+		[1, 0, 1,  1, 0, 0],
+		[1, 0, 0,  1, 0, 0],
+		[1, 1, 1,  1, 0, 0],
+		[1, 1, 0,  1, 0, 0],
+
+		# y, v3-v2-v7-v6
+		[1, 1, 0,  0, 1, 0],
+		[0, 1, 0,  0, 1, 0],
+		[1, 1, 1,  0, 1, 0],
+		[0, 1, 1,  0, 1, 0],
+
+		# z, v4-v5-v6-v7
+		[0, 0, 1,  0, 0, 1],
+		[1, 0, 1,  0, 0, 1],
+		[0, 1, 1,  0, 0, 1],
+		[1, 1, 1,  0, 0, 1],
+	], dtype=float32)
+	_box_pn_id = llgr.next_data_id()
+	llgr.create_buffer(_box_pn_id, llgr.ARRAY, _box_pn)
+
+	_box_indices = array([
+		[0, 1, 2], [2, 1, 3],		# -x
+		[4, 5, 6], [6, 5, 7],		# -y
+		[8, 9, 10], [10, 9, 11],	# -z
+		[12, 13, 14], [14, 13, 15],	# x
+		[16, 17, 18], [18, 17, 19],	# y
+		[20, 21, 22], [22, 21, 23],	# z
+	], dtype=uint8)
+	_box_indices_id = llgr.next_data_id()
+	llgr.create_buffer(_box_indices_id, llgr.ELEMENT_ARRAY, _box_indices)
+
+def add_box(p0, p1, color):
+	llb = amin([p0, p1], axis=0)
+	urf = amax([p0, p1], axis=0)
+	bbox.add(llb)
+	bbox.add(urf)
+	import llgr
+	if isinstance(color, int):
+		data_id = color
+	else:
+		data_id = llgr.next_data_id()
+		assert len(color) == 4
+		rgba = array(color, dtype=float32).tostring()
+		llgr.create_singleton(data_id, rgba)
+
+	if _box_pn_id is None:
+		make_box_primitive()
+
+	scale_id = llgr.next_data_id()
+	scale = urf - llb
+	llgr.create_singleton(scale_id, array(scale, dtype=float32))
+
+	matrix_id = llgr.next_matrix_id()
+	tmat = Translation(llb)
+	mat = array(tmat._matrix, dtype=float32)
+	llgr.create_matrix(matrix_id, mat, False)
+
+	obj_id = llgr.next_object_id()
+	AI = llgr.AttributeInfo
+	ais = [
+		AI("color", data_id, 0, 0, 4, llgr.Float),
+		AI("position", _box_pn_id, 0, _box_pn[0].nbytes, 3, llgr.Float),
+		AI("normal", _box_pn_id, 12, _box_pn[0].nbytes, 3, llgr.Float),
+		AI("instanceScale", scale_id, 0, 0, 3, llgr.Float),
+	]
+	llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
+		0, _box_indices.size, _box_indices_id, llgr.UByte)
 
 def render(viewport, vertical_fov, globalXform):
 	"""render scene
@@ -202,13 +311,13 @@ def render(viewport, vertical_fov, globalXform):
 	There are two lights and the directions are fixed.
 	"""
 	import llgr
-	one = array([1, 1, 1, 1], dtype='f')
-	ambient = array([0.197, 0.197, 0.197, 1], dtype='f')
-	diffuse0 = array([0.432, 0.432, 0.432, 1], dtype='f')
-	position0 = array([0.251, 0.251, 0.935, 0], dtype='f')
-	diffuse1 = array([0.746, 0.746, 0.746, 1], dtype='f')
-	position1 = array([-0.357, 0.66, 0.66, 0], dtype='f')
-	shininess = array([30], dtype='f')
+	one = array([1, 1, 1, 1], dtype=float32)
+	ambient = array([0.197, 0.197, 0.197, 1], dtype=float32)
+	diffuse0 = array([0.432, 0.432, 0.432, 1], dtype=float32)
+	position0 = array([0.251, 0.251, 0.935, 0], dtype=float32)
+	diffuse1 = array([0.746, 0.746, 0.746, 1], dtype=float32)
+	position1 = array([-0.357, 0.66, 0.66, 0], dtype=float32)
+	shininess = array([30], dtype=float32)
 	llgr.set_uniform(0, 'Ambient', llgr.FVec4, ambient)
 	llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, diffuse0)
 	llgr.set_uniform(0, 'FillPosition', llgr.FVec4, position0)
@@ -224,7 +333,7 @@ def render(viewport, vertical_fov, globalXform):
 	#GL.glEnable(GL.GL_CULL_FACE)
 	GL.glViewport(*viewport)
 
-	if bbox.llf is not None:
+	if bbox.llb is not None:
 		import math
 		# projection and modelview matrices
 		win_aspect = float(viewport[2]) / viewport[3]

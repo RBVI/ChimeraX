@@ -60,6 +60,13 @@ def open(filename, *args, **kw):
 			p1 = Point(data[3:6])
 			radius = data[6]
 			scene.add_cylinder(radius, p0, p1, cur_color)
+		elif '.box'.startswith(tokens[0]):
+			if len(tokens) != 7:
+				raise UserError("expected x1 y1 z1 x2 y2 z2 after .box")
+			data = [float(x) for x in tokens[1:7]]
+			p0 = Point(data[0:3])
+			p1 = Point(data[3:6])
+			scene.add_box(p0, p1, cur_color)
 		elif tokens[0] not in warned:
 			import sys
 			print(tokens[0], 'is not supported', file=sys.stderr)

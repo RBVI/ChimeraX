@@ -8,7 +8,6 @@ Read little-endian STL binary format.
 # code taken from chimera 1.7
 
 from . import scene
-from .cmds import UserError
 
 _builtin_open = open
 
