@@ -115,6 +115,7 @@ class BaseApplication:
 		from chimera2 import cmds
 		cmds.register('exit', self.cmd_exit)
 		cmds.register('open', self.cmd_open)
+		cmds.register('stop', self.cmd_stop)
 
 		# potentially changed in subclass:
 		self.graphics = None
@@ -144,6 +145,9 @@ class BaseApplication:
 			self.quit()
 		else:
 			raise SystemExit(0)
+
+	def cmd_stop(self):
+		self.status('use "exit"')
 
 	def cmd_open(self, filename):
 		if self.graphics:
