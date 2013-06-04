@@ -30,7 +30,7 @@ __all__ = [
 	'render'
 ]
 
-from .math3d import Point, Vector, Identity, frustum, look_at, weighted_point, cross
+from .math3d import Point, Vector, Xform, Identity, frustum, look_at, weighted_point, cross
 from numpy import array, amin, amax, float32, uint8
 
 class BBox:
@@ -172,6 +172,8 @@ def add_sphere(radius, center, color, xform=None):
 	"""
 	if xform is None:
 		xform = Identity()
+	else:
+		xform = Xform(xform)
 	import llgr
 	b = BBox(center - radius, center + radius)
 	b.xform(xform)
@@ -203,6 +205,8 @@ def add_cylinder(radius, p0, p1, color, xform=None):
 	"""
 	if xform is None:
 		xform = Identity()
+	else:
+		xform = Xform(xform)
 	b = BBox(p0 - radius, p0 + radius)
 	b.add(p1 - radius)
 	b.add(p1 + radius)
@@ -308,6 +312,8 @@ def make_box_primitive():
 def add_box(p0, p1, color, xform=None):
 	if xform is None:
 		xform = Identity()
+	else:
+		xform = Xform(xform)
 	llb = Point(amin([p0, p1], axis=0))
 	urf = Point(amax([p0, p1], axis=0))
 	b = BBox(llb, urf)
