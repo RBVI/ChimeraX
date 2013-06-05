@@ -18,6 +18,9 @@ nogui:
 	# by running within make, the right environment variables are setup
 	./chimera2 --nogui -d json
 
+designer:
+	$(bindir)/designer main.ui
+
 gdb:
 	gdb $(bindir)/python3 core
 

@@ -18,7 +18,7 @@ __all__ = [
     'look_at', 'ortho', 'frustum', 'perspective'
 ]
 
-from numpy import ndarray, array, eye, dot, linalg, concatenate, allclose, isfortran, asfortranarray, sum
+from numpy import ndarray, array, eye, dot, linalg, concatenate, allclose, isfortran, asfortranarray, sum, float32, float64
 from math import sin, cos, tan, sqrt, radians
 
 class Point(ndarray):
@@ -149,20 +149,20 @@ class Xform:
             # TODO: orthonormalization
 
     def getOpenGLMatrix(self):
-        m = self._matrix.astype('d')
-        return m.flatten(order='f')
+        m = self._matrix.astype(float64)
+        return m.flatten(order='F')
 
     def getOpenGLRotationMatrix(self):
-        m = self._matrix[0:3, 0:3].astype('d')
-        return m.flatten(order='f')
+        m = self._matrix[0:3, 0:3].astype(float64)
+        return m.flatten(order='F')
 
     def getWebGLMatrix(self):
-        m = self._matrix.astype('f')
-        return m.flatten(order='f')
+        m = self._matrix.astype(float32)
+        return m.flatten(order='F')
 
     def getWebGLRotationMatrix(self):
-        m = self._matrix[0:3, 0:3].astype('f')
-        return m.flatten(order='f')
+        m = self._matrix[0:3, 0:3].astype(float32)
+        return m.flatten(order='F')
 
     def __mul__(self, xpv):
         """Apply transformation to Point or Vector

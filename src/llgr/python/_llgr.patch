@@ -9,7 +9,7 @@
  
  #ifndef PY_STUPID
  // workaround for Python API missing const's.
-@@ -62,6 +64,80 @@
+@@ -62,6 +64,88 @@
  	}
  }
  
@@ -77,14 +77,22 @@
 +static bool
 +numpy_to_mat4x4_float(PyObject *a, float mat[4][4])
 +{
-+	if (!PyArray_Check(a) || PyArray_NDIM(a) != 2
-+	|| PyArray_TYPE(a) != NPY_FLOAT)
++	if (!PyArray_Check(a) || PyArray_TYPE(a) != NPY_FLOAT)
 +		return false;
-+	npy_intp *dims = PyArray_DIMS(a);
-+	if (dims[0] != 4 || dims[1] != 4)
-+		return false;
-+	memcpy(mat, PyArray_DATA(a), sizeof (float [4][4]));
-+	return true;
++	if (PyArray_NDIM(a) == 1) {
++		if (PyArray_DIMS(a)[0] != 16)
++			return false;
++		memcpy(mat, PyArray_DATA(a), sizeof (float [4][4]));
++		return true;
++	}
++	if (PyArray_NDIM(a) == 2) {
++		npy_intp *dims = PyArray_DIMS(a);
++		if (dims[0] != 4 || dims[1] != 4)
++			return false;
++		memcpy(mat, PyArray_DATA(a), sizeof (float [4][4]));
++		return true;
++	}
++	return false;
 +}
 +
  static PyObject*

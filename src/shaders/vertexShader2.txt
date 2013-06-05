@@ -33,9 +33,9 @@ attribute vec3 instanceScale;
 
 void main(void)
 {
-  vec3 vi = vec3(vec4(instanceScale * vec3(position), 1) * instanceTransform);
+  vec3 vi = vec3(instanceTransform * vec4(instanceScale * vec3(position), 1));
   v = vec3(ModelViewMatrix * vec4(vi, position.w));
-  N = normalize(NormalMatrix * vec3(vec4(normal,0) * instanceTransform));
+  N = normalize(NormalMatrix * vec3(instanceTransform * vec4(normal, 0)));
 
   gl_Position = ProjectionMatrix * vec4(v, 1.0);
   fcolor = color;

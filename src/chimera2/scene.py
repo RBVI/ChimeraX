@@ -188,7 +188,7 @@ def add_sphere(radius, center, color, xform=None):
 
 	matrix_id = llgr.next_matrix_id()
 	xform.translate(center)
-	mat = array(xform._matrix, dtype=float32)
+	mat = xform.getWebGLMatrix()
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
@@ -234,7 +234,7 @@ def add_cylinder(radius, p0, p1, color, xform=None):
 		xform.rotate(axis, angle)
 	elif cosine < 0:	# delta == -cylAxis
 		xform.rotate(1, 0, 0, 180)
-	mat = array(xform._matrix, dtype=float32)
+	mat = xform.getWebGLMatrix()
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
@@ -337,7 +337,7 @@ def add_box(p0, p1, color, xform=None):
 
 	matrix_id = llgr.next_matrix_id()
 	xform.translate(llb)
-	mat = array(xform._matrix, dtype=float32)
+	mat = xform.getWebGLMatrix()
 	llgr.create_matrix(matrix_id, mat, False)
 
 	obj_id = llgr.next_object_id()
