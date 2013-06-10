@@ -656,7 +656,7 @@ dumpHash(std::ostream &output, const ClassInfo *ci, const string &fname)
 	string objectName(moduleName(ci, "object"));
 	output <<
 		"\n"
-		"static long\n" <<
+		"static Py_hash_t\n" <<
 		fname << "(PyObject* _o)\n"
 		"{\n"
 		"\t" << objectName << "* self = static_cast<" << objectName
@@ -676,7 +676,7 @@ dumpPtrHash(std::ostream &output, const ClassInfo * /*ci*/, const string &fname)
 	// assert(!ci->isEmbedded);
 	output <<
 		"\n"
-		"static long\n" <<
+		"static Py_hash_t\n" <<
 		fname << "(PyObject* _o)\n"
 		"{\n"
 		"\treturn _Py_HashPointer(_o);\n"
