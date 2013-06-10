@@ -1,11 +1,15 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-INCS = -I'$(includedir)'
+ifdef WIN32
+INCS = -I'$(shell cygpath -m '$(includedir)')'
+else
+INCS = -I$(includedir)
+endif
 
 ifeq ($(WIN32),msvc)
 CXXFLAGS += -DLLGR_DLL -DLLGR_EXPORT
-LIBS = /link /LIBPATH:'$(libdir)' glew32.lib opengl32.lib msvcrt.lib
+LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')' glew32.lib opengl32.lib msvcrt.lib
 else
 LIBS = $(OPENGL_LIBS)
 endif
@@ -21,6 +25,9 @@ all: $(SHLIB)
 install: all
 	cp llgr.h llgr_ui.h $(includedir)
 	cp $(SHLIB) $(shlibdir)
+ifdef WIN32
+	cp lib$(LIBNAME).lib $(libdir)
+endif
 
 $(LIBRARY): $(OBJS)
 	$(LIB_LINK)

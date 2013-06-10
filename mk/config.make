@@ -27,7 +27,7 @@ RSYNC = $(bindir)/rsync.convert -CrlptWv
 endif
 
 ifdef WIN32
-PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -w '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
+PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
 else ifdef USE_MAC_FRAMEWORKS
 PYTHON_INCLUDE_DIRS = $(shell python$(PYTHON_VERSION)-config --includes)

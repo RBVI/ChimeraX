@@ -5,12 +5,17 @@ PATCHES = $(wildcard *.patch)
 
 WRAPPY = $(bindir)/wrappy3
 ifeq ($(WIN32),msvc)
-	LIBS = /link /LIBPATH:"$(libdir)" libllgr.lib libwrappy3.lib $(PYTHON_LIB) glew32.lib msvcrt.lib
+	LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')' libllgr.lib libwrappy3.lib $(PYTHON_LIB) glew32.lib msvcrt.lib
 else
 LIBS = -L$(libdir) -lllgr -lwrappy3 $(OPENGL_LIBS)
 endif
 
-CXXFLAGS += -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) $(PYDEF)
+ifdef WIN32
+CXXFLAGS += -I'$(shell cygpath -m '$(includedir)')'
+else
+CXXFLAGS += -I$(includedir)
+endif
+CXXFLAGS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) $(PYDEF)
 
 GENSRCS += _llgr.cpp AttributeInfo_Object.cpp
 GENHDRS += $(GENSRCS:.cpp=.h)
