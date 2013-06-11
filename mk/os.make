@@ -49,35 +49,41 @@ ifeq ($(OS),Darwin)
 	PROG_EXT =
 	PROG_LINK = $(LOADER) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
 
-	XCODE3_SDK_ROOT = /Developer/SDKs
-	XCODE4_SDK_ROOT = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+	# SDK is one of the sdk arguments listed in `xcodebuild -showsdks`
+	# SYSROOT is the path the the SDKs
+	XCODE3_SDKS = /Developer/SDKs
+	XCODE4_SDKS = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
 ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
-	ifneq (,$(wildcard $(XCODE4_SDK_ROOT)))
+	SDK = macosx$(MACOSX_DEPLOYMENT_TARGET)
+	ifneq (,$(wildcard $(XCODE4_SDKS)))
 		USE_XCODE4=1
-		SDK = $(XCODE4_SDK_ROOT)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
-	else ifneq (,$(wildcard $(XCODE3_SDK_ROOT)))
-		SDK = $(XCODE3_SDK_ROOT)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
-
+		SYSROOT = $(XCODE4_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
+	else ifneq (,$(wildcard $(XCODE3_SDKS)))
+		SYSROOT = $(XCODE3_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
 	else
-		$(error unable to find SDK for $(MACOSX_DEPLOYMENT_TARGET))
+		$(error unable to find SYSROOT for $(MACOSX_DEPLOYMENT_TARGET))
 	endif
-else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.8.sdk))
+else ifneq (,$(wildcard $(XCODE4_SDKS)/MacOSX10.8.sdk))
 	USE_XCODE4=1
 	export MACOSX_DEPLOYMENT_TARGET=10.8
-	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.8.sdk
-else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk))
+	SYSROOT = $(XCODE4_SDKS)/MacOSX10.8.sdk
+	SDK = macosx10.8
+else ifneq (,$(wildcard $(XCODE4_SDKS)/MacOSX10.7.sdk))
 	USE_XCODE4=1
 	export MACOSX_DEPLOYMENT_TARGET=10.7
-	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.7.sdk
-else ifneq (,$(wildcard $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk))
+	SYSROOT = $(XCODE4_SDKS)/MacOSX10.7.sdk
+	SDK = macosx10.7
+else ifneq (,$(wildcard $(XCODE4_SDKS)/MacOSX10.6.sdk))
 	USE_XCODE4=1
 	export MACOSX_DEPLOYMENT_TARGET=10.6
-	SDK = $(XCODE4_SDK_ROOT)/MacOSX10.6.sdk
-else ifneq (,$(wildcard $(XCODE3_SDK_ROOT)/MacOSX10.6.sdk))
+	SYSROOT = $(XCODE4_SDKS)/MacOSX10.6.sdk
+	SDK = macosx10.6
+else ifneq (,$(wildcard $(XCODE3_SDKS)/MacOSX10.6.sdk))
 	export MACOSX_DEPLOYMENT_TARGET=10.6
-	SDK = $(XCODE3_SDK_ROOT)/MacOSX10.6.sdk
+	SYSROOT = $(XCODE3_SDKS)/MacOSX10.6.sdk
+	SDK = macosx10.6
 else
-	$(error Unable to find Xcode SDK)
+	$(error Unable to find Xcode sysroot)
 endif
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
@@ -85,11 +91,11 @@ else
 	OPT = -O4
 endif
 ifdef USE_XCODE4
-	CC = clang --sysroot $(SDK)
-	CXX = clang++ --sysroot $(SDK)
+	CC = clang --sysroot $(SYSROOT)
+	CXX = clang++ --sysroot $(SYSROOT)
 else
-	CC = gcc -pipe -isysroot $(SDK)
-	CXX = g++ -pipe -isysroot $(SDK)
+	CC = gcc -pipe -isysroot $(SYSROOT)
+	CXX = g++ -pipe -isysroot $(SYSROOT)
 endif
 	EXTRA_CFLAGS = -fPIC
 	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
