@@ -210,6 +210,7 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 		self.view = qtutils.create_form("main.ui", opengl={
 			"graphicsView": ChimeraGraphics
 		    }, connections={
+			"actionOpen.triggered": self.open,
 			"actionQuit.triggered": self.quit,
 			"lineEdit.textChanged": self.save_command,
 			"lineEdit.returnPressed": self.process_command,
@@ -237,6 +238,16 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 
 	def find_object(self, name):
 		return self.view.findChild(QtCore.QObject, name)
+
+	@QtCore.pyqtSlot()
+	def open(self):
+		# QFileDialog.getOpenFileName(QWidget parent=None, str caption='', str directory='', str filter='', str initialFilter='', QFileDialog.Options options=0) -> (str, str)
+		from chimera2 import data
+		filename, filter = QtWidgets.QFileDialog.getOpenFileName(
+				self.view, caption="Open File",
+				filter=data.qt_open_file_filter())
+		if filename:
+			self.cmd_open(filename)
 
 	@property
 	def mouse_mode(self):

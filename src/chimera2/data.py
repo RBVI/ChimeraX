@@ -62,7 +62,7 @@ def compression_suffixes():
 # some well known file format categories
 DEFAULT_CATEGORY = "Miscellaneous"	#: default file format category
 DYNAMICS = "Molecular trajectory"	#: trajectory
-GENERIC3D = "Generic 3D objects"
+GENERIC3D = "Generic 3D object"
 SCRIPT = "Command script"
 SEQUENCE = "Sequence alignment"
 STRUCTURE = "Molecular structure"
@@ -293,6 +293,36 @@ def deduce_format(filename, default_format=None, prefixable_format=True):
 		if name == None:
 			name = default_format
 	return name, prefixed, filename
+
+def qt_save_file_filter(category=None, all=False):
+	"""Return file name filter suitable for Save File dialog"""
+
+	result = []
+	for t, info in _file_formats.items():
+		if category and info.category != category:
+			continue
+		exts = ' '.join('*%s' % ext for ext in info.extensions)
+		result.append("%s files (%s)" % (t, exts))
+	if all:
+		result.append("All files (*)")
+	result.sort(key=str.casefold)
+	return ';;'.join(result)
+
+def qt_open_file_filter(all=False, expand=False):
+	"""Return file name filter suitable for Open File dialog"""
+
+	if expand:
+		return qt_save_file_filter(all=all)
+
+	combine = {}
+	for t, info in _file_formats.items():
+		exts = combine.setdefault(info.category, [])
+		exts.extend(info.extensions)
+	result = ["%s files (%s)" % (k, ' '.join('*%s' % ext for ext in combine[k])) for k in combine]
+	if all:
+		result.append("All files (*)")
+	result.sort(key=str.casefold)
+	return ';;'.join(result)
 
 def open(filename, identify_as=None):
 	name, prefix, filename = deduce_format(filename)
