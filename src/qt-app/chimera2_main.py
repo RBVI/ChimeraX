@@ -324,7 +324,7 @@ def main():
 	else:
 		app = GuiApplication(sys.argv)
 	argv = sys.argv
-	argv[0] = app.applicationName().lower()
+	argv[0] = app.applicationName().casefold()
 	import getopt
 	try:
 		opts, args = getopt.getopt(argv[1:], 'd:', ['dump=', 'nogui'])
