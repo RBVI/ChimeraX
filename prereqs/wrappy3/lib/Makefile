@@ -15,7 +15,7 @@ LIBS	= $(PYTHON_LIB)
 DEFS += $(PYDEF)
 
 ifdef WIN32
-	DEFS	+= -DOTF_WRAPPY_DLL=
+	DEFS	+= -DWRAPPY_DLL=1
 ifeq ($(WIN32),msvc)
 	LIBS	:= /link $(LIBS) msvcrt.lib
 endif
