@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Go to the directory where the script lives
+script=$(readlink -f $0)
+cd $(dirname $script)
+
+# Find the repository name
+repo=`git rev-parse --show-toplevel 2> /dev/null`
+if [ $? != 0 ]; then
+	echo "cannot locate repository path"
+	exit 1
+fi
+
+# Make sure the repository is where we expect it to live
+prefix=/usr/local/projects/chimera2/git
+if [ `echo $repo | cut -c 1-${#prefix}` != $prefix ]; then
+	echo "repository must be under $prefix"
+	exit 1
+fi
+
+# Find install location
+target=`echo $repo | sed s/git/wsgi/`
+echo Installing to $target
+if [ ! -e $target ]; then
+	mkdir -p $target
+fi
+
+# Copy local files
+local_files="chimera2.wsgi backends index.html"
+rsync -a $local_files $target
+other_files="../llgr/webgl"
+rsync -a $other_files $target
+
+# Make sure some files are owned by user Apache
+if [ ! -e $target/sessions ]; then
+	mkdir $target/sessions
+fi
+audit apachedir $target/sessions
