@@ -2,7 +2,7 @@
 ISWIN=`uname -s | sed s/CYGWIN.*//`
 if [ "$ISWIN" = "" ]
 then
-	exec c:/Python27/python3 chimera2_main.py $@
+	exec c:/Python33/python3 chimera2_main.py $@
 else
 	exec python3 chimera2_main.py $*
 fi

@@ -2,16 +2,11 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.0.2
+VERSION = 5.1.0-beta1
 DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
 PATCHES	= $(wildcard qt-src-$(VERSION)-*.patch)
-
-ifdef USE_MAC_FRAMEWORK
-ENV = env CC='gcc -I$(includedir) -F$(frameworkdir)' \
-	CXX='g++ -I$(includedir) -F$(frameworkdir)'
-endif
 
 CONFIG_OPTS = -opensource -confirm-license \
 	      -no-audio-backend \
