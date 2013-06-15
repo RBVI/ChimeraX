@@ -690,7 +690,7 @@ llgr = {
 	},
 	clear_buffers: function () {
 		for (var bid in buffers) {
-			var bi = buffer[bid];
+			var bi = buffers[bid];
 			if (bi.buffer) gl.deleteBuffer(bi.buffer);
 		}
 		buffers = null;
@@ -930,7 +930,11 @@ llgr = {
 				console.log("unknown llgr function: " + fname);
 				continue;
 			}
-			funcs[fname].apply(undefined, json[i][1]);
+			if (json[i].length === 1) {
+				funcs[fname]();
+			} else {
+				funcs[fname].apply(undefined, json[i][1]);
+			}
 		}
 	},
 
