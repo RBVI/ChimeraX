@@ -26,7 +26,6 @@ class App(object):
 						"sessions", "sessions.db")
 		self.sessions = SessionStore(dbName)
 		self.reqCount = 0
-		self.index_html = None
 
 	def __del__(self):
 		try:
@@ -101,18 +100,12 @@ class App(object):
 		return v
 
 	def _default_action(self, environ):
-		if self.index_html is None:
-			import os.path
-			fname = os.path.join(os.path.dirname(__file__),
-								"index.html")
-			with open(fname) as f:
-				self.index_html = f.read()
-		return Status_Okay, ContentType_HTML, None, self.index_html
-		#url = self._getenv(environ, "SCRIPT_URI") + "/webgl"
-		#return (Status_Redirect,
-		#		ContentType_PlainText,
-		#		[ ( "Location", url ) ],
-		#		DefaultMsg)
+		base = self._getenv(environ, "SCRIPT_URI").rsplit('/', 1)[0]
+		frontend_url = base + "/chimera2_webapp.html"
+		return (Status_Redirect,
+				ContentType_PlainText,
+				[ ( "Location", url ) ],
+				DefaultMsg)
 	
 	#
 	# These methods are named "_process_XXX" where XXX is the
@@ -158,7 +151,6 @@ class App(object):
 		account = self._getenv(environ, "REMOTE_USER")
 		sessionList = self.sessions.getSessionList(account)
 		sList = [ { "name": s.name,
-				"type": s.type,
 				"access": s.accessTime() }
 				for s in sessionList ]
 		import json
@@ -168,7 +160,6 @@ class App(object):
 	def _process_create(self, environ, fs):
 		account = self._getenv(environ, "REMOTE_USER")
 		name = self._getField(fs, "session")
-		type = self._getField(fs, "backend")
 		password = self._getField(fs, "password", emptyOkay=True)
 		with self.sessions.lock:
 			sessionList = self.sessions.getSessionList(account)
@@ -178,7 +169,7 @@ class App(object):
 						"Session \"%s\" already exists"
 						% name)
 			else:
-				s = Session(name, type, password)
+				s = Session(name, password)
 				sessionList.insert(0, s)
 				self.sessions.updateSessionList(account,
 								sessionList)
@@ -210,11 +201,6 @@ class App(object):
 					"No session named \"%s\"" % session)
 		command = self._getField(fs, "command")
 		return s.call(command)
-
-	def _process_backends(self, environ, fs):
-		import json
-		output = json.dumps(backends.list())
-		return Status_Okay, ContentType_JSON, None, output
 
 	def _process_pwd(self, environ, fs):
 		import os
@@ -270,9 +256,9 @@ class App(object):
 		print >> f, ""
 
 class Session(object):
-	def __init__(self, name, type, password):
+	def __init__(self, name, password):
 		self._initRuntime()
-		self._initState(name, type, password)
+		self._initState(name, password)
 
 	def _initRuntime(self):
 		self.pipe = None
@@ -280,25 +266,24 @@ class Session(object):
 		import threading
 		self.lock = threading.RLock()
 
-	def _initState(self, name, type, password):
+	def _initState(self, name, password):
 		self.name = name
-		self.type = type
 		self.password = password
 		self.updateAccess()
 		self._sessionDir = os.path.join(os.path.dirname(__file__),
 								"sessions")
 
 	def __getstate__(self):
-		return (self.name, self.type, self.password, self.lastAccess)
+		return (self.name, self.password, self.lastAccess)
 
 	def __setstate__(self, values):
 		self._initRuntime()
-		name, type, password, lastAccess = values
-		self._initState(name, type, password)
+		name, password, lastAccess = values
+		self._initState(name, password)
 		# We ignore saved access time because we just accessed it
 
 	def __str__(self):
-		return "%s (%s) <%s>" % (self.name, self.type, self.accessTime())
+		return "%s <%s>" % (self.name, self.accessTime())
 
 	def __del__(self):
 		self.disconnect()
@@ -312,13 +297,6 @@ class Session(object):
 		return time.ctime(self.lastAccess)
 
 	def call(self, *args):
-		try:
-			f = backends.find(self.type)
-			if not callable(f):
-				raise KeyError("no executable")
-		except KeyError:
-			return (Status_Okay, ContentType_PlainText, None,
-					"Unknown backend type: %s" % self.type)
 		self.lock.acquire()
 		#print "%s.call(%s)" % (self.name, str(args))
 		if self.process and not self.process.is_alive():
@@ -334,7 +312,7 @@ class Session(object):
 			toChild = Pipe()
 			fromChild = Pipe()
 			self.pipe = (fromChild[0], toChild[1])
-			self.process = Process(target=f,
+			self.process = Process(target=backend,
 						args=(self._sessionDir,
 							self.name,
 							toChild,
@@ -459,11 +437,33 @@ class SessionStore(object):
 			else:
 				return None
 
-import os.path, sys
-sys.path.insert(0, os.path.dirname(__file__))
-import backends
-from backends import *
-del sys.path[0], os, sys
+def backend(sessionDir, sessionName, toChild, fromChild):
+	import os.path, sys, copy, os
+	os.dup2(toChild[0].fileno(), 0)
+	os.dup2(fromChild[1].fileno(), 1)
+	toChild[0].close()
+	toChild[1].close()
+	fromChild[0].close()
+	fromChild[1].close()
+	env = copy.copy(os.environ)
+	# Assume a directory layout of:
+	# root (CHIMERA2)
+	#  +--- bin (where programs live)
+	#  +--- lib (where libraries and shared objects live)
+	#  +--- webapp (where WSGI script lives)
+	webapp_dir = os.path.dirname(__file__)
+	chimera2_dir = os.path.dirname(webapp_dir)
+	lib_dir = os.path.join(chimera2_dir, "lib")
+	bin_dir = os.path.join(chimera2_dir, "bin")
+	env["CHIMERA2"] = chimera2_dir
+	try:
+		ld_path = env["LD_LIBRARY_PATH"]
+	except KeyError:
+		env["LD_LIBRARY_PATH"] = lib_dir
+	else:
+		env["LD_LIBRARY_PATH"] = ld_path + ':' + lib_dir
+	program = "webapp_backend"
+	execle(os.path.join(bin_dir, program), program, sessionDir, sessionName)
 
 #
 # Main program - either WSGI app or command line
@@ -496,7 +496,7 @@ else:
 				for s in sessionList:
 					print s
 
-	def create(account, session, type, password=""):
+	def create(account, session, password=""):
 		pool.lock.acquire()
 		s = pool.findSession(account, session, password)
 		if s:
@@ -504,7 +504,7 @@ else:
 			print >> sys.stderr, "\"%s\" exists" % session
 		else:
 			sessionList = pool.getSessionList(account)
-			sessionList.append(Session(session, type, password))
+			sessionList.append(Session(session, password))
 			pool.updateSessionList(account, sessionList)
 			print "\"%s\" created" % session
 		pool.lock.release()
@@ -534,15 +534,6 @@ else:
 			print >> sys.stderr, "\"%s\" does not exist" % session
 		else:
 			print s.call(*args)
-
-	def backend():
-		bes = backends.list()
-		if not bes:
-			print "No backends registered"
-			return
-		print "Backends:"
-		for b in bes:
-			print "\t%s" % b
 
 	def main():
 		g = globals()
