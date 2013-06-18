@@ -41,6 +41,14 @@ Here are a minimal set of commands to get started using git:
 
         git push
 
+    #. Diff from previous to current revision of file (ignores additions)::
+
+        git whatchanged -n 1 -p <file>
+
+    #. Diff to previous commit of file::
+
+        git diff HEAD^ <file>
+
 Coding Style
 ------------
 
