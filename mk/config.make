@@ -6,6 +6,7 @@ libdir = $(build_prefix)/lib
 datadir = $(build_prefix)/share
 shlibdir = $(libdir)
 tmpdir = $(build_prefix)/tmp
+webdir = $(build_prefix)/webapp
 
 # version numbers that leak out of prerequisites
 

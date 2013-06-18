@@ -1,3 +1,5 @@
+#version 120
+
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -26,7 +28,7 @@ attribute vec3 instanceScale;
 
 void main(void)
 {
-  vec3 vi = vec3(vec4(instanceScale * vec3(position), 1) * instanceTransform);
+  vec3 vi = vec3(instanceTransform * vec4(instanceScale * vec3(position), 1));
   vec3 v = vec3(ModelViewMatrix * vec4(vi, position.w));
 
   gl_Position = ProjectionMatrix * vec4(v, 1.0);
