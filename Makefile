@@ -23,7 +23,7 @@ docs.install:
 	$(MAKE) -C docs html
 
 build-dirs:
-	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir)
+	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) $(webdir)
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif
