@@ -1,0 +1,367 @@
+<html>
+<head>
+<title>Chimera2 LLGR Test</title>
+
+<script type="text/javascript" src="webgl/webgl-debug.js"></script>
+<script type="text/javascript" src="webgl/webgl-utils.js"></script>
+<script type="text/javascript" src="webgl/llgr_webgl.js"></script>
+
+<script type = "text/javascript">
+// llgr functions
+
+var canvas = null;
+var requestId = null;
+var contextInfo = null;
+
+function log(msg)
+{
+	try {
+		console.log(new Date().valueOf() + ": " + msg);
+	} catch (e) {
+		alert(msg);
+	}
+}
+
+function logEvent(e)
+{
+	var c = canvas.relMouseCoords(e);
+	log("event: " + e.type + " " + e.target + " " + c.x + " " + c.y);
+}
+
+function relMouseCoords(event)
+{
+	var totalOffsetX = 0;
+	var totalOffsetY = 0;
+	var canvasX = 0;
+	var canvasY = 0;
+	var currentElement = this;
+
+//	log("page: " + event.pageX + " " + event.pageY);
+//	log("client: " + event.clientX + " " + event.clientY);
+	do {
+//		log("element: " + currentElement
+//			+ " offsetTop: " + currentElement.offsetTop
+//			+ " scrollTop: " + currentElement.scrollTop);
+		totalOffsetX += currentElement.offsetLeft
+				- currentElement.scrollLeft;
+		totalOffsetY += currentElement.offsetTop
+				- currentElement.scrollTop;
+	} while (currentElement = currentElement.offsetParent);
+
+//	canvasX = event.pageX - totalOffsetX;
+//	canvasY = event.pageY - totalOffsetY;
+	canvasX = event.clientX - totalOffsetX;
+	canvasY = event.clientY - totalOffsetY;
+
+	return { x:canvasX, y:canvasY }
+}
+HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
+
+function mouseDown(e)
+{
+	// There can be two mouseDowns without an intervening
+	// mouseUp because user can drag mouse off canvas, release
+	// mouse button, move back over canvas, press button
+	logEvent(e);
+	canvas.onmousemove = mouseMove;
+	canvas.onmouseup = mouseUp;
+}
+
+function mouseUp(e)
+{
+	logEvent(e);
+	canvas.onmousemove = null;
+	canvas.onmouseup = null;
+}
+
+function mouseMove(e)
+{
+	logEvent(e);
+}
+
+function ContextInfo(canvas, gl)
+{
+	this.canvas = canvas;
+	this.gl = gl;
+}
+
+function main()
+{
+	sendRequest("POST", "?action=backends", null,
+							populateBackends)
+	canvas = document.getElementById("molview");
+	var gl = getWebGLContext(canvas, {
+		alpha: false,
+		antialias: true
+	});
+	if (!gl)
+		return;
+	contextInfo = new ContextInfo(canvas, gl);
+
+	canvas.addEventListener("webglcontextlost",
+		function (event) {
+			event.preventDefault();
+			cancelRequestAnimFrame(requestId);
+		},
+		false);
+	canvas.addEventListener("webglcontextrestored",
+		function (event) { initContext(); }, false);
+
+	window.onresize = redraw;
+	initContext();
+	redraw();
+	canvas.onmousedown = mouseDown;
+}
+
+function initContext()
+{
+	llgr.set_context(contextInfo.gl);
+	//llgr.load_json(data);
+}
+
+function redraw()
+{
+	requestId = requestAnimFrame(function () { drawScene(contextInfo); });
+};
+
+function drawScene(ci)
+{
+	var canvas = ci.canvas;
+	var gl = ci.gl;
+	// Not sure why setting width first causes strange layout
+	canvas.height = canvas.scrollHeight;
+	canvas.width = canvas.scrollWidth;
+	llgr.set_context(gl);
+	gl.viewport(0, 0, canvas.width, canvas.height);
+	llgr.render();
+	requestId = null;
+	//requestId = requestAnimFrame(function () { drawScene(ci); });
+}
+
+window.onload = main;
+</script>
+
+<script type="text/javascript">
+// Chimera2 web app functions
+
+function CallbackWrapper() {
+	var cb = arguments[0];
+	var args = new Array();
+	for (var i = 1; i < arguments.length; ++i)
+		args[i - 1] = arguments[i];
+	return function() {
+		cb.apply(this, args);
+	}
+}
+
+function sendRequest(method, url, data, callback)
+{
+	var xmlhttp = new XMLHttpRequest();
+	if (xmlhttp != null) {
+		xmlhttp.onreadystatechange = callback;
+		xmlhttp.open(method, url);
+		xmlhttp.send(data);
+	}
+}
+
+function ajax_form(results, errors) {
+	var cb = sessionCB;
+	if (document.inputs.action.value == "jlist")
+		cb = jsonList;
+	else if (document.inputs.action.value == "backends")
+		cb = jsonBackends;
+	else if (document.inputs.action.value == "call")
+		cb = remoteCall;
+	sendRequest("POST", "",
+				// FormData is not supported in
+				// Internet Explorer until version 10
+				new FormData(document.inputs),
+				CallbackWrapper(getData, cb, results, errors));
+	// Always return false to prevent form from being submitted by browser
+	return false;
+}
+
+function getData(cb, results, errors)
+{
+	// Are we complete?
+	if (this.readyState == 4) {
+		// Yes, do we have a good http status?
+		var r = document.getElementById(results);
+		var e = document.getElementById(errors);
+		if (this.status == 200) {
+			cb(this.responseText, r, e);
+		} else if (this.status == 400) {
+			alert(this.responseText);
+			r.innerHTML = "None";
+			e.innerHTML = "None";
+		} else {
+			alert("server error");
+			r.innerHTML = "None";
+			e.innerHTML = this.responseText;
+		}
+	}
+}
+
+function sessionCB(responseText, r, e)
+{
+	// HACK ALERT.  Do NOT do this in your code!
+	// We know that we are getting an HTML document back,
+	// so we insert the entire thing in our "results" div,
+	// taking advantage of the fact that browsers do not
+	// care about embedded HTML tags.
+	r.innerHTML = responseText;
+	e.innerHTML = "None";
+}
+
+function jsonList(responseText, r, e)
+{
+	r.innerHTML = "";
+	e.innerHTML = "None";
+	var sessions = eval(responseText);
+	var table = document.createElement("table");
+	r.appendChild(table);
+	for (var i = 0; i != sessions.length; ++i) {
+		var tr = document.createElement("tr");
+		table.appendChild(tr);
+		var name = document.createElement("td");
+		name.appendChild(document.createTextNode(sessions[i].name));
+		var type = document.createElement("td");
+		type.appendChild(document.createTextNode(sessions[i].type));
+		var access = document.createElement("td");
+		name.appendChild(document.createTextNode(sessions[i].access));
+		tr.appendChild(name);
+		tr.appendChild(type);
+		tr.appendChild(access);
+	}
+}
+
+function jsonBackends(responseText, r, e)
+{
+	r.innerHTML = "";
+	e.innerHTML = "None";
+	var names = eval(responseText);
+	var list = document.createElement("ul");
+	r.appendChild(list);
+	for (var i = 0; i != names.length; ++i) {
+		var item = document.createElement("li");
+		list.appendChild(item);
+		item.appendChild(document.createTextNode(names[i]));
+	}
+}
+
+function remoteCall(responseText, r, e)
+{
+	r.innerHTML = "None";
+	e.innerHTML = "None";
+	try {
+		var data = eval(responseText);
+	} catch(e) {
+		r.innerHTML = "cannot load structure"
+				+ "\n<br/>\n" + responseText;
+		return;
+	}
+	llgr.clear_all();
+	try {
+		llgr.load_json(data);
+	} catch(e) {
+		r.innerHTML = "cannot load LLGR data: " + e
+				+ "\n<br/>\n" + responseText;
+	}
+	redraw();
+}
+
+function actionCB(e)
+{
+	backend = document.getElementById("backend");
+	backend.disabled = (e.value != "create");
+}
+
+function populateBackends()
+{
+	// Are we complete?
+	if (this.readyState == 4) {
+		// Yes, do we have a good http status?
+		if (this.status == 200) {
+			var e = document.getElementById("backend");
+			e.innerHTML = "";
+			var names = eval(this.responseText);
+			for (var i = 0; i != names.length; ++i) {
+				var name = names[i];
+				var o = document.createElement("option");
+				o.value = name;
+				e.appendChild(o);
+				o.appendChild(document.createTextNode(name));
+			}
+		} else if (this.status == 400) {
+			alert(this.responseText);
+			r.innerHTML = "None";
+			e.innerHTML = "None";
+		} else {
+			alert("server error");
+			r.innerHTML = "None";
+			e.innerHTML = this.responseText;
+		}
+	}
+}
+
+</script>
+</head>
+<body>
+<!-- h1 will be inserted from title by webgl-utils
+<h1>Chimera2 LLGR Test</h1>
+-->
+<form name="inputs" method="post"
+	onsubmit="return ajax_form('results', 'errors');">
+<table>
+<tr>
+	<td align="right">Session:</td>
+	<td><input type="text" name="session" value="test1"/>
+</tr>
+<tr>
+	<td align="right">Password:</td>
+	<td><input type="password" name="password"/>
+</tr>
+<tr>
+	<td align="right">Action:</td>
+	<td><select name="action" onchange="actionCB(this);">
+		<option value="list">List</option>
+		<option value="jlist">List (using JSON)</option>
+		<option value="create">Create</option>
+		<option value="delete">Delete</option>
+		<option value="call" selected="1">Call</option>
+		<option value="pwd">Current working directory</option>
+		<option value="env">Environment</option>
+		<option value="backends">Backends</option>
+	</select></td>
+</tr>
+<tr>
+	<td align="right">Backend:</td>
+	<td><select id="backend" name="backend" disabled="disabled">
+	</select></td>
+</tr>
+<tr>
+	<td align="right">Command:</td>
+	<td><input type="text" name="command"/>
+</tr>
+<tr>
+	<td/>
+	<td><input type="submit" value="Submit Query"/>
+	<input type="reset" value="Reset"/></td>
+</tr>
+</table>
+</form>
+<hr/>
+<h3>Results:</h3>
+<div id="results">None</div>
+<hr/>
+<h3>Errors:</h3>
+<div id="errors">None</div>
+<div>
+<canvas id="molview" style="width:100%; margin:0px">
+Your browser does not support the HTML5
+<code>&lt;canvas&gt;</code> element.
+<a href="http://get.webgl.org">Click here to upgrade your browser.</a>
+</canvas>
+</div>
+</body>
+</html>
