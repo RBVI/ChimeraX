@@ -31,20 +31,74 @@
   </script>
 <![endif]-->
 
-<script type="text/javascript" src="webgl-debug.js"></script>
+<!--<script type="text/javascript" src="webgl-debug.js"></script>-->
 <script type="text/javascript" src="webgl-utils.js"></script>
 <script type="text/javascript" src="llgr_webgl.js"></script>
-<script type="text/javascript" src="two.js"></script>
 
 <script type = "text/javascript">
 
-var requestId = null;
-
-function ContextInfo(canvas, gl)
+function ContextInfo(canvas, gl, render, url)
 {
 	this.canvas = canvas;
 	this.gl = gl;
+	this.render = render;
+	this.url = url;
+	this.requestId = null;
+
+	var ci = this;	// for nested functions
+
+	canvas.addEventListener("webglcontextlost",
+			function (event) {
+				event.preventDefault();
+				var id = ci.requestId;
+				ci.requestId = null;
+				cancelRequestAnimFrame(id);
+			},
+			false);
+	canvas.addEventListener("webglcontextrestored",
+			function (event) {
+				ci.init();
+			},
+			false);
+
+	this.redraw = function () {
+		if (this.render === undefined || this.requestId !== null)
+			return;
+		var render = this.render;
+		var ci = this;
+		this.requestId = requestAnimFrame(function () { render(ci); });
+	};
+
+	this.init = function () {
+		llgr.set_context(this.gl);
+		if (this.url == undefined) {
+			llgr.clear_all();
+			this.redraw();
+			return;
+		}
+
+		function handler() {
+			if (this.readyState != this.DONE) {
+				return;
+			}
+			if (this.status == 200 && this.responseText != null) {
+				// success!
+				llgr.load_json(JSON.parse(this.responseText));
+				ci.redraw();
+				return;
+			}
+			// something went wrong
+		}
+
+		var client = new XMLHttpRequest();
+		client.overrideMimeType("application/json");
+		client.onreadystatechange = handler;
+		client.open("GET", ci.url);
+		client.send();
+	};
 }
+
+var main_ci;		// main canvas information
 
 function main()
 {
@@ -55,32 +109,13 @@ function main()
 	});
 	if (!gl)
 		return;
-	ci = new ContextInfo(canvas, gl);
 
-	canvas.addEventListener("webglcontextlost",
-		function (event) {
-			event.preventDefault();
-			cancelRequestAnimFrame(requestId);
-		},
-		false);
-	canvas.addEventListener("webglcontextrestored",
-		function (event) { initContext(ci); }, false);
-
-	function redraw()
-	{
-		requestId = requestAnimFrame(function () { drawScene(ci); });
-	};
-	window.onresize = redraw;
-
-	initContext(ci);
-	redraw();
+	main_ci = new ContextInfo(canvas, gl, drawScene);
+	window.onresize = main_ci.redraw;
+	main_ci.init();
+	main_ci.redraw();
 }
 
-function initContext(ci)
-{
-	llgr.set_context(ci.gl);
-	llgr.load_json(data);
-}
 
 function drawScene(ci)
 {
@@ -91,8 +126,13 @@ function drawScene(ci)
 	llgr.set_context(gl);
 	gl.viewport(0, 0, canvas.width, canvas.height);
 	llgr.render();
-	requestId = null;
-	//requestId = requestAnimFrame(function () { drawScene(ci); });
+	ci.requestId = null;
+}
+
+function load(url)
+{
+	main_ci.url = url;
+	main_ci.init();
 }
 
 window.onload = main;
@@ -103,8 +143,8 @@ window.onload = main;
 <body>
 <style>
 	html, body {
-		width:  100%;
-		height: 100%;
+		width:  90%;
+		height: 90%;
 		margin: 0px;
 	}
 </style>
@@ -113,6 +153,10 @@ window.onload = main;
 	<code>&lt;canvas&gt;</code> element.
 	<a href="http://get.webgl.org">Click here to upgrade your browser.</a>
 	</canvas>
+	<p>
+	<button type="button" onclick="load('1a0m.json')">1a0m</button>
+	<button type="button" onclick="load('two.json')">two</button>
+	<button type="button" onclick="load('two-tri.json')">two triangles</button>
 </body>
 
 </html>
