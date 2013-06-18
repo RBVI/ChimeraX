@@ -18,3 +18,5 @@
 Thumbs.db
 # vim
 *.swp
+errs
+build
