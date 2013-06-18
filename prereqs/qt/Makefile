@@ -2,8 +2,8 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.1.0-beta1
-DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).tar.gz
+VERSION = 5.1.0-rc1
+DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
 PATCHES	= $(wildcard qt-src-$(VERSION)-*.patch)
@@ -51,7 +51,7 @@ ifdef USE_MAC_FRAMEWORKS
 endif
 
 $(SOURCE): $(DISTRIBUTION)
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+	7z x -o'$(tmpdir)' $(DISTRIBUTION)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
