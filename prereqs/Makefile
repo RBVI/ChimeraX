@@ -42,7 +42,7 @@ Mesa.install:
 endif
 
 SUBDIRS	+= docutils distribute expat fonts glew jinja2 numpy openssl \
-	   pcre PyOpenGL pyflakes pythomnic3k Python PyQt qt \
+	   p7zip pcre PyOpenGL pyflakes pythomnic3k Python PyQt qt \
 	   sip sphinx wrappy3 zlib
 
 # All needed subdirectories must be set by now.
@@ -108,7 +108,7 @@ pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.ins
 pythomnic3k.install: Python.install
 Python.install: zlib.install openssl.install expat.install
 PyQt.install: Python.install qt.install sip.install
-qt.install: openssl.install zlib.install
+qt.install: p7zip.install openssl.install zlib.install
 # qt.install: png.install jpeg.install
 sip.install: Python.install
 sphinx.install: docutils.install jinja2.install distribute.install
