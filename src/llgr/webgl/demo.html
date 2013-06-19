@@ -33,70 +33,10 @@
 
 <!--<script type="text/javascript" src="webgl-debug.js"></script>-->
 <script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="webgl-context.js"></script>
 <script type="text/javascript" src="llgr_webgl.js"></script>
 
 <script type = "text/javascript">
-
-function ContextInfo(canvas, gl, render, url)
-{
-	this.canvas = canvas;
-	this.gl = gl;
-	this.render = render;
-	this.url = url;
-	this.requestId = null;
-
-	var ci = this;	// for nested functions
-
-	canvas.addEventListener("webglcontextlost",
-			function (event) {
-				event.preventDefault();
-				var id = ci.requestId;
-				ci.requestId = null;
-				cancelRequestAnimFrame(id);
-			},
-			false);
-	canvas.addEventListener("webglcontextrestored",
-			function (event) {
-				ci.init();
-			},
-			false);
-
-	this.redraw = function () {
-		if (this.render === undefined || this.requestId !== null)
-			return;
-		var render = this.render;
-		var ci = this;
-		this.requestId = requestAnimFrame(function () { render(ci); });
-	};
-
-	this.init = function () {
-		llgr.set_context(this.gl);
-		if (this.url == undefined) {
-			llgr.clear_all();
-			this.redraw();
-			return;
-		}
-
-		function handler() {
-			if (this.readyState != this.DONE) {
-				return;
-			}
-			if (this.status == 200 && this.responseText != null) {
-				// success!
-				llgr.load_json(JSON.parse(this.responseText));
-				ci.redraw();
-				return;
-			}
-			// something went wrong
-		}
-
-		var client = new XMLHttpRequest();
-		client.overrideMimeType("application/json");
-		client.onreadystatechange = handler;
-		client.open("GET", ci.url);
-		client.send();
-	};
-}
 
 var main_ci;		// main canvas information
 

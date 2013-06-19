@@ -2,8 +2,8 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.1.0-beta1
-DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).tar.gz
+VERSION = 5.1.0-rc1
+DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
 PATCHES	= $(wildcard qt-src-$(VERSION)-*.patch)
@@ -44,14 +44,18 @@ else
 endif
 	rm -f $(build_prefix)/q3porting.xml
 ifdef USE_MAC_FRAMEWORKS
+	$(MAKE) include
+
+include:
 	cd $(libdir) && for i in *.framework; do \
 		f=`basename $$i .framework`; \
 		(cd ../include && ln -fs ../lib/$$i/Headers $$f); \
 	done
+	cp $(SOURCE)/qtbase/src/corelib/global/qconfig.h $(includedir)/QtCore/
 endif
 
 $(SOURCE): $(DISTRIBUTION)
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+	7za x -o'$(tmpdir)' $(DISTRIBUTION)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \

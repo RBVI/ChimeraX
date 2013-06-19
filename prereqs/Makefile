@@ -42,7 +42,7 @@ Mesa.install:
 endif
 
 SUBDIRS	+= docutils distribute expat fonts glew jinja2 numpy openssl \
-	   pcre PyOpenGL pyflakes pythomnic3k Python PyQt qt \
+	   p7zip pcre PyOpenGL pyflakes pythomnic3k Python PyQt qt \
 	   sip sphinx wrappy3 zlib
 
 # All needed subdirectories must be set by now.
@@ -63,22 +63,23 @@ distclean: clean
 
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
-PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).tar.bz2
+PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).7z
 else ifeq ($(OS),Darwin)
-PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).tar.bz2
+PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).7z
 else ifeq ($(OS),Windows)
-PREBUILT = prebuilt-$(OSARCH).tar.bz2
+PREBUILT = prebuilt-$(OSARCH).7z
 else
-PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
+PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).7z
 endif
 
 prebuilt:
-	(cd $(build_prefix) && tar -cj --exclude ./tmp .) > $(PREBUILT)
+	#(cd $(build_prefix) && tar -cj --exclude ./tmp .) > $(PREBUILT)
+	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za a -mx9 -x!./tmp $$prebuilt .
 
 install.prebuilt:
 	if [ -e $(PREBUILT) ]; then \
-		(cd $(build_prefix) && tar -xj) < $(PREBUILT) ; \
 		$(MAKE) build-dirs ; \
+		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za x $$prebuilt
 	else \
 		$(MAKE) install ; \
 	fi
@@ -108,7 +109,7 @@ pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.ins
 pythomnic3k.install: Python.install
 Python.install: zlib.install openssl.install expat.install
 PyQt.install: Python.install qt.install sip.install
-qt.install: openssl.install zlib.install
+qt.install: p7zip.install openssl.install zlib.install
 # qt.install: png.install jpeg.install
 sip.install: Python.install
 sphinx.install: docutils.install jinja2.install distribute.install
