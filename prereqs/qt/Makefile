@@ -44,10 +44,14 @@ else
 endif
 	rm -f $(build_prefix)/q3porting.xml
 ifdef USE_MAC_FRAMEWORKS
+	$(MAKE) include
+
+include:
 	cd $(libdir) && for i in *.framework; do \
 		f=`basename $$i .framework`; \
 		(cd ../include && ln -fs ../lib/$$i/Headers $$f); \
 	done
+	cp $(SOURCE)/qtbase/src/corelib/global/qconfig.h $(includedir)/QtCore/
 endif
 
 $(SOURCE): $(DISTRIBUTION)
