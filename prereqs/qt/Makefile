@@ -51,7 +51,7 @@ ifdef USE_MAC_FRAMEWORKS
 endif
 
 $(SOURCE): $(DISTRIBUTION)
-	7z x -o'$(tmpdir)' $(DISTRIBUTION)
+	7za x -o'$(tmpdir)' $(DISTRIBUTION)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
