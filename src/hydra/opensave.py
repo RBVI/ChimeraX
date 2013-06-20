@@ -1,13 +1,12 @@
-from .qt import QtGui
+from .qt import QtGui, QtWidgets
 
 def show_open_file_dialog(view):
     filter_lines = ['%s (%s)' % (name, ' '.join('*.%s' % s for s in suffixes))
                     for name, suffixes, read_func in file_types()]
     filter_lines.insert(0, 'All (*.*)')
     filters = ';;'.join(filter_lines)
-    qpaths = QtGui.QFileDialog.getOpenFileNames(view, 'Open File', '.', filters)
-    paths = tuple(str(p) for p in qpaths)        # Convert from QString
-    open_files(paths, view)
+    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view, 'Open File', '.', filters)
+    open_files(qpaths[0], view)
     from .gui import main_window as mw
     mw.show_graphics()
 
@@ -105,7 +104,7 @@ def save_session(view):
 
 def save_session_as(view):
     filters = 'Session (*.mo)'
-    path = QtGui.QFileDialog.getSaveFileName(view, 'Save Session', '.',
+    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session', '.',
                                              filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt
@@ -120,7 +119,7 @@ def save_session_as(view):
 
 def save_image(view):
     filters = 'JPEG image (*.jpg)'
-    path = QtGui.QFileDialog.getSaveFileName(view, 'Save Image', '.',
+    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Image', '.',
                                              filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt
@@ -131,7 +130,7 @@ def save_image(view):
 
 def open_image(view):
     filters = 'JPEG image (*.jpg)'
-    path = QtGui.QFileDialog.getOpenFileName(view, 'Open Image', '.',
+    path = QtWidgets.QFileDialog.getOpenFileName(view, 'Open Image', '.',
                                              filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt

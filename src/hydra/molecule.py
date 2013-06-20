@@ -331,7 +331,7 @@ class Atom_Set:
     self.molatoms = []      # Pairs (molecule, atom index array)
   def add_molecules(self, molecules):
     for m in molecules:
-      self.molatoms.append((m, m.all_atoms))
+      self.molatoms.append((m, m.all_atoms()))
   def add_atoms(self, mol, atoms):
     self.molatoms.append((mol, atoms))
   def molecules(self):
