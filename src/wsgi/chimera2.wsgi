@@ -13,6 +13,15 @@ ContentType_HTML = "text/html"
 ContentType_JSON = "application/json"
 
 class WSGIError(Exception):
+	"""WSGI exception class.
+
+	Attribute ``wsgiData`` contains a 4-tuple of::
+
+	HTTP status - *string*
+	HTTP content type - *string*
+	HTTP headers - *list* of key-value pairs
+	page data - *string*
+	"""
 	def __init__(self, status, output, contentType=None, headers=None):
 		Exception.__init__(self, status)
 		if contentType is None:
@@ -20,6 +29,11 @@ class WSGIError(Exception):
 		self.wsgiData = (status, contentType, headers, output)
 
 class App(object):
+	"""WSGI application class.
+
+	Maintains a session store and redirects web requests based on 
+	the value of ``action`` parameters.
+	"""
 	def __init__(self):
 		import os.path
 		dbName = os.path.join(os.path.dirname(__file__),
@@ -63,6 +77,9 @@ class App(object):
 		return output
 
 	def process(self, environ, fs):
+		"""Process a single web request."""
+		# environ - dictionary such as os.environ
+		# fs - instance of cgi.FieldStorage
 		try:
 			action = self._getField(fs, "action")
 		except WSGIError:
@@ -256,6 +273,14 @@ class App(object):
 		print >> f, ""
 
 class Session(object):
+	"""Session state class.
+
+	Manages the state for a single session.  Public attributes are::
+
+	``name`` - session name, *string*
+	``password`` - session password, *string*
+	``last_access`` - last access time, *int*
+	"""
 	def __init__(self, name, password):
 		self._initRuntime()
 		self._initState(name, password)
@@ -289,14 +314,17 @@ class Session(object):
 		self.disconnect()
 
 	def updateAccess(self):
+		"""Set last access time for this session to current time."""
 		import time
 		self.lastAccess = time.time()
 
 	def accessTime(self):
+		"""Return last access time as a *string*."""
 		import time
 		return time.ctime(self.lastAccess)
 
 	def call(self, *args):
+		"""Pass ``args`` to session backend and return results."""
 		self.lock.acquire()
 		#print "%s.call(%s)" % (self.name, str(args))
 		if self.process and not self.process.is_alive():
@@ -329,6 +357,7 @@ class Session(object):
 		return pickle.loads(output)
 
 	def disconnect(self):
+		"""Terminate backend if present."""
 		#print "disconnect", self.name
 		#import traceback, sys
 		#traceback.print_stack(file=sys.stdout)
@@ -347,6 +376,16 @@ class Session(object):
 		self.process = None
 
 class SessionStore(object):
+	"""Session store class.
+
+	A container class with dictionary semantics supporting
+	persistence across process invocations.  The keys are account
+	names and the values are lists of session instances.
+	
+	An in-memory cache is maintained for the persistent storage using
+	an explicity write-back strategy: the cache is only flushed when
+	``sync()`` is called.
+	"""
 	def __init__(self, dbName):
 		self._cache = dict()
 		import shelve
@@ -378,12 +417,14 @@ class SessionStore(object):
 		self._cache[key] = value
 
 	def get(self, key, defaultValue):
+		"""Return session instance for ``key``."""
 		try:
 			return self[key]
 		except KeyError:
 			return defaultValue
 
 	def setdefault(self, key, defaultValue):
+		"""Return session instance for ``key``, creating if necessary."""
 		try:
 			return self[key]
 		except KeyError:
@@ -391,9 +432,11 @@ class SessionStore(object):
 			return defaultValue
 
 	def keys(self):
+		"""Return list of session keys (in the dictionary sense)."""
 		return self._store.keys()
 
 	def sync(self, key=None):
+		"""Synchronize memory cache with persistent storage."""
 		if key:
 			self._store[key] = self._cache[key]
 		else:
@@ -401,6 +444,7 @@ class SessionStore(object):
 				self._store[key] = self._cache[key]
 
 	def close(self):
+		"""Clear memory
 		self._cache = dict()
 		self._store.close()
 
@@ -408,6 +452,11 @@ class SessionStore(object):
 	# Methods for manipulating session lists
 	#
 	def updateSessionList(self, account, sessionList):
+		"""Update sessions associated with an account.
+		
+		If ``sessionList`` is None, the entire account entry
+		is deleted.  Cache is synchronized with persistent
+		storage after update."""
 		with self.lock:
 			if sessionList:
 				self[account] = sessionList
@@ -419,6 +468,7 @@ class SessionStore(object):
 			self.sync(account)
 
 	def getSessionList(self, account):
+		"""Return sessions associated with an account."""
 		with self.lock:
 			try:
 				return self[account]
@@ -426,6 +476,7 @@ class SessionStore(object):
 				return []
 
 	def findSession(self, account, name, password):
+		"""Find session matching ``name`` and ``password`` for ``account``."""
 		with self.lock:
 			for s in self.getSessionList(account):
 				if s.name != name:
@@ -438,6 +489,7 @@ class SessionStore(object):
 				return None
 
 def backend(sessionDir, sessionName, toChild, fromChild):
+	"""Invoke a backend process."""
 	import os.path, sys, copy, os
 	os.dup2(toChild[0].fileno(), 0)
 	os.dup2(fromChild[1].fileno(), 1)
