@@ -18,9 +18,11 @@ all: $(PYLIBS)
 install: all
 	-mkdir $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PYLIBS) $(DATA) $(PKG_DIR)
+ifeq ($(OS),Darwin)
 	-mkdir $(APPS_DIR)
 	$(RSYNC) Hydra.app $(APPS_DIR)
 	-ln -s $(frameworkdir)/Python.framework $(APPS_DIR)/Hydra.app/Contents/Frameworks
+endif
 
 _image3d/_image3d.so:
 	$(MAKE) -C _image3d
