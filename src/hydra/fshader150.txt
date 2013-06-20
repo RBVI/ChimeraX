@@ -1,0 +1,75 @@
+#version 150
+
+#ifdef USE_LIGHTING
+uniform vec3 key_light_position;
+uniform vec3 key_light_diffuse_color;
+uniform vec3 key_light_specular_color;
+uniform float key_light_specular_exponent;
+
+uniform vec3 fill_light_position;
+uniform vec3 fill_light_diffuse_color;
+
+uniform vec3 ambient_color;
+
+in vec3 N;
+in vec3 v;
+#endif
+
+in vec4 color;
+
+#ifdef USE_TEXTURE_2D
+in vec2 tex_coord;
+uniform sampler2D tex2d;
+#endif
+
+out vec4 frag_color;
+
+void main (void)
+{
+#ifdef USE_TEXTURE_2D
+  vec4 fcolor = texture(tex2d, tex_coord);
+#else
+  vec4 fcolor = color;
+#endif
+
+#ifdef USE_LIGHTING
+  vec3 N1 = normalize(N);
+  vec3 L = normalize(key_light_position);  // Light at infinity.
+  vec3 Lf = normalize(fill_light_position); // Light at infinity.
+  vec3 E = normalize(-v);      // In eye coordinates eye position is (0,0,0).
+  N1 *= (gl_FrontFacing ? 1.0 : -1.0);  // Two sided lighting
+  vec3 R = normalize(-reflect(L,N1)); 
+
+  // diffuse
+  vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * max(dot(N1,L),0.0)
+                         + fill_light_diffuse_color * max(dot(N1,Lf),0.0));
+
+  // specular
+  vec3 Ispec = key_light_specular_color
+                  * pow(max(dot(R,E),0.0),0.3*key_light_specular_exponent);
+
+  // scene
+  vec3 Iscene = fcolor.rgb * ambient_color;
+
+  // total color
+  vec3 Ifrag = Iscene + Idiff + Ispec;
+#else
+  vec3 Ifrag = fcolor.rgb;
+#endif
+
+  // transparency
+  float a = fcolor.a;
+#ifdef USE_LIGHTING
+  a = 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(N1.z),0.01));
+#endif
+
+#ifdef USE_HATCHING
+  // Highlight with zebra stripes
+  float hsize = 8;
+  float df = 0.3 + 1.6*mod(gl_FragCoord.x + gl_FragCoord.y, hsize)/hsize;
+  Ifrag = df*Ifrag;
+#endif
+
+  // final color
+  frag_color = vec4(Ifrag, a);
+}

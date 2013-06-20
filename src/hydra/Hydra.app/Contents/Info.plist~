@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>English</string>
+    <key>CFBundleExecutable</key>
+    <string>c2</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2013-01-30 Regents of the University of California.  All Rights Reserved.</string>
+    <key>CFBundleIconFile</key>
+    <string>map.icns</string>
+    <key>CFBundleIdentifier</key>
+    <string>edu.ucsf.cgl.chimera</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Map</string>
+    <key>CFBundleDisplayName</key>
+    <string>Map</string>
+    <key>LSHasLocalizedDisplayName</key>
+    <false/>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1</string>
+    <key>CFBundleSignature</key>
+    <string>Map3</string>
+    <key>CFBundleVersion</key>
+    <string>0.1</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSBackgroundOnly</key>
+    <false/>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.6.0</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Map session</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>mo</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>
