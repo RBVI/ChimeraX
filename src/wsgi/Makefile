@@ -2,6 +2,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 install:
-	cp -p chimera2.wsgi $(webdir)
+	$(RSYNC) chimera2.wsgi $(webdir)
+	$(RSYNC) webapp_server.py $(PYSITEDIR)
 
 clean:
