@@ -1,32 +1,32 @@
-DefaultMsg = "Use HTML page to access Chimera 2 sessions"
+DEFAULT_MESSAGE = "Use HTML page to access Chimera 2 sessions"
 
 #
 # WSGI application code
 #
-Status_Okay = "200 OK"
-Status_Redirect = "301 Redirect to HTML page"
-Status_BadRequest = "400 Bad request"
-Status_InternalServerError = "500 Internal server error"
+STATUS_OKAY = "200 OK"
+STATUS_REDIRECT = "301 Redirect to HTML page"
+STATUS_BAD_REQUEST = "400 Bad request"
+STATUS_SERVER_ERROR = "500 Internal server error"
 
-ContentType_PlainText = "text/plain"
-ContentType_HTML = "text/html"
-ContentType_JSON = "application/json"
+CONTENT_TYPE_PLAINTEXT = "text/plain"
+CONTENT_TYPE_HTML = "text/html"
+CONTENT_TYPE_JSON = "application/json"
 
 class WSGIError(Exception):
 	"""WSGI exception class.
 
-	Attribute ``wsgiData`` contains a 4-tuple of::
+	Attribute ``wsgi_data`` contains a 4-tuple of::
 
 	HTTP status - *string*
 	HTTP content type - *string*
 	HTTP headers - *list* of key-value pairs
 	page data - *string*
 	"""
-	def __init__(self, status, output, contentType=None, headers=None):
+	def __init__(self, status, output, content_type=None, headers=None):
 		Exception.__init__(self, status)
-		if contentType is None:
-			contentType = ContentType_PlainText
-		self.wsgiData = (status, contentType, headers, output)
+		if content_type is None:
+			content_type = CONTENT_TYPE_PLAINTEXT
+		self.wsgi_data = (status, content_type, headers, output)
 
 class App(object):
 	"""WSGI application class.
@@ -36,10 +36,10 @@ class App(object):
 	"""
 	def __init__(self):
 		import os.path
-		dbName = os.path.join(os.path.dirname(__file__),
+		db_name = os.path.join(os.path.dirname(__file__),
 						"sessions", "sessions.db")
-		self.sessions = SessionStore(dbName)
-		self.reqCount = 0
+		self.sessions = SessionStore(db_name)
+		self.req_count = 0
 
 	def __del__(self):
 		try:
@@ -48,19 +48,19 @@ class App(object):
 			pass
 
 	def __call__(self, environ, start_response):
-		self.reqCount += 1
+		self.req_count += 1
 		import cgi
 		fs = cgi.FieldStorage(fp=environ['wsgi.input'],
 					environ=environ,
 					keep_blank_values=True)
 		try:
 			status, ctype, hdrs, output = self.process(environ, fs)
-			#status, ctype, output = self.showInput(environ, fs)
+			#status, ctype, output = self.show_input(environ, fs)
 		except WSGIError, e:
-			status, ctype, hdrs, output = e.wsgiData
+			status, ctype, hdrs, output = e.wsgi_data
 		except:
-			status = Status_InternalServerError
-			ctype = ContentType_PlainText
+			status = STATUS_SERVER_ERROR
+			ctype = CONTENT_TYPE_PLAINTEXT
 			hdrs = None
 			import traceback
 			output = [ "<pre>\n", traceback.format_exc(), "</pre>" ]
@@ -81,48 +81,48 @@ class App(object):
 		# environ - dictionary such as os.environ
 		# fs - instance of cgi.FieldStorage
 		try:
-			action = self._getField(fs, "action")
+			action = self._get_field(fs, "action")
 		except WSGIError:
 			return self._default_action(environ)
 		try:
 			f = getattr(self, "_process_%s" % action)
 		except AttributeError:
-			raise WSGIError(Status_BadRequest,
+			raise WSGIError(STATUS_BAD_REQUEST,
 					"unknown action: %s" % action)
 		else:
 			return f(environ, fs)
 
-	def _getenv(self, environ, key, emptyOkay=False):
+	def _getenv(self, environ, key, empty_okay=False):
 		if key not in environ:
-			if emptyOkay:
+			if empty_okay:
 				return ""
-			raise WSGIError(Status_BadRequest,
+			raise WSGIError(STATUS_BAD_REQUEST,
 				"Environment variable \"%s\" missing" % key)
 		v = environ[key]
-		if not emptyOkay and v == "":
-			raise WSGIError(Status_BadRequest,
+		if not empty_okay and v == "":
+			raise WSGIError(STATUS_BAD_REQUEST,
 				"Environment variable \"%s\" undefined" % key)
 		return v
 
-	def _getField(self, fs, key, emptyOkay=False):
+	def _get_field(self, fs, key, empty_okay=False):
 		if key not in fs:
-			if emptyOkay:
+			if empty_okay:
 				return ""
-			raise WSGIError(Status_BadRequest,
+			raise WSGIError(STATUS_BAD_REQUEST,
 				"Form field \"%s\" missing" % key)
 		v = fs[key].value
-		if not emptyOkay and v == "":
-			raise WSGIError(Status_BadRequest,
+		if not empty_okay and v == "":
+			raise WSGIError(STATUS_BAD_REQUEST,
 				"Form field \"%s\" undefined" % key)
 		return v
 
 	def _default_action(self, environ):
 		base = self._getenv(environ, "SCRIPT_URI").rsplit('/', 1)[0]
 		frontend_url = base + "/chimera2_webapp.html"
-		return (Status_Redirect,
-				ContentType_PlainText,
+		return (STATUS_REDIRECT,
+				CONTENT_TYPE_PLAINTEXT,
 				[ ( "Location", url ) ],
-				DefaultMsg)
+				DEFAULT_MESSAGE)
 	
 	#
 	# These methods are named "_process_XXX" where XXX is the
@@ -144,8 +144,8 @@ class App(object):
 		account = self._getenv(environ, "REMOTE_USER")
 		import StringIO
 		sf = StringIO.StringIO()
-		sessionList = self.sessions.getSessionList(account)
-		if not sessionList:
+		session_list = self.sessions.get_session_list(account)
+		if not session_list:
 			print >> sf, "<p>There are no sessions for <i>%s</i>" % account
 		else:
 			print >> sf, "<h1>Sessions for <i>%s</i></h1>" % account
@@ -154,75 +154,75 @@ class App(object):
 			print >> sf, "<th>Name</th><th>Type</th><th>Last Access</th>"
 			print >> sf, "</tr>"
 			import time
-			for s in sessionList:
+			for s in session_list:
 				print >> sf, "<tr>"
 				print >> sf, "<td>%s</th>" % s.name
 				print >> sf, "<td>%s</th>" % s.type
-				print >> sf, "<td>%s</th>" % s.accessTime()
+				print >> sf, "<td>%s</th>" % s.access_time()
 				print >> sf, "</tr>"
 			print >> sf, "</table>"
 		output = sf.getvalue()
-		return Status_Okay, ContentType_HTML, None, output
+		return STATUS_OKAY, CONTENT_TYPE_HTML, None, output
 
 	def _process_jlist(self, environ, fs):
 		account = self._getenv(environ, "REMOTE_USER")
-		sessionList = self.sessions.getSessionList(account)
-		sList = [ { "name": s.name,
-				"access": s.accessTime() }
-				for s in sessionList ]
+		session_list = self.sessions.get_session_list(account)
+		s_list = [ { "name": s.name,
+				"access": s.access_time() }
+				for s in session_list ]
 		import json
-		output = json.dumps(sList)
-		return Status_Okay, ContentType_JSON, None, output
+		output = json.dumps(s_list)
+		return STATUS_OKAY, CONTENT_TYPE_JSON, None, output
 
 	def _process_create(self, environ, fs):
 		account = self._getenv(environ, "REMOTE_USER")
-		name = self._getField(fs, "session")
-		password = self._getField(fs, "password", emptyOkay=True)
+		name = self._get_field(fs, "session")
+		password = self._get_field(fs, "password", empty_okay=True)
 		with self.sessions.lock:
-			sessionList = self.sessions.getSessionList(account)
-			for s in sessionList:
+			session_list = self.sessions.get_session_list(account)
+			for s in session_list:
 				if s.name == name:
-					raise WSGIError(Status_BadRequest,
+					raise WSGIError(STATUS_BAD_REQUEST,
 						"Session \"%s\" already exists"
 						% name)
 			else:
 				s = Session(name, password)
-				sessionList.insert(0, s)
-				self.sessions.updateSessionList(account,
-								sessionList)
+				session_list.insert(0, s)
+				self.sessions.update_session_list(account,
+								session_list)
 				output = "<p>Session <i>%s</i> created" % name
-		return Status_Okay, ContentType_HTML, None, output
+		return STATUS_OKAY, CONTENT_TYPE_HTML, None, output
 
 	def _process_delete(self, environ, fs):
 		account = self._getenv(environ, "REMOTE_USER")
-		session = self._getField(fs, "session")
-		password = self._getField(fs, "password", emptyOkay=True)
+		session = self._get_field(fs, "session")
+		password = self._get_field(fs, "password", empty_okay=True)
 		with self.sessions.lock:
-			s = self.sessions.findSession(account, session,
+			s = self.sessions.find_session(account, session,
 								password)
 			if not s:
-				raise WSGIError(Status_BadRequest,
+				raise WSGIError(STATUS_BAD_REQUEST,
 					"No session named \"%s\"" % session)
-			sessionList.remove(s)
-			self.sessions.updateSessionList(account, sessionList)
+			session_list.remove(s)
+			self.sessions.update_session_list(account, session_list)
 		output = "<p>Session <i>%s</i> deleted" % session
-		return Status_Okay, ContentType_HTML, None, output
+		return STATUS_OKAY, CONTENT_TYPE_HTML, None, output
 
 	def _process_call(self, environ, fs):
 		account = self._getenv(environ, "REMOTE_USER")
-		session = self._getField(fs, "session")
-		password = self._getField(fs, "password", emptyOkay=True)
-		s = self.sessions.findSession(account, session, password)
+		session = self._get_field(fs, "session")
+		password = self._get_field(fs, "password", empty_okay=True)
+		s = self.sessions.find_session(account, session, password)
 		if not s:
-			raise WSGIError(Status_BadRequest,
+			raise WSGIError(STATUS_BAD_REQUEST,
 					"No session named \"%s\"" % session)
-		command = self._getField(fs, "command")
+		command = self._get_field(fs, "command")
 		return s.call(command)
 
 	def _process_pwd(self, environ, fs):
 		import os
 		output = os.getcwd()
-		return Status_Okay, ContentType_PlainText, None, output
+		return STATUS_OKAY, CONTENT_TYPE_PLAINTEXT, None, output
 
 	def _process_env(self, environ, fs):
 		env = '\n'.join([ "<li>%s: %s</li>" % item
@@ -233,12 +233,12 @@ class App(object):
 			"<h2>Path</h2><ul>" + path + "</ul>" +
 			"<h2>__file__</h2><ul><li>" + __file__ + "</li></ul>" +
 			"<h2>__name__</h2><ul><li>" + __name__ + "</li></ul>")
-		return Status_Okay, ContentType_HTML, None, output
+		return STATUS_OKAY, CONTENT_TYPE_HTML, None, output
 
 	#
 	# Rest of methods are for debugging
 	#
-	def showInput(self, environ, fs):
+	def show_input(self, environ, fs):
 		import StringIO
 		sf = StringIO.StringIO()
 		print >> sf, "self:", self
@@ -246,17 +246,17 @@ class App(object):
 		print >> sf, "id:", os.getuid(), os.getgid()
 		import thread
 		print >> sf, "thread:", thread.get_ident()
-		print >> sf, "request #:", self.reqCount
-		self._dumpFieldStorage(sf, fs)
+		print >> sf, "request #:", self.req_count
+		self._dump_fs(sf, fs)
 		print >> sf, "extra path information:", environ["PATH_INFO"]
 		print >> sf, "query string:", environ["QUERY_STRING"]
 		print >> sf, "user:", environ["REMOTE_USER"]
 		print >> sf, "host:", environ["REMOTE_ADDR"]
-		self._dumpEnviron(sf, environ)
+		self._dump_environ(sf, environ)
 		output = sf.getvalue()
-		return Status_Okay, ContentType_PlainText, output
+		return STATUS_OKAY, CONTENT_TYPE_PLAINTEXT, output
 
-	def _dumpFieldStorage(self, f, fs):
+	def _dump_fs(self, f, fs):
 		print >> f, ""
 		print >> f, "--- FieldStorage:"
 		for k in fs.keys():
@@ -264,7 +264,7 @@ class App(object):
 		print >> f, "--- FieldStorage"
 		print >> f, ""
 
-	def _dumpEnviron(self, f, env):
+	def _dump_environ(self, f, env):
 		print >> f, ""
 		print >> f, "--- Environment:"
 		for item in env.iteritems():
@@ -282,46 +282,46 @@ class Session(object):
 	``last_access`` - last access time, *int*
 	"""
 	def __init__(self, name, password):
-		self._initRuntime()
-		self._initState(name, password)
+		self._init_runtime()
+		self._init_state(name, password)
 
-	def _initRuntime(self):
+	def _init_runtime(self):
 		self.pipe = None
 		self.process = None
 		import threading
 		self.lock = threading.RLock()
 
-	def _initState(self, name, password):
+	def _init_state(self, name, password):
 		self.name = name
 		self.password = password
-		self.updateAccess()
-		self._sessionDir = os.path.join(os.path.dirname(__file__),
+		self.update_access()
+		self._session_dir = os.path.join(os.path.dirname(__file__),
 								"sessions")
 
 	def __getstate__(self):
-		return (self.name, self.password, self.lastAccess)
+		return (self.name, self.password, self.last_access)
 
 	def __setstate__(self, values):
-		self._initRuntime()
-		name, password, lastAccess = values
-		self._initState(name, password)
+		self._init_runtime()
+		name, password, last_access = values
+		self._init_state(name, password)
 		# We ignore saved access time because we just accessed it
 
 	def __str__(self):
-		return "%s <%s>" % (self.name, self.accessTime())
+		return "%s <%s>" % (self.name, self.access_time())
 
 	def __del__(self):
 		self.disconnect()
 
-	def updateAccess(self):
+	def update_access(self):
 		"""Set last access time for this session to current time."""
 		import time
-		self.lastAccess = time.time()
+		self.last_access = time.time()
 
-	def accessTime(self):
+	def access_time(self):
 		"""Return last access time as a *string*."""
 		import time
-		return time.ctime(self.lastAccess)
+		return time.ctime(self.last_access)
 
 	def call(self, *args):
 		"""Pass ``args`` to session backend and return results."""
@@ -337,19 +337,19 @@ class Session(object):
 			self.pipe = None
 		if self.process is None:
 			from multiprocessing import Pipe, Process
-			toChild = Pipe()
-			fromChild = Pipe()
-			self.pipe = (fromChild[0], toChild[1])
+			to_child = Pipe()
+			from_child = Pipe()
+			self.pipe = (from_child[0], to_child[1])
 			self.process = Process(target=backend,
-						args=(self._sessionDir,
+						args=(self._session_dir,
 							self.name,
-							toChild,
-							fromChild))
+							to_child,
+							from_child))
 			self.process.start()
 			#print "%s - process %d started" % (self.name,
 			#				self.process.pid)
-			toChild[0].close()
-			fromChild[1].close()
+			to_child[0].close()
+			from_child[1].close()
 		self.pipe[1].send(args)
 		output = self.pipe[0].recv()
 		self.lock.release()
@@ -386,10 +386,10 @@ class SessionStore(object):
 	an explicity write-back strategy: the cache is only flushed when
 	``sync()`` is called.
 	"""
-	def __init__(self, dbName):
+	def __init__(self, db_name):
 		self._cache = dict()
 		import shelve
-		self._store = shelve.open(dbName, "c")
+		self._store = shelve.open(db_name, "c")
 		import threading
 		self.lock = threading.RLock()
 
@@ -416,20 +416,20 @@ class SessionStore(object):
 	def __setitem__(self, key, value):
 		self._cache[key] = value
 
-	def get(self, key, defaultValue):
+	def get(self, key, default_value):
 		"""Return session instance for ``key``."""
 		try:
 			return self[key]
 		except KeyError:
-			return defaultValue
+			return default_value
 
-	def setdefault(self, key, defaultValue):
+	def setdefault(self, key, default_value):
 		"""Return session instance for ``key``, creating if necessary."""
 		try:
 			return self[key]
 		except KeyError:
-			self[key] = defaultValue
-			return defaultValue
+			self[key] = default_value
+			return default_value
 
 	def keys(self):
 		"""Return list of session keys (in the dictionary sense)."""
@@ -451,15 +451,15 @@ class SessionStore(object):
 	#
 	# Methods for manipulating session lists
 	#
-	def updateSessionList(self, account, sessionList):
+	def update_session_list(self, account, session_list):
 		"""Update sessions associated with an account.
 		
-		If ``sessionList`` is None, the entire account entry
+		If ``session_list`` is None, the entire account entry
 		is deleted.  Cache is synchronized with persistent
 		storage after update."""
 		with self.lock:
-			if sessionList:
-				self[account] = sessionList
+			if session_list:
+				self[account] = session_list
 			else:
 				try:
 					del self[account]
@@ -467,7 +467,7 @@ class SessionStore(object):
 					print "no such account: %s" % account
 			self.sync(account)
 
-	def getSessionList(self, account):
+	def get_session_list(self, account):
 		"""Return sessions associated with an account."""
 		with self.lock:
 			try:
@@ -475,28 +475,28 @@ class SessionStore(object):
 			except KeyError:
 				return []
 
-	def findSession(self, account, name, password):
+	def find_session(self, account, name, password):
 		"""Find session matching ``name`` and ``password`` for ``account``."""
 		with self.lock:
-			for s in self.getSessionList(account):
+			for s in self.get_session_list(account):
 				if s.name != name:
 					continue
 				if s.password != password:
-					raise WSGIError(Status_BadRequest,
+					raise WSGIError(STATUS_BAD_REQUEST,
 							"Password incorrect")
 				return s
 			else:
 				return None
 
-def backend(sessionDir, sessionName, toChild, fromChild):
+def backend(session_dir, session_name, to_child, from_child):
 	"""Invoke a backend process."""
 	import os.path, sys, copy, os
-	os.dup2(toChild[0].fileno(), 0)
-	os.dup2(fromChild[1].fileno(), 1)
-	toChild[0].close()
-	toChild[1].close()
-	fromChild[0].close()
-	fromChild[1].close()
+	os.dup2(to_child[0].fileno(), 0)
+	os.dup2(from_child[1].fileno(), 1)
+	to_child[0].close()
+	to_child[1].close()
+	from_child[0].close()
+	from_child[1].close()
 	env = copy.copy(os.environ)
 	# Assume a directory layout of:
 	# root (CHIMERA2)
@@ -515,7 +515,8 @@ def backend(sessionDir, sessionName, toChild, fromChild):
 	else:
 		env["LD_LIBRARY_PATH"] = ld_path + ':' + lib_dir
 	program = "webapp_backend"
-	execle(os.path.join(bin_dir, program), program, sessionDir, sessionName)
+	execle(os.path.join(bin_dir, program), program,
+					session_dir, session_name)
 
 #
 # Main program - either WSGI app or command line
@@ -532,45 +533,45 @@ else:
 	# is effective anyway
 	def list(account=""):
 		if account:
-			sessionList = pool.getSessionList(account)
-			if not sessionList:
+			session_list = pool.get_session_list(account)
+			if not session_list:
 				print "account \"%s\" has no sessions" % account
 			else:
 				print "account:", account
-				for s in sessionList:
+				for s in session_list:
 					print s
 		else:
 			for account in pool.keys():
-				sessionList = pool.getSessionList(account)
-				if not sessionList:
+				session_list = pool.get_session_list(account)
+				if not session_list:
 					continue
 				print "account:", account
-				for s in sessionList:
+				for s in session_list:
 					print s
 
 	def create(account, session, password=""):
 		pool.lock.acquire()
-		s = pool.findSession(account, session, password)
+		s = pool.find_session(account, session, password)
 		if s:
 			import sys
 			print >> sys.stderr, "\"%s\" exists" % session
 		else:
-			sessionList = pool.getSessionList(account)
-			sessionList.append(Session(session, password))
-			pool.updateSessionList(account, sessionList)
+			session_list = pool.get_session_list(account)
+			session_list.append(Session(session, password))
+			pool.update_session_list(account, session_list)
 			print "\"%s\" created" % session
 		pool.lock.release()
 
 	def delete(account, session, password=""):
 		pool.lock.acquire()
-		s = pool.findSession(account, session, password)
+		s = pool.find_session(account, session, password)
 		if not s:
 			import sys
 			print >> sys.stderr, "\"%s\" does not exist" % session
 		else:
-			sessionList = pool.getSessionList(account)
-			sessionList.remove(s)
-			pool.updateSessionList(account, sessionList)
+			session_list = pool.get_session_list(account)
+			session_list.remove(s)
+			pool.update_session_list(account, session_list)
 			print "\"%s\" removed" % session
 		pool.lock.release()
 
@@ -580,7 +581,7 @@ else:
 			args = args[1:]
 		else:
 			password = ""
-		s = pool.findSession(account, session, password)
+		s = pool.find_session(account, session, password)
 		if not s:
 			import sys
 			print >> sys.stderr, "\"%s\" does not exist" % session
