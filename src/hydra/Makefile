@@ -21,6 +21,7 @@ install: all
 ifeq ($(OS),Darwin)
 	-mkdir $(APPS_DIR)
 	$(RSYNC) Hydra.app $(APPS_DIR)
+	-mkdir $(APPS_DIR)/Hydra.app/Contents/Frameworks
 	-ln -s $(frameworkdir)/Python.framework $(APPS_DIR)/Hydra.app/Contents/Frameworks
 endif
 
