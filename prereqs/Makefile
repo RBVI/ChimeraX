@@ -79,7 +79,7 @@ prebuilt:
 install.prebuilt:
 	if [ -e $(PREBUILT) ]; then \
 		$(MAKE) build-dirs ; \
-		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za x $$prebuilt
+		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za x $$prebuilt ; \
 	else \
 		$(MAKE) install ; \
 	fi
