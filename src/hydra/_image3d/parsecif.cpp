@@ -75,7 +75,7 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<Atom> &atoms)
       std::cerr << "Missing atom_site columns\n";
       return false;
     }
-  while (strncmp(line, "ATOM", 4) == 0)
+  while (strncmp(line, "ATOM", 4) == 0 || strncmp(line, "HETATM", 6) == 0)
     {
       Atom a;
       parse_atom_site_line(line, a, fields);
