@@ -100,9 +100,13 @@ def restore_molecules(d, viewer):
   mstate = d.get('molecules')
   if mstate is None:
     return False
-  from .pdb import open_pdb_file
+  from .pdb import open_pdb_file, open_mmcif_file
   for ms in mstate:
-    m = open_pdb_file(ms['path'])
+    p = ms['path']
+    if p.endswith('.cif'):
+      m = open_mmcif_file(p)
+    else:
+      m = open_pdb_file(p)
     m.place = ms['place']
     m.copies = ms.get('copies', [])
     viewer.add_model(m)
