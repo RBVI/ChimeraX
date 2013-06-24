@@ -10,7 +10,7 @@ SRCS	= combine.cpp \
 	  interpolate.cpp pyinterpolate.cpp \
 	  intercept.cpp \
 	  mesh_edges.cpp \
-	  parsepdb.cpp parse_stl.cpp \
+	  parsecif.cpp parsepdb.cpp parse_stl.cpp \
 	  pythonarray.cpp rcarray.cpp refcount.cpp \
 	  spline.cpp squaremesh.cpp subdivide.cpp transfer.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
