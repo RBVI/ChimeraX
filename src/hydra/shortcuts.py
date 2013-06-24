@@ -453,21 +453,21 @@ def matrix_profile():
     print('%.0f matrix multiplies per second' % (n / (t1-t0),))
 
 def leap_chopsticks_mode(viewer):
-    from . import leap
-    leap.leap_mode('chopsticks', viewer)
+    from . import c2leap
+    c2leap.leap_mode('chopsticks', viewer)
 
 def leap_position_mode(viewer):
-    from . import leap
-    leap.leap_mode('position', viewer)
+    from . import c2leap
+    c2leap.leap_mode('position', viewer)
 
 def leap_velocity_mode(viewer):
-    from . import leap
-    leap.leap_mode('velocity', viewer)
+    from . import c2leap
+    c2leap.leap_mode('velocity', viewer)
 
 def leap_focus(viewer):
-    from . import leap
-    leap.report_leap_focus(viewer)
+    from . import c2leap
+    c2leap.report_leap_focus(viewer)
 
 def leap_quit(viewer):
-    from . import leap
-    leap.quit_leap(viewer)
+    from . import c2leap
+    c2leap.quit_leap(viewer)
