@@ -14,11 +14,12 @@ ftypes = None
 def file_types():
     global ftypes
     if ftypes is None:
-        from .pdb import open_pdb_file
+        from .pdb import open_pdb_file, open_mmcif_file
         from .readstl import read_stl
         from .read_apr import open_autopack_results
         ftypes = [
             ('PDB', ['pdb'], open_pdb_file),
+            ('mmCIF', ['cif'], open_mmcif_file),
             ('Session', ['mo'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),
             ('STL', ['stl'], read_stl),
