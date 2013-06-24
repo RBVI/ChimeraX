@@ -10,4 +10,6 @@ PyObject *element_radii(PyObject *s, PyObject *args, PyObject *keywds);
 
 }
 
+int element_number(const char *element_name);
+
 #endif
