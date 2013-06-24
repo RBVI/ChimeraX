@@ -1,4 +1,4 @@
-from . import Leap
+from LeapMotion import Leap
 
 class LeapListener(Leap.Listener):
     def __init__(self, viewer):
@@ -225,7 +225,7 @@ def keep_within_frustum(t, v):
 
     c = v.center_of_rotation
     cvi = v.camera_view_inverse
-    from .. import matrix
+    from . import matrix
     p1 = matrix.apply_matrix(cvi, c)
     p2 = add(p1, t)
     from math import pi, sin, cos
@@ -348,7 +348,7 @@ def leap_mode(mode, viewer):
 def report_leap_focus(viewer):
     v = viewer
     if hasattr(v, 'leap_controller'):
-        from ..gui import show_status
+        from .gui import show_status
         msg = 'App has leap focus' if v.leap_controller.has_focus else 'App does not have Leap focus'
         show_status(msg)
 
