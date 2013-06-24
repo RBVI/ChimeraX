@@ -38,7 +38,7 @@ static unsigned int element_hash(const char *element_name)
   return e;
 }
 
-static int element_number(const char *element_name)
+int element_number(const char *element_name)
 {
   static int *elnum = NULL;
   if (elnum == NULL)
@@ -78,12 +78,12 @@ static void element_radii(unsigned char *element_nums, int n, float *radii)
 }
 
 static int parse_pdb(const char *pdb, int natom,
-		     float *xyz, unsigned char *element_nums, unsigned char *chain_ids,
+		     float *xyz, unsigned char *element_nums, char *chain_ids,
 		     int *residue_nums, char *residue_names, char *atom_names)
 {
   char buf[9];
   buf[8] = '\0';
-  int a = 0, ni;
+  int a = 0, ni, s, e;
   for (int i = 0 ; pdb[i] && a < natom ; i = ni)
     {
       	const char *line = pdb + i;
@@ -103,8 +103,14 @@ static int parse_pdb(const char *pdb, int natom,
 	    element_nums[a] = e;
 	    strncpy(buf, line+22, 4);
 	    residue_nums[a] = strtol(buf, NULL, 10);
-	    strncpy(residue_names + 3*a, line+17, 3);
-	    strncpy(atom_names + 4*a, line+12, 4);
+	    for (s = 17 ; s < 19 && line[s] == ' ' ; ++s) ;	// Skip leading spaces.
+	    for (e = 19 ; e > 16 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
+	    if (e >= s)
+	      strncpy(residue_names + 3*a, line+s, e-s+1);
+	    for (s = 12 ; s < 15 && line[s] == ' ' ; ++s) ;	// Skip leading spaces.
+	    for (e = 15 ; e > 11 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
+	    if (e >= s)
+	      strncpy(atom_names + 4*a, line+s, e-s+1);
 	    a += 1;
 	  }
     }
@@ -125,14 +131,16 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
   int natom = count_pdb_atoms(pdb_text);
   float *xyz;
   int *residue_nums;
-  unsigned char *element_nums, *chain_ids;
-  char *residue_names, *atom_names;
+  unsigned char *element_nums;
+  char *chain_ids, *residue_names, *atom_names;
   PyObject *xyz_py = python_float_array(natom, 3, &xyz);
   PyObject *element_nums_py = python_uint8_array(natom, &element_nums);
-  PyObject *chain_ids_py = python_uint8_array(natom, &chain_ids);
+  PyObject *chain_ids_py = python_string_array(natom, 1, &chain_ids);
   PyObject *residue_nums_py = python_int_array(natom, &residue_nums);
   PyObject *residue_names_py = python_string_array(natom, 3, &residue_names);
+  memset(residue_names, 0, 3*natom);
   PyObject *atom_names_py = python_string_array(natom, 4, &atom_names);
+  memset(atom_names, 0, 4*natom);
 
   parse_pdb(pdb_text, natom, xyz, element_nums, chain_ids,
 	    residue_nums, residue_names, atom_names);
