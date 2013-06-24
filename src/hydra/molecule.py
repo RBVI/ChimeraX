@@ -231,7 +231,7 @@ class Molecule(Surface):
 
   def chain_atom_mask(self, chain_id):
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
-y    cmask = (self.chain_ids == cid)
+    cmask = (self.chain_ids == cid)
     return cmask
 
   def update_level_of_detail(self, viewer):
