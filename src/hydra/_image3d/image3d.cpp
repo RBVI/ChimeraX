@@ -6,6 +6,7 @@
 #include "histogram.h"			// use bin_counts_py, ...
 #include "intercept.h"			// use closest_geometry_intercept
 #include "mesh_edges.h"			// use masked_edges
+#include "parsecif.h"			// use parse_mmcif_file
 #include "parsepdb.h"			// use parse_pdb_file
 #include "parse_stl.h"			// use parse_stl
 #include "pycontour.h"			// use surface_py, ...
@@ -48,6 +49,10 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("closest_geometry_intercept"), (PyCFunction)closest_geometry_intercept,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* parsecif.h */
+  {const_cast<char*>("parse_mmcif_file"), (PyCFunction)parse_mmcif_file,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* parsepdb.h */
