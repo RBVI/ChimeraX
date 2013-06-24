@@ -15,6 +15,13 @@ class Molecule(Surface):
     self.chain_ids = chain_ids
     self.residue_nums = res_nums
     self.residue_names = res_names
+    #
+    # Chain ids, residue names and atom names are Numpy string arrays.
+    # The strings have maximum fixed length.  The strings are python byte arrays,
+    # not Python unicode strings.  Comparison to a Python unicode string will
+    # always give false.  Need to compare to a byte array.
+    # For example, atom_names == 'CA'.encode('utf-8')
+    #
     self.atom_names = atom_names
 
     # Graphics settings
@@ -130,6 +137,7 @@ class Molecule(Surface):
 
     cids = set(self.chain_ids)
     from .colors import rgba_256
+    from numpy import uint8
     for cid in cids:
       s = self.atom_subset('CA', cid)
       if len(s) <= 1:
@@ -140,7 +148,7 @@ class Molecule(Surface):
     
       from . import tube
       va,na,ta,ca = tube.tube_through_points(path, radius = 1.0,
-                                             color = rgba_256[cid],
+                                             color = rgba_256[cid[0]],
                                              segment_subdivisions = 5,
                                              circle_subdivisions = 10)
       if cid in rsp:
@@ -188,23 +196,19 @@ class Molecule(Surface):
                    restrict_to_atoms = None):
 
     anames = self.atom_names
-
     na = self.atom_count()
     from numpy import zeros, uint8, logical_or, logical_and
     nimask = zeros((na,), uint8)
     if name is None:
       nimask[:] = 1
     else:
-      # Array of atom names has fixed length strings with spaces for padding.
-      # Try different leading and trailing padding to match names.
-      names = padded_atom_name(name, anames.itemsize)
-      for n in names:
-        logical_or(nimask, (anames == n.encode('utf-8')), nimask)
+      logical_or(nimask, (anames == name.encode('utf-8')), nimask)
 
     if not chain_id is None:
       if isinstance(chain_id, (list,tuple)):
-        cmask = self.chain_atom_mask(chain_id[0])
-        for cid in chain_id[1:]:
+        chain_ids = chain_id
+        cmask = self.chain_atom_mask(chain_ids[0])
+        for cid in chain_ids[1:]:
           logical_or(cmask, self.chain_atoms(cid), cmask)
       else:
         cmask = self.chain_atom_mask(chain_id)
@@ -226,12 +230,8 @@ class Molecule(Surface):
     return i
 
   def chain_atom_mask(self, chain_id):
-    if isinstance(chain_id, str):
-      from numpy import fromstring
-      cid = fromstring(chain_id, self.chain_ids.dtype)
-    else:
-      cid = chain_id
-    cmask = (self.chain_ids == cid)
+    cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
+y    cmask = (self.chain_ids == cid)
     return cmask
 
   def update_level_of_detail(self, viewer):
@@ -305,6 +305,9 @@ def sphere_geometry(ntri):
 
 def chain_colors(cids):
 
+  # Use first character of multi-character chain ids.
+  from numpy import uint8
+  cids = cids.view(uint8)[::cids.itemsize]
   from .colors import rgba_256
   return rgba_256[cids]
 
@@ -318,11 +321,6 @@ def element_colors(elnums):
 
   from .colors import element_rgba_256
   return element_rgba_256[elnums]
-
-def padded_atom_name(aname, field_width):
-
-  pad = field_width - len(aname)
-  return [(' '*p + aname + ' '*(pad-p)) for p in range(pad+1)]
 
 # -----------------------------------------------------------------------------
 #
