@@ -31,6 +31,11 @@ all:
 ifdef WIN32
 SUBDIRS += win32
 endif
+
+ifeq ($(OS),Darwin)
+SUBDIRS += leapmotion
+endif
+
 #ifdef UNIX
 #SUBDIRS += unix
 #endif
@@ -101,6 +106,7 @@ distribute.install: Python.install
 docutils.install: Python.install
 funcparserlib.install: Python.install
 jinja2.install: Python.install distribute.install
+leapmotion.install: Python.install
 numpy.install: Python.install
 pcre.install: zlib.install
 pyflakes.install: Python.install
