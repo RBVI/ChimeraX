@@ -17,7 +17,7 @@ Design
 
 The web application is split into a server-side process for maintaining
 persistent state and a client-side web page for managing and displaying
-applets.  Design goals include::
+applets.  Design goals include:
 
     - Server-side process should not need to know about user interface
       details so that different front ends may be used to access the
@@ -41,14 +41,14 @@ Specifications
 ==============
 
 The data format and application program interface specifications
-are in the following sections::
+are in the following sections:
 
-    #. The *Wire Protocol* section describes the format of the data
-       exchange between client and server.
-    #. The *Client Framework* section describes how applets send
-       and receive data.
-    #. The *Server Framework* section describes how the server process
-       receives, dispatches, and returns data.
+    - The *Wire Protocol* section describes the format of the data
+      exchange between client and server.
+    - The *Client Framework* section describes how applets send
+      and receive data.
+    - The *Server Framework* section describes how the server process
+      receives, dispatches, and returns data.
 
 Wire Protocol
 -------------
@@ -126,3 +126,6 @@ The server framework is responsible for accepting requests from
 the client, dispatching the request to registered functions,
 repackaging function return values, and sending the return values
 to the client.
+
+The server framework is described in the `webapp_server <webapp_server.html>`_
+Python module.
