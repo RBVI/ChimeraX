@@ -1,10 +1,11 @@
 --- _llgr.cpp.orig	2013-05-10 14:23:32.000000000 -0700
 +++ _llgr.cpp	2013-05-10 14:38:16.000000000 -0700
-@@ -3,6 +3,8 @@
+@@ -3,6 +3,9 @@
  #include "../c++/llgr_ui.h"
  #include <stdlib.h>	/* for getenv() and atoi() */
  #include <typeinfo>
 +#include <numpy/arrayobject.h>
++#define GLEW_NO_GLU
 +#include <GL/glew.h>
  
  #ifndef PY_STUPID
