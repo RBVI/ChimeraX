@@ -47,7 +47,8 @@ Mesa.install:
 endif
 
 SUBDIRS	+= docutils distribute expat fonts glew jinja2 numpy openssl \
-	   p7zip pcre PyOpenGL pyflakes pythomnic3k Python PyQt qt \
+	   p7zip pcre pillow \
+	   pygments pyflakes PyOpenGL pythomnic3k Python PyQt qt \
 	   sip sphinx wrappy3 zlib
 
 # All needed subdirectories must be set by now.
@@ -103,13 +104,14 @@ endif
 
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 distribute.install: Python.install
-docutils.install: Python.install
+docutils.install: Python.install pillow.install pygments.install
 funcparserlib.install: Python.install
 jinja2.install: Python.install distribute.install
 leapmotion.install: Python.install
 numpy.install: Python.install
 pcre.install: zlib.install
 pyflakes.install: Python.install
+pygments.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install distribute.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
 pythomnic3k.install: Python.install
@@ -118,7 +120,7 @@ PyQt.install: Python.install qt.install sip.install
 qt.install: p7zip.install openssl.install zlib.install
 # qt.install: png.install jpeg.install
 sip.install: Python.install
-sphinx.install: docutils.install jinja2.install distribute.install
+sphinx.install: docutils.install jinja2.install pygments.install distribute.install
 sphinx-contrib.install: sphinx.install blockdiag.install distribute.install
 webcolors.install: Python.install
 wrappy3.install: pcre.install Python.install
