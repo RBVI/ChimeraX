@@ -50,8 +50,8 @@ are in the following sections:
     - The *Server Framework* section describes how the server process
       receives, dispatches, and returns data.
 
-Wire Protocol
--------------
+`Wire Protocol`_
+----------------
 
 The data exchange between client and server will be in
 `JSON <http://www.json.org>`_ format.  Typically, the exchange
@@ -111,16 +111,16 @@ is a JSON object with the following name/value pairs:
         the 3D applet can then map the server identifier to *its* internal
         identifier and then highlight the amino acid in its graphical display.
 
-Client Framework
-----------------
+`Client Framework`_
+-------------------
 
 The client framework is responsible for accepting requests from
 applets, sending them to the server, receiving data from the server,
 managing *server_data* maps, and distributing *client_data*, *stdout*
 and *stderr* to the appropriate destinations.
 
-Server Framework
-----------------
+`Server Framework`_
+-------------------
 
 The server framework is responsible for accepting requests from
 the client, dispatching the request to registered functions,
