@@ -25,6 +25,9 @@ ifeq ($(OS),Darwin)
 	-ln -s $(frameworkdir)/Python.framework $(APPS_DIR)/Hydra.app/Contents/Frameworks
 endif
 
+run:
+	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"
+
 _image3d/_image3d.so:
 	$(MAKE) -C _image3d
 
