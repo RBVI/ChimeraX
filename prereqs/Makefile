@@ -110,6 +110,7 @@ jinja2.install: Python.install distribute.install
 leapmotion.install: Python.install
 numpy.install: Python.install
 pcre.install: zlib.install
+pillow.install: Python.install distribute.install
 pyflakes.install: Python.install
 pygments.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install distribute.install
