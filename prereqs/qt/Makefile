@@ -55,11 +55,10 @@ include:
 		f=`basename $$i .framework`; \
 		(cd ../include && ln -fs ../lib/$$i/Headers $$f); \
 	done
-	cp $(SOURCE)/qtbase/src/corelib/global/qconfig.h $(includedir)/QtCore/
 endif
 
 $(SOURCE): $(DISTRIBUTION)
-	7za x -o'$(tmpdir)' $(DISTRIBUTION)
+	$(bindir)/7za x -o'$(tmpdir)' $(DISTRIBUTION)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
