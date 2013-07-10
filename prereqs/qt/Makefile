@@ -1,8 +1,12 @@
+# Qt dependencies given in:
+#
+#	http://qt-project.org/wiki/Building_Qt_5_from_Git
+
 FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.1.0-rc1
+VERSION = 5.1.0
 DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 

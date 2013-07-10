@@ -1,0 +1,61 @@
+#version 150
+
+uniform mat4 model_view_matrix;
+uniform mat4 projection_matrix;
+
+in vec3 position;
+in vec3 normal;
+
+#ifdef USE_LIGHTING
+out vec3 N;
+out vec3 v;
+#endif
+
+in vec4 vcolor;
+out vec4 color;
+
+#ifdef USE_TEXTURE_2D
+in vec2 tex_coord_2d;
+out vec2 tex_coord;
+#endif
+
+#ifdef USE_INSTANCING_SS
+in vec4 instanceShiftAndScale;
+#endif
+
+#ifdef USE_INSTANCING_44
+in mat4 instancePlacement;
+#endif
+
+void main(void)
+{
+#ifdef USE_INSTANCING_SS
+  vec4 vi = vec4(instanceShiftAndScale.w * position + instanceShiftAndScale.xyz, 1);
+  vec4 vEye = model_view_matrix * vi;
+#else
+  #ifdef USE_INSTANCING_44
+    vec4 vi = instancePlacement * vec4(position, 1);
+    vec4 vEye = model_view_matrix * vi;
+//    vec4 vEye = model_view_matrix * vec4(position,1);
+  #else
+    vec4 vEye = model_view_matrix * vec4(position,1);
+  #endif
+#endif
+
+#ifdef USE_LIGHTING
+  v = vEye.xyz;
+  #ifdef USE_INSTANCING_44
+    vec4 n4 = instancePlacement * vec4(normal,0);
+    N = normalize((model_view_matrix * n4).xyz);
+  #else
+    N = normalize((model_view_matrix * vec4(normal,0)).xyz);
+  #endif
+#endif
+
+#ifdef USE_TEXTURE_2D
+  tex_coord = tex_coord_2d;
+#endif
+
+  color = vcolor;
+  gl_Position = projection_matrix * vEye;
+}

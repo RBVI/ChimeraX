@@ -1,0 +1,286 @@
+<!--
+--- UCSF Chimera Copyright ---
+Copyright (c) 2008-2011 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+--- UCSF Chimera Copyright ---
+-->
+
+<html><head>
+<title>molmap</title>
+</head><body>
+<font size="-1">
+<a href="../framecommand.html" target="_top">Chimera Commands Index</a>
+</font>
+
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>molmap</b> 
+ <a href="frameatom_spec.html" target="_top"><i>atom-spec</i></a> 
+ <i>resolution</i> <a href="#options"><i>options</i></a></h3>
+<p>
+The command <b>molmap</b> generates a density map
+from the <a href="frameatom_spec.html" target="_top">specified</a> atoms.
+Each atom is described as a 3D Gaussian distribution of
+width proportional to the <i>resolution</i> and
+amplitude proportional to the atomic number.
+A map of the combined densities is generated and opened as a data set in
+<a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+target="_top"><b>Volume Viewer</b></a>.  
+A map corresponding to a symmetrical multimer of the structure 
+can be generated with the <a href="#symmetry">symmetry</a> option.
+Map display can be adjusted and the map saved to a file using 
+<a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+target="_top"><b>Volume Viewer</b></a>
+or the command <a href="volume.html"><b>volume</b></a>.
+See also:
+<b><A href="measure.html#correlation">measure correlation</A></b>,
+<a href="meshmol.html"><b>meshmol</b></a>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="../../ContributedSoftware/segger/fitsegments.html"><b>Fit 
+to Segments</b></a>
+</p><p>
+The <b>molmap</b> command is based on the <b>pdb2mrc</b> program in the
+<a href="http://blake.bcm.edu/emanwiki/EMAN/" target="_blank">EMAN
+package.</a> 
+</p>
+
+<a name="options">
+<h4>Options</h4></a>
+<p>
+Option keywords for <b>molmap</b>
+can be truncated to unique strings, and their case does not matter.  
+Synonyms for true: True, 1.  Synonyms for false: False, 0.
+A vertical bar "|" designates mutually exclusive options, and
+default settings are indicated with <b>bold</b>.
+</p>
+<blockquote>
+  <b>gridSpacing</b> <i>s</i> 
+  <br>The grid spacing <i>s</i> (default <b><i>resolution</i>/3</b>)
+  is the separation of points along the X, Y, and Z axes of the generated map.
+</blockquote>
+<blockquote>
+  <b>edgePadding</b> <i>p</i> 
+  <br>The edge padding <i>p</i> (default <b>3*<i>resolution</i></b>)
+  sets map dimensions relative to the bounding box of the atom centers.
+  Each face of the volume data box is offset outward by <i>p</i> from the
+  corresponding bounding box face.
+</blockquote>
+<blockquote>
+  <b>cutoffRange</b> <i>r</i> 
+  <br>How many standard deviations &sigma; (default <b>5</b>)
+  of each Gaussian distribution to include in the map.  
+  Omitting the tails speeds up map calculation.
+</blockquote>
+<blockquote>
+  <a name="sigmaFactor"><b>sigmaFactor</b> <i>f</i></a> 
+  <br>Together with the <i>resolution</i>, the sigma factor <i>f</i> determines 
+  the width of the Gaussian distribution used to describe each atom:
+  <blockquote>
+  &sigma; = <i>f</i>(<i>resolution</i>)
+  </blockquote>
+  By default, <i>f</i> = <b>1/(&pi; * 2<sup>&frac12;</sup>) &asymp; 0.225</b> 
+  which makes the Fourier transform (FT) of the distribution 
+  fall to 1/<i>e</i> of its maximum value at wavenumber 1/<i>resolution</i>.  
+  Other plausible choices:
+  <ul>
+  <li> 1/(&pi; * (2/log2)<sup>&frac12;</sup>) &asymp; 0.187 makes the FT 
+  fall to half maximum at wavenumber 1/<i>resolution</i>
+  <li> 1/(2 * 2<sup>&frac12;</sup>) &asymp; 0.356 makes the Gaussian 
+  width at 1/<i>e</i> maximum height equal the <i>resolution</i>
+  <li> 1/(2 * (2log2)<sup>&frac12;</sup>) &asymp; 0.425 makes the Gaussian
+  width at half maximum height equal the <i>resolution</i>
+  </ul> 
+</blockquote>
+<blockquote>
+  <b>displayThreshold</b> <i>m</i> 
+  <br>Set the initial contour level to enclose a fraction <i>m</i>
+  (default <b>0.95</b>) of the total mass in the map.  The fraction 
+  equals the sum of grid point values above the contour level
+  divided by the sum of all grid point values.
+</blockquote>
+<blockquote>
+  <b>modelId</b> <i>N</i> 
+  <br>Open the map as model number N (an integer, optionally preceded by #). 
+  Submodel specifications #N.N (# required) can also be given.
+  If the source atoms belong to a single model, the default is 
+  the same model number as the atoms; if the atoms belong to multiple models,
+  the default is the lowest unused number.
+</blockquote>
+<blockquote>
+  <b>replace</b> <b>true</b>|false
+  <br>Whether to close any map previously created by <b>molmap</b>
+  from the same set of atoms.
+</blockquote>
+<blockquote>
+  <b>showDialog</b> <b>true</b>|false
+  <br>Whether to show the 
+  <a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+  target="_top"><b>Volume Viewer</b></a> dialog after creating the map.
+</blockquote>
+<blockquote>
+  <a name="symmetry"><b>symmetry</b> <i>sym-type</i></a>
+  <br>Create a map corresponding to a symmetrical multimer of the structure.
+  By default, no symmetry is used.
+  Specifications of <i>sym-type</i> are case-independent, and
+  most types have additional sub-options or parameters:
+  <ul>
+  <li><b>biomt</b>
+  - use <a href="sym.html#biomt">biological unit information</a>, if any, 
+  from the molecule model containing the specified atoms
+<!-- 
+if the atoms are from multiple models, the model of the first atom is used
+-->
+  <li>symmetry of model <b>#<i>N</i></b> 
+  - use <a href="sym.html#biomt">biomt information</a> from another molecule 
+  model or the <a href="volume.html#symmetry">symmetry assignment</a> 
+  of a volume model
+    <ul type="none">
+    <li>Example: <b>#4</b>
+    </ul>
+
+  <li><a href="../../ContributedSoftware/cagebuilder/cagebuilder.html">cage 
+  model</a> polygon symmetry
+  <b>#<i>N</i>,p<i>M</i></b> or <b>#<i>N</i>,pn<i>M</i></b> 
+  - place copies at equivalent positions relative to each M-sided polygon 
+  in the <a href="../../ContributedSoftware/cagebuilder/cagebuilder.html">cage 
+  model</a> with ID number <b>N</b>.  The <b>p<i>M</i></b> form places 
+  one copy per M-sided polygon, whereas <b>pn<i>M</i></b> places M copies per
+  M-sided polygon using C<font size=-1><i>M</i></font> symmetry about the center
+  of the M-sided polygon nearest the original copy.
+    <ul type="none">
+    <li>Examples: <b>#2,p6</b> or <b>#2,pn5</b>
+    </ul>
+
+  <li>cyclic symmetry <b>C<i>n</i></b>
+   around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>C3</b>
+    </ul>
+
+  <li>dihedral symmetry <b>D<i>n</i></b>
+   around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>d7</b>
+    </ul>
+
+  <li>tetrahedral symmetry <b>T[,<i>orientation</i>]</b>
+   around <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>t,z3</b>
+    </ul>
+   where <i>orientation</i> can be:
+   <ul>
+   <li><b>222</b> (default)
+   - with two-fold symmetry axes along the X, Y, and Z axes, a three-fold 
+    along axis (1,1,1)
+   <li><b>z3</b> - a three-fold symmetry axis along Z, another three-fold 
+   axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
+   symmetry operation (EMAN convention) 
+   </ul>
+
+  <li>octahedral symmetry <b>O</b> around <a href="#center">center</a> 
+
+  <li>icosahedral symmetry <b>I[,<i>orientation</i>]</b> 
+   around <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>i,n25</b>
+    </ul>
+   where <i>orientation</i> can be:
+    <ul>
+    <li><b>222</b> (default)
+    - with two-fold symmetry axes along the X, Y, and Z axes
+    <li><b>2n5</b> - with two-fold symmetry along X and 5-fold along Z
+    <li><b>n25</b> - with two-fold symmetry along Y and 5-fold along Z
+    <li><b>2n3</b> - with two-fold symmetry along X and 3-fold along Z
+    <li><b>222r</b> - same as 222 except rotated 90&deg; about Z
+    <li><b>2n5r</b> - same as 2n5 except rotated 180&deg; about Y
+    <li><b>n25r</b> - same as n25 except rotated 180&deg; about X
+    <li><b>2n3r</b> - same as 2n3 except rotated 180&deg; about Y
+    </ul>
+
+  <li>helical symmetry 
+  <b>H,<i>rise,angle,n</i>[,<i>offset</i>]</b>
+  around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>h,43.5,21,6,-2</b>
+    </ul>
+  where <i>rise</i> is the translation along the <a href="#axis">axis</a> per
+  subunit, <i>angle</i> is the rotation in degrees per subunit,
+  and <i>n</i> is how many copies total (including the original)
+  the resulting segment of infinite helix should contain.
+  The integer <i>offset</i> (default <b>0</b>) allows extending the helix in
+  both directions.  The example above would give <i>n</i> = 6 copies total,
+  with two copies in the negative axis direction, 
+  one at the identity position, and three in the positive axis direction.
+
+  <li>translational symmetry 
+  <b>shift,<i>n,distance</i></b> along <a href="#axis">axis</a>
+  &ndash; or &ndash; <b>shift,<i>n,x,y,z</i></b> 
+    <ul type="none">
+    <li>Example: <b>shift,3,26.7</b>
+    </ul>
+  where <i>n</i> is how many copies total (including the original)
+  the result should contain.
+  The translation can be expressed as a
+  <i>distance</i> along the <a href="#axis">axis</a>
+  or as a vector <i>x,y,z</i> in the
+  <a href="#coordinateSystem">reference coordinate system</a>.
+
+  <li>the product of symmetry groups, each specified as described above
+  and separated by <b>*</b> to indicate multiplying each symmetry matrix of one
+  group with each symmetry matrix of another; can be generalized to
+  multiple symmetry groups (not just two)
+    <ul type="none">
+    <li>Example: <b>c2*h,42,21,9,-4</b>
+    </ul>
+  </ul>
+</blockquote>
+<blockquote>
+  <a name="axis"><b>axis</b> <i>axis</i></a>
+  <br>
+  Specify axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
+   <ul>
+   <li><b>x</b> - X-axis
+   <li><b>y</b> - Y-axis 
+   <li><b>z</b> - Z-axis
+   <li><i>x,y,z</i>
+   (three values separated by commas only) - an arbitrary vector
+   in the <a href="#coordinateSystem">reference coordinate system</a>
+   <li>an <a href="frameatom_spec.html" target="_top"><i>atom-spec</i></a> of
+   exactly two atoms (not necessarily bonded or in the same model) or one bond.
+   A bond can only be specified by <a href="../selection.html">selecting</a>
+   it and using the word <b>selected</b>, <b>sel</b>, or <b>picked</b>;
+   any atoms also selected at the time will be ignored.
+  </ul>
+</blockquote>
+<blockquote>
+  <a name="center"><b>center</b> <i>center</i></a>
+  <br>
+  Specify center of symmetry (default <b>0,0,0</b>), 
+  where <i>center</i> can be:
+  <ul>
+  <li><i>x,y,z</i>
+   (three values separated by commas only) - an arbitrary point
+  in the <a href="#coordinateSystem">reference coordinate system</a>
+  <li>an <a href="frameatom_spec.html" target="_top"><i>atom-spec</i></a>
+  of any combination of atoms and
+  <a href="atom_spec.html#othermodels">surface pieces</a>.
+  The center of the bounding sphere of the specified items will be used.
+  </ul>
+</blockquote>
+<blockquote>
+  <a name="coordinateSystem"><b>coordinateSystem</b> <i>N</i></a>
+  <br>
+  Specify a reference model 
+  (default is the molecule model containing the specified atoms)
+<!-- 
+if the atoms are from multiple models, the model of the first atom is used
+-->
+  by model number <i>N</i> preceded by #.  
+  The reference coordinate system is used for interpreting specifications of
+  <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
+</blockquote>
+</body></html>

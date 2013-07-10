@@ -180,7 +180,7 @@ SHLIB = lib$(LIBNAME).$(SHLIB_EXT)
 PYMOD = $(PYMOD_NAME).$(PYMOD_EXT)
 PROG = $(PROG_NAME)$(PROG_EXT)
 
-NUMPY_INC += -I"$(shell python3 -c "import numpy; print(numpy.get_include())")"
+NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
 
 .SUFFIXES: .rst .html
 .rst.html:
