@@ -41,6 +41,7 @@ class View(QtOpenGL.QGLWidget):
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
         self.redraw_needed = False
+        self.new_frame_callbacks = []
         self.rendered_callbacks = []
         self.last_draw_duration = 0             # seconds
 
@@ -192,6 +193,9 @@ class View(QtOpenGL.QGLWidget):
 
     def redraw_graphics(self):
 
+        for cb in self.new_frame_callbacks:
+            cb()
+
         draw = self.redraw_needed
         if not draw:
             # TODO: Reset model redraw state when viewer redraw set.
@@ -209,6 +213,11 @@ class View(QtOpenGL.QGLWidget):
             if m.display and m.showing_transparent():
                 return True
         return False
+
+    def add_new_frame_callback(self, cb):
+        self.new_frame_callbacks.append(cb)
+    def remove_new_frame_callback(self, cb):
+        self.new_frame_callbacks.remove(cb)
 
     def add_rendered_frame_callback(self, cb):
         self.rendered_callbacks.append(cb)
