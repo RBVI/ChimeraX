@@ -15,30 +15,28 @@ def fit_search(models, points, point_weights, volume, n,
                ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
                request_stop_cb = None):
 
-    have_bbox, bbox = volume.bbox()
-    xyz_min, xyz_max = ((bbox.llf.data(), bbox.urb.data()) if have_bbox
-                        else volume.xyz_bounds(step = 1))
+    b = volume.bounds()
+    xyz_min, xyz_max = b if not b is None else volume.xyz_bounds(step = 1)
     asym_center_f = (.75,.55,.55)
     asym_center = tuple(x0 + (x1-x0)*f
                         for x0, x1, f in zip(xyz_min, xyz_max, asym_center_f)) 
 
-    import Matrix as M
+    from .. import matrix as M
     center = points.mean(axis=0)
     ctf = M.translation_matrix([-x for x in center])
     ijk_to_xyz_tf = volume.matrix_indices_to_xyz_transform(step = 1)
     xyz_to_ijk_tf = M.invert_matrix(ijk_to_xyz_tf)
     data_array = volume.matrix(step = 1)
-    vtfinv = M.xform_matrix(volume.openState.xform.inverse())
-    mtv_list = [M.multiply_matrices(vtfinv, M.xform_matrix(m.openState.xform))
-                for m in models]
+    vtfinv = M.invert_matrix(volume.place)
+    mtv_list = [M.multiply_matrices(vtfinv, m.place) for m in models]
 
     flist = []
     outside = 0
     from math import pi
-    from CrystalContacts import bins
+    from .. import bins
     b = bins.Binned_Transforms(angle_tolerance*pi/180, shift_tolerance, center)
     fo = {}
-    from fitmap import locate_maximum
+    from .fitmap import locate_maximum
     for i in range(n):
         if request_stop_cb and request_stop_cb('Fit %d of %d' % (i+1,n)):
             break
@@ -85,7 +83,8 @@ def fit_search(models, points, point_weights, volume, n,
     outside = sum([f.stats['hits'] for f in flist if not f in fset])
     
     # Sort fits by correlation, then average map value.
-    fflist.sort(order_fits)
+    fflist.sort(key = fit_order)
+    fflist.reverse()    # Best first
 
     return fflist, outside
 
@@ -93,11 +92,10 @@ def fit_search(models, points, point_weights, volume, n,
 #
 def in_contour(tf, points, volume, stats):
 
-    import Matrix as M
-    xf = M.chimera_xform(tf)
-    xf.premultiply(volume.openState.xform)
-    import fitmap as FM
-    poc, clevel = FM.points_outside_contour(points, xf, volume)
+    from .. import matrix as M
+    vtf = M.multiply_matrices(volume.place, tf)
+    from . import fitmap as FM
+    poc, clevel = FM.points_outside_contour(points, vtf, volume)
     stats['atoms outside contour'] = poc
     stats['contour level'] = clevel
     pic = float(len(points) - poc) / len(points)
@@ -148,25 +146,24 @@ class Fit:
         if frames > 0:
             move_models(self.models, self.transforms, self.volume, frames)
         else:
-            for m, xf in self.model_xforms():
-                m.openState.xform = xf
+            for m, tf in self.model_transforms():
+                m.set_place(tf)
 
     # -------------------------------------------------------------------------
     #
-    def model_xforms(self):
+    def model_transforms(self):
 
-        mxf_list = []
+        mtf_list = []
         v = self.volume
         if v.__destroyed__:
-            return mxf_list
+            return mtf_list
         for m, tf in zip(self.models, self.transforms):
             if m is None or m.__destroyed__:
                 continue
-            xf = v.openState.xform
-            import Matrix
-            xf.multiply(Matrix.chimera_xform(tf))
-            mxf_list.append((m, xf))
-        return mxf_list
+            from .. import matrix as M
+            vtf = M.multiply_matrices(v.place, tf)
+            mtf_list.append((m, vtf))
+        return mtf_list
 
     # -------------------------------------------------------------------------
     #
@@ -240,7 +237,7 @@ class Fit:
     #
     def fit_message(self):
 
-        import fitmap as FM
+        from . import fitmap as FM
         v = self.volume
         mmap = self.fit_map()
         if mmap:
@@ -248,8 +245,7 @@ class Fit:
                        FM.transformation_matrix_message(mmap, v))
         else:
             mols = self.fit_molecules()
-            atoms = sum([m.atoms for m in mols], [])
-            message = FM.atom_fit_message(atoms, v, self.stats)
+            message = FM.atom_fit_message(mols, v, self.stats)
             message += '\n'.join([FM.transformation_matrix_message(m,v)
                                   for m in mols])
 
@@ -259,7 +255,7 @@ class Fit:
     #
     def fit_map(self):
 
-        from VolumeViewer import Volume
+        from ..VolumeViewer import Volume
         vols = [m for m in self.models if isinstance(m, Volume)]
         mmap = vols[0] if vols else None
         return mmap
@@ -268,16 +264,15 @@ class Fit:
     #
     def fit_molecules(self):
 
-        from chimera import Molecule
+        from ..molecule import Molecule
         mols = [m for m in self.models if isinstance(m, Molecule)]
         return mols
     
 # -----------------------------------------------------------------------------
 #
-def order_fits(fa, fb):
+def fit_order(f):
 
-    return cmp((fb.correlation(), fb.average_map_value()),
-               (fa.correlation(), fa.average_map_value()))
+    return (f.correlation(), f.average_map_value())
 
 # -----------------------------------------------------------------------------
 #
@@ -288,52 +283,50 @@ def move_models(models, transforms, base_model, frames):
     add = (len(move_table) == 0)
     if base_model.__destroyed__:
         return
-    bos = base_model.openState
-    from Matrix import chimera_xform
     for m, tf in zip(models, transforms):
         if m and not m.__destroyed__:
-            os = m.openState
-            rxf = chimera_xform(tf)
-            move_table[os] = [rxf, bos, frames]
+            move_table[m] = [tf, base_model, frames]
     if move_table and add:
-        mth = [move_table]
-        from chimera import triggers
-        mth.append(triggers.addHandler('new frame', move_step, mth))
+        cb = []
+        def mstep(mt = move_table, cb = cb):
+            move_step(mt, cb)
+        cb.append(mstep)
+        from ..gui import main_window
+        main_window.view.add_new_frame_callback(mstep)
 
 # -----------------------------------------------------------------------------
 #
-def move_step(tname, mth, tdata):
+def move_step(move_table, cb):
 
-    mt, h = mth
-    for os, (rxf, bos, frames) in mt.items():
-        if os.__destroyed__ or bos.__destroyed__:
-            del mt[os]
+    mt = move_table
+    from .. import matrix as M
+    for m, (rxf, base_model, frames) in tuple(mt.items()):
+        if m.__destroyed__ or base_model.__destroyed__:
+            del mt[m]
             continue
-        xf = bos.xform
-        xf.multiply(rxf)
-        have_box, box = os.bbox()
-        if have_box:
-            c = box.center()
-            import Matrix
-            os.xform = Matrix.interpolate_xforms(os.xform, c, xf, 1.0/frames)
+        tf = M.multiply_matrices(base_model.place, rxf)
+        b = m.bounds()
+        if b:
+            c = M.linear_combination(.5, b[0], .5, b[1])
+            m.set_place(M.interpolate_transforms(m.place, c, tf, 1.0/frames))
             if frames <= 1:
-                del mt[os]
+                del mt[m]
             else:
-                mt[os][2] = frames-1
+                mt[m][2] = frames-1
         else:
-            os.xform = xf
-            del mt[os]
+            m.set_place(tf)
+            del mt[m]
 
     if len(mt) == 0:
-        from chimera import triggers
-        triggers.deleteHandler('new frame', h)
+        from ..gui import main_window
+        main_window.view.remove_new_frame_callback(cb[0])
 
 # -----------------------------------------------------------------------------
 #
 def random_translation_step(center, radius):
 
     v = random_direction()
-    import Matrix as M
+    from .. import matrix as M
     from random import random
     r = radius * random()
     tf = M.translation_matrix(M.linear_combination(1, center, r, v))
@@ -345,8 +338,8 @@ def random_translation(xyz_min, xyz_max):
 
     from random import random
     shift = [x0+random()*(x1-x0) for x0,x1 in zip(xyz_min, xyz_max)]
-    import Matrix
-    tf = Matrix.translation_matrix(shift)
+    from .. import matrix as M
+    tf = M.translation_matrix(shift)
     return tf
 
 # -----------------------------------------------------------------------------
@@ -354,8 +347,8 @@ def random_translation(xyz_min, xyz_max):
 def random_rotation():
 
     y, z = random_direction(), random_direction()
-    import Matrix
-    f = Matrix.orthonormal_frame(z, y)
+    from .. import matrix as M
+    f = M.orthonormal_frame(z, y)
     return ((f[0][0], f[1][0], f[2][0], 0),
             (f[0][1], f[1][1], f[2][1], 0),
             (f[0][2], f[1][2], f[2][2], 0))
@@ -365,7 +358,7 @@ def random_rotation():
 def random_direction():
 
     z = (1,1,1)
-    from Matrix import norm, normalize_vector
+    from ..matrix import norm, normalize_vector
     from random import random
     while norm(z) > 1:
         z = (1-2*random(), 1-2*random(), 1-2*random())
@@ -375,11 +368,9 @@ def random_direction():
 #
 def any_close_tf(tf, tflist, angle_tolerance, shift_tolerance, shift_point):
 
-    import Matrix
-    xf = Matrix.chimera_xform(tf)
+    from .. import matrix as M
     for i, t in enumerate(tflist):
-        if Matrix.same_xform(Matrix.chimera_xform(t), xf,
-                             angle_tolerance, shift_tolerance, shift_point):
+        if M.same_transform(t, tf, angle_tolerance, shift_tolerance, shift_point):
             return i
     return None
 
@@ -396,30 +387,3 @@ def unique_symmetry_position(tf, center, ref_point, sym_list):
     if M.is_identity_matrix(sym_list[i]):
         return tf
     return M.multiply_matrices(sym_list[i],tf)
-
-# -----------------------------------------------------------------------------
-#
-def test():
-
-    import VolumeViewer as v
-    vol = v.active_volume()
-    from chimera import selection as s
-    atoms = s.currentAtoms()
-    n = 500
-    from time import clock
-    t0 = clock()
-    flist, outside = fit_search(atoms, vol, n)
-    t1 = clock()
-    print('found %d fits with %d searches, %d outside, in %.2f seconds' % (len(flist), n, outside, t1-t0))
-    import Matrix
-    xflist = [Matrix.chimera_xform(tf) for s,tf,c in flist if s > 1]
-    mset = set([a.molecule for a in atoms])
-    import Molecule
-    from chimera import openModels
-    for xf in xflist:
-        for m in mset:
-            mc = Molecule.copy_molecule(m)
-            openModels.add([mc])
-            mc.openState.xform = m.openState.xform
-            mc.openState.globalXform(xf)
-    print('top average map values and frequency', [(s,c) for s,tf,c in flist[:10]])
