@@ -10,6 +10,7 @@ class Surface:
     self.plist = []
     self.selected = False
     self.redraw_needed = False
+    self.__destroyed__ = False
 
   def surface_pieces(self):
     return self.plist
