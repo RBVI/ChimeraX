@@ -25,6 +25,8 @@ const char pick_fragment_shader[] =
 void
 create_program(Id program_id, const char *vertex_shader, const char *fragment_shader, const char *pick_vertex_shader)
 {
+	if (!initialized)
+		init();
 	// TODO: if ever have a separate shader type, then overload with shaders
 	if (program_id <= 0)
 		throw std::runtime_error("need positive program id");

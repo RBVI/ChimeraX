@@ -468,20 +468,3 @@
  	{ NULL, NULL, 0, NULL }
  };
  
-@@ -923,6 +1021,16 @@
- PyMODINIT_FUNC
- PyInit__llgr()
- {
-+	GLenum err = glewInit();
-+	if (err != GLEW_OK) {
-+		PyErr_WarnEx(PyExc_RuntimeWarning,
-+			"unable to initialize glew library:", 1);
-+		PyErr_WarnEx(PyExc_RuntimeWarning,
-+			reinterpret_cast<const char *>(glewGetErrorString(err)), 1);
-+	}
-+
-+	import_array();		// required for numpy
-+
- 	if (!PyInit_libwrappy3())
- 		return NULL;
- 	PyObject* module = PyModule_Create(&moduledef);
