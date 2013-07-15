@@ -20,8 +20,8 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 
 	def __init__(self, parent=None, share=None, flags=0):
 		self._samples = 4	# 0 turns off multisampling
-		format = QtOpenGL.QGLFormat()
-		format.setSampleBuffers(True)
+		# TODO: format = QtOpenGL.QGLFormat()
+		# TODO: format.setSampleBuffers(True)
 		# TODO: add format to below
 		super().__init__(parent, share, flags)
 		self.vsphere_id = 1
@@ -46,10 +46,10 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 			return
 		from chimera2 import scene
 		# assume 18 inches from screen
-		dist_mm = 18 * 25.4
-		height_mm = self.height() / app.DPmm
+		dist_in = 18
+		height_in = self.height() / app.physicalDotsPerInch()
 		import math
-		vertical_fov = 2 * math.atan2(height_mm, dist_mm)
+		vertical_fov = 2 * math.atan2(height_in, dist_in)
 		scene.render(self.viewport, vertical_fov, self.globalXform)
 
 	def vsphere_press(self, x, y):
@@ -171,22 +171,23 @@ class ConsoleApplication(QtCore.QCoreApplication, BaseApplication):
 		QtCore.QCoreApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
-		# assume 100 dpi
-		self.DPmm = 100 / 25.4
-
 		self.window_size = (200, 200)
 
 		from chimera2 import cmds
 		cmds.register('render', self.cmd_render)
 		cmds.register('windowsize', self.cmd_window_size)
 
+	def physicalDotsPerInch(self):
+		# assume 100 dpi
+		return 100
+
 	def cmd_render(self):
 		from chimera2 import scene
 		# assume 18 inches from screen
-		dist_mm = 18 * 25.4
-		height_mm = self.window_size[1] / self.DPmm
+		dist_in = 18
+		height_in = self.window_size[1] / self.physicalDotsPerInch()
 		import math
-		vertical_fov = 2 * math.atan2(height_mm, dist_mm)
+		vertical_fov = 2 * math.atan2(height_in, dist_in)
 		viewport = (0, 0) + self.window_size
 		scene.render(viewport, vertical_fov, math3d.Identity())
 
@@ -201,12 +202,6 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 		QtWidgets.QApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
-		# calculate DPmm -- dots (pixels) per mm
-		desktop = self.desktop()
-		if desktop.widthMM() == 0:
-			return
-		self.DPmm = min(desktop.width() / desktop.widthMM(),
-					desktop.height() / desktop.heightMM())
 		self.view = qtutils.create_form("main.ui", opengl={
 			"graphicsView": ChimeraGraphics
 		    }, connections={
@@ -226,6 +221,7 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 		assert self.statusbar is not None
 		self.graphics = self.find_object("graphicsViewGL")
 		assert self.graphics is not None
+		self.graphics.setFocusPolicy(QtCore.Qt.WheelFocus)
 		self._mouse_mode = None
 		self.view.show()
 		self.cursors = {
@@ -235,6 +231,10 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 			"vsphere_rot": QtCore.Qt.ClosedHandCursor,
 			"translate": QtCore.Qt.SizeAllCursor,
 		}
+
+	def physicalDotsPerInch(self):
+		screen = self.primaryScreen()
+		return screen.physicalDotsPerInch()
 
 	def find_object(self, name):
 		return self.view.findChild(QtCore.QObject, name)
