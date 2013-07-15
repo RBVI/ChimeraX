@@ -85,8 +85,6 @@ def set_output(type):
 	use_opengl = type == 'opengl'
 	if use_opengl:
 		llgr = __import__('_llgr')
-		# default to OpenGL 2 for now
-		llgr.set_attribute_alias("position", "gl_Vertex")
 	else:
 		llgr = __import__('llgr_dump')
 		if type not in llgr.FORMATS:

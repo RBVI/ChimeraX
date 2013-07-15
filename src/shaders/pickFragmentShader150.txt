@@ -1,0 +1,8 @@
+#version 150
+
+in f_pickId;
+
+void main (void)
+{
+  gl_FragColor = f_pickId;
+}

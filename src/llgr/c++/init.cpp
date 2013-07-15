@@ -12,8 +12,13 @@ bool initialized = false;
 void
 init()
 {
+	glewExperimental = true;	// Core profile workaround for glew 1.9
 	GLenum err = glewInit();
 	if (err == GLEW_OK) {
+		err = glGetError();
+		if (err)
+			std::cerr << "glewInit error: " << std::hex << err
+							<< std::dec << '\n';
 		initialized = true;
 		return;
 	}

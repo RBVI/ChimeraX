@@ -452,7 +452,7 @@
 +	return NULL;
 +}
 +
-+static const char _llgrgeterror_doc[] = "glewGetErrorString(glGetError())";
++static const char _llgrgeterror_doc[] = "glGetError()";
 +
  PyMethodDef _llgrMethods[] = {
  	{

@@ -11,11 +11,9 @@ AllPrograms all_programs;
 AllPrograms pick_programs;
 
 const char pick_fragment_shader[] =
-	"#ifdef GL_ES\n"
-	"precision mediump float;\n"
-	"#endif\n"
+	"#version 150\n"
 	"\n"
-	"varying vec4 f_pickId;\n"
+	"in vec4 f_pickId;\n"
 	"\n"
 	"void main (void)\n"
 	"{\n"
