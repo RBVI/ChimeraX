@@ -76,7 +76,7 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
         tf = multiply_matrices(base_model.place, mtf)
         if not same_xform(m.place, tf, angle_tolerance, shift_tolerance):
             changed = True
-        m.place = tf
+        m.set_place(tf)
 
     atoms, xyz = apos
     if not (atoms.coordinates() == xyz).all():
@@ -96,7 +96,7 @@ def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
     position_history.record_position(models, atoms, base_model)
     from .. import matrix
     for m in models:
-        m.place = matrix.multiply_matrices(tf, m.place)
+        m.set_place(matrix.multiply_matrices(tf, m.place))
     atoms.move_atoms(tf)
     position_history.record_position(models, atoms, base_model)
 

@@ -316,12 +316,19 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 			cmd = self._cmd
 		BaseApplication.process_command(self, cmd)
 
+def set_default_context(major_version, minor_version, profile):
+	f = QtOpenGL.QGLFormat()
+	f.setVersion(major_version, minor_version)
+	f.setProfile(profile)
+	QtOpenGL.QGLFormat.setDefaultFormat(f)
+
 def main():
 	# typical Qt application startup
 	global app
 	if '--nogui' in sys.argv:
 		app = ConsoleApplication(sys.argv)
 	else:
+		set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
 		app = GuiApplication(sys.argv)
 	argv = sys.argv
 	argv[0] = app.applicationName().casefold()

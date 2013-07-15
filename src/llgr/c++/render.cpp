@@ -79,10 +79,8 @@ setup_builtin_attribute(const AttributeInfo &ai, const BufferInfo &bi)
 			glVertexPointer(ai.count, cvt_DataType(ai.type),
 				ai.stride,
 				reinterpret_cast<char *>(ai.offset));
-			glEnableClientState(GL_VERTEX_ARRAY);
 			return;
 		}
-		glDisableClientState(GL_VERTEX_ARRAY);
 		if (ai.count == 2) {
 			switch (ai.type) {
 			  case Byte: case UByte: break;
@@ -112,10 +110,8 @@ setup_builtin_attribute(const AttributeInfo &ai, const BufferInfo &bi)
 			glBindBuffer(bi.target, bi.buffer);
 			glNormalPointer(cvt_DataType(ai.type), ai.stride,
 				reinterpret_cast<char *>(ai.offset));
-			glEnableClientState(GL_NORMAL_ARRAY);
 			return;
 		}
-		glDisableClientState(GL_NORMAL_ARRAY);
 		if (ai.count == 3) {
 			switch (ai.type) {
 			  case Byte: case UByte: glNormal3bv(reinterpret_cast<GLbyte *>(bi.data)); break;
@@ -131,10 +127,8 @@ setup_builtin_attribute(const AttributeInfo &ai, const BufferInfo &bi)
 			glBindBuffer(bi.target, bi.buffer);
 			glColorPointer(ai.count, cvt_DataType(ai.type),
 				ai.stride, reinterpret_cast<char *>(ai.offset));
-			glEnableClientState(GL_COLOR_ARRAY);
 			return;
 		}
-		glDisableClientState(GL_COLOR_ARRAY);
 		if (ai.count == 3) {
 			switch (ai.type) {
 			  case Byte: case UByte: glColor3bv(reinterpret_cast<GLbyte *>(bi.data)); break;
@@ -404,9 +398,6 @@ render()
 			glDisableVertexAttribArray(loc);
 			// TODO: might be matrix, so disable more than one
 		}
-		glDisableClientState(GL_VERTEX_ARRAY); 
-		glDisableClientState(GL_NORMAL_ARRAY);
-		glDisableClientState(GL_COLOR_ARRAY);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -545,9 +536,6 @@ static uint32_t colors[8] = { 0x90, 0xf0, 0x9000, 0xf000, 0x900000, 0xf00000, 0x
 			glDisableVertexAttribArray(loc);
 			// TODO: might be matrix, so disable more than one
 		}
-		glDisableClientState(GL_VERTEX_ARRAY); 
-		glDisableClientState(GL_NORMAL_ARRAY);
-		glDisableClientState(GL_COLOR_ARRAY);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

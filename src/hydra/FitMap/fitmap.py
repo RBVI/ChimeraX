@@ -59,7 +59,6 @@ def move_atoms_to_maximum(atoms, volume,
     from . import move
     move.move_models_and_atoms(move_tf, [], atoms, move_whole_molecules, volume)
 
-    from ..matrix import chimera_xform
     poc, clevel = points_outside_contour(points, move_tf, volume)
     stats['atoms outside contour'] = poc
     stats['contour level'] = clevel
@@ -669,9 +668,8 @@ def points_outside_contour(points, tf, volume):
 
 # -----------------------------------------------------------------------------
 #
-def atom_fit_message(atoms, volume, stats):
+def atom_fit_message(molecules, volume, stats):
     
-    molecules = atoms.molecules()
     mnames = ['%s (#%d)' % (m.name, m.id) for m in molecules]
     mnames = ', '.join(mnames)
     plural = 's' if len(molecules) > 1 else ''

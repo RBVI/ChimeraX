@@ -14,6 +14,9 @@ namespace llgr {
 
 extern bool hasGLError(const char *message);
 
+extern bool initialized;
+extern void init();
+
 extern size_t data_size(DataType type);
 
 typedef std::map<Id, ShaderProgram *> AllPrograms;

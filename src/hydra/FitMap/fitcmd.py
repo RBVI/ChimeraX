@@ -182,7 +182,7 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
     mols = atoms.molecules()
     if stats:
         from ..gui import show_info, show_status
-        show_info(F.atom_fit_message(atoms, volume, stats))
+        show_info(F.atom_fit_message(atoms.molecules(), volume, stats))
         if moveWholeMolecules:
             for m in mols:
                 show_info(F.transformation_matrix_message(m, volume))
@@ -285,32 +285,34 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 
     me = fitting_metric(metric)
     if v is None:
-        import Molecule
-        points = Molecule.atom_positions(atoms, volume.openState.xform)
+        points = atoms.coordinates()
+        from .. import matrix as M
+        M.transform_points(points, M.invert_matrix(volume.place))
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)
         import Matrix
         Matrix.xform_points(points, volume.openState.xform.inverse())
-    import search as FS
+    from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
-    mlist = list(set([a.molecule for a in atoms]))
+    mlist = atoms.molecules()
     if v:
         mlist.append(v)
 
-    from chimera import tasks
-    task = tasks.Task("Fit search", modal=True)
+#    from chimera import tasks
+#    task = tasks.Task("Fit search", modal=True)
+    task = None
     def stop_cb(msg, task = task):
         return request_stop_cb(msg, task)
-    flist = []
-    try:
-        flist, outside = FS.fit_search(
+#    flist = []
+#    try:
+    flist, outside = FS.fit_search(
             mlist, points, point_weights, volume, search, rotations, shifts,
             radius, clusterAngle, clusterShift, asymmetricUnit, inside,
             me, shift, rotate, maxSteps, gridStepMin, gridStepMax, stop_cb)
-    finally:
-        task.finished()
+#    finally:
+#        task.finished()
 
     report_fit_search_results(flist, search, outside, inside)
     return flist
@@ -319,19 +321,19 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 #
 def request_stop_cb(message, task):
 
-    from chimera import CancelOperation
-    try:
-        task.updateStatus(message)
-    except CancelOperation:
-        return True
+#    from chimera import CancelOperation
+#    try:
+#        task.updateStatus(message)
+#    except CancelOperation:
+#        return True
     return False
 
 # -----------------------------------------------------------------------------
 #
 def report_fit_search_results(flist, search, outside, inside):
 
-    from chimera.replyobj import info
-    info('Found %d unique fits from %d random placements ' %
+    from ..gui import show_info
+    show_info('Found %d unique fits from %d random placements ' %
          (len(flist), search) +
          'having fraction of points inside contour >= %.3f (%d of %d).\n'
          % (inside, search-outside,  search))
@@ -345,8 +347,8 @@ def report_fit_search_results(flist, search, outside, inside):
     scores = ', '.join(['%.4g (%d)' % (getattr(f,sattr)(),f.hits())
                         for f in flist])
     sname = 'Correlations' if v else 'Average map values'
-    info('%s and times found:\n\t%s\n' % (sname, scores))
-    info('Best fit found:\n%s' % f0.fit_message())
+    show_info('%s and times found:\n\t%s\n' % (sname, scores))
+    show_info('Best fit found:\n%s' % f0.fit_message())
 
 # -----------------------------------------------------------------------------
 #
