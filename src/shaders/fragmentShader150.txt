@@ -20,6 +20,8 @@ in vec3 N;
 in vec3 v;
 in vec4 fcolor;
 
+out vec4 frag_color;
+
 void main (void)
 {
   vec3 N1 = normalize(N);
@@ -61,5 +63,5 @@ void main (void)
 #endif
 
   // final color
-  gl_FragColor = vec4(Ifrag, a);
+  frag_color = vec4(Ifrag, a);
 }

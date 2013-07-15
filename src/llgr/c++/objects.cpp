@@ -20,6 +20,10 @@ init_name_map()
 	name_map_initialized = true;
 }
 
+}
+
+namespace llgr {
+
 const string&
 attribute_alias(const string& name)
 {
@@ -28,10 +32,6 @@ attribute_alias(const string& name)
 		return i->second;
 	return name;
 }
-
-}
-
-namespace llgr {
 
 AllObjects all_objects;
 

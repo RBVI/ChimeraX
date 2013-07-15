@@ -52,6 +52,8 @@ struct MatrixInfo {
 typedef std::map<Id, MatrixInfo> AllMatrices;
 extern AllMatrices all_matrices;
 
+extern const std::string& attribute_alias(const std::string& name);
+
 struct ObjectInfo {
 	Id	program_id;
 	Id	matrix_id;

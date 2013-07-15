@@ -28,7 +28,8 @@ create_program(Id program_id, const char *vertex_shader, const char *fragment_sh
 	// TODO: if ever have a separate shader type, then overload with shaders
 	if (program_id <= 0)
 		throw std::runtime_error("need positive program id");
-	ShaderProgram *sp = new ShaderProgram(vertex_shader, fragment_shader);
+	std::string position = attribute_alias("position");
+	ShaderProgram *sp = new ShaderProgram(vertex_shader, fragment_shader, position);
 	AllPrograms::iterator i = all_programs.find(program_id);
 	if (i == all_programs.end()) {
 		all_programs[program_id] = sp;
@@ -45,7 +46,7 @@ create_program(Id program_id, const char *vertex_shader, const char *fragment_sh
 	}
 	if (pick_vertex_shader == NULL)
 		return;
-	sp = new ShaderProgram(pick_vertex_shader, pick_fragment_shader);
+	sp = new ShaderProgram(pick_vertex_shader, pick_fragment_shader, position);
 	pick_programs[program_id] = sp;
 }
 

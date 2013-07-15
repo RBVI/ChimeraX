@@ -1,9 +1,5 @@
 #version 150
 
-//#define USE_FOG 1
-//#define USE_CLIP_VERTEX 1
-//#define USE_BUILTIN_MATRICES 1
-
 uniform mat4 ProjectionMatrix;
 uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
@@ -26,12 +22,6 @@ void main(void)
 
   gl_Position = ProjectionMatrix * vec4(v, 1.0);
   fcolor = color;
-
-#ifdef USE_FOG
-  gl_FogFragCoord = abs(v.z);
-#endif
-
-#ifdef USE_CLIP_VERTEX
-  gl_ClipVertex = ModelViewMatrix * vec4(vi, position.w);
-#endif
+  //vec4 blue = vec4(0., 0., 1., 0.);
+  //fcolor = blue;
 }

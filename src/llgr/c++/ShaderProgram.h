@@ -36,8 +36,6 @@ public:
 	};
 	// ATTRIBUTE: name
 	const std::string&	name() const;
-	// ATTRIBUTE: size
-	unsigned	size() const;
 	// ATTRIBUTE: type
 	Type		type() const;
 
@@ -102,7 +100,7 @@ ShaderVariable::location() const
 class ShaderProgram
 {
 public:
-	ShaderProgram(const std::string& vertex_shader, const std::string& fragment_shader);
+	ShaderProgram(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& attribute0_name);
 	virtual	~ShaderProgram();
 
 	void	setup() const throw ();
