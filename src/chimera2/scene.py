@@ -366,8 +366,6 @@ def render(viewport, vertical_fov, globalXform):
 	There are two lights and the directions are fixed.
 	"""
 	import llgr
-	import sys, _llgr
-	print('scene error on entry:', hex(_llgr.geterror()), file=sys.stderr)
 	one = array([1, 1, 1, 1], dtype=float32)
 	ambient = array([0.197, 0.197, 0.197, 1], dtype=float32)
 	diffuse0 = array([0.432, 0.432, 0.432, 1], dtype=float32)
