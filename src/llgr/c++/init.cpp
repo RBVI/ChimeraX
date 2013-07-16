@@ -18,7 +18,8 @@ init()
 		err = glGetError();	// eat INVALID_ENUM error
 #ifdef __APPLE__
 		// compiling a shader program fails unless a VAO is bound
-		static GLuint vao = glGenVertexArrays(1);
+		static GLuint vao;
+		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 #endif
 		initialized = true;
