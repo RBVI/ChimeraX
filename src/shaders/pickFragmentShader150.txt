@@ -2,7 +2,9 @@
 
 in f_pickId;
 
+out frag_color;
+
 void main (void)
 {
-  gl_FragColor = f_pickId;
+  frag_color = f_pickId;
 }

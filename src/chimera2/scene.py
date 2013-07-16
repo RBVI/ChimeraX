@@ -140,6 +140,7 @@ bbox = BBox() #: The current bounding box.
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
 _box_indices_id = None	# primitive box indices
+_vao = None
 
 def reset():
 	"""reinitialze scene
@@ -162,6 +163,11 @@ def reset():
 	llgr.create_program(_program_id, vertex_shader, fragment_shader,
 						pick_vertex_shader)
 	bbox = BBox()
+	global _vao
+	if not _vao:
+		from OpenGL import GL
+		_vao = GL.glGenVertexArrays(1)
+		GL.glBindVertexArray(_vao)
 
 def add_sphere(radius, center, color, xform=None):
 	"""add sphere to scene

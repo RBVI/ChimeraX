@@ -15,9 +15,11 @@ const char pick_fragment_shader[] =
 	"\n"
 	"in vec4 f_pickId;\n"
 	"\n"
+	"out vec4 frag_color;\n"
+	"\n"
 	"void main (void)\n"
 	"{\n"
-	"  gl_FragColor = f_pickId;\n"
+	"  frag_color = f_pickId;\n"
 	"}\n";
 
 void
