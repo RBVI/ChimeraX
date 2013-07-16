@@ -15,10 +15,12 @@ init()
 	glewExperimental = true;	// Core profile workaround for glew 1.9
 	GLenum err = glewInit();
 	if (err == GLEW_OK) {
-		err = glGetError();
-		if (err)
-			std::cerr << "glewInit error: " << std::hex << err
-							<< std::dec << '\n';
+		err = glGetError();	// eat INVALID_ENUM error
+#ifdef __APPLE__
+		// compiling a shader program fails unless a VAO is bound
+		static GLuint vao = glGenVertexArrays(1);
+		glBindVertexArray(vao);
+#endif
 		initialized = true;
 		return;
 	}
