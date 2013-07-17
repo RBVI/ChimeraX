@@ -14,6 +14,10 @@ namespace llgr {
 
 extern bool hasGLError(const char *message);
 
+#if __APPLE__ && __MACH__
+extern GLuint program_vao;
+#endif
+
 extern bool initialized;
 extern void init();
 

@@ -7,6 +7,8 @@
 
 namespace llgr {
 
+GLuint program_vao;
+
 bool initialized = false;
 
 void
@@ -15,12 +17,10 @@ init()
 	glewExperimental = true;	// Core profile workaround for glew 1.9
 	GLenum err = glewInit();
 	if (err == GLEW_OK) {
-		err = glGetError();	// eat INVALID_ENUM error
-#ifdef __APPLE__
+		err = glGetError();	// eat INVALID_ENUM error for OpenGL 3
+#if __APPLE__ && __MACH__
 		// compiling a shader program fails unless a VAO is bound
-		static GLuint vao;
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
+		glGenVertexArrays(1, &program_vao);
 #endif
 		initialized = true;
 		return;
