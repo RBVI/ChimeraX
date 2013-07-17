@@ -31,13 +31,7 @@ create_program(Id program_id, const char *vertex_shader, const char *fragment_sh
 	if (program_id <= 0)
 		throw std::runtime_error("need positive program id");
 	std::string position = attribute_alias("position");
-#if __APPLE__ && __MACH__
-	glBindVertexArray(program_vao);
-#endif
 	ShaderProgram *sp = new ShaderProgram(vertex_shader, fragment_shader, position);
-#if __APPLE__ && __MACH__
-	glBindVertexArray(0);
-#endif
 	AllPrograms::iterator i = all_programs.find(program_id);
 	if (i == all_programs.end()) {
 		all_programs[program_id] = sp;
@@ -54,13 +48,7 @@ create_program(Id program_id, const char *vertex_shader, const char *fragment_sh
 	}
 	if (pick_vertex_shader == NULL)
 		return;
-#if __APPLE__ && __MACH__
-	glBindVertexArray(program_vao);
-#endif
 	sp = new ShaderProgram(pick_vertex_shader, pick_fragment_shader, position);
-#if __APPLE__ && __MACH__
-	glBindVertexArray(0);
-#endif
 	pick_programs[program_id] = sp;
 }
 

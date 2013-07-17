@@ -302,6 +302,16 @@ int pick_x, pick_y;
 void
 render()
 {
+	if (!initialized)
+		init();
+#if __APPLE__ && __MACH__
+	static GLuint default_vao;
+	if (!default_vao) {
+		// using glVertexAttribPointer fails unless a VAO is bound
+		glGenVertexArrays(1, &default_vao);
+		glBindVertexArray(default_vao);
+	}
+#endif
 #ifdef PICK_DEBUG
 	(void) pick(pick_x, pick_y);
 	return;
