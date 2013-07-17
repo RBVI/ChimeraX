@@ -2,6 +2,7 @@
 #include "llgr_ui.h"
 #include "limits.h"
 #include <algorithm>
+#include <stdexcept>
 
 #undef PICK_DEBUG
 
@@ -71,85 +72,6 @@ struct Attr_Name
 };
 
 void
-setup_builtin_attribute(const AttributeInfo &ai, const BufferInfo &bi)
-{
-	if (ai.name == "gl_Vertex") {
-		if (bi.buffer != 0) {
-			glBindBuffer(bi.target, bi.buffer);
-			glVertexPointer(ai.count, cvt_DataType(ai.type),
-				ai.stride,
-				reinterpret_cast<char *>(ai.offset));
-			return;
-		}
-		if (ai.count == 2) {
-			switch (ai.type) {
-			  case Byte: case UByte: break;
-			  case Short: case UShort: glVertex2sv(reinterpret_cast<GLshort *>(bi.data)); break;
-			  case Int: case UInt: glVertex2iv(reinterpret_cast<GLint *>(bi.data)); break;
-			  case Float: glVertex2fv(reinterpret_cast<GLfloat *>(bi.data)); break;
-			}
-		} else if (ai.count == 3) {
-			switch (ai.type) {
-			  case Byte: case UByte: break;
-			  case Short: case UShort: glVertex3sv(reinterpret_cast<GLshort *>(bi.data)); break;
-			  case Int: case UInt: glVertex3iv(reinterpret_cast<GLint *>(bi.data)); break;
-			  case Float: glVertex3fv(reinterpret_cast<GLfloat *>(bi.data)); break;
-			}
-		} else if (ai.count == 4) {
-			switch (ai.type) {
-			  case Byte: case UByte: break;
-			  case Short: case UShort: glVertex4sv(reinterpret_cast<GLshort *>(bi.data)); break;
-			  case Int: case UInt: glVertex4iv(reinterpret_cast<GLint *>(bi.data)); break;
-			  case Float: glVertex4fv(reinterpret_cast<GLfloat *>(bi.data)); break;
-			}
-		}
-		return;
-	}
-	if (ai.name == "gl_Normal") {
-		if (bi.buffer != 0) {
-			glBindBuffer(bi.target, bi.buffer);
-			glNormalPointer(cvt_DataType(ai.type), ai.stride,
-				reinterpret_cast<char *>(ai.offset));
-			return;
-		}
-		if (ai.count == 3) {
-			switch (ai.type) {
-			  case Byte: case UByte: glNormal3bv(reinterpret_cast<GLbyte *>(bi.data)); break;
-			  case Short: case UShort: glNormal3sv(reinterpret_cast<GLshort *>(bi.data)); break;
-			  case Int: case UInt: glNormal3iv(reinterpret_cast<GLint *>(bi.data)); break;
-			  case Float: glNormal3fv(reinterpret_cast<GLfloat *>(bi.data)); break;
-			}
-		}
-		return;
-	}
-	if (ai.name == "gl_Color") {
-		if (bi.buffer != 0) {
-			glBindBuffer(bi.target, bi.buffer);
-			glColorPointer(ai.count, cvt_DataType(ai.type),
-				ai.stride, reinterpret_cast<char *>(ai.offset));
-			return;
-		}
-		if (ai.count == 3) {
-			switch (ai.type) {
-			  case Byte: case UByte: glColor3bv(reinterpret_cast<GLbyte *>(bi.data)); break;
-			  case Short: case UShort: glColor3sv(reinterpret_cast<GLshort *>(bi.data)); break;
-			  case Int: case UInt: glColor3iv(reinterpret_cast<GLint *>(bi.data)); break;
-			  case Float: glColor3fv(reinterpret_cast<GLfloat *>(bi.data)); break;
-			}
-		} else if (ai.count == 4) {
-			switch (ai.type) {
-			  case Byte: case UByte: glColor4bv(reinterpret_cast<GLbyte *>(bi.data)); break;
-			  case Short: case UShort: glColor4sv(reinterpret_cast<GLshort *>(bi.data)); break;
-			  case Int: case UInt: glColor4iv(reinterpret_cast<GLint *>(bi.data)); break;
-			  case Float: glColor4fv(reinterpret_cast<GLfloat *>(bi.data)); break;
-			}
-		}
-		return;
-	}
-	std::cerr << "ignore attribute: " << ai.name << '\n';
-}
-
-void
 setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 {
 	// TODO: use map in ShaderProgram for variables and sp member function
@@ -168,7 +90,7 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 	const BufferInfo &bi = bii->second;
 
 	if (loc == -1) {
-		setup_builtin_attribute(ai, bi);
+		throw std::runtime_error("builtin attributes are not supported");
 		return;
 	}
 
@@ -201,11 +123,13 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 
 	if (bi.buffer != 0) {
 		glBindBuffer(bi.target, bi.buffer);
-		// TODO: handle total > 4 -- arrays of matrices
 		glVertexAttribPointer(loc, ai.count,
 			cvt_DataType(ai.type), ai.normalized, ai.stride,
 			reinterpret_cast<char *>(ai.offset));
-		glEnableVertexAttribArray(loc);
+		// handle total > 4 -- arrays of matrices
+		unsigned num_arrays = total / count;
+		for (unsigned i = 0; i != num_arrays; ++i)
+			glEnableVertexAttribArray(loc + i);
 		return;
 	}
 

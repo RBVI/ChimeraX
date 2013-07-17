@@ -3,8 +3,6 @@
 #include <string>
 #include <sstream>
 
-#define COMPAT_GL2
-
 namespace llgr {
 
 AllPrograms all_programs;
@@ -124,7 +122,11 @@ set_uniform(Id program_id, const char *name, ShaderType type, uint32_t data_leng
 		return;
 	}
 	bool builtin = strncmp(name, "gl_", 3) == 0;
-	if (!builtin != 0 && program_id == 0) {
+	if (builtin) {
+		std::cerr << "warning: ignored uniform " << name << '\n';
+		return;
+	}
+	if (program_id == 0) {
 		// broadcast to all current programs
 		for (AllPrograms::iterator i = all_programs.begin(),
 					e = all_programs.end(); i != e; ++i) {
@@ -142,96 +144,14 @@ set_uniform(Id program_id, const char *name, ShaderType type, uint32_t data_leng
 		}
 		return;
 	}
-	if (!builtin) {
-		ShaderProgram *sp = program_id ? all_programs[program_id] : NULL;
-		ShaderVariable *sv = sp ? sp->uniform(name) : NULL;
-		if (sv)
-			set_uniform(sv, type, data_length, data);
-		sp = program_id ? pick_programs[program_id] : NULL;
-		sv = sp ? sp->uniform(name) : NULL;
-		if (sv)
-			set_uniform(sv, type, data_length, data);
-		return;
-	}
-#ifdef COMPAT
-	std::string n(name);
-	assert(program_id == 0);
-	if (n == "gl_Fog.color") {
-		if (type == FVec4)
-			glFogfv(GL_FOG_COLOR, static_cast<const GLfloat *>(data));
-		else
-			throw std::runtime_error("need FVec4 data");
-		return;
-	}
-	// gl_Fog.scale is implicitly computed from gl_Fog.start and .end
-	if (n == "gl_Fog.start") {
-		if (type == FVec1)
-			glFogfv(GL_FOG_START, static_cast<const GLfloat *>(data));
-			throw std::runtime_error("need FVec1 data");
-		return;
-	}
-	if (n == "gl_Fog.end") {
-		if (type == FVec1)
-			glFogfv(GL_FOG_END, static_cast<const GLfloat *>(data));
-		else
-			throw std::runtime_error("need FVec1 data");
-		return;
-	}
-	if (n == "gl_LightModel.ambient") {
-		if (type == FVec1)
-			glLightModelfv(GL_LIGHT_MODEL_AMBIENT,
-					static_cast<const GLfloat *>(data));
-		else
-			throw std::runtime_error("need FVec1 data");
-		return;
-	}
-	static const size_t FM_LEN = sizeof "gl_FrontMaterial." - 1;
-	if (n.substr(0, FM_LEN) == "gl_FrontMaterial.") {
-		if (n.substr(FM_LEN + 2) == "specular") {
-			if (type == FVec4)
-				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR,
-					static_cast<const GLfloat *>(data));
-			else
-				throw std::runtime_error("need FVec4 data");
-		} else if (n.substr(FM_LEN + 2) == "shininess") {
-			if (type == FVec1)
-				glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS,
-					static_cast<const GLfloat *>(data));
-			else
-				throw std::runtime_error("need FVec1 data");
-		} else
-			throw std::runtime_error("unsupported");
-	}
-	// gl_FrontMaterial.shininess 1 float loc:-1
-	// gl_FrontLightProduct[0].specular 1 float_vec4 loc:-1
-	// gl_FrontLightProduct[1].specular 1 float_vec4 loc:-1
-	// gl_LightSource[0].diffuse 1 float_vec4 loc:-1
-	// gl_LightSource[0].position 1 float_vec4 loc:-1
-	// gl_LightSource[1].diffuse 1 float_vec4 loc:-1
-	// gl_LightSource[1].position 1 float_vec4 loc:-1
-	// gl_LightSource[2].diffuse 1 float_vec4 loc:-1
-	// gl_LightSource[2].position 1 float_vec4 loc:-1
-	static const size_t LS_LEN = sizeof "gl_LightSource[" - 1;
-	if (n.substr(0, LS_LEN) == "gl_LightSource[") {
-		GLenum light = GL_LIGHT0 + (n[LS_LEN] - '0');
-		GLenum pname;
-		if (n.substr(LS_LEN + 2) == "].diffuse")
-			pname = GL_DIFFUSE;
-		else if (n.substr(LS_LEN + 2) == "].specular")
-			pname = GL_SPECULAR;
-		else if (n.substr(LS_LEN + 2) == "].position")
-			pname = GL_POSITION;
-		else
-			throw std::runtime_error("not supported");
-		if (type == FVec4)
-			glLightfv(light, pname,
-					static_cast<const GLfloat *>(data));
-		else
-			throw std::runtime_error("need FVec4 data");
-		return;
-	}
-#endif
-	std::cerr << "warning: ignored uniform " << name << '\n';
+	ShaderProgram *sp = program_id ? all_programs[program_id] : NULL;
+	ShaderVariable *sv = sp ? sp->uniform(name) : NULL;
+	if (sv)
+		set_uniform(sv, type, data_length, data);
+	sp = program_id ? pick_programs[program_id] : NULL;
+	sv = sp ? sp->uniform(name) : NULL;
+	if (sv)
+		set_uniform(sv, type, data_length, data);
 }
 
 void
