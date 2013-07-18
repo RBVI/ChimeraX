@@ -2,7 +2,6 @@
 #include "llgr_ui.h"
 #include "limits.h"
 #include <algorithm>
-#include <stdexcept>
 
 #undef PICK_DEBUG
 
@@ -60,6 +59,64 @@ data_size(DataType type)
 	return 0;
 }
 
+void
+attr_index_info(const ShaderVariable *sv, unsigned *total, unsigned *number)
+{
+	// return the total number of attribute indices used for the shader
+	// variable (think matrices), and the number of elements in each
+	// index.
+	typedef ShaderVariable SV;
+	switch (sv->type()) {
+	  case SV::Float: case SV::Int: case SV::UInt: case SV::Bool:
+		*total = *number = 1;
+		return;
+	  case SV::Vec2: case SV::IVec2: case SV::UVec2: case SV::BVec2:
+		*total = 1; *number = 2;
+		return;
+	  case SV::Vec3: case SV::IVec3: case SV::UVec3: case SV::BVec3:
+		*total = 1; *number = 3;
+		return;
+	  case SV::Vec4: case SV::IVec4: case SV::UVec4: case SV::BVec4:
+		*total = 1; *number = 4;
+		return;
+	  case SV::Mat2x2:
+		*total = 2; *number = 2;
+		return;
+	  case SV::Mat2x3:
+		*total = 2; *number = 3;
+		return;
+	  case SV::Mat2x4:
+		*total = 2; *number = 4;
+		return;
+	  case SV::Mat3x3:
+		*total = 3; *number = 3;
+		return;
+	  case SV::Mat3x2:
+		*total = 3; *number = 2;
+		return;
+	  case SV::Mat3x4:
+		*total = 3; *number = 4;
+		return;
+	  case SV::Mat4x4:
+		*total = 4; *number = 4;
+		return;
+	  case SV::Mat4x2:
+		*total = 4; *number = 2;
+		return;
+	  case SV::Mat4x3:
+		*total = 4; *number = 3;
+		return;
+#ifdef HAVE_TEXTURE
+		// TODO
+		Sampler1D, Sampler2D, Sampler3D, SamplerCube, 
+		Sampler1DShadow, Sampler2DShadow,
+#endif
+	  default:
+		*total = *number = 0;
+		return;
+	}
+}
+
 struct Attr_Name
 {
 	bool operator ()(const ShaderVariable *sv)
@@ -96,39 +153,14 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 
 	unsigned total;
 	unsigned count;
-	typedef ShaderVariable SV;
-	switch (sv->type()) {
-	  case SV::Float: case SV::Int: case SV::UInt: case SV::Bool:
-		total = count = 1; break;
-	  case SV::Vec2: case SV::IVec2: case SV::UVec2: case SV::BVec2:
-		total = count = 2; break;
-	  case SV::Vec3: case SV::IVec3: case SV::UVec3: case SV::BVec3:
-		total = count = 3; break;
-	  case SV::Vec4: case SV::IVec4: case SV::UVec4: case SV::BVec4:
-		total = count = 4; break;
-	  case SV::Mat2x2: case SV::Mat2x3: case SV::Mat2x4:
-		total = 4; count = 2; break;
-	  case SV::Mat3x3: case SV::Mat3x2: case SV::Mat3x4:
-		total = 9; count = 3; break;
-	  case SV::Mat4x4: case SV::Mat4x2: case SV::Mat4x3:
-		total = 16; count = 4; break;
-#ifdef HAVE_TEXTURE
-		// TODO
-		Sampler1D, Sampler2D, Sampler3D, SamplerCube, 
-		Sampler1DShadow, Sampler2DShadow,
-#endif
-	  default:
-		total = count = 1; break;
-	}
+	attr_index_info(sv, &total, &count);
 
 	if (bi.buffer != 0) {
 		glBindBuffer(bi.target, bi.buffer);
 		glVertexAttribPointer(loc, ai.count,
 			cvt_DataType(ai.type), ai.normalized, ai.stride,
 			reinterpret_cast<char *>(ai.offset));
-		// handle total > 4 -- arrays of matrices
-		unsigned num_arrays = total / count;
-		for (unsigned i = 0; i != num_arrays; ++i)
+		for (unsigned i = 0; i != total; ++i)
 			glEnableVertexAttribArray(loc + i);
 		return;
 	}
@@ -142,7 +174,8 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 	}
 
 	unsigned char *data = bi.data;
-	while (total > 0) {
+	size_t size = count * data_size(ai.type);
+	for (unsigned i = 0; i < total; ++i) {
 		glDisableVertexAttribArray(loc);
 		switch (count) {
 		  case 1:
@@ -211,10 +244,7 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 			}
 			break;
 		}
-		if (total <= count)
-			break;
-		data += count * data_size(ai.type);
-		total -= count;
+		data += size;
 		loc += 1;
 	}
 }

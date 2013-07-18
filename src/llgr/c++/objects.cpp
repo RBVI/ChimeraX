@@ -48,10 +48,10 @@ set_attribute_alias(const string& name, const string& value)
 }
 
 void
-check_attributes(Id obj_id, Id program_id, const AttributeInfos &ais)
+check_attributes(Id obj_id, ObjectInfo *oi)
 {
 	// check for missing attributes
-	AllPrograms::iterator si = all_programs.find(program_id);
+	AllPrograms::iterator si = all_programs.find(oi->program_id);
 	if (si == all_programs.end()) {
 		std::cerr << "missing program for object " << obj_id << '\n';
 	} else {
@@ -62,8 +62,8 @@ check_attributes(Id obj_id, Id program_id, const AttributeInfos &ais)
 			ShaderVariable *sv = *j;
 			if (sv->name() == "instanceTransform")
 				continue;
-			AttributeInfos::const_iterator aii = std::find_if(ais.begin(), ais.end(), AI_Name(sv->name()));
-			if (aii == ais.end()) {
+			AttributeInfos::const_iterator aii = std::find_if(oi->ais.begin(), oi->ais.end(), AI_Name(sv->name()));
+			if (aii == oi->ais.end()) {
 				std::cerr << "missing attribute " << sv->name() << " in object " << obj_id << '\n';
 			}
 		}
@@ -75,17 +75,24 @@ create_object(Id obj_id, Id program_id, Id matrix_id, const AttributeInfos& ais,
 {
 	if (!name_map_initialized)
 		init_name_map();
-	// TODO: if (ib != 0) then t in (UByte, UShort, UInt)
+	
+	if (ib && t != UByte && t != UShort && t != UInt)
+		throw std::logic_error("DataType must be an unsigned type");
 
-	delete_object(obj_id);
 	ObjectInfo *oi = new ObjectInfo(program_id, matrix_id, ais, pt, first, count, ib, t);
+	delete_object(obj_id);
 	all_objects[obj_id] = oi;
 	dirty = true;
 	for (AttributeInfos::iterator aii = oi->ais.begin();
 						aii != oi->ais.end(); ++aii) {
 		aii->name = attribute_alias(aii->name);
 	}
-	check_attributes(obj_id, program_id, oi->ais);
+	check_attributes(obj_id, oi);
+#if 0
+	AttributeInfos::const_iterator aii = std::find_if(oi->ais.begin(), oi->ais.end(), AI_Name("instanceTransform"));
+	if (aii == oi->ais.end()) {
+	}
+#endif
 }
 
 void

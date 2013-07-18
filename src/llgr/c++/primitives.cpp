@@ -3,7 +3,6 @@
 #include <string>
 #include <map>
 #include <math.h>
-#include <stdexcept>
 
 #ifndef M_PI
 #define	 M_PI	3.14159265358979323846

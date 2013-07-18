@@ -1,5 +1,4 @@
 #include "llgr_int.h"
-#include <stdexcept>
 #include <string>
 #include <sstream>
 

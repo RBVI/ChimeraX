@@ -1,5 +1,4 @@
 #include "llgr_int.h"
-#include <stdexcept>
 #include <string>
 #include <sstream>
 
@@ -30,20 +29,8 @@ create_program(Id program_id, const char *vertex_shader, const char *fragment_sh
 		throw std::runtime_error("need positive program id");
 	std::string position = attribute_alias("position");
 	ShaderProgram *sp = new ShaderProgram(vertex_shader, fragment_shader, position);
-	AllPrograms::iterator i = all_programs.find(program_id);
-	if (i == all_programs.end()) {
-		all_programs[program_id] = sp;
-	} else {
-		ShaderProgram *old_sp = i->second;
-		i->second = sp;
-		delete old_sp;
-		i = pick_programs.find(program_id);
-		if (i != pick_programs.end()) {
-			old_sp = i->second;
-			pick_programs.erase(i);
-			delete old_sp;
-		}
-	}
+	delete_program(program_id);
+	all_programs[program_id] = sp;
 	if (pick_vertex_shader == NULL)
 		return;
 	sp = new ShaderProgram(pick_vertex_shader, pick_fragment_shader, position);
@@ -59,6 +46,12 @@ delete_program(Id program_id)
 	ShaderProgram *sp = i->second;
 	all_programs.erase(i);
 	delete sp;
+	for (AllObjects::iterator i = all_objects.begin(),
+					e = all_objects.end(); i != e; ++i) {
+		ObjectInfo *oi = i->second;
+		if (oi->program_id == program_id)
+			oi->invalidate_cache();
+	}
 	i = pick_programs.find(program_id);
 	if (i == pick_programs.end())
 		return;
