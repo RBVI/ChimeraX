@@ -16,7 +16,7 @@ class Fit_List:
         self.dock_widget = dw = QtWidgets.QDockWidget('Fit List', main_window)
 
         # Place list above row of buttons
-        w = QtWidgets.QWidget()
+        w = QtWidgets.QWidget(dw)
         vb = QtWidgets.QVBoxLayout()
         vb.setContentsMargins(0,0,0,0)          # No border padding
         vb.setSpacing(0)                # Spacing between list and button row
