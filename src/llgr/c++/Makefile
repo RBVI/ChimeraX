@@ -8,14 +8,15 @@ INCS = -I$(includedir)
 endif
 
 ifeq ($(WIN32),msvc)
-CXXFLAGS += -DLLGR_DLL -DLLGR_EXPORT
+DEFS += -DLLGR_DLL -DLLGR_EXPORT
 LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')' glew32.lib opengl32.lib msvcrt.lib
 else
 LIBS = $(OPENGL_LIBS)
 endif
 
 SRCS = ShaderProgram.cpp programs.cpp buffers.cpp matrices.cpp objects.cpp \
-       optimize.cpp render.cpp spiral.cpp primitives.cpp vsphere.cpp
+       optimize.cpp render.cpp spiral.cpp primitives.cpp vsphere.cpp \
+       init.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 LIBNAME = llgr
 

@@ -1,7 +1,6 @@
 #include "llgr_int.h"
 #include "llgr_ui.h"
 #include <math.h>
-#include <stdexcept>
 
 #define FUZZY_ZERO	1e-4
 #define FUZZY_SQZERO	1e-8
