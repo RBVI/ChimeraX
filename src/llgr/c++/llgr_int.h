@@ -12,6 +12,8 @@
 # include <iostream>
 # include <stdexcept>
 
+# define USE_VAO
+
 namespace llgr {
 
 extern bool hasGLError(const char *message);
@@ -56,29 +58,27 @@ extern AllMatrices all_matrices;
 
 extern const std::string& attribute_alias(const std::string& name);
 
-class AttributeCache {
-	// Summarize information about the attributes that an object has.
-	// Specifically, if it has a specific attribute, and if the attribute
-	// is a singleton attribute.  Objects with the same synopsis and the
-	// same non-singleton buffers can be instanced if the singleton values
-	// are combined into a buffer.
+extern void attr_location_info(ShaderVariable::Type type, unsigned *num_locations, unsigned *num_elements);
+extern void setup_array_attribute(const BufferInfo &bi, const AttributeInfo &ai, int loc, unsigned num_locations);
+
+class SingletonInfo {
+	// Summarize information about singleton attributes that an object has.
+	// Objects with the same program_id and the same singleton buffers can
+	// be instanced if the singleton values are combined into a buffer.
 public:
-	static const int MAX_ATTRIBUTE = 31;
-	AttributeCache(): m_present(0), m_singleton(0) {}
-	bool	present(unsigned i) const {
-			return (m_present & (1 << i)) != 0;
-		}
-	void	set_present(unsigned i) { m_present |= (1 << i); }
-	uint32_t all_present() const { return m_present; }
-	bool	singleton(unsigned i) const {
-			return (m_singleton & (1 << i)) != 0;
-		}
-	void	set_singleton(unsigned i) { m_singleton |= (1 << i); }
-	uint32_t all_singleton() const { return m_singleton; }
-private:
-	uint32_t	m_present;
-	uint32_t	m_singleton;
+	SingletonInfo(DataType t, bool norm, unsigned char *buf, int loc, unsigned num_loc, unsigned num_elem):
+		type(t), normalized(norm), data(buf),
+		base_location(loc), num_locations(num_loc),
+		num_elements(num_elem) {}
+	DataType type;
+	bool normalized;
+	unsigned char *data;
+	int base_location;
+	unsigned num_locations;
+	unsigned num_elements;
+
 };
+typedef std::vector<SingletonInfo> SingletonCache;
 
 struct ObjectInfo {
 	Id	program_id;
@@ -91,24 +91,36 @@ struct ObjectInfo {
 	unsigned first, count;
 	Id	index_buffer_id;
 	DataType index_buffer_type;
+#ifdef USE_VAO
 	mutable bool		cache_valid;
-	mutable AttributeCache	attr_cache;
+	mutable SingletonCache	singleton_cache;
 	GLuint	vao;
+#endif
 	ObjectInfo(Id s, Id m, const AttributeInfos &a, PrimitiveType pt, unsigned f, unsigned c):
 			program_id(s), matrix_id(m),
 			hide(false), transparent(false), selected(false),
 			ais(a), ptype(pt), first(f), count(c),
-			index_buffer_id(0), index_buffer_type(Byte),
-			cache_valid(false), vao(0) {}
+			index_buffer_id(0), index_buffer_type(Byte)
+#ifdef USE_VAO
+			, cache_valid(false), vao(0)
+#endif
+			{
+			}
 	ObjectInfo(Id s, Id m, const AttributeInfos &a, PrimitiveType pt, unsigned f, unsigned c, Id ib, DataType t):
 			program_id(s), matrix_id(m),
 			hide(false), transparent(false),
 			ais(a), ptype(pt), first(f), count(c),
-			index_buffer_id(ib), index_buffer_type(t),
-			cache_valid(false), vao(0) {}
+			index_buffer_id(ib), index_buffer_type(t)
+#ifdef USE_VAO
+			, cache_valid(false), vao(0)
+#endif
+			{
+			}
 	ObjectInfo() {}
+#ifdef USE_VAO
 	bool valid_cache() const { return cache_valid; }
 	void invalidate_cache() { cache_valid = false; }
+#endif
 };
 
 typedef std::map<Id, ObjectInfo*> AllObjects;

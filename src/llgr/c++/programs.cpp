@@ -46,12 +46,14 @@ delete_program(Id program_id)
 	ShaderProgram *sp = i->second;
 	all_programs.erase(i);
 	delete sp;
+#ifdef USE_VAO
 	for (AllObjects::iterator i = all_objects.begin(),
 					e = all_objects.end(); i != e; ++i) {
 		ObjectInfo *oi = i->second;
 		if (oi->program_id == program_id)
 			oi->invalidate_cache();
 	}
+#endif
 	i = pick_programs.find(program_id);
 	if (i == pick_programs.end())
 		return;
