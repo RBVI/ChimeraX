@@ -73,9 +73,9 @@ def motion_to_maximum(points, point_weights, volume, max_steps = 2000,
                       metric = 'sum product', symmetries = [],
                       request_stop_cb = None):
 
-    from ..matrix import identity_matrix
+    from ..place import identity
     data_array, xyz_to_ijk_transform = \
-        volume.matrix_and_transform(identity_matrix(), subregion = None, step = 1)
+        volume.matrix_and_transform(identity(), subregion = None, step = 1)
     move_tf, stats = \
              locate_maximum(points, point_weights,
                             data_array, xyz_to_ijk_transform,
@@ -119,20 +119,20 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     else:
         point_wts = point_weights
 
-    from .. import matrix as M
-    move_tf = M.identity_matrix()
+    from ..place import identity
+    move_tf = identity()
 
     if rotation_center is None:
         from numpy import sum, float64
         rotation_center = rc = sum(points, axis=0, dtype=float64) / len(points)
 
-    syminv = [M.invert_matrix(s) for s in symmetries]
+    syminv = [s.inverse() for s in symmetries]
 
     step = 0
     while step < max_steps and ijk_step_size > ijk_step_size_min:
-        xyz_to_ijk_tf = M.multiply_matrices(xyz_to_ijk_transform, move_tf)
+        xyz_to_ijk_tf = xyz_to_ijk_transform * move_tf
         rc = (rotation_center if len(symmetries) == 0
-              else M.apply_matrix(M.invert_matrix(move_tf), rotation_center))
+              else move_tf.inverse() * rotation_center)
         seg_tf = step_to_maximum(points, point_wts,
                                  data_array, xyz_to_ijk_tf,
                                  segment_steps, ijk_step_size,
@@ -146,17 +146,17 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
         else:
             ijk_step_size = min(ijk_step_size*step_grow_factor,
                                 ijk_step_size_max)
-        move_tf = M.multiply_matrices(move_tf, seg_tf)
+        move_tf = move_tf * seg_tf
         if request_stop_cb:
-            shift, angle = M.shift_and_angle(move_tf, rc)
+            shift, angle = move_tf.shift_and_angle(rc)
             if request_stop_cb('%d steps, shift %.3g, rotation %.3g degrees'
                                % (step, shift, angle)):
                 break
 
     # Record statistics of optimization.
-    shift, angle = M.shift_and_angle(move_tf, rc)
-    axis, axis_point, angle, axis_shift = M.axis_center_angle_shift(move_tf)
-    xyz_to_ijk_tf = M.multiply_matrices(xyz_to_ijk_transform, move_tf)
+    shift, angle = move_tf.shift_and_angle(rc)
+    axis, axis_point, angle, axis_shift = move_tf.axis_center_angle_shift()
+    xyz_to_ijk_tf = xyz_to_ijk_transform * move_tf
     stats = {'shift': shift, 'axis': axis, 'axis point': axis_point,
              'angle': angle, 'axis shift': axis_shift, 'steps': step,
              'points': len(points), 'transform': move_tf}
@@ -187,18 +187,18 @@ def step_to_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     if optimize_rotation:
         step_types.append(rotation_step)
         
-    from ..matrix import identity_matrix, multiply_matrices
-    move_tf = identity_matrix()
+    from .. import place
+    move_tf = place.identity()
 
     if step_types:
         for step in range(steps):
             calculate_step = step_types[step % len(step_types)]
-            xyz_to_ijk_tf = multiply_matrices(xyz_to_ijk_transform, move_tf)
+            xyz_to_ijk_tf = xyz_to_ijk_transform * move_tf
             step_tf = calculate_step(points, point_weights,
                                      rotation_center, data_array,
                                      xyz_to_ijk_tf, ijk_step_size, metric,
                                      syminv)
-            move_tf = multiply_matrices(move_tf, step_tf)
+            move_tf = move_tf * step_tf
 
     return move_tf
 
@@ -211,18 +211,16 @@ def translation_step(points, point_weights, center, data_array,
     g = gradient_direction(points, point_weights, data_array,
                            xyz_to_ijk_transform, metric, syminv)
     from numpy import array, float, dot as matrix_multiply
-    tf = array(xyz_to_ijk_transform)
-    gijk = matrix_multiply(tf[:,:3], g)
-    from ..matrix import norm
-    n = norm(gijk)
+    gijk = matrix_multiply(xyz_to_ijk_transform.matrix[:,:3], g)
+    from .. import vector
+    n = vector.norm(gijk)
     if n > 0:
         delta = g * (ijk_step_size / n)
     else:
         delta = array((0,0,0), float)
 
-    delta_tf = ((1,0,0,delta[0]),
-                (0,1,0,delta[1]),
-                (0,0,1,delta[2]))
+    from .. import place
+    delta_tf = place.translation(delta)
 
     return delta_tf
 
@@ -256,8 +254,8 @@ def sum_product_gradient_direction(points, point_weights, data_array,
         from numpy import float64
         g = gradients.sum(axis=0, dtype = float64)
     else:
-        from .. import matrix as M
-        g = M.vector_sum(point_weights, gradients)
+        from .. import vector
+        g = vector.vector_sum(point_weights, gradients)
     return g
 
 # -----------------------------------------------------------------------------
@@ -345,11 +343,10 @@ def volume_values(points, xyz_to_ijk_transform, data_array, syminv = [],
                                                      xyz_to_ijk_transform,
                                                      data_array)
     else:
-        from .. import matrix as M
         from numpy import zeros, float32, add
         values = zeros((len(points),), float32)
         for sinv in syminv:
-            tf = M.multiply_matrices(xyz_to_ijk_transform, sinv)
+            tf = xyz_to_ijk_transform * sinv
             # TODO: Make interpolation reuse the same array.
             v, outside = VD.interpolate_volume_data(points, tf, data_array)
             add(values, v, values)
@@ -369,14 +366,13 @@ def volume_gradients(points, xyz_to_ijk_transform, data_array, syminv = []):
         gradients, outside = VD.interpolate_volume_gradient(
             points, xyz_to_ijk_transform, data_array)
     else:
-        from .. import matrix as M
         from numpy import zeros, float32, add
         gradients = zeros(points.shape, float32)
         p = points.copy()
         for sinv in syminv:
             # TODO: Make interpolation use original point array.
             p[:] = points
-            M.transform_points(p, sinv)
+            sinv.move(p)
             g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform,
                                                         data_array)
             add(gradients, g, gradients)
@@ -396,14 +392,13 @@ def volume_torques(points, center, xyz_to_ijk_transform, data_array,
         torques = gradients
         _image3d.torques(points, center, gradients, torques)
     else:
-        from .. import matrix as M
         from numpy import zeros, float32, add
         torques = zeros(points.shape, float32)
         p = points.copy()
         for sinv in syminv:
             # TODO: Make interpolation use original point array.
             p[:] = points
-            M.transform_points(p, sinv)
+            sinv.move(p)
             g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform,
                                                         data_array)
             _image3d.torques(p, center, g, g)
@@ -420,8 +415,8 @@ def rotation_step(points, point_weights, center, data_array,
     axis = torque_axis(points, point_weights, center, data_array,
                        xyz_to_ijk_transform, metric, syminv)
 
-    from ..matrix import norm, rotation_transform
-    na = norm(axis)
+    from .. import vector
+    na = vector.norm(axis)
     if len(points) == 1 or na == 0:
         axis = (0,0,1)
         angle = 0
@@ -429,7 +424,8 @@ def rotation_step(points, point_weights, center, data_array,
         axis /= na
         angle = angle_step(axis, points, center, xyz_to_ijk_transform,
                            ijk_step_size)
-    move_tf = rotation_transform(axis, angle, center)
+    from .. import place
+    move_tf = place.rotation(axis, angle, center)
     return move_tf
     
 
@@ -439,10 +435,8 @@ def rotation_step(points, point_weights, center, data_array,
 #
 def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
 
-    from .. import matrix as m
-    tf = m.multiply_matrices(m.zero_translation(xyz_to_ijk_transform),
-                             m.cross_product_transform(axis),
-                             m.translation_matrix([-x for x in center]))
+    from ..place import cross_product, translation
+    tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
 
     from .. import _image3d
     av = _image3d.maximum_norm(points, tf)
@@ -458,11 +452,9 @@ def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
 #
 def maximum_ijk_motion(points, xyz_to_ijk_transform, move_tf):
 
-    from ..matrix import multiply_matrices, apply_matrix, maximum_norm
-    ijk_moved_tf = multiply_matrices(xyz_to_ijk_transform, move_tf)
+    ijk_moved_tf = xyz_to_ijk_transform * move_tf
 
-    from numpy import subtract
-    diff_tf = subtract(ijk_moved_tf, xyz_to_ijk_transform)
+    diff_tf = ijk_moved_tf.matrix - xyz_to_ijk_transform.matrix
 
     from .. import _image3d
     d = _image3d.maximum_norm(points, diff_tf)
@@ -491,9 +483,9 @@ def average_map_value_at_atom_positions(atoms, volume = None):
     if volume is None or len(points) == 0:
         return 0, len(points)
 
-    from chimera import Xform
+    from ..place import identity
     data_array, xyz_to_ijk_transform = \
-        volume.matrix_and_transform(Xform(), subregion = None, step = 1)
+        volume.matrix_and_transform(identity(), subregion = None, step = 1)
 
     amv, npts = average_map_value(points, xyz_to_ijk_transform, data_array)
     return amv, npts
@@ -544,8 +536,7 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = None):
             points = take(points, nz, axis=0)
             weights = take(weights, nz, axis=0)
 
-    from .. import matrix as M
-    M.transform_points(points, M.invert_matrix(xyz_to_ijk_tf))
+    xyz_to_ijk_tf.inverse().move(points)
 
     return points, weights
     
@@ -568,7 +559,7 @@ def overlap_and_correlation(v1, v2):
     v1 = float_array(v1)
     v2 = float_array(v2)
     # Use 64-bit accumulation of sums to avoid round-off errors.
-    from ..matrix import inner_product_64
+    from ..vector import inner_product_64
     olap = inner_product_64(v1, v2)
     n1 = inner_product_64(v1, v1)
     n2 = inner_product_64(v2, v2)
@@ -631,10 +622,7 @@ def move_atom_to_maximum(a, max_steps = 2000,
                                        optimize_rotation = False)
 
     # Update atom position.
-    from ..matrix import chimera_xform
-    xf = chimera_xform(move_tf)
-    mxf = a.molecule.openState.xform
-    p = mxf.inverse().apply(xf.apply(a.xformCoord()))
+    p = a.molecule.place.inverse() * (move_tf * a.xformCoord())
     a.setCoord(p)
 
 # -----------------------------------------------------------------------------
@@ -645,8 +633,8 @@ def atoms_outside_contour(atoms, volume = None):
         from ..VolumeViewer import active_volume
         volume = active_volume()
     points = atom_coordinates(atoms)
-    from ..matrix import identity_transform
-    poc, clevel = points_outside_contour(points, identity_transform(), volume)
+    from ..place import identity
+    poc, clevel = points_outside_contour(points, identity(), volume)
     return poc, clevel
 
 # -----------------------------------------------------------------------------
@@ -728,12 +716,10 @@ def transformation_matrix_message(model, map):
     fname = '%s (#%d)' % (f.name, f.id)
     ftf = f.place
     
-    from ..matrix import invert_matrix, multiply_matrices
-    rtf = multiply_matrices(invert_matrix(ftf), mtf)
+    rtf = ftf.inverse() * mtf
     message = ('Position of %s relative to %s coordinates:\n'
                % (mname, fname))
-    from ..matrix import transformation_description
-    message += transformation_description(rtf)
+    message += rtf.description()
     return message
 
 # -----------------------------------------------------------------------------
@@ -790,9 +776,8 @@ def asymmetric_unit_points(points, refpt, symmetries):
     from numpy import sum, minimum, nonzero
     d = sum(diff*diff, axis = 1)
     dsmin = d.copy()
-    from .. import matrix as M
     for sym in symmetries:
-        srefpt = M.apply_matrix(sym, refpt)
+        srefpt = sym * refpt
         diff = points - srefpt
         ds = sum(diff*diff, axis = 1)
         minimum(dsmin, ds, dsmin) 

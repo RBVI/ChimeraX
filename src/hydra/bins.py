@@ -23,9 +23,8 @@ class Binned_Transforms:
     #
     def bin_point(self, tf):
 
-        a = rotation_angle(tf)  # In range 0 to pi
-        from .matrix import apply_matrix
-        x,y,z = apply_matrix(tf, self.center)
+        a = tf.rotation_angle()  # In range 0 to pi
+        x,y,z = tf * self.center
         return (a,x,y,z)
     
     # -------------------------------------------------------------------------
@@ -38,35 +37,19 @@ class Binned_Transforms:
             return []
 
         close = []
-        from .matrix import invert_matrix, multiply_matrices, apply_matrix
-        itf = invert_matrix(tf)
+        itf = tf.invese()
         d2max = self.translation*self.translation
         for ctf in clist:
-            cx,cy,cz = apply_matrix(ctf, self.center)
+            cx,cy,cz = ctf * self.center
             dx, dy, dz = x-cx, y-cy, z-cz
             d2 = dx*dx + dy*dy + dz*dz
             if d2 <= d2max:
-                dtf = multiply_matrices(ctf, itf)
-                a = rotation_angle(dtf)
+                dtf = ctf * itf
+                a = dtf.rotation_angle()
                 if a < self.angle:
                     close.append(ctf)
 
         return close
-        
-# -----------------------------------------------------------------------------
-# In range 0 to pi.
-#
-def rotation_angle(tf):
-
-    tr = tf[0][0] + tf[1][1] + tf[2][2]
-    cosa = .5 * (tr - 1)
-    if cosa > 1:
-        cosa = 1
-    elif cosa < -1:
-        cosa = -1
-    from math import acos
-    a = acos(cosa)
-    return a
 
 # -----------------------------------------------------------------------------
 # Bin objects in a grid for fast lookup of objects close to a given object.

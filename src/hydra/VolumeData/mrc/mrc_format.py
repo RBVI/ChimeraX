@@ -107,8 +107,8 @@ class MRC_Data:
     for lbl in v['labels']:
       if lbl.startswith(b'Chimera rotation: '):
         ax,ay,az,angle = [float(x) for x in lbl.rstrip('\0').split()[2:]]
-        import matrix
-        r = matrix.rotation_from_axis_angle((ax,ay,az), angle)
+        from ...place import rotation
+        r = rotation((ax,ay,az), angle).matrix[:,:3]
     self.rotation = r
     
     self.min_intensity = v['amin']

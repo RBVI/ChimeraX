@@ -56,5 +56,6 @@ def box_corners(xyz_min, xyz_max):
 
   x0,y0,z0 = xyz_min
   x1,y1,z1 = xyz_max
-  return ((x0,y0,z0), (x0,y0,z1), (x0,y1,z0), (x0,y1,z1),
-          (x1,y0,z0), (x1,y0,z1), (x1,y1,z0), (x1,y1,z1))
+  from numpy import array, float64
+  return array(((x0,y0,z0), (x0,y0,z1), (x0,y1,z0), (x0,y1,z1),
+                (x1,y0,z0), (x1,y0,z1), (x1,y1,z0), (x1,y1,z1)), float64)

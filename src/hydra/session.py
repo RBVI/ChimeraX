@@ -44,6 +44,7 @@ view_parameters = (
 
 def save_view(file, viewer):
   v = dict((name,getattr(viewer,name)) for name in view_parameters)
+  v['camera_view'] = viewer.camera_view.matrix
   file.write("'view':\n")
   from .SessionUtil import objecttree
   objecttree.write_basic_tree(v, file, indent = ' ')
@@ -53,10 +54,13 @@ def restore_view(d, viewer):
   vars = d.get('view')
   if vars is None:
     return False
+  exclude = set(('window_size', 'camera_view'))
   for name in view_parameters:
-    if name in vars and name != 'window_size':
+    if name in vars and not name in exclude:
       setattr(viewer, name, vars[name])
-  viewer.set_camera_view(viewer.camera_view)    # Set cached inverse matrix
+  from .place import Place
+  cv = Place(vars['camera_view'])
+  viewer.set_camera_view(cv)    # Set cached inverse matrix
 
   return True
 
@@ -87,7 +91,7 @@ def restore_maps(d, viewer):
   return True
 
 def save_molecules(f, viewer):
-  mstate = tuple({'path':m.path, 'place':m.place, 'copies':m.copies}
+  mstate = tuple({'path':m.path, 'place':m.place.matrix, 'copies':m.copies}
                  for m in viewer.molecules())
   f.write("'molecules':(\n")
   from .SessionUtil import objecttree
@@ -107,7 +111,8 @@ def restore_molecules(d, viewer):
       m = open_mmcif_file(p)
     else:
       m = open_pdb_file(p)
-    m.place = ms['place']
-    m.copies = ms.get('copies', [])
+    from .place import Place
+    m.place = Place(ms['place'])
+    m.copies = [Place(c) for c in ms.get('copies', [])]
     viewer.add_model(m)
   return True

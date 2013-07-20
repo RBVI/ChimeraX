@@ -126,12 +126,12 @@ def molecule_grid_data(atoms, resolution, step, pad,
     # Transform coordinates to local coordinates of the molecule containing
     # the first atom.  This handles multiple unaligned molecules.
 #    m0 = atoms[0].molecule
-#    xf = m0.openState.xform
-#    import matrix as M
-#    M.transform_points(xyz, M.xform_matrix(xf.inverse()))
+#    tf = m0.place
+#    tf.inverse().move(xyz)
 #    if csys:
-#        xf.premultiply(csys.xform.inverse())
-#    tflist = M.coordinate_transform_list(transforms, M.xform_matrix(xf))
+#        tf = csys.inverse() * tf
+#    tfinv = tf.inverse()
+#    tflist = [(tfinv * t * tf) for t in transforms]
     tflist = transforms
 
     anum = atoms.element_numbers()
@@ -169,14 +169,14 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
     xyz_to_ijk_tf = ((1.0/step, 0, 0, -origin[0]/step),
                      (0, 1.0/step, 0, -origin[1]/step),
                      (0, 0, 1.0/step, -origin[2]/step))
-    from . import matrix as M
+    from .place import identity
     if len(transforms) == 0:
-        transforms = [M.identity_matrix()]
+        transforms = [identity()]
     from ._image3d import sum_of_gaussians
     ijk = empty(xyz.shape, float32)
     for tf in transforms:
         ijk[:] = xyz
-        M.transform_points(ijk, M.multiply_matrices(xyz_to_ijk_tf, tf))
+        (xyz_to_ijk_tf * tf).move(ijk)
         sum_of_gaussians(ijk, weights, sdevs, cutoff_range, matrix)
     matrix *= normalization
     
@@ -194,10 +194,9 @@ def point_bounds(xyz, transforms = []):
         xyz0 = empty((len(transforms),3), float32)
         xyz1 = empty((len(transforms),3), float32)
         txyz = empty(xyz.shape, float32)
-        from . import matrix as M
         for i, tf in enumerate(transforms):
             txyz[:] = xyz
-            M.transform_points(txyz, tf)
+            tf.move(txyz)
             xyz0[i,:], xyz1[i,:] = txyz.min(axis=0), txyz.max(axis=0)
         xyz_min, xyz_max = xyz0.min(axis = 0), xyz1.max(axis = 0)
     else:

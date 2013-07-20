@@ -12,7 +12,8 @@ class View(QtOpenGL.QGLWidget):
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x,y,z axes, 4th column is camara location.
-        self.camera_view = self.camera_view_inverse = ((1,0,0,0),(0,1,0,0),(0,0,1,0))
+        from .place import Place
+        self.camera_view = self.camera_view_inverse = Place()
         self.field_of_view = 45   	# degrees, width
         self.center_of_rotation = (0,0,0)
         self.update_center = True
@@ -472,15 +473,13 @@ class View(QtOpenGL.QGLWidget):
         cp = self.camera_position()
         shift = tuple((center[a]-d*vd[a])-cp[a] for a in (0,1,2))
         cv = self.camera_view
-        from . import matrix
-        csx,csy,csz = matrix.apply_matrix_without_translation(matrix.invert_matrix(cv), shift)
+        csx,csy,csz = cv.inverse().apply_without_translation(shift)
         self.translate(-csx,-csy,-csz)
         self.near_far_clip = (d - s, d + s)
 
-    def set_camera_view(self, matrix):
-        self.camera_view = matrix
-        from .matrix import invert_matrix
-        self.camera_view_inverse = invert_matrix(matrix)
+    def set_camera_view(self, place):
+        self.camera_view = place
+        self.camera_view_inverse = place.inverse()
         self.redraw_needed = True
 
     def center_of_rotation_needs_update(self):
@@ -495,8 +494,7 @@ class View(QtOpenGL.QGLWidget):
             return
         cp = self.camera_position()
         vd = self.view_direction()
-        from . import matrix
-        d = matrix.inner_product(center-cp, vd)         # camera to center of models
+        d = sum((center-cp)*vd)         # camera to center of models
         from math import tan, pi
         vw = 2*d*tan(0.5*self.field_of_view*pi/180)     # view width at center of models
         if vw >= s:
@@ -509,20 +507,14 @@ class View(QtOpenGL.QGLWidget):
                 return
         self.center_of_rotation = tuple(cr)
 
-        d = matrix.inner_product(cr-cp, vd)         # dist camera to center of models
+        d = sum((cr-cp)*vd)         # dist camera to center of models
         self.near_far_clip = (d - s, d + s)
 
     def camera_position(self):
-        cv = self.camera_view
-        from numpy import array, float32
-        c = array((cv[0][3], cv[1][3], cv[2][3]), float32)
-        return c
+        return self.camera_view.translation()
 
     def view_direction(self):
-        cv = self.camera_view
-        from numpy import array, float32
-        d = array((-cv[0][2], -cv[1][2], -cv[2][2]), float32)
-        return d
+        return -self.camera_view.z_axis()
 
     def front_center_point(self):
         w, h = self.window_size
@@ -533,18 +525,16 @@ class View(QtOpenGL.QGLWidget):
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         f = None
         mi = None
-        from . import matrix
         for m in self.models:
             if m.display:
-                minv = matrix.invert_matrix(m.place)
-                mxyz1, mxyz2 = matrix.apply_matrix(minv, (xyz1,xyz2))
+                mxyz1, mxyz2 = m.place.inverse() * (xyz1,xyz2)
                 fmin = m.first_intercept(mxyz1, mxyz2)
                 if not fmin is None and (f is None or fmin < f):
                     f = fmin
                     mi = m
         if f is None:
             return None, None
-        p = matrix.linear_combination(1.0-f, xyz1, f, xyz2)
+        p = (1.0-f)*xyz1 + f*xyz2
         return p, mi
 
     def bounds_center_and_width(self):
@@ -613,8 +603,7 @@ class View(QtOpenGL.QGLWidget):
     # Returns scene coordinates.
     def clip_plane_points(self, window_x, window_y):
         cn, cf = self.camera_clip_plane_points(window_x, window_y)
-        from . import matrix
-        mn, mf = matrix.apply_matrix(self.camera_view, (cn, cf))
+        mn, mf = self.camera_view * (cn,cf)
         return mn, mf
 
     # Appears that Qt has disabled touch events on Mac due to unresolved scrolling lag problems.
@@ -798,15 +787,14 @@ class View(QtOpenGL.QGLWidget):
         # Rotation axis is in camera coordinates.
         # Center of rotation is in model coordinates.
         cv = self.camera_view
-        from . import matrix
-        maxis = matrix.apply_matrix_without_translation(cv, axis)
-        r = matrix.rotation_transform(maxis, angle, self.center_of_rotation)
+        from . import place
+        maxis = cv.apply_without_translation(axis)
+        r = place.rotation(maxis, angle, self.center_of_rotation)
         if models is None:
-            rinv = matrix.invert_matrix(r)
-            self.set_camera_view(matrix.multiply_matrices(rinv, cv))
+            self.set_camera_view(r.inverse()* cv)
         else:
             for m in models:
-                m.place = matrix.multiply_matrices(r, m.place)
+                m.place = r * m.place
         self.redraw_needed = True
 
     # Translation is in camera coordinates.  Sign is for moving models.
@@ -814,17 +802,16 @@ class View(QtOpenGL.QGLWidget):
 
         self.center_of_rotation_needs_update()
         cv = self.camera_view
-        from . import matrix
-        mt = matrix.apply_matrix_without_translation(cv, (dx,dy,dz))
-        t = matrix.translation_matrix(mt)
+        from . import place
+        mt = cv.apply_without_translation((dx,dy,dz))
+        t = place.translation(mt)
         if models is None:
-            tinv = matrix.invert_matrix(t)
-            self.set_camera_view(matrix.multiply_matrices(tinv,cv))
+            self.set_camera_view(t.inverse()*cv)
             n,f = self.near_far_clip
             self.near_far_clip = (n-dz,f-dz)
         else:
             for m in models:
-                m.place = matrix.multiply_matrices(t, m.place)
+                m.place = t * m.place
 
     def pixel_size(self, p = None):
 
@@ -837,9 +824,8 @@ class View(QtOpenGL.QGLWidget):
         fov = self.field_of_view * pi/180
 
         c = self.camera_position()
-        from . import matrix
-        d = matrix.distance(c,p)
-        ps = d * 2*tan(0.5*fov) / w
+        from . import vector
+        ps = vector.distance(c,p) * 2*tan(0.5*fov) / w
         return ps
 
 #    def keyPressEvent(self, event):

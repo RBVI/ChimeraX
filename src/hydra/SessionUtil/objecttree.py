@@ -148,7 +148,7 @@ def write_basic_tree(btree, file, indent = '', start_of_line = 1):
 
   if isinstance(btree, basicTypes):
     file.write(sindent + repr(btree))
-  elif isinstance(btree, (tuple, list)):
+  elif isinstance(btree, (tuple, list, numpy.ndarray)):
     if is_simple_sequence(btree):
       write_simple_sequence(btree, file, sindent)
     else:
@@ -205,7 +205,7 @@ def write_simple_sequence(btree, file, indent):
 #
 def write_sequence(btree, file, indent, sindent):
 
-  if isinstance(btree, tuple):
+  if isinstance(btree, (tuple, numpy.ndarray)):
     open_bracket, close_bracket = '(', ')'
   else:
     open_bracket, close_bracket = '[', ']'

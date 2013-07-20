@@ -7,9 +7,8 @@
 #
 def box_intercepts(line, box_to_line_transform, box, clip_plane_model = None):
 
-  from ..matrix import invert_matrix, apply_matrix
-  line_to_box_transform = invert_matrix(box_to_line_transform)
-  bline = apply_matrix(line_to_box_transform, line)
+  line_to_box_transform = box_to_line_transform.inverse()
+  bline = line_to_box_transform * line
   xyz_in, xyz_out = box_line_intercepts(bline, box)
   if xyz_in == None or xyz_out == None:
     return xyz_in, xyz_out
@@ -25,8 +24,7 @@ def box_intercepts(line, box_to_line_transform, box, clip_plane_model = None):
 #
 def line_perpendicular_to_screen(line, line_to_result_transform):
 
-  from ..matrix import apply_matrix
-  xyz_near, xyz_far = apply_matrix(line_to_result_transform, line)
+  xyz_near, xyz_far = line_to_result_transform * line
   dir = tuple(a-b for a,b in zip(xyz_far, xyz_near))
   line = (xyz_near, dir)
   return line
@@ -53,8 +51,7 @@ def per_model_clip_planes(clip_plane_model):
     plane = (normal, offset)
     planes.append(plane)
 
-  from ..matrix import xform_matrix
-  model_to_screen = xform_matrix(clip_plane_model.openState.xform)
+  model_to_screen = clip_plane_model.place
   tplanes = [transform_plane(p, model_to_screen) for p in planes]
 
   return tplanes
@@ -64,13 +61,11 @@ def per_model_clip_planes(clip_plane_model):
 #
 def transform_plane(plane, transform):
 
-  from ..matrix import invert_matrix, transpose_matrix
-  from ..matrix import apply_matrix_without_translation, apply_matrix
-  inv_tf = invert_matrix(transform)
-  inv_tf_transpose = transpose_matrix(inv_tf)
+  inv_tf = transform.inverse()
+  inv_tf_transpose = inv_tf.transpose()
   normal, offset = plane
-  n = apply_matrix_without_translation(inv_tf_transpose, normal)
-  o = offset - inner_product(normal, apply_matrix(inv_tf, (0,0,0)))
+  n = inv_tf_transpose.apply_without_translation(normal)
+  o = offset - (normal * (inv_tf * (0,0,0))).sum()
   return (n, o)
   
 # -----------------------------------------------------------------------------
@@ -272,11 +267,11 @@ def face_intercept(v, line):
 #
 def line_position(xyz, line):
   xyz1, xyz2 = line
-  dxyz = [a-b for a,b in zip(xyz,xyz1)]
-  xyz12 = [a-b for a,b in zip(xyz2,xyz1)]
-  from ..matrix import inner_product
-  d2 = inner_product(xyz12, xyz12)
-  f = inner_product(dxyz, xyz12) / d2
+  dxyz = xyz - xyz1
+  xyz12 = xyz2 - xyz1
+  from .. import vector
+  d2 = vector.norm(xyz12)
+  f = vector.inner_product(dxyz,xyz12) / d2
   return f
   
 # -----------------------------------------------------------------------------
@@ -298,11 +293,9 @@ def box_face_axis_side(ijk, region):
 #
 def volume_plane_intercept(line, volume, axis, i):
 
-  from ..matrix import multiply_matrices, invert_matrix, apply_matrix
-  ijk_to_scene = multiply_matrices(volume.model_transform(),
-                                   volume.data.ijk_to_xyz_transform)
-  scene_to_ijk = invert_matrix(ijk_to_scene)
-  ijk1, ijk2 = apply_matrix(scene_to_ijk, line)
+  ijk_to_scene = volume.model_transform() * volume.data.ijk_to_xyz_transform
+  scene_to_ijk = ijk_to_scene.inverse()
+  ijk1, ijk2 = scene_to_ijk * line
   p,d = ijk1, [a-b for a,b in zip(ijk2,ijk1)]
   if d[axis] == 0:
     return None
@@ -347,9 +340,7 @@ def volume_index_segment(volume, line, clipping_model = None):
   box, tf, xform = selectregion.box_transform_and_xform(volume)
 
   # box is in volume index coordinates, line in scene coordinates.
-  from ..matrix import multiply_matrices
-  box_to_line_transform = multiply_matrices(volume.place,
-                                            volume.data.ijk_to_xyz_transform)
+  box_to_line_transform = volume.place * volume.data.ijk_to_xyz_transform
 
   if clipping_model is None:
     clipping_model = volume
@@ -363,7 +354,7 @@ def volume_index_segment(volume, line, clipping_model = None):
 #
 def slice_data_values(v, xyz_in, xyz_out):
 
-  from ..matrix import distance, linear_combination
+  from ..vector import distance
   d = distance(xyz_in, xyz_out)
   #
   # Sample step of 1/2 voxel size can easily miss single bright voxels.
@@ -375,7 +366,7 @@ def slice_data_values(v, xyz_in, xyz_out):
 
   fsteps = float(steps)
   t_list = [k/fsteps for k in range(steps)]
-  xyz_list = [linear_combination(1-t, xyz_in, t, xyz_out) for t in t_list]
+  xyz_list = [(1-t)*xyz_in + t*xyz_out for t in t_list]
   vertex_xform = None
   values = v.interpolated_values(xyz_list, vertex_xform, subregion = None)
   trace = zip(t_list, values)
@@ -388,17 +379,17 @@ def slice_data_values(v, xyz_in, xyz_out):
 def array_slice_values(array, ijk_in, ijk_out,
                        spacing = 0.5, method = 'linear'):
 
-  from ..matrix import distance, linear_combination, identity_matrix
-  d = distance(ijk_in, ijk_out)
+  from .. import vector
+  d = vector.distance(ijk_in, ijk_out)
   steps = 1 + max(1, int(d/spacing))
 
   from numpy import empty, single as floatc, arange, outer
   trace = empty((steps,2), floatc)
   trace[:,0] = t = arange(steps, dtype = floatc) / steps
   ijk = outer(1-t, ijk_in) + outer(t, ijk_out)
-  tf = identity_matrix()
   from _interpolate import interpolate_volume_data
-  trace[:,1], outside = interpolate_volume_data(ijk, tf, array, method)
+  from .. import place
+  trace[:,1], outside = interpolate_volume_data(ijk, place.identity(), array, method)
   return trace
 
 # -----------------------------------------------------------------------------

@@ -6,7 +6,7 @@ def interpolate_volume_data(vertices, vertex_transform, array,
 
 #  from _interpolate import interpolate_volume_data
   from .._image3d import interpolate_volume_data
-  values, outside = interpolate_volume_data(vertices, vertex_transform,
+  values, outside = interpolate_volume_data(vertices, vertex_transform.matrix,
                                             array, method)
   return values, outside
     
@@ -18,7 +18,7 @@ def interpolate_volume_gradient(vertices, v2m_transform, array,
 
 #  from _interpolate import interpolate_volume_gradient
   from .._image3d import interpolate_volume_gradient
-  gradients, outside = interpolate_volume_gradient(vertices, v2m_transform,
+  gradients, outside = interpolate_volume_gradient(vertices, v2m_transform.matrix,
                                                    array, method)
   return gradients, outside
 
@@ -253,7 +253,6 @@ def zone_mask(grid_data, zone_points, zone_radius,
       mask_value = 1
 
   from VolumeData import grid_indices
-  from _contour import affine_transform_vertices
   from _closepoints import find_closest_points, BOXES_METHOD
 
   size_limit = 2 ** 22          # 4 Mvoxels
@@ -261,7 +260,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
     # Calculate plane by plane to save memory with grid point array
     xsize, ysize, zsize = grid_data.size
     grid_points = grid_indices((xsize,ysize,1), floatc)
-    affine_transform_vertices(grid_points, grid_data.ijk_to_xyz_transform)
+    grid_data.ijk_to_xyz_transform.move(grid_points)
     zstep = [grid_data.ijk_to_xyz_transform[a][2] for a in range(3)]
     for z in range(zsize):
       i1, i2, n1 = find_closest_points(BOXES_METHOD, grid_points, zone_points,
@@ -274,7 +273,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
       grid_points[:,:] += zstep
   else:
     grid_points = grid_indices(grid_data.size, floatc)
-    affine_transform_vertices(grid_points, grid_data.ijk_to_xyz_transform)
+    grid_data.ijk_to_xyz_transform.move(grid_points)
     i1, i2, n1 = find_closest_points(BOXES_METHOD, grid_points, zone_points,
                                      zone_radius)
     if zone_point_mask_values is None:

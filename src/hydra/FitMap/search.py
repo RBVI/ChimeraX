@@ -21,14 +21,14 @@ def fit_search(models, points, point_weights, volume, n,
     asym_center = tuple(x0 + (x1-x0)*f
                         for x0, x1, f in zip(xyz_min, xyz_max, asym_center_f)) 
 
-    from .. import matrix as M
+    from ..place import translation, identity
     center = points.mean(axis=0)
-    ctf = M.translation_matrix([-x for x in center])
+    ctf = translation(-center)
     ijk_to_xyz_tf = volume.matrix_indices_to_xyz_transform(step = 1)
-    xyz_to_ijk_tf = M.invert_matrix(ijk_to_xyz_tf)
+    xyz_to_ijk_tf = ijk_to_xyz_tf.inverse()
     data_array = volume.matrix(step = 1)
-    vtfinv = M.invert_matrix(volume.place)
-    mtv_list = [M.multiply_matrices(vtfinv, m.place) for m in models]
+    vtfinv = volume.place.inverse()
+    mtv_list = [vtfinv * m.place for m in models]
 
     flist = []
     outside = 0
@@ -42,19 +42,19 @@ def fit_search(models, points, point_weights, volume, n,
             break
         shift = ((random_translation(xyz_min, xyz_max) if radius is None
                   else random_translation_step(center, radius)) if shifts
-                  else M.translation_matrix(center))
-        rot = random_rotation() if rotations else M.identity_matrix()
-        tf = M.multiply_matrices(shift, rot, ctf)
+                  else translation(center))
+        rot = random_rotation() if rotations else identity()
+        tf = shift * rot * ctf
         optimize = True
         max_opt = 2
         while optimize and max_opt > 0:
-            p_to_ijk_tf = M.multiply_matrices(xyz_to_ijk_tf, tf)
+            p_to_ijk_tf = xyz_to_ijk_tf * tf
             move_tf, stats = \
               locate_maximum(points, point_weights, data_array, p_to_ijk_tf,
                              max_steps, ijk_step_size_min, ijk_step_size_max,
                              optimize_translation, optimize_rotation,
                              metric, request_stop_cb = None)
-            ptf = M.multiply_matrices(tf, move_tf)
+            ptf = tf * move_tf
             optimize = False
             max_opt -= 1
             if asymmetric_unit:
@@ -65,7 +65,7 @@ def fit_search(models, points, point_weights, volume, n,
                     optimize = not b.close_transforms(ptf)
         close = b.close_transforms(ptf)
         if len(close) == 0:
-            transforms = [M.multiply_matrices(ptf, mtv) for mtv in mtv_list]
+            transforms = [ptf * mtv for mtv in mtv_list]
             stats['hits'] = 1
             f = Fit(models, transforms, volume, stats)
             f.ptf = ptf
@@ -92,8 +92,7 @@ def fit_search(models, points, point_weights, volume, n,
 #
 def in_contour(tf, points, volume, stats):
 
-    from .. import matrix as M
-    vtf = M.multiply_matrices(volume.place, tf)
+    vtf = volume.place * tf
     from . import fitmap as FM
     poc, clevel = FM.points_outside_contour(points, vtf, volume)
     stats['atoms outside contour'] = poc
@@ -117,9 +116,8 @@ class Fit:
         # If transforms is None then derive the transforms from the current
         # model positions assuming the fit motion has been done.
         if transforms is None:
-            from ..matrix import invert_matrix, multiply_matrices
-            vtfinv = invert_matrix(volume.place)
-            transforms = [multiply_matrices(vtfinv, m.place) for m in models]
+            vtfinv = volume.place.inverse()
+            transforms = [vtfinv * m.place for m in models]
         self.transforms = transforms
 
         self.volume = volume               # Volume being fit into.
@@ -160,8 +158,7 @@ class Fit:
         for m, tf in zip(self.models, self.transforms):
             if m is None or m.__destroyed__:
                 continue
-            from .. import matrix as M
-            vtf = M.multiply_matrices(v.place, tf)
+            vtf = v.place * tf
             mtf_list.append((m, vtf))
         return mtf_list
 
@@ -215,17 +212,16 @@ class Fit:
         points_int = _volume.high_indices(matrix, threshold)
         from numpy import float32
         points = points_int.astype(float32)
-        import Matrix as M
-        M.transform_points(points, M.multiply_matrices(tf, M.invert_matrix(xyz_to_ijk_tf)))
+        (tf * xyz_to_ijk_tf.inverse()).move(points)
 
         # Transform points by volume symmetries and count how many are inside
         # contour of map m.
-        tfinv = M.invert_matrix(tf)
+        tfinv = tf.inverse()
         inside = 0
         for s in symlist:
-            if not M.is_identity_matrix(s):
+            if not s.is_identity():
                 p = points.copy()
-                M.transform_points(p, M.multiply_matrices(tfinv, s))
+                (tfinv * s).move(p)
                 v = m.interpolated_values(p)
                 inside += (v >= threshold).sum()
 
@@ -299,16 +295,15 @@ def move_models(models, transforms, base_model, frames):
 def move_step(move_table, cb):
 
     mt = move_table
-    from .. import matrix as M
     for m, (rxf, base_model, frames) in tuple(mt.items()):
         if m.__destroyed__ or base_model.__destroyed__:
             del mt[m]
             continue
-        tf = M.multiply_matrices(base_model.place, rxf)
+        tf = base_model.place * rxf
         b = m.bounds()
         if b:
-            c = M.linear_combination(.5, b[0], .5, b[1])
-            m.set_place(M.interpolate_transforms(m.place, c, tf, 1.0/frames))
+            c = .5 * (b[0] + b[1])
+            m.set_place(m.place.interpolate(tf, c, 1.0/frames))
             if frames <= 1:
                 del mt[m]
             else:
@@ -326,10 +321,10 @@ def move_step(move_table, cb):
 def random_translation_step(center, radius):
 
     v = random_direction()
-    from .. import matrix as M
     from random import random
     r = radius * random()
-    tf = M.translation_matrix(M.linear_combination(1, center, r, v))
+    from ..place import translation
+    tf = translation(center + r*v)
     return tf
 
 # -----------------------------------------------------------------------------
@@ -338,8 +333,8 @@ def random_translation(xyz_min, xyz_max):
 
     from random import random
     shift = [x0+random()*(x1-x0) for x0,x1 in zip(xyz_min, xyz_max)]
-    from .. import matrix as M
-    tf = M.translation_matrix(shift)
+    from ..place import translation
+    tf = translation(shift)
     return tf
 
 # -----------------------------------------------------------------------------
@@ -347,30 +342,27 @@ def random_translation(xyz_min, xyz_max):
 def random_rotation():
 
     y, z = random_direction(), random_direction()
-    from .. import matrix as M
-    f = M.orthonormal_frame(z, y)
-    return ((f[0][0], f[1][0], f[2][0], 0),
-            (f[0][1], f[1][1], f[2][1], 0),
-            (f[0][2], f[1][2], f[2][2], 0))
+    from .. import place
+    f = place.orthonormal_frame(z, y)
+    return f
 
 # -----------------------------------------------------------------------------
 #
 def random_direction():
 
     z = (1,1,1)
-    from ..matrix import norm, normalize_vector
+    from .. import vector
     from random import random
-    while norm(z) > 1:
+    while vector.norm(z) > 1:
         z = (1-2*random(), 1-2*random(), 1-2*random())
-    return normalize_vector(z)
+    return vector.normalize_vector(z)
 
 # -----------------------------------------------------------------------------
 #
 def any_close_tf(tf, tflist, angle_tolerance, shift_tolerance, shift_point):
 
-    from .. import matrix as M
     for i, t in enumerate(tflist):
-        if M.same_transform(t, tf, angle_tolerance, shift_tolerance, shift_point):
+        if t.same(tf, angle_tolerance, shift_tolerance, shift_point):
             return i
     return None
 
@@ -381,9 +373,9 @@ def unique_symmetry_position(tf, center, ref_point, sym_list):
     if len(sym_list) == 0:
         return tf
 
-    import Matrix as M
+    from ..place import distance
     import numpy as n
-    i = n.argmin([M.distance(M.apply_matrix(M.multiply_matrices(sym,tf), center), ref_point) for sym in sym_list])
-    if M.is_identity_matrix(sym_list[i]):
+    i = n.argmin([distance(sym*tf*center, ref_point) for sym in sym_list])
+    if sym_list[i].is_identity():
         return tf
-    return M.multiply_matrices(sym_list[i],tf)
+    return sym_list[i]*tf

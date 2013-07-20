@@ -134,11 +134,14 @@ class Grid_Data:
   #
   def update_transform(self):
 
-    from ..matrix import skew_axes
-    saxes = skew_axes(self.cell_angles)
-    rsaxes = [apply_rotation(self.rotation, a) for a in saxes]
+    from .. import place
+    saxes = place.skew_axes(self.cell_angles).axes()
+    r = place.Place()
+    r.matrix[:,:3] = self.rotation
+    rsaxes = r * saxes
     tf, tf_inv = transformation_and_inverse(self.origin, self.step, rsaxes)
-    if tf != self.ijk_to_xyz_transform or tf_inv != self.xyz_to_ijk_transform:
+    if (self.ijk_to_xyz_transform is None or not tf.same(self.ijk_to_xyz_transform) or
+        self.xyz_to_ijk_transform is None or not tf_inv.same(self.xyz_to_ijk_transform)):
       self.ijk_to_xyz_transform = tf
       self.xyz_to_ijk_transform = tf_inv
       self.coordinates_changed()
@@ -150,7 +153,7 @@ class Grid_Data:
   #
   def xyz_to_ijk(self, xyz):
 
-    return map_point(xyz, self.xyz_to_ijk_transform)
+    return self.xyz_to_ijk_transform * xyz
 
   # ---------------------------------------------------------------------------
   # A matrix ijk corresponds to a point in xyz space.
@@ -158,7 +161,7 @@ class Grid_Data:
   #
   def ijk_to_xyz(self, ijk):
 
-    return map_point(ijk, self.ijk_to_xyz_transform)
+    return self.ijk_to_xyz_transform * ijk
     
   # ---------------------------------------------------------------------------
   # Spacings in xyz space of jk, ik, and ij planes.
@@ -352,15 +355,11 @@ def transformation_and_inverse(origin, step, axes):
   d0, d1, d2 = step
   ax, ay, az = axes
 
-  tf = ((d0*ax[0], d1*ay[0], d2*az[0], ox),
-        (d0*ax[1], d1*ay[1], d2*az[1], oy),
-        (d0*ax[2], d1*ay[2], d2*az[2], oz))
-
-  from ..matrix import invert_matrix
-  tf_inv = invert_matrix(tf)
-  
-  # Replace array by tuples
-  tf_inv = tuple(map(tuple, tf_inv))
+  from ..place import Place
+  tf = Place(((d0*ax[0], d1*ay[0], d2*az[0], ox),
+              (d0*ax[1], d1*ay[1], d2*az[1], oy),
+              (d0*ax[2], d1*ay[2], d2*az[2], oz)))
+  tf_inv = tf.inverse()
   
   return tf, tf_inv
 
@@ -369,14 +368,9 @@ def transformation_and_inverse(origin, step, axes):
 #
 def scale_and_skew(ijk, step, cell_angles):
 
-  from ..matrix import skew_axes
-  xa, ya, za = skew_axes(cell_angles)
-
-  i, j, k = ijk
-  d0, d1, d2 = step
-  x,y,z = i*d0, j*d1, k*d2
-
-  xyz = tuple(x*xa[a]+y*ya[a]+z*za[a] for a in (0,1,2))
+  from .. import place
+  import numpy
+  xyz = place.skew_axes(cell_angles) * (numpy.array(step) * ijk)
   return xyz
     
 # -----------------------------------------------------------------------------
@@ -385,17 +379,6 @@ def apply_rotation(r, v):
   
   rv = [r[a][0]*v[0] + r[a][1]*v[1] + r[a][2]*v[2] for a in (0,1,2)]
   return tuple(rv)
-
-# -----------------------------------------------------------------------------
-#
-def map_point(p, tf):
-
-  tfp = [0,0,0]
-  for r in range(3):
-    tfr = tf[r]
-    tfp[r] = tfr[0]*p[0] +tfr[1]*p[1] + tfr[2]*p[2] + tfr[3]
-  tfp = tuple(tfp)
-  return tfp
 
 # -----------------------------------------------------------------------------
 #

@@ -203,8 +203,8 @@ def natural_cubic_spline_orig(points, segment_subdivisions, return_tangents = Tr
           k += 1
 
   if return_tangents:
-    from . import matrix
-    matrix.normalize_vectors(tan)
+    from . import vector
+    vector.normalize_vectors(tan)
     return p, tan
 
   return p
@@ -261,8 +261,8 @@ def natural_cubic_spline(points, segment_subdivisions):
         tan[k,axis] = 3*z[i+1]*t**2 - 3*z[i]*(1-t)**2 + ct - c1t
         k += 1
 
-  from . import matrix
-  matrix.normalize_vectors(tan)
+  from . import vector
+  vector.normalize_vectors(tan)
 
   return p, tan
 

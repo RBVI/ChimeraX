@@ -5,7 +5,8 @@ class Surface:
   def __init__(self):
     self.id = 0
     self.displayed = True
-    self.placement = ((1,0,0,0),(0,1,0,0),(0,0,1,0))
+    from .place import Place
+    self.placement = Place()
     self.copies = []
     self.plist = []
     self.selected = False
@@ -350,9 +351,8 @@ class Surface_Piece(object):
       if not fmin is None and (f is None or fmin < f):
         f = fmin
     else:
-      from . import matrix
       for tf in self.copies:
-        cxyz1, cxyz2 = matrix.apply_matrix(matrix.invert_matrix(tf), (mxyz1, mxyz2))
+        cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
         fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
@@ -531,8 +531,7 @@ def copies_bounding_box(bounds, plist):
   (x0,y0,z0),(x1,y1,z1) = bounds
   corners = ((x0,y0,z0),(x1,y0,z0),(x0,y1,z0),(x1,y1,z0),
              (x0,y0,z1),(x1,y0,z1),(x0,y1,z1),(x1,y1,z1))
-  from . import matrix
-  b = union_bounds(point_bounds(matrix.apply_matrix(p, corners)) for p in plist)
+  b = union_bounds(point_bounds(p * corners) for p in plist)
   return b
 
 def point_bounds(xyz):
@@ -586,7 +585,8 @@ def image_rgba_array(i):
 
     return rgba
 
-def opengl_matrices(m34_list):
+def opengl_matrices(places):
+  m34_list = tuple(p.matrix for p in places)
   n = len(m34_list)
   from numpy import empty, float32, transpose
   m = empty((n,4,4), float32)

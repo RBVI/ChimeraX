@@ -238,8 +238,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     apoint_weights = point_weights[indices]
 
     data_array, xyz_to_ijk_transform = \
-      v.matrix_and_transform(volume.openState.xform,
-                             subregion = None, step = 1)
+      v.matrix_and_transform(volume.place, subregion = None, step = 1)
 
     from chimera import tasks, CancelOperation
     task = tasks.Task("Symmetric fit", modal=True)
@@ -258,9 +257,8 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     if stats is None:
         return          # Fit cancelled
 
-    from .. import matrix as M
-    ctf = M.xform_matrix(volume.openState.xform.inverse())
-    vtf = M.coordinate_transform(M.invert_matrix(move_tf), ctf)
+    ctf = volume.place.inverse()
+    vtf = ctf.inverse() * move_tf.inverse() * ctf
     from . import move
     move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
 
@@ -286,8 +284,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
     me = fitting_metric(metric)
     if v is None:
         points = atoms.coordinates()
-        from .. import matrix as M
-        M.transform_points(points, M.invert_matrix(volume.place))
+        volume.place.inverse().move(points)
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)
@@ -427,8 +424,8 @@ def fitting_metric(metric):
 #
 def map_fitting_points(v, envelope, local_coords = False):
 
-    from ..matrix import identity_matrix
-    point_to_scene_transform = None if local_coords else identity_matrix()
+    from ..place import identity
+    point_to_scene_transform = None if local_coords else identity()
     from . import fitmap as F
     try:
         points, point_weights = F.map_points_and_weights(v, envelope,

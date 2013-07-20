@@ -102,7 +102,7 @@ def restore_scene(volume_manager, scene):
 #
 def volume_dialog_state_from_basic_tree(volume_dialog_basic_state):
   
-  from ..SessionUtil.stateclasses import Model_State, Xform_State
+  from ..SessionUtil.stateclasses import Model_State
 
   classes = (
     Volume_Dialog_State,
@@ -113,7 +113,6 @@ def volume_dialog_state_from_basic_tree(volume_dialog_basic_state):
     Rendering_Options_State,
     Component_Display_Parameters_State,
     Model_State,
-    Xform_State,
     )
   name_to_class = {}
   for c in classes:
@@ -137,7 +136,7 @@ def restore_volume_data_state(volume_data_basic_state):
 #
 def volume_manager_state_from_basic_tree(volume_data_basic_state):
   
-  from ..SessionUtil.stateclasses import Model_State, Xform_State
+  from ..SessionUtil.stateclasses import Model_State
 
   classes = (
     Volume_Manager_State,
@@ -146,7 +145,6 @@ def volume_manager_state_from_basic_tree(volume_data_basic_state):
     Region_List_State,
     Rendering_Options_State,
     Model_State,
-    Xform_State,
     )
   name_to_class = {}
   for c in classes:
