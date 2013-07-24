@@ -257,9 +257,8 @@ class Molecule(Surface):
     from . import _image3d
     if self.copies:
       intercepts = []
-      from . import matrix
       for tf in self.copies:
-        cxyz1, cxyz2 = matrix.apply_matrix(matrix.invert_matrix(tf), (mxyz1, mxyz2))
+        cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
         intercepts.append(_image3d.closest_sphere_intercept(self.xyz, self.radii, cxyz1, cxyz2))
       f = [fmin for fmin, snum in intercepts if not fmin is None]
       fmin = min(f) if f else None
@@ -338,10 +337,9 @@ class Atom_Set:
     return sum(len(a) for m,a in self.molatoms)
   def coordinates(self):
     coords = []
-    from .matrix import transform_points
     for m,a in self.molatoms:
         xyz = m.xyz[a]
-        transform_points(xyz, m.place)
+        m.place.move(xyz)
         coords.append(xyz)
     import numpy
     if len(coords) == 0:
@@ -354,11 +352,10 @@ class Atom_Set:
 
   def move_atoms(self, tf):
     # Transform tf acts on scene coordinates
-    from .matrix import transform_points, invert_matrix, multiply_matrices
     for m,a in self.molatoms:
       axyz = m.xyz[a]
-      atf = multiply_matrices(invert_matrix(m.place), tf, m.place)
-      transform_points(axyz, atf)
+      atf = m.place.inverse() * tf * m.place
+      atf.move(axyz)
       m.xyz[a] = axyz
       m.need_graphics_update = True
       m.redraw_needed = True

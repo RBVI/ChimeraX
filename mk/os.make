@@ -148,7 +148,6 @@ ifdef DEBUG
 else
 	OPT = /Ox /W2
 endif
-	DEFS = -DWIN32
 	CC = cl /nologo /Zc:forScope /EHa /GR /GF /MD
 	CXX = $(CC)
 

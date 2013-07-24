@@ -4,8 +4,6 @@
 def tube_through_points(path, radius = 1.0, band_length = 0,
                         segment_subdivisions = 10, circle_subdivisions = 15,
                         color = (.745,.745,.745,1)):
-#    from time import process_time
-#    t0 = process_time()
 
     from ._image3d import natural_cubic_spline, tube_geometry
     spath, stan = natural_cubic_spline(path, segment_subdivisions)
@@ -17,9 +15,6 @@ def tube_through_points(path, radius = 1.0, band_length = 0,
     from numpy import empty, float32
     ca = empty((len(va),4), float32)
     ca[:,:] = color
-
-#    t1 = process_time()
-#    print ('tube', len(path), t1-t0)
 
     return va,na,ta,ca
 
@@ -46,11 +41,7 @@ def tube_through_points_old(path, radius = 1.0, band_length = 0,
     def shape(path, tangents, pcolors, r=radius, nc=circle_subdivisions):
         return Tube(path, tangents, pcolors, r, nc)
 
-    from time import process_time
-    t0 = process_time()
     va,na,ta,ca = extrusion(path, shape, band_length, segment_subdivisions, color)
-    t1 = process_time()
-    print ('tube', len(path), t1-t0)
 
     return va,na,ta,ca
 
@@ -73,36 +64,21 @@ class Tube:
         nz = len(self.path)
         nc = self.circle_subdivisions
         height = 0
-        from time import process_time
-        t0 = process_time()
         tflist = extrusion_transforms(self.path, self.tangents)
-        t1 = process_time()
-        print ('ext trans', t1-t0)
-        from .matrix import zero_translation
-        tfnlist = [zero_translation(tf) for tf in tflist]
-        t2 = process_time()
-        print ('n trans', t2-t1)
+        tfnlist = [tf.zero_translation() for tf in tflist]
         varray, narray, tarray = cylinder_geometry(self.radius, height, nz, nc,
                                                    caps = self.end_caps)
-        t3 = process_time()
-        print ('cyl geom', t3-t2)
         # Transform circles.
-        from ._image3d import affine_transform_vertices
         for i in range(nz):
-            affine_transform_vertices(varray[nc*i:nc*(i+1),:], tflist[i])
-            affine_transform_vertices(narray[nc*i:nc*(i+1),:], tfnlist[i])
-        t4 = process_time()
-        print ('trans circ', t4-t3)
+            tflist[i].move(varray[nc*i:nc*(i+1),:])
+            tfnlist[i].move(narray[nc*i:nc*(i+1),:])
 
         if self.end_caps:
             # Transform cap center points
-            affine_transform_vertices(varray[-2:-1,:], tflist[0])
-            affine_transform_vertices(narray[-2:-1,:], tfnlist[0])
-            affine_transform_vertices(varray[-1:,:], tflist[-1])
-            affine_transform_vertices(narray[-1:,:], tfnlist[-1])
-
-        t5 = process_time()
-        print ('trans cap', t5-t4)
+            tflist[0].move(varray[-2:-1,:])
+            tfnlist[0].move(narray[-2:-1,:])
+            tflist[-1].move(varray[-1:,:])
+            tfnlist[-1].move(narray[-1:,:])
 
         return varray, narray, tarray
 
@@ -208,23 +184,15 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
     if len(xyz_path) <= 1:
         return None             # No path
 
-    from .spline import natural_cubic_spline
-#    from ._image3d import natural_cubic_spline
-    from time import process_time
-    t0 = process_time()
+#    from .spline import natural_cubic_spline
+    from ._image3d import natural_cubic_spline
     spath, stan = natural_cubic_spline(xyz_path, segment_subdivisions)
-
-    t1 = process_time()
-    print ('spline', t1-t0)
 
     pcolors = band_colors(spath, point_colors, segment_colors,
                           segment_subdivisions, band_length)
 
     s = shape(spath, stan, pcolors)
-    t0 = process_time()
     va, na, ta = s.geometry()
-    t1 = process_time()
-    print ('geom', t1-t0)
     ca = s.colors()
 
     return va,na,ta,ca
@@ -235,26 +203,27 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
 #
 def extrusion_transforms(path, tangents, yaxis = None):
 
-    from . import matrix as M
+    from .place import identity, vector_rotation, translation
     tflist = []
     if yaxis is None:
         # Make xy planes for coordinate frames at each path point not rotate
         # from one point to next.
-        tf = M.identity_matrix()
+        tf = identity()
         n0 = (0,0,1)
         for p1,n1 in zip(path, tangents):
-            tf = M.multiply_matrices(M.vector_rotation_transform(n0,n1), tf)
-            tflist.append(M.multiply_matrices(M.translation_matrix(p1),tf))
+            tf = vector_rotation(n0,n1) * tf
+            tflist.append(translation(p1)*tf)
             n0 = n1
     else:
         # Make y-axis of coordinate frames at each point align with yaxis.
+        from . import vector as V
         for p,t in zip(path, tangents):
             za = t
-            xa = M.normalize_vector(M.cross_product(yaxis, za))
-            ya = M.cross_product(za, xa)
-            tf = ((xa[0], ya[0], za[0], p[0]),
-                  (xa[1], ya[1], za[1], p[1]),
-                  (xa[2], ya[2], za[2], p[2]))
+            xa = V.normalize_vector(V.cross_product(yaxis, za))
+            ya = V.cross_product(za, xa)
+            tf = Place(((xa[0], ya[0], za[0], p[0]),
+                        (xa[1], ya[1], za[1], p[1]),
+                        (xa[2], ya[2], za[2], p[2])))
             tflist.append(tf)
     return tflist
 

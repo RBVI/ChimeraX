@@ -182,7 +182,7 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
     mols = atoms.molecules()
     if stats:
         from ..gui import show_info, show_status
-        show_info(F.atom_fit_message(atoms, volume, stats))
+        show_info(F.atom_fit_message(atoms.molecules(), volume, stats))
         if moveWholeMolecules:
             for m in mols:
                 show_info(F.transformation_matrix_message(m, volume))
@@ -238,8 +238,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     apoint_weights = point_weights[indices]
 
     data_array, xyz_to_ijk_transform = \
-      v.matrix_and_transform(volume.openState.xform,
-                             subregion = None, step = 1)
+      v.matrix_and_transform(volume.place, subregion = None, step = 1)
 
     from chimera import tasks, CancelOperation
     task = tasks.Task("Symmetric fit", modal=True)
@@ -258,9 +257,8 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     if stats is None:
         return          # Fit cancelled
 
-    from .. import matrix as M
-    ctf = M.xform_matrix(volume.openState.xform.inverse())
-    vtf = M.coordinate_transform(M.invert_matrix(move_tf), ctf)
+    ctf = volume.place.inverse()
+    vtf = ctf.inverse() * move_tf.inverse() * ctf
     from . import move
     move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
 
@@ -285,32 +283,33 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 
     me = fitting_metric(metric)
     if v is None:
-        import Molecule
-        points = Molecule.atom_positions(atoms, volume.openState.xform)
+        points = atoms.coordinates()
+        volume.place.inverse().move(points)
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)
         import Matrix
         Matrix.xform_points(points, volume.openState.xform.inverse())
-    import search as FS
+    from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
-    mlist = list(set([a.molecule for a in atoms]))
+    mlist = atoms.molecules()
     if v:
         mlist.append(v)
 
-    from chimera import tasks
-    task = tasks.Task("Fit search", modal=True)
+#    from chimera import tasks
+#    task = tasks.Task("Fit search", modal=True)
+    task = None
     def stop_cb(msg, task = task):
         return request_stop_cb(msg, task)
-    flist = []
-    try:
-        flist, outside = FS.fit_search(
+#    flist = []
+#    try:
+    flist, outside = FS.fit_search(
             mlist, points, point_weights, volume, search, rotations, shifts,
             radius, clusterAngle, clusterShift, asymmetricUnit, inside,
             me, shift, rotate, maxSteps, gridStepMin, gridStepMax, stop_cb)
-    finally:
-        task.finished()
+#    finally:
+#        task.finished()
 
     report_fit_search_results(flist, search, outside, inside)
     return flist
@@ -319,19 +318,19 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 #
 def request_stop_cb(message, task):
 
-    from chimera import CancelOperation
-    try:
-        task.updateStatus(message)
-    except CancelOperation:
-        return True
+#    from chimera import CancelOperation
+#    try:
+#        task.updateStatus(message)
+#    except CancelOperation:
+#        return True
     return False
 
 # -----------------------------------------------------------------------------
 #
 def report_fit_search_results(flist, search, outside, inside):
 
-    from chimera.replyobj import info
-    info('Found %d unique fits from %d random placements ' %
+    from ..gui import show_info
+    show_info('Found %d unique fits from %d random placements ' %
          (len(flist), search) +
          'having fraction of points inside contour >= %.3f (%d of %d).\n'
          % (inside, search-outside,  search))
@@ -345,8 +344,8 @@ def report_fit_search_results(flist, search, outside, inside):
     scores = ', '.join(['%.4g (%d)' % (getattr(f,sattr)(),f.hits())
                         for f in flist])
     sname = 'Correlations' if v else 'Average map values'
-    info('%s and times found:\n\t%s\n' % (sname, scores))
-    info('Best fit found:\n%s' % f0.fit_message())
+    show_info('%s and times found:\n\t%s\n' % (sname, scores))
+    show_info('Best fit found:\n%s' % f0.fit_message())
 
 # -----------------------------------------------------------------------------
 #
@@ -425,8 +424,8 @@ def fitting_metric(metric):
 #
 def map_fitting_points(v, envelope, local_coords = False):
 
-    from ..matrix import identity_matrix
-    point_to_scene_transform = None if local_coords else identity_matrix()
+    from ..place import identity
+    point_to_scene_transform = None if local_coords else identity()
     from . import fitmap as F
     try:
         points, point_weights = F.map_points_and_weights(v, envelope,

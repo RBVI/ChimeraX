@@ -87,13 +87,10 @@ class Shaders:
                 from numpy import all
                 if all(view_matrix_inverse == self.current_inv_view_matrix):
                     return
-            from . import matrix
-#            v = matrix.invert_matrix(view_matrix)      # Slow, 10000 per second.
             v = view_matrix_inverse
             m = model_matrix
             # TODO: optimize matrix multiply.  Rendering bottleneck with 200 models open.
-            mv = matrix.multiply_matrices(v, m)
-            mv4 = opengl_matrix(mv)
+            mv4 = (v*m).opengl_matrix()
             self.current_model_view_matrix = mv4
             self.current_model_matrix = m
             self.current_inv_view_matrix = v
@@ -186,9 +183,3 @@ def insert_define_macros(shader, capabilities):
     eol = shader[v:].find('\n')+1
     s = shader[:eol] + defs + '\n' + shader[eol:]
     return s
-    
-def opengl_matrix(m):
-    return ((m[0][0], m[1][0], m[2][0], 0),
-            (m[0][1], m[1][1], m[2][1], 0),
-            (m[0][2], m[1][2], m[2][2], 0),
-            (m[0][3], m[1][3], m[2][3], 1))

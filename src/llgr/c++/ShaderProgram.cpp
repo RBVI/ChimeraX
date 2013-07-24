@@ -16,7 +16,7 @@
 #include <string.h>
 #include <assert.h>
 
-#undef PRINT_UNIFORMS
+#undef PRINT_SHADER_INFO
 
 namespace llgr {
 
@@ -411,7 +411,7 @@ isSpace(string::traits_type::char_type c)
 #endif
 }
 
-ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment_shader): programObj(0), vs(0), fs(0)
+ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment_shader, const string& attribute0_name): programObj(0), vs(0), fs(0)
 {
 	class GuardProgram {
 		// Protect against leaks due to exceptions
@@ -481,6 +481,10 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 	if (!compiled)
 		throw std::runtime_error("unable to compile all shaders");
 
+	if (!attribute0_name.empty()) {
+		glBindAttribLocation(program.get(), 0, attribute0_name.c_str());
+	}
+
 	glLinkProgram(program.get());
 	glGetProgramiv(program.get(), GL_LINK_STATUS, &status);
 	if (status != GL_TRUE) {
@@ -538,7 +542,7 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 		attributes_.push_back(sv);
 	}
 
-#ifdef PRINT_UNIFORMS
+#ifdef PRINT_SHADER_INFO
 	{
 		// print out all uniforms and vertex attributes
 		std::map<GLenum, const char *> typeMap;
@@ -573,7 +577,7 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 					e = uniforms_.end(); i != e; ++i) {
 			ShaderVariable *sv = *i;
 			std::cerr << "    " << sv->name() << ' '
-				<< sv->size() << ' ' << typeMap[sv->type()]
+				<< ' ' << typeMap[sv->type()]
 				<< " loc: " << sv->location() << '\n';
 		}
 		std::cerr << "  vertex attributes:\n";
@@ -581,7 +585,7 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 					e = attributes_.end(); i != e; ++i) {
 			ShaderVariable *sv = *i;
 			std::cerr << "    " << sv->name() << ' '
-				<< sv->size() << ' ' << typeMap[sv->type()]
+				<< ' ' << typeMap[sv->type()]
 				<< " loc: " << sv->location() << '\n';
 		}
 	}

@@ -1,23 +1,74 @@
-from chimera.replyobj import status, warning
-
 # ------------------------------------------------------------------------------
 #
-from chimera.baseDialog import ModelessDialog
-class Fit_List(ModelessDialog):
+class Fit_List:
 
-    title = 'Fit List'
-    name = 'fit list'
     buttons = ('Place Copy', 'Save PDB', 'Options', 'Delete', 'Clear List', 'Close')
-    help = 'UsersGuide/midas/fitmap.html#fitlist'
+
+    def __init__(self):
+
+        self.list_fits = []
+        self.show_clash = False
+        self.smooth_motion = True
+        self.smooth_steps = 10
+
+        from ..gui import main_window
+        from ..qt import QtWidgets
+        self.dock_widget = dw = QtWidgets.QDockWidget('Fit List', main_window)
+
+        # Place list above row of buttons
+        w = QtWidgets.QWidget(dw)
+        vb = QtWidgets.QVBoxLayout()
+        vb.setContentsMargins(0,0,0,0)          # No border padding
+        vb.setSpacing(0)                # Spacing between list and button row
+        class ListBox(QtWidgets.QListWidget):
+            def sizeHint(self):
+                from ..qt import QtCore
+                return QtCore.QSize(500,50)
+        self.list_box = lb = ListBox(w)
+#        self.list_box = lb = QtWidgets.QListWidget(w)
+        lb.itemSelectionChanged.connect(self.fit_selection_cb)
+        vb.addWidget(lb)
+
+        # Button row
+        buttons = QtWidgets.QWidget(w)
+        hb = QtWidgets.QHBoxLayout()
+        hb.setContentsMargins(0,0,0,0)          # No border padding
+        hb.addStretch(1)                        # Stretchable space at left
+        hb.setSpacing(5)                # Spacing between buttons
+        for bname,cb in (('Place Copy', self.place_copies_cb),
+                         ('Save PDB', self.save_fits_cb),
+                         ('Delete', self.delete_fit_cb),
+                         ('Clear List', lambda self=self: self.delete_fit_cb(all=True))):
+            b = QtWidgets.QPushButton(bname, buttons)
+            b.pressed.connect(cb)
+            hb.addWidget(b)
+        buttons.setLayout(hb)
+        vb.addWidget(buttons)
+# Appears that on mac there is a problem that prevents reducing QPushButton border to 0.
+#        b = QtWidgets.QPushButton('Test', w)
+#        b.setContentsMargins(0,0,0,0)          # No effect
+#        vb.addWidget(b)
+
+        w.setLayout(vb)
+        dw.setWidget(w)
+
+        from ..qt import QtGui
+        lb.setFont(QtGui.QFont("Courier"))  # Fixed with font so columns line up
+
+        self.refill_list()      # Set heading
+
+    def show(self):
+        from ..gui import main_window
+        from ..qt import QtCore
+        dw = self.dock_widget
+        main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
+        dw.setVisible(True)
+
+    def hide(self):
+        from ..gui import main_window
+        main_window.removeDockWidget(self.dock_widget)
 
     def fillInUI(self, parent):
-
-        import Tkinter
-        from CGLtk import Hybrid
-
-        tw = parent.winfo_toplevel()
-        self.toplevel_widget = tw
-        tw.withdraw()
 
         parent.columnconfigure(0, weight = 1)
 
@@ -68,25 +119,8 @@ class Fit_List(ModelessDialog):
 
         add_fit_list_menu_entry()
 
-    def map(self):
-        # Can get scrollbar map/unmap infinite loop if dialog resize allowed.
-        tw = self.toplevel_widget
-        tw.geometry(tw.geometry())
-
-    def PlaceCopy(self):
-        self.place_copies_cb()
-
-    def SavePDB(self):
-        self.save_fits_cb()
-
     def Options(self):
         self.options_panel.set(not self.options_panel.get())
-
-    def Delete(self):
-        self.delete_fit_cb()
-
-    def ClearList(self):
-        self.delete_fit_cb(all = True)
 
     def add_fits(self, fits):
 
@@ -96,12 +130,12 @@ class Fit_List(ModelessDialog):
     def add_fit(self, fit):
 
         line = self.list_line(fit)
-        self.fit_listbox.insert('end', line)
+        self.list_box.addItem(line)
         self.list_fits.append(fit)
 
     def heading(self):
 
-        clash = (' %8s' % 'Clash') if self.show_clash.get() else ''
+        clash = (' %8s' % 'Clash') if self.show_clash else ''
         h = '%8s %8s %8s%s %15s %15s %5s' % ('Corr  ', 'Ave ', 'Inside',  clash,
                                              'Molecule', 'Map     ', 'Hits')
         return h
@@ -114,14 +148,14 @@ class Fit_List(ModelessDialog):
         # TODO: Want to be able to update clash value when contour level
         #   changed.  Currently it is cached in Fit object.
         mname = fit.models[0].name if fit.models else 'deleted'
-        from chimera import Molecule
+        from ..molecule import Molecule
         if len([m for m in fit.models if isinstance(m,Molecule)]) > 1:
             mname += '...'
 
         c = fit.correlation()
         cs = ('%8s' % '') if c is None else '%8.4f' % c
         clash = ''
-        if self.show_clash.get():
+        if self.show_clash:
             c = fit.clash()
             clash = (' %8.3f' % c) if not c is None else (' %8s' % '')
         amv = fit.average_map_value()
@@ -136,12 +170,14 @@ class Fit_List(ModelessDialog):
 
     def refill_list(self):
 
-        lbox = self.fit_listbox
-        lbox.delete('0', 'end')
-        self.listbox_heading['text'] = self.heading()
+        lb = self.list_box
+        lb.clear()
+        h = self.heading()
+        lb.addItem(h)
         for fit in self.list_fits:
-            lbox.insert('end', self.list_line(fit))
-            
+            line = self.list_line(fit)
+            lb.addItem(line)
+
     def fit_selection_cb(self, event = None):
 
         lfits = self.selected_listbox_fits()
@@ -149,19 +185,22 @@ class Fit_List(ModelessDialog):
             return
 
         frames = 0
-        if self.smooth_motion.get():
-            from CGLtk import Hybrid
-            frames = Hybrid.integer_variable_value(self.smooth_steps, 0, 0)
+        if self.smooth_motion:
+            frames = self.smooth_steps
 
         lfits[0].place_models(frames)
 
     def selected_listbox_fits(self):
 
-        return [self.list_fits[int(i)] for i in self.fit_listbox.curselection()]
+        lb = self.list_box
+        return [f for r,f in enumerate(self.list_fits)
+                if lb.item(r+1).isSelected()]
 
     def select_fit(self, fit):
 
-        self.fit_listbox.selection_set(self.list_fits.index(fit))
+        row = self.list_fits.index(fit)+1
+        lb = self.list_box
+        lb.item(row).setSelected(True)
         self.fit_selection_cb()
         
     def save_fits_cb(self):
@@ -169,6 +208,7 @@ class Fit_List(ModelessDialog):
         lfits = self.selected_listbox_fits()
         mlist = sum([f.fit_molecules() for f in lfits], [])
         if len(mlist) == 0:
+            from chimera.replyobj import warning
             warning('No fits of molecules chosen from list.')
             return
 
@@ -209,30 +249,36 @@ class Fit_List(ModelessDialog):
     def delete_fit_cb(self, all = False):
 
         if all:
-            indices = range(len(self.list_fits))
+            dfits = self.list_fits
         else:
-            indices = [int(i) for i in self.fit_listbox.curselection()]
-            if len(indices) == 0:
-                warning('No fits chosen from list.')
+            dfits = self.selected_listbox_fits()
+            if len(dfits) == 0:
+                from ..gui import show_status
+                show_status('No fits chosen from list.')
                 return
-            indices.sort()
+        dset = set(dfits)
+        fits = self.list_fits
+        indices = [i for i,f in enumerate(fits) if f in dset]
         indices.reverse()
+        lb = self.list_box
         for i in indices:
-            self.fit_listbox.delete(i)
-            del self.list_fits[i]
+            lb.takeItem(i+1)
+            del fits[i]
 
-        status('Deleted %d fits' % len(indices))
+        from ..gui import show_status
+        show_status('Deleted %d fits' % len(indices))
 
     def place_copies_cb(self):
 
+        from ..gui import show_status
         lfits = [f for f in self.selected_listbox_fits() if f.fit_molecules()]
         if len(lfits) == 0:
-            warning('No fits of molecules chosen from list.')
+            show_status('No fits of molecules chosen from list.')
             return
         clist = []
         for fit in lfits:
             clist.extend(fit.place_copies())
-        status('Placed %d molecule copies' % len(clist))
+        show_status('Placed %d molecule copies' % len(clist))
 
     def show_clash_cb(self):
 
@@ -246,7 +292,7 @@ class Fit_List(ModelessDialog):
 
     def close_session_cb(self, trigger, x, y):
 
-        self.ClearList()
+        self.delete_fit_cb(all = True)
 
 # -----------------------------------------------------------------------------
 #
@@ -284,21 +330,17 @@ def add_fit_list_menu_entry():
         
 # -----------------------------------------------------------------------------
 #
+fit_list = None
 def fit_list_dialog(create = False):
-
-    from chimera import dialogs
-    return dialogs.find(Fit_List.name, create=create)
+    global fit_list
+    if fit_list is None and create:
+        fit_list = Fit_List()
+    return fit_list
   
 # -----------------------------------------------------------------------------
 #
 def show_fit_list_dialog():
 
-    from chimera import dialogs
-    d = dialogs.display(Fit_List.name)
-    d.fit_listbox.focus_set()
-    return d
-
-# -----------------------------------------------------------------------------
-#
-from chimera import dialogs
-dialogs.register(Fit_List.name, Fit_List, replace = True)
+    fl = fit_list_dialog(create = True)
+    fl.show()
+    return fl

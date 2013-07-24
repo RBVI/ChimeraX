@@ -1,0 +1,27 @@
+#version 150
+
+uniform mat4 ProjectionMatrix;
+uniform mat4 ModelViewMatrix;
+uniform mat3 NormalMatrix;
+
+out vec3 N;
+out vec3 v;
+out vec4 fcolor;
+
+in vec4 position;
+in vec3 normal;
+in vec4 color;
+in mat4 instanceTransform;
+in vec3 instanceScale;
+
+void main(void)
+{
+  vec3 vi = vec3(instanceTransform * vec4(instanceScale * vec3(position), 1));
+  v = vec3(ModelViewMatrix * vec4(vi, position.w));
+  N = normalize(NormalMatrix * vec3(instanceTransform * vec4(normal, 0)));
+
+  gl_Position = ProjectionMatrix * vec4(v, 1.0);
+  fcolor = color;
+  //vec4 blue = vec4(0., 0., 1., 0.);
+  //fcolor = blue;
+}

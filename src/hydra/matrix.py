@@ -529,6 +529,9 @@ def R_to_axis_angle(matrix):
 
     # Angle.
     r = hypot(axis[0], hypot(axis[1], axis[2]))
+    if r == 0:
+      return (0,0,1), 0
+
     t = matrix[0,0] + matrix[1,1] + matrix[2,2]
     theta = atan2(r, t-1)
 
@@ -599,6 +602,28 @@ def same_xform(xf1, xf2, angle_tolerance = 0, shift_tolerance = 0,
 
 # -----------------------------------------------------------------------------
 #
+def same_transform(tf1, tf2, angle_tolerance = 0, shift_tolerance = 0,
+                   shift_point = (0,0,0)):
+
+  import numpy
+  if angle_tolerance == 0 and shift_tolerance == 0:
+    return numpy.all(tf1 == tf2)
+
+  from chimera import Point
+  p = Point(*tuple(shift_point))
+  trans = numpy.subtract(apply_matrix(tf1, p) - apply_matrix(tf2, p))
+  if length(trans) > shift_tolerance:
+    return False
+
+  tf = multiply_matrices(tf1, tf2)
+  axis, angle = rotation_axis_angle(tf)
+  if abs(angle) > angle_tolerance:
+    return False
+
+  return True
+
+# -----------------------------------------------------------------------------
+#
 def xforms_differ(xf1, xf2, angle_limit = 0.1, translation_limit = 0.01):
 
   xf = xf1.inverse()
@@ -610,25 +635,25 @@ def xforms_differ(xf1, xf2, angle_limit = 0.1, translation_limit = 0.01):
 
 # -----------------------------------------------------------------------------
 #
-def interpolate_xforms(xf1, center, xf2, frac):
+def interpolate_transforms(tf1, center, tf2, frac):
 
-  xf = xf1.inverse()
-  xf.multiply(xf2)
-  fxf = fractional_xform(xf, center, frac)
-  fxf.premultiply(xf1)
-  return fxf
+  tf = multiply_matrices(invert_matrix(tf1), tf2)
+  ftf = fractional_transform(tf, center, frac)
+  itf = multiply_matrices(tf1, ftf)
+  return itf
 
 # -----------------------------------------------------------------------------
 #
-def fractional_xform(xf, center, frac):
+def fractional_transform(tf, center, frac):
 
-  from chimera import Xform, Point
-  fxf = Xform.translation(Point()-center)
-  axis, angle = xf.getRotation()
-  fxf.premultiply(Xform.rotation(axis, frac*angle))
-  fc = center + frac*(xf.apply(center) - center)
-  fxf.premultiply(Xform.translation(fc.toVector()))
-  return fxf
+  axis, angle = rotation_axis_angle(tf)
+  import numpy
+  center = numpy.array(center)
+  fc = center + frac*(apply_matrix(tf,center) - center)
+  ftf = multiply_matrices(translation_matrix(fc),
+                          rotation_transform(axis, frac*angle),
+                          translation_matrix(-center))
+  return ftf
 
 # -----------------------------------------------------------------------------
 # Rotation applied first, then translation.
@@ -808,3 +833,11 @@ def coordinate_transform_xforms(xflist, from_xf, to_xf):
     xft.multiply(cxf)
     xftlist.append(xft)
   return xftlist
+
+# -----------------------------------------------------------------------------
+#
+def opengl_matrix(m):
+    return ((m[0][0], m[1][0], m[2][0], 0),
+            (m[0][1], m[1][1], m[2][1], 0),
+            (m[0][2], m[1][2], m[2][2], 0),
+            (m[0][3], m[1][3], m[2][3], 1))

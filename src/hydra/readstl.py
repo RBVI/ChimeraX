@@ -70,8 +70,8 @@ def parse_stl_geometry(nv):
     for t,tvi in enumerate(tri):
         for i in tvi:
             normals[i,:] += nv[t,0:3]
-    from . import matrix
-    matrix.normalize_vectors(normals)
+    from . import vector
+    vector.normalize_vectors(normals)
 
     return vert, normals, tri
 
@@ -91,7 +91,7 @@ class STL_Surface(Surface):
     def session_state(self):
         p = self.plist[0]
         s = {'path':self.path,
-             'place':self.place,
+             'place':self.place.matrix,
              'color':p.color}
         if p.copies:
             s['copies'] = p.copies
@@ -118,11 +118,12 @@ def restore_stl_surfaces(d, viewer):
     surfs = d.get('stl surfaces')
     if surfs is None:
         return
+    from .place import Place
     for st in surfs:
         s = read_stl(st['path'])
-        s.place = st['place']
+        s.place = Place(st['place'])
         p = s.plist[0]
         p.color = st['color']
         if 'copies' in st:
-            p.copies = st['copies']
+            p.copies = [Place(c) for c in st['copies']]
         viewer.add_model(s)

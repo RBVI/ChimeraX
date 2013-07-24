@@ -20,6 +20,10 @@ init_name_map()
 	name_map_initialized = true;
 }
 
+}
+
+namespace llgr {
+
 const string&
 attribute_alias(const string& name)
 {
@@ -28,10 +32,6 @@ attribute_alias(const string& name)
 		return i->second;
 	return name;
 }
-
-}
-
-namespace llgr {
 
 AllObjects all_objects;
 
@@ -48,26 +48,59 @@ set_attribute_alias(const string& name, const string& value)
 }
 
 void
-check_attributes(Id obj_id, Id program_id, const AttributeInfos &ais)
+check_attributes(Id obj_id, ObjectInfo *oi)
 {
-	// check for missing attributes
-	AllPrograms::iterator si = all_programs.find(program_id);
+	// check for missing attributes and setup vertex arrays
+	AllPrograms::iterator si = all_programs.find(oi->program_id);
 	if (si == all_programs.end()) {
 		std::cerr << "missing program for object " << obj_id << '\n';
-	} else {
-		ShaderProgram *sp = si->second;
-		typedef ShaderProgram::Variables Vars;
-		const Vars &attrs = sp->attributes();
-		for (Vars::const_iterator j = attrs.begin(); j != attrs.end(); ++j) {
-			ShaderVariable *sv = *j;
-			if (sv->name() == "instanceTransform")
-				continue;
-			AttributeInfos::const_iterator aii = std::find_if(ais.begin(), ais.end(), AI_Name(sv->name()));
-			if (aii == ais.end()) {
-				std::cerr << "missing attribute " << sv->name() << " in object " << obj_id << '\n';
-			}
+		return;
+	}
+
+#ifdef USE_VAO
+	oi->singleton_cache.clear();
+	oi->singleton_cache.reserve(2);
+#endif
+	ShaderProgram *sp = si->second;
+	typedef ShaderProgram::Variables Vars;
+	const Vars &attrs = sp->attributes();
+	for (Vars::const_iterator j = attrs.begin(); j != attrs.end(); ++j) {
+		ShaderVariable *sv = *j;
+		if (sv->name() == "instanceTransform")
+			continue;
+		AttributeInfos::const_iterator aii = std::find_if(oi->ais.begin(), oi->ais.end(), AI_Name(sv->name()));
+		if (aii == oi->ais.end()) {
+			std::cerr << "missing attribute " << sv->name() << " in object " << obj_id << '\n';
+		}
+#ifdef USE_VAO
+		const AttributeInfo &ai = *aii;
+		AllBuffers::iterator bii = all_buffers.find(ai.data_id);
+		if (bii == all_buffers.end())
+			return;
+		const BufferInfo &bi = bii->second;
+		int loc = sv->location();
+		unsigned num_locations, num_elements;
+		attr_location_info(sv->type(), &num_locations, &num_elements);
+		if (bi.buffer == 0) {
+			oi->singleton_cache.push_back(SingletonInfo(ai.type,
+				ai.normalized, bi.data, loc, num_locations,
+				num_elements));
+		} else {
+			setup_array_attribute(bi, ai, loc, num_locations);
+		}
+#endif
+	}
+#ifdef USE_VAO
+	if (oi->index_buffer_id) {
+		AllBuffers::const_iterator bii
+				= all_buffers.find(oi->index_buffer_id);
+		if (bii != all_buffers.end()) {
+			const BufferInfo &ibi = bii->second;
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibi.buffer);
 		}
 	}
+	oi->cache_valid = true;
+#endif
 }
 
 void
@@ -75,17 +108,26 @@ create_object(Id obj_id, Id program_id, Id matrix_id, const AttributeInfos& ais,
 {
 	if (!name_map_initialized)
 		init_name_map();
-	// TODO: if (ib != 0) then t in (UByte, UShort, UInt)
+	
+	if (ib && t != UByte && t != UShort && t != UInt)
+		throw std::logic_error("DataType must be an unsigned type");
 
-	delete_object(obj_id);
 	ObjectInfo *oi = new ObjectInfo(program_id, matrix_id, ais, pt, first, count, ib, t);
+	delete_object(obj_id);
 	all_objects[obj_id] = oi;
 	dirty = true;
 	for (AttributeInfos::iterator aii = oi->ais.begin();
 						aii != oi->ais.end(); ++aii) {
 		aii->name = attribute_alias(aii->name);
 	}
-	check_attributes(obj_id, program_id, oi->ais);
+#ifdef USE_VAO
+	glGenVertexArrays(1, &oi->vao);
+	glBindVertexArray(oi->vao);
+#endif
+	check_attributes(obj_id, oi);
+#ifdef USE_VAO
+	glBindVertexArray(0);
+#endif
 }
 
 void

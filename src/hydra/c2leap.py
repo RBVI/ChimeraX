@@ -225,8 +225,7 @@ def keep_within_frustum(t, v):
 
     c = v.center_of_rotation
     cvi = v.camera_view_inverse
-    from . import matrix
-    p1 = matrix.apply_matrix(cvi, c)
+    p1 = cvi * c
     p2 = add(p1, t)
     from math import pi, sin, cos
     a = 0.5*v.field_of_view*pi/180

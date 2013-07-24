@@ -9,9 +9,9 @@ def fit_sequence(models, volume, steps,
                  ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
                  request_stop_cb = None):
 
-    from chimera import Xform
+    from ..place import identity
     data_array, xyz_to_ijk_transform = \
-        volume.matrix_and_transform(Xform(), subregion = None, step = 1)
+        volume.matrix_and_transform(identity(), subregion = None, step = 1)
 
     size = tuple(data_array.shape[::-1])
     from numpy import float32, multiply, add, array

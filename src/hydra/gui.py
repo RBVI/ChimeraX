@@ -51,7 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def create_command_line(self):
 
-        d = QtWidgets.QDockWidget(self)
+        d = QtWidgets.QDockWidget('Command line', self)
         self.command_line = cline = QtWidgets.QLineEdit(d)
         cline.setFocusPolicy(QtCore.Qt.ClickFocus)
         d.setWidget(cline)

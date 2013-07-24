@@ -118,7 +118,10 @@ def align_points(xyz, ref_xyz):
 #        arms = sqrt((df*df).sum()/len(Si))
 #        print (rms, arms)
 
-    return tf, rms
+    from .place import Place
+    p = Place(tf)
+
+    return p, rms
 
 def quaternion_rotation_matrix(q):
     l,m,n,s = q
@@ -185,9 +188,8 @@ def write_matrix(tf, atoms, ref_atoms):
 def move_atoms(atoms, ref_atoms, tf, move):
 
     if move == 'molecules' or move is True:
-        from .matrix import multiply_matrices
         for m in atoms.molecules():
-            m.place = multiply_matrices(tf, m.place)
+            m.place = tf * m.place
             m.redraw_needed = True
     else:
         if move == 'atoms':
@@ -209,9 +211,8 @@ def test_align_points(n = 100):
     axis = (.5,-.3,1)
     angle = 128
     shift = (10,20,30)
-    from . import matrix as M
-    tf = M.multiply_matrices(M.translation_matrix(shift),
-                             M.rotation_transform(axis, angle))
+    from .place import translation, rotation
+    tf = translation(shift) * rotation(axis, angle)
     rp = p.copy()
     M.transform_points(rp, tf)
     atf, rms = align_points(p, rp)

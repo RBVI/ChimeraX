@@ -879,8 +879,7 @@ class Volume(Surface):
 
     # Preserve triangle vertex traversal direction about normal.
     transform = self.matrix_indices_to_xyz_transform()
-    from ..matrix import determinant
-    if determinant(transform) < 0:
+    if transform.determinant() < 0:
       from .._image3d import reverse_triangle_vertex_order
       reverse_triangle_vertex_order(tarray)
 
@@ -902,13 +901,11 @@ class Volume(Surface):
       smooth_vertex_positions(narray, tarray, sf, si)
 
     # Transform vertices and normals
-    from .._image3d import affine_transform_vertices
-    affine_transform_vertices(varray, transform)
-    from ..matrix import invert_matrix, transpose_matrix, zero_translation
-    tf = zero_translation(transpose_matrix(invert_matrix(transform)))
-    affine_transform_vertices(narray, tf)
-    from ..matrix import normalize_vectors
-    normalize_vectors(narray)
+    transform.move(varray)
+    tf = transform.inverse().transpose().zero_translation()
+    tf.move(narray)
+    from .. import vector
+    vector.normalize_vectors(narray)
 
     self.message('Making %s surface with %d triangles' % (name, len(tarray)))
 
@@ -956,7 +953,7 @@ class Volume(Surface):
     if show and rgb:
       from ..VolumeData import box_corners
       ijk_corners = box_corners(*self.ijk_bounds())
-      corners = [self.data.ijk_to_xyz(ijk) for ijk in ijk_corners]
+      corners = self.data.ijk_to_xyz_transform * ijk_corners
       if self.showing_orthoplanes():
         ro = self.rendering_options
         planes = ro.orthoplanes_shown
@@ -1247,8 +1244,7 @@ class Volume(Surface):
   def ijk_to_global_xyz(self, ijk):
 
     pm = self.data.ijk_to_xyz(ijk)
-    from .. import matrix
-    p = matrix.apply_matrix(self.place, pm)
+    p = self.place * pm
     return p
 
   # ---------------------------------------------------------------------------
@@ -1258,11 +1254,10 @@ class Volume(Surface):
 
     d = self.data
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
-    from numpy import array
-    lv = array(d.ijk_to_xyz(va)) - d.ijk_to_xyz((0,0,0))
-    from .. import matrix
-    v = matrix.apply_matrix(self.place, lv)
-    vn = matrix.normalize_vector(v)
+    lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
+    v = self.place * lv
+    from .. import vector
+    vn = vector.normalize_vector(v)
     return vn
 
   # ---------------------------------------------------------------------------
@@ -1395,9 +1390,10 @@ class Volume(Surface):
     xi, yi, zi = data.ijk_to_xyz((io+istep, jo, ko))
     xj, yj, zj = data.ijk_to_xyz((io, jo+jstep, ko))
     xk, yk, zk = data.ijk_to_xyz((io, jo, ko+kstep))
-    tf = ((xi-xo, xj-xo, xk-xo, xo),
-          (yi-yo, yj-yo, yk-yo, yo),
-          (zi-zo, zj-zo, zk-zo, zo))
+    from ..place import Place
+    tf = Place(((xi-xo, xj-xo, xk-xo, xo),
+                (yi-yo, yj-yo, yk-yo, yo),
+                (zi-zo, zj-zo, zk-zo, zo)))
     return tf
 
   # ---------------------------------------------------------------------------
@@ -1611,7 +1607,7 @@ class Volume(Surface):
   # Return xyz coordinates of grid points of volume data transformed to a
   # local coordinate system.
   #
-  def grid_points(self, xform_to_local_coords, zplane = None):
+  def grid_points(self, transform_to_local_coords, zplane = None):
 
     data = self.data
     size = data.size
@@ -1622,12 +1618,8 @@ class Volume(Surface):
     else:
       points = grid_indices((size[0],size[1],1), float32)  # Single z plane.
       points[:,2] = zplane
-    from ..matrix import multiply_matrices, xform_matrix
-    mt = multiply_matrices(xform_matrix(xform_to_local_coords),
-                           xform_matrix(self.model_transform()),
-                           data.ijk_to_xyz_transform)
-    from .._image3d import affine_transform_vertices
-    affine_transform_vertices(points, mt)
+    mt = transform_to_local_coords * self.model_transform() * data.ijk_to_xyz_transform
+    mt.move(points)
     return points
   
   # ---------------------------------------------------------------------------
@@ -1642,13 +1634,10 @@ class Volume(Surface):
     m2s_transform = self.matrix_indices_to_xyz_transform(step, subregion)
     if source_to_scene_transform:
       # Handle case where vertices and volume have different model transforms.
-      from ..matrix import invert_matrix, multiply_matrices
-      scene_to_source_tf = invert_matrix(source_to_scene_transform)
-      m2s_transform = multiply_matrices(scene_to_source_tf,
-                                        self.place, m2s_transform)
+      scene_to_source_tf = source_to_scene_transform.inverse()
+      m2s_transform = scene_to_source_tf * self.place * m2s_transform
       
-    from ..matrix import invert_matrix
-    s2m_transform = invert_matrix(m2s_transform)
+    s2m_transform = m2s_transform.inverse()
 
     matrix = self.matrix(step=step, subregion=subregion)
 
@@ -1960,8 +1949,9 @@ class Outline_Box:
   def show(self, corners, rgb, linewidth,
            center = None, planes = None, crosshair_width = None):
 
-    if corners and rgb:
-      changed = (corners != self.corners or
+    if not corners is None and rgb:
+      from numpy import any
+      changed = (any(corners != self.corners) or
                  rgb != self.rgb or
                  linewidth != self.linewidth or
                  center != self.center or
@@ -2099,10 +2089,9 @@ def minimum_rms_scale(v, u, level):
 #
 def same_grid(v1, region1, v2, region2):
 
-  from ..matrix import same_xform
   same = (region1 == region2 and
-          v1.data.ijk_to_xyz_transform == v2.data.ijk_to_xyz_transform and
-          same_xform(v1.model_transform(), v2.model_transform()))
+          v1.data.ijk_to_xyz_transform.same(v2.data.ijk_to_xyz_transform) and
+          v1.model_transform().same(v2.model_transform()))
   return same
     
 # -----------------------------------------------------------------------------
@@ -2584,6 +2573,7 @@ def maximum_data_diagonal_length(data):
 
     imax, jmax, kmax = [a-1 for a in data.size]
     ijk_to_xyz = data.ijk_to_xyz
+    from ..vector import distance
     d = max(distance(ijk_to_xyz((0,0,0)), ijk_to_xyz((imax,jmax,kmax))),
             distance(ijk_to_xyz((0,0,kmax)), ijk_to_xyz((imax,jmax,0))),
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),
@@ -2592,28 +2582,15 @@ def maximum_data_diagonal_length(data):
 
 # -----------------------------------------------------------------------------
 #
-def distance(xyz1, xyz2):
-
-  dx, dy, dz = [a-b for a,b in zip(xyz1, xyz2)]
-  import math
-  d = math.sqrt(dx*dx + dy*dy + dz*dz)
-  return d
-
-# -----------------------------------------------------------------------------
-#
 from ..VolumeData import bounding_box
 
 # -----------------------------------------------------------------------------
 #
-def transformed_points(points, xform):
+def transformed_points(points, tf):
 
   from numpy import array, single as floatc
-  from ..matrix import xform_matrix
-  tf = array(xform_matrix(xform), floatc)
   tf_points = array(points, floatc)
-  from .. import _image3d
-  _image3d.affine_transform_vertices(tf_points, tf)
-
+  tf.move(tf_points)
   return tf_points
     
 # -----------------------------------------------------------------------------
@@ -2659,11 +2636,8 @@ def atom_bounds(atoms, pad, volume):
     xyz = get_atom_coordinates(atoms, transformed = True)
 
     # Transform atom coordinates to volume ijk indices.
-    from ..matrix import multiply_matrices, xform_matrix
-    tf = multiply_matrices(volume.data.xyz_to_ijk_transform,
-                           xform_matrix(volume.model_transform().inverse()))
-    from .._image3d import affine_transform_vertices
-    affine_transform_vertices(xyz, tf)
+    tf = volume.data.xyz_to_ijk_transform * volume.model_transform().inverse()
+    tf.move(xyz)
     ijk = xyz
 
     # Find integer bounds.

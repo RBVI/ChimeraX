@@ -636,8 +636,7 @@ class Box_Model:
 def transform_box_corners(box, transform):
 
   corners = box_corners(box)
-  from ..Matrix import apply_matrix
-  tcorners = map(lambda p: apply_matrix(transform, p), corners)
+  tcorners = transform * corners
   return tcorners
 
 # -----------------------------------------------------------------------------
@@ -666,7 +665,8 @@ def box_corners(box):
                    (1,0,0), (1,0,1), (1,1,0), (1,1,1)):
     c = (box[i0][0], box[i1][1], box[i2][2])
     corners.append(c)
-  return corners
+  import numpy
+  return numpy.array(corners, numpy.float64)
   
 # -----------------------------------------------------------------------------
 #

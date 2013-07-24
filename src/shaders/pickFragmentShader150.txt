@@ -1,0 +1,10 @@
+#version 150
+
+in f_pickId;
+
+out frag_color;
+
+void main (void)
+{
+  frag_color = f_pickId;
+}

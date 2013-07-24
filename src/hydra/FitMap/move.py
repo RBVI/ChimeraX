@@ -50,14 +50,12 @@ class Position_History:
 #
 def position_state(models, atoms, base_model):
 
-  from ..matrix import invert_matrix, multiply_matrices
-  btfinv = invert_matrix(base_model.place)
+  btfinv = base_model.place.inverse()
   mset = set(models)
   mset.update(atoms.molecules())
   model_transforms = []
   for m in mset:
-      tf = multiply_matrices(btfinv, m.place)
-      model_transforms.append((m, tf))
+      model_transforms.append((m, btfinv * m.place))
   atom_positions = (atoms, atoms.coordinates().copy())
   return (base_model, model_transforms, atom_positions)
 
@@ -69,14 +67,13 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
     if base_model.__destroyed__:
         return False
     changed = False
-    from ..matrix import same_xform
     for m, mtf in model_transforms:
         if m.__destroyed__:
             continue
-        tf = multiply_matrices(base_model.place, mtf)
-        if not same_xform(m.place, tf, angle_tolerance, shift_tolerance):
+        tf = base_model.place * mtf
+        if not tf.same(m.place, angle_tolerance, shift_tolerance):
             changed = True
-        m.place = tf
+        m.set_place(tf)
 
     atoms, xyz = apos
     if not (atoms.coordinates() == xyz).all():
@@ -94,9 +91,8 @@ def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
         atoms = Atom_Set()
     global position_history
     position_history.record_position(models, atoms, base_model)
-    from .. import matrix
     for m in models:
-        m.place = matrix.multiply_matrices(tf, m.place)
+        m.set_place(tf * m.place)
     atoms.move_atoms(tf)
     position_history.record_position(models, atoms, base_model)
 

@@ -18,7 +18,8 @@ class Gray_Scale_Drawing(object):
 
     self.mod_rgba = (1,1,1,1)	# For luminance color modes.
 
-    self.ijk_to_xyz = ((1,0,0,0),(0,1,0,0),(0,0,1,0))
+    from ..place import Place
+    self.ijk_to_xyz = Place(((1,0,0,0),(0,1,0,0),(0,0,1,0)))
 
     # Use 2d textures along chosen axes or 3d textures.
     # Mode names 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
@@ -114,10 +115,9 @@ class Gray_Scale_Drawing(object):
       self.reload_textures()
       self.update_colors = False
 
-    from .. import matrix
-    zaxis = tuple(self.ijk_to_xyz[a][2] for a in (0,1,2))
+    zaxis = self.ijk_to_xyz.z_axis()
     vaxis = viewer.view_direction()
-    reverse = (matrix.inner_product(zaxis, vaxis) > 0)
+    reverse = ((zaxis * vaxis).sum() > 0)
 
     from ..surface import Surface
     Surface.draw(self.surface, viewer, draw_pass, reverse)
@@ -186,7 +186,6 @@ class Gray_Scale_Drawing(object):
     tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
     tc1 = array(((0,0),(0,1),(1,1),(1,0)), float32)
     plist = []
-    from .._image3d import affine_transform_vertices
     for k, axis in planes:
       va = empty((4,3), float32)
       va[:,:] = -0.5
@@ -194,7 +193,7 @@ class Gray_Scale_Drawing(object):
       a0, a1 = (axis + 1) % 3, (axis + 2) % 3
       va[1:3,a0] += gs[a0]
       va[2:4,a1] += gs[a1]
-      affine_transform_vertices(va, self.ijk_to_xyz)
+      self.ijk_to_xyz.move(va)
       p = s.newPiece()
       p.geometry = va, ta
       p.useLighting = False

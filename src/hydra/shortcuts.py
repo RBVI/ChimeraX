@@ -249,13 +249,10 @@ def fit_molecule_in_map(viewer):
     points = mol.xyz
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
-    from . import matrix as M
-    xyz_to_ijk_transform = M.multiply_matrices(map.data.xyz_to_ijk_transform,
-                                               M.invert_matrix(map.place),
-                                               mol.place)
+    xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.place.inverse() * mol.place
     from . import FitMap
     move_tf, stats = FitMap.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
-    mol.place = M.multiply_matrices(mol.place, move_tf)
+    mol.place = mol.place * move_tf
     for k,v in stats.items():
         print(k,v)
 
@@ -435,20 +432,19 @@ def show_stats():
     show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
 
 def matrix_profile():
-    from .matrix import invert_matrix, multiply_matrices, identity_matrix
-    from .matrix import multiply_matrices_numpy
-    m = identity_matrix()
+    from .place import identity
+    m = identity()
     import numpy
-    mn = numpy.array(m)
     n = 10000
     import time
     t0 = time.clock()
-    mi = [invert_matrix(m) for i in range(n)]
+    mi = [m.inverse() for i in range(n)]
     t1 = time.clock()
     print('%.0f matrix inverse per second' % (n / (t1-t0),))
     t0 = time.clock()
+#    from .matrix import multiply_matrices_numpy
 #    mi = [multiply_matrices_numpy(mn,mn) for i in range(n)]
-    mi = [multiply_matrices(m,m) for i in range(n)]
+    mi = [m*m for i in range(n)]
     t1 = time.clock()
     print('%.0f matrix multiplies per second' % (n / (t1-t0),))
 
