@@ -17,15 +17,15 @@
 
 namespace llgr {
 
-float clearColor[4];
+float clear_color[4];
 
 void
 set_clear_color(float r, float g, float b, float a)
 {
-	clearColor[0] = r;
-	clearColor[1] = g;
-	clearColor[2] = b;
-	clearColor[3] = a;
+	clear_color[0] = r;
+	clear_color[1] = g;
+	clear_color[2] = b;
+	clear_color[3] = a;
 	glClearColor(r, g, b, a);
 }
 
@@ -447,7 +447,7 @@ pick(int x, int y)
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_DITHER);
-	glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+	glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
 
 	ShaderProgram *sp = NULL;
 	Id current_program_id = 0;
