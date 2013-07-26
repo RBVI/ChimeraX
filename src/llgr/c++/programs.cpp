@@ -53,6 +53,7 @@ delete_program(Id program_id)
 		if (oi->program_id == program_id)
 			oi->invalidate_cache();
 	}
+	// TODO: delete VAO?
 #endif
 	i = pick_programs.find(program_id);
 	if (i == pick_programs.end())
@@ -100,10 +101,10 @@ set_uniform(ShaderVariable *sv, ShaderType type, uint32_t data_length, Bytes dat
 	  case Mat2x3: case Mat3x2:
 	  case Mat2x4: case Mat4x2:
 	  case Mat3x4: case Mat4x3:
-		sv->setFloatv(static_cast<const GLfloat *>(data));
+		sv->set_floatv(static_cast<const GLfloat *>(data));
 		break;
 	  case IVec1: case IVec2: case IVec3: case IVec4:
-	  case UVec1: case UVec2: case UVec3: case UVec4: sv->setIntv(static_cast<const GLint *>(data));
+	  case UVec1: case UVec2: case UVec3: case UVec4: sv->set_intv(static_cast<const GLint *>(data));
 		break;
 	}
 }
@@ -139,11 +140,11 @@ set_uniform(Id program_id, const char *name, ShaderType type, uint32_t data_leng
 		}
 		return;
 	}
-	ShaderProgram *sp = program_id ? all_programs[program_id] : NULL;
+	ShaderProgram *sp = all_programs[program_id];
 	ShaderVariable *sv = sp ? sp->uniform(name) : NULL;
 	if (sv)
 		set_uniform(sv, type, data_length, data);
-	sp = program_id ? pick_programs[program_id] : NULL;
+	sp = pick_programs[program_id];
 	sv = sp ? sp->uniform(name) : NULL;
 	if (sv)
 		set_uniform(sv, type, data_length, data);
@@ -172,7 +173,7 @@ set_uniform_matrix(ShaderVariable *sv, bool transpose, ShaderType type, uint32_t
 	  case Mat3x4: case Mat4x3:
 #endif
 		// TODO
-		sv->setFloatMatrixv(transpose, static_cast<const GLfloat *>(data));
+		sv->set_float_matrixv(transpose, static_cast<const GLfloat *>(data));
 		break;
 	}
 }

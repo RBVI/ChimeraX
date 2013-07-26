@@ -27,6 +27,8 @@ namespace llgr {
 const string&
 attribute_alias(const string& name)
 {
+	if (!name_map_initialized)
+		init_name_map();
 	NameMap::const_iterator i = name_map.find(name);
 	if (i != name_map.end())
 		return i->second;
@@ -81,7 +83,7 @@ check_attributes(Id obj_id, ObjectInfo *oi)
 		int loc = sv->location();
 		unsigned num_locations, num_elements;
 		attr_location_info(sv->type(), &num_locations, &num_elements);
-		if (bi.buffer == 0) {
+		if (bi.data) {
 			oi->singleton_cache.push_back(SingletonInfo(ai.type,
 				ai.normalized, bi.data, loc, num_locations,
 				num_elements));
