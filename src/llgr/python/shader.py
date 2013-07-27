@@ -1,4 +1,5 @@
 from OpenGL import GL
+from OpenGL.GL import shaders
 import struct
 
 _current_program = None
@@ -58,6 +59,21 @@ class ShaderVariable:
 
 	def base_type(self):
 		return self._base_type_map.get(self.type, self.Unknown)
+
+	_location_info_map = {
+		# (number of locations used, number of elements per location)
+		Float: (1, 1), Vec2: (1, 2), Vec3: (1, 3), Vec4: (1, 4),
+		Int: (1, 1), IVec2: (1, 2), IVec3: (1, 3), IVec4: (1, 4),
+		UInt: (1, 1), UVec2: (1, 2), UVec3: (1, 3), UVec4: (1, 4),
+		Bool: (1, 1), BVec2: (1, 2), BVec3: (1, 3), BVec4: (1, 4),
+		Mat2x2: (2, 2), Mat3x3: (3, 3), Mat4x4: (4, 4),
+		Mat2x3: (2, 3), Mat3x2: (3, 2),
+		Mat2x4: (2, 4), Mat4x2: (4, 2),
+		Mat3x4: (3, 4), Mat4x3: (4, 3),
+	}
+
+	def location_info(self):
+		return self._location_info_map.get(self.type, (0,0))
 
 	def byte_count(self):
 		# all type are represented by 4 byte values for draw_uniform
@@ -148,12 +164,12 @@ class ShaderVariable:
 		Mat3x3: GL.glUniformMatrix3fv,
 		Mat4x4: GL.glUniformMatrix4fv,
 
-		#Mat2x3: GL.glUniform2x3fv,
-		#Mat3x2: GL.glUniform3x2fv,
-		#Mat2x4: GL.glUniform2x4fv,
-		#Mat4x2: GL.glUniform4x2fv,
-		#Mat3x4: GL.glUniform3x4fv,
-		#Mat4x3: GL.glUniform4x3fv,
+		#Mat2x3: shaders.glUniform2x3fv,
+		#Mat3x2: shaders.glUniform3x2fv,
+		#Mat2x4: shaders.glUniform2x4fv,
+		#Mat4x2: shaders.glUniform4x2fv,
+		#Mat3x4: shaders.glUniform3x4fv,
+		#Mat4x3: shaders.glUniform4x3fv,
 	}
 	def draw_uniform(self):
 		if not self.data:
@@ -207,73 +223,75 @@ class ShaderProgram:
 
 	def __init__(self, vertex_shader, fragment_shader, attribute0_name):
 		import sys
-		self.program = GL.glCreateProgram()
+		self.program = shaders.glCreateProgram()
 		if self.program == 0:
 			check_GLerror()
 			return
+		self.uniforms = []
+		self.attributes = []
 
-		self.vs = GL.glCreateShader(GL.GL_VERTEX_SHADER)
-		GL.glShaderSource(self.vs, vertex_shader)
-		GL.glCompileShader(self.vs)
-		GL.glAttachShader(self.program, self.vs)
+		self.vs = shaders.glCreateShader(GL.GL_VERTEX_SHADER)
+		shaders.glShaderSource(self.vs, vertex_shader)
+		shaders.glCompileShader(self.vs)
+		shaders.glAttachShader(self.program, self.vs)
 
-		self.fs = GL.glCreateShader(GL.GL_FRAGMENT_SHADER)
-		GL.glShaderSource(self.fs, fragment_shader)
-		GL.glCompileShader(self.fs)
-		GL.glAttachShader(self.program, self.fs)
+		self.fs = shaders.glCreateShader(GL.GL_FRAGMENT_SHADER)
+		shaders.glShaderSource(self.fs, fragment_shader)
+		shaders.glCompileShader(self.fs)
+		shaders.glAttachShader(self.program, self.fs)
 
 		compiled = True
-		status = GL.glGetShaderiv(self.vs, GL.GL_COMPILE_STATUS)
+		status = shaders.glGetShaderiv(self.vs, GL.GL_COMPILE_STATUS)
 		if not status:
 			compiled = False
-			log = GL.gletShaderLog(self.vs)
+			log = shaders.gletShaderLog(self.vs)
 			print("compiling vertex shader failed:\n%s" % log, file=sys.stderr)
-		status = GL.glGetShaderiv(self.fs, GL.GL_COMPILE_STATUS)
+		status = shaders.glGetShaderiv(self.fs, GL.GL_COMPILE_STATUS)
 		if not status:
 			compiled = False
-			log = GL.gletShaderLog(self.fs)
+			log = shaders.gletShaderLog(self.fs)
 			print("compiling fragment shader failed:\n%s" % log, file=sys.stderr)
 		if not compiled:
 			raise RuntimeError("failed to compile shader program")
 
 		if attribute0_name:
-			GL.glBindAttributeLocation(self.program, 0, attribute0_name)
+			shaders.glBindAttribLocation(self.program, 0, attribute0_name.encode('utf-8'))
 
-		GL.glLinkProgram(self.program)
-		status = GL.glGetProgramiv(self.program, GL.GL_LINK_STATUS)
+		shaders.glLinkProgram(self.program)
+		status = shaders.glGetProgramiv(self.program, GL.GL_LINK_STATUS)
 		if not status:
-			log = GL.gletProgramInfoLog(self.program)
+			log = shaders.gletProgramInfoLog(self.program)
 			print("unable to link program:\n%s" % log, file=sys.stderr)
 
 		# introspect program uniforms
-		num_uniforms = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
+		num_uniforms = shaders.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
 		for i in range(num_uniforms):
-			name, size, type = GL.glGetActiveUniform(self.program, i)
+			name, size, type = shaders.glGetActiveUniform(self.program, i)
 			if size != 1:
 				print("uniform arrays are not supported", file=sys.stderr)
-			loc = GL.glGetUniformLocation(self.program, name)
+			loc = shaders.glGetUniformLocation(self.program, name)
 			if loc == -1:
 				continue
-			self.uniforms.append(ShaderVariable(name, cvt_type(type), loc))
+			self.uniforms.append(ShaderVariable(self, name.decode('utf-8'), cvt_type(type), loc))
 
 		# introspect vertex attributes
-		num_attributes = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_ATTRIBUTES)
+		num_attributes = shaders.glGetProgramiv(self.program, GL.GL_ACTIVE_ATTRIBUTES)
 		for i in range(num_attributes):
-			name, size, type = GL.glGetActiveAttrib(self.program, i)
+			name, size, type = shaders.glGetActiveAttrib(self.program, i)
 			if size != 1:
 				print("attribue arrays are not supported", file=sys.stderr)
-			loc = GL.glGetAttribLocation(self.program, name)
+			loc = shaders.glGetAttribLocation(self.program, name)
 			if loc == -1:
 				continue
-			self.attributes.append(ShaderVariable(name, cvt_type(type), loc))
+			self.attributes.append(ShaderVariable(self, name.decode('utf-8'), cvt_type(type), loc))
 
 	def close(self):
 		if self.program:
-			GL.glDeleteProgram(self.program)
+			shaders.glDeleteProgram(self.program)
 		if self.vs:
-			GL.glDeleteShader(self.vs)
+			shaders.glDeleteShader(self.vs)
 		if self.fs:
-			GL.glDeleteShader(self.fs)
+			shaders.glDeleteShader(self.fs)
 
 	def uniform(self, name, exceptions=False):
 		for u in self.uniforms:
@@ -295,7 +313,7 @@ class ShaderProgram:
 		if not self.program:
 			return
 
-		GL.glUseProgram(self.program)
+		shaders.glUseProgram(self.program)
 		global _current_program
 		_current_program = self.program
 		for u in self.uniforms:

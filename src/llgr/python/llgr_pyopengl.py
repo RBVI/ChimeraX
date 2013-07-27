@@ -217,11 +217,11 @@ def clear_programs():
 
 def _set_uniform(sv, shader_type, data):
 	mv = memoryview(data)
-	assert(mv.bytes == sv.data_length())
+	assert(mv.nbytes == sv.byte_count())
 	if shader_type in (IVec1, IVec2, IVec3, IVec4, UVec1, UVec2, UVec3, UVec4):
-		sv.setIntv(mv)
+		sv.setIntv(data)
 	else:
-		sv.setFloatv(mv)
+		sv.setFloatv(data)
 
 def set_uniform(program_id: Id, name: str, shader_type: ShaderType, data: IsBuffer):
 	if shader_type > Mat2x2:
@@ -249,9 +249,9 @@ def set_uniform(program_id: Id, name: str, shader_type: ShaderType, data: IsBuff
 
 def _set_uniform_matrix(sv, transpose, shader_type, data):
 	mv = memoryview(data)
-	assert(mv.bytes == sv.data_length())
+	assert(mv.nbytes == sv.byte_count())
 	assert(shader_type in (Mat2x2, Mat3x3, Mat4x4, Mat2x3, Mat3x2, Mat2x4, Mat4x2, Mat3x4, Mat4x3))
-	sv.setFloatMatrixv(transpose, mv)
+	sv.setFloatMatrixv(transpose, data)
 
 def set_uniform_matrix(program_id: Id, name: str, transpose: bool, shader_type: ShaderType, data: IsBuffer):
 	if program_id == 0:
@@ -298,16 +298,16 @@ _identity4x4_data = numpy.zeros((4,4), dtype=numpy.float32)
 # Create buffer of array data
 def create_buffer(data_id: Id, buffer_target: BufferTarget, data: IsBuffer):
 	if not _all_buffers:
-		_all_buffers[0] = _BufferInfo(0, GL.GL_ARRAY_BUFFER, _identity4x4_data)
+		_all_buffers[0] = _BufferInfo(None, GL.GL_ARRAY_BUFFER, _identity4x4_data)
 	if data_id in _all_buffers:
 		buffer = _all_buffers[data_id].buffer
 	else:
 		buffer = GL.glGenBuffers(1)
 	_all_buffers[data_id] = _BufferInfo(buffer, buffer_target)
 	mv = memoryview(data)
-	GL.glBindBuffer(buffer_target, buffer)
-	GL.glBufferData(buffer_target, mv.nbytes, mv, GL.GL_STATIC_DRAW)
-	GL.glBindBuffer(buffer_target, 0)
+	GL.glBindBuffer(buffer_target.value, buffer)
+	GL.glBufferData(buffer_target.value, mv.nbytes, data, GL.GL_STATIC_DRAW)
+	GL.glBindBuffer(buffer_target.value, 0)
 
 def delete_buffer(data_id: Id):
 	bi = _all_buffers.get(data_id, None)
@@ -332,11 +332,11 @@ def clear_buffers():
 # create singleton "buffer" data
 def create_singleton(data_id: Id, data: IsBuffer):
 	if not _all_buffers:
-		_all_buffers[0] = _BufferInfo(0, GL.GL_ARRAY_BUFFER, _identity4x4_data)
+		_all_buffers[0] = _BufferInfo(None, GL.GL_ARRAY_BUFFER, _identity4x4_data)
 	if data_id in _all_buffers:
 		buffer = _all_buffers[data_id].buffer
 		GL.glDeleteBuffers(1, [buffer])
-	_all_buffers[data_id] = _BufferInfo(0, GL.GL_ARRAY_BUFFER, data)
+	_all_buffers[data_id] = _BufferInfo(None, GL.GL_ARRAY_BUFFER, data)
 
 """
 # TODO
@@ -444,15 +444,15 @@ class AttributeInfo:
 		self.stride = stride
 		self.count = count
 		self.data_type = data_type
-		self.normalize = norm
+		self.normalized = norm
 
 	def __repr__(self):
 		return 'AttributeInfo("%s", %r, %r, %r, %r, %r, %r)' % (
 			self.name, self.data_id, self.offset, self.stride,
-			self.count, self.data_type, self.normalize)
+			self.count, self.data_type, self.normalized)
 
 	def json(self):
-		return (self.name, self.data_id, self.offset, self.stride, self.count, self.data_type, self.normalize)
+		return (self.name, self.data_id, self.offset, self.stride, self.count, self.data_type, self.normalized)
 
 class _SingletonInfo:
 
@@ -490,9 +490,9 @@ def _check_attributes(obj_id, oi):
 		bi = _all_buffers.get(ai.data_id, None)
 		if bi is None:
 			continue
-		num_locations, num_elements = attr_location_info(sv.type)
-		if bi.data:
-			oi.singleton_cache.append(_SingletonInfo(ai.type,
+		num_locations, num_elements = sv.location_info()
+		if bi.data is not None:
+			oi.singleton_cache.append(_SingletonInfo(ai.data_type,
 				ai.normalized, bi.data, sv.location,
 				num_locations, num_elements))
 		else:
@@ -513,7 +513,7 @@ def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
 			index_data_id, index_buffer_type)
 	delete_object(obj_id)
 	try:
-		oi.vao = GL.glGenVertexArrays(1)[0]
+		oi.vao = GL.glGenVertexArrays(1)
 		GL.glBindVertexArray(oi.vao)
 		_check_attributes(obj_id, oi)
 	finally:
