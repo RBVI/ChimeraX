@@ -73,7 +73,11 @@ class ShaderVariable:
 	}
 
 	def location_info(self):
-		return self._location_info_map.get(self.type, (0,0))
+		return self._location_info_map.get(self.type, (0, 0))
+
+	@staticmethod
+	def type_location_info(type):
+		return ShaderVariable._location_info_map.get(type, (0, 0))
 
 	def byte_count(self):
 		# all type are represented by 4 byte values for draw_uniform
@@ -308,7 +312,7 @@ class ShaderProgram:
 			raise ValueError("uniform not found: %s" % name)
 		return None
 
-	def attriute(self, name, exceptions=False):
+	def attribute(self, name, exceptions=False):
 		for a in self.attributes:
 			if a.name == name:
 				return a
@@ -325,3 +329,10 @@ class ShaderProgram:
 		_current_program = self.program
 		for u in self.uniforms:
 			u.draw_uniform()
+
+	def cleanup(self):
+		global _current_program
+		if not self.program:
+			return
+		GL.glUseProgram(0)
+		_current_program = 0

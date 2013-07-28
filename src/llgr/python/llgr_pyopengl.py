@@ -225,7 +225,7 @@ def _set_uniform(sv, shader_type, data):
 
 def set_uniform(program_id: Id, name: str, shader_type: ShaderType, data: IsBuffer):
 	if shader_type > Mat2x2:
-		set_uniform_matrix(program_id, name, false, shader_type, data)
+		set_uniform_matrix(program_id, name, False, shader_type, data)
 		return
 	if program_id == 0:
 		# broadcast to all current programs
@@ -391,7 +391,7 @@ def create_matrix(matrix_id: Id, matrix_4x4: Matrix_4x4, renormalize: bool=False
 		matrix_4x4 = matrix_4x4.getWebGLMatrix()
 	else:
 		assert(isinstance(matrix_4x4, numpy.ndarray))
-	data_id = next(internal_buffer_id)
+	data_id = next(_internal_buffer_id)
 	create_singleton(data_id, matrix_4x4)
 	_all_matrices[matrix_id] = _MatrixInfo(data_id, renormalize)
 
@@ -422,7 +422,7 @@ class _ObjectInfo:
 		self.program_id = program_id
 		self.matrix_id = matrix_id
 		self.ais = list_of_attribute_info
-		self.pt = primitive_type
+		self.ptype = primitive_type
 		self.first = first
 		self.count = count
 		self.index_buffer_id = index_buffer_id
@@ -466,7 +466,8 @@ class _SingletonInfo:
 
 # enum PrimitiveType
 class PrimitiveType(Enum):
-	values = list(range(7))
+	values = (GL.GL_POINTS, GL.GL_LINES, GL.GL_LINE_LOOP, GL.GL_LINE_STRIP,
+		GL.GL_TRIANGLES, GL.GL_TRIANGLE_STRIP, GL.GL_TRIANGLE_FAN)
 	labels = ('Points', 'Lines', 'Line_loop', 'Line_strip',
 			'Triangles', 'Triangle_strip', 'Triangle_fan')
 PrimitiveType.class_init()
@@ -571,17 +572,17 @@ def clear_all():
 
 class _PrimitiveInfo:
 
-	def __init__(data_id, index_count, index_buffer_id, index_type):
+	def __init__(self, data_id, index_count, index_buffer_id, index_type):
 		self.data_id = data_id
 		self.icount = index_count
-		self.index_id = index_id
+		self.index_id = index_buffer_id
 		self.index_type = index_type
 
 _proto_spheres = {}
 _proto_cylinders = {}
 
 def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id,
-			list_of_attributeInfo: list_of(AttributeInfo)):
+			list_of_attribute_info: list_of(AttributeInfo)):
 	num_pts = 100	# TODO: for LOD, make dependent on radius in pixels
 	if num_pts not in _proto_spheres:
 		_build_sphere(num_pts)
@@ -597,8 +598,9 @@ def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_sphere(N):
-	pts, phis, _ = points(N)
-	tris = triangles(phis)
+	import spiral
+	pts, phis, _ = spiral.points(N)
+	tris = spiral.triangles(phis)
 	data_id = next(_internal_buffer_id)
 	create_buffer(data_id, ARRAY, pts)
 	index_id = next(_internal_buffer_id)
@@ -609,11 +611,11 @@ def _build_sphere(N):
 		index_type = UShort
 	else:
 		index_type = UInt
-	_proto_sphere[N] = _PrimitiveInfo(data_id, tris.size, index_id, index_type)
+	_proto_spheres[N] = _PrimitiveInfo(data_id, tris.size, index_id, index_type)
 
 def add_cylinder(obj_id: Id, radius: Number, length: Number,
 			program_id: Id, matrix_id: Id,
-			list_of_attributeInfo: list_of(AttributeInfo)):
+			list_of_attribute_info: list_of(AttributeInfo)):
 	num_pts = 40	# TODO: for LOD, make depending on radius in pixels
 	if num_pts not in _proto_cylinders:
 		_build_cylinder(num_pts)
@@ -644,7 +646,7 @@ def _build_cylinder(N):
 		np[i][3] = x;	# px
 		np[i][4] = -1;	# py
 		np[i][5] = z;	# pz
-		np[i + N] = data[i]
+		np[i + N] = np[i]
 		np[i + N][4] = 1
 		indices[i * 2] = i
 		indices[i * 2 + 1] = i + N
@@ -654,8 +656,8 @@ def _build_cylinder(N):
 	data_id = next(_internal_buffer_id)
 	create_buffer(data_id, ARRAY, np)
 	index_id = next(_internal_buffer_id)
-	create_buffer(index_id, ELEMENT_ARRAY, tris)
-	_proto_cylinder[N] = _PrimitiveInfo(data_id, num_indices, index_id, UShort)
+	create_buffer(index_id, ELEMENT_ARRAY, indices)
+	_proto_cylinders[N] = _PrimitiveInfo(data_id, num_indices, index_id, UShort)
 
 def _clear_geom(geom):
 	if not _all_buffers:
@@ -786,3 +788,61 @@ def render():
 
 	if not _all_objects:
 		return
+
+	sp = None
+	current_program_id = 0
+	current_matrix_id = 2 ** 31
+	# instance transform (it_) singleton info
+	it_type = Float
+	it_data = None
+	it_loc = -1
+	from shader import ShaderVariable as SV
+	it_locations, it_elements = SV.type_location_info(SV.Mat4x4)
+	# TODO: only for opaque objects
+	GL.glEnable(GL.GL_CULL_FACE);
+	GL.glDisable(GL.GL_BLEND);
+	for oi in _all_objects.values():
+		if oi.hide or not oi.program_id:
+			continue
+		# setup program
+		if oi.program_id != current_program_id:
+			new_sp = _all_programs.get(oi.program_id, None)
+			if new_sp is None:
+				continue
+			new_sp.setup()
+			sp = new_sp
+			current_program_id = oi.program_id
+			current_matrix_id = 2 ** 31
+			sv = sp.attribute("instanceTransform")
+			it_loc = sv.location
+		if sp is None:
+			continue
+		GL.glBindVertexArray(oi.vao)
+		# setup instance matrix attribute
+		if oi.matrix_id != current_matrix_id:
+			if oi.matrix_id == 0:
+				data_id = 0
+			else:
+				mi = _all_matrices.get(oi.matrix_id, None)
+				if mi is None:
+					continue
+				data_id = mi.data_id
+			bi = _all_buffers.get(data_id, None)
+			if bi is None:
+				continue
+			it_data = bi.data
+			setup_singleton_attribute(it_data, it_type, False, it_loc, it_locations, it_elements)
+			current_matrix_id = oi.matrix_id
+
+		for si in oi.singleton_cache:
+			setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements)
+		# finally draw object
+		if oi.index_buffer_id == 0:
+			GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
+		else:
+			GL.glDrawElements(oi.ptype.value, oi.count,
+				_cvt_data_type(oi.index_buffer_type),
+				oi.first * _data_size(oi.index_buffer_type))
+	GL.glBindVertexArray(0)
+	if sp:
+		sp.cleanup()
