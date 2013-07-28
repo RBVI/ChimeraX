@@ -219,9 +219,9 @@ def _set_uniform(sv, shader_type, data):
 	mv = memoryview(data)
 	assert(mv.nbytes == sv.byte_count())
 	if shader_type in (IVec1, IVec2, IVec3, IVec4, UVec1, UVec2, UVec3, UVec4):
-		sv.setIntv(data)
+		sv.set_intv(data)
 	else:
-		sv.setFloatv(data)
+		sv.set_floatv(data)
 
 def set_uniform(program_id: Id, name: str, shader_type: ShaderType, data: IsBuffer):
 	if shader_type > Mat2x2:
@@ -251,7 +251,7 @@ def _set_uniform_matrix(sv, transpose, shader_type, data):
 	mv = memoryview(data)
 	assert(mv.nbytes == sv.byte_count())
 	assert(shader_type in (Mat2x2, Mat3x3, Mat4x4, Mat2x3, Mat3x2, Mat2x4, Mat4x2, Mat3x4, Mat4x3))
-	sv.setFloatMatrixv(transpose, data)
+	sv.set_float_matrixv(transpose, data)
 
 def set_uniform_matrix(program_id: Id, name: str, transpose: bool, shader_type: ShaderType, data: IsBuffer):
 	if program_id == 0:
@@ -266,13 +266,13 @@ def set_uniform_matrix(program_id: Id, name: str, transpose: bool, shader_type: 
 		return
 	sv = sp.uniform(name)
 	if sv:
-		_set_uniform_matrix(sv, shader_type, data)
+		_set_uniform_matrix(sv, transpose, shader_type, data)
 	sp = _pick_programs.get(program_id, None)
 	if sp is None:
 		return
 	sv = sp.uniform(name)
 	if sv:
-		_set_uniform_matrix(sv, shader_type, data)
+		_set_uniform_matrix(sv, transpose, shader_type, data)
 
 #
 # (interleaved) buffer support
@@ -677,6 +677,112 @@ _clear_color = [0.0, 0.0, 0.0, 1.0]
 def set_clear_color(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf):
 	global _clear_color
 	_clear_color = [red, green, blue, alpha]
+	GL.glClearColor(red, green, blue, alpha);
+
+_data_type_map = {
+	Byte: GL.GL_BYTE,
+	UByte: GL.GL_UNSIGNED_BYTE,
+	Short: GL.GL_SHORT,
+	UShort: GL.GL_UNSIGNED_SHORT,
+	Int: GL.GL_INT,
+	UInt: GL.GL_UNSIGNED_INT,
+	Float: GL.GL_FLOAT,
+}
+
+def _cvt_data_type(data_type):
+	# return GLenum corresponding to data type
+	return _data_type_map.get(data_type, GL.GL_NONE)
+
+_data_size_map = {
+	Byte: 1,
+	UByte: 1,
+	Short: 2,
+	UShort: 2,
+	Int: 4,
+	UInt: 4,
+	Float: 4,
+}
+
+def _data_size(data_type):
+	# return size in bytes of data type
+	return _data_size_map.get(data_type, 0)
+
+def _setup_array_attribute(bi, ai, loc, num_locations):
+	gl_type = _cvt_data_type(ai.data_type);
+	GL.glBindBuffer(bi.target.value, bi.buffer)
+	# TODO: if shader variable is int, use glVertexAttribIPointer
+	GL.glVertexAttribPointer(loc, ai.count, gl_type, ai.normalized,
+			ai.stride, ai.offset)
+	for i in range(loc, loc + num_locations):
+		GL.glEnableVertexAttribArray(i)
+
+_did_once = False
+
+_singleton_map = {
+	1: {
+		Short: GL.glVertexAttrib1sv,
+		UShort: GL.glVertexAttrib1sv,
+		Float: GL.glVertexAttrib1fv,
+	},
+	2: {
+		Short: GL.glVertexAttrib2sv,
+		UShort: GL.glVertexAttrib2sv,
+		Float: GL.glVertexAttrib2fv,
+	},
+	3: {
+		Short: GL.glVertexAttrib3sv,
+		UShort: GL.glVertexAttrib3sv,
+		Float: GL.glVertexAttrib3fv,
+	},
+	4: {
+		Byte: GL.glVertexAttrib4bv,
+		UByte: GL.glVertexAttrib4ubv,
+		Short: GL.glVertexAttrib4sv,
+		UShort: GL.glVertexAttrib4usv,
+		Int: GL.glVertexAttrib4iv,
+		UInt: GL.glVertexAttrib4uiv,
+		Float: GL.glVertexAttrib4fv,
+	},
+	5: {
+		Byte: GL.glVertexAttrib4Nbv,
+		UByte: GL.glVertexAttrib4Nubv,
+		Short: GL.glVertexAttrib4Nsv,
+		UShort: GL.glVertexAttrib4Nusv,
+		Int: GL.glVertexAttrib4Niv,
+		UInt: GL.glVertexAttrib4Nuiv,
+	},
+}
+
+def setup_singleton_attribute(data, data_type, normalized, loc, num_locations, num_elements):
+	if data_type != Float:
+		global _did_once;
+		if not _did_once:
+			import sys
+			print("WebGL only supports float singleton vertex attributes\n", file=sys.stderr)
+			_did_once = True
+
+	data = bytes(data)
+	size = num_elements * _data_size(data_type)
+	if num_elements == 4 and normalized:
+		num_elements = 5
+	for i in range(num_locations):
+		func = _singleton_map[num_elements].get(data_type, None)
+		if func:
+			func(loc + i, data[i * size:(i + 1) * size])
 
 def render():
-	pass
+	import sys
+	if sys.platform == 'darwin':
+		global _darwin_vao
+		# using glVertexAttribPointer fails unless a VAO is bound
+		# even if VAO's aren't used
+		_darwin_vao = GL.glGenVertexArrays(1);
+		GL.glBindVertexArray(_darwin_vao);
+
+	GL.glClear(GL.GL_COLOR_BUFFER_BIT|GL.GL_DEPTH_BUFFER_BIT|GL.GL_STENCIL_BUFFER_BIT);
+	GL.glEnable(GL.GL_DEPTH_TEST);
+	GL.glEnable(GL.GL_DITHER);
+	GL.glDisable(GL.GL_SCISSOR_TEST);
+
+	if not _all_objects:
+		return

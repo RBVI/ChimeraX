@@ -83,15 +83,17 @@ class ShaderVariable:
 		if self.type != self.Float:
 			raise ValueError("not a float point singleton")
 		self.data = struct.pack("@f", f)
-		assert len(self.data) == self.byte_count()
+		if len(self.data) != self.byte_count():
+			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		if _current_program == self.sp:
 			self.draw_uniform()
 
 	def set_floatv(self, fv):
 		if self.base_type() != self.Float:
 			raise ValueError("not a float point type")
-		self.data = struct.pack("@f" * self.count(), *fv)
-		assert len(self.data) == self.byte_count()
+		self.data = bytes(fv)
+		if len(self.data) != self.byte_count():
+			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		if _current_program == self.sp:
 			self.draw_uniform()
 
@@ -99,10 +101,11 @@ class ShaderVariable:
 		if self.base_type() != self.Float:
 			raise ValueError("not a float point type")
 		try:
-			self.data = memoryview(fv)
+			self.data = bytes(fv)
 		except TypeError:
 			self.data = struct.pack("@f" * self.count(), *fv)
-		assert len(self.data) == self.byte_count()
+		if len(self.data) != self.byte_count():
+			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		self.transpose = transpose
 		if _current_program == self.sp:
 			self.draw_uniform()
@@ -111,15 +114,17 @@ class ShaderVariable:
 		if self.type != self.Int:
 			raise ValueError("not an integer singleton")
 		self.data = struct.pack("@i", i)
-		assert len(self.data) == self.byte_count()
+		if len(self.data) != self.byte_count():
+			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		if _current_program == self.sp:
 			self.draw_uniform()
 
 	def set_intv(self, iv):
 		if self.base_type() not in (self.Int, self.UInt):
 			raise ValueError("not an integer type")
-		self.data = struct.pack("@i" * self.count(), *iv)
-		assert len(self.data) == self.byte_count()
+		self.data = bytes(iv)
+		if len(self.data) != self.byte_count():
+			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		if _current_program == self.sp:
 			self.draw_uniform()
 
@@ -127,15 +132,17 @@ class ShaderVariable:
 		if self.type != self.Bool:
 			raise ValueError("not a boolean singleton")
 		self.data = struct.pack("@i", b)
-		assert len(self.data) == self.byte_count()
+		if len(self.data) != self.byte_count():
+			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		if _current_program == self.sp:
 			self.draw_uniform()
 
 	def set_boolv(self, bv):
 		if self.base_type() != self.Bool:
 			raise ValueError("not a boolean type")
-		self.data = struct.pack("@i" * self.count(), *bv)
-		assert len(self.data) == self.byte_count()
+		self.data = bytes(bv)
+		if len(self.data) != self.byte_count():
+			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		if _current_program == self.sp:
 			self.draw_uniform()
 
