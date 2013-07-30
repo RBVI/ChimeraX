@@ -22,8 +22,8 @@ public:
 #endif  // UNPORTED
 	typedef std::vector<TmplCoord> Coords;
 	const Coords	&coords() const { return _coords; }
-	const TmplCoord	*find_coord(size_t) const;
-	TmplCoord	*find_coord(size_t);
+	const TmplCoord	*find_coord(std::size_t) const;
+	TmplCoord	*find_coord(std::size_t);
 public:
 	int		id() const { return _csid; }
 #ifdef UNPORTED
