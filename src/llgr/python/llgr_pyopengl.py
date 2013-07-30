@@ -710,7 +710,7 @@ def _data_size(data_type):
 	return _data_size_map.get(data_type, 0)
 
 def _setup_array_attribute(bi, ai, loc, num_locations):
-	gl_type = _cvt_data_type(ai.data_type);
+	gl_type = _cvt_data_type(ai.data_type)
 	GL.glBindBuffer(bi.target.value, bi.buffer)
 	# TODO: if shader variable is int, use glVertexAttribIPointer
 	import ctypes
@@ -760,7 +760,7 @@ _singleton_map = {
 
 def setup_singleton_attribute(data, data_type, normalized, loc, num_locations, num_elements):
 	if data_type != Float:
-		global _did_once;
+		global _did_once
 		if not _did_once:
 			import sys
 			print("WebGL only supports float singleton vertex attributes\n", file=sys.stderr)
@@ -782,13 +782,13 @@ def render():
 		global _darwin_vao
 		# using glVertexAttribPointer fails unless a VAO is bound
 		# even if VAO's aren't used
-		_darwin_vao = GL.glGenVertexArrays(1);
-		GL.glBindVertexArray(_darwin_vao);
+		_darwin_vao = GL.glGenVertexArrays(1)
+		GL.glBindVertexArray(_darwin_vao)
 
-	GL.glClear(GL.GL_COLOR_BUFFER_BIT|GL.GL_DEPTH_BUFFER_BIT|GL.GL_STENCIL_BUFFER_BIT);
-	GL.glEnable(GL.GL_DEPTH_TEST);
-	GL.glEnable(GL.GL_DITHER);
-	GL.glDisable(GL.GL_SCISSOR_TEST);
+	GL.glClear(GL.GL_COLOR_BUFFER_BIT|GL.GL_DEPTH_BUFFER_BIT|GL.GL_STENCIL_BUFFER_BIT)
+	GL.glEnable(GL.GL_DEPTH_TEST)
+	GL.glEnable(GL.GL_DITHER)
+	GL.glDisable(GL.GL_SCISSOR_TEST)
 
 	if not _all_objects:
 		return
@@ -803,8 +803,8 @@ def render():
 	from shader import ShaderVariable as SV
 	it_locations, it_elements = SV.type_location_info(SV.Mat4x4)
 	# TODO: only for opaque objects
-	GL.glEnable(GL.GL_CULL_FACE);
-	GL.glDisable(GL.GL_BLEND);
+	GL.glEnable(GL.GL_CULL_FACE)
+	GL.glDisable(GL.GL_BLEND)
 	for oi in _all_objects.values():
 		if oi.hide or not oi.program_id:
 			continue
@@ -852,3 +852,121 @@ def render():
 	GL.glBindVertexArray(0)
 	if sp:
 		sp.cleanup()
+
+
+#
+# vsphere
+#
+
+class _VSphereInfo:
+
+	def _init__(self):
+		self.radius = 0
+		self.center = (0, 0)
+		self.xy = (0, 0)
+		self.cursor = None
+
+_all_vspheres = {}
+
+_FUZZY_ZERO = 1e-4
+_FUZZY_SQZERO = 1e-8
+
+class Cursors(Enum):
+	values = list(range(2))
+	labels = ('Rotation', 'ZRotation')
+Cursors.class_init()
+
+def _compute_vsphere(fx, fy, tx, ty):
+	# return what, spin_axis, spin_angle
+	from math import sqrt, acos
+	d1 = fx * fx + fy * fy
+	d2 = tx * tx + ty * ty
+
+	if d1 > 1 and d2 < 1:
+		# transition from z rotation to sphere rotation
+		return 1, None, 0
+	if d1 < 1 and d2 > 1:
+		# transition from sphere rotation to z rotation
+		return 2, None, 0
+	if d1 < 1:
+		from_ = math3d.Vector([fx, fy, sqrt(1 - d1)])
+		to = math3d.Vector([tx, ty, sqrt(1 - d2)])
+	else:
+		d1 = sqrt(d1)
+		d2 = sqrt(d2)
+		from_ = math3d.Vector([fx / d1, fy / d1, 0])
+		to = math3d.Vector([tx / d2, ty / d2, 0])
+	spin_axis = math3d.cross(from_, to)
+	if spin_axis.sqlength() < _FUZZY_SQZERO:
+		# if the two positions normalized to the same vector, punt.
+		return 3, None, 0
+	dot_product = from_ * to;	# from and to are "unit" length
+	if dot_product > 1:
+		# guarantee within acos bounds (more of a problem with floats)
+		dot_product = 1
+	spin_angle = acos(dot_product)
+	if -_FUZZY_ZERO < spin_angle < _FUZZY_ZERO:
+		# may need to adjust threshold to avoid drift
+		# on a per-input device basis
+		return 4, None, 0
+	return 0, spin_axis, spin_angle
+
+def vsphere_setup(vsphere: Id, radius: float, center: (float, float)):
+	vi = _all_vspheres.get(vsphere, None)
+	if vi is None:
+		vi = _all_vspheres[vsphere] = _VSphereInfo()
+	vi.radius = radius
+	vi.center = center
+	# other fields are initialized in vsphere_press
+
+def vsphere_press(vsphere: Id, x: int, y: int):
+	vi = _all_vspheres.get(vsphere, None)
+	if vi is None:
+		raise ValueError("unknown vsphere")
+
+	vi.xy = (x, y)
+	tx = (x - vi.center[0]) / vi.radius
+	ty = -(y - vi.center[1]) / vi.radius
+	if (tx * tx + ty * ty >= 1):
+		vi.cursor = ZRotation
+	else:
+		vi.cursor = Rotation
+	return vi.cursor
+
+def vsphere_drag(vsphere: Id, x: int, y: int, throttle: bool):
+	vi = _all_vspheres.get(vsphere, None)
+	if vi is None:
+		raise ValueError("unknown vsphere")
+
+	fx = (vi.xy[0] - vi.center[0]) / vi.radius
+	fy = -(vi.xy[1] - vi.center[1]) / vi.radius
+	tx = (x - vi.center[0]) / vi.radius
+	ty = -(y - vi.center[1]) / vi.radius
+
+	what, spin_axis, spin_angle = _compute_vsphere(fx, fy, tx, ty)
+	if what == 0:
+		# normal case: rotation
+		vi.xy = x, y
+	elif what == 1:
+		# transition z-rotation to rotation
+		vi.cursor = Rotation
+		vi.xy = x, y
+	elif what == 2:
+		# transition rotation to z-rotation
+		vi.cursor = ZRotation
+		vi.xy = x, y
+	elif what == 3:
+		# from and to normalized to same point # don't update last x and y
+		pass
+	elif what == 4:
+		# angle effectively zero
+		# don't update last x and y
+		pass
+	if throttle:
+		spin_angle *= 0.1
+	return vi.cursor, spin_axis, spin_angle
+
+def vsphere_release(vsphere: Id):
+	if vsphere not in _all_vspheres:
+		raise ValueError("unknown vsphere")
+	del _all_vspheres[vsphere]
