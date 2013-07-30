@@ -2,7 +2,7 @@
 
 #ifdef UNPORTED
 TmplAtom *
-TmplBond::findAtom(size_t index) const
+TmplBond::findAtom(std::size_t index) const
 {
 	if (index >= Atoms_.size())
 		throw std::out_of_range("index out of range");

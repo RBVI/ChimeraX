@@ -4,7 +4,7 @@
 #ifdef UNPORTED
 void
 TmplCoordSet::fill(const TmplCoordSet *source) {
-	size_t sourceSize = source->coords().size();
+	std::size_t sourceSize = source->coords().size();
 	while (Coords_.size() < sourceSize)
 		Coords_.push_back(*source->findCoord(Coords_.size()));
 }
@@ -27,14 +27,14 @@ TmplCoordSet::removeCoord(TmplCoord *element)
 }
 #endif  // UNPORTED
 const TmplCoord *
-TmplCoordSet::find_coord(size_t index) const
+TmplCoordSet::find_coord(std::size_t index) const
 {
 	if (index >= _coords.size())
 		throw std::out_of_range("index out of range");
 	return &_coords[index];
 }
 TmplCoord *
-TmplCoordSet::find_coord(size_t index)
+TmplCoordSet::find_coord(std::size_t index)
 {
 	if (index >= _coords.size())
 		throw std::out_of_range("index out of range");
