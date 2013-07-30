@@ -249,8 +249,8 @@ def set_uniform(program_id: Id, name: str, shader_type: ShaderType, data: IsBuff
 
 def _set_uniform_matrix(sv, transpose, shader_type, data):
 	mv = memoryview(data)
-	assert(mv.nbytes == sv.byte_count())
 	assert(shader_type in (Mat2x2, Mat3x3, Mat4x4, Mat2x3, Mat3x2, Mat2x4, Mat4x2, Mat3x4, Mat4x3))
+	assert(mv.nbytes == sv.byte_count())
 	sv.set_float_matrixv(transpose, data)
 
 def set_uniform_matrix(program_id: Id, name: str, transpose: bool, shader_type: ShaderType, data: IsBuffer):
@@ -293,7 +293,7 @@ class BufferTarget(Enum):
 BufferTarget.class_init()
 
 _all_buffers = {}
-_identity4x4_data = numpy.zeros((4,4), dtype=numpy.float32)
+_identity4x4_data = numpy.eye(4, dtype=numpy.float32)
 
 # Create buffer of array data
 def create_buffer(data_id: Id, buffer_target: BufferTarget, data: IsBuffer):
@@ -627,7 +627,7 @@ def add_cylinder(obj_id: Id, radius: Number, length: Number,
 	scale = numpy.array([radius, length / 2., radius], dtype=numpy.float32)
 	create_singleton(scale_id, scale)
 	mai.append(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float))
-	create_object(obj_id, program_id, matrix_id, mai, Triangles, 0,
+	create_object(obj_id, program_id, matrix_id, mai, Triangle_strip, 0,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_cylinder(N):
@@ -661,7 +661,7 @@ def _build_cylinder(N):
 
 def _clear_geom(geom):
 	if not _all_buffers:
-		for g in geom:
+		for g in geom.values():
 			delete_buffer(g.data_id)
 			delete_buffer(g.index_id)
 	geom.clear()
@@ -713,8 +713,11 @@ def _setup_array_attribute(bi, ai, loc, num_locations):
 	gl_type = _cvt_data_type(ai.data_type);
 	GL.glBindBuffer(bi.target.value, bi.buffer)
 	# TODO: if shader variable is int, use glVertexAttribIPointer
+	import ctypes
+	# Pointer arg must be void_p, not an integer.
+	offset = ctypes.c_void_p(ai.offset)
 	GL.glVertexAttribPointer(loc, ai.count, gl_type, ai.normalized,
-			ai.stride, ai.offset)
+			ai.stride, offset)
 	for i in range(loc, loc + num_locations):
 		GL.glEnableVertexAttribArray(i)
 
@@ -763,7 +766,8 @@ def setup_singleton_attribute(data, data_type, normalized, loc, num_locations, n
 			print("WebGL only supports float singleton vertex attributes\n", file=sys.stderr)
 			_did_once = True
 
-	data = bytes(data)
+	if num_locations > 1:
+		data = bytes(data)
 	size = num_elements * _data_size(data_type)
 	if num_elements == 4 and normalized:
 		num_elements = 5
@@ -840,9 +844,11 @@ def render():
 		if oi.index_buffer_id == 0:
 			GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
 		else:
+			import ctypes
+			offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
 			GL.glDrawElements(oi.ptype.value, oi.count,
 				_cvt_data_type(oi.index_buffer_type),
-				oi.first * _data_size(oi.index_buffer_type))
+				offset)
 	GL.glBindVertexArray(0)
 	if sp:
 		sp.cleanup()

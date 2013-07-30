@@ -95,9 +95,7 @@ class ShaderVariable:
 	def set_floatv(self, fv):
 		if self.base_type() != self.Float:
 			raise ValueError("not a float point type")
-		self.data = bytes(fv)
-		if len(self.data) != self.byte_count():
-			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
+		self.data = fv
 		if _current_program == self.sp:
 			self.draw_uniform()
 
@@ -105,11 +103,9 @@ class ShaderVariable:
 		if self.base_type() != self.Float:
 			raise ValueError("not a float point type")
 		try:
-			self.data = bytes(fv)
+			self.data = fv
 		except TypeError:
 			self.data = struct.pack("@f" * self.count(), *fv)
-		if len(self.data) != self.byte_count():
-			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
 		self.transpose = transpose
 		if _current_program == self.sp:
 			self.draw_uniform()
@@ -126,9 +122,7 @@ class ShaderVariable:
 	def set_intv(self, iv):
 		if self.base_type() not in (self.Int, self.UInt):
 			raise ValueError("not an integer type")
-		self.data = bytes(iv)
-		if len(self.data) != self.byte_count():
-			raise ValueError("expected %d bytes, got %d" % (self.byte_count(), len(self.data)))
+		self.data = iv
 		if _current_program == self.sp:
 			self.draw_uniform()
 
@@ -183,7 +177,7 @@ class ShaderVariable:
 		#Mat4x3: shaders.glUniform4x3fv,
 	}
 	def draw_uniform(self):
-		if not self.data:
+		if self.data is None:
 			return
 		func = self._draw_uniform_map[self.type]
 		if self.type >= self.Mat2x2:

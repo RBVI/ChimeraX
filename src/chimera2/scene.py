@@ -183,7 +183,7 @@ def add_sphere(radius, center, color, xform=None):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype=float32).tostring()
+		rgba = array(color, dtype=float32)
 		llgr.create_singleton(data_id, rgba)
 
 	matrix_id = llgr.next_matrix_id()
@@ -218,7 +218,7 @@ def add_cylinder(radius, p0, p1, color, xform=None):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype=float32).tostring()
+		rgba = array(color, dtype=float32)
 		llgr.create_singleton(data_id, rgba)
 
 	# create translation matrix
@@ -325,7 +325,7 @@ def add_box(p0, p1, color, xform=None):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype=float32).tostring()
+		rgba = array(color, dtype=float32)
 		llgr.create_singleton(data_id, rgba)
 
 	if _box_pn_id is None:
