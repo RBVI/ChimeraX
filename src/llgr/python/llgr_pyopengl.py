@@ -293,7 +293,7 @@ class BufferTarget(Enum):
 BufferTarget.class_init()
 
 _all_buffers = {}
-_identity4x4_data = numpy.zeros((4,4), dtype=numpy.float32)
+_identity4x4_data = numpy.eye(4, dtype=numpy.float32)
 
 # Create buffer of array data
 def create_buffer(data_id: Id, buffer_target: BufferTarget, data: IsBuffer):
