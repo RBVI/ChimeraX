@@ -627,7 +627,7 @@ def add_cylinder(obj_id: Id, radius: Number, length: Number,
 	scale = numpy.array([radius, length / 2., radius], dtype=numpy.float32)
 	create_singleton(scale_id, scale)
 	mai.append(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float))
-	create_object(obj_id, program_id, matrix_id, mai, Triangles, 0,
+	create_object(obj_id, program_id, matrix_id, mai, Triangle_strip, 0,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_cylinder(N):
@@ -661,7 +661,7 @@ def _build_cylinder(N):
 
 def _clear_geom(geom):
 	if not _all_buffers:
-		for g in geom:
+		for g in geom.values():
 			delete_buffer(g.data_id)
 			delete_buffer(g.index_id)
 	geom.clear()
