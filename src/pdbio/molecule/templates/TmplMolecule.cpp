@@ -28,20 +28,7 @@ TmplMolecule::new_atom(std::string n, Element e)
 	_atoms.insert(_inst_);
 	return _inst_;
 }
-#ifdef UNPORTED
-void
-TmplMolecule::deleteAtom(TmplAtom *element)
-{
-	for (TmplAtom::BondsMap::iterator i = element->_bonds.begin(); i != element->_bonds.end(); i = element->_bonds.begin()) {
-		TmplBond *e = (*i).second;
-		// element->_bonds.erase(i); -- done by deleteBond(e) below
-		deleteBond(e);
-	}
-	element->residue()->removeAtom(element);
-	_atoms.erase(element);
-	delete element;
-}
-#endif  // UNPORTED
+
 TmplBond *
 TmplMolecule::new_bond(TmplAtom *a0, TmplAtom *a1)
 {
@@ -49,23 +36,7 @@ TmplMolecule::new_bond(TmplAtom *a0, TmplAtom *a1)
 	_bonds.insert(_inst_);
 	return _inst_;
 }
-#ifdef UNPORTED
-TmplBond *
-TmplMolecule::newBond(TmplAtom *a[2])
-{
-	TmplBond *_inst_ = new TmplBond(this, a);
-	_bonds.insert(_inst_);
-	return _inst_;
-}
-void
-TmplMolecule::deleteBond(TmplBond *element)
-{
-	for (TmplBond::Atoms::const_iterator i = element->atoms().begin(); i != element->atoms().end(); ++i)
-		(*i)->removeBond(element);
-	_bonds.erase(element);
-	delete element;
-}
-#endif  // UNPORTED
+
 TmplCoordSet *
 TmplMolecule::new_coord_set(int k)
 {
@@ -75,21 +46,7 @@ TmplMolecule::new_coord_set(int k)
 	_coord_sets[_inst_->id()] = _inst_;
 	return _inst_;
 }
-#ifdef UNPORTED
-TmplCoordSet *
-TmplMolecule::newCoordSet(int k, int size)
-{
-	TmplCoordSet *_inst_ = new TmplCoordSet(this, k, size);
-	_coord_sets[_inst_->id()] = _inst_;
-	return _inst_;
-}
-void
-TmplMolecule::deleteCoordSet(TmplCoordSet *element)
-{
-	_coord_sets.erase(element->id());
-	delete element;
-}
-#endif  // UNPORTED
+
 TmplCoordSet *
 TmplMolecule::find_coord_set(int index) const
 {
@@ -100,6 +57,7 @@ TmplMolecule::find_coord_set(int index) const
 	}
 	return NULL;
 }
+
 TmplResidue *
 TmplMolecule::new_residue(const char *t)
 {
@@ -107,26 +65,7 @@ TmplMolecule::new_residue(const char *t)
 	_residues[_inst_->name()] = _inst_;
 	return _inst_;
 }
-#ifdef UNPORTED
-TmplResidue *
-TmplMolecule::new_residue(Symbol t, Symbol chain, int pos, char insert)
-{
-	TmplResidue *_inst_ = new TmplResidue(this, t, chain, pos, insert);
-	_residues[_inst_->type()] = _inst_;
-	return _inst_;
-}
-void
-TmplMolecule::deleteResidue(TmplResidue *element)
-{
-	for (TmplResidue::AtomsMap::iterator i = element->_atoms.begin(); i != element->_atoms.end(); i = element->_atoms.begin()) {
-		TmplAtom *e = (*i).second;
-		// element->_atoms.erase(i); -- done by deleteAtom(e) below
-		deleteAtom(e);
-	}
-	_residues.erase(element->type());
-	delete element;
-}
-#endif  // UNPORTED
+
 TmplResidue *
 TmplMolecule::find_residue(const std::string &index) const
 {

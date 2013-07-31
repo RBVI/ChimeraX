@@ -21,4 +21,4 @@ $(PROG): $(OBJS) $(LIBS)
 	$(PROG_LINK) $(PYTHON_LIB)
 
 clean:
-	/bin/rm -f $(OBJS) $(PROG)
+	/bin/rm -f $(OBJS) $(PROG) pdbio.bild

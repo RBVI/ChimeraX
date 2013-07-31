@@ -1,8 +1,5 @@
 #include "residues.h"
 #include "resinternal.h"
-#ifdef UNPORTED
-#include "TAexcept.h"
-#endif  // UNPORTED
 
 #include "resDescrip.h"
 
@@ -100,20 +97,3 @@ find_template_residue(const std::string &name, bool start, bool end)
 	}
 	return r;
 }
-
-#ifdef UNPORTED
-// return list of known residue names
-std::vector<Symbol>
-restmplResNames()
-{
-	if (start_mol == NULL)
-		restmpl_init();
-
-	std::vector<Symbol> resNames;
-	for (ResInitMap::const_iterator mi = resmap.begin(); mi != resmap.end();
-	++mi) {
-		resNames.push_back((*mi).first);
-	}
-	return resNames;
-}
-#endif  // UNPORTED

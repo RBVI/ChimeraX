@@ -3,11 +3,6 @@
 
 #include <map>
 #include <vector>
-#ifdef UNPORTED
-#include "TmplAtom.h"
-#include "TmplMolecule.h"
-#include "TAexcept.h"
-#endif  // UNPORTED
 #include "Residue_template.h"
 
 class TmplAtom;
@@ -20,25 +15,10 @@ class TmplResidue {
 		~TmplResidue();
 public:
 	void	add_atom(TmplAtom *element);
-#ifdef UNPORTED
-	void	removeAtom(TmplAtom *element);
-	typedef std::vector<TmplAtom *> Atoms;
-	inline Atoms atoms() const;
-#endif  // UNPORTED
 	typedef std::map<std::string, TmplAtom *> AtomsMap;
-#ifdef UNPORTED
-	inline const AtomsMap	&atomsMap() const;
-	typedef std::vector<Symbol> AtomKeys;
-	inline AtomKeys	atomNames() const;
-#endif  // UNPORTED
 	TmplAtom	*find_atom(const std::string &) const;
 public:
 	inline const std::string	name() const { return _name; }
-#ifdef UNPORTED
-	inline void			setType(Symbol t);
-	inline bool			operator==(const TmplResidue &r) const;
-	inline bool			operator<(const TmplResidue &r) const;
-#endif  // UNPORTED
 private:
 	std::string	_name;
 	AtomsMap	_atoms;
@@ -72,9 +52,6 @@ public:
 	std::string	description() const { return _description; }
 	void		description(const std::string &d) { _description = d; }
 private:
-#ifdef UNPORTED
-	TmplResidue(TmplMolecule *, Symbol t, Symbol chain, int pos, char insert);
-#endif  // UNPORTED
 	TmplResidue(TmplMolecule *, const char *t);
 };
 

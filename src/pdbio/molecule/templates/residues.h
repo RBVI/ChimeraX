@@ -8,8 +8,5 @@
 
 extern const TmplResidue *
 	find_template_residue(const std::string &name, bool start, bool end);
-#ifdef UNPORTED
-extern std::vector<Symbol> restmplResNames();
-#endif  // UNPORTED
 
 #endif  // templates_residues

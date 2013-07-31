@@ -107,14 +107,7 @@ TmplResidue::add_atom(TmplAtom *element)
 	element->_residue = this;
 	_atoms[element->name()] = element;
 }
-#ifdef UNPORTED
-void
-TmplResidue::removeAtom(TmplAtom *element)
-{
-	element->Residue_ = NULL;
-	_atoms.erase(element->name());
-}
-#endif  // UNPORTED
+
 TmplAtom *
 TmplResidue::find_atom(const std::string &index) const
 {
@@ -123,14 +116,10 @@ TmplResidue::find_atom(const std::string &index) const
 		return NULL;
 	return i->second;
 }
+
 TmplResidue::TmplResidue(TmplMolecule *, const char *n): _name(n), _chief(0), _link(0) 
 {
 }
-#ifdef UNPORTED
-TmplResidue::TmplResidue(TmplMolecule *, Symbol t, Symbol chain, int pos, char insert): 	type_(t), rid(MolResId(chain, pos, insert)), _chief(0), _link(0) 
-{
-}
-#endif  // UNPORTED
 
 TmplResidue::~TmplResidue()
 {

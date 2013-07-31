@@ -1,15 +1,6 @@
 #include "restmpl.h"
 #include "TmplMolecule.h"
 
-#ifdef UNPORTED
-void
-TmplAtom::setElement(Element e)
-{
-	element_ = e;
-}
-#endif  // UNPORTED
-
-
 int
 TmplAtom::new_coord(const TmplCoord &c) const
 {
@@ -28,30 +19,6 @@ TmplAtom::new_coord(const TmplCoord &c) const
 	}
 	return index;
 }
-
-#ifdef UNPORTED
-const TmplCoord &
-TmplAtom::coord() const
-{
-
-	if (index_ == COORD_UNASSIGNED)
-		throw std::logic_error("coordinate value not set yet");
-	TmplCoordSet *cs;
-	if ((cs = molecule()->activeCoordSet()) == NULL)
-		throw std::logic_error("no active coordinate set");
-	return *cs->findCoord(index_);
-}
-
-const TmplCoord &
-TmplAtom::coord(const TmplCoordSet *cs) const
-{
-	if (index_ == COORD_UNASSIGNED)
-		throw std::logic_error("coordinate value not set yet");
-	// since genlib doesn't current generate a const version of
-	// findCoord, cast away const
-	return *((TmplCoordSet *)cs)->findCoord(index_);
-}
-#endif  // UNPORTED
 
 void
 TmplAtom::set_coord(const TmplCoord &c)
@@ -94,31 +61,7 @@ TmplAtom::add_bond(TmplBond *b)
 {
 	_bonds[b->other_atom(this)] = b;
 }
-#ifdef UNPORTED
-void
-TmplAtom::removeBond(TmplBond *element)
-{
-	Bonds_.erase(element->otherAtom(this));
-}
-TmplBond *
-TmplAtom::findBond(TmplAtom* index) const
-{
-	BondsMap::const_iterator i = Bonds_.find(index);
-	if (i == Bonds_.end())
-		return NULL;
-	return i->second;
-}
-TmplMolecule *
-TmplAtom::molecule() const
-{
-	return Molecule_;
-}
-TmplResidue *
-TmplAtom::residue() const
-{
-	return Residue_;
-}
-#endif  // UNPORTED
+
 TmplAtom::TmplAtom(TmplMolecule *_owner_, std::string &n, Element e): _molecule(_owner_), _residue(0), _name(n), _element(e), _index(COORD_UNASSIGNED)
 
 {
