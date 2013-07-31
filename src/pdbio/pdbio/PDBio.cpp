@@ -10,6 +10,7 @@
 #include "molecule/templates/residues.h"
 #include <set>
 #include <sstream>
+#include <algorithm>  // for std::sort
 
 #define LOG_PY_ERROR_NULL(arg) \
 				if (log_file != NULL) { \
