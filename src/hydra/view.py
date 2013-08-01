@@ -455,9 +455,8 @@ class View(QtOpenGL.QGLWidget):
         from math import pi, tan
         fov = self.field_of_view*pi/180
         camdist = 0.5*s + 0.5*s/tan(0.5*fov)
-        self.set_camera_view(((1,0,0,cx),
-                              (0,1,0,cy),
-                              (0,0,1,cz+camdist)))
+        from . import place
+        self.set_camera_view(place.translation((cx,cy,cz+camdist)))
         self.near_far_clip = (camdist - s, camdist + s)
         self.center_of_rotation = (cx,cy,cz)
 
