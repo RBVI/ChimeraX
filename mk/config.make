@@ -22,16 +22,16 @@ frameworkdir = $(build_prefix)/Library/Frameworks
 endif
 
 ifndef WIN32
-RSYNC = rsync -CrltWv --executability
+RSYNC = rsync -rltWv --executability
 else
-RSYNC = $(bindir)/rsync.convert -CrlptWv
+RSYNC = $(bindir)/rsync.convert -rlptWv
 endif
 
 ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
 else ifdef USE_MAC_FRAMEWORKS
-PYTHON_INCLUDE_DIRS = $(shell python$(PYTHON_VERSION)-config --includes)
+PYTHON_INCLUDE_DIRS = $(shell $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)-config --includes)
 PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 PYTHON_LIBRARY_DIR = $(PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION)
 else

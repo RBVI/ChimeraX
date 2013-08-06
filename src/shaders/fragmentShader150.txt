@@ -1,0 +1,67 @@
+#version 150
+
+#define USE_TWO_SIDED_LIGHTING 1
+#define USE_ANGLE_DEPENDENT_TRANSPARENCY 1
+//#define USE_FOG 1
+
+uniform vec4 KeyPosition;
+uniform vec4 FillPosition;
+uniform vec4 BackPosition;
+uniform vec4 KeyDiffuse;
+uniform vec4 FillDiffuse;
+uniform vec4 BackDiffuse;
+uniform vec4 KeySpecular;
+uniform float Shininess;
+uniform vec4 Ambient;
+
+uniform float fogEnabled;
+
+in vec3 N;
+in vec3 v;
+in vec4 fcolor;
+
+out vec4 frag_color;
+
+void main (void)
+{
+  vec3 N1 = normalize(N);
+  vec3 L = normalize(KeyPosition.xyz);  // Light at infinity.
+  vec3 Lf = normalize(FillPosition.xyz); // Light at infinity.
+  vec3 Lb = normalize(BackPosition.xyz); // Light at infinity.
+  vec3 E = normalize(-v);      // In eye coordinates eye position is (0,0,0).
+#ifdef USE_TWO_SIDED_LIGHTING
+  N1 *= (gl_FrontFacing ? 1.0 : -1.0);
+#else
+  if (!gl_FrontFacing) discard;
+#endif
+  vec3 R = normalize(-reflect(L,N1)); 
+
+  // diffuse
+  vec4 Idiff = fcolor * (KeyDiffuse * max(dot(N1, L), 0.0)
+                         + FillDiffuse * max(dot(N1, Lf), 0.0)
+                         + BackDiffuse * max(dot(N1, Lb), 0.0));
+
+  // specular
+  vec4 Ispec = KeySpecular * pow(max(dot(R, E), 0.0), 0.3 * Shininess);
+
+  // scene
+  vec4 Iscene = fcolor * Ambient;
+
+  // transparency
+  float a = fcolor.a;
+#ifdef USE_ANGLE_DEPENDENT_TRANSPARENCY
+  a = 1.0 - pow(max(1.0 - a, 0.0), 1.0 / max(abs(N1.z), 0.01));
+#endif
+
+  // total color
+  vec3 Ifrag = Iscene.rgb + Idiff.rgb + Ispec.rgb;
+
+#ifdef USE_FOG
+  // fog
+  float fog = clamp((gl_FogFragCoord - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
+  Ifrag = mix(Ifrag, gl_Fog.color.rgb, fogEnabled * fog);
+#endif
+
+  // final color
+  frag_color = vec4(Ifrag, a);
+}

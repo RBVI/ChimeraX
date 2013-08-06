@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.9.0
+VERSION = 1.10.0
 DISTRIBUTION = glew-$(VERSION).tgz
 SOURCE = $(tmpdir)/glew-$(VERSION)
 

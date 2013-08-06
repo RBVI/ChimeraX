@@ -36,31 +36,29 @@ public:
 	};
 	// ATTRIBUTE: name
 	const std::string&	name() const;
-	// ATTRIBUTE: size
-	unsigned	size() const;
 	// ATTRIBUTE: type
 	Type		type() const;
 
 	int		location() const;
-	unsigned	count() const;		// number of basetype elements
-	Type		basetype() const;
+	unsigned	count() const;		// number of base_type elements
+	Type		base_type() const;
 	unsigned	byte_count() const;
 
-	void		setFloat(GLfloat f);
-	void		setFloatv(const GLfloat* fv);
-	void		setFloatMatrixv(bool transpose, const GLfloat* fv);
+	void		set_float(GLfloat f);
+	void		set_floatv(const GLfloat* fv);
+	void		set_float_matrixv(bool transpose, const GLfloat* fv);
 
-	void		setInt(GLint i);
-	void		setIntv(const GLint* iv);
+	void		set_int(GLint i);
+	void		set_intv(const GLint* iv);
 
-	void		setBool(GLint b);
-	void		setBoolv(const GLint* bv);
+	void		set_bool(GLint b);
+	void		set_boolv(const GLint* bv);
 #ifdef HAVE_TEXTURE
 	Texture*	texture() const;
-	void		setTexture(Texture* t);
+	void		set_texture(Texture* t);
 #endif
 
-	bool		hasValue() const;
+	bool		has_value() const;
 private:
 	friend class ShaderProgram;
 	ShaderVariable(ShaderProgram *sp, const std::string& n, Type t);
@@ -72,11 +70,11 @@ private:
 	Type		type_;
 	int		location_;
 	unsigned char	*data;
-	void	drawUniform() const;
+	void	draw_uniform() const;
 };
 
 inline bool
-ShaderVariable::hasValue() const
+ShaderVariable::has_value() const
 {
 	return data != NULL;
 }
@@ -102,7 +100,7 @@ ShaderVariable::location() const
 class ShaderProgram
 {
 public:
-	ShaderProgram(const std::string& vertex_shader, const std::string& fragment_shader);
+	ShaderProgram(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& attribute0_name);
 	virtual	~ShaderProgram();
 
 	void	setup() const throw ();

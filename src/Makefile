@@ -6,7 +6,7 @@ NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= chimera2 llgr qt-app shaders wsgi
+SUBDIRS	+= chimera2 hydra llgr qt-app shaders wsgi pdbio
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

@@ -25,6 +25,8 @@ cvt_buffer_target(BufferTarget bt)
 void
 create_buffer(Id data_id, BufferTarget target, unsigned size, const void *data)
 {
+	if (!initialized)
+		init();
 	if (all_buffers.empty()) {
 		unsigned char *d = new unsigned char [sizeof identity4x4_data];
 		memcpy(d, identity4x4_data, sizeof identity4x4_data);
@@ -81,6 +83,8 @@ clear_buffers()
 void
 create_singleton(Id data_id, unsigned size, const void *data)
 {
+	if (!initialized)
+		init();
 	if (all_buffers.empty()) {
 		unsigned char *d = new unsigned char [sizeof identity4x4_data];
 		memcpy(d, identity4x4_data, sizeof identity4x4_data);

@@ -23,7 +23,7 @@ OBJS = $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _llgr
 
 PKG_DIR = $(PYSITEDIR)
-PYSRCS = llgr.py llgr_dump.py
+PYSRCS = llgr.py llgr_dump.py llgr_pyopengl.py spiral.py shader.py
 PYOBJS = $(PYSRCS:.py=.pyc)
 
 HDRS = ../c++/llgr.h ../c++/llgr_ui.h

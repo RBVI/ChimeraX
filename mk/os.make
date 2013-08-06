@@ -107,7 +107,8 @@ else
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 	PYMOD_EXT = so
-	PYMOD_LINK = $(LOADER) -bundle -bundle_loader `which python3` -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
+	#PYMOD_LINK = $(LOADER) -bundle -bundle_loader `which python3` -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
+	PYMOD_LINK = $(LOADER) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -framework OpenGL
 
@@ -148,7 +149,6 @@ ifdef DEBUG
 else
 	OPT = /Ox /W2
 endif
-	DEFS = -DWIN32
 	CC = cl /nologo /Zc:forScope /EHa /GR /GF /MD
 	CXX = $(CC)
 
@@ -180,7 +180,7 @@ SHLIB = lib$(LIBNAME).$(SHLIB_EXT)
 PYMOD = $(PYMOD_NAME).$(PYMOD_EXT)
 PROG = $(PROG_NAME)$(PROG_EXT)
 
-NUMPY_INC += -I"$(shell python3 -c "import numpy; print(numpy.get_include())")"
+NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
 
 .SUFFIXES: .rst .html
 .rst.html:

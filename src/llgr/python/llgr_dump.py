@@ -390,7 +390,7 @@ Matrix_4x4 = either(Array(shape=(4,4), dtype='f'), (
 # renormalize should be true when the rotation part of the matrix
 # has shear or scaling, or if it is a projection matrix. 
 @typecheck
-def create_matrix(matrix_id: Id, matrix_4x4: Matrix_4x4, renormalize:bool=False):
+def create_matrix(matrix_id: Id, matrix_4x4: Matrix_4x4, renormalize: bool=False):
 	if isinstance(matrix_4x4, numpy.ndarray):
 		m = [float(f) for f in matrix_4x4.flat]
 	else:
@@ -466,7 +466,7 @@ def set_attribute_alias(name: str, value: str):
 def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
 		list_of_attributeInfo: list_of(AttributeInfo),
 		primitive_type: PrimitiveType, first: NonNeg32, count: NonNeg32,
-		index_data_id:Id=0, index_buffer_type:DataType=UByte):
+		index_data_id: Id=0, index_buffer_type: DataType=UByte):
 	pass
 
 @save_args

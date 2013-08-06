@@ -16,7 +16,7 @@
 #include <string.h>
 #include <assert.h>
 
-#undef PRINT_UNIFORMS
+#undef PRINT_SHADER_INFO
 
 namespace llgr {
 
@@ -140,7 +140,7 @@ ShaderVariable::count() const
 }
 
 ShaderVariable::Type
-ShaderVariable::basetype() const
+ShaderVariable::base_type() const
 {
 	switch (type_) {
 	  case Float: case Vec2: case Vec3: case Vec4:
@@ -169,10 +169,8 @@ ShaderVariable::basetype() const
 	  case Sampler1DShadow: return Sampler1D;
 	  case Sampler2DShadow: return Sampler2D;
 #endif
-	  case Unknown: return Unknown;
+	  default: return Unknown;
 	}
-	// NOTREACHED
-	return Unknown;
 }
 
 unsigned
@@ -198,161 +196,158 @@ ShaderVariable::byte_count() const
 		  return count() * sizeof (GLfloat);
 
 #ifdef HAVE_TEXTURE
-	  case Sampler1D: return Sampler1D;
-	  case Sampler2D: return Sampler2D;
-	  case Sampler3D: return Sampler3D;
-	  case SamplerCube: return Sampler2D;
-	  case Sampler1DShadow: return Sampler1D;
-	  case Sampler2DShadow: return Sampler2D;
+	  case Sampler1D: return ?;
+	  case Sampler2D: return ?;
+	  case Sampler3D: return ?;
+	  case SamplerCube: return ?;
+	  case Sampler1DShadow: return ?;
+	  case Sampler2DShadow: return ?;
 #endif
-	  case Unknown: return Unknown;
+	  default: return 0;
 	}
-	// NOTREACHED
-	return Unknown;
 }
 
 void
-ShaderVariable::setFloat(GLfloat f)
+ShaderVariable::set_float(GLfloat f)
 {
 	if (type_ != Float)
-		throw std::runtime_error("not a floating point singleton");
+		throw std::logic_error("not a floating point singleton");
 	if (!data)
 		data = new unsigned char [sizeof (GLfloat)];
 	*reinterpret_cast<GLfloat *>(data) = f;
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 
 void
-ShaderVariable::setFloatv(const GLfloat *fv)
+ShaderVariable::set_floatv(const GLfloat *fv)
 {
 	if (fv == NULL)
-		throw std::runtime_error("need float array");
-	if (basetype() != Float)
-		throw std::runtime_error("not a floating point type");
+		throw std::logic_error("need float array");
+	if (base_type() != Float)
+		throw std::logic_error("not a floating point type");
 	unsigned num_bytes = byte_count();
 	if (!data)
 		data = new unsigned char [num_bytes];
 	memcpy(data, fv, num_bytes);
 	transpose_ = false;
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 
 void
-ShaderVariable::setFloatMatrixv(bool transpose, const GLfloat *fv)
+ShaderVariable::set_float_matrixv(bool transpose, const GLfloat *fv)
 {
 	if (fv == NULL)
-		throw std::runtime_error("need float array");
-	if (basetype() != Float)
-		throw std::runtime_error("not a floating point type");
+		throw std::logic_error("need float array");
+	if (base_type() != Float)
+		throw std::logic_error("not a floating point type");
 	unsigned num_bytes = byte_count();
 	if (!data)
 		data = new unsigned char [num_bytes];
 	memcpy(data, fv, num_bytes);
 	transpose_ = transpose;
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 
 void
-ShaderVariable::setInt(GLint i)
+ShaderVariable::set_int(GLint i)
 {
 	if (type_ != Int)
-		throw std::runtime_error("not an integer singleton");
+		throw std::logic_error("not an integer singleton");
 	if (!data)
 		data = new unsigned char [sizeof (GLint)];
 	*reinterpret_cast<GLint *>(data) = i;
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 
 void
-ShaderVariable::setIntv(const int *iv)
+ShaderVariable::set_intv(const int *iv)
 {
 	if (iv == NULL)
-		throw std::runtime_error("need integer array");
-	if (basetype() != Int)
-		throw std::runtime_error("not an integer type");
+		throw std::logic_error("need integer array");
+	if (base_type() != Int)
+		throw std::logic_error("not an integer type");
 	unsigned num_bytes = byte_count();
 	if (!data)
 		data = new unsigned char [num_bytes];
 	memcpy(data, iv, num_bytes);
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 
 void
-ShaderVariable::setBool(GLint b)
+ShaderVariable::set_bool(GLint b)
 {
 	if (type_ != Bool)
-		throw std::runtime_error("not a boolean singleton");
+		throw std::logic_error("not a boolean singleton");
 	if (!data)
 		data = new unsigned char [sizeof (GLint)];
 	*reinterpret_cast<GLint *>(data) = b;
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 
 void
-ShaderVariable::setBoolv(const GLint *bv)
+ShaderVariable::set_boolv(const GLint *bv)
 {
 	if (bv == NULL)
-		throw std::runtime_error("need boolean array");
-	if (basetype() != Bool)
-		throw std::runtime_error("not a boolean type");
+		throw std::logic_error("need boolean array");
+	if (base_type() != Bool)
+		throw std::logic_error("not a boolean type");
 	unsigned num_bytes = byte_count();
 	if (!data)
 		data = new unsigned char [num_bytes];
 	memcpy(data, bv, num_bytes);
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 
 #ifdef HAVE_TEXTURE
 Texture*
 ShaderVariable::texture() const
 {
-	if (!hasValue_)
-		throw std::runtime_error("no value set");
+	if (!has_value())
+		throw std::logic_error("no value set");
 	switch (type_) {
 	  default:
-		throw std::runtime_error("not a sampler type");
+		throw std::logic_error("not a sampler type");
 	  case Sampler1D: case Sampler2D: case Sampler3D: case SamplerCube:
 	  case Sampler1DShadow: case Sampler2DShadow:
 	  	return data.tex;
 	} }
 
 void
-ShaderVariable::setTexture(Texture *t)
+ShaderVariable::set_texture(Texture *t)
 {
 	if (t == NULL)
-		throw std::runtime_error("need a texture");
+		throw std::logic_error("need a texture");
 	switch (type_) {
 	  default:
-		throw std::runtime_error("not a sampler type");
+		throw std::logic_error("not a sampler type");
 	  case Sampler1D: case Sampler1DShadow:
 		if (t->dimension() != 1)
-			throw std::runtime_error("not a 1D texture");
+			throw std::logic_error("not a 1D texture");
 		break;
 	  case Sampler2D: case SamplerCube: case Sampler2DShadow:
 		if (t->dimension() != 2)
-			throw std::runtime_error("not a 2D texture");
+			throw std::logic_error("not a 2D texture");
 		break;
 	  case Sampler3D:
 		if (t->dimension() != 3)
-			throw std::runtime_error("not a 3D texture");
+			throw std::logic_error("not a 3D texture");
 		break;
 	}
 	data.tex = t;
-	hasValue_ = true;
 	if (current_programObj == sp_->programObj)
-		drawUniform();
+		draw_uniform();
 }
 #endif
 
 void
-ShaderVariable::drawUniform() const
+ShaderVariable::draw_uniform() const
 {
 	switch (type_) {
 	  case Float: glUniform1fv(location_, 1, reinterpret_cast<GLfloat *>(data)); break;
@@ -411,7 +406,7 @@ isSpace(string::traits_type::char_type c)
 #endif
 }
 
-ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment_shader): programObj(0), vs(0), fs(0)
+ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment_shader, const string& attribute0_name): programObj(0), vs(0), fs(0)
 {
 	class GuardProgram {
 		// Protect against leaks due to exceptions
@@ -481,6 +476,10 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 	if (!compiled)
 		throw std::runtime_error("unable to compile all shaders");
 
+	if (!attribute0_name.empty()) {
+		glBindAttribLocation(program.get(), 0, attribute0_name.c_str());
+	}
+
 	glLinkProgram(program.get());
 	glGetProgramiv(program.get(), GL_LINK_STATUS, &status);
 	if (status != GL_TRUE) {
@@ -538,7 +537,7 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 		attributes_.push_back(sv);
 	}
 
-#ifdef PRINT_UNIFORMS
+#ifdef PRINT_SHADER_INFO
 	{
 		// print out all uniforms and vertex attributes
 		std::map<GLenum, const char *> typeMap;
@@ -573,7 +572,7 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 					e = uniforms_.end(); i != e; ++i) {
 			ShaderVariable *sv = *i;
 			std::cerr << "    " << sv->name() << ' '
-				<< sv->size() << ' ' << typeMap[sv->type()]
+				<< ' ' << typeMap[sv->type()]
 				<< " loc: " << sv->location() << '\n';
 		}
 		std::cerr << "  vertex attributes:\n";
@@ -581,7 +580,7 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 					e = attributes_.end(); i != e; ++i) {
 			ShaderVariable *sv = *i;
 			std::cerr << "    " << sv->name() << ' '
-				<< sv->size() << ' ' << typeMap[sv->type()]
+				<< ' ' << typeMap[sv->type()]
 				<< " loc: " << sv->location() << '\n';
 		}
 	}
@@ -649,9 +648,9 @@ ShaderProgram::setup() const throw ()
 	for (Variables::const_iterator i = uniforms_.begin();
 						i != uniforms_.end(); ++i) {
 		ShaderVariable *sv = *i;
-		if (sv->location() == -1 || !sv->hasValue())
+		if (sv->location() == -1 || !sv->has_value())
 			continue;
-		sv->drawUniform();
+		sv->draw_uniform();
 	}
 }
 

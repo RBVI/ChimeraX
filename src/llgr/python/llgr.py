@@ -82,15 +82,24 @@ def set_output(type):
 	Note: this funtion must be called before calling the llgr functions,
 	*i.e.*, there is no default.
 	"""
-	use_opengl = type == 'opengl'
-	if use_opengl:
+	if type == 'opengl':
 		llgr = __import__('_llgr')
-		# default to OpenGL 2 for now
-		llgr.set_attribute_alias("position", "gl_Vertex")
+	elif type == 'pyopengl':
+		llgr = __import__('llgr_pyopengl')
+		# since this is for prototyping, make all symbols available
+		gsyms = globals()
+		for sym in dir(llgr):
+			if sym.startswith('__'):
+				continue
+			if sym in _wrapped_syms:
+				gsyms['_%s' % sym] = getattr(llgr, sym)
+			else:
+				gsyms[sym] = getattr(llgr, sym)
+		return
 	else:
 		llgr = __import__('llgr_dump')
 		if type not in llgr.FORMATS:
-			raise ValueError('type should be one: %s, or opengl' % ', '.join(llgr.FORMATS))
+			raise ValueError('type should be one: %s, pyopengl, or opengl' % ', '.join(llgr.FORMATS))
 		llgr.set_dump_format(type)
 	gsyms = globals()
 	for sym in _llgr_syms:

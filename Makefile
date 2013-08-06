@@ -24,6 +24,7 @@ docs.install:
 
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) $(webdir)
+	-cd $(build_prefix) && ln -fs lib lib64
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif

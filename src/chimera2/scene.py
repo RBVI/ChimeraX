@@ -153,11 +153,11 @@ def reset():
 	import llgr
 	llgr.clear_all()
 	_program_id = llgr.next_program_id()
-	with open("../shaders/vertexShader2.txt") as f:
+	with open("../shaders/vertexShader150.txt") as f:
 		vertex_shader = f.read()
-	with open("../shaders/fragmentShader2.txt") as f:
+	with open("../shaders/fragmentShader150.txt") as f:
 		fragment_shader = f.read()
-	with open("../shaders/vertexPickShader.txt") as f:
+	with open("../shaders/vertexPickShader150.txt") as f:
 		pick_vertex_shader = f.read()
 	llgr.create_program(_program_id, vertex_shader, fragment_shader,
 						pick_vertex_shader)
@@ -183,7 +183,7 @@ def add_sphere(radius, center, color, xform=None):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype=float32).tostring()
+		rgba = array(color, dtype=float32)
 		llgr.create_singleton(data_id, rgba)
 
 	matrix_id = llgr.next_matrix_id()
@@ -218,7 +218,7 @@ def add_cylinder(radius, p0, p1, color, xform=None):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype=float32).tostring()
+		rgba = array(color, dtype=float32)
 		llgr.create_singleton(data_id, rgba)
 
 	# create translation matrix
@@ -325,7 +325,7 @@ def add_box(p0, p1, color, xform=None):
 	else:
 		data_id = llgr.next_data_id()
 		assert len(color) == 4
-		rgba = array(color, dtype=float32).tostring()
+		rgba = array(color, dtype=float32)
 		llgr.create_singleton(data_id, rgba)
 
 	if _box_pn_id is None:
