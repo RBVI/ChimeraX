@@ -26,10 +26,10 @@ if [ ! -e $target ]; then
 fi
 
 # Copy local files
-local_files="chimera2.wsgi backends index.html"
+local_files="chimera2.wsgi backends"
 rsync -a $local_files $target
-other_files="../llgr/webgl"
-rsync -a $other_files $target
+other_files="../llgr/webgl chimera2_webapp.html"
+rsync -a $other_files $target/www
 
 # Make sure some files are owned by user Apache
 if [ ! -e $target/sessions ]; then
