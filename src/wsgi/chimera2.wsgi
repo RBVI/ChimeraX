@@ -116,12 +116,23 @@ class App(object):
 				"Form field \"%s\" undefined" % key)
 		return v
 
+	def _get_user(self, fs, environ):
+		try:
+			user = self._get_field(fs, "user")
+		except WSGIError:
+			user = self._getenv(environ, "REMOTE_USER")
+		return user
+
 	def _default_action(self, environ):
-		base = self._getenv(environ, "SCRIPT_URI").rsplit('/', 1)[0]
-		frontend_url = base + "/chimera2_webapp.html"
+		uri = self._getenv(environ, "SCRIPT_URI")
+		if uri.endswith('/') or uri.endswith(".wsgi"):
+			base = uri.rsplit('/', 1)[0]
+		else:
+			base = uri
+		frontend_url = base + "/www/chimera2_webapp.html"
 		return (STATUS_REDIRECT,
 				CONTENT_TYPE_PLAINTEXT,
-				[ ( "Location", url ) ],
+				[ ( "Location", frontend_url ) ],
 				DEFAULT_MESSAGE)
 	
 	#
@@ -151,13 +162,12 @@ class App(object):
 			print >> sf, "<h1>Sessions for <i>%s</i></h1>" % account
 			print >> sf, "<table>"
 			print >> sf, "<tr>"
-			print >> sf, "<th>Name</th><th>Type</th><th>Last Access</th>"
+			print >> sf, "<th>Name</th><th>Last Access</th>"
 			print >> sf, "</tr>"
 			import time
 			for s in session_list:
 				print >> sf, "<tr>"
 				print >> sf, "<td>%s</th>" % s.name
-				print >> sf, "<td>%s</th>" % s.type
 				print >> sf, "<td>%s</th>" % s.access_time()
 				print >> sf, "</tr>"
 			print >> sf, "</table>"
@@ -167,11 +177,13 @@ class App(object):
 	def _process_jlist(self, environ, fs):
 		account = self._getenv(environ, "REMOTE_USER")
 		session_list = self.sessions.get_session_list(account)
-		s_list = [ { "name": s.name,
-				"access": s.access_time() }
-				for s in session_list ]
+		sessions = [
+			account,
+			[ { "name": s.name, "access": s.access_time() }
+						for s in session_list ]
+		]
 		import json
-		output = json.dumps(s_list)
+		output = json.dumps(sessions)
 		return STATUS_OKAY, CONTENT_TYPE_JSON, None, output
 
 	def _process_create(self, environ, fs):
@@ -209,7 +221,7 @@ class App(object):
 		return STATUS_OKAY, CONTENT_TYPE_HTML, None, output
 
 	def _process_call(self, environ, fs):
-		account = self._getenv(environ, "REMOTE_USER")
+		account = self._get_user(fs, environ)
 		session = self._get_field(fs, "session")
 		password = self._get_field(fs, "password", empty_okay=True)
 		s = self.sessions.find_session(account, session, password)
@@ -226,7 +238,7 @@ class App(object):
 
 	def _process_env(self, environ, fs):
 		env = '\n'.join([ "<li>%s: %s</li>" % item
-					for item in environ.iteritems() ])
+				for item in sorted(environ.iteritems()) ])
 		import sys
 		path = '\n'.join([ "<li>%s</li>" % d for d in sys.path ])
 		output = ( "<h2>Environment</h2><ul>" + env + "</ul>" +
@@ -292,6 +304,7 @@ class Session(object):
 		self.lock = threading.RLock()
 
 	def _init_state(self, name, password):
+		import os.path
 		self.name = name
 		self.password = password
 		self.update_access()
@@ -444,7 +457,7 @@ class SessionStore(object):
 				self._store[key] = self._cache[key]
 
 	def close(self):
-		"""Clear memory
+		"""Clear memory cache"""
 		self._cache = dict()
 		self._store.close()
 

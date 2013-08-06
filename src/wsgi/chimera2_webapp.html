@@ -87,8 +87,6 @@ function ContextInfo(canvas, gl)
 
 function main()
 {
-	sendRequest("POST", "?action=backends", null,
-							populateBackends)
 	canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
 		alpha: false,
@@ -168,11 +166,9 @@ function ajax_form(results, errors) {
 	var cb = sessionCB;
 	if (document.inputs.action.value == "jlist")
 		cb = jsonList;
-	else if (document.inputs.action.value == "backends")
-		cb = jsonBackends;
 	else if (document.inputs.action.value == "call")
 		cb = remoteCall;
-	sendRequest("POST", "",
+	sendRequest("POST", "..",
 				// FormData is not supported in
 				// Internet Explorer until version 10
 				new FormData(document.inputs),
@@ -217,20 +213,21 @@ function jsonList(responseText, r, e)
 {
 	r.innerHTML = "";
 	e.innerHTML = "None";
-	var sessions = eval(responseText);
+	var sessionInfo = eval(responseText);
+	var h1 = document.createElement("h1");
+	r.appendChild(h1)
+	h1.innerHTML = "Sessions for <i>" + sessionInfo[0] + "</i>";
 	var table = document.createElement("table");
 	r.appendChild(table);
+	var sessions = sessionInfo[1];
 	for (var i = 0; i != sessions.length; ++i) {
 		var tr = document.createElement("tr");
 		table.appendChild(tr);
 		var name = document.createElement("td");
 		name.appendChild(document.createTextNode(sessions[i].name));
-		var type = document.createElement("td");
-		type.appendChild(document.createTextNode(sessions[i].type));
 		var access = document.createElement("td");
 		name.appendChild(document.createTextNode(sessions[i].access));
 		tr.appendChild(name);
-		tr.appendChild(type);
 		tr.appendChild(access);
 	}
 }
@@ -272,36 +269,7 @@ function remoteCall(responseText, r, e)
 
 function actionCB(e)
 {
-	backend = document.getElementById("backend");
-	backend.disabled = (e.value != "create");
-}
-
-function populateBackends()
-{
-	// Are we complete?
-	if (this.readyState == 4) {
-		// Yes, do we have a good http status?
-		if (this.status == 200) {
-			var e = document.getElementById("backend");
-			e.innerHTML = "";
-			var names = eval(this.responseText);
-			for (var i = 0; i != names.length; ++i) {
-				var name = names[i];
-				var o = document.createElement("option");
-				o.value = name;
-				e.appendChild(o);
-				o.appendChild(document.createTextNode(name));
-			}
-		} else if (this.status == 400) {
-			alert(this.responseText);
-			r.innerHTML = "None";
-			e.innerHTML = "None";
-		} else {
-			alert("server error");
-			r.innerHTML = "None";
-			e.innerHTML = this.responseText;
-		}
-	}
+	return;
 }
 
 </script>
@@ -313,6 +281,10 @@ function populateBackends()
 <form name="inputs" method="post"
 	onsubmit="return ajax_form('results', 'errors');">
 <table>
+<tr>
+	<td align="right">User:</td>
+	<td><input type="text" name="user"/>
+</tr>
 <tr>
 	<td align="right">Session:</td>
 	<td><input type="text" name="session" value="test1"/>
@@ -331,12 +303,6 @@ function populateBackends()
 		<option value="call" selected="1">Call</option>
 		<option value="pwd">Current working directory</option>
 		<option value="env">Environment</option>
-		<option value="backends">Backends</option>
-	</select></td>
-</tr>
-<tr>
-	<td align="right">Backend:</td>
-	<td><select id="backend" name="backend" disabled="disabled">
 	</select></td>
 </tr>
 <tr>
