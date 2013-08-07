@@ -270,33 +270,33 @@ Objects
 
 .. cpp:type:: AttributeInfo
 
-.. cpp:member:: std::string name
+    .. cpp:member:: std::string name
 
-    name of attribute
+        name of attribute
 
-.. cpp:member:: Id data_id
+    .. cpp:member:: Id data_id
 
-    Data to use for attribute
+        Data to use for attribute (singleton or buffer Id)
 
-.. cpp:member:: uint32_t offset
+    .. cpp:member:: uint32_t offset
 
-    Byte offset into data for first attribute value
+        Byte offset into data for first attribute value
 
-.. cpp:member:: uint32_t stride
+    .. cpp:member:: uint32_t stride
 
-    Byte stride through data to next attribute value
+        Byte stride through data to next attribute value
 
-.. cpp:member:: uint32_t count
+    .. cpp:member:: uint32_t count
 
-    Number of data type (1-4)
+        Number of data type (1-4)
 
-.. cpp:member:: DataType type
+    .. cpp:member:: DataType type
 
-    Type of attribute
+        Type of attribute
 
-.. cpp:member:: bool normalized
+    .. cpp:member:: bool normalized
 
-    For integer types, true if attribute values should be normalized to 0.0-1.0
+        For integer types, true if attribute values should be normalized to 0.0-1.0
 
 .. cpp:type:: AttributeInfos
 
@@ -321,7 +321,7 @@ Objects
     either as a vertex attribute or with ``glNormal``
     depending on the shader program.
 
-.. cpp:function void create_object(Id obj_id, Id program_id, Id matrix_id, \
+.. cpp:function:: void create_object(Id obj_id, Id program_id, Id matrix_id, \
 	const AttributeInfos\& ais, PrimitiveType pt, \
 	uint32_t first, uint32_t count, \
 	Id index_data_id = 0, DataType index_data_type = Byte)
@@ -331,10 +331,10 @@ Objects
     :param matrix_id: provided matrix identifier
     :param ais: vector of attribute information
     :param pt: primitive type
-    :param first:
-    :param count:
+    :param first: staring index into buffer arrays, or, for indexed drawing, the index of the starting drawing index
+    :param count: number of indices to use
     :param index_data_id: provided data identifier for index data, zero if none
-    :param index_data_type:
+    :param index_data_type: data type of indexes (must be unsigned byte/short/int)
 
 .. cpp:function:: void delete_object(Gluint obj_id)
 
