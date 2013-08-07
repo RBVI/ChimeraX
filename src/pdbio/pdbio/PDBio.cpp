@@ -1228,6 +1228,24 @@ link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
 	}
 }
 
+static void
+capsule_destructor(PyObject *capsule)
+{
+	const char *name = PyCapsule_GetName(capsule);
+	void *ptr = PyCapsule_GetPointer(capsule, name);
+	if (strcmp(name, "pdbio.mol_vector")) {
+		delete (std::vector<Molecule *> *)ptr;
+	} else if (strcmp(name, "pdbio.res_vector")) {
+		delete (std::vector<Residue *> *)ptr;
+	} else if (strcmp(name, "pdbio.atom_vector")) {
+		delete (std::vector<Atom *> *)ptr;
+	} else if (strcmp(name, "pdbio.bond_vector")) {
+		delete (std::vector<Bond *> *)ptr;
+	} else {
+		throw std::invalid_argument("Don't recognize capsule type!");
+	}
+}
+
 static std::pair<char *, PyObject *>
 read_no_fileno(void *py_file)
 {
@@ -1253,7 +1271,7 @@ read_fileno(void *f)
 PyObject *
 read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 {
-	std::vector<Molecule *> mols, file_mols;
+	std::vector<Molecule *> file_mols;
 	bool reached_end;
 	std::map<Molecule *, std::vector<Residue *> > start_res_map, end_res_map;
 	std::map<Molecule *, std::vector<PDB> > ss_map;
@@ -1272,6 +1290,7 @@ read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 	bool eof;
 	std::pair<char *, PyObject *> (*read_func)(void *);
 	void *input;
+	std::vector<Molecule *> *mols = new std::vector<Molecule *>();
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
@@ -1295,8 +1314,8 @@ start_t = clock();
 		  &start_res_map[m], &end_res_map[m], &ss_map[m], &conect_map[m],
 		  &link_map[m], &mod_res_map[m], &reached_end, log_file, explode, &eof);
 		if (ret == NULL) {
-			for (std::vector<Molecule *>::iterator mi = mols.begin();
-			mi != mols.end(); ++mi) {
+			for (std::vector<Molecule *>::iterator mi = mols->begin();
+			mi != mols->end(); ++mi) {
 				delete *mi;
 			}
 			delete m;
@@ -1342,18 +1361,18 @@ start_t = end_t;
 			m = NULL;
 		} else {
 			// give all members of an ensemble the same pdb_headers
-			if (explode && ! mols.empty()) {
+			if (explode && ! mols->empty()) {
 				if (m->pdb_headers.empty())
-					m->pdb_headers = mols[0]->pdb_headers;
+					m->pdb_headers = (*mols)[0]->pdb_headers;
 				if (ss_map[m].empty())
-					ss_map[m] = ss_map[mols[0]];
+					ss_map[m] = ss_map[(*mols)[0]];
 			}
 			if (per_model_conects || (!file_mols.empty() && !conect_map[m].empty())) {
 				per_model_conects = true;
 				conect_map[file_mols.back()] = conect_map[m];
 				conect_map[m].clear();
 			}
-			mols.push_back(m);
+			mols->push_back(m);
 			file_mols.push_back(m);
 		}
 #ifdef CLOCK_PROFILING
@@ -1427,16 +1446,11 @@ start_t = end_t;
 		end_res_map.clear();
 		mod_res_map.clear();
 	}
-	PyObject *mol_list = PyList_New(mols.size());
-	Py_INCREF(mol_list);
-	for (int i=0; i < (int)mols.size(); ++i) {
-		PyList_SET_ITEM(mol_list, i, PyCapsule_New(mols[i], NULL, NULL));
-	}
 #ifdef CLOCK_PROFILING
 std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
-	return mol_list;
+	return PyCapsule_New(mols, "pdbio.mol_vector", capsule_destructor);
 }
 
 PyObject *
