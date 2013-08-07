@@ -30,6 +30,8 @@ public:
 	const Atoms &  atoms() const { return _atoms; }
 	AtomsMap  atoms_map() const;
 	const std::string &  chain_id() const { return _chain_id; }
+	int  count_atom(const std::string &) const;
+	int  count_atom(const char *) const;
 	Atom *  find_atom(const std::string &) const;
 	Atom *  find_atom(const char *) const;
 	char  insertion_code() const { return _insertion_code; }
