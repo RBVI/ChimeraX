@@ -8,6 +8,7 @@
 #include "molecule/templates/TmplResidue.h"
 #include "molecule/templates/TmplAtom.h"
 #include "molecule/templates/residues.h"
+#include "capsule/capsule.h"
 #include <set>
 #include <sstream>
 #include <algorithm>  // for std::sort
@@ -1228,24 +1229,6 @@ link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
 	}
 }
 
-static void
-capsule_destructor(PyObject *capsule)
-{
-	const char *name = PyCapsule_GetName(capsule);
-	void *ptr = PyCapsule_GetPointer(capsule, name);
-	if (strcmp(name, "pdbio.mol_vector")) {
-		delete (std::vector<Molecule *> *)ptr;
-	} else if (strcmp(name, "pdbio.res_vector")) {
-		delete (std::vector<Residue *> *)ptr;
-	} else if (strcmp(name, "pdbio.atom_vector")) {
-		delete (std::vector<Atom *> *)ptr;
-	} else if (strcmp(name, "pdbio.bond_vector")) {
-		delete (std::vector<Bond *> *)ptr;
-	} else {
-		throw std::invalid_argument("Don't recognize capsule type!");
-	}
-}
-
 static std::pair<char *, PyObject *>
 read_no_fileno(void *py_file)
 {
@@ -1297,11 +1280,9 @@ clock_t start_t, end_t;
 	int fd = PyObject_AsFileDescriptor(pdb_file);
 	if (fd == -1) {
 		PyErr_Clear();
-std::cerr << "read_no_fileno\n";
 		read_func = read_no_fileno;
 		input = pdb_file;
 	} else {
-std::cerr << "read_fileno\n";
 		read_func = read_fileno;
 		input = fdopen(fd, "r");
 	}
@@ -1450,7 +1431,7 @@ start_t = end_t;
 std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
-	return PyCapsule_New(mols, "pdbio.mol_vector", capsule_destructor);
+	return capsule_mol_vec(mols);
 }
 
 PyObject *

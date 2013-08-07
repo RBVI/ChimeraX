@@ -7,7 +7,7 @@ LIBNAME = pdbio
 PYMOD= $(LIBNAME).so
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
 LIBS= ../pdb/libpdb.a ../ioutil/libioutil.a ../molecule/libmolecule.a \
-	../molecule/templates/libtmpl.a ../util/libutil.a
+	../molecule/templates/libtmpl.a ../util/libutil.a ../capsule/libcapsule.a
 
 $(PYMOD): $(OBJS) $(LIBS)
 	$(PYMOD_LINK)

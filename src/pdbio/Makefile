@@ -5,7 +5,7 @@ TOP = ../..
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= molecule ioutil pdb util pdbio
+SUBDIRS	+= molecule ioutil pdb util capsule pdbio
 SRCS = test.cpp
 OBJS = test.o
 PROG = test
