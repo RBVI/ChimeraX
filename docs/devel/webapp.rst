@@ -12,6 +12,17 @@ analyzing a variety of data.  The session information should be *persistent*
 so that the user may temporarily disconnect (perhaps visiting another
 web page) and return to continue from the previous state.
 
+The libraries defined and used by the Chimera2 web applications are
+described in:
+
+.. toctree::
+   :maxdepth: 1
+
+   webapp_server.rst
+
+   webapp_client.rst
+
+
 Design
 ======
 
@@ -118,6 +129,9 @@ The client framework is responsible for accepting requests from
 applets, sending them to the server, receiving data from the server,
 managing *server_data* maps, and distributing *client_data*, *stdout*
 and *stderr* to the appropriate destinations.
+
+The server framework is described in the `webapp_client <webapp_client.html>`_
+JavaScript module.
 
 `Server Framework`_
 -------------------
