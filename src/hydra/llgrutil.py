@@ -1,8 +1,8 @@
 import llgr
 from numpy import array, float32
 
-#use_llgr = True
-use_llgr = False
+use_llgr = True
+#use_llgr = False
 
 def initialize_llgr():
     llgr.set_output('pyopengl')
@@ -81,13 +81,13 @@ class llgr_sphere:
 
 class llgr_molecule:
     def __init__(self, xyz, radii, rgba):
-        self.spheres = [llgr_sphere(radii[a], xyz[a], rgba[a]) for a in range(len(xyz))]
+        self.spheres = [llgr_sphere(radii[a], xyz[a], rgba[a]/255.0) for a in range(len(xyz))]
     def delete(self):
         [s.delete() for s in self.spheres]
         self.spheres = []
 
 class llgr_surface:
-    def __init__(self, varray, narray, tarray, color):
+    def __init__(self, varray, narray, tarray, color, carray):
 
         self.buffer_ids = buf_ids = []
 
@@ -102,8 +102,12 @@ class llgr_surface:
         buf_ids.append(tri_id)
 
         color_id = llgr.next_data_id()
-        rgba = array(color, dtype=float32)
-        llgr.create_singleton(color_id, rgba)
+        if carray is None:
+            rgba = array(color, dtype=float32)
+            llgr.create_singleton(color_id, rgba)
+        else:
+            rgba = llgr.create_buffer(color_id, llgr.ARRAY, carray/255.0)
+            buf_ids.append(color_id)
 
         uniform_scale_id = llgr.next_data_id()
         llgr.create_singleton(uniform_scale_id, array([1, 1, 1], dtype=float32))
@@ -141,13 +145,13 @@ def update_llgr_surface_piece(p):
       return
     from . import gui
     if p.shift_and_scale is None:
-      s = llgr_surface(p.vertices, p.normals, p.triangles, p.color_rgba)
+      s = llgr_surface(p.vertices, p.normals, p.triangles, p.color_rgba, p.vertex_colors)
       gui.show_info('Created llgr surface, %d triangles' % len(p.triangles))
     else:
       # Assume geometry is a sphere
       xyz = p.shift_and_scale[:,:3]
       radii = p.shift_and_scale[:,3]
-      rgba = p.instance_colors / 255.0
+      rgba = p.instance_colors
       s = llgr_molecule(xyz, radii, rgba)
       gui.show_info('created llgr molecule, %d atoms' % (len(xyz),))
     p.llgr_surface = s
