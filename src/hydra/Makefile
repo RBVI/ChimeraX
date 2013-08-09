@@ -5,7 +5,7 @@ PKG_DIR = $(PYSITEDIR)/hydra
 APPS_DIR = $(build_prefix)/Applications
 
 PYSRCS = __init__.py align.py bins.py biomt.py c2leap.py colors.py commands.py \
-	fetch.py fetch_emdb.py fetch_pdb.py gui.py history.py icosahedron.py \
+	fetch.py fetch_emdb.py fetch_pdb.py gui.py history.py icosahedron.py llgrutil.py \
 	matrix.py molecule.py molmap.py opensave.py pdb.py place.py pyopengl_draw_instanced.py \
 	qt.py read_apr.py readstl.py session.py shaders.py shortcuts.py spline.py \
 	surface.py tube.py vector.py view.py FitMap SessionUtil VolumeData VolumeViewer

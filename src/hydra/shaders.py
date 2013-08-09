@@ -69,7 +69,7 @@ class Shaders:
             self.current_projection_matrix = pm
         p = self.current_shader_program
         if not p is None:
-            GL.glUniformMatrix4fv(p.uniform_id('projection_matrix'), 1, True, pm)
+            GL.glUniformMatrix4fv(p.uniform_id('projection_matrix'), 1, False, pm)
 
     def set_model_view_matrix(self, view_matrix_inverse = None, model_matrix = None, matrix = None):
 

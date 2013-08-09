@@ -1,7 +1,6 @@
 from .surface import Surface
 class Molecule(Surface):
 
-#  def __init__(self, path, xyz, elements, chain_ids):
   def __init__(self, path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names):
     Surface.__init__(self)
 
