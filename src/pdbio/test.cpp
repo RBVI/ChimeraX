@@ -23,23 +23,22 @@ int main(int argc, char **argv)
 		std::cerr << "open() failed\n";
 		return -1;
 	}
-	PyObject *mol_list = read_pdb(py_file, NULL, true);
+	PyObject *capsule = read_pdb(py_file, NULL, true);
 	int num_residues = 0;
 	int num_atoms = 0;
 	int num_bonds = 0;
-	if (!PyList_Check(mol_list)) {
-		std::cerr << "Didn't return a list (of mols)!\n";
+	if (!PyCapsule_CheckExact(capsule)) {
+		std::cerr << "Didn't return a capsule!\n";
 		return -1;
 	}
 	FILE *f = fopen("pdbio.bild", "w");
-	int num_mols = PyList_Size(mol_list);
-	for (int mi = 0; mi < num_mols; ++mi) {
-		PyObject *py_mol_capsule = PyList_GetItem(mol_list, mi);
-		if (!PyCapsule_CheckExact(py_mol_capsule)) {
-			std::cerr << "list item at position " << mi << " is not a capsule.\n";
-			return -1;
-		}
-		Molecule *m = (Molecule *) PyCapsule_GetPointer(py_mol_capsule, NULL);
+	std::vector<Molecule *> *mols = (std::vector<Molecule *> *) PyCapsule_GetPointer(capsule, "pdbio.mol_vector");
+	if (mols == NULL) {
+		std::cerr << "Capsule didn't contain a vector of Molecules.\n";
+		return -1;
+	}
+	for (std::vector<Molecule *>::iterator mi = mols->begin(); mi != mols->end(); ++mi) {
+		Molecule *m = *mi;
 		Molecule::Atoms atoms = m->atoms();
 		Molecule::Bonds bonds = m->bonds();
 		Molecule::Residues residues = m->residues();
@@ -123,7 +122,7 @@ int main(int argc, char **argv)
 		}
 	}
 	fclose(f);
-	std::cout << num_mols << " molecules, " << num_residues << " residues, "
+	std::cout << mols->size() << " molecules, " << num_residues << " residues, "
 		<< num_bonds << " bonds, and " << num_atoms << " atoms\n";
 	return 0;
 }
