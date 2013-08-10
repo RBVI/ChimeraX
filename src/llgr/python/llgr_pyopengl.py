@@ -170,8 +170,8 @@ ShaderType.class_init()
 _pick_fragment_shader = """
 #version 150
 
-in vec4 f_pickId;
-out vec4 frag_color;
+in vec3 f_pickId;
+out vec3 frag_color;
 
 void main (void)
 {
@@ -758,7 +758,7 @@ _singleton_map = {
 	},
 }
 
-def setup_singleton_attribute(data, data_type, normalized, loc, num_locations, num_elements):
+def _setup_singleton_attribute(data, data_type, normalized, loc, num_locations, num_elements):
 	if data_type != Float:
 		global _did_once
 		if not _did_once:
@@ -776,9 +776,11 @@ def setup_singleton_attribute(data, data_type, normalized, loc, num_locations, n
 		if func:
 			func(loc + i, data[i * size:(i + 1) * size])
 
+_darwin_vao = None
+
 def render():
 	import sys
-	if sys.platform == 'darwin':
+	if sys.platform == 'darwin' and _darwin_vao is None:
 		global _darwin_vao
 		# using glVertexAttribPointer fails unless a VAO is bound
 		# even if VAO's aren't used
@@ -835,11 +837,116 @@ def render():
 			if bi is None:
 				continue
 			it_data = bi.data
-			setup_singleton_attribute(it_data, it_type, False, it_loc, it_locations, it_elements)
+			_setup_singleton_attribute(it_data, it_type, False, it_loc, it_locations, it_elements)
 			current_matrix_id = oi.matrix_id
 
 		for si in oi.singleton_cache:
-			setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements)
+			_setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements)
+		# finally draw object
+		if oi.index_buffer_id == 0:
+			GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
+		else:
+			import ctypes
+			offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
+			GL.glDrawElements(oi.ptype.value, oi.count,
+				_cvt_data_type(oi.index_buffer_type),
+				offset)
+	GL.glBindVertexArray(0)
+	if sp:
+		sp.cleanup()
+
+class _PickId(bytearray):
+
+	def __init__(self):
+		bytearray.__init__(self, 3)
+
+	def set(self, i):
+		self[0] = i % 256
+		self[1] = (i // 256) % 256
+		self[2] = (i // 65536) % 256
+
+def pick(x: int, y: int):
+	# Just like rendering except the color is monotonically increasing
+	# and varies by object, not within an object.
+	# Assume WebGL defaults of 8-bits each for red, green, and blue,
+	# for a maximum of 16,777,215 (2^24 - 1) objects and that object ids
+	# are also less than 16,777,215.
+
+	import sys
+	if sys.platform == 'darwin' and _darwin_vao is None:
+		global _darwin_vao
+		# using glVertexAttribPointer fails unless a VAO is bound
+		# even if VAO's aren't used
+		_darwin_vao = GL.glGenVertexArrays(1)
+		GL.glBindVertexArray(_darwin_vao)
+
+	# render 5x5 pixels around hot spot
+	GL.glScissor(x - 2, y - 2, 5, 5)
+	GL.glEnable(GL.GL_SCISSOR_TEST)
+
+	GL.glClearColor(0, 0, 0, 0);
+	GL.glClear(GL.GL_COLOR_BUFFER_BIT|GL.GL_DEPTH_BUFFER_BIT|GL.GL_STENCIL_BUFFER_BIT)
+	GL.glEnable(GL.GL_DEPTH_TEST)
+	GL.glDisable(GL.GL_DITHER)
+	GL.glClearColor(*_clear_color)
+
+	if not _all_objects:
+		return 0
+
+	sp = None
+	current_program_id = 0
+	current_matrix_id = 2 ** 31
+	# instance transform (it_) singleton info
+	it_type = Float
+	it_data = None
+	it_loc = -1
+	from shader import ShaderVariable as SV
+	it_locations, it_elements = SV.type_location_info(SV.Mat4x4)
+
+	# pick id (pi_) singleton info
+	pi_type = UByte
+	pi_data = _PickId()
+	pi_loc = 0
+	pi_locations, pi_elements = SV.type_location_info(SV.Vec3)
+
+	# TODO: only for opaque objects
+	GL.glEnable(GL.GL_CULL_FACE)
+	GL.glDisable(GL.GL_BLEND)
+	for oi in _all_objects.values():
+		if oi.hide or not oi.program_id:
+			continue
+		# setup program
+		if oi.program_id != current_program_id:
+			new_sp = _all_programs.get(oi.program_id, None)
+			if new_sp is None:
+				continue
+			new_sp.setup()
+			sp = new_sp
+			current_program_id = oi.program_id
+			current_matrix_id = 2 ** 31
+			sv = sp.attribute("instanceTransform")
+			it_loc = sv.location
+		if sp is None:
+			continue
+		GL.glBindVertexArray(oi.vao)
+		# setup instance matrix attribute
+		if oi.matrix_id != current_matrix_id:
+			if oi.matrix_id == 0:
+				data_id = 0
+			else:
+				mi = _all_matrices.get(oi.matrix_id, None)
+				if mi is None:
+					continue
+				data_id = mi.data_id
+			bi = _all_buffers.get(data_id, None)
+			if bi is None:
+				continue
+			it_data = bi.data
+			_setup_singleton_attribute(it_data, it_type, False, it_loc, it_locations, it_elements)
+			current_matrix_id = oi.matrix_id
+
+		for si in oi.singleton_cache:
+			_setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements)
 		# finally draw object
 		if oi.index_buffer_id == 0:
 			GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
@@ -956,7 +1063,8 @@ def vsphere_drag(vsphere: Id, x: int, y: int, throttle: bool):
 		vi.cursor = ZRotation
 		vi.xy = x, y
 	elif what == 3:
-		# from and to normalized to same point # don't update last x and y
+		# from and to normalized to same point
+		# don't update last x and y
 		pass
 	elif what == 4:
 		# angle effectively zero

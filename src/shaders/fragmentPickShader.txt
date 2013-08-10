@@ -2,7 +2,7 @@
 precision mediump float;
 #endif
 
-varying vec4 f_pickId;
+varying vec3 f_pickId;
 
 void main (void)
 {

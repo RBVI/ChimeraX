@@ -1,8 +1,8 @@
 #version 150
 
-in f_pickId;
+in vec3 f_pickId;
 
-out frag_color;
+out vec3 frag_color;
 
 void main (void)
 {
