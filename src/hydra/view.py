@@ -163,14 +163,15 @@ class View(QtOpenGL.QGLWidget):
 
         from .gui import show_info
         show_info('OpenGL version %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'))
-#        print 'gl extensions', GL.glGetString(GL.GL_EXTENSIONS)
-#        print 'qgl format', self.format()
-#        f = self.format()   # QGLFormat object
-#        print 'OpenGL %d.%d, profile %s' % (f.majorVersion(), f.minorVersion(),
-#                                            f.profile())
-#        from OpenGL.GL.ARB import draw_instanced as di
-#        import pyopengl_draw_instanced as di
-#        print 'init draw inst', di.glInitDrawInstancedARB()
+#        show_info('gl extensions %s' % GL.glGetString(GL.GL_EXTENSIONS)
+
+        from . import llgrutil as gr
+        if gr.use_llgr:
+            gr.initialize_llgr()
+
+        self.start_update_timer()
+
+    def start_update_timer(self):
 
         self.timer = t = QtCore.QTimer(self)
         t.timeout.connect(self.redraw_graphics)
@@ -226,6 +227,10 @@ class View(QtOpenGL.QGLWidget):
         self.rendered_callbacks.remove(cb)
 
     def paintGL(self):
+        from . import llgrutil as gr
+        if gr.use_llgr:
+            gr.render(self)
+            return
 
         GL.glClearColor(*self.background_rgba)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
@@ -505,8 +510,6 @@ class View(QtOpenGL.QGLWidget):
             if cr is None:
                 return
         self.center_of_rotation = tuple(cr)
-
-        d = sum((cr-cp)*vd)         # dist camera to center of models
         self.near_far_clip = (d - s, d + s)
 
     def camera_position(self):
@@ -552,25 +555,14 @@ class View(QtOpenGL.QGLWidget):
         b = surface.union_bounds(m.placed_bounds() for m in self.models if m.display)
         return b
 
-    # Model bounds changed, update clip planes to avoid clipping
-    def updateNearFarClipping(self):
-        b = self.bounds()
-        if b is None or b == (None,None):
-            return
-        (xmin,ymin,zmin), (xmax,ymax,zmax) = b
-        s = max(xmax-xmin, ymax-ymin, zmax-zmin)
-        cx,cy,cz = 0.5*(xmin+xmax),0.5*(ymin+ymax),0.5*(zmin+zmax)
-        cv = self.camera_view
-        camx, camy, camz = tuple(cv[a][3] for a in (0,1,2))
-        vx, vy, vz = tuple(cv[a][2] for a in (0,1,2))
-        d = (camx-cx)*vx + (camy-cy)*vy + (camz-cz)*vz
-        self.near_far_clip = (d-s,d+s)
-
     def update_projection(self, win_size = None):
         
         ww,wh = self.window_size if win_size is None else win_size
-        if ww == 0 or wh == 0:
-            return
+        if ww > 0 and wh > 0:
+            pm = self.projection_matrix((ww,wh))
+            self.shaders.set_projection_matrix(pm)
+
+    def projection_matrix(self, win_size = None):
 
         # Perspective projection to origin with center of view along z axis
         from math import pi, tan
@@ -579,11 +571,17 @@ class View(QtOpenGL.QGLWidget):
         near = max(near, 1)
         far = max(far, near+1)
         w = 2*near*tan(0.5*fov)
+        ww,wh = self.window_size if win_size is None else win_size
         aspect = float(wh)/ww
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
         pm = frustum(left, right, bot, top, near, far)
-        self.shaders.set_projection_matrix(pm)
+        return pm
+
+    def model_view_matrix(self, model):
+
+        mv44 = (self.camera_view_inverse * model.place).opengl_matrix()
+        return mv44
 
     # Returns camera coordinates.
     def camera_clip_plane_points(self, window_x, window_y):
@@ -811,6 +809,7 @@ class View(QtOpenGL.QGLWidget):
         else:
             for m in models:
                 m.place = t * m.place
+        self.redraw_needed = True
 
     def pixel_size(self, p = None):
 
@@ -854,8 +853,8 @@ def frustum(left, right, bottom, top, zNear, zFar):
     F = 2 * zNear / (top - bottom)
     m = ((E, 0, A, 0),
          (0, F, B, 0),
-         (0, 0, C, D),
-         (0, 0, -1, 0))
+         (0, 0, C, -1),
+         (0, 0, D, 0))
     return m
 
 def adjust_threshold_level(m, f):
