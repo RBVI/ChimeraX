@@ -64,6 +64,11 @@ class UserError(ValueError):
 class _FunctionInfo:
 	# cache information about functions
 
+	__slots__ = [
+		'function', 'signature', 'keyword_arguments',
+		'positional_arguments', 'var_positional'
+	]
+
 	def __init__(self, function, signature):
 		self.function = function
 		self.signature = signature

@@ -368,17 +368,17 @@ def main():
 
 	sys.path.insert(0, '../../build/lib')
 
-	import llgr_dump
+	from llgr.dump import FORMATS
 	if not app.graphics and not dump_format:
 		print("%s: need non-opengl dump format in nogui mode"
 				% sys.argv[0], file=sys.stderr)
-		print("    available formats: %s" % ' '.join(llgr_dump.FORMATS),
+		print("    available formats: %s" % ' '.join(FORMATS),
 				file=sys.stderr)
 		raise SystemExit(1)
-	if dump_format and dump_format not in llgr_dump.FORMATS:
+	if dump_format and dump_format not in FORMATS:
 		print("%s: bad format: %s" % (argv[0], dump_format),
 				file=sys.stderr)
-		print("    available formats: %s" % ' '.join(llgr_dump.FORMATS),
+		print("    available formats: %s" % ' '.join(FORMATS),
 				file=sys.stderr)
 		raise SystemExit(1)
 
@@ -386,7 +386,7 @@ def main():
 	if dump_format:
 		llgr.set_output(dump_format)
 	else:
-		llgr.set_output('opengl')
+		llgr.set_output('pyopengl')
 	if len(args) > 0:
 		print("%s: ignoring extra arguments: %s"
 				% (argv[0], ' '.join(args)), file=sys.stderr)

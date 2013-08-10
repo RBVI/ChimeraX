@@ -12,8 +12,8 @@ from OpenGL import GL
 from chimera2 import math3d
 import weakref
 import itertools
-from shader import ShaderProgram
-import spiral
+from .shader import ShaderProgram, ShaderVariable
+from . import spiral
 
 class Array(Checker):
 	"""type annotation for numpy arrays"""
@@ -598,7 +598,6 @@ def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_sphere(N):
-	import spiral
 	pts, phis, _ = spiral.points(N)
 	tris = spiral.triangles(phis)
 	data_id = next(_internal_buffer_id)
@@ -802,8 +801,7 @@ def render():
 	it_type = Float
 	it_data = None
 	it_loc = -1
-	from shader import ShaderVariable as SV
-	it_locations, it_elements = SV.type_location_info(SV.Mat4x4)
+	it_locations, it_elements = ShaderVariable.type_location_info(ShaderVariable.Mat4x4)
 	# TODO: only for opaque objects
 	GL.glEnable(GL.GL_CULL_FACE)
 	GL.glDisable(GL.GL_BLEND)
@@ -900,14 +898,13 @@ def pick(x: int, y: int):
 	it_type = Float
 	it_data = None
 	it_loc = -1
-	from shader import ShaderVariable as SV
-	it_locations, it_elements = SV.type_location_info(SV.Mat4x4)
+	it_locations, it_elements = ShaderVariable.type_location_info(ShaderVariable.Mat4x4)
 
 	# pick id (pi_) singleton info
 	pi_type = UByte
 	pi_data = _PickId()
 	pi_loc = 0
-	pi_locations, pi_elements = SV.type_location_info(SV.Vec3)
+	pi_locations, pi_elements = ShaderVariable.type_location_info(ShaderVariable.Vec3)
 
 	# TODO: only for opaque objects
 	GL.glEnable(GL.GL_CULL_FACE)
