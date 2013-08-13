@@ -409,7 +409,7 @@ def show_manual():
     m.show_back_forward_buttons(False)
   else:
     from os.path import join, dirname
-    path = join(dirname(__file__), 'docs', 'index.html')
+    path = join(dirname(dirname(__file__)), 'docs', 'index.html')
 #    f = open(path, 'r')
 #    text = f.read()
 #    f.close()
