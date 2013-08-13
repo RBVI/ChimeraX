@@ -15,7 +15,7 @@ uniform mat4 ProjectionMatrix;
 uniform mat4 ModelViewMatrix;
 #endif
 
-varying vec4 f_pickId;
+varying vec3 f_pickId;
 
 #ifdef USE_BUILTIN_VERTEX
 #define position gl_Vertex

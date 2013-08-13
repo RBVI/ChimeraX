@@ -428,9 +428,10 @@ pick(int x, int y)
 	// and varies by object, not within an object.
 	// Assume WebGL defaults of 8-bits each for red, green, and blue,
 	// for a maximum of 16,777,215 (2^24 - 1) objects and that object ids
-	// are also less than 16,777,215.  TODO: relax assumption and do
-	// multipass algorithm that dicards color buffer for each pass and
-	// does object ids modulo 2^24-1 + 1.
+	// are also less than 16,777,215.
+	// Note: could relax assumption and do multipass algorithm that
+	// dicards color buffer for each pass and does object ids modulo
+	// 2^24-1 + 1, but we're not anticipating needing that.
 	if (dirty)
 		optimize();
 
@@ -464,8 +465,8 @@ pick(int x, int y)
 		pick_id = reinterpret_cast<uint32_t *>(bi.data);
 	}
 	*pick_id = 0;
-
 	AttributeInfo pick_ai("pickId", pick_buffer_id, 0, 0, 4, UByte, true);
+
 	// TODO: only for opaque objects
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
