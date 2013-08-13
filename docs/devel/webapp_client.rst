@@ -18,22 +18,22 @@ Session Management
 
 The session management library is divided into two parts:
 
-- a tool layer that provides user interface elements
+- an HTML layer that provides user interface elements
   for managing the current active session information, and
-- a basic layer that interacts with the server without
+- an AJAX layer that interacts with the server without
   maintaining any state information.
 
-Tool Layer
+HTML Layer
 ----------
 
-The tool layer API are accessible via ``$c2_session``.
+The HTML layer API are accessible via ``$c2_session``.
 
 .. js:function:: $c2_session.init(url)
 
     :param string url: URL to the location of Chimera 2 server.
     :returns: nothing.
 
-    Initialize tool and basic layers.  The basic layer is initialized
+    Initialize HTML and AJAX layers.  The AJAX layer is initialized
     with a call to `$c2_session.server.init`.  To create user interface
     widgets, `init` looks for an HTML element with id `c2_session`.
     A jQuery button is inserted at the start of this element that both
@@ -57,17 +57,17 @@ The tool layer API are accessible via ``$c2_session``.
     Array of sessions for current `user`.  Each session is an object with
     attributes `name` and `access` (see `list_sessions` above).
 
-Basic Layer
+AJAX Layer
 -----------
 
-The basic layer API are accessible via ``$c2_session.server``.
+The AJAX layer API are accessible via ``$c2_session.server``.
 
 .. js:function:: $c2_session.server.init(url)
 
     :param string url: URL to the location of Chimera 2 server.
     :returns: nothing.
 
-    Initialize basic layer.  Must be called prior to using
+    Initialize AJAX layer.  Must be called prior to using
     other functions.
 
 .. js:function:: $c2_session.server.list_sessions(callback)
