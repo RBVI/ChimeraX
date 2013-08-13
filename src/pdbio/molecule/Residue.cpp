@@ -28,6 +28,30 @@ Residue::atoms_map() const
 	return map;
 }
 
+int
+Residue::count_atom(const std::string &name) const
+{
+	int count = 0;
+	for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
+		Atom *a = *ai;
+		if (a->name() == name)
+			++count;
+	}
+	return count;
+}
+
+int
+Residue::count_atom(const char *name) const
+{
+	int count = 0;
+	for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
+		Atom *a = *ai;
+		if (a->name() == name)
+			++count;
+	}
+	return count;
+}
+
 Atom *
 Residue::find_atom(const std::string &name) const
 {

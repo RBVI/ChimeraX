@@ -82,10 +82,11 @@ def set_output(type):
 	Note: this funtion must be called before calling the llgr functions,
 	*i.e.*, there is no default.
 	"""
+	import importlib
 	if type == 'opengl':
-		llgr = __import__('_llgr')
+		llgr = importlib.import_module('._llgr', __package__)
 	elif type == 'pyopengl':
-		llgr = __import__('llgr_pyopengl')
+		llgr = importlib.import_module('.pyopengl', __package__)
 		# since this is for prototyping, make all symbols available
 		gsyms = globals()
 		for sym in dir(llgr):
@@ -97,7 +98,7 @@ def set_output(type):
 				gsyms[sym] = getattr(llgr, sym)
 		return
 	else:
-		llgr = __import__('llgr_dump')
+		llgr = importlib.import_module('.dump', __package__)
 		if type not in llgr.FORMATS:
 			raise ValueError('type should be one: %s, pyopengl, or opengl' % ', '.join(llgr.FORMATS))
 		llgr.set_dump_format(type)

@@ -11,6 +11,7 @@
 #include <set>
 #include <sstream>
 #include <algorithm>  // for std::sort
+#include <stdio.h>  // fgets
 
 #define LOG_PY_ERROR_NULL(arg) \
 				if (log_file != NULL) { \
@@ -167,11 +168,16 @@ std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
 	return os;
 }
 
+#ifdef CLOCK_PROFILING
+#include <ctime>
+static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_postswitch_t, cum_postloop_t;
+#endif
 // return NULL on error
-// return pdb_file if PDB records implying a molecule encountered
+// return input if PDB records implying a molecule encountered
 // return PyNone otherwise (e.g. only blank lines, MASTER records, etc.)
-static PyObject *
-read_one_molecule(PyObject *pdb_file, Molecule *m,
+static void *
+read_one_molecule(std::pair<char *, PyObject *> (*read_func)(void *),
+	void *input, Molecule *m,
 	int *line_num, std::map<int, Atom *> &asn,
 	std::vector<Residue *> *start_residues,
 	std::vector<Residue *> *end_residues,
@@ -193,29 +199,41 @@ read_one_molecule(PyObject *pdb_file, Molecule *m,
 	bool		is_babel = false; // have we seen Babel-style atom names?
 	bool		recent_TER = false;
 	bool		break_hets = false;
+#ifdef CLOCK_PROFILING
+clock_t	 start_t, end_t;
+start_t = clock();
+#endif
 
 	*reached_end = false;
 	*eof = true;
 	PDB::reset_state();
+#ifdef CLOCK_PROFILING
+end_t = clock();
+cum_preloop_t += end_t - start_t;
+#endif
 	while (true) {
-		PyObject *unicode = PyFile_GetLine(pdb_file, 0);
-		if (PyUnicode_KIND(unicode) != PyUnicode_1BYTE_KIND) {
-			LOG_PY_ERROR_NULL("Non-ASCII character on line " << *line_num << " of PDB file\n");
-			Py_DECREF(unicode);
-			return NULL;
-		}
-		unsigned char *line = PyUnicode_1BYTE_DATA(unicode);
+#ifdef CLOCK_PROFILING
+start_t = clock();
+#endif
+		std::pair<char *, PyObject *> read_vals = (*read_func)(input);
+		char *line = read_vals.first;
 		if (line[0] == '\0') {
-			Py_DECREF(unicode);
+			Py_XDECREF(read_vals.second);
 			break;
 		}
 		*eof = false;
 
 		// extra set of parens on next line to disambiguate from function decl
 		std::istringstream is((std::string((char *)line)));
+		Py_XDECREF(read_vals.second);
 		is >> record;
 		*line_num += 1;
 
+#ifdef CLOCK_PROFILING
+end_t = clock();
+cum_loop_preswitch_t += end_t - start_t;
+start_t = end_t;
+#endif
 		switch (record.type()) {
 
 		default:	// ignore other record types
@@ -225,7 +243,6 @@ read_one_molecule(PyObject *pdb_file, Molecule *m,
 			if (record.unknown.junk[0] & 0200) {
 				LOG_PY_ERROR_NULL("Non-ASCII character on line " << *line_num
 					<< " of PDB file\n");
-				Py_DECREF(unicode);
 				return NULL;
 			}
 			LOG_PY_ERROR_NULL("warning:  Ignored bad PDB record found on line "
@@ -385,8 +402,7 @@ read_one_molecule(PyObject *pdb_file, Molecule *m,
 				&& mod_res->find(rid) == mod_res->end()))) {
 					start_connect = true;
 				} else if (cur_residue != NULL && cur_residue->position() > rid.pos
-				&& cur_residue->atoms_map().find("OXT")
-				!= cur_residue->atoms_map().end()) {
+				&& cur_residue->find_atom("OXT") !=  NULL) {
 					// connected residue numbers can
 					// legitimately drop due to circular
 					// permutations; only break chain
@@ -446,8 +462,7 @@ read_one_molecule(PyObject *pdb_file, Molecule *m,
 				// ensure that the name uniquely identifies the atom;
 				// if not, then use an index-based 'find'
 				// (Monte Carlo trajectories had better use unique names!)
-				const Residue::AtomsMap &atoms_map = cur_residue->atoms_map();
-				if (atoms_map.count(aname) > 1) {
+				if (cur_residue->count_atom(aname) > 1) {
 					// no lookup from coord_index to atom, so search the Residue...
 					unsigned int index = m->active_coord_set()->coords().size();
 					const Residue::Atoms &atoms = cur_residue->atoms();
@@ -523,9 +538,8 @@ read_one_molecule(PyObject *pdb_file, Molecule *m,
 				
 			}
 			Atom *a;
-			const Residue::AtomsMap &atoms_map = cur_residue->atoms_map();
-			if (record.atom.alt_loc && atoms_map.count(aname) == 1) {
-				a = (*atoms_map.find(aname)).second;
+			if (record.atom.alt_loc && cur_residue->count_atom(aname) == 1) {
+				a = cur_residue->find_atom(aname);
 				a->set_alt_loc(record.atom.alt_loc, true);
 				a->set_coord(c);
 				a->set_serial_number(record.atom.serial);
@@ -628,51 +642,67 @@ read_one_molecule(PyObject *pdb_file, Molecule *m,
 			break;
 		}
 		}
+#ifdef CLOCK_PROFILING
+end_t = clock();
+cum_loop_switch_t += end_t - start_t;
+start_t = end_t;
+#endif
 
 		// separate switch for recording headers, since some
 		// of the records handled above are headers, and don't
 		// want to duplicate code in multiple places
-		switch (record.type()) {
+		if (in_headers) {
+			switch (record.type()) {
 
-		case PDB::MODEL:
-		case PDB::ATOM:
-		case PDB::HETATM:
-		case PDB::ATOMQR:
-		case PDB::SIGATM:
-		case PDB::ANISOU:
-		case PDB::SIGUIJ:
-		case PDB::TER:
-		case PDB::ENDMDL:
-		case PDB::CONECT:
-		case PDB::MASTER:
-		case PDB::END:
-			in_headers = 0;
-			break;
+			case PDB::MODEL:
+			case PDB::ATOM:
+			case PDB::HETATM:
+			case PDB::ATOMQR:
+			case PDB::SIGATM:
+			case PDB::ANISOU:
+			case PDB::SIGUIJ:
+			case PDB::TER:
+			case PDB::ENDMDL:
+			case PDB::CONECT:
+			case PDB::MASTER:
+			case PDB::END:
+				in_headers = 0;
+				break;
 
-		default:
-			std::string key((const char *)line, 6);
-			// remove trailing spaces from key
-			for (int i = key.length()-1; i >= 0 && key[i] == ' '; i--)
-				key.erase(i, 1);
-			
-			std::vector<std::string> &h = m->pdb_headers[key];
-			h.push_back(std::string((const char *)line));
-			break;
+			default:
+				std::string key((const char *)line, 6);
+				// remove trailing spaces from key
+				for (int i = key.length()-1; i >= 0 && key[i] == ' '; i--)
+					key.erase(i, 1);
+				
+				std::vector<std::string> &h = m->pdb_headers[key];
+				h.push_back(std::string((const char *)line));
+				break;
 
+			}
 		}
-		Py_DECREF(unicode);
+#ifdef CLOCK_PROFILING
+end_t = clock();
+cum_loop_postswitch_t += end_t - start_t;
+#endif
 	}
 	*reached_end = true;
 
 finished:
+#ifdef CLOCK_PROFILING
+start_t = clock();
+#endif
 	// make the last residue an end residue
 	if (cur_residue != NULL) {
 		end_residues->push_back(cur_residue);
 	}
 	m->pdb_version = record.pdb_input_version();
 
+#ifdef CLOCK_PROFILING
+cum_postloop_t += clock() - start_t;
+#endif
 	if (actual_molecule)
-		return pdb_file;
+		return input;
 	return Py_None;
 }
 
@@ -932,15 +962,15 @@ find_closest(Atom *a, Residue *r, float *ret_dist_sq)
 		return NULL;
 	if (a->element().number() == 1)
 		return NULL;
-	Residue::AtomsMap ram = r->atoms_map();
-	Residue::AtomsMap::const_iterator ai = ram.begin();
-	if (ai == ram.end())
+	const Residue::Atoms &r_atoms = r->atoms();
+	Residue::Atoms::const_iterator ai = r_atoms.begin();
+	if (ai == r_atoms.end())
 		return NULL;
 	Atom *closest = NULL;
 	float dist_sq = 0.0;
 	const Coord &c = a->coord();
-	for (; ai != ram.end(); ++ai) {
-		Atom *oa = ai->second;
+	for (; ai != r_atoms.end(); ++ai) {
+		Atom *oa = *ai;
 		if (oa->element().number() == 1)
 			continue;
 		if ((a->residue() == r && a->name() == oa->name()))
@@ -1198,10 +1228,50 @@ link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
 	}
 }
 
+static void
+capsule_destructor(PyObject *capsule)
+{
+	const char *name = PyCapsule_GetName(capsule);
+	void *ptr = PyCapsule_GetPointer(capsule, name);
+	if (strcmp(name, "pdbio.mol_vector")) {
+		delete (std::vector<Molecule *> *)ptr;
+	} else if (strcmp(name, "pdbio.res_vector")) {
+		delete (std::vector<Residue *> *)ptr;
+	} else if (strcmp(name, "pdbio.atom_vector")) {
+		delete (std::vector<Atom *> *)ptr;
+	} else if (strcmp(name, "pdbio.bond_vector")) {
+		delete (std::vector<Bond *> *)ptr;
+	} else {
+		throw std::invalid_argument("Don't recognize capsule type!");
+	}
+}
+
+static std::pair<char *, PyObject *>
+read_no_fileno(void *py_file)
+{
+	char *line;
+	PyObject *py_line = PyFile_GetLine((PyObject *)py_file, 0);
+	if (PyBytes_Check(py_line))
+		line = PyBytes_AS_STRING(py_line);
+	else {
+		line = PyUnicode_AsUTF8(py_line);
+	}
+	return std::pair<char*, PyObject *>(line, py_line);
+}
+
+static char read_fileno_buffer[1024];
+static std::pair<char *, PyObject *>
+read_fileno(void *f)
+{
+	if (fgets(read_fileno_buffer, 1024, (FILE *)f) == NULL)
+		read_fileno_buffer[0] = '\0';
+	return std::pair<char *, PyObject *>(read_fileno_buffer, NULL);
+}
+
 PyObject *
 read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 {
-	std::vector<Molecule *> mols, file_mols;
+	std::vector<Molecule *> file_mols;
 	bool reached_end;
 	std::map<Molecule *, std::vector<Residue *> > start_res_map, end_res_map;
 	std::map<Molecule *, std::vector<PDB> > ss_map;
@@ -1218,19 +1288,44 @@ read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 	bool per_model_conects = false;
 	int line_num = 0;
 	bool eof;
+	std::pair<char *, PyObject *> (*read_func)(void *);
+	void *input;
+	std::vector<Molecule *> *mols = new std::vector<Molecule *>();
+#ifdef CLOCK_PROFILING
+clock_t start_t, end_t;
+#endif
+	int fd = PyObject_AsFileDescriptor(pdb_file);
+	if (fd == -1) {
+		PyErr_Clear();
+std::cerr << "read_no_fileno\n";
+		read_func = read_no_fileno;
+		input = pdb_file;
+	} else {
+std::cerr << "read_fileno\n";
+		read_func = read_fileno;
+		input = fdopen(fd, "r");
+	}
 	while (true) {
+#ifdef CLOCK_PROFILING
+start_t = clock();
+#endif
 		Molecule *m = new Molecule;
-		PyObject *ret = read_one_molecule(pdb_file, m, &line_num, asn_map[m],
+		void *ret = read_one_molecule(read_func, input, m, &line_num, asn_map[m],
 		  &start_res_map[m], &end_res_map[m], &ss_map[m], &conect_map[m],
 		  &link_map[m], &mod_res_map[m], &reached_end, log_file, explode, &eof);
 		if (ret == NULL) {
-			for (std::vector<Molecule *>::iterator mi = mols.begin();
-			mi != mols.end(); ++mi) {
+			for (std::vector<Molecule *>::iterator mi = mols->begin();
+			mi != mols->end(); ++mi) {
 				delete *mi;
 			}
 			delete m;
 			return NULL;
 		}
+#ifdef CLOCK_PROFILING
+end_t = clock();
+std::cerr << "read pdb: " << ((float)(end_t - start_t))/CLOCKS_PER_SEC << "\n";
+start_t = end_t;
+#endif
 		if (ret == Py_None) {
 			if (!file_mols.empty()) {
 				// NMR ensembles can have trailing CONECT
@@ -1266,20 +1361,25 @@ read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 			m = NULL;
 		} else {
 			// give all members of an ensemble the same pdb_headers
-			if (explode && ! mols.empty()) {
+			if (explode && ! mols->empty()) {
 				if (m->pdb_headers.empty())
-					m->pdb_headers = mols[0]->pdb_headers;
+					m->pdb_headers = (*mols)[0]->pdb_headers;
 				if (ss_map[m].empty())
-					ss_map[m] = ss_map[mols[0]];
+					ss_map[m] = ss_map[(*mols)[0]];
 			}
 			if (per_model_conects || (!file_mols.empty() && !conect_map[m].empty())) {
 				per_model_conects = true;
 				conect_map[file_mols.back()] = conect_map[m];
 				conect_map[m].clear();
 			}
-			mols.push_back(m);
+			mols->push_back(m);
 			file_mols.push_back(m);
 		}
+#ifdef CLOCK_PROFILING
+end_t = clock();
+std::cerr << "assign CONECTs: " << ((float)(end_t - start_t))/CLOCKS_PER_SEC << "\n";
+start_t = end_t;
+#endif
 
 		if (!reached_end)
 			continue;
@@ -1330,6 +1430,11 @@ read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 			connect_molecule(fm, &start_res_map[fm], &end_res_map[fm], &conect_atoms, &mod_res_map[fm]);
 			prune_short_bonds(fm);
 		}
+#ifdef CLOCK_PROFILING
+end_t = clock();
+std::cerr << "find bonds: " << ((float)(end_t - start_t))/CLOCKS_PER_SEC << "\n";
+start_t = end_t;
+#endif
 
 		if (eof)
 			break;
@@ -1341,12 +1446,11 @@ read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 		end_res_map.clear();
 		mod_res_map.clear();
 	}
-	PyObject *mol_list = PyList_New(mols.size());
-	Py_INCREF(mol_list);
-	for (int i=0; i < (int)mols.size(); ++i) {
-		PyList_SET_ITEM(mol_list, i, PyCapsule_New(mols[i], NULL, NULL));
-	}
-	return mol_list;
+#ifdef CLOCK_PROFILING
+std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
+std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
+#endif
+	return PyCapsule_New(mols, "pdbio.mol_vector", capsule_destructor);
 }
 
 PyObject *
@@ -1359,6 +1463,7 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 	if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op", (char **) kw_list,
 		&pdb_file, &log_file, &explode))
 			return NULL;
+#if 0
 	PyObject *io_mod = PyImport_ImportModule("io");
 	if (io_mod == NULL)
 		return NULL;
@@ -1386,6 +1491,7 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 			return NULL;
 		}
 	}
+#endif
 	mols = read_pdb(pdb_file, log_file, explode);
 	return mols;
 }

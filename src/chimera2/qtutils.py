@@ -45,6 +45,7 @@ def create_form(ui_file, parent=None, opengl = {}, connections = {}):
 		graphics = widget_factory(obj)
 		graphics.setObjectName(object_name + "GL")
 		grid = QtWidgets.QGridLayout()
+		grid.setContentsMargins(0, 0, 0, 0)
 		grid.addWidget(graphics, 0, 0)
 		obj.setLayout(grid)
 

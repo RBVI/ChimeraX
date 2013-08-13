@@ -22,8 +22,8 @@ GENHDRS += $(GENSRCS:.cpp=.h)
 OBJS = $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _llgr
 
-PKG_DIR = $(PYSITEDIR)
-PYSRCS = llgr.py llgr_dump.py llgr_pyopengl.py spiral.py shader.py
+PKG_DIR = $(PYSITEDIR)/llgr
+PYSRCS = __init__.py dump.py pyopengl.py spiral.py shader.py
 PYOBJS = $(PYSRCS:.py=.pyc)
 
 HDRS = ../c++/llgr.h ../c++/llgr_ui.h
@@ -31,7 +31,8 @@ HDRS = ../c++/llgr.h ../c++/llgr_ui.h
 all: $(PYMOD) $(PYOBJS)
 
 install: all
-	cp $(PYMOD) $(PYSITEDIR)
+	-mkdir $(PKG_DIR)
+	cp $(PYMOD) $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 $(PYMOD): $(OBJS)

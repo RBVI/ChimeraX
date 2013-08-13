@@ -4,7 +4,11 @@
 
 import sys
 
-from PyQt5 import QtCore, QtGui, QtWidgets, QtOpenGL
+from PyQt5.QtCore import (pyqtProperty, pyqtSlot, Qt, QObject,
+		QCoreApplication, QStringListModel, QTimer, QEvent)
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QApplication, QCompleter, QFileDialog
+from PyQt5.QtOpenGL import QGLFormat
 from chimera2 import math3d, qtutils
 
 app = None	# QApplication or QCoreApplication
@@ -20,7 +24,7 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 
 	def __init__(self, parent=None, share=None, flags=0):
 		self._samples = 4	# 0 turns off multisampling
-		# TODO: format = QtOpenGL.QGLFormat()
+		# TODO: format = QGLFormat()
 		# TODO: format.setSampleBuffers(True)
 		# TODO: add format to below
 		super().__init__(parent, share, flags)
@@ -38,7 +42,7 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		self._samples = value
 		self.updateGL()
 
-	samples = QtCore.pyqtProperty(int, _getSamples, _setSamples)
+	samples = pyqtProperty(int, _getSamples, _setSamples)
 
 	def paintGL(self):
 		if app is None:
@@ -113,13 +117,18 @@ class BaseApplication:
 		self.setOrganizationName("UCSF RBVI")
 
 		from chimera2 import cmds
+		self.command = cmds.Command()
 		cmds.register('exit', self.cmd_exit)
 		cmds.register('open', self.cmd_open)
 		cmds.register('stop', self.cmd_stop)
+		cmds.register('stereo', self.cmd_noop)
 
 		# potentially changed in subclass:
 		self.graphics = None
 		self.statusbar = None
+
+	def cmd_noop(self):
+		pass
 
 	def status(self, message, timeout=2000):
 		# 2000 == 2 seconds
@@ -128,10 +137,12 @@ class BaseApplication:
 		else:
 			print(message)
 
-	def process_command(self, cmd):
+	def process_command(self, text=""):
 		from chimera2 import cmds
 		try:
-			cmds.process_command(cmd)
+			if text:
+				self.command.parse_text(text, autocomplete=True)
+			self.command.execute()
 		except cmds.UserError as e:
 			self.status(str(e))
 		except Exception:
@@ -165,10 +176,10 @@ class BaseApplication:
 				self.graphics.globalXform = math3d.Identity()
 				self.graphics.updateGL()
 
-class ConsoleApplication(QtCore.QCoreApplication, BaseApplication):
+class ConsoleApplication(QCoreApplication, BaseApplication):
 
 	def __init__(self, *args, **kw):
-		QtCore.QCoreApplication.__init__(self, *args, **kw)
+		QCoreApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
 		self.window_size = (200, 200)
@@ -195,11 +206,11 @@ class ConsoleApplication(QtCore.QCoreApplication, BaseApplication):
 		self.window_size = (width, height)
 
 
-class GuiApplication(QtWidgets.QApplication, BaseApplication):
+class GuiApplication(QApplication, BaseApplication):
 	# TODO: figure out how to catch close/delete window from window frame
 
 	def __init__(self, *args, **kw):
-		QtWidgets.QApplication.__init__(self, *args, **kw)
+		QApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
 		self.view = qtutils.create_form("main.ui", opengl={
@@ -221,29 +232,37 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 		assert self.statusbar is not None
 		self.graphics = self.find_object("graphicsViewGL")
 		assert self.graphics is not None
-		self.graphics.setFocusPolicy(QtCore.Qt.WheelFocus)
+		self.graphics.setFocusPolicy(Qt.WheelFocus)
+		self.line_edit = self.find_object("lineEdit")
+		assert self.line_edit is not None
+		self.completer = QCompleter(self.view)
+		self.completer.setModel(QStringListModel(self.completer))
+		#self.completer.setCompletionMode(QCompleter.PopupCompletion)
+		self.line_edit.setCompleter(self.completer)
 		self._mouse_mode = None
 		self.view.show()
 		self.cursors = {
 			# TODO: custom cursors
-			"pick": QtCore.Qt.PointingHandCursor,
-			"vsphere_z": QtCore.Qt.IBeamCursor,
-			"vsphere_rot": QtCore.Qt.ClosedHandCursor,
-			"translate": QtCore.Qt.SizeAllCursor,
+			"pick": Qt.PointingHandCursor,
+			"vsphere_z": Qt.IBeamCursor,
+			"vsphere_rot": Qt.ClosedHandCursor,
+			"translate": Qt.SizeAllCursor,
 		}
+		self.timer = QTimer(self.view)
+		self.active_timer = False
 
 	def physicalDotsPerInch(self):
 		screen = self.primaryScreen()
 		return screen.physicalDotsPerInch()
 
 	def find_object(self, name):
-		return self.view.findChild(QtCore.QObject, name)
+		return self.view.findChild(QObject, name)
 
-	@QtCore.pyqtSlot()
+	@pyqtSlot()
 	def open(self):
 		# QFileDialog.getOpenFileName(QWidget parent=None, str caption='', str directory='', str filter='', str initialFilter='', QFileDialog.Options options=0) -> (str, str)
 		from chimera2 import data
-		filename, filter = QtWidgets.QFileDialog.getOpenFileName(
+		filename, filter = QFileDialog.getOpenFileName(
 				self.view, caption="Open File",
 				filter=data.qt_open_file_filter())
 		if filename:
@@ -262,38 +281,38 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 		if cursor:
 			self.graphics.setCursor(cursor)
 		else:
-			self.graphics.setCursor(QtGui.QCursor())
+			self.graphics.setCursor(QCursor())
 
-	@QtCore.pyqtSlot(QtCore.QEvent)
+	@pyqtSlot(QEvent)
 	def mouse_press(self, event):
 		buttons = event.buttons()
 		x = event.x()
 		y = event.y()
-		if buttons & QtCore.Qt.RightButton:
+		if buttons & Qt.RightButton:
 			self.graphics.pick(x, y)
 			self.mouse_mode = "pick"
-		elif buttons & QtCore.Qt.MiddleButton:
+		elif buttons & Qt.MiddleButton:
 			self.mouse_mode = "translate"
 			self.xy = event.globalPos()
-		elif buttons & QtCore.Qt.LeftButton:
+		elif buttons & Qt.LeftButton:
 			zrot = self.graphics.vsphere_press(x, y)
 			if zrot:
 				self.mouse_mode = "vsphere_z"
 			else:
 				self.mouse_mode = "vsphere_rot"
 
-	@QtCore.pyqtSlot(QtCore.QEvent)
+	@pyqtSlot(QEvent)
 	def mouse_release(self, event):
 		if self.mouse_mode in ("vsphere_z", "vsphere_rot"):
 			self.graphics.vsphere_release()
 		self.mouse_mode = None
 
-	@QtCore.pyqtSlot(QtCore.QEvent)
+	@pyqtSlot(QEvent)
 	def mouse_drag(self, event):
 		if self.mouse_mode in ("vsphere_z", "vsphere_rot"):
 			x = event.x()
 			y = event.y()
-			throttle = event.modifiers() & QtCore.Qt.ShiftModifier
+			throttle = event.modifiers() & Qt.ShiftModifier
 			zrot = self.graphics.vsphere_drag(x, y, throttle)
 			if zrot:
 				self.mouse_mode = "vsphere_z"
@@ -305,22 +324,23 @@ class GuiApplication(QtWidgets.QApplication, BaseApplication):
 			self.xy = xy
 			self.graphics.translate_xy(delta)
 
-	@QtCore.pyqtSlot(str)
-	def save_command(self, cmd):
-		self._cmd = cmd
+	@pyqtSlot(str)
+	def save_command(self, text):
+		self.command.parse_text(text)
+		self.completer.setCompletionPrefix(self.command.completion_prefix)
+		self.completer.model().setStringList(self.command.completions)
+		self.completer.complete()
 
-	@QtCore.pyqtSlot()
+	@pyqtSlot()
 	def process_command(self, cmd=None):
 		self.status("")
-		if cmd is None:
-			cmd = self._cmd
-		BaseApplication.process_command(self, cmd)
+		BaseApplication.process_command(self)
 
 def set_default_context(major_version, minor_version, profile):
-	f = QtOpenGL.QGLFormat()
+	f = QGLFormat()
 	f.setVersion(major_version, minor_version)
 	f.setProfile(profile)
-	QtOpenGL.QGLFormat.setDefaultFormat(f)
+	QGLFormat.setDefaultFormat(f)
 
 def main():
 	# typical Qt application startup
@@ -328,7 +348,7 @@ def main():
 	if '--nogui' in sys.argv:
 		app = ConsoleApplication(sys.argv)
 	else:
-		set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
+		set_default_context(3, 2, QGLFormat.CoreProfile)
 		app = GuiApplication(sys.argv)
 	argv = sys.argv
 	argv[0] = app.applicationName().casefold()
@@ -348,17 +368,17 @@ def main():
 
 	sys.path.insert(0, '../../build/lib')
 
-	import llgr_dump
+	from llgr.dump import FORMATS
 	if not app.graphics and not dump_format:
 		print("%s: need non-opengl dump format in nogui mode"
 				% sys.argv[0], file=sys.stderr)
-		print("    available formats: %s" % ' '.join(llgr_dump.FORMATS),
+		print("    available formats: %s" % ' '.join(FORMATS),
 				file=sys.stderr)
 		raise SystemExit(1)
-	if dump_format and dump_format not in llgr_dump.FORMATS:
+	if dump_format and dump_format not in FORMATS:
 		print("%s: bad format: %s" % (argv[0], dump_format),
 				file=sys.stderr)
-		print("    available formats: %s" % ' '.join(llgr_dump.FORMATS),
+		print("    available formats: %s" % ' '.join(FORMATS),
 				file=sys.stderr)
 		raise SystemExit(1)
 
@@ -366,7 +386,7 @@ def main():
 	if dump_format:
 		llgr.set_output(dump_format)
 	else:
-		llgr.set_output('opengl')
+		llgr.set_output('pyopengl')
 	if len(args) > 0:
 		print("%s: ignoring extra arguments: %s"
 				% (argv[0], ' '.join(args)), file=sys.stderr)
@@ -384,10 +404,10 @@ def main():
 	else:
 		while 1:
 			try:
-				cmd = input('chimera2: ')
+				cmd_text = input('chimera2: ')
 			except EOFError:
 				raise SystemExit(0)
-			app.process_command(cmd)
+			app.process_command(cmd_text)
 
 if __name__ in ( "__main__", "chimeraOpenSandbox"):
 	main()
