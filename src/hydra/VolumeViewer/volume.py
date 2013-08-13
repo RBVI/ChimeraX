@@ -904,7 +904,7 @@ class Volume(Surface):
     transform.move(varray)
     tf = transform.inverse().transpose().zero_translation()
     tf.move(narray)
-    from .. import vector
+    from ..geometry import vector
     vector.normalize_vectors(narray)
 
     self.message('Making %s surface with %d triangles' % (name, len(tarray)))
@@ -1256,7 +1256,7 @@ class Volume(Surface):
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
     lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
     v = self.place * lv
-    from .. import vector
+    from ..geometry import vector
     vn = vector.normalize_vector(v)
     return vn
 
@@ -1390,7 +1390,7 @@ class Volume(Surface):
     xi, yi, zi = data.ijk_to_xyz((io+istep, jo, ko))
     xj, yj, zj = data.ijk_to_xyz((io, jo+jstep, ko))
     xk, yk, zk = data.ijk_to_xyz((io, jo, ko+kstep))
-    from ..place import Place
+    from ..geometry.place import Place
     tf = Place(((xi-xo, xj-xo, xk-xo, xo),
                 (yi-yo, yj-yo, yk-yo, yo),
                 (zi-zo, zj-zo, zk-zo, zo)))
@@ -2573,7 +2573,7 @@ def maximum_data_diagonal_length(data):
 
     imax, jmax, kmax = [a-1 for a in data.size]
     ijk_to_xyz = data.ijk_to_xyz
-    from ..vector import distance
+    from ..geometry.vector import distance
     d = max(distance(ijk_to_xyz((0,0,0)), ijk_to_xyz((imax,jmax,kmax))),
             distance(ijk_to_xyz((0,0,kmax)), ijk_to_xyz((imax,jmax,0))),
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),

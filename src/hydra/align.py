@@ -35,14 +35,14 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
         patoms, pref_atoms = paired_atoms(atoms, ref_atoms)
         da, dra = atoms.count() - patoms.count(), ref_atoms.count() - pref_atoms.count()
         if da > 0 or dra > 0:
-            from .gui import log_message
+            from .ui.gui import log_message
             log_message('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
         print ('p', patoms.count(), atoms.count(), pref_atoms.count(), ref_atoms.count())
         print ('m', [m.id for m in atoms.molecules()], [m.id for m in ref_atoms.molecules()])
         atoms, ref_atoms = patoms, pref_atoms
 
     if atoms.count() != ref_atoms.count():
-        from .commands import CommandError
+        from .ui.commands import CommandError
         raise CommandError('Must align equal numbers of atoms, got %d and %d'
                            % (atoms.count(), ref_atoms.count()))
 
@@ -52,7 +52,7 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
         write_matrix(tf, atoms, ref_atoms)
 
     msg = 'RMSD between %d atom pairs is %.3f Angstroms' % (ref_atoms.count(), rmsd)
-    from .gui import show_status, log_message
+    from .ui.gui import show_status, log_message
     show_status(msg)
     log_message(msg + '\n')
 
@@ -118,7 +118,7 @@ def align_points(xyz, ref_xyz):
 #        arms = sqrt((df*df).sum()/len(Si))
 #        print (rms, arms)
 
-    from .place import Place
+    from .geometry.place import Place
     p = Place(tf)
 
     return p, rms
@@ -182,7 +182,7 @@ def write_matrix(tf, atoms, ref_atoms):
     mtf = M.multiply_matrices(mpinv, tf, mp)
     dtf = M.transformation_description(mtf)
     msg = ('Alignment matrix in molecule %s coordinates\n%s' % dtf)
-    from .gui import log_message
+    from .ui.gui import log_message
     log_message(msg)
 
 def move_atoms(atoms, ref_atoms, tf, move):
@@ -211,7 +211,7 @@ def test_align_points(n = 100):
     axis = (.5,-.3,1)
     angle = 128
     shift = (10,20,30)
-    from .place import translation, rotation
+    from .geometry.place import translation, rotation
     tf = translation(shift) * rotation(axis, angle)
     rp = p.copy()
     M.transform_points(rp, tf)
@@ -224,7 +224,7 @@ def test_align_points(n = 100):
 
 def align_command(cmdname, args):
 
-    from .commands import atoms_arg, string_arg, bool_arg, parse_arguments
+    from .ui.commands import atoms_arg, string_arg, bool_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('ref_atoms', atoms_arg))
     opt_args = ()

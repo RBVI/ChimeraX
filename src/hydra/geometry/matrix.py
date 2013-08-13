@@ -323,7 +323,7 @@ def inner_product(u,v):
   
 # -----------------------------------------------------------------------------
 #
-from ._image3d import inner_product_64
+from .._image3d import inner_product_64
   
 # -----------------------------------------------------------------------------
 #
@@ -726,7 +726,7 @@ def xform_xyz(xyz, from_xform = None, to_xform = None):
 #
 def transform_points(points, tf):
 
-  from ._image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(points, tf)
 
 # -----------------------------------------------------------------------------
@@ -734,7 +734,7 @@ def transform_points(points, tf):
 def transform_vectors(vectors, tf):
 
   ztf = zero_translation(tf)
-  from ._image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(vectors, ztf)
 
 # -----------------------------------------------------------------------------
@@ -747,7 +747,7 @@ def xform_points(points, xf, to_xf = None):
     txf = to_xf.inverse()
     txf.multiply(xf)
   tf = xform_matrix(txf)
-  from _image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(points, tf)
 
 # -----------------------------------------------------------------------------
@@ -761,7 +761,7 @@ def xform_vectors(vectors, xf, to_xf = None):
     txf = to_xf.inverse()
     txf.multiply(xf)
   tf = zero_translation(xform_matrix(txf))
-  from _image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(vectors, tf)
 
 # -----------------------------------------------------------------------------

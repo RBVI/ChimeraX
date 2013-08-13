@@ -3,7 +3,7 @@ class Surface:
   def __init__(self):
     self.id = 0
     self.displayed = True
-    from .place import Place
+    from .geometry.place import Place
     self.placement = Place()
     self.copies = []
     self.plist = []
@@ -135,7 +135,7 @@ class Surface_Piece(object):
     self.shader = None		# VAO bindings are for this shader
 
     # Surface piece attribute name, shader variable name, instancing
-    from . import drawing
+    from .draw import drawing
     from numpy import uint32, uint8
     bufs = (('vertices', 'position', {}),
             ('normals', 'normal', {}),
@@ -165,7 +165,7 @@ class Surface_Piece(object):
     for b in self.opengl_buffers:
       b.delete_buffer()
 
-    from . import drawing
+    from .draw import drawing
     if not self.textureId is None and self.textureFree:
       drawing.delete_texture(self.textureId)
     self.textureId = None
@@ -192,13 +192,13 @@ class Surface_Piece(object):
   copies = property(get_copies, set_copies)
 
   def new_vertex_array_object(self):
-    from . import drawing
+    from .draw import drawing
     if not self.vao is None:
       drawing.delete_vertex_array_object(self.vao)
     self.vao = drawing.new_vertex_array_object()
 
   def bind_vertex_array_object(self):
-    from . import drawing
+    from .draw import drawing
     if self.vao is None:
       self.vao = drawing.new_vertex_array_object()
     drawing.bind_vertex_array_object(self.vao)
@@ -254,7 +254,7 @@ class Surface_Piece(object):
     self.update_buffers(p)
 
     # Set color
-    from . import drawing
+    from .draw import drawing
     if self.instance_colors is None:
       drawing.set_single_color(p, self.color_rgba)
 
@@ -265,19 +265,19 @@ class Surface_Piece(object):
     self.element_buffer.draw_elements(etype, self.instance_count())
 
     if not self.textureId is None:
-      from . import drawing
+      from .draw import drawing
       drawing.bind_2d_texture(0)
 
   def set_shader(self, viewer):
     # Push special shader if needed.
     skw = {}
-    from . import drawing
+    from .draw import drawing
     lit = getattr(self, 'useLighting', True)
     if not lit:
       skw[drawing.SHADER_LIGHTING] = False
     t = self.textureId
     if not t is None:
-      from . import drawing
+      from .draw import drawing
       drawing.bind_2d_texture(t)
       skw[drawing.SHADER_TEXTURE_2D] = True
     if not self.shift_and_scale is None:
@@ -405,7 +405,7 @@ def surface_image(qi, pos, size, surf = None):
     p.geometry = vlist, tlist
     p.useLighting = False
     p.textureCoordinates = tc
-    from . import drawing
+    from .draw import drawing
     p.textureId = drawing.texture_2d(rgba)
     return p
 
@@ -413,7 +413,7 @@ def surface_image(qi, pos, size, surf = None):
 def image_rgba_array(i):
     s = i.size()
     w,h = s.width(), s.height()
-    from .qt import QtGui
+    from .ui.qt import QtGui
     i = i.convertToFormat(QtGui.QImage.Format_RGB32)    #0ffRRGGBB
     b = i.bits()        # sip.voidptr
     n = i.byteCount()

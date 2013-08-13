@@ -76,7 +76,7 @@ class Select_Volume_Subregion:
         else:                                   face = faces[0]
         self.drag_face = face
         nx, ny, nz = bm.face_normal(face[0], 1)
-        from ..Matrix import sign
+        from ..geometry.matrix import sign
         if abs(nx) > abs(ny):
           self.face_direction = (sign(nx), 0)
         else:
@@ -280,11 +280,10 @@ class Select_Volume_Subregion:
     if ijk_to_xyz_transform is None:
       ijk_to_xyz_transform = bm.box_transform
     corners = box_corners(bm.box)
-    from ..Matrix import multiply_matrices, apply_matrix
-    tf = multiply_matrices(eye_to_box_transform(ijk_to_xyz_transform, xform),
-                           box_to_eye_transform(bm.box_transform, bm.xform()))
+    tf = (eye_to_box_transform(ijk_to_xyz_transform, xform) *
+          box_to_eye_transform(bm.box_transform, bm.xform()))
                            
-    ijk_box = bounding_box([apply_matrix(tf, c) for c in corners])
+    ijk_box = bounding_box([tf*c for c in corners])
     return ijk_box
     
   # ---------------------------------------------------------------------------
@@ -307,12 +306,10 @@ class Select_Volume_Subregion:
     array = allocate_array(size, zero_fill = True)
 
     # Determine origin, rotation, and cell angles.
-    b2vxf = bm.xform()
-    b2vxf.premultiply(xform.inverse())
-    from ..Matrix import xform_matrix, apply_matrix, apply_matrix_without_translation, cell_angles_and_rotation
-    b2v = xform_matrix(b2vxf)
-    origin = apply_matrix(b2v, bm.origin())
-    vaxes = [apply_matrix_without_translation(b2v, v) for v in bm.axes()]
+    b2v = xform.inverse() * bm.xform()
+    from ..geometry.matrix import cell_angles_and_rotation
+    origin = b2v * bm.origin()
+    vaxes = [b2v.apply_without_translation(v) for v in bm.axes()]
     cell_angles, rotation = cell_angles_and_rotation(vaxes)
 
     # Create grid.
@@ -353,10 +350,8 @@ def box_transform_and_xform(v):
 #
 def box_to_eye_transform(box_transform, model_transform):
 
-  from ..Matrix import invert_matrix, multiply_matrices
   # TODO: requires viewer
-  m2c = invert_matrix(viewer.camera_view)
-  transform = multiply_matrices(m2c, model_transform, box_transform)
+  transform = viewer.camera_view.inverse() * model_transform * box_transform)
   return transform
 
 # -----------------------------------------------------------------------------
@@ -365,8 +360,7 @@ def box_to_eye_transform(box_transform, model_transform):
 def eye_to_box_transform(box_transform, xform):
 
   tf = box_to_eye_transform(box_transform, xform)
-  from ..Matrix import invert_matrix
-  inv_tf = invert_matrix(tf)
+  inv_tf = tf.inverse()
   return inv_tf
 
 # -----------------------------------------------------------------------------
@@ -500,8 +494,7 @@ class Box_Model:
     if xf == None or self.box == None:
       return
     tf = eye_to_box_transform(self.box_transform, xf)
-    from ..Matrix import apply_matrix_without_translation
-    shift = apply_matrix_without_translation(tf, delta_xyz)
+    shift = tf.apply_without_translation(delta_xyz)
     box = translate_box(self.box, shift)
     self.reshape_box(box, self.box_transform)
     
@@ -513,9 +506,8 @@ class Box_Model:
     # Figure out delta in box coordinates
     axis_vector = [0,0,0]
     axis_vector[axis] = 1
-    from ..Matrix import apply_matrix_without_translation, length
-    scale = length(apply_matrix_without_translation(self.box_transform,
-                                                    axis_vector))
+    from ..geometry.vector import norm
+    scale = norm(self.box_transform.apply_without_translation(axis_vector))
     delta_box = delta_eye / scale
     
     box = map(list, self.box)
@@ -538,8 +530,7 @@ class Box_Model:
       d = near_clip_plane_distance()
     else:
       tf = box_to_eye_transform(self.box_transform, xf)
-      from ..Matrix import apply_matrix
-      center = apply_matrix(tf, box_center(self.box))
+      center = tf * box_center(self.box)
       z_box = center[2]
       eye_number = 0
       z_eye = chimera.viewer.camera.eyePos(eye_number)[2]
@@ -553,18 +544,16 @@ class Box_Model:
   #
   def face_normal(self, axis, side):
     
-    xform = self.xform()
+    model_transform = self.xform()
     if xform == None:
       return None
 
-    from ..Matrix import invert_matrix, xform_matrix
-    from ..Matrix import apply_matrix_without_translation, normalize_vector
-    inv_s = invert_matrix(self.box_transform)
+    from ..geometry.vector import normalize_vector
+    inv_s = self.box_transform.inverse()
     n = inv_s[axis,:3]
     if side == 0:
       n = -n
-    model_transform = xform_matrix(xform)
-    ne = apply_matrix_without_translation(model_transform, n)
+    ne = model_transform.apply_without_translation(n)
     ne = normalize_vector(ne)
     
     return ne
@@ -610,17 +599,16 @@ class Box_Model:
 
     ijk_min, ijk_max = self.box
     s = [ijk_max[a] - ijk_min[a] + 1 for a in (0,1,2)]
-    from ..Matrix import transpose, length
-    ev = transpose(self.box_transform)[:3]              # Edge vectors
-    el = tuple([length(ev[a])*s[a] for a in (0,1,2)])
+    from ..geometry.vector import norm
+    ev = self.box_transform)[:3].transpose()              # Edge vectors
+    el = tuple([norm(ev[a])*s[a] for a in (0,1,2)])
     return el
       
   # ---------------------------------------------------------------------------
   #
   def axes(self):
 
-    from ..Matrix import transpose
-    a = transpose(self.box_transform)[:3]
+    a = self.box_transform[:3].transpose()
     return a
   
   # ---------------------------------------------------------------------------

@@ -150,7 +150,7 @@ class Molecule(Surface):
           continue
       path = self.xyz[s]
     
-      from . import tube
+      from .geometry import tube
       va,na,ta,ca = tube.tube_through_points(path, radius = 1.0,
                                              color = rgba_256[cid[0]],
                                              segment_subdivisions = 5,
@@ -294,7 +294,7 @@ class Molecule(Surface):
 
 # Only produces 20, 80, 320, ... (multiples of 4) triangle count.
 def sphere_geometry(ntri):
-  from . import icosahedron
+  from .geometry import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32, sqrt
   ta = ta.astype(int32)

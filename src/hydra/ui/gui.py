@@ -198,7 +198,7 @@ def show_main_window():
 #    w.view.setFocus(QtCore.Qt.OtherFocusReason)       # Get keyboard events on startup
     w.show()
     enable_exception_logging()
-    from . import history
+    from ..file_io import history
     history.show_history_thumbnails()
     status = app.exec_()
 #    from . import leap
@@ -265,7 +265,7 @@ class Log:
         self.html_text += htext
     def image_log_directory(self):
         if self.image_directory is None:
-            from . import history
+            from ..file_io import history
             d = history.user_settings_path()
             import tempfile
             self.image_directory = tempfile.TemporaryDirectory(dir = d)

@@ -10,7 +10,7 @@ class View(QtOpenGL.QGLWidget):
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x,y,z axes, 4th column is camara location.
-        from .place import Place
+        from ..geometry.place import Place
         self.camera_view = self.camera_view_inverse = Place()
         self.field_of_view = 45   	# degrees, width
         self.center_of_rotation = (0,0,0)
@@ -34,7 +34,7 @@ class View(QtOpenGL.QGLWidget):
         self.fill_light_diffuse_color = (.3,.3,.3)
         self.ambient_light_color = (.3,.3,.3)
 
-        from . import drawing
+        from ..draw import drawing
         self.render = drawing.Renderer(self)
 
         self.timer = None			# Redraw timer
@@ -74,7 +74,7 @@ class View(QtOpenGL.QGLWidget):
         self.models.append(model)
         model.id = self.next_id
         self.next_id += 1
-        from .VolumeViewer.volume import Volume, volume_manager
+        from ..VolumeViewer.volume import Volume, volume_manager
         if isinstance(model, Volume):
             if not model in volume_manager.data_regions:
                 volume_manager.add_volume(model)
@@ -86,7 +86,7 @@ class View(QtOpenGL.QGLWidget):
             self.add_model(m)
         
     def close_models(self, mlist):
-        from .VolumeViewer.volume import volume_manager, Volume
+        from ..VolumeViewer.volume import volume_manager, Volume
         vlist = [m for m in mlist if isinstance(m, Volume)]
         volume_manager.remove_volumes(vlist)
         olist = self.models
@@ -116,7 +116,7 @@ class View(QtOpenGL.QGLWidget):
 
     def image(self, size = None):
         w,h = self.window_size
-        from . import drawing
+        from ..draw import drawing
         rgb = drawing.frame_buffer_image(w, h)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         if not size is None:
@@ -144,7 +144,7 @@ class View(QtOpenGL.QGLWidget):
 
     def initializeGL(self):
 
-        from . import drawing
+        from ..draw import drawing
         drawing.set_background_color(self.background_rgba)
         drawing.enable_depth_test(True)
         drawing.initialize_opengl()
@@ -152,7 +152,7 @@ class View(QtOpenGL.QGLWidget):
         from .gui import show_info
         show_info('OpenGL version %s' % drawing.opengl_version())
 
-        from . import llgrutil as gr
+        from ..draw import llgrutil as gr
         if gr.use_llgr:
             gr.initialize_llgr()
 
@@ -204,12 +204,12 @@ class View(QtOpenGL.QGLWidget):
         self.rendered_callbacks.remove(cb)
 
     def paintGL(self):
-        from . import llgrutil as gr
+        from ..draw import llgrutil as gr
         if gr.use_llgr:
             gr.render(self)
             return
 
-        from . import drawing
+        from ..draw import drawing
         drawing.set_background_color(self.background_rgba)
         drawing.draw_background()
 
@@ -240,7 +240,7 @@ class View(QtOpenGL.QGLWidget):
         i = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
         self.render.set_projection_matrix(i)
         self.render.set_model_view_matrix(matrix = i)
-        from . import drawing
+        from ..draw import drawing
         drawing.enable_depth_test(False)
         for m in overlays:
             m.draw(self, self.OPAQUE_DRAW_PASS)
@@ -257,7 +257,7 @@ class View(QtOpenGL.QGLWidget):
         n = len(models)
         draw_tiles = (self.tile_scale > 0)
         if draw_tiles:
-            from .drawing import set_drawing_region, draw_tile_outlines
+            from ..draw.drawing import set_drawing_region, draw_tile_outlines
             tiles = self.tiles(self.tile_scale)
             if draw_pass == self.OPAQUE_DRAW_PASS:
                 self.next_tile_size()
@@ -306,7 +306,7 @@ class View(QtOpenGL.QGLWidget):
         im = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
         im.fill(QtGui.QColor(*tuple(int(255*c) for c in self.background_color)))
         draw_image_text(im, text, bgcolor = self.background_color)
-        from .surface import Surface, surface_image
+        from ..surface import Surface, surface_image
         surf = Surface()
         pos = -.95,-1     # x,y range -1 to 1
         size = 1.9,.25
@@ -410,7 +410,7 @@ class View(QtOpenGL.QGLWidget):
 
     def resizeGL(self, width, height):
         self.window_size = width, height
-        from . import drawing
+        from ..draw import drawing
         drawing.set_drawing_region(0,0,width,height)
 
     def initial_camera_view(self):
@@ -422,7 +422,7 @@ class View(QtOpenGL.QGLWidget):
         from math import pi, tan
         fov = self.field_of_view*pi/180
         camdist = 0.5*s + 0.5*s/tan(0.5*fov)
-        from . import place
+        from ..geometry import place
         self.set_camera_view(place.translation((cx,cy,cz+camdist)))
         self.near_far_clip = (camdist - s, camdist + s)
         self.center_of_rotation = (cx,cy,cz)
@@ -513,7 +513,7 @@ class View(QtOpenGL.QGLWidget):
         return array((cx,cy,cz)), w
 
     def bounds(self):
-        from . import surface
+        from .. import surface
         b = surface.union_bounds(m.placed_bounds() for m in self.models if m.display)
         return b
 
@@ -727,7 +727,7 @@ class View(QtOpenGL.QGLWidget):
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
         
-        from .VolumeViewer.volume import Volume
+        from ..VolumeViewer.volume import Volume
         for m in self.models:
             if isinstance(m, Volume):
                 adjust_threshold_level(m, f)
@@ -746,7 +746,7 @@ class View(QtOpenGL.QGLWidget):
         # Rotation axis is in camera coordinates.
         # Center of rotation is in model coordinates.
         cv = self.camera_view
-        from . import place
+        from ..geometry import place
         maxis = cv.apply_without_translation(axis)
         r = place.rotation(maxis, angle, self.center_of_rotation)
         if models is None:
@@ -761,7 +761,7 @@ class View(QtOpenGL.QGLWidget):
 
         self.center_of_rotation_needs_update()
         cv = self.camera_view
-        from . import place
+        from ..geometry import place
         mt = cv.apply_without_translation((dx,dy,dz))
         t = place.translation(mt)
         if models is None:
@@ -784,7 +784,7 @@ class View(QtOpenGL.QGLWidget):
         fov = self.field_of_view * pi/180
 
         c = self.camera_position()
-        from . import vector
+        from ..geometry import vector
         ps = vector.distance(c,p) * 2*tan(0.5*fov) / w
         return ps
 
@@ -794,11 +794,11 @@ class View(QtOpenGL.QGLWidget):
 #        ks.key_pressed(event)
 
     def maps(self):
-        from .VolumeViewer import Volume
+        from ..VolumeViewer import Volume
         return tuple(m for m in self.models if isinstance(m,Volume))
 
     def molecules(self):
-        from .molecule import Molecule
+        from ..molecule import Molecule
         return tuple(m for m in self.models if isinstance(m,Molecule))
             
     def quit(self):

@@ -2,10 +2,10 @@ def open_pdb_file(path):
   f = open(path, 'r')
   text = f.read()
   f.close()
-  from . import _image3d
+  from .. import _image3d
   xyz, element_nums, chain_ids, res_nums, res_names, atom_names = \
       _image3d.parse_pdb_file(text)
-  from .molecule import Molecule
+  from ..molecule import Molecule
   m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
   m.pdb_text = text
   return m
@@ -26,7 +26,7 @@ def open_pdb_file_python(path):
       elements.append(el)
       chain_id = line[21]
       chain_ids.append(chain_id)
-  from .molecule import Molecule
+  from ..molecule import Molecule
   m = Molecule(path, points, elements, chain_ids)
   m.pdb_text = text
   return m
@@ -35,9 +35,9 @@ def open_mmcif_file(path):
   f = open(path, 'r')
   text = f.read()
   f.close()
-  from . import _image3d
+  from .. import _image3d
   xyz, element_nums, chain_ids, res_nums, res_names, atom_names = \
       _image3d.parse_mmcif_file(text)
-  from .molecule import Molecule
+  from ..molecule import Molecule
   m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
   return m

@@ -1,1 +1,1 @@
-from .gui import show_main_window
+from .ui.gui import show_main_window

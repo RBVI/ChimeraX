@@ -143,7 +143,7 @@ def update_llgr_graphics(surface):
 def update_llgr_surface_piece(p):
     if p.triangles is None or hasattr(p, 'llgr_surface'):
       return
-    from . import gui
+    from ..ui import gui
     if p.shift_and_scale is None:
       s = llgr_surface(p.vertices, p.normals, p.triangles, p.color_rgba, p.vertex_colors)
       gui.show_info('Created llgr surface, %d triangles' % len(p.triangles))
@@ -179,5 +179,5 @@ def render(viewer):
                 m.update_graphics(v)
             update_llgr_graphics(m)
     llgr.render()
-#    from . import gui
+#    from ..ui import gui
 #    gui.show_info('rendered %d models' % len(v.models))

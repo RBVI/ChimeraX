@@ -269,7 +269,7 @@ def line_position(xyz, line):
   xyz1, xyz2 = line
   dxyz = xyz - xyz1
   xyz12 = xyz2 - xyz1
-  from .. import vector
+  from ..geometry import vector
   d2 = vector.norm(xyz12)
   f = vector.inner_product(dxyz,xyz12) / d2
   return f
@@ -354,7 +354,7 @@ def volume_index_segment(volume, line, clipping_model = None):
 #
 def slice_data_values(v, xyz_in, xyz_out):
 
-  from ..vector import distance
+  from ..geometry.vector import distance
   d = distance(xyz_in, xyz_out)
   #
   # Sample step of 1/2 voxel size can easily miss single bright voxels.
@@ -379,7 +379,7 @@ def slice_data_values(v, xyz_in, xyz_out):
 def array_slice_values(array, ijk_in, ijk_out,
                        spacing = 0.5, method = 'linear'):
 
-  from .. import vector
+  from ..geometry import vector
   d = vector.distance(ijk_in, ijk_out)
   steps = 1 + max(1, int(d/spacing))
 
@@ -388,7 +388,7 @@ def array_slice_values(array, ijk_in, ijk_out,
   trace[:,0] = t = arange(steps, dtype = floatc) / steps
   ijk = outer(1-t, ijk_in) + outer(t, ijk_out)
   from _interpolate import interpolate_volume_data
-  from .. import place
+  from ..geometry import place
   trace[:,1], outside = interpolate_volume_data(ijk, place.identity(), array, method)
   return trace
 

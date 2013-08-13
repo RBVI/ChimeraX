@@ -21,7 +21,7 @@ def fit_search(models, points, point_weights, volume, n,
     asym_center = tuple(x0 + (x1-x0)*f
                         for x0, x1, f in zip(xyz_min, xyz_max, asym_center_f)) 
 
-    from ..place import translation, identity
+    from ..geometry.place import translation, identity
     center = points.mean(axis=0)
     ctf = translation(-center)
     ijk_to_xyz_tf = volume.matrix_indices_to_xyz_transform(step = 1)
@@ -33,7 +33,7 @@ def fit_search(models, points, point_weights, volume, n,
     flist = []
     outside = 0
     from math import pi
-    from .. import bins
+    from ..geometry import bins
     b = bins.Binned_Transforms(angle_tolerance*pi/180, shift_tolerance, center)
     fo = {}
     from .fitmap import locate_maximum
@@ -287,7 +287,7 @@ def move_models(models, transforms, base_model, frames):
         def mstep(mt = move_table, cb = cb):
             move_step(mt, cb)
         cb.append(mstep)
-        from ..gui import main_window
+        from ..ui.gui import main_window
         main_window.view.add_new_frame_callback(mstep)
 
 # -----------------------------------------------------------------------------
@@ -313,7 +313,7 @@ def move_step(move_table, cb):
             del mt[m]
 
     if len(mt) == 0:
-        from ..gui import main_window
+        from ..ui.gui import main_window
         main_window.view.remove_new_frame_callback(cb[0])
 
 # -----------------------------------------------------------------------------
@@ -323,7 +323,7 @@ def random_translation_step(center, radius):
     v = random_direction()
     from random import random
     r = radius * random()
-    from ..place import translation
+    from ..geometry.place import translation
     tf = translation(center + r*v)
     return tf
 
@@ -333,7 +333,7 @@ def random_translation(xyz_min, xyz_max):
 
     from random import random
     shift = [x0+random()*(x1-x0) for x0,x1 in zip(xyz_min, xyz_max)]
-    from ..place import translation
+    from ..geometry.place import translation
     tf = translation(shift)
     return tf
 
@@ -342,7 +342,7 @@ def random_translation(xyz_min, xyz_max):
 def random_rotation():
 
     y, z = random_direction(), random_direction()
-    from .. import place
+    from ..geometry import place
     f = place.orthonormal_frame(z, y)
     return f
 
@@ -351,7 +351,7 @@ def random_rotation():
 def random_direction():
 
     z = (1,1,1)
-    from .. import vector
+    from ..geometry import vector
     from random import random
     while vector.norm(z) > 1:
         z = (1-2*random(), 1-2*random(), 1-2*random())
@@ -373,7 +373,7 @@ def unique_symmetry_position(tf, center, ref_point, sym_list):
     if len(sym_list) == 0:
         return tf
 
-    from ..place import distance
+    from ..geometry.place import distance
     import numpy as n
     i = n.argmin([distance(sym*tf*center, ref_point) for sym in sym_list])
     if sym_list[i].is_identity():

@@ -5,8 +5,8 @@
 #
 def molmap_command(cmdname, args):
 
-    from .commands import atoms_arg, float_arg, string_arg, openstate_arg
-    from .commands import model_id_arg, bool_arg, parse_arguments
+    from .ui.commands import atoms_arg, float_arg, string_arg, openstate_arg
+    from .ui.commands import model_id_arg, bool_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('resolution', float_arg))
     opt_args = ()
@@ -44,7 +44,7 @@ def molecule_map(atoms, resolution,
 		 showDialog = True
                  ):
 
-    from .commands import CommandError
+    from .ui.commands import CommandError
     if atoms.count() == 0:
         raise CommandError('No atoms specified')
 
@@ -68,7 +68,7 @@ def molecule_map(atoms, resolution,
     if symmetry is None:
         transforms = []
     else:
-        from .commands import openstate_arg
+        from .ui.commands import openstate_arg
         if coordinateSystem:
             csys = openstate_arg(coordinateSystem)
         from .SymmetryCopies.symcmd import parse_symmetry
@@ -76,7 +76,7 @@ def molecule_map(atoms, resolution,
                                           atoms[0].molecule, 'molmap')
 
     if not modelId is None:
-        from .commands import parse_model_id
+        from .ui.commands import parse_model_id
         modelId = parse_model_id(modelId)
 
     v = make_molecule_map(atoms, resolution, step, pad,
@@ -99,7 +99,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
         from .VolumeViewer import volume_list
         vlist = [v for v in volume_list()
                  if getattr(v, 'molmap_atoms', None) == atoms]
-        from .gui import main_window
+        from .ui.gui import main_window
         main_window.view.close_models(vlist)
 
     from .VolumeViewer import volume_from_grid_data
@@ -111,7 +111,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
     v.molmap_parameters = (resolution, step, pad, cutoff_range, sigma_factor)
 
-    from .gui import main_window
+    from .ui.gui import main_window
     main_window.view.add_model(v)
     return v
 
@@ -169,7 +169,7 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
     xyz_to_ijk_tf = ((1.0/step, 0, 0, -origin[0]/step),
                      (0, 1.0/step, 0, -origin[1]/step),
                      (0, 0, 1.0/step, -origin[2]/step))
-    from .place import identity
+    from .geometry.place import identity
     if len(transforms) == 0:
         transforms = [identity()]
     from ._image3d import sum_of_gaussians
