@@ -1,8 +1,8 @@
 import llgr
 from numpy import array, float32
 
-use_llgr = True
-#use_llgr = False
+#use_llgr = True
+use_llgr = False
 
 def initialize_llgr():
     llgr.set_output('pyopengl')
