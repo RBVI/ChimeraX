@@ -211,7 +211,7 @@ class Gray_Scale_Drawing(object):
     t = self.texture_planes.get((k,axis))
     if t is None:
       d = self.color_plane(k, axis)
-      from ..surface import texture_2d
+      from ..drawing import texture_2d
       t = texture_2d(d)
       self.texture_planes[(k,axis)] = t
     return t
@@ -236,7 +236,7 @@ class Gray_Scale_Drawing(object):
     if self.surface_pieces is None:
       return
 
-    from ..surface import reload_texture
+    from ..drawing import reload_texture
     for p in self.surface_pieces:
       t = p.textureId
       k,axis = p.plane
