@@ -351,7 +351,7 @@ def box_transform_and_xform(v):
 def box_to_eye_transform(box_transform, model_transform):
 
   # TODO: requires viewer
-  transform = viewer.camera_view.inverse() * model_transform * box_transform)
+  transform = viewer.camera_view.inverse() * model_transform * box_transform
   return transform
 
 # -----------------------------------------------------------------------------
@@ -600,7 +600,7 @@ class Box_Model:
     ijk_min, ijk_max = self.box
     s = [ijk_max[a] - ijk_min[a] + 1 for a in (0,1,2)]
     from ..geometry.vector import norm
-    ev = self.box_transform)[:3].transpose()              # Edge vectors
+    ev = self.box_transform[:3].transpose()              # Edge vectors
     el = tuple([norm(ev[a])*s[a] for a in (0,1,2)])
     return el
       
