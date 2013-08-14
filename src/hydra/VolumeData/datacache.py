@@ -82,8 +82,8 @@ class Data_Cache:
       return
 
     data = self.data
-    dlist = data.values()
-    dlist.sort(lambda d1, d2: cmp(d1.last_access, d2.last_access))
+    dlist = list(data.values())
+    dlist.sort(key = lambda d: d.last_access)
     import sys
     for d in dlist:
       if sys.getrefcount(d.value) == 2:

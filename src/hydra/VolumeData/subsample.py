@@ -28,7 +28,7 @@ class Subsampled_Grid(Grid_Data):
   def add_subsamples(self, grid_data, cell_size):
 
     csize = tuple(cell_size)
-    if self.available_subsamplings.has_key(csize):
+    if csize in self.available_subsamplings:
       del self.available_subsamplings[csize]
     self.available_subsamplings[csize] = grid_data
     
