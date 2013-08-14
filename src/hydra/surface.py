@@ -375,7 +375,7 @@ def union_bounds(blist):
     else:
       xyz_min = tuple(min(x,px) for x,px in zip(xyz_min, pmin))
       xyz_max = tuple(max(x,px) for x,px in zip(xyz_max, pmax))
-  return xyz_min, xyz_max
+  return None if xyz_min is None else (xyz_min, xyz_max)
 
 def copies_bounding_box(bounds, plist):
   (x0,y0,z0),(x1,y1,z1) = bounds
