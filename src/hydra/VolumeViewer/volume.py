@@ -1179,6 +1179,15 @@ class Volume(Surface):
     return g
 
   # ---------------------------------------------------------------------------
+  #
+  def bounds(self):
+
+    b = Surface.bounds(self)
+    if b is None:
+      b = self.xyz_bounds()
+    return b
+
+  # ---------------------------------------------------------------------------
   # The xyz bounding box encloses the subsampled grid with half a step size
   # padding on all sides.
   #
