@@ -2445,10 +2445,11 @@ class cycle_through_planes:
     self.step = pstep
     self.depth = pdepth
 
-    from chimera import triggers
-    self.handler = triggers.addHandler('new frame', self.next_plane_cb, None)
+    from ..ui.gui import main_window
+    self.handler = self.next_plane_cb
+    main_window.view.add_new_frame_callback(self.handler)
 
-  def next_plane_cb(self, trigger_name, call_data, trigger_data):
+  def next_plane_cb(self):
     
     p = self.plane
     if self.step * (self.plast - p) >= 0:
@@ -2456,8 +2457,8 @@ class cycle_through_planes:
       show_planes(self.volume, self.axis, p, self.depth,
                   save_in_region_queue = False)
     else:
-      from chimera import triggers
-      triggers.deleteHandler('new frame', self.handler)
+      from ..ui.gui import main_window
+      main_window.view.remove_new_frame_callback(self.handler)
       self.handler = None
 
 # -----------------------------------------------------------------------------
