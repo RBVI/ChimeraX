@@ -287,6 +287,7 @@ class Molecule(Surface):
     return atoms
 
   def bounds(self):
+    # TODO: bounds should only include displayed atoms.
     xyz = self.xyz
     if len(xyz) == 0:
       return None
