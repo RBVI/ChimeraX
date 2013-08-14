@@ -1963,7 +1963,7 @@ class Outline_Box:
       changed = (any(corners != self.corners) or
                  rgb != self.rgb or
                  linewidth != self.linewidth or
-                 center != self.center or
+                 any(center != self.center) or
                  planes != self.planes or
                  crosshair_width != self.crosshair_width)
       if changed:
