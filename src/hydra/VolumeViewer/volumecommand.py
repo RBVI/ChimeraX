@@ -286,7 +286,7 @@ def apply_volume_options(v, doptions, roptions):
             v.region_list.add_named_region(name, r[0], r[1])
 
     if 'planes' in doptions:
-        import volume
+        from . import volume
         volume.cycle_through_planes(v, *doptions['planes'])
 
     d = v.data
@@ -315,8 +315,7 @@ def apply_volume_options(v, doptions, roptions):
         if 'centerIndex' in doptions:
             c = v.data.ijk_to_xyz(doptions['centerIndex'])
             if csys != v.openState:
-                import Matrix as M
-                c = M.xform_xyz(c, v.openState.xform, csys.xform)
+                c = csys.place.inverse() * (v.place * c)
         from ..SymmetryCopies import symcmd
         tflist, csys = symcmd.parse_symmetry(sym, c, a, csys, v, 'volume')
         if csys != v.openState:
