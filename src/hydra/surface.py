@@ -77,11 +77,11 @@ class Surface:
 
   def placed_bounds(self):
     b = self.bounds()
-    if b is None:
-      return b
+    if b is None or b == (None, None):
+      return None
     if self.copies:
       copies = self.copies
-    elif self.placement != ((1,0,0,0),(0,1,0,0),(0,0,1,0)):
+    elif not self.placement.is_identity(tolerance = 0):
       copies = [self.placement]
     else:
       return b
