@@ -24,6 +24,10 @@ class Molecule(Surface):
     self.atom_names = atom_names
 
     self.bonds = None                   # N by 2 array of atom indices
+    self.bond_radius = 0.2
+    self.bond_radii = None
+    self.bond_color = (150,150,150,255)
+    self.half_bond_coloring = True
 
     # Graphics settings
     self.show_atoms = True
@@ -61,7 +65,7 @@ class Molecule(Surface):
   def update_atom_graphics(self, viewer):
 
     self.create_atom_spheres()
-    self.set_sphere_colors()
+    self.set_atom_colors()
 
   def create_atom_spheres(self):
 
@@ -99,9 +103,18 @@ class Molecule(Surface):
     sas = xyzr if s is None else xyzr[s]
     p.shift_and_scale = sas
 
+  def set_atom_colors(self):
+
+    p = self.atoms_surface_piece
+    if p is None:
+      return
+
+    p.instance_colors = self.atom_colors()
+
   def update_bond_graphics(self, viewer):
 
     self.create_bond_cylinders()
+    self.set_bond_colors()
 
   def create_bond_cylinders(self):
 
@@ -119,16 +132,24 @@ class Molecule(Surface):
     p.geometry = va, ta
     p.normals = na
 
-    radius = 0.2
-    p.copies44 = bond_cylinder_placements(self.bonds, self.xyz, radius)
+    r = self.bond_radius if self.bond_radii is None else self.bond_radii
+    p.copies44 = bond_cylinder_placements(self.bonds, self.xyz, r, self.half_bond_coloring)
 
-  def set_sphere_colors(self):
+  def set_bond_colors(self):
 
-    p = self.atoms_surface_piece
+    p = self.bonds_surface_piece
     if p is None:
       return
 
-    p.instance_colors = self.sphere_colors()
+    p.color = tuple(c/255.0 for c in self.bond_color)
+
+    if self.half_bond_coloring:
+      acolors = self.atom_colors()
+      bc0,bc1 = acolors[self.bonds[:,0],:], acolors[self.bonds[:,1],:]
+      from numpy import concatenate
+      p.instance_colors = concatenate((bc0,bc1))
+    else:
+      p.instance_colors = None
 
   def set_color_mode(self, mode):
     if mode == self.color_mode:
@@ -137,7 +158,7 @@ class Molecule(Surface):
     self.need_graphics_update = True
     self.redraw_needed = True
 
-  def sphere_colors(self):
+  def atom_colors(self):
 
     cm = self.color_mode
     if cm == 'by chain':
@@ -379,15 +400,20 @@ def element_colors(elnums):
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
 #
-def bond_cylinder_placements(bonds, xyz, radius):
+def bond_cylinder_placements(bonds, xyz, radius, half_bond):
 
   n = len(bonds)
   from numpy import empty, float32, transpose, sqrt, array
-  p = empty((n,4,4), float32)
+  nc = 2*n if half_bond else n
+  p = empty((nc,4,4), float32)
   
   p[:,3,:] = (0,0,0,1)
   axyz0, axyz1 = xyz[bonds[:,0],:], xyz[bonds[:,1],:]
-  p[:,:3,3] = 0.5*(axyz0 + axyz1)
+  if half_bond:
+    p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
+    p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1
+  else:
+    p[:,:3,3] = 0.5*(axyz0 + axyz1)
 
   v = axyz1 - axyz0
   d = sqrt((v*v).sum(axis = 1))
@@ -402,10 +428,15 @@ def bond_cylinder_placements(bonds, xyz, radius):
   c1 = 1.0/(1+c)
   cx,cy = c1*wx, c1*wy
   r = radius
-  rs = array(((r*(cx*wx + c), r*cx*wy,  d*wy),
-              (r*cy*wx, r*(cy*wy + c), -d*wx),
-              (-r*wy, r*wx, d*c)), float32)
-  p[:,:3,:3] = rs.transpose((2,0,1))
+  h = 0.5*d if half_bond else d
+  rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
+              (r*cy*wx, r*(cy*wy + c), -h*wx),
+              (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
+  if half_bond:
+    p[:n,:3,:3] = rs
+    p[n:,:3,:3] = rs
+  else:
+    p[:,:3,:3] = rs
   pt = transpose(p,(0,2,1))
   return pt
 
