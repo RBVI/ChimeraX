@@ -109,6 +109,8 @@ def element_radius(element_number):
 	if element_number < 0:
 		return 0.0
 	try:
+		if element_number > 1:
+			return _covalent[element_number] * 0.6
 		return _covalent[element_number]
 	except IndexError:
 		return 0.0

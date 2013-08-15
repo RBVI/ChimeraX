@@ -449,7 +449,9 @@ def open(filespec, identify_as=None, **kw):
 	else:
 		print 
 		if not compression:
-			stream = _builtin_open(filelike, 'rb')
+			import os
+			filename = os.path.expanduser(os.path.expandvars(filelike))
+			stream = _builtin_open(filename, 'rb')
 		else:
 			stream_type = _compression[name]
 			stream = stream_type(filelike)
