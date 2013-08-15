@@ -46,9 +46,10 @@ else
 Mesa.install:
 endif
 
-SUBDIRS	+= docutils distribute expat fonts glew jinja2 numpy openssl \
+SUBDIRS	+= cython docutils distribute expat fonts \
+	   glew hdf5 jinja2 numexpr numpy openssl \
 	   p7zip pcre pillow \
-	   pygments pyflakes PyOpenGL pythomnic3k Python PyQt qt \
+	   pygments pyflakes PyOpenGL pytables pythomnic3k Python PyQt qt \
 	   sip sphinx wrappy3 zlib
 
 # All needed subdirectories must be set by now.
@@ -115,6 +116,7 @@ pyflakes.install: Python.install
 pygments.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install distribute.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
+pytables.install: hdf5.install numexpr.install cython.install Python.install zlib.install
 pythomnic3k.install: Python.install
 Python.install: zlib.install openssl.install expat.install
 PyQt.install: Python.install qt.install sip.install
