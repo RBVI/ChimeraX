@@ -123,7 +123,7 @@ element_names(PyObject *, PyObject *atom_vec_capsule)
 	unsigned long i = 0;
 	for (std::vector<Atom *>::const_iterator ai = atoms->begin(); ai != atoms->end(); ++ai, ++i) {
 		Element element = (*ai)->element();
-		PyList_SET_ITEM(coords, i, PyUnicode_FromString(element.name()));
+		PyList_SET_ITEM(element_names, i, PyUnicode_FromString(element.name()));
 	}
 	return element_names;
 }
@@ -142,7 +142,7 @@ element_numbers(PyObject *, PyObject *atom_vec_capsule)
 	unsigned long i = 0;
 	for (std::vector<Atom *>::const_iterator ai = atoms->begin(); ai != atoms->end(); ++ai, ++i) {
 		Element element = (*ai)->element();
-		PyList_SET_ITEM(coords, i, PyLong_FromLong((long)element.number()));
+		PyList_SET_ITEM(element_numbers, i, PyLong_FromLong((long)element.number()));
 	}
 	return element_numbers;
 }
