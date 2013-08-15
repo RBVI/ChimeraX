@@ -381,7 +381,7 @@ def render(viewport, vertical_fov, globalXform):
 	llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, position1)
 	llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
 
-	llgr.set_clear_color(.5, .2, .2, 0)
+	llgr.set_clear_color(.05, .05, .4, 0)
 	from OpenGL import GL
 	#if self._samples >= 2:
 	#	GL.glEnable(GL.GL_MULTISAMPLE)
