@@ -5,12 +5,12 @@ TOP = ../..
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= molecule ioutil pdb util capsule pdbio
+SUBDIRS	+= ioutil pdb util molecule capsule pdbio access
 SRCS = test.cpp
 OBJS = test.o
 PROG = test
 INCS += $(PYTHON_INCLUDE_DIRS)
-LIBS += pdbio/pdbio.o molecule/libmolecule.a molecule/templates/libtmpl.a ioutil/libioutil.a pdb/libpdb.a util/libutil.a
+LIBS += pdbio/pdbio.o molecule/libmolecule.$(SHLIB_EXT) molecule/templates/libtmpl.$(SHLIB_EXT) ioutil/libioutil.a pdb/libpdb.a util/libutil.a capsule/libcapsule.$(SHLIB_EXT)
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

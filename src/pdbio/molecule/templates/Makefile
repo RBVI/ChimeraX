@@ -4,13 +4,15 @@ include $(TOP)/mk/config.make
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 LIBNAME = tmpl
-LIB= lib$(LIBNAME).a
+SHLIB= lib$(LIBNAME).$(SHLIB_EXT)
 CXXFLAGS += -I../..
+LIBS += ../../ioutil/libioutil.a ../../util/libutil.a
 
-$(LIB): $(OBJS)
-	ar -r $(LIB) $(OBJS)
+$(SHLIB): $(OBJS)
+	$(SHLIB_LINK)
 
-install: $(LIB)
+install: $(SHLIB)
+	$(RSYNC) $(SHLIB) $(shlibdir)
 
 clean:
-	/bin/rm -f $(OBJS) $(LIB)
+	/bin/rm -f $(OBJS) $(SHLIB)

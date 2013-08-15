@@ -7,13 +7,14 @@ SUBDIRS= templates
 include $(TOP)/mk/subdir.make
 
 LIBNAME = molecule
-LIB= lib$(LIBNAME).a
+SHLIB= lib$(LIBNAME).$(SHLIB_EXT)
 CXXFLAGS += -I..
 
-$(LIB): $(OBJS)
-	ar -r $(LIB) $(OBJS)
+$(SHLIB): $(OBJS)
+	$(SHLIB_LINK)
 
-install: $(LIB)
+install: $(SHLIB)
+	$(RSYNC) $(SHLIB) $(shlibdir)
 
 clean:
-	/bin/rm -f $(OBJS) $(LIB)
+	/bin/rm -f $(OBJS) $(SHLIB)

@@ -4,13 +4,15 @@ include $(TOP)/mk/config.make
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 LIBNAME = capsule
-LIB= lib$(LIBNAME).a
+SHLIB= lib$(LIBNAME).$(SHLIB_EXT)
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
+LIBS += $(PYTHON_LIB)
 
-$(LIB): $(OBJS)
-	ar -r $(LIB) $(OBJS)
+$(SHLIB): $(OBJS)
+	$(SHLIB_LINK)
 
-install: $(LIB)
+install: $(SHLIB)
+	$(RSYNC) $(SHLIB) $(shlibdir)
 
 clean:
-	/bin/rm -f $(LIB) $(OBJS)
+	/bin/rm -f $(SHLIB) $(OBJS)

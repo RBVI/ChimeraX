@@ -15,18 +15,22 @@
 #include <stdio.h>  // fgets
 
 #define LOG_PY_ERROR_NULL(arg) \
-				if (log_file != NULL) { \
+				if (log_file != Py_None) { \
 					std::stringstream msg; \
 					msg << arg; \
-					if (!PyFile_WriteString(msg.str().c_str(), log_file)) \
+					if (!PyFile_WriteString(msg.str().c_str(), log_file)) { \
+						PyErr_Clear(); \
 						return NULL; \
+					} \
 				}
 #define LOG_PY_ERROR_VOID(arg) \
-				if (log_file != NULL) { \
+				if (log_file != Py_None) { \
 					std::stringstream msg; \
 					msg << arg; \
-					if (!PyFile_WriteString(msg.str().c_str(), log_file)) \
+					if (!PyFile_WriteString(msg.str().c_str(), log_file)) { \
+						PyErr_Clear(); \
 						return; \
+					} \
 				}
 
 std::string pdb_segment("pdb_segment");
@@ -271,7 +275,6 @@ start_t = end_t;
 			break;
 
 	  	case PDB::MODEL: {
-			actual_molecule = true;
 			cur_res_index = 0;
 			if (in_model && !m->residues().empty())
 				cur_residue = m->residues()[0];
@@ -1279,9 +1282,9 @@ clock_t start_t, end_t;
 #endif
 	int fd = PyObject_AsFileDescriptor(pdb_file);
 	if (fd == -1) {
-		PyErr_Clear();
 		read_func = read_no_fileno;
 		input = pdb_file;
+		PyErr_Clear();
 	} else {
 		read_func = read_fileno;
 		input = fdopen(fd, "r");
@@ -1431,7 +1434,7 @@ start_t = end_t;
 std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
-	return capsule_mol_vec(mols);
+	return encapsulate_mol_vec(mols);
 }
 
 PyObject *
@@ -1493,7 +1496,7 @@ static struct PyModuleDef pdbio_def =
 	NULL,
 	NULL,
 	NULL,
-	NULL,
+	NULL
 };
 
 PyMODINIT_FUNC PyInit_pdbio()

@@ -4,6 +4,7 @@
 #include "molecule/Atom.h"
 #include "molecule/Coord.h"
 #include "molecule/Residue.h"
+#include "capsule/capsule.h"
 #include <iostream>
 #include <stdio.h>
 
@@ -27,16 +28,8 @@ int main(int argc, char **argv)
 	int num_residues = 0;
 	int num_atoms = 0;
 	int num_bonds = 0;
-	if (!PyCapsule_CheckExact(capsule)) {
-		std::cerr << "Didn't return a capsule!\n";
-		return -1;
-	}
+	std::vector<Molecule *> *mols = decapsulate_mol_vec(capsule);
 	FILE *f = fopen("pdbio.bild", "w");
-	std::vector<Molecule *> *mols = (std::vector<Molecule *> *) PyCapsule_GetPointer(capsule, "pdbio.mol_vector");
-	if (mols == NULL) {
-		std::cerr << "Capsule didn't contain a vector of Molecules.\n";
-		return -1;
-	}
 	for (std::vector<Molecule *>::iterator mi = mols->begin(); mi != mols->end(); ++mi) {
 		Molecule *m = *mi;
 		Molecule::Atoms atoms = m->atoms();
