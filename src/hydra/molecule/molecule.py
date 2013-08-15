@@ -22,6 +22,7 @@ class Molecule(Surface):
     self.residue_nums = res_nums
     self.residue_names = res_names
     self.atom_names = atom_names
+    self.atom_colors = None
 
     self.bonds = None                   # N by 2 array of atom indices
     self.bond_radius = 0.2
@@ -34,6 +35,7 @@ class Molecule(Surface):
     self.shown_atoms = None             # Array of atom indices. None means all.
     self.atoms_surface_piece = None
     self.atom_style = 'sphere'          # sphere, stick or ballstick
+    self.ball_scale = 0.3               # Atom radius scale factor in ball and stick.
     self.bonds_surface_piece = None
     self.show_ribbons = False
     self.ribbon_surface_pieces = {}     # Map chain id to surface piece
@@ -94,9 +96,9 @@ class Molecule(Surface):
     if astyle == 'sphere':
       r = self.radii
     elif astyle == 'ballstick':
-      r = self.radii * 0.3
+      r = self.radii * self.ball_scale
     elif astyle == 'stick':
-      r = 0.2
+      r = self.bond_radius
     xyzr[:,3] = r
 
     s = self.shown_atoms
@@ -109,7 +111,7 @@ class Molecule(Surface):
     if p is None:
       return
 
-    p.instance_colors = self.atom_colors()
+    p.instance_colors = self.atom_rgba()
 
   def update_bond_graphics(self, viewer):
 
@@ -144,7 +146,7 @@ class Molecule(Surface):
     p.color = tuple(c/255.0 for c in self.bond_color)
 
     if self.half_bond_coloring:
-      acolors = self.atom_colors()
+      acolors = self.atom_rgba()
       bc0,bc1 = acolors[self.bonds[:,0],:], acolors[self.bonds[:,1],:]
       from numpy import concatenate
       p.instance_colors = concatenate((bc0,bc1))
@@ -158,7 +160,10 @@ class Molecule(Surface):
     self.need_graphics_update = True
     self.redraw_needed = True
 
-  def atom_colors(self):
+  def atom_rgba(self):
+
+    if not self.atom_colors is None:
+      return self.atom_colors
 
     cm = self.color_mode
     if cm == 'by chain':
@@ -309,10 +314,15 @@ class Molecule(Surface):
       if self.show_atoms:
         self.need_graphics_update = True
 
-  def set_display(self, atoms = False, ribbons = False):
-    if atoms != self.show_atoms or ribbons != self.show_ribbons:
-      self.show_atoms = atoms
-      self.show_ribbons = ribbons
+  def set_atom_display(self, display):
+    if display != self.show_atoms:
+      self.show_atoms = display
+      self.need_graphics_update = True
+      self.redraw_needed = True
+
+  def set_ribbon_display(self, display):
+    if display != self.show_ribbons:
+      self.show_ribbons = display
       self.need_graphics_update = True
       self.redraw_needed = True
 
