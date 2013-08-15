@@ -3,16 +3,16 @@ include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
-LIBNAME = pdbio
+LIBNAME = access
 PYMOD= $(LIBNAME).so
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(shlibdir) -lmolecule -ltmpl -lcapsule ../pdb/libpdb.a
+LIBS += $(shlibdir)/libmolecule.$(SHLIB_EXT) $(shlibdir)/libcapsule.$(SHLIB_EXT)
 
-$(PYMOD): $(OBJS)
+$(PYMOD): $(OBJS) $(LIBS)
 	$(PYMOD_LINK)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PYSITEDIR)
 
 clean:
-	/bin/rm -f $(OBJS) $(PYMOD)
+	/bin/rm -f $(PYMOD) $(OBJS)
