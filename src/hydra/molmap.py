@@ -166,10 +166,10 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
 
-    xyz_to_ijk_tf = ((1.0/step, 0, 0, -origin[0]/step),
-                     (0, 1.0/step, 0, -origin[1]/step),
-                     (0, 0, 1.0/step, -origin[2]/step))
-    from .geometry.place import identity
+    from .geometry.place import Place, identity
+    xyz_to_ijk_tf = Place(((1.0/step, 0, 0, -origin[0]/step),
+                           (0, 1.0/step, 0, -origin[1]/step),
+                           (0, 0, 1.0/step, -origin[2]/step)))
     if len(transforms) == 0:
         transforms = [identity()]
     from ._image3d import sum_of_gaussians
