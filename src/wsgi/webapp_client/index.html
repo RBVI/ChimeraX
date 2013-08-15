@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Session Javascript Test Page</title>
+<!-- standard jquery/jquery-ui -->
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
+<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+
+<!-- additional widgets -->
+<script type="text/javascript" src="js/jquery.jec-1.3.4.js"></script>
+
+<!-- chimera2 libraries -->
+<script type="text/javascript" src="js/c2/session.js"></script>
+
+<!-- page-specific script and css -->
+<script type="text/javascript">
+$(document).ready(function() {
+	$("#tabs").tabs();
+	$c2_session.init("/chimera2/wsgi/conrad");
+	$("#command_line").keyup(function (evt) {
+				if (evt.which == 13)
+					$c2_session.command($(this).val());
+				});
+})
+</script>
+</head>
+<body>
+<h1>Session Javascript Test Page</h1>
+<div id="tabs">
+  <ul>
+    <li><a href="#tabs_main">Main Graphics</a></li>
+    <li><a href="#tabs_log">Log</a></li>
+    <li><a href="#tabs_debug">Debug Log</a></li>
+  </ul>
+  <div id="tabs_main">
+    <hr/>
+    <div>
+      <strong>Command:</strong>
+      <input id="command_line" type="text" size="120"/>
+      <span id="c2_session"/>
+    </div>
+    <div>
+      <span id="status_line">&nbsp;</span>
+    </div>
+    <hr/>
+  </div>
+  <div id="tabs_log">
+    <p id="log">Log text</p>
+  </div>
+  <div id="tabs_debug">
+    <pre id="debug">Debug text</pre>
+  </div>
+</div>
+</body>
+</html>
