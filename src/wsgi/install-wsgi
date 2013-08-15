@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Handle arguments
+if [ $# -gt 0 ]; then
+	actions=$*
+else
+	actions="install"
+fi
+
 # Go to the directory where the script lives
 script=$(readlink -f $0)
 cd $(dirname $script)
@@ -20,19 +27,41 @@ fi
 
 # Find install location
 target=`echo $repo | sed s/git/wsgi/`
-echo Installing to $target
-if [ ! -e $target ]; then
-	mkdir -p $target
-fi
 
-# Copy local files
-local_files="chimera2.wsgi backends"
-rsync -a $local_files $target
-other_files="../llgr/webgl chimera2_webapp.html"
-rsync -a $other_files $target/www
+# Execute actions in order
+for action in $actions; do
+	case $action in
 
-# Make sure some files are owned by user Apache
-if [ ! -e $target/sessions ]; then
-	mkdir $target/sessions
-fi
-audit apachedir $target/sessions
+	  install )
+		echo Installing to $target
+		if [ ! -e $target ]; then
+			mkdir -p $target
+		fi
+
+		# Create symlink to repo build tree
+		ln -sf $repo/build $target/chimera2
+
+		# Copy local files
+		local_files="chimera2.wsgi webapp_backend"
+		rsync -a $local_files $target
+		other_files="../llgr/webgl webapp_client/"
+		rsync -a $other_files $target/www
+
+		# Make sure some files are owned by user Apache
+		if [ ! -e $target/sessions ]; then
+			mkdir $target/sessions
+		fi
+		audit apachedir $target/sessions
+		;;
+
+	  clean )
+	  	echo Removing $target
+		rm -rf $target
+		;;
+
+	  * )
+	  	echo "unknown command" $action
+		;;
+
+	esac
+done

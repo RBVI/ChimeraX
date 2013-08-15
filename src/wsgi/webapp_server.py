@@ -28,6 +28,9 @@ __all__ = [
 	"Server",
 ]
 
+# Make sure we use a protocol version that the WSGI script can handle
+PICKLE_PROTOCOL = 2
+
 class Server(object):
 	"""Class for communicating with WSGI app and processing requests.
 
@@ -47,9 +50,14 @@ class Server(object):
 	def __init__(self):
 		"""Constructor (extracts information from `sys.argv`).
 		"""
+		# Hack to make sure that multiprocessing only uses
+		# pickle protocol 2 since the WSGI script is running
+		# in Python 2 which does not handle protocol 3.
+		import pickle
+		pickle.HIGHEST_PROTOCOL = 2
 		import sys, os.path
 		self.session_file = sys.argv[1]
-		from _multiprocessing import Connection
+		from multiprocessing.connection import Connection
 		self._inconn = Connection(0)
 		self._outconn = Connection(1)
 		self._log = None
@@ -111,9 +119,9 @@ class Server(object):
 				# will never get more input.
 				break
 			if self._log:
-				print >> self._log, "run", req
-				print >> self._log, "inconn", self.inconn
-				print >> self._log, "outconn", self.outconn
+				print("run", req, file=self._log)
+				print("inconn", self._inconn, file=self._log)
+				print("outconn", self._outconn, file=self._log)
 			try:
 				v = self._process_request_batch(*req)
 			except:
@@ -121,9 +129,11 @@ class Server(object):
 					import traceback
 					traceback.print_exc(file=self._log)
 					self._log.flush()
-			if self._log:
-				print >> self._log, "v", v
-			self._outconn.send(v)
+				self._terminate = True
+			else:
+				if self._log:
+					print("v", v, file=self._log)
+				self._outconn.send(v)
 		self._terminate = False
 
 	def _process_request_batch(self, req_data):
@@ -138,7 +148,10 @@ class Server(object):
 		# encoded using the ``dumps`` method from ``pickle``.
 
 		import json
-		req_list = json.load(req_data)
+		try:
+			req_list = json.loads(req_data)
+		except ValueError:
+			return self._decoding_failed()
 		for req in req_list:
 			if not isinstance(req, list) or len(req) != 3:
 				return self._decoding_failed()
@@ -158,13 +171,12 @@ class Server(object):
 						v["id"] = req_id
 					reply_list.append(v)
 
-		import cPickle as pickle
 		try:
 			reply = json.dumps(reply_list)
 		except:
-			return pickle.dumps(self._encoding_failed())
+			return self._encoding_failed()
 		else:
-			return pickle.dumps(self._success(reply))
+			return self._success(reply)
 
 	def _success(self, data):
 		return ("200 OK", "application/json", None, data)

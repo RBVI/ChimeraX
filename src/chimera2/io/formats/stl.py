@@ -7,11 +7,11 @@ Read little-endian STL binary format.
 
 # code taken from chimera 1.7
 
-from . import scene
+from chimera2 import scene
 
 _builtin_open = open
 
-def open(filename, average_normals=True, *args, **kw):
+def open(filename, *args, **kw):
 	"""Populate the scene with the geometry from a STL file
 
 	:param filename: either the name of a file or a file-like object
@@ -46,7 +46,7 @@ def open(filename, average_normals=True, *args, **kw):
 	if input != filename:
 		input.close()
 
-	va, na, ta = stl_geometry(nv, average_normals)
+	va, na, ta = stl_geometry(nv)
 
 	scene.bbox.bulk_add(va)
 
@@ -86,11 +86,7 @@ def open(filename, average_normals=True, *args, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def stl_geometry(nv, average_normals=True):
-
-	if not average_normals:
-		return stl_geometry_with_creases(nv)
-
+def stl_geometry(nv):
 	tc = nv.shape[0]
 
 	# Assign numbers to vertices.
@@ -122,29 +118,9 @@ def stl_geometry(nv, average_normals=True):
 	normals /= sqrt((normals ** 2).sum(1))[:, newaxis]
 
 	return vert, normals, tri
-  
-# -----------------------------------------------------------------------------
-#
-def stl_geometry_with_creases(nv):
-	# Combine identical vertices.  The must have identical normals too.
-	from numpy import empty, uint32, float32
-	tri = empty((tc, 3), uint32)
-	vnum = {}
-	for t in range(tc):
-		normal = nv[t, 0:3]
-		v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]
-		for a, v in enumerate((v0, v1, v2)):
-			tri[t, a] = vnum.setdefault((v, normal), len(vnum))
 
-	nv = len(vnum)
-	vert = empty((vnum, 3), float32)
-	normals = empty((vnum, 3), float32)
-	for (v, n), vn in vnum.items():
-		vert[vn, :] = v
-		normals[vn, :] = n
-
-	# If two triangle edges have the same vertex positions in opposite order
-	# but use different normals then stictch them together with zero area
-	# triangles.
-
-	# TODO: Not finished.
+def register():
+	from chimera2 import io
+	io.register_format("STL", io.GENERIC3D, (".stl",),
+		reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
+		open_func=open)

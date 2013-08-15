@@ -45,8 +45,9 @@ Keyword and positional arguments may be interspersed.
 __all__ = [
 	'register',
 	'Command',
-	'UserError',
 ]
+
+from . import UserError
 
 import inspect
 Param = inspect.Parameter	# shortcut to Parameter constants
@@ -56,10 +57,6 @@ try:
 except SystemError:
 	# for debugging
 	from orderedset import OrderedSet
-
-class UserError(ValueError):
-	"""Use for cases where user provided input causes an error."""
-	pass
 
 class _FunctionInfo:
 	# cache information about functions

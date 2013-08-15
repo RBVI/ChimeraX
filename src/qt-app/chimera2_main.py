@@ -167,8 +167,8 @@ class BaseApplication:
 		scene.reset()
 
 		try:
-			from chimera2 import data
-			data.open(filename)
+			from chimera2 import io
+			io.open(filename)
 		except:
 			raise
 		finally:
@@ -205,6 +205,16 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 	def cmd_window_size(self, width: int, height: int):
 		self.window_size = (width, height)
 
+def build_ui(app):
+	from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
+	# code alternative to reading main.ui file for testing purposes
+	mw = QMainWindow()
+	cw = QWidget(mw)
+	mw.setCentralWidget(mw)
+	cwl = QVBoxLayout()
+	cw.setLayout(cwl)
+
+	le = QLineEdit(mw)
 
 class GuiApplication(QApplication, BaseApplication):
 	# TODO: figure out how to catch close/delete window from window frame
@@ -235,7 +245,7 @@ class GuiApplication(QApplication, BaseApplication):
 		self.graphics.setFocusPolicy(Qt.WheelFocus)
 		self.line_edit = self.find_object("lineEdit")
 		assert self.line_edit is not None
-		self.completer = QCompleter(self.view)
+		self.completer = QCompleter(self.line_edit)
 		self.completer.setModel(QStringListModel(self.completer))
 		#self.completer.setCompletionMode(QCompleter.PopupCompletion)
 		self.line_edit.setCompleter(self.completer)
@@ -261,10 +271,10 @@ class GuiApplication(QApplication, BaseApplication):
 	@pyqtSlot()
 	def open(self):
 		# QFileDialog.getOpenFileName(QWidget parent=None, str caption='', str directory='', str filter='', str initialFilter='', QFileDialog.Options options=0) -> (str, str)
-		from chimera2 import data
+		from chimera2 import io
 		filename, filter = QFileDialog.getOpenFileName(
 				self.view, caption="Open File",
-				filter=data.qt_open_file_filter())
+				filter=io.qt_open_file_filter())
 		if filename:
 			self.cmd_open(filename)
 
@@ -387,18 +397,14 @@ def main():
 		llgr.set_output(dump_format)
 	else:
 		llgr.set_output('pyopengl')
+	import chimera2.io
+	chimera2.io.initialize_formats()
 	if len(args) > 0:
 		print("%s: ignoring extra arguments: %s"
 				% (argv[0], ' '.join(args)), file=sys.stderr)
-	from chimera2 import data, bild, stl
-	data.register_format("BILD",
-		bild.open, None, None, (".bild",), (),
-		category=data.GENERIC3D,
-		reference="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html")
-	data.register_format("STL",
-		stl.open, None, None, (".stl",), (),
-		category=data.GENERIC3D,
-		reference="http://en.wikipedia.org/wiki/STL_%28file_format%29")
+
+	#from chimera2 import formats
+	#formats.initialize()
 	if app.graphics:
 		sys.exit(app.exec_())
 	else:

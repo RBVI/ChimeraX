@@ -1,3 +1,3 @@
-.. automodule:: chimera2.data
+.. automodule:: chimera2.io
     :members:
     :show-inheritance:

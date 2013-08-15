@@ -6,11 +6,19 @@ DEFAULT_MESSAGE = "Use HTML page to access Chimera 2 sessions"
 STATUS_OKAY = "200 OK"
 STATUS_REDIRECT = "301 Redirect to HTML page"
 STATUS_BAD_REQUEST = "400 Bad request"
-STATUS_SERVER_ERROR = "500 Internal server error"
+STATUS_SERVER_ERROR = "500 Chimera 2 internal server error"
 
 CONTENT_TYPE_PLAINTEXT = "text/plain"
 CONTENT_TYPE_HTML = "text/html"
 CONTENT_TYPE_JSON = "application/json"
+
+def _debug_print(s, show_traceback=False):
+	from time import ctime
+	with file("/tmp/chimera2.log", "a") as f:
+		print >> f, "wsgi", ctime(), s
+		if show_traceback:
+			import traceback
+			traceback.print_exc(file=f)
 
 class WSGIError(Exception):
 	"""WSGI exception class.
@@ -55,7 +63,7 @@ class App(object):
 					keep_blank_values=True)
 		try:
 			status, ctype, hdrs, output = self.process(environ, fs)
-			#status, ctype, output = self.show_input(environ, fs)
+			#status, ctype, hdrs, output = self.show_input(environ, fs)
 		except WSGIError, e:
 			status, ctype, hdrs, output = e.wsgi_data
 		except:
@@ -73,6 +81,8 @@ class App(object):
 				("Content-Length", str(length)) ]
 		if hdrs:
 			headers += hdrs
+		_debug_print("response status %s" % status)
+		_debug_print("response headers %s" % headers)
 		start_response(status, headers)
 		return output
 
@@ -129,7 +139,7 @@ class App(object):
 			base = uri.rsplit('/', 1)[0]
 		else:
 			base = uri
-		frontend_url = base + "/www/chimera2_webapp.html"
+		frontend_url = base + "/www/index.html"
 		return (STATUS_REDIRECT,
 				CONTENT_TYPE_PLAINTEXT,
 				[ ( "Location", frontend_url ) ],
@@ -266,7 +276,7 @@ class App(object):
 		print >> sf, "host:", environ["REMOTE_ADDR"]
 		self._dump_environ(sf, environ)
 		output = sf.getvalue()
-		return STATUS_OKAY, CONTENT_TYPE_PLAINTEXT, output
+		return STATUS_OKAY, CONTENT_TYPE_PLAINTEXT, None, output
 
 	def _dump_fs(self, f, fs):
 		print >> f, ""
@@ -338,36 +348,39 @@ class Session(object):
 
 	def call(self, *args):
 		"""Pass ``args`` to session backend and return results."""
-		self.lock.acquire()
-		#print "%s.call(%s)" % (self.name, str(args))
-		if self.process and not self.process.is_alive():
-			try:
-				# Make sure it's dead and gone
-				self.process.join(1)
-			except:
-				pass
-			self.process = None
-			self.pipe = None
-		if self.process is None:
-			from multiprocessing import Pipe, Process
-			to_child = Pipe()
-			from_child = Pipe()
-			self.pipe = (from_child[0], to_child[1])
-			self.process = Process(target=backend,
-						args=(self._session_dir,
-							self.name,
-							to_child,
-							from_child))
-			self.process.start()
-			#print "%s - process %d started" % (self.name,
-			#				self.process.pid)
-			to_child[0].close()
-			from_child[1].close()
-		self.pipe[1].send(args)
-		output = self.pipe[0].recv()
-		self.lock.release()
-		import cPickle as pickle
-		return pickle.loads(output)
+		with self.lock:
+			#print "%s.call(%s)" % (self.name, str(args))
+			_debug_print("call %s" % str(args))
+			if self.process and not self.process.is_alive():
+				try:
+					# Make sure it's dead and gone
+					self.process.join(1)
+				except:
+					pass
+				self.process = None
+				self.pipe = None
+			if self.process is None:
+				from multiprocessing import Pipe, Process
+				to_child = Pipe()
+				from_child = Pipe()
+				self.pipe = (from_child[0], to_child[1])
+				self.process = Process(target=backend,
+							args=(self._session_dir,
+								self.name,
+								to_child,
+								from_child))
+				self.process.start()
+				#print "%s - process %d started" % (self.name,
+				#			self.process.pid)
+				to_child[0].close()
+				from_child[1].close()
+			self.pipe[1].send(args)
+			output = self.pipe[0].recv()
+		_debug_print("output: %s" % str(output))
+		status, content_type, headers, data = output
+		results = (str(status), str(content_type), headers, str(data))
+		_debug_print("results: %s" % str(results))
+		return results
 
 	def disconnect(self):
 		"""Terminate backend if present."""
@@ -511,13 +524,13 @@ def backend(session_dir, session_name, to_child, from_child):
 	from_child[0].close()
 	from_child[1].close()
 	env = copy.copy(os.environ)
-	# Assume a directory layout of:
-	# root (CHIMERA2)
-	#  +--- bin (where programs live)
-	#  +--- lib (where libraries and shared objects live)
-	#  +--- webapp (where WSGI script lives)
+	# We can only find where the WSGI script lives.
+	# Since there may be different WSGI scripts for different
+	# developers, we assume that the installer script will
+	# set up in the same directory a "chimera2" symlink
+	# to the corresponding developer install tree.
 	webapp_dir = os.path.dirname(__file__)
-	chimera2_dir = os.path.dirname(webapp_dir)
+	chimera2_dir = os.path.join(webapp_dir, "chimera2")
 	lib_dir = os.path.join(chimera2_dir, "lib")
 	bin_dir = os.path.join(chimera2_dir, "bin")
 	env["CHIMERA2"] = chimera2_dir
@@ -527,9 +540,18 @@ def backend(session_dir, session_name, to_child, from_child):
 		env["LD_LIBRARY_PATH"] = lib_dir
 	else:
 		env["LD_LIBRARY_PATH"] = ld_path + ':' + lib_dir
-	program = "webapp_backend"
-	execle(os.path.join(bin_dir, program), program,
-					session_dir, session_name)
+	program = "python3"
+	binary = os.path.join(bin_dir, program)
+	script = os.path.join(webapp_dir, "webapp_backend")
+	try:
+		os.execle(binary, program, script,
+				session_dir, session_name, env)
+	except:
+		_debug_print("exec failed: python %s script %s" % (binary, script), True)
+		raise SystemExit(1)
+	else:
+		_debug_print("exec returned: python %s script %s" % (binary, script))
+		raise SystemExit(1)
 
 #
 # Main program - either WSGI app or command line
@@ -563,30 +585,28 @@ else:
 					print s
 
 	def create(account, session, password=""):
-		pool.lock.acquire()
-		s = pool.find_session(account, session, password)
-		if s:
-			import sys
-			print >> sys.stderr, "\"%s\" exists" % session
-		else:
-			session_list = pool.get_session_list(account)
-			session_list.append(Session(session, password))
-			pool.update_session_list(account, session_list)
-			print "\"%s\" created" % session
-		pool.lock.release()
+		with pool.lock:
+			s = pool.find_session(account, session, password)
+			if s:
+				import sys
+				print >> sys.stderr, "\"%s\" exists" % session
+			else:
+				session_list = pool.get_session_list(account)
+				session_list.append(Session(session, password))
+				pool.update_session_list(account, session_list)
+				print "\"%s\" created" % session
 
 	def delete(account, session, password=""):
-		pool.lock.acquire()
-		s = pool.find_session(account, session, password)
-		if not s:
-			import sys
-			print >> sys.stderr, "\"%s\" does not exist" % session
-		else:
-			session_list = pool.get_session_list(account)
-			session_list.remove(s)
-			pool.update_session_list(account, session_list)
-			print "\"%s\" removed" % session
-		pool.lock.release()
+		with pool.lock:
+			s = pool.find_session(account, session, password)
+			if not s:
+				import sys
+				print >> sys.stderr, "\"%s\" does not exist" % session
+			else:
+				session_list = pool.get_session_list(account)
+				session_list.remove(s)
+				pool.update_session_list(account, session_list)
+				print "\"%s\" removed" % session
 
 	def call(account, session, *args):
 		if len(args) > 0 and args[0].startswith("password="):

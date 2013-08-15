@@ -36,27 +36,13 @@ class Array(Checker):
 		return "IsArray(%s, %s)" % (self._shape, self._dtype)
 
 	def check(self, value):
-		try:
-			if not isinstance(value, numpy.ndarray):
-				raise RuntimeError
-			if self._shape and value.shape != self._shape:
-				raise RuntimeError
-			if self._dtype and value.dtype != self._dtype:
-				raise RuntimeError
-			return True
-		except RuntimeError:
-			msg = ''
-			if self._shape:
-				msg = 'x'.join(str(d) for d in self._shape)
-			if self._dtype:
-				if msg:
-					msg += ' '
-				msg += str(self._dtype)
-			if msg:
-				msg = "a %s array" % msg
-			else:
-				msg = "an array"
-			raise TypeError(msg)
+		if not isinstance(value, numpy.ndarray):
+			return False
+		if self._shape and value.shape != self._shape:
+			return False
+		if self._dtype and value.dtype != self._dtype:
+			return False
+		return True
 
 class _IsBuffer(Checker):
 	"""type annotation for Python buffers"""
@@ -102,7 +88,7 @@ class _nonnegative(Checker):
 		return isinstance(value, int) and 0 <= value < 2147483648
 NonNeg32 = _nonnegative()
 
-Number = either(int, float)
+Number = either(int, float, numpy.floating)
 
 Id = NonNeg32		# negative Ids are reserved for llgr internal use
 
@@ -379,12 +365,13 @@ def clear_textures():
 # matrices
 
 # type check for 4x4 array, dtype='f' (aka dtype('float32'))
-Matrix_4x4 = either(Array(shape=(4,4), dtype='f'), (
-	float, float, float, float,
-	float, float, float, float,
-	float, float, float, float,
-	float, float, float, float
-))
+Matrix_4x4 = either(Array(shape=(4, 4), dtype='f'),
+	Array(shape=(16,), dtype='f'), [
+		Number, Number, Number, Number,
+		Number, Number, Number, Number,
+		Number, Number, Number, Number,
+		Number, Number, Number, Number
+	])
 
 # matrix_id of zero is reserved for identity matrix
 # renormalize should be true when the rotation part of the matrix
@@ -395,6 +382,7 @@ def create_matrix(matrix_id: Id, matrix_4x4: Matrix_4x4, renormalize: bool=False
 		m = [float(f) for f in matrix_4x4.flat]
 	else:
 		m = list(matrix_4x4)
+	assert(len(m) == 16)
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['create_matrix', [matrix_id, m, renormalize]])
 		return
