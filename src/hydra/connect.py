@@ -2,25 +2,23 @@ cpath = '/Users/goddard/ucsf/chimera2/src/hydra/components.cif'
 ipath = '/Users/goddard/ucsf/chimera2/src/hydra/cindex'
 
 def create_molecule_bonds(m, cpath = cpath, ipath = ipath):
-    cids = tuple(cid.decode('utf-8') for cid in set(m.residue_names))
+    cids = set(m.residue_names)
     bt = chemical_component_bonds(cids, cpath, ipath)
     bonds = []
     n = m.atom_count()
     res = None
     for a in range(n):
-        cid = m.residue_names[a].decode('utf-8')
+        cid = m.residue_names[a]
         rnum = m.residue_nums[a]
         ch = m.chain_ids[a]
         if (cid,rnum,ch) != res:
             if not res is None:
                 bonds.extend(template_bonds(ipairs, ai))
-#                print('atoms for %s, %s' % (str(res), str([(i2a[i],a)for i,a in ai.items()])))
             ai = {}
             aindex, ipairs = bt[cid]
-            i2a = dict((i,a) for a,i in aindex.items())
             res = (cid, rnum, ch)
 
-        aname = m.atom_names[a].decode('utf-8')
+        aname = m.atom_names[a]
         if aname in aindex:
             ai[aindex[aname]] = a
 #        else:
@@ -31,7 +29,6 @@ def create_molecule_bonds(m, cpath = cpath, ipath = ipath):
     if bonds:
         from numpy import array, int32
         m.bonds = array(bonds, int32)
-#        print('bonds %s' % str(m.bonds.shape))
 
 def template_bonds(ipairs, ai):
     bonds = []
@@ -42,11 +39,11 @@ def template_bonds(ipairs, ai):
 
 def backbone_bonds(m):
     bonds = []
-    ajoin = (('C', 'N'), ("O3'", 'P'))
+    ajoin = ((b'C', b'N'), (b"O3'", b'P'))
     anames = sum(ajoin, ())
     bbatoms = {}
     for a in range(m.atom_count()):
-        aname = m.atom_names[a].decode('utf-8')
+        aname = m.atom_names[a]
         if aname in anames:
             rnum = m.residue_nums[a]
             ch = m.chain_ids[a]
@@ -85,17 +82,19 @@ def component_bonds(cid, f, cindex):
 
     apairs = []
     foundb = False
+    scid = cid.decode('utf-8')
     while True:
         line = f.readline()
         if line.startswith('_chem_comp_bond.'):
             foundb = True
         elif foundb:
-            if line.startswith(cid):
+            if line.startswith(scid):
                 fields = line.split()
-                apairs.append((fields[1].strip('"'), fields[2].strip('"')))
+                a1,a2 = fields[1].strip('"').encode('utf-8'), fields[2].strip('"').encode('utf-8')
+                apairs.append((a1,a2))
             else:
                 break
-        elif line == '' or (line.startswith('data_') and not line.startswith('data_'+cid)):
+        elif line == '' or (line.startswith('data_') and not line.startswith('data_' + scid)):
             break
     atoms = set([a1 for a1,a2 in apairs] + [a2 for a1,a2 in apairs])
     aindex = dict((a,i) for i,a in enumerate(atoms))
@@ -129,7 +128,7 @@ def make_chemical_components_file_index(cpath, ipath):
     return cp
 
 # Component id can be only uppercase letters and digits
-cchars = ' 01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+cchars = b' 01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 maxc = len(cchars)
 def component_id_index(cid):
     n = len(cchars)
