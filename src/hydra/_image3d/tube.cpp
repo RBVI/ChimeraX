@@ -1,6 +1,7 @@
 // ----------------------------------------------------------------------------
 //
 #include <Python.h>			// use PyObject
+#include <math.h>			// use sqrt()
 
 #include "pythonarray.h"		// use array_from_python()
 #include "rcarray.h"			// use FArray, IArray
@@ -59,8 +60,14 @@ static void vector_rotation(float *v1, float *v2, float *r)
   float c = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
   if (c <= -1)
     {
-      r[0] = r[4] = -1; r[8] = 1;
-      r[1] = r[2] = r[3] = r[5] = r[6] = r[7] = 0;
+      // Rotation by 180 degrees perpendicular to v1
+      float ax = -v1[1], ay = v1[0], az = 0;
+      float an = sqrt(ax*ax + ay*ay);
+      if (an == 0) az = 1;
+      else        { ax /= an; ay /= an; }
+      r[0] = 2*ax*ax-1; r[1] = 2*ax*ay; r[1] = 2*ax*az;
+      r[3] = 2*ax*ay; r[4] = 2*ay*ay-1; r[5] = 2*ay*az;
+      r[6] = 2*ax*az; r[7] = 2*ay*az; r[8] = 2*az*az-1;
       return;
     }
 
