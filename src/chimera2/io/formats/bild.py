@@ -9,35 +9,36 @@ Read a subset of Chimera's
 The plan is to suport all of the existing bild format.
 """
 
-from . import scene
-from .cmds import UserError
-from .math3d import Point, Xform, Identity
+from chimera2 import UserError, scene
+from chimera2.math3d import Point, Xform, Identity
 from math import radians
 
 _builtin_open = open
 
-def open(filename, *args, **kw):
+def open(stream, *args, **kw):
 	"""Populate the scene with the geometry from a bild file
 	
 
-	:param filename: either the name of a file or a file-like object
+	:param stream: either a binary I/O stream or the name of a file
 
 	Extra arguments are ignored.
 	"""
 
-	if hasattr(filename, 'read'):
-		# it's really a file-like object
-		input = filename
+	if hasattr(stream, 'read'):
+		input = stream
 	else:
-		input = _builtin_open(filename, 'rU')
+		# it's really a filename
+		input = _builtin_open(stream, 'rb')
 
 	# parse input
 	warned = set()
 	transforms = [Identity()]
 	cur_color = [1.0, 1.0, 1.0, 1.0]
 	lineno = 0
+	# unknown encoding, assume UTF-8
 	for line in input.readlines():
 		lineno += 1
+		line = line.decode('utf-8', 'ignore').rstrip()
 		tokens = line.split()
 		if tokens[0] == '.comment':
 			pass
@@ -120,5 +121,11 @@ def open(filename, *args, **kw):
 					file=sys.stderr)
 			warned.add(tokens[0])
 
-	if input != filename:
+	if input != stream:
 		input.close()
+
+def register():
+	from chimera2 import io
+	io.register_format("BILD", io.GENERIC3D, (".bild",),
+		reference="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html",
+		open_func=open)

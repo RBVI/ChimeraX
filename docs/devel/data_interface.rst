@@ -32,7 +32,7 @@ Modules
 
 .. toctree::
 
-    data.rst
+    io.rst
 
     scene.rst
 
