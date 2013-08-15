@@ -30,7 +30,7 @@ class Chimera_HDF_Data:
 
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
-            raise ValueError, 'Chimera HDF5 file %s contains no 3d arrays' % path
+            raise ValueError('Chimera HDF5 file %s contains no 3d arrays' % path)
 
         imlist = [Chimera_HDF_Image(g,a) for g,a in agroups]
         imlist.sort(key = lambda i: i.name)
@@ -153,7 +153,7 @@ class Chimera_HDF_Image:
 
         va = group._v_attrs
         if 'name' in va:
-            return va.name
+            return va.name.decode('utf-8')
         return ''
 
     # --------------------------------------------------------------------------
@@ -197,8 +197,8 @@ class Chimera_HDF_Image:
         if 'rotation_axis' in va and 'rotation_angle' in va:
             axis = va.rotation_axis
             angle = va.rotation_angle
-            import Matrix
-            r = Matrix.rotation_from_axis_angle(axis, angle)
+            from ...geometry import matrix
+            r = matrix.rotation_from_axis_angle(axis, angle)
         else:
             r = ((1,0,0),(0,1,0),(0,0,1))
         return r
@@ -250,7 +250,7 @@ class Chimera_HDF_Image:
                            ((a._v_name,) + tuple(a.shape) + (a.atom.dtype.name,))
                            for a in arrays])
         message += sizes
-        raise ValueError, message
+        raise ValueError(message)
 
 # -----------------------------------------------------------------------------
 #

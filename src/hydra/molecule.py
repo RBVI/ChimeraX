@@ -11,9 +11,6 @@ class Molecule(Surface):
     self.element_nums = element_nums
     from . import _image3d
     self.radii = _image3d.element_radii(element_nums)
-    self.chain_ids = chain_ids
-    self.residue_nums = res_nums
-    self.residue_names = res_names
     #
     # Chain ids, residue names and atom names are Numpy string arrays.
     # The strings have maximum fixed length.  The strings are python byte arrays,
@@ -21,12 +18,19 @@ class Molecule(Surface):
     # always give false.  Need to compare to a byte array.
     # For example, atom_names == 'CA'.encode('utf-8')
     #
+    self.chain_ids = chain_ids
+    self.residue_nums = res_nums
+    self.residue_names = res_names
     self.atom_names = atom_names
+
+    self.bonds = None                   # N by 2 array of atom indices
 
     # Graphics settings
     self.show_atoms = True
     self.shown_atoms = None             # Array of atom indices. None means all.
     self.atoms_surface_piece = None
+    self.atom_style = 'sphere'          # sphere, stick or ballstick
+    self.bonds_surface_piece = None
     self.show_ribbons = False
     self.ribbon_surface_pieces = {}     # Map chain id to surface piece
 
@@ -51,6 +55,7 @@ class Molecule(Surface):
     self.need_graphics_update = False
 
     self.update_atom_graphics(viewer)
+    self.update_bond_graphics(viewer)
     self.update_ribbon_graphics()
 
   def update_atom_graphics(self, viewer):
@@ -80,10 +85,52 @@ class Molecule(Surface):
     from numpy import empty, float32
     xyzr = empty((n,4), float32)
     xyzr[:,:3] = xyz
-    xyzr[:,3] = self.radii
+
+    astyle = self.atom_style
+    if astyle == 'sphere':
+      r = self.radii
+    elif astyle == 'ballstick':
+      r = self.radii * 0.3
+    elif astyle == 'stick':
+      r = 0.2
+    xyzr[:,3] = r
+
     s = self.shown_atoms
     sas = xyzr if s is None else xyzr[s]
     p.shift_and_scale = sas
+
+  def update_bond_graphics(self, viewer):
+
+    self.create_bond_cylinders()
+
+  def create_bond_cylinders(self):
+
+    p = self.bonds_surface_piece
+    if not self.show_atoms or self.bonds is None or self.atom_style == 'sphere':
+      if p:
+        self.bonds_surface_piece = None
+        self.removePiece(p)
+      return
+
+    if p is None:
+      self.bonds_surface_piece = p = self.newPiece()
+
+    va, na, ta = cylinder_geometry()
+    p.geometry = va, ta
+    p.normals = na
+
+    radius = 0.2
+    p.copies44 = bond_cylinder_placements(self.bonds, self.xyz, radius)
+
+    # Quaternion code
+    # radius = 0.5
+    # s = empty((n,3), float32)
+    # s[:,0] = radius
+    # s[:,1] = radius
+    # s[:,2], qr = bond_lengths_and_tilts(xyz, b)
+    # p.scale = s
+    # p.qrotation = qr
+    # p.shift = shift
 
   def set_sphere_colors(self):
 
@@ -133,6 +180,8 @@ class Molecule(Surface):
 
   def update_ribbon_graphics(self):
 
+    import sys
+#    sys.stderr.write('urg\n')
     rsp = self.ribbon_surface_pieces
     if not self.show_ribbons:
       self.removePieces(rsp.values())
@@ -150,7 +199,7 @@ class Molecule(Surface):
           continue
       path = self.xyz[s]
     
-      from . import tube
+      from .geometry import tube
       va,na,ta,ca = tube.tube_through_points(path, radius = 1.0,
                                              color = rgba_256[cid[0]],
                                              segment_subdivisions = 5,
@@ -249,10 +298,16 @@ class Molecule(Surface):
       if self.show_atoms:
         self.need_graphics_update = True
 
-  def set_display_style(self, atoms = False, ribbons = False):
+  def set_display(self, atoms = False, ribbons = False):
     if atoms != self.show_atoms or ribbons != self.show_ribbons:
       self.show_atoms = atoms
       self.show_ribbons = ribbons
+      self.need_graphics_update = True
+      self.redraw_needed = True
+
+  def set_atom_style(self, style):
+    if style != self.atom_style:
+      self.atom_style = style
       self.need_graphics_update = True
       self.redraw_needed = True
 
@@ -287,6 +342,7 @@ class Molecule(Surface):
     return atoms
 
   def bounds(self):
+    # TODO: bounds should only include displayed atoms.
     xyz = self.xyz
     if len(xyz) == 0:
       return None
@@ -294,7 +350,7 @@ class Molecule(Surface):
 
 # Only produces 20, 80, 320, ... (multiples of 4) triangle count.
 def sphere_geometry(ntri):
-  from . import icosahedron
+  from .geometry import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32, sqrt
   ta = ta.astype(int32)
@@ -305,6 +361,11 @@ def sphere_geometry(ntri):
   for a in (0,1,2):
     va[:,a] /= vn
   return va, va, ta
+
+def cylinder_geometry():
+  from .geometry import tube
+  return tube.cylinder_geometry(radius = 1, height = 1,
+                                nz = 2, nc = 10, caps = False)
 
 def chain_colors(cids):
 
@@ -324,6 +385,58 @@ def element_colors(elnums):
 
   from .colors import element_rgba_256
   return element_rgba_256[elnums]
+
+def bond_lengths_and_tilts(xyz, b):
+
+  dxyz = xyz[b[0],:] - xyz[b[1],:]
+  from numpy import sqrt, empty, float32
+  d = sqrt((dxyz*dxyz).sum(axis = 1))
+  ca = dxyz[:,2]/d
+  ca2 = sqrt(0.5*(1+ca))
+  sa2 = sqrt(0.5*(1-ca))
+  dx, dy = dxyz[:,0], dxyz[:,1]
+  dxy = sqrt((dxyz[:,:2]*dxyz[:,:2]).sum(axis = 1))
+
+  qrot = empty((len(b), 4), float32)
+  qrot[:,0] = sa2
+  qrot[:,1] = ca2*dy/dxy
+  qrot[:,2] = -ca2*dx/dxy
+  qrot[:,3] = 0
+
+  return d, qrot
+
+# -----------------------------------------------------------------------------
+# Return 4x4 matrices taking prototype cylinder to bond location.
+#
+def bond_cylinder_placements(bonds, xyz, radius):
+
+  n = len(bonds)
+  from numpy import empty, float32, transpose, sqrt, array
+  p = empty((n,4,4), float32)
+  
+  p[:,3,:] = (0,0,0,1)
+  axyz0, axyz1 = xyz[bonds[:,0],:], xyz[bonds[:,1],:]
+  p[:,:3,3] = 0.5*(axyz0 + axyz1)
+
+  v = axyz1 - axyz0
+  d = sqrt((v*v).sum(axis = 1))
+  for a in (0,1,2):
+    v[:,a] /= d
+
+  c = v[:,2]
+  # TODO: Handle degenerate -z axis case
+#  if c <= -1:
+#    return ((1,0,0),(0,-1,0),(0,0,-1))      # Rotation by 180 about x
+  wx, wy = -v[:,1],v[:,0]
+  c1 = 1.0/(1+c)
+  cx,cy = c1*wx, c1*wy
+  r = radius
+  rs = array(((r*(cx*wx + c), r*cx*wy,  d*wy),
+              (r*cy*wx, r*(cy*wy + c), -d*wx),
+              (-r*wy, r*wx, d*c)), float32)
+  p[:,:3,:3] = rs.transpose((2,0,1))
+  pt = transpose(p,(0,2,1))
+  return pt
 
 # -----------------------------------------------------------------------------
 #

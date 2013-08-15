@@ -7,7 +7,7 @@ def read_stl(path, color = (.7,.7,.7,1)):
     stl_data = f.read()
 #    comment, va, na, ta = parse_stl(file)
     f.close()
-    from . import _image3d
+    from .. import _image3d
     comment, va, na, ta = _image3d.parse_stl(stl_data)
 
     s = STL_Surface(path)
@@ -70,7 +70,7 @@ def parse_stl_geometry(nv):
     for t,tvi in enumerate(tri):
         for i in tvi:
             normals[i,:] += nv[t,0:3]
-    from . import vector
+    from ..geometry import vector
     vector.normalize_vectors(normals)
 
     return vert, normals, tri
@@ -78,7 +78,7 @@ def parse_stl_geometry(nv):
 # -----------------------------------------------------------------------------
 # Make special surface class for restoring sessions
 #
-from .surface import Surface
+from ..surface import Surface
 class STL_Surface(Surface):
 
     def __init__(self, path):
@@ -118,7 +118,7 @@ def restore_stl_surfaces(d, viewer):
     surfs = d.get('stl surfaces')
     if surfs is None:
         return
-    from .place import Place
+    from ..geometry.place import Place
     for st in surfs:
         s = read_stl(st['path'])
         s.place = Place(st['place'])

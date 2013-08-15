@@ -1,6 +1,4 @@
 from .qt import QtCore, QtGui, QtOpenGL
-from numpy import float32, uint32    
-from OpenGL import GL
 
 class View(QtOpenGL.QGLWidget):
 
@@ -12,7 +10,7 @@ class View(QtOpenGL.QGLWidget):
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x,y,z axes, 4th column is camara location.
-        from .place import Place
+        from ..geometry.place import Place
         self.camera_view = self.camera_view_inverse = Place()
         self.field_of_view = 45   	# degrees, width
         self.center_of_rotation = (0,0,0)
@@ -36,8 +34,8 @@ class View(QtOpenGL.QGLWidget):
         self.fill_light_diffuse_color = (.3,.3,.3)
         self.ambient_light_color = (.3,.3,.3)
 
-        from .shaders import Shaders
-        self.shaders = Shaders(self)
+        from ..draw import drawing
+        self.render = drawing.Renderer(self)
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -76,7 +74,7 @@ class View(QtOpenGL.QGLWidget):
         self.models.append(model)
         model.id = self.next_id
         self.next_id += 1
-        from .VolumeViewer.volume import Volume, volume_manager
+        from ..VolumeViewer.volume import Volume, volume_manager
         if isinstance(model, Volume):
             if not model in volume_manager.data_regions:
                 volume_manager.add_volume(model)
@@ -88,7 +86,7 @@ class View(QtOpenGL.QGLWidget):
             self.add_model(m)
         
     def close_models(self, mlist):
-        from .VolumeViewer.volume import volume_manager, Volume
+        from ..VolumeViewer.volume import volume_manager, Volume
         vlist = [m for m in mlist if isinstance(m, Volume)]
         volume_manager.remove_volumes(vlist)
         olist = self.models
@@ -118,11 +116,8 @@ class View(QtOpenGL.QGLWidget):
 
     def image(self, size = None):
         w,h = self.window_size
-        from numpy import empty, uint32
-        rgba = empty((h,w),uint32)
-        GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, rgba)
-        rgba >>= 8
-        rgb = rgba[::-1,:].copy()
+        from ..draw import drawing
+        rgb = drawing.frame_buffer_image(w, h)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         if not size is None:
             sw,sh = size
@@ -149,23 +144,15 @@ class View(QtOpenGL.QGLWidget):
 
     def initializeGL(self):
 
-        GL.glClearColor(*self.background_rgba)
-        GL.glEnable(GL.GL_DEPTH_TEST)
-
-# TODO: Don't want face culling for mesh surfaces.
-#        GL.glEnable(GL.GL_CULL_FACE)
-
-        # OpenGL 3.2 core profile requires a bound vertex array object
-        # for drawing, or binding shader attributes to VBOs.  Mac 10.8
-        # gives an error if no VAO is bound when glCompileProgram() called.
-        self.vao = GL.glGenVertexArrays(1)
-        GL.glBindVertexArray(self.vao)
+        from ..draw import drawing
+        drawing.set_background_color(self.background_rgba)
+        drawing.enable_depth_test(True)
+        drawing.initialize_opengl()
 
         from .gui import show_info
-        show_info('OpenGL version %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'))
-#        show_info('gl extensions %s' % GL.glGetString(GL.GL_EXTENSIONS)
+        show_info('OpenGL version %s' % drawing.opengl_version())
 
-        from . import llgrutil as gr
+        from ..draw import llgrutil as gr
         if gr.use_llgr:
             gr.initialize_llgr()
 
@@ -178,20 +165,10 @@ class View(QtOpenGL.QGLWidget):
         t.start(self.redraw_interval)
 
     def set_shader(self, **kw):
-        return self.shaders.use_shader(**kw)
+        return self.render.use_shader(**kw)
 
     def current_shader(self):
-        return self.shaders.current_shader_program
-        
-    def make_element_buffer(self, array, dtype = uint32):
-
-      eb = GL.glGenBuffers(1);
-      GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, eb);
-      a = array if array.dtype == dtype else array.astype(dtype)
-      size = a.size * a.itemsize        # Bytes
-      GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, size, a, GL.GL_STATIC_DRAW)
-      GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
-      return eb
+        return self.render.current_shader_program
 
     def redraw_graphics(self):
 
@@ -227,13 +204,14 @@ class View(QtOpenGL.QGLWidget):
         self.rendered_callbacks.remove(cb)
 
     def paintGL(self):
-        from . import llgrutil as gr
+        from ..draw import llgrutil as gr
         if gr.use_llgr:
             gr.render(self)
             return
 
-        GL.glClearColor(*self.background_rgba)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        from ..draw import drawing
+        drawing.set_background_color(self.background_rgba)
+        drawing.draw_background()
 
         if self.models:
             self.update_level_of_detail()
@@ -241,19 +219,9 @@ class View(QtOpenGL.QGLWidget):
             from time import process_time
             t0 = process_time()
             self.draw(self.OPAQUE_DRAW_PASS)
-
             if self.transparent_models_shown():
-                # Single layer transparency
-                GL.glColorMask(GL.GL_FALSE, GL.GL_FALSE, GL.GL_FALSE, GL.GL_FALSE)
-                self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS)
-                GL.glColorMask(GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE)
-                GL.glDepthFunc(GL.GL_LEQUAL)
-                GL.glEnable(GL.GL_BLEND)
-                GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-                self.draw(self.TRANSPARENT_DRAW_PASS)
-                GL.glDepthFunc(GL.GL_LESS)
-
-#            GL.glFinish()
+                drawing.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS),
+                                         lambda: self.draw(self.TRANSPARENT_DRAW_PASS))
             t1 = process_time()
             self.last_draw_duration = t1-t0
 
@@ -270,13 +238,14 @@ class View(QtOpenGL.QGLWidget):
             return
 
         i = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
-        self.shaders.set_projection_matrix(i)
-        self.shaders.set_model_view_matrix(matrix = i)
-        GL.glDisable(GL.GL_DEPTH_TEST)
+        self.render.set_projection_matrix(i)
+        self.render.set_model_view_matrix(matrix = i)
+        from ..draw import drawing
+        drawing.enable_depth_test(False)
         for m in overlays:
             m.draw(self, self.OPAQUE_DRAW_PASS)
             m.draw(self, self.TRANSPARENT_DRAW_PASS)
-        GL.glEnable(GL.GL_DEPTH_TEST)
+        drawing.enable_depth_test(True)
 
     OPAQUE_DRAW_PASS = 'opaque'
     TRANSPARENT_DRAW_PASS = 'transparent'
@@ -288,24 +257,16 @@ class View(QtOpenGL.QGLWidget):
         n = len(models)
         draw_tiles = (self.tile_scale > 0)
         if draw_tiles:
+            from ..draw.drawing import set_drawing_region, draw_tile_outlines
             tiles = self.tiles(self.tile_scale)
             if draw_pass == self.OPAQUE_DRAW_PASS:
                 self.next_tile_size()
                 if self.tile_scale >= 1:
-                    GL.glClearColor(*self.tile_edge_color)
-                    GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-                    GL.glClearColor(*self.background_rgba)
-                    for i, (tx,ty,tw,th) in enumerate(tiles):
-                        if i == 0 or i > n or models[i-1].display:
-                            if i == 0 or i > n:
-                                GL.glScissor(tx,ty,tw,th)
-                            else:
-                                GL.glScissor(tx+1,ty+1,tw-2,th-2)
-                            GL.glEnable(GL.GL_SCISSOR_TEST)
-                            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-                            GL.glDisable(GL.GL_SCISSOR_TEST)
+                    fill = [m.display for m in models]
+                    draw_tile_outlines(tiles, self.tile_edge_color,
+                                       self.background_rgba, fill)
             x,y,w,h = tiles[0]
-            GL.glViewport(x,y,w,h)
+            set_drawing_region(x,y,w,h)
             self.update_projection((w,h))
         else:
             self.update_projection()
@@ -318,13 +279,13 @@ class View(QtOpenGL.QGLWidget):
             if n > 1:
                 for i,m in enumerate(models):
                     x,y,w,h = tiles[i+1]
-                    GL.glViewport(x,y,w,h)
+                    set_drawing_region(x,y,w,h)
                     self.update_projection((w,h))
                     self.draw_model(m, draw_pass)
                     if self.tile_scale >= 1:
                         self.draw_caption('#%d %s' % (m.id, m.name))
                 w,h = self.window_size
-                GL.glViewport(0,0,w,h)
+                set_drawing_region(0,0,w,h)
             elif n == 1:
                 m = self.models[0]
                 self.draw_caption('#%d %s' % (m.id, m.name))
@@ -332,10 +293,10 @@ class View(QtOpenGL.QGLWidget):
     def draw_model(self, m, draw_pass):
         if m.copies:
             for p in m.copies:
-                self.shaders.set_model_view_matrix(self.camera_view_inverse, p)
+                self.render.set_model_view_matrix(self.camera_view_inverse, p)
                 m.draw(self, draw_pass)
         else:
-            self.shaders.set_model_view_matrix(self.camera_view_inverse, m.place)
+            self.render.set_model_view_matrix(self.camera_view_inverse, m.place)
             m.draw(self, draw_pass)
 
     def draw_caption(self, text):
@@ -345,7 +306,7 @@ class View(QtOpenGL.QGLWidget):
         im = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
         im.fill(QtGui.QColor(*tuple(int(255*c) for c in self.background_color)))
         draw_image_text(im, text, bgcolor = self.background_color)
-        from .surface import Surface, surface_image
+        from ..surface import Surface, surface_image
         surf = Surface()
         pos = -.95,-1     # x,y range -1 to 1
         size = 1.9,.25
@@ -449,7 +410,8 @@ class View(QtOpenGL.QGLWidget):
 
     def resizeGL(self, width, height):
         self.window_size = width, height
-        GL.glViewport(0,0,width,height)
+        from ..draw import drawing
+        drawing.set_drawing_region(0,0,width,height)
 
     def initial_camera_view(self):
 
@@ -460,7 +422,7 @@ class View(QtOpenGL.QGLWidget):
         from math import pi, tan
         fov = self.field_of_view*pi/180
         camdist = 0.5*s + 0.5*s/tan(0.5*fov)
-        from . import place
+        from ..geometry import place
         self.set_camera_view(place.translation((cx,cy,cz+camdist)))
         self.near_far_clip = (camdist - s, camdist + s)
         self.center_of_rotation = (cx,cy,cz)
@@ -551,7 +513,7 @@ class View(QtOpenGL.QGLWidget):
         return array((cx,cy,cz)), w
 
     def bounds(self):
-        from . import surface
+        from .. import surface
         b = surface.union_bounds(m.placed_bounds() for m in self.models if m.display)
         return b
 
@@ -560,7 +522,7 @@ class View(QtOpenGL.QGLWidget):
         ww,wh = self.window_size if win_size is None else win_size
         if ww > 0 and wh > 0:
             pm = self.projection_matrix((ww,wh))
-            self.shaders.set_projection_matrix(pm)
+            self.render.set_projection_matrix(pm)
 
     def projection_matrix(self, win_size = None):
 
@@ -765,7 +727,7 @@ class View(QtOpenGL.QGLWidget):
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
         
-        from .VolumeViewer.volume import Volume
+        from ..VolumeViewer.volume import Volume
         for m in self.models:
             if isinstance(m, Volume):
                 adjust_threshold_level(m, f)
@@ -784,7 +746,7 @@ class View(QtOpenGL.QGLWidget):
         # Rotation axis is in camera coordinates.
         # Center of rotation is in model coordinates.
         cv = self.camera_view
-        from . import place
+        from ..geometry import place
         maxis = cv.apply_without_translation(axis)
         r = place.rotation(maxis, angle, self.center_of_rotation)
         if models is None:
@@ -799,7 +761,7 @@ class View(QtOpenGL.QGLWidget):
 
         self.center_of_rotation_needs_update()
         cv = self.camera_view
-        from . import place
+        from ..geometry import place
         mt = cv.apply_without_translation((dx,dy,dz))
         t = place.translation(mt)
         if models is None:
@@ -822,7 +784,7 @@ class View(QtOpenGL.QGLWidget):
         fov = self.field_of_view * pi/180
 
         c = self.camera_position()
-        from . import vector
+        from ..geometry import vector
         ps = vector.distance(c,p) * 2*tan(0.5*fov) / w
         return ps
 
@@ -832,11 +794,11 @@ class View(QtOpenGL.QGLWidget):
 #        ks.key_pressed(event)
 
     def maps(self):
-        from .VolumeViewer import Volume
+        from ..VolumeViewer import Volume
         return tuple(m for m in self.models if isinstance(m,Volume))
 
     def molecules(self):
-        from .molecule import Molecule
+        from ..molecule import Molecule
         return tuple(m for m in self.models if isinstance(m,Molecule))
             
     def quit(self):
@@ -851,9 +813,9 @@ def frustum(left, right, bottom, top, zNear, zFar):
     D = - (2 * zFar * zNear) / (zFar - zNear)
     E = 2 * zNear / (right - left)
     F = 2 * zNear / (top - bottom)
-    m = ((E, 0, A, 0),
-         (0, F, B, 0),
-         (0, 0, C, -1),
+    m = ((E, 0, 0, 0),
+         (0, F, 0, 0),
+         (A, B, C, -1),
          (0, 0, D, 0))
     return m
 

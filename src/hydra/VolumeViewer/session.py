@@ -10,7 +10,7 @@ def save_volume_dialog_state(volume_dialog, file):
   s = Volume_Dialog_State()
   s.state_from_dialog(volume_dialog)
   
-  from ..SessionUtil import objecttree
+  from ..file_io.SessionUtil import objecttree
   t = objecttree.instance_tree_to_basic_tree(s)
 
   file.write('\n')
@@ -40,7 +40,7 @@ def save_volume_data_state(volume_manager, file):
   if directory:
     s.use_relative_paths(directory)
   
-  from ..SessionUtil import objecttree
+  from ..file_io.SessionUtil import objecttree
   t = objecttree.instance_tree_to_basic_tree(s)
 
   file.write('\n')
@@ -85,7 +85,7 @@ def save_scene(volume_manager, scene):
 
   vms = Volume_Manager_State()
   vms.state_from_manager(volume_manager, include_unsaved_volumes=True)
-  from ..SessionUtil import objecttree
+  from ..file_io.SessionUtil import objecttree
   s = objecttree.instance_tree_to_basic_tree(vms)
   scene.tool_settings['VolumeViewer'] = s
 
@@ -102,7 +102,7 @@ def restore_scene(volume_manager, scene):
 #
 def volume_dialog_state_from_basic_tree(volume_dialog_basic_state):
   
-  from ..SessionUtil.stateclasses import Model_State
+  from ..file_io.SessionUtil.stateclasses import Model_State
 
   classes = (
     Volume_Dialog_State,
@@ -119,7 +119,7 @@ def volume_dialog_state_from_basic_tree(volume_dialog_basic_state):
     name_to_class[c.__name__] = c
   name_to_class['Data_Region_State'] = Volume_State     # Historical name
 
-  from ..SessionUtil import objecttree
+  from ..file_io.SessionUtil import objecttree
   vds = objecttree.basic_tree_to_instance_tree(volume_dialog_basic_state,
                                                name_to_class)
   return vds
@@ -136,7 +136,7 @@ def restore_volume_data_state(volume_data_basic_state):
 #
 def volume_manager_state_from_basic_tree(volume_data_basic_state):
   
-  from ..SessionUtil.stateclasses import Model_State
+  from ..file_io.SessionUtil.stateclasses import Model_State
 
   classes = (
     Volume_Manager_State,
@@ -151,7 +151,7 @@ def volume_manager_state_from_basic_tree(volume_data_basic_state):
     name_to_class[c.__name__] = c
   name_to_class['Data_Region_State'] = Volume_State     # Historical name
 
-  from ..SessionUtil import objecttree
+  from ..file_io.SessionUtil import objecttree
   vms = objecttree.basic_tree_to_instance_tree(volume_data_basic_state,
                                                name_to_class)
   return vms
@@ -245,7 +245,7 @@ class Volume_Dialog_State:
     if self.is_visible:
       d.enter()
 
-    from ..SessionUtil import set_window_position
+    from ..file_io.SessionUtil import set_window_position
     set_window_position(d.toplevel_widget, self.geometry)
 
     if self.version >= 7:
@@ -711,7 +711,7 @@ class Volume_State:
     m = v.surface_model()
 #    if m:
     if False:
-      from ..SessionUtil.stateclasses import Model_State
+      from ..file_io.SessionUtil.stateclasses import Model_State
       s = Model_State()
       s.state_from_model(m)
       self.surface_model = s
@@ -721,7 +721,7 @@ class Volume_State:
     if False:
       m = v.solid.model()
       if m:
-        from ..SessionUtil.stateclasses import Model_State
+        from ..file_io.SessionUtil.stateclasses import Model_State
         s = Model_State()
         s.state_from_model(m)
         self.solid_model = s

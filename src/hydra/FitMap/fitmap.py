@@ -73,7 +73,7 @@ def motion_to_maximum(points, point_weights, volume, max_steps = 2000,
                       metric = 'sum product', symmetries = [],
                       request_stop_cb = None):
 
-    from ..place import identity
+    from ..geometry.place import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
     move_tf, stats = \
@@ -119,7 +119,7 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     else:
         point_wts = point_weights
 
-    from ..place import identity
+    from ..geometry.place import identity
     move_tf = identity()
 
     if rotation_center is None:
@@ -187,7 +187,7 @@ def step_to_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     if optimize_rotation:
         step_types.append(rotation_step)
         
-    from .. import place
+    from ..geometry import place
     move_tf = place.identity()
 
     if step_types:
@@ -212,14 +212,14 @@ def translation_step(points, point_weights, center, data_array,
                            xyz_to_ijk_transform, metric, syminv)
     from numpy import array, float, dot as matrix_multiply
     gijk = matrix_multiply(xyz_to_ijk_transform.matrix[:,:3], g)
-    from .. import vector
+    from ..geometry import vector
     n = vector.norm(gijk)
     if n > 0:
         delta = g * (ijk_step_size / n)
     else:
         delta = array((0,0,0), float)
 
-    from .. import place
+    from ..geometry import place
     delta_tf = place.translation(delta)
 
     return delta_tf
@@ -254,7 +254,7 @@ def sum_product_gradient_direction(points, point_weights, data_array,
         from numpy import float64
         g = gradients.sum(axis=0, dtype = float64)
     else:
-        from .. import vector
+        from ..geometry import vector
         g = vector.vector_sum(point_weights, gradients)
     return g
 
@@ -415,7 +415,7 @@ def rotation_step(points, point_weights, center, data_array,
     axis = torque_axis(points, point_weights, center, data_array,
                        xyz_to_ijk_transform, metric, syminv)
 
-    from .. import vector
+    from ..geometry import vector
     na = vector.norm(axis)
     if len(points) == 1 or na == 0:
         axis = (0,0,1)
@@ -424,7 +424,7 @@ def rotation_step(points, point_weights, center, data_array,
         axis /= na
         angle = angle_step(axis, points, center, xyz_to_ijk_transform,
                            ijk_step_size)
-    from .. import place
+    from ..geometry import place
     move_tf = place.rotation(axis, angle, center)
     return move_tf
     
@@ -435,7 +435,7 @@ def rotation_step(points, point_weights, center, data_array,
 #
 def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
 
-    from ..place import cross_product, translation
+    from ..geometry.place import cross_product, translation
     tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
 
     from .. import _image3d
@@ -483,7 +483,7 @@ def average_map_value_at_atom_positions(atoms, volume = None):
     if volume is None or len(points) == 0:
         return 0, len(points)
 
-    from ..place import identity
+    from ..geometry.place import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
 
@@ -559,7 +559,7 @@ def overlap_and_correlation(v1, v2):
     v1 = float_array(v1)
     v2 = float_array(v2)
     # Use 64-bit accumulation of sums to avoid round-off errors.
-    from ..vector import inner_product_64
+    from ..geometry.vector import inner_product_64
     olap = inner_product_64(v1, v2)
     n1 = inner_product_64(v1, v1)
     n2 = inner_product_64(v2, v2)
@@ -633,7 +633,7 @@ def atoms_outside_contour(atoms, volume = None):
         from ..VolumeViewer import active_volume
         volume = active_volume()
     points = atom_coordinates(atoms)
-    from ..place import identity
+    from ..geometry.place import identity
     poc, clevel = points_outside_contour(points, identity(), volume)
     return poc, clevel
 

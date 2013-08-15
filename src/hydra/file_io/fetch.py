@@ -6,7 +6,7 @@ def fetch_from_database(id, dbname):
     if dbn in databases:
         mlist = databases[dbn].fetch_id(id)
     else:
-        from .gui import show_status
+        from ..ui.gui import show_status
         show_status('Unknown database %s' % dbname)
         mlist = []
         # TODO warn.
@@ -44,7 +44,7 @@ def fetch_file(url, name, minimum_file_size = None, save_dir = '',
            though the retrieved values will still be cached if appropriate
         """
 
-        from .gui import show_status
+        from ..ui.gui import show_status
         show_status('Fetching %s' % (name,))
         
         if save_name and not ignore_cache:
@@ -155,7 +155,7 @@ def save_fetched_file(path, save_dir, save_name):
         spath = save_location(save_dir, save_name)
         if spath is None:
                 return None
-        from .gui import show_status
+        from ..ui.gui import show_status
         show_status('Copying %s to download directory' % save_name)
         import shutil
         try:
@@ -172,7 +172,7 @@ def save_fetched_data(data, save_dir, save_name):
         spath = save_location(save_dir, save_name)
         if spath is None:
                 return None
-        from .gui import show_status
+        from ..ui.gui import show_status
         show_status('Saving %s to download directory' % save_name)
         try:
                 f = open(spath, 'wb')

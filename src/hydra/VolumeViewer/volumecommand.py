@@ -3,11 +3,11 @@
 #
 def volume_command(cmdname, args):
 
-    from ..commands import parse_arguments
-    from ..commands import string_arg, bool_arg, bool3_arg, enum_arg
-    from ..commands import float_arg, floats_arg, float3_arg
-    from ..commands import int_arg, ints_arg, int3_arg, color_arg
-    from ..commands import volume_region_arg, openstate_arg
+    from ..ui.commands import parse_arguments
+    from ..ui.commands import string_arg, bool_arg, bool3_arg, enum_arg
+    from ..ui.commands import float_arg, floats_arg, float3_arg
+    from ..ui.commands import int_arg, ints_arg, int3_arg, color_arg
+    from ..ui.commands import volume_region_arg, openstate_arg
 
     from ..VolumeData.fileformats import file_writers
     stypes = [fw[1] for fw in file_writers]
@@ -187,14 +187,14 @@ def volume(volumes = [],
            positionPlanes = None,
            ):
 
-    from ..commands import CommandError
+    from ..ui.commands import CommandError
 
     # Find volume arguments.
     if volumes == 'all':
         from .volume import volume_list
         vlist = volume_list()
     else:
-        from .. import commands
+        from ..ui import commands
         vlist = commands.volumes_from_specifier(volumes)
 
     # Adjust global settings.
@@ -286,7 +286,7 @@ def apply_volume_options(v, doptions, roptions):
             v.region_list.add_named_region(name, r[0], r[1])
 
     if 'planes' in doptions:
-        import volume
+        from . import volume
         volume.cycle_through_planes(v, *doptions['planes'])
 
     d = v.data
@@ -301,7 +301,7 @@ def apply_volume_options(v, doptions, roptions):
     if 'voxelSize' in doptions:
         vsize = doptions['voxelSize']
         if min(vsize) <= 0:
-            from ..commands import CommandError
+            from ..ui.commands import CommandError
             raise CommandError('Voxel size must positive, got %g,%g,%g'
                                % tuple(vsize))
         # Preserve index origin.
@@ -315,8 +315,7 @@ def apply_volume_options(v, doptions, roptions):
         if 'centerIndex' in doptions:
             c = v.data.ijk_to_xyz(doptions['centerIndex'])
             if csys != v.openState:
-                import Matrix as M
-                c = M.xform_xyz(c, v.openState.xform, csys.xform)
+                c = csys.place.inverse() * (v.place * c)
         from ..SymmetryCopies import symcmd
         tflist, csys = symcmd.parse_symmetry(sym, c, a, csys, v, 'volume')
         if csys != v.openState:
@@ -391,7 +390,7 @@ def level_and_color_settings(v, options):
 
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
     # number of levels.
-    from ..commands import CommandError
+    from ..ui.commands import CommandError
     if len(colors) > 1 and len(colors) != len(levels):
         raise CommandError('Number of colors (%d) does not match number of levels (%d)' % (len(colors), len(levels)))
 
@@ -441,7 +440,7 @@ def level_and_color_settings(v, options):
 def planes_arg(planes):
 
     axis, param = (planes.split(',',1) + [''])[:2]
-    from ..commands import enum_arg, floats_arg, CommandError
+    from ..ui.commands import enum_arg, floats_arg, CommandError
     p = [enum_arg(axis, ('x','y','z'))] + floats_arg(param)
     if len(p) < 2 or len(p) > 5:
         raise CommandError('planes argument must have 2 to 5 comma-separated values: axis,pstart[[[,pend],pstep],pdepth.], got "%s"' % planes)

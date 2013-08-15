@@ -305,7 +305,11 @@ def vector_rotation_transform(n0,n1):
   w = cross_product(n0,n1)
   c = inner_product(n0,n1)
   if c <= -1:
-    return ((-1,0,0,0),(0,-1,0,0),(0,0,1,0))      # Rotation by 180 about z
+    # Rotation by 180 perp to n0
+    ax,ay,az = (1,0,0) if n0[0] == 0 and n0[1] == 0 else normalize_vector(-n0[1], n0[0], 0)
+    return ((2*ax*ax-1, 2*ax*ay, 2*ax*az, 0),
+            (2*ax*ay, 2*ay*ay-1, 2*ay*az, 0),
+            (2*ax*az, 2*ay*az, 2*az*az-1, 0))
   wx,wy,wz = w
   c1 = 1.0/(1+c)
   cx,cy,cz = (c1*wx,c1*wy,c1*wz)
@@ -323,7 +327,7 @@ def inner_product(u,v):
   
 # -----------------------------------------------------------------------------
 #
-from ._image3d import inner_product_64
+from .._image3d import inner_product_64
   
 # -----------------------------------------------------------------------------
 #
@@ -726,7 +730,7 @@ def xform_xyz(xyz, from_xform = None, to_xform = None):
 #
 def transform_points(points, tf):
 
-  from ._image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(points, tf)
 
 # -----------------------------------------------------------------------------
@@ -734,7 +738,7 @@ def transform_points(points, tf):
 def transform_vectors(vectors, tf):
 
   ztf = zero_translation(tf)
-  from ._image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(vectors, ztf)
 
 # -----------------------------------------------------------------------------
@@ -747,7 +751,7 @@ def xform_points(points, xf, to_xf = None):
     txf = to_xf.inverse()
     txf.multiply(xf)
   tf = xform_matrix(txf)
-  from _image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(points, tf)
 
 # -----------------------------------------------------------------------------
@@ -761,7 +765,7 @@ def xform_vectors(vectors, xf, to_xf = None):
     txf = to_xf.inverse()
     txf.multiply(xf)
   tf = zero_translation(xform_matrix(txf))
-  from _image3d import affine_transform_vertices
+  from .._image3d import affine_transform_vertices
   affine_transform_vertices(vectors, tf)
 
 # -----------------------------------------------------------------------------

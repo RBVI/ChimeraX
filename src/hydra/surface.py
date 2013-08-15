@@ -1,11 +1,9 @@
-from OpenGL import GL
-
 class Surface:
 
   def __init__(self):
     self.id = 0
     self.displayed = True
-    from .place import Place
+    from .geometry.place import Place
     self.placement = Place()
     self.copies = []
     self.plist = []
@@ -79,11 +77,11 @@ class Surface:
 
   def placed_bounds(self):
     b = self.bounds()
-    if b is None:
-      return b
+    if b is None or b == (None, None):
+      return None
     if self.copies:
       copies = self.copies
-    elif self.placement != ((1,0,0,0),(0,1,0,0),(0,0,1,0)):
+    elif not self.placement.is_identity(tolerance = 0):
       copies = [self.placement]
     else:
       return b
@@ -137,6 +135,7 @@ class Surface_Piece(object):
     self.shader = None		# VAO bindings are for this shader
 
     # Surface piece attribute name, shader variable name, instancing
+    from .draw import drawing
     from numpy import uint32, uint8
     bufs = (('vertices', 'position', {}),
             ('normals', 'normal', {}),
@@ -145,11 +144,11 @@ class Surface_Piece(object):
             ('vertex_colors',  'vcolor', {'value_type':uint8, 'normalize':True}),
             ('instance_colors',  'vcolor', {'instance_buffer':True, 'value_type':uint8, 'normalize':True}),
             ('textureCoordinates', 'tex_coord_2d', {}),
-            ('elements', None, {'buffer_type':GL.GL_ELEMENT_ARRAY_BUFFER, 'value_type':uint32}),
+            ('elements', None, {'buffer_type':drawing.element_array, 'value_type':uint32}),
             )
     obufs = []
     for a,v,kw in bufs:
-      b = OpenGL_Buffer(v,**kw)
+      b = drawing.OpenGL_Buffer(v,**kw)
       b.surface_piece_attribute_name = a
       obufs.append(b)
     self.opengl_buffers = obufs
@@ -166,12 +165,13 @@ class Surface_Piece(object):
     for b in self.opengl_buffers:
       b.delete_buffer()
 
+    from .draw import drawing
     if not self.textureId is None and self.textureFree:
-      GL.glDeleteTextures((self.textureId,))
+      drawing.delete_texture(self.textureId)
     self.textureId = None
 
     if not self.vao is None:
-      GL.glDeleteVertexArrays(1, (self.vao,))
+      drawing.delete_vertex_array_object(self.vao)
     self.vao = None
 
   def get_geometry(self):
@@ -192,14 +192,16 @@ class Surface_Piece(object):
   copies = property(get_copies, set_copies)
 
   def new_vertex_array_object(self):
+    from .draw import drawing
     if not self.vao is None:
-      GL.glDeleteVertexArrays(1, (self.vao,))
-    self.vao = GL.glGenVertexArrays(1)
+      drawing.delete_vertex_array_object(self.vao)
+    self.vao = drawing.new_vertex_array_object()
 
   def bind_vertex_array_object(self):
+    from .draw import drawing
     if self.vao is None:
-      self.vao = GL.glGenVertexArrays(1)
-    GL.glBindVertexArray(self.vao)
+      self.vao = drawing.new_vertex_array_object()
+    drawing.bind_vertex_array_object(self.vao)
 
   def update_buffers(self, shader):
 
@@ -252,44 +254,48 @@ class Surface_Piece(object):
     self.update_buffers(p)
 
     # Set color
+    from .draw import drawing
     if self.instance_colors is None:
-      GL.glVertexAttrib4f(p.attribute_id("vcolor"), *self.color_rgba)
+      drawing.set_single_color(p, self.color_rgba)
 
     # Draw triangles
-    etype = {self.Solid:GL.GL_TRIANGLES,
-             self.Mesh:GL.GL_LINES,
-             self.Dot:GL.GL_POINTS}[self.displayStyle]
+    etype = {self.Solid:drawing.triangles,
+             self.Mesh:drawing.lines,
+             self.Dot:drawing.points}[self.displayStyle]
     self.element_buffer.draw_elements(etype, self.instance_count())
 
     if not self.textureId is None:
-      GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+      from .draw import drawing
+      drawing.bind_2d_texture(0)
 
   def set_shader(self, viewer):
     # Push special shader if needed.
     skw = {}
+    from .draw import drawing
     lit = getattr(self, 'useLighting', True)
     if not lit:
-      skw['lighting'] = False
+      skw[drawing.SHADER_LIGHTING] = False
     t = self.textureId
     if not t is None:
-      GL.glBindTexture(GL.GL_TEXTURE_2D, t)
-      skw['texture2d'] = True
+      from .draw import drawing
+      drawing.bind_2d_texture(t)
+      skw[drawing.SHADER_TEXTURE_2D] = True
     if not self.shift_and_scale is None:
-      skw['shiftAndScale'] = True
+      skw[drawing.SHADER_SHIFT_AND_SCALE] = True
     elif not self.copies44 is None:
-      skw['instancing'] = True
+      skw[drawing.SHADER_INSTANCING] = True
 #    if viewer.selected and not self.surface.selected:
-#      skw['unselected'] = True
+#      skw[drawing.SHADER_UNSELECTED] = True
     if self.surface.selected:
-      skw['selected'] = True
+      skw[drawing.SHADER_SELECTED] = True
     p = viewer.set_shader(**skw)
     return p
 
   def instance_count(self):
     if not self.shift_and_scale is None:
       ninst = len(self.shift_and_scale)
-    elif len(self.copies) > 0:
-      ninst = len(self.copies)
+    elif not self.copies44 is None:
+      ninst = len(self.copies44)
     else:
       ninst = None
     return ninst
@@ -358,162 +364,6 @@ class Surface_Piece(object):
           f = fmin
     return f
 
-class OpenGL_Buffer:
-
-  from numpy import float32
-  def __init__(self, shader_variable_name,
-               buffer_type = GL.GL_ARRAY_BUFFER, value_type = float32,
-               normalize = False, instance_buffer = False):
-
-    self.shader_variable_name = shader_variable_name
-    self.opengl_buffer = None
-    self.buffered_array = None  # numpy array for vbo
-    self.buffered_data = None   # data need not be numpy array
-    self.value_type = value_type
-    self.buffer_type = buffer_type
-    self.normalize = normalize
-    self.instance_buffer = instance_buffer
-    self.bound_attr_ids = []
-
-  def update_buffer_data(self, data):
-
-    if data is self.buffered_data:
-      return False
-
-    self.delete_buffer()
-
-    if not data is None:
-      b = GL.glGenBuffers(1);
-      btype = self.buffer_type
-      GL.glBindBuffer(btype, b)
-      d = data if data.dtype == self.value_type else data.astype(self.value_type)
-      size = d.size * d.itemsize        # Bytes
-      GL.glBufferData(btype, size, d, GL.GL_STATIC_DRAW)
-      GL.glBindBuffer(btype, 0)
-      self.opengl_buffer = b
-      self.buffered_array = d
-      self.buffered_data = data
-
-    return True
-
-  def delete_buffer(self):
-
-    if self.opengl_buffer is None:
-      return
-    GL.glDeleteBuffers(1, [self.opengl_buffer])
-    self.opengl_buffer = None
-    self.buffered_array = None
-    self.buffered_data = None
-
-  def bind_shader_variable(self, shader):
-
-    buf_id = self.opengl_buffer
-    if buf_id is None:
-      # Unbind already bound variable
-      for a in self.bound_attr_ids:
-        GL.glDisableVertexAttribArray(a)
-      self.bound_attr_ids = []
-      if self.buffer_type == GL.GL_ELEMENT_ARRAY_BUFFER:
-        GL.glBindBuffer(self.buffer_type, 0)
-      return
-
-    vname = self.shader_variable_name
-    if vname is None:
-      if self.buffer_type == GL.GL_ELEMENT_ARRAY_BUFFER:
-        # Element array buffer binding is saved in VAO.
-        GL.glBindBuffer(self.buffer_type, buf_id)
-      return
-
-    attr_id = shader.attribute_id(vname)
-    if attr_id == -1:
-      raise NameError('Failed to find shader attribute %s\nshader capabilites = %s'
-                      % (self.shader_variable_name, str(shader.capabilities)))
-    nattr = self.attribute_count()
-    ncomp = self.component_count()
-    from numpy import float32, uint8
-    gtype = {float32:GL.GL_FLOAT,
-             uint8:GL.GL_UNSIGNED_BYTE}[self.value_type]
-    btype = self.buffer_type
-    normalize = GL.GL_TRUE if self.normalize else GL.GL_FALSE
-
-    GL.glBindBuffer(btype, buf_id)
-    if nattr == 1:
-      GL.glVertexAttribPointer(attr_id, ncomp, gtype, normalize, 0, None)
-      GL.glEnableVertexAttribArray(attr_id)
-      glVertexAttribDivisor(attr_id, 1 if self.instance_buffer else 0)
-      self.bound_attr_ids = [attr_id]
-    else:
-      # Matrices use multiple vector attributes
-      esize = self.array_element_bytes()
-      abytes = ncomp * esize
-      stride = nattr * abytes
-      import ctypes
-      for a in range(nattr):
-        # Pointer arg must be void_p, not an integer.
-        p = ctypes.c_void_p(a*abytes)
-        GL.glVertexAttribPointer(attr_id+a, ncomp, gtype, normalize, stride, p)
-        GL.glEnableVertexAttribArray(attr_id+a)
-        glVertexAttribDivisor(attr_id+a, 1 if self.instance_buffer else 0)
-      self.bound_attr_ids = [attr_id+a for a in range(nattr)]
-    GL.glBindBuffer(btype, 0)
-
-    return attr_id
-
-  def attribute_count(self):
-    # matrix attributes use multiple attribute ids
-    barray = self.buffered_array
-    if barray is None:
-      return 0
-    bshape = barray.shape
-    nattr = 1 if len(bshape) == 2 else bshape[1]
-    return nattr
-
-  def component_count(self):
-    barray = self.buffered_array
-    if barray is None:
-      return 0
-    ncomp = barray.shape[-1]
-    return ncomp
-  
-  def array_element_bytes(self):
-    barray = self.buffered_array
-    return 0 if barray is None else barray.itemsize
-
-  def update_buffer(self, data, shader, new_vao):
-
-    if new_vao:
-      self.bound_attr_ids = []
-
-    if self.update_buffer_data(data) or new_vao:
-      self.bind_shader_variable(shader)
-
-  def draw_elements(self, element_type = GL.GL_TRIANGLES, ninst = None):
-
-    # Don't bind element buffer since it is bound by VAO.
-    ne = self.buffered_array.size
-    if ninst is None:
-      GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, None)
-    else:
-      glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
-
-def glDrawElementsInstanced(mode, count, etype, indices, ninst):
-  if bool(GL.glDrawElementsInstanced):
-    # OpenGL 3.1 required for this call.
-    GL.glDrawElementsInstanced(mode, count, etype, indices, ninst)
-  else:
-    from OpenGL.GL.ARB.draw_instanced import glDrawElementsInstancedARB
-    if not bool(glDrawElementsInstancedARB):
-      # Mac 10.6 does not list draw_instanced as an extension using OpenGL 3.2
-      from .pyopengl_draw_instanced import glDrawElementsInstancedARB
-    glDrawElementsInstancedARB(mode, count, etype, indices, ninst)
-
-def glVertexAttribDivisor(attr_id, d):
-    if bool(GL.glVertexAttribDivisor):
-      GL.glVertexAttribDivisor(attr_id, d)  # OpenGL 3.3
-    else:
-      from OpenGL.GL.ARB.instanced_arrays import glVertexAttribDivisorARB
-      glVertexAttribDivisorARB(attr_id, d)
-
 def union_bounds(blist):
   xyz_min, xyz_max = None, None
   for b in blist:
@@ -525,7 +375,7 @@ def union_bounds(blist):
     else:
       xyz_min = tuple(min(x,px) for x,px in zip(xyz_min, pmin))
       xyz_max = tuple(max(x,px) for x,px in zip(xyz_max, pmax))
-  return xyz_min, xyz_max
+  return None if xyz_min is None else (xyz_min, xyz_max)
 
 def copies_bounding_box(bounds, plist):
   (x0,y0,z0),(x1,y1,z1) = bounds
@@ -555,14 +405,15 @@ def surface_image(qi, pos, size, surf = None):
     p.geometry = vlist, tlist
     p.useLighting = False
     p.textureCoordinates = tc
-    p.textureId = texture_2d(rgba)
+    from .draw import drawing
+    p.textureId = drawing.texture_2d(rgba)
     return p
 
 # Extract rgba values from a QImage.
 def image_rgba_array(i):
     s = i.size()
     w,h = s.width(), s.height()
-    from .qt import QtGui
+    from .ui.qt import QtGui
     i = i.convertToFormat(QtGui.QImage.Format_RGB32)    #0ffRRGGBB
     b = i.bits()        # sip.voidptr
     n = i.byteCount()
@@ -594,67 +445,3 @@ def opengl_matrices(places):
   m[:,:3,3] = 0
   m[:,3,3] = 1
   return m
-
-def texture_2d(data):
-
-  from OpenGL import GL
-  t = GL.glGenTextures(1)
-  GL.glBindTexture(GL.GL_TEXTURE_2D, t)
-  h, w = data.shape[:2]
-  format, iformat, tdtype = texture_format(data)
-  GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-  GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, iformat, w, h, 0,
-                  format, tdtype, data)
-
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-
-  ncomp = data.shape[2]
-  if ncomp == 1 or ncomp == 2:
-    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
-    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_B, GL.GL_RED)
-  if ncomp == 2:
-    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_A, GL.GL_GREEN)
-  GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-
-  return t
-
-def reload_texture(t, data):
-
-  h, w = data.shape[:2]
-  format, iformat, tdtype = texture_format(data)
-  from OpenGL import GL
-  GL.glBindTexture(GL.GL_TEXTURE_2D, t)
-  GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, w, h, format, tdtype, data)
-  GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-
-def texture_format(data):
-
-  from OpenGL import GL
-  if len(data.shape) == 2 and data.itemsize == 4:
-    format = GL.GL_RGBA
-    iformat = GL.GL_RGBA8
-    tdtype = GL.GL_UNSIGNED_BYTE
-    return format, iformat, tdtype
-  
-  ncomp = data.shape[2]
-  # TODO: Report pyopengl bug, GL_RG missing
-  GL.GL_RG = 0x8227
-  # luminance texture formats are not in opengl 3.
-  format = {1:GL.GL_RED, 2:GL.GL_RG,
-            3:GL.GL_RGB, 4:GL.GL_RGBA}[ncomp]
-  iformat = {1:GL.GL_RED, 2:GL.GL_RG,
-             3:GL.GL_RGB8, 4:GL.GL_RGBA8}[ncomp]
-  dtype = data.dtype
-  from numpy import uint8, float32
-  if dtype == uint8:
-    tdtype = GL.GL_UNSIGNED_BYTE
-  elif dtype == float32:
-    tdtype = GL.GL_FLOAT
-  else:
-    raise TypeError('Texture value type %s not supported' % str(dtype))
-  return format, iformat, tdtype

@@ -31,7 +31,11 @@ def register_shortcuts(viewer):
         ('ce', color_by_element, 'Color atoms by element'),
         ('cc', color_by_chain, 'Color chains'),
         ('ms', lambda m,v=v: show_molecular_surface(m,v), 'Show molecular surface'),
+        ('mb', molecule_bonds, 'Compute molecule bonds using templates'),
         ('da', show_atoms, 'Display molecule atoms'),
+        ('bs', show_ball_and_stick, 'Display atoms in ball and stick'),
+        ('sp', show_sphere, 'Display atoms in sphere style'),
+        ('st', show_stick, 'Display atoms in stick style'),
         ('rb', show_ribbon, 'Show molecule ribbon'),
         ('la', show_ligands, 'Show ligand atoms'),
     )
@@ -41,7 +45,7 @@ def register_shortcuts(viewer):
 
     ocat = 'Open, Save, Close'   # shortcut documentation category
     gcat = 'General Controls'
-    from . import session, history, opensave
+    from ..file_io import session, history, opensave
     view_shortcuts = (
         ('op', opensave.show_open_file_dialog, 'Open file', ocat),
         ('sv', opensave.save_session_as, 'Save session as...', ocat),
@@ -68,7 +72,7 @@ def register_shortcuts(viewer):
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
 
-    from .align import test_align_points        # TODO remove after testing
+    from ..align import test_align_points        # TODO remove after testing
     from .gui import show_log
     misc_shortcuts = (
         ('rv', v.initial_camera_view, 'Reset view', gcat),
@@ -81,7 +85,7 @@ def register_shortcuts(viewer):
         ('mn', show_manual, 'Show manual', gcat),
         ('lg', show_log, 'Show command log', gcat),
         ('ch', show_command_history, 'Show command history', gcat),
-        ('st', show_stats, 'Show model statistics', gcat),
+        ('rt', show_stats, 'Show model statistics', gcat),
         ('bm', matrix_profile, 'matrix profiling', gcat),
         ('at', test_align_points, 'test align points', gcat),
         )
@@ -169,7 +173,7 @@ def shortcut_molecules(v):
 
 def close_all_models(viewer):
     viewer.close_all_models()
-    from . import history
+    from ..file_io import history
     history.show_history_thumbnails()
 
 def show_mesh(m):
@@ -221,7 +225,7 @@ def toggle_box_faces(m):
 
 def enable_move_planes_mouse_mode(viewer, button = 'right'):
 
-  from .VolumeViewer.moveplanes import planes_mouse_mode as pmm
+  from ..VolumeViewer.moveplanes import planes_mouse_mode as pmm
   viewer.bind_mouse_mode(button,
                          lambda e,v=viewer: pmm.mouse_down(v,e),
                          lambda e,v=viewer: pmm.mouse_drag(v,e),
@@ -250,7 +254,7 @@ def fit_molecule_in_map(viewer):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.place.inverse() * mol.place
-    from . import FitMap
+    from .. import FitMap
     move_tf, stats = FitMap.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.place = mol.place * move_tf
     for k,v in stats.items():
@@ -259,7 +263,7 @@ def fit_molecule_in_map(viewer):
 def show_biological_unit(m):
 
     if hasattr(m, 'pdb_text'):
-        from . import biomt
+        from ..file_io import biomt
         matrices = biomt.pdb_biomt_matrices(m.pdb_text)
         print (m.path, 'biomt', len(matrices))
         if matrices:
@@ -339,7 +343,7 @@ def show_molecular_surface(m, viewer, res = 3.0, grid = 0.5):
   if hasattr(m, 'molsurf') and m.molsurf in viewer.models:
     m.molsurf.display = True
   else:
-    from . import molecule, molmap
+    from .. import molecule, molmap
     atoms = molecule.Atom_Set()
     atoms.add_molecules([m])
     s = molmap.molecule_map(atoms, res, grid)
@@ -355,11 +359,25 @@ def color_one_color(m):
   m.set_color_mode('single')
 
 def show_atoms(m):
-  m.set_display_style(atoms = True, ribbons = False)
+  m.set_display(atoms = True, ribbons = False)
+def show_sphere(m):
+  m.set_atom_style('sphere')
+def show_stick(m):
+  m.set_atom_style('stick')
+def show_ball_and_stick(m):
+  m.set_atom_style('ballstick')
 def show_ribbon(m):
-  m.set_display_style(atoms = False, ribbons = True)
+  m.set_display(atoms = False, ribbons = True)
 def show_ligands(m):
     m.show_nonribbon_atoms()
+def molecule_bonds(m):
+    from .. import connect
+    connect.create_molecule_bonds(m)
+    if not m.bonds is None:
+        msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
+        from .gui import show_status, show_info
+        show_status(msg)
+        show_info(msg)
 
 def list_keyboard_shortcuts():
   from .gui import main_window as m
@@ -409,7 +427,7 @@ def show_manual():
     m.show_back_forward_buttons(False)
   else:
     from os.path import join, dirname
-    path = join(dirname(__file__), 'docs', 'index.html')
+    path = join(dirname(dirname(__file__)), 'docs', 'index.html')
 #    f = open(path, 'r')
 #    text = f.read()
 #    f.close()
@@ -432,7 +450,7 @@ def show_stats():
     show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
 
 def matrix_profile():
-    from .place import identity
+    from ..geometry.place import identity
     m = identity()
     import numpy
     n = 10000
@@ -442,7 +460,7 @@ def matrix_profile():
     t1 = time.clock()
     print('%.0f matrix inverse per second' % (n / (t1-t0),))
     t0 = time.clock()
-#    from .matrix import multiply_matrices_numpy
+#    from ..geometry.matrix import multiply_matrices_numpy
 #    mi = [multiply_matrices_numpy(mn,mn) for i in range(n)]
     mi = [m*m for i in range(n)]
     t1 = time.clock()

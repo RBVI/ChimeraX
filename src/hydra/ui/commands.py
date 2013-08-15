@@ -6,18 +6,18 @@ class CommandError(Exception):
 # -----------------------------------------------------------------------------
 #
 def register_commands():
-    from .opensave import open_command
+    from ..file_io.opensave import open_command
     add_command('open', open_command)
-    from . import fetch_pdb, fetch_emdb
+    from ..file_io import fetch_pdb, fetch_emdb
     fetch_pdb.register_pdb_fetch()
     fetch_emdb.register_emdb_fetch()
-    from . import molmap
+    from .. import molmap
     add_command('molmap', molmap.molmap_command)
-    from .VolumeViewer import volumecommand
+    from ..VolumeViewer import volumecommand
     add_command('volume', volumecommand.volume_command)
-    from .FitMap import fitcmd
+    from ..FitMap import fitcmd
     add_command('fitmap', fitcmd.fitmap_command)
-    from . import align
+    from .. import align
     add_command('align', align.align_command)
 
 # -----------------------------------------------------------------------------
@@ -64,7 +64,7 @@ def run_command(text):
 #
 def add_to_command_history(text, filename = 'commands'):
 
-    from . import history
+    from ..file_io import history
     path = history.user_settings_path(filename)
     f = open(path, 'a')
     f.write(text.strip() + '\n')
@@ -79,7 +79,7 @@ def show_command_history(filename = 'commands'):
         mw.show_graphics()
         return
 
-    from . import history
+    from ..file_io import history
     path = history.user_settings_path(filename)
     from os.path import isfile
     if not isfile(path):
@@ -415,7 +415,7 @@ def volumes_from_specifier(spec):
     except:
         return []
 
-    from .VolumeViewer import Volume, volume_list
+    from ..VolumeViewer import Volume, volume_list
     vlist = [m for m in sel.models() if isinstance(m, Volume)]
 
     return vlist
@@ -434,7 +434,7 @@ def volume_arg(v):
 def volumes_arg(v):
 
     sel = parse_specifier(v)
-    from .VolumeViewer import Volume
+    from ..VolumeViewer import Volume
     vlist = [m for m in sel.models() if isinstance(m,Volume)]
     if len(vlist) == 0:
         raise CommandError('No volumes specified')
@@ -450,7 +450,7 @@ def filter_volumes(models, keyword = ''):
     if isinstance(models, str):
         raise CommandError('No %svolumes specified by "%s"' % (keyword, models))
     
-    from VolumeViewer import Volume
+    from ..VolumeViewer import Volume
     from _volume import Volume_Model
     vids = set([v.id for v in models if isinstance(v, (Volume, Volume_Model))])
     for v in models:
@@ -998,7 +998,7 @@ def parse_specifier(spec):
         raise CommandError('No models specified by "%s"' % spec)
 
     s = Selection()
-    from .molecule import Molecule
+    from ..molecule import Molecule
     for m in mlist:
         if isinstance(m, Molecule):
             atoms = m.atom_subset(aname, cid, (r1,r2))
@@ -1036,10 +1036,10 @@ def integer_range(rstring):
 class Selection:
     def __init__(self):
         self._models = []              # Non-molecule models
-        from .molecule import Atom_Set
+        from ..molecule import Atom_Set
         self.aset = Atom_Set()
     def add_models(self, models):
-        from .molecule import Molecule
+        from ..molecule import Molecule
         mols = [m for m in models if isinstance(m, Molecule)]
         self.aset.add_molecules(mols)
         other = [m for m in models if not isinstance(m, Molecule)]
