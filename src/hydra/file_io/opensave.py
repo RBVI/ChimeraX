@@ -17,12 +17,14 @@ def file_types():
         from .pdb import open_pdb_file, open_mmcif_file
         from .read_stl import read_stl
         from .read_apr import open_autopack_results
+        from .read_swc import read_swc
         ftypes = [
             ('PDB', ['pdb'], open_pdb_file),
             ('mmCIF', ['cif'], open_mmcif_file),
             ('Session', ['mo'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),
             ('STL', ['stl'], read_stl),
+            ('Neuron SWC', ['swc'], read_swc),
         ]
         # Add map file types
         from ..VolumeData.fileformats import file_types as mft
