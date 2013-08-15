@@ -112,7 +112,7 @@ def make_chemical_components_file_index(cpath, ipath):
         b = f.tell()
         line = f.readline()
         if line.startswith('data_'):
-            cid = line.rstrip()[5:8]
+            cid = line.rstrip()[5:8].encode('utf-8')
             i = component_id_index(cid)
             if i is None:
                 print ('Chemical component "%s" contains a character other than A-Z,0-9,space' % cid)
@@ -140,4 +140,4 @@ def component_id_index(cid):
         k = k*n + i
     return k
 
-#make_chemical_components_file_index('components.cif', 'cindex')
+make_chemical_components_file_index('components.cif', 'cindex')
