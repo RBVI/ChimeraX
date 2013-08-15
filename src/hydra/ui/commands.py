@@ -17,7 +17,7 @@ def register_commands():
     add_command('volume', volumecommand.volume_command)
     from ..FitMap import fitcmd
     add_command('fitmap', fitcmd.fitmap_command)
-    from .. import align
+    from ..molecule import align
     add_command('align', align.align_command)
 
 # -----------------------------------------------------------------------------

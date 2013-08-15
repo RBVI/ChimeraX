@@ -72,7 +72,6 @@ def register_shortcuts(viewer):
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
 
-    from ..align import test_align_points        # TODO remove after testing
     from .gui import show_log
     misc_shortcuts = (
         ('rv', v.initial_camera_view, 'Reset view', gcat),
@@ -87,7 +86,6 @@ def register_shortcuts(viewer):
         ('ch', show_command_history, 'Show command history', gcat),
         ('rt', show_stats, 'Show model statistics', gcat),
         ('bm', matrix_profile, 'matrix profiling', gcat),
-        ('at', test_align_points, 'test align points', gcat),
         )
     for k,f,d,cat in misc_shortcuts:
       ks.add_shortcut(k, f, d, category = cat)
@@ -371,7 +369,7 @@ def show_ribbon(m):
 def show_ligands(m):
     m.show_nonribbon_atoms()
 def molecule_bonds(m):
-    from .. import connect
+    from ..molecule import connect
     connect.create_molecule_bonds(m)
     if not m.bonds is None:
         msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
