@@ -904,7 +904,7 @@ class Volume(Surface):
     transform.move(varray)
     tf = transform.inverse().transpose().zero_translation()
     tf.move(narray)
-    from .. import vector
+    from ..geometry import vector
     vector.normalize_vectors(narray)
 
     self.message('Making %s surface with %d triangles' % (name, len(tarray)))
@@ -1179,6 +1179,15 @@ class Volume(Surface):
     return g
 
   # ---------------------------------------------------------------------------
+  #
+  def bounds(self):
+
+    b = Surface.bounds(self)
+    if b is None:
+      b = self.xyz_bounds()
+    return b
+
+  # ---------------------------------------------------------------------------
   # The xyz bounding box encloses the subsampled grid with half a step size
   # padding on all sides.
   #
@@ -1256,7 +1265,7 @@ class Volume(Surface):
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
     lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
     v = self.place * lv
-    from .. import vector
+    from ..geometry import vector
     vn = vector.normalize_vector(v)
     return vn
 
@@ -1390,7 +1399,7 @@ class Volume(Surface):
     xi, yi, zi = data.ijk_to_xyz((io+istep, jo, ko))
     xj, yj, zj = data.ijk_to_xyz((io, jo+jstep, ko))
     xk, yk, zk = data.ijk_to_xyz((io, jo, ko+kstep))
-    from ..place import Place
+    from ..geometry.place import Place
     tf = Place(((xi-xo, xj-xo, xk-xo, xo),
                 (yi-yo, yj-yo, yk-yo, yo),
                 (zi-zo, zj-zo, zk-zo, zo)))
@@ -2445,10 +2454,11 @@ class cycle_through_planes:
     self.step = pstep
     self.depth = pdepth
 
-    from chimera import triggers
-    self.handler = triggers.addHandler('new frame', self.next_plane_cb, None)
+    from ..ui.gui import main_window
+    self.handler = self.next_plane_cb
+    main_window.view.add_new_frame_callback(self.handler)
 
-  def next_plane_cb(self, trigger_name, call_data, trigger_data):
+  def next_plane_cb(self):
     
     p = self.plane
     if self.step * (self.plast - p) >= 0:
@@ -2456,8 +2466,8 @@ class cycle_through_planes:
       show_planes(self.volume, self.axis, p, self.depth,
                   save_in_region_queue = False)
     else:
-      from chimera import triggers
-      triggers.deleteHandler('new frame', self.handler)
+      from ..ui.gui import main_window
+      main_window.view.remove_new_frame_callback(self.handler)
       self.handler = None
 
 # -----------------------------------------------------------------------------
@@ -2573,7 +2583,7 @@ def maximum_data_diagonal_length(data):
 
     imax, jmax, kmax = [a-1 for a in data.size]
     ijk_to_xyz = data.ijk_to_xyz
-    from ..vector import distance
+    from ..geometry.vector import distance
     d = max(distance(ijk_to_xyz((0,0,0)), ijk_to_xyz((imax,jmax,kmax))),
             distance(ijk_to_xyz((0,0,kmax)), ijk_to_xyz((imax,jmax,0))),
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),

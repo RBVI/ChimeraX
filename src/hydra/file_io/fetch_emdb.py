@@ -17,7 +17,7 @@ def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
   url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/map/%s'
   xml_url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/header/%s'
 
-  from .gui import show_status, show_info
+  from ..ui.gui import show_status, show_info
   show_status('Fetching %s from %s...' % (id,site))
 
   # Fetch map.
@@ -38,7 +38,7 @@ def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
     
   # Display map.
   show_status('Opening map %s...' % map_name)
-  from .VolumeViewer import open_volume_file
+  from ..VolumeViewer import open_volume_file
   models = open_volume_file(map_path, 'ccp4', map_name, 'surface',
                             open_models = False)
 

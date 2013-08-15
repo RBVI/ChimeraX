@@ -2,7 +2,7 @@
 # Wrap Chimera HDF image data as grid data for displaying surface, meshes,
 # and volumes.
 #
-from VolumeData import Grid_Data
+from ..griddata import Grid_Data
 
 # -----------------------------------------------------------------------------
 #
@@ -32,7 +32,7 @@ class Chimera_HDF_Grid(Grid_Data):
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from VolumeData.readarray import allocate_array
+    from ..readarray import allocate_array
     m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
     self.hdf_data.read_matrix(ijk_origin, ijk_size, ijk_step,
                               self.array_paths, m, progress)
@@ -42,7 +42,7 @@ class Chimera_HDF_Grid(Grid_Data):
 #
 def read_chimera_map(path):
 
-  from cmap_format import Chimera_HDF_Data
+  from .cmap_format import Chimera_HDF_Data
   d = Chimera_HDF_Data(path)
 
   glist = []
@@ -63,7 +63,7 @@ def read_chimera_map(path):
 #
 def add_subsamples(hdf_data, hdf_image, g):
 
-  from VolumeData import Subsampled_Grid
+  from ..subsample import Subsampled_Grid
   g = Subsampled_Grid(g)
   i = hdf_image
   for cell_size, data_size, array_paths in i.subsamples:

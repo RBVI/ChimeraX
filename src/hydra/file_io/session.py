@@ -5,8 +5,8 @@ def save_session(path, viewer):
   save_view(f, viewer)
   save_maps(f, viewer)
   save_molecules(f, viewer)
-  from . import readstl
-  readstl.save_stl_surfaces(f, viewer)
+  from . import read_stl
+  read_stl.save_stl_surfaces(f, viewer)
   f.write('\n}\n')
   f.close()
 
@@ -23,8 +23,8 @@ def restore_session(path, viewer):
   restore_view(d, viewer)
   restore_maps(d, viewer)
   restore_molecules(d, viewer)
-  from . import readstl
-  readstl.restore_stl_surfaces(d, viewer)
+  from . import read_stl
+  read_stl.restore_stl_surfaces(d, viewer)
   
 view_parameters = (
   'camera_view',
@@ -58,16 +58,16 @@ def restore_view(d, viewer):
   for name in view_parameters:
     if name in vars and not name in exclude:
       setattr(viewer, name, vars[name])
-  from .place import Place
+  from ..geometry.place import Place
   cv = Place(vars['camera_view'])
   viewer.set_camera_view(cv)    # Set cached inverse matrix
 
   return True
 
 def save_maps(f, viewer):
-  from .VolumeViewer import session
+  from ..VolumeViewer import session
   s = session.Volume_Manager_State()
-  from .VolumeViewer.volume import volume_manager
+  from ..VolumeViewer.volume import volume_manager
   s.state_from_manager(volume_manager)
   from os.path import dirname
   directory = dirname(f.name)
@@ -83,9 +83,9 @@ def restore_maps(d, viewer):
   vds = d.get('volume_data_state')
   if vds is None:
     return False
-  from .VolumeViewer import session
+  from ..VolumeViewer import session
   session.restore_volume_data_state(vds)
-  from .VolumeViewer.volume import volume_manager
+  from ..VolumeViewer.volume import volume_manager
   for m in volume_manager.data_regions:
     viewer.add_model(m)
   return True
@@ -111,7 +111,7 @@ def restore_molecules(d, viewer):
       m = open_mmcif_file(p)
     else:
       m = open_pdb_file(p)
-    from .place import Place
+    from ..geometry.place import Place
     m.place = Place(ms['place'])
     m.copies = [Place(c) for c in ms.get('copies', [])]
     viewer.add_model(m)

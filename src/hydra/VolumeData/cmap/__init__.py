@@ -3,7 +3,7 @@
 #
 def open(path):
 
-  from cmap_grid import read_chimera_map
+  from .cmap_grid import read_chimera_map
   return read_chimera_map(path)
 
 # -----------------------------------------------------------------------------

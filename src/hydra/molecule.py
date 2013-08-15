@@ -1,7 +1,6 @@
 from .surface import Surface
 class Molecule(Surface):
 
-#  def __init__(self, path, xyz, elements, chain_ids):
   def __init__(self, path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names):
     Surface.__init__(self)
 
@@ -88,14 +87,12 @@ class Molecule(Surface):
 
   def set_sphere_colors(self):
 
-    cm = self.color_mode
-    if cm == 'by chain':
-      self.color_by_chain()
-    elif cm == 'by element':
-      self.color_by_element()
-    else:
-      self.color_one_color()
-    
+    p = self.atoms_surface_piece
+    if p is None:
+      return
+
+    p.instance_colors = self.sphere_colors()
+
   def set_color_mode(self, mode):
     if mode == self.color_mode:
       return
@@ -103,29 +100,36 @@ class Molecule(Surface):
     self.need_graphics_update = True
     self.redraw_needed = True
 
+  def sphere_colors(self):
+
+    cm = self.color_mode
+    if cm == 'by chain':
+      colors = self.color_by_chain()
+    elif cm == 'by element':
+      colors = self.color_by_element()
+    else:
+      colors = self.color_one_color()
+    return colors
+
   def color_by_chain(self):
-    p = self.atoms_surface_piece
-    if p:
       s = self.shown_atoms
       cids = self.chain_ids if s is None else self.chain_ids[s]
-      p.instance_colors = chain_colors(cids)
+      colors = chain_colors(cids)
+      return colors
 
   def color_by_element(self):
-    p = self.atoms_surface_piece
-    if p:
       s = self.shown_atoms
       elnums = self.element_nums if s is None else self.element_nums[s]
-      p.instance_colors = element_colors(elnums)
+      colors = element_colors(elnums)
+      return colors
 
   def color_one_color(self):
-    p = self.atoms_surface_piece
-    if p:
       s = self.shown_atoms
       n = len(self.xyz) if s is None else len(s)
       from numpy import empty, uint8
       c = empty((n,4),uint8)
       c[:,:] = self.color
-      p.instance_colors = c
+      return c
 
   def update_ribbon_graphics(self):
 
@@ -146,7 +150,7 @@ class Molecule(Surface):
           continue
       path = self.xyz[s]
     
-      from . import tube
+      from .geometry import tube
       va,na,ta,ca = tube.tube_through_points(path, radius = 1.0,
                                              color = rgba_256[cid[0]],
                                              segment_subdivisions = 5,
@@ -283,6 +287,7 @@ class Molecule(Surface):
     return atoms
 
   def bounds(self):
+    # TODO: bounds should only include displayed atoms.
     xyz = self.xyz
     if len(xyz) == 0:
       return None
@@ -290,7 +295,7 @@ class Molecule(Surface):
 
 # Only produces 20, 80, 320, ... (multiples of 4) triangle count.
 def sphere_geometry(ntri):
-  from . import icosahedron
+  from .geometry import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32, sqrt
   ta = ta.astype(int32)

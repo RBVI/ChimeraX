@@ -78,7 +78,7 @@ def create_surface_copies(path, tflist):
     if not exists(path) or len(tflist) == 0:
         return None
 
-    from .readstl import read_stl
+    from .read_stl import read_stl
     surf = read_stl(path)
     p = surf.plist[0]
     p.color = color = random_color(surf.name)

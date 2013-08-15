@@ -26,7 +26,7 @@ def sessions_directory():
   return user_settings_path('RecentSessions', directory = True)
 
 def user_settings_path(filename = None, directory = False):
-  from .qt import QtCore
+  from ..ui.qt import QtCore
   data_dir = QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.GenericDataLocation)
   from os.path import isdir, join
   if not isdir(data_dir):
@@ -44,7 +44,7 @@ def user_settings_path(filename = None, directory = False):
   return fpath
 
 def show_history_thumbnails(recent_sessions_directory = None):
-  from .gui import main_window as mw
+  from ..ui.gui import main_window as mw
   if history_shown():
     mw.show_graphics()
     return
@@ -80,11 +80,11 @@ def open_clicked_session(url):
   opensave.open_session(path)
 
 def history_shown():
-  from .gui import main_window as mw
+  from ..ui.gui import main_window as mw
   return mw.showing_text() and mw.text_id == 'recent sessions'
 
 def hide_history():
-  from .gui import main_window as mw
+  from ..ui.gui import main_window as mw
   mw.show_graphics()
 
 def make_html(hlist):
