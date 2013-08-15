@@ -122,16 +122,6 @@ class Molecule(Surface):
     radius = 0.2
     p.copies44 = bond_cylinder_placements(self.bonds, self.xyz, radius)
 
-    # Quaternion code
-    # radius = 0.5
-    # s = empty((n,3), float32)
-    # s[:,0] = radius
-    # s[:,1] = radius
-    # s[:,2], qr = bond_lengths_and_tilts(xyz, b)
-    # p.scale = s
-    # p.qrotation = qr
-    # p.shift = shift
-
   def set_sphere_colors(self):
 
     p = self.atoms_surface_piece
@@ -385,25 +375,6 @@ def element_colors(elnums):
 
   from .colors import element_rgba_256
   return element_rgba_256[elnums]
-
-def bond_lengths_and_tilts(xyz, b):
-
-  dxyz = xyz[b[0],:] - xyz[b[1],:]
-  from numpy import sqrt, empty, float32
-  d = sqrt((dxyz*dxyz).sum(axis = 1))
-  ca = dxyz[:,2]/d
-  ca2 = sqrt(0.5*(1+ca))
-  sa2 = sqrt(0.5*(1-ca))
-  dx, dy = dxyz[:,0], dxyz[:,1]
-  dxy = sqrt((dxyz[:,:2]*dxyz[:,:2]).sum(axis = 1))
-
-  qrot = empty((len(b), 4), float32)
-  qrot[:,0] = sa2
-  qrot[:,1] = ca2*dy/dxy
-  qrot[:,2] = -ca2*dx/dxy
-  qrot[:,3] = 0
-
-  return d, qrot
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
