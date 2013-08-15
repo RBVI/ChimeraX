@@ -36,7 +36,6 @@ void main(void)
   #ifdef USE_INSTANCING_44
     vec4 vi = instancePlacement * vec4(position, 1);
     vec4 vEye = model_view_matrix * vi;
-//    vec4 vEye = model_view_matrix * vec4(position,1);
   #else
     vec4 vEye = model_view_matrix * vec4(position,1);
   #endif
@@ -45,8 +44,8 @@ void main(void)
 #ifdef USE_LIGHTING
   v = vEye.xyz;
   #ifdef USE_INSTANCING_44
-    vec4 n4 = instancePlacement * vec4(normal,0);
-    N = normalize((model_view_matrix * n4).xyz);
+    vec3 ni = vec3(instancePlacement * vec4(normal,0));
+    N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #else
     N = normalize((model_view_matrix * vec4(normal,0)).xyz);
   #endif

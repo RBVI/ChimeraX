@@ -294,8 +294,8 @@ class Surface_Piece(object):
   def instance_count(self):
     if not self.shift_and_scale is None:
       ninst = len(self.shift_and_scale)
-    elif len(self.copies) > 0:
-      ninst = len(self.copies)
+    elif not self.copies44 is None:
+      ninst = len(self.copies44)
     else:
       ninst = None
     return ninst

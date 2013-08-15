@@ -305,7 +305,11 @@ def vector_rotation_transform(n0,n1):
   w = cross_product(n0,n1)
   c = inner_product(n0,n1)
   if c <= -1:
-    return ((-1,0,0,0),(0,-1,0,0),(0,0,1,0))      # Rotation by 180 about z
+    # Rotation by 180 perp to n0
+    ax,ay,az = (1,0,0) if n0[0] == 0 and n0[1] == 0 else normalize_vector(-n0[1], n0[0], 0)
+    return ((2*ax*ax-1, 2*ax*ay, 2*ax*az, 0),
+            (2*ax*ay, 2*ay*ay-1, 2*ay*az, 0),
+            (2*ax*az, 2*ay*az, 2*az*az-1, 0))
   wx,wy,wz = w
   c1 = 1.0/(1+c)
   cx,cy,cz = (c1*wx,c1*wy,c1*wz)

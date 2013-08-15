@@ -31,7 +31,11 @@ def register_shortcuts(viewer):
         ('ce', color_by_element, 'Color atoms by element'),
         ('cc', color_by_chain, 'Color chains'),
         ('ms', lambda m,v=v: show_molecular_surface(m,v), 'Show molecular surface'),
+        ('mb', molecule_bonds, 'Compute molecule bonds using templates'),
         ('da', show_atoms, 'Display molecule atoms'),
+        ('bs', show_ball_and_stick, 'Display atoms in ball and stick'),
+        ('sp', show_sphere, 'Display atoms in sphere style'),
+        ('st', show_stick, 'Display atoms in stick style'),
         ('rb', show_ribbon, 'Show molecule ribbon'),
         ('la', show_ligands, 'Show ligand atoms'),
     )
@@ -81,7 +85,7 @@ def register_shortcuts(viewer):
         ('mn', show_manual, 'Show manual', gcat),
         ('lg', show_log, 'Show command log', gcat),
         ('ch', show_command_history, 'Show command history', gcat),
-        ('st', show_stats, 'Show model statistics', gcat),
+        ('rt', show_stats, 'Show model statistics', gcat),
         ('bm', matrix_profile, 'matrix profiling', gcat),
         ('at', test_align_points, 'test align points', gcat),
         )
@@ -355,11 +359,25 @@ def color_one_color(m):
   m.set_color_mode('single')
 
 def show_atoms(m):
-  m.set_display_style(atoms = True, ribbons = False)
+  m.set_display(atoms = True, ribbons = False)
+def show_sphere(m):
+  m.set_atom_style('sphere')
+def show_stick(m):
+  m.set_atom_style('stick')
+def show_ball_and_stick(m):
+  m.set_atom_style('ballstick')
 def show_ribbon(m):
-  m.set_display_style(atoms = False, ribbons = True)
+  m.set_display(atoms = False, ribbons = True)
 def show_ligands(m):
     m.show_nonribbon_atoms()
+def molecule_bonds(m):
+    from .. import connect
+    connect.create_molecule_bonds(m)
+    if not m.bonds is None:
+        msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
+        from .gui import show_status, show_info
+        show_status(msg)
+        show_info(msg)
 
 def list_keyboard_shortcuts():
   from .gui import main_window as m
