@@ -67,43 +67,49 @@ def chemical_component_bonds(cids, cpath, ipath):
     cindex = fromfile(ipath,int32)
     f = open(cpath)
     for cid in set(ncids):
-        aindex, ipairs = component_bonds(cid, f, cindex)
+        aindex, ipairs = read_mmcif_bonds(cid, f, cindex)
         if not aindex is None:
             ccb[cid] = (aindex, ipairs)
     f.close()
     return ccb
 
-def component_bonds(cid, f, cindex):
-    i = component_id_index(cid)
+def read_mmcif_bonds(cid, f, cindex):
+    i = component_index(cid)
     fi = cindex[i]
     if fi == -1:
         return None, None
     f.seek(fi,0)
 
-    apairs = []
-    foundb = False
-    scid = cid.decode('utf-8')
-    while True:
-        line = f.readline()
-        if line.startswith('_chem_comp_bond.'):
-            foundb = True
-        elif foundb:
-            if line.startswith(scid):
-                fields = line.split()
-                a1,a2 = fields[1].strip('"').encode('utf-8'), fields[2].strip('"').encode('utf-8')
-                apairs.append((a1,a2))
-            else:
-                break
-        elif line == '' or (line.startswith('data_') and not line.startswith('data_' + scid)):
-            break
+    fcid, apairs = next_mmcif_bonds(f)
+    if fcid != cid:
+        return {}, ()
     atoms = set([a1 for a1,a2 in apairs] + [a2 for a1,a2 in apairs])
     aindex = dict((a,i) for i,a in enumerate(atoms))
     ipairs = tuple((aindex[a1], aindex[a2]) for a1,a2 in apairs)
 #    print('read %d bonds for %s, %s' % (len(ipairs), cid, str(apairs)))
     return aindex, ipairs
 
-# connect atoms with bonds
-def make_chemical_components_file_index(cpath, ipath):
+def next_mmcif_bonds(f):
+    apairs = []
+    cid = None
+    foundb = False
+    while True:
+        line = f.readline()
+        if line.startswith('_chem_comp_bond.'):
+            foundb = True
+        elif foundb:
+            if line.startswith('#'):
+                break
+            fields = line.split()
+            cid = fields[0].encode('utf-8')
+            a1,a2 = fields[1].strip('"').encode('utf-8'), fields[2].strip('"').encode('utf-8')
+            apairs.append((a1,a2))
+        elif line == '':
+            break
+    return cid, apairs
+
+# Find file offset for each compound in mmcif file.
+def write_mmcif_components_index(cpath, ipath):
     f = open(cpath)
     from numpy import empty, int32
     cp = empty((maxc**3,), int32)
@@ -113,7 +119,7 @@ def make_chemical_components_file_index(cpath, ipath):
         line = f.readline()
         if line.startswith('data_'):
             cid = line.rstrip()[5:8].encode('utf-8')
-            i = component_id_index(cid)
+            i = component_index(cid)
             if i is None:
                 print ('Chemical component "%s" contains a character other than A-Z,0-9,space' % cid)
             else:
@@ -127,10 +133,33 @@ def make_chemical_components_file_index(cpath, ipath):
         g.close()
     return cp
 
+
+# For each compound in mmcif file record the bonds as pairs of atom names.
+def write_mmcif_bonds_table(cpath, bpath):
+    f = open(cpath)
+    from numpy import empty, int32, array
+    cp = empty((maxc**3,), int32)
+    cp[:] = -1
+    bonds = []
+    while True:
+        cid, cbonds = next_mmcif_bonds(f)
+        if cid is None:
+            break
+        i = component_index(cid)
+        cp[i] = len(bonds)
+        bonds.extend(sum(cbonds,()) + (b'',))
+    f.close()
+    ba = array(bonds, 'S4')
+    bt = open(bpath, 'wb')
+    bt.write(cp.tostring())
+    bt.write(ba.tostring())
+    bt.close()
+    return cp, ba
+
 # Component id can be only uppercase letters and digits
 cchars = b' 01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 maxc = len(cchars)
-def component_id_index(cid):
+def component_index(cid):
     n = len(cchars)
     k = 0
     for c in cid:
@@ -140,4 +169,6 @@ def component_id_index(cid):
         k = k*n + i
     return k
 
-make_chemical_components_file_index('components.cif', 'cindex')
+if __name__ == '__main__':
+#    write_mmcif_components_index('components.cif', 'cindex')
+    write_mmcif_bonds_table('components.cif', 'templatebonds')
