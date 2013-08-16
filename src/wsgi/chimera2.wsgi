@@ -375,7 +375,11 @@ class Session(object):
 				to_child[0].close()
 				from_child[1].close()
 			self.pipe[1].send(args)
-			output = self.pipe[0].recv()
+			try:
+				output = self.pipe[0].recv()
+			except EOFError:
+				output = None
+				_debug_print("exitcode: %d" % self.process.exitcode)
 		_debug_print("output: %s" % str(output))
 		status, content_type, headers, data = output
 		results = (str(status), str(content_type), headers, str(data))
@@ -516,7 +520,12 @@ class SessionStore(object):
 
 def backend(session_dir, session_name, to_child, from_child):
 	"""Invoke a backend process."""
-	import os.path, sys, copy, os
+	import sys, copy, os
+	if 0:
+		# enable to get core dumps from backend
+		os.chdir("/tmp")
+		import resource
+		resource.setrlimit(resource.RLIMIT_CORE, (-1, -1))
 	os.dup2(to_child[0].fileno(), 0)
 	os.dup2(from_child[1].fileno(), 1)
 	to_child[0].close()
@@ -534,6 +543,7 @@ def backend(session_dir, session_name, to_child, from_child):
 	lib_dir = os.path.join(chimera2_dir, "lib")
 	bin_dir = os.path.join(chimera2_dir, "bin")
 	env["CHIMERA2"] = chimera2_dir
+	env["LANG"] = "en_US.UTF-8"
 	try:
 		ld_path = env["LD_LIBRARY_PATH"]
 	except KeyError:
@@ -542,7 +552,7 @@ def backend(session_dir, session_name, to_child, from_child):
 		env["LD_LIBRARY_PATH"] = ld_path + ':' + lib_dir
 	program = "python3"
 	binary = os.path.join(bin_dir, program)
-	script = os.path.join(webapp_dir, "webapp_backend")
+	script = os.path.join(webapp_dir, "webapp_backend.py")
 	try:
 		os.execle(binary, program, script,
 				session_dir, session_name, env)

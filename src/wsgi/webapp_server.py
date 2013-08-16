@@ -55,7 +55,7 @@ class Server(object):
 		# in Python 2 which does not handle protocol 3.
 		import pickle
 		pickle.HIGHEST_PROTOCOL = 2
-		import sys, os.path
+		import sys
 		self.session_file = sys.argv[1]
 		from multiprocessing.connection import Connection
 		self._inconn = Connection(0)
