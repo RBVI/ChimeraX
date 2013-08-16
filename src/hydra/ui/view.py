@@ -680,10 +680,7 @@ class View(QtOpenGL.QGLWidget):
         p, s = self.first_intercept(lp.x(), lp.y())
         from .gui import show_status
         if s:
-            show_status(s.description())
-        else:
-            show_status('Mouse pause at %d, %d' % (lp.x(), lp.y()))
-            
+            show_status('Mouse over %s' % s.description())
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
