@@ -60,16 +60,26 @@ def show_history_thumbnails(recent_sessions_directory = None):
 
   hlist = []
   found = set()
-  for line in lines[::-1]:
+  keepers = []
+  removed_some = False
+  for line in reversed(lines):
     fields = line.rstrip().split('|')
     if len(fields) == 2:
       spath,iname = fields
       if not spath in found:
         ipath = join(sdir,iname)
-        if isfile(ipath):
+        if isfile(ipath) and isfile(spath):
           hlist.append((spath, ipath))
           found.add(spath)
+          keepers.append(line)
+        else:
+          removed_some = True
 
+  if removed_some:
+    f = open(rspath, 'w')
+    f.write(''.join(reversed(keepers)))
+    f.close()
+    
   html = make_html(hlist)
   mw.show_text(html, html=True, id = 'recent sessions', anchor_callback = open_clicked_session)
 
