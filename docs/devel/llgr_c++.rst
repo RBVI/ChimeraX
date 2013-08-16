@@ -1,7 +1,7 @@
 Low-Level Graphics Library
 ==========================
 
-The core of the LLGR, a Low-Level Graphics Library, is designed to be an
+LLGR, a Low-Level Graphics Library, is designed to be an
 output-only API for rendering with WebGL_ or OpenGL_,
 and to support picking, selection highlights, and translucency.
 Shadows are also desirable but will be added later.
