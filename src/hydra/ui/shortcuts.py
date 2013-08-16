@@ -313,21 +313,22 @@ def set_background_white(viewer):
 def selection_mouse_mode(viewer):
     def mouse_down(event, v=viewer):
         x,y = event.x(), event.y()
-        p, m = v.first_intercept(x,y)
+        p, s = v.first_intercept(x,y)
         from .gui import show_status
-        if m is None:
+        if s is None:
             v.clear_selection()
             show_status('cleared selection')
         else:
-            m.selected = not m.selected
-            if m.selected:
-                from .qt import QtCore
-                if not (event.modifiers() & QtCore.Qt.ShiftModifier):
-                    v.clear_selection()
-                v.select_model(m)
-                show_status('Selected %s' % m.name)
-            else:
-                v.unselect_model(m)
+            for m in s.models():
+                m.selected = not m.selected
+                if m.selected:
+                    from .qt import QtCore
+                    if not (event.modifiers() & QtCore.Qt.ShiftModifier):
+                        v.clear_selection()
+                        v.select_model(m)
+                        show_status('Selected %s' % m.name)
+                else:
+                    v.unselect_model(m)
     viewer.bind_mouse_mode('right', mouse_down)
 
 def command_line():

@@ -482,24 +482,24 @@ class View(QtOpenGL.QGLWidget):
 
     def front_center_point(self):
         w, h = self.window_size
-        p, m = self.first_intercept(0.5*w, 0.5*h)
+        p, s = self.first_intercept(0.5*w, 0.5*h)
         return p
 
     def first_intercept(self, win_x, win_y):
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         f = None
-        mi = None
+        s = None
         for m in self.models:
             if m.display:
                 mxyz1, mxyz2 = m.place.inverse() * (xyz1,xyz2)
-                fmin = m.first_intercept(mxyz1, mxyz2)
+                fmin, smin = m.first_intercept(mxyz1, mxyz2)
                 if not fmin is None and (f is None or fmin < f):
                     f = fmin
-                    mi = m
+                    s = smin
         if f is None:
             return None, None
         p = (1.0-f)*xyz1 + f*xyz2
-        return p, mi
+        return p, s
 
     def bounds_center_and_width(self):
 

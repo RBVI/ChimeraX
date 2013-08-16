@@ -334,17 +334,19 @@ class Molecule(Surface):
 
   def first_intercept(self, mxyz1, mxyz2):
     # TODO check intercept of bounding box as optimization
+    # TODO using wrong radius for atoms in stick and ball and stick
     from .. import _image3d
     if self.copies:
       intercepts = []
       for tf in self.copies:
         cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-        intercepts.append(_image3d.closest_sphere_intercept(self.xyz, self.radii, cxyz1, cxyz2))
-      f = [fmin for fmin, snum in intercepts if not fmin is None]
-      fmin = min(f) if f else None
+        fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, cxyz1, cxyz2)
+        if not fmin is None:
+          intercepts.append((fmin,anum))
+      fmin, anum = min(intercepts) if intercepts else None, None
     else:
-      fmin, snum = _image3d.closest_sphere_intercept(self.xyz, self.radii, mxyz1, mxyz2)
-    return fmin
+      fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, mxyz1, mxyz2)
+    return fmin, Atom_Selection(self, anum)
 
   def atom_count(self):
     return len(self.xyz)
@@ -530,3 +532,20 @@ class Atom_Set:
         mlist.append(aset)
       aset.add_atoms(m, a)
     return mlist
+
+# -----------------------------------------------------------------------------
+#
+class Atom_Selection:
+  def __init__(self, mol, a):
+    self.molecule = mol
+    self.atom = a
+  def description(self):
+    m = self.molecule
+    a = self.atom
+    d = '%s %s %d %s' % (m.atom_names[a].encode('utf-8'),
+                         m.residue_names[a].encode('utf-8'),
+                         m.residue_nums[a],
+                         m.name)
+    return d
+  def models(self):
+    return [self.molecule]
