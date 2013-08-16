@@ -52,6 +52,9 @@ class View(QtOpenGL.QGLWidget):
 
         self.mouse_modes = {}
         self.last_mouse_position = None
+        self.last_mouse_time = 0
+        self.mouse_pause_interval = 0.5         # seconds
+        self.mouse_pause_position = None
         self.mouse_perimeter = False
         self.wheel_function = None
         self.bind_standard_mouse_modes()
@@ -185,6 +188,8 @@ class View(QtOpenGL.QGLWidget):
         if draw:
             self.redraw_needed = False
             self.updateGL()
+        else:
+            self.mouse_pause_tracking()
 
     def transparent_models_shown(self):
 
@@ -307,7 +312,7 @@ class View(QtOpenGL.QGLWidget):
         im.fill(QtGui.QColor(*tuple(int(255*c) for c in self.background_color)))
         draw_image_text(im, text, bgcolor = self.background_color)
         from ..surface import Surface, surface_image
-        surf = Surface()
+        surf = Surface('Caption')
         pos = -.95,-1     # x,y range -1 to 1
         size = 1.9,.25
         surface_image(im, pos, size, surf)
@@ -652,6 +657,33 @@ class View(QtOpenGL.QGLWidget):
 
     def remember_mouse_position(self, event):
         self.last_mouse_position = QtCore.QPoint(event.pos())
+
+    def mouse_pause_tracking(self):
+        cp = self.mapFromGlobal(QtGui.QCursor.pos())
+        w,h = self.window_size
+        x,y = cp.x(), cp.y()
+        if x < 0 or y < 0 or x >= w or y >= h:
+            return      # Cursor outside of graphics window
+        from time import time
+        t = time()
+        if cp == self.mouse_pause_position:
+            lt = self.last_mouse_time
+            if t >= lt + self.mouse_pause_interval:
+                self.mouse_pause()
+                self.mouse_pause_position = None
+            return
+        self.mouse_pause_position = cp
+        self.last_mouse_time = t
+
+    def mouse_pause(self):
+        lp = self.mouse_pause_position
+        p, s = self.first_intercept(lp.x(), lp.y())
+        from .gui import show_status
+        if s:
+            show_status(s.description())
+        else:
+            show_status('Mouse pause at %d, %d' % (lp.x(), lp.y()))
+            
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
