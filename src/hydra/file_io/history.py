@@ -74,8 +74,13 @@ def show_history_thumbnails(recent_sessions_directory = None):
   mw.show_text(html, html=True, id = 'recent sessions', anchor_callback = open_clicked_session)
 
 def open_clicked_session(url):
-  hide_history()
   path = url.toString(url.PreferLocalFile)         # session file path
+  import os.path
+  if not os.path.exists(path):
+    from ..ui.gui import show_status
+    show_status('Session file not found: %s' % path)
+    return
+  hide_history()
   from . import opensave
   opensave.open_session(path)
 
