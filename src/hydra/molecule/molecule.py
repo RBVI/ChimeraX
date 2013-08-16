@@ -543,10 +543,11 @@ class Atom_Selection:
   def description(self):
     m = self.molecule
     a = self.atom
-    d = '%s %s %d %s' % (m.name,
-                         m.residue_names[a].decode('utf-8'),
-                         m.residue_nums[a],
-                         m.atom_names[a].decode('utf-8'))
+    d = '%s %s %s %d %s' % (m.name,
+                            m.chain_ids[a].decode('utf-8'),
+                            m.residue_names[a].decode('utf-8'),
+                            m.residue_nums[a],
+                            m.atom_names[a].decode('utf-8'))
     return d
   def models(self):
     return [self.molecule]
