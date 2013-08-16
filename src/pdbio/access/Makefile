@@ -6,9 +6,9 @@ OBJS= $(SRCS:.cpp=.o)
 LIBNAME = access
 PYMOD= $(LIBNAME).so
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
-LIBS += $(shlibdir)/libmolecule.$(SHLIB_EXT) $(shlibdir)/libcapsule.$(SHLIB_EXT)
+LIBS += -L$(shlibdir) -lmolecule -lcapsule
 
-$(PYMOD): $(OBJS) $(LIBS)
+$(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 
 install: $(PYMOD)
