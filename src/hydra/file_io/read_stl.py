@@ -83,10 +83,11 @@ class STL_Surface(Surface):
 
     def __init__(self, path):
 
-        Surface.__init__(self)
-        self.path = path
         from os.path import basename
-        self.name = basename(path)
+        name = basename(path)
+        Surface.__init__(self, name)
+
+        self.path = path
 
     def session_state(self):
         p = self.plist[0]

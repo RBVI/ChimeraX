@@ -229,7 +229,8 @@ class Volume(Surface):
   def __init__(self, data, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
-    Surface.__init__(self)
+    Surface.__init__(self, data.name)
+
     self.data = data
     data.add_change_callback(self.data_changed_cb)
     self.path = data.path
@@ -237,10 +238,6 @@ class Volume(Surface):
     if region is None:
       region = full_region(data.size)
     self.region = clamp_region(region, data.size)
-
-    # C++ Model object raises an error if a unicode name is set.
-    # Encode in utf-8 to get a str object that the C++ code can handle.
-    self.name = utf8_string(self.data.name)
 
     if rendering_options is None:
       rendering_options = Rendering_Options()
@@ -748,7 +745,9 @@ class Volume(Surface):
       for k, level in enumerate(self.surface_levels):
         color = self.surface_colors[k]
         rgba = self.modulated_surface_color(color)
-        self.update_surface_piece(level, rgba, show_mesh, ro, pieces[k])
+        p = pieces[k]
+        p.name = 'level %.4g' % level
+        self.update_surface_piece(level, rgba, show_mesh, ro, p)
     except CancelOperation:
       pass
 

@@ -2,11 +2,12 @@ from ..surface import Surface
 class Molecule(Surface):
 
   def __init__(self, path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names):
-    Surface.__init__(self)
+
+    from os.path import basename
+    name = basename(path)
+    Surface.__init__(self, name)
 
     self.path = path
-    from os.path import basename
-    self.name = basename(path)
     self.xyz = xyz
     self.element_nums = element_nums
     from .. import _image3d
@@ -22,14 +23,20 @@ class Molecule(Surface):
     self.residue_nums = res_nums
     self.residue_names = res_names
     self.atom_names = atom_names
+    self.atom_colors = None
 
     self.bonds = None                   # N by 2 array of atom indices
+    self.bond_radius = 0.2
+    self.bond_radii = None
+    self.bond_color = (150,150,150,255)
+    self.half_bond_coloring = True
 
     # Graphics settings
     self.show_atoms = True
     self.shown_atoms = None             # Array of atom indices. None means all.
     self.atoms_surface_piece = None
     self.atom_style = 'sphere'          # sphere, stick or ballstick
+    self.ball_scale = 0.3               # Atom radius scale factor in ball and stick.
     self.bonds_surface_piece = None
     self.show_ribbons = False
     self.ribbon_surface_pieces = {}     # Map chain id to surface piece
@@ -61,7 +68,7 @@ class Molecule(Surface):
   def update_atom_graphics(self, viewer):
 
     self.create_atom_spheres()
-    self.set_sphere_colors()
+    self.set_atom_colors()
 
   def create_atom_spheres(self):
 
@@ -90,18 +97,27 @@ class Molecule(Surface):
     if astyle == 'sphere':
       r = self.radii
     elif astyle == 'ballstick':
-      r = self.radii * 0.3
+      r = self.radii * self.ball_scale
     elif astyle == 'stick':
-      r = 0.2
+      r = self.bond_radius
     xyzr[:,3] = r
 
     s = self.shown_atoms
     sas = xyzr if s is None else xyzr[s]
     p.shift_and_scale = sas
 
+  def set_atom_colors(self):
+
+    p = self.atoms_surface_piece
+    if p is None:
+      return
+
+    p.instance_colors = self.atom_rgba()
+
   def update_bond_graphics(self, viewer):
 
     self.create_bond_cylinders()
+    self.set_bond_colors()
 
   def create_bond_cylinders(self):
 
@@ -119,26 +135,24 @@ class Molecule(Surface):
     p.geometry = va, ta
     p.normals = na
 
-    radius = 0.2
-    p.copies44 = bond_cylinder_placements(self.bonds, self.xyz, radius)
+    r = self.bond_radius if self.bond_radii is None else self.bond_radii
+    p.copies44 = bond_cylinder_placements(self.bonds, self.xyz, r, self.half_bond_coloring)
 
-    # Quaternion code
-    # radius = 0.5
-    # s = empty((n,3), float32)
-    # s[:,0] = radius
-    # s[:,1] = radius
-    # s[:,2], qr = bond_lengths_and_tilts(xyz, b)
-    # p.scale = s
-    # p.qrotation = qr
-    # p.shift = shift
+  def set_bond_colors(self):
 
-  def set_sphere_colors(self):
-
-    p = self.atoms_surface_piece
+    p = self.bonds_surface_piece
     if p is None:
       return
 
-    p.instance_colors = self.sphere_colors()
+    p.color = tuple(c/255.0 for c in self.bond_color)
+
+    if self.half_bond_coloring:
+      acolors = self.atom_rgba()
+      bc0,bc1 = acolors[self.bonds[:,0],:], acolors[self.bonds[:,1],:]
+      from numpy import concatenate
+      p.instance_colors = concatenate((bc0,bc1))
+    else:
+      p.instance_colors = None
 
   def set_color_mode(self, mode):
     if mode == self.color_mode:
@@ -147,7 +161,10 @@ class Molecule(Surface):
     self.need_graphics_update = True
     self.redraw_needed = True
 
-  def sphere_colors(self):
+  def atom_rgba(self):
+
+    if not self.atom_colors is None:
+      return self.atom_colors
 
     cm = self.color_mode
     if cm == 'by chain':
@@ -298,10 +315,15 @@ class Molecule(Surface):
       if self.show_atoms:
         self.need_graphics_update = True
 
-  def set_display(self, atoms = False, ribbons = False):
-    if atoms != self.show_atoms or ribbons != self.show_ribbons:
-      self.show_atoms = atoms
-      self.show_ribbons = ribbons
+  def set_atom_display(self, display):
+    if display != self.show_atoms:
+      self.show_atoms = display
+      self.need_graphics_update = True
+      self.redraw_needed = True
+
+  def set_ribbon_display(self, display):
+    if display != self.show_ribbons:
+      self.show_ribbons = display
       self.need_graphics_update = True
       self.redraw_needed = True
 
@@ -313,17 +335,19 @@ class Molecule(Surface):
 
   def first_intercept(self, mxyz1, mxyz2):
     # TODO check intercept of bounding box as optimization
+    # TODO using wrong radius for atoms in stick and ball and stick
     from .. import _image3d
     if self.copies:
       intercepts = []
       for tf in self.copies:
         cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-        intercepts.append(_image3d.closest_sphere_intercept(self.xyz, self.radii, cxyz1, cxyz2))
-      f = [fmin for fmin, snum in intercepts if not fmin is None]
-      fmin = min(f) if f else None
+        fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, cxyz1, cxyz2)
+        if not fmin is None:
+          intercepts.append((fmin,anum))
+      fmin, anum = min(intercepts) if intercepts else (None,None)
     else:
-      fmin, snum = _image3d.closest_sphere_intercept(self.xyz, self.radii, mxyz1, mxyz2)
-    return fmin
+      fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, mxyz1, mxyz2)
+    return fmin, Atom_Selection(self, anum)
 
   def atom_count(self):
     return len(self.xyz)
@@ -386,37 +410,23 @@ def element_colors(elnums):
   from .colors import element_rgba_256
   return element_rgba_256[elnums]
 
-def bond_lengths_and_tilts(xyz, b):
-
-  dxyz = xyz[b[0],:] - xyz[b[1],:]
-  from numpy import sqrt, empty, float32
-  d = sqrt((dxyz*dxyz).sum(axis = 1))
-  ca = dxyz[:,2]/d
-  ca2 = sqrt(0.5*(1+ca))
-  sa2 = sqrt(0.5*(1-ca))
-  dx, dy = dxyz[:,0], dxyz[:,1]
-  dxy = sqrt((dxyz[:,:2]*dxyz[:,:2]).sum(axis = 1))
-
-  qrot = empty((len(b), 4), float32)
-  qrot[:,0] = sa2
-  qrot[:,1] = ca2*dy/dxy
-  qrot[:,2] = -ca2*dx/dxy
-  qrot[:,3] = 0
-
-  return d, qrot
-
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
 #
-def bond_cylinder_placements(bonds, xyz, radius):
+def bond_cylinder_placements(bonds, xyz, radius, half_bond):
 
   n = len(bonds)
   from numpy import empty, float32, transpose, sqrt, array
-  p = empty((n,4,4), float32)
+  nc = 2*n if half_bond else n
+  p = empty((nc,4,4), float32)
   
   p[:,3,:] = (0,0,0,1)
   axyz0, axyz1 = xyz[bonds[:,0],:], xyz[bonds[:,1],:]
-  p[:,:3,3] = 0.5*(axyz0 + axyz1)
+  if half_bond:
+    p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
+    p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1
+  else:
+    p[:,:3,3] = 0.5*(axyz0 + axyz1)
 
   v = axyz1 - axyz0
   d = sqrt((v*v).sum(axis = 1))
@@ -431,10 +441,15 @@ def bond_cylinder_placements(bonds, xyz, radius):
   c1 = 1.0/(1+c)
   cx,cy = c1*wx, c1*wy
   r = radius
-  rs = array(((r*(cx*wx + c), r*cx*wy,  d*wy),
-              (r*cy*wx, r*(cy*wy + c), -d*wx),
-              (-r*wy, r*wx, d*c)), float32)
-  p[:,:3,:3] = rs.transpose((2,0,1))
+  h = 0.5*d if half_bond else d
+  rs = array(((r*(cx*wx + c), r*cx*wy,  h*wy),
+              (r*cy*wx, r*(cy*wy + c), -h*wx),
+              (-r*wy, r*wx, h*c)), float32).transpose((2,0,1))
+  if half_bond:
+    p[:n,:3,:3] = rs
+    p[n:,:3,:3] = rs
+  else:
+    p[:,:3,:3] = rs
   pt = transpose(p,(0,2,1))
   return pt
 
@@ -518,3 +533,20 @@ class Atom_Set:
         mlist.append(aset)
       aset.add_atoms(m, a)
     return mlist
+
+# -----------------------------------------------------------------------------
+#
+class Atom_Selection:
+  def __init__(self, mol, a):
+    self.molecule = mol
+    self.atom = a
+  def description(self):
+    m = self.molecule
+    a = self.atom
+    d = '%s %s %d %s' % (m.name,
+                         m.residue_names[a].decode('utf-8'),
+                         m.residue_nums[a],
+                         m.atom_names[a].decode('utf-8'))
+    return d
+  def models(self):
+    return [self.molecule]

@@ -33,10 +33,12 @@ def register_shortcuts(viewer):
         ('ms', lambda m,v=v: show_molecular_surface(m,v), 'Show molecular surface'),
         ('mb', molecule_bonds, 'Compute molecule bonds using templates'),
         ('da', show_atoms, 'Display molecule atoms'),
+        ('ha', hide_atoms, 'Undisplay molecule atoms'),
         ('bs', show_ball_and_stick, 'Display atoms in ball and stick'),
         ('sp', show_sphere, 'Display atoms in sphere style'),
         ('st', show_stick, 'Display atoms in stick style'),
         ('rb', show_ribbon, 'Show molecule ribbon'),
+        ('hr', hide_ribbon, 'Undisplay molecule ribbon'),
         ('la', show_ligands, 'Show ligand atoms'),
     )
     molcat = 'Molecule Display'
@@ -61,6 +63,7 @@ def register_shortcuts(viewer):
         ('sh', tile_models, 'Show or hide models', gcat),
         ('bk', set_background_black, 'Black background', gcat),
         ('wb', set_background_white, 'White background', gcat),
+        ('gb', set_background_gray, 'Gray background', gcat),
         ('sl', selection_mouse_mode, 'Select models mouse mode', gcat),
         ('Ds', delete_selected_models, 'Delete selected models', ocat),
         ('lp', leap_position_mode, 'Enable leap motion input device', gcat),
@@ -302,27 +305,30 @@ def set_background_color(viewer, color):
     viewer.background_color = color
 def set_background_black(viewer):
     set_background_color(viewer, (0,0,0,1))
+def set_background_gray(viewer):
+    set_background_color(viewer, (0.5,0.5,0.5,1))
 def set_background_white(viewer):
     set_background_color(viewer, (1,1,1,1))
 
 def selection_mouse_mode(viewer):
     def mouse_down(event, v=viewer):
         x,y = event.x(), event.y()
-        p, m = v.first_intercept(x,y)
+        p, s = v.first_intercept(x,y)
         from .gui import show_status
-        if m is None:
+        if s is None:
             v.clear_selection()
             show_status('cleared selection')
         else:
-            m.selected = not m.selected
-            if m.selected:
-                from .qt import QtCore
-                if not (event.modifiers() & QtCore.Qt.ShiftModifier):
-                    v.clear_selection()
-                v.select_model(m)
-                show_status('Selected %s' % m.name)
-            else:
-                v.unselect_model(m)
+            for m in s.models():
+                m.selected = not m.selected
+                if m.selected:
+                    from .qt import QtCore
+                    if not (event.modifiers() & QtCore.Qt.ShiftModifier):
+                        v.clear_selection()
+                        v.select_model(m)
+                        show_status('Selected %s' % m.name)
+                else:
+                    v.unselect_model(m)
     viewer.bind_mouse_mode('right', mouse_down)
 
 def command_line():
@@ -357,7 +363,9 @@ def color_one_color(m):
   m.set_color_mode('single')
 
 def show_atoms(m):
-  m.set_display(atoms = True, ribbons = False)
+  m.set_atom_display(True)
+def hide_atoms(m):
+  m.set_atom_display(False)
 def show_sphere(m):
   m.set_atom_style('sphere')
 def show_stick(m):
@@ -365,7 +373,9 @@ def show_stick(m):
 def show_ball_and_stick(m):
   m.set_atom_style('ballstick')
 def show_ribbon(m):
-  m.set_display(atoms = False, ribbons = True)
+  m.set_ribbon_display(True)
+def hide_ribbon(m):
+  m.set_ribbon_display(False)
 def show_ligands(m):
     m.show_nonribbon_atoms()
 def molecule_bonds(m):
