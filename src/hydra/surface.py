@@ -1,6 +1,7 @@
 class Surface:
 
-  def __init__(self):
+  def __init__(self, name):
+    self.name = name
     self.id = 0
     self.displayed = True
     from .geometry.place import Place
@@ -14,8 +15,8 @@ class Surface:
   def surface_pieces(self):
     return self.plist
 
-  def newPiece(self):
-    p = Surface_Piece()
+  def newPiece(self, name = None):
+    p = Surface_Piece(name)
     p.surface = self
     self.plist.append(p)
     self.redraw_needed = True
@@ -113,7 +114,8 @@ class Surface_Piece(object):
   EDGE0_DISPLAY_MASK = 1
   ALL_EDGES_DISPLAY_MASK = 7
 
-  def __init__(self):
+  def __init__(self, name = None):
+    self.name = name
     self.vertices = None
     self.triangles = None
     self.normals = None
@@ -371,8 +373,8 @@ class Surface_Piece_Selection:
     self.piece = p
   def description(self):
     p = self.piece
-    s = p.surface
-    d = 'piece %d tri, surface %d' % (len(self.triangles), s.id)
+    n =  '%d triangles' % len(p.triangles) if p.name is None else p.name
+    d = '%s %s' % (p.surface.name, n)
     return d
   def models(self):
     return [self.piece.surface]
@@ -407,7 +409,7 @@ def point_bounds(xyz):
 def surface_image(qi, pos, size, surf = None):
     rgba = image_rgba_array(qi)
     if surf is None:
-        surf = Surface()
+        surf = Surface('Image')
     p = surf.newPiece()
     x,y = pos
     sx,sy = size

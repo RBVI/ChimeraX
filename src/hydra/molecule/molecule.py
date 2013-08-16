@@ -2,11 +2,12 @@ from ..surface import Surface
 class Molecule(Surface):
 
   def __init__(self, path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names):
-    Surface.__init__(self)
+
+    from os.path import basename
+    name = basename(path)
+    Surface.__init__(self, name)
 
     self.path = path
-    from os.path import basename
-    self.name = basename(path)
     self.xyz = xyz
     self.element_nums = element_nums
     from .. import _image3d
@@ -343,7 +344,7 @@ class Molecule(Surface):
         fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, cxyz1, cxyz2)
         if not fmin is None:
           intercepts.append((fmin,anum))
-      fmin, anum = min(intercepts) if intercepts else None, None
+      fmin, anum = min(intercepts) if intercepts else (None,None)
     else:
       fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, mxyz1, mxyz2)
     return fmin, Atom_Selection(self, anum)
@@ -542,10 +543,10 @@ class Atom_Selection:
   def description(self):
     m = self.molecule
     a = self.atom
-    d = '%s %s %d %s' % (m.atom_names[a].encode('utf-8'),
-                         m.residue_names[a].encode('utf-8'),
+    d = '%s %s %d %s' % (m.name,
+                         m.residue_names[a].decode('utf-8'),
                          m.residue_nums[a],
-                         m.name)
+                         m.atom_names[a].decode('utf-8'))
     return d
   def models(self):
     return [self.molecule]

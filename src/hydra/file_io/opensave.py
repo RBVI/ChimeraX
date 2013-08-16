@@ -141,7 +141,8 @@ def open_image(view):
         return
     i = QtGui.QImage(path, 'JPG')
     from ..surface import Surface, surface_image
-    s = Surface()
+    from os.path import basename
+    s = Surface(basename(path))
     surface_image(i, (-.5,-.5), 1, s)
     view.add_overlay(s)
 
