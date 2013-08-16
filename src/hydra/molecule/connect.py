@@ -1,7 +1,3 @@
-cpath = '/Users/goddard/ucsf/chimera2/src/hydra/components.cif'
-ipath = '/Users/goddard/ucsf/chimera2/src/hydra/cindex'
-bpath = '/Users/goddard/ucsf/chimera2/src/hydra/bond_templates'
-
 def create_molecule_bonds(m, templates_path = None):
     if templates_path is None:
         from os.path import join, dirname
