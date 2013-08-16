@@ -89,6 +89,7 @@ class Surface:
 
   def first_intercept(self, mxyz1, mxyz2):
     f = None
+    sp = None
     # TODO handle surface model copies.
     from . import _image3d
     for p in self.plist:
@@ -96,7 +97,8 @@ class Surface:
         fmin = p.first_intercept(mxyz1, mxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
-    return f
+          sp = p
+    return f, Surface_Piece_Selection(sp)
 
   def delete(self):
     self.removeAllPieces()
@@ -363,6 +365,17 @@ class Surface_Piece(object):
         if not fmin is None and (f is None or fmin < f):
           f = fmin
     return f
+
+class Surface_Piece_Selection:
+  def __init__(self, p):
+    self.piece = p
+  def description(self):
+    p = self.piece
+    s = p.surface
+    d = 'piece %d tri, surface %d' % (len(self.triangles), s.id)
+    return d
+  def models(self):
+    return [self.piece.surface]
 
 def union_bounds(blist):
   xyz_min, xyz_max = None, None
