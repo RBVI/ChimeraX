@@ -211,8 +211,9 @@ def show_status(msg, append = False):
         msg = str(sb.currentMessage()) + msg
     sb.showMessage(sb.tr(msg))
     sb.repaint()        # Redraw in case long wait before return to event loop
-    global app
-    app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+# This can cause an undesired graphics redraw during a status message.
+#    global app
+#    app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
 
 def show_info(msg, color = None):
     log_message(msg, color)
