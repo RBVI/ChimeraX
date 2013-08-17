@@ -40,6 +40,8 @@ def register_shortcuts(viewer):
         ('rb', show_ribbon, 'Show molecule ribbon'),
         ('hr', hide_ribbon, 'Undisplay molecule ribbon'),
         ('la', show_ligands, 'Show ligand atoms'),
+        ('r+', fat_ribbons, 'Fat ribbons'),
+        ('r-', thin_ribbons, 'Thin ribbons'),
     )
     molcat = 'Molecule Display'
     for k,f,d in mol_shortcuts:
@@ -376,6 +378,10 @@ def show_ribbon(m):
   m.set_ribbon_display(True)
 def hide_ribbon(m):
   m.set_ribbon_display(False)
+def fat_ribbons(m):
+    m.set_ribbon_radius(1.0)
+def thin_ribbons(m):
+    m.set_ribbon_radius(0.5)
 def show_ligands(m):
     m.show_nonribbon_atoms()
 def molecule_bonds(m):
