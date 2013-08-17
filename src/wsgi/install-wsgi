@@ -42,10 +42,10 @@ for action in $actions; do
 		ln -sf $repo/build $target/chimera2
 
 		# Copy local files
-		local_files="chimera2.wsgi webapp_backend"
-		rsync -a $local_files $target
+		local_files="chimera2.wsgi webapp_backend.py"
+		rsync -av $local_files $target
 		other_files="../llgr/webgl webapp_client/"
-		rsync -a $other_files $target/www
+		rsync -av $other_files $target/www
 
 		# Make sure some files are owned by user Apache
 		if [ ! -e $target/sessions ]; then
