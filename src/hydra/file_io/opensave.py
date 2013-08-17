@@ -39,10 +39,15 @@ def file_readers():
             r['.' + s] = read_func
     return r
 
-def open_files(paths, view):
-    reset_view = (len(view.models) == 0)
+def open_files(paths, view = None, set_camera = None):
+    if view is None:
+        from ..ui.gui import main_window
+        view = main_window.view
+    if set_camera is None:
+        set_camera = (len(view.models) == 0)
     r = file_readers()
     opened = []
+    models = []
     from os.path import splitext, isfile
     for path in paths:
         ext = splitext(path)[1]
@@ -55,6 +60,7 @@ def open_files(paths, view):
             mlist = file_reader(path)
             if not isinstance(mlist, (list, tuple)):
                 mlist = [mlist]
+            models.extend(mlist)
             for m in mlist:
                 view.add_model(m)
             opened.append(path)
@@ -62,10 +68,11 @@ def open_files(paths, view):
             from ..ui import gui
             gui.show_status('Unknown file suffix "%s"' % ext)
             # TODO issue warning.
-    finished_opening(opened, reset_view, view)
+    finished_opening(opened, set_camera, view)
+    return models
 
-def finished_opening(opened, reset_view, view):
-    if opened and reset_view:
+def finished_opening(opened, set_camera, view):
+    if opened and set_camera:
         view.remove_overlays()
         view.initial_camera_view() # TODO: don't do for session restore
     from ..ui.gui import show_info, show_status
@@ -157,7 +164,7 @@ def open_command(cmdname, args):
     kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
     open_file(**kw)
 
-def open_file(path, fromDatabase = None):
+def open_file(path, fromDatabase = None, set_camera = None):
     from ..ui.gui import main_window as mw
     view = mw.view
     if fromDatabase is None:
@@ -170,7 +177,8 @@ def open_file(path, fromDatabase = None):
             open_file(p, fromDatabase = 'PDB')
     else:
         ids = path.split(',')
-        reset_view = (len(view.models) == 0)
+        if set_camera is None:
+            set_camera = (len(view.models) == 0)
         from . import fetch
         mlist = []
         for id in ids:
@@ -180,5 +188,5 @@ def open_file(path, fromDatabase = None):
             else:
                 mlist.append(m)
         view.add_models(mlist)
-        finished_opening([m.path for m in mlist], reset_view, view)
+        finished_opening([m.path for m in mlist], set_camera, view)
     mw.show_graphics()
