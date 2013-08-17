@@ -28,8 +28,6 @@ class Molecule(Surface):
     self.bonds = None                   # N by 2 array of atom indices
     self.bond_radius = 0.2
     self.bond_radii = None
-    self.bond_color = (150,150,150,255)
-    self.half_bond_coloring = True
 
     # Graphics settings
     self.show_atoms = True
@@ -38,7 +36,11 @@ class Molecule(Surface):
     self.atom_style = 'sphere'          # sphere, stick or ballstick
     self.ball_scale = 0.3               # Atom radius scale factor in ball and stick.
     self.bonds_surface_piece = None
+    self.bond_color = (150,150,150,255)
+    self.half_bond_coloring = True
     self.show_ribbons = False
+    self.ribbon_radius = 1.0
+    self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
     self.ribbon_surface_pieces = {}     # Map chain id to surface piece
 
     self.color = (180,180,180,255)      # RGBA 0-255 integer values
@@ -216,11 +218,12 @@ class Molecule(Surface):
           continue
       path = self.xyz[s]
     
+      sd, cd = self.ribbon_subdivisions
       from ..geometry import tube
-      va,na,ta,ca = tube.tube_through_points(path, radius = 1.0,
+      va,na,ta,ca = tube.tube_through_points(path, radius = self.ribbon_radius,
                                              color = rgba_256[cid[0]],
-                                             segment_subdivisions = 5,
-                                             circle_subdivisions = 10)
+                                             segment_subdivisions = sd,
+                                             circle_subdivisions = cd)
       if cid in rsp:
         p = rsp[cid]
       else:
@@ -256,6 +259,13 @@ class Molecule(Surface):
     self.show_atoms = True
     self.need_graphics_update = True
     self.redraw_needed = True
+
+  def set_ribbon_radius(self, r):
+
+    if r != self.ribbon_radius:
+      self.ribbon_radius = r
+      self.need_graphics_update = True
+      self.redraw_needed = True
 
   def all_atoms(self):
 
