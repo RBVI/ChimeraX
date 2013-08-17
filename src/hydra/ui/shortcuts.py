@@ -95,7 +95,7 @@ def register_shortcuts(viewer):
     for k,f,d,cat in misc_shortcuts:
       ks.add_shortcut(k, f, d, category = cat)
 
-    ks.category_columns = ((ocat,molcat), (mapcat,), (gcat,))
+    ks.category_columns = ((ocat,mapcat), (molcat,), (gcat,))
 
     return ks
 
