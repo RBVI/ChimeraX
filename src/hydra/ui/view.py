@@ -52,7 +52,7 @@ class View(QtOpenGL.QGLWidget):
 
         self.mouse_modes = {}
         self.last_mouse_position = None
-        self.last_mouse_time = 0
+        self.last_mouse_time = None
         self.mouse_pause_interval = 0.5         # seconds
         self.mouse_pause_position = None
         self.mouse_perimeter = False
@@ -666,14 +666,19 @@ class View(QtOpenGL.QGLWidget):
             return      # Cursor outside of graphics window
         from time import time
         t = time()
-        if cp == self.mouse_pause_position:
+        mp = self.mouse_pause_position
+        if cp == mp:
             lt = self.last_mouse_time
-            if t >= lt + self.mouse_pause_interval:
+            if lt and t >= lt + self.mouse_pause_interval:
                 self.mouse_pause()
                 self.mouse_pause_position = None
+                self.last_mouse_time = None
             return
         self.mouse_pause_position = cp
-        self.last_mouse_time = t
+        if mp:
+            # Require mouse move before setting timer to avoid
+            # repeated mouse pause callbacks at same point.
+            self.last_mouse_time = t
 
     def mouse_pause(self):
         lp = self.mouse_pause_position
