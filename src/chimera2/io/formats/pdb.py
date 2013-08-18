@@ -1,5 +1,5 @@
-from chimera2 import UserError, scene
-from chimera2.math3d import Point, Xform, Identity, weighted_point
+from chimera2 import scene
+from chimera2.math3d import Point, weighted_point
 
 _builtin_open = open
 

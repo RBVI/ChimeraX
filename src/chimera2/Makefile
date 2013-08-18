@@ -11,9 +11,13 @@ all: $(PYOBJS)
 install: all
 	-mkdir $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) ../shaders/*150.txt $(PKG_DIR)
 
 lint:
 	pyflakes $(PYSRCS)
 
 clean:
 	rm -rf __pycache__
+
+test_cmds:
+	python3 cmds.py

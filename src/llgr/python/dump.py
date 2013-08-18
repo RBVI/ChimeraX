@@ -200,7 +200,7 @@ class save_args(object):
 		return self.func.__doc__
 
 @typecheck
-def render():
+def render(as_string=False):
 	global _calls
 	tmp = _calls
 	_calls = []
@@ -214,6 +214,8 @@ def render():
 				if isinstance(obj, AttributeInfo):
 					return obj.json()
 				return JSONEncoder.default(self, obj)
+		if as_string:
+			return json.dumps(tmp, cls=DumpEncoder)
 		with open("render.json", "w") as f:
 			json.dump(tmp, f, cls=DumpEncoder)
 			print(file=f)	# trailing newline

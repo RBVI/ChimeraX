@@ -139,7 +139,9 @@ class BBox:
 bbox = BBox() #: The current bounding box.
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
+_box_pd = None
 _box_indices_id = None	# primitive box indices
+_box_indices = None
 
 def reset():
 	"""reinitialze scene
@@ -152,12 +154,14 @@ def reset():
 	_box_indices_id = None
 	import llgr
 	llgr.clear_all()
+	import os, sys
+	shader_dir = os.path.dirname(__file__)
 	_program_id = llgr.next_program_id()
-	with open("../shaders/vertexShader150.txt") as f:
+	with open(os.path.join(shader_dir, "vertexShader150.txt")) as f:
 		vertex_shader = f.read()
-	with open("../shaders/fragmentShader150.txt") as f:
+	with open(os.path.join(shader_dir, "fragmentShader150.txt")) as f:
 		fragment_shader = f.read()
-	with open("../shaders/vertexPickShader150.txt") as f:
+	with open(os.path.join(shader_dir, "vertexPickShader150.txt")) as f:
 		pick_vertex_shader = f.read()
 	llgr.create_program(_program_id, vertex_shader, fragment_shader,
 						pick_vertex_shader)
@@ -351,11 +355,11 @@ def add_box(p0, p1, color, xform=None):
 	llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
 		0, _box_indices.size, _box_indices_id, llgr.UByte)
 
-def render(viewport, vertical_fov, globalXform):
+def render(viewport, vertical_fov, globalXform, as_string=False):
 	"""render scene
 	
 	:param viewport: is a (lower-left, lower-right, width, height) tuple
-	:param vertical_fov: is the veitical field of view
+	:param vertical_fov: is the veitical field of view in radians
 	:param globalXform: is a :py:class:`~chimera2.math3d.Xform`
 	   that rotates and translates the data after the camera is setup
 
@@ -382,11 +386,13 @@ def render(viewport, vertical_fov, globalXform):
 	llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
 
 	llgr.set_clear_color(.05, .05, .4, 0)
-	from OpenGL import GL
-	#if self._samples >= 2:
-	#	GL.glEnable(GL.GL_MULTISAMPLE)
-	#GL.glEnable(GL.GL_CULL_FACE)
-	GL.glViewport(*viewport)
+	if not as_string:
+		# TODO: move to llgr or to calling routine?
+		from OpenGL import GL
+		#if self._samples >= 2:
+		#	GL.glEnable(GL.GL_MULTISAMPLE)
+		#GL.glEnable(GL.GL_CULL_FACE)
+		GL.glViewport(*viewport)
 
 	if bbox.llb is not None:
 		import math
@@ -418,4 +424,7 @@ def render(viewport, vertical_fov, globalXform):
 		llgr.set_uniform_matrix(0, 'NormalMatrix', False,
 				llgr.Mat3x3, modelview.getWebGLRotationMatrix())
 
-	llgr.render()
+	if as_string:
+		return llgr.render(as_string)
+	else:
+		llgr.render()

@@ -122,6 +122,7 @@ class Server(object):
 				print("run", req, file=self._log)
 				print("inconn", self._inconn, file=self._log)
 				print("outconn", self._outconn, file=self._log)
+				self._log.flush()
 			try:
 				v = self._process_request_batch(*req)
 			except:
@@ -133,6 +134,7 @@ class Server(object):
 			else:
 				if self._log:
 					print("v", v, file=self._log)
+					self._log.flush()
 				self._outconn.send(v)
 		self._terminate = False
 
@@ -160,16 +162,18 @@ class Server(object):
 			try:
 				handler_list = self._handlers[req_tag]
 			except KeyError:
-				reply_list.append(self._bad_tag())
-			else:
-				for handler in handler_list:
-					try:
-						v = handler(req_data)
-					except:
-						v = self._bad_handler()
-					else:
-						v["id"] = req_id
-					reply_list.append(v)
+				v = self._bad_tag(req_tag)
+				v["id"] = req_id
+				reply_list.append(v)
+				continue
+			for handler in handler_list:
+				try:
+					v = handler(req_value)
+				except:
+					import traceback
+					v = self._bad_handler(traceback.format_exc())
+				v["id"] = req_id
+				reply_list.append(v)
 
 		try:
 			reply = json.dumps(reply_list)
@@ -191,18 +195,16 @@ class Server(object):
 		return ("500 JSON encoding failed", "text/plain", None,
 						"JSON encoding failed")
 
-	def _bad_tag(self):
+	def _bad_tag(self, tag):
 		# Return value is included in reply list
-		# TODO: include tag name in stderr
 		return {
 			"status": False,
-			"stderr": "unregistered tag",
+			"stderr": "Unregistered tag: %s" % tag,
 		}
 
-	def _bad_handler(self):
+	def _bad_handler(self, text):
 		# Return value is included in reply list
-		# TODO: include exception text in stderr
 		return {
 			"status": False,
-			"stderr": "handler threw exception",
+			"stderr": text,
 		}

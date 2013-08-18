@@ -6,3 +6,6 @@ install:
 	./install-wsgi
 
 clean:
+
+lint:
+	pyflakes *.py

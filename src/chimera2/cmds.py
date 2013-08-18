@@ -47,7 +47,11 @@ __all__ = [
 	'Command',
 ]
 
-from . import UserError
+try:
+	from . import UserError
+except SystemError:
+	# testing
+	class UserError(RuntimeError): pass
 
 import inspect
 Param = inspect.Parameter	# shortcut to Parameter constants
@@ -350,8 +354,9 @@ if __name__ == '__main__':
 			if p:
 				print('completions:', p)
 			c.execute()
+			print('SUCCESS')
 		except UserError as e:
-			print(e)
+			print('FAIL:', e)
 	for t in autotests:
 		try:
 			print("\nAUTOCOMPLETE TEST: '%s'" % t)
@@ -361,5 +366,6 @@ if __name__ == '__main__':
 			if p:
 				print('completions:', p)
 			c.execute()
+			print('SUCCESS')
 		except UserError as e:
-			print(e)
+			print('FAIL:', e)

@@ -48,7 +48,6 @@ __all__ = [
 ]
 
 from chimera2 import UserError
-import collections
 
 _compression = {}
 def register_compression(suffix, stream_type):
@@ -471,7 +470,7 @@ def open(filespec, identify_as=None, **kw):
 	return open(stream, identify_as=identify_as, **kw)
 
 def save(filename, **kw):
-	name, prefix, filelike, compression = deduce_format(filespec, prefixable=False)
+	name, prefix, filelike, compression = deduce_format(filename, prefixable=False)
 	if name is None:
 		raise UserError("unknown file type")
 	func = save_function(name)
