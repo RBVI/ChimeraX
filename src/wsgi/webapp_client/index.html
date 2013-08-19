@@ -14,6 +14,12 @@
 <!-- chimera2 libraries -->
 <script type="text/javascript" src="js/c2/session.js"></script>
 
+<!-- WebGL support -->
+<script type="text/javascript" src="webgl/webgl-debug.js"></script>
+<script type="text/javascript" src="webgl/webgl-utils.js"></script>
+<script type="text/javascript" src="webgl/webgl-context.js"></script>
+<script type="text/javascript" src="webgl/llgr_webgl.js"></script>
+
 <!-- page-specific script and css -->
 <script type="text/javascript">
 $(document).ready(function() {
@@ -21,9 +27,57 @@ $(document).ready(function() {
 	$c2_session.init("..");
 	$("#command_line").keyup(function (evt) {
 				if (evt.which == 13)
-					$c2_session.command($(this).val());
+					$c2_session.command($(this).val(), process_result);
 				});
+	molview();
 })
+
+function process_result(response)
+{
+	var client_data = response["client_data"];
+	if (client_data[0] === "json") {
+		var json = JSON.parse(client_data[1]);
+		load(json);
+	}
+}
+
+var molview_ci;		// molview context information
+
+function molview()
+{
+	var canvas = document.getElementById("molview");
+	var gl = getWebGLContext(canvas, {
+		alpha: false,
+		antialias: true
+	});
+	if (!gl)
+		return;
+
+	molview_ci = new ContextInfo(canvas, gl, drawScene);
+	window.onresize = molview_ci.redraw;
+	molview_ci.init();
+	molview_ci.redraw();
+}
+
+function drawScene(ci)
+{
+	var canvas = ci.canvas;
+	var gl = ci.gl;
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	llgr.set_context(gl);
+	gl.viewport(0, 0, canvas.width, canvas.height);
+	llgr.render();
+	ci.requestId = null;
+}
+
+function load(json_or_url)
+{
+	molview_ci.data = json_or_url;
+	molview_ci.init();
+	molview_ci.redraw();
+}
+
 </script>
 </head>
 <body>
@@ -43,6 +97,13 @@ $(document).ready(function() {
     </div>
     <div>
       <span id="status_line">&nbsp;</span>
+    </div>
+    <div>
+     <canvas id="molview" style="height:600px; width:600px; margin:0px; background-color:yellow;">
+      Your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element.
+      <a href="http://get.webgl.org">Click here to upgrade your browser.</a>
+     </canvas>
     </div>
     <hr/>
   </div>

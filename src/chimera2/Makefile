@@ -11,7 +11,7 @@ all: $(PYOBJS)
 install: all
 	-mkdir $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
-	$(RSYNC) ../shaders/*150.txt $(PKG_DIR)
+	$(RSYNC) ../shaders/*_webgl.txt ../shaders/*150.txt $(PKG_DIR)
 
 lint:
 	pyflakes $(PYSRCS)

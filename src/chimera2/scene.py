@@ -143,6 +143,14 @@ _box_pd = None
 _box_indices_id = None	# primitive box indices
 _box_indices = None
 
+_glsl_version = '150'
+
+def set_glsl_version(version):
+	global _glsl_version
+	if version not in ('150', 'webgl'):
+		raise ValueError("Only support GLSL 150 and webgl (ES 1.0)")
+	_glsl_version = version
+
 def reset():
 	"""reinitialze scene
 	
@@ -157,11 +165,11 @@ def reset():
 	import os, sys
 	shader_dir = os.path.dirname(__file__)
 	_program_id = llgr.next_program_id()
-	with open(os.path.join(shader_dir, "vertexShader150.txt")) as f:
+	with open(os.path.join(shader_dir, "vertexShader_%s.txt" % _glsl_version)) as f:
 		vertex_shader = f.read()
-	with open(os.path.join(shader_dir, "fragmentShader150.txt")) as f:
+	with open(os.path.join(shader_dir, "fragmentShader_%s.txt" % _glsl_version)) as f:
 		fragment_shader = f.read()
-	with open(os.path.join(shader_dir, "vertexPickShader150.txt")) as f:
+	with open(os.path.join(shader_dir, "vertexPickShader_%s.txt" % _glsl_version)) as f:
 		pick_vertex_shader = f.read()
 	llgr.create_program(_program_id, vertex_shader, fragment_shader,
 						pick_vertex_shader)

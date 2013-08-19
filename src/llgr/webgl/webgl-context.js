@@ -20,12 +20,12 @@ var ContextInfo;
 (function () {
 "use strict";
 
-ContextInfo = function (canvas, gl, render, url)
+ContextInfo = function (canvas, gl, render, data)
 {
-	this.canvas = canvas;
-	this.gl = gl;
-	this.render = render;
-	this.url = url;
+	this.canvas = canvas;		// HTML5 canvas
+	this.gl = gl;			// WebGL context
+	this.render = render;		// rendering callback
+	this.data = data;		// LLGR JSON, or URL to LLGR JSON
 	this.requestId = null;
 
 	var ci = this;	// for nested functions
@@ -54,12 +54,19 @@ ContextInfo = function (canvas, gl, render, url)
 
 	this.init = function () {
 		llgr.set_context(this.gl);
-		if (this.url == undefined) {
+		if (this.data == undefined) {
 			llgr.clear_all();
 			this.redraw();
 			return;
 		}
 
+		if (ci.data.constructor !== String) {
+			// assume ci.data is LLGR JSON data
+			llgr.load_json(ci.data);
+			return;
+		}
+
+		// assume ci.data is a URL
 		function handler() {
 			if (this.readyState != this.DONE) {
 				return;
@@ -76,7 +83,7 @@ ContextInfo = function (canvas, gl, render, url)
 		var client = new XMLHttpRequest();
 		client.overrideMimeType("application/json");
 		client.onreadystatechange = handler;
-		client.open("GET", ci.url);
+		client.open("GET", ci.data);
 		client.send();
 	};
 }

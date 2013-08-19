@@ -284,7 +284,9 @@ function _c2s_call_cb(data) {
 		for (var key in response)
 			output = output + "  " + key + ": "
 						+ response[key] + "\n";
-		// TODO: parse and redistribute data
+		// redistribute data
+		var callback = $c2_session._call_callbacks[response.id];
+		callback(response);
 		delete $c2_session._call_callbacks[response.id];
 	}
 	$("#debug").text(output);

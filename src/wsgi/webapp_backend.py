@@ -6,6 +6,8 @@ _debug_print("backend script started")
 
 def init_chimera2():
 	# TODO: put in separate file
+	from chimera2 import scene
+	scene.set_glsl_version('webgl')
 	import llgr
 	llgr.set_output('json')
 	import chimera2.io

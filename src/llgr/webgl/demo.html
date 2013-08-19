@@ -38,9 +38,9 @@
 
 <script type = "text/javascript">
 
-var main_ci;		// main canvas information
+var molview;		// molview context information
 
-function main()
+function molview()
 {
 	var canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
@@ -50,10 +50,10 @@ function main()
 	if (!gl)
 		return;
 
-	main_ci = new ContextInfo(canvas, gl, drawScene);
-	window.onresize = main_ci.redraw;
-	main_ci.init();
-	main_ci.redraw();
+	molview_ci = new ContextInfo(canvas, gl, drawScene);
+	window.onresize = molview_ci.redraw;
+	molview_ci.init();
+	molview_ci.redraw();
 }
 
 
@@ -71,11 +71,11 @@ function drawScene(ci)
 
 function load(url)
 {
-	main_ci.url = url;
-	main_ci.init();
+	molview_ci.data = url;
+	molview_ci.init();
 }
 
-window.onload = main;
+window.onload = molview;
 
 </script>
 </head>

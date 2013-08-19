@@ -1,27 +1,15 @@
-#version 120
+#version 100
 
 #ifdef GL_ES
 precision mediump float;
 #endif
 
-//#define USE_BUILTIN_MATRICES 1
-#define USE_BUILTIN_VERTEX 1
-
-#ifdef USE_BUILTIN_MATRICES
-#define ProjectionMatrix gl_ProjectionMatrix
-#define ModelViewMatrix gl_ModelViewMatrix
-#else
 uniform mat4 ProjectionMatrix;
 uniform mat4 ModelViewMatrix;
-#endif
 
 varying vec3 f_pickId;
 
-#ifdef USE_BUILTIN_VERTEX
-#define position gl_Vertex
-#else
 attribute vec4 position;
-#endif
 attribute vec4 pickId;
 attribute mat4 instanceTransform;
 attribute vec3 instanceScale;
