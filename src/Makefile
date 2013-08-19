@@ -11,4 +11,4 @@ SUBDIRS	+= chimera2 hydra llgr qt-app wsgi pdbio
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-qt-app.install: llgr.install chimera2.install shaders.install
+qt-app.install: llgr.install chimera2.install
