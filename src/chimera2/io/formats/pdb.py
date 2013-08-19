@@ -1,4 +1,4 @@
-from chimera2 import scene
+from chimera2 import UserError, scene
 from chimera2.math3d import Point, weighted_point
 
 _builtin_open = open
@@ -37,6 +37,18 @@ def open(stream, *args, **kw):
 
 	if input != stream:
 		input.close()
+
+def fetch(pdb_id):
+	# TODO: check in local cache
+
+	if len(pdb_id) != 4:
+		raise UserError("PDB identifiers are 4 characters long")
+	from urllib.request import URLError, urlopen
+	url = "http://www.rcsb.org/pdb/files/%s.pdb" % pdb_id.upper()
+	try:
+		return urlopen(url)
+	except URLError as e:
+		raise UserError(str(e))
 
 _element_colors = dict(enumerate([
 	[255, 255, 255], [217, 255, 255], [204, 128, 255], [194, 255, 0],
@@ -122,7 +134,7 @@ def register():
 		(".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
 		mime=("chemical/x-pdb", "chemical/x-spdbv"),
 		reference="http://wwpdb.org/docs.html#format",
-		open_func=open)
+		open_func=open, fetch_func=fetch)
 	io.register_format("CIF", io.STRUCTURE, (".cif"), ("cif", "cifID"),
 		mime=("chemical/x-cif"),
 		reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
