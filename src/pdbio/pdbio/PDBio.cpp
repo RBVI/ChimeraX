@@ -1220,7 +1220,7 @@ link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
 	}
 	aname = link.name[1];
 	canonicalize_atom_name(&aname, &m->asterisks_translated);
-	Atom *a2 = res1->find_atom(aname);
+	Atom *a2 = res2->find_atom(aname);
 	if (a2 == NULL) {
 		LOG_PY_ERROR_VOID("error: cannot find LINK atom " << aname << " in residue " << res2->str() << "\n");
 		return;
