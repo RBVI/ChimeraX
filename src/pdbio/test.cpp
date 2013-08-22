@@ -35,40 +35,6 @@ int main(int argc, char **argv)
 		Molecule::Atoms atoms = m->atoms();
 		Molecule::Bonds bonds = m->bonds();
 		Molecule::Residues residues = m->residues();
-#ifdef DEBUG_BONDS
-		std::map<std::string, int> num_res_bonds;
-		std::map<std::string, Residue *> exemplars;
-		for (Molecule::Residues::iterator ri = residues.begin(); ri != residues.end();
-		++ri) {
-			Residue *r = *ri;
-			int num_bonds = 0;
-			Residue::Atoms r_atoms = r->atoms();
-			for (Residue::Atoms::iterator rai = r_atoms.begin(); rai != r_atoms.end();
-			++rai) {
-				Atom *ra = *rai;
-				Atom::Bonds a_bonds = ra->bonds();
-				for (Atom::Bonds::iterator abi = a_bonds.begin(); abi != a_bonds.end();
-				++abi) {
-					Bond *b = *abi;
-					if (b->atoms()[0]->residue() == r && b->atoms()[1]->residue() == r) {
-						num_bonds++;
-					}
-				}
-			}
-			num_bonds /= 2;
-			if (exemplars.find(r->name()) == exemplars.end()) {
-				exemplars[r->name()] = r;
-				num_res_bonds[r->name()] = num_bonds;
-			} else {
-				if (num_res_bonds[r->name()] != num_bonds) {
-					std::cerr << "residue " << exemplars[r->name()]->str() << " has " <<
-						num_res_bonds[r->name()] << " bonds whereas " <<
-						r->str() << " has " << num_bonds << " bonds\n";
-					return -1;
-				}
-			}
-		}
-#endif  // DEBUG_BONDS
 		num_residues += residues.size();
 		num_atoms += atoms.size();
 		num_bonds += bonds.size();
