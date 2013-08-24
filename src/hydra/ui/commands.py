@@ -19,6 +19,8 @@ def register_commands():
     add_command('fitmap', fitcmd.fitmap_command)
     from ..molecule import align
     add_command('align', align.align_command)
+    from .. import scenes
+    add_command('scene', scenes.scene_command)
 
 # -----------------------------------------------------------------------------
 #

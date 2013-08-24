@@ -99,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_shortcut_icon('book.png', 'Show manual', 'mn')
         self.add_shortcut_icon('log.png', 'Show command log', 'lg')
         self.add_shortcut_icon('commands.png', 'Show command history', 'ch')
+        self.add_shortcut_icon('scenes.png', 'Show scenes', 'sc')
 
     def add_shortcut_icon(self, icon_file, descrip, shortcut):
 
