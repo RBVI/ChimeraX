@@ -89,6 +89,7 @@ def register_shortcuts(viewer):
         ('mn', show_manual, 'Show manual', gcat),
         ('lg', show_log, 'Show command log', gcat),
         ('ch', show_command_history, 'Show command history', gcat),
+        ('sc', show_scenes, 'Show scene thumbnails', gcat),
         ('rt', show_stats, 'Show model statistics', gcat),
         ('bm', matrix_profile, 'matrix profiling', gcat),
         )
@@ -454,6 +455,10 @@ def show_manual():
 def show_command_history():
     from . import commands
     commands.show_command_history()
+
+def show_scenes():
+    from .. import scenes
+    scenes.show_thumbnails(toggle = True)
 
 def show_stats():
     from .gui import main_window as mw, show_status
