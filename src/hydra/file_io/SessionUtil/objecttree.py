@@ -27,7 +27,7 @@
 # not been done since it is not currently needed.
 #
 import numpy
-basicTypes = (str, None.__class__, int, float, bool,
+basicTypes = (str, bytes, None.__class__, int, float, bool,
               numpy.integer, numpy.floating)
 def instance_tree_to_basic_tree(itree,
                                 already_converted = None,
