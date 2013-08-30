@@ -110,6 +110,71 @@ class Scene:
             self.image.save(self._image_path, iformat)
         return self._image_path
 
+    view_attributes = ('camera_view', 'field_of_view', 'near_far_clip', 'center_of_rotation')
+
+    def scene_state(self):
+
+        vstate = dict((attr, getattr(self,attr)) for attr in self.view_attributes)
+        vstate['camera_view'] = self.camera_view.matrix
+        from .file_io.SessionUtil import objecttree
+        maps = objecttree.instance_tree_to_basic_tree(self.map_states)
+        s = {
+            'id': self.id,
+            'description': self.description,
+            'image': image_as_string(self.image),
+            'view': vstate,
+            'molecules': self.molecule_states,
+            'maps': maps,
+         }
+        return s
+
+    def set_state(self, scene_state):
+
+        s = scene_state
+        self.id = s['id']
+        self.description = s['description']
+        self.image = string_to_image(s['image'])
+        va = s['view']
+        for attr in self.view_attributes:
+            setattr(self, attr, va[attr])
+        from .geometry.place import Place
+        self.camera_view = Place(va['camera_view'])
+        self.molecule_states = s['molecules']
+        maps = s['maps']
+        from .VolumeViewer import session
+        map_states = session.volume_manager_state_from_basic_tree(maps)
+        self.map_states = map_states
+
+def image_as_string(qimage, iformat = 'JPG'):
+
+    from .ui.qt import QtCore
+    ba = QtCore.QByteArray()
+    buf = QtCore.QBuffer(ba)
+    buf.open(QtCore.QIODevice.WriteOnly)
+    qimage.save(buf, iformat)
+    i = ba.data()
+    import base64
+    s = base64.b64encode(i)
+    return s
+
+def string_to_image(s, iformat = 'JPG'):
+
+    import base64
+    i = base64.b64decode(s)
+    from .ui.qt import QtCore, QtGui
+    ba = QtCore.QByteArray(i)
+    buf = QtCore.QBuffer(ba)
+    buf.open(QtCore.QIODevice.ReadOnly)
+    qi = QtGui.QImage()
+    qi.load(buf, iformat)
+    return qi
+
+def scene_from_state(scene_state):
+    st = scene_state
+    s = Scene(st['id'], st['description'])
+    s.set_state(st)
+    return s
+
 scene_thumbs = None
 def show_thumbnails(toggle = False):
     global scene_thumbs, scenes
@@ -119,6 +184,10 @@ def show_thumbnails(toggle = False):
         scene_thumbs.hide()
     else:
         scene_thumbs.show(scenes)
+
+def hide_thumbnails():
+    global scene_thumbs
+    scene_thumbs.hide()
 
 class Scene_Thumbnails:
 
@@ -183,3 +252,26 @@ def scene_thumbnails_html(scenes):
   lines.extend(['</table>', '</body>', '</html>'])
   html = '\n'.join(lines)
   return html
+
+def save_scenes(f, viewer):
+
+    global scenes
+    if len(scenes) == 0:
+        return
+
+    states = tuple(s.scene_state() for s in scenes)
+    
+    f.write("'scenes':(\n")
+    from .file_io.SessionUtil import objecttree
+    objecttree.write_basic_tree(states, f, indent = ' ')
+    f.write('),\n')
+
+def restore_scenes(d, viewer):
+
+    scene_states = d.get('scenes', [])
+    global scenes
+    scenes = [scene_from_state(s) for s in scene_states]
+    if len(scenes) == 0:
+        hide_thumbnails()
+    else:
+        show_thumbnails()
