@@ -59,8 +59,8 @@ class Scene:
         v = main_window.view
         self.camera_view = v.camera_view
         self.field_of_view = v.field_of_view
-        self.image_width = self.image_height = w = h = 128
-        self.image = v.image((w,h))         # QImage
+        w = h = 128
+        self.image = i = v.image((w,h))         # QImage
 
     def __delete__(self):
         if not hasattr(self, '_image_path'):
@@ -148,15 +148,17 @@ def scene_thumbnails_html(scenes):
            'table { float:left; }',             # Multiple image/caption tables per row.
            'td { font-size:large; }',
 #           'td { text-align:center; }',        # Does not work in Qt 5.0.2
-           '</style>', '</head>', '<body>']
+           '</style>', '</head>', '<body>',
+           '<table style="float:left;">', '<tr>',
+           ]
   for s in scenes:
-    lines.extend(['',
-                  '<a href="%d">' % s.id,
-                  '<table style="float:left;">',
-                  '<tr><td><img src="%s" width=%d height=%d>' % (s.image_path(), s.image_width, s.image_height),
-                  '<tr><td><center>%d</center>' % s.id,
-                  '</table>',
-                  '</a>'])
-  lines.extend(['</body>', '</html>'])
+      i = s.image
+      w,h = i.width(), i.height()
+      lines.append('<td valign=bottom><a href="%d"><img src="%s" width=%d height=%d></a>'
+                   % (s.id,s.image_path(), w, h))
+  lines.append('<tr>')
+  for s in scenes:
+      lines.append('<td><a href="%d"><center>%d</center></a>' % (s.id, s.id))
+  lines.extend(['</table>', '</body>', '</html>'])
   html = '\n'.join(lines)
   return html
