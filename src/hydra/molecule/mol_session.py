@@ -15,7 +15,7 @@ def molecule_state(m):
 def save_molecules(f, mlist):
     mstates = [molecule_state(m) for m in mlist]
     f.write("'molecules':(\n")
-    from ..SessionUtil import objecttree
+    from ..file_io.SessionUtil import objecttree
     objecttree.write_basic_tree(mstates, f, indent = ' ')
     f.write('),\n')
 
@@ -33,7 +33,6 @@ def restore_molecules(d, viewer):
             continue
         m = mlist[0]
         set_molecule_state(m, ms)
-        viewer.add_model(m)
     return True
 
 def set_molecule_state(m, ms):
