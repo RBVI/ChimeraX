@@ -4,7 +4,8 @@ def save_session(path, viewer):
   f.write("'version':2,\n")
   save_view(f, viewer)
   save_maps(f, viewer)
-  save_molecules(f, viewer)
+  from ..molecule import mol_session
+  mol_session.save_molecules(f, viewer.molecules())
   from . import read_stl
   read_stl.save_stl_surfaces(f, viewer)
   f.write('\n}\n')
@@ -22,7 +23,8 @@ def restore_session(path, viewer):
   viewer.close_all_models()
   restore_view(d, viewer)
   restore_maps(d, viewer)
-  restore_molecules(d, viewer)
+  from ..molecule import mol_session
+  mol_session.restore_molecules(d, viewer)
   from . import read_stl
   read_stl.restore_stl_surfaces(d, viewer)
   
@@ -87,53 +89,5 @@ def restore_maps(d, viewer):
   session.restore_volume_data_state(vds)
   from ..VolumeViewer.volume import volume_manager
   for m in volume_manager.data_regions:
-    viewer.add_model(m)
-  return True
-
-mol_attrs = ('path', 'show_atoms', 'atom_style',
-             'color_mode', 'show_ribbons', 'ribbon_radius',
-             'ball_scale')
-def save_molecules(f, viewer):
-  mstate = []
-  for m in viewer.molecules():
-    
-    ms = {'place':m.place.matrix}
-    for attr in mol_attrs:
-      ms[attr] = getattr(m,attr)
-    if m.copies:
-      ms['copies'] = tuple(c.matrix for c in m.copies)
-    if not m.bonds is None:
-      ms['has_bonds'] = True
-    mstate.append(ms)
-                 
-  f.write("'molecules':(\n")
-  from .SessionUtil import objecttree
-  for ms in mstate:
-    objecttree.write_basic_tree(ms, f, indent = ' ')
-    f.write(',\n')
-  f.write('),\n')
-
-def restore_molecules(d, viewer):
-  mstate = d.get('molecules')
-  if mstate is None:
-    return False
-  from .opensave import open_files
-  for ms in mstate:
-    p = ms['path']
-    mlist = open_files([p], set_camera = False)
-    if len(mlist) != 1:
-      from ..ui.gui import show_info
-      show_info('File %s unexpectedly contained %d models' % (len(mlist),))
-      continue
-    m = mlist[0]
-    from ..geometry.place import Place
-    m.place = Place(ms['place'])
-    m.copies = [Place(c) for c in ms.get('copies', [])]
-    for attr in mol_attrs:
-      if attr in ms:
-        setattr(m, attr, ms[attr])
-    if 'has_bonds' in ms and ms['has_bonds'] and m.bonds is None:
-      from ..molecule import connect
-      connect.create_molecule_bonds(m)
     viewer.add_model(m)
   return True
