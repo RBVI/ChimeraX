@@ -59,11 +59,17 @@ class Scene:
         v = main_window.view
         self.camera_view = v.camera_view
         self.field_of_view = v.field_of_view
+        self.near_far_clip = v.near_far_clip
+        self.center_of_rotation = v.center_of_rotation
+
         w = h = 128
         self.image = i = v.image((w,h))         # QImage
 
         from .molecule.mol_session import molecule_state
         self.molecule_states = tuple(molecule_state(m) for m in v.molecules())
+
+        from .VolumeViewer import session
+        self.map_states = session.map_states()
 
     def __delete__(self):
         if not hasattr(self, '_image_path'):
@@ -78,14 +84,19 @@ class Scene:
         v = main_window.view
         v.set_camera_view(self.camera_view)
         v.field_of_view = self.field_of_view
-
+        v.near_far_clip = self.near_far_clip
+        v.center_of_rotation = self.center_of_rotation
+        
         from .molecule.mol_session import set_molecule_state
         mids = dict((m.id, m) for m in v.molecules())
         for ms in self.molecule_states:
             m = mids.get(ms['id'])
             if m:
                 set_molecule_state(m, ms)
-        
+
+        from .VolumeViewer import session
+        session.restore_map_states(self.map_states)
+
         msg = 'Showing scene "%s"' % self.description if self.description else 'Showing scene %d' % self.id
         from .ui import gui        
         gui.show_status(msg)
