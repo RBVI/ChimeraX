@@ -44,7 +44,7 @@ def instance_tree_to_basic_tree(itree,
   elif isinstance(itree, (tuple, numpy.ndarray)):
     return tuple(it2bt(it) for it in itree)
   elif isinstance(itree, list):
-    return tuple(it2bt(it) for it in itree)
+    return list(it2bt(it) for it in itree)
   elif isinstance(itree, dict):
     d = {}
     for key, value in itree.items():
