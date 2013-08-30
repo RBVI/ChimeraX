@@ -3,7 +3,8 @@ def save_session(path, viewer):
   f.write('{\n')
   f.write("'version':2,\n")
   save_view(f, viewer)
-  save_maps(f, viewer)
+  from ..VolumeViewer import session
+  session.save_maps(f, viewer)
   from ..molecule import mol_session
   mol_session.save_molecules(f, viewer.molecules())
   from . import read_stl
@@ -22,7 +23,8 @@ def restore_session(path, viewer):
   d = ast.literal_eval(s)
   viewer.close_all_models()
   restore_view(d, viewer)
-  restore_maps(d, viewer)
+  from ..VolumeViewer import session
+  session.restore_maps(d, viewer)
   from ..molecule import mol_session
   mol_session.restore_molecules(d, viewer)
   from . import read_stl
@@ -64,30 +66,4 @@ def restore_view(d, viewer):
   cv = Place(vars['camera_view'])
   viewer.set_camera_view(cv)    # Set cached inverse matrix
 
-  return True
-
-def save_maps(f, viewer):
-  from ..VolumeViewer import session
-  s = session.Volume_Manager_State()
-  from ..VolumeViewer.volume import volume_manager
-  s.state_from_manager(volume_manager)
-  from os.path import dirname
-  directory = dirname(f.name)
-  if directory:
-      s.use_relative_paths(directory)
-  from .SessionUtil import objecttree
-  t = objecttree.instance_tree_to_basic_tree(s)
-  f.write("'volume_data_state':\n")
-  objecttree.write_basic_tree(t, f, indent = ' ')
-  f.write(',\n')
-
-def restore_maps(d, viewer):
-  vds = d.get('volume_data_state')
-  if vds is None:
-    return False
-  from ..VolumeViewer import session
-  session.restore_volume_data_state(vds)
-  from ..VolumeViewer.volume import volume_manager
-  for m in volume_manager.data_regions:
-    viewer.add_model(m)
   return True
