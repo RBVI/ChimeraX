@@ -293,6 +293,8 @@ def enable_exception_logging():
 def log_exception(type, value, traceback):
     from traceback import format_exception
     lines = format_exception(type, value, traceback)
-    tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(lines)
+    import cgi
+    elines = tuple(cgi.escape(line) for line in lines)
+    tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(elines)
     log_message(tb, html = True)
     show_log()
