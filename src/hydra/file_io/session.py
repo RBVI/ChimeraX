@@ -9,6 +9,8 @@ def save_session(path, viewer):
   mol_session.save_molecules(f, viewer.molecules())
   from . import read_stl
   read_stl.save_stl_surfaces(f, viewer)
+  from .. import scenes
+  scenes.save_scenes(f, viewer)
   f.write('\n}\n')
   f.close()
 
@@ -29,6 +31,8 @@ def restore_session(path, viewer):
   mol_session.restore_molecules(d, viewer)
   from . import read_stl
   read_stl.restore_stl_surfaces(d, viewer)
+  from .. import scenes
+  scenes.restore_scenes(d, viewer)
   
 view_parameters = (
   'camera_view',
