@@ -196,6 +196,8 @@ class Scene_Thumbnails:
         from .ui.gui import main_window
         from .ui.qt import QtWidgets
         self.dock_widget = dw = QtWidgets.QDockWidget('Scenes', main_window)
+        dw.setTitleBarWidget(QtWidgets.QWidget(dw))   # No title bar
+        dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
 
         self.text = e = QtWidgets.QTextBrowser(dw)          # Handle clicks on anchors
         dw.setWidget(e)
