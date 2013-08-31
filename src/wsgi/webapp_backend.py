@@ -4,8 +4,21 @@ def _debug_print(s):
 		print("backend", ctime(), s, file=f)
 _debug_print("backend script started")
 
+#
+# Main chimera2 code
+#
+
+client_state = {}
+
 def init_chimera2():
-	# TODO: put in separate file
+	# initialize chimera2 internals
+	#   -- setup graphics to generate JSON
+	#   -- register all commands
+	#
+	# Individual commands return a list of [tag, tag_data] pairs.
+	# Supported tags include:
+	#	"llgr"	-- for llgr JSON format data
+	#	...
 	from chimera2 import scene
 	scene.set_glsl_version('webgl')
 	import llgr
@@ -13,8 +26,12 @@ def init_chimera2():
 	import chimera2.io
 	chimera2.io.initialize_formats()
 	from chimera2 import cmds
+	cmds.register('ext', cmd_exit)
 	cmds.register('open', cmd_open)
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
+
+def cmd_exit(status: int=0):
+	raise SystemExit(status)
 
 def cmd_open(filename):
 	from chimera2 import scene
@@ -26,7 +43,9 @@ def cmd_open(filename):
 		return ["error", str(e)]
 	from math import radians
 	from chimera2.math3d import Identity
-	return ['json', scene.render((0, 0, 200, 200), radians(30), Identity(), as_string=True)]
+	fov = radians(30)
+	viewport = (0, 0, 200, 200)
+	return [['llgr', scene.render(viewport, fov, Identity(), as_string=True)]]
 
 def process_command(text):
 	from chimera2 import cmds
@@ -55,15 +74,26 @@ class Backend(Server):
 		self.session_name = sys.argv[2]
 		self.log = open("/tmp/chimera2_backend.log", "w")
 		self.set_log(self.log)
+		self.register_handler("client_state", self._client_state_handler)
 		self.register_handler("command", self._command_handler)
 		init_chimera2()
 
+	def _client_state_handler(self, value):
+		# value is a dictionary
+		_debug_print("client state handler: %s: %s" % (type(value), value))
+		client_state.update(value)
+		answer = {
+			"status": True		# Success!
+		}
+		return answer
+
 	def _command_handler(self, value):
 		_debug_print("command handler: %s: %s" % (type(value), value))
-		answer = dict()
-		answer["status"] = True		# Success!
-		answer["stdout"] = str(value)
-		answer["client_data"] = process_command(value)
+		answer = {
+			"status": True,		# Success!
+			"stdout": str(value),
+			"client_data": process_command(value)
+		}
 		if answer["client_data"][0] == "error":
 			answer["status"] = False
 		return answer

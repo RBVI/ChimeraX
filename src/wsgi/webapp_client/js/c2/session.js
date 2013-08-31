@@ -2,9 +2,143 @@
 // Session Dialog functions
 // --------------------------------------------------------------------
 
+// public API
+var $c2_session = {};
+
+(function() {
+"use strict";
+
+// --------------------------------------------------------------------
+// Functions for communicating with server
+// --------------------------------------------------------------------
+
+function init(url) {
+	$c2_session.server.url = url;
+}
+
+function list_sessions(cb) {
+	// Retrieve list of sessions from server
+	if ($c2_session.server.url === null) {
+		alert("Session module is uninitialized.");
+		return;
+	}
+	var data = {
+		action: "jlist",
+	}
+	return $.getJSON($c2_session.server.url, data).done(cb);
+}
+
+function create_session(session, password, cb) {
+	// Create session on server
+	if ($c2_session.server.url === null) {
+		alert("Session module is uninitialized.");
+		return;
+	}
+	var data = {
+		action: "create",
+		session: session,
+		password: password,
+	}
+	return $.get($c2_session.server.url, data).done(cb);
+}
+
+function delete_session(session, password, cb) {
+	// Create session on server
+	if ($c2_session.server.url === null) {
+		alert("Session module is uninitialized.");
+		return;
+	}
+	var data = {
+		action: "delete",
+		session: session,
+		password: password,
+	}
+	return $.get($c2_session.server.url, data).done(cb);
+}
+
+var call_id = 1;		// monotonically increasing id
+var call_callbacks = {};	//
+
+function call(session, password, tag, tag_data, state, cb) {
+	// Send tag and associated data to server
+	if ($c2_session.server.url === null) {
+		alert("Session module is uninitialized.");
+		return;
+	}
+	var cid = call_id;
+	var call_data = [];
+	if (state) {
+		call_id = cid + 1;
+		call_data.push([ cid, "client_state", state ]);
+		cid += 1;
+	}
+	call_id = cid + 1;
+	call_data.push([ cid, tag, tag_data ]);
+	// alert("call: " + JSON.stringify(call_data));
+	call_callbacks[cid] = cb;
+	function clear_callback() {
+		alert("getJSON failed");
+		delete call_callbacks[cid];
+	}
+	var data = {
+		action: "call",
+		session: session,
+		password: password,
+		command: JSON.stringify(call_data),
+	}
+	return $.getJSON($c2_session.server.url, data)
+			.done(call_cb)
+			.fail(clear_callback);
+}
+
+function call_cb(data) {
+	// TODO: be able to toggle debug output
+	var output = JSON.stringify(data) + "\n";
+	for (var index in data) {
+		output = output + "Response " + index + "\n";
+		var response = data[index];
+		for (var key in response)
+			output = output + "  " + key + ": "
+						+ response[key] + "\n";
+		// redistribute data
+		var callback = call_callbacks[response.id];
+		if (callback !== undefined)
+			callback(response);
+		delete call_callbacks[response.id];
+	}
+	$("#debug").text(output);
+}
+
+// --------------------------------------------------------------------
+// Public API
+// --------------------------------------------------------------------
+
+$c2_session = {
+	// Server API
+	server: {
+		url: null,
+		init: init,
+		list_sessions: list_sessions,
+		create_session: create_session,
+		delete_session: delete_session,
+		call: call,
+	},
+};
+
+}());
+
+(function() {
+"use strict";
+
+// --------------------------------------------------------------------
+// Functions for building user interface
+// --------------------------------------------------------------------
+
+// c2sd stands for Chimera2 Session Dialog
+
 function _c2sd_init(url) {
 	// initialize user interface (session button and dialog)
-	_c2s_init(url);
+	$c2_session.server.init(url);
 
 	// initialize public data elements
 	$c2_session.user = "";
@@ -27,9 +161,7 @@ function _c2sd_init(url) {
 		position: {
 			my: "left top",
 			at: "left top",
-			of: d,
-		},
-		title: "Select Session",
+			of: d, }, title: "Select Session",
 		buttons: {
 			Select: _c2sd_select_session,
 			Create: _c2sd_create_session,
@@ -46,7 +178,7 @@ function _c2sd_init(url) {
 	_c2sd_update_session_list();
 }
 
-_c2sd_content =
+var _c2sd_content =
 '<table>' +
 '<tr><th align="right">User:</th>' +
 	'<td><input id="c2sd_user" type="text"/></td></tr>' +
@@ -94,7 +226,7 @@ function _c2sd_create_session() {
 	var session = $("#c2sd_session").val();
 	var password = $("#c2sd_password").val();
 	_c2sd_button("Create", "disable");
-	_c2s_create_session(session, password, _c2sd_create_session_cb);
+	$c2_session.server.create_session(session, password, _c2sd_create_session_cb);
 }
 
 function _c2sd_create_session_cb() {
@@ -115,7 +247,7 @@ function _c2sd_delete_session() {
 	var session = $("#c2sd_session").val();
 	var password = $("#c2sd_password").val();
 	_c2sd_button("Delete", "disable");
-	_c2s_delete_session(session, password, _c2sd_create_session_cb);
+	$c2_session.server.delete_session(session, password, _c2sd_create_session_cb);
 }
 
 function _c2sd_delete_session_cb() {
@@ -129,7 +261,7 @@ function _c2sd_delete_session_cb() {
 function _c2sd_update_session_list() {
 	// disable button and initiate AJAX to update list
 	$("#c2s_button").attr("disabled", true);
-	_c2s_list_sessions(_c2sd_update_cb)
+	$c2_session.server.list_sessions(_c2sd_update_cb)
 }
 
 function _c2sd_existing_session(name) {
@@ -208,115 +340,8 @@ function _c2sd_session_cb() {
 	}
 }
 
-// --------------------------------------------------------------------
-// Functions for communicating with server
-// --------------------------------------------------------------------
-
-function _c2s_init(url) {
-	$c2_session.server.url = url;
-}
-
-function _c2s_list_sessions(cb) {
-	// Retrieve list of sessions from server
-	if ($c2_session.server.url == "") {
-		alert("Session module is uninitialized.");
-		return;
-	}
-	var data = {
-		action: "jlist",
-	}
-	return $.getJSON($c2_session.server.url, data, cb);
-}
-
-function _c2s_create_session(session, password, cb) {
-	// Create session on server
-	if ($c2_session.server.url == "") {
-		alert("Session module is uninitialized.");
-		return;
-	}
-	var data = {
-		action: "create",
-		session: session,
-		password: password,
-	}
-	return $.get($c2_session.server.url, data, cb);
-}
-
-function _c2s_delete_session(session, password, cb) {
-	// Create session on server
-	if ($c2_session.server.url == "") {
-		alert("Session module is uninitialized.");
-		return;
-	}
-	var data = {
-		action: "delete",
-		session: session,
-		password: password,
-	}
-	return $.get($c2_session.server.url, data, cb);
-}
-
-function _c2s_call(session, password, tag, tag_data, cb) {
-	var cid = $c2_session._call_id;
-	$c2_session._call_id = cid + 1;
-	var call_data = [ [ cid, tag, tag_data ] ];
-	// alert("_c2s_call: " + JSON.stringify(call_data));
-	$c2_session._call_callbacks[cid] = cb;
-	function clear_callback() {
-		alert("getJSON failed");
-		delete $c2_session._call_callbacks[cid];
-	}
-	var data = {
-		action: "call",
-		session: session,
-		password: password,
-		command: JSON.stringify(call_data),
-	}
-	return $.getJSON($c2_session.server.url, data, _c2s_call_cb)
-			.error(clear_callback);
-}
-
-function _c2s_call_cb(data) {
-	output = JSON.stringify(data) + "\n";
-	for (var index in data) {
-		output = output + "Response " + index + "\n";
-		response = data[index];
-		for (var key in response)
-			output = output + "  " + key + ": "
-						+ response[key] + "\n";
-		// redistribute data
-		var callback = $c2_session._call_callbacks[response.id];
-		callback(response);
-		delete $c2_session._call_callbacks[response.id];
-	}
-	$("#debug").text(output);
-}
-
-// --------------------------------------------------------------------
-// Higher level functions for communicating with server
-// --------------------------------------------------------------------
-
-function _c2s_command(data, cb) {
-	_c2s_call($c2_session.session, $c2_session.password,
-			"command", data, cb);
-}
-
-// --------------------------------------------------------------------
-// Public API
-// --------------------------------------------------------------------
-
-$c2_session = {
-	// Server API
-	server: {
-		url: "",
-		init: _c2s_init,
-		list_sessions: _c2s_list_sessions,
-		create_session: _c2s_create_session,
-		delete_session: _c2s_delete_session,
-		call: _c2s_call,
-	},
-
-	// User interface API
+$.extend($c2_session, {
+	// Session User interface API
 
 	// Public attributes
 	user: "",
@@ -324,11 +349,40 @@ $c2_session = {
 	password: "",
 	session_list: [],
 
-	// Private attributes
-	_call_id: 1,
-	_call_callbacks: {},
-
 	// Public functions
-	init: _c2sd_init,
-	command: _c2s_command,
+	ui_init: _c2sd_init,		// also initializes server part
+});
+
+}());
+
+(function() {
+
+// --------------------------------------------------------------------
+// Higher level functions for communicating with server
+// --------------------------------------------------------------------
+
+var state = {};
+
+function set_state(key, value) {
+console.log('set_state', key, value);
+	// set state that should be saved when command is sent to server
+	state[key] = value;
 }
+
+function send_command(data, cb) {
+	// send command line to server
+	$c2_session.server.call($c2_session.session, $c2_session.password,
+			"command", data, state, cb);
+}
+
+// --------------------------------------------------------------------
+// Public API
+// --------------------------------------------------------------------
+
+$.extend($c2_session, {
+	// User interface API
+	send_command: send_command,
+	set_state: set_state,
+});
+
+}());
