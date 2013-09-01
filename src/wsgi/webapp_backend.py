@@ -26,7 +26,7 @@ def init_chimera2():
 	import chimera2.io
 	chimera2.io.initialize_formats()
 	from chimera2 import cmds
-	cmds.register('ext', cmd_exit)
+	cmds.register('exit', cmd_exit)
 	cmds.register('open', cmd_open)
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
 
@@ -102,7 +102,7 @@ _debug_print("__name__ %s" % __name__)
 if __name__ == "__main__":
 	try:
 		Backend().run()
-	except:
+	except BaseException:
 		import traceback
 		with open("/tmp/chimera2_debug.log", "a") as f:
 			traceback.print_exc(file=f)
