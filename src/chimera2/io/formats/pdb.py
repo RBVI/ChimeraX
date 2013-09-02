@@ -39,14 +39,17 @@ def open(stream, *args, **kw):
 		input.close()
 
 def fetch(pdb_id):
-	# TODO: check in local cache
-
 	if len(pdb_id) != 4:
 		raise UserError("PDB identifiers are 4 characters long")
-	from urllib.request import URLError, urlopen
+	# TODO: check in local cache
+	from urllib.request import URLError, Request, urlopen
 	url = "http://www.rcsb.org/pdb/files/%s.pdb" % pdb_id.upper()
+	# TODO: get application name and version for User-Agent
+	request = Request(url, headers={
+		"User-Agent": "UCSF-Chimera2/0.1",
+	})
 	try:
-		return urlopen(url)
+		return urlopen(request)
 	except URLError as e:
 		raise UserError(str(e))
 

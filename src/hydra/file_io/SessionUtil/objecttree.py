@@ -27,7 +27,7 @@
 # not been done since it is not currently needed.
 #
 import numpy
-basicTypes = (str, None.__class__, int, float, bool,
+basicTypes = (str, bytes, None.__class__, int, float, bool,
               numpy.integer, numpy.floating)
 def instance_tree_to_basic_tree(itree,
                                 already_converted = None,
@@ -44,7 +44,7 @@ def instance_tree_to_basic_tree(itree,
   elif isinstance(itree, (tuple, numpy.ndarray)):
     return tuple(it2bt(it) for it in itree)
   elif isinstance(itree, list):
-    return tuple(it2bt(it) for it in itree)
+    return list(it2bt(it) for it in itree)
   elif isinstance(itree, dict):
     d = {}
     for key, value in itree.items():

@@ -450,6 +450,6 @@ def planes_arg(planes):
 #
 def camel_case_to_underscores(s):
 
-    from string import uppercase
-    su = ''.join([('_' + c.lower() if c in uppercase else c) for c in s])
+    from string import ascii_uppercase
+    su = ''.join([('_' + c.lower() if c in ascii_uppercase else c) for c in s])
     return su

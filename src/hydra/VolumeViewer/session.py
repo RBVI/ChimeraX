@@ -1,7 +1,48 @@
 # -----------------------------------------------------------------------------
 # Save and restore volume viewer state.
 #
-  
+
+def map_states():
+  s = Volume_Manager_State()
+  from .volume import volume_manager
+  s.state_from_manager(volume_manager)
+  return s
+
+# -----------------------------------------------------------------------------
+#
+def save_maps(f, viewer):
+  s = map_states()
+  from os.path import dirname
+  directory = dirname(f.name)
+  if directory:
+      s.use_relative_paths(directory)
+  from ..file_io.SessionUtil import objecttree
+  t = objecttree.instance_tree_to_basic_tree(s)
+  f.write("'volume_data_state':\n")
+  objecttree.write_basic_tree(t, f, indent = ' ')
+  f.write(',\n')
+
+# -----------------------------------------------------------------------------
+#
+def restore_maps(d, viewer):
+  vds = d.get('volume_data_state')
+  if vds is None:
+    return False
+  restore_volume_data_state(vds)
+  from .volume import volume_manager
+  for m in volume_manager.data_regions:
+    viewer.add_model(m)
+  return True
+
+# -----------------------------------------------------------------------------
+# Maps are already open.  Restore attributes for a scene.
+#
+def restore_map_states(vms):
+  vms.set_attributes()
+  from .volume import volume_list
+  for v in volume_list():
+    v.update_display()
+
 # -----------------------------------------------------------------------------
 # Saves volume dialog state, but not data regions.
 #
@@ -861,6 +902,10 @@ class Region_List_State:
     for attr in self.state_attributes:
       if hasattr(self, attr) and attr != 'version':
         setattr(region_list, attr, getattr(self, attr))
+
+    # TODO: this code fixes bad session files that wrote out region list as tuple
+    if isinstance(region_list.region_list, tuple):
+      region_list.region_list = list(region_list.region_list)
 
 # -----------------------------------------------------------------------------
 #

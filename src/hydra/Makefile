@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra
 APPS_DIR = $(build_prefix)/Applications
 
-PYSRCS = __init__.py molmap.py surface.py \
+PYSRCS = __init__.py molmap.py scenes.py surface.py \
 	 draw file_io FitMap geometry molecule ui VolumeData VolumeViewer
 PYLIBS = _image3d/_image3d.so
 

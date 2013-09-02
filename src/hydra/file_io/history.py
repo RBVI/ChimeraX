@@ -117,7 +117,7 @@ def make_html(hlist):
     lines.extend(['',
                   '<a href="%s">' % spath,
                   '<table style="float:left;">',
-                  '<tr><td><img src="%s" width=180 height=180 onClick="alert(\'boo\')">' % ipath,
+                  '<tr><td><img src="%s" height=180>' % ipath,
                   '<tr><td><center>%s</center>' % sname,
                   '</table>',
                   '</a>'])

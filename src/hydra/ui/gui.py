@@ -99,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_shortcut_icon('book.png', 'Show manual', 'mn')
         self.add_shortcut_icon('log.png', 'Show command log', 'lg')
         self.add_shortcut_icon('commands.png', 'Show command history', 'ch')
+        self.add_shortcut_icon('scenes.png', 'Show scenes', 'sc')
 
     def add_shortcut_icon(self, icon_file, descrip, shortcut):
 
@@ -292,6 +293,8 @@ def enable_exception_logging():
 def log_exception(type, value, traceback):
     from traceback import format_exception
     lines = format_exception(type, value, traceback)
-    tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(lines)
+    import cgi
+    elines = tuple(cgi.escape(line) for line in lines)
+    tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(elines)
     log_message(tb, html = True)
     show_log()
