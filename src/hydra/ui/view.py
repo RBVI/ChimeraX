@@ -124,6 +124,10 @@ class View(QtOpenGL.QGLWidget):
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         if not size is None:
             sw,sh = size
+            if sw*h < sh*w:
+                sh = max(1,(h*sw)/w)
+            elif sw*h > sh*w:
+                sw = max(1,(w*sh)/h)
             qi = qi.scaled(sw, sh, QtCore.Qt.KeepAspectRatio,
                            QtCore.Qt.SmoothTransformation)
         return qi

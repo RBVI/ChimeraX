@@ -59,8 +59,17 @@ class Scene:
         v = main_window.view
         self.camera_view = v.camera_view
         self.field_of_view = v.field_of_view
-        self.image_width = self.image_height = w = h = 128
-        self.image = v.image((w,h))         # QImage
+        self.near_far_clip = v.near_far_clip
+        self.center_of_rotation = v.center_of_rotation
+
+        w = h = 128
+        self.image = i = v.image((w,h))         # QImage
+
+        from .molecule.mol_session import molecule_state
+        self.molecule_states = tuple(molecule_state(m) for m in v.molecules())
+
+        from .VolumeViewer import session
+        self.map_states = session.map_states()
 
     def __delete__(self):
         if not hasattr(self, '_image_path'):
@@ -75,7 +84,19 @@ class Scene:
         v = main_window.view
         v.set_camera_view(self.camera_view)
         v.field_of_view = self.field_of_view
+        v.near_far_clip = self.near_far_clip
+        v.center_of_rotation = self.center_of_rotation
         
+        from .molecule.mol_session import set_molecule_state
+        mids = dict((m.id, m) for m in v.molecules())
+        for ms in self.molecule_states:
+            m = mids.get(ms['id'])
+            if m:
+                set_molecule_state(m, ms)
+
+        from .VolumeViewer import session
+        session.restore_map_states(self.map_states)
+
         msg = 'Showing scene "%s"' % self.description if self.description else 'Showing scene %d' % self.id
         from .ui import gui        
         gui.show_status(msg)
@@ -89,6 +110,71 @@ class Scene:
             self.image.save(self._image_path, iformat)
         return self._image_path
 
+    view_attributes = ('camera_view', 'field_of_view', 'near_far_clip', 'center_of_rotation')
+
+    def scene_state(self):
+
+        vstate = dict((attr, getattr(self,attr)) for attr in self.view_attributes)
+        vstate['camera_view'] = self.camera_view.matrix
+        from .file_io.SessionUtil import objecttree
+        maps = objecttree.instance_tree_to_basic_tree(self.map_states)
+        s = {
+            'id': self.id,
+            'description': self.description,
+            'image': image_as_string(self.image),
+            'view': vstate,
+            'molecules': self.molecule_states,
+            'maps': maps,
+         }
+        return s
+
+    def set_state(self, scene_state):
+
+        s = scene_state
+        self.id = s['id']
+        self.description = s['description']
+        self.image = string_to_image(s['image'])
+        va = s['view']
+        for attr in self.view_attributes:
+            setattr(self, attr, va[attr])
+        from .geometry.place import Place
+        self.camera_view = Place(va['camera_view'])
+        self.molecule_states = s['molecules']
+        maps = s['maps']
+        from .VolumeViewer import session
+        map_states = session.volume_manager_state_from_basic_tree(maps)
+        self.map_states = map_states
+
+def image_as_string(qimage, iformat = 'JPG'):
+
+    from .ui.qt import QtCore
+    ba = QtCore.QByteArray()
+    buf = QtCore.QBuffer(ba)
+    buf.open(QtCore.QIODevice.WriteOnly)
+    qimage.save(buf, iformat)
+    i = ba.data()
+    import base64
+    s = base64.b64encode(i)
+    return s
+
+def string_to_image(s, iformat = 'JPG'):
+
+    import base64
+    i = base64.b64decode(s)
+    from .ui.qt import QtCore, QtGui
+    ba = QtCore.QByteArray(i)
+    buf = QtCore.QBuffer(ba)
+    buf.open(QtCore.QIODevice.ReadOnly)
+    qi = QtGui.QImage()
+    qi.load(buf, iformat)
+    return qi
+
+def scene_from_state(scene_state):
+    st = scene_state
+    s = Scene(st['id'], st['description'])
+    s.set_state(st)
+    return s
+
 scene_thumbs = None
 def show_thumbnails(toggle = False):
     global scene_thumbs, scenes
@@ -99,6 +185,10 @@ def show_thumbnails(toggle = False):
     else:
         scene_thumbs.show(scenes)
 
+def hide_thumbnails():
+    global scene_thumbs
+    scene_thumbs.hide()
+
 class Scene_Thumbnails:
 
     def __init__(self):
@@ -106,6 +196,8 @@ class Scene_Thumbnails:
         from .ui.gui import main_window
         from .ui.qt import QtWidgets
         self.dock_widget = dw = QtWidgets.QDockWidget('Scenes', main_window)
+        dw.setTitleBarWidget(QtWidgets.QWidget(dw))   # No title bar
+        dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
 
         self.text = e = QtWidgets.QTextBrowser(dw)          # Handle clicks on anchors
         dw.setWidget(e)
@@ -148,15 +240,40 @@ def scene_thumbnails_html(scenes):
            'table { float:left; }',             # Multiple image/caption tables per row.
            'td { font-size:large; }',
 #           'td { text-align:center; }',        # Does not work in Qt 5.0.2
-           '</style>', '</head>', '<body>']
+           '</style>', '</head>', '<body>',
+           '<table style="float:left;">', '<tr>',
+           ]
   for s in scenes:
-    lines.extend(['',
-                  '<a href="%d">' % s.id,
-                  '<table style="float:left;">',
-                  '<tr><td><img src="%s" width=%d height=%d>' % (s.image_path(), s.image_width, s.image_height),
-                  '<tr><td><center>%d</center>' % s.id,
-                  '</table>',
-                  '</a>'])
-  lines.extend(['</body>', '</html>'])
+      i = s.image
+      w,h = i.width(), i.height()
+      lines.append('<td valign=bottom><a href="%d"><img src="%s" width=%d height=%d></a>'
+                   % (s.id,s.image_path(), w, h))
+  lines.append('<tr>')
+  for s in scenes:
+      lines.append('<td><a href="%d"><center>%d</center></a>' % (s.id, s.id))
+  lines.extend(['</table>', '</body>', '</html>'])
   html = '\n'.join(lines)
   return html
+
+def save_scenes(f, viewer):
+
+    global scenes
+    if len(scenes) == 0:
+        return
+
+    states = tuple(s.scene_state() for s in scenes)
+    
+    f.write("'scenes':(\n")
+    from .file_io.SessionUtil import objecttree
+    objecttree.write_basic_tree(states, f, indent = ' ')
+    f.write('),\n')
+
+def restore_scenes(d, viewer):
+
+    scene_states = d.get('scenes', [])
+    global scenes
+    scenes = [scene_from_state(s) for s in scene_states]
+    if len(scenes) == 0:
+        hide_thumbnails()
+    else:
+        show_thumbnails()
