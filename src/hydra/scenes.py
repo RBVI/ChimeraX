@@ -187,7 +187,8 @@ def show_thumbnails(toggle = False):
 
 def hide_thumbnails():
     global scene_thumbs
-    scene_thumbs.hide()
+    if scene_thumbs:
+        scene_thumbs.hide()
 
 class Scene_Thumbnails:
 
