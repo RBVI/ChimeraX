@@ -491,8 +491,6 @@ computeBuiltins(ClassInfo *ci, DeclSet *visited)
 	// look for type methods
 	// print method
 	ci->print = computeOstreamOperator(ci->cd);
-	// compare method
-	binOp(ci->cd, "operator<", "bool", &ci->compare, visited);
 	// TODO: repr method
 	// hash method
 	fd = findGetFunc(ci, Symbol("hash"));

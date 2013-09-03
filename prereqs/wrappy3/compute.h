@@ -73,7 +73,7 @@ struct ClassInfo {
 	MethodMap	constructors;
 	// Python type methods
 	bool		print;
-	MethodMap	compare, hash;
+	MethodMap	hash;
 	MethodMap	call, repr, str;
 	// Use copy constructor to support copy module.
 	MethodMap	copy;
