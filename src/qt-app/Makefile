@@ -1,6 +1,11 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
+SUPPRESSIONS=$(wildcard $(tmpdir)/Python-*/Misc/valgrind-python.supp)
+VALGRIND = valgrind --tool=memcheck --error-limit=no --track-origins=yes \
+	   --num-callers=30 --gen-suppressions=all \
+	   --suppressions=$(SUPPRESSIONS)
+
 all:
 
 install:
@@ -13,6 +18,10 @@ run:
 run-python:
 	# by running within make, the right environment variables are setup
 	$(bindir)/python3
+
+run-valgrind:
+	@echo "==== Edit suppressions file to suppress more Python errors ===="
+	$(VALGRIND) $(bindir)/python3 chimera2_main.py
 
 nogui:
 	# by running within make, the right environment variables are setup

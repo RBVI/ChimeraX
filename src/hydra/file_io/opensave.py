@@ -113,9 +113,11 @@ def save_session(view):
         session.save_session(last_session_path, view)
 
 def save_session_as(view):
+    global last_session_path
+    dir = '.' if last_session_path is None else last_session_path
     filters = 'Session (*.mo)'
-    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session', '.',
-                                             filters)
+    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session',
+                                                 dir, filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt
     if not path:

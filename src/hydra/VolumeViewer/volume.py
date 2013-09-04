@@ -230,6 +230,8 @@ class Volume(Surface):
                model_id = None, open_model = True, message_cb = None):
 
     Surface.__init__(self, data.name)
+    if not model_id is None:
+      self.id = model_id
 
     self.data = data
     data.add_change_callback(self.data_changed_cb)
