@@ -213,7 +213,7 @@ def show_all_planes(m):
 
 def toggle_orthoplanes(m):
   s = False in m.rendering_options.orthoplanes_shown
-  p = tuple(s/2 for s in m.data.size)
+  p = tuple(s//2 for s in m.data.size)
   m.set_parameters(orthoplanes_shown = (s,s,s),
                    orthoplane_positions = p,
                    color_mode = 'l8' if s else 'auto8',
