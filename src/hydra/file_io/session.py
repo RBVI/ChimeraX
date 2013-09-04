@@ -1,22 +1,18 @@
+# -----------------------------------------------------------------------------
+#
 def save_session(path, viewer):
+
+  s = session_state(viewer, path)
   f = open(path, 'w')
-  f.write('{\n')
-  f.write("'version':2,\n")
-  save_view(f, viewer)
-  from ..VolumeViewer import session
-  session.save_maps(f, viewer)
-  from ..molecule import mol_session
-  mol_session.save_molecules(f, viewer.molecules())
-  from . import read_stl
-  read_stl.save_stl_surfaces(f, viewer)
-  from .. import scenes
-  scenes.save_scenes(f, viewer)
-  f.write('\n}\n')
+  from ..file_io.SessionUtil import objecttree
+  objecttree.write_basic_tree(s, f)
   f.close()
 
   from . import history
   history.save_history(path, viewer)
 
+# -----------------------------------------------------------------------------
+#
 def restore_session(path, viewer):
   f = open(path, 'r')
   s = f.read()
@@ -24,16 +20,74 @@ def restore_session(path, viewer):
   import ast
   d = ast.literal_eval(s)
   viewer.close_all_models()
-  restore_view(d, viewer)
+
+  set_session_state(d, viewer)
+
+# -----------------------------------------------------------------------------
+#
+def session_state(viewer, rel_path = None, attributes_only = False):
+
+  s = {'version': 2,
+       'view': view_state(viewer),
+  }
+
   from ..VolumeViewer import session
-  session.restore_maps(d, viewer)
-  from ..molecule import mol_session
-  mol_session.restore_molecules(d, viewer)
-  from . import read_stl
-  read_stl.restore_stl_surfaces(d, viewer)
-  from .. import scenes
-  scenes.restore_scenes(d, viewer)
-  
+  vs = session.map_states(rel_path)
+  if vs:
+    s['volumes'] = vs
+
+  mlist = viewer.molecules()
+  if mlist:
+    from ..molecule import mol_session
+    s['molecules'] = tuple(mol_session.molecule_state(m) for m in mlist)
+
+  from .read_stl import STL_Surface
+  slist = tuple(m.session_state() for m in viewer.models
+                if isinstance(m, STL_Surface))
+  if slist:
+    s['stl surfaces'] = slist
+
+  if not attributes_only:
+    from .. import scenes
+    ss = scenes.scene_state()
+    if ss:
+      s['scenes'] = ss
+
+  return s
+
+# -----------------------------------------------------------------------------
+#
+def set_session_state(s, viewer, attributes_only = False):
+
+  if 'view' in s:
+    restore_view(s['view'], viewer)
+
+  if 'volumes' in s:
+    from ..VolumeViewer import session
+    session.restore_maps(s['volumes'], viewer, attributes_only)
+
+  if 'molecules' in s:
+    from ..molecule import mol_session
+    mol_session.restore_molecules(s['molecules'], viewer, attributes_only)
+
+  if 'stl surfaces' in s:
+    from . import read_stl
+    read_stl.restore_stl_surfaces(s['stl surfaces'], viewer, attributes_only)
+
+  if not attributes_only:
+    scene_states = s.get('scenes', [])
+    from .. import scenes
+    scenes.restore_scenes(scene_states, viewer)
+
+# -----------------------------------------------------------------------------
+#
+def scene_state(viewer):
+  return session_state(viewer, attributes_only = True)
+def restore_scene(s, viewer):
+  set_session_state(s, viewer, attributes_only = True)
+
+# -----------------------------------------------------------------------------
+#
 view_parameters = (
   'camera_view',
   'field_of_view',
@@ -50,24 +104,22 @@ view_parameters = (
   'ambient_light_color',
   )
 
-def save_view(file, viewer):
+# -----------------------------------------------------------------------------
+#
+def view_state(viewer):
   v = dict((name,getattr(viewer,name)) for name in view_parameters)
   v['camera_view'] = viewer.camera_view.matrix
-  file.write("'view':\n")
-  from .SessionUtil import objecttree
-  objecttree.write_basic_tree(v, file, indent = ' ')
-  file.write(',\n')
+  return v
 
-def restore_view(d, viewer):
-  vars = d.get('view')
-  if vars is None:
-    return False
+# -----------------------------------------------------------------------------
+#
+def restore_view(vs, viewer):
   exclude = set(('window_size', 'camera_view'))
   for name in view_parameters:
-    if name in vars and not name in exclude:
-      setattr(viewer, name, vars[name])
+    if name in vs and not name in exclude:
+      setattr(viewer, name, vs[name])
   from ..geometry.place import Place
-  cv = Place(vars['camera_view'])
+  cv = Place(vs['camera_view'])
   viewer.set_camera_view(cv)    # Set cached inverse matrix
 
   return True

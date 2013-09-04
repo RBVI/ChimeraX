@@ -91,37 +91,33 @@ class STL_Surface(Surface):
 
     def session_state(self):
         p = self.plist[0]
-        s = {'path':self.path,
+        s = {'id':self.id,
+             'path':self.path,
+             'displayed': self.displayed,
              'place':self.place.matrix,
              'color':p.color}
         if p.copies:
-            s['copies'] = p.copies
+            s['copies'] = tuple(c.matrix for c in p.copies)
         return s
 
 # -----------------------------------------------------------------------------
 #
-def save_stl_surfaces(file, viewer):
+def restore_stl_surfaces(surfs, viewer, attributes_only = False):
 
-    slist = [m for m in viewer.models if isinstance(m, STL_Surface)]
-    if slist:
-        file.write("'stl surfaces':(\n")
-        from .SessionUtil import objecttree
-        for s in slist:
-            st = s.session_state()
-            objecttree.write_basic_tree(st, file, indent = ' ')
-            file.write(',\n')
-        file.write('),\n')
-
-# -----------------------------------------------------------------------------
-#
-def restore_stl_surfaces(d, viewer):
-
-    surfs = d.get('stl surfaces')
-    if surfs is None:
-        return
+    if attributes_only:
+        sids = dict((m.id,m) for m in viewer.models if isinstance(m, STL_Surface))
     from ..geometry.place import Place
     for st in surfs:
-        s = read_stl(st['path'])
+        if attributes_only:
+            sid = st['id']
+            if sid in sids:
+                s = sids[sid]
+            else:
+                continue
+        else:
+            s = read_stl(st['path'])
+            s.id = st['id']
+        s.displayed = st['displayed']
         s.place = Place(st['place'])
         p = s.plist[0]
         p.color = st['color']

@@ -12,6 +12,7 @@ def read_apr_file(path):
     f.close()
 
     pieces = {}
+    from ..geometry.place import Place
     for line in lines:
         fields = line.replace('<','').replace('>','').split(',')
         if len(fields) < 23:
@@ -21,9 +22,9 @@ def read_apr_file(path):
         r00,r01,r02 = m[0:3]
         r10,r11,r12 = m[4:7]
         r20,r21,r22 = m[8:11]
-        tf = ((r00,r01,r02,t0),
-              (r10,r11,r12,t1),
-              (r20,r21,r22,t2))
+        tf = Place(((r00,r01,r02,t0),
+                    (r10,r11,r12,t1),
+                    (r20,r21,r22,t2)))
         unk1 = fields[19]
         fname = fields[20]
         unk2 = fields[21]

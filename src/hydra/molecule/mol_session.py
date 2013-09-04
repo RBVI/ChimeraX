@@ -12,27 +12,22 @@ def molecule_state(m):
         ms['has_bonds'] = True
     return ms
 
-def save_molecules(f, mlist):
-    mstates = [molecule_state(m) for m in mlist]
-    f.write("'molecules':(\n")
-    from ..file_io.SessionUtil import objecttree
-    objecttree.write_basic_tree(mstates, f, indent = ' ')
-    f.write('),\n')
-
-def restore_molecules(d, viewer):
-    mstate = d.get('molecules')
-    if mstate is None:
-        return False
+def restore_molecules(mstate, viewer, attributes_only = False):
+    if attributes_only:
+        mids = dict((m.id, m) for m in viewer.molecules())
     from ..file_io.opensave import open_files
     for ms in mstate:
-        p = ms['path']
-        mlist = open_files([p], set_camera = False)
-        if len(mlist) != 1:
-            from ..ui.gui import show_info
-            show_info('File %s unexpectedly contained %d models' % (len(mlist),))
-            continue
-        m = mlist[0]
-        set_molecule_state(m, ms)
+        if attributes_only:
+            m = mids.get(ms['id'])
+        else:
+            mlist = open_files([ms['path']], set_camera = False)
+            if len(mlist) != 1:
+                from ..ui.gui import show_info
+                show_info('File %s unexpectedly contained %d models' % (len(mlist),))
+                continue
+            m = mlist[0]
+        if m:
+            set_molecule_state(m, ms)
     return True
 
 def set_molecule_state(m, ms):

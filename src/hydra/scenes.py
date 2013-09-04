@@ -55,21 +55,14 @@ class Scene:
     def __init__(self, id, description):
         self.id = id
         self.description = description
+
         from .ui.gui import main_window
         v = main_window.view
-        self.camera_view = v.camera_view
-        self.field_of_view = v.field_of_view
-        self.near_far_clip = v.near_far_clip
-        self.center_of_rotation = v.center_of_rotation
-
         w = h = 128
         self.image = i = v.image((w,h))         # QImage
 
-        from .molecule.mol_session import molecule_state
-        self.molecule_states = tuple(molecule_state(m) for m in v.molecules())
-
-        from .VolumeViewer import session
-        self.map_states = session.map_states()
+        from .file_io import session
+        self.state = session.scene_state(v)
 
     def __delete__(self):
         if not hasattr(self, '_image_path'):
@@ -82,21 +75,10 @@ class Scene:
     def show(self):
         from .ui.gui import main_window
         v = main_window.view
-        v.set_camera_view(self.camera_view)
-        v.field_of_view = self.field_of_view
-        v.near_far_clip = self.near_far_clip
-        v.center_of_rotation = self.center_of_rotation
+
+        from .file_io import session
+        session.restore_scene(self.state, v)
         
-        from .molecule.mol_session import set_molecule_state
-        mids = dict((m.id, m) for m in v.molecules())
-        for ms in self.molecule_states:
-            m = mids.get(ms['id'])
-            if m:
-                set_molecule_state(m, ms)
-
-        from .VolumeViewer import session
-        session.restore_map_states(self.map_states)
-
         msg = 'Showing scene "%s"' % self.description if self.description else 'Showing scene %d' % self.id
         from .ui import gui        
         gui.show_status(msg)
@@ -114,17 +96,11 @@ class Scene:
 
     def scene_state(self):
 
-        vstate = dict((attr, getattr(self,attr)) for attr in self.view_attributes)
-        vstate['camera_view'] = self.camera_view.matrix
-        from .file_io.SessionUtil import objecttree
-        maps = objecttree.instance_tree_to_basic_tree(self.map_states)
         s = {
             'id': self.id,
             'description': self.description,
             'image': image_as_string(self.image),
-            'view': vstate,
-            'molecules': self.molecule_states,
-            'maps': maps,
+            'state': self.state,
          }
         return s
 
@@ -134,16 +110,7 @@ class Scene:
         self.id = s['id']
         self.description = s['description']
         self.image = string_to_image(s['image'])
-        va = s['view']
-        for attr in self.view_attributes:
-            setattr(self, attr, va[attr])
-        from .geometry.place import Place
-        self.camera_view = Place(va['camera_view'])
-        self.molecule_states = s['molecules']
-        maps = s['maps']
-        from .VolumeViewer import session
-        map_states = session.volume_manager_state_from_basic_tree(maps)
-        self.map_states = map_states
+        self.state = s['state']
 
 def image_as_string(qimage, iformat = 'JPG'):
 
@@ -256,22 +223,17 @@ def scene_thumbnails_html(scenes):
   html = '\n'.join(lines)
   return html
 
-def save_scenes(f, viewer):
+def scene_state():
 
     global scenes
     if len(scenes) == 0:
-        return
+        return None
 
-    states = tuple(s.scene_state() for s in scenes)
-    
-    f.write("'scenes':(\n")
-    from .file_io.SessionUtil import objecttree
-    objecttree.write_basic_tree(states, f, indent = ' ')
-    f.write('),\n')
+    s = tuple(s.scene_state() for s in scenes)
+    return s
 
-def restore_scenes(d, viewer):
+def restore_scenes(scene_states, viewer):
 
-    scene_states = d.get('scenes', [])
     global scenes
     scenes = [scene_from_state(s) for s in scene_states]
     if len(scenes) == 0:
