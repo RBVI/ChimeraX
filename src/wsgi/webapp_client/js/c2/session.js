@@ -16,7 +16,7 @@ function init(url) {
 	$c2_session.server.url = url;
 }
 
-function list_sessions(cb) {
+function list_sessions() {
 	// Retrieve list of sessions from server
 	if ($c2_session.server.url === null) {
 		alert("Session module is uninitialized.");
@@ -25,10 +25,10 @@ function list_sessions(cb) {
 	var data = {
 		action: "jlist",
 	}
-	return $.getJSON($c2_session.server.url, data).done(cb);
+	return $.getJSON($c2_session.server.url, data);
 }
 
-function create_session(session, password, cb) {
+function create_session(session, password) {
 	// Create session on server
 	if ($c2_session.server.url === null) {
 		alert("Session module is uninitialized.");
@@ -39,10 +39,10 @@ function create_session(session, password, cb) {
 		session: session,
 		password: password,
 	}
-	return $.get($c2_session.server.url, data).done(cb);
+	return $.get($c2_session.server.url, data);
 }
 
-function delete_session(session, password, cb) {
+function delete_session(session, password) {
 	// Create session on server
 	if ($c2_session.server.url === null) {
 		alert("Session module is uninitialized.");
@@ -53,7 +53,7 @@ function delete_session(session, password, cb) {
 		session: session,
 		password: password,
 	}
-	return $.get($c2_session.server.url, data).done(cb);
+	return $.get($c2_session.server.url, data);
 }
 
 var call_id = 1;		// monotonically increasing id
@@ -136,7 +136,7 @@ $c2_session = {
 
 // c2sd stands for Chimera2 Session Dialog
 
-function _c2sd_init(url) {
+function ui_init(url) {
 	// initialize user interface (session button and dialog)
 	$c2_session.server.init(url);
 
@@ -161,7 +161,9 @@ function _c2sd_init(url) {
 		position: {
 			my: "left top",
 			at: "left top",
-			of: d, }, title: "Select Session",
+			of: d,
+		},
+		title: "Select Session",
 		buttons: {
 			Select: _c2sd_select_session,
 			Create: _c2sd_create_session,
@@ -169,12 +171,12 @@ function _c2sd_init(url) {
 		},
 		focus: function() { $("#c2sd_session").focus(); },
 	}).html(_c2sd_content);
-	$("#c2sd_user").keyup(_c2sd_session_cb);
+	$("#c2sd_user").keyup(update_dialog_buttons);
 	$("#c2sd_password").addClass("ui-widget-content ui-corner-all");
 	$("#c2sd_session").css("min-width", "100px")
 			.jec({ triggerChangeEvent: true,
 				handleCursor: true })
-			.change(_c2sd_session_cb);
+			.change(update_dialog_buttons);
 	_c2sd_update_session_list();
 }
 
@@ -226,7 +228,7 @@ function _c2sd_create_session() {
 	var session = $("#c2sd_session").val();
 	var password = $("#c2sd_password").val();
 	_c2sd_button("Create", "disable");
-	$c2_session.server.create_session(session, password, _c2sd_create_session_cb);
+	$c2_session.server.create_session(session, password).done(c2sd_create_session_cb);
 }
 
 function _c2sd_create_session_cb() {
@@ -234,7 +236,7 @@ function _c2sd_create_session_cb() {
 	var password = $("#c2sd_password").val();
 	// alert("Session \"" + session + "\" created.");
 	_c2sd_save_session_info(session, password);
-	_c2sd_session_cb();
+	update_dialog_buttons();
 }
 
 function _c2sd_delete_session() {
@@ -247,7 +249,7 @@ function _c2sd_delete_session() {
 	var session = $("#c2sd_session").val();
 	var password = $("#c2sd_password").val();
 	_c2sd_button("Delete", "disable");
-	$c2_session.server.delete_session(session, password, _c2sd_create_session_cb);
+	$c2_session.server.delete_session(session, password).done(_c2sd_create_session_cb);
 }
 
 function _c2sd_delete_session_cb() {
@@ -255,13 +257,13 @@ function _c2sd_delete_session_cb() {
 	var password = $("#c2sd_password").val();
 	alert("Session \"" + session + "\" deleted.");
 	_c2sd_save_session_info(session, password);
-	_c2sd_session_cb();
+	update_dialog_buttons();
 }
 
 function _c2sd_update_session_list() {
 	// disable button and initiate AJAX to update list
 	$("#c2s_button").attr("disabled", true);
-	$c2_session.server.list_sessions(_c2sd_update_cb)
+	$c2_session.server.list_sessions().done(_c2sd_update_cb)
 }
 
 function _c2sd_existing_session(name) {
@@ -296,7 +298,7 @@ function _c2sd_update_cb(session_info) {
 		s.jecValue(session_list[0].name, true);
 	else
 		s.jecValue($c2_session.session, true);
-	_c2sd_session_cb();
+	update_dialog_buttons();
 	$("#c2s_button").attr("disabled", false);
 }
 
@@ -307,7 +309,7 @@ function _c2sd_button(name, action) {
 	$(selector).button(action);
 }
 
-function _c2sd_session_cb() {
+function update_dialog_buttons() {
 	// Enable/disable dialog buttons based on whether
 	// the current session name is valid on the server.
 	// Enable/disable Create button if Select is disabled
@@ -350,12 +352,13 @@ $.extend($c2_session, {
 	session_list: [],
 
 	// Public functions
-	ui_init: _c2sd_init,		// also initializes server part
+	ui_init: ui_init,		// also initializes server part
 });
 
 }());
 
 (function() {
+"use strict";
 
 // --------------------------------------------------------------------
 // Higher level functions for communicating with server
@@ -364,7 +367,6 @@ $.extend($c2_session, {
 var state = {};
 
 function set_state(key, value) {
-console.log('set_state', key, value);
 	// set state that should be saved when command is sent to server
 	state[key] = value;
 }

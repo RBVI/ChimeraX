@@ -25,10 +25,7 @@
 <style type="text/css">
 #molview {
 	position: relative;
-	width: 500px;		/* repeat size in canvas to prevent blur */
-	height: 500px;		/* ditto */
 	margin: 0px;
-	background-color: red;  /* debugging */
 }
 </style>
 
@@ -40,19 +37,21 @@ $(document).ready(function() {
 		function (evt) {
 			if (evt.which != 13)
 				return;
-			$c2_session.send_command($(this).val(), process_result);
+			$c2_session.send_command($(this).val(), process_command);
 		});
 	molview();
 })
 
-function process_result(response)
+function process_command(response)
 {
+	// TODO: add registry of resposne type and functions to parse them?
 	var client_data = response["client_data"];
 	for (var index in client_data) {
 		var data = client_data[index];
 		if (data[0] === "llgr") {
 			var json = JSON.parse(data[1]);
 			load(json);
+		} else if (data[0] == "scene") {
 		}
 	}
 }
@@ -78,8 +77,6 @@ function drawScene(ci)
 {
 	var canvas = ci.canvas;
 	var gl = ci.gl;
-	//canvas.width = window.innerWidth;
-	//canvas.height = window.innerHeight;
 	$c2_session.set_state("width", canvas.width);
 	$c2_session.set_state("height", canvas.height);
 	llgr.set_context(gl);

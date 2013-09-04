@@ -32,7 +32,8 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.ifconfig',
-    'sphinx.ext.autosummary'
+    'sphinx.ext.autosummary',
+    'sphinx.ext.extlinks',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -273,4 +274,10 @@ intersphinx_mapping = {
 	'numpy': ('http://docs.scipy.org/doc/numpy', None),
 	'python': ('http://docs.python.org/PYTHON_VERSION', None),
 	'sphinx': ('http://sphinx.pocoo.org', None),
+}
+
+# -- Options for extlinks --------------------------------------------
+
+extlinks = {
+	'jquery': ('http://api.jquery.com/jQuery.%s/', "jQuery API's "),
 }
