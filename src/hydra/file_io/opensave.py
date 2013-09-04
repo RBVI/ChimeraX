@@ -166,17 +166,25 @@ def open_command(cmdname, args):
     kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
     open_file(**kw)
 
-def open_file(path, fromDatabase = None, set_camera = None):
+def open_file(path, from_database = None, set_camera = None):
     from ..ui.gui import main_window as mw
     view = mw.view
-    if fromDatabase is None:
+    if from_database is None:
         from os.path import expanduser
         p = expanduser(path)
         from os.path import isfile
         if isfile(p):
             open_files([p], view)
         else:
-            open_file(p, fromDatabase = 'PDB')
+            if ':' in p:
+                dbname, id = p.split(':', 1)
+            elif len(p) == 4:
+                dbname, id = 'PDB', p
+            else:
+                from ..ui import gui
+                gui.show_status('Unknown file %s' % path)
+                return
+            open_file(id, from_database = dbname)
     else:
         ids = path.split(',')
         if set_camera is None:
@@ -184,7 +192,7 @@ def open_file(path, fromDatabase = None, set_camera = None):
         from . import fetch
         mlist = []
         for id in ids:
-            m = fetch.fetch_from_database(id, fromDatabase)
+            m = fetch.fetch_from_database(id, from_database)
             if isinstance(m, (list, tuple)):
                 mlist.extend(m)
             else:
