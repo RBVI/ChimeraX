@@ -21,7 +21,7 @@ def file_types():
         ftypes = [
             ('PDB', ['pdb'], open_pdb_file),
             ('mmCIF', ['cif'], open_mmcif_file),
-            ('Session', ['mo'], open_session),
+            ('Session', ['hy'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),
             ('STL', ['stl'], read_stl),
             ('Neuron SWC', ['swc'], read_swc),
@@ -115,7 +115,7 @@ def save_session(view):
 def save_session_as(view):
     global last_session_path
     dir = '.' if last_session_path is None else last_session_path
-    filters = 'Session (*.mo)'
+    filters = 'Session (*.hy)'
     path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session',
                                                  dir, filters)
     if isinstance(path, tuple):
