@@ -521,34 +521,6 @@ dumpStr(std::ostream &output, const ClassInfo *ci, const string &fname)
 }
 
 static void
-dumpCompare(std::ostream &output, const ClassInfo *ci, const string &fname)
-{
-	string objectName(moduleName(ci, "object"));
-	string cppName(qualify(ci->cd->scope, ci->name.str()));
-	output <<
-		"\n"
-		"static int\n" <<
-		fname << "(PyObject* _obj0, PyObject* _obj1)\n"
-		"{\n"
-		"\tif (Py_TYPE(_obj0) != Py_TYPE(_obj1))\n"
-		"\t\treturn -2;\n"
-		"\ttry {\n"
-		"\t\t" << cppName << "* _o0 = getInst(static_cast<"
-					<< objectName << "*>(_obj0));\n"
-		"\t\t" << cppName << "* _o1 = getInst(static_cast<"
-					<< objectName << "*>(_obj1));\n"
-		"\t\tif (*_o0 < *_o1)\n"
-		"\t\t\treturn -1;\n"
-		"\t\telse if (*_o1 < *_o0)\n"
-		"\t\t\treturn 1;\n"
-		"\t\treturn 0;\n"
-		"\t} catch (...) {\n"
-		"\t\treturn -2;\n"
-		"\t}\n"
-		"}\n";
-}
-
-static void
 dumpRichCompare(std::ostream &output, const ClassInfo *ci, const string &fname)
 {
 	string objectName(moduleName(ci, "object"));
@@ -1377,7 +1349,6 @@ dumpTypeCode(const ClassInfo *ci)
 {
 	string tp_dealloc("0");
 	string tp_print("0");
-	string tp_compare("0");
 	string tp_repr("0");
 	string tp_as_number("0");
 	string tp_as_sequence("0");
@@ -1485,11 +1456,6 @@ dumpTypeCode(const ClassInfo *ci)
 	if (ci->print || !ci->str.empty()) {
 		tp_print = moduleName(ci, "print");
 		dumpPrint(output, ci, tp_print);
-	}
-
-	if (!ci->compare.empty()) {
-		tp_compare = moduleName(ci, "compare");
-		dumpCompare(output, ci, tp_compare);
 	}
 
 	if (!ci->lt.empty() || !ci->eq.empty()) {
@@ -1626,7 +1592,7 @@ dumpTypeCode(const ClassInfo *ci)
 		"\t" << tp_print << ", // tp_print\n"
 		"\t0, // tp_getattr\n"
 		"\t0, // tp_setattr\n"
-		"\t" << tp_compare << ", // tp_compare\n"
+		"\t0, // formerly known as tp_compare\n"
 		"\t" << tp_repr << ", // tp_repr\n"
 		"\t" << tp_as_number << ", // tp_as_number\n"
 		"\t" << tp_as_sequence << ", // tp_as_sequence\n"
