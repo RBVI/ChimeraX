@@ -5,7 +5,11 @@ def show_open_file_dialog(view):
                     for name, suffixes, read_func in file_types()]
     filter_lines.insert(0, 'All (*.*)')
     filters = ';;'.join(filter_lines)
-    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view, 'Open File', '.', filters)
+    from .history import history
+    dir = history.most_recent_directory()
+    if dir is None:
+        dir = '.'
+    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view, 'Open File', dir, filters)
     open_files(qpaths[0], view)
     from ..ui.gui import main_window as mw
     mw.show_graphics()
@@ -64,6 +68,8 @@ def open_files(paths, view = None, set_camera = None):
             for m in mlist:
                 view.add_model(m)
             opened.append(path)
+            if set_camera and file_reader == open_session:
+                set_camera = False
         else:
             from ..ui import gui
             gui.show_status('Unknown file suffix "%s"' % ext)
@@ -74,7 +80,7 @@ def open_files(paths, view = None, set_camera = None):
 def finished_opening(opened, set_camera, view):
     if opened and set_camera:
         view.remove_overlays()
-        view.initial_camera_view() # TODO: don't do for session restore
+        view.initial_camera_view()
     from ..ui.gui import show_info, show_status
     if len(opened) == 1 and opened:
         msg = 'Opened %s' % opened[0]
