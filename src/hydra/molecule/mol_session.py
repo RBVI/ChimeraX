@@ -23,7 +23,7 @@ def restore_molecules(mstate, viewer, attributes_only = False):
             mlist = open_files([ms['path']], set_camera = False)
             if len(mlist) != 1:
                 from ..ui.gui import show_info
-                show_info('File %s unexpectedly contained %d models' % (len(mlist),))
+                show_info('File %s unexpectedly contained %d models' % (ms['path'], len(mlist),))
                 continue
             m = mlist[0]
         if m:
