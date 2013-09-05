@@ -162,7 +162,7 @@ class Command:
 		self._args = []
 		self._kwargs = {}
 
-	def execute(self):
+	def error_check(self):
 		if self._error:
 			raise UserError(self._error)
 		if (not self._fi.var_positional
@@ -170,6 +170,10 @@ class Command:
 			raise UserError("too many arguments")
 		if len(self._args) < len(self._fi.positional_arguments):
 			raise UserError("missing arguments")
+
+	def execute(self, error_check=True):
+		if error_check:
+			self.error_check()
 		return self._fi.function(*self._args, **self._kwargs)
 
 	def parse_text(self, text, autocomplete=False):

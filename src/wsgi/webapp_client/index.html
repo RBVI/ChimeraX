@@ -37,29 +37,25 @@ $(document).ready(function() {
 		function (evt) {
 			if (evt.which != 13)
 				return;
-			$c2_session.send_command($(this).val(), process_command);
+			$c2_session.send_command($(this).val());
 		});
+	$c2_session.register_data_function("llgr", process_llgr_data);
+	$c2_session.register_data_function("scene", process_scene_data);
 	molview();
 })
 
-function process_command(response)
-{
-	// TODO: add registry of resposne type and functions to parse them?
-	var client_data = response["client_data"];
-	for (var index in client_data) {
-		var data = client_data[index];
-		if (data[0] === "llgr") {
-			var json = JSON.parse(data[1]);
-			load(json);
-		} else if (data[0] == "scene") {
-		}
-	}
+function process_llgr_data(data) {
+	var json = JSON.parse(data);
+	load(json);
+}
+
+function process_scene_data(data) {
+	// TODO
 }
 
 var molview_ci;		// molview context information
 
-function molview()
-{
+function molview() {
 	var canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
 		alpha: false,
@@ -73,8 +69,7 @@ function molview()
 	molview_ci.redraw();
 }
 
-function drawScene(ci)
-{
+function drawScene(ci) {
 	var canvas = ci.canvas;
 	var gl = ci.gl;
 	$c2_session.set_state("width", canvas.width);
@@ -85,8 +80,7 @@ function drawScene(ci)
 	ci.requestId = null;
 }
 
-function load(json_or_url)
-{
+function load(json_or_url) {
 	molview_ci.data = json_or_url;
 	molview_ci.init();
 	molview_ci.redraw();

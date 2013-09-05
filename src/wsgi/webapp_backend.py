@@ -52,17 +52,6 @@ def cmd_open(filename):
 		['llgr', scene.render(viewport, fov, Identity(), as_string=True)]
 	]
 
-def process_command(text):
-	from chimera2 import cmds
-	try:
-		cmd = cmds.Command(text, autocomplete=True)
-		return cmd.execute()
-	except cmds.UserError as e:
-		return ["error", str(e)]
-	except Exception:
-		import traceback
-		return ["error", traceback.format_exc()]
-
 #
 # Main program for per-session backend
 #
@@ -97,10 +86,20 @@ class Backend(Server):
 		answer = {
 			"status": True,		# Success!
 			"stdout": str(value),
-			"client_data": process_command(value)
 		}
-		if answer["client_data"][0] == "error":
+		from chimera2 import cmds
+		try:
+			cmd = cmds.Command(value, autocomplete=True)
+			cmd.error_check()
+			answer["stdout"] = cmd.current_text
+			answer["client_data"] = cmd.execute(error_check=False)
+		except cmds.UserError as e:
 			answer["status"] = False
+			answer["stderr"] = str(e)
+		except Exception:
+			import traceback
+			answer["status"] = False
+			answer["stderr"] = traceback.format_exc()
 		return answer
 
 _debug_print("__name__ %s" % __name__)

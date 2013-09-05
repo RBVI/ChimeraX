@@ -57,7 +57,6 @@ function delete_session(session, password) {
 }
 
 var call_id = 1;		// monotonically increasing id
-var call_callbacks = {};	//
 
 function call(session, password, tag, tag_data, state, cb) {
 	// Send tag and associated data to server
@@ -75,10 +74,8 @@ function call(session, password, tag, tag_data, state, cb) {
 	call_id = cid + 1;
 	call_data.push([ cid, tag, tag_data ]);
 	// alert("call: " + JSON.stringify(call_data));
-	call_callbacks[cid] = cb;
 	function clear_callback() {
 		alert("getJSON failed");
-		delete call_callbacks[cid];
 	}
 	var data = {
 		action: "call",
@@ -87,11 +84,11 @@ function call(session, password, tag, tag_data, state, cb) {
 		command: JSON.stringify(call_data),
 	}
 	return $.getJSON($c2_session.server.url, data)
-			.done(call_cb)
+			.done(debug_log)
 			.fail(clear_callback);
 }
 
-function call_cb(data) {
+function debug_log(data) {
 	// TODO: be able to toggle debug output
 	var output = JSON.stringify(data) + "\n";
 	for (var index in data) {
@@ -100,11 +97,6 @@ function call_cb(data) {
 		for (var key in response)
 			output = output + "  " + key + ": "
 						+ response[key] + "\n";
-		// redistribute data
-		var callback = call_callbacks[response.id];
-		if (callback !== undefined)
-			callback(response);
-		delete call_callbacks[response.id];
 	}
 	$("#debug").text(output);
 }
@@ -371,10 +363,52 @@ function set_state(key, value) {
 	state[key] = value;
 }
 
-function send_command(data, cb) {
+var data_functions = {};
+
+function register_data_function(tag, func) {
+	if (func === null || func === undefined) {
+		delete data_functions[tag];
+	} else {
+		data_functions[tag] = func;
+	}
+}
+
+function redistribute_data(data) {
+	console.log("redistribute_data " + data.length + " responses");
+	for (var i in data) {
+		var response = data[i];
+		var call_id = response["id"];
+		if (!response["status"]) {
+			var msg = response["stderr"];
+			if (msg !== undefined)
+				if (msg.lastIndexOf("Traceback", 0) == 0) {
+					msg = "Command failed:\n\n" + msg;
+					alert(msg);
+				} else {
+					// TODO: status line message
+					alert(msg);
+				}
+			continue;
+		}
+		var client_data = response["client_data"];
+		if (client_data === undefined)
+			continue;
+		console.log("  " + client_data.length + " results");
+		for (var j in client_data) {
+			var data = client_data[j];
+			var tag = data[0];
+			console.log("  working on " + tag);
+			if (!data_functions.hasOwnProperty(tag))
+				continue;
+			data_functions[tag](data[1]);
+		}
+	}
+}
+
+function send_command(data) {
 	// send command line to server
 	$c2_session.server.call($c2_session.session, $c2_session.password,
-			"command", data, state, cb);
+			"command", data, state).done(redistribute_data);
 }
 
 // --------------------------------------------------------------------
@@ -383,6 +417,7 @@ function send_command(data, cb) {
 
 $.extend($c2_session, {
 	// User interface API
+	register_data_function: register_data_function,
 	send_command: send_command,
 	set_state: set_state,
 });
