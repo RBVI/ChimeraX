@@ -199,11 +199,12 @@ def show_main_window():
 #    w.view.setFocus(QtCore.Qt.OtherFocusReason)       # Get keyboard events on startup
     w.show()
     enable_exception_logging()
-    from ..file_io import history
-    history.show_history_thumbnails()
+    from ..file_io.history import history
+    history.show_thumbnails()
     status = app.exec_()
 #    from . import leap
 #    leap.quit_leap(w.view)
+    history.write_history()
     sys.exit(status)
 
 def show_status(msg, append = False):

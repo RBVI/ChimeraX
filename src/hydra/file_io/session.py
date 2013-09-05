@@ -8,8 +8,8 @@ def save_session(path, viewer):
   objecttree.write_basic_tree(s, f)
   f.close()
 
-  from . import history
-  history.save_history(path, viewer)
+  from .history import history
+  history.add_entry(path, viewer, replace_image = True)
 
 # -----------------------------------------------------------------------------
 #
@@ -22,6 +22,9 @@ def restore_session(path, viewer):
   viewer.close_all_models()
 
   set_session_state(d, viewer)
+
+  from .history import history
+  history.add_entry(path, viewer, wait_for_render = True)
 
 # -----------------------------------------------------------------------------
 #

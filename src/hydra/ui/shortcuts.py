@@ -49,7 +49,8 @@ def register_shortcuts(viewer):
 
     ocat = 'Open, Save, Close'   # shortcut documentation category
     gcat = 'General Controls'
-    from ..file_io import session, history, opensave
+    from ..file_io import session, opensave
+    from ..file_io.history import history
     view_shortcuts = (
         ('op', opensave.show_open_file_dialog, 'Open file', ocat),
         ('sv', opensave.save_session_as, 'Save session as...', ocat),
@@ -81,7 +82,7 @@ def register_shortcuts(viewer):
     misc_shortcuts = (
         ('rv', v.initial_camera_view, 'Reset view', gcat),
         ('va', v.view_all, 'View all', gcat),
-        ('rs', history.show_history_thumbnails, 'Show recent sessions', ocat),
+        ('rs', history.show_thumbnails, 'Show recent sessions', ocat),
         ('cs', v.clear_selection, 'Clear selection', gcat),
         ('Qt', v.quit, 'Quit', ocat),
         ('cl', command_line, 'Enter command', gcat),
@@ -177,8 +178,8 @@ def shortcut_molecules(v):
 
 def close_all_models(viewer):
     viewer.close_all_models()
-    from ..file_io import history
-    history.show_history_thumbnails()
+    from ..file_io.history import history
+    history.show_thumbnails()
 
 def show_mesh(m):
   m.set_representation('mesh')
