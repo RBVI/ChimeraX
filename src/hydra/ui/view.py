@@ -6,6 +6,7 @@ class View(QtOpenGL.QGLWidget):
         QtOpenGL.QGLWidget.__init__(self, parent)
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 #        self.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
+#        self.setAutoBufferSwap(False)
         
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
@@ -183,8 +184,10 @@ class View(QtOpenGL.QGLWidget):
             cb()
 
         draw = self.redraw_needed
-        if not draw:
-            # TODO: Reset model redraw state when viewer redraw set.
+        if draw:
+            for m in self.models:
+                m.redraw_needed = False
+        else:
             for m in self.models:
                 if m.redraw_needed:
                     m.redraw_needed = False
@@ -192,6 +195,8 @@ class View(QtOpenGL.QGLWidget):
         if draw:
             self.redraw_needed = False
             self.updateGL()
+            for cb in self.rendered_callbacks:
+                cb()
         else:
             self.mouse_pause_tracking()
 
@@ -236,9 +241,6 @@ class View(QtOpenGL.QGLWidget):
 
         if self.overlays:
             self.draw_overlays(self.overlays)
-
-        for cb in self.rendered_callbacks:
-            cb()
 
     def draw_overlays(self, overlays):
 
