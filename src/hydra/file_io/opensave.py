@@ -120,7 +120,10 @@ def save_session(view):
 
 def save_session_as(view):
     global last_session_path
-    dir = '.' if last_session_path is None else last_session_path
+    dir = last_session_path
+    if dir is None:
+        from .history import history
+        dir = history.most_recent_directory()
     filters = 'Session (*.hy)'
     path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session',
                                                  dir, filters)
