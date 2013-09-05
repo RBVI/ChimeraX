@@ -184,7 +184,7 @@ def open_file(path, from_database = None, set_camera = None):
         else:
             if ':' in p:
                 dbname, id = p.split(':', 1)
-            elif len(p) == 4:
+            elif len(p) == 4 or len(p.split(',', maxsplit = 1)[0]) == 4:
                 dbname, id = 'PDB', p
             else:
                 from ..ui import gui
