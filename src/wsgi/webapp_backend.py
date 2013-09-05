@@ -45,7 +45,12 @@ def cmd_open(filename):
 	from chimera2.math3d import Identity
 	fov = radians(30)
 	viewport = (0, 0, 200, 200)
-	return [['llgr', scene.render(viewport, fov, Identity(), as_string=True)]]
+	return [
+		['scene', {
+			'bbox': [list(scene.bbox.llb), list(scene.bbox.urf)]
+		}],
+		['llgr', scene.render(viewport, fov, Identity(), as_string=True)]
+	]
 
 def process_command(text):
 	from chimera2 import cmds
