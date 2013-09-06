@@ -407,7 +407,8 @@ def list_keyboard_shortcuts():
   if m.showing_text() and m.text_id == 'keyboard shortcuts':
     m.show_graphics()
   else:
-    m.show_text(shortcut_descriptions(html = True), html = True, id = "keyboard shortcuts")
+    t = shortcut_descriptions(html = True)
+    m.show_text(t, html = True, id = "keyboard shortcuts")
 
 def shortcut_descriptions(html = False):
   global keyboard_shortcuts
@@ -455,6 +456,7 @@ def show_manual():
   else:
     from os.path import join, dirname
     path = join(dirname(dirname(__file__)), 'docs', 'index.html')
+# Can't use back button to initial page if html text provided instead of file url.
 #    f = open(path, 'r')
 #    text = f.read()
 #    f.close()
