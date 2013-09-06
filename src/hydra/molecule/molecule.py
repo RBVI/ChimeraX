@@ -370,17 +370,21 @@ class Molecule(Surface):
   def first_intercept(self, mxyz1, mxyz2):
     # TODO check intercept of bounding box as optimization
     # TODO using wrong radius for atoms in stick and ball and stick
+    xyz = self.shown_atom_array_values(self.xyz)
+    r = self.shown_atom_array_values(self.radii)
     from .. import _image3d
     if self.copies:
       intercepts = []
       for tf in self.copies:
         cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-        fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, cxyz1, cxyz2)
+        fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
         if not fmin is None:
           intercepts.append((fmin,anum))
       fmin, anum = min(intercepts) if intercepts else (None,None)
     else:
-      fmin, anum = _image3d.closest_sphere_intercept(self.xyz, self.radii, mxyz1, mxyz2)
+      fmin, anum = _image3d.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
+    if not anum is None and not self.all_atoms_shown():
+      anum = self.atom_shown.nonzero()[0][anum]
     return fmin, Atom_Selection(self, anum)
 
   def atom_count(self):
