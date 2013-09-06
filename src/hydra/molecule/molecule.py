@@ -303,17 +303,17 @@ class Molecule(Surface):
     from numpy import arange
     return arange(self.atom_count())
 
-  def atom_subset(self, name = None, chain_id = None, residue_range = None,
-                   restrict_to_atoms = None):
+  def atom_subset(self, atom_name = None, chain_id = None, residue_range = None,
+                  residue_name = None, restrict_to_atoms = None):
 
     anames = self.atom_names
     na = self.atom_count()
     from numpy import zeros, uint8, logical_or, logical_and
     nimask = zeros((na,), uint8)
-    if name is None:
+    if atom_name is None:
       nimask[:] = 1
     else:
-      logical_or(nimask, (anames == name.encode('utf-8')), nimask)
+      logical_or(nimask, (anames == atom_name.encode('utf-8')), nimask)
 
     if not chain_id is None:
       if isinstance(chain_id, (list,tuple)):
@@ -331,6 +331,10 @@ class Molecule(Surface):
         logical_and(nimask, (self.residue_nums >= r1), nimask)
       if not r2 is None:
         logical_and(nimask, (self.residue_nums <= r2), nimask)
+
+    if not residue_name is None:
+      rnames = self.residue_names
+      logical_and(nimask, (rnames == residue_name.encode('utf-8')), nimask)
 
     if not restrict_to_atoms is None:
       ramask = zeros((na,), uint8)
@@ -355,6 +359,42 @@ class Molecule(Surface):
       self.triangles_per_sphere = ntri
       if self.atom_shown_count > 0:
         self.need_graphics_update = True
+
+  def show_atoms(self, atoms, only_these = False):
+    a = self.atom_shown
+    if only_these:
+      a[:] = False
+    if len(atoms) > 0:
+      a[atoms] = True
+    self.atom_shown_count = a.sum()
+    self.need_graphics_update = True
+    self.redraw_needed = True
+
+  def hide_atoms(self, atoms):
+    a = self.atom_shown
+    if len(atoms) > 0:
+      a[atoms] = False
+      self.atom_shown_count = a.sum()
+      self.need_graphics_update = True
+      self.redraw_needed = True
+
+  def show_ribbon(self, atoms, only_these = False):
+    rs = self.ribbon_shown
+    if only_these:
+      rs[:] = False
+    if len(atoms) > 0:
+      rs[atoms] = True
+    self.ribbon_shown_count = rs.sum()
+    self.need_graphics_update = True
+    self.redraw_needed = True
+
+  def hide_ribbon(self, atoms):
+    rs = self.ribbon_shown
+    if len(atoms) > 0:
+      rs[atoms] = False
+      self.ribbon_shown_count = rs.sum()
+      self.need_graphics_update = True
+      self.redraw_needed = True
 
   def show_all_atoms(self):
     n = self.atom_count()
@@ -585,6 +625,14 @@ class Atom_Set:
         mlist.append(aset)
       aset.add_atoms(m, a)
     return mlist
+
+# -----------------------------------------------------------------------------
+#
+def all_atoms():
+  aset = Atom_Set()
+  from ..ui.gui import main_window
+  aset.add_molecules(main_window.view.molecules())
+  return aset
 
 # -----------------------------------------------------------------------------
 #
