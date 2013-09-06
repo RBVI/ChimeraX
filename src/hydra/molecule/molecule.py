@@ -214,7 +214,7 @@ class Molecule(Surface):
     for cid in cids:
       s = self.atom_subset('CA', cid)
       if len(s) <= 1:
-        s = self.atom_subset('P', cid)
+        s = self.atom_subset("C5'", cid)
         if len(s) <= 1:
           continue
       path = self.xyz[s]
@@ -239,7 +239,7 @@ class Molecule(Surface):
     for cid in cids:
       s = self.atom_subset('CA', cid)
       if len(s) <= 1:
-        s = self.atom_subset('P', cid)
+        s = self.atom_subset("C5'", cid)
         if len(s) <= 1:
           continue
       cres.append((cid, self.residue_nums[s]))
