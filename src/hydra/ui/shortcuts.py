@@ -88,6 +88,7 @@ def register_shortcuts(viewer):
         ('cs', v.clear_selection, 'Clear selection', gcat),
         ('Qt', v.quit, 'Quit', ocat),
         ('cl', command_line, 'Enter command', gcat),
+        ('gr', show_graphics_window, 'Show graphics window', gcat),
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
         ('mn', show_manual, 'Show manual', gcat),
         ('lg', show_log, 'Show command log', gcat),
@@ -441,6 +442,10 @@ def shortcut_descriptions(html = False):
       lines.extend(['%s - %s' % (k,d) for k,d in ksc[cat]])
   descrip = '\n'.join(lines)
   return descrip
+
+def show_graphics_window():
+  from .gui import main_window as m
+  m.show_graphics()
 
 def show_manual():
   from .gui import main_window as m
