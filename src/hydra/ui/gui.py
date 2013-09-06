@@ -93,13 +93,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_shortcut_icon('icecube.png', 'Make map transparent', 't5')
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('grid.png', 'Show recent sessions', 'rs')
-        self.add_shortcut_icon('savesession.png', 'Save session', 'sv')
-        self.add_shortcut_icon('shortcut.png', 'List keyboard shortcuts', 'ks')
-        self.add_shortcut_icon('book.png', 'Show manual', 'mn')
+        self.add_shortcut_icon('graphics.png', 'Show graphics window', 'gr')
+        self.add_shortcut_icon('scenes.png', 'Show scenes', 'sc')
         self.add_shortcut_icon('log.png', 'Show command log', 'lg')
         self.add_shortcut_icon('commands.png', 'Show command history', 'ch')
-        self.add_shortcut_icon('scenes.png', 'Show scenes', 'sc')
+        self.add_shortcut_icon('shortcut.png', 'List keyboard shortcuts', 'ks')
+        self.add_shortcut_icon('book.png', 'Show manual', 'mn')
+        toolbar.addSeparator()
+
+        self.add_shortcut_icon('grid.png', 'Show recent sessions', 'rs')
+        self.add_shortcut_icon('savesession.png', 'Save session', 'sv')
 
     def add_shortcut_icon(self, icon_file, descrip, shortcut):
 
