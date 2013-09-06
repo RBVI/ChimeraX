@@ -17,8 +17,10 @@ def register_commands():
     add_command('volume', volumecommand.volume_command)
     from ..FitMap import fitcmd
     add_command('fitmap', fitcmd.fitmap_command)
-    from ..molecule import align
+    from ..molecule import align, showcmd
     add_command('align', align.align_command)
+    add_command('show', showcmd.show_command)
+    add_command('hide', showcmd.hide_command)
     from .. import scenes
     add_command('scene', scenes.scene_command)
 
@@ -137,31 +139,12 @@ def parse_arguments(cmd_name, arg_string,
     akw = {}
     a = 0
     spec = None
-
-    # Parse required arguments.
-    for spec in required_args:
-        if a >= n:
-            raise CommandError('%s: Missing required argument "%s"'
-                               % (cmd_name, arg_specifier_name(spec)))
-        a += parse_arg(fields[a:], spec, cmd_name, akw)
+    args = []
 
     # Make keyword abbreviation table.
     kw_args = tuple(optional_args) + tuple(keyword_args)
     kwnames = [arg_specifier_name(s) for s in kw_args]
     kwt = abbreviation_table(kwnames)
-
-    # Parse optional arguments.
-    for spec in optional_args:
-        if a >= n or fields[a].lower() in kwt:
-            break
-        a += parse_arg(fields[a:], spec, cmd_name, akw)
-
-    # Allow last positional argument to have multiple values.
-    if spec:
-        multiple = arg_spec(spec)[3]
-        if multiple:
-            while a < n and not fields[a].lower() in kwt:
-                a += parse_arg(fields[a:], spec, cmd_name, akw)
 
     # Parse keyword arguments.
     keyword_spec = dict([(arg_specifier_name(s),s) for s in kw_args])
@@ -169,10 +152,37 @@ def parse_arguments(cmd_name, arg_string,
         f = fields[a]
         fl = f.lower()
         if not fl in kwt:
-            raise CommandError('%s: Unknown keyword "%s"' % (cmd_name, f))
+            args.append(f)
+            a += 1
+            continue
         spec = keyword_spec[kwt[fl]]
         a += 1 + parse_arg(fields[a+1:], spec, cmd_name, akw)
-        
+
+    # Parse required arguments.
+    a = 0
+    na = len(args)
+    for spec in required_args:
+        if a >= na:
+            raise CommandError('%s: Missing required argument "%s"'
+                               % (cmd_name, arg_specifier_name(spec)))
+        a += parse_arg(args[a:], spec, cmd_name, akw)
+
+    # Parse optional arguments.
+    for spec in optional_args:
+        if a >= na:
+            break
+        a += parse_arg(args[a:], spec, cmd_name, akw)
+
+    # Allow last positional argument to have multiple values.
+    if spec:
+        multiple = arg_spec(spec)[3]
+        if multiple:
+            while a < na:
+                a += parse_arg(args[a:], spec, cmd_name, akw)
+
+    if a < na:
+        raise CommandError('%s: Extra argument "%s"' % (cmd_name, args[a]))
+
     return akw
 
 # -----------------------------------------------------------------------------
@@ -234,6 +244,10 @@ def arg_specifier_name(s):
     if isinstance(s, str):
         return s
     return s[0]
+
+# -----------------------------------------------------------------------------
+#
+no_arg = ()
 
 # -----------------------------------------------------------------------------
 #
@@ -975,19 +989,23 @@ def split_first(s):
     return (t.split(None, 1) + ['', ''])[:2]
 
 # -----------------------------------------------------------------------------
-# Example #1.A:7-52@CA
+# Examples:
+#        #1.A:7-52@CA
+#        #2:HOH
 #
 def parse_specifier(spec):
 
     parts = specifier_parts(spec)
-    mid1 = mid2 = cid = r1 = r2 = aname = None
+    mid1 = mid2 = cid = rrange = rname = aname = None
     for p in parts:
         if p.startswith('#'):
             mid1, mid2 = integer_range(p[1:])
         elif p.startswith('.'):
             cid = p[1:]
         elif p.startswith(':'):
-            r1, r2 = integer_range(p[1:])
+            rrange = integer_range(p[1:])
+            if rrange is None:
+                rname = p[1:]
         elif p.startswith('@'):
             aname = p[1:]
     
@@ -1003,7 +1021,7 @@ def parse_specifier(spec):
     from ..molecule import Molecule
     for m in mlist:
         if isinstance(m, Molecule):
-            atoms = m.atom_subset(aname, cid, (r1,r2))
+            atoms = m.atom_subset(aname, cid, rrange, rname)
             s.add_atoms(m, atoms)
         else:
             s.add_models([m])
@@ -1029,8 +1047,11 @@ def specifier_parts(spec):
 #
 def integer_range(rstring):
     r = rstring.split('-')
-    r1 = int(r[0])
-    r2 = int(r[1]) if len(r) == 2 else r1
+    try:
+        r1 = int(r[0])
+        r2 = int(r[1]) if len(r) == 2 else r1
+    except ValueError:
+        return None
     return (r1,r2)
 
 # -----------------------------------------------------------------------------
