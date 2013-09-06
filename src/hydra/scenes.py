@@ -22,7 +22,7 @@ def scene_command(cmdname, args):
                  (),
                  ()),
         'delete': (delete_scene,
-                 (('id', int_arg),),
+                 (('id_string', string_arg),),
                  (),
                  ()),
     }
@@ -32,11 +32,12 @@ scenes = []
 def add_scene(id = None, description = None):
     global scenes
     if id is None:
-        id = len(scenes) + 1
+        id = max(s.id for s in scenes)+1 if scenes else 1
     else:
         delete_scene(id)
     scenes.append(Scene(id, description))
     show_thumbnails()
+
 def show_scene(id):
     global scenes
     for s in scenes:
@@ -45,9 +46,18 @@ def show_scene(id):
             return
     from .ui import gui
     gui.show_status('No scene with id %d' % id)
-def delete_scene(id):
+
+def delete_scene(id_string):
     global scenes
-    scenes = [s for s in scenes if s.id != id]
+    if id_string == 'all':
+        scenes = []
+    else:
+        try:
+            ids = set(int(i) for i in id_string.split(','))
+        except:
+            from .ui.commands import CommandError
+            raise CommandError('Scene ids must be integers, got "%s"' % id_string)
+        scenes = [s for s in scenes if not s.id in ids]
     show_thumbnails()
 
 class Scene:
