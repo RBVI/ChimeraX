@@ -30,8 +30,9 @@ class Molecule(Surface):
     self.bond_radii = None
 
     # Graphics settings
-    self.show_atoms = True
-    self.shown_atoms = None             # Array of atom indices. None means all.
+    self.atom_shown_count = n = len(xyz)
+    from numpy import ones, bool
+    self.atom_shown = ones((n,), bool)
     self.atoms_surface_piece = None
     self.atom_style = 'sphere'          # sphere, stick or ballstick
     self.ball_scale = 0.3               # Atom radius scale factor in ball and stick.
@@ -75,7 +76,7 @@ class Molecule(Surface):
   def create_atom_spheres(self):
 
     p = self.atoms_surface_piece
-    if not self.show_atoms:
+    if self.atom_shown_count == 0:
       if p:
         self.atoms_surface_piece = None
         self.removePiece(p)
@@ -104,9 +105,17 @@ class Molecule(Surface):
       r = self.bond_radius
     xyzr[:,3] = r
 
-    s = self.shown_atoms
-    sas = xyzr if s is None else xyzr[s]
+    sas = self.shown_atom_array_values(xyzr)
     p.shift_and_scale = sas
+
+  def shown_atom_array_values(self, a):
+    if self.all_atoms_shown():
+      return a
+    else:
+      return a[self.atom_shown]
+
+  def all_atoms_shown(self):
+    return self.atom_count() == self.atom_shown_count
 
   def set_atom_colors(self):
 
@@ -114,17 +123,28 @@ class Molecule(Surface):
     if p is None:
       return
 
-    p.instance_colors = self.atom_rgba()
+    p.instance_colors = self.shown_atom_array_values(self.atom_rgba())
 
   def update_bond_graphics(self, viewer):
 
-    self.create_bond_cylinders()
-    self.set_bond_colors()
+    bonds = self.shown_bonds()
+    self.create_bond_cylinders(bonds)
+    self.set_bond_colors(bonds)
 
-  def create_bond_cylinders(self):
+  # Both atoms need to be shown to show bond.
+  def shown_bonds(self):
+
+    b = self.bonds
+    if b is None or self.all_atoms_shown():
+      return b
+    sa = self.atom_shown
+    sb = sa[b[:,0]] & sa[b[:,1]]
+    return b[sb]
+
+  def create_bond_cylinders(self, bonds):
 
     p = self.bonds_surface_piece
-    if not self.show_atoms or self.bonds is None or self.atom_style == 'sphere':
+    if self.atom_shown_count == 0 or bonds is None or self.atom_style == 'sphere':
       if p:
         self.bonds_surface_piece = None
         self.removePiece(p)
@@ -138,9 +158,9 @@ class Molecule(Surface):
     p.normals = na
 
     r = self.bond_radius if self.bond_radii is None else self.bond_radii
-    p.copies44 = bond_cylinder_placements(self.bonds, self.xyz, r, self.half_bond_coloring)
+    p.copies44 = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
 
-  def set_bond_colors(self):
+  def set_bond_colors(self, bonds):
 
     p = self.bonds_surface_piece
     if p is None:
@@ -150,7 +170,7 @@ class Molecule(Surface):
 
     if self.half_bond_coloring:
       acolors = self.atom_rgba()
-      bc0,bc1 = acolors[self.bonds[:,0],:], acolors[self.bonds[:,1],:]
+      bc0,bc1 = acolors[bonds[:,0],:], acolors[bonds[:,1],:]
       from numpy import concatenate
       p.instance_colors = concatenate((bc0,bc1))
     else:
@@ -170,37 +190,18 @@ class Molecule(Surface):
 
     cm = self.color_mode
     if cm == 'by chain':
-      colors = self.color_by_chain()
+      colors = chain_colors(self.chain_ids)
     elif cm == 'by element':
-      colors = self.color_by_element()
+      colors = element_colors(self.element_nums)
     else:
-      colors = self.color_one_color()
-    return colors
-
-  def color_by_chain(self):
-      s = self.shown_atoms
-      cids = self.chain_ids if s is None else self.chain_ids[s]
-      colors = chain_colors(cids)
-      return colors
-
-  def color_by_element(self):
-      s = self.shown_atoms
-      elnums = self.element_nums if s is None else self.element_nums[s]
-      colors = element_colors(elnums)
-      return colors
-
-  def color_one_color(self):
-      s = self.shown_atoms
-      n = len(self.xyz) if s is None else len(s)
       from numpy import empty, uint8
-      c = empty((n,4),uint8)
-      c[:,:] = self.color
-      return c
+      colors = empty((self.atom_count(),4),uint8)
+      colors[:,:] = self.color
+    return colors
 
   def update_ribbon_graphics(self):
 
     import sys
-#    sys.stderr.write('urg\n')
     rsp = self.ribbon_surface_pieces
     if not self.show_ribbons:
       self.removePieces(rsp.values())
@@ -244,19 +245,21 @@ class Molecule(Surface):
       cres.append((cid, self.residue_nums[s]))
     return cres
 
-  def show_nonribbon_atoms(self):
+  # Ligand atoms are everything except ribbon and HOH residues
+  def show_ligand_atoms(self):
     cres = self.ribbon_residues()
     cr = set()
     for cid, rnums in cres:
       for rnum in rnums:
         cr.add((cid, rnum))
-    n = len(self.residue_nums)
+    n = self.atom_count()
     cid = self.chain_ids
     rnum = self.residue_nums
-    from numpy import array, int32
-    atoms = array([i for i in range(n) if not (cid[i], rnum[i]) in cr], int32)
-    self.shown_atoms = atoms
-    self.show_atoms = True
+    rname = self.residue_names
+    sa = self.atom_shown
+    for i in range(n):
+      sa[i] |= (((cid[i], rnum[i]) not in cr) and rname[i] != b'HOH')
+    self.atom_shown_count = sa.sum()
     self.need_graphics_update = True
     self.redraw_needed = True
 
@@ -267,6 +270,18 @@ class Molecule(Surface):
       self.need_graphics_update = True
       self.redraw_needed = True
 
+  def show_solvent(self):
+    self.atom_shown |= (self.residue_names == b'HOH')
+    self.atom_shown_count = self.atom_shown.sum()
+    self.need_graphics_update = True
+    self.redraw_needed = True
+
+  def hide_solvent(self):
+    self.atom_shown &= (self.residue_names != b'HOH')
+    self.atom_shown_count = self.atom_shown.sum()
+    self.need_graphics_update = True
+    self.redraw_needed = True
+    
   def all_atoms(self):
 
     from numpy import arange
@@ -322,12 +337,21 @@ class Molecule(Surface):
     ntri = 320 if 320*n <= ntmax else 80 if 80*n <= ntmax else 20
     if ntri != self.triangles_per_sphere:
       self.triangles_per_sphere = ntri
-      if self.show_atoms:
+      if self.atom_shown_count > 0:
         self.need_graphics_update = True
 
-  def set_atom_display(self, display):
-    if display != self.show_atoms:
-      self.show_atoms = display
+  def show_all_atoms(self):
+    n = self.atom_count()
+    if self.atom_shown_count < n:
+      self.atom_shown[:] = True
+      self.atom_shown_count = n
+      self.need_graphics_update = True
+      self.redraw_needed = True
+
+  def hide_all_atoms(self):
+    if self.atom_shown_count > 0:
+      self.atom_shown[:] = False
+      self.atom_shown_count = 0
       self.need_graphics_update = True
       self.redraw_needed = True
 
@@ -363,10 +387,8 @@ class Molecule(Surface):
     return len(self.xyz)
 
   def atoms_shown(self):
-    if not self.show_atoms:
-      return 0
     nc = max(1, len(self.copies))
-    na = len(self.xyz) if self.shown_atoms is None else len(self.shown_atoms)
+    na = self.atom_shown_count
     return na * nc
 
   def chain_atoms(self, chain_id):
