@@ -40,6 +40,8 @@ def register_shortcuts(viewer):
         ('rb', show_ribbon, 'Show molecule ribbon'),
         ('hr', hide_ribbon, 'Undisplay molecule ribbon'),
         ('la', show_ligands, 'Show ligand atoms'),
+        ('sw', show_waters, 'Show water atoms'),
+        ('hw', hide_waters, 'Hide water atoms'),
         ('r+', fat_ribbons, 'Fat ribbons'),
         ('r-', thin_ribbons, 'Thin ribbons'),
     )
@@ -367,9 +369,9 @@ def color_one_color(m):
   m.set_color_mode('single')
 
 def show_atoms(m):
-  m.set_atom_display(True)
+  m.show_all_atoms()
 def hide_atoms(m):
-  m.set_atom_display(False)
+  m.hide_all_atoms()
 def show_sphere(m):
   m.set_atom_style('sphere')
 def show_stick(m):
@@ -385,7 +387,11 @@ def fat_ribbons(m):
 def thin_ribbons(m):
     m.set_ribbon_radius(0.5)
 def show_ligands(m):
-    m.show_nonribbon_atoms()
+    m.show_ligand_atoms()
+def show_waters(m):
+    m.show_solvent()
+def hide_waters(m):
+    m.hide_solvent()
 def molecule_bonds(m):
     from ..molecule import connect
     connect.create_molecule_bonds(m)
