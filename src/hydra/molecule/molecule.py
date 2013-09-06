@@ -31,7 +31,7 @@ class Molecule(Surface):
 
     # Graphics settings
     self.atom_shown_count = n = len(xyz)
-    from numpy import ones, bool
+    from numpy import ones, zeros, bool
     self.atom_shown = ones((n,), bool)
     self.atoms_surface_piece = None
     self.atom_style = 'sphere'          # sphere, stick or ballstick
@@ -39,7 +39,8 @@ class Molecule(Surface):
     self.bonds_surface_piece = None
     self.bond_color = (150,150,150,255)
     self.half_bond_coloring = True
-    self.show_ribbons = False
+    self.ribbon_shown_count = 0
+    self.ribbon_shown = zeros((n,), bool)        # Only ribbon guide atoms used
     self.ribbon_radius = 1.0
     self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
     self.ribbon_surface_pieces = {}     # Map chain id to surface piece
@@ -116,6 +117,9 @@ class Molecule(Surface):
 
   def all_atoms_shown(self):
     return self.atom_count() == self.atom_shown_count
+
+  def any_ribbons_shown(self):
+    return self.ribbon_shown_count > 0
 
   def set_atom_colors(self):
 
@@ -203,7 +207,7 @@ class Molecule(Surface):
 
     import sys
     rsp = self.ribbon_surface_pieces
-    if not self.show_ribbons:
+    if not self.any_ribbons_shown():
       self.removePieces(rsp.values())
       rsp.clear()
       return
@@ -212,19 +216,19 @@ class Molecule(Surface):
     from .colors import rgba_256
     from numpy import uint8
     for cid in cids:
-      s = self.atom_subset('CA', cid)
+      s = self.ribbon_guide_atoms(cid)
       if len(s) <= 1:
-        s = self.atom_subset("C5'", cid)
-        if len(s) <= 1:
-          continue
+        continue
+      rshow = self.ribbon_shown[s]
+      if rshow.sum() == 0:
+        if cid in rsp:
+          self.removePiece(rsp.pop(cid))
+        continue
       path = self.xyz[s]
     
-      sd, cd = self.ribbon_subdivisions
-      from ..geometry import tube
-      va,na,ta,ca = tube.tube_through_points(path, radius = self.ribbon_radius,
-                                             color = rgba_256[cid[0]],
-                                             segment_subdivisions = sd,
-                                             circle_subdivisions = cd)
+      color = rgba_256[cid[0]]
+      va,na,ta,ca = self.ribbon_geometry(path, color)
+
       if cid in rsp:
         p = rsp[cid]
       else:
@@ -233,16 +237,28 @@ class Molecule(Surface):
       p.normals = na
       p.vertex_colors = ca
 
+  def ribbon_geometry(self, path, color):
+    sd, cd = self.ribbon_subdivisions
+    from ..geometry import tube
+    va,na,ta,ca = tube.tube_through_points(path, radius = self.ribbon_radius,
+                                           color = color,
+                                           segment_subdivisions = sd,
+                                           circle_subdivisions = cd)
+    return va, na, ta, ca
+
+  def ribbon_guide_atoms(self, chain_id):
+    s = self.atom_subset('CA', chain_id)
+    if len(s) <= 1:
+      s = self.atom_subset("C5'", chain_id)
+    return s
+
   def ribbon_residues(self):
     cres = []
     cids = set(self.chain_ids)
     for cid in cids:
-      s = self.atom_subset('CA', cid)
-      if len(s) <= 1:
-        s = self.atom_subset("C5'", cid)
-        if len(s) <= 1:
-          continue
-      cres.append((cid, self.residue_nums[s]))
+      s = self.ribbon_guide_atoms(cid)
+      if len(s) > 1:
+        cres.append((cid, self.residue_nums[s]))
     return cres
 
   # Ligand atoms are everything except ribbon and HOH residues
@@ -356,10 +372,10 @@ class Molecule(Surface):
       self.redraw_needed = True
 
   def set_ribbon_display(self, display):
-    if display != self.show_ribbons:
-      self.show_ribbons = display
-      self.need_graphics_update = True
-      self.redraw_needed = True
+    self.ribbon_shown[:] = (1 if display else 0)
+    self.ribbon_shown_count = self.ribbon_shown.sum()
+    self.need_graphics_update = True
+    self.redraw_needed = True
 
   def set_atom_style(self, style):
     if style != self.atom_style:
