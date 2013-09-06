@@ -1,6 +1,5 @@
-mol_attrs = ('path', 'id', 'displayed', 'show_atoms', 'atom_style',
-             'color_mode', 'show_ribbons', 'ribbon_radius',
-             'ball_scale')
+mol_attrs = ('path', 'id', 'displayed', 'atom_style',
+             'color_mode', 'ribbon_radius', 'ball_scale')
 
 def molecule_state(m):  
     ms = {'place':m.place.matrix}
@@ -10,6 +9,8 @@ def molecule_state(m):
         ms['copies'] = tuple(c.matrix for c in m.copies)
     if not m.bonds is None:
         ms['has_bonds'] = True
+    ms['atom_shown'] = array_to_string(m.atom_shown)
+    ms['ribbon_shown'] = array_to_string(m.ribbon_shown)
     return ms
 
 def restore_molecules(mstate, viewer, attributes_only = False):
@@ -40,4 +41,29 @@ def set_molecule_state(m, ms):
     if 'has_bonds' in ms and ms['has_bonds'] and m.bonds is None:
         from . import connect
         connect.create_molecule_bonds(m)
+    from numpy import bool
+    if 'atom_shown' in ms:
+        m.atom_shown = string_to_array(ms['atom_shown'], bool)
+        m.atom_shown_count = m.atom_shown.sum()
+    if 'ribbon_shown' in ms:
+        m.ribbon_shown = string_to_array(ms['ribbon_shown'], bool)
+        m.ribbon_shown_count = m.ribbon_shown.sum()
+
     m.need_graphics_update = True
+
+# convert a numpy array to a string
+def array_to_string(a):
+    s = a.tostring()
+    import bz2
+    cs = bz2.compress(s)
+    import base64
+    ecs = base64.b64encode(cs)
+    return ecs
+
+# convert a string to a numpy array
+def string_to_array(s, dtype):
+    import base64, bz2, numpy
+    ds = base64.b64decode(s)
+    dds = bz2.decompress(ds)
+    a = numpy.fromstring(dds, dtype)
+    return a
