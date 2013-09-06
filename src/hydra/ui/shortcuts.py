@@ -447,6 +447,7 @@ def shortcut_descriptions(html = False):
 def show_graphics_window():
   from .gui import main_window as m
   m.show_graphics()
+  m.show_back_forward_buttons(False)
 
 def show_manual():
   from .gui import main_window as m
