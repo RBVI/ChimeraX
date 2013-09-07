@@ -213,15 +213,18 @@ def open_file(path, from_database = None, set_camera = None):
 def close_command(cmdname, args):
 
     from ..ui.commands import models_arg, parse_arguments
-    req_args = (('models', models_arg),)
-    opt_args = ()
+    req_args = ()
+    opt_args = (('models', models_arg),)
     kw_args = ()
 
     kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
     close_models(**kw)
 
-def close_models(models):
+def close_models(models = None):
 
     from ..ui.gui import main_window
     v = main_window.view
-    v.close_models(models)
+    if models is None:
+        v.close_all_models()
+    else:
+        v.close_models(models)
