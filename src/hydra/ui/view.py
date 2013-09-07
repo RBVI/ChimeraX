@@ -386,9 +386,13 @@ class View(QtOpenGL.QGLWidget):
         else:
             tfrac = 0.75
             from math import sqrt
-            ts = int(sqrt(tfrac*w*h/(n+1)))
-            cols = w//ts
-            rows = h//ts
+            ts = max(1, int(sqrt(tfrac*w*h/(n+1))))
+            while True:
+                cols = w//ts
+                rows = h//ts
+                if rows*cols > n or ts == 1:
+                    break
+                ts -= 1
             ts = min(w//cols, h//rows)
             n0 = int(sqrt(rows*cols - n))
             tiles = [(0,0,n0*ts,n0*ts)]
