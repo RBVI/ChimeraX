@@ -220,7 +220,7 @@ function _c2sd_create_session() {
 	var session = $("#c2sd_session").val();
 	var password = $("#c2sd_password").val();
 	_c2sd_button("Create", "disable");
-	$c2_session.server.create_session(session, password).done(c2sd_create_session_cb);
+	$c2_session.server.create_session(session, password).done(_c2sd_create_session_cb);
 }
 
 function _c2sd_create_session_cb() {
