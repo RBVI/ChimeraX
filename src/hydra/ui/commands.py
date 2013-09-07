@@ -112,15 +112,25 @@ def show_command_history(filename = 'commands'):
     hlines.extend(['<a href="%d"><p>%s</p></a>' % (i,line) for i,line in enumerate(cmds)])
     hlines.extend(['</body>','</html>'])
     html = '\n'.join(hlines)
+    # TODO: Make sure clicked links don't have directory prepended.
+    #  Could not find a way to avoid prepending a previous source directory (from user's guide).
+    #  Seems to be a Qt bug.
+#    from .qt import QtCore
+#    mw.text.setSource(QtCore.QUrl())
+#    mw.text.clear()
+#    mw.text.clearHistory()
     mw.show_text(html, html=True, id = 'command history',
                  anchor_callback = insert_clicked_command)
-
 
 # -----------------------------------------------------------------------------
 #
 shown_commands = []
 def insert_clicked_command(url):
-    c = int(url.toString(url.PreferLocalFile))         # command number
+    surl = url.toString(url.PreferLocalFile)
+    # Work around Qt bug where it prepends a directory path to the anchor
+    # even when QtTextBrowser search path and source are cleared.
+    cnum = surl.split('/')[-1]
+    c = int(cnum)         # command number
     if c < len(shown_commands):
         cmd = shown_commands[c]
         from .gui import main_window as mw
