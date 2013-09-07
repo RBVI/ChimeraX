@@ -1022,9 +1022,16 @@ def parse_specifier(spec):
     
     from .gui import main_window
     v = main_window.view
-    mlist = v.models
-    if not mid1 is None:
-        mlist = [m for m in mlist if m.id >= mid1 and m.id <= mid2]
+    if mid1 is None:
+        if cid is None and rrange is None and rname is None and aname is None:
+            if spec == 'all':
+                mlist = v.models
+            else:
+                mlist = []
+        else:
+            mlist = v.molecules()
+    else:
+        mlist = [m for m in v.models if m.id >= mid1 and m.id <= mid2]
     if len(mlist) == 0:
         raise CommandError('No models specified by "%s"' % spec)
 
