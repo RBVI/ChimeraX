@@ -209,3 +209,19 @@ def open_file(path, from_database = None, set_camera = None):
         view.add_models(mlist)
         finished_opening([m.path for m in mlist], set_camera, view)
     mw.show_graphics()
+
+def close_command(cmdname, args):
+
+    from ..ui.commands import models_arg, parse_arguments
+    req_args = (('models', models_arg),)
+    opt_args = ()
+    kw_args = ()
+
+    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    close_models(**kw)
+
+def close_models(models):
+
+    from ..ui.gui import main_window
+    v = main_window.view
+    v.close_models(models)

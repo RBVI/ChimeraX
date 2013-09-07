@@ -6,8 +6,9 @@ class CommandError(Exception):
 # -----------------------------------------------------------------------------
 #
 def register_commands():
-    from ..file_io.opensave import open_command
+    from ..file_io.opensave import open_command, close_command
     add_command('open', open_command)
+    add_command('close', close_command)
     from ..file_io import fetch_pdb, fetch_emdb
     fetch_pdb.register_pdb_fetch()
     fetch_emdb.register_emdb_fetch()
