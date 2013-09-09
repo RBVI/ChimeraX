@@ -1008,6 +1008,7 @@ def parse_specifier(spec):
 
     parts = specifier_parts(spec)
     mid1 = mid2 = cid = rrange = rname = aname = None
+    invert = False
     for p in parts:
         if p.startswith('#'):
             mid1, mid2 = integer_range(p[1:])
@@ -1019,6 +1020,8 @@ def parse_specifier(spec):
                 rname = p[1:]
         elif p.startswith('@'):
             aname = p[1:]
+        elif p.startswith('!'):
+            invert = True
     
     from .gui import main_window
     v = main_window.view
@@ -1037,12 +1040,22 @@ def parse_specifier(spec):
 
     s = Selection()
     from ..molecule import Molecule
+    smodels = []
     for m in mlist:
         if isinstance(m, Molecule):
-            atoms = m.atom_subset(aname, cid, rrange, rname)
-            s.add_atoms(m, atoms)
+            atoms = m.atom_subset(aname, cid, rrange, rname, invert)
+            if len(atoms) > 0:
+                s.add_atoms(m, atoms)
         else:
-            s.add_models([m])
+            smodels.append(m)
+    if invert:
+        sm = set(smodels)
+        smodels = [m for m in v.models
+                   if not isinstance(m, Molecule) and not m in sm]
+        if not mid1 is None:
+            smodels.extend(m for m in v.molecules() if m.id < mid1 or m.id > mid2)
+    s.add_models(smodels)
+
     return s
 
 # -----------------------------------------------------------------------------
@@ -1053,7 +1066,7 @@ def specifier_parts(spec):
     parts = []
     p = ''
     for c in spec:
-        if c in ('#', '.', ':', '@') and p:
+        if c in ('!', '#', '.', ':', '@') and p:
             parts.append(p)
             p = ''
         p += c

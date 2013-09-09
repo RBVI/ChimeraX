@@ -304,12 +304,12 @@ class Molecule(Surface):
     return arange(self.atom_count())
 
   def atom_subset(self, atom_name = None, chain_id = None, residue_range = None,
-                  residue_name = None, restrict_to_atoms = None):
+                  residue_name = None, invert = False, restrict_to_atoms = None):
 
     anames = self.atom_names
     na = self.atom_count()
-    from numpy import zeros, uint8, logical_or, logical_and
-    nimask = zeros((na,), uint8)
+    from numpy import zeros, bool, logical_or, logical_and, logical_not
+    nimask = zeros((na,), bool)
     if atom_name is None:
       nimask[:] = 1
     else:
@@ -336,8 +336,11 @@ class Molecule(Surface):
       rnames = self.residue_names
       logical_and(nimask, (rnames == residue_name.encode('utf-8')), nimask)
 
+    if invert:
+      logical_not(nimask, nimask)
+
     if not restrict_to_atoms is None:
-      ramask = zeros((na,), uint8)
+      ramask = zeros((na,), bool)
       ramask[restrict_to_atoms] = 1
       logical_and(nimask, ramask, nimask)
 
