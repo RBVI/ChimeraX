@@ -126,8 +126,6 @@ $c2_session = {
 // Functions for building user interface
 // --------------------------------------------------------------------
 
-// c2sd stands for Chimera2 Session Dialog
-
 function ui_init(url) {
 	// initialize user interface (session button and dialog)
 	$c2_session.server.init(url);
@@ -137,128 +135,96 @@ function ui_init(url) {
 	$c2_session.session = "";
 	$c2_session.password = "";
 
-	// Create session button
-	var d = $("#c2_session").prepend(
-		"<span id=\"c2s_button\">Session: none selected</span>" +
-		"<div id=\"c2s_dialog\"/>");
-	$("#c2s_button").button().css("color", "red").click(_c2sd_show);
-	// Create dialog that session button displays
-	$("#c2s_dialog").dialog({
-		autoOpen: false,
-		draggable: false,
-		show: "blind",
-		hide: "blind",
-		width: "auto",
-		autoResize: true,
-		position: {
-			my: "left top",
-			at: "left top",
-			of: d,
-		},
-		title: "Select Session",
-		buttons: {
-			Select: _c2sd_select_session,
-			Create: _c2sd_create_session,
-			Delete: _c2sd_delete_session,
-		},
-		focus: function() { $("#c2sd_session").focus(); },
-	}).html(_c2sd_content);
-	$("#c2sd_user").keyup(update_dialog_buttons);
-	$("#c2sd_password").addClass("ui-widget-content ui-corner-all");
-	$("#c2sd_session").css("min-width", "100px")
-			.jec({ triggerChangeEvent: true,
-				handleCursor: true })
-			.change(update_dialog_buttons);
-	_c2sd_update_session_list();
+	// Register mouse-click handler for the open buttons
+	$("#open_session").click(open_session);
+	$("#delete_session").click(delete_session);
+	$("#open_new_session").click(open_new_session);
+	$("#open_shared_session").click(open_shared_session);
+	update_session_list();
 }
 
-var _c2sd_content =
-'<table>' +
-'<tr><th align="right">User:</th>' +
-	'<td><input id="c2sd_user" type="text"/></td></tr>' +
-'<tr><th align="right">Session:</th>' +
-	'<td><select id="c2sd_session"/></td></tr>' +
-'<tr><th align="right">Password:</th>' +
-	'<td><input id="c2sd_password" type="password"/></td></tr>' +
-'</table>';
-
-function _c2sd_show() {
-	// display session selection dialog
-	$("#c2s_dialog").dialog("open");
-}
-
-function _c2sd_select_session() {
+function open_session() {
 	// verify and set default session parameters (name and password)
-	var user = $("#c2sd_user").val();
-	var session = $("#c2sd_session").val();
-	var password = $("#c2sd_password").val();
-	if (user != $c2_session.user) {
-		// TODO: verify that given session/password is valid
-	} else if (!_c2sd_existing_session(session)) {
+	var session = $("#my_sessions").val();
+	var password = $("#my_password").val();
+	if (!existing_session(session)) {
 		alert("Session \"" + session + "\" does not exist.");
 		return;
 	}
 	// alert("Session \"" + session + "\" selected.");
-	_c2sd_save_session_info(session, password);
+	save_session_info(session, password);
 }
 
-function _c2sd_save_session_info(session, password) {
+function save_session_info(session, password) {
 	$c2_session.session = session;
 	$c2_session.password = password;
-	$("#c2s_button").css("color", "")
-			.button("option", "label", "Session: " + session);
-	$("#c2s_dialog").dialog("close");
+	var msg = "No session selected";
+	if (session)
+		msg = "Active session: " + session;
+	$("#active_session").html(msg);
+	$("#session_popup").popup("close");
 }
 
-function _c2sd_create_session() {
-	// Create using session parameters (name and password)
-	var user = $("#c2sd_user").val();
-	if (user != $c2_session.user) {
-		alert("You can only create your own sessions.");
-		return;
-	}
-	var session = $("#c2sd_session").val();
-	var password = $("#c2sd_password").val();
-	_c2sd_button("Create", "disable");
-	$c2_session.server.create_session(session, password).done(_c2sd_create_session_cb);
-}
-
-function _c2sd_create_session_cb() {
-	var session = $("#c2sd_session").val();
-	var password = $("#c2sd_password").val();
-	// alert("Session \"" + session + "\" created.");
-	_c2sd_save_session_info(session, password);
-	update_dialog_buttons();
-}
-
-function _c2sd_delete_session() {
+function delete_session() {
 	// Delete using session parameters (name and password)
-	var user = $("#c2sd_user").val();
-	if (user != $c2_session.user) {
-		alert("You can only delete your own sessions.");
-		return;
-	}
-	var session = $("#c2sd_session").val();
-	var password = $("#c2sd_password").val();
-	_c2sd_button("Delete", "disable");
-	$c2_session.server.delete_session(session, password).done(_c2sd_create_session_cb);
+	var session = $("#my_sessions").val();
+	var password = $("#my_password").val();
+	$c2_session.server.delete_session(session, password)
+						.done(delete_session_cb);
+	alert("Deleting ession \"" + session + "\".");
 }
 
-function _c2sd_delete_session_cb() {
-	var session = $("#c2sd_session").val();
-	var password = $("#c2sd_password").val();
+function delete_session_cb() {
+	var session = $("#my_sessions").val();
+	var password = $("#my_password").val();
 	alert("Session \"" + session + "\" deleted.");
-	_c2sd_save_session_info(session, password);
-	update_dialog_buttons();
+	save_session_info("", "");
 }
 
-function _c2sd_update_session_list() {
+function open_new_session() {
+	// Create using session parameters (name and password)
+	var session = $("#new_session").val();
+	var password = $("#new_password").val();
+	$c2_session.server.create_session(session, password)
+						.done(open_new_session_cb);
+}
+
+function open_new_session_cb() {
+	var session = $("#new_session").val();
+	var password = $("#new_password").val();
+	// alert("Session \"" + session + "\" created.");
+	save_session_info(session, password);
+}
+
+function update_session_list() {
 	// disable button and initiate AJAX to update list
-	$("#c2s_button").attr("disabled", true);
-	$c2_session.server.list_sessions().done(_c2sd_update_cb)
+	$c2_session.server.list_sessions().done(update_session_list_cb)
 }
 
-function _c2sd_existing_session(name) {
+function update_session_list_cb(session_info) {
+	// save session information for later use
+	$c2_session.user = session_info[0];
+	var session_list = session_info[1];
+	$c2_session.session_list = session_list;
+	if (session_list.length == 0)
+		alert("no sessions found on server for " + session_info[0]);
+	// update combobox and button states
+	var s = $("#my_sessions");
+	var old_value = s.val();
+	var found = false;
+	s.empty();
+	for (var i = 0; i != session_list.length; ++i) {
+		var v = session_list[i].name;
+		if (v == old_value)
+			found = true;
+		s.append($("<option/>").attr("value", v).text(v));
+	}
+	if (!found && session_list.length > 0)
+		s.val(session_list[0].name);
+	s.selectmenu("refresh", true);
+}
+
+function existing_session(name) {
 	var session_list = $c2_session.session_list;
 	for (var i = 0; i != session_list.length; ++i) {
 		var s = session_list[i];
@@ -266,72 +232,6 @@ function _c2sd_existing_session(name) {
 			return true;
 	}
 	return false;
-}
-
-function _c2sd_update_cb(session_info) {
-	// save session information for later use
-	$c2_session.user = session_info[0];
-	var session_list = session_info[1];
-	$c2_session.session_list = session_list;
-	if (session_list.length == 0)
-		alert("no sessions found on server for " + session_info[0]);
-	// update user name
-	$("#c2sd_user").attr("value", $c2_session.user);
-	// update combobox and button states
-	var s = $("#c2sd_session");
-	s.jecOff();
-	s.empty();
-	for (var i = 0; i != session_list.length; ++i) {
-		var v = session_list[i].name;
-		s.append($("<option/>").attr("value", v).text(v));
-	}
-	s.jecOn();
-	if (session_list.length == 1 && !$c2_session.session)
-		s.jecValue(session_list[0].name, true);
-	else
-		s.jecValue($c2_session.session, true);
-	update_dialog_buttons();
-	$("#c2s_button").attr("disabled", false);
-}
-
-function _c2sd_button(name, action) {
-	var selector = "#c2s_dialog + " +
-			".ui-dialog-buttonpane " +
-			"button:contains('" + name + "')";
-	$(selector).button(action);
-}
-
-function update_dialog_buttons() {
-	// Enable/disable dialog buttons based on whether
-	// the current session name is valid on the server.
-	// Enable/disable Create button if Select is disabled
-	// and session name is not empty.
-	var user = $("#c2sd_user").val();
-	var session = $("#c2sd_session").val();
-	if (user == "" || session == "") {
-		// No user or session name, no action possible
-		_c2sd_button("Select", "disable");
-		_c2sd_button("Create", "disable");
-		_c2sd_button("Delete", "disable");
-	}
-	else if (user != $c2_session.user) {
-		// Not login user, no delete or create
-		_c2sd_button("Select", "enable");
-		_c2sd_button("Create", "disable");
-		_c2sd_button("Delete", "disable");
-	}
-	else if (_c2sd_existing_session(session)) {
-		// Real session, select or delete
-		_c2sd_button("Select", "enable");
-		_c2sd_button("Create", "disable");
-		_c2sd_button("Delete", "enable");
-	}
-	else {
-		// New session, create only
-		_c2sd_button("Select", "disable");
-		_c2sd_button("Create", "enable");
-		_c2sd_button("Delete", "disable");
-	}
 }
 
 $.extend($c2_session, {
