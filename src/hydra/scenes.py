@@ -65,10 +65,12 @@ class Scene:
     def __init__(self, id, description):
         self.id = id
         self.description = description
+        self.cross_fade_frames = 30
+        self.thumbnail_size = (128,128)
 
         from .ui.gui import main_window
         v = main_window.view
-        w = h = 128
+        w, h = self.thumbnail_size
         self.image = i = v.image((w,h))         # QImage
 
         from .file_io import session
@@ -86,6 +88,10 @@ class Scene:
         from .ui.gui import main_window
         v = main_window.view
 
+        if self.cross_fade_frames:
+            from .ui.crossfade import Cross_Fade
+            Cross_Fade(v, self.cross_fade_frames)
+        
         from .file_io import session
         session.restore_scene(self.state, v)
         
@@ -172,26 +178,29 @@ class Scene_Thumbnails:
     def __init__(self):
 
         from .ui.gui import main_window
-        from .ui.qt import QtWidgets
+        from .ui.qt import QtWidgets, QtCore
         self.dock_widget = dw = QtWidgets.QDockWidget('Scenes', main_window)
         dw.setTitleBarWidget(QtWidgets.QWidget(dw))   # No title bar
         dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
 
-        self.text = e = QtWidgets.QTextBrowser(dw)          # Handle clicks on anchors
+        class Thumbnail_Viewer(QtWidgets.QTextBrowser):
+            def sizeHint(self):
+                return QtCore.QSize(600,140)
+        self.text = e = Thumbnail_Viewer(dw)
+#        self.text = e = QtWidgets.QTextBrowser(dw)
         dw.setWidget(e)
         dw.setVisible(False)
 
         e.setReadOnly(True)
-        e.anchorClicked.connect(self.anchor_callback)
+        e.anchorClicked.connect(self.anchor_callback)          # Handle clicks on anchors
 
     def show(self, scenes):
         self.html = html = scene_thumbnails_html(scenes)
         self.text.setHtml(html)
 
-        dw = self.dock_widget
-
         from .ui.qt import QtCore
         from .ui.gui import main_window
+        dw = self.dock_widget
         main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
         dw.setVisible(True)
 

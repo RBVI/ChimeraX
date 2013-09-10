@@ -410,6 +410,9 @@ def surface_image(qi, pos, size, surf = None):
     rgba = image_rgba_array(qi)
     if surf is None:
         surf = Surface('Image')
+    return rgba_surface_piece(rgba, pos, size, surf)
+
+def rgba_surface_piece(rgba, pos, size, surf):
     p = surf.newPiece()
     x,y = pos
     sx,sy = size

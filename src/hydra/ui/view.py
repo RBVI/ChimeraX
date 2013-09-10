@@ -121,7 +121,7 @@ class View(QtOpenGL.QGLWidget):
     def image(self, size = None):
         w,h = self.window_size
         from ..draw import drawing
-        rgb = drawing.frame_buffer_image(w, h)
+        rgb = drawing.frame_buffer_image_rgb32(w, h)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         if not size is None:
             sw,sh = size
@@ -185,10 +185,10 @@ class View(QtOpenGL.QGLWidget):
 
         draw = self.redraw_needed
         if draw:
-            for m in self.models:
+            for m in self.models + self.overlays:
                 m.redraw_needed = False
         else:
-            for m in self.models:
+            for m in self.models + self.overlays:
                 if m.redraw_needed:
                     m.redraw_needed = False
                     draw = True
@@ -255,6 +255,8 @@ class View(QtOpenGL.QGLWidget):
         drawing.enable_depth_test(False)
         for m in overlays:
             m.draw(self, self.OPAQUE_DRAW_PASS)
+        drawing.enable_blending(True)
+        for m in overlays:
             m.draw(self, self.TRANSPARENT_DRAW_PASS)
         drawing.enable_depth_test(True)
 

@@ -37,6 +37,14 @@ def enable_depth_test(enable):
     else:
         GL.glDisable(GL.GL_DEPTH_TEST)
 
+def enable_blending(enable):
+
+    if enable:
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    else:
+        GL.glDisable(GL.GL_BLEND)
+
 def draw_tile_outlines(tiles, edge_color, fill_color, fill):
 
     GL.glClearColor(*edge_color)
@@ -65,14 +73,28 @@ def draw_transparent(draw_depth, draw):
     draw()
     GL.glDepthFunc(GL.GL_LESS)
 
-def frame_buffer_image(w, h):
+def frame_buffer_image_rgb32(w, h):
+
+    rgba = frame_buffer_image_rgba32(w, h)
+    rgba >>= 8
+    rgb = rgba[::-1,:].copy()
+    return rgb
+
+def frame_buffer_image_rgba32(w, h):
 
     from numpy import empty, uint32
     rgba = empty((h,w),uint32)
     GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, rgba)
-    rgba >>= 8
-    rgb = rgba[::-1,:].copy()
-    return rgb
+    return rgba
+
+def frame_buffer_image_rgba8(w, h):
+
+    rgba = frame_buffer_image_rgba32(w, h)
+    from numpy import little_endian, uint8
+    if little_endian:
+        rgba.byteswap(True) # in place
+    rgba8 = rgba.view(uint8).reshape((h,w,4))
+    return rgba8
 
 def texture_2d(data):
 
