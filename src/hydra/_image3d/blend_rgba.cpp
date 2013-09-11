@@ -14,10 +14,11 @@ static void blend_colors(float f, const Reference_Counted_Array::Array<T> &m1,
 			 const Reference_Counted_Array::Array<T> &m2,
 			 const Reference_Counted_Array::Array<T> &bgcolor,
 			 float alpha,
-			 const Reference_Counted_Array::Array<T> &m)
+			 const Reference_Counted_Array::Array<T> &m,
+			 long *count)
 			   
 {
-  long n = m.size();
+  long n = m.size(), c = 0;
   T *v1 = m1.values(), *v2 = m2.values(), *v = m.values(), *bg = bgcolor.values();
   T bg0 = bg[0], bg1 = bg[1], bg2 = bg[2], a = static_cast<T>(floor(alpha));;
   for (int k = 0 ; k < n ; k += 4)
@@ -33,9 +34,12 @@ static void blend_colors(float f, const Reference_Counted_Array::Array<T> &m1,
 	  v[k] = (f0 >= 0 ? static_cast<T>(floor(bg0+f0)) : static_cast<T>(ceil(f0+bg0)));
 	  v[k+1] = (f1 >= 0 ? static_cast<T>(floor(bg1+f1)) : static_cast<T>(ceil(f1+bg1)));
 	  v[k+2] = (f2 >= 0 ? static_cast<T>(floor(bg2+f2)) : static_cast<T>(ceil(f2+bg2)));
+	  if (f0 != 0 || f1 != 0 || f2 != 0)
+	    c += 1;
 	}
       v[k+3] = a;
     }
+  *count = c;
 }
 
 // ----------------------------------------------------------------------------
@@ -78,8 +82,9 @@ extern "C" PyObject *blur_blend_images(PyObject *s, PyObject *args, PyObject *ke
       PyErr_SetString(PyExc_TypeError, "blend_images: bgcolor must be contiguous 3 element array");
       return NULL;
     }
-  call_template_function(blend_colors, m.value_type(), (f, m1, m2, bgcolor, alpha, m));
+  long count;
+  call_template_function(blend_colors, m.value_type(), (f, m1, m2, bgcolor, alpha, m, &count));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  PyObject *count_py = PyLong_FromLong(count);
+  return count_py;
 }

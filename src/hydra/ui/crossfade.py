@@ -58,12 +58,13 @@ class Motion_Blur(Surface):
         self.rgba = None
         self.decay_factor = 0.9
         self.attenuate = 0.5
+        self.changed = True
         self.capture_image()
 
     def draw(self, viewer, draw_pass):
         if draw_pass == viewer.OPAQUE_DRAW_PASS:
-            self.capture_image()
-        else:
+            self.changed = self.capture_image()
+        elif self.changed:
             Surface.draw(self, viewer, draw_pass)
 
     def capture_image(self):
@@ -97,11 +98,14 @@ class Motion_Blur(Surface):
             bgcolor = array([255*c for c in v.background_color[:3]], rgba.dtype)
             alpha = 255*self.attenuate
             from .. import _image3d
-            _image3d.blur_blend_images(self.decay_factor, rgba, self.rgba,
-                                       bgcolor, alpha, self.rgba)
+            c = _image3d.blur_blend_images(self.decay_factor, rgba, self.rgba,
+                                           bgcolor, alpha, self.rgba)
+            if c == 0:
+                return False    # No change
             from ..draw import drawing
             drawing.reload_texture(self.piece.textureId, self.rgba)
         self.redraw_needed = True
+        return True
 
     def delete(self):
         Surface.delete(self)
