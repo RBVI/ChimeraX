@@ -76,6 +76,7 @@ def register_shortcuts(viewer):
         ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat),
         ('lf', leap_focus, 'Check if app has leap focus', gcat),
         ('lq', leap_quit, 'Quit using leap motion input device', gcat),
+        ('bl', motion_blur, 'Toggle motion blur', gcat),
     )
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
@@ -519,3 +520,11 @@ def leap_focus(viewer):
 def leap_quit(viewer):
     from . import c2leap
     c2leap.quit_leap(viewer)
+
+def motion_blur(viewer):
+    from .crossfade import Motion_Blur
+    mb = [o for o in viewer.overlays if isinstance(o, Motion_Blur)]
+    if mb:
+        viewer.remove_overlays(mb)
+    else:
+        Motion_Blur(viewer)
