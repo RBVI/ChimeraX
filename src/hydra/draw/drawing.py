@@ -17,6 +17,20 @@ def initialize_opengl():
     vao = GL.glGenVertexArrays(1)
     GL.glBindVertexArray(vao)
 
+def depth_buffer_size():
+
+# TODO: GL_DEPTH_BITS is deprecated or removed in OpenGL 3
+#    return GL.glGetInteger(GL.GL_DEPTH_BITS)
+
+    # TODO: never got this to work.  Got invalid operation indicating that
+    # no render buffer is bound.  Got this even in the paintGL() routine.
+    import ctypes
+    s = ctypes.c_int()
+    GL.glGetRenderbufferParameteriv(GL.GL_RENDERBUFFER,
+                                    GL.GL_RENDERBUFFER_DEPTH_SIZE,
+                                    ctypes.byref(s))
+    return s.value()
+
 def set_drawing_region(x, y, w, h):
 
     GL.glViewport(x, y, w, h)
@@ -36,6 +50,14 @@ def enable_depth_test(enable):
         GL.glEnable(GL.GL_DEPTH_TEST)
     else:
         GL.glDisable(GL.GL_DEPTH_TEST)
+
+def enable_blending(enable):
+
+    if enable:
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    else:
+        GL.glDisable(GL.GL_BLEND)
 
 def draw_tile_outlines(tiles, edge_color, fill_color, fill):
 
@@ -65,14 +87,28 @@ def draw_transparent(draw_depth, draw):
     draw()
     GL.glDepthFunc(GL.GL_LESS)
 
-def frame_buffer_image(w, h):
+def frame_buffer_image_rgb32(w, h):
+
+    rgba = frame_buffer_image_rgba32(w, h)
+    rgba >>= 8
+    rgb = rgba[::-1,:].copy()
+    return rgb
+
+def frame_buffer_image_rgba32(w, h):
 
     from numpy import empty, uint32
     rgba = empty((h,w),uint32)
     GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, rgba)
-    rgba >>= 8
-    rgb = rgba[::-1,:].copy()
-    return rgb
+    return rgba
+
+def frame_buffer_image_rgba8(w, h):
+
+    rgba = frame_buffer_image_rgba32(w, h)
+    from numpy import little_endian, uint8
+    if little_endian:
+        rgba.byteswap(True) # in place
+    rgba8 = rgba.view(uint8).reshape((h,w,4))
+    return rgba8
 
 def texture_2d(data):
 
@@ -87,10 +123,10 @@ def texture_2d(data):
 
   GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
   GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
   ncomp = data.shape[2]
   if ncomp == 1 or ncomp == 2:

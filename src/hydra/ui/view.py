@@ -6,6 +6,7 @@ class View(QtOpenGL.QGLWidget):
         QtOpenGL.QGLWidget.__init__(self, parent)
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 #        self.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
+#        self.setAutoBufferSwap(False)
         
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
@@ -120,10 +121,14 @@ class View(QtOpenGL.QGLWidget):
     def image(self, size = None):
         w,h = self.window_size
         from ..draw import drawing
-        rgb = drawing.frame_buffer_image(w, h)
+        rgb = drawing.frame_buffer_image_rgb32(w, h)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         if not size is None:
             sw,sh = size
+            if sw*h < sh*w:
+                sh = max(1,(h*sw)/w)
+            elif sw*h > sh*w:
+                sw = max(1,(w*sh)/h)
             qi = qi.scaled(sw, sh, QtCore.Qt.KeepAspectRatio,
                            QtCore.Qt.SmoothTransformation)
         return qi
@@ -154,6 +159,12 @@ class View(QtOpenGL.QGLWidget):
 
         from .gui import show_info
         show_info('OpenGL version %s' % drawing.opengl_version())
+#        self.makeCurrent()
+#        f = self.format()
+#        show_info('Depth buffer %d bits' % f.depthBufferSize())
+#        show_info('Red,green,blue buffer %d,%d,%d bits'
+#                  % (f.redBufferSize(),f.greenBufferSize(),f.blueBufferSize()))
+#        show_info('depth %d' % drawing.depth_buffer_size())
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
@@ -179,15 +190,19 @@ class View(QtOpenGL.QGLWidget):
             cb()
 
         draw = self.redraw_needed
-        if not draw:
-            # TODO: Reset model redraw state when viewer redraw set.
-            for m in self.models:
+        if draw:
+            for m in self.models + self.overlays:
+                m.redraw_needed = False
+        else:
+            for m in self.models + self.overlays:
                 if m.redraw_needed:
                     m.redraw_needed = False
                     draw = True
         if draw:
             self.redraw_needed = False
             self.updateGL()
+            for cb in self.rendered_callbacks:
+                cb()
         else:
             self.mouse_pause_tracking()
 
@@ -233,9 +248,6 @@ class View(QtOpenGL.QGLWidget):
         if self.overlays:
             self.draw_overlays(self.overlays)
 
-        for cb in self.rendered_callbacks:
-            cb()
-
     def draw_overlays(self, overlays):
 
         p = self.current_shader()
@@ -249,6 +261,8 @@ class View(QtOpenGL.QGLWidget):
         drawing.enable_depth_test(False)
         for m in overlays:
             m.draw(self, self.OPAQUE_DRAW_PASS)
+        drawing.enable_blending(True)
+        for m in overlays:
             m.draw(self, self.TRANSPARENT_DRAW_PASS)
         drawing.enable_depth_test(True)
 
@@ -380,9 +394,13 @@ class View(QtOpenGL.QGLWidget):
         else:
             tfrac = 0.75
             from math import sqrt
-            ts = int(sqrt(tfrac*w*h/(n+1)))
-            cols = w//ts
-            rows = h//ts
+            ts = max(1, int(sqrt(tfrac*w*h/(n+1))))
+            while True:
+                cols = w//ts
+                rows = h//ts
+                if rows*cols > n or ts == 1:
+                    break
+                ts -= 1
             ts = min(w//cols, h//rows)
             n0 = int(sqrt(rows*cols - n))
             tiles = [(0,0,n0*ts,n0*ts)]
@@ -535,8 +553,10 @@ class View(QtOpenGL.QGLWidget):
         from math import pi, tan
         fov = self.field_of_view*pi/180
         near,far = self.near_far_clip
-        near = max(near, 1)
-        far = max(far, near+1)
+        near_min = 0.001*(far - near) if far > near else 1
+        near = max(near, near_min)
+        if far <= near:
+            far = 2*near
         w = 2*near*tan(0.5*fov)
         ww,wh = self.window_size if win_size is None else win_size
         aspect = float(wh)/ww
@@ -724,24 +744,20 @@ class View(QtOpenGL.QGLWidget):
         psize = self.pixel_size()
         self.translate(psize*dx, -psize*dy, 0)
 
-    def mouse_translate_molecules(self, event):
+    def mouse_translate_selected(self, event):
 
-        mols = self.molecules()
-        msel = [m for m in mols if m in self.selected]
-        if msel:
-            mols = msel
-        dx, dy = self.mouse_motion(event)
-        psize = self.pixel_size()
-        self.translate(psize*dx, -psize*dy, 0, mols)
+        models = self.selected
+        if models:
+            dx, dy = self.mouse_motion(event)
+            psize = self.pixel_size()
+            self.translate(psize*dx, -psize*dy, 0, models)
 
-    def mouse_rotate_molecules(self, event):
+    def mouse_rotate_selected(self, event):
 
-        mols = self.molecules()
-        msel = [m for m in mols if m in self.selected]
-        if msel:
-            mols = msel
-        axis, angle = self.mouse_rotation(event)
-        self.rotate(axis, angle, mols)
+        models = self.selected
+        if models:
+            axis, angle = self.mouse_rotation(event)
+            self.rotate(axis, angle, models)
 
     def mouse_zoom(self, event):        
 

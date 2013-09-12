@@ -125,7 +125,7 @@ class Server(object):
 				self._log.flush()
 			try:
 				v = self._process_request_batch(*req)
-			except:
+			except BaseException:
 				if self._log:
 					import traceback
 					traceback.print_exc(file=self._log)
@@ -169,7 +169,10 @@ class Server(object):
 			for handler in handler_list:
 				try:
 					v = handler(req_value)
-				except:
+				except SystemExit as se:
+					v = self._exited(se)
+					self.terminate()
+				except Exception:
 					import traceback
 					v = self._bad_handler(traceback.format_exc())
 				v["id"] = req_id
@@ -177,7 +180,7 @@ class Server(object):
 
 		try:
 			reply = json.dumps(reply_list)
-		except:
+		except Exception:
 			return self._encoding_failed()
 		else:
 			return self._success(reply)
@@ -194,6 +197,17 @@ class Server(object):
 		# Return value goes directly back to WSGI app
 		return ("500 JSON encoding failed", "text/plain", None,
 						"JSON encoding failed")
+
+	def _exited(self, exc):
+		if exc.code == 0:
+			return {
+				"status": True,
+				"stdout": "Server exited"
+			}
+		return {
+			"status": False,
+			"stderr": "Server died: %s" % value
+		}
 
 	def _bad_tag(self, tag):
 		# Return value is included in reply list

@@ -27,7 +27,7 @@ out vec4 frag_color;
 void main (void)
 {
 #ifdef USE_TEXTURE_2D
-  vec4 fcolor = texture(tex2d, tex_coord);
+  vec4 fcolor = texture(tex2d, tex_coord) * color;
 #else
   vec4 fcolor = color;
 #endif

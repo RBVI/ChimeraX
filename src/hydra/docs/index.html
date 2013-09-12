@@ -1,4 +1,9 @@
 <html>
+<head>
+<style>
+</style>
+</head>
+
 <body>
 <h1>User's Guide</h1>
 
@@ -15,6 +20,7 @@ Toolbar
 <tr><td><img src="icons/contour.png" width=32 height=32><td style="vertical-align: middle;">Adjust contour level mouse mode (ct)
 <tr><td><img src="icons/cubearrow.png" width=32 height=32><td style="vertical-align: middle;">Resize map mouse mode (mp)
 <tr><td><img src="icons/molarrow.png" width=32 height=32><td style="vertical-align: middle;">Move molecules mouse mode (mm)
+<tr><td><img src="icons/rotmol.png" width=32 height=32><td style="vertical-align: middle;">Rotate molecules mouse mode (rm)
 </table>
 
 <td>
@@ -22,12 +28,16 @@ Toolbar
 <tr><td><img src="icons/rabbithat.png" width=32 height=32><td style="vertical-align: middle;">Show/hide models (sh)
 <tr><td><img src="icons/cube-outline.png" width=32 height=32><td style="vertical-align: middle;">Show map outline box (ob)
 <tr><td><img src="icons/icecube.png" width=32 height=32><td style="vertical-align: middle;">Make map transparent (t5)
+<tr><td><img src="icons/grid.png" width=32 height=32><td style="vertical-align: middle;"> Show recent sessions (rs)
+<tr><td><img src="icons/savesession.png" width=32 height=32><td style="vertical-align: middle;">Save session (sv)
 </table>
 
 <td>
 <table>
-<tr><td><img src="icons/grid.png" width=32 height=32><td style="vertical-align: middle;"> Show recent sessions (rs)
-<tr><td><img src="icons/savesession.png" width=32 height=32><td style="vertical-align: middle;">Save session (sv)
+<tr><td><img src="icons/graphics.png" width=32 height=32><td style="vertical-align: middle;"> Show graphics (gr)
+<tr><td><img src="icons/scenes.png" width=32 height=32><td style="vertical-align: middle;"> Show scenes (sc)
+<tr><td><img src="icons/log.png" width=32 height=32><td style="vertical-align: middle;"> Show command output (lg)
+<tr><td><img src="icons/commands.png" width=32 height=32><td style="vertical-align: middle;"> Show command history (ch)
 <tr><td><img src="icons/shortcut.png" width=32 height=32><td style="vertical-align: middle;">List keyboard shortcuts (ks)
 <tr><td><img src="icons/book.png" width=32 height=32><td style="vertical-align: middle;">Show manual (mn)
 </table>
@@ -51,7 +61,6 @@ Toolbar
 <tr><td width=40>sv<td>Save session as...
 <tr><td width=40>Sv<td>Save session
 </table>
-<td>
 <table>
 <tr><th colspan=2 align=left>Map Display
 <tr><td width=40>bx<td>Show box faces
@@ -71,19 +80,48 @@ Toolbar
 <td>
 <table>
 <tr><th colspan=2 align=left>Molecule Display
+<tr><td width=40>bs<td>Display atoms in ball and stick
 <tr><td width=40>bu<td>Show biological unit
+<tr><td width=40>c1<td>Color molecule one color
 <tr><td width=40>cc<td>Color chains
 <tr><td width=40>ce<td>Color atoms by element
+<tr><td width=40>da<td>Display molecule atoms
+<tr><td width=40>ha<td>Undisplay molecule atoms
+<tr><td width=40>hr<td>Undisplay molecule ribbon
+<tr><td width=40>hw<td>Hide water atoms
+<tr><td width=40>la<td>Show ligand atoms
+<tr><td width=40>mb<td>Compute molecule bonds using templates
 <tr><td width=40>mm<td>Move molecules mouse mode
 <tr><td width=40>ms<td>Show molecular surface
+<tr><td width=40>r+<td>Fat ribbons
+<tr><td width=40>r-<td>Thin ribbons
+<tr><td width=40>rb<td>Show molecule ribbon
+<tr><td width=40>rm<td>Rotate molecules mouse mode
+<tr><td width=40>sp<td>Display atoms in sphere style
+<tr><td width=40>st<td>Display atoms in stick style
+<tr><td width=40>sw<td>Show water atoms
 </table>
+<td>
 <table>
 <tr><th colspan=2 align=left>General Controls
 <tr><td width=40>bk<td>Black background
+<tr><td width=40>bm<td>matrix profiling
+<tr><td width=40>ch<td>Show command history
+<tr><td width=40>cl<td>Enter command
 <tr><td width=40>cs<td>Clear selection
+<tr><td width=40>gb<td>Gray background
+<tr><td width=40>gr<td>Show graphics window
 <tr><td width=40>ks<td>List keyboard shortcuts
+<tr><td width=40>lf<td>Check if app has leap focus
+<tr><td width=40>lg<td>Show command log
+<tr><td width=40>lp<td>Enable leap motion input device
+<tr><td width=40>lq<td>Quit using leap motion input device
+<tr><td width=40>lv<td>Enable leap motion velocity mode
+<tr><td width=40>lx<td>Enable leap motion chopstick mode
 <tr><td width=40>mn<td>Show manual
+<tr><td width=40>rt<td>Show model statistics
 <tr><td width=40>rv<td>Reset view
+<tr><td width=40>sc<td>Show scene thumbnails
 <tr><td width=40>sh<td>Show or hide models
 <tr><td width=40>sl<td>Select models mouse mode
 <tr><td width=40>va<td>View all
@@ -95,11 +133,20 @@ Toolbar
 Commands
 </h2>
 
-<ul>
-<li><a href="fitmap.html">fitmap</a> - Fit molecules in maps.
-<li><a href="molmap.html">molmap</a> - Calculated simulated density maps from molecules.
-<li><a href="volume.html">volume</a> - Control density map display.
-</ul>
+<table>
+<tr><td>
+<tr><td><b>open</b> <i>filename</i>|<i>PDB-id,...</i>|emdb:<i>id</i> - open files
+<tr><td><b>close</b> [<i>model-spec</i>|all] - close models
+<tr><td><b>scene</b> add|show|delete [id] - remember views
+<tr><td>
+<tr><td><a href="volume.html">volume</a> - Control density map display.
+<tr><td><a href="fitmap.html">fitmap</a> - Fit molecules in maps.
+<tr><td><a href="molmap.html">molmap</a> - Calculated simulated density maps from molecules.
+<tr><td>
+<tr><td><b>show</b> <i>atom-spec</i> [atoms] [ribbon] [only] - display specific atoms or ribbons
+<tr><td><b>hide</b> <i>atom-spec</i> [atoms] [ribbon] [only] - hide specific atoms or ribbons
+<tr><td><b>align</b> <i>atom-spec</i> <i>ref-atoms</i> [move molecules|chains|residues|atoms|false] [each molecule|chain] [same n] [report_matrix true|false] - align molecules to minimize RMSD
+</table>
 
 </body>
 </html>

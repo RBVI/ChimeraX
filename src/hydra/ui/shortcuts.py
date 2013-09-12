@@ -40,6 +40,8 @@ def register_shortcuts(viewer):
         ('rb', show_ribbon, 'Show molecule ribbon'),
         ('hr', hide_ribbon, 'Undisplay molecule ribbon'),
         ('la', show_ligands, 'Show ligand atoms'),
+        ('sw', show_waters, 'Show water atoms'),
+        ('hw', hide_waters, 'Hide water atoms'),
         ('r+', fat_ribbons, 'Fat ribbons'),
         ('r-', thin_ribbons, 'Thin ribbons'),
     )
@@ -49,7 +51,8 @@ def register_shortcuts(viewer):
 
     ocat = 'Open, Save, Close'   # shortcut documentation category
     gcat = 'General Controls'
-    from ..file_io import session, history, opensave
+    from ..file_io import session, opensave
+    from ..file_io.history import history
     view_shortcuts = (
         ('op', opensave.show_open_file_dialog, 'Open file', ocat),
         ('sv', opensave.save_session_as, 'Save session as...', ocat),
@@ -59,8 +62,8 @@ def register_shortcuts(viewer):
         ('Ca', close_all_models, 'Close all models', ocat),
         ('mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat),
-        ('mm', enable_move_molecules_mouse_mode, 'Move molecules mouse mode', molcat),
-        ('rm', enable_rotate_molecules_mouse_mode, 'Rotate molecules mouse mode', molcat),
+        ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat),
+        ('ro', enable_rotate_selected_mouse_mode, 'Rotate selected mouse mode', gcat),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat),
         ('sh', tile_models, 'Show or hide models', gcat),
         ('bk', set_background_black, 'Black background', gcat),
@@ -73,6 +76,7 @@ def register_shortcuts(viewer):
         ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat),
         ('lf', leap_focus, 'Check if app has leap focus', gcat),
         ('lq', leap_quit, 'Quit using leap motion input device', gcat),
+        ('bl', motion_blur, 'Toggle motion blur', gcat),
     )
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
@@ -81,14 +85,16 @@ def register_shortcuts(viewer):
     misc_shortcuts = (
         ('rv', v.initial_camera_view, 'Reset view', gcat),
         ('va', v.view_all, 'View all', gcat),
-        ('rs', history.show_history_thumbnails, 'Show recent sessions', ocat),
+        ('rs', history.show_thumbnails, 'Show recent sessions', ocat),
         ('cs', v.clear_selection, 'Clear selection', gcat),
         ('Qt', v.quit, 'Quit', ocat),
         ('cl', command_line, 'Enter command', gcat),
+        ('gr', show_graphics_window, 'Show graphics window', gcat),
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
         ('mn', show_manual, 'Show manual', gcat),
         ('lg', show_log, 'Show command log', gcat),
         ('ch', show_command_history, 'Show command history', gcat),
+        ('sc', show_scenes, 'Show scene thumbnails', gcat),
         ('rt', show_stats, 'Show model statistics', gcat),
         ('bm', matrix_profile, 'matrix profiling', gcat),
         )
@@ -176,8 +182,8 @@ def shortcut_molecules(v):
 
 def close_all_models(viewer):
     viewer.close_all_models()
-    from ..file_io import history
-    history.show_history_thumbnails()
+    from ..file_io.history import history
+    history.show_thumbnails()
 
 def show_mesh(m):
   m.set_representation('mesh')
@@ -212,7 +218,7 @@ def show_all_planes(m):
 
 def toggle_orthoplanes(m):
   s = False in m.rendering_options.orthoplanes_shown
-  p = tuple(s/2 for s in m.data.size)
+  p = tuple(s//2 for s in m.data.size)
   m.set_parameters(orthoplanes_shown = (s,s,s),
                    orthoplane_positions = p,
                    color_mode = 'l8' if s else 'auto8',
@@ -238,13 +244,13 @@ def enable_contour_mouse_mode(viewer, button = 'right'):
   v = viewer
   v.bind_mouse_mode(button, v.mouse_down, v.mouse_contour_level, v.mouse_up)
 
-def enable_move_molecules_mouse_mode(viewer, button = 'right'):
+def enable_move_selected_mouse_mode(viewer, button = 'right'):
   v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_translate_molecules, v.mouse_up)
+  v.bind_mouse_mode(button, v.mouse_down, v.mouse_translate_selected, v.mouse_up)
 
-def enable_rotate_molecules_mouse_mode(viewer, button = 'right'):
+def enable_rotate_selected_mouse_mode(viewer, button = 'right'):
   v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_rotate_molecules, v.mouse_up)
+  v.bind_mouse_mode(button, v.mouse_down, v.mouse_rotate_selected, v.mouse_up)
 
 def fit_molecule_in_map(viewer):
     mols, maps = viewer.molecules(), viewer.maps()
@@ -365,9 +371,9 @@ def color_one_color(m):
   m.set_color_mode('single')
 
 def show_atoms(m):
-  m.set_atom_display(True)
+  m.show_all_atoms()
 def hide_atoms(m):
-  m.set_atom_display(False)
+  m.hide_all_atoms()
 def show_sphere(m):
   m.set_atom_style('sphere')
 def show_stick(m):
@@ -383,7 +389,11 @@ def fat_ribbons(m):
 def thin_ribbons(m):
     m.set_ribbon_radius(0.5)
 def show_ligands(m):
-    m.show_nonribbon_atoms()
+    m.show_ligand_atoms()
+def show_waters(m):
+    m.show_solvent()
+def hide_waters(m):
+    m.hide_solvent()
 def molecule_bonds(m):
     from ..molecule import connect
     connect.create_molecule_bonds(m)
@@ -398,7 +408,8 @@ def list_keyboard_shortcuts():
   if m.showing_text() and m.text_id == 'keyboard shortcuts':
     m.show_graphics()
   else:
-    m.show_text(shortcut_descriptions(html = True), html = True, id = "keyboard shortcuts")
+    t = shortcut_descriptions(html = True)
+    m.show_text(t, html = True, id = "keyboard shortcuts")
 
 def shortcut_descriptions(html = False):
   global keyboard_shortcuts
@@ -434,6 +445,11 @@ def shortcut_descriptions(html = False):
   descrip = '\n'.join(lines)
   return descrip
 
+def show_graphics_window():
+  from .gui import main_window as m
+  m.show_graphics()
+  m.show_back_forward_buttons(False)
+
 def show_manual():
   from .gui import main_window as m
   if m.showing_text() and m.text_id == 'manual':
@@ -442,6 +458,7 @@ def show_manual():
   else:
     from os.path import join, dirname
     path = join(dirname(dirname(__file__)), 'docs', 'index.html')
+# Can't use back button to initial page if html text provided instead of file url.
 #    f = open(path, 'r')
 #    text = f.read()
 #    f.close()
@@ -454,6 +471,10 @@ def show_manual():
 def show_command_history():
     from . import commands
     commands.show_command_history()
+
+def show_scenes():
+    from .. import scenes
+    scenes.show_thumbnails(toggle = True)
 
 def show_stats():
     from .gui import main_window as mw, show_status
@@ -499,3 +520,11 @@ def leap_focus(viewer):
 def leap_quit(viewer):
     from . import c2leap
     c2leap.quit_leap(viewer)
+
+def motion_blur(viewer):
+    from .crossfade import Motion_Blur
+    mb = [o for o in viewer.overlays if isinstance(o, Motion_Blur)]
+    if mb:
+        viewer.remove_overlays(mb)
+    else:
+        Motion_Blur(viewer)

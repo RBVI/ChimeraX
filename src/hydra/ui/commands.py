@@ -6,8 +6,9 @@ class CommandError(Exception):
 # -----------------------------------------------------------------------------
 #
 def register_commands():
-    from ..file_io.opensave import open_command
+    from ..file_io.opensave import open_command, close_command
     add_command('open', open_command)
+    add_command('close', close_command)
     from ..file_io import fetch_pdb, fetch_emdb
     fetch_pdb.register_pdb_fetch()
     fetch_emdb.register_emdb_fetch()
@@ -17,8 +18,12 @@ def register_commands():
     add_command('volume', volumecommand.volume_command)
     from ..FitMap import fitcmd
     add_command('fitmap', fitcmd.fitmap_command)
-    from ..molecule import align
+    from ..molecule import align, showcmd
     add_command('align', align.align_command)
+    add_command('show', showcmd.show_command)
+    add_command('hide', showcmd.hide_command)
+    from .. import scenes
+    add_command('scene', scenes.scene_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -108,15 +113,25 @@ def show_command_history(filename = 'commands'):
     hlines.extend(['<a href="%d"><p>%s</p></a>' % (i,line) for i,line in enumerate(cmds)])
     hlines.extend(['</body>','</html>'])
     html = '\n'.join(hlines)
+    # TODO: Make sure clicked links don't have directory prepended.
+    #  Could not find a way to avoid prepending a previous source directory (from user's guide).
+    #  Seems to be a Qt bug.
+#    from .qt import QtCore
+#    mw.text.setSource(QtCore.QUrl())
+#    mw.text.clear()
+#    mw.text.clearHistory()
     mw.show_text(html, html=True, id = 'command history',
                  anchor_callback = insert_clicked_command)
-
 
 # -----------------------------------------------------------------------------
 #
 shown_commands = []
 def insert_clicked_command(url):
-    c = int(url.toString(url.PreferLocalFile))         # command number
+    surl = url.toString(url.PreferLocalFile)
+    # Work around Qt bug where it prepends a directory path to the anchor
+    # even when QtTextBrowser search path and source are cleared.
+    cnum = surl.split('/')[-1]
+    c = int(cnum)         # command number
     if c < len(shown_commands):
         cmd = shown_commands[c]
         from .gui import main_window as mw
@@ -135,31 +150,12 @@ def parse_arguments(cmd_name, arg_string,
     akw = {}
     a = 0
     spec = None
-
-    # Parse required arguments.
-    for spec in required_args:
-        if a >= n:
-            raise CommandError('%s: Missing required argument "%s"'
-                               % (cmd_name, arg_specifier_name(spec)))
-        a += parse_arg(fields[a:], spec, cmd_name, akw)
+    args = []
 
     # Make keyword abbreviation table.
     kw_args = tuple(optional_args) + tuple(keyword_args)
     kwnames = [arg_specifier_name(s) for s in kw_args]
     kwt = abbreviation_table(kwnames)
-
-    # Parse optional arguments.
-    for spec in optional_args:
-        if a >= n or fields[a].lower() in kwt:
-            break
-        a += parse_arg(fields[a:], spec, cmd_name, akw)
-
-    # Allow last positional argument to have multiple values.
-    if spec:
-        multiple = arg_spec(spec)[3]
-        if multiple:
-            while a < n and not fields[a].lower() in kwt:
-                a += parse_arg(fields[a:], spec, cmd_name, akw)
 
     # Parse keyword arguments.
     keyword_spec = dict([(arg_specifier_name(s),s) for s in kw_args])
@@ -167,10 +163,37 @@ def parse_arguments(cmd_name, arg_string,
         f = fields[a]
         fl = f.lower()
         if not fl in kwt:
-            raise CommandError('%s: Unknown keyword "%s"' % (cmd_name, f))
+            args.append(f)
+            a += 1
+            continue
         spec = keyword_spec[kwt[fl]]
         a += 1 + parse_arg(fields[a+1:], spec, cmd_name, akw)
-        
+
+    # Parse required arguments.
+    a = 0
+    na = len(args)
+    for spec in required_args:
+        if a >= na:
+            raise CommandError('%s: Missing required argument "%s"'
+                               % (cmd_name, arg_specifier_name(spec)))
+        a += parse_arg(args[a:], spec, cmd_name, akw)
+
+    # Parse optional arguments.
+    for spec in optional_args:
+        if a >= na:
+            break
+        a += parse_arg(args[a:], spec, cmd_name, akw)
+
+    # Allow last positional argument to have multiple values.
+    if spec:
+        multiple = arg_spec(spec)[3]
+        if multiple:
+            while a < na:
+                a += parse_arg(args[a:], spec, cmd_name, akw)
+
+    if a < na:
+        raise CommandError('%s: Extra argument "%s"' % (cmd_name, args[a]))
+
     return akw
 
 # -----------------------------------------------------------------------------
@@ -232,6 +255,10 @@ def arg_specifier_name(s):
     if isinstance(s, str):
         return s
     return s[0]
+
+# -----------------------------------------------------------------------------
+#
+no_arg = ()
 
 # -----------------------------------------------------------------------------
 #
@@ -973,38 +1000,62 @@ def split_first(s):
     return (t.split(None, 1) + ['', ''])[:2]
 
 # -----------------------------------------------------------------------------
-# Example #1.A:7-52@CA
+# Examples:
+#        #1.A:7-52@CA
+#        #2:HOH
 #
 def parse_specifier(spec):
 
     parts = specifier_parts(spec)
-    mid1 = mid2 = cid = r1 = r2 = aname = None
+    mid1 = mid2 = cid = rrange = rname = aname = None
+    invert = False
     for p in parts:
         if p.startswith('#'):
             mid1, mid2 = integer_range(p[1:])
         elif p.startswith('.'):
             cid = p[1:]
         elif p.startswith(':'):
-            r1, r2 = integer_range(p[1:])
+            rrange = integer_range(p[1:])
+            if rrange is None:
+                rname = p[1:]
         elif p.startswith('@'):
             aname = p[1:]
+        elif p.startswith('!'):
+            invert = True
     
     from .gui import main_window
     v = main_window.view
-    mlist = v.models
-    if not mid1 is None:
-        mlist = [m for m in mlist if m.id >= mid1 and m.id <= mid2]
+    if mid1 is None:
+        if cid is None and rrange is None and rname is None and aname is None:
+            if spec == 'all':
+                mlist = v.models
+            else:
+                mlist = []
+        else:
+            mlist = v.molecules()
+    else:
+        mlist = [m for m in v.models if m.id >= mid1 and m.id <= mid2]
     if len(mlist) == 0:
         raise CommandError('No models specified by "%s"' % spec)
 
     s = Selection()
     from ..molecule import Molecule
+    smodels = []
     for m in mlist:
         if isinstance(m, Molecule):
-            atoms = m.atom_subset(aname, cid, (r1,r2))
-            s.add_atoms(m, atoms)
+            atoms = m.atom_subset(aname, cid, rrange, rname, invert)
+            if len(atoms) > 0:
+                s.add_atoms(m, atoms)
         else:
-            s.add_models([m])
+            smodels.append(m)
+    if invert:
+        sm = set(smodels)
+        smodels = [m for m in v.models
+                   if not isinstance(m, Molecule) and not m in sm]
+        if not mid1 is None:
+            smodels.extend(m for m in v.molecules() if m.id < mid1 or m.id > mid2)
+    s.add_models(smodels)
+
     return s
 
 # -----------------------------------------------------------------------------
@@ -1015,7 +1066,7 @@ def specifier_parts(spec):
     parts = []
     p = ''
     for c in spec:
-        if c in ('#', '.', ':', '@') and p:
+        if c in ('!', '#', '.', ':', '@') and p:
             parts.append(p)
             p = ''
         p += c
@@ -1027,8 +1078,11 @@ def specifier_parts(spec):
 #
 def integer_range(rstring):
     r = rstring.split('-')
-    r1 = int(r[0])
-    r2 = int(r[1]) if len(r) == 2 else r1
+    try:
+        r1 = int(r[0])
+        r2 = int(r[1]) if len(r) == 2 else r1
+    except ValueError:
+        return None
     return (r1,r2)
 
 # -----------------------------------------------------------------------------

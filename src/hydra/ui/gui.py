@@ -84,8 +84,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_toolbar_action = a
         self.add_shortcut_icon('contour.png', 'Adjust contour level mouse mode', 'ct')
         self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'mp')
-        self.add_shortcut_icon('molarrow.png', 'Move molecules mouse mode', 'mm')
-        self.add_shortcut_icon('rotmol.png', 'Rotate molecules mouse mode', 'rm')
+        self.add_shortcut_icon('move_h2o.png', 'Move selected mouse mode', 'mo')
+        self.add_shortcut_icon('rotate_h2o.png', 'Rotate selected mouse mode', 'ro')
         toolbar.addSeparator()
 
         self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'sh')
@@ -93,12 +93,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_shortcut_icon('icecube.png', 'Make map transparent', 't5')
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('grid.png', 'Show recent sessions', 'rs')
-        self.add_shortcut_icon('savesession.png', 'Save session', 'sv')
-        self.add_shortcut_icon('shortcut.png', 'List keyboard shortcuts', 'ks')
-        self.add_shortcut_icon('book.png', 'Show manual', 'mn')
+        self.add_shortcut_icon('graphics.png', 'Show graphics window', 'gr')
+        self.add_shortcut_icon('scenes.png', 'Show scenes', 'sc')
         self.add_shortcut_icon('log.png', 'Show command log', 'lg')
         self.add_shortcut_icon('commands.png', 'Show command history', 'ch')
+        self.add_shortcut_icon('shortcut.png', 'List keyboard shortcuts', 'ks')
+        self.add_shortcut_icon('book.png', 'Show manual', 'mn')
+        toolbar.addSeparator()
+
+        self.add_shortcut_icon('grid.png', 'Show recent sessions', 'rs')
+        self.add_shortcut_icon('savesession.png', 'Save session', 'sv')
 
     def add_shortcut_icon(self, icon_file, descrip, shortcut):
 
@@ -198,11 +202,13 @@ def show_main_window():
 #    w.view.setFocus(QtCore.Qt.OtherFocusReason)       # Get keyboard events on startup
     w.show()
     enable_exception_logging()
-    from ..file_io import history
-    history.show_history_thumbnails()
+    from ..file_io.history import history
+    history.show_thumbnails()
+    redirect_stdout()
     status = app.exec_()
 #    from . import leap
 #    leap.quit_leap(w.view)
+    history.write_history()
     sys.exit(status)
 
 def show_status(msg, append = False):
@@ -285,6 +291,19 @@ def log_image():
     global cmd_log
     cmd_log.insert_graphics_image()
 
+def redirect_stdout():
+    import sys
+    sys.stdout_orig = sys.stdout
+    class Log_Output:
+        def __init__(self):
+            self.text = ''
+        def write(self, text):
+            self.text += text
+            if text.endswith('\n'):
+                log_message(self.text.rstrip())
+                self.text = ''
+    sys.stdout = Log_Output()
+
 def enable_exception_logging():
     import sys
     sys.excepthook = log_exception
@@ -292,6 +311,8 @@ def enable_exception_logging():
 def log_exception(type, value, traceback):
     from traceback import format_exception
     lines = format_exception(type, value, traceback)
-    tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(lines)
+    import cgi
+    elines = tuple(cgi.escape(line) for line in lines)
+    tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(elines)
     log_message(tb, html = True)
     show_log()

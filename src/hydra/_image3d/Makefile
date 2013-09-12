@@ -2,7 +2,7 @@ TOP	= ../../..
 include $(TOP)/mk/config.make
 
 PYMOD_NAME = _image3d
-SRCS	= combine.cpp \
+SRCS	= blend_rgba.cpp combine.cpp \
 	  contourdata.cpp pycontour.cpp \
 	  distances.cpp pydistances.cpp  \
 	  gaussian.cpp \

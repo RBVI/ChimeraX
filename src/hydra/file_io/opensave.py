@@ -5,7 +5,11 @@ def show_open_file_dialog(view):
                     for name, suffixes, read_func in file_types()]
     filter_lines.insert(0, 'All (*.*)')
     filters = ';;'.join(filter_lines)
-    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view, 'Open File', '.', filters)
+    from .history import history
+    dir = history.most_recent_directory()
+    if dir is None:
+        dir = '.'
+    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view, 'Open File', dir, filters)
     open_files(qpaths[0], view)
     from ..ui.gui import main_window as mw
     mw.show_graphics()
@@ -21,10 +25,11 @@ def file_types():
         ftypes = [
             ('PDB', ['pdb'], open_pdb_file),
             ('mmCIF', ['cif'], open_mmcif_file),
-            ('Session', ['mo'], open_session),
+            ('Session', ['hy'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),
             ('STL', ['stl'], read_stl),
             ('Neuron SWC', ['swc'], read_swc),
+            ('Python', ['py'], read_python),
         ]
         # Add map file types
         from ..VolumeData.fileformats import file_types as mft
@@ -64,6 +69,8 @@ def open_files(paths, view = None, set_camera = None):
             for m in mlist:
                 view.add_model(m)
             opened.append(path)
+            if set_camera and file_reader == open_session:
+                set_camera = False
         else:
             from ..ui import gui
             gui.show_status('Unknown file suffix "%s"' % ext)
@@ -74,7 +81,7 @@ def open_files(paths, view = None, set_camera = None):
 def finished_opening(opened, set_camera, view):
     if opened and set_camera:
         view.remove_overlays()
-        view.initial_camera_view() # TODO: don't do for session restore
+        view.initial_camera_view()
     from ..ui.gui import show_info, show_status
     if len(opened) == 1 and opened:
         msg = 'Opened %s' % opened[0]
@@ -113,9 +120,14 @@ def save_session(view):
         session.save_session(last_session_path, view)
 
 def save_session_as(view):
-    filters = 'Session (*.mo)'
-    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session', '.',
-                                             filters)
+    global last_session_path
+    dir = last_session_path
+    if dir is None:
+        from .history import history
+        dir = history.most_recent_directory()
+    filters = 'Session (*.hy)'
+    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session',
+                                                 dir, filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt
     if not path:
@@ -164,17 +176,25 @@ def open_command(cmdname, args):
     kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
     open_file(**kw)
 
-def open_file(path, fromDatabase = None, set_camera = None):
+def open_file(path, from_database = None, set_camera = None):
     from ..ui.gui import main_window as mw
     view = mw.view
-    if fromDatabase is None:
+    if from_database is None:
         from os.path import expanduser
         p = expanduser(path)
         from os.path import isfile
         if isfile(p):
             open_files([p], view)
         else:
-            open_file(p, fromDatabase = 'PDB')
+            if ':' in p:
+                dbname, id = p.split(':', 1)
+            elif len(p) == 4 or len(p.split(',', maxsplit = 1)[0]) == 4:
+                dbname, id = 'PDB', p
+            else:
+                from ..ui import gui
+                gui.show_status('Unknown file %s' % path)
+                return
+            open_file(id, from_database = dbname)
     else:
         ids = path.split(',')
         if set_camera is None:
@@ -182,7 +202,7 @@ def open_file(path, fromDatabase = None, set_camera = None):
         from . import fetch
         mlist = []
         for id in ids:
-            m = fetch.fetch_from_database(id, fromDatabase)
+            m = fetch.fetch_from_database(id, from_database)
             if isinstance(m, (list, tuple)):
                 mlist.extend(m)
             else:
@@ -190,3 +210,32 @@ def open_file(path, fromDatabase = None, set_camera = None):
         view.add_models(mlist)
         finished_opening([m.path for m in mlist], set_camera, view)
     mw.show_graphics()
+
+def close_command(cmdname, args):
+
+    from ..ui.commands import models_arg, parse_arguments
+    req_args = ()
+    opt_args = (('models', models_arg),)
+    kw_args = ()
+
+    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    close_models(**kw)
+
+def close_models(models = None):
+
+    from ..ui.gui import main_window
+    v = main_window.view
+    if models is None:
+        v.close_all_models()
+    else:
+        v.close_models(models)
+
+def read_python(path):
+
+    f = open(path)
+    code = f.read()
+    f.close()
+    ccode = compile(code, path, 'exec')
+    globals = locals = None
+    exec(ccode, globals, locals)
+    return []

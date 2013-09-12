@@ -37,8 +37,6 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
         if da > 0 or dra > 0:
             from ..ui.gui import log_message
             log_message('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
-        print ('p', patoms.count(), atoms.count(), pref_atoms.count(), ref_atoms.count())
-        print ('m', [m.id for m in atoms.molecules()], [m.id for m in ref_atoms.molecules()])
         atoms, ref_atoms = patoms, pref_atoms
 
     if atoms.count() != ref_atoms.count():

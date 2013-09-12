@@ -2,11 +2,14 @@
         "https://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
+<meta charset="utf-8"/>
 <title>Session Javascript Test Page</title>
 <!-- standard jquery/jquery-ui -->
 <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.js"></script>
 <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
 <script type="text/javascript" src="https://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.css" />
+<script src="https://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.js"></script>
 
 <!-- additional widgets -->
 <script type="text/javascript" src="js/jquery.jec-1.3.4.js"></script>
@@ -21,30 +24,42 @@
 <script type="text/javascript" src="webgl/llgr_webgl.js"></script>
 
 <!-- page-specific script and css -->
+<style type="text/css">
+.footer-button { width:100px; }
+.footer-left { text-align:left; padding:0px 10px; }
+.footer-right { text-align:right; padding:0px 10px; }
+#molview {
+	position: relative;
+	margin: 0px;
+}
+</style>
+
 <script type="text/javascript">
 $(document).ready(function() {
-	$("#tabs").tabs();
-	$c2_session.init("..");
-	$("#command_line").keyup(function (evt) {
-				if (evt.which == 13)
-					$c2_session.command($(this).val(), process_result);
-				});
+	$c2_session.ui_init("..");
+	$("#command_line").keyup(
+		function (evt) {
+			if (evt.which != 13)
+				return;
+			$c2_session.send_command($(this).val());
+		});
+	$c2_session.register_data_function("llgr", process_llgr_data);
+	$c2_session.register_data_function("scene", process_scene_data);
 	molview();
 })
 
-function process_result(response)
-{
-	var client_data = response["client_data"];
-	if (client_data[0] === "json") {
-		var json = JSON.parse(client_data[1]);
-		load(json);
-	}
+function process_llgr_data(data) {
+	var json = JSON.parse(data);
+	load(json);
+}
+
+function process_scene_data(data) {
+	// TODO
 }
 
 var molview_ci;		// molview context information
 
-function molview()
-{
+function molview() {
 	var canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
 		alpha: false,
@@ -54,65 +69,158 @@ function molview()
 		return;
 
 	molview_ci = new ContextInfo(canvas, gl, drawScene);
-	window.onresize = molview_ci.redraw;
 	molview_ci.init();
 	molview_ci.redraw();
 }
 
-function drawScene(ci)
-{
+function drawScene(ci) {
 	var canvas = ci.canvas;
 	var gl = ci.gl;
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+	$c2_session.set_state("width", canvas.width);
+	$c2_session.set_state("height", canvas.height);
 	llgr.set_context(gl);
 	gl.viewport(0, 0, canvas.width, canvas.height);
 	llgr.render();
 	ci.requestId = null;
 }
 
-function load(json_or_url)
-{
+function load(json_or_url) {
 	molview_ci.data = json_or_url;
 	molview_ci.init();
 	molview_ci.redraw();
 }
 
+$(function() {
+	$("#molview").resizable({
+		handles: "",
+		resize: function (event, ui) {
+			$("canvas", this).each(function () {
+				$(this).attr({
+					width: ui.size.width,
+					height: ui.size.height
+				});
+				molview_ci.redraw();
+			});
+		},
+	});
+});
+
 </script>
 </head>
 <body>
 <h1>Session Javascript Test Page</h1>
-<div id="tabs">
-  <ul>
-    <li><a href="#tabs_main">Main Graphics</a></li>
-    <li><a href="#tabs_log">Log</a></li>
-    <li><a href="#tabs_debug">Debug Log</a></li>
-  </ul>
-  <div id="tabs_main">
-    <hr/>
-    <div>
-      <strong>Command:</strong>
-      <input id="command_line" type="text" size="120"/>
-      <span id="c2_session"/>
+<div data-role="page">
+
+<!--panels-->
+<div data-role="panel" data-position-fixed="true" id="log_panel">
+  <h2>Message Log</h2>
+  <p id="log">Log messages appear here</p>
+  <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
+</div>
+<div data-role="panel" data-position-fixed="true"
+	data-position="right" id="debug_panel">
+  <h2>Debug Log</h2>
+  <pre id="debug">Debug text</pre>
+  <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
+</div>
+<!--end panels-->
+
+<!--popups-->
+<div data-role="popup" name="session_popup" id="session_popup">
+  <div data-role="collapsible-set" data-mini="true">
+    <div data-role="collapsible" data-collapsed="false">
+      <h3>My Sessions</h3>
+      <form>
+	<label for="my_sessions">Session:</label>
+	<select name="my_sessions" id="my_sessions" data-mini="true">
+	  <option value="xyzzy">xyzzy</option>
+	  <option value="plugh">plugh</option>
+	</select>
+	<label for="my_password">Password:</label>
+	<input type="password" name="my_password" id="my_password"
+	      value="" data-mini="true" />
+	<input type="button" value="Open" id="open_session"
+	      data-inline="true" data-mini="true" data-theme="b"/>
+	<input type="button" value="Delete" id="delete_session"
+	      data-inline="true" data-mini="true" data-theme="b"/>
+      </form>
     </div>
-    <div>
-      <span id="status_line">&nbsp;</span>
+    <div data-role="collapsible" data-collapsed="true">
+      <h3>New Sessions</h3>
+      <form>
+	<label for="new_session">Session:</label>
+	<input type="text" name="new_session" id="new_session"
+	      value="" data-mini="true" />
+	<label for="new_password">Password:</label>
+	<input type="password" name="new_password" id="new_password"
+	      value="" data-mini="true" />
+	<input type="button" value="Create" id="open_new_session"
+	      data-inline="true" data-mini="true" data-theme="b"/>
+      </form>
     </div>
-    <div>
-     <canvas id="molview" style="height:600px; width:600px; margin:0px; background-color:yellow;">
-      Your browser does not support the HTML5
-      <code>&lt;canvas&gt;</code> element.
-      <a href="http://get.webgl.org">Click here to upgrade your browser.</a>
-     </canvas>
+    <div data-role="collapsible" data-collapsed="true">
+      <h3>Shared Session</h3>
+      <form>
+	<label for="shared_username">User name:</label>
+	<input type="text" name="shared_username" id="shared_username"
+	      value="" data-mini="true" />
+	<label for="shared_session">Session:</label>
+	<input type="text" name="shared_session" id="shared_session"
+	      value="" data-mini="true" />
+	<label for="shared_password">Password:</label>
+	<input type="password" name="shared_password" id="shared_password"
+	      value="" data-mini="true"/>
+	<input type="button" value="Open" id="open_shared_session"
+	      data-inline="true" data-mini="true" data-theme="b"/>
+      </form>
     </div>
-    <hr/>
   </div>
-  <div id="tabs_log">
-    <p id="log">Log text</p>
+</div>
+<!--end popups-->
+
+<!--main content-->
+<div data-role="content">
+  <div>
+    <label for="command_line">Command:</label>
+    <input id="command_line" type="text" size="100"/>
   </div>
-  <div id="tabs_debug">
-    <pre id="debug">Debug text</pre>
+  <div>
+    <span id="status_line">&nbsp;</span>
   </div>
+  <div>
+   <canvas id="molview" width="500" height="500" class="ui-widget-content">
+    Your browser does not support the HTML5
+    <code>&lt;canvas&gt;</code> element.
+    <a href="http://get.webgl.org">Click here to upgrade your browser.</a>
+   </canvas>
+  </div>
+  <hr/>
+</div>
+<!--end main content-->
+
+<!--footer-->
+<div data-role="footer">
+  <div class="ui-grid-a">
+    <div class="ui-block-a footer-left">
+      <span id="active_session">No session selected</span>
+      <div data-role="controlgroup" data-type="horizontal" data-mini="true">
+	<a data-role="button" class="footer-button"
+	      id="open_session_popup" data-mini="true"
+	      href="#session_popup" data-rel="popup">Session</a>
+	<a data-role="button" data-mini="true"
+	      class="footer-button" href="#log_panel">Log</a>
+	<a data-role="button" data-mini="true"
+	      class="footer-button" href="#debug_panel">Debug Log</a>
+      </div>
+    </div>
+    <div class="ui-block-b footer-right">
+      <h4>Chimera 2 Mobile<br/>
+      Developed at the <a href="http://www.rbvi.ucsf.edu">RBVI</a></h4>
+    </div>
+  </div>
+</div>
+<!--end footer-->
+
 </div>
 </body>
 </html>
