@@ -303,7 +303,7 @@ map_attributes = (
   'version',
 )
 basic_map_attributes = (
-  'id', 'region', 'representation',
+  'id', 'displayed', 'region', 'representation',
   'surface_levels', 'surface_colors',
   'surface_brightness_factor', 'transparency_factor',
   'solid_levels', 'solid_colors', 'solid_brightness_factor',
@@ -331,46 +331,49 @@ def create_map_from_state(s, data):
   from .volume import Volume
   v = Volume(data[0], s['region'], ro)
   v.session_volume_id = s['session_volume_id']
-  for attr in basic_map_attributes:
-    setattr(v, attr, s[attr])
 
   if isinstance(v.data.path, str):
     v.openedAs = (v.data.path, v.data.file_type, None, False)
-        
-  dsize = [a*b for a,b in zip(v.data.step, v.data.size)]
-  v.transparency_depth /= min(dsize)
-  v.show()
-  region_list_from_state(s['region_list'], v.region_list)
+
+  set_map_state(s, v, notify = False)
+
+  if v.displayed:
+    v.show()
 
   return v
 
 # ---------------------------------------------------------------------------
 # Used for scene restore on existing volumes.
 #
-def set_map_state(s, volume):
+def set_map_state(s, volume, notify = True):
 
   v = volume
+
   v.rendering_options = rendering_options_from_state(s['rendering_options'])
-  for attr in ('id', 'representation', 'surface_levels', 'surface_colors',
-               'surface_brightness_factor', 'transparency_factor',
-               'solid_levels', 'solid_colors', 'solid_brightness_factor',
-               'transparency_depth', 'default_rgba'):
-    setattr(v, attr, s[attr])
+
+  for attr in basic_map_attributes:
+    if attr in s:
+      setattr(v, attr, s[attr])
 
   from ..geometry.place import Place
   v.place = Place(s['place'])
 
   v.new_region(*s['region'], show = False, adjust_step = False)
+
   if 'region_list' in s:
     region_list_from_state(s['region_list'], v.region_list)
 
-  v.call_change_callbacks(('representation changed',
-                           'region changed',
-                           'thresholds changed',
-                           'displayed',
-                           'colors changed',
-                           'rendering options changed',
-                           'coordinates changed'))
+#  dsize = [a*b for a,b in zip(v.data.step, v.data.size)]
+#  v.transparency_depth /= min(dsize)
+
+  if notify:
+    v.call_change_callbacks(('representation changed',
+                             'region changed',
+                             'thresholds changed',
+                             'displayed',
+                             'colors changed',
+                             'rendering options changed',
+                             'coordinates changed'))
 
 # -----------------------------------------------------------------------------
 #
