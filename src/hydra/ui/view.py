@@ -736,24 +736,20 @@ class View(QtOpenGL.QGLWidget):
         psize = self.pixel_size()
         self.translate(psize*dx, -psize*dy, 0)
 
-    def mouse_translate_molecules(self, event):
+    def mouse_translate_selected(self, event):
 
-        mols = self.molecules()
-        msel = [m for m in mols if m in self.selected]
-        if msel:
-            mols = msel
-        dx, dy = self.mouse_motion(event)
-        psize = self.pixel_size()
-        self.translate(psize*dx, -psize*dy, 0, mols)
+        models = self.selected
+        if models:
+            dx, dy = self.mouse_motion(event)
+            psize = self.pixel_size()
+            self.translate(psize*dx, -psize*dy, 0, models)
 
-    def mouse_rotate_molecules(self, event):
+    def mouse_rotate_selected(self, event):
 
-        mols = self.molecules()
-        msel = [m for m in mols if m in self.selected]
-        if msel:
-            mols = msel
-        axis, angle = self.mouse_rotation(event)
-        self.rotate(axis, angle, mols)
+        models = self.selected
+        if models:
+            axis, angle = self.mouse_rotation(event)
+            self.rotate(axis, angle, models)
 
     def mouse_zoom(self, event):        
 

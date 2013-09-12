@@ -62,8 +62,8 @@ def register_shortcuts(viewer):
         ('Ca', close_all_models, 'Close all models', ocat),
         ('mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat),
-        ('mm', enable_move_molecules_mouse_mode, 'Move molecules mouse mode', molcat),
-        ('rm', enable_rotate_molecules_mouse_mode, 'Rotate molecules mouse mode', molcat),
+        ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat),
+        ('ro', enable_rotate_selected_mouse_mode, 'Rotate selected mouse mode', gcat),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat),
         ('sh', tile_models, 'Show or hide models', gcat),
         ('bk', set_background_black, 'Black background', gcat),
@@ -244,13 +244,13 @@ def enable_contour_mouse_mode(viewer, button = 'right'):
   v = viewer
   v.bind_mouse_mode(button, v.mouse_down, v.mouse_contour_level, v.mouse_up)
 
-def enable_move_molecules_mouse_mode(viewer, button = 'right'):
+def enable_move_selected_mouse_mode(viewer, button = 'right'):
   v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_translate_molecules, v.mouse_up)
+  v.bind_mouse_mode(button, v.mouse_down, v.mouse_translate_selected, v.mouse_up)
 
-def enable_rotate_molecules_mouse_mode(viewer, button = 'right'):
+def enable_rotate_selected_mouse_mode(viewer, button = 'right'):
   v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_rotate_molecules, v.mouse_up)
+  v.bind_mouse_mode(button, v.mouse_down, v.mouse_rotate_selected, v.mouse_up)
 
 def fit_molecule_in_map(viewer):
     mols, maps = viewer.molecules(), viewer.maps()

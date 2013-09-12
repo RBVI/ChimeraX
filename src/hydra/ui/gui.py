@@ -84,8 +84,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_toolbar_action = a
         self.add_shortcut_icon('contour.png', 'Adjust contour level mouse mode', 'ct')
         self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'mp')
-        self.add_shortcut_icon('molarrow.png', 'Move molecules mouse mode', 'mm')
-        self.add_shortcut_icon('rotmol.png', 'Rotate molecules mouse mode', 'rm')
+        self.add_shortcut_icon('move_h2o.png', 'Move selected mouse mode', 'mo')
+        self.add_shortcut_icon('rotate_h2o.png', 'Rotate selected mouse mode', 'ro')
         toolbar.addSeparator()
 
         self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'sh')
