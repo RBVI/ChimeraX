@@ -204,6 +204,7 @@ def show_main_window():
     enable_exception_logging()
     from ..file_io.history import history
     history.show_thumbnails()
+    redirect_stdout()
     status = app.exec_()
 #    from . import leap
 #    leap.quit_leap(w.view)
@@ -289,6 +290,19 @@ def log_message(msg, color = None, html = False):
 def log_image():
     global cmd_log
     cmd_log.insert_graphics_image()
+
+def redirect_stdout():
+    import sys
+    sys.stdout_orig = sys.stdout
+    class Log_Output:
+        def __init__(self):
+            self.text = ''
+        def write(self, text):
+            self.text += text
+            if text.endswith('\n'):
+                log_message(self.text.rstrip())
+                self.text = ''
+    sys.stdout = Log_Output()
 
 def enable_exception_logging():
     import sys
