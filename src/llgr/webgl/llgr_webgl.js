@@ -103,31 +103,43 @@ ShaderProgram.prototype.gl_dealloc = function ()
 
 ShaderProgram.prototype.uniform_location = function(name)
 {
+	if (!this.uniforms.hasOwnProperty(name))
+		return undefined;
 	return this.uniforms[name][0];
 };
 
 ShaderProgram.prototype.uniform_type = function(name)
 {
+	if (!this.uniforms.hasOwnProperty(name))
+		return undefined;
 	return this.uniforms[name][1];
 };
 
 ShaderProgram.prototype.uniform_size = function(name)
 {
+	if (!this.uniforms.hasOwnProperty(name))
+		return undefined;
 	return this.uniforms[name][2];
 };
 
 ShaderProgram.prototype.attribute_location = function(name)
 {
+	if (!this.attributes.hasOwnProperty(name))
+		return undefined;
 	return this.attributes[name][0];
 };
 
 ShaderProgram.prototype.attribute_type = function(name)
 {
+	if (!this.attributes.hasOwnProperty(name))
+		return undefined;
 	return this.attributes[name][1];
 };
 
 ShaderProgram.prototype.attribute_size = function(name)
 {
+	if (!this.attributes.hasOwnProperty(name))
+		return undefined;
 	return this.attributes[name][2];
 };
 
@@ -213,7 +225,7 @@ function check_attributes(obj_id, program_id, ai)
 	}
 	var sp = programs[program_id];
 	for (var name in sp.attributes) {
-		if (name == "instanceTransform")
+		if (name.lastIndexOf("instanceTransform", 0) == 0)
 			continue;
 		var found = false;
 		for (var i = 0; i < ai.length; ++i) {
@@ -223,7 +235,7 @@ function check_attributes(obj_id, program_id, ai)
 			}
 		}
 		if (!found) {
-			console.log("missing attribute " + sv.name
+			console.log("missing attribute " + name
 						+ " in object " + obj_id);
 		}
 	}
@@ -253,6 +265,16 @@ function data_size(type)
 	  default: return 0;
 	}
 }
+
+// cache OpenGl state
+var enabled = [		// vertex attribute arrays
+	false, false, false, false,
+	false, false, false, false,
+	false, false, false, false,
+	false, false, false, false,
+];
+var current_buffer = {	// bound buffer
+};
 
 function setup_attribute(sp, ai)
 {
@@ -285,12 +307,18 @@ function setup_attribute(sp, ai)
 	}
 
 	if (bi.buffer) {
-		gl.bindBuffer(bi.target, bi.buffer);
+		if (bi.buffer != current_buffer[bi.target]) {
+			gl.bindBuffer(bi.target, bi.buffer);
+			current_buffer[bi.target] = bi.buffer;
+		}
 		// TODO: handle total > 4 -- arrays of matrices
 		gl.vertexAttribPointer(loc, ai.count,
 			cvt_DataType(ai.type), ai.normalized, ai.stride,
 			ai.offset);
-		gl.enableVertexAttribArray(loc);
+		if (!enabled[loc]) {
+			gl.enableVertexAttribArray(loc);
+			enabled[loc] = true;
+		}
 		return;
 	}
 
@@ -302,7 +330,10 @@ function setup_attribute(sp, ai)
 	var bfa = new Float32Array(bi.data, 0);
 	var offset = 0;
 	while (total > 0) {
-		gl.disableVertexAttribArray(loc);
+		if (enabled[loc]) {
+			gl.disableVertexAttribArray(loc);
+			enabled[loc] = false;
+		}
 		//var fa = new Float32Array(bi.data, offset, count);
 		var fa = bfa.subarray(offset, offset + count);
 		switch (count) {
@@ -679,6 +710,9 @@ llgr = {
 		gl.bindBuffer(buffer_target, buffer);
 		gl.bufferData(buffer_target, data, gl.STATIC_DRAW);
 		gl.bindBuffer(buffer_target, null);
+		if (current_buffer[buffer_target] !== undefined) {
+			delete current_buffer[buffer_target];
+		}
 		buffers[data_id] = new BufferInfo(buffer, buffer_target);
 	},
 	delete_buffer: function (data_id) {
@@ -990,30 +1024,40 @@ llgr = {
 			}
 			// finally draw object
 			if (!ibi) {
-				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+				if (current_buffer[gl.ELEMENT_ARRAY_BUFFER] !== undefined) {
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+					delete current_buffer[gl.ELEMENT_ARRAY_BUFFER];
+				}
 				gl.drawArrays(oi.ptype, oi.first, oi.count);
 			} else {
 				if (oi.index_buffer_type == llgr.UInt
 				&& !gl.getExtension("OES_element_index_uint")) {
 					console.warn("unsigned integer indices are not supported");
 				}
-				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,
-								ibi.buffer);
+				if (current_buffer[gl.ELEMENT_ARRAY_BUFFER] !== ibi.buffer) {
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibi.buffer);
+					current_buffer[gl.ELEMENT_ARRAY_BUFFER] = ibi.buffer;
+				}
 				gl.drawElements(oi.ptype, oi.count,
 					cvt_DataType(oi.index_buffer_type), 
 					oi.first
 					* data_size(oi.index_buffer_type));
 			}
-			// cleanup
-			// TODO: minimize cleanup between objects
-			for (var name in sp.attributes) {
-				var attr = sp.attributes[name];
-				gl.disableVertexAttribArray(attr[0]);
-				// TODO: might be matrix, so disable more than one
-			}
-			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		}
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+		for (var loc in enabled) {
+			if (enabled[loc]) {
+				gl.disableVertexAttribArray(loc);
+				enabled[loc] = false;
+			}
+		}
+		if (current_buffer[gl.ARRAY_BUFFER] !== undefined) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
+			delete current_buffer[gl.ARRAY_BUFFER];
+		}
+		if (current_buffer[gl.ELEMENT_ARRAY_BUFFER] !== undefined) {
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+			delete current_buffer[gl.ELEMENT_ARRAY_BUFFER];
+		}
 		if (sp) {
 			sp.cleanup();
 		}
