@@ -17,6 +17,20 @@ def initialize_opengl():
     vao = GL.glGenVertexArrays(1)
     GL.glBindVertexArray(vao)
 
+def depth_buffer_size():
+
+# TODO: GL_DEPTH_BITS is deprecated or removed in OpenGL 3
+#    return GL.glGetInteger(GL.GL_DEPTH_BITS)
+
+    # TODO: never got this to work.  Got invalid operation indicating that
+    # no render buffer is bound.  Got this even in the paintGL() routine.
+    import ctypes
+    s = ctypes.c_int()
+    GL.glGetRenderbufferParameteriv(GL.GL_RENDERBUFFER,
+                                    GL.GL_RENDERBUFFER_DEPTH_SIZE,
+                                    ctypes.byref(s))
+    return s.value()
+
 def set_drawing_region(x, y, w, h):
 
     GL.glViewport(x, y, w, h)
@@ -109,10 +123,10 @@ def texture_2d(data):
 
   GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
   GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+#  GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
   ncomp = data.shape[2]
   if ncomp == 1 or ncomp == 2:
