@@ -14,15 +14,14 @@ def scene_command(cmdname, args):
     ops = {
         'add': (add_scene,
                 (),
-                (),
-                (('id', int_arg),
-                 ('description', string_arg),)),
+                (('id', int_arg),),
+                (('description', string_arg),)),
         'show': (show_scene,
                  (('id', int_arg),),
                  (),
                  ()),
         'delete': (delete_scene,
-                 (('id_string', string_arg),),
+                 (('id', string_arg),),
                  (),
                  ()),
     }
@@ -47,17 +46,19 @@ def show_scene(id):
     from .ui import gui
     gui.show_status('No scene with id %d' % id)
 
-def delete_scene(id_string):
+def delete_scene(id):
     global scenes
-    if id_string == 'all':
+    if id == 'all':
         scenes = []
-    else:
+    elif isinstance(id, str):
         try:
-            ids = set(int(i) for i in id_string.split(','))
+            ids = set(int(i) for i in id.split(','))
         except:
             from .ui.commands import CommandError
-            raise CommandError('Scene ids must be integers, got "%s"' % id_string)
+            raise CommandError('Scene ids must be integers, got "%s"' % id)
         scenes = [s for s in scenes if not s.id in ids]
+    else:
+        scenes = [s for s in scenes if s.id != id]
     show_thumbnails()
 
 class Scene:
