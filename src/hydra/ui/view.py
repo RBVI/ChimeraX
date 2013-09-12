@@ -159,6 +159,12 @@ class View(QtOpenGL.QGLWidget):
 
         from .gui import show_info
         show_info('OpenGL version %s' % drawing.opengl_version())
+#        self.makeCurrent()
+#        f = self.format()
+#        show_info('Depth buffer %d bits' % f.depthBufferSize())
+#        show_info('Red,green,blue buffer %d,%d,%d bits'
+#                  % (f.redBufferSize(),f.greenBufferSize(),f.blueBufferSize()))
+#        show_info('depth %d' % drawing.depth_buffer_size())
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
@@ -547,8 +553,10 @@ class View(QtOpenGL.QGLWidget):
         from math import pi, tan
         fov = self.field_of_view*pi/180
         near,far = self.near_far_clip
-        near = max(near, 1)
-        far = max(far, near+1)
+        near_min = 0.001*(far - near) if far > near else 1
+        near = max(near, near_min)
+        if far <= near:
+            far = 2*near
         w = 2*near*tan(0.5*fov)
         ww,wh = self.window_size if win_size is None else win_size
         aspect = float(wh)/ww
