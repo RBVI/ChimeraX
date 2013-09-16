@@ -18,7 +18,7 @@
 				if (log_file != Py_None) { \
 					std::stringstream msg; \
 					msg << arg; \
-					if (!PyFile_WriteString(msg.str().c_str(), log_file)) { \
+					if (PyFile_WriteString(msg.str().c_str(), log_file) == -1) { \
 						PyErr_Clear(); \
 						return NULL; \
 					} \
@@ -27,7 +27,7 @@
 				if (log_file != Py_None) { \
 					std::stringstream msg; \
 					msg << arg; \
-					if (!PyFile_WriteString(msg.str().c_str(), log_file)) { \
+					if (PyFile_WriteString(msg.str().c_str(), log_file) == -1) { \
 						PyErr_Clear(); \
 						return; \
 					} \
@@ -251,7 +251,7 @@ start_t = end_t;
 				return NULL;
 			}
 			LOG_PY_ERROR_NULL("warning:  Ignored bad PDB record found on line "
-					<< *line_num << '\n');
+					<< *line_num << '\n' << is.str() << "\n");
 			break;
 
 		case PDB::HEADER:
@@ -1220,7 +1220,7 @@ link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
 	}
 	aname = link.name[1];
 	canonicalize_atom_name(&aname, &m->asterisks_translated);
-	Atom *a2 = res1->find_atom(aname);
+	Atom *a2 = res2->find_atom(aname);
 	if (a2 == NULL) {
 		LOG_PY_ERROR_VOID("error: cannot find LINK atom " << aname << " in residue " << res2->str() << "\n");
 		return;
@@ -1237,9 +1237,9 @@ read_no_fileno(void *py_file)
 {
 	char *line;
 	PyObject *py_line = PyFile_GetLine((PyObject *)py_file, 0);
-	if (PyBytes_Check(py_line))
+	if (PyBytes_Check(py_line)) {
 		line = PyBytes_AS_STRING(py_line);
-	else {
+	} else {
 		line = PyUnicode_AsUTF8(py_line);
 	}
 	return std::pair<char*, PyObject *>(line, py_line);
@@ -1280,7 +1280,24 @@ read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-	int fd = PyObject_AsFileDescriptor(pdb_file);
+	PyObject *http_mod = PyImport_ImportModule("http.client");
+	if (http_mod == NULL)
+		return NULL;
+	PyObject *http_conn = PyObject_GetAttrString(http_mod, "HTTPResponse");
+	if (http_conn == NULL) {
+		Py_DECREF(http_mod);
+		PyErr_SetString(PyExc_AttributeError,
+			"HTTPResponse class not found in http.client module");
+		return NULL;
+	}
+	int is_inst = PyObject_IsInstance(pdb_file, http_conn);
+	int fd;
+	if (is_inst)
+		// due to buffering issues, cannot handle a socket like it 
+		// was a file
+		fd = -1;
+	else
+		fd = PyObject_AsFileDescriptor(pdb_file);
 	if (fd == -1) {
 		read_func = read_no_fileno;
 		input = pdb_file;
@@ -1443,7 +1460,7 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 	PyObject *pdb_file, *mols;
 	PyObject *log_file = Py_None;
 	bool explode = true;
-	static const char *kw_list[] = {"log", "explode", NULL};
+	static const char *kw_list[] = {"file", "log", "explode", NULL};
 	if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op", (char **) kw_list,
 		&pdb_file, &log_file, &explode))
 			return NULL;

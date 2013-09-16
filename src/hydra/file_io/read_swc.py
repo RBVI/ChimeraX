@@ -81,10 +81,14 @@ def read_swc(path):
     atom_names = zeros((np,), 'S4')
     from ..molecule import Molecule
     m = Molecule(path, xyz, element_nums, chain_ids, rnums, res_names, atom_names)
+    scale = 10000.0    # Convert microns to Angstroms
+    m.xyz *= scale
     m.atom_colors = colors
     m.radii = radii
+    m.radii *= scale
     m.bonds = array(bonds, int32)
     m.bond_radii = array(brad, float32)
+    m.bond_radii *= scale
     m.ball_scale = 1
     m.set_atom_style('ballstick')
     from ..ui.gui import show_info

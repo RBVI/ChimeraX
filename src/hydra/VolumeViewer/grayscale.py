@@ -196,6 +196,7 @@ class Gray_Scale_Drawing(object):
       self.ijk_to_xyz.move(va)
       p = s.newPiece()
       p.geometry = va, ta
+      p.color = self.modulation_rgba()
       p.useLighting = False
       t = self.texture_plane(k, axis)
       p.textureId = t

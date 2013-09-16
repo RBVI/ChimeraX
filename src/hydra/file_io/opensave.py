@@ -29,6 +29,7 @@ def file_types():
             ('AutoPack', ['apr'], open_autopack_results),
             ('STL', ['stl'], read_stl),
             ('Neuron SWC', ['swc'], read_swc),
+            ('Python', ['py'], read_python),
         ]
         # Add map file types
         from ..VolumeData.fileformats import file_types as mft
@@ -228,3 +229,13 @@ def close_models(models = None):
         v.close_all_models()
     else:
         v.close_models(models)
+
+def read_python(path):
+
+    f = open(path)
+    code = f.read()
+    f.close()
+    ccode = compile(code, path, 'exec')
+    globals = locals = None
+    exec(ccode, globals, locals)
+    return []

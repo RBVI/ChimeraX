@@ -1,6 +1,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "blend_rgba.h"			// use blur_blend_images
 #include "combine.h"			// use linear_combination
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
@@ -25,6 +26,10 @@ namespace Image_3d
 //
 static struct PyMethodDef image3d_methods[] =
 {
+  /* blend_rgba.h */
+  {const_cast<char*>("blur_blend_images"), (PyCFunction)blur_blend_images,
+   METH_VARARGS|METH_KEYWORDS},
+
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
    METH_VARARGS|METH_KEYWORDS},
