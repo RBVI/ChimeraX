@@ -30,111 +30,8 @@ __all__ = [
 	'render'
 ]
 
-from .math3d import Point, Vector, Xform, Identity, frustum, look_at, weighted_point, cross
-from numpy import array, amin, amax, float32, uint8
-
-class BBox:
-	"""right-handed axis-aligned bounding box
-
-	If either :py:attr:`BBox.llb` or :py:attr:`BBox.urf` are None,
-	then the bounding box is uninitialized.
-	"""
-
-	__slots__ = ['llb', 'urf']
-
-	def __init__(self, llb=None, urf=None):
-		self.llb = None	#: lower-left-back corner coordinates, a :py:class:`~chimera2.math3d.Point`
-		self.urf = None	#: upper-right-front corner coordinates, a :py:class:`~chimera2.math3d.Point`
-		if llb is not None:
-			self.llb = Point(llb)
-		if urf is not None:
-			self.urf = Point(urf)
-
-	def add(self, pt):
-		"""expand bounding box to encompass given point
-
-		:param pt: a :py:class:`~chimera2.math3d.Point or other XYZ-tuple`
-		"""
-		if self.llb is None:
-			self.llb = Point(pt)
-			self.urf = Point(pt)
-			return
-		for i in range(3):
-			if pt[i] < self.llb[i]:
-				self.llb[i] = pt[i]
-			elif pt[i] > self.urf[i]:
-				self.urf[i] = pt[i]
-
-	def add_bbox(self, box):
-		"""expand bounding box to encompass given bounding box
-		
-		:param box: a :py:class:`BBox`
-		"""
-		if self.llb is None:
-			self.llb = box.llb
-			self.urf = box.urf
-			return
-		for i in range(3):
-			if box.llb[i] < self.llb[i]:
-				self.llb[i] = box.llb[i]
-			if box.urf[i] > self.urf[i]:
-				self.urf[i] = box.urf[i]
-
-	def bulk_add(self, pts):
-		"""expand bounding box to encompass all given points
-
-		:param pts: a numpy array of XYZ coordinates
-		"""
-		mi = amin(pts, axis=0)
-		ma = amax(pts, axis=0)
-		if self.llb is None:
-			self.llb = Point(mi)
-			self.urf = Point(ma)
-			return
-		for i in range(3):
-			if mi[i] < self.llb[i]:
-				self.llb[i] = mi[i]
-			if ma[i] > self.urf[i]:
-				self.urf[i] = ma[i]
-
-	def center(self):
-		"""return center of bounding box
-		
-		:rtype: a :py:class:`~chimera2.math3d.Point`
-		"""
-
-		if self.llb is None:
-			raise ValueError("empty bounding box")
-		return weighted_point([self.llb, self.urf])
-
-	def size(self):
-		"""return length of sides of bounding box
-		
-		:rtype: a :py:class:`~chimera2.math3d.Vector`
-		"""
-		if self.llb is None:
-			raise ValueError("empty bounding box")
-		return self.urf - self.llb
-
-	def xform(self, xf):
-		"""transform bounding box in place"""
-		if xf.isIdentity:
-			return
-		b = BBox([0., 0., 0.], [0., 0., 0.])
-		for i in range(3):
-			b.llb[i] = b.urf[i] = xf._matrix[i][3]
-			for j in range(3):
-				coeff = xf._matrix[i][j]
-				if coeff == 0:
-					continue
-				if coeff > 0:
-					b.llb[i] += self.llb[j] * coeff
-					b.urf[i] += self.urf[j] * coeff
-				else:
-					b.llb[i] += self.urf[j] * coeff
-					b.urf[i] += self.llb[j] * coeff
-		self.llb = b.llb
-		self.urf = b.urf
+from .math3d import Point, Vector, Xform, Identity, frustum, look_at, weighted_point, cross, BBox
+from numpy import array, float32, uint8
 
 bbox = BBox() #: The current bounding box.
 _program_id = 0
@@ -326,9 +223,11 @@ def add_box(p0, p1, color, xform=None):
 		xform = Identity()
 	else:
 		xform = Xform(xform)
-	llb = Point(amin([p0, p1], axis=0))
-	urf = Point(amax([p0, p1], axis=0))
-	b = BBox(llb, urf)
+	#llb = Point(amin([p0, p1], axis=0))
+	#urf = Point(amax([p0, p1], axis=0))
+	#b = BBox(llb, urf)
+	b = BBox()
+	b.bulk_add([p0, p1])
 	b.xform(xform)
 	bbox.add_bbox(b)
 	import llgr
