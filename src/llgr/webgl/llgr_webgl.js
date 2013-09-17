@@ -343,10 +343,8 @@ function setup_attribute(sp, ai)
 		return;
 	}
 	if (enabled_count[loc] === count && enabled_buf[loc] === bi.data) {
-		console.log("skipped");
 		return;
 	}
-	console.log('old/new', enabled_count[loc], count);
 	enabled_count[loc] = count;
 	enabled_buf[loc] = bi.data;
 	var bfa = new Float32Array(bi.data, 0);
