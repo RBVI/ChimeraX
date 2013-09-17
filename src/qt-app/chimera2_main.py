@@ -398,6 +398,9 @@ def main():
 	import llgr
 	if dump_format:
 		llgr.set_output(dump_format)
+		if dump_format == 'json':
+			from chimera2 import scene
+			scene.set_glsl_version('webgl')
 	else:
 		llgr.set_output('pyopengl')
 	import chimera2.io
