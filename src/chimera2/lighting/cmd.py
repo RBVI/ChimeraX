@@ -30,15 +30,15 @@ from chimera2.color import Color
 
 # CmdInfo is initialized at the end of this file
 
-def mode(mode_name=None):
-	if mode_name is None:
+def mode(name=None):
+	if name is None:
 		return "Current lighting mode is %s" % lighting.mode()
 	# TODO: remove autocompletion code belong when annotation types
 	#   can give autocompletion hints
 	for m in lighting.MODES:
-		if m.startswith(mode_name):
-			mode_name = m
-	lighting.set_mode(mode_name)
+		if m.startswith(name):
+			name = m
+	lighting.set_mode(name)
 
 def brightness(brightness: float=None):
 	if brightness is None:

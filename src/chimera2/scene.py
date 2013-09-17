@@ -285,29 +285,31 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 		f_diffuse = zero
 		f_position = zero
 	else:
-		color = lighting.fill_light.color.rgb
+		color = lighting.fill_light.color
 		f_diffuse = array(color.rgb + [1], dtype=float32)
 		direct = lighting.fill_light.direction
-		f_position = array(direct + [0], dtype=float32)
+		f_position = array(list(direct) + [0], dtype=float32)
 	if lighting.key_light is None:
 		k_diffuse = zero
 		k_specular = zero
 		k_position = zero
 	else:
-		color = lighting.key_light.color.rgb
-		k_diffuse = array(color + [1], dtype=float32)
+		color = lighting.key_light.color
+		k_diffuse = array(color.rgb + [1], dtype=float32)
 		direct = lighting.key_light.direction
-		k_position = array(direct + [0], dtype=float32)
+		k_position = array(list(direct) + [0], dtype=float32)
 		reflectivity = lighting.reflectivity()
-		specular = [x * reflectivity for x in lighting.shiny()]
+		color = lighting.shiny_color()
+		specular = [x * reflectivity for x in color.rgb]
 		k_specular = array(specular + [1], dtype=float32)
+	shininess = array([lighting.sharpness()], dtype=float32)
 	llgr.set_uniform(0, 'Ambient', llgr.FVec4, ambient)
 	llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, f_diffuse)
 	llgr.set_uniform(0, 'FillPosition', llgr.FVec4, f_position)
 	llgr.set_uniform(0, 'KeyDiffuse', llgr.FVec4, k_diffuse)
 	llgr.set_uniform(0, 'KeySpecular', llgr.FVec4, k_specular)
 	llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, k_position)
-	llgr.set_uniform(0, 'Shininess', llgr.FVec1, lighting.sharpness())
+	llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
 
 	llgr.set_clear_color(.05, .05, .4, 0)
 	if not as_string:
