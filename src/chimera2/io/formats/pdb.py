@@ -38,6 +38,8 @@ def open(stream, *args, **kw):
 	if input != stream:
 		input.close()
 
+	return "Opened PDB data containing %d atoms and %d bonds" % (len(coords), len(bond_list))
+
 def fetch(pdb_id):
 	if len(pdb_id) != 4:
 		raise UserError("PDB identifiers are 4 characters long")

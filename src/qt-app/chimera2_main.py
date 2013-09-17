@@ -171,7 +171,9 @@ class BaseApplication:
 
 		try:
 			from chimera2 import io
-			io.open(filename)
+			info = io.open(filename)
+			if info:
+				self.status(info)
 		except:
 			raise
 		finally:
