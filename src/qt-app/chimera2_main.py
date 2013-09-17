@@ -122,6 +122,7 @@ class BaseApplication:
 		cmds.register('open', self.cmd_open)
 		cmds.register('stop', self.cmd_stop)
 		cmds.register('stereo', self.cmd_noop)
+		import chimera2.lighting.cmd	# autoregisters commands
 
 		# potentially changed in subclass:
 		self.graphics = None
@@ -142,7 +143,9 @@ class BaseApplication:
 		try:
 			if text:
 				self.command.parse_text(text, autocomplete=True)
-			self.command.execute()
+			info = self.command.execute()
+			if isinstance(info, str):
+				self.status(info)
 		except cmds.UserError as e:
 			self.status(str(e))
 		except Exception:

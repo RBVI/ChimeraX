@@ -196,6 +196,8 @@ class Command:
 						word = convert(word, p.annotation)
 					except ValueError as e:
 						self._error = "Bad '%s' argument: %s" % (p.name, e)
+						# TODO: get completions based
+						#   on p.annotation type
 						self.completion_prefix = ""
 						self.completions = []
 						break

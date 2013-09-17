@@ -243,11 +243,11 @@ def add_box(p0, p1, color, xform=None):
 		make_box_primitive()
 
 	scale_id = llgr.next_data_id()
-	scale = urf - llb
+	scale = b.urf - b.llb
 	llgr.create_singleton(scale_id, array(scale, dtype=float32))
 
 	matrix_id = llgr.next_matrix_id()
-	xform.translate(llb)
+	xform.translate(b.llb)
 	mat = xform.getWebGLMatrix()
 	llgr.create_matrix(matrix_id, mat, False)
 
@@ -277,20 +277,37 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 	There are two lights and the directions are fixed.
 	"""
 	import llgr
-	one = array([1, 1, 1, 1], dtype=float32)
-	ambient = array([0.197, 0.197, 0.197, 1], dtype=float32)
-	diffuse0 = array([0.432, 0.432, 0.432, 1], dtype=float32)
-	position0 = array([0.251, 0.251, 0.935, 0], dtype=float32)
-	diffuse1 = array([0.746, 0.746, 0.746, 1], dtype=float32)
-	position1 = array([-0.357, 0.66, 0.66, 0], dtype=float32)
-	shininess = array([30], dtype=float32)
+	from . import lighting
+	zero = array([0, 0, 0, 0], dtype=float32)
+	amb = lighting.ambient
+	ambient = array([amb, amb, amb, 1], dtype=float32)
+	if lighting.fill_light is None:
+		f_diffuse = zero
+		f_position = zero
+	else:
+		color = lighting.fill_light.color.rgb
+		f_diffuse = array(color.rgb + [1], dtype=float32)
+		direct = lighting.fill_light.direction
+		f_position = array(direct + [0], dtype=float32)
+	if lighting.key_light is None:
+		k_diffuse = zero
+		k_specular = zero
+		k_position = zero
+	else:
+		color = lighting.key_light.color.rgb
+		k_diffuse = array(color + [1], dtype=float32)
+		direct = lighting.key_light.direction
+		k_position = array(direct + [0], dtype=float32)
+		reflectivity = lighting.reflectivity()
+		specular = [x * reflectivity for x in lighting.shiny()]
+		k_specular = array(specular + [1], dtype=float32)
 	llgr.set_uniform(0, 'Ambient', llgr.FVec4, ambient)
-	llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, diffuse0)
-	llgr.set_uniform(0, 'FillPosition', llgr.FVec4, position0)
-	llgr.set_uniform(0, 'KeyDiffuse', llgr.FVec4, diffuse1)
-	llgr.set_uniform(0, 'KeySpecular', llgr.FVec4, one)
-	llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, position1)
-	llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
+	llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, f_diffuse)
+	llgr.set_uniform(0, 'FillPosition', llgr.FVec4, f_position)
+	llgr.set_uniform(0, 'KeyDiffuse', llgr.FVec4, k_diffuse)
+	llgr.set_uniform(0, 'KeySpecular', llgr.FVec4, k_specular)
+	llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, k_position)
+	llgr.set_uniform(0, 'Shininess', llgr.FVec1, lighting.sharpness())
 
 	llgr.set_clear_color(.05, .05, .4, 0)
 	if not as_string:
