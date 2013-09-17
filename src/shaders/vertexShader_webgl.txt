@@ -1,8 +1,6 @@
 #version 100
 
-#ifdef GL_ES
 precision mediump float;
-#endif
 
 //#define USE_FOG 1
 //#define USE_CLIP_VERTEX 1
