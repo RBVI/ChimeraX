@@ -206,7 +206,7 @@ class Server(object):
 			}
 		return {
 			"status": False,
-			"stderr": "Server died: %s" % value
+			"stderr": "Server died: %s" % exc.code
 		}
 
 	def _bad_tag(self, tag):
