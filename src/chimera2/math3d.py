@@ -24,7 +24,9 @@ from numpy import (
     ndarray, array, eye, dot, linalg, concatenate, allclose, isfortran,
     asfortranarray, sum, float32, float64, amin, amax, array_equal,
 )
-from math import sin, cos, tan, sqrt, radians
+from math import sin, cos, tan, acos, sqrt, radians, pi
+
+EPSILON = 1.0e-10
 
 class Point(ndarray):
     """Floating point triplet representing a point"""
@@ -183,6 +185,54 @@ class Xform:
         m = self._matrix[0:3, 0:3].astype(float32)
         return m.flatten(order='F')
 
+    def get_translation(self):
+        return Vector(self._matrix[0:3, 3])
+
+    def get_rotation(self):
+        rot = self._matrix[0:2, 0:2]
+        cos_theta = (rot[0][0] + rot[1][1] + rot[2][2] - 1) / 2
+        if 1 - EPSILON <= cos_theta <= 1 + EPSILON:
+            angle = 0
+            axis = Vector([0, 0, 1])
+            return axis, angle
+
+        if not (-1 - EPSILON <= cos_theta <= -1 + EPSILON):
+            angle = acos(cos_theta)
+            sin_theta = sqrt(1 - cos_theta * cos_theta)
+            axis = Vector([
+                (rot[2][1] - rot[1][2]) / 2 / sin_theta,
+                (rot[0][2] - rot[2][0]) / 2 / sin_theta,
+                (rot[1][0] - rot[0][1]) / 2 / sin_theta
+            ])
+            axis.normalize()
+            return axis, angle
+
+        angle = pi         # 180 degrees
+        if rot[0][0] >= rot[1][1]:
+            if rot[0][0] >= rot[2][2]:
+                # rot00 is maximal diagonal term
+                x = sqrt(rot[0][0] - rot[1][1] - rot[2][2] + 1) / 2
+                half_inv = 1 / (2 * x)
+                axis = Vector([x, half_inv * rot[0][1], half_inv * rot[0][2]])
+            else:
+                # rot22 is maximal diagonal term
+                z = sqrt(rot[2][2] - rot[0][0] - rot[1][1] + 1) / 2
+                half_inv = 1 / (2 * z)
+                axis = Vector([half_inv * rot[0][2], half_inv * rot[1][2], z])
+        else:
+            if rot[1][1] >= rot[2][2]:
+                # rot11 is maximal diagonal term
+                y = sqrt(rot[1][1] - rot[0][0] - rot[2][2] + 1) / 2
+                half_inv = 1 / (2 * y)
+                axis = Vector([half_inv * rot[0][1], y, half_inv * rot[1][2]])
+            else:
+                # rot22 is maximal diagonal term
+                z = sqrt(rot[2][2] - rot[0][0] - rot[1][1] + 1) / 2
+                half_inv = 1 / (2 * z)
+                axis = Vector([half_inv * rot[0][2], half_inv * rot[1][2], z])
+        axis.normalize()
+        return axis, angle
+
     def __mul__(self, arg):
         """Apply transformation to Point or Vector
 
@@ -231,11 +281,30 @@ class Xform:
         self._matrix = dot(self._matrix, sc._matrix)
         self.isIdentity = False
 
+    def invert(self):
+        if self.isIdentity:
+            return
+        if self._projection:
+            raise NotImplemented("can't invert projection matrices")
+        # swap off-diagonal section of rotation part
+        self._matrix[0, 1], self._matrix[1, 0] = self._matrix[1, 0], self._matrix[0, 1]
+        self._matrix[0, 2], self._matrix[2, 0] = self._matrix[2, 0], self._matrix[0, 2]
+        self._matrix[1, 2], self._matrix[2, 1] = self._matrix[2, 1], self._matrix[1, 2]
+        # reverse translation part
+        self._matrix[0, 3] *= -1
+        self._matrix[1, 3] *= -1
+        self._matrix[2, 3] *= -1
+
+    def inverse(self):
+        xf = Xform(self)
+        xf.invert()
+        return xf
+
     #TODO: and more
 
 def Identity():
     """Identify transformation"""
-    return Xform(eye(4), _valid=True, _isIdentity=True)
+    return Xform(eye(4), _valid=True, _isIdentity=True, _pure=True)
 
 def Rotation(axis, angle, inDegrees=False):
     """Build a rotation transformation"""
@@ -303,14 +372,21 @@ def transform(translation=None, center=None, rotation=None, scaleOrientation=Non
 # look_at is like the OpenGL gluLookAt, it puts p0 at the origin,
 # p1 on the negative Z axis, and p2 on the Y axis.
 
-def look_at(p0, p1, p2):
+def look_at(p0, p1, up):
+    """Compute viewing transformation
+
+    Place :param p0: at origin, :param p1: on the negative z axis
+    and orient so :param up: is in the same half-plane as the postive y axis
+    and z axis.  :param up: can either be a Point or a Vector.
+    """
     # Compute the rotational part of lookat matrix
     f = p1 - p0
     try:
         f.normalize()
     except ZeroDivisionError:
         raise ValueError("colinear points")
-    up = p2 - p0
+    if isinstance(up, Point):
+        up = up - p0
     s = cross(f, up)
     try:
         s.normalize()
@@ -336,7 +412,7 @@ def look_at(p0, p1, p2):
 def ortho(left, right, bottom, top, hither, yon):
     """return 4x4 orthographic transformation"""
     # Matrices from OpenGL Programming Guide, 2nd Edition, p. 598
-    # glOrtho(left, right, bottom, top, hither, yon);
+    # glOrtho(left, right, bottom, top, hither, yon)
     xf = Xform(array([
             [2 / (right - left), 0, 0, - (right + left) / (right - left)],
             [0, 2 / (top - bottom), 0, - (top + bottom) / (top - bottom)],
@@ -348,7 +424,7 @@ def ortho(left, right, bottom, top, hither, yon):
 def frustum(left, right, bottom, top, hither, yon):
     """return 4x4 perspective transformation"""
     # Matrices from OpenGL Programming Guide, 2nd Edition, p. 598
-    # glFrustum(left, right, bottom, top, hither, yon);
+    # glFrustum(left, right, bottom, top, hither, yon)
     xf = Xform(array([
             [2 * hither / (right - left), 0,
                     (right + left) / (right - left), 0],
