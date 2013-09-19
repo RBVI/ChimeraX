@@ -22,7 +22,8 @@ For example, given *xyzs* as an :py:class:`~numpy.array` of XYZ coordinates::
 """
 
 __all__ = [
-	'BBox', 'bbox', 
+	'bbox', 
+	'need_redraw',
 	'reset',
 	'add_sphere',
 	'add_cylinder',
@@ -30,10 +31,72 @@ __all__ = [
 	'render'
 ]
 
-from .math3d import Point, Vector, Xform, Identity, frustum, look_at, weighted_point, cross, BBox
+from .math3d import (Point, weighted_point, Vector, cross,
+		Xform, Identity, Rotation, Translation,
+		frustum, ortho, look_at, BBox)
 from numpy import array, float32, uint8
 
+class Camera:
+
+	def __init__(self):
+		import math
+		self.eye = Point([0, 0, 0])
+		self.at = Point([0, 0, -1])
+		self.up = Vector([0, 1, 0])
+		self.ortho = False
+		self.fov = math.radians(30)
+
+	def reset(self, width, height):
+		import math, copy
+		# projection and modelview matrices
+		self.bbox = copy.deepcopy(bbox)
+		self.at = self.bbox.center()
+		self.width2, self.height2, depth2 = self.bbox.size() / 2 * 1.1	# +10%
+		self.update_viewport(width, height)
+
+		self.near = self.height2 / math.tan(self.fov / 2)
+		self.far = self.near + 2 * depth2
+		self.eye = Point([self.at[0], self.at[1], self.at[2] + self.near + depth2])
+		self.eye = self.at + Vector([0, 0, self.near + depth2])
+		self.up = Vector([0, 1, 0])
+
+	def update_viewport(self, width, height):
+		win_aspect = width / height
+		scene_aspect = self.width2 / self.height2
+		if win_aspect > scene_aspect:
+			self.width2 = self.height2 * win_aspect
+		else:
+			self.height2 = self.width2 / win_aspect
+
+	def matrices(self):
+		if self.ortho:
+			projection = ortho(-self.width2, self.width2,
+				-self.height2, self.height2,
+				self.near, self.far)
+		else:
+			projection = frustum(-self.width2, self.width2,
+				-self.height2, self.height2,
+				self.near, self.far)
+		modelview = look_at(self.eye, self.at, self.up)
+		return projection, modelview
+
+	def rotate(self, axis, angle):
+		xf = Rotation(axis, angle)
+		self.xform(xf)
+
+	def xform(self, xf):
+		if not xf._pure:
+			raise ValueError('only pure rotation is allowed')
+		trans = Translation(self.at)
+		inv_trans = Translation(-self.at)
+		xf = trans * xf.inverse() * inv_trans
+		self.eye = xf * self.eye
+		self.up = xf * self.up
+		self.at = xf * self.at
+
 bbox = BBox() #: The current bounding box.
+camera = None
+need_redraw = True
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
 _box_pd = None
@@ -54,7 +117,9 @@ def reset():
 	Removes all objects, resets lights, bounding box,
 	viewing transformation.
 	"""
-	global bbox, _program_id, _box_pn_id, _box_indices_id
+	global need_redraw
+	need_redraw = True
+	global bbox, camera, _program_id, _box_pn_id, _box_indices_id
 	_box_pn_id = None
 	_box_indices_id = None
 	import llgr
@@ -71,6 +136,7 @@ def reset():
 	llgr.create_program(_program_id, vertex_shader, fragment_shader,
 						pick_vertex_shader)
 	bbox = BBox()
+	camera = None
 
 def add_sphere(radius, center, color, xform=None):
 	"""add sphere to scene
@@ -112,6 +178,8 @@ def add_cylinder(radius, p0, p1, color, xform=None):
 	:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
 	:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
 	"""
+	global need_redraw
+	need_redraw = True
 	if xform is None:
 		xform = Identity()
 	else:
@@ -219,6 +287,8 @@ def make_box_primitive():
 	llgr.create_buffer(_box_indices_id, llgr.ELEMENT_ARRAY, _box_indices)
 
 def add_box(p0, p1, color, xform=None):
+	global need_redraw
+	need_redraw = True
 	if xform is None:
 		xform = Identity()
 	else:
@@ -262,13 +332,12 @@ def add_box(p0, p1, color, xform=None):
 	llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
 		0, _box_indices.size, _box_indices_id, llgr.UByte)
 
-def render(viewport, vertical_fov, globalXform, as_string=False):
+
+def render(viewport, vertical_fov, as_string=False):
 	"""render scene
 	
 	:param viewport: is a (lower-left, lower-right, width, height) tuple
-	:param vertical_fov: is the veitical field of view in radians
-	:param globalXform: is a :py:class:`~chimera2.math3d.Xform`
-	   that rotates and translates the data after the camera is setup
+	:param vertical_fov: is the vertical field of view in radians
 
 	The camera is a simple one that takes the :param vertical_fov: and
 	the current bounding box, and calculates the eye position and looks
@@ -276,6 +345,8 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 
 	There are two lights and the directions are fixed.
 	"""
+	global need_redraw
+	need_redraw = False
 	import llgr
 	from . import lighting
 	zero = array([0, 0, 0, 0], dtype=float32)
@@ -321,6 +392,7 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 		GL.glViewport(*viewport)
 
 	if bbox.llb is not None:
+		"""
 		import math
 		# projection and modelview matrices
 		win_aspect = float(viewport[2]) / viewport[3]
@@ -343,8 +415,16 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 		projection = camera.getWebGLMatrix()
 		mv = look_at(eye, at, up)
 		modelview = mv * globalXform
+		"""
+		global camera
+		if camera is not None:
+			camera.update_viewport(viewport[2], viewport[3])
+		else:
+			camera = Camera()
+			camera.reset(viewport[2], viewport[3])
+		projection, modelview = camera.matrices()
 		llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
-						llgr.Mat4x4, projection)
+				llgr.Mat4x4, projection.getWebGLMatrix())
 		llgr.set_uniform_matrix(0, 'ModelViewMatrix', False,
 				llgr.Mat4x4, modelview.getWebGLMatrix())
 		llgr.set_uniform_matrix(0, 'NormalMatrix', False,

@@ -29,7 +29,6 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		# TODO: add format to below
 		super().__init__(parent, share, flags)
 		self.vsphere_id = 1
-		self.globalXform = math3d.Identity()
 
 	def _getSamples(self):
 		return self._samples
@@ -54,7 +53,7 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		height_in = self.height() / app.physicalDotsPerInch()
 		import math
 		vertical_fov = 2 * math.atan2(height_in, dist_in)
-		scene.render(self.viewport, vertical_fov, self.globalXform)
+		scene.render(self.viewport, vertical_fov)
 
 	def vsphere_press(self, x, y):
 		import llgr
@@ -79,9 +78,8 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 			center = scene.bbox.center()
 		except ValueError:
 			return
-		trans = math3d.Translation(center)
-		inv_trans = math3d.Translation(-center)
-		self.globalXform = trans * rot * inv_trans * self.globalXform
+		if scene.camera:
+			scene.camera.xform(rot)
 		self.updateGL()
 		return cursor
 
@@ -99,7 +97,9 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		dx = delta.x() * width / self.width()
 		dy = -delta.y() * height / self.height()
 		trans = math3d.Translation((dx, dy, 0))
-		self.globalXform = trans * self.globalXform
+		if scene.camera:
+			# TODO: use camera coordinate system
+			scene.camera.xform(trans)
 		self.updateGL()
 
 	def pick(self, x, y):
@@ -178,7 +178,6 @@ class BaseApplication:
 			raise
 		finally:
 			if self.graphics:
-				self.graphics.globalXform = math3d.Identity()
 				self.graphics.updateGL()
 
 class ConsoleApplication(QCoreApplication, BaseApplication):
