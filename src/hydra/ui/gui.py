@@ -302,6 +302,10 @@ def redirect_stdout():
             if text.endswith('\n'):
                 log_message(self.text.rstrip())
                 self.text = ''
+        def flush(self):
+            if self.text:
+                log_message(self.text.rstrip())
+                self.text = ''
     sys.stdout = Log_Output()
 
 def enable_exception_logging():
