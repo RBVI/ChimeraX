@@ -26,3 +26,6 @@ clean:
 
 access.install: molecule.install capsule.install
 pdbio.install: molecule.install capsule.install pdb.install
+
+testrun:
+	/Users/pett/src/chimera2/build/bin/python3

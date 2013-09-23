@@ -1302,6 +1302,23 @@ clock_t start_t, end_t;
 		read_func = read_no_fileno;
 		input = pdb_file;
 		PyErr_Clear();
+		PyObject *io_mod = PyImport_ImportModule("io");
+		if (io_mod == NULL)
+			return NULL;
+		PyObject *io_base = PyObject_GetAttrString(io_mod, "IOBase");
+		if (io_base == NULL) {
+			Py_DECREF(io_mod);
+			PyErr_SetString(PyExc_AttributeError, "IOBase class not found in io module");
+			return NULL;
+		}
+		int is_inst = PyObject_IsInstance(pdb_file, io_base);
+		if (is_inst == 0)
+			PyErr_SetString(PyExc_TypeError, "PDB file is not an instance of IOBase class");
+		if (is_inst <= 0) {
+			Py_DECREF(io_mod);
+			Py_DECREF(io_base);
+			return NULL;
+		}
 	} else {
 		read_func = read_fileno;
 		input = fdopen(fd, "r");
@@ -1465,23 +1482,6 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 		&pdb_file, &log_file, &explode))
 			return NULL;
 #if 0
-	PyObject *io_mod = PyImport_ImportModule("io");
-	if (io_mod == NULL)
-		return NULL;
-	PyObject *io_base = PyObject_GetAttrString(io_mod, "IOBase");
-	if (io_base == NULL) {
-		Py_DECREF(io_mod);
-		PyErr_SetString(PyExc_AttributeError, "IOBase class not found in io module");
-		return NULL;
-	}
-	int is_inst = PyObject_IsInstance(pdb_file, io_base);
-	if (is_inst == 0)
-		PyErr_SetString(PyExc_TypeError, "PDB file is not an instance of IOBase class");
-	if (is_inst <= 0) {
-		Py_DECREF(io_mod);
-		Py_DECREF(io_base);
-		return NULL;
-	}
 	if (log_file != Py_None) {
 		is_inst = PyObject_IsInstance(log_file, io_base);
 		if (is_inst == 0)

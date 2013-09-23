@@ -7,6 +7,7 @@ LIBNAME = access
 PYMOD= $(LIBNAME).so
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
 LIBS += -L$(shlibdir) -lmolecule -lcapsule
+INCS += $(NUMPY_INC)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
