@@ -85,14 +85,19 @@ class Backend(Server):
 		_debug_print("command handler: %s: %s" % (type(value), value))
 		answer = {
 			"status": True,		# Success!
-			"stdout": str(value),
+			"command": str(value),
 		}
 		from chimera2 import cmds
 		try:
 			cmd = cmds.Command(value, autocomplete=True)
 			cmd.error_check()
-			answer["stdout"] = cmd.current_text
-			answer["client_data"] = cmd.execute(error_check=False)
+			answer["command"] = cmd.current_text
+			result = cmd.execute(error_check=False)
+			if isinstance(result, str):
+				result = { "info": result }
+			# TODO: check dirty bits and add changes to result
+			#	ie: graphics and other state
+			answer["client_data"] = result
 		except cmds.UserError as e:
 			answer["status"] = False
 			answer["stderr"] = str(e)

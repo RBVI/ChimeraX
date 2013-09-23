@@ -1,8 +1,6 @@
 #version 100
 
-#ifdef GL_ES
 precision mediump float;
-#endif
 
 #define USE_TWO_SIDED_LIGHTING 1
 #define USE_ANGLE_DEPENDENT_TRANSPARENCY 1

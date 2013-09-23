@@ -35,6 +35,7 @@ def open(stream, *args, **kw):
 	transforms = [Identity()]
 	cur_color = [1.0, 1.0, 1.0, 1.0]
 	lineno = 0
+	num_objects = 0
 	# unknown encoding, assume UTF-8
 	for line in input.readlines():
 		lineno += 1
@@ -57,6 +58,7 @@ def open(stream, *args, **kw):
 			center = Point(data[0:3])
 			radius = data[3]
 			scene.add_sphere(radius, center, cur_color, transforms[-1])
+			num_objects += 1
 		elif tokens[0] == '.cylinder':
 			if len(tokens) not in (8, 9):
 				raise UserError("expected x1 y1 z1 x2 y2 z2 r [open] after .cylinder on line %d" % lineno)
@@ -65,6 +67,7 @@ def open(stream, *args, **kw):
 			p1 = Point(data[3:6])
 			radius = data[6]
 			scene.add_cylinder(radius, p0, p1, cur_color, transforms[-1])
+			num_objects += 1
 		elif tokens[0] == '.box':
 			if len(tokens) != 7:
 				raise UserError("expected x1 y1 z1 x2 y2 z2 after .box on line %d" % lineno)
@@ -72,6 +75,7 @@ def open(stream, *args, **kw):
 			p0 = Point(data[0:3])
 			p1 = Point(data[3:6])
 			scene.add_box(p0, p1, cur_color, transforms[-1])
+			num_objects += 1
 		elif tokens[0] == '.pop':
 			if len(transforms) == 1:
 				raise UserError("empty transformation stack on line %d" % lineno)
@@ -123,6 +127,8 @@ def open(stream, *args, **kw):
 
 	if input != stream:
 		input.close()
+
+	return "Opened BILD data containing %d objects" % num_objects
 
 def register():
 	from chimera2 import io

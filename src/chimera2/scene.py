@@ -22,7 +22,8 @@ For example, given *xyzs* as an :py:class:`~numpy.array` of XYZ coordinates::
 """
 
 __all__ = [
-	'BBox', 'bbox', 
+	'bbox', 
+	'need_redraw',
 	'reset',
 	'add_sphere',
 	'add_cylinder',
@@ -30,113 +31,72 @@ __all__ = [
 	'render'
 ]
 
-from .math3d import Point, Vector, Xform, Identity, frustum, look_at, weighted_point, cross
-from numpy import array, amin, amax, float32, uint8
+from .math3d import (Point, weighted_point, Vector, cross,
+		Xform, Identity, Rotation, Translation,
+		frustum, ortho, look_at, BBox)
+from numpy import array, float32, uint8
 
-class BBox:
-	"""right-handed axis-aligned bounding box
+class Camera:
 
-	If either :py:attr:`BBox.llb` or :py:attr:`BBox.urf` are None,
-	then the bounding box is uninitialized.
-	"""
+	def __init__(self):
+		import math
+		self.eye = Point([0, 0, 0])
+		self.at = Point([0, 0, -1])
+		self.up = Vector([0, 1, 0])
+		self.ortho = False
+		self.fov = math.radians(30)
 
-	__slots__ = ['llb', 'urf']
+	def reset(self, width, height):
+		import math, copy
+		# projection and modelview matrices
+		self.bbox = copy.deepcopy(bbox)
+		self.at = self.bbox.center()
+		self.width2, self.height2, depth2 = self.bbox.size() / 2 * 1.1	# +10%
+		self.update_viewport(width, height)
 
-	def __init__(self, llb=None, urf=None):
-		self.llb = None	#: lower-left-back corner coordinates, a :py:class:`~chimera2.math3d.Point`
-		self.urf = None	#: upper-right-front corner coordinates, a :py:class:`~chimera2.math3d.Point`
-		if llb is not None:
-			self.llb = Point(llb)
-		if urf is not None:
-			self.urf = Point(urf)
+		self.near = self.height2 / math.tan(self.fov / 2)
+		self.far = self.near + 2 * depth2
+		self.eye = Point([self.at[0], self.at[1], self.at[2] + self.near + depth2])
+		self.eye = self.at + Vector([0, 0, self.near + depth2])
+		self.up = Vector([0, 1, 0])
 
-	def add(self, pt):
-		"""expand bounding box to encompass given point
+	def update_viewport(self, width, height):
+		win_aspect = width / height
+		scene_aspect = self.width2 / self.height2
+		if win_aspect > scene_aspect:
+			self.width2 = self.height2 * win_aspect
+		else:
+			self.height2 = self.width2 / win_aspect
 
-		:param pt: a :py:class:`~chimera2.math3d.Point or other XYZ-tuple`
-		"""
-		if self.llb is None:
-			self.llb = Point(pt)
-			self.urf = Point(pt)
-			return
-		for i in range(3):
-			if pt[i] < self.llb[i]:
-				self.llb[i] = pt[i]
-			elif pt[i] > self.urf[i]:
-				self.urf[i] = pt[i]
+	def matrices(self):
+		if self.ortho:
+			projection = ortho(-self.width2, self.width2,
+				-self.height2, self.height2,
+				self.near, self.far)
+		else:
+			projection = frustum(-self.width2, self.width2,
+				-self.height2, self.height2,
+				self.near, self.far)
+		modelview = look_at(self.eye, self.at, self.up)
+		return projection, modelview
 
-	def add_bbox(self, box):
-		"""expand bounding box to encompass given bounding box
-		
-		:param box: a :py:class:`BBox`
-		"""
-		if self.llb is None:
-			self.llb = box.llb
-			self.urf = box.urf
-			return
-		for i in range(3):
-			if box.llb[i] < self.llb[i]:
-				self.llb[i] = box.llb[i]
-			if box.urf[i] > self.urf[i]:
-				self.urf[i] = box.urf[i]
-
-	def bulk_add(self, pts):
-		"""expand bounding box to encompass all given points
-
-		:param pts: a numpy array of XYZ coordinates
-		"""
-		mi = amin(pts, axis=0)
-		ma = amax(pts, axis=0)
-		if self.llb is None:
-			self.llb = Point(mi)
-			self.urf = Point(ma)
-			return
-		for i in range(3):
-			if mi[i] < self.llb[i]:
-				self.llb[i] = mi[i]
-			if ma[i] > self.urf[i]:
-				self.urf[i] = ma[i]
-
-	def center(self):
-		"""return center of bounding box
-		
-		:rtype: a :py:class:`~chimera2.math3d.Point`
-		"""
-
-		if self.llb is None:
-			raise ValueError("empty bounding box")
-		return weighted_point([self.llb, self.urf])
-
-	def size(self):
-		"""return length of sides of bounding box
-		
-		:rtype: a :py:class:`~chimera2.math3d.Vector`
-		"""
-		if self.llb is None:
-			raise ValueError("empty bounding box")
-		return self.urf - self.llb
+	def rotate(self, axis, angle):
+		xf = Rotation(axis, angle)
+		self.xform(xf)
 
 	def xform(self, xf):
-		"""transform bounding box in place"""
-		if xf.isIdentity:
-			return
-		b = BBox([0., 0., 0.], [0., 0., 0.])
-		for i in range(3):
-			b.llb[i] = b.urf[i] = xf._matrix[i][3]
-			for j in range(3):
-				coeff = xf._matrix[i][j]
-				if coeff == 0:
-					continue
-				if coeff > 0:
-					b.llb[i] += self.llb[j] * coeff
-					b.urf[i] += self.urf[j] * coeff
-				else:
-					b.llb[i] += self.urf[j] * coeff
-					b.urf[i] += self.llb[j] * coeff
-		self.llb = b.llb
-		self.urf = b.urf
+		if not xf._pure:
+			raise ValueError('only pure rotation is allowed')
+		trans = Translation(self.at)
+		inv_trans = Translation(-self.at)
+		xf = trans * xf.inverse() * inv_trans
+		self.eye = xf * self.eye
+		self.up = xf * self.up
+		self.at = xf * self.at
 
 bbox = BBox() #: The current bounding box.
+camera = None
+need_redraw = True
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
 _box_pd = None
@@ -157,7 +117,9 @@ def reset():
 	Removes all objects, resets lights, bounding box,
 	viewing transformation.
 	"""
-	global bbox, _program_id, _box_pn_id, _box_indices_id
+	global need_redraw
+	need_redraw = True
+	global bbox, camera, _program_id, _box_pn_id, _box_indices_id
 	_box_pn_id = None
 	_box_indices_id = None
 	import llgr
@@ -174,6 +136,7 @@ def reset():
 	llgr.create_program(_program_id, vertex_shader, fragment_shader,
 						pick_vertex_shader)
 	bbox = BBox()
+	camera = None
 
 def add_sphere(radius, center, color, xform=None):
 	"""add sphere to scene
@@ -215,6 +178,8 @@ def add_cylinder(radius, p0, p1, color, xform=None):
 	:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
 	:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
 	"""
+	global need_redraw
+	need_redraw = True
 	if xform is None:
 		xform = Identity()
 	else:
@@ -322,13 +287,17 @@ def make_box_primitive():
 	llgr.create_buffer(_box_indices_id, llgr.ELEMENT_ARRAY, _box_indices)
 
 def add_box(p0, p1, color, xform=None):
+	global need_redraw
+	need_redraw = True
 	if xform is None:
 		xform = Identity()
 	else:
 		xform = Xform(xform)
-	llb = Point(amin([p0, p1], axis=0))
-	urf = Point(amax([p0, p1], axis=0))
-	b = BBox(llb, urf)
+	#llb = Point(amin([p0, p1], axis=0))
+	#urf = Point(amax([p0, p1], axis=0))
+	#b = BBox(llb, urf)
+	b = BBox()
+	b.bulk_add([p0, p1])
 	b.xform(xform)
 	bbox.add_bbox(b)
 	import llgr
@@ -344,11 +313,11 @@ def add_box(p0, p1, color, xform=None):
 		make_box_primitive()
 
 	scale_id = llgr.next_data_id()
-	scale = urf - llb
+	scale = b.urf - b.llb
 	llgr.create_singleton(scale_id, array(scale, dtype=float32))
 
 	matrix_id = llgr.next_matrix_id()
-	xform.translate(llb)
+	xform.translate(b.llb)
 	mat = xform.getWebGLMatrix()
 	llgr.create_matrix(matrix_id, mat, False)
 
@@ -363,13 +332,12 @@ def add_box(p0, p1, color, xform=None):
 	llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
 		0, _box_indices.size, _box_indices_id, llgr.UByte)
 
-def render(viewport, vertical_fov, globalXform, as_string=False):
+
+def render(viewport, vertical_fov, as_string=False):
 	"""render scene
 	
 	:param viewport: is a (lower-left, lower-right, width, height) tuple
-	:param vertical_fov: is the veitical field of view in radians
-	:param globalXform: is a :py:class:`~chimera2.math3d.Xform`
-	   that rotates and translates the data after the camera is setup
+	:param vertical_fov: is the vertical field of view in radians
 
 	The camera is a simple one that takes the :param vertical_fov: and
 	the current bounding box, and calculates the eye position and looks
@@ -377,20 +345,41 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 
 	There are two lights and the directions are fixed.
 	"""
+	global need_redraw
+	need_redraw = False
 	import llgr
-	one = array([1, 1, 1, 1], dtype=float32)
-	ambient = array([0.197, 0.197, 0.197, 1], dtype=float32)
-	diffuse0 = array([0.432, 0.432, 0.432, 1], dtype=float32)
-	position0 = array([0.251, 0.251, 0.935, 0], dtype=float32)
-	diffuse1 = array([0.746, 0.746, 0.746, 1], dtype=float32)
-	position1 = array([-0.357, 0.66, 0.66, 0], dtype=float32)
-	shininess = array([30], dtype=float32)
+	from . import lighting
+	zero = array([0, 0, 0, 0], dtype=float32)
+	amb = lighting.ambient
+	ambient = array([amb, amb, amb, 1], dtype=float32)
+	if lighting.fill_light is None:
+		f_diffuse = zero
+		f_position = zero
+	else:
+		color = lighting.fill_light.color
+		f_diffuse = array(color.rgb + [1], dtype=float32)
+		direct = lighting.fill_light.direction
+		f_position = array(list(direct) + [0], dtype=float32)
+	if lighting.key_light is None:
+		k_diffuse = zero
+		k_specular = zero
+		k_position = zero
+	else:
+		color = lighting.key_light.color
+		k_diffuse = array(color.rgb + [1], dtype=float32)
+		direct = lighting.key_light.direction
+		k_position = array(list(direct) + [0], dtype=float32)
+		reflectivity = lighting.reflectivity()
+		color = lighting.shiny_color()
+		specular = [x * reflectivity for x in color.rgb]
+		k_specular = array(specular + [1], dtype=float32)
+	shininess = array([lighting.sharpness()], dtype=float32)
 	llgr.set_uniform(0, 'Ambient', llgr.FVec4, ambient)
-	llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, diffuse0)
-	llgr.set_uniform(0, 'FillPosition', llgr.FVec4, position0)
-	llgr.set_uniform(0, 'KeyDiffuse', llgr.FVec4, diffuse1)
-	llgr.set_uniform(0, 'KeySpecular', llgr.FVec4, one)
-	llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, position1)
+	llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, f_diffuse)
+	llgr.set_uniform(0, 'FillPosition', llgr.FVec4, f_position)
+	llgr.set_uniform(0, 'KeyDiffuse', llgr.FVec4, k_diffuse)
+	llgr.set_uniform(0, 'KeySpecular', llgr.FVec4, k_specular)
+	llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, k_position)
 	llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
 
 	llgr.set_clear_color(.05, .05, .4, 0)
@@ -403,6 +392,7 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 		GL.glViewport(*viewport)
 
 	if bbox.llb is not None:
+		"""
 		import math
 		# projection and modelview matrices
 		win_aspect = float(viewport[2]) / viewport[3]
@@ -425,8 +415,16 @@ def render(viewport, vertical_fov, globalXform, as_string=False):
 		projection = camera.getWebGLMatrix()
 		mv = look_at(eye, at, up)
 		modelview = mv * globalXform
+		"""
+		global camera
+		if camera is not None:
+			camera.update_viewport(viewport[2], viewport[3])
+		else:
+			camera = Camera()
+			camera.reset(viewport[2], viewport[3])
+		projection, modelview = camera.matrices()
 		llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
-						llgr.Mat4x4, projection)
+				llgr.Mat4x4, projection.getWebGLMatrix())
 		llgr.set_uniform_matrix(0, 'ModelViewMatrix', False,
 				llgr.Mat4x4, modelview.getWebGLMatrix())
 		llgr.set_uniform_matrix(0, 'NormalMatrix', False,

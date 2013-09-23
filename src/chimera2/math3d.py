@@ -1,3 +1,4 @@
+# vi:set shiftwidth=4 expandtab:
 """
 math3d: Support for coordinate-free geometry using numpy
 ========================================================
@@ -15,11 +16,17 @@ __all__ = [
     'Point', 'Vector', 'Xform', 'weighted_point', 'cross',
     'Identity', 'Rotation', 'Translation', 'Scale',
     'transform',
-    'look_at', 'ortho', 'frustum', 'perspective'
+    'look_at', 'ortho', 'frustum', 'perspective',
+    'BBox',
 ]
 
-from numpy import ndarray, array, eye, dot, linalg, concatenate, allclose, isfortran, asfortranarray, sum, float32, float64
-from math import sin, cos, tan, sqrt, radians
+from numpy import (
+    ndarray, array, eye, dot, linalg, concatenate, allclose, isfortran,
+    asfortranarray, sum, float32, float64, amin, amax, array_equal,
+)
+from math import sin, cos, tan, acos, sqrt, radians, pi
+
+EPSILON = 1.0e-10
 
 class Point(ndarray):
     """Floating point triplet representing a point"""
@@ -43,6 +50,13 @@ class Point(ndarray):
 
     def __mul__(self, a):
         raise ValueError("cannot multiply Points")
+
+    def __eq__(self, a):
+        return array_equal(self, a)
+
+    def close(self, a, **kw): # rtol=1e-05, atol=1e-08
+        """Return if Point is close to another Point using numpy.allclose"""
+        return allclose(self, a, **kw)
 
     # TODO: add point operations
 
@@ -92,6 +106,13 @@ class Vector(ndarray):
         """convert to unit length vector"""
         # faster than using numpy.linalg.norm()
         self /= sqrt(dot(self, self.conj()))
+
+    def __eq__(self, a):
+        return array_equal(self, a)
+
+    def close(self, a, **kw): # rtol=1e-05, atol=1e-08
+        """Return if Vector is close to another Vector using numpy.allclose"""
+        return allclose(self, a, **kw)
 
 def cross(v1, v2):
     """Same as numpy.cross but return a Vector if arguments are Vectors"""
@@ -164,28 +185,81 @@ class Xform:
         m = self._matrix[0:3, 0:3].astype(float32)
         return m.flatten(order='F')
 
-    def __mul__(self, xpv):
+    def get_translation(self):
+        return Vector(self._matrix[0:3, 3])
+
+    def get_rotation(self):
+        rot = self._matrix[0:2, 0:2]
+        cos_theta = (rot[0][0] + rot[1][1] + rot[2][2] - 1) / 2
+        if 1 - EPSILON <= cos_theta <= 1 + EPSILON:
+            angle = 0
+            axis = Vector([0, 0, 1])
+            return axis, angle
+
+        if not (-1 - EPSILON <= cos_theta <= -1 + EPSILON):
+            angle = acos(cos_theta)
+            sin_theta = sqrt(1 - cos_theta * cos_theta)
+            axis = Vector([
+                (rot[2][1] - rot[1][2]) / 2 / sin_theta,
+                (rot[0][2] - rot[2][0]) / 2 / sin_theta,
+                (rot[1][0] - rot[0][1]) / 2 / sin_theta
+            ])
+            axis.normalize()
+            return axis, angle
+
+        angle = pi         # 180 degrees
+        if rot[0][0] >= rot[1][1]:
+            if rot[0][0] >= rot[2][2]:
+                # rot00 is maximal diagonal term
+                x = sqrt(rot[0][0] - rot[1][1] - rot[2][2] + 1) / 2
+                half_inv = 1 / (2 * x)
+                axis = Vector([x, half_inv * rot[0][1], half_inv * rot[0][2]])
+            else:
+                # rot22 is maximal diagonal term
+                z = sqrt(rot[2][2] - rot[0][0] - rot[1][1] + 1) / 2
+                half_inv = 1 / (2 * z)
+                axis = Vector([half_inv * rot[0][2], half_inv * rot[1][2], z])
+        else:
+            if rot[1][1] >= rot[2][2]:
+                # rot11 is maximal diagonal term
+                y = sqrt(rot[1][1] - rot[0][0] - rot[2][2] + 1) / 2
+                half_inv = 1 / (2 * y)
+                axis = Vector([half_inv * rot[0][1], y, half_inv * rot[1][2]])
+            else:
+                # rot22 is maximal diagonal term
+                z = sqrt(rot[2][2] - rot[0][0] - rot[1][1] + 1) / 2
+                half_inv = 1 / (2 * z)
+                axis = Vector([half_inv * rot[0][2], half_inv * rot[1][2], z])
+        axis.normalize()
+        return axis, angle
+
+    def __mul__(self, arg):
         """Apply transformation to Point or Vector
 
         Returns transformed Point or Vector.
         """
         # TODO: handle perspective?
-        if isinstance(xpv, Xform):
+        if isinstance(arg, Xform):
             # TODO: multiple two xforms together
             if self.isIdentity:
-                return Xform(xpv)
-            if xpv.isIdentity:
+                return Xform(arg)
+            if arg.isIdentity:
                 return Xform(self)
-            m = dot(self._matrix, xpv._matrix)
+            m = dot(self._matrix, arg._matrix)
             return Xform(m,
-                    _pure = self._pure and xpv._pure,
-                    _projection = self._projection or xpv._projection)
-        if isinstance(xpv, Point):
-            return Point(dot(self._matrix, concatenate((xpv, [1])))[0:3])
-        if isinstance(xpv, Vector):
-            return Vector(dot(self._matrix, concatenate((xpv, [0])))[0:3])
-        if isinstance(xpv, ndarray) and xpv.shape == (4, 4):
-            return Xform(dot(self._matrix, xpv))
+                    _pure = self._pure and arg._pure,
+                    _projection = self._projection or arg._projection)
+        if isinstance(arg, Point):
+            return Point(dot(self._matrix, concatenate((arg, [1])))[0:3])
+        if isinstance(arg, Vector):
+            return Vector(dot(self._matrix, concatenate((arg, [0])))[0:3])
+        if isinstance(arg, ndarray) and arg.shape == (4, 4):
+            return Xform(dot(self._matrix, arg))
+        if isinstance(arg, BBox):
+            from copy import copy
+            bbox = copy(arg)
+            bbox.xform(self)
+            return bbox
         # TODO: handle arrays of Points and Vectors
         raise TypeError("expected a Xform, a Point, or a Vector")
 
@@ -207,11 +281,30 @@ class Xform:
         self._matrix = dot(self._matrix, sc._matrix)
         self.isIdentity = False
 
+    def invert(self):
+        if self.isIdentity:
+            return
+        if self._projection:
+            raise NotImplemented("can't invert projection matrices")
+        # swap off-diagonal section of rotation part
+        self._matrix[0, 1], self._matrix[1, 0] = self._matrix[1, 0], self._matrix[0, 1]
+        self._matrix[0, 2], self._matrix[2, 0] = self._matrix[2, 0], self._matrix[0, 2]
+        self._matrix[1, 2], self._matrix[2, 1] = self._matrix[2, 1], self._matrix[1, 2]
+        # reverse translation part
+        self._matrix[0, 3] *= -1
+        self._matrix[1, 3] *= -1
+        self._matrix[2, 3] *= -1
+
+    def inverse(self):
+        xf = Xform(self)
+        xf.invert()
+        return xf
+
     #TODO: and more
 
 def Identity():
     """Identify transformation"""
-    return Xform(eye(4), _valid=True, _isIdentity=True)
+    return Xform(eye(4), _valid=True, _isIdentity=True, _pure=True)
 
 def Rotation(axis, angle, inDegrees=False):
     """Build a rotation transformation"""
@@ -279,14 +372,21 @@ def transform(translation=None, center=None, rotation=None, scaleOrientation=Non
 # look_at is like the OpenGL gluLookAt, it puts p0 at the origin,
 # p1 on the negative Z axis, and p2 on the Y axis.
 
-def look_at(p0, p1, p2):
+def look_at(p0, p1, up):
+    """Compute viewing transformation
+
+    Place :param p0: at origin, :param p1: on the negative z axis
+    and orient so :param up: is in the same half-plane as the postive y axis
+    and z axis.  :param up: can either be a Point or a Vector.
+    """
     # Compute the rotational part of lookat matrix
     f = p1 - p0
     try:
         f.normalize()
     except ZeroDivisionError:
         raise ValueError("colinear points")
-    up = p2 - p0
+    if isinstance(up, Point):
+        up = up - p0
     s = cross(f, up)
     try:
         s.normalize()
@@ -312,7 +412,7 @@ def look_at(p0, p1, p2):
 def ortho(left, right, bottom, top, hither, yon):
     """return 4x4 orthographic transformation"""
     # Matrices from OpenGL Programming Guide, 2nd Edition, p. 598
-    # glOrtho(left, right, bottom, top, hither, yon);
+    # glOrtho(left, right, bottom, top, hither, yon)
     xf = Xform(array([
             [2 / (right - left), 0, 0, - (right + left) / (right - left)],
             [0, 2 / (top - bottom), 0, - (top + bottom) / (top - bottom)],
@@ -324,7 +424,7 @@ def ortho(left, right, bottom, top, hither, yon):
 def frustum(left, right, bottom, top, hither, yon):
     """return 4x4 perspective transformation"""
     # Matrices from OpenGL Programming Guide, 2nd Edition, p. 598
-    # glFrustum(left, right, bottom, top, hither, yon);
+    # glFrustum(left, right, bottom, top, hither, yon)
     xf = Xform(array([
             [2 * hither / (right - left), 0,
                     (right + left) / (right - left), 0],
@@ -347,3 +447,105 @@ def perspective(fov_y, aspect, z_near, z_far):
             [0, 0, -1, 0]
         ]), _valid=True, _projection=True)
     return xf
+
+class BBox:
+    """right-handed axis-aligned bounding box
+
+    If either :py:attr:`BBox.llb` or :py:attr:`BBox.urf` are None,
+    then the bounding box is uninitialized.
+    """
+
+    __slots__ = ['llb', 'urf']
+
+    def __init__(self, llb=None, urf=None):
+        self.llb = None	#: lower-left-back corner coordinates, a :py:class:`~chimera2.math3d.Point`
+        self.urf = None	#: upper-right-front corner coordinates, a :py:class:`~chimera2.math3d.Point`
+        if llb is not None:
+            self.llb = Point(llb)
+        if urf is not None:
+            self.urf = Point(urf)
+
+    def add(self, pt):
+        """expand bounding box to encompass given point
+
+        :param pt: a :py:class:`~chimera2.math3d.Point or other XYZ-tuple`
+        """
+        if self.llb is None:
+            self.llb = Point(pt)
+            self.urf = Point(pt)
+            return
+        for i in range(3):
+            if pt[i] < self.llb[i]:
+                self.llb[i] = pt[i]
+            elif pt[i] > self.urf[i]:
+                self.urf[i] = pt[i]
+
+    def add_bbox(self, box):
+        """expand bounding box to encompass given bounding box
+        
+        :param box: a :py:class:`BBox`
+        """
+        if self.llb is None:
+            self.llb = box.llb
+            self.urf = box.urf
+            return
+        for i in range(3):
+            if box.llb[i] < self.llb[i]:
+                self.llb[i] = box.llb[i]
+            if box.urf[i] > self.urf[i]:
+                self.urf[i] = box.urf[i]
+
+    def bulk_add(self, pts):
+        """expand bounding box to encompass all given points
+
+        :param pts: a numpy array of XYZ coordinates
+        """
+        mi = amin(pts, axis=0)
+        ma = amax(pts, axis=0)
+        if self.llb is None:
+            self.llb = Point(mi)
+            self.urf = Point(ma)
+            return
+        for i in range(3):
+            if mi[i] < self.llb[i]:
+                self.llb[i] = mi[i]
+            if ma[i] > self.urf[i]:
+                self.urf[i] = ma[i]
+
+    def center(self):
+        """return center of bounding box
+        
+        :rtype: a :py:class:`~chimera2.math3d.Point`
+        """
+        if self.llb is None:
+            raise ValueError("empty bounding box")
+        return weighted_point([self.llb, self.urf])
+
+    def size(self):
+        """return length of sides of bounding box
+        
+        :rtype: a :py:class:`~chimera2.math3d.Vector`
+        """
+        if self.llb is None:
+            raise ValueError("empty bounding box")
+        return self.urf - self.llb
+
+    def xform(self, xf):
+        """transform bounding box in place"""
+        if xf.isIdentity:
+            return
+        b = BBox([0., 0., 0.], [0., 0., 0.])
+        for i in range(3):
+            b.llb[i] = b.urf[i] = xf._matrix[i][3]
+            for j in range(3):
+                coeff = xf._matrix[i][j]
+                if coeff == 0:
+                    continue
+                if coeff > 0:
+                    b.llb[i] += self.llb[j] * coeff
+                    b.urf[i] += self.urf[j] * coeff
+                else:
+                    b.llb[i] += self.urf[j] * coeff
+                    b.urf[i] += self.llb[j] * coeff
+        self.llb = b.llb
+        self.urf = b.urf

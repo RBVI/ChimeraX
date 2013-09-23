@@ -156,7 +156,7 @@ class Command:
 		self.completion_prefix = ""
 		self.completions = []
 		self._in_kwarg = ""
-		self._error = "no command"
+		self._error = "Missing command"
 		self._word_map = _commands
 		self._fi = None
 		self._args = []
@@ -196,6 +196,8 @@ class Command:
 						word = convert(word, p.annotation)
 					except ValueError as e:
 						self._error = "Bad '%s' argument: %s" % (p.name, e)
+						# TODO: get completions based
+						#   on p.annotation type
 						self.completion_prefix = ""
 						self.completions = []
 						break
@@ -216,13 +218,13 @@ class Command:
 				text = rest
 				if self._fi:
 					self._in_kwarg = word
-					self._error = "expect argument for %s keyword" % word
+					self._error = "Expected argument for %s keyword" % word
 					self.completion_prefix = word
 					self.completions = [kw for kw in self._word_map if kw.startswith(word)]
 					continue
 				if isinstance(what, dict):
 					self._word_map = what
-					self._error = "incomplete command: %s" % self.current_text[0:self.amount_parsed]
+					self._error = "Incomplete command: %s" % self.current_text[0:self.amount_parsed]
 					if not rest:
 						if self.current_text[-1].isspace():
 							fmt = '%s'
@@ -243,7 +245,7 @@ class Command:
 				continue
 			if not self._fi:
 				# haven't typed in full command name yet
-				self._error = "unknown command"
+				self._error = "Unknown command"
 				self.completion_prefix = word
 				self.completions = [cmd for cmd in self._word_map if cmd.startswith(word)]
 				if autocomplete and self.completions:

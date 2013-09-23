@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimera2
 
-PYSRCS = $(wildcard *.py) io
+PYSRCS = $(wildcard *.py) io lighting
 PYOBJS = $(PYSRCS:.py=.pyc)
 
 all: $(PYOBJS)

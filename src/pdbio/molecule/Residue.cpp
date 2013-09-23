@@ -55,7 +55,6 @@ Residue::count_atom(const char *name) const
 Atom *
 Residue::find_atom(const std::string &name) const
 {
-	
 	for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
 		Atom *a = *ai;
 		if (a->name() == name)

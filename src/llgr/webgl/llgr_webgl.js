@@ -103,31 +103,43 @@ ShaderProgram.prototype.gl_dealloc = function ()
 
 ShaderProgram.prototype.uniform_location = function(name)
 {
+	if (!this.uniforms.hasOwnProperty(name))
+		return undefined;
 	return this.uniforms[name][0];
 };
 
 ShaderProgram.prototype.uniform_type = function(name)
 {
+	if (!this.uniforms.hasOwnProperty(name))
+		return undefined;
 	return this.uniforms[name][1];
 };
 
 ShaderProgram.prototype.uniform_size = function(name)
 {
+	if (!this.uniforms.hasOwnProperty(name))
+		return undefined;
 	return this.uniforms[name][2];
 };
 
 ShaderProgram.prototype.attribute_location = function(name)
 {
+	if (!this.attributes.hasOwnProperty(name))
+		return undefined;
 	return this.attributes[name][0];
 };
 
 ShaderProgram.prototype.attribute_type = function(name)
 {
+	if (!this.attributes.hasOwnProperty(name))
+		return undefined;
 	return this.attributes[name][1];
 };
 
 ShaderProgram.prototype.attribute_size = function(name)
 {
+	if (!this.attributes.hasOwnProperty(name))
+		return undefined;
 	return this.attributes[name][2];
 };
 
@@ -213,7 +225,7 @@ function check_attributes(obj_id, program_id, ai)
 	}
 	var sp = programs[program_id];
 	for (var name in sp.attributes) {
-		if (name == "instanceTransform")
+		if (name.lastIndexOf("instanceTransform", 0) == 0)
 			continue;
 		var found = false;
 		for (var i = 0; i < ai.length; ++i) {
@@ -223,7 +235,7 @@ function check_attributes(obj_id, program_id, ai)
 			}
 		}
 		if (!found) {
-			console.log("missing attribute " + sv.name
+			console.log("missing attribute " + name
 						+ " in object " + obj_id);
 		}
 	}
@@ -254,6 +266,28 @@ function data_size(type)
 	}
 }
 
+// cache OpenGl state
+var enabled = [		// vertex attribute arrays
+	false, false, false, false,
+	false, false, false, false,
+	false, false, false, false,
+	false, false, false, false,
+];
+var enabled_count = [
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+];
+var enabled_buf = [
+	null, null, null, null,
+	null, null, null, null,
+	null, null, null, null,
+	null, null, null, null,
+];
+var curbuf = {	// currently bound buffer
+};
+
 function setup_attribute(sp, ai)
 {
 	var  bi = buffers[ai.data_id];
@@ -279,18 +313,27 @@ function setup_attribute(sp, ai)
 	  case gl.FLOAT_MAT4:
 		total = 16; count = 4; break;
 	// TODO: gl.SAMPLER_1D gl.SAMPLER_2D gl.SAMPLER_3D
-	// gl.SAMPLER_CUBE // gl.SAMPLER_1D_SHADOW gl.SAMPLER_2D_SHADOW
+	// gl.SAMPLER_CUBE
+	// gl.SAMPLER_1D_SHADOW gl.SAMPLER_2D_SHADOW
 	  default:
 		total = count = 1; break;
 	}
 
 	if (bi.buffer) {
-		gl.bindBuffer(bi.target, bi.buffer);
-		// TODO: handle total > 4 -- arrays of matrices
+		if (bi.buffer != curbuf[bi.target]) {
+			gl.bindBuffer(bi.target, bi.buffer);
+			curbuf[bi.target] = bi.buffer;
+		}
+		// TODO: handle total > count -- arrays of matrices
 		gl.vertexAttribPointer(loc, ai.count,
 			cvt_DataType(ai.type), ai.normalized, ai.stride,
 			ai.offset);
-		gl.enableVertexAttribArray(loc);
+		if (!enabled[loc]) {
+			gl.enableVertexAttribArray(loc);
+			enabled[loc] = true;
+			enabled_count[loc] = 0;
+			enabled_buf[loc] = null;
+		}
 		return;
 	}
 
@@ -299,11 +342,18 @@ function setup_attribute(sp, ai)
 		// so far, WebGL only supports Float attributes
 		return;
 	}
+	if (enabled_count[loc] === count && enabled_buf[loc] === bi.data) {
+		return;
+	}
+	enabled_count[loc] = count;
+	enabled_buf[loc] = bi.data;
 	var bfa = new Float32Array(bi.data, 0);
 	var offset = 0;
 	while (total > 0) {
-		gl.disableVertexAttribArray(loc);
-		//var fa = new Float32Array(bi.data, offset, count);
+		if (enabled[loc]) {
+			gl.disableVertexAttribArray(loc);
+			enabled[loc] = false;
+		}
 		var fa = bfa.subarray(offset, offset + count);
 		switch (count) {
 		  case 1: gl.vertexAttrib1fv(loc, fa); break;
@@ -359,7 +409,7 @@ function convert_data(data)
 	return data;
 }
 
-function build_sphere(radius, num_vertices)
+function build_sphere(num_vertices)
 {
 	var bands = Math.round(Math.sqrt(num_vertices));
 	if (bands < 4)
@@ -390,9 +440,9 @@ function build_sphere(radius, num_vertices)
 			np.push(z);
 
 			// position
-			np.push(x * radius);
-			np.push(y * radius);
-			np.push(z * radius);
+			np.push(x);
+			np.push(y);
+			np.push(z);
 
 			// indices
 			if ((i < bands) && (j < spokes)) {
@@ -415,11 +465,11 @@ function build_sphere(radius, num_vertices)
 	llgr.create_buffer(np_id, llgr.ARRAY, new Float32Array(np));
 	llgr.create_buffer(index_id, llgr.ELEMENT_ARRAY,
 						new Uint16Array(indices));
-	proto_spheres[radius] = new PrimitiveInfo(np_id, indices.length,
+	proto_spheres[num_vertices] = new PrimitiveInfo(np_id, indices.length,
 						index_id, llgr.UShort);
 }
 
-function build_cylinder(radius, num_spokes, bottom, top)
+function build_cylinder(num_spokes, bottom, top)
 {
 	bottom = bottom || false;
 	top = top || false;
@@ -447,9 +497,9 @@ function build_cylinder(radius, num_spokes, bottom, top)
 		np[o + 0] = x;
 		np[o + 1] = 0;
 		np[o + 2] = z;
-		np[o + 3] = x * radius;
+		np[o + 3] = x;
 		np[o + 4] = -1;
-		np[o + 5] = z * radius;
+		np[o + 5] = z;
 		var o2 = (i + num_spokes) * 6;
 		np[o2 + 0] = np[o + 0];
 		np[o2 + 1] = np[o + 1];
@@ -467,7 +517,8 @@ function build_cylinder(radius, num_spokes, bottom, top)
 	var index_id = --internal_buffer_id;
 	llgr.create_buffer(np_id, llgr.ARRAY, np);
 	llgr.create_buffer(index_id, llgr.ELEMENT_ARRAY, indices);
-	proto_cylinders[radius] = new PrimitiveInfo(np_id, num_indices, index_id, index_type);
+	proto_cylinders[num_spokes] = new PrimitiveInfo(np_id, num_indices,
+							index_id, index_type);
 }
 
 llgr = {
@@ -517,7 +568,8 @@ llgr = {
 	Triangle_strip: 5,
 	Triangle_fan: 6,
 
-	AttributeInfo: function (name, data_id, offset, stride, count, data_type, normalized) {
+	AttributeInfo: function (name, data_id, offset, stride, count,
+							data_type, normalized) {
 		if (normalized === undefined) normalized = false;
 
 		this.name = name;
@@ -608,9 +660,12 @@ llgr = {
 		  case llgr.IVec2: u = [gl.uniform2iv, name, ia]; break;
 		  case llgr.IVec3: u = [gl.uniform3iv, name, ia]; break;
 		  case llgr.IVec4: u = [gl.uniform4iv, name, ia]; break;
-		  case llgr.Mat2x2: u = [gl.uniformMatrix2fv, name, false, fa]; break;
-		  case llgr.Mat3x3: u = [gl.uniformMatrix3fv, name, false, fa]; break;
-		  case llgr.Mat4x4: u = [gl.uniformMatrix4fv, name, false, fa]; break;
+		  case llgr.Mat2x2:
+			   u = [gl.uniformMatrix2fv, name, false, fa]; break;
+		  case llgr.Mat3x3:
+			   u = [gl.uniformMatrix3fv, name, false, fa]; break;
+		  case llgr.Mat4x4:
+			   u = [gl.uniformMatrix4fv, name, false, fa]; break;
 		  default:
 			console.log('unknown uniform shader type for ' + name
 							+ ': ' + shader_type);
@@ -642,9 +697,12 @@ llgr = {
 		var fa = new Float32Array(data, 0);
 		var u = [];
 		switch (shader_type) {
-		  case llgr.Mat2x2: u = [gl.uniformMatrix2fv, name, transpose, fa]; break;
-		  case llgr.Mat3x3: u = [gl.uniformMatrix3fv, name, transpose, fa]; break;
-		  case llgr.Mat4x4: u = [gl.uniformMatrix4fv, name, transpose, fa]; break;
+		  case llgr.Mat2x2:
+			  u = [gl.uniformMatrix2fv, name, transpose, fa]; break;
+		  case llgr.Mat3x3:
+			  u = [gl.uniformMatrix3fv, name, transpose, fa]; break;
+		  case llgr.Mat4x4:
+			  u = [gl.uniformMatrix4fv, name, transpose, fa]; break;
 		  default:
 			console.log('only uniform matrix shader types allowed');
 			return;
@@ -679,6 +737,9 @@ llgr = {
 		gl.bindBuffer(buffer_target, buffer);
 		gl.bufferData(buffer_target, data, gl.STATIC_DRAW);
 		gl.bindBuffer(buffer_target, null);
+		if (curbuf[buffer_target] !== undefined) {
+			delete curbuf[buffer_target];
+		}
 		buffers[data_id] = new BufferInfo(buffer, buffer_target);
 	},
 	delete_buffer: function (data_id) {
@@ -704,7 +765,8 @@ llgr = {
 		var bi = buffers[data_id];
 		if (bi && bi.buffer) gl.deleteBuffer(bi.buffer);
 		// TODO: want copy of data or read-only reference
-		buffers[data_id] = new BufferInfo(gl.ARRAY_BUFFER, data.byteLength, data);
+		buffers[data_id] = new BufferInfo(gl.ARRAY_BUFFER,
+							data.byteLength, data);
 	},
 
 	// matrix_id of zero is reserved for identity matrix
@@ -744,8 +806,10 @@ llgr = {
 	create_object: function (obj_id, program_id, matrix_id,
 			list_of_attributeInfo, primitive_type, first, count,
 			index_buffer_id, index_buffer_type) {
-		if (index_buffer_id === undefined) index_buffer_id = 0;
-		if (index_buffer_type === undefined) index_buffer_type = llgr.UByte;
+		if (index_buffer_id === undefined)
+			index_buffer_id = 0;
+		if (index_buffer_type === undefined)
+			index_buffer_type = llgr.UByte;
 
 		var ais = [];
 		for (var i = 0; i < list_of_attributeInfo.length; ++i) {
@@ -844,17 +908,18 @@ llgr = {
 	},
 	add_sphere: function (obj_id, radius, program_id, matrix_id,
 				list_of_attributeInfo) {
-		if (!(radius in proto_spheres)) {
-			build_sphere(radius, 100 /* TODO: LOD */);
+		var N = 300; // TODO: make dependent on radius in pixels
+		if (!(N in proto_spheres)) {
+			build_sphere(N);
 		}
-		var pi = proto_spheres[radius];
+		var pi = proto_spheres[N];
 		var mai = list_of_attributeInfo.slice(0);
 		mai.push(new llgr.AttributeInfo("normal", pi.data_id, 0, 24, 3,
 								llgr.Float));
 		mai.push(new llgr.AttributeInfo("position", pi.data_id, 12, 24,
 								3, llgr.Float));
 		var scale_id = --internal_buffer_id;
-		var scale = new Float32Array([1, 1, 1]);
+		var scale = new Float32Array([radius, radius, radius]);
 		llgr.create_singleton(scale_id, scale);
 		mai.push(new llgr.AttributeInfo("instanceScale", scale_id, 0,
 							0, 3, llgr.Float));
@@ -864,17 +929,18 @@ llgr = {
 	},
 	add_cylinder: function (obj_id, radius, length, program_id, matrix_id,
 				list_of_attributeInfo) {
-		if (!(radius in proto_cylinders)) {
-			build_cylinder(radius, 12 /* TODO: LOD */);
+		var N = 50;	// TODO: make dependent on radius in pixels
+		if (!(N in proto_cylinders)) {
+			build_cylinder(N);
 		}
-		var pi = proto_cylinders[radius];
+		var pi = proto_cylinders[N];
 		var mai = list_of_attributeInfo.slice(0);
 		mai.push(new llgr.AttributeInfo("normal", pi.data_id, 0, 24, 3,
 								llgr.Float));
 		mai.push(new llgr.AttributeInfo("position", pi.data_id, 12, 24,
 								3, llgr.Float));
 		var scale_id = --internal_buffer_id;
-		var scale = new Float32Array([1, length / 2, 1]);
+		var scale = new Float32Array([radius, length / 2, radius]);
 		llgr.create_singleton(scale_id, scale);
 		mai.push(new llgr.AttributeInfo("instanceScale", scale_id, 0,
 							0, 3, llgr.Float));
@@ -990,30 +1056,42 @@ llgr = {
 			}
 			// finally draw object
 			if (!ibi) {
-				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+				if (curbuf[gl.ELEMENT_ARRAY_BUFFER] !== undefined) {
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+					delete curbuf[gl.ELEMENT_ARRAY_BUFFER];
+				}
 				gl.drawArrays(oi.ptype, oi.first, oi.count);
 			} else {
 				if (oi.index_buffer_type == llgr.UInt
 				&& !gl.getExtension("OES_element_index_uint")) {
 					console.warn("unsigned integer indices are not supported");
 				}
-				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,
-								ibi.buffer);
+				if (curbuf[gl.ELEMENT_ARRAY_BUFFER] !== ibi.buffer) {
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibi.buffer);
+					curbuf[gl.ELEMENT_ARRAY_BUFFER] = ibi.buffer;
+				}
 				gl.drawElements(oi.ptype, oi.count,
 					cvt_DataType(oi.index_buffer_type), 
 					oi.first
 					* data_size(oi.index_buffer_type));
 			}
-			// cleanup
-			// TODO: minimize cleanup between objects
-			for (var name in sp.attributes) {
-				var attr = sp.attributes[name];
-				gl.disableVertexAttribArray(attr[0]);
-				// TODO: might be matrix, so disable more than one
-			}
-			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		}
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+		for (var loc in enabled) {
+			if (enabled[loc]) {
+				gl.disableVertexAttribArray(loc);
+				enabled[loc] = false;
+				enabled_count[loc] = 0;
+				enabled_buf[loc] = null;
+			}
+		}
+		if (curbuf[gl.ARRAY_BUFFER] !== undefined) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
+			delete curbuf[gl.ARRAY_BUFFER];
+		}
+		if (curbuf[gl.ELEMENT_ARRAY_BUFFER] !== undefined) {
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+			delete curbuf[gl.ELEMENT_ARRAY_BUFFER];
+		}
 		if (sp) {
 			sp.cleanup();
 		}

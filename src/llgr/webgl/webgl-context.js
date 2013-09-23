@@ -49,7 +49,10 @@ ContextInfo = function (canvas, gl, render, data)
 			return;
 		var render = this.render;
 		var ci = this;
-		this.requestId = requestAnimFrame(function () { render(ci); });
+		this.requestId = requestAnimFrame(function () {
+					render(ci);
+					ci.requestId = null;
+				});
 	};
 
 	this.init = function () {

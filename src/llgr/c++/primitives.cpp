@@ -74,7 +74,7 @@ void
 add_cylinder(Id obj_id, float radius, float length,
 	Id program_id, Id matrix_id, const AttributeInfos& ais)
 {
-	int N = 50;	// TODO: make depending on radius in pixels
+	int N = 50;	// TODO: make dependent on radius in pixels
 	ProtoGeom::iterator i = proto_cylinders.find(N);
 	if (i == proto_cylinders.end())
 		build_cylinder(N);

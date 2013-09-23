@@ -218,7 +218,7 @@ def register_open(name, open_function, requires_seeking=False):
 	try:
 		fi = _file_formats[name]
 	except KeyError:
-		raise ValueError("unknown data type")
+		raise ValueError("Unknown data type")
 	fi.open_func = open_function
 	fi.requires_seeking = requires_seeking
 
@@ -231,14 +231,14 @@ def register_fetch(name, fetch_function):
 	try:
 		fi = _file_formats[name]
 	except KeyError:
-		raise ValueError("unknown data type")
+		raise ValueError("Unknown data type")
 	fi.fetch_func = fetch_function
 
 def register_save(name, save_function, save_notes=''):
 	try:
 		fi = _file_formats[name]
 	except KeyError:
-		raise ValueError("unknown data type")
+		raise ValueError("Unknown data type")
 	fi.save_func = save_function
 	fi.save_notes = save_notes
 
@@ -436,7 +436,7 @@ def open(filespec, identify_as=None, **kw):
 	if not identify_as:
 		identify_as = filespec
 	if name is None:
-		raise UserError("unknown file type")
+		raise UserError("Missing file type")
 	open = open_function(name)
 	if open is None:
 		raise UserError("unable to open %s files" % name)
@@ -472,7 +472,7 @@ def open(filespec, identify_as=None, **kw):
 def save(filename, **kw):
 	name, prefix, filelike, compression = deduce_format(filename, prefixable=False)
 	if name is None:
-		raise UserError("unknown file type")
+		raise UserError("Missing file type")
 	func = save_function(name)
 	if not compression:
 		stream = open(filelike, 'wb')
