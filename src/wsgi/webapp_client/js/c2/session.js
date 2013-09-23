@@ -90,15 +90,16 @@ function call(session, password, tag, tag_data, state, cb) {
 
 function debug_log(data) {
 	// TODO: be able to toggle debug output
-	var output = JSON.stringify(data) + "\n";
+	//var output = JSON.stringify(data) + "\n";
+	var output = "";
 	for (var index in data) {
-		output = output + "Response " + index + "\n";
+		output = output + "<h4>Response " + index + "</h4>\n";
 		var response = data[index];
 		for (var key in response)
-			output = output + "  " + key + ": "
-						+ response[key] + "\n";
+			output = output + "  <b>" + key + ":</b> "
+				+ JSON.stringify(response[key]) + "<br>\n";
 	}
-	$("#debug").text(output);
+	$("#debug").html(output);
 }
 
 // --------------------------------------------------------------------
@@ -234,6 +235,10 @@ function existing_session(name) {
 	return false;
 }
 
+function log(output) {
+	$("#log").append(output);
+}
+
 $.extend($c2_session, {
 	// Session User interface API
 
@@ -245,6 +250,7 @@ $.extend($c2_session, {
 
 	// Public functions
 	ui_init: ui_init,		// also initializes server part
+	log: log,
 });
 
 }());
@@ -274,30 +280,34 @@ function register_data_function(tag, func) {
 }
 
 function redistribute_data(data) {
-	console.log("redistribute_data " + data.length + " responses");
+	//console.log("redistribute_data " + data.length + " responses");
 	for (var i in data) {
 		var response = data[i];
 		var call_id = response["id"];
 		if (!response["status"]) {
-			var msg = response["stderr"];
+			var msg = response["error"];
 			if (msg !== undefined)
 				if (msg.lastIndexOf("Traceback", 0) == 0) {
-					msg = "Command failed:\n\n" + msg;
-					alert(msg);
+					msg = "Command failed:\n\n<pre>\n" + msg + "\n</pre>";
+					// TODO: dialog
+					show_error(msg);
 				} else {
-					// TODO: status line message
-					alert(msg);
+					show_error(msg);
 				}
 			continue;
+		}
+		if (response["command"]) {
+			var msg = response["command"];
+			$c2_session.log("<h3>" + msg + "</h3>");
 		}
 		var client_data = response["client_data"];
 		if (client_data === undefined)
 			continue;
-		console.log("  " + client_data.length + " results");
+		//console.log("  " + client_data.length + " results");
 		for (var j in client_data) {
 			var data = client_data[j];
 			var tag = data[0];
-			console.log("  working on " + tag);
+			//console.log("  working on " + tag);
 			if (!data_functions.hasOwnProperty(tag))
 				continue;
 			data_functions[tag](data[1]);

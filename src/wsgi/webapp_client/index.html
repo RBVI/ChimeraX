@@ -1,6 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
         "https://www.w3.org/TR/html4/strict.dtd">
 <html>
+<!-- vi: se sw=2: -->
 <head>
 <meta charset="utf-8"/>
 <title>Session Javascript Test Page</title>
@@ -18,10 +19,12 @@
 <script type="text/javascript" src="js/c2/session.js"></script>
 
 <!-- WebGL support -->
-<script type="text/javascript" src="webgl/webgl-debug.js"></script>
+<!-- <script type="text/javascript" src="webgl/webgl-debug.js"></script> -->
 <script type="text/javascript" src="webgl/webgl-utils.js"></script>
 <script type="text/javascript" src="webgl/webgl-context.js"></script>
 <script type="text/javascript" src="webgl/llgr_webgl.js"></script>
+<script type="text/javascript" src="js/tsm-0.6.js"></script>
+<script type="text/javascript" src="js/vsphere.js"></script>
 
 <!-- page-specific script and css -->
 <style type="text/css">
@@ -45,21 +48,53 @@ $(document).ready(function() {
 		});
 	$c2_session.register_data_function("llgr", process_llgr_data);
 	$c2_session.register_data_function("scene", process_scene_data);
-	molview();
+	$c2_session.register_data_function("info", show_status);
+	molview_init();
 })
 
-function process_llgr_data(data) {
-	var json = JSON.parse(data);
+function process_llgr_data(json) {
 	load(json);
 }
 
 function process_scene_data(data) {
-	// TODO
+	// bbox
+	// eye
+	// at
+	// up
+	for (key in data) {
+		console.log(key, data[key]);
+	}
 }
 
 var molview_ci;		// molview context information
 
-function molview() {
+var button_pressed = false;
+
+function molview_zoom(event) {
+	console.log("zoom " + event);
+	event.stopPropagation();
+}
+
+function molview_mouse_down(event) {
+	console.log("mouse_down " + event);
+	event.stopPropagation();
+	button_pressed = true;
+}
+
+function molview_mouse_move(event) {
+	if (!button_pressed)
+		return;
+	console.log("mouse_move " + event);
+	event.stopPropagation();
+}
+
+function molview_mouse_up(event) {
+	console.log("mouse_up " + event);
+	event.stopPropagation();
+	button_pressed = false;
+}
+
+function molview_init() {
 	var canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
 		alpha: false,
@@ -71,6 +106,11 @@ function molview() {
 	molview_ci = new ContextInfo(canvas, gl, drawScene);
 	molview_ci.init();
 	molview_ci.redraw();
+	$("#molview")
+		.on('wheel', molview_zoom)
+		.mousedown(molview_mouse_down)
+		.mousemove(molview_mouse_move)
+		.mouseup(molview_mouse_up);
 }
 
 function drawScene(ci) {
@@ -81,7 +121,6 @@ function drawScene(ci) {
 	llgr.set_context(gl);
 	gl.viewport(0, 0, canvas.width, canvas.height);
 	llgr.render();
-	ci.requestId = null;
 }
 
 function load(json_or_url) {
@@ -105,6 +144,53 @@ $(function() {
 	});
 });
 
+function show_error(message) {
+	show_status(message, { error: true });
+	return;
+	// TODO: dialog not working with jQuery mobile, use popup
+	var dialog_id = "error_dialog_" + new Date().getTime();
+	$("body").append("<div id=\"" + dialog_id + "\"><p>"
+		+ "<span class=\"ui-icon ui-icon-alert\" style=\"float: left; margin: 0 7px 20px 0;\"></span>"
+		+ "<div>" + message + "</div></p></div>");
+	$("#" + dialog_id).dialog({
+		dialogClass: "error",
+		title: "Chimera2 Error",
+		resizable: false,
+		height: 160,
+		modal: true,
+		buttons: {
+			"Close": function () {
+				$(this).dialog("close");
+			}
+		},
+		beforeClose: function (event, ui) {
+			// remove dialog div from document
+			$("#" + dialog_id).remove();
+		}
+	});
+}
+
+function show_status(message, options) {
+	options = options || {};
+	var delay = options.delay || 3000;	// milliseconds
+	var error = options.error || false;
+	var temporary = options.temporary || false;
+	var sl = $("#status_line");
+	sl.clearQueue().html(message);
+	if (error)
+		sl.addClass("ui-state-error-text");
+	sl.delay(delay).queue(function () {
+		$(this).html("&nbsp;").removeClass("ui-state-error-text").dequeue();
+	});
+	if (!temporary) {
+		if (!error)
+			$c2_session.log(message);
+		else {
+		  $c2_session.log("<div style=\"ui-state-error-text\">" + message + "</div>");
+		}
+	}
+}
+
 </script>
 </head>
 <body>
@@ -114,13 +200,13 @@ $(function() {
 <!--panels-->
 <div data-role="panel" data-position-fixed="true" id="log_panel">
   <h2>Message Log</h2>
-  <p id="log">Log messages appear here</p>
+  <p id="log" style="font-size: smaller"></p>
   <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
 </div>
 <div data-role="panel" data-position-fixed="true"
 	data-position="right" id="debug_panel">
   <h2>Debug Log</h2>
-  <pre id="debug">Debug text</pre>
+  <p id="debug" style="font-size: smaller">Debug text</p>
   <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
 </div>
 <!--end panels-->
