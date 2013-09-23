@@ -29,7 +29,7 @@ $(PKG_DIR):
 $(APPS_DIR):
 	-mkdir $(APPS_DIR)
 $(FW_DIR):
-	-mkdir $(FW_DIR)
+	-mkdir -p $(FW_DIR)
 $(FW_DIR)/Python.framework:
 	-ln -s $(frameworkdir)/Python.framework $(FW_DIR)
 
