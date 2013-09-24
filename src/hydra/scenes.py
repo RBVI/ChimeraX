@@ -92,7 +92,11 @@ class Scene:
         if self.cross_fade_frames:
             from .ui.crossfade import Cross_Fade
             Cross_Fade(v, self.cross_fade_frames)
-        
+
+        # Hide all models so models that did not exist in scene are hidden.
+        for m in v.models:
+            m.displayed = False
+
         from .file_io import session
         session.restore_scene(self.state, v)
         
@@ -188,6 +192,7 @@ class Scene_Thumbnails:
             def sizeHint(self):
                 return QtCore.QSize(600,140)
         self.text = e = Thumbnail_Viewer(dw)
+        e.setOpenLinks(False)
 #        self.text = e = QtWidgets.QTextBrowser(dw)
         dw.setWidget(e)
         dw.setVisible(False)
@@ -216,7 +221,6 @@ class Scene_Thumbnails:
         url = qurl.toString()
         id = int(url)
         show_scene(id)
-        self.text.setHtml(self.html)
 
 def scene_thumbnails_html(scenes):
 
