@@ -2,7 +2,7 @@ class Surface:
 
   def __init__(self, name):
     self.name = name
-    self.id = 0
+    self.id = None              # positive integer
     self.displayed = True
     from .geometry.place import Place
     self.placement = Place()
