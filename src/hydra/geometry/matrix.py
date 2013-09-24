@@ -332,7 +332,7 @@ from .._image3d import inner_product_64
 # -----------------------------------------------------------------------------
 #
 def cross_product(u,v):
-
+  '''Return the cross-product of two vectors.  Vectors must be 3-dimensonal.'''
   return (u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0])
         
 # -----------------------------------------------------------------------------
@@ -378,7 +378,7 @@ def vector_angle(u,v):
 # -----------------------------------------------------------------------------
 #
 def normalize_vector(v):
-
+  '''Return a unit vector in the same direction as v.'''
   d = length(v)
   if d == 0:
     d = 1
@@ -387,7 +387,7 @@ def normalize_vector(v):
 # -----------------------------------------------------------------------------
 #
 def normalize_vectors(v):
-
+  '''Modify an array of vectors, making each have unit length.'''
   if len(v) == 0:
     return v
   from numpy import multiply, sum, sqrt
@@ -558,9 +558,9 @@ def maximum_norm(v):
 # -----------------------------------------------------------------------------
 #
 def norm(u):
-
+    '''Return the length of a vector.'''
     import math
-    n = math.sqrt(u[0]*u[0] + u[1]*u[1] + u[2]*u[2])
+    n = math.sqrt(sum(x*x for x in u))
     return n
 
 # -----------------------------------------------------------------------------
@@ -790,7 +790,7 @@ def linear_combination_3(a, u, b, v, c, w):
 # Accumulate sum in 64-bit to avoid limited precision errors.
 #
 def vector_sum(weights, vectors):
-
+    '''Return a vector which is a linear combination of vectors with specified weights.'''
     d = vectors.shape[1]
     from numpy import zeros, float64
     vsum = zeros((d,), float64)
