@@ -36,3 +36,5 @@ Miscellaneous Modules
    :maxdepth: 2
 
    math3d.rst
+
+   place.rst
