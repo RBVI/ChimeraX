@@ -179,9 +179,9 @@ class Server(object):
 				reply_list.append(v)
 
 		try:
-			reply = json.dumps(reply_list)
-		except Exception:
-			return self._encoding_failed()
+			reply = json.dumps(reply_list, cls=_DumpEncoder)
+		except Exception as e:
+			return self._encoding_failed(str(e))
 		else:
 			return self._success(reply)
 
@@ -193,9 +193,9 @@ class Server(object):
 		return ("400 Bad Request", "text/plain", None,
 						"Malformed request list")
 
-	def _encoding_failed(self):
+	def _encoding_failed(self, why):
 		# Return value goes directly back to WSGI app
-		return ("500 JSON encoding failed", "text/plain", None,
+		return ("500 JSON encoding failed: %s" % why, "text/plain", None,
 						"JSON encoding failed")
 
 	def _exited(self, exc):
@@ -222,3 +222,17 @@ class Server(object):
 			"status": False,
 			"stderr": text,
 		}
+
+_convert_json = {}
+
+from json.encoder import JSONEncoder
+class _DumpEncoder(JSONEncoder):
+
+	def default(self, obj):
+		for cls in type(obj).__mro__:
+			if cls in _convert_json:
+				return _convert_json[cls](obj)
+		return JSONEncoder.default(self, obj)
+
+def register_json_converter(type, func):
+	_convert_json[type] = func

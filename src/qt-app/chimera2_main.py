@@ -52,8 +52,9 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		dist_in = 18
 		height_in = self.height() / app.physicalDotsPerInch()
 		import math
-		vertical_fov = 2 * math.atan2(height_in, dist_in)
-		scene.render(self.viewport, vertical_fov)
+		scene.set_fov(2 * math.atan2(height_in, dist_in))
+		scene.set_viewport(*self.viewport[2:4])
+		scene.render()
 
 	def vsphere_press(self, x, y):
 		import llgr
@@ -186,7 +187,8 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 		QCoreApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
-		self.window_size = (200, 200)
+		from chimera2 import scene
+		scene.set_viewport(200, 200)
 
 		from chimera2 import cmds
 		cmds.register('render', self.cmd_render)
@@ -197,17 +199,16 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 		return 100
 
 	def cmd_render(self):
+		scene.render()
+
+	def cmd_window_size(self, width: int, height: int):
 		from chimera2 import scene
 		# assume 18 inches from screen
 		dist_in = 18
-		height_in = self.window_size[1] / self.physicalDotsPerInch()
+		height_in = height / self.physicalDotsPerInch()
 		import math
-		vertical_fov = 2 * math.atan2(height_in, dist_in)
-		viewport = (0, 0) + self.window_size
-		scene.render(viewport, vertical_fov, math3d.Identity())
-
-	def cmd_window_size(self, width: int, height: int):
-		self.window_size = (width, height)
+		scene.set_fov(2 * math.atan2(height_in, dist_in))
+		scene.set_viewport(width, height)
 
 def build_ui(app):
 	from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout

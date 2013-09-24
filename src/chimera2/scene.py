@@ -23,30 +23,35 @@ For example, given *xyzs* as an :py:class:`~numpy.array` of XYZ coordinates::
 
 __all__ = [
 	'bbox', 
+	'camera', 
 	'need_redraw',
 	'reset',
 	'add_sphere',
 	'add_cylinder',
 	'add_box',
-	'render'
+	'render',
+	'set_fov',
+	'set_viewport',
 ]
 
 from .math3d import (Point, weighted_point, Vector, cross,
 		Xform, Identity, Rotation, Translation,
 		frustum, ortho, look_at, BBox)
 from numpy import array, float32, uint8
+from math import radians
 
 class Camera:
 
 	def __init__(self):
-		import math
 		self.eye = Point([0, 0, 0])
 		self.at = Point([0, 0, -1])
 		self.up = Vector([0, 1, 0])
 		self.ortho = False
-		self.fov = math.radians(30)
 
-	def reset(self, width, height):
+	def reset(self, width, height, fov, bbox):
+		# The camera is a simple one that takes the :param fov: and
+		# the current bounding box, and calculates the eye position
+		# and looks at the bounding box down the negative z-axis.
 		import math, copy
 		# projection and modelview matrices
 		self.bbox = copy.deepcopy(bbox)
@@ -54,7 +59,7 @@ class Camera:
 		self.width2, self.height2, depth2 = self.bbox.size() / 2 * 1.1	# +10%
 		self.update_viewport(width, height)
 
-		self.near = self.height2 / math.tan(self.fov / 2)
+		self.near = self.height2 / math.tan(fov / 2)
 		self.far = self.near + 2 * depth2
 		self.eye = Point([self.at[0], self.at[1], self.at[2] + self.near + depth2])
 		self.eye = self.at + Vector([0, 0, self.near + depth2])
@@ -102,6 +107,8 @@ _box_pn_id = None	# primitive box vertex position and normals
 _box_pd = None
 _box_indices_id = None	# primitive box indices
 _box_indices = None
+_fov = radians(30)
+_viewport = (200, 200)
 
 _glsl_version = '150'
 
@@ -110,6 +117,21 @@ def set_glsl_version(version):
 	if version not in ('150', 'webgl'):
 		raise ValueError("Only support GLSL 150 and webgl (ES 1.0)")
 	_glsl_version = version
+
+	
+def set_fov(fov):
+	# :param fov: is the vertical field of view in radians
+	global _fov
+	_fov = fov
+
+def set_viewport(width, height):
+	# :param viewport: is a (lower-left, lower-right, width, height) tuple
+	global _viewport
+	if _viewport == (width, height):
+		return
+	_viewport = (width, height)
+	if camera:
+		camera.update_viewport(width, height)
 
 def reset():
 	"""reinitialze scene
@@ -333,17 +355,8 @@ def add_box(p0, p1, color, xform=None):
 		0, _box_indices.size, _box_indices_id, llgr.UByte)
 
 
-def render(viewport, vertical_fov, as_string=False):
+def render(as_data=False):
 	"""render scene
-	
-	:param viewport: is a (lower-left, lower-right, width, height) tuple
-	:param vertical_fov: is the vertical field of view in radians
-
-	The camera is a simple one that takes the :param vertical_fov: and
-	the current bounding box, and calculates the eye position and looks
-	at the bounding box down the negative z-axis.
-
-	There are two lights and the directions are fixed.
 	"""
 	global need_redraw
 	need_redraw = False
@@ -383,45 +396,21 @@ def render(viewport, vertical_fov, as_string=False):
 	llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
 
 	llgr.set_clear_color(.05, .05, .4, 0)
-	if not as_string:
+	if llgr.output_type().endswith('opengl'):
 		# TODO: move to llgr or to calling routine?
 		from OpenGL import GL
 		#if self._samples >= 2:
 		#	GL.glEnable(GL.GL_MULTISAMPLE)
 		#GL.glEnable(GL.GL_CULL_FACE)
-		GL.glViewport(*viewport)
+		GL.glViewport(0, 0, _viewport[0], _viewport[1])
 
 	if bbox.llb is not None:
-		"""
-		import math
-		# projection and modelview matrices
-		win_aspect = float(viewport[2]) / viewport[3]
-		width2, height2, depth2 = bbox.size() / 2 * 1.1	# extra 10%
-		scene_aspect = width2 / height2
-		center = bbox.center()
-		if win_aspect > scene_aspect:
-			width2 = height2 * win_aspect
-		else:
-			height2 = width2 / win_aspect
-
-		near = height2 / math.tan(vertical_fov / 2)
-		far = near + 2 * depth2
-		eye = Point([center[0], center[1], center[2] + near + depth2])
-		at = center
-		up = Point([center[0], center[1] + 1, center[2]])
-
-		#camera = perspective(vertical_fov, win_aspect, near, far)
-		camera = frustum(-width2, width2, -height2, height2, near, far)
-		projection = camera.getWebGLMatrix()
-		mv = look_at(eye, at, up)
-		modelview = mv * globalXform
-		"""
 		global camera
 		if camera is not None:
-			camera.update_viewport(viewport[2], viewport[3])
+			camera.update_viewport(*_viewport)
 		else:
 			camera = Camera()
-			camera.reset(viewport[2], viewport[3])
+			camera.reset(_viewport[0], _viewport[1], _fov, bbox)
 		projection, modelview = camera.matrices()
 		llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
 				llgr.Mat4x4, projection.getWebGLMatrix())
@@ -430,7 +419,7 @@ def render(viewport, vertical_fov, as_string=False):
 		llgr.set_uniform_matrix(0, 'NormalMatrix', False,
 				llgr.Mat3x3, modelview.getWebGLRotationMatrix())
 
-	if as_string:
-		return llgr.render(as_string)
+	if as_data:
+		return llgr.render(as_data)
 	else:
 		llgr.render()

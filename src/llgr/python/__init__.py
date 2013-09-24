@@ -58,6 +58,7 @@ _llgr_ui_syms = [
 _local_syms = [
 	## from this module
 	"set_output",
+	"output_type",
 	"next_data_id",
 	"next_matrix_id",
 	"next_object_id",
@@ -71,6 +72,12 @@ _wrapped_syms = set([
 	"clear_objects", "clear_programs"
 ])
 
+global _output_type
+_output_type = None
+
+def output_type():
+	return _output_type
+
 def set_output(type):
 	"""
 	Set the output type
@@ -82,6 +89,7 @@ def set_output(type):
 	Note: this funtion must be called before calling the llgr functions,
 	*i.e.*, there is no default.
 	"""
+	global _output_type
 	import importlib
 	if type == 'opengl':
 		llgr = importlib.import_module('._llgr', __package__)
@@ -96,12 +104,14 @@ def set_output(type):
 				gsyms['_%s' % sym] = getattr(llgr, sym)
 			else:
 				gsyms[sym] = getattr(llgr, sym)
+		_output_type = type
 		return
 	else:
 		llgr = importlib.import_module('.dump', __package__)
 		if type not in llgr.FORMATS:
 			raise ValueError('type should be one: %s, pyopengl, or opengl' % ', '.join(llgr.FORMATS))
 		llgr.set_dump_format(type)
+		_llgr_syms.append('Enum')
 	gsyms = globals()
 	for sym in _llgr_syms:
 		if sym not in _wrapped_syms:
@@ -118,6 +128,7 @@ def set_output(type):
 			del gsyms[sym]
 	if has_ui_syms:
 		gsyms['__all__'] += _llgr_ui_syms
+	_output_type = type
 
 import itertools
 
