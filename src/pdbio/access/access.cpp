@@ -352,7 +352,7 @@ element_numbers(PyObject *, PyObject *args, PyObject *kw)
 		initialize_numpy();
 		unsigned int shape[1] = {atoms->size()};
 		element_numbers = allocate_python_array(1, shape, NPY_UBYTE);
-		unsigned short *data = (unsigned short *) PyArray_DATA((PyArrayObject *)element_numbers);
+		unsigned char *data = (unsigned char *) PyArray_DATA((PyArrayObject *)element_numbers);
 		for (std::vector<Atom *>::const_iterator ai = atoms->begin(); ai != atoms->end();
 				++ai) {
 			*data++ = (*ai)->element().number();
