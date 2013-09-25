@@ -351,7 +351,7 @@ element_numbers(PyObject *, PyObject *args, PyObject *kw)
 	if (numpy) {
 		initialize_numpy();
 		unsigned int shape[1] = {atoms->size()};
-		element_numbers = allocate_python_array(1, shape, NPY_USHORT);
+		element_numbers = allocate_python_array(1, shape, NPY_UBYTE);
 		unsigned short *data = (unsigned short *) PyArray_DATA((PyArrayObject *)element_numbers);
 		for (std::vector<Atom *>::const_iterator ai = atoms->begin(); ai != atoms->end();
 				++ai) {
@@ -368,6 +368,26 @@ element_numbers(PyObject *, PyObject *args, PyObject *kw)
 	}
 		
 	return element_numbers;
+}
+
+static PyObject *
+molecules(PyObject *, PyObject *mol_vec_capsule)
+{
+	std::vector<Molecule *> *mols;
+	try {
+		mols = decapsulate_mol_vec(mol_vec_capsule);
+	} catch (std::invalid_argument &e) {
+		PyErr_SetString(PyExc_ValueError, "first arg is not a mol-vec capsule");
+		return NULL;
+	}
+	PyObject *molecules = PyList_New(mols->size());
+	unsigned long i = 0;
+	for (std::vector<Molecule *>::const_iterator mi = mols->begin(); mi != mols->end();
+			++mi, ++i) {
+		PyList_SET_ITEM(molecules, i,
+			encapsulate_mol_vec(new std::vector<Molecule *>(1, *mi)));
+	}
+	return molecules;
 }
 
 static PyObject *
@@ -518,6 +538,7 @@ static struct PyMethodDef access_functions[] =
 	{ "coords", (PyCFunction)coords, METH_VARARGS|METH_KEYWORDS, "" },
 	{ "element_names", (PyCFunction)element_names, METH_VARARGS|METH_KEYWORDS, "" },
 	{ "element_numbers", (PyCFunction)element_numbers, METH_VARARGS|METH_KEYWORDS, "" },
+	{ "molecules", (PyCFunction)molecules, METH_O, "" },
 	{ "residue_chain_ids", (PyCFunction)residue_chain_ids, METH_VARARGS|METH_KEYWORDS, "" },
 	{ "residue_names", (PyCFunction)residue_names, METH_VARARGS|METH_KEYWORDS, "" },
 	{ "residue_numbers", (PyCFunction)residue_numbers, METH_VARARGS|METH_KEYWORDS, "" },
