@@ -11,17 +11,20 @@
 #include "pythonarray.h"	// use parse_int_n_array(), ...
 
 typedef std::vector<int> Bond_List;		// Two atom indices per bond.
-typedef std::map<std::string,int> Atom_Indices;
+typedef std::vector<const char *> Index_Atom;		// Res template atom index to all_bonds index giving atom name.
 typedef Reference_Counted_Array::Array<char> CArray;
 typedef std::vector<std::string> String_List;
 
 class Res_Template
 {
 public:
+  void initialize_bond_list(const CArray &allbonds, int bi);
   void bonds(int *atom_num, int amin, Bond_List &bonds);
-  bool atom_index(const std::string &aname, int *ai);
+  bool atom_index(const char *aname, int alen, int *ai);
   Bond_List index_pairs;
-  Atom_Indices aindex;
+  Index_Atom iatom;
+  std::vector<int> common_order;
+  int next;
 };
 
 class Bond_Templates
@@ -81,7 +84,7 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
   Res_Template *rtemplate = NULL;
   std::set<std::string> missing;
   int *atom_num = new int[1024];
-  memset(atom_num, 0, 1024*sizeof(int));
+  memset(atom_num, -1, 1024*sizeof(int));
   int amin = 0;
   for (int a = 0 ; a < natoms ; ++a)
     {
@@ -105,10 +108,10 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
 	  amin = a;
 	}
 
-      std::string aname = array_string(anames, a, aname_chars);
+      const char *aname = anames + a*aname_chars;
       int ai;
-      if (rtemplate && rtemplate->atom_index(aname, &ai))
-	atom_num[ai] = a;
+      if (rtemplate && rtemplate->atom_index(aname, aname_chars, &ai))
+      	atom_num[ai] = a;
       // else atom has no bonds, maybe non-standard atom name, or a single atom ion.
     }
   missing_template.insert(missing_template.end(), missing.begin(), missing.end());
@@ -116,7 +119,7 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
   if (rtemplate)
     rtemplate->bonds(atom_num, amin, bonds);
 
-  //  backbone_bonds(rnames, rname_chars, rnums, cids, cid_chars, anames, aname_chars, natoms, bonds);
+  backbone_bonds(rnames, rname_chars, rnums, cids, cid_chars, anames, aname_chars, natoms, bonds);
 }
 
 void Res_Template::bonds(int *atom_num, int amin, Bond_List &bonds)
@@ -124,36 +127,65 @@ void Res_Template::bonds(int *atom_num, int amin, Bond_List &bonds)
   int ip2 = index_pairs.size();
   for (int i = 0 ; i < ip2 ; i += 2)
     {
-      int a1 = atom_num[index_pairs[i]], a2 = atom_num[index_pairs[i+1]];
-      if (a1 >= amin && a2 >= amin)
+      int a1 = atom_num[index_pairs[i]];
+      if (a1 >= amin)
 	{
-	  bonds.push_back(a1);
-	  bonds.push_back(a2);
+	  int a2 = atom_num[index_pairs[i+1]];
+	  if (a2 >= amin)
+	    {
+	      bonds.push_back(a1);
+	      bonds.push_back(a2);
+	    }
 	}
     }
 }
 
-bool Res_Template::atom_index(const std::string &aname, int *ai)
+void Res_Template::initialize_bond_list(const CArray &all_bonds, int bi)
 {
-  Atom_Indices::iterator i = aindex.find(aname);
-  if (i == aindex.end())
-    return false;
-  *ai = i->second;
-  return true;
+  next = 0;
+  if (bi == -1)
+    return;
+
+  const char *ab = all_bonds.values();
+  int alen = all_bonds.size(1);
+  int i1, i2;
+  for ( ; ab[bi*alen] ; bi += 2)
+    {
+      const char *a1 = ab + bi*alen;
+      if (!atom_index(a1, alen, &i1))
+	{ i1 = iatom.size(); iatom.push_back(a1); }
+      index_pairs.push_back(i1);
+      const char *a2 = a1 + alen;
+      if (!atom_index(a2, alen, &i2))
+	{ i2 = iatom.size(); iatom.push_back(a2); }
+      index_pairs.push_back(i2);
+    }
+  common_order.resize(iatom.size(), 0);
 }
 
-class Backbone_Atom
+bool Res_Template::atom_index(const char *aname, int alen, int *ai)
 {
-public:
-  Backbone_Atom() {}
-  Backbone_Atom(const Backbone_Atom &b) : rnum(b.rnum), cid(b.cid), aname(b.aname) {}
-  Backbone_Atom(int rnum, const std::string &cid, const std::string &aname) : rnum(rnum), cid(cid), aname(aname) {}
-  int rnum;
-  const std::string cid;
-  const std::string aname;
-  bool operator<(const Backbone_Atom &b) const
-    { return rnum < b.rnum || (rnum == b.rnum && (cid < b.cid || (cid == b.cid && aname < b.aname))); }
-};
+  if (next < common_order.size())
+    {
+      int j = common_order[next];
+      if (strncmp(iatom[j], aname, alen) == 0)
+	{
+	  *ai = j;
+	  next = (next + 1) % common_order.size();
+	  return true;
+	}
+    }
+  int na = iatom.size();
+  for (int i = 0 ; i < na ; ++i)
+    if (strncmp(iatom[i], aname, alen) == 0)
+      {
+	*ai = i;
+	if (next < common_order.size())
+	  common_order[next++] = i;
+	return true;
+      }
+  return false;
+}
 
 // Connect consecutive residues in proteins and nucleic acids.
 void Bond_Templates::backbone_bonds(const char *rnames, int rname_chars,
@@ -163,37 +195,30 @@ void Bond_Templates::backbone_bonds(const char *rnames, int rname_chars,
 				    int natoms,
 				    Bond_List &bonds)
 {
-  std::map<Backbone_Atom,int> bbatoms;
+  // Assumes residues numbers are in increasing order within each chain and chains are contiguous.
+  int a1 = -1, alink = -1;
+  int cur_rnum = -1000000;
+  const char *cur_cid = "";
   for (int a = 0 ; a < natoms ; ++a)
     {
-      std::string aname = array_string(anames, a, aname_chars);
-      if (aname == "C" || aname == "N" || aname == "O3'" || aname == "P")
+      int rnum = rnums[a];
+      const char *cid = cids + a*cid_chars;
+      if (rnum != cur_rnum || strncmp(cid, cur_cid, cid_chars) != 0)
 	{
-	  int rnum = rnums[a];
-	  std::string cid = array_string(cids, a, cid_chars);
-	  bbatoms[Backbone_Atom(rnum, cid, aname)] = a;
+	  alink = ((rnum == cur_rnum + 1 && strncmp(cid, cur_cid, cid_chars) == 0) ? a1 : -1);
+	  cur_rnum = rnum;
+	  cur_cid = cid;
 	}
-    }
-  for (std::map<Backbone_Atom,int>::iterator ba = bbatoms.begin() ; ba != bbatoms.end() ; ++ba)
-    {
-      const Backbone_Atom &bat = ba->first;
-      if (bat.aname == "C")
+      const char *an = anames + a*aname_chars;
+      if ((an[0] == 'C' && an[1] == '\0') ||
+	  (an[0] == 'O' && an[1] == '3' && an[2] == '\'' && an[3] == '\0'))
+	a1 = a;
+      else if (alink >= 0 && ((an[0] == 'N' && an[1] == '\0') ||
+			      (an[0] == 'P' && an[1] == '\0')))
 	{
-	  std::map<Backbone_Atom,int>::iterator ba2 = bbatoms.find(Backbone_Atom(bat.rnum+1, bat.cid, "N"));
-	  if (ba2 != bbatoms.end())
-	    {
-	      bonds.push_back(ba->second);
-	      bonds.push_back(ba2->second);
-	    }
-	}
-      else if (bat.aname == "O3'")
-	{
-	  std::map<Backbone_Atom,int>::iterator ba2 = bbatoms.find(Backbone_Atom(bat.rnum+1, bat.cid, "P"));
-	  if (ba2 != bbatoms.end())
-	    {
-	      bonds.push_back(ba->second);
-	      bonds.push_back(ba2->second);
-	    }
+	  bonds.push_back(alink);
+	  bonds.push_back(a);
+	  alink = -1;
 	}
     }
 }
@@ -202,30 +227,19 @@ Res_Template *Bond_Templates::chemical_component_bond_table(const std::string &r
 {
   std::map<std::string, Res_Template>::iterator i = cc_bond_table.find(rname);
   if (i != cc_bond_table.end())
-    return &(i->second);
+    {
+      Res_Template &rtemp = i->second;
+      rtemp.next = 0;
+      return &rtemp;
+    }
 
   int ci = component_index(rname);
   if (ci == -1)
     return NULL;
 
   Res_Template &rtemp = cc_bond_table[rname];
-  Bond_List &ipairs = rtemp.index_pairs;
-  Atom_Indices &aindex = rtemp.aindex;
   int bi = cc_index.values()[ci];
-  char *ab = all_bonds.values();
-  int alen = all_bonds.size(1);
-  if (bi != -1)
-    for ( ; ab[bi*alen] ; bi += 2)
-      {
-	std::string a1 = array_string(ab, bi, alen);
-	Atom_Indices::iterator ai1 = aindex.find(a1);
-	int i1 = (ai1 == aindex.end() ? (aindex[a1] = aindex.size()) : ai1->second);
-	ipairs.push_back(i1);
-	std::string a2 = array_string(ab, bi+1, alen);
-	Atom_Indices::iterator ai2 = aindex.find(a2);
-	int i2 = (ai2 == aindex.end() ? (aindex[a2] = aindex.size()) : ai2->second);
-	ipairs.push_back(i2);
-      }
+  rtemp.initialize_bond_list(all_bonds, bi);
   return &rtemp;
 }
 
