@@ -12,6 +12,16 @@ Atom::Atom(Molecule *m, std::string &name, Element e):
 {
 }
 
+float
+Atom::bfactor() const
+{
+	if (_alt_loc != ' ') {
+		_Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
+		return (*i).second.bfactor;
+	}
+	return molecule()->active_coord_set()->get_bfactor(this);
+}
+
 Atom::Bonds
 Atom::bonds() const
 {
@@ -87,6 +97,16 @@ Atom::coord() const
 	return cs->coords()[_coord_index];
 }
 
+float
+Atom::occupancy() const
+{
+	if (_alt_loc != ' ') {
+		_Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
+		return (*i).second.occupancy;
+	}
+	return molecule()->active_coord_set()->get_occupancy(this);
+}
+
 void
 Atom::remove_bond(Bond *b)
 {
@@ -116,6 +136,14 @@ Atom::set_alt_loc(char alt_loc, bool create)
 	_coordset_set_coord(info.coord);
 	_serial_number = info.serial_number;
 	_alt_loc = alt_loc;
+	if (!create) {
+		// set neighboring alt locs
+		for (BondsMap::const_iterator bmi = _bonds.begin(); bmi != _bonds.end(); ++bmi) {
+			Atom *nb = (*bmi).first;
+			if (nb->_alt_loc_map.find(alt_loc) != nb->_alt_loc_map.end())
+				nb->set_alt_loc(alt_loc);
+		}
+	}
 }
 
 void
