@@ -3,8 +3,6 @@
 // to determine which atoms are bonded in a molecule.
 //
 //#include <iostream>		// use std::cerr
-#include <map>			// use std::map
-#include <set>			// use std::set
 #include <string>		// use std::string
 #include <vector>		// use std::vector
 #include <string.h>		// use strnlen()
@@ -13,12 +11,11 @@
 typedef std::vector<int> Bond_List;		// Two atom indices per bond.
 typedef std::vector<const char *> Index_Atom;		// Res template atom index to all_bonds index giving atom name.
 typedef Reference_Counted_Array::Array<char> CArray;
-typedef std::vector<std::string> String_List;
 
 class Res_Template
 {
 public:
-  void initialize_bond_list(const CArray &allbonds, int bi);
+  Res_Template(const CArray &allbonds, int bi);
   void bonds(int *atom_num, int amin, Bond_List &bonds);
   bool atom_index(const char *aname, int alen, int *ai);
   Bond_List index_pairs;
@@ -31,6 +28,7 @@ class Bond_Templates
 {
 public:
   Bond_Templates(const IArray &cc_index, const CArray &all_bonds, const std::string &rname_letters);
+  ~Bond_Templates();
 
   void molecule_bonds(const char *rnames, int rname_chars,
 		      const int *rnums,
@@ -38,15 +36,15 @@ public:
 		      const char *anames, int aname_chars,
 		      int natoms,
 		      Bond_List &bonds,
-		      String_List &missing_template);
+		      int *missing_template);
   void backbone_bonds(const char *rnames, int rname_chars,
 		      const int *rnums,
 		      const char *cids, int cid_chars,
 		      const char *anames, int aname_chars,
 		      int natoms,
 		      Bond_List &bonds);
-  Res_Template *chemical_component_bond_table(const std::string &rname);
-  int component_index(const std::string &rname);
+  Res_Template *chemical_component_bond_table(const char *rname, int rname_chars);
+  int component_index(const char *rname, int rname_chars);
 
 private:
   IArray cc_index;       // Index into all bonds list for each chemical component
@@ -54,8 +52,9 @@ private:
                         //   Array of atom names, each 4 characters, a pair for each bond,
                         //   empty name separates chemical components.
   std::string rname_letters; // Chemical component id can be only be in these letters.
+  int letter_digit[256];	// Position of character in rname_letters
 
-  std::map<std::string, Res_Template> cc_bond_table;   // Bond table for each chemical component
+  Res_Template **cc_templates;	   // Bond table for each chemical component
 };
 
 Bond_Templates::Bond_Templates(const IArray &cc_index, const CArray &all_bonds, const std::string &rname_letters)
@@ -63,12 +62,30 @@ Bond_Templates::Bond_Templates(const IArray &cc_index, const CArray &all_bonds, 
   this->cc_index = cc_index;
   this->all_bonds = all_bonds;
   this->rname_letters = rname_letters;
+
+  // Make table for converting chemical component name to an integer index.
+  int rsize = rname_letters.size();
+  for (int i = 0 ; i < 256 ; ++i)
+    letter_digit[i] = -1;
+  for (int i = 0 ; i < rsize ; ++i)
+    letter_digit[rname_letters[i]] = i;
+
+  // Make table of templates
+  int tc = rsize*rsize*rsize;
+  cc_templates = new Res_Template *[tc];
+  for (int i = 0 ; i < tc ; ++i)
+    cc_templates[i] = NULL;
 }
 
-static std::string array_string(const char *a, int i, int size)
+Bond_Templates::~Bond_Templates()
 {
-  const char *ai = a + i*size;
-  return std::string(ai, strnlen(ai,size));
+  int rsize = rname_letters.size();
+  int tc = rsize*rsize*rsize;
+  for (int i = 0 ; i < tc ; ++i)
+    if (cc_templates[i])
+      delete cc_templates[i];
+  delete [] cc_templates;
+  cc_templates = NULL;
 }
   
 void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
@@ -77,12 +94,13 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
 				    const char *anames, int aname_chars,
 				    int natoms,
 				    Bond_List &bonds,
-				    String_List &missing_template)
+				    int *missing_template)
 {
   const char *res_rname = NULL, *res_cid = NULL;
   int res_rnum = 0;
   Res_Template *rtemplate = NULL;
-  std::set<std::string> missing;
+  int missing = 0;
+  // TODO: Should not assume largest residue has at most 1024 atoms.
   int *atom_num = new int[1024];
   memset(atom_num, -1, 1024*sizeof(int));
   int amin = 0;
@@ -98,10 +116,9 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
 	{
 	  if (rtemplate)
 	    rtemplate->bonds(atom_num, amin, bonds);
-	  std::string srname = array_string(rnames, a, rname_chars);
-	  rtemplate = chemical_component_bond_table(srname);
+	  rtemplate = chemical_component_bond_table(rname, rname_chars);
 	  if (!rtemplate)
-	    missing.insert(srname);
+	    missing += 1;
 	  res_rname = rname;
 	  res_cid = cid;
 	  res_rnum = rnum;
@@ -114,7 +131,7 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
       	atom_num[ai] = a;
       // else atom has no bonds, maybe non-standard atom name, or a single atom ion.
     }
-  missing_template.insert(missing_template.end(), missing.begin(), missing.end());
+  *missing_template = missing;
 
   if (rtemplate)
     rtemplate->bonds(atom_num, amin, bonds);
@@ -140,7 +157,7 @@ void Res_Template::bonds(int *atom_num, int amin, Bond_List &bonds)
     }
 }
 
-void Res_Template::initialize_bond_list(const CArray &all_bonds, int bi)
+Res_Template::Res_Template(const CArray &all_bonds, int bi)
 {
   next = 0;
   if (bi == -1)
@@ -223,41 +240,33 @@ void Bond_Templates::backbone_bonds(const char *rnames, int rname_chars,
     }
 }
 
-Res_Template *Bond_Templates::chemical_component_bond_table(const std::string &rname)
+Res_Template *Bond_Templates::chemical_component_bond_table(const char *rname, int rname_chars)
 {
-  std::map<std::string, Res_Template>::iterator i = cc_bond_table.find(rname);
-  if (i != cc_bond_table.end())
-    {
-      Res_Template &rtemp = i->second;
-      rtemp.next = 0;
-      return &rtemp;
-    }
-
-  int ci = component_index(rname);
+  int ci = component_index(rname, rname_chars);
   if (ci == -1)
     return NULL;
 
-  Res_Template &rtemp = cc_bond_table[rname];
-  int bi = cc_index.values()[ci];
-  rtemp.initialize_bond_list(all_bonds, bi);
-  return &rtemp;
+  Res_Template *rtemp = cc_templates[ci];
+  if (rtemp)
+    rtemp->next = 0;
+  else
+    rtemp = cc_templates[ci] = new Res_Template(all_bonds, cc_index.values()[ci]);
+
+  return rtemp;
 }
 
 //
 // Map every 3 character chemical component name to an integer.
 //
-int Bond_Templates::component_index(const std::string &rname)
+int Bond_Templates::component_index(const char *rname, int rname_chars)
 {
-  int n = rname_letters.size();
-  int k = 0, j;
-  int rsize = rname.size();
-  for (int i = 0 ; i < rsize ; ++i)
+  int n = rname_letters.size(), k = 0;
+  for (int i = 0 ; i < rname_chars && i < 3 && rname[i] ; ++i)
     {
-      char c = rname[i];
-      for (j = 0 ; j < n && rname_letters[j] != c ; ++j) ;
-      if (j == n)
+      int d = letter_digit[rname[i]];
+      if (d == -1)
 	return -1;	// Illegal character.
-      k = k*n + j;
+      k = k*n + d;
     }
   return k;
 }
@@ -274,15 +283,16 @@ initialize_bond_templates(PyObject *s, PyObject *args, PyObject *keywds)
   IArray cindex;
   Reference_Counted_Array::Array<char> all_bonds;
   const char *rlet;
+  int nrlet;
   const char *kwlist[] = {"chemical_index", "all_bonds", "rname_letters", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&s"), (char **)kwlist,
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&s#"), (char **)kwlist,
 				   parse_int_n_array, &cindex, parse_string_array, &all_bonds,
-				   &rlet))
+				   &rlet, &nrlet))
     return NULL;
 
   if (bond_templates)
     delete bond_templates;
-  bond_templates = new Bond_Templates(cindex, all_bonds, rlet);
+  bond_templates = new Bond_Templates(cindex, all_bonds, std::string(rlet,nrlet));
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -318,11 +328,13 @@ molecule_bonds(PyObject *s, PyObject *args, PyObject *keywds)
     }
 
   Bond_List bonds;
-  String_List missing;
+  int natom = anames.size(0);
+  bonds.reserve(2*(natom + natom/10));	// Estimate number of bonds.
+  int missing;
   bond_templates->molecule_bonds(rnames.values(), rnames.size(1), rnums.values(),
 				 cids.values(), cids.size(1),
-				 anames.values(), anames.size(1), anames.size(0),
-				 bonds, missing);
+				 anames.values(), anames.size(1), natom,
+				 bonds, &missing);
 
   int nb2 = bonds.size();
   int nb = nb2/2;
@@ -334,10 +346,7 @@ molecule_bonds(PyObject *s, PyObject *args, PyObject *keywds)
       ba[i+1] = bonds[i+1];
     }
 
-  int nm = missing.size();
-  PyObject *missing_py = PyTuple_New(nm);
-  for (int i = 0 ; i < nm ; ++i)
-    PyTuple_SetItem(missing_py, i, PyBytes_FromString(missing[i].c_str()));
+  PyObject *missing_py = PyLong_FromLong(missing);
 
   return python_tuple(bonds_py, missing_py);
 }

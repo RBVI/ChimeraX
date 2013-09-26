@@ -10,8 +10,10 @@ def molecule_bonds(molecule):
     t0 = time()
     bonds, missing = bond_templates.molecule_bonds(molecule)
     t1 = time()
-    print('Computed', len(bonds), 'bonds for', molecule.name, 'in', '%.3f' % (t1-t0), 'seconds')
-    return bonds, missing
+    print('Computed', len(bonds), 'bonds for', molecule.name, 'in', '%.3f' % (t1-t0), 'seconds', missing, 'missing templates')
+    
+    missing_temp = bond_templates.missing_templates(molecule) if missing > 0 else []
+    return bonds, missing_temp
 
 bond_templates = None
 
@@ -35,10 +37,11 @@ class Bond_Templates:
 
     def molecule_bonds(self, molecule):
 
+#        return self.molecule_bonds_orig(molecule)
         from .. import _image3d
         if self.cc_index is None:
             self.read_templates_file()
-            _image3d.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars.decode('utf-8'))
+            _image3d.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars)
             print ('initialized bond table')
         m = molecule
         return _image3d.molecule_bonds(m.residue_names, m.residue_nums, m.chain_ids, m.atom_names)
@@ -150,6 +153,15 @@ class Bond_Templates:
         self.all_bonds = fromstring(bt.read(), 'S4')
         bt.close()
 
+    def missing_templates(self, molecule):
+
+        missing = set()
+        for rname in molecule.rnames:
+            ci = component_index(rname)
+            if ci == -1 or self.cc_index[ci] == -1:
+                missing.add(rname)
+        return tuple(missing)
+
 def write_template_bonds_file(components_cif_path, template_bonds_path):
     '''
     For each compound in the PDB chemical components file (components.cif)
@@ -167,7 +179,7 @@ def write_template_bonds_file(components_cif_path, template_bonds_path):
         i = component_index(rname)
         cp[i] = len(bonds)
         bonds.extend(sum(rbonds,()) + (b'',))
-#        print('%s %d %d' % (str(rname), i, len(rbonds)))
+        print('%s %d %d' % (str(rname), i, len(rbonds)))
     f.close()
     ba = array(bonds, 'S4')
     bt = open(template_bonds_path, 'wb')
@@ -178,7 +190,7 @@ def write_template_bonds_file(components_cif_path, template_bonds_path):
 
 def next_mmcif_bonds(f):
     apairs = []
-    cid = None
+    rname = None
     foundb = False
     while True:
         line = f.readline()
@@ -192,26 +204,30 @@ def next_mmcif_bonds(f):
                     foundb = False
                     continue
             fields = line.split()
-            cid = fields[0].encode('utf-8')
+            rname = fields[0].encode('utf-8')
             a1,a2 = fields[1].strip('"').encode('utf-8'), fields[2].strip('"').encode('utf-8')
             apairs.append((a1,a2))
         elif line == '':
             break
-    return cid, apairs
+    return rname, apairs
 
 # Component id can be only uppercase letters and digits
-cc_chars = b' 01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+cc_chars = b'\0ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 n_cc_chars = len(cc_chars)
 def component_index(rname):
-    '''Map every 3 character chemical component name to an integer.'''
-    n = len(cc_chars)
+    '''Map 3 character chemical component name to an integer.'''
+    iA, iZ, i0, i9 = ord('A'), ord('Z'), ord('0'), ord('9')
     k = 0
-    for c in rname:
-        i = cc_chars.find(c)
-        if i == -1:
-            return None
-        k = k*n + i
+    for i in rname:
+        if i >= iA and i <= iZ:
+            d = i - iA + 1
+        elif i >= i0 and i <= i9:
+            d = i - i0 + 27
+        else:
+            print ('out of range', rname, i)
+            return None         # Character not in 0-9, A-Z
+        k = n_cc_chars*k + d
     return k
 
 if __name__ == '__main__':
-    write_mmcif_bonds_table('components.cif', 'bond_templates')
+    write_template_bonds_file('components.cif', 'bond_templates')
