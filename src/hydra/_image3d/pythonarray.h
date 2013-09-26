@@ -57,6 +57,7 @@ VOLUMEARRAY_IMEX int parse_writable_int_n_array(PyObject *arg, void *iarray);
 VOLUMEARRAY_IMEX int parse_writable_int_n3_array(PyObject *arg, void *iarray);
 VOLUMEARRAY_IMEX int parse_3d_array(PyObject *arg, void *array);
 VOLUMEARRAY_IMEX int parse_writable_3d_array(PyObject *arg, void *array);
+VOLUMEARRAY_IMEX int parse_string_array(PyObject *arg, void *carray);
 }
 
 //

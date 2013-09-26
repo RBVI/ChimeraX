@@ -1,127 +1,180 @@
-def create_molecule_bonds(m, templates_path = None):
-    if templates_path is None:
-        from os.path import join, dirname
-        templates_path = join(dirname(__file__), 'bond_templates')
-    cids = set(m.residue_names)
-    bt = chemical_component_bonds(cids, templates_path)
-    bonds = []
-    n = m.atom_count()
-    res = None
-    for a in range(n):
-        cid = m.residue_names[a]
-        rnum = m.residue_nums[a]
-        ch = m.chain_ids[a]
-        if (cid,rnum,ch) != res:
-            if not res is None:
-                bonds.extend(template_bonds(ipairs, ai))
-            ai = {}
-            aindex, ipairs = bt[cid]
-            res = (cid, rnum, ch)
+def molecule_bonds(molecule):
+    '''
+    Return bonds derived from residue templates where each bond is a pair of atom numbers.
+    Returned bonds are an N by 2 numpy array.
+    '''
+    global bond_templates
+    if bond_templates is None:
+        bond_templates = Bond_Templates()
+    from time import time
+    t0 = time()
+    bonds, missing = bond_templates.molecule_bonds(molecule)
+    t1 = time()
+    print('Computed', len(bonds), 'bonds for', molecule.name, 'in', '%.3f' % (t1-t0), 'seconds')
+    return bonds, missing
 
-        aname = m.atom_names[a]
-        if aname in aindex:
-            ai[aindex[aname]] = a
-#        else:
-#            print('Atom %s from residue %s has no template bonds' % (aname, str(res)))
-    if not res is None:
-        bonds.extend(template_bonds(ipairs, ai))
-    bonds.extend(backbone_bonds(m))
-    if bonds:
-        from numpy import array, int32
-        m.bonds = array(bonds, int32)
+bond_templates = None
 
-def template_bonds(ipairs, ai):
-    bonds = []
-    for i1,i2 in ipairs:
-        if i1 in ai and i2 in ai:
-            bonds.append((ai[i1],ai[i2]))
-    return bonds
+class Bond_Templates:
+    '''
+    Use reference data describing standard PDB chemical components
+    to determine which atoms are bonded in a molecule.
+    '''
 
-def backbone_bonds(m):
-    bonds = []
-    ajoin = ((b'C', b'N'), (b"O3'", b'P'))
-    anames = sum(ajoin, ())
-    bbatoms = {}
-    for a in range(m.atom_count()):
-        aname = m.atom_names[a]
-        if aname in anames:
-            rnum = m.residue_nums[a]
-            ch = m.chain_ids[a]
-            bbatoms[(rnum, ch, aname)] = a
-    for (rnum, ch, aname), a1 in bbatoms.items():
-        for n1,n2 in ajoin:
-            if aname == n1:
-                a2 = bbatoms.get((rnum+1, ch, n2))
-                if not a2 is None:
-                    bonds.append((a1,a2))
-    return bonds
+    def __init__(self, templates_file = None):
 
-cindex = None
-blist = None
-ccb = {}
-def chemical_component_bonds(cids, templates_path):
-    global ccb
-    ncids = set(cid for cid in cids if not cid in ccb)
-    if len(ncids) == 0:
-        return ccb
-#    print('Reading bonds from file for %d residue types %s' % (len(ncids), str(ncids)))
-    global cindex, blist
-    if cindex is None:
-        bt = open(templates_path, 'rb')
+        if templates_file is None:
+            from os.path import join, dirname
+            templates_file = join(dirname(__file__), 'bond_templates')
+        self.templates_file = templates_file
+
+        self.cc_index = None       # Index into all bonds list for each chemical component
+        self.all_bonds = None      # Bonds for all chemical components.
+                                   #   Array of atom names, a pair for each bond, empty name separates chemical components.
+        self.cc_bond_table = {}    # Bond table for each chemical component
+
+    def molecule_bonds(self, molecule):
+
+        from .. import _image3d
+        if self.cc_index is None:
+            self.read_templates_file()
+            _image3d.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars.decode('utf-8'))
+            print ('initialized bond table')
+        m = molecule
+        return _image3d.molecule_bonds(m.residue_names, m.residue_nums, m.chain_ids, m.atom_names)
+
+    def molecule_bonds_orig(self, molecule):
+
+        m = molecule
+        unique_rnames = set(m.residue_names)
+        bt = self.chemical_component_bond_tables(unique_rnames)
+
+        bonds = []
+        res = index_pairs = None
+        atom_num = {}
+        missing_template = set()
+        anames, rnames, rnums, cids = m.atom_names, m.residue_names, m.residue_nums, m.chain_ids
+        for a in range(m.atom_count()):
+            rname = rnames[a]
+            rnum = rnums[a]
+            cid = cids[a]
+            if (rname,rnum,cid) != res:
+                if not index_pairs is None:
+                    bonds.extend(self.template_bonds(index_pairs, atom_num))
+                atom_num.clear()
+                if rname in bt:
+                    aindex, index_pairs = bt[rname]
+                else:
+                    aindex = index_pairs = None
+                    missing_template.add(rname)
+                res = (rname, rnum, cid)
+
+            aname = anames[a]
+            if aindex and aname in aindex:
+                atom_num[aindex[aname]] = a
+#            else:
+#                print('Atom %s from residue %s has no template bonds' % (aname, str(res)))
+
+        if not index_pairs is None:
+            bonds.extend(self.template_bonds(index_pairs, atom_num))
+
+        bonds.extend(self.backbone_bonds(m))
+
+        from numpy import array, int32, empty
+        ba = array(bonds, int32) if bonds else empty((0,2), int32)
+
+        return ba, missing_template
+
+    def template_bonds(self, index_pairs, atom_num):
+        bonds = []
+        for i1,i2 in index_pairs:
+            if i1 in atom_num and i2 in atom_num:
+                bonds.append((atom_num[i1], atom_num[i2]))
+        return bonds
+
+    def backbone_bonds(self, m):
+        '''Connect consecutive residues in proteins and nucleic acids.'''
+        bonds = []
+        ajoin = ((b'C', b'N'), (b"O3'", b'P'))
+        anames = sum(ajoin, ())
+        bbatoms = {}
+        for a in range(m.atom_count()):
+            aname = m.atom_names[a]
+            if aname in anames:
+                rnum = m.residue_nums[a]
+                cid = m.chain_ids[a]
+                bbatoms[(rnum, cid, aname)] = a
+        for (rnum, cid, aname), a1 in bbatoms.items():
+            for n1,n2 in ajoin:
+                if aname == n1:
+                    a2 = bbatoms.get((rnum+1, cid, n2))
+                    if not a2 is None:
+                        bonds.append((a1,a2))
+        return bonds
+
+    def chemical_component_bond_tables(self, rnames):
+        '''Create template bond tables for specified chemical components'''
+        ccbt = self.cc_bond_table
+        new_rnames = set(rname for rname in rnames if not rname in ccbt)
+        if len(new_rnames) == 0:
+            return ccbt
+
+#        print('Reading bonds from file for %d residue types %s' % (len(new_rnames), str(new_rnames)))
+        if self.cc_index is None:
+            self.read_templates_file()
+        cci,blist = self.cc_index, self.all_bonds
+
+        for rname in new_rnames:
+            i = component_index(rname)
+            if i is None:
+                continue
+            apairs = []
+            bi = cci[i]
+            if bi != -1:
+                while blist[bi]:
+                    apairs.append((blist[bi], blist[bi+1]))
+                    bi += 2
+#            print('Read %s bonds %s' % (str(rname), str(apairs)))
+            atoms = set([a1 for a1,a2 in apairs] + [a2 for a1,a2 in apairs])
+            aindex = dict((a,i) for i,a in enumerate(atoms))
+            ipairs = tuple((aindex[a1], aindex[a2]) for a1,a2 in apairs)
+            ccbt[rname] = (aindex, ipairs)
+
+        return ccbt
+
+    def read_templates_file(self):
+
+        bt = open(self.templates_file, 'rb')
         from numpy import fromstring, int32
-        cindex = fromstring(bt.read(4*maxc**3), int32)
-        blist = fromstring(bt.read(), 'S4')
+        self.cc_index = fromstring(bt.read(4*n_cc_chars**3), int32)
+        self.all_bonds = fromstring(bt.read(), 'S4')
         bt.close()
 
-    for cid in ncids:
-        i = component_index(cid)
-        if i is None:
-            continue
-        apairs = []
-        bi = cindex[i]
-        if bi != -1:
-            while blist[bi]:
-                apairs.append((blist[bi], blist[bi+1]))
-                bi += 2
-#        print('Read %s bonds %s' % (str(cid), str(apairs)))
-        atoms = set([a1 for a1,a2 in apairs] + [a2 for a1,a2 in apairs])
-        aindex = dict((a,i) for i,a in enumerate(atoms))
-        ipairs = tuple((aindex[a1], aindex[a2]) for a1,a2 in apairs)
-        ccb[cid] = (aindex, ipairs)
-
-    return ccb
-
-def chemical_component_bonds1(cids, cpath, ipath):
-    global ccb
-    ncids = tuple(cid for cid in cids if not cid in ccb)
-    if len(ncids) == 0:
-        return ccb
-#    print('Reading bonds from file for %d residue types %s' % (len(ncids), str(ncids)))
-    from numpy import fromfile, int32
-    cindex = fromfile(ipath,int32)
-    f = open(cpath)
-    for cid in set(ncids):
-        aindex, ipairs = read_mmcif_bonds(cid, f, cindex)
-        if not aindex is None:
-            ccb[cid] = (aindex, ipairs)
+def write_template_bonds_file(components_cif_path, template_bonds_path):
+    '''
+    For each compound in the PDB chemical components file (components.cif)
+    record the bonds as pairs of atom names.
+    '''
+    f = open(components_cif_path)
+    from numpy import empty, int32, array
+    cp = empty((n_cc_chars**3,), int32)
+    cp[:] = -1
+    bonds = []
+    while True:
+        rname, rbonds = next_mmcif_bonds(f)
+        if rname is None:
+            break
+        i = component_index(rname)
+        cp[i] = len(bonds)
+        bonds.extend(sum(rbonds,()) + (b'',))
+#        print('%s %d %d' % (str(rname), i, len(rbonds)))
     f.close()
-    return ccb
-
-def read_mmcif_bonds(cid, f, cindex):
-    i = component_index(cid)
-    fi = cindex[i]
-    if fi == -1:
-        return None, None
-    f.seek(fi,0)
-
-    fcid, apairs = next_mmcif_bonds(f)
-    if fcid != cid:
-        return {}, ()
-    atoms = set([a1 for a1,a2 in apairs] + [a2 for a1,a2 in apairs])
-    aindex = dict((a,i) for i,a in enumerate(atoms))
-    ipairs = tuple((aindex[a1], aindex[a2]) for a1,a2 in apairs)
-#    print('read %d bonds for %s, %s' % (len(ipairs), cid, str(apairs)))
-    return aindex, ipairs
+    ba = array(bonds, 'S4')
+    bt = open(template_bonds_path, 'wb')
+    bt.write(cp.tostring())
+    bt.write(ba.tostring())
+    bt.close()
+    return cp, ba
 
 def next_mmcif_bonds(f):
     apairs = []
@@ -146,67 +199,19 @@ def next_mmcif_bonds(f):
             break
     return cid, apairs
 
-# Find file offset for each compound in mmcif file.
-def write_mmcif_components_index(cpath, ipath):
-    f = open(cpath)
-    from numpy import empty, int32
-    cp = empty((maxc**3,), int32)
-    cp[:] = -1
-    while True:
-        b = f.tell()
-        line = f.readline()
-        if line.startswith('data_'):
-            cid = line.rstrip()[5:8].encode('utf-8')
-            i = component_index(cid)
-            if i is None:
-                print ('Chemical component "%s" contains a character other than A-Z,0-9,space' % cid)
-            else:
-                cp[i] = b
-        elif line == '':
-            break
-    f.close()
-    if not ipath is None:
-        g = open(ipath, 'wb')
-        g.write(cp.tostring())
-        g.close()
-    return cp
-
-# For each compound in mmcif file record the bonds as pairs of atom names.
-def write_mmcif_bonds_table(components_path, templates_path):
-    f = open(components_path)
-    from numpy import empty, int32, array
-    cp = empty((maxc**3,), int32)
-    cp[:] = -1
-    bonds = []
-    while True:
-        cid, cbonds = next_mmcif_bonds(f)
-        if cid is None:
-            break
-        i = component_index(cid)
-        cp[i] = len(bonds)
-        bonds.extend(sum(cbonds,()) + (b'',))
-#        print('%s %d %d' % (str(cid), i, len(cbonds)))
-    f.close()
-    ba = array(bonds, 'S4')
-    bt = open(templates_path, 'wb')
-    bt.write(cp.tostring())
-    bt.write(ba.tostring())
-    bt.close()
-    return cp, ba
-
 # Component id can be only uppercase letters and digits
-cchars = b' 01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-maxc = len(cchars)
-def component_index(cid):
-    n = len(cchars)
+cc_chars = b' 01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+n_cc_chars = len(cc_chars)
+def component_index(rname):
+    '''Map every 3 character chemical component name to an integer.'''
+    n = len(cc_chars)
     k = 0
-    for c in cid:
-        i = cchars.find(c)
+    for c in rname:
+        i = cc_chars.find(c)
         if i == -1:
             return None
         k = k*n + i
     return k
 
 if __name__ == '__main__':
-#    write_mmcif_components_index('components.cif', 'cindex')
-    write_mmcif_bonds_table('components.cif', 'templatebonds')
+    write_mmcif_bonds_table('components.cif', 'bond_templates')

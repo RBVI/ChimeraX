@@ -548,7 +548,9 @@ def clear_primitives():
 @save_args
 @typecheck
 def clear_all():
-	pass
+	# no need to keep anything before a clear_all
+	global _calls
+	_calls = [_calls[-1]]
 
 @save_args
 @typecheck

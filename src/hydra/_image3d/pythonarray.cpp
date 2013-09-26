@@ -937,6 +937,64 @@ extern "C" int parse_writable_int_n3_array(PyObject *arg, void *iarray)
   { return parse_int_nm(arg, 3, iarray, false); }
 
 // ----------------------------------------------------------------------------
+// Convert 1-d string array with fixed length strings to 2-d character array.
+//
+extern "C" int parse_string_array(PyObject *array, void *carray)
+{
+  initialize_numpy();
+  
+  if (!PyArray_Check(array))
+    {
+      PyErr_SetString(PyExc_TypeError, "argument is not a NumPy array");
+      return 0;
+    }
+
+  PyArrayObject *a = (PyArrayObject *) array;
+
+  int dim = PyArray_NDIM(a);
+  if (dim != 1)
+    {
+      PyErr_SetString(PyExc_TypeError, "argument is not a 1-d NumPy array");
+      return 0;
+    }
+
+  int type = PyArray_TYPE(a);
+  if (type != NPY_STRING)
+    {
+      PyErr_SetString(PyExc_TypeError, "argument is not a NumPy string array");
+      return 0;
+    }
+
+  Numeric_Array::Value_Type dtype = Numeric_Array::Char;
+
+  int *sizes = new int[dim+1];
+  for (int k = 0 ; k < dim ; ++k)
+    sizes[k] = PyArray_DIM(a,k);
+  sizes[dim] = PyArray_ITEMSIZE(a);
+
+  //
+  // NumPy strides are in bytes.
+  // Numeric_Array strides are in elements.
+  //
+  long *strides = new long[dim+1];
+  for (int k = 0 ; k < dim ; ++k)
+    strides[k] = PyArray_STRIDE(a,k);
+  strides[dim] = 1;
+
+  void *data = PyArray_DATA(a);
+  Py_XINCREF(array);
+  Release_Data *release = new Python_Decref((PyObject *)a);
+
+  Numeric_Array na(dtype, dim+1, sizes, strides, data, release);
+  *static_cast<Reference_Counted_Array::Array<char> *>(carray) = Reference_Counted_Array::Array<char>(na);
+
+  delete [] strides;
+  delete [] sizes;
+
+  return 1;
+}
+
+// ----------------------------------------------------------------------------
 //
 PyObject *python_tuple(PyObject *o1, PyObject *o2)
 {

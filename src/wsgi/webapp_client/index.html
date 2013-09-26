@@ -38,6 +38,264 @@
 </style>
 
 <script type="text/javascript">
+
+function array_search(arr, func) {
+	if (!func || typeof(func) != 'function')
+		return -1;
+	if (!arr || !arr.length || arr.length < 1)
+		return -1;
+	var len = arr.length;
+	for (var i = 0; i < len; ++i) {
+		if (func(arr[i]))
+			return i;
+	}
+	return -1;
+}
+
+function array_reverse_search(arr, func) {
+	if (!func || typeof(func) != 'function')
+		return -1;
+	if (!arr || !arr.length || arr.length < 1)
+		return -1;
+	for (var i = arr.length - 1; i >= 0; --i) {
+		if (func(arr[i]))
+			return i;
+	}
+	return -1;
+}
+
+function array_index_of(arr, field, value) {
+	var i = array_search(arr, function(obj) {
+		if (obj[field] != undefined)
+			return obj[field] == value;
+		else
+			return false;
+	});
+	return i;
+} 
+
+function array_last_index_of(arr, field, value) {
+	var i = array_reverse_search(arr, function(obj) {
+		if (obj[field] != undefined)
+			return obj[field] == value;
+		else
+			return false;
+	});
+	return i;
+} 
+
+// show_error is global
+function show_error(message) {
+	show_status(message, { error: true, delay: 10000 });
+	return;
+	// TODO: dialog not working with jQuery mobile, use popup
+	var dialog_id = "error_dialog_" + new Date().getTime();
+	$("body").append("<div id=\"" + dialog_id + "\"><p>"
+		+ "<span class=\"ui-icon ui-icon-alert\" style=\"float: left; margin: 0 7px 20px 0;\"></span>"
+		+ "<div>" + message + "</div></p></div>");
+	$("#" + dialog_id).dialog({
+		dialogClass: "error",
+		title: "Chimera2 Error",
+		resizable: false,
+		height: 160,
+		modal: true,
+		buttons: {
+			"Close": function () {
+				$(this).dialog("close");
+			}
+		},
+		beforeClose: function (event, ui) {
+			// remove dialog div from document
+			$("#" + dialog_id).remove();
+		}
+	});
+}
+
+// show_status is global
+function show_status(message, options) {
+	options = options || {};
+	var delay = options.delay || 3000;	// milliseconds
+	var error = options.error || false;
+	var temporary = options.temporary || false;
+	var sl = $("#status_line");
+	sl.clearQueue().html(message);
+	if (error)
+		sl.addClass("ui-state-error-text");
+	sl.delay(delay).queue(function () {
+		$(this).html("&nbsp;").removeClass("ui-state-error-text").dequeue();
+	});
+	if (!temporary) {
+		if (!error)
+			$c2_session.log(message);
+		else {
+			$c2_session.log("<div class=\"ui-state-error-text\">" + message + "</div>");
+		}
+	}
+}
+
+(function () {
+"use strict";
+
+function BBox(llb, urf) {
+    // right-handed axis-aligned bounding box
+    // 
+    // if either llb or urf are undefined,
+    // then the bounding box is uninitialized.
+    this.llb = llb;	// lower-left-back corner coordinates
+    this.urf = urf;	// upper-right-front corner coordinates
+}
+
+BBox.prototype.add = function (pt) {
+    // expand bounding box to encompass given point
+    if (this.llb === undefined) {
+	this.llb = new TSM.vec3(pt);
+	this.urf = new TSM.vec3(pt);
+	return;
+    }
+    for (var i = 0; i < 3; ++i) {
+	if (pt[i] < this.llb[i])
+	    this.llb[i] = pt[i];
+	else if (pt[i] > this.urf[i])
+	    this.urf[i] = pt[i];
+    }
+}
+
+BBox.prototype.add_bbox = function (box) {
+    // expand bounding box to encompass given bounding box
+    if (this.llb === undefined) {
+	this.llb = box.llb;
+	this.urf = box.urf;
+	return;
+    }
+    for (var i = 0; i < 3; ++i) {
+	if (box.llb[i] < this.llb[i])
+	    this.llb[i] = box.llb[i];
+	if (box.urf[i] > this.urf[i])
+	    this.urf[i] = box.urf[i];
+    }
+}
+
+BBox.prototype.bulk_add = function (pts) {
+    // expand bounding box to encompass all given points
+    mi = amin(pts, axis=0)
+    ma = amax(pts, axis=0)
+    if (this.llb === undefined) {
+	this.llb = new TSM.vec3(mi);
+	this.urf = new TSM.vec3(ma);
+	return;
+    }
+    for (var i = 0; i < 3; ++i) {
+	if (mi[i] < this.llb[i])
+	    this.llb[i] = mi[i];
+	if (ma[i] > this.urf[i])
+	    this.urf[i] = ma[i];
+    }
+}
+
+BBox.prototype.center = function () {
+    // return center of bounding box
+    if (this.llb === undefined)
+	throw "empty bounding box";
+    var c = TSM.vec3.sum(this.llb, this.urf).scale(.5);
+    return c;
+}
+
+BBox.prototype.size = function () {
+    // return length of sides of bounding box
+    if (this.llb === undefined)
+	throw "empty bounding box";
+    return TSM.vec3.difference(this.urf, this.llb);
+}
+
+BBox.prototype.xform = function (xf) {
+    // transform bounding box in place
+//  if xf.isIdentity:
+//	return;
+    b = BBox([0., 0., 0.], [0., 0., 0.]);
+    for (var i = 0; i < 3; ++i) {
+	b.llb[i] = b.urf[i] = xf._matrix[i][3];
+	for (var j = 0; j < 3; ++j) {
+	    coeff = xf._matrix[i][j];
+	    if (coeff == 0)
+		continue;
+	    if (coeff > 0) {
+		b.llb[i] += this.llb[j] * coeff;
+		b.urf[i] += this.urf[j] * coeff;
+	    } else {
+		b.llb[i] += this.urf[j] * coeff;
+		b.urf[i] += this.llb[j] * coeff;
+	    }
+	}
+    }
+    this.llb = b.llb;
+    this.urf = b.urf;
+}
+
+function Camera() {
+	this.eye = new TSM.vec3([0, 0, 0]);
+	this.at = new TSM.vec3([0, 0, -1]);
+	this.up = new TSM.vec3([0, 1, 0]);
+	this.ortho = false;
+}
+
+Camera.prototype.reset = function (width, height, fov, bbox) {
+	// The camera is a simple one that takes the :param fov: and
+	// the current bounding box, and calculates the eye position
+	// and looks at the bounding box down the negative z-axis.
+	this.at = bbox.center();
+	var half_size = bbox.size();
+	half_size.scale(.5 * 1.1);	// + 10%
+	this.width2 = half_size.at(0);
+	this.height2 = half_size.at(1);
+	var depth2 = half_size.at(2);
+	this.update_viewport(width, height);
+
+	this.near = this.height2 / Math.tan(fov / 2);
+	this.far = this.near + 2 * depth2;
+	this.eye = new TSM.vec3([this.at.at(0), this.at.at(1), this.at.at(2) + this.near + depth2]);
+	this.up = new TSM.vec3([0, 1, 0]);	// Direction
+}
+
+Camera.prototype.update_viewport = function (width, height) {
+	var win_aspect = width / height;
+	var scene_aspect = this.width2 / this.height2;
+	if (win_aspect > scene_aspect)
+		this.width2 = this.height2 * win_aspect;
+	else
+		this.height2 = this.width2 / win_aspect;
+}
+
+Camera.prototype.matrices = function () {
+	var projection;
+	if (this.ortho) {
+		projection = new TSM.mat4.orthographic(-this.width2, this.width2,
+			-this.height2, this.height2,
+			this.near, this.far);
+	} else {
+		projection = new TSM.mat4.frustum(-this.width2, this.width2,
+			-this.height2, this.height2,
+			this.near, this.far);
+	}
+	var modelview = new TSM.mat4.lookAt(this.eye, this.at, this.up);
+	return [projection, modelview];
+}
+
+Camera.prototype.rotate = function (axis, angle) {
+	var xf = Rotation(axis, angle);
+	this.xform(xf);
+}
+
+Camera.prototype.xform = function (xf) {
+	//if not xf._pure:
+	//	throw 'only pure rotation is allowed);
+	var trans = Translation(this.at);
+	var inv_trans = Translation(-this.at);
+	var xf = trans * xf.inverse() * inv_trans;
+	this.eye = xf * this.eye;
+	this.up = xf * this.up;
+	this.at = xf * this.at;
+}
+
 $(document).ready(function() {
 	$c2_session.ui_init("..");
 	$("#command_line").keyup(
@@ -53,17 +311,49 @@ $(document).ready(function() {
 })
 
 function process_llgr_data(json) {
-	load(json);
+	// json is list of llgr commands
+	var index = array_last_index_of(json, 0, "clear_all");
+	if (index == -1) {
+		// partial update, so merge with existing data
+		molview_ci.load_json(json);
+		molview_ci.data = molview_ci.data.concat(json);
+		molview_ci.redraw();
+	} else {
+		json.splice(0, index + 1);
+		molview_ci.data = json;
+		molview_ci.init();
+	}
 }
+
+var camera = null;
+var scene_bbox;
+var scene_fov;
 
 function process_scene_data(data) {
 	// bbox
+	// fov
 	// eye
 	// at
 	// up
-	for (key in data) {
-		console.log(key, data[key]);
+	var bbox = data["bbox"];
+	if (bbox === undefined)
+		return;
+	bbox = new BBox(new TSM.vec3(bbox[0]), new TSM.vec3(bbox[1]));
+	if (bbox != scene_bbox) {
+		scene_bbox = bbox;
+		// TODO: update camera
 	}
+	var fov = data["fov"];
+	if (fov === undefined)
+		return;
+	if (fov != scene_fov) {
+		scene_fov = fov;
+		// TODO: update camera
+	}
+	var eye = new TSM.vec3(data["eye"]);
+	var at = new TSM.vec3(data["at"]);
+	var up = new TSM.vec3(data["up"]);
+	// TODO: setup camera
 }
 
 var molview_ci;		// molview context information
@@ -103,7 +393,7 @@ function molview_init() {
 	if (!gl)
 		return;
 
-	molview_ci = new ContextInfo(canvas, gl, drawScene);
+	molview_ci = new ContextInfo(canvas, gl, draw_scene);
 	molview_ci.init();
 	molview_ci.redraw();
 	$("#molview")
@@ -113,20 +403,36 @@ function molview_init() {
 		.mouseup(molview_mouse_up);
 }
 
-function drawScene(ci) {
+function draw_scene(ci) {
+	console.log("draw_scene");
 	var canvas = ci.canvas;
 	var gl = ci.gl;
-	$c2_session.set_state("width", canvas.width);
-	$c2_session.set_state("height", canvas.height);
+	var width = canvas.width;
+	var height = canvas.height;
+	$c2_session.set_state("width", width);
+	$c2_session.set_state("height", height);
 	llgr.set_context(gl);
-	gl.viewport(0, 0, canvas.width, canvas.height);
+	gl.viewport(0, 0, width, height);
+	if (camera !== null) {
+		camera.update_viewport(width, height);
+	} else {
+		if (scene_bbox === undefined) {
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			return;
+		}
+		camera = new Camera();
+		camera.reset(width, height, scene_fov, scene_bbox);
+	}
+	var result = camera.matrices();
+	var projection = result[0];
+	var modelview = result[1];
+	llgr.set_uniform_matrix(0, 'ProjectionMatrix', false,
+		llgr.Mat4x4, projection.values);
+	llgr.set_uniform_matrix(0, 'ModelViewMatrix', false,
+		llgr.Mat4x4, modelview.values);
+	llgr.set_uniform_matrix(0, 'NormalMatrix', false,
+		llgr.Mat3x3, modelview.toMat3().values);
 	llgr.render();
-}
-
-function load(json_or_url) {
-	molview_ci.data = json_or_url;
-	molview_ci.init();
-	molview_ci.redraw();
 }
 
 $(function() {
@@ -144,52 +450,7 @@ $(function() {
 	});
 });
 
-function show_error(message) {
-	show_status(message, { error: true });
-	return;
-	// TODO: dialog not working with jQuery mobile, use popup
-	var dialog_id = "error_dialog_" + new Date().getTime();
-	$("body").append("<div id=\"" + dialog_id + "\"><p>"
-		+ "<span class=\"ui-icon ui-icon-alert\" style=\"float: left; margin: 0 7px 20px 0;\"></span>"
-		+ "<div>" + message + "</div></p></div>");
-	$("#" + dialog_id).dialog({
-		dialogClass: "error",
-		title: "Chimera2 Error",
-		resizable: false,
-		height: 160,
-		modal: true,
-		buttons: {
-			"Close": function () {
-				$(this).dialog("close");
-			}
-		},
-		beforeClose: function (event, ui) {
-			// remove dialog div from document
-			$("#" + dialog_id).remove();
-		}
-	});
-}
-
-function show_status(message, options) {
-	options = options || {};
-	var delay = options.delay || 3000;	// milliseconds
-	var error = options.error || false;
-	var temporary = options.temporary || false;
-	var sl = $("#status_line");
-	sl.clearQueue().html(message);
-	if (error)
-		sl.addClass("ui-state-error-text");
-	sl.delay(delay).queue(function () {
-		$(this).html("&nbsp;").removeClass("ui-state-error-text").dequeue();
-	});
-	if (!temporary) {
-		if (!error)
-			$c2_session.log(message);
-		else {
-		  $c2_session.log("<div style=\"ui-state-error-text\">" + message + "</div>");
-		}
-	}
-}
+}());
 
 </script>
 </head>
