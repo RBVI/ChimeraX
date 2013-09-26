@@ -5,7 +5,7 @@
 // public API
 var $c2_session = {};
 
-(function() {
+(function () {
 "use strict";
 
 // --------------------------------------------------------------------
@@ -20,7 +20,7 @@ function list_sessions() {
 	// Retrieve list of sessions from server
 	if ($c2_session.server.url === null) {
 		alert("Session module is uninitialized.");
-		return;
+		return null;
 	}
 	var data = {
 		action: "jlist",
@@ -32,7 +32,7 @@ function create_session(session, password) {
 	// Create session on server
 	if ($c2_session.server.url === null) {
 		alert("Session module is uninitialized.");
-		return;
+		return null;
 	}
 	var data = {
 		action: "create",
@@ -46,7 +46,7 @@ function delete_session(session, password) {
 	// Create session on server
 	if ($c2_session.server.url === null) {
 		alert("Session module is uninitialized.");
-		return;
+		return null;
 	}
 	var data = {
 		action: "delete",
@@ -62,7 +62,7 @@ function call(session, password, tag, tag_data, state, cb) {
 	// Send tag and associated data to server
 	if ($c2_session.server.url === null) {
 		alert("Session module is uninitialized.");
-		return;
+		return null;
 	}
 	var cid = call_id;
 	var call_data = [];
@@ -305,18 +305,22 @@ function redistribute_data(data) {
 			continue;
 		//console.log("  " + client_data.length + " results");
 		for (var j in client_data) {
-			var data = client_data[j];
-			var tag = data[0];
+			var cd = client_data[j];
+			var tag = cd[0];
 			//console.log("  working on " + tag);
 			if (!data_functions.hasOwnProperty(tag))
 				continue;
-			data_functions[tag](data[1]);
+			data_functions[tag](cd[1]);
 		}
 	}
 }
 
 function send_command(data) {
 	// send command line to server
+	if ($c2_session.session === "") {
+		alert("Select or create a session first.");
+		return;
+	}
 	$c2_session.server.call($c2_session.session, $c2_session.password,
 			"command", data, state).done(redistribute_data);
 }
