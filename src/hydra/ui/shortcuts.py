@@ -395,13 +395,15 @@ def show_waters(m):
 def hide_waters(m):
     m.hide_solvent()
 def molecule_bonds(m):
-    from ..molecule import connect
-    connect.create_molecule_bonds(m)
-    if not m.bonds is None:
+    if m.bonds is None:
+        from ..molecule import connect
+        m.bonds, missing = connect.molecule_bonds(m)
         msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
         from .gui import show_status, show_info
         show_status(msg)
         show_info(msg)
+        if missing:
+            show_info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
 
 def list_keyboard_shortcuts():
   from .gui import main_window as m

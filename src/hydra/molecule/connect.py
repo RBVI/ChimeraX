@@ -6,11 +6,11 @@ def molecule_bonds(molecule):
     global bond_templates
     if bond_templates is None:
         bond_templates = Bond_Templates()
-#    from time import time
-#    t0 = time()
+    from time import time
+    t0 = time()
     bonds, missing = bond_templates.molecule_bonds(molecule)
-#    t1 = time()
-#    print('Computed', len(bonds), 'bonds for', molecule.name, 'in', '%.3f' % (t1-t0), 'seconds')
+    t1 = time()
+    print('Computed', len(bonds), 'bonds for', molecule.name, 'in', '%.3f' % (t1-t0), 'seconds')
     return bonds, missing
 
 bond_templates = None
@@ -34,6 +34,16 @@ class Bond_Templates:
         self.cc_bond_table = {}    # Bond table for each chemical component
 
     def molecule_bonds(self, molecule):
+
+        from .. import _image3d
+        if self.cc_index is None:
+            self.read_templates_file()
+            _image3d.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars.decode('utf-8'))
+            print ('initialized bond table')
+        m = molecule
+        return _image3d.molecule_bonds(m.residue_names, m.residue_nums, m.chain_ids, m.atom_names)
+
+    def molecule_bonds_orig(self, molecule):
 
         m = molecule
         unique_rnames = set(m.residue_names)
