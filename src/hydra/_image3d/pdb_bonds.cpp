@@ -10,8 +10,7 @@
 #include <string.h>		// use strnlen()
 #include "pythonarray.h"	// use parse_int_n_array(), ...
 
-typedef std::pair<int,int> Bond;	// Pair of atom indices.
-typedef std::vector<Bond> Bond_List;
+typedef std::vector<int> Bond_List;		// Two atom indices per bond.
 typedef std::map<std::string,int> Atom_Indices;
 typedef Reference_Counted_Array::Array<char> CArray;
 typedef std::vector<std::string> String_List;
@@ -19,7 +18,7 @@ typedef std::vector<std::string> String_List;
 class Res_Template
 {
 public:
-  void bonds(const std::map<int,int> &atom_num, Bond_List &bonds);
+  void bonds(int *atom_num, int amin, Bond_List &bonds);
   bool atom_index(const std::string &aname, int *ai);
   Bond_List index_pairs;
   Atom_Indices aindex;
@@ -78,10 +77,12 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
 				    String_List &missing_template)
 {
   const char *res_rname = NULL, *res_cid = NULL;
-  int res_rnum = -1000000;
+  int res_rnum = 0;
   Res_Template *rtemplate = NULL;
-  std::map<int, int> atom_num;
   std::set<std::string> missing;
+  int *atom_num = new int[1024];
+  memset(atom_num, 0, 1024*sizeof(int));
+  int amin = 0;
   for (int a = 0 ; a < natoms ; ++a)
     {
       const char *rname = rnames + rname_chars*a;
@@ -93,8 +94,7 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
       if (! same_res)
 	{
 	  if (rtemplate)
-	    rtemplate->bonds(atom_num, bonds);
-	  atom_num.clear();
+	    rtemplate->bonds(atom_num, amin, bonds);
 	  std::string srname = array_string(rnames, a, rname_chars);
 	  rtemplate = chemical_component_bond_table(srname);
 	  if (!rtemplate)
@@ -102,6 +102,7 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
 	  res_rname = rname;
 	  res_cid = cid;
 	  res_rnum = rnum;
+	  amin = a;
 	}
 
       std::string aname = array_string(anames, a, aname_chars);
@@ -113,22 +114,21 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
   missing_template.insert(missing_template.end(), missing.begin(), missing.end());
 
   if (rtemplate)
-    rtemplate->bonds(atom_num, bonds);
+    rtemplate->bonds(atom_num, amin, bonds);
 
-  backbone_bonds(rnames, rname_chars, rnums, cids, cid_chars, anames, aname_chars, natoms, bonds);
+  //  backbone_bonds(rnames, rname_chars, rnums, cids, cid_chars, anames, aname_chars, natoms, bonds);
 }
 
-void Res_Template::bonds(const std::map<int,int> &atom_num, Bond_List &bonds)
+void Res_Template::bonds(int *atom_num, int amin, Bond_List &bonds)
 {
-  for (Bond_List::iterator i = index_pairs.begin() ; i != index_pairs.end() ; ++i)
+  int ip2 = index_pairs.size();
+  for (int i = 0 ; i < ip2 ; i += 2)
     {
-      int i1 = i->first, i2 = i->second;
-      std::map<int,int>::const_iterator a1 = atom_num.find(i1);
-      if (a1 != atom_num.end())
+      int a1 = atom_num[index_pairs[i]], a2 = atom_num[index_pairs[i+1]];
+      if (a1 >= amin && a2 >= amin)
 	{
-	  std::map<int,int>::const_iterator a2 = atom_num.find(i2);
-	  if (a2 != atom_num.end())
-	    bonds.push_back(std::pair<int,int>(a1->second, a2->second));
+	  bonds.push_back(a1);
+	  bonds.push_back(a2);
 	}
     }
 }
@@ -181,13 +181,19 @@ void Bond_Templates::backbone_bonds(const char *rnames, int rname_chars,
 	{
 	  std::map<Backbone_Atom,int>::iterator ba2 = bbatoms.find(Backbone_Atom(bat.rnum+1, bat.cid, "N"));
 	  if (ba2 != bbatoms.end())
-	    bonds.push_back(std::pair<int,int>(ba->second,ba2->second));
+	    {
+	      bonds.push_back(ba->second);
+	      bonds.push_back(ba2->second);
+	    }
 	}
       else if (bat.aname == "O3'")
 	{
 	  std::map<Backbone_Atom,int>::iterator ba2 = bbatoms.find(Backbone_Atom(bat.rnum+1, bat.cid, "P"));
 	  if (ba2 != bbatoms.end())
-	    bonds.push_back(std::pair<int,int>(ba->second,ba2->second));
+	    {
+	      bonds.push_back(ba->second);
+	      bonds.push_back(ba2->second);
+	    }
 	}
     }
 }
@@ -214,10 +220,11 @@ Res_Template *Bond_Templates::chemical_component_bond_table(const std::string &r
 	std::string a1 = array_string(ab, bi, alen);
 	Atom_Indices::iterator ai1 = aindex.find(a1);
 	int i1 = (ai1 == aindex.end() ? (aindex[a1] = aindex.size()) : ai1->second);
+	ipairs.push_back(i1);
 	std::string a2 = array_string(ab, bi+1, alen);
 	Atom_Indices::iterator ai2 = aindex.find(a2);
 	int i2 = (ai2 == aindex.end() ? (aindex[a2] = aindex.size()) : ai2->second);
-	ipairs.push_back(std::pair<int,int>(i1,i2)); 
+	ipairs.push_back(i2);
       }
   return &rtemp;
 }
@@ -303,19 +310,19 @@ molecule_bonds(PyObject *s, PyObject *args, PyObject *keywds)
 				 anames.values(), anames.size(1), anames.size(0),
 				 bonds, missing);
 
-  int nb = bonds.size();
+  int nb2 = bonds.size();
+  int nb = nb2/2;
   int *ba;
   PyObject *bonds_py = python_int_array(nb, 2, &ba);
-  int i = 0;
-  for (Bond_List::iterator bi = bonds.begin() ; bi != bonds.end() ; ++bi, i += 2)
+  for (int i = 0 ; i < nb2 ; i += 2)
     {
-      ba[i] = bi->first;
-      ba[i+1] = bi->second;
+      ba[i] = bonds[i];
+      ba[i+1] = bonds[i+1];
     }
 
   int nm = missing.size();
   PyObject *missing_py = PyTuple_New(nm);
-  for (i = 0 ; i < nm ; ++i)
+  for (int i = 0 ; i < nm ; ++i)
     PyTuple_SetItem(missing_py, i, PyBytes_FromString(missing[i].c_str()));
 
   return python_tuple(bonds_py, missing_py);
