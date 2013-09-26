@@ -28,6 +28,7 @@ public:
 	const Atoms &	atoms() const { return _atoms; }
 	CoordSet *  active_coord_set() const { return _active_coord_set; };
 	bool  asterisks_translated;
+	std::map<Atom *, char>  best_alt_locs() const;
 	const Bonds &	bonds() const { return _bonds; }
 	const CoordSets &  coord_sets() const { return _coord_sets; }
 	void  delete_bond(Bond *);
@@ -47,6 +48,7 @@ public:
 	int  pdb_version;
 	const Residues &  residues() const { return _residues; }
 	void  set_active_coord_set(CoordSet *cs);
+	void  use_best_alt_locs();
 };
 
 #endif  // molecule_Molecule

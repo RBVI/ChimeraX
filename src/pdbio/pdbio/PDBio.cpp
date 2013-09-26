@@ -1447,6 +1447,7 @@ start_t = end_t;
 				link_up(*li, fm, &conect_atoms, log_file);
 			connect_molecule(fm, &start_res_map[fm], &end_res_map[fm], &conect_atoms, &mod_res_map[fm]);
 			prune_short_bonds(fm);
+			fm->use_best_alt_locs();
 		}
 #ifdef CLOCK_PROFILING
 end_t = clock();
