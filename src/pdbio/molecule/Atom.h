@@ -48,6 +48,7 @@ private:
 
 public:
 	void  add_bond(Bond *b) { _bonds[b->other_atom(this)] = b; }
+	float  bfactor() const;
 	Bonds  bonds() const;
 	const BondsMap &	bonds_map() const { return _bonds; }
 	bool  connects_to(Atom *a) const {
@@ -58,6 +59,7 @@ public:
 	Element  element() const { return _element; }
 	Molecule *  molecule() const { return _molecule; }
 	const std::string  name() const { return _name; }
+	float  occupancy() const;
 	void  register_field(std::string name, int value) {}
 	void  register_field(std::string name, double value) {}
 	void  register_field(std::string name, const std::string value) {}

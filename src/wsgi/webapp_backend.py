@@ -51,7 +51,7 @@ def cmd_open(filename):
 		result = [['info', info]] if info else []
 	except OSError as e:
 		raise cmds.UserError(str(e))
-	llgr_info = scene.render(as_data=True)
+	llgr_info = scene.render(as_data=True, skip_camera_matrices=True)
 	scene_info = {
 		'bbox': [list(scene.bbox.llb), list(scene.bbox.urf)],
 	}
@@ -61,6 +61,7 @@ def cmd_open(filename):
 			'eye': scene.camera.eye,
 			'at': scene.camera.at,
 			'up': scene.camera.up,
+			'fov': scene._fov,	# TODO: use an official API
 		})
 	return [
 		['scene', scene_info ],
