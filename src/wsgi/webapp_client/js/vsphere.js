@@ -20,8 +20,13 @@
  * vsphere:
  *	Convert X-Y coordinates into a 4x4 rotation matrix
  */
-function vsphere(fxy, txy)
-{
+
+var vsphere;
+
+(function () {
+"use strict";
+
+vsphere = function (fxy, txy) {
 	var	i;
 	var	d1, d2;
 	var	f, t, a, g, u;
@@ -36,28 +41,30 @@ function vsphere(fxy, txy)
 	 */
 	d1 = fxy.x * fxy.x + fxy.y * fxy.y;
 	d2 = txy.x * txy.x + txy.y * txy.y;
+	console.log('d1, d2', d1, d2);
 	if (d1 > 1 && d2 < 1)
 		throw "outside to inside";
 	if (d2 > 1 && d1 < 1)
 		throw "inside to outside";
 	if (d1 < 1) {
-		f = new TSM.vec3(fxy.x, fxy.y, Math.sqrt(1 - d1));
+		f = new TSM.vec3([fxy.x, fxy.y, Math.sqrt(1 - d1)]);
 	} else {
 		d1 = Math.sqrt(d1);
-		f = new TSM.vec3(fxy.x / d1, fxy.y / d1, 0);
+		f = new TSM.vec3([fxy.x / d1, fxy.y / d1, 0]);
 	}
 	if (d2 < 1) {
-		t = new TSM.vec3(txy.x, txy.y, Math.sqrt(1 - d2));
+		t = new TSM.vec3([txy.x, txy.y, Math.sqrt(1 - d2)]);
 	} else {
 		d2 = Math.sqrt(d2);
-		t = new TSM.vec3(txy.x / d2, txy.y / d2, 0);
+		t = new TSM.vec3([txy.x / d2, txy.y / d2, 0]);
 	}
+	console.log('f, t', f, t);
 
 	/*
 	 * If the positions normalize to the same place we just punt.
 	 * We don't even bother to put in the identity matrix.
 	 */
-	if (f[0] == t[0] && f[1] == t[1] && f[2] == t[2])
+	if (f.equals(t))
 		throw "no change";
 
 	a = TSM.vec3.cross(f, t);
@@ -74,14 +81,16 @@ function vsphere(fxy, txy)
 	 * the inverse and transformation matrices is the rotation
 	 * matrix.
 	 */
-	m1 = new TSM.mat4(	t[0], a[0], u[0], 0,
+	m1 = new TSM.mat4([	t[0], a[0], u[0], 0,
 				t[1], a[1], u[1], 0,
 				t[2], a[2], u[2], 0,
-				0, 0, 0, 1);
-	m2 = new TSM.mat4(	f[0], f[1], f[2], 0,
+				0, 0, 0, 1]);
+	m2 = new TSM.mat4([	f[0], f[1], f[2], 0,
 				a[0], a[1], a[2], 0,
 				g[0], g[1], g[2], 0,
-				0, 0, 0, 1);
+				0, 0, 0, 1]);
 	m = m1.multiply(m2);
 	return m;
-}
+};
+
+})();
