@@ -284,21 +284,22 @@ function redistribute_data(data) {
 	for (var i in data) {
 		var response = data[i];
 		var call_id = response["id"];
+		if (response["command"]) {
+			var msg = response["command"];
+			$c2_session.log("<h3>" + msg + "</h3>");
+		}
 		if (!response["status"]) {
 			var msg = response["error"];
 			if (msg !== undefined)
 				if (msg.lastIndexOf("Traceback", 0) == 0) {
-					msg = "Command failed:\n\n<pre>\n" + msg + "\n</pre>";
+					msg = "Command failed:\n\n" + msg + "\n";
 					// TODO: dialog
-					show_error(msg);
+					show_error("Traceback generated during backend processing.");
+					alert(msg);
 				} else {
 					show_error(msg);
 				}
 			continue;
-		}
-		if (response["command"]) {
-			var msg = response["command"];
-			$c2_session.log("<h3>" + msg + "</h3>");
 		}
 		var client_data = response["client_data"];
 		if (client_data === undefined)

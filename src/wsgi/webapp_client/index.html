@@ -136,6 +136,11 @@ function show_status(message, options) {
 (function () {
 "use strict";
 
+function xform_point(xf, pt) {
+	var pt4 = new TSM.vec4(pt.xyz.concat(1));
+	return new TSM.vec3(xf.multiplyVec4(pt4).xyz);
+}
+
 function BBox(llb, urf) {
     // right-handed axis-aligned bounding box
     // 
@@ -288,12 +293,12 @@ Camera.prototype.rotate = function (axis, angle) {
 Camera.prototype.xform = function (xf) {
 	//if not xf._pure:
 	//	throw 'only pure rotation is allowed);
-	var trans = Translation(this.at);
-	var inv_trans = Translation(-this.at);
-	var xf = trans * xf.inverse() * inv_trans;
-	this.eye = xf * this.eye;
-	this.up = xf * this.up;
-	this.at = xf * this.at;
+	var trans = new TSM.mat4().setIdentity().translate(this.at);
+	var inv_trans = new TSM.mat4().setIdentity().translate(-this.at);
+	var xf = new TSM.mat4().setIdentity().multiply(trans).multiply(xf).multiply(inv_trans);
+	this.eye = xform_point(xf, this.eye);
+	this.up = xf.multiplyVec3(this.up);
+	this.at = xform_point(xf, this.at);
 }
 
 $(document).ready(function() {
@@ -315,7 +320,7 @@ function process_llgr_data(json) {
 	var index = array_last_index_of(json, 0, "clear_all");
 	if (index == -1) {
 		// partial update, so merge with existing data
-		molview_ci.load_json(json);
+		llgr.load_json(json);
 		molview_ci.data = molview_ci.data.concat(json);
 		molview_ci.redraw();
 	} else {
@@ -330,18 +335,15 @@ var scene_bbox;
 var scene_fov;
 
 function process_scene_data(data) {
-	// bbox
-	// fov
-	// eye
-	// at
-	// up
 	var bbox = data["bbox"];
-	if (bbox === undefined)
+	if (bbox === undefined) {
 		return;
+	}
 	bbox = new BBox(new TSM.vec3(bbox[0]), new TSM.vec3(bbox[1]));
 	if (bbox != scene_bbox) {
 		scene_bbox = bbox;
 		// TODO: update camera
+		camera = null;
 	}
 	var fov = data["fov"];
 	if (fov === undefined)
@@ -359,27 +361,65 @@ function process_scene_data(data) {
 var molview_ci;		// molview context information
 
 var button_pressed = false;
+var mouse_position;
 
 function molview_zoom(event) {
-	console.log("zoom " + event);
+	console.log("zoom:", event);
 	event.stopPropagation();
+}
+
+function get_rel_xy(event) {
+	var widget = event.currentTarget;
+	var widget_offset = $(widget).offset();
+	return {
+		x: event.pageX - widget_offset.left,
+		y: event.pageY - widget_offset.top
+	};
 }
 
 function molview_mouse_down(event) {
-	console.log("mouse_down " + event);
+	// TODO: change cursor
+	console.log("mouse_down:", event);
 	event.stopPropagation();
 	button_pressed = true;
+	var canvas = event.currentTarget;
+	console.log("canvas", canvas);
+	var radius = 0.9 * 0.5 * Math.min(canvas.width, canvas.height);
+	console.log("radius", radius);
+	mouse_position = get_rel_xy(event);
+	mouse_position.x = (mouse_position.x - (canvas.width / 2)) / radius;
+	mouse_position.y = ((canvas.height / 2) - mouse_position.y) / radius;
+	console.log('mouse vxy:', mouse_position.x, mouse_position.y);
 }
 
 function molview_mouse_move(event) {
-	if (!button_pressed)
+	// TODO: change cursor
+	if (!button_pressed || camera === null)
 		return;
-	console.log("mouse_move " + event);
 	event.stopPropagation();
+	var canvas = event.currentTarget;
+	var radius = 0.9 * 0.5 * Math.min(canvas.width, canvas.height);
+	var new_position = get_rel_xy(event);
+	new_position.x = (new_position.x - (canvas.width / 2)) / radius;
+	new_position.y = ((canvas.height / 2) - new_position.y) / radius;
+	console.log('new xy:', new_position.x, new_position.y);
+	var rot_mat;
+	try {
+		rot_mat = vsphere(mouse_position, new_position);
+	} catch (err) {
+		// skip
+		console.log('vs err', err);
+	}
+	mouse_position = new_position;
+	if (rot_mat === undefined)
+		return;
+	camera.xform(rot_mat);
+	molview_ci.redraw();
 }
 
 function molview_mouse_up(event) {
-	console.log("mouse_up " + event);
+	// TODO: change cursor
+	//console.log("mouse_up:", event);
 	event.stopPropagation();
 	button_pressed = false;
 }
