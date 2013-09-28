@@ -1,6 +1,8 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
+PKG_DIR = $(PYSITEDIR)/hydra
+
 PYMOD_NAME = _image3d
 SRCS	= blend_rgba.cpp combine.cpp \
 	  contourdata.cpp pycontour.cpp \
@@ -29,7 +31,7 @@ OPT = -g
 all: $(PYMOD)
 
 install: all
-
+	$(RSYNC) $(PYMOD) $(PKG_DIR)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
