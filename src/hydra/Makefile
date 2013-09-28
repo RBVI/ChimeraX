@@ -1,14 +1,12 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
+SUBDIRS	= docs draw file_io FitMap geometry molecule ui VolumeData VolumeViewer _image3d
+
 PKG_DIR = $(PYSITEDIR)/hydra
 APPS_DIR = $(build_prefix)/Applications
 
-PYSRCS = __init__.py molmap.py scenes.py surface.py \
-	 draw file_io FitMap geometry molecule ui VolumeData VolumeViewer
-PYLIBS = _image3d/_image3d.so
-
-DATA = docs
+PYSRCS = __init__.py molmap.py scenes.py surface.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)
@@ -16,10 +14,15 @@ ifeq ($(OS),Darwin)
   INSTALL_DIRS += $(APPS_DIR) $(FW_DIR) $(FW_DIR)/Python.framework
 endif
 
-all: $(PYLIBS)
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
-install: all $(INSTALL_DIRS)
-	$(RSYNC) $(PYSRCS) $(PYLIBS) $(DATA) $(PKG_DIR)
+all: $(PYOBJS)
+
+install: all $(INSTALL_DIRS) install_mac_app
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+install_mac_app:
 ifeq ($(OS),Darwin)
 	$(RSYNC) Hydra.app $(APPS_DIR)
 endif
@@ -35,9 +38,6 @@ $(FW_DIR)/Python.framework:
 
 run:
 	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"
-
-_image3d/_image3d.so:
-	$(MAKE) -C _image3d
 
 clean:
 	rm -rf __pycache__
