@@ -20,7 +20,7 @@ class Memory_Use_Dialog(ModelessDialog):
     row = 0
 
     vl = Hybrid.Scrollable_List(parent, 'Memory use', 5)
-    vl.listbox['font'] = 'Courier'	# fixed width font so columns line up
+    vl.listbox['font'] = 'Courier'      # fixed width font so columns line up
     vl.heading['font'] = 'Courier'
     self.object_listbox = vl.listbox
     self.object_list_heading = vl.heading
@@ -62,14 +62,14 @@ class Memory_Use_Dialog(ModelessDialog):
       dlist.sort(lambda d1, d2: -cmp(d1.size, d2.size))
       import sys
       for d in dlist:
-	refs = sys.getrefcount(d.value) - 2
-	line = '%8.1f %6d     %s' % (d.size / mb, refs , d.description)
-	listbox.insert('end', line)
+        refs = sys.getrefcount(d.value) - 2
+        line = '%8.1f %6d     %s' % (d.size / mb, refs , d.description)
+        listbox.insert('end', line)
       limit = dcache.size
 
     used = reduce(lambda t, d: t + d.size, dlist, 0)
     heading = ('%d objects using %.0f of %.0f Mb' %
-	       (len(dlist), used/mb, limit/mb))
+               (len(dlist), used/mb, limit/mb))
     heading = heading + '\nSize (Mb)  In use   Description'
     self.object_list_heading['text'] = heading
 
