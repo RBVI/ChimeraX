@@ -24,6 +24,7 @@ endif
 INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 
 OPT = -g
+#OPT = -O3
 
 all: $(PYMOD)
 
