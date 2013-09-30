@@ -182,7 +182,7 @@ PROG = $(PROG_NAME)$(PROG_EXT)
 
 NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
 
-PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-33.pyc,$(basename $(PYSRCS))))
+PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-$(PYVER_NODOT).pyc,$(basename $(PYSRCS))))
 
 .SUFFIXES: .rst .html
 .rst.html:
