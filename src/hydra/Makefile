@@ -36,9 +36,8 @@ ifeq ($(OS),Darwin)
 	-mkdir $(PY_SITE_INSTALL)
 
 # Copy only the Python packages needed for distribution.
-	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
-	$(RSYNC) $(PYSITEDIR)/PyOpenGL-3.1.0a1-py3.3.egg/OpenGL $(PY_SITE_INSTALL)
-	$(RSYNC) $(PYSITEDIR)/hydra $(PY_SITE_INSTALL)
+	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.1-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
+	cd $(PYSITEDIR) ; $(RSYNC) hydra LeapMotion PyOpenGL-3.1.0a1-py3.3.egg/OpenGL $(PY_SITE_INSTALL)
 
 # Fix Python executable reference to python shared library
 	install_name_tool -change $(PY_LIB) @executable_path/../Python $(FW_DIR)/Python.framework/Versions/3.3/bin/python3.3
