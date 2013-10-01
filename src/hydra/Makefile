@@ -16,6 +16,9 @@ ifeq ($(OS),Darwin)
   QT_FRAMEWORKS = QtCore QtGui QtOpenGL QtPrintSupport QtWidgets
   QT_LIBS = $(foreach fw,$(QT_FRAMEWORKS),$(fw).framework/Versions/5/$(fw))
   PY_LIB = $(frameworkdir)/Python.framework/Versions/3.3/Python
+  QT_PLUGINS = plugins/platforms/libqcocoa.dylib \
+		plugins/imageformats/libqjpeg.dylib \
+		plugins/accessible/libqtaccessiblewidgets.dylib
 endif
 
 # All needed subdirectories must be set by now.
@@ -42,8 +45,6 @@ ifeq ($(OS),Darwin)
 # Fix Python executable reference to python shared library
 	install_name_tool -change $(PY_LIB) @executable_path/../Python $(FW_DIR)/Python.framework/Versions/3.3/bin/python3.3
 	-chmod u+w $(FW_DIR)/Python.framework/Versions/3.3/Python
-#	install_name_tool -id Python $(FW_DIR)/Python.framework/Versions/3.3/Python
-#	install_name_tool -change $(PY_LIB) @executable_path/../../../../Python $(FW_DIR)/Python.framework/Versions/3.3/Python
 	install_name_tool -change $(PY_LIB) @executable_path/../../../../Python $(FW_DIR)/Python.framework/Versions/3.3/Resources/Python.app/Contents/MacOS/Python
 
 # Copy Qt frameworks into PyQt5 python module
@@ -63,20 +64,13 @@ ifeq ($(OS),Darwin)
 		done ; \
 	done
 
-# Install libqcocoa.dylib platform plugin
-	-mkdir -p $(PY_SITE_INSTALL)/PyQt5/plugins/platforms
-	$(RSYNC) $(build_prefix)/plugins/platforms/libqcocoa.dylib $(PY_SITE_INSTALL)/PyQt5/plugins/platforms
-# Fix libqcocoa.dylib plugin paths to Qt frameworks.
-	for qtlib in $(QT_LIBS) ; do \
-		install_name_tool -change $(libdir)/$$qtlib @loader_path/../../frameworks/$$qtlib $(PY_SITE_INSTALL)/PyQt5/plugins/platforms/libqcocoa.dylib ; \
-	done
-
-# Install libqjpeg.dylib image plugin
-	-mkdir -p $(PY_SITE_INSTALL)/PyQt5/plugins/imageformats
-	$(RSYNC) $(build_prefix)/plugins/imageformats/libqjpeg.dylib $(PY_SITE_INSTALL)/PyQt5/plugins/imageformats
-# Fix libqjpeg.dylib plugin paths to Qt frameworks.
-	for qtlib in $(QT_LIBS) ; do \
-		install_name_tool -change $(libdir)/$$qtlib @loader_path/../../frameworks/$$qtlib $(PY_SITE_INSTALL)/PyQt5/plugins/imageformats/libqjpeg.dylib ; \
+# Install needed Qt plugins
+	cd $(build_prefix) ; $(RSYNC) -R $(QT_PLUGINS) $(PY_SITE_INSTALL)/PyQt5
+# Fix plugin library paths to Qt frameworks.
+	for plugin in $(QT_PLUGINS) ; do \
+		for qtlib in $(QT_LIBS) ; do \
+			install_name_tool -change $(libdir)/$$qtlib @loader_path/../../frameworks/$$qtlib $(PY_SITE_INSTALL)/PyQt5/$$plugin ; \
+		done ; \
 	done
 
 # Make PyTables link to libhdf5.8.dylib
