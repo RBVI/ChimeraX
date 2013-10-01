@@ -4,13 +4,14 @@ include $(TOP)/mk/config.make
 SUBDIRS	= docs draw file_io FitMap geometry molecule ui VolumeData VolumeViewer _image3d
 
 PKG_DIR = $(PYSITEDIR)/hydra
+APP_NAME = Hydra.app
 
 PYSRCS = __init__.py molmap.py scenes.py surface.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)
   APPS_DIR = $(build_prefix)/Applications
-  FW_DIR = $(APPS_DIR)/Hydra.app/Contents/Frameworks
+  FW_DIR = $(APPS_DIR)/$(APP_NAME)/Contents/Frameworks
   PY_SITE_INSTALL=$(FW_DIR)/Python.framework/Versions/3.3/lib/python3.3/site-packages
 # QtPrintSupport linked by libqcocoa.dylib Qt plugin
   QT_FRAMEWORKS = QtCore QtGui QtOpenGL QtPrintSupport QtWidgets
@@ -33,7 +34,7 @@ install_mac_app:
 ifeq ($(OS),Darwin)
 # Build application directory hierarchy
 	-mkdir $(APPS_DIR)
-	$(RSYNC) Hydra.app $(APPS_DIR)
+	$(RSYNC) $(APP_NAME) $(APPS_DIR)
 	-mkdir -p $(FW_DIR)
 	$(RSYNC) --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
 	-mkdir $(PY_SITE_INSTALL)
@@ -105,6 +106,11 @@ $(PKG_DIR):
 
 run:
 	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"
+
+dmg:
+	cd $(APPS_DIR) ; \
+	hdiutil create $(basename $(APP_NAME))-`date "+%Y-%m-%d"`.dmg -srcfolder $(APP_NAME) -volname $(basename $(APP_NAME)) -fs HFS+ -format UDBZ
+
 
 clean:
 	rm -rf __pycache__
