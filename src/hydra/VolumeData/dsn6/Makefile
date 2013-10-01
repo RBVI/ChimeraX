@@ -8,7 +8,7 @@ PYSRCS = __init__.py dsn6_format.py dsn6_grid.py writebrix.py
 all: $(PYOBJS)
 
 install: all
-	-mkdir $(PKG_DIR)
+	-mkdir -p $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:

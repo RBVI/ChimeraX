@@ -8,7 +8,7 @@ PYSRCS = __init__.py ccp4_grid.py
 all: $(PYOBJS)
 
 install: all
-	-mkdir $(PKG_DIR)
+	-mkdir -p $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:

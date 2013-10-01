@@ -8,7 +8,7 @@ PYSRCS = __init__.py mrc_format.py mrc_grid.py writemrc.py
 all: $(PYOBJS)
 
 install: all
-	-mkdir $(PKG_DIR)
+	-mkdir -p $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:
