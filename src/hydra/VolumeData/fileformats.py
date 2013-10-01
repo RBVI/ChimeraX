@@ -33,10 +33,11 @@ file_types = (
 
 # -----------------------------------------------------------------------------
 #
-from . import mrc, netcdf, cmap, dsn6
+#from . import mrc, netcdf, cmap, dsn6
+from . import mrc, cmap, dsn6
 file_writers = (
   ('MRC density map', 'mrc', '.mrc', mrc.write_mrc2000_grid_data, ()),
-  ('NetCDF generic array', 'netcdf', '.nc', netcdf.write_grid_as_netcdf, ()),
+#  ('NetCDF generic array', 'netcdf', '.nc', netcdf.write_grid_as_netcdf, ()),
   ('Chimera map', 'cmap', '.cmap', cmap.write_grid_as_chimera_map,
    ('chunk_shapes', 'append', 'compress', 'multigrid')),
   ('BRIX map', 'dsn6', '.brix', dsn6.write_brix, ()),
