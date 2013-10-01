@@ -23,7 +23,7 @@
 <script type="text/javascript" src="webgl/webgl-utils.js"></script>
 <script type="text/javascript" src="webgl/webgl-context.js"></script>
 <script type="text/javascript" src="webgl/llgr_webgl.js"></script>
-<script type="text/javascript" src="js/tsm-0.6.js"></script>
+<script type="text/javascript" src="js/gl-matrix.js"></script>
 <script type="text/javascript" src="js/vsphere.js"></script>
 
 <!-- page-specific script and css -->
@@ -136,11 +136,6 @@ function show_status(message, options) {
 (function () {
 "use strict";
 
-function xform_point(xf, pt) {
-	var pt4 = new TSM.vec4(pt.xyz.concat(1));
-	return new TSM.vec3(xf.multiplyVec4(pt4).xyz);
-}
-
 function BBox(llb, urf) {
     // right-handed axis-aligned bounding box
     // 
@@ -153,8 +148,8 @@ function BBox(llb, urf) {
 BBox.prototype.add = function (pt) {
     // expand bounding box to encompass given point
     if (this.llb === undefined) {
-	this.llb = new TSM.vec3(pt);
-	this.urf = new TSM.vec3(pt);
+	this.llb = vec3.copy(vec.create(), pt);
+	this.urf = vec3.copy(vec.create(), pt);
 	return;
     }
     for (var i = 0; i < 3; ++i) {
@@ -181,12 +176,13 @@ BBox.prototype.add_bbox = function (box) {
 }
 
 BBox.prototype.bulk_add = function (pts) {
+    throw "bulk_add not implemented";
     // expand bounding box to encompass all given points
-    mi = amin(pts, axis=0)
-    ma = amax(pts, axis=0)
+    mi = amin(pts, axis=0)	// TODO
+    ma = amax(pts, axis=0)	// TODO
     if (this.llb === undefined) {
-	this.llb = new TSM.vec3(mi);
-	this.urf = new TSM.vec3(ma);
+	this.llb = vec3.copy(vec3.create(), mi);
+	this.urf = vec3.copy(vec3.create(), ma);
 	return;
     }
     for (var i = 0; i < 3; ++i) {
@@ -201,7 +197,8 @@ BBox.prototype.center = function () {
     // return center of bounding box
     if (this.llb === undefined)
 	throw "empty bounding box";
-    var c = TSM.vec3.sum(this.llb, this.urf).scale(.5);
+    var c = vec3.add(vec3.create(), this.llb, this.urf);
+    vec3.scale(c, c, .5);
     return c;
 }
 
@@ -209,7 +206,7 @@ BBox.prototype.size = function () {
     // return length of sides of bounding box
     if (this.llb === undefined)
 	throw "empty bounding box";
-    return TSM.vec3.difference(this.urf, this.llb);
+    return vec3.subtract(vec3.create(), this.urf, this.llb);
 }
 
 BBox.prototype.xform = function (xf) {
@@ -237,9 +234,9 @@ BBox.prototype.xform = function (xf) {
 }
 
 function Camera() {
-	this.eye = new TSM.vec3([0, 0, 0]);
-	this.at = new TSM.vec3([0, 0, -1]);
-	this.up = new TSM.vec3([0, 1, 0]);
+	this.eye = vec3.fromValues(0, 0, 0);
+	this.at = vec3.fromValues(0, 0, -1);
+	this.up = vec3.fromValues(0, 1, 0);
 	this.ortho = false;
 }
 
@@ -249,16 +246,16 @@ Camera.prototype.reset = function (width, height, fov, bbox) {
 	// and looks at the bounding box down the negative z-axis.
 	this.at = bbox.center();
 	var half_size = bbox.size();
-	half_size.scale(.5 * 1.1);	// + 10%
-	this.width2 = half_size.at(0);
-	this.height2 = half_size.at(1);
-	var depth2 = half_size.at(2);
+	vec3.scale(half_size, half_size, .5 * 1.1);	// + 10%
+	this.width2 = half_size[0];
+	this.height2 = half_size[1];
+	var depth2 = half_size[2];
 	this.update_viewport(width, height);
 
 	this.near = this.height2 / Math.tan(fov / 2);
 	this.far = this.near + 2 * depth2;
-	this.eye = new TSM.vec3([this.at.at(0), this.at.at(1), this.at.at(2) + this.near + depth2]);
-	this.up = new TSM.vec3([0, 1, 0]);	// Direction
+	this.eye = vec3.fromValues(this.at[0], this.at[1], this.at[2] + this.near + depth2);
+	this.up = vec3.fromValues(0, 1, 0);	// Direction
 }
 
 Camera.prototype.update_viewport = function (width, height) {
@@ -273,15 +270,17 @@ Camera.prototype.update_viewport = function (width, height) {
 Camera.prototype.matrices = function () {
 	var projection;
 	if (this.ortho) {
-		projection = new TSM.mat4.orthographic(-this.width2, this.width2,
+		projection = mat4.ortho(mat4.create(),
+			-this.width2, this.width2,
 			-this.height2, this.height2,
 			this.near, this.far);
 	} else {
-		projection = new TSM.mat4.frustum(-this.width2, this.width2,
+		projection = mat4.frustum(mat4.create(),
+			-this.width2, this.width2,
 			-this.height2, this.height2,
 			this.near, this.far);
 	}
-	var modelview = new TSM.mat4.lookAt(this.eye, this.at, this.up);
+	var modelview = mat4.lookAt(mat4.create(), this.eye, this.at, this.up);
 	return [projection, modelview];
 }
 
@@ -293,12 +292,16 @@ Camera.prototype.rotate = function (axis, angle) {
 Camera.prototype.xform = function (xf) {
 	//if not xf._pure:
 	//	throw 'only pure rotation is allowed);
-	var trans = new TSM.mat4().setIdentity().translate(this.at);
-	var inv_trans = new TSM.mat4().setIdentity().translate(-this.at);
-	var xf = new TSM.mat4().setIdentity().multiply(trans).multiply(xf).multiply(inv_trans);
-	this.eye = xform_point(xf, this.eye);
-	this.up = xf.multiplyVec3(this.up);
-	this.at = xform_point(xf, this.at);
+	var inv_trans = vec3.negate(vec3.create(), this.at);
+	var inv_xf = mat4.invert(mat4.create(), xf);
+	var nxf = mat4.create();
+	mat4.translate(nxf, nxf, this.at);
+	mat4.multiply(nxf, nxf, inv_xf);
+	mat4.translate(nxf, nxf, inv_trans);
+	vec3.transformMat4(this.eye, this.eye, nxf);
+	var rot = mat3.fromMat4(mat3.create(), nxf);
+	vec3.transformMat3(this.up, this.up, rot);
+	vec3.transformMat4(this.at, this.at, nxf);
 }
 
 $(document).ready(function() {
@@ -339,7 +342,8 @@ function process_scene_data(data) {
 	if (bbox === undefined) {
 		return;
 	}
-	bbox = new BBox(new TSM.vec3(bbox[0]), new TSM.vec3(bbox[1]));
+	bbox = new BBox(vec3.fromValues.apply(null, bbox[0]),
+	    				vec3.fromValues.apply(null, bbox[1]));
 	if (bbox != scene_bbox) {
 		scene_bbox = bbox;
 		// TODO: update camera
@@ -352,9 +356,9 @@ function process_scene_data(data) {
 		scene_fov = fov;
 		// TODO: update camera
 	}
-	var eye = new TSM.vec3(data["eye"]);
-	var at = new TSM.vec3(data["at"]);
-	var up = new TSM.vec3(data["up"]);
+	var eye = vec3.fromValues.apply(null, data["eye"]);
+	var at = vec3.fromValues.apply(null, data["at"]);
+	var up = vec3.fromValues.apply(null, data["up"]);
 	// TODO: setup camera
 }
 
@@ -383,13 +387,10 @@ function molview_mouse_down(event) {
 	event.stopPropagation();
 	button_pressed = true;
 	var canvas = event.currentTarget;
-	console.log("canvas", canvas);
 	var radius = 0.9 * 0.5 * Math.min(canvas.width, canvas.height);
-	console.log("radius", radius);
 	mouse_position = get_rel_xy(event);
 	mouse_position.x = (mouse_position.x - (canvas.width / 2)) / radius;
 	mouse_position.y = ((canvas.height / 2) - mouse_position.y) / radius;
-	console.log('mouse vxy:', mouse_position.x, mouse_position.y);
 }
 
 function molview_mouse_move(event) {
@@ -402,13 +403,11 @@ function molview_mouse_move(event) {
 	var new_position = get_rel_xy(event);
 	new_position.x = (new_position.x - (canvas.width / 2)) / radius;
 	new_position.y = ((canvas.height / 2) - new_position.y) / radius;
-	console.log('new xy:', new_position.x, new_position.y);
 	var rot_mat;
 	try {
 		rot_mat = vsphere(mouse_position, new_position);
 	} catch (err) {
 		// skip
-		console.log('vs err', err);
 	}
 	mouse_position = new_position;
 	if (rot_mat === undefined)
@@ -444,7 +443,7 @@ function molview_init() {
 }
 
 function draw_scene(ci) {
-	console.log("draw_scene");
+	//console.log("draw_scene");
 	var canvas = ci.canvas;
 	var gl = ci.gl;
 	var width = canvas.width;
@@ -467,11 +466,11 @@ function draw_scene(ci) {
 	var projection = result[0];
 	var modelview = result[1];
 	llgr.set_uniform_matrix(0, 'ProjectionMatrix', false,
-		llgr.Mat4x4, projection.values);
+		llgr.Mat4x4, projection);
 	llgr.set_uniform_matrix(0, 'ModelViewMatrix', false,
-		llgr.Mat4x4, modelview.values);
+		llgr.Mat4x4, modelview);
 	llgr.set_uniform_matrix(0, 'NormalMatrix', false,
-		llgr.Mat3x3, modelview.toMat3().values);
+		llgr.Mat3x3, mat3.fromMat4(mat3.create(), modelview));
 	llgr.render();
 }
 

@@ -24,7 +24,6 @@ PYMOD_NAME = _llgr
 
 PKG_DIR = $(PYSITEDIR)/llgr
 PYSRCS = __init__.py dump.py pyopengl.py spiral.py shader.py
-PYOBJS = $(PYSRCS:.py=.pyc)
 
 HDRS = ../c++/llgr.h ../c++/llgr_ui.h
 
