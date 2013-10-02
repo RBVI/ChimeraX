@@ -36,6 +36,7 @@ public:
 	Residue *  find_residue(std::string &chain_id, int pos, char insert) const;
 	Residue *  find_residue(std::string &chain_id, int pos, char insert,
 		std::string &name) const;
+	bool  is_traj;
 	bool  lower_case_chains;
 	Atom *  new_atom(std::string &name, Element e);
 	Bond *  new_bond(Atom *, Atom *);

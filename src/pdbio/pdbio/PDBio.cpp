@@ -304,6 +304,7 @@ start_t = end_t;
 				}
 				CoordSet *cs = m->new_coord_set(csid, cs_size);
 				m->set_active_coord_set(cs);
+				m->is_traj = true;
 			} else {
 				// first CoordSet starts empty
 				CoordSet *cs = m->new_coord_set(csid);

@@ -11,7 +11,7 @@
 
 Molecule::Molecule():
 	_active_coord_set(NULL), asterisks_translated(false), lower_case_chains(false),
-	pdb_version(0)
+	pdb_version(0), is_traj(false)
 {
 }
 
