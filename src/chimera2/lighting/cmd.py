@@ -38,7 +38,10 @@ def mode(name=None):
 	for m in lighting.MODES:
 		if m.startswith(name):
 			name = m
-	lighting.set_mode(name)
+	try:
+		lighting.set_mode(name)
+	except ValueError as e:
+		raise UserError(str(e))
 
 def brightness(brightness: float=None):
 	if brightness is None:
@@ -84,7 +87,10 @@ def light_color(light, color: Color=None):
 	if color is None:
 		color = lighting.light_color(light)
 		return "%s light color is (%g, %g, %g)" % ((light,) + color)
-	lighting.set_light_color(light, color)
+	try:
+		lighting.set_light_color(light, color)
+	except ValueError as e:
+		raise UserError(str(e))
 
 def light_direction(light, x: float=None, y: float=None, z: float=None):
 	if x is None and y is None and z is None:
@@ -103,7 +109,10 @@ def light_specular_intensity(light, intensity: float=None):
 		return "%s light specular intensity is %s" % (light, i)
 	if not (0 <= intensity <= 1):
 		raise UserError("expecting a number between 0 and 1 inclusive")
-	lighting.set_light_specular_intensity(light, i)
+	try:
+		lighting.set_light_specular_intensity(light, i)
+	except ValueError as e:
+		raise UserError(str(e))
 
 def sharpness(sharpness: float=None):
 	if sharpness is None:
@@ -132,26 +141,27 @@ def save(style):
 def delete(style):
 	lighting.delete(style)
 
-from chimera2 import cmds
-cmds.register('lighting mode', mode)
-cmds.register('lighting brightness', brightness)
-cmds.register('lighting contrast', contrast)
-cmds.register('lighting ratio', ratio)
-cmds.register('lighting sharpness', sharpness)
-cmds.register('lighting reflectivity', reflectivity)
-cmds.register('lighting restore', restore)
-cmds.register('lighting save', save)
-cmds.register('lighting delete', delete)
+def register():
+	from chimera2 import cmds
+	cmds.register('lighting mode', mode)
+	cmds.register('lighting brightness', brightness)
+	cmds.register('lighting contrast', contrast)
+	cmds.register('lighting ratio', ratio)
+	cmds.register('lighting sharpness', sharpness)
+	cmds.register('lighting reflectivity', reflectivity)
+	cmds.register('lighting restore', restore)
+	cmds.register('lighting save', save)
+	cmds.register('lighting delete', delete)
 
-LIGHT_NAMES = (lighting.KEY, lighting.FILL, lighting.BACK)
-for light in LIGHT_NAMES:
-	def set_color(color: Color=None, _light=light):
-		return light_color(_light, color)
-	cmds.register("lighting %s color" % light, set_color)
-	def set_direction(x: float=None, y: float=None, z: float=None, _light=light):
-		return light_direction(_light, x, y, z)
-	cmds.register("lighting %s direction" % light, set_direction)
-	def set_intensity(intensity: float=None, _light=light):
-		return light_specular_intensity(_light, intensity)
-	cmds.register("lighting %s specular_intensity" % light, set_intensity)
-del light, set_color, set_direction, set_intensity
+	LIGHT_NAMES = (lighting.KEY, lighting.FILL, lighting.BACK)
+	for light in LIGHT_NAMES:
+		def set_color(color: Color=None, _light=light):
+			return light_color(_light, color)
+		cmds.register("lighting %s color" % light, set_color)
+		def set_direction(x: float=None, y: float=None, z: float=None, _light=light):
+			return light_direction(_light, x, y, z)
+		cmds.register("lighting %s direction" % light, set_direction)
+		def set_intensity(intensity: float=None, _light=light):
+			return light_specular_intensity(_light, intensity)
+		cmds.register("lighting %s specular_intensity" % light, set_intensity)
+	del light, set_color, set_direction, set_intensity

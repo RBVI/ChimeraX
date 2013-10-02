@@ -123,7 +123,8 @@ class BaseApplication:
 		cmds.register('open', self.cmd_open)
 		cmds.register('stop', self.cmd_stop)
 		cmds.register('stereo', self.cmd_noop)
-		import chimera2.lighting.cmd	# autoregisters commands
+		import chimera2.lighting.cmd as cmd
+		cmd.register()
 
 		# potentially changed in subclass:
 		self.graphics = None
