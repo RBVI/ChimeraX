@@ -1,6 +1,8 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
+PKG_DIR = $(PYSITEDIR)/hydra
+
 PYMOD_NAME = _image3d
 SRCS	= blend_rgba.cpp combine.cpp \
 	  contourdata.cpp pycontour.cpp \
@@ -10,7 +12,7 @@ SRCS	= blend_rgba.cpp combine.cpp \
 	  interpolate.cpp pyinterpolate.cpp \
 	  intercept.cpp \
 	  mesh_edges.cpp \
-	  parsecif.cpp parsepdb.cpp parse_stl.cpp \
+	  parsecif.cpp parsepdb.cpp parse_stl.cpp pdb_bonds.cpp \
 	  pythonarray.cpp rcarray.cpp refcount.cpp \
 	  spline.cpp squaremesh.cpp subdivide.cpp transfer.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
@@ -23,10 +25,13 @@ endif
 
 INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 
+OPT = -g
+#OPT = -O3
+
 all: $(PYMOD)
 
 install: all
-
+	$(RSYNC) $(PYMOD) $(PKG_DIR)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

@@ -20,8 +20,13 @@
  * vsphere:
  *	Convert X-Y coordinates into a 4x4 rotation matrix
  */
-function vsphere(fxy, txy)
-{
+
+var vsphere;
+
+(function () {
+"use strict";
+
+vsphere = function (fxy, txy) {
 	var	i;
 	var	d1, d2;
 	var	f, t, a, g, u;
@@ -41,31 +46,33 @@ function vsphere(fxy, txy)
 	if (d2 > 1 && d1 < 1)
 		throw "inside to outside";
 	if (d1 < 1) {
-		f = new TSM.vec3(fxy.x, fxy.y, Math.sqrt(1 - d1));
+		f = vec3.fromValues(fxy.x, fxy.y, Math.sqrt(1 - d1));
 	} else {
 		d1 = Math.sqrt(d1);
-		f = new TSM.vec3(fxy.x / d1, fxy.y / d1, 0);
+		f = vec3.fromValues(fxy.x / d1, fxy.y / d1, 0);
 	}
 	if (d2 < 1) {
-		t = new TSM.vec3(txy.x, txy.y, Math.sqrt(1 - d2));
+		t = vec3.fromValues(txy.x, txy.y, Math.sqrt(1 - d2));
 	} else {
 		d2 = Math.sqrt(d2);
-		t = new TSM.vec3(txy.x / d2, txy.y / d2, 0);
+		t = vec3.fromValues(txy.x / d2, txy.y / d2, 0);
 	}
 
 	/*
 	 * If the positions normalize to the same place we just punt.
 	 * We don't even bother to put in the identity matrix.
 	 */
-	if (f[0] == t[0] && f[1] == t[1] && f[2] == t[2])
+	if (Math.abs(f[0] - t[0]) < 1e-12
+	&& Math.abs(f[1] - t[1]) < 1e-12
+	&& Math.abs(f[2] - t[2]) < 1e-12)
 		throw "no change";
 
-	a = TSM.vec3.cross(f, t);
-	a.normalize();
-	var m;
-	g = TSM.vec3.cross(a, f); /* Don't need to normalize these since the */
-	u = TSM.vec3.cross(a, t); /* cross product of normal unit vectors is */
-				/* a unit vector */
+	a = vec3.cross(vec3.create(), f, t);
+	vec3.normalize(a, a);
+	// Don't need to normalize these since the cross product of
+	// normal unit vectors is a unit vector
+	g = vec3.cross(vec3.create(), a, f);
+	u = vec3.cross(vec3.create(), a, t);
 
 	/*
 	 * Now assemble them into the inverse matrix (to go from
@@ -74,14 +81,15 @@ function vsphere(fxy, txy)
 	 * the inverse and transformation matrices is the rotation
 	 * matrix.
 	 */
-	m1 = new TSM.mat4(	t[0], a[0], u[0], 0,
-				t[1], a[1], u[1], 0,
-				t[2], a[2], u[2], 0,
-				0, 0, 0, 1);
-	m2 = new TSM.mat4(	f[0], f[1], f[2], 0,
-				a[0], a[1], a[2], 0,
-				g[0], g[1], g[2], 0,
-				0, 0, 0, 1);
-	m = m1.multiply(m2);
-	return m;
-}
+	m1 = mat4.create();
+	m1[0] = t[0]; m1[4] = a[0]; m1[8] = u[0];
+	m1[1] = t[1]; m1[5] = a[1]; m1[9] = u[1];
+	m1[2] = t[2]; m1[6] = a[2]; m1[10] = u[2];
+	m2 = mat4.create();
+	m2[0] = f[0]; m2[4] = f[1]; m2[8] = f[2];
+	m2[1] = a[0]; m2[5] = a[1]; m2[9] = a[2];
+	m2[2] = g[0]; m2[6] = g[1]; m2[10] = g[2];
+	return mat4.multiply(mat4.create(), m1, m2);
+};
+
+})();

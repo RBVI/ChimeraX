@@ -2,7 +2,7 @@ class Surface:
 
   def __init__(self, name):
     self.name = name
-    self.id = 0
+    self.id = None              # positive integer
     self.displayed = True
     from .geometry.place import Place
     self.placement = Place()
@@ -421,6 +421,7 @@ def rgba_surface_piece(rgba, pos, size, surf):
     tlist = array(((0,1,2),(0,2,3)), uint32)
     tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
     p.geometry = vlist, tlist
+    p.color = (1,1,1,1)         # Modulates texture values
     p.useLighting = False
     p.textureCoordinates = tc
     from .draw import drawing

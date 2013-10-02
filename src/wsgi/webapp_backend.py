@@ -47,25 +47,9 @@ def cmd_open(filename):
 	scene.reset()
 	from chimera2 import io
 	try:
-		info = io.open(filename)
-		result = [['info', info]] if info else []
+		return io.open(filename)
 	except OSError as e:
 		raise cmds.UserError(str(e))
-	llgr_info = scene.render(as_data=True)
-	scene_info = {
-		'bbox': [list(scene.bbox.llb), list(scene.bbox.urf)],
-	}
-	if scene.camera is not None:
-		# camera is created/modified as part of scene rendering
-		scene_info.update({
-			'eye': scene.camera.eye,
-			'at': scene.camera.at,
-			'up': scene.camera.up,
-		})
-	return [
-		['scene', scene_info ],
-		['llgr', llgr_info ],
-	] + result
 
 #
 # Main program for per-session backend
@@ -109,12 +93,30 @@ class Backend(Server):
 			cmd = cmds.Command(value, autocomplete=True)
 			cmd.error_check()
 			answer["command"] = cmd.current_text
-			result = cmd.execute(error_check=False)
-			if isinstance(result, str):
-				result = [["info", result]]
-			# TODO: check dirty bits and add changes to result,
-			#	ie: graphics and other state, so result is
-			#	always an info string
+			result = []
+			info = cmd.execute(error_check=False)
+			if isinstance(info, str):
+				result.append(["info", info])
+			# TODO: check dirty bits and add changes to result
+			from chimera2 import scene
+			llgr_info = scene.render(as_data=True, skip_camera_matrices=True)
+			if llgr_info:
+				result.append(['llgr', llgr_info])
+			scene_info = {
+				'bbox': [
+					list(scene.bbox.llb),
+					list(scene.bbox.urf)
+				],
+			}
+			if scene.camera is not None:
+				# camera is created/modified as part of scene rendering
+				scene_info.update({
+					'eye': scene.camera.eye,
+					'at': scene.camera.at,
+					'up': scene.camera.up,
+					'fov': scene._fov,	# TODO: use an official API
+				})
+			result.append(['scene', scene_info])
 			answer["client_data"] = result
 		except cmds.UserError as e:
 			answer["status"] = False

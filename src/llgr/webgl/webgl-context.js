@@ -45,6 +45,7 @@ ContextInfo = function (canvas, gl, render, data)
 			false);
 
 	this.redraw = function () {
+		// request redraw
 		if (this.render === undefined || this.requestId !== null)
 			return;
 		var render = this.render;
@@ -57,8 +58,8 @@ ContextInfo = function (canvas, gl, render, data)
 
 	this.init = function () {
 		llgr.set_context(this.gl);
-		if (this.data == undefined) {
-			llgr.clear_all();
+		llgr.clear_all();
+		if (this.data === undefined) {
 			this.redraw();
 			return;
 		}
@@ -66,6 +67,7 @@ ContextInfo = function (canvas, gl, render, data)
 		if (ci.data.constructor !== String) {
 			// assume ci.data is LLGR JSON data
 			llgr.load_json(ci.data);
+			this.redraw();
 			return;
 		}
 

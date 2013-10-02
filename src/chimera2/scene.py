@@ -61,7 +61,6 @@ class Camera:
 
 		self.near = self.height2 / math.tan(fov / 2)
 		self.far = self.near + 2 * depth2
-		self.eye = Point([self.at[0], self.at[1], self.at[2] + self.near + depth2])
 		self.eye = self.at + Vector([0, 0, self.near + depth2])
 		self.up = Vector([0, 1, 0])
 
@@ -355,7 +354,7 @@ def add_box(p0, p1, color, xform=None):
 		0, _box_indices.size, _box_indices_id, llgr.UByte)
 
 
-def render(as_data=False):
+def render(as_data=False, skip_camera_matrices=False):
 	"""render scene
 	"""
 	global need_redraw
@@ -411,12 +410,13 @@ def render(as_data=False):
 		else:
 			camera = Camera()
 			camera.reset(_viewport[0], _viewport[1], _fov, bbox)
-		projection, modelview = camera.matrices()
-		llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
+		if not skip_camera_matrices:
+			projection, modelview = camera.matrices()
+			llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
 				llgr.Mat4x4, projection.getWebGLMatrix())
-		llgr.set_uniform_matrix(0, 'ModelViewMatrix', False,
+			llgr.set_uniform_matrix(0, 'ModelViewMatrix', False,
 				llgr.Mat4x4, modelview.getWebGLMatrix())
-		llgr.set_uniform_matrix(0, 'NormalMatrix', False,
+			llgr.set_uniform_matrix(0, 'NormalMatrix', False,
 				llgr.Mat3x3, modelview.getWebGLRotationMatrix())
 
 	if as_data:

@@ -10,6 +10,7 @@
 #include "parsecif.h"			// use parse_mmcif_file
 #include "parsepdb.h"			// use parse_pdb_file
 #include "parse_stl.h"			// use parse_stl
+#include "pdb_bonds.h"			// use molecule_bonds
 #include "pycontour.h"			// use surface_py, ...
 #include "pydistances.h"		// use py_distances_from_origin, ...
 #include "pyinterpolate.h"		// use interpolate_volume_data, ...
@@ -68,6 +69,12 @@ static struct PyMethodDef image3d_methods[] =
 
   /* parse_stl.h */
   {const_cast<char*>("parse_stl"), (PyCFunction)parse_stl,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* pdb_bonds.h */
+  {const_cast<char*>("molecule_bonds"), (PyCFunction)molecule_bonds,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("initialize_bond_templates"), (PyCFunction)initialize_bond_templates,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* pydistances.h */

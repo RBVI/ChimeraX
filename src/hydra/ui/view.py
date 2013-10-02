@@ -76,8 +76,9 @@ class View(QtOpenGL.QGLWidget):
 
     def add_model(self, model):
         self.models.append(model)
-        model.id = self.next_id
-        self.next_id += 1
+        if model.id is None:
+            model.id = self.next_id
+            self.next_id += 1
         from ..VolumeViewer.volume import Volume, volume_manager
         if isinstance(model, Volume):
             if not model in volume_manager.data_regions:

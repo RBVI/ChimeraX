@@ -182,12 +182,17 @@ PROG = $(PROG_NAME)$(PROG_EXT)
 
 NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
 
+PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-$(PYVER_NODOT).pyc,$(basename $(PYSRCS))))
+
 .SUFFIXES: .rst .html
 .rst.html:
 	rst2html --title=$* $^ $@
 
 .SUFFIXES: .py .pyc .pyo
 ifdef UNIX
+__pycache__/%.cpython-33.pyc : %.py
+	$(bindir)/python3 -t -m py_compile '$<'
+
 .py.pyc:
 	@rm -f $@
 	python3 -t -m py_compile '$<'

@@ -1,10 +1,13 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
+SUBDIRS = io lighting
+
+include $(TOP)/mk/subdir.make
+
 PKG_DIR = $(PYSITEDIR)/chimera2
 
-PYSRCS = $(wildcard *.py) io lighting
-PYOBJS = $(PYSRCS:.py=.pyc)
+PYSRCS = $(wildcard *.py)
 
 all: $(PYOBJS)
 

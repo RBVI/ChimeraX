@@ -5,12 +5,12 @@
 
 #include "pythonarray.h"		// use python_float_array
 
-static bool atom_line(const char *line)
+inline bool atom_line(const char *line)
 {
   return strncmp(line, "ATOM", 4) == 0 || strncmp(line, "HETATM", 6) == 0;
 }
 
-static int next_line(const char *s, int i)
+inline int next_line(const char *s, int i)
 {
   char c;
   for (c = s[i] ; c != '\n' && c != '\0' ; c = s[++i])

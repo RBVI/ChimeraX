@@ -40,7 +40,7 @@ def set_molecule_state(m, ms):
             setattr(m, attr, ms[attr])
     if 'has_bonds' in ms and ms['has_bonds'] and m.bonds is None:
         from . import connect
-        connect.create_molecule_bonds(m)
+        m.bonds = connect.molecule_bonds(m)
     from numpy import bool
     if 'atom_shown' in ms:
         m.atom_shown = string_to_array(ms['atom_shown'], bool)

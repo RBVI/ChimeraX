@@ -1,43 +1,116 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
+SUBDIRS	= docs draw file_io FitMap geometry molecule ui VolumeData VolumeViewer _image3d
+
 PKG_DIR = $(PYSITEDIR)/hydra
-APPS_DIR = $(build_prefix)/Applications
+APP_NAME = Hydra.app
 
-PYSRCS = __init__.py molmap.py scenes.py surface.py \
-	 draw file_io FitMap geometry molecule ui VolumeData VolumeViewer
-PYLIBS = _image3d/_image3d.so
-
-DATA = docs
+PYSRCS = __init__.py molmap.py scenes.py surface.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)
-  FW_DIR = $(APPS_DIR)/Hydra.app/Contents/Frameworks
-  INSTALL_DIRS += $(APPS_DIR) $(FW_DIR) $(FW_DIR)/Python.framework
+  APPS_DIR = $(build_prefix)/Applications
+  FW_DIR = $(APPS_DIR)/$(APP_NAME)/Contents/Frameworks
+  PY_SITE_INSTALL=$(FW_DIR)/Python.framework/Versions/3.3/lib/python3.3/site-packages
+# QtPrintSupport linked by libqcocoa.dylib Qt plugin
+  QT_FRAMEWORKS = QtCore QtGui QtOpenGL QtPrintSupport QtWidgets
+  QT_LIBS = $(foreach fw,$(QT_FRAMEWORKS),$(fw).framework/Versions/5/$(fw))
+  PY_LIB = $(frameworkdir)/Python.framework/Versions/3.3/Python
+  QT_PLUGINS = plugins/platforms/libqcocoa.dylib \
+		plugins/imageformats/libqjpeg.dylib \
+		plugins/accessible/libqtaccessiblewidgets.dylib
 endif
 
-all: $(PYLIBS)
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
-install: all $(INSTALL_DIRS)
-	$(RSYNC) $(PYSRCS) $(PYLIBS) $(DATA) $(PKG_DIR)
+all: $(PYOBJS)
+
+install: all $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+install_mac_app:
 ifeq ($(OS),Darwin)
-	$(RSYNC) Hydra.app $(APPS_DIR)
+# Build application directory hierarchy
+	-mkdir $(APPS_DIR)
+	$(RSYNC) $(APP_NAME) $(APPS_DIR)
+	-mkdir -p $(FW_DIR)
+	$(RSYNC) --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
+	-mkdir $(PY_SITE_INSTALL)
+
+# Copy only the Python packages needed for distribution.
+	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.1-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
+	cd $(PYSITEDIR) ; $(RSYNC) hydra LeapMotion PyOpenGL-3.1.0a1-py3.3.egg/OpenGL $(PY_SITE_INSTALL)
+
+# Fix Python executable reference to python shared library
+	install_name_tool -change $(PY_LIB) @executable_path/../Python $(FW_DIR)/Python.framework/Versions/3.3/bin/python3.3
+	-chmod u+w $(FW_DIR)/Python.framework/Versions/3.3/Python
+	install_name_tool -change $(PY_LIB) @executable_path/../../../../Python $(FW_DIR)/Python.framework/Versions/3.3/Resources/Python.app/Contents/MacOS/Python
+
+# Copy Qt frameworks into PyQt5 python module
+	-mkdir $(PY_SITE_INSTALL)/PyQt5/frameworks
+	cd $(libdir) ; $(RSYNC) $(QT_FRAMEWORKS:%=%.framework) $(PY_SITE_INSTALL)/PyQt5/frameworks
+# Fix Qt framework paths to other Qt frameworks
+	for qtlib0 in $(QT_LIBS) ; do \
+		for qtlib in $(QT_LIBS) ; do \
+			install_name_tool -change $(libdir)/$$qtlib @loader_path/../../../$$qtlib $(PY_SITE_INSTALL)/PyQt5/frameworks/$$qtlib0 ; \
+		done ; \
+	done
+
+# Fix PyQt library paths to Qt frameworks
+	for pyqtlib in $(PY_SITE_INSTALL)/PyQt5/*.so ; do \
+		for qtlib in $(QT_LIBS) ; do \
+			install_name_tool -change $(libdir)/$$qtlib @loader_path/frameworks/$$qtlib $$pyqtlib ; \
+		done ; \
+	done
+
+# Install needed Qt plugins
+	cd $(build_prefix) ; $(RSYNC) -R $(QT_PLUGINS) $(PY_SITE_INSTALL)/PyQt5
+# Fix plugin library paths to Qt frameworks.
+	for plugin in $(QT_PLUGINS) ; do \
+		for qtlib in $(QT_LIBS) ; do \
+			install_name_tool -change $(libdir)/$$qtlib @loader_path/../../frameworks/$$qtlib $(PY_SITE_INSTALL)/PyQt5/$$plugin ; \
+		done ; \
+	done
+
+# Make PyTables link to libhdf5.8.dylib
+	$(RSYNC) $(libdir)/libhdf5.8.dylib $(PY_SITE_INSTALL)/tables
+	for tableslib in $(PY_SITE_INSTALL)/tables/*.so ; do \
+		install_name_tool -change $(libdir)/libhdf5.8.dylib @loader_path/libhdf5.8.dylib $$tableslib ; \
+	done
+
+# Missing lib-dynload in Python framework
+	$(RSYNC) $(libdir)/python3.3/lib-dynload $(FW_DIR)/Python.framework/Versions/3.3/lib/python3.3
+
+# Fix _image3d.so path to python library
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/_image3d.so
+
+# Install pdbio and fix paths to libraries
+	-mkdir $(PY_SITE_INSTALL)/hydra/lib
+	$(RSYNC) $(libdir)/libmolecule.dylib $(libdir)/libtmpl.dylib $(libdir)/libcapsule.dylib $(PY_SITE_INSTALL)/hydra/lib
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PY_SITE_INSTALL)/hydra/lib/libcapsule.dylib
+	$(RSYNC) $(PYSITEDIR)/pdbio.so $(PYSITEDIR)/access.so $(PY_SITE_INSTALL)/hydra
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/access.so 
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/pdbio.so
+	for pymod in access.so pdbio.so ; do \
+		for lib in libmolecule.dylib libcapsule.dylib libtmpl.dylib ; do \
+			install_name_tool -change @executable_path/../lib/$$lib @loader_path/lib/$$lib $(PY_SITE_INSTALL)/hydra/$$pymod ; \
+		done ; \
+	done
+
 endif
 
 $(PKG_DIR):
 	-mkdir $(PKG_DIR)
-$(APPS_DIR):
-	-mkdir $(APPS_DIR)
-$(FW_DIR):
-	-mkdir -p $(FW_DIR)
-$(FW_DIR)/Python.framework:
-	-ln -s $(frameworkdir)/Python.framework $(FW_DIR)
 
 run:
 	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"
 
-_image3d/_image3d.so:
-	$(MAKE) -C _image3d
+dmg:
+	cd $(APPS_DIR) ; \
+	hdiutil create $(basename $(APP_NAME))-`date "+%Y-%m-%d"`.dmg -srcfolder $(APP_NAME) -volname $(basename $(APP_NAME)) -fs HFS+ -format UDBZ
+
 
 clean:
 	rm -rf __pycache__
