@@ -446,7 +446,6 @@ def open(filespec, identify_as=None, **kw):
 			raise UserError("unable to fetch %s files" % name)
 		stream = fetch(filelike)
 	else:
-		print 
 		if not compression:
 			import os
 			filename = os.path.expanduser(os.path.expandvars(filelike))

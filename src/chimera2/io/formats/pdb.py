@@ -44,6 +44,11 @@ def fetch(pdb_id):
 	if len(pdb_id) != 4:
 		raise UserError("PDB identifiers are 4 characters long")
 	# TODO: check in local cache
+	# check on local system -- TODO: configure location
+	filename = "/databases/mol/pdb/pdb%s.ent" % pdb_id.lower()
+	import os
+	if os.path.exists(filename):
+		return _builtin_open(filename, 'rb')
 	from urllib.request import URLError, Request, urlopen
 	url = "http://www.rcsb.org/pdb/files/%s.pdb" % pdb_id.upper()
 	# TODO: get application name and version for User-Agent
