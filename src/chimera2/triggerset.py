@@ -1,5 +1,6 @@
 """
-triggerset module
+triggerset: Support for managing triggers and handlers
+======================================================
 
 This module defines one class, TriggerSet, which implements a simple callback
 mechanism.  A TriggerSet instance contains a set of named triggers, each of
@@ -8,51 +9,58 @@ in the instance causes all its handlers to be called, in the order of
 registration.
 
 Example
+-------
 
 The following example creates a TriggerSet instance named ts and adds a
 trigger named conrad. Two handlers are registered: the first reports its
 arguments; the second reports its arguments and then deregisters itself.
 
-import triggerset
+::
 
-ts = triggerset.TriggerSet()
-ts.add_trigger('conrad')
+	import triggerset
 
-def first(trigger, trigger_data):
-	print('trigger =', trigger, 'trigger_data =', trigger_data)
+	ts = triggerset.TriggerSet()
+	ts.add_trigger('conrad')
 
-class Second:
-	def __init__(self, ts):
-		self.triggerset = ts
-		self.handler = None
+	def first(trigger, trigger_data):
+		print('trigger =', trigger, 'trigger_data =', trigger_data)
 
-	def trigger_handler(self, trigger, trigger_data):
-		print('trigger =', trigger,
-			'triggerset =', self.triggerset,
-			'handler =', self.handler,
-			'trigger_data =', trigger_data)
-		if self.triggerset and self.handler:
-			self.triggerset.delete_handler(self.handler)
+	class Second:
+		def __init__(self, ts):
+			self.triggerset = ts
 			self.handler = None
 
-h1 = ts.add_handler('conrad', first)
-o = Second(ts)
-o.handler = ts.add_handler('conrad', o.trigger_handler)
+		def trigger_handler(self, trigger, trigger_data):
+			print('trigger =', trigger,
+				'triggerset =', self.triggerset,
+				'handler =', self.handler,
+				'trigger_data =', trigger_data)
+			if self.triggerset and self.handler:
+				self.triggerset.delete_handler(self.handler)
+				self.handler = None
 
-ts.activate_trigger('conrad', 1)
-print()
-ts.activate_trigger('conrad', 2)
+	h1 = ts.add_handler('conrad', first)
+	o = Second(ts)
+	o.handler = ts.add_handler('conrad', o.trigger_handler)
+
+	ts.activate_trigger('conrad', 1)
+	print()
+	ts.activate_trigger('conrad', 2)
 
 The output from this example is: 
 
-trigger = conrad trigger_data = 1
-trigger = conrad triggerset = <triggerset.TriggerSet instance at 1400f3010> handler = <triggerset._TriggerHandler instance at 140097ac0> trigger_data = 1
+::
 
-trigger = conrad trigger_data = 2
+	trigger = conrad trigger_data = 1
+	trigger = conrad triggerset = <triggerset.TriggerSet instance at 1400f3010> handler = <triggerset._TriggerHandler instance at 140097ac0> trigger_data = 1
+
+	trigger = conrad trigger_data = 2
 
 If a handler returns the value triggerset.ONESHOT, then the handler will
 be deregistered after it returns.  Therfore, the 'Second.handler()' method 
 above could have been written more simply as:
+
+::
 
 	def trigger_handler(trigger, trigger_data):
 		print('trigger =', trigger,
