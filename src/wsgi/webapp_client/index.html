@@ -4,7 +4,7 @@
 <!-- vi: se sw=2: -->
 <head>
 <meta charset="utf-8"/>
-<title>Session Javascript Test Page</title>
+<title>Chimera 2 Web Application</title>
 <!-- standard jquery/jquery-ui -->
 <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.js"></script>
 <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
@@ -495,16 +495,17 @@ $(function() {
 </head>
 <body>
 <h1>Session Javascript Test Page</h1>
-<div data-role="page">
+<div data-role="page" class="ui-responsive-panel">
 
 <!--panels-->
-<div data-role="panel" data-position-fixed="true" id="log_panel">
+<div data-role="panel" data-position-fixed="true"
+	data-display="push" id="log_panel">
   <h2>Message Log</h2>
   <p id="log" style="font-size: smaller"></p>
   <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
 </div>
 <div data-role="panel" data-position-fixed="true"
-	data-position="right" id="debug_panel">
+	data-display="push" data-position="right" id="debug_panel">
   <h2>Debug Log</h2>
   <p id="debug" style="font-size: smaller">Debug text</p>
   <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
