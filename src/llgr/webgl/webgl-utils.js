@@ -383,8 +383,10 @@ var getExtensionWithKnownPrefixes = function(gl, name) {
 var resizeCanvasToDisplaySize = function(canvas) {
   if (canvas.width != canvas.clientWidth ||
       canvas.height != canvas.clientHeight) {
+    // Save h since setting canvas.clientWidth changes canvas.clientHeight
+    var h = canvas.clientHeight;
     canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
+    canvas.height = h;
   }
 };
 

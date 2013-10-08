@@ -34,6 +34,8 @@
 #molview {
 	position: relative;
 	margin: 0px;
+	width: 100%;
+	height: 100%;
 }
 </style>
 
@@ -432,6 +434,7 @@ function molview_init() {
 	if (!gl)
 		return;
 
+	resizeCanvasToDisplaySize(canvas);
 	molview_ci = new ContextInfo(canvas, gl, draw_scene);
 	molview_ci.init();
 	molview_ci.redraw();
@@ -575,7 +578,7 @@ $(function() {
     <span id="status_line">&nbsp;</span>
   </div>
   <div>
-   <canvas id="molview" width="500" height="500" class="ui-widget-content">
+   <canvas id="molview" class="ui-widget-content">
     Your browser does not support the HTML5
     <code>&lt;canvas&gt;</code> element.
     <a href="http://get.webgl.org">Click here to upgrade your browser.</a>
