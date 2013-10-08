@@ -47,8 +47,6 @@ __all__ = [
 	'compression_suffixes',
 ]
 
-from chimera2 import UserError
-
 _compression = {}
 def register_compression(suffix, stream_type):
 	_compression[suffix] = stream_type
@@ -436,23 +434,29 @@ def open(filespec, identify_as=None, **kw):
 	if not identify_as:
 		identify_as = filespec
 	if name is None:
-		raise UserError("Missing file type")
-	open = open_function(name)
-	if open is None:
-		raise UserError("unable to open %s files" % name)
+		raise ValueError("Missing file type")
+	open_func = open_function(name)
+	if open_func is None:
+		raise ValueError("unable to open %s files" % name)
 	if prefix:
 		fetch = fetch_function(name)
 		if fetch is None:
-			raise UserError("unable to fetch %s files" % name)
+			raise ValueError("unable to fetch %s files" % name)
 		stream = fetch(filelike)
 	else:
 		if not compression:
 			import os
 			filename = os.path.expanduser(os.path.expandvars(filelike))
-			stream = _builtin_open(filename, 'rb')
+			try:
+				stream = _builtin_open(filename, 'rb')
+			except OSError as e:
+				raise ValueError(str(e))
 		else:
 			stream_type = _compression[name]
-			stream = stream_type(filelike)
+			try:
+				stream = stream_type(filelike)
+			except OSError as e:
+				raise ValueError(str(e))
 			if requires_seeking(name):
 				# copy compressed file to real file
 				import tempfile
@@ -466,12 +470,12 @@ def open(filespec, identify_as=None, **kw):
 					tf.write(data)
 				tf.seek(0)
 				stream = tf
-	return open(stream, identify_as=identify_as, **kw)
+	return open_func(stream, identify_as=identify_as, **kw)
 
 def save(filename, **kw):
 	name, prefix, filelike, compression = deduce_format(filename, prefixable=False)
 	if name is None:
-		raise UserError("Missing file type")
+		raise ValueError("Missing file type")
 	func = save_function(name)
 	if not compression:
 		stream = open(filelike, 'wb')
