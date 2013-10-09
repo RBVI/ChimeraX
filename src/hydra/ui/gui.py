@@ -241,7 +241,9 @@ class Log:
             htext = text
         else:
             style = '' if color is None else ' style="color:%s;"' % color
-            htext = '<pre%s>%s</pre>\n' % (style,text)
+            import cgi
+            etext = cgi.escape(text)
+            htext = '<pre%s>%s</pre>\n' % (style,etext)
         self.html_text += htext
     def insert_graphics_image(self):
         self.schedule_image_capture()
