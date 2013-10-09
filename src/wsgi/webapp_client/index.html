@@ -497,20 +497,19 @@ $(function() {
 </script>
 </head>
 <body>
-<h1>Session Javascript Test Page</h1>
 <div data-role="page" class="ui-responsive-panel">
 
 <!--panels-->
 <div data-role="panel" data-position-fixed="true"
 	data-display="push" id="log_panel">
   <h2>Message Log</h2>
-  <p id="log" style="font-size: smaller"></p>
+  <p id="log" style="font-size: smaller; height:80vh; overflow:auto;"></p>
   <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
 </div>
 <div data-role="panel" data-position-fixed="true"
 	data-display="push" data-position="right" id="debug_panel">
   <h2>Debug Log</h2>
-  <p id="debug" style="font-size: smaller">Debug text</p>
+  <p id="debug" style="font-size: smaller; height:80vh; overflow:auto;">Debug text</p>
   <a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
 </div>
 <!--end panels-->
@@ -570,6 +569,7 @@ $(function() {
 
 <!--main content-->
 <div data-role="content">
+  <h1>Chimera 2 Web Application</h1>
   <div>
     <label for="command_line">Command:</label>
     <input id="command_line" type="text" size="100"/>
