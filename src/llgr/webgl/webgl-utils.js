@@ -203,10 +203,11 @@ var getWebGLContext = function(canvas, opt_attribs) {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
   } else {
-    var title = document.title;
-    var h1 = document.createElement("h1");
-    h1.innerText = title;
-    document.body.insertBefore(h1, document.body.children[0]);
+// Why do we create an h1 element when getting a WebGL context?
+//    var title = document.title;
+//    var h1 = document.createElement("h1");
+//    h1.innerText = title;
+//    document.body.insertBefore(h1, document.body.children[0]);
   }
 
   var gl = setupWebGL(canvas, opt_attribs);
@@ -383,8 +384,10 @@ var getExtensionWithKnownPrefixes = function(gl, name) {
 var resizeCanvasToDisplaySize = function(canvas) {
   if (canvas.width != canvas.clientWidth ||
       canvas.height != canvas.clientHeight) {
+    // Save h since setting canvas.clientWidth changes canvas.clientHeight
+    var h = canvas.clientHeight;
     canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
+    canvas.height = h;
   }
 };
 
