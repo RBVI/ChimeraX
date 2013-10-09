@@ -6,15 +6,16 @@
 #include <map>
 
 #include "Element.h"
-#include "Point.h"
-#include "Coord.h"
+#include "base-geom/Point.h"
+#include "base-geom/Coord.h"
 #include "Bond.h"
+#include "base-geom/Sphere.h"
 
 class CoordSet;
 class Molecule;
 class Residue;
 
-class Atom {
+class Atom: public BaseSphere {
 	friend class Molecule;
 	friend class Residue;
 public:
@@ -55,7 +56,7 @@ public:
 		return _bonds.find(a) != _bonds.end();
 	}
 	unsigned int  coord_index() const { return _coord_index; }
-	const Coord &coord() const;
+	virtual const Coord &coord() const;
 	Element  element() const { return _element; }
 	Molecule *  molecule() const { return _molecule; }
 	const std::string  name() const { return _name; }
@@ -68,7 +69,8 @@ public:
 	void  set_alt_loc(char alt_loc, bool create=false);
 	void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
 	void  set_bfactor(float);
-	void  set_coord(const Point & coord, CoordSet * cs=NULL);
+	virtual void  set_coord(const Point & coord) { set_coord(coord, NULL); }
+	void  set_coord(const Point & coord, CoordSet * cs);
 	void  set_occupancy(float);
 	void  set_serial_number(int);
 };
