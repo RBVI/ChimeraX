@@ -17,6 +17,7 @@ __all__ = [
     'Identity', 'Rotation', 'Translation', 'Scale',
     'transform',
     'look_at', 'ortho', 'frustum', 'perspective',
+    'camera_orientation',
     'BBox',
 ]
 
@@ -189,7 +190,7 @@ class Xform:
         return Vector(self._matrix[0:3, 3])
 
     def get_rotation(self):
-        rot = self._matrix[0:2, 0:2]
+        rot = self._matrix[0:3, 0:3]
         cos_theta = (rot[0][0] + rot[1][1] + rot[2][2] - 1) / 2
         if 1 - EPSILON <= cos_theta <= 1 + EPSILON:
             angle = 0
@@ -286,14 +287,17 @@ class Xform:
             return
         if self._projection:
             raise NotImplemented("can't invert projection matrices")
-        # swap off-diagonal section of rotation part
-        self._matrix[0, 1], self._matrix[1, 0] = self._matrix[1, 0], self._matrix[0, 1]
-        self._matrix[0, 2], self._matrix[2, 0] = self._matrix[2, 0], self._matrix[0, 2]
-        self._matrix[1, 2], self._matrix[2, 1] = self._matrix[2, 1], self._matrix[1, 2]
-        # reverse translation part
-        self._matrix[0, 3] *= -1
-        self._matrix[1, 3] *= -1
-        self._matrix[2, 3] *= -1
+
+        if not self._pure:
+            from numpy.linalg import inv
+            self._matrix = inv(self._matrix)
+        else:
+            # swap off-diagonal section of rotation part
+            self._matrix[0, 1], self._matrix[1, 0] = self._matrix[1, 0], self._matrix[0, 1]
+            self._matrix[0, 2], self._matrix[2, 0] = self._matrix[2, 0], self._matrix[0, 2]
+            self._matrix[1, 2], self._matrix[2, 1] = self._matrix[2, 1], self._matrix[1, 2]
+            # reverse translation part
+            self._matrix[0:3, 3] = - dot(self._matrix[0:3, 0:3], self._matrix[0:3, 3])
 
     def inverse(self):
         xf = Xform(self)
@@ -375,7 +379,7 @@ def transform(translation=None, center=None, rotation=None, scaleOrientation=Non
 def look_at(p0, p1, up):
     """Compute viewing transformation
 
-    Place :param p0: at origin, :param p1: on the negative z axis
+    Place :param p0: at origin, :param p1: on the negative z axis,
     and orient so :param up: is in the same half-plane as the postive y axis
     and z axis.  :param up: can either be a Point or a Vector.
     """
@@ -406,6 +410,43 @@ def look_at(p0, p1, up):
 
     # Compute the translation component of matrices
     xlate = xf * p0
+    xf._matrix[0:3, 3] = -xlate
+    return xf
+
+def camera_orientation(p0, p1, up):
+    """Like look_at but p1 is at origin
+
+    Place :param p0: on positive z axis origin, :param p1: at the origin,
+    and orient so :param up: is in the same half-plane as the postive y axis
+    and z axis.  :param up: can either be a Point or a Vector.
+    """
+    # Compute the rotational part of lookat matrix
+    f = p1 - p0
+    try:
+        f.normalize()
+    except ZeroDivisionError:
+        raise ValueError("colinear points")
+    if isinstance(up, Point):
+        up = up - p1
+    s = cross(f, up)
+    try:
+        s.normalize()
+    except ZeroDivisionError:
+        raise ValueError("colinear points")
+    u = cross(s, f)
+    try:
+        u.normalize()
+    except ZeroDivisionError:
+        raise ValueError("colinear points")
+
+    xf = Xform(array([
+            [s[0], s[1], s[2], 0],
+            [u[0], u[1], u[2], 0],
+            [-f[0], -f[1], -f[2], 0]
+        ]), _pure=True)
+
+    # Compute the translation component of matrices
+    xlate = xf * p1
     xf._matrix[0:3, 3] = -xlate
     return xf
 
