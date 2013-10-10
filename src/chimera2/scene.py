@@ -36,7 +36,7 @@ __all__ = [
 
 from .math3d import (Point, weighted_point, Vector, cross,
 		Xform, Identity, Rotation, Translation,
-		frustum, ortho, look_at, BBox)
+		frustum, ortho, look_at, camera_orientation, BBox)
 from numpy import array, float32, uint8
 from math import radians
 
@@ -91,12 +91,12 @@ class Camera:
 	def xform(self, xf):
 		if not xf._pure:
 			raise ValueError('only pure rotation is allowed')
-		trans = Translation(self.at)
-		inv_trans = Translation(-self.at)
-		xf = trans * xf.inverse() * inv_trans
-		self.eye = xf * self.eye
-		self.up = xf * self.up
-		self.at = xf * self.at
+		modelview = camera_orientation(self.eye, self.at, self.up)
+		inv_modelview = modelview.inverse()
+		nxf = inv_modelview * xf.inverse() * modelview
+		self.eye = nxf * self.eye
+		self.up = nxf * self.up
+		self.at = nxf * self.at
 
 bbox = BBox() #: The current bounding box.
 camera = None
