@@ -222,9 +222,9 @@ def show_main_window():
     main_window = w
 #    w.view.setFocus(QtCore.Qt.OtherFocusReason)       # Get keyboard events on startup
     w.show()
-    enable_exception_logging()
     from ..file_io.history import history
     history.show_thumbnails()
+    enable_exception_logging()
     redirect_stdout()
     status = app.exec_()
 #    from . import leap
