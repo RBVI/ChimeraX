@@ -22,7 +22,8 @@ class File_History:
     hfile = self.history_file
     from os.path import join, isfile
     if not isfile(hfile):
-      return
+      if not self.install_example_sessions(hfile):
+        return
 
     f = open(hfile, 'r')
     lines = f.readlines()
@@ -47,6 +48,38 @@ class File_History:
     self.read = True
 
     self.files = files
+
+  def install_example_sessions(self, hfile):
+
+    from os.path import dirname, join, exists
+    from os import mkdir, listdir
+
+    sdir = join(dirname(hfile), 'example_sessions')
+    if exists(sdir):
+      return False
+
+    # Make directory for example sessions
+    mkdir(sdir)
+
+    import hydra
+    esdir = join(dirname(hydra.__file__), 'example_sessions')
+    f = open(join(esdir, 'sessions'), 'r')
+    slines = f.readlines()
+    f.close()
+
+    # Copy example sessions and thumbnail images and write history file.
+    sfile = open(hfile, 'a')
+    from shutil import copyfile
+    for line in slines:
+      fields = line.split('|')
+      if len(fields) == 3:
+        sname, iname, atime = [f.strip() for f in fields]
+        copyfile(join(esdir,sname), join(sdir,sname))
+        copyfile(join(esdir,iname), join(sdir,iname))
+        sfile.write('%s|%s|%s\n' % (join(sdir,sname), join('example_sessions',iname), atime))
+    sfile.close()
+
+    return True
 
   def write_history(self):
 
@@ -184,7 +217,7 @@ def unique_file_name(name, directory):
   upath = join(directory, uname)
   n = 1
   while isfile(upath):
-    uname = '%s%d.%s' % (bname, n, suffix)
+    uname = '%s%d%s' % (bname, n, suffix)
     upath = join(directory, uname)
     n += 1
   return uname
@@ -195,7 +228,7 @@ def user_settings_path(filename = None, directory = False):
   from os.path import isdir, join
   if not isdir(data_dir):
     return None
-  c2_dir = join(data_dir, 'Chimera')
+  c2_dir = join(data_dir, 'Hydra')
   if not isdir(c2_dir):
     import os
     os.mkdir(c2_dir)
