@@ -182,6 +182,8 @@ def shortcut_molecules(v):
 
 def close_all_models(viewer):
     viewer.close_all_models()
+    from .. import scenes
+    scenes.delete_all_scenes()
     from ..file_io.history import history
     history.show_thumbnails()
 
