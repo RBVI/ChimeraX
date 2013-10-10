@@ -83,7 +83,7 @@ def register_shortcuts(viewer):
 
     from .gui import show_log
     misc_shortcuts = (
-        ('rv', v.initial_camera_view, 'Reset view', gcat),
+        ('dv', v.initial_camera_view, 'Default view', gcat),
         ('va', v.view_all, 'View all', gcat),
         ('rs', history.show_thumbnails, 'Show recent sessions', ocat),
         ('cs', v.clear_selection, 'Clear selection', gcat),
