@@ -6,8 +6,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle(self.tr("Hydra"))
         
-        sb = QtWidgets.QStatusBar()
+        sb = QtWidgets.QStatusBar(self)
         self.setStatusBar(sb)
+        self.status_update_interval = 0.2       # seconds
+        self.last_status_update = 0
 
         self.stack = st = QtWidgets.QStackedWidget(self)
         from .view import View
@@ -173,6 +175,25 @@ class MainWindow(QtWidgets.QMainWindow):
     def show_graphics(self):
         self.stack.setCurrentWidget(self.view)
 
+    def show_status(self, msg, append = False):
+        sb = self.statusBar()
+        if append:
+            msg = str(sb.currentMessage()) + msg
+        sb.showMessage(sb.tr(msg))
+#        sb.repaint()        # Does not draw.  Redraw in case long wait before return to event loop
+
+        # Repaint status line by entering event loop
+        from time import time
+        t = time()
+        if t > self.last_status_update + self.status_update_interval:
+            self.last_status_update = t
+            global app
+            self.view.block_redraw()        # Avoid graphics redraw
+            try:
+                app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+            finally:
+                self.view.unblock_redraw()
+
 def icon(filename):
     from os.path import dirname, join
     dir = dirname(__file__)
@@ -212,14 +233,7 @@ def show_main_window():
     sys.exit(status)
 
 def show_status(msg, append = False):
-    sb = main_window.statusBar()
-    if append:
-        msg = str(sb.currentMessage()) + msg
-    sb.showMessage(sb.tr(msg))
-    sb.repaint()        # Redraw in case long wait before return to event loop
-# This can cause an undesired graphics redraw during a status message.
-#    global app
-#    app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+    main_window.show_status(msg, append)
 
 def show_info(msg, color = None):
     log_message(msg, color)
