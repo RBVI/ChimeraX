@@ -1,6 +1,6 @@
 """
-cmds: Support for application command lines
-===========================================
+cmds: Unified application command line support
+==============================================
 
 Text commands are composed of a command name, which can be several
 separate words, followed by positional and keyword arguments.  Keyword
@@ -109,13 +109,19 @@ __all__ = [
 ]
 
 class UserError(ValueError):
-	"""Use for cases where user provided input causes an error."""
+	"""An exception provoked by the user's input.
+
+	As opposed to one that is a bug in the program.
+	"""
 	pass
 
 from collections import OrderedDict
 
 class Optional:
-	"""Hook for optional positional arguments"""
+	"""Hook for optional positional arguments
+	
+	Optional(annotation) -> annotation
+	"""
 
 	def __init__(self, annotation):
 		self.anno = annotation
@@ -129,12 +135,20 @@ class Optional:
 		return []
 
 class Aggregate:
-	"""Hook for aggregating arguments"""
+	"""Hook for aggregating arguments
 
-	def __init__(self, annotation, initial, gather):
+	Aggregate(annotation, constructor, add_to) -> annotation
+	
+	:param annotation: annotation for values in the collection
+	:param constructor: function/type to create an empty collection
+	:param add_to: function to add an element to the collection,
+	typically an unbound method
+	"""
+
+	def __init__(self, annotation, constructor, add_to):
 		self.anno = annotation
-		self.initial = initial
-		self.gather = gather
+		self.constructor = constructor
+		self.add_to = add_to
 
 	def __call__(self, text):
 		return self.anno(text)
@@ -145,15 +159,24 @@ class Aggregate:
 		return []
 
 def List_of(annotation):
-	# essentially a class constructor
+	"""Annotation for lists of a single type
+	
+	List_of(annotation) -> annotation
+	"""
 	return Aggregate(annotation, list, list.append)
 
 def Set_of(annotation):
-	# essentially a class constructor
+	"""Annotation for sets of a single type
+	
+	Set_of(annotation) -> annotation
+	"""
 	return Aggregate(annotation, set, set.add)
 
 class Or:
-	"""Support two or more alternative annotations"""
+	"""Support two or more alternative annotations
+	
+	Or(annotation, annotation [, annotation]*) -> annotation
+	"""
 
 	def __init__(self, *annotations):
 		if len(annotations) < 2:
@@ -182,7 +205,6 @@ class Or:
 		return completions
 
 class _Bool:
-	"""Support boolean literals"""
 
 	def __call__(self, text):
 		text = text.casefold()
@@ -200,7 +222,7 @@ class _Bool:
 		if "true".startswith(text):
 			result.append("true")
 		return result
-Bool = _Bool()
+Bool = _Bool() #: Annotation for boolean literals
 
 class _FunctionInfo:
 	# cache information about functions
@@ -271,19 +293,20 @@ class _FunctionInfo:
 				self.var_positional = True
 			elif p.kind == Param.VAR_KEYWORD:
 				self.var_keyword = True
-		#print("""%s function info:
-		#	positional: %s
-		#	optional: %s
-		#	aggregate: %s
-		#	boolean: %s
-		#	keyword: %s
-		#""" % (function,
-		#	self.positionals,
-		#	self.optionals,
-		#	self.aggregates,
-		#	self.booleans,
-		#	self.keywords,
-		#	))
+		return
+		print("""%s function info:
+			positional: %s
+			optional: %s
+			aggregate: %s
+			boolean: %s
+			keyword: %s
+		""" % (function,
+			self.positionals,
+			self.optionals,
+			self.aggregates,
+			self.booleans,
+			self.keywords,
+			))
 
 # _commands is a map of command name to command function.  Except when
 # it is a multiword command name, then the preliminary words map to
@@ -300,9 +323,25 @@ def _check_autocomplete(word, mapping, name):
 			raise ValueError("'%s' is a prefix of an existing command" % name)
 
 class Defer:
+	"""Enable function introspection to be deferred until needed
+
+	Defer(proxy_function) -> instance
+	
+	There are two uses: (1) the proxy function returns the actual
+	function that implements the command, or (2) the proxy function
+	register subcommands and returns None.  In the former case,
+	the proxy function will typically consist of an import statement,
+	followed by returning a function in the imported module.  In the
+	latter case, multiple subcommands are registered, and nothing is
+	returned.
+	"""
+	__slots__ = [ 'proxy' ]
+
+	def __init__(self, proxy_function):
+		self.proxy = proxy_function
 
 	def __call__(self):
-		raise RuntimeError("Defer instance needs to be callable")
+		return self.proxy()
 
 def register(name, function=None):
 	"""register function that implements command
@@ -325,8 +364,7 @@ def register(name, function=None):
 	of an existing command is an error since it breaks backwards
 	compatibility.
 	"""
-	if function is None:
-		# act as a decorator
+	if function is None: # act as a decorator
 		import functools
 		return functools.partial(register, name)
 	words = name.split()
@@ -336,7 +374,7 @@ def register(name, function=None):
 		if isinstance(what, dict):
 			cmd_map = what
 			continue
-		if what is not None:
+		if what is not None and not isinstance(what, Defer):
 			raise ValueError("command extends previous command")
 		_check_autocomplete(word, cmd_map, name)
 		d = cmd_map[word] = OrderedDict()
@@ -348,7 +386,7 @@ def register(name, function=None):
 	#if what is not None:
 	#	# TODO: replacing, preserve extra keywords
 	_check_autocomplete(word, cmd_map, name)
-	if isinstance(function, Defer):
+	if isinstance(function, (str, Defer)):
 		# delay introspecting function
 		fi = function
 	else:
@@ -365,6 +403,12 @@ def _lazy_introspect(cmd_map, word):
 	deferred = cmd_map[word]
 	if isinstance(deferred, Defer):
 		function = deferred()
+		if function is None:
+			# deferred function should have registered subcommands
+			fi = cmd_map[word]
+			if isinstance(fi, dict):
+				return fi
+			function = _not_implemented
 	elif isinstance(deferred, str):
 		module_name, function_name = deferred.rsplit('.', 1)
 		try:
@@ -399,10 +443,10 @@ def add_keyword_arguments(name, info):
 	fi = cmd_map.get(word, None)
 	if fi is None:
 		raise ValueError("'%s' is not a command" % name)
-	if isinstance(fi, dict):
-		raise ValueError("'%s' is not the full command" % name)
 	if isinstance(fi, (str, Defer)):
 		fi = _lazy_introspect(cmd_map, word)
+	if isinstance(fi, dict):
+		raise ValueError("'%s' is not the full command" % name)
 	if not fi.var_keyword:
 		raise ValueError("'%s' does not take a variable number of keywords" % name)
 	# TODO: fail if there are conflicts with existing keywords
@@ -595,8 +639,8 @@ class Command:
 					self._kwargs[self._in_kwarg] = word
 				else:
 					if self._in_kwarg not in self._kwargs:
-						self._kwargs[self._in_kwarg] = anno.initial()
-					anno.gather(self._kwargs[self._in_kwarg], word)
+						self._kwargs[self._in_kwarg] = anno.constructor()
+					anno.add_to(self._kwargs[self._in_kwarg], word)
 				self._in_kwarg = ""
 				self._error = ""
 				self.completion_prefix = ""
@@ -619,14 +663,14 @@ class Command:
 					self.completion_prefix = word
 					self.completions = [kw for kw in self._word_map if kw.startswith(word)]
 					continue
+				if isinstance(what, (str, Defer)):
+					what = _lazy_introspect(self._word_map, word)
 				if isinstance(what, dict):
 					# word is part of multiword command name
 					self._word_map = what
 					self._error = "Incomplete command: %s" % self.current_text[0:self.amount_parsed]
 					continue
 				# word was last word in command name
-				if isinstance(what, (str, Defer)):
-					what = _lazy_introspect(self._word_map, word)
 				self._fi = what
 				self._word_map = self._fi.keywords
 				self._error = ""
