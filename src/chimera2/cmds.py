@@ -374,9 +374,11 @@ def register(name, function=None):
 		if isinstance(what, dict):
 			cmd_map = what
 			continue
-		if what is not None and not isinstance(what, Defer):
+		deferred = isinstance(what, Defer)
+		if what is not None and not deferred:
 			raise ValueError("command extends previous command")
-		_check_autocomplete(word, cmd_map, name)
+		if not deferred:
+			_check_autocomplete(word, cmd_map, name)
 		d = cmd_map[word] = OrderedDict()
 		cmd_map = d
 	word = words[-1]

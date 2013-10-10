@@ -430,18 +430,19 @@ def open(filespec, identify_as=None, **kw):
 	uncompressed into a temporary file before calling the open function.
 	"""
 
+	from chimera2.cmds import UserError
 	name, prefix, filelike, compression = deduce_format(filespec)
 	if not identify_as:
 		identify_as = filespec
 	if name is None:
-		raise ValueError("Missing file type")
+		raise UserError("Missing or unknown file type")
 	open_func = open_function(name)
 	if open_func is None:
-		raise ValueError("unable to open %s files" % name)
+		raise UserError("unable to open %s files" % name)
 	if prefix:
 		fetch = fetch_function(name)
 		if fetch is None:
-			raise ValueError("unable to fetch %s files" % name)
+			raise UserError("unable to fetch %s files" % name)
 		stream = fetch(filelike)
 	else:
 		if not compression:
@@ -450,13 +451,13 @@ def open(filespec, identify_as=None, **kw):
 			try:
 				stream = _builtin_open(filename, 'rb')
 			except OSError as e:
-				raise ValueError(str(e))
+				raise UserError(e)
 		else:
 			stream_type = _compression[name]
 			try:
 				stream = stream_type(filelike)
 			except OSError as e:
-				raise ValueError(str(e))
+				raise UserError(e)
 			if requires_seeking(name):
 				# copy compressed file to real file
 				import tempfile
@@ -473,9 +474,10 @@ def open(filespec, identify_as=None, **kw):
 	return open_func(stream, identify_as=identify_as, **kw)
 
 def save(filename, **kw):
+	from chimera2.cmds import UserError
 	name, prefix, filelike, compression = deduce_format(filename, prefixable=False)
 	if name is None:
-		raise ValueError("Missing file type")
+		raise UserError("Missing or unknown file type")
 	func = save_function(name)
 	if not compression:
 		stream = open(filelike, 'wb')
