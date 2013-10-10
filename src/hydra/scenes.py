@@ -61,6 +61,12 @@ def delete_scene(id):
         scenes = [s for s in scenes if s.id != id]
     show_thumbnails()
 
+def delete_all_scenes():
+    global scenes
+    if scenes:
+        scenes = []
+        hide_thumbnails()
+
 class Scene:
 
     def __init__(self, id, description):
@@ -189,8 +195,9 @@ class Scene_Thumbnails:
         dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
 
         class Thumbnail_Viewer(QtWidgets.QTextBrowser):
+            height = 140
             def sizeHint(self):
-                return QtCore.QSize(600,140)
+                return QtCore.QSize(600,self.height)
         self.text = e = Thumbnail_Viewer(dw)
         e.setOpenLinks(False)
 #        self.text = e = QtWidgets.QTextBrowser(dw)
@@ -201,6 +208,7 @@ class Scene_Thumbnails:
         e.anchorClicked.connect(self.anchor_callback)          # Handle clicks on anchors
 
     def show(self, scenes):
+        self.set_height()
         self.html = html = scene_thumbnails_html(scenes)
         self.text.setHtml(html)
 
@@ -222,6 +230,12 @@ class Scene_Thumbnails:
         id = int(url)
         show_scene(id)
 
+    def set_height(self, h = None):
+        if h is None:
+            global scenes
+            h = 220 if [s for s in scenes if s.description] else 140
+        self.text.height = h
+
 def scene_thumbnails_html(scenes):
 
   from os.path import basename, splitext
@@ -238,11 +252,19 @@ def scene_thumbnails_html(scenes):
   for s in scenes:
       i = s.image
       w,h = i.width(), i.height()
-      lines.append('<td valign=bottom><a href="%d"><img src="%s" width=%d height=%d></a>'
-                   % (s.id,s.image_path(), w, h))
+      lines.append('<td width=%d valign=bottom><a href="%d"><img src="%s" width=%d height=%d></a>'
+                   % (w+10, s.id, s.image_path(), w, h))
+
   lines.append('<tr>')
   for s in scenes:
       lines.append('<td><a href="%d"><center>%d</center></a>' % (s.id, s.id))
+
+  if [s for s in scenes if s.description]:
+      lines.append('<tr>')
+      import cgi
+      for s in scenes:
+          line = ('<td><a href="%d">%s</a>' % (s.id, cgi.escape(s.description))) if s.description else '<td>'
+          lines.append(line)
   lines.extend(['</table>', '</body>', '</html>'])
   html = '\n'.join(lines)
   return html
