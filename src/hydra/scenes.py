@@ -235,6 +235,8 @@ class Scene_Thumbnails:
             global scenes
             h = 220 if [s for s in scenes if s.description] else 140
         self.text.height = h
+#        self.text.adjustSize()
+#        self.dock_widget.adjustSize()
 
 def scene_thumbnails_html(scenes):
 
