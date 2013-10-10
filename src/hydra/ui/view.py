@@ -41,6 +41,7 @@ class View(QtOpenGL.QGLWidget):
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
         self.redraw_needed = False
+        self.block_redraw_count = 0
         self.new_frame_callbacks = []
         self.rendered_callbacks = []
         self.last_draw_duration = 0             # seconds
@@ -176,7 +177,7 @@ class View(QtOpenGL.QGLWidget):
     def start_update_timer(self):
 
         self.timer = t = QtCore.QTimer(self)
-        t.timeout.connect(self.redraw_graphics)
+        t.timeout.connect(self.redraw)
         t.start(self.redraw_interval)
 
     def set_shader(self, **kw):
@@ -185,8 +186,17 @@ class View(QtOpenGL.QGLWidget):
     def current_shader(self):
         return self.render.current_shader_program
 
-    def redraw_graphics(self):
+    def redraw(self):
 
+        if self.block_redraw_count == 0:
+            # Avoid redrawing during callbacks of the current redraw.
+            self.block_redraw()
+            try:
+                self.redraw_graphics()
+            finally:
+                self.unblock_redraw()
+
+    def redraw_graphics(self):
         for cb in self.new_frame_callbacks:
             cb()
 
@@ -206,6 +216,11 @@ class View(QtOpenGL.QGLWidget):
                 cb()
         else:
             self.mouse_pause_tracking()
+
+    def block_redraw(self):
+        self.block_redraw_count += 1
+    def unblock_redraw(self):
+        self.block_redraw_count -= 1
 
     def transparent_models_shown(self):
 
