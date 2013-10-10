@@ -96,7 +96,6 @@ def register_shortcuts(viewer):
         ('ch', show_command_history, 'Show command history', gcat),
         ('sc', show_scenes, 'Show scene thumbnails', gcat),
         ('rt', show_stats, 'Show model statistics', gcat),
-        ('bm', matrix_profile, 'matrix profiling', gcat),
         )
     for k,f,d,cat in misc_shortcuts:
       ks.add_shortcut(k, f, d, category = cat)
@@ -487,23 +486,6 @@ def show_stats():
     r = 1.0/v.last_draw_duration
     n = len(v.models)
     show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
-
-def matrix_profile():
-    from ..geometry.place import identity
-    m = identity()
-    import numpy
-    n = 10000
-    import time
-    t0 = time.clock()
-    mi = [m.inverse() for i in range(n)]
-    t1 = time.clock()
-    print('%.0f matrix inverse per second' % (n / (t1-t0),))
-    t0 = time.clock()
-#    from ..geometry.matrix import multiply_matrices_numpy
-#    mi = [multiply_matrices_numpy(mn,mn) for i in range(n)]
-    mi = [m*m for i in range(n)]
-    t1 = time.clock()
-    print('%.0f matrix multiplies per second' % (n / (t1-t0),))
 
 def leap_chopsticks_mode(viewer):
     from . import c2leap
