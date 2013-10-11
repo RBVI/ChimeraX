@@ -125,7 +125,7 @@ def byte_text(b):
 #
 def fetch_directory(create = False):
     from os.path import expanduser
-    dir = expanduser('~/Downloads/chimera')
+    dir = expanduser('~/Downloads/Hydra')
     from os.path import isdir
     if create and not isdir(dir):
         import os
