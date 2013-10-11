@@ -27,6 +27,7 @@ def register_shortcuts(viewer):
 
     mol_shortcuts = (
         ('bu', show_biological_unit, 'Show biological unit'),
+        ('as', show_asymmetric_unit, 'Show asymmetric unit'),
         ('c1', color_one_color, 'Color molecule one color'),
         ('ce', color_by_element, 'Color atoms by element'),
         ('cc', color_by_chain, 'Color chains'),
@@ -278,7 +279,17 @@ def show_biological_unit(m):
         print (m.path, 'biomt', len(matrices))
         if matrices:
             m.copies = matrices
-            m.update_level_of_detail()
+            m.redraw_needed = True
+            from .gui import main_window
+            m.update_level_of_detail(main_window.view)
+
+def show_asymmetric_unit(m):
+
+    if len(m.copies) > 0:
+        m.copies = []
+        m.redraw_needed = True
+        from .gui import main_window
+        m.update_level_of_detail(main_window.view)
 
 def show_map_transparent(m):
     m.surface_colors = tuple((r,g,b,0.5 if a == 1 else 1) for r,g,b,a in m.surface_colors)
