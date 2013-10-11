@@ -548,6 +548,7 @@
  'volumes': [
    (
     {
+     'database_fetch': ( '5751', 'emdb', ),
      'file_type': 'ccp4',
      'name': 'emd_5751.map',
      'path': '/Users/goddard/Downloads/chimera/EMDB/emd_5751.map',
