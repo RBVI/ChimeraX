@@ -148,22 +148,6 @@ def absolute_path(path):
     apath = path
   return apath
 
-# -----------------------------------------------------------------------------
-#
-grid_data_attributes = (
-  'path',           # Can be a tuple of paths
-  'file_type',
-  'name',
-  'grid_id',
-  'xyz_step',
-  'xyz_origin',
-  'cell_angles',
-  'rotation',
-  'symmetries',
-  'available_subsamplings',
-  'version',
-)
-
 # ---------------------------------------------------------------------------
 #
 def state_from_grid_data(data):
@@ -174,6 +158,8 @@ def state_from_grid_data(data):
        'name': dt.name,
      }
 
+  if hasattr(dt, 'database_fetch'):
+    s['database_fetch'] = dt.database_fetch
   if dt.grid_id != '':
     s['grid_id'] = dt.grid_id
   if dt.step != dt.original_step:
@@ -202,35 +188,13 @@ def grid_data_from_state(s, gdcache):
 
   path = absolute_path(s['path'])
   gid = s.get('grid_id','')
-  if (path, gid) in gdcache:
-    # Caution: If data objects for the same file array can have different
-    #          coordinates then cannot use this cached object.
-    dlist = [gdcache[(path, gid)]]
-  else:
-    from ..VolumeData import opendialog
-    paths_and_types = [(path, s['file_type'])]
-    grids, error_message = opendialog.open_grid_files(paths_and_types,
-                                                      stack_images = False)
-    if error_message:
-      print ('Error opening map', error_message)
-      msg = error_message + '\nPlease select replacement file.'
-      from chimera import tkgui
-      grids = opendialog.select_grids(tkgui.app, 'Replace File', msg)
-      if grids is None:
-        grids = []
-      for data in grids:
-        gdcache[(path, gid)] = data # Cache using old path.
+  file_type = s['file_type']
+  dbfetch = s.get('database_fetch')
+  dlist = open_data(path, gid, file_type, dbfetch, gdcache)
 
-    for data in grids:
-      gdcache[(data.path, data.grid_id)] = data
 
-    id = (path, gid)
-    if not id in gdcache:
-      return []
-    dlist = [gdcache[id]]
-
-    for data in dlist:
-      data.name = s['name']
+  for data in dlist:
+    data.name = s['name']
 
   if 'xyz_step' in s:
     for data in dlist:
@@ -266,6 +230,53 @@ def grid_data_from_state(s, gdcache):
         ssdlist = dstate.create_object(gdcache)
         for i,ssdata in enumerate(ssdlist):
           dlist[i].add_subsamples(ssdata, cell_size)
+
+  return dlist
+
+# ---------------------------------------------------------------------------
+#
+def open_data(path, gid, file_type, dbfetch, gdcache):
+
+  if (path, gid) in gdcache:
+    # Caution: If data objects for the same file array can have different
+    #          coordinates then cannot use this cached object.
+    dlist = [gdcache[(path, gid)]]
+    return dlist
+
+  if dbfetch is None:
+    from ..VolumeData import opendialog
+    paths_and_types = [(path, file_type)]
+    grids, error_message = opendialog.open_grid_files(paths_and_types,
+                                                      stack_images = False)
+    if error_message:
+      print ('Error opening map', error_message)
+      msg = error_message + '\nPlease select replacement file.'
+# TODO: Show file dialog to locate map file.
+#      from chimera import tkgui
+#      grids = opendialog.select_grids(tkgui.app, 'Replace File', msg)
+#      if grids is None:
+#        grids = []
+#      for data in grids:
+#        gdcache[(path, gid)] = data # Cache using old path.
+
+    for data in grids:
+      gdcache[(data.path, data.grid_id)] = data
+  else:
+    dbid, dbn = dbfetch
+    from ..file_io import fetch
+    mlist = fetch.fetch_from_database(dbid, dbn)
+    grids = [m.data for m in mlist]
+    for m in mlist:
+      m.delete()        # Only use grid data from fetch
+    for data in grids:
+      gdcache[(dbid, dbn, data.grid_id)] = data
+      gdcache[(path, data.grid_id)] = data
+      data.database_fetch = dbfetch
+
+  data = gdcache.get((path, gid))
+  if data is None:
+      return []
+  dlist = [data]
 
   return dlist
 
