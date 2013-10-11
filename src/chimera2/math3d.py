@@ -106,7 +106,10 @@ class Vector(ndarray):
     def normalize(self):
         """convert to unit length vector"""
         # faster than using numpy.linalg.norm()
-        self /= sqrt(dot(self, self.conj()))
+        length = sqrt(dot(self, self.conj()))
+        if 0 - EPSILON <= length <= 0 + EPSILON:
+            raise ArithmeticError("can not normalize zero length vector")
+        self /= length
 
     def __eq__(self, a):
         return array_equal(self, a)
@@ -167,8 +170,11 @@ class Xform:
         elif not orthonormalize:
             self._pure = False
         else:
-            self._pure = False
-            # TODO: orthonormalization
+            try:
+                self.make_orthonormal()
+            except:
+                self._pure = False
+                raise
 
     def getOpenGLMatrix(self):
         m = self._matrix.astype(float64)
@@ -304,7 +310,30 @@ class Xform:
         xf.invert()
         return xf
 
-    #TODO: and more
+    def make_orthonormal(self):
+        """orthonormalize rotation part of transformation"""
+        # Gram-Schmidt orthonormalization from Foley & van Dam, 2nd edition
+        from numpy import linalg
+        det = linalg.det(self._matrix)
+        if 1 - EPSILON <= det <= 1 + EPSILON:
+            self._pure = True
+            return
+        if 0 - EPSILON <= det <= 0 + EPSILON:
+            raise ValueError("unable to orthonormalize rotation")
+
+        try:
+            r0 = Vector(self._matrix[0, 0:3])
+            r0.normalize()
+            r1 = Vector(self._matrix[1, 0:3])
+            r1 = r1 - dot(r0, r1) * r0
+            r1.normalize()
+        except ArithmeticError:
+            raise ValueError("unable to orthonormalize rotation")
+        r2 = cross(r0, r1)
+        self._matrix[0, 0:3] = r0
+        self._matrix[1, 0:3] = r1
+        self._matrix[2, 0:3] = r2
+        self._pure = True
 
 def Identity():
     """Identify transformation"""

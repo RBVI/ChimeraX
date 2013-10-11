@@ -123,8 +123,10 @@ class BaseApplication:
 		cmds.register('open', self.cmd_open)
 		cmds.register('stop', self.cmd_stop)
 		cmds.register('stereo', self.cmd_noop)
-		import chimera2.lighting.cmd as cmd
-		cmd.register()
+		def delay_lighting():
+			import chimera2.lighting.cmd as cmd
+			cmd.register()
+		cmds.register('lighting', cmds.Defer(delay_lighting))
 
 		# potentially changed in subclass:
 		self.graphics = None
@@ -170,12 +172,11 @@ class BaseApplication:
 			self.graphics.makeCurrent()
 		from chimera2 import scene
 		scene.reset()
-
 		try:
 			from chimera2 import io
 			return io.open(filename)
-		except:
-			raise
+		except OSError as e:
+			raise cmds.UserError(e)
 		finally:
 			if self.graphics:
 				self.graphics.updateGL()
@@ -340,7 +341,7 @@ class GuiApplication(QApplication, BaseApplication):
 
 	@pyqtSlot(str)
 	def save_command(self, text):
-		self.command.parse_text(text)
+		self.command.parse_text(text, autocomplete=False)
 		self.completer.setCompletionPrefix(self.command.completion_prefix)
 		self.completer.model().setStringList(self.command.completions)
 		self.completer.complete()

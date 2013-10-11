@@ -29,8 +29,10 @@ def init_chimera2():
 	chimera2.io.initialize_formats()
 	cmds.register('exit', cmd_exit)
 	cmds.register('open', cmd_open)
-	import chimera2.lighting.cmd as cmd
-	cmd.register()
+	def delay_lighting():
+		import chimera2.lighting.cmd as cmd
+		cmd.register()
+	cmds.register('lighting', cmds.Defer(delay_lighting))
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
 
 	from webapp_server import register_json_converter
