@@ -5,8 +5,6 @@ def fetch_from_database(id, dbname):
     global databases
     if dbn in databases:
         mlist = databases[dbn].fetch_id(id)
-        for m in mlist:
-            m.database_fetch = (id, dbn)
     else:
         from ..ui.gui import show_status
         show_status('Unknown database %s' % dbname)
