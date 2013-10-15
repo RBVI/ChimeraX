@@ -47,8 +47,8 @@ and :py:class:`Or`.  An argument with an Optional annotation is treated
 as a positional argument and must have a default value.  An Aggregate
 annotation turns an argument a keyword argument that can be repeated
 so the values are aggregated together.  Prebuilt aggregates include
-:py:func:`List_of` and :py:func:`Set_of`.  The Or annotation allows
-for any one of several alternative annotations.
+:py:func:`List_of`, :py:func:`Set_of`, and :py:func:`Tuple_of`.  The
+Or annotation allows for any one of several alternative annotations.
 
 If an annotation function has a :py:class:`bool` argument without a
 default value, then it needs to be annotated with the :py:class:`Bool`
@@ -98,7 +98,8 @@ Here is a simple example::
 
 __all__ = [
 	'UserError',
-	'Aggregate', 'List_of', 'Set_of',
+	'Aggregate', 'List_of', 'Set_of', 'Tuple_of',
+	'Array_of',
 	'Optional',
 	'Or',
 	'Bool',
@@ -172,6 +173,31 @@ def Set_of(annotation):
 	"""
 	return Aggregate(annotation, set, set.add)
 
+def Tuple_of(annotation):
+	"""Annotation for sets of a single type
+	
+	Tuple_of(annotation) -> annotation
+	"""
+	import operator
+	return Aggregate(annotation, tuple, operator.add)
+
+class Array_of:
+	"""Hook for n-element annotations"""
+
+	def __init__(self, annotation, min, max=None):
+		self.anno = annotation
+		self.min_len = min
+		if max is None:
+			max = min
+		self.max_len = max
+
+	def __call__(self, text):
+		return self.anno(text)
+
+	def completions(self, text):
+		if hasattr(self.anno, "completions"):
+			return self.anno.completions(text)
+
 class Or:
 	"""Support two or more alternative annotations
 	
@@ -239,7 +265,6 @@ class _FunctionInfo:
 		self.keywords = set()
 		self.positionals = []
 		self.optionals = set()
-		self.aggregates = set()
 		self.booleans = set()
 		self.var_positional = False
 		self.var_keyword = False
@@ -271,11 +296,8 @@ class _FunctionInfo:
 					self.booleans.add(p.name)
 					self.keywords.add(p.name)
 					# TODO: relax this restriction
-					if not p.default:
-						print("warning: boolean argument %s needs to default to non-True in %s" % (p.name, function), file=sys.stderr)
-				elif isinstance(p.annotation, Aggregate):
-					self.aggregates.add(p.name)
-					self.keywords.add(p.name)
+					if p.default:
+						print("warning: boolean argument %s needs to default to non-True in %s: %s" % (p.name, function, p.default), file=sys.stderr)
 				else:
 					self.keywords.add(p.name)
 			elif p.kind == Param.KEYWORD_ONLY:
@@ -285,9 +307,9 @@ class _FunctionInfo:
 					# TODO: relax this restriction
 					if not p.default:
 						print("warning: boolean argument %s needs to default to non-True in %s" % (p.name, function), file=sys.stderr)
-				elif isinstance(p.annotation, Aggregate):
-					self.aggregates.add(p.name)
 			elif p.kind == Param.POSITIONAL_ONLY:
+				if isinstance(p.annotation, Aggregate):
+					raise ValueError("Aggregate values depend on repeated keywords")
 				self.positionals.append(p.name)
 			elif p.kind == Param.VAR_POSITIONAL:
 				self.var_positional = True
@@ -479,12 +501,13 @@ class Command:
 		self.amount_parsed = 0
 		self.completion_prefix = ""
 		self.completions = []
-		self._in_kwarg = ""
 		self._error = "Missing command"
 		self._word_map = _commands
 		self._fi = None
 		self._args = []
 		self._kwargs = {}
+		self._in_kwarg = ""
+		self._in_array = None	# (arg_name, values)
 		self._in_str = False
 
 	def error_check(self):
@@ -529,7 +552,7 @@ class Command:
 		try:
 			return annotation(word)
 		except ValueError as e:
-			self._error = "Bad '%s' argument: %s" % (arg_name, e)
+			self._error = "Bad '%s' argument value: %s" % (arg_name, e)
 			self.completion_prefix = ""
 			if hasattr(annotation, 'completions'):
 				self.completions = annotation.completions(word)
@@ -593,8 +616,9 @@ class Command:
 		"""Parse text into function and arguments
 		
 		:param text: The text to be parsed.
-		:param autocomplete: True if function and arguments can be
-		given with a prefix of the full name.
+		:param autocomplete: True if function and arguments that
+		are a prefix of an actual should be completed. (TODO:
+		should only unambigous prefixes be completed?)
 
 		May be called multiple times.  There are a couple side effects:
 
@@ -616,6 +640,7 @@ class Command:
 		while 1:
 			word, chars = self._next_token(text)
 			if not word:
+				# no more words
 				self.amount_parsed += len(chars)
 				#if self.current_text and not self._in_kwarg:
 				#	if self.current_text[-1].isspace():
@@ -629,20 +654,44 @@ class Command:
 				#	self.completion_prefix = ""
 				#	self.completions = []
 				break
+			if self._in_array:
+				arg_name, values = self._in_array 
+				anno = self._fi.annotations[arg_name]
+				try:
+					value = self._convert(arg_name, word, anno)
+				except ValueError:
+					if len(values) >= anno.min_len:
+						self._error = ""
+						self.completion_prefix = ""
+						self.completions = []
+						continue
+					break
+				self.amount_parsed += len(chars)
+				text = text[len(chars):]
+				values.append(value)
+				if len(values) >= anno.min_len:
+					self._error = ""
+					self.completion_prefix = ""
+					self.completions = []
+				if len(values) == anno.max_len:
+					self._in_array = None
+				continue
 			if self._in_kwarg:
 				anno = self._fi.annotations[self._in_kwarg]
 				try:
-					word = self._convert(self._in_kwarg, word, anno)
+					value = self._convert(self._in_kwarg, word, anno)
 				except ValueError:
 					break
 				self.amount_parsed += len(chars)
 				text = text[len(chars):]
 				if not isinstance(anno, Aggregate):
-					self._kwargs[self._in_kwarg] = word
+					self._kwargs[self._in_kwarg] = value
 				else:
 					if self._in_kwarg not in self._kwargs:
 						self._kwargs[self._in_kwarg] = anno.constructor()
-					anno.add_to(self._kwargs[self._in_kwarg], word)
+					x = anno.add_to(self._kwargs[self._in_kwarg], value)
+					if x is not None:
+						self._kwargs[self._in_kwarg] = x
 				self._in_kwarg = ""
 				self._error = ""
 				self.completion_prefix = ""
@@ -660,8 +709,14 @@ class Command:
 					if word in self._fi.booleans:
 						self._kwargs[word] = True
 						continue
+					anno = self._fi.annotations[word]
+					if isinstance(anno, Array_of):
+						values = self._kwargs[word] = []
+						self._in_array = word, values
+						self._error = "Expected more values for %s keyword" % word
+						continue
 					self._in_kwarg = word
-					self._error = "Expected argument for %s keyword" % word
+					self._error = "Expected value for %s keyword" % word
 					self.completion_prefix = word
 					self.completions = [kw for kw in self._word_map if kw.startswith(word)]
 					continue
@@ -697,92 +752,117 @@ class Command:
 			if len(self._args) < len(self._fi.positionals):
 				name = self._fi.positionals[len(self._args)]
 				anno = self._fi.annotations[name]
+				if isinstance(anno, Array_of):
+					values = []
+					if name in self._fi.optionals:
+						self._kwargs[name] = values
+					else:
+						self._args.append(values)
+					self._in_array = name, values
+					self._error = "Expected more values for %s keyword" % word
+					continue
 				try:
-					word = self._convert(name, word, anno)
+					value = self._convert(name, word, anno)
 				except ValueError:
 					break
 			elif autocomplete and self.completions:
 				c = self.completions[0]
 				text = self._complete(chars, c[len(word):])
 				continue
+			else:
+				value = word
 			self.amount_parsed += len(chars)
 			text = text[len(chars):]
 			if name in self._fi.optionals:
-				self._kwargs[name] = word
+				self._kwargs[name] = value
 			else:
-				self._args.append(word)
+				self._args.append(value)
 
 if __name__ == '__main__':
 
+	@register('test1')
 	def test1(a: int, b: float, color=None):
 		print('test1 a: %s %s' % (type(a), a))
 		print('test1 b: %s %s' % (type(b), b))
 		print('test1 color: %s %s' % (type(color), color))
-	register('test1', test1)
 
+	@register('test2')
 	def test2(a: str, *args, color=None, center: float=0):
 		print('test2 a: %s %s' % (type(a), a))
 		print('test2 args: %s %s' % (type(args), args))
 		print('test2 color: %s %s' % (type(color), color))
 		print('test2 center: %s %s' % (type(center), center))
-	register('test2', test2)
 
 	register('mw test1', test1)
 	register('mw test2', test2)
 
+	@register('test3')
 	def test3(name: str, value: Optional(float)=None):
 		print('test3 name: %s %s' % (type(name), name))
 		print('test3 value: %s %s' % (type(value), value))
-	register('test3', test3)
 
+	@register('test4')
 	def test4(draw: bool=None):
 		print('test4 draw: %s %s' % (type(draw), draw))
-	register('test4', test4)
 
+	@register('test5')
 	def test5(ints: List_of(int)=None):
 		print('test5 ints: %s %s' % (type(ints), ints))
-	register('test5', test5)
+
+	@register('test6')
+	def test6(center: Array_of(float, 3)):
+		print('test6 center:', center)
+
+	@register('test7')
+	def test7(center: Array_of(float, 3)=None):
+		print('test7 center:', center)
 
 	tests = [
-		'test1 color red 12 3.5',
-		'test1 12 color red 3.5',
-		'test1 12 3.5 color red',
-		'test1 color red xyzzy 3.5',
-		'test1 color red',
-		'test1 color',
-		'te',
-		'test2 color red center 3.5 foo',
-		'test2 color red center 3.5',
-		'test2 color red center xyzzy',
-		'test2 color red center',
-		'test2 c',
-		'test3 radius',
-		'test3 radius 12.3',
-		'test4',
-		'test4 draw',
-		'test5',
-		'test5 ints 5',
-		'test5 ints 5 ints 6',
-		'mw test1 color red 12 3.5',
-		'mw test1 color red 12 3.5',
-		'mw test2 color red center 3.5 foo',
-		'mw te',
-		'mw ',
-		'mw',
-		'te co red 12 3.5',
-		'm te col red 12 3.5',
+		(True,	'test1 color red 12 3.5'),
+		(True,	'test1 12 color red 3.5'),
+		(True,	'test1 12 3.5 color red'),
+		(True,	'test1 color red xyzzy 3.5'),
+		(True,	'test1 color red'),
+		(True,	'test1 color'),
+		(True,	'te'),
+		(True,	'test2 color red center 3.5 foo'),
+		(True,	'test2 color red center 3.5'),
+		(True,	'test2 color red center xyzzy'),
+		(True,	'test2 color red center'),
+		(True,	'test2 c'),
+		(True,	'test3 radius'),
+		(True,	'test3 radius 12.3'),
+		(True,	'test4'),
+		(True,	'test4 draw'),
+		(True,	'test5'),
+		(True,	'test5 ints 5'),
+		(True,	'test5 ints 5 ints 6'),
+		(True,	'mw test1 color red 12 3.5'),
+		(True,	'mw test1 color red 12 3.5'),
+		(True,	'mw test2 color red center 3.5 foo'),
+		(True,	'mw te'),
+		(True,	'mw '),
+		(True,	'mw'),
+		(True,	'te co red 12 3.5'),
+		(True,	'm te col red 12 3.5'),
+		(True,	'test6 3.4 5.6 7.8'),
+		(True,	'test6 3.4 abc 7.8'),
+		(True,	'test7 center 3.4 5.6 7.8'),
+		(True,	'test7 center 3.4 5.6'),
 	]
+	cmd = Command()
 	for t in tests:
+		autocomplete, text = t
 		try:
-			print("\nTEST: '%s'" % t)
-			c = Command(t, autocomplete=False)
-			if c.current_text != t:
-				print(c.current_text)
-			#print(c._args, c._kwargs)
-			p = c.completions
+			print("\nTEST: '%s'" % text)
+			cmd.parse_text(text, autocomplete=autocomplete)
+			if cmd.current_text != text:
+				print(cmd.current_text)
+			#print(cmd._args, cmd._kwargs)
+			p = cmd.completions
 			if p:
 				print('completions:', p)
-			c.execute()
+			cmd.execute()
 			print('SUCCESS')
 		except UserError as e:
 			print('FAIL:', e)
