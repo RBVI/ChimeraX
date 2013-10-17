@@ -4,7 +4,8 @@
 #include "Connectible.h"
 #include "Coord.h"
 
-class BaseSphere: public Connectible {
+template <class FinalConnection, class FinalConnectible>
+class BaseSphere: public Connectible<FinalConnection, FinalConnectible> {
 private:
 	float  _radius;
 public:
@@ -13,7 +14,8 @@ public:
 	float  radius() const { return _radius; }
 };
 
-class Sphere: public BaseSphere {
+template <class FinalConnection, class FinalConnectible>
+class Sphere: public BaseSphere<FinalConnection, FinalConnectible> {
 private:
 	Coord  _coord;
 

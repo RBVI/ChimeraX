@@ -15,17 +15,16 @@ class CoordSet;
 class Molecule;
 class Residue;
 
-class Atom: public BaseSphere {
+class Atom: public BaseSphere<Bond, Atom> {
 	friend class Molecule;
 	friend class Residue;
 public:
-	typedef std::map<Atom *, Bond *> BondsMap;
-	typedef std::vector<Bond *> Bonds;
+	typedef ConnectionsMap BondsMap;
+	typedef Connections Bonds;
 
 private:
 	static const unsigned int  COORD_UNASSIGNED = ~0u;
 	Atom(Molecule *m, std::string &name, Element e);
-	BondsMap  _bonds;
 	unsigned int  _coord_index;
 	Element  _element;
 	Molecule *  _molecule;
@@ -48,13 +47,11 @@ private:
 	unsigned int  _new_coord(const Point &);
 
 public:
-	void  add_bond(Bond *b) { _bonds[b->other_atom(this)] = b; }
+	void  add_bond(Bond *b) { add_connection(b); }
 	float  bfactor() const;
-	Bonds  bonds() const;
-	const BondsMap &	bonds_map() const { return _bonds; }
-	bool  connects_to(Atom *a) const {
-		return _bonds.find(a) != _bonds.end();
-	}
+	Bonds  bonds() const { return connections(); }
+	const BondsMap &	bonds_map() const { return connections_map(); }
+	// connects_to() just simply inherited from Connectible (via BaseSphere)
 	unsigned int  coord_index() const { return _coord_index; }
 	virtual const Coord &coord() const;
 	Element  element() const { return _element; }
@@ -64,7 +61,7 @@ public:
 	void  register_field(std::string name, int value) {}
 	void  register_field(std::string name, double value) {}
 	void  register_field(std::string name, const std::string value) {}
-	void  remove_bond(Bond *);
+	void  remove_bond(Bond *b) { remove_connection(b); }
 	Residue *  residue() const { return _residue; }
 	void  set_alt_loc(char alt_loc, bool create=false);
 	void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
