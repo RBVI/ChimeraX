@@ -69,8 +69,8 @@ Molecule::best_alt_locs() const
 				}
 			}
 
-			for (Atom::BondsMap::iterator bmi = a->_bonds.begin(); bmi != a->_bonds.end();
-					++bmi) {
+			const Atom::BondsMap &bm = a->bonds_map();
+			for (Atom::BondsMap::const_iterator bmi = bm.begin(); bmi != bm.end(); ++bmi) {
 				Atom *nb = (*bmi).first;
 				if (seen.find(nb) != seen.end())
 					continue;
@@ -143,8 +143,8 @@ Molecule::delete_bond(Bond *b)
 	if (i == _bonds.end())
 		throw std::invalid_argument("delete_bond called for Bond not in Molecule");
 
-	b->_atoms[0]->remove_bond(b);
-	b->_atoms[1]->remove_bond(b);
+	b->atoms()[0]->remove_bond(b);
+	b->atoms()[1]->remove_bond(b);
 
 	_bonds.erase(i);
 	delete b;

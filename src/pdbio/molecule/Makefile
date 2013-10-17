@@ -9,6 +9,7 @@ include $(TOP)/mk/subdir.make
 LIBNAME = molecule
 SHLIB= lib$(LIBNAME).$(SHLIB_EXT)
 CXXFLAGS += -I..
+LIBS += ../base-geom/libbase-geom.a
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)

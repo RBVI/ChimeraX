@@ -1,7 +1,7 @@
 #ifndef templates_TmplCoord
 #define	templates_TmplCoord
 
-#include "../Point.h"
+#include "base-geom/Point.h"
 
 typedef Point  TmplCoord;
 

@@ -1,5 +1,5 @@
-#ifndef molecule_Point
-#define molecule_Point
+#ifndef base_geom_Point
+#define base_geom_Point
 
 #include <string>
 #include "Real.h"
@@ -25,4 +25,4 @@ public:
 	std::string str() const;
 };
 
-#endif  // molecule_Point
+#endif  // base_geom_Point

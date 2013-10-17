@@ -6,7 +6,7 @@ NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= ioutil pdb util molecule capsule pdbio access
+SUBDIRS	+= ioutil pdb base-geom util molecule capsule pdbio access
 SRCS = test.cpp
 OBJS = test.o
 PROG = test

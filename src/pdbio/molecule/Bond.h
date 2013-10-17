@@ -1,24 +1,22 @@
 #ifndef molecule_Bond
 #define molecule_Bond
 
-#include "Real.h"
+#include "base-geom/Real.h"
+#include "base-geom/Connection.h"
 
 class Atom;
 class Molecule;
 
-class Bond {
+class Bond: public Connection<Atom, Bond> {
 	friend class Molecule;
 public:
-	typedef Atom *  Atoms[2];
+	typedef End_points  Atoms;
 
 private:
 	Bond(Molecule *, Atom *, Atom *);
-	Atoms  _atoms;
 
 public:
-	const Atoms	&  atoms() const { return _atoms; }
-	Atom *  other_atom(Atom *a) const;
-	Real  sqlength() const;
-
+	const Atoms	&  atoms() const { return end_points(); }
+	Atom *  other_atom(Atom *a) const { return other_end(a); }
 };
 #endif  // molecule_Bond

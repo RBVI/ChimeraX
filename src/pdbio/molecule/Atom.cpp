@@ -8,7 +8,7 @@
 Atom::Atom(Molecule *m, std::string &name, Element e):
 	_name(name), _molecule(m), _residue(NULL), _element(e),
 	_coord_index(COORD_UNASSIGNED), _alt_loc(' '), _serial_number(-1),
-	_aniso_u(NULL)
+	_aniso_u(NULL), BaseSphere<Bond, Atom>()
 {
 }
 
@@ -20,16 +20,6 @@ Atom::bfactor() const
 		return (*i).second.bfactor;
 	}
 	return molecule()->active_coord_set()->get_bfactor(this);
-}
-
-Atom::Bonds
-Atom::bonds() const
-{
-	std::vector<Bond *> result;
-	result.reserve(_bonds.size());
-	for (BondsMap::const_iterator bmi = _bonds.begin(); bmi != _bonds.end(); ++bmi)
-		result.push_back(bmi->second);
-	return result;
 }
 
 void
@@ -108,12 +98,6 @@ Atom::occupancy() const
 }
 
 void
-Atom::remove_bond(Bond *b)
-{
-	_bonds.erase(b->other_atom(this));
-}
-
-void
 Atom::set_alt_loc(char alt_loc, bool create)
 {
 	if (alt_loc == _alt_loc || alt_loc == ' ')
@@ -138,7 +122,8 @@ Atom::set_alt_loc(char alt_loc, bool create)
 	_alt_loc = alt_loc;
 	if (!create) {
 		// set neighboring alt locs
-		for (BondsMap::const_iterator bmi = _bonds.begin(); bmi != _bonds.end(); ++bmi) {
+		const BondsMap &bm = bonds_map();
+		for (BondsMap::const_iterator bmi = bm.begin(); bmi != bm.end(); ++bmi) {
 			Atom *nb = (*bmi).first;
 			if (nb->_alt_loc_map.find(alt_loc) != nb->_alt_loc_map.end())
 				nb->set_alt_loc(alt_loc);

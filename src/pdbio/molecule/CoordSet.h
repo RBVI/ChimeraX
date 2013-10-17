@@ -1,7 +1,7 @@
 #ifndef molecule_CoordSet
 #define molecule_CoordSet
 
-#include "Coord.h"
+#include "base-geom/Coord.h"
 
 #include <map>
 #include <string>
