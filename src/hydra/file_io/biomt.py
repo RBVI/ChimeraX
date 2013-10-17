@@ -25,8 +25,9 @@ def pdb_biomt_matrices(pdb_text):
                     continue
 
     # Order matrices by matrix number.
-    matrices = tuple(nm[1] for nm in sorted(mtable.items()) if not None in nm[1])
-
+    mordered = tuple(nm[1] for nm in sorted(mtable.items()) if not None in nm[1])
+    from ..geometry.place import Place
+    matrices = tuple(Place(m) for m in mordered)
     return matrices
 
 # -----------------------------------------------------------------------------

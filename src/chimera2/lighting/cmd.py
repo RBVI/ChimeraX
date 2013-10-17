@@ -25,48 +25,57 @@
 #	lighting sharpness [sharpness]
 #	lighting reflectivity [reflectivity]
 
-from chimera2 import UserError, lighting
+from chimera2 import lighting
 from chimera2.color import Color
+from chimera2.cmds import UserError, Optional, register as register_cmd
 
 # CmdInfo is initialized at the end of this file
 
-def mode(name=None):
-	if name is None:
-		return "Current lighting mode is %s" % lighting.mode()
-	# TODO: remove autocompletion code belong when annotation types
-	#   can give autocompletion hints
-	for m in lighting.MODES:
-		if m.startswith(name):
-			name = m
-	lighting.set_mode(name)
+class _Mode:
 
-def brightness(brightness: float=None):
+	def __call__(self, text):
+		for m in lighting.MODES:
+			if m.startswith(text):
+				return m
+		raise UserError("invalid lighting mode")
+
+	def completions(self, text):
+		return [m for m in lighting.MODES if m.startswith(text)]
+Mode = _Mode()
+
+def mode(mode: Optional(Mode)=None):
+	if mode is None:
+		return "Current lighting mode is %s" % lighting.mode()
+	try:
+		return lighting.set_mode(mode)
+	except ValueError as e:
+		raise UserError(e)
+
+def brightness(brightness: Optional(float)=None):
 	if brightness is None:
 		return "Current brightness is %s" % lighting.brightness()
 	try:
-		lighting.set_brightness(brightness)
+		return lighting.set_brightness(brightness)
 	except ValueError as e:
-		raise UserError(str(e))
+		raise UserError(e)
 
-def contrast(contrast: float=None):
+def contrast(contrast: Optional(float)=None):
 	if contrast is not None:
 		try:
-			lighting.set_contrast(contrast)
-			return
+			return lighting.set_contrast(contrast)
 		except ValueError as e:
-			raise UserError(str(e))
+			raise UserError(e)
 	mode = lighting.mode()
 	if mode == lighting.AMBIENT:
 		return "Not applicable"
 	return "Current contrast is %s" % lighting.contrast()
 
-def ratio(ratio: float=None):
+def ratio(ratio: Optional(float)=None):
 	if ratio is not None:
 		try:
-			lighting.set_ratio(ratio)
-			return
+			return lighting.set_ratio(ratio)
 		except ValueError as e:
-			raise UserError(str(e))
+			raise UserError(e)
 	mode = lighting.mode()
 	if mode in (lighting.AMBIENT, lighting.ONE):
 		return "Not applicable"
@@ -80,78 +89,83 @@ def ratio(ratio: float=None):
 			msg += " (limited to %s)" % maxr
 	return msg
 
-def light_color(light, color: Color=None):
+def light_color(light, color: Optional(Color)=None):
 	if color is None:
 		color = lighting.light_color(light)
 		return "%s light color is (%g, %g, %g)" % ((light,) + color)
-	lighting.set_light_color(light, color)
+	try:
+		return lighting.set_light_color(light, color)
+	except ValueError as e:
+		raise UserError(e)
 
-def light_direction(light, x: float=None, y: float=None, z: float=None):
+def light_direction(light, x: Optional(float)=None, y: Optional(float)=None, z: Optional(float)=None):
 	if x is None and y is None and z is None:
 		dir = lighting.light_direction(light)
 		return "%s light direction is (%g, %g, %g)" % ((light,) + dir)
 	if x is None or y is None or z is None:
-		raise UserError("none or all of x, y, z are required")
+		raise ValueError("none or all of x, y, z are required")
 	try:
-		lighting.set_light_direction(light, (x, y, z))
+		return lighting.set_light_direction(light, (x, y, z))
 	except ValueError as e:
-		raise UserError(str(e))
+		raise UserError(e)
 
-def light_specular_intensity(light, intensity: float=None):
+def light_specular_intensity(light, intensity: Optional(float)=None):
 	if intensity is None:
 		i = lighting.light_specular_intensity(light)
 		return "%s light specular intensity is %s" % (light, i)
 	if not (0 <= intensity <= 1):
 		raise UserError("expecting a number between 0 and 1 inclusive")
-	lighting.set_light_specular_intensity(light, i)
+	try:
+		return lighting.set_light_specular_intensity(light, i)
+	except ValueError as e:
+		raise UserError(e)
 
-def sharpness(sharpness: float=None):
+def sharpness(sharpness: Optional(float)=None):
 	if sharpness is None:
 		s = lighting.sharpness()
 		return "material sharpness is %s" % s
 	try:
-		lighting.set_sharpness(sharpness)
+		return lighting.set_sharpness(sharpness)
 	except ValueError as e:
-		raise UserError(str(e))
+		raise UserError(e)
 
-def reflectivity(reflectivity: float=None):
+def reflectivity(reflectivity: Optional(float)=None):
 	if reflectivity is None:
 		r = lighting.reflectivity()
 		return "material reflectivity is %s" % r
 	try:
-		lighting.set_reflectivity(reflectivity)
+		return lighting.set_reflectivity(reflectivity)
 	except ValueError as e:
-		raise UserError(str(e))
+		raise UserError(e)
 
 def restore(style):
-	lighting.restore(style)
+	return lighting.restore(style)
 
 def save(style):
-	lighting.save(style)
+	return lighting.save(style)
 
 def delete(style):
-	lighting.delete(style)
+	return lighting.delete(style)
 
-from chimera2 import cmds
-cmds.register('lighting mode', mode)
-cmds.register('lighting brightness', brightness)
-cmds.register('lighting contrast', contrast)
-cmds.register('lighting ratio', ratio)
-cmds.register('lighting sharpness', sharpness)
-cmds.register('lighting reflectivity', reflectivity)
-cmds.register('lighting restore', restore)
-cmds.register('lighting save', save)
-cmds.register('lighting delete', delete)
+def register():
+	register_cmd('lighting mode', mode)
+	register_cmd('lighting brightness', brightness)
+	register_cmd('lighting contrast', contrast)
+	register_cmd('lighting ratio', ratio)
+	register_cmd('lighting sharpness', sharpness)
+	register_cmd('lighting reflectivity', reflectivity)
+	register_cmd('lighting restore', restore)
+	register_cmd('lighting save', save)
+	register_cmd('lighting delete', delete)
 
-LIGHT_NAMES = (lighting.KEY, lighting.FILL, lighting.BACK)
-for light in LIGHT_NAMES:
-	def set_color(color: Color=None, _light=light):
-		return light_color(_light, color)
-	cmds.register("lighting %s color" % light, set_color)
-	def set_direction(x: float=None, y: float=None, z: float=None, _light=light):
-		return light_direction(_light, x, y, z)
-	cmds.register("lighting %s direction" % light, set_direction)
-	def set_intensity(intensity: float=None, _light=light):
-		return light_specular_intensity(_light, intensity)
-	cmds.register("lighting %s specular_intensity" % light, set_intensity)
-del light, set_color, set_direction, set_intensity
+	LIGHT_NAMES = (lighting.KEY, lighting.FILL, lighting.BACK)
+	for light in LIGHT_NAMES:
+		def set_color(color: Optional(Color)=None, _light=light):
+			return light_color(_light, color)
+		register_cmd("lighting %s color" % light, set_color)
+		def set_direction(x: Optional(float)=None, y: Optional(float)=None, z: Optional(float)=None, _light=light):
+			return light_direction(_light, x, y, z)
+		register_cmd("lighting %s direction" % light, set_direction)
+		def set_intensity(intensity: Optional(float)=None, _light=light):
+			return light_specular_intensity(_light, intensity)
+		register_cmd("lighting %s specular_intensity" % light, set_intensity)

@@ -1,5 +1,6 @@
 
 Builtin_Colors = {
+	# subset of X11's rgb.txt
 	"aquamarine":	(127, 255, 212),
 	"black":	(0, 0, 0),
 	"blue":		(0, 0, 255),
@@ -86,10 +87,10 @@ class Color:
 				pass
 			try:
 				color = Builtin_Colors[value]
-				self.rgb = [x / 255.0 for x in color]
-				return
 			except KeyError:
 				raise ValueError("unknown color name")
+			self.rgb = [x / 255.0 for x in color]
+			return
 		# Hex: DDD, DDDDDD, DDDDDDDDDDDD
 		try:
 			int(value[1:], 16)
@@ -107,3 +108,10 @@ class Color:
 		else:
 			raise ValueError("color constant should have 3, 6, or 12 hex digits")
 		return
+
+	def completions(self, name):
+		# only autocomplete color names
+		# TODO: add user defined colors
+		names = [n for n in Builtin_Colors if n.startswith(name)]
+		names.sort(key=str.casefold)
+		return names

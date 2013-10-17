@@ -30,6 +30,7 @@ def open(filename, *args, **kw):
 
 	# First read 80 byte comment line
 	comment = input.read(80)
+	del comment	# make pyflakes happy
 
 	# Next read uint32 triangle count.
 	from numpy import fromstring, uint32, empty, float32, concatenate, array

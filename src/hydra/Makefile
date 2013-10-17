@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= docs draw file_io FitMap geometry molecule ui VolumeData VolumeViewer _image3d
+SUBDIRS	= docs draw example_sessions file_io FitMap geometry molecule ui VolumeData VolumeViewer _image3d
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
@@ -30,7 +30,7 @@ all: $(PYOBJS)
 install: all $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
-install_mac_app:
+install_mac_app: install
 ifeq ($(OS),Darwin)
 # Build application directory hierarchy
 	-mkdir $(APPS_DIR)

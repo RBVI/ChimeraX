@@ -9,38 +9,18 @@
 #
 def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
 
-#  site = 'ftp.ebi.ac.uk'
-#  url_pattern = 'ftp://%s/pub/databases/emdb/structures/EMD-%s/map/%s'
-#  xml_url_pattern = 'ftp://%s/pub/databases/emdb/structures/EMD-%s/header/%s'
+  map_path = emdb_map_path(id, ignore_cache)
 
-  site = 'ftp.wwpdb.org'
-  url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/map/%s'
-  xml_url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/header/%s'
-
-  from ..ui.gui import show_status, show_info
-  show_status('Fetching %s from %s...' % (id,site))
-
-  # Fetch map.
-  map_name = 'emd_%s.map' % id
-  map_gz_name = map_name + '.gz'
-  map_url = url_pattern % (site, id, map_gz_name)
-  name = 'EMDB %s' % id
-  minimum_map_size = 8192       # bytes
-  from .fetch import fetch_file
-  try:
-    map_path, headers = fetch_file(map_url, name, minimum_map_size,
-                 'EMDB', map_name, uncompress = 'always', ignore_cache=ignore_cache)
-  except IOError as e:
-    if 'Failed to change directory' in str(e):
-      raise IOError('EMDB ID %s does not exist or map has not been released.' % id)
-    else:
-      raise
-    
   # Display map.
+  from os.path import basename
+  map_name = basename(map_path)
+  from ..ui.gui import show_status, show_info
   show_status('Opening map %s...' % map_name)
   from ..VolumeViewer import open_volume_file
   models = open_volume_file(map_path, 'ccp4', map_name, 'surface',
                             open_models = False)
+  for m in models:
+    m.data.database_fetch = (id, 'emdb')
 
   if open_fit_pdbs:
     # Find fit pdb ids.
@@ -60,6 +40,35 @@ def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
       models.extend(mlist)
 
   return models
+
+# -----------------------------------------------------------------------------
+#
+def emdb_map_path(id, ignore_cache = False):
+
+  site = 'ftp.wwpdb.org'
+  url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/map/%s'
+  xml_url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/header/%s'
+
+  from ..ui.gui import show_status
+  show_status('Fetching %s from %s...' % (id,site))
+
+  # Fetch map.
+  map_name = 'emd_%s.map' % id
+  map_gz_name = map_name + '.gz'
+  map_url = url_pattern % (site, id, map_gz_name)
+  name = 'EMDB %s' % id
+  minimum_map_size = 8192       # bytes
+  from .fetch import fetch_file
+  try:
+    map_path, headers = fetch_file(map_url, name, minimum_map_size,
+                 'EMDB', map_name, uncompress = 'always', ignore_cache=ignore_cache)
+  except IOError as e:
+    if 'Failed to change directory' in str(e):
+      raise IOError('EMDB ID %s does not exist or map has not been released.' % id)
+    else:
+      raise
+
+  return map_path
   
 # -----------------------------------------------------------------------------
 #

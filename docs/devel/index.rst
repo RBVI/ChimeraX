@@ -37,4 +37,6 @@ Miscellaneous Modules
 
    math3d.rst
 
+   triggerset.rst
+
    place.rst

@@ -42,7 +42,6 @@ class Bond_Templates:
         if self.cc_index is None:
             self.read_templates_file()
             _image3d.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars)
-            print ('initialized bond table')
         m = molecule
         return _image3d.molecule_bonds(m.residue_names, m.residue_nums, m.chain_ids, m.atom_names)
 

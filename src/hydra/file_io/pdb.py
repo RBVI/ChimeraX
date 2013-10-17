@@ -19,7 +19,8 @@ def open_pdb_file_with_image3d(path):
   m.pdb_text = text
   from ..molecule import connect
   t2 = time()
-  m.bonds = connect.molecule_bonds(m)
+  bonds, missing = connect.molecule_bonds(m)
+  m.bonds = bonds
   t3 = time()
   from os.path import basename
   print ('image3d', basename(path), 'read time', '%.3f' % (ft1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(ft1-t0)))
