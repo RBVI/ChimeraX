@@ -9,7 +9,8 @@ Read a subset of Chimera's
 The plan is to suport all of the existing bild format.
 """
 
-from chimera2 import UserError, scene
+from chimera2 import scene
+from chimera2.cmds import UserError
 from chimera2.math3d import Point, Xform, Identity
 from math import radians
 

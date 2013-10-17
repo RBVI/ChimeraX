@@ -9,9 +9,10 @@ def register_commands():
     from ..file_io.opensave import open_command, close_command
     add_command('open', open_command)
     add_command('close', close_command)
-    from ..file_io import fetch_pdb, fetch_emdb
+    from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
     fetch_pdb.register_pdb_fetch()
     fetch_emdb.register_emdb_fetch()
+    fetch_eds.register_eds_fetch()
     from .. import molmap
     add_command('molmap', molmap.molmap_command)
     from ..VolumeViewer import volumecommand

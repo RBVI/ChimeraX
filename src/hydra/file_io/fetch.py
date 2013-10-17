@@ -43,14 +43,14 @@ def fetch_file(url, name, minimum_file_size = None, save_dir = '',
            if 'ignore_cache' is True, then cached values will be ignored,
            though the retrieved values will still be cached if appropriate
         """
-
-        from ..ui.gui import show_status
-        show_status('Fetching %s' % (name,))
         
         if save_name and not ignore_cache:
                 path = fetch_local_file(save_dir, save_name)
                 if path:
                         return path, {}
+
+        from ..ui.gui import show_status
+        show_status('Fetching %s' % (name,))
 
 #       from chimera import tasks
 #       task = tasks.Task("Fetch %s" % name, modal=True)
@@ -125,7 +125,7 @@ def byte_text(b):
 #
 def fetch_directory(create = False):
     from os.path import expanduser
-    dir = expanduser('~/Downloads/chimera')
+    dir = expanduser('~/Downloads/Hydra')
     from os.path import isdir
     if create and not isdir(dir):
         import os

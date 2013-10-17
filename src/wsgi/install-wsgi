@@ -36,7 +36,9 @@ for action in $actions; do
 		if [ ! -e $target/sessions ]; then
 			mkdir $target/sessions
 		fi
-		which audit > /dev/null 2>&1 && audit apachedir $target/sessions
+		if which audit > /dev/null 2>&1; then
+			audit apachedir $target/sessions
+		fi
 		;;
 
 	  clean )

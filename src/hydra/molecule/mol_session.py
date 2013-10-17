@@ -1,10 +1,11 @@
-mol_attrs = ('path', 'id', 'displayed', 'atom_style',
+mol_attrs = ('path', 'id', 'database_fetch', 'displayed', 'atom_style',
              'color_mode', 'ribbon_radius', 'ball_scale')
 
 def molecule_state(m):  
     ms = {'place':m.place.matrix}
     for attr in mol_attrs:
-        ms[attr] = getattr(m,attr)
+        if hasattr(m,attr):
+            ms[attr] = getattr(m,attr)
     if m.copies:
         ms['copies'] = tuple(c.matrix for c in m.copies)
     if not m.bonds is None:
@@ -21,11 +22,22 @@ def restore_molecules(mstate, viewer, attributes_only = False):
         if attributes_only:
             m = mids.get(ms['id'])
         else:
-            mlist = open_files([ms['path']], set_camera = False)
-            if len(mlist) != 1:
-                from ..ui.gui import show_info
-                show_info('File %s unexpectedly contained %d models' % (ms['path'], len(mlist),))
-                continue
+            if 'database_fetch' in ms:
+                db_id, db_name = ms['database_fetch']
+                from ..file_io import fetch
+                mlist = fetch.fetch_from_database(db_id, db_name)
+                if len(mlist) != 1:
+                    from ..ui.gui import show_info
+                    show_info('Database fetch %s from %s unexpectedly contained %d models'
+                              % (db_id, db_name, len(mlist),))
+                    continue
+                viewer.add_models(mlist)
+            else:
+                mlist = open_files([ms['path']], set_camera = False)
+                if len(mlist) != 1:
+                    from ..ui.gui import show_info
+                    show_info('File %s unexpectedly contained %d models' % (ms['path'], len(mlist),))
+                    continue
             m = mlist[0]
         if m:
             set_molecule_state(m, ms)
@@ -40,7 +52,8 @@ def set_molecule_state(m, ms):
             setattr(m, attr, ms[attr])
     if 'has_bonds' in ms and ms['has_bonds'] and m.bonds is None:
         from . import connect
-        m.bonds = connect.molecule_bonds(m)
+        bonds, missing = connect.molecule_bonds(m)
+        m.bonds = bonds
     from numpy import bool
     if 'atom_shown' in ms:
         m.atom_shown = string_to_array(ms['atom_shown'], bool)
