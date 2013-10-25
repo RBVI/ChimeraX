@@ -71,47 +71,54 @@ Builtin_Colors = {
 
 class Color:
 
-	def __init__(self, value=None):
-		if isinstance(value, (tuple, list)):
-			if len(value) != 3:
+	def __init__(self, rgb=None):
+		if isinstance(rgb, (tuple, list)):
+			if len(rgb) != 3:
 				raise ValueError("expected 3 floats")
-			self.rgb = list(value)
-			return
-		if value[0] != '#':
+			self.rgb = list(rgb)
+		elif isinstance(rgb, Color):
+			self.rgb = rgb.rgb
+		else:
+			raise ValueError("Not a color")
+
+from chimera2 import cmds
+class Color_arg(cmds.Annotation):
+
+	@staticmethod
+	def parse(text, final):
+		if text[0] != '#':
+			text = text.casefold()
 			try:
-				self.rgb = [float(x) for x in value.split()]
-				if len(self.rgb) != 3:
-					raise ValueError("expected 3 floats")
-				return
-			except ValueError:
-				pass
-			try:
-				color = Builtin_Colors[value]
+				color = Builtin_Colors[text]
 			except KeyError:
-				raise ValueError("unknown color name")
-			self.rgb = [x / 255.0 for x in color]
-			return
-		# Hex: DDD, DDDDDD, DDDDDDDDDDDD
+				names = [n for n in Builtin_Colors if n.startswith(text)]
+				if len(names) == 1 or (final and len(names) > 0):
+					color = Builtin_Colors[names[0]]
+				elif len(names) > 1:
+					raise ValueError("Ambigious")
+				else:
+					raise ValueError("Unknown color name")
+			return Color([x / 255.0 for x in color])
+		# Hex: DDD, DDDDDD, or DDDDDDDDDDDD
 		try:
-			int(value[1:], 16)
+			int(text[1:], 16)
 		except ValueError:
 			raise ValueError("expected hex digits in color constant")
-		if len(value) == 3:
-			digits = (x for x in value[1:])
-			self.rgb = [int(x, 16) / 15.0 for x in digits]
-		elif len(value) == 6:
-			digits = (value[x:x+1] for x in range(1, 7, 2))
-			self.rgb = [int(x, 16) / 255.0 for x in digits]
-		elif len(value) == 12:
-			digits = (value[x:x+1] for x in range(1, 13, 4))
-			self.rgb = [int(x, 16) / 65535.0 for x in digits]
+		if len(text) == 3:
+			digits = (x for x in text[1:])
+			return Color([int(x, 16) / 15.0 for x in digits])
+		elif len(text) == 6:
+			digits = (text[x:x+1] for x in range(1, 7, 2))
+			return Color([int(x, 16) / 255.0 for x in digits])
+		elif len(text) == 12:
+			digits = (text[x:x+1] for x in range(1, 13, 4))
+			return Color([int(x, 16) / 65535.0 for x in digits])
 		else:
-			raise ValueError("color constant should have 3, 6, or 12 hex digits")
-		return
+			raise ValueError("Color constant should have 3, 6, or 12 hex digits")
 
-	def completions(self, name):
-		# only autocomplete color names
+	@staticmethod
+	def completions(text):
 		# TODO: add user defined colors
-		names = [n for n in Builtin_Colors if n.startswith(name)]
-		names.sort(key=str.casefold)
+		text = text.casefold()
+		names = [n for n in Builtin_Colors if n.startswith(text)]
 		return names

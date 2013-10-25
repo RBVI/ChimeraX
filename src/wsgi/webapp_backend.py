@@ -27,12 +27,12 @@ def init_chimera2():
 	llgr.set_output('json')
 	import chimera2.io
 	chimera2.io.initialize_formats()
-	cmds.register('exit', cmd_exit)
-	cmds.register('open', cmd_open)
-	def delay_lighting():
+	cmds.register('exit', (), cmd_exit)
+	cmds.register('open', ([('filename', cmds.string_arg)],), cmd_open)
+	def lighting_cmds():
 		import chimera2.lighting.cmd as cmd
 		cmd.register()
-	cmds.register('lighting', cmds.Defer(delay_lighting))
+	cmds.delay_registration('lighting', lighting_cmds)
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
 
 	from webapp_server import register_json_converter
@@ -93,11 +93,11 @@ class Backend(Server):
 			"command": str(value),
 		}
 		try:
-			cmd = cmds.Command(value, autocomplete=True)
+			cmd = cmds.Command(value, final=True)
 			cmd.error_check()
 			answer["command"] = cmd.current_text
 			result = []
-			info = cmd.execute(error_check=False)
+			info = cmd.execute()
 			if isinstance(info, str):
 				result.append(["info", info])
 			# TODO: check dirty bits and add changes to result
