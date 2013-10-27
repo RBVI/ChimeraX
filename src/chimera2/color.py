@@ -85,19 +85,13 @@ from chimera2 import cmds
 class Color_arg(cmds.Annotation):
 
 	@staticmethod
-	def parse(text, final):
+	def parse(text):
 		if text[0] != '#':
 			text = text.casefold()
 			try:
 				color = Builtin_Colors[text]
 			except KeyError:
-				names = [n for n in Builtin_Colors if n.startswith(text)]
-				if len(names) == 1 or (final and len(names) > 0):
-					color = Builtin_Colors[names[0]]
-				elif len(names) > 1:
-					raise ValueError("Ambigious")
-				else:
-					raise ValueError("Unknown color name")
+				raise ValueError("Invalid color name")
 			return Color([x / 255.0 for x in color])
 		# Hex: DDD, DDDDDD, or DDDDDDDDDDDD
 		try:

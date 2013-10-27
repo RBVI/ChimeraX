@@ -193,11 +193,11 @@ class Annotation:
 	name = "** article name, e.g., _a_ _truth value_ **"
 
 	@staticmethod
-	def parse(text, final):
+	def parse(text):
 		"""Return :param text: converted to appropiate type
 		
-		If this is the :param final: parsing pass,
-		then abbreviations should be accepted.
+		Abbreviations should be not accepted, instead they
+		should be discovered via the possible completions.
 		"""
 		raise NotImplemented
 
@@ -244,8 +244,8 @@ class Aggregate(Annotation):
 				name = "%s(s)" % name
 		self.name = name
 
-	def parse(self, text, final):
-		return self.annotation.parse(text, final)
+	def parse(self, text):
+		return self.annotation.parse(text)
 
 	def completions(self, text):
 		return self.annotation.completions(text)
@@ -279,13 +279,13 @@ class bool_arg(Annotation):
 	name = "a truth value"
 
 	@staticmethod
-	def parse(text, final):
+	def parse(text):
 		text = text.casefold()
-		if text == "0" or "false".startswith(text):
+		if text == "0" or text == "false":
 			return False
-		if text == "1" or "true".startswith(text):
+		if text == "1" or text == "true":
 			return True
-		raise ValueError("Expected true or false (or t or f)")
+		raise ValueError("Expected true or false (or 1 or 0)")
 
 	@staticmethod
 	def completions(text):
@@ -304,7 +304,7 @@ class int_arg(Annotation):
 	name = "a whole number"
 
 	@staticmethod
-	def parse(text, final):
+	def parse(text):
 		try:
 			return int(text)
 		except ValueError:
@@ -325,7 +325,7 @@ class float_arg(Annotation):
 	name = "a floating point number"
 
 	@staticmethod
-	def parse(text, final):
+	def parse(text):
 		try:
 			return float(text)
 		except ValueError:
@@ -344,7 +344,7 @@ class string_arg(Annotation):
 	name = "a text string"
 
 	@staticmethod
-	def parse(text, final):
+	def parse(text):
 		return text
 
 	@staticmethod
@@ -377,8 +377,8 @@ class Bounded(Annotation):
 				name = annotation.name
 		self.name = name
 
-	def parse(self, text, final):
-		value = self.anno.parse(text, final)
+	def parse(self, text):
+		value = self.anno.parse(text)
 		if self.min is not None and value < min:
 			raise ValueError("Must be greater or equal to %s", self.min)
 		if self.max is not None and value > max:
@@ -419,14 +419,12 @@ class Enum_of(Annotation):
 				"', '".join(self.ids[0:-1]), self.ids[-1])
 		self.name = name
 
-	def parse(self, text, final):
+	def parse(self, text):
 		text = text.casefold()
-		choices = [(i, x) for i, x in enumerate(self.ids) if x.casefold().startswith(text)]
-		if len(choices) == 1 or (final and len(choices) > 0):
-			return self.values[choices[0][0]]
-		if len(choices) > 0:
-			raise ValueError("Ambigious")
-		raise ValueError("Not %s" % self.name)
+		for i, x in enumerate(self.ids):
+			if x.casefold() == text:
+				return self.values[i]
+		raise ValueError("Invalid %s" % self.name)
 
 	def completions(self, text):
 		text = text.casefold()
@@ -450,10 +448,10 @@ class Or(Annotation):
 				", ".join(annotations[0:-1]), annotations[-1])
 		self.name = name
 
-	def parse(self, text, final):
+	def parse(self, text):
 		for anno in self.annotations:
 			try:
-				return anno.parse(text, final)
+				return anno.parse(text)
 			except ValueError:
 				pass
 		names = [a.__name__ for a in self.annotations]
@@ -474,7 +472,7 @@ class rest_of_line(Annotation):
 	name = "the rest of line"
 
 	@staticmethod
-	def parse(text, final):
+	def parse(text):
 		# convert \N{unicode name} to unicode, etc.
 		return text.encode('utf-8').decode('unicode-escape')
 
@@ -847,8 +845,7 @@ class Command:
 			all_chars.append(chars)
 			chars = ''.join(all_chars)
 			try:
-				value = annotation.parse(word, final
-						or len(text) > len(chars))
+				value = annotation.parse(word)
 				break
 			except ValueError as err:
 				completions = annotation.completions(word)
