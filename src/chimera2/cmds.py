@@ -736,6 +736,7 @@ class Command:
 		self.amount_parsed = 0
 		self.completion_prefix = ""
 		self.completions = []
+		self._error = "Missing command"
 		self._ci = None
 		self._kwargs = {}
 		self._error_checked = False
@@ -916,14 +917,13 @@ class Command:
 		* Possible completions are in self.completions.
 		* The prefix of the completions is in self.completion_prefix.
 		"""
-		self._reset()	 # start over
+		self._reset()	 # don't be smart, just start over
 
 		# TODO: alias expansion
 
 		# find command name
 		self.current_text = text
 		text = text[self.amount_parsed:]
-		self._error = "Missing command"
 		word_map = _commands
 		while 1:
 			word, chars = self._next_token(text)
@@ -932,7 +932,7 @@ class Command:
 				self.completion_prefix = word
 				self.completions = [
 					x for x in word_map if x.startswith(word)]
-				if (final or len(text) > len(chars)) \
+				if word and (final or len(text) > len(chars)) \
 				and self.completions:
 					# If final version of text, or if there
 					# is following text, make best guess,
@@ -940,6 +940,8 @@ class Command:
 					c = self.completions[0]
 					text = self._complete(chars, c[len(word):])
 					continue
+				if word:
+					self._error = "Unknown command"
 				return
 			self.amount_parsed += len(chars)
 			text = text[len(chars):]
