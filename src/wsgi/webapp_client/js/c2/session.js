@@ -153,17 +153,18 @@ function open_session() {
 		return;
 	}
 	// alert("Session \"" + session + "\" selected.");
-	save_session_info(session, password);
+	save_session_info("", session, password);
+	$("#popup_session_open").popup("close");
 }
 
-function save_session_info(session, password) {
+function save_session_info(user, session, password) {
+	$c2_session.user = user;
 	$c2_session.session = session;
 	$c2_session.password = password;
 	var msg = "No session selected";
 	if (session)
 		msg = "Active session: " + session;
 	$("#active_session").html(msg);
-	$("#session_popup").popup("close");
 }
 
 function delete_session() {
@@ -179,7 +180,8 @@ function delete_session_cb() {
 	var session = $("#my_sessions").val();
 	var password = $("#my_password").val();
 	alert("Session \"" + session + "\" deleted.");
-	save_session_info("", "");
+	save_session_info("", "", "");
+	$("#popup_session_open").popup("close");
 }
 
 function open_new_session() {
@@ -194,7 +196,25 @@ function open_new_session_cb() {
 	var session = $("#new_session").val();
 	var password = $("#new_password").val();
 	// alert("Session \"" + session + "\" created.");
-	save_session_info(session, password);
+	save_session_info("", session, password);
+	$("#popup_session_new").popup("close");
+}
+
+function open_shared_session() {
+	// Shared session parameters (user, session and password)
+	var user = $("#shared_username").val();
+	var session = $("#shared_session").val();
+	var password = $("#shared_password").val();
+	// TODO: verify session exists
+}
+
+function open_shared_session_cb() {
+	var user = $("#shared_username").val();
+	var session = $("#shared_session").val();
+	var password = $("#shared_password").val();
+	// alert("Shared session \"" + session + "\" opened.");
+	save_session_info(user, session, password);
+	$("#popup_session_shared").popup("close");
 }
 
 function update_session_list() {
