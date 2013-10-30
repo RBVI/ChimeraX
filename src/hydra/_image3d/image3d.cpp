@@ -40,6 +40,8 @@ static struct PyMethodDef image3d_methods[] =
   /* gaussian.h */
   {const_cast<char*>("sum_of_gaussians"), (PyCFunction)py_sum_of_gaussians,
    METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("sum_of_balls"), (PyCFunction)py_sum_of_balls,
+   METH_VARARGS|METH_KEYWORDS},
 
   /* histogram.h */
   {const_cast<char*>("minimum_and_maximum"), (PyCFunction)minimum_and_maximum,
