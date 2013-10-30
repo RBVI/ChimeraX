@@ -40,10 +40,11 @@ th, td { padding:0; }
 .footer-right { text-align:right; padding:0px 10px; line-height:25px; }
 .main-content { position:absolute; top:52px; right:0; left:0;
 			padding:0; margin:0; }
+.vertical-zone { height:100%; display:inline-block;
+			margin:0; padding:0; overflow:auto; }
+.center-zone { height:100%; display:inline-block;
+			margin:0; padding:0; overflow:none; }
 .bottom-zone { position:absolute; bottom:0; left:0px; right:0px; }
-.vertical-zones { padding:0; margin:0; width:100%; table-layout:fixed;
-			height:100%; }
-.vertical-zone { height:100%; display:inline-block; margin:0; padding:0; overflow:auto; }
 #molview {
   position: relative;
   margin: 0px;
@@ -763,42 +764,19 @@ $(document).bind("pageshow", "#app", function() {
 
 <!--main content-->
 <!-- three columns for left-zone, graphics, right-zone -->
-<!--
 <div class="main-content" id="content-all">
-  <table id="content-graphics" class="vertical-zones">
-    <tr>
-      <td id="zone-div-left" class="vertical-zone" style="width:20%;">
-	Hello, left
-      </td>
-      <td id="zone-div-center" class="vertical-zone" style="width:60%;">
-       <canvas id="molview" class="ui-widget-content"
-	      style="border:0; height:100%;">
-	Your browser does not support the HTML5
-	<code>&lt;canvas&gt;</code> element.
-	<a href="http://get.webgl.org">Click here to upgrade your browser.</a>
-       </canvas>
-      </td>
-      <td id="zone-div-right" class="vertical-zone" style="width:20%;">
-	Hello, right
-      </td>
-    </tr>
-  </table>
-</div>
--->
-<div class="main-content" id="content-all">
-  <div id="zone-div-left" class="vertical-zone" style="width:19%;">
+  <div id="zone-div-left" class="vertical-zone" style="width:20%;">
     Hello, left
-  </div>
-  <div id="zone-div-center" class="vertical-zone" style="width:60%;">
-   <canvas id="molview" class="ui-widget-content"
+  </div><div id="zone-div-center" class="center-zone" style="width:60%;">
+   <canvas id="molview"
 	  style="margin:0; border:0; height:99%;">
    </canvas>
-  </div>
-  <div id="zone-div-right" class="vertical-zone" style="width:19%;">
+  </div><div id="zone-div-right" class="vertical-zone" style="width:20%;">
     Hello, right
   </div>
 </div>
-<!-- bottom zone -->
+<!--end main content-->
+<!--bottom zone-->
 <div class="bottom-zone" id="bottom-zone">
   <div id="bottom-widgets" style="position:relative;">
     <label for="command_line">Command:</label>
@@ -806,7 +784,7 @@ $(document).bind("pageshow", "#app", function() {
   </div>
   <div id="status_line">Status line</div>
 </div>
-<!--end main content-->
+<!--end bottom zone-->
 
 <!--footer-->
 <div data-role="footer" data-position="fixed">
