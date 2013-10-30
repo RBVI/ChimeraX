@@ -119,20 +119,20 @@ class BaseApplication:
 
 		from chimera2 import cmds
 		self.command = cmds.Command()
-		cmds.register('exit', self.cmd_exit)
-		cmds.register('open', self.cmd_open)
-		cmds.register('stop', self.cmd_stop)
-		cmds.register('stereo', self.cmd_noop)
-		def delay_lighting():
+		cmds.register('exit', (), self.cmd_exit)
+		cmds.register('open', ([('filename', cmds.string_arg)],), self.cmd_open)
+		cmds.register('stop', ([], [('ignore', cmds.rest_of_line)]), self.cmd_stop)
+		cmds.register('stereo', ([], [('ignore', cmds.rest_of_line)]), self.cmd_noop)
+		def lighting_cmds():
 			import chimera2.lighting.cmd as cmd
 			cmd.register()
-		cmds.register('lighting', cmds.Defer(delay_lighting))
+		cmds.delay_registration('lighting', lighting_cmds)
 
 		# potentially changed in subclass:
 		self.graphics = None
 		self.statusbar = None
 
-	def cmd_noop(self):
+	def cmd_noop(self, ignore=None):
 		pass
 
 	def status(self, message, timeout=2000):
@@ -145,8 +145,9 @@ class BaseApplication:
 	def process_command(self, text=""):
 		from chimera2 import cmds
 		try:
-			if text:
-				self.command.parse_text(text, autocomplete=True)
+			if not text:
+				text = self.command.current_text
+			self.command.parse_text(text, final=True)
 			info = self.command.execute()
 			if isinstance(info, str):
 				self.status(info)
@@ -164,7 +165,7 @@ class BaseApplication:
 		else:
 			raise SystemExit(0)
 
-	def cmd_stop(self):
+	def cmd_stop(self, ignore=None):
 		self.status('use "exit"')
 
 	def cmd_open(self, filename):
@@ -191,8 +192,8 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 		scene.set_viewport(200, 200)
 
 		from chimera2 import cmds
-		cmds.register('render', self.cmd_render)
-		cmds.register('windowsize', self.cmd_window_size)
+		cmds.register('render', (), self.cmd_render)
+		cmds.register('windowsize', ([('width', cmds.int_arg), ('height', cmds.int_arg)]), self.cmd_window_size)
 
 	def physicalDotsPerInch(self):
 		# assume 100 dpi
@@ -341,7 +342,7 @@ class GuiApplication(QApplication, BaseApplication):
 
 	@pyqtSlot(str)
 	def save_command(self, text):
-		self.command.parse_text(text, autocomplete=False)
+		self.command.parse_text(text)
 		self.completer.setCompletionPrefix(self.command.completion_prefix)
 		self.completer.model().setStringList(self.command.completions)
 		self.completer.complete()

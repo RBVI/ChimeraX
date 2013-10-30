@@ -3,7 +3,7 @@
 #include "molecule/Residue.h"
 #include "molecule/Atom.h"
 #include "molecule/Bond.h"
-#include "molecule/Coord.h"
+#include "base-geom/Coord.h"
 #include "molecule/Element.h"
 #include <vector>
 #include <map>

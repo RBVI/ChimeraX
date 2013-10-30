@@ -28,14 +28,29 @@
 
 <!-- page-specific script and css -->
 <style type="text/css">
+html, body { height:100%; }
+th, td { padding:0; }
+#app .ui-header { height:50px; }
+#app .ui-footer { height:50px; }
+.header-left { text-align:left; padding:0px 10px; }
+.header-right { text-align:right; padding:0px 10px; }
 .footer-button { width:100px; }
-.footer-left { text-align:left; padding:0px 10px; }
-.footer-right { text-align:right; padding:0px 10px; }
+.footer-left { text-align:left; padding:0px 10px; line-height:50px; }
+.footer-center { text-align:center; padding:0px 10px; line-height:50px; }
+.footer-right { text-align:right; padding:0px 10px; line-height:25px; }
+.main-content { position:absolute; top:52px; right:0; left:0;
+			padding:0; margin:0; }
+.vertical-zone { height:100%; display:inline-block;
+			margin:0; padding:0; overflow:auto; }
+.center-zone { height:100%; display:inline-block;
+			margin:0; padding:0; overflow:none; }
+.bottom-zone { position:absolute; bottom:0; left:0px; right:0px; }
 #molview {
-	position: relative;
-	margin: 0px;
-	width: 100%;
-	height: 100%;
+  position: relative;
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+  height: 100%;
 }
 </style>
 
@@ -517,6 +532,40 @@ function molview_mouse_up(event) {
 	button_pressed = false;
 }
 
+function molview_update_size() {
+	var footer = $("[data-role=footer]");
+	var bottom_zone = $("#bottom-zone");
+	var content = $("#content-all");
+	/*
+	console.log("bottom_zone height: " + bottom_zone.height());
+	*/
+
+	var footer_height = footer.outerHeight(true);
+	/*
+	console.log("content bottom 1: " + bottom_zone.css("bottom")
+			+ " " + content.css("bottom"));
+	*/
+	bottom_zone.css("bottom", footer_height);
+	var bottom_height = bottom_zone.outerHeight(true) + footer_height;
+	/*
+	console.log("content bottom 2: " + bottom_zone.css("bottom")
+			+ " " + content.css("bottom"));
+	*/
+	content.css("bottom", bottom_height);
+	/*
+	console.log("content bottom 3: " + bottom_zone.css("bottom")
+			+ " " + content.css("bottom"));
+	console.log("footer height: " + footer_height
+			+ " bottom height: " + bottom_height);
+	*/
+
+	// Make canvas use display resolution (no scaling)
+	var canvas = document.getElementById("molview");
+	resizeCanvasToDisplaySize(canvas);
+	if (molview_ci !== undefined)
+		molview_ci.redraw();
+}
+
 function molview_init() {
 	var canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
@@ -526,7 +575,7 @@ function molview_init() {
 	if (!gl)
 		return;
 
-	resizeCanvasToDisplaySize(canvas);
+	molview_update_size();
 	molview_ci = new ContextInfo(canvas, gl, draw_scene);
 	molview_ci.init();
 	molview_ci.redraw();
@@ -569,7 +618,8 @@ function draw_scene(ci) {
 	llgr.render();
 }
 
-$(function() {
+$(document).bind("pageshow", "#app", function() {
+/* resizing not available on mobile devices
 	$("#molview").resizable({
 		handles: "",
 		resize: function (event, ui) {
@@ -582,6 +632,13 @@ $(function() {
 			});
 		},
 	});
+*/
+	$(window).on("resize", function(event) {
+			molview_update_size();
+		      	});
+	$("[data-role=header]").fixedtoolbar({ tapToggle: false });
+	$("[data-role=footer]").fixedtoolbar({ tapToggle: false });
+	molview_update_size();
 });
 
 }());
@@ -589,7 +646,7 @@ $(function() {
 </script>
 </head>
 <body>
-<div data-role="page" class="ui-responsive-panel">
+<div id="app" data-role="page" class="ui-responsive-panel" style="overflow:hidden; padding:0;">
 
 <!--panels-->
 <div data-role="panel" data-position-fixed="true"
@@ -607,97 +664,145 @@ $(function() {
 <!--end panels-->
 
 <!--popups-->
-<div data-role="popup" name="session_popup" id="session_popup">
-  <div data-role="collapsible-set" data-mini="true">
-    <div data-role="collapsible" data-collapsed="false">
-      <h3>My Sessions</h3>
-      <form>
-	<label for="my_sessions">Session:</label>
-	<select name="my_sessions" id="my_sessions" data-mini="true">
-	  <option value="xyzzy">xyzzy</option>
-	  <option value="plugh">plugh</option>
-	</select>
-	<label for="my_password">Password:</label>
-	<input type="password" name="my_password" id="my_password"
-	      value="" data-mini="true" />
-	<input type="button" value="Open" id="open_session"
-	      data-inline="true" data-mini="true" data-theme="b"/>
-	<input type="button" value="Delete" id="delete_session"
-	      data-inline="true" data-mini="true" data-theme="b"/>
-      </form>
-    </div>
-    <div data-role="collapsible" data-collapsed="true">
-      <h3>New Sessions</h3>
-      <form>
-	<label for="new_session">Session:</label>
-	<input type="text" name="new_session" id="new_session"
-	      value="" data-mini="true" />
-	<label for="new_password">Password:</label>
-	<input type="password" name="new_password" id="new_password"
-	      value="" data-mini="true" />
-	<input type="button" value="Create" id="open_new_session"
-	      data-inline="true" data-mini="true" data-theme="b"/>
-      </form>
-    </div>
-    <div data-role="collapsible" data-collapsed="true">
-      <h3>Shared Session</h3>
-      <form>
-	<label for="shared_username">User name:</label>
-	<input type="text" name="shared_username" id="shared_username"
-	      value="" data-mini="true" />
-	<label for="shared_session">Session:</label>
-	<input type="text" name="shared_session" id="shared_session"
-	      value="" data-mini="true" />
-	<label for="shared_password">Password:</label>
-	<input type="password" name="shared_password" id="shared_password"
-	      value="" data-mini="true"/>
-	<input type="button" value="Open" id="open_shared_session"
-	      data-inline="true" data-mini="true" data-theme="b"/>
-      </form>
-    </div>
-  </div>
+<div data-role="popup" class="ui-content"
+	name="popup_session_open" id="popup_session_open">
+  <a href="#" data-rel="back" data-role="button"
+  	data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+  <h3>My Sessions</h3>
+  <form>
+    <label for="my_sessions">Session:</label>
+    <select name="my_sessions" id="my_sessions" data-mini="true">
+      <option value="xyzzy">xyzzy</option>
+      <option value="plugh">plugh</option>
+    </select>
+    <label for="my_password">Password:</label>
+    <input type="password" name="my_password" id="my_password"
+	  value="" data-mini="true" />
+    <input type="button" value="Open" id="open_session"
+	  data-inline="true" data-mini="true" data-theme="b"/>
+    <input type="button" value="Delete" id="delete_session"
+	  data-inline="true" data-mini="true" data-theme="b"/>
+  </form>
+</div>
+<div data-role="popup" class="ui-content"
+	name="popup_session_new" id="popup_session_new">
+  <a href="#" data-rel="back" data-role="button"
+  	data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+  <h3>New Sessions</h3>
+  <form>
+    <label for="new_session">Session:</label>
+    <input type="text" name="new_session" id="new_session"
+	  value="" data-mini="true" />
+    <label for="new_password">Password:</label>
+    <input type="password" name="new_password" id="new_password"
+	  value="" data-mini="true" />
+    <input type="button" value="Create" id="open_new_session"
+	  data-inline="true" data-mini="true" data-theme="b"/>
+  </form>
+</div>
+<div data-role="popup" class="ui-content"
+	name="popup_session_shared" id="popup_session_shared">
+  <a href="#" data-rel="back" data-role="button"
+  	data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+  <h3>Shared Session</h3>
+  <form>
+    <label for="shared_username">User name:</label>
+    <input type="text" name="shared_username" id="shared_username"
+	  value="" data-mini="true" />
+    <label for="shared_session">Session:</label>
+    <input type="text" name="shared_session" id="shared_session"
+	  value="" data-mini="true" />
+    <label for="shared_password">Password:</label>
+    <input type="password" name="shared_password" id="shared_password"
+	  value="" data-mini="true"/>
+    <input type="button" value="Open" id="open_shared_session"
+	  data-inline="true" data-mini="true" data-theme="b"/>
+  </form>
 </div>
 <!--end popups-->
 
+<!--header-->
+<div data-role="header" data-position="fixed">
+  <div class="ui-grid-a">
+    <div class="ui-block-a header-left">
+      <div data-role="controlgroup" data-type="horizontal" data-mini="true">
+	<a href="#menuSession" data-rel="popup" data-role="button"
+		data-inline="true" data-transition="slidedown">
+		Sessions...</a>
+	  <div data-role="popup" id="menuSession">
+	    <ul data-role="listview" data-inset="true">
+	      <li><a data-rel="popup" href="#popup_session_open">
+	      	Open Session</a></li>
+	      <li><a data-rel="popup" href="#popup_session_new">
+	      	New Session</a></li>
+	      <li><a data-rel="popup" href="#popup_session_shared">
+	      	Shared Session</a></li>
+	    </ul>
+	  </div>
+	<a href="#menuZone" data-rel="popup" data-role="button"
+		data-inline="true" data-transition="slidedown">
+		Zones...</a>
+	  <div data-role="popup" id="menuZone">
+	    <fieldset data-role="controlgroup" style="margin:0;">
+	      <input name="zone-left" id="zone-left" type="checkbox">
+	      <label for="zone-left">Left</label>
+	      <input name="zone-right" id="zone-right" type="checkbox">
+	      <label for="zone-right">Right</label>
+	      <input name="zone-bottom" id="zone-bottom" type="checkbox">
+	      <label for="zone-bottom">Bottom</label>
+	      </select>
+	    </fieldset>
+	  </div>
+      </div>
+    </div>
+    <div class="ui-block-b header-right">
+      <a data-role="button" data-inline="true">Help</a>
+    </div>
+  </div>
+</div>
+<!--end header-->
+
 <!--main content-->
-<div data-role="content">
-  <h1>Chimera 2 Web Application</h1>
-  <div>
+<!-- three columns for left-zone, graphics, right-zone -->
+<div class="main-content" id="content-all">
+  <div id="zone-div-left" class="vertical-zone" style="width:20%;">
+    Hello, left
+  </div><div id="zone-div-center" class="center-zone" style="width:60%;">
+   <canvas id="molview"
+	  style="margin:0; border:0; height:99%;">
+   </canvas>
+  </div><div id="zone-div-right" class="vertical-zone" style="width:20%;">
+    Hello, right
+  </div>
+</div>
+<!--end main content-->
+<!--bottom zone-->
+<div class="bottom-zone" id="bottom-zone">
+  <div id="bottom-widgets" style="position:relative;">
     <label for="command_line">Command:</label>
     <input id="command_line" type="text" size="100"/>
   </div>
-  <div>
-    <span id="status_line">&nbsp;</span>
-  </div>
-  <div>
-   <canvas id="molview" class="ui-widget-content">
-    Your browser does not support the HTML5
-    <code>&lt;canvas&gt;</code> element.
-    <a href="http://get.webgl.org">Click here to upgrade your browser.</a>
-   </canvas>
-  </div>
-  <hr/>
+  <div id="status_line">Status line</div>
 </div>
-<!--end main content-->
+<!--end bottom zone-->
 
 <!--footer-->
-<div data-role="footer">
-  <div class="ui-grid-a">
+<div data-role="footer" data-position="fixed">
+  <div class="ui-grid-b">
     <div class="ui-block-a footer-left">
-      <span id="active_session">No session selected</span>
       <div data-role="controlgroup" data-type="horizontal" data-mini="true">
-	<a data-role="button" class="footer-button"
-	      id="open_session_popup" data-mini="true"
-	      href="#session_popup" data-rel="popup">Session</a>
 	<a data-role="button" data-mini="true"
 	      class="footer-button" href="#log_panel">Log</a>
 	<a data-role="button" data-mini="true"
 	      class="footer-button" href="#debug_panel">Debug Log</a>
       </div>
     </div>
-    <div class="ui-block-b footer-right">
-      <h4>Chimera 2 Mobile<br/>
-      Developed at the <a href="http://www.rbvi.ucsf.edu">RBVI</a></h4>
+    <div class="ui-block-b footer-center">
+      <span id="active_session">No session selected</span>
+    </div>
+    <div class="ui-block-c footer-right">
+      Chimera 2 Mobile<br/>
+      Developed at the <a href="http://www.rbvi.ucsf.edu">RBVI</a>
     </div>
   </div>
 </div>
