@@ -577,6 +577,19 @@ class Atom_Set:
         a = numpy.concatenate(coords)
     return a
 
+  def radii(self):
+    rlist = []
+    for m,a in self.molatoms:
+        rlist.append(m.radii[a])
+    import numpy
+    if len(rlist) == 0:
+        a = numpy.zeros((0,), numpy.float32)
+    elif len(rlist) == 1:
+        a = rlist[0]
+    else:
+        a = numpy.concatenate(rlist)
+    return a
+
   def move_atoms(self, tf):
     # Transform tf acts on scene coordinates
     for m,a in self.molatoms:

@@ -14,6 +14,7 @@ def molmap_command(cmdname, args):
                ('edgePadding', float_arg),
                ('cutoffRange', float_arg),
                ('sigmaFactor', float_arg),
+               ('balls', bool_arg),
                ('symmetry', string_arg),
                ('center', string_arg),
                ('axis', string_arg),
@@ -34,6 +35,7 @@ def molecule_map(atoms, resolution,
                  edgePadding = None,    # default is 3 times resolution
                  cutoffRange = 5,       # in standard deviations
                  sigmaFactor = 1/(pi*sqrt(2)), # standard deviation / resolution
+                 balls = False,         # Use balls instead of Gaussians
                  symmetry = None,       # Equivalent to sym group option.
                  center = (0,0,0),      # Center of symmetry.
                  axis = (0,0,1),        # Axis of symmetry.
@@ -80,19 +82,19 @@ def molecule_map(atoms, resolution,
         modelId = parse_model_id(modelId)
 
     v = make_molecule_map(atoms, resolution, step, pad,
-                          cutoffRange, sigmaFactor, transforms, csys,
+                          cutoffRange, sigmaFactor, balls, transforms, csys,
                           displayThreshold, modelId, replace, showDialog)
     return v
 
 # -----------------------------------------------------------------------------
 #
 def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
-                      sigma_factor, transforms, csys,
+                      sigma_factor, balls, transforms, csys,
                       display_threshold, model_id,
                       replace, show_dialog):
 
     grid, molecules = molecule_grid_data(atoms, resolution, step, pad,
-                                         cutoff_range, sigma_factor,
+                                         cutoff_range, sigma_factor, balls,
                                          transforms, csys)
 
     if replace:
@@ -118,7 +120,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
 # -----------------------------------------------------------------------------
 #
 def molecule_grid_data(atoms, resolution, step, pad,
-                       cutoff_range, sigma_factor,
+                       cutoff_range, sigma_factor, balls = False,
                        transforms = [], csys = None):
 
     xyz = atoms.coordinates()
@@ -134,16 +136,22 @@ def molecule_grid_data(atoms, resolution, step, pad,
 #    tflist = [(tfinv * t * tf) for t in transforms]
     tflist = transforms
 
-    anum = atoms.element_numbers()
-
     molecules = atoms.molecules()
     if len(molecules) > 1:
         name = 'map %.3g' % (resolution,)
     else:
         name = '%s map %.3g' % (molecules[0].name, resolution)
 
-    grid = gaussian_grid_data(xyz, anum, resolution, step, pad,
-                              cutoff_range, sigma_factor, tflist)
+    if balls:
+        radii = atoms.radii()
+        grid = balls_grid_data(xyz, radii, resolution, step, pad,
+                               cutoff_range, sigma_factor, tflist)
+    else:
+        from math import pow, pi
+        normalization = pow(2*pi,-1.5)*pow(sigma_factor*resolution,-3)
+        weights = atoms.element_numbers()*normalization
+        grid = gaussian_grid_data(xyz, weights, resolution, step, pad,
+                                  cutoff_range, sigma_factor, tflist)
     grid.name = name
 
     return grid, molecules
@@ -160,8 +168,7 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
     from numpy import zeros, float32, empty
     sdevs = zeros((len(xyz),3), float32)
     sdevs[:] = sdev
-    from math import pow, pi, ceil
-    normalization = pow(2*pi,-1.5)*pow(sdev*step,-3)
+    from math import ceil
     shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / step))
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
@@ -178,7 +185,40 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
         ijk[:] = xyz
         (xyz_to_ijk_tf * tf).move(ijk)
         sum_of_gaussians(ijk, weights, sdevs, cutoff_range, matrix)
-    matrix *= normalization
+    
+    from .VolumeData import Array_Grid_Data
+    grid = Array_Grid_Data(matrix, origin, (step,step,step))
+
+    return grid
+
+# -----------------------------------------------------------------------------
+#
+def balls_grid_data(xyz, radii, resolution, step, pad,
+                       cutoff_range, sigma_factor, transforms = []):
+
+    xyz_min, xyz_max = point_bounds(xyz, transforms)
+
+    origin = [x-pad for x in xyz_min]
+    sdev = sigma_factor * resolution / step
+    from numpy import zeros, float32, empty
+    from math import ceil
+    shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / step))
+             for a in (2,1,0)]
+    matrix = zeros(shape, float32)
+
+    from .geometry.place import Place, identity
+    xyz_to_ijk_tf = Place(((1.0/step, 0, 0, -origin[0]/step),
+                           (0, 1.0/step, 0, -origin[1]/step),
+                           (0, 0, 1.0/step, -origin[2]/step)))
+    if len(transforms) == 0:
+        transforms = [identity()]
+    from ._image3d import sum_of_balls
+    ijk = empty(xyz.shape, float32)
+    r = (radii / step) - sdev
+    for tf in transforms:
+        ijk[:] = xyz
+        (xyz_to_ijk_tf * tf).move(ijk)
+        sum_of_balls(ijk, r, sdev, cutoff_range, matrix)
     
     from .VolumeData import Array_Grid_Data
     grid = Array_Grid_Data(matrix, origin, (step,step,step))

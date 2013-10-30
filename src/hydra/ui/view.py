@@ -683,9 +683,8 @@ class View(QtOpenGL.QGLWidget):
     def mouse_down(self, event):
         w,h = self.window_size
         cx, cy = event.x()-0.5*w, event.y()-0.5*h
-        r2 = min(0.5*w,0.5*h)**2
-        f2 = 0.8**2
-        self.mouse_perimeter = (cx*cx + cy*cy > f2*r2)
+        fperim = 0.9
+        self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
         self.remember_mouse_position(event)
 
     def mouse_up(self, event):

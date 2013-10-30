@@ -4,6 +4,7 @@
 extern "C"
 {
 PyObject *py_sum_of_gaussians(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *py_sum_of_balls(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif

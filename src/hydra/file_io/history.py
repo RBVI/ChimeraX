@@ -40,7 +40,7 @@ class File_History:
       removed_some = False
       for spath, (atime,iname) in tuple(files.items()):
         if not isfile(spath):
-          files.remove(spath)
+          files.pop(spath)
           removed_some = True
       if removed_some:
         self.changed = True
