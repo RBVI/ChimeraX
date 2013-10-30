@@ -7,7 +7,7 @@ Read little-endian STL binary format.
 
 # code taken from chimera 1.7
 
-from chimera2 import scene
+from chimera2 import generic3d, scene
 
 _builtin_open = open
 
@@ -24,6 +24,8 @@ def open(filename, *args, **kw):
 		input = filename
 	else:
 		input = _builtin_open(filename, 'rb')
+
+	model = generic3D.Generic3D()
 
 	# parse input
 	cur_color = [0.7, 0.7, 0.7, 1.0]
@@ -84,6 +86,8 @@ def open(filename, *args, **kw):
 	llgr.create_object(obj_id, scene._program_id, matrix_id, ais,
 			llgr.Triangles, 0, ta.size, tri_id, index_type)
 
+	return [model], "Opened STL file containing %d triangles" % len(ta)
+
 
 # -----------------------------------------------------------------------------
 #
@@ -122,6 +126,6 @@ def stl_geometry(nv):
 
 def register():
 	from chimera2 import io
-	io.register_format("STL", io.GENERIC3D, (".stl",),
+	io.register_format("STL", generic3d.CATEGORY, (".stl",),
 		reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
 		open_func=open)

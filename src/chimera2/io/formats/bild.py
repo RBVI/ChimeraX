@@ -9,7 +9,7 @@ Read a subset of Chimera's
 The plan is to suport all of the existing bild format.
 """
 
-from chimera2 import scene
+from chimera2 import generic3d, scene
 from chimera2.cmds import UserError
 from chimera2.math3d import Point, Xform, Identity
 from math import radians
@@ -31,6 +31,7 @@ def open(stream, *args, **kw):
 		# it's really a filename
 		input = _builtin_open(stream, 'rb')
 
+	model = generic3d.Generic3D()
 	# parse input
 	warned = set()
 	transforms = [Identity()]
@@ -129,10 +130,10 @@ def open(stream, *args, **kw):
 	if input != stream:
 		input.close()
 
-	return "Opened BILD data containing %d objects" % num_objects
+	return [model], "Opened BILD data containing %d objects" % num_objects
 
 def register():
 	from chimera2 import io
-	io.register_format("BILD", io.GENERIC3D, (".bild",),
+	io.register_format("BILD", generic3d.CATEGORY, (".bild",),
 		reference="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html",
 		open_func=open)
