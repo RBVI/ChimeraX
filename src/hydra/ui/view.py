@@ -864,6 +864,10 @@ class View(QtOpenGL.QGLWidget):
     def molecules(self):
         from ..molecule import Molecule
         return tuple(m for m in self.models if isinstance(m,Molecule))
+
+    def surfaces(self):
+        from ..molecule import Molecule
+        return tuple(m for m in self.models if not isinstance(m,(Molecule)))
             
     def quit(self):
         import sys
