@@ -642,6 +642,12 @@ class Atom_Set:
       aset.add_atoms(m, a)
     return mlist
 
+  def exclude_water(self):
+    aset = Atom_Set()
+    for m,a in self.molatoms:
+      aset.add_atoms(m, a[m.residue_names[a] != b'HOH'])
+    return aset
+
 # -----------------------------------------------------------------------------
 #
 def all_atoms():
