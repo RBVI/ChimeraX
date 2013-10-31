@@ -113,4 +113,5 @@ def surface(atoms, probeRadius = 1.4, gridSpacing = 0.5, waters = False):
 
     if not waters:
         atoms = atoms.exclude_water()
-    ses_surface(atoms, probeRadius, gridSpacing)
+    s = ses_surface(atoms, probeRadius, gridSpacing)
+    return s
