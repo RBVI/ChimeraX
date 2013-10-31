@@ -18,7 +18,6 @@ def register_shortcuts(viewer):
       ('pa', show_all_planes, 'Show all planes'),
       ('o3', toggle_orthoplanes, 'Show 3 orthogonal planes'),
       ('bx', toggle_box_faces, 'Show box faces'),
-      ('t5', show_map_transparent, 'Make map transparent'),
       ('fr', show_map_full_resolution, 'Show map at full resolution'),
       )
     mapcat = 'Map Display'
@@ -49,6 +48,12 @@ def register_shortcuts(viewer):
     molcat = 'Molecule Display'
     for k,f,d in mol_shortcuts:
       ks.add_shortcut(k, f, d, category = molcat, each_molecule = True)
+
+    surf_shortcuts = (
+        ('t5', show_surface_transparent, 'Make surface transparent'),
+    )
+    for k,f,d in surf_shortcuts:
+      ks.add_shortcut(k, f, d, category = mapcat, each_surface = True)
 
     ocat = 'Open, Save, Close'   # shortcut documentation category
     gcat = 'General Controls'
@@ -115,7 +120,8 @@ class Keyboard_Shortcuts:
     self.viewer = viewer
 
   def add_shortcut(self, key_seq, func, description = '', category = None,
-                   each_map = False, each_molecule = False, view_arg = False):
+                   each_map = False, each_molecule = False,
+                   each_surface = False, view_arg = False):
 
     v = self.viewer
     if each_map:
@@ -125,6 +131,10 @@ class Keyboard_Shortcuts:
     elif each_molecule:
         def f(v=v, func=func):
             for m in shortcut_molecules(v):
+                func(m)
+    elif each_surface:
+        def f(v=v, func=func):
+            for m in shortcut_surfaces(v):
                 func(m)
     elif view_arg:
         def f(v=v, func=func):
@@ -178,6 +188,12 @@ def shortcut_molecules(v):
   mlist = [m for m in v.molecules() if m.selected]
   if len(mlist) == 0:
     mlist = [m for m in v.molecules() if m.display]
+  return mlist
+
+def shortcut_surfaces(v):
+  mlist = [m for m in v.surfaces() if m.selected]
+  if len(mlist) == 0:
+    mlist = [m for m in v.surfaces() if m.display]
   return mlist
 
 def close_all_models(viewer):
@@ -291,9 +307,16 @@ def show_asymmetric_unit(m):
         from .gui import main_window
         m.update_level_of_detail(main_window.view)
 
-def show_map_transparent(m):
-    m.surface_colors = tuple((r,g,b,0.5 if a == 1 else 1) for r,g,b,a in m.surface_colors)
-    m.show()
+def show_surface_transparent(m):
+    from ..VolumeViewer import Volume
+    from ..surface import Surface
+    if isinstance(m, Volume):
+        m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
+        m.show()
+    elif isinstance(m, Surface):
+        for p in m.surface_pieces():
+            r,g,b,a = p.color
+            p.color = (r,g,b, (0.5 if a == 1 else 1))
 
 def tile_models(viewer):
     viewer.tile_models = not viewer.tile_models
