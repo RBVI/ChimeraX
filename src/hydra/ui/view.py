@@ -337,7 +337,7 @@ class View(QtOpenGL.QGLWidget):
     def draw_caption(self, text):
 
         # TODO: reuse image and surface and texture for each caption.
-        width, height = 256,32
+        width, height = 512,64
         im = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
         im.fill(QtGui.QColor(*tuple(int(255*c) for c in self.background_color)))
         draw_image_text(im, text, bgcolor = self.background_color)
@@ -901,7 +901,7 @@ def adjust_threshold_level(m, f):
         
 
 def draw_image_text(qi, text, color = (255,255,255), bgcolor = None,
-                    font_name = 'Helvetica', font_size = 24):
+                    font_name = 'Helvetica', font_size = 40):
   p = QtGui.QPainter(qi)
   w,h = qi.width(), qi.height()
 
