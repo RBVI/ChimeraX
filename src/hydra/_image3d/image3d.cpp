@@ -3,6 +3,8 @@
 
 #include "blend_rgba.h"			// use blur_blend_images
 #include "combine.h"			// use linear_combination
+#include "connected.h"			// use connected_triangles, ...
+#include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
 #include "intercept.h"			// use closest_geometry_intercept
@@ -35,6 +37,18 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
    METH_VARARGS|METH_KEYWORDS},
   {const_cast<char*>("inner_product_64"), (PyCFunction)inner_product_64,
+   METH_VARARGS|METH_KEYWORDS},
+
+  /* connected.h */
+  {const_cast<char*>("connected_triangles"), (PyCFunction)connected_triangles,
+   METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("triangle_vertices"), (PyCFunction)triangle_vertices,
+   METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("connected_pieces"), (PyCFunction)connected_pieces,
+   METH_VARARGS|METH_KEYWORDS},
+
+  /* distgrid.h */
+  {const_cast<char*>("sphere_surface_distance"), (PyCFunction)py_sphere_surface_distance,
    METH_VARARGS|METH_KEYWORDS},
 
   /* gaussian.h */

@@ -5,8 +5,8 @@ PKG_DIR = $(PYSITEDIR)/hydra
 
 PYMOD_NAME = _image3d
 SRCS	= blend_rgba.cpp combine.cpp \
-	  contourdata.cpp pycontour.cpp \
-	  distances.cpp pydistances.cpp  \
+	  connected.cpp contourdata.cpp pycontour.cpp \
+	  distgrid.cpp distances.cpp pydistances.cpp  \
 	  gaussian.cpp \
 	  histogram.cpp image3d.cpp \
 	  interpolate.cpp pyinterpolate.cpp \
