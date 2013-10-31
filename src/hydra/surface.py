@@ -305,7 +305,7 @@ class Surface_Piece(object):
     return ninst
 
   def get_triangle_and_edge_mask(self):
-    return edge_mask
+    return self.edge_mask
   def set_triangle_and_edge_mask(self, temask):
     self.edge_mask = temask
     self.surface.redraw_needed = True
