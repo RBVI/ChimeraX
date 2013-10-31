@@ -56,7 +56,7 @@ The output from this example is:
 
 	trigger = conrad trigger_data = 2
 
-If a handler returns the value triggerset.ONESHOT, then the handler will
+If a handler returns the value triggerset.ONE_SHOT, then the handler will
 be deregistered after it returns.  Therfore, the 'Second.handler()' method 
 above could have been written more simply as:
 
@@ -68,10 +68,10 @@ above could have been written more simply as:
 			'handler =', self.handler,
 			'trigger_data =', trigger_data)
 		self.handler = None
-		return triggerset.ONESHOT
+		return triggerset.ONE_SHOT
 """
 
-ONESHOT = "oneshot"
+ONE_SHOT = "one_shot"
 TRIGGER_ERROR = "Error processing trigger"
 
 def _basic_report(msg):
@@ -106,7 +106,7 @@ class _TriggerHandler:
 class _Trigger:
 	"""Keep track of handlers to invoke when activated"""
 
-	def __init__(self, name, usage_cb, default_oneshot):
+	def __init__(self, name, usage_cb, default_one_shot):
 		self._name = name
 		self._handlers = set()
 		self._pending_add = set()
@@ -116,7 +116,7 @@ class _Trigger:
 		self._need_activate = set()
 		self._need_activate_data = []
 		self._usage_cb = usage_cb
-		self._default_oneshot = default_oneshot
+		self._default_one_shot = default_one_shot
 
 	def add(self, handler):
 		if self._locked:
@@ -152,14 +152,14 @@ class _Trigger:
 		for handler in self._handlers:
 			if handler in self._pending_del:
 				continue
-			if self._default_oneshot:
+			if self._default_one_shot:
 				self._pending_del.append(handler)
 			try:
 				ret = handler.invoke(data)
 			except:
 				self._locked = locked
 				raise
-			if ret == ONESHOT and handler not in self._pending_del:
+			if ret == ONE_SHOT and handler not in self._pending_del:
 				self._pending_del.add(handler)
 		self._locked = locked
 		if not self._locked:
@@ -208,7 +208,7 @@ class TriggerSet:
 		self._blocked = 0
 
 	def add_trigger(self, name, usage_cb=None, after=None,
-						default_oneshot=False):
+						default_one_shot=False):
 		"""Add a trigger with the given name.
 
 		triggerset.add_trigger(name) => None
@@ -222,12 +222,12 @@ class TriggerSet:
 		The callback function will be given the trigger name and 1
 		or 0 (respectively) as arguments.
 
-		The optional argument 'default_oneshot' (default False)
+		The optional argument 'default_one_shot' (default False)
 		may be used to designate triggers whose registered handlers
 		should only be called once.  For example, an "exit trigger"
 		may only want its handler run once and then discarded
 		without having the handler explicitly deregister itself
-		or return ONESHOT.
+		or return ONE_SHOT.
 
 		The optional argument 'after' (default None) may be a list
 		of trigger names, and is passed to a call to 'add_dependency'
@@ -235,7 +235,7 @@ class TriggerSet:
 		"""
 		if name in self._triggers:
 			raise KeyError("Trigger '%s' already exists" % name)
-		self._triggers[name] = _Trigger(name, usage_cb, default_oneshot)
+		self._triggers[name] = _Trigger(name, usage_cb, default_one_shot)
 		self._roots.add(name)
 		if after:
 			self.add_dependency(name, after)

@@ -1,4 +1,4 @@
-from chimera2 import scene
+from chimera2 import molecule, scene
 from chimera2.cmds import UserError
 from chimera2.math3d import Point, weighted_point
 
@@ -12,8 +12,10 @@ def open(stream, *args, **kw):
 		# it's really a filename
 		input = _builtin_open(stream, 'rb')
 
+	model = molecule.Molecule()
 	import pdbio, access
 	mol_blob = pdbio.read_pdb_file(input)
+	model.data = mol_blob
 	atom_blob, bond_list = access.atoms_bonds(mol_blob)
 	coords = access.coords(atom_blob)
 	element_numbers = access.element_numbers(atom_blob)
@@ -39,7 +41,7 @@ def open(stream, *args, **kw):
 	if input != stream:
 		input.close()
 
-	return "Opened PDB data containing %d atoms and %d bonds" % (len(coords), len(bond_list))
+	return [model], "Opened PDB data containing %d atoms and %d bonds" % (len(coords), len(bond_list))
 
 def fetch(pdb_id):
 	if len(pdb_id) != 4:
@@ -141,14 +143,14 @@ def element_radius(element_number):
 
 def register():
 	from chimera2 import io
-	io.register_format("PDB", io.STRUCTURE,
+	io.register_format("PDB", molecule.CATEGORY,
 		(".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
 		mime=("chemical/x-pdb", "chemical/x-spdbv"),
 		reference="http://wwpdb.org/docs.html#format",
 		open_func=open, fetch_func=fetch)
-	io.register_format("CIF", io.STRUCTURE, (".cif"), ("cif", "cifID"),
+	io.register_format("CIF", molecule.CATEGORY, (".cif"), ("cif", "cifID"),
 		mime=("chemical/x-cif"),
 		reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
-	io.register_format("mmCIF", io.STRUCTURE, (".mcif"), ("mmcif",),
+	io.register_format("mmCIF", molecule.CATEGORY, (".mcif"), ("mmcif",),
 		mime=("chemical/x-mmcif"),
 		reference="http://mmcif.rcsb.org/")
