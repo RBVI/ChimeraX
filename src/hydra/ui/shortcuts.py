@@ -390,13 +390,15 @@ def show_molecular_surface(m, viewer, res = 3.0, grid = 0.5):
   if hasattr(m, 'molsurf') and m.molsurf in viewer.models:
     m.molsurf.display = True
   else:
-    from .. import molecule, molmap
+    from .. import molecule
     atoms = molecule.Atom_Set()
     atoms.add_molecules([m])
-    s = molmap.molecule_map(atoms, res, grid)
-    s.new_region(ijk_step = (1,1,1), adjust_step = False)
-    s.show()
-    m.molsurf = s
+#    from .. import molmap
+#    s = molmap.molecule_map(atoms, res, grid)
+#    s.new_region(ijk_step = (1,1,1), adjust_step = False)
+#    s.show()
+    from ..molecule.gridsurf import surface
+    m.molsurf = surface(atoms)
 
 def color_by_element(m):
   m.set_color_mode('by element')
