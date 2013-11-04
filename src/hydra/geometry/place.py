@@ -188,11 +188,11 @@ def vector_rotation(u,v):
     The vectors can have any length and the transform maps the direction of u to the direction of v.'''
     return Place(m34.vector_rotation_transform(u,v))
 
-def orthonormal_frame(zaxis, ydir = None):
+def orthonormal_frame(zaxis, ydir = None, xdir = None):
     '''Return a Place object with the specifiec z axis.  Any rotation about that z axis is allowed, unless a
     vector ydir is given in which case the y axis will be in the plane define by the z axis and ydir.
     '''
-    return Place(axes = m34.orthonormal_frame(zaxis, ydir))
+    return Place(axes = m34.orthonormal_frame(zaxis, ydir, xdir))
 
 def skew_axes(cell_angles):
     '''Return a Place object representing the skewing with cell angles alpha, beta and gamma (degrees).
