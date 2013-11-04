@@ -268,20 +268,25 @@ def transpose(m):
 
 # -----------------------------------------------------------------------------
 #
-def orthonormal_frame(zaxis, ydir = None):
+def orthonormal_frame(zaxis, ydir = None, xdir = None):
 
   z = normalize_vector(zaxis)
-  if ydir is None:
+  if ydir is None and xdir is None:
     if z[2] != 0 or z[0] != 0:
       x = normalize_vector((z[2], 0, -z[0]))
     else:
       x = (0,0,1)
     y = cross_product(z,x)
-  else:
+  elif xdir is None:
     x = normalize_vector(cross_product(ydir,z))
     if length(x) == 0:
       return orthonormal_frame(zaxis)
     y = cross_product(z,x)
+  else:
+    y = normalize_vector(cross_product(z,xdir))
+    if length(y) == 0:
+      return orthonormal_frame(zaxis)
+    x = cross_product(y,z)
 
   return (x,y,z)
 
@@ -333,7 +338,8 @@ from .._image3d import inner_product_64
 #
 def cross_product(u,v):
   '''Return the cross-product of two vectors.  Vectors must be 3-dimensonal.'''
-  return (u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0])
+  from numpy import array
+  return array((u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]))
         
 # -----------------------------------------------------------------------------
 #
