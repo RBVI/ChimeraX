@@ -44,11 +44,14 @@ extern "C" {
 VOLUMEARRAY_IMEX int parse_bool(PyObject *arg, void *b);
 VOLUMEARRAY_IMEX int parse_float_n3_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_writable_float_n3_array(PyObject *arg, void *farray);
+VOLUMEARRAY_IMEX int parse_double_n3_array(PyObject *arg, void *darray);
+VOLUMEARRAY_IMEX int parse_writable_double_n3_array(PyObject *arg, void *darray);
 VOLUMEARRAY_IMEX int parse_float_n_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_int_3_array(PyObject *arg, void *i3);
 VOLUMEARRAY_IMEX int parse_float_3_array(PyObject *arg, void *f3);
 VOLUMEARRAY_IMEX int parse_double_3_array(PyObject *arg, void *f3);
 VOLUMEARRAY_IMEX int parse_float_3x4_array(PyObject *arg, void *f3x4);
+VOLUMEARRAY_IMEX int parse_double_3x4_array(PyObject *arg, void *d3x4);
 VOLUMEARRAY_IMEX int parse_writable_float_3d_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_int_n_array(PyObject *arg, void *iarray);
 VOLUMEARRAY_IMEX int parse_int_n2_array(PyObject *arg, void *iarray);

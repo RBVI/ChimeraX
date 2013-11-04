@@ -87,6 +87,7 @@ def register_shortcuts(viewer):
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
 
+    from ..sasa import test_sasa
     from .gui import show_log
     misc_shortcuts = (
         ('dv', v.initial_camera_view, 'Default view', gcat),
@@ -102,6 +103,7 @@ def register_shortcuts(viewer):
         ('ch', show_command_history, 'Show command history', gcat),
         ('sc', show_scenes, 'Show scene thumbnails', gcat),
         ('rt', show_stats, 'Show model statistics', gcat),
+        ('sa', test_sasa, 'Test solvent accesible surface area calculation', gcat)
         )
     for k,f,d,cat in misc_shortcuts:
       ks.add_shortcut(k, f, d, category = cat)

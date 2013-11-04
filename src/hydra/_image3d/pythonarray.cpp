@@ -795,16 +795,32 @@ extern "C" int parse_float_3x4_array(PyObject *arg, void *f34)
 
 // ----------------------------------------------------------------------------
 //
-static int parse_float_n3(PyObject *arg, void *farray, bool allow_copy)
+extern "C" int parse_double_3x4_array(PyObject *arg, void *d34)
 {
   try
     {
-      Numeric_Array v = array_from_python(arg, 0, Numeric_Array::Float,
-					  allow_copy);
+      python_array_to_c(arg, static_cast<double*>(d34), 3, 4);
+    }
+  catch (std::runtime_error &e)
+    {
+      PyErr_SetString(PyExc_TypeError, e.what());
+      return 0;
+    }
+  return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+static int parse_float_n3(PyObject *arg, void *farray, bool allow_copy, bool f64)
+{
+  try
+    {
+      Numeric_Array::Value_Type ftype = (f64 ? Numeric_Array::Double : Numeric_Array::Float);
+      Numeric_Array v = array_from_python(arg, 0, ftype, allow_copy);
       if (v.dimension() == 1 && v.size() == 0)
 	{
 	  int size[2] = {0,3};
-	  v = Numeric_Array(Numeric_Array::Float, 2, size);
+	  v = Numeric_Array(ftype, 2, size);
 	}
       if (v.dimension() != 2)
 	{
@@ -815,7 +831,10 @@ static int parse_float_n3(PyObject *arg, void *farray, bool allow_copy)
 	}
       if (v.size(1) != 3)
 	throw std::runtime_error("Second array dimension must have size 3.");
-      *static_cast<FArray*>(farray) = static_cast<FArray>(v);
+      if (f64)
+	*static_cast<DArray*>(farray) = static_cast<DArray>(v);
+      else
+	*static_cast<FArray*>(farray) = static_cast<FArray>(v);
     }
   catch (std::runtime_error &e)
     {
@@ -829,9 +848,13 @@ static int parse_float_n3(PyObject *arg, void *farray, bool allow_copy)
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_float_n3_array(PyObject *arg, void *farray)
-  { return parse_float_n3(arg, farray, true); }
+  { return parse_float_n3(arg, farray, true, false); }
 extern "C" int parse_writable_float_n3_array(PyObject *arg, void *farray)
-  { return parse_float_n3(arg, farray, false); }
+  { return parse_float_n3(arg, farray, false, false); }
+extern "C" int parse_double_n3_array(PyObject *arg, void *darray)
+  { return parse_float_n3(arg, darray, true, true); }
+extern "C" int parse_writable_double_n3_array(PyObject *arg, void *darray)
+  { return parse_float_n3(arg, darray, false, true); }
 
 // ----------------------------------------------------------------------------
 //
