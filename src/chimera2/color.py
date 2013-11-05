@@ -81,8 +81,8 @@ class Color:
 		else:
 			raise ValueError("Not a color")
 
-from chimera2 import cmds
-class Color_arg(cmds.Annotation):
+from chimera2 import cli
+class Color_arg(cli.Annotation):
 
 	@staticmethod
 	def parse(text):

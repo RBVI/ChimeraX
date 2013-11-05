@@ -10,7 +10,7 @@ The plan is to suport all of the existing bild format.
 """
 
 from chimera2 import generic3d, scene
-from chimera2.cmds import UserError
+from chimera2.cli import UserError
 from chimera2.math3d import Point, Xform, Identity
 from math import radians
 

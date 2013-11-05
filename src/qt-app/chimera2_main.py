@@ -117,23 +117,24 @@ class BaseApplication:
 		self.setOrganizationDomain("cgl.ucsf.edu")
 		self.setOrganizationName("UCSF RBVI")
 
-		from chimera2 import cmds
-		self.command = cmds.Command()
-		cmds.register('exit', (), self.cmd_exit)
-		cmds.register('open', ([('filename', cmds.string_arg)],), self.cmd_open)
-		cmds.register('stop', ([], [('ignore', cmds.rest_of_line)]), self.cmd_stop)
-		cmds.register('stereo', ([], [('ignore', cmds.rest_of_line)]), self.cmd_noop)
+		from chimera2 import cli
+		self.command = cli.Command()
+		cli.register('exit', (), self.cmd_exit)
+		cli.register('open', ([('filename', cli.string_arg)],), self.cmd_open)
+		cli.register('stop', ([], [('ignore', cli.rest_of_line)]), self.cmd_stop)
+		cli.register('stereo', ([], [('ignore', cli.rest_of_line)]), self.cmd_noop)
 		def lighting_cmds():
 			import chimera2.lighting.cmd as cmd
 			cmd.register()
-		cmds.delay_registration('lighting', lighting_cmds)
+		cli.delay_registration('lighting', lighting_cmds)
 
 		# potentially changed in subclass:
 		self.graphics = None
 		self.statusbar = None
 
 	def cmd_noop(self, ignore=None):
-		pass
+		from chimera2 import cli
+		raise cli.UserError("'%s' is not implemented" % self.command.command_name)
 
 	def status(self, message, timeout=2000):
 		# 2000 == 2 seconds
@@ -143,7 +144,7 @@ class BaseApplication:
 			print(message)
 
 	def process_command(self, text=""):
-		from chimera2 import cmds
+		from chimera2 import cli
 		try:
 			if not text:
 				text = self.command.current_text
@@ -151,7 +152,7 @@ class BaseApplication:
 			info = self.command.execute()
 			if isinstance(info, str):
 				self.status(info)
-		except cmds.UserError as e:
+		except cli.UserError as e:
 			self.status(str(e))
 		except Exception:
 			# TODO: report error
@@ -177,7 +178,7 @@ class BaseApplication:
 			from chimera2 import io
 			return io.open(filename)
 		except OSError as e:
-			raise cmds.UserError(e)
+			raise cli.UserError(e)
 		finally:
 			if self.graphics:
 				self.graphics.updateGL()
@@ -191,9 +192,9 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 		from chimera2 import scene
 		scene.set_viewport(200, 200)
 
-		from chimera2 import cmds
-		cmds.register('render', (), self.cmd_render)
-		cmds.register('windowsize', ([('width', cmds.int_arg), ('height', cmds.int_arg)]), self.cmd_window_size)
+		from chimera2 import cli
+		cli.register('render', (), self.cmd_render)
+		cli.register('windowsize', ([('width', cli.int_arg), ('height', cli.int_arg)]), self.cmd_window_size)
 
 	def physicalDotsPerInch(self):
 		# assume 100 dpi
