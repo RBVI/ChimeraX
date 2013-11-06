@@ -46,6 +46,9 @@ th, td { padding:0; }
 .bottom-zone { position:absolute; bottom:0; left:0px; right:0px; }
 #molview { position: relative; margin: 0px; padding: 0px;
 			width: 100%; height: 100%; }
+.panel-button-div { position:absolute; top:0; right:0; }
+.panel-button { margin:1px; display:inline-block; }
+.panel-log { font-size: smaller; height:90vh; overflow:auto; }
 </style>
 
 <script type="text/javascript">
@@ -655,23 +658,31 @@ $(document).bind("pageshow", "#app", function() {
 <!--panels-->
 <div data-role="panel" data-position-fixed="true"
 		data-display="push" id="log_panel">
-	<h2>Message Log</h2>
-	<p id="log" style="font-size: smaller; height:80vh; overflow:auto;"></p>
-	<div data-role="controlgroup" data-type="horizontal" data-mini="true"
-		style="text-align:center;">
-		<a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
-		<a data-role="button" data-rel="clear" id="log-clear" href="#">Clear</a>
+	<div class="panel-button-div">
+		<a href="#" id="log-clear"
+			data-rel="clear" data-role="button"
+			data-icon="minus" data-iconpos="notext"
+			class="panel-button">Clear
+		</a><a href="#" data-rel="close" data-role="button"
+			data-icon="delete" data-iconpos="notext"
+			class="panel-button">Close</a>
 	</div>
+	<div class="ui-bar"><h2>Message Log</h2></div>
+	<p id="log" class="panel-log"/>
 </div>
 <div data-role="panel" data-position-fixed="true"
 	data-display="push" data-position="right" id="debug_panel">
-	<h2>Debug Log</h2>
-	<p id="debug" style="font-size: smaller; height:80vh; overflow:auto;">Debug text</p>
-	<div data-role="controlgroup" data-type="horizontal" data-mini="true"
-		style="text-align:center;">
-		<a data-role="button" data-rel="close" data-icon="delete" href="#">Close</a>
-		<a data-role="button" data-rel="clear" id="debug-clear" href="#">Clear</a>
+	<div class="panel-button-div">
+		<a href="#" id="debug-clear"
+			data-rel="clear" data-role="button"
+			data-icon="minus" data-iconpos="notext"
+			class="panel-button">Clear
+		</a><a href="#" data-rel="close" data-role="button"
+			data-icon="delete" data-iconpos="notext"
+			class="panel-button">Close</a>
 	</div>
+	<div class="ui-bar"><h2>Debug Log</h2></div>
+	<p id="debug" class="panel-log">Debug text</p>
 </div>
 <!--end panels-->
 
