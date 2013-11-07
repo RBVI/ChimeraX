@@ -9,5 +9,8 @@ install:
 	$(RSYNC) $(JS) $(webdir)
 
 # do syntax checking so debugging in browser is just runtime errors
-syntax:
-	rhino -w -strict llgr_webgl.js
+lint:
+	for i in *.js; do \
+		echo $$i ; \
+		rhino -w -strict $$i ; \
+	done

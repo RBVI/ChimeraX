@@ -91,6 +91,6 @@ ContextInfo = function (canvas, gl, render, data)
 		client.open("GET", ci.data);
 		client.send();
 	};
-}
+};
 
 }());
