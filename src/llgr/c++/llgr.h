@@ -218,6 +218,16 @@ LLGR_IMEX extern void selection_add(const Objects& objs);
 LLGR_IMEX extern void selection_remove(const Objects& objs);
 LLGR_IMEX extern void selection_clear();
 
+// groups
+
+LLGR_IMEX extern void create_group(Id group_id, const Objects& objs);
+LLGR_IMEX extern void delete_group(Id group_id, bool and_objects=false);
+LLGR_IMEX extern void clear_groups(bool and_objects=false);
+LLGR_IMEX extern void hide_group(Id group_id);
+LLGR_IMEX extern void show_group(Id group_id);
+LLGR_IMEX extern void selection_add_group(Id group_id);
+LLGR_IMEX extern void selection_remove_group(Id group_id);
+
 // TODO: text primitives
 
 // LOD primitives

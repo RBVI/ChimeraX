@@ -20,10 +20,11 @@ var llgr = {};	// only llgr is exported
 (function () {
 "use strict";
 
-var programs = {};
-var buffers = null;
-var matrices = {};
-var objects = {};
+var all_programs = {};
+var all_buffers = null;
+var all_matrices = {};
+var all_objects = {};
+var all_groups = {};
 
 var gl;	// set with set_context()
 
@@ -188,8 +189,8 @@ function init_buffers()
 		0, 0, 1, 0,
 		0, 0, 0, 1
 	]);
-	buffers = {};
-	buffers[0] = new BufferInfo(llgr.ARRAY, identity.byteLength, identity);
+	all_buffers = {};
+	all_buffers[0] = new BufferInfo(llgr.ARRAY, identity.byteLength, identity);
 }
 
 function MatrixInfo(id, renorm)
@@ -219,11 +220,11 @@ function ObjectInfo(program_id, matrix_id, attrinfo, primitive, first, count, in
 
 function check_attributes(obj_id, program_id, ai)
 {
-	if (!(program_id in programs)) {
+	if (!(program_id in all_programs)) {
 		console.log("missing program for object " + obj_id);
 		return;
 	}
-	var sp = programs[program_id];
+	var sp = all_programs[program_id];
 	for (var name in sp.attributes) {
 		if (name.lastIndexOf("instanceTransform", 0) == 0)
 			continue;
@@ -290,7 +291,7 @@ var curbuf = {	// currently bound buffer
 
 function setup_attribute(sp, ai)
 {
-	var  bi = buffers[ai.data_id];
+	var  bi = all_buffers[ai.data_id];
 	if (bi === undefined)
 		return;
 	if (!(ai.name in sp.attributes))
@@ -585,9 +586,9 @@ llgr = {
 		if (program_id <= 0) {
 			throw "need positive program id";
 		}
-		if (program_id in programs) {
-			programs[program_id].gl_dealloc();
-			delete programs[program_id];
+		if (program_id in all_programs) {
+			all_programs[program_id].gl_dealloc();
+			delete all_programs[program_id];
 		}
 		var vs = gl.createShader(gl.VERTEX_SHADER);
 		var fs = gl.createShader(gl.FRAGMENT_SHADER);
@@ -622,27 +623,27 @@ llgr = {
 			return;
 		}
 
-		programs[program_id] = new ShaderProgram(program, vs, fs);
+		all_programs[program_id] = new ShaderProgram(program, vs, fs);
 	},
 	delete_program: function (program_id) {
-		if (program_id in programs) {
-			sp = programs[program_id];
+		if (program_id in all_programs) {
+			sp = all_programs[program_id];
 			if (sp === current_program) {
 				current_program = null;
 				gl.useProgram(0);
 			}
 			sp.gl_dealloc();
-			delete programs[program_id];
+			delete all_programs[program_id];
 		}
 	},
 	clear_programs: function () {
 		current_program = null;
 		gl.useProgram(null);
-		for (var pid in programs) {
-			var sp = programs[pid];
+		for (var pid in all_programs) {
+			var sp = all_programs[pid];
 			sp.gl_dealloc();
 		}
-		programs = {};
+		all_programs = {};
 	},
 
 	set_uniform: function (program_id, name, shader_type, data) {
@@ -673,12 +674,12 @@ llgr = {
 		}
 		var all_programs;
 		if (program_id) {
-			all_programs = { program_id: programs[program_id] };
+			all_programs = { program_id: all_programs[program_id] };
 		} else {
-			all_programs = programs;
+			all_programs = all_programs;
 		}
-		for (var pid in programs) {
-			var sp = programs[pid];
+		for (var pid in all_programs) {
+			var sp = all_programs[pid];
 			if (sp === current_program) {
 				var location = sp.uniform_location(name);
 				if (location === undefined)
@@ -709,12 +710,12 @@ llgr = {
 		}
 		var all_programs;
 		if (program_id) {
-			all_programs = { program_id: programs[program_id] };
+			all_programs = { program_id: all_programs[program_id] };
 		} else {
-			all_programs = programs;
+			all_programs = all_programs;
 		}
-		for (var pid in programs) {
-			var sp = programs[pid];
+		for (var pid in all_programs) {
+			var sp = all_programs[pid];
 			if (sp === current_program) {
 				var location = sp.uniform_location(name);
 				if (location === undefined)
@@ -728,10 +729,10 @@ llgr = {
 	},
 
 	create_buffer: function (data_id, buffer_target, data) {
-		if (buffers === null)
+		if (all_buffers === null)
 			init_buffers();
 		data = convert_data(data);
-		var bi = buffers[data_id];
+		var bi = all_buffers[data_id];
 		if (bi && bi.buffer) gl.deleteBuffer(bi.buffer);
 		var buffer = gl.createBuffer();
 		gl.bindBuffer(buffer_target, buffer);
@@ -740,32 +741,32 @@ llgr = {
 		if (curbuf[buffer_target] !== undefined) {
 			delete curbuf[buffer_target];
 		}
-		buffers[data_id] = new BufferInfo(buffer, buffer_target);
+		all_buffers[data_id] = new BufferInfo(buffer, buffer_target);
 	},
 	delete_buffer: function (data_id) {
-		if (data_id in buffers) {
-			var bi = buffers[data_id];
+		if (data_id in all_buffers) {
+			var bi = all_buffers[data_id];
 			if (bi.buffer) gl.deleteBuffer(bi.buffer);
-			delete buffers[data_id];
+			delete all_buffers[data_id];
 		}
 	},
 	clear_buffers: function () {
-		for (var bid in buffers) {
-			var bi = buffers[bid];
+		for (var bid in all_buffers) {
+			var bi = all_buffers[bid];
 			if (bi.buffer) gl.deleteBuffer(bi.buffer);
 		}
-		buffers = null;
+		all_buffers = null;
 		llgr.clear_matrices();
 		llgr.clear_primitives();
 	},
 	create_singleton: function (data_id, data) {
-		if (buffers === null)
+		if (all_buffers === null)
 			init_buffers();
 		data = convert_data(data);
-		var bi = buffers[data_id];
+		var bi = all_buffers[data_id];
 		if (bi && bi.buffer) gl.deleteBuffer(bi.buffer);
 		// TODO: want copy of data or read-only reference
-		buffers[data_id] = new BufferInfo(gl.ARRAY_BUFFER,
+		all_buffers[data_id] = new BufferInfo(gl.ARRAY_BUFFER,
 							data.byteLength, data);
 	},
 
@@ -778,21 +779,21 @@ llgr = {
 			data[i] = matrix_4x4[i];
 		}
 		llgr.create_singleton(data_id, data);
-		matrices[matrix_id] = new MatrixInfo(data_id, renormalize);
+		all_matrices[matrix_id] = new MatrixInfo(data_id, renormalize);
 	},
 	delete_matrix: function (matrix_id) {
-		info = matrices[matrix_id];
+		info = all_matrices[matrix_id];
 		llgr.delete_buffer(info.data_id);
-		delete matrices[matrix_id];
+		delete all_matrices[matrix_id];
 	},
 	clear_matrices: function () {
-		if (buffers !== null) {
-			for (mid in matrices) {
-				var info = matrices[mid];
+		if (all_buffers !== null) {
+			for (mid in all_matrices) {
+				var info = all_matrices[mid];
 				llgr.delete_buffer(info.data_id);
 			}
 		}
-		matrices = {};
+		all_matrices = {};
 	},
 
 	set_attribute_alias: function (name, value) {
@@ -844,38 +845,40 @@ llgr = {
 					stride, cnt, type, normalized));
 		}
 		check_attributes(obj_id, program_id, ais);
-		objects[obj_id] = new ObjectInfo(program_id, matrix_id,
+		all_objects[obj_id] = new ObjectInfo(program_id, matrix_id,
 			ais, primitive_type,
 			first, count, index_buffer_id, index_buffer_type);
 	},
 	delete_object: function (obj_id) {
-		delete objects[obj_id];
+		delete all_objects[obj_id];
 	},
 	clear_objects: function () {
-		objects = {}; }, 
+		all_objects = {};
+		llgr.clear_groups();
+	}, 
 	hide_objects: function (list_of_objects) {
 		for (var obj_id in list_of_objects) {
-			if (obj_id in objects)
-				objects[obj_id].hide = true;
+			if (obj_id in all_objects)
+				all_objects[obj_id].hide = true;
 		}
 	},
 	show_objects: function (list_of_objects) {
 		for (var obj_id in list_of_objects) {
-			if (obj_id in objects)
-				objects[obj_id].hide = false;
+			if (obj_id in all_objects)
+				all_objects[obj_id].hide = false;
 		}
 	},
 
 	transparent: function (list_of_objects) {
 		for (var obj_id in list_of_objects) {
-			if (obj_id in objects)
-				objects[obj_id].transparent = true;
+			if (obj_id in all_objects)
+				all_objects[obj_id].transparent = true;
 		}
 	},
 	opaque: function (list_of_objects) {
 		for (var obj_id in list_of_objects) {
-			if (obj_id in objects)
-				objects[obj_id].transparent = false;
+			if (obj_id in all_objects)
+				all_objects[obj_id].transparent = false;
 		}
 	},
 
@@ -889,8 +892,41 @@ llgr = {
 		// TODO
 	},
 
+	create_group: function (group_id, list_of_objects) {
+		all_groups[group_id] = list_of_objects;
+	},
+	delete_group: function (group_id, and_objects) {
+		and_objects = and_objects || false;
+		if (and_objects) {
+			for (var obj_id in all_groups[group_id])
+				delete_object(obj_id);
+		}
+		delete all_groups[group_id];
+	},
+	clear_groups: function (and_objects) {
+		and_objects = and_objects || false;
+		if (objects && and_objects) {
+			for (var group_id in all_groups)
+				for (var obj_id in all_groups[group_id])
+					delete_object(obj_id);
+		}
+		all_groups = {};
+	},
+	hide_group: function (group_id) {
+		llgr.hide_objects(all_groups[group_id]);
+	},
+	show_group: function (group_id) {
+		llgr.show_objects(all_groups[group_id]);
+	},
+	selection_add_group: function (group_id) {
+		llgr.selection_add(all_groups[group_id]);
+	},
+	selection_remove_group: function (group_id) {
+		llgr.selection_remove(all_groups[group_id]);
+	},
+
 	clear_primitives: function () {
-		if (buffers !== null) {
+		if (all_buffers !== null) {
 			var radius, info;
 			for (radius in proto_spheres) {
 				info = proto_spheres[radius];
@@ -984,9 +1020,16 @@ llgr = {
 			selection_add: llgr.selection_add,
 			selection_remove: llgr.selection_remove,
 			selection_clear: llgr.selection_clear,
-			clear_primitives: llgr.clear_primitives,
+			create_group: llgr.create_group,
+			delete_group: llgr.delete_group,
+			clear_groups: llgr.clear_group,
+			hide_group: llgr.hide_group,
+			show_group: llgr.show_group,
+			selection_add_group: llgr.selection_add_group,
+			selection_remove_group: llgr.selection_remove_group,
 			add_sphere: llgr.add_sphere,
 			add_cylinder: llgr.add_cylinder,
+			clear_primitives: llgr.clear_primitives,
 			clear_all: llgr.clear_all,
 			set_clear_color: llgr.set_clear_color,
 		};
@@ -1016,12 +1059,12 @@ llgr = {
 		gl.enable(gl.DEPTH_TEST);
 		gl.enable(gl.CULL_FACE);
 		gl.disable(gl.BLEND);
-		for (var oid in objects) {
-			var oi = objects[oid];
+		for (var oid in all_objects) {
+			var oi = all_objects[oid];
 			if (oi.hide || !oi.program_id)
 				continue;
 			if (oi.program_id != current_program_id) {
-				var sp = programs[oi.program_id];
+				var sp = all_programs[oi.program_id];
 				if (sp === undefined)
 					continue;
 				if (current_sp)
@@ -1034,14 +1077,14 @@ llgr = {
 			// setup index buffer
 			var ibi = undefined;
 			if (oi.index_buffer_id) {
-				ibi = buffers[oi.index_buffer_id];
+				ibi = all_buffers[oi.index_buffer_id];
 			}
 			// setup instance matrix attribute
 			if (oi.matrix_id != current_matrix_id) {
 				if (oi.matrix_id === 0) {
 					matrix_ai.data_id = 0;
 				} else {
-					var mi = matrices[oi.matrix_id];
+					var mi = all_matrices[oi.matrix_id];
 					if (mi === undefined)
 						continue;
 					matrix_ai.data_id = mi.data_id;

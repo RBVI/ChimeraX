@@ -152,6 +152,7 @@ clear_objects()
 	for (AllObjects::iterator i = save.begin(); i != save.end(); ++i) {
 		delete i->second;
 	}
+	clear_groups();
 }
 
 void
