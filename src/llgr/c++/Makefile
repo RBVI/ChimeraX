@@ -16,7 +16,7 @@ endif
 
 SRCS = ShaderProgram.cpp programs.cpp buffers.cpp matrices.cpp objects.cpp \
        optimize.cpp render.cpp spiral.cpp primitives.cpp vsphere.cpp \
-       init.cpp
+       init.cpp groups.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 LIBNAME = llgr
 

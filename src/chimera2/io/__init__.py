@@ -410,7 +410,7 @@ def open(filespec, identify_as=None, **kw):
 	uncompressed into a temporary file before calling the open function.
 	"""
 
-	from chimera2.cmds import UserError
+	from chimera2.cli import UserError
 	name, prefix, filelike, compression = deduce_format(filespec)
 	if name is None:
 		raise UserError("Missing or unknown file type")
@@ -457,7 +457,7 @@ def open(filespec, identify_as=None, **kw):
 	return status
 
 def save(filename, **kw):
-	from chimera2.cmds import UserError
+	from chimera2.cli import UserError
 	name, prefix, filelike, compression = deduce_format(filename, prefixable=False)
 	if name is None:
 		raise UserError("Missing or unknown file type")

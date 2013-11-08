@@ -27,7 +27,7 @@
 
 from chimera2 import lighting
 from chimera2.color import Color_arg
-from chimera2.cmds import UserError, CmdInfo, Enum_of, string_arg, float_arg, float3_arg, register as register_cmd
+from chimera2.cli import UserError, CmdInfo, Enum_of, string_arg, float_arg, float3_arg, register as register_cmd
 
 # CmdInfo is initialized at the end of this file
 

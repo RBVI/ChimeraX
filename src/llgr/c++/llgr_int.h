@@ -138,6 +138,9 @@ private:
 	std::string name;
 };
 
+typedef std::map<Id, Objects> AllGroups;
+extern AllGroups all_groups;
+
 extern bool dirty;
 extern void optimize();
 

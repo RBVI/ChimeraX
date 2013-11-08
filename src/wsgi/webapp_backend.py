@@ -8,7 +8,7 @@ _debug_print("backend script started")
 # Main chimera2 code
 #
 
-from chimera2 import cmds
+from chimera2 import cli
 
 client_state = {}
 
@@ -27,12 +27,12 @@ def init_chimera2():
 	llgr.set_output('json')
 	import chimera2.io
 	chimera2.io.initialize_formats()
-	cmds.register('exit', (), cmd_exit)
-	cmds.register('open', ([('filename', cmds.string_arg)],), cmd_open)
+	cli.register('exit', (), cmd_exit)
+	cli.register('open', ([('filename', cli.string_arg)],), cmd_open)
 	def lighting_cmds():
 		import chimera2.lighting.cmd as cmd
 		cmd.register()
-	cmds.delay_registration('lighting', lighting_cmds)
+	cli.delay_registration('lighting', lighting_cmds)
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
 
 	from webapp_server import register_json_converter
@@ -52,7 +52,7 @@ def cmd_open(filename):
 	try:
 		return io.open(filename)
 	except OSError as e:
-		raise cmds.UserError(str(e))
+		raise cli.UserError(str(e))
 
 #
 # Main program for per-session backend
@@ -93,7 +93,7 @@ class Backend(Server):
 			"command": str(value),
 		}
 		try:
-			cmd = cmds.Command(value, final=True)
+			cmd = cli.Command(value, final=True)
 			cmd.error_check()
 			answer["command"] = cmd.current_text
 			result = []
@@ -121,7 +121,7 @@ class Backend(Server):
 				})
 			result.append(['scene', scene_info])
 			answer["client_data"] = result
-		except cmds.UserError as e:
+		except cli.UserError as e:
 			answer["status"] = False
 			answer["error"] = str(e)
 		except Exception:

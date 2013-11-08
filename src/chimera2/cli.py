@@ -1,9 +1,9 @@
 """""
-cmds: Unified application command line support
-==============================================
+cli: application command line support
+=====================================
 
-This module provides a method for parsing text commands and
-calling the functions that implement them.
+This module provides a method for parsing text commands
+and calling the functions that implement them.
 First, commands are :py:func:`register`ed
 with a description of the arguments they take,
 and with a function that implements the command.
@@ -130,18 +130,18 @@ Example
 
 Here is a simple example::
 
-	import cmds
-	@register("echo", cmds.CmdInfo(optional=(('text', cmds.rest_of_line))))
+	import cli
+	@register("echo", cli.CmdInfo(optional=(('text', cli.rest_of_line))))
 	def echo(text=''):
 		print(text)
 	...
-	command = cmds.Command()
+	command = cli.Command()
 	command.parse_text(text, final=True)
 	try:
 		status = command.execute()
 		if status:
 			print(status)
-	except cmds.UserError as err:
+	except cli.UserError as err:
 		print(err, file=sys.stderr)
 
 .. todo::
@@ -738,6 +738,7 @@ class Command:
 		self.completions = []
 		self._error = "Missing command"
 		self._ci = None
+		self.command_name = None
 		self._kwargs = {}
 		self._error_checked = False
 
@@ -954,6 +955,7 @@ class Command:
 				continue
 			assert(isinstance(what, CmdInfo))
 			self._ci = what
+			self.command_name =  self.current_text[:self.amount_parsed]
 			break
 
 		# process positional arguments

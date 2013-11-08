@@ -1,5 +1,5 @@
 from chimera2 import molecule, scene
-from chimera2.cmds import UserError
+from chimera2.cli import UserError
 from chimera2.math3d import Point, weighted_point
 
 _builtin_open = open

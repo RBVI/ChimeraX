@@ -528,6 +528,7 @@ def delete_object(obj_id: Id):
 
 def clear_objects():
 	_all_objects.clear()
+	clear_groups()
 
 # indicate whether to draw object or not
 def hide_objects(list_of_objects: list_of(Id)):
@@ -558,6 +559,41 @@ def selection_remove(list_of_objects: list_of(Id)):
 def selection_clear():
 	for obj_id in _all_objects:
 		_all_objects[obj_id].selected = False
+
+_all_groups = {}
+
+def create_group(group_id: Id, objs: list_of(Id)):
+	_all_groups[id] = objs
+
+def delete_group(group_id: Id, and_objects: bool=False):
+	if and_objects:
+		objs = _all_groups[group_id]
+		for obj in objs:
+			delete_object(obj)
+	del _all_groups[group_id]
+
+def clear_groups(and_objects: bool=False):
+	if _all_objects and and_objects:
+		for objs in _all_groups.values():
+			for obj in objs:
+				delete_object(obj)
+	_all_groups.clear()
+
+def hide_group(group_id: Id):
+	objs = _all_groups[group_id]
+	hide_objects(objs)
+
+def show_group(group_id: Id):
+	objs = _all_groups[group_id]
+	show_objects(objs)
+
+def selection_add_group(group_id: Id):
+	objs = _all_groups[group_id]
+	selection_add(objs)
+
+def selection_remove_group(group_id: Id):
+	objs = _all_groups[group_id]
+	selection_remove(objs)
 
 def clear_all():
 	clear_objects()

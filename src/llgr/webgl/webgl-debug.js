@@ -23,7 +23,7 @@
 
 // Various functions for helping debug WebGL apps.
 
-WebGLDebugUtils = function() {
+var WebGLDebugUtils = function() {
 
 /**
  * Wrapped logging function.
@@ -226,7 +226,7 @@ function glFunctionArgsToString(functionName, args) {
         glFunctionArgToString(functionName, ii, args[ii]);
   }
   return argStr;
-};
+}
 
 
 function makePropertyWrapper(wrapper, original, propertyName) {
@@ -389,7 +389,7 @@ function resetToInitialState(ctx) {
   ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT | ctx.STENCIL_BUFFER_BIT);
 
   // TODO: This should NOT be needed but Firefox fails with 'hint'
-  while(ctx.getError());
+  while(ctx.getError()) continue;
 }
 
 function makeLostContextSimulatingCanvas(canvas) {
@@ -417,7 +417,7 @@ function makeLostContextSimulatingCanvas(canvas) {
       if (ctx instanceof WebGLRenderingContext) {
         if (ctx != unwrappedContext_) {
           if (unwrappedContext_) {
-            throw "got different context"
+            throw "got different context";
           }
           unwrappedContext_ = ctx;
           wrappedContext_ = makeLostContextSimulatingContext(unwrappedContext_);
@@ -434,7 +434,7 @@ function makeLostContextSimulatingCanvas(canvas) {
     } else {
       return function(info) {
         listener.handleEvent(info);
-      }
+      };
     }
   }
 
@@ -470,7 +470,7 @@ function makeLostContextSimulatingCanvas(canvas) {
       contextLost_ = true;
       numCallsToLoseContext_ = 0;
       ++contextId_;
-      while (unwrappedContext_.getError());
+      while (unwrappedContext_.getError()) continue;
       clearErrors();
       glErrorShadow_[unwrappedContext_.CONTEXT_LOST_WEBGL] = true;
       var event = makeWebGLContextEvent("context lost");
