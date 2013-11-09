@@ -12,6 +12,7 @@ from .matrix import normalize_vectors
 from .matrix import normalize_vector
 from .matrix import cross_product
 from .matrix import norm
+from .matrix import vector_angle_radians as vector_angle
 
 '''Inner product of two vectors accumulated as a 64-bit float result.'''
 from .matrix import inner_product_64
