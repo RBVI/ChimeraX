@@ -367,6 +367,14 @@ def cross_product_transform(u):
 # Angle between vectors u and v in degrees.
 #
 def vector_angle(u,v):
+  from math import pi
+  a = vector_angle_radians(u,v) * 180.0 / pi
+  return a
+
+# -----------------------------------------------------------------------------
+# Angle between vectors u and v in radians.
+#
+def vector_angle_radians(u,v):
 
   uv = length(u) * length(v)
   if uv == 0:
@@ -376,10 +384,9 @@ def vector_angle(u,v):
     c = -1
   if c > 1:
     c = 1
-  from math import acos, pi
+  from math import acos
   a = acos(c)
-  deg = a * 180.0 / pi
-  return deg
+  return a
   
 # -----------------------------------------------------------------------------
 #
