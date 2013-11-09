@@ -11,7 +11,7 @@ SRCS	= blend_rgba.cpp combine.cpp \
 	  histogram.cpp image3d.cpp \
 	  interpolate.cpp pyinterpolate.cpp \
 	  intercept.cpp \
-	  mesh_edges.cpp \
+	  measure.cpp mesh_edges.cpp \
 	  parsecif.cpp parsepdb.cpp parse_stl.cpp pdb_bonds.cpp \
 	  pythonarray.cpp rcarray.cpp refcount.cpp \
 	  spline.cpp squaremesh.cpp subdivide.cpp transfer.cpp tube.cpp

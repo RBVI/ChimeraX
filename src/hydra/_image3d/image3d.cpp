@@ -8,6 +8,7 @@
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
 #include "intercept.h"			// use closest_geometry_intercept
+#include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "mesh_edges.h"			// use masked_edges
 #include "parsecif.h"			// use parse_mmcif_file
 #include "parsepdb.h"			// use parse_pdb_file
@@ -73,6 +74,22 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
+  /* measure.h */
+  {const_cast<char*>("enclosed_volume"), (PyCFunction)enclosed_volume,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("surface_area"), (PyCFunction)surface_area,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("vertex_areas"), (PyCFunction)vertex_areas,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("boundary_edges"), (PyCFunction)boundary_edges,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("boundary_loops"), (PyCFunction)boundary_loops,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* mesh_edges.h */
+  {const_cast<char*>("masked_edges"), (PyCFunction)masked_edges,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* parsecif.h */
   {const_cast<char*>("parse_mmcif_file"), (PyCFunction)parse_mmcif_file,
    METH_VARARGS|METH_KEYWORDS, NULL},
@@ -109,10 +126,6 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("interpolate_volume_gradient"), interpolate_volume_gradient, METH_VARARGS, NULL},
   {const_cast<char*>("interpolate_colormap"), interpolate_colormap, METH_VARARGS, NULL},
   {const_cast<char*>("set_outside_volume_colors"), set_outside_volume_colors, METH_VARARGS, NULL},
-
-  /* mesh_edges.h */
-  {const_cast<char*>("masked_edges"), (PyCFunction)masked_edges,
-   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
