@@ -761,11 +761,11 @@ extern "C" int parse_double_3_array(PyObject *arg, void *f3)
 
 // ----------------------------------------------------------------------------
 //
-extern "C" int parse_float_n_array(PyObject *arg, void *farray)
+static int parse_float_n(PyObject *arg, void *farray, bool allow_copy)
 {
   try
     {
-      Numeric_Array v = array_from_python(arg, 1, Numeric_Array::Float);
+      Numeric_Array v = array_from_python(arg, 1, Numeric_Array::Float, allow_copy);
       *static_cast<FArray*>(farray) = static_cast<FArray>(v);
     }
   catch (std::runtime_error &e)
@@ -776,6 +776,13 @@ extern "C" int parse_float_n_array(PyObject *arg, void *farray)
 
   return 1;
 }
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_float_n_array(PyObject *arg, void *farray)
+  { return parse_float_n(arg, farray, true); }
+extern "C" int parse_writable_float_n_array(PyObject *arg, void *farray)
+  { return parse_float_n(arg, farray, false); }
 
 // ----------------------------------------------------------------------------
 //
