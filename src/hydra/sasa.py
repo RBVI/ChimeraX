@@ -39,7 +39,7 @@ def buried_sphere_area(s0, spheres, draw = False):
         return 0
 
     # Compute analytical buried area on sphere.
-    area = area_of_circles_on_unit_sphere(circles, draw)
+    area = area_in_circles_on_unit_sphere(circles, draw)
     c,r = s0
     area *= r*r
 
@@ -50,7 +50,7 @@ def buried_sphere_area(s0, spheres, draw = False):
 
     return area
 
-def area_of_circles_on_unit_sphere(circles, draw = False):
+def area_in_circles_on_unit_sphere(circles, draw = False):
 
     if draw:
         from .surface import Surface
@@ -130,10 +130,10 @@ def draw_boundary(bp, sphere, surf, color, width, offset):
 
 def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
 
+    arc = polar_angle(circle.center, p1, p2)
+    va, ta = sphere_band_arc(circle.angle, arc, width)
     from .geometry.place import orthonormal_frame
     f = orthonormal_frame(circle.center, xdir = p1)
-    arc = polar_angle(f.transpose()*p2)
-    va, ta = sphere_band_arc(circle.angle, arc, width)
     f.move(va)
     na = va.copy()
     c, r = sphere
@@ -144,15 +144,6 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
     p.normals = na
     p.color = color
 
-# Angle about z measured from x-axis, range 0 to 2*pi
-def polar_angle(p):
-    (x,y,z) = p
-    from math import atan2, pi
-    a = atan2(y,x)
-    if a < 0:
-        a += 2*pi
-    return a
-
 def boundary_paths(bndry):
 
     bpaths = []
@@ -161,22 +152,15 @@ def boundary_paths(bndry):
         if bp in bset:
             bp = boundary_path(bp, bset)
             bpaths.append(bp)
-#            for pp in bp:
-#                bset.remove(pp)
     return bpaths
 
 def boundary_path(bpoint, bset):
 
     bpath = [bpoint]
     bp = bpoint
-    from .geometry.place import orthonormal_frame
-    from math import atan2
     while True:
-        f = orthonormal_frame(bp.circle2.center, xdir = bp.point).transpose()
         c1points = [bpn for bpn in bset if bpn.circle1 is bp.circle2]
-        def pangle(cp,f=f):
-            return polar_angle(f*cp.point)
-        bpn = min(c1points, key=pangle)
+        bpn = min(c1points, key=lambda cp: polar_angle(bp.circle2.center, bp.point, cp.point))
         if bpn is bpoint:
             break
         bpath.append(bpn)
@@ -239,8 +223,7 @@ def circle_in_circles(c, circles):
 
 def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
     cs, r = sphere
-    from .geometry.place import translation, orthonormal_frame
-    t = translation(cs)
+    from .geometry.place import orthonormal_frame
     for c in circles:
         f = orthonormal_frame(c.center)
         va, ta = sphere_band_geometry(c.angle, width = width)
@@ -248,7 +231,7 @@ def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
         va *= r + offset
         f.move(va)
         f.move(na)
-        t.move(va)
+        va += cs
         p = s.newPiece()
         p.geometry = va, ta
         p.normals = na
@@ -383,7 +366,7 @@ def bounded_area(paths, nreg, lone_circles):
             ia = circle_intercept_angle(c1.center, p, c2.center)
             ba += ia - 2*pi
             bp2 = path[(i+1)%n]
-            a = circle_arc_angle(p, bp2.point, c2.center)
+            a = polar_angle(c2.center, p, bp2.point)  # Circular arc angle
 #            print('seg', i, 'kink', (ia - 2*pi)*180/pi, 'arc', a*180/pi)
             ba += a*cos(bp1.circle2.angle) # circular segment bend angle
 #        print('path length', n, 'area', 2*pi-ba)
@@ -393,17 +376,10 @@ def bounded_area(paths, nreg, lone_circles):
     area = la + pa
     return area
 
-def circle_arc_angle(p1, p2, center):
-    from .geometry.place import orthonormal_frame
-    a = polar_angle(orthonormal_frame(center, xdir = p1).transpose()*p2)
-    return a
-
 def circle_intercept_angle(center1, pintersect, center2):
-    from .geometry.vector import cross_product
-    t1 = cross_product(center1, pintersect)
-    t2 = cross_product(center2, pintersect)
-    from .geometry.place import orthonormal_frame
-    a = polar_angle(orthonormal_frame(pintersect, xdir = t1).transpose()*t2)
+    # Angle made by tangent vectors t1 = c1 x p and t2 = c2 x p is same as
+    # polar angle of c1 and c2 about p.
+    a = polar_angle(pintersect, center1, center2)
     return a
 
 def estimate_buried_area(s0, spheres, npts = 100000):
@@ -415,12 +391,6 @@ def estimate_buried_area(s0, spheres, npts = 100000):
     c,r = s0
     va *= r
     va += c
-# Gaussian distribution is not giving correct area, 20% error, not sure why.
-#    from numpy import random, sqrt
-#    va = random.normal(size = (npts,3))
-#    vlen = sqrt((va*va).sum(axis=1))
-#    for a in (0,1,2):
-#        va[:,a] /= vlen
     from numpy import zeros, int32, logical_or
     n = len(va)
     inside = zeros((n,), int32)
@@ -442,6 +412,18 @@ def unit_sphere():
     center = array((0,0,0),float64)
     radius = 1
     return (center, radius)
+
+# Angle from plane defined by z and v1 rotated to plane defined by z and v2
+# range 0 to 2*pi.
+def polar_angle(zaxis, v1, v2):
+    from .geometry.place import orthonormal_frame
+    f = orthonormal_frame(zaxis, xdir = v1)
+    x,y,z = f.transpose()*v2
+    from math import atan2, pi
+    a = atan2(y,x)
+    if a < 0:
+        a += 2*pi
+    return a
 
 def test_sasa(n = 30):
     s0 = unit_sphere()
