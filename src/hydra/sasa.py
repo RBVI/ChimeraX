@@ -1,13 +1,14 @@
 # Analytic computation of solvent accessible surface area, ie. the surface area of a union of spheres.
 
-def spheres_surface_area(centers, radii):
+from math import pi, cos, sin, sqrt, atan2, acos
 
-    ea = 0
-    from math import pi
+def surface_area_of_spheres(centers, radii):
+
+    areas = radii.copy()
     for i,r in enumerate(radii):
         ba = buried_sphere_area(i, centers, radii)
-        ea += 4*pi*r*r - ba
-    return ea
+        areas[i] = 4*pi*r*r - ba
+    return areas
 
 def buried_sphere_area(i, centers, radii, draw = False):
 
@@ -20,14 +21,31 @@ def buried_sphere_area(i, centers, radii, draw = False):
         from .ui.gui import main_window
         main_window.view.add_models((surf0, surfn))
 
+    r = radii[i]
+
     # Check if sphere is completely contained in another sphere
     if sphere_in_another_sphere(i, centers, radii):
-        r = radii[i]
-        from math import pi
         area = 4*pi*r*r
         return area
 
     # Compute sphere intersections
+    circles = sphere_intersection_circles(i, centers, radii)
+
+    # Compute analytical buried area on sphere.
+    area = area_in_circles_on_unit_sphere(circles, draw)*r*r
+
+    return area
+
+def sphere_in_another_sphere(i, centers, radii):
+
+    c, r = centers[i], radii[i]
+    d = centers - c
+    from numpy import sqrt
+    inside = (sqrt((d*d).sum(axis=1)) + r <= radii)
+    return inside[:i].any() or inside[i+1:].any()
+
+def sphere_intersection_circles(i, centers, radii):
+
     circles = []
     c,r = centers[i], radii[i]
     for j,rj in enumerate(radii):
@@ -35,28 +53,7 @@ def buried_sphere_area(i, centers, radii, draw = False):
             circle = sphere_intersection(c, r, centers[j], rj)
             if not circle is None:
                 circles.append(circle)
-
-    # Check if sphere is outside all other spheres.
-    if len(circles) == 0:
-        return 0
-
-    # Compute analytical buried area on sphere.
-    area = area_in_circles_on_unit_sphere(circles, draw)
-    area *= r*r
-
-    # Compute numerical estimate of buried area.
-#    ea = estimate_buried_area(i, centers, radii)
-
-#    print('area =', area, 'est area =', ea)
-
-    return area
-
-def sphere_in_another_sphere(i, centers, radii):
-    c, r = centers[i], radii[i]
-    d = centers - c
-    from numpy import sqrt
-    inside = (sqrt((d*d).sum(axis=1)) + r <= radii)
-    return inside[:i].any() or inside[i+1:].any()
+    return circles
 
 def sphere_intersection(c0, r0, c1, r1):
 
@@ -67,20 +64,21 @@ def sphere_intersection(c0, r0, c1, r1):
     ca = (r0*r0 + d*d - r1*r1) / (2*r0*d)
     if ca < -1 or ca > 1:
         return None
-    import math
-    a = math.acos(ca)
     c = (c1-c0)/d
-    return Circle(c, a)
+    return Circle(c, ca)
 
 # Circle on a unit sphere specified by center point on sphere and angular radius.
 class Circle:
-    def __init__(self, center, angle):
+    def __init__(self, center, cos_angle):
         self.center = center
-        self.angle = angle
-        from math import cos
-        self.cos_angle = cos(angle)
+        self.angle = acos(cos_angle)
+        self.cos_angle = cos_angle
 
 def area_in_circles_on_unit_sphere(circles, draw = False):
+
+    # Check if sphere is outside all other spheres.
+    if len(circles) == 0:
+        return 0
 
     if draw:
         from .surface import Surface
@@ -88,7 +86,7 @@ def area_in_circles_on_unit_sphere(circles, draw = False):
         s0 = unit_sphere()
         draw_circles(circles, s0, surfc, width = 0.01, offset = 0.01)
 
-    cint, lc, nreg = intersect_circles(circles)
+    cint, lc, nreg = circle_intersections(circles)
 
     if draw:
         surfi = Surface('boundary points')
@@ -96,7 +94,6 @@ def area_in_circles_on_unit_sphere(circles, draw = False):
 
     # Check if circles cover the sphere
     if len(cint) == 0 and len(lc) == 0:
-        from math import pi
         return 4*pi
 
     # Connect circle arcs to form boundary paths.
@@ -121,7 +118,7 @@ def area_in_circles_on_unit_sphere(circles, draw = False):
 
     return area
 
-def intersect_circles(circles):
+def circle_intersections(circles):
 
     # Remove circles contained in other circles.
     circles2 = [c for i,c in enumerate(circles) if not circle_in_circles(i, circles)]
@@ -137,11 +134,9 @@ def intersect_circles(circles):
             p0,p1 = circle_intercepts(c0, c1)
             if not p0 is None:
                 rc.join(i,j)
-#                if not point_in_circles(p0, circles2, (i,j)):
-                if not point_in_circles2(p0, ce2, ca2, (i,j)):
+                if not point_in_circles(p0, circles2, (i,j)):
                     cint.append(Circle_Intersection(c0,c1,p0))
-#                if not point_in_circles(p1, circles2, (i,j)):
-                if not point_in_circles2(p1, ce2, ca2, (i,j)):
+                if not point_in_circles(p1, circles2, (i,j)):
                     cint.append(Circle_Intersection(c1,c0,p1))
     sz = rc.region_sizes()
     lc = [circles2[i] for i,s in enumerate(sz) if s == 1]       # Lone circles
@@ -151,7 +146,6 @@ def intersect_circles(circles):
 
 def circle_in_circles(i, circles):
     from .geometry.vector import inner_product
-    from math import cos
     p,a = circles[i].center, circles[i].angle
     for j,c in enumerate(circles):
         if c.angle >= a and inner_product(p, c.center) >= cos(c.angle-a) and j != i:
@@ -175,7 +169,6 @@ def circle_intercepts(c0, c1):
     d2 = (sa01*sa01 - ca0*ca0 - ca1*ca1 + 2*ca01*ca0*ca1)
     if d2 < 0:
         return None,None
-    from math import sqrt
     d = sqrt(d2) / s2
     
     return (a*c0.center + b*c1.center - d*x01,
@@ -187,10 +180,6 @@ def point_in_circles(p, circles, exclude):
         if inner_product(p,c.center) >= c.cos_angle and not i in exclude:
             return True
     return False
-
-def point_in_circles2(p, centers, cos_angles, exclude):
-    pin = ((centers*p).sum(axis=1) >= cos_angles)
-    return pin.sum() > sum(pin[i] for i in exclude)
 
 class Circle_Intersection:
     def __init__(self, circle1, circle2, point):
@@ -253,14 +242,12 @@ def boundary_path(bpoint, bset):
 
 def lone_circles_area(lone_circles):
 
-    from math import pi
     area = sum((2*pi*(1-c.cos_angle) for c in lone_circles), 0)
     return area
 
 def bounded_area(paths, nreg):
 
     area = 0
-    from math import pi
     for path in paths:
         n = len(path)
         ba = 0
@@ -291,32 +278,40 @@ def polar_angle(zaxis, v1, v2):
     from .geometry.place import orthonormal_frame
     f = orthonormal_frame(zaxis, xdir = v1)
     x,y,z = f.transpose()*v2
-    from math import atan2, pi
     a = atan2(y,x)
     if a < 0:
         a += 2*pi
     return a
 
-def estimate_buried_area(i, centers, radii, npts = 100000):
+def estimate_surface_area_of_spheres(centers, radii, sphere_points, point_weights):
+    areas = radii.copy()
+    for i,r in enumerate(radii):
+        ba = estimate_buried_sphere_area(i, centers, radii, sphere_points, point_weights)
+        areas[i] = 4*pi*r*r - ba
+    return areas
+
+def estimate_buried_sphere_area(i, centers, radii, points, weights):
+    c,r = centers[i], radii[i]
+    points = points.copy()
+    points *= r
+    points += c
+    from numpy import zeros, int32, logical_or
+    inside = zeros((len(points),), int32)
+    for j, radius in enumerate(radii):
+        if j != i:
+            d = points - centers[j]
+            d2 = (d*d).sum(axis = 1)
+            logical_or(inside, d2 <= radius*radius, inside)
+    a = 4*pi*r*r*sum(inside*weights)/weights.sum()
+    return a
+
+def sphere_points_and_weights(npoints):
     from .molecule.molecule import sphere_geometry
-    va, na, ta = sphere_geometry(2*npts)
+    va, na, ta = sphere_geometry(2*npoints)
     # Weight vertices by area since distribution is not uniform.
     from ._image3d import vertex_areas
     weights = vertex_areas(va, ta)
-    c,r = centers[i], radii[i]
-    va *= r
-    va += c
-    from numpy import zeros, int32, logical_or
-    n = len(va)
-    inside = zeros((n,), int32)
-    for j, radius in enumerate(radii):
-        if j != i:
-            d = va - centers[j]
-            d2 = (d*d).sum(axis = 1)
-            logical_or(inside, d2 <= radius*radius, inside)
-    from math import pi
-    a = 4*pi*r*r*sum(inside*weights)/weights.sum()
-    return a
+    return va, weights
 
 def draw_boundary(bp, sphere, surf, color, width, offset):
 
@@ -364,7 +359,6 @@ def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
 
 def sphere_band_geometry(a, step = 0.01, width = 0.01):
 
-    from math import pi, sin, cos
     n = max(3,int(2*pi*sin(a)/step))
     from numpy import empty, float32, int32, arange
     va = empty((2*n,3), float32)
@@ -388,7 +382,6 @@ def sphere_band_geometry(a, step = 0.01, width = 0.01):
 
 def sphere_band_arc(aradius, arc, width = 0.01, step = 0.01):
 
-    from math import pi, sin, cos
     a = aradius
     n = max(2,int(arc*sin(a)/step))
     from numpy import empty, float32, int32, arange
@@ -461,19 +454,7 @@ def unit_sphere():
     radius = 1
     return (center, radius)
 
-def test_sasa(n = 30):
-#    centers, radii = random_spheres_intersecting_unit_sphere(n)
-#    from numpy import array
-#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, 1.0))     # area test, pi
-#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, 1.0, 1.0)) # area test
-#    centers, radii = array(((0.0,0,0), (1.0,0,0), (1.0,0,0))), array((1.0, 0.5, 0.25))  # Nested circle test
-#    import math
-#    r = math.sqrt(2)
-#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, r))     # area test, 2*pi
-#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, r, r))     # area test, 3*pi
-
-#    buried_sphere_area(0, centers, radii, draw = True)
-
+def molecule_spheres(probe_radius = 1.4):
     from .ui.gui import main_window
     mlist = main_window.view.molecules()
     from .molecule import Atom_Set
@@ -481,10 +462,39 @@ def test_sasa(n = 30):
     aset.add_molecules(mlist)
     aset = aset.exclude_water()
     centers = aset.coordinates()
-    probe_radius = 1.4
     radii = aset.radii() + probe_radius
+    return centers, radii
+
+def test_sasa(n = 30):
+#    centers, radii = random_spheres_intersecting_unit_sphere(n)
+#    from numpy import array
+#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, 1.0))     # area test, pi
+#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, 1.0, 1.0)) # area test
+#    centers, radii = array(((0.0,0,0), (1.0,0,0), (1.0,0,0))), array((1.0, 0.5, 0.25))  # Nested circle test
+#    r = sqrt(2)
+#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, r))     # area test, 2*pi
+#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, r, r))     # area test, 3*pi
+
+#    buried_sphere_area(0, centers, radii, draw = True)
+
+    centers, radii = molecule_spheres()
 
 #    import cProfile
-#    cProfile.runctx('print("area =", spheres_surface_area(centers, radii))', globals(), locals())
-    a = spheres_surface_area(centers, radii)
-    print('surface area', len(centers), 'atoms =', a)
+#    cProfile.runctx('print("area =", spheres_surface_area(centers, radii).sum())', globals(), locals())
+    from time import time
+    t0 = time()
+    areas = surface_area_of_spheres(centers, radii)
+    t1 = time()
+    points, weights = sphere_points_and_weights(npoints = 10000)
+    eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
+    t2 = time()
+    print(len(centers), 'atoms, area', areas.sum(), 'estimate', eareas.sum(),
+          'times %.3f %.3f' % (t1-t0, t2-t1))
+    from numpy import absolute
+    aerr = absolute(areas - eareas) / (4*pi*radii*radii)
+    print('est error max %.05f mean %.05f' % (aerr.max(), aerr.mean()))
+
+# Example results.
+# Testing on PDB 1a0m excluding waters, 242 atoms. 15 seconds for analytic area.  Most time culling circle intersections.
+# Average of 36 circles per sphere, ~660 circle intersections per sphere, ~8 intersections on boundary.
+# Error with 10000 sphere point estimate, max over each sphere 0.002, mean 0.0004 as fraction of full sphere area, time 5 seconds.
