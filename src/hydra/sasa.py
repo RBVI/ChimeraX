@@ -123,9 +123,6 @@ def circle_intersections(circles):
     # Remove circles contained in other circles.
     circles2 = [c for i,c in enumerate(circles) if not circle_in_circles(i, circles)]
 
-    from numpy import array
-    ce2, ca2 = array(tuple(c.center for c in circles2)), array(tuple(c.cos_angle for c in circles2))
-
     # Compute intersection points of circles that are not contained in other circles.
     cint = []
     rc = Region_Count(len(circles2))
@@ -154,11 +151,10 @@ def circle_in_circles(i, circles):
 
 def circle_intercepts(c0, c1):
 
-    from .geometry.vector import inner_product, cross_product, norm
+    from .geometry.vector import inner_product, cross_product
     ca01 = inner_product(c0.center,c1.center)
     x01 = cross_product(c0.center,c1.center)
-    sa01 = norm(x01)
-    s2 = sa01*sa01
+    s2 = inner_product(x01,x01)
     if s2 == 0:
         return None,None
     
@@ -166,7 +162,7 @@ def circle_intercepts(c0, c1):
     ca1 = c1.cos_angle
     a = (ca0 - ca01*ca1) / s2
     b = (ca1 - ca01*ca0) / s2
-    d2 = (sa01*sa01 - ca0*ca0 - ca1*ca1 + 2*ca01*ca0*ca1)
+    d2 = (s2 - ca0*ca0 - ca1*ca1 + 2*ca01*ca0*ca1)
     if d2 < 0:
         return None,None
     d = sqrt(d2) / s2
@@ -481,15 +477,16 @@ def test_sasa(n = 30):
 
 #    import cProfile
 #    cProfile.runctx('print("area =", spheres_surface_area(centers, radii).sum())', globals(), locals())
+    from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
     from time import time
     t0 = time()
     areas = surface_area_of_spheres(centers, radii)
     t1 = time()
-    points, weights = sphere_points_and_weights(npoints = 10000)
+    points, weights = sphere_points_and_weights(npoints = 1000)
     eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
     t2 = time()
     print(len(centers), 'atoms, area', areas.sum(), 'estimate', eareas.sum(),
-          'times %.3f %.3f' % (t1-t0, t2-t1))
+          '(%d points)' % len(points), 'times %.3f %.3f' % (t1-t0, t2-t1))
     from numpy import absolute
     aerr = absolute(areas - eareas) / (4*pi*radii*radii)
     print('est error max %.05f mean %.05f' % (aerr.max(), aerr.mean()))
