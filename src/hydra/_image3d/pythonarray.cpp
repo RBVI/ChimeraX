@@ -665,6 +665,20 @@ PyObject *python_float_array(int size1, int size2, int size3, float **data)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_double_array(int size, double **data)
+{
+  initialize_numpy();		// required before using NumPy.
+
+  int dimensions[1] = {size};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_DOUBLE);
+  if (data)
+    *data = (double *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_3d_array(PyObject *arg, void *array)
 {
   Numeric_Array *na = static_cast<Numeric_Array *>(array);
@@ -761,12 +775,16 @@ extern "C" int parse_double_3_array(PyObject *arg, void *f3)
 
 // ----------------------------------------------------------------------------
 //
-static int parse_float_n(PyObject *arg, void *farray, bool allow_copy)
+static int parse_float_n(PyObject *arg, void *farray, bool allow_copy, bool f64)
 {
   try
     {
-      Numeric_Array v = array_from_python(arg, 1, Numeric_Array::Float, allow_copy);
-      *static_cast<FArray*>(farray) = static_cast<FArray>(v);
+      Numeric_Array::Value_Type ftype = (f64 ? Numeric_Array::Double : Numeric_Array::Float);
+      Numeric_Array v = array_from_python(arg, 1, ftype, allow_copy);
+      if (f64)
+	*static_cast<DArray*>(farray) = static_cast<DArray>(v);
+      else
+	*static_cast<FArray*>(farray) = static_cast<FArray>(v);
     }
   catch (std::runtime_error &e)
     {
@@ -780,9 +798,13 @@ static int parse_float_n(PyObject *arg, void *farray, bool allow_copy)
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_float_n_array(PyObject *arg, void *farray)
-  { return parse_float_n(arg, farray, true); }
+  { return parse_float_n(arg, farray, true, false); }
 extern "C" int parse_writable_float_n_array(PyObject *arg, void *farray)
-  { return parse_float_n(arg, farray, false); }
+  { return parse_float_n(arg, farray, false, false); }
+extern "C" int parse_double_n_array(PyObject *arg, void *farray)
+  { return parse_float_n(arg, farray, true, true); }
+extern "C" int parse_writable_double_n_array(PyObject *arg, void *farray)
+  { return parse_float_n(arg, farray, false, true); }
 
 // ----------------------------------------------------------------------------
 //
