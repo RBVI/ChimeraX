@@ -22,12 +22,10 @@ For example, given *xyzs* as an :py:class:`~numpy.array` of XYZ coordinates::
 """
 
 __all__ = [
-	'bbox', 
-	'camera', 
-	'reset',
-	'render',
-	'set_fov',
-	'set_viewport',
+	'set_glsl_version',
+	'Camera',
+	'Graphics',
+	'View',
 ]
 
 from .math3d import (Point, weighted_point, Vector, cross,
@@ -75,7 +73,7 @@ class Camera:
 		else:
 			self.height2 = self.width2 / win_aspect
 		if _track:
-			track.modified(Camera, [self], 'viewport')
+			track.modified(Camera, [self], 'viewport changed')
 
 	def matrices(self):
 		if self.ortho:
@@ -104,15 +102,11 @@ class Camera:
 		self.at = nxf * self.at
 		track.modified(Camera, [self], 'transformed')
 
-bbox = BBox() #: The current bounding box.
-camera = None
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
 _box_pn = None
 _box_indices_id = None	# primitive box indices
 _box_indices = None
-_fov = radians(30)
-_viewport = (200, 200)
 
 _glsl_version = '150'
 
@@ -122,20 +116,188 @@ def set_glsl_version(version):
 		raise ValueError("Only support GLSL 150 and webgl (ES 1.0)")
 	_glsl_version = version
 
-	
-def set_fov(fov):
-	# :param fov: is the vertical field of view in radians
-	global _fov
-	_fov = fov
+@track.register_data_type
+class View:
 
-def set_viewport(width, height):
-	# :param viewport: is a (lower-left, lower-right, width, height) tuple
-	global _viewport
-	if _viewport == (width, height):
-		return
-	_viewport = (width, height)
-	if camera:
-		camera.update_viewport(width, height)
+	def __init__(self, models=None):
+		# 'models is None' means to track open models
+		# TODO: support other values of models that allow for
+		#       different set of models (e.g., individual model views,
+		#       lighting UI, etc.)
+		self._bbox = BBox()		 #: The current bounding box.
+		self._camera = None
+		self._fov = radians(30)
+		self._viewport = (200, 200)
+		self._omh = None		# OpenModels handler
+		self._gh = None			# Graphics handler
+		self._ch = None			# Camera handler
+		if models is not None:
+			self._models = models
+		else:
+			from .trackchanges import track
+			from .open_models import OpenModels
+			self._omh = track.add_handler(OpenModels,
+						self._update_open_models)
+			from . import open_models
+			self._models = open_models.list()
+		self._num_models = len(self._models)
+		if self._models:
+			self._num_models = len(models)
+			self.reset_camera()
+		self._gh = track.add_handler(Graphics, self._update_graphics)
+		track.created(View, [self])
+
+	def _update_open_models(self, ignore_open_models):
+		if self.camera and self.camera not in open_models.modified:
+			return
+		from . import open_models
+		models = open_models.list()
+		if self._models == models:
+			return
+		old_num = self._num_models
+		self._models = models
+		self._num_models = len(models)
+		# want transitions from 0 to 1 and vice-versa
+		if (old_num == 0 and self._num_models == 1) \
+		or (old_num > 0 and self._num_models == 0):
+			self.reset_camera()
+		track.modified(View, [self], 'open models update')
+
+	def reset_camera(self):
+		bbox = BBox()
+		for m in self._models:
+			if m.graphics:
+				bbox.merge(m.graphics.bbox)
+		self._bbox = bbox
+		if self._ch is not None:
+			track.delete_handler(self._ch)
+			self._ch = None
+		if bbox.llb is None:
+			self._camera = None
+		else:
+			self._camera = Camera(self._viewport[0], self._viewport[1], self._fov, bbox)
+			self._ch = track.add_handler(Camera, self._update_camera)
+
+	def _update_camera(self, cameras):
+		if self.camera not in cameras.modified:
+			return
+		track.modified(View, [self], 'camera update')
+
+	def _update_graphics(self, graphics):
+		if not graphics.modified:
+			return
+		my_graphics = set([m.graphics for m in self._models if m.graphics is not None])
+		if not graphics.modified.issubset(my_graphics):
+			return
+		track.modified(View, [self], 'graphics update')
+
+	@property
+	def bbox(self):
+		return self._bbox
+
+	@property
+	def camera(self):
+		return self._camera
+
+	@property
+	def fov(self):
+		return self._fov
+
+	@fov.setter
+	def fov(self, fov):
+		# :param fov: is the vertical field of view in radians
+		if fov == self._fov:
+			return
+		self._fov = fov
+		track.modified(View, [self], 'fov changed')
+
+	@property
+	def viewport(self):
+		return self._viewport
+
+	@viewport.setter
+	def viewport(self, wh):
+		# :param viewport: is a (lower-left, lower-right, width, height) tuple
+		if self._viewport == wh:
+			return
+		self._viewport = wh
+		if self.camera:
+			width, height = wh
+			self.camera.update_viewport(width, height)
+		track.modified(View, [self], 'viewport changed')
+
+	def reset(self):
+		"""reinitialze view
+		
+		Removes all objects, resets lights, bounding box,
+		viewing transformation.
+		"""
+		for m in self._models:
+			if m.graphics is not None:
+				m.graphics.clear()
+		self._bbox = BBox()
+		self._camera = None
+
+	def render(self, as_data=False, skip_camera_matrices=False):
+		"""render view
+		"""
+		import llgr
+		from . import lighting
+		zero = array([0, 0, 0, 0], dtype=float32)
+		amb = lighting.ambient
+		ambient = array([amb, amb, amb, 1], dtype=float32)
+		if lighting.fill_light is None:
+			f_diffuse = zero
+			f_position = zero
+		else:
+			color = lighting.fill_light.color
+			f_diffuse = array(color.rgb + [1], dtype=float32)
+			direct = lighting.fill_light.direction
+			f_position = array(list(direct) + [0], dtype=float32)
+		if lighting.key_light is None:
+			k_diffuse = zero
+			k_specular = zero
+			k_position = zero
+		else:
+			color = lighting.key_light.color
+			k_diffuse = array(color.rgb + [1], dtype=float32)
+			direct = lighting.key_light.direction
+			k_position = array(list(direct) + [0], dtype=float32)
+			reflectivity = lighting.reflectivity()
+			color = lighting.shiny_color()
+			specular = [x * reflectivity for x in color.rgb]
+			k_specular = array(specular + [1], dtype=float32)
+		shininess = array([lighting.sharpness()], dtype=float32)
+		llgr.set_uniform(0, 'Ambient', llgr.FVec4, ambient)
+		llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, f_diffuse)
+		llgr.set_uniform(0, 'FillPosition', llgr.FVec4, f_position)
+		llgr.set_uniform(0, 'KeyDiffuse', llgr.FVec4, k_diffuse)
+		llgr.set_uniform(0, 'KeySpecular', llgr.FVec4, k_specular)
+		llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, k_position)
+		llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
+
+		llgr.set_clear_color(.05, .05, .4, 0)
+		if llgr.output_type().endswith('opengl'):
+			# TODO: move to llgr or to calling routine?
+			from OpenGL import GL
+			#if self._samples >= 2:
+			#	GL.glEnable(GL.GL_MULTISAMPLE)
+			#GL.glEnable(GL.GL_CULL_FACE)
+			GL.glViewport(0, 0, self._viewport[0], self._viewport[1])
+
+		if self._camera and not skip_camera_matrices:
+			projection, modelview = self._camera.matrices()
+			llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
+				llgr.Mat4x4, projection.getWebGLMatrix())
+			llgr.set_uniform_matrix(0, 'ModelViewMatrix', False,
+				llgr.Mat4x4, modelview.getWebGLMatrix())
+			llgr.set_uniform_matrix(0, 'NormalMatrix', False,
+				llgr.Mat3x3, modelview.getWebGLRotationMatrix())
+
+		if as_data:
+			return llgr.render(as_data)
+		else:
+			llgr.render()
 
 def reset():
 	"""reinitialze scene
@@ -143,10 +305,10 @@ def reset():
 	Removes all objects, resets lights, bounding box,
 	viewing transformation.
 	"""
-	global bbox, camera, _program_id, _box_pn_id, _box_indices_id
+	import llgr
+	global _program_id, _box_pn_id, _box_indices_id
 	_box_pn_id = None
 	_box_indices_id = None
-	import llgr
 	llgr.clear_all()
 	import os
 	shader_dir = os.path.dirname(__file__)
@@ -159,21 +321,24 @@ def reset():
 		pick_vertex_shader = f.read()
 	llgr.create_program(_program_id, vertex_shader, fragment_shader,
 						pick_vertex_shader)
-	bbox = BBox()
-	camera = None
+#TODO	for each view:
+#		view.make_graphics()
 
-@track.register_data_type
+@track.register_data_type(before=[View])
 class Graphics:
 
 	def __init__(self):
-		import llgr
 		self.bbox = BBox()
 		self.object_ids = set()
 		self.matrix_ids = Counter()
 		self.data_ids = Counter()
+		self.group_id = None
+		track.created(Graphics, [self])
+
+	def _new_group(self):
+		import llgr
 		self.group_id = llgr.next_group_id()
 		llgr.create_group(self.group_id, [])
-		track.created(Graphics, [self])
 
 	def add_sphere(self, radius, center, color, xform=None):
 		"""add sphere to scene
@@ -206,6 +371,8 @@ class Graphics:
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_sphere(obj_id, radius, _program_id, matrix_id, [ai])
+		if self.group_id is None:
+			self._new_group()
 		llgr.group_add(self.group_id, obj_id)
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
@@ -257,6 +424,8 @@ class Graphics:
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
+		if self.group_id is None:
+			self._new_group()
 		llgr.group_add(self.group_id, obj_id)
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
@@ -274,7 +443,7 @@ class Graphics:
 		b = BBox()
 		b.bulk_add([p0, p1])
 		b.xform(xform)
-		bbox.add_bbox(b)
+		self.bbox.add_bbox(b)
 		import llgr
 		if isinstance(color, int):
 			color_id = color
@@ -306,6 +475,8 @@ class Graphics:
 		]
 		llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
 			0, _box_indices.size, _box_indices_id, llgr.UByte)
+		if self.group_id is None:
+			self._new_group()
 		llgr.group_add(self.group_id, obj_id)
 		self.data_ids.update([color_id, scale_id])
 		self.matrix_ids.update([matrix_id])
@@ -378,7 +549,7 @@ class Graphics:
 			llgr.delete_object(object_id)
 		self.object_ids.clear()
 		llgr.delete_group(self.group_id)
-		llgr.create_group(self.group_id, [])
+		self.group_id = None
 		track.modified(Graphics, [self], 'less stuff')
 
 def make_box_primitive():
@@ -448,75 +619,3 @@ def make_box_primitive():
 	], dtype=uint8)
 	_box_indices_id = llgr.next_data_id()
 	llgr.create_buffer(_box_indices_id, llgr.ELEMENT_ARRAY, _box_indices)
-
-def render(as_data=False, skip_camera_matrices=False):
-	"""render scene
-	"""
-	import llgr
-	from . import lighting
-	#from chimera2 import lighting
-	zero = array([0, 0, 0, 0], dtype=float32)
-	amb = lighting.ambient
-	ambient = array([amb, amb, amb, 1], dtype=float32)
-	if lighting.fill_light is None:
-		f_diffuse = zero
-		f_position = zero
-	else:
-		color = lighting.fill_light.color
-		f_diffuse = array(color.rgb + [1], dtype=float32)
-		direct = lighting.fill_light.direction
-		f_position = array(list(direct) + [0], dtype=float32)
-	if lighting.key_light is None:
-		k_diffuse = zero
-		k_specular = zero
-		k_position = zero
-	else:
-		color = lighting.key_light.color
-		k_diffuse = array(color.rgb + [1], dtype=float32)
-		direct = lighting.key_light.direction
-		k_position = array(list(direct) + [0], dtype=float32)
-		reflectivity = lighting.reflectivity()
-		color = lighting.shiny_color()
-		specular = [x * reflectivity for x in color.rgb]
-		k_specular = array(specular + [1], dtype=float32)
-	shininess = array([lighting.sharpness()], dtype=float32)
-	llgr.set_uniform(0, 'Ambient', llgr.FVec4, ambient)
-	llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, f_diffuse)
-	llgr.set_uniform(0, 'FillPosition', llgr.FVec4, f_position)
-	llgr.set_uniform(0, 'KeyDiffuse', llgr.FVec4, k_diffuse)
-	llgr.set_uniform(0, 'KeySpecular', llgr.FVec4, k_specular)
-	llgr.set_uniform(0, 'KeyPosition', llgr.FVec4, k_position)
-	llgr.set_uniform(0, 'Shininess', llgr.FVec1, shininess)
-
-	llgr.set_clear_color(.05, .05, .4, 0)
-	if llgr.output_type().endswith('opengl'):
-		# TODO: move to llgr or to calling routine?
-		from OpenGL import GL
-		#if self._samples >= 2:
-		#	GL.glEnable(GL.GL_MULTISAMPLE)
-		#GL.glEnable(GL.GL_CULL_FACE)
-		GL.glViewport(0, 0, _viewport[0], _viewport[1])
-
-	if bbox.llb is None:
-		from . import open_models
-		models = open_models.list()
-		for m in models:
-			if m.graphics:
-				bbox.merge(m.graphics.bbox)
-	if bbox.llb is not None:
-		global camera
-		if camera is None:
-			camera = Camera(_viewport[0], _viewport[1], _fov, bbox)
-		if not skip_camera_matrices:
-			projection, modelview = camera.matrices()
-			llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
-				llgr.Mat4x4, projection.getWebGLMatrix())
-			llgr.set_uniform_matrix(0, 'ModelViewMatrix', False,
-				llgr.Mat4x4, modelview.getWebGLMatrix())
-			llgr.set_uniform_matrix(0, 'NormalMatrix', False,
-				llgr.Mat3x3, modelview.getWebGLRotationMatrix())
-
-	if as_data:
-		return llgr.render(as_data)
-	else:
-		llgr.render()

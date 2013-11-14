@@ -47,14 +47,13 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		if app is None:
 			# not initialized yet
 			return
-		from chimera2 import scene
 		# assume 18 inches from screen
 		dist_in = 18
 		height_in = self.height() / app.physicalDotsPerInch()
 		import math
-		scene.set_fov(2 * math.atan2(height_in, dist_in))
-		scene.set_viewport(*self.viewport[2:4])
-		scene.render()
+		app.main_view.fov = 2 * math.atan2(height_in, dist_in)
+		app.main_view.viewport = self.viewport[2:4]
+		app.main_view.render()
 
 	def vsphere_press(self, x, y):
 		import llgr
@@ -74,13 +73,12 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		rot = math3d.Rotation(axis, angle)
 		if rot.isIdentity:
 			return
-		from chimera2 import scene
 		try:
-			center = scene.bbox.center()
+			center = app.main_view.bbox.center()
 		except ValueError:
 			return
-		if scene.camera:
-			scene.camera.xform(rot)
+		if app.main_view.camera:
+			app.main_view.camera.xform(rot)
 		self.updateGL()
 		return cursor
 
@@ -90,17 +88,16 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		#llgr.vsphere_release(self.vsphere_id)
 
 	def translate_xy(self, delta):
-		from chimera2 import scene
 		try:
-			width, height, _ = scene.bbox.size()
+			width, height, _ = app.main_view.bbox.size()
 		except ValueError:
 			return
 		dx = delta.x() * width / self.width()
 		dy = -delta.y() * height / self.height()
 		trans = math3d.Translation((dx, dy, 0))
-		if scene.camera:
+		if app.main_view.camera:
 			# TODO: use camera coordinate system
-			scene.camera.xform(trans)
+			app.main_view.camera.xform(trans)
 		self.updateGL()
 
 	def pick(self, x, y):
@@ -123,12 +120,14 @@ class BaseApplication:
 		# replace some commands with GUI version
 		# TODO: find way to eliminate this special cases
 		cli.register('exit', (), self.cmd_exit)
-		cli.register('open', ([('filename', cli.string_arg)],), self.cmd_open)
 		cli.register('stereo', ([], [('ignore', cli.rest_of_line)]), self.cmd_noop)
 
 		# potentially changed in subclass:
 		self.graphics = None
 		self.statusbar = None
+
+		from chimera2 import scene
+		self.main_view = scene.View()
 
 	def cmd_noop(self, ignore=None):
 		from chimera2 import cli
@@ -164,35 +163,15 @@ class BaseApplication:
 		else:
 			raise SystemExit(0)
 
-	def cmd_open(self, filename):
-		from chimera2.trackchanges import track
-		try:
-			track.block()
-			if self.graphics:
-				self.graphics.makeCurrent()
-			from chimera2 import scene
-			scene.reset()
-			try:
-				from chimera2 import io
-				return io.open(filename)
-			except OSError as e:
-				raise cli.UserError(e)
-		finally:
-			track.release()
-
 class ConsoleApplication(QCoreApplication, BaseApplication):
 
 	def __init__(self, *args, **kw):
 		QCoreApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
-		from chimera2 import scene
-		scene.set_viewport(200, 200)
-
 		from chimera2 import cli
 		cli.register('render', (), self.cmd_render)
-		cli.register('windowsize', ([
-				('width', cli.positive_int_arg),
+		cli.register('windowsize', ([ ('width', cli.positive_int_arg),
 				('height', cli.positive_int_arg)
 			],), self.cmd_window_size)
 
@@ -201,18 +180,17 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 		return 100
 
 	def cmd_render(self):
-		scene.render()
+		self.main_view.render()
 
 	def cmd_window_size(self, width: int, height: int):
-		from chimera2 import scene
 		from chimera2.trackchanges import track
 		# assume 18 inches from screen
 		dist_in = 18
 		height_in = height / self.physicalDotsPerInch()
 		import math
 		track.block()
-		scene.set_fov(2 * math.atan2(height_in, dist_in))
-		scene.set_viewport(width, height)
+		self.main_view.fov = 2 * math.atan2(height_in, dist_in)
+		self.main_view.viewport = width, height
 		track.release()
 
 def build_ui(app):
@@ -252,6 +230,7 @@ class GuiApplication(QApplication, BaseApplication):
 		assert self.statusbar is not None
 		self.graphics = self.find_object("graphicsViewGL")
 		assert self.graphics is not None
+		self.graphics.makeCurrent()
 		self.graphics.setFocusPolicy(Qt.WheelFocus)
 		self.line_edit = self.find_object("lineEdit")
 		assert self.line_edit is not None
@@ -273,8 +252,7 @@ class GuiApplication(QApplication, BaseApplication):
 
 		from chimera2.trackchanges import track
 		from chimera2 import scene
-		track.add_handler(scene.Camera, self._update_cb)
-		track.add_handler(scene.Graphics, self._update_cb)
+		track.add_handler(scene.View, self._update_cb)
 
 	def _update_cb(self, *args, **kw):
 		if self.graphics:
@@ -295,7 +273,8 @@ class GuiApplication(QApplication, BaseApplication):
 				self.view, caption="Open File",
 				filter=io.qt_open_file_filter())
 		if filename:
-			self.cmd_open(filename)
+			from chimera2 import commands
+			commands.cmd_open(filename)
 
 	@property
 	def mouse_mode(self):
@@ -411,15 +390,16 @@ def main():
 				file=sys.stderr)
 		raise SystemExit(1)
 
+	from chimera2 import scene
 	import llgr
 	if dump_format:
 		llgr.set_output(dump_format)
 		if dump_format == 'json':
-			from chimera2 import scene
 			scene.set_glsl_version('webgl')
 	else:
 		#llgr.set_output('pyopengl')
 		llgr.set_output('opengl')
+	scene.reset()
 	import chimera2.io
 	chimera2.io.initialize_formats()
 	if len(args) > 0:

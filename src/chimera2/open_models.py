@@ -51,7 +51,6 @@ class OpenModels:
 
 def add(models):
 	"""Add models to set of open models"""
-	print("add models", models)
 	for m in models:
 		_open_models[m.id] = m
 	track.created(OpenModels, models)
