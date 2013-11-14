@@ -912,17 +912,30 @@ llgr = {
 		}
 		all_groups = {};
 	},
+	group_add: function (group_id, obj_id) {
+		if (group_id in all_groups) {
+			all_groups[group_id].push(obj_id);
+		}
+	},
 	hide_group: function (group_id) {
-		llgr.hide_objects(all_groups[group_id]);
+		if (group_id in all_groups) {
+			llgr.hide_objects(all_groups[group_id]);
+		}
 	},
 	show_group: function (group_id) {
-		llgr.show_objects(all_groups[group_id]);
+		if (group_id in all_groups) {
+			llgr.show_objects(all_groups[group_id]);
+		}
 	},
 	selection_add_group: function (group_id) {
-		llgr.selection_add(all_groups[group_id]);
+		if (group_id in all_groups) {
+			llgr.selection_add(all_groups[group_id]);
+		}
 	},
 	selection_remove_group: function (group_id) {
-		llgr.selection_remove(all_groups[group_id]);
+		if (group_id in all_groups) {
+			llgr.selection_remove(all_groups[group_id]);
+		}
 	},
 
 	clear_primitives: function () {
@@ -1023,6 +1036,7 @@ llgr = {
 			create_group: llgr.create_group,
 			delete_group: llgr.delete_group,
 			clear_groups: llgr.clear_group,
+			group_add: llgr.group_add,
 			hide_group: llgr.hide_group,
 			show_group: llgr.show_group,
 			selection_add_group: llgr.selection_add_group,

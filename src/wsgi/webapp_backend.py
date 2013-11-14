@@ -25,14 +25,9 @@ def init_chimera2():
 	scene.set_glsl_version('webgl')
 	import llgr
 	llgr.set_output('json')
-	import chimera2.io
-	chimera2.io.initialize_formats()
-	cli.register('exit', (), cmd_exit)
-	cli.register('open', ([('filename', cli.string_arg)],), cmd_open)
-	def lighting_cmds():
-		import chimera2.lighting.cmd as cmd
-		cmd.register()
-	cli.delay_registration('lighting', lighting_cmds)
+	from chimera2 import io, commands
+	io.initialize_formats()
+	commands.register()
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
 
 	from webapp_server import register_json_converter
@@ -41,18 +36,6 @@ def init_chimera2():
 	register_json_converter(llgr.Enum, lambda x: x.value)
 	import numpy
 	register_json_converter(numpy.ndarray, list)
-
-def cmd_exit(status: int=0):
-	raise SystemExit(status)
-
-def cmd_open(filename):
-	from chimera2 import scene
-	scene.reset()
-	from chimera2 import io
-	try:
-		return io.open(filename)
-	except OSError as e:
-		raise cli.UserError(str(e))
 
 #
 # Main program for per-session backend

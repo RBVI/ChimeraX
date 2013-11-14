@@ -117,16 +117,14 @@ class BaseApplication:
 		self.setOrganizationDomain("cgl.ucsf.edu")
 		self.setOrganizationName("UCSF RBVI")
 
-		from chimera2 import cli
+		from chimera2 import cli, commands
+		commands.register()
 		self.command = cli.Command()
+		# replace some commands with GUI version
+		# TODO: find way to eliminate this special cases
 		cli.register('exit', (), self.cmd_exit)
 		cli.register('open', ([('filename', cli.string_arg)],), self.cmd_open)
-		cli.register('stop', ([], [('ignore', cli.rest_of_line)]), self.cmd_stop)
 		cli.register('stereo', ([], [('ignore', cli.rest_of_line)]), self.cmd_noop)
-		def lighting_cmds():
-			import chimera2.lighting.cmd as cmd
-			cmd.register()
-		cli.delay_registration('lighting', lighting_cmds)
 
 		# potentially changed in subclass:
 		self.graphics = None
@@ -136,8 +134,8 @@ class BaseApplication:
 		from chimera2 import cli
 		raise cli.UserError("'%s' is not implemented" % self.command.command_name)
 
-	def status(self, message, timeout=2000):
-		# 2000 == 2 seconds
+	def status(self, message, timeout=3000):
+		# 1000 == 1 second
 		if self.statusbar:
 			self.statusbar.showMessage(message, timeout)
 		else:
@@ -166,22 +164,21 @@ class BaseApplication:
 		else:
 			raise SystemExit(0)
 
-	def cmd_stop(self, ignore=None):
-		self.status('use "exit"')
-
 	def cmd_open(self, filename):
-		if self.graphics:
-			self.graphics.makeCurrent()
-		from chimera2 import scene
-		scene.reset()
+		from chimera2.trackchanges import track
 		try:
-			from chimera2 import io
-			return io.open(filename)
-		except OSError as e:
-			raise cli.UserError(e)
-		finally:
+			track.block()
 			if self.graphics:
-				self.graphics.updateGL()
+				self.graphics.makeCurrent()
+			from chimera2 import scene
+			scene.reset()
+			try:
+				from chimera2 import io
+				return io.open(filename)
+			except OSError as e:
+				raise cli.UserError(e)
+		finally:
+			track.release()
 
 class ConsoleApplication(QCoreApplication, BaseApplication):
 
@@ -194,7 +191,10 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 
 		from chimera2 import cli
 		cli.register('render', (), self.cmd_render)
-		cli.register('windowsize', ([('width', cli.int_arg), ('height', cli.int_arg)]), self.cmd_window_size)
+		cli.register('windowsize', ([
+				('width', cli.positive_int_arg),
+				('height', cli.positive_int_arg)
+			],), self.cmd_window_size)
 
 	def physicalDotsPerInch(self):
 		# assume 100 dpi
@@ -205,12 +205,15 @@ class ConsoleApplication(QCoreApplication, BaseApplication):
 
 	def cmd_window_size(self, width: int, height: int):
 		from chimera2 import scene
+		from chimera2.trackchanges import track
 		# assume 18 inches from screen
 		dist_in = 18
 		height_in = height / self.physicalDotsPerInch()
 		import math
+		track.block()
 		scene.set_fov(2 * math.atan2(height_in, dist_in))
 		scene.set_viewport(width, height)
+		track.release()
 
 def build_ui(app):
 	from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
@@ -267,6 +270,15 @@ class GuiApplication(QApplication, BaseApplication):
 		}
 		self.timer = QTimer(self.view)
 		self.active_timer = False
+
+		from chimera2.trackchanges import track
+		from chimera2 import scene
+		track.add_handler(scene.Camera, self._update_cb)
+		track.add_handler(scene.Graphics, self._update_cb)
+
+	def _update_cb(self, *args, **kw):
+		if self.graphics:
+			self.graphics.updateGL()
 
 	def physicalDotsPerInch(self):
 		screen = self.primaryScreen()
@@ -406,7 +418,8 @@ def main():
 			from chimera2 import scene
 			scene.set_glsl_version('webgl')
 	else:
-		llgr.set_output('pyopengl')
+		#llgr.set_output('pyopengl')
+		llgr.set_output('opengl')
 	import chimera2.io
 	chimera2.io.initialize_formats()
 	if len(args) > 0:

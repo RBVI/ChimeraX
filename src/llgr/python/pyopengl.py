@@ -563,7 +563,7 @@ def selection_clear():
 _all_groups = {}
 
 def create_group(group_id: Id, objs: list_of(Id)):
-	_all_groups[id] = objs
+	_all_groups[group_id] = objs
 
 def delete_group(group_id: Id, and_objects: bool=False):
 	if and_objects:
@@ -578,6 +578,10 @@ def clear_groups(and_objects: bool=False):
 			for obj in objs:
 				delete_object(obj)
 	_all_groups.clear()
+
+def group_add(group_id: Id, obj_id: Id):
+	objs = _all_groups[group_id]
+	objs.append(obj_id)
 
 def hide_group(group_id: Id):
 	objs = _all_groups[group_id]
@@ -815,8 +819,8 @@ _darwin_vao = None
 
 def render():
 	import sys
+	global _darwin_vao
 	if sys.platform == 'darwin' and _darwin_vao is None:
-		global _darwin_vao
 		# using glVertexAttribPointer fails unless a VAO is bound
 		# even if VAO's aren't used
 		_darwin_vao = GL.glGenVertexArrays(1)
@@ -907,8 +911,8 @@ def pick(x: int, y: int):
 	# are also less than 16,777,215.
 
 	import sys
+	global _darwin_vao
 	if sys.platform == 'darwin' and _darwin_vao is None:
-		global _darwin_vao
 		# using glVertexAttribPointer fails unless a VAO is bound
 		# even if VAO's aren't used
 		_darwin_vao = GL.glGenVertexArrays(1)

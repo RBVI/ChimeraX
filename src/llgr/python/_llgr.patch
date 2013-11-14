@@ -1,5 +1,5 @@
---- _llgr.cpp.orig	2013-07-13 09:25:00.047362261 -0700
-+++ _llgr.cpp	2013-07-13 18:15:32.300795869 -0700
+--- _llgr.cpp.orig	2013-11-07 17:50:02.496481881 -0800
++++ _llgr.cpp	2013-11-07 17:51:20.988484339 -0800
 @@ -3,6 +3,10 @@
  #include "../c++/llgr_ui.h"
  #include <stdlib.h>	/* for getenv() and atoi() */
@@ -145,7 +145,7 @@
  
  static PyObject*
  _llgr_clear_all(PyObject*, PyObject* /* = NULL */)
-@@ -209,14 +296,13 @@
+@@ -228,14 +315,13 @@
  {
  	int _ptArg1;
  	int _ptArg2;
@@ -162,7 +162,7 @@
  		Bytes cppArg4 = _ptArg4.buf;
  		create_buffer(cppArg1, cppArg2, cppArg3, cppArg4);
  		PyBuffer_Release(&_ptArg4);
-@@ -228,7 +314,7 @@
+@@ -247,7 +333,7 @@
  	return NULL;
  }
  
@@ -170,8 +170,21 @@
 +static const char _llgrcreate_buffer_doc[] = "create_buffer(data_id: int, target: int, data: bytes)";
  
  static PyObject*
- _llgr_create_matrix(PyObject*, PyObject* _args, PyObject* _keywds)
-@@ -241,9 +327,9 @@
+ _llgr_create_group(PyObject*, PyObject* _args)
+@@ -258,9 +344,9 @@
+ 		return NULL;
+ 	try {
+ 		Id cppArg1 = _ptArg1;
+-		if (!?TODO?)
+-			throw std::invalid_argument("argument 2 should be a list of int");
+-		const Objects& cppArg2 = ?TODO?;
++		Objects cppArg2;
++		if (!sequence_to_vector_int(_ptArg2, &cppArg2))
++			throw std::invalid_argument("argument 2 should be a sequence of int");
+ 		create_group(cppArg1, cppArg2);
+ 		return (Py_INCREF(Py_None), Py_None);
+ 	} catch (...) {
+@@ -282,9 +368,9 @@
  		return NULL;
  	try {
  		Id cppArg1 = _ptArg1;
@@ -184,7 +197,7 @@
  		bool cppArg3(_ptArg3);
  		create_matrix(cppArg1, cppArg2, cppArg3);
  		return (Py_INCREF(Py_None), Py_None);
-@@ -253,7 +339,7 @@
+@@ -294,7 +380,7 @@
  	return NULL;
  }
  
@@ -193,7 +206,7 @@
  
  static PyObject*
  _llgr_create_object(PyObject*, PyObject* _args, PyObject* _keywds)
-@@ -274,9 +360,9 @@
+@@ -315,9 +401,9 @@
  		Id cppArg1 = _ptArg1;
  		Id cppArg2 = _ptArg2;
  		Id cppArg3 = _ptArg3;
@@ -206,7 +219,7 @@
  		PrimitiveType cppArg5 = static_cast<PrimitiveType>(_ptArg5);
  		uint32_t cppArg6 = _ptArg6;
  		uint32_t cppArg7 = _ptArg7;
-@@ -290,7 +376,7 @@
+@@ -331,7 +417,7 @@
  	return NULL;
  }
  
@@ -215,7 +228,7 @@
  
  static PyObject*
  _llgr_create_program(PyObject*, PyObject* _args, PyObject* _keywds)
-@@ -325,13 +411,12 @@
+@@ -366,13 +452,12 @@
  _llgr_create_singleton(PyObject*, PyObject* _args)
  {
  	int _ptArg1;
@@ -231,7 +244,7 @@
  		Bytes cppArg3 = _ptArg3.buf;
  		create_singleton(cppArg1, cppArg2, cppArg3);
  		PyBuffer_Release(&_ptArg3);
-@@ -343,7 +428,7 @@
+@@ -384,7 +469,7 @@
  	return NULL;
  }
  
@@ -240,7 +253,7 @@
  
  static PyObject*
  _llgr_delete_buffer(PyObject*, PyObject* _ptArg)
-@@ -417,9 +502,9 @@
+@@ -496,9 +581,9 @@
  _llgr_hide_objects(PyObject*, PyObject* _ptArg)
  {
  	try {
@@ -253,7 +266,7 @@
  		hide_objects(cppArg1);
  		return (Py_INCREF(Py_None), Py_None);
  	} catch (...) {
-@@ -428,15 +513,15 @@
+@@ -507,15 +592,15 @@
  	return NULL;
  }
  
@@ -273,7 +286,7 @@
  		opaque(cppArg1);
  		return (Py_INCREF(Py_None), Py_None);
  	} catch (...) {
-@@ -445,7 +530,7 @@
+@@ -524,7 +609,7 @@
  	return NULL;
  }
  
@@ -282,7 +295,7 @@
  
  static PyObject*
  _llgr_pick(PyObject*, PyObject* _args)
-@@ -485,9 +570,9 @@
+@@ -564,9 +649,9 @@
  _llgr_selection_add(PyObject*, PyObject* _ptArg)
  {
  	try {
@@ -295,7 +308,7 @@
  		selection_add(cppArg1);
  		return (Py_INCREF(Py_None), Py_None);
  	} catch (...) {
-@@ -496,7 +581,7 @@
+@@ -575,7 +660,7 @@
  	return NULL;
  }
  
@@ -303,8 +316,8 @@
 +static const char _llgrselection_add_doc[] = "selection_add(objs: sequence of int)";
  
  static PyObject*
- _llgr_selection_clear(PyObject*, PyObject* /* = NULL */)
-@@ -516,9 +601,9 @@
+ _llgr_selection_add_group(PyObject*, PyObject* _ptArg)
+@@ -612,9 +697,9 @@
  _llgr_selection_remove(PyObject*, PyObject* _ptArg)
  {
  	try {
@@ -317,7 +330,7 @@
  		selection_remove(cppArg1);
  		return (Py_INCREF(Py_None), Py_None);
  	} catch (...) {
-@@ -527,7 +612,7 @@
+@@ -623,7 +708,7 @@
  	return NULL;
  }
  
@@ -325,8 +338,8 @@
 +static const char _llgrselection_remove_doc[] = "selection_remove(objs: sequence of int)";
  
  static PyObject*
- _llgr_set_attribute_alias(PyObject*, PyObject* _args)
-@@ -583,9 +668,8 @@
+ _llgr_selection_remove_group(PyObject*, PyObject* _ptArg)
+@@ -696,9 +781,8 @@
  	int _ptArg1;
  	PyObject* _ptArg2;
  	int _ptArg3;
@@ -337,7 +350,7 @@
  		return NULL;
  	try {
  		Id cppArg1 = _ptArg1;
-@@ -593,7 +677,7 @@
+@@ -706,7 +790,7 @@
  			throw std::invalid_argument("argument 2 should be a str");
  		std::string cppArg2 = wrappy::PythonUnicode_AsCppString(_ptArg2);
  		ShaderType cppArg3 = static_cast<ShaderType>(_ptArg3);
@@ -346,7 +359,7 @@
  		Bytes cppArg5 = _ptArg5.buf;
  		set_uniform(cppArg1, cppArg2.c_str(), cppArg3, cppArg4, cppArg5);
  		PyBuffer_Release(&_ptArg5);
-@@ -605,7 +689,7 @@
+@@ -718,7 +802,7 @@
  	return NULL;
  }
  
@@ -355,7 +368,7 @@
  
  static PyObject*
  _llgr_set_uniform_matrix(PyObject*, PyObject* _args)
-@@ -614,9 +698,8 @@
+@@ -727,9 +811,8 @@
  	PyObject* _ptArg2;
  	int _ptArg3;
  	int _ptArg4;
@@ -366,7 +379,7 @@
  		return NULL;
  	try {
  		Id cppArg1 = _ptArg1;
-@@ -625,7 +708,7 @@
+@@ -738,7 +821,7 @@
  		std::string cppArg2 = wrappy::PythonUnicode_AsCppString(_ptArg2);
  		bool cppArg3(_ptArg3);
  		ShaderType cppArg4 = static_cast<ShaderType>(_ptArg4);
@@ -375,7 +388,7 @@
  		Bytes cppArg6 = _ptArg6.buf;
  		set_uniform_matrix(cppArg1, cppArg2.c_str(), cppArg3, cppArg4, cppArg5, cppArg6);
  		PyBuffer_Release(&_ptArg6);
-@@ -637,15 +720,15 @@
+@@ -750,7 +833,7 @@
  	return NULL;
  }
  
@@ -383,6 +396,8 @@
 +static const char _llgrset_uniform_matrix_doc[] = "set_uniform_matrix(program_id: int, name: str, transpose: bool, type: int, data: bytes)";
  
  static PyObject*
+ _llgr_show_group(PyObject*, PyObject* _ptArg)
+@@ -773,9 +856,9 @@
  _llgr_show_objects(PyObject*, PyObject* _ptArg)
  {
  	try {
@@ -395,7 +410,7 @@
  		show_objects(cppArg1);
  		return (Py_INCREF(Py_None), Py_None);
  	} catch (...) {
-@@ -654,15 +737,15 @@
+@@ -784,15 +867,15 @@
  	return NULL;
  }
  
@@ -415,7 +430,7 @@
  		transparent(cppArg1);
  		return (Py_INCREF(Py_None), Py_None);
  	} catch (...) {
-@@ -671,7 +754,7 @@
+@@ -801,7 +884,7 @@
  	return NULL;
  }
  
@@ -424,7 +439,7 @@
  
  static PyObject*
  _llgr_vsphere_drag(PyObject*, PyObject* _args)
-@@ -749,9 +832,9 @@
+@@ -879,9 +962,9 @@
  	try {
  		Id cppArg1 = _ptArg1;
  		double cppArg2 = _ptArg2;
@@ -436,7 +451,7 @@
  		vsphere_setup(cppArg1, cppArg2, cppArg3);
  		return (Py_INCREF(Py_None), Py_None);
  	} catch (...) {
-@@ -762,6 +845,20 @@
+@@ -892,6 +975,20 @@
  
  static const char _llgrvsphere_setup_doc[] = "vsphere_setup(vsphere: int, radius: float, center: 2-tuple of float)";
  
@@ -457,7 +472,7 @@
  PyMethodDef _llgrMethods[] = {
  	{
  		"add_cylinder", (PyCFunction) _llgr_add_cylinder,
-@@ -899,6 +996,10 @@
+@@ -1057,6 +1154,10 @@
  		"vsphere_setup", (PyCFunction) _llgr_vsphere_setup,
  		METH_VARARGS, _llgrvsphere_setup_doc
  	},
@@ -468,7 +483,7 @@
  	{ NULL, NULL, 0, NULL }
  };
  
-@@ -923,6 +1024,7 @@
+@@ -1081,6 +1182,7 @@
  PyMODINIT_FUNC
  PyInit__llgr()
  {

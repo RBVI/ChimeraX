@@ -24,11 +24,7 @@ For example, given *xyzs* as an :py:class:`~numpy.array` of XYZ coordinates::
 __all__ = [
 	'bbox', 
 	'camera', 
-	'need_redraw',
 	'reset',
-	'add_sphere',
-	'add_cylinder',
-	'add_box',
 	'render',
 	'set_fov',
 	'set_viewport',
@@ -37,18 +33,23 @@ __all__ = [
 from .math3d import (Point, weighted_point, Vector, cross,
 		Xform, Identity, Rotation, Translation,
 		frustum, ortho, look_at, camera_orientation, BBox)
-from numpy import array, float32, uint8
+from numpy import array, float32, uint, uint16, uint8, concatenate
 from math import radians
+from .trackchanges import track
+from collections import Counter
 
+@track.register_data_type
 class Camera:
 
-	def __init__(self):
+	def __init__(self, width, height, fov, bbox):
 		self.eye = Point([0, 0, 0])
 		self.at = Point([0, 0, -1])
 		self.up = Vector([0, 1, 0])
 		self.ortho = False
+		self.reset(width, height, fov, bbox, _track=False)
+		track.created(Camera, [self])
 
-	def reset(self, width, height, fov, bbox):
+	def reset(self, width, height, fov, bbox, _track=True):
 		# The camera is a simple one that takes the :param fov: and
 		# the current bounding box, and calculates the eye position
 		# and looks at the bounding box down the negative z-axis.
@@ -57,20 +58,24 @@ class Camera:
 		self.bbox = copy.deepcopy(bbox)
 		self.at = self.bbox.center()
 		self.width2, self.height2, depth2 = self.bbox.size() / 2 * 1.1	# +10%
-		self.update_viewport(width, height)
+		self.update_viewport(width, height, _track)
 
 		self.near = self.height2 / math.tan(fov / 2)
 		self.far = self.near + 2 * depth2
 		self.eye = self.at + Vector([0, 0, self.near + depth2])
 		self.up = Vector([0, 1, 0])
+		if _track:
+			track.modified(Camera, [self], 'reset')
 
-	def update_viewport(self, width, height):
+	def update_viewport(self, width, height, _track=True):
 		win_aspect = width / height
 		scene_aspect = self.width2 / self.height2
 		if win_aspect > scene_aspect:
 			self.width2 = self.height2 * win_aspect
 		else:
 			self.height2 = self.width2 / win_aspect
+		if _track:
+			track.modified(Camera, [self], 'viewport')
 
 	def matrices(self):
 		if self.ortho:
@@ -97,13 +102,13 @@ class Camera:
 		self.eye = nxf * self.eye
 		self.up = nxf * self.up
 		self.at = nxf * self.at
+		track.modified(Camera, [self], 'transformed')
 
 bbox = BBox() #: The current bounding box.
 camera = None
-need_redraw = True
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
-_box_pd = None
+_box_pn = None
 _box_indices_id = None	# primitive box indices
 _box_indices = None
 _fov = radians(30)
@@ -138,14 +143,12 @@ def reset():
 	Removes all objects, resets lights, bounding box,
 	viewing transformation.
 	"""
-	global need_redraw
-	need_redraw = True
 	global bbox, camera, _program_id, _box_pn_id, _box_indices_id
 	_box_pn_id = None
 	_box_indices_id = None
 	import llgr
 	llgr.clear_all()
-	import os, sys
+	import os
 	shader_dir = os.path.dirname(__file__)
 	_program_id = llgr.next_program_id()
 	with open(os.path.join(shader_dir, "vertexShader_%s.txt" % _glsl_version)) as f:
@@ -159,85 +162,224 @@ def reset():
 	bbox = BBox()
 	camera = None
 
-def add_sphere(radius, center, color, xform=None):
-	"""add sphere to scene
-	
-	:param radius: the radius of the sphere
-	:param center: the center of the sphere, :py:class:`~chimera2.math3d.Point`
-	:param color: the RGBA color of the sphere (either a sequence of 4 floats, or an integer referring to a previously defined color)
-	"""
-	if xform is None:
-		xform = Identity()
-	else:
-		xform = Xform(xform)
-	import llgr
-	b = BBox(center - radius, center + radius)
-	b.xform(xform)
-	bbox.add_bbox(b)
-	if isinstance(color, int):
-		data_id = color
-	else:
-		data_id = llgr.next_data_id()
-		assert len(color) == 4
-		rgba = array(color, dtype=float32)
-		llgr.create_singleton(data_id, rgba)
+@track.register_data_type
+class Graphics:
 
-	matrix_id = llgr.next_matrix_id()
-	xform.translate(center)
-	mat = xform.getWebGLMatrix()
-	llgr.create_matrix(matrix_id, mat, False)
+	def __init__(self):
+		import llgr
+		self.bbox = BBox()
+		self.object_ids = set()
+		self.matrix_ids = Counter()
+		self.data_ids = Counter()
+		self.group_id = llgr.next_group_id()
+		llgr.create_group(self.group_id, [])
+		track.created(Graphics, [self])
 
-	obj_id = llgr.next_object_id()
-	ai = llgr.AttributeInfo("color", data_id, 0, 0, 4, llgr.Float)
-	llgr.add_sphere(obj_id, radius, _program_id, matrix_id, [ai])
+	def add_sphere(self, radius, center, color, xform=None):
+		"""add sphere to scene
+		
+		:param radius: the radius of the sphere
+		:param center: the center of the sphere, :py:class:`~chimera2.math3d.Point`
+		:param color: the RGBA color of the sphere (either a sequence of 4 floats, or an integer referring to a previously defined color)
+		"""
+		if xform is None:
+			xform = Identity()
+		else:
+			xform = Xform(xform)
+		import llgr
+		b = BBox(center - radius, center + radius)
+		b.xform(xform)
+		self.bbox.add_bbox(b)
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
 
-def add_cylinder(radius, p0, p1, color, xform=None):
-	"""add cylinder to scene
-	
-	:param radius: the radius of the cylinder
-	:param p0: one endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
-	:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
-	:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
-	"""
-	global need_redraw
-	need_redraw = True
-	if xform is None:
-		xform = Identity()
-	else:
-		xform = Xform(xform)
-	b = BBox(p0 - radius, p0 + radius)
-	b.add(p1 - radius)
-	b.add(p1 + radius)
-	b.xform(xform)
-	bbox.add_bbox(b)
-	import llgr, math
-	if isinstance(color, int):
-		data_id = color
-	else:
-		data_id = llgr.next_data_id()
-		assert len(color) == 4
-		rgba = array(color, dtype=float32)
-		llgr.create_singleton(data_id, rgba)
+		matrix_id = llgr.next_matrix_id()
+		xform.translate(center)
+		mat = xform.getWebGLMatrix()
+		llgr.create_matrix(matrix_id, mat, False)
 
-	# create translation matrix
-	matrix_id = llgr.next_matrix_id()
-	xform.translate(weighted_point([p0, p1]))
-	delta = p1 - p0
-	height = delta.length()
-	cylAxis = Vector([0, 1, 0])
-	axis = cross(cylAxis, delta)
-	cosine = (cylAxis * delta) / height
-	angle = math.acos(cosine)
-	if axis.sqlength() > 0:
-		xform.rotate(axis, angle)
-	elif cosine < 0:	# delta == -cylAxis
-		xform.rotate(1, 0, 0, 180)
-	mat = xform.getWebGLMatrix()
-	llgr.create_matrix(matrix_id, mat, False)
+		obj_id = llgr.next_object_id()
+		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
+		llgr.add_sphere(obj_id, radius, _program_id, matrix_id, [ai])
+		llgr.group_add(self.group_id, obj_id)
+		self.data_ids.update([color_id])
+		self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], 'more stuff')
 
-	obj_id = llgr.next_object_id()
-	ai = llgr.AttributeInfo("color", data_id, 0, 0, 4, llgr.Float)
-	llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
+	def add_cylinder(self, radius, p0, p1, color, xform=None):
+		"""add cylinder to scene
+		
+		:param radius: the radius of the cylinder
+		:param p0: one endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
+		:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
+		:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
+		"""
+		if xform is None:
+			xform = Identity()
+		else:
+			xform = Xform(xform)
+		b = BBox(p0 - radius, p0 + radius)
+		b.add(p1 - radius)
+		b.add(p1 + radius)
+		b.xform(xform)
+		self.bbox.add_bbox(b)
+		import llgr, math
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
+
+		# create translation matrix
+		matrix_id = llgr.next_matrix_id()
+		xform.translate(weighted_point([p0, p1]))
+		delta = p1 - p0
+		height = delta.length()
+		cylAxis = Vector([0, 1, 0])
+		axis = cross(cylAxis, delta)
+		cosine = (cylAxis * delta) / height
+		angle = math.acos(cosine)
+		if axis.sqlength() > 0:
+			xform.rotate(axis, angle)
+		elif cosine < 0:	# delta == -cylAxis
+			xform.rotate(1, 0, 0, 180)
+		mat = xform.getWebGLMatrix()
+		llgr.create_matrix(matrix_id, mat, False)
+
+		obj_id = llgr.next_object_id()
+		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
+		llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
+		llgr.group_add(self.group_id, obj_id)
+		self.data_ids.update([color_id])
+		self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], 'more stuff')
+
+	def add_box(self, p0, p1, color, xform=None):
+		if xform is None:
+			xform = Identity()
+		else:
+			xform = Xform(xform)
+		#llb = Point(amin([p0, p1], axis=0))
+		#urf = Point(amax([p0, p1], axis=0))
+		#b = BBox(llb, urf)
+		b = BBox()
+		b.bulk_add([p0, p1])
+		b.xform(xform)
+		bbox.add_bbox(b)
+		import llgr
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
+
+		if _box_pn_id is None:
+			make_box_primitive()
+
+		scale_id = llgr.next_data_id()
+		scale = b.urf - b.llb
+		llgr.create_singleton(scale_id, array(scale, dtype=float32))
+
+		matrix_id = llgr.next_matrix_id()
+		xform.translate(b.llb)
+		mat = xform.getWebGLMatrix()
+		llgr.create_matrix(matrix_id, mat, False)
+
+		obj_id = llgr.next_object_id()
+		AI = llgr.AttributeInfo
+		ais = [
+			AI("color", color_id, 0, 0, 4, llgr.Float),
+			AI("position", _box_pn_id, 0, _box_pn[0].nbytes, 3, llgr.Float),
+			AI("normal", _box_pn_id, 12, _box_pn[0].nbytes, 3, llgr.Float),
+			AI("instanceScale", scale_id, 0, 0, 3, llgr.Float),
+		]
+		llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
+			0, _box_indices.size, _box_indices_id, llgr.UByte)
+		llgr.group_add(self.group_id, obj_id)
+		self.data_ids.update([color_id, scale_id])
+		self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], 'more stuff')
+
+	def add_triangles(self, vertices, normals, color, indices):
+		# vertices: Nx3 numpy array of float32 vertices
+		# normals: Nx3 numpy array of float32 normals
+		# color: a color_id or a length 4 collection of RGBA
+		# indices: Nx3 numpy array of indices
+
+		self.bbox.bulk_add(vertices)
+
+		import llgr
+		vn_id = llgr.next_data_id()
+		vn = concatenate([vertices, normals])
+		llgr.create_buffer(vn_id, llgr.ARRAY, vn)
+		tc = len(vertices)
+		if tc >= pow(2, 16):
+			index_type = llgr.UInt
+			ta = array(indices, dtype=uint)
+		elif tc >= pow(2, 8):
+			index_type = llgr.UShort
+			ta = array(indices, dtype=uint16)
+		else:
+			index_type = llgr.UByte
+			ta = array(indices, dtype=uint8)
+		tri_id = llgr.next_data_id()
+		llgr.create_buffer(tri_id, llgr.ELEMENT_ARRAY, ta)
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
+		scale_id = llgr.next_data_id()
+		llgr.create_singleton(scale_id, array([1, 1, 1], dtype=float32))
+
+		matrix_id = 0		# default identity matrix
+
+		obj_id = llgr.next_object_id()
+		AI = llgr.AttributeInfo
+		ais = [
+			AI("color", color_id, 0, 0, 4, llgr.Float),
+			AI("position", vn_id, 0, 0, 3, llgr.Float),
+			AI("normal", vn_id, vertices.nbytes, 0, 3, llgr.Float),
+			AI("instanceScale", scale_id, 0, 0, 3, llgr.Float),
+		]
+
+		llgr.create_object(obj_id, _program_id, matrix_id, ais,
+				llgr.Triangles, 0, ta.size, tri_id, index_type)
+		self.data_ids.update([vn_id, tri_id, color_id, scale_id])
+		if matrix_id:
+			self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], 'more stuff')
+
+	def clear(self):
+		import llgr
+		self.data_ids.subtract([_box_pn_id, _box_indices_id])
+		for data_id in +self.data_ids:
+			llgr.delete_buffer(data_id)
+		self.data_ids.clear()
+		for matrix_id in self.matrix_ids:
+			llgr.delete_matrix(matrix_id)
+		self.matrix_ids.clear()
+		for object_id in +self.object_ids:
+			llgr.delete_object(object_id)
+		self.object_ids.clear()
+		llgr.delete_group(self.group_id)
+		llgr.create_group(self.group_id, [])
+		track.modified(Graphics, [self], 'less stuff')
 
 def make_box_primitive():
 	global _box_pn_id, _box_indices_id
@@ -307,60 +449,12 @@ def make_box_primitive():
 	_box_indices_id = llgr.next_data_id()
 	llgr.create_buffer(_box_indices_id, llgr.ELEMENT_ARRAY, _box_indices)
 
-def add_box(p0, p1, color, xform=None):
-	global need_redraw
-	need_redraw = True
-	if xform is None:
-		xform = Identity()
-	else:
-		xform = Xform(xform)
-	#llb = Point(amin([p0, p1], axis=0))
-	#urf = Point(amax([p0, p1], axis=0))
-	#b = BBox(llb, urf)
-	b = BBox()
-	b.bulk_add([p0, p1])
-	b.xform(xform)
-	bbox.add_bbox(b)
-	import llgr
-	if isinstance(color, int):
-		data_id = color
-	else:
-		data_id = llgr.next_data_id()
-		assert len(color) == 4
-		rgba = array(color, dtype=float32)
-		llgr.create_singleton(data_id, rgba)
-
-	if _box_pn_id is None:
-		make_box_primitive()
-
-	scale_id = llgr.next_data_id()
-	scale = b.urf - b.llb
-	llgr.create_singleton(scale_id, array(scale, dtype=float32))
-
-	matrix_id = llgr.next_matrix_id()
-	xform.translate(b.llb)
-	mat = xform.getWebGLMatrix()
-	llgr.create_matrix(matrix_id, mat, False)
-
-	obj_id = llgr.next_object_id()
-	AI = llgr.AttributeInfo
-	ais = [
-		AI("color", data_id, 0, 0, 4, llgr.Float),
-		AI("position", _box_pn_id, 0, _box_pn[0].nbytes, 3, llgr.Float),
-		AI("normal", _box_pn_id, 12, _box_pn[0].nbytes, 3, llgr.Float),
-		AI("instanceScale", scale_id, 0, 0, 3, llgr.Float),
-	]
-	llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
-		0, _box_indices.size, _box_indices_id, llgr.UByte)
-
-
 def render(as_data=False, skip_camera_matrices=False):
 	"""render scene
 	"""
-	global need_redraw
-	need_redraw = False
 	import llgr
 	from . import lighting
+	#from chimera2 import lighting
 	zero = array([0, 0, 0, 0], dtype=float32)
 	amb = lighting.ambient
 	ambient = array([amb, amb, amb, 1], dtype=float32)
@@ -403,13 +497,16 @@ def render(as_data=False, skip_camera_matrices=False):
 		#GL.glEnable(GL.GL_CULL_FACE)
 		GL.glViewport(0, 0, _viewport[0], _viewport[1])
 
+	if bbox.llb is None:
+		from . import open_models
+		models = open_models.list()
+		for m in models:
+			if m.graphics:
+				bbox.merge(m.graphics.bbox)
 	if bbox.llb is not None:
 		global camera
-		if camera is not None:
-			camera.update_viewport(*_viewport)
-		else:
-			camera = Camera()
-			camera.reset(_viewport[0], _viewport[1], _fov, bbox)
+		if camera is None:
+			camera = Camera(_viewport[0], _viewport[1], _fov, bbox)
 		if not skip_camera_matrices:
 			projection, modelview = camera.matrices()
 			llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
