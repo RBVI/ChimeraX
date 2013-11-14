@@ -508,6 +508,48 @@ def selection_remove(list_of_objects: list_of(Id)):
 def selection_clear():
 	pass
 
+# group ops
+
+@save_args
+@typecheck
+def create_group(group_id: Id, objs: list_of(Id)):
+	pass
+
+@save_args
+@typecheck
+def delete_group(group_id: Id, and_objects: bool=False):
+	pass
+
+@save_args
+@typecheck
+def clear_groups(and_objects: bool=False):
+	pass
+
+@save_args
+@typecheck
+def group_add(group_id: Id, obj_id: Id):
+	pass
+
+@save_args
+@typecheck
+def hide_group(group_id: Id):
+	pass
+
+@save_args
+@typecheck
+def show_group(group_id: Id):
+	pass
+
+@save_args
+@typecheck
+def selection_add_group(group_id: Id):
+	pass
+
+@save_args
+@typecheck
+def selection_remove_group(group_id: Id):
+	pass
+
 # TODO: text primitives
 
 # LOD primitives
