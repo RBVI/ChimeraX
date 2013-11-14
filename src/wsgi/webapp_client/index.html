@@ -37,18 +37,22 @@ th, td { padding:0; }
 .footer-left { text-align:left; padding:0px 10px; line-height:50px; }
 .footer-center { text-align:center; padding:0px 10px; line-height:50px; }
 .footer-right { text-align:right; padding:0px 10px; line-height:25px; }
-.main-content { position:absolute; top:52px; right:0; left:0;
-			padding:0; margin:0; }
-.vertical-zone { height:100%; display:inline-block;
-			margin:0; padding:0; overflow:auto; }
-.center-zone { height:100%; display:inline-block;
-			margin:0; padding:0; overflow:none; }
-.bottom-zone { position:absolute; bottom:0; left:0px; right:0px; }
-#molview { position: relative; margin: 0px; padding: 0px;
-			width: 100%; height: 100%; }
 .panel-button-div { position:absolute; top:0; right:0; }
 .panel-button { margin:1px; display:inline-block; }
 .panel-log { font-size: smaller; height:90vh; overflow:auto; }
+
+/* These are for singletons on the page */
+#zone-three-column { position:absolute; top:52px; right:0; left:0;
+			padding:0; margin:0; }
+#zone-div-left { position:absolute; left:0; height:100%; display:inline-block;
+			margin:0; padding:0; overflow:auto; }
+#zone-div-center { position:absolute; height:100%; display:inline-block;
+			margin:0; padding:0; overflow:none; }
+#zone-div-right { position:absolute; right:0; height:100%; display:inline-block;
+			margin:0; padding:0; overflow:auto; }
+#zone-div-bottom { position:absolute; bottom:0; left:0px; right:0px; }
+#molview { position: relative; margin: 0px; padding: 0px;
+			width: 100%; height: 100%; }
 </style>
 
 <script type="text/javascript">
@@ -131,7 +135,7 @@ function show_status(message, options) {
 	var delay = options.delay || 3000;	// milliseconds
 	var error = options.error || false;
 	var temporary = options.temporary || false;
-	var sl = $("#status_line");
+	var sl = $("#status-line");
 	sl.clearQueue().html(message);
 	if (error)
 		sl.addClass("ui-state-error-text");
@@ -410,20 +414,6 @@ Camera.prototype.xform = function (xf) {
 	vec3.transformMat4(this.at, this.at, nxf);
 }
 
-$(document).ready(function() {
-	$c2_session.ui_init("..");
-	$("#command_line").keyup(
-		function (evt) {
-			if (evt.which != 13)
-				return;
-			$c2_session.send_command($(this).val());
-		});
-	$c2_session.register_data_function("llgr", process_llgr_data);
-	$c2_session.register_data_function("scene", process_scene_data);
-	$c2_session.register_data_function("info", show_status);
-	molview_init();
-})
-
 function process_llgr_data(json) {
 	// json is list of llgr commands
 	var index = array_last_index_of(json, 0, "clear_all");
@@ -531,30 +521,27 @@ function molview_mouse_up(event) {
 
 function molview_update_size() {
 	var footer = $("[data-role=footer]");
-	var bottom_zone = $("#bottom-zone");
-	var content = $("#content-all");
-	/*
-	console.log("bottom_zone height: " + bottom_zone.height());
-	*/
+	var zbottom = $("#zone-div-bottom");
 
 	var footer_height = footer.outerHeight(true);
-	/*
-	console.log("content bottom 1: " + bottom_zone.css("bottom")
-			+ " " + content.css("bottom"));
-	*/
-	bottom_zone.css("bottom", footer_height);
-	var bottom_height = bottom_zone.outerHeight(true) + footer_height;
-	/*
-	console.log("content bottom 2: " + bottom_zone.css("bottom")
-			+ " " + content.css("bottom"));
-	*/
-	content.css("bottom", bottom_height);
-	/*
-	console.log("content bottom 3: " + bottom_zone.css("bottom")
-			+ " " + content.css("bottom"));
-	console.log("footer height: " + footer_height
-			+ " bottom height: " + bottom_height);
-	*/
+	zbottom.css("bottom", footer_height);
+	var bottom_height = footer_height;
+	if (zbottom.is(":visible"))
+		bottom_height += zbottom.outerHeight(true);
+	var content = $("#zone-three-column");
+	content.css({ bottom: bottom_height });
+
+	var zleft = $("#zone-div-left");
+	var left_width = 0;
+	if (zleft.is(":visible"))
+		left_width += zleft.outerWidth(true);
+	var zright = $("#zone-div-right");
+	var right_width = 0;
+	if (zright.is(":visible"))
+		right_width += zright.outerWidth(true);
+	var zcenter = $("#zone-div-center");
+	// console.log("left/right: " + left_width + " " + right_width);
+	zcenter.css({ left: left_width, right: right_width });
 
 	// Make canvas use display resolution (no scaling)
 	var canvas = document.getElementById("molview");
@@ -615,36 +602,77 @@ function draw_scene(ci) {
 	llgr.render();
 }
 
-$(document).bind("pageshow", "#app", function() {
-/* resizing not available on mobile devices
-	$("#molview").resizable({
-		handles: "",
-		resize: function (event, ui) {
-			$("canvas", this).each(function () {
-				$(this).attr({
-					width: ui.size.width,
-					height: ui.size.height
-				});
-				molview_ci.redraw();
-			});
-		},
-	});
-*/
+// Zone management data and functions
+
+var zone_widgets_left = new Array();
+var zone_widgets_right = new Array();
+var zone_widgets_bottom = new Array();
+
+function flip_zone(checkbutton, div)
+{
+	var duration = 300;
+	if (checkbutton.prop("checked")) {
+		if (!div.is(":visible")) {
+			//console.log("showing " + div);
+			div.show({ duration: duration,
+					progress: molview_update_size });
+		}
+	} else {
+		if (div.is(":visible")) {
+			//console.log("hiding " + div);
+			div.hide({duration: duration,
+					progress: molview_update_size });
+		}
+	}
+}
+
+function update_zone_layout()
+{
+//	console.log("states: " + left.prop("checked")
+//			+ " " + right.prop("checked")
+//			+ " " + bottom.prop("checked"));
+	flip_zone($("#zone-bottom"), $("#zone-div-bottom"));
+	flip_zone($("#zone-left"), $("#zone-div-left"));
+	flip_zone($("#zone-right"), $("#zone-div-right"));
+}
+
+//
+// Initialization functions
+//
+
+$(document).ready(function() {
+	$c2_session.ui_init("..");
+	$("#command-line").keyup(
+		function (evt) {
+			if (evt.which != 13)
+				return;
+			$c2_session.send_command($(this).val());
+		});
+	$c2_session.register_data_function("llgr", process_llgr_data);
+	$c2_session.register_data_function("scene", process_scene_data);
+	$c2_session.register_data_function("info", show_status);
+	molview_init();
+})
+
+$(document).bind("pageinit", "#app", function() {
 	$("#debug-clear").bind("vclick", function(event) {
 		$("#debug").html("");
 	});
 	$("#log-clear").bind("vclick", function(event) {
 		$("#log").html("");
 	});
-	$("#zone-left").bind("change", function(event) {
-		alert("zone-left " + event.target.checked);
+	$("#zone-left, #zone-right, #zone-bottom").bind("change", function(event) {
+		update_zone_layout();
 	});
 	$(window).on("resize", function(event) {
-		molview_update_size();
+		update_zone_layout();
 	});
 	$("[data-role=header]").fixedtoolbar({ tapToggle: false });
-	$("[data-role=footer]").fixedtoolbar({ tapToggle: false });
-	molview_update_size();
+	$("[data-role=footer]").fixedtoolbar();
+});
+
+$(document).bind("pageshow", "#app", function() {
+	update_zone_layout();
 });
 
 }());
@@ -657,7 +685,7 @@ $(document).bind("pageshow", "#app", function() {
 
 <!--panels-->
 <div data-role="panel" data-position-fixed="true"
-		data-display="push" id="log_panel">
+		data-display="push" id="log-panel">
 	<div class="panel-button-div">
 		<a href="#" id="log-clear"
 			data-rel="clear" data-role="button"
@@ -671,7 +699,7 @@ $(document).bind("pageshow", "#app", function() {
 	<p id="log" class="panel-log"/>
 </div>
 <div data-role="panel" data-position-fixed="true"
-	data-display="push" data-position="right" id="debug_panel">
+	data-display="push" data-position="right" id="debug-panel">
 	<div class="panel-button-div">
 		<a href="#" id="debug-clear"
 			data-rel="clear" data-role="button"
@@ -687,62 +715,62 @@ $(document).bind("pageshow", "#app", function() {
 <!--end panels-->
 
 <!--popups-->
-<div name="popup_session_open" id="popup_session_open"
+<div name="popup-session-open" id="popup-session-open"
 			data-role="popup" class="ui-content">
 	<a href="#" data-rel="back" data-role="button"
 			data-icon="delete" data-iconpos="notext"
 			class="ui-btn-right">Close</a>
 	<h3>My Sessions</h3>
 	<form>
-		<label for="my_sessions">Session:</label>
-		<select name="my_sessions" id="my_sessions" data-mini="true">
+		<label for="my-sessions">Session:</label>
+		<select name="my-sessions" id="my-sessions" data-mini="true">
 			<option value="xyzzy">xyzzy</option>
 			<option value="plugh">plugh</option>
 		</select>
-		<label for="my_password">Password:</label>
-		<input type="password" name="my_password" id="my_password"
+		<label for="my-password">Password:</label>
+		<input type="password" name="my-password" id="my-password"
 			value="" data-mini="true" />
-		<input type="button" value="Open" id="open_session"
+		<input type="button" value="Open" id="open-session"
 			data-inline="true" data-mini="true" data-theme="b"/>
-		<input type="button" value="Delete" id="delete_session"
+		<input type="button" value="Delete" id="delete-session"
 			data-inline="true" data-mini="true" data-theme="b"/>
 	</form>
 </div>
-<div name="popup_session_new" id="popup_session_new"
+<div name="popup-session-new" id="popup-session-new"
 			data-role="popup" class="ui-content">
 	<a href="#" data-rel="back" data-role="button"
 			data-icon="delete" data-iconpos="notext"
 			class="ui-btn-right">Close</a>
 	<h3>New Sessions</h3>
 	<form>
-		<label for="new_session">Session:</label>
-		<input type="text" name="new_session" id="new_session"
+		<label for="new-session">Session:</label>
+		<input type="text" name="new-session" id="new-session"
 			value="" data-mini="true" />
-		<label for="new_password">Password:</label>
-		<input type="password" name="new_password" id="new_password"
+		<label for="new-password">Password:</label>
+		<input type="password" name="new-password" id="new-password"
 			value="" data-mini="true" />
-		<input type="button" value="Create" id="open_new_session"
+		<input type="button" value="Create" id="open-new-session"
 			data-inline="true" data-mini="true" data-theme="b"/>
 	</form>
 </div>
-<div name="popup_session_shared" id="popup_session_shared"
+<div name="popup-session-shared" id="popup-session-shared"
 			data-role="popup" class="ui-content">
 	<a href="#" data-rel="back" data-role="button"
 			data-icon="delete" data-iconpos="notext"
 			class="ui-btn-right">Close</a>
 	<h3>Shared Session</h3>
 	<form>
-		<label for="shared_username">User name:</label>
-		<input type="text" name="shared_username" id="shared_username"
+		<label for="shared-username">User name:</label>
+		<input type="text" name="shared-username" id="shared-username"
 			value="" data-mini="true" />
-		<label for="shared_session">Session:</label>
-		<input type="text" name="shared_session" id="shared_session"
+		<label for="shared-session">Session:</label>
+		<input type="text" name="shared-session" id="shared-session"
 			value="" data-mini="true" />
-		<label for="shared_password">Password:</label>
-		<input type="password" name="shared_password"
-			id="shared_password"
+		<label for="shared-password">Password:</label>
+		<input type="password" name="shared-password"
+			id="shared-password"
 			value="" data-mini="true"/>
-		<input type="button" value="Open" id="open_shared_session"
+		<input type="button" value="Open" id="open-shared-session"
 			data-inline="true" data-mini="true" data-theme="b"/>
 	</form>
 </div>
@@ -759,15 +787,18 @@ $(document).bind("pageshow", "#app", function() {
 				data-transition="slidedown">
 				Sessions...</a>
 			<div data-role="popup" id="menuSession">
+				<a href="#" data-rel="back" data-role="button"
+					data-icon="delete" data-iconpos="notext"
+					class="ui-btn-right">Close</a>
 				<ul data-role="listview" data-inset="true">
 					<li><a data-rel="popup"
-						href="#popup_session_open">
+						href="#popup-session-open">
 						Open Session</a></li>
 					<li><a data-rel="popup"
-						href="#popup_session_new">
+						href="#popup-session-new">
 						New Session</a></li>
 					<li><a data-rel="popup"
-						href="#popup_session_shared">
+						href="#popup-session-shared">
 						Shared Session</a></li>
 				</ul>
 			</div>
@@ -776,16 +807,25 @@ $(document).bind("pageshow", "#app", function() {
 				data-transition="slidedown">
 				Zones...</a>
 			<div data-role="popup" id="menuZone">
+				<a href="#" data-rel="back" data-role="button"
+					data-icon="delete" data-iconpos="notext"
+					class="ui-btn-right">Close</a>
 				<fieldset data-role="controlgroup"
 						style="margin:0;">
 					<input type="checkbox"
-						name="zone-left" id="zone-left">
+						checked="checked"
+						name="zone-left"
+						id="zone-left">
 					<label for="zone-left">Left</label>
 					<input type="checkbox"
-						name="zone-right" id="zone-right">
+						checked="checked"
+						name="zone-right"
+						id="zone-right">
 					<label for="zone-right">Right</label>
 					<input type="checkbox"
-						name="zone-bottom" id="zone-bottom">
+						checked="checked"
+						name="zone-bottom"
+						id="zone-bottom">
 					<label for="zone-bottom">Bottom</label>
 					</select>
 				</fieldset>
@@ -801,26 +841,25 @@ $(document).bind("pageshow", "#app", function() {
 
 <!--main content-->
 <!-- three columns for left-zone, graphics, right-zone -->
-<div class="main-content" id="content-all">
+<div id="zone-three-column">
 	<!-- keep /div next to div to prevent gratuitous whitespace -->
-	<div id="zone-div-left" class="vertical-zone" style="width:20%;">
+	<div id="zone-div-left" style="width:20%;">
 		Hello, left
-	</div><div id="zone-div-center" class="center-zone" style="width:60%;">
-		<canvas id="molview" style="margin:0; border:0; height:100%;">
-	 </canvas>
-	</div><div id="zone-div-right" class="vertical-zone" style="width:20%;">
+	</div><div id="zone-div-center">
+		<canvas id="molview" style="margin:0; border:0; height:100%;"/>
+	</div><div id="zone-div-right" style="width:20%;">
 		Hello, right
 	</div>
 </div>
 <!--end main content-->
 
 <!--bottom zone-->
-<div class="bottom-zone" id="bottom-zone">
+<div id="zone-div-bottom">
 	<div id="bottom-widgets" style="position:relative;">
-		<label for="command_line">Command:</label>
-		<input id="command_line" type="text" size="100"/>
+		<label for="command-line">Command:</label>
+		<input id="command-line" type="text" size="100"/>
 	</div>
-	<div id="status_line">Status line</div>
+	<div id="status-line">Status line</div>
 </div>
 <!--end bottom zone-->
 
@@ -832,14 +871,14 @@ $(document).bind("pageshow", "#app", function() {
 				data-mini="true">
 			<a data-role="button" data-mini="true"
 				class="footer-button"
-				href="#log_panel">Log</a>
+				href="#log-panel">Log</a>
 			<a data-role="button" data-mini="true"
 				class="footer-button"
-				href="#debug_panel">Debug Log</a>
+				href="#debug-panel">Debug Log</a>
 			</div>
 		</div>
 		<div class="ui-block-b footer-center">
-			<span id="active_session">No session selected</span>
+			<span id="active-session">No session selected</span>
 		</div>
 		<div class="ui-block-c footer-right">
 			Chimera 2 Mobile<br/>
