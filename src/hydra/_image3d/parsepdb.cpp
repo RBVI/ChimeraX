@@ -26,6 +26,8 @@ static int count_pdb_atoms(const char *pdb)
   for (int i = 0 ; pdb[i] ; i = next_line(pdb, i))
     if (atom_line(pdb+i))
       count += 1;
+    else if (strncmp(pdb+i, "ENDMDL", 6) == 0)
+      break;
   return count;
 }
 
@@ -89,6 +91,8 @@ static int parse_pdb(const char *pdb, int natom,
       	const char *line = pdb + i;
 	ni = next_line(pdb, i);
 	int line_len = ni - i;
+	if (strncmp(line, "ENDMDL", 6) == 0)
+	  return a;	// Only parse the first model in the file.
 	if (atom_line(line) && line_len > 46)
 	  {
 	    int a3 = 3*a;
