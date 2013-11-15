@@ -50,7 +50,7 @@ typedef std::vector<Circle_Intersection> Circle_Intersections;
 typedef std::vector<Circle_Intersection*> Path;
 typedef std::vector<Path> Paths;
 
-static bool surface_area_of_spheres(double *centers, int n, double *radii, double *areas);
+static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas);
 static bool buried_sphere_area(int i, double *centers, int n, double *radii, double *area);
 static bool sphere_intersection_circles(int i, double *centers, int n, double *radii,
 					Circles &circles);
@@ -128,17 +128,23 @@ private:
   int *c;
 };
 
-static bool surface_area_of_spheres(double *centers, int n, double *radii, double *areas)
+// Returns count of how many spheres calculation succeeded for.
+static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas)
 {
+  int c = 0;
   for (int i = 0 ; i < n ; ++i)
     {
       double ba;
-      if (!buried_sphere_area(i, centers, n, radii, &ba))
-	return false;
-      double r = radii[i];
-      areas[i] = 4*M_PI*r*r - ba;
+      if (buried_sphere_area(i, centers, n, radii, &ba))
+	{
+	  double r = radii[i];
+	  areas[i] = 4*M_PI*r*r - ba;
+	  c += 1;
+	}
+      else
+	areas[i] = -1;	// Calculation failed.
     }
-  return true;
+  return c;
 }
 
 static bool buried_sphere_area(int i, double *centers, int n, double *radii, double *area)
@@ -194,7 +200,10 @@ static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area)
 {
   // Check if sphere is outside all other spheres.
   if (circles.size() == 0)
-    return 0;
+    {
+      *area = 0;
+      return true;
+    }
 
   // Speed up circle intersection calculation.
   // Typically half of circles are in other circles for molecular surfaces.
@@ -544,16 +553,20 @@ extern "C" PyObject *surface_area_of_spheres(PyObject *s, PyObject *args, PyObje
 		      "surface_area_of_spheres: area array must be contiguous");
       return NULL;
     }
-  if (ra.size(0) != ca.size(0) || areas.size(0) != ca.size(0))
+  int n = ca.size(0);
+  if (ra.size(0) != n || areas.size(0) != n)
     {
       PyErr_SetString(PyExc_TypeError,
 		      "surface_area_of_spheres: centers, radii and area arrays must be the same length.");
       return NULL;
     }
 
-  bool success = surface_area_of_spheres(ca.values(), ca.size(0), ra.values(), areas.values());
-  PyObject *py_areas = (success ? array_python_source(areas) : Py_None);
-  if (!alloc_areas || !success)
+  int count = surface_area_of_spheres(ca.values(), ca.size(0), ra.values(), areas.values());
+  //  PyObject *py_areas = (count == n ? array_python_source(areas) : Py_None);
+  //  if (!alloc_areas || count < n)
+  //    Py_INCREF(py_areas);    
+  PyObject *py_areas = array_python_source(areas);
+  if (!alloc_areas)
     Py_INCREF(py_areas);    
   return py_areas;
 }
