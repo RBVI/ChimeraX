@@ -406,8 +406,6 @@ def main():
 		print("%s: ignoring extra arguments: %s"
 				% (argv[0], ' '.join(args)), file=sys.stderr)
 
-	#from chimera2 import formats
-	#formats.initialize()
 	if app.graphics:
 		sys.exit(app.exec_())
 	else:

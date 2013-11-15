@@ -39,6 +39,11 @@ from collections import Counter
 @track.register_data_type
 class Camera:
 
+	# modified reasons
+	CAMERA_RESET = 'camera reset'
+	VIEWPORT_CHANGE = 'viewport changed'
+	CAMERA_MOVED = 'camera moved'
+
 	def __init__(self, width, height, fov, bbox):
 		self.eye = Point([0, 0, 0])
 		self.at = Point([0, 0, -1])
@@ -63,7 +68,7 @@ class Camera:
 		self.eye = self.at + Vector([0, 0, self.near + depth2])
 		self.up = Vector([0, 1, 0])
 		if _track:
-			track.modified(Camera, [self], 'reset')
+			track.modified(Camera, [self], self.CAMERA_RESET)
 
 	def update_viewport(self, width, height, _track=True):
 		win_aspect = width / height
@@ -73,7 +78,7 @@ class Camera:
 		else:
 			self.height2 = self.width2 / win_aspect
 		if _track:
-			track.modified(Camera, [self], 'viewport changed')
+			track.modified(Camera, [self], self.VIEWPORT_CHANGE)
 
 	def matrices(self):
 		if self.ortho:
@@ -100,7 +105,7 @@ class Camera:
 		self.eye = nxf * self.eye
 		self.up = nxf * self.up
 		self.at = nxf * self.at
-		track.modified(Camera, [self], 'transformed')
+		track.modified(Camera, [self], self.CAMERA_MOVED)
 
 _program_id = 0
 _box_pn_id = None	# primitive box vertex position and normals
@@ -118,6 +123,13 @@ def set_glsl_version(version):
 
 @track.register_data_type
 class View:
+
+	# modified reasons
+	OPEN_MODELS_CHANGE = 'open models update'
+	CAMERA_CHANGE = 'camera update'
+	GRAPHICS_CHANGE = 'graphics update'
+	FOV_CHANGE = 'fov changed'
+	VIEWPORT_CHANGE = 'viewport changed'
 
 	def __init__(self, models=None):
 		# 'models is None' means to track open models
@@ -148,8 +160,6 @@ class View:
 		track.created(View, [self])
 
 	def _update_open_models(self, ignore_open_models):
-		if self.camera and self.camera not in open_models.modified:
-			return
 		from . import open_models
 		models = open_models.list()
 		if self._models == models:
@@ -161,7 +171,7 @@ class View:
 		if (old_num == 0 and self._num_models == 1) \
 		or (old_num > 0 and self._num_models == 0):
 			self.reset_camera()
-		track.modified(View, [self], 'open models update')
+		track.modified(View, [self], self.OPEN_MODELS_CHANGE)
 
 	def reset_camera(self):
 		bbox = BBox()
@@ -181,7 +191,7 @@ class View:
 	def _update_camera(self, cameras):
 		if self.camera not in cameras.modified:
 			return
-		track.modified(View, [self], 'camera update')
+		track.modified(View, [self], self.CAMERA_CHANGE)
 
 	def _update_graphics(self, graphics):
 		if not graphics.modified:
@@ -189,7 +199,11 @@ class View:
 		my_graphics = set([m.graphics for m in self._models if m.graphics is not None])
 		if not graphics.modified.issubset(my_graphics):
 			return
-		track.modified(View, [self], 'graphics update')
+		track.modified(View, [self], self.GRAPHICS_CHANGE)
+
+	@property
+	def models(self):
+		return self._models
 
 	@property
 	def bbox(self):
@@ -209,7 +223,7 @@ class View:
 		if fov == self._fov:
 			return
 		self._fov = fov
-		track.modified(View, [self], 'fov changed')
+		track.modified(View, [self], self.FOV_CHANGE)
 
 	@property
 	def viewport(self):
@@ -224,7 +238,7 @@ class View:
 		if self.camera:
 			width, height = wh
 			self.camera.update_viewport(width, height)
-		track.modified(View, [self], 'viewport changed')
+		track.modified(View, [self], self.VIEWPORT_CHANGE)
 
 	def reset(self):
 		"""reinitialze view
@@ -327,6 +341,10 @@ def reset():
 @track.register_data_type(before=[View])
 class Graphics:
 
+	# modified reasons
+	MORE_OBJECTS = 'more objects'
+	LESS_OBJECTS = 'less objects'
+
 	def __init__(self):
 		self.bbox = BBox()
 		self.object_ids = set()
@@ -377,7 +395,7 @@ class Graphics:
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
-		track.modified(Graphics, [self], 'more stuff')
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
 
 	def add_cylinder(self, radius, p0, p1, color, xform=None):
 		"""add cylinder to scene
@@ -430,7 +448,7 @@ class Graphics:
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
-		track.modified(Graphics, [self], 'more stuff')
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
 
 	def add_box(self, p0, p1, color, xform=None):
 		if xform is None:
@@ -481,7 +499,7 @@ class Graphics:
 		self.data_ids.update([color_id, scale_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
-		track.modified(Graphics, [self], 'more stuff')
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
 
 	def add_triangles(self, vertices, normals, color, indices):
 		# vertices: Nx3 numpy array of float32 vertices
@@ -534,7 +552,7 @@ class Graphics:
 		if matrix_id:
 			self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
-		track.modified(Graphics, [self], 'more stuff')
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
 
 	def clear(self):
 		import llgr
@@ -550,7 +568,7 @@ class Graphics:
 		self.object_ids.clear()
 		llgr.delete_group(self.group_id)
 		self.group_id = None
-		track.modified(Graphics, [self], 'less stuff')
+		track.modified(Graphics, [self], self.LESS_OBJECTS)
 
 def make_box_primitive():
 	global _box_pn_id, _box_indices_id

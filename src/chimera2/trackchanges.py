@@ -35,7 +35,7 @@ class Changes:
 		self.reasons.clear()
 		self._dirty = False
 
-	def update(self):
+	def finalize(self):
 		"""instances should only appear in one of the
 		created, modified, or deleted sets"""
 		if not self._dirty:
@@ -53,12 +53,21 @@ class Changes:
 	def empty(self):
 		return not any((self.created, self.modified, self.deleted))
 
+	def update(self, changes):
+		self.created.update(changes.created)
+		self.modified.update(changes.modified)
+		self.deleted.update(changes.deleted)
+		self.reasons.update(changes.reasons)
+		self._dirty = True
+
 class Track:
 
 	def __init__(self):
 		self._ts = triggerset.TriggerSet()
 		self._blocked = 0
 		self._changes = {}
+		self._pending_changes = {}
+		self._processing = False
 
 	def register_data_type(self, data_type=None, usage_cb=None, after=(), before=()):
 		"""Add data_type to those that are monitored for changes
@@ -78,6 +87,7 @@ class Track:
 				return self.register_data_type(data_type, usage_cb, after, before)
 			return wrapper
 		self._changes[data_type] = Changes()
+		self._pending_changes[data_type] = Changes()
 		self._ts.add_trigger(data_type, usage_cb, after)
 		for dt in before:
 			self._ts.add_dependency(dt, [data_type])
@@ -106,18 +116,26 @@ class Track:
 
 	def release(self):
 		self._blocked -= 1
-		self._ts.block()
-		for data_type, data in self._changes.items():
-			data.update()
-			if not data.empty():
-				self._ts.activate_trigger(data_type, None)
-		self._ts.release()
-		for data in self._changes.values():
-			data.clear()
+		self._processing = True
+		try:
+			self._ts.block()
+			for data_type, changes in self._changes.items():
+				changes.finalize()
+				if not changes.empty():
+					self._ts.activate_trigger(data_type, None)
+			self._ts.release()
+			for data_type, changes in self._changes.items():
+				changes.clear()
+				pending = self._pending_changes[data_type]
+				if not pending.empty():
+					changes.update(pending)
+					pending.clear()
+		finally:
+			self._processing = False
 
 	def _activate(self, data_type):
 		data = self._changes[data_type]
-		data.update()
+		data.finalize()
 		if not data.empty():
 			self._ts.activate_trigger(data_type, None)
 			data.clear()
@@ -125,8 +143,14 @@ class Track:
 	def created(self, data_type, instances):
 		if data_type not in self._changes:
 			raise ValueError("unknown data type")
-		self._changes[data_type].created.update(instances)
-		self._changes[data_type]._dirty = True
+		if self._processing:
+			changes = self._pending_changes[data_type]
+			changes.created.update(instances)
+			changes._dirty = True
+			return
+		changes = self._changes[data_type]
+		changes.created.update(instances)
+		changes._dirty = True
 		if self._blocked:
 			return
 		self._activate(data_type)
@@ -134,9 +158,16 @@ class Track:
 	def modified(self, data_type, instances, reason):
 		if data_type not in self._changes:
 			raise ValueError("unknown data type")
-		self._changes[data_type].modified.update(instances)
-		self._changes[data_type].reasons.add(reason)
-		self._changes[data_type]._dirty = True
+		if self._processing:
+			changes = self._pending_changes[data_type]
+			changes.modified.update(instances)
+			changes.reasons.add(reason)
+			changes._dirty = True
+			return
+		changes = self._changes[data_type]
+		changes.modified.update(instances)
+		changes.reasons.add(reason)
+		changes._dirty = True
 		if self._blocked:
 			return
 		self._activate(data_type)
@@ -144,8 +175,14 @@ class Track:
 	def deleted(self, data_type, instances):
 		if data_type not in self._changes:
 			raise ValueError("unknown data type")
-		self._changes[data_type].deleted.update(instances)
-		self._changes[data_type]._dirty = True
+		if self._processing:
+			changes = self._pending_changes[data_type]
+			changes.deleted.update(instances)
+			changes._dirty = True
+			return
+		changes = self._changes[data_type]
+		changes.deleted.update(instances)
+		changes._dirty = True
 		if self._blocked:
 			return
 		self._activate(data_type)

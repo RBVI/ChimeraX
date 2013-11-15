@@ -10,17 +10,18 @@ _debug_print("backend script started")
 
 from chimera2 import cli
 
-client_state = {}
+main_view = None
+client_data = []
 
 def init_chimera2():
 	# initialize chimera2 internals
 	#   -- setup graphics to generate JSON
 	#   -- register all commands
 	#
-	# Individual commands return a list of [tag, tag_data] pairs.
 	# Supported tags include:
 	#	"llgr"	-- for llgr JSON format data
 	#	...
+	global main_view
 	from chimera2 import scene
 	scene.set_glsl_version('webgl')
 	import llgr
@@ -30,12 +31,57 @@ def init_chimera2():
 	commands.register()
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
 
+	# Augment JSON converter to support
+	# TODO: figure how to automate this
 	from webapp_server import register_json_converter
 	register_json_converter(llgr.AttributeInfo, llgr.AttributeInfo.json)
-	_debug_print(str(dir(llgr)))
 	register_json_converter(llgr.Enum, lambda x: x.value)
 	import numpy
 	register_json_converter(numpy.ndarray, list)
+
+	# register data handlers
+	from chimera2.trackchanges import track
+	track.add_handler(scene.View, update_client_data)
+
+	#
+	track.block() # block so main_view is assigned before tracking is done
+	main_view = scene.View()
+	scene.reset()
+	track.release()
+
+def update_client_data(views):
+	_debug_print("update_client_data: %s in? %s" % (main_view, views.modified))
+	if main_view not in views.modified:
+		return
+	scene_info = {
+		'bbox': [
+			list(main_view.bbox.llb),
+			list(main_view.bbox.urf)
+		],
+	}
+	if main_view.OPEN_MODELS_CHANGE in views.reasons:
+		client_data.append(['open_models',
+				[(m.id, m.name) for m in main_view.models]])
+	if main_view.GRAPHICS_CHANGE in views.reasons:
+		pass
+	if (main_view.CAMERA_CHANGE in views.reasons
+	or main_view.FOV_CHANGE in views.reasons):
+		camera = main_view.camera
+		if camera is not None:
+			# camera is created/modified as part of scene rendering
+			scene_info.update({
+				'eye': camera.eye,
+				'at': camera.at,
+				'up': camera.up,
+				'fov': main_view.fov,
+			})
+	if main_view.VIEWPORT_CHANGE in views.reasons:
+		pass
+	client_data.append(['scene', scene_info])
+	# TODO: should only be needed if GRAPHICS_CHANGE
+	info = main_view.render(as_data=True, skip_camera_matrices=True)
+	if info:
+		client_data.append(['llgr', info])
 
 #
 # Main program for per-session backend
@@ -53,17 +99,17 @@ class Backend(Server):
 		self.session_name = sys.argv[2]
 		self.log = open("/tmp/chimera2_backend.log", "w")
 		self.set_log(self.log)
+		# register handlers for web client data
 		self.register_handler("client_state", self._client_state_handler)
 		self.register_handler("command", self._command_handler)
 		init_chimera2()
 
 	def _client_state_handler(self, value):
+		# process "client_state" data from web client
 		# value is a dictionary
 		_debug_print("client state handler: %s: %s" % (type(value), value))
-		client_state.update(value)
 		if 'width' in value:
-			from chimera2 import scene
-			scene.set_viewport(value['width'], value['height'])
+			main_view.viewport = (value['width'], value['height'])
 		answer = {
 			"status": True		# Success!
 		}
@@ -76,33 +122,21 @@ class Backend(Server):
 			"command": str(value),
 		}
 		try:
+			from chimera2.trackchanges import track
 			cmd = cli.Command(value, final=True)
 			cmd.error_check()
 			answer["command"] = cmd.current_text
 			result = []
-			info = cmd.execute()
+			try:
+				track.block()
+				info = cmd.execute()
+			finally:
+				track.release()
 			if isinstance(info, str):
 				result.append(["info", info])
-			# TODO: check dirty bits and add changes to result
-			from chimera2 import scene
-			llgr_info = scene.render(as_data=True, skip_camera_matrices=True)
-			if llgr_info:
-				result.append(['llgr', llgr_info])
-			scene_info = {
-				'bbox': [
-					list(scene.bbox.llb),
-					list(scene.bbox.urf)
-				],
-			}
-			if scene.camera is not None:
-				# camera is created/modified as part of scene rendering
-				scene_info.update({
-					'eye': scene.camera.eye,
-					'at': scene.camera.at,
-					'up': scene.camera.up,
-					'fov': scene._fov,	# TODO: use an official API
-				})
-			result.append(['scene', scene_info])
+			if client_data:
+				result.extend(client_data)
+				client_data.clear()
 			answer["client_data"] = result
 		except cli.UserError as e:
 			answer["status"] = False
