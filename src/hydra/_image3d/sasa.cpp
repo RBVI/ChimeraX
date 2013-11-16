@@ -46,14 +46,39 @@ public:
   double point[3];
 };
 
+typedef std::vector<int> Index_List;
+
+class Region_Spheres
+{
+public:
+  Region_Spheres() {}
+  Region_Spheres(double *centers, int n, double *radii);
+  void split_region(double *centers, double *radii,
+		    Region_Spheres &rs1, Region_Spheres &rs2) const;
+  int longest_axis() const;
+  void compute_region_bounds(double *centers, double *radii);
+  void find_nearby_spheres(const Index_List &near, double *centers, double *radii);
+
+  double xmin[3], xmax[3];
+  Index_List in_region, near_region;
+};
+
 typedef std::vector<Circle_Intersection> Circle_Intersections;
 typedef std::vector<Circle_Intersection*> Path;
 typedef std::vector<Path> Paths;
 
 static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas);
+static void find_sphere_regions(double *centers, int n, double *radii, int max_size,
+				std::vector<Region_Spheres> &rspheres);
+static void subdivide_region(const Region_Spheres &rs, double *centers, double *radii,
+			     int max_size, std::vector<Region_Spheres> &rspheres);
 static bool buried_sphere_area(int i, double *centers, int n, double *radii, double *area);
+static bool buried_sphere_area(int i,  const Index_List &iclose,
+			       double *centers, double *radii, double *area);
 static bool sphere_intersection_circles(int i, double *centers, int n, double *radii,
 					Circles &circles);
+static bool sphere_intersection_circles(int i, const Index_List &iclose,
+					double *centers, double *radii,	Circles &circles);
 static bool sphere_intersection(double *c0, double r0, double *c1, double r1,
 				Circles &circles);
 static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area);
@@ -74,7 +99,12 @@ static double polar_angle(const double *zaxis, const double *v1, const double *v
 static void estimate_surface_area_of_spheres(double *centers, int n, double *radii,
 					     double *sphere_points, int np, double *point_weights,
 					     double *areas);
+/*
 static double estimate_buried_sphere_area(int i, double *centers, int n, double *radii,
+					  double *points, int np, double *weights, double wsum,
+					  double *pbuf, int *ibuf);
+*/
+static double estimate_buried_sphere_area(int i, const Index_List &iclose, double *centers, double *radii,
 					  double *points, int np, double *weights, double wsum,
 					  double *pbuf, int *ibuf);
 
@@ -129,7 +159,7 @@ private:
 };
 
 // Returns count of how many spheres calculation succeeded for.
-static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas)
+static int surface_area_of_spheres1(double *centers, int n, double *radii, double *areas)
 {
   int c = 0;
   for (int i = 0 ; i < n ; ++i)
@@ -147,6 +177,138 @@ static int surface_area_of_spheres(double *centers, int n, double *radii, double
   return c;
 }
 
+// Returns count of how many spheres calculation succeeded for.
+static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas)
+{
+  int max_spheres_in_region = 100;
+  std::vector<Region_Spheres> rspheres;
+  find_sphere_regions(centers, n, radii, max_spheres_in_region, rspheres);
+  int c = 0;
+  int nr = rspheres.size();
+#pragma omp parallel shared(nr,rspheres,centers,radii,areas,c)
+  {
+#pragma omp for schedule(dynamic,100)
+  for (int r = 0 ; r < nr ; ++r)
+    {
+      Region_Spheres &rs = rspheres[r];
+      Index_List &ir = rs.in_region;
+      int nir = ir.size();
+      for (int j = 0 ; j < nir ; ++j)
+	{
+	  int i = ir[j];
+	  double ba;
+	  if (buried_sphere_area(i, rs.near_region, centers, radii, &ba))
+	    {
+	      double r = radii[i];
+	      areas[i] = 4*M_PI*r*r - ba;
+	      c += 1;
+	    }
+	  else
+	    areas[i] = -1;	// Calculation failed.
+	}
+    }
+  }
+  return c;
+}
+
+static void find_sphere_regions(double *centers, int n, double *radii, int max_size,
+				std::vector<Region_Spheres> &rspheres)
+{
+  Region_Spheres rs(centers, n, radii);
+  subdivide_region(rs, centers, radii, max_size, rspheres);
+}
+
+static void subdivide_region(const Region_Spheres &rs, double *centers, double *radii,
+			     int max_size, std::vector<Region_Spheres> &rspheres)
+{
+  if (rs.in_region.size() <= max_size)
+    rspheres.push_back(rs);
+  else
+    {
+      Region_Spheres rs1, rs2;
+      rs.split_region(centers, radii, rs1, rs2);
+      subdivide_region(rs1, centers, radii, max_size, rspheres);
+      subdivide_region(rs2, centers, radii, max_size, rspheres);
+    }
+}
+
+Region_Spheres::Region_Spheres(double *centers, int n, double *radii)
+{
+  for (int i = 0 ; i < n ; ++i)
+    {
+      in_region.push_back(i);
+      near_region.push_back(i);
+    }
+  compute_region_bounds(centers, radii);
+}
+
+void Region_Spheres::split_region(double *centers, double *radii,
+				  Region_Spheres &rs1, Region_Spheres &rs2) const
+{
+  // Divide region in half along axis a_max.
+  int a = longest_axis();
+  double xmid = 0.5*(xmax[a] + xmin[a]);
+  int nir = in_region.size();
+  for (int si = 0 ; si < nir ; ++si)
+    {
+      int i = in_region[si];
+      if (centers[3*i+a] <= xmid)
+	rs1.in_region.push_back(i);
+      else
+	rs2.in_region.push_back(i);
+    }
+  rs1.compute_region_bounds(centers, radii);
+  rs2.compute_region_bounds(centers, radii);
+  rs1.find_nearby_spheres(near_region, centers, radii);
+  rs2.find_nearby_spheres(near_region, centers, radii);
+}
+
+int Region_Spheres::longest_axis() const
+{
+  // Find axis with maximum size.
+  int a_max;
+  double s_max = 0;
+  for (int a = 0 ; a < 3 ; ++a)
+    if (xmax[a]-xmin[a] > s_max)
+      {
+	s_max = xmax[a]-xmin[a];
+	a_max = a;
+      }
+  return a_max;
+}
+
+void Region_Spheres::compute_region_bounds(double *centers, double *radii)
+{
+  // Compute bounds of spheres in region including radii.
+  int nir = in_region.size();
+  for (int si = 0 ; si < nir ; ++si)
+    {
+      int i = in_region[si];
+      double *c = centers + 3*i, r = radii[i];
+      for (int a = 0 ; a < 3 ; ++a)
+	{
+	  double x1 = c[a] - r, x2 = c[a] + r;
+	  if (si == 0 || x2 > xmax[a])	xmax[a] = x2;
+	  if (si == 0 || x1 < xmin[a])	xmin[a] = x1;
+	}
+    }
+}
+
+void Region_Spheres::find_nearby_spheres(const Index_List &near, double *centers, double *radii)
+{
+  int n = near.size();
+  for (int ni = 0 ; ni < n ; ++ni)
+    {
+      int i = near[ni];
+      double *c = centers+3*i, r = radii[i];
+      bool far = false;
+      for (int a = 0 ; a < 3 && !far ; ++a)
+	far = (c[a]+r < xmin[a] || c[a]-r > xmax[a]);
+      if (!far)
+	near_region.push_back(i);
+    }
+}
+
 static bool buried_sphere_area(int i, double *centers, int n, double *radii, double *area)
 {
   double r = radii[i];
@@ -154,6 +316,23 @@ static bool buried_sphere_area(int i, double *centers, int n, double *radii, dou
   // Compute sphere intersections
   Circles circles;
   if (sphere_intersection_circles(i, centers, n, radii, circles))
+    *area = 4*M_PI*r*r;   // Sphere is completely contained in another sphere
+  else if (area_in_circles_on_unit_sphere(circles, area)) // Compute analytical buried area on sphere.
+    *area *= r*r;
+  else
+    return false;	// Analytic calculation failed.
+
+  return true;
+}
+
+static bool buried_sphere_area(int i, const Index_List &iclose,
+			       double *centers, double *radii, double *area)
+{
+  double r = radii[i];
+
+  // Compute sphere intersections
+  Circles circles;
+  if (sphere_intersection_circles(i, iclose, centers, radii, circles))
     *area = 4*M_PI*r*r;   // Sphere is completely contained in another sphere
   else if (area_in_circles_on_unit_sphere(circles, area)) // Compute analytical buried area on sphere.
     *area *= r*r;
@@ -175,6 +354,22 @@ static bool sphere_intersection_circles(int i, double *centers, int n, double *r
   return false;
 }
 
+// Returns true if sphere i is entirely inside another sphere.
+static bool sphere_intersection_circles(int i, const Index_List &iclose,
+					double *centers, double *radii,	Circles &circles)
+{
+  double *c = centers + 3*i, r = radii[i];
+  int n = iclose.size();
+  for (int j = 0 ; j < n ; ++j)
+    {
+      int ic = iclose[j];
+      if (ic != i)
+	if (sphere_intersection(c, r, centers+3*ic, radii[ic], circles))
+	  return true;
+    }
+  return false;
+}
+
 // Returns true if sphere 0 is entirely inside sphere 1.
 static bool sphere_intersection(double *c0, double r0, double *c1, double r1,
 				Circles &circles)
@@ -183,6 +378,8 @@ static bool sphere_intersection(double *c0, double r0, double *c1, double r1,
   double d2 = dx*dx + dy*dy + dz*dz;
   if (d2 > (r0+r1)*(r0+r1))
     return false;		// Spheres don't intersect.
+  if (d2 == 0 && r0 == r1 && c0 > c1)
+    return true;	// Identical spheres, only first copy is outside.
   double d = sqrt(d2);
   if (r0+d < r1)
     return true;		// Sphere 1 contains sphere 0
@@ -225,7 +422,10 @@ static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area)
   // Connect circle arcs to form boundary paths.
   Paths paths;
   if (!boundary_paths(cint, paths))
+    {
+      std::cerr << "failed " << cint.size() << " intersections " << lc.size() << " lone circles " << circles.size() << " circles " << circles2.size() << " circles not inside circles " << paths.size() << " paths\n";
     return false;
+    }
 
   /*
   std::cerr << "boundary lengths ";
@@ -252,6 +452,22 @@ static void remove_circles_in_circles(const Circles &circles, Circles &circles2)
   for (int i = 0 ; i < nc ; ++i)
     if (!circle_in_circles(i, circles))
       circles2.push_back(circles[i]);
+}
+
+static bool circle_in_circles(int i, const Circles &circles)
+{
+  const double *p = circles[i].centerp(), a = circles[i].angle;
+  int nc = circles.size();
+  for (int j = 0 ; j < nc ; ++j)
+    {
+      const Circle &c = circles[j];
+      const double *pj = c.centerp(), aj = c.angle;
+      if (aj > a && (p[0]*pj[0]+p[1]*pj[1]+p[2]*pj[2]) >= cos(aj-a) && j != i)
+	return true;
+      if (aj == a && j<i && pj[0] == p[0] && pj[1] == p[1] && pj[2] == p[2])
+	return true;	// Identical circle, only first copy is not inside.
+    }
+  return false;
 }
 
 static int circle_intersections(const Circles &circles,
@@ -289,20 +505,6 @@ static int circle_intersections(const Circles &circles,
   int nreg = rc.number_of_regions() - lc.size();
 
   return nreg;
-}
-
-static bool circle_in_circles(int i, const Circles &circles)
-{
-  const double *p = circles[i].centerp(), a = circles[i].angle;
-  int nc = circles.size();
-  for (int j = 0 ; j < nc ; ++j)
-    {
-      const Circle &c = circles[j];
-      const double *pj = c.centerp(), aj = c.angle;
-      if (aj >= a && (p[0]*pj[0]+p[1]*pj[1]+p[2]*pj[2]) >= cos(aj-a) && j != i)
-	return true;
-    }
-  return false;
 }
 
 static bool circle_intercepts(const Circle &c0, const Circle &c1,
@@ -463,6 +665,7 @@ static double polar_angle(const double *zaxis, const double *v1, const double *v
   return a;
 }
 
+/*
 static void estimate_surface_area_of_spheres(double *centers, int n, double *radii,
 					     double *sphere_points, int np, double *point_weights,
 					     double *areas)
@@ -520,6 +723,98 @@ static double estimate_buried_sphere_area(int i, double *centers, int n, double 
 		ibuf[k] = 1;
 	    }
       }
+
+  double isum = 0;
+  for (int k = 0 ; k < np ; ++k)
+    if (ibuf[k])
+      isum += weights[k];
+
+  double a = 4*M_PI*r*r*isum/wsum;
+
+  return a;
+}
+*/
+
+static void estimate_surface_area_of_spheres(double *centers, int n, double *radii,
+					     double *sphere_points, int np, double *point_weights,
+					     double *areas)
+{
+  int max_spheres_in_region = 100;
+  std::vector<Region_Spheres> rspheres;
+  find_sphere_regions(centers, n, radii, max_spheres_in_region, rspheres);
+
+  double wsum = 0;
+  for (int k = 0 ; k < np ; ++k)
+    wsum += point_weights[k];
+
+  int nr = rspheres.size();
+#pragma omp parallel shared(nr,rspheres,centers,radii,sphere_points,np,point_weights,wsum,areas)
+  {
+  double *pbuf = new double [3*np];
+  int *ibuf = new int[np];
+#pragma omp for schedule(dynamic,100)
+  for (int r = 0 ; r < nr ; ++r)
+    {
+      Region_Spheres &rs = rspheres[r];
+      Index_List &ir = rs.in_region;
+      int nir = ir.size();
+      for (int j = 0 ; j < nir ; ++j)
+	{
+	  int i = ir[j];
+	  double ba = estimate_buried_sphere_area(i, rs.near_region, centers, radii,
+						  sphere_points, np, point_weights, wsum,
+						  pbuf, ibuf);
+	  double r = radii[i];
+	  areas[i] = 4*M_PI*r*r - ba;
+	}
+    }
+  delete [] ibuf;
+  delete [] pbuf;
+  }
+}
+
+static double estimate_buried_sphere_area(int i, const Index_List &iclose, double *centers, double *radii,
+					  double *points, int np, double *weights, double wsum,
+					  double *pbuf, int *ibuf)
+{
+  double *c = centers + 3*i, r = radii[i];
+  for (int j = 0 ; j < np ; ++j)
+    {
+      for (int a = 0 ; a < 3 ; ++a)
+	pbuf[3*j+a] = r*points[3*j+a] + c[a];
+      ibuf[j] = 0;
+    }
+
+  double ci0 = c[0], ci1 = c[1], ci2 = c[2];
+  int n = iclose.size();
+  for (int k = 0 ; k < n ; ++k)
+    {
+      int j = iclose[k];
+      if (j == i)
+	continue;
+
+      double rj = radii[j];
+      double c0 = centers[3*j], c1 = centers[3*j+1], c2 = centers[3*j+2];
+      double d0 = c0-ci0, d1 = c1-ci1, d2 = c2-ci2;
+      double dij2 = d0*d0 + d1*d1 + d2*d2;
+      if (dij2 > (r+rj)*(r+rj))
+	continue;	// Spheres don't intersect.
+      if (dij2 == 0 && rj == r)
+	if (j > i)
+	  continue;	// Identical spheres, only first is outside
+	else
+	  return 4*M_PI*r*r;	// Rest are entirely buried.
+      double r2 = rj*rj;
+      for (int k = 0 ; k < np ; ++k)
+	if (!ibuf[k])
+	  {
+	    double *p = pbuf+3*k;
+	    double dx = p[0]-c0, dy = p[1]-c1, dz = p[2]-c2;
+	    double d2 = dx*dx + dy*dy + dz*dz;
+	    if (d2 <= r2)
+	      ibuf[k] = 1;
+	  }
+    }
 
   double isum = 0;
   for (int k = 0 ; k < np ; ++k)
