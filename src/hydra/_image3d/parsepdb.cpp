@@ -140,7 +140,7 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
 {
   const char *pdb_text;
   const char *kwlist[] = {"text", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("s"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("y"),
 				   (char **)kwlist, &pdb_text))
     return NULL;
 
