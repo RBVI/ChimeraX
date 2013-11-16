@@ -423,7 +423,16 @@ static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area)
   Paths paths;
   if (!boundary_paths(cint, paths))
     {
+      /*
       std::cerr << "failed " << cint.size() << " intersections " << lc.size() << " lone circles " << circles.size() << " circles " << circles2.size() << " circles not inside circles " << paths.size() << " paths\n";
+      std::cerr.precision(16);
+      for (int i = 0 ; i < cint.size() ; ++i)
+	{
+	std::cerr << i << " " << cint[i].point[0] << " " << cint[i].point[1]  << " " << cint[i].point[2] << std::endl;
+	std::cerr << i << " " << cint[i].circle1->center[0] << " " << cint[i].circle1->center[1]  << " " << cint[i].circle1->center[2] << " " << cint[i].circle1->angle << std::endl;
+	std::cerr << i << " " << cint[i].circle2->center[0] << " " << cint[i].circle2->center[1]  << " " << cint[i].circle2->center[2] << " " << cint[i].circle2->angle << std::endl;
+	}
+      */
     return false;
     }
 
