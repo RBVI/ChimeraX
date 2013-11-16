@@ -451,9 +451,16 @@ def open(filespec, identify_as=None, **kw):
 					tf.write(data)
 				tf.seek(0)
 				stream = tf
-	models, status = open_func(stream, **kw)
-	for m in models:
-		m.name = identify_as
+	from chimera2.trackchanges import track
+	try:
+		track.block()
+		models, status = open_func(stream, **kw)
+		for m in models:
+			m.name = identify_as
+		from chimera2 import open_models
+		open_models.add(models)
+	finally:
+		track.release()
 	return status
 
 def save(filename, **kw):

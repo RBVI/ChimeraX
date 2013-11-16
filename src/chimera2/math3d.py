@@ -619,3 +619,23 @@ class BBox:
                     b.urf[i] += self.llb[j] * coeff
         self.llb = b.llb
         self.urf = b.urf
+
+    def merge(self, bbox):
+        if self.llb is None:
+            if bbox.llb is None:
+                return
+            self.llb = Point(bbox.llb)
+            self.urf = Point(bbox.urf)
+            return
+        if bbox.llf[0] < self.llf[0]:
+            self.llf[0] = bbox.llf[0]
+        if bbox.llf[1] < self.llf[1]:
+            self.llf[1] = bbox.llf[1]
+        if bbox.llf[2] < self.llf[2]:
+            self.llf[2] = bbox.llf[2]
+        if bbox.urb[0] > self.urb[0]:
+            self.urb[0] = bbox.urb[0]
+        if bbox.urb[1] > self.urb[1]:
+            self.urb[1] = bbox.urb[1]
+        if bbox.urb[2] > self.urb[2]:
+            self.urb[2] = bbox.urb[2]

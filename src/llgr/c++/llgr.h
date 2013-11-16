@@ -223,6 +223,7 @@ LLGR_IMEX extern void selection_clear();
 LLGR_IMEX extern void create_group(Id group_id, const Objects& objs);
 LLGR_IMEX extern void delete_group(Id group_id, bool and_objects=false);
 LLGR_IMEX extern void clear_groups(bool and_objects=false);
+LLGR_IMEX extern void group_add(Id group_id, Id obj_id);
 LLGR_IMEX extern void hide_group(Id group_id);
 LLGR_IMEX extern void show_group(Id group_id);
 LLGR_IMEX extern void selection_add_group(Id group_id);

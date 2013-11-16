@@ -56,6 +56,16 @@ hide_group(Id group_id)
 }
 
 void
+group_add(Id group_id, Id obj_id)
+{
+	AllGroups::iterator i = all_groups.find(group_id);
+	if (i == all_groups.end())
+		return;
+	Objects &objs = i->second;
+	objs.push_back(obj_id);
+}
+
+void
 show_group(Id group_id)
 {
 	AllGroups::iterator i = all_groups.find(group_id);

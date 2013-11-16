@@ -297,8 +297,6 @@ class bool_arg(Annotation):
 			result.append("true")
 		return result
 
-bool3_arg = Tuple_of(bool_arg, 3)
-
 class int_arg(Annotation):
 	"""Annotation for integer literals"""
 	name = "a whole number"
@@ -317,9 +315,6 @@ class int_arg(Annotation):
 			return [x for x in int_chars]
 		return []
 
-ints_arg = List_of(int_arg)
-int3_arg = Tuple_of(int_arg, 3)
-
 class float_arg(Annotation):
 	"""Annotation for floating point literals"""
 	name = "a floating point number"
@@ -335,9 +330,6 @@ class float_arg(Annotation):
 	def completions(text):
 		if not text:
 			return [x for x in "+-0123456789"]
-
-floats_arg = List_of(float_arg)
-float3_arg = Tuple_of(float_arg, 3)
 
 class string_arg(Annotation):
 	"""Annotation for string literals"""
@@ -480,6 +472,14 @@ class rest_of_line(Annotation):
 	def completions(text):
 		return []
 
+bool3_arg = Tuple_of(bool_arg, 3)
+ints_arg = List_of(int_arg)
+int3_arg = Tuple_of(int_arg, 3)
+floats_arg = List_of(float_arg)
+float3_arg = Tuple_of(float_arg, 3)
+positive_int_arg = Bounded(int_arg, min=1, name="natural number")
+model_id_arg = positive_int_arg
+
 class Postcondition:
 	"""Base class for postconditions"""
 	# TODO: Postcondition is an ABC
@@ -530,7 +530,7 @@ _commands = OrderedDict()
 def _check_autocomplete(word, mapping, name):
 	# this is a debugging aid for developers
 	for key in mapping:
-		if key.startswith(word):
+		if key.startswith(word) and key != word:
 			raise ValueError("'%s' is a prefix of an existing command" % name)
 
 class CmdInfo:
@@ -569,7 +569,7 @@ class CmdInfo:
 		for p in signature.parameters.values():
 			if p.default != EMPTY or p.name in self.required:
 				continue
-			raise ValueError("%s argument must be required or have a default value" % p.name)
+			raise ValueError("Wrong function or %s argument must be required or have a default value" % p.name)
 
 		self.function = function
 
@@ -635,8 +635,9 @@ def register(name, cmd_info, function=None):
 	"""
 	if function is None:
 		# act as a decorator
-		import functools
-		return functools.partial(register, name, cmd_info)
+		def wrapper(function, name=name, cmd_info=cmd_info):
+			return register(name, cmd_info, function)
+		return wrapper
 
 	if isinstance(cmd_info, tuple):
 		cmd_info = CmdInfo(*cmd_info)
@@ -669,7 +670,7 @@ def register(name, cmd_info, function=None):
 		# introspect immediately to give errors
 		cmd_info.set_function(function)
 	cmd_map[word] = cmd_info
-	return function
+	return function		# needed when used as a decorator
 
 def _lazy_introspect(cmd_map, word):
 	deferred = cmd_map[word]
