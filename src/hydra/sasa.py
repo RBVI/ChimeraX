@@ -451,17 +451,26 @@ def unit_sphere():
     return (center, radius)
 
 def molecule_spheres(probe_radius = 1.4):
+    atoms = molecule_atoms()
+    centers = atoms.coordinates()
+    radii = atoms.radii() + probe_radius
+    return centers, radii
+
+def molecule_atoms():
     from .ui.gui import main_window
     mlist = main_window.view.molecules()
     from .molecule import Atom_Set
     aset = Atom_Set()
     aset.add_molecules(mlist)
     aset = aset.exclude_water()
-    centers = aset.coordinates()
-    radii = aset.radii() + probe_radius
-    return centers, radii
+    return aset
 
 def test_sasa(n = 30):
+
+#    test_all_pdb_models(['/Users/goddard/Downloads/Chimera/PDB'])
+#    test_all_pdb_models(pdb_subdirs(), '.ent')
+#    return
+
 #    centers, radii = random_spheres_intersecting_unit_sphere(n)
 #    from numpy import array
 #    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, 1.0))     # area test, pi
@@ -485,13 +494,64 @@ def test_sasa(n = 30):
     points, weights = sphere_points_and_weights(npoints = 1000)
     eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
     t2 = time()
-    print(len(centers), 'atoms, area', areas.sum(), 'estimate', eareas.sum(),
-          '(%d points)' % len(points), 'times %.3f %.3f' % (t1-t0, t2-t1))
-    from numpy import absolute
-    aerr = absolute(areas - eareas) / (4*pi*radii*radii)
-    print('est error max %.05f mean %.05f' % (aerr.max(), aerr.mean()))
+    nf = (areas == -1).sum()
+    if nf > 0:
+        print('%d atoms, area calc failed for %d atoms, estimate %.1f (%d points), times %.3f %.3f\n' %
+              (len(centers), nf, eareas.sum(), len(points), t1-t0, t2-t1))
+        atoms = molecule_atoms()
+        nm = atoms.names()
+        print('Failed calc for', ','.join(nm[i] for i in (areas == -1).nonzero()[0]))
+    else:
+        from numpy import absolute
+        aerr = absolute(areas - eareas) / (4*pi*radii*radii)
+        print('%d atoms, area %.1f, estimate %.1f (%d points), times %.3f %.3f\nest error max %.05f mean %.05f' %
+              (len(centers), areas.sum(), eareas.sum(), len(points), t1-t0, t2-t1, aerr.max(), aerr.mean()))
 
 # Example results.
 # Testing on PDB 1a0m excluding waters, 242 atoms. 15 seconds for analytic area.  Most time culling circle intersections.
 # Average of 36 circles per sphere, ~660 circle intersections per sphere, ~8 intersections on boundary.
 # Error with 10000 sphere point estimate, max over each sphere 0.002, mean 0.0004 as fraction of full sphere area, time 5 seconds.
+
+def pdb_subdirs(pdb_dir = '/usr/local/pdb'):
+    from os import listdir
+    from os.path import join
+    subdirs = [join(pdb_dir,sd) for sd in listdir(pdb_dir) if len(sd) == 2]      # two letter subdirectories
+    return subdirs
+
+def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
+                        results = '/Users/goddard/ucsf/chimera2/src/hydra/sasa_results.txt'):
+
+    from os import listdir
+    from os.path import join
+    from .file_io import opensave
+    from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
+
+    points, weights = sphere_points_and_weights(npoints = 1000)
+
+    rf = open(results, 'a')
+    rf.write('Area numerical estimate using %d sample points per sphere\n' % len(points))
+    rf.write('%6s %6s %9s %9s %5s %5s %8s %8s\n' %
+             ('PDB', 'atoms', 'area', 'earea', 'atime', 'etime', 'max err', 'mean err'))
+    for pdb_dir in pdb_dirs:
+        pdb_names = [p for p in listdir(pdb_dir) if p.endswith(pdb_suffix)]
+        for p in pdb_names:
+            opensave.open_files([join(pdb_dir,p)])
+            centers, radii = molecule_spheres()
+            from time import time
+            t0 = time()
+            areas = surface_area_of_spheres(centers, radii)
+            t1 = time()
+            eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
+            t2 = time()
+            nf = (areas == -1).sum()
+            if nf > 0:
+                rf.write('%6s %6d %4d-fail %9.1f %5.2f %5.2f\n' %
+                         (p[:-4], len(centers), nf, eareas.sum(), t1-t0, t2-t1))
+            else:
+                from numpy import absolute
+                aerr = absolute(areas - eareas) / (4*pi*radii*radii)
+                rf.write('%6s %6d %9.1f %9.1f %5.2f %5.2f %8.5f %8.5f\n' %
+                         (p[:-4], len(centers), areas.sum(), eareas.sum(), t1-t0, t2-t1, aerr.max(), aerr.mean()))
+            rf.flush()
+            opensave.close_models()
+    rf.close()
