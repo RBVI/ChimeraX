@@ -18,17 +18,20 @@ public:
       this->center[a] = center[a];
     this->cos_angle = cos_angle;
     this->angle = acos(cos_angle);
+    this->sin_angle = sin(angle);
   }
-  Circle(const Circle &c)
+  Circle(const Circle &c) { *this = c; }
+  void operator=(const Circle &c)
   {
     for (int a = 0 ; a < 3 ; ++a)
       this->center[a] = c.center[a];
     this->cos_angle = c.cos_angle;
+    this->sin_angle = c.sin_angle;
     this->angle = c.angle;
   }
   double *centerp() { return &center[0]; }
   const double *centerp() const { return &center[0]; }
-  double center[3], cos_angle, angle;
+  double center[3], cos_angle, sin_angle, angle;
 };
 
 typedef std::vector<Circle> Circles;
@@ -81,11 +84,10 @@ static bool sphere_intersection_circles(int i, const Index_List &iclose,
 					double *centers, double *radii,	Circles &circles);
 static bool sphere_intersection(double *c0, double r0, double *c1, double r1,
 				Circles &circles);
-static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area);
-static void remove_circles_in_circles(const Circles &circles, Circles &circles2);
+static bool area_in_circles_on_unit_sphere(Circles &circles, double *area);
+static bool remove_circles_in_circles(Circles &circles);
 static int circle_intersections(const Circles &circles,
 				Circle_Intersections &cint, Circles &lc);
-static bool circle_in_circles(int i, const Circles &circles);
 static bool circle_intercepts(const Circle &c0, const Circle &c1,
 			      double p0[3], double p1[3]);
 static bool point_in_circles(double p[3], const Circles &circles,
@@ -325,11 +327,13 @@ static bool buried_sphere_area(int i, double *centers, int n, double *radii, dou
   return true;
 }
 
+bool debug = false;
 static bool buried_sphere_area(int i, const Index_List &iclose,
 			       double *centers, double *radii, double *area)
 {
   double r = radii[i];
 
+  //  debug = (i == 2701);
   // Compute sphere intersections
   Circles circles;
   if (sphere_intersection_circles(i, iclose, centers, radii, circles))
@@ -393,7 +397,8 @@ static bool sphere_intersection(double *c0, double r0, double *c1, double r1,
   return false;
 }
 
-static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area)
+// Modifies circles list.
+static bool area_in_circles_on_unit_sphere(Circles &circles, double *area)
 {
   // Check if sphere is outside all other spheres.
   if (circles.size() == 0)
@@ -404,12 +409,15 @@ static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area)
 
   // Speed up circle intersection calculation.
   // Typically half of circles are in other circles for molecular surfaces.
-  Circles circles2;
-  remove_circles_in_circles(circles, circles2);
+  if (remove_circles_in_circles(circles))
+    {
+      *area = 4*M_PI;	// Two discs overlap to cover sphere.
+      return true;
+    }
 
   Circle_Intersections cint;
   Circles lc;
-  int nreg = circle_intersections(circles2, cint, lc);
+  int nreg = circle_intersections(circles, cint, lc);
   //  std::cerr << cint.size() << " intersections " << lc.size() << " lone circles " << nreg << " regions\n";
 
   // Check if circles cover the sphere
@@ -424,7 +432,7 @@ static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area)
   if (!boundary_paths(cint, paths))
     {
       /*
-      std::cerr << "failed " << cint.size() << " intersections " << lc.size() << " lone circles " << circles.size() << " circles " << circles2.size() << " circles not inside circles " << paths.size() << " paths\n";
+      std::cerr << "failed " << cint.size() << " intersections " << lc.size() << " lone circles " << circles.size() << " circles " << circles.size() << " circles not inside circles " << paths.size() << " paths\n";
       std::cerr.precision(16);
       for (int i = 0 ; i < cint.size() ; ++i)
 	{
@@ -450,31 +458,54 @@ static bool area_in_circles_on_unit_sphere(const Circles &circles, double *area)
   double la = lone_circles_area(lc);
   double ba = bounded_area(paths, nreg);
   *area = la + ba;
+  /*
+  if (la+ba > 4*M_PI || ba < 0 || debug)
+    {
+      std::cerr << "neg area " << cint.size() << " intersections " << lc.size() << " lone circles " << circles.size() << " circles " << circles.size() << " circles not inside circles " << paths.size() << " paths\n";
+      std::cerr.precision(16);
+      for (int i = 0 ; i < lc.size() ; ++i)
+	{
+	  std::cerr << lc[i].center[0] << " " << lc[i].center[1] << " " << lc[i].center[2] << " " << lc[i].angle *180/M_PI << std::endl;
+	}
+      for (int i = 0 ; i < cint.size() ; ++i)
+	{
+	std::cerr << i << " " << cint[i].point[0] << " " << cint[i].point[1]  << " " << cint[i].point[2] << std::endl;
+	std::cerr << i << " " << cint[i].circle1->center[0] << " " << cint[i].circle1->center[1]  << " " << cint[i].circle1->center[2] << " " << cint[i].circle1->angle << std::endl;
+	std::cerr << i << " " << cint[i].circle2->center[0] << " " << cint[i].circle2->center[1]  << " " << cint[i].circle2->center[2] << " " << cint[i].circle2->angle << std::endl;
+	}
+    }
+  */
 
   return true;
 }
 
-static void remove_circles_in_circles(const Circles &circles, Circles &circles2)
-{
-  // Remove circles contained in other circles.
-  int nc = circles.size();
-  for (int i = 0 ; i < nc ; ++i)
-    if (!circle_in_circles(i, circles))
-      circles2.push_back(circles[i]);
-}
 
-static bool circle_in_circles(int i, const Circles &circles)
+// Remove discs entirely within other discs.  The circles list is modified.
+// If a disc covers the complement of another disc so the whole sphere is covered
+// by the two discs then return true.  Otherwise return false.
+static bool remove_circles_in_circles(Circles &circles)
 {
-  const double *p = circles[i].centerp(), a = circles[i].angle;
-  int nc = circles.size();
-  for (int j = 0 ; j < nc ; ++j)
+  for (int i = 0 ; i < circles.size() ; ++i)
     {
-      const Circle &c = circles[j];
-      const double *pj = c.centerp(), aj = c.angle;
-      if (aj > a && (p[0]*pj[0]+p[1]*pj[1]+p[2]*pj[2]) >= cos(aj-a) && j != i)
-	return true;
-      if (aj == a && j<i && pj[0] == p[0] && pj[1] == p[1] && pj[2] == p[2])
-	return true;	// Identical circle, only first copy is not inside.
+      const Circle &ci = circles[i];
+      const double *pi = ci.centerp(), ai = ci.angle, cai = ci.cos_angle, sai = ci.sin_angle;
+      for (int j = i+1 ; j < circles.size() ; j++)
+	{
+	  const Circle &cj = circles[j];
+	  const double *pj = cj.centerp(), aj = cj.angle, caj = cj.cos_angle, saj = cj.sin_angle;
+	  double pipj = pi[0]*pj[0]+pi[1]*pj[1]+pi[2]*pj[2];
+	  if (pipj >= caj*cai+saj*sai)		// One disc contains the other.
+	    {
+	      if (aj >= ai)			// i inside j, remove i.
+		{ circles[i] = circles.back(); circles.pop_back(); i -= 1; break; }
+	      else				// j inside i, remove j.
+		{ circles[j] = circles.back(); circles.pop_back(); j -= 1; }
+	    }
+	  else if (aj == ai && pj[0] == pi[0] && pj[1] == pi[1] && pj[2] == pi[2])
+	    { circles[j] = circles.back(); circles.pop_back(); j -= 1; }  // Identical circles, remove j
+	  else if (pipj < caj*cai-saj*sai && ai+aj >= M_PI)  // Each disc contains complement of the other.
+	    return true;			// Entire sphere is covered by two discs.
+	}
     }
   return false;
 }
@@ -613,6 +644,8 @@ static double lone_circles_area(const Circles &lone_circles)
   int n = lone_circles.size();
   for (int i = 0 ; i < n ; ++i)
     area += 2*M_PI*(1-lone_circles[i].cos_angle);
+  if (area > 4*M_PI)
+    area = 4*M_PI;	// circles cover entire sphere.
   return area;
 }
 
