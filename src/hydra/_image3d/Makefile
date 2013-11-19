@@ -28,9 +28,12 @@ INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 #OPT = -g
 OPT = -O3
 
-# clang compiler does not support OpenMP
 OPT += -fopenmp
+
+#ifdef USE_XCODE4
+# clang compiler does not support OpenMP
 CXX = g++ -pipe -isysroot $(SYSROOT)
+#endif
 
 all: $(PYMOD)
 
