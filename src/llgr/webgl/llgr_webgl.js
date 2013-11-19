@@ -905,7 +905,7 @@ llgr = {
 	},
 	clear_groups: function (and_objects) {
 		and_objects = and_objects || false;
-		if (objects && and_objects) {
+		if (all_objects && and_objects) {
 			for (var group_id in all_groups)
 				for (var obj_id in all_groups[group_id])
 					delete_object(obj_id);
@@ -1063,6 +1063,8 @@ llgr = {
 
 	render: function () {
 		// TODO: if (dirty) optimize();
+		curbuf[gl.ELEMENT_ARRAY_BUFFER] = undefined;
+		curbuf[gl.ARRAY_BUFFER] = undefined;
 		var current_program_id = null;
 		var current_sp = null;
 		var current_matrix_id = null;

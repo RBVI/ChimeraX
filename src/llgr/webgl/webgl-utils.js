@@ -374,6 +374,7 @@ var getExtensionWithKnownPrefixes = function(gl, name) {
       return ext;
     }
   }
+  return null;
 };
 
 

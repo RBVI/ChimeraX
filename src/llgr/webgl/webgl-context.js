@@ -25,6 +25,7 @@ ContextInfo = function (canvas, gl, render, data)
 	this.canvas = canvas;		// HTML5 canvas
 	this.gl = gl;			// WebGL context
 	this.render = render;		// rendering callback
+	if (data === undefined) data = [];
 	this.data = data;		// LLGR JSON, or URL to LLGR JSON
 	this.requestId = null;
 
