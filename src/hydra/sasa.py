@@ -465,10 +465,11 @@ def molecule_atoms():
     aset = aset.exclude_water()
     return aset
 
-def test_sasa(n = 30):
-
+def test_sasa(n = 30, npoints = 1000):
+#    test_pdb_models(pdbs, npoints)
+#    return
 #    test_all_pdb_models(['/Users/goddard/Downloads/Chimera/PDB'])
-#    test_all_pdb_models(pdb_subdirs(), '.ent')
+#    test_all_pdb_models(pdb_subdirs(), '.ent', npoints = npoints)
 #    return
 
 #    centers, radii = random_spheres_intersecting_unit_sphere(n)
@@ -491,7 +492,7 @@ def test_sasa(n = 30):
     t0 = time()
     areas = surface_area_of_spheres(centers, radii)
     t1 = time()
-    points, weights = sphere_points_and_weights(npoints = 1000)
+    points, weights = sphere_points_and_weights(npoints)
     eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
     t2 = time()
     nf = (areas == -1).sum()
@@ -506,6 +507,14 @@ def test_sasa(n = 30):
         aerr = absolute(areas - eareas) / (4*pi*radii*radii)
         print('%d atoms, area %.1f, estimate %.1f (%d points), times %.3f %.3f\nest error max %.05f mean %.05f' %
               (len(centers), areas.sum(), eareas.sum(), len(points), t1-t0, t2-t1, aerr.max(), aerr.mean()))
+        if aerr.max() >= 0.02:
+            import numpy
+            ei = numpy.argsort(aerr)
+            atoms = molecule_atoms()
+            nm = atoms.names()
+            for i in ei[::-1]:
+                if aerr[i] >= 0.02:
+                    print (i, nm[i], areas[i], eareas[i])
 
 # Example results.
 # Testing on PDB 1a0m excluding waters, 242 atoms. 15 seconds for analytic area.  Most time culling circle intersections.
@@ -519,14 +528,15 @@ def pdb_subdirs(pdb_dir = '/usr/local/pdb'):
     return subdirs
 
 def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
-                        results = '/Users/goddard/ucsf/chimera2/src/hydra/sasa_results.txt'):
+                        results = '/Users/goddard/ucsf/chimera2/src/hydra/sasa_results.txt',
+                        npoints = 10000):
 
     from os import listdir
     from os.path import join
     from .file_io import opensave
     from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
 
-    points, weights = sphere_points_and_weights(npoints = 1000)
+    points, weights = sphere_points_and_weights(npoints)
 
     rf = open(results, 'a')
     rf.write('Area numerical estimate using %d sample points per sphere\n' % len(points))
@@ -544,14 +554,52 @@ def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
             eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
             t2 = time()
             nf = (areas == -1).sum()
+            pdb_id = p[3:-4]
             if nf > 0:
                 rf.write('%6s %6d %4d-fail %9.1f %5.2f %5.2f\n' %
-                         (p[:-4], len(centers), nf, eareas.sum(), t1-t0, t2-t1))
+                         (pdb_id, len(centers), nf, eareas.sum(), t1-t0, t2-t1))
             else:
                 from numpy import absolute
                 aerr = absolute(areas - eareas) / (4*pi*radii*radii)
                 rf.write('%6s %6d %9.1f %9.1f %5.2f %5.2f %8.5f %8.5f\n' %
-                         (p[:-4], len(centers), areas.sum(), eareas.sum(), t1-t0, t2-t1, aerr.max(), aerr.mean()))
+                         (pdb_id, len(centers), areas.sum(), eareas.sum(), t1-t0, t2-t1, aerr.max(), aerr.mean()))
             rf.flush()
             opensave.close_models()
     rf.close()
+
+pdbs = ('3znu','2hq3','3zqy','2vb1','2yab','3ze1','3ze2','4baj','3ztp','1jxw','1jxu','3ziy','4bs0','4bpu','1jxt','3zcc','4bza','1jxy','1cod','2c04','1jxx','1utn','2xfg','4a2s','1cbn','2ynw','2wur','1alz','4bc5','1f5e','2i2h','2i2j','1olr','2xhn','2yoi','2izq','1hhu','2c03','4b5o','2x5n','2jc5','2ww7','2xjp','4b5v','145d','1hll','4hp2','3bxq','1bv8','1krw','4bf7','2fyl','2xy8','4i9y','1f3c','1j4o','1gbn','1hj8','2ypc','4alf','2yj8','2ynx','4ba7','2yiv','2j45','3ze6','2xu3','2v9l','3zuc','1s1h','2x7k','3zdj','2ynv','4av5','4bag','1jfp','1e3d','4ajx','4c4p','1mli','3fsp','3zbz','2glw','1iyw','2r6p','1tge','1mz0','1myz','3dll','2dfk','2wse','4axi','4l1p','1y1y','4e7u','2d86','2tci','2jfb','3tnq','3lrt',)
+
+
+def test_pdb_models(id_codes, npoints):
+
+    from .file_io import opensave
+    from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
+
+    points, weights = sphere_points_and_weights(npoints)
+
+    print('Area numerical estimate using %d sample points per sphere\n' % len(points))
+    print('%6s %6s %9s %9s %5s %5s %8s %8s\n' %
+             ('PDB', 'atoms', 'area', 'earea', 'atime', 'etime', 'max err', 'mean err'))
+    for id in id_codes:
+            from .file_io.fetch_pdb import fetch_pdb
+            mlist = fetch_pdb(id)
+            from .ui.gui import main_window
+            main_window.view.add_models(mlist)
+            
+            centers, radii = molecule_spheres()
+            from time import time
+            t0 = time()
+            areas = surface_area_of_spheres(centers, radii)
+            t1 = time()
+            eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
+            t2 = time()
+            nf = (areas == -1).sum()
+            if nf > 0:
+                print('%6s %6d %4d-fail %9.1f %5.2f %5.2f\n' %
+                         (id, len(centers), nf, eareas.sum(), t1-t0, t2-t1))
+            else:
+                from numpy import absolute
+                aerr = absolute(areas - eareas) / (4*pi*radii*radii)
+                print('%6s %6d %9.1f %9.1f %5.2f %5.2f %8.5f %8.5f\n' %
+                         (id, len(centers), areas.sum(), eareas.sum(), t1-t0, t2-t1, aerr.max(), aerr.mean()))
+            opensave.close_models()
