@@ -648,6 +648,13 @@ class Atom_Set:
       aset.add_atoms(m, a[m.residue_names[a] != b'HOH'])
     return aset
 
+  def names(self):
+    names = []
+    for m,alist in self.molatoms:
+      for a in alist:
+        names.append(atom_description(m,a))
+    return names
+    
 # -----------------------------------------------------------------------------
 #
 def all_atoms():
@@ -663,13 +670,16 @@ class Atom_Selection:
     self.molecule = mol
     self.atom = a
   def description(self):
-    m = self.molecule
-    a = self.atom
+    return atom_description(self.molecule, self.atom)
+  def models(self):
+    return [self.molecule]
+
+# -----------------------------------------------------------------------------
+#
+def atom_description(m, a):
     d = '%s %s %s %d %s' % (m.name,
                             m.chain_ids[a].decode('utf-8'),
                             m.residue_names[a].decode('utf-8'),
                             m.residue_nums[a],
                             m.atom_names[a].decode('utf-8'))
     return d
-  def models(self):
-    return [self.molecule]

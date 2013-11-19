@@ -23,7 +23,7 @@ def file_types():
         from .read_apr import open_autopack_results
         from .read_swc import read_swc
         ftypes = [
-            ('PDB', ['pdb'], open_pdb_file),
+            ('PDB', ['pdb','ent'], open_pdb_file),
             ('mmCIF', ['cif'], open_mmcif_file),
             ('Session', ['hy'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),

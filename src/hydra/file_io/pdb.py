@@ -6,7 +6,7 @@ def open_pdb_file(path):
 def open_pdb_file_with_image3d(path):
   from time import time
   t0 = time()
-  f = open(path, 'r')
+  f = open(path, 'rb')
   text = f.read()
   f.close()
   ft1 = time()
