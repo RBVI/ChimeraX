@@ -103,9 +103,13 @@ class Track:
 
 	def add_handler(self, data_type, func):
 		assert(self._changes[data_type] is not None)
-		data = self._changes[data_type]
-		def wrapper(trigger, trigger_data, data=data, func=func):
-			return func(data)
+		def wrapper(trigger, trigger_data, track=self, data_type=data_type, func=func):
+			changes = track._changes[data_type]
+			changes.finalize()
+			if track._processing:
+				track._processed.add(data_type)
+			if not changes.empty():
+				return func(changes)
 		return self._ts.add_handler(data_type, wrapper)
 
 	def delete_handler(self, handler):
@@ -115,14 +119,12 @@ class Track:
 		self._blocked += 1
 
 	def release(self):
-		self._blocked -= 1
 		self._processing = True
+		self._processed = set()
 		try:
 			self._ts.block()
 			for data_type, changes in self._changes.items():
-				changes.finalize()
-				if not changes.empty():
-					self._ts.activate_trigger(data_type, None)
+				self._ts.activate_trigger(data_type, None)
 			self._ts.release()
 			for data_type, changes in self._changes.items():
 				changes.clear()
@@ -132,18 +134,22 @@ class Track:
 					pending.clear()
 		finally:
 			self._processing = False
+			self._blocked -= 1
 
 	def _activate(self, data_type):
-		data = self._changes[data_type]
-		data.finalize()
-		if not data.empty():
+		# TODO: simplier report of unblocked activations
+		#import traceback
+		#traceback.print_stack()
+		changes = self._changes[data_type]
+		changes.finalize()
+		if not changes.empty():
 			self._ts.activate_trigger(data_type, None)
-			data.clear()
+			changes.clear()
 
 	def created(self, data_type, instances):
 		if data_type not in self._changes:
 			raise ValueError("unknown data type")
-		if self._processing:
+		if self._processing and data_type in self._processed:
 			changes = self._pending_changes[data_type]
 			changes.created.update(instances)
 			changes._dirty = True
@@ -158,7 +164,7 @@ class Track:
 	def modified(self, data_type, instances, reason):
 		if data_type not in self._changes:
 			raise ValueError("unknown data type")
-		if self._processing:
+		if self._processing and data_type in self._processed:
 			changes = self._pending_changes[data_type]
 			changes.modified.update(instances)
 			changes.reasons.add(reason)
@@ -175,7 +181,7 @@ class Track:
 	def deleted(self, data_type, instances):
 		if data_type not in self._changes:
 			raise ValueError("unknown data type")
-		if self._processing:
+		if self._processing and data_type in self._processed:
 			changes = self._pending_changes[data_type]
 			changes.deleted.update(instances)
 			changes._dirty = True
