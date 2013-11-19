@@ -189,7 +189,7 @@ class View:
 			self._ch = track.add_handler(Camera, self._update_camera)
 
 	def _update_camera(self, cameras):
-		if self.camera not in cameras.modified:
+		if self.camera not in cameras.modified and self.camera not in cameras.created:
 			return
 		track.modified(View, [self], self.CAMERA_CHANGE)
 
