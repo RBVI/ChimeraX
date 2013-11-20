@@ -4,7 +4,7 @@ class Surface:
     self.name = name
     self.id = None              # positive integer
     self.displayed = True
-    from .geometry.place import Place
+    from ..geometry.place import Place
     self.placement = Place()
     self.copies = []
     self.plist = []
@@ -74,6 +74,7 @@ class Surface:
           p.draw(viewer)
 
   def bounds(self):
+    from ..geometry.bounds import union_bounds
     return union_bounds(p.bounds() for p in self.plist)
 
   def placed_bounds(self):
@@ -86,13 +87,14 @@ class Surface:
       copies = [self.placement]
     else:
       return b
-    return copies_bounding_box(b, copies)
+    from ..geometry import bounds
+    return bounds.copies_bounding_box(b, copies)
 
   def first_intercept(self, mxyz1, mxyz2):
     f = None
     sp = None
     # TODO handle surface model copies.
-    from . import _image3d
+    from .. import _image3d
     for p in self.plist:
       if p.display:
         fmin = p.first_intercept(mxyz1, mxyz2)
@@ -139,7 +141,7 @@ class Surface_Piece(object):
     self.shader = None		# VAO bindings are for this shader
 
     # Surface piece attribute name, shader variable name, instancing
-    from .draw import drawing
+    from ..draw import drawing
     from numpy import uint32, uint8
     bufs = (('vertices', 'position', {}),
             ('normals', 'normal', {}),
@@ -169,7 +171,7 @@ class Surface_Piece(object):
     for b in self.opengl_buffers:
       b.delete_buffer()
 
-    from .draw import drawing
+    from ..draw import drawing
     if not self.textureId is None and self.textureFree:
       drawing.delete_texture(self.textureId)
     self.textureId = None
@@ -196,13 +198,13 @@ class Surface_Piece(object):
   copies = property(get_copies, set_copies)
 
   def new_vertex_array_object(self):
-    from .draw import drawing
+    from ..draw import drawing
     if not self.vao is None:
       drawing.delete_vertex_array_object(self.vao)
     self.vao = drawing.new_vertex_array_object()
 
   def bind_vertex_array_object(self):
-    from .draw import drawing
+    from ..draw import drawing
     if self.vao is None:
       self.vao = drawing.new_vertex_array_object()
     drawing.bind_vertex_array_object(self.vao)
@@ -226,7 +228,7 @@ class Surface_Piece(object):
       return None
     if self.displayStyle == self.Mesh:
       if self.masked_edges is None:
-        from ._image3d import masked_edges
+        from .._image3d import masked_edges
         self.masked_edges = (masked_edges(ta) if self.edge_mask is None
                              else masked_edges(ta, self.edge_mask))
       ta = self.masked_edges
@@ -258,7 +260,7 @@ class Surface_Piece(object):
     self.update_buffers(p)
 
     # Set color
-    from .draw import drawing
+    from ..draw import drawing
     if self.instance_colors is None:
       drawing.set_single_color(p, self.color_rgba)
 
@@ -269,19 +271,19 @@ class Surface_Piece(object):
     self.element_buffer.draw_elements(etype, self.instance_count())
 
     if not self.textureId is None:
-      from .draw import drawing
+      from ..draw import drawing
       drawing.bind_2d_texture(0)
 
   def set_shader(self, viewer):
     # Push special shader if needed.
     skw = {}
-    from .draw import drawing
+    from ..draw import drawing
     lit = getattr(self, 'useLighting', True)
     if not lit:
       skw[drawing.SHADER_LIGHTING] = False
     t = self.textureId
     if not t is None:
-      from .draw import drawing
+      from ..draw import drawing
       drawing.bind_2d_texture(t)
       skw[drawing.SHADER_TEXTURE_2D] = True
     if not self.shift_and_scale is None:
@@ -347,7 +349,8 @@ class Surface_Piece(object):
       # TODO: use scale factors
     b = (xyz_min, xyz_max)
     if self.copies:
-      b = copies_bounding_box(b, self.copies)
+      from ..geometry import bounds
+      b = bounds.copies_bounding_box(b, self.copies)
     return b
 
   def first_intercept(self, mxyz1, mxyz2):
@@ -355,7 +358,7 @@ class Surface_Piece(object):
     # TODO handle surface piece shift_and_scale.
     f = None
     va, ta = self.geometry
-    from . import _image3d
+    from .. import _image3d
     if len(self.copies) == 0:
       fmin, tmin = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
       if not fmin is None and (f is None or fmin < f):
@@ -379,33 +382,6 @@ class Surface_Piece_Selection:
   def models(self):
     return [self.piece.surface]
 
-def union_bounds(blist):
-  xyz_min, xyz_max = None, None
-  for b in blist:
-    if b is None or b == (None, None):
-      continue
-    pmin, pmax = b
-    if xyz_min is None:
-      xyz_min, xyz_max = pmin, pmax
-    else:
-      xyz_min = tuple(min(x,px) for x,px in zip(xyz_min, pmin))
-      xyz_max = tuple(max(x,px) for x,px in zip(xyz_max, pmax))
-  return None if xyz_min is None else (xyz_min, xyz_max)
-
-def copies_bounding_box(bounds, plist):
-  (x0,y0,z0),(x1,y1,z1) = bounds
-  corners = ((x0,y0,z0),(x1,y0,z0),(x0,y1,z0),(x1,y1,z0),
-             (x0,y0,z1),(x1,y0,z1),(x0,y1,z1),(x1,y1,z1))
-  b = union_bounds(point_bounds(p * corners) for p in plist)
-  return b
-
-def point_bounds(xyz):
-  if len(xyz) == 0:
-    return None
-  from numpy import array
-  axyz = array(xyz)
-  return axyz.min(axis = 0), axyz.max(axis = 0)
-
 def surface_image(qi, pos, size, surf = None):
     rgba = image_rgba_array(qi)
     if surf is None:
@@ -424,7 +400,7 @@ def rgba_surface_piece(rgba, pos, size, surf):
     p.color = (1,1,1,1)         # Modulates texture values
     p.useLighting = False
     p.textureCoordinates = tc
-    from .draw import drawing
+    from ..draw import drawing
     p.textureId = drawing.texture_2d(rgba)
     return p
 
@@ -432,7 +408,7 @@ def rgba_surface_piece(rgba, pos, size, surf):
 def image_rgba_array(i):
     s = i.size()
     w,h = s.width(), s.height()
-    from .ui.qt import QtGui
+    from ..ui.qt import QtGui
     i = i.convertToFormat(QtGui.QImage.Format_RGB32)    #0ffRRGGBB
     b = i.bits()        # sip.voidptr
     n = i.byteCount()

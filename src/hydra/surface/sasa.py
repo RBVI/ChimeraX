@@ -14,14 +14,14 @@ def buried_sphere_area(i, centers, radii, draw = False):
 
     if draw:
         surf0 = sphere_model([i], centers, radii)
-        from .geometry.vector import norm
+        from ..geometry.vector import norm
         jlist = [j for j in range(len(centers)) if j != i and norm(centers[j]-centers[i]) < radii[j]+radii[i]]
 #        jlist = list(range(i)) + list(range(i+1,len(centers)))
         print(len(jlist), 'spheres intersect sphere', i)
         surfn = sphere_model(jlist, centers, radii)
         for p in surfn.surface_pieces():
             p.color = (.7,.7,.9,.7)
-        from .ui.gui import main_window
+        from ..ui.gui import main_window
         main_window.view.add_models((surf0, surfn))
 
     r = radii[i]
@@ -60,7 +60,7 @@ def sphere_intersection_circles(i, centers, radii):
 
 def sphere_intersection(c0, r0, c1, r1):
 
-    from .geometry.vector import distance
+    from ..geometry.vector import distance
     d = distance(c0,c1)
     if d > r0+r1 or r1+d < r0 or r0+d < r1:
         return None
@@ -116,7 +116,7 @@ def area_in_circles_on_unit_sphere(circles, draw = False, draw_center = (0,0,0),
     area = la + ba
 
     if draw:
-        from .ui.gui import main_window
+        from ..ui.gui import main_window
         main_window.view.add_models((surfc, surfi, surfb))
 
     return area
@@ -151,7 +151,7 @@ def circle_intersections(circles, draw = False):
     return cint, lc, nreg
 
 def circle_in_circles(i, circles):
-    from .geometry.vector import inner_product
+    from ..geometry.vector import inner_product
     p,a = circles[i].center, circles[i].angle
     for j,c in enumerate(circles):
         if c.angle >= a and inner_product(p, c.center) >= cos(c.angle-a) and j != i:
@@ -160,7 +160,7 @@ def circle_in_circles(i, circles):
 
 def circle_intercepts(c0, c1):
 
-    from .geometry.vector import inner_product, cross_product
+    from ..geometry.vector import inner_product, cross_product
     ca01 = inner_product(c0.center,c1.center)
     x01 = cross_product(c0.center,c1.center)
     s2 = inner_product(x01,x01)
@@ -180,7 +180,7 @@ def circle_intercepts(c0, c1):
             a*c0.center + b*c1.center + d*x01)
 
 def point_in_circles(p, circles, exclude):
-    from .geometry.vector import inner_product
+    from ..geometry.vector import inner_product
     for i,c in enumerate(circles):
         if inner_product(p,c.center) >= c.cos_angle and not i in exclude:
             return True
@@ -280,7 +280,7 @@ def circle_intercept_angle(center1, pintersect, center2):
 # Angle from plane defined by z and v1 rotated to plane defined by z and v2
 # range 0 to 2*pi.
 def polar_angle(zaxis, v1, v2):
-    from .geometry.place import orthonormal_frame
+    from ..geometry.place import orthonormal_frame
     f = orthonormal_frame(zaxis, xdir = v1)
     x,y,z = f.transpose()*v2
     a = atan2(y,x)
@@ -311,10 +311,10 @@ def estimate_buried_sphere_area(i, centers, radii, points, weights):
     return a
 
 def sphere_points_and_weights(npoints):
-    from .molecule.molecule import sphere_geometry
+    from .shapes import sphere_geometry
     va, na, ta = sphere_geometry(2*npoints)
     # Weight vertices by area since distribution is not uniform.
-    from ._image3d import vertex_areas
+    from .._image3d import vertex_areas
     weights = vertex_areas(va, ta)
     return va, weights
 
@@ -330,7 +330,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
 
     arc = polar_angle(circle.center, p1, p2)
     va, ta = sphere_band_arc(circle.angle, arc, width)
-    from .geometry.place import orthonormal_frame
+    from ..geometry.place import orthonormal_frame
     f = orthonormal_frame(circle.center, xdir = p1)
     f.move(va)
     na = va.copy()
@@ -348,7 +348,7 @@ def draw_sphere_points(points, sphere, s, color, radius = 0.02, offset = 0.02):
 
 def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
     cs, r = sphere
-    from .geometry.place import orthonormal_frame
+    from ..geometry.place import orthonormal_frame
     for c in circles:
         f = orthonormal_frame(c.center)
         va, ta = sphere_band_geometry(c.angle, width = width)
@@ -427,7 +427,7 @@ def sphere_model(indices, centers, radii, ntri = 2000):
 
     from .surface import Surface
     s = Surface('spheres')
-    from .molecule.molecule import sphere_geometry
+    from .shapes import sphere_geometry
     for i in indices:
         va, na, ta = sphere_geometry(ntri)
         va = va*radii[i] + centers[i]
@@ -459,47 +459,28 @@ def unit_sphere():
     radius = 1
     return (center, radius)
 
-def molecule_spheres(probe_radius = 1.4):
-    atoms = molecule_atoms()
+def molecule_spheres(mlist = None, probe_radius = 1.4):
+    atoms = molecule_atoms(mlist)
     centers = atoms.coordinates()
     radii = atoms.radii() + probe_radius
     return centers, radii
 
-def molecule_atoms():
-    from .ui.gui import main_window
-    mlist = main_window.view.molecules()
-    from .molecule import Atom_Set
+def molecule_atoms(mlist = None):
+    if mlist is None:
+        from ..ui.gui import main_window
+        mlist = main_window.view.molecules()
+    from ..molecule import Atom_Set
     aset = Atom_Set()
     aset.add_molecules(mlist)
     aset = aset.exclude_water()
     return aset
 
-def test_sasa(n = 30, npoints = 1000):
-#    test_pdb_models(pdbs, npoints)
-#    return
-#    test_all_pdb_models(['/Users/goddard/Downloads/Chimera/PDB'])
-#    test_all_pdb_models(pdb_subdirs(), '.ent', npoints = npoints)
-#    return
+def accessible_surface_area(molecule):
+    centers, radii = molecule_spheres([molecule])
+    return spheres_surface_area(centers, radii)
 
-#    centers, radii = random_spheres_intersecting_unit_sphere(n)
-#    from numpy import array
-#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, 1.0))     # area test, pi
-#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, 1.0, 1.0)) # area test
-#    centers, radii = array(((0.0,0,0), (1.0,0,0), (1.0,0,0))), array((1.0, 0.5, 0.25))  # Nested circle test
-#    r = sqrt(2)
-#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, r))     # area test, 2*pi
-#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, r, r))     # area test, 3*pi
-
-#    buried_sphere_area(0, centers, radii, draw = True)
-
-    centers, radii = molecule_spheres()
-
-#    import cProfile
-#    cProfile.runctx('print("area =", spheres_surface_area(centers, radii).sum())', globals(), locals())
-    from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
-
-#    i = 10
-#    buried_sphere_area(i, centers, radii, draw = True)
+def spheres_surface_area(centers, radii, npoints = 1000):
+    from .._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
     from time import time
     t0 = time()
     areas = surface_area_of_spheres(centers, radii)
@@ -527,6 +508,34 @@ def test_sasa(n = 30, npoints = 1000):
             for i in ei[::-1]:
                 if aerr[i] >= 0.02:
                     print (i, nm[i], areas[i], eareas[i])
+    return areas
+
+def test_sasa(n = 30, npoints = 1000):
+#    test_pdb_models(pdbs, npoints)
+#    return
+#    test_all_pdb_models(['/Users/goddard/Downloads/Chimera/PDB'])
+#    test_all_pdb_models(pdb_subdirs(), '.ent', npoints = npoints)
+#    return
+
+#    centers, radii = random_spheres_intersecting_unit_sphere(n)
+#    from numpy import array
+#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, 1.0))     # area test, pi
+#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, 1.0, 1.0)) # area test
+#    centers, radii = array(((0.0,0,0), (1.0,0,0), (1.0,0,0))), array((1.0, 0.5, 0.25))  # Nested circle test
+#    r = sqrt(2)
+#    centers, radii = array(((0.0,0,0), (1.0,0,0))), array((1.0, r))     # area test, 2*pi
+#    centers, radii = array(((0.0,0,0), (1.0,0,0), (0,1.0,0))), array((1.0, r, r))     # area test, 3*pi
+
+#    buried_sphere_area(0, centers, radii, draw = True)
+
+    centers, radii = molecule_spheres()
+
+#    import cProfile
+#    cProfile.runctx('print("area =", spheres_surface_area(centers, radii).sum())', globals(), locals())
+
+#    i = 10
+#    buried_sphere_area(i, centers, radii, draw = True)
+    spheres_surface_area(centers, radii)
 
 # Example results.
 # Testing on PDB 1a0m excluding waters, 242 atoms. 15 seconds for analytic area.  Most time culling circle intersections.
@@ -545,8 +554,8 @@ def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
 
     from os import listdir
     from os.path import join
-    from .file_io import opensave
-    from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
+    from ..file_io import opensave
+    from .._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
 
@@ -584,8 +593,8 @@ pdbs = ('3znu','2hq3','3zqy','2vb1','2yab','3ze1','3ze2','4baj','3ztp','1jxw','1
 
 def test_pdb_models(id_codes, npoints):
 
-    from .file_io import opensave
-    from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
+    from ..file_io import opensave
+    from .._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
 
@@ -593,9 +602,9 @@ def test_pdb_models(id_codes, npoints):
     print('%6s %6s %9s %9s %5s %5s %8s %8s\n' %
              ('PDB', 'atoms', 'area', 'earea', 'atime', 'etime', 'max err', 'mean err'))
     for id in id_codes:
-            from .file_io.fetch_pdb import fetch_pdb
+            from ..file_io.fetch_pdb import fetch_pdb
             mlist = fetch_pdb(id)
-            from .ui.gui import main_window
+            from ..ui.gui import main_window
             main_window.view.add_models(mlist)
             
             centers, radii = molecule_spheres()

@@ -161,7 +161,8 @@ def molecule_grid_data(atoms, resolution, step, pad,
 def gaussian_grid_data(xyz, weights, resolution, step, pad,
                        cutoff_range, sigma_factor, transforms = []):
 
-    xyz_min, xyz_max = point_bounds(xyz, transforms)
+    from .geometry import bounds
+    xyz_min, xyz_max = bounds.point_bounds(xyz, transforms)
 
     origin = [x-pad for x in xyz_min]
     sdev = sigma_factor * resolution / step
@@ -196,7 +197,8 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
 def balls_grid_data(xyz, radii, resolution, step, pad,
                        cutoff_range, sigma_factor, transforms = []):
 
-    xyz_min, xyz_max = point_bounds(xyz, transforms)
+    from .geometry import bounds
+    xyz_min, xyz_max = bounds.point_bounds(xyz, transforms)
 
     origin = [x-pad for x in xyz_min]
     sdev = sigma_factor * resolution / step
@@ -224,22 +226,3 @@ def balls_grid_data(xyz, radii, resolution, step, pad,
     grid = Array_Grid_Data(matrix, origin, (step,step,step))
 
     return grid
-
-# -----------------------------------------------------------------------------
-#
-def point_bounds(xyz, transforms = []):
-
-    if transforms:
-        from numpy import empty, float32
-        xyz0 = empty((len(transforms),3), float32)
-        xyz1 = empty((len(transforms),3), float32)
-        txyz = empty(xyz.shape, float32)
-        for i, tf in enumerate(transforms):
-            txyz[:] = xyz
-            tf.move(txyz)
-            xyz0[i,:], xyz1[i,:] = txyz.min(axis=0), txyz.max(axis=0)
-        xyz_min, xyz_max = xyz0.min(axis = 0), xyz1.max(axis = 0)
-    else:
-        xyz_min, xyz_max = xyz.min(axis=0), xyz.max(axis=0)
-
-    return xyz_min, xyz_max

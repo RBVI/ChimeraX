@@ -44,6 +44,7 @@ def register_shortcuts(viewer):
         ('hw', hide_waters, 'Hide water atoms'),
         ('r+', fat_ribbons, 'Fat ribbons'),
         ('r-', thin_ribbons, 'Thin ribbons'),
+        ('sa', accessible_surface_area, 'Compute solvent accesible surface area'),
     )
     molcat = 'Molecule Display'
     for k,f,d in mol_shortcuts:
@@ -87,7 +88,6 @@ def register_shortcuts(viewer):
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
 
-    from ..sasa import test_sasa
     from .gui import show_log
     misc_shortcuts = (
         ('dv', v.initial_camera_view, 'Default view', gcat),
@@ -103,7 +103,6 @@ def register_shortcuts(viewer):
         ('ch', show_command_history, 'Show command history', gcat),
         ('sc', show_scenes, 'Show scene thumbnails', gcat),
         ('rt', show_stats, 'Show model statistics', gcat),
-        ('sa', test_sasa, 'Test solvent accesible surface area calculation', gcat)
         )
     for k,f,d,cat in misc_shortcuts:
       ks.add_shortcut(k, f, d, category = cat)
@@ -443,6 +442,9 @@ def molecule_bonds(m):
         show_info(msg)
         if missing:
             show_info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+def accessible_surface_area(m):
+    from .. import surface
+    surface.accessible_surface_area(m)
 
 def list_keyboard_shortcuts():
   from .gui import main_window as m

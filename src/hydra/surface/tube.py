@@ -66,6 +66,7 @@ class Tube:
         height = 0
         tflist = extrusion_transforms(self.path, self.tangents)
         tfnlist = [tf.zero_translation() for tf in tflist]
+        from .shapes import cylinder_geometry
         varray, narray, tarray = cylinder_geometry(self.radius, height, nz, nc,
                                                    caps = self.end_caps)
         # Transform circles.
@@ -98,74 +99,6 @@ class Tube:
 
 # -----------------------------------------------------------------------------
 #
-def cylinder_geometry(radius, height, nz, nc, caps):
-
-    varray, narray, tarray = tube_geometry(nz, nc)
-    varray[:,0] *= radius
-    varray[:,1] *= radius
-    varray[:,2] *= height
-   
-    if not caps:
-        return varray, narray, tarray
-
-    vc = varray.shape[0]
-    varray.resize((vc+2,3))
-    narray.resize((vc+2,3))
-    varray[vc,:] = (0,0,-0.5*height)
-    varray[vc+1,:] = (0,0,0.5*height)
-    narray[vc,:] = (0,0,-1)
-    narray[vc+1,:] = (0,0,1)
-
-    tc = tarray.shape[0]
-    tarray.resize((tc+2*nc,3))
-    for i in range(nc):
-        tarray[tc+i,:] = (vc,(i+1)%nc,i)
-        tarray[tc+nc+i,:] = (vc+1,vc-nc+i,vc-nc+(i+1)%nc)
-
-    return varray, narray, tarray
-
-# -----------------------------------------------------------------------------
-# Build a hexagonal lattice tube
-#
-def tube_geometry(nz, nc):
-
-    from numpy import empty, float32, arange, cos, sin, int32, pi
-    vc = nz*nc
-    tc = (nz-1)*nc*2
-    varray = empty((vc,3), float32)
-    narray = empty((vc,3), float32)
-    tarray = empty((tc,3), int32)
-
-    # Calculate vertices
-    v = varray.reshape((nz,nc,3))
-    angles = (2*pi/nc)*arange(nc)
-    v[::2,:,0] = cos(angles)
-    v[::2,:,1] = sin(angles)
-    angles += pi/nc
-    v[1::2,:,0] = cos(angles)
-    v[1::2,:,1] = sin(angles)
-    for z in range(nz):
-        v[z,:,2] = float(z)/(nz-1) - 0.5
-
-    # Set normals
-    narray[:,:] = varray
-    narray[:,2] = 0
-
-    # Create triangles
-    t = tarray.reshape((nz-1,nc,6))
-    c = arange(nc)
-    c1 = (c+1)%nc
-    t[:,:,0] = t[1::2,:,3] = c
-    t[::2,:,1] = t[::2,:,3] = t[1::2,:,1] = c1
-    t[::2,:,4] = t[1::2,:,2] = t[1::2,:,4] = c1+nc
-    t[::2,:,2] = t[:,:,5] = c+nc
-    for z in range(1,nz-1):
-        t[z,:,:] += z*nc
-
-    return varray, narray, tarray
-
-# -----------------------------------------------------------------------------
-#
 def extrusion(path, shape, band_length = 0, segment_subdivisions = 10,
               color = (.745,.745,.745,1)):
 
@@ -184,7 +117,7 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
     if len(xyz_path) <= 1:
         return None             # No path
 
-#    from .spline import natural_cubic_spline
+#    from ..geometry.spline import natural_cubic_spline
     from .._image3d import natural_cubic_spline
     spath, stan = natural_cubic_spline(xyz_path, segment_subdivisions)
 
@@ -203,7 +136,7 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
 #
 def extrusion_transforms(path, tangents, yaxis = None):
 
-    from .place import identity, vector_rotation, translation
+    from ..geometry.place import identity, vector_rotation, translation
     tflist = []
     if yaxis is None:
         # Make xy planes for coordinate frames at each path point not rotate
@@ -216,7 +149,7 @@ def extrusion_transforms(path, tangents, yaxis = None):
             n0 = n1
     else:
         # Make y-axis of coordinate frames at each point align with yaxis.
-        from . import vector as V
+        from ..geometry import vector as V
         for p,t in zip(path, tangents):
             za = t
             xa = V.normalize_vector(V.cross_product(yaxis, za))
@@ -239,7 +172,7 @@ def band_colors(plist, point_colors, segment_colors,
   pcolors = []
   for k in range(n-1):
     j = k * (segment_subdivisions + 1)
-    from . import spline
+    from ..geometry import spline
     arcs = spline.arc_lengths(plist[j:j+segment_subdivisions+2])
     bp0, mp, bp1 = band_points(arcs, band_length)
     scolors = ([point_colors[k]]*bp0 +

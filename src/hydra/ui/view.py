@@ -552,8 +552,8 @@ class View(QtOpenGL.QGLWidget):
         return array((cx,cy,cz)), w
 
     def bounds(self):
-        from .. import surface
-        b = surface.union_bounds(m.placed_bounds() for m in self.models if m.display)
+        from ..geometry import bounds
+        b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
         return b
 
     def update_projection(self, win_size = None):

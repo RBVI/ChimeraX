@@ -40,7 +40,7 @@ def split_surfaces(plist, in_place = False):
 def split_surface_piece(p, into_surf):
 
   varray, tarray = p.geometry
-  from ._image3d import connected_pieces
+  from .._image3d import connected_pieces
   cplist = connected_pieces(tarray)
   if len(cplist) <= 1 and p.surface == into_surf:
     return []
