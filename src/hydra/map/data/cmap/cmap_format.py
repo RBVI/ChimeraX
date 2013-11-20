@@ -197,7 +197,7 @@ class Chimera_HDF_Image:
         if 'rotation_axis' in va and 'rotation_angle' in va:
             axis = va.rotation_axis
             angle = va.rotation_angle
-            from ...geometry import matrix
+            from ....geometry import matrix
             r = matrix.rotation_from_axis_angle(axis, angle)
         else:
             r = ((1,0,0),(0,1,0),(0,0,1))

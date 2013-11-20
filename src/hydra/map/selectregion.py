@@ -302,7 +302,7 @@ class Select_Volume_Subregion:
             for a in (0,1,2)]
 
     # Allocate array.
-    from ..VolumeData import allocate_array
+    from .data import allocate_array
     array = allocate_array(size, zero_fill = True)
 
     # Determine origin, rotation, and cell angles.
@@ -313,7 +313,7 @@ class Select_Volume_Subregion:
     cell_angles, rotation = cell_angles_and_rotation(vaxes)
 
     # Create grid.
-    from ..VolumeData import Array_Grid_Data
+    from .data import Array_Grid_Data
     g = Array_Grid_Data(array, origin, voxel_size, cell_angles, rotation,
                         name = name)
 

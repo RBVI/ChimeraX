@@ -14,7 +14,7 @@ class Volume_Manager:
     self.default_settings = ds = d.Volume_Viewer_Default_Settings()
 
     # Set default data cache size.
-    from ..VolumeData import data_cache
+    from .data import data_cache
     data_cache.resize(ds['data_cache_size'] * (2**20))
 
     self.open_callbacks = []
@@ -952,7 +952,7 @@ class Volume(Surface):
   def show_outline_box(self, show, rgb, linewidth):
     
     if show and rgb:
-      from ..VolumeData import box_corners
+      from .data import box_corners
       ijk_corners = box_corners(*self.ijk_bounds())
       corners = self.data.ijk_to_xyz_transform * ijk_corners
       if self.showing_orthoplanes():
@@ -1174,7 +1174,7 @@ class Volume(Surface):
     from numpy import zeros
     m = zeros(shape, value_type)
     origin, step = self.region_origin_and_step(r)
-    from ..VolumeData import Array_Grid_Data
+    from .data import Array_Grid_Data
     g = Array_Grid_Data(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.
     return g
@@ -1196,7 +1196,7 @@ class Volume(Surface):
 
     ijk_min_edge, ijk_max_edge = self.ijk_bounds(step, subregion)
     
-    from ..VolumeData import box_corners
+    from .data import box_corners
     ijk_corners = box_corners(ijk_min_edge, ijk_max_edge)
     data = self.data
     xyz_min, xyz_max = bounding_box([data.ijk_to_xyz(c) for c in ijk_corners])
@@ -1242,7 +1242,7 @@ class Volume(Surface):
   def bounding_region(self, points, padding = 0, step = None, clamp = True):
 
     d = self.data
-    from ..VolumeData import points_ijk_bounds
+    from .data import points_ijk_bounds
     ijk_min, ijk_max = points_ijk_bounds(points, padding, d)
     if clamp:
       ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, None), d.size)[:2]
@@ -1295,7 +1295,7 @@ class Volume(Surface):
     origin, size, subsampling, step = self.subsample_region(region)
     d = self.data
     operation = 'reading %s' % d.name
-    from ..VolumeData import Progress_Reporter
+    from .data import Progress_Reporter
     progress = Progress_Reporter(operation, size, d.value_type.itemsize)
     from_cache_only = not read_matrix
     if subsampling == (1,1,1):
@@ -1514,7 +1514,7 @@ class Volume(Surface):
 
     matrix, p2m_transform = self.matrix_and_transform(point_xform,
                                                       subregion, step)
-    from ..VolumeData import interpolate_volume_data
+    from .data import interpolate_volume_data
     values, outside = interpolate_volume_data(points, p2m_transform,
                                               matrix, method)
 
@@ -1535,7 +1535,7 @@ class Volume(Surface):
     matrix, v2m_transform = self.matrix_and_transform(point_xform,
                                                       subregion, step)
 
-    from ..VolumeData import interpolate_volume_gradient
+    from .data import interpolate_volume_gradient
     gradients, outside = interpolate_volume_gradient(points, v2m_transform,
                                                      matrix, method)
     if out_of_bounds_list:
@@ -1622,7 +1622,7 @@ class Volume(Surface):
     data = self.data
     size = data.size
     from numpy import float32
-    from ..VolumeData import grid_indices
+    from .data import grid_indices
     if zplane is None:
       points = grid_indices(size, float32)
     else:
@@ -1666,7 +1666,7 @@ class Volume(Surface):
       sg = self.data
     else:
       ijk_min, ijk_max, ijk_step = region
-      from ..VolumeData import Grid_Subregion
+      from .data import Grid_Subregion
       sg = Grid_Subregion(self.data, ijk_min, ijk_max, ijk_step)
 
     if mask_zone:
@@ -1674,7 +1674,7 @@ class Volume(Surface):
       import SurfaceZone
       if SurfaceZone.showing_zone(surf_model):
         points, radius = SurfaceZone.zone_points_and_distance(surf_model)
-        from ..VolumeData import zone_masked_grid_data
+        from .data import zone_masked_grid_data
         mg = zone_masked_grid_data(sg, points, radius)
         return mg
         
@@ -1717,7 +1717,7 @@ class Volume(Surface):
       return None
 
     points, radius = SurfaceZone.zone_points_and_distance(self)
-    from ..VolumeData import zone_masked_grid_data
+    from .data import zone_masked_grid_data
     masked_data = zone_masked_grid_data(self.data, points, radius,
                                         invert_mask = outside)
     if outside: name = 'outside zone'
@@ -1741,8 +1741,8 @@ class Volume(Surface):
       return None
       
     self.message('Computing histogram for %s' % self.name)
-    from .. import VolumeData
-    self.matrix_stats = ms = VolumeData.Matrix_Value_Statistics(matrices)
+    from . import data
+    self.matrix_stats = ms = data.Matrix_Value_Statistics(matrices)
     self.message('')
 
     return ms
@@ -1800,7 +1800,7 @@ class Volume(Surface):
   #
   def write_file(self, path, format = None, options = {}, temporary = False):
 
-    from ..VolumeData import save_grid_data
+    from .data import save_grid_data
     d = self.grid_data()
     format = save_grid_data(d, path, format, options, temporary)
   
@@ -2035,7 +2035,7 @@ class Outline_Box:
     btlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
               (0,1,3), (3,2,0), (7,3,1), (1,5,7),
               (7,6,2), (2,3,7), (7,5,4), (4,6,7))
-    from ..VolumeData import box_corners
+    from .data import box_corners
     if planes[1] and planes[2]:
       x0, x1 = corners[0][0], corners[4][0]
       v0 = len(vlist)
@@ -2313,8 +2313,8 @@ def clamp_ijk(ijk, ijk_min, ijk_max):
 #
 def clamp_region(region, size):
 
-  from .. import VolumeData
-  r = VolumeData.clamp_region(region[:2], size) + tuple(region[2:])
+  from . import data
+  r = data.clamp_region(region[:2], size) + tuple(region[2:])
   return r
 
 # ---------------------------------------------------------------------------
@@ -2512,7 +2512,7 @@ def is_empty_region(ijk_region):
 #
 def resize_region_for_zone(data_region, points, radius, initial_resize = False):
 
-  from ..VolumeData import points_ijk_bounds
+  from .data import points_ijk_bounds
   ijk_min, ijk_max = points_ijk_bounds(points, radius, data_region.data)
   ijk_min, ijk_max = clamp_region((ijk_min, ijk_max, None),
                                   data_region.data.size)[:2]
@@ -2593,7 +2593,7 @@ def maximum_data_diagonal_length(data):
 
 # -----------------------------------------------------------------------------
 #
-from ..VolumeData import bounding_box
+from .data import bounding_box
 
 # -----------------------------------------------------------------------------
 #
@@ -2687,7 +2687,7 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
 
     # Create volume data copy.
     xyz_min = grid.ijk_to_xyz(ijk_min)
-    from ..VolumeData import Array_Grid_Data
+    from .data import Array_Grid_Data
     g = Array_Grid_Data(m, xyz_min, grid.step, grid.cell_angles, grid.rotation,
                         name = grid.name)
     return g
@@ -2699,10 +2699,10 @@ def open_volume_file(path, format = None, name = None, representation = None,
                      open_models = True, model_id = None,
                      show_data = True, show_dialog = True):
 
-  from .. import VolumeData
+  from . import data
   try:
-    glist = VolumeData.open_file(path, format)
-  except VolumeData.File_Format_Error as value:
+    glist = data.open_file(path, format)
+  except data.File_Format_Error as value:
     raise
     from os.path import basename
     if isinstance(path, (list,tuple)):

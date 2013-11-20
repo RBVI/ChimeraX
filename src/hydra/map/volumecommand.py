@@ -9,7 +9,7 @@ def volume_command(cmdname, args):
     from ..ui.commands import int_arg, ints_arg, int3_arg, color_arg
     from ..ui.commands import volume_region_arg, openstate_arg
 
-    from ..VolumeData.fileformats import file_writers
+    from .data.fileformats import file_writers
     stypes = [fw[1] for fw in file_writers]
     from .volume import Rendering_Options
     ro = Rendering_Options()
@@ -250,7 +250,7 @@ def apply_global_settings(gsettings):
     from .volume import default_settings
     default_settings.update(gopt)
     if 'dataCacheSize' in gsettings:
-        from ..VolumeData import data_cache
+        from .data import data_cache
         data_cache.resize(gsettings['dataCacheSize'] * (2**20))
     
 # -----------------------------------------------------------------------------
@@ -354,7 +354,7 @@ def save_volumes(vlist, doptions):
     if 'compress' in doptions and doptions['compress']:
         options['compress'] = True
     if path in ('browse', 'browser'):
-        from ..VolumeData import select_save_path
+        from .data import select_save_path
         path, format = select_save_path()
     if path:
         subregion = doptions.get('saveRegion', None)
@@ -362,7 +362,7 @@ def save_volumes(vlist, doptions):
         mask_zone = doptions.get('maskZone', True)
         base_index = doptions.get('baseIndex', 1)
         grids = [v.grid_data(subregion, step, mask_zone) for v in vlist]
-        from ..VolumeData import save_grid_data
+        from .data import save_grid_data
         if is_multifile_save(path):
             for i,g in enumerate(grids):
                 save_grid_data(g, path % (i + base_index), format, options)

@@ -103,7 +103,7 @@ class DelPhi_Data:
   #
   def matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from VolumeData.readarray import read_array
+    from ..readarray import read_array
     data = read_array(self.path, self.data_offset + 4,
                       ijk_origin, ijk_size, ijk_step, self.size,
                       self.value_type, self.swap, progress)

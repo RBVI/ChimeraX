@@ -109,7 +109,7 @@ class APBS_Data:
   #
   def matrix(self, progress):
 
-    from VolumeData.readarray import read_text_floats
+    from ..readarray import read_text_floats
     data = read_text_floats(self.path, self.data_offset, self.grid_size,
                             transpose = True, progress = progress)
     return data

@@ -94,7 +94,7 @@ class Amira_Mesh_Data:
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from VolumeData.readarray import read_array
+    from ..readarray import read_array
     matrix = read_array(self.path, self.data_offset,
                         ijk_origin, ijk_size, ijk_step,
                         self.matrix_size, self.element_type, self.swap_bytes,

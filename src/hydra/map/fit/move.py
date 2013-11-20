@@ -87,7 +87,7 @@ def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
 
     if move_whole_molecules:
         models = list(models) + list(atoms.molecules())
-        from ..molecule import Atom_Set
+        from ...molecule import Atom_Set
         atoms = Atom_Set()
     global position_history
     position_history.record_position(models, atoms, base_model)

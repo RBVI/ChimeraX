@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Wrap PIF image data as grid data for displaying surface, meshes, and volumes.
 #
-from VolumeData import Grid_Data
+from .. import Grid_Data
 
 # -----------------------------------------------------------------------------
 #

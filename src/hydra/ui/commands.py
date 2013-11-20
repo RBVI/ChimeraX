@@ -13,11 +13,11 @@ def register_commands():
     fetch_pdb.register_pdb_fetch()
     fetch_emdb.register_emdb_fetch()
     fetch_eds.register_eds_fetch()
-    from .. import molmap
+    from ..map import molmap
     add_command('molmap', molmap.molmap_command)
-    from ..VolumeViewer import volumecommand
+    from ..map import volumecommand
     add_command('volume', volumecommand.volume_command)
-    from ..FitMap import fitcmd
+    from ..map.fit import fitcmd
     add_command('fitmap', fitcmd.fitmap_command)
     from ..molecule import align, showcmd, gridsurf
     add_command('align', align.align_command)
@@ -444,7 +444,7 @@ def volumes_from_specifier(spec):
     except:
         return []
 
-    from ..VolumeViewer import Volume, volume_list
+    from ..map import Volume, volume_list
     vlist = [m for m in sel.models() if isinstance(m, Volume)]
 
     return vlist
@@ -463,7 +463,7 @@ def volume_arg(v):
 def volumes_arg(v):
 
     sel = parse_specifier(v)
-    from ..VolumeViewer import Volume
+    from ..map import Volume
     vlist = [m for m in sel.models() if isinstance(m,Volume)]
     if len(vlist) == 0:
         raise CommandError('No volumes specified')
@@ -479,7 +479,7 @@ def filter_volumes(models, keyword = ''):
     if isinstance(models, str):
         raise CommandError('No %svolumes specified by "%s"' % (keyword, models))
     
-    from ..VolumeViewer import Volume
+    from ..map import Volume
     from _volume import Volume_Model
     vids = set([v.id for v in models if isinstance(v, (Volume, Volume_Model))])
     for v in models:

@@ -1,12 +1,12 @@
-from ..ui.commands import CommandError
+from ...ui.commands import CommandError
 
 # -----------------------------------------------------------------------------
 #
 def fitmap_command(cmdname, args):
 
-    from ..ui.commands import parse_arguments
-    from ..ui.commands import specifier_arg, volume_arg, int_arg, float_arg, bool_arg
-    from ..ui.commands import string_arg
+    from ...ui.commands import parse_arguments
+    from ...ui.commands import specifier_arg, volume_arg, int_arg, float_arg, bool_arg
+    from ...ui.commands import string_arg
 
     req_args = (('atomsOrMap', specifier_arg),
                 ('volume', volume_arg),
@@ -147,7 +147,7 @@ def split_selection_by_model(sel):
             ma[m].append(a)
         else:
             ma[m] = [a]
-    from .VolumeViewer import Volume
+    from ..map import Volume
     from chimera.selection import ItemizedSelection
     vsel = [ItemizedSelection(v) for v in sel.models() if isinstance(v, Volume)]
     msel = [ItemizedSelection(ma[m]) for m in sel.models() if m in ma]
@@ -181,7 +181,7 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
                                     request_stop_cb = report_status)
     mols = atoms.molecules()
     if stats:
-        from ..ui.gui import show_info, show_status
+        from ...ui.gui import show_info, show_status
         show_info(F.atom_fit_message(atoms.molecules(), volume, stats))
         if moveWholeMolecules:
             for m in mols:
@@ -211,7 +211,7 @@ def fit_map_in_map(v, volume, metric, envelope,
     move.move_models_and_atoms(move_tf, [v], mapAtoms, moveWholeMolecules,
                                volume)
 
-    from ..ui.gui import show_info, show_status
+    from ...ui.gui import show_info, show_status
     show_info(F.map_fit_message(v, volume, stats))
     show_info(F.transformation_matrix_message(v, volume))
     cort = me if me == 'correlation about mean' else 'correlation'
@@ -262,7 +262,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     from . import move
     move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
 
-    from ..ui.gui import show_info, show_status
+    from ...ui.gui import show_info, show_status
     show_info(F.map_fit_message(v, volume, stats))
     show_info(F.transformation_matrix_message(v, volume))
     cort = me if me == 'correlation about mean' else 'correlation'
@@ -329,7 +329,7 @@ def request_stop_cb(message, task):
 #
 def report_fit_search_results(flist, search, outside, inside):
 
-    from ..ui.gui import show_info
+    from ...ui.gui import show_info
     show_info('Found %d unique fits from %d random placements ' %
          (len(flist), search) +
          'having fraction of points inside contour >= %.3f (%d of %d).\n'
@@ -354,7 +354,7 @@ def fit_sequence(atomsOrMap, volume, metric, envelope, resolution,
                  maxSteps, gridStepMin, gridStepMax):
 
     if resolution is None:
-        from ..VolumeViewer import Volume
+        from ..map import Volume
         vlist = [v for v in atomsOrMap.models() if isinstance(v, Volume)]
         if len(vlist) < 2:
             if len(atomsOrMap.atoms()) > 0:
@@ -396,7 +396,7 @@ def fit_sequence(atomsOrMap, volume, metric, envelope, resolution,
 #
 def map_to_fit(selection):
 
-  from ..VolumeViewer import Volume
+  from ..map import Volume
   vlist = [m for m in selection.models() if isinstance(m, Volume)]
   if len(vlist) == 0:
     raise CommandError('No atoms or maps for %s' % selection.oslStr)
@@ -424,7 +424,7 @@ def fitting_metric(metric):
 #
 def map_fitting_points(v, envelope, local_coords = False):
 
-    from ..geometry.place import identity
+    from ...geometry.place import identity
     point_to_scene_transform = None if local_coords else identity()
     from . import fitmap as F
     try:
@@ -444,6 +444,6 @@ def map_fitting_points(v, envelope, local_coords = False):
 #
 def report_status(message):
 
-  from ..ui import gui
+  from ...ui import gui
   gui.show_status(message)
   return False        # Don't halt computation

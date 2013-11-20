@@ -228,7 +228,7 @@ class PIF_Data:
     if (nxs >= -mx and nxs < mx and
         nys >= -my and nys < my and
         nzs >= -mz and nzs < mz):
-      from VolumeData.griddata import scale_and_skew
+      from ..griddata import scale_and_skew
       data_origin = scale_and_skew(ijk_start, data_step, cell_angles)
     else:
       data_origin = (0., 0., 0.)
@@ -290,7 +290,7 @@ class PIF_Data:
     crs_size = [ijk_size[a] for a in self.crs_to_ijk]
     crs_step = [ijk_step[a] for a in self.crs_to_ijk]
 
-    from VolumeData.readarray import read_array
+    from ..readarray import read_array
     matrix = read_array(self.path, self.data_offset,
                         crs_origin, crs_size, crs_step, self.matrix_size,
                         self.file_element_type, self.swap_bytes,

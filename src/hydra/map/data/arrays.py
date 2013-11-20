@@ -5,7 +5,7 @@ def interpolate_volume_data(vertices, vertex_transform, array,
                             method = 'linear'):
 
 #  from _interpolate import interpolate_volume_data
-  from .._image3d import interpolate_volume_data
+  from ..._image3d import interpolate_volume_data
   values, outside = interpolate_volume_data(vertices, vertex_transform.matrix,
                                             array, method)
   return values, outside
@@ -17,7 +17,7 @@ def interpolate_volume_gradient(vertices, v2m_transform, array,
                                 method = 'linear'):
 
 #  from _interpolate import interpolate_volume_gradient
-  from .._image3d import interpolate_volume_gradient
+  from ..._image3d import interpolate_volume_gradient
   gradients, outside = interpolate_volume_gradient(vertices, v2m_transform.matrix,
                                                    array, method)
   return gradients, outside
@@ -32,7 +32,7 @@ class Matrix_Value_Statistics:
     matrices = matrix if isinstance(matrix, (list, tuple)) else [matrix]
       
     # Determine minimum and maximum data values.
-    from .. import _image3d
+    from ... import _image3d
     mm = [_image3d.minimum_and_maximum(m) for m in matrices]
     self.minimum = min(mn for mn,mx in mm)
     self.maximum = max(mx for mn,mx in mm)
@@ -252,7 +252,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
     else:
       mask_value = 1
 
-  from VolumeData import grid_indices
+  from . import grid_indices
   from _closepoints import find_closest_points, BOXES_METHOD
 
   size_limit = 2 ** 22          # 4 Mvoxels
@@ -297,7 +297,7 @@ def masked_grid_data(grid_data, mask, mask_value = None):
   else:
     putmask(masked, mask == mask_value, matrix)
 
-  from VolumeData import Array_Grid_Data
+  from . import Array_Grid_Data
   masked_grid_data = Array_Grid_Data(masked, d.origin, d.step,
                                      d.cell_angles, d.rotation)
   return masked_grid_data

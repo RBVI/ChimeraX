@@ -34,7 +34,7 @@ def session_state(viewer, rel_path = None, attributes_only = False):
        'view': view_state(viewer),
   }
 
-  from ..VolumeViewer import session
+  from ..map import session
   vs = session.map_states(rel_path)
   if vs:
     s['volumes'] = vs
@@ -66,7 +66,7 @@ def set_session_state(s, viewer, attributes_only = False):
     restore_view(s['view'], viewer)
 
   if 'volumes' in s:
-    from ..VolumeViewer import session
+    from ..map import session
     session.restore_maps(s['volumes'], viewer, attributes_only)
 
   if 'molecules' in s:

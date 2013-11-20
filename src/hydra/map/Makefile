@@ -1,11 +1,16 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/VolumeViewer
+PKG_DIR = $(PYSITEDIR)/hydra/map
 
-PYSRCS = __init__.py defaultsettings.py grayscale.py moveplanes.py \
+SUBDIRS	= data fit
+
+PYSRCS = __init__.py defaultsettings.py grayscale.py molmap.py moveplanes.py \
 	selectregion.py session.py slice.py solid.py subsample.py \
 	volume.py volumecommand.py
+
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
 all: $(PYOBJS)
 

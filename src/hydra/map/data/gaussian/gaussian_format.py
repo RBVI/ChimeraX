@@ -103,7 +103,7 @@ class Gaussian_Cube:
 
     if self.matrices == None:
       size = self.grid_size + (self.num_components,)
-      from VolumeData.readarray import read_text_floats
+      from ..readarray import read_text_floats
       self.matrices = read_text_floats(self.path, self.data_offset, size,
                                        transpose = True, progress = progress)
     return self.matrices[component_number]

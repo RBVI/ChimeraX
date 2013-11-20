@@ -2,7 +2,7 @@
 # Wrap MacMolPlt "3D surface" format used for quantum mechanical density and
 # electrostatics calculations with Gamess.
 #
-from VolumeData import Grid_Data
+from .. import Grid_Data
 
 # -----------------------------------------------------------------------------
 #

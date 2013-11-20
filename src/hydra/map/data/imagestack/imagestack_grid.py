@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Wrap image data as grid data for displaying surface, meshes, and volumes.
 #
-from VolumeData import Grid_Data
+from .. import Grid_Data
 
 # -----------------------------------------------------------------------------
 #
@@ -21,7 +21,7 @@ class Image_Stack_Grid(Grid_Data):
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from VolumeData.readarray import allocate_array
+    from ..readarray import allocate_array
     m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
     self.image_stack.read_matrix(ijk_origin, ijk_size, ijk_step, m, progress)
     return m

@@ -5,8 +5,8 @@
 #
 def molmap_command(cmdname, args):
 
-    from .ui.commands import atoms_arg, float_arg, string_arg, openstate_arg
-    from .ui.commands import model_id_arg, bool_arg, parse_arguments
+    from ..ui.commands import atoms_arg, float_arg, string_arg, openstate_arg
+    from ..ui.commands import model_id_arg, bool_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('resolution', float_arg))
     opt_args = ()
@@ -46,7 +46,7 @@ def molecule_map(atoms, resolution,
 		 showDialog = True
                  ):
 
-    from .ui.commands import CommandError
+    from ..ui.commands import CommandError
     if atoms.count() == 0:
         raise CommandError('No atoms specified')
 
@@ -70,7 +70,7 @@ def molecule_map(atoms, resolution,
     if symmetry is None:
         transforms = []
     else:
-        from .ui.commands import openstate_arg
+        from ..ui.commands import openstate_arg
         if coordinateSystem:
             csys = openstate_arg(coordinateSystem)
         from .SymmetryCopies.symcmd import parse_symmetry
@@ -78,7 +78,7 @@ def molecule_map(atoms, resolution,
                                           atoms[0].molecule, 'molmap')
 
     if not modelId is None:
-        from .ui.commands import parse_model_id
+        from ..ui.commands import parse_model_id
         modelId = parse_model_id(modelId)
 
     v = make_molecule_map(atoms, resolution, step, pad,
@@ -98,13 +98,13 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
                                          transforms, csys)
 
     if replace:
-        from .VolumeViewer import volume_list
+        from . import volume_list
         vlist = [v for v in volume_list()
                  if getattr(v, 'molmap_atoms', None) == atoms]
-        from .ui.gui import main_window
+        from ..ui.gui import main_window
         main_window.view.close_models(vlist)
 
-    from .VolumeViewer import volume_from_grid_data
+    from . import volume_from_grid_data
     v = volume_from_grid_data(grid, open_model = False,
                               show_dialog = show_dialog)
     v.initialize_thresholds(mfrac = (display_threshold, 1), replace = True)
@@ -113,7 +113,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
     v.molmap_parameters = (resolution, step, pad, cutoff_range, sigma_factor)
 
-    from .ui.gui import main_window
+    from ..ui.gui import main_window
     main_window.view.add_model(v)
     return v
 
@@ -161,7 +161,7 @@ def molecule_grid_data(atoms, resolution, step, pad,
 def gaussian_grid_data(xyz, weights, resolution, step, pad,
                        cutoff_range, sigma_factor, transforms = []):
 
-    from .geometry import bounds
+    from ..geometry import bounds
     xyz_min, xyz_max = bounds.point_bounds(xyz, transforms)
 
     origin = [x-pad for x in xyz_min]
@@ -174,20 +174,20 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
 
-    from .geometry.place import Place, identity
+    from ..geometry.place import Place, identity
     xyz_to_ijk_tf = Place(((1.0/step, 0, 0, -origin[0]/step),
                            (0, 1.0/step, 0, -origin[1]/step),
                            (0, 0, 1.0/step, -origin[2]/step)))
     if len(transforms) == 0:
         transforms = [identity()]
-    from ._image3d import sum_of_gaussians
+    from .._image3d import sum_of_gaussians
     ijk = empty(xyz.shape, float32)
     for tf in transforms:
         ijk[:] = xyz
         (xyz_to_ijk_tf * tf).move(ijk)
         sum_of_gaussians(ijk, weights, sdevs, cutoff_range, matrix)
     
-    from .VolumeData import Array_Grid_Data
+    from .data import Array_Grid_Data
     grid = Array_Grid_Data(matrix, origin, (step,step,step))
 
     return grid
@@ -197,7 +197,7 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
 def balls_grid_data(xyz, radii, resolution, step, pad,
                        cutoff_range, sigma_factor, transforms = []):
 
-    from .geometry import bounds
+    from ..geometry import bounds
     xyz_min, xyz_max = bounds.point_bounds(xyz, transforms)
 
     origin = [x-pad for x in xyz_min]
@@ -208,13 +208,13 @@ def balls_grid_data(xyz, radii, resolution, step, pad,
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
 
-    from .geometry.place import Place, identity
+    from ..geometry.place import Place, identity
     xyz_to_ijk_tf = Place(((1.0/step, 0, 0, -origin[0]/step),
                            (0, 1.0/step, 0, -origin[1]/step),
                            (0, 0, 1.0/step, -origin[2]/step)))
     if len(transforms) == 0:
         transforms = [identity()]
-    from ._image3d import sum_of_balls
+    from .._image3d import sum_of_balls
     ijk = empty(xyz.shape, float32)
     r = (radii / step) - sdev
     for tf in transforms:
@@ -222,7 +222,7 @@ def balls_grid_data(xyz, radii, resolution, step, pad,
         (xyz_to_ijk_tf * tf).move(ijk)
         sum_of_balls(ijk, r, sdev, cutoff_range, matrix)
     
-    from .VolumeData import Array_Grid_Data
+    from .data import Array_Grid_Data
     grid = Array_Grid_Data(matrix, origin, (step,step,step))
 
     return grid

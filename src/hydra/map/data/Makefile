@@ -1,4 +1,4 @@
-TOP = ../../..
+TOP = ../../../..
 include $(TOP)/mk/config.make
 
 #SUBDIRS	= amira apbs ccp4 cmap delphi dock dsn6 emanhdf gaussian \
@@ -9,7 +9,7 @@ include $(TOP)/mk/config.make
 
 SUBDIRS	= ccp4 cmap dsn6 mrc
 
-PKG_DIR = $(PYSITEDIR)/hydra/VolumeData
+PKG_DIR = $(PYSITEDIR)/hydra/map/data
 
 PYSRCS = __init__.py arraygrid.py arrays.py datacache.py fileformats.py \
 	griddata.py memoryuse.py opendialog.py progress.py readarray.py \

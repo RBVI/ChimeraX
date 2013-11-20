@@ -2,7 +2,7 @@
 # Wrap EMAN HDF image data as grid data for displaying surface, meshes,
 #  and volumes.
 #
-from VolumeData import Grid_Data
+from .. import Grid_Data
 
 # -----------------------------------------------------------------------------
 #
@@ -23,7 +23,7 @@ class EMAN_HDF_Grid(Grid_Data):
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    from VolumeData.readarray import allocate_array
+    from ..readarray import allocate_array
     m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
     self.eman_hdf_data.read_matrix(ijk_origin, ijk_size, ijk_step,
                                    self.array_path, m, progress)

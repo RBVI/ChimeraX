@@ -53,7 +53,7 @@ def write_grid_as_chimera_map(grid_data, path, options = {}, progress = None):
         }
     settings.update(options)
 
-    from VolumeData import Grid_Data
+    from .. import Grid_Data
     if isinstance(grid_data, Grid_Data):
         data_sets = [grid_data]
     else:

@@ -9,8 +9,8 @@ from .volume import open_volume_file, volume_list
 from .volume import volume_list
 
 # -----------------------------------------------------------------------------
-# Create and show a volume made from a Grid_Data object as defined by the
-# VolumeData module.
+# Create and show a volume madel from a Grid_Data object as defined by the
+# data module.
 #
 from .volume import volume_from_grid_data
 

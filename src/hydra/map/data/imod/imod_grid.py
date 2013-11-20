@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Wrap CCP4 image data as grid data for displaying surface, meshes, and volumes.
 #
-from VolumeData.mrc.mrc_grid import MRC_Grid
+from ..mrc.mrc_grid import MRC_Grid
 
 # -----------------------------------------------------------------------------
 #

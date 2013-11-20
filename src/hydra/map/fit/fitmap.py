@@ -14,7 +14,7 @@ def move_selected_atoms_to_maximum(max_steps = 2000, ijk_step_size_min = 0.01,
                                    move_whole_molecules = True,
                                    request_stop_cb = None):
 
-    from ..VolumeViewer import active_volume
+    from . import active_volume
     volume = active_volume()
     if volume == None or volume.model_transform() == None:
         if request_stop_cb:
@@ -73,7 +73,7 @@ def motion_to_maximum(points, point_weights, volume, max_steps = 2000,
                       metric = 'sum product', symmetries = [],
                       request_stop_cb = None):
 
-    from ..geometry.place import identity
+    from ...geometry.place import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
     move_tf, stats = \
@@ -119,7 +119,7 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     else:
         point_wts = point_weights
 
-    from ..geometry.place import identity
+    from ...geometry.place import identity
     move_tf = identity()
 
     if rotation_center is None:
@@ -187,7 +187,7 @@ def step_to_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     if optimize_rotation:
         step_types.append(rotation_step)
         
-    from ..geometry import place
+    from ...geometry import place
     move_tf = place.identity()
 
     if step_types:
@@ -212,14 +212,14 @@ def translation_step(points, point_weights, center, data_array,
                            xyz_to_ijk_transform, metric, syminv)
     from numpy import array, float, dot as matrix_multiply
     gijk = matrix_multiply(xyz_to_ijk_transform.matrix[:,:3], g)
-    from ..geometry import vector
+    from ...geometry import vector
     n = vector.norm(gijk)
     if n > 0:
         delta = g * (ijk_step_size / n)
     else:
         delta = array((0,0,0), float)
 
-    from ..geometry import place
+    from ...geometry import place
     delta_tf = place.translation(delta)
 
     return delta_tf
@@ -254,7 +254,7 @@ def sum_product_gradient_direction(points, point_weights, data_array,
         from numpy import float64
         g = gradients.sum(axis=0, dtype = float64)
     else:
-        from ..geometry import vector
+        from ...geometry import vector
         g = vector.vector_sum(point_weights, gradients)
     return g
 
@@ -271,7 +271,7 @@ def correlation_gradient_direction(points, point_weights, data_array,
     values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
                                  syminv)
-    from .. import _image3d
+    from ... import _image3d
     g = _image3d.correlation_gradient(point_weights, values, gradients, about_mean)
     return g
 
@@ -300,7 +300,7 @@ def sum_product_torque_axis(points, point_weights, center, data_array,
                             xyz_to_ijk_transform):
 
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
-    from .. import _image3d
+    from ... import _image3d
     tor = _image3d.torque(points, point_weights, gradients, center)
     return tor
 
@@ -320,7 +320,7 @@ def correlation_torque_axis(points, point_weights, center, data_array,
 
     # TODO: Exclude points outside data.  Currently treated as zero values.
     values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
-    from .. import _image3d
+    from ... import _image3d
     if len(syminv) == 0:
         gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
         tor = _image3d.correlation_torque(points, point_weights, values, gradients,
@@ -337,7 +337,7 @@ def correlation_torque_axis(points, point_weights, center, data_array,
 def volume_values(points, xyz_to_ijk_transform, data_array, syminv = [],
                   return_outside = False):
 
-    from .. import VolumeData as VD
+    from .. import data as VD
     if len(syminv) == 0:
         values, outside = VD.interpolate_volume_data(points,
                                                      xyz_to_ijk_transform,
@@ -361,7 +361,7 @@ def volume_values(points, xyz_to_ijk_transform, data_array, syminv = [],
 #
 def volume_gradients(points, xyz_to_ijk_transform, data_array, syminv = []):
 
-    from .. import VolumeData as VD
+    from .. import data as VD
     if len(syminv) == 0:
         gradients, outside = VD.interpolate_volume_gradient(
             points, xyz_to_ijk_transform, data_array)
@@ -384,8 +384,8 @@ def volume_gradients(points, xyz_to_ijk_transform, data_array, syminv = []):
 def volume_torques(points, center, xyz_to_ijk_transform, data_array,
                    syminv = []):
 
-    from .. import _image3d
-    from .. import VolumeData as VD
+    from ... import _image3d
+    from .. import data as VD
     if len(syminv) == 0:
         gradients, outside = VD.interpolate_volume_gradient(
             points, xyz_to_ijk_transform, data_array)
@@ -415,7 +415,7 @@ def rotation_step(points, point_weights, center, data_array,
     axis = torque_axis(points, point_weights, center, data_array,
                        xyz_to_ijk_transform, metric, syminv)
 
-    from ..geometry import vector
+    from ...geometry import vector
     na = vector.norm(axis)
     if len(points) == 1 or na == 0:
         axis = (0,0,1)
@@ -424,7 +424,7 @@ def rotation_step(points, point_weights, center, data_array,
         axis /= na
         angle = angle_step(axis, points, center, xyz_to_ijk_transform,
                            ijk_step_size)
-    from ..geometry import place
+    from ...geometry import place
     move_tf = place.rotation(axis, angle, center)
     return move_tf
     
@@ -435,10 +435,10 @@ def rotation_step(points, point_weights, center, data_array,
 #
 def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
 
-    from ..geometry.place import cross_product, translation
+    from ...geometry.place import cross_product, translation
     tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
 
-    from .. import _image3d
+    from ... import _image3d
     av = _image3d.maximum_norm(points, tf)
     
     if av > 0:
@@ -456,7 +456,7 @@ def maximum_ijk_motion(points, xyz_to_ijk_transform, move_tf):
 
     diff_tf = ijk_moved_tf.matrix - xyz_to_ijk_transform.matrix
 
-    from .. import _image3d
+    from ... import _image3d
     d = _image3d.maximum_norm(points, diff_tf)
     
     return d
@@ -475,7 +475,7 @@ def atom_coordinates(atoms):
 def average_map_value_at_atom_positions(atoms, volume = None):
 
     if volume is None:
-        from ..VolumeViewer import active_volume
+        from .. import active_volume
         volume = active_volume()
 
     points = atom_coordinates(atoms)
@@ -483,7 +483,7 @@ def average_map_value_at_atom_positions(atoms, volume = None):
     if volume is None or len(points) == 0:
         return 0, len(points)
 
-    from ..geometry.place import identity
+    from ...geometry.place import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
 
@@ -520,14 +520,14 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = None):
     if above_threshold:
         # Keep only points where density is above lowest displayed threshold
         threshold = min(v.surface_levels)
-        from .. import _image3d
+        from ... import _image3d
         points_int = _image3d.high_indices(m, threshold)
         from numpy import single as floatc
         points = points_int.astype(floatc)
         weights = m[points_int[:,2],points_int[:,1],points_int[:,0]]
     else:
         from numpy import single as floatc, ravel, nonzero, take
-        from ..VolumeData import grid_indices
+        from ..data import grid_indices
         points = grid_indices(m.shape[::-1], floatc)        # i,j,k indices
         weights = ravel(m).astype(floatc)
         # TODO: use numpy.count_nonzero() after updating to numpy 1.6
@@ -559,7 +559,7 @@ def overlap_and_correlation(v1, v2):
     v1 = float_array(v1)
     v2 = float_array(v2)
     # Use 64-bit accumulation of sums to avoid round-off errors.
-    from ..geometry.vector import inner_product_64
+    from ...geometry.vector import inner_product_64
     olap = inner_product_64(v1, v2)
     n1 = inner_product_64(v1, v1)
     n2 = inner_product_64(v2, v2)
@@ -607,7 +607,7 @@ def move_atoms_to_maxima():
 def move_atom_to_maximum(a, max_steps = 2000,
                          ijk_step_size_min = 0.001, ijk_step_size_max = 0.5):
 
-    from ..VolumeViewer import active_volume
+    from .. import active_volume
     dr = active_volume()
     if dr == None or dr.model_transform() == None:
         from chimera.replyobj import status
@@ -630,10 +630,10 @@ def move_atom_to_maximum(a, max_steps = 2000,
 def atoms_outside_contour(atoms, volume = None):
 
     if volume is None:
-        from ..VolumeViewer import active_volume
+        from .. import active_volume
         volume = active_volume()
     points = atom_coordinates(atoms)
-    from ..geometry.place import identity
+    from ...geometry.place import identity
     poc, clevel = points_outside_contour(points, identity(), volume)
     return poc, clevel
 
@@ -741,7 +741,7 @@ def simulated_map(atoms, res, mwm):
 def find_simulated_map(atoms, res, mwm):
 
     a = array_checksum(atoms.coordinates())
-    from ..VolumeViewer import volume_list
+    from .. import volume_list
     for v in volume_list():
       if hasattr(v, 'fitsim_params') and v.fitsim_params == (a, res, mwm):
         return v

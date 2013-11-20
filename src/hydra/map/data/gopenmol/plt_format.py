@@ -42,7 +42,7 @@ class Plt_map:
 		file_little_endian = (self.endianness == '<')
 		swap = (little_endian != file_little_endian)
 
-		from VolumeData.readarray import read_array
+		from ..readarray import read_array
 		data = read_array(self.path, self.data_offset,
 				  ijk_origin, ijk_size, ijk_step,
 				  self.extent, float32, swap, progress)

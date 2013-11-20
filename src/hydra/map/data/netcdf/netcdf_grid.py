@@ -45,7 +45,7 @@ def read_netcdf(path):
                     d.cell_angles, d.rotation, a)
     ssa = subsampled_arrays(a)
     if ssa:
-      from VolumeData import Subsampled_Grid
+      from . import Subsampled_Grid
       g = Subsampled_Grid(g)
       for grid_size, cell_size, arrays in ssa:
         step = map(lambda s,c: s*c, d.xyz_step, cell_size)

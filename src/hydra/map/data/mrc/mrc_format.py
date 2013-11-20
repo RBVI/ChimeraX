@@ -107,7 +107,7 @@ class MRC_Data:
     for lbl in v['labels']:
       if lbl.startswith(b'Chimera rotation: '):
         ax,ay,az,angle = [float(x) for x in lbl.rstrip('\0').split()[2:]]
-        from ...geometry.place import rotation
+        from ....geometry.place import rotation
         r = rotation((ax,ay,az), angle).matrix[:,:3]
     self.rotation = r
     
@@ -327,7 +327,7 @@ class MRC_Data:
     import Crystal
     u2r = Crystal.unit_cell_to_xyz_matrix(a, b, c, alpha, beta, gamma)
 
-    from ..geometry.matrix import invert_matrix, multiply_matrices
+    from ....geometry.matrix import invert_matrix, multiply_matrices
     r2u = invert_matrix(u2r)
     syms = [multiply_matrices(u2r, u2u, r2u) for u2u in usyms]
   

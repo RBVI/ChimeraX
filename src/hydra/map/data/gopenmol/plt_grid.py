@@ -2,7 +2,7 @@
 # Wrap plt maps (used by gOpenMol, usual extension .plt)
 # as grid data for displaying surface, meshes, and volumes.
 #
-from VolumeData import Grid_Data
+from .. import Grid_Data
 
 class Plt_Grid(Grid_Data):
 

@@ -77,7 +77,7 @@ class Memory_Use_Dialog(ModelessDialog):
   #
   def data_cache(self):
 
-    from VolumeData import data_cache
+    from . import data_cache
     return data_cache
 
 # -----------------------------------------------------------------------------

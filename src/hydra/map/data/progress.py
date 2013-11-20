@@ -11,7 +11,7 @@ class Progress_Reporter:
 
     if message is None:
       def status(msg):
-        from ..ui import gui
+        from ...ui import gui
         gui.show_status(msg)
       message = status
     self.message = message

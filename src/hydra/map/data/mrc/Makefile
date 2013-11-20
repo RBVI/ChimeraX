@@ -1,7 +1,7 @@
-TOP = ../../../..
+TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/VolumeData/mrc
+PKG_DIR = $(PYSITEDIR)/hydra/map/data/mrc
 
 PYSRCS = __init__.py mrc_format.py mrc_grid.py writemrc.py
 

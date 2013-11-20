@@ -226,7 +226,7 @@ class Wavelength_Data:
         vnum = w + nw * time
       base = d.data_offset + vnum * bytes
 
-    from VolumeData.readarray import read_array
+    from ..readarray import read_array
     matrix = read_array(d.path, base, orig, size, step,
                         fsize, self.element_type, d.swap_bytes, progress)
     return matrix

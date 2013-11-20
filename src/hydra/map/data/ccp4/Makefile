@@ -1,7 +1,7 @@
-TOP = ../../../..
+TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/VolumeData/ccp4
+PKG_DIR = $(PYSITEDIR)/hydra/map/data/ccp4
 
 PYSRCS = __init__.py ccp4_grid.py
 

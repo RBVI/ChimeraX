@@ -1,12 +1,12 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= docs draw example_sessions file_io FitMap geometry molecule surface ui VolumeData VolumeViewer _image3d
+SUBDIRS	= docs draw example_sessions file_io geometry map molecule surface ui _image3d
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
 
-PYSRCS = __init__.py molmap.py scenes.py
+PYSRCS = __init__.py scenes.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)

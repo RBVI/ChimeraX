@@ -118,7 +118,7 @@ class Dock_Data:
     array_bytes = self.array_size * type_size
     base = offset + array_num * array_bytes
 
-    from VolumeData.readarray import read_array
+    from ..readarray import read_array
     matrix = read_array(self.path, base, ijk_origin, ijk_size, ijk_step,
                         self.data_size, type, self.byte_swap, progress)
 

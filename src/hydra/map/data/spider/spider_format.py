@@ -101,7 +101,7 @@ class SPIDER_Data:
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
     from numpy import float32
-    from VolumeData.readarray import read_array
+    from ..readarray import read_array
     matrix = read_array(self.path, self.data_offset,
                         ijk_origin, ijk_size, ijk_step,
                         self.data_size, float32, self.swap_bytes,

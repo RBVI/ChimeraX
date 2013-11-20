@@ -2,7 +2,7 @@
 # Wrap XPLOR density maps as grid data for displaying surface, meshes,
 # and volumes.
 #
-from VolumeData import Grid_Data
+from .. import Grid_Data
 
 # -----------------------------------------------------------------------------
 #
@@ -15,7 +15,7 @@ class XPLOR_Grid(Grid_Data):
     self.density_map = xm
 
     step = map(lambda cs, gs: cs / gs, xm.cell_size, (xm.na, xm.nb, xm.nc))
-    from VolumeData.griddata import scale_and_skew
+    from ..griddata import scale_and_skew
     origin = scale_and_skew((xm.amin, xm.bmin, xm.cmin), step, xm.cell_angles)
 
     Grid_Data.__init__(self, xm.grid_size, origin = origin, step = step,

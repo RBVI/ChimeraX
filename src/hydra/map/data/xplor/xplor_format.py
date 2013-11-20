@@ -34,7 +34,7 @@ class XPLOR_Density_Map:
     self.comments = comments
 
     extent_line = f.readline()
-    from VolumeData.readarray import split_fields
+    from ..readarray import split_fields
     extent = split_fields(extent_line, 8, 9)
     try:
       na, amin, amax, nb, bmin, bmax, nc, cmin, cmax = map(int, extent)
@@ -83,7 +83,7 @@ class XPLOR_Density_Map:
     asize, bsize, csize = self.grid_size
     from numpy import zeros, float32, array, reshape
     data = zeros((csize, bsize, asize), float32)
-    from VolumeData.readarray import read_float_lines
+    from ..readarray import read_float_lines
     for c in range(csize):
       if progress:
         progress.plane(c)

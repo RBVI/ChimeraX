@@ -1,7 +1,7 @@
-TOP = ../../..
+TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/FitMap
+PKG_DIR = $(PYSITEDIR)/hydra/map/fit
 
 PYSRCS = __init__.py fitcmd.py fitlist.py fitmap.py move.py \
 	search.py sequence.py session.py

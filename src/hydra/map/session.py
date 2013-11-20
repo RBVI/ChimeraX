@@ -173,7 +173,7 @@ def state_from_grid_data(data):
   if len(dt.symmetries) > 0:
     s['symmetries'] = dt.symmetries
 
-  from ..VolumeData import Subsampled_Grid
+  from .data import Subsampled_Grid
   if isinstance(dt, Subsampled_Grid):
     s['available_subsamplings'] = ass = {}
     for csize, ssdata in dt.available_subsamplings.items():
@@ -218,7 +218,7 @@ def grid_data_from_state(s, gdcache):
     
   if 'available_subsamplings' in s:
     # Subsamples may be from separate files or the same file.
-    from ..VolumeData import Subsampled_Grid
+    from .data import Subsampled_Grid
     dslist = []
     for data in dlist:
       if not isinstance(data, Subsampled_Grid):
@@ -244,7 +244,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache):
     return dlist
 
   if dbfetch is None:
-    from ..VolumeData import opendialog
+    from .data import opendialog
     paths_and_types = [(path, file_type)]
     grids, error_message = opendialog.open_grid_files(paths_and_types,
                                                       stack_images = False)

@@ -9,13 +9,13 @@ def fit_sequence(models, volume, steps,
                  ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
                  request_stop_cb = None):
 
-    from ..geometry.place import identity
+    from ...geometry.place import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
 
     size = tuple(data_array.shape[::-1])
     from numpy import float32, multiply, add, array
-    from VolumeData import grid_indices
+    from ..data import grid_indices
     grid_points = grid_indices(size, float32)
     import Matrix as M
     M.transform_points(grid_points, M.invert_matrix(xyz_to_ijk_transform))
@@ -29,7 +29,7 @@ def fit_sequence(models, volume, steps,
 
     fits = {}
     import fitmap as F
-    from VolumeViewer.volume import minimum_rms_scale
+    from ..volume import minimum_rms_scale
     from search import Fit
     for s in range(steps):
         mi = s % len(models)

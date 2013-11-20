@@ -11,8 +11,8 @@ class Fit_List:
         self.smooth_motion = True
         self.smooth_steps = 10
 
-        from ..ui.gui import main_window
-        from ..ui.qt import QtWidgets
+        from ...ui.gui import main_window
+        from ...ui.qt import QtWidgets
         self.dock_widget = dw = QtWidgets.QDockWidget('Fit List', main_window)
 
         # Place list above row of buttons
@@ -22,7 +22,7 @@ class Fit_List:
         vb.setSpacing(0)                # Spacing between list and button row
         class ListBox(QtWidgets.QListWidget):
             def sizeHint(self):
-                from ..ui.qt import QtCore
+                from ...ui.qt import QtCore
                 return QtCore.QSize(500,50)
         self.list_box = lb = ListBox(w)
 #        self.list_box = lb = QtWidgets.QListWidget(w)
@@ -52,20 +52,20 @@ class Fit_List:
         w.setLayout(vb)
         dw.setWidget(w)
 
-        from ..ui.qt import QtGui
+        from ...ui.qt import QtGui
         lb.setFont(QtGui.QFont("Courier"))  # Fixed with font so columns line up
 
         self.refill_list()      # Set heading
 
     def show(self):
-        from ..ui.gui import main_window
-        from ..ui.qt import QtCore
+        from ...ui.gui import main_window
+        from ...ui.qt import QtCore
         dw = self.dock_widget
         main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
         dw.setVisible(True)
 
     def hide(self):
-        from ..ui.gui import main_window
+        from ...ui.gui import main_window
         main_window.removeDockWidget(self.dock_widget)
 
     def fillInUI(self, parent):
@@ -148,7 +148,7 @@ class Fit_List:
         # TODO: Want to be able to update clash value when contour level
         #   changed.  Currently it is cached in Fit object.
         mname = fit.models[0].name if fit.models else 'deleted'
-        from ..molecule import Molecule
+        from ...molecule import Molecule
         if len([m for m in fit.models if isinstance(m,Molecule)]) > 1:
             mname += '...'
 
@@ -253,7 +253,7 @@ class Fit_List:
         else:
             dfits = self.selected_listbox_fits()
             if len(dfits) == 0:
-                from ..ui.gui import show_status
+                from ...ui.gui import show_status
                 show_status('No fits chosen from list.')
                 return
         dset = set(dfits)
@@ -265,12 +265,12 @@ class Fit_List:
             lb.takeItem(i+1)
             del fits[i]
 
-        from ..ui.gui import show_status
+        from ...ui.gui import show_status
         show_status('Deleted %d fits' % len(indices))
 
     def place_copies_cb(self):
 
-        from ..ui.gui import show_status
+        from ...ui.gui import show_status
         lfits = [f for f in self.selected_listbox_fits() if f.fit_molecules()]
         if len(lfits) == 0:
             show_status('No fits of molecules chosen from list.')

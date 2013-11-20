@@ -261,7 +261,7 @@ class NetCDF_Array:
     i1, j1, k1 = ijk_origin
     i2, j2, k2 = map(lambda i, s: i+s, ijk_origin, ijk_size)
     istep, jstep, kstep = ijk_step
-    from VolumeData.readarray import allocate_array
+    from ..readarray import allocate_array
     m = allocate_array(ijk_size, self.dtype, ijk_step, progress)
     for k in range(k1,k2,kstep):
       # Cast of istep and jstep to int works around ScientificPython/netcdf bug
@@ -337,7 +337,7 @@ def subsample_arrays(grid_data, dname, f):
 
   sarrays = []
 
-  from VolumeData import Subsampled_Grid
+  from . import Subsampled_Grid
   if not isinstance(grid_data, Subsampled_Grid):
     return sarrays
 
