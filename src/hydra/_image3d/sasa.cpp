@@ -36,10 +36,13 @@ public:
 
 typedef std::vector<Circle> Circles;
 
+// A point of intersection between two circles on a sphere is used to
+// trace the boundary of the buried area on the sphere.
 class Circle_Intersection
 {
 public:
-  Circle_Intersection(const Circle &circle1, const Circle &circle2, double point[3]) : circle1(&circle1), circle2(&circle2)
+  Circle_Intersection(const Circle &circle1, const Circle &circle2, double point[3]) :
+    circle1(&circle1), circle2(&circle2)
   {
     for (int a = 0 ; a < 3 ; ++a)
       this->point[a] = point[a];
@@ -49,8 +52,19 @@ public:
   double point[3];
 };
 
+typedef std::vector<Circle_Intersection> Circle_Intersections;
+typedef std::vector<Circle_Intersection*> Path;
+typedef std::vector<Path> Paths;
+
+// List of indices into sphere list.
 typedef std::vector<int> Index_List;
 
+// To find spheres that intersect without testing every sphere for intersection
+// with every other sphere, we compute a bounding box for the spheres and divide
+// it in half successively until the boxes contain few spheres.  We keep track of
+// the spheres entirely in the box and the additional ones that touch the box which
+// may intersect those inside the box.  Then we do all-by-all sphere intersection
+// tests for each box.
 class Region_Spheres
 {
 public:
@@ -66,20 +80,13 @@ public:
   Index_List in_region, near_region;
 };
 
-typedef std::vector<Circle_Intersection> Circle_Intersections;
-typedef std::vector<Circle_Intersection*> Path;
-typedef std::vector<Path> Paths;
-
 static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas);
 static void find_sphere_regions(double *centers, int n, double *radii, int max_size,
 				std::vector<Region_Spheres> &rspheres);
 static void subdivide_region(const Region_Spheres &rs, double *centers, double *radii,
 			     int max_size, std::vector<Region_Spheres> &rspheres);
-static bool buried_sphere_area(int i, double *centers, int n, double *radii, double *area);
-static bool buried_sphere_area(int i,  const Index_List &iclose,
+static bool buried_sphere_area(int i, const Index_List &iclose,
 			       double *centers, double *radii, double *area);
-static bool sphere_intersection_circles(int i, double *centers, int n, double *radii,
-					Circles &circles);
 static bool sphere_intersection_circles(int i, const Index_List &iclose,
 					double *centers, double *radii,	Circles &circles);
 static bool sphere_intersection(double *c0, double r0, double *c1, double r1,
@@ -101,15 +108,13 @@ static double polar_angle(const double *zaxis, const double *v1, const double *v
 static void estimate_surface_area_of_spheres(double *centers, int n, double *radii,
 					     double *sphere_points, int np, double *point_weights,
 					     double *areas);
-/*
-static double estimate_buried_sphere_area(int i, double *centers, int n, double *radii,
-					  double *points, int np, double *weights, double wsum,
-					  double *pbuf, int *ibuf);
-*/
 static double estimate_buried_sphere_area(int i, const Index_List &iclose, double *centers, double *radii,
 					  double *points, int np, double *weights, double wsum,
 					  double *pbuf, int *ibuf);
 
+// Count connected regions composed of overlapping discs on a sphere.
+// Need to know the number of regions because area calculation for regions with more than
+// one bounding curve is different than with one bounding curve.
 class Region_Count
 {
 public:
@@ -161,41 +166,27 @@ private:
 };
 
 // Returns count of how many spheres calculation succeeded for.
-static int surface_area_of_spheres1(double *centers, int n, double *radii, double *areas)
-{
-  int c = 0;
-  for (int i = 0 ; i < n ; ++i)
-    {
-      double ba;
-      if (buried_sphere_area(i, centers, n, radii, &ba))
-	{
-	  double r = radii[i];
-	  areas[i] = 4*M_PI*r*r - ba;
-	  c += 1;
-	}
-      else
-	areas[i] = -1;	// Calculation failed.
-    }
-  return c;
-}
-
-// Returns count of how many spheres calculation succeeded for.
+// If calculation fails for a sphere the area for that sphere is set to -1.
 static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas)
 {
+  // Find spheres that intersect other spheres quickly by partitioning spheres into boxes.
   int max_spheres_in_region = 100;
   std::vector<Region_Spheres> rspheres;
   find_sphere_regions(centers, n, radii, max_spheres_in_region, rspheres);
   int c = 0;
   int nr = rspheres.size();
+
+  // Parallelize loop over boxes containing sphere using OpenMP.
 #pragma omp parallel shared(nr,rspheres,centers,radii,areas,c)
   {
+    // Have each thread handle 100 boxes.
 #pragma omp for schedule(dynamic,100)
-  for (int r = 0 ; r < nr ; ++r)
+  for (int r = 0 ; r < nr ; ++r)	// Loop over boxes of spheres.
     {
       Region_Spheres &rs = rspheres[r];
       Index_List &ir = rs.in_region;
       int nir = ir.size();
-      for (int j = 0 ; j < nir ; ++j)
+      for (int j = 0 ; j < nir ; ++j)	// For each sphere in box compute area.
 	{
 	  int i = ir[j];
 	  double ba;
@@ -213,6 +204,7 @@ static int surface_area_of_spheres(double *centers, int n, double *radii, double
   return c;
 }
 
+// Subdivide bounding boxes to group nearby spheres.
 static void find_sphere_regions(double *centers, int n, double *radii, int max_size,
 				std::vector<Region_Spheres> &rspheres)
 {
@@ -311,29 +303,11 @@ void Region_Spheres::find_nearby_spheres(const Index_List &near, double *centers
     }
 }
 
-static bool buried_sphere_area(int i, double *centers, int n, double *radii, double *area)
-{
-  double r = radii[i];
-
-  // Compute sphere intersections
-  Circles circles;
-  if (sphere_intersection_circles(i, centers, n, radii, circles))
-    *area = 4*M_PI*r*r;   // Sphere is completely contained in another sphere
-  else if (area_in_circles_on_unit_sphere(circles, area)) // Compute analytical buried area on sphere.
-    *area *= r*r;
-  else
-    return false;	// Analytic calculation failed.
-
-  return true;
-}
-
-bool debug = false;
 static bool buried_sphere_area(int i, const Index_List &iclose,
 			       double *centers, double *radii, double *area)
 {
   double r = radii[i];
 
-  //  debug = (i == 2701);
   // Compute sphere intersections
   Circles circles;
   if (sphere_intersection_circles(i, iclose, centers, radii, circles))
@@ -344,18 +318,6 @@ static bool buried_sphere_area(int i, const Index_List &iclose,
     return false;	// Analytic calculation failed.
 
   return true;
-}
-
-// Returns true if sphere i is entirely inside another sphere.
-static bool sphere_intersection_circles(int i, double *centers, int n, double *radii,
-					Circles &circles)
-{
-  double *c = centers + 3*i, r = radii[i];
-  for (int j = 0 ; j < n ; ++j)
-    if (j != i)
-      if (sphere_intersection(c, r, centers+3*j, radii[j], circles))
-	return true;
-  return false;
 }
 
 // Returns true if sphere i is entirely inside another sphere.
@@ -407,18 +369,18 @@ static bool area_in_circles_on_unit_sphere(Circles &circles, double *area)
       return true;
     }
 
-  // Speed up circle intersection calculation.
-  // Typically half of circles are in other circles for molecular surfaces.
+  // Need to detect circles in circles for lone circle area calculation.
   if (remove_circles_in_circles(circles))
     {
       *area = 4*M_PI;	// Two discs overlap to cover sphere.
       return true;
     }
 
+  // Compute intersections of all pairs of circles,
+  // and also lone circles that don't intersect any other circles.
   Circle_Intersections cint;
   Circles lc;
   int nreg = circle_intersections(circles, cint, lc);
-  //  std::cerr << cint.size() << " intersections " << lc.size() << " lone circles " << nreg << " regions\n";
 
   // Check if circles cover the sphere
   if (cint.empty() && lc.empty())
@@ -430,19 +392,7 @@ static bool area_in_circles_on_unit_sphere(Circles &circles, double *area)
   // Connect circle arcs to form boundary paths.
   Paths paths;
   if (!boundary_paths(cint, paths))
-    {
-      /*
-      std::cerr << "failed " << cint.size() << " intersections " << lc.size() << " lone circles " << circles.size() << " circles " << circles.size() << " circles not inside circles " << paths.size() << " paths\n";
-      std::cerr.precision(16);
-      for (int i = 0 ; i < cint.size() ; ++i)
-	{
-	std::cerr << i << " " << cint[i].point[0] << " " << cint[i].point[1]  << " " << cint[i].point[2] << std::endl;
-	std::cerr << i << " " << cint[i].circle1->center[0] << " " << cint[i].circle1->center[1]  << " " << cint[i].circle1->center[2] << " " << cint[i].circle1->angle << std::endl;
-	std::cerr << i << " " << cint[i].circle2->center[0] << " " << cint[i].circle2->center[1]  << " " << cint[i].circle2->center[2] << " " << cint[i].circle2->angle << std::endl;
-	}
-      */
-    return false;
-    }
+    return false;	// Boundary path failed to form loops.
 
   /*
   std::cerr << "boundary lengths ";
@@ -458,23 +408,6 @@ static bool area_in_circles_on_unit_sphere(Circles &circles, double *area)
   double la = lone_circles_area(lc);
   double ba = bounded_area(paths, nreg);
   *area = la + ba;
-  /*
-  if (la+ba > 4*M_PI || ba < 0 || debug)
-    {
-      std::cerr << "neg area " << cint.size() << " intersections " << lc.size() << " lone circles " << circles.size() << " circles " << circles.size() << " circles not inside circles " << paths.size() << " paths\n";
-      std::cerr.precision(16);
-      for (int i = 0 ; i < lc.size() ; ++i)
-	{
-	  std::cerr << lc[i].center[0] << " " << lc[i].center[1] << " " << lc[i].center[2] << " " << lc[i].angle *180/M_PI << std::endl;
-	}
-      for (int i = 0 ; i < cint.size() ; ++i)
-	{
-	std::cerr << i << " " << cint[i].point[0] << " " << cint[i].point[1]  << " " << cint[i].point[2] << std::endl;
-	std::cerr << i << " " << cint[i].circle1->center[0] << " " << cint[i].circle1->center[1]  << " " << cint[i].circle1->center[2] << " " << cint[i].circle1->angle << std::endl;
-	std::cerr << i << " " << cint[i].circle2->center[0] << " " << cint[i].circle2->center[1]  << " " << cint[i].circle2->center[2] << " " << cint[i].circle2->angle << std::endl;
-	}
-    }
-  */
 
   return true;
 }
@@ -482,7 +415,7 @@ static bool area_in_circles_on_unit_sphere(Circles &circles, double *area)
 
 // Remove discs entirely within other discs.  The circles list is modified.
 // If a disc covers the complement of another disc so the whole sphere is covered
-// by the two discs then return true.  Otherwise return false.
+// by the two discs then return true, otherwise return false.
 static bool remove_circles_in_circles(Circles &circles)
 {
   for (int i = 0 ; i < circles.size() ; ++i)
@@ -510,6 +443,9 @@ static bool remove_circles_in_circles(Circles &circles)
   return false;
 }
 
+// Compute intersections of all pairs of circles,
+// and also lone circles that don't intersect any other circles.
+// Returns the number of connected regions formed by the intersecting circles.
 static int circle_intersections(const Circles &circles,
 				Circle_Intersections &cint, Circles &lc)
 {
@@ -575,6 +511,8 @@ static bool circle_intercepts(const Circle &c0, const Circle &c1,
   return true;
 }
 
+// Check if a point is within any circle, other than the two circles
+// whose intersection defined this point.
 static bool point_in_circles(double p[3], const Circles &circles,
 			     int iexclude0, int iexclude1)
 {
@@ -590,6 +528,7 @@ static bool point_in_circles(double p[3], const Circles &circles,
   return false;
 }
 
+// Connect intersection points on boundary to form loops.
 static bool boundary_paths(Circle_Intersections &cint, Paths &paths)
 {
   int n = cint.size();
@@ -606,6 +545,8 @@ static bool boundary_paths(Circle_Intersections &cint, Paths &paths)
   return true;
 }
 
+// Find a boundary path loop starting at circle intersection i.
+// Record the intersections that were used in the "used" array.
 static bool boundary_path(int i, Circle_Intersections &cint, bool *used, Path &path)
 {
   path.push_back(&cint[i]);
@@ -638,6 +579,7 @@ static bool boundary_path(int i, Circle_Intersections &cint, bool *used, Path &p
   return true;
 }
 
+// Return the sum of areas of non-overlapping circles.
 static double lone_circles_area(const Circles &lone_circles)
 {
   double area = 0;
@@ -649,6 +591,12 @@ static double lone_circles_area(const Circles &lone_circles)
   return area;
 }
 
+// Return the area with a path defined by circular arcs.
+// Surprisingly this equals 2*pi minus the angle of rotation of the
+// boundary tangent vector as the bounding path is traversed.
+// If more than one path bounds a region, then sum 2*pi minus
+// tangent rotation over all loops and subtract 4*pi for each
+// extra bounding path for a region.
 static double bounded_area(const Paths &paths, int nreg)
 {
   double area = 0;
@@ -657,27 +605,26 @@ static double bounded_area(const Paths &paths, int nreg)
     {
       const Path &path = paths[p];
       int n = path.size();
-      double ba = 0;
+      double ba = 0;	// Bend angle. Rotation of tangent vector on sphere surface.
       for (int i = 0 ; i < n ; ++i)
 	{
 	  Circle_Intersection *bp1 = path[i];
 	  double *p = bp1->point;
 	  const Circle *c1 = bp1->circle1, *c2 = bp1->circle2;
 	  double ia = circle_intercept_angle(c1->centerp(), p, c2->centerp());
-	  ba += ia - 2*M_PI;
+	  ba += ia - 2*M_PI;	// Tangent rotation at intersection of two arcs.
 	  Circle_Intersection *bp2 = path[(i+1)%n];
 	  double a = polar_angle(c2->centerp(), p, bp2->point);  // Circular arc angle
-	  //	  std::cerr << "seg " << i << " kink " << (ia - 2*M_PI)*180/M_PI << " arc " << a*180/M_PI << std::endl;
-	  ba += a * bp1->circle2->cos_angle;  // circular segment bend angle
+	  ba += a * bp1->circle2->cos_angle;  // Tangent rotation along circular arc
 	}
-      //      std::cerr << "path length " << n << " area " << 2*M_PI-ba << std::endl;
       area += 2*M_PI - ba;
     }
   if (np > nreg)
-    area -= 4*M_PI*(np-nreg);
+    area -= 4*M_PI*(np-nreg);	// Correction for regions bounded by more than one loop.
   return area;
 }
 
+// Compute the tangent vector rotation at an intersection of two circles.
 static double circle_intercept_angle(const double *center1, const double *pintersect, const double *center2)
 {
   // Angle made by tangent vectors t1 = c1 x p and t2 = c2 x p is same as
@@ -707,100 +654,38 @@ static double polar_angle(const double *zaxis, const double *v1, const double *v
   return a;
 }
 
-/*
+// Compute exposed surface area of set of spheres using a numerical approximation.
+// Buried area for each sphere is computed by counting how many points on each sphere are
+// contained in other spheres.  The points have area weights to handle non-uniformly
+// distributed points.  One case uses icosahedral subdivision to produce the unit sphere
+// points.
 static void estimate_surface_area_of_spheres(double *centers, int n, double *radii,
 					     double *sphere_points, int np, double *point_weights,
 					     double *areas)
 {
-  double wsum = 0;
-  for (int k = 0 ; k < np ; ++k)
-    wsum += point_weights[k];
-
-  double *pbuf = new double [3*np];
-  int *ibuf = new int[np];
-
-  for (int i = 0 ; i < n ; ++i)
-    {
-      double ba = estimate_buried_sphere_area(i, centers, n, radii,
-					      sphere_points, np, point_weights, wsum,
-					      pbuf, ibuf);
-      double r = radii[i];
-      areas[i] = 4*M_PI*r*r - ba;
-    }
-
-  delete [] ibuf;
-  delete [] pbuf;
-}
-
-static double estimate_buried_sphere_area(int i, double *centers, int n, double *radii,
-					  double *points, int np, double *weights, double wsum,
-					  double *pbuf, int *ibuf)
-{
-  double *c = centers + 3*i, r = radii[i];
-  for (int j = 0 ; j < np ; ++j)
-    {
-      for (int a = 0 ; a < 3 ; ++a)
-	pbuf[3*j+a] = r*points[3*j+a] + c[a];
-      ibuf[j] = 0;
-    }
-
-  double ci0 = c[0], ci1 = c[1], ci2 = c[2];
-  for (int j = 0 ; j < n ; ++j)
-    if (j != i)
-      {
-	double rj = radii[j];
-	double c0 = centers[3*j], c1 = centers[3*j+1], c2 = centers[3*j+2];
-	double d0 = c0-ci0, d1 = c1-ci1, d2 = c2-ci2;
-	double dij2 = d0*d0 + d1*d1 + d2*d2;
-	if (dij2 > (r+rj)*(r+rj))
-	  continue;	// Spheres don't intersect.
-	double r2 = rj*rj;
-	for (int k = 0 ; k < np ; ++k)
-	  if (!ibuf[k])
-	    {
-	      double *p = pbuf+3*k;
-	      double dx = p[0]-c0, dy = p[1]-c1, dz = p[2]-c2;
-	      double d2 = dx*dx + dy*dy + dz*dz;
-	      if (d2 <= r2)
-		ibuf[k] = 1;
-	    }
-      }
-
-  double isum = 0;
-  for (int k = 0 ; k < np ; ++k)
-    if (ibuf[k])
-      isum += weights[k];
-
-  double a = 4*M_PI*r*r*isum/wsum;
-
-  return a;
-}
-*/
-
-static void estimate_surface_area_of_spheres(double *centers, int n, double *radii,
-					     double *sphere_points, int np, double *point_weights,
-					     double *areas)
-{
+  // Find spheres that intersect other spheres quickly by partitioning spheres into boxes.
   int max_spheres_in_region = 100;
   std::vector<Region_Spheres> rspheres;
   find_sphere_regions(centers, n, radii, max_spheres_in_region, rspheres);
+  int nr = rspheres.size();
 
   double wsum = 0;
   for (int k = 0 ; k < np ; ++k)
     wsum += point_weights[k];
 
-  int nr = rspheres.size();
+  // Parallelize loop over boxes containing sphere using OpenMP.
 #pragma omp parallel shared(nr,rspheres,centers,radii,sphere_points,np,point_weights,wsum,areas)
   {
   double *pbuf = new double [3*np];
   int *ibuf = new int[np];
+  // Have each thread handle 100 boxes. 
 #pragma omp for schedule(dynamic,100)
-  for (int r = 0 ; r < nr ; ++r)
+  for (int r = 0 ; r < nr ; ++r)	// Loop over boxes of spheres.
     {
       Region_Spheres &rs = rspheres[r];
       Index_List &ir = rs.in_region;
       int nir = ir.size();
-      for (int j = 0 ; j < nir ; ++j)
+      for (int j = 0 ; j < nir ; ++j)	// For each sphere in box compute area.
 	{
 	  int i = ir[j];
 	  double ba = estimate_buried_sphere_area(i, rs.near_region, centers, radii,
@@ -815,6 +700,10 @@ static void estimate_surface_area_of_spheres(double *centers, int n, double *rad
   }
 }
 
+// Calculate area for sphere i buried by spheres iclose.
+// Use points on unit sphere and point weights (areas) and see how many points are inside other spheres.
+// pbuf and ibuf are buffers to hold points recentered and scaled to sphere i, and to mark which points
+// were in other spheres.
 static double estimate_buried_sphere_area(int i, const Index_List &iclose, double *centers, double *radii,
 					  double *points, int np, double *weights, double wsum,
 					  double *pbuf, int *ibuf)
@@ -868,6 +757,7 @@ static double estimate_buried_sphere_area(int i, const Index_List &iclose, doubl
   return a;
 }
 
+// Python wrapper for analytic solvent accessible area calculation.
 extern "C" PyObject *surface_area_of_spheres(PyObject *s, PyObject *args, PyObject *keywds)
 {
   DArray centers, radii, areas;
@@ -898,16 +788,15 @@ extern "C" PyObject *surface_area_of_spheres(PyObject *s, PyObject *args, PyObje
       return NULL;
     }
 
+  // Returned sphere area of -1 means calculation failed for that sphere.
   int count = surface_area_of_spheres(ca.values(), ca.size(0), ra.values(), areas.values());
-  //  PyObject *py_areas = (count == n ? array_python_source(areas) : Py_None);
-  //  if (!alloc_areas || count < n)
-  //    Py_INCREF(py_areas);    
   PyObject *py_areas = array_python_source(areas);
   if (!alloc_areas)
     Py_INCREF(py_areas);    
   return py_areas;
 }
 
+// Python wrapper for numerical estimate of solvent accessible area calculation.
 extern "C" PyObject *estimate_surface_area_of_spheres(PyObject *s, PyObject *args, PyObject *keywds)
 {
   DArray centers, radii, points, weights, areas;
