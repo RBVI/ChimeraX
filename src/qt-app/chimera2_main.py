@@ -79,7 +79,6 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 			return
 		if app.main_view.camera:
 			app.main_view.camera.xform(rot)
-		self.updateGL()
 		return cursor
 
 	def vsphere_release(self):
