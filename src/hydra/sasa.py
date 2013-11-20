@@ -14,7 +14,10 @@ def buried_sphere_area(i, centers, radii, draw = False):
 
     if draw:
         surf0 = sphere_model([i], centers, radii)
-        jlist = list(range(i)) + list(range(i+1,len(centers)))
+        from .geometry.vector import norm
+        jlist = [j for j in range(len(centers)) if j != i and norm(centers[j]-centers[i]) < radii[j]+radii[i]]
+#        jlist = list(range(i)) + list(range(i+1,len(centers)))
+        print(len(jlist), 'spheres intersect sphere', i)
         surfn = sphere_model(jlist, centers, radii)
         for p in surfn.surface_pieces():
             p.color = (.7,.7,.9,.7)
@@ -32,7 +35,7 @@ def buried_sphere_area(i, centers, radii, draw = False):
     circles = sphere_intersection_circles(i, centers, radii)
 
     # Compute analytical buried area on sphere.
-    area = area_in_circles_on_unit_sphere(circles, draw)*r*r
+    area = area_in_circles_on_unit_sphere(circles, draw, centers[i], r)*r*r
 
     return area
 
@@ -74,7 +77,7 @@ class Circle:
         self.angle = acos(cos_angle)
         self.cos_angle = cos_angle
 
-def area_in_circles_on_unit_sphere(circles, draw = False):
+def area_in_circles_on_unit_sphere(circles, draw = False, draw_center = (0,0,0), draw_radius = 1):
 
     # Check if sphere is outside all other spheres.
     if len(circles) == 0:
@@ -83,10 +86,10 @@ def area_in_circles_on_unit_sphere(circles, draw = False):
     if draw:
         from .surface import Surface
         surfc = Surface('circles')
-        s0 = unit_sphere()
+        s0 = (draw_center, draw_radius)
         draw_circles(circles, s0, surfc, width = 0.01, offset = 0.01)
 
-    cint, lc, nreg = circle_intersections(circles)
+    cint, lc, nreg = circle_intersections(circles, draw)
 
     if draw:
         surfi = Surface('boundary points')
@@ -114,18 +117,21 @@ def area_in_circles_on_unit_sphere(circles, draw = False):
 
     if draw:
         from .ui.gui import main_window
-        main_window.view.add_models((surfc, surfi, surfbp, surfb))
+        main_window.view.add_models((surfc, surfi, surfb))
 
     return area
 
-def circle_intersections(circles):
+def circle_intersections(circles, draw = False):
 
     # Remove circles contained in other circles.
     circles2 = [c for i,c in enumerate(circles) if not circle_in_circles(i, circles)]
+    if draw:
+        print(len(circles), 'circles', len(circles)-len(circles2), 'inside other circles')
 
     # Compute intersection points of circles that are not contained in other circles.
     cint = []
     rc = Region_Count(len(circles2))
+    ni = 0
     for i, c0 in enumerate(circles2):
         for j, c1 in enumerate(circles2[i+1:], i+1):
             p0,p1 = circle_intercepts(c0, c1)
@@ -135,9 +141,12 @@ def circle_intersections(circles):
                     cint.append(Circle_Intersection(c0,c1,p0))
                 if not point_in_circles(p1, circles2, (i,j)):
                     cint.append(Circle_Intersection(c1,c0,p1))
+                ni += 2
     sz = rc.region_sizes()
     lc = [circles2[i] for i,s in enumerate(sz) if s == 1]       # Lone circles
     nreg = rc.number_of_regions() - len(lc)     # Number of multicircle regions
+    if draw:
+        print(ni, 'intersection points', len(cint), 'on boundary', len(lc), 'lone circles', nreg, 'multicircle regions')
 
     return cint, lc, nreg
 
@@ -334,7 +343,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
     p.color = color
 
 def draw_sphere_points(points, sphere, s, color, radius = 0.02, offset = 0.02):
-    circles = tuple(Circle(p,radius) for p in points)
+    circles = tuple(Circle(p,cos(radius)) for p in points)
     draw_circles(circles, sphere, s, offset, 0.5*radius, color)
 
 def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
@@ -488,6 +497,9 @@ def test_sasa(n = 30, npoints = 1000):
 #    import cProfile
 #    cProfile.runctx('print("area =", spheres_surface_area(centers, radii).sum())', globals(), locals())
     from ._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
+
+#    i = 10
+#    buried_sphere_area(i, centers, radii, draw = True)
     from time import time
     t0 = time()
     areas = surface_area_of_spheres(centers, radii)
@@ -529,7 +541,7 @@ def pdb_subdirs(pdb_dir = '/usr/local/pdb'):
 
 def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
                         results = '/Users/goddard/ucsf/chimera2/src/hydra/sasa_results.txt',
-                        npoints = 10000):
+                        npoints = 1000):
 
     from os import listdir
     from os.path import join
