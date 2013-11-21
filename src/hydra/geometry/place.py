@@ -1,10 +1,8 @@
 '''
-Math for points, vectors and coordinate systems.
-================================================
+place: Coordinate systems
+=========================
 
-A point or vector is a one-dimensional numpy array of 3 floating point
-values.  Multiple points or vectors are represented as two-dimensional
-numpy arrays of size N by 3.  A coordinate system is represented by a
+A coordinate system is represented by a
 Place object which defines an origin and three axes specified relative
 to another coordinate system.  A Place can specify the position and
 orientation of a model in a scene, defining the local coordinate
@@ -14,9 +12,14 @@ of a camera within a scene.  A Place can also be thought of as a
 coordinate transformation mapping Place coordinates to the other
 coordinate system.  The transform consists of a linear part (often a
 rotation, but more generally a 3 by 3 matrix) followed by a shift
-along the 3 axes.  Points and vectors can have 32-bit or 64-bit
-floating point coordinates.  Place objects use 64-bit coordinates for
+along the 3 axes.  Place objects use 64-bit coordinates for
 axes and origin.
+
+
+A point or vector is a one-dimensional numpy array of 3 floating point
+values.  Multiple points or vectors are represented as two-dimensional
+numpy arrays of size N by 3. Points and vectors can have 32-bit or 64-bit
+floating point coordinates.
 
 '''
 
