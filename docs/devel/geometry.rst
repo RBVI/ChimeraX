@@ -1,3 +1,6 @@
+geometry: Points and coordinate systems
+=======================================
+
 .. automodule:: hydra.geometry.place
     :members:
 

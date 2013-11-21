@@ -6,7 +6,7 @@ include $(TOP)/mk/config.make
 # You can set these variables from the command line.
 SPHINXOPTS    =
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = python3 $(PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   = $(bindir)/python3 $(PYTHON_FRAMEWORK)/bin/sphinx-build
 else
 SPHINXBUILD   = python3 $(bindir)/sphinx-build
 endif
