@@ -18,7 +18,7 @@ else
 	OPT = -O3
 endif
 	CC = gcc -pipe -fPIC
-	CXX = g++ -pipe -fPIC
+	CXX = g++ -pipe -fPIC -std=c++11
 
 	PYDEF = -fvisibility-ms-compat -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 	PYMOD_EXT = so
@@ -92,10 +92,10 @@ else
 endif
 ifdef USE_XCODE4
 	CC = clang --sysroot $(SYSROOT)
-	CXX = clang++ --sysroot $(SYSROOT)
+	CXX = clang++ --sysroot $(SYSROOT) -std=c++11 -stdlib=libc++
 else
 	CC = gcc -pipe -isysroot $(SYSROOT)
-	CXX = g++ -pipe -isysroot $(SYSROOT)
+	CXX = g++ -pipe -isysroot $(SYSROOT) -std=c++11
 endif
 	EXTRA_CFLAGS = -fPIC
 	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
