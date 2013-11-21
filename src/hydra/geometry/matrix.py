@@ -813,15 +813,6 @@ def vector_sum(weights, vectors):
 
 # -----------------------------------------------------------------------------
 #
-def point_bounds(points, axis):
-
-  from numpy import dot
-  pa = dot(points, axis)
-  a2 = dot(axis, axis)
-  return pa.min()/a2, pa.max()/a2
-
-# -----------------------------------------------------------------------------
-#
 def coordinate_transform(tf, ctf):
 
   ctfinv = invert_matrix(ctf)

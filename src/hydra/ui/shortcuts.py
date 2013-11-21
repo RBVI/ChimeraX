@@ -44,6 +44,7 @@ def register_shortcuts(viewer):
         ('hw', hide_waters, 'Hide water atoms'),
         ('r+', fat_ribbons, 'Fat ribbons'),
         ('r-', thin_ribbons, 'Thin ribbons'),
+        ('sa', accessible_surface_area, 'Compute solvent accesible surface area'),
     )
     molcat = 'Molecule Display'
     for k,f,d in mol_shortcuts:
@@ -87,7 +88,6 @@ def register_shortcuts(viewer):
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
 
-    from ..sasa import test_sasa
     from .gui import show_log
     misc_shortcuts = (
         ('dv', v.initial_camera_view, 'Default view', gcat),
@@ -103,7 +103,6 @@ def register_shortcuts(viewer):
         ('ch', show_command_history, 'Show command history', gcat),
         ('sc', show_scenes, 'Show scene thumbnails', gcat),
         ('rt', show_stats, 'Show model statistics', gcat),
-        ('sa', test_sasa, 'Test solvent accesible surface area calculation', gcat)
         )
     for k,f,d,cat in misc_shortcuts:
       ks.add_shortcut(k, f, d, category = cat)
@@ -254,7 +253,7 @@ def toggle_box_faces(m):
 
 def enable_move_planes_mouse_mode(viewer, button = 'right'):
 
-  from ..VolumeViewer.moveplanes import planes_mouse_mode as pmm
+  from ..map.moveplanes import planes_mouse_mode as pmm
   viewer.bind_mouse_mode(button,
                          lambda e,v=viewer: pmm.mouse_down(v,e),
                          lambda e,v=viewer: pmm.mouse_drag(v,e),
@@ -283,8 +282,8 @@ def fit_molecule_in_map(viewer):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.place.inverse() * mol.place
-    from .. import FitMap
-    move_tf, stats = FitMap.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
+    from .map import fit
+    move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.place = mol.place * move_tf
     for k,v in stats.items():
         print(k,v)
@@ -310,7 +309,7 @@ def show_asymmetric_unit(m):
         m.update_level_of_detail(main_window.view)
 
 def show_surface_transparent(m):
-    from ..VolumeViewer import Volume
+    from ..map import Volume
     from ..surface import Surface
     if isinstance(m, Volume):
         m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
@@ -395,10 +394,6 @@ def show_molecular_surface(m, viewer, res = 3.0, grid = 0.5):
     from .. import molecule
     atoms = molecule.Atom_Set()
     atoms.add_molecules([m])
-#    from .. import molmap
-#    s = molmap.molecule_map(atoms, res, grid)
-#    s.new_region(ijk_step = (1,1,1), adjust_step = False)
-#    s.show()
     from ..molecule.gridsurf import surface
     m.molsurf = surface(atoms)
 
@@ -443,6 +438,9 @@ def molecule_bonds(m):
         show_info(msg)
         if missing:
             show_info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+def accessible_surface_area(m):
+    from .. import surface
+    surface.accessible_surface_area(m)
 
 def list_keyboard_shortcuts():
   from .gui import main_window as m

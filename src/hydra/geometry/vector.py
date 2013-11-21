@@ -1,10 +1,11 @@
 '''
-Point and vector operations.
-============================
+vector: Point and vector operations
+===================================
 These are convenience functions that act on points and vectors which are
 one-dimensional numpy arrays of 3 elements, or for multiple points and vectors
 two-dimensional numpy arrays of size N by 3.  Vectors of any dimensions
-are allowed, not just 3-dimensional, except where noted.
+are allowed, not just 3-dimensional, except where noted.  Coordinate values
+can be 32 or 64-bit floating point numbers.
 '''
 
 from .matrix import vector_sum

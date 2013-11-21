@@ -32,7 +32,7 @@ def file_types():
             ('Python', ['py'], read_python),
         ]
         # Add map file types
-        from ..VolumeData.fileformats import file_types as mft
+        from ..map.data.fileformats import file_types as mft
         map_file_types = [(d, suffixes, open_map) for d,t,prefixes,suffixes,batch in mft]
         ftypes.extend(map_file_types)
     return ftypes
@@ -93,10 +93,9 @@ def finished_opening(opened, set_camera, view):
         show_status(msg)
 
 def open_map(map_path):
-    from .. import VolumeData
-    i = VolumeData.open_file(map_path)[0]
-    from .. import VolumeViewer
-    map_drawing = VolumeViewer.volume_from_grid_data(i)
+    from .. import map
+    i = map.data.open_file(map_path)[0]
+    map_drawing = map.volume_from_grid_data(i)
     map_drawing.new_region(ijk_step = (1,1,1), adjust_step = False)
     return map_drawing
 

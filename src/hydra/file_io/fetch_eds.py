@@ -27,7 +27,7 @@ def fetch_eds_map(id, type = '2fofc', ignore_cache=False):
     
   # Display map.
   show_status('Opening map %s...' % map_name)
-  from ..VolumeViewer import open_volume_file
+  from ..map import open_volume_file
   models = open_volume_file(map_path, 'dsn6', map_name, 'mesh',
                             open_models = False)
   for m in models:

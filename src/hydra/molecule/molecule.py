@@ -87,7 +87,8 @@ class Molecule(Surface):
       self.atoms_surface_piece = p = self.newPiece()
 
     ntri = self.triangles_per_sphere
-    va, na, ta = sphere_geometry(ntri)
+    from .. import surface
+    va, na, ta = surface.sphere_geometry(ntri)
     p.geometry = va, ta
     p.normals = na
 
@@ -157,7 +158,8 @@ class Molecule(Surface):
     if p is None:
       self.bonds_surface_piece = p = self.newPiece()
 
-    va, na, ta = cylinder_geometry()
+    from .. import surface
+    va, na, ta = surface.cylinder_geometry(caps = False)
     p.geometry = va, ta
     p.normals = na
 
@@ -239,7 +241,7 @@ class Molecule(Surface):
 
   def ribbon_geometry(self, path, color):
     sd, cd = self.ribbon_subdivisions
-    from ..geometry import tube
+    from ..surface import tube
     va,na,ta,ca = tube.tube_through_points(path, radius = self.ribbon_radius,
                                            color = color,
                                            segment_subdivisions = sd,
@@ -466,25 +468,6 @@ class Molecule(Surface):
     if len(xyz) == 0:
       return None
     return xyz.min(axis = 0), xyz.max(axis = 0)
-
-# Only produces 20, 80, 320, ... (multiples of 4) triangle count.
-def sphere_geometry(ntri):
-  from ..geometry import icosahedron
-  va, ta = icosahedron.icosahedron_geometry()
-  from numpy import int32, sqrt
-  ta = ta.astype(int32)
-  from .. import _image3d
-  while 4*len(ta) <= ntri:
-    va, ta = _image3d.subdivide_triangles(va, ta)
-  vn = sqrt((va*va).sum(axis = 1))
-  for a in (0,1,2):
-    va[:,a] /= vn
-  return va, va, ta
-
-def cylinder_geometry():
-  from ..geometry import tube
-  return tube.cylinder_geometry(radius = 1, height = 1,
-                                nz = 2, nc = 10, caps = False)
 
 def chain_colors(cids):
 

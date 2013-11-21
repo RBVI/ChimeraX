@@ -80,7 +80,7 @@ class View(QtOpenGL.QGLWidget):
         if model.id is None:
             model.id = self.next_id
             self.next_id += 1
-        from ..VolumeViewer.volume import Volume, volume_manager
+        from ..map.volume import Volume, volume_manager
         if isinstance(model, Volume):
             if not model in volume_manager.data_regions:
                 volume_manager.add_volume(model)
@@ -92,7 +92,7 @@ class View(QtOpenGL.QGLWidget):
             self.add_model(m)
         
     def close_models(self, mlist):
-        from ..VolumeViewer.volume import volume_manager, Volume
+        from ..map.volume import volume_manager, Volume
         vlist = [m for m in mlist if isinstance(m, Volume)]
         volume_manager.remove_volumes(vlist)
         olist = self.models
@@ -552,8 +552,8 @@ class View(QtOpenGL.QGLWidget):
         return array((cx,cy,cz)), w
 
     def bounds(self):
-        from .. import surface
-        b = surface.union_bounds(m.placed_bounds() for m in self.models if m.display)
+        from ..geometry import bounds
+        b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
         return b
 
     def update_projection(self, win_size = None):
@@ -791,7 +791,7 @@ class View(QtOpenGL.QGLWidget):
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
         
-        from ..VolumeViewer.volume import Volume
+        from ..map.volume import Volume
         for m in self.models:
             if isinstance(m, Volume):
                 adjust_threshold_level(m, f)
@@ -858,7 +858,7 @@ class View(QtOpenGL.QGLWidget):
 #        ks.key_pressed(event)
 
     def maps(self):
-        from ..VolumeViewer import Volume
+        from ..map import Volume
         return tuple(m for m in self.models if isinstance(m,Volume))
 
     def molecules(self):
