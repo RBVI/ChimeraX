@@ -320,17 +320,17 @@ class OpenGL_Buffer:
             # Unbind already bound variable
             for a in self.bound_attr_ids:
                 GL.glDisableVertexAttribArray(a)
-                self.bound_attr_ids = []
-                if self.buffer_type == GL.GL_ELEMENT_ARRAY_BUFFER:
-                    GL.glBindBuffer(self.buffer_type, 0)
-                    return
+            self.bound_attr_ids = []
+            if self.buffer_type == GL.GL_ELEMENT_ARRAY_BUFFER:
+                GL.glBindBuffer(self.buffer_type, 0)
+            return
 
         vname = self.shader_variable_name
         if vname is None:
             if self.buffer_type == GL.GL_ELEMENT_ARRAY_BUFFER:
                 # Element array buffer binding is saved in VAO.
                 GL.glBindBuffer(self.buffer_type, buf_id)
-                return
+            return
 
         attr_id = shader.attribute_id(vname)
         if attr_id == -1:
@@ -359,9 +359,9 @@ class OpenGL_Buffer:
             for a in range(nattr):
                 # Pointer arg must be void_p, not an integer.
                 p = ctypes.c_void_p(a*abytes)
-            GL.glVertexAttribPointer(attr_id+a, ncomp, gtype, normalize, stride, p)
-            GL.glEnableVertexAttribArray(attr_id+a)
-            glVertexAttribDivisor(attr_id+a, 1 if self.instance_buffer else 0)
+                GL.glVertexAttribPointer(attr_id+a, ncomp, gtype, normalize, stride, p)
+                GL.glEnableVertexAttribArray(attr_id+a)
+                glVertexAttribDivisor(attr_id+a, 1 if self.instance_buffer else 0)
             self.bound_attr_ids = [attr_id+a for a in range(nattr)]
         GL.glBindBuffer(btype, 0)
 
@@ -423,10 +423,10 @@ def glDrawElementsInstanced(mode, count, etype, indices, ninst):
         GL.glDrawElementsInstanced(mode, count, etype, indices, ninst)
     else:
         from OpenGL.GL.ARB.draw_instanced import glDrawElementsInstancedARB
-    if not bool(glDrawElementsInstancedARB):
-        # Mac 10.6 does not list draw_instanced as an extension using OpenGL 3.2
-        from .pyopengl_draw_instanced import glDrawElementsInstancedARB
-    glDrawElementsInstancedARB(mode, count, etype, indices, ninst)
+        if not bool(glDrawElementsInstancedARB):
+            # Mac 10.6 does not list draw_instanced as an extension using OpenGL 3.2
+            from .pyopengl_draw_instanced import glDrawElementsInstancedARB
+            glDrawElementsInstancedARB(mode, count, etype, indices, ninst)
 
 def glVertexAttribDivisor(attr_id, d):
     'Private. Handle old or defective OpenGL attribute divisor.'
