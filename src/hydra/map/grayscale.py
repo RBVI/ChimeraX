@@ -198,8 +198,7 @@ class Gray_Scale_Drawing(object):
       p.geometry = va, ta
       p.color = self.modulation_rgba()
       p.useLighting = False
-      t = self.texture_plane(k, axis)
-      p.textureId = t
+      p.texture = self.texture_plane(k, axis)
       p.textureCoordinates = tc1 if axis == 1 else tc
       p.opaqueTexture = (not 'a' in self.color_mode)
       p.plane = (k,axis)
@@ -212,8 +211,8 @@ class Gray_Scale_Drawing(object):
     t = self.texture_planes.get((k,axis))
     if t is None:
       d = self.color_plane(k, axis)
-      from ..draw.drawing import texture_2d
-      t = texture_2d(d)
+      from ..draw import Texture
+      t = Texture(d)
       self.texture_planes[(k,axis)] = t
     return t
 
@@ -237,9 +236,8 @@ class Gray_Scale_Drawing(object):
     if self.surface_pieces is None:
       return
 
-    from ..draw.drawing import reload_texture
     for p in self.surface_pieces:
-      t = p.textureId
+      t = p.texture
       k,axis = p.plane
       data = self.color_plane(k,axis)
-      reload_texture(t, data)
+      t.reload_texture(data)

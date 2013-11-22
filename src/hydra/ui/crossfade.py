@@ -21,8 +21,8 @@ class Cross_Fade(Surface):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        from ..draw import drawing
-        self.rgba = drawing.frame_buffer_image_rgba8(w, h)
+        from .. import draw
+        self.rgba = draw.frame_buffer_image(w, h, draw.IMAGE_FORMAT_RGBA8)
 
         # Make textured square surface piece
         from .. import surface
@@ -45,8 +45,7 @@ class Cross_Fade(Surface):
         self.frame = f
         alpha = int(255 * (n-f) / n)
         self.rgba[:,:,3] = alpha
-        from ..draw import drawing
-        drawing.reload_texture(self.piece.textureId, self.rgba)
+        self.piece.texture.reload_texture(self.rgba)
         self.redraw_needed = True
 
 class Motion_Blur(Surface):
@@ -74,8 +73,8 @@ class Motion_Blur(Surface):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        from ..draw import drawing
-        rgba = drawing.frame_buffer_image_rgba8(w, h)
+        from .. import draw
+        rgba = draw.frame_buffer_image(w, h, draw.IMAGE_FORMAT_RGBA8)
 
         if self.rgba is None:
             self.rgba = rgba
@@ -102,8 +101,7 @@ class Motion_Blur(Surface):
                                            bgcolor, alpha, self.rgba)
             if c == 0:
                 return False    # No change
-            from ..draw import drawing
-            drawing.reload_texture(self.piece.textureId, self.rgba)
+            self.piece.texture.reload_texture(self.rgba)
         self.redraw_needed = True
         return True
 

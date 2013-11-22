@@ -131,8 +131,7 @@ class Surface_Piece(object):
     self.display = True
     self.displayStyle = self.Solid
     self.color_rgba = (.7,.7,.7,1)
-    self.textureId = None
-    self.textureFree = True             # Does Surface delete the texture
+    self.texture = None
     self.textureCoordinates = None
     self.opaqueTexture = False
     self.__destroyed__ = False
@@ -141,7 +140,7 @@ class Surface_Piece(object):
     self.shader = None		# VAO bindings are for this shader
 
     # Surface piece attribute name, shader variable name, instancing
-    from ..draw import drawing
+    from .. import draw
     from numpy import uint32, uint8
     bufs = (('vertices', 'position', {}),
             ('normals', 'normal', {}),
@@ -150,11 +149,11 @@ class Surface_Piece(object):
             ('vertex_colors',  'vcolor', {'value_type':uint8, 'normalize':True}),
             ('instance_colors',  'vcolor', {'instance_buffer':True, 'value_type':uint8, 'normalize':True}),
             ('textureCoordinates', 'tex_coord_2d', {}),
-            ('elements', None, {'buffer_type':drawing.element_array, 'value_type':uint32}),
+            ('elements', None, {'buffer_type':draw.element_array, 'value_type':uint32}),
             )
     obufs = []
     for a,v,kw in bufs:
-      b = drawing.OpenGL_Buffer(v,**kw)
+      b = draw.Buffer(v,**kw)
       b.surface_piece_attribute_name = a
       obufs.append(b)
     self.opengl_buffers = obufs
@@ -166,18 +165,12 @@ class Surface_Piece(object):
     self.triangles = None
     self.normals = None
     self.edge_mask = None
+    self.texture = None
     self.textureCoordinates = None
     self.masked_edges = None
     for b in self.opengl_buffers:
       b.delete_buffer()
 
-    from ..draw import drawing
-    if not self.textureId is None and self.textureFree:
-      drawing.delete_texture(self.textureId)
-    self.textureId = None
-
-    if not self.vao is None:
-      drawing.delete_vertex_array_object(self.vao)
     self.vao = None
 
   def get_geometry(self):
@@ -197,25 +190,23 @@ class Surface_Piece(object):
     self.surface.redraw_needed = True
   copies = property(get_copies, set_copies)
 
-  def new_vertex_array_object(self):
-    from ..draw import drawing
-    if not self.vao is None:
-      drawing.delete_vertex_array_object(self.vao)
-    self.vao = drawing.new_vertex_array_object()
+  def new_bindings(self):
+    from .. import draw
+    self.vao = draw.Bindings()
 
-  def bind_vertex_array_object(self):
-    from ..draw import drawing
+  def bind_buffers(self):
     if self.vao is None:
-      self.vao = drawing.new_vertex_array_object()
-    drawing.bind_vertex_array_object(self.vao)
+      from .. import draw
+      self.vao = draw.Bindings()
+    self.vao.bind()
 
   def update_buffers(self, shader):
 
     shader_changed = (shader != self.shader)
     if shader_changed:
       self.shader = shader
-      self.new_vertex_array_object()
-      self.bind_vertex_array_object()
+      self.new_bindings()
+      self.bind_buffers()
 
     for b in self.opengl_buffers:
       data = getattr(self, b.surface_piece_attribute_name)
@@ -246,54 +237,53 @@ class Surface_Piece(object):
   color = property(get_color, set_color)
 
   def opaque(self):
-    return self.color_rgba[3] == 1 and (self.textureId is None or self.opaqueTexture)
+    return self.color_rgba[3] == 1 and (self.texture is None or self.opaqueTexture)
 
   def draw(self, viewer):
 
     if self.triangles is None:
       return
 
-    self.bind_vertex_array_object()     # Need bound vao to compile shader
+    self.bind_buffers()     # Need bound vao to compile shader
 
     p = self.set_shader(viewer)
 
     self.update_buffers(p)
 
     # Set color
-    from ..draw import drawing
+    from .. import draw
     if self.instance_colors is None:
-      drawing.set_single_color(p, self.color_rgba)
+      draw.set_single_color(p, self.color_rgba)
 
     # Draw triangles
-    etype = {self.Solid:drawing.triangles,
-             self.Mesh:drawing.lines,
-             self.Dot:drawing.points}[self.displayStyle]
+    etype = {self.Solid:draw.triangles,
+             self.Mesh:draw.lines,
+             self.Dot:draw.points}[self.displayStyle]
     self.element_buffer.draw_elements(etype, self.instance_count())
 
-    if not self.textureId is None:
-      from ..draw import drawing
-      drawing.bind_2d_texture(0)
+    if not self.texture is None:
+      self.texture.unbind_texture()
 
   def set_shader(self, viewer):
     # Push special shader if needed.
     skw = {}
-    from ..draw import drawing
+    from .. import draw
     lit = getattr(self, 'useLighting', True)
     if not lit:
-      skw[drawing.SHADER_LIGHTING] = False
-    t = self.textureId
+      skw[draw.SHADER_LIGHTING] = False
+    t = self.texture
     if not t is None:
-      from ..draw import drawing
-      drawing.bind_2d_texture(t)
-      skw[drawing.SHADER_TEXTURE_2D] = True
+      t.bind_texture()
+      from .. import draw
+      skw[draw.SHADER_TEXTURE_2D] = True
     if not self.shift_and_scale is None:
-      skw[drawing.SHADER_SHIFT_AND_SCALE] = True
+      skw[draw.SHADER_SHIFT_AND_SCALE] = True
     elif not self.copies44 is None:
-      skw[drawing.SHADER_INSTANCING] = True
+      skw[draw.SHADER_INSTANCING] = True
 #    if viewer.selected and not self.surface.selected:
-#      skw[drawing.SHADER_UNSELECTED] = True
+#      skw[draw.SHADER_UNSELECTED] = True
     if self.surface.selected:
-      skw[drawing.SHADER_SELECTED] = True
+      skw[draw.SHADER_SELECTED] = True
     p = viewer.set_shader(**skw)
     return p
 
@@ -400,8 +390,8 @@ def rgba_surface_piece(rgba, pos, size, surf):
     p.color = (1,1,1,1)         # Modulates texture values
     p.useLighting = False
     p.textureCoordinates = tc
-    from ..draw import drawing
-    p.textureId = drawing.texture_2d(rgba)
+    from ..draw import Texture
+    p.texture = Texture(rgba)
     return p
 
 # Extract rgba values from a QImage.

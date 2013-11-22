@@ -111,47 +111,39 @@ def draw_transparent(draw_depth, draw):
     draw()
     GL.glDepthFunc(GL.GL_LESS)
 
-def frame_buffer_image_rgb32(w, h):
-    '''
-    Return the current frame buffer image as a numpy array of size (h,w) where
-    w and h are the framebuffer width and height.  Array index 0,0 is at the bottom
-    left corner of the OpenGL viewport.  Array values are uint32 and contain 8-bit
-    red, green, and blue values is the low 24 bits.
-    '''
+IMAGE_FORMAT_RGBA32 = 'rgba32'
+IMAGE_FORMAT_RGBA8 = 'rgba8'
+IMAGE_FORMAT_RGB32 = 'rgb32'
 
-    rgba = frame_buffer_image_rgba32(w, h)
-    rgba >>= 8
-    rgb = rgba[::-1,:].copy()
-    return rgb
-
-def frame_buffer_image_rgba32(w, h):
+def frame_buffer_image(w, h, format = IMAGE_FORMAT_RGBA8):
     '''
-    Return the current frame buffer image as a numpy array of size (h,w) where
-    w and h are the framebuffer width and height.  Array index 0,0 is at the upper
-    left corner of the OpenGL viewport.  Array values are uint32 and contain 8-bit
-    red, green, blue and alpha values packed in one 32 bit value.
+    Return the current frame buffer image as a numpy array of size (h,w) for 32-bit
+    formats or (h,w,4) for 8-bit formats where w and h are the framebuffer width and height.
+    Array index 0,0 is at the bottom left corner of the OpenGL viewport for RGB32 format
+    and at the upper left corner for the other formats.  For 32-bit formats the array values
+    are uint32 and contain 8-bit red, green, and blue values is the low 24 bits for RGB32,
+    and 8-bit red, green, blue and alpha for RGBA32.  The RGBA8 format has uint8 values.
     '''
 
-    from numpy import empty, uint32
-    rgba = empty((h,w),uint32)
-    GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, rgba)
-    return rgba
+    if format == IMAGE_FORMAT_RGBA32:
+        from numpy import empty, uint32
+        rgba = empty((h,w),uint32)
+        GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, rgba)
+        return rgba
+    elif format == IMAGE_FORMAT_RGB32:
+        rgba = frame_buffer_image(w, h, IMAGE_FORMAT_RGBA32)
+        rgba >>= 8
+        rgb = rgba[::-1,:].copy()
+        return rgb
+    elif format == IMAGE_FORMAT_RGBA8:
+        rgba = frame_buffer_image(w, h, IMAGE_FORMAT_RGBA32)
+        from numpy import little_endian, uint8
+        if little_endian:
+            rgba.byteswap(True) # in place
+        rgba8 = rgba.view(uint8).reshape((h,w,4))
+        return rgba8
 
-def frame_buffer_image_rgba8(w, h):
-    '''
-    Return the current frame buffer image as a numpy array of size (h,w,4)
-    where w and h are the framebuffer width and height.  Array index 0,0 is
-    at the upper left corner of the OpenGL viewport.  Array values are uint8.
-    '''
-
-    rgba = frame_buffer_image_rgba32(w, h)
-    from numpy import little_endian, uint8
-    if little_endian:
-        rgba.byteswap(True) # in place
-    rgba8 = rgba.view(uint8).reshape((h,w,4))
-    return rgba8
-
-def texture_2d(data):
+class Texture:
     '''
     Create an OpenGL 2d texture from a numpy array of of size (h,w,c) or (h,w)
     where w and h are the texture width and height and c is the number of color components.
@@ -162,94 +154,100 @@ def texture_2d(data):
     nearest interpolation is set.  The c = 2 mode uses the second component as alpha and
     the first componet for red,green,blue.
     '''
+    def __init__(self, data):
 
-    from OpenGL import GL
-    t = GL.glGenTextures(1)
-    GL.glBindTexture(GL.GL_TEXTURE_2D, t)
-    h, w = data.shape[:2]
-    format, iformat, tdtype = texture_format(data)
-    GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-    GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, iformat, w, h, 0,
-                    format, tdtype, data)
+        from OpenGL import GL
+        self.id = t = GL.glGenTextures(1)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, t)
+        h, w = data.shape[:2]
+        format, iformat, tdtype = self.texture_format(data)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, iformat, w, h, 0,
+                        format, tdtype, data)
 
-    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-#    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-#    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
-    ncomp = data.shape[2]
-    if ncomp == 1 or ncomp == 2:
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_B, GL.GL_RED)
-    if ncomp == 2:
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_A, GL.GL_GREEN)
-    GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        ncomp = data.shape[2]
+        if ncomp == 1 or ncomp == 2:
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_B, GL.GL_RED)
+        if ncomp == 2:
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_A, GL.GL_GREEN)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
-    return t
+    def __del__(self):
+        'Delete the OpenGL texture.'
+        GL.glDeleteTextures((self.id,))
 
-def bind_2d_texture(id):
-    'Bind the specified OpenGL 2d texture id.'
-    GL.glBindTexture(GL.GL_TEXTURE_2D, id)
+    def bind_texture(self):
+        'Bind the OpenGL 2d texture.'
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.id)
 
-def delete_texture(id):
-    'Bind the specified OpenGL texture id.'
-    GL.glDeleteTextures((id,))
+    def unbind_texture(self):
+        'Unbind the OpenGL 2d texture.'
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
-def reload_texture(t, data):
-    '''
-    Replace the texture values in texture with OpenGL id using numpy array data.
-    The data is interpreted the same as for the texture_2d() function.
-    '''
+    def reload_texture(self, data):
+        '''
+        Replace the texture values in texture with OpenGL id using numpy array data.
+        The data is interpreted the same as for the texture_2d() function.
+        '''
 
-    h, w = data.shape[:2]
-    format, iformat, tdtype = texture_format(data)
-    from OpenGL import GL
-    GL.glBindTexture(GL.GL_TEXTURE_2D, t)
-    GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, w, h, format, tdtype, data)
-    GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        h, w = data.shape[:2]
+        format, iformat, tdtype = self.texture_format(data)
+        from OpenGL import GL
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.id)
+        GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, w, h, format, tdtype, data)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
-def texture_format(data):
-    '''
-    Return the OpenGL texture format, internal format, and texture value type
-    that will be used by the texture_2d() function when creating a texture from
-    a numpy array of colors.
-    '''
-    from OpenGL import GL
-    if len(data.shape) == 2 and data.itemsize == 4:
-        format = GL.GL_RGBA
-        iformat = GL.GL_RGBA8
-        tdtype = GL.GL_UNSIGNED_BYTE
+    def texture_format(self, data):
+        '''
+        Return the OpenGL texture format, internal format, and texture value type
+        that will be used by the texture_2d() function when creating a texture from
+        a numpy array of colors.
+        '''
+        from OpenGL import GL
+        if len(data.shape) == 2 and data.itemsize == 4:
+            format = GL.GL_RGBA
+            iformat = GL.GL_RGBA8
+            tdtype = GL.GL_UNSIGNED_BYTE
+            return format, iformat, tdtype
+
+        ncomp = data.shape[2]
+        # TODO: Report pyopengl bug, GL_RG missing
+        GL.GL_RG = 0x8227
+        # luminance texture formats are not in opengl 3.
+        format = {1:GL.GL_RED, 2:GL.GL_RG,
+                  3:GL.GL_RGB, 4:GL.GL_RGBA}[ncomp]
+        iformat = {1:GL.GL_RED, 2:GL.GL_RG,
+                   3:GL.GL_RGB8, 4:GL.GL_RGBA8}[ncomp]
+        dtype = data.dtype
+        from numpy import uint8, float32
+        if dtype == uint8:
+            tdtype = GL.GL_UNSIGNED_BYTE
+        elif dtype == float32:
+            tdtype = GL.GL_FLOAT
+        else:
+            raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype
-  
-    ncomp = data.shape[2]
-    # TODO: Report pyopengl bug, GL_RG missing
-    GL.GL_RG = 0x8227
-    # luminance texture formats are not in opengl 3.
-    format = {1:GL.GL_RED, 2:GL.GL_RG,
-              3:GL.GL_RGB, 4:GL.GL_RGBA}[ncomp]
-    iformat = {1:GL.GL_RED, 2:GL.GL_RG,
-               3:GL.GL_RGB8, 4:GL.GL_RGBA8}[ncomp]
-    dtype = data.dtype
-    from numpy import uint8, float32
-    if dtype == uint8:
-        tdtype = GL.GL_UNSIGNED_BYTE
-    elif dtype == float32:
-        tdtype = GL.GL_FLOAT
-    else:
-        raise TypeError('Texture value type %s not supported' % str(dtype))
-    return format, iformat, tdtype
 
-def new_vertex_array_object():
-    'Return the id for a new OpenGL vertex array object.'
-    return GL.glGenVertexArrays(1)
-def bind_vertex_array_object(vao):
-    'Bind the OpenGL vertex array object with the specified id.'
-    GL.glBindVertexArray(vao)
-def delete_vertex_array_object(vao):
-    'Delete the OpenGL vertex array object with the specified id.'
-    GL.glDeleteVertexArrays(1, (vao,))
+class Bindings:
+    '''
+    Use an OpenGL vertex array object to save buffer bindings.
+    '''
+    def __init__(self):
+        self.vao_id = GL.glGenVertexArrays(1)
+    def __del__(self):
+        'Delete the OpenGL vertex array object.'
+        GL.glDeleteVertexArrays(1, (self.vao_id,))
+    def bind(self):
+        'Bind the OpenGL vertex array object.'
+        GL.glBindVertexArray(self.vao_id)
 
 def set_single_color(shader_prog, color):
     '''
@@ -259,7 +257,7 @@ def set_single_color(shader_prog, color):
     r,g,b,a = color
     GL.glVertexAttrib4f(shader_prog.attribute_id("vcolor"), r,g,b,a)
 
-class OpenGL_Buffer:
+class Buffer:
     '''
     Create an OpenGL buffer of vertex data such as vertex positions, normals, or colors,
     or per-instance data (e.g. color per sphere) or an element buffer for specifying which
@@ -436,7 +434,7 @@ def glVertexAttribDivisor(attr_id, d):
         from OpenGL.GL.ARB.instanced_arrays import glVertexAttribDivisorARB
         glVertexAttribDivisorARB(attr_id, d)
 
-# Renderer.use_shader() boolean options
+# Render.use_shader() boolean options
 SHADER_LIGHTING = 'lighting'
 SHADER_TEXTURE_2D = 'texture2d'
 SHADER_SHIFT_AND_SCALE = 'shiftAndScale'
@@ -444,7 +442,7 @@ SHADER_INSTANCING = 'instancing'
 SHADER_SELECTED = 'selected'
 SHADER_UNSELECTED = 'unselected'
 
-class Renderer:
+class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
 

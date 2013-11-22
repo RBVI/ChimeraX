@@ -35,8 +35,8 @@ class View(QtOpenGL.QGLWidget):
         self.fill_light_diffuse_color = (.3,.3,.3)
         self.ambient_light_color = (.3,.3,.3)
 
-        from ..draw import drawing
-        self.render = drawing.Renderer(self)
+        from .. import draw
+        self.render = draw.Render(self)
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -122,8 +122,8 @@ class View(QtOpenGL.QGLWidget):
 
     def image(self, size = None):
         w,h = self.window_size
-        from ..draw import drawing
-        rgb = drawing.frame_buffer_image_rgb32(w, h)
+        from .. import draw
+        rgb = draw.frame_buffer_image(w, h, draw.IMAGE_FORMAT_RGB32)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         if not size is None:
             sw,sh = size
@@ -154,19 +154,19 @@ class View(QtOpenGL.QGLWidget):
 
     def initializeGL(self):
 
-        from ..draw import drawing
-        drawing.set_background_color(self.background_rgba)
-        drawing.enable_depth_test(True)
-        drawing.initialize_opengl()
+        from .. import draw
+        draw.set_background_color(self.background_rgba)
+        draw.enable_depth_test(True)
+        draw.initialize_opengl()
 
         from .gui import show_info
-        show_info('OpenGL version %s' % drawing.opengl_version())
+        show_info('OpenGL version %s' % draw.opengl_version())
 #        self.makeCurrent()
 #        f = self.format()
 #        show_info('Depth buffer %d bits' % f.depthBufferSize())
 #        show_info('Red,green,blue buffer %d,%d,%d bits'
 #                  % (f.redBufferSize(),f.greenBufferSize(),f.blueBufferSize()))
-#        show_info('depth %d' % drawing.depth_buffer_size())
+#        show_info('depth %d' % draw.depth_buffer_size())
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
@@ -245,9 +245,9 @@ class View(QtOpenGL.QGLWidget):
             gr.render(self)
             return
 
-        from ..draw import drawing
-        drawing.set_background_color(self.background_rgba)
-        drawing.draw_background()
+        from .. import draw
+        draw.set_background_color(self.background_rgba)
+        draw.draw_background()
 
         if self.models:
             self.update_level_of_detail()
@@ -256,8 +256,8 @@ class View(QtOpenGL.QGLWidget):
             t0 = process_time()
             self.draw(self.OPAQUE_DRAW_PASS)
             if self.transparent_models_shown():
-                drawing.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS),
-                                         lambda: self.draw(self.TRANSPARENT_DRAW_PASS))
+                draw.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS),
+                                      lambda: self.draw(self.TRANSPARENT_DRAW_PASS))
             t1 = process_time()
             self.last_draw_duration = t1-t0
 
@@ -273,14 +273,14 @@ class View(QtOpenGL.QGLWidget):
         i = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
         self.render.set_projection_matrix(i)
         self.render.set_model_view_matrix(matrix = i)
-        from ..draw import drawing
-        drawing.enable_depth_test(False)
+        from .. import draw
+        draw.enable_depth_test(False)
         for m in overlays:
             m.draw(self, self.OPAQUE_DRAW_PASS)
-        drawing.enable_blending(True)
+        draw.enable_blending(True)
         for m in overlays:
             m.draw(self, self.TRANSPARENT_DRAW_PASS)
-        drawing.enable_depth_test(True)
+        draw.enable_depth_test(True)
 
     OPAQUE_DRAW_PASS = 'opaque'
     TRANSPARENT_DRAW_PASS = 'transparent'
@@ -292,7 +292,7 @@ class View(QtOpenGL.QGLWidget):
         n = len(models)
         draw_tiles = (self.tile_scale > 0)
         if draw_tiles:
-            from ..draw.drawing import set_drawing_region, draw_tile_outlines
+            from ..draw import set_drawing_region, draw_tile_outlines
             tiles = self.tiles(self.tile_scale)
             if draw_pass == self.OPAQUE_DRAW_PASS:
                 self.next_tile_size()
@@ -449,8 +449,8 @@ class View(QtOpenGL.QGLWidget):
 
     def resizeGL(self, width, height):
         self.window_size = width, height
-        from ..draw import drawing
-        drawing.set_drawing_region(0,0,width,height)
+        from .. import draw
+        draw.set_drawing_region(0,0,width,height)
 
     def initial_camera_view(self):
 
