@@ -30,10 +30,10 @@ OPT = -O3
 
 OPT += -fopenmp
 
-#ifdef USE_XCODE4
+ifdef USE_XCODE4
 # clang compiler does not support OpenMP
 CXX = g++ -pipe -isysroot $(SYSROOT)
-#endif
+endif
 
 all: $(PYMOD)
 
