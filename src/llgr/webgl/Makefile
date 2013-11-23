@@ -12,5 +12,5 @@ install:
 lint:
 	for i in *.js; do \
 		echo $$i ; \
-		rhino -w -strict $$i ; \
+		rhino -w -strict -debug -version 150 $$i ; \
 	done

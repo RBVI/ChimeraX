@@ -66,15 +66,17 @@ def update_client_data(views):
 		pass
 	if (main_view.CAMERA_CHANGE in views.reasons
 	or main_view.FOV_CHANGE in views.reasons):
-		camera = main_view.camera
-		if camera is not None:
-			# camera is created/modified as part of scene rendering
-			scene_info.update({
-				'eye': camera.eye,
-				'at': camera.at,
-				'up': camera.up,
-				'fov': main_view.fov,
-			})
+		pass
+	camera = main_view.camera
+	if camera is not None:
+		# camera is created/modified as part of scene rendering
+		scene_info.update({
+			'eye': camera.eye,
+			'at': camera.at,
+			'up': camera.up,
+			'fov': main_view.fov,
+			'viewport': main_view.viewport,	# DEBUGGING
+		})
 	if main_view.VIEWPORT_CHANGE in views.reasons:
 		pass
 	client_data.append(['scene', scene_info])

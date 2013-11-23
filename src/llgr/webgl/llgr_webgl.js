@@ -412,10 +412,10 @@ function convert_data(data)
 
 function build_sphere(num_vertices)
 {
-	var bands = Math.round(Math.sqrt(num_vertices));
+	var bands = Math.round(Math.sqrt(num_vertices)) - 1;
 	if (bands < 4)
 		bands = 4;
-	var spokes = Math.round(num_vertices / bands);
+	var spokes = Math.round(num_vertices / bands) - 1;
 	if (spokes < 4)
 		spokes = 4;
 
@@ -622,6 +622,14 @@ llgr = {
 			gl.deleteShader(fs);
 			return;
 		}
+		gl.validateProgram(program);
+		if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+			console.log(gl.getProgramInfoLog(program));
+			gl.deleteProgram(program);
+			gl.deleteShader(vs);
+			gl.deleteShader(fs);
+			return;
+		}
 
 		all_programs[program_id] = new ShaderProgram(program, vs, fs);
 	},
@@ -672,13 +680,13 @@ llgr = {
 							+ ': ' + shader_type);
 			return;
 		}
-		var all_programs;
+		var programs;
 		if (program_id) {
-			all_programs = { program_id: all_programs[program_id] };
+			programs = { program_id: all_programs[program_id] };
 		} else {
-			all_programs = all_programs;
+			programs = all_programs;
 		}
-		for (var pid in all_programs) {
+		for (var pid in programs) {
 			var sp = all_programs[pid];
 			if (sp === current_program) {
 				var location = sp.uniform_location(name);
@@ -708,13 +716,13 @@ llgr = {
 			console.log('only uniform matrix shader types allowed');
 			return;
 		}
-		var all_programs;
+		var programs;
 		if (program_id) {
-			all_programs = { program_id: all_programs[program_id] };
+			programs = { program_id: all_programs[program_id] };
 		} else {
-			all_programs = all_programs;
+			programs = all_programs;
 		}
-		for (var pid in all_programs) {
+		for (var pid in programs) {
 			var sp = all_programs[pid];
 			if (sp === current_program) {
 				var location = sp.uniform_location(name);
@@ -811,6 +819,10 @@ llgr = {
 			index_buffer_id = 0;
 		if (index_buffer_type === undefined)
 			index_buffer_type = llgr.UByte;
+		if (index_buffer_type == llgr.UInt
+		&& !gl.getExtension("OES_element_index_uint")) {
+			console.warn("unsigned integer indices are not supported");
+		}
 
 		var ais = [];
 		for (var i = 0; i < list_of_attributeInfo.length; ++i) {
@@ -1094,11 +1106,12 @@ llgr = {
 			var ibi = undefined;
 			if (oi.index_buffer_id) {
 				ibi = all_buffers[oi.index_buffer_id];
+				if (ibi === undefined)
+					continue;
 			}
 			// setup instance matrix attribute
 			if (oi.matrix_id != current_matrix_id) {
-				if (oi.matrix_id === 0) {
-					matrix_ai.data_id = 0;
+				if (oi.matrix_id === 0) { matrix_ai.data_id = 0;
 				} else {
 					var mi = all_matrices[oi.matrix_id];
 					if (mi === undefined)
@@ -1121,10 +1134,6 @@ llgr = {
 				}
 				gl.drawArrays(oi.ptype, oi.first, oi.count);
 			} else {
-				if (oi.index_buffer_type == llgr.UInt
-				&& !gl.getExtension("OES_element_index_uint")) {
-					console.warn("unsigned integer indices are not supported");
-				}
 				if (curbuf[gl.ELEMENT_ARRAY_BUFFER] !== ibi.buffer) {
 					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibi.buffer);
 					curbuf[gl.ELEMENT_ARRAY_BUFFER] = ibi.buffer;

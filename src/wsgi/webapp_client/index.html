@@ -560,7 +560,7 @@ function molview_init() {
 		return;
 
 	molview_update_size();
-	molview_ci = new ContextInfo(canvas, gl, draw_scene);
+	molview_ci = new ContextInfo(canvas, gl, draw_view);
 	molview_ci.init();
 	molview_ci.redraw();
 	$("#molview")
@@ -570,8 +570,8 @@ function molview_init() {
 		.mouseup(molview_mouse_up);
 }
 
-function draw_scene(ci) {
-	//console.log("draw_scene");
+function draw_view(ci) {
+	//console.log('draw_view');
 	var canvas = ci.canvas;
 	var gl = ci.gl;
 	var width = canvas.width;
