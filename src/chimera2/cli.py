@@ -371,10 +371,10 @@ class Bounded(Annotation):
 
 	def parse(self, text):
 		value = self.anno.parse(text)
-		if self.min is not None and value < min:
-			raise ValueError("Must be greater or equal to %s", self.min)
-		if self.max is not None and value > max:
-			raise ValueError("Must be less or equal to %s", self.max)
+		if self.min is not None and value < self.min:
+			raise ValueError("Must be greater than or equal to %s" % self.min)
+		if self.max is not None and value > self.max:
+			raise ValueError("Must be less than or equal to %s" % self.max)
 		return value
 
 	def completions(self, text):

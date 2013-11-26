@@ -10,7 +10,7 @@ Two
 """
 from .trackchanges import track
 
-_open_models = {}
+_open_models = {}	# model id: model instance
 
 # TODO: malloc-ish management of model ids, so they may be reused
 from itertools import count as _count
@@ -41,9 +41,9 @@ class Model:
 		if self.graphics:
 			self.graphics.clear()
 			self.graphics = None
-		track.deleted(Model, [self])
-		if self in _open_models:
+		if self.id in _open_models:
 			remove([self])
+		track.deleted(Model, [self])
 
 @track.register_data_type(after=[Model])
 class OpenModels:
@@ -57,9 +57,9 @@ def add(models):
 
 def remove(models):
 	"""Remove models from set of open models"""
-	track.deleted(OpenModels, models)
 	for m in models:
 		del _open_models[m.id]
+	track.deleted(OpenModels, models)
 
 _builtin_list = list
 def list(types=None):
@@ -72,3 +72,9 @@ def list(types=None):
 	if not isinstance(types, tuple):
 		types = tuple(types)
 	return [m for m in _open_models.values() if isinstance(m, types)]
+
+def close(model_id):
+	if model_id not in _open_models:
+		raise ValueError("Unknown model")
+	m = _open_models[model_id]
+	m.close()
