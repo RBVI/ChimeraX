@@ -560,10 +560,10 @@ class Graphics:
 		for data_id in +self.data_ids:
 			llgr.delete_buffer(data_id)
 		self.data_ids.clear()
-		for matrix_id in self.matrix_ids:
+		for matrix_id in +self.matrix_ids:
 			llgr.delete_matrix(matrix_id)
 		self.matrix_ids.clear()
-		for object_id in +self.object_ids:
+		for object_id in self.object_ids:
 			llgr.delete_object(object_id)
 		self.object_ids.clear()
 		llgr.delete_group(self.group_id)

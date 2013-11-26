@@ -120,6 +120,7 @@ class BaseApplication:
 		# TODO: find way to eliminate this special cases
 		cli.register('exit', (), self.cmd_exit)
 		cli.register('stereo', ([], [('ignore', cli.rest_of_line)]), self.cmd_noop)
+		cli.register('window', (), self.cmd_window)
 
 		# potentially changed in subclass:
 		self.graphics = None
@@ -132,6 +133,9 @@ class BaseApplication:
 		from chimera2 import cli
 		raise cli.UserError("'%s' is not implemented" % self.command.command_name)
 
+	def cmd_window(self):
+		self.main_view.reset_camera()
+
 	def status(self, message, timeout=3000):
 		# 1000 == 1 second
 		if self.statusbar:
@@ -141,7 +145,9 @@ class BaseApplication:
 
 	def process_command(self, text=""):
 		from chimera2 import cli
+		from chimera2.trackchanges import track
 		try:
+			track.block()
 			if not text:
 				text = self.command.current_text
 			self.command.parse_text(text, final=True)
@@ -154,6 +160,8 @@ class BaseApplication:
 			# TODO: report error
 			import traceback
 			traceback.print_exc()
+		finally:
+			track.release()
 
 	def cmd_exit(self):
 		# TODO: if nogui starts using event loop, then just self.quit

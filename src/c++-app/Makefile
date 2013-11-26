@@ -17,11 +17,8 @@ PROG_NAME = demo
 $(PROG)$(PROG_EXT): $(OBJS)
 	$(PROG_LINK)
 
-#data.cpp: cvt.py
-#	python cvt.py > data.cpp
-
-data.cpp: webgl2c++.py
-	python3 webgl2c++.py > data.cpp
+data.cpp: webgl2c++.py one_webgl.json
+	python3 webgl2c++.py one_webgl.json data.cpp
 
 clean:
 	rm -f $(PROG)$(PROG_EXT) $(OBJS) data.cpp

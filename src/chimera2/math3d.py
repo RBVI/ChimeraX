@@ -627,15 +627,15 @@ class BBox:
             self.llb = Point(bbox.llb)
             self.urf = Point(bbox.urf)
             return
-        if bbox.llf[0] < self.llf[0]:
-            self.llf[0] = bbox.llf[0]
-        if bbox.llf[1] < self.llf[1]:
-            self.llf[1] = bbox.llf[1]
-        if bbox.llf[2] < self.llf[2]:
-            self.llf[2] = bbox.llf[2]
-        if bbox.urb[0] > self.urb[0]:
-            self.urb[0] = bbox.urb[0]
-        if bbox.urb[1] > self.urb[1]:
-            self.urb[1] = bbox.urb[1]
-        if bbox.urb[2] > self.urb[2]:
-            self.urb[2] = bbox.urb[2]
+        if bbox.llb[0] < self.llb[0]:
+            self.llb[0] = bbox.llb[0]
+        if bbox.llb[1] < self.llb[1]:
+            self.llb[1] = bbox.llb[1]
+        if bbox.llb[2] < self.llb[2]:
+            self.llb[2] = bbox.llb[2]
+        if bbox.urf[0] > self.urf[0]:
+            self.urf[0] = bbox.urf[0]
+        if bbox.urf[1] > self.urf[1]:
+            self.urf[1] = bbox.urf[1]
+        if bbox.urf[2] > self.urf[2]:
+            self.urf[2] = bbox.urf[2]

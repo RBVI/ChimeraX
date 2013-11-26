@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <GL/freeglut.h>
 #include <llgr_ui.h>
-#include "data.h"
 #include <stdexcept>
 #include <iostream>
 #include <fstream>

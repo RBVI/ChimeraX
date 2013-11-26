@@ -119,6 +119,7 @@ class Track:
 		self._blocked += 1
 
 	def release(self):
+		assert(self._blocked > 0)
 		self._processing = True
 		self._processed = set()
 		try:
