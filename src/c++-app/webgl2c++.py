@@ -1,6 +1,6 @@
 # convert webgl client data to llgr calls
 
-import json
+import sys
 import llgr
 llgr.set_output('pyopengl')
 
@@ -9,11 +9,10 @@ PrimitiveType = llgr.PrimitiveType
 ShaderType = llgr.ShaderType
 
 class Symbolic(str):
+	"""Used for C++ identifiers, where the string should not be quoted"""
 
 	def __repr__(self):
 		return self
-
-filename = 'one_webgl.json'
 
 def print_arg(arg):
 	if isinstance(arg, bool):
@@ -142,33 +141,47 @@ def print_call(call):
 		print_arg(args[i])
 	print(');')
 
-f = open(filename)
-json = json.load(f)
+def mk_cpp(json_filename, cpp_filename):
+	import json
+	f = open(json_filename)
+	json_rep = json.load(f)
+	save_stdout = sys.stdout
+	sys.stdout = open(cpp_filename, 'w')
 
-print("""#include <llgr.h>
+	print("""#include <llgr.h>
 
-using namespace llgr;
-""")
+	using namespace llgr;
+	""")
 
-width, height = 0, 0
-for line in json:
-	tag, data = line
-	if tag == 'scene':
-		wh = data['viewport']
-		width = wh[0]
-		height = wh[1]
-print('int width = %d;' % width)
-print('int height = %d;' % height)
-print("""
-void
-initialize()
-{""")
+	width, height = 0, 0
+	for line in json_rep:
+		tag, data = line
+		if tag == 'scene':
+			wh = data['viewport']
+			width = wh[0]
+			height = wh[1]
+	print('int width = %d;' % width)
+	print('int height = %d;' % height)
+	print("""
+	void
+	initialize()
+	{""")
 
-for line in json:
-	tag, data = line
-	if tag == 'llgr':
-		for call in data:
-			print_call(call)
-		continue
+	for line in json_rep:
+		tag, data = line
+		if tag == 'llgr':
+			for call in data:
+				print_call(call)
+			continue
 
-print("}")
+	print("}")
+
+	sys.stdout.close()
+	sys.stdout = save_stdout
+
+if __name__ == '__main__':
+	if len(sys.argv) != 3:
+		print("usage: %s json-filename cpp-filename" % sys.argv[0],
+				file=sys.stderr)
+		raise SystemExit(2)
+	mk_cpp(sys.argv[1], sys.argv[2])
