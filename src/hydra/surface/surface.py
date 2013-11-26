@@ -142,18 +142,18 @@ class Surface_Piece(object):
     # Surface piece attribute name, shader variable name, instancing
     from .. import draw
     from numpy import uint32, uint8
-    bufs = (('vertices', 'position', {}),
-            ('normals', 'normal', {}),
-            ('shift_and_scale',  'instanceShiftAndScale', {'instance_buffer':True}),
-            ('copies44', 'instancePlacement', {'instance_buffer': True}),
-            ('vertex_colors',  'vcolor', {'value_type':uint8, 'normalize':True}),
-            ('instance_colors',  'vcolor', {'instance_buffer':True, 'value_type':uint8, 'normalize':True}),
-            ('textureCoordinates', 'tex_coord_2d', {}),
-            ('elements', None, {'buffer_type':draw.element_array, 'value_type':uint32}),
+    bufs = (('vertices', draw.VERTEX_BUFFER),
+            ('normals', draw.NORMAL_BUFFER),
+            ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('copies44', draw.INSTANCE_MATRIX_BUFFER),
+            ('vertex_colors', draw.VERTEX_COLOR_BUFFER),
+            ('instance_colors', draw.INSTANCE_COLOR_BUFFER),
+            ('textureCoordinates', draw.TEXTURE_COORDS_2D_BUFFER),
+            ('elements', draw.ELEMENT_BUFFER),
             )
     obufs = []
-    for a,v,kw in bufs:
-      b = draw.Buffer(v,**kw)
+    for a,v in bufs:
+      b = draw.Buffer(v)
       b.surface_piece_attribute_name = a
       obufs.append(b)
     self.opengl_buffers = obufs

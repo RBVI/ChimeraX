@@ -10,7 +10,6 @@ from OpenGL import GL
 triangles = GL.GL_TRIANGLES
 lines = GL.GL_LINES
 points = GL.GL_POINTS
-element_array = GL.GL_ELEMENT_ARRAY_BUFFER
 
 def opengl_version():
     'String description of the OpenGL version for the current context.'
@@ -257,6 +256,28 @@ def set_single_color(shader_prog, color):
     r,g,b,a = color
     GL.glVertexAttrib4f(shader_prog.attribute_id("vcolor"), r,g,b,a)
 
+from numpy import uint8, uint32, float32
+
+class Buffer_Type:
+    def __init__(self, shader_variable_name,
+                 buffer_type = GL.GL_ARRAY_BUFFER, value_type = float32,
+                 normalize = False, instance_buffer = False):
+        self.shader_variable_name = shader_variable_name
+        self.buffer_type = buffer_type
+        self.value_type = value_type
+        self.normalize = normalize
+        self.instance_buffer = instance_buffer
+
+# Buffer types with associated shader variable names
+VERTEX_BUFFER = Buffer_Type('position')
+NORMAL_BUFFER = Buffer_Type('normal')
+INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type('instanceShiftAndScale', instance_buffer = True)
+INSTANCE_MATRIX_BUFFER = Buffer_Type('instancePlacement', instance_buffer = True)
+VERTEX_COLOR_BUFFER = Buffer_Type('vcolor', value_type = uint8, normalize = True)
+INSTANCE_COLOR_BUFFER = Buffer_Type('vcolor', instance_buffer = True, value_type = uint8, normalize = True)
+TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d')
+ELEMENT_BUFFER = Buffer_Type(None, buffer_type = GL.GL_ELEMENT_ARRAY_BUFFER, value_type = uint32)
+
 class Buffer:
     '''
     Create an OpenGL buffer of vertex data such as vertex positions, normals, or colors,
@@ -264,19 +285,17 @@ class Buffer:
     primitives (triangles, lines, points) to draw.  Vertex data buffers can be attached to
     a specific shader variable.
     '''
-    from numpy import float32
-    def __init__(self, shader_variable_name,
-                 buffer_type = GL.GL_ARRAY_BUFFER, value_type = float32,
-                 normalize = False, instance_buffer = False):
+    def __init__(self, buffer_type):
 
-        self.shader_variable_name = shader_variable_name
+        t = buffer_type
+        self.shader_variable_name = t.shader_variable_name
         self.opengl_buffer = None
         self.buffered_array = None  # numpy array for vbo
         self.buffered_data = None   # data need not be numpy array
-        self.value_type = value_type
-        self.buffer_type = buffer_type
-        self.normalize = normalize
-        self.instance_buffer = instance_buffer
+        self.value_type = t.value_type
+        self.buffer_type = t.buffer_type
+        self.normalize = t.normalize
+        self.instance_buffer = t.instance_buffer
         self.bound_attr_ids = []
 
     def update_buffer_data(self, data):
