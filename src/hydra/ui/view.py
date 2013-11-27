@@ -122,8 +122,8 @@ class View(QtOpenGL.QGLWidget):
 
     def image(self, size = None):
         w,h = self.window_size
-        from .. import draw
-        rgb = draw.frame_buffer_image(w, h, draw.IMAGE_FORMAT_RGB32)
+        r = self.render
+        rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         if not size is None:
             sw,sh = size
@@ -154,19 +154,13 @@ class View(QtOpenGL.QGLWidget):
 
     def initializeGL(self):
 
-        from .. import draw
-        draw.set_background_color(self.background_rgba)
-        draw.enable_depth_test(True)
-        draw.initialize_opengl()
+        r = self.render
+        r.set_background_color(self.background_rgba)
+        r.enable_depth_test(True)
+        r.initialize_opengl()
 
         from .gui import show_info
-        show_info('OpenGL version %s' % draw.opengl_version())
-#        self.makeCurrent()
-#        f = self.format()
-#        show_info('Depth buffer %d bits' % f.depthBufferSize())
-#        show_info('Red,green,blue buffer %d,%d,%d bits'
-#                  % (f.redBufferSize(),f.greenBufferSize(),f.blueBufferSize()))
-#        show_info('depth %d' % draw.depth_buffer_size())
+        show_info('OpenGL version %s' % r.opengl_version())
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
@@ -180,11 +174,8 @@ class View(QtOpenGL.QGLWidget):
         t.timeout.connect(self.redraw)
         t.start(self.redraw_interval)
 
-    def set_shader(self, **kw):
-        return self.render.use_shader(**kw)
-
-    def current_shader(self):
-        return self.render.current_shader_program
+    def renderer(self):
+        return self.render
 
     def redraw(self):
 
@@ -245,9 +236,9 @@ class View(QtOpenGL.QGLWidget):
             gr.render(self)
             return
 
-        from .. import draw
-        draw.set_background_color(self.background_rgba)
-        draw.draw_background()
+        r = self.render
+        r.set_background_color(self.background_rgba)
+        r.draw_background()
 
         if self.models:
             self.update_level_of_detail()
@@ -256,8 +247,8 @@ class View(QtOpenGL.QGLWidget):
             t0 = process_time()
             self.draw(self.OPAQUE_DRAW_PASS)
             if self.transparent_models_shown():
-                draw.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS),
-                                      lambda: self.draw(self.TRANSPARENT_DRAW_PASS))
+                r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS),
+                                   lambda: self.draw(self.TRANSPARENT_DRAW_PASS))
             t1 = process_time()
             self.last_draw_duration = t1-t0
 
@@ -266,21 +257,17 @@ class View(QtOpenGL.QGLWidget):
 
     def draw_overlays(self, overlays):
 
-        p = self.current_shader()
-        if p is None:
-            return
-
         i = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
-        self.render.set_projection_matrix(i)
-        self.render.set_model_view_matrix(matrix = i)
-        from .. import draw
-        draw.enable_depth_test(False)
+        r = self.render
+        r.set_projection_matrix(i)
+        r.set_model_view_matrix(matrix = i)
+        r.enable_depth_test(False)
         for m in overlays:
             m.draw(self, self.OPAQUE_DRAW_PASS)
-        draw.enable_blending(True)
+        r.enable_blending(True)
         for m in overlays:
             m.draw(self, self.TRANSPARENT_DRAW_PASS)
-        draw.enable_depth_test(True)
+        r.enable_depth_test(True)
 
     OPAQUE_DRAW_PASS = 'opaque'
     TRANSPARENT_DRAW_PASS = 'transparent'
@@ -292,16 +279,16 @@ class View(QtOpenGL.QGLWidget):
         n = len(models)
         draw_tiles = (self.tile_scale > 0)
         if draw_tiles:
-            from ..draw import set_drawing_region, draw_tile_outlines
+            r = self.render
             tiles = self.tiles(self.tile_scale)
             if draw_pass == self.OPAQUE_DRAW_PASS:
                 self.next_tile_size()
                 if self.tile_scale >= 1:
                     fill = [m.display for m in models]
-                    draw_tile_outlines(tiles, self.tile_edge_color,
-                                       self.background_rgba, fill)
+                    r.draw_tile_outlines(tiles, self.tile_edge_color,
+                                         self.background_rgba, fill)
             x,y,w,h = tiles[0]
-            set_drawing_region(x,y,w,h)
+            r.set_drawing_region(x,y,w,h)
             self.update_projection((w,h))
         else:
             self.update_projection()
@@ -314,13 +301,13 @@ class View(QtOpenGL.QGLWidget):
             if n > 1:
                 for i,m in enumerate(models):
                     x,y,w,h = tiles[i+1]
-                    set_drawing_region(x,y,w,h)
+                    r.set_drawing_region(x,y,w,h)
                     self.update_projection((w,h))
                     self.draw_model(m, draw_pass)
                     if self.tile_scale >= 1:
                         self.draw_caption('#%d %s' % (m.id, m.name))
                 w,h = self.window_size
-                set_drawing_region(0,0,w,h)
+                r.set_drawing_region(0,0,w,h)
             elif n == 1:
                 m = self.models[0]
                 self.draw_caption('#%d %s' % (m.id, m.name))
@@ -449,8 +436,7 @@ class View(QtOpenGL.QGLWidget):
 
     def resizeGL(self, width, height):
         self.window_size = width, height
-        from .. import draw
-        draw.set_drawing_region(0,0,width,height)
+        self.render.set_drawing_region(0,0,width,height)
 
     def initial_camera_view(self):
 

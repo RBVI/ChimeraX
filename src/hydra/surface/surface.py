@@ -137,7 +137,6 @@ class Surface_Piece(object):
     self.__destroyed__ = False
 
     self.vao = None     	# Holds the buffer pointers and bindings
-    self.shader = None		# VAO bindings are for this shader
 
     # Surface piece attribute name, shader variable name, instancing
     from .. import draw
@@ -190,27 +189,25 @@ class Surface_Piece(object):
     self.surface.redraw_needed = True
   copies = property(get_copies, set_copies)
 
-  def new_bindings(self):
-    from .. import draw
-    self.vao = draw.Bindings()
+  def shader_changed(self, shader):
+    return self.vao is None or shader != self.vao.shader
 
-  def bind_buffers(self):
-    if self.vao is None:
+  def bind_buffers(self, shader = None):
+    if self.shader_changed(shader):
       from .. import draw
-      self.vao = draw.Bindings()
-    self.vao.bind()
+      self.vao = draw.Bindings(shader)
+    self.vao.activate()
 
   def update_buffers(self, shader):
 
-    shader_changed = (shader != self.shader)
-    if shader_changed:
-      self.shader = shader
-      self.new_bindings()
-      self.bind_buffers()
+    shader_change = self.shader_changed(shader)
+    if shader_change:
+      self.bind_buffers(shader)
 
     for b in self.opengl_buffers:
       data = getattr(self, b.surface_piece_attribute_name)
-      b.update_buffer(data, shader, shader_changed)
+      if b.update_buffer_data(data) or shader_change:
+        self.vao.bind_shader_variable(b)
 
   def get_elements(self):
 
@@ -246,46 +243,46 @@ class Surface_Piece(object):
 
     self.bind_buffers()     # Need bound vao to compile shader
 
-    p = self.set_shader(viewer)
+    sopt = self.shader_options()
+    r = viewer.renderer()
+    p = r.use_shader(sopt)
+
+    t = self.texture
+    if not t is None:
+      t.bind_texture()
 
     self.update_buffers(p)
 
     # Set color
-    from .. import draw
     if self.instance_colors is None:
-      draw.set_single_color(p, self.color_rgba)
+      r.set_single_color(self.color_rgba)
 
     # Draw triangles
-    etype = {self.Solid:draw.triangles,
-             self.Mesh:draw.lines,
-             self.Dot:draw.points}[self.displayStyle]
-    self.element_buffer.draw_elements(etype, self.instance_count())
+    eb = self.element_buffer
+    etype = {self.Solid: eb.triangles,
+             self.Mesh: eb.lines,
+             self.Dot: eb.points}[self.displayStyle]
+    eb.draw_elements(etype, self.instance_count())
 
     if not self.texture is None:
       self.texture.unbind_texture()
 
-  def set_shader(self, viewer):
-    # Push special shader if needed.
-    skw = {}
-    from .. import draw
+  def shader_options(self):
+    sopt = {}
+    from ..draw import Render as r
     lit = getattr(self, 'useLighting', True)
     if not lit:
-      skw[draw.SHADER_LIGHTING] = False
+      sopt[r.SHADER_LIGHTING] = False
     t = self.texture
     if not t is None:
-      t.bind_texture()
-      from .. import draw
-      skw[draw.SHADER_TEXTURE_2D] = True
+      sopt[r.SHADER_TEXTURE_2D] = True
     if not self.shift_and_scale is None:
-      skw[draw.SHADER_SHIFT_AND_SCALE] = True
+      sopt[r.SHADER_SHIFT_AND_SCALE] = True
     elif not self.copies44 is None:
-      skw[draw.SHADER_INSTANCING] = True
-#    if viewer.selected and not self.surface.selected:
-#      skw[draw.SHADER_UNSELECTED] = True
+      sopt[r.SHADER_INSTANCING] = True
     if self.surface.selected:
-      skw[draw.SHADER_SELECTED] = True
-    p = viewer.set_shader(**skw)
-    return p
+      sopt[r.SHADER_SELECTED] = True
+    return sopt
 
   def instance_count(self):
     if not self.shift_and_scale is None:

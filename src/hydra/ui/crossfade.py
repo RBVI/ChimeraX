@@ -21,8 +21,8 @@ class Cross_Fade(Surface):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        from .. import draw
-        self.rgba = draw.frame_buffer_image(w, h, draw.IMAGE_FORMAT_RGBA8)
+        r = v.render
+        self.rgba = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGBA8)
 
         # Make textured square surface piece
         from .. import surface
@@ -73,8 +73,8 @@ class Motion_Blur(Surface):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        from .. import draw
-        rgba = draw.frame_buffer_image(w, h, draw.IMAGE_FORMAT_RGBA8)
+        r = v.render
+        rgba = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGBA8)
 
         if self.rgba is None:
             self.rgba = rgba
