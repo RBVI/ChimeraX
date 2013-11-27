@@ -1,12 +1,14 @@
 # -----------------------------------------------------------------------------
-# Fetch crystallographic density maps from the Upsalla Electron Density Server.
-#
-#   2fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs.omap
-#    fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs_diff.omap
-#    Info:    http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=1cbs
-# Holdings:   http://eds.bmc.uu.se/eds/eds_holdings.txt
 #
 def fetch_eds_map(id, type = '2fofc', ignore_cache=False):
+  '''
+  Fetch crystallographic density maps from the Upsalla Electron Density Server.
+
+   2fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs.omap
+    fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs_diff.omap
+    Info:    http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=1cbs
+  Holdings:  http://eds.bmc.uu.se/eds/eds_holdings.txt
+  '''
 
   site = 'eds.bmc.uu.se'
   url_pattern = 'http://%s/eds/dfs/%s/%s/%s'

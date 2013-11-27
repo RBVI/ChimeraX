@@ -1,6 +1,9 @@
 from ..ui.qt import QtGui, QtWidgets
 
 def show_open_file_dialog(view):
+    '''
+    Display the Open file dialog for opening data files.
+    '''
     filter_lines = ['%s (%s)' % (name, ' '.join('*.%s' % s for s in suffixes))
                     for name, suffixes, read_func in file_types()]
     filter_lines.insert(0, 'All (*.*)')
@@ -16,6 +19,12 @@ def show_open_file_dialog(view):
 
 ftypes = None
 def file_types():
+    '''
+    Return a list of file readers, each reader being represented by 3-tuple
+    consisting of a file type name, a list of recognized suffixes, and a function
+    that opens that file type give a path.  The funtion returns a list of models
+    which have not been added to the scene.
+    '''
     global ftypes
     if ftypes is None:
         from .pdb import open_pdb_file, open_mmcif_file
@@ -45,6 +54,10 @@ def file_readers():
     return r
 
 def open_files(paths, view = None, set_camera = None):
+    '''
+    Open data files and add the models created to the scene.  The file types are recognized
+    using the file suffix as listed in the list returned by file_types().
+    '''
     if view is None:
         from ..ui.gui import main_window
         view = main_window.view
@@ -93,6 +106,9 @@ def finished_opening(opened, set_camera, view):
         show_status(msg)
 
 def open_map(map_path):
+    '''
+    Open a density map file having any of the known density map formats.
+    '''
     from .. import map
     i = map.data.open_file(map_path)[0]
     map_drawing = map.volume_from_grid_data(i)
@@ -101,6 +117,9 @@ def open_map(map_path):
 
 last_session_path = None
 def open_session(path):
+    '''
+    Open a session file.  The current session is closed.
+    '''
     from ..ui.gui import main_window as mw
     from . import session
     session.restore_session(path, mw.view)
@@ -111,6 +130,11 @@ def open_session(path):
     return []
 
 def save_session(view):
+    '''
+    Save a session file using the session file path of the last loaded
+    session, or if no session has been loaded then show a dialog to
+    get the save path.
+    '''
     global last_session_path
     if last_session_path is None:
         save_session_as(view)
@@ -119,6 +143,10 @@ def save_session(view):
         session.save_session(last_session_path, view)
 
 def save_session_as(view):
+    '''
+    Save a session file, raising a dialog to enter the file path.
+    '''
+
     global last_session_path
     dir = last_session_path
     if dir is None:
@@ -139,6 +167,9 @@ def save_session_as(view):
     show_info('Saved %s' % path, color = '#000080')
 
 def save_image(view):
+    '''
+    Save a JPEG image of the current graphics window contents.
+    '''
     filters = 'JPEG image (*.jpg)'
     path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Image', '.',
                                              filters)
@@ -221,7 +252,9 @@ def close_command(cmdname, args):
     close_models(**kw)
 
 def close_models(models = None):
-
+    '''
+    Close a list of models, or all models if none are specified.
+    '''
     from ..ui.gui import main_window
     v = main_window.view
     if models is None:
@@ -230,7 +263,9 @@ def close_models(models = None):
         v.close_models(models)
 
 def read_python(path):
-
+    '''
+    Read a Python file and execute the code.
+    '''
     f = open(path)
     code = f.read()
     f.close()

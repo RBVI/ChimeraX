@@ -1,4 +1,7 @@
 def open_pdb_file(path):
+  '''
+  Open a PDB file.
+  '''
 #  mols = open_pdb_file_with_pdbio(path)
   mols = open_pdb_file_with_image3d(path)
   return mols
@@ -99,6 +102,9 @@ def open_pdb_file_python(path):
   return m
 
 def open_mmcif_file(path):
+  '''
+  Open an mmCIF file.
+  '''
   from os.path import basename
   from time import time
   ft0 = time()

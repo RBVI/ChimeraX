@@ -1,7 +1,9 @@
 # -----------------------------------------------------------------------------
 #
 def save_session(path, viewer):
-
+  '''
+  Save a session.
+  '''
   s = session_state(viewer, path)
   f = open(path, 'w')
   from ..file_io.SessionUtil import objecttree
@@ -14,6 +16,9 @@ def save_session(path, viewer):
 # -----------------------------------------------------------------------------
 #
 def restore_session(path, viewer):
+  '''
+  Restore a session.
+  '''
   f = open(path, 'r')
   s = f.read()
   f.close()
@@ -29,7 +34,12 @@ def restore_session(path, viewer):
 # -----------------------------------------------------------------------------
 #
 def session_state(viewer, rel_path = None, attributes_only = False):
-
+  '''
+  Create a dictionary representing a session including molecule models,
+  surface models, density map models and scenes.  This dictionary is written
+  to a Python file as a session.  It contains only basic Python types:
+  numbers, strings, booleans, tuples, lists, dictionaries.
+  '''
   s = {'version': 2,
        'view': view_state(viewer),
   }

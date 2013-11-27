@@ -1,6 +1,11 @@
 # -----------------------------------------------------------------------------
 #
 def fetch_from_database(id, dbname):
+    '''
+    Fetch a database entry with a specified id code and return a list of models.
+    The models are not added to the scene.  The allowed databases are those
+    registered with the register_fetch_database() routine.
+    '''
     dbn = dbname.lower()
     global databases
     if dbn in databases:
@@ -16,6 +21,11 @@ def fetch_from_database(id, dbname):
 #
 databases = {}
 def register_fetch_database(dbname, fetch_func, example_id, home_page, info_url):
+    '''
+    Register a database so that files can be fetched using the fetch_from_database() routine.
+    The fetching function takes a single argument, the entry identifier (a string) and returns
+    a list of models.
+    '''
     db = Database(dbname, fetch_func, example_id, home_page, info_url)
     global databases
     databases[dbname] = databases[dbname.lower()] = db
@@ -36,12 +46,17 @@ class Database:
 # Download file from web.
 #
 def fetch_file(url, name, minimum_file_size = None, save_dir = '',
-                        save_name = '', uncompress = False, ignore_cache = False):
-        """a fetched non-local file that doesn't get cached will be
+               save_name = '', uncompress = False, ignore_cache = False):
+        """
+        This is a helper routine for fetching files using an http url.
+        It caches fetched files, uses cached files when available, and
+        supports decompressing files.
+
+        A fetched non-local file that doesn't get cached will be
            removed when Chimera exits
 
-           if 'ignore_cache' is True, then cached values will be ignored,
-           though the retrieved values will still be cached if appropriate
+        If 'ignore_cache' is True, then cached files will not be used,
+           but the fetched file will still be cached.
         """
         
         if save_name and not ignore_cache:

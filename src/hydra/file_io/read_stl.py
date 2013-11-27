@@ -1,7 +1,9 @@
 # -----------------------------------------------------------------------------
-# Read in an STL file and create a surface.
 # 
 def read_stl(path, color = (.7,.7,.7,1)):
+    '''
+    Read a STL (Stereo Lithography) surface file and create a surface.
+    '''
 
     f = open(path, 'rb')
     stl_data = f.read()

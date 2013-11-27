@@ -1,13 +1,12 @@
 # -----------------------------------------------------------------------------
-# Fetch crystallographic density maps from the Upsalla Electron Density Server.
-#
-# ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-1535/map/emd_1535.map.gz
-# ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-1535/header/emd-1535.xml
-#
-
-# -----------------------------------------------------------------------------
 #
 def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
+  '''
+  Fetch density maps from the Electron Microscopy Data Bank.
+
+  ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-1535/map/emd_1535.map.gz
+  ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-1535/header/emd-1535.xml
+  '''
 
   map_path = emdb_map_path(id, ignore_cache)
 

@@ -1,5 +1,8 @@
 def open_autopack_results(path):
-
+    '''
+    Open an Autopack results files (.apr suffix) and create surfaces
+    for each component of the model.
+    '''
     pieces = read_apr_file(path)
     surfs = create_surfaces(path, pieces)
     return surfs

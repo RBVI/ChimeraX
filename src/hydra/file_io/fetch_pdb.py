@@ -1,4 +1,7 @@
 def fetch_pdb(id, ignore_cache=False):
+    '''
+    Fetch molecular models from the Protein Data Bank, www.rcsb.org
+    '''
 
     site = 'www.rcsb.org'
     url_pattern = 'pdb/files/%s.pdb'

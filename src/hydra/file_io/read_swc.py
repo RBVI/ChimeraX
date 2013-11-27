@@ -41,7 +41,11 @@
 # first soma point.
 # 
 def read_swc(path):
-
+    '''
+    Read a Stockley-Wheal-Cannon (SWC) format traced neuron file
+    and create a fake molecule model using atoms and bonds to represent
+    the neuron.
+    '''
     f = open(path, 'r')
     lines = f.readlines()
     f.close()
