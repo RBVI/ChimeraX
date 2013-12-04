@@ -38,7 +38,7 @@ class Cross_Fade(Surface):
             v = self.viewer
             v.remove_new_frame_callback(self.next_frame)
             v.remove_overlays([self])
-            self.removeAllPieces()
+            self.remove_all_pieces()
             return
 
         # Increase texture transparency
@@ -84,7 +84,7 @@ class Motion_Blur(Surface):
             v.add_overlay(self)
         elif self.rgba.shape != (h,w,4):
             # Resize texture and motion blur image
-            self.removePiece(self.piece)
+            self.remove_piece(self.piece)
             from .. import surface
             self.piece = surface.rgba_surface_piece(rgba, (-1,-1), (2,2), self)
             self.rgba = rgba

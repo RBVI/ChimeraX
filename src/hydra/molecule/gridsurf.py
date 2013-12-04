@@ -79,7 +79,7 @@ def ses_surface(atoms, probe_radius = 1.4, grid_spacing = 0.5, name = None):
 #        print(v0, adist)
         if adist >= 1.5*probe_radius:
             outside.append(p)
-    surf.removePieces(outside)
+    surf.remove_pieces(outside)
 
     return surf
 
@@ -89,7 +89,7 @@ def show_surface(name, va, ijk_to_xyz_tf, ta, na, color = (.7,.7,.7,1)):
     ijk_to_xyz_tf.move(va_xyz)
     from ..surface import Surface
     surf = Surface(name)
-    p = surf.newPiece()
+    p = surf.new_piece()
     p.geometry = va_xyz, ta
     p.normals = na
     p.color = color

@@ -25,7 +25,7 @@ class Surface:
     '''Return the list of surface pieces.'''
     return self.plist
 
-  def newPiece(self, name = None):
+  def new_piece(self, name = None):
     '''Create a new empty surface piece.'''
     p = Surface_Piece(name)
     p.surface = self
@@ -33,13 +33,13 @@ class Surface:
     self.redraw_needed = True
     return p
 
-  def removePiece(self, p):
+  def remove_piece(self, p):
     '''Delete a specified surface piece.'''
     self.plist.remove(p)
     p.delete()
     self.redraw_needed = True
 
-  def removePieces(self, pieces):
+  def remove_pieces(self, pieces):
     '''Delete specified surface pieces.'''
     pset = set(pieces)
     self.plist = [p for p in self.plist if not p in pset]
@@ -47,9 +47,9 @@ class Surface:
       p.delete()
     self.redraw_needed = True
 
-  def removeAllPieces(self):
+  def remove_all_pieces(self):
     '''Delete all surface pieces.'''
-    self.removePieces(self.plist)
+    self.remove_pieces(self.plist)
 
   def get_display(self):
     return self.displayed
@@ -140,11 +140,11 @@ class Surface:
     '''
     Delete all surface pieces.
     '''
-    self.removeAllPieces()
+    self.remove_all_pieces()
   
 class Surface_Piece(object):
   '''
-  Surface_Pieces are created by the Surface newPiece() method and represent a set of triangles
+  Surface_Pieces are created by the Surface new_piece() method and represent a set of triangles
   that can be added or removed from a Surface independent of other sets of triangles.  The basic
   data defining the triangles is an N by 3 array of vertices (float32 numpy array) and an array
   that defines triangles by specify 3 integer index values into the vertex array which define the
@@ -359,8 +359,8 @@ class Surface_Piece(object):
   def set_triangle_and_edge_mask(self, temask):
     self.edge_mask = temask
     self.surface.redraw_needed = True
-  triangleAndEdgeMask = property(get_triangle_and_edge_mask,
-                                 set_triangle_and_edge_mask)
+  triangle_and_edge_mask = property(get_triangle_and_edge_mask,
+                                    set_triangle_and_edge_mask)
   '''
   The triangle and edge mask is a 1-dimensional int32 numpy array of length equal
   to the number of triangles.  The lowest 4 bits are used to control display of
@@ -459,7 +459,7 @@ def rgba_surface_piece(rgba, pos, size, surf):
   '''
   Make a new surface piece and texture map an RGBA color array onto it.
   '''
-  p = surf.newPiece()
+  p = surf.new_piece()
   x,y = pos
   sx,sy = size
   from numpy import array, float32, uint32

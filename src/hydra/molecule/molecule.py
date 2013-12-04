@@ -86,11 +86,11 @@ class Molecule(Surface):
     if self.atom_shown_count == 0:
       if p:
         self.atoms_surface_piece = None
-        self.removePiece(p)
+        self.remove_piece(p)
       return
 
     if p is None:
-      self.atoms_surface_piece = p = self.newPiece()
+      self.atoms_surface_piece = p = self.new_piece()
 
     ntri = self.triangles_per_sphere
     from .. import surface
@@ -158,11 +158,11 @@ class Molecule(Surface):
     if self.atom_shown_count == 0 or bonds is None or self.atom_style == 'sphere':
       if p:
         self.bonds_surface_piece = None
-        self.removePiece(p)
+        self.remove_piece(p)
       return
 
     if p is None:
-      self.bonds_surface_piece = p = self.newPiece()
+      self.bonds_surface_piece = p = self.new_piece()
 
     from .. import surface
     va, na, ta = surface.cylinder_geometry(caps = False)
@@ -216,7 +216,7 @@ class Molecule(Surface):
     import sys
     rsp = self.ribbon_surface_pieces
     if not self.any_ribbons_shown():
-      self.removePieces(rsp.values())
+      self.remove_pieces(rsp.values())
       rsp.clear()
       return
 
@@ -230,7 +230,7 @@ class Molecule(Surface):
       rshow = self.ribbon_shown[s]
       if rshow.sum() == 0:
         if cid in rsp:
-          self.removePiece(rsp.pop(cid))
+          self.remove_piece(rsp.pop(cid))
         continue
       path = self.xyz[s]
     
@@ -240,7 +240,7 @@ class Molecule(Surface):
       if cid in rsp:
         p = rsp[cid]
       else:
-        rsp[cid] = p = self.newPiece()
+        rsp[cid] = p = self.new_piece()
       p.geometry = va, ta
       p.normals = na
       p.vertex_colors = ca

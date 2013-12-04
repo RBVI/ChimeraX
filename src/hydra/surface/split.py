@@ -29,7 +29,7 @@ def split_surfaces(plist, in_place = False):
     if pieces:
       # TODO: Select pieces if original surface selected.
       if in_place:
-        p.surface.removePiece(p)
+        p.surface.remove_piece(p)
       else:
         p.display = False
 
@@ -59,7 +59,7 @@ def copy_surface_piece_blobs(p, varray, tarray, cplist, into_surf):
   narray = p.normals
   color = p.color
   vrgba = p.vertex_colors
-  temask = p.triangleAndEdgeMask
+  temask = p.triangle_and_edge_mask
   for pi, (vi,ti) in enumerate(cplist):
     pp = copy_piece_blob(into_surf, varray, tarray, narray, color, vrgba, temask,
                          vi, ti, vmap)
@@ -82,7 +82,7 @@ def copy_piece_blob(m, varray, tarray, narray, color, vrgba, temask,
   vmap[vi] = arange(len(vi), dtype = vmap.dtype)
   ta = vmap.take(ta.ravel()).reshape((len(ti),3))
 
-  gp = m.newPiece()
+  gp = m.new_piece()
   gp.geometry = va, ta
   gp.save_in_session = True
 
@@ -94,7 +94,7 @@ def copy_piece_blob(m, varray, tarray, narray, color, vrgba, temask,
   if not vrgba is None:
     gp.vertex_colors = vrgba.take(vi, axis = 0)
   if not temask is None:
-    gp.triangleAndEdgeMask = temask.take(ti, axis = 0)
+    gp.triangle_and_edge_mask = temask.take(ti, axis = 0)
 
   return gp
 

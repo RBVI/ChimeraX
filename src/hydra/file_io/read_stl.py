@@ -13,7 +13,7 @@ def read_stl(path, color = (.7,.7,.7,1)):
     comment, va, na, ta = _image3d.parse_stl(stl_data)
 
     s = STL_Surface(path)
-    p = s.newPiece()
+    p = s.new_piece()
     p.geometry = va, ta
     p.normals = na
     p.color = color
