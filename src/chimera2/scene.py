@@ -35,6 +35,7 @@ from numpy import array, float32, uint, uint16, uint8, concatenate
 from math import radians
 from .trackchanges import track
 from collections import Counter
+from .lighting import lighting, Lighting
 
 @track.register_data_type
 class Camera:
@@ -121,7 +122,7 @@ def set_glsl_version(version):
 		raise ValueError("Only support GLSL 150 and webgl (ES 1.0)")
 	_glsl_version = version
 
-@track.register_data_type
+@track.register_data_type(after=[Camera, Lighting])
 class View:
 
 	# modified reasons
@@ -130,6 +131,7 @@ class View:
 	GRAPHICS_CHANGE = 'graphics update'
 	FOV_CHANGE = 'fov changed'
 	VIEWPORT_CHANGE = 'viewport changed'
+	LIGHTING_CHANGE = lighting.LIGHTING_CHANGE
 
 	def __init__(self, models=None):
 		# 'models is None' means to track open models
@@ -157,6 +159,7 @@ class View:
 			self._num_models = len(models)
 			self.reset_camera()
 		self._gh = track.add_handler(Graphics, self._update_graphics)
+		self._lh = track.add_handler(Lighting, self._update_lighting)
 		track.created(View, [self])
 
 	def _update_open_models(self, ignore_open_models):
@@ -200,6 +203,9 @@ class View:
 		if not graphics.modified.issubset(my_graphics):
 			return
 		track.modified(View, [self], self.GRAPHICS_CHANGE)
+
+	def _update_lighting(self, lighting):
+		track.modified(View, [self], self.LIGHTING_CHANGE)
 
 	@property
 	def models(self):
@@ -256,7 +262,6 @@ class View:
 		"""render view
 		"""
 		import llgr
-		from . import lighting
 		zero = array([0, 0, 0, 0], dtype=float32)
 		amb = lighting.ambient
 		ambient = array([amb, amb, amb, 1], dtype=float32)
@@ -277,11 +282,11 @@ class View:
 			k_diffuse = array(color.rgb + [1], dtype=float32)
 			direct = lighting.key_light.direction
 			k_position = array(list(direct) + [0], dtype=float32)
-			reflectivity = lighting.reflectivity()
-			color = lighting.shiny_color()
+			reflectivity = lighting.reflectivity
+			color = lighting.shiny_color
 			specular = [x * reflectivity for x in color.rgb]
 			k_specular = array(specular + [1], dtype=float32)
-		shininess = array([lighting.sharpness()], dtype=float32)
+		shininess = array([lighting.sharpness], dtype=float32)
 		llgr.set_uniform(0, 'Ambient', llgr.FVec4, ambient)
 		llgr.set_uniform(0, 'FillDiffuse', llgr.FVec4, f_diffuse)
 		llgr.set_uniform(0, 'FillPosition', llgr.FVec4, f_position)

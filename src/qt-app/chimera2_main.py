@@ -95,7 +95,6 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		dy = -delta.y() * height / self.height()
 		trans = math3d.Translation((dx, dy, 0))
 		if app.main_view.camera:
-			# TODO: use camera coordinate system
 			app.main_view.camera.xform(trans)
 		self.updateGL()
 

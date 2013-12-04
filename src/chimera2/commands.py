@@ -42,9 +42,9 @@ def register():
 	cli.register('exit', (), cmd_exit)
 	cli.register('open', ([('filename', cli.string_arg)],), cmd_open)
 	cli.register('close', ([('model_id', cli.model_id_arg)],), cmd_close)
-	cli.register('list', (), cmd_list)
 	cli.register('stop', ([], [('ignore', cli.rest_of_line)]), cmd_stop)
 	def lighting_cmds():
 		import chimera2.lighting.cmd as cmd
 		cmd.register()
 	cli.delay_registration('lighting', lighting_cmds)
+	cli.register('list', (), cmd_list)
