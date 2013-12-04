@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.10
+VERSION = 0.11
 DISTRIBUTION = docutils-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/docutils-$(VERSION)
 

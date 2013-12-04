@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 4.14.7
+VERSION = 4.15.3
 DISTRIBUTION = sip-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/sip-$(VERSION)
 

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.3.5
+VERSION = 0.3.6
 DISTRIBUTION = funcparserlib-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/funcparserlib-$(VERSION)
 
