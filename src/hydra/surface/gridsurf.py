@@ -66,7 +66,7 @@ def ses_surface(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5,
         surf.place = place
 
     # Delete connected components more than 1.5 probe radius from atom spheres.
-    from ..surface import split_surfaces
+    from . import split_surfaces
     split_surfaces(surf.surface_pieces(), in_place = True)
     outside = []
     for p in surf.surface_pieces():
@@ -86,7 +86,7 @@ def show_surface(name, va, ijk_to_xyz_tf, ta, na, color = (.7,.7,.7,1)):
 
     va_xyz = va.copy()
     ijk_to_xyz_tf.move(va_xyz)
-    from ..surface import Surface
+    from . import Surface
     surf = Surface(name)
     p = surf.new_piece()
     p.geometry = va_xyz, ta

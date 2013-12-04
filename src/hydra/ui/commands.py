@@ -22,10 +22,11 @@ def register_commands():
     add_command('volume', volumecommand.volume_command)
     from ..map.fit import fitcmd
     add_command('fitmap', fitcmd.fitmap_command)
-    from ..molecule import align, showcmd, gridsurf
+    from ..molecule import align, showcmd
     add_command('align', align.align_command)
     add_command('show', showcmd.show_command)
     add_command('hide', showcmd.hide_command)
+    from ..surface import gridsurf
     add_command('surface', gridsurf.surface_command)
     from .. import scenes
     add_command('scene', scenes.scene_command)
