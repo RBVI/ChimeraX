@@ -49,6 +49,22 @@ def split_surface_piece(p, into_surf):
 
 # -----------------------------------------------------------------------------
 #
+def reduce_geometry(va, na, ta, vi, ti):
+
+  from numpy import zeros, int32
+  vmap = zeros(len(va), int32)
+  rva = va.take(vi, axis = 0)
+  rna = na.take(vi, axis = 0)
+  rta = ta.take(ti, axis = 0)
+  # Remap triangle vertex indices to use shorter vertex list.
+  from numpy import arange
+  vmap[vi] = arange(len(vi), dtype = vmap.dtype)
+  rta = vmap.take(rta.ravel()).reshape((len(ti),3))
+
+  return rva, rna, rta
+
+# -----------------------------------------------------------------------------
+#
 def copy_surface_piece_blobs(p, varray, tarray, cplist, into_surf):
 
   from numpy import zeros, int32
