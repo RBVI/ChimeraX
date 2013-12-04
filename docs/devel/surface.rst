@@ -1,5 +1,5 @@
 surface: Surfaces
 =================
 
-.. automodule:: hydra.surface
+.. automodule:: hydra.surface.surface
     :members:

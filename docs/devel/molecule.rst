@@ -1,5 +1,5 @@
 molecule: Atomic molecular models
 =================================
 
-.. automodule:: hydra.molecule
+.. automodule:: hydra.molecule.molecule
     :members:
