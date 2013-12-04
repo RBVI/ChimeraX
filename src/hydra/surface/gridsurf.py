@@ -1,10 +1,8 @@
-def ses_surface(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5,
-                name = 'SES surface', place = None):
+def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas = False):
     '''
     Calculate a solvent excluded molecular surface using a distance grid
-    contouring method.  A new surface model is returned.
-    TODO: Change this to return geometry instead of creating the surface model.
-    TODO: Would like to be able to get the SAS surface geometry.
+    contouring method.  Vertex, normal and triangle arrays are returned.
+    If sas is true then the solvent accessible surface is returned instead.
     '''
 
     # Compute bounding box for atoms
@@ -41,55 +39,51 @@ def ses_surface(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5,
     # Get the SAS surface as a contour surface of the distance map
     from .._image3d import surface
     level = 0
-    va, ta, na = surface(matrix, level, cap_faces = False,
-                         calculate_normals = True)
-
-    # Transform surface from grid index coordinates to atom coordinates
-    ijk_to_xyz_tf = xyz_to_ijk_tf.inverse()
-
-    # Create surface model to show SAS surface
-#    show_surface('SAS surface', va, ijk_to_xyz_tf, ta, na)
+    sas_va, sas_ta, sas_na = surface(matrix, level, cap_faces = False,
+                                     calculate_normals = True)
+    if sas:
+        xyz_to_ijk_tf.inverse().move(sas_va)
+        return sas_va, sas_na, sas_ta
 
     # Compute SES surface distance map using SAS surface vertex
     # points as probe sphere centers.
     matrix[:,:,:] = max_index_range
-    rp = empty((len(va),), float32)
+    rp = empty((len(sas_va),), float32)
     rp[:] = float(probe_radius)/s
-    sphere_surface_distance(va, rp, max_index_range, matrix)
+    sphere_surface_distance(sas_va, rp, max_index_range, matrix)
     ses_va, ses_ta, ses_na = surface(matrix, level, cap_faces = False,
                                      calculate_normals = True)
 
-    # Create surface model to show surface
-    surf = show_surface(name, ses_va, ijk_to_xyz_tf, ses_ta, ses_na,
-                        color = (.7,.8,.5,1))
-    if not place is None:
-        surf.place = place
+    # Transform surface from grid index coordinates to atom coordinates
+    xyz_to_ijk_tf.inverse().move(ses_va)
 
     # Delete connected components more than 1.5 probe radius from atom spheres.
-    from . import split_surfaces
-    split_surfaces(surf.surface_pieces(), in_place = True)
-    outside = []
-    for p in surf.surface_pieces():
-        pva, pta = p.geometry
-        v0 = pva[0,:]
+    kvi = []
+    kti = []
+    from .._image3d import connected_pieces
+    vtilist = connected_pieces(ses_ta)
+    for vi,ti in vtilist:
+        v0 = ses_va[vi[0],:]
         d = xyz - v0
         d2 = (d*d).sum(axis = 1)
         adist = (sqrt(d2) - radii).min()
-#        print(v0, adist)
-        if adist >= 1.5*probe_radius:
-            outside.append(p)
-    surf.remove_pieces(outside)
+        if adist < 1.5*probe_radius:
+            kvi.append(vi)
+            kti.append(ti)
+    from .split import reduce_geometry
+    from numpy import concatenate
+    va,na,ta = reduce_geometry(ses_va, ses_na, ses_ta,
+                               concatenate(kvi), concatenate(kti))
+    return va, na, ta
 
-    return surf
+def show_surface(name, va, na, ta, color = (.7,.7,.7,1), place = None):
 
-def show_surface(name, va, ijk_to_xyz_tf, ta, na, color = (.7,.7,.7,1)):
-
-    va_xyz = va.copy()
-    ijk_to_xyz_tf.move(va_xyz)
     from . import Surface
     surf = Surface(name)
+    if not place is None:
+        surf.place = place
     p = surf.new_piece()
-    p.geometry = va_xyz, ta
+    p.geometry = va, ta
     p.normals = na
     p.color = color
     from ..ui.gui import main_window
@@ -118,7 +112,12 @@ def surface(atoms, probeRadius = 1.4, gridSpacing = 0.5, waters = False):
         atoms = atoms.exclude_water()
     xyz = atoms.coordinates()
     r = atoms.radii()
+    va,na,ta = ses_surface_geometry(xyz, r, probeRadius, gridSpacing)
+
+    # Create surface model to show surface
     m0 = atoms.molecules()[0]
     name = '%s SES surface' % m0.name
-    s = ses_surface(xyz, r, probeRadius, gridSpacing, name, m0.place)
-    return s
+    surf = show_surface(name, va, na, ta,
+                        color = (.7,.8,.5,1), place = m0.place)
+
+    return surf
