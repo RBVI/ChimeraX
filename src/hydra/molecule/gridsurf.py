@@ -1,15 +1,15 @@
-#
-# Calculate a solvent excluded molecular surface using a grid contouring method.
-# This is test code, preparing for a production implementation in Chimera 2.
-#
-def ses_surface(atoms, probe_radius = 1.4, grid_spacing = 0.5, name = None):
-
-    xyz = atoms.coordinates()
-    r = atoms.radii()
+def ses_surface(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5,
+                name = 'SES surface', place = None):
+    '''
+    Calculate a solvent excluded molecular surface using a distance grid
+    contouring method.  A new surface model is returned.
+    TODO: Change this to return geometry instead of creating the surface model.
+    TODO: Would like to be able to get the SAS surface geometry.
+    '''
 
     # Compute bounding box for atoms
     xyz_min, xyz_max = xyz.min(axis = 0), xyz.max(axis = 0)
-    pad = 2*probe_radius + r.max()
+    pad = 2*probe_radius + radii.max()
     origin = [x-pad for x in xyz_min]
 
     # Create 3d grid for computing distance map
@@ -17,7 +17,7 @@ def ses_surface(atoms, probe_radius = 1.4, grid_spacing = 0.5, name = None):
     s = grid_spacing
     shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / s))
              for a in (2,1,0)]
-    print('grid size', shape, 'atoms', atoms.count())
+    print('grid size', shape, 'spheres', len(xyz))
     from numpy import empty, float32, sqrt
     matrix = empty(shape, float32)
     max_index_range = 2
@@ -30,7 +30,7 @@ def ses_surface(atoms, probe_radius = 1.4, grid_spacing = 0.5, name = None):
                            (0, 0, 1.0/s, -origin[2]/s)))
     ijk = xyz.copy()
     xyz_to_ijk_tf.move(ijk)
-    ri = r.copy()
+    ri = radii.copy()
     ri += probe_radius
     ri /= s
 
@@ -60,11 +60,10 @@ def ses_surface(atoms, probe_radius = 1.4, grid_spacing = 0.5, name = None):
                                      calculate_normals = True)
 
     # Create surface model to show surface
-    m0 = atoms.molecules()[0]
-    nm = ('%s SES surface' % m0.name) if name is None else name
-    surf = show_surface(nm, ses_va, ijk_to_xyz_tf, ses_ta, ses_na,
+    surf = show_surface(name, ses_va, ijk_to_xyz_tf, ses_ta, ses_na,
                         color = (.7,.8,.5,1))
-    surf.place = m0.place
+    if not place is None:
+        surf.place = place
 
     # Delete connected components more than 1.5 probe radius from atom spheres.
     from ..surface import split_surfaces
@@ -75,7 +74,7 @@ def ses_surface(atoms, probe_radius = 1.4, grid_spacing = 0.5, name = None):
         v0 = pva[0,:]
         d = xyz - v0
         d2 = (d*d).sum(axis = 1)
-        adist = (sqrt(d2) - r).min()
+        adist = (sqrt(d2) - radii).min()
 #        print(v0, adist)
         if adist >= 1.5*probe_radius:
             outside.append(p)
@@ -110,8 +109,16 @@ def surface_command(cmdname, args):
     surface(**kw)
 
 def surface(atoms, probeRadius = 1.4, gridSpacing = 0.5, waters = False):
-
+    '''
+    Compute and display a solvent excluded molecular surfaces for specified atoms.
+    If waters is false then water residues (residue name HOH) are removed from
+    the atom set before computing the surface.
+    '''
     if not waters:
         atoms = atoms.exclude_water()
-    s = ses_surface(atoms, probeRadius, gridSpacing)
+    xyz = atoms.coordinates()
+    r = atoms.radii()
+    m0 = atoms.molecules()[0]
+    name = '%s SES surface' % m0.name
+    s = ses_surface(xyz, r, probeRadius, gridSpacing, name, m0.place)
     return s
