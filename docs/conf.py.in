@@ -288,7 +288,7 @@ def skip_private(app, what, name, obj, skip, options):
     if (not skip and
         hasattr(obj, '__doc__') and
         isinstance(obj.__doc__,str) and
-        obj.__doc__.startswith('Private')):
+        obj.__doc__.lstrip().startswith('Private')):
         return True
     return skip
 
