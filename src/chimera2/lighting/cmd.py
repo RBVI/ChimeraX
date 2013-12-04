@@ -25,7 +25,7 @@
 #	lighting sharpness [sharpness]
 #	lighting reflectivity [reflectivity]
 
-from chimera2 import lighting
+from chimera2.lighting import lighting, maximum_ratio
 from chimera2.color import Color_arg
 from chimera2.cli import UserError, CmdInfo, Enum_of, string_arg, float_arg, float3_arg, register as register_cmd
 
@@ -36,48 +36,49 @@ Mode_arg = Enum_of(lighting.MODES)
 mode_info = CmdInfo(optional=[('mode', Mode_arg)])
 def mode(mode=None):
 	if mode is None:
-		return "Current lighting mode is %s" % lighting.mode()
+		return "Current lighting mode is %s" % lighting.mode
 	try:
-		return lighting.set_mode(mode)
+		lighting.mode = mode
 	except ValueError as e:
 		raise UserError(e)
 
 brightness_info = CmdInfo(optional=[('brightness', float_arg)])
 def brightness(brightness=None):
 	if brightness is None:
-		return "Current brightness is %s" % lighting.brightness()
+		return "Current brightness is %s" % lighting.brightness
 	try:
-		return lighting.set_brightness(brightness)
+		lighting.brightness = brightness
 	except ValueError as e:
 		raise UserError(e)
 
 contrast_info = CmdInfo(optional=[('contrast', float_arg)])
 def contrast(contrast=None):
-	if contrast is not None:
-		try:
-			return lighting.set_contrast(contrast)
-		except ValueError as e:
-			raise UserError(e)
-	mode = lighting.mode()
-	if mode == lighting.AMBIENT:
-		return "Not applicable"
-	return "Current contrast is %s" % lighting.contrast()
+	if contrast is None:
+		mode = lighting.mode
+		if mode == lighting.AMBIENT:
+			return "Not applicable"
+		return "Current contrast is %s" % lighting.contrast
+	try:
+		lighting.contrast = contrast
+	except ValueError as e:
+		raise UserError(e)
 
 ratio_info = CmdInfo(optional=[('ratio', float_arg)])
 def ratio(ratio=None):
 	if ratio is not None:
 		try:
-			return lighting.set_ratio(ratio)
+			lighting.ratio = ratio
+			return
 		except ValueError as e:
 			raise UserError(e)
-	mode = lighting.mode()
+	mode = lighting.mode
 	if mode in (lighting.AMBIENT, lighting.ONE):
 		return "Not applicable"
-	maxr = lighting.maximum_ratio(lighting.contrast())
+	maxr = maximum_ratio(lighting.contrast)
 	if mode == lighting.ONE:
 		msg = "Effective key-fill ratio is %s" % maxr
 	else:
-		ratio = lighting.ratio()
+		ratio = lighting.ratio
 		msg = "Current key-fill ratio is %s" % ratio
 		if ratio > maxr:
 			msg += " (limited to %s)" % maxr
@@ -128,10 +129,10 @@ def sharpness(sharpness=None):
 reflectivity_info = CmdInfo(optional=[('reflectivity', float_arg)])
 def reflectivity(reflectivity=None):
 	if reflectivity is None:
-		r = lighting.reflectivity()
+		r = lighting.reflectivity
 		return "material reflectivity is %s" % r
 	try:
-		return lighting.set_reflectivity(reflectivity)
+		lighting.reflectivity = reflectivity
 	except ValueError as e:
 		raise UserError(e)
 
@@ -158,8 +159,7 @@ def register():
 	register_cmd('lighting save', save_info, save)
 	register_cmd('lighting delete', delete_info, delete)
 
-	LIGHT_NAMES = (lighting.KEY, lighting.FILL, lighting.BACK)
-	for light in LIGHT_NAMES:
+	for light in lighting.LIGHT_NAMES:
 		def set_color(color=None, _light=light):
 			return light_color(_light, color)
 		register_cmd("lighting %s color" % light, color_info.copy(),
