@@ -1,8 +1,13 @@
 from ..surface import Surface
 class Molecule(Surface):
+  '''
+  A Molecule represents atoms, bonds, residues and chains, typically read from file formats
+  defined by the Protein Data Bank.  The data includes atomic coordinates, atom names,
+  residue names and numbers, and chain identifiers.  A molecule represents both the data and
+  the display style, color, and visibility used for drawing the molecule.
+  '''
 
   def __init__(self, path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names):
-
     from os.path import basename
     name = basename(path)
     Surface.__init__(self, name)
@@ -54,6 +59,7 @@ class Molecule(Surface):
     self.atom_surface_piece = None
 
   def draw(self, viewer, draw_pass):
+    '''Draw the molecule using the current style.'''
 
     self.update_graphics(viewer)
 
@@ -366,6 +372,7 @@ class Molecule(Surface):
         self.need_graphics_update = True
 
   def show_atoms(self, atoms, only_these = False):
+    '''Show the specified atoms.'''
     a = self.atom_shown
     if only_these:
       a[:] = False
@@ -376,6 +383,7 @@ class Molecule(Surface):
     self.redraw_needed = True
 
   def hide_atoms(self, atoms):
+    '''Hide the specified atoms.'''
     a = self.atom_shown
     if len(atoms) > 0:
       a[atoms] = False
@@ -384,6 +392,7 @@ class Molecule(Surface):
       self.redraw_needed = True
 
   def show_ribbon(self, atoms, only_these = False):
+    '''Show ribbons for residues containing the specified atoms.'''
     rs = self.ribbon_shown
     if only_these:
       rs[:] = False
@@ -394,6 +403,7 @@ class Molecule(Surface):
     self.redraw_needed = True
 
   def hide_ribbon(self, atoms):
+    '''Hide ribbons for residues containing the specified atoms.'''
     rs = self.ribbon_shown
     if len(atoms) > 0:
       rs[atoms] = False
@@ -423,6 +433,7 @@ class Molecule(Surface):
     self.redraw_needed = True
 
   def set_atom_style(self, style):
+    '''Set the atom display style to "sphere", "stick", or "ballstick".'''
     if style != self.atom_style:
       self.atom_style = style
       self.need_graphics_update = True
@@ -449,6 +460,7 @@ class Molecule(Surface):
     return fmin, Atom_Selection(self, anum)
 
   def atom_count(self):
+    '''Return the number of atoms in the molecule.'''
     return len(self.xyz)
 
   def atoms_shown(self):
@@ -534,18 +546,28 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
 # -----------------------------------------------------------------------------
 #
 class Atom_Set:
+  '''
+  An atom set is a collection of atoms from one or more molecules.
+  Properties of the atoms such as their x,y,z coordinates or radii can be
+  accessed as arrays for efficient computation.
+  '''
   def __init__(self):
     self.molatoms = []      # Pairs (molecule, atom index array)
   def add_molecules(self, molecules):
+    '''Add all atoms of the specified molecules to the set.'''
     for m in molecules:
       self.molatoms.append((m, m.all_atoms()))
   def add_atoms(self, mol, atoms):
+    '''Add atoms for a molecule to the set.'''
     self.molatoms.append((mol, atoms))
   def molecules(self):
+    '''List of molecules in set.'''
     return list(set(m for m,a in self.molatoms))
   def count(self):
+    '''Number of atoms in set.'''
     return sum(len(a) for m,a in self.molatoms)
   def coordinates(self):
+    '''Return a numpy array of atom coordinates in the global coordinate system.'''
     coords = []
     for m,a in self.molatoms:
         xyz = m.xyz[a]
@@ -561,6 +583,7 @@ class Atom_Set:
     return a
 
   def radii(self):
+    '''Return a numpy array of atom radii.'''
     rlist = []
     for m,a in self.molatoms:
         rlist.append(m.radii[a])
@@ -574,7 +597,7 @@ class Atom_Set:
     return a
 
   def move_atoms(self, tf):
-    # Transform tf acts on scene coordinates
+    '''Move atoms using a transform acting in scene global coordinates.'''
     for m,a in self.molatoms:
       axyz = m.xyz[a]
       atf = m.place.inverse() * tf * m.place
@@ -584,6 +607,7 @@ class Atom_Set:
       m.redraw_needed = True
 
   def element_numbers(self):
+    '''Return a numpy array of atom element numbers (e.g. 6 = carbon, 8 = oxygen).'''
     elnums = []
     for m,a in self.molatoms:
         elnums.append(m.element_nums[a])
@@ -593,6 +617,7 @@ class Atom_Set:
     return numpy.concatenate(elnums)
 
   def separate_chains(self):
+    '''Return copies of this atom set where each copy has atoms from a separate chain.'''
     clist = []
     csets = {}
     for m,a in self.molatoms:
@@ -607,6 +632,10 @@ class Atom_Set:
     return clist
 
   def extend_to_chains(self):
+    '''
+    Return a copy of this atom set extended to include all atoms of
+    chains which have atoms in the current set.
+    '''
     aset = Atom_Set()
     for m,a in self.molatoms:
       cids = tuple(set(m.chain_ids[a]))
@@ -615,6 +644,7 @@ class Atom_Set:
     return aset
 
   def separate_molecules(self):
+    '''Return copies of this atoms set each having atoms from just one molecule.'''
     mlist = []
     msets = {}
     for m,a in self.molatoms:
@@ -626,12 +656,14 @@ class Atom_Set:
     return mlist
 
   def exclude_water(self):
+    '''Return a copy of this atom set with waters (residue name HOH) removed.'''
     aset = Atom_Set()
     for m,a in self.molatoms:
       aset.add_atoms(m, a[m.residue_names[a] != b'HOH'])
     return aset
 
   def names(self):
+    '''Return a list of text names (strings) for each atom in this set.'''
     names = []
     for m,alist in self.molatoms:
       for a in alist:
@@ -641,6 +673,7 @@ class Atom_Set:
 # -----------------------------------------------------------------------------
 #
 def all_atoms():
+  '''Return an atom set containing all atoms of all open molecules.'''
   aset = Atom_Set()
   from ..ui.gui import main_window
   aset.add_molecules(main_window.view.molecules())

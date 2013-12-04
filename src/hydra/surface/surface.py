@@ -1,4 +1,13 @@
 class Surface:
+  '''
+  A Surface represents one or more sets of triangles in 3 dimensional space, each set being a Surface_Piece.
+  Surfaces are used to draw molecules, density maps, geometric shapes and other models.
+  A Surface has a name, a unique id number which is a positive integer, it can be displayed or hidden,
+  has a placement in space, or multiple copies can be placed in space, and a surface can be selected.
+  The coordinates, colors, normal vectors and other geometric and display properties are managed by the
+  Surface_Piece objects.  Individual surface pieces can be added or removed.  The purpose of pieces is
+  for convenience in adding and removing parts of a surface.
+  '''
 
   def __init__(self, name):
     self.name = name
@@ -13,9 +22,11 @@ class Surface:
     self.__destroyed__ = False
 
   def surface_pieces(self):
+    '''Return the list of surface pieces.'''
     return self.plist
 
   def newPiece(self, name = None):
+    '''Create a new empty surface piece.'''
     p = Surface_Piece(name)
     p.surface = self
     self.plist.append(p)
@@ -23,11 +34,13 @@ class Surface:
     return p
 
   def removePiece(self, p):
+    '''Delete a specified surface piece.'''
     self.plist.remove(p)
     p.delete()
     self.redraw_needed = True
 
   def removePieces(self, pieces):
+    '''Delete specified surface pieces.'''
     pset = set(pieces)
     self.plist = [p for p in self.plist if not p in pset]
     for p in pieces:
@@ -35,6 +48,7 @@ class Surface:
     self.redraw_needed = True
 
   def removeAllPieces(self):
+    '''Delete all surface pieces.'''
     self.removePieces(self.plist)
 
   def get_display(self):
@@ -43,6 +57,7 @@ class Surface:
     self.displayed = display
     self.redraw_needed = True
   display = property(get_display, set_display)
+  '''Whether or not the surface is drawn.'''
 
   def get_place(self):
     return self.placement
@@ -50,19 +65,22 @@ class Surface:
     self.placement = place
     self.redraw_needed = True
   place = property(get_place, set_place)
+  '''Position and orientation of the surface in space.'''
 
   def showing_transparent(self):
+    '''Are any transparent surface pieces being displayed.'''
     for p in self.plist:
       if p.display and not p.opaque():
         return True
     return False
 
   def draw(self, viewer, draw_pass, reverse_order = False):
+    '''Draw all displayed surface pieces in the specified view using the given draw pass.'''
     plist = self.plist[::-1] if reverse_order else self.plist
     self.draw_pieces(plist, viewer, draw_pass)
 
   def draw_pieces(self, plist, viewer, draw_pass):
-
+    '''Draw the specified surface pieces in a view using the given draw pass.'''
     if draw_pass == viewer.OPAQUE_DRAW_PASS:
       for p in plist:
         if p.display and p.opaque():
@@ -74,10 +92,18 @@ class Surface:
           p.draw(viewer)
 
   def bounds(self):
+    '''
+    The bounds of all surface pieces including undisplayed ones in the
+    coordinate system of the surface.  Does not include copies.
+    '''
     from ..geometry.bounds import union_bounds
     return union_bounds(p.bounds() for p in self.plist)
 
   def placed_bounds(self):
+    '''
+    The bounds of all surface pieces including undisplayed ones in the
+    global coordinate system and including surface copies.
+    '''
     b = self.bounds()
     if b is None or b == (None, None):
       return None
@@ -91,6 +117,13 @@ class Surface:
     return bounds.copies_bounding_box(b, copies)
 
   def first_intercept(self, mxyz1, mxyz2):
+    '''
+    Find the first intercept of a line segment with the displayed pieces of the surface.
+    Return the fraction of the distance along the segment where the intersection occurs
+    and a Surface_Piece_Selection object for the intercepted piece.  For no intersection
+    two None values are returned.  This routine is used to determine the front-most point
+    in the center of view to be used as the interactive center of rotation.
+    '''
     f = None
     sp = None
     # TODO handle surface model copies.
@@ -104,17 +137,34 @@ class Surface:
     return f, Surface_Piece_Selection(sp)
 
   def delete(self):
+    '''
+    Delete all surface pieces.
+    '''
     self.removeAllPieces()
   
 class Surface_Piece(object):
+  '''
+  Surface_Pieces are created by the Surface newPiece() method and represent a set of triangles
+  that can be added or removed from a Surface independent of other sets of triangles.  The basic
+  data defining the triangles is an N by 3 array of vertices (float32 numpy array) and an array
+  that defines triangles by specify 3 integer index values into the vertex array which define the
+  3 corners of a triangle.  The triangle array is of shape T by 3 and is a numpy int32 array.
+  The filled triangles or a mesh consisting of just the triangle edges can be shown.
+  The vertices can be individually colored with linear interpolation of colors across triangles,
+  or all triangles can be given the same color, or a 2-dimensional texture can be used to color
+  the triangles with texture coordinates assigned to the vertices.  Transparency values can be assigned
+  to the vertices. Individual triangles or triangle edges in mesh display style can be hidden.
+  An N by 3 float array gives   normal vectors, one normal per vertex, for lighting calculations 
+  when drawing the surface.  Multiple copies of the surface piece can be drawn with each specified
+  by a position and orientation.  Copies can alternatively be specified by a shift and scale factor
+  but no rotation, useful for copies of spheres.  Each copy can have its own single color, or all
+  copies can use the same per-vertex or texture coloring.  Rendering of surface pieces is done with
+  OpenGL using the draw module.
+  '''
 
   Solid = 'solid'
   Mesh = 'mesh'
   Dot = 'dot'
-
-  TRIANGLE_DISPLAY_MASK = 8
-  EDGE0_DISPLAY_MASK = 1
-  ALL_EDGES_DISPLAY_MASK = 7
 
   def __init__(self, name = None):
     self.name = name
@@ -159,7 +209,7 @@ class Surface_Piece(object):
     self.element_buffer = obufs[-1]
 
   def delete(self):
-
+    '''Release all the arrays and graphics memory associated with the surface piece.'''
     self.vertices = None
     self.triangles = None
     self.normals = None
@@ -180,6 +230,7 @@ class Surface_Piece(object):
     self.edge_mask = None
     self.surface.redraw_needed = True
   geometry = property(get_geometry, set_geometry)
+  '''Geometry is the array of vertices and array of triangles.'''
 
   def get_copies(self):
     return self.copies34
@@ -188,6 +239,10 @@ class Surface_Piece(object):
     self.copies44 = opengl_matrices(copies) if copies else None
     self.surface.redraw_needed = True
   copies = property(get_copies, set_copies)
+  '''
+  Copies of the surface piece are placed using a 3 by 4 matrix with the first 3 columns
+  giving a linear transformation, and the last column specifying a shift.
+  '''
 
   def shader_changed(self, shader):
     return self.vao is None or shader != self.vao.shader
@@ -232,11 +287,13 @@ class Surface_Piece(object):
     self.color_rgba = rgba
     self.surface.redraw_needed = True
   color = property(get_color, set_color)
+  '''Single color of surface piece used when per-vertex coloring is not specified.'''
 
   def opaque(self):
     return self.color_rgba[3] == 1 and (self.texture is None or self.opaqueTexture)
 
   def draw(self, viewer):
+    ''' Draw the surface piece.'''
 
     if self.triangles is None:
       return
@@ -293,6 +350,10 @@ class Surface_Piece(object):
       ninst = None
     return ninst
 
+  TRIANGLE_DISPLAY_MASK = 8
+  EDGE0_DISPLAY_MASK = 1
+  ALL_EDGES_DISPLAY_MASK = 7
+
   def get_triangle_and_edge_mask(self):
     return self.edge_mask
   def set_triangle_and_edge_mask(self, temask):
@@ -300,6 +361,11 @@ class Surface_Piece(object):
     self.surface.redraw_needed = True
   triangleAndEdgeMask = property(get_triangle_and_edge_mask,
                                  set_triangle_and_edge_mask)
+  '''
+  The triangle and edge mask is a 1-dimensional int32 numpy array of length equal
+  to the number of triangles.  The lowest 4 bits are used to control display of
+  the corresponding triangle and display of its 3 edges in mesh mode.
+  '''
     
   def set_edge_mask(self, emask):
 
@@ -321,7 +387,10 @@ class Surface_Piece(object):
     self.masked_edges = None
 
   def bounds(self):
-
+    '''
+    Return the bounds of the surface piece in surface coordinates including
+    any surface piece copies, but not including whole surface copies.
+    '''
     # TODO: cache surface piece bounds
     va = self.vertices
     if va is None or len(va) == 0:
@@ -341,6 +410,11 @@ class Surface_Piece(object):
     return b
 
   def first_intercept(self, mxyz1, mxyz2):
+    '''
+    Find the first intercept of a line segment with the surface piece and
+    return the fraction of the distance along the segment where the intersection occurs
+    or None if no intersection occurs.  Intercepts with masked triangle are included.
+    '''
     # TODO check intercept of bounding box as optimization
     # TODO handle surface piece shift_and_scale.
     f = None
@@ -359,6 +433,9 @@ class Surface_Piece(object):
     return f
 
 class Surface_Piece_Selection:
+  '''
+  Represent a selected surface piece as a generic selection object.
+  '''
   def __init__(self, p):
     self.piece = p
   def description(self):
@@ -370,26 +447,32 @@ class Surface_Piece_Selection:
     return [self.piece.surface]
 
 def surface_image(qi, pos, size, surf = None):
-    rgba = image_rgba_array(qi)
-    if surf is None:
-        surf = Surface('Image')
-    return rgba_surface_piece(rgba, pos, size, surf)
+  '''
+  Make a new surface piece and texture map a QImage onto it.
+  '''
+  rgba = image_rgba_array(qi)
+  if surf is None:
+    surf = Surface('Image')
+  return rgba_surface_piece(rgba, pos, size, surf)
 
 def rgba_surface_piece(rgba, pos, size, surf):
-    p = surf.newPiece()
-    x,y = pos
-    sx,sy = size
-    from numpy import array, float32, uint32
-    vlist = array(((x,y,0),(x+sx,y,0),(x+sx,y+sy,0),(x,y+sy,0)), float32)
-    tlist = array(((0,1,2),(0,2,3)), uint32)
-    tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
-    p.geometry = vlist, tlist
-    p.color = (1,1,1,1)         # Modulates texture values
-    p.useLighting = False
-    p.textureCoordinates = tc
-    from ..draw import Texture
-    p.texture = Texture(rgba)
-    return p
+  '''
+  Make a new surface piece and texture map an RGBA color array onto it.
+  '''
+  p = surf.newPiece()
+  x,y = pos
+  sx,sy = size
+  from numpy import array, float32, uint32
+  vlist = array(((x,y,0),(x+sx,y,0),(x+sx,y+sy,0),(x,y+sy,0)), float32)
+  tlist = array(((0,1,2),(0,2,3)), uint32)
+  tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
+  p.geometry = vlist, tlist
+  p.color = (1,1,1,1)         # Modulates texture values
+  p.useLighting = False
+  p.textureCoordinates = tc
+  from ..draw import Texture
+  p.texture = Texture(rgba)
+  return p
 
 # Extract rgba values from a QImage.
 def image_rgba_array(i):
@@ -419,6 +502,10 @@ def image_rgba_array(i):
     return rgba
 
 def opengl_matrices(places):
+  '''
+  Convert a list of Place objects into a numpy array of 3 by 4 matrices
+  for creating surface piece instances.
+  '''
   m34_list = tuple(p.matrix for p in places)
   n = len(m34_list)
   from numpy import empty, float32, transpose

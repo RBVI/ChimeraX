@@ -20,7 +20,17 @@
 #
 from numpy import float32
 class Grid_Data:
-
+  '''
+  3-dimensional array of numeric values usually representing a density map
+  from electron microscopy, x-ray crystallography or optical imaging.
+  The grid points are positioned in space with array index (0,0,0) at
+  the xyz origin, and spacing along the xyz axes given by the step parameter.
+  The rectangular grid can be skewed by specifying angles between each pair
+  of axes as is done to describe crystallographic unit cells.  The grid
+  can also be rotated.  Values are read from a file for rectangular subregions
+  of the data and cached in memory.  The numeric values can be signed or unsigned
+  integer of 8, 16, or 32 bits or real 32-bit or 64-bit values.
+  '''
   def __init__(self, size,
                value_type = float32,
                origin = (0,0,0),
@@ -147,19 +157,23 @@ class Grid_Data:
       self.coordinates_changed()
 
   # ---------------------------------------------------------------------------
-  # A matrix ijk corresponds to a point in xyz space.
-  # This function maps the xyz point to the matrix index.
-  # The returned matrix index need not be integers.
   #
   def xyz_to_ijk(self, xyz):
-
+    '''
+    A matrix i,j,k index corresponds to a point in x,y,z space.
+    This function maps the xyz point to the matrix index.
+    The returned matrix index is floating point and need not be integers.
+    '''
     return self.xyz_to_ijk_transform * xyz
 
   # ---------------------------------------------------------------------------
-  # A matrix ijk corresponds to a point in xyz space.
-  # This function maps the matrix index to the xyz point.
   #
   def ijk_to_xyz(self, ijk):
+    '''
+    A matrix i,j,k index corresponds to a point in x,y,z space.
+    This function maps the matrix index to the xyz point.
+    The index can be floating point, non-integral values.
+    '''
 
     return self.ijk_to_xyz_transform * ijk
     
@@ -175,7 +189,15 @@ class Grid_Data:
   #
   def matrix(self, ijk_origin = (0,0,0), ijk_size = None,
              ijk_step = (1,1,1), progress = None, from_cache_only = False):
-
+    '''
+    Return a numpy array for a box shaped subregion of the data with specified
+    index origin and size.  Every Nth point can be take along an axis by
+    specifying ijk_step.  If step size is greater than 1 then the returned
+    array will be smaller than the requested size.  The requested ijk_size
+    refers to the region size of the full-resolution array (counting every
+    grid point).  The array can be read from a file or be a cached copy in
+    memory.  The array should not be modified.
+    '''
     if ijk_size == None:
       ijk_size = self.size
 
@@ -187,16 +209,18 @@ class Grid_Data:
     return m
     
   # ---------------------------------------------------------------------------
-  # Must overide this function in derived class to return a 3 dimensional
-  # NumPy matrix.  The returned matrix has size ijk_size and
-  # element ijk is accessed as m[k,j,i].  It is an error if the requested
-  # submatrix does not lie completely within the full data matrix.  It is
-  # also an error for the size to be <= 0 in any dimension.  These invalid
-  # inputs might throw an exception or might return garbage.  It is the
-  # callers responsibility to make sure the arguments are valid.
   #
   def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
+    '''
+    Must overide this function in derived class to return a 3 dimensional
+    NumPy matrix.  The returned matrix has size ijk_size and
+    element ijk is accessed as m[k,j,i].  It is an error if the requested
+    submatrix does not lie completely within the full data matrix.  It is
+    also an error for the size to be <= 0 in any dimension.  These invalid
+    inputs might throw an exception or might return garbage.  It is the
+    callers responsibility to make sure the arguments are valid.
+    '''
 
     raise NotImplementedError('Grid %s has no read_matrix() routine' % self.name)
   

@@ -225,7 +225,13 @@ def show_one_plane(size, show_plane, min_voxels):
 #
 from ..surface import Surface
 class Volume(Surface):
-
+  '''
+  A Volume is a rendering of a 3-d image Grid_Data object.  It includes
+  color, display styles including surface, mesh and grayscale, contouring levels,
+  brightness and transparency for grayscale rendering, region bounds for display
+  a subregion including single plane display, subsampled display of every Nth data
+  value along each axis, outline box display.
+  '''
   def __init__(self, data, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
@@ -404,24 +410,25 @@ class Volume(Surface):
       dc('coordinates changed')
     
   # ---------------------------------------------------------------------------
-  # Programatically set data region parameters.  The following keyword
-  # parameters are valid.
-  #
-  #   surface_levels
-  #   surface_colors              (rgb or rgba values)
-  #   surface_brightness_factor
-  #   transparency_factor
-  #   solid_levels
-  #   solid_colors                (rgb or rgba values)
-  #   transparency_depth
-  #   solid_brightness_factor
-  #
-  #   Any rendering option attribute names can also be used.
-  #
-  # The volume display is not automatically updated.  Use v.show() when
-  # redisplay is desired.
   #
   def set_parameters(self, **kw):
+    '''
+    Set volume display parameters.  The following keyword parameters are valid.
+  
+      surface_levels
+      surface_colors              (rgb or rgba values)
+      surface_brightness_factor
+      transparency_factor
+      solid_levels
+      solid_colors                (rgb or rgba values)
+      transparency_depth
+      solid_brightness_factor
+  
+      Any rendering option attribute names can also be used.
+  
+    The volume display is not automatically updated.  Use v.show() when
+    redisplay is desired.
+    '''
 
     parameters = ('surface_levels',
                   'surface_colors',
@@ -503,10 +510,12 @@ class Volume(Surface):
       self.call_change_callbacks('rendering options changed')
 
   # ---------------------------------------------------------------------------
-  # Sets new region and optionally shows it.
   #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
                  show = True, adjust_step = True, save_in_region_queue = True):
+    '''
+    Set new display region and optionally shows it.
+    '''
 
     if ijk_min is None:
       ijk_min = self.region[0]
@@ -602,12 +611,15 @@ class Volume(Surface):
     return len(self.surface_levels) > 0 and len(self.solid_levels) > 0
 
   # ---------------------------------------------------------------------------
-  # Returns True if thresholds are changed.
   #
   def initialize_thresholds(self, first_time_only = True,
                             vfrac = (0.01, 0.90), mfrac = None,
                             replace = False):
-
+    '''
+    Set default initial surface and solid style rendering thresholds.
+    The thresholds are only changed the first time this method is called or if
+    the replace option is True.  Returns True if thresholds are changed.
+    '''
     if not replace:
       if first_time_only and self.initialized_thresholds:
         return False
@@ -667,7 +679,9 @@ class Volume(Surface):
   # ---------------------------------------------------------------------------
   #
   def set_representation(self, rep):
-
+    '''
+    Set display style to "surface", "mesh", or "solid".
+    '''
     if rep != self.representation:
       self.redraw_needed = True  # Switch to solid does not change surface until draw
       if rep == 'solid' or self.representation == 'solid':
@@ -684,7 +698,9 @@ class Volume(Surface):
   # ---------------------------------------------------------------------------
   #
   def show(self, representation = None, rendering_options = None, show = True):
-
+    '''
+    Display the volume using the current parameters.
+    '''
     if representation:
       self.set_representation(representation)
 
@@ -950,7 +966,9 @@ class Volume(Surface):
   # ---------------------------------------------------------------------------
   #
   def show_outline_box(self, show, rgb, linewidth):
-    
+    '''
+    Show an outline box enclosing the displayed subregion of the volume.
+    '''
     if show and rgb:
       from .data import box_corners
       ijk_corners = box_corners(*self.ijk_bounds())

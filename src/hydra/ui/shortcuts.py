@@ -1,7 +1,10 @@
 keyboard_shortcuts = None
+'''The global Keyboard_Shortcuts manager.'''
 
 def register_shortcuts(viewer):
-
+    '''
+    Register the standard keyboard shortcuts.
+    '''
     global keyboard_shortcuts
     if keyboard_shortcuts is None:
         keyboard_shortcuts = Keyboard_Shortcuts(viewer)
@@ -112,7 +115,9 @@ def register_shortcuts(viewer):
     return ks
 
 class Keyboard_Shortcuts:
-
+  '''
+  Maintain a list of multi-key keyboard shortcuts and run them in response to key presses.
+  '''
   def __init__(self, viewer):
 
     # Keyboard shortcuts
@@ -123,6 +128,13 @@ class Keyboard_Shortcuts:
   def add_shortcut(self, key_seq, func, description = '', category = None,
                    each_map = False, each_molecule = False,
                    each_surface = False, view_arg = False):
+    '''
+    Add a keyboard shortcut with a given key sequence and function to call when
+    that key sequence is entered.  Shortcuts are put in categories and have
+    textual descriptions for automatically creating documentation.  A shortcut
+    function can take no arguments or it can take a map, molecule, surface or
+    view argument.
+    '''
 
     v = self.viewer
     if each_map:

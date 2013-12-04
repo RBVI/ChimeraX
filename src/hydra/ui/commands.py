@@ -6,6 +6,9 @@ class CommandError(Exception):
 # -----------------------------------------------------------------------------
 #
 def register_commands():
+    '''
+    Registers the standard commands.
+    '''
     from ..file_io.opensave import open_command, close_command
     add_command('open', open_command)
     add_command('close', close_command)
@@ -32,6 +35,9 @@ def register_commands():
 commands = {}
 cmdabbrev = None
 def add_command(name, function):
+    '''
+    Register a command with a given name and function to call.
+    '''
     global commands, cmdabbrev
     commands[name] = function
     cmdabbrev = None
@@ -39,6 +45,10 @@ def add_command(name, function):
 # -----------------------------------------------------------------------------
 #
 def run_command(text):
+    '''
+    Invoke a command.  The command and arguments are a string that will be
+    parsed by a registered command function.
+    '''
     from .gui import log_message
     log_message('> %s' % text, color = '#008000')
     fields = text.split(maxsplit = 1)
@@ -80,7 +90,11 @@ def add_to_command_history(text, filename = 'commands'):
 # -----------------------------------------------------------------------------
 #
 def show_command_history(filename = 'commands'):
-
+    '''
+    Show a text window showing the invoked commands and their arguments for
+    this session in the order they were executed.  Clicking on a command causes
+    it to be run again.
+    '''
     from .gui import main_window as mw
     if mw.showing_text() and mw.text_id == 'command history':
         mw.show_graphics()

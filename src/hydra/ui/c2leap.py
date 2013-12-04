@@ -285,7 +285,8 @@ def frame_rotation(lf, f):
     return R_to_axis_angle(r)
 
 def R_to_axis_angle(matrix):
-    """Convert the rotation matrix into the axis-angle notation.
+    """
+    Private. Convert the rotation matrix into the axis-angle notation.
 
     Conversion equations
     ====================

@@ -1,6 +1,10 @@
 from .qt import QtCore, QtGui, QtOpenGL, QtWidgets
 
 class MainWindow(QtWidgets.QMainWindow):
+    '''
+    Main application window including graphics, toolbar, command line, status line,
+    and scrolled text log.
+    '''
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
 
@@ -210,6 +214,9 @@ def set_default_context(major_version, minor_version, profile):
 app = None
 main_window = None
 def show_main_window():
+    '''
+    Create the application main window and start the event loop.
+    '''
     set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
     import sys
     global app
@@ -233,9 +240,15 @@ def show_main_window():
     sys.exit(status)
 
 def show_status(msg, append = False):
+    '''
+    Show a status message at the bottom of the main window.
+    '''
     main_window.show_status(msg, append)
 
 def show_info(msg, color = None):
+    '''
+    Write information to the log window, typically command output.
+    '''
     log_message(msg, color)
 
 class Log:
@@ -300,10 +313,16 @@ def show_log():
     cmd_log.show()
 
 def log_message(msg, color = None, html = False):
+    '''
+    Write a message to the log window.  It can be plain text or html.
+    '''
     global cmd_log
     cmd_log.append(msg, color, html)
 
 def log_image():
+    '''
+    Take a snapshot of the graphics window and insert a thumbnail of it in the log window.
+    '''
     global cmd_log
     cmd_log.insert_graphics_image()
 
