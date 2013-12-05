@@ -44,6 +44,12 @@ def move_atoms_to_maximum(atoms, volume,
                           optimize_rotation = True,
                           move_whole_molecules = True,
                           request_stop_cb = None):
+    '''
+    Optimize the position of molecules in density maps.
+    
+    Uses gradient descent to rigidly move molecules to increase sum of density
+    values at specified atom positions.
+    '''
 
     points = atoms.coordinates()
     point_weights = None        # Each atom give equal weight in fit.
@@ -72,6 +78,15 @@ def motion_to_maximum(points, point_weights, volume, max_steps = 2000,
                       optimize_translation = True, optimize_rotation = True,
                       metric = 'sum product', symmetries = [],
                       request_stop_cb = None):
+    '''
+    Use gradient ascent to rigidly rotate and shift a set of points within a
+    density map to maximize the average interpolated density value at the point
+    positions.  Returns a Place object giving the motion of the points to the
+    local maximum. The point coordinates are not modified.
+    Optionally the correlation value or correlation about mean can
+    be optimized.  Copies of the point set can be included in the optimization
+    by specifying a list of Place objects for the symmetries argument.
+    '''
 
     from ...geometry.place import identity
     data_array, xyz_to_ijk_transform = \
