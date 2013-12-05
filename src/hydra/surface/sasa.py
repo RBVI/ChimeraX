@@ -337,7 +337,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
     c, r = sphere
     va *= r + offset
     va += c
-    p = surf.newPiece()
+    p = surf.new_piece()
     p.geometry = va, ta
     p.normals = na
     p.color = color
@@ -357,7 +357,7 @@ def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
         f.move(va)
         f.move(na)
         va += cs
-        p = s.newPiece()
+        p = s.new_piece()
         p.geometry = va, ta
         p.normals = na
         p.color = color
@@ -431,7 +431,7 @@ def sphere_model(indices, centers, radii, ntri = 2000):
     for i in indices:
         va, na, ta = sphere_geometry(ntri)
         va = va*radii[i] + centers[i]
-        p = s.newPiece()
+        p = s.new_piece()
         p.geometry = va, ta
         p.normals = na
 
@@ -480,6 +480,16 @@ def accessible_surface_area(molecule):
     return spheres_surface_area(centers, radii)
 
 def spheres_surface_area(centers, radii, npoints = 1000):
+    '''
+    Return the exposed surface area of a set of possibly intersecting set of spheres.
+    An array giving the exposed area for each input sphere is returned.
+    The area is computed by an exact method except for round-off errors.
+    The calculation can fail in rare cases where 4 spheres intersect at a point
+    and area values of -1 are returned for spheres where the calculation fails.
+    TODO: The code also computes the areas using numerical approximation, and the
+    results compared with the maximum and average discrepancy printed for debugging.
+    This code is not needed except for debugging.
+    '''
     from .._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
     from time import time
     t0 = time()

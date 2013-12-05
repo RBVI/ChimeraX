@@ -790,16 +790,16 @@ class Volume(Surface):
             levels[k+1] == plist[k+1].contour_settings['level']):
         pass
       elif k+1 < len(plist) and level == plist[k+1].contour_settings['level']:
-        smodel.removePiece(plist[k])
+        smodel.remove_piece(plist[k])
         del plist[k]
       elif (k < len(plist) and k+1 < len(levels) and
             levels[k+1] == plist[k].contour_settings['level']):
-        plist.insert(k, smodel.newPiece())
+        plist.insert(k, smodel.new_piece())
       elif k >= len(plist):
-        plist.append(smodel.newPiece())
+        plist.append(smodel.new_piece())
 
     while len(plist) > len(levels):
-      smodel.removePiece(plist[-1])
+      smodel.remove_piece(plist[-1])
       del plist[-1]
       
     return plist
@@ -945,7 +945,7 @@ class Volume(Surface):
 
     for p in self.surface_piece_list:
       if not p.__destroyed__:
-        self.removePiece(p)
+        self.remove_piece(p)
     self.surface_piece_list = []
     
   # ---------------------------------------------------------------------------
@@ -1920,7 +1920,7 @@ class Volume(Surface):
   #
   def close_surface(self):
 
-    self.removeAllPieces()
+    self.remove_all_pieces()
       
   # ---------------------------------------------------------------------------
   #
@@ -2008,7 +2008,7 @@ class Outline_Box:
     hide_diagonals = [b]*len(tlist)
 
     rgba = tuple(rgb) + (1,)
-    p = self.model.newPiece()
+    p = self.model.new_piece()
     p.displayStyle = p.Mesh
     p.lineThickness = linewidth
     p.useLighting = False
@@ -2017,7 +2017,7 @@ class Outline_Box:
     # coloring and capping of outline boxes.
     from numpy import array
     p.geometry = array(vlist), array(tlist)
-    p.triangleAndEdgeMask = hide_diagonals
+    p.triangle_and_edge_mask = hide_diagonals
     p.color = rgba
 
     self.piece = p
@@ -2080,7 +2080,7 @@ class Outline_Box:
     p = self.piece
     if not p is None:
       if not p.__destroyed__:
-        self.model.removePiece(p)
+        self.model.remove_piece(p)
       self.piece = None
       self.corners = None
       self.rgb = None
