@@ -264,19 +264,22 @@ class Lighting:
 		elif self._params[MODE] == ONE:
 			self.ambient = (1 - contrast) * brightness
 			eye_dir = Vector([0, 0, 1])
-			adjust = 2 - abs(self.key_light.direction * eye_dir)
-			self.key_light.diffuse_scale = (brightness - self.ambient) * adjust
-			if self.key_light.diffuse_scale < 1e-6:
+			kl = self.key_light
+			adjust = 2 - abs(kl.direction * eye_dir)
+			kl.diffuse_scale = (brightness - self.ambient) * adjust
+			if kl.diffuse_scale < 1e-6:
 				# prevent from disappearing in interface
-				self.key_light.diffuse_scale = 1e-6
+				kl.diffuse_scale = 1e-6
 		elif self._params[MODE] in (TWO, THREE):
 			ratio = self._params[RATIO]
 			maxr = maximum_ratio(contrast)
 			if ratio > maxr:
 				ratio = maxr
 			eye_dir = Vector([0, 0, 1])
-			ambient = (1 - contrast) * brightness
+			self.ambient = (1 - contrast) * brightness
 			#scale = brightness / ratio
+			kl = self.key_light
+			fl = self.fill_light
 
 			# F = fill_light.diffuse_scale + ambient
 			# K = key_light.diffuse_scale + ambient
@@ -287,21 +290,21 @@ class Lighting:
 			# (The above equation insures that the brightness
 			# doesn't change appreciatively when switching between
 			# single and two light modes.)
-			self.fill_light.diffuse_scale = (brightness - ratio * ambient) / (ratio + 1)
-			self.key_light.diffuse_scale = (brightness - self.ambient - self.fill_light.diffuse_scale)
+			fl.diffuse_scale = (brightness - ratio * self.ambient) / (ratio + 1)
+			kl.diffuse_scale = (brightness - self.ambient - fl.diffuse_scale)
 
 			# adjust values are used to maintain a constant
 			# brightness as the lights are moved around.
-			adjust = 2 - abs(self.fill_light.direction * eye_dir)
-			self.fill_light.diffuse_scale *= adjust
-			if self.fill_light.diffuse_scale < 1e-6:
+			adjust = 2 - abs(fl.direction * eye_dir)
+			fl.diffuse_scale *= adjust
+			if fl.diffuse_scale < 1e-6:
 				# prevent from disappearing in interface
-				self.fill_light.diffuse_scale = 1e-6
-			adjust = 2 - abs(self.key_light.direction * eye_dir)
-			self.key_light.diffuse_scale *= adjust
-			if self.key_light.diffuse_scale < 1e-6:
+				fl.diffuse_scale = 1e-6
+			adjust = 2 - abs(kl.direction * eye_dir)
+			kl.diffuse_scale *= adjust
+			if kl.diffuse_scale < 1e-6:
 				# prevent from disappearing in interface
-				self.key_light.diffuse_scale = 1e-6
+				kl.diffuse_scale = 1e-6
 		track.modified(Lighting, [self], self.LIGHTING_CHANGE)
 
 	def _get_light(self, light, ambient_okay=False):

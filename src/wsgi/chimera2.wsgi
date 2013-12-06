@@ -31,6 +31,7 @@ class WSGIError(Exception):
 	page data - *string*
 	"""
 	def __init__(self, status, output, content_type=None, headers=None):
+		status = "%s: %s" % (status, output)
 		Exception.__init__(self, status)
 		if content_type is None:
 			content_type = CONTENT_TYPE_PLAINTEXT
@@ -361,14 +362,17 @@ class Session(object):
 				self.pipe = None
 			if self.process is None:
 				from multiprocessing import Pipe, Process
+				import tempfile
 				to_child = Pipe()
 				from_child = Pipe()
-				self.pipe = (from_child[0], to_child[1])
+				err_child = tempfile.TemporaryFile(bufsize=0)
+				self.pipe = (from_child[0], to_child[1], err_child)
 				self.process = Process(target=backend,
 							args=(self._session_dir,
 								self.name,
 								to_child,
-								from_child))
+								from_child,
+								err_child))
 				self.process.start()
 				#print "%s - process %d started" % (self.name,
 				#			self.process.pid)
@@ -378,8 +382,10 @@ class Session(object):
 			try:
 				output = self.pipe[0].recv()
 			except EOFError:
-				output = None
+				self.pipe[2].seek(0)
+				output = self.pipe[2].read()
 				_debug_print("exitcode: %d" % self.process.exitcode)
+				_debug_print("error output: %s" % output)
 		_debug_print("output: %s" % str(output))
 		status, content_type, headers, data = output
 		results = (str(status), str(content_type), headers, str(data))
@@ -518,7 +524,7 @@ class SessionStore(object):
 			else:
 				return None
 
-def backend(session_dir, session_name, to_child, from_child):
+def backend(session_dir, session_name, to_child, from_child, err_child):
 	"""Invoke a backend process."""
 	import sys, copy, os
 	if 0:
@@ -528,10 +534,12 @@ def backend(session_dir, session_name, to_child, from_child):
 		resource.setrlimit(resource.RLIMIT_CORE, (-1, -1))
 	os.dup2(to_child[0].fileno(), 0)
 	os.dup2(from_child[1].fileno(), 1)
+	os.dup2(err_child.fileno(), 2)
 	to_child[0].close()
 	to_child[1].close()
 	from_child[0].close()
 	from_child[1].close()
+	err_child.close()
 	env = copy.copy(os.environ)
 	# We can only find where the WSGI script lives.
 	# Since there may be different WSGI scripts for different

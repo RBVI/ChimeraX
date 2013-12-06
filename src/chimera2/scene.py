@@ -31,7 +31,7 @@ __all__ = [
 from .math3d import (Point, weighted_point, Vector, cross,
 		Xform, Identity, Rotation, Translation,
 		frustum, ortho, look_at, camera_orientation, BBox)
-from numpy import array, float32, uint, uint16, uint8, concatenate
+from numpy import array, float32, uint, uint16, uint8, concatenate, append
 from math import radians
 from .trackchanges import track
 from collections import Counter
@@ -263,24 +263,27 @@ class View:
 		"""
 		import llgr
 		zero = array([0, 0, 0, 0], dtype=float32)
+		single_one = array([1], dtype=float32)
 		amb = lighting.ambient
 		ambient = array([amb, amb, amb, 1], dtype=float32)
 		if lighting.fill_light is None:
 			f_diffuse = zero
 			f_position = zero
 		else:
-			color = lighting.fill_light.color
-			f_diffuse = array(color.rgb + [1], dtype=float32)
-			direct = lighting.fill_light.direction
+			fl = lighting.fill_light
+			color = array(fl.color.rgb, dtype=float32)
+			f_diffuse = append(fl.diffuse_scale * color, single_one)
+			direct = fl.direction
 			f_position = array(list(direct) + [0], dtype=float32)
 		if lighting.key_light is None:
 			k_diffuse = zero
 			k_specular = zero
 			k_position = zero
 		else:
-			color = lighting.key_light.color
-			k_diffuse = array(color.rgb + [1], dtype=float32)
-			direct = lighting.key_light.direction
+			kl = lighting.key_light
+			color = array(kl.color.rgb, dtype=float32)
+			k_diffuse = append(kl.diffuse_scale * color, single_one)
+			direct = kl.direction
 			k_position = array(list(direct) + [0], dtype=float32)
 			reflectivity = lighting.reflectivity
 			color = lighting.shiny_color

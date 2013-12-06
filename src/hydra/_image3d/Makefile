@@ -28,7 +28,11 @@ INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 #OPT = -g -Wall
 OPT = -O3
 
+# OpenMP used by sasa.cpp.
 OPT += -fopenmp
+ifeq ($(OS),Linux)
+	LDFLAGS += -lgomp
+endif
 
 ifdef USE_XCODE4
 # clang compiler does not support OpenMP

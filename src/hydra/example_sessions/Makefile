@@ -11,3 +11,5 @@ all:
 install: all
 	-mkdir $(DATA_DIR)
 	$(RSYNC) $(DATA_FILES) $(DATA_DIR)
+
+clean:

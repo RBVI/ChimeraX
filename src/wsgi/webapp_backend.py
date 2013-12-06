@@ -8,8 +8,6 @@ _debug_print("backend script started")
 # Main chimera2 code
 #
 
-from chimera2 import cli
-
 main_view = None
 client_data = []
 
@@ -123,6 +121,7 @@ class Backend(Server):
 			"status": True,		# Success!
 			"command": str(value),
 		}
+		from chimera2 import cli
 		try:
 			from chimera2.trackchanges import track
 			cmd = cli.Command(value, final=True)

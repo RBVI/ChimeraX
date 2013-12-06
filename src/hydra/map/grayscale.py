@@ -140,7 +140,7 @@ class Gray_Scale_Drawing(object):
       return
 
     self.texture_planes = {}
-    self.surface.removePieces(plist)
+    self.surface.remove_pieces(plist)
     self.surface_pieces = None
 
   def make_planes(self):
@@ -194,7 +194,7 @@ class Gray_Scale_Drawing(object):
       va[1:3,a0] += gs[a0]
       va[2:4,a1] += gs[a1]
       self.ijk_to_xyz.move(va)
-      p = s.newPiece()
+      p = s.new_piece()
       p.geometry = va, ta
       p.color = self.modulation_rgba()
       p.useLighting = False
