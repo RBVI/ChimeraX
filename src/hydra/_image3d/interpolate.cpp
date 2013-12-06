@@ -44,7 +44,7 @@ static void interpolate_volume(float vertices[][3], int n,
 			       float *values, std::vector<int> &outside)
 {
   int dsize[3] = {data.size(2), data.size(1), data.size(0)};
-  int si = data.stride(2), sj = data.stride(1), sk = data.stride(0);
+  long si = data.stride(2), sj = data.stride(1), sk = data.stride(0);
   T *d = data.values();
   int bijk[3];
   float fijk[3];
@@ -57,7 +57,7 @@ static void interpolate_volume(float vertices[][3], int n,
 	  outside.push_back(m);
 	  continue;
 	}
-      int offset = bijk[0]*si + bijk[1]*sj + bijk[2]*sk;
+      long offset = bijk[0]*si + bijk[1]*sj + bijk[2]*sk;
       T *dc = d + offset;
       if (method == INTERP_LINEAR)
 	{
@@ -99,7 +99,7 @@ static void interpolate_gradient(float vertices[][3], int n,
 				 std::vector<int> &outside)
 {
   int dsize[3] = {data.size(2), data.size(1), data.size(0)};
-  int stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
+  long stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
   T *d = data.values();
   int bijk[3];
   float fijk[3];
@@ -113,7 +113,7 @@ static void interpolate_gradient(float vertices[][3], int n,
 	  outside.push_back(m);
 	  continue;
 	}
-      int offset = bijk[0]*stride[0] + bijk[1]*stride[1] + bijk[2]*stride[2];
+      long offset = bijk[0]*stride[0] + bijk[1]*stride[1] + bijk[2]*stride[2];
       T *dc = d + offset;
       float gijk[3] = {0, 0, 0};
       if (method == INTERP_LINEAR)    // Average gradients at 8 cell corners.
@@ -126,7 +126,7 @@ static void interpolate_gradient(float vertices[][3], int n,
 		for (int ok = 0 ; ok < 2 ; ++ok)
 		  {
 		    float wijk = .5 * wij * (ok ? fijk[2] : 1-fijk[2]);
-		    int oijk = oi*stride[0] + oj*stride[1] + ok*stride[2];
+		    long oijk = oi*stride[0] + oj*stride[1] + ok*stride[2];
 		    T *dijk = dc + oijk;
 		    for (int a = 0 ; a < 3 ; ++a)
 		      gijk[a] += wijk * (*(dijk+stride[a]) - *(dijk-stride[a]));

@@ -21,7 +21,7 @@ public:
   Bond_List index_pairs;
   Index_Atom iatom;
   std::vector<int> common_order;
-  int next;
+  unsigned int next;
 };
 
 class Bond_Templates
@@ -68,7 +68,7 @@ Bond_Templates::Bond_Templates(const IArray &cc_index, const CArray &all_bonds, 
   for (int i = 0 ; i < 256 ; ++i)
     letter_digit[i] = -1;
   for (int i = 0 ; i < rsize ; ++i)
-    letter_digit[rname_letters[i]] = i;
+    letter_digit[static_cast<int>(rname_letters[i])] = i;
 
   // Make table of templates
   int tc = rsize*rsize*rsize;
@@ -263,7 +263,7 @@ int Bond_Templates::component_index(const char *rname, int rname_chars)
   int n = rname_letters.size(), k = 0;
   for (int i = 0 ; i < rname_chars && i < 3 && rname[i] ; ++i)
     {
-      int d = letter_digit[rname[i]];
+      int d = letter_digit[static_cast<int>(rname[i])];
       if (d == -1)
 	return -1;	// Illegal character.
       k = k*n + d;

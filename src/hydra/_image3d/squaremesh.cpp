@@ -8,8 +8,6 @@
 //
 #include <Python.h>			// use PyObject
 
-#include <stdexcept>			// use std::runtime_error
-
 #include "pythonarray.h"		// use array_from_python()
 #include "rcarray.h"			// use FArray, IArray
 
