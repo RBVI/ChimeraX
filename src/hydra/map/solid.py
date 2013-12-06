@@ -308,10 +308,11 @@ class Solid:
       return icmap, drange
 
     # Convert transfer function to a colormap.
-    from numpy import zeros, float32
+    from numpy import zeros, float32, array
     tfcmap = zeros((size,4), float32)
+    tfa = array(tf, float32)
     from .._image3d import transfer_function_colormap
-    transfer_function_colormap(tf, dmin, dmax, tfcmap)
+    transfer_function_colormap(tfa, dmin, dmax, tfcmap)
 
     # Adjust brightness of RGB components.
     bf = self.brightness_factor
