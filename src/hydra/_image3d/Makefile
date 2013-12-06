@@ -25,7 +25,7 @@ endif
 
 INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 
-#OPT = -g
+#OPT = -g -Wall
 OPT = -O3
 
 OPT += -fopenmp
