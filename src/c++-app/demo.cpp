@@ -25,29 +25,6 @@ void display()
 		initialize();
 		initialized = true;
 	}
-	// TODO: use shader uniforms to set lighting
-	static GLfloat zero[4] = { 0, 0, 0, 0 };
-	static GLfloat one[4] = { 1, 1, 1, 1 };
-	static GLfloat ambient[4] = { 0.197f, 0.197f, 0.197f, 1 };
-	static GLfloat diffuse0[4] = { 0.432f, 0.432f, 0.432f, 1 };
-	static GLfloat position0[4] = { 0.251f, 0.251f, 0.935f, 0 };
-	static GLfloat diffuse1[4] = { 0.746f, 0.746f, 0.746f, 1 };
-	static GLfloat position1[4] = { -0.357f, 0.66f, 0.66f, 0 };
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
-	glEnable(GL_LIGHT0);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
-	glLightfv(GL_LIGHT0, GL_POSITION, position0);
-	glEnable(GL_LIGHT1);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
-	glLightfv(GL_LIGHT1, GL_SPECULAR, one);
-	glLightfv(GL_LIGHT1, GL_POSITION, position1);
-	glLightfv(GL_LIGHT2, GL_DIFFUSE, zero);
-
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, one);
-	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 30);
-	//glDisable(GL_CULL_FACE);	// debugging
-
-	//glClearColor(.5f, .2f, .2f, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	llgr::render();
@@ -59,10 +36,10 @@ main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
 
-	//glutInitContextVersion(3,3);
+	//glutInitContextVersion(3, 3);
 	//glutInitContextProfile(GLUT_CORE_PROFILE);
 
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE | GLUT_MULTISAMPLE);
 	glutInitWindowSize(width, height);
 	glutCreateWindow("chimera2 low-level demo");
 
