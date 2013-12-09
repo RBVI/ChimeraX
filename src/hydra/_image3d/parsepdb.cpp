@@ -85,7 +85,7 @@ static int parse_pdb(const char *pdb, int natom,
 {
   char buf[9];
   buf[8] = '\0';
-  int a = 0, ni, s, e;
+  int a = 0, ni, s;
   char last_alt_loc = ' ';
   for (int i = 0 ; pdb[i] && a < natom ; i = ni)
     {
@@ -197,15 +197,26 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
 extern "C" PyObject *
 element_radii(PyObject *s, PyObject *args, PyObject *keywds)
 {
-  PyObject *elnum;
+  Numeric_Array elnum;
   const char *kwlist[] = {"element_numbers", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O"),
-				   (char **)kwlist, &elnum))
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_writable_array, &elnum))
     return NULL;
 
-  Numeric_Array e = array_from_python(elnum, 1, Numeric_Array::Unsigned_Char, false);
-  unsigned char *el = (unsigned char *)e.values();
-  int n = e.size();
+  if (elnum.dimension() != 1)
+    {
+      PyErr_Format(PyExc_TypeError, "Element array must be 1-dimensional, got %d",
+		   elnum.dimension());
+      return NULL;
+    }
+  if (elnum.value_type() != Numeric_Array::Unsigned_Char)
+    {
+      PyErr_SetString(PyExc_TypeError, "Element array must be type unsigned char");
+      return NULL;
+    }
+  unsigned char *el = (unsigned char *)elnum.values();
+  int n = elnum.size();
   float *radii;
   PyObject *radii_py = python_float_array(n, &radii);
   element_radii(el, n, radii);

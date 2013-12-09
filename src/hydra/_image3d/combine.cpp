@@ -77,15 +77,13 @@ static void inner(const Reference_Counted_Array::Array<T> &m1,
 //
 extern "C" PyObject *inner_product_64(PyObject *s, PyObject *args, PyObject *keywds)
 {
-  PyObject *m1py, *m2py;
+  Reference_Counted_Array::Numeric_Array m1, m2;
   const char *kwlist[] = {"m1", "m2", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds,
-				   const_cast<char *>("OO"), (char **)kwlist,
-				   &m1py, &m2py))
+				   const_cast<char *>("O&O&"), (char **)kwlist,
+				   parse_1d_array, &m1,
+				   parse_1d_array, &m2))
     return NULL;
-
-  Reference_Counted_Array::Numeric_Array m1 = array_from_python(m1py, 1);
-  Reference_Counted_Array::Numeric_Array m2 = array_from_python(m2py, 1);
 
   if (m2.size() != m1.size())
     {

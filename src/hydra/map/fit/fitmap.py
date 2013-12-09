@@ -454,7 +454,7 @@ def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
     tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
 
     from ... import _image3d
-    av = _image3d.maximum_norm(points, tf)
+    av = _image3d.maximum_norm(points, tf.matrix)
     
     if av > 0:
         from math import pi

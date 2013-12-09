@@ -6,7 +6,6 @@
 
 #include <map>				// use std::map
 #include <set>				// use std::set
-#include <stdexcept>			// use std::runtime_error
 #include <utility>			// use std::pair
 #include <vector>			// use std::vector
 
@@ -96,16 +95,6 @@ static float tetrahedron_signed_volume(float v0[3], float v1[3], float v2[3],
 	     e1y * (e2z * e3x - e2x * e3z) +
 	     e1z * (e2x * e3y - e2y * e3x)) / 6.0;
   return v;
-}
-
-// ----------------------------------------------------------------------------
-//
-static bool is_surface_closed(const IArray &tarray)
-{
-  Edge_Set *eset = boundary_edge_set(tarray);
-  bool closed = eset->empty();
-  delete eset;
-  return closed;
 }
 
 // ----------------------------------------------------------------------------

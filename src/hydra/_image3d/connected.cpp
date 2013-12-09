@@ -4,7 +4,6 @@
 #include <algorithm>		// use std::sort
 #include <map>			// use std::map
 #include <set>			// use std::set
-#include <stdexcept>		// use std::runtime_error
 #include <utility>		// use std::pair
 #include <vector>		// use std::vector
 
