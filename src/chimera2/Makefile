@@ -16,7 +16,7 @@ install: all dir
 	$(RSYNC) ../shaders/*_webgl.txt ../shaders/*150.txt $(PKG_DIR)
 
 dir:
-	-mkdir $(PKG_DIR)
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 
 $(SUBDIR_INSTALL): dir
 
