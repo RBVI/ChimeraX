@@ -3,9 +3,6 @@
 //
 #include <Python.h>			// use PyObject
 
-#include <stdexcept>			// use std::runtime_error
-#include <string>			// use std::runtime_error
-
 #include "pythonarray.h"		// use array_from_python()
 #include "rcarray.h"			// use Numeric_Array, Array<T>
 
@@ -60,20 +57,14 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
 extern "C" PyObject *
 minimum_and_maximum(PyObject *s, PyObject *args, PyObject *keywds)
 {
-  PyObject *py_seq;
+  Numeric_Array seq;
   const char *kwlist[] = {"array", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O"),
-				   (char **)kwlist, &py_seq))
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_array, &seq))
     return NULL;
 
-  Numeric_Array seq;
-  for (int dim = 1 ; dim <= 3 ; ++dim)
-    try
-      { seq = array_from_python(py_seq, dim); break; }
-    catch (std::runtime_error)
-      { continue; }
-
-  if (seq.dimension() == 0)
+  if (seq.dimension() < 0 || seq.dimension() > 3)
     {
       PyErr_SetString(PyExc_TypeError,
 		      "minimum_and_maximum(): array must be 1, 2, or 3 dimensional");
@@ -133,37 +124,32 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
 extern "C" PyObject *
 bin_counts_py(PyObject *s, PyObject *args, PyObject *keywds)
 {
-  PyObject *py_seq, *counts;
+  Numeric_Array seq;
+  IArray counts;
   float min, max;
   const char *kwlist[] = {"array", "min", "max", "counts", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("OffO"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO&"),
 				   (char **)kwlist,
-				   &py_seq, &min, &max, &counts))
+				   parse_array, &seq,
+				   &min, &max,
+				   parse_writable_int_n_array, &counts))
     return NULL;
 
-  Numeric_Array seq;
-  for (int dim = 1 ; dim <= 3 ; ++dim)
-    try
-      { seq = array_from_python(py_seq, dim); break; }
-    catch (std::runtime_error)
-      { continue; }
-  if (seq.dimension() == 0)
+  if (seq.dimension() < 1 || seq.dimension() > 3)
     {
       PyErr_SetString(PyExc_TypeError,
 		      "minimum_and_maximum(): array must be 1, 2, or 3 dimensional");
       return NULL;
     }
 
-  bool allow_copy = false;
-  IArray c = array_from_python(counts, 1, Numeric_Array::Int, allow_copy);
-  if (!c.is_contiguous())
+  if (!counts.is_contiguous())
     {
       PyErr_SetString(PyExc_TypeError,
 		      "bin_counts(): output array must be contiguous");
       return NULL;
     }
 
-  call_template_function(bin_counts, seq.value_type(), (seq, min, max, c));
+  call_template_function(bin_counts, seq.value_type(), (seq, min, max, counts));
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -194,14 +180,14 @@ static void high_count(const Reference_Counted_Array::Array<T> &d,
 extern "C" PyObject *
 high_count_py(PyObject *s, PyObject *args, PyObject *keywds)
 {
-  PyObject *py_seq;
+  Numeric_Array d;
   float level;
   const char *kwlist[] = {"array", "level", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of"),
-				   (char **)kwlist, &py_seq, &level))
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&f"),
+				   (char **)kwlist,
+				   parse_3d_array, &d,
+				   &level))
     return NULL;
-
-  Numeric_Array d = array_from_python(py_seq, 3);
 
   int n = 0;
   call_template_function(high_count, d.value_type(), (d, level, &n));
@@ -232,14 +218,14 @@ static void high_indices(const Reference_Counted_Array::Array<T> &d,
 extern "C" PyObject *
 high_indices_py(PyObject *s, PyObject *args, PyObject *keywds)
 {
-  PyObject *py_seq;
+  Numeric_Array d;
   float level;
   const char *kwlist[] = {"array", "level", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of"),
-				   (char **)kwlist, &py_seq, &level))
+				   (char **)kwlist,
+				   parse_3d_array, &d,
+				   &level))
     return NULL;
-
-  Numeric_Array d = array_from_python(py_seq, 3);
 
   int n = 0;
   call_template_function(high_count, d.value_type(), (d, level, &n));

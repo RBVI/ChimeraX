@@ -81,10 +81,10 @@ public:
 };
 
 static int surface_area_of_spheres(double *centers, int n, double *radii, double *areas);
-static void find_sphere_regions(double *centers, int n, double *radii, int max_size,
+static void find_sphere_regions(double *centers, int n, double *radii, unsigned int max_size,
 				std::vector<Region_Spheres> &rspheres);
 static void subdivide_region(const Region_Spheres &rs, double *centers, double *radii,
-			     int max_size, std::vector<Region_Spheres> &rspheres);
+			     unsigned int max_size, std::vector<Region_Spheres> &rspheres);
 static bool buried_sphere_area(int i, const Index_List &iclose,
 			       double *centers, double *radii, double *area);
 static bool sphere_intersection_circles(int i, const Index_List &iclose,
@@ -205,7 +205,7 @@ static int surface_area_of_spheres(double *centers, int n, double *radii, double
 }
 
 // Subdivide bounding boxes to group nearby spheres.
-static void find_sphere_regions(double *centers, int n, double *radii, int max_size,
+static void find_sphere_regions(double *centers, int n, double *radii, unsigned int max_size,
 				std::vector<Region_Spheres> &rspheres)
 {
   Region_Spheres rs(centers, n, radii);
@@ -213,7 +213,7 @@ static void find_sphere_regions(double *centers, int n, double *radii, int max_s
 }
 
 static void subdivide_region(const Region_Spheres &rs, double *centers, double *radii,
-			     int max_size, std::vector<Region_Spheres> &rspheres)
+			     unsigned int max_size, std::vector<Region_Spheres> &rspheres)
 {
   if (rs.in_region.size() <= max_size)
     rspheres.push_back(rs);
@@ -418,11 +418,11 @@ static bool area_in_circles_on_unit_sphere(Circles &circles, double *area)
 // by the two discs then return true, otherwise return false.
 static bool remove_circles_in_circles(Circles &circles)
 {
-  for (int i = 0 ; i < circles.size() ; ++i)
+  for (unsigned int i = 0 ; i < circles.size() ; ++i)
     {
       const Circle &ci = circles[i];
       const double *pi = ci.centerp(), ai = ci.angle, cai = ci.cos_angle, sai = ci.sin_angle;
-      for (int j = i+1 ; j < circles.size() ; j++)
+      for (unsigned int j = i+1 ; j < circles.size() ; j++)
 	{
 	  const Circle &cj = circles[j];
 	  const double *pj = cj.centerp(), aj = cj.angle, caj = cj.cos_angle, saj = cj.sin_angle;
@@ -789,7 +789,7 @@ extern "C" PyObject *surface_area_of_spheres(PyObject *s, PyObject *args, PyObje
     }
 
   // Returned sphere area of -1 means calculation failed for that sphere.
-  int count = surface_area_of_spheres(ca.values(), ca.size(0), ra.values(), areas.values());
+  surface_area_of_spheres(ca.values(), ca.size(0), ra.values(), areas.values());
   PyObject *py_areas = array_python_source(areas);
   if (!alloc_areas)
     Py_INCREF(py_areas);    
