@@ -9,9 +9,13 @@ PYSRCS	= $(wildcard *.py)
 
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+dir:
+	-mkdir $(PKG_DIR)
+
+$(SUBDIR_INSTALL): dir
 
 lint:
 	pyflakes $(PYSRCS)

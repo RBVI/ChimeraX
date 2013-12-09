@@ -4,7 +4,6 @@
 #include <Python.h>			// use PyObject
 
 // #include <iostream>			// use std:cerr for debugging
-#include <stdexcept>			// use std::runtime_error
 
 #include "contour.h"			// use surface()
 #include "pythonarray.h"		// use array_from_python()
@@ -41,15 +40,8 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
 
   
   Numeric_Array data;
-  try
-    {
-      data = array_from_python(py_data, 3);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return NULL;
-    }
+  if (!array_from_python(py_data, 3, &data))
+    return NULL;
 
   Contour_Surface *cs;
   Py_BEGIN_ALLOW_THREADS
@@ -90,12 +82,6 @@ extern "C" PyObject *surface_py(PyObject *s, PyObject *args, PyObject *keywds)
   catch (std::bad_alloc&)
     {
       PyErr_SetString(PyExc_MemoryError, "Out of memory");
-      return NULL;
-    }
-  catch (std::runtime_error &e)
-    {
-      // pythonarray.cpp throws runtime error on allocation failure.
-      PyErr_SetString(PyExc_MemoryError, e.what());
       return NULL;
     }
 }

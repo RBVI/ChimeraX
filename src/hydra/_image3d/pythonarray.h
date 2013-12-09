@@ -14,21 +14,21 @@ using Reference_Counted_Array::Numeric_Array;
 using Reference_Counted_Array::Untyped_Array;
 
 //
-// Throw std::runtime_error() if python object is not an array of specified
-// dimension.
+// Return false if python object is not an array of specified dimension.
 //
 VOLUMEARRAY_IMEX
-Numeric_Array array_from_python(PyObject *array, int dim,
-				bool allow_data_copy = true);
+bool array_from_python(PyObject *array, int dim, Numeric_Array *na,
+		       bool allow_data_copy = true);
 
 //
-// Throw std::runtime_error() if python object is not an array of specified
+// Return false if python object is not an array of specified
 // dimension or does not have the specified value type.
 //
 VOLUMEARRAY_IMEX
-Numeric_Array array_from_python(PyObject *array, int dim,
-				Numeric_Array::Value_Type required_type,
-				bool allow_data_copy = true);
+bool array_from_python(PyObject *array, int dim,
+		       Numeric_Array::Value_Type required_type,
+		       Numeric_Array *na,
+		       bool allow_data_copy = true);
 
 //
 // Recover numpy Python array used to create a C++ array.
@@ -46,6 +46,8 @@ VOLUMEARRAY_IMEX int parse_float_n3_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_writable_float_n3_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_double_n3_array(PyObject *arg, void *darray);
 VOLUMEARRAY_IMEX int parse_writable_double_n3_array(PyObject *arg, void *darray);
+VOLUMEARRAY_IMEX int parse_float_n4_array(PyObject *arg, void *farray);
+VOLUMEARRAY_IMEX int parse_writable_float_n4_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_float_n_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_writable_float_n_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_double_n_array(PyObject *arg, void *farray);
@@ -53,6 +55,7 @@ VOLUMEARRAY_IMEX int parse_writable_double_n_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_int_3_array(PyObject *arg, void *i3);
 VOLUMEARRAY_IMEX int parse_float_3_array(PyObject *arg, void *f3);
 VOLUMEARRAY_IMEX int parse_double_3_array(PyObject *arg, void *f3);
+VOLUMEARRAY_IMEX int parse_float_4_array(PyObject *arg, void *f4);
 VOLUMEARRAY_IMEX int parse_float_3x4_array(PyObject *arg, void *f3x4);
 VOLUMEARRAY_IMEX int parse_double_3x4_array(PyObject *arg, void *d3x4);
 VOLUMEARRAY_IMEX int parse_writable_float_3d_array(PyObject *arg, void *farray);
@@ -61,26 +64,35 @@ VOLUMEARRAY_IMEX int parse_int_n2_array(PyObject *arg, void *iarray);
 VOLUMEARRAY_IMEX int parse_int_n3_array(PyObject *arg, void *iarray);
 VOLUMEARRAY_IMEX int parse_writable_int_n_array(PyObject *arg, void *iarray);
 VOLUMEARRAY_IMEX int parse_writable_int_n3_array(PyObject *arg, void *iarray);
+VOLUMEARRAY_IMEX int parse_1d_array(PyObject *arg, void *array);
+VOLUMEARRAY_IMEX int parse_2d_array(PyObject *arg, void *array);
 VOLUMEARRAY_IMEX int parse_3d_array(PyObject *arg, void *array);
+VOLUMEARRAY_IMEX int parse_array(PyObject *arg, void *array);
+VOLUMEARRAY_IMEX int parse_writable_array(PyObject *arg, void *array);
+VOLUMEARRAY_IMEX int parse_float_array(PyObject *arg, void *array);
 VOLUMEARRAY_IMEX int parse_writable_3d_array(PyObject *arg, void *array);
+VOLUMEARRAY_IMEX int parse_writable_4d_array(PyObject *arg, void *array);
 VOLUMEARRAY_IMEX int parse_string_array(PyObject *arg, void *carray);
 }
 
+bool check_array_size(FArray &a, int n, int m, bool require_contiguous = false);
+bool check_array_size(FArray &a, int n, bool require_contiguous = false);
+
 //
 // Convert a one dimensional sequences of known length from Python to C.
-// python_array_to_c() throws std::runtime_error() if python object is not
+// python_array_to_c() returns false if python object is not
 // array of correct size.
 //
 VOLUMEARRAY_IMEX
-void python_array_to_c(PyObject *a, int *values, int size);
+bool python_array_to_c(PyObject *a, int *values, int size);
 VOLUMEARRAY_IMEX
-void python_array_to_c(PyObject *a, float *values, int size);
+bool python_array_to_c(PyObject *a, float *values, int size);
 VOLUMEARRAY_IMEX
-void python_array_to_c(PyObject *a, float *values, int size0, int size1);
+bool python_array_to_c(PyObject *a, float *values, int size0, int size1);
 VOLUMEARRAY_IMEX
-void python_array_to_c(PyObject *a, double *values, int size);
+bool python_array_to_c(PyObject *a, double *values, int size);
 VOLUMEARRAY_IMEX
-void python_array_to_c(PyObject *a, double *values, int size0, int size1);
+bool python_array_to_c(PyObject *a, double *values, int size0, int size1);
 
 VOLUMEARRAY_IMEX
 bool float_2d_array_values(PyObject *farray, int n2, float **f, int *size);

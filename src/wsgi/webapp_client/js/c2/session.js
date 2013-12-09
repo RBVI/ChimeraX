@@ -74,8 +74,8 @@ function call(session, password, tag, tag_data, state, cb) {
 	call_id = cid + 1;
 	call_data.push([ cid, tag, tag_data ]);
 	// alert("call: " + JSON.stringify(call_data));
-	function clear_callback() {
-		alert("getJSON failed");
+	function clear_callback(jqxhr, textStatus, error) {
+		alert("Request failed: " + textStatus + ", " + error);
 	}
 	var data = {
 		action: "call",
