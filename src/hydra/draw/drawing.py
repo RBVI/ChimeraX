@@ -236,16 +236,15 @@ class Render:
         GL.glClearColor(*edge_color)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         GL.glClearColor(*fill_color)
-        n = len(fill)
         for i, (tx,ty,tw,th) in enumerate(tiles):
-            if i == 0 or i > n or fill[i-1]:
-                if i == 0 or i > n:
+            if i == 0 or fill[i-1]:
+                if i == 0:
                     GL.glScissor(tx,ty,tw,th)
                 else:
                     GL.glScissor(tx+1,ty+1,tw-2,th-2)
-                    GL.glEnable(GL.GL_SCISSOR_TEST)
-                    GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-                    GL.glDisable(GL.GL_SCISSOR_TEST)
+                GL.glEnable(GL.GL_SCISSOR_TEST)
+                GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+                GL.glDisable(GL.GL_SCISSOR_TEST)
 
     def draw_transparent(self, draw_depth, draw):
         '''
