@@ -313,7 +313,8 @@ class View(QtOpenGL.QGLWidget):
         width, height = 512,64
         im = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
         im.fill(QtGui.QColor(*tuple(int(255*c) for c in self.background_color)))
-        draw_image_text(im, text, bgcolor = self.background_color)
+        from . import qt
+        qt.draw_image_text(im, text, bgcolor = self.background_color)
         from ..surface import Surface, surface_image
         surf = Surface('Caption')
         pos = -.95,-1     # x,y range -1 to 1
@@ -660,24 +661,3 @@ def frustum(left, right, bottom, top, zNear, zFar):
          (A, B, C, -1),
          (0, 0, D, 0))
     return m
-
-def draw_image_text(qi, text, color = (255,255,255), bgcolor = None,
-                    font_name = 'Helvetica', font_size = 40):
-  p = QtGui.QPainter(qi)
-  w,h = qi.width(), qi.height()
-
-  while True and font_size > 6:
-    f = QtGui.QFont(font_name, font_size)
-    p.setFont(f)
-    fm = p.fontMetrics()
-    wt = fm.width(text)
-    if wt <= w:
-      break
-    font_size = int(font_size * (w/wt))
-
-  fh = fm.height()
-  r = QtCore.QRect(0,h-fh,w,fh)
-  if not bgcolor is None:
-    p.fillRect(r, QtGui.QColor(*bgcolor))
-  p.setPen(QtGui.QColor(*color))
-  p.drawText(r, QtCore.Qt.AlignCenter, text)
