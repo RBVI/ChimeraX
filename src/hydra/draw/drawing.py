@@ -15,26 +15,8 @@ from OpenGL import GL
 class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
-
-    Lighting parameters is an object specifying colors and positions of two
-    lights: a key (main) light, and a fill light, as well as specular lighting
-    color and exponent and an ambient light color.  These are attributes of the
-    specified lighting_params object named
-
-      key_light_position
-      key_light_diffuse_color
-      key_light_specular_color
-      key_light_specular_exponent
-      fill_light_position
-      fill_light_diffuse_color
-      ambient_light_color
-
-    Colors are R,G,B float values in the range 0-1, positions are x,y,z float values,
-    and specular exponent is a single float value used as an exponent e with specular
-    color scaled by cosine(a) ** 0.3*e where a is the angle between the reflected light
-    and the view direction.  A typical value for e is 20.
     '''
-    def __init__(self, lighting_params):
+    def __init__(self):
                 
         self.shader_programs = {}
         self.current_shader_program = None
@@ -44,7 +26,7 @@ class Render:
         self.current_model_matrix = None        # Used for optimizing model view matrix updates
         self.current_inv_view_matrix = None        # Used for optimizing model view matrix updates
 
-        self.lighting_params = lighting_params
+        self.lighting_params = Lighting()
 
     # use_shader() option names
     SHADER_LIGHTING = 'lighting'
@@ -315,6 +297,37 @@ class Render:
                 rgba.byteswap(True) # in place
                 rgba8 = rgba.view(uint8).reshape((h,w,4))
                 return rgba8
+
+class Lighting:
+    '''
+    Lighting parameters specifying colors and positions of two
+    lights: a key (main) light, and a fill light, as well as specular lighting
+    color and exponent and an ambient light color.  These are attributes of the
+    specified lighting_params object named
+
+      key_light_position
+      key_light_diffuse_color
+      key_light_specular_color
+      key_light_specular_exponent
+      fill_light_position
+      fill_light_diffuse_color
+      ambient_light_color
+
+    Colors are R,G,B float values in the range 0-1, positions are x,y,z float values,
+    and specular exponent is a single float value used as an exponent e with specular
+    color scaled by cosine(a) ** 0.3*e where a is the angle between the reflected light
+    and the view direction.  A typical value for e is 20.
+    '''
+
+    def __init__(self):
+        # Lighting parameters
+        self.key_light_position = (-.577,.577,.577)
+        self.key_light_diffuse_color = (.6,.6,.6)
+        self.key_light_specular_color = (.3,.3,.3)
+        self.key_light_specular_exponent = 20
+        self.fill_light_position = (.2,.2,.959)
+        self.fill_light_diffuse_color = (.3,.3,.3)
+        self.ambient_light_color = (.3,.3,.3)
 
 class Bindings:
     '''

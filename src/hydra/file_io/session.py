@@ -42,6 +42,7 @@ def session_state(viewer, rel_path = None, attributes_only = False):
   '''
   s = {'version': 2,
        'view': view_state(viewer),
+       'lighting': lighting_state(viewer.render.lighting_params),
   }
 
   from ..map import session
@@ -74,6 +75,9 @@ def set_session_state(s, viewer, attributes_only = False):
 
   if 'view' in s:
     restore_view(s['view'], viewer)
+
+  if 'lighting' in s:
+    restore_lighting(s['lighting'], viewer.render.lighting_params)
 
   if 'volumes' in s:
     from ..map import session
@@ -108,14 +112,7 @@ view_parameters = (
   'near_far_clip',
   'window_size',
   'background_color',
-  'key_light_position',
-  'key_light_diffuse_color',
-  'key_light_specular_color',
-  'key_light_specular_exponent',
-  'fill_light_position',
-  'fill_light_diffuse_color',
-  'ambient_light_color',
-  )
+)
 
 # -----------------------------------------------------------------------------
 #
@@ -136,3 +133,28 @@ def restore_view(vs, viewer):
   viewer.set_camera_view(cv)    # Set cached inverse matrix
 
   return True
+
+# -----------------------------------------------------------------------------
+#
+light_parameters = (
+  'key_light_position',
+  'key_light_diffuse_color',
+  'key_light_specular_color',
+  'key_light_specular_exponent',
+  'fill_light_position',
+  'fill_light_diffuse_color',
+  'ambient_light_color',
+  )
+
+# -----------------------------------------------------------------------------
+#
+def lighting_state(light_params):
+  v = dict((name,getattr(light_params,name)) for name in light_parameters)
+  return v
+
+# -----------------------------------------------------------------------------
+#
+def restore_lighting(ls, light_params):
+  for name in light_parameters:
+    if name in ls:
+      setattr(light_params, name, ls[name])

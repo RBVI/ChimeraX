@@ -8,35 +8,24 @@ class View(QtOpenGL.QGLWidget):
 #        self.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
 #        self.setAutoBufferSwap(False)
         
+        self.window_size = (800,800)		# pixels
+        self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
+
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x,y,z axes, 4th column is camara location.
         from ..geometry.place import Place
         self.camera_view = self.camera_view_inverse = Place()
         self.field_of_view = 45   	# degrees, width
-        self.center_of_rotation = (0,0,0)
-        self.update_center = True
         self.near_far_clip = (1,100)      # along -z in camera coordinates
-        self.window_size = (800,800)	# pixels
-#        self.window_size = (1024,1024)
-        self.background_rgba = (0,0,0,1)
 
         self.tile = False
         self.tile_edge_color = (.3,.3,.3,1)
         self.tile_scale = 0
         self.tile_animation_steps = 10
-        
-        # Lighting parameters
-        self.key_light_position = (-.577,.577,.577)
-        self.key_light_diffuse_color = (.6,.6,.6)
-        self.key_light_specular_color = (.3,.3,.3)
-        self.key_light_specular_exponent = 20
-        self.fill_light_position = (.2,.2,.959)
-        self.fill_light_diffuse_color = (.3,.3,.3)
-        self.ambient_light_color = (.3,.3,.3)
 
         from .. import draw
-        self.render = draw.Render(self)
+        self.render = draw.Render()
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -51,6 +40,9 @@ class View(QtOpenGL.QGLWidget):
         self.overlays = []
         self.selected = set()
         self.atoms_shown = 0
+
+        self.center_of_rotation = (0,0,0)
+        self.update_center = True
 
         self.mouse_modes = {}
         self.last_mouse_position = None
