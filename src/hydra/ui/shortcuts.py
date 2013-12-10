@@ -403,11 +403,8 @@ def show_molecular_surface(m, viewer, res = 3.0, grid = 0.5):
   if hasattr(m, 'molsurf') and m.molsurf in viewer.models:
     m.molsurf.display = True
   else:
-    from .. import molecule
-    atoms = molecule.Atom_Set()
-    atoms.add_molecules([m])
-    from ..molecule.gridsurf import surface
-    m.molsurf = surface(atoms)
+    from ..surface.gridsurf import surface
+    m.molsurf = surface(m.atoms())
 
 def color_by_element(m):
   m.set_color_mode('by element')

@@ -58,6 +58,12 @@ class Molecule(Surface):
     self.need_graphics_update = True    # Update is done before drawing
     self.atom_surface_piece = None
 
+  def atoms(self):
+    '''Return an Atoms object containing all the molecule atoms.'''
+    a = Atoms()
+    a.add_molecules([self])
+    return a
+
   def draw(self, viewer, draw_pass):
     '''Draw the molecule using the current style.'''
 
@@ -545,7 +551,7 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
 
 # -----------------------------------------------------------------------------
 #
-class Atom_Set:
+class Atoms:
   '''
   An atom set is a collection of atoms from one or more molecules.
   Properties of the atoms such as their x,y,z coordinates or radii can be
@@ -625,7 +631,7 @@ class Atom_Set:
       for cid in cids:
         aset = csets.get((m,cid))
         if aset is None:
-          csets[(m,cid)] = aset = Atom_Set()
+          csets[(m,cid)] = aset = Atoms()
           clist.append(aset)
         catoms = m.atom_subset(chain_id = cid, restrict_to_atoms = a)
         aset.add_atoms(m, catoms)
@@ -636,7 +642,7 @@ class Atom_Set:
     Return a copy of this atom set extended to include all atoms of
     chains which have atoms in the current set.
     '''
-    aset = Atom_Set()
+    aset = Atoms()
     for m,a in self.molatoms:
       cids = tuple(set(m.chain_ids[a]))
       catoms = m.atom_subset(chain_id = cids)
@@ -650,14 +656,14 @@ class Atom_Set:
     for m,a in self.molatoms:
       aset = msets.get(m)
       if aset is None:
-        msets[m] = aset = Atom_Set()
+        msets[m] = aset = Atoms()
         mlist.append(aset)
       aset.add_atoms(m, a)
     return mlist
 
   def exclude_water(self):
     '''Return a copy of this atom set with waters (residue name HOH) removed.'''
-    aset = Atom_Set()
+    aset = Atoms()
     for m,a in self.molatoms:
       aset.add_atoms(m, a[m.residue_names[a] != b'HOH'])
     return aset
@@ -674,7 +680,7 @@ class Atom_Set:
 #
 def all_atoms():
   '''Return an atom set containing all atoms of all open molecules.'''
-  aset = Atom_Set()
+  aset = Atoms()
   from ..ui.gui import main_window
   aset.add_molecules(main_window.view.molecules())
   return aset

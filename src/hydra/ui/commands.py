@@ -1107,8 +1107,8 @@ def integer_range(rstring):
 class Selection:
     def __init__(self):
         self._models = []              # Non-molecule models
-        from ..molecule import Atom_Set
-        self.aset = Atom_Set()
+        from ..molecule import Atoms
+        self.aset = Atoms()
     def add_models(self, models):
         from ..molecule import Molecule
         mols = [m for m in models if isinstance(m, Molecule)]
