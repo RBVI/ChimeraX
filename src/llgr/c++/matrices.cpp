@@ -16,7 +16,7 @@ create_matrix(Id matrix_id, const float mat[4][4], bool renormalize)
 void
 delete_matrix(Id matrix_id)
 {
-	AllMatrices::iterator i = all_matrices.find(matrix_id);
+	auto i = all_matrices.find(matrix_id);
 	if (i != all_matrices.end()) {
 		const MatrixInfo &info = i->second;
 		delete_buffer(info.data_id);
@@ -29,9 +29,8 @@ clear_matrices()
 {
 	if (!all_buffers.empty()) {
 		// not inside clear_buffers
-		for (AllMatrices::iterator i = all_matrices.begin(),
-					e = all_matrices.end(); i != e; ++i) {
-			const MatrixInfo &info = i->second;
+		for (auto& i: all_matrices) {
+			const MatrixInfo &info = i.second;
 			delete_buffer(info.data_id);
 		}
 	}

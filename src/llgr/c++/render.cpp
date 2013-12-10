@@ -234,14 +234,13 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 {
 	typedef ShaderProgram::Variables Vars;
 	const Vars &attrs = sp->attributes();
-	Vars::const_iterator i = std::find_if(attrs.begin(), attrs.end(),
-							Attr_Name(ai.name));
+	auto i = std::find_if(attrs.begin(), attrs.end(), Attr_Name(ai.name));
 	if (i == attrs.end())
 		return;
 	ShaderVariable *sv = *i;
 	int loc = sv->location();
 
-	AllBuffers::iterator bii = all_buffers.find(ai.data_id);
+	auto bii = all_buffers.find(ai.data_id);
 	if (bii == all_buffers.end())
 		return;
 	const BufferInfo &bi = bii->second;
@@ -309,15 +308,13 @@ render()
 	// TODO: only for opaque objects
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-	for (AllObjects::iterator i = all_objects.begin(),
-					e = all_objects.end(); i != e; ++i) {
-		ObjectInfo *oi = i->second;
+	for (auto& i: all_objects) {
+		ObjectInfo *oi = i.second;
 		if (oi->hide || !oi->program_id)
 			continue;
 		// setup program
 		if (oi->program_id != current_program_id) {
-			AllPrograms::iterator i
-					= all_programs.find(oi->program_id);
+			auto i = all_programs.find(oi->program_id);
 			if (sp)
 				sp->cleanup();
 			if (i == all_programs.end()) {
@@ -339,8 +336,7 @@ render()
 		// setup index buffer
 		const BufferInfo *ibi = NULL;
 		if (oi->index_buffer_id) {
-			AllBuffers::const_iterator bii
-				= all_buffers.find(oi->index_buffer_id);
+			auto bii = all_buffers.find(oi->index_buffer_id);
 			if (bii == all_buffers.end())
 				continue;
 			ibi = &bii->second;
@@ -352,14 +348,13 @@ render()
 			if (oi->matrix_id == 0) {
 				data_id = 0;
 			} else {
-				AllMatrices::iterator mii
-					= all_matrices.find(oi->matrix_id);
+				auto mii = all_matrices.find(oi->matrix_id);
 				if (mii == all_matrices.end())
 					continue;
 				const MatrixInfo &mi = mii->second;
 				data_id = mi.data_id;
 			}
-			AllBuffers::iterator bii = all_buffers.find(data_id);
+			auto bii = all_buffers.find(data_id);
 			if (bii == all_buffers.end())
 				continue;
 			const BufferInfo &bi = bii->second;
@@ -368,15 +363,13 @@ render()
 			current_matrix_id = oi->matrix_id;
 		}
 #ifdef USE_VAO
-		for (SingletonCache::iterator sci = oi->singleton_cache.begin(); sci != oi->singleton_cache.end(); ++sci) {
-			const SingletonInfo &si = *sci;
+		for (auto& si: oi->singleton_cache) {
 			setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements);
 		}
 #else
 		// setup other attributes
-		for (AttributeInfos::iterator aii = oi->ais.begin();
-						aii != oi->ais.end(); ++aii) {
-			setup_attribute(sp, *aii);
+		for (auto& ai: oi->ais) {
+			setup_attribute(sp, ai);
 		}
 #endif
 		// finally draw object
@@ -399,10 +392,7 @@ render()
 #ifndef USE_VAO
 		// cleanup
 		// TODO: minimize cleanup between objects
-		typedef ShaderProgram::Variables Vars;
-		const Vars &attrs = sp->attributes();
-		for (Vars::const_iterator svi = attrs.begin(); svi != attrs.end(); ++svi) {
-			ShaderVariable *sv = *svi;
+		for (auto sv: sp->attributes()) {
 			int loc = sv->location();
 			if (loc == -1)
 				continue;
@@ -458,8 +448,7 @@ pick(int x, int y)
 	create_singleton(pick_buffer_id, 4, NULL);
 	uint32_t *pick_id = NULL;
 	{
-		AllBuffers::const_iterator bii
-				= all_buffers.find(pick_buffer_id);
+		auto bii = all_buffers.find(pick_buffer_id);
 		assert(bii != all_buffers.end());
 		const BufferInfo &bi = bii->second;
 		pick_id = reinterpret_cast<uint32_t *>(bi.data);
@@ -470,16 +459,14 @@ pick(int x, int y)
 	// TODO: only for opaque objects
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-	for (AllObjects::iterator i = all_objects.begin(),
-					e = all_objects.end(); i != e; ++i) {
-		Id oid = i->first;
-		ObjectInfo *oi = i->second;
+	for (auto& i: all_objects) {
+		Id oid = i.first;
+		ObjectInfo *oi = i.second;
 		if (oi->hide || !oi->program_id)
 			continue;
 		// setup program
 		if (oi->program_id != current_program_id) {
-			AllPrograms::iterator i
-					= pick_programs.find(oi->program_id);
+			auto i = pick_programs.find(oi->program_id);
 			if (sp)
 				sp->cleanup();
 			if (i == pick_programs.end()) {
@@ -496,8 +483,7 @@ pick(int x, int y)
 		// setup index buffer
 		const BufferInfo *ibi = NULL;
 		if (oi->index_buffer_id) {
-			AllBuffers::const_iterator bii
-				= all_buffers.find(oi->index_buffer_id);
+			auto bii = all_buffers.find(oi->index_buffer_id);
 			if (bii == all_buffers.end())
 				continue;
 			ibi = &bii->second;
@@ -507,8 +493,7 @@ pick(int x, int y)
 			if (oi->matrix_id == 0) {
 				matrix_ai.data_id = 0;
 			} else {
-				AllMatrices::iterator mii
-					= all_matrices.find(oi->matrix_id);
+				auto mii = all_matrices.find(oi->matrix_id);
 				if (mii == all_matrices.end())
 					continue;
 				const MatrixInfo &mi = mii->second;
@@ -526,9 +511,8 @@ static uint32_t colors[8] = { 0x90, 0xf0, 0x9000, 0xf000, 0x900000, 0xf00000, 0x
 #endif
 		setup_attribute(sp, pick_ai);
 		// setup other attributes
-		for (AttributeInfos::iterator aii = oi->ais.begin();
-						aii != oi->ais.end(); ++aii) {
-			setup_attribute(sp, *aii);
+		for (auto& ai: oi->ais) {
+			setup_attribute(sp, ai);
 		}
 		// finally draw object
 		if (!ibi) {
@@ -543,10 +527,7 @@ static uint32_t colors[8] = { 0x90, 0xf0, 0x9000, 0xf000, 0x900000, 0xf00000, 0x
 		}
 		// cleanup
 		// TODO: minimize cleanup between objects
-		typedef ShaderProgram::Variables Vars;
-		const Vars &attrs = sp->attributes();
-		for (Vars::const_iterator svi = attrs.begin(); svi != attrs.end(); ++svi) {
-			ShaderVariable *sv = *svi;
+		for (auto sv: sp->attributes()) {
 			int loc = sv->location();
 			if (loc == -1)
 				continue;

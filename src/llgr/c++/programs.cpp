@@ -40,16 +40,15 @@ create_program(Id program_id, const char *vertex_shader, const char *fragment_sh
 void
 delete_program(Id program_id)
 {
-	AllPrograms::iterator i = all_programs.find(program_id);
+	auto i = all_programs.find(program_id);
 	if (i == all_programs.end())
 		return;
 	ShaderProgram *sp = i->second;
 	all_programs.erase(i);
 	delete sp;
 #ifdef USE_VAO
-	for (AllObjects::iterator i = all_objects.begin(),
-					e = all_objects.end(); i != e; ++i) {
-		ObjectInfo *oi = i->second;
+	for (auto& i: all_objects) {
+		ObjectInfo *oi = i.second;
 		if (oi->program_id == program_id)
 			oi->invalidate_cache();
 	}
@@ -69,14 +68,14 @@ clear_programs()
 	AllPrograms save;
 
 	all_programs.swap(save);
-	for (AllPrograms::iterator i = save.begin(); i != save.end(); ++i) {
-		ShaderProgram *sp = i->second;
+	for (auto& i: save) {
+		ShaderProgram *sp = i.second;
 		delete sp;
 	}
 	save.clear();
 	pick_programs.swap(save);
-	for (AllPrograms::iterator i = save.begin(); i != save.end(); ++i) {
-		ShaderProgram *sp = i->second;
+	for (auto& i: save) {
+		ShaderProgram *sp = i.second;
 		delete sp;
 	}
 }
@@ -124,16 +123,14 @@ set_uniform(Id program_id, const char *name, ShaderType type, uint32_t data_leng
 	}
 	if (program_id == 0) {
 		// broadcast to all current programs
-		for (AllPrograms::iterator i = all_programs.begin(),
-					e = all_programs.end(); i != e; ++i) {
-			ShaderProgram *sp = i->second;
+		for (auto& i: all_programs) {
+			ShaderProgram *sp = i.second;
 			ShaderVariable *sv = sp->uniform(name);
 			if (sv)
 				set_uniform(sv, type, data_length, data);
 		}
-		for (AllPrograms::iterator i = pick_programs.begin(),
-					e = pick_programs.end(); i != e; ++i) {
-			ShaderProgram *sp = i->second;
+		for (auto& i: pick_programs) {
+			ShaderProgram *sp = i.second;
 			ShaderVariable *sv = sp->uniform(name);
 			if (sv)
 				set_uniform(sv, type, data_length, data);
@@ -188,17 +185,15 @@ set_uniform_matrix(Id program_id, const char *name, bool transpose, ShaderType t
 	}
 	if (program_id == 0) {
 		// broadcast to all current programs
-		for (AllPrograms::iterator i = all_programs.begin(),
-					e = all_programs.end(); i != e; ++i) {
-			ShaderProgram *sp = i->second;
+		for (auto& i: all_programs) {
+			ShaderProgram *sp = i.second;
 			ShaderVariable *sv = sp->uniform(name);
 			if (sv)
 				set_uniform_matrix(sv, transpose, type,
 							data_length, data);
 		}
-		for (AllPrograms::iterator i = pick_programs.begin(),
-					e = pick_programs.end(); i != e; ++i) {
-			ShaderProgram *sp = i->second;
+		for (auto& i: pick_programs) {
+			ShaderProgram *sp = i.second;
 			ShaderVariable *sv = sp->uniform(name);
 			if (sv)
 				set_uniform_matrix(sv, transpose, type,

@@ -121,7 +121,7 @@ vsphere_setup(Id vsphere, double radius, double center[2])
 VSphereCursor
 vsphere_press(Id vsphere, int x, int y)
 {
-	AllVSpheres::iterator i = all_vspheres.find(vsphere);
+	auto i = all_vspheres.find(vsphere);
 	if (i == all_vspheres.end())
 		throw std::logic_error("unknown vsphere");
 	VSphereInfo &vi = i->second;
@@ -140,7 +140,7 @@ vsphere_press(Id vsphere, int x, int y)
 VSphereCursor
 vsphere_drag(Id vsphere, int x, int y, bool throttle, double spin_axis[3], double *spin_angle)
 {
-	AllVSpheres::iterator i = all_vspheres.find(vsphere);
+	auto i = all_vspheres.find(vsphere);
 	if (i == all_vspheres.end())
 		throw std::logic_error("unknown vsphere");
 	VSphereInfo &vi = i->second;
@@ -185,7 +185,7 @@ vsphere_drag(Id vsphere, int x, int y, bool throttle, double spin_axis[3], doubl
 void
 vsphere_release(Id vsphere)
 {
-	AllVSpheres::iterator i = all_vspheres.find(vsphere);
+	auto i = all_vspheres.find(vsphere);
 	if (i == all_vspheres.end())
 		return;
 	all_vspheres.erase(i);

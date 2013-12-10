@@ -33,9 +33,8 @@ clear_geom(ProtoGeom &geom)
 {
 	if (!all_buffers.empty()) {
 		// not inside clear_buffers
-		for (ProtoGeom::iterator i = geom.begin(), e = geom.end();
-								i != e; ++i) {
-			const PrimitiveInfo &info = i->second;
+		for (auto& i: geom) {
+			const PrimitiveInfo &info = i.second;
 			delete_buffer(info.data_id);
 			delete_buffer(info.index_id);
 		}
@@ -55,7 +54,7 @@ add_sphere(Id obj_id, float radius,
 	Id program_id, Id matrix_id, const AttributeInfos& ais)
 {
 	int N = 300;	// TODO: make dependent on radius in pixels
-	ProtoGeom::iterator i = proto_spheres.find(N);
+	auto i = proto_spheres.find(N);
 	if (i == proto_spheres.end())
 		build_sphere(N);
 	const PrimitiveInfo &pi = proto_spheres[N];
@@ -75,7 +74,7 @@ add_cylinder(Id obj_id, float radius, float length,
 	Id program_id, Id matrix_id, const AttributeInfos& ais)
 {
 	int N = 50;	// TODO: make dependent on radius in pixels
-	ProtoGeom::iterator i = proto_cylinders.find(N);
+	auto i = proto_cylinders.find(N);
 	if (i == proto_cylinders.end())
 		build_cylinder(N);
 	const PrimitiveInfo &pi = proto_cylinders[N];

@@ -34,7 +34,7 @@ create_buffer(Id data_id, BufferTarget target, unsigned size, const void *data)
 	}
 	GLenum gl_target = cvt_buffer_target(target);;
 	GLuint buffer;
-	AllBuffers::iterator i = all_buffers.find(data_id);
+	auto i = all_buffers.find(data_id);
 	if (i == all_buffers.end()) {
 		glGenBuffers(1, &buffer);
 	} else {
@@ -52,7 +52,7 @@ create_buffer(Id data_id, BufferTarget target, unsigned size, const void *data)
 void
 delete_buffer(Id data_id)
 {
-	AllBuffers::iterator i = all_buffers.find(data_id);
+	auto i = all_buffers.find(data_id);
 	if (i != all_buffers.end()) {
 		BufferInfo bi = i->second;
 		all_buffers.erase(i);
@@ -68,8 +68,8 @@ clear_buffers()
 	AllBuffers save;
 
 	all_buffers.swap(save);
-	for (AllBuffers::iterator i = save.begin(); i != save.end(); ++i) {
-		const BufferInfo &bi = i->second;
+	for (auto& i: save) {
+		const BufferInfo &bi = i.second;
 		delete [] bi.data;
 		if (bi.buffer)
 			glDeleteBuffers(1, &bi.buffer);
@@ -90,7 +90,7 @@ create_singleton(Id data_id, unsigned size, const void *data)
 		memcpy(d, identity4x4_data, sizeof identity4x4_data);
 		all_buffers[0] = BufferInfo(GL_ARRAY_BUFFER, sizeof identity4x4_data, d);
 	}
-	AllBuffers::iterator i = all_buffers.find(data_id);
+	auto i = all_buffers.find(data_id);
 	if (i != all_buffers.end()) {
 		const BufferInfo &bi = i->second;
 		delete [] bi.data;
@@ -108,13 +108,13 @@ create_singleton(Id data_id, unsigned size, const void *data)
 void
 create_singleton_index(Id data_id, Id reference_data_id, unsigned offset, unsigned index)
 {
-	AllBuffers::iterator j = all_buffers.find(reference_data_id);
+	auto j = all_buffers.find(reference_data_id);
 	if (j == all_buffers.end())
 		return;
 	const BufferInfo &rbi = j->second;
 	if (rbi.buffer == 0)
 		return;
-	AllBuffers::iterator i = all_buffers.find(data_id);
+	auto i = all_buffers.find(data_id);
 	if (i != all_buffers.end()) {
 		const BufferInfo &bi = i->second;
 		delete [] bi.data;
@@ -130,7 +130,7 @@ create_singleton_index(Id data_id, Id reference_data_id, unsigned offset, unsign
 void
 update_buffer(Id data_id, unsigned offset, unsigned size, unsigned stride, unsigned length, DataType type, const void *data)
 {
-	AllBuffers::iterator i = all_buffers.find(data_id);
+	auto i = all_buffers.find(data_id);
 	if (i == all_buffers.end())
 		return;
 	const BufferInfo &bi = i->second;
