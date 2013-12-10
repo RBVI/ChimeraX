@@ -428,7 +428,7 @@ class View(QtOpenGL.QGLWidget):
     def update_level_of_detail(self):
         # Level of detail updating.
         # TODO: Don't recompute atoms shown on every draw, only when changed
-        ashow = sum(m.atoms_shown() for m in self.molecules() if m.display)
+        ashow = sum(m.shown_atom_count() for m in self.molecules() if m.display)
         if ashow != self.atoms_shown:
             self.atoms_shown = ashow
             for m in self.molecules():

@@ -1061,8 +1061,8 @@ def parse_specifier(spec):
     for m in mlist:
         if isinstance(m, Molecule):
             atoms = m.atom_subset(aname, cid, rrange, rname, invert)
-            if len(atoms) > 0:
-                s.add_atoms(m, atoms)
+            if atoms.count() > 0:
+                s.add_atoms(atoms)
         else:
             smodels.append(m)
     if invert:
@@ -1115,8 +1115,8 @@ class Selection:
         self.aset.add_molecules(mols)
         other = [m for m in models if not isinstance(m, Molecule)]
         self._models.extend(other)
-    def add_atoms(self, mol, aindices):
-        self.aset.add_atoms(mol, aindices)
+    def add_atoms(self, atoms):
+        self.aset.add_atoms(atoms)
     def models(self):
         return self._models + list(self.molecules())
     def molecules(self):

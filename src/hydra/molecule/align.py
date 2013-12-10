@@ -146,11 +146,9 @@ def paired_atoms(atoms, ref_atoms):
     praset = Atoms()
     for i in range(min(len(cas), len(cras))):
         ca, cra = cas[i], cras[i]
-        m, a = ca.molatoms[0]
-        rm, ra = cra.molatoms[0]
-        pa, pra = pairing(m.residue_nums[a], rm.residue_nums[ra])
-        paset.add_atoms(m, a[pa])
-        praset.add_atoms(rm, ra[pra])
+        pa, pra = pairing(ca.residue_numbers(), rm.residue_numbers())
+        paset.add_atoms(ca.subset(pa))
+        praset.add_atoms(cra.subset(pra))
     return paset, praset
 
 def pairing(rnums1, rnums2):
