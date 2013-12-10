@@ -224,7 +224,7 @@ def chopstick_motion(lp, p):
 def keep_within_frustum(t, v):
 
     c = v.center_of_rotation
-    cvi = v.camera_view_inverse
+    cvi = v.camera.view_inverse
     p1 = cvi * c
     p2 = add(p1, t)
     from math import pi, sin, cos

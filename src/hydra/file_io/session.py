@@ -42,6 +42,7 @@ def session_state(viewer, rel_path = None, attributes_only = False):
   '''
   s = {'version': 2,
        'view': view_state(viewer),
+       'camera': camera_state(viewer.camera),
        'lighting': lighting_state(viewer.render.lighting_params),
   }
 
@@ -76,6 +77,9 @@ def set_session_state(s, viewer, attributes_only = False):
   if 'view' in s:
     restore_view(s['view'], viewer)
 
+  if 'camera' in s:
+    restore_view(s['camera'], viewer.camera)
+
   if 'lighting' in s:
     restore_lighting(s['lighting'], viewer.render.lighting_params)
 
@@ -106,10 +110,7 @@ def restore_scene(s, viewer):
 # -----------------------------------------------------------------------------
 #
 view_parameters = (
-  'camera_view',
-  'field_of_view',
   'center_of_rotation',
-  'near_far_clip',
   'window_size',
   'background_color',
 )
@@ -118,21 +119,53 @@ view_parameters = (
 #
 def view_state(viewer):
   v = dict((name,getattr(viewer,name)) for name in view_parameters)
-  v['camera_view'] = viewer.camera_view.matrix
   return v
 
 # -----------------------------------------------------------------------------
 #
 def restore_view(vs, viewer):
-  exclude = set(('window_size', 'camera_view'))
+  exclude = set(('window_size', 'camera_view', 'field_of_view', 'near_far_clip'))
   for name in view_parameters:
     if name in vs and not name in exclude:
       setattr(viewer, name, vs[name])
-  from ..geometry.place import Place
-  cv = Place(vs['camera_view'])
-  viewer.set_camera_view(cv)    # Set cached inverse matrix
+  if 'camera_view' in vs:
+    # Old session files had camera parameters saved with viewer state
+    from ..geometry.place import Place
+    cv = Place(vs['camera_view'])
+    c = viewer.camera
+    c.set_view(cv)    # Set cached inverse matrix
+    c.field_of_view = vs['field_of_view']
+    c.near_far_clip = vs['near_far_clip']
 
   return True
+
+# -----------------------------------------------------------------------------
+#
+camera_parameters = (
+  'view_matrix',
+  'field_of_view',
+  'near_far_clip',
+)
+
+# -----------------------------------------------------------------------------
+#
+def camera_state(camera):
+
+  v = dict((name,getattr(camera,name)) for name in camera_parameters if hasattr(camera,name))
+  v['view_matrix'] = camera.view.matrix
+  return v
+
+# -----------------------------------------------------------------------------
+#
+def restore_camera(cs, camera):
+
+  exclude = ('view_matrix',)
+  for name in camera_parameters:
+    if name in cs and not name in exclude:
+      setattr(camera, name, cs[name])
+  from ..geometry.place import Place
+  cv = Place(cs['view_matrix'])
+  camera.set_view(cv)
 
 # -----------------------------------------------------------------------------
 #

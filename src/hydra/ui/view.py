@@ -11,13 +11,8 @@ class View(QtOpenGL.QGLWidget):
         self.window_size = (800,800)		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
-        # Camera postion and direction, neg z-axis is camera view direction,
-        # x and y axes are horizontal and vertical screen axes.
-        # First 3 columns are x,y,z axes, 4th column is camara location.
-        from ..geometry.place import Place
-        self.camera_view = self.camera_view_inverse = Place()
-        self.field_of_view = 45   	# degrees, width
-        self.near_far_clip = (1,100)      # along -z in camera coordinates
+        from . import camera
+        self.camera = camera.Camera(self.window_size)
 
         self.tile = False
         self.tile_edge_color = (.3,.3,.3,1)
@@ -177,7 +172,8 @@ class View(QtOpenGL.QGLWidget):
         for cb in self.new_frame_callbacks:
             cb()
 
-        draw = self.redraw_needed
+        c = self.camera
+        draw = self.redraw_needed or c.redraw_needed
         if draw:
             for m in self.models + self.overlays:
                 m.redraw_needed = False
@@ -188,6 +184,7 @@ class View(QtOpenGL.QGLWidget):
                     draw = True
         if draw:
             self.redraw_needed = False
+            c.redraw_needed = False
             self.updateGL()
             for cb in self.rendered_callbacks:
                 cb()
@@ -299,12 +296,13 @@ class View(QtOpenGL.QGLWidget):
                 self.draw_caption('#%d %s' % (m.id, m.name))
 
     def draw_model(self, m, draw_pass):
+        cvinv = self.camera.view_inverse
         if m.copies:
             for p in m.copies:
-                self.render.set_model_view_matrix(self.camera_view_inverse, p)
+                self.render.set_model_view_matrix(cvinv, p)
                 m.draw(self, draw_pass)
         else:
-            self.render.set_model_view_matrix(self.camera_view_inverse, m.place)
+            self.render.set_model_view_matrix(cvinv, m.place)
             m.draw(self, draw_pass)
 
     def draw_caption(self, text):
@@ -423,6 +421,7 @@ class View(QtOpenGL.QGLWidget):
 
     def resizeGL(self, width, height):
         self.window_size = width, height
+        self.camera.window_size = width, height
         self.render.set_drawing_region(0,0,width,height)
 
     def initial_camera_view(self):
@@ -430,35 +429,17 @@ class View(QtOpenGL.QGLWidget):
         center, s = self.bounds_center_and_width()
         if center is None:
             return
-        cx,cy,cz = center
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        camdist = 0.5*s + 0.5*s/tan(0.5*fov)
-        from ..geometry import place
-        self.set_camera_view(place.translation((cx,cy,cz+camdist)))
-        self.near_far_clip = (camdist - s, camdist + s)
-        self.center_of_rotation = (cx,cy,cz)
+        self.camera.initialize_view(center, s)
+        self.center_of_rotation = center
 
     def view_all(self):
 
         center, s = self.bounds_center_and_width()
         if center is None:
             return
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        d = 0.5*s + 0.5*s/tan(0.5*fov)
-        vd = self.view_direction()
-        cp = self.camera_position()
-        shift = tuple((center[a]-d*vd[a])-cp[a] for a in (0,1,2))
-        cv = self.camera_view
-        csx,csy,csz = cv.inverse().apply_without_translation(shift)
+        shift = self.camera.view_all(center, s)
+        csx,csy,csz = self.camera.view_inverse.apply_without_translation(shift)
         self.translate(-csx,-csy,-csz)
-        self.near_far_clip = (d - s, d + s)
-
-    def set_camera_view(self, place):
-        self.camera_view = place
-        self.camera_view_inverse = place.inverse()
-        self.redraw_needed = True
 
     def center_of_rotation_needs_update(self):
         self.update_center = True
@@ -470,11 +451,7 @@ class View(QtOpenGL.QGLWidget):
         center, s = self.bounds_center_and_width()
         if center is None:
             return
-        cp = self.camera_position()
-        vd = self.view_direction()
-        d = sum((center-cp)*vd)         # camera to center of models
-        from math import tan, pi
-        vw = 2*d*tan(0.5*self.field_of_view*pi/180)     # view width at center of models
+        vw = self.camera.view_width(center)
         if vw >= s:
             # Use center of models for zoomed out views
             cr = center
@@ -484,13 +461,7 @@ class View(QtOpenGL.QGLWidget):
             if cr is None:
                 return
         self.center_of_rotation = tuple(cr)
-        self.near_far_clip = (d - s, d + s)
-
-    def camera_position(self):
-        return self.camera_view.translation()
-
-    def view_direction(self):
-        return -self.camera_view.z_axis()
+        self.camera.set_near_far_clip(center, s)
 
     def front_center_point(self):
         w, h = self.window_size
@@ -498,7 +469,7 @@ class View(QtOpenGL.QGLWidget):
         return p
 
     def first_intercept(self, win_x, win_y):
-        xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
+        xyz1, xyz2 = self.camera.clip_plane_points(win_x, win_y)
         f = None
         s = None
         for m in self.models:
@@ -533,63 +504,21 @@ class View(QtOpenGL.QGLWidget):
         
         ww,wh = self.window_size if win_size is None else win_size
         if ww > 0 and wh > 0:
-            pm = self.projection_matrix((ww,wh))
+            pm = self.camera.projection_matrix((ww,wh))
             self.render.set_projection_matrix(pm)
-
-    def projection_matrix(self, win_size = None):
-
-        # Perspective projection to origin with center of view along z axis
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        near,far = self.near_far_clip
-        near_min = 0.001*(far - near) if far > near else 1
-        near = max(near, near_min)
-        if far <= near:
-            far = 2*near
-        w = 2*near*tan(0.5*fov)
-        ww,wh = self.window_size if win_size is None else win_size
-        aspect = float(wh)/ww
-        h = w*aspect
-        left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
-        pm = frustum(left, right, bot, top, near, far)
-        return pm
-
-    def model_view_matrix(self, model):
-
-        mv44 = (self.camera_view_inverse * model.place).opengl_matrix()
-        return mv44
-
-    # Returns camera coordinates.
-    def camera_clip_plane_points(self, window_x, window_y):
-        znear, zfar = self.near_far_clip
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        wn = 2*znear*tan(0.5*fov)   # Screen width in model units, near clip
-        wf = 2*zfar*tan(0.5*fov)    # Screen width in model units, far clip
-        wp,hp = self.window_size     # Screen size in pixels
-        rn, rf = (wn/wp, wf/wp) if wp != 0 else (1,1)
-        wx,wy = window_x - 0.5*wp, -(window_y - 0.5*hp)
-        cn = (rn*wx, rn*wy, -znear)
-        cf = (rf*wx, rf*wy, -zfar)
-        return cn, cf
-
-    # Returns scene coordinates.
-    def clip_plane_points(self, window_x, window_y):
-        cn, cf = self.camera_clip_plane_points(window_x, window_y)
-        mn, mf = self.camera_view * (cn,cf)
-        return mn, mf
 
     def rotate(self, axis, angle, models = None):
 
         self.update_center_of_rotation()
         # Rotation axis is in camera coordinates.
         # Center of rotation is in model coordinates.
-        cv = self.camera_view
+        c = self.camera
+        cv = c.view
         from ..geometry import place
         maxis = cv.apply_without_translation(axis)
         r = place.rotation(maxis, angle, self.center_of_rotation)
         if models is None:
-            self.set_camera_view(r.inverse()* cv)
+            c.set_view(r.inverse()* cv)
         else:
             for m in models:
                 m.place = r * m.place
@@ -599,38 +528,21 @@ class View(QtOpenGL.QGLWidget):
     def translate(self, dx, dy, dz, models = None):
 
         self.center_of_rotation_needs_update()
-        cv = self.camera_view
+        c = self.camera
+        cv = c.view
         from ..geometry import place
         mt = cv.apply_without_translation((dx,dy,dz))
         t = place.translation(mt)
         if models is None:
-            self.set_camera_view(t.inverse()*cv)
-            n,f = self.near_far_clip
-            self.near_far_clip = (n-dz,f-dz)
+            c.set_view(t.inverse()*cv)
+            c.shift_near_far_clip(-dz)
         else:
             for m in models:
                 m.place = t * m.place
         self.redraw_needed = True
 
     def pixel_size(self, p = None):
-
-        if p is None:
-            p = self.center_of_rotation
-
-        # Pixel size at center on near clip plane
-        w,h = self.window_size
-        from math import pi, tan
-        fov = self.field_of_view * pi/180
-
-        c = self.camera_position()
-        from ..geometry import vector
-        ps = vector.distance(c,p) * 2*tan(0.5*fov) / w
-        return ps
-
-#    def keyPressEvent(self, event):
-
-#        from .shortcuts import keyboard_shortcuts as ks
-#        ks.key_pressed(event)
+        return self.camera.pixel_size(self.center_of_rotation if p is None else p)
 
     def maps(self):
         from ..map import Volume
@@ -643,21 +555,3 @@ class View(QtOpenGL.QGLWidget):
     def surfaces(self):
         from ..molecule import Molecule
         return tuple(m for m in self.models if not isinstance(m,(Molecule)))
-            
-    def quit(self):
-        import sys
-        sys.exit(0)
-
-# glFrustum() matrix
-def frustum(left, right, bottom, top, zNear, zFar):
-    A = (right + left) / (right - left)
-    B = (top + bottom) / (top - bottom)
-    C = - (zFar + zNear) / (zFar - zNear)
-    D = - (2 * zFar * zNear) / (zFar - zNear)
-    E = 2 * zNear / (right - left)
-    F = 2 * zNear / (top - bottom)
-    m = ((E, 0, 0, 0),
-         (0, F, 0, 0),
-         (A, B, C, -1),
-         (0, 0, D, 0))
-    return m

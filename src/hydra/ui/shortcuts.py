@@ -97,7 +97,7 @@ def register_shortcuts(viewer):
         ('va', v.view_all, 'View all', gcat),
         ('rs', history.show_thumbnails, 'Show recent sessions', ocat),
         ('cs', v.clear_selection, 'Clear selection', gcat),
-        ('Qt', v.quit, 'Quit', ocat),
+        ('Qt', quit, 'Quit', ocat),
         ('cl', command_line, 'Enter command', gcat),
         ('gr', show_graphics_window, 'Show graphics window', gcat),
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
@@ -559,3 +559,7 @@ def motion_blur(viewer):
         viewer.remove_overlays(mb)
     else:
         Motion_Blur(viewer)
+            
+def quit(self):
+    import sys
+    sys.exit(0)
