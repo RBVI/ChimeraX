@@ -11,7 +11,7 @@ INCS = -I$(includedir)
 endif
 
 ifeq ($(WIN32),msvc)
-DEFS += -DLLGR_DLL -DLLGR_EXPORT
+DEFS += -DLLGR_EXPORT
 LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')' glew32.lib opengl32.lib msvcrt.lib
 else
 LIBS = $(OPENGL_LIBS)

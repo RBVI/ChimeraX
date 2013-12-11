@@ -7,16 +7,18 @@
 #include <string>
 #include <stdint.h>
 
-# ifndef LLGR_DLL
+# ifdef _WIN32
+#  if defined(LLGR_EXPORT)
+#   define LLGR_IMEX __declspec(dllexport)
+#  else
+#   define LLGR_IMEX __declspec(dllimport)
+#  endif
+# else
 #  if (__GNUC__ > 4) || (__GNUC__ == 4 && (defined(__APPLE__) || __GNUC_MINOR__ >= 3))
 #   define LLGR_IMEX __attribute__((__visibility__("default")))
 #  else
 #   define LLGR_IMEX
 #  endif
-# elif defined(LLGR_EXPORT)
-#  define LLGR_IMEX __declspec(dllexport)
-# else
-#  define LLGR_IMEX __declspec(dllimport)
 # endif
 
 # ifdef WrapPy
