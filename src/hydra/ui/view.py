@@ -8,35 +8,21 @@ class View(QtOpenGL.QGLWidget):
 #        self.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
 #        self.setAutoBufferSwap(False)
         
-        # Camera postion and direction, neg z-axis is camera view direction,
-        # x and y axes are horizontal and vertical screen axes.
-        # First 3 columns are x,y,z axes, 4th column is camara location.
-        from ..geometry.place import Place
-        self.camera_view = self.camera_view_inverse = Place()
-        self.field_of_view = 45   	# degrees, width
-        self.center_of_rotation = (0,0,0)
-        self.update_center = True
-        self.near_far_clip = (1,100)      # along -z in camera coordinates
-        self.window_size = (800,800)	# pixels
-#        self.window_size = (1024,1024)
-        self.background_rgba = (0,0,0,1)
+        self.window_size = (800,800)		# pixels
+        self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
+
+#        stereo = self.format().stereo()
+        stereo = False
+        from . import camera
+        self.camera = camera.Camera(self.window_size, stereo)
 
         self.tile = False
         self.tile_edge_color = (.3,.3,.3,1)
         self.tile_scale = 0
         self.tile_animation_steps = 10
-        
-        # Lighting parameters
-        self.key_light_position = (-.577,.577,.577)
-        self.key_light_diffuse_color = (.6,.6,.6)
-        self.key_light_specular_color = (.3,.3,.3)
-        self.key_light_specular_exponent = 20
-        self.fill_light_position = (.2,.2,.959)
-        self.fill_light_diffuse_color = (.3,.3,.3)
-        self.ambient_light_color = (.3,.3,.3)
 
         from .. import draw
-        self.render = draw.Render(self)
+        self.render = draw.Render()
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -52,14 +38,11 @@ class View(QtOpenGL.QGLWidget):
         self.selected = set()
         self.atoms_shown = 0
 
-        self.mouse_modes = {}
-        self.last_mouse_position = None
-        self.last_mouse_time = None
-        self.mouse_pause_interval = 0.5         # seconds
-        self.mouse_pause_position = None
-        self.mouse_perimeter = False
-        self.wheel_function = None
-        self.bind_standard_mouse_modes()
+        self.center_of_rotation = (0,0,0)
+        self.update_center = True
+
+        from . import mousemodes
+        self.mouse_modes = mousemodes.Mouse_Modes(self)
 
     def minimumSizeHint(self):
         return QtCore.QSize(50, 50)
@@ -161,6 +144,8 @@ class View(QtOpenGL.QGLWidget):
 
         from .gui import show_info
         show_info('OpenGL version %s' % r.opengl_version())
+        show_info('requested stereo %d' % self.camera.stereo)
+        show_info('got opengl stereo %d' % r.support_stereo())
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
@@ -191,7 +176,8 @@ class View(QtOpenGL.QGLWidget):
         for cb in self.new_frame_callbacks:
             cb()
 
-        draw = self.redraw_needed
+        c = self.camera
+        draw = self.redraw_needed or c.redraw_needed
         if draw:
             for m in self.models + self.overlays:
                 m.redraw_needed = False
@@ -202,11 +188,12 @@ class View(QtOpenGL.QGLWidget):
                     draw = True
         if draw:
             self.redraw_needed = False
+            c.redraw_needed = False
             self.updateGL()
             for cb in self.rendered_callbacks:
                 cb()
         else:
-            self.mouse_pause_tracking()
+            self.mouse_modes.mouse_pause_tracking()
 
     def block_redraw(self):
         self.block_redraw_count += 1
@@ -245,10 +232,13 @@ class View(QtOpenGL.QGLWidget):
 
             from time import process_time
             t0 = process_time()
-            self.draw(self.OPAQUE_DRAW_PASS)
-            if self.transparent_models_shown():
-                r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS),
-                                   lambda: self.draw(self.TRANSPARENT_DRAW_PASS))
+            c = self.camera
+            for vnum in range(c.number_of_views()):
+                c.setup(vnum, self.render)
+                self.draw(self.OPAQUE_DRAW_PASS, vnum)
+                if self.transparent_models_shown():
+                    r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum),
+                                       lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum))
             t1 = process_time()
             self.last_draw_duration = t1-t0
 
@@ -273,7 +263,7 @@ class View(QtOpenGL.QGLWidget):
     TRANSPARENT_DRAW_PASS = 'transparent'
     TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
 
-    def draw(self, draw_pass):
+    def draw(self, draw_pass, view_num):
 
         models = self.models
         n = len(models)
@@ -295,7 +285,7 @@ class View(QtOpenGL.QGLWidget):
 
         for m in models:
             if m.display:
-                self.draw_model(m, draw_pass)
+                self.draw_model(m, draw_pass, view_num)
 
         if draw_tiles:
             if n > 1:
@@ -303,7 +293,7 @@ class View(QtOpenGL.QGLWidget):
                     x,y,w,h = tiles[i+1]
                     r.set_drawing_region(x,y,w,h)
                     self.update_projection((w,h))
-                    self.draw_model(m, draw_pass)
+                    self.draw_model(m, draw_pass, view_num)
                     if self.tile_scale >= 1:
                         self.draw_caption('#%d %s' % (m.id, m.name))
                 w,h = self.window_size
@@ -312,13 +302,15 @@ class View(QtOpenGL.QGLWidget):
                 m = self.models[0]
                 self.draw_caption('#%d %s' % (m.id, m.name))
 
-    def draw_model(self, m, draw_pass):
+    def draw_model(self, m, draw_pass, view_num):
+        cvinv = self.camera.view_inverse(view_num)
+        r = self.render
         if m.copies:
             for p in m.copies:
-                self.render.set_model_view_matrix(self.camera_view_inverse, p)
+                r.set_model_view_matrix(cvinv, p)
                 m.draw(self, draw_pass)
         else:
-            self.render.set_model_view_matrix(self.camera_view_inverse, m.place)
+            r.set_model_view_matrix(cvinv, m.place)
             m.draw(self, draw_pass)
 
     def draw_caption(self, text):
@@ -327,7 +319,8 @@ class View(QtOpenGL.QGLWidget):
         width, height = 512,64
         im = QtGui.QImage(width, height, QtGui.QImage.Format_ARGB32)
         im.fill(QtGui.QColor(*tuple(int(255*c) for c in self.background_color)))
-        draw_image_text(im, text, bgcolor = self.background_color)
+        from . import qt
+        qt.draw_image_text(im, text, bgcolor = self.background_color)
         from ..surface import Surface, surface_image
         surf = Surface('Caption')
         pos = -.95,-1     # x,y range -1 to 1
@@ -428,7 +421,7 @@ class View(QtOpenGL.QGLWidget):
     def update_level_of_detail(self):
         # Level of detail updating.
         # TODO: Don't recompute atoms shown on every draw, only when changed
-        ashow = sum(m.atoms_shown() for m in self.molecules() if m.display)
+        ashow = sum(m.shown_atom_count() for m in self.molecules() if m.display)
         if ashow != self.atoms_shown:
             self.atoms_shown = ashow
             for m in self.molecules():
@@ -436,6 +429,7 @@ class View(QtOpenGL.QGLWidget):
 
     def resizeGL(self, width, height):
         self.window_size = width, height
+        self.camera.window_size = width, height
         self.render.set_drawing_region(0,0,width,height)
 
     def initial_camera_view(self):
@@ -443,35 +437,17 @@ class View(QtOpenGL.QGLWidget):
         center, s = self.bounds_center_and_width()
         if center is None:
             return
-        cx,cy,cz = center
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        camdist = 0.5*s + 0.5*s/tan(0.5*fov)
-        from ..geometry import place
-        self.set_camera_view(place.translation((cx,cy,cz+camdist)))
-        self.near_far_clip = (camdist - s, camdist + s)
-        self.center_of_rotation = (cx,cy,cz)
+        self.camera.initialize_view(center, s)
+        self.center_of_rotation = center
 
     def view_all(self):
 
         center, s = self.bounds_center_and_width()
         if center is None:
             return
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        d = 0.5*s + 0.5*s/tan(0.5*fov)
-        vd = self.view_direction()
-        cp = self.camera_position()
-        shift = tuple((center[a]-d*vd[a])-cp[a] for a in (0,1,2))
-        cv = self.camera_view
-        csx,csy,csz = cv.inverse().apply_without_translation(shift)
+        shift = self.camera.view_all(center, s)
+        csx,csy,csz = self.camera.view_inverse().apply_without_translation(shift)
         self.translate(-csx,-csy,-csz)
-        self.near_far_clip = (d - s, d + s)
-
-    def set_camera_view(self, place):
-        self.camera_view = place
-        self.camera_view_inverse = place.inverse()
-        self.redraw_needed = True
 
     def center_of_rotation_needs_update(self):
         self.update_center = True
@@ -483,11 +459,7 @@ class View(QtOpenGL.QGLWidget):
         center, s = self.bounds_center_and_width()
         if center is None:
             return
-        cp = self.camera_position()
-        vd = self.view_direction()
-        d = sum((center-cp)*vd)         # camera to center of models
-        from math import tan, pi
-        vw = 2*d*tan(0.5*self.field_of_view*pi/180)     # view width at center of models
+        vw = self.camera.view_width(center)
         if vw >= s:
             # Use center of models for zoomed out views
             cr = center
@@ -497,13 +469,7 @@ class View(QtOpenGL.QGLWidget):
             if cr is None:
                 return
         self.center_of_rotation = tuple(cr)
-        self.near_far_clip = (d - s, d + s)
-
-    def camera_position(self):
-        return self.camera_view.translation()
-
-    def view_direction(self):
-        return -self.camera_view.z_axis()
+        self.camera.set_near_far_clip(center, s)
 
     def front_center_point(self):
         w, h = self.window_size
@@ -511,7 +477,7 @@ class View(QtOpenGL.QGLWidget):
         return p
 
     def first_intercept(self, win_x, win_y):
-        xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
+        xyz1, xyz2 = self.camera.clip_plane_points(win_x, win_y)
         f = None
         s = None
         for m in self.models:
@@ -546,261 +512,21 @@ class View(QtOpenGL.QGLWidget):
         
         ww,wh = self.window_size if win_size is None else win_size
         if ww > 0 and wh > 0:
-            pm = self.projection_matrix((ww,wh))
+            pm = self.camera.projection_matrix((ww,wh))
             self.render.set_projection_matrix(pm)
-
-    def projection_matrix(self, win_size = None):
-
-        # Perspective projection to origin with center of view along z axis
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        near,far = self.near_far_clip
-        near_min = 0.001*(far - near) if far > near else 1
-        near = max(near, near_min)
-        if far <= near:
-            far = 2*near
-        w = 2*near*tan(0.5*fov)
-        ww,wh = self.window_size if win_size is None else win_size
-        aspect = float(wh)/ww
-        h = w*aspect
-        left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
-        pm = frustum(left, right, bot, top, near, far)
-        return pm
-
-    def model_view_matrix(self, model):
-
-        mv44 = (self.camera_view_inverse * model.place).opengl_matrix()
-        return mv44
-
-    # Returns camera coordinates.
-    def camera_clip_plane_points(self, window_x, window_y):
-        znear, zfar = self.near_far_clip
-        from math import pi, tan
-        fov = self.field_of_view*pi/180
-        wn = 2*znear*tan(0.5*fov)   # Screen width in model units, near clip
-        wf = 2*zfar*tan(0.5*fov)    # Screen width in model units, far clip
-        wp,hp = self.window_size     # Screen size in pixels
-        rn, rf = (wn/wp, wf/wp) if wp != 0 else (1,1)
-        wx,wy = window_x - 0.5*wp, -(window_y - 0.5*hp)
-        cn = (rn*wx, rn*wy, -znear)
-        cf = (rf*wx, rf*wy, -zfar)
-        return cn, cf
-
-    # Returns scene coordinates.
-    def clip_plane_points(self, window_x, window_y):
-        cn, cf = self.camera_clip_plane_points(window_x, window_y)
-        mn, mf = self.camera_view * (cn,cf)
-        return mn, mf
-
-    # Appears that Qt has disabled touch events on Mac due to unresolved scrolling lag problems.
-    # Searching for qt setAcceptsTouchEvents shows they were disabled Oct 17, 2012.
-    # A patch that allows an environment variable QT_MAC_ENABLE_TOUCH_EVENTS to allow touch
-    # events had status "Review in Progress" as of Jan 16, 2013 with no more recent update.
-    # The Qt 5.0.2 source code qcocoawindow.mm does not include the environment variable patch.
-    def TODO_event(self, event):
-
-        t = event.type()
-        print ('event', int(t))
-        if t == QtCore.QEvent.TouchBegin:
-            print ('touch begin')
-        elif t == QtCore.QEvent.TouchUpdate:
-            print ('touch update')
-        elif t == QtCore.QEvent.TouchEnd:
-            print ('touch end')
-        return QtOpenGL.QGLWidget.event(self, event)
-
-    # Button is "left", "middle", or "right"
-    def bind_mouse_mode(self, button, mouse_down,
-                        mouse_drag = None, mouse_up = None):
-        self.mouse_modes[button] = (mouse_down, mouse_drag, mouse_up)
-        
-    def mousePressEvent(self, event):
-        self.dispatch_mouse_event(event, 0)
-    def mouseMoveEvent(self, event):
-        self.dispatch_mouse_event(event, 1)
-    def mouseReleaseEvent(self, event):
-        self.dispatch_mouse_event(event, 2)
-    def wheelEvent(self, event):
-        f = self.wheel_function
-        if f:
-            f(event)
-        
-    def dispatch_mouse_event(self, event, fnum):
-
-        b = self.event_button_name(event)
-        f = self.mouse_modes.get(b)
-        if f and f[fnum]:
-            f[fnum](event)
-
-    def event_button_name(self, event):
-
-        # button() gives press/release button, buttons() gives move buttons
-        b = event.button() | event.buttons()
-        if b & QtCore.Qt.LeftButton:
-            m = event.modifiers()
-            if m == QtCore.Qt.AltModifier:
-                bname = 'middle'
-            elif m == QtCore.Qt.ControlModifier:
-                # On Mac the Command key produces the Control modifier
-                # and it is documented in Qt to behave that way.  Yuck.
-                bname = 'right'
-            else:
-                bname = 'left'
-        elif b & QtCore.Qt.MiddleButton:
-            bname = 'middle'
-        elif b & QtCore.Qt.RightButton:
-            bname = 'right'
-        else:
-            bname = None
-        return bname
-
-    def bind_standard_mouse_modes(self, buttons = ['left', 'middle', 'right', 'wheel']):
-        modes = (
-            ('left', self.mouse_down, self.mouse_rotate, self.mouse_up),
-            ('middle', self.mouse_down, self.mouse_translate, self.mouse_up),
-            ('right', self.mouse_down, self.mouse_contour_level, self.mouse_up),
-            )
-        for m in modes:
-            if m[0] in buttons:
-                self.bind_mouse_mode(*m)
-        if 'wheel' in buttons:
-            self.wheel_function = self.wheel_zoom
-
-    def mouse_down(self, event):
-        w,h = self.window_size
-        cx, cy = event.x()-0.5*w, event.y()-0.5*h
-        fperim = 0.9
-        self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
-        self.remember_mouse_position(event)
-
-    def mouse_up(self, event):
-        self.last_mouse_position = None
-
-    def remember_mouse_position(self, event):
-        self.last_mouse_position = QtCore.QPoint(event.pos())
-
-    def mouse_pause_tracking(self):
-        cp = self.mapFromGlobal(QtGui.QCursor.pos())
-        w,h = self.window_size
-        x,y = cp.x(), cp.y()
-        if x < 0 or y < 0 or x >= w or y >= h:
-            return      # Cursor outside of graphics window
-        from time import time
-        t = time()
-        mp = self.mouse_pause_position
-        if cp == mp:
-            lt = self.last_mouse_time
-            if lt and t >= lt + self.mouse_pause_interval:
-                self.mouse_pause()
-                self.mouse_pause_position = None
-                self.last_mouse_time = None
-            return
-        self.mouse_pause_position = cp
-        if mp:
-            # Require mouse move before setting timer to avoid
-            # repeated mouse pause callbacks at same point.
-            self.last_mouse_time = t
-
-    def mouse_pause(self):
-        lp = self.mouse_pause_position
-        p, s = self.first_intercept(lp.x(), lp.y())
-        from .gui import show_status
-        show_status('Mouse over %s' % s.description() if s else '')
-
-    def mouse_motion(self, event):
-        lmp = self.last_mouse_position
-        if lmp is None:
-            dx = dy = 0
-        else:
-            dx = event.x() - lmp.x()
-            dy = event.y() - lmp.y()
-            # dy > 0 is downward motion.
-        self.remember_mouse_position(event)
-        return dx, dy
-
-    def mouse_rotate(self, event):
-
-        axis, angle = self.mouse_rotation(event)
-        self.rotate(axis, angle)
-
-    def mouse_rotation(self, event):
-
-        dx, dy = self.mouse_motion(event)
-        import math
-        angle = 0.5*math.sqrt(dx*dx+dy*dy)
-        if self.mouse_perimeter:
-            # z-rotation
-            axis = (0,0,1)
-            w, h = self.window_size
-            ex, ey = event.x()-0.5*w, event.y()-0.5*h
-            if -dy*ex+dx*ey < 0:
-                angle = -angle
-        else:
-            axis = (dy,dx,0)
-        return axis, angle
-
-    def mouse_translate(self, event):
-
-        dx, dy = self.mouse_motion(event)
-        psize = self.pixel_size()
-        self.translate(psize*dx, -psize*dy, 0)
-
-    def mouse_translate_selected(self, event):
-
-        models = self.selected
-        if models:
-            dx, dy = self.mouse_motion(event)
-            psize = self.pixel_size()
-            self.translate(psize*dx, -psize*dy, 0, models)
-
-    def mouse_rotate_selected(self, event):
-
-        models = self.selected
-        if models:
-            axis, angle = self.mouse_rotation(event)
-            self.rotate(axis, angle, models)
-
-    def mouse_zoom(self, event):        
-
-        dx, dy = self.mouse_motion(event)
-        psize = self.pixel_size()
-        self.translate(0, 0, 3*psize*dy)
-
-    def wheel_zoom(self, event):        
-
-        d = event.angleDelta().y()/120.0   # Usually one wheel click is delta of 120
-        psize = self.pixel_size()
-        self.translate(0, 0, 100*d*psize)
-        
-    def mouse_contour_level(self, event):
-
-        dx, dy = self.mouse_motion(event)
-        f = -0.001*dy
-        
-        from ..map.volume import Volume
-        for m in self.models:
-            if isinstance(m, Volume):
-                adjust_threshold_level(m, f)
-                m.show()
-        
-    def wheel_contour_level(self, event):
-        d = event.angleDelta().y()       # Usually one wheel click is delta of 120
-        f = d/(120.0 * 30)
-        for m in self.models:
-            adjust_threshold_level(m, f)
-            m.show()
 
     def rotate(self, axis, angle, models = None):
 
         self.update_center_of_rotation()
         # Rotation axis is in camera coordinates.
         # Center of rotation is in model coordinates.
-        cv = self.camera_view
+        c = self.camera
+        cv = c.view()
         from ..geometry import place
         maxis = cv.apply_without_translation(axis)
         r = place.rotation(maxis, angle, self.center_of_rotation)
         if models is None:
-            self.set_camera_view(r.inverse()* cv)
+            c.set_view(r.inverse() * cv)
         else:
             for m in models:
                 m.place = r * m.place
@@ -810,38 +536,21 @@ class View(QtOpenGL.QGLWidget):
     def translate(self, dx, dy, dz, models = None):
 
         self.center_of_rotation_needs_update()
-        cv = self.camera_view
+        c = self.camera
+        cv = c.view()
         from ..geometry import place
         mt = cv.apply_without_translation((dx,dy,dz))
         t = place.translation(mt)
         if models is None:
-            self.set_camera_view(t.inverse()*cv)
-            n,f = self.near_far_clip
-            self.near_far_clip = (n-dz,f-dz)
+            c.set_view(t.inverse()*cv)
+            c.shift_near_far_clip(-dz)
         else:
             for m in models:
                 m.place = t * m.place
         self.redraw_needed = True
 
     def pixel_size(self, p = None):
-
-        if p is None:
-            p = self.center_of_rotation
-
-        # Pixel size at center on near clip plane
-        w,h = self.window_size
-        from math import pi, tan
-        fov = self.field_of_view * pi/180
-
-        c = self.camera_position()
-        from ..geometry import vector
-        ps = vector.distance(c,p) * 2*tan(0.5*fov) / w
-        return ps
-
-#    def keyPressEvent(self, event):
-
-#        from .shortcuts import keyboard_shortcuts as ks
-#        ks.key_pressed(event)
+        return self.camera.pixel_size(self.center_of_rotation if p is None else p)
 
     def maps(self):
         from ..map import Volume
@@ -854,55 +563,3 @@ class View(QtOpenGL.QGLWidget):
     def surfaces(self):
         from ..molecule import Molecule
         return tuple(m for m in self.models if not isinstance(m,(Molecule)))
-            
-    def quit(self):
-        import sys
-        sys.exit(0)
-
-# glFrustum() matrix
-def frustum(left, right, bottom, top, zNear, zFar):
-    A = (right + left) / (right - left)
-    B = (top + bottom) / (top - bottom)
-    C = - (zFar + zNear) / (zFar - zNear)
-    D = - (2 * zFar * zNear) / (zFar - zNear)
-    E = 2 * zNear / (right - left)
-    F = 2 * zNear / (top - bottom)
-    m = ((E, 0, 0, 0),
-         (0, F, 0, 0),
-         (A, B, C, -1),
-         (0, 0, D, 0))
-    return m
-
-def adjust_threshold_level(m, f):
-    ms = m.matrix_value_statistics()
-    step = f * (ms.maximum - ms.minimum)
-    if m.representation == 'solid':
-        new_levels = [(l+step,b) for l,b in m.solid_levels]
-        l,b = new_levels[-1]
-        new_levels[-1] = (max(l,1.01*ms.maximum),b)
-        m.set_parameters(solid_levels = new_levels)
-    else:
-        new_levels = tuple(l+step for l in m.surface_levels)
-        m.set_parameters(surface_levels = new_levels)
-        
-
-def draw_image_text(qi, text, color = (255,255,255), bgcolor = None,
-                    font_name = 'Helvetica', font_size = 40):
-  p = QtGui.QPainter(qi)
-  w,h = qi.width(), qi.height()
-
-  while True and font_size > 6:
-    f = QtGui.QFont(font_name, font_size)
-    p.setFont(f)
-    fm = p.fontMetrics()
-    wt = fm.width(text)
-    if wt <= w:
-      break
-    font_size = int(font_size * (w/wt))
-
-  fh = fm.height()
-  r = QtCore.QRect(0,h-fh,w,fh)
-  if not bgcolor is None:
-    p.fillRect(r, QtGui.QColor(*bgcolor))
-  p.setPen(QtGui.QColor(*color))
-  p.drawText(r, QtCore.Qt.AlignCenter, text)

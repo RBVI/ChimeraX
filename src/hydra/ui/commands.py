@@ -1061,8 +1061,8 @@ def parse_specifier(spec):
     for m in mlist:
         if isinstance(m, Molecule):
             atoms = m.atom_subset(aname, cid, rrange, rname, invert)
-            if len(atoms) > 0:
-                s.add_atoms(m, atoms)
+            if atoms.count() > 0:
+                s.add_atoms(atoms)
         else:
             smodels.append(m)
     if invert:
@@ -1107,16 +1107,16 @@ def integer_range(rstring):
 class Selection:
     def __init__(self):
         self._models = []              # Non-molecule models
-        from ..molecule import Atom_Set
-        self.aset = Atom_Set()
+        from ..molecule import Atoms
+        self.aset = Atoms()
     def add_models(self, models):
         from ..molecule import Molecule
         mols = [m for m in models if isinstance(m, Molecule)]
         self.aset.add_molecules(mols)
         other = [m for m in models if not isinstance(m, Molecule)]
         self._models.extend(other)
-    def add_atoms(self, mol, aindices):
-        self.aset.add_atoms(mol, aindices)
+    def add_atoms(self, atoms):
+        self.aset.add_atoms(atoms)
     def models(self):
         return self._models + list(self.molecules())
     def molecules(self):
