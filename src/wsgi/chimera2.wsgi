@@ -552,6 +552,13 @@ def backend(session_dir, session_name, to_child, from_child, err_child):
 	bin_dir = os.path.join(chimera2_dir, "bin")
 	env["CHIMERA2"] = chimera2_dir
 	env["LANG"] = "en_US.UTF-8"
+	import pwd
+	try:
+		# if chimera user has lib directories, use those too
+		ch_dir = pwd.getpwnam('chimera').pw_dir
+		lib_dir = '%s:%s/lib64:%s/lib' % (lib_dir, ch_dir, ch_dir)
+	except KeyError:
+		pass
 	try:
 		ld_path = env["LD_LIBRARY_PATH"]
 	except KeyError:
