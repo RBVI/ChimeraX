@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.8.11
+VERSION = 1.8.12
 DISTRIBUTION = hdf5-$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/hdf5-$(VERSION)
 

@@ -97,7 +97,7 @@ def register_shortcuts(viewer):
         ('va', v.view_all, 'View all', gcat),
         ('rs', history.show_thumbnails, 'Show recent sessions', ocat),
         ('cs', v.clear_selection, 'Clear selection', gcat),
-        ('Qt', v.quit, 'Quit', ocat),
+        ('Qt', quit, 'Quit', ocat),
         ('cl', command_line, 'Enter command', gcat),
         ('gr', show_graphics_window, 'Show graphics window', gcat),
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
@@ -266,22 +266,22 @@ def toggle_box_faces(m):
 def enable_move_planes_mouse_mode(viewer, button = 'right'):
 
   from ..map.moveplanes import planes_mouse_mode as pmm
-  viewer.bind_mouse_mode(button,
+  viewer.mouse_modes.bind_mouse_mode(button,
                          lambda e,v=viewer: pmm.mouse_down(v,e),
                          lambda e,v=viewer: pmm.mouse_drag(v,e),
                          lambda e,v=viewer: pmm.mouse_up(v,e))
 
 def enable_contour_mouse_mode(viewer, button = 'right'):
-  v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_contour_level, v.mouse_up)
+  m = viewer.mouse_modes
+  m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
 
 def enable_move_selected_mouse_mode(viewer, button = 'right'):
-  v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_translate_selected, v.mouse_up)
+  m = viewer.mouse_modes
+  m.bind_mouse_mode(button, m.mouse_down, m.mouse_translate_selected, m.mouse_up)
 
 def enable_rotate_selected_mouse_mode(viewer, button = 'right'):
-  v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_rotate_selected, v.mouse_up)
+  m = viewer.mouse_modes
+  m.bind_mouse_mode(button, m.mouse_down, m.mouse_rotate_selected, m.mouse_up)
 
 def fit_molecule_in_map(viewer):
     mols, maps = viewer.molecules(), viewer.maps()
@@ -333,11 +333,11 @@ def show_surface_transparent(m):
 
 def tile_models(viewer):
     viewer.tile_models = not viewer.tile_models
-    viewer.bind_mouse_mode('left', lambda e,v=viewer: hide_show_mouse_mode(e,v))
+    viewer.mouse_modes.bind_mouse_mode('left', lambda e,v=viewer: hide_show_mouse_mode(e,v))
   
 def hide_show_mouse_mode(event, viewer):
     if not viewer.tile_models:
-        viewer.bind_standard_mouse_modes(['left'])
+        viewer.mouse_modes.bind_standard_mouse_modes(['left'])
         return
     w, h = viewer.window_size
     x,y = event.x(), event.y()
@@ -350,7 +350,7 @@ def hide_show_mouse_mode(event, viewer):
             break
     if t == 0 or t is None:
         viewer.tile_models = False
-        viewer.bind_standard_mouse_modes(['left'])
+        viewer.mouse_modes.bind_standard_mouse_modes(['left'])
     else:
         models = viewer.models
         if i <= len(models):
@@ -385,7 +385,7 @@ def selection_mouse_mode(viewer):
                         show_status('Selected %s' % m.name)
                 else:
                     v.unselect_model(m)
-    viewer.bind_mouse_mode('right', mouse_down)
+    viewer.mouse_modes.bind_mouse_mode('right', mouse_down)
 
 def command_line():
   from .gui import main_window
@@ -403,11 +403,8 @@ def show_molecular_surface(m, viewer, res = 3.0, grid = 0.5):
   if hasattr(m, 'molsurf') and m.molsurf in viewer.models:
     m.molsurf.display = True
   else:
-    from .. import molecule
-    atoms = molecule.Atom_Set()
-    atoms.add_molecules([m])
-    from ..molecule.gridsurf import surface
-    m.molsurf = surface(atoms)
+    from ..surface.gridsurf import surface
+    m.molsurf = surface(m.atoms())
 
 def color_by_element(m):
   m.set_color_mode('by element')
@@ -562,3 +559,7 @@ def motion_blur(viewer):
         viewer.remove_overlays(mb)
     else:
         Motion_Blur(viewer)
+            
+def quit():
+    import sys
+    sys.exit(0)

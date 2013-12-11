@@ -15,6 +15,34 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+// StringSet is from http://stackoverflow.com/questions/4343746/is-there-a-data-structure-like-the-java-set-in-javascript
+function StringSet() {
+	"use strict";
+	var setObj = {}, val = {};
+
+	this.add = function(str) {
+		setObj[str] = val;
+	};
+
+	this.contains = function(str) {
+		return setObj[str] === val;
+	};
+
+	this.remove = function(str) {
+		delete setObj[str];
+	};
+
+	this.values = function() {
+		var values = [];
+		for (var i in setObj) {
+			if (setObj[i] === val) {
+				values.push(i);
+			}
+		}
+		return values;
+	};
+}
+
 var llgr = {};	// only llgr is exported
 
 (function () {
@@ -796,7 +824,7 @@ llgr = {
 	},
 	clear_matrices: function () {
 		if (all_buffers !== null) {
-			for (mid in all_matrices) {
+			for (var mid in all_matrices) {
 				var info = all_matrices[mid];
 				llgr.delete_buffer(info.data_id);
 			}
@@ -868,44 +896,44 @@ llgr = {
 		all_objects = {};
 		llgr.clear_groups();
 	}, 
-	hide_objects: function (list_of_objects) {
-		for (var obj_id in list_of_objects) {
+	hide_objects: function (objects) {
+		for (var obj_id in objects) {
 			if (obj_id in all_objects)
 				all_objects[obj_id].hide = true;
 		}
 	},
-	show_objects: function (list_of_objects) {
-		for (var obj_id in list_of_objects) {
+	show_objects: function (objects) {
+		for (var obj_id in objects) {
 			if (obj_id in all_objects)
 				all_objects[obj_id].hide = false;
 		}
 	},
 
-	transparent: function (list_of_objects) {
-		for (var obj_id in list_of_objects) {
+	transparent: function (objects) {
+		for (var obj_id in objects) {
 			if (obj_id in all_objects)
 				all_objects[obj_id].transparent = true;
 		}
 	},
-	opaque: function (list_of_objects) {
-		for (var obj_id in list_of_objects) {
+	opaque: function (objects) {
+		for (var obj_id in objects) {
 			if (obj_id in all_objects)
 				all_objects[obj_id].transparent = false;
 		}
 	},
 
-	selection_add: function (list_of_objects) {
+	selection_add: function (objects) {
 		// TODO
 	},
-	selection_remove: function (list_of_objects) {
+	selection_remove: function (objects) {
 		// TODO
 	},
 	selection_clear: function () {
 		// TODO
 	},
 
-	create_group: function (group_id, list_of_objects) {
-		all_groups[group_id] = list_of_objects;
+	create_group: function (group_id) {
+		all_groups[group_id] = new StringSet();
 	},
 	delete_group: function (group_id, and_objects) {
 		and_objects = and_objects || false;
@@ -924,9 +952,20 @@ llgr = {
 		}
 		all_groups = {};
 	},
-	group_add: function (group_id, obj_id) {
+	group_add: function (group_id, objects) {
 		if (group_id in all_groups) {
-			all_groups[group_id].push(obj_id);
+			var group_objects = all_groups[group_id];
+			for (var obj_id in objects) {
+				group_objects.add(obj_id);
+			}
+		}
+	},
+	group_remove: function (group_id, objects) {
+		if (group_id in all_groups) {
+			var group_objects = all_groups[group_id];
+			for (var obj_id in objects) {
+				group_objects.remove(obj_id);
+			}
 		}
 	},
 	hide_group: function (group_id) {

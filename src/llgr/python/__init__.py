@@ -33,7 +33,7 @@ _llgr_syms = [
 	"hide_objects", "opaque", "render",
 	"selection_add", "selection_clear", "selection_remove",
 	"create_group", "delete_group", "clear_groups",
-	"group_add", "hide_group", "show_group",
+	"group_add", "group_remove", "hide_group", "show_group",
 	"selection_add_group", "selection_remove_group",
 	"set_clear_color", "set_uniform", "set_uniform_matrix",
 	"show_objects", "transparent",

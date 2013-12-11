@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.0.0
+VERSION = 2.2.1
 DISTRIBUTION = Pillow-$(VERSION).zip
 SOURCE = $(tmpdir)/Pillow-$(VERSION)
 

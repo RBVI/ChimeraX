@@ -361,10 +361,26 @@ class Graphics:
 		self.group_id = None
 		track.created(Graphics, [self])
 
+	def clear(self):
+		import llgr
+		self.data_ids.subtract([_box_pn_id, _box_indices_id])
+		for data_id in +self.data_ids:
+			llgr.delete_buffer(data_id)
+		self.data_ids.clear()
+		for matrix_id in +self.matrix_ids:
+			llgr.delete_matrix(matrix_id)
+		self.matrix_ids.clear()
+		for object_id in self.object_ids:
+			llgr.delete_object(object_id)
+		self.object_ids.clear()
+		llgr.delete_group(self.group_id)
+		self.group_id = None
+		track.modified(Graphics, [self], self.LESS_OBJECTS)
+
 	def _new_group(self):
 		import llgr
 		self.group_id = llgr.next_group_id()
-		llgr.create_group(self.group_id, [])
+		llgr.create_group(self.group_id)
 
 	def add_sphere(self, radius, center, color, xform=None):
 		"""add sphere to scene
@@ -399,7 +415,7 @@ class Graphics:
 		llgr.add_sphere(obj_id, radius, _program_id, matrix_id, [ai])
 		if self.group_id is None:
 			self._new_group()
-		llgr.group_add(self.group_id, obj_id)
+		llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
@@ -452,7 +468,7 @@ class Graphics:
 		llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
 		if self.group_id is None:
 			self._new_group()
-		llgr.group_add(self.group_id, obj_id)
+		llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
@@ -503,7 +519,7 @@ class Graphics:
 			0, _box_indices.size, _box_indices_id, llgr.UByte)
 		if self.group_id is None:
 			self._new_group()
-		llgr.group_add(self.group_id, obj_id)
+		llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id, scale_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
@@ -561,22 +577,6 @@ class Graphics:
 			self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
-
-	def clear(self):
-		import llgr
-		self.data_ids.subtract([_box_pn_id, _box_indices_id])
-		for data_id in +self.data_ids:
-			llgr.delete_buffer(data_id)
-		self.data_ids.clear()
-		for matrix_id in +self.matrix_ids:
-			llgr.delete_matrix(matrix_id)
-		self.matrix_ids.clear()
-		for object_id in self.object_ids:
-			llgr.delete_object(object_id)
-		self.object_ids.clear()
-		llgr.delete_group(self.group_id)
-		self.group_id = None
-		track.modified(Graphics, [self], self.LESS_OBJECTS)
 
 def make_box_primitive():
 	global _box_pn_id, _box_indices_id

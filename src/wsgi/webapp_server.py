@@ -190,13 +190,13 @@ class Server(object):
 
 	def _decoding_failed(self):
 		# Return value goes directly back to WSGI app
-		return ("400 Bad Request", "text/plain", None,
+		return ("400 Unable to decode request", "text/plain", None,
 						"Malformed request list")
 
 	def _encoding_failed(self, why):
 		# Return value goes directly back to WSGI app
-		return ("500 JSON encoding failed: %s" % why, "text/plain", None,
-						"JSON encoding failed")
+		return ("500 JSON encoding failed: %s" % why, "text/plain",
+						None, "JSON encoding failed")
 
 	def _exited(self, exc):
 		if exc.code == 0:

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.2.7
+VERSION = 1.2.8
 DISTRIBUTION = zlib-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/zlib-$(VERSION)
 

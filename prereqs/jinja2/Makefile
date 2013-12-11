@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.6
+VERSION = 2.7.1
 DISTRIBUTION = Jinja2-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/Jinja2-$(VERSION)
 

@@ -1,1 +1,1 @@
-from .molecule import Molecule, Atom_Set
+from .molecule import Molecule, Atoms

@@ -7,16 +7,18 @@
 #include <string>
 #include <stdint.h>
 
-# ifndef LLGR_DLL
+# ifdef _WIN32
+#  if defined(LLGR_EXPORT)
+#   define LLGR_IMEX __declspec(dllexport)
+#  else
+#   define LLGR_IMEX __declspec(dllimport)
+#  endif
+# else
 #  if (__GNUC__ > 4) || (__GNUC__ == 4 && (defined(__APPLE__) || __GNUC_MINOR__ >= 3))
 #   define LLGR_IMEX __attribute__((__visibility__("default")))
 #  else
 #   define LLGR_IMEX
 #  endif
-# elif defined(LLGR_EXPORT)
-#  define LLGR_IMEX __declspec(dllexport)
-# else
-#  define LLGR_IMEX __declspec(dllimport)
 # endif
 
 # ifdef WrapPy
@@ -51,55 +53,9 @@ enum ShaderType {
 	Mat2x3, Mat3x2, Mat2x4, Mat4x2, Mat3x4, Mat4x3	// ditto
 };
 
+// value member is C++ type corresponding to ShaderType
 template <typename T>
 struct TypeToShaderType;
-
-template <> struct TypeToShaderType<int32_t *>
-		{ static const ShaderType value = IVec1; };
-template <> struct TypeToShaderType<int32_t [2]>
-		{ static const ShaderType value = IVec2; };
-template <> struct TypeToShaderType<int32_t [3]>
-		{ static const ShaderType value = IVec3; };
-template <> struct TypeToShaderType<int32_t [4]>
-		{ static const ShaderType value = IVec4; };
-
-template <> struct TypeToShaderType<uint32_t *>
-		{ static const ShaderType value = UVec1; };
-template <> struct TypeToShaderType<uint32_t [2]>
-		{ static const ShaderType value = UVec2; };
-template <> struct TypeToShaderType<uint32_t [3]>
-		{ static const ShaderType value = UVec3; };
-template <> struct TypeToShaderType<uint32_t [4]>
-		{ static const ShaderType value = UVec4; };
-
-template <> struct TypeToShaderType<float *>
-		{ static const ShaderType value = FVec1; };
-template <> struct TypeToShaderType<float [2]>
-		{ static const ShaderType value = FVec2; };
-template <> struct TypeToShaderType<float [3]>
-		{ static const ShaderType value = FVec3; };
-template <> struct TypeToShaderType<float [4]>
-		{ static const ShaderType value = FVec4; };
-
-template <> struct TypeToShaderType<float [2][2]>
-		{ static const ShaderType value = Mat2x2; };
-template <> struct TypeToShaderType<float [3][3]>
-		{ static const ShaderType value = Mat3x3; };
-template <> struct TypeToShaderType<float [4][4]>
-		{ static const ShaderType value = Mat4x4; };
-
-template <> struct TypeToShaderType<float [2][3]>
-		{ static const ShaderType value = Mat2x3; };
-template <> struct TypeToShaderType<float [3][2]>
-		{ static const ShaderType value = Mat3x2; };
-template <> struct TypeToShaderType<float [2][4]>
-		{ static const ShaderType value = Mat2x4; };
-template <> struct TypeToShaderType<float [4][2]>
-		{ static const ShaderType value = Mat4x2; };
-template <> struct TypeToShaderType<float [3][4]>
-		{ static const ShaderType value = Mat3x4; };
-template <> struct TypeToShaderType<float [4][3]>
-		{ static const ShaderType value = Mat4x3; };
 
 // Shapder programs
 
@@ -110,10 +66,7 @@ LLGR_IMEX extern void clear_programs();
 // for set_uniform, program_id of zero means all programs with given uniform
 LLGR_IMEX extern void set_uniform(Id program_id, const char *name, ShaderType type, uint32_t data_length, Bytes data);
 template <typename T>
-inline void set_uniform(Id program_id, const char *name, const T &data)
-{
-	set_uniform(program_id, name, TypeToShaderType<T>::value, sizeof (T), data);
-}
+inline void set_uniform(Id program_id, const char *name, const T &data);
 LLGR_IMEX extern void set_uniform_matrix(Id program_id, const char *name, bool transpose, ShaderType type, uint32_t data_length, Bytes data);
 
 // (interleaved) buffer support
@@ -192,6 +145,7 @@ enum PrimitiveType {
 	Triangle_fan = 6,	// same as GL_TRIANGLE_FAN
 };
 
+LLGR_IMEX extern const std::string& attribute_alias(const std::string& name);
 LLGR_IMEX extern void set_attribute_alias(const std::string& name,
 	const std::string& value);
 
@@ -203,27 +157,50 @@ LLGR_IMEX extern void create_object(Id obj_id, Id program_id, Id matrix_id,
 LLGR_IMEX extern void delete_object(Id obj_id);
 LLGR_IMEX extern void clear_objects();
 
+#ifdef WrapPy
 typedef std::vector<Id> Objects;
+#endif
 
 // indicate whether to draw object or not
-LLGR_IMEX extern void hide_objects(const Objects& objs);
-LLGR_IMEX extern void show_objects(const Objects& objs);
+#ifndef WrapPy
+template <typename _iterable> void hide_objects(const _iterable& objects);
+template <typename _iterable> void show_objects(const _iterable& objects);
+#else
+LLGR_IMEX extern void hide_objects(const Objects& objects);
+LLGR_IMEX extern void show_objects(const Objects& objects);
+#endif
 
 // indicate whether an object is transparent or opaque (default opaque)
-LLGR_IMEX extern void transparent(const Objects& objs);
-LLGR_IMEX extern void opaque(const Objects& objs);
+#ifndef WrapPy
+template <typename _iterable> void transparent(const _iterable& objects);
+template <typename _iterable> void opaque(const _iterable& objects);
+#else
+LLGR_IMEX extern void transparent(const Objects& objects);
+LLGR_IMEX extern void opaque(const Objects& objects);
+#endif
 
 // indicate whether an object is selected or not
-LLGR_IMEX extern void selection_add(const Objects& objs);
-LLGR_IMEX extern void selection_remove(const Objects& objs);
+#ifndef WrapPy
+template <typename _iterable> void selection_add(const _iterable& objects);
+template <typename _iterable> void selection_remove(const _iterable& objects);
+#else
+LLGR_IMEX extern void selection_add(const Objects& objects);
+LLGR_IMEX extern void selection_remove(const Objects& objects);
+#endif
 LLGR_IMEX extern void selection_clear();
 
 // groups
 
-LLGR_IMEX extern void create_group(Id group_id, const Objects& objs);
+LLGR_IMEX extern void create_group(Id group_id);
 LLGR_IMEX extern void delete_group(Id group_id, bool and_objects=false);
 LLGR_IMEX extern void clear_groups(bool and_objects=false);
-LLGR_IMEX extern void group_add(Id group_id, Id obj_id);
+#ifndef WrapPy
+template <typename _iterable> void group_add(Id group_id, const _iterable& objects);
+template <typename _iterable> void group_remove(Id group_id, const _iterable& objects);
+#else
+LLGR_IMEX extern void group_add(Id group_id, const Objects& objects);
+LLGR_IMEX extern void group_remove(Id group_id, const Objects& objects);
+#endif
 LLGR_IMEX extern void hide_group(Id group_id);
 LLGR_IMEX extern void show_group(Id group_id);
 LLGR_IMEX extern void selection_add_group(Id group_id);
@@ -249,4 +226,7 @@ LLGR_IMEX extern void set_clear_color(float red, float green, float blue,
 LLGR_IMEX extern void render();
 
 } // namespace llgr
+
+# include "llgr_impl.h"
+
 #endif

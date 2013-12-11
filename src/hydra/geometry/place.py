@@ -182,7 +182,7 @@ def translation(v):
     '''Return a transform which is a shift by vector v.'''
     return Place(origin = v)
 
-def rotation(axis, angle, center = None):
+def rotation(axis, angle, center = (0,0,0)):
     '''Return a transform which is a rotation about the specified center and axis by the given angle (degrees).'''
     return Place(m34.rotation_transform(axis, angle, center))
 

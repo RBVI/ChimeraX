@@ -58,6 +58,12 @@ class Molecule(Surface):
     self.need_graphics_update = True    # Update is done before drawing
     self.atom_surface_piece = None
 
+  def atoms(self):
+    '''Return an Atoms object containing all the molecule atoms.'''
+    a = Atoms()
+    a.add_molecules([self])
+    return a
+
   def draw(self, viewer, draw_pass):
     '''Draw the molecule using the current style.'''
 
@@ -224,7 +230,7 @@ class Molecule(Surface):
     from .colors import rgba_256
     from numpy import uint8
     for cid in cids:
-      s = self.ribbon_guide_atoms(cid)
+      s = self.ribbon_guide_atom_indices(cid)
       if len(s) <= 1:
         continue
       rshow = self.ribbon_shown[s]
@@ -254,17 +260,17 @@ class Molecule(Surface):
                                            circle_subdivisions = cd)
     return va, na, ta, ca
 
-  def ribbon_guide_atoms(self, chain_id):
-    s = self.atom_subset('CA', chain_id)
+  def ribbon_guide_atom_indices(self, chain_id):
+    s = self.atom_index_subset('CA', chain_id)
     if len(s) <= 1:
-      s = self.atom_subset("C5'", chain_id)
+      s = self.atom_index_subset("C5'", chain_id)
     return s
 
   def ribbon_residues(self):
     cres = []
     cids = set(self.chain_ids)
     for cid in cids:
-      s = self.ribbon_guide_atoms(cid)
+      s = self.ribbon_guide_atom_indices(cid)
       if len(s) > 1:
         cres.append((cid, self.residue_nums[s]))
     return cres
@@ -306,13 +312,26 @@ class Molecule(Surface):
     self.need_graphics_update = True
     self.redraw_needed = True
     
-  def all_atoms(self):
+  def all_atom_indices(self):
 
     from numpy import arange
     return arange(self.atom_count())
 
   def atom_subset(self, atom_name = None, chain_id = None, residue_range = None,
                   residue_name = None, invert = False, restrict_to_atoms = None):
+    '''
+    Return a subset of atoms with specifie atom name, chain id, residue range,
+    and residue name.
+    '''
+    ai = self.atom_index_subset(atom_name, chain_id, residue_range, residue_name,
+                                invert, restrict_to_atoms)
+    a = Atoms()
+    if len(ai) > 0:
+      a.add_atom_indices(self, ai)
+    return a
+
+  def atom_index_subset(self, atom_name = None, chain_id = None, residue_range = None,
+                        residue_name = None, invert = False, restrict_to_atoms = None):
 
     anames = self.atom_names
     na = self.atom_count()
@@ -328,7 +347,7 @@ class Molecule(Surface):
         chain_ids = chain_id
         cmask = self.chain_atom_mask(chain_ids[0])
         for cid in chain_ids[1:]:
-          logical_or(cmask, self.chain_atoms(cid), cmask)
+          logical_or(cmask, self.chain_atom_indices(cid), cmask)
       else:
         cmask = self.chain_atom_mask(chain_id)
       logical_and(nimask, cmask, nimask)
@@ -371,42 +390,38 @@ class Molecule(Surface):
       if self.atom_shown_count > 0:
         self.need_graphics_update = True
 
-  def show_atoms(self, atoms, only_these = False):
-    '''Show the specified atoms.'''
+  def show_index_atoms(self, atom_indices, only_these = False):
     a = self.atom_shown
     if only_these:
       a[:] = False
-    if len(atoms) > 0:
-      a[atoms] = True
+    if len(atom_indices) > 0:
+      a[atom_indices] = True
     self.atom_shown_count = a.sum()
     self.need_graphics_update = True
     self.redraw_needed = True
 
-  def hide_atoms(self, atoms):
-    '''Hide the specified atoms.'''
+  def hide_index_atoms(self, atom_indices):
     a = self.atom_shown
-    if len(atoms) > 0:
-      a[atoms] = False
+    if len(atom_indices) > 0:
+      a[atom_indices] = False
       self.atom_shown_count = a.sum()
       self.need_graphics_update = True
       self.redraw_needed = True
 
-  def show_ribbon(self, atoms, only_these = False):
-    '''Show ribbons for residues containing the specified atoms.'''
+  def show_ribbon_for_index_atoms(self, atom_indices, only_these = False):
     rs = self.ribbon_shown
     if only_these:
       rs[:] = False
-    if len(atoms) > 0:
-      rs[atoms] = True
+    if len(atom_indices) > 0:
+      rs[atom_indices] = True
     self.ribbon_shown_count = rs.sum()
     self.need_graphics_update = True
     self.redraw_needed = True
 
-  def hide_ribbon(self, atoms):
-    '''Hide ribbons for residues containing the specified atoms.'''
+  def hide_ribbon_for_index_atoms(self, atom_indices):
     rs = self.ribbon_shown
-    if len(atoms) > 0:
-      rs[atoms] = False
+    if len(atom_indices) > 0:
+      rs[atom_indices] = False
       self.ribbon_shown_count = rs.sum()
       self.need_graphics_update = True
       self.redraw_needed = True
@@ -460,15 +475,16 @@ class Molecule(Surface):
     return fmin, Atom_Selection(self, anum)
 
   def atom_count(self):
-    '''Return the number of atoms in the molecule.'''
+    '''Return the number of atoms in the molecule. Does not include molecule copies.'''
     return len(self.xyz)
 
-  def atoms_shown(self):
+  def shown_atom_count(self):
+    '''Return the number of displayed atoms in the molecule. Includes molecule copies.'''
     nc = max(1, len(self.copies))
     na = self.atom_shown_count
     return na * nc
 
-  def chain_atoms(self, chain_id):
+  def chain_atom_indices(self, chain_id):
     from numpy import fromstring
     cid = fromstring(chain_id, self.chain_ids.dtype)
     atoms = (self.chain_ids == cid).nonzero()[0]
@@ -480,6 +496,14 @@ class Molecule(Surface):
     if len(xyz) == 0:
       return None
     return xyz.min(axis = 0), xyz.max(axis = 0)
+
+  def atom_index_description(self, a):
+    d = '%s %s %s %d %s' % (self.name,
+                            self.chain_ids[a].decode('utf-8'),
+                            self.residue_names[a].decode('utf-8'),
+                            self.residue_nums[a],
+                            self.atom_names[a].decode('utf-8'))
+    return d
 
 def chain_colors(cids):
 
@@ -545,7 +569,7 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
 
 # -----------------------------------------------------------------------------
 #
-class Atom_Set:
+class Atoms:
   '''
   An atom set is a collection of atoms from one or more molecules.
   Properties of the atoms such as their x,y,z coordinates or radii can be
@@ -556,10 +580,12 @@ class Atom_Set:
   def add_molecules(self, molecules):
     '''Add all atoms of the specified molecules to the set.'''
     for m in molecules:
-      self.molatoms.append((m, m.all_atoms()))
-  def add_atoms(self, mol, atoms):
-    '''Add atoms for a molecule to the set.'''
-    self.molatoms.append((mol, atoms))
+      self.molatoms.append((m, m.all_atom_indices()))
+  def add_atom_indices(self, mol, ai):
+    self.molatoms.append((mol, ai))
+  def add_atoms(self, atoms):
+    '''Add atoms to the set.'''
+    self.molatoms.extend(atoms.molatoms)
   def molecules(self):
     '''List of molecules in set.'''
     return list(set(m for m,a in self.molatoms))
@@ -596,6 +622,26 @@ class Atom_Set:
         a = numpy.concatenate(rlist)
     return a
 
+  def show_atoms(self, only_these = False):
+    '''Display the atoms.'''
+    for m, ai in self.molatoms:
+      m.show_index_atoms(ai, only_these)
+
+  def hide_atoms(self):
+    '''Undisplay the atoms.'''
+    for m, ai in self.molatoms:
+      m.hide_index_atoms(ai)
+
+  def show_ribbon(self, only_these = False):
+    '''Show ribbons for residues containing the specified atoms.'''
+    for m, ai in self.molatoms:
+      m.show_ribbon_for_index_atoms(ai, only_these)
+
+  def hide_ribbon(self):
+    '''Hide ribbons for residues containing the specified atoms.'''
+    for m, ai in self.molatoms:
+      m.hide_ribbon_for_index_atoms(ai)
+
   def move_atoms(self, tf):
     '''Move atoms using a transform acting in scene global coordinates.'''
     for m,a in self.molatoms:
@@ -616,6 +662,40 @@ class Atom_Set:
     import numpy
     return numpy.concatenate(elnums)
 
+  def residue_numbers(self):
+    '''Return a numpy array of residue numbers for each atom.'''
+    resnums = []
+    for m,a in self.molatoms:
+        resnums.append(m.residue_nums[a])
+    if len(resnums) == 1:
+        return resnums[0]
+    import numpy
+    return numpy.concatenate(resnums)
+
+  def subset(self, indices):
+    '''
+    Return an Atoms object containing the atoms in the specified position in this set.
+    The indices must be in increasing order.
+    '''
+    asubset = Atoms()
+    mi = indices_by_molecule(indices)
+    for (m,a), mind in zip(self.molatoms, mi):
+      if mind:
+        asubset.add_atom_indices(m, a[mind])
+    return asubset
+
+  def indices_by_molecule(self, indices):
+    mi = []
+    i = na = 0
+    for m,a in self.molatoms:
+      na += len(a)
+      mind = []
+      while i < len(indices) and indices[i] < na:
+        mind.append(indices[i])
+        i += 1
+      mi.append(mind)
+    return mi
+
   def separate_chains(self):
     '''Return copies of this atom set where each copy has atoms from a separate chain.'''
     clist = []
@@ -625,10 +705,10 @@ class Atom_Set:
       for cid in cids:
         aset = csets.get((m,cid))
         if aset is None:
-          csets[(m,cid)] = aset = Atom_Set()
+          csets[(m,cid)] = aset = Atoms()
           clist.append(aset)
-        catoms = m.atom_subset(chain_id = cid, restrict_to_atoms = a)
-        aset.add_atoms(m, catoms)
+        catoms = m.atom_index_subset(chain_id = cid, restrict_to_atoms = a)
+        aset.add_atom_indices(m, catoms)
     return clist
 
   def extend_to_chains(self):
@@ -636,11 +716,11 @@ class Atom_Set:
     Return a copy of this atom set extended to include all atoms of
     chains which have atoms in the current set.
     '''
-    aset = Atom_Set()
+    aset = Atoms()
     for m,a in self.molatoms:
       cids = tuple(set(m.chain_ids[a]))
-      catoms = m.atom_subset(chain_id = cids)
-      aset.add_atoms(m, catoms)
+      catoms = m.atom_index_subset(chain_id = cids)
+      aset.add_atom_indices(m, catoms)
     return aset
 
   def separate_molecules(self):
@@ -650,16 +730,16 @@ class Atom_Set:
     for m,a in self.molatoms:
       aset = msets.get(m)
       if aset is None:
-        msets[m] = aset = Atom_Set()
+        msets[m] = aset = Atoms()
         mlist.append(aset)
-      aset.add_atoms(m, a)
+      aset.add_atom_indices(m, a)
     return mlist
 
   def exclude_water(self):
     '''Return a copy of this atom set with waters (residue name HOH) removed.'''
-    aset = Atom_Set()
+    aset = Atoms()
     for m,a in self.molatoms:
-      aset.add_atoms(m, a[m.residue_names[a] != b'HOH'])
+      aset.add_atom_indices(m, a[m.residue_names[a] != b'HOH'])
     return aset
 
   def names(self):
@@ -667,14 +747,14 @@ class Atom_Set:
     names = []
     for m,alist in self.molatoms:
       for a in alist:
-        names.append(atom_description(m,a))
+        names.append(m.atom_index_description(a))
     return names
     
 # -----------------------------------------------------------------------------
 #
 def all_atoms():
   '''Return an atom set containing all atoms of all open molecules.'''
-  aset = Atom_Set()
+  aset = Atoms()
   from ..ui.gui import main_window
   aset.add_molecules(main_window.view.molecules())
   return aset
@@ -686,16 +766,6 @@ class Atom_Selection:
     self.molecule = mol
     self.atom = a
   def description(self):
-    return atom_description(self.molecule, self.atom)
+    return self.molecule.atom_index_description(self.atom)
   def models(self):
     return [self.molecule]
-
-# -----------------------------------------------------------------------------
-#
-def atom_description(m, a):
-    d = '%s %s %s %d %s' % (m.name,
-                            m.chain_ids[a].decode('utf-8'),
-                            m.residue_names[a].decode('utf-8'),
-                            m.residue_nums[a],
-                            m.atom_names[a].decode('utf-8'))
-    return d
