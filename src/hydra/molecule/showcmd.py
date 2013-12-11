@@ -20,14 +20,10 @@ def show(what = None, atoms = False, ribbons = False, only = False):
         from . import molecule
         what = molecule.all_atoms()
 
-    for m, ai in what.molatoms:
-        if only:
-            m.show_atoms((), only)
-            m.show_ribbon((), only)
-        if atoms:
-            m.show_atoms(ai)
-        if ribbons:
-            m.show_ribbon(ai)
+    if atoms:
+        what.show_atoms(only)
+    if ribbons:
+        what.show_ribbon(only)
 
 def hide_command(cmdname, args):
 
@@ -50,8 +46,7 @@ def hide(what = None, atoms = False, ribbons = False):
         from . import molecule
         what = molecule.all_atoms()
 
-    for m, ai in what.molatoms:
-        if atoms:
-            m.hide_atoms(ai)
-        if ribbons:
-            m.hide_ribbon(ai)
+    if atoms:
+        what.hide_atoms()
+    if ribbons:
+        what.hide_ribbon()

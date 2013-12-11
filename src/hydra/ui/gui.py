@@ -209,6 +209,7 @@ def set_default_context(major_version, minor_version, profile):
     f = QtOpenGL.QGLFormat()
     f.setVersion(major_version, minor_version)
     f.setProfile(profile)
+#    f.setStereo(True)
     QtOpenGL.QGLFormat.setDefaultFormat(f)
 
 app = None

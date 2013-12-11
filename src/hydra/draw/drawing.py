@@ -15,26 +15,8 @@ from OpenGL import GL
 class Render:
     '''
     Manage shaders, viewing matrices and lighting parameters to render a scene.
-
-    Lighting parameters is an object specifying colors and positions of two
-    lights: a key (main) light, and a fill light, as well as specular lighting
-    color and exponent and an ambient light color.  These are attributes of the
-    specified lighting_params object named
-
-      key_light_position
-      key_light_diffuse_color
-      key_light_specular_color
-      key_light_specular_exponent
-      fill_light_position
-      fill_light_diffuse_color
-      ambient_light_color
-
-    Colors are R,G,B float values in the range 0-1, positions are x,y,z float values,
-    and specular exponent is a single float value used as an exponent e with specular
-    color scaled by cosine(a) ** 0.3*e where a is the angle between the reflected light
-    and the view direction.  A typical value for e is 20.
     '''
-    def __init__(self, lighting_params):
+    def __init__(self):
                 
         self.shader_programs = {}
         self.current_shader_program = None
@@ -44,7 +26,7 @@ class Render:
         self.current_model_matrix = None        # Used for optimizing model view matrix updates
         self.current_inv_view_matrix = None        # Used for optimizing model view matrix updates
 
-        self.lighting_params = lighting_params
+        self.lighting_params = Lighting()
 
     # use_shader() option names
     SHADER_LIGHTING = 'lighting'
@@ -201,6 +183,10 @@ class Render:
         'String description of the OpenGL version for the current context.'
         return GL.glGetString(GL.GL_VERSION).decode('utf-8')
 
+    def support_stereo(self):
+        'Return if sequential stereo is supported.'
+        return GL.glGetBoolean(GL.GL_STEREO)
+
     def initialize_opengl(self):
         'Create an initial vertex array object.'
 
@@ -254,16 +240,15 @@ class Render:
         GL.glClearColor(*edge_color)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         GL.glClearColor(*fill_color)
-        n = len(fill)
         for i, (tx,ty,tw,th) in enumerate(tiles):
-            if i == 0 or i > n or fill[i-1]:
-                if i == 0 or i > n:
+            if i == 0 or fill[i-1]:
+                if i == 0:
                     GL.glScissor(tx,ty,tw,th)
                 else:
                     GL.glScissor(tx+1,ty+1,tw-2,th-2)
-                    GL.glEnable(GL.GL_SCISSOR_TEST)
-                    GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-                    GL.glDisable(GL.GL_SCISSOR_TEST)
+                GL.glEnable(GL.GL_SCISSOR_TEST)
+                GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+                GL.glDisable(GL.GL_SCISSOR_TEST)
 
     def draw_transparent(self, draw_depth, draw):
         '''
@@ -315,6 +300,49 @@ class Render:
                 rgba.byteswap(True) # in place
                 rgba8 = rgba.view(uint8).reshape((h,w,4))
                 return rgba8
+
+    def set_stereo_buffer(self, eye_num):
+        '''Set the draw and read buffers for the left eye (0) or right eye (0).'''
+        b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
+        GL.glDrawBuffer(b)
+        GL.glReadBuffer(b)
+
+    def set_mono_buffer(self):
+        '''Set the draw and read buffers for mono rendering.'''
+        b = GL.GL_BACK
+        GL.glDrawBuffer(b)
+        GL.glReadBuffer(b)
+
+class Lighting:
+    '''
+    Lighting parameters specifying colors and positions of two
+    lights: a key (main) light, and a fill light, as well as specular lighting
+    color and exponent and an ambient light color.  These are attributes of the
+    specified lighting_params object named
+
+      key_light_position
+      key_light_diffuse_color
+      key_light_specular_color
+      key_light_specular_exponent
+      fill_light_position
+      fill_light_diffuse_color
+      ambient_light_color
+
+    Colors are R,G,B float values in the range 0-1, positions are x,y,z float values,
+    and specular exponent is a single float value used as an exponent e with specular
+    color scaled by cosine(a) ** 0.3*e where a is the angle between the reflected light
+    and the view direction.  A typical value for e is 20.
+    '''
+
+    def __init__(self):
+        # Lighting parameters
+        self.key_light_position = (-.577,.577,.577)
+        self.key_light_diffuse_color = (.6,.6,.6)
+        self.key_light_specular_color = (.3,.3,.3)
+        self.key_light_specular_exponent = 20
+        self.fill_light_position = (.2,.2,.959)
+        self.fill_light_diffuse_color = (.3,.3,.3)
+        self.ambient_light_color = (.3,.3,.3)
 
 class Bindings:
     '''

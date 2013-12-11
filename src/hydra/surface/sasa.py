@@ -469,8 +469,8 @@ def molecule_atoms(mlist = None):
     if mlist is None:
         from ..ui.gui import main_window
         mlist = main_window.view.molecules()
-    from ..molecule import Atom_Set
-    aset = Atom_Set()
+    from ..molecule import Atoms
+    aset = Atoms()
     aset.add_molecules(mlist)
     aset = aset.exclude_water()
     return aset

@@ -119,8 +119,6 @@ class Scene:
             self.image.save(self._image_path, iformat)
         return self._image_path
 
-    view_attributes = ('camera_view', 'field_of_view', 'near_far_clip', 'center_of_rotation')
-
     def scene_state(self):
 
         s = {
