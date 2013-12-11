@@ -25,7 +25,8 @@ def open(filename, *args, **kw):
 	else:
 		input = _builtin_open(filename, 'rb')
 
-	model = generic3D.Generic3D()
+	model = generic3d.Generic3D()
+	model.make_graphics()
 
 	# parse input
 	cur_color = [0.7, 0.7, 0.7, 1.0]
@@ -50,41 +51,7 @@ def open(filename, *args, **kw):
 		input.close()
 
 	va, na, ta = stl_geometry(nv)
-
-	scene.bbox.bulk_add(va)
-
-	import llgr
-	vn_id = llgr.next_data_id()
-	vn = concatenate([va, na])
-	llgr.create_buffer(vn_id, llgr.ARRAY, vn)
-	tri_id = llgr.next_data_id()
-	llgr.create_buffer(tri_id, llgr.ELEMENT_ARRAY, ta)
-	color_id = llgr.next_data_id()
-	rgba = array(cur_color, dtype=float32)
-	llgr.create_singleton(color_id, rgba)
-	uniform_scale_id = llgr.next_data_id()
-	llgr.create_singleton(uniform_scale_id, array([1, 1, 1], dtype=float32))
-
-	matrix_id = 0		# default identity matrix
-
-	obj_id = llgr.next_object_id()
-	AI = llgr.AttributeInfo
-	ais = [
-		AI("color", color_id, 0, 0, 4, llgr.Float),
-		AI("position", vn_id, 0, 0, 3, llgr.Float),
-		AI("normal", vn_id, va.nbytes, 0, 3, llgr.Float),
-		AI("instanceScale", uniform_scale_id, 0, 0, 3, llgr.Float),
-	]
-
-	tc = len(ta)
-	if tc >= pow(2, 16):
-		index_type = llgr.UInt
-	elif tc >= pow(2, 8):
-		index_type = llgr.UShort
-	else:
-		index_type = llgr.UByte
-	llgr.create_object(obj_id, scene._program_id, matrix_id, ais,
-			llgr.Triangles, 0, ta.size, tri_id, index_type)
+	model.graphics.add_triangles(va, na, cur_color, ta)
 
 	return [model], "Opened STL file containing %d triangles" % len(ta)
 

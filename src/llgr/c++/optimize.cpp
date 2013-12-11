@@ -1,7 +1,9 @@
+#include "llgr.h"
 #include "llgr_int.h"
 
 namespace llgr {
 
+namespace internal {
 bool dirty;
 
 void
@@ -17,4 +19,6 @@ optimize()
 	// vertex array objects?
 }
 
-} // namespace
+} // namespace internal
+
+} // namespace llgr

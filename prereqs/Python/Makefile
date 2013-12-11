@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).3
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.bz2
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 

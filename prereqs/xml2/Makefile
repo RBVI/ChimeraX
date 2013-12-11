@@ -2,8 +2,8 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.9.0
-DISTRIBUTION = libxml2-sources-$(VERSION).tar.gz
+VERSION = 2.9.1
+DISTRIBUTION = libxml2-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/libxml2-$(VERSION)
 
 PATCHES	= $(wildcard libxml2-$(VERSION)-*.patch)

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.2b1
+VERSION = 1.2b3
 DISTRIBUTION = Sphinx-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/Sphinx-$(VERSION)
 

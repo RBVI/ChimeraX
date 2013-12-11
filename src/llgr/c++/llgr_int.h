@@ -2,19 +2,23 @@
 # define LLGR_INT_H
 
 # define GLEW_NO_GLU
-# include <GL/glew.h>
-# include "llgr.h"
 # include "ShaderProgram.h"
+# include <GL/glew.h>
 # include <stdint.h>
 # include <string.h>
 # include <assert.h>
-# include <map>
 # include <iostream>
 # include <stdexcept>
+# include <unordered_map>
+# include <unordered_set>
 
 # define USE_VAO
 
 namespace llgr {
+
+class ShaderProgram;
+
+namespace internal {
 
 extern bool hasGLError(const char *message);
 
@@ -23,7 +27,8 @@ extern void init();
 
 extern size_t data_size(DataType type);
 
-typedef std::map<Id, ShaderProgram *> AllPrograms;
+typedef std::unordered_set<Id> ObjectSet;
+typedef std::unordered_map<Id, ShaderProgram *> AllPrograms;
 extern AllPrograms all_programs;
 extern AllPrograms pick_programs;
 
@@ -41,7 +46,7 @@ struct BufferInfo
 		buffer(0), target(ta), size(s), data(d), offset(0) {}
 };
 
-typedef std::map<Id, BufferInfo> AllBuffers;
+typedef std::unordered_map<Id, BufferInfo> AllBuffers;
 extern AllBuffers all_buffers;
 
 extern Id internal_buffer_id;	// decrement before using
@@ -53,10 +58,8 @@ struct MatrixInfo {
 	MatrixInfo() {}
 };
 
-typedef std::map<Id, MatrixInfo> AllMatrices;
+typedef std::unordered_map<Id, MatrixInfo> AllMatrices;
 extern AllMatrices all_matrices;
-
-extern const std::string& attribute_alias(const std::string& name);
 
 extern void attr_location_info(ShaderVariable::Type type, unsigned *num_locations, unsigned *num_elements);
 extern void setup_array_attribute(const BufferInfo &bi, const AttributeInfo &ai, int loc, unsigned num_locations);
@@ -123,8 +126,8 @@ struct ObjectInfo {
 #endif
 };
 
-typedef std::map<Id, ObjectInfo*> AllObjects;
-extern AllObjects all_objects;
+typedef std::unordered_map<Id, ObjectInfo*> AllObjects;
+LLGR_IMEX extern AllObjects all_objects;
 
 struct AI_Name
 {
@@ -138,12 +141,14 @@ private:
 	std::string name;
 };
 
-typedef std::map<Id, Objects> AllGroups;
-extern AllGroups all_groups;
+typedef std::unordered_map<Id, ObjectSet> AllGroups;
+LLGR_IMEX extern AllGroups all_groups;
 
 extern bool dirty;
 extern void optimize();
 
-} // namespace
+} // namespace internal
+
+} // namespace llgr
 
 #endif

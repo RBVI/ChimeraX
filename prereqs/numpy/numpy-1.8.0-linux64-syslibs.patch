@@ -1,0 +1,11 @@
+--- numpy/distutils/system_info.py.orig	2013-12-04 13:06:07.727393985 -0800
++++ numpy/distutils/system_info.py	2013-12-04 13:07:14.647393346 -0800
+@@ -243,6 +243,8 @@
+     default_include_dirs.append(os.path.join(sys.prefix, 'include'))
+     default_src_dirs.append(os.path.join(sys.prefix, 'src'))
+ 
++default_lib_dirs = [] # Avoid system dependencies for Chimera build.
++
+ default_lib_dirs = [_m for _m in default_lib_dirs if os.path.isdir(_m)]
+ default_include_dirs = [_m for _m in default_include_dirs if os.path.isdir(_m)]
+ default_src_dirs = [_m for _m in default_src_dirs if os.path.isdir(_m)]

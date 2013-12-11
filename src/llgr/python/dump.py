@@ -474,33 +474,33 @@ def clear_objects():
 # indicate whether to draw object or not
 @save_args
 @typecheck
-def hide_objects(list_of_objects: list_of(Id)):
+def hide_objects(objects: list_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def show_objects(list_of_objects: list_of(Id)):
+def show_objects(objects: list_of(Id)):
 	pass
 
 # indicate whether an object is transparent or opaque (default opaque)
 @save_args
 @typecheck
-def transparent(list_of_objects: list_of(Id)):
+def transparent(objects: list_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def opaque(list_of_objects: list_of(Id)):
+def opaque(objects: list_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def selection_add(list_of_objects: list_of(Id)):
+def selection_add(objects: list_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def selection_remove(list_of_objects: list_of(Id)):
+def selection_remove(objects: list_of(Id)):
 	pass
 
 @save_args
@@ -512,7 +512,7 @@ def selection_clear():
 
 @save_args
 @typecheck
-def create_group(group_id: Id, objs: list_of(Id)):
+def create_group(group_id: Id):
 	pass
 
 @save_args
@@ -527,7 +527,12 @@ def clear_groups(and_objects: bool=False):
 
 @save_args
 @typecheck
-def group_add(group_id: Id, obj_id: Id):
+def group_add(group_id: Id, objects: list_of(Id)):
+	pass
+
+@save_args
+@typecheck
+def group_remove(group_id: Id, objects: list_of(Id)):
 	pass
 
 @save_args

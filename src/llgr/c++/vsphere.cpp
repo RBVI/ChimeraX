@@ -1,3 +1,4 @@
+#include "llgr.h"
 #include "llgr_int.h"
 #include "llgr_ui.h"
 #include <math.h>
@@ -46,7 +47,7 @@ struct VSphereInfo {
 	llgr::VSphereCursor cursor;
 };
 
-typedef std::map<llgr::Id, VSphereInfo> AllVSpheres;
+typedef std::unordered_map<llgr::Id, VSphereInfo> AllVSpheres;
 
 AllVSpheres all_vspheres;
 
@@ -121,7 +122,7 @@ vsphere_setup(Id vsphere, double radius, double center[2])
 VSphereCursor
 vsphere_press(Id vsphere, int x, int y)
 {
-	AllVSpheres::iterator i = all_vspheres.find(vsphere);
+	auto i = all_vspheres.find(vsphere);
 	if (i == all_vspheres.end())
 		throw std::logic_error("unknown vsphere");
 	VSphereInfo &vi = i->second;
@@ -140,7 +141,7 @@ vsphere_press(Id vsphere, int x, int y)
 VSphereCursor
 vsphere_drag(Id vsphere, int x, int y, bool throttle, double spin_axis[3], double *spin_angle)
 {
-	AllVSpheres::iterator i = all_vspheres.find(vsphere);
+	auto i = all_vspheres.find(vsphere);
 	if (i == all_vspheres.end())
 		throw std::logic_error("unknown vsphere");
 	VSphereInfo &vi = i->second;
@@ -185,7 +186,7 @@ vsphere_drag(Id vsphere, int x, int y, bool throttle, double spin_axis[3], doubl
 void
 vsphere_release(Id vsphere)
 {
-	AllVSpheres::iterator i = all_vspheres.find(vsphere);
+	auto i = all_vspheres.find(vsphere);
 	if (i == all_vspheres.end())
 		return;
 	all_vspheres.erase(i);

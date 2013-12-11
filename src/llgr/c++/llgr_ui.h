@@ -1,8 +1,6 @@
 #ifndef LLGR_UI_H
 #define LLGR_UI_H
 
-#include "llgr.h"
-
 namespace llgr {
 
 enum VSphereCursor {

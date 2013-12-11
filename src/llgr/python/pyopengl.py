@@ -531,29 +531,29 @@ def clear_objects():
 	clear_groups()
 
 # indicate whether to draw object or not
-def hide_objects(list_of_objects: list_of(Id)):
-	for obj_id in list_of_objects:
+def hide_objects(objects: list_of(Id)):
+	for obj_id in objects:
 		_all_objects[obj_id].hide = True
 
-def show_objects(list_of_objects: list_of(Id)):
-	for obj_id in list_of_objects:
+def show_objects(objects: list_of(Id)):
+	for obj_id in objects:
 		_all_objects[obj_id].hide = False
 
 # indicate whether an object is transparent or opaque (default opaque)
-def transparent(list_of_objects: list_of(Id)):
-	for obj_id in list_of_objects:
+def transparent(objects: list_of(Id)):
+	for obj_id in objects:
 		_all_objects[obj_id].transparent = True
 
-def opaque(list_of_objects: list_of(Id)):
-	for obj_id in list_of_objects:
+def opaque(objects: list_of(Id)):
+	for obj_id in objects:
 		_all_objects[obj_id].transparent = False
 
-def selection_add(list_of_objects: list_of(Id)):
-	for obj_id in list_of_objects:
+def selection_add(objects: list_of(Id)):
+	for obj_id in objects:
 		_all_objects[obj_id].selected = True
 
-def selection_remove(list_of_objects: list_of(Id)):
-	for obj_id in list_of_objects:
+def selection_remove(objects: list_of(Id)):
+	for obj_id in objects:
 		_all_objects[obj_id].selected = False
 
 def selection_clear():
@@ -562,8 +562,8 @@ def selection_clear():
 
 _all_groups = {}
 
-def create_group(group_id: Id, objs: list_of(Id)):
-	_all_groups[group_id] = objs
+def create_group(group_id: Id):
+	_all_groups[group_id] = set()
 
 def delete_group(group_id: Id, and_objects: bool=False):
 	if and_objects:
@@ -579,9 +579,13 @@ def clear_groups(and_objects: bool=False):
 				delete_object(obj)
 	_all_groups.clear()
 
-def group_add(group_id: Id, obj_id: Id):
-	objs = _all_groups[group_id]
-	objs.append(obj_id)
+def group_add(group_id: Id, objects: list_of(Id)):
+	group_objects = _all_groups[group_id]
+	group_objects.update(objects)
+
+def group_remove(group_id: Id, objects: list_of(Id)):
+	group_objects = _all_groups[group_id]
+	group_objects.difference_update(objects)
 
 def hide_group(group_id: Id):
 	objs = _all_groups[group_id]

@@ -30,7 +30,7 @@ HDRS = ../c++/llgr.h ../c++/llgr_ui.h
 all: $(PYMOD) $(PYOBJS)
 
 install: all
-	-mkdir $(PKG_DIR)
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 	cp $(PYMOD) $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 

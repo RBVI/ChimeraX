@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.6.36
+VERSION = 0.7.3
 DISTRIBUTION = distribute-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/distribute-$(VERSION)
 
