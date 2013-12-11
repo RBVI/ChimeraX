@@ -560,6 +560,6 @@ def motion_blur(viewer):
     else:
         Motion_Blur(viewer)
             
-def quit(self):
+def quit():
     import sys
     sys.exit(0)
