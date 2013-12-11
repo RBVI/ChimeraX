@@ -1,6 +1,9 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
+# TODO: remove this when everywhere
+CXX += -fvisibility-ms-compat
+
 ifdef WIN32
 INCS = -I'$(shell cygpath -m '$(includedir)')'
 else
@@ -24,7 +27,7 @@ LIBNAME = llgr
 all: $(SHLIB)
 
 install: all
-	cp llgr.h llgr_ui.h $(includedir)
+	cp llgr.h llgr_int.h llgr_impl.h llgr_ui.h ShaderProgram.h $(includedir)
 	cp $(SHLIB) $(shlibdir)
 ifdef WIN32
 	cp lib$(LIBNAME).lib $(libdir)

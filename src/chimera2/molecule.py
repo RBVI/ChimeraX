@@ -15,6 +15,10 @@ class Molecule(open_models.Model):
 		self.num_atoms = 0
 		self.num_bonds = 0
 
+	def close(self):
+		open_models.Model.close(self)
+		self.mol_blob = None
+
 	def make_graphics(self):
 		if self.mol_blob is None:
 			return

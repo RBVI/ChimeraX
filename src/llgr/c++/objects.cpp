@@ -1,3 +1,4 @@
+#include "llgr.h"
 #include "llgr_int.h"
 #include <algorithm>
 
@@ -5,7 +6,7 @@ using std::string;
 
 namespace {
 
-typedef std::map<string, string> NameMap;
+typedef std::unordered_map<string, string> NameMap;
 NameMap name_map;
 
 bool name_map_initialized = false;
@@ -24,6 +25,11 @@ init_name_map()
 
 namespace llgr {
 
+namespace internal {
+AllObjects all_objects;
+}
+using namespace internal;
+
 const string&
 attribute_alias(const string& name)
 {
@@ -34,8 +40,6 @@ attribute_alias(const string& name)
 		return i->second;
 	return name;
 }
-
-AllObjects all_objects;
 
 void
 set_attribute_alias(const string& name, const string& value)
@@ -148,78 +152,6 @@ clear_objects()
 		delete i.second;
 	}
 	clear_groups();
-}
-
-void
-hide_objects(const Objects& objs)
-{
-	for (auto obj_id: objs) {
-		auto oii = all_objects.find(obj_id);
-		if (oii == all_objects.end())
-			continue;
-		ObjectInfo *oi = oii->second;
-		oi->hide = true;
-	}
-}
-
-void
-show_objects(const Objects& objs)
-{
-	for (auto obj_id: objs) {
-		auto oii = all_objects.find(obj_id);
-		if (oii == all_objects.end())
-			continue;
-		ObjectInfo *oi = oii->second;
-		oi->hide = false;
-	}
-}
-
-void
-transparent(const Objects& objs)
-{
-	for (auto obj_id: objs) {
-		auto oii = all_objects.find(obj_id);
-		if (oii == all_objects.end())
-			continue;
-		ObjectInfo *oi = oii->second;
-		oi->transparent = true;
-	}
-}
-
-void
-opaque(const Objects& objs)
-{
-	for (auto obj_id: objs) {
-		auto oii = all_objects.find(obj_id);
-		if (oii == all_objects.end())
-			continue;
-		ObjectInfo *oi = oii->second;
-		oi->transparent = false;
-	}
-}
-
-void
-selection_add(const Objects& objs)
-{
-	for (auto obj_id: objs) {
-		auto oii = all_objects.find(obj_id);
-		if (oii == all_objects.end())
-			continue;
-		ObjectInfo *oi = oii->second;
-		oi->selected = true;
-	}
-}
-
-void
-selection_remove(const Objects& objs)
-{
-	for (auto obj_id: objs) {
-		auto oii = all_objects.find(obj_id);
-		if (oii == all_objects.end())
-			continue;
-		ObjectInfo *oi = oii->second;
-		oi->selected = false;
-	}
 }
 
 void

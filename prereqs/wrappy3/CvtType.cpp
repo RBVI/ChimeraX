@@ -566,8 +566,8 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		const string &tmp = subType.baseCppType();
 		if (tmp.compare(0, 9, "std::map<") == 0
 		|| tmp.compare(0, 4, "map<") == 0
-		|| tmp.compare(0, 14, "std::hash_map<") == 0
-		|| tmp.compare(0, 9, "hash_map<") == 0) {
+		|| tmp.compare(0, 14, "std::unordered_map<") == 0
+		|| tmp.compare(0, 9, "unordered_map<") == 0) {
 			string::size_type s = 0;
 			string key = getSubType(tmp, &s);
 			CvtType keyArg(scope, key);
@@ -576,14 +576,14 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 			cacheMe = keyArg.cache() || valueArg.cache();
 			bvPattern = "wrappy::cvtMapToPyDict(@.first, @.second)";
 
-			python_type = "dict of (" + keyArg.pythonType()
+			python_type = "mapping of (" + keyArg.pythonType()
 					+ ", " + valueArg.pythonType() + ")";
 			return;
 		}
 		if (tmp.compare(0, 14, "std::multimap<") == 0
 		|| tmp.compare(0, 9, "multimap<") == 0
-		|| tmp.compare(0, 19, "std::hash_multimap<") == 0
-		|| tmp.compare(0, 14, "hash_multimap<") == 0) {
+		|| tmp.compare(0, 19, "std::unordered_multimap<") == 0
+		|| tmp.compare(0, 14, "unordered_multimap<") == 0) {
 			string::size_type s = 0;
 			string key = getSubType(tmp, &s);
 			CvtType keyArg(scope, key);
@@ -595,19 +595,18 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 				+ ", list of " + valueArg.pythonType() + "))";
 			return;
 		}
-		/*string::size_type*/ s = 0;
-		string value = getSubType(tmp, &s);
+		/*string::size_type*/ s = 0; string value = getSubType(tmp, &s);
 		CvtType valueArg(scope, value);
 		cacheMe = valueArg.cache();
 		bvPattern = "wrappy::cvtSequenceToPyList(@.first, @.second)";
-		python_type = "list of " + valueArg.pythonType();
+		python_type = "sequence of " + valueArg.pythonType();
 		return;
 	}
 
 	if (type_.compare(0, 9, "std::map<") == 0
 	|| type_.compare(0, 4, "map<") == 0
-	|| type_.compare(0, 14, "std::hash_map<") == 0
-	|| type_.compare(0, 9, "hash_map<") == 0) {
+	|| type_.compare(0, 14, "std::unordered_map<") == 0
+	|| type_.compare(0, 9, "unordered_map<") == 0) {
 		string::size_type s = 0;
 		string key = getSubType(type_, &s);
 		CvtType keyArg(scope, key);
@@ -623,15 +622,15 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 		typeCheckPattern = "?TODO?";
 		bvFormat_ = 'N';
 		bvPattern = "wrappy::cvtMapToPyDict(@.begin(), @.end())";
-		python_type = "dict of (" + keyArg.pythonType() + ", "
+		python_type = "mapping of (" + keyArg.pythonType() + ", "
 						+ valueArg.pythonType() + ")";
 		return;
 	}
 
 	if (type_.compare(0, 14, "std::multimap<") == 0
 	|| type_.compare(0, 9, "multimap<") == 0
-	|| type_.compare(0, 19, "std::hash_multimap<") == 0
-	|| type_.compare(0, 14, "hash_multimap<") == 0) {
+	|| type_.compare(0, 19, "std::unordered_multimap<") == 0
+	|| type_.compare(0, 14, "unordered_multimap<") == 0) {
 		string::size_type s = 0;
 		string key = getSubType(type_, &s);
 		CvtType keyArg(scope, key);
@@ -653,8 +652,8 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 
 	if (type_.compare(0, 9, "std::set<") == 0
 	|| type_.compare(0, 4, "set<") == 0
-	|| type_.compare(0, 19, "std::hash_set<") == 0
-	|| type_.compare(0, 14, "hash_set<") == 0) {
+	|| type_.compare(0, 19, "std::unordered_set<") == 0
+	|| type_.compare(0, 14, "unordered_set<") == 0) {
 		// TODO? convert to dictionary keys?
 		string::size_type s = 0;
 		string value = getSubType(type_, &s);
@@ -676,8 +675,8 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 
 	if (type_.compare(0, 9, "std::multiset<") == 0
 	|| type_.compare(0, 4, "multiset<") == 0
-	|| type_.compare(0, 19, "std::hash_multiset<") == 0
-	|| type_.compare(0, 14, "hash_multiset<") == 0) {
+	|| type_.compare(0, 19, "std::unordered_multiset<") == 0
+	|| type_.compare(0, 14, "unordered_multiset<") == 0) {
 		// TODO? convert to dictionary keys?
 		string::size_type s = 0;
 		string value = getSubType(type_, &s);

@@ -1,8 +1,12 @@
+#include "llgr.h"
 #include "llgr_int.h"
 
 namespace llgr {
 
+namespace internal {
 AllMatrices all_matrices;
+}
+using namespace internal;
 
 // matrix_id of zero is reserved for identity matrix
 void

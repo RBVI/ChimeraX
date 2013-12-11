@@ -1,9 +1,13 @@
+#include "llgr.h"
 #include "llgr_int.h"
 
 namespace llgr {
 
-Id internal_buffer_id;
+namespace internal {
 AllBuffers all_buffers;
+Id internal_buffer_id;
+}
+using namespace internal;
 
 static float identity4x4_data[4][4] = {
 	{ 1, 0, 0, 0 },

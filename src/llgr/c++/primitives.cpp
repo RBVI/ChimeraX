@@ -1,3 +1,4 @@
+#include "llgr.h"
 #include "llgr_int.h"
 #include "spiral.h"
 #include <string>
@@ -10,8 +11,7 @@
 
 namespace llgr {
 
-void build_sphere(int N);
-void build_cylinder(int N);
+namespace internal {
 
 struct PrimitiveInfo {
 	Id data_id;
@@ -27,67 +27,6 @@ typedef std::map<int, PrimitiveInfo> ProtoGeom;
 
 ProtoGeom proto_spheres;
 ProtoGeom proto_cylinders;
-
-inline void
-clear_geom(ProtoGeom &geom)
-{
-	if (!all_buffers.empty()) {
-		// not inside clear_buffers
-		for (auto& i: geom) {
-			const PrimitiveInfo &info = i.second;
-			delete_buffer(info.data_id);
-			delete_buffer(info.index_id);
-		}
-	}
-	geom.clear();
-}
-
-void
-clear_primitives()
-{
-	clear_geom(proto_spheres);
-	clear_geom(proto_cylinders);
-}
-
-void
-add_sphere(Id obj_id, float radius,
-	Id program_id, Id matrix_id, const AttributeInfos& ais)
-{
-	int N = 300;	// TODO: make dependent on radius in pixels
-	auto i = proto_spheres.find(N);
-	if (i == proto_spheres.end())
-		build_sphere(N);
-	const PrimitiveInfo &pi = proto_spheres[N];
-	AttributeInfos mai(ais);
-	mai.push_back(AttributeInfo("normal", pi.data_id, 0, 12, 3, Float));
-	mai.push_back(AttributeInfo("position", pi.data_id, 0, 12, 3, Float));
-	Id scale_id = --internal_buffer_id;
-	float scale[3] = { radius, radius, radius };
-	create_singleton(scale_id, sizeof scale, scale);
-	mai.push_back(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float));
-	create_object(obj_id, program_id, matrix_id, mai, Triangles, 0,
-					pi.icount, pi.index_id, pi.index_type);
-}
-
-void
-add_cylinder(Id obj_id, float radius, float length,
-	Id program_id, Id matrix_id, const AttributeInfos& ais)
-{
-	int N = 50;	// TODO: make dependent on radius in pixels
-	auto i = proto_cylinders.find(N);
-	if (i == proto_cylinders.end())
-		build_cylinder(N);
-	const PrimitiveInfo &pi = proto_cylinders[N];
-	AttributeInfos mai(ais);
-	mai.push_back(AttributeInfo("normal", pi.data_id, 0, 24, 3, Float));
-	mai.push_back(AttributeInfo("position", pi.data_id, 12, 24, 3, Float));
-	Id scale_id = --internal_buffer_id;
-	float scale[3] = { radius, length / 2, radius };
-	create_singleton(scale_id, sizeof scale, scale);
-	mai.push_back(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float));
-	create_object(obj_id, program_id, matrix_id, mai, Triangle_strip, 0,
-					pi.icount, pi.index_id, pi.index_type);
-}
 
 void
 build_sphere(const int N)
@@ -159,6 +98,71 @@ build_cylinder(const int N)
 	Id index_id = --internal_buffer_id;
 	create_buffer(index_id, ELEMENT_ARRAY, num_indices * sizeof (GLushort), indices);
 	proto_cylinders[N] = PrimitiveInfo(data_id, num_indices, index_id, UShort);
+}
+
+} // namespace internal;
+
+using namespace internal;
+
+inline void
+clear_geom(ProtoGeom &geom)
+{
+	if (!all_buffers.empty()) {
+		// not inside clear_buffers
+		for (auto& i: geom) {
+			const PrimitiveInfo &info = i.second;
+			delete_buffer(info.data_id);
+			delete_buffer(info.index_id);
+		}
+	}
+	geom.clear();
+}
+
+void
+clear_primitives()
+{
+	clear_geom(proto_spheres);
+	clear_geom(proto_cylinders);
+}
+
+void
+add_sphere(Id obj_id, float radius,
+	Id program_id, Id matrix_id, const AttributeInfos& ais)
+{
+	int N = 300;	// TODO: make dependent on radius in pixels
+	auto i = proto_spheres.find(N);
+	if (i == proto_spheres.end())
+		build_sphere(N);
+	const PrimitiveInfo &pi = proto_spheres[N];
+	AttributeInfos mai(ais);
+	mai.push_back(AttributeInfo("normal", pi.data_id, 0, 12, 3, Float));
+	mai.push_back(AttributeInfo("position", pi.data_id, 0, 12, 3, Float));
+	Id scale_id = --internal_buffer_id;
+	float scale[3] = { radius, radius, radius };
+	create_singleton(scale_id, sizeof scale, scale);
+	mai.push_back(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float));
+	create_object(obj_id, program_id, matrix_id, mai, Triangles, 0,
+					pi.icount, pi.index_id, pi.index_type);
+}
+
+void
+add_cylinder(Id obj_id, float radius, float length,
+	Id program_id, Id matrix_id, const AttributeInfos& ais)
+{
+	int N = 50;	// TODO: make dependent on radius in pixels
+	auto i = proto_cylinders.find(N);
+	if (i == proto_cylinders.end())
+		build_cylinder(N);
+	const PrimitiveInfo &pi = proto_cylinders[N];
+	AttributeInfos mai(ais);
+	mai.push_back(AttributeInfo("normal", pi.data_id, 0, 24, 3, Float));
+	mai.push_back(AttributeInfo("position", pi.data_id, 12, 24, 3, Float));
+	Id scale_id = --internal_buffer_id;
+	float scale[3] = { radius, length / 2, radius };
+	create_singleton(scale_id, sizeof scale, scale);
+	mai.push_back(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float));
+	create_object(obj_id, program_id, matrix_id, mai, Triangle_strip, 0,
+					pi.icount, pi.index_id, pi.index_type);
 }
 
 } // namespace

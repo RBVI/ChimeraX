@@ -1,3 +1,4 @@
+#include "llgr.h"
 #include "llgr_int.h"
 #include "llgr_ui.h"
 #include "limits.h"
@@ -17,17 +18,9 @@
 
 namespace llgr {
 
-float clear_color[4];
+namespace internal {
 
-void
-set_clear_color(float r, float g, float b, float a)
-{
-	clear_color[0] = r;
-	clear_color[1] = g;
-	clear_color[2] = b;
-	clear_color[3] = a;
-	glClearColor(r, g, b, a);
-}
+float clear_color[4];
 
 GLenum
 cvt_DataType(DataType dt)
@@ -267,6 +260,20 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 #ifdef PICK_DEBUG
 int pick_x, pick_y;
 #endif
+
+}
+
+using namespace internal;
+
+void
+set_clear_color(float r, float g, float b, float a)
+{
+	clear_color[0] = r;
+	clear_color[1] = g;
+	clear_color[2] = b;
+	clear_color[3] = a;
+	glClearColor(r, g, b, a);
+}
 
 void
 render()

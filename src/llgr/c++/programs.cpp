@@ -1,8 +1,12 @@
+#include "llgr.h"
 #include "llgr_int.h"
+#include "ShaderProgram.h"
 #include <string>
 #include <sstream>
 
 namespace llgr {
+
+namespace internal {
 
 AllPrograms all_programs;
 AllPrograms pick_programs;
@@ -18,6 +22,10 @@ const char pick_fragment_shader[] =
 	"{\n"
 	"  frag_color = f_pickId;\n"
 	"}\n";
+
+} // namespace internal
+
+using namespace internal;
 
 void
 create_program(Id program_id, const char *vertex_shader, const char *fragment_shader, const char *pick_vertex_shader)

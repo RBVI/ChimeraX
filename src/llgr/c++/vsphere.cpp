@@ -1,3 +1,4 @@
+#include "llgr.h"
 #include "llgr_int.h"
 #include "llgr_ui.h"
 #include <math.h>
@@ -46,7 +47,7 @@ struct VSphereInfo {
 	llgr::VSphereCursor cursor;
 };
 
-typedef std::map<llgr::Id, VSphereInfo> AllVSpheres;
+typedef std::unordered_map<llgr::Id, VSphereInfo> AllVSpheres;
 
 AllVSpheres all_vspheres;
 

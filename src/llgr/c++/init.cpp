@@ -1,3 +1,4 @@
+#include "llgr.h"
 #include "llgr_int.h"
 #include <string>
 #include <sstream>
@@ -6,6 +7,7 @@
 
 namespace llgr {
 
+namespace internal {
 GLuint program_vao;
 
 bool initialized = false;
@@ -23,5 +25,7 @@ init()
 	std::cerr << "glewInit error: " << reinterpret_cast<const char *>(glewGetErrorString(err)) << '\n';
 	throw std::runtime_error("unable to initialize glew library");
 }
+
+} // namespace internal
 
 } // namespace llgr
