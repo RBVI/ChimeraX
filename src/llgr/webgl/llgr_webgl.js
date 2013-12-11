@@ -824,7 +824,7 @@ llgr = {
 	},
 	clear_matrices: function () {
 		if (all_buffers !== null) {
-			for (mid in all_matrices) {
+			for (var mid in all_matrices) {
 				var info = all_matrices[mid];
 				llgr.delete_buffer(info.data_id);
 			}
@@ -933,7 +933,7 @@ llgr = {
 	},
 
 	create_group: function (group_id) {
-		all_groups[group_id] = StringSet();
+		all_groups[group_id] = new StringSet();
 	},
 	delete_group: function (group_id, and_objects) {
 		and_objects = and_objects || false;
@@ -954,16 +954,16 @@ llgr = {
 	},
 	group_add: function (group_id, objects) {
 		if (group_id in all_groups) {
-			group_objects = all_group[group_id];
-			for (obj_id in objects) {
+			var group_objects = all_groups[group_id];
+			for (var obj_id in objects) {
 				group_objects.add(obj_id);
 			}
 		}
 	},
 	group_remove: function (group_id, objects) {
 		if (group_id in all_groups) {
-			group_objects = all_group[group_id];
-			for (obj_id in objects) {
+			var group_objects = all_groups[group_id];
+			for (var obj_id in objects) {
 				group_objects.remove(obj_id);
 			}
 		}
