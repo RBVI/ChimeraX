@@ -183,6 +183,10 @@ class Render:
         'String description of the OpenGL version for the current context.'
         return GL.glGetString(GL.GL_VERSION).decode('utf-8')
 
+    def support_stereo(self):
+        'Return if sequential stereo is supported.'
+        return GL.glGetBoolean(GL.GL_STEREO)
+
     def initialize_opengl(self):
         'Create an initial vertex array object.'
 
@@ -296,6 +300,18 @@ class Render:
                 rgba.byteswap(True) # in place
                 rgba8 = rgba.view(uint8).reshape((h,w,4))
                 return rgba8
+
+    def set_stereo_buffer(self, eye_num):
+        '''Set the draw and read buffers for the left eye (0) or right eye (0).'''
+        b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
+        GL.glDrawBuffer(b)
+        GL.glReadBuffer(b)
+
+    def set_mono_buffer(self):
+        '''Set the draw and read buffers for mono rendering.'''
+        b = GL.GL_BACK
+        GL.glDrawBuffer(b)
+        GL.glReadBuffer(b)
 
 class Lighting:
     '''

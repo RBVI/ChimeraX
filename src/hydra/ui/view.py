@@ -11,8 +11,10 @@ class View(QtOpenGL.QGLWidget):
         self.window_size = (800,800)		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
+#        stereo = self.format().stereo()
+        stereo = False
         from . import camera
-        self.camera = camera.Camera(self.window_size)
+        self.camera = camera.Camera(self.window_size, stereo)
 
         self.tile = False
         self.tile_edge_color = (.3,.3,.3,1)
@@ -142,6 +144,8 @@ class View(QtOpenGL.QGLWidget):
 
         from .gui import show_info
         show_info('OpenGL version %s' % r.opengl_version())
+        show_info('requested stereo %d' % self.camera.stereo)
+        show_info('got opengl stereo %d' % r.support_stereo())
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
@@ -228,10 +232,13 @@ class View(QtOpenGL.QGLWidget):
 
             from time import process_time
             t0 = process_time()
-            self.draw(self.OPAQUE_DRAW_PASS)
-            if self.transparent_models_shown():
-                r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS),
-                                   lambda: self.draw(self.TRANSPARENT_DRAW_PASS))
+            c = self.camera
+            for vnum in range(c.number_of_views()):
+                c.setup(vnum, self.render)
+                self.draw(self.OPAQUE_DRAW_PASS, vnum)
+                if self.transparent_models_shown():
+                    r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum),
+                                       lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum))
             t1 = process_time()
             self.last_draw_duration = t1-t0
 
@@ -256,7 +263,7 @@ class View(QtOpenGL.QGLWidget):
     TRANSPARENT_DRAW_PASS = 'transparent'
     TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
 
-    def draw(self, draw_pass):
+    def draw(self, draw_pass, view_num):
 
         models = self.models
         n = len(models)
@@ -278,7 +285,7 @@ class View(QtOpenGL.QGLWidget):
 
         for m in models:
             if m.display:
-                self.draw_model(m, draw_pass)
+                self.draw_model(m, draw_pass, view_num)
 
         if draw_tiles:
             if n > 1:
@@ -286,7 +293,7 @@ class View(QtOpenGL.QGLWidget):
                     x,y,w,h = tiles[i+1]
                     r.set_drawing_region(x,y,w,h)
                     self.update_projection((w,h))
-                    self.draw_model(m, draw_pass)
+                    self.draw_model(m, draw_pass, view_num)
                     if self.tile_scale >= 1:
                         self.draw_caption('#%d %s' % (m.id, m.name))
                 w,h = self.window_size
@@ -295,14 +302,15 @@ class View(QtOpenGL.QGLWidget):
                 m = self.models[0]
                 self.draw_caption('#%d %s' % (m.id, m.name))
 
-    def draw_model(self, m, draw_pass):
-        cvinv = self.camera.view_inverse
+    def draw_model(self, m, draw_pass, view_num):
+        cvinv = self.camera.view_inverse(view_num)
+        r = self.render
         if m.copies:
             for p in m.copies:
-                self.render.set_model_view_matrix(cvinv, p)
+                r.set_model_view_matrix(cvinv, p)
                 m.draw(self, draw_pass)
         else:
-            self.render.set_model_view_matrix(cvinv, m.place)
+            r.set_model_view_matrix(cvinv, m.place)
             m.draw(self, draw_pass)
 
     def draw_caption(self, text):
@@ -438,7 +446,7 @@ class View(QtOpenGL.QGLWidget):
         if center is None:
             return
         shift = self.camera.view_all(center, s)
-        csx,csy,csz = self.camera.view_inverse.apply_without_translation(shift)
+        csx,csy,csz = self.camera.view_inverse().apply_without_translation(shift)
         self.translate(-csx,-csy,-csz)
 
     def center_of_rotation_needs_update(self):
@@ -513,12 +521,12 @@ class View(QtOpenGL.QGLWidget):
         # Rotation axis is in camera coordinates.
         # Center of rotation is in model coordinates.
         c = self.camera
-        cv = c.view
+        cv = c.view()
         from ..geometry import place
         maxis = cv.apply_without_translation(axis)
         r = place.rotation(maxis, angle, self.center_of_rotation)
         if models is None:
-            c.set_view(r.inverse()* cv)
+            c.set_view(r.inverse() * cv)
         else:
             for m in models:
                 m.place = r * m.place
@@ -529,7 +537,7 @@ class View(QtOpenGL.QGLWidget):
 
         self.center_of_rotation_needs_update()
         c = self.camera
-        cv = c.view
+        cv = c.view()
         from ..geometry import place
         mt = cv.apply_without_translation((dx,dy,dz))
         t = place.translation(mt)

@@ -78,7 +78,7 @@ def set_session_state(s, viewer, attributes_only = False):
     restore_view(s['view'], viewer)
 
   if 'camera' in s:
-    restore_view(s['camera'], viewer.camera)
+    restore_camera(s['camera'], viewer.camera)
 
   if 'lighting' in s:
     restore_lighting(s['lighting'], viewer.render.lighting_params)
@@ -131,9 +131,8 @@ def restore_view(vs, viewer):
   if 'camera_view' in vs:
     # Old session files had camera parameters saved with viewer state
     from ..geometry.place import Place
-    cv = Place(vs['camera_view'])
     c = viewer.camera
-    c.set_view(cv)    # Set cached inverse matrix
+    c.set_view(Place(vs['camera_view']))
     c.field_of_view = vs['field_of_view']
     c.near_far_clip = vs['near_far_clip']
 
@@ -142,9 +141,12 @@ def restore_view(vs, viewer):
 # -----------------------------------------------------------------------------
 #
 camera_parameters = (
-  'view_matrix',
+  'place',
   'field_of_view',
   'near_far_clip',
+  'stereo',
+  'eye_separation',
+  'screen_distance',
 )
 
 # -----------------------------------------------------------------------------
@@ -152,20 +154,19 @@ camera_parameters = (
 def camera_state(camera):
 
   v = dict((name,getattr(camera,name)) for name in camera_parameters if hasattr(camera,name))
-  v['view_matrix'] = camera.view.matrix
+  v['place'] = camera.place.matrix
   return v
 
 # -----------------------------------------------------------------------------
 #
 def restore_camera(cs, camera):
 
-  exclude = ('view_matrix',)
+  exclude = ('place',)
   for name in camera_parameters:
     if name in cs and not name in exclude:
       setattr(camera, name, cs[name])
   from ..geometry.place import Place
-  cv = Place(cs['view_matrix'])
-  camera.set_view(cv)
+  camera.set_view(Place(cs['place']))
 
 # -----------------------------------------------------------------------------
 #

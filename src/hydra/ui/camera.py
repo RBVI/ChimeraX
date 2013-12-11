@@ -1,6 +1,6 @@
 class Camera:
 
-    def __init__(self, window_size):
+    def __init__(self, window_size, stereo = False):
 
         self.window_size = window_size
 
@@ -8,9 +8,13 @@ class Camera:
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x,y,z axes, 4th column is camara location.
         from ..geometry.place import Place
-        self.view = self.view_inverse = Place()
+        self.place = self.place_inverse = Place()
         self.field_of_view = 45   	# degrees, width
         self.near_far_clip = (1,100)      # along -z in camera coordinates
+
+        self.stereo = stereo
+        self.eye_separation = 2.0         # Scene distance units
+        self.screen_distance = 30.0
 
         self.redraw_needed = False
 
@@ -35,12 +39,32 @@ class Camera:
         self.near_far_clip = (d - size, d + size)
         return shift
 
+    def view(self, view_num = None):
+        if view_num is None or not self.stereo:
+            v = self.place
+        else:
+            s = -1 if view_num == 0 else 1
+            es = self.eye_separation
+            from ..geometry import place
+            t = place.translation((s*0.5*es,0,0))
+            from math import atan2, pi
+            a = atan2(s*0.5*es, self.screen_distance)*180/pi
+            r = place.rotation((0,1,0), a)
+            v = self.place * t * r
+        return v
+
+    def view_inverse(self, view_num = None):
+        if view_num is None or not self.stereo:
+            v = self.place_inverse
+        else:
+            v = self.view(view_num).inverse()
+        return v
+                
     def set_view(self, place):
 
-        self.view = place
-        self.view_inverse = place.inverse()
+        self.place = place
+        self.place_inverse = place.inverse()
         self.redraw_needed = True
-        print ('sv', place.matrix)
 
     def view_width(self, center):
 
@@ -74,11 +98,11 @@ class Camera:
         n,f = self.near_far_clip
         self.near_far_clip = (n+dz,f+dz)
 
-    def position(self):
-        return self.view.translation()
+    def position(self, view_num = None):
+        return self.view(view_num).translation()
 
-    def view_direction(self):
-        return -self.view.z_axis()
+    def view_direction(self, view_num = None):
+        return -self.view(view_num).z_axis()
 
     def projection_matrix(self, win_size = None):
 
@@ -115,8 +139,18 @@ class Camera:
     # Returns scene coordinates.
     def clip_plane_points(self, window_x, window_y):
         cn, cf = self.camera_clip_plane_points(window_x, window_y)
-        mn, mf = self.view * (cn,cf)
+        mn, mf = self.place * (cn,cf)
         return mn, mf
+
+    def number_of_views(self):
+        return 2 if self.stereo else 1
+
+    def setup(self, view_num, render):
+        from .. import draw
+        if self.stereo:
+            render.set_stereo_buffer(view_num)
+        else:
+            render.set_mono_buffer()
 
 # glFrustum() matrix
 def frustum(left, right, bottom, top, zNear, zFar):
