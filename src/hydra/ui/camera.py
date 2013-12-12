@@ -1,6 +1,6 @@
 class Camera:
 
-    def __init__(self, window_size, stereo = False):
+    def __init__(self, window_size, mode = 'mono'):
 
         self.window_size = window_size
 
@@ -9,12 +9,12 @@ class Camera:
         # First 3 columns are x,y,z axes, 4th column is camara location.
         from ..geometry.place import Place
         self.place = self.place_inverse = Place()
-        self.field_of_view = 45   	# degrees, width
-        self.near_far_clip = (1,100)      # along -z in camera coordinates
+        self.field_of_view = 45                   # degrees, width
+        self.near_far_clip = (1,100)              # along -z in camera coordinates
 
-        self.stereo = stereo
-        self.eye_separation = 2.0         # Scene distance units
-        self.screen_distance = 30.0
+        self.mode = mode                          # 'mono', 'stereo', 'oculus'
+        self.eye_separation_scene = 1.0           # Scene distance units
+        self.eye_separation_pixels = 200.0        # Screen pixel units
 
         self.redraw_needed = False
 
@@ -40,21 +40,22 @@ class Camera:
         return shift
 
     def view(self, view_num = None):
-        if view_num is None or not self.stereo:
+        m = self.mode
+        if view_num is None or m == 'mono':
             v = self.place
-        else:
+        elif m == 'stereo' or m == 'oculus':
+            # Stereo eyes view in same direction with position shifted along x.
             s = -1 if view_num == 0 else 1
-            es = self.eye_separation
+            es = self.eye_separation_scene
             from ..geometry import place
             t = place.translation((s*0.5*es,0,0))
-            from math import atan2, pi
-            a = atan2(s*0.5*es, self.screen_distance)*180/pi
-            r = place.rotation((0,1,0), a)
-            v = self.place * t * r
+            v = self.place * t
+        else:
+            raise ValueError('Unknown camera mode %s' % m)
         return v
 
     def view_inverse(self, view_num = None):
-        if view_num is None or not self.stereo:
+        if view_num is None or self.mode == 'mono':
             v = self.place_inverse
         else:
             v = self.view(view_num).inverse()
@@ -104,7 +105,7 @@ class Camera:
     def view_direction(self, view_num = None):
         return -self.view(view_num).z_axis()
 
-    def projection_matrix(self, win_size = None):
+    def projection_matrix(self, view_num = None, win_size = None):
 
         # Perspective projection to origin with center of view along z axis
         from math import pi, tan
@@ -117,9 +118,18 @@ class Camera:
         w = 2*near*tan(0.5*fov)
         ww,wh = self.window_size if win_size is None else win_size
         aspect = float(wh)/ww
+        m = self.mode
+        if m == 'oculus':
+            aspect *= 2
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
-        pm = frustum(left, right, bot, top, near, far)
+        if m == 'stereo' and not view_num is None:
+            s = -1 if view_num == 0 else 1
+            esp = self.eye_separation_pixels
+            xwshift = s*0.5*esp/ww
+        else:
+            xwshift = 0
+        pm = frustum(left, right, bot, top, near, far, xwshift)
         return pm
 
     # Returns camera coordinates.
@@ -143,18 +153,35 @@ class Camera:
         return mn, mf
 
     def number_of_views(self):
-        return 2 if self.stereo else 1
+        m = self.mode
+        if m == 'mono':
+            n = 1
+        elif m == 'stereo' or m == 'oculus':
+            n = 2
+        else:
+            raise ValueError('Unknown camera mode %s' % m)
+        return n
 
     def setup(self, view_num, render):
+        m = self.mode
         from .. import draw
-        if self.stereo:
-            render.set_stereo_buffer(view_num)
-        else:
+        if m == 'mono':
             render.set_mono_buffer()
+        elif m == 'stereo':
+            render.set_stereo_buffer(view_num)
+        elif m == 'oculus':
+            render.set_mono_buffer()
+            w,h = self.window_size
+            if view_num == 0:
+                render.set_drawing_region(0,0,w//2,h)
+            elif view_num == 1:
+                render.set_drawing_region(w//2,0,w//2,h)
+        else:
+            raise ValueError('Unknown camera mode %s' % m)
 
 # glFrustum() matrix
-def frustum(left, right, bottom, top, zNear, zFar):
-    A = (right + left) / (right - left)
+def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
+    A = (right + left) / (right - left) - xwshift
     B = (top + bottom) / (top - bottom)
     C = - (zFar + zNear) / (zFar - zNear)
     D = - (2 * zFar * zNear) / (zFar - zNear)

@@ -87,6 +87,9 @@ def register_shortcuts(viewer):
         ('lf', leap_focus, 'Check if app has leap focus', gcat),
         ('lq', leap_quit, 'Quit using leap motion input device', gcat),
         ('bl', motion_blur, 'Toggle motion blur', gcat),
+        ('Mo', mono_mode, 'Set mono camera mode', gcat),
+        ('So', stereo_mode, 'Set sequential stereo mode', gcat),
+        ('Oc', oculus_mode, 'Set Oculus Rift stereo mode', gcat),
     )
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
@@ -559,6 +562,13 @@ def motion_blur(viewer):
         viewer.remove_overlays(mb)
     else:
         Motion_Blur(viewer)
+
+def mono_mode(viewer):
+    viewer.set_camera_mode('mono')
+def stereo_mode(viewer):
+    viewer.set_camera_mode('stereo')
+def oculus_mode(viewer):
+    viewer.set_camera_mode('oculus')
             
 def quit():
     import sys

@@ -11,10 +11,9 @@ class View(QtOpenGL.QGLWidget):
         self.window_size = (800,800)		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
-#        stereo = self.format().stereo()
-        stereo = False
+        camera_mode = 'stereo' if self.format().stereo() else 'mono'
         from . import camera
-        self.camera = camera.Camera(self.window_size, stereo)
+        self.camera = camera.Camera(self.window_size, camera_mode)
 
         self.tile = False
         self.tile_edge_color = (.3,.3,.3,1)
@@ -57,6 +56,44 @@ class View(QtOpenGL.QGLWidget):
         self.background_rgba = tuple(rgba)
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)
+
+    def set_camera_mode(self, mode):
+        '''
+        Camera mode can be 'mono', 'stereo' for sequential stereo, or
+        'oculus' for side-by-side parallel view stereo used by Oculus Rift goggles.
+        '''
+        c = self.camera
+        if mode == c.mode:
+            return True
+
+        if mode == 'stereo' or c.mode == 'stereo':
+            if not self.enable_opengl_stereo(mode == 'stereo'):
+                return False
+        elif not mode in ('mono', 'oculus'):
+            raise ValueError('Unknown camera mode %s' % mode)
+
+        c.mode = mode
+        self.redraw_needed = True
+
+    def enable_opengl_stereo(self, enable):
+
+        f = self.format()
+        enabled = f.stereo()
+        if (enable and enabled) or (not enable and not enabled):
+            return True
+
+        f.setStereo(enable)
+        c = QtOpenGL.QGLContext(f)
+        if c.create():
+            self.setContext(c)
+        else:
+            msg = 'Stereo mode is not supported by OpenGL driver'
+            from .gui import show_status, show_info
+            show_status(msg)
+            show_info(msg)
+            return False
+
+        return True
 
     def add_model(self, model):
         self.models.append(model)
@@ -144,8 +181,10 @@ class View(QtOpenGL.QGLWidget):
 
         from .gui import show_info
         show_info('OpenGL version %s' % r.opengl_version())
-        show_info('requested stereo %d' % self.camera.stereo)
-        show_info('got opengl stereo %d' % r.support_stereo())
+
+        f = self.format()
+        show_info('OpenGL stereo %d, color buffer size %d, depth buffer size %d, stencil buffer size %d'
+                  % (f.stereo(), f.redBufferSize(), f.depthBufferSize(), f.stencilBufferSize()))
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
@@ -279,9 +318,9 @@ class View(QtOpenGL.QGLWidget):
                                          self.background_rgba, fill)
             x,y,w,h = tiles[0]
             r.set_drawing_region(x,y,w,h)
-            self.update_projection((w,h))
+            self.update_projection(view_num, (w,h))
         else:
-            self.update_projection()
+            self.update_projection(view_num)
 
         for m in models:
             if m.display:
@@ -292,7 +331,7 @@ class View(QtOpenGL.QGLWidget):
                 for i,m in enumerate(models):
                     x,y,w,h = tiles[i+1]
                     r.set_drawing_region(x,y,w,h)
-                    self.update_projection((w,h))
+                    self.update_projection(view_num, (w,h))
                     self.draw_model(m, draw_pass, view_num)
                     if self.tile_scale >= 1:
                         self.draw_caption('#%d %s' % (m.id, m.name))
@@ -508,11 +547,11 @@ class View(QtOpenGL.QGLWidget):
         b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
         return b
 
-    def update_projection(self, win_size = None):
+    def update_projection(self, view_num = None, win_size = None):
         
         ww,wh = self.window_size if win_size is None else win_size
         if ww > 0 and wh > 0:
-            pm = self.camera.projection_matrix((ww,wh))
+            pm = self.camera.projection_matrix(view_num, (ww,wh))
             self.render.set_projection_matrix(pm)
 
     def rotate(self, axis, angle, models = None):
