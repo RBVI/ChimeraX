@@ -1,7 +1,11 @@
 from .qt import QtCore, QtGui, QtOpenGL
 
 class View(QtOpenGL.QGLWidget):
-
+    '''
+    A View is the graphics windows that shows 3-dimensional models.
+    It manages the camera and draws the models when needed.
+    Currently it contains the list of open models.
+    '''
     def __init__(self, parent=None):
         QtOpenGL.QGLWidget.__init__(self, parent)
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
@@ -14,6 +18,7 @@ class View(QtOpenGL.QGLWidget):
         camera_mode = 'stereo' if self.format().stereo() else 'mono'
         from . import camera
         self.camera = camera.Camera(self.window_size, camera_mode)
+        '''The camera controlling the vantage shown in the graphics window.'''
 
         self.tile = False
         self.tile_edge_color = (.3,.3,.3,1)
@@ -96,6 +101,9 @@ class View(QtOpenGL.QGLWidget):
         return True
 
     def add_model(self, model):
+        '''
+        Add a model to the scene.  A model is a Surface object.
+        '''
         self.models.append(model)
         if model.id is None:
             model.id = self.next_id
@@ -108,10 +116,16 @@ class View(QtOpenGL.QGLWidget):
             self.redraw_needed = True
 
     def add_models(self, mlist):
+        '''
+        Add a list of models to the scene.
+        '''
         for m in mlist:
             self.add_model(m)
         
     def close_models(self, mlist):
+        '''
+        Remove a list of models from the scene.
+        '''
         from ..map.volume import volume_manager, Volume
         vlist = [m for m in mlist if isinstance(m, Volume)]
         volume_manager.remove_volumes(vlist)
@@ -125,6 +139,9 @@ class View(QtOpenGL.QGLWidget):
         self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
         
     def close_all_models(self):
+        '''
+        Remove all models from the scene.
+        '''
         self.close_models(tuple(self.models))
 
     def add_overlay(self, overlay):
@@ -247,13 +264,17 @@ class View(QtOpenGL.QGLWidget):
         return False
 
     def add_new_frame_callback(self, cb):
+        '''Add a function to be called before each redraw.  The function takes no arguments.'''
         self.new_frame_callbacks.append(cb)
     def remove_new_frame_callback(self, cb):
+        '''Add a callback that was added with add_new_frame_callback().'''
         self.new_frame_callbacks.remove(cb)
 
     def add_rendered_frame_callback(self, cb):
+        '''Add a function to be called after each redraw.  The function takes no arguments.'''
         self.rendered_callbacks.append(cb)
     def remove_rendered_frame_callback(self, cb):
+        '''Add a callback that was added with add_rendered_frame_callback().'''
         self.rendered_callbacks.remove(cb)
 
     def paintGL(self):
@@ -480,7 +501,7 @@ class View(QtOpenGL.QGLWidget):
         self.center_of_rotation = center
 
     def view_all(self):
-
+        '''Adjust the camera to show all displayed models.'''
         center, s = self.bounds_center_and_width()
         if center is None:
             return
@@ -589,16 +610,20 @@ class View(QtOpenGL.QGLWidget):
         self.redraw_needed = True
 
     def pixel_size(self, p = None):
+        '''Return the pixel size in scene length units at point p in the scene.'''
         return self.camera.pixel_size(self.center_of_rotation if p is None else p)
 
     def maps(self):
+        '''Return a list of the Volume models in the scene.'''
         from ..map import Volume
         return tuple(m for m in self.models if isinstance(m,Volume))
 
     def molecules(self):
+        '''Return a list of the Molecule models in the scene.'''
         from ..molecule import Molecule
         return tuple(m for m in self.models if isinstance(m,Molecule))
 
     def surfaces(self):
+        '''Return a list of the Surface models in the scene which are not Molecules.'''
         from ..molecule import Molecule
         return tuple(m for m in self.models if not isinstance(m,(Molecule)))
