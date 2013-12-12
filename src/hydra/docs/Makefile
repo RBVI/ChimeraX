@@ -8,8 +8,7 @@ ICONS = icons
 
 all: 
 
-install: 
-	-mkdir $(PKG_DIR)
+install: pkg_dir
 	$(RSYNC) $(HTML_SRCS) $(ICONS) $(PKG_DIR)
 
 clean:

@@ -6,13 +6,9 @@ PKG_DIR = $(PYSITEDIR)/hydra/map/fit
 PYSRCS = __init__.py fitcmd.py fitlist.py fitmap.py move.py \
 	search.py sequence.py session.py
 
-__pycache__/%.cpython-33.pyc : %.py
-	$(bindir)/python3 -t -m py_compile '$<'
-
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:

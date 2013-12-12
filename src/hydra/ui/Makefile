@@ -9,8 +9,7 @@ ICONS = icons
 
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(ICONS) $(PKG_DIR)
 
 clean:
