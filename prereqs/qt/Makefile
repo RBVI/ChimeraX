@@ -26,6 +26,7 @@ ifdef MAC_USE_FRAMEWORKS
 endif
 ifeq ($(OS),Darwin)
 	CONFIG_OPTS += -sdk $(SDK)
+	PATCHES += qt5_mac_opengl_stereo.patch
 endif
 ifeq ($(OS),Linux)
 	# In 5.0.2, build fails if icu library is not present,

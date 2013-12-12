@@ -1,0 +1,143 @@
+*** qtbase/src/platformsupport/cglconvenience/cglconvenience_p.h.orig	Sun Aug 25 11:03:34 2013
+--- qtbase/src/platformsupport/cglconvenience/cglconvenience_p.h	Wed Dec 11 14:39:46 2013
+***************
+*** 47,53 ****
+  #include <OpenGL/OpenGL.h>
+  
+  void (*qcgl_getProcAddress(const QByteArray &procName))();
+! QSurfaceFormat qcgl_surfaceFormat();
+  void *qcgl_createNSOpenGLPixelFormat(const QSurfaceFormat &format);
+  
+  #endif // QMACGLCONVENIENCE_H
+--- 47,53 ----
+  #include <OpenGL/OpenGL.h>
+  
+  void (*qcgl_getProcAddress(const QByteArray &procName))();
+! void qcgl_surfaceFormat(void *nsOpenGLPixelFormat, QSurfaceFormat &format);
+  void *qcgl_createNSOpenGLPixelFormat(const QSurfaceFormat &format);
+  
+  #endif // QMACGLCONVENIENCE_H
+*** qtbase/src/platformsupport/cglconvenience/cglconvenience.mm.orig	Sun Aug 25 11:03:34 2013
+--- qtbase/src/platformsupport/cglconvenience/cglconvenience.mm	Wed Dec 11 14:40:07 2013
+***************
+*** 58,93 ****
+  }
+  
+  // Match up with createNSOpenGLPixelFormat below!
+! QSurfaceFormat qcgl_surfaceFormat()
+  {
+!     QSurfaceFormat format;
+      format.setRenderableType(QSurfaceFormat::OpenGL);
+!     format.setRedBufferSize(8);
+!     format.setGreenBufferSize(8);
+!     format.setBlueBufferSize(8);
+!     format.setAlphaBufferSize(8);
+! /*
+!     format.setDepthBufferSize(24);
+!     format.setAccumBufferSize(0);
+!     format.setStencilBufferSize(8);
+!     format.setSampleBuffers(false);
+!     format.setSamples(1);
+!     format.setDepth(true);
+!     format.setRgba(true);
+!     format.setAlpha(true);
+!     format.setAccum(false);
+!     format.setStencil(true);
+!     format.setStereo(false);
+!     format.setDirectRendering(false);
+! */
+!     return format;
+  }
+  
+! void *qcgl_createNSOpenGLPixelFormat(const QSurfaceFormat &format)
+  {
+- 
+-     QVector<NSOpenGLPixelFormatAttribute> attrs;
+- 
+      if (format.swapBehavior() != QSurfaceFormat::SingleBuffer)
+          attrs.append(NSOpenGLPFADoubleBuffer);
+  
+--- 58,89 ----
+  }
+  
+  // Match up with createNSOpenGLPixelFormat below!
+! void qcgl_surfaceFormat(void *nsOpenGLPixelFormat, QSurfaceFormat &format)
+  {
+!     NSOpenGLPixelFormat *pf = static_cast <NSOpenGLPixelFormat *>(nsOpenGLPixelFormat);
+!     GLint   vscr = 0;
+!     GLint csize, asize, dsize, stsize, smp, stereo;
+!     [pf getValues:&csize forAttribute:NSOpenGLPFAColorSize forVirtualScreen:vscr];
+!     [pf getValues:&asize forAttribute:NSOpenGLPFAAlphaSize forVirtualScreen:vscr];
+!     [pf getValues:&dsize forAttribute:NSOpenGLPFADepthSize forVirtualScreen:vscr];
+!     [pf getValues:&stsize forAttribute:NSOpenGLPFAStencilSize forVirtualScreen:vscr];
+!     [pf getValues:&smp forAttribute:NSOpenGLPFASamples forVirtualScreen:vscr];
+!     [pf getValues:&stereo forAttribute:NSOpenGLPFAStereo forVirtualScreen:vscr];
+! 
+      format.setRenderableType(QSurfaceFormat::OpenGL);
+!     format.setRedBufferSize(csize);
+!     format.setGreenBufferSize(csize);
+!     format.setBlueBufferSize(csize);
+!     format.setAlphaBufferSize(asize);
+!     format.setDepthBufferSize(dsize);
+!     format.setStencilBufferSize(stsize);
+!     format.setSamples(smp);
+!     format.setStereo(stereo);
+  }
+  
+! static void qcgl_nsOpenGLPixelFormatAttrs(const QSurfaceFormat &format,
+! 					  QVector<NSOpenGLPixelFormatAttribute> &attrs)
+  {
+      if (format.swapBehavior() != QSurfaceFormat::SingleBuffer)
+          attrs.append(NSOpenGLPFADoubleBuffer);
+  
+***************
+*** 114,119 ****
+--- 110,117 ----
+          attrs << NSOpenGLPFAStencilSize << format.stencilBufferSize();
+      if (format.alphaBufferSize() > 0)
+          attrs << NSOpenGLPFAAlphaSize << format.alphaBufferSize();
++     if (format.stereo())
++         attrs << NSOpenGLPFAStereo;
+  
+      if (format.samples() > 0) {
+          attrs << NSOpenGLPFAMultisample
+***************
+*** 122,128 ****
+--- 120,144 ----
+      }
+  
+      attrs << 0;
++ }
++ 
++ void *qcgl_createNSOpenGLPixelFormat(const QSurfaceFormat &format)
++ {
++     QVector<NSOpenGLPixelFormatAttribute> attrs;
++     qcgl_nsOpenGLPixelFormatAttrs(format, attrs);
+  
+      NSOpenGLPixelFormat* pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs.constData()];
++     if (pixelFormat == nil)
++ 	if (format.stereo()) {
++ 	    qWarning("Could not create stereo OpenGL pixel format.");
++ 	    attrs.clear();
++ 	    QSurfaceFormat f(format);
++ 	    f.setStereo(false);			// Try without stereo
++ 	    qcgl_nsOpenGLPixelFormatAttrs(f, attrs);
++ 	    pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs.constData()];
++ 	}	
++     if (pixelFormat == nil)
++         qWarning("Could not create OpenGL pixel format.");
++ 
+      return pixelFormat;
+  }
+*** qtbase/src/plugins/platforms/cocoa/qcocoaglcontext.mm.orig	Wed Dec 11 15:10:31 2013
+--- qtbase/src/plugins/platforms/cocoa/qcocoaglcontext.mm	Wed Dec 11 14:39:27 2013
+***************
+*** 62,67 ****
+--- 62,68 ----
+      QCocoaAutoReleasePool pool; // For the SG Canvas render thread
+  
+      NSOpenGLPixelFormat *pixelFormat = static_cast <NSOpenGLPixelFormat *>(qcgl_createNSOpenGLPixelFormat(m_format));
++     qcgl_surfaceFormat(pixelFormat, m_format);
+      m_shareContext = share ? static_cast<QCocoaGLContext *>(share)->nsOpenGLContext() : nil;
+  
+      m_context = [NSOpenGLContext alloc];
