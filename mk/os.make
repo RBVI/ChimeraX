@@ -18,13 +18,13 @@ else
 	OPT = -O3
 endif
 	GCC_VER	= $(shell $(CC) -dumpversion)
-	CC = gcc -pipe -fPIC -std=c99
+	CC = gcc -pipe -fPIC -std=gnu99
 	CXX = g++ -pipe -fPIC
 ifneq (,$(shell echo $(GCC_VER) | sed -e 's/^[1-3]\..*//' -e 's/^4\.[0-6]\..*//'))
 	# gcc 4.7 or newer
 	CXX += -std=c++11
 else
-#	ERROR := $(error "gcc $(GCC_VER) is too old")
+	ERROR := $(error "gcc $(GCC_VER) is too old")
 endif
 #TODO
 #ifndef PREREQ_MAKE
