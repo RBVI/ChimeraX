@@ -27,17 +27,14 @@ include $(TOP)/mk/subdir.make
 
 all: $(PYOBJS)
 
-install: all $(PKG_DIR)
+install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
-install_mac_app: install
 ifeq ($(OS),Darwin)
+install_mac_app: install mac_app_dirs
 # Build application directory hierarchy
-	-mkdir $(APPS_DIR)
 	$(RSYNC) $(APP_NAME) $(APPS_DIR)
-	-mkdir -p $(FW_DIR)
 	$(RSYNC) --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
-	-mkdir $(PY_SITE_INSTALL)
 
 # Copy only the Python packages needed for distribution.
 	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.1-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
@@ -49,7 +46,6 @@ ifeq ($(OS),Darwin)
 	install_name_tool -change $(PY_LIB) @executable_path/../../../../Python $(FW_DIR)/Python.framework/Versions/3.3/Resources/Python.app/Contents/MacOS/Python
 
 # Copy Qt frameworks into PyQt5 python module
-	-mkdir $(PY_SITE_INSTALL)/PyQt5/frameworks
 	cd $(libdir) ; $(RSYNC) $(QT_FRAMEWORKS:%=%.framework) $(PY_SITE_INSTALL)/PyQt5/frameworks
 # Fix Qt framework paths to other Qt frameworks
 	for qtlib0 in $(QT_LIBS) ; do \
@@ -87,7 +83,6 @@ ifeq ($(OS),Darwin)
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/_image3d.so
 
 # Install pdbio and fix paths to libraries
-	-mkdir $(PY_SITE_INSTALL)/hydra/lib
 	$(RSYNC) $(libdir)/libmolecule.dylib $(libdir)/libtmpl.dylib $(libdir)/libcapsule.dylib $(PY_SITE_INSTALL)/hydra/lib
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PY_SITE_INSTALL)/hydra/lib/libcapsule.dylib
 	$(RSYNC) $(PYSITEDIR)/pdbio.so $(PYSITEDIR)/access.so $(PY_SITE_INSTALL)/hydra
@@ -99,10 +94,12 @@ ifeq ($(OS),Darwin)
 		done ; \
 	done
 
-endif
+mac_app_dirs:
+	for d in $(APPS_DIR) $(FW_DIR) $(PY_SITE_INSTALL)/hydra/lib $(PY_SITE_INSTALL)/PyQt5/frameworks ; do \
+		if [ ! -d "$$d" ]; then mkdir -p "$$d"; fi ; \
+	done
 
-$(PKG_DIR):
-	-mkdir $(PKG_DIR)
+endif
 
 run:
 	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"

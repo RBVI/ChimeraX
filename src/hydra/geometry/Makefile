@@ -7,8 +7,7 @@ PYSRCS = bins.py bounds.py icosahedron.py matrix.py place.py spline.py vector.py
 
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:

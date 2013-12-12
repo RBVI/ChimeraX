@@ -9,8 +9,7 @@ OPENGL_SHADERS = fshader150.txt vshader150.txt
 
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(OPENGL_SHADERS) $(PKG_DIR)
 
 clean:
