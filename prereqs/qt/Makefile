@@ -6,11 +6,11 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.1.1
+VERSION = 5.2.0
 DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
-PATCHES	= $(wildcard qt-src-$(VERSION)-*.patch)
+PATCHES	= $(wildcard qt-$(VERSION)-*.patch) $(wildcard qt-$(VERSION)_$(OS)-*.patch)
 
 CONFIG_OPTS = -opensource -confirm-license \
 	      -no-audio-backend \

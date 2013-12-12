@@ -14,9 +14,10 @@ include $(TOP)/mk/subdir.make
 
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+$(SUBDIR_INSTALL): pkg_dir
 
 clean:
 	rm -rf __pycache__
