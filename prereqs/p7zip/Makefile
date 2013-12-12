@@ -27,6 +27,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && cp makefile.$(MACHINE) makefile.machine
 	cd $(SOURCE) && $(MAKE) all && $(MAKE) DEST_HOME=$(build_prefix) install
+	# allow rm -r to work on build tree
+	chmod -R u+w $(datadir)/doc/p7zip/DOCS
 
 $(SOURCE):
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
