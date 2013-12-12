@@ -373,8 +373,9 @@ class Graphics:
 		for object_id in self.object_ids:
 			llgr.delete_object(object_id)
 		self.object_ids.clear()
-		llgr.delete_group(self.group_id)
-		self.group_id = None
+		if self.group_id is not None:
+			llgr.delete_group(self.group_id)
+			self.group_id = None
 		track.modified(Graphics, [self], self.LESS_OBJECTS)
 
 	def _new_group(self):
