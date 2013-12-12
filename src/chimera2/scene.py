@@ -426,8 +426,8 @@ class Graphics:
 		"""add cylinder to scene
 		
 		:param radius: the radius of the cylinder
-		:param p0: one endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
-		:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
+		:param p0: bottom center of the cylinder, :py:class:`~chimera2.math3d.Point`
+		:param p1: top center of the cylinder, :py:class:`~chimera2.math3d.Point`
 		:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
 		"""
 		if xform is None:
@@ -467,6 +467,111 @@ class Graphics:
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
+		if self.group_id is None:
+			self._new_group()
+		llgr.group_add(self.group_id, [obj_id])
+		self.data_ids.update([color_id])
+		self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
+
+	def add_cone(self, radius, p0, p1, color, xform=None):
+		"""add cone to scene
+		
+		:param radius: the radius of the cone
+		:param p0: bottom center of the cone, :py:class:`~chimera2.math3d.Point`
+		:param p1: top center of the cone, :py:class:`~chimera2.math3d.Point`
+		:param color: the RGBA color of the cone (either a sequence of 4 floats, or an integer referring to a previously defined color)
+		"""
+		if xform is None:
+			xform = Identity()
+		else:
+			xform = Xform(xform)
+		b = BBox(p0 - radius, p0 + radius)
+		b.add(p1 - radius)
+		b.add(p1 + radius)
+		b.xform(xform)
+		self.bbox.add_bbox(b)
+		import llgr, math
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
+
+		# create translation matrix
+		matrix_id = llgr.next_matrix_id()
+		xform.translate(weighted_point([p0, p1]))
+		delta = p1 - p0
+		height = delta.length()
+		coneAxis = Vector([0, 1, 0])
+		axis = cross(coneAxis, delta)
+		cosine = (coneAxis * delta) / height
+		angle = math.acos(cosine)
+		if axis.sqlength() > 0:
+			xform.rotate(axis, angle)
+		elif cosine < 0:	# delta == -coneAxis
+			xform.rotate(1, 0, 0, 180)
+		mat = xform.getWebGLMatrix()
+		llgr.create_matrix(matrix_id, mat, False)
+
+		obj_id = llgr.next_object_id()
+		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
+		llgr.add_cone(obj_id, radius, height, _program_id, matrix_id, [ai])
+		if self.group_id is None:
+			self._new_group()
+		llgr.group_add(self.group_id, [obj_id])
+		self.data_ids.update([color_id])
+		self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
+
+	def add_disk(self, inner_radius, outer_radius, p0, color, xform=None):
+		"""add cylinder to scene
+		
+		:param inner_radius: the inner radius of the disk
+		:param outer_radius: the outer radius of the disk
+		:param p0: center of the disk, :py:class:`~chimera2.math3d.Point`
+		:param color: the RGBA color of the disk (either a sequence of 4 floats, or an integer referring to a previously defined color)
+		"""
+		return # DEBUG
+		if xform is None:
+			xform = Identity()
+		else:
+			xform = Xform(xform)
+		b = BBox(p0 - radius, p0 + radius)
+		b.xform(xform)
+		self.bbox.add_bbox(b)
+		import llgr, math
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
+
+		# create translation matrix
+		matrix_id = llgr.next_matrix_id()
+		xform.translate(weighted_point([p0, p1]))
+		delta = p1 - p0
+		height = delta.length()
+		diskAxis = Vector([0, 1, 0])
+		axis = cross(diskAxis, delta)
+		cosine = (diskAxis * delta) / height
+		angle = math.acos(cosine)
+		if axis.sqlength() > 0:
+			xform.rotate(axis, angle)
+		elif cosine < 0:	# delta == -diskAxis
+			xform.rotate(1, 0, 0, 180)
+		mat = xform.getWebGLMatrix()
+		llgr.create_matrix(matrix_id, mat, False)
+
+		obj_id = llgr.next_object_id()
+		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
+		llgr.add_disk(obj_id, inner_radius, outer_radius, _program_id, matrix_id, [ai])
 		if self.group_id is None:
 			self._new_group()
 		llgr.group_add(self.group_id, [obj_id])

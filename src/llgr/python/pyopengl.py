@@ -700,18 +700,106 @@ def _build_cylinder(N):
 	create_buffer(data_id, ARRAY, np)
 	index_id = next(_internal_buffer_id)
 	create_buffer(index_id, ELEMENT_ARRAY, indices)
-	_proto_cylinders[N] = _PrimitiveInfo(data_id, num_indices, index_id, UShort)
+	_proto_cones[N] = _PrimitiveInfo(data_id, num_indices, index_id, UShort)
+
+def add_cone(obj_id: Id, radius: Number, length: Number,
+			program_id: Id, matrix_id: Id,
+			list_of_attribute_info: list_of(AttributeInfo)):
+	num_pts = 40	# TODO: for LOD, make depending on radius in pixels
+	if num_pts not in _proto_cones:
+		_build_cone(num_pts)
+	pi = _proto_cones[num_pts]
+	mai = list_of_attribute_info[:]
+	mai.append(AttributeInfo("normal", pi.data_id, 0, 24, 3, Float))
+	mai.append(AttributeInfo("position", pi.data_id, 12, 24, 3, Float))
+	scale_id = next(_internal_buffer_id)
+	scale = numpy.array([radius, length / 2., radius], dtype=numpy.float32)
+	create_singleton(scale_id, scale)
+	mai.append(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float))
+	create_object(obj_id, program_id, matrix_id, mai, Triangle_strip, 0,
+					pi.icount, pi.index_id, pi.index_type)
+
+def _build_cone(N):
+	from math import sin, cos, pi
+	# normal & position array
+	np = numpy.zeros((N * 2, 6), dtype=numpy.float32)
+	num_indices = N * 2 + 2
+	indices = numpy.zeros(num_indices, dtype=numpy.uint16)
+	for i in range(N):
+		theta = 2 * pi * i / N
+		x = cos(theta)
+		z = sin(theta)
+		np[i][0] = x;	# nx
+		np[i][1] = 0;	# ny
+		np[i][2] = z;	# nz
+		np[i][3] = x;	# px
+		np[i][4] = -1;	# py
+		np[i][5] = z;	# pz
+		np[i + N] = np[i]
+		np[i + N][4] = 1
+		indices[i * 2] = i
+		indices[i * 2 + 1] = i + N
+	indices[N * 2] = 0
+	indices[N * 2 + 1] = N
+
+	data_id = next(_internal_buffer_id)
+	create_buffer(data_id, ARRAY, np)
+	index_id = next(_internal_buffer_id)
+	create_buffer(index_id, ELEMENT_ARRAY, indices)
+	_proto_cones[N] = _PrimitiveInfo(data_id, num_indices, index_id, UShort)
+
+def add_disk(obj_id: Id, inner_radius: Number, outer_radius: Number,
+			program_id: Id, matrix_id: Id,
+			list_of_attribute_info: list_of(AttributeInfo)):
+	# TODO: pay attention to inner_radius
+	num_pts = 40	# TODO: for LOD, make depending on radius in pixels
+	if num_pts not in _proto_fans:
+		_build_fan(num_pts)
+	pi = _proto_fans[num_pts]
+	mai = list_of_attribute_info[:]
+	normal_id = next(_internal_buffer_id)
+	normal = numpy.array([0, 1, 0], dtype=numpy.float32)
+	create_singleton(normal_id, normal)
+	mai.append(AttributeInfo("normal", normal_id, 0, 0, 3, Float))
+	mai.append(AttributeInfo("position", pi.data_id, 0, 12, 3, Float))
+	scale_id = next(_internal_buffer_id)
+	scale = numpy.array([radius, 0, radius], dtype=numpy.float32)
+	create_singleton(scale_id, scale)
+	mai.append(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float))
+	create_object(obj_id, program_id, matrix_id, mai, Triangle_strip, 0,
+					pi.icount, pi.index_id, pi.index_type)
+
+def _build_fan(N):
+	from math import sin, cos, pi
+	# normal & position array
+	pts = numpy.zeros((N + 1, 3), dtype=numpy.float32)
+	num_indices = N + 1
+	indices = numpy.zeros(num_indices, dtype=numpy.uint16)
+	for i in range(N):
+		theta = 2 * pi * i / N
+		x = cos(theta)
+		z = sin(theta)
+		np[i + 1][0] = x;	# px
+		np[i + 1][1] = -1;	# py
+		np[i + 1][2] = z;	# pz
+
+	data_id = next(_internal_buffer_id)
+	create_buffer(data_id, ARRAY, pts)
+	_proto_cylinders[N] = _PrimitiveInfo(data_id, num_indices, 0, UShort)
 
 def _clear_geom(geom):
 	if not _all_buffers:
 		for g in geom.values():
 			delete_buffer(g.data_id)
-			delete_buffer(g.index_id)
+			if g.index_id:
+				delete_buffer(g.index_id)
 	geom.clear()
 
 def clear_primitives():
 	_clear_geom(_proto_spheres)
 	_clear_geom(_proto_cylinders)
+	_clear_geom(_proto_cones)
+	_clear_geom(_proto_fans)
 
 #
 # rendering

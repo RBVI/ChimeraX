@@ -337,18 +337,7 @@ render()
 		}
 		if (sp == NULL)
 			continue;
-#ifdef USE_VAO
 		glBindVertexArray(oi->vao);
-#else
-		// setup index buffer
-		const BufferInfo *ibi = NULL;
-		if (oi->index_buffer_id) {
-			auto bii = all_buffers.find(oi->index_buffer_id);
-			if (bii == all_buffers.end())
-				continue;
-			ibi = &bii->second;
-		}
-#endif
 		// setup instance matrix attribute
 		if (oi->matrix_id != current_matrix_id) {
 			Id data_id;
@@ -369,51 +358,20 @@ render()
 			setup_singleton_attribute(it_data, it_type, false, it_loc, it_locations, it_elements);
 			current_matrix_id = oi->matrix_id;
 		}
-#ifdef USE_VAO
 		for (auto& si: oi->singleton_cache) {
 			setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements);
 		}
-#else
-		// setup other attributes
-		for (auto& ai: oi->ais) {
-			setup_attribute(sp, ai);
-		}
-#endif
 		// finally draw object
-#ifndef USE_VAO
-		if (!ibi) {
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#else
 		if (!oi->index_buffer_id) {
-#endif
 			glDrawArrays(oi->ptype, oi->first, oi->count);
 		} else {
-#ifndef USE_VAO
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibi->buffer);
-#endif
 			glDrawElements(oi->ptype, oi->count,
 				cvt_DataType(oi->index_buffer_type),
 				reinterpret_cast<char *>(oi->first
 					* data_size(oi->index_buffer_type)));
 		}
-#ifndef USE_VAO
-		// cleanup
-		// TODO: minimize cleanup between objects
-		for (auto sv: sp->attributes()) {
-			int loc = sv->location();
-			if (loc == -1)
-				continue;
-			glDisableVertexAttribArray(loc);
-			// TODO: might be matrix, so disable more than one
-		}
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-#endif
 	}
-#ifdef USE_VAO
 	glBindVertexArray(0);
-#else
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#endif
 	if (sp)
 		sp->cleanup();
 }
