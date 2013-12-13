@@ -59,7 +59,7 @@ extern std::string	make_buildvalue(const std::string &format,
 extern std::string	stringize(const std::string &input);
 extern std::string	prefixLines(const std::string &prefix,
 						const std::string &lines);
-extern std::auto_ptr<std::ostream>
+extern std::unique_ptr<std::ostream>
 			outputStream(const std::string &filename);
 
 struct ClassInfo;
