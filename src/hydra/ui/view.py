@@ -8,20 +8,25 @@ class View(QtGui.QWindow):
     '''
     def __init__(self, parent=None):
         QtGui.QWindow.__init__(self)
-        self.resize(800,800)
         self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
-#        QtWidgets.QWidget.__init__(self, parent)
         self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
         w.setFocusPolicy(QtCore.Qt.ClickFocus)
-#        self.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
-#        self.setAutoBufferSwap(False)
+# TODO: Qt 5.1 has touch events disabled on Mac
+#        w.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
         
-        self.window_size = (800,800)		# pixels
-#        w.resize(800,800)
+        self.window_size = (w.width(), w.height())		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
+        # Determine stereo eye spacing parameter
+        s = self.screen()
+        eye_spacing = 61.0                      # millimeters
+        ssize = s.physicalSize().width()        # millimeters
+        psize = s.size().width()                # pixels
+        eye_separation_pixels = psize * (eye_spacing / ssize)
+
+        # Create camera
         from . import camera
-        self.camera = camera.Camera(self.window_size)
+        self.camera = camera.Camera(self.window_size, 'mono', eye_separation_pixels)
         '''The camera controlling the vantage shown in the graphics window.'''
 
         self.tile = False
@@ -100,25 +105,37 @@ class View(QtGui.QWindow):
 
     def enable_opengl_stereo(self, enable):
 
-        enabled = self.opengl_context.format().stereo()
-        if (enable and enabled) or (not enable and not enabled):
+        supported = self.opengl_context.format().stereo()
+        if not enable or supported:
             return True
 
-        if enable and not enabled:
-            msg = 'Stereo mode is not supported by OpenGL driver'
-            from .gui import show_status, show_info
-            show_status(msg)
-            show_info(msg)
-            return False
+        msg = 'Stereo mode is not supported by OpenGL driver'
+        from .gui import show_status, show_info
+        show_status(msg)
+        show_info(msg)
+        return False
 
-        return True
-
+        # TODO: Current strategy for handling stereo is to request a stereo OpenGL context
+        # when graphics window created.  Use it for both stereo and mono display without
+        # switching contexts. There are several obstacles to switching contexts.  First,
+        # we need to share context state.  When tested with Qt 5.1 this caused crashes in
+        # the QCocoaCreateOpenGLContext() routine, probably because the pixel format was null
+        # perhaps because sharing was not supported.  A second problem is that we need to
+        # switch the format of the QWindow.  It is not clear from the Qt documentation if this
+        # is possible.  My tests failed.  The QWindow.setFormat() docs say "calling that function
+        # after create() has been called will not re-resolve the surface format of the native surface."
+        # Maybe calling destroy on the QWindow, then setFormat() and create() would work.  Did not try.
+        # It may be necessary to simply destroy the old QWindow and QWidget container and make a new
+        # one. A third difficulty is that OpenGL does not allow sharing VAOs between contexts.
+        # Surface models use VAOs, so those would have to be destroyed and recreated.  Sharing does
+        # handle VBOs, textures and shaders.
+        #
+        # Test code follows.
+        #
         f = self.pixel_format(enable)
         c = QtGui.QOpenGLContext(self)
         c.setFormat(f)
-# TODO: Requesting sharing causes a crash on stereo->mono switch in QCocoaXXX context create C++ routine.
-# Possibly the code simply doesn't protect against the sharing failing.
-#        c.setShareContext(self.opengl_context)  # Share shaders, vbos and textures, but not VAOs.
+        c.setShareContext(self.opengl_context)  # Share shaders, vbos and textures, but not VAOs.
         if not c.create() or (enable and not c.format().stereo()):
             if enable:
                 msg = 'Stereo mode is not supported by OpenGL driver'
@@ -128,23 +145,12 @@ class View(QtGui.QWindow):
             show_status(msg)
             show_info(msg)
             return False
-# TODO:  A stereo context works in mono mode.  Actually switching the initial stereo context
-# to mono causes the shaders, vbos, textures, vaos to be invalid.  One solution is to
-# simply stick with a stereo context when available.  Otherwise when we switch we will have
-# to rebuild VAOs.  
-#        self.opengl_context = c
+        self.opengl_context = c
         c.makeCurrent(self)
 
-# TODO: Apparently the format for the QWindow cannot be changed after it is first created.
-# The QWindow.setFormat() docs say "calling that function after create() has been called will
-# not re-resolve the surface format of the native surface."
-# Maybe calling destroy on the QWindow, then setFormat() and create() would work.  Did not try.
-# If we set a stereo format initially it works after changing the OpenGL context to mono.
-# If destroy/create doesn't work, may need to create a new QWindow.
-#
-#        self.setFormat(f)
-#        if not self.create():
-#            raise SystemError('Failed to create QWindow with new format')
+        self.setFormat(f)
+        if not self.create():
+            raise SystemError('Failed to create QWindow with new format')
 
         return True
 
