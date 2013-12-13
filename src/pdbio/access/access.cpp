@@ -102,7 +102,7 @@ allocate_python_array(unsigned int dim, unsigned int *size, PyArray_Descr *dtype
 }
 
 static PyObject *
-python_string_array(int size, int string_length, char **data)
+python_string_array(unsigned int size, int string_length, char **data)
 {
 	initialize_numpy();  // required before using NumPy
 
@@ -268,7 +268,8 @@ coords(PyObject *, PyObject *args, PyObject *kw)
 	PyObject *coords;
 	if (numpy) {
 		initialize_numpy();
-		unsigned int shape[2] = {atoms->size(), 3};
+		static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+		unsigned int shape[2] = {(unsigned int)atoms->size(), 3};
 		coords = allocate_python_array(2, shape, NPY_DOUBLE);
 		double *crd_data = (double *) PyArray_DATA((PyArrayObject *)coords);
 		for (std::vector<Atom *>::const_iterator ai = atoms->begin(); ai != atoms->end(); ++ai) {
@@ -350,7 +351,8 @@ element_numbers(PyObject *, PyObject *args, PyObject *kw)
 	PyObject *element_numbers;
 	if (numpy) {
 		initialize_numpy();
-		unsigned int shape[1] = {atoms->size()};
+		static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+		unsigned int shape[1] = {(unsigned int)atoms->size()};
 		element_numbers = allocate_python_array(1, shape, NPY_UBYTE);
 		unsigned char *data = (unsigned char *) PyArray_DATA((PyArrayObject *)element_numbers);
 		for (std::vector<Atom *>::const_iterator ai = atoms->begin(); ai != atoms->end();
@@ -485,7 +487,8 @@ residue_numbers(PyObject *, PyObject *args, PyObject *kw)
 	PyObject *residue_numbers;
 	if (numpy) {
 		initialize_numpy();
-		unsigned int shape[1] = {residues->size()};
+		static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+		unsigned int shape[1] = {(unsigned int)residues->size()};
 		residue_numbers = allocate_python_array(1, shape, NPY_INT);
 		int *data = (int *) PyArray_DATA((PyArrayObject *)residue_numbers);
 		for (std::vector<Residue *>::const_iterator ri = residues->begin();
