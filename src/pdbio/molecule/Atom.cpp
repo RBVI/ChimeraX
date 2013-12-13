@@ -62,10 +62,9 @@ unsigned int
 Atom::_new_coord(const Point &coord)
 {
 	unsigned int index = COORD_UNASSIGNED;
-	const Molecule::CoordSets &css = molecule()->coord_sets();
-	for (Molecule::CoordSets::const_iterator csi = css.begin();
-	csi != css.end(); ++csi) {
-		CoordSet *cs = *csi;
+	const Molecule::CoordSets& css = molecule()->coord_sets();
+	for (auto csi = css.begin(); csi != css.end(); ++csi) {
+		CoordSet *cs = (*csi).get();
 		if (index == COORD_UNASSIGNED) {
 			index = cs->coords().size();
 			cs->add_coord(coord);

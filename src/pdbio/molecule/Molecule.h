@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <memory>
 
 class Atom;
 class CoordSet;
@@ -13,10 +14,10 @@ class Residue;
 
 class Molecule {
 public:
-	typedef std::vector<Atom *>  Atoms;
-	typedef std::vector<Bond *>  Bonds;
-	typedef std::vector<CoordSet *>  CoordSets;
-	typedef std::vector<Residue *>  Residues;
+	typedef std::vector<std::unique_ptr<Atom>>  Atoms;
+	typedef std::vector<std::unique_ptr<Bond>>  Bonds;
+	typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
+	typedef std::vector<std::unique_ptr<Residue>>  Residues;
 private:
 	CoordSet *  _active_coord_set;
 	Atoms  _atoms;
@@ -45,7 +46,7 @@ public:
 	CoordSet *  new_coord_set(int index, int size);
 	Residue *  new_residue(std::string &name, std::string &chain, int pos, char insert,
 		Residue *neighbor=NULL, bool after=true);
-	std::map<std::string, std::vector<std::string> > pdb_headers;
+	std::map<std::string, std::vector<std::string>> pdb_headers;
 	int  pdb_version;
 	const Residues &  residues() const { return _residues; }
 	void  set_active_coord_set(CoordSet *cs);
