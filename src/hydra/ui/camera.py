@@ -206,13 +206,16 @@ class Camera:
         from .. import draw
         if m == 'mono':
             render.set_mono_buffer()
+            render.draw_background()
         elif m == 'stereo':
             render.set_stereo_buffer(view_num)
+            render.draw_background()
         elif m == 'oculus':
             render.set_mono_buffer()
             w,h = self.window_size
             if view_num == 0:
                 render.set_drawing_region(0,0,w//2,h)
+                render.draw_background()
             elif view_num == 1:
                 render.set_drawing_region(w//2,0,w//2,h)
         else:
