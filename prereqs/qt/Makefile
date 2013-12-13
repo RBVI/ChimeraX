@@ -6,11 +6,11 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.1.1
+VERSION = 5.2.0
 DISTRIBUTION = qt-everywhere-opensource-src-$(VERSION).7z
 SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(VERSION)
 
-PATCHES	= $(wildcard qt-src-$(VERSION)-*.patch)
+PATCHES	= $(wildcard qt-$(VERSION)-*.patch) $(wildcard qt-$(VERSION)_$(OS)-*.patch)
 
 CONFIG_OPTS = -opensource -confirm-license \
 	      -no-audio-backend \
@@ -26,7 +26,6 @@ ifdef MAC_USE_FRAMEWORKS
 endif
 ifeq ($(OS),Darwin)
 	CONFIG_OPTS += -sdk $(SDK)
-	PATCHES += qt5_mac_opengl_stereo.patch
 endif
 ifeq ($(OS),Linux)
 	# In 5.0.2, build fails if icu library is not present,
