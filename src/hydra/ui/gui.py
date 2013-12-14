@@ -50,6 +50,10 @@ class MainWindow(QtWidgets.QMainWindow):
         from . import commands
         commands.register_commands()
 
+        from . import spacenavigator
+        status = spacenavigator.Space_Navigator().start_event_processing(v)
+        print('started space navigator', status)
+
         self.create_toolbar()
 
         self.create_command_line()
