@@ -49,7 +49,8 @@ class Camera:
         d = 0.5*size + 0.5*size/tan(0.5*fov)
         vd = self.view_direction()
         cp = self.position()
-        shift = tuple((center[a]-d*vd[a])-cp[a] for a in (0,1,2))
+        from numpy import array, float32
+        shift = array(tuple((center[a]-d*vd[a])-cp[a] for a in (0,1,2)), float32)
         self.near_far_clip = (d - size, d + size)
         return shift
 
