@@ -53,7 +53,8 @@ class View(QtGui.QWindow):
         self.selected = set()
         self.atoms_shown = 0
 
-        self.center_of_rotation = (0,0,0)
+        from numpy import array, float32
+        self.center_of_rotation = array((0,0,0), float32)
         self.update_center = True
 
         from . import mousemodes
@@ -584,6 +585,7 @@ class View(QtGui.QWindow):
         center, s = self.bounds_center_and_width()
         if center is None:
             return
+        from numpy import array, float32
         self.camera.initialize_view(center, s)
         self.center_of_rotation = center
 
@@ -593,8 +595,7 @@ class View(QtGui.QWindow):
         if center is None:
             return
         shift = self.camera.view_all(center, s)
-        csx,csy,csz = self.camera.view_inverse().apply_without_translation(shift)
-        self.translate(-csx,-csy,-csz)
+        self.translate(-shift, update_clip_planes = False)
 
     def center_of_rotation_needs_update(self):
         self.update_center = True
@@ -615,7 +616,7 @@ class View(QtGui.QWindow):
             cr = self.front_center_point()
             if cr is None:
                 return
-        self.center_of_rotation = tuple(cr)
+        self.center_of_rotation = cr
         self.camera.set_near_far_clip(center, s)
 
     def front_center_point(self):
@@ -663,37 +664,38 @@ class View(QtGui.QWindow):
             self.render.set_projection_matrix(pm)
 
     def rotate(self, axis, angle, models = None):
-
+        '''
+        Move camera to simulate a rotation of models about current rotation center.
+        Axis is in scene coordinates and angle is in degrees.
+        '''
         self.update_center_of_rotation()
-        # Rotation axis is in camera coordinates.
-        # Center of rotation is in model coordinates.
-        c = self.camera
-        cv = c.view()
         from ..geometry import place
-        maxis = cv.apply_without_translation(axis)
-        r = place.rotation(maxis, angle, self.center_of_rotation)
-        if models is None:
-            c.set_view(r.inverse() * cv)
-        else:
-            for m in models:
-                m.place = r * m.place
-        self.redraw_needed = True
+        r = place.rotation(axis, angle, self.center_of_rotation)
+        self.move(r, models)
 
-    # Translation is in camera coordinates.  Sign is for moving models.
-    def translate(self, dx, dy, dz, models = None):
-
+    def translate(self, shift, models = None, update_clip_planes = True):
+        '''Move camera to simulate a translation of models.  Translation is in scene coordinates.'''
         self.center_of_rotation_needs_update()
-        c = self.camera
-        cv = c.view()
         from ..geometry import place
-        mt = cv.apply_without_translation((dx,dy,dz))
-        t = place.translation(mt)
+        t = place.translation(shift)
+        self.move(t, models, update_clip_planes)
+
+    def move(self, tf, models = None, update_clip_planes = False):
+        '''Move camera to simulate a motion of models.'''
         if models is None:
-            c.set_view(t.inverse()*cv)
-            c.shift_near_far_clip(-dz)
+            c = self.camera
+            cv = c.view()
+            c.set_view(tf.inverse() * cv)
         else:
             for m in models:
-                m.place = t * m.place
+                m.place = tf * m.place
+        if update_clip_planes:
+            cr = self.center_of_rotation
+            shift = (tf*cr) - cr
+            c = self.camera
+            dz = c.view_inverse().apply_without_translation(shift)[2]
+            c.shift_near_far_clip(-dz)
+
         self.redraw_needed = True
 
     def pixel_size(self, p = None):
