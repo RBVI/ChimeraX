@@ -624,6 +624,8 @@ class _PrimitiveInfo:
 
 _proto_spheres = {}
 _proto_cylinders = {}
+_proto_cones = {}
+_proto_fans = {}
 
 def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id,
 			list_of_attribute_info: list_of(AttributeInfo)):
@@ -683,12 +685,12 @@ def _build_cylinder(N):
 		theta = 2 * pi * i / N
 		x = cos(theta)
 		z = sin(theta)
-		np[i][0] = x;	# nx
-		np[i][1] = 0;	# ny
-		np[i][2] = z;	# nz
-		np[i][3] = x;	# px
-		np[i][4] = -1;	# py
-		np[i][5] = z;	# pz
+		np[i][0] = x	# nx
+		np[i][1] = 0	# ny
+		np[i][2] = z	# nz
+		np[i][3] = x	# px
+		np[i][4] = -1	# py
+		np[i][5] = z	# pz
 		np[i + N] = np[i]
 		np[i + N][4] = 1
 		indices[i * 2] = i
@@ -700,7 +702,7 @@ def _build_cylinder(N):
 	create_buffer(data_id, ARRAY, np)
 	index_id = next(_internal_buffer_id)
 	create_buffer(index_id, ELEMENT_ARRAY, indices)
-	_proto_cones[N] = _PrimitiveInfo(data_id, num_indices, index_id, UShort)
+	_proto_cylinders[N] = _PrimitiveInfo(data_id, num_indices, index_id, UShort)
 
 def add_cone(obj_id: Id, radius: Number, length: Number,
 			program_id: Id, matrix_id: Id,
@@ -720,23 +722,27 @@ def add_cone(obj_id: Id, radius: Number, length: Number,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_cone(N):
-	from math import sin, cos, pi
+	from math import sin, cos, pi, sqrt
 	# normal & position array
 	np = numpy.zeros((N * 2, 6), dtype=numpy.float32)
 	num_indices = N * 2 + 2
 	indices = numpy.zeros(num_indices, dtype=numpy.uint16)
+	# TODO: the right normal, may need to scale normals in vertex program
+	y_normal = .5 / sqrt(5)
 	for i in range(N):
 		theta = 2 * pi * i / N
 		x = cos(theta)
 		z = sin(theta)
-		np[i][0] = x;	# nx
-		np[i][1] = 0;	# ny
-		np[i][2] = z;	# nz
-		np[i][3] = x;	# px
-		np[i][4] = -1;	# py
-		np[i][5] = z;	# pz
+		np[i][0] = x		# nx
+		np[i][1] = y_normal	# ny
+		np[i][2] = z		# nz
+		np[i][3] = x		# px
+		np[i][4] = -1		# py
+		np[i][5] = z		# pz
 		np[i + N] = np[i]
+		np[i + N][3] = 0
 		np[i + N][4] = 1
+		np[i + N][5] = 0
 		indices[i * 2] = i
 		indices[i * 2 + 1] = i + N
 	indices[N * 2] = 0
@@ -763,29 +769,29 @@ def add_disk(obj_id: Id, inner_radius: Number, outer_radius: Number,
 	mai.append(AttributeInfo("normal", normal_id, 0, 0, 3, Float))
 	mai.append(AttributeInfo("position", pi.data_id, 0, 12, 3, Float))
 	scale_id = next(_internal_buffer_id)
-	scale = numpy.array([radius, 0, radius], dtype=numpy.float32)
+	scale = numpy.array([outer_radius, 1, outer_radius], dtype=numpy.float32)
 	create_singleton(scale_id, scale)
 	mai.append(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float))
-	create_object(obj_id, program_id, matrix_id, mai, Triangle_strip, 0,
+	create_object(obj_id, program_id, matrix_id, mai, Triangle_fan, 0,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_fan(N):
 	from math import sin, cos, pi
 	# normal & position array
-	pts = numpy.zeros((N + 1, 3), dtype=numpy.float32)
-	num_indices = N + 1
-	indices = numpy.zeros(num_indices, dtype=numpy.uint16)
+	pts = numpy.zeros((N + 2, 3), dtype=numpy.float32)
+	num_indices = N + 2
 	for i in range(N):
 		theta = 2 * pi * i / N
 		x = cos(theta)
 		z = sin(theta)
-		np[i + 1][0] = x;	# px
-		np[i + 1][1] = -1;	# py
-		np[i + 1][2] = z;	# pz
+		pts[N - i][0] = x
+		pts[N - i][1] = 0
+		pts[N - i][2] = z
+	pts[N + 1] = pts[1]
 
 	data_id = next(_internal_buffer_id)
 	create_buffer(data_id, ARRAY, pts)
-	_proto_cylinders[N] = _PrimitiveInfo(data_id, num_indices, 0, UShort)
+	_proto_fans[N] = _PrimitiveInfo(data_id, num_indices, 0, UShort)
 
 def _clear_geom(geom):
 	if not _all_buffers:
@@ -803,14 +809,13 @@ def clear_primitives():
 
 #
 # rendering
-#
-
+# 
 _clear_color = [0.0, 0.0, 0.0, 1.0]
 
 def set_clear_color(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf):
 	global _clear_color
 	_clear_color = [red, green, blue, alpha]
-	GL.glClearColor(red, green, blue, alpha);
+	GL.glClearColor(red, green, blue, alpha)
 
 _data_type_map = {
 	Byte: GL.GL_BYTE,
@@ -1014,7 +1019,7 @@ def pick(x: int, y: int):
 	GL.glScissor(x - 2, y - 2, 5, 5)
 	GL.glEnable(GL.GL_SCISSOR_TEST)
 
-	GL.glClearColor(0, 0, 0, 0);
+	GL.glClearColor(0, 0, 0, 0)
 	GL.glClear(GL.GL_COLOR_BUFFER_BIT|GL.GL_DEPTH_BUFFER_BIT|GL.GL_STENCIL_BUFFER_BIT)
 	GL.glEnable(GL.GL_DEPTH_TEST)
 	GL.glDisable(GL.GL_DITHER)
@@ -1136,7 +1141,7 @@ def _compute_vsphere(fx, fy, tx, ty):
 	if spin_axis.sqlength() < _FUZZY_SQZERO:
 		# if the two positions normalized to the same vector, punt.
 		return 3, None, 0
-	dot_product = from_ * to;	# from and to are "unit" length
+	dot_product = from_ * to	# from and to are "unit" length
 	if dot_product > 1:
 		# guarantee within acos bounds (more of a problem with floats)
 		dot_product = 1
