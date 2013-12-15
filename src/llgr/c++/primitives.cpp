@@ -48,7 +48,7 @@ build_sphere(const int N)
 		GLfloat np[3];	// normal and position
 	};
 	npinfo *data = new npinfo [N];
-	for (unsigned int i = 0; i < N; ++i) {
+	for (auto i = 0; i < N; ++i) {
 		data[i].np[0] = static_cast<GLfloat>(pts[i].x);
 		data[i].np[1] = static_cast<GLfloat>(pts[i].y);
 		data[i].np[2] = static_cast<GLfloat>(pts[i].z);
@@ -150,24 +150,30 @@ build_cone(const int N)
 void
 build_fan(const int N)
 {
-	if (N + 1 > 65535)
+	if (N + 2 > 65535)
 		throw std::runtime_error("too many vertices needed");
-	auto data = new GLfloat[N + 1][3];
-	unsigned num_indices = N + 1;
-	for (unsigned short i = 0; i < N; ++i) {
+	auto data = new GLfloat [N + 2][3];
+	data[0][0] = data[0][1] = data[0][2] = 0;
+	for (auto i = 0; i < N; ++i) {
 		float theta = 2.0f * float(M_PI) * i / N;
 		float x = cosf(theta);
 		float z = sinf(theta);
-		data[i + 1][0] = x;
-		data[i + 1][1] = 0;
-		data[i + 1][2] = z;
+		data[N - i][0] = x;
+		data[N - i][1] = 0;
+		data[N - i][2] = z;
 	}
+	data[N + 1][0] = data[1][0];
+	data[N + 1][1] = data[1][1];
+	data[N + 1][2] = data[1][2];
 
 	Id data_id = --internal_buffer_id;
-	create_buffer(data_id, ARRAY, sizeof data, data);
+	create_buffer(data_id, ARRAY, (N + 2) * 3 * sizeof (GLfloat), data);
 	delete [] data;
 
-	proto_fans[N] = PrimitiveInfo(data_id, num_indices, 0, UShort);
+	Id index_id = 0;	// no indices
+	const unsigned num_indices = N + 2;
+
+	proto_fans[N] = PrimitiveInfo(data_id, num_indices, index_id, UShort);
 }
 
 } // namespace internal;
@@ -273,9 +279,9 @@ add_disk(Id obj_id, float inner_radius, float outer_radius,
 	float normal[3] = { 0, 1, 0 };
 	create_singleton(normal_id, sizeof normal, normal);
 	mai.push_back(AttributeInfo("normal", normal_id, 0, 0, 3, Float));
-	mai.push_back(AttributeInfo("position", pi.data_id, 0, 12, 3, Float));
+	mai.push_back(AttributeInfo("position", pi.data_id, 0, 0, 3, Float));
 	Id scale_id = --internal_buffer_id;
-	float scale[3] = { outer_radius, 0, outer_radius };
+	float scale[3] = { outer_radius, 1, outer_radius };
 	create_singleton(scale_id, sizeof scale, scale);
 	mai.push_back(AttributeInfo("instanceScale", scale_id, 0, 0, 3, Float));
 	create_object(obj_id, program_id, matrix_id, mai, Triangle_fan, 0,

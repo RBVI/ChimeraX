@@ -45,8 +45,8 @@ class Molecule(open_models.Model):
 			rgb1 = element_color(element_numbers[a1])
 			color1 = [x / 255.0 for x in rgb1] + [1]
 			mid = weighted_point([p0, p1])
-			self.graphics.add_cylinder(radius, p0, mid, color0, None)
-			self.graphics.add_cylinder(radius, p1, mid, color1, None)
+			self.graphics.add_cylinder(radius, p0, mid, color0, False, False)
+			self.graphics.add_cylinder(radius, p1, mid, color1, False, False)
 
 _element_colors = dict(enumerate([
 	[255, 255, 255], [217, 255, 255], [204, 128, 255], [194, 255, 0],

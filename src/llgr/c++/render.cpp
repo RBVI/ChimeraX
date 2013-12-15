@@ -355,11 +355,14 @@ render()
 				continue;
 			const BufferInfo &bi = bii->second;
 			it_data = bi.data;
-			setup_singleton_attribute(it_data, it_type, false, it_loc, it_locations, it_elements);
+			setup_singleton_attribute(it_data, it_type, false,
+					  it_loc, it_locations, it_elements);
 			current_matrix_id = oi->matrix_id;
 		}
 		for (auto& si: oi->singleton_cache) {
-			setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements);
+			setup_singleton_attribute(si.data, si.type,
+					  si.normalized, si.base_location,
+					  si.num_locations, si.num_elements);
 		}
 		// finally draw object
 		if (!oi->index_buffer_id) {

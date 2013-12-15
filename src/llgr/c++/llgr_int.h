@@ -14,11 +14,11 @@
 
 namespace llgr {
 
-class ShaderProgram;
-
 namespace internal {
 
-extern bool hasGLError(const char *message);
+class ShaderProgram;
+
+LLGR_IMEX extern bool hasGLError(const char *message);
 
 extern bool initialized;
 extern void init();

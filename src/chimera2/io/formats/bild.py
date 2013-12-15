@@ -4,7 +4,8 @@ bild: bild format support
 
 Read a subset of Chimera's
 `bild format <http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/bild.html>`_:
-.comment, .color, .transparency, .sphere, and .cylinder.
+.comment, .color, .transparency, .sphere, .cylinder, .arrow, .box,
+.pop, .rotate, .scale, .translate.
 
 The plan is to suport all of the existing bild format.
 """
@@ -78,7 +79,7 @@ def open(stream, *args, **kw):
 		lineno += 1
 		line = line.decode('utf-8', 'ignore').rstrip()
 		tokens = line.split()
-		if tokens[0] == '.comment':
+		if tokens[0] in ('.c', '.comment'):
 			pass
 		elif tokens[0] == '.color':
 			if len(tokens) == 2 and is_int(tokens[1]):
@@ -111,11 +112,12 @@ def open(stream, *args, **kw):
 			p0 = Point(data[0:3])
 			p1 = Point(data[3:6])
 			radius = data[6]
-			model.graphics.add_cylinder(radius, p0, p1, cur_color, transforms[-1])
-			if len(tokens) != 9:
-				# TODO: invert orientation of one disk
-				model.graphics.add_disk(0, radius, p0, cur_color, transforms[-1])
-				model.graphics.add_disk(0, radius, p1, cur_color, transforms[-1])
+			if len(tokens) < 9:
+				bottom = top = True
+			else:
+				bottom = top = False
+			model.graphics.add_cylinder(radius, p0, p1, cur_color,
+				bottom=bottom, top=top, xform=transforms[-1])
 			num_objects += 1
 		elif tokens[0] == '.box':
 			if len(tokens) != 7:
@@ -135,9 +137,9 @@ def open(stream, *args, **kw):
 			p1 = Point(data[0:3])
 			p2 = Point(data[3:6])
 			junction = p1 + rho * (p2 - p1)
-			model.graphics.add_cylinder(r1, p1, junction, cur_color, transforms[-1])
-			model.graphics.add_cone(r2, junction, p2, cur_color, transforms[-1])
-			model.graphics.add_disk(0, r2, junction, cur_color, transforms[-1])
+			model.graphics.add_cylinder(r1, p1, junction, cur_color,
+				bottom=True, top=False, xform=transforms[-1])
+			model.graphics.add_cone(r2, junction, p2, cur_color, bottom=True, xform=transforms[-1])
 			num_objects += 1
 		elif tokens[0] == '.pop':
 			if len(transforms) == 1:
