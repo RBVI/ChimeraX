@@ -113,7 +113,7 @@ build_cone(const int N)
 		GLfloat n[3];	// normal
 		GLfloat pos[3];	// position
 	};
-	npinfo *data = new npinfo [N * 3];
+	npinfo *data = new npinfo [N * 2];
 	unsigned num_indices = N * 2 + 2;
 	GLushort *indices = new GLushort [num_indices];
 	// TODO: the right normal, need to scale normals in vertex program?
