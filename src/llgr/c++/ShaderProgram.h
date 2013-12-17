@@ -12,6 +12,8 @@
 
 namespace llgr {
 
+namespace internal {
+
 class Texture;
 class ShaderProgram;
 
@@ -135,6 +137,8 @@ ShaderProgram::attributes()
 {
 	return attributes_;
 }
+
+} // namespace internal
 
 } // namespace llgr
 

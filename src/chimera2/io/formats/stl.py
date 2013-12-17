@@ -7,7 +7,7 @@ Read little-endian STL binary format.
 
 # code taken from chimera 1.7
 
-from chimera2 import generic3d, scene
+from chimera2 import generic3d
 
 _builtin_open = open
 
@@ -36,7 +36,7 @@ def open(filename, *args, **kw):
 	del comment	# make pyflakes happy
 
 	# Next read uint32 triangle count.
-	from numpy import fromstring, uint32, empty, float32, concatenate, array
+	from numpy import fromstring, uint32, empty, float32
 	tc = fromstring(input.read(4), uint32)        # triangle count
 
 	# Next read 50 bytes per triangle containing float32 normal vector

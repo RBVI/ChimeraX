@@ -30,7 +30,7 @@ __all__ = [
 
 from .math3d import (Point, weighted_point, Vector, cross,
 		Xform, Identity, Rotation, Translation,
-		frustum, ortho, look_at, camera_orientation, BBox)
+		frustum, ortho, look_at, camera_orientation, BBox, pi)
 from numpy import array, float32, uint, uint16, uint8, concatenate, append
 from math import radians
 from .trackchanges import track
@@ -422,12 +422,12 @@ class Graphics:
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
 
-	def add_cylinder(self, radius, p0, p1, color, xform=None):
+	def add_cylinder(self, radius, p0, p1, color, bottom=True, top=True, xform=None):
 		"""add cylinder to scene
 		
 		:param radius: the radius of the cylinder
-		:param p0: one endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
-		:param p1: the other endpoint of the cylinder, :py:class:`~chimera2.math3d.Point`
+		:param p0: bottom center of the cylinder, :py:class:`~chimera2.math3d.Point`
+		:param p1: top center of the cylinder, :py:class:`~chimera2.math3d.Point`
 		:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
 		"""
 		if xform is None:
@@ -449,7 +449,12 @@ class Graphics:
 			llgr.create_singleton(color_id, rgba)
 
 		# create translation matrix
-		matrix_id = llgr.next_matrix_id()
+		if bottom:
+			bottom = Xform(xform)
+			bottom.translate(p0)
+		if top:
+			top = Xform(xform)
+			top.translate(p1)
 		xform.translate(weighted_point([p0, p1]))
 		delta = p1 - p0
 		height = delta.length()
@@ -459,14 +464,133 @@ class Graphics:
 		angle = math.acos(cosine)
 		if axis.sqlength() > 0:
 			xform.rotate(axis, angle)
+			if bottom:
+				bottom.rotate(axis, angle)
+			if top:
+				top.rotate(axis, angle)
 		elif cosine < 0:	# delta == -cylAxis
-			xform.rotate(1, 0, 0, 180)
+			xform.rotate('x', pi)
+			if bottom:
+				bottom.rotate('x', pi)
+			if top:
+				top.rotate('x', pi)
+		if bottom:
+			bottom.rotate('x', pi)
+			self.add_disk(0, radius, color_id, xform=bottom)
+		if top:
+			self.add_disk(0, radius, color_id, xform=top)
 		mat = xform.getWebGLMatrix()
+		matrix_id = llgr.next_matrix_id()
 		llgr.create_matrix(matrix_id, mat, False)
 
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
+		if self.group_id is None:
+			self._new_group()
+		llgr.group_add(self.group_id, [obj_id])
+		self.data_ids.update([color_id])
+		self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
+
+	def add_cone(self, radius, p0, p1, color, bottom=True, xform=None):
+		"""add open cone to scene
+		
+		:param radius: the radius of the cone
+		:param p0: bottom center of the cone, :py:class:`~chimera2.math3d.Point`
+		:param p1: top center of the cone, :py:class:`~chimera2.math3d.Point`
+		:param color: the RGBA color of the cone (either a sequence of 4 floats, or an integer referring to a previously defined color)
+		"""
+		if xform is None:
+			xform = Identity()
+		else:
+			xform = Xform(xform)
+		if bottom:
+			bottom = Xform(xform)
+		b = BBox(p0 - radius, p0 + radius)
+		b.add(p1 - radius)
+		b.add(p1 + radius)
+		b.xform(xform)
+		self.bbox.add_bbox(b)
+		import llgr, math
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
+
+		# create translation matrix
+		matrix_id = llgr.next_matrix_id()
+		xform.translate(weighted_point([p0, p1]))
+		if bottom:
+			bottom.translate(p0)
+		delta = p1 - p0
+		height = delta.length()
+		coneAxis = Vector([0, 1, 0])
+		axis = cross(coneAxis, delta)
+		cosine = (coneAxis * delta) / height
+		angle = math.acos(cosine)
+		if axis.sqlength() > 0:
+			xform.rotate(axis, angle)
+			if bottom:
+				bottom.rotate(axis, angle)
+		elif cosine < 0:	# delta == -coneAxis
+			xform.rotate('x', pi)
+			if bottom:
+				bottom.rotate('x', pi)
+		if bottom:
+			bottom.rotate('x', pi)
+			self.add_disk(0, radius, color_id, xform=bottom)
+		mat = xform.getWebGLMatrix()
+		llgr.create_matrix(matrix_id, mat, False)
+
+		obj_id = llgr.next_object_id()
+		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
+		llgr.add_cone(obj_id, radius, height, _program_id, matrix_id, [ai])
+		if self.group_id is None:
+			self._new_group()
+		llgr.group_add(self.group_id, [obj_id])
+		self.data_ids.update([color_id])
+		self.matrix_ids.update([matrix_id])
+		self.object_ids.update([obj_id])
+		track.modified(Graphics, [self], self.MORE_OBJECTS)
+
+	def add_disk(self, inner_radius, outer_radius, color, xform=None):
+		"""add disk to scene
+		
+		:param inner_radius: the inner radius of the disk
+		:param outer_radius: the outer radius of the disk
+		:param color: the RGBA color of the disk (either a sequence of 4
+		floats, or an integer referring to a previously defined color)
+		"""
+		if xform is None:
+			xform = Identity()
+		else:
+			xform = Xform(xform)
+		pt = Point([0, 0, 0])
+		b = BBox(pt - outer_radius, pt + outer_radius)
+		b.xform(xform)
+		self.bbox.add_bbox(b)
+		import llgr, math
+		if isinstance(color, int):
+			color_id = color
+		else:
+			color_id = llgr.next_data_id()
+			assert len(color) == 4
+			rgba = array(color, dtype=float32)
+			llgr.create_singleton(color_id, rgba)
+
+		# create translation matrix
+		matrix_id = llgr.next_matrix_id()
+		mat = xform.getWebGLMatrix()
+		llgr.create_matrix(matrix_id, mat, False)
+
+		obj_id = llgr.next_object_id()
+		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
+		llgr.add_disk(obj_id, inner_radius, outer_radius, _program_id, matrix_id, [ai])
 		if self.group_id is None:
 			self._new_group()
 		llgr.group_add(self.group_id, [obj_id])
