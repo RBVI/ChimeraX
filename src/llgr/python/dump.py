@@ -601,17 +601,17 @@ def add_cone(obj_id: Id, radius: Number, length: Number,
 
 @typecheck
 def add_disk(obj_id: Id, inner_radius: Number, outer_radius: Number,
-		length: Number, program_id: Id, matrix_id: Id,
+		program_id: Id, matrix_id: Id,
 		list_of_attributeInfo: list_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['add_disk', [obj_id, inner_radius, outer_radius, length, program_id, matrix_id, list_of_attributeInfo]])
+		_calls.append(['add_disk', [obj_id, inner_radius, outer_radius, program_id, matrix_id, list_of_attributeInfo]])
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
 	for ai in list_of_attributeInfo:
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
 	_calls.append('\tadd_disk(%r, %r, %r, %r, %r, %r, %s, "%s", "%s");'
-			% (obj_id, inner_radius, outer_radius, length,
+			% (obj_id, inner_radius, outer_radius,
 			program_id, matrix_id, aname))
 
 # misc
