@@ -8,7 +8,7 @@ class Camera:
     in scene units, and also the eye spacing in pixels in the window.  The two eyes
     are considered 2 views that belong to one camera.
     '''
-    def __init__(self, window_size, mode = 'mono'):
+    def __init__(self, window_size, mode = 'mono', eye_separation_pixels = 200):
 
         self.window_size = window_size
 
@@ -22,7 +22,7 @@ class Camera:
 
         self.mode = mode                          # 'mono', 'stereo', 'oculus'
         self.eye_separation_scene = 1.0           # Scene distance units
-        self.eye_separation_pixels = 200.0        # Screen pixel units
+        self.eye_separation_pixels = eye_separation_pixels        # Screen pixel units
 
         self.redraw_needed = False
 
@@ -155,7 +155,7 @@ class Camera:
         if m == 'stereo' and not view_num is None:
             s = -1 if view_num == 0 else 1
             esp = self.eye_separation_pixels
-            xwshift = s*0.5*esp/ww
+            xwshift = s*float(esp)/ww
         else:
             xwshift = 0
         pm = frustum(left, right, bot, top, near, far, xwshift)
@@ -206,13 +206,16 @@ class Camera:
         from .. import draw
         if m == 'mono':
             render.set_mono_buffer()
+            render.draw_background()
         elif m == 'stereo':
             render.set_stereo_buffer(view_num)
+            render.draw_background()
         elif m == 'oculus':
             render.set_mono_buffer()
             w,h = self.window_size
             if view_num == 0:
                 render.set_drawing_region(0,0,w//2,h)
+                render.draw_background()
             elif view_num == 1:
                 render.set_drawing_region(w//2,0,w//2,h)
         else:
@@ -235,3 +238,79 @@ def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
          (A, B, C, -1),
          (0, 0, D, 0))
     return m
+
+def camera_command(cmdname, args):
+
+    from .commands import float_arg, floats_arg, no_arg, parse_arguments
+    req_args = ()
+    opt_args = ()
+    kw_args = (('mono', no_arg),
+               ('stereo', no_arg),
+               ('oculus', no_arg),
+               ('fieldOfView', float_arg),      # degrees, width
+               ('eyeSeparation', float_arg),    # physical units
+               ('screenWidth', float_arg),      # physical units
+               ('sEyeSeparation', float_arg),   # scene units
+               ('middleDistance', no_arg),      # Adjust scene eye sep so models at screen depth.
+               ('depthScale', float_arg),       # Scale scene and pixel eye separations
+               ('nearFarClip', floats_arg, {'allowed_counts':(2,)}),     # scene units
+               ('report', no_arg),
+           )
+
+    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    camera(**kw)
+
+def camera(mono = None, stereo = None, oculus = None, fieldOfView = None, 
+           eyeSeparation = None, screenWidth = None, sEyeSeparation = None,
+           middleDistance = False, depthScale = None,
+           nearFarClip = None, report = False):
+
+    from .gui import main_window
+    v = main_window.view
+    c = v.camera
+    
+    if mono or stereo or oculus:
+        mode = 'mono' if mono else ('stereo' if stereo else 'oculus')
+        v.set_camera_mode(mode)
+    if not fieldOfView is None:
+        c.field_of_view = fieldOfView
+        c.redraw_needed = True
+    if not eyeSeparation is None or not screenWidth is None:
+        if eyeSeparation is None or screenWidth is None:
+            from .commands import CommandError
+            raise CommandError('Must specify eyeSeparation and screenWidth, only ratio is used')
+        c.eye_separation_pixels = (eyeSeparation / screenWidth) * v.screen().size().width()
+        c.redraw_needed = True
+    if not sEyeSeparation is None:
+        c.eye_separation_scene = sEyeSeparation
+        c.redraw_needed = True
+    if middleDistance:
+        center, s = v.bounds_center_and_width()
+        wscene = c.view_width(center)
+        wpixels = v.window_size[0]
+        c.eye_separation_scene = wscene * c.eye_separation_pixels / wpixels
+        c.redraw_needed = True
+    if not depthScale is None:
+        # This scales the apparent depth while leaving apparent distance to models the same.
+        c.eye_separation_pixels *= depthScale
+        c.eye_separation_scene *= depthScale
+        c.redraw_needed = True
+    if not nearFarClip is None:
+        n,f = nearFarClip
+        if n >= f:
+            from .commands import CommandError
+            raise CommandError('Near clip distance must be less than far clip distance')
+        c.near_far_clip = nearFarClip
+        c.redraw_needed = True
+    if report:
+        from .gui import show_info, show_status
+        msg = ('Camera\n' +
+               'position %.5g %.5g %.5g\n' % tuple(c.position()) +
+               'view direction %.6f %.6f %.6f\n' % tuple(c.view_direction()) +
+               'field of view %.5g degrees\n' % c.field_of_view +
+               'mode %s\n' % c.mode +
+               'near clip %.5g, far clip %.5g\n' % tuple(c.near_far_clip) +
+               'eye separation pixels %.5g, scene %.5g' % (c.eye_separation_pixels, c.eye_separation_scene))
+        show_info(msg)
+        smsg = 'Camera mode %s, field of view %.4g degrees' % (c.mode, c.field_of_view)
+        show_status(smsg)

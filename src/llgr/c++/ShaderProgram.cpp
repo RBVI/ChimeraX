@@ -20,12 +20,9 @@
 
 namespace llgr {
 
-using std::string;
+namespace internal {
 
-#ifndef OTF_NO_LOCALE
-const std::ctype<string::value_type> &ct
-    = std::use_facet<std::ctype<string::value_type>>(std::locale::classic());
-#endif
+using std::string;
 
 GLuint	current_programObj;
 
@@ -396,16 +393,6 @@ ShaderVariable::draw_uniform() const
 	}
 }
 
-inline bool
-isSpace(string::traits_type::char_type c)
-{
-#ifdef OTF_NO_LOCALE
-	return isspace(c);
-#else
-	return ct.is(ct.space, c);
-#endif
-}
-
 ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment_shader, const string& attribute0_name): programObj(0), vs(0), fs(0)
 {
 	class GuardProgram {
@@ -648,5 +635,7 @@ ShaderProgram::cleanup() const throw ()
 	glUseProgram(0);
 	current_programObj = 0;
 }
+
+} // namespace internal
 
 } // namespace llgr

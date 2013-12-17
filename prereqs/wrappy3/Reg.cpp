@@ -47,7 +47,7 @@ public:
 RegData *
 Reg::init(char const *pattern, int flags) throw (Error)
 {
-	std::auto_ptr<RegData> tmp(new RegData);
+	std::unique_ptr<RegData> tmp(new RegData);
 	if (tmp.get() == NULL)
 		throw Error(NULL, -2);
 	int result = regcomp(&tmp->preg, pattern, compFlags(flags));

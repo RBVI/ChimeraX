@@ -327,9 +327,10 @@ def initialize_formats():
 def deduce_format(filename, default_name=None, prefixable=True):
 	"""Figure out named format associated with filename
 	
-	Return tuple of deduced format, whether it was a prefix reference,
-	the unmangled filename, and the compression format (if present).
-	If it is a prefix reference, then it needs to be fetched.
+	Return tuple of deduced format namea, whether it was a prefix
+	reference, the unmangled filename, and the compression format
+	(if present).  If it is a prefix reference, then it needs to
+	be fetched.
 	"""
 	name = None
 	prefixed = False
@@ -411,11 +412,11 @@ def open(filespec, identify_as=None, **kw):
 	"""
 
 	from chimera2.cli import UserError
-	name, prefix, filelike, compression = deduce_format(filespec)
+	name, prefix, filename, compression = deduce_format(filespec)
 	if name is None:
 		raise UserError("Missing or unknown file type")
 	if not identify_as:
-		identify_as = name
+		identify_as = filename
 	open_func = open_function(name)
 	if open_func is None:
 		raise UserError("unable to open %s files" % name)
@@ -423,11 +424,11 @@ def open(filespec, identify_as=None, **kw):
 		fetch = fetch_function(name)
 		if fetch is None:
 			raise UserError("unable to fetch %s files" % name)
-		stream = fetch(filelike)
+		stream = fetch(filename)
 	else:
 		if not compression:
 			import os
-			filename = os.path.expanduser(os.path.expandvars(filelike))
+			filename = os.path.expanduser(os.path.expandvars(filename))
 			try:
 				stream = _builtin_open(filename, 'rb')
 			except OSError as e:
@@ -435,7 +436,7 @@ def open(filespec, identify_as=None, **kw):
 		else:
 			stream_type = _compression[name]
 			try:
-				stream = stream_type(filelike)
+				stream = stream_type(filename)
 			except OSError as e:
 				raise UserError(e)
 			if requires_seeking(name):
@@ -465,13 +466,13 @@ def open(filespec, identify_as=None, **kw):
 
 def save(filename, **kw):
 	from chimera2.cli import UserError
-	name, prefix, filelike, compression = deduce_format(filename, prefixable=False)
+	name, prefix, filename, compression = deduce_format(filename, prefixable=False)
 	if name is None:
 		raise UserError("Missing or unknown file type")
 	func = save_function(name)
 	if not compression:
-		stream = open(filelike, 'wb')
+		stream = open(filename, 'wb')
 	else:
 		stream_type = _compression[name]
-		stream = stream_type(filelike)
+		stream = stream_type(filename)
 	return func(stream, **kw)

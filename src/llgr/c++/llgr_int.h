@@ -12,15 +12,13 @@
 # include <unordered_map>
 # include <unordered_set>
 
-# define USE_VAO
-
 namespace llgr {
-
-class ShaderProgram;
 
 namespace internal {
 
-extern bool hasGLError(const char *message);
+class ShaderProgram;
+
+LLGR_IMEX extern bool hasGLError(const char *message);
 
 extern bool initialized;
 extern void init();
@@ -94,36 +92,28 @@ struct ObjectInfo {
 	unsigned first, count;
 	Id	index_buffer_id;
 	DataType index_buffer_type;
-#ifdef USE_VAO
 	mutable bool		cache_valid;
 	mutable SingletonCache	singleton_cache;
 	GLuint	vao;
-#endif
 	ObjectInfo(Id s, Id m, const AttributeInfos &a, PrimitiveType pt, unsigned f, unsigned c):
 			program_id(s), matrix_id(m),
 			hide(false), transparent(false), selected(false),
 			ais(a), ptype(pt), first(f), count(c),
-			index_buffer_id(0), index_buffer_type(Byte)
-#ifdef USE_VAO
-			, cache_valid(false), vao(0)
-#endif
+			index_buffer_id(0), index_buffer_type(Byte),
+			cache_valid(false), vao(0)
 			{
 			}
 	ObjectInfo(Id s, Id m, const AttributeInfos &a, PrimitiveType pt, unsigned f, unsigned c, Id ib, DataType t):
 			program_id(s), matrix_id(m),
 			hide(false), transparent(false),
 			ais(a), ptype(pt), first(f), count(c),
-			index_buffer_id(ib), index_buffer_type(t)
-#ifdef USE_VAO
-			, cache_valid(false), vao(0)
-#endif
+			index_buffer_id(ib), index_buffer_type(t),
+			cache_valid(false), vao(0)
 			{
 			}
 	ObjectInfo() {}
-#ifdef USE_VAO
 	bool valid_cache() const { return cache_valid; }
 	void invalidate_cache() { cache_valid = false; }
-#endif
 };
 
 typedef std::unordered_map<Id, ObjectInfo*> AllObjects;

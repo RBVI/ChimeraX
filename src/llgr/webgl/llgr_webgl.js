@@ -82,6 +82,8 @@ function PrimitiveInfo(data_id, index_count, index_id, index_type)
 }
 var proto_spheres = {};
 var proto_cylinders = {};
+var proto_cones = {};
+var proto_fans = {};
 
 function ShaderProgram(program, vs, fs)
 {
@@ -498,12 +500,8 @@ function build_sphere(num_vertices)
 						index_id, llgr.UShort);
 }
 
-function build_cylinder(num_spokes, bottom, top)
+function build_cylinder(num_spokes)
 {
-	bottom = bottom || false;
-	top = top || false;
-	// TODO: add optional bottom and top caps
-
 	var np = new Float32Array(12 * num_spokes);	// normal, position
 	var num_indices = num_spokes * 2 + 2;
 	var indices, index_type;
@@ -522,20 +520,20 @@ function build_cylinder(num_spokes, bottom, top)
 		var theta = 2 * Math.PI * i / num_spokes;
 		var x = Math.cos(theta);
 		var z = Math.sin(theta);
-		var o = i * 6;
-		np[o + 0] = x;
-		np[o + 1] = 0;
-		np[o + 2] = z;
-		np[o + 3] = x;
-		np[o + 4] = -1;
-		np[o + 5] = z;
-		var o2 = (i + num_spokes) * 6;
-		np[o2 + 0] = np[o + 0];
-		np[o2 + 1] = np[o + 1];
-		np[o2 + 2] = np[o + 2];
-		np[o2 + 3] = np[o + 3];
-		np[o2 + 4] = 1;
-		np[o2 + 5] = np[o + 5];
+		var offset = i * 6;
+		np[offset + 0] = x;
+		np[offset + 1] = 0;
+		np[offset + 2] = z;
+		np[offset + 3] = x;
+		np[offset + 4] = -1;
+		np[offset + 5] = z;
+		var offset2 = (i + num_spokes) * 6;
+		np[offset2 + 0] = np[offset + 0];
+		np[offset2 + 1] = np[offset + 1];
+		np[offset2 + 2] = np[offset + 2];
+		np[offset2 + 3] = np[offset + 3];
+		np[offset2 + 4] = 1;
+		np[offset2 + 5] = np[offset + 5];
 		indices[i * 2 + 0] = i;
 		indices[i * 2 + 1] = i + num_spokes;
 	}
@@ -548,6 +546,79 @@ function build_cylinder(num_spokes, bottom, top)
 	llgr.create_buffer(index_id, llgr.ELEMENT_ARRAY, indices);
 	proto_cylinders[num_spokes] = new PrimitiveInfo(np_id, num_indices,
 							index_id, index_type);
+}
+
+function build_cone(num_spokes)
+{
+	var np = new Float32Array(12 * num_spokes);	// normal, position
+	var num_indices = num_spokes * 2 + 2;
+	var indices, index_type;
+	if (num_indices < 256) {
+		indices = new Uint8Array(num_indices);
+		index_type = llgr.UByte;
+	} else if (num_indices < 65536) {
+		indices = new Uint16Array(num_indices);
+		index_type = llgr.UShort;
+	} else {
+		// needs OES_element_index_uint extension
+		indices = new Uint32Array(num_indices);
+		index_type = llgr.UInt;
+	}
+	for (var i = 0; i < num_spokes; ++i) {
+		var theta = 2 * Math.PI * i / num_spokes;
+		var x = Math.cos(theta);
+		var z = Math.sin(theta);
+		var offset = i * 6;
+		np[offset + 0] = x;
+		np[offset + 1] = 0;
+		np[offset + 2] = z;
+		np[offset + 3] = x;
+		np[offset + 4] = -1;
+		np[offset + 5] = z;
+		var offset2 = (i + num_spokes) * 6;
+		np[offset2 + 0] = np[offset + 0];
+		np[offset2 + 1] = np[offset + 1];
+		np[offset2 + 2] = np[offset + 2];
+		np[offset2 + 3] = 0;
+		np[offset2 + 4] = 1;
+		np[offset2 + 5] = 0;
+		indices[i * 2 + 0] = i;
+		indices[i * 2 + 1] = i + num_spokes;
+	}
+	indices[num_spokes * 2 + 0] = 0;
+	indices[num_spokes * 2 + 1] = num_spokes;
+
+	var np_id = --internal_buffer_id;
+	var index_id = --internal_buffer_id;
+	llgr.create_buffer(np_id, llgr.ARRAY, np);
+	llgr.create_buffer(index_id, llgr.ELEMENT_ARRAY, indices);
+	proto_cones[num_spokes] = new PrimitiveInfo(np_id, num_indices,
+							index_id, index_type);
+}
+
+function build_fan(num_spokes)
+{
+	var pts = new Float32Array(3 * num_spokes + 6);	// positions
+	var num_indices = num_spokes + 2;
+	pts[0] = pts[1] = pts[2] = 0;
+	var offset;
+	for (var i = 0; i < num_spokes; ++i) {
+		var theta = 2 * Math.PI * i / num_spokes;
+		var x = Math.cos(theta);
+		var z = Math.sin(theta);
+		offset = (num_spokes - i) * 3;
+		pts[offset + 0] = x;
+		pts[offset + 1] = 0;
+		pts[offset + 2] = z;
+	}
+	offset = num_spokes * 3 + 3;
+	pts[offset + 0] = pts[3];
+	pts[offset + 1] = pts[4];
+	pts[offset + 2] = pts[5];
+
+	var pts_id = --internal_buffer_id;
+	llgr.create_buffer(pts_id, llgr.ARRAY, pts);
+	proto_fans[num_spokes] = new PrimitiveInfo(pts_id, num_indices, 0, 0);
 }
 
 llgr = {
@@ -1002,9 +1073,20 @@ llgr = {
 				llgr.delete_buffer(info.data_id);
 				llgr.delete_buffer(info.index_id);
 			}
+			for (radius in proto_cones) {
+				info = proto_cones[radius];
+				llgr.delete_buffer(info.data_id);
+				llgr.delete_buffer(info.index_id);
+			}
+			for (radius in proto_fans) {
+				info = proto_fans[radius];
+				llgr.delete_buffer(info.data_id);
+			}
 		}
 		proto_spheres = {};
 		proto_cylinders = {};
+		proto_cones = {};
+		proto_fans = {};
 	},
 	add_sphere: function (obj_id, radius, program_id, matrix_id,
 				list_of_attributeInfo) {
@@ -1046,6 +1128,52 @@ llgr = {
 							0, 3, llgr.Float));
 		llgr.create_object(obj_id, program_id, matrix_id, mai,
 				llgr.Triangle_strip, 0,
+				pi.index_count, pi.index_id, pi.index_type);
+	},
+	add_cone: function (obj_id, radius, length, program_id, matrix_id,
+				list_of_attributeInfo) {
+		var N = 50;	// TODO: make dependent on radius in pixels
+		if (!(N in proto_cones)) {
+			build_cone(N);
+		}
+		var pi = proto_cones[N];
+		var mai = list_of_attributeInfo.slice(0);
+		mai.push(new llgr.AttributeInfo("normal", pi.data_id, 0, 24, 3,
+								llgr.Float));
+		mai.push(new llgr.AttributeInfo("position", pi.data_id, 12, 24,
+								3, llgr.Float));
+		var scale_id = --internal_buffer_id;
+		var scale = new Float32Array([radius, length / 2, radius]);
+		llgr.create_singleton(scale_id, scale);
+		mai.push(new llgr.AttributeInfo("instanceScale", scale_id, 0,
+							0, 3, llgr.Float));
+		llgr.create_object(obj_id, program_id, matrix_id, mai,
+				llgr.Triangle_strip, 0,
+				pi.index_count, pi.index_id, pi.index_type);
+	},
+	add_disk: function (obj_id, inner_radius, outer_radius, program_id,
+				    matrix_id, list_of_attributeInfo) {
+		// TODO: don't ignore inner_radius
+		var N = 50;	// TODO: make dependent on radius in pixels
+		if (!(N in proto_fans)) {
+			build_fan(N);
+		}
+		var pi = proto_fans[N];
+		var mai = list_of_attributeInfo.slice(0);
+		var normal_id = --internal_buffer_id;
+		var normal = new Float32Array([0, 1, 0]);
+		llgr.create_singleton(normal_id, normal);
+		mai.push(new llgr.AttributeInfo("normal", normal_id, 0, 0, 3,
+								llgr.Float));
+		mai.push(new llgr.AttributeInfo("position", pi.data_id, 0, 0, 3,
+								llgr.Float));
+		var scale_id = --internal_buffer_id;
+		var scale = new Float32Array([outer_radius, 1, outer_radius]);
+		llgr.create_singleton(scale_id, scale);
+		mai.push(new llgr.AttributeInfo("instanceScale", scale_id, 0,
+							0, 3, llgr.Float));
+		llgr.create_object(obj_id, program_id, matrix_id, mai,
+				llgr.Triangle_fan, 0,
 				pi.index_count, pi.index_id, pi.index_type);
 	},
 
@@ -1094,6 +1222,8 @@ llgr = {
 			selection_remove_group: llgr.selection_remove_group,
 			add_sphere: llgr.add_sphere,
 			add_cylinder: llgr.add_cylinder,
+			add_cone: llgr.add_cone,
+			add_disk: llgr.add_disk,
 			clear_primitives: llgr.clear_primitives,
 			clear_all: llgr.clear_all,
 			set_clear_color: llgr.set_clear_color,

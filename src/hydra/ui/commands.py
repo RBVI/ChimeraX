@@ -30,6 +30,8 @@ def register_commands():
     add_command('surface', gridsurf.surface_command)
     from .. import scenes
     add_command('scene', scenes.scene_command)
+    from . import camera
+    add_command('camera', camera.camera_command)
 
 # -----------------------------------------------------------------------------
 #
