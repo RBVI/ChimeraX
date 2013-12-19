@@ -50,10 +50,6 @@ class MainWindow(QtWidgets.QMainWindow):
         from . import commands
         commands.register_commands()
 
-        from . import spacenavigator
-        status = spacenavigator.Space_Navigator().start_event_processing(v)
-        print('started space navigator', status)
-
         self.create_toolbar()
 
         self.create_command_line()
@@ -230,6 +226,11 @@ def show_main_window():
     import sys
     global app
     app = QtWidgets.QApplication(sys.argv)
+#    d = app.desktop()
+#    print('screen count', d.screenCount())
+#    for s in range(d.screenCount()):
+#        g = d.screenGeometry(s)
+#        print('screen', s, 'size', g.width(), g.height(), 'top left', g.top(), g.left())
     # Seting icon does not work, mac qt 5.0.2.
     # Get Python launcher rocket icon in Dock.
     app.setWindowIcon(icon('reo.png'))
