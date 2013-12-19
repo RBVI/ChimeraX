@@ -1,1 +1,1 @@
-from .snav import Space_Navigator
+from .snav import toggle_space_navigator, toggle_fly_mode

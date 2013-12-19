@@ -8,21 +8,30 @@ class Space_Navigator:
         self.dominant = True    # Don't simultaneously rotate and translate
         self.fly_mode = False   # Control camera instead of models.
         self.view = None
+        self.device = None
+        self.processing_events = False
 
     def start_event_processing(self, view):
 
-        try:
-            self.device = find_device()
-        except:
-            raise
-            return False     # Connection failed.
+        if self.device is None:
+            try:
+                self.device = find_device()
+            except:
+                return False     # Connection failed.
 
         if self.device:
             self.view = view
             view.add_new_frame_callback(self.check_space_navigator)
+            self.processing_events = True
             return True
 
         return False
+
+    def stop_event_processing(self, view):
+
+        if self.processing_events:
+            view.remove_new_frame_callback(self.check_space_navigator)
+            self.processing_events = False
 
     def check_space_navigator(self):
 
@@ -57,8 +66,7 @@ class Space_Navigator:
 
         if rmag > 0:
             axis = array((rx/rmag, ry/rmag, rz/rmag), float32)
-            if self.fly_mode: f = 3
-            else: f = 30
+            f = 3 if self.fly_mode else 30
             angle = self.speed*(f*rmag/512)
             rtf = place.rotation(axis, angle)
             self.apply_transform(rtf)
@@ -66,10 +74,14 @@ class Space_Navigator:
         if tmag > 0:
             axis = array((tx/tmag, ty/tmag, tz/tmag), float32)
             v = self.view
-            view_width = v.camera.view_width(v.center_of_rotation)
-            shift = axis * 0.15 * self.speed * view_width * tmag/512
-            ttf = place.translation(shift)
-            self.apply_transform(ttf)
+#            view_width = v.camera.view_width(v.center_of_rotation)
+            b = v.bounds()
+            if not b is None:
+                f = .1 if self.fly_mode else 1
+                view_width = b[1]
+                shift = axis * 0.15 * self.speed * view_width * f * tmag/512
+                ttf = place.translation(shift)
+                self.apply_transform(ttf)
 
         if 'N1' in buttons or 31 in buttons:
             self.view_all()
@@ -131,3 +143,25 @@ def find_device():
         return Space_Device_Linux()
 
     return None
+
+# -----------------------------------------------------------------------------
+#
+sn = None
+def toggle_space_navigator(view):
+    global sn
+    if sn is None:
+        sn = Space_Navigator()
+        success = sn.start_event_processing(view)
+        print('started space navigator', success)
+    elif sn.processing_events:
+        sn.stop_event_processing(view)
+    else:
+        sn.start_event_processing(view)
+
+# -----------------------------------------------------------------------------
+#
+def toggle_fly_mode(view):
+    global sn
+    if sn is None:
+        toggle_space_navigator(view)
+    sn.fly_mode = not sn.fly_mode
