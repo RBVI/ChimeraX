@@ -7,8 +7,10 @@ PYSRCS = c2leap.py camera.py commands.py crossfade.py gui.py mousemodes.py qt.py
 
 ICONS = icons
 
-SUBDIRS	= spacenavigator
-include $(TOP)/mk/subdir.make
+ifeq ($(OS),Darwin)
+	SUBDIRS	= spacenavigator oculus
+	include $(TOP)/mk/subdir.make
+endif
 
 all: $(PYOBJS)
 
