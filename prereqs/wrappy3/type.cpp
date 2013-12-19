@@ -173,7 +173,7 @@ dumpWrapTypeOutline(std::ostream &output, const ClassInfo *ci)
 			"\t// like _new function, but use copy constructor\n";
 		if (!ci->isEmbedded)
 			output <<
-				"\tstd::auto_ptr<" << prefix << "> tmp(new "
+				"\tstd::unique_ptr<" << prefix << "> tmp(new "
 						<< prefix << "(*_o));\n";
 		output <<
 			"\t" << objectName << "* self = static_cast<"
@@ -220,7 +220,7 @@ bool
 dumpTypeHeader(const ClassInfo *ci)
 {
 	string filename(moduleName(ci, "Object.h"));
-	std::auto_ptr<std::ostream> outs(outputStream(filename).release());
+	std::unique_ptr<std::ostream> outs = outputStream(filename);
 	std::ostream &output = *outs.get();
 	string objectName(moduleName(ci, "object"));
 	string cppName(qualify(ci->cd->scope, ci->name.str()));
@@ -249,8 +249,7 @@ dumpTypeHeader(const ClassInfo *ci)
 		"\n"
 		<< exportTag << "extern PyTypeObject " << moduleName(ci, "objectType") << ";\n";
 
-	if (ci->isBaseClass) {
-		bool first = true;
+	if (ci->isBaseClass) { bool first = true;
 		for (AttrVec::const_iterator i = ci->attrs.begin();
 						i != ci->attrs.end(); ++i) {
 			const ClassAttrInfo &ai = *i;
@@ -1390,7 +1389,7 @@ dumpTypeCode(const ClassInfo *ci)
 	string objectName(moduleName(ci, "object"));
 	string cppName(qualify(ci->cd->scope, ci->name.str()));
 	string filename(moduleName(ci, "Object.cpp"));
-	std::auto_ptr<std::ostream> outs(outputStream(filename).release());
+	std::unique_ptr<std::ostream> outs = outputStream(filename);
 	std::ostream &output = *outs.get();
 
 	output <<

@@ -146,15 +146,16 @@ prefixLines(const string &prefix, const string &lines)
 	return result;
 }
 
-std::auto_ptr<std::ostream>
+std::unique_ptr<std::ostream>
 outputStream(const string &filename)
 {
-	typedef std::auto_ptr<std::ostream> OSptr;
+	std::ostream *os_ptr;
 	if (noOutput)
 		// TODO: use "sinkstream" instead of ostringstream below
-		return OSptr(new std::ostringstream());
+		os_ptr = new std::ostringstream();
 	else
-		return OSptr(new std::ofstream(filename.c_str()));
+		os_ptr = new std::ofstream(filename.c_str());
+	return std::unique_ptr<std::ostream>(os_ptr);
 }
 
 string

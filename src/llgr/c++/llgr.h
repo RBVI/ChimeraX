@@ -214,6 +214,11 @@ LLGR_IMEX extern void add_sphere(Id obj_id, float radius,
 	Id program_id, Id matrix_id, const AttributeInfos& ais);
 LLGR_IMEX extern void add_cylinder(Id obj_id, float radius, float length,
 	Id program_id, Id matrix_id, const AttributeInfos& ais);
+LLGR_IMEX extern void add_cone(Id obj_id, float radius, float length,
+	Id program_id, Id matrix_id, const AttributeInfos& ais);
+LLGR_IMEX extern void add_disk(Id obj_id, float inner_radius,
+	float outer_radius, Id program_id, Id matrix_id,
+	const AttributeInfos& ais);
 LLGR_IMEX extern void clear_primitives();
 
 // misc

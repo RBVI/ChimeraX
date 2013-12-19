@@ -52,7 +52,7 @@ install: $(SOURCE)
 ifndef WIN32
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl build-shared
-	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl install
+	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) -j1 PERL=perl install_sw
 else
 	cd $(SOURCE) && env MFLAGS= MAKEFLAGS= nmake /nologo /f ms/ntdll.mak
 	$(RSYNC) $(SOURCE)/out32dll/libeay32.dll $(shlibdir)

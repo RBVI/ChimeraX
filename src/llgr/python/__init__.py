@@ -24,7 +24,7 @@ Python interface
 _llgr_syms = [
 	## from _llgr
 	# functions
-	"add_cylinder", "add_sphere",
+	"add_cone", "add_cylinder", "add_disk", "add_sphere",
 	"clear_all", "clear_buffers", "clear_matrices",
 	"clear_objects", "clear_primitives", "clear_programs",
 	"create_buffer", "create_matrix", "create_object",

@@ -63,10 +63,8 @@ check_attributes(Id obj_id, ObjectInfo *oi)
 		return;
 	}
 
-#ifdef USE_VAO
 	oi->singleton_cache.clear();
 	oi->singleton_cache.reserve(2);
-#endif
 	ShaderProgram *sp = si->second;
 	for (const auto sv: sp->attributes()) {
 		if (sv->name() == "instanceTransform")
@@ -75,7 +73,6 @@ check_attributes(Id obj_id, ObjectInfo *oi)
 		if (aii == oi->ais.end()) {
 			std::cerr << "missing attribute " << sv->name() << " in object " << obj_id << '\n';
 		}
-#ifdef USE_VAO
 		const AttributeInfo &ai = *aii;
 		auto bii = all_buffers.find(ai.data_id);
 		if (bii == all_buffers.end())
@@ -91,9 +88,7 @@ check_attributes(Id obj_id, ObjectInfo *oi)
 		} else {
 			setup_array_attribute(bi, ai, loc, num_locations);
 		}
-#endif
 	}
-#ifdef USE_VAO
 	if (oi->index_buffer_id) {
 		auto bii = all_buffers.find(oi->index_buffer_id);
 		if (bii != all_buffers.end()) {
@@ -102,7 +97,6 @@ check_attributes(Id obj_id, ObjectInfo *oi)
 		}
 	}
 	oi->cache_valid = true;
-#endif
 }
 
 void
@@ -121,14 +115,10 @@ create_object(Id obj_id, Id program_id, Id matrix_id, const AttributeInfos& ais,
 	for (auto ai: oi->ais) {
 		ai.name = attribute_alias(ai.name);
 	}
-#ifdef USE_VAO
 	glGenVertexArrays(1, &oi->vao);
 	glBindVertexArray(oi->vao);
-#endif
 	check_attributes(obj_id, oi);
-#ifdef USE_VAO
 	glBindVertexArray(0);
-#endif
 }
 
 void
