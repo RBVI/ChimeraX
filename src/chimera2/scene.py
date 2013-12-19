@@ -353,6 +353,10 @@ class Graphics:
 	MORE_OBJECTS = 'more objects'
 	LESS_OBJECTS = 'less objects'
 
+	# Set to True in instance if object ids are added to
+	# group incrementally
+	default_group_add = False
+
 	def __init__(self):
 		self.bbox = BBox()
 		self.object_ids = set()
@@ -383,7 +387,13 @@ class Graphics:
 		self.group_id = llgr.next_group_id()
 		llgr.create_group(self.group_id)
 
-	def add_sphere(self, radius, center, color, xform=None):
+	def update_group_id(self):
+		if self.group_id is None:
+			self._new_group()
+		import llgr
+		llgr.group_add(self.group_id, list(self.object_ids))
+
+	def add_sphere(self, radius, center, color, xform=None, group_add=None):
 		"""add sphere to scene
 		
 		:param radius: the radius of the sphere
@@ -414,15 +424,17 @@ class Graphics:
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_sphere(obj_id, radius, _program_id, matrix_id, [ai])
-		if self.group_id is None:
-			self._new_group()
-		llgr.group_add(self.group_id, [obj_id])
+		if group_add or (group_add is None and self.default_group_add):
+			if self.group_id is None:
+				self._new_group()
+			llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
+		return [obj_id]
 
-	def add_cylinder(self, radius, p0, p1, color, bottom=True, top=True, xform=None):
+	def add_cylinder(self, radius, p0, p1, color, bottom=True, top=True, xform=None, group_add=False):
 		"""add cylinder to scene
 		
 		:param radius: the radius of the cylinder
@@ -430,6 +442,7 @@ class Graphics:
 		:param p1: top center of the cylinder, :py:class:`~chimera2.math3d.Point`
 		:param color: the RGBA color of the cylinder (either a sequence of 4 floats, or an integer referring to a previously defined color)
 		"""
+		objs = []
 		if xform is None:
 			xform = Identity()
 		else:
@@ -476,9 +489,11 @@ class Graphics:
 				top.rotate('x', pi)
 		if bottom:
 			bottom.rotate('x', pi)
-			self.add_disk(0, radius, color_id, xform=bottom)
+			o = self.add_disk(0, radius, color_id, xform=bottom)
+			objs.extend(o)
 		if top:
-			self.add_disk(0, radius, color_id, xform=top)
+			o = self.add_disk(0, radius, color_id, xform=top)
+			objs.extend(o)
 		mat = xform.getWebGLMatrix()
 		matrix_id = llgr.next_matrix_id()
 		llgr.create_matrix(matrix_id, mat, False)
@@ -486,15 +501,18 @@ class Graphics:
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_cylinder(obj_id, radius, height, _program_id, matrix_id, [ai])
-		if self.group_id is None:
-			self._new_group()
-		llgr.group_add(self.group_id, [obj_id])
+		if group_add or (group_add is None and self.default_group_add):
+			if self.group_id is None:
+				self._new_group()
+			llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
+		objs.append(obj_id)
+		return objs
 
-	def add_cone(self, radius, p0, p1, color, bottom=True, xform=None):
+	def add_cone(self, radius, p0, p1, color, bottom=True, xform=None, group_add=False):
 		"""add open cone to scene
 		
 		:param radius: the radius of the cone
@@ -502,6 +520,7 @@ class Graphics:
 		:param p1: top center of the cone, :py:class:`~chimera2.math3d.Point`
 		:param color: the RGBA color of the cone (either a sequence of 4 floats, or an integer referring to a previously defined color)
 		"""
+		objs = []
 		if xform is None:
 			xform = Identity()
 		else:
@@ -543,22 +562,26 @@ class Graphics:
 				bottom.rotate('x', pi)
 		if bottom:
 			bottom.rotate('x', pi)
-			self.add_disk(0, radius, color_id, xform=bottom)
+			o = self.add_disk(0, radius, color_id, xform=bottom)
+			objs.extend(o)
 		mat = xform.getWebGLMatrix()
 		llgr.create_matrix(matrix_id, mat, False)
 
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_cone(obj_id, radius, height, _program_id, matrix_id, [ai])
-		if self.group_id is None:
-			self._new_group()
-		llgr.group_add(self.group_id, [obj_id])
+		if group_add or (group_add is None and self.default_group_add):
+			if self.group_id is None:
+				self._new_group()
+			llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
+		objs.append(obj_id)
+		return objs
 
-	def add_disk(self, inner_radius, outer_radius, color, xform=None):
+	def add_disk(self, inner_radius, outer_radius, color, xform=None, group_add=False):
 		"""add disk to scene
 		
 		:param inner_radius: the inner radius of the disk
@@ -574,7 +597,7 @@ class Graphics:
 		b = BBox(pt - outer_radius, pt + outer_radius)
 		b.xform(xform)
 		self.bbox.add_bbox(b)
-		import llgr, math
+		import llgr
 		if isinstance(color, int):
 			color_id = color
 		else:
@@ -591,24 +614,25 @@ class Graphics:
 		obj_id = llgr.next_object_id()
 		ai = llgr.AttributeInfo("color", color_id, 0, 0, 4, llgr.Float)
 		llgr.add_disk(obj_id, inner_radius, outer_radius, _program_id, matrix_id, [ai])
-		if self.group_id is None:
-			self._new_group()
-		llgr.group_add(self.group_id, [obj_id])
+		if group_add or (group_add is None and self.default_group_add):
+			if self.group_id is None:
+				self._new_group()
+			llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
+		return [obj_id]
 
-	def add_box(self, p0, p1, color, xform=None):
+	def add_box(self, p0, p1, color, xform=None, group_add=False):
 		if xform is None:
 			xform = Identity()
 		else:
 			xform = Xform(xform)
-		#llb = Point(amin([p0, p1], axis=0))
-		#urf = Point(amax([p0, p1], axis=0))
-		#b = BBox(llb, urf)
 		b = BBox()
 		b.bulk_add([p0, p1])
+		scale = b.size() / 2
+		offset = b.center()
 		b.xform(xform)
 		self.bbox.add_bbox(b)
 		import llgr
@@ -624,11 +648,11 @@ class Graphics:
 			make_box_primitive()
 
 		scale_id = llgr.next_data_id()
-		scale = b.urf - b.llb
+		print('box scale', scale)
 		llgr.create_singleton(scale_id, array(scale, dtype=float32))
 
 		matrix_id = llgr.next_matrix_id()
-		xform.translate(b.llb)
+		xform.translate(offset)
 		mat = xform.getWebGLMatrix()
 		llgr.create_matrix(matrix_id, mat, False)
 
@@ -642,15 +666,17 @@ class Graphics:
 		]
 		llgr.create_object(obj_id, _program_id, matrix_id, ais, llgr.Triangles,
 			0, _box_indices.size, _box_indices_id, llgr.UByte)
-		if self.group_id is None:
-			self._new_group()
-		llgr.group_add(self.group_id, [obj_id])
+		if group_add or (group_add is None and self.default_group_add):
+			if self.group_id is None:
+				self._new_group()
+			llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([color_id, scale_id])
 		self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
+		return [obj_id]
 
-	def add_triangles(self, vertices, normals, color, indices):
+	def add_triangles(self, vertices, normals, color, indices, group_add=False):
 		# vertices: Nx3 numpy array of float32 vertices
 		# normals: Nx3 numpy array of float32 normals
 		# color: a color_id or a length 4 collection of RGBA
@@ -697,11 +723,16 @@ class Graphics:
 
 		llgr.create_object(obj_id, _program_id, matrix_id, ais,
 				llgr.Triangles, 0, ta.size, tri_id, index_type)
+		if group_add or (group_add is None and self.default_group_add):
+			if self.group_id is None:
+				self._new_group()
+			llgr.group_add(self.group_id, [obj_id])
 		self.data_ids.update([vn_id, tri_id, color_id, scale_id])
 		if matrix_id:
 			self.matrix_ids.update([matrix_id])
 		self.object_ids.update([obj_id])
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
+		return [obj_id]
 
 def make_box_primitive():
 	global _box_pn_id, _box_indices_id
@@ -722,44 +753,43 @@ def make_box_primitive():
 	# interleave vertex position and normal (px, py, pz, nx, ny, nz)
 	_box_pn = array([
 		# -x, v0-v4-v2-v6
-		[0, 0, 0,  -1, 0, 0],
-		[0, 0, 1,  -1, 0, 0],
-		[0, 1, 0,  -1, 0, 0],
-		[0, 1, 1,  -1, 0, 0],
+		[-1, -1, -1,  -1, 0, 0],
+		[-1, -1,  1,  -1, 0, 0],
+		[-1,  1, -1,  -1, 0, 0],
+		[-1,  1,  1,  -1, 0, 0],
 
 		# -y, v0-v1-v4-v5
-		[0, 0, 0,  0, -1, 0],
-		[1, 0, 0,  0, -1, 0],
-		[0, 0, 1,  0, -1, 0],
-		[1, 0, 1,  0, -1, 0],
+		[-1, -1, -1,  0, -1, 0],
+		[ 1, -1, -1,  0, -1, 0],
+		[-1, -1,  1,  0, -1, 0],
+		[ 1, -1,  1,  0, -1, 0],
 
 		# -z, v1-v0-v3-v2
-		[1, 0, 0,  0, 0, -1],
-		[0, 0, 0,  0, 0, -1],
-		[1, 1, 0,  0, 0, -1],
-		[0, 1, 0,  0, 0, -1],
+		[ 1, -1, -1,  0, 0, -1],
+		[-1, -1, -1,  0, 0, -1],
+		[ 1,  1, -1,  0, 0, -1],
+		[-1,  1, -1,  0, 0, -1],
 
 		# x, v5-v1-v7-v3
-		[1, 0, 1,  1, 0, 0],
-		[1, 0, 0,  1, 0, 0],
-		[1, 1, 1,  1, 0, 0],
-		[1, 1, 0,  1, 0, 0],
+		[ 1, -1,  1,  1, 0, 0],
+		[ 1, -1, -1,  1, 0, 0],
+		[ 1,  1,  1,  1, 0, 0],
+		[ 1,  1, -1,  1, 0, 0],
 
 		# y, v3-v2-v7-v6
-		[1, 1, 0,  0, 1, 0],
-		[0, 1, 0,  0, 1, 0],
-		[1, 1, 1,  0, 1, 0],
-		[0, 1, 1,  0, 1, 0],
+		[ 1,  1, -1,  0, 1, 0],
+		[-1,  1, -1,  0, 1, 0],
+		[ 1,  1,  1,  0, 1, 0],
+		[-1,  1,  1,  0, 1, 0],
 
 		# z, v4-v5-v6-v7
-		[0, 0, 1,  0, 0, 1],
-		[1, 0, 1,  0, 0, 1],
-		[0, 1, 1,  0, 0, 1],
-		[1, 1, 1,  0, 0, 1],
+		[-1, -1,  1,  0, 0, 1],
+		[ 1, -1,  1,  0, 0, 1],
+		[-1,  1,  1,  0, 0, 1],
+		[ 1,  1,  1,  0, 0, 1],
 	], dtype=float32)
 	_box_pn_id = llgr.next_data_id()
 	llgr.create_buffer(_box_pn_id, llgr.ARRAY, _box_pn)
-
 	_box_indices = array([
 		[0, 1, 2], [2, 1, 3],		# -x
 		[4, 5, 6], [6, 5, 7],		# -y

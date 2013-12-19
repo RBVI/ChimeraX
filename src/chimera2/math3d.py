@@ -544,6 +544,10 @@ class BBox:
         if urf is not None:
             self.urf = Point(urf)
 
+    def __repr__(self):
+        cls = self.__class__
+        return "%s.%s(%r, %r)" % (cls.__module__, cls.__qualname__, self.llb, self.urf)
+
     def add(self, pt):
         """expand bounding box to encompass given point
 

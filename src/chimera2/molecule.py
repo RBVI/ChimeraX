@@ -14,6 +14,7 @@ class Molecule(open_models.Model):
 		self.mol_blob = None
 		self.num_atoms = 0
 		self.num_bonds = 0
+		self.atom_objs = []
 
 	def close(self):
 		open_models.Model.close(self)
@@ -30,11 +31,15 @@ class Molecule(open_models.Model):
 		self.num_atoms = len(coords)
 		self.num_bonds = len(bond_list)
 
+		self.atom_objs = [None] * len(coords)
+		from itertools import count
+		i = count()
 		for center, en in zip(coords, element_numbers):
 			radius = element_radius(en)
 			rgb = element_color(en)
 			color = [x / 255.0 for x in rgb] + [1]
-			self.graphics.add_sphere(radius, Point(center), color, None)
+			objs = self.graphics.add_sphere(radius, Point(center), color, None)
+			self.atom_objs[next(i)] = objs
 
 		for a0, a1 in bond_list:
 			radius = 0.2
@@ -45,8 +50,11 @@ class Molecule(open_models.Model):
 			rgb1 = element_color(element_numbers[a1])
 			color1 = [x / 255.0 for x in rgb1] + [1]
 			mid = weighted_point([p0, p1])
-			self.graphics.add_cylinder(radius, p0, mid, color0, False, False)
-			self.graphics.add_cylinder(radius, p1, mid, color1, False, False)
+			objs = self.graphics.add_cylinder(radius, p0, mid, color0, False, False)
+			self.atom_objs[a0].extend(objs)
+			objs = self.graphics.add_cylinder(radius, p1, mid, color1, False, False)
+			self.atom_objs[a1].extend(objs)
+		self.graphics.update_group_id()
 
 _element_colors = dict(enumerate([
 	[255, 255, 255], [217, 255, 255], [204, 128, 255], [194, 255, 0],
