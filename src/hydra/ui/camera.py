@@ -153,7 +153,7 @@ class Camera:
             aspect *= 2
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
-        if m == 'stereo' and not view_num is None:
+        if m in ('stereo','oculus') and not view_num is None:
             s = -1 if view_num == 0 else 1
             esp = self.eye_separation_pixels
             xwshift = s*float(esp)/ww
