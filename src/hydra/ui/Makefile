@@ -7,10 +7,17 @@ PYSRCS = c2leap.py camera.py commands.py crossfade.py gui.py mousemodes.py qt.py
 
 ICONS = icons
 
+ifeq ($(OS),Darwin)
+	SUBDIRS	= spacenavigator oculus
+	include $(TOP)/mk/subdir.make
+endif
+
 all: $(PYOBJS)
 
 install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(ICONS) $(PKG_DIR)
+
+$(SUBDIR_INSTALL): pkg_dir
 
 clean:
 	rm -rf __pycache__

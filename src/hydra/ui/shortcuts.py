@@ -90,6 +90,9 @@ def register_shortcuts(viewer):
         ('Mo', mono_mode, 'Set mono camera mode', gcat),
         ('So', stereo_mode, 'Set sequential stereo mode', gcat),
         ('Oc', oculus_mode, 'Set Oculus Rift stereo mode', gcat),
+        ('oc', start_oculus, 'Start Oculus Rift stereo', gcat),
+        ('sn', toggle_space_navigator, 'Toggle use of space navigator', gcat),
+        ('nf', toggle_space_navigator_fly_mode, 'Toggle space navigator fly mode', gcat),
     )
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
@@ -569,7 +572,18 @@ def stereo_mode(viewer):
     viewer.set_camera_mode('stereo')
 def oculus_mode(viewer):
     viewer.set_camera_mode('oculus')
-            
+def start_oculus(viewer):
+    from . import oculus
+    oculus.start_oculus(viewer)
+
+def toggle_space_navigator(viewer):
+    from . import spacenavigator
+    spacenavigator.toggle_space_navigator(viewer)
+
+def toggle_space_navigator_fly_mode(viewer):
+    from . import spacenavigator
+    spacenavigator.toggle_fly_mode(viewer)
+
 def quit():
     import sys
     sys.exit(0)
