@@ -124,7 +124,7 @@ LLGR_IMEX extern void clear_matrices();
 // flat scene graph
 
 struct AttributeInfo {
-	std::string name;
+	std::string name;	// TODO: intern, i.e., a Symbol
 	Id	data_id;
 	uint32_t offset;	// byte offset into buffer
 	uint32_t stride;	// byte stride to next element in buffer
@@ -152,7 +152,7 @@ LLGR_IMEX extern void set_attribute_alias(const std::string& name,
 LLGR_IMEX extern void create_object(Id obj_id, Id program_id, Id matrix_id,
 	const AttributeInfos& ais, PrimitiveType pt,
 	uint32_t first, uint32_t count,
-	Id index_data_id = 0, DataType index_data_type = Byte);
+	Id index_data_id = 0, DataType index_data_type = UByte);
 // LLGR_IMEX extern void remove_object(Id obj_id, Id matrix_id);
 LLGR_IMEX extern void delete_object(Id obj_id);
 LLGR_IMEX extern void clear_objects();

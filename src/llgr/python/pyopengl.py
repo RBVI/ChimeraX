@@ -391,7 +391,10 @@ def create_matrix(matrix_id: Id, matrix_4x4: Matrix_4x4, renormalize: bool=False
 		matrix_4x4 = matrix_4x4.getWebGLMatrix()
 	else:
 		assert(isinstance(matrix_4x4, numpy.ndarray))
-	data_id = next(_internal_buffer_id)
+	if matrix_id not in _all_matrices:
+		data_id = next(_internal_buffer_id)
+	else:
+		data_id = _all_matrices[matrix_id].data_id
 	create_singleton(data_id, matrix_4x4)
 	_all_matrices[matrix_id] = _MatrixInfo(data_id, renormalize)
 

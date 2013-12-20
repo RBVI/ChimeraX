@@ -305,13 +305,6 @@ render()
 
 	ShaderProgram *sp = NULL;
 	Id current_program_id = 0;
-	Id current_matrix_id = INT_MAX;
-	// instance transform singleton info
-	DataType it_type = Float;
-	unsigned char *it_data = NULL;
-	int it_loc = -1;
-	unsigned it_locations, it_elements;
-	attr_location_info(ShaderVariable::Mat4x4, &it_locations, &it_elements);
 	// TODO: only for opaque objects
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
@@ -331,34 +324,10 @@ render()
 			sp = i->second;
 			sp->setup();
 			current_program_id = oi->program_id;
-			current_matrix_id = INT_MAX;
-			ShaderVariable *sv = sp->attribute("instanceTransform");
-			it_loc = sv->location();
 		}
 		if (sp == NULL)
 			continue;
 		glBindVertexArray(oi->vao);
-		// setup instance matrix attribute
-		if (oi->matrix_id != current_matrix_id) {
-			Id data_id;
-			if (oi->matrix_id == 0) {
-				data_id = 0;
-			} else {
-				auto mii = all_matrices.find(oi->matrix_id);
-				if (mii == all_matrices.end())
-					continue;
-				const MatrixInfo &mi = mii->second;
-				data_id = mi.data_id;
-			}
-			auto bii = all_buffers.find(data_id);
-			if (bii == all_buffers.end())
-				continue;
-			const BufferInfo &bi = bii->second;
-			it_data = bi.data;
-			setup_singleton_attribute(it_data, it_type, false,
-					  it_loc, it_locations, it_elements);
-			current_matrix_id = oi->matrix_id;
-		}
 		for (auto& si: oi->singleton_cache) {
 			setup_singleton_attribute(si.data, si.type,
 					  si.normalized, si.base_location,
@@ -410,8 +379,6 @@ pick(int x, int y)
 
 	ShaderProgram *sp = NULL;
 	Id current_program_id = 0;
-	Id current_matrix_id = INT_MAX;
-	AttributeInfo matrix_ai("instanceTransform", 0, 0, 0, 16, Float);
 	Id pick_buffer_id = --internal_buffer_id;
 	create_singleton(pick_buffer_id, 4, NULL);
 	uint32_t *pick_id = NULL;
@@ -444,7 +411,6 @@ pick(int x, int y)
 			sp = i->second;
 			sp->setup();
 			current_program_id = oi->program_id;
-			current_matrix_id = INT_MAX;
 		}
 		if (sp == NULL)
 			continue;
@@ -455,20 +421,6 @@ pick(int x, int y)
 			if (bii == all_buffers.end())
 				continue;
 			ibi = &bii->second;
-		}
-		// setup instance matrix attribute
-		if (oi->matrix_id != current_matrix_id) {
-			if (oi->matrix_id == 0) {
-				matrix_ai.data_id = 0;
-			} else {
-				auto mii = all_matrices.find(oi->matrix_id);
-				if (mii == all_matrices.end())
-					continue;
-				const MatrixInfo &mi = mii->second;
-				matrix_ai.data_id = mi.data_id;
-			}
-			setup_attribute(sp, matrix_ai);
-			current_matrix_id = oi->matrix_id;
 		}
 		// setup pick id
 #ifndef PICK_DEBUG

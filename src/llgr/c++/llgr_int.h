@@ -95,17 +95,8 @@ struct ObjectInfo {
 	mutable bool		cache_valid;
 	mutable SingletonCache	singleton_cache;
 	GLuint	vao;
-	ObjectInfo(Id s, Id m, const AttributeInfos &a, PrimitiveType pt, unsigned f, unsigned c):
-			program_id(s), matrix_id(m),
-			hide(false), transparent(false), selected(false),
-			ais(a), ptype(pt), first(f), count(c),
-			index_buffer_id(0), index_buffer_type(Byte),
-			cache_valid(false), vao(0)
-			{
-			}
-	ObjectInfo(Id s, Id m, const AttributeInfos &a, PrimitiveType pt, unsigned f, unsigned c, Id ib, DataType t):
-			program_id(s), matrix_id(m),
-			hide(false), transparent(false),
+	ObjectInfo(Id s, AttributeInfos &&a, PrimitiveType pt, unsigned f, unsigned c, Id ib, DataType t):
+			program_id(s), hide(false), transparent(false),
 			ais(a), ptype(pt), first(f), count(c),
 			index_buffer_id(ib), index_buffer_type(t),
 			cache_valid(false), vao(0)

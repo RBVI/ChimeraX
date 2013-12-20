@@ -263,8 +263,8 @@
  	return NULL;
  }
  
--static const char _llgrcreate_object_doc[] = "create_object(obj_id: int, program_id: int, matrix_id: int, ais: list of AttributeInfo, pt: int, first: unsigned int, count: unsigned int, index_data_id: int = 0, index_data_type: int = Byte)";
-+static const char _llgrcreate_object_doc[] = "create_object(obj_id: int, program_id: int, matrix_id: int, ais: sequence of AttributeInfo, pt: int, first: unsigned int, count: unsigned int, index_data_id: int = 0, index_data_type: int = Byte)";
+-static const char _llgrcreate_object_doc[] = "create_object(obj_id: int, program_id: int, matrix_id: int, ais: list of AttributeInfo, pt: int, first: unsigned int, count: unsigned int, index_data_id: int = 0, index_data_type: int = UByte)";
++static const char _llgrcreate_object_doc[] = "create_object(obj_id: int, program_id: int, matrix_id: int, ais: sequence of AttributeInfo, pt: int, first: unsigned int, count: unsigned int, index_data_id: int = 0, index_data_type: int = UByte)";
  
  static PyObject*
  _llgr_create_program(PyObject*, PyObject* _args, PyObject* _keywds)
