@@ -433,7 +433,7 @@ class _ObjectInfo:
 		self.hide = False
 		self.transparent = False
 		self.selected = False
-		self.singleton_cache = None
+		self.singleton_cache = []
 		self.vao = None
 
 _all_objects = {}
@@ -481,10 +481,8 @@ def _check_attributes(obj_id, oi):
 	if sp is None:
 		print("missing program for object", obj_id, file=sys.stderr)
 		return
-	oi.singleton_cache = []
+	oi.singleton_cache.clear()
 	for sv in sp.attributes:
-		if sv.name == "instanceTransform":
-			continue
 		for ai in oi.ais:
 			if ai.name == sv.name:
 				break
@@ -507,12 +505,16 @@ def _check_attributes(obj_id, oi):
 			GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, ibi.buffer)
 
 def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
-		list_of_attributeInfo: list_of(AttributeInfo),
+		ais: list_of(AttributeInfo),
 		primitive_type: PrimitiveType, first: NonNeg32, count: NonNeg32,
 		index_data_id: Id=0, index_buffer_type: DataType=UByte):
 	if index_data_id and index_buffer_type not in (UByte, UShort, UInt):
 		raise ValueError("index_buffer_type must be unsigned")
-	oi = _ObjectInfo(program_id, matrix_id, list_of_attributeInfo,
+	ais = ais[:]
+	mi = _all_matrices.get(matrix_id, None)
+	if mi is not None:
+		ais.append(AttributeInfo("instanceTransform", mi.data_id, 0, 0, 16, Float))
+	oi = _ObjectInfo(program_id, matrix_id, ais,
 			primitive_type, first, count,
 			index_data_id, index_buffer_type)
 	delete_object(obj_id)
@@ -520,6 +522,7 @@ def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
 		oi.vao = GL.glGenVertexArrays(1)
 		GL.glBindVertexArray(oi.vao)
 		_check_attributes(obj_id, oi)
+		# TODO: sort attributes -- arrays first
 	finally:
 		GL.glBindVertexArray(0)
 	_all_objects[obj_id] = oi
@@ -647,6 +650,8 @@ def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_sphere(N):
+	if N > 65535:
+		raise RuntimeError("too many vertices needed")
 	pts, phis, _ = spiral.points(N)
 	tris = spiral.triangles(phis)
 	data_id = next(_internal_buffer_id)
@@ -679,6 +684,8 @@ def add_cylinder(obj_id: Id, radius: Number, length: Number,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_cylinder(N):
+	if N * 2 > 65535:
+		raise RuntimeError("too many vertices needed")
 	from math import sin, cos, pi
 	# normal & position array
 	np = numpy.zeros((N * 2, 6), dtype=numpy.float32)
@@ -725,6 +732,8 @@ def add_cone(obj_id: Id, radius: Number, length: Number,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_cone(N):
+	if N * 2 > 65535:
+		raise RuntimeError("too many vertices needed")
 	from math import sin, cos, pi, sqrt
 	# normal & position array
 	np = numpy.zeros((N * 2, 6), dtype=numpy.float32)
@@ -779,6 +788,8 @@ def add_disk(obj_id: Id, inner_radius: Number, outer_radius: Number,
 					pi.icount, pi.index_id, pi.index_type)
 
 def _build_fan(N):
+	if N + 2 > 65535:
+		raise RuntimeError("too many vertices needed")
 	from math import sin, cos, pi
 	# normal & position array
 	pts = numpy.zeros((N + 2, 3), dtype=numpy.float32)
@@ -936,12 +947,6 @@ def render():
 
 	sp = None
 	current_program_id = 0
-	current_matrix_id = 2 ** 31
-	# instance transform (it_) singleton info
-	it_type = Float
-	it_data = None
-	it_loc = -1
-	it_locations, it_elements = ShaderVariable.type_location_info(ShaderVariable.Mat4x4)
 	# TODO: only for opaque objects
 	GL.glEnable(GL.GL_CULL_FACE)
 	GL.glDisable(GL.GL_BLEND)
@@ -956,36 +961,22 @@ def render():
 			new_sp.setup()
 			sp = new_sp
 			current_program_id = oi.program_id
-			current_matrix_id = 2 ** 31
-			sv = sp.attribute("instanceTransform")
-			it_loc = sv.location
 		if sp is None:
 			continue
 		GL.glBindVertexArray(oi.vao)
-		# setup instance matrix attribute
-		if oi.matrix_id != current_matrix_id:
-			if oi.matrix_id == 0:
-				data_id = 0
-			else:
-				mi = _all_matrices.get(oi.matrix_id, None)
-				if mi is None:
-					continue
-				data_id = mi.data_id
-			bi = _all_buffers.get(data_id, None)
-			if bi is None:
-				continue
-			it_data = bi.data
-			_setup_singleton_attribute(it_data, it_type, False, it_loc, it_locations, it_elements)
-			current_matrix_id = oi.matrix_id
-
 		for si in oi.singleton_cache:
-			_setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements)
+			_setup_singleton_attribute(si.data, si.type,
+					si.normalized, si.base_location,
+					si.num_locations, si.num_elements)
 		# finally draw object
 		if oi.index_buffer_id == 0:
 			GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
 		else:
 			import ctypes
-			offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
+			if oi.first == 0:
+				offset = ctypes.c_void_p(0)
+			else:
+				offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
 			GL.glDrawElements(oi.ptype.value, oi.count,
 				_cvt_data_type(oi.index_buffer_type),
 				offset)
@@ -1033,12 +1024,6 @@ def pick(x: int, y: int):
 
 	sp = None
 	current_program_id = 0
-	current_matrix_id = 2 ** 31
-	# instance transform (it_) singleton info
-	it_type = Float
-	it_data = None
-	it_loc = -1
-	it_locations, it_elements = ShaderVariable.type_location_info(ShaderVariable.Mat4x4)
 
 	# pick id (pi_) singleton info
 	pi_type = UByte
@@ -1060,27 +1045,9 @@ def pick(x: int, y: int):
 			new_sp.setup()
 			sp = new_sp
 			current_program_id = oi.program_id
-			current_matrix_id = 2 ** 31
-			sv = sp.attribute("instanceTransform")
-			it_loc = sv.location
 		if sp is None:
 			continue
 		GL.glBindVertexArray(oi.vao)
-		# setup instance matrix attribute
-		if oi.matrix_id != current_matrix_id:
-			if oi.matrix_id == 0:
-				data_id = 0
-			else:
-				mi = _all_matrices.get(oi.matrix_id, None)
-				if mi is None:
-					continue
-				data_id = mi.data_id
-			bi = _all_buffers.get(data_id, None)
-			if bi is None:
-				continue
-			it_data = bi.data
-			_setup_singleton_attribute(it_data, it_type, False, it_loc, it_locations, it_elements)
-			current_matrix_id = oi.matrix_id
 
 		for si in oi.singleton_cache:
 			_setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements)
@@ -1089,7 +1056,10 @@ def pick(x: int, y: int):
 			GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
 		else:
 			import ctypes
-			offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
+			if oi.first == 0:
+				offset = ctypes_c_void_p(0)
+			else:
+				offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
 			GL.glDrawElements(oi.ptype.value, oi.count,
 				_cvt_data_type(oi.index_buffer_type),
 				offset)
