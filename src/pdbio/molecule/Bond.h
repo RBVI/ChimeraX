@@ -1,3 +1,4 @@
+// vim: set expandtab ts=4 sw=4:
 #ifndef molecule_Bond
 #define molecule_Bond
 
@@ -8,15 +9,15 @@ class Atom;
 class Molecule;
 
 class Bond: public Connection<Atom, Bond> {
-	friend class Molecule;
+    friend class Molecule;
 public:
-	typedef End_points  Atoms;
+    typedef End_points  Atoms;
 
 private:
-	Bond(Molecule *, Atom *, Atom *);
+    Bond(Molecule *, Atom *, Atom *);
 
 public:
-	const Atoms	&  atoms() const { return end_points(); }
-	Atom *  other_atom(Atom *a) const { return other_end(a); }
+    const Atoms    &  atoms() const { return end_points(); }
+    Atom *  other_atom(Atom *a) const { return other_end(a); }
 };
 #endif  // molecule_Bond
