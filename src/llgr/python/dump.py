@@ -7,7 +7,7 @@ Add typechecking to function arguments to protect against arguments with the
 wrong type being decoded by matching backend in JavaScript.
 """
 import numpy
-from typecheck import typecheck, Checker, either, list_of, TypeCheckError
+from typecheck import typecheck, Checker, either, iterable, TypeCheckError
 
 JSON_FORMAT = 'json'
 CPP_FORMAT = 'c++'
@@ -16,6 +16,20 @@ JS_FORMAT = 'js'
 FORMATS = (JSON_FORMAT, CPP_FORMAT, JS_FORMAT)
 
 _dump_format = JSON_FORMAT
+
+class SequenceChecker(Checker):
+
+	def __init__(self, check):
+		self._check = Checker.create(check)
+
+	def check(self, value):
+		if not iterable(value):
+			return False
+		vals = tuple(iter(value))
+		import functools
+		return functools.reduce(lambda r, v: r and self._check.check(v), vals, True)
+
+sequence_of = SequenceChecker
 
 class Array(Checker):
 	"""type annotation for numpy arrays"""
@@ -241,7 +255,8 @@ def render(as_data=False):
 			print("}", file=f)
 
 @typecheck
-def create_program(program_id: Id, vertex_shader: str, fragment_shader: str, pick_vertex_shader: str):
+def create_program(program_id: Id, vertex_shader: str, fragment_shader: str,
+		pick_vertex_shader: str):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['create_program', [program_id, vertex_shader, fragment_shader]])
 		return
@@ -275,7 +290,8 @@ def set_uniform(program_id: Id, name: str, shader_type: ShaderType, data: IsBuff
 			% (program_id, name, shader_type, num_bytes, uname))
 
 @typecheck
-def set_uniform_matrix(program_id: Id, name: str, transpose: bool, shader_type: ShaderType, data: IsBuffer):
+def set_uniform_matrix(program_id: Id, name: str, transpose: bool,
+		shader_type: ShaderType, data: IsBuffer):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['set_uniform_matrix', [program_id, name, transpose, shader_type, convert_buffer(data)]])
 		return
@@ -349,11 +365,18 @@ class TextureFilter(int): pass
 LinearMimapNearest, LinearMipmapLinear) = [TextureFilter(i) for i in range(6)]
 
 @typecheck
-def create_2d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg32, height: NonNeg32, data: IsBuffer):
+def create_2d_texture(tex_id: Id, texture_format: TextureFormat,
+		texture_min_filter: TextureFilter,
+		texture_max_filter: TextureFilter, data_type: DataType,
+		width: NonNeg32, height: NonNeg32, data: IsBuffer):
 	pass # TODO
 
 @typecheck
-def create_3d_texture(tex_id: Id, texture_format: TextureFormat, texture_min_filter: TextureFilter, texture_max_filter: TextureFilter, data_type: DataType, width: NonNeg32, height: NonNeg32, depth: NonNeg32, data: IsBuffer):
+def create_3d_texture(tex_id: Id, texture_format: TextureFormat,
+		texture_min_filter: TextureFilter,
+		texture_max_filter: TextureFilter, data_type: DataType,
+		width: NonNeg32, height: NonNeg32, depth: NonNeg32,
+		data: IsBuffer):
 	pass # TODO
 
 @save_args
@@ -456,8 +479,8 @@ def set_attribute_alias(name: str, value: str):
 @save_args
 @typecheck
 def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
-		list_of_attributeInfo: list_of(AttributeInfo),
-		primitive_type: PrimitiveType, first: NonNeg32, count: NonNeg32,
+		ais: sequence_of(AttributeInfo), primitive_type: PrimitiveType,
+		first: NonNeg32, count: NonNeg32,
 		index_data_id: Id=0, index_buffer_type: DataType=UByte):
 	pass
 
@@ -474,33 +497,33 @@ def clear_objects():
 # indicate whether to draw object or not
 @save_args
 @typecheck
-def hide_objects(objects: list_of(Id)):
+def hide_objects(objects: sequence_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def show_objects(objects: list_of(Id)):
+def show_objects(objects: sequence_of(Id)):
 	pass
 
 # indicate whether an object is transparent or opaque (default opaque)
 @save_args
 @typecheck
-def transparent(objects: list_of(Id)):
+def transparent(objects: sequence_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def opaque(objects: list_of(Id)):
+def opaque(objects: sequence_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def selection_add(objects: list_of(Id)):
+def selection_add(objects: sequence_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def selection_remove(objects: list_of(Id)):
+def selection_remove(objects: sequence_of(Id)):
 	pass
 
 @save_args
@@ -527,12 +550,12 @@ def clear_groups(and_objects: bool=False):
 
 @save_args
 @typecheck
-def group_add(group_id: Id, objects: list_of(Id)):
+def group_add(group_id: Id, objects: sequence_of(Id)):
 	pass
 
 @save_args
 @typecheck
-def group_remove(group_id: Id, objects: list_of(Id)):
+def group_remove(group_id: Id, objects: sequence_of(Id)):
 	pass
 
 @save_args
@@ -560,26 +583,27 @@ def selection_remove_group(group_id: Id):
 # LOD primitives
 
 @typecheck
-def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id, list_of_attributeInfo: list_of(AttributeInfo)):
+def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id,
+		attribute_infos: sequence_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['add_sphere', [obj_id, radius, program_id, matrix_id, list_of_attributeInfo]])
+		_calls.append(['add_sphere', [obj_id, radius, program_id, matrix_id, attribute_infos]])
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
-	for ai in list_of_attributeInfo:
+	for ai in attributeInfos:
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
 	_calls.append('\tadd_sphere(%r, %r, %r, %r, %s, "%s", "%s");'
 			% (obj_id, radius, program_id, matrix_id, aname))
 
 @typecheck
-def add_cylinder(obj_id: Id, radius: Number, length: Number,
-		program_id: Id, matrix_id: Id, list_of_attributeInfo: list_of(AttributeInfo)):
+def add_cylinder(obj_id: Id, radius: Number, length: Number, program_id: Id,
+		matrix_id: Id, attribute_infos: sequence_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['add_cylinder', [obj_id, radius, length, program_id, matrix_id, list_of_attributeInfo]])
+		_calls.append(['add_cylinder', [obj_id, radius, length, program_id, matrix_id, attribute_infos]])
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
-	for ai in list_of_attributeInfo:
+	for ai in attribute_infos:
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
 	_calls.append('\tadd_cylinder(%r, %r, %r, %r, %r, %s, "%s", "%s");'
 			% (obj_id, radius, length, program_id,
@@ -587,13 +611,14 @@ def add_cylinder(obj_id: Id, radius: Number, length: Number,
 
 @typecheck
 def add_cone(obj_id: Id, radius: Number, length: Number,
-		program_id: Id, matrix_id: Id, list_of_attributeInfo: list_of(AttributeInfo)):
+		program_id: Id, matrix_id: Id,
+		attribute_infos: sequence_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['add_cone', [obj_id, radius, length, program_id, matrix_id, list_of_attributeInfo]])
+		_calls.append(['add_cone', [obj_id, radius, length, program_id, matrix_id, attribute_infos]])
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
-	for ai in list_of_attributeInfo:
+	for ai in attribute_infos:
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
 	_calls.append('\tadd_cone(%r, %r, %r, %r, %r, %s, "%s", "%s");'
 			% (obj_id, radius, length, program_id,
@@ -602,13 +627,13 @@ def add_cone(obj_id: Id, radius: Number, length: Number,
 @typecheck
 def add_disk(obj_id: Id, inner_radius: Number, outer_radius: Number,
 		program_id: Id, matrix_id: Id,
-		list_of_attributeInfo: list_of(AttributeInfo)):
+		attribute_info: sequence_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['add_disk', [obj_id, inner_radius, outer_radius, program_id, matrix_id, list_of_attributeInfo]])
+		_calls.append(['add_disk', [obj_id, inner_radius, outer_radius, program_id, matrix_id, attribute_infos]])
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
-	for ai in list_of_attributeInfo:
+	for ai in attribute_infos:
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
 	_calls.append('\tadd_disk(%r, %r, %r, %r, %r, %r, %s, "%s", "%s");'
 			% (obj_id, inner_radius, outer_radius,
