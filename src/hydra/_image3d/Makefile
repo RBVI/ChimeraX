@@ -31,7 +31,7 @@ OPT = -O3
 # OpenMP used by sasa.cpp.
 OPT += -fopenmp
 ifeq ($(OS),Linux)
-	LDFLAGS += -lgomp
+	LIBS += -lgomp
 endif
 
 ifdef USE_XCODE4

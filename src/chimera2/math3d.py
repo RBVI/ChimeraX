@@ -176,6 +176,9 @@ class Xform:
                 self._pure = False
                 raise
 
+    def __repr__(self):
+        return repr(self._matrix)
+
     def getOpenGLMatrix(self):
         m = self._matrix.astype(float64)
         return m.flatten(order='F')
@@ -341,6 +344,12 @@ def Identity():
 
 def Rotation(axis, angle, inDegrees=False):
     """Build a rotation transformation"""
+    if axis == 'x':
+        axis = (1, 0, 0)
+    elif axis == 'y':
+        axis = (0, 1, 0)
+    elif axis == 'z':
+        axis = (0, 0, 1)
     assert(len(axis) == 3)
     if inDegrees:
         angle = radians(angle)
@@ -534,6 +543,10 @@ class BBox:
             self.llb = Point(llb)
         if urf is not None:
             self.urf = Point(urf)
+
+    def __repr__(self):
+        cls = self.__class__
+        return "%s.%s(%r, %r)" % (cls.__module__, cls.__qualname__, self.llb, self.urf)
 
     def add(self, pt):
         """expand bounding box to encompass given point

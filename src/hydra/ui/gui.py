@@ -15,10 +15,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status_update_interval = 0.2       # seconds
         self.last_status_update = 0
 
-        self.stack = st = QtWidgets.QStackedWidget(self)
+        class GraphicsArea(QtWidgets.QStackedWidget):
+            def sizeHint(self):
+                return QtCore.QSize(800,800)
+
+        self.stack = st = GraphicsArea(self)
         from .view import View
         self.view = v = View(st)
-        st.addWidget(v)
+        st.addWidget(v.widget)
 
 #        self.text = e = QtGui.QTextEdit(st)
         self.text = e = QtWidgets.QTextBrowser(st)          # Handle clicks on anchors
@@ -37,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
 #        p.setColor(p.Base, QtGui.QColor(0,0,0))
 #        e.setPalette(p)
         st.addWidget(e)
-        st.setCurrentWidget(v)
+        st.setCurrentWidget(v.widget)
         self.setCentralWidget(st)
 
         from . import shortcuts
@@ -175,9 +179,9 @@ class MainWindow(QtWidgets.QMainWindow):
             tb.removeAction(self.back_action)
             tb.removeAction(self.forward_action)
     def showing_graphics(self):
-        return self.stack.currentWidget() == self.view
+        return self.stack.currentWidget() == self.view.widget
     def show_graphics(self):
-        self.stack.setCurrentWidget(self.view)
+        self.stack.setCurrentWidget(self.view.widget)
 
     def show_status(self, msg, append = False):
         sb = self.statusBar()
@@ -222,6 +226,11 @@ def show_main_window():
     import sys
     global app
     app = QtWidgets.QApplication(sys.argv)
+#    d = app.desktop()
+#    print('screen count', d.screenCount())
+#    for s in range(d.screenCount()):
+#        g = d.screenGeometry(s)
+#        print('screen', s, 'size', g.width(), g.height(), 'top left', g.top(), g.left())
     # Seting icon does not work, mac qt 5.0.2.
     # Get Python launcher rocket icon in Dock.
     app.setWindowIcon(icon('reo.png'))

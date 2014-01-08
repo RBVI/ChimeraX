@@ -37,7 +37,7 @@ install_mac_app: install mac_app_dirs
 	$(RSYNC) --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
 
 # Copy only the Python packages needed for distribution.
-	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.1-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
+	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.2.2-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
 	cd $(PYSITEDIR) ; $(RSYNC) hydra LeapMotion PyOpenGL-3.1.0a1-py3.3.egg/OpenGL $(PY_SITE_INSTALL)
 
 # Fix Python executable reference to python shared library

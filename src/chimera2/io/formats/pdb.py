@@ -1,4 +1,4 @@
-from chimera2 import molecule, scene
+from chimera2 import molecule
 from chimera2.cli import UserError
 
 _builtin_open = open

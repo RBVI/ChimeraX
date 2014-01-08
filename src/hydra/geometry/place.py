@@ -134,7 +134,7 @@ class Place:
 
     def axis_center_angle_shift(self):
         '''Parameterize the transform as a rotation about a point around an axis and shift along that axis.
-        Return the rotation axis, a point on the axis, rotation angle (in radians), and shift distance
+        Return the rotation axis, a point on the axis, rotation angle (in degrees), and shift distance
         parallel to the axis.  This assumes the transformation linear part is a rotation.
         '''
         return m34.axis_center_angle_shift(self.matrix)

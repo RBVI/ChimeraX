@@ -133,7 +133,10 @@ class Mouse_Modes:
     def mouse_rotate(self, event):
 
         axis, angle = self.mouse_rotation(event)
-        self.view.rotate(axis, angle)
+        v = self.view
+        # Convert axis from camera to scene coordinates
+        saxis = v.camera.view().apply_without_translation(axis)
+        v.rotate(saxis, angle)
 
     def mouse_rotation(self, event):
 
@@ -156,7 +159,8 @@ class Mouse_Modes:
         dx, dy = self.mouse_motion(event)
         v = self.view
         psize = v.pixel_size()
-        v.translate(psize*dx, -psize*dy, 0)
+        shift = v.camera.view().apply_without_translation((psize*dx, -psize*dy, 0))
+        v.translate(shift)
 
     def mouse_translate_selected(self, event):
 
@@ -165,7 +169,8 @@ class Mouse_Modes:
         if models:
             dx, dy = self.mouse_motion(event)
             psize = v.pixel_size()
-            v.translate(psize*dx, -psize*dy, 0, models)
+            shift = v.camera.view().apply_without_translation((psize*dx, -psize*dy, 0))
+            v.translate(shift, models)
 
     def mouse_rotate_selected(self, event):
 
@@ -173,6 +178,8 @@ class Mouse_Modes:
         models = v.selected
         if models:
             axis, angle = self.mouse_rotation(event)
+            # Convert axis from camera to scene coordinates
+            saxis = v.camera.view().apply_without_translation(axis)
             v.rotate(axis, angle, models)
 
     def mouse_zoom(self, event):        
@@ -180,14 +187,16 @@ class Mouse_Modes:
         dx, dy = self.mouse_motion(event)
         v = self.view
         psize = v.pixel_size()
-        v.translate(0, 0, 3*psize*dy)
+        shift = v.camera.view().apply_without_translation((0, 0, 3*psize*dy))
+        v.translate(shift)
 
     def wheel_zoom(self, event):        
 
         d = event.angleDelta().y()/120.0   # Usually one wheel click is delta of 120
         v = self.view
         psize = v.pixel_size()
-        v.translate(0, 0, 100*d*psize)
+        shift = v.camera.view().apply_without_translation((0, 0, 100*d*psize))
+        v.translate(shift)
         
     def mouse_contour_level(self, event):
 

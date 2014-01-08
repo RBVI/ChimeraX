@@ -148,10 +148,11 @@ def mk_cpp(json_filename, cpp_filename):
 	save_stdout = sys.stdout
 	sys.stdout = open(cpp_filename, 'w')
 
-	print("""#include <llgr.h>
+	print(
+"""#include <llgr.h>
 
-	using namespace llgr;
-	""")
+using namespace llgr;
+""")
 
 	width, height = 0, 0
 	for line in json_rep:
@@ -162,10 +163,11 @@ def mk_cpp(json_filename, cpp_filename):
 			height = wh[1]
 	print('int width = %d;' % width)
 	print('int height = %d;' % height)
-	print("""
-	void
-	initialize()
-	{""")
+	print(
+"""
+void
+initialize()
+{""")
 
 	for line in json_rep:
 		tag, data = line

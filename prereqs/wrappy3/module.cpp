@@ -158,7 +158,7 @@ dumpModuleCode()
 {
 	string filename(module);
 	filename += ".cpp";
-	std::auto_ptr<std::ostream> outs(outputStream(filename).release());
+	std::unique_ptr<std::ostream> outs = outputStream(filename);
 	std::ostream &output = *outs.get();
 	string nsPrefix;
 	if (!nameSpace.empty())
@@ -476,7 +476,7 @@ dumpModuleHeader()
 
 	string filename(module);
 	filename += ".h";
-	std::auto_ptr<std::ostream> outs(outputStream(filename).release());
+	std::unique_ptr<std::ostream> outs = outputStream(filename);
 	std::ostream &output = *outs.get();
 
 	output <<

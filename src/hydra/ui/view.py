@@ -1,29 +1,40 @@
-from .qt import QtCore, QtGui, QtOpenGL
+from .qt import QtCore, QtGui, QtOpenGL, QtWidgets
 
-class View(QtOpenGL.QGLWidget):
+class View(QtGui.QWindow):
     '''
     A View is the graphics windows that shows 3-dimensional models.
     It manages the camera and draws the models when needed.
     Currently it contains the list of open models.
     '''
     def __init__(self, parent=None):
-        QtOpenGL.QGLWidget.__init__(self, parent)
-        self.setFocusPolicy(QtCore.Qt.ClickFocus)
-#        self.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
-#        self.setAutoBufferSwap(False)
+        QtGui.QWindow.__init__(self)
+        self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
+        self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
+        w.setFocusPolicy(QtCore.Qt.ClickFocus)
+# TODO: Qt 5.1 has touch events disabled on Mac
+#        w.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
         
-        self.window_size = (800,800)		# pixels
+        self.window_size = (w.width(), w.height())		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
-        camera_mode = 'stereo' if self.format().stereo() else 'mono'
+        # Determine stereo eye spacing parameter
+        s = self.screen()
+        eye_spacing = 61.0                      # millimeters
+        ssize = s.physicalSize().width()        # millimeters
+        psize = s.size().width()                # pixels
+        eye_separation_pixels = psize * (eye_spacing / ssize)
+
+        # Create camera
         from . import camera
-        self.camera = camera.Camera(self.window_size, camera_mode)
+        self.camera = camera.Camera(self.window_size, 'mono', eye_separation_pixels)
         '''The camera controlling the vantage shown in the graphics window.'''
 
         self.tile = False
         self.tile_edge_color = (.3,.3,.3,1)
         self.tile_scale = 0
         self.tile_animation_steps = 10
+
+        self.opengl_context = None
 
         from .. import draw
         self.render = draw.Render()
@@ -42,18 +53,141 @@ class View(QtOpenGL.QGLWidget):
         self.selected = set()
         self.atoms_shown = 0
 
-        self.center_of_rotation = (0,0,0)
+        from numpy import array, float32
+        self.center_of_rotation = array((0,0,0), float32)
         self.update_center = True
 
         from . import mousemodes
         self.mouse_modes = mousemodes.Mouse_Modes(self)
 
-    def minimumSizeHint(self):
-        return QtCore.QSize(50, 50)
+    # QWindow method
+    def resizeEvent(self, e):
+        s = e.size()
+        w, h = s.width(), s.height()
+        self.window_size = w, h
+        self.camera.window_size = w, h
+        if not self.opengl_context is None:
+            self.render.set_drawing_region(0,0,w,h)
 
-    def sizeHint(self):
-        w,h = self.window_size
-        return QtCore.QSize(w, h)
+    # QWindow method
+    def exposeEvent(self, event):
+        if self.isExposed():
+            self.draw_graphics()
+
+    def keyPressEvent(self, event):
+        if str(event.text()) == '\r':
+            return
+        from .shortcuts import keyboard_shortcuts as ks
+        ks.key_pressed(event)
+
+    def create_opengl_context(self):
+
+        f = self.pixel_format(stereo = True)
+        self.setFormat(f)
+        self.create()
+
+        c = QtGui.QOpenGLContext(self)
+        c.setFormat(f)
+        if not c.create():
+            raise SystemError('Failed creating QOpenGLContext')
+        c.makeCurrent(self)
+
+        return c
+
+    def pixel_format(self, stereo = False):
+
+        f = QtGui.QSurfaceFormat()
+        f.setMajorVersion(3)
+        f.setMinorVersion(2)
+        f.setDepthBufferSize(24);
+        f.setProfile(QtGui.QSurfaceFormat.CoreProfile)
+        f.setStereo(stereo)
+        return f
+
+    def enable_opengl_stereo(self, enable):
+
+        supported = self.opengl_context.format().stereo()
+        if not enable or supported:
+            return True
+
+        msg = 'Stereo mode is not supported by OpenGL driver'
+        from .gui import show_status, show_info
+        show_status(msg)
+        show_info(msg)
+        return False
+
+        # TODO: Current strategy for handling stereo is to request a stereo OpenGL context
+        # when graphics window created.  Use it for both stereo and mono display without
+        # switching contexts. There are several obstacles to switching contexts.  First,
+        # we need to share context state.  When tested with Qt 5.1 this caused crashes in
+        # the QCocoaCreateOpenGLContext() routine, probably because the pixel format was null
+        # perhaps because sharing was not supported.  A second problem is that we need to
+        # switch the format of the QWindow.  It is not clear from the Qt documentation if this
+        # is possible.  My tests failed.  The QWindow.setFormat() docs say "calling that function
+        # after create() has been called will not re-resolve the surface format of the native surface."
+        # Maybe calling destroy on the QWindow, then setFormat() and create() would work.  Did not try.
+        # It may be necessary to simply destroy the old QWindow and QWidget container and make a new
+        # one. A third difficulty is that OpenGL does not allow sharing VAOs between contexts.
+        # Surface models use VAOs, so those would have to be destroyed and recreated.  Sharing does
+        # handle VBOs, textures and shaders.
+        #
+        # Test code follows.
+        #
+        f = self.pixel_format(enable)
+        c = QtGui.QOpenGLContext(self)
+        c.setFormat(f)
+        c.setShareContext(self.opengl_context)  # Share shaders, vbos and textures, but not VAOs.
+        if not c.create() or (enable and not c.format().stereo()):
+            if enable:
+                msg = 'Stereo mode is not supported by OpenGL driver'
+            else:
+                msg = 'Failed changing graphics mode'
+            from .gui import show_status, show_info
+            show_status(msg)
+            show_info(msg)
+            return False
+        self.opengl_context = c
+        c.makeCurrent(self)
+
+        self.setFormat(f)
+        if not self.create():
+            raise SystemError('Failed to create QWindow with new format')
+
+        return True
+
+    def initialize_opengl(self):
+
+        r = self.render
+        r.set_background_color(self.background_rgba)
+        r.enable_depth_test(True)
+        r.initialize_opengl()
+
+        from .gui import show_info
+        show_info('OpenGL version %s' % r.opengl_version())
+
+        f = self.opengl_context.format()
+        show_info('OpenGL stereo %d, color buffer size %d, depth buffer size %d, stencil buffer size %d'
+                  % (f.stereo(), f.redBufferSize(), f.depthBufferSize(), f.stencilBufferSize()))
+
+        from ..draw import llgrutil as gr
+        if gr.use_llgr:
+            gr.initialize_llgr()
+
+        if self.timer is None:
+            self.start_update_timer()
+
+    def draw_graphics(self):
+
+        if not self.isExposed():
+            return
+        if self.opengl_context is None:
+            self.opengl_context = self.create_opengl_context()
+            self.initialize_opengl()
+
+        c = self.opengl_context
+        c.makeCurrent(self)
+        self.draw_scene()
+        c.swapBuffers(self)
 
     def get_background_color(self):
         return self.background_rgba
@@ -79,26 +213,6 @@ class View(QtOpenGL.QGLWidget):
 
         c.mode = mode
         self.redraw_needed = True
-
-    def enable_opengl_stereo(self, enable):
-
-        f = self.format()
-        enabled = f.stereo()
-        if (enable and enabled) or (not enable and not enabled):
-            return True
-
-        f.setStereo(enable)
-        c = QtOpenGL.QGLContext(f)
-        if c.create():
-            self.setContext(c)
-        else:
-            msg = 'Stereo mode is not supported by OpenGL driver'
-            from .gui import show_status, show_info
-            show_status(msg)
-            show_info(msg)
-            return False
-
-        return True
 
     def add_model(self, model):
         '''
@@ -189,26 +303,6 @@ class View(QtOpenGL.QGLWidget):
             self.redraw_needed = True
         self.selected.clear()
 
-    def initializeGL(self):
-
-        r = self.render
-        r.set_background_color(self.background_rgba)
-        r.enable_depth_test(True)
-        r.initialize_opengl()
-
-        from .gui import show_info
-        show_info('OpenGL version %s' % r.opengl_version())
-
-        f = self.format()
-        show_info('OpenGL stereo %d, color buffer size %d, depth buffer size %d, stencil buffer size %d'
-                  % (f.stereo(), f.redBufferSize(), f.depthBufferSize(), f.stencilBufferSize()))
-
-        from ..draw import llgrutil as gr
-        if gr.use_llgr:
-            gr.initialize_llgr()
-
-        self.start_update_timer()
-
     def start_update_timer(self):
 
         self.timer = t = QtCore.QTimer(self)
@@ -245,7 +339,7 @@ class View(QtOpenGL.QGLWidget):
         if draw:
             self.redraw_needed = False
             c.redraw_needed = False
-            self.updateGL()
+            self.draw_graphics()
             for cb in self.rendered_callbacks:
                 cb()
         else:
@@ -277,7 +371,7 @@ class View(QtOpenGL.QGLWidget):
         '''Add a callback that was added with add_rendered_frame_callback().'''
         self.rendered_callbacks.remove(cb)
 
-    def paintGL(self):
+    def draw_scene(self):
         from ..draw import llgrutil as gr
         if gr.use_llgr:
             gr.render(self)
@@ -285,7 +379,6 @@ class View(QtOpenGL.QGLWidget):
 
         r = self.render
         r.set_background_color(self.background_rgba)
-        r.draw_background()
 
         if self.models:
             self.update_level_of_detail()
@@ -294,7 +387,7 @@ class View(QtOpenGL.QGLWidget):
             t0 = process_time()
             c = self.camera
             for vnum in range(c.number_of_views()):
-                c.setup(vnum, self.render)
+                c.setup(vnum, r)
                 self.draw(self.OPAQUE_DRAW_PASS, vnum)
                 if self.transparent_models_shown():
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum),
@@ -487,16 +580,12 @@ class View(QtOpenGL.QGLWidget):
             for m in self.molecules():
                 m.update_level_of_detail(self)
 
-    def resizeGL(self, width, height):
-        self.window_size = width, height
-        self.camera.window_size = width, height
-        self.render.set_drawing_region(0,0,width,height)
-
     def initial_camera_view(self):
 
         center, s = self.bounds_center_and_width()
         if center is None:
             return
+        from numpy import array, float32
         self.camera.initialize_view(center, s)
         self.center_of_rotation = center
 
@@ -506,8 +595,7 @@ class View(QtOpenGL.QGLWidget):
         if center is None:
             return
         shift = self.camera.view_all(center, s)
-        csx,csy,csz = self.camera.view_inverse().apply_without_translation(shift)
-        self.translate(-csx,-csy,-csz)
+        self.translate(-shift, update_clip_planes = False)
 
     def center_of_rotation_needs_update(self):
         self.update_center = True
@@ -528,7 +616,7 @@ class View(QtOpenGL.QGLWidget):
             cr = self.front_center_point()
             if cr is None:
                 return
-        self.center_of_rotation = tuple(cr)
+        self.center_of_rotation = cr
         self.camera.set_near_far_clip(center, s)
 
     def front_center_point(self):
@@ -576,37 +664,38 @@ class View(QtOpenGL.QGLWidget):
             self.render.set_projection_matrix(pm)
 
     def rotate(self, axis, angle, models = None):
-
+        '''
+        Move camera to simulate a rotation of models about current rotation center.
+        Axis is in scene coordinates and angle is in degrees.
+        '''
         self.update_center_of_rotation()
-        # Rotation axis is in camera coordinates.
-        # Center of rotation is in model coordinates.
-        c = self.camera
-        cv = c.view()
         from ..geometry import place
-        maxis = cv.apply_without_translation(axis)
-        r = place.rotation(maxis, angle, self.center_of_rotation)
-        if models is None:
-            c.set_view(r.inverse() * cv)
-        else:
-            for m in models:
-                m.place = r * m.place
-        self.redraw_needed = True
+        r = place.rotation(axis, angle, self.center_of_rotation)
+        self.move(r, models)
 
-    # Translation is in camera coordinates.  Sign is for moving models.
-    def translate(self, dx, dy, dz, models = None):
-
+    def translate(self, shift, models = None, update_clip_planes = True):
+        '''Move camera to simulate a translation of models.  Translation is in scene coordinates.'''
         self.center_of_rotation_needs_update()
-        c = self.camera
-        cv = c.view()
         from ..geometry import place
-        mt = cv.apply_without_translation((dx,dy,dz))
-        t = place.translation(mt)
+        t = place.translation(shift)
+        self.move(t, models, update_clip_planes)
+
+    def move(self, tf, models = None, update_clip_planes = False):
+        '''Move camera to simulate a motion of models.'''
         if models is None:
-            c.set_view(t.inverse()*cv)
-            c.shift_near_far_clip(-dz)
+            c = self.camera
+            cv = c.view()
+            c.set_view(tf.inverse() * cv)
         else:
             for m in models:
-                m.place = t * m.place
+                m.place = tf * m.place
+        if update_clip_planes:
+            cr = self.center_of_rotation
+            shift = (tf*cr) - cr
+            c = self.camera
+            dz = c.view_inverse().apply_without_translation(shift)[2]
+            c.shift_near_far_clip(-dz)
+
         self.redraw_needed = True
 
     def pixel_size(self, p = None):
