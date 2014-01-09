@@ -125,14 +125,17 @@ private:
 void
 setup_array_attribute(const BufferInfo &bi, const AttributeInfo &ai, int loc, unsigned num_locations)
 {
-	// TODO? do we need more than one VAPointer for arrays of matrices?
-	GLenum type = cvt_DataType(ai.type);
+	GLenum gl_type = cvt_DataType(ai.type);
+	size_t size = ai.count * data_size(type);
 	glBindBuffer(bi.target, bi.buffer);
-	// TODO: if shader variable is int, use glVertexAttribIPointer
-	glVertexAttribPointer(loc, ai.count, type, ai.normalized,
-			ai.stride, reinterpret_cast<char *>(ai.offset));
-	for (unsigned i = 0; i != num_locations; ++i)
+	// TODO? if shader variable is int, use glVertexAttribIPointer
+	uint32_t offset = ai.offset;
+	for (unsigned i = 0; i != num_locations; ++i) {
+		glVertexAttribPointer(loc + i, ai.count, gl_type, ai.normalized,
+			ai.stride, reinterpret_cast<char *>(offset));
 		glEnableVertexAttribArray(loc + i);
+		offset += size;
+	}
 }
 
 void
@@ -276,8 +279,9 @@ set_clear_color(float r, float g, float b, float a)
 }
 
 void
-render()
+render(const Groups &groups)
 {
+	// TODO: switch to group rendering
 	if (!initialized)
 		init();
 #if __APPLE__ && __MACH__

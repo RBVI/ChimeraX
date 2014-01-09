@@ -446,12 +446,23 @@ def clear_matrices():
 
 _all_groups = {}
 
+def _glVertexAttribDivisor(index, divisor):
+	"""Handle old or defective OpenGL attribute divisor."""
+	if bool(GL.glVertexAttribDivisor):
+		GL.glVertexAttribDivisor(index, divisor)  # OpenGL 3.3 or later
+	else:
+		import OpenGL.GL.ARB.instanced_arrays as ia
+		ia.glVertexAttribDivisorARB(index, divisor)
+
+
 class _GroupInfo:
 
 	def __init__(self, group_id):
 		self._group_id = group_id
 		self.objects = set()
 		self.optimized = False
+		self.ois = []	# ObjectInfos to render
+		self.buffers = []	# generated buffers
 
 	def clear(self, and_objects=False):
 		if and_objects:
@@ -467,12 +478,16 @@ class _GroupInfo:
 
 	def reset_optimization():
 		self.optimized = False
-		# TODO: free instancing buffers
-		# TODO: have a problem reseting internal_buffer_id
+		# free instancing buffers
+		if self.buffers:
+			GL.glDeleteBuffers(len(self.buffers), self.buffers)
+			self.buffers.clear()
 
 	def optimize(self):
 		# scan through objects looking for possible instancing
 		self.optimized = True
+		self.ois.clear()
+
 		# first pass: group objects by program id, tranparency,
 		# primitive type, if indexing, and array buffers
 		def key(oi):
@@ -491,31 +506,104 @@ class _GroupInfo:
 			else:
 				g.append(oi)
 
-		separate = groupings
-		"""
 		# second pass: if all objects in a group have the same
 		# first and count, then aggregate singletons, and use
 		# instancing.
 		separate = {}
 		instancing = {}
-		while groupings;
-			key, objs = groupings.popitem()
-			objs_it = iter(objs)
-			obj = next(objs_it)
-			info = (obj.first, obj.count)
-			for obj in objs_it:
-				if (obj.first, obj.count) != info:
-					separate[key] = objs
+		while groupings:
+			key, ois = groupings.popitem()
+			if len(ois) == 1:
+				separate[key] = ois
+				continue
+			ois_it = iter(ois)
+			oi = next(ois_it)
+			info = (oi.first, oi.count)
+			for oi in ois_it:
+				if (oi.first, oi.count) != info:
+					separate[key] = ois
+					same = False
 					break
-				# TODO: confirm singletons are compatible
 			else:
-				# all the same!
-				instancing[key] = objs
+				same = True
+			if not same:
+				continue
+			# TODO: separate transparent objects
+			# TODO: group by compatible singletons
+			instancing[key] = ois
 
-		for objs in instancing.values():
+		# TODO: remove assumption that all singletons are the same
+		# TODO: if a particular  singleton is the same in all objects,
+		# then keep it as a singleton
+		import struct
+		sp = None
+		current_program_id = None
+		for ois in instancing.values():
 			# aggregate singletons
-			pass
-		"""
+			proto = ois[0]
+			oi = _ObjectInfo(proto.program_id, 0, [], proto.ptype,
+				proto.first, proto.count,
+				proto.index_buffer_id, proto.index_buffer_type)
+			oi.instance_count = len(ois)
+			if oi.program_id != current_program_id:
+				sp = _all_programs.get(oi.program_id, None)
+				if sp is None:
+					current_program_id = None
+					oi.incomplete = True
+					continue
+				current_program_id = oi.program_id
+			oi.vao = GL.glGenVertexArrays(1)
+			GL.glBindVertexArray(oi.vao)
+
+			for ai in proto.ais:
+				if not ai._is_array:
+					continue
+				sv = sp.attribute(ai.name)
+				num_locations, num_elements = sv.location_info()
+				bi = _all_buffers.get(ai.data_id, None)
+				if bi is None:
+					# buffer deleted after object creation,
+					# and before rendering
+					oi.incomplete = True
+					break
+				_setup_array_attribute(bi, ai, sv.location, num_locations)
+			# interleave singleton data
+			# TODO: reorder singletons so smaller values pack
+			fmt = '@'
+			offsets = []
+			for si in proto.singleton_cache:
+				offsets.append(struct.calcsize(fmt))
+				fmt += str(si.num_locations * si.num_elements)
+				fmt += _data_format(si.data_type)
+			fmt += '0f'
+			stride = struct.calcsize(fmt)
+			data = bytearray(len(ois) * stride)
+
+			base_offset = 0
+			for oi2 in ois:
+				for offset, si in zip(offsets, oi2.singleton_cache):
+					pos = base_offset + offset
+					size = len(si.data)
+					data[pos:pos + size] = memoryview(si.data)
+				base_offset += stride
+			buffer = GL.glGenBuffers(1)
+			self.buffers.append(buffer)
+			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
+			GL.glBufferData(GL.GL_ARRAY_BUFFER, len(data), data, GL.GL_STATIC_DRAW)
+			bi = _BufferInfo(buffer, ARRAY)
+			for offset, si in zip(offsets, proto.singleton_cache):
+				ai = AttributeInfo(None, None, offset, stride,
+					si.num_elements, si.data_type,
+					si.normalized)
+				_setup_array_attribute(bi, ai, si.base_location, si.num_locations)
+				for i in range(si.num_locations):
+					_glVertexAttribDivisor(
+						si.base_location + i,
+						proto.count)
+			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+
+			if not oi.incomplete:
+				self.ois.append(oi)
 
 		# third pass: look at left over groupings
 		# TODO: If different first and count, try to group
@@ -525,11 +613,13 @@ class _GroupInfo:
 		from itertools import chain
 		sp = None
 		current_program_id = None
-		for oi in chain(*separate.values()):
+		ois = list(chain(*separate.values()))
+		for oi in ois:
 			if oi.program_id != current_program_id:
 				sp = _all_programs.get(oi.program_id, None)
 				if sp is None:
 					current_program_id = None
+					oi.incomplete = True
 					continue
 				current_program_id = oi.program_id
 			oi.vao = GL.glGenVertexArrays(1)
@@ -543,7 +633,8 @@ class _GroupInfo:
 				if bi is None:
 					# buffer deleted after object creation,
 					# and before rendering
-					continue
+					oi.incomplete = True
+					break
 				_setup_array_attribute(bi, ai, sv.location, num_locations)
 			if oi.index_buffer_id:
 				ibi = _all_buffers.get(oi.index_buffer_id, None)
@@ -551,6 +642,7 @@ class _GroupInfo:
 					GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, ibi.buffer)
 
 		GL.glBindVertexArray(0)
+		self.ois.extend(ois)
 
 	def render(self):
 		# TODO: change API to be multipass by shader program
@@ -560,8 +652,8 @@ class _GroupInfo:
 
 		sp = None
 		current_program_id = 0
-		for oi in _all_objects.values():
-			if oi.hide or not oi.program_id:
+		for oi in self.ois:
+			if oi.hide or oi.incomplete:
 				continue
 			# setup program
 			if oi.program_id != current_program_id:
@@ -575,24 +667,47 @@ class _GroupInfo:
 				continue
 			GL.glBindVertexArray(oi.vao)
 			for si in oi.singleton_cache:
-				_setup_singleton_attribute(si.data, si.type,
-						si.normalized, si.base_location,
-						si.num_locations, si.num_elements)
+				_setup_singleton_attribute(si.data,
+					si.data_type, si.normalized,
+					si.base_location, si.num_locations,
+					si.num_elements)
 			# finally draw object
-			if oi.index_buffer_id == 0:
-				GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
+			if oi.instance_count == 0:
+				if oi.index_buffer_id == 0:
+					GL.glDrawArrays(oi.ptype.value,
+							oi.first, oi.count)
+				else:
+					import ctypes
+					if oi.first == 0:
+						offset = ctypes.c_void_p(0)
+					else:
+						offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
+					GL.glDrawElements(oi.ptype.value,
+						oi.count,
+						_cvt_data_type(oi.index_buffer_type),
+						offset)
+			elif oi.index_buffer_id == 0:
+				print('instanced1', oi.instance_count)
+				GL.glDrawArraysInstanced(oi.ptype.value,
+					oi.first, oi.count, oi.instance_count)
 			else:
 				import ctypes
 				if oi.first == 0:
 					offset = ctypes.c_void_p(0)
 				else:
-					offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
-				GL.glDrawElements(oi.ptype.value, oi.count,
+					offset = ctypes.c_void_p(oi.first
+					    * _data_size(oi.index_buffer_type))
+				GL.glDrawElementsInstanced(oi.ptype.value,
+					oi.count,
 					_cvt_data_type(oi.index_buffer_type),
-					offset)
+					offset, oi.instance_count)
 		GL.glBindVertexArray(0)
 		if sp:
 			sp.cleanup()
+
+	def pick(self):
+		# TODO
+		pass
 
 class _ObjectInfo:
 
@@ -612,6 +727,7 @@ class _ObjectInfo:
 		self.vao = None
 		self.groups = set()
 		self.incomplete = False
+		self.instance_count = 0
 
 	@property
 	def hide(self):
@@ -653,6 +769,20 @@ class AttributeInfo:
 		self.normalized = norm
 		self._is_array = None
 
+	def __eq__(self, o):
+		return ( # type(self) == type(o) and
+			self.name == o.name
+			and self.data_id == o.data_id
+			and self.offset == o.offset
+			and self.stride == o.stride
+			and self.count == o.count
+			and self.data_type == o.data_type
+			and self.normalized == o.normalized)
+
+	def __hash__(self):
+		return hash((self.name, self.data_id, self.offset, self.stride,
+			self.count, self.data_type, self.normalized))
+
 	def __repr__(self):
 		return 'AttributeInfo("%s", %r, %r, %r, %r, %r, %r)' % (
 			self.name, self.data_id, self.offset, self.stride,
@@ -664,7 +794,7 @@ class AttributeInfo:
 class _SingletonInfo:
 
 	def __init__(self, data_type, normalized, data, location, num_locations, num_elements):
-		self.type = data_type
+		self.data_type = data_type
 		self.normalized = normalized
 		self.data = data
 		self.base_location = location
@@ -694,24 +824,23 @@ def _check_attributes(obj_id, oi):
 			ai._is_array = None
 			print("missing attribute", sv.name, "in object", obj_id, file=sys.stderr)
 			oi.incomplete = True
-			continue
+			break
 		bi = _all_buffers.get(ai.data_id, None)
 		if bi is None:
 			ai._is_array = None
 			continue
 		num_locations, num_elements = sv.location_info()
 		if bi.data is not None:
+			if sv.location == 0:
+				print('warning: vertices must be in an array')
+				oi.incomplete = True
+				break
 			ai._is_array = False
 			oi.singleton_cache.append(_SingletonInfo(ai.data_type,
 				ai.normalized, bi.data, sv.location,
 				num_locations, num_elements))
 		else:
 			ai._is_array = True
-		#	_setup_array_attribute(bi, ai, sv.location, num_locations)
-	#if oi.index_buffer_id:
-	#	ibi = _all_buffers.get(oi.index_buffer_id, None)
-	#	if ibi is not None:
-	#		GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, ibi.buffer)
 
 	# sort attributes -- arrays first
 	def key(ai):
@@ -1102,17 +1231,33 @@ def _data_size(data_type):
 	# return size in bytes of data type
 	return _data_size_map.get(data_type, 0)
 
+_data_format_map = {
+	Byte: 'b',
+	UByte: 'B',
+	Short: 'h',
+	UShort: 'H',
+	Int: 'i',
+	UInt: 'I',
+	Float: 'f',
+}
+
+def _data_format(data_type):
+	# return pack format of data type
+	return _data_format_map.get(data_type, 0)
+
 def _setup_array_attribute(bi, ai, loc, num_locations):
 	gl_type = _cvt_data_type(ai.data_type)
+	size = ai.count * _data_size(ai.data_type)
 	GL.glBindBuffer(bi.target.value, bi.buffer)
-	# TODO: if shader variable is int, use glVertexAttribIPointer
+	# TODO? if shader variable is int, use glVertexAttribIPointer
 	import ctypes
 	# Pointer arg must be void_p, not an integer.
-	offset = ctypes.c_void_p(ai.offset)
-	GL.glVertexAttribPointer(loc, ai.count, gl_type, ai.normalized,
-			ai.stride, offset)
-	for i in range(loc, loc + num_locations):
+	offset = ai.offset
+	for i in range(num_locations):
+		GL.glVertexAttribPointer(loc + i, ai.count, gl_type,
+			ai.normalized, ai.stride, ctypes.c_void_p(offset))
 		GL.glEnableVertexAttribArray(i)
+		offset += size
 
 _did_once = False
 
@@ -1164,9 +1309,9 @@ def _setup_singleton_attribute(data, data_type, normalized, loc, num_locations, 
 	size = num_elements * _data_size(data_type)
 	if num_elements == 4 and normalized:
 		num_elements = 5
-	for i in range(num_locations):
-		func = _singleton_map[num_elements].get(data_type, None)
-		if func:
+	func = _singleton_map[num_elements].get(data_type, None)
+	if func:
+		for i in range(num_locations):
 			func(loc + i, data[i * size:(i + 1) * size])
 
 _darwin_vao = None
@@ -1189,10 +1334,16 @@ def render(groups: sequence_of(Id)):
 	GL.glEnable(GL.GL_CULL_FACE)
 	GL.glDisable(GL.GL_BLEND)
 
+	gis = []
 	for group_id in groups:
 		gi = _all_groups.get(group_id, None)
 		if gi is None or len(gi.objects) == 0:
 			continue
+		gis.append(gi)
+
+	# TODO: multipass to minimize shader programs changes
+	# and support transparency
+	for gi in gis:
 		gi.render()
 
 class _PickId(bytearray):
@@ -1261,19 +1412,36 @@ def pick(x: int, y: int):
 		GL.glBindVertexArray(oi.vao)
 
 		for si in oi.singleton_cache:
-			_setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements)
+			_setup_singleton_attribute(si.data, si.data_type,
+				si.normalized, si.base_location,
+				si.num_locations, si.num_elements)
 		# finally draw object
-		if oi.index_buffer_id == 0:
-			GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
+		if oi.instance_count == 0:
+			if oi.index_buffer_id == 0:
+				GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
+			else:
+				import ctypes
+				if oi.first == 0:
+					offset = ctypes.c_void_p(0)
+				else:
+					offset = ctypes.c_void_p(oi.first
+					    * _data_size(oi.index_buffer_type))
+				GL.glDrawElements(oi.ptype.value, oi.count,
+					_cvt_data_type(oi.index_buffer_type),
+					offset)
+		elif oi.index_buffer == 0:
+			GL.glDrawArraysInstanced(oi.ptype.value, oi.first,
+					oi.count, oi.instance_count)
 		else:
 			import ctypes
 			if oi.first == 0:
-				offset = ctypes_c_void_p(0)
+				offset = ctypes.c_void_p(0)
 			else:
-				offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
-			GL.glDrawElements(oi.ptype.value, oi.count,
-				_cvt_data_type(oi.index_buffer_type),
-				offset)
+				offset = ctypes.c_void_p(oi.first
+					* _data_size(oi.index_buffer_type))
+			GL.glDrawElementsInstanced(oi.ptype.value, oi.count,
+				_cvt_data_type(oi.index_buffer_type), offset,
+				oi.instance_count)
 	GL.glBindVertexArray(0)
 	if sp:
 		sp.cleanup()

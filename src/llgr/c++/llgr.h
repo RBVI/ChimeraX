@@ -3,9 +3,10 @@
 
 // low-level graphics library
 
-#include <vector>
-#include <string>
-#include <stdint.h>
+# include <vector>
+# include <string>
+# include <unordered_set>
+# include <stdint.h>
 
 # ifdef _WIN32
 #  if defined(LLGR_EXPORT)
@@ -128,10 +129,11 @@ struct AttributeInfo {
 	Id	data_id;
 	uint32_t offset;	// byte offset into buffer
 	uint32_t stride;	// byte stride to next element in buffer
-	uint32_t count;		// number of data type
+	uint32_t count;		// number of data type per location
 	DataType type;
 	bool	normalized;	// only for integer types
-	AttributeInfo(const std::string& n, Id d, uint32_t o, uint32_t s, uint32_t c, DataType t, bool norm = false): name(n), data_id(d), offset(o), stride(s), count(c), type(t), normalized(norm) {}
+	bool	is_array;	// true iff data_id is not a singleton
+	AttributeInfo(const std::string& n, Id d, uint32_t o, uint32_t s, uint32_t c, DataType t, bool norm = false): name(n), data_id(d), offset(o), stride(s), count(c), type(t), normalized(norm), is_array(true) {}
 };
 typedef std::vector<AttributeInfo> AttributeInfos;
 
@@ -160,6 +162,7 @@ LLGR_IMEX extern void clear_objects();
 #ifdef WrapPy
 typedef std::vector<Id> Objects;
 #endif
+typedef std::vector<Id> Groups;
 
 // indicate whether to draw object or not
 #ifndef WrapPy
@@ -228,7 +231,10 @@ LLGR_IMEX extern void clear_all();
 LLGR_IMEX extern void set_clear_color(float red, float green, float blue,
 								float alpha);
 
-LLGR_IMEX extern void render();
+LLGR_IMEX extern void render(const Groups& groups);
+#ifndef WrapPy
+template <typename _iterable> void render(const _iterable& groups);
+#endif
 
 } // namespace llgr
 
