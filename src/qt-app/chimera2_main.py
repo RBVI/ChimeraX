@@ -403,8 +403,20 @@ def main():
 		if dump_format == 'json':
 			scene.set_glsl_version('webgl')
 	else:
-		llgr.set_output('pyopengl')
-		#llgr.set_output('opengl')
+		if 0:
+			llgr.set_output('opengl')
+		else:
+			import OpenGL
+			OpenGL.ERROR_LOGGING = True
+			OpenGL.ERROR_ON_COPY = True
+			OpenGL.FORWARD_COMPATIBLE_ONLY = True
+			import logging
+			if 1:
+				logging.basicConfig(level=logging.ERROR)
+			else:
+				OpenGL.FULL_LOGGING = True
+				logging.basicConfig(level=logging.DEBUG)
+			llgr.set_output('pyopengl')
 	scene.reset()
 	import chimera2.io
 	chimera2.io.initialize_formats()

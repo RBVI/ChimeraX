@@ -448,11 +448,15 @@ _all_groups = {}
 
 def _glVertexAttribDivisor(index, divisor):
 	"""Handle old or defective OpenGL attribute divisor."""
+	# self-modifying code so check is only done once
+	global _glVertexAttribDivisor
 	if bool(GL.glVertexAttribDivisor):
-		GL.glVertexAttribDivisor(index, divisor)  # OpenGL 3.3 or later
+		# OpenGL 3.3 or later
+		_glVertexAttribDivisor = GL.glVertexAttribDivisor
 	else:
 		import OpenGL.GL.ARB.instanced_arrays as ia
-		ia.glVertexAttribDivisorARB(index, divisor)
+		_glVertexAttribDivisor = ia.glVertexAttribDivisorARB
+	_glVertexAttribDivisor(index, divisor)
 
 
 class _GroupInfo:
@@ -476,7 +480,7 @@ class _GroupInfo:
 	def remove(self, objects):
 		self.objects.difference_update(objects)
 
-	def reset_optimization():
+	def reset_optimization(self):
 		self.optimized = False
 		# free instancing buffers
 		if self.buffers:
@@ -506,6 +510,8 @@ class _GroupInfo:
 			else:
 				g.append(oi)
 
+		separate = groupings#DEBUG: 
+		"""#DEBUG: 
 		# second pass: if all objects in a group have the same
 		# first and count, then aggregate singletons, and use
 		# instancing.
@@ -577,7 +583,7 @@ class _GroupInfo:
 				fmt += _data_format(si.data_type)
 			fmt += '0f'
 			stride = struct.calcsize(fmt)
-			data = bytearray(len(ois) * stride)
+			data = numpy.zeros(len(ois) * stride, dtype=numpy.uint8)
 
 			base_offset = 0
 			for oi2 in ois:
@@ -604,6 +610,7 @@ class _GroupInfo:
 
 			if not oi.incomplete:
 				self.ois.append(oi)
+		"""#DEBUG: 
 
 		# third pass: look at left over groupings
 		# TODO: If different first and count, try to group
@@ -687,7 +694,6 @@ class _GroupInfo:
 						_cvt_data_type(oi.index_buffer_type),
 						offset)
 			elif oi.index_buffer_id == 0:
-				print('instanced1', oi.instance_count)
 				GL.glDrawArraysInstanced(oi.ptype.value,
 					oi.first, oi.count, oi.instance_count)
 			else:
@@ -832,7 +838,7 @@ def _check_attributes(obj_id, oi):
 		num_locations, num_elements = sv.location_info()
 		if bi.data is not None:
 			if sv.location == 0:
-				print('warning: vertices must be in an array')
+				print('warning: vertices must be in an array', file=sys.stderr)
 				oi.incomplete = True
 				break
 			ai._is_array = False
@@ -927,17 +933,17 @@ def create_group(group_id: Id):
 		_all_groups[group_id] = _GroupInfo(group_id)
 
 def delete_group(group_id: Id, and_objects: bool=False):
-	gi = _all_group.get(group_id, None)
+	gi = _all_groups.get(group_id, None)
 	if gi is None:
 		return
-	gl.clear(and_objects)
+	gi.clear(and_objects)
 	del _all_groups[group_id]
 
 def clear_groups(and_objects: bool=False):
 	if not _all_objects:
 		and_objects = False
 	for gi in _all_groups.values():
-		gl.clear(and_objects)
+		gi.clear(and_objects)
 	_all_groups.clear()
 
 def group_add(group_id: Id, objects: sequence_of(Id)):

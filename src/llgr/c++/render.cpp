@@ -126,7 +126,7 @@ void
 setup_array_attribute(const BufferInfo &bi, const AttributeInfo &ai, int loc, unsigned num_locations)
 {
 	GLenum gl_type = cvt_DataType(ai.type);
-	size_t size = ai.count * data_size(type);
+	size_t size = ai.count * data_size(ai.type);
 	glBindBuffer(bi.target, bi.buffer);
 	// TODO? if shader variable is int, use glVertexAttribIPointer
 	uint32_t offset = ai.offset;
