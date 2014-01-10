@@ -678,7 +678,7 @@ class Atoms:
     The indices must be in increasing order.
     '''
     asubset = Atoms()
-    mi = indices_by_molecule(indices)
+    mi = self.indices_by_molecule(indices)
     for (m,a), mind in zip(self.molatoms, mi):
       if mind:
         asubset.add_atom_indices(m, a[mind])
