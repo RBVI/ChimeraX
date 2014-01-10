@@ -1262,7 +1262,7 @@ def _setup_array_attribute(bi, ai, loc, num_locations):
 	for i in range(num_locations):
 		GL.glVertexAttribPointer(loc + i, ai.count, gl_type,
 			ai.normalized, ai.stride, ctypes.c_void_p(offset))
-		GL.glEnableVertexAttribArray(i)
+		GL.glEnableVertexAttribArray(loc + i)
 		offset += size
 
 _did_once = False
