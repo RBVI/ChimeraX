@@ -12,7 +12,7 @@ def show_open_file_dialog(view):
     dir = history.most_recent_directory()
     if dir is None:
         dir = '.'
-    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view, 'Open File', dir, filters)
+    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view.widget, 'Open File', dir, filters)
     open_files(qpaths[0], view)
     from ..ui.gui import main_window as mw
     mw.show_graphics()

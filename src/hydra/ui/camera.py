@@ -147,10 +147,11 @@ class Camera:
             far = 2*near
         w = 2*near*tan(0.5*fov)
         ww,wh = self.window_size if win_size is None else win_size
-        aspect = float(wh)/ww
         m = self.mode
         if m == 'oculus':
-            aspect *= 2
+            # Only half of window width used per eye in oculus mode.
+            ww *= 0.5
+        aspect = float(wh)/ww
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
         if m in ('stereo','oculus') and not view_num is None:
