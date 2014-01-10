@@ -7,7 +7,7 @@ include $(TOP)/mk/config.make
 #     bzr export PyOpenGL-20130502.tar.bz2 lp:pyopengl
 #
 
-VERSION = 20130502
+VERSION = 20140109
 PYOPENGL_DISTRIBUTION = PyOpenGL-$(VERSION).tar.bz2
 PYOPENGL_SOURCE = $(tmpdir)/PyOpenGL-$(VERSION)
 #ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(VERSION).tar.gz

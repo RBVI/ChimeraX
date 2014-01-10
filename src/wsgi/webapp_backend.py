@@ -59,7 +59,10 @@ def update_client_data(views):
 	}
 	if main_view.OPEN_MODELS_CHANGE in views.reasons:
 		client_data.append(['open_models',
-				[(m.id, m.name) for m in main_view.models]])
+			[(m.id, m.name,
+			m.graphics.group_id if m.graphics is not None else None,
+			m.graphics.bbox if m.graphics is not None else None)
+			for m in main_view.models]])
 	if main_view.GRAPHICS_CHANGE in views.reasons:
 		pass
 	if (main_view.CAMERA_CHANGE in views.reasons

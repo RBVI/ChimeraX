@@ -67,8 +67,6 @@ check_attributes(Id obj_id, ObjectInfo *oi)
 	oi->singleton_cache.reserve(2);
 	ShaderProgram *sp = si->second;
 	for (const auto sv: sp->attributes()) {
-		if (sv->name() == "instanceTransform")
-			continue;
 		auto aii = std::find_if(oi->ais.begin(), oi->ais.end(), AI_Name(sv->name()));
 		if (aii == oi->ais.end()) {
 			std::cerr << "missing attribute " << sv->name() << " in object " << obj_id << '\n';
@@ -108,7 +106,17 @@ create_object(Id obj_id, Id program_id, Id matrix_id, const AttributeInfos& ais,
 	if (ib && t != UByte && t != UShort && t != UInt)
 		throw std::logic_error("DataType must be an unsigned type");
 
-	ObjectInfo *oi = new ObjectInfo(program_id, matrix_id, ais, pt, first, count, ib, t);
+	AttributeInfos copy;
+	copy.reserve(ais.size() + 1);
+	copy = ais;
+	auto i = all_matrices.find(matrix_id);
+	if (i != all_matrices.end()) {
+		const MatrixInfo &info = i->second;
+		copy.push_back(AttributeInfo("instanceTransform", info.data_id, 0, 0, 16, Float));
+	}
+
+	// TODO: figure out why move isn't leaving copy at size zero.
+	ObjectInfo *oi = new ObjectInfo(program_id, std::move(copy), pt, first, count, ib, t);
 	delete_object(obj_id);
 	all_objects[obj_id] = oi;
 	dirty = true;

@@ -158,11 +158,20 @@ group_remove(Id group_id, const _iterable& objects)
 		return;
 	ObjectSet &group_objects = i->second;
 	for (auto& obj_id: objects) {
-		auto j = group_objects.find(group_id);
+		auto j = group_objects.find(obj_id);
 		if (j == group_objects.end())
 			continue;
 		group_objects.erase(j);
 	}
+}
+
+template <typename _iterable> inline void
+render(const _iterable& groups)
+{
+	Groups render_groups;
+
+	render_groups.insert(groups.begin(), groups.end());
+	render(render_groups);
 }
 
 } // namespace llgr
