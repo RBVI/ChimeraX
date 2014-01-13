@@ -1,21 +1,20 @@
 # -----------------------------------------------------------------------------
 #
-def save_session(path, viewer):
+def save_session(path, session):
   '''
   Save a session.
   '''
-  s = session_state(viewer, path)
+  s = session_state(session, path)
   f = open(path, 'w')
   from ..file_io.SessionUtil import objecttree
   objecttree.write_basic_tree(s, f)
   f.close()
 
-  from .history import history
-  history.add_entry(path, viewer, replace_image = True)
+  session.file_history.add_entry(path, session, replace_image = True)
 
 # -----------------------------------------------------------------------------
 #
-def restore_session(path, viewer):
+def restore_session(path, session):
   '''
   Restore a session.
   '''
@@ -24,22 +23,23 @@ def restore_session(path, viewer):
   f.close()
   import ast
   d = ast.literal_eval(s)
-  viewer.close_all_models()
+  v = session.main_window.view
+  v.close_all_models()
 
-  set_session_state(d, viewer)
+  set_session_state(d, session)
 
-  from .history import history
-  history.add_entry(path, viewer, wait_for_render = True)
+  session.file_history.add_entry(path, wait_for_render = True)
 
 # -----------------------------------------------------------------------------
 #
-def session_state(viewer, rel_path = None, attributes_only = False):
+def session_state(session, rel_path = None, attributes_only = False):
   '''
   Create a dictionary representing a session including molecule models,
   surface models, density map models and scenes.  This dictionary is written
   to a Python file as a session.  It contains only basic Python types:
   numbers, strings, booleans, tuples, lists, dictionaries.
   '''
+  viewer = session.main_window.view
   s = {'version': 2,
        'view': view_state(viewer),
        'camera': camera_state(viewer.camera),
@@ -64,7 +64,7 @@ def session_state(viewer, rel_path = None, attributes_only = False):
 
   if not attributes_only:
     from .. import scenes
-    ss = scenes.scene_state()
+    ss = scenes.scene_state(session)
     if ss:
       s['scenes'] = ss
 
@@ -72,40 +72,41 @@ def session_state(viewer, rel_path = None, attributes_only = False):
 
 # -----------------------------------------------------------------------------
 #
-def set_session_state(s, viewer, attributes_only = False):
+def set_session_state(s, session, attributes_only = False):
 
+  v = session.main_window.view
   if 'view' in s:
-    restore_view(s['view'], viewer)
+    restore_view(s['view'], v)
 
   if 'camera' in s:
-    restore_camera(s['camera'], viewer.camera)
+    restore_camera(s['camera'], v.camera)
 
   if 'lighting' in s:
-    restore_lighting(s['lighting'], viewer.render.lighting_params)
+    restore_lighting(s['lighting'], v.render.lighting_params)
 
   if 'volumes' in s:
-    from ..map import session
-    session.restore_maps(s['volumes'], viewer, attributes_only)
+    from ..map import session as map_session
+    map_session.restore_maps(s['volumes'], v, attributes_only)
 
   if 'molecules' in s:
     from ..molecule import mol_session
-    mol_session.restore_molecules(s['molecules'], viewer, attributes_only)
+    mol_session.restore_molecules(s['molecules'], session, attributes_only)
 
   if 'stl surfaces' in s:
     from . import read_stl
-    read_stl.restore_stl_surfaces(s['stl surfaces'], viewer, attributes_only)
+    read_stl.restore_stl_surfaces(s['stl surfaces'], v, attributes_only)
 
   if not attributes_only:
     scene_states = s.get('scenes', [])
     from .. import scenes
-    scenes.restore_scenes(scene_states, viewer)
+    scenes.restore_scenes(scene_states, session)
 
 # -----------------------------------------------------------------------------
 #
-def scene_state(viewer):
-  return session_state(viewer, attributes_only = True)
-def restore_scene(s, viewer):
-  set_session_state(s, viewer, attributes_only = True)
+def scene_state(session):
+  return session_state(session, attributes_only = True)
+def restore_scene(s, session):
+  set_session_state(s, session, attributes_only = True)
 
 # -----------------------------------------------------------------------------
 #
