@@ -219,7 +219,7 @@ def save_grid_data(grids, path, format = None, options = {}, temporary = False):
   g = glist[0]
   from os.path import basename
   operation = 'Writing %s to %s' % (g.name, basename(path))
-  from progress import Progress_Reporter
+  from .progress import Progress_Reporter
   p = Progress_Reporter(operation, g.size, g.value_type.itemsize)
   if 'multigrid' in allowed_options:
     garg = glist

@@ -5,7 +5,10 @@ class MainWindow(QtWidgets.QMainWindow):
     Main application window including graphics, toolbar, command line, status line,
     and scrolled text log.
     '''
-    def __init__(self, parent=None):
+    def __init__(self, app, session, parent=None):
+        self.app = app
+        self.session = session
+
         QtWidgets.QMainWindow.__init__(self, parent)
 
         self.setWindowTitle(self.tr("Hydra"))
@@ -21,7 +24,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.stack = st = GraphicsArea(self)
         from .view import View
-        self.view = v = View(st)
+        self.view = v = View(session, st)
         st.addWidget(v.widget)
 
 #        self.text = e = QtGui.QTextEdit(st)
@@ -43,12 +46,6 @@ class MainWindow(QtWidgets.QMainWindow):
         st.addWidget(e)
         st.setCurrentWidget(v.widget)
         self.setCentralWidget(st)
-
-        from . import shortcuts
-        shortcuts.register_shortcuts(v)
-
-        from . import commands
-        commands.register_commands()
 
         self.create_toolbar()
 
@@ -117,7 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_shortcut_icon(self, icon_file, descrip, shortcut):
 
         a = QtWidgets.QAction(icon(icon_file), descrip + ' (%s)' % shortcut, self)
-        from .shortcuts import keyboard_shortcuts as ks
+        ks = self.session.keyboard_shortcuts
         a.triggered.connect(lambda a,ks=ks,s=shortcut: ks.run_shortcut(s))
         self.toolbar.addAction(a)
         return a
@@ -145,8 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         cline = self.command_line
         text = cline.text()
         cline.selectAll()
-        from . import commands
-        commands.run_command(text)
+        self.session.commands.run_command(text)
 
     def showing_text(self):
         return self.stack.currentWidget() == self.text
@@ -195,10 +191,9 @@ class MainWindow(QtWidgets.QMainWindow):
         t = time()
         if t > self.last_status_update + self.status_update_interval:
             self.last_status_update = t
-            global app
             self.view.block_redraw()        # Avoid graphics redraw
             try:
-                app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+                self.app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
             finally:
                 self.view.unblock_redraw()
 
@@ -216,15 +211,12 @@ def set_default_context(major_version, minor_version, profile):
 #    f.setStereo(True)
     QtOpenGL.QGLFormat.setDefaultFormat(f)
 
-app = None
-main_window = None
-def show_main_window():
+def create_main_window(session):
     '''
     Create the application main window and start the event loop.
     '''
     set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
     import sys
-    global app
     app = QtWidgets.QApplication(sys.argv)
 #    d = app.desktop()
 #    print('screen count', d.screenCount())
@@ -234,46 +226,31 @@ def show_main_window():
     # Seting icon does not work, mac qt 5.0.2.
     # Get Python launcher rocket icon in Dock.
     app.setWindowIcon(icon('reo.png'))
-    w = MainWindow()
-    global main_window
-    main_window = w
+    main_window = w = MainWindow(app, session)
 #    w.view.setFocus(QtCore.Qt.OtherFocusReason)       # Get keyboard events on startup
-    w.show()
-    from ..file_io.history import history
-    history.show_thumbnails()
-    enable_exception_logging()
-    redirect_stdout()
+    return app, main_window
+
+def start_event_loop(app):
     status = app.exec_()
 #    from . import leap
 #    leap.quit_leap(w.view)
     history.write_history()
     sys.exit(status)
 
-def show_status(msg, append = False):
-    '''
-    Show a status message at the bottom of the main window.
-    '''
-    main_window.show_status(msg, append)
-
-def show_info(msg, color = None):
-    '''
-    Write information to the log window, typically command output.
-    '''
-    log_message(msg, color)
-
 class Log:
-    def __init__(self):
+    def __init__(self, main_window):
+        self.main_window = main_window
         self.html_text = ''
         self.image_number = 1
         self.image_directory = None
     def show(self):
-        from .gui import main_window as mw
+        mw = self.main_window
         if mw.showing_text() and mw.text_id == 'log':
             mw.show_graphics()
         else:
 #            mw.show_text(self.html_text, html = True, id = "log", open_links = True)
             mw.show_text(self.html_text, html = True, id = "log", scroll_to_end = True)
-    def append(self, text, color = None, html = False):
+    def log_message(self, text, color = None, html = False):
         if html:
             htext = text
         else:
@@ -285,12 +262,10 @@ class Log:
     def insert_graphics_image(self):
         self.schedule_image_capture()
     def schedule_image_capture(self):
-        global main_window
-        v = main_window.view
+        v = self.main_window.view
         v.add_rendered_frame_callback(self.capture_image)
     def capture_image(self, show_height = 128, format = 'JPG'):
-        global main_window
-        v = main_window.view
+        v = self.main_window.view
         v.remove_rendered_frame_callback(self.capture_image)
         i = v.image()
         filename = 'img%04d.%s' % (self.image_number, format.lower())
@@ -317,51 +292,36 @@ class Log:
             self.image_directory = tempfile.TemporaryDirectory(dir = d)
         return self.image_directory.name
 
-cmd_log = Log()
-def show_log():
-    global cmd_log
-    cmd_log.show()
+    def exceptions_to_log(self):
+        import sys
+        sys.excepthook = self.log_exception
 
-def log_message(msg, color = None, html = False):
-    '''
-    Write a message to the log window.  It can be plain text or html.
-    '''
-    global cmd_log
-    cmd_log.append(msg, color, html)
+    def log_exception(self, type, value, traceback):
+        from traceback import format_exception
+        lines = format_exception(type, value, traceback)
+        import cgi
+        elines = tuple(cgi.escape(line) for line in lines)
+        tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(elines)
+        self.log_message(tb, html = True)
+        self.show()
 
-def log_image():
-    '''
-    Take a snapshot of the graphics window and insert a thumbnail of it in the log window.
-    '''
-    global cmd_log
-    cmd_log.insert_graphics_image()
+    def stdout_to_log(self):
+        import sys
+        sys.stdout_orig = sys.stdout
+        sys.stdout = self.output_stream()
 
-def redirect_stdout():
-    import sys
-    sys.stdout_orig = sys.stdout
-    class Log_Output:
-        def __init__(self):
-            self.text = ''
-        def write(self, text):
-            self.text += text
-            if text.endswith('\n'):
-                log_message(self.text.rstrip())
+    def output_stream(self):
+        class Log_Output_Stream:
+            def __init__(self, log):
+                self.log = log
                 self.text = ''
-        def flush(self):
-            if self.text:
-                log_message(self.text.rstrip())
-                self.text = ''
-    sys.stdout = Log_Output()
-
-def enable_exception_logging():
-    import sys
-    sys.excepthook = log_exception
-
-def log_exception(type, value, traceback):
-    from traceback import format_exception
-    lines = format_exception(type, value, traceback)
-    import cgi
-    elines = tuple(cgi.escape(line) for line in lines)
-    tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(elines)
-    log_message(tb, html = True)
-    show_log()
+            def write(self, text):
+                self.text += text
+                if text.endswith('\n'):
+                    self.log.log_message(self.text.rstrip())
+                    self.text = ''
+            def flush(self):
+                if self.text:
+                    self.log.log_message(self.text.rstrip())
+                    self.text = ''
+        return Log_Output_Stream(self)

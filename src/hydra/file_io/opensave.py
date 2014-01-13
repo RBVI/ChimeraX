@@ -1,6 +1,6 @@
 from ..ui.qt import QtGui, QtWidgets
 
-def show_open_file_dialog(view):
+def show_open_file_dialog(session):
     '''
     Display the Open file dialog for opening data files.
     '''
@@ -12,10 +12,10 @@ def show_open_file_dialog(view):
     dir = history.most_recent_directory()
     if dir is None:
         dir = '.'
-    qpaths = QtWidgets.QFileDialog.getOpenFileNames(view.widget, 'Open File', dir, filters)
-    open_files(qpaths[0], view)
-    from ..ui.gui import main_window as mw
-    mw.show_graphics()
+    v = session.main_window.view
+    qpaths = QtWidgets.QFileDialog.getOpenFileNames(v.widget, 'Open File', dir, filters)
+    open_files(qpaths[0], session)
+    session.main_window.show_graphics()
 
 ftypes = None
 def file_types():
@@ -53,14 +53,12 @@ def file_readers():
             r['.' + s] = read_func
     return r
 
-def open_files(paths, view = None, set_camera = None):
+def open_files(paths, session, set_camera = None):
     '''
     Open data files and add the models created to the scene.  The file types are recognized
     using the file suffix as listed in the list returned by file_types().
     '''
-    if view is None:
-        from ..ui.gui import main_window
-        view = main_window.view
+    view = session.main_window.view
     if set_camera is None:
         set_camera = (len(view.models) == 0)
     r = file_readers()
@@ -70,8 +68,7 @@ def open_files(paths, view = None, set_camera = None):
     for path in paths:
         ext = splitext(path)[1]
         if not isfile(path):
-            from ..ui import gui
-            gui.show_status('File not found "%s"' % path)
+            session.show_status('File not found "%s"' % path)
             # TODO issue warning.
         elif ext in r:
             file_reader = r[ext]
@@ -85,25 +82,25 @@ def open_files(paths, view = None, set_camera = None):
             if set_camera and file_reader == open_session:
                 set_camera = False
         else:
-            from ..ui import gui
-            gui.show_status('Unknown file suffix "%s"' % ext)
+            session.show_status('Unknown file suffix "%s"' % ext)
             # TODO issue warning.
-    finished_opening(opened, set_camera, view)
+    finished_opening(opened, set_camera, session)
     return models
 
-def finished_opening(opened, set_camera, view):
+def finished_opening(opened, set_camera, session):
+    s = session
     if opened and set_camera:
+        view = s.main_window.view
         view.remove_overlays()
         view.initial_camera_view()
-    from ..ui.gui import show_info, show_status
     if len(opened) == 1 and opened:
         msg = 'Opened %s' % opened[0]
-        show_info(msg, color = '#000080')
-        show_status(msg)
+        s.show_info(msg, color = '#000080')
+        s.show_status(msg)
     elif len(opened) > 1:
         msg = 'Opened %d files' % len(opened)
-        show_info(msg, color = '#000080')
-        show_status(msg)
+        s.show_info(msg, color = '#000080')
+        s.show_status(msg)
 
 def open_map(map_path):
     '''
@@ -115,45 +112,40 @@ def open_map(map_path):
     map_drawing.new_region(ijk_step = (1,1,1), adjust_step = False)
     return map_drawing
 
-last_session_path = None
-def open_session(path):
+def open_session(path, session):
     '''
     Open a session file.  The current session is closed.
     '''
-    from ..ui.gui import main_window as mw
-    from . import session
-    session.restore_session(path, mw.view)
-    global last_session_path
-    last_session_path = path
-    from ..ui.gui import show_info
-    show_info('Opened %s' % path, color = '#000080')
+    from . import session_file
+    session_file.restore_session(path, session)
+    session.last_session_path = path
+    session.show_info('Opened %s' % path, color = '#000080')
     return []
 
-def save_session(view):
+def save_session(session):
     '''
     Save a session file using the session file path of the last loaded
     session, or if no session has been loaded then show a dialog to
     get the save path.
     '''
-    global last_session_path
-    if last_session_path is None:
-        save_session_as(view)
+    if session.last_session_path is None:
+        save_session_as(session)
     else:
-        from . import session
-        session.save_session(last_session_path, view)
+        from . import session_file
+        session_file.save_session(session.last_session_path, session)
 
-def save_session_as(view):
+def save_session_as(session):
     '''
     Save a session file, raising a dialog to enter the file path.
     '''
 
-    global last_session_path
-    dir = last_session_path
+    dir = session.last_session_path
     if dir is None:
         from .history import history
         dir = history.most_recent_directory()
     filters = 'Session (*.hy)'
-    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Session',
+    parent = session.main_window.view.widget
+    path = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Session',
                                                  dir, filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt
@@ -161,18 +153,19 @@ def save_session_as(view):
         return
 
     path = str(path)        # Convert from QString
-    from . import session
-    session.save_session(path, view)
-    from ..ui.gui import show_info
-    show_info('Saved %s' % path, color = '#000080')
+    from . import session_file
+    session_file.save_session(path, session)
+    session.show_info('Saved %s' % path, color = '#000080')
 
-def save_image(view):
+def save_image(session):
     '''
     Save a JPEG image of the current graphics window contents.
     '''
     filters = 'JPEG image (*.jpg)'
-    path = QtWidgets.QFileDialog.getSaveFileName(view, 'Save Image', '.',
-                                             filters)
+    view = session.main_window.view
+    parent = view.widget
+    path = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Image', '.',
+                                                 filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt
     if not path:
@@ -180,9 +173,11 @@ def save_image(view):
     i = view.image()
     i.save(path, 'JPG')
 
-def open_image(view):
+def open_image(session):
     filters = 'JPEG image (*.jpg)'
-    path = QtWidgets.QFileDialog.getOpenFileName(view, 'Open Image', '.',
+    view = session.main_window.view
+    parent = view.widget
+    path = QtWidgets.QFileDialog.getOpenFileName(parent, 'Open Image', '.',
                                              filters)
     if isinstance(path, tuple):
         path = path[0]      # PySide returns path and filter, not PyQt
@@ -206,23 +201,21 @@ def open_command(cmdname, args):
     kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
     open_file(**kw)
 
-def open_file(path, from_database = None, set_camera = None):
-    from ..ui.gui import main_window as mw
-    view = mw.view
+def open_file(path, session, from_database = None, set_camera = None):
+    view = session.main_window.view
     if from_database is None:
         from os.path import expanduser
         p = expanduser(path)
         from os.path import isfile
         if isfile(p):
-            open_files([p], view)
+            open_files([p], session)
         else:
             if ':' in p:
                 dbname, id = p.split(':', 1)
             elif len(p) == 4 or len(p.split(',', maxsplit = 1)[0]) == 4:
                 dbname, id = 'PDB', p
             else:
-                from ..ui import gui
-                gui.show_status('Unknown file %s' % path)
+                session.show_status('Unknown file %s' % path)
                 return
             open_file(id, from_database = dbname)
     else:
@@ -239,7 +232,7 @@ def open_file(path, from_database = None, set_camera = None):
                 mlist.append(m)
         view.add_models(mlist)
         finished_opening([m.path for m in mlist], set_camera, view)
-    mw.show_graphics()
+    session.main_window.show_graphics()
 
 def close_command(cmdname, args):
 
@@ -250,17 +243,6 @@ def close_command(cmdname, args):
 
     kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
     close_models(**kw)
-
-def close_models(models = None):
-    '''
-    Close a list of models, or all models if none are specified.
-    '''
-    from ..ui.gui import main_window
-    v = main_window.view
-    if models is None:
-        v.close_all_models()
-    else:
-        v.close_models(models)
 
 def read_python(path):
     '''

@@ -25,7 +25,7 @@ install: all pkg_dir
 	$(RSYNC) $(PYMOD) $(PYSRCS) $(PKG_DIR)
 
 clean:
-	rm -f $(PYMOD) $(OBJS) __pycache__
+	rm -rf $(PYMOD) $(OBJS) __pycache__
 
 else
 

@@ -27,61 +27,79 @@ def scene_command(cmdname, args):
     }
     perform_operation(cmdname, args, ops)
 
-scenes = []
-def add_scene(id = None, description = None):
-    global scenes
-    if id is None:
-        id = max(s.id for s in scenes)+1 if scenes else 1
-    else:
-        delete_scene(id)
-    scenes.append(Scene(id, description))
-    show_thumbnails()
+class Scenes:
 
-def show_scene(id):
-    global scenes
-    for s in scenes:
-        if s.id == id:
-            s.show()
-            return
-    from .ui import gui
-    gui.show_status('No scene with id %d' % id)
+    def __init__(self, session):
+        self.session = session
+        self.scenes = []
+        self.scene_thumbs = None
 
-def delete_scene(id):
-    global scenes
-    if id == 'all':
-        scenes = []
-    elif isinstance(id, str):
-        try:
-            ids = set(int(i) for i in id.split(','))
-        except:
-            from .ui.commands import CommandError
-            raise CommandError('Scene ids must be integers, got "%s"' % id)
-        scenes = [s for s in scenes if not s.id in ids]
-    else:
-        scenes = [s for s in scenes if s.id != id]
-    show_thumbnails()
+    def add_scene(self, id = None, description = None):
+        sl = self.scenes
+        if id is None:
+            id = max(s.id for s in sl)+1 if sl else 1
+        else:
+            self.delete_scene(id)
+        sl.append(Scene(id, description, self.session))
+        self.show_thumbnails()
 
-def delete_all_scenes():
-    global scenes
-    if scenes:
-        scenes = []
-        hide_thumbnails()
+    def show_scene(self, id):
+        for s in self.scenes:
+            if s.id == id:
+                s.show()
+                return
+        self.session.show_status('No scene with id %d' % id)
+
+    def delete_scene(self, id):
+        if id == 'all':
+            self.scenes = []
+        elif isinstance(id, str):
+            try:
+                ids = set(int(i) for i in id.split(','))
+            except:
+                from .ui.commands import CommandError
+                raise CommandError('Scene ids must be integers, got "%s"' % id)
+            self.scenes = [s for s in self.scenes if not s.id in ids]
+        else:
+            self.scenes = [s for s in self.scenes if s.id != id]
+        self.show_thumbnails()
+
+    def delete_all_scenes(self):
+        if self.scenes:
+            self.scenes = []
+            self.hide_thumbnails()
+
+    def show_thumbnails(self, toggle = False):
+        st = self.scene_thumbs
+        if st is None:
+            self.scene_thumbs = st = Scene_Thumbnails(self.session)
+        if toggle and st.shown():
+            st.hide()
+        else:
+            st.show(self.scenes)
+
+    def hide_thumbnails(self):
+        if self.scene_thumbs:
+            self.scene_thumbs.hide()
 
 class Scene:
 
-    def __init__(self, id, description):
+    def __init__(self, id, description, session = None):
         self.id = id
         self.description = description
+        self.session = session
         self.cross_fade_frames = 30
         self.thumbnail_size = (128,128)
 
-        from .ui.gui import main_window
-        v = main_window.view
-        w, h = self.thumbnail_size
-        self.image = i = v.image((w,h))         # QImage
+        if session is None:
+            self.image = None
+            self.state = None
+        else:
+            w, h = self.thumbnail_size
+            self.image = i = session.view.image((w,h))         # QImage
 
-        from .file_io import session
-        self.state = session.scene_state(v)
+            from .file_io import session_file
+            self.state = session_file.scene_state(session)
 
     def __delete__(self):
         if not hasattr(self, '_image_path'):
@@ -92,8 +110,8 @@ class Scene:
                 pass
 
     def show(self):
-        from .ui.gui import main_window
-        v = main_window.view
+        s = self.session
+        v = s.view
 
         if self.cross_fade_frames:
             from .ui.crossfade import Cross_Fade
@@ -103,12 +121,11 @@ class Scene:
         for m in v.models:
             m.displayed = False
 
-        from .file_io import session
-        session.restore_scene(self.state, v)
+        from .file_io import session_file
+        session_file.restore_scene(self.state, s)
         
         msg = 'Showing scene "%s"' % self.description if self.description else 'Showing scene %d' % self.id
-        from .ui import gui        
-        gui.show_status(msg)
+        s.show_status(msg)
 
     def image_path(self, iformat = 'JPG'):
         if not hasattr(self, '_image_path'):
@@ -129,8 +146,9 @@ class Scene:
          }
         return s
 
-    def set_state(self, scene_state):
+    def set_state(self, scene_state, session):
 
+        self.session = session
         s = scene_state
         self.id = s['id']
         self.description = s['description']
@@ -161,34 +179,20 @@ def string_to_image(s, iformat = 'JPG'):
     qi.load(buf, iformat)
     return qi
 
-def scene_from_state(scene_state):
+def scene_from_state(scene_state, session):
     st = scene_state
     s = Scene(st['id'], st['description'])
-    s.set_state(st)
+    s.set_state(st, session)
     return s
-
-scene_thumbs = None
-def show_thumbnails(toggle = False):
-    global scene_thumbs, scenes
-    if scene_thumbs is None:
-        scene_thumbs = Scene_Thumbnails()
-    if toggle and scene_thumbs.shown():
-        scene_thumbs.hide()
-    else:
-        scene_thumbs.show(scenes)
-
-def hide_thumbnails():
-    global scene_thumbs
-    if scene_thumbs:
-        scene_thumbs.hide()
 
 class Scene_Thumbnails:
 
-    def __init__(self):
+    def __init__(self, session):
 
-        from .ui.gui import main_window
+        self.session = session
+
         from .ui.qt import QtWidgets, QtCore
-        self.dock_widget = dw = QtWidgets.QDockWidget('Scenes', main_window)
+        self.dock_widget = dw = QtWidgets.QDockWidget('Scenes', session.main_window)
         dw.setTitleBarWidget(QtWidgets.QWidget(dw))   # No title bar
         dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
 
@@ -206,31 +210,30 @@ class Scene_Thumbnails:
         e.anchorClicked.connect(self.anchor_callback)          # Handle clicks on anchors
 
     def show(self, scenes):
-        self.set_height()
+        self.set_height(scenes = scenes)
         self.html = html = scene_thumbnails_html(scenes)
         self.text.setHtml(html)
 
         from .ui.qt import QtCore
-        from .ui.gui import main_window
         dw = self.dock_widget
-        main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
+        mw = self.session.main_window
+        mw.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
         dw.setVisible(True)
 
     def shown(self):
         return self.dock_widget.isVisible()
 
     def hide(self):
-        from .ui.gui import main_window
-        main_window.removeDockWidget(self.dock_widget)
+        mw = self.session.main_window
+        mw.removeDockWidget(self.dock_widget)
 
     def anchor_callback(self, qurl):
         url = qurl.toString()
         id = int(url)
-        show_scene(id)
+        self.session.scenes.show_scene(id)
 
-    def set_height(self, h = None):
+    def set_height(self, h = None, scenes = []):
         if h is None:
-            global scenes
             h = 220 if [s for s in scenes if s.description] else 140
         self.text.height = h
 #        self.text.adjustSize()
@@ -269,20 +272,20 @@ def scene_thumbnails_html(scenes):
   html = '\n'.join(lines)
   return html
 
-def scene_state():
+def scene_state(session):
 
-    global scenes
-    if len(scenes) == 0:
+    slist = session.scenes.scenes
+    if len(slist) == 0:
         return None
 
-    s = tuple(s.scene_state() for s in scenes)
+    s = tuple(s.scene_state() for s in slist)
     return s
 
-def restore_scenes(scene_states, viewer):
+def restore_scenes(scene_states, session):
 
-    global scenes
-    scenes = [scene_from_state(s) for s in scene_states]
-    if len(scenes) == 0:
-        hide_thumbnails()
+    scenes = session.scenes
+    scenes.scenes = sl = [scene_from_state(s, session) for s in scene_states]
+    if len(sl) == 0:
+        scenes.hide_thumbnails()
     else:
-        show_thumbnails()
+        scenes.show_thumbnails()

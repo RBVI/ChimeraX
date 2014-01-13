@@ -1,16 +1,8 @@
-keyboard_shortcuts = None
-'''The global Keyboard_Shortcuts manager.'''
-
-def register_shortcuts(viewer):
-    '''
-    Register the standard keyboard shortcuts.
-    '''
-    global keyboard_shortcuts
-    if keyboard_shortcuts is None:
-        keyboard_shortcuts = Keyboard_Shortcuts(viewer)
+def register_shortcuts(keyboard_shortcuts):
+    '''Register the standard keyboard shortcuts.'''
 
     ks = keyboard_shortcuts
-    v = viewer
+    v = ks.session.main_window.view
 
     map_shortcuts = (
       ('me', show_mesh, 'Show mesh'),
@@ -61,15 +53,7 @@ def register_shortcuts(viewer):
 
     ocat = 'Open, Save, Close'   # shortcut documentation category
     gcat = 'General Controls'
-    from ..file_io import session, opensave
-    from ..file_io.history import history
     view_shortcuts = (
-        ('op', opensave.show_open_file_dialog, 'Open file', ocat),
-        ('sv', opensave.save_session_as, 'Save session as...', ocat),
-        ('Sv', opensave.save_session, 'Save session', ocat),
-        ('si', opensave.save_image, 'Save image', ocat),
-        ('oi', opensave.open_image, 'Open image', ocat),
-        ('Ca', close_all_models, 'Close all models', ocat),
         ('mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat),
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat),
@@ -79,8 +63,6 @@ def register_shortcuts(viewer):
         ('bk', set_background_black, 'Black background', gcat),
         ('wb', set_background_white, 'White background', gcat),
         ('gb', set_background_gray, 'Gray background', gcat),
-        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat),
-        ('Ds', delete_selected_models, 'Delete selected models', ocat),
         ('lp', leap_position_mode, 'Enable leap motion input device', gcat),
         ('lx', leap_chopsticks_mode, 'Enable leap motion chopstick mode', gcat),
         ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat),
@@ -97,24 +79,37 @@ def register_shortcuts(viewer):
     for k,f,d,cat in view_shortcuts:
       ks.add_shortcut(k, f, d, category = cat, view_arg = True)
 
-    from .gui import show_log
     misc_shortcuts = (
         ('dv', v.initial_camera_view, 'Default view', gcat),
         ('va', v.view_all, 'View all', gcat),
-        ('rs', history.show_thumbnails, 'Show recent sessions', ocat),
         ('cs', v.clear_selection, 'Clear selection', gcat),
-        ('Qt', quit, 'Quit', ocat),
-        ('cl', command_line, 'Enter command', gcat),
-        ('gr', show_graphics_window, 'Show graphics window', gcat),
-        ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
-        ('mn', show_manual, 'Show manual', gcat),
-        ('lg', show_log, 'Show command log', gcat),
-        ('ch', show_command_history, 'Show command history', gcat),
-        ('sc', show_scenes, 'Show scene thumbnails', gcat),
-        ('rt', show_stats, 'Show model statistics', gcat),
         )
     for k,f,d,cat in misc_shortcuts:
       ks.add_shortcut(k, f, d, category = cat)
+
+    from ..file_io import opensave
+    session_shortcuts = (
+        ('op', opensave.show_open_file_dialog, 'Open file', ocat),
+        ('sv', opensave.save_session_as, 'Save session as...', ocat),
+        ('Sv', opensave.save_session, 'Save session', ocat),
+        ('si', opensave.save_image, 'Save image', ocat),
+        ('oi', opensave.open_image, 'Open image', ocat),
+        ('Ca', close_all_models, 'Close all models', ocat),
+        ('Ds', delete_selected_models, 'Delete selected models', ocat),
+        ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
+        ('rs', show_file_history, 'Show recent sessions', ocat),
+        ('gr', show_graphics_window, 'Show graphics window', gcat),
+        ('mn', show_manual, 'Show manual', gcat),
+        ('ch', show_command_history, 'Show command history', gcat),
+        ('sc', show_scenes, 'Show scene thumbnails', gcat),
+        ('rt', show_stats, 'Show model statistics', gcat),
+        ('lg', show_log, 'Show command log', gcat),
+        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat),
+        ('cl', command_line, 'Enter command', gcat),
+        ('Qt', quit, 'Quit', ocat),
+        )
+    for k,f,d,cat in session_shortcuts:
+      ks.add_shortcut(k, f, d, category = cat, session_arg = True)
 
     ks.category_columns = ((ocat,mapcat), (molcat,), (gcat,))
 
@@ -124,16 +119,16 @@ class Keyboard_Shortcuts:
   '''
   Maintain a list of multi-key keyboard shortcuts and run them in response to key presses.
   '''
-  def __init__(self, viewer):
+  def __init__(self, session):
 
     # Keyboard shortcuts
     self.shortcuts = {}
     self.keys = ''
-    self.viewer = viewer
+    self.session = session
 
   def add_shortcut(self, key_seq, func, description = '', category = None,
                    each_map = False, each_molecule = False,
-                   each_surface = False, view_arg = False):
+                   each_surface = False, view_arg = False, session_arg = False):
     '''
     Add a keyboard shortcut with a given key sequence and function to call when
     that key sequence is entered.  Shortcuts are put in categories and have
@@ -142,7 +137,7 @@ class Keyboard_Shortcuts:
     view argument.
     '''
 
-    v = self.viewer
+    v = self.session.main_window.view
     if each_map:
         def f(v=v, func=func):
             for m in shortcut_maps(v):
@@ -158,6 +153,9 @@ class Keyboard_Shortcuts:
     elif view_arg:
         def f(v=v, func=func):
             func(v)
+    elif session_arg:
+        def f(s=self.session, func=func):
+            func(s)
     else:
         f = func
     self.shortcuts[key_seq] = (f, description, category)
@@ -183,8 +181,7 @@ class Keyboard_Shortcuts:
     if not is_prefix:
         self.keys = ''
 
-    from .gui import show_status
-    show_status(msg)
+    self.session.show_status(msg)
 
   def run_shortcut(self, keys):
       fdc = self.shortcuts.get(keys)
@@ -192,9 +189,9 @@ class Keyboard_Shortcuts:
         return
       f,d,c = fdc
       msg = '%s - %s' % (keys, d)
-      from .gui import show_status, show_info
-      show_status(msg)
-      show_info(msg, color = '#808000')
+      s = self.session
+      s.show_status(msg)
+      s.show_info(msg, color = '#808000')
       f()
 
 def shortcut_maps(v):
@@ -215,12 +212,10 @@ def shortcut_surfaces(v):
     mlist = [m for m in v.surfaces() if m.display]
   return mlist
 
-def close_all_models(viewer):
-    viewer.close_all_models()
-    from .. import scenes
-    scenes.delete_all_scenes()
-    from ..file_io.history import history
-    history.show_thumbnails()
+def close_all_models(session):
+    session.viewer.close_all_models()
+    session.scenes.delete_all_scenes()
+    session.file_history.show_thumbnails()
 
 def show_mesh(m):
   m.set_representation('mesh')
@@ -372,14 +367,14 @@ def set_background_gray(viewer):
 def set_background_white(viewer):
     set_background_color(viewer, (1,1,1,1))
 
-def selection_mouse_mode(viewer):
-    def mouse_down(event, v=viewer):
+def selection_mouse_mode(session):
+    def mouse_down(event, session=session):
         x,y = event.x(), event.y()
+        v = session.view
         p, s = v.first_intercept(x,y)
-        from .gui import show_status
         if s is None:
             v.clear_selection()
-            show_status('cleared selection')
+            session.show_status('cleared selection')
         else:
             for m in s.models():
                 m.selected = not m.selected
@@ -388,19 +383,18 @@ def selection_mouse_mode(viewer):
                     if not (event.modifiers() & QtCore.Qt.ShiftModifier):
                         v.clear_selection()
                         v.select_model(m)
-                        show_status('Selected %s' % m.name)
+                        session.show_status('Selected %s' % m.name)
                 else:
                     v.unselect_model(m)
-    viewer.mouse_modes.bind_mouse_mode('right', mouse_down)
+    session.view.mouse_modes.bind_mouse_mode('right', mouse_down)
 
-def command_line():
-  from .gui import main_window
-  main_window.focus_on_command_line()
+def command_line(session):
+    session.main_window.focus_on_command_line()
 #  from .qt import QtCore
 #  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
 
-def delete_selected_models(viewer):
-  viewer.close_models(tuple(viewer.selected))
+def delete_selected_models(session):
+  session.close_models(tuple(session.view.selected))
 
 def show_map_full_resolution(m):
   m.new_region(ijk_step = (1,1,1), adjust_step = False)
@@ -457,19 +451,15 @@ def accessible_surface_area(m):
     from .. import surface
     surface.accessible_surface_area(m)
 
-def list_keyboard_shortcuts():
-  from .gui import main_window as m
-  if m.showing_text() and m.text_id == 'keyboard shortcuts':
-    m.show_graphics()
-  else:
-    t = shortcut_descriptions(html = True)
-    m.show_text(t, html = True, id = "keyboard shortcuts")
+def list_keyboard_shortcuts(session):
+    m = session.main_window
+    if m.showing_text() and m.text_id == 'keyboard shortcuts':
+        m.show_graphics()
+    else:
+        t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
+        m.show_text(t, html = True, id = "keyboard shortcuts")
 
-def shortcut_descriptions(html = False):
-  global keyboard_shortcuts
-  if keyboard_shortcuts is None:
-    return 'No keyboard shortcuts registered'
-  ks = keyboard_shortcuts
+def shortcut_descriptions(ks, html = False):
   ksc = {}
   for k, (f,d,c) in ks.shortcuts.items():
     ksc.setdefault(c,[]).append((k,d))
@@ -499,13 +489,16 @@ def shortcut_descriptions(html = False):
   descrip = '\n'.join(lines)
   return descrip
 
-def show_graphics_window():
-  from .gui import main_window as m
-  m.show_graphics()
-  m.show_back_forward_buttons(False)
+def show_graphics_window(session):
+    m = session.main_window
+    m.show_graphics()
+    m.show_back_forward_buttons(False)
 
-def show_manual():
-  from .gui import main_window as m
+def show_log(session):
+  session.log.show()
+
+def show_manual(session):
+  m = session.main_window
   if m.showing_text() and m.text_id == 'manual':
     m.show_graphics()
     m.show_back_forward_buttons(False)
@@ -522,21 +515,22 @@ def show_manual():
     from .qt import QtCore
     m.text.setSource(QtCore.QUrl(url))
 
-def show_command_history():
+def show_file_history(session):
+    session.file_history.show_thumbnails()
+
+def show_command_history(session):
     from . import commands
-    commands.show_command_history()
+    commands.show_command_history(session)
 
-def show_scenes():
-    from .. import scenes
-    scenes.show_thumbnails(toggle = True)
+def show_scenes(session):
+    session.scenes.show_thumbnails(toggle = True)
 
-def show_stats():
-    from .gui import main_window as mw, show_status
-    v = mw.view
+def show_stats(session):
+    v = session.view
     na = v.atoms_shown
     r = 1.0/v.last_draw_duration
     n = len(v.models)
-    show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
+    session.show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
 
 def leap_chopsticks_mode(viewer):
     from . import c2leap
@@ -584,6 +578,6 @@ def toggle_space_navigator_fly_mode(viewer):
     from . import spacenavigator
     spacenavigator.toggle_fly_mode(viewer)
 
-def quit():
+def quit(session):
     import sys
     sys.exit(0)

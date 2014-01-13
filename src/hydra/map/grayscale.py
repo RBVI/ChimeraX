@@ -116,7 +116,7 @@ class Gray_Scale_Drawing(object):
       self.update_colors = False
 
     zaxis = self.ijk_to_xyz.z_axis()
-    vaxis = viewer.view_direction()
+    vaxis = viewer.camera.view_direction()
     reverse = ((zaxis * vaxis).sum() > 0)
 
     from ..surface import Surface

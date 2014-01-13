@@ -5,80 +5,80 @@ class CommandError(Exception):
 
 # -----------------------------------------------------------------------------
 #
-def register_commands():
+def register_commands(commands):
     '''
     Registers the standard commands.
     '''
+    add = commands.add_command
     from ..file_io.opensave import open_command, close_command
-    add_command('open', open_command)
-    add_command('close', close_command)
+    add('open', open_command)
+    add('close', close_command)
     from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
     fetch_pdb.register_pdb_fetch()
     fetch_emdb.register_emdb_fetch()
     fetch_eds.register_eds_fetch()
     from ..map import molmap
-    add_command('molmap', molmap.molmap_command)
+    add('molmap', molmap.molmap_command)
     from ..map import volumecommand
-    add_command('volume', volumecommand.volume_command)
+    add('volume', volumecommand.volume_command)
     from ..map.fit import fitcmd
-    add_command('fitmap', fitcmd.fitmap_command)
+    add('fitmap', fitcmd.fitmap_command)
     from ..molecule import align, showcmd
-    add_command('align', align.align_command)
-    add_command('show', showcmd.show_command)
-    add_command('hide', showcmd.hide_command)
+    add('align', align.align_command)
+    add('show', showcmd.show_command)
+    add('hide', showcmd.hide_command)
     from ..surface import gridsurf
-    add_command('surface', gridsurf.surface_command)
+    add('surface', gridsurf.surface_command)
     from .. import scenes
-    add_command('scene', scenes.scene_command)
+    add('scene', scenes.scene_command)
     from . import camera
-    add_command('camera', camera.camera_command)
+    add('camera', camera.camera_command)
 
 # -----------------------------------------------------------------------------
 #
-commands = {}
-cmdabbrev = None
-def add_command(name, function):
-    '''
-    Register a command with a given name and function to call.
-    '''
-    global commands, cmdabbrev
-    commands[name] = function
-    cmdabbrev = None
+class Commands:
+    '''Keep the list of commands and run them.'''
+    def __init__(self, session):
+        self.session = session
+        self.commands = {}
+        self.cmdabbrev = None
 
-# -----------------------------------------------------------------------------
-#
-def run_command(text):
-    '''
-    Invoke a command.  The command and arguments are a string that will be
-    parsed by a registered command function.
-    '''
-    from .gui import log_message
-    log_message('> %s' % text, color = '#008000')
-    fields = text.split(maxsplit = 1)
-    if len(fields) == 0:
-        return
-    cmd = fields[0]
-    global cmdabbrev
-    if cmdabbrev is None:
-        cmdabbrev = abbreviation_table(commands.keys())
-    if cmd in cmdabbrev:
-        cmd = cmdabbrev[cmd]
-        f = commands[cmd]
-        args = fields[1] if len(fields) >= 2 else ''
-        failed = False
-        try:
-            f(cmd, args)
-        except CommandError as e:
-            from . import gui
-            gui.show_status(str(e))
-            failed = True
-        if not failed:
-            from .gui import log_image
-            log_image()
-        add_to_command_history(text)
-    else:
-        from . import gui
-        gui.show_status('Unknown command %s' % cmd)
+    def add_command(self, name, function):
+        '''
+        Register a command with a given name and function to call.
+        '''
+        self.commands[name] = function
+        self.cmdabbrev = None
+
+    def run_command(self, text):
+        '''
+        Invoke a command.  The command and arguments are a string that will be
+        parsed by a registered command function.
+        '''
+        ses = self.session
+        ses.log_message('> %s' % text, color = '#008000')
+        fields = text.split(maxsplit = 1)
+        if len(fields) == 0:
+            return
+        cmd = fields[0]
+        cab = self.cmdabbrev
+        if cab is None:
+            self.cmdabbrev = cab = abbreviation_table(commands.keys())
+        if cmd in cab:
+            cmd = cab[cmd]
+            f = commands[cmd]
+            args = fields[1] if len(fields) >= 2 else ''
+            failed = False
+            try:
+                f(cmd, args)
+            except CommandError as e:
+                ses.show_status(str(e))
+                failed = True
+            if not failed:
+                ses.log.insert_graphics_image()
+            add_to_command_history(text)
+        else:
+            ses.show_status('Unknown command %s' % cmd)
 
 # -----------------------------------------------------------------------------
 #
@@ -92,13 +92,13 @@ def add_to_command_history(text, filename = 'commands'):
 
 # -----------------------------------------------------------------------------
 #
-def show_command_history(filename = 'commands'):
+def show_command_history(session, filename = 'commands'):
     '''
     Show a text window showing the invoked commands and their arguments for
     this session in the order they were executed.  Clicking on a command causes
     it to be run again.
     '''
-    from .gui import main_window as mw
+    mw = session.main_window
     if mw.showing_text() and mw.text_id == 'command history':
         mw.show_graphics()
         return
@@ -107,8 +107,7 @@ def show_command_history(filename = 'commands'):
     path = history.user_settings_path(filename)
     from os.path import isfile
     if not isfile(path):
-        from .gui import show_status
-        show_status('No command history file')
+        session.show_status('No command history file')
         lines = []
     else:
         f = open(path, 'r')
@@ -123,8 +122,6 @@ def show_command_history(filename = 'commands'):
         if not cmd in found:
             cmds.append(cmd)
             found.add(cmd)
-    global shown_commands
-    shown_commands = cmds
 
     hlines = ['<html>', '<head>', '<style>',
               'a { text-decoration: none; }',   # No underlining links
@@ -139,25 +136,22 @@ def show_command_history(filename = 'commands'):
 #    mw.text.setSource(QtCore.QUrl())
 #    mw.text.clear()
 #    mw.text.clearHistory()
+
+    def insert_clicked_command(url, session = session, shown_commands = cmds):
+        surl = url.toString(url.PreferLocalFile)
+        # Work around Qt bug where it prepends a directory path to the anchor
+        # even when QtTextBrowser search path and source are cleared.
+        cnum = surl.split('/')[-1]
+        c = int(cnum)         # command number
+        if c < len(shown_commands):
+            cmd = shown_commands[c]
+            cline = session.main_window.command_line
+            cline.clear()
+            cline.insert(cmd)
+            session.commands.run_command(cmd)
+
     mw.show_text(html, html=True, id = 'command history',
                  anchor_callback = insert_clicked_command)
-
-# -----------------------------------------------------------------------------
-#
-shown_commands = []
-def insert_clicked_command(url):
-    surl = url.toString(url.PreferLocalFile)
-    # Work around Qt bug where it prepends a directory path to the anchor
-    # even when QtTextBrowser search path and source are cleared.
-    cnum = surl.split('/')[-1]
-    c = int(cnum)         # command number
-    if c < len(shown_commands):
-        cmd = shown_commands[c]
-        from .gui import main_window as mw
-        cline = mw.command_line
-        cline.clear()
-        cline.insert(cmd)
-        run_command(cmd)
 
 # -----------------------------------------------------------------------------
 #

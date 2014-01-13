@@ -14,9 +14,10 @@ def molecule_state(m):
     ms['ribbon_shown'] = array_to_string(m.ribbon_shown)
     return ms
 
-def restore_molecules(mstate, viewer, attributes_only = False):
+def restore_molecules(mstate, session, attributes_only = False):
+    v = session.main_window.view
     if attributes_only:
-        mids = dict((m.id, m) for m in viewer.molecules())
+        mids = dict((m.id, m) for m in v.molecules())
     from ..file_io.opensave import open_files
     for ms in mstate:
         if attributes_only:
@@ -31,9 +32,9 @@ def restore_molecules(mstate, viewer, attributes_only = False):
                     show_info('Database fetch %s from %s unexpectedly contained %d models'
                               % (db_id, db_name, len(mlist),))
                     continue
-                viewer.add_models(mlist)
+                v.add_models(mlist)
             else:
-                mlist = open_files([ms['path']], set_camera = False)
+                mlist = open_files([ms['path']], session, set_camera = False)
                 if len(mlist) != 1:
                     from ..ui.gui import show_info
                     show_info('File %s unexpectedly contained %d models' % (ms['path'], len(mlist),))

@@ -6,7 +6,8 @@ class View(QtGui.QWindow):
     It manages the camera and draws the models when needed.
     Currently it contains the list of open models.
     '''
-    def __init__(self, parent=None):
+    def __init__(self, session, parent=None):
+        self.session = session
         QtGui.QWindow.__init__(self)
         self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
@@ -77,8 +78,7 @@ class View(QtGui.QWindow):
     def keyPressEvent(self, event):
         if str(event.text()) == '\r':
             return
-        from .shortcuts import keyboard_shortcuts as ks
-        ks.key_pressed(event)
+        self.session.keyboard_shortcuts.key_pressed(event)
 
     def create_opengl_context(self):
 
@@ -111,9 +111,9 @@ class View(QtGui.QWindow):
             return True
 
         msg = 'Stereo mode is not supported by OpenGL driver'
-        from .gui import show_status, show_info
-        show_status(msg)
-        show_info(msg)
+        s = self.session
+        s.show_status(msg)
+        s.show_info(msg)
         return False
 
         # TODO: Current strategy for handling stereo is to request a stereo OpenGL context
@@ -142,9 +142,9 @@ class View(QtGui.QWindow):
                 msg = 'Stereo mode is not supported by OpenGL driver'
             else:
                 msg = 'Failed changing graphics mode'
-            from .gui import show_status, show_info
-            show_status(msg)
-            show_info(msg)
+            s = self.session
+            s.show_status(msg)
+            s.show_info(msg)
             return False
         self.opengl_context = c
         c.makeCurrent(self)
@@ -162,12 +162,12 @@ class View(QtGui.QWindow):
         r.enable_depth_test(True)
         r.initialize_opengl()
 
-        from .gui import show_info
-        show_info('OpenGL version %s' % r.opengl_version())
+        s = self.session
+        s.show_info('OpenGL version %s' % r.opengl_version())
 
         f = self.opengl_context.format()
-        show_info('OpenGL stereo %d, color buffer size %d, depth buffer size %d, stencil buffer size %d'
-                  % (f.stereo(), f.redBufferSize(), f.depthBufferSize(), f.stencilBufferSize()))
+        s.show_info('OpenGL stereo %d, color buffer size %d, depth buffer size %d, stencil buffer size %d'
+                    % (f.stereo(), f.redBufferSize(), f.depthBufferSize(), f.stencilBufferSize()))
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:

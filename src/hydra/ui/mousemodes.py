@@ -115,9 +115,9 @@ class Mouse_Modes:
 
     def mouse_pause(self):
         lp = self.mouse_pause_position
-        p, s = self.view.first_intercept(lp.x(), lp.y())
-        from .gui import show_status
-        show_status('Mouse over %s' % s.description() if s else '')
+        v = self.view
+        p, s = v.first_intercept(lp.x(), lp.y())
+        v.session.show_status('Mouse over %s' % s.description() if s else '')
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position

@@ -1,7 +1,9 @@
 # Keep list of recently accessed files and thumbnail images.
 class File_History:
 
-  def __init__(self, history_file = None):
+  def __init__(self, session, history_file = None):
+
+    self.session = session
 
     if history_file is None:
       from os.path import join
@@ -99,19 +101,20 @@ class File_History:
     s.reverse()
     return s
 
-  def add_entry(self, path, viewer, replace_image = False, wait_for_render = False):
+  def add_entry(self, path, replace_image = False, wait_for_render = False):
 
     if not self.read:
       self.read_history()
 
     atime,iname = self.files.get(path, (None,None))
+    v = self.session.main_window.view
     if iname is None:
       from os.path import splitext, basename
       bname = splitext(basename(path))[0] + '.' + self.image_format.lower()
       iname = unique_file_name(bname, self.thumbnail_directory)
-      self.save_thumbnail(iname, viewer, wait_for_render)
+      self.save_thumbnail(iname, v, wait_for_render)
     elif replace_image:
-      self.save_thumbnail(iname, viewer, wait_for_render)
+      self.save_thumbnail(iname, v, wait_for_render)
 
     from time import time
     atime = time()
@@ -141,7 +144,7 @@ class File_History:
 
   def show_thumbnails(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     if self.history_shown():
       mw.show_graphics()
       return
@@ -162,16 +165,16 @@ class File_History:
       return
     self.hide_history()
     from . import opensave
-    opensave.open_session(path)
+    opensave.open_session(path, self.session)
 
   def history_shown(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     return mw.showing_text() and mw.text_id == 'recent sessions'
 
   def hide_history(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     mw.show_graphics()
 
   def most_recent_directory(self):
@@ -239,5 +242,3 @@ def user_settings_path(filename = None, directory = False):
     import os
     os.mkdir(fpath)
   return fpath
-
-history = File_History()
