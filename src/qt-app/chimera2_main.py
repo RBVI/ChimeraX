@@ -362,7 +362,7 @@ def main():
 	if '--nogui' in sys.argv:
 		app = ConsoleApplication(sys.argv)
 	else:
-		set_default_context(3, 2, QGLFormat.CoreProfile)
+		set_default_context(3, 3, QGLFormat.CoreProfile)
 		app = GuiApplication(sys.argv)
 	argv = sys.argv
 	argv[0] = app.applicationName().casefold()

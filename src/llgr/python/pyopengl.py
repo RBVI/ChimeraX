@@ -25,7 +25,8 @@ class SequenceChecker(Checker):
 			return False
 		vals = tuple(iter(value))
 		import functools
-		return functools.reduce(lambda r, v: r and self._check.check(v), vals, True)
+		return functools.reduce(lambda r, v: r and self._check.check(v),
+								vals, True)
 
 sequence_of = SequenceChecker
 
@@ -39,10 +40,11 @@ class Array(Checker):
 	def __eq__(self, other):
 		if self.__class__ is not other.__class__:
 			return False
-		return self._shape == other._shape and self._dtype == other._dtype
+		return (self._shape == other._shape
+					and self._dtype == other._dtype)
 
 	def __hash__(self):
-		return hash(str(hash(self.__class__)) + str(hash(self._shape)) + str(hash(self._dtype)))
+		return hash((self.__class__, self._shape, self._dtype))
 
 	def __repr__(self):
 		return "IsArray(%s, %s)" % (self._shape, self._dtype)
@@ -510,8 +512,6 @@ class _GroupInfo:
 			else:
 				g.append(oi)
 
-		separate = groupings#DEBUG: 
-		"""#DEBUG: 
 		# second pass: if all objects in a group have the same
 		# first and count, then aggregate singletons, and use
 		# instancing.
@@ -572,7 +572,12 @@ class _GroupInfo:
 					# and before rendering
 					oi.incomplete = True
 					break
-				_setup_array_attribute(bi, ai, sv.location, num_locations)
+				_setup_array_attribute(bi, ai, sv.location,
+								num_locations)
+			if proto.index_buffer_id:
+				ibi = _all_buffers.get(proto.index_buffer_id, None)
+				if ibi is not None:
+					GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, ibi.buffer)
 			# interleave singleton data
 			# TODO: reorder singletons so smaller values pack
 			fmt = '@'
@@ -583,34 +588,41 @@ class _GroupInfo:
 				fmt += _data_format(si.data_type)
 			fmt += '0f'
 			stride = struct.calcsize(fmt)
-			data = numpy.zeros(len(ois) * stride, dtype=numpy.uint8)
+			if stride == 0:
+				self.ois.append(oi)
+				continue
+			# TODO: assert(stride < glGetInteger(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET))
+			data = bytearray(len(ois) * stride)
 
 			base_offset = 0
 			for oi2 in ois:
 				for offset, si in zip(offsets, oi2.singleton_cache):
 					pos = base_offset + offset
-					size = len(si.data)
-					data[pos:pos + size] = memoryview(si.data)
+					mv = memoryview(si.data)
+					size = mv.nbytes
+					data[pos:pos + size] = mv.tobytes()
 				base_offset += stride
+			# TODO: unneeded when PyOpenGL handles bytearrays
+			data = bytes(data)
 			buffer = GL.glGenBuffers(1)
 			self.buffers.append(buffer)
 			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
-			GL.glBufferData(GL.GL_ARRAY_BUFFER, len(data), data, GL.GL_STATIC_DRAW)
+			GL.glBufferData(GL.GL_ARRAY_BUFFER, len(data), data,
+							GL.GL_STATIC_DRAW)
 			bi = _BufferInfo(buffer, ARRAY)
 			for offset, si in zip(offsets, proto.singleton_cache):
 				ai = AttributeInfo(None, None, offset, stride,
 					si.num_elements, si.data_type,
 					si.normalized)
-				_setup_array_attribute(bi, ai, si.base_location, si.num_locations)
+				_setup_array_attribute(bi, ai, si.base_location,
+							si.num_locations)
 				for i in range(si.num_locations):
 					_glVertexAttribDivisor(
-						si.base_location + i,
-						proto.count)
+						si.base_location + i, 1)
 			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
 			if not oi.incomplete:
 				self.ois.append(oi)
-		"""#DEBUG: 
 
 		# third pass: look at left over groupings
 		# TODO: If different first and count, try to group
@@ -642,7 +654,8 @@ class _GroupInfo:
 					# and before rendering
 					oi.incomplete = True
 					break
-				_setup_array_attribute(bi, ai, sv.location, num_locations)
+				_setup_array_attribute(bi, ai, sv.location,
+								num_locations)
 			if oi.index_buffer_id:
 				ibi = _all_buffers.get(oi.index_buffer_id, None)
 				if ibi is not None:
@@ -874,11 +887,8 @@ def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
 			index_data_id, index_buffer_type)
 	delete_object(obj_id)
 	try:
-		#oi.vao = GL.glGenVertexArrays(1)
-		#GL.glBindVertexArray(oi.vao)
 		_check_attributes(obj_id, oi)
 	finally:
-		#GL.glBindVertexArray(0)
 		pass
 	_all_objects[obj_id] = oi
 

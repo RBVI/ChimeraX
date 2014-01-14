@@ -590,7 +590,7 @@ def add_sphere(obj_id: Id, radius: Number, program_id: Id, matrix_id: Id,
 		return
 	aname = ('a%s' % obj_id).replace('-', '_')
 	_calls.append('\tAttributeInfos %s;' % aname)
-	for ai in attributeInfos:
+	for ai in attribute_infos:
 		_calls.append("\t%s.push_back(%s);" % (aname, ai))
 	_calls.append('\tadd_sphere(%r, %r, %r, %r, %s, "%s", "%s");'
 			% (obj_id, radius, program_id, matrix_id, aname))
@@ -627,7 +627,7 @@ def add_cone(obj_id: Id, radius: Number, length: Number,
 @typecheck
 def add_disk(obj_id: Id, inner_radius: Number, outer_radius: Number,
 		program_id: Id, matrix_id: Id,
-		attribute_info: sequence_of(AttributeInfo)):
+		attribute_infos: sequence_of(AttributeInfo)):
 	if _dump_format == JSON_FORMAT:
 		_calls.append(['add_disk', [obj_id, inner_radius, outer_radius, program_id, matrix_id, attribute_infos]])
 		return
