@@ -102,7 +102,7 @@ mac_app_dirs:
 endif
 
 run:
-	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"
+	$(bindir)/python3 -c "import hydra; hydra.Session().start()"
 
 dmg:
 	cd $(APPS_DIR) ; \
