@@ -190,7 +190,7 @@ def open_image(session):
     surface_image(i, (-.5,-.5), 1, s)
     view.add_overlay(s)
 
-def open_command(cmdname, args):
+def open_command(cmdname, args, session):
 
     from ..ui.commands import string_arg
     from ..ui.commands import parse_arguments
@@ -198,7 +198,8 @@ def open_command(cmdname, args):
     opt_args = ()
     kw_args = (('fromDatabase', string_arg),)
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     open_file(**kw)
 
 def open_file(path, session, from_database = None, set_camera = None):
@@ -217,7 +218,7 @@ def open_file(path, session, from_database = None, set_camera = None):
             else:
                 session.show_status('Unknown file %s' % path)
                 return
-            open_file(id, from_database = dbname)
+            open_file(id, session, from_database = dbname)
     else:
         ids = path.split(',')
         if set_camera is None:
@@ -225,24 +226,24 @@ def open_file(path, session, from_database = None, set_camera = None):
         from . import fetch
         mlist = []
         for id in ids:
-            m = fetch.fetch_from_database(id, from_database)
+            m = fetch.fetch_from_database(id, from_database, session)
             if isinstance(m, (list, tuple)):
                 mlist.extend(m)
             else:
                 mlist.append(m)
         view.add_models(mlist)
-        finished_opening([m.path for m in mlist], set_camera, view)
+        finished_opening([m.path for m in mlist], set_camera, session)
     session.main_window.show_graphics()
 
-def close_command(cmdname, args):
+def close_command(cmdname, args, session):
 
     from ..ui.commands import models_arg, parse_arguments
     req_args = ()
     opt_args = (('models', models_arg),)
     kw_args = ()
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
-    close_models(**kw)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    session.close_models(**kw)
 
 def read_python(path):
     '''

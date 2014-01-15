@@ -2,7 +2,7 @@ from ...ui.commands import CommandError
 
 # -----------------------------------------------------------------------------
 #
-def fitmap_command(cmdname, args):
+def fitmap_command(cmdname, args, session):
 
     from ...ui.commands import parse_arguments
     from ...ui.commands import specifier_arg, volume_arg, int_arg, float_arg, bool_arg
@@ -33,7 +33,7 @@ def fitmap_command(cmdname, args):
                ('listFits', bool_arg),
                ('eachModel', bool_arg),
                )
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     fitmap(**kw)
 
 # -----------------------------------------------------------------------------
@@ -181,7 +181,7 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
                                     request_stop_cb = report_status)
     mols = atoms.molecules()
     if stats:
-        from ...ui.gui import show_info, show_status
+        from ...ui import show_info, show_status
         show_info(F.atom_fit_message(atoms.molecules(), volume, stats))
         if moveWholeMolecules:
             for m in mols:
@@ -211,7 +211,7 @@ def fit_map_in_map(v, volume, metric, envelope,
     move.move_models_and_atoms(move_tf, [v], mapAtoms, moveWholeMolecules,
                                volume)
 
-    from ...ui.gui import show_info, show_status
+    from ...ui import show_info, show_status
     show_info(F.map_fit_message(v, volume, stats))
     show_info(F.transformation_matrix_message(v, volume))
     cort = me if me == 'correlation about mean' else 'correlation'
@@ -262,7 +262,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     from . import move
     move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
 
-    from ...ui.gui import show_info, show_status
+    from ...ui import show_info, show_status
     show_info(F.map_fit_message(v, volume, stats))
     show_info(F.transformation_matrix_message(v, volume))
     cort = me if me == 'correlation about mean' else 'correlation'
@@ -329,7 +329,7 @@ def request_stop_cb(message, task):
 #
 def report_fit_search_results(flist, search, outside, inside):
 
-    from ...ui.gui import show_info
+    from ...ui import show_info
     show_info('Found %d unique fits from %d random placements ' %
          (len(flist), search) +
          'having fraction of points inside contour >= %.3f (%d of %d).\n'
@@ -444,6 +444,6 @@ def map_fitting_points(v, envelope, local_coords = False):
 #
 def report_status(message):
 
-  from ...ui import gui
-  gui.show_status(message)
+  from ...ui import show_status
+  show_status(message)
   return False        # Don't halt computation

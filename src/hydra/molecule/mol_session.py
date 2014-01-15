@@ -26,7 +26,7 @@ def restore_molecules(mstate, session, attributes_only = False):
             if 'database_fetch' in ms:
                 db_id, db_name = ms['database_fetch']
                 from ..file_io import fetch
-                mlist = fetch.fetch_from_database(db_id, db_name)
+                mlist = fetch.fetch_from_database(db_id, db_name, session)
                 if len(mlist) != 1:
                     from ..ui.gui import show_info
                     show_info('Database fetch %s from %s unexpectedly contained %d models'

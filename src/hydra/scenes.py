@@ -8,24 +8,24 @@
 # -----------------------------------------------------------------------------
 # Add, show, and remove scenes.
 #
-def scene_command(cmdname, args):
+def scene_command(cmdname, args, session):
 
     from .ui.commands import string_arg, int_arg, perform_operation
     ops = {
-        'add': (add_scene,
+        'add': (session.scenes.add_scene,
                 (),
                 (('id', int_arg),),
                 (('description', string_arg),)),
-        'show': (show_scene,
+        'show': (session.scenes.show_scene,
                  (('id', int_arg),),
                  (),
                  ()),
-        'delete': (delete_scene,
+        'delete': (session.scenes.delete_scene,
                  (('id', string_arg),),
                  (),
                  ()),
     }
-    perform_operation(cmdname, args, ops)
+    perform_operation(cmdname, args, ops, session)
 
 class Scenes:
 

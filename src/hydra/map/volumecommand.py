@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Implementation of "volume" command.
 #
-def volume_command(cmdname, args):
+def volume_command(cmdname, args, session):
 
     from ..ui.commands import parse_arguments
     from ..ui.commands import string_arg, bool_arg, bool3_arg, enum_arg
@@ -87,7 +87,7 @@ def volume_command(cmdname, args):
                 {'values':('xyz', 'xy', 'xz', 'yz', 'off')}),
                ('positionPlanes', int3_arg),
                )
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
 
     # Extra parsing.
     for aname in ('step', 'origin', 'originIndex', 'voxelSize', 'centerIndex',
@@ -113,12 +113,14 @@ def volume_command(cmdname, args):
     for opt, value in defaults:
         if not opt in kw:
             kw[opt] = value
-            
+
+    kw['session'] = session
+
     volume(**kw)
     
 # -----------------------------------------------------------------------------
 #
-def volume(volumes = [],
+def volume(volumes = '',                # Specifier
            style = None,
            show = None,
            hide = None,
@@ -185,6 +187,7 @@ def volume(volumes = [],
            boxFaces = None,
            orthoplanes = None,
            positionPlanes = None,
+           session = None,
            ):
 
     from ..ui.commands import CommandError
@@ -195,7 +198,7 @@ def volume(volumes = [],
         vlist = volume_list()
     else:
         from ..ui import commands
-        vlist = commands.volumes_from_specifier(volumes)
+        vlist = commands.volumes_from_specifier(volumes, session)
 
     # Adjust global settings.
     loc = locals()

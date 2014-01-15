@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 #
-def fetch_eds_map(id, type = '2fofc', ignore_cache=False):
+def fetch_eds_map(id, session, type = '2fofc', ignore_cache=False):
   '''
   Fetch crystallographic density maps from the Upsalla Electron Density Server.
 
@@ -24,7 +24,7 @@ def fetch_eds_map(id, type = '2fofc', ignore_cache=False):
   name = 'map %s' % id
   minimum_map_size = 8192       # bytes
   from .fetch import fetch_file
-  map_path, headers = fetch_file(map_url, name, minimum_map_size,
+  map_path, headers = fetch_file(map_url, name, session, minimum_map_size,
                                  'EDS', map_name, ignore_cache=ignore_cache)
     
   # Display map.
@@ -40,8 +40,8 @@ def fetch_eds_map(id, type = '2fofc', ignore_cache=False):
 # -----------------------------------------------------------------------------
 # Register to fetch EMDB maps with open command.
 #
-def register_eds_fetch():
+def register_eds_fetch(session):
 
   from .fetch import register_fetch_database as reg
   reg('EDS', fetch_eds_map, '1A0M', 'eds.bmc.uu.se/eds',
-      'http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=%s')
+      'http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=%s', session)

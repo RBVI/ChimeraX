@@ -241,7 +241,7 @@ def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
          (0, 0, D, 0))
     return m
 
-def camera_command(cmdname, args):
+def camera_command(cmdname, args, session):
 
     from .commands import float_arg, floats_arg, no_arg, parse_arguments
     req_args = ()
@@ -259,16 +259,15 @@ def camera_command(cmdname, args):
                ('report', no_arg),
            )
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
-    camera(**kw)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    camera(session, **kw)
 
-def camera(mono = None, stereo = None, oculus = None, fieldOfView = None, 
+def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = None, 
            eyeSeparation = None, screenWidth = None, sEyeSeparation = None,
            middleDistance = False, depthScale = None,
            nearFarClip = None, report = False):
 
-    from .gui import main_window
-    v = main_window.view
+    v = session.view
     c = v.camera
     
     if mono or stereo or oculus:
@@ -305,7 +304,6 @@ def camera(mono = None, stereo = None, oculus = None, fieldOfView = None,
         c.near_far_clip = nearFarClip
         c.redraw_needed = True
     if report:
-        from .gui import show_info, show_status
         msg = ('Camera\n' +
                'position %.5g %.5g %.5g\n' % tuple(c.position()) +
                'view direction %.6f %.6f %.6f\n' % tuple(c.view_direction()) +
@@ -313,6 +311,6 @@ def camera(mono = None, stereo = None, oculus = None, fieldOfView = None,
                'mode %s\n' % c.mode +
                'near clip %.5g, far clip %.5g\n' % tuple(c.near_far_clip) +
                'eye separation pixels %.5g, scene %.5g' % (c.eye_separation_pixels, c.eye_separation_scene))
-        show_info(msg)
+        session.show_info(msg)
         smsg = 'Camera mode %s, field of view %.4g degrees' % (c.mode, c.field_of_view)
-        show_status(smsg)
+        session.show_status(smsg)

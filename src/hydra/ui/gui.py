@@ -132,7 +132,7 @@ class MainWindow(QtWidgets.QMainWindow):
 #        else:
             if str(event.text()) == '\r':
                 return
-            from .shortcuts import keyboard_shortcuts as ks
+            ks = self.session.keyboard_shortcuts
             ks.key_pressed(event)
 
 #        w = self.toolbar.widgetForAction(a)  # QToolButton

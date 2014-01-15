@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 #
-def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
+def fetch_emdb_map(id, session, open_fit_pdbs = False, ignore_cache=False):
   '''
   Fetch density maps from the Electron Microscopy Data Bank.
 
@@ -8,7 +8,7 @@ def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
   ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-1535/header/emd-1535.xml
   '''
 
-  map_path = emdb_map_path(id, ignore_cache)
+  map_path = emdb_map_path(id, session, ignore_cache)
 
   # Display map.
   from os.path import basename
@@ -42,7 +42,7 @@ def fetch_emdb_map(id, open_fit_pdbs = False, ignore_cache=False):
 
 # -----------------------------------------------------------------------------
 #
-def emdb_map_path(id, ignore_cache = False):
+def emdb_map_path(id, session, ignore_cache = False):
 
   site = 'ftp.wwpdb.org'
   url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/map/%s'
@@ -59,7 +59,7 @@ def emdb_map_path(id, ignore_cache = False):
   minimum_map_size = 8192       # bytes
   from .fetch import fetch_file
   try:
-    map_path, headers = fetch_file(map_url, name, minimum_map_size,
+    map_path, headers = fetch_file(map_url, name, session, minimum_map_size,
                  'EMDB', map_name, uncompress = 'always', ignore_cache=ignore_cache)
   except IOError as e:
     if 'Failed to change directory' in str(e):
@@ -131,8 +131,8 @@ def fit_pdb_ids_from_web_service(id):
 # -----------------------------------------------------------------------------
 # Register to fetch EMDB maps with open command.
 #
-def register_emdb_fetch():
+def register_emdb_fetch(session):
 
   from .fetch import register_fetch_database as reg
   reg('EMDB', fetch_emdb_map, '1535', 'www.ebi.ac.uk/pdbe/emdb',
-      'http://www.ebi.ac.uk/msd-srv/emsearch/atlas/%s_summary.html')
+      'http://www.ebi.ac.uk/msd-srv/emsearch/atlas/%s_summary.html', session)

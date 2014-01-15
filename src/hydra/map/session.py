@@ -10,14 +10,15 @@ def map_states(rel_path = None):
 
 # -----------------------------------------------------------------------------
 #
-def restore_maps(dms, viewer, attributes_only = False):
+def restore_maps(dms, session, attributes_only = False):
   if attributes_only:
     restore_map_attributes(dms)
   else:
-    create_maps_from_state(dms)
+    create_maps_from_state(dms, session)
     from .volume import volume_manager
+    v = session.view
     for m in volume_manager.data_regions:
-      viewer.add_model(m)
+      v.add_model(m)
   return True
 
 # -----------------------------------------------------------------------------
@@ -56,7 +57,7 @@ def state_from_maps(data_maps, include_unsaved_volumes = False):
 
 # ---------------------------------------------------------------------------
 #
-def create_maps_from_state(dms):
+def create_maps_from_state(dms, session):
 
   # Cache of Grid_Data objects improves load speed when multiple regions
   # are using same data file.  Especially important for files that contain
@@ -64,7 +65,7 @@ def create_maps_from_state(dms):
   gdcache = {}        # (path, grid_id) -> Grid_Data object
   from .volume import volume_manager
   for ds, vslist in dms:
-    data = grid_data_from_state(ds, gdcache)
+    data = grid_data_from_state(ds, gdcache, session)
     if data:        # Can be None if user does not replace missing file.
       for vs in vslist:
         v = create_map_from_state(vs, data)
@@ -184,13 +185,13 @@ def state_from_grid_data(data):
 
 # ---------------------------------------------------------------------------
 #
-def grid_data_from_state(s, gdcache):
+def grid_data_from_state(s, gdcache, session):
 
   path = absolute_path(s['path'])
   gid = s.get('grid_id','')
   file_type = s['file_type']
   dbfetch = s.get('database_fetch')
-  dlist = open_data(path, gid, file_type, dbfetch, gdcache)
+  dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
 
 
   for data in dlist:
@@ -235,7 +236,7 @@ def grid_data_from_state(s, gdcache):
 
 # ---------------------------------------------------------------------------
 #
-def open_data(path, gid, file_type, dbfetch, gdcache):
+def open_data(path, gid, file_type, dbfetch, gdcache, session):
 
   if (path, gid) in gdcache:
     # Caution: If data objects for the same file array can have different
@@ -264,7 +265,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache):
   else:
     dbid, dbn = dbfetch
     from ..file_io import fetch
-    mlist = fetch.fetch_from_database(dbid, dbn)
+    mlist = fetch.fetch_from_database(dbid, dbn, session)
     grids = [m.data for m in mlist]
     for m in mlist:
       m.delete()        # Only use grid data from fetch

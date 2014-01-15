@@ -1,4 +1,4 @@
-def show_command(cmdname, args):
+def show_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, no_arg, parse_arguments
     req_args = ()
@@ -7,7 +7,7 @@ def show_command(cmdname, args):
                ('ribbons', no_arg),
                ('only', no_arg),)
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     show(**kw)
 
 def show(what = None, atoms = False, ribbons = False, only = False):
@@ -25,7 +25,7 @@ def show(what = None, atoms = False, ribbons = False, only = False):
     if ribbons:
         what.show_ribbon(only)
 
-def hide_command(cmdname, args):
+def hide_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, no_arg, parse_arguments
     req_args = ()
@@ -33,7 +33,7 @@ def hide_command(cmdname, args):
     kw_args = (('atoms', no_arg),
                ('ribbons', no_arg),)
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     hide(**kw)
 
 def hide(what = None, atoms = False, ribbons = False):

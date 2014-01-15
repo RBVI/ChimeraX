@@ -14,9 +14,10 @@ def register_commands(commands):
     add('open', open_command)
     add('close', close_command)
     from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
-    fetch_pdb.register_pdb_fetch()
-    fetch_emdb.register_emdb_fetch()
-    fetch_eds.register_eds_fetch()
+    s = commands.session
+    fetch_pdb.register_pdb_fetch(s)
+    fetch_emdb.register_emdb_fetch(s)
+    fetch_eds.register_eds_fetch(s)
     from ..map import molmap
     add('molmap', molmap.molmap_command)
     from ..map import volumecommand
@@ -56,21 +57,21 @@ class Commands:
         parsed by a registered command function.
         '''
         ses = self.session
-        ses.log_message('> %s' % text, color = '#008000')
+        ses.show_info('> %s' % text, color = '#008000')
         fields = text.split(maxsplit = 1)
         if len(fields) == 0:
             return
         cmd = fields[0]
         cab = self.cmdabbrev
         if cab is None:
-            self.cmdabbrev = cab = abbreviation_table(commands.keys())
+            self.cmdabbrev = cab = abbreviation_table(self.commands.keys())
         if cmd in cab:
             cmd = cab[cmd]
-            f = commands[cmd]
+            f = self.commands[cmd]
             args = fields[1] if len(fields) >= 2 else ''
             failed = False
             try:
-                f(cmd, args)
+                f(cmd, args, ses)
             except CommandError as e:
                 ses.show_status(str(e))
                 failed = True
@@ -155,7 +156,7 @@ def show_command_history(session, filename = 'commands'):
 
 # -----------------------------------------------------------------------------
 #
-def parse_arguments(cmd_name, arg_string,
+def parse_arguments(cmd_name, arg_string, session,
                     required_args = (), optional_args = (), keyword_args = ()):
 
     fields = split_fields(arg_string)
@@ -180,7 +181,7 @@ def parse_arguments(cmd_name, arg_string,
             a += 1
             continue
         spec = keyword_spec[kwt[fl]]
-        a += 1 + parse_arg(fields[a+1:], spec, cmd_name, akw)
+        a += 1 + parse_arg(fields[a+1:], spec, cmd_name, session, akw)
 
     # Parse required arguments.
     a = 0
@@ -189,20 +190,20 @@ def parse_arguments(cmd_name, arg_string,
         if a >= na:
             raise CommandError('%s: Missing required argument "%s"'
                                % (cmd_name, arg_specifier_name(spec)))
-        a += parse_arg(args[a:], spec, cmd_name, akw)
+        a += parse_arg(args[a:], spec, cmd_name, session, akw)
 
     # Parse optional arguments.
     for spec in optional_args:
         if a >= na:
             break
-        a += parse_arg(args[a:], spec, cmd_name, akw)
+        a += parse_arg(args[a:], spec, cmd_name, session, akw)
 
     # Allow last positional argument to have multiple values.
     if spec:
         multiple = arg_spec(spec)[3]
         if multiple:
             while a < na:
-                a += parse_arg(args[a:], spec, cmd_name, akw)
+                a += parse_arg(args[a:], spec, cmd_name, session, akw)
 
     if a < na:
         raise CommandError('%s: Extra argument "%s"' % (cmd_name, args[a]))
@@ -211,7 +212,7 @@ def parse_arguments(cmd_name, arg_string,
 
 # -----------------------------------------------------------------------------
 #
-def parse_arg(fields, spec, cmd_name, akw):
+def parse_arg(fields, spec, cmd_name, session, akw):
 
     name, parse, pkw, multiple = arg_spec(spec)
 
@@ -222,10 +223,10 @@ def parse_arg(fields, spec, cmd_name, akw):
     
     try:
         if isinstance(parse, tuple):
-            value = True if n == 0 else tuple(p(a, **pkw)
+            value = True if n == 0 else tuple(p(a, session, **pkw)
                                               for p,a in zip(parse,fields[:n]))
         else:
-            value = parse(fields[0], **pkw)
+            value = parse(fields[0], session, **pkw)
     except CommandError as e:
         args = ' '.join(f for f in fields[:n])
         raise CommandError('%s invalid %s argument "%s": %s'
@@ -275,19 +276,19 @@ no_arg = ()
 
 # -----------------------------------------------------------------------------
 #
-def string_arg(s):
+def string_arg(s, session):
 
     return s
 
 # -----------------------------------------------------------------------------
 #
-def bool_arg(s):
+def bool_arg(s, session):
 
     return s.lower() not in ('false', 'f', '0', 'no', 'n', 'off')
 
 # -----------------------------------------------------------------------------
 #
-def bool3_arg(s):
+def bool3_arg(s, session):
 
     b = [bool_arg(x) for x in s.split(',')]
     if len(b) != 3:
@@ -296,7 +297,7 @@ def bool3_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def enum_arg(s, values, multiple = False):
+def enum_arg(s, session, values, multiple = False):
 
     if multiple:
         e = s.split(',')
@@ -313,7 +314,7 @@ def enum_arg(s, values, multiple = False):
 
 # -----------------------------------------------------------------------------
 #
-def float_arg(s, min = None, max = None):
+def float_arg(s, session, min = None, max = None):
 
     x = float(s)
     if not min is None and x < min:
@@ -324,7 +325,7 @@ def float_arg(s, min = None, max = None):
 
 # -----------------------------------------------------------------------------
 #
-def float3_arg(s):
+def float3_arg(s, session):
 
     fl = [float(x) for x in s.split(',')]
     if len(fl) != 3:
@@ -333,7 +334,7 @@ def float3_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def floats_arg(s, allowed_counts = None):
+def floats_arg(s, session, allowed_counts = None):
 
     fl = [float(x) for x in s.split(',')]
     if not allowed_counts is None and not len(fl) in allowed_counts:
@@ -344,13 +345,13 @@ def floats_arg(s, allowed_counts = None):
 
 # -----------------------------------------------------------------------------
 #
-def int_arg(s):
+def int_arg(s, session):
 
     return int(s)
 
 # -----------------------------------------------------------------------------
 #
-def int3_arg(s):
+def int3_arg(s, session):
 
     il = [int(x) for x in s.split(',')]
     if len(il) != 3:
@@ -359,7 +360,7 @@ def int3_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def ints_arg(s, allowed_counts = None):
+def ints_arg(s, session, allowed_counts = None):
 
     il = [int(x) for x in s.split(',')]
     if not allowed_counts is None and not len(il) in allowed_counts:
@@ -370,9 +371,9 @@ def ints_arg(s, allowed_counts = None):
 
 # -----------------------------------------------------------------------------
 #
-def molecule_arg(s):
+def molecule_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.molecules()
     if len(mlist) == 0:
         raise CommandError('No molecule specified')
@@ -382,9 +383,9 @@ def molecule_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def molecules_arg(s, min = 0):
+def molecules_arg(s, session, min = 0):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.molecules()
     if len(mlist) < min:
         if len(mlist) == 0:
@@ -395,17 +396,17 @@ def molecules_arg(s, min = 0):
 
 # -----------------------------------------------------------------------------
 #
-def atoms_arg(s):
+def atoms_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     aset = sel.atom_set()
     return aset
 
 # -----------------------------------------------------------------------------
 #
-def model_arg(s):
+def model_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.models()
     if len(mlist) == 0:
         raise CommandError('No models specified')
@@ -415,30 +416,30 @@ def model_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def models_arg(s):
+def models_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.models()
     return mlist
 
 # -----------------------------------------------------------------------------
 #
-def model_id_arg(s):
+def model_id_arg(s, session):
 
     return parse_model_id(s)
 
 # -----------------------------------------------------------------------------
 #
-def specifier_arg(s):
+def specifier_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     return sel
 
 # -----------------------------------------------------------------------------
 #
-def openstate_arg(s):
+def openstate_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     oslist = set([m.openState for m in sel.models()])
     if len(oslist) == 0:
         raise CommandError('No models specified')
@@ -448,11 +449,11 @@ def openstate_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def volumes_from_specifier(spec):
+def volumes_from_specifier(spec, session):
 
     try:
-        sel = parse_specifier(spec)
-    except:
+        sel = parse_specifier(spec, session)
+    except CommandError:
         return []
 
     from ..map import Volume, volume_list
@@ -462,18 +463,18 @@ def volumes_from_specifier(spec):
 
 # -----------------------------------------------------------------------------
 #
-def volume_arg(v):
+def volume_arg(v, session):
 
-    vlist =  volumes_arg(v)
+    vlist =  volumes_arg(v, session)
     if len(vlist) > 1:
         raise CommandError('Multiple volumes specified')
     return vlist[0]
 
 # -----------------------------------------------------------------------------
 #
-def volumes_arg(v):
+def volumes_arg(v, session):
 
-    sel = parse_specifier(v)
+    sel = parse_specifier(v, session)
     from ..map import Volume
     vlist = [m for m in sel.models() if isinstance(m,Volume)]
     if len(vlist) == 0:
@@ -673,9 +674,9 @@ def check_matching_sizes(v1, v2, step, subregion, operation):
 
 # -----------------------------------------------------------------------------
 #
-def surfaces_arg(s):
+def surfaces_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     surfs = filter_surfaces(sel.models())
     return surfs
 
@@ -691,9 +692,9 @@ def filter_surfaces(surfaces):
 
 # -----------------------------------------------------------------------------
 #
-def surface_pieces_arg(spec):
+def surface_pieces_arg(spec, session):
 
-    sel = parse_specifier(spec)
+    sel = parse_specifier(spec, session)
     import Surface
     plist = Surface.selected_surface_pieces(sel)
     return plist
@@ -866,7 +867,7 @@ def parse_value_color(vc):
 
 # -----------------------------------------------------------------------------
 #
-def parse_color(color):
+def parse_color(color, session):
 
     if isinstance(color, (tuple, list)):
         if len(color) == 4:
@@ -897,7 +898,7 @@ color_arg = parse_color
 
 # -----------------------------------------------------------------------------
 #
-def perform_operation(cmdname, args, ops):
+def perform_operation(cmdname, args, ops, session):
 
     abbr = abbreviation_table(ops.keys())
 
@@ -910,18 +911,18 @@ def perform_operation(cmdname, args, ops):
                            % ', '.join(opnames))
 
     f, req_args, opt_args, kw_args = ops[abbr[a0]]
-    kw = parse_arguments(cmdname, args[len(a0):], req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args[len(a0):], session, req_args, opt_args, kw_args)
     f(**kw)
 
 # -----------------------------------------------------------------------------
 #
-def multiscale_surface_pieces_arg(spec):
+def multiscale_surface_pieces_arg(spec, session):
 
     from Commands import CommandError
 
     mspec = spec[:spec.find(':')] if ':' in spec else spec
     from _surface import SurfaceModel
-    slist = [m for m in parse_specifier(mspec).models() if isinstance(m, SurfaceModel)]
+    slist = [m for m in parse_specifier(mspec, session).models() if isinstance(m, SurfaceModel)]
     if len(slist) == 0:
         raise CommandError('No surface models specified by "%s"' % spec)
 
@@ -1017,7 +1018,7 @@ def split_first(s):
 #        #1.A:7-52@CA
 #        #2:HOH
 #
-def parse_specifier(spec):
+def parse_specifier(spec, session):
 
     parts = specifier_parts(spec)
     mid1 = mid2 = cid = rrange = rname = aname = None
@@ -1036,8 +1037,7 @@ def parse_specifier(spec):
         elif p.startswith('!'):
             invert = True
     
-    from .gui import main_window
-    v = main_window.view
+    v = session.view
     if mid1 is None:
         if cid is None and rrange is None and rname is None and aname is None:
             if spec == 'all':
@@ -1122,7 +1122,7 @@ class Selection:
 
 # -----------------------------------------------------------------------------
 #
-def points_arg(a):
-    s = parse_specifier(a)
+def points_arg(a, session):
+    s = parse_specifier(a, session)
     points = s.atom_coordinates()
     return points

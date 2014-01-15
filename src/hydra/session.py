@@ -19,6 +19,7 @@ class Session:
         self.last_session_path = None   # File path for last opened session.
         from . import scenes
         self.scenes = scenes.Scenes(self)  # Saved scenes
+        self.databases = {}             # For fetching pdb and map models from the web
 
     def start(self):
 
@@ -34,6 +35,7 @@ class Session:
 
         from . import ui
         ui.set_show_status(self.show_status)
+        ui.set_show_info(self.show_info)
 
         log.stdout_to_log()
         log.exceptions_to_log()
@@ -50,7 +52,7 @@ class Session:
         '''Write information such as command output to the log window.'''
         self.log.log_message(msg, color)
 
-    def close_models(models = None):
+    def close_models(self, models = None):
         '''
         Close a list of models, or all models if none are specified.
         '''

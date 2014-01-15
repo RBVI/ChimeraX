@@ -86,7 +86,7 @@ def set_session_state(s, session, attributes_only = False):
 
   if 'volumes' in s:
     from ..map import session as map_session
-    map_session.restore_maps(s['volumes'], v, attributes_only)
+    map_session.restore_maps(s['volumes'], session, attributes_only)
 
   if 'molecules' in s:
     from ..molecule import mol_session

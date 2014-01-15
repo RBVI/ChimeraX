@@ -50,9 +50,9 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
         write_matrix(tf, atoms, ref_atoms)
 
     msg = 'RMSD between %d atom pairs is %.3f Angstroms' % (ref_atoms.count(), rmsd)
-    from ..ui.gui import show_status, log_message
+    from ..ui import show_status, show_info
     show_status(msg)
-    log_message(msg + '\n')
+    show_info(msg + '\n')
 
     if move is None:
         move = 'molecules'
@@ -215,7 +215,7 @@ def test_align_points(n = 100):
     arms = sqrt((dp*dp).sum())
     print ('align %d points' % n, atf - tf, rms, arms)
 
-def align_command(cmdname, args):
+def align_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, string_arg, bool_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
@@ -226,5 +226,5 @@ def align_command(cmdname, args):
                ('same', string_arg),
                ('report_matrix', bool_arg))
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     align(**kw)

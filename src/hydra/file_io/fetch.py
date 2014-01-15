@@ -1,34 +1,32 @@
 # -----------------------------------------------------------------------------
 #
-def fetch_from_database(id, dbname):
+def fetch_from_database(id, dbname, session):
     '''
     Fetch a database entry with a specified id code and return a list of models.
     The models are not added to the scene.  The allowed databases are those
     registered with the register_fetch_database() routine.
     '''
     dbn = dbname.lower()
-    global databases
+    databases = session.databases
     if dbn in databases:
-        mlist = databases[dbn].fetch_id(id)
+        mlist = databases[dbn].fetch_id(id, session)
     else:
-        from ..ui.gui import show_status
-        show_status('Unknown database %s' % dbname)
+        session.show_status('Unknown database %s' % dbname)
         mlist = []
         # TODO warn.
     return mlist
 
 # -----------------------------------------------------------------------------
 #
-databases = {}
-def register_fetch_database(dbname, fetch_func, example_id, home_page, info_url):
+def register_fetch_database(dbname, fetch_func, example_id, home_page, info_url, session):
     '''
     Register a database so that files can be fetched using the fetch_from_database() routine.
     The fetching function takes a single argument, the entry identifier (a string) and returns
     a list of models.
     '''
     db = Database(dbname, fetch_func, example_id, home_page, info_url)
-    global databases
-    databases[dbname] = databases[dbname.lower()] = db
+    sdb = session.databases
+    sdb[dbname] = sdb[dbname.lower()] = db
 
 # -----------------------------------------------------------------------------
 #
@@ -39,13 +37,13 @@ class Database:
         self.example_id = example_id
         self.home_page = home_page
         self.info_url = info_url
-    def fetch_id(self, id):
-        return self.fetch_func(id)
+    def fetch_id(self, id, session):
+        return self.fetch_func(id, session)
 
 # -----------------------------------------------------------------------------
 # Download file from web.
 #
-def fetch_file(url, name, minimum_file_size = None, save_dir = '',
+def fetch_file(url, name, session, minimum_file_size = None, save_dir = '',
                save_name = '', uncompress = False, ignore_cache = False):
         """
         This is a helper routine for fetching files using an http url.
@@ -64,8 +62,7 @@ def fetch_file(url, name, minimum_file_size = None, save_dir = '',
                 if path:
                         return path, {}
 
-        from ..ui.gui import show_status
-        show_status('Fetching %s' % (name,))
+        session.show_status('Fetching %s' % (name,))
 
 #       from chimera import tasks
 #       task = tasks.Task("Fetch %s" % name, modal=True)
@@ -75,7 +72,7 @@ def fetch_file(url, name, minimum_file_size = None, save_dir = '',
                         prog = '%s %.0f%% of %s' % (name, percent, byte_text(fsize))
                 else:
                         prog = '%s %s received' % (name, byte_text(barrived*bsize))
-                show_status(prog)
+                session.show_status(prog)
 #                task.updateStatus(prog)
 
         from urllib import request
@@ -103,13 +100,13 @@ def fetch_file(url, name, minimum_file_size = None, save_dir = '',
                 else:
                         upath = None
                 if upath:
-                        show_status('Uncompressing %s' % name)
+                        session.show_status('Uncompressing %s' % name)
                         gunzip(path, upath)
-                        show_status('')
+                        session.show_status('')
                         path = upath
 
         if save_name:
-                spath = save_fetched_file(path, save_dir, save_name)
+                spath = save_fetched_file(path, save_dir, save_name, session)
                 if spath:
                         path = spath
 
@@ -165,37 +162,18 @@ def fetch_local_file(save_dir, save_name):
 
 # -----------------------------------------------------------------------------
 #
-def save_fetched_file(path, save_dir, save_name):
+def save_fetched_file(path, save_dir, save_name, session):
 
         spath = save_location(save_dir, save_name)
         if spath is None:
                 return None
-        from ..ui.gui import show_status
-        show_status('Copying %s to download directory' % save_name)
+        session.show_status('Copying %s to download directory' % save_name)
         import shutil
         try:
                 shutil.copyfile(path, spath)
         except IOError:
                 return None
-        show_status('')
-        return spath
-
-# -----------------------------------------------------------------------------
-#
-def save_fetched_data(data, save_dir, save_name):
-
-        spath = save_location(save_dir, save_name)
-        if spath is None:
-                return None
-        from ..ui.gui import show_status
-        show_status('Saving %s to download directory' % save_name)
-        try:
-                f = open(spath, 'wb')
-                f.write(data)
-                f.close()
-        except IOError:
-                return None
-        show_status('')
+        session.show_status('')
         return spath
 
 # -----------------------------------------------------------------------------

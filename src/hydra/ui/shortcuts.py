@@ -213,7 +213,7 @@ def shortcut_surfaces(v):
   return mlist
 
 def close_all_models(session):
-    session.viewer.close_all_models()
+    session.view.close_all_models()
     session.scenes.delete_all_scenes()
     session.file_history.show_thumbnails()
 

@@ -57,4 +57,12 @@ void main(void)
 
   color = vcolor;
   gl_Position = projection_matrix * vEye;
+/*
+  vec4 pxyz = projection_matrix * vEye;
+  float r2 = pxyz.x*pxyz.x + 1.25*pxyz.y*1.25*pxyz.y;
+  float f = 1.0 / (1.0 + 0.22*r2 + 0.24*r2*r2);
+  f = 2;
+TODO: Seems I need inverse of f.
+  gl_Position = vec4(f*pxyz.x, f*pxyz.y, pxyz.z, pxyz.w);
+*/
 }
