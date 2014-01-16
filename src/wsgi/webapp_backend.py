@@ -29,12 +29,18 @@ def init_chimera2():
 	commands.register()
 	# TODO: set HOME to home directory of authenticated user, so ~/ works
 
-	# Augment JSON converter to support
-	# TODO: figure how to automate this
+	#
+	# Augment JSON converter to support additional types
+	#
 	from webapp_server import register_json_converter
+
+	# TODO: figure how to automate this
 	register_json_converter(llgr.AttributeInfo, llgr.AttributeInfo.json)
 	register_json_converter(llgr.Enum, lambda x: x.value)
+	from chimera2 import math3d
+	register_json_converter(math3d.BBox, lambda x: {'llb': x.llb, 'urf': x.urf})
 	import numpy
+	# This handles math3d Points and Vectors as well
 	register_json_converter(numpy.ndarray, list)
 
 	# register data handlers
@@ -52,10 +58,7 @@ def update_client_data(views):
 	if main_view not in views.modified:
 		return
 	scene_info = {
-		'bbox': [
-			list(main_view.bbox.llb),
-			list(main_view.bbox.urf)
-		],
+		'bbox': main_view.bbox,
 	}
 	if main_view.OPEN_MODELS_CHANGE in views.reasons:
 		client_data.append(['open_models',
