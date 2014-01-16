@@ -238,6 +238,17 @@ class View(QtGui.QWindow):
                            QtCore.Qt.SmoothTransformation)
         return qi
 
+    def image_off_screen(self, w, h):
+        r = self.render
+        if not r.render_off_screen(w,h):
+            return None
+        self.draw_scene()
+        rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
+        ww, wh = self.window_size
+        r.render_on_screen(ww, wh)
+        qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
+        return qi
+
     def start_update_timer(self):
 
         self.timer = t = QtCore.QTimer(self)

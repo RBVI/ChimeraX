@@ -10,9 +10,10 @@ def register_commands(commands):
     Registers the standard commands.
     '''
     add = commands.add_command
-    from ..file_io.opensave import open_command, close_command
+    from ..file_io.opensave import open_command, close_command, imagesave_command
     add('open', open_command)
     add('close', close_command)
+    add('imagesave', imagesave_command)
     from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
     s = commands.session
     fetch_pdb.register_pdb_fetch(s)

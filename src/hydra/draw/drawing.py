@@ -27,6 +27,12 @@ class Render:
         self.current_inv_view_matrix = None        # Used for optimizing model view matrix updates
 
         self.lighting_params = Lighting()
+        
+        # Offscreen rendering to a framebuffer object
+        self.off_screen = False
+        self.fbo = None
+        self.color_rb = None
+        self.depth_stencil_rb = None
 
     # use_shader() option names
     SHADER_LIGHTING = 'lighting'
@@ -303,15 +309,69 @@ class Render:
 
     def set_stereo_buffer(self, eye_num):
         '''Set the draw and read buffers for the left eye (0) or right eye (0).'''
+        if self.off_screen:
+            return
         b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
 
     def set_mono_buffer(self):
         '''Set the draw and read buffers for mono rendering.'''
+        if self.off_screen:
+            return
         b = GL.GL_BACK
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
+
+    def render_off_screen(self, width, height):
+
+        max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
+        max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
+        max_size = min(max_rb_size, max_tex_size)
+        if width > max_size or height > max_size:
+            return False
+
+        # Create color, depth and stencil buffers
+        self.color_rb = color_rb = GL.glGenRenderbuffers(1)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_RGB8, width, height)
+        self.depth_stencil_rb = depth_stencil_rb = GL.glGenRenderbuffers(1)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_stencil_rb)
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8, width, height)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
+
+        self.fbo = GL.glGenFramebuffers(1)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
+        GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
+                                     GL.GL_RENDERBUFFER, color_rb)
+        GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT,
+                                     GL.GL_RENDERBUFFER, depth_stencil_rb)
+        GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_STENCIL_ATTACHMENT,
+                                     GL.GL_RENDERBUFFER, depth_stencil_rb)
+        status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
+        if status != GL.GL_FRAMEBUFFER_COMPLETE:
+            self.render_on_screen()
+            return False
+        self.set_drawing_region(0,0,width,height)
+
+        self.off_screen = True
+        return True
+
+    def render_on_screen(self, w, h):
+
+        self.set_drawing_region(0,0,w,h)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+        self.delete_offscreen_framebuffer()
+        self.off_screen = True
+
+    def delete_offscreen_framebuffer(self):
+
+        if self.fbo is None:
+            return
+
+        GL.glDeleteRenderbuffers(2, (self.color_rb, self.depth_stencil_rb))
+        GL.glDeleteFramebuffers(1, (self.fbo,))
+        self.color_rb = self.depth_stencil_rb = self.fbo = None
 
 class Lighting:
     '''

@@ -84,7 +84,7 @@ def register_shortcuts(keyboard_shortcuts):
         ('op', opensave.show_open_file_dialog, 'Open file', ocat),
         ('sv', opensave.save_session_as, 'Save session as...', ocat),
         ('Sv', opensave.save_session, 'Save session', ocat),
-        ('si', opensave.save_image, 'Save image', ocat),
+        ('si', lambda s: opensave.save_image(None,s), 'Save image', ocat),
         ('oi', opensave.open_image, 'Open image', ocat),
         ('Ca', close_all_models, 'Close all models', ocat),
         ('Ds', delete_selected_models, 'Delete selected models', ocat),

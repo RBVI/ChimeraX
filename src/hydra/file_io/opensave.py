@@ -155,21 +155,52 @@ def save_session_as(session):
     session_file.save_session(path, session)
     session.show_info('Saved %s' % path, color = '#000080')
 
-def save_image(session):
+def save_image(path, session, width = None, height = None, format = 'JPG'):
     '''
     Save a JPEG image of the current graphics window contents.
     '''
-    filters = 'JPEG image (*.jpg)'
-    view = session.main_window.view
-    parent = view.widget
-    path = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Image', '.',
-                                                 filters)
-    if isinstance(path, tuple):
-        path = path[0]      # PySide returns path and filter, not PyQt
-    if not path:
-        return
-    i = view.image()
-    i.save(path, 'JPG')
+    view = session.view
+    if path is None:
+        filters = 'JPEG image (*.jpg)'
+        path = QtWidgets.QFileDialog.getSaveFileName(view.widget, 'Save Image', '.',
+                                                     filters)
+        if path is None:
+            return
+
+    import os.path
+    path = os.path.expanduser(path)         # Tilde expansion
+    dir = os.path.dirname(path)
+    if not os.path.exists(dir):
+        from ..ui import commands
+        raise commands.CommandError('Directory "%s" does not exist' % dir)
+
+    # Match current window aspect ratio
+    # TODO: Allow different aspect ratios
+    ww,wh = view.window_size
+    if not width is None:
+        w = width
+        h = (wh*w)//ww
+    elif not height is None:
+        h = height
+        w = (ww*h)//wh
+    else:
+        w,h = ww,wh
+    i = view.image_off_screen(w, h)
+    i.save(path, format)
+    print ('saved image', path)
+
+def imagesave_command(cmdname, args, session):
+
+    from ..ui.commands import string_arg, int_arg, parse_arguments
+    req_args = (('path', string_arg),)
+    opt_args = ()
+    kw_args = (('width', int_arg),
+               ('height', int_arg),
+               ('format', string_arg),)
+
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
+    save_image(**kw)
 
 def open_image(session):
     filters = 'JPEG image (*.jpg)'
