@@ -3,32 +3,64 @@ class Session(Models):
     '''
     A session holds the list of open models, camera, graphics window, scenes, ...
     all the state.  The main purpose is to bring together all of objects defining
-    the 3d world without use of global variables.
+    the 3d world.
     '''
     
     def __init__(self):
 
         Models.__init__(self)		# Manages list of open models
-        self.application = None		# Qt application object, QApplication object
-        self.main_window = None		# Main user interface window, ui.gui.MainWindow object
-        self.view = None                # Main window view, ui.view.View object
+
+        self.application = None
+        'Qt application object, a QApplication.'
+
+        self.main_window = None
+        'Main user interface window, a :py:class:`~.ui.gui.MainWindow.`'
+
+        self.view = None
+        'Main window view, a :py:class:`~.ui.view.View`'
+
         from .ui import commands, shortcuts
-        self.commands = commands.Commands(self)	# Available commands
-        self.keyboard_shortcuts = shortcuts.Keyboard_Shortcuts(self)  # Available keyboard shortcuts
-        self.log = None			# Command, error, info log, ui.gui.Log object
-        self.file_types = None          # Table of file types that can be read, file_io.opensave.file_types()
-        self.databases = {}             # For fetching pdb and map models from the web
+        self.commands = commands.Commands(self)
+        'Available commands, a :py:class:`~.ui.commands.Commands`'
+
+        self.keyboard_shortcuts = shortcuts.Keyboard_Shortcuts(self) 
+        'Available keyboard shortcuts, a :py:class:`~.ui.shortcuts.Keyboard_Shortcuts`'
+
+        self.log = None
+        'Command, error, info log, :py:class:`~.ui.gui.Log`'
+
+        self.file_types = None
+        'Table of file types that can be read, used by :py:func:`~.file_io.opensave.file_types`'
+
+        self.databases = {}
+        'For fetching pdb and map models from the web, used by :py:func:`~.file_io.fetch.register_fetch_database`'
+
         from .file_io import history
-        self.file_history = history.File_History(self)	# Recently opened files
-        self.last_session_path = None   # File path for last opened session.
+        self.file_history = history.File_History(self)
+        'Recently opened files, a :py:class:`.file_io.history.File_History`'
+
+        self.last_session_path = None
+        'File path for last opened session.'
+
         from . import scenes
-        self.scenes = scenes.Scenes(self)  # Saved scenes
-        self.bond_templates = None      # Templates for creating bonds for standard residues
+        self.scenes = scenes.Scenes(self)
+        'Saved scenes, a :py:class:`~.scenes.Scenes`'
+
+        self.bond_templates = None
+        'Templates for creating bonds for standard residues, a :py:class:`~.molecule.connect.Bond_Templates`'
+
         from .map import defaultsettings
         self.volume_defaults = defaultsettings.Volume_Default_Settings()
-        self.fit_list = None            # Map fit list dialog
-        self.space_navigator = None     # Space Navigator device handler
-        self.oculus = None              # Oculus Rift head tracking device handler
+        'Default volume model display settings, a :py:class:`~.map.defaultsettings.Volume_Default_Settings`'
+
+        self.fit_list = None
+        'Dialog listing map fits, a :py:class:`~.map.fit.fitlist.Fit_List`'
+
+        self.space_navigator = None
+        'Space Navigator device handler, a :py:class:`~.ui.spacenavigator.snav.Space_Navigator`'
+
+        self.oculus = None
+        'Oculus Rift head tracking device handler, a :py:class:`~.ui.oculus.track.Oculus_Head_Tracking`'
 
     def start(self):
 

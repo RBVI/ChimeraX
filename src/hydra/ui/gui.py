@@ -238,6 +238,9 @@ def start_event_loop(app):
     sys.exit(status)
 
 class Log:
+    '''
+    Log window for command output.
+    '''
     def __init__(self, main_window):
         self.main_window = main_window
         self.html_text = ''
