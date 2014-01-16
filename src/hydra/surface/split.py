@@ -1,17 +1,17 @@
 # -----------------------------------------------------------------------------
 #
-def split_selected_surfaces(in_place = True):
+def split_selected_surfaces(session, in_place = True):
 
   import Surface
   plist = Surface.selected_surface_pieces()
   if plist:
-    pplist = split_surfaces(plist, in_place)
+    pplist = split_surfaces(plist, session, in_place)
     from chimera.replyobj import status
     status('%d surface pieces' % len(pplist))
 
 # -----------------------------------------------------------------------------
 #
-def split_surfaces(plist, in_place = False):
+def split_surfaces(plist, session, in_place = False):
 
   surf = None
   if not in_place:
@@ -19,8 +19,7 @@ def split_surfaces(plist, in_place = False):
     from .surface import Surface
     surf = Surface(name)
     om.add([surf])
-    from ..ui.gui import main_window
-    main_window.view.add_model(surf)
+    session.add_model(surf)
 
   pplist = []
   for p in plist:

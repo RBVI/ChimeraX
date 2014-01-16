@@ -8,9 +8,10 @@ def show_command(cmdname, args, session):
                ('only', no_arg),)
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     show(**kw)
 
-def show(what = None, atoms = False, ribbons = False, only = False):
+def show(what = None, atoms = False, ribbons = False, only = False, session = None):
 
     if not atoms and not ribbons:
         atoms = True
@@ -18,7 +19,7 @@ def show(what = None, atoms = False, ribbons = False, only = False):
 
     if what is None:
         from . import molecule
-        what = molecule.all_atoms()
+        what = molecule.all_atoms(session)
 
     if atoms:
         what.show_atoms(only)
@@ -34,9 +35,10 @@ def hide_command(cmdname, args, session):
                ('ribbons', no_arg),)
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     hide(**kw)
 
-def hide(what = None, atoms = False, ribbons = False):
+def hide(what = None, atoms = False, ribbons = False, session = None):
 
     if not atoms and not ribbons:
         atoms = True
@@ -44,7 +46,7 @@ def hide(what = None, atoms = False, ribbons = False):
 
     if what is None:
         from . import molecule
-        what = molecule.all_atoms()
+        what = molecule.all_atoms(session)
 
     if atoms:
         what.hide_atoms()

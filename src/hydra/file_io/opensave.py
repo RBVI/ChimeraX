@@ -5,11 +5,10 @@ def show_open_file_dialog(session):
     Display the Open file dialog for opening data files.
     '''
     filter_lines = ['%s (%s)' % (name, ' '.join('*.%s' % s for s in suffixes))
-                    for name, suffixes, read_func in file_types()]
+                    for name, suffixes, read_func in file_types(session)]
     filter_lines.insert(0, 'All (*.*)')
     filters = ';;'.join(filter_lines)
-    from .history import history
-    dir = history.most_recent_directory()
+    dir = session.file_history.most_recent_directory()
     if dir is None:
         dir = '.'
     v = session.main_window.view
@@ -17,22 +16,21 @@ def show_open_file_dialog(session):
     open_files(qpaths[0], session)
     session.main_window.show_graphics()
 
-ftypes = None
-def file_types():
+def file_types(session):
     '''
     Return a list of file readers, each reader being represented by 3-tuple
     consisting of a file type name, a list of recognized suffixes, and a function
     that opens that file type give a path.  The funtion returns a list of models
     which have not been added to the scene.
     '''
-    global ftypes
+    ftypes = session.file_types
     if ftypes is None:
         from .pdb import open_pdb_file, open_mmcif_file
         from .read_stl import read_stl
         from .read_apr import open_autopack_results
         from .read_swc import read_swc
         ftypes = [
-            ('PDB', ['pdb','ent'], open_pdb_file),
+            ('PDB', ['pdb','ent'], lambda path,s=session: open_pdb_file(path,s)),
             ('mmCIF', ['cif'], open_mmcif_file),
             ('Session', ['hy'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),
@@ -42,13 +40,15 @@ def file_types():
         ]
         # Add map file types
         from ..map.data.fileformats import file_types as mft
-        map_file_types = [(d, suffixes, open_map) for d,t,prefixes,suffixes,batch in mft]
+        map_file_types = [(d, suffixes, lambda p,s=session: open_map(p,s))
+                          for d,t,prefixes,suffixes,batch in mft]
         ftypes.extend(map_file_types)
+        session.file_types = ftypes
     return ftypes
 
-def file_readers():
+def file_readers(session):
     r = {}
-    for name, suffixes, read_func in file_types():
+    for name, suffixes, read_func in file_types(session):
         for s in suffixes:
             r['.' + s] = read_func
     return r
@@ -58,10 +58,9 @@ def open_files(paths, session, set_camera = None):
     Open data files and add the models created to the scene.  The file types are recognized
     using the file suffix as listed in the list returned by file_types().
     '''
-    view = session.main_window.view
     if set_camera is None:
-        set_camera = (len(view.models) == 0)
-    r = file_readers()
+        set_camera = (session.model_count() == 0)
+    r = file_readers(session)
     opened = []
     models = []
     from os.path import splitext, isfile
@@ -72,12 +71,12 @@ def open_files(paths, session, set_camera = None):
             # TODO issue warning.
         elif ext in r:
             file_reader = r[ext]
-            mlist = file_reader(path)
+            mlist = file_reader(path, session)
             if not isinstance(mlist, (list, tuple)):
                 mlist = [mlist]
             models.extend(mlist)
             for m in mlist:
-                view.add_model(m)
+                session.add_model(m)
             opened.append(path)
             if set_camera and file_reader == open_session:
                 set_camera = False
@@ -102,13 +101,13 @@ def finished_opening(opened, set_camera, session):
         s.show_info(msg, color = '#000080')
         s.show_status(msg)
 
-def open_map(map_path):
+def open_map(map_path, session):
     '''
     Open a density map file having any of the known density map formats.
     '''
     from .. import map
     i = map.data.open_file(map_path)[0]
-    map_drawing = map.volume_from_grid_data(i)
+    map_drawing = map.volume_from_grid_data(i, session)
     map_drawing.new_region(ijk_step = (1,1,1), adjust_step = False)
     return map_drawing
 
@@ -141,8 +140,7 @@ def save_session_as(session):
 
     dir = session.last_session_path
     if dir is None:
-        from .history import history
-        dir = history.most_recent_directory()
+        dir = session.file_history.most_recent_directory()
     filters = 'Session (*.hy)'
     parent = session.main_window.view.widget
     path = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Session',
@@ -203,7 +201,6 @@ def open_command(cmdname, args, session):
     open_file(**kw)
 
 def open_file(path, session, from_database = None, set_camera = None):
-    view = session.main_window.view
     if from_database is None:
         from os.path import expanduser
         p = expanduser(path)
@@ -222,7 +219,7 @@ def open_file(path, session, from_database = None, set_camera = None):
     else:
         ids = path.split(',')
         if set_camera is None:
-            set_camera = (len(view.models) == 0)
+            set_camera = (session.model_count() == 0)
         from . import fetch
         mlist = []
         for id in ids:
@@ -231,7 +228,7 @@ def open_file(path, session, from_database = None, set_camera = None):
                 mlist.extend(m)
             else:
                 mlist.append(m)
-        view.add_models(mlist)
+        session.add_models(mlist)
         finished_opening([m.path for m in mlist], set_camera, session)
     session.main_window.show_graphics()
 

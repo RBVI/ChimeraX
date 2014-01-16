@@ -1,12 +1,12 @@
-def open_pdb_file(path):
+def open_pdb_file(path, session):
   '''
   Open a PDB file.
   '''
 #  mols = open_pdb_file_with_pdbio(path)
-  mols = open_pdb_file_with_image3d(path)
+  mols = open_pdb_file_with_image3d(path, session)
   return mols
 
-def open_pdb_file_with_image3d(path):
+def open_pdb_file_with_image3d(path, session):
   from time import time
   t0 = time()
   f = open(path, 'rb')
@@ -22,7 +22,7 @@ def open_pdb_file_with_image3d(path):
   m.pdb_text = text
   from ..molecule import connect
   t2 = time()
-  bonds, missing = connect.molecule_bonds(m)
+  bonds, missing = connect.molecule_bonds(m, session)
   m.bonds = bonds
   t3 = time()
   from os.path import basename

@@ -13,27 +13,27 @@ def fetch_emdb_map(id, session, open_fit_pdbs = False, ignore_cache=False):
   # Display map.
   from os.path import basename
   map_name = basename(map_path)
-  from ..ui.gui import show_status, show_info
-  show_status('Opening map %s...' % map_name)
+  s = session
+  s.show_status('Opening map %s...' % map_name)
   from ..map import open_volume_file
-  models = open_volume_file(map_path, 'ccp4', map_name, 'surface',
+  models = open_volume_file(map_path, session, 'ccp4', map_name, 'surface',
                             open_models = False)
   for m in models:
     m.data.database_fetch = (id, 'emdb')
 
   if open_fit_pdbs:
     # Find fit pdb ids.
-    show_status('EMDB %s: looking for fits PDBs' % id)
+    s.show_status('EMDB %s: looking for fits PDBs' % id)
     pdb_ids = fit_pdb_ids_from_web_service(id)
     msg = ('EMDB %s has %d fit PDB models: %s\n'
            % (id, len(pdb_ids), ','.join(pdb_ids)))
-    show_status(msg)
-    show_info(msg)
+    s.show_status(msg)
+    s.show_info(msg)
     if pdb_ids:
       mlist = []
       from .fetch_pdb import fetch_pdb
       for pdb_id in pdb_ids:
-        show_status('Opening %s' % pdb_id)
+        s.show_status('Opening %s' % pdb_id)
         m = fetch_pdb(pdb_id, ignore_cache=ignore_cache)
         mlist.extend(m)
       models.extend(mlist)
@@ -48,8 +48,7 @@ def emdb_map_path(id, session, ignore_cache = False):
   url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/map/%s'
   xml_url_pattern = 'ftp://%s/pub/emdb/structures/EMD-%s/header/%s'
 
-  from ..ui.gui import show_status
-  show_status('Fetching %s from %s...' % (id,site))
+  session.show_status('Fetching %s from %s...' % (id,site))
 
   # Fetch map.
   map_name = 'emd_%s.map' % id

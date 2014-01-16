@@ -74,16 +74,16 @@ class Oculus_Head_Tracking:
             c.set_view(c.view()*rdelta)
         self.last_rotation = r
 
-oht = None
-def start_oculus(view):
+def start_oculus(session):
     start = False
-    global oht
+    oht = session.oculus
     if oht is None:
         oht = Oculus_Head_Tracking()
         success = oht.start_event_processing(view)
-        from ..gui import show_status
-        show_status('started oculus head tracking ' + ('success' if success else 'failed'))
+        session.show_status('started oculus head tracking ' + ('success' if success else 'failed'))
         if success:
+            session.oculus = oht
+            view = session.view
             c = view.camera
             from math import pi
             c.field_of_view = oht.field_of_view() * 180 / pi
@@ -94,23 +94,23 @@ def start_oculus(view):
         else:
             oht = None
 
-    from ..gui import main_window as mw, app
-    d = app.desktop()
+    d = session.application.desktop()
+    mw = session.main_window
     if start or d.screenNumber(mw) == d.primaryScreen():
         mw.toolbar.hide()
         mw.command_line.hide()
         mw.statusBar().hide()
-        move_window_to_oculus()
+        w,h = oht.display_size()
+        move_window_to_oculus(session, w, h)
     else:
-        move_window_to_primary_screen()
+        move_window_to_primary_screen(session)
         mw.toolbar.show()
         mw.command_line.show()
         mw.statusBar().show()
 
-def move_window_to_oculus():
-    from ..gui import main_window as mw, app
-    w,h = oht.display_size()
-    d = app.desktop()
+def move_window_to_oculus(session, w, h):
+    d = session.application.desktop()
+    mw = session.main_window
     for s in range(d.screenCount()):
         g = d.screenGeometry(s)
         if g.width() == w and g.height() == h:
@@ -122,11 +122,11 @@ def move_window_to_oculus():
 # I believe this is fixed in Mac OS 10.9.
 #    mw.showFullScreen()
 
-def move_window_to_primary_screen():
-    from ..gui import main_window as mw, app
-    d = app.desktop()
+def move_window_to_primary_screen(session):
+    d = session.application.desktop()
     s = d.primaryScreen()
     g = d.screenGeometry(s)
+    mw = session.main_window
     x,y = (g.width() - mw.width())//2, (g.height() - mw.height())//2
     mw.move(x, 0)       # Work around bug where y-placement is wrong.
     mw.move(x, y)

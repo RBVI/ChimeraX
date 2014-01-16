@@ -1,9 +1,11 @@
 # -----------------------------------------------------------------------------
 # Save and restore volume viewer state.
 #
-def map_states(rel_path = None):
-  from .volume import volume_manager
-  s = state_from_maps(volume_manager.data_to_regions)
+def map_states(session, rel_path = None):
+  d2v = {}
+  for v in session.maps():
+    d2v.setdefault(v.data,[]).append(v)
+  s = state_from_maps(d2v)
   if rel_path:
       use_relative_paths(s, rel_path)
   return s
@@ -12,22 +14,17 @@ def map_states(rel_path = None):
 #
 def restore_maps(dms, session, attributes_only = False):
   if attributes_only:
-    restore_map_attributes(dms)
+    restore_map_attributes(dms, session)
   else:
     create_maps_from_state(dms, session)
-    from .volume import volume_manager
-    v = session.view
-    for m in volume_manager.data_regions:
-      v.add_model(m)
   return True
 
 # -----------------------------------------------------------------------------
 # Restore map attributes for a scene.
 #
-def restore_map_attributes(dms):
-  set_maps_attributes(dms)
-  from .volume import volume_list
-  for v in volume_list():
+def restore_map_attributes(dms, session):
+  set_maps_attributes(dms, session)
+  for v in session.maps():
     v.update_display()
 
 # ---------------------------------------------------------------------------
@@ -63,21 +60,20 @@ def create_maps_from_state(dms, session):
   # are using same data file.  Especially important for files that contain
   # many data arrays.
   gdcache = {}        # (path, grid_id) -> Grid_Data object
-  from .volume import volume_manager
   for ds, vslist in dms:
     data = grid_data_from_state(ds, gdcache, session)
     if data:        # Can be None if user does not replace missing file.
       for vs in vslist:
-        v = create_map_from_state(vs, data)
-        volume_manager.add_volume(v)
+        v = create_map_from_state(vs, data, session)
+        session.add_model(v)
 
 # ---------------------------------------------------------------------------
 # Used for scene restore using already existing volume models.
 #
-def set_maps_attributes(dms):
+def set_maps_attributes(dms, session):
 
   for ds, vslist in dms:
-    volumes = [find_volume_by_session_id(vs['session_volume_id'])
+    volumes = [find_volume_by_session_id(vs['session_volume_id'], session)
                for vs in vslist]
     dset = set(v.data for v in volumes if not v is None)
     for data in dset:
@@ -99,10 +95,9 @@ def session_volume_id(v):
 
 # -----------------------------------------------------------------------------
 #
-def find_volume_by_session_id(id):
+def find_volume_by_session_id(id, session):
 
-  from .volume import volume_list
-  for v in volume_list():
+  for v in session.maps():
     if hasattr(v, 'session_volume_id') and v.session_volume_id == id:
       return v
   return None
@@ -337,11 +332,11 @@ def state_from_map(volume):
 
 # ---------------------------------------------------------------------------
 #
-def create_map_from_state(s, data):
+def create_map_from_state(s, data, session):
 
   ro = rendering_options_from_state(s['rendering_options'])
   from .volume import Volume
-  v = Volume(data[0], s['region'], ro)
+  v = Volume(data[0], session, s['region'], ro)
   v.session_volume_id = s['session_volume_id']
 
   if isinstance(v.data.path, str):

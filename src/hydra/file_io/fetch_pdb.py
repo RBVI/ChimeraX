@@ -20,7 +20,7 @@ def fetch_pdb(id, session, ignore_cache=False):
       raise
 
     from .pdb import open_pdb_file
-    m = open_pdb_file(path)
+    m = open_pdb_file(path, session)
     m.database_fetch = (id, 'pdb')
     from ..molecule import Molecule
     return [m] if isinstance(m, Molecule) else m

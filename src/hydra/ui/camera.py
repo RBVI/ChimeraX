@@ -286,7 +286,7 @@ def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = Non
         c.eye_separation_scene = sEyeSeparation
         c.redraw_needed = True
     if middleDistance:
-        center, s = v.bounds_center_and_width()
+        center, s = session.bounds_center_and_width()
         wscene = c.view_width(center)
         wpixels = v.window_size[0]
         c.eye_separation_scene = wscene * c.eye_separation_pixels / wpixels

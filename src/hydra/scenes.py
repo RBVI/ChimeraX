@@ -111,14 +111,12 @@ class Scene:
 
     def show(self):
         s = self.session
-        v = s.view
-
         if self.cross_fade_frames:
             from .ui.crossfade import Cross_Fade
-            Cross_Fade(v, self.cross_fade_frames)
+            Cross_Fade(s.view, self.cross_fade_frames)
 
         # Hide all models so models that did not exist in scene are hidden.
-        for m in v.models:
+        for m in s.model_list():
             m.displayed = False
 
         from .file_io import session_file

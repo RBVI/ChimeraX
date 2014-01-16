@@ -456,7 +456,7 @@ def volumes_from_specifier(spec, session):
     except CommandError:
         return []
 
-    from ..map import Volume, volume_list
+    from ..map import Volume
     vlist = [m for m in sel.models() if isinstance(m, Volume)]
 
     return vlist
@@ -1037,17 +1037,16 @@ def parse_specifier(spec, session):
         elif p.startswith('!'):
             invert = True
     
-    v = session.view
     if mid1 is None:
         if cid is None and rrange is None and rname is None and aname is None:
             if spec == 'all':
-                mlist = v.models
+                mlist = session.model_list()
             else:
                 mlist = []
         else:
-            mlist = v.molecules()
+            mlist = session.molecules()
     else:
-        mlist = [m for m in v.models if m.id >= mid1 and m.id <= mid2]
+        mlist = [m for m in session.model_list() if m.id >= mid1 and m.id <= mid2]
     if len(mlist) == 0:
         raise CommandError('No models specified by "%s"' % spec)
 
@@ -1063,10 +1062,10 @@ def parse_specifier(spec, session):
             smodels.append(m)
     if invert:
         sm = set(smodels)
-        smodels = [m for m in v.models
+        smodels = [m for m in session.model_list()
                    if not isinstance(m, Molecule) and not m in sm]
         if not mid1 is None:
-            smodels.extend(m for m in v.molecules() if m.id < mid1 or m.id > mid2)
+            smodels.extend(m for m in session.molecules() if m.id < mid1 or m.id > mid2)
     s.add_models(smodels)
 
     return s

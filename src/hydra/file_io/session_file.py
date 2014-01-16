@@ -10,7 +10,7 @@ def save_session(path, session):
   objecttree.write_basic_tree(s, f)
   f.close()
 
-  session.file_history.add_entry(path, session, replace_image = True)
+  session.file_history.add_entry(path, replace_image = True)
 
 # -----------------------------------------------------------------------------
 #
@@ -23,8 +23,7 @@ def restore_session(path, session):
   f.close()
   import ast
   d = ast.literal_eval(s)
-  v = session.main_window.view
-  v.close_all_models()
+  session.close_all_models()
 
   set_session_state(d, session)
 
@@ -46,18 +45,18 @@ def session_state(session, rel_path = None, attributes_only = False):
        'lighting': lighting_state(viewer.render.lighting_params),
   }
 
-  from ..map import session
-  vs = session.map_states(rel_path)
+  from ..map import session as session_file
+  vs = session_file.map_states(session, rel_path)
   if vs:
     s['volumes'] = vs
 
-  mlist = viewer.molecules()
+  mlist = session.molecules()
   if mlist:
     from ..molecule import mol_session
     s['molecules'] = tuple(mol_session.molecule_state(m) for m in mlist)
 
   from .read_stl import STL_Surface
-  slist = tuple(m.session_state() for m in viewer.models
+  slist = tuple(m.session_state() for m in session.model_list()
                 if isinstance(m, STL_Surface))
   if slist:
     s['stl surfaces'] = slist
@@ -74,7 +73,7 @@ def session_state(session, rel_path = None, attributes_only = False):
 #
 def set_session_state(s, session, attributes_only = False):
 
-  v = session.main_window.view
+  v = session.view
   if 'view' in s:
     restore_view(s['view'], v)
 
@@ -94,7 +93,7 @@ def set_session_state(s, session, attributes_only = False):
 
   if 'stl surfaces' in s:
     from . import read_stl
-    read_stl.restore_stl_surfaces(s['stl surfaces'], v, attributes_only)
+    read_stl.restore_stl_surfaces(s['stl surfaces'], session, attributes_only)
 
   if not attributes_only:
     scene_states = s.get('scenes', [])

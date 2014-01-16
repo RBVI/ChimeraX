@@ -165,7 +165,7 @@ class Mouse_Modes:
     def mouse_translate_selected(self, event):
 
         v = self.view
-        models = v.selected
+        models = v.session.selected
         if models:
             dx, dy = self.mouse_motion(event)
             psize = v.pixel_size()
@@ -175,7 +175,7 @@ class Mouse_Modes:
     def mouse_rotate_selected(self, event):
 
         v = self.view
-        models = v.selected
+        models = v.session.selected
         if models:
             axis, angle = self.mouse_rotation(event)
             # Convert axis from camera to scene coordinates
@@ -203,8 +203,9 @@ class Mouse_Modes:
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
         
+        models = self.view.session.model_list()
         from ..map.volume import Volume
-        for m in self.view.models:
+        for m in models:
             if isinstance(m, Volume):
                 adjust_threshold_level(m, f)
                 m.show()
@@ -212,7 +213,8 @@ class Mouse_Modes:
     def wheel_contour_level(self, event):
         d = event.angleDelta().y()       # Usually one wheel click is delta of 120
         f = d/(120.0 * 30)
-        for m in self.view.models:
+        models = self.view.session.model_list()
+        for m in models:
             adjust_threshold_level(m, f)
             m.show()
 

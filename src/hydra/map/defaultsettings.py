@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Save and restore volume viewer default settings.
+# Save and restore volume default settings.
 #
 # This should probably be unified with session saving, but is currently
 # completely separate.
@@ -7,7 +7,7 @@
     
 # ---------------------------------------------------------------------------
 #
-class Volume_Viewer_Default_Settings:
+class Volume_Default_Settings:
 
   def __init__(self):
 

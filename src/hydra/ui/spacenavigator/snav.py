@@ -7,11 +7,11 @@ class Space_Navigator:
         self.speed = 1
         self.dominant = True    # Don't simultaneously rotate and translate
         self.fly_mode = False   # Control camera instead of models.
-        self.view = None
+        self.session = None
         self.device = None
         self.processing_events = False
 
-    def start_event_processing(self, view):
+    def start_event_processing(self, session):
 
         if self.device is None:
             try:
@@ -20,17 +20,17 @@ class Space_Navigator:
                 return False     # Connection failed.
 
         if self.device:
-            self.view = view
-            view.add_new_frame_callback(self.check_space_navigator)
+            self.session = session
+            session.view.add_new_frame_callback(self.check_space_navigator)
             self.processing_events = True
             return True
 
         return False
 
-    def stop_event_processing(self, view):
+    def stop_event_processing(self, session):
 
         if self.processing_events:
-            view.remove_new_frame_callback(self.check_space_navigator)
+            session.view.remove_new_frame_callback(self.check_space_navigator)
             self.processing_events = False
 
     def check_space_navigator(self):
@@ -73,9 +73,8 @@ class Space_Navigator:
 
         if tmag > 0:
             axis = array((tx/tmag, ty/tmag, tz/tmag), float32)
-            v = self.view
 #            view_width = v.camera.view_width(v.center_of_rotation)
-            b = v.bounds()
+            b = self.session.bounds()
             if not b is None:
                 f = .1 if self.fly_mode else 1
                 view_width = b[1]
@@ -92,7 +91,7 @@ class Space_Navigator:
     # Transform is in camera coordinates, with rotation about 0.
     def apply_transform(self, tf):
 
-        v = self.view
+        v = self.session.view
         cv = v.camera.view()
         cvinv = v.camera.view_inverse()
         if self.fly_mode:
@@ -111,21 +110,17 @@ class Space_Navigator:
     def toggle_dominant_mode(self):
 
         self.dominant = not self.dominant
-        from ..gui import show_status
-        show_status('simultaneous rotation and translation: %s'
-                    % (not self.dominant))
+        self.session.show_status('simultaneous rotation and translation: %s'
+                                 % (not self.dominant))
 
     def toggle_fly_mode(self):
 
         self.fly_mode = not self.fly_mode
-        from chimera import viewer
-        viewer.clipping = False
-        from ..gui import show_status
-        show_status('fly through mode: %s' % self.fly_mode)
+        self.session.show_status('fly through mode: %s' % self.fly_mode)
 
     def view_all(self):
 
-        self.view.view_all()
+        self.session.view.view_all()
 
 # -----------------------------------------------------------------------------
 #
@@ -146,22 +141,22 @@ def find_device():
 
 # -----------------------------------------------------------------------------
 #
-sn = None
-def toggle_space_navigator(view):
-    global sn
+def toggle_space_navigator(session):
+    sn = session.space_navigator
     if sn is None:
         sn = Space_Navigator()
-        success = sn.start_event_processing(view)
-        print('started space navigator', success)
+        success = sn.start_event_processing(session)
+        session.show_info('started space navigator: %s' % str(bool(success)))
+        session.space_navigator = sn
     elif sn.processing_events:
-        sn.stop_event_processing(view)
+        sn.stop_event_processing(session)
     else:
-        sn.start_event_processing(view)
+        sn.start_event_processing(session)
 
 # -----------------------------------------------------------------------------
 #
-def toggle_fly_mode(view):
-    global sn
+def toggle_fly_mode(session):
+    sn = session.space_navigator
     if sn is None:
-        toggle_space_navigator(view)
+        toggle_space_navigator(session)
     sn.fly_mode = not sn.fly_mode

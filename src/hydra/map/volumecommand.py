@@ -195,7 +195,7 @@ def volume(volumes = '',                # Specifier
     # Find volume arguments.
     if volumes == 'all':
         from .volume import volume_list
-        vlist = volume_list()
+        vlist = volume_list(session)
     else:
         from ..ui import commands
         vlist = commands.volumes_from_specifier(volumes, session)
@@ -237,7 +237,7 @@ def volume(volumes = '',                # Specifier
         rsettings['orthoplanePositions'] = positionPlanes
 
     for v in vlist:
-        apply_volume_options(v, dsettings, rsettings)
+        apply_volume_options(v, dsettings, rsettings, session)
 
     # Save files.
     fopt = ('save', 'saveFormat', 'saveRegion', 'saveStep', 'maskZone',
@@ -258,7 +258,7 @@ def apply_global_settings(gsettings):
     
 # -----------------------------------------------------------------------------
 #
-def apply_volume_options(v, doptions, roptions):
+def apply_volume_options(v, doptions, roptions, session):
 
     if 'style' in doptions:
         v.set_representation(doptions['style'])
@@ -290,7 +290,7 @@ def apply_volume_options(v, doptions, roptions):
 
     if 'planes' in doptions:
         from . import volume
-        volume.cycle_through_planes(v, *doptions['planes'])
+        volume.cycle_through_planes(v, session, *doptions['planes'])
 
     d = v.data
     if 'originIndex' in doptions:

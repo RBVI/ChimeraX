@@ -168,18 +168,19 @@ def update_llgr_surface_piece(p):
 
 def render(viewer):
     v = viewer
+    models = v.session.model_list()
     w,h = v.window_size
     from OpenGL import GL
     GL.glViewport(0,0,w,h)
     set_background_color(v.background_rgba)
     set_light_parameters(v)
     set_projection_matrix(v.projection_matrix())
-    if v.models:
-        set_modelview_matrix(v.model_view_matrix(v.models[0]))
-        for m in v.models:
+    if models:
+        set_modelview_matrix(v.model_view_matrix(models[0]))
+        for m in models:
             if hasattr(m, 'update_graphics'):
                 m.update_graphics(v)
             update_llgr_graphics(m)
     llgr.render()
 #    from ..ui import gui
-#    gui.show_info('rendered %d models' % len(v.models))
+#    gui.show_info('rendered %d models' % len(models))

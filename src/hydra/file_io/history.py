@@ -160,8 +160,7 @@ class File_History:
     path = url.toString(url.PreferLocalFile)         # session file path
     import os.path
     if not os.path.exists(path):
-      from ..ui.gui import show_status
-      show_status('Session file not found: %s' % path)
+      self.session.show_status('Session file not found: %s' % path)
       return
     self.hide_history()
     from . import opensave

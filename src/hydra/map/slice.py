@@ -221,13 +221,13 @@ def inner_product(u, v):
 
 # -----------------------------------------------------------------------------
 #
-def nearest_volume_face(line):
+def nearest_volume_face(line, session):
 
     xyz1, xyz2 = line
     zmin = None
     hit = (None, None, None, None)
     from . import volume_list
-    for v in volume_list():
+    for v in volume_list(session):
         if v.shown():
           ijk, axis, side = face_intercept(v, line)
           if ijk:

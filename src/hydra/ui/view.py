@@ -4,7 +4,6 @@ class View(QtGui.QWindow):
     '''
     A View is the graphics windows that shows 3-dimensional models.
     It manages the camera and draws the models when needed.
-    Currently it contains the list of open models.
     '''
     def __init__(self, session, parent=None):
         self.session = session
@@ -48,10 +47,7 @@ class View(QtGui.QWindow):
         self.rendered_callbacks = []
         self.last_draw_duration = 0             # seconds
 
-        self.models = []
-        self.next_id = 1
         self.overlays = []
-        self.selected = set()
         self.atoms_shown = 0
 
         from numpy import array, float32
@@ -214,50 +210,6 @@ class View(QtGui.QWindow):
         c.mode = mode
         self.redraw_needed = True
 
-    def add_model(self, model):
-        '''
-        Add a model to the scene.  A model is a Surface object.
-        '''
-        self.models.append(model)
-        if model.id is None:
-            model.id = self.next_id
-            self.next_id += 1
-        from ..map.volume import Volume, volume_manager
-        if isinstance(model, Volume):
-            if not model in volume_manager.data_regions:
-                volume_manager.add_volume(model)
-        if model.display:
-            self.redraw_needed = True
-
-    def add_models(self, mlist):
-        '''
-        Add a list of models to the scene.
-        '''
-        for m in mlist:
-            self.add_model(m)
-        
-    def close_models(self, mlist):
-        '''
-        Remove a list of models from the scene.
-        '''
-        from ..map.volume import volume_manager, Volume
-        vlist = [m for m in mlist if isinstance(m, Volume)]
-        volume_manager.remove_volumes(vlist)
-        olist = self.models
-        for m in mlist:
-            olist.remove(m)
-            self.selected.discard(m)
-            if m.display:
-                self.redraw_needed = True
-            m.delete()
-        self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
-        
-    def close_all_models(self):
-        '''
-        Remove all models from the scene.
-        '''
-        self.close_models(tuple(self.models))
-
     def add_overlay(self, overlay):
         self.overlays.append(overlay)
         self.redraw_needed = True
@@ -286,23 +238,6 @@ class View(QtGui.QWindow):
                            QtCore.Qt.SmoothTransformation)
         return qi
 
-    def select_model(self, m):
-        self.selected.add(m)
-        if m.display:
-            self.redraw_needed = True
-
-    def unselect_model(self, m):
-        self.selected.discard(m)
-        if m.display:
-            self.redraw_needed = True
-
-    def clear_selection(self):
-        for m in self.selected:
-            m.selected = False
-        if self.selected:
-            self.redraw_needed = True
-        self.selected.clear()
-
     def start_update_timer(self):
 
         self.timer = t = QtCore.QTimer(self)
@@ -327,18 +262,21 @@ class View(QtGui.QWindow):
             cb()
 
         c = self.camera
-        draw = self.redraw_needed or c.redraw_needed
+        s = self.session
+        draw = self.redraw_needed or c.redraw_needed or s.redraw_needed
+        mlist = s.model_list() + self.overlays
         if draw:
-            for m in self.models + self.overlays:
+            for m in mlist:
                 m.redraw_needed = False
         else:
-            for m in self.models + self.overlays:
+            for m in mlist:
                 if m.redraw_needed:
                     m.redraw_needed = False
                     draw = True
         if draw:
             self.redraw_needed = False
             c.redraw_needed = False
+            s.redraw_needed = False
             self.draw_graphics()
             for cb in self.rendered_callbacks:
                 cb()
@@ -349,13 +287,6 @@ class View(QtGui.QWindow):
         self.block_redraw_count += 1
     def unblock_redraw(self):
         self.block_redraw_count -= 1
-
-    def transparent_models_shown(self):
-
-        for m in self.models:
-            if m.display and m.showing_transparent():
-                return True
-        return False
 
     def add_new_frame_callback(self, cb):
         '''Add a function to be called before each redraw.  The function takes no arguments.'''
@@ -380,7 +311,8 @@ class View(QtGui.QWindow):
         r = self.render
         r.set_background_color(self.background_rgba)
 
-        if self.models:
+        mlist = self.session.model_list()
+        if mlist:
             self.update_level_of_detail()
 
             from time import process_time
@@ -389,7 +321,7 @@ class View(QtGui.QWindow):
             for vnum in range(c.number_of_views()):
                 c.setup(vnum, r)
                 self.draw(self.OPAQUE_DRAW_PASS, vnum)
-                if self.transparent_models_shown():
+                if self.session.transparent_models_shown():
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum),
                                        lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum))
             t1 = process_time()
@@ -418,7 +350,7 @@ class View(QtGui.QWindow):
 
     def draw(self, draw_pass, view_num):
 
-        models = self.models
+        models = self.session.model_list()
         n = len(models)
         draw_tiles = (self.tile_scale > 0)
         if draw_tiles:
@@ -452,7 +384,7 @@ class View(QtGui.QWindow):
                 w,h = self.window_size
                 r.set_drawing_region(0,0,w,h)
             elif n == 1:
-                m = self.models[0]
+                m = models[0]
                 self.draw_caption('#%d %s' % (m.id, m.name))
 
     def draw_model(self, m, draw_pass, view_num):
@@ -486,7 +418,8 @@ class View(QtGui.QWindow):
         return self.tile
     def set_tile_models(self, tile):
         self.tile = tile
-        if len(self.models) <= 1:
+        models = self.session.model_list()
+        if len(models) <= 1:
             ts = 1 if tile else 0
         elif self.last_draw_duration < .05:
             step = 1.0/self.tile_animation_steps
@@ -512,7 +445,8 @@ class View(QtGui.QWindow):
     def tiles(self, scale = 1):
 
         w,h = self.window_size
-        n = len(self.models)
+        models = self.session.model_list()
+        n = len(models)
         if n == 1:
             tiles = [(0, 0, w, h)]
         elif n <= 4:
@@ -574,15 +508,15 @@ class View(QtGui.QWindow):
     def update_level_of_detail(self):
         # Level of detail updating.
         # TODO: Don't recompute atoms shown on every draw, only when changed
-        ashow = sum(m.shown_atom_count() for m in self.molecules() if m.display)
+        ashow = sum(m.shown_atom_count() for m in self.session.molecules() if m.display)
         if ashow != self.atoms_shown:
             self.atoms_shown = ashow
-            for m in self.molecules():
+            for m in self.session.molecules():
                 m.update_level_of_detail(self)
 
     def initial_camera_view(self):
 
-        center, s = self.bounds_center_and_width()
+        center, s = self.session.bounds_center_and_width()
         if center is None:
             return
         from numpy import array, float32
@@ -591,7 +525,7 @@ class View(QtGui.QWindow):
 
     def view_all(self):
         '''Adjust the camera to show all displayed models.'''
-        center, s = self.bounds_center_and_width()
+        center, s = self.session.bounds_center_and_width()
         if center is None:
             return
         shift = self.camera.view_all(center, s)
@@ -604,7 +538,7 @@ class View(QtGui.QWindow):
         if not self.update_center:
             return
         self.update_center = False
-        center, s = self.bounds_center_and_width()
+        center, s = self.session.bounds_center_and_width()
         if center is None:
             return
         vw = self.camera.view_width(center)
@@ -628,7 +562,8 @@ class View(QtGui.QWindow):
         xyz1, xyz2 = self.camera.clip_plane_points(win_x, win_y)
         f = None
         s = None
-        for m in self.models:
+        models = self.session.model_list()
+        for m in models:
             if m.display:
                 mxyz1, mxyz2 = m.place.inverse() * (xyz1,xyz2)
                 fmin, smin = m.first_intercept(mxyz1, mxyz2)
@@ -639,22 +574,6 @@ class View(QtGui.QWindow):
             return None, None
         p = (1.0-f)*xyz1 + f*xyz2
         return p, s
-
-    def bounds_center_and_width(self):
-
-        bounds = self.bounds()
-        if bounds is None or bounds == (None, None):
-            return None, None
-        (xmin,ymin,zmin), (xmax,ymax,zmax) = bounds
-        w = max(xmax-xmin, ymax-ymin, zmax-zmin)
-        cx,cy,cz = 0.5*(xmin+xmax),0.5*(ymin+ymax),0.5*(zmin+zmax)
-        from numpy import array
-        return array((cx,cy,cz)), w
-
-    def bounds(self):
-        from ..geometry import bounds
-        b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
-        return b
 
     def update_projection(self, view_num = None, win_size = None):
         
@@ -701,18 +620,3 @@ class View(QtGui.QWindow):
     def pixel_size(self, p = None):
         '''Return the pixel size in scene length units at point p in the scene.'''
         return self.camera.pixel_size(self.center_of_rotation if p is None else p)
-
-    def maps(self):
-        '''Return a list of the Volume models in the scene.'''
-        from ..map import Volume
-        return tuple(m for m in self.models if isinstance(m,Volume))
-
-    def molecules(self):
-        '''Return a list of the Molecule models in the scene.'''
-        from ..molecule import Molecule
-        return tuple(m for m in self.models if isinstance(m,Molecule))
-
-    def surfaces(self):
-        '''Return a list of the Surface models in the scene which are not Molecules.'''
-        from ..molecule import Molecule
-        return tuple(m for m in self.models if not isinstance(m,(Molecule)))

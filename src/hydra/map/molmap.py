@@ -100,12 +100,12 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
 
     if replace:
         from . import volume_list
-        vlist = [v for v in volume_list()
+        vlist = [v for v in volume_list(session)
                  if getattr(v, 'molmap_atoms', None) == atoms]
         session.close_models(vlist)
 
     from . import volume_from_grid_data
-    v = volume_from_grid_data(grid, open_model = False,
+    v = volume_from_grid_data(grid, session, open_model = False,
                               show_dialog = show_dialog)
     v.initialize_thresholds(mfrac = (display_threshold, 1), replace = True)
     v.show()
@@ -113,7 +113,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
     v.molmap_parameters = (resolution, step, pad, cutoff_range, sigma_factor)
 
-    session.view.add_model(v)
+    session.add_model(v)
     return v
 
 # -----------------------------------------------------------------------------

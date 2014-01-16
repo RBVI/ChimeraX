@@ -86,7 +86,7 @@ def show_surface(name, va, na, ta, session, color = (.7,.7,.7,1), place = None):
     p.geometry = va, ta
     p.normals = na
     p.color = color
-    session.view.add_model(surf)
+    session.add_model(surf)
     return surf
 
 def surface_command(cmdname, args, session):

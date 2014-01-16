@@ -752,11 +752,10 @@ class Atoms:
     
 # -----------------------------------------------------------------------------
 #
-def all_atoms():
+def all_atoms(session):
   '''Return an atom set containing all atoms of all open molecules.'''
   aset = Atoms()
-  from ..ui.gui import main_window
-  aset.add_molecules(main_window.view.molecules())
+  aset.add_molecules(session.molecules())
   return aset
 
 # -----------------------------------------------------------------------------
