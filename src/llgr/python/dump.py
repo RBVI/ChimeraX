@@ -214,7 +214,7 @@ class save_args(object):
 		return self.func.__doc__
 
 @typecheck
-def render(as_data=False):
+def render(groups: sequence_of(Id), as_data: bool=False):
 	global _calls
 	tmp = _calls
 	_calls = []
