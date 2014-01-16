@@ -438,8 +438,8 @@ function process_scene_data(data) {
 	if (bbox === undefined) {
 		return;
 	}
-	bbox = new BBox(vec3.fromValues.apply(null, bbox[0]),
-	    				vec3.fromValues.apply(null, bbox[1]));
+	bbox = new BBox(vec3.fromValues.apply(null, bbox['llb']),
+				vec3.fromValues.apply(null, bbox['urf']));
 	if (bbox != scene_bbox) {
 		scene_bbox = bbox;
 		// TODO: update camera
