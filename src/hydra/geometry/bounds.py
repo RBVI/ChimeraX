@@ -50,3 +50,12 @@ def point_axis_bounds(points, axis):
   pa = dot(points, axis)
   a2 = dot(axis, axis)
   return pa.min()/a2, pa.max()/a2
+
+def bounds_center_and_radius(bounds):
+  if bounds is None or bounds == (None, None):
+    return None, None
+  (xmin,ymin,zmin), (xmax,ymax,zmax) = bounds
+  w = max(xmax-xmin, ymax-ymin, zmax-zmin)
+  cx,cy,cz = 0.5*(xmin+xmax),0.5*(ymin+ymax),0.5*(zmin+zmax)
+  from numpy import array
+  return array((cx,cy,cz)), w

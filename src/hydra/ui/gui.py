@@ -95,7 +95,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_shortcut_icon('rotate_h2o.png', 'Rotate selected mouse mode', 'ro')
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'sh')
+        self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
         self.add_shortcut_icon('cube-outline.png', 'Show map outline box', 'ob')
         self.add_shortcut_icon('icecube.png', 'Make map transparent', 't5')
         toolbar.addSeparator()
