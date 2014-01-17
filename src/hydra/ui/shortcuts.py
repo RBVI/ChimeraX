@@ -55,11 +55,10 @@ def register_shortcuts(keyboard_shortcuts):
     ocat = 'Open, Save, Close'   # shortcut documentation category
     gcat = 'General Controls'
     view_shortcuts = (
-        ('mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
+        ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat),
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat),
         ('ro', enable_rotate_selected_mouse_mode, 'Rotate selected mouse mode', gcat),
-        ('sh', tile_models, 'Show or hide models', gcat),
         ('bk', set_background_black, 'Black background', gcat),
         ('wb', set_background_white, 'White background', gcat),
         ('gb', set_background_gray, 'Gray background', gcat),
@@ -80,13 +79,15 @@ def register_shortcuts(keyboard_shortcuts):
       ks.add_shortcut(k, f, d, category = cat)
 
     from ..file_io import opensave
+    from .modelpanel import show_model_panel
     session_shortcuts = (
         ('op', opensave.show_open_file_dialog, 'Open file', ocat),
         ('sv', opensave.save_session_as, 'Save session as...', ocat),
         ('Sv', opensave.save_session, 'Save session', ocat),
-        ('si', opensave.save_image, 'Save image', ocat),
+        ('si', lambda s: opensave.save_image(None,s), 'Save image', ocat),
         ('oi', opensave.open_image, 'Open image', ocat),
         ('Ca', close_all_models, 'Close all models', ocat),
+        ('mp', show_model_panel, 'Show/hide model panel', ocat),
         ('Ds', delete_selected_models, 'Delete selected models', ocat),
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
         ('rs', show_file_history, 'Show recent sessions', ocat),
@@ -331,32 +332,6 @@ def show_surface_transparent(m):
         for p in m.surface_pieces():
             r,g,b,a = p.color
             p.color = (r,g,b, (0.5 if a == 1 else 1))
-
-def tile_models(viewer):
-    viewer.tile_models = not viewer.tile_models
-    viewer.mouse_modes.bind_mouse_mode('left', lambda e,v=viewer: hide_show_mouse_mode(e,v))
-  
-def hide_show_mouse_mode(event, viewer):
-    if not viewer.tile_models:
-        viewer.mouse_modes.bind_standard_mouse_modes(['left'])
-        return
-    w, h = viewer.window_size
-    x,y = event.x(), event.y()
-    y = (h-1)-y   # OpenGL origin is lower left corner, Qt is upper left corner
-    tiles = viewer.tiles()
-    t = None
-    for i,(tx,ty,tw,th) in enumerate(tiles):
-        if x >= tx and y >= ty and x < tx+tw and y < ty+th:
-            t = i
-            break
-    if t == 0 or t is None:
-        viewer.tile_models = False
-        viewer.mouse_modes.bind_standard_mouse_modes(['left'])
-    else:
-        models = viewer.session.model_list()
-        if i <= len(models):
-            m = models[i-1]
-            m.display = not m.display
 
 def set_background_color(viewer, color):
     viewer.background_color = color

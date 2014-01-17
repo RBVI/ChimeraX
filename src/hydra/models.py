@@ -93,15 +93,8 @@ class Models:
         return b
 
     def bounds_center_and_width(self):
-
-        bounds = self.bounds()
-        if bounds is None or bounds == (None, None):
-            return None, None
-        (xmin,ymin,zmin), (xmax,ymax,zmax) = bounds
-        w = max(xmax-xmin, ymax-ymin, zmax-zmin)
-        cx,cy,cz = 0.5*(xmin+xmax),0.5*(ymin+ymax),0.5*(zmin+zmax)
-        from numpy import array
-        return array((cx,cy,cz)), w
+        from .geometry import bounds
+        return bounds.bounds_center_and_radius(self.bounds())
 
     def transparent_models_shown(self):
 
