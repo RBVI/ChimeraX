@@ -368,17 +368,30 @@ def main():
 	argv[0] = app.applicationName().casefold()
 	import getopt
 	try:
-		opts, args = getopt.getopt(argv[1:], 'd:', ['dump=', 'nogui'])
+		opts, args = getopt.getopt(argv[1:], 'd:', [
+			'dump=', 'nogui', 'profile'
+		])
 	except getopt.error:
 		print("usage: %s [--nogui] [-d|--dump format]" % argv[0],
 				file=sys.stderr)
 		raise SystemExit(2)
 	global dump_format
+	profile = False
 	for option, value in opts:
 		if option in ("-d", "--dump"):
 			dump_format = value
 		elif option == '--nogui':
 			pass
+		elif option == '--profile':
+			profile = True
+
+	if profile:
+		# install profile decorator
+		# and write results on exit
+		import line_profiler, builtins, atexit
+		prof = line_profiler.LineProfiler()
+		builtins.__dict__['profile'] = prof
+		atexit.register(prof.dump_stats, "chimera2.lprof")
 
 	sys.path.insert(0, '../../build/lib')
 
