@@ -102,7 +102,9 @@ def register_shortcuts(keyboard_shortcuts):
         ('cl', command_line, 'Enter command', gcat),
         ('sn', toggle_space_navigator, 'Toggle use of space navigator', gcat),
         ('nf', toggle_space_navigator_fly_mode, 'Toggle space navigator fly mode', gcat),
+        ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat),
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat),
+        ('ow', oculus_warp, 'Toggle Oculus Rift lens correction', gcat),
         ('lp', leap_position_mode, 'Enable leap motion input device', gcat),
         ('lx', leap_chopsticks_mode, 'Enable leap motion chopstick mode', gcat),
         ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat),
@@ -546,6 +548,9 @@ def oculus_mode(viewer):
 def start_oculus(session):
     from . import oculus
     oculus.start_oculus(session)
+def oculus_warp(session):
+    from . import oculus
+    oculus.toggle_warping(session)
 
 def toggle_space_navigator(session):
     from . import spacenavigator
@@ -554,6 +559,10 @@ def toggle_space_navigator(session):
 def toggle_space_navigator_fly_mode(session):
     from . import spacenavigator
     spacenavigator.toggle_fly_mode(session)
+
+def space_navigator_collisions(session):
+    from . import spacenavigator
+    spacenavigator.avoid_collisions(session)
 
 def quit(session):
     import sys
