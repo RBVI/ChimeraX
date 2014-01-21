@@ -56,6 +56,11 @@ class Oculus_Head_Tracking:
         xp = dx * ppm
         return xp
 
+    def radial_warp_parameters(self):
+
+        p = self.parameters
+        return p['DistortionK']
+
     def use_oculus_orientation(self):
 
         from . import _oculus
@@ -79,17 +84,19 @@ def start_oculus(session):
     oht = session.oculus
     if oht is None:
         oht = Oculus_Head_Tracking()
+        view = session.view
         success = oht.start_event_processing(view)
         session.show_status('started oculus head tracking ' + ('success' if success else 'failed'))
         if success:
             session.oculus = oht
-            view = session.view
             c = view.camera
             from math import pi
             c.field_of_view = oht.field_of_view() * 180 / pi
             c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
             c.eye_separation_pixels = 2*oht.image_shift_pixels()
             view.set_camera_mode('oculus')
+            view.render.radial_warp_coefficients = oht.radial_warp_parameters()
+            print ('Radial warp', oht.radial_warp_parameters())
             start = True
         else:
             oht = None
@@ -107,6 +114,13 @@ def start_oculus(session):
         mw.toolbar.show()
         mw.command_line.show()
         mw.statusBar().show()
+
+def toggle_warping(session):
+    r = session.view.render
+    if r.radial_warp_coefficients == (1,0,0,0):
+        r.radial_warp_coefficients = session.oculus.radial_warp_parameters()
+    else:
+        r.radial_warp_coefficients = (1,0,0,0)
 
 def move_window_to_oculus(session, w, h):
     d = session.application.desktop()
