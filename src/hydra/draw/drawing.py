@@ -21,6 +21,8 @@ class Render:
         self.shader_programs = {}
         self.current_shader_program = None
 
+        self.default_capabilities = ('USE_LIGHTING',)
+
         self.current_projection_matrix = None   # Used when switching shaders
         self.current_model_view_matrix = None   # Used when switching shaders
         self.current_model_matrix = None        # Used for optimizing model view matrix updates
@@ -34,9 +36,14 @@ class Render:
         self.color_rb = None
         self.depth_stencil_rb = None
 
+        self.warp_center = (0.5, 0.5)
+        self.radial_warp_coefficients = (1,0,0,0)
+
     # use_shader() option names
     SHADER_LIGHTING = 'lighting'
+    SHADER_DEPTH_CUE = 'depth cue'
     SHADER_TEXTURE_2D = 'texture2d'
+    SHADER_TEXTURE_WARP = 'warp'
     SHADER_SHIFT_AND_SCALE = 'shiftAndScale'
     SHADER_INSTANCING = 'instancing'
     SHADER_SELECTED = 'selected'
@@ -51,11 +58,12 @@ class Render:
         SHADER_SELECTED, SHADER_UNSELECTED.
         '''
 
-        default_capabilities = ('USE_LIGHTING',)
-        capabilities = set(default_capabilities)
+        capabilities = set(self.default_capabilities)
 
         optdefs = {self.SHADER_LIGHTING:'USE_LIGHTING',
+                   self.SHADER_DEPTH_CUE:'USE_DEPTH_CUE',
                    self.SHADER_TEXTURE_2D:'USE_TEXTURE_2D',
+                   self.SHADER_TEXTURE_WARP:'USE_TEXTURE_WARP',
                    self.SHADER_SHIFT_AND_SCALE:'USE_INSTANCING_SS',
                    self.SHADER_INSTANCING:'USE_INSTANCING_44',
                    self.SHADER_SELECTED:'USE_HATCHING'}
@@ -77,10 +85,14 @@ class Render:
             GL.glUseProgram(p.program_id)
             if 'USE_LIGHTING' in capabilities:
                 self.set_shader_lighting_parameters()
+            if 'USE_DEPTH_CUE' in capabilities:
+                self.set_depth_cue_parameters()
             self.set_projection_matrix()
             self.set_model_view_matrix()
             if 'USE_TEXTURE_2D' in capabilities:
                 GL.glUniform1i(p.uniform_id("tex2d"), 0)    # Texture unit 0.
+            if 'USE_TEXTURE_WARP' in capabilities:
+                self.set_texture_warp_parameters()
 
         return p
 
@@ -176,6 +188,17 @@ class Render:
         ambient = GL.glGetUniformLocation(p, b"ambient_color")
         GL.glUniform3f(ambient, *lp.ambient_light_color)
 
+    def set_depth_cue_parameters(self):
+        'Private. Sets shader depth variables using the lighting parameters object given in the contructor.'
+
+        p = self.current_shader_program.program_id
+        lp = self.lighting_params
+
+        dc_distance = GL.glGetUniformLocation(p, b"depth_cue_distance")
+        GL.glUniform1f(dc_distance, lp.depth_cue_distance)
+        dc_darkest = GL.glGetUniformLocation(p, b"depth_cue_darkest")
+        GL.glUniform1f(dc_darkest, lp.depth_cue_darkest)
+
     def set_single_color(self, color):
         '''
         Set the OpenGL shader color for single color drawing to the specified
@@ -184,6 +207,13 @@ class Render:
         r,g,b,a = color
         p = self.current_shader_program
         GL.glVertexAttrib4f(p.attribute_id("vcolor"), r,g,b,a)
+
+    def set_texture_warp_parameters(self):
+        p = self.current_shader_program.program_id
+        wcenter = GL.glGetUniformLocation(p, b"warp_center")
+        GL.glUniform2fv(wcenter, 1, self.warp_center)
+        rcoef = GL.glGetUniformLocation(p, b"radial_warp")
+        GL.glUniform4fv(rcoef, 1, self.radial_warp_coefficients)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -323,7 +353,7 @@ class Render:
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
 
-    def render_off_screen(self, width, height):
+    def render_to_buffer(self, width, height):
 
         max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
         max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
@@ -331,10 +361,21 @@ class Render:
         if width > max_size or height > max_size:
             return False
 
-        # Create color, depth and stencil buffers
         self.color_rb = color_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
         GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_RGB8, width, height)
+        return self.render_to_fbo(color_rb, width, height, False)
+
+    def render_to_texture(self, texture):
+
+        w, h = texture.size
+        return self.render_to_fbo(texture.id, w, h, True)
+
+    def render_to_fbo(self, color_buf, width, height, to_texture):
+
+        self.delete_offscreen_framebuffer()
+
+        # Create color, depth and stencil buffers
         self.depth_stencil_rb = depth_stencil_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_stencil_rb)
         GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8, width, height)
@@ -342,24 +383,31 @@ class Render:
 
         self.fbo = GL.glGenFramebuffers(1)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
-        GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
-                                     GL.GL_RENDERBUFFER, color_rb)
+
+        if to_texture:
+            level = 0
+            GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
+                                      GL.GL_TEXTURE_2D, color_buf, level)
+        else:
+            GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
+                                         GL.GL_RENDERBUFFER, color_buf)
+
         GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT,
                                      GL.GL_RENDERBUFFER, depth_stencil_rb)
         GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_STENCIL_ATTACHMENT,
                                      GL.GL_RENDERBUFFER, depth_stencil_rb)
         status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
         if status != GL.GL_FRAMEBUFFER_COMPLETE:
-            self.render_on_screen()
+            self.render_to_screen()
             return False
         self.set_drawing_region(0,0,width,height)
 
         self.off_screen = True
         return True
 
-    def render_on_screen(self, w, h):
+    def render_to_screen(self):
 
-        self.set_drawing_region(0,0,w,h)
+#        self.set_drawing_region(0,0,w,h)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
         self.delete_offscreen_framebuffer()
         self.off_screen = True
@@ -369,7 +417,9 @@ class Render:
         if self.fbo is None:
             return
 
-        GL.glDeleteRenderbuffers(2, (self.color_rb, self.depth_stencil_rb))
+        if not self.color_rb is None:
+            GL.glDeleteRenderbuffers(1, (self.color_rb,))
+        GL.glDeleteRenderbuffers(1, (self.depth_stencil_rb,))
         GL.glDeleteFramebuffers(1, (self.fbo,))
         self.color_rb = self.depth_stencil_rb = self.fbo = None
 
@@ -403,6 +453,9 @@ class Lighting:
         self.fill_light_position = (.2,.2,.959)
         self.fill_light_diffuse_color = (.3,.3,.3)
         self.ambient_light_color = (.3,.3,.3)
+
+        self.depth_cue_distance = 15.0  # Distance where dimming begins (Angstroms)
+        self.depth_cue_darkest = 0.2    # Smallest dimming factor
 
 class Bindings:
     '''
@@ -684,25 +737,46 @@ class Texture:
     nearest interpolation is set.  The c = 2 mode uses the second component as alpha and
     the first componet for red,green,blue.
     '''
-    def __init__(self, data):
+    def __init__(self, data = None):
+
+        self.id = None
+
+        if not data is None:
+            h, w = data.shape[:2]
+            format, iformat, tdtype, ncomp = self.texture_format(data)
+            self.initialize_texture(w, h, format, iformat, tdtype, ncomp, data)
+
+    def initialize_rgba(self, w, h):
+
+        format = GL.GL_BGRA
+        iformat = GL.GL_RGBA8
+        tdtype = GL.GL_UNSIGNED_BYTE
+        ncomp = 4
+        self.initialize_texture(w, h, format, iformat, tdtype, ncomp)
+
+    def initialize_texture(self, w, h, format, iformat, tdtype, ncomp, data = None):
 
         from OpenGL import GL
         self.id = t = GL.glGenTextures(1)
+        self.size = (w,h)
         GL.glBindTexture(GL.GL_TEXTURE_2D, t)
-        h, w = data.shape[:2]
-        format, iformat, tdtype = self.texture_format(data)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        if data is None:
+            import ctypes
+            data = ctypes.c_void_p(0)
         GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, iformat, w, h, 0,
                         format, tdtype, data)
 
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameterfv(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_BORDER_COLOR, (0,0,0,0))
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_BORDER)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_BORDER)
+#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
 #        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
 #        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
-        ncomp = data.shape[2]
         if ncomp == 1 or ncomp == 2:
             GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
             GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_B, GL.GL_RED)
@@ -729,7 +803,7 @@ class Texture:
         '''
 
         h, w = data.shape[:2]
-        format, iformat, tdtype = self.texture_format(data)
+        format, iformat, tdtype, ncomp = self.texture_format(data)
         from OpenGL import GL
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.id)
         GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, w, h, format, tdtype, data)
@@ -746,7 +820,8 @@ class Texture:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
             tdtype = GL.GL_UNSIGNED_BYTE
-            return format, iformat, tdtype
+            ncomp = 4
+            return format, iformat, tdtype, ncomp
 
         ncomp = data.shape[2]
         # TODO: Report pyopengl bug, GL_RG missing
@@ -764,4 +839,4 @@ class Texture:
             tdtype = GL.GL_FLOAT
         else:
             raise TypeError('Texture value type %s not supported' % str(dtype))
-        return format, iformat, tdtype
+        return format, iformat, tdtype, ncomp
