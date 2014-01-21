@@ -62,6 +62,7 @@ def register_shortcuts(keyboard_shortcuts):
         ('bk', set_background_black, 'Black background', gcat),
         ('wb', set_background_white, 'White background', gcat),
         ('gb', set_background_gray, 'Gray background', gcat),
+        ('dq', depth_cue, 'Toggle depth cue', gcat),
         ('bl', motion_blur, 'Toggle motion blur', gcat),
         ('Mo', mono_mode, 'Set mono camera mode', gcat),
         ('So', stereo_mode, 'Set sequential stereo mode', gcat),
@@ -344,6 +345,15 @@ def set_background_gray(viewer):
 def set_background_white(viewer):
     set_background_color(viewer, (1,1,1,1))
 
+def depth_cue(viewer):
+    r = viewer.render
+    c = r.default_capabilities
+    if r.SHADER_DEPTH_CUE in c:
+        c.remove(r.SHADER_DEPTH_CUE)
+    else:
+        c.add(r.SHADER_DEPTH_CUE)
+    viewer.redraw_needed = True
+    
 def selection_mouse_mode(session):
     def mouse_down(event, session=session):
         x,y = event.x(), event.y()
