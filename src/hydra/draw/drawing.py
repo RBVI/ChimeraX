@@ -21,7 +21,7 @@ class Render:
         self.shader_programs = {}
         self.current_shader_program = None
 
-        self.default_capabilities = ('USE_LIGHTING',)
+        self.default_capabilities = set((self.SHADER_LIGHTING,))
 
         self.current_projection_matrix = None   # Used when switching shaders
         self.current_model_view_matrix = None   # Used when switching shaders
@@ -58,8 +58,6 @@ class Render:
         SHADER_SELECTED, SHADER_UNSELECTED.
         '''
 
-        capabilities = set(self.default_capabilities)
-
         optdefs = {self.SHADER_LIGHTING:'USE_LIGHTING',
                    self.SHADER_DEPTH_CUE:'USE_DEPTH_CUE',
                    self.SHADER_TEXTURE_2D:'USE_TEXTURE_2D',
@@ -68,6 +66,8 @@ class Render:
                    self.SHADER_INSTANCING:'USE_INSTANCING_44',
                    self.SHADER_SELECTED:'USE_HATCHING'}
 #                   self.SHADER_UNSELECTED:'USE_DIMMING'}
+        capabilities = set(optdefs[c] for c in self.default_capabilities)
+
         for opt,onoff in options.items():
             if opt in optdefs:
                 cap = optdefs[opt]
