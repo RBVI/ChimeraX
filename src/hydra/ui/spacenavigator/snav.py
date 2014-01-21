@@ -10,6 +10,7 @@ class Space_Navigator:
         self.session = None
         self.device = None
         self.processing_events = False
+        self.collision_map = None        # Volume data mask where camera cannot go
 
     def start_event_processing(self, session):
 
@@ -92,10 +93,11 @@ class Space_Navigator:
     def apply_transform(self, tf):
 
         v = self.session.view
-        cv = v.camera.view()
-        cvinv = v.camera.view_inverse()
+        cam = v.camera
+        cv = cam.view()
+        cvinv = cam.view_inverse()
         if self.fly_mode:
-            cr = cvinv * v.camera.position()
+            cr = cvinv * cam.position()
             tf = tf.inverse()
         else:
             if tf.rotation_angle() > 1e-5:
@@ -105,7 +107,16 @@ class Space_Navigator:
             cr = cvinv * v.center_of_rotation
         from ...geometry.place import translation
         stf = cv * translation(cr) * tf * translation(-cr) * cvinv
+        if self.collision(stf.inverse() * cam.position()):
+            return
         v.move(stf, update_clip_planes = True)
+
+    def collision(self, xyz):
+        cm = self.collision_map
+        if cm is None:
+            return False
+        clev = max(cm.surface_levels)
+        return (cm.interpolated_values([xyz], cm.place) >= clev)
 
     def toggle_dominant_mode(self):
 
@@ -160,3 +171,15 @@ def toggle_fly_mode(session):
     if sn is None:
         toggle_space_navigator(session)
     sn.fly_mode = not sn.fly_mode
+
+# -----------------------------------------------------------------------------
+#
+def avoid_collisions(session):
+    maps = session.maps()
+    sn = session.space_navigator
+    if sn is None and len(maps) > 0:
+        toggle_space_navigator(session)
+    if sn.collision_map is None and maps:
+        sn.collision_map = maps[0]
+    else:
+        sn.collision_map = None
