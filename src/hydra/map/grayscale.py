@@ -197,10 +197,10 @@ class Gray_Scale_Drawing(object):
       p = s.new_piece()
       p.geometry = va, ta
       p.color = self.modulation_rgba()
-      p.useLighting = False
+      p.use_lighting = False
       p.texture = self.texture_plane(k, axis)
-      p.textureCoordinates = tc1 if axis == 1 else tc
-      p.opaqueTexture = (not 'a' in self.color_mode)
+      p.texture_coordinates = tc1 if axis == 1 else tc
+      p.opaque_texture = (not 'a' in self.color_mode)
       p.plane = (k,axis)
       plist.append(p)
 
