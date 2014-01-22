@@ -161,7 +161,7 @@ class Volume(Surface):
     if pchange and self.representation != 'solid':
       styles = set()
       for p in self.surface_piece_list:
-        styles.add(p.displayStyle)
+        styles.add(p.display_style)
       if len(styles) == 1:
         pstyle = {p.Solid: 'surface', p.Mesh: 'mesh'}.get(styles.pop(), None)
         if pstyle and self.representation != pstyle:
@@ -618,16 +618,13 @@ class Volume(Surface):
     single_plane = self.single_plane()
     contour_2d = single_plane and not ro.cap_faces
 
-    if show_mesh or contour_2d:
-      style = p.Mesh
-    else:
-      style = p.Solid
-    p.displayStyle = style
+    style = p.Mesh if show_mesh or contour_2d else p.Solid
+    p.display_style = style
     
     if contour_2d:  lit = False
     elif show_mesh: lit = ro.mesh_lighting
     else:           lit = True
-    p.useLighting = lit
+    p.use_lighting = lit
 
     p.twoSidedLighting = ro.two_sided_lighting
 
@@ -1791,9 +1788,9 @@ class Outline_Box:
 
     rgba = tuple(rgb) + (1,)
     p = self.model.new_piece()
-    p.displayStyle = p.Mesh
+    p.display_style = p.Mesh
     p.lineThickness = linewidth
-    p.useLighting = False
+    p.use_lighting = False
     p.outline_box = True # Do not cap clipped outline box.
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.

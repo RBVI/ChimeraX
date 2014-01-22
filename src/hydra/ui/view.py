@@ -235,12 +235,13 @@ class View(QtGui.QWindow):
 
     def image_off_screen(self, w, h, camera = None, models = None):
         r = self.render
-        if not r.render_off_screen(w,h):
+        if not r.render_to_buffer(w,h):
             return None
         self.draw_scene(camera, models)
         rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
+        r.render_to_screen()
         ww, wh = self.window_size
-        r.render_on_screen(ww, wh)
+        r.set_drawing_region(0,0,ww,wh)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         return qi
 
@@ -333,6 +334,9 @@ class View(QtGui.QWindow):
                 if self.session.transparent_models_shown():
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
                                        lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
+            s = camera.finish_draw(vnum, r)
+            if s:
+                self.draw_overlays([s])
         t1 = process_time()
         self.last_draw_duration = t1-t0
 

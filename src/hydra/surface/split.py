@@ -118,7 +118,7 @@ def copy_piece_blob(m, varray, tarray, narray, color, vrgba, temask,
 def copy_piece_attributes(g, gp):
 
   gp.display = g.display
-  gp.displayStyle = g.displayStyle
-#  gp.useLighting = g.useLighting
+  gp.display_style = g.display_style
+#  gp.use_lighting = g.use_lighting
 #  gp.lineThickness = g.lineThickness
   gp.name = g.name

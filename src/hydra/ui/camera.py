@@ -208,20 +208,64 @@ class Camera:
         from .. import draw
         if m == 'mono':
             render.set_mono_buffer()
-            render.draw_background()
         elif m == 'stereo':
             render.set_stereo_buffer(view_num)
-            render.draw_background()
         elif m == 'oculus':
-            render.set_mono_buffer()
-            w,h = self.window_size
-            if view_num == 0:
-                render.set_drawing_region(0,0,w//2,h)
-                render.draw_background()
-            elif view_num == 1:
-                render.set_drawing_region(w//2,0,w//2,h)
+            render.render_to_texture(self.warping_texture())
         else:
             raise ValueError('Unknown camera mode %s' % m)
+        render.draw_background()
+
+    def finish_draw(self, view_num, render):
+        m = self.mode
+        if m == 'oculus':
+            render.render_to_screen()
+            w,h = self.window_size
+            if view_num == 0:
+                render.draw_background()
+                render.set_drawing_region(0,0,w//2,h)
+            elif view_num == 1:
+                render.set_drawing_region(w//2,0,w//2,h)
+            coffset = 0.5*self.eye_separation_pixels/(w//2)
+            if view_num == 0:
+                coffset = -coffset
+            render.warp_center = (0.5 + coffset, 0.5)
+#            render.radial_warp_coefficients = (1,1.8,0,0)
+            return self.warping_surface(render)
+        return None
+
+    def warping_texture(self):
+
+        w,th = self.window_size
+        tw = w // 2 if self.mode == 'oculus' else w
+        if not hasattr(self, 'warp_texture') or self.warp_texture_size != (tw,th):
+            from .. import draw
+            self.warp_texture = t = draw.Texture()
+            t.initialize_rgba(tw,th)
+            self.warp_texture_size = (tw,th)
+        return self.warp_texture
+
+    def warping_surface(self, render):
+
+        if not hasattr(self, 'warp_surface'):
+            from ..surface import Surface
+            self.warp_surface = s = Surface('warp plane')
+            p = s.new_piece()
+            from numpy import array, float32, int32
+            va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
+            ta = array(((0,1,2),(0,2,3)), int32)
+            tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
+            p.geometry = va, ta
+            p.color = (1,1,1,1)
+            p.use_lighting = False
+            p.texture_coordinates = tc
+            p.use_texture_warp = True
+
+        s = self.warp_surface
+        p = s.surface_pieces()[0]
+        p.texture = self.warp_texture
+
+        return s
 
 # glFrustum() matrix
 def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
