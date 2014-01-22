@@ -151,7 +151,7 @@ class MRC_Data:
     else:
       # MRC file
       user = file.read(4*MRC_USER)
-      if user[-4:] == 'MAP ':
+      if user[-4:] == b'MAP ':
         # New style MRC 2000 format file with xyz origin
         v['user'] = self.read_values_from_string(user, i32, MRC_USER)[:-4]
         xyz_origin = self.read_values_from_string(user[-16:-4], f32, 3)
