@@ -182,10 +182,11 @@ def file_writer(path, format = None):
   
 # -----------------------------------------------------------------------------
 #
-def save_grid_data(grids, path, format = None, options = {}, temporary = False):
+def save_grid_data(grids, path, format = None, options = {}):
 
-  from OpenSave import tildeExpand
-  path = tildeExpand(path)
+  
+  import os.path
+  path = os.path.expanduser(path)
   
   fw = file_writer(path, format)
   if fw is None:
@@ -197,7 +198,7 @@ def save_grid_data(grids, path, format = None, options = {}, temporary = False):
     raise ValueError(('Unsupported options for format %s: %s'
                       % (fw[1], ' ,'.join(badopt))))
 
-  from griddata import Grid_Data
+  from .griddata import Grid_Data
   if isinstance(grids, Grid_Data):
     glist = [grids]
   else:
@@ -239,11 +240,6 @@ def save_grid_data(grids, path, format = None, options = {}, temporary = False):
 
   from os.path import basename
   p.message('Wrote file %s' % basename(path))
-
-  if not temporary:
-    readfmt = 'BRIX or DSN6 density map' if descrip == 'BRIX map' else descrip
-    from chimera import triggers
-    triggers.activateTrigger('file save', (path, readfmt))
 
   return format
   
