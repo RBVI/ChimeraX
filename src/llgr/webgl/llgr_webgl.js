@@ -54,7 +54,10 @@ var all_matrices = {};
 var all_objects = {};
 var all_groups = {};
 
-var gl;	// set with set_context()
+// set with set_context()
+var gl;		// OpenGL API
+var vao_ext;	// ES_vertex_array_object API
+var inst_ext;	// ANGLE_instanced_arrays API
 
 var internal_buffer_id = 0;	// decrement before using
 var current_program = null;
@@ -623,6 +626,27 @@ function build_fan(num_spokes)
 
 llgr = {
 	set_context: function(context) {
+		if (gl === context)
+			return;
+		var missing = [];
+		if (vao_ext === undefined) {
+			vao_ext = getExtensionWithKnownPrefixes(context,
+						"OES_vertex_array_object");
+			if (vao_ext === null) {
+				missing.push("missing required WebGL extension: vertex arrays");
+			}
+		}
+		if (inst_ext === undefined) {
+			inst_ext = getExtensionWithKnownPrefixes(context,
+						"ANGLE_instanced_arrays");
+			if (inst_ext === null) {
+				missing.push("missing required WebGL extension: instanced arrays");
+			}
+		}
+		if (missing.length > 0) {
+			llgr = null;
+			throw missing;
+		}
 		gl = context;
 	},
 

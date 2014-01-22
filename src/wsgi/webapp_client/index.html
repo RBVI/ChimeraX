@@ -550,6 +550,20 @@ function molview_update_size() {
 		molview_ci.redraw();
 }
 
+function show_failure(canvas, msg) {
+	// copied from showLink and makeFailHTML in webgl-utils.js
+	var container = canvas.parentNode;
+	if (container) {
+		container.innerHTML = '' +
+		'<table style="background-color: #8CE; width: 100%; height: 100%;"><tr>' +
+		'<td>' +
+		'<div style="display: table-cell; vertical-align: middle;">' +
+		'<div style="">' + msg + '</div>' +
+		'</div>' +
+		'</td></tr></table>';
+	}
+}
+
 function molview_init() {
 	var canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
@@ -561,7 +575,23 @@ function molview_init() {
 
 	molview_update_size();
 	molview_ci = new ContextInfo(canvas, gl, draw_view);
-	molview_ci.init();
+	var msg;
+	try {
+		molview_ci.init();
+	} catch (msg) {
+		molview_ci = null;
+		show_failure(canvas,
+			"<p><b>Unable to create suitable graphics window:</b>"
+			+ "<ul><li>" + msg.join("<li>") + "</ul>"
+			+ "Using a different web browser might work, "
+			+ "but often you will need to update your computer, "
+			+ "<i>i.e.</i>, update either the graphics driver, "
+			+ "the browser, the operating system, "
+			+ "and/or the hardware.&nbsp; "
+			+ "<a href='http://get.webgl.org/troubleshooting/'>"
+			+ "Click here to troubleshoot your current configuration.</a>");
+		return;
+	}
 	molview_ci.redraw();
 	$("#molview")
 		.on('wheel', molview_zoom)
