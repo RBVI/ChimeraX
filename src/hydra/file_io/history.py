@@ -107,7 +107,7 @@ class File_History:
       self.read_history()
 
     atime,iname = self.files.get(path, (None,None))
-    v = self.session.main_window.view
+    v = self.session.view
     if iname is None:
       from os.path import splitext, basename
       bname = splitext(basename(path))[0] + '.' + self.image_format.lower()
