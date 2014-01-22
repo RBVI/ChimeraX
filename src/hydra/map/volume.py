@@ -1468,8 +1468,9 @@ class Volume(Surface):
 
     if mask_zone:
       surf_model = self.surface_model()
-      import SurfaceZone
-      if SurfaceZone.showing_zone(surf_model):
+#      import SurfaceZone
+#      if SurfaceZone.showing_zone(surf_model):
+      if False:
         points, radius = SurfaceZone.zone_points_and_distance(surf_model)
         from .data import zone_masked_grid_data
         mg = zone_masked_grid_data(sg, points, radius)
