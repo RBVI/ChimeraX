@@ -28,9 +28,9 @@ for action in $actions; do
 
 		# Copy local files
 		local_files="chimera2.wsgi webapp_backend.py"
-		rsync -av $local_files $target
+		rsync -Cav --exclude=\*.swp $local_files $target
 		other_files="../llgr/webgl webapp_client/"
-		rsync -av $other_files $target/www
+		rsync -Cav --exclude=\*.swp $other_files $target/www
 
 		# Make sure some files are owned by user Apache
 		if [ ! -e $target/sessions ]; then
