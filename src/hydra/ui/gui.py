@@ -232,10 +232,7 @@ def create_main_window(session):
 
 def start_event_loop(app):
     status = app.exec_()
-#    from . import leap
-#    leap.quit_leap(w.view)
-    history.write_history()
-    sys.exit(status)
+    return status
 
 class Log:
     '''
