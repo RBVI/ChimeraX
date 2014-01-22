@@ -89,6 +89,9 @@ class Session(Models):
 
         gui.start_event_loop(app)
 
+        self.file_history.write_history()
+        sys.exit(status)
+
     def show_status(self, msg, append = False):
         '''Show a status message at the bottom of the main window.'''
         self.main_window.show_status(msg, append)
