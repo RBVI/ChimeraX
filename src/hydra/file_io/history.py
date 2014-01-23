@@ -7,11 +7,11 @@ class File_History:
 
     if history_file is None:
       from os.path import join
-      history_file = join(self.default_history_directory(), 'sessions')
+      history_file = self.recent_files_index()
 
     self.history_file = history_file
-    from os.path import dirname
-    self.thumbnail_directory = dirname(history_file)
+    from os.path import dirname, join
+    self.thumbnail_directory = join(dirname(history_file), 'images')
     self.read = False
     self.changed = False
     self.files = {}             # Path to (access_time, image_name)
@@ -63,6 +63,10 @@ class File_History:
     # Make directory for example sessions
     mkdir(sdir)
 
+    # Make thumbnail images directory
+    if not exists(self.thumbnail_directory):
+      mkdir(self.thumbnail_directory)
+
     import hydra
     esdir = join(dirname(hydra.__file__), 'example_sessions')
     f = open(join(esdir, 'sessions'), 'r')
@@ -77,8 +81,8 @@ class File_History:
       if len(fields) == 3:
         sname, iname, atime = [f.strip() for f in fields]
         copyfile(join(esdir,sname), join(sdir,sname))
-        copyfile(join(esdir,iname), join(sdir,iname))
-        sfile.write('%s|%s|%s\n' % (join(sdir,sname), join('example_sessions',iname), atime))
+        copyfile(join(esdir,iname), join(self.thumbnail_directory,iname))
+        sfile.write('%s|%s|%s\n' % (join(sdir,sname), iname, atime))
     sfile.close()
 
     return True
@@ -138,9 +142,9 @@ class File_History:
       i = viewer.image((s,s))
       i.save(ipath, self.image_format)
 
-  def default_history_directory(self):
+  def recent_files_index(self):
 
-    return user_settings_path('RecentSessions', directory = True)
+    return user_settings_path('recent_files')
 
   def show_thumbnails(self):
 
