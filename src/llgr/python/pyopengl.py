@@ -489,6 +489,7 @@ class _GroupInfo:
 			GL.glDeleteBuffers(len(self.buffers), self.buffers)
 			self.buffers.clear()
 
+	@profile
 	def optimize(self):
 		# scan through objects looking for possible instancing
 		self.optimized = True
@@ -506,11 +507,10 @@ class _GroupInfo:
 			if oi is None or oi.incomplete or oi._hide:
 				continue
 			k = key(oi)
-			g = groupings.get(k, None)
-			if g is None:
-				g = groupings[k] = [oi]
-			else:
-				g.append(oi)
+			try:
+				groupings[k].append(oi)
+			except KeyError:
+				groupings[k] = [oi]
 
 		# second pass: if all objects in a group have the same
 		# first and count, then aggregate singletons, and use
@@ -581,39 +581,46 @@ class _GroupInfo:
 			# interleave singleton data
 			# TODO: reorder singletons so smaller values pack
 			fmt = '@'
-			offsets = []
+			sizes = []
+			stride = cur_size = 0
 			for si in proto.singleton_cache:
-				offsets.append(struct.calcsize(fmt))
 				fmt += str(si.num_locations * si.num_elements)
 				fmt += _data_format(si.data_type)
+				stride = struct.calcsize(fmt)
+				sizes.append(stride - cur_size)
+				cur_size = stride
 			fmt += '0f'
-			stride = struct.calcsize(fmt)
 			if stride == 0:
 				self.ois.append(oi)
 				continue
 			# TODO: assert(stride < glGetInteger(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET))
-			data = bytearray(len(ois) * stride)
-
-			base_offset = 0
-			for oi2 in ois:
-				for offset, si in zip(offsets, oi2.singleton_cache):
-					pos = base_offset + offset
-					mv = memoryview(si.data)
-					size = mv.nbytes
-					data[pos:pos + size] = mv.tobytes()
-				base_offset += stride
-			# TODO: unneeded when PyOpenGL handles bytearrays
-			data = bytes(data)
+			from llgr._llgr import memory_map
 			buffer = GL.glGenBuffers(1)
+			buflen = len(ois) * stride
 			self.buffers.append(buffer)
 			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
-			GL.glBufferData(GL.GL_ARRAY_BUFFER, len(data), data,
+			GL.glBufferData(GL.GL_ARRAY_BUFFER, buflen, None,
 							GL.GL_STATIC_DRAW)
+			data = memory_map(GL.glMapBuffer(GL.GL_ARRAY_BUFFER,
+						GL.GL_WRITE_ONLY), buflen)
+
+			pos = 0
+			for oi2 in ois:
+				for size, si in zip(sizes, oi2.singleton_cache):
+					data.copyfrom(pos, si.data)
+					pos += size
+			if pos != buflen:
+				print("tried to fill %d byte buffer with %d bytes" % (buflen, pos))
+			if not GL.glUnmapBuffer(GL.GL_ARRAY_BUFFER):
+				# TODO: redo above loop
+				pass
 			bi = _BufferInfo(buffer, ARRAY)
-			for offset, si in zip(offsets, proto.singleton_cache):
+			offset = 0
+			for size, si in zip(sizes, proto.singleton_cache):
 				ai = AttributeInfo(None, None, offset, stride,
 					si.num_elements, si.data_type,
 					si.normalized)
+				offset += size
 				_setup_array_attribute(bi, ai, si.base_location,
 							si.num_locations)
 				for i in range(si.num_locations):
