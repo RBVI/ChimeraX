@@ -392,6 +392,9 @@ def main():
 		prof = line_profiler.LineProfiler()
 		builtins.__dict__['profile'] = prof
 		atexit.register(prof.dump_stats, "chimera2.lprof")
+	else:
+		import builtins
+		builtins.__dict__['profile'] = lambda x: x
 
 	sys.path.insert(0, '../../build/lib')
 

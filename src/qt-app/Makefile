@@ -20,7 +20,7 @@ profile:
 	echo "Use 'make profile_results' to see results."
 	./chimera2 --profile
 
-profile_results:
+profile-results:
 	python3 -m line_profiler chimera2.lprof
 
 run-python:
