@@ -14,8 +14,14 @@ SRCS	= blend_rgba.cpp combine.cpp \
 	  measure.cpp mesh_edges.cpp \
 	  parsecif.cpp parsepdb.cpp parse_stl.cpp pdb_bonds.cpp \
 	  pythonarray.cpp rcarray.cpp refcount.cpp \
-	  sasa.cpp spline.cpp squaremesh.cpp subdivide.cpp transfer.cpp tube.cpp
+	  sasa.cpp setfileicon.cpp spline.cpp \
+	  squaremesh.cpp subdivide.cpp transfer.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
+
+ifeq ($(OS),Darwin)
+OBJS += setfileicon_mac.o
+LIBS += -framework AppKit
+endif
 
 ifdef WIN32
 INCS = -I'$(shell cygpath -m '$(includedir)')'

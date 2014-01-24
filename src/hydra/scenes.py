@@ -147,15 +147,20 @@ class Scene:
 
 def image_as_string(qimage, iformat = 'JPG'):
 
+    i = image_as_bytes(qimage, iformat)
+    import base64
+    s = base64.b64encode(i)
+    return s
+
+def image_as_bytes(qimage, iformat = 'JPG'):
+
     from .ui.qt import QtCore
     ba = QtCore.QByteArray()
     buf = QtCore.QBuffer(ba)
     buf.open(QtCore.QIODevice.WriteOnly)
     qimage.save(buf, iformat)
     i = ba.data()
-    import base64
-    s = base64.b64encode(i)
-    return s
+    return i
 
 def string_to_image(s, iformat = 'JPG'):
 

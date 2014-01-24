@@ -18,6 +18,7 @@
 #include "pydistances.h"		// use py_distances_from_origin, ...
 #include "pyinterpolate.h"		// use interpolate_volume_data, ...
 #include "sasa.h"			// use surface_area_of_spheres
+#include "setfileicon.h"		// use set_file_icon
 #include "spline.h"			// use natural_cubic_spline
 #include "squaremesh.h"			// use principle_plane_edges
 #include "subdivide.h"			// use subdivide_triangles
@@ -133,6 +134,10 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("estimate_surface_area_of_spheres"), (PyCFunction)estimate_surface_area_of_spheres,
    METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* setfileicon.h */
+  {const_cast<char*>("can_set_file_icon"), (PyCFunction)can_set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("set_file_icon"), (PyCFunction)set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,

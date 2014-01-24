@@ -10,6 +10,10 @@ def save_session(path, session):
   objecttree.write_basic_tree(s, f)
   f.close()
 
+  # Set file icon image on Mac
+  from . import fileicon
+  fileicon.set_file_icon(path, session)
+
   session.file_history.add_entry(path, replace_image = True)
 
 # -----------------------------------------------------------------------------
