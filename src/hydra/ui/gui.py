@@ -211,24 +211,23 @@ def set_default_context(major_version, minor_version, profile):
 #    f.setStereo(True)
     QtOpenGL.QGLFormat.setDefaultFormat(f)
 
-def create_main_window(session):
-    '''
-    Create the application main window and start the event loop.
-    '''
-    set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-#    d = app.desktop()
-#    print('screen count', d.screenCount())
-#    for s in range(d.screenCount()):
-#        g = d.screenGeometry(s)
-#        print('screen', s, 'size', g.width(), g.height(), 'top left', g.top(), g.left())
-    # Seting icon does not work, mac qt 5.0.2.
-    # Get Python launcher rocket icon in Dock.
-    app.setWindowIcon(icon('reo.png'))
-    main_window = w = MainWindow(app, session)
-#    w.view.setFocus(QtCore.Qt.OtherFocusReason)       # Get keyboard events on startup
-    return app, main_window
+class Hydra_App(QtWidgets.QApplication):
+
+    def __init__(self, argv, session):
+        QtWidgets.QApplication.__init__(self, argv)
+        self.session = session
+        self.setWindowIcon(icon('reo.png'))
+        set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
+        self.main_window = MainWindow(self, session)
+
+    def event(self, e):
+        if e.type() == QtCore.QEvent.FileOpen:
+            path = e.file()
+            from ..file_io.opensave import open_file
+            open_file(path, self.session)
+            return True
+        else:
+            return QtWidgets.QApplication.event(self, e)
 
 def start_event_loop(app):
     status = app.exec_()
