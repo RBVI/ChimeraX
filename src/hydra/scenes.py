@@ -90,6 +90,7 @@ class Scene:
         self.session = session
         self.cross_fade_frames = 30
         self.thumbnail_size = (128,128)
+        self.uri = None         # HTML reference to image.
 
         if session is None:
             self.image = None
@@ -100,14 +101,6 @@ class Scene:
 
             from .file_io import session_file
             self.state = session_file.scene_state(session)
-
-    def __delete__(self):
-        if not hasattr(self, '_image_path'):
-            import os
-            try:
-                os.remove(self._image_path)
-            except:
-                pass
 
     def show(self):
         s = self.session
@@ -125,14 +118,13 @@ class Scene:
         msg = 'Showing scene "%s"' % self.description if self.description else 'Showing scene %d' % self.id
         s.show_status(msg)
 
-    def image_path(self, iformat = 'JPG'):
-        if not hasattr(self, '_image_path'):
-            import tempfile, os
-            f, ipath = tempfile.mkstemp(suffix = '.' + iformat.lower())
-            os.close(f)
-            self._image_path = ipath
-            self.image.save(self._image_path, iformat)
-        return self._image_path
+    def image_uri(self, qdoc):
+
+        if self.uri is None and not self.image is None:
+            self.uri = uri = "file://image%d" % self.id
+            from .ui.qt import QtGui, QtCore
+            qdoc.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), self.image)
+        return self.uri
 
     def scene_state(self):
 
@@ -155,15 +147,20 @@ class Scene:
 
 def image_as_string(qimage, iformat = 'JPG'):
 
+    i = image_as_bytes(qimage, iformat)
+    import base64
+    s = base64.b64encode(i)
+    return s
+
+def image_as_bytes(qimage, iformat = 'JPG'):
+
     from .ui.qt import QtCore
     ba = QtCore.QByteArray()
     buf = QtCore.QBuffer(ba)
     buf.open(QtCore.QIODevice.WriteOnly)
     qimage.save(buf, iformat)
     i = ba.data()
-    import base64
-    s = base64.b64encode(i)
-    return s
+    return i
 
 def string_to_image(s, iformat = 'JPG'):
 
@@ -209,7 +206,7 @@ class Scene_Thumbnails:
 
     def show(self, scenes):
         self.set_height(scenes = scenes)
-        self.html = html = scene_thumbnails_html(scenes)
+        self.html = html = scene_thumbnails_html(scenes, self.text.document())
         self.text.setHtml(html)
 
         from .ui.qt import QtCore
@@ -237,7 +234,7 @@ class Scene_Thumbnails:
 #        self.text.adjustSize()
 #        self.dock_widget.adjustSize()
 
-def scene_thumbnails_html(scenes):
+def scene_thumbnails_html(scenes, qdoc):
 
   from os.path import basename, splitext
   lines = ['<html>', '<head>', '<style>',
@@ -254,7 +251,7 @@ def scene_thumbnails_html(scenes):
       i = s.image
       w,h = i.width(), i.height()
       lines.append('<td width=%d valign=bottom><a href="%d"><img src="%s" width=%d height=%d></a>'
-                   % (w+10, s.id, s.image_path(), w, h))
+                   % (w+10, s.id, s.image_uri(qdoc), w, h))
 
   lines.append('<tr>')
   for s in scenes:

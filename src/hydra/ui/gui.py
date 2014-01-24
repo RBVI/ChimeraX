@@ -211,24 +211,23 @@ def set_default_context(major_version, minor_version, profile):
 #    f.setStereo(True)
     QtOpenGL.QGLFormat.setDefaultFormat(f)
 
-def create_main_window(session):
-    '''
-    Create the application main window and start the event loop.
-    '''
-    set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-#    d = app.desktop()
-#    print('screen count', d.screenCount())
-#    for s in range(d.screenCount()):
-#        g = d.screenGeometry(s)
-#        print('screen', s, 'size', g.width(), g.height(), 'top left', g.top(), g.left())
-    # Seting icon does not work, mac qt 5.0.2.
-    # Get Python launcher rocket icon in Dock.
-    app.setWindowIcon(icon('reo.png'))
-    main_window = w = MainWindow(app, session)
-#    w.view.setFocus(QtCore.Qt.OtherFocusReason)       # Get keyboard events on startup
-    return app, main_window
+class Hydra_App(QtWidgets.QApplication):
+
+    def __init__(self, argv, session):
+        QtWidgets.QApplication.__init__(self, argv)
+        self.session = session
+        self.setWindowIcon(icon('reo.png'))
+        set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
+        self.main_window = MainWindow(self, session)
+
+    def event(self, e):
+        if e.type() == QtCore.QEvent.FileOpen:
+            path = e.file()
+            from ..file_io.opensave import open_file
+            open_file(path, self.session)
+            return True
+        else:
+            return QtWidgets.QApplication.event(self, e)
 
 def start_event_loop(app):
     status = app.exec_()
@@ -241,8 +240,7 @@ class Log:
     def __init__(self, main_window):
         self.main_window = main_window
         self.html_text = ''
-        self.image_number = 1
-        self.image_directory = None
+        self.keep_images = []
     def show(self):
         mw = self.main_window
         if mw.showing_text() and mw.text_id == 'log':
@@ -259,38 +257,26 @@ class Log:
             etext = cgi.escape(text)
             htext = '<pre%s>%s</pre>\n' % (style,etext)
         self.html_text += htext
+
     def insert_graphics_image(self):
         self.schedule_image_capture()
     def schedule_image_capture(self):
+        # Wait until next frame is draw then capture image.
         v = self.main_window.view
         v.add_rendered_frame_callback(self.capture_image)
     def capture_image(self, show_height = 128, format = 'JPG'):
-        v = self.main_window.view
+        mw = self.main_window
+        v = mw.view
         v.remove_rendered_frame_callback(self.capture_image)
-        i = v.image()
-        filename = 'img%04d.%s' % (self.image_number, format.lower())
-        htmlfile = 'img%04d.html' % (self.image_number,)
-        self.image_number += 1
-        ldir = self.image_log_directory()
-        from os.path import join
-        path = join(ldir, filename)
-        i.save(path, format)
-#        hpath = join(ldir, htmlfile)
-#        f = open(hpath, 'w')
-#        f.write('<html><body><img src="%s"></body></html>\n' % path)
-#        f.close()
-# TODO: Shows binary text instead of image clicking link to jpg file.
-#        htext = '<br><a href="%s" type="image/jpeg"><img src="%s" height=64></a><br>\n' % (path, path)
-#        htext = '<br><a href="%s"><img src="%s" height=%d></a><br>\n' % (hpath, path, show_height)
-        htext = '<br><img src="%s" height=%d><br>\n' % (path, show_height)
+        qi = v.image()
+        # If we don't keep a reference to images, then displaying them causes a crash.
+        self.keep_images.append(qi)
+        n = len(self.keep_images)
+        d = mw.text.document()
+        uri = "file://image%d" % (n,)
+        d.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), qi)
+        htext = '<br><img src="%s" height=%d><br>\n' % (uri, show_height)
         self.html_text += htext
-    def image_log_directory(self):
-        if self.image_directory is None:
-            from ..file_io import history
-            d = history.user_settings_path()
-            import tempfile
-            self.image_directory = tempfile.TemporaryDirectory(dir = d)
-        return self.image_directory.name
 
     def exceptions_to_log(self):
         import sys

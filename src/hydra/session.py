@@ -65,9 +65,9 @@ class Session(Models):
     def start(self):
 
         from .ui import gui, commands, shortcuts
-        app, mw = gui.create_main_window(self)
-        self.application = app
-        self.main_window = mw
+        import sys
+        self.application = app = gui.Hydra_App(sys.argv, self)
+        self.main_window = mw = app.main_window
         self.view = mw.view
         self.log = log = gui.Log(mw)
         commands.register_commands(self.commands)
