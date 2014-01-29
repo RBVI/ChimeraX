@@ -10,6 +10,8 @@ class Session(Models):
 
         Models.__init__(self)		# Manages list of open models
 
+        self.quit_callbacks = []        # Callbacks to run before quitting
+
         self.application = None
         'Qt application object, a QApplication.'
 
@@ -87,9 +89,11 @@ class Session(Models):
 
         mw.show()
 
-        gui.start_event_loop(app)
+        status = gui.start_event_loop(app)
 
-        self.file_history.write_history()
+        for cb in self.quit_callbacks:
+            cb()
+
         sys.exit(status)
 
     def show_status(self, msg, append = False):
@@ -99,3 +103,7 @@ class Session(Models):
     def show_info(self, msg, color = None):
         '''Write information such as command output to the log window.'''
         self.log.log_message(msg, color)
+
+    def at_quit(self, callback):
+        '''Register a callback to run just before the program exits, for example to write a history file.'''
+        self.quit_callbacks.append(callback)
