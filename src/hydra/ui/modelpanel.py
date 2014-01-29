@@ -53,7 +53,7 @@ class Model_Panel:
         from ..geometry import bounds
         center, size = bounds.bounds_center_and_radius(model.placed_bounds())
         c.initialize_view(center, size)
-        qi = v.image_off_screen(w,h,c,[model])
+        qi = v.image(w,h,c,[model])
         from . import qt
         qt.draw_image_text(qi, str(model.id), bgcolor = (0,0,0), font_size = 24)
         model.thumbnail_image = qi

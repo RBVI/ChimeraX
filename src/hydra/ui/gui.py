@@ -240,6 +240,7 @@ class Log:
     def __init__(self, main_window):
         self.main_window = main_window
         self.html_text = ''
+        self.thumbnail_size = 128       # Pixels
         self.keep_images = []
     def show(self):
         mw = self.main_window
@@ -258,24 +259,18 @@ class Log:
             htext = '<pre%s>%s</pre>\n' % (style,etext)
         self.html_text += htext
 
-    def insert_graphics_image(self):
-        self.schedule_image_capture()
-    def schedule_image_capture(self):
-        # Wait until next frame is draw then capture image.
-        v = self.main_window.view
-        v.add_rendered_frame_callback(self.capture_image)
-    def capture_image(self, show_height = 128, format = 'JPG'):
+    def insert_graphics_image(self, format = 'JPG'):
         mw = self.main_window
         v = mw.view
-        v.remove_rendered_frame_callback(self.capture_image)
-        qi = v.image()
+        s = self.thumbnail_size
+        qi = v.image(s,s)
         # If we don't keep a reference to images, then displaying them causes a crash.
         self.keep_images.append(qi)
         n = len(self.keep_images)
         d = mw.text.document()
         uri = "file://image%d" % (n,)
         d.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), qi)
-        htext = '<br><img src="%s" height=%d><br>\n' % (uri, show_height)
+        htext = '<br><img src="%s"><br>\n' % (uri,)
         self.html_text += htext
 
     def exceptions_to_log(self):

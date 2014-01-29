@@ -97,7 +97,7 @@ class Scene:
             self.state = None
         else:
             w, h = self.thumbnail_size
-            self.image = i = session.view.image((w,h))         # QImage
+            self.image = i = session.view.image(w,h)         # QImage
 
             from .file_io import session_file
             self.state = session_file.scene_state(session)

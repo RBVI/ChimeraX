@@ -218,26 +218,22 @@ class View(QtGui.QWindow):
         self.overlays = [o for o in self.overlays if not o in oset]
         self.redraw_needed = True
 
-    def image(self, size = None):
-        w,h = self.window_size
-        r = self.render
-        rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
-        qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
-        if not size is None:
-            sw,sh = size
-            if sw*h < sh*w:
-                sh = max(1,(h*sw)/w)
-            elif sw*h > sh*w:
-                sw = max(1,(w*sh)/h)
-            qi = qi.scaled(sw, sh, QtCore.Qt.KeepAspectRatio,
-                           QtCore.Qt.SmoothTransformation)
-        return qi
-
-    def image_off_screen(self, w, h, camera = None, models = None):
+    def image(self, width = None, height = None, camera = None, models = None):
+        w = self.window_size[0] if width is None else width
+        h = self.window_size[1] if height is None else height
         r = self.render
         if not r.render_to_buffer(w,h):
             return None
-        self.draw_scene(camera, models)
+
+        # Camera needs correct aspect ratio when setting projection matrix.
+        c = camera if camera else self.camera
+        prev_size = c.window_size
+        c.window_size = (width,height)
+
+        self.draw_scene(c, models)
+
+        c.window_size = prev_size
+
         rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
         r.render_to_screen()
         ww, wh = self.window_size
@@ -450,9 +446,9 @@ class View(QtGui.QWindow):
 
     def update_projection(self, view_num = None, win_size = None, camera = None):
         
-        ww,wh = self.window_size if win_size is None else win_size
+        c = self.camera if camera is None else camera
+        ww,wh = c.window_size if win_size is None else win_size
         if ww > 0 and wh > 0:
-            c = self.camera if camera is None else camera
             pm = c.projection_matrix(view_num, (ww,wh))
             self.render.set_projection_matrix(pm)
 
