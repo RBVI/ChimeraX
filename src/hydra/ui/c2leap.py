@@ -341,18 +341,17 @@ def leap_listener(viewer):
         
     return v.leap_listener
 
-def leap_mode(mode, viewer):
-    l = leap_listener(viewer)
+def leap_mode(mode, session):
+    l = leap_listener(session.view)
     l.mode = mode
 
-def report_leap_focus(viewer):
-    v = viewer
+def report_leap_focus(session):
+    v = session.view
     if hasattr(v, 'leap_controller'):
-        from .gui import show_status
         msg = 'App has leap focus' if v.leap_controller.has_focus else 'App does not have Leap focus'
-        show_status(msg)
+        session.show_status(msg)
 
-def quit_leap(viewer):
-    v = viewer
+def quit_leap(session):
+    v = session.view
     if hasattr(v, 'leap_listener'):
         v.leap_controller.remove_listener(v.leap_listener)

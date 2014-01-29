@@ -14,9 +14,9 @@ def molecule_state(m):
     ms['ribbon_shown'] = array_to_string(m.ribbon_shown)
     return ms
 
-def restore_molecules(mstate, viewer, attributes_only = False):
+def restore_molecules(mstate, session, attributes_only = False):
     if attributes_only:
-        mids = dict((m.id, m) for m in viewer.molecules())
+        mids = dict((m.id, m) for m in session.molecules())
     from ..file_io.opensave import open_files
     for ms in mstate:
         if attributes_only:
@@ -25,25 +25,23 @@ def restore_molecules(mstate, viewer, attributes_only = False):
             if 'database_fetch' in ms:
                 db_id, db_name = ms['database_fetch']
                 from ..file_io import fetch
-                mlist = fetch.fetch_from_database(db_id, db_name)
+                mlist = fetch.fetch_from_database(db_id, db_name, session)
                 if len(mlist) != 1:
-                    from ..ui.gui import show_info
-                    show_info('Database fetch %s from %s unexpectedly contained %d models'
-                              % (db_id, db_name, len(mlist),))
+                    session.show_info('Database fetch %s from %s unexpectedly contained %d models'
+                                      % (db_id, db_name, len(mlist),))
                     continue
-                viewer.add_models(mlist)
+                session.add_models(mlist)
             else:
-                mlist = open_files([ms['path']], set_camera = False)
+                mlist = open_files([ms['path']], session, set_camera = False)
                 if len(mlist) != 1:
-                    from ..ui.gui import show_info
-                    show_info('File %s unexpectedly contained %d models' % (ms['path'], len(mlist),))
+                    session.show_info('File %s unexpectedly contained %d models' % (ms['path'], len(mlist),))
                     continue
             m = mlist[0]
         if m:
-            set_molecule_state(m, ms)
+            set_molecule_state(m, ms, session)
     return True
 
-def set_molecule_state(m, ms):
+def set_molecule_state(m, ms, session):
     from ..geometry.place import Place
     m.place = Place(ms['place'])
     m.copies = [Place(c) for c in ms.get('copies', [])]
@@ -52,7 +50,7 @@ def set_molecule_state(m, ms):
             setattr(m, attr, ms[attr])
     if 'has_bonds' in ms and ms['has_bonds'] and m.bonds is None:
         from . import connect
-        bonds, missing = connect.molecule_bonds(m)
+        bonds, missing = connect.molecule_bonds(m, session)
         m.bonds = bonds
     from numpy import bool
     if 'atom_shown' in ms:

@@ -13,14 +13,14 @@ class Oculus_Head_Tracking:
         try:
             _oculus.connect()
         except:
-#            raise
             return False
 
         self.parameters = p = _oculus.parameters()
         for k,v in p.items():
             print (k,v)
         from math import pi
-        print('field of view %.1f degrees' % (self.field_of_view()*180/pi))
+        print('oculus field of view %.1f degrees' % (self.field_of_view()*180/pi))
+        print('oculus image shift %.1f pixels' % self.image_shift_pixels())
 
         self.view = view
         view.add_new_frame_callback(self.use_oculus_orientation)
@@ -50,11 +50,16 @@ class Oculus_Head_Tracking:
         # Center should be at lens separation / 2 instead of viewport width / 2.
         p = self.parameters
         w = 0.5*p['HScreenSize']                # meters
-        s = 0.5*p['LensSeparationDistance']     # meters
+        s = p['LensSeparationDistance']         # meters
         dx = 0.5*s - 0.5*w                      # meters
         ppm = p['HResolution'] / p['HScreenSize']       # pixels per meter
         xp = dx * ppm
         return xp
+
+    def radial_warp_parameters(self):
+
+        p = self.parameters
+        return p['DistortionK']
 
     def use_oculus_orientation(self):
 
@@ -74,43 +79,52 @@ class Oculus_Head_Tracking:
             c.set_view(c.view()*rdelta)
         self.last_rotation = r
 
-oht = None
-def start_oculus(view):
+def start_oculus(session):
     start = False
-    global oht
+    oht = session.oculus
     if oht is None:
         oht = Oculus_Head_Tracking()
+        view = session.view
         success = oht.start_event_processing(view)
-        from ..gui import show_status
-        show_status('started oculus head tracking ' + ('success' if success else 'failed'))
+        session.show_status('started oculus head tracking ' + ('success' if success else 'failed'))
         if success:
+            session.oculus = oht
             c = view.camera
             from math import pi
             c.field_of_view = oht.field_of_view() * 180 / pi
             c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
             c.eye_separation_pixels = 2*oht.image_shift_pixels()
             view.set_camera_mode('oculus')
+            view.render.radial_warp_coefficients = oht.radial_warp_parameters()
+            print ('Radial warp', oht.radial_warp_parameters())
             start = True
         else:
             oht = None
 
-    from ..gui import main_window as mw, app
-    d = app.desktop()
+    d = session.application.desktop()
+    mw = session.main_window
     if start or d.screenNumber(mw) == d.primaryScreen():
         mw.toolbar.hide()
         mw.command_line.hide()
         mw.statusBar().hide()
-        move_window_to_oculus()
+        w,h = oht.display_size()
+        move_window_to_oculus(session, w, h)
     else:
-        move_window_to_primary_screen()
+        move_window_to_primary_screen(session)
         mw.toolbar.show()
         mw.command_line.show()
         mw.statusBar().show()
 
-def move_window_to_oculus():
-    from ..gui import main_window as mw, app
-    w,h = oht.display_size()
-    d = app.desktop()
+def toggle_warping(session):
+    r = session.view.render
+    if r.radial_warp_coefficients == (1,0,0,0):
+        r.radial_warp_coefficients = session.oculus.radial_warp_parameters()
+    else:
+        r.radial_warp_coefficients = (1,0,0,0)
+
+def move_window_to_oculus(session, w, h):
+    d = session.application.desktop()
+    mw = session.main_window
     for s in range(d.screenCount()):
         g = d.screenGeometry(s)
         if g.width() == w and g.height() == h:
@@ -122,11 +136,11 @@ def move_window_to_oculus():
 # I believe this is fixed in Mac OS 10.9.
 #    mw.showFullScreen()
 
-def move_window_to_primary_screen():
-    from ..gui import main_window as mw, app
-    d = app.desktop()
+def move_window_to_primary_screen(session):
+    d = session.application.desktop()
     s = d.primaryScreen()
     g = d.screenGeometry(s)
+    mw = session.main_window
     x,y = (g.width() - mw.width())//2, (g.height() - mw.height())//2
     mw.move(x, 0)       # Work around bug where y-placement is wrong.
     mw.move(x, y)

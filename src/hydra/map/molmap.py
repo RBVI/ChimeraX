@@ -3,7 +3,7 @@
 # resolution.  The simulated map is useful for fitting the model into
 # an experimental map using correlation coefficient as a goodness of fit.
 #
-def molmap_command(cmdname, args):
+def molmap_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, float_arg, string_arg, openstate_arg
     from ..ui.commands import model_id_arg, bool_arg, parse_arguments
@@ -24,13 +24,14 @@ def molmap_command(cmdname, args):
                ('replace', bool_arg),
                ('showDialog', bool_arg))
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     molecule_map(**kw)
 
 # -----------------------------------------------------------------------------
 #
 from math import sqrt, pi
-def molecule_map(atoms, resolution,
+def molecule_map(atoms, resolution, session,
                  gridSpacing = None,    # default is 1/3 resolution
                  edgePadding = None,    # default is 3 times resolution
                  cutoffRange = 5,       # in standard deviations
@@ -83,7 +84,7 @@ def molecule_map(atoms, resolution,
 
     v = make_molecule_map(atoms, resolution, step, pad,
                           cutoffRange, sigmaFactor, balls, transforms, csys,
-                          displayThreshold, modelId, replace, showDialog)
+                          displayThreshold, modelId, replace, showDialog, session)
     return v
 
 # -----------------------------------------------------------------------------
@@ -91,7 +92,7 @@ def molecule_map(atoms, resolution,
 def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
                       sigma_factor, balls, transforms, csys,
                       display_threshold, model_id,
-                      replace, show_dialog):
+                      replace, show_dialog, session):
 
     grid, molecules = molecule_grid_data(atoms, resolution, step, pad,
                                          cutoff_range, sigma_factor, balls,
@@ -99,13 +100,12 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
 
     if replace:
         from . import volume_list
-        vlist = [v for v in volume_list()
+        vlist = [v for v in volume_list(session)
                  if getattr(v, 'molmap_atoms', None) == atoms]
-        from ..ui.gui import main_window
-        main_window.view.close_models(vlist)
+        session.close_models(vlist)
 
     from . import volume_from_grid_data
-    v = volume_from_grid_data(grid, open_model = False,
+    v = volume_from_grid_data(grid, session, open_model = False,
                               show_dialog = show_dialog)
     v.initialize_thresholds(mfrac = (display_threshold, 1), replace = True)
     v.show()
@@ -113,8 +113,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
     v.molmap_parameters = (resolution, step, pad, cutoff_range, sigma_factor)
 
-    from ..ui.gui import main_window
-    main_window.view.add_model(v)
+    session.add_model(v)
     return v
 
 # -----------------------------------------------------------------------------

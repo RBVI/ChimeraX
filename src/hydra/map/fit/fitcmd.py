@@ -2,7 +2,7 @@ from ...ui.commands import CommandError
 
 # -----------------------------------------------------------------------------
 #
-def fitmap_command(cmdname, args):
+def fitmap_command(cmdname, args, session):
 
     from ...ui.commands import parse_arguments
     from ...ui.commands import specifier_arg, volume_arg, int_arg, float_arg, bool_arg
@@ -33,12 +33,13 @@ def fitmap_command(cmdname, args):
                ('listFits', bool_arg),
                ('eachModel', bool_arg),
                )
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     fitmap(**kw)
 
 # -----------------------------------------------------------------------------
 #
-def fitmap(atomsOrMap, volume,
+def fitmap(atomsOrMap, volume, session,
            metric = None, envelope = True, resolution = None,
            shift = True, rotate = True, symmetric = False,
            moveWholeMolecules = True,
@@ -55,7 +56,7 @@ def fitmap(atomsOrMap, volume,
       aomlist = split_selection_by_model(atomsOrMap)
       if not resolution is None:
           aomlist = remove_atoms_with_volumes(aomlist, resolution,
-                                              moveWholeMolecules)
+                                              moveWholeMolecules, session)
       flist = []
       for aom in aomlist:
           fits = fitmap(aom, volume, metric, envelope, resolution,
@@ -78,7 +79,7 @@ def fitmap(atomsOrMap, volume,
           v = None
       else:
           from . import fitmap as F
-          v = F.simulated_map(atoms, resolution, moveWholeMolecules)
+          v = F.simulated_map(atoms, resolution, moveWholeMolecules, session)
 
   if metric in ('correlation', 'cam') and v is None:
       if symmetric:
@@ -93,7 +94,7 @@ def fitmap(atomsOrMap, volume,
           raise CommandError('Cannot use "sequence" and "search" options together.')
       if symmetric:
           raise CommandError('Cannot use "sequence" and "symmetric" options together.')
-      flist = fit_sequence(atomsOrMap, volume, metric, envelope, resolution,
+      flist = fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                            shift, rotate, moveWholeMolecules, sequence,
                            maxSteps, gridStepMin, gridStepMax)
   elif search == 0:
@@ -129,7 +130,7 @@ def fitmap(atomsOrMap, volume,
 
   if listFits:
       from . import fitlist
-      d = fitlist.show_fit_list_dialog()
+      d = fitlist.show_fit_list_dialog(session)
       d.add_fits(flist)
       if search > 0 and len(flist) > 0:
           d.select_fit(flist[0])
@@ -157,7 +158,7 @@ def split_selection_by_model(sel):
 # When fitting each model exclude atoms where a corresponding simulated map
 # is also specified.
 #
-def remove_atoms_with_volumes(aomlist, res, mwm):
+def remove_atoms_with_volumes(aomlist, res, mwm, session):
 
     faomlist = []
     models = set(sum([aom.models() for aom in aomlist],[]))
@@ -165,7 +166,7 @@ def remove_atoms_with_volumes(aomlist, res, mwm):
     for aom in aomlist:
         atoms = aom.atoms()
         if (len(atoms) == 0 or
-            not find_simulated_map(atoms, res, mwm) in models):
+            not find_simulated_map(atoms, res, mwm, session) in models):
             faomlist.append(aom)
     return faomlist
 
@@ -181,7 +182,7 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
                                     request_stop_cb = report_status)
     mols = atoms.molecules()
     if stats:
-        from ...ui.gui import show_info, show_status
+        from ...ui import show_info, show_status
         show_info(F.atom_fit_message(atoms.molecules(), volume, stats))
         if moveWholeMolecules:
             for m in mols:
@@ -211,7 +212,7 @@ def fit_map_in_map(v, volume, metric, envelope,
     move.move_models_and_atoms(move_tf, [v], mapAtoms, moveWholeMolecules,
                                volume)
 
-    from ...ui.gui import show_info, show_status
+    from ...ui import show_info, show_status
     show_info(F.map_fit_message(v, volume, stats))
     show_info(F.transformation_matrix_message(v, volume))
     cort = me if me == 'correlation about mean' else 'correlation'
@@ -262,7 +263,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     from . import move
     move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
 
-    from ...ui.gui import show_info, show_status
+    from ...ui import show_info, show_status
     show_info(F.map_fit_message(v, volume, stats))
     show_info(F.transformation_matrix_message(v, volume))
     cort = me if me == 'correlation about mean' else 'correlation'
@@ -329,7 +330,7 @@ def request_stop_cb(message, task):
 #
 def report_fit_search_results(flist, search, outside, inside):
 
-    from ...ui.gui import show_info
+    from ...ui import show_info
     show_info('Found %d unique fits from %d random placements ' %
          (len(flist), search) +
          'having fraction of points inside contour >= %.3f (%d of %d).\n'
@@ -349,7 +350,7 @@ def report_fit_search_results(flist, search, outside, inside):
 
 # -----------------------------------------------------------------------------
 #
-def fit_sequence(atomsOrMap, volume, metric, envelope, resolution,
+def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                  shift, rotate, moveWholeMolecules, sequence,
                  maxSteps, gridStepMin, gridStepMax):
 
@@ -372,7 +373,7 @@ def fit_sequence(atomsOrMap, volume, metric, envelope, resolution,
                                ' moving partial molecules')
             # TODO: Handle case where not moving whole molecules.
         import fitmap as F
-        vlist = [F.simulated_map(m.atoms, resolution, moveWholeMolecules)
+        vlist = [F.simulated_map(m.atoms, resolution, moveWholeMolecules, session)
                  for m in mlist]
 
     me = fitting_metric(metric)
@@ -444,6 +445,6 @@ def map_fitting_points(v, envelope, local_coords = False):
 #
 def report_status(message):
 
-  from ...ui import gui
-  gui.show_status(message)
+  from ...ui import show_status
+  show_status(message)
   return False        # Don't halt computation

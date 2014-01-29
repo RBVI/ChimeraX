@@ -5,163 +5,197 @@ class CommandError(Exception):
 
 # -----------------------------------------------------------------------------
 #
-def register_commands():
+def register_commands(commands):
     '''
     Registers the standard commands.
     '''
-    from ..file_io.opensave import open_command, close_command
-    add_command('open', open_command)
-    add_command('close', close_command)
+    add = commands.add_command
+    from ..file_io.opensave import open_command, close_command, imagesave_command
+    add('open', open_command)
+    add('close', close_command)
+    add('imagesave', imagesave_command)
     from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
-    fetch_pdb.register_pdb_fetch()
-    fetch_emdb.register_emdb_fetch()
-    fetch_eds.register_eds_fetch()
+    s = commands.session
+    fetch_pdb.register_pdb_fetch(s)
+    fetch_emdb.register_emdb_fetch(s)
+    fetch_eds.register_eds_fetch(s)
     from ..map import molmap
-    add_command('molmap', molmap.molmap_command)
+    add('molmap', molmap.molmap_command)
     from ..map import volumecommand
-    add_command('volume', volumecommand.volume_command)
+    add('volume', volumecommand.volume_command)
     from ..map.fit import fitcmd
-    add_command('fitmap', fitcmd.fitmap_command)
+    add('fitmap', fitcmd.fitmap_command)
     from ..molecule import align, showcmd
-    add_command('align', align.align_command)
-    add_command('show', showcmd.show_command)
-    add_command('hide', showcmd.hide_command)
+    add('align', align.align_command)
+    add('show', showcmd.show_command)
+    add('hide', showcmd.hide_command)
     from ..surface import gridsurf
-    add_command('surface', gridsurf.surface_command)
+    add('surface', gridsurf.surface_command)
     from .. import scenes
-    add_command('scene', scenes.scene_command)
+    add('scene', scenes.scene_command)
     from . import camera
-    add_command('camera', camera.camera_command)
+    add('camera', camera.camera_command)
 
 # -----------------------------------------------------------------------------
 #
-commands = {}
-cmdabbrev = None
-def add_command(name, function):
-    '''
-    Register a command with a given name and function to call.
-    '''
-    global commands, cmdabbrev
-    commands[name] = function
-    cmdabbrev = None
+class Commands:
+    '''Keep the list of commands and run them.'''
+    def __init__(self, session):
+        self.session = session
+        self.commands = {}
+        self.cmdabbrev = None
+        self.history = Command_History(session)
 
-# -----------------------------------------------------------------------------
-#
-def run_command(text):
-    '''
-    Invoke a command.  The command and arguments are a string that will be
-    parsed by a registered command function.
-    '''
-    from .gui import log_message
-    log_message('> %s' % text, color = '#008000')
-    fields = text.split(maxsplit = 1)
-    if len(fields) == 0:
-        return
-    cmd = fields[0]
-    global cmdabbrev
-    if cmdabbrev is None:
-        cmdabbrev = abbreviation_table(commands.keys())
-    if cmd in cmdabbrev:
-        cmd = cmdabbrev[cmd]
-        f = commands[cmd]
-        args = fields[1] if len(fields) >= 2 else ''
-        failed = False
-        try:
-            f(cmd, args)
-        except CommandError as e:
-            from . import gui
-            gui.show_status(str(e))
-            failed = True
-        if not failed:
-            from .gui import log_image
-            log_image()
-        add_to_command_history(text)
-    else:
-        from . import gui
-        gui.show_status('Unknown command %s' % cmd)
+    def add_command(self, name, function):
+        '''
+        Register a command with a given name and function to call.
+        '''
+        self.commands[name] = function
+        self.cmdabbrev = None
 
-# -----------------------------------------------------------------------------
-#
-def add_to_command_history(text, filename = 'commands'):
+    def run_command(self, text):
+        '''
+        Invoke a command.  The command and arguments are a string that will be
+        parsed by a registered command function.
+        '''
+        ses = self.session
+        ses.show_info('> %s' % text, color = '#008000')
+        fields = text.split(maxsplit = 1)
+        if len(fields) == 0:
+            return
+        cmd = fields[0]
+        cab = self.cmdabbrev
+        if cab is None:
+            self.cmdabbrev = cab = abbreviation_table(self.commands.keys())
+        if cmd in cab:
+            cmd = cab[cmd]
+            f = self.commands[cmd]
+            args = fields[1] if len(fields) >= 2 else ''
+            failed = False
+            try:
+                f(cmd, args, ses)
+            except CommandError as e:
+                ses.show_status(str(e))
+                failed = True
+            if not failed:
+                ses.log.insert_graphics_image()
+            self.history.add_to_command_history(text)
+        else:
+            ses.show_status('Unknown command %s' % cmd)
 
-    from ..file_io import history
-    path = history.user_settings_path(filename)
-    f = open(path, 'a')
-    f.write(text.strip() + '\n')
-    f.close()
+class Command_History:
+    def __init__(self, session):
+        self.session = session
+        self.commands = None
+        self.file_lines = None
 
-# -----------------------------------------------------------------------------
-#
-def show_command_history(filename = 'commands'):
-    '''
-    Show a text window showing the invoked commands and their arguments for
-    this session in the order they were executed.  Clicking on a command causes
-    it to be run again.
-    '''
-    from .gui import main_window as mw
-    if mw.showing_text() and mw.text_id == 'command history':
-        mw.show_graphics()
-        return
+    def command_list(self):
+        if self.commands is None:
+            self.read_command_history()
+            self.session.at_quit(self.save_command_history)
+        return self.commands
+        
+    def add_to_command_history(self, text):
+        self.command_list().append(text)
 
-    from ..file_io import history
-    path = history.user_settings_path(filename)
-    from os.path import isfile
-    if not isfile(path):
-        from .gui import show_status
-        show_status('No command history file')
-        lines = []
-    else:
-        f = open(path, 'r')
-        lines = f.readlines()
+    def read_command_history(self, filename = 'commands'):
+        from ..file_io import history
+        path = history.user_settings_path(filename)
+        import os.path
+        if os.path.exists(path):
+            f = open(path, 'r')
+            h = [line.rstrip() for line in f.readlines()]
+            f.close()
+        else:
+            h = []
+        self.commands = h
+        self.file_lines = len(h)
+
+    def save_command_history(self, filename = 'commands'):
+        h = self.commands
+        if h is None:
+            return
+        if len(h) == self.file_lines:
+            return      # No new commands
+        from ..file_io import history
+        path = history.user_settings_path(filename)
+        f = open(path, 'a')
+        for cmd in h[self.file_lines:]:
+            f.write(cmd.strip() + '\n')
         f.close()
 
-    # Get unique lines, order most recent first.
-    cmds = []
-    found = set()
-    for line in lines[::-1]:
-        cmd = line.rstrip()
-        if not cmd in found:
-            cmds.append(cmd)
-            found.add(cmd)
-    global shown_commands
-    shown_commands = cmds
+    def show_command_history(self, filename = 'commands'):
+        '''
+        Show a text window showing the invoked commands and their arguments for
+        this session in the order they were executed.  Clicking on a command causes
+        it to be run again.
+        '''
+        mw = self.session.main_window
+        if mw.showing_text() and mw.text_id == 'command history':
+            mw.show_graphics()
+            return
 
-    hlines = ['<html>', '<head>', '<style>',
-              'a { text-decoration: none; }',   # No underlining links
-              '</style>', '</head>', '<body>']
-    hlines.extend(['<a href="%d"><p>%s</p></a>' % (i,line) for i,line in enumerate(cmds)])
-    hlines.extend(['</body>','</html>'])
-    html = '\n'.join(hlines)
-    # TODO: Make sure clicked links don't have directory prepended.
-    #  Could not find a way to avoid prepending a previous source directory (from user's guide).
-    #  Seems to be a Qt bug.
-#    from .qt import QtCore
-#    mw.text.setSource(QtCore.QUrl())
-#    mw.text.clear()
-#    mw.text.clearHistory()
-    mw.show_text(html, html=True, id = 'command history',
-                 anchor_callback = insert_clicked_command)
+        cmds = self.unique_commands()
+        html = self.history_html(cmds)
 
-# -----------------------------------------------------------------------------
-#
-shown_commands = []
-def insert_clicked_command(url):
-    surl = url.toString(url.PreferLocalFile)
-    # Work around Qt bug where it prepends a directory path to the anchor
-    # even when QtTextBrowser search path and source are cleared.
-    cnum = surl.split('/')[-1]
-    c = int(cnum)         # command number
-    if c < len(shown_commands):
-        cmd = shown_commands[c]
-        from .gui import main_window as mw
-        cline = mw.command_line
+        mw.show_text(html, html=True, id = 'command history',
+                     anchor_callback = lambda url, s=self, c=cmds: s.insert_clicked_command(url,c))
+
+    def unique_commands(self):
+        lines = self.command_list()
+
+        # Get unique lines, order most recent first.
+        cmds = []
+        found = set()
+        for line in lines[::-1]:
+            cmd = line.rstrip()
+            if not cmd in found:
+                cmds.append(cmd)
+                found.add(cmd)
+        return cmds
+
+    def history_html(self, cmds):
+        hlines = ['<html>', '<head>', '<style>',
+                  'a { text-decoration: none; }',   # No underlining links
+                  '</style>', '</head>', '<body>']
+        hlines.extend(['<a href="%d"><p>%s</p></a>' % (i,line) for i,line in enumerate(cmds)])
+        hlines.extend(['</body>','</html>'])
+        html = '\n'.join(hlines)
+        return html
+
+    def insert_clicked_command(self, url, shown_commands):
+        surl = url.toString(url.PreferLocalFile)
+        # Work around Qt bug where it prepends a directory path to the anchor
+        # even when QtTextBrowser search path and source are cleared.
+        cnum = surl.split('/')[-1]
+        c = int(cnum)         # command number
+        if c < len(shown_commands):
+            cmd = shown_commands[c]
+            self.show_command(cmd)
+            self.session.commands.run_command(cmd)
+
+    def show_command(self, cmd):
+        cline = self.session.main_window.command_line
         cline.clear()
         cline.insert(cmd)
-        run_command(cmd)
+
+    def show_previous_command(self, step = -1):
+        cl = self.command_list()
+        n = len(cl)
+        if n == 0:
+            return
+        p = getattr(self, 'prev_command', n)
+        p += step
+        if p >= 0 and p < n:
+            self.prev_command = p
+            self.show_command(cl[p])
+
+    def show_next_command(self):
+        self.show_previous_command(step = 1)
 
 # -----------------------------------------------------------------------------
 #
-def parse_arguments(cmd_name, arg_string,
+def parse_arguments(cmd_name, arg_string, session,
                     required_args = (), optional_args = (), keyword_args = ()):
 
     fields = split_fields(arg_string)
@@ -186,7 +220,7 @@ def parse_arguments(cmd_name, arg_string,
             a += 1
             continue
         spec = keyword_spec[kwt[fl]]
-        a += 1 + parse_arg(fields[a+1:], spec, cmd_name, akw)
+        a += 1 + parse_arg(fields[a+1:], spec, cmd_name, session, akw)
 
     # Parse required arguments.
     a = 0
@@ -195,20 +229,20 @@ def parse_arguments(cmd_name, arg_string,
         if a >= na:
             raise CommandError('%s: Missing required argument "%s"'
                                % (cmd_name, arg_specifier_name(spec)))
-        a += parse_arg(args[a:], spec, cmd_name, akw)
+        a += parse_arg(args[a:], spec, cmd_name, session, akw)
 
     # Parse optional arguments.
     for spec in optional_args:
         if a >= na:
             break
-        a += parse_arg(args[a:], spec, cmd_name, akw)
+        a += parse_arg(args[a:], spec, cmd_name, session, akw)
 
     # Allow last positional argument to have multiple values.
     if spec:
         multiple = arg_spec(spec)[3]
         if multiple:
             while a < na:
-                a += parse_arg(args[a:], spec, cmd_name, akw)
+                a += parse_arg(args[a:], spec, cmd_name, session, akw)
 
     if a < na:
         raise CommandError('%s: Extra argument "%s"' % (cmd_name, args[a]))
@@ -217,7 +251,7 @@ def parse_arguments(cmd_name, arg_string,
 
 # -----------------------------------------------------------------------------
 #
-def parse_arg(fields, spec, cmd_name, akw):
+def parse_arg(fields, spec, cmd_name, session, akw):
 
     name, parse, pkw, multiple = arg_spec(spec)
 
@@ -228,10 +262,10 @@ def parse_arg(fields, spec, cmd_name, akw):
     
     try:
         if isinstance(parse, tuple):
-            value = True if n == 0 else tuple(p(a, **pkw)
+            value = True if n == 0 else tuple(p(a, session, **pkw)
                                               for p,a in zip(parse,fields[:n]))
         else:
-            value = parse(fields[0], **pkw)
+            value = parse(fields[0], session, **pkw)
     except CommandError as e:
         args = ' '.join(f for f in fields[:n])
         raise CommandError('%s invalid %s argument "%s": %s'
@@ -281,19 +315,19 @@ no_arg = ()
 
 # -----------------------------------------------------------------------------
 #
-def string_arg(s):
+def string_arg(s, session):
 
     return s
 
 # -----------------------------------------------------------------------------
 #
-def bool_arg(s):
+def bool_arg(s, session):
 
     return s.lower() not in ('false', 'f', '0', 'no', 'n', 'off')
 
 # -----------------------------------------------------------------------------
 #
-def bool3_arg(s):
+def bool3_arg(s, session):
 
     b = [bool_arg(x) for x in s.split(',')]
     if len(b) != 3:
@@ -302,7 +336,7 @@ def bool3_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def enum_arg(s, values, multiple = False):
+def enum_arg(s, session, values, multiple = False):
 
     if multiple:
         e = s.split(',')
@@ -319,7 +353,7 @@ def enum_arg(s, values, multiple = False):
 
 # -----------------------------------------------------------------------------
 #
-def float_arg(s, min = None, max = None):
+def float_arg(s, session, min = None, max = None):
 
     x = float(s)
     if not min is None and x < min:
@@ -330,7 +364,7 @@ def float_arg(s, min = None, max = None):
 
 # -----------------------------------------------------------------------------
 #
-def float3_arg(s):
+def float3_arg(s, session):
 
     fl = [float(x) for x in s.split(',')]
     if len(fl) != 3:
@@ -339,7 +373,7 @@ def float3_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def floats_arg(s, allowed_counts = None):
+def floats_arg(s, session, allowed_counts = None):
 
     fl = [float(x) for x in s.split(',')]
     if not allowed_counts is None and not len(fl) in allowed_counts:
@@ -350,13 +384,13 @@ def floats_arg(s, allowed_counts = None):
 
 # -----------------------------------------------------------------------------
 #
-def int_arg(s):
+def int_arg(s, session):
 
     return int(s)
 
 # -----------------------------------------------------------------------------
 #
-def int3_arg(s):
+def int3_arg(s, session):
 
     il = [int(x) for x in s.split(',')]
     if len(il) != 3:
@@ -365,7 +399,7 @@ def int3_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def ints_arg(s, allowed_counts = None):
+def ints_arg(s, session, allowed_counts = None):
 
     il = [int(x) for x in s.split(',')]
     if not allowed_counts is None and not len(il) in allowed_counts:
@@ -376,9 +410,9 @@ def ints_arg(s, allowed_counts = None):
 
 # -----------------------------------------------------------------------------
 #
-def molecule_arg(s):
+def molecule_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.molecules()
     if len(mlist) == 0:
         raise CommandError('No molecule specified')
@@ -388,9 +422,9 @@ def molecule_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def molecules_arg(s, min = 0):
+def molecules_arg(s, session, min = 0):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.molecules()
     if len(mlist) < min:
         if len(mlist) == 0:
@@ -401,17 +435,17 @@ def molecules_arg(s, min = 0):
 
 # -----------------------------------------------------------------------------
 #
-def atoms_arg(s):
+def atoms_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     aset = sel.atom_set()
     return aset
 
 # -----------------------------------------------------------------------------
 #
-def model_arg(s):
+def model_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.models()
     if len(mlist) == 0:
         raise CommandError('No models specified')
@@ -421,30 +455,30 @@ def model_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def models_arg(s):
+def models_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     mlist = sel.models()
     return mlist
 
 # -----------------------------------------------------------------------------
 #
-def model_id_arg(s):
+def model_id_arg(s, session):
 
     return parse_model_id(s)
 
 # -----------------------------------------------------------------------------
 #
-def specifier_arg(s):
+def specifier_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     return sel
 
 # -----------------------------------------------------------------------------
 #
-def openstate_arg(s):
+def openstate_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     oslist = set([m.openState for m in sel.models()])
     if len(oslist) == 0:
         raise CommandError('No models specified')
@@ -454,32 +488,32 @@ def openstate_arg(s):
 
 # -----------------------------------------------------------------------------
 #
-def volumes_from_specifier(spec):
+def volumes_from_specifier(spec, session):
 
     try:
-        sel = parse_specifier(spec)
-    except:
+        sel = parse_specifier(spec, session)
+    except CommandError:
         return []
 
-    from ..map import Volume, volume_list
+    from ..map import Volume
     vlist = [m for m in sel.models() if isinstance(m, Volume)]
 
     return vlist
 
 # -----------------------------------------------------------------------------
 #
-def volume_arg(v):
+def volume_arg(v, session):
 
-    vlist =  volumes_arg(v)
+    vlist =  volumes_arg(v, session)
     if len(vlist) > 1:
         raise CommandError('Multiple volumes specified')
     return vlist[0]
 
 # -----------------------------------------------------------------------------
 #
-def volumes_arg(v):
+def volumes_arg(v, session):
 
-    sel = parse_specifier(v)
+    sel = parse_specifier(v, session)
     from ..map import Volume
     vlist = [m for m in sel.models() if isinstance(m,Volume)]
     if len(vlist) == 0:
@@ -679,9 +713,9 @@ def check_matching_sizes(v1, v2, step, subregion, operation):
 
 # -----------------------------------------------------------------------------
 #
-def surfaces_arg(s):
+def surfaces_arg(s, session):
 
-    sel = parse_specifier(s)
+    sel = parse_specifier(s, session)
     surfs = filter_surfaces(sel.models())
     return surfs
 
@@ -697,9 +731,9 @@ def filter_surfaces(surfaces):
 
 # -----------------------------------------------------------------------------
 #
-def surface_pieces_arg(spec):
+def surface_pieces_arg(spec, session):
 
-    sel = parse_specifier(spec)
+    sel = parse_specifier(spec, session)
     import Surface
     plist = Surface.selected_surface_pieces(sel)
     return plist
@@ -872,7 +906,7 @@ def parse_value_color(vc):
 
 # -----------------------------------------------------------------------------
 #
-def parse_color(color):
+def parse_color(color, session):
 
     if isinstance(color, (tuple, list)):
         if len(color) == 4:
@@ -903,7 +937,7 @@ color_arg = parse_color
 
 # -----------------------------------------------------------------------------
 #
-def perform_operation(cmdname, args, ops):
+def perform_operation(cmdname, args, ops, session):
 
     abbr = abbreviation_table(ops.keys())
 
@@ -916,18 +950,18 @@ def perform_operation(cmdname, args, ops):
                            % ', '.join(opnames))
 
     f, req_args, opt_args, kw_args = ops[abbr[a0]]
-    kw = parse_arguments(cmdname, args[len(a0):], req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args[len(a0):], session, req_args, opt_args, kw_args)
     f(**kw)
 
 # -----------------------------------------------------------------------------
 #
-def multiscale_surface_pieces_arg(spec):
+def multiscale_surface_pieces_arg(spec, session):
 
     from Commands import CommandError
 
     mspec = spec[:spec.find(':')] if ':' in spec else spec
     from _surface import SurfaceModel
-    slist = [m for m in parse_specifier(mspec).models() if isinstance(m, SurfaceModel)]
+    slist = [m for m in parse_specifier(mspec, session).models() if isinstance(m, SurfaceModel)]
     if len(slist) == 0:
         raise CommandError('No surface models specified by "%s"' % spec)
 
@@ -1023,7 +1057,7 @@ def split_first(s):
 #        #1.A:7-52@CA
 #        #2:HOH
 #
-def parse_specifier(spec):
+def parse_specifier(spec, session):
 
     parts = specifier_parts(spec)
     mid1 = mid2 = cid = rrange = rname = aname = None
@@ -1042,18 +1076,16 @@ def parse_specifier(spec):
         elif p.startswith('!'):
             invert = True
     
-    from .gui import main_window
-    v = main_window.view
     if mid1 is None:
         if cid is None and rrange is None and rname is None and aname is None:
             if spec == 'all':
-                mlist = v.models
+                mlist = session.model_list()
             else:
                 mlist = []
         else:
-            mlist = v.molecules()
+            mlist = session.molecules()
     else:
-        mlist = [m for m in v.models if m.id >= mid1 and m.id <= mid2]
+        mlist = [m for m in session.model_list() if m.id >= mid1 and m.id <= mid2]
     if len(mlist) == 0:
         raise CommandError('No models specified by "%s"' % spec)
 
@@ -1069,10 +1101,10 @@ def parse_specifier(spec):
             smodels.append(m)
     if invert:
         sm = set(smodels)
-        smodels = [m for m in v.models
+        smodels = [m for m in session.model_list()
                    if not isinstance(m, Molecule) and not m in sm]
         if not mid1 is None:
-            smodels.extend(m for m in v.molecules() if m.id < mid1 or m.id > mid2)
+            smodels.extend(m for m in session.molecules() if m.id < mid1 or m.id > mid2)
     s.add_models(smodels)
 
     return s
@@ -1128,7 +1160,7 @@ class Selection:
 
 # -----------------------------------------------------------------------------
 #
-def points_arg(a):
-    s = parse_specifier(a)
+def points_arg(a, session):
+    s = parse_specifier(a, session)
     points = s.atom_coordinates()
     return points

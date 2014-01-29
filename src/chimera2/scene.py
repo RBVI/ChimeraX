@@ -258,7 +258,7 @@ class View:
 		self._bbox = BBox()
 		self._camera = None
 
-	def render(self, as_data=False, skip_camera_matrices=False):
+	def render(self, groups=None, as_data=False, skip_camera_matrices=False):
 		"""render view
 		"""
 		import llgr
@@ -316,10 +316,13 @@ class View:
 			llgr.set_uniform_matrix(0, 'NormalMatrix', False,
 				llgr.Mat3x3, modelview.getWebGLRotationMatrix())
 
+		from . import open_models
+		models = open_models.list()
+		groups = [model.graphics.group_id for model in models if model.graphics]
 		if as_data:
-			return llgr.render(as_data)
+			return llgr.render(groups, as_data)
 		else:
-			llgr.render()
+			llgr.render(groups)
 
 def reset():
 	"""reinitialze scene

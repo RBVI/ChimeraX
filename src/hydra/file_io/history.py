@@ -1,21 +1,25 @@
 # Keep list of recently accessed files and thumbnail images.
 class File_History:
 
-  def __init__(self, history_file = None):
+  def __init__(self, session, history_file = None):
+
+    self.session = session
 
     if history_file is None:
       from os.path import join
-      history_file = join(self.default_history_directory(), 'sessions')
+      history_file = self.recent_files_index()
 
     self.history_file = history_file
-    from os.path import dirname
-    self.thumbnail_directory = dirname(history_file)
+    from os.path import dirname, join
+    self.thumbnail_directory = join(dirname(history_file), 'images')
     self.read = False
     self.changed = False
     self.files = {}             # Path to (access_time, image_name)
     self.thumbnail_size = 256
     self.image_format = 'JPG'
     self.render_cb = None
+
+    session.at_quit(self.write_history)
 
   def read_history(self, remove_missing = True):
 
@@ -61,6 +65,10 @@ class File_History:
     # Make directory for example sessions
     mkdir(sdir)
 
+    # Make thumbnail images directory
+    if not exists(self.thumbnail_directory):
+      mkdir(self.thumbnail_directory)
+
     import hydra
     esdir = join(dirname(hydra.__file__), 'example_sessions')
     f = open(join(esdir, 'sessions'), 'r')
@@ -75,8 +83,8 @@ class File_History:
       if len(fields) == 3:
         sname, iname, atime = [f.strip() for f in fields]
         copyfile(join(esdir,sname), join(sdir,sname))
-        copyfile(join(esdir,iname), join(sdir,iname))
-        sfile.write('%s|%s|%s\n' % (join(sdir,sname), join('example_sessions',iname), atime))
+        copyfile(join(esdir,iname), join(self.thumbnail_directory,iname))
+        sfile.write('%s|%s|%s\n' % (join(sdir,sname), iname, atime))
     sfile.close()
 
     return True
@@ -99,19 +107,20 @@ class File_History:
     s.reverse()
     return s
 
-  def add_entry(self, path, viewer, replace_image = False, wait_for_render = False):
+  def add_entry(self, path, replace_image = False, wait_for_render = False):
 
     if not self.read:
       self.read_history()
 
     atime,iname = self.files.get(path, (None,None))
+    v = self.session.view
     if iname is None:
       from os.path import splitext, basename
       bname = splitext(basename(path))[0] + '.' + self.image_format.lower()
       iname = unique_file_name(bname, self.thumbnail_directory)
-      self.save_thumbnail(iname, viewer, wait_for_render)
+      self.save_thumbnail(iname, v, wait_for_render)
     elif replace_image:
-      self.save_thumbnail(iname, viewer, wait_for_render)
+      self.save_thumbnail(iname, v, wait_for_render)
 
     from time import time
     atime = time()
@@ -132,16 +141,16 @@ class File_History:
       from os.path import join
       ipath = join(self.thumbnail_directory, iname)
       s = self.thumbnail_size
-      i = viewer.image((s,s))
+      i = viewer.image(s,s)
       i.save(ipath, self.image_format)
 
-  def default_history_directory(self):
+  def recent_files_index(self):
 
-    return user_settings_path('RecentSessions', directory = True)
+    return user_settings_path('recent_files')
 
   def show_thumbnails(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     if self.history_shown():
       mw.show_graphics()
       return
@@ -157,21 +166,20 @@ class File_History:
     path = url.toString(url.PreferLocalFile)         # session file path
     import os.path
     if not os.path.exists(path):
-      from ..ui.gui import show_status
-      show_status('Session file not found: %s' % path)
+      self.session.show_status('Session file not found: %s' % path)
       return
     self.hide_history()
     from . import opensave
-    opensave.open_session(path)
+    opensave.open_session(path, self.session)
 
   def history_shown(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     return mw.showing_text() and mw.text_id == 'recent sessions'
 
   def hide_history(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     mw.show_graphics()
 
   def most_recent_directory(self):
@@ -239,5 +247,3 @@ def user_settings_path(filename = None, directory = False):
     import os
     os.mkdir(fpath)
   return fpath
-
-history = File_History()

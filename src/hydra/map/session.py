@@ -1,32 +1,30 @@
 # -----------------------------------------------------------------------------
 # Save and restore volume viewer state.
 #
-def map_states(rel_path = None):
-  from .volume import volume_manager
-  s = state_from_maps(volume_manager.data_to_regions)
+def map_states(session, rel_path = None):
+  d2v = {}
+  for v in session.maps():
+    d2v.setdefault(v.data,[]).append(v)
+  s = state_from_maps(d2v)
   if rel_path:
       use_relative_paths(s, rel_path)
   return s
 
 # -----------------------------------------------------------------------------
 #
-def restore_maps(dms, viewer, attributes_only = False):
+def restore_maps(dms, session, attributes_only = False):
   if attributes_only:
-    restore_map_attributes(dms)
+    restore_map_attributes(dms, session)
   else:
-    create_maps_from_state(dms)
-    from .volume import volume_manager
-    for m in volume_manager.data_regions:
-      viewer.add_model(m)
+    create_maps_from_state(dms, session)
   return True
 
 # -----------------------------------------------------------------------------
 # Restore map attributes for a scene.
 #
-def restore_map_attributes(dms):
-  set_maps_attributes(dms)
-  from .volume import volume_list
-  for v in volume_list():
+def restore_map_attributes(dms, session):
+  set_maps_attributes(dms, session)
+  for v in session.maps():
     v.update_display()
 
 # ---------------------------------------------------------------------------
@@ -56,27 +54,26 @@ def state_from_maps(data_maps, include_unsaved_volumes = False):
 
 # ---------------------------------------------------------------------------
 #
-def create_maps_from_state(dms):
+def create_maps_from_state(dms, session):
 
   # Cache of Grid_Data objects improves load speed when multiple regions
   # are using same data file.  Especially important for files that contain
   # many data arrays.
   gdcache = {}        # (path, grid_id) -> Grid_Data object
-  from .volume import volume_manager
   for ds, vslist in dms:
-    data = grid_data_from_state(ds, gdcache)
+    data = grid_data_from_state(ds, gdcache, session)
     if data:        # Can be None if user does not replace missing file.
       for vs in vslist:
-        v = create_map_from_state(vs, data)
-        volume_manager.add_volume(v)
+        v = create_map_from_state(vs, data, session)
+        session.add_model(v)
 
 # ---------------------------------------------------------------------------
 # Used for scene restore using already existing volume models.
 #
-def set_maps_attributes(dms):
+def set_maps_attributes(dms, session):
 
   for ds, vslist in dms:
-    volumes = [find_volume_by_session_id(vs['session_volume_id'])
+    volumes = [find_volume_by_session_id(vs['session_volume_id'], session)
                for vs in vslist]
     dset = set(v.data for v in volumes if not v is None)
     for data in dset:
@@ -98,10 +95,9 @@ def session_volume_id(v):
 
 # -----------------------------------------------------------------------------
 #
-def find_volume_by_session_id(id):
+def find_volume_by_session_id(id, session):
 
-  from .volume import volume_list
-  for v in volume_list():
+  for v in session.maps():
     if hasattr(v, 'session_volume_id') and v.session_volume_id == id:
       return v
   return None
@@ -184,13 +180,13 @@ def state_from_grid_data(data):
 
 # ---------------------------------------------------------------------------
 #
-def grid_data_from_state(s, gdcache):
+def grid_data_from_state(s, gdcache, session):
 
   path = absolute_path(s['path'])
   gid = s.get('grid_id','')
   file_type = s['file_type']
   dbfetch = s.get('database_fetch')
-  dlist = open_data(path, gid, file_type, dbfetch, gdcache)
+  dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
 
 
   for data in dlist:
@@ -235,7 +231,7 @@ def grid_data_from_state(s, gdcache):
 
 # ---------------------------------------------------------------------------
 #
-def open_data(path, gid, file_type, dbfetch, gdcache):
+def open_data(path, gid, file_type, dbfetch, gdcache, session):
 
   if (path, gid) in gdcache:
     # Caution: If data objects for the same file array can have different
@@ -264,7 +260,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache):
   else:
     dbid, dbn = dbfetch
     from ..file_io import fetch
-    mlist = fetch.fetch_from_database(dbid, dbn)
+    mlist = fetch.fetch_from_database(dbid, dbn, session)
     grids = [m.data for m in mlist]
     for m in mlist:
       m.delete()        # Only use grid data from fetch
@@ -336,11 +332,11 @@ def state_from_map(volume):
 
 # ---------------------------------------------------------------------------
 #
-def create_map_from_state(s, data):
+def create_map_from_state(s, data, session):
 
   ro = rendering_options_from_state(s['rendering_options'])
   from .volume import Volume
-  v = Volume(data[0], s['region'], ro)
+  v = Volume(data[0], session, s['region'], ro)
   v.session_volume_id = s['session_volume_id']
 
   if isinstance(v.data.path, str):

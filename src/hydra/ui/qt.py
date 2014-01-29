@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtOpenGL, QtWidgets
+from PyQt5.QtCore import Qt
 
 # TODO: Monkey business for Qt to find cocoa platform plugin.
 #       Can a relative path be built into Qt during compile?

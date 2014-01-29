@@ -45,6 +45,8 @@ Hydra Modules
 
    molecule.rst
 
+   session.rst
+
    surface.rst
 
    ui.rst

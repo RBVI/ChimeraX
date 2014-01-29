@@ -678,7 +678,7 @@ class Atoms:
     The indices must be in increasing order.
     '''
     asubset = Atoms()
-    mi = indices_by_molecule(indices)
+    mi = self.indices_by_molecule(indices)
     for (m,a), mind in zip(self.molatoms, mi):
       if mind:
         asubset.add_atom_indices(m, a[mind])
@@ -752,11 +752,10 @@ class Atoms:
     
 # -----------------------------------------------------------------------------
 #
-def all_atoms():
+def all_atoms(session):
   '''Return an atom set containing all atoms of all open molecules.'''
   aset = Atoms()
-  from ..ui.gui import main_window
-  aset.add_molecules(main_window.view.molecules())
+  aset.add_molecules(session.molecules())
   return aset
 
 # -----------------------------------------------------------------------------

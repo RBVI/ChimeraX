@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Implementation of "volume" command.
 #
-def volume_command(cmdname, args):
+def volume_command(cmdname, args, session):
 
     from ..ui.commands import parse_arguments
     from ..ui.commands import string_arg, bool_arg, bool3_arg, enum_arg
@@ -87,7 +87,7 @@ def volume_command(cmdname, args):
                 {'values':('xyz', 'xy', 'xz', 'yz', 'off')}),
                ('positionPlanes', int3_arg),
                )
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
 
     # Extra parsing.
     for aname in ('step', 'origin', 'originIndex', 'voxelSize', 'centerIndex',
@@ -113,12 +113,14 @@ def volume_command(cmdname, args):
     for opt, value in defaults:
         if not opt in kw:
             kw[opt] = value
-            
+
+    kw['session'] = session
+
     volume(**kw)
     
 # -----------------------------------------------------------------------------
 #
-def volume(volumes = [],
+def volume(volumes = '',                # Specifier
            style = None,
            show = None,
            hide = None,
@@ -185,6 +187,7 @@ def volume(volumes = [],
            boxFaces = None,
            orthoplanes = None,
            positionPlanes = None,
+           session = None,
            ):
 
     from ..ui.commands import CommandError
@@ -192,10 +195,10 @@ def volume(volumes = [],
     # Find volume arguments.
     if volumes == 'all':
         from .volume import volume_list
-        vlist = volume_list()
+        vlist = volume_list(session)
     else:
         from ..ui import commands
-        vlist = commands.volumes_from_specifier(volumes)
+        vlist = commands.volumes_from_specifier(volumes, session)
 
     # Adjust global settings.
     loc = locals()
@@ -234,7 +237,7 @@ def volume(volumes = [],
         rsettings['orthoplanePositions'] = positionPlanes
 
     for v in vlist:
-        apply_volume_options(v, dsettings, rsettings)
+        apply_volume_options(v, dsettings, rsettings, session)
 
     # Save files.
     fopt = ('save', 'saveFormat', 'saveRegion', 'saveStep', 'maskZone',
@@ -255,7 +258,7 @@ def apply_global_settings(gsettings):
     
 # -----------------------------------------------------------------------------
 #
-def apply_volume_options(v, doptions, roptions):
+def apply_volume_options(v, doptions, roptions, session):
 
     if 'style' in doptions:
         v.set_representation(doptions['style'])
@@ -287,7 +290,7 @@ def apply_volume_options(v, doptions, roptions):
 
     if 'planes' in doptions:
         from . import volume
-        volume.cycle_through_planes(v, *doptions['planes'])
+        volume.cycle_through_planes(v, session, *doptions['planes'])
 
     d = v.data
     if 'originIndex' in doptions:

@@ -6,7 +6,7 @@ SUBDIRS	= docs draw example_sessions file_io geometry map molecule surface ui _i
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
 
-PYSRCS = __init__.py scenes.py
+PYSRCS = __init__.py models.py scenes.py session.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)
@@ -102,7 +102,7 @@ mac_app_dirs:
 endif
 
 run:
-	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"
+	$(bindir)/python3 -c "import hydra; hydra.Session().start()"
 
 dmg:
 	cd $(APPS_DIR) ; \

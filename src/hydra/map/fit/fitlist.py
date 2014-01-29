@@ -4,16 +4,16 @@ class Fit_List:
 
     buttons = ('Place Copy', 'Save PDB', 'Options', 'Delete', 'Clear List', 'Close')
 
-    def __init__(self):
+    def __init__(self, session):
 
+        self.session = session
         self.list_fits = []
         self.show_clash = False
         self.smooth_motion = True
         self.smooth_steps = 10
 
-        from ...ui.gui import main_window
         from ...ui.qt import QtWidgets
-        self.dock_widget = dw = QtWidgets.QDockWidget('Fit List', main_window)
+        self.dock_widget = dw = QtWidgets.QDockWidget('Fit List', session.main_window)
 
         # Place list above row of buttons
         w = QtWidgets.QWidget(dw)
@@ -58,15 +58,13 @@ class Fit_List:
         self.refill_list()      # Set heading
 
     def show(self):
-        from ...ui.gui import main_window
         from ...ui.qt import QtCore
         dw = self.dock_widget
-        main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
+        self.session.main_window.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
         dw.setVisible(True)
 
     def hide(self):
-        from ...ui.gui import main_window
-        main_window.removeDockWidget(self.dock_widget)
+        self.session.main_window.removeDockWidget(self.dock_widget)
 
     def fillInUI(self, parent):
 
@@ -188,7 +186,7 @@ class Fit_List:
         if self.smooth_motion:
             frames = self.smooth_steps
 
-        lfits[0].place_models(frames)
+        lfits[0].place_models(self.session, frames)
 
     def selected_listbox_fits(self):
 
@@ -237,7 +235,7 @@ class Fit_List:
                         path = base + '_fit%d' + suf
                     for i, fit in enumerate(lfits):
                         p = path if len(lfits) == 1 else path % (i+1)
-                        fit.place_models()
+                        fit.place_models(self.session)
                         Midas.write(fit.fit_molecules(), relModel = fit.volume,
                                     filename = p)
                       
@@ -253,8 +251,7 @@ class Fit_List:
         else:
             dfits = self.selected_listbox_fits()
             if len(dfits) == 0:
-                from ...ui.gui import show_status
-                show_status('No fits chosen from list.')
+                self.session.show_status('No fits chosen from list.')
                 return
         dset = set(dfits)
         fits = self.list_fits
@@ -265,20 +262,18 @@ class Fit_List:
             lb.takeItem(i+1)
             del fits[i]
 
-        from ...ui.gui import show_status
-        show_status('Deleted %d fits' % len(indices))
+        self.session.show_status('Deleted %d fits' % len(indices))
 
     def place_copies_cb(self):
 
-        from ...ui.gui import show_status
         lfits = [f for f in self.selected_listbox_fits() if f.fit_molecules()]
         if len(lfits) == 0:
-            show_status('No fits of molecules chosen from list.')
+            self.session.show_status('No fits of molecules chosen from list.')
             return
         clist = []
         for fit in lfits:
             clist.extend(fit.place_copies())
-        show_status('Placed %d molecule copies' % len(clist))
+        self.session.show_status('Placed %d molecule copies' % len(clist))
 
     def show_clash_cb(self):
 
@@ -293,54 +288,19 @@ class Fit_List:
     def close_session_cb(self, trigger, x, y):
 
         self.delete_fit_cb(all = True)
-
-# -----------------------------------------------------------------------------
-#
-added_fit_list_menu_entry = False
-def add_fit_list_menu_entry():
-
-    global added_fit_list_menu_entry
-    if added_fit_list_menu_entry:
-        return
-    added_fit_list_menu_entry = True
-
-    from chimera.extension import EMO, manager
-    class Fit_List_EMO(EMO):
-        def name(self):
-            return 'Fit List'
-        def description(self):
-            return 'List of fits in maps created by fitmap search command'
-        def categories(self):
-            return ['Volume Data']
-        def icon(self):
-            return None
-        def activate(self):
-            show_fit_list_dialog()
-            return None
-    manager.registerExtension(Fit_List_EMO(__file__))
-
-    # Update menus
-    manager.remakeCategoryMenu(manager.findCategory('Volume Data'))
-    import VolumeMenu
-    VolumeMenu.remake_toplevel_volume_menu()
-    from VolumeViewer.volumedialog import volume_dialog
-    d = volume_dialog()
-    if d:
-        d.update_tools_menu()
         
 # -----------------------------------------------------------------------------
 #
-fit_list = None
-def fit_list_dialog(create = False):
-    global fit_list
+def fit_list_dialog(session, create = False):
+    fit_list = session.fit_list
     if fit_list is None and create:
-        fit_list = Fit_List()
+        session.fit_list = fit_list = Fit_List(session)
     return fit_list
   
 # -----------------------------------------------------------------------------
 #
-def show_fit_list_dialog():
+def show_fit_list_dialog(session):
 
-    fl = fit_list_dialog(create = True)
+    fl = fit_list_dialog(session, create = True)
     fl.show()
     return fl

@@ -80,7 +80,7 @@ def mrc2000_header(grid_data, value_type, stats = None):
     elif value_type == int16:         mode = 1
     elif value_type == int8:          mode = 0
 
-    cell_size = map(lambda a,b: a*b, grid_data.step, size)
+    cell_size = tuple(a*b for a,b in zip(grid_data.step, size))
 
     if stats:
         dmin, dmax = stats.min, stats.max
@@ -94,15 +94,15 @@ def mrc2000_header(grid_data, value_type, stats = None):
     else:
         machst = 0x11110000
 
-    from chimera.version import release
+    from .... import version
     from time import asctime
-    ver_stamp = 'Chimera %s %s' % (release, asctime())
+    ver_stamp = 'Hydra %s %s' % (version, asctime())
     labels = [ver_stamp[:80]]
 
     if grid_data.rotation != ((1,0,0),(0,1,0),(0,0,1)):
-        import Matrix
-        axis, angle = Matrix.rotation_axis_angle(grid_data.rotation)
-        r = 'Chimera rotation: %12.8f %12.8f %12.8f %12.8f' % (axis + (angle,))
+        from ....geometry import matrix
+        axis, angle = matrix.rotation_axis_angle(grid_data.rotation)
+        r = 'Hydra rotation: %12.8f %12.8f %12.8f %12.8f' % (axis + (angle,))
         labels.append(r)
 
     nlabl = len(labels)
@@ -124,14 +124,14 @@ def mrc2000_header(grid_data, value_type, stats = None):
         binary_string(0, int32), # nsymbt
         binary_string([0]*25, int32), # extra
         binary_string(grid_data.origin, float32), # origin
-        'MAP ', # map
+        'MAP '.encode('utf-8'), # map
         binary_string(machst, int32), # machst
         binary_string(rms, float32), # rms
         binary_string(nlabl, int32), # nlabl
-        labelstr,
+        labelstr.encode('utf-8'),
         ]
 
-    header = ''.join(strings)
+    header = b''.join(strings)
     return header
     
 # -----------------------------------------------------------------------------

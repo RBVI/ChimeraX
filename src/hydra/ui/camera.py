@@ -147,10 +147,11 @@ class Camera:
             far = 2*near
         w = 2*near*tan(0.5*fov)
         ww,wh = self.window_size if win_size is None else win_size
-        aspect = float(wh)/ww
         m = self.mode
         if m == 'oculus':
-            aspect *= 2
+            # Only half of window width used per eye in oculus mode.
+            ww *= 0.5
+        aspect = float(wh)/ww
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
         if m in ('stereo','oculus') and not view_num is None:
@@ -207,20 +208,64 @@ class Camera:
         from .. import draw
         if m == 'mono':
             render.set_mono_buffer()
-            render.draw_background()
         elif m == 'stereo':
             render.set_stereo_buffer(view_num)
-            render.draw_background()
         elif m == 'oculus':
-            render.set_mono_buffer()
-            w,h = self.window_size
-            if view_num == 0:
-                render.set_drawing_region(0,0,w//2,h)
-                render.draw_background()
-            elif view_num == 1:
-                render.set_drawing_region(w//2,0,w//2,h)
+            render.render_to_texture(self.warping_texture())
         else:
             raise ValueError('Unknown camera mode %s' % m)
+        render.draw_background()
+
+    def finish_draw(self, view_num, render):
+        m = self.mode
+        if m == 'oculus':
+            render.render_to_screen()
+            w,h = self.window_size
+            if view_num == 0:
+                render.draw_background()
+                render.set_drawing_region(0,0,w//2,h)
+            elif view_num == 1:
+                render.set_drawing_region(w//2,0,w//2,h)
+            coffset = 0.5*self.eye_separation_pixels/(w//2)
+            if view_num == 0:
+                coffset = -coffset
+            render.warp_center = (0.5 + coffset, 0.5)
+#            render.radial_warp_coefficients = (1,1.8,0,0)
+            return self.warping_surface(render)
+        return None
+
+    def warping_texture(self):
+
+        w,th = self.window_size
+        tw = w // 2 if self.mode == 'oculus' else w
+        if not hasattr(self, 'warp_texture') or self.warp_texture_size != (tw,th):
+            from .. import draw
+            self.warp_texture = t = draw.Texture()
+            t.initialize_rgba(tw,th)
+            self.warp_texture_size = (tw,th)
+        return self.warp_texture
+
+    def warping_surface(self, render):
+
+        if not hasattr(self, 'warp_surface'):
+            from ..surface import Surface
+            self.warp_surface = s = Surface('warp plane')
+            p = s.new_piece()
+            from numpy import array, float32, int32
+            va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
+            ta = array(((0,1,2),(0,2,3)), int32)
+            tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
+            p.geometry = va, ta
+            p.color = (1,1,1,1)
+            p.use_lighting = False
+            p.texture_coordinates = tc
+            p.use_texture_warp = True
+
+        s = self.warp_surface
+        p = s.surface_pieces()[0]
+        p.texture = self.warp_texture
+
+        return s
 
 # glFrustum() matrix
 def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
@@ -240,7 +285,7 @@ def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
          (0, 0, D, 0))
     return m
 
-def camera_command(cmdname, args):
+def camera_command(cmdname, args, session):
 
     from .commands import float_arg, floats_arg, no_arg, parse_arguments
     req_args = ()
@@ -258,16 +303,15 @@ def camera_command(cmdname, args):
                ('report', no_arg),
            )
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
-    camera(**kw)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    camera(session, **kw)
 
-def camera(mono = None, stereo = None, oculus = None, fieldOfView = None, 
+def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = None, 
            eyeSeparation = None, screenWidth = None, sEyeSeparation = None,
            middleDistance = False, depthScale = None,
            nearFarClip = None, report = False):
 
-    from .gui import main_window
-    v = main_window.view
+    v = session.view
     c = v.camera
     
     if mono or stereo or oculus:
@@ -286,7 +330,7 @@ def camera(mono = None, stereo = None, oculus = None, fieldOfView = None,
         c.eye_separation_scene = sEyeSeparation
         c.redraw_needed = True
     if middleDistance:
-        center, s = v.bounds_center_and_width()
+        center, s = session.bounds_center_and_width()
         wscene = c.view_width(center)
         wpixels = v.window_size[0]
         c.eye_separation_scene = wscene * c.eye_separation_pixels / wpixels
@@ -304,7 +348,6 @@ def camera(mono = None, stereo = None, oculus = None, fieldOfView = None,
         c.near_far_clip = nearFarClip
         c.redraw_needed = True
     if report:
-        from .gui import show_info, show_status
         msg = ('Camera\n' +
                'position %.5g %.5g %.5g\n' % tuple(c.position()) +
                'view direction %.6f %.6f %.6f\n' % tuple(c.view_direction()) +
@@ -312,6 +355,6 @@ def camera(mono = None, stereo = None, oculus = None, fieldOfView = None,
                'mode %s\n' % c.mode +
                'near clip %.5g, far clip %.5g\n' % tuple(c.near_far_clip) +
                'eye separation pixels %.5g, scene %.5g' % (c.eye_separation_pixels, c.eye_separation_scene))
-        show_info(msg)
+        session.show_info(msg)
         smsg = 'Camera mode %s, field of view %.4g degrees' % (c.mode, c.field_of_view)
-        show_status(smsg)
+        session.show_status(smsg)

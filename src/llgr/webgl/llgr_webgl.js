@@ -54,7 +54,10 @@ var all_matrices = {};
 var all_objects = {};
 var all_groups = {};
 
-var gl;	// set with set_context()
+// set with set_context()
+var gl;		// OpenGL API
+var vao_ext;	// ES_vertex_array_object API
+var inst_ext;	// ANGLE_instanced_arrays API
 
 var internal_buffer_id = 0;	// decrement before using
 var current_program = null;
@@ -623,6 +626,27 @@ function build_fan(num_spokes)
 
 llgr = {
 	set_context: function(context) {
+		if (gl === context)
+			return;
+		var missing = [];
+		if (vao_ext === undefined) {
+			vao_ext = getExtensionWithKnownPrefixes(context,
+						"OES_vertex_array_object");
+			if (vao_ext === null) {
+				missing.push("missing required WebGL extension: vertex arrays");
+			}
+		}
+		if (inst_ext === undefined) {
+			inst_ext = getExtensionWithKnownPrefixes(context,
+						"ANGLE_instanced_arrays");
+			if (inst_ext === null) {
+				missing.push("missing required WebGL extension: instanced arrays");
+			}
+		}
+		if (missing.length > 0) {
+			llgr = null;
+			throw missing;
+		}
 		gl = context;
 	},
 
@@ -860,7 +884,8 @@ llgr = {
 	clear_buffers: function () {
 		for (var bid in all_buffers) {
 			var bi = all_buffers[bid];
-			if (bi.buffer) gl.deleteBuffer(bi.buffer);
+			if (bi.buffer)
+				gl.deleteBuffer(bi.buffer);
 		}
 		all_buffers = null;
 		llgr.clear_matrices();
@@ -880,7 +905,12 @@ llgr = {
 	// matrix_id of zero is reserved for identity matrix
 	create_matrix: function (matrix_id, matrix_4x4, renormalize) {
 		if (renormalize === undefined) renormalize = false;
-		var data_id = --internal_buffer_id;
+		var data_id;
+		var mi = all_matrices[matrix_id];
+		if (mi === undefined)
+			data_id = --internal_buffer_id;
+		else
+			data_id = mi.data_id;
 		var data = new Float32Array(16);
 		for (var i = 0; i < 16; ++i) {
 			data[i] = matrix_4x4[i];
@@ -1280,7 +1310,8 @@ llgr = {
 			}
 			// setup instance matrix attribute
 			if (oi.matrix_id != current_matrix_id) {
-				if (oi.matrix_id === 0) { matrix_ai.data_id = 0;
+				if (oi.matrix_id === 0) {
+					matrix_ai.data_id = 0;
 				} else {
 					var mi = all_matrices[oi.matrix_id];
 					if (mi === undefined)

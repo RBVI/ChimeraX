@@ -8,10 +8,13 @@ SRCS	= spacenav.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 PYSRCS = __init__.py snav.py snavmac.py
 
-SNINC = -I/Library/Frameworks/3DconnexionClient.framework/Versions/Current/Headers
+SNFW = /Library/Frameworks/3DconnexionClient.framework
+SNINC = -I$(SNFW)/Versions/Current/Headers
 INCS += $(PYTHON_INCLUDE_DIRS) $(SNINC)
 
 LIBS	+= $(PYTHON_LIB) -F/Library/Frameworks -framework 3DconnexionClient
+
+ifeq ($(shell test -e $(SNFW) && echo found),found)
 
 all: $(PYMOD) $(PYOBJS)
 
@@ -22,4 +25,12 @@ install: all pkg_dir
 	$(RSYNC) $(PYMOD) $(PYSRCS) $(PKG_DIR)
 
 clean:
-	rm -f $(PYMOD) $(OBJS) __pycache__
+	rm -rf $(PYMOD) $(OBJS) __pycache__
+
+else
+
+all:
+install:
+clean:
+
+endif

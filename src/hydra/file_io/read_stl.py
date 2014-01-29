@@ -104,10 +104,11 @@ class STL_Surface(Surface):
 
 # -----------------------------------------------------------------------------
 #
-def restore_stl_surfaces(surfs, viewer, attributes_only = False):
+def restore_stl_surfaces(surfs, session, attributes_only = False):
 
     if attributes_only:
-        sids = dict((m.id,m) for m in viewer.models if isinstance(m, STL_Surface))
+        models = session.model_list()
+        sids = dict((m.id,m) for m in models if isinstance(m, STL_Surface))
     from ..geometry.place import Place
     for st in surfs:
         if attributes_only:
@@ -125,4 +126,4 @@ def restore_stl_surfaces(surfs, viewer, attributes_only = False):
         p.color = st['color']
         if 'copies' in st:
             p.copies = [Place(c) for c in st['copies']]
-        viewer.add_model(s)
+        session.add_model(s)
