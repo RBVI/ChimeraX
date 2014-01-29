@@ -114,7 +114,14 @@ def register_shortcuts(keyboard_shortcuts):
         ('Qt', quit, 'Quit', ocat),
         )
     for k,f,d,cat in session_shortcuts:
-      ks.add_shortcut(k, f, d, category = cat, session_arg = True)
+        ks.add_shortcut(k, f, d, category = cat, session_arg = True)
+
+    ctrlp = b'\x10'.decode('utf-8')
+    ks.add_shortcut(ctrlp, previous_command, 'Previous command',
+                    key_name = 'ctrl-p', category = gcat, session_arg = True) 
+    ctrln = b'\x0e'.decode('utf-8')
+    ks.add_shortcut(ctrln, next_command, 'Next command',
+                    key_name = 'ctrl-n', category = gcat, session_arg = True) 
 
     ks.category_columns = ((ocat,mapcat), (molcat,), (gcat,))
 
@@ -131,7 +138,7 @@ class Keyboard_Shortcuts:
     self.keys = ''
     self.session = session
 
-  def add_shortcut(self, key_seq, func, description = '', category = None,
+  def add_shortcut(self, key_seq, func, description = '', key_name = None, category = None,
                    each_map = False, each_molecule = False,
                    each_surface = False, view_arg = False, session_arg = False):
     '''
@@ -164,9 +171,13 @@ class Keyboard_Shortcuts:
             func(s)
     else:
         f = func
-    self.shortcuts[key_seq] = (f, description, category)
+    kn = key_seq if key_name is None else key_name
+    self.shortcuts[key_seq] = (f, description, kn, category)
 
   def key_pressed(self, event):
+
+#    t = event.text()
+#    print(event, t, type(t), len(t), str(t), t.encode(), '%x' % event.key(), '%x' % int(event.modifiers()), event.count())
 
     c = str(event.text())
     self.keys += c
@@ -190,11 +201,11 @@ class Keyboard_Shortcuts:
     self.session.show_status(msg)
 
   def run_shortcut(self, keys):
-      fdc = self.shortcuts.get(keys)
-      if fdc is None:
+      fdnc = self.shortcuts.get(keys)
+      if fdnc is None:
         return
-      f,d,c = fdc
-      msg = '%s - %s' % (keys, d)
+      f,d,n,c = fdnc
+      msg = '%s - %s' % (n, d)
       s = self.session
       s.show_status(msg)
       s.show_info(msg, color = '#808000')
@@ -450,8 +461,8 @@ def list_keyboard_shortcuts(session):
 
 def shortcut_descriptions(ks, html = False):
   ksc = {}
-  for k, (f,d,c) in ks.shortcuts.items():
-    ksc.setdefault(c,[]).append((k,d))
+  for k, (f,d,n,c) in ks.shortcuts.items():
+    ksc.setdefault(c,[]).append((n,d))
   cats = list(ksc.keys())
   cats.sort()
   for cat in cats:
@@ -467,14 +478,14 @@ def shortcut_descriptions(ks, html = False):
       lines.append('<td>')
       for cat in colcats:
         lines.extend(['<table>', '<tr><th colspan=2 align=left>%s' % cat])
-        lines.extend(['<tr><td width=40>%s<td>%s' % (k,d) for k,d in ksc[cat]])
+        lines.extend(['<tr><td width=40>%s<td>%s' % (n,d) for n,d in ksc[cat]])
         lines.append('</table>')
     lines.append('</table>') # Multi-column table
   else:
     lines = ['Keyboard shortcuts']
     for cat in cats:
       lines.extend(['', cat])
-      lines.extend(['%s - %s' % (k,d) for k,d in ksc[cat]])
+      lines.extend(['%s - %s' % (n,d) for n,d in ksc[cat]])
   descrip = '\n'.join(lines)
   return descrip
 
@@ -508,8 +519,7 @@ def show_file_history(session):
     session.file_history.show_thumbnails()
 
 def show_command_history(session):
-    from . import commands
-    commands.show_command_history(session)
+    session.commands.history.show_command_history()
 
 def show_scenes(session):
     session.scenes.show_thumbnails(toggle = True)
@@ -573,6 +583,12 @@ def toggle_space_navigator_fly_mode(session):
 def space_navigator_collisions(session):
     from . import spacenavigator
     spacenavigator.avoid_collisions(session)
+
+def previous_command(session):
+    session.commands.history.show_previous_command()
+
+def next_command(session):
+    session.commands.history.show_next_command()
 
 def quit(session):
     import sys
