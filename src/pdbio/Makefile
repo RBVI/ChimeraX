@@ -29,3 +29,6 @@ pdbio.install: molecule.install capsule.install pdb.install
 
 testrun:
 	$(bindir)/python3
+
+debugrun:
+	lldb $(bindir)/python3

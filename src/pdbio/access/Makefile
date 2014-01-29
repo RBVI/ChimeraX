@@ -5,9 +5,11 @@ SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 LIBNAME = access
 PYMOD= $(LIBNAME).so
-CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS) -std=c++11 -stdlib=libc++ -Wno-invalid-offsetof -Wno-deprecated-writable-strings
-LIBS += -L$(shlibdir) -lmolecule
-INCS += $(NUMPY_INC)
+CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
+ifneq ($(OS),Windows)
+CXXFLAGS += -std=c++11 -stdlib=libc++ -Wno-invalid-offsetof -Wno-deprecated-writable-strings
+endif
+LIBS += -L$(shlibdir) -lblob
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
