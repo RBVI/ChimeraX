@@ -494,8 +494,6 @@ class _GroupInfo:
 		self.optimized = True
 		self.ois.clear()
 
-		import timeit
-		start_time = timeit.default_timer()
 		# first pass: group objects by program id, tranparency,
 		# primitive type, if indexing, and array buffers
 		def key(oi):
@@ -512,13 +510,10 @@ class _GroupInfo:
 				groupings[k].append(oi)
 			except KeyError:
 				groupings[k] = [oi]
-		end_time = timeit.default_timer()
-		print('inital sort:', end_time - start_time)
 
 		# second pass: if all objects in a group have the same
 		# first and count, then aggregate singletons, and use
 		# instancing.
-		start_time = timeit.default_timer()
 		separate = {}
 		instancing = {}
 		while groupings:
@@ -541,13 +536,10 @@ class _GroupInfo:
 			# TODO: separate transparent objects
 			# TODO: group by compatible singletons
 			instancing[key] = ois
-		end_time = timeit.default_timer()
-		print('confirm identical:', end_time - start_time)
 
 		# TODO: remove assumption that all singletons are the same
 		# TODO: if a particular  singleton is the same in all objects,
 		# then keep it as a singleton
-		start_time = timeit.default_timer()
 		import struct
 		sp = None
 		current_program_id = None
@@ -637,15 +629,12 @@ class _GroupInfo:
 
 			if not oi.incomplete:
 				self.ois.append(oi)
-		end_time = timeit.default_timer()
-		print('build instance objects:', end_time - start_time)
 
 		# third pass: look at left over groupings
 		# TODO: If different first and count, try to group
 		# into sequental order, and combine into one mega-object.
 
 		# forth pass: anything not handled above
-		start_time = timeit.default_timer()
 		from itertools import chain
 		sp = None
 		current_program_id = None
@@ -677,8 +666,6 @@ class _GroupInfo:
 				ibi = _all_buffers.get(oi.index_buffer_id, None)
 				if ibi is not None:
 					GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, ibi.buffer)
-		end_time = timeit.default_timer()
-		print('build fallback objects:', end_time - start_time)
 
 		GL.glBindVertexArray(0)
 		self.ois.extend(ois)

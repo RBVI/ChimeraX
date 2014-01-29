@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.1.1
+VERSION = 5.2.1-snapshot-7d0f384170fd
 DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
 
