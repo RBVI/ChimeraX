@@ -19,6 +19,8 @@ class File_History:
     self.image_format = 'JPG'
     self.render_cb = None
 
+    session.at_quit(self.write_history)
+
   def read_history(self, remove_missing = True):
 
     hfile = self.history_file
@@ -139,7 +141,7 @@ class File_History:
       from os.path import join
       ipath = join(self.thumbnail_directory, iname)
       s = self.thumbnail_size
-      i = viewer.image((s,s))
+      i = viewer.image(s,s)
       i.save(ipath, self.image_format)
 
   def recent_files_index(self):
