@@ -44,6 +44,7 @@ class Commands:
         self.session = session
         self.commands = {}
         self.cmdabbrev = None
+        self.history = Command_History(session)
 
     def add_command(self, name, function):
         '''
@@ -78,68 +79,91 @@ class Commands:
                 failed = True
             if not failed:
                 ses.log.insert_graphics_image()
-            add_to_command_history(text)
+            self.history.add_to_command_history(text)
         else:
             ses.show_status('Unknown command %s' % cmd)
 
-# -----------------------------------------------------------------------------
-#
-def add_to_command_history(text, filename = 'commands'):
+class Command_History:
+    def __init__(self, session):
+        self.session = session
+        self.commands = None
+        self.file_lines = None
 
-    from ..file_io import history
-    path = history.user_settings_path(filename)
-    f = open(path, 'a')
-    f.write(text.strip() + '\n')
-    f.close()
+    def command_list(self):
+        if self.commands is None:
+            self.read_command_history()
+            self.session.at_quit(self.save_command_history)
+        return self.commands
+        
+    def add_to_command_history(self, text):
+        self.command_list().append(text)
 
-# -----------------------------------------------------------------------------
-#
-def show_command_history(session, filename = 'commands'):
-    '''
-    Show a text window showing the invoked commands and their arguments for
-    this session in the order they were executed.  Clicking on a command causes
-    it to be run again.
-    '''
-    mw = session.main_window
-    if mw.showing_text() and mw.text_id == 'command history':
-        mw.show_graphics()
-        return
+    def read_command_history(self, filename = 'commands'):
+        from ..file_io import history
+        path = history.user_settings_path(filename)
+        import os.path
+        if os.path.exists(path):
+            f = open(path, 'r')
+            h = [line.rstrip() for line in f.readlines()]
+            f.close()
+        else:
+            h = []
+        self.commands = h
+        self.file_lines = len(h)
 
-    from ..file_io import history
-    path = history.user_settings_path(filename)
-    from os.path import isfile
-    if not isfile(path):
-        session.show_status('No command history file')
-        lines = []
-    else:
-        f = open(path, 'r')
-        lines = f.readlines()
+    def save_command_history(self, filename = 'commands'):
+        h = self.commands
+        if h is None:
+            return
+        if len(h) == self.file_lines:
+            return      # No new commands
+        from ..file_io import history
+        path = history.user_settings_path(filename)
+        f = open(path, 'a')
+        for cmd in h[self.file_lines:]:
+            f.write(cmd.strip() + '\n')
         f.close()
 
-    # Get unique lines, order most recent first.
-    cmds = []
-    found = set()
-    for line in lines[::-1]:
-        cmd = line.rstrip()
-        if not cmd in found:
-            cmds.append(cmd)
-            found.add(cmd)
+    def show_command_history(self, filename = 'commands'):
+        '''
+        Show a text window showing the invoked commands and their arguments for
+        this session in the order they were executed.  Clicking on a command causes
+        it to be run again.
+        '''
+        mw = self.session.main_window
+        if mw.showing_text() and mw.text_id == 'command history':
+            mw.show_graphics()
+            return
 
-    hlines = ['<html>', '<head>', '<style>',
-              'a { text-decoration: none; }',   # No underlining links
-              '</style>', '</head>', '<body>']
-    hlines.extend(['<a href="%d"><p>%s</p></a>' % (i,line) for i,line in enumerate(cmds)])
-    hlines.extend(['</body>','</html>'])
-    html = '\n'.join(hlines)
-    # TODO: Make sure clicked links don't have directory prepended.
-    #  Could not find a way to avoid prepending a previous source directory (from user's guide).
-    #  Seems to be a Qt bug.
-#    from .qt import QtCore
-#    mw.text.setSource(QtCore.QUrl())
-#    mw.text.clear()
-#    mw.text.clearHistory()
+        cmds = self.unique_commands()
+        html = self.history_html(cmds)
 
-    def insert_clicked_command(url, session = session, shown_commands = cmds):
+        mw.show_text(html, html=True, id = 'command history',
+                     anchor_callback = lambda url, s=self, c=cmds: s.insert_clicked_command(url,c))
+
+    def unique_commands(self):
+        lines = self.command_list()
+
+        # Get unique lines, order most recent first.
+        cmds = []
+        found = set()
+        for line in lines[::-1]:
+            cmd = line.rstrip()
+            if not cmd in found:
+                cmds.append(cmd)
+                found.add(cmd)
+        return cmds
+
+    def history_html(self, cmds):
+        hlines = ['<html>', '<head>', '<style>',
+                  'a { text-decoration: none; }',   # No underlining links
+                  '</style>', '</head>', '<body>']
+        hlines.extend(['<a href="%d"><p>%s</p></a>' % (i,line) for i,line in enumerate(cmds)])
+        hlines.extend(['</body>','</html>'])
+        html = '\n'.join(hlines)
+        return html
+
+    def insert_clicked_command(self, url, shown_commands):
         surl = url.toString(url.PreferLocalFile)
         # Work around Qt bug where it prepends a directory path to the anchor
         # even when QtTextBrowser search path and source are cleared.
@@ -147,13 +171,27 @@ def show_command_history(session, filename = 'commands'):
         c = int(cnum)         # command number
         if c < len(shown_commands):
             cmd = shown_commands[c]
-            cline = session.main_window.command_line
-            cline.clear()
-            cline.insert(cmd)
-            session.commands.run_command(cmd)
+            self.show_command(cmd)
+            self.session.commands.run_command(cmd)
 
-    mw.show_text(html, html=True, id = 'command history',
-                 anchor_callback = insert_clicked_command)
+    def show_command(self, cmd):
+        cline = self.session.main_window.command_line
+        cline.clear()
+        cline.insert(cmd)
+
+    def show_previous_command(self, step = -1):
+        cl = self.command_list()
+        n = len(cl)
+        if n == 0:
+            return
+        p = getattr(self, 'prev_command', n)
+        p += step
+        if p >= 0 and p < n:
+            self.prev_command = p
+            self.show_command(cl[p])
+
+    def show_next_command(self):
+        self.show_previous_command(step = 1)
 
 # -----------------------------------------------------------------------------
 #
