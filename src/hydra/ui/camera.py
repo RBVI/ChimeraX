@@ -285,6 +285,15 @@ def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
          (0, 0, D, 0))
     return m
 
+def camera_framing_models(w, h, models):
+
+    c = Camera((w,h))
+    from ..geometry import bounds
+    b = bounds.union_bounds(m.placed_bounds() for m in models)
+    center, size = bounds.bounds_center_and_radius(b)
+    c.initialize_view(center, size)
+    return c
+
 def camera_command(cmdname, args, session):
 
     from .commands import float_arg, floats_arg, no_arg, parse_arguments

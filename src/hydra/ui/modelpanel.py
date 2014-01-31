@@ -49,10 +49,7 @@ class Model_Panel:
         v = self.session.view
         w,h = self.image_size
         from . import camera
-        c = camera.Camera((w,h))
-        from ..geometry import bounds
-        center, size = bounds.bounds_center_and_radius(model.placed_bounds())
-        c.initialize_view(center, size)
+        c = camera.camera_framing_models(w, h, [model])
         qi = v.image(w,h,c,[model])
         from . import qt
         qt.draw_image_text(qi, str(model.id), bgcolor = (0,0,0), font_size = 24)
