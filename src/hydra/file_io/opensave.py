@@ -57,6 +57,18 @@ def file_readers(session):
             r['.' + s] = read_func
     return r
 
+def file_writers(session):
+    from . import session_file
+    from ..map.data import fileformats
+    w = {'.png': save_image_command,
+         '.jpg': save_image_command,
+         '.ppm': save_image_command,
+         '.bmp': save_image_command,
+         '.hy': lambda cmdname,path,session: session_file.save_session(path, session),
+         '.mrc': fileformats.save_map_command,
+         }
+    return w
+
 def open_files(paths, session, set_camera = None):
     '''
     Open data files and add the models created to the scene.  The file types are recognized
@@ -159,13 +171,24 @@ def save_session_as(session):
     session_file.save_session(path, session)
     session.show_info('Saved %s' % path, color = '#000080')
 
-def save_image(path, session, width = None, height = None, format = 'JPG'):
+def save_command(cmdname, args, session):
+    a0 = args.split()[0]
+    from os.path import splitext
+    e = splitext(a0)[1]
+    fw = file_writers(session)
+    if e in fw:
+        save_func = fw[e]
+        save_func(cmdname, args, session)
+    else:
+        session.show_status('Unknown save file type %s' % a0)
+
+def save_image(path, session, width = None, height = None, format = None):
     '''
-    Save a JPEG image of the current graphics window contents.
+    Save an image of the current graphics window contents.
     '''
     view = session.view
     if path is None:
-        filters = 'JPEG image (*.jpg)'
+        filters = 'Image (*.jpg *.png *.ppm *.bmp)'
         path = QtWidgets.QFileDialog.getSaveFileName(view.widget, 'Save Image', '.',
                                                      filters)
         if path is None:
@@ -177,6 +200,13 @@ def save_image(path, session, width = None, height = None, format = 'JPG'):
     if not os.path.exists(dir):
         from ..ui import commands
         raise commands.CommandError('Directory "%s" does not exist' % dir)
+
+    if format is None:
+        from os.path import splitext
+        format = splitext(path)[1][1:].upper()
+        if not format in ('PNG', 'JPG', 'PPM', 'BMP'):
+            from ..ui import commands
+            raise commands.CommandError('Unrecognized image file suffix "%s"' % format)
 
     # Match current window aspect ratio
     # TODO: Allow different aspect ratios
@@ -195,7 +225,7 @@ def save_image(path, session, width = None, height = None, format = 'JPG'):
     i.save(path, format)
     print ('saved image', path)
 
-def imagesave_command(cmdname, args, session):
+def save_image_command(cmdname, args, session):
 
     from ..ui.commands import string_arg, int_arg, parse_arguments
     req_args = (('path', string_arg),)

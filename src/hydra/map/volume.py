@@ -1600,7 +1600,7 @@ class Volume(Surface):
 
     from .data import save_grid_data
     d = self.grid_data()
-    format = save_grid_data(d, path, format, options, temporary)
+    format = save_grid_data(d, path, self.session, format, options, temporary)
   
   # ---------------------------------------------------------------------------
   #

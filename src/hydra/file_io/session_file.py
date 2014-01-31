@@ -4,17 +4,19 @@ def save_session(path, session):
   '''
   Save a session.
   '''
-  s = session_state(session, path)
-  f = open(path, 'w')
+  from os.path import expanduser
+  p = expanduser(path)
+  s = session_state(session, p)
+  f = open(p, 'w')
   from ..file_io.SessionUtil import objecttree
   objecttree.write_basic_tree(s, f)
   f.close()
 
   # Set file icon image on Mac
   from . import fileicon
-  fileicon.set_file_icon(path, session)
+  fileicon.set_file_icon(p, session)
 
-  session.file_history.add_entry(path, replace_image = True)
+  session.file_history.add_entry(p, replace_image = True)
 
 # -----------------------------------------------------------------------------
 #

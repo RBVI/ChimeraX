@@ -139,9 +139,10 @@ class File_History:
     from os.path import join
     ipath = join(self.thumbnail_directory, iname)
     s = self.thumbnail_size
+    v = self.session.view
     from ..ui import camera
     c = camera.camera_framing_models(s,s,models) if models else v.camera
-    i = self.session.view.image(s,s, camera = c, models = models)
+    i = v.image(s,s, camera = c, models = models)
     i.save(ipath, self.image_format)
 
   def recent_files_index(self):
