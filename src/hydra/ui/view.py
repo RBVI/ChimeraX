@@ -167,16 +167,21 @@ class View(QtGui.QWindow):
         if self.timer is None:
             self.start_update_timer()
 
-    def draw_graphics(self):
-
-        if not self.isExposed():
-            return
+    def use_opengl(self):
         if self.opengl_context is None:
             self.opengl_context = self.create_opengl_context()
             self.initialize_opengl()
 
         c = self.opengl_context
         c.makeCurrent(self)
+        return c
+
+    def draw_graphics(self):
+
+        if not self.isExposed():
+            return
+
+        c = self.use_opengl()
         self.draw_scene()
         c.swapBuffers(self)
 
@@ -219,8 +224,12 @@ class View(QtGui.QWindow):
         self.redraw_needed = True
 
     def image(self, width = None, height = None, camera = None, models = None):
+
+        self.use_opengl()
+
         w = self.window_size[0] if width is None else width
         h = self.window_size[1] if height is None else height
+
         r = self.render
         if not r.render_to_buffer(w,h):
             return None
