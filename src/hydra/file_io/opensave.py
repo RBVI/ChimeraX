@@ -231,39 +231,53 @@ def open_command(cmdname, args, session):
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     kw['session'] = session
-    open_file(**kw)
+    if 'fromDatabase' in kw:
+        kw['from_database'] = kw['fromDatabase']
+        kw.pop('fromDatabase')
+    open_data(**kw)
 
-def open_file(path, session, from_database = None, set_camera = None):
-    if from_database is None:
+def open_data(path, session, from_database = None, set_camera = None):
+
+    p = path
+    db = from_database
+    if not db is None:
+        mlist = open_from_database(p, session, db, set_camera)
+    else:
         from os.path import expanduser
-        p = expanduser(path)
+        p = expanduser(p)
         from os.path import isfile
         if isfile(p):
-            open_files([p], session)
+            mlist = open_files([p], session)
         else:
-            if ':' in p:
-                dbname, id = p.split(':', 1)
-            elif len(p) == 4 or len(p.split(',', maxsplit = 1)[0]) == 4:
-                dbname, id = 'PDB', p
+            id = p.split(',', maxsplit = 1)[0]
+            if len(id) == 4:
+                db = 'EMDB' if is_integer(id) else 'PDB'
             else:
-                session.show_status('Unknown file %s' % path)
-                return
-            open_file(id, session, from_database = dbname)
-    else:
-        ids = path.split(',')
-        if set_camera is None:
-            set_camera = (session.model_count() == 0)
-        from . import fetch
-        mlist = []
-        for id in ids:
-            m = fetch.fetch_from_database(id, from_database, session)
-            if isinstance(m, (list, tuple)):
-                mlist.extend(m)
-            else:
-                mlist.append(m)
-        session.add_models(mlist)
-        finished_opening([m.path for m in mlist], set_camera, session)
+                session.show_status('Unknown file %s' % p)
+                return []
+            mlist = open_from_database(p, session, db, set_camera)
+
     session.main_window.show_graphics()
+    if mlist:
+        session.file_history.add_entry(p, from_database = db, models = mlist)
+    return mlist
+
+def open_from_database(idstring, session, from_database, set_camera = None):
+
+    ids = idstring.split(',')
+    if set_camera is None:
+        set_camera = (session.model_count() == 0)
+    from . import fetch
+    mlist = []
+    for id in ids:
+        m = fetch.fetch_from_database(id, from_database, session)
+        if isinstance(m, (list, tuple)):
+            mlist.extend(m)
+        else:
+            mlist.append(m)
+    session.add_models(mlist)
+    finished_opening([m.path for m in mlist], set_camera, session)
+    return mlist
 
 def close_command(cmdname, args, session):
 
@@ -286,3 +300,10 @@ def read_python(path):
     globals = locals = None
     exec(ccode, globals, locals)
     return []
+
+def is_integer(s):
+    try:
+        int(s)
+    except ValueError:
+        return False
+    return True

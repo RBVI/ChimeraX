@@ -31,7 +31,7 @@ def restore_session(path, session):
 
   set_session_state(d, session)
 
-  session.file_history.add_entry(path, wait_for_render = True)
+  session.file_history.add_entry(path)
 
 # -----------------------------------------------------------------------------
 #

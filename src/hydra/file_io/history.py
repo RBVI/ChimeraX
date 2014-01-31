@@ -17,7 +17,6 @@ class File_History:
     self.files = {}             # Path to (access_time, image_name)
     self.thumbnail_size = 256
     self.image_format = 'JPG'
-    self.render_cb = None
 
     session.at_quit(self.write_history)
 
@@ -36,14 +35,16 @@ class File_History:
     files = {}
     for line in lines:
       fields = line.rstrip().split('|')
-      spath,iname = fields[:2]
-      atime = int(fields[2])
-      files[spath] = (atime, iname)
+      if len(fields) == 3:
+        fields.insert(1, '')  # No database specified
+      spath,dbname,iname = fields[:3]
+      atime = int(fields[3])
+      files[spath] = (atime, iname, dbname)
 
     if remove_missing:
       removed_some = False
-      for spath, (atime,iname) in tuple(files.items()):
-        if not isfile(spath):
+      for spath, (atime,iname,dbname) in tuple(files.items()):
+        if not dbname and not isfile(spath):
           files.pop(spath)
           removed_some = True
       if removed_some:
@@ -81,10 +82,10 @@ class File_History:
     for line in slines:
       fields = line.split('|')
       if len(fields) == 3:
-        sname, iname, atime = [f.strip() for f in fields]
+        sname, dbname, iname, atime = [f.strip() for f in fields]
         copyfile(join(esdir,sname), join(sdir,sname))
         copyfile(join(esdir,iname), join(self.thumbnail_directory,iname))
-        sfile.write('%s|%s|%s\n' % (join(sdir,sname), iname, atime))
+        sfile.write('%s|%s|%s|%s\n' % (join(sdir,sname), dbname, iname, atime))
     sfile.close()
 
     return True
@@ -96,53 +97,47 @@ class File_History:
 
     from os.path import basename
     f = open(self.history_file, 'w')
-    f.write('\n'.join('%s|%s|%d' % (spath,iname,atime)
-                      for spath,atime,iname in self.files_sorted_by_access_time()))
+    f.write('\n'.join('%s|%s|%s|%d' % (spath,dbname,iname,atime)
+                      for spath,atime,iname,dbname in self.files_sorted_by_access_time()))
     f.close()
 
   def files_sorted_by_access_time(self):
 
-    s = [(spath, atime, iname) for spath,(atime,iname) in self.files.items()]
+    s = [(spath, atime, iname, dbname) for spath,(atime,iname,dbname) in self.files.items()]
     s.sort(key = lambda sai: sai[1])
     s.reverse()
     return s
 
-  def add_entry(self, path, replace_image = False, wait_for_render = False):
+  def add_entry(self, path, from_database = None, replace_image = False, models = None):
 
     if not self.read:
       self.read_history()
 
-    atime,iname = self.files.get(path, (None,None))
-    v = self.session.view
+    atime,iname,dbname = self.files.get(path, (None,None,None))
     if iname is None:
       from os.path import splitext, basename
       bname = splitext(basename(path))[0] + '.' + self.image_format.lower()
       iname = unique_file_name(bname, self.thumbnail_directory)
-      self.save_thumbnail(iname, v, wait_for_render)
+      self.save_thumbnail(iname, models)
     elif replace_image:
-      self.save_thumbnail(iname, v, wait_for_render)
+      self.save_thumbnail(iname, models)
 
     from time import time
     atime = time()
 
-    self.files[path] = (atime,iname)
+    dbname = '' if from_database is None else from_database
+    self.files[path] = (atime,iname,dbname)
     self.changed = True
 
-  def save_thumbnail(self, iname, viewer, wait_for_render = False):
+  def save_thumbnail(self, iname, models = None):
 
-    if self.render_cb:
-      viewer.remove_rendered_frame_callback(self.render_cb)
-      self.render_cb = None
-
-    if wait_for_render and viewer.redraw_needed:
-      self.render_cb = cb = lambda s=self,i=iname,v=viewer: s.save_thumbnail(i,v)
-      viewer.add_rendered_frame_callback(cb)
-    else:
-      from os.path import join
-      ipath = join(self.thumbnail_directory, iname)
-      s = self.thumbnail_size
-      i = viewer.image(s,s)
-      i.save(ipath, self.image_format)
+    from os.path import join
+    ipath = join(self.thumbnail_directory, iname)
+    s = self.thumbnail_size
+    from ..ui import camera
+    c = camera.camera_framing_models(s,s,models) if models else v.camera
+    i = self.session.view.image(s,s, camera = c, models = models)
+    i.save(ipath, self.image_format)
 
   def recent_files_index(self):
 
@@ -163,14 +158,16 @@ class File_History:
 
   def open_clicked_session(self, url):
 
-    path = url.toString(url.PreferLocalFile)         # session file path
+    href = url.toString(url.PreferLocalFile)         # session file path
+    path, db = href.split('@') if '@' in href else (href, None)
+
     import os.path
-    if not os.path.exists(path):
-      self.session.show_status('Session file not found: %s' % path)
+    if db is None and not os.path.exists(path):
+      self.session.show_status('File not found: %s' % path)
       return
     self.hide_history()
     from . import opensave
-    opensave.open_session(path, self.session)
+    opensave.open_data(path, self.session, from_database = db)
 
   def history_shown(self):
 
@@ -188,7 +185,7 @@ class File_History:
       self.read_history()
     if len(self.files) == 0:
       return None
-    p, atime, iname = self.files_sorted_by_access_time()[0]
+    p, atime, iname, dbname = self.files_sorted_by_access_time()[0]
     from os.path import dirname
     return dirname(p)
     
@@ -204,11 +201,12 @@ class File_History:
              #           'td { text-align:center; }',        # Does not work in Qt 5.0.2
              '</style>', '</head>', '<body>']
     s = self.files_sorted_by_access_time()
-    for spath, atime, iname in s:
+    for spath, atime, iname, dbname in s:
+      url = '%s@%s' % (spath, dbname) if dbname else spath
       sname = splitext(basename(spath))[0]
       ipath = join(self.thumbnail_directory, iname)
       lines.extend(['',
-                    '<a href="%s">' % spath,
+                    '<a href="%s">' % url,
                     '<table style="float:left;">',
                     '<tr><td><img src="%s" height=180>' % ipath,
                     '<tr><td><center>%s</center>' % sname,
