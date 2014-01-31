@@ -184,17 +184,27 @@ def file_writer(path, format = None):
 #
 def save_map_command(cmdname, args, session):
 
-    from ...ui.commands import string_arg, grid_data_arg
+    from ...ui.commands import path_arg, volumes_arg
     from ...ui.commands import parse_arguments
-    req_args = (('path', string_arg),
-                ('grids', grid_data_arg),
+    req_args = (('path', path_arg),
+                ('maps', volumes_arg),
                 )
     opt_args = ()
     kw_args = ()
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     kw['session'] = session
+    vlist = kw['maps']
+    kw['grids'] = [v.data for v in vlist]
+    kw.pop('maps')
+
     save_grid_data(**kw)
+
+    # Set file icon image on Mac
+    from ...file_io import fileicon
+    fileicon.set_file_icon(kw['path'], session, models = vlist)
+
+    session.file_history.add_entry(kw['path'], models = vlist)
  
 # -----------------------------------------------------------------------------
 #
@@ -242,10 +252,6 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   else:
     garg = g
   write_data_file(garg, tpath, options = options, progress = p)
-
-  # Set file icon image on Mac
-  from ...file_io import fileicon
-  fileicon.set_file_icon(tpath, session)
 
   if tpath != path:
     import os, os.path, shutil

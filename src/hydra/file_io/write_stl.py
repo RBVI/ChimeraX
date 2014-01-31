@@ -12,8 +12,11 @@ def write_surfaces_as_stl(path, surfaces, session, displayed_only = True):
     f = open(path, 'wb')
     write_surface_pieces(plist, f)
     f.close()
+
     from . import fileicon
     fileicon.set_file_icon(path, session, models = surfs)
+
+    session.file_history.add_entry(path, models = surfs)
 
 # -----------------------------------------------------------------------------
 #
