@@ -44,7 +44,7 @@ class File_History:
     if remove_missing:
       removed_some = False
       for spath, (atime,iname,dbname) in tuple(files.items()):
-        if not dbname and not isfile(spath):
+        if not dbname and len([p for p in spath.split(',') if not isfile(p)]) > 0:
           files.pop(spath)
           removed_some = True
       if removed_some:
@@ -95,7 +95,6 @@ class File_History:
     if not self.changed:
       return
 
-    from os.path import basename
     f = open(self.history_file, 'w')
     f.write('\n'.join('%s|%s|%s|%d' % (spath,dbname,iname,atime)
                       for spath,atime,iname,dbname in self.files_sorted_by_access_time()))
@@ -115,9 +114,7 @@ class File_History:
 
     atime,iname,dbname = self.files.get(path, (None,None,None))
     if iname is None:
-      from os.path import splitext, basename
-      bname = splitext(basename(path))[0] + '.' + self.image_format.lower()
-      iname = unique_file_name(bname, self.thumbnail_directory)
+      iname = self.thumbnail_filename(path)
       self.save_thumbnail(iname, models)
     elif replace_image:
       self.save_thumbnail(iname, models)
@@ -128,6 +125,14 @@ class File_History:
     dbname = '' if from_database is None else from_database
     self.files[path] = (atime,iname,dbname)
     self.changed = True
+
+  def thumbnail_filename(self, path):
+
+    p0 = path.split(',')[0]
+    from os.path import splitext, basename
+    bname = splitext(basename(p0))[0] + '.' + self.image_format.lower()
+    iname = unique_file_name(bname, self.thumbnail_directory)
+    return iname
 
   def save_thumbnail(self, iname, models = None):
 
@@ -161,10 +166,12 @@ class File_History:
     href = url.toString(url.PreferLocalFile)         # session file path
     path, db = href.split('@') if '@' in href else (href, None)
 
+    p0 = path.split(',')[0]
     import os.path
-    if db is None and not os.path.exists(path):
-      self.session.show_status('File not found: %s' % path)
+    if db is None and not os.path.exists(p0):
+      self.session.show_status('File not found: %s' % p0)
       return
+
     self.hide_history()
     from . import opensave
     opensave.open_data(path, self.session, from_database = db)
@@ -203,7 +210,7 @@ class File_History:
     s = self.files_sorted_by_access_time()
     for spath, atime, iname, dbname in s:
       url = '%s@%s' % (spath, dbname) if dbname else spath
-      sname = splitext(basename(spath))[0]
+      sname = self.display_name(spath)
       ipath = join(self.thumbnail_directory, iname)
       lines.extend(['',
                     '<a href="%s">' % url,
@@ -215,6 +222,18 @@ class File_History:
     lines.extend(['</body>', '</html>'])
     html = '\n'.join(lines)
     return html
+
+  def display_name(self, path):
+
+    from os.path import basename, splitext, join
+    paths = path.split(',')
+    np = len(paths)
+    if np == 1:
+      n = splitext(basename(paths[0]))[0]
+    else:
+      fmt = '%s %s' if np == 2 else '%s ... %s'
+      n = fmt % tuple(splitext(basename(p))[0] for p in (paths[0],paths[-1]))
+    return n
 
 def unique_file_name(name, directory):
   from os.path import join, dirname, splitext, basename, isfile

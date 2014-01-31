@@ -13,7 +13,11 @@ def show_open_file_dialog(session):
         dir = '.'
     v = session.main_window.view
     qpaths = QtWidgets.QFileDialog.getOpenFileNames(v.widget, 'Open File', dir, filters)
-    open_files(qpaths[0], session)
+    # Return value is a 2-tuple holding list of paths and filter string.
+    paths = qpaths[0]
+    mlist = open_files(paths, session)
+    if mlist:
+        session.file_history.add_entry(','.join(paths), models = mlist)
     session.main_window.show_graphics()
 
 def file_types(session):
@@ -238,33 +242,33 @@ def open_command(cmdname, args, session):
 
 def open_data(path, session, from_database = None, set_camera = None):
 
-    p = path
     db = from_database
     if not db is None:
-        mlist = open_from_database(p, session, db, set_camera)
+        ids = path.split(',')
+        mlist = open_from_database(ids, session, db, set_camera)
     else:
         from os.path import expanduser
-        p = expanduser(p)
+        paths = [expanduser(p) for p in path.split(',')]
+        p0 = paths[0]
         from os.path import isfile
-        if isfile(p):
-            mlist = open_files([p], session)
+        if isfile(p0):
+            mlist = open_files(paths, session)
         else:
-            id = p.split(',', maxsplit = 1)[0]
-            if len(id) == 4:
-                db = 'EMDB' if is_integer(id) else 'PDB'
-            else:
-                session.show_status('Unknown file %s' % p)
+            ids = p.split(',')
+            id0 = ids[0]
+            if len(id0) != 4:
+                session.show_status('Unknown file %s' % path)
                 return []
-            mlist = open_from_database(p, session, db, set_camera)
+            db = 'EMDB' if is_integer(id0) else 'PDB'
+            mlist = open_from_database(ids, session, db, set_camera)
 
     session.main_window.show_graphics()
     if mlist:
-        session.file_history.add_entry(p, from_database = db, models = mlist)
+        session.file_history.add_entry(path, from_database = db, models = mlist)
     return mlist
 
-def open_from_database(idstring, session, from_database, set_camera = None):
+def open_from_database(ids, session, from_database, set_camera = None):
 
-    ids = idstring.split(',')
     if set_camera is None:
         set_camera = (session.model_count() == 0)
     from . import fetch
