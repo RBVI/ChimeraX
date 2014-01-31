@@ -321,6 +321,13 @@ def string_arg(s, session):
 
 # -----------------------------------------------------------------------------
 #
+def path_arg(s, session):
+
+    from os.path import expanduser
+    return expanduser(s)
+
+# -----------------------------------------------------------------------------
+#
 def bool_arg(s, session):
 
     return s.lower() not in ('false', 'f', '0', 'no', 'n', 'off')
@@ -729,8 +736,8 @@ def surfaces_arg(s, session):
 #
 def filter_surfaces(surfaces):
     
-    from _surface import SurfaceModel
-    surfs = set([s for s in surfaces if isinstance(s, SurfaceModel)])
+    from ..molecule import Molecule
+    surfs = set([s for s in surfaces if not isinstance(s, Molecule)])
     if len(surfs) == 0:
         raise CommandError('No surfaces specified')
     return surfs

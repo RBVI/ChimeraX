@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 # 
-def read_stl(path, color = (.7,.7,.7,1)):
+def read_stl(path, session, color = (.7,.7,.7,1)):
     '''
     Read a STL (Stereo Lithography) surface file and create a surface.
     '''

@@ -58,7 +58,7 @@ def file_readers(session):
     return r
 
 def file_writers(session):
-    from . import session_file
+    from . import session_file, write_stl
     from ..map.data import fileformats
     w = {'.png': save_image_command,
          '.jpg': save_image_command,
@@ -66,6 +66,7 @@ def file_writers(session):
          '.bmp': save_image_command,
          '.hy': lambda cmdname,path,session: session_file.save_session(path, session),
          '.mrc': fileformats.save_map_command,
+         '.stl': write_stl.write_stl_command,
          }
     return w
 
@@ -323,7 +324,7 @@ def close_command(cmdname, args, session):
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     session.close_models(**kw)
 
-def read_python(path):
+def read_python(path, session):
     '''
     Read a Python file and execute the code.
     '''
