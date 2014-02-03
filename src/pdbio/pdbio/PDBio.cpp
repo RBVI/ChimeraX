@@ -1508,7 +1508,6 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     }
 #endif
     mols = read_pdb(pdb_file, log_file, explode);
-std::cerr << "MolBlob returned\n";
     return mols;
 }
 

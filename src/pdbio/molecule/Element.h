@@ -23,9 +23,10 @@
 
 // $Id: Element.h 36237 2012-04-26 00:02:50Z goddard $
 
-# include <iostream>
+#include <iostream>
+#include "imex.h"
 
-class Element {
+class MOLECULE_IMEX Element {
 public:
     // Atomic Symbols:
     enum AS {

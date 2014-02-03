@@ -5,8 +5,9 @@ SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 
 LIB= libutil.a
+LIBNAME= util
 
-$(LIB): $(OBJS)
+$(LIB): imex.h $(OBJS)
 	ar -r $(LIB) $(OBJS)
 
 install: $(LIB)

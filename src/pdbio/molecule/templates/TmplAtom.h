@@ -6,13 +6,14 @@
 #include <vector>
 #include "TmplCoordSet.h"
 #include "../Element.h"
+#include "../imex.h"
 
 
 class TmplMolecule;
 class TmplResidue;
 class TmplBond;
 
-class TmplAtom {
+class MOLECULE_IMEX TmplAtom {
     friend class TmplMolecule;
     friend class TmplResidue;
     void    operator=(const TmplAtom &);    // disable

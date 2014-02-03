@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include "../imex.h"
 
 class CondInfo {
 public:
@@ -19,7 +20,7 @@ public:
     void add_condition(const char *cond, const char *type);
 };
 
-class TemplateCache {
+class MOLECULE_IMEX TemplateCache {
 public:
     typedef std::pair<std::string, ConditionalTemplate *> AtomMappings;
         // <normal IDATM type, conditional IDATM types>

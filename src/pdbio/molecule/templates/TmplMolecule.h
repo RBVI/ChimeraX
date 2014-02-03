@@ -11,8 +11,9 @@
 #include "TmplBond.h"
 #include "TmplCoordSet.h"
 #include "TmplResidue.h"
+#include "../imex.h"
 
-class TmplMolecule {
+class MOLECULE_IMEX TmplMolecule {
 public:
         ~TmplMolecule();
     TmplAtom    *new_atom(std::string n, Element e);

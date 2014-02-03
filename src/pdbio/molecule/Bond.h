@@ -4,11 +4,12 @@
 
 #include "base-geom/Real.h"
 #include "base-geom/Connection.h"
+#include "imex.h"
 
 class Atom;
 class Molecule;
 
-class Bond: public Connection<Atom, Bond> {
+class MOLECULE_IMEX Bond: public Connection<Atom, Bond> {
     friend class Molecule;
 public:
     typedef End_points  Atoms;

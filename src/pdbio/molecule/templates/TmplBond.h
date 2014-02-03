@@ -2,10 +2,12 @@
 #ifndef templates_TmplBond
 #define    templates_TmplBond
 
+#include "../imex.h"
+
 class TmplAtom;
 class TmplMolecule;
 
-class TmplBond {
+class MOLECULE_IMEX TmplBond {
     friend class TmplAtom;
     friend class TmplMolecule;
     void    operator=(const TmplBond &);    // disable

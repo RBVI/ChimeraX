@@ -5,11 +5,12 @@
 #include <map>
 #include <vector>
 #include "Residue_template.h"
+#include "../imex.h"
 
 class TmplAtom;
 class TmplMolecule;
 
-class TmplResidue {
+class MOLECULE_IMEX TmplResidue {
     friend class TmplMolecule;
     void    operator=(const TmplResidue &);    // disable
         TmplResidue(const TmplResidue &);    // disable

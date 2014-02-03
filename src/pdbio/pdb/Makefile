@@ -7,7 +7,7 @@ LIBNAME = pdb
 LIB= lib$(LIBNAME).a
 CXXFLAGS += -I..
 
-$(LIB): $(OBJS)
+$(LIB): imex.h $(OBJS)
 	ar -r $(LIB) $(OBJS)
 
 install: $(LIB)

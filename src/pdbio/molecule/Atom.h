@@ -11,12 +11,13 @@
 #include "base-geom/Coord.h"
 #include "Bond.h"
 #include "base-geom/Sphere.h"
+#include "imex.h"
 
 class CoordSet;
 class Molecule;
 class Residue;
 
-class Atom: public BaseSphere<Bond, Atom> {
+class MOLECULE_IMEX Atom: public BaseSphere<Bond, Atom> {
     friend class Molecule;
     friend class Residue;
 public:

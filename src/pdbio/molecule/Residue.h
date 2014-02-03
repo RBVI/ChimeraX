@@ -5,11 +5,12 @@
 #include <vector>
 #include <map>
 #include <string>
+#include "imex.h"
 
 class Atom;
 class Molecule;
 
-class Residue {
+class MOLECULE_IMEX Residue {
     friend class Molecule;
 public:
     typedef std::vector<Atom *>  Atoms;

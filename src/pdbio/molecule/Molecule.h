@@ -14,9 +14,11 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "Residue.h"
+#include "imex.h"
+
 class Element;
 
-class Molecule {
+class MOLECULE_IMEX Molecule {
 public:
     typedef std::vector<std::unique_ptr<Atom>>  Atoms;
     typedef std::vector<std::unique_ptr<Bond>>  Bonds;

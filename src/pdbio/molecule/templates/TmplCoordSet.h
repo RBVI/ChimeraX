@@ -4,10 +4,11 @@
 
 #include <vector>
 #include "TmplCoord.h"
+#include "../imex.h"
 
 class TmplMolecule;
 
-class TmplCoordSet {
+class MOLECULE_IMEX TmplCoordSet {
     friend class TmplMolecule;
     void    operator=(const TmplCoordSet &);    // disable
         TmplCoordSet(const TmplCoordSet &);    // disable

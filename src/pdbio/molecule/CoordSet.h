@@ -3,12 +3,13 @@
 #define molecule_CoordSet
 
 #include "base-geom/Coord.h"
+#include "imex.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
-class CoordSet {
+class MOLECULE_IMEX CoordSet {
     friend class Atom;
     friend class Molecule;
 
