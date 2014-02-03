@@ -80,34 +80,58 @@ class Oculus_Head_Tracking:
         self.last_rotation = r
 
 def start_oculus(session):
-    start = False
-    oht = session.oculus
-    if oht is None:
-        oht = Oculus_Head_Tracking()
-        view = session.view
-        success = oht.start_event_processing(view)
-        session.show_status('started oculus head tracking ' + ('success' if success else 'failed'))
-        if success:
-            session.oculus = oht
-            c = view.camera
-            from math import pi
-            c.field_of_view = oht.field_of_view() * 180 / pi
-            c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
-            c.eye_separation_pixels = 2*oht.image_shift_pixels()
-            view.set_camera_mode('oculus')
-            view.render.radial_warp_coefficients = oht.radial_warp_parameters()
-            print ('Radial warp', oht.radial_warp_parameters())
-            start = True
-        else:
-            oht = None
 
+    oht = session.oculus
+    start = (oht is None)
+    if start:
+        session.oculus = oht = initialize_head_tracking(session)
+
+    set_oculus_camera_mode(session)
+
+    if oht:
+        oculus_full_screen(start, session)
+
+def initialize_head_tracking(session):
+
+    oht = Oculus_Head_Tracking()
+    view = session.view
+    success = oht.start_event_processing(view)
+    msg = 'started oculus head tracking ' + ('success' if success else 'failed')
+    session.show_status(msg)
+    session.show_info(msg)
+    return oht if success else None
+
+# Set stereo camera mode
+def set_oculus_camera_mode(session):
+    oht = session.oculus
+    if oht:
+        fov = oht.field_of_view()
+        ishift = oht.image_shift_pixels()
+        warp = oht.radial_warp_parameters()
+        print ('Radial warp', warp)
+    else:
+        fov = 1.5
+        ishift = -50
+        warp = (1, 0.2, 0, 0)
+
+    view = session.view
+    c = view.camera
+    from math import pi
+    c.field_of_view = fov * 180 / pi
+    c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
+    c.eye_separation_pixels = 2*ishift
+    view.set_camera_mode('oculus')
+    view.render.radial_warp_coefficients = warp
+
+# Go full screen on oculus display
+def oculus_full_screen(full, session):
     d = session.application.desktop()
     mw = session.main_window
-    if start or d.screenNumber(mw) == d.primaryScreen():
+    if full or d.screenNumber(mw) == d.primaryScreen():
         mw.toolbar.hide()
         mw.command_line.hide()
         mw.statusBar().hide()
-        w,h = oht.display_size()
+        w,h = session.oculus.display_size()
         move_window_to_oculus(session, w, h)
     else:
         move_window_to_primary_screen(session)
