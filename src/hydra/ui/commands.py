@@ -10,10 +10,10 @@ def register_commands(commands):
     Registers the standard commands.
     '''
     add = commands.add_command
-    from ..file_io.opensave import open_command, close_command, imagesave_command
+    from ..file_io.opensave import open_command, save_command, close_command
     add('open', open_command)
+    add('save', save_command)
     add('close', close_command)
-    add('imagesave', imagesave_command)
     from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
     s = commands.session
     fetch_pdb.register_pdb_fetch(s)
@@ -321,6 +321,13 @@ def string_arg(s, session):
 
 # -----------------------------------------------------------------------------
 #
+def path_arg(s, session):
+
+    from os.path import expanduser
+    return expanduser(s)
+
+# -----------------------------------------------------------------------------
+#
 def bool_arg(s, session):
 
     return s.lower() not in ('false', 'f', '0', 'no', 'n', 'off')
@@ -519,6 +526,12 @@ def volumes_arg(v, session):
     if len(vlist) == 0:
         raise CommandError('No volumes specified')
     return vlist
+
+# -----------------------------------------------------------------------------
+#
+def grid_data_arg(v, session):
+
+    return [v.data for v in volumes_arg(v,session)]
 
 # -----------------------------------------------------------------------------
 #
@@ -723,8 +736,8 @@ def surfaces_arg(s, session):
 #
 def filter_surfaces(surfaces):
     
-    from _surface import SurfaceModel
-    surfs = set([s for s in surfaces if isinstance(s, SurfaceModel)])
+    from ..molecule import Molecule
+    surfs = set([s for s in surfaces if not isinstance(s, Molecule)])
     if len(surfs) == 0:
         raise CommandError('No surfaces specified')
     return surfs

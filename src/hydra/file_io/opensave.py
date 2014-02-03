@@ -13,7 +13,11 @@ def show_open_file_dialog(session):
         dir = '.'
     v = session.main_window.view
     qpaths = QtWidgets.QFileDialog.getOpenFileNames(v.widget, 'Open File', dir, filters)
-    open_files(qpaths[0], session)
+    # Return value is a 2-tuple holding list of paths and filter string.
+    paths = qpaths[0]
+    mlist = open_files(paths, session)
+    if mlist:
+        session.file_history.add_entry(','.join(paths), models = mlist)
     session.main_window.show_graphics()
 
 def file_types(session):
@@ -52,6 +56,19 @@ def file_readers(session):
         for s in suffixes:
             r['.' + s] = read_func
     return r
+
+def file_writers(session):
+    from . import session_file, write_stl
+    from ..map.data import fileformats
+    w = {'.png': save_image_command,
+         '.jpg': save_image_command,
+         '.ppm': save_image_command,
+         '.bmp': save_image_command,
+         '.hy': lambda cmdname,path,session: session_file.save_session(path, session),
+         '.mrc': fileformats.save_map_command,
+         '.stl': write_stl.write_stl_command,
+         }
+    return w
 
 def open_files(paths, session, set_camera = None):
     '''
@@ -155,13 +172,24 @@ def save_session_as(session):
     session_file.save_session(path, session)
     session.show_info('Saved %s' % path, color = '#000080')
 
-def save_image(path, session, width = None, height = None, format = 'JPG'):
+def save_command(cmdname, args, session):
+    a0 = args.split()[0]
+    from os.path import splitext
+    e = splitext(a0)[1]
+    fw = file_writers(session)
+    if e in fw:
+        save_func = fw[e]
+        save_func(cmdname, args, session)
+    else:
+        session.show_status('Unknown save file type %s' % a0)
+
+def save_image(path, session, width = None, height = None, format = None):
     '''
-    Save a JPEG image of the current graphics window contents.
+    Save an image of the current graphics window contents.
     '''
     view = session.view
     if path is None:
-        filters = 'JPEG image (*.jpg)'
+        filters = 'Image (*.jpg *.png *.ppm *.bmp)'
         path = QtWidgets.QFileDialog.getSaveFileName(view.widget, 'Save Image', '.',
                                                      filters)
         if path is None:
@@ -173,6 +201,13 @@ def save_image(path, session, width = None, height = None, format = 'JPG'):
     if not os.path.exists(dir):
         from ..ui import commands
         raise commands.CommandError('Directory "%s" does not exist' % dir)
+
+    if format is None:
+        from os.path import splitext
+        format = splitext(path)[1][1:].upper()
+        if not format in ('PNG', 'JPG', 'PPM', 'BMP'):
+            from ..ui import commands
+            raise commands.CommandError('Unrecognized image file suffix "%s"' % format)
 
     # Match current window aspect ratio
     # TODO: Allow different aspect ratios
@@ -191,7 +226,7 @@ def save_image(path, session, width = None, height = None, format = 'JPG'):
     i.save(path, format)
     print ('saved image', path)
 
-def imagesave_command(cmdname, args, session):
+def save_image_command(cmdname, args, session):
 
     from ..ui.commands import string_arg, int_arg, parse_arguments
     req_args = (('path', string_arg),)
@@ -231,39 +266,53 @@ def open_command(cmdname, args, session):
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     kw['session'] = session
-    open_file(**kw)
+    if 'fromDatabase' in kw:
+        kw['from_database'] = kw['fromDatabase']
+        kw.pop('fromDatabase')
+    open_data(**kw)
 
-def open_file(path, session, from_database = None, set_camera = None):
-    if from_database is None:
-        from os.path import expanduser
-        p = expanduser(path)
-        from os.path import isfile
-        if isfile(p):
-            open_files([p], session)
-        else:
-            if ':' in p:
-                dbname, id = p.split(':', 1)
-            elif len(p) == 4 or len(p.split(',', maxsplit = 1)[0]) == 4:
-                dbname, id = 'PDB', p
-            else:
-                session.show_status('Unknown file %s' % path)
-                return
-            open_file(id, session, from_database = dbname)
-    else:
+def open_data(path, session, from_database = None, set_camera = None):
+
+    db = from_database
+    if not db is None:
         ids = path.split(',')
-        if set_camera is None:
-            set_camera = (session.model_count() == 0)
-        from . import fetch
-        mlist = []
-        for id in ids:
-            m = fetch.fetch_from_database(id, from_database, session)
-            if isinstance(m, (list, tuple)):
-                mlist.extend(m)
-            else:
-                mlist.append(m)
-        session.add_models(mlist)
-        finished_opening([m.path for m in mlist], set_camera, session)
+        mlist = open_from_database(ids, session, db, set_camera)
+    else:
+        from os.path import expanduser
+        paths = [expanduser(p) for p in path.split(',')]
+        p0 = paths[0]
+        from os.path import isfile
+        if isfile(p0):
+            mlist = open_files(paths, session)
+        else:
+            ids = p.split(',')
+            id0 = ids[0]
+            if len(id0) != 4:
+                session.show_status('Unknown file %s' % path)
+                return []
+            db = 'EMDB' if is_integer(id0) else 'PDB'
+            mlist = open_from_database(ids, session, db, set_camera)
+
     session.main_window.show_graphics()
+    if mlist:
+        session.file_history.add_entry(path, from_database = db, models = mlist)
+    return mlist
+
+def open_from_database(ids, session, from_database, set_camera = None):
+
+    if set_camera is None:
+        set_camera = (session.model_count() == 0)
+    from . import fetch
+    mlist = []
+    for id in ids:
+        m = fetch.fetch_from_database(id, from_database, session)
+        if isinstance(m, (list, tuple)):
+            mlist.extend(m)
+        else:
+            mlist.append(m)
+    session.add_models(mlist)
+    finished_opening([m.path for m in mlist], set_camera, session)
+    return mlist
 
 def close_command(cmdname, args, session):
 
@@ -275,7 +324,7 @@ def close_command(cmdname, args, session):
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     session.close_models(**kw)
 
-def read_python(path):
+def read_python(path, session):
     '''
     Read a Python file and execute the code.
     '''
@@ -286,3 +335,10 @@ def read_python(path):
     globals = locals = None
     exec(ccode, globals, locals)
     return []
+
+def is_integer(s):
+    try:
+        int(s)
+    except ValueError:
+        return False
+    return True

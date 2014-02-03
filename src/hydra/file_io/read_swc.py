@@ -40,7 +40,7 @@
 # displayed +/- radius along y axis.  Probably best to display just the
 # first soma point.
 # 
-def read_swc(path):
+def read_swc(path, session):
     '''
     Read a Stockley-Wheal-Cannon (SWC) format traced neuron file
     and create a fake molecule model using atoms and bonds to represent

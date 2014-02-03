@@ -243,7 +243,7 @@ def volume(volumes = '',                # Specifier
     fopt = ('save', 'saveFormat', 'saveRegion', 'saveStep', 'maskZone',
             'chunkShapes', 'append', 'compress', 'baseIndex')
     fsettings = dict((n,loc[n]) for n in fopt if not loc[n] is None)
-    save_volumes(vlist, fsettings)
+    save_volumes(vlist, fsettings, session)
     
 # -----------------------------------------------------------------------------
 #
@@ -342,7 +342,7 @@ def apply_volume_options(v, doptions, roptions, session):
 
 # -----------------------------------------------------------------------------
 #
-def save_volumes(vlist, doptions):
+def save_volumes(vlist, doptions, session):
 
     if not 'save' in doptions:
         return
@@ -368,9 +368,9 @@ def save_volumes(vlist, doptions):
         from .data import save_grid_data
         if is_multifile_save(path):
             for i,g in enumerate(grids):
-                save_grid_data(g, path % (i + base_index), format, options)
+                save_grid_data(g, path % (i + base_index), session, format, options)
         else:
-            save_grid_data(grids, path, format, options)
+            save_grid_data(grids, path, session, format, options)
    
 # -----------------------------------------------------------------------------
 # Check if file name contains %d type format specification.

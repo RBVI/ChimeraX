@@ -1,10 +1,10 @@
-def open_autopack_results(path):
+def open_autopack_results(path, session):
     '''
     Open an Autopack results files (.apr suffix) and create surfaces
     for each component of the model.
     '''
     pieces = read_apr_file(path)
-    surfs = create_surfaces(path, pieces)
+    surfs = create_surfaces(path, pieces, session)
     return surfs
 
 def read_apr_file(path):
@@ -46,7 +46,7 @@ def print_pieces(pieces):
     for fn in flist:
         print (fn, len(pieces[fn]))
 
-def create_surfaces(apr_path, pieces):
+def create_surfaces(apr_path, pieces, session):
 
     not_found = set()
     pdbs = []
@@ -63,7 +63,7 @@ def create_surfaces(apr_path, pieces):
 #            pdbs.append((pdb_path, tflist))
 #        else:
         stl_path = path + '.stl'
-        surf = create_surface_copies(stl_path, tflist)
+        surf = create_surface_copies(stl_path, tflist, session)
         descrip = '%s, %d copies' % (fname, len(tflist))
         if surf:
             surfs.append(surf)
@@ -76,14 +76,14 @@ def create_surfaces(apr_path, pieces):
 
     return surfs
 
-def create_surface_copies(path, tflist):
+def create_surface_copies(path, tflist, session):
 
     from os.path import exists
     if not exists(path) or len(tflist) == 0:
         return None
 
     from .read_stl import read_stl
-    surf = read_stl(path)
+    surf = read_stl(path, session)
     p = surf.plist[0]
     p.color = color = random_color(surf.name)
     p.copies = tflist
