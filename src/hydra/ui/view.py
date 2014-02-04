@@ -10,7 +10,9 @@ class View(QtGui.QWindow):
         QtGui.QWindow.__init__(self)
         self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
-        w.setFocusPolicy(QtCore.Qt.ClickFocus)
+#        w.setFocusPolicy(QtCore.Qt.ClickFocus)
+        w.setFocusPolicy(QtCore.Qt.NoFocus)
+
 # TODO: Qt 5.1 has touch events disabled on Mac
 #        w.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
         
@@ -67,9 +69,11 @@ class View(QtGui.QWindow):
             self.draw_graphics()
 
     def keyPressEvent(self, event):
-        if str(event.text()) == '\r':
-            return
-        self.session.keyboard_shortcuts.key_pressed(event)
+
+        # TODO: This window should never get key events since we set widget.setFocusPolicy(NoFocus)
+        # but it gets them anyways on Mac in Qt 5.2 if the graphics window is clicked.
+        # So we pass them back to the main window.
+        self.session.main_window.event(event)
 
     def create_opengl_context(self):
 

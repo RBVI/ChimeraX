@@ -181,13 +181,19 @@ class Keyboard_Shortcuts:
 
     c = str(event.text())
     self.keys += c
+    self.try_shortcut()
+
+  def try_shortcut(self, keys = None):
+
+    if not keys is None:
+        self.keys = keys
     k = self.keys
     s = self.shortcuts
     if k in s:
       keys = self.keys
       self.keys = ''
       self.run_shortcut(keys)
-      return
+      return True
     
     is_prefix = False
     for ks in s.keys():
@@ -199,6 +205,7 @@ class Keyboard_Shortcuts:
         self.keys = ''
 
     self.session.show_status(msg)
+    return not is_prefix
 
   def run_shortcut(self, keys):
       fdnc = self.shortcuts.get(keys)
