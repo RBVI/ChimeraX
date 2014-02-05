@@ -63,7 +63,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_command_line(self):
 
         d = QtWidgets.QDockWidget('Command line', self)
-        cline = QtWidgets.QLineEdit(d)
+        cline = Command_Line(d, self.session)
+#        cline = QtWidgets.QLineEdit(d)
 #        cline.setFocusPolicy(QtCore.Qt.ClickFocus)
         cline.setFocus(QtCore.Qt.OtherFocusReason)      # Set the initial focus to the command-line
 #        self.setFocusProxy(cline)
@@ -129,8 +130,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def enable_shortcuts(self, enable):
         color = 'rgb(230,255,230)' if enable else 'white'
-        self.command_line.setStyleSheet('QLineEdit {background: %s;}' % color)
+        cl = self.command_line
+        cl.setStyleSheet('QLineEdit {background: %s;}' % color)
         self.shortcuts_enabled = enable
+        cl.setText('')
 
     def keyPressEvent(self, event):
 
@@ -211,6 +214,26 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
             finally:
                 self.view.unblock_redraw()
+
+class Command_Line(QtWidgets.QLineEdit):
+
+    def __init__(self, parent, session):
+        self.session = session
+        QtWidgets.QLineEdit.__init__(self, parent)
+
+    def keyPressEvent(self, event):
+        t = event.text()
+        ctrlp = b'\x10'.decode('utf-8')
+        ctrln = b'\x0e'.decode('utf-8')
+        if t in (ctrlp, ctrln):
+            s = self.session
+            s.main_window.enable_shortcuts(False)
+            if t == ctrlp:
+                s.commands.history.show_previous_command()
+            elif t == ctrln:
+                s.commands.history.show_next_command()
+        else:
+            QtWidgets.QLineEdit.keyPressEvent(self, event)
 
 def icon(filename):
     from os.path import dirname, join

@@ -116,13 +116,6 @@ def register_shortcuts(keyboard_shortcuts):
     for k,f,d,cat in session_shortcuts:
         ks.add_shortcut(k, f, d, category = cat, session_arg = True)
 
-    ctrlp = b'\x10'.decode('utf-8')
-    ks.add_shortcut(ctrlp, previous_command, 'Previous command',
-                    key_name = 'ctrl-p', category = gcat, session_arg = True) 
-    ctrln = b'\x0e'.decode('utf-8')
-    ks.add_shortcut(ctrln, next_command, 'Next command',
-                    key_name = 'ctrl-n', category = gcat, session_arg = True) 
-
     ks.category_columns = ((ocat,mapcat), (molcat,), (gcat,))
 
     return ks
@@ -590,12 +583,6 @@ def toggle_space_navigator_fly_mode(session):
 def space_navigator_collisions(session):
     from . import spacenavigator
     spacenavigator.avoid_collisions(session)
-
-def previous_command(session):
-    session.commands.history.show_previous_command()
-
-def next_command(session):
-    session.commands.history.show_next_command()
 
 def quit(session):
     import sys
