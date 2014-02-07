@@ -15,7 +15,11 @@ class View(QtGui.QWindow):
 
 # TODO: Qt 5.1 has touch events disabled on Mac
 #        w.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
-        
+
+        # Qt 5.2 has touch events disabled because it slows down scrolling.  Reenable them.
+        from .. import _image3d
+        _image3d.accept_touch_events(int(self.winId()))
+
         self.window_size = (w.width(), w.height())		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
