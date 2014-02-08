@@ -124,15 +124,14 @@ class Gray_Scale_Drawing(object):
 
   def show(self):
 
-    if self.surface_pieces:
-      for p in self.surface_pieces:
-        p.display = True
+    self.display = True
+    for p in self.surface_pieces:
+      p.display = True
 
   def hide(self):
 
-    if self.surface_pieces:
-      for p in self.surface_pieces:
-        p.display = False
+    for p in self.surface_pieces:
+      p.display = False
 
   def delete(self):
     plist = self.surface_pieces

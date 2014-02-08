@@ -1667,12 +1667,10 @@ class Volume(Surface):
     return self.place
   
   # ---------------------------------------------------------------------------
-  # Hide surface model and close solid model.
   #
   def unshow(self):
 
-    self.hide_solid()
-    self.hide_surface()
+    self.display = False
   
   # ---------------------------------------------------------------------------
   #
