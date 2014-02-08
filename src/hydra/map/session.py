@@ -310,7 +310,7 @@ map_attributes = (
   'version',
 )
 basic_map_attributes = (
-  'id', 'displayed', 'region', 'representation',
+  'id', 'display', 'region', 'representation',
   'surface_levels', 'surface_colors',
   'surface_brightness_factor', 'transparency_factor',
   'solid_levels', 'solid_colors', 'solid_brightness_factor',
@@ -359,6 +359,9 @@ def set_map_state(s, volume, notify = True):
   v = volume
 
   v.rendering_options = rendering_options_from_state(s['rendering_options'])
+
+  if 'displayed' in s:
+    s['display'] = s['displayed']     # Fix old session files
 
   for attr in basic_map_attributes:
     if attr in s:

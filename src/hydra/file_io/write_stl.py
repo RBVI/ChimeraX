@@ -4,7 +4,7 @@
 def write_surfaces_as_stl(path, surfaces, session, displayed_only = True):
 
     if displayed_only:
-        surfs = [s for s in surfaces if s.displayed]
+        surfs = [s for s in surfaces if s.display]
         plist = sum(([p for p in s.surface_pieces() if p.display] for s in surfs), [])
     else:
         surfs = surfaces
