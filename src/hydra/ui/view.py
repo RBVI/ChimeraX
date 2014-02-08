@@ -344,7 +344,7 @@ class View(QtGui.QWindow):
             camera.setup(vnum, r)
             if models:
                 self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
-                if self.session.transparent_models_shown():
+                if any_transparent_models(models):
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
                                        lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
             s = camera.finish_draw(vnum, r)
@@ -507,3 +507,10 @@ class View(QtGui.QWindow):
     def pixel_size(self, p = None):
         '''Return the pixel size in scene length units at point p in the scene.'''
         return self.camera.pixel_size(self.center_of_rotation if p is None else p)
+
+def any_transparent_models(models):
+
+    for m in models:
+        if m.showing_transparent():
+            return True
+    return False

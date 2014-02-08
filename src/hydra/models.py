@@ -95,10 +95,3 @@ class Models:
     def bounds_center_and_width(self):
         from .geometry import bounds
         return bounds.bounds_center_and_radius(self.bounds())
-
-    def transparent_models_shown(self):
-
-        for m in self.models:
-            if m.display and m.showing_transparent():
-                return True
-        return False
