@@ -770,6 +770,7 @@ class Volume(Surface):
 
     if show:
       self.update_solid(rendering_options)
+      self.display = True
     else:
       self.hide_solid()
 
