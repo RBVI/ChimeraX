@@ -127,7 +127,7 @@ def set_oculus_camera_mode(session):
 def oculus_full_screen(full, session):
     d = session.application.desktop()
     mw = session.main_window
-    if full or d.screenNumber(mw) == d.primaryScreen():
+    if full or mw.toolbar.isVisible():
         mw.toolbar.hide()
         mw.command_line.hide()
         mw.statusBar().hide()
