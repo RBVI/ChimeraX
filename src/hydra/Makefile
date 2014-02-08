@@ -82,6 +82,12 @@ install_mac_app: install mac_app_dirs
 # Fix _image3d.so path to python library
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/_image3d.so
 
+# Fix _spacenavigator.so path to Python library
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PY_SITE_INSTALL)/hydra/ui/spacenavigator/_spacenavigator.so
+
+# Fix _oculus.so path to Python library
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PY_SITE_INSTALL)/hydra/ui/oculus/_oculus.so
+
 # Install pdbio and fix paths to libraries
 	$(RSYNC) $(libdir)/libmolecule.dylib $(libdir)/libtmpl.dylib $(libdir)/libcapsule.dylib $(PY_SITE_INSTALL)/hydra/lib
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PY_SITE_INSTALL)/hydra/lib/libcapsule.dylib
