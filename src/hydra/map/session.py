@@ -344,8 +344,10 @@ def create_map_from_state(s, data, session):
 
   set_map_state(s, v, notify = False)
 
-  if v.displayed:
-    v.show()
+  d = v.display
+  v.show()      # Compute surface even if not displayed
+  if not d:
+    v.display = False
 
   return v
 
