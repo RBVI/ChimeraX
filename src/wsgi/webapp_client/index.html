@@ -4,6 +4,12 @@
 <head>
 <meta charset="utf-8"/>
 <title>Chimera 2 Web Application</title>
+<!-- standard javascript module loader TODO: data-main -->
+<!-- script type="text/javascript" src="js/require.js"></script> -->
+<!-- TODO: use require for underscore -->
+<script type="text/javascript" src="js/underscore.js"></script>
+<script type="text/javascript" src="js/hashtable.js"></script>
+<script type="text/javascript" src="js/hashset.js"></script>
 <!-- standard jquery/jquery-ui -->
 <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.js"></script>
 <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
@@ -18,7 +24,7 @@
 <script type="text/javascript" src="js/c2/session.js"></script>
 
 <!-- WebGL support -->
-<!-- <script type="text/javascript" src="webgl/webgl-debug.js"></script> -->
+<script type="text/javascript" src="webgl/webgl-debug.js"></script>
 <script type="text/javascript" src="webgl/webgl-utils.js"></script>
 <script type="text/javascript" src="webgl/webgl-context.js"></script>
 <script type="text/javascript" src="webgl/llgr_webgl.js"></script>
@@ -57,7 +63,8 @@ th, td { padding:0; }
 
 <script type="text/javascript">
 
-function array_search(arr, func) {
+function array_search(arr, func)
+{
 	if (!func || typeof(func) != 'function')
 		return -1;
 	if (!arr || !arr.length || arr.length < 1)
@@ -70,7 +77,8 @@ function array_search(arr, func) {
 	return -1;
 }
 
-function array_reverse_search(arr, func) {
+function array_reverse_search(arr, func)
+{
 	if (!func || typeof(func) != 'function')
 		return -1;
 	if (!arr || !arr.length || arr.length < 1)
@@ -82,7 +90,8 @@ function array_reverse_search(arr, func) {
 	return -1;
 }
 
-function array_index_of(arr, field, value) {
+function array_index_of(arr, field, value)
+{
 	var i = array_search(arr, function(obj) {
 		if (obj[field] != undefined)
 			return obj[field] == value;
@@ -92,7 +101,8 @@ function array_index_of(arr, field, value) {
 	return i;
 } 
 
-function array_last_index_of(arr, field, value) {
+function array_last_index_of(arr, field, value)
+{
 	var i = array_reverse_search(arr, function(obj) {
 		if (obj[field] != undefined)
 			return obj[field] == value;
@@ -103,7 +113,8 @@ function array_last_index_of(arr, field, value) {
 } 
 
 // show_error is global
-function show_error(message) {
+function show_error(message)
+{
 	show_status(message, { error: true, delay: 10000 });
 	return;
 	// TODO: dialog not working with jQuery mobile, use popup
@@ -130,7 +141,8 @@ function show_error(message) {
 }
 
 // show_status is global
-function show_status(message, options) {
+function show_status(message, options)
+{
 	options = options || {};
 	var delay = options.delay || 3000;	// milliseconds
 	var error = options.error || false;
@@ -162,7 +174,8 @@ function show_status(message, options) {
  * @param {vec3} up vec3 pointing up
  * @returns {mat4} out
  */
-mat4.camera_orientation = function (out, eye, center, up) {
+mat4.camera_orientation = function (out, eye, center, up)
+{
 	var x0, x1, x2, y0, y1, y2, z0, z1, z2, len,
 	eyex = eye[0],
 	eyey = eye[1],
@@ -244,7 +257,8 @@ mat4.camera_orientation = function (out, eye, center, up) {
 (function () {
 "use strict";
 
-function BBox(llb, urf) {
+function BBox(llb, urf)
+{
 	// right-handed axis-aligned bounding box
 	// 
 	// if either llb or urf are undefined,
@@ -253,7 +267,8 @@ function BBox(llb, urf) {
 	this.urf = urf;	// upper-right-front corner coordinates
 }
 
-BBox.prototype.add = function (pt) {
+BBox.prototype.add = function (pt)
+{
 	// expand bounding box to encompass given point
 	if (this.llb === undefined) {
 		this.llb = vec3.copy(vec.create(), pt);
@@ -268,7 +283,8 @@ BBox.prototype.add = function (pt) {
 	}
 }
 
-BBox.prototype.add_bbox = function (box) {
+BBox.prototype.add_bbox = function (box)
+{
 	// expand bounding box to encompass given bounding box
 	if (this.llb === undefined) {
 		this.llb = box.llb;
@@ -283,7 +299,8 @@ BBox.prototype.add_bbox = function (box) {
 	}
 }
 
-BBox.prototype.bulk_add = function (pts) {
+BBox.prototype.bulk_add = function (pts)
+{
 	throw "bulk_add not implemented";
 	// expand bounding box to encompass all given points
 	mi = amin(pts, axis=0)		// TODO
@@ -301,7 +318,8 @@ BBox.prototype.bulk_add = function (pts) {
 	}
 }
 
-BBox.prototype.center = function () {
+BBox.prototype.center = function ()
+{
 	// return center of bounding box
 	if (this.llb === undefined)
 		throw "empty bounding box";
@@ -310,14 +328,16 @@ BBox.prototype.center = function () {
 	return c;
 }
 
-BBox.prototype.size = function () {
+BBox.prototype.size = function ()
+{
 	// return length of sides of bounding box
 	if (this.llb === undefined)
 		throw "empty bounding box";
 	return vec3.subtract(vec3.create(), this.urf, this.llb);
 }
 
-BBox.prototype.xform = function (xf) {
+BBox.prototype.xform = function (xf)
+{
 	// transform bounding box in place
 //	if xf.isIdentity:
 //		return;
@@ -341,14 +361,16 @@ BBox.prototype.xform = function (xf) {
 	this.urf = b.urf;
 }
 
-function Camera() {
+function Camera()
+{
 	this.eye = vec3.fromValues(0, 0, 0);
 	this.at = vec3.fromValues(0, 0, -1);
 	this.up = vec3.fromValues(0, 1, 0);
 	this.ortho = false;
 }
 
-Camera.prototype.reset = function (width, height, fov, bbox) {
+Camera.prototype.reset = function (width, height, fov, bbox)
+{
 	// The camera is a simple one that takes the :param fov: and
 	// the current bounding box, and calculates the eye position
 	// and looks at the bounding box down the negative z-axis.
@@ -366,7 +388,8 @@ Camera.prototype.reset = function (width, height, fov, bbox) {
 	this.up = vec3.fromValues(0, 1, 0);	// Direction
 }
 
-Camera.prototype.update_viewport = function (width, height) {
+Camera.prototype.update_viewport = function (width, height)
+{
 	var win_aspect = width / height;
 	var scene_aspect = this.width2 / this.height2;
 	if (win_aspect > scene_aspect)
@@ -375,7 +398,8 @@ Camera.prototype.update_viewport = function (width, height) {
 		this.height2 = this.width2 / win_aspect;
 }
 
-Camera.prototype.matrices = function () {
+Camera.prototype.matrices = function ()
+{
 	var projection;
 	if (this.ortho) {
 		projection = mat4.ortho(mat4.create(),
@@ -392,12 +416,14 @@ Camera.prototype.matrices = function () {
 	return [projection, modelview];
 }
 
-Camera.prototype.rotate = function (axis, angle) {
+Camera.prototype.rotate = function (axis, angle)
+{
 	var xf = Rotation(axis, angle);
 	this.xform(xf);
 }
 
-Camera.prototype.xform = function (xf) {
+Camera.prototype.xform = function (xf)
+{
 	//if not xf._pure:
 	//	throw 'only pure rotation is allowed);
 	var modelview = mat4.camera_orientation(mat4.create(), this.eye, this.at, this.up);
@@ -414,7 +440,8 @@ Camera.prototype.xform = function (xf) {
 	vec3.transformMat4(this.at, this.at, nxf);
 }
 
-function process_llgr_data(json) {
+function process_llgr_data(json)
+{
 	// json is list of llgr commands
 	var index = array_last_index_of(json, 0, "clear_all");
 	if (index == -1) {
@@ -433,7 +460,8 @@ var camera = null;
 var scene_bbox;
 var scene_fov;
 
-function process_scene_data(data) {
+function process_scene_data(data)
+{
 	var bbox = data["bbox"];
 	if (bbox === undefined) {
 		return;
@@ -458,17 +486,30 @@ function process_scene_data(data) {
 	// TODO: setup camera
 }
 
+function process_open_models(data)
+{
+	// data is list of [model id, model name, group_id, bbox]
+	open_model_groups = [];
+	for (var i = 0; i < data.length; ++i) {
+		var info = data[i];
+		open_model_groups.push(info[2]);
+	}
+}
+
 var molview_ci;		// molview context information
+var open_model_groups = [];
 
 var button_pressed = false;
 var mouse_position;
 
-function molview_zoom(event) {
+function molview_zoom(event)
+{
 	console.log("zoom:", event);
 	event.stopPropagation();
 }
 
-function get_rel_xy(event) {
+function get_rel_xy(event)
+{
 	var widget = event.currentTarget;
 	var widget_offset = $(widget).offset();
 	return {
@@ -477,7 +518,8 @@ function get_rel_xy(event) {
 	};
 }
 
-function molview_mouse_down(event) {
+function molview_mouse_down(event)
+{
 	// TODO: change cursor
 	console.log("mouse_down:", event);
 	event.stopPropagation();
@@ -489,7 +531,8 @@ function molview_mouse_down(event) {
 	mouse_position.y = ((canvas.height / 2) - mouse_position.y) / radius;
 }
 
-function molview_mouse_move(event) {
+function molview_mouse_move(event)
+{
 	// TODO: change cursor
 	if (!button_pressed || camera === null)
 		return;
@@ -512,14 +555,16 @@ function molview_mouse_move(event) {
 	molview_ci.redraw();
 }
 
-function molview_mouse_up(event) {
+function molview_mouse_up(event)
+{
 	// TODO: change cursor
 	//console.log("mouse_up:", event);
 	event.stopPropagation();
 	button_pressed = false;
 }
 
-function molview_update_size() {
+function molview_update_size()
+{
 	var footer = $("[data-role=footer]");
 	var zbottom = $("#zone-div-bottom");
 
@@ -550,7 +595,8 @@ function molview_update_size() {
 		molview_ci.redraw();
 }
 
-function show_failure(canvas, msg) {
+function show_failure(canvas, msg)
+{
 	// copied from showLink and makeFailHTML in webgl-utils.js
 	var container = canvas.parentNode;
 	if (container) {
@@ -564,7 +610,8 @@ function show_failure(canvas, msg) {
 	}
 }
 
-function molview_init() {
+function molview_init()
+{
 	var canvas = document.getElementById("molview");
 	var gl = getWebGLContext(canvas, {
 		alpha: false,
@@ -579,6 +626,7 @@ function molview_init() {
 	try {
 		molview_ci.init();
 	} catch (msg) {
+		console.log('init error', typeof msg, msg);
 		molview_ci = null;
 		show_failure(canvas,
 			"<p><b>Unable to create suitable graphics window:</b>"
@@ -600,7 +648,8 @@ function molview_init() {
 		.mouseup(molview_mouse_up);
 }
 
-function draw_view(ci) {
+function draw_view(ci)
+{
 	//console.log('draw_view');
 	var canvas = ci.canvas;
 	var gl = ci.gl;
@@ -629,7 +678,7 @@ function draw_view(ci) {
 		llgr.Mat4x4, modelview);
 	llgr.set_uniform_matrix(0, 'NormalMatrix', false,
 		llgr.Mat3x3, mat3.fromMat4(mat3.create(), modelview));
-	llgr.render();
+	llgr.render(open_model_groups);
 }
 
 // Zone management data and functions
@@ -681,6 +730,7 @@ $(document).ready(function() {
 	$c2_session.register_data_function("llgr", process_llgr_data);
 	$c2_session.register_data_function("scene", process_scene_data);
 	$c2_session.register_data_function("info", show_status);
+	$c2_session.register_data_function("open_models", process_open_models);
 	molview_init();
 })
 
