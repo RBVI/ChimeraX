@@ -773,7 +773,6 @@ function setup_singleton_attribute(data, data_type, normalized, loc, num_locatio
 	var bytes;
 	if (num_locations == 1) {
 		bytes = new Float32Array(data);
-		console.log('func(loc, bytes)', func, loc, typeof bytes, bytes.length);
 		func.call(gl, loc, bytes);
 	} else {
 		var bytes = new Float32Array(data);
