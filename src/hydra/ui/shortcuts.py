@@ -58,7 +58,6 @@ def register_shortcuts(keyboard_shortcuts):
         ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat),
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat),
-        ('ro', enable_rotate_selected_mouse_mode, 'Rotate selected mouse mode', gcat),
         ('bk', set_background_black, 'Black background', gcat),
         ('wb', set_background_white, 'White background', gcat),
         ('gb', set_background_gray, 'Gray background', gcat),
@@ -295,11 +294,7 @@ def enable_contour_mouse_mode(viewer, button = 'right'):
 
 def enable_move_selected_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
-  m.bind_mouse_mode(button, m.mouse_down, m.mouse_translate_selected, m.mouse_up)
-
-def enable_rotate_selected_mouse_mode(viewer, button = 'right'):
-  m = viewer.mouse_modes
-  m.bind_mouse_mode(button, m.mouse_down, m.mouse_rotate_selected, m.mouse_up)
+  m.move_selected = not m.move_selected
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()
@@ -312,7 +307,7 @@ def fit_molecule_in_map(session):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.place.inverse() * mol.place
-    from .map import fit
+    from ..map import fit
     move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.place = mol.place * move_tf
     for k,v in stats.items():
@@ -366,25 +361,8 @@ def depth_cue(viewer):
     viewer.redraw_needed = True
     
 def selection_mouse_mode(session):
-    def mouse_down(event, session=session):
-        x,y = event.x(), event.y()
-        v = session.view
-        p, s = v.first_intercept(x,y)
-        if s is None:
-            session.clear_selection()
-            session.show_status('cleared selection')
-        else:
-            for m in s.models():
-                m.selected = not m.selected
-                if m.selected:
-                    from .qt import QtCore
-                    if not (event.modifiers() & QtCore.Qt.ShiftModifier):
-                        session.clear_selection()
-                        session.select_model(m)
-                        session.show_status('Selected %s' % m.name)
-                else:
-                    session.unselect_model(m)
-    session.view.mouse_modes.bind_mouse_mode('right', mouse_down)
+    v = session.view
+    v.mouse_modes.bind_mouse_mode('right', v.mouse_modes.mouse_select)
 
 def command_line(session):
     session.main_window.focus_on_command_line()

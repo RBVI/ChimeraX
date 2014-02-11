@@ -4,6 +4,7 @@ class Mouse_Modes:
 
         self.view = view
         self.mouse_modes = {}
+        self.mouse_down_position = None
         self.last_mouse_position = None
         self.last_mouse_time = None
         self.mouse_pause_interval = 0.5         # seconds
@@ -11,6 +12,8 @@ class Mouse_Modes:
         self.mouse_perimeter = False
         self.wheel_function = None
         self.bind_standard_mouse_modes()
+
+        self.move_selected = False
 
         view.mousePressEvent = self.mouse_press_event
         view.mouseMoveEvent = self.mouse_move_event
@@ -83,7 +86,7 @@ class Mouse_Modes:
 
     def bind_standard_mouse_modes(self, buttons = ['left', 'middle', 'right', 'wheel']):
         modes = (
-            ('left', self.mouse_down, self.mouse_rotate, self.mouse_up),
+            ('left', self.mouse_down, self.mouse_rotate, self.mouse_up_select),
             ('middle', self.mouse_down, self.mouse_translate, self.mouse_up),
             ('right', self.mouse_down, self.mouse_contour_level, self.mouse_up),
             )
@@ -98,14 +101,21 @@ class Mouse_Modes:
         cx, cy = event.x()-0.5*w, event.y()-0.5*h
         fperim = 0.9
         self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
+        self.mouse_down_position = event.pos()
         self.remember_mouse_position(event)
 
     def mouse_up(self, event):
+        self.mouse_down_position = None
+        self.last_mouse_position = None
+
+    def mouse_up_select(self, event):
+        if event.pos() == self.mouse_down_position:
+            self.mouse_select(event)
+        self.mouse_down_position = None
         self.last_mouse_position = None
 
     def remember_mouse_position(self, event):
-        from .qt import QtCore
-        self.last_mouse_position = QtCore.QPoint(event.pos())
+        self.last_mouse_position = event.pos()
 
     def mouse_pause_tracking(self):
         v = self.view
@@ -158,7 +168,16 @@ class Mouse_Modes:
         v = self.view
         # Convert axis from camera to scene coordinates
         saxis = v.camera.view().apply_without_translation(axis)
-        v.rotate(saxis, angle)
+        v.rotate(saxis, angle, self.models())
+
+    def models(self):
+        if self.move_selected:
+            m = self.view.session.selected
+            if len(m) == 0:
+                m = None
+        else:
+            m = None
+        return m
 
     def mouse_rotation(self, event):
 
@@ -187,27 +206,7 @@ class Mouse_Modes:
         psize = v.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
         step = v.camera.view().apply_without_translation(s)    # Scene coord system
-        v.translate(step)
-
-    def mouse_translate_selected(self, event):
-
-        v = self.view
-        models = v.session.selected
-        if models:
-            dx, dy = self.mouse_motion(event)
-            psize = v.pixel_size()
-            shift = v.camera.view().apply_without_translation((psize*dx, -psize*dy, 0))
-            v.translate(shift, models)
-
-    def mouse_rotate_selected(self, event):
-
-        v = self.view
-        models = v.session.selected
-        if models:
-            axis, angle = self.mouse_rotation(event)
-            # Convert axis from camera to scene coordinates
-            saxis = v.camera.view().apply_without_translation(axis)
-            v.rotate(axis, angle, models)
+        v.translate(step, self.models())
 
     def mouse_zoom(self, event):        
 
@@ -224,6 +223,27 @@ class Mouse_Modes:
         psize = v.pixel_size()
         shift = v.camera.view().apply_without_translation((0, 0, 100*d*psize))
         v.translate(shift)
+
+    def mouse_select(self, event):
+
+        x,y = event.x(), event.y()
+        v = self.view
+        p, s = v.first_intercept(x,y)
+        ses = v.session
+        if s is None:
+            ses.clear_selection()
+            ses.show_status('cleared selection')
+        else:
+            for m in s.models():
+                m.selected = not m.selected
+                if m.selected:
+                    from .qt import QtCore
+                    if not (event.modifiers() & QtCore.Qt.ShiftModifier):
+                        ses.clear_selection()
+                        ses.select_model(m)
+                        ses.show_status('Selected %s' % m.name)
+                else:
+                    ses.unselect_model(m)
         
     def mouse_contour_level(self, event):
 

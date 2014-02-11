@@ -474,9 +474,13 @@ class View(QtGui.QWindow):
         Move camera to simulate a rotation of models about current rotation center.
         Axis is in scene coordinates and angle is in degrees.
         '''
-        self.update_center_of_rotation()
+        if models:
+            center = self.session.center(models)
+        else:
+            self.update_center_of_rotation()
+            center = self.center_of_rotation
         from ..geometry import place
-        r = place.rotation(axis, angle, self.center_of_rotation)
+        r = place.rotation(axis, angle, center)
         self.move(r, models)
 
     def translate(self, shift, models = None, update_clip_planes = True):
