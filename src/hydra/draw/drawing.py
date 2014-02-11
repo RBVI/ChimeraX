@@ -34,7 +34,7 @@ class Render:
         self.off_screen = False
         self.fbo = None
         self.color_rb = None
-        self.depth_stencil_rb = None
+        self.depth_rb = None
 
         self.warp_center = (0.5, 0.5)
         self.radial_warp_coefficients = (1,0,0,0)
@@ -375,10 +375,10 @@ class Render:
 
         self.delete_offscreen_framebuffer()
 
-        # Create color, depth and stencil buffers
-        self.depth_stencil_rb = depth_stencil_rb = GL.glGenRenderbuffers(1)
-        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_stencil_rb)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8, width, height)
+        # Create color and depth buffers
+        self.depth_rb = depth_rb = GL.glGenRenderbuffers(1)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT24, width, height)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
 
         self.fbo = GL.glGenFramebuffers(1)
@@ -393,9 +393,7 @@ class Render:
                                          GL.GL_RENDERBUFFER, color_buf)
 
         GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT,
-                                     GL.GL_RENDERBUFFER, depth_stencil_rb)
-        GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_STENCIL_ATTACHMENT,
-                                     GL.GL_RENDERBUFFER, depth_stencil_rb)
+                                     GL.GL_RENDERBUFFER, depth_rb)
         status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
         if status != GL.GL_FRAMEBUFFER_COMPLETE:
             self.render_to_screen()
@@ -419,9 +417,9 @@ class Render:
 
         if not self.color_rb is None:
             GL.glDeleteRenderbuffers(1, (self.color_rb,))
-        GL.glDeleteRenderbuffers(1, (self.depth_stencil_rb,))
+        GL.glDeleteRenderbuffers(1, (self.depth_rb,))
         GL.glDeleteFramebuffers(1, (self.fbo,))
-        self.color_rb = self.depth_stencil_rb = self.fbo = None
+        self.color_rb = self.depth_rb = self.fbo = None
 
 class Lighting:
     '''
