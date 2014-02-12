@@ -449,7 +449,7 @@ class Lighting:
         self.key_light_position = (-.577,.577,.577)
         self.key_light_diffuse_color = (.6,.6,.6)
         self.key_light_specular_color = (.3,.3,.3)
-        self.key_light_specular_exponent = 20
+        self.key_light_specular_exponent = 100
         self.fill_light_position = (.2,.2,.959)
         self.fill_light_diffuse_color = (.3,.3,.3)
         self.ambient_light_color = (.3,.3,.3)
