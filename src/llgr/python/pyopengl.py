@@ -496,7 +496,7 @@ class _GroupInfo:
 
 		# first pass: group objects by program id, tranparency,
 		# primitive type, if indexing, and array buffers
-		def key(oi):
+		def group_key(oi):
 			ais = tuple(ai for ai in oi.ais if ai._is_array)
 			return (oi.program_id, oi._transparent, oi.ptype,
 				oi.index_buffer_id, oi.index_buffer_type, ais)
@@ -505,7 +505,7 @@ class _GroupInfo:
 			oi = _all_objects.get(obj_id, None)
 			if oi is None or oi.incomplete or oi._hide:
 				continue
-			k = key(oi)
+			k = group_key(oi)
 			try:
 				groupings[k].append(oi)
 			except KeyError:
@@ -1326,13 +1326,16 @@ def _setup_singleton_attribute(data, data_type, normalized, loc, num_locations, 
 			print("WebGL only supports float singleton vertex attributes\n", file=sys.stderr)
 			_did_once = True
 
-	if num_locations > 1:
-		data = bytes(data)
 	size = num_elements * _data_size(data_type)
 	if num_elements == 4 and normalized:
 		num_elements = 5
 	func = _singleton_map[num_elements].get(data_type, None)
-	if func:
+	if func is None:
+		return
+	if num_locations == 1:
+		func(loc, data);
+	else:
+		data = bytes(data)
 		for i in range(num_locations):
 			func(loc + i, data[i * size:(i + 1) * size])
 

@@ -202,14 +202,19 @@ static bool closest_sphere_intercept(const float *centers, const float *radii, i
       int s3 = 3*s;
       float x = centers[s3], y = centers[s3+1], z = centers[s3+2], r = radii[s];
       float p = (x-x1)*dx + (y-y1)*dy + (z-z1)*dz;
-      if (p >= 0 && p <= d && p < dc)
+      if (p >= 0 && p <= d + r && p < dc + r)
 	{
 	  float xp = x-(x1+p*dx), yp = y-(y1+p*dy), zp = z-(z1+p*dz);	// perp vector
 	  float d2 = xp*xp + yp*yp + zp*zp;	// perp distance squared
-	  if (d2 < r*r)
+	  float a2 = r*r - d2;
+	  if (a2 > 0)
 	    {
-	      dc = p;
-	      sc = s;
+	      float a = sqrt(a2);
+	      if (p-a < dc)
+		{
+		  dc = p-a;
+		  sc = s;
+		}
 	    }
 	}
     }

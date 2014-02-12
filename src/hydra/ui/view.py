@@ -10,10 +10,16 @@ class View(QtGui.QWindow):
         QtGui.QWindow.__init__(self)
         self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
-        w.setFocusPolicy(QtCore.Qt.ClickFocus)
+#        w.setFocusPolicy(QtCore.Qt.ClickFocus)
+        w.setFocusPolicy(QtCore.Qt.NoFocus)
+
 # TODO: Qt 5.1 has touch events disabled on Mac
 #        w.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
-        
+
+        # Qt 5.2 has touch events disabled because it slows down scrolling.  Reenable them.
+        from .. import _image3d
+        _image3d.accept_touch_events(int(self.winId()))
+
         self.window_size = (w.width(), w.height())		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
@@ -77,9 +83,11 @@ class View(QtGui.QWindow):
             self.draw_graphics()
 
     def keyPressEvent(self, event):
-        if str(event.text()) == '\r':
-            return
-        self.session.keyboard_shortcuts.key_pressed(event)
+
+        # TODO: This window should never get key events since we set widget.setFocusPolicy(NoFocus)
+        # but it gets them anyways on Mac in Qt 5.2 if the graphics window is clicked.
+        # So we pass them back to the main window.
+        self.session.main_window.event(event)
 
     def create_opengl_context(self):
 
@@ -346,7 +354,7 @@ class View(QtGui.QWindow):
             camera.setup(vnum, r)
             if models:
                 self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
-                if self.session.transparent_models_shown():
+                if any_transparent_models(models):
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
                                        lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
             s = camera.finish_draw(vnum, r)
@@ -509,3 +517,10 @@ class View(QtGui.QWindow):
     def pixel_size(self, p = None):
         '''Return the pixel size in scene length units at point p in the scene.'''
         return self.camera.pixel_size(self.center_of_rotation if p is None else p)
+
+def any_transparent_models(models):
+
+    for m in models:
+        if m.showing_transparent():
+            return True
+    return False

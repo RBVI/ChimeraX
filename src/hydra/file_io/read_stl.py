@@ -95,7 +95,7 @@ class STL_Surface(Surface):
         p = self.plist[0]
         s = {'id':self.id,
              'path':self.path,
-             'displayed': self.displayed,
+             'display': self.display,
              'place':self.place.matrix,
              'color':p.color}
         if p.copies:
@@ -118,9 +118,11 @@ def restore_stl_surfaces(surfs, session, attributes_only = False):
             else:
                 continue
         else:
-            s = read_stl(st['path'])
+            s = read_stl(st['path'], session)
             s.id = st['id']
-        s.displayed = st['displayed']
+        if 'displayed' in st:
+            st['display'] = st['displayed']     # Fix old session files
+        s.display = st['display']
         s.place = Place(st['place'])
         p = s.plist[0]
         p.color = st['color']

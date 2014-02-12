@@ -285,7 +285,7 @@ def open_data(path, session, from_database = None, set_camera = None):
         if isfile(p0):
             mlist = open_files(paths, session)
         else:
-            ids = p.split(',')
+            ids = path.split(',')
             id0 = ids[0]
             if len(id0) != 4:
                 session.show_status('Unknown file %s' % path)

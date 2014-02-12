@@ -12,7 +12,7 @@ class Surface:
   def __init__(self, name):
     self.name = name
     self.id = None              # positive integer
-    self.displayed = True
+    self._display = True       # private. use display property
     from ..geometry.place import Place
     self.placement = Place()
     self.copies = []
@@ -52,9 +52,9 @@ class Surface:
     self.remove_pieces(self.plist)
 
   def get_display(self):
-    return self.displayed
+    return self._display
   def set_display(self, display):
-    self.displayed = display
+    self._display = display
     self.redraw_needed = True
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''

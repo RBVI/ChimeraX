@@ -15,12 +15,15 @@ SRCS	= blend_rgba.cpp combine.cpp \
 	  parsecif.cpp parsepdb.cpp parse_stl.cpp pdb_bonds.cpp \
 	  pythonarray.cpp rcarray.cpp refcount.cpp \
 	  sasa.cpp setfileicon.cpp spline.cpp \
+	  touchevents.cpp \
 	  squaremesh.cpp subdivide.cpp transfer.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)
 OBJS += setfileicon_mac.o
 LIBS += -framework AppKit
+
+OBJS += touchevents_mac.o
 endif
 
 ifdef WIN32

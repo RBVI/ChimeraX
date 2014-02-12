@@ -181,6 +181,8 @@ function mightBeEnum(value) {
  */
 function glEnumToString(value) {
   checkInit();
+  if (value === undefined)
+	  return "UNDEFINED";
   var name = glEnums[value];
   return (name !== undefined) ? name :
       ("*UNKNOWN WebGL ENUM (0x" + value.toString(16) + ")");
