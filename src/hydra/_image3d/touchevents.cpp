@@ -11,7 +11,9 @@ extern "C" PyObject *accept_touch_events(PyObject *s, PyObject *args, PyObject *
 				   &nsview))
     return NULL;
 
+#ifdef __APPLE__
   mac_accept_touch_events((void *)nsview);
+#endif
 
   Py_INCREF(Py_None);
   return Py_None;
