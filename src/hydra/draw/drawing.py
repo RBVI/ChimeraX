@@ -48,6 +48,7 @@ class Render:
     SHADER_INSTANCING = 'instancing'
     SHADER_SELECTED = 'selected'
     SHADER_UNSELECTED = 'unselected'
+    SHADER_IMAGE_BLEND = 'image blend'
 
     def use_shader(self, options):
         '''
@@ -64,7 +65,8 @@ class Render:
                    self.SHADER_TEXTURE_WARP:'USE_TEXTURE_WARP',
                    self.SHADER_SHIFT_AND_SCALE:'USE_INSTANCING_SS',
                    self.SHADER_INSTANCING:'USE_INSTANCING_44',
-                   self.SHADER_SELECTED:'USE_HATCHING'}
+                   self.SHADER_SELECTED:'USE_HATCHING',
+                   self.SHADER_IMAGE_BLEND:'USE_IMAGE_BLEND'}
 #                   self.SHADER_UNSELECTED:'USE_DIMMING'}
         capabilities = set(optdefs[c] for c in self.default_capabilities)
 
@@ -260,32 +262,6 @@ class Render:
         else:
             GL.glDisable(GL.GL_BLEND)
 
-    def draw_tile_outlines(self, tiles, edge_color, fill_color, fill):
-        '''
-        Draw rectangles with 1 pixel wide borders.  The border is colored
-        edge_color and the center is fill_color.  Each rectangle, also called a
-        tile is specified by (x,y,w,h) corner and width and height integer pixel
-        positions in the OpenGL viewport.  The array of boolean values fill
-        says whether a tile should be filled with the fill_color.  If not filled
-        it gets the edge color.  The first tile is always filled.  This quirky
-        routine is used for tiled display of models.
-
-        This should be eliminated and just draw normal triangles to show grid
-        '''
-
-        GL.glClearColor(*edge_color)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        GL.glClearColor(*fill_color)
-        for i, (tx,ty,tw,th) in enumerate(tiles):
-            if i == 0 or fill[i-1]:
-                if i == 0:
-                    GL.glScissor(tx,ty,tw,th)
-                else:
-                    GL.glScissor(tx+1,ty+1,tw-2,th-2)
-                GL.glEnable(GL.GL_SCISSOR_TEST)
-                GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-                GL.glDisable(GL.GL_SCISSOR_TEST)
-
     def draw_transparent(self, draw_depth, draw):
         '''
         Render using single-layer transparency. This is a two-pass drawing.
@@ -403,12 +379,88 @@ class Render:
         self.off_screen = True
         return True
 
+    def draw_texture_outline(self, texture):
+        otexture = Texture()
+        w, h = texture.size
+        otexture.initialize_rgba(w,h)
+        self.render_to_texture(otexture)
+        self.set_background_color((0,0,0,0))
+        self.draw_background()
+
+        # Draw outline of fbo area having alpha > 0 to the default frame buffer.
+        self.use_shader({self.SHADER_IMAGE_BLEND:True})
+
+        # Don't need to set projection or view matrices with image blend shader.
+        # Texture map a full-screen quad to blend texture with frame buffer.
+        vao = Bindings(self.current_shader_program)
+        vao.activate()
+        vb = Buffer(VERTEX_BUFFER)
+        from numpy import array, float32, int32
+        vb.update_buffer_data(array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32))
+        vao.bind_shader_variable(vb)
+        tcb = Buffer(TEXTURE_COORDS_2D_BUFFER)
+#        tcb.update_buffer_data(array(((0,0,0),(1,0,0),(1,1,0),(0,1,0)), float32))
+#        vao.bind_shader_variable(tcb)
+        eb = Buffer(ELEMENT_BUFFER)
+        eb.update_buffer_data(array(((0,1,2),(0,2,3)), int32))
+        vao.bind_shader_variable(eb)    # Binds element buffer for rendering
+        texture.bind_texture()
+        self.enable_depth_test(False)
+        xshift, yshift = 1.0/w, 1.0/h
+#        xshift, yshift = 100.0/w, 100.0/h
+        color = (0,1,0,1)
+        black = (0,0,0,1)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
+        self.set_mask_color(color)
+        for xs,ys in ((-xshift,-yshift), (xshift,-yshift), (xshift,yshift), (-xshift,yshift)):
+            # TODO: This deletes the buffer, should just replace contents for efficiency.
+            tcb.update_buffer_data(array(((0+xs,0+ys,0),(1+xs,0+ys,0),(1+xs,1+ys,0),(0+xs,1+ys,0)), float32))
+            vao.bind_shader_variable(tcb)
+            eb.draw_elements(eb.triangles)
+        # Mask out center
+        GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        self.set_mask_color(black)
+        tcb.update_buffer_data(array(((0,0,0),(1,0,0),(1,1,0),(0,1,0)), float32))
+        vao.bind_shader_variable(tcb)
+        eb.draw_elements(eb.triangles)
+
+        self.render_to_screen()
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        self.set_mask_color(color)
+        otexture.bind_texture()
+        eb.draw_elements(eb.triangles)
+
+        self.enable_depth_test(True)
+
+    def set_mask_color(self, color):
+
+        p = self.current_shader_program.program_id
+        mc = GL.glGetUniformLocation(p, b"color")
+        GL.glUniform4fv(mc, 1, color)
+
+    def copy_screen_depth(self, w, h):
+        # Copy screen depth buffer to fbo
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, 0)
+#        GL.glReadBuffer(GL.GL_DEPTH_ATTACHMENT)
+#        GL.glReadBuffer(GL.GL_COLOR_ATTACHMENT0)
+ #       GL.glReadBuffer(GL.GL_BACK)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, self.fbo)
+#        GL.glDrawBuffers(1, (GL.GL_DEPTH_ATTACHMENT,))
+#        GL.glDrawBuffers(1, (GL.GL_COLOR_ATTACHMENT0,))
+        GL.glBlitFramebuffer(0,0,w,h, 0,0,w,h, GL.GL_DEPTH_BUFFER_BIT, GL.GL_NEAREST)
+#        GL.glDrawBuffers(2, (GL.GL_DEPTH_ATTACHMENT,GL.GL_COLOR_ATTACHMENT0))
+#        GL.glDepthFunc(GL.GL_LEQUAL)
+#        GL.glDepthRange(0.001,1)
+        GL.glDepthRange(0,0.999)
+
     def render_to_screen(self):
 
 #        self.set_drawing_region(0,0,w,h)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
         self.delete_offscreen_framebuffer()
         self.off_screen = True
+        GL.glDepthRange(0,1)
 
     def delete_offscreen_framebuffer(self):
 
@@ -572,6 +624,9 @@ class Buffer:
         self.buffer_type = t.buffer_type
         self.normalize = t.normalize
         self.instance_buffer = t.instance_buffer
+
+    def __del__(self):
+        self.delete_buffer()
 
     def delete_buffer(self):
         'Delete the OpenGL buffer object.'

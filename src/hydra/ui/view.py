@@ -352,9 +352,37 @@ class View(QtGui.QWindow):
                 self.draw_overlays([s])
         t1 = process_time()
         self.last_draw_duration = t1-t0
+        
+#        sel = self.session.selected
+#        if sel:
+#            self.draw_outline(camera, sel)
 
         if self.overlays:
             self.draw_overlays(self.overlays)
+
+    def draw_outline(self, camera = None, models = None):
+
+        if camera is None:
+            camera = self.camera
+        if models is None:
+            models = [m for m in self.session.model_list() if m.display]
+
+        r = self.render
+        w,h = self.window_size
+        from .. import draw
+        t = draw.Texture()
+        t.initialize_rgba(w,h)
+        r.render_to_texture(t)
+#        r.copy_screen_depth(w,h)
+        r.set_background_color((0,0,0,0))
+        for vnum in range(camera.number_of_views()):
+            camera.setup(vnum, r)
+            r.copy_screen_depth(w,h)
+            self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
+            self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models)
+            s = camera.finish_draw(vnum, r)
+        r.render_to_screen()
+        r.draw_texture_outline(t)
 
     def draw_overlays(self, overlays):
 

@@ -1,5 +1,20 @@
 #version 150
 
+#ifdef USE_IMAGE_BLEND
+
+in vec2 tex_coord;
+uniform sampler2D tex2d;
+uniform vec4 color;
+out vec4 frag_color;
+void main (void)
+{
+  float a = texture(tex2d, tex_coord).a;
+  frag_color = color * a;
+//  frag_color = texture(tex2d, tex_coord);
+}
+
+#else
+
 #ifdef USE_LIGHTING
 uniform vec3 key_light_position;
 uniform vec3 key_light_diffuse_color;
@@ -98,3 +113,5 @@ void main (void)
   // final color
   frag_color = vec4(Ifrag, a);
 }
+
+#endif	// USE_IMAGE_BLEND
