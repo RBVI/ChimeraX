@@ -62,6 +62,16 @@ class View(QtGui.QWindow):
     def resizeEvent(self, e):
         s = e.size()
         w, h = s.width(), s.height()
+#
+# TODO: On Mac retina display event window size is half of opengl window size.
+#    Can scale width/height here, but also need mouse event positions to be scaled by 2x.
+#    Not sure how to detect when app moves between non-retina and retina displays.
+#    QWindow has a screenChanged signal but I did not get it in tests with Qt 5.2.
+#    Also did not get moveEvent().  May need to get these on top level window?
+#
+#        r = self.devicePixelRatio()    # 2 on retina display, 1 on non-retina
+#        w,h = int(r*w), int(r*h)
+#
         self.window_size = w, h
         self.camera.window_size = w, h
         if not self.opengl_context is None:
