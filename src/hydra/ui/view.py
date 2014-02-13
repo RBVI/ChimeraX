@@ -249,8 +249,12 @@ class View(QtGui.QWindow):
         h = self.window_size[1] if height is None else height
 
         r = self.render
-        if not r.render_to_buffer(w,h):
-            return None
+        from .. import draw
+        fb = draw.Framebuffer(w,h)
+        if not fb.valid():
+            return None         # Image size exceeds framebuffer limits
+
+        r.push_framebuffer(fb)
 
         # Camera needs correct aspect ratio when setting projection matrix.
         c = camera if camera else self.camera
@@ -262,7 +266,9 @@ class View(QtGui.QWindow):
         c.window_size = prev_size
 
         rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
-        r.render_to_screen()
+        r.pop_framebuffer()
+        fb.delete()
+
         ww, wh = self.window_size
         r.set_drawing_region(0,0,ww,wh)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
@@ -348,51 +354,35 @@ class View(QtGui.QWindow):
 
         self.update_level_of_detail()
 
+        selected = [m for m in self.session.selected if m.display]
+
         from time import process_time
         t0 = process_time()
         for vnum in range(camera.number_of_views()):
-            camera.setup(vnum, r)
+            camera.set_framebuffer(vnum, r)
+            r.draw_background()
             if models:
                 self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
                 if any_transparent_models(models):
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
                                        lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
-            s = camera.finish_draw(vnum, r)
+                if selected:
+                    r.start_rendering_outline(self.window_size)
+                    self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, selected)
+                    self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, selected)
+                    r.finish_rendering_outline()
+            s = camera.warp_image(vnum, r)
             if s:
                 self.draw_overlays([s])
         t1 = process_time()
         self.last_draw_duration = t1-t0
         
-#        sel = self.session.selected
-#        if sel:
-#            self.draw_outline(camera, sel)
-
         if self.overlays:
             self.draw_overlays(self.overlays)
 
-    def draw_outline(self, camera = None, models = None):
-
-        if camera is None:
-            camera = self.camera
-        if models is None:
-            models = [m for m in self.session.model_list() if m.display]
+    def draw_outline(self, vnum, camera, models):
 
         r = self.render
-        w,h = self.window_size
-        from .. import draw
-        t = draw.Texture()
-        t.initialize_rgba(w,h)
-        r.render_to_texture(t)
-#        r.copy_screen_depth(w,h)
-        r.set_background_color((0,0,0,0))
-        for vnum in range(camera.number_of_views()):
-            camera.setup(vnum, r)
-            r.copy_screen_depth(w,h)
-            self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
-            self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models)
-            s = camera.finish_draw(vnum, r)
-        r.render_to_screen()
-        r.draw_texture_outline(t)
 
     def draw_overlays(self, overlays):
 

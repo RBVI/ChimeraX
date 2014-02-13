@@ -312,7 +312,7 @@ class Surface_Piece(object):
 
     # Set color
     if self.instance_colors is None:
-      r.set_single_color(self.color_rgba)
+      r.set_instance_color(self.color_rgba)
 
     # Draw triangles
     eb = self.element_buffer
@@ -339,8 +339,6 @@ class Surface_Piece(object):
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
     elif not self.copies44 is None:
       sopt[r.SHADER_INSTANCING] = True
-    if self.surface.selected:
-      sopt[r.SHADER_SELECTED] = True
     return sopt
 
   def instance_count(self):

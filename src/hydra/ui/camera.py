@@ -202,7 +202,7 @@ class Camera:
             raise ValueError('Unknown camera mode %s' % m)
         return n
 
-    def setup(self, view_num, render):
+    def set_framebuffer(self, view_num, render):
         '''Set the OpenGL drawing buffer and view port to render the scene.'''
         m = self.mode
         from .. import draw
@@ -211,15 +211,14 @@ class Camera:
         elif m == 'stereo':
             render.set_stereo_buffer(view_num)
         elif m == 'oculus':
-            render.render_to_texture(self.warping_texture())
+            render.push_framebuffer(self.warping_framebuffer())
         else:
             raise ValueError('Unknown camera mode %s' % m)
-        render.draw_background()
 
-    def finish_draw(self, view_num, render):
+    def warp_image(self, view_num, render):
         m = self.mode
         if m == 'oculus':
-            render.render_to_screen()
+            render.pop_framebuffer()
             w,h = self.window_size
             if view_num == 0:
                 render.draw_background()
@@ -234,16 +233,17 @@ class Camera:
             return self.warping_surface(render)
         return None
 
-    def warping_texture(self):
+    def warping_framebuffer(self):
 
         w,th = self.window_size
         tw = w // 2 if self.mode == 'oculus' else w
-        if not hasattr(self, 'warp_texture') or self.warp_texture_size != (tw,th):
+        fb = getattr(self, 'warp_framebuffer')
+        if fb is None or fb.width != tw or fb.height != th:
             from .. import draw
-            self.warp_texture = t = draw.Texture()
+            t = draw.Texture()
             t.initialize_rgba(tw,th)
-            self.warp_texture_size = (tw,th)
-        return self.warp_texture
+            self.warp_framebuffer = fb = Framebuffer(texture = t)
+        return fb
 
     def warping_surface(self, render):
 

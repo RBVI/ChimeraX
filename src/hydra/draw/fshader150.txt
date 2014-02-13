@@ -1,6 +1,6 @@
 #version 150
 
-#ifdef USE_IMAGE_BLEND
+#ifdef USE_TEXTURE_MASK
 
 in vec2 tex_coord;
 uniform sampler2D tex2d;
@@ -8,9 +8,8 @@ uniform vec4 color;
 out vec4 frag_color;
 void main (void)
 {
-  float a = texture(tex2d, tex_coord).a;
-  frag_color = color * a;
-//  frag_color = texture(tex2d, tex_coord);
+  float f = ceil(texture(tex2d, tex_coord).r);
+  frag_color = color * f;
 }
 
 #else
@@ -38,6 +37,10 @@ uniform float depth_cue_darkest;
 
 in vec4 color;
 
+#ifdef USE_SINGLE_COLOR
+uniform vec4 scolor;
+#endif
+
 #ifdef USE_TEXTURE_2D
 in vec2 tex_coord;
 uniform sampler2D tex2d;
@@ -63,7 +66,11 @@ void main (void)
   vec4 fcolor = texture(tex2d, tex_coord) * color;
 #endif
 #else
+#ifdef USE_SINGLE_COLOR
+  vec4 fcolor = scolor;
+#else
   vec4 fcolor = color;
+#endif
 #endif
 
 #ifdef USE_LIGHTING
@@ -101,13 +108,6 @@ void main (void)
   float a = fcolor.a;
 #ifdef USE_LIGHTING
   a = 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(N1.z),0.01));
-#endif
-
-#ifdef USE_HATCHING
-  // Highlight with zebra stripes
-  float hsize = 8;
-  float df = 0.3 + 1.6*mod(gl_FragCoord.x + gl_FragCoord.y, hsize)/hsize;
-  Ifrag = df*Ifrag;
 #endif
 
   // final color

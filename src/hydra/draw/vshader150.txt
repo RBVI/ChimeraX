@@ -1,6 +1,6 @@
 #version 150
 
-#ifdef USE_IMAGE_BLEND
+#ifdef USE_TEXTURE_MASK
 
 in vec3 position;
 in vec2 tex_coord_2d;
