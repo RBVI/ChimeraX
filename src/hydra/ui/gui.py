@@ -1,4 +1,4 @@
-from .qt import QtCore, QtGui, QtOpenGL, QtWidgets
+from .qt import QtCore, QtGui, QtOpenGL, QtWidgets, Qt
 
 class MainWindow(QtWidgets.QMainWindow):
     '''
@@ -137,7 +137,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def keyPressEvent(self, event):
 
         k = event.key()
-        from .qt import Qt
         if k == Qt.Key_Escape:
             self.enable_shortcuts(not self.shortcuts_enabled)
             return
@@ -224,6 +223,7 @@ class Command_Line(QtWidgets.QLineEdit):
         t = event.text()
         ctrlp = b'\x10'.decode('utf-8')
         ctrln = b'\x0e'.decode('utf-8')
+        from .qt import Qt
         if t in (ctrlp, ctrln):
             s = self.session
             s.main_window.enable_shortcuts(False)
@@ -231,6 +231,9 @@ class Command_Line(QtWidgets.QLineEdit):
                 s.commands.history.show_previous_command()
             elif t == ctrln:
                 s.commands.history.show_next_command()
+        elif event.key() == Qt.Key_Escape:
+            event.ignore()      # Handled by MainWindow.keyPressEvent()
+            return
         else:
             QtWidgets.QLineEdit.keyPressEvent(self, event)
         event.accept()
