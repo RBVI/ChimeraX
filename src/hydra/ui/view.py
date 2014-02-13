@@ -367,7 +367,7 @@ class View(QtGui.QWindow):
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
                                        lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
                 if selected:
-                    r.start_rendering_outline()
+                    r.start_rendering_outline(self.window_size)
                     self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, selected)
                     self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, selected)
                     r.finish_rendering_outline()

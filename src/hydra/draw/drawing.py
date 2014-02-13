@@ -355,10 +355,10 @@ class Render:
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
 
-    def start_rendering_outline(self):
+    def start_rendering_outline(self, size):
 
         fb = self.current_framebuffer()
-        size = (fb.width, fb.height)
+        size = (fb.width, fb.height) if fb else size
         mfb = self.make_mask_framebuffer(size)
         self.push_framebuffer(mfb)
         self.set_background_color((0,0,0,0))
