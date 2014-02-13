@@ -233,6 +233,7 @@ class Command_Line(QtWidgets.QLineEdit):
                 s.commands.history.show_next_command()
         else:
             QtWidgets.QLineEdit.keyPressEvent(self, event)
+        event.accept()
 
 def icon(filename):
     from os.path import dirname, join
