@@ -302,12 +302,12 @@ class Surface_Piece(object):
 
     r = viewer.renderer()
 
-    # Set color
-    if self.vertex_colors is None and self.instance_colors is None:
-      r.single_color = self.color_rgba
-
     sopt = self.shader_options()
     p = r.use_shader(sopt)
+
+    # Set color
+    if self.vertex_colors is None and self.instance_colors is None:
+      r.set_single_color(self.color_rgba)
 
     t = self.texture
     if not t is None:
