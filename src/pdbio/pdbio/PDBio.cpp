@@ -1471,9 +1471,9 @@ start_t = end_t;
 std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
-    // ensure access module objects are initialized
-    PyObject* access_mod = PyImport_ImportModule("access");
-    if (access_mod == NULL) {
+    // ensure molaccess module objects are initialized
+    PyObject* molaccess_mod = PyImport_ImportModule("molaccess");
+    if (molaccess_mod == NULL) {
         delete mols;
         return NULL;
     }
@@ -1486,14 +1486,19 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
 }
 
 static const char*
-docstr_read_pdb_file = "read_pdb_file(f, log=None, explode=True)\n" \
-    "'f' is a file-like object open for reading containing the PDB info.\n" \
-    "'log', if given, is a file-like object open for writing that\n" \
-    "    warnings/errors and other information will be written to.\n" \
-    "'explode' controls whether NMR ensembles will be handled as\n" \
-    "    separate models (True) or as one model with multiple coordinate\n" \
-    "    sets (False).\n" \
-    "Returns an access.MolBlob.";
+docstr_read_pdb_file = 
+"read_pdb_file(f, log=None, explode=True)\n" \
+"\n" \
+"f\n" \
+"  A file-like object open for reading containing the PDB info\n" \
+"log\n" \
+"  A file-like object open for writing that warnings/errors and other\n" \
+"  information will be written to\n" \
+"explode\n" \
+"  Controls whether NMR ensembles will be handled as separate models (True)\n" \
+"  or as one model with multiple coordinate sets (False)\n" \
+"\n" \
+"Returns an molaccess.MolBlob.";
 
 PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)

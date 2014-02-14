@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef access_MolBlob
-#define access_MolBlob
+#ifndef blob_MolBlob
+#define blob_MolBlob
 
 #include "Blob.h"
 
@@ -11,4 +11,4 @@ typedef UniqueBlob<Molecule> MolBlob;
 
 extern template BLOB_IMEX PyObject* newBlob<MolBlob>(PyTypeObject*);
 
-#endif  // access_MolBlob
+#endif  // blob_MolBlob

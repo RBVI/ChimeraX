@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef access_ResBlob
-#define access_ResBlob
+#ifndef blob_ResBlob
+#define blob_ResBlob
 
 #include "Blob.h"
 
@@ -11,4 +11,4 @@ typedef RawBlob<Residue> ResBlob;
 
 extern template BLOB_IMEX PyObject* newBlob<ResBlob>(PyTypeObject*);
 
-#endif  // access_ResBlob
+#endif  // blob_ResBlob

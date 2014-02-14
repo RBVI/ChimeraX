@@ -77,7 +77,7 @@ static PyGetSetDef ResBlob_getset[] = {
 
 PyTypeObject ResBlob_type = {
     PyObject_HEAD_INIT(NULL)
-    "access.ResBlob", // tp_name
+    "molaccess.ResBlob", // tp_name
     sizeof (ResBlob), // tp_basicsize
     0, // tp_itemsize
     ResBlob_dealloc, // tp_dealloc

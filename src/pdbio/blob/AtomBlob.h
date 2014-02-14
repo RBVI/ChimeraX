@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef access_AtomBlob
-#define access_AtomBlob
+#ifndef blob_AtomBlob
+#define blob_AtomBlob
 
 #include "Blob.h"
 
@@ -11,4 +11,4 @@ typedef RawBlob<Atom> AtomBlob;
 
 extern template BLOB_IMEX PyObject* newBlob<AtomBlob>(PyTypeObject*);
 
-#endif  // access_AtomBlob
+#endif  // blob_AtomBlob

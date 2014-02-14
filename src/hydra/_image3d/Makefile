@@ -38,7 +38,7 @@ INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 OPT = -O3
 
 # OpenMP used by sasa.cpp.
-OPT += -fopenmp
+#OPT += -fopenmp
 ifeq ($(OS),Linux)
 	LIBS += -lgomp
 endif

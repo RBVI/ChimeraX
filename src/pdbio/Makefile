@@ -6,7 +6,7 @@ NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= ioutil pdb base-geom util molecule blob pdbio access
+SUBDIRS	+= ioutil pdb base-geom util molecule blob pdbio molaccess
 SRCS = test.cpp
 OBJS = test.o
 INCS += $(PYTHON_INCLUDE_DIRS)
@@ -20,7 +20,7 @@ all: install
 clean:
 	/bin/rm -f $(OBJS) pdbio.bild
 
-access.install: molecule.install blob.install
+molaccess.install: molecule.install blob.install
 pdbio.install: molecule.install pdb.install blob.install
 
 testrun:

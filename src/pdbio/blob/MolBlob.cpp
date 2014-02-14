@@ -122,7 +122,7 @@ static PyGetSetDef MolBlob_getset[] = {
 
 PyTypeObject MolBlob_type = {
     PyObject_HEAD_INIT(NULL)
-    "access.MolBlob", // tp_name
+    "molaccess.MolBlob", // tp_name
     sizeof (MolBlob), // tp_basicsize
     0, // tp_itemsize
     MolBlob_dealloc, // tp_dealloc
