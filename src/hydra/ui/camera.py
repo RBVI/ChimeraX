@@ -237,12 +237,12 @@ class Camera:
 
         w,th = self.window_size
         tw = w // 2 if self.mode == 'oculus' else w
-        fb = getattr(self, 'warp_framebuffer')
+        fb = getattr(self, 'warp_framebuffer', None)
         if fb is None or fb.width != tw or fb.height != th:
             from .. import draw
             t = draw.Texture()
             t.initialize_rgba(tw,th)
-            self.warp_framebuffer = fb = Framebuffer(texture = t)
+            self.warp_framebuffer = fb = draw.Framebuffer(texture = t)
         return fb
 
     def warping_surface(self, render):
@@ -263,7 +263,7 @@ class Camera:
 
         s = self.warp_surface
         p = s.surface_pieces()[0]
-        p.texture = self.warp_texture
+        p.texture = self.warp_framebuffer.texture
 
         return s
 

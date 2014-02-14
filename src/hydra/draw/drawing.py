@@ -21,7 +21,7 @@ class Render:
         self.shader_programs = {}
         self.current_shader_program = None
 
-        self.default_capabilities = set((self.SHADER_LIGHTING,))
+        self.default_capabilities = set((self.SHADER_LIGHTING,self.SHADER_VERTEX_COLORS))
         self.override_capabilities = {}
 
         self.current_projection_matrix = None   # Used when switching shaders
@@ -49,7 +49,7 @@ class Render:
     SHADER_SHIFT_AND_SCALE = 'USE_INSTANCING_SS'
     SHADER_INSTANCING = 'USE_INSTANCING_44'
     SHADER_TEXTURE_MASK = 'USE_TEXTURE_MASK'
-    SHADER_SINGLE_COLOR = 'USE_SINGLE_COLOR'
+    SHADER_VERTEX_COLORS = 'USE_VERTEX_COLORS'
 
     def set_override_capabilities(self, ocap):
         self.override_capabilities = ocap
@@ -90,7 +90,7 @@ class Render:
                 GL.glUniform1i(p.uniform_id("tex2d"), 0)    # Texture unit 0.
             if self.SHADER_TEXTURE_WARP in capabilities:
                 self.set_texture_warp_parameters()
-            if self.SHADER_SINGLE_COLOR in capabilities:
+            if not self.SHADER_VERTEX_COLORS in capabilities:
                 self.set_shader_single_color()
 
         return p
@@ -219,21 +219,12 @@ class Render:
         dc_darkest = GL.glGetUniformLocation(p, b"depth_cue_darkest")
         GL.glUniform1f(dc_darkest, lp.depth_cue_darkest)
 
-    def set_instance_color(self, color):
-        '''
-        Set the OpenGL shader color for single color drawing to the specified
-        r,g,b,a float values.
-        '''
-        r,g,b,a = color
-        p = self.current_shader_program
-        GL.glVertexAttrib4f(p.attribute_id("vcolor"), r,g,b,a)
-
     def set_shader_single_color(self):
         '''
         Set the OpenGL shader color for shader single color mode.
         '''
         p = self.current_shader_program.program_id
-        c = GL.glGetUniformLocation(p, b"scolor")
+        c = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(c, 1, self.single_color)
 
     def set_texture_warp_parameters(self):
@@ -358,12 +349,13 @@ class Render:
     def start_rendering_outline(self, size):
 
         fb = self.current_framebuffer()
+        size = (fb.width, fb.height) if fb else size
         mfb = self.make_mask_framebuffer(size)
         self.push_framebuffer(mfb)
         self.set_background_color((0,0,0,0))
         self.draw_background()
         # Use flat single color rendering.
-        self.set_override_capabilities({self.SHADER_SINGLE_COLOR:True,
+        self.set_override_capabilities({self.SHADER_VERTEX_COLORS:False,
                                         self.SHADER_LIGHTING:False,
                                         self.SHADER_TEXTURE_2D:False})
         self.set_depth_range(0,0.999)      # Depth test GL_LEQUAL results in z-fighting
@@ -410,7 +402,9 @@ class Render:
         self.draw_background()
 
         # Render region with texture red > 0.
-        self.use_shader({self.SHADER_TEXTURE_MASK:True})
+        self.use_shader({self.SHADER_TEXTURE_MASK:True,
+                         self.SHADER_LIGHTING:False,
+                         self.SHADER_VERTEX_COLORS:False})
 
         # Texture map a full-screen quad to blend texture with frame buffer.
         tc = Texture_Copier(self.current_shader_program)
@@ -681,10 +675,12 @@ class Buffer_Type:
 # Buffer types with associated shader variable names
 VERTEX_BUFFER = Buffer_Type('position')
 NORMAL_BUFFER = Buffer_Type('normal', requires_capabilities = (Render.SHADER_LIGHTING,))
+VERTEX_COLOR_BUFFER = Buffer_Type('vcolor', value_type = uint8, normalize = True,
+                                  requires_capabilities = (Render.SHADER_VERTEX_COLORS,))
 INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type('instanceShiftAndScale', instance_buffer = True)
 INSTANCE_MATRIX_BUFFER = Buffer_Type('instancePlacement', instance_buffer = True)
-VERTEX_COLOR_BUFFER = Buffer_Type('vcolor', value_type = uint8, normalize = True)
-INSTANCE_COLOR_BUFFER = Buffer_Type('vcolor', instance_buffer = True, value_type = uint8, normalize = True)
+INSTANCE_COLOR_BUFFER = Buffer_Type('vcolor', instance_buffer = True, value_type = uint8, normalize = True,
+                                    requires_capabilities = (Render.SHADER_VERTEX_COLORS,))
 TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d')
 ELEMENT_BUFFER = Buffer_Type(None, buffer_type = GL.GL_ELEMENT_ARRAY_BUFFER, value_type = uint32)
 
@@ -840,6 +836,7 @@ class Shader:
         else:
             p = self.program_id
             aids[name] = aid = GL.glGetAttribLocation(p, name.encode('utf-8'))
+#            print('attrib id for %s is %d, shader %d, cap %s' % (name, aid, p, self.capabilities))
         return aid
 
     def compile_shader(self, capabilities, glsl_version = '150'):
@@ -859,6 +856,19 @@ class Shader:
         fs = shaders.compileShader(fshader, GL.GL_FRAGMENT_SHADER)
 
         prog_id = shaders.compileProgram(vs, fs)
+
+        # msg = (('Compiled shader %d,\n'
+        #        ' capbilities %s,\n'
+        #        ' vertex shader compile info log\n'
+        #        ' %s\n'
+        #        ' fragment shader compile info log\n'
+        #        ' %s\n'
+        #        ' program link info log\n'
+        #        ' %s')
+        #        % (prog_id, capabilities,
+        #           GL.glGetShaderInfoLog(vs), GL.glGetShaderInfoLog(fs), GL.glGetProgramInfoLog(prog_id)))
+        # print(msg)
+
         return prog_id
 
 # Add #define lines after #version line of shader

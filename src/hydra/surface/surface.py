@@ -300,8 +300,13 @@ class Surface_Piece(object):
 
     self.bind_buffers()     # Need bound vao to compile shader
 
-    sopt = self.shader_options()
     r = viewer.renderer()
+
+    # Set color
+    if self.vertex_colors is None and self.instance_colors is None:
+      r.single_color = self.color_rgba
+
+    sopt = self.shader_options()
     p = r.use_shader(sopt)
 
     t = self.texture
@@ -309,10 +314,6 @@ class Surface_Piece(object):
       t.bind_texture()
 
     self.update_buffers(p)
-
-    # Set color
-    if self.instance_colors is None:
-      r.set_instance_color(self.color_rgba)
 
     # Draw triangles
     eb = self.element_buffer
@@ -330,6 +331,8 @@ class Surface_Piece(object):
     lit = getattr(self, 'use_lighting', True)
     if not lit:
       sopt[r.SHADER_LIGHTING] = False
+    if self.vertex_colors is None and self.instance_colors is None:
+      sopt[r.SHADER_VERTEX_COLORS] = False
     t = self.texture
     if not t is None:
       sopt[r.SHADER_TEXTURE_2D] = True
