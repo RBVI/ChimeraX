@@ -75,8 +75,10 @@ class Oculus_Head_Tracking:
         r = place.rotation(axis, a*180/pi)
         if not self.last_rotation is None:
             rdelta = self.last_rotation.inverse()*r
-            c = self.view.camera
-            c.set_view(c.view()*rdelta)
+            v = self.view
+            c = v.camera
+            mtf = c.view()*rdelta.inverse()*c.view_inverse()
+            v.move(mtf, update_clip_planes = True)
         self.last_rotation = r
 
 def start_oculus(session):
