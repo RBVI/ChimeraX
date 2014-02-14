@@ -250,7 +250,10 @@ class Mouse_Modes:
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
         
-        models = self.view.session.model_list()
+        s = self.view.session
+        mdisp = [m for m in s.model_list() if m.display]
+        msel = [m for m in mdisp if m.selected]
+        models = msel if msel else mdisp
         from ..map.volume import Volume
         for m in models:
             if isinstance(m, Volume):
