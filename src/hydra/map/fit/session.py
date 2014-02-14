@@ -25,7 +25,7 @@ def save_fit_list_state(fit_list, file):
   
 # -----------------------------------------------------------------------------
 #
-def restore_fit_list_state(fit_list_state):
+def restore_fit_list_state(fit_list_state, session):
 
   classes = (
     Fit_List_State,
@@ -38,7 +38,7 @@ def restore_fit_list_state(fit_list_state):
   from ...file_io.SessionUtil import objecttree
   s = objecttree.basic_tree_to_instance_tree(fit_list_state, name_to_class)
   import fitlist
-  d = fitlist.show_fit_list_dialog()
+  d = fitlist.show_fit_list_dialog(session)
   s.restore_state(d)
   report_lookup_failures()
   

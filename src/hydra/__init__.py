@@ -1,1 +1,3 @@
-from .ui.gui import show_main_window
+from .session import Session
+
+version = '0.1'

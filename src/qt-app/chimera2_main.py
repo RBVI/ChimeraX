@@ -362,23 +362,39 @@ def main():
 	if '--nogui' in sys.argv:
 		app = ConsoleApplication(sys.argv)
 	else:
-		set_default_context(3, 2, QGLFormat.CoreProfile)
+		set_default_context(3, 3, QGLFormat.CoreProfile)
 		app = GuiApplication(sys.argv)
 	argv = sys.argv
 	argv[0] = app.applicationName().casefold()
 	import getopt
 	try:
-		opts, args = getopt.getopt(argv[1:], 'd:', ['dump=', 'nogui'])
+		opts, args = getopt.getopt(argv[1:], 'd:', [
+			'dump=', 'nogui', 'profile'
+		])
 	except getopt.error:
 		print("usage: %s [--nogui] [-d|--dump format]" % argv[0],
 				file=sys.stderr)
 		raise SystemExit(2)
 	global dump_format
+	profile = False
 	for option, value in opts:
 		if option in ("-d", "--dump"):
 			dump_format = value
 		elif option == '--nogui':
 			pass
+		elif option == '--profile':
+			profile = True
+
+	if profile:
+		# install profile decorator
+		# and write results on exit
+		import line_profiler, builtins, atexit
+		prof = line_profiler.LineProfiler()
+		builtins.__dict__['profile'] = prof
+		atexit.register(prof.dump_stats, "chimera2.lprof")
+	else:
+		import builtins
+		builtins.__dict__['profile'] = lambda x: x
 
 	sys.path.insert(0, '../../build/lib')
 
@@ -403,8 +419,20 @@ def main():
 		if dump_format == 'json':
 			scene.set_glsl_version('webgl')
 	else:
-		#llgr.set_output('pyopengl')
-		llgr.set_output('opengl')
+		if 0:
+			llgr.set_output('opengl')
+		else:
+			import OpenGL
+			OpenGL.ERROR_LOGGING = True
+			OpenGL.ERROR_ON_COPY = True
+			OpenGL.FORWARD_COMPATIBLE_ONLY = True
+			import logging
+			if 1:
+				logging.basicConfig(level=logging.ERROR)
+			else:
+				OpenGL.FULL_LOGGING = True
+				logging.basicConfig(level=logging.DEBUG)
+			llgr.set_output('pyopengl')
 	scene.reset()
 	import chimera2.io
 	chimera2.io.initialize_formats()

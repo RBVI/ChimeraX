@@ -1,3 +1,4 @@
+// vim: set expandtab ts=4 sw=4:
 #include <Python.h>
 
 PyObject * read_pdb_file(PyObject *, PyObject *args, PyObject *keywords);

@@ -6,7 +6,7 @@ SUBDIRS	= docs draw example_sessions file_io geometry map molecule surface ui _i
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
 
-PYSRCS = __init__.py scenes.py
+PYSRCS = __init__.py models.py scenes.py session.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)
@@ -37,7 +37,7 @@ install_mac_app: install mac_app_dirs
 	$(RSYNC) --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
 
 # Copy only the Python packages needed for distribution.
-	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.1-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
+	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.2.2-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
 	cd $(PYSITEDIR) ; $(RSYNC) hydra LeapMotion PyOpenGL-3.1.0a1-py3.3.egg/OpenGL $(PY_SITE_INSTALL)
 
 # Fix Python executable reference to python shared library
@@ -82,6 +82,12 @@ install_mac_app: install mac_app_dirs
 # Fix _image3d.so path to python library
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/_image3d.so
 
+# Fix _spacenavigator.so path to Python library
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PY_SITE_INSTALL)/hydra/ui/spacenavigator/_spacenavigator.so
+
+# Fix _oculus.so path to Python library
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PY_SITE_INSTALL)/hydra/ui/oculus/_oculus.so
+
 # Install pdbio and fix paths to libraries
 	$(RSYNC) $(libdir)/libmolecule.dylib $(libdir)/libtmpl.dylib $(libdir)/libcapsule.dylib $(PY_SITE_INSTALL)/hydra/lib
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PY_SITE_INSTALL)/hydra/lib/libcapsule.dylib
@@ -102,7 +108,7 @@ mac_app_dirs:
 endif
 
 run:
-	$(bindir)/python3 -c "import hydra; hydra.show_main_window()"
+	$(bindir)/python3 -c "import hydra; hydra.Session().start()"
 
 dmg:
 	cd $(APPS_DIR) ; \

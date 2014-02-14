@@ -7,15 +7,14 @@ SUBDIRS= templates
 include $(TOP)/mk/subdir.make
 
 LIBNAME = molecule
-SHLIB= lib$(LIBNAME).$(SHLIB_EXT)
 CXXFLAGS += -I..
 LIBS += ../base-geom/libbase-geom.a
 
-$(SHLIB): $(OBJS)
+$(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
 
 clean:
-	/bin/rm -f $(OBJS) $(SHLIB)
+	/bin/rm -f $(OBJS) $(SHLIB) imex.h

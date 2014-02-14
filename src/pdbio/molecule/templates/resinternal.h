@@ -1,3 +1,4 @@
+// vim: set expandtab ts=4 sw=4:
 #ifndef templates_resinternal
 #define templates_resinternal
 
@@ -6,10 +7,10 @@
 #include <string>
 
 struct ResInit {
-	TmplResidue	*(*start)(TmplMolecule *);
-	TmplResidue	*(*middle)(TmplMolecule *);
-	TmplResidue	*(*end)(TmplMolecule *);
-	ResInit(): start(0), middle(0), end(0) {}
+    TmplResidue    *(*start)(TmplMolecule *);
+    TmplResidue    *(*middle)(TmplMolecule *);
+    TmplResidue    *(*end)(TmplMolecule *);
+    ResInit(): start(0), middle(0), end(0) {}
 };
 
 typedef std::map<std::string, ResInit> ResInitMap;

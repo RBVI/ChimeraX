@@ -45,6 +45,8 @@ Hydra Modules
 
    molecule.rst
 
+   session.rst
+
    surface.rst
 
    ui.rst
@@ -59,3 +61,7 @@ Miscellaneous Modules
    math3d.rst
 
    triggerset.rst
+
+   pdbio.rst
+
+   molaccess.rst

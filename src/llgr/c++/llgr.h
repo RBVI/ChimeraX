@@ -3,9 +3,10 @@
 
 // low-level graphics library
 
-#include <vector>
-#include <string>
-#include <stdint.h>
+# include <vector>
+# include <string>
+# include <unordered_set>
+# include <stdint.h>
 
 # ifdef _WIN32
 #  if defined(LLGR_EXPORT)
@@ -124,14 +125,15 @@ LLGR_IMEX extern void clear_matrices();
 // flat scene graph
 
 struct AttributeInfo {
-	std::string name;
+	std::string name;	// TODO: intern, i.e., a Symbol
 	Id	data_id;
 	uint32_t offset;	// byte offset into buffer
 	uint32_t stride;	// byte stride to next element in buffer
-	uint32_t count;		// number of data type
+	uint32_t count;		// number of data type per location
 	DataType type;
 	bool	normalized;	// only for integer types
-	AttributeInfo(const std::string& n, Id d, uint32_t o, uint32_t s, uint32_t c, DataType t, bool norm = false): name(n), data_id(d), offset(o), stride(s), count(c), type(t), normalized(norm) {}
+	bool	is_array;	// true iff data_id is not a singleton
+	AttributeInfo(const std::string& n, Id d, uint32_t o, uint32_t s, uint32_t c, DataType t, bool norm = false): name(n), data_id(d), offset(o), stride(s), count(c), type(t), normalized(norm), is_array(true) {}
 };
 typedef std::vector<AttributeInfo> AttributeInfos;
 
@@ -152,7 +154,7 @@ LLGR_IMEX extern void set_attribute_alias(const std::string& name,
 LLGR_IMEX extern void create_object(Id obj_id, Id program_id, Id matrix_id,
 	const AttributeInfos& ais, PrimitiveType pt,
 	uint32_t first, uint32_t count,
-	Id index_data_id = 0, DataType index_data_type = Byte);
+	Id index_data_id = 0, DataType index_data_type = UByte);
 // LLGR_IMEX extern void remove_object(Id obj_id, Id matrix_id);
 LLGR_IMEX extern void delete_object(Id obj_id);
 LLGR_IMEX extern void clear_objects();
@@ -160,6 +162,7 @@ LLGR_IMEX extern void clear_objects();
 #ifdef WrapPy
 typedef std::vector<Id> Objects;
 #endif
+typedef std::vector<Id> Groups;
 
 // indicate whether to draw object or not
 #ifndef WrapPy
@@ -214,6 +217,11 @@ LLGR_IMEX extern void add_sphere(Id obj_id, float radius,
 	Id program_id, Id matrix_id, const AttributeInfos& ais);
 LLGR_IMEX extern void add_cylinder(Id obj_id, float radius, float length,
 	Id program_id, Id matrix_id, const AttributeInfos& ais);
+LLGR_IMEX extern void add_cone(Id obj_id, float radius, float length,
+	Id program_id, Id matrix_id, const AttributeInfos& ais);
+LLGR_IMEX extern void add_disk(Id obj_id, float inner_radius,
+	float outer_radius, Id program_id, Id matrix_id,
+	const AttributeInfos& ais);
 LLGR_IMEX extern void clear_primitives();
 
 // misc
@@ -223,7 +231,10 @@ LLGR_IMEX extern void clear_all();
 LLGR_IMEX extern void set_clear_color(float red, float green, float blue,
 								float alpha);
 
-LLGR_IMEX extern void render();
+LLGR_IMEX extern void render(const Groups& groups);
+#ifndef WrapPy
+template <typename _iterable> void render(const _iterable& groups);
+#endif
 
 } // namespace llgr
 

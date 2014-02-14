@@ -1,223 +1,3 @@
-class CancelOperation(BaseException):
-  pass
-
-# -----------------------------------------------------------------------------
-#
-class Volume_Manager:
-
-  def __init__(self):
-    
-    self.data_regions = []
-    self.data_to_regions = {}
-
-    from . import defaultsettings as d
-    self.default_settings = ds = d.Volume_Viewer_Default_Settings()
-
-    # Set default data cache size.
-    from .data import data_cache
-    data_cache.resize(ds['data_cache_size'] * (2**20))
-
-    self.open_callbacks = []
-    self.close_callbacks = []
-    self.save_session_callbacks = []
-
-#    from chimera import openModels as om
-#    self.open_handler = om.addAddHandler(self.open_models_cb, None)
-
-#     from chimera import triggers, CLOSE_SESSION
-#     from SimpleSession import SAVE_SESSION
-#     triggers.addHandler(SAVE_SESSION, self.save_session_cb, None)
-#     triggers.addHandler(CLOSE_SESSION, self.close_session_cb, None)
-
-#     from chimera import SCENE_TOOL_SAVE, SCENE_TOOL_RESTORE
-#     from session import save_scene, restore_scene
-#     triggers.addHandler(SCENE_TOOL_SAVE,
-#                         lambda t,vm,s: save_scene(vm,s), self)
-#     triggers.addHandler(SCENE_TOOL_RESTORE,
-#                         lambda t,vm,s: restore_scene(vm,s), self)
-
-  # ---------------------------------------------------------------------------
-  #
-  def add_volume_opened_callback(self, volume_opened_cb):
-
-    self.open_callbacks.append(volume_opened_cb)
-
-  # ---------------------------------------------------------------------------
-  #
-  def add_volume_closed_callback(self, volume_closed_cb):
-
-    self.close_callbacks.append(volume_closed_cb)
-
-  # ---------------------------------------------------------------------------
-  # Callbacks are called after data has be saved.
-  # State saved via a callback registered with this routine is restored
-  # only after volume data has been restored.
-  #
-  def add_session_save_callback(self, save_session):
-
-    self.save_session_callbacks.append(save_session)
-
-  # ---------------------------------------------------------------------------
-  #
-  def open_models_cb(self, trigger_name, args, models):
-
-    for v in models:
-      if isinstance(v, Volume):
-        self.add_volume(v)
-      
-  # ---------------------------------------------------------------------------
-  #
-  def add_volume(self, v):
-
-    self.data_regions.append(v)
-
-    data = v.data
-
-    d2r = self.data_to_regions
-    if not data in d2r:
-      d2r[data] = []
-    d2r[data].append(v)
-
-#    import chimera
-#    chimera.addModelClosedCallback(v, self.model_closed_cb)
-
-    for cb in self.open_callbacks:
-      cb(v)
-    
-  # ---------------------------------------------------------------------------
-  #
-  def set_initial_volume_color(self, v):
-
-    ds = self.default_settings
-    if ds['use_initial_colors']:
-      n = len(volume_list())
-      if v in volume_list():
-        n -= 1
-      icolors = ds['initial_colors']
-      rgba = icolors[n%len(icolors)]
-      v.set_parameters(default_rgba = rgba)
-    
-  # ---------------------------------------------------------------------------
-  #
-  def replace_data(self, data, new_data):
-
-    d2r = self.data_to_regions 
-    d2r[new_data] = d2r[data]
-    del d2r[data]
-    for dr in d2r[new_data]:
-      dr.replace_data(new_data)
-
-  # ---------------------------------------------------------------------------
-  #
-  def volume_list(self):
-
-      return self.data_regions
-
-  # ---------------------------------------------------------------------------
-  #
-  def regions_using_data(self, data):
-
-    return self.data_to_regions.get(data, [])
-
-  # ---------------------------------------------------------------------------
-  #
-  def data_already_opened(self, path, grid_id):
-
-    if not path:
-      return None
-    
-    dlist = self.data_to_regions.keys()
-    for data in dlist:
-      if not data.writable and data.path == path and data.grid_id == grid_id:
-        return data
-    return None
-
-  # ---------------------------------------------------------------------------
-  #
-  def model_closed_cb(self, v):
-
-    if v in self.data_regions:
-      self.remove_volumes([v])
-    
-  # ---------------------------------------------------------------------------
-  #
-  def save_session_cb(self, trigger, x, file):
-
-    import session
-    session.save_volume_data_state(self, file)
-
-    for cb in self.save_session_callbacks:
-      cb(file)
-    
-  # ---------------------------------------------------------------------------
-  #
-  def close_session_cb(self, trigger, a1, a2):
-
-    self.remove_volumes(self.data_regions)
-      
-  # ---------------------------------------------------------------------------
-  #
-  def remove_volumes(self, volumes):
-
-    remove_volumes = tuple(volumes)
-
-    for v in remove_volumes:
-      index = self.data_regions.index(v)
-      del self.data_regions[index]
-
-      data = v.data
-      if data is None:
-        # Volume has already been closed and data attribute set to None.
-        data = [d for d,vlist in self.data_to_regions.items() if v in vlist][0]
-      vlist = self.data_to_regions[data]
-      vlist.remove(v)
-      if len(vlist) == 0:
-        del self.data_to_regions[data]
-        data.clear_cache()
-
-    for cb in self.close_callbacks:
-      cb(remove_volumes)
-
-    # Close models only after removing from volume list.
-    # This stops the model closed callback from recalling this routine.
-    for v in remove_volumes:
-      v.close()
-
-# -----------------------------------------------------------------------------
-# Decide whether a data region is small enough to show when opened.
-#
-def show_when_opened(data_region, show_on_open, max_voxels):
-
-  if not show_on_open:
-    return False
-  
-  if max_voxels == None:
-    return False
-  
-  voxel_limit = int(max_voxels * (2 ** 20))
-  ss_origin, ss_size, subsampling, ss_step = data_region.ijk_region()
-  voxels = float(ss_size[0]) * float(ss_size[1]) * float(ss_size[2])
-
-  return (voxels <= voxel_limit)
-
-# -----------------------------------------------------------------------------
-# Decide whether a data region is large enough that only a single z plane
-# should be shown.
-#
-def show_one_plane(size, show_plane, min_voxels):
-
-  if not show_plane:
-    return False
-  
-  if min_voxels == None:
-    return False
-  
-  voxel_limit = int(min_voxels * (2 ** 20))
-  voxels = float(size[0]) * float(size[1]) * float(size[2])
-
-  return (voxels >= voxel_limit)
-
-
 # -----------------------------------------------------------------------------
 # Manages surface and volume display for a region of a data set.
 # Holds surface and solid thresholds, color, and transparency and brightness
@@ -232,10 +12,12 @@ class Volume(Surface):
   a subregion including single plane display, subsampled display of every Nth data
   value along each axis, outline box display.
   '''
-  def __init__(self, data, region = None, rendering_options = None,
+  def __init__(self, data, session, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
     Surface.__init__(self, data.name)
+
+    self.session = session
     if not model_id is None:
       self.id = model_id
 
@@ -379,7 +161,7 @@ class Volume(Surface):
     if pchange and self.representation != 'solid':
       styles = set()
       for p in self.surface_piece_list:
-        styles.add(p.displayStyle)
+        styles.add(p.display_style)
       if len(styles) == 1:
         pstyle = {p.Solid: 'surface', p.Mesh: 'mesh'}.get(styles.pop(), None)
         if pstyle and self.representation != pstyle:
@@ -836,16 +618,13 @@ class Volume(Surface):
     single_plane = self.single_plane()
     contour_2d = single_plane and not ro.cap_faces
 
-    if show_mesh or contour_2d:
-      style = p.Mesh
-    else:
-      style = p.Solid
-    p.displayStyle = style
+    style = p.Mesh if show_mesh or contour_2d else p.Solid
+    p.display_style = style
     
     if contour_2d:  lit = False
     elif show_mesh: lit = ro.mesh_lighting
     else:           lit = True
-    p.useLighting = lit
+    p.use_lighting = lit
 
     p.twoSidedLighting = ro.two_sided_lighting
 
@@ -991,6 +770,7 @@ class Volume(Surface):
 
     if show:
       self.update_solid(rendering_options)
+      self.display = True
     else:
       self.hide_solid()
 
@@ -1079,7 +859,7 @@ class Volume(Surface):
   #
   def copy(self):
 
-    v = volume_from_grid_data(self.data, self.representation,
+    v = volume_from_grid_data(self.data, self.session, self.representation,
                               show_data = False, show_dialog = False)
     v.copy_settings_from(self)
     return v
@@ -1168,7 +948,7 @@ class Volume(Surface):
     else:
       g.name = self.name + ' copy'
 
-    v = volume_from_grid_data(g, self.representation, model_id = model_id,
+    v = volume_from_grid_data(g, self.session, self.representation, model_id = model_id,
                               show_data = False, show_dialog = False)
     v.copy_settings_from(self, copy_region = False, copy_colors = copy_colors)
 
@@ -1689,8 +1469,9 @@ class Volume(Surface):
 
     if mask_zone:
       surf_model = self.surface_model()
-      import SurfaceZone
-      if SurfaceZone.showing_zone(surf_model):
+#      import SurfaceZone
+#      if SurfaceZone.showing_zone(surf_model):
+      if False:
         points, radius = SurfaceZone.zone_points_and_distance(surf_model)
         from .data import zone_masked_grid_data
         mg = zone_masked_grid_data(sg, points, radius)
@@ -1741,7 +1522,7 @@ class Volume(Surface):
     if outside: name = 'outside zone'
     else: name = 'zone'
     masked_data.name = self.name + ' ' + name
-    mv = volume_from_grid_data(masked_data, show_data = False)
+    mv = volume_from_grid_data(masked_data, self.session, show_data = False)
     mv.copy_settings_from(self, copy_region = False, copy_zone = False)
     mv.show()
     return mv
@@ -1820,7 +1601,7 @@ class Volume(Surface):
 
     from .data import save_grid_data
     d = self.grid_data()
-    format = save_grid_data(d, path, format, options, temporary)
+    format = save_grid_data(d, path, self.session, format, options, temporary)
   
   # ---------------------------------------------------------------------------
   #
@@ -1887,12 +1668,10 @@ class Volume(Surface):
     return self.place
   
   # ---------------------------------------------------------------------------
-  # Hide surface model and close solid model.
   #
   def unshow(self):
 
-    self.hide_solid()
-    self.hide_surface()
+    self.display = False
   
   # ---------------------------------------------------------------------------
   #
@@ -2009,9 +1788,9 @@ class Outline_Box:
 
     rgba = tuple(rgb) + (1,)
     p = self.model.new_piece()
-    p.displayStyle = p.Mesh
+    p.display_style = p.Mesh
     p.lineThickness = linewidth
-    p.useLighting = False
+    p.use_lighting = False
     p.outline_box = True # Do not cap clipped outline box.
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
@@ -2454,7 +2233,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = [], show = True,
 #
 class cycle_through_planes:
 
-  def __init__(self, v, axis, pstart, pend = None, pstep = 1, pdepth = 1):
+  def __init__(self, v, session, axis, pstart, pend = None, pstep = 1, pdepth = 1):
 
     axis = {'x':0, 'y':1, 'z':2}.get(axis, axis)
     if pend is None:
@@ -2467,15 +2246,15 @@ class cycle_through_planes:
       pstep *= -1
 
     self.volume = v
+    self.session = session
     self.axis = axis
     self.plane = pstart
     self.plast = pend
     self.step = pstep
     self.depth = pdepth
 
-    from ..ui.gui import main_window
     self.handler = self.next_plane_cb
-    main_window.view.add_new_frame_callback(self.handler)
+    session.main_window.view.add_new_frame_callback(self.handler)
 
   def next_plane_cb(self):
     
@@ -2485,8 +2264,7 @@ class cycle_through_planes:
       show_planes(self.volume, self.axis, p, self.depth,
                   save_in_region_queue = False)
     else:
-      from ..ui.gui import main_window
-      main_window.view.remove_new_frame_callback(self.handler)
+      self.session.main_window.view.remove_new_frame_callback(self.handler)
       self.handler = None
 
 # -----------------------------------------------------------------------------
@@ -2651,7 +2429,7 @@ def map_covering_atoms(atoms, pad, volume):
 
     ijk_min, ijk_max = atom_bounds(atoms, pad, volume)
     g = map_from_periodic_map(volume.data, ijk_min, ijk_max)
-    v = volume_from_grid_data(g, show_data = False)
+    v = volume_from_grid_data(g, volume.session, show_data = False)
     v.copy_settings_from(volume, copy_region = False)
 
     return v
@@ -2713,7 +2491,7 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
 # -----------------------------------------------------------------------------
 # Open and display a map.
 #
-def open_volume_file(path, format = None, name = None, representation = None,
+def open_volume_file(path, session, format = None, name = None, representation = None,
                      open_models = True, model_id = None,
                      show_data = True, show_dialog = True):
 
@@ -2739,7 +2517,7 @@ def open_volume_file(path, format = None, name = None, representation = None,
     for g in glist:
       g.name = name
 
-  vlist = [volume_from_grid_data(g, representation, open_models,
+  vlist = [volume_from_grid_data(g, session, representation, open_models,
                                  model_id, show_data, show_dialog)
             for g in glist]
   return vlist
@@ -2747,7 +2525,7 @@ def open_volume_file(path, format = None, name = None, representation = None,
 # -----------------------------------------------------------------------------
 # Open and display a map using Volume Viewer.
 #
-def volume_from_grid_data(grid_data, representation = None,
+def volume_from_grid_data(grid_data, session, representation = None,
                           open_model = True, model_id = None,
                           show_data = True, show_dialog = False):
 
@@ -2763,7 +2541,7 @@ def volume_from_grid_data(grid_data, representation = None,
     # Show single plane data in solid style.
     single_plane = [s for s in grid_data.size if s == 1]
     representation = 'solid' if single_plane else 'surface'
-  ds = default_settings
+  ds = session.volume_defaults
   one_plane = show_one_plane(grid_data.size, ds['show_plane'],
                              ds['voxel_limit_for_plane'])
   if one_plane:
@@ -2773,7 +2551,7 @@ def volume_from_grid_data(grid_data, representation = None,
   region = full_region(grid_data.size)[:2]
   if one_plane:
     region[0][2] = region[1][2] = grid_data.size[2]//2
-  ro = default_settings.rendering_option_defaults()
+  ro = ds.rendering_option_defaults()
   if hasattr(grid_data, 'polar_values') and grid_data.polar_values:
     ro.flip_normals = True
     ro.cap_faces = False
@@ -2784,12 +2562,12 @@ def volume_from_grid_data(grid_data, representation = None,
   region = tuple(region) + (ijk_step,)
 
   # Create volume model
-  d = volume_manager.data_already_opened(grid_data.path, grid_data.grid_id)
+  d = data_already_opened(grid_data.path, grid_data.grid_id, session)
   if d:
     grid_data = d
-  v = Volume(grid_data, region, ro, model_id, open_model)
+  v = Volume(grid_data, session, region, ro, model_id, open_model)
   v.set_representation(representation)
-  set_initial_volume_color(v)
+  set_initial_volume_color(v, session)
 
   # Show data
   if show_data:
@@ -2803,17 +2581,71 @@ def volume_from_grid_data(grid_data, representation = None,
 
 # -----------------------------------------------------------------------------
 #
-volume_manager = Volume_Manager()
-default_settings = volume_manager.default_settings
-add_volume_opened_callback = volume_manager.add_volume_opened_callback
-add_volume_closed_callback = volume_manager.add_volume_closed_callback
-add_session_save_callback = volume_manager.add_session_save_callback
-set_initial_volume_color = volume_manager.set_initial_volume_color
-#volume_list = volume_manager.volume_list
-regions_using_data = volume_manager.regions_using_data
-replace_data = volume_manager.replace_data
-remove_volumes = volume_manager.remove_volumes
+class CancelOperation(BaseException):
+  pass
 
-def volume_list():
-  global volume_manager
-  return volume_manager.volume_list()
+# -----------------------------------------------------------------------------
+# Decide whether a data region is small enough to show when opened.
+#
+def show_when_opened(data_region, show_on_open, max_voxels):
+
+  if not show_on_open:
+    return False
+  
+  if max_voxels == None:
+    return False
+  
+  voxel_limit = int(max_voxels * (2 ** 20))
+  ss_origin, ss_size, subsampling, ss_step = data_region.ijk_region()
+  voxels = float(ss_size[0]) * float(ss_size[1]) * float(ss_size[2])
+
+  return (voxels <= voxel_limit)
+
+# -----------------------------------------------------------------------------
+# Decide whether a data region is large enough that only a single z plane
+# should be shown.
+#
+def show_one_plane(size, show_plane, min_voxels):
+
+  if not show_plane:
+    return False
+  
+  if min_voxels == None:
+    return False
+  
+  voxel_limit = int(min_voxels * (2 ** 20))
+  voxels = float(size[0]) * float(size[1]) * float(size[2])
+
+  return (voxels >= voxel_limit)
+    
+# ---------------------------------------------------------------------------
+#
+def set_initial_volume_color(v, session):
+
+  ds = session.volume_defaults
+  if ds['use_initial_colors']:
+    vlist = volume_list(session)
+    n = len(vlist)
+    if v in vlist:
+      n -= 1
+    icolors = ds['initial_colors']
+    rgba = icolors[n%len(icolors)]
+    v.set_parameters(default_rgba = rgba)
+
+# ---------------------------------------------------------------------------
+#
+def data_already_opened(path, grid_id, session):
+
+  if not path:
+    return None
+  
+  for v in volume_list(session):
+    d = v.data
+    if not d.writable and d.path == path and d.grid_id == grid_id:
+        return d
+  return None
+
+# -----------------------------------------------------------------------------
+#
+def volume_list(session):
+  return session.maps()

@@ -1,4 +1,4 @@
-from chimera2 import molecule, scene
+from chimera2 import molecule
 from chimera2.cli import UserError
 
 _builtin_open = open
@@ -24,16 +24,21 @@ def open(stream, *args, **kw):
 def fetch(pdb_id):
 	if len(pdb_id) != 4:
 		raise UserError("PDB identifiers are 4 characters long")
-	# TODO: check in local cache
+	import os
+	# check in local cache
+	filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
+	filename = os.path.expanduser(filename)
+	if os.path.exists(filename):
+		return _builtin_open(filename, 'rb')
 	# check on local system -- TODO: configure location
 	filename = "/databases/mol/pdb/pdb%s.ent" % pdb_id.lower()
-	import os
 	if os.path.exists(filename):
 		return _builtin_open(filename, 'rb')
 	from urllib.request import URLError, Request, urlopen
 	url = "http://www.rcsb.org/pdb/files/%s.pdb" % pdb_id.upper()
-	# TODO: get application name and version for User-Agent
+	# TODO: save in local cache
 	request = Request(url, headers={
+		# TODO: get application name and version for User-Agent
 		"User-Agent": "UCSF-Chimera2/0.1",
 	})
 	try:

@@ -29,6 +29,9 @@ class ShaderVariable:
 		self.data = None
 		self.transpose = False
 
+	def __repr__(self):
+		return "ShaderVariable(%r, %r, %r)" % (self.name, self.type, self.location)
+
 	def has_value(self):
 		return self.data is not None
 
@@ -289,6 +292,9 @@ class ShaderProgram:
 			if loc == -1:
 				continue
 			self.attributes.append(ShaderVariable(self, name.decode('utf-8'), cvt_type(type), loc))
+		return
+		print('uniforms:', self.uniforms)
+		print('attributes:', self.attributes)
 
 	def close(self):
 		if self.program:

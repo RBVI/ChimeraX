@@ -20,7 +20,7 @@ class Planes_Mouse_Mode:
         self.xy_last = (x,y) = (event.x(), event.y())
         line = viewer.camera.clip_plane_points(x,y)    # scene coordinates
         from .slice import nearest_volume_face
-        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line)
+        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, viewer.session)
         self.drag = False
 
     def mouse_drag(self, viewer, event):
@@ -132,7 +132,7 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
     from math import sqrt
     d = sqrt(dx*dx + dy*dy)
     face_normal = v.axis_vector(axis)    # global coords
-    m2c = viewer.camera.view_inverse
+    m2c = viewer.camera.view_inverse()
     nx,ny,nz = m2c.apply_without_translation(face_normal)
     if ((dx == 0 and abs(dy) == 1 and abs(nx) > abs(ny)) or
         (dy == 0 and abs(dx) == 1 and abs(ny) > abs(nx))):

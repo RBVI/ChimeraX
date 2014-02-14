@@ -12,7 +12,7 @@ class Surface:
   def __init__(self, name):
     self.name = name
     self.id = None              # positive integer
-    self.displayed = True
+    self._display = True       # private. use display property
     from ..geometry.place import Place
     self.placement = Place()
     self.copies = []
@@ -52,9 +52,9 @@ class Surface:
     self.remove_pieces(self.plist)
 
   def get_display(self):
-    return self.displayed
+    return self._display
   def set_display(self, display):
-    self.displayed = display
+    self._display = display
     self.redraw_needed = True
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
@@ -179,11 +179,11 @@ class Surface_Piece(object):
     self.edge_mask = None
     self.masked_edges = None
     self.display = True
-    self.displayStyle = self.Solid
+    self.display_style = self.Solid
     self.color_rgba = (.7,.7,.7,1)
     self.texture = None
-    self.textureCoordinates = None
-    self.opaqueTexture = False
+    self.texture_coordinates = None
+    self.opaque_texture = False
     self.__destroyed__ = False
 
     self.vao = None     	# Holds the buffer pointers and bindings
@@ -197,7 +197,7 @@ class Surface_Piece(object):
             ('copies44', draw.INSTANCE_MATRIX_BUFFER),
             ('vertex_colors', draw.VERTEX_COLOR_BUFFER),
             ('instance_colors', draw.INSTANCE_COLOR_BUFFER),
-            ('textureCoordinates', draw.TEXTURE_COORDS_2D_BUFFER),
+            ('texture_coordinates', draw.TEXTURE_COORDS_2D_BUFFER),
             ('elements', draw.ELEMENT_BUFFER),
             )
     obufs = []
@@ -215,7 +215,7 @@ class Surface_Piece(object):
     self.normals = None
     self.edge_mask = None
     self.texture = None
-    self.textureCoordinates = None
+    self.texture_coordinates = None
     self.masked_edges = None
     for b in self.opengl_buffers:
       b.delete_buffer()
@@ -269,7 +269,7 @@ class Surface_Piece(object):
     ta = self.triangles
     if ta is None:
       return None
-    if self.displayStyle == self.Mesh:
+    if self.display_style == self.Mesh:
       if self.masked_edges is None:
         from .._image3d import masked_edges
         self.masked_edges = (masked_edges(ta) if self.edge_mask is None
@@ -290,7 +290,7 @@ class Surface_Piece(object):
   '''Single color of surface piece used when per-vertex coloring is not specified.'''
 
   def opaque(self):
-    return self.color_rgba[3] == 1 and (self.texture is None or self.opaqueTexture)
+    return self.color_rgba[3] == 1 and (self.texture is None or self.opaque_texture)
 
   def draw(self, viewer):
     ''' Draw the surface piece.'''
@@ -300,8 +300,13 @@ class Surface_Piece(object):
 
     self.bind_buffers()     # Need bound vao to compile shader
 
-    sopt = self.shader_options()
     r = viewer.renderer()
+
+    # Set color
+    if self.vertex_colors is None and self.instance_colors is None:
+      r.single_color = self.color_rgba
+
+    sopt = self.shader_options()
     p = r.use_shader(sopt)
 
     t = self.texture
@@ -310,15 +315,11 @@ class Surface_Piece(object):
 
     self.update_buffers(p)
 
-    # Set color
-    if self.instance_colors is None:
-      r.set_single_color(self.color_rgba)
-
     # Draw triangles
     eb = self.element_buffer
     etype = {self.Solid: eb.triangles,
              self.Mesh: eb.lines,
-             self.Dot: eb.points}[self.displayStyle]
+             self.Dot: eb.points}[self.display_style]
     eb.draw_elements(etype, self.instance_count())
 
     if not self.texture is None:
@@ -327,18 +328,20 @@ class Surface_Piece(object):
   def shader_options(self):
     sopt = {}
     from ..draw import Render as r
-    lit = getattr(self, 'useLighting', True)
+    lit = getattr(self, 'use_lighting', True)
     if not lit:
       sopt[r.SHADER_LIGHTING] = False
+    if self.vertex_colors is None and self.instance_colors is None:
+      sopt[r.SHADER_VERTEX_COLORS] = False
     t = self.texture
     if not t is None:
       sopt[r.SHADER_TEXTURE_2D] = True
+      if hasattr(self, 'use_texture_warp') and self.use_texture_warp:
+        sopt[r.SHADER_TEXTURE_WARP] = True
     if not self.shift_and_scale is None:
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
     elif not self.copies44 is None:
       sopt[r.SHADER_INSTANCING] = True
-    if self.surface.selected:
-      sopt[r.SHADER_SELECTED] = True
     return sopt
 
   def instance_count(self):
@@ -468,8 +471,8 @@ def rgba_surface_piece(rgba, pos, size, surf):
   tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
   p.geometry = vlist, tlist
   p.color = (1,1,1,1)         # Modulates texture values
-  p.useLighting = False
-  p.textureCoordinates = tc
+  p.use_lighting = False
+  p.texture_coordinates = tc
   from ..draw import Texture
   p.texture = Texture(rgba)
   return p

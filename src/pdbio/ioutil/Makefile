@@ -11,10 +11,10 @@ ifdef WIN32
 	OBJS	+= $(CSRCS:.c=.o)
 endif
 
-$(LIB): $(OBJS)
+$(LIB): imex.h $(OBJS)
 	ar -r $(LIB) $(OBJS)
 
 install: $(LIB)
 
 clean:
-	/bin/rm -f $(OBJS) $(LIB)
+	/bin/rm -f $(OBJS) $(LIB) imex.h

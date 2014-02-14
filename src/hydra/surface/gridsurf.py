@@ -76,7 +76,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
                                concatenate(kvi), concatenate(kti))
     return va, na, ta
 
-def show_surface(name, va, na, ta, color = (.7,.7,.7,1), place = None):
+def show_surface(name, va, na, ta, session, color = (.7,.7,.7,1), place = None):
 
     from . import Surface
     surf = Surface(name)
@@ -86,11 +86,10 @@ def show_surface(name, va, na, ta, color = (.7,.7,.7,1), place = None):
     p.geometry = va, ta
     p.normals = na
     p.color = color
-    from ..ui.gui import main_window
-    main_window.view.add_model(surf)
+    session.add_model(surf)
     return surf
 
-def surface_command(cmdname, args):
+def surface_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, float_arg, no_arg, parse_arguments
     req_args = (('atoms', atoms_arg),)
@@ -99,10 +98,11 @@ def surface_command(cmdname, args):
                ('gridSpacing', float_arg),
                ('waters', no_arg),)
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     surface(**kw)
 
-def surface(atoms, probeRadius = 1.4, gridSpacing = 0.5, waters = False):
+def surface(atoms, session, probeRadius = 1.4, gridSpacing = 0.5, waters = False):
     '''
     Compute and display a solvent excluded molecular surfaces for specified atoms.
     If waters is false then water residues (residue name HOH) are removed from
@@ -117,7 +117,7 @@ def surface(atoms, probeRadius = 1.4, gridSpacing = 0.5, waters = False):
     # Create surface model to show surface
     m0 = atoms.molecules()[0]
     name = '%s SES surface' % m0.name
-    surf = show_surface(name, va, na, ta,
+    surf = show_surface(name, va, na, ta, session,
                         color = (.7,.8,.5,1), place = m0.place)
 
     return surf

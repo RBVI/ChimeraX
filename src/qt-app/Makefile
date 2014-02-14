@@ -15,6 +15,14 @@ run:
 	# by running within make, the right environment variables are setup
 	./chimera2
 
+profile:
+	echo "Decorate functions with @profile."
+	echo "Use 'make profile_results' to see results."
+	./chimera2 --profile
+
+profile-results:
+	python3 -m line_profiler chimera2.lprof
+
 run-python:
 	# by running within make, the right environment variables are setup
 	$(bindir)/python3

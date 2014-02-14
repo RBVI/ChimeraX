@@ -139,10 +139,10 @@ class Fit:
 
     # -------------------------------------------------------------------------
     #
-    def place_models(self, frames = 0):
+    def place_models(self, session, frames = 0):
 
         if frames > 0:
-            move_models(self.models, self.transforms, self.volume, frames)
+            move_models(self.models, self.transforms, self.volume, frames, session)
         else:
             for m, tf in self.model_transforms():
                 m.set_place(tf)
@@ -272,10 +272,12 @@ def fit_order(f):
 
 # -----------------------------------------------------------------------------
 #
-move_table = {}
-def move_models(models, transforms, base_model, frames):
+def move_models(models, transforms, base_model, frames, session):
 
-    global move_table
+    if not hasattr(session, move_table):
+        session.move_table = {}            # Map motion handlers for animating moves to fit positions
+
+    move_table = session.move_table
     add = (len(move_table) == 0)
     if base_model.__destroyed__:
         return
@@ -285,16 +287,15 @@ def move_models(models, transforms, base_model, frames):
     if move_table and add:
         cb = []
         def mstep(mt = move_table, cb = cb):
-            move_step(mt, cb)
+            move_step(mt, cb, session)
         cb.append(mstep)
-        from ...ui.gui import main_window
-        main_window.view.add_new_frame_callback(mstep)
+        session.main_window.view.add_new_frame_callback(mstep)
 
 # -----------------------------------------------------------------------------
 #
-def move_step(move_table, cb):
+def move_step(move_table, cb, session):
 
-    mt = move_table
+    mt = session.move_table
     for m, (rxf, base_model, frames) in tuple(mt.items()):
         if m.__destroyed__ or base_model.__destroyed__:
             del mt[m]
@@ -313,8 +314,7 @@ def move_step(move_table, cb):
             del mt[m]
 
     if len(mt) == 0:
-        from ...ui.gui import main_window
-        main_window.view.remove_new_frame_callback(cb[0])
+        session.main_window.view.remove_new_frame_callback(cb[0])
 
 # -----------------------------------------------------------------------------
 #

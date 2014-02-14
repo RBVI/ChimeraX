@@ -2,9 +2,10 @@
 #define base_geom_Point
 
 #include <string>
+#include "imex.h"
 #include "Real.h"
 
-class Point {
+class BASE_GEOM_IMEX Point {
 	Real	_xyz[3];
 public:
 	Point(Real x, Real y, Real z) {

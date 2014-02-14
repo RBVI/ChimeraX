@@ -182,10 +182,36 @@ def file_writer(path, format = None):
   
 # -----------------------------------------------------------------------------
 #
-def save_grid_data(grids, path, format = None, options = {}, temporary = False):
+def save_map_command(cmdname, args, session):
 
-  from OpenSave import tildeExpand
-  path = tildeExpand(path)
+    from ...ui.commands import path_arg, volumes_arg
+    from ...ui.commands import parse_arguments
+    req_args = (('path', path_arg),
+                ('maps', volumes_arg),
+                )
+    opt_args = ()
+    kw_args = ()
+
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
+    vlist = kw['maps']
+    kw['grids'] = [v.data for v in vlist]
+    kw.pop('maps')
+
+    save_grid_data(**kw)
+
+    # Set file icon image on Mac
+    from ...file_io import fileicon
+    fileicon.set_file_icon(kw['path'], session, models = vlist)
+
+    session.file_history.add_entry(kw['path'], models = vlist)
+ 
+# -----------------------------------------------------------------------------
+#
+def save_grid_data(grids, path, session, format = None, options = {}):
+
+  import os.path
+  path = os.path.expanduser(path)
   
   fw = file_writer(path, format)
   if fw is None:
@@ -197,7 +223,7 @@ def save_grid_data(grids, path, format = None, options = {}, temporary = False):
     raise ValueError(('Unsupported options for format %s: %s'
                       % (fw[1], ' ,'.join(badopt))))
 
-  from griddata import Grid_Data
+  from .griddata import Grid_Data
   if isinstance(grids, Grid_Data):
     glist = [grids]
   else:
@@ -219,7 +245,7 @@ def save_grid_data(grids, path, format = None, options = {}, temporary = False):
   g = glist[0]
   from os.path import basename
   operation = 'Writing %s to %s' % (g.name, basename(path))
-  from progress import Progress_Reporter
+  from .progress import Progress_Reporter
   p = Progress_Reporter(operation, g.size, g.value_type.itemsize)
   if 'multigrid' in allowed_options:
     garg = glist
@@ -239,11 +265,6 @@ def save_grid_data(grids, path, format = None, options = {}, temporary = False):
 
   from os.path import basename
   p.message('Wrote file %s' % basename(path))
-
-  if not temporary:
-    readfmt = 'BRIX or DSN6 density map' if descrip == 'BRIX map' else descrip
-    from chimera import triggers
-    triggers.activateTrigger('file save', (path, readfmt))
 
   return format
   

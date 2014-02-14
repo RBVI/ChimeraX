@@ -12,3 +12,4 @@ SUBDIRS	+= chimera2 hydra llgr qt-app pdbio wsgi
 include $(TOP)/mk/subdir.make
 
 qt-app.install: llgr.install chimera2.install
+hydra.install: pdbio.install

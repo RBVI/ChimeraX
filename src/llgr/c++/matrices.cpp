@@ -12,7 +12,14 @@ using namespace internal;
 void
 create_matrix(Id matrix_id, const float mat[4][4], bool renormalize)
 {
-	Id data_id = --internal_buffer_id;
+	Id data_id;
+	auto i = all_matrices.find(matrix_id);
+	if (i == all_matrices.end())
+		data_id = --internal_buffer_id;
+	else {
+		const MatrixInfo &info = i->second;
+		data_id = info.data_id;
+	}
 	create_singleton(data_id, sizeof (float [4][4]), mat);
 	all_matrices[matrix_id] = MatrixInfo(data_id, renormalize);
 }
