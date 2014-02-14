@@ -96,9 +96,10 @@ class Models:
         from .geometry import bounds
         return bounds.bounds_center_and_radius(self.bounds())
 
-    def transparent_models_shown(self):
-
-        for m in self.models:
-            if m.display and m.showing_transparent():
-                return True
-        return False
+    def center(self, models = None):
+        if models is None:
+            models = [m for m in self.models if m.display]
+        from .geometry import bounds
+        b = bounds.union_bounds(m.placed_bounds() for m in models)
+        c,r = bounds.bounds_center_and_radius(b)
+        return c

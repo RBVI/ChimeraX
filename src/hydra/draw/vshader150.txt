@@ -1,5 +1,18 @@
 #version 150
 
+#ifdef USE_TEXTURE_MASK
+
+in vec3 position;
+in vec2 tex_coord_2d;
+out vec2 tex_coord;
+void main(void)
+{
+  tex_coord = tex_coord_2d;
+  gl_Position = vec4(position,1);
+}
+
+#else
+
 uniform mat4 model_view_matrix;
 uniform mat4 projection_matrix;
 
@@ -58,3 +71,5 @@ void main(void)
   color = vcolor;
   gl_Position = projection_matrix * vEye;
 }
+
+#endif	// USE_IMAGE_BLEND

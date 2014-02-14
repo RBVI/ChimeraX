@@ -22,6 +22,7 @@
 #include "spline.h"			// use natural_cubic_spline
 #include "squaremesh.h"			// use principle_plane_edges
 #include "subdivide.h"			// use subdivide_triangles
+#include "touchevents.h"		// use accept_touch_events
 #include "transfer.h"			// use data_to_rgba,...
 #include "tube.h"			// use tube_geometry
 
@@ -164,6 +165,10 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS, NULL},
   {const_cast<char*>("reverse_triangle_vertex_order"),
    reverse_triangle_vertex_order, METH_VARARGS, NULL},
+
+  /* touchevents.h */
+  {const_cast<char*>("accept_touch_events"), (PyCFunction)accept_touch_events,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* transfer.h */
   {const_cast<char*>("transfer_function_colormap"), (PyCFunction)transfer_function_colormap,

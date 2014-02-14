@@ -81,7 +81,7 @@ class File_History:
     from shutil import copyfile
     for line in slines:
       fields = line.split('|')
-      if len(fields) == 3:
+      if len(fields) == 4:
         sname, dbname, iname, atime = [f.strip() for f in fields]
         copyfile(join(esdir,sname), join(sdir,sname))
         copyfile(join(esdir,iname), join(self.thumbnail_directory,iname))

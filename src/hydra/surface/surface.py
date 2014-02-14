@@ -12,7 +12,7 @@ class Surface:
   def __init__(self, name):
     self.name = name
     self.id = None              # positive integer
-    self.displayed = True
+    self._display = True       # private. use display property
     from ..geometry.place import Place
     self.placement = Place()
     self.copies = []
@@ -52,9 +52,9 @@ class Surface:
     self.remove_pieces(self.plist)
 
   def get_display(self):
-    return self.displayed
+    return self._display
   def set_display(self, display):
-    self.displayed = display
+    self._display = display
     self.redraw_needed = True
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
@@ -312,7 +312,7 @@ class Surface_Piece(object):
 
     # Set color
     if self.instance_colors is None:
-      r.set_single_color(self.color_rgba)
+      r.set_instance_color(self.color_rgba)
 
     # Draw triangles
     eb = self.element_buffer
@@ -339,8 +339,6 @@ class Surface_Piece(object):
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
     elif not self.copies44 is None:
       sopt[r.SHADER_INSTANCING] = True
-    if self.surface.selected:
-      sopt[r.SHADER_SELECTED] = True
     return sopt
 
   def instance_count(self):

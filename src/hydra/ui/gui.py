@@ -1,4 +1,4 @@
-from .qt import QtCore, QtGui, QtOpenGL, QtWidgets
+from .qt import QtCore, QtGui, QtOpenGL, QtWidgets, Qt
 
 class MainWindow(QtWidgets.QMainWindow):
     '''
@@ -23,12 +23,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 return QtCore.QSize(800,800)
 
         self.stack = st = GraphicsArea(self)
+        st.setFocusPolicy(QtCore.Qt.NoFocus)
         from .view import View
         self.view = v = View(session, st)
         st.addWidget(v.widget)
 
 #        self.text = e = QtGui.QTextEdit(st)
         self.text = e = QtWidgets.QTextBrowser(st)          # Handle clicks on anchors
+        e.setFocusPolicy(QtCore.Qt.NoFocus)
         e.setReadOnly(True)
         e.anchorClicked.connect(self.anchor_callback)
         self.anchor_cb = None
@@ -49,7 +51,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.create_toolbar()
 
-        self.create_command_line()
+        self.shortcuts_enabled = False
+        self.command_line = cl = self.create_command_line()
+        v.widget.setFocusProxy(cl)
 
         # Work around bug where initial window size limited to 2/3 of screen width and height
         # by qt adjustSize() routine.
@@ -59,13 +63,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_command_line(self):
 
         d = QtWidgets.QDockWidget('Command line', self)
-        self.command_line = cline = QtWidgets.QLineEdit(d)
-        cline.setFocusPolicy(QtCore.Qt.ClickFocus)
+        cline = Command_Line(d, self.session)
+#        cline = QtWidgets.QLineEdit(d)
+#        cline.setFocusPolicy(QtCore.Qt.ClickFocus)
+        cline.setFocus(QtCore.Qt.OtherFocusReason)      # Set the initial focus to the command-line
+#        self.setFocusProxy(cline)
         d.setWidget(cline)
         d.setTitleBarWidget(QtWidgets.QWidget(d))   # No title bar
         d.setFeatures(d.NoDockWidgetFeatures)   # No close button
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, d)
         cline.returnPressed.connect(self.command_entered)
+        cline.textEdited.connect(self.command_text_changed)
+        return cline
 
     def focus_on_command_line(self):
         cline = self.command_line
@@ -87,12 +96,11 @@ class MainWindow(QtWidgets.QMainWindow):
 #        toolbar.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         self.addToolBar(QtCore.Qt.TopToolBarArea, self.toolbar)
 
-        a = self.add_shortcut_icon('select.png', 'Select model mouse mode', 'sl')
+        a = self.add_shortcut_icon('move_h2o.png', 'Move selected mouse mode', 'mo')
+        a.setCheckable(True)
         self.left_toolbar_action = a
         self.add_shortcut_icon('contour.png', 'Adjust contour level mouse mode', 'ct')
         self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'Mp')
-        self.add_shortcut_icon('move_h2o.png', 'Move selected mouse mode', 'mo')
-        self.add_shortcut_icon('rotate_h2o.png', 'Rotate selected mouse mode', 'ro')
         toolbar.addSeparator()
 
         self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
@@ -119,24 +127,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar.addAction(a)
         return a
 
+    def enable_shortcuts(self, enable):
+        color = 'rgb(230,255,230)' if enable else 'white'
+        cl = self.command_line
+        cl.setStyleSheet('QLineEdit {background: %s;}' % color)
+        self.shortcuts_enabled = enable
+        cl.setText('')
+
     def keyPressEvent(self, event):
 
-#        print('got key', repr(event.text()))
-#        cline = self.command_line
-#        if cline.hasFocus():
-            # TODO: Bug in Mac Qt 5.0.2 that calling setFocus() on command line when using
-            # keyboard shortcut "cl" switches focus but does not deliver key events to the
-            # command-line.  This code works around the problem.
-#            if str(event.text()) != '\r':
-#                cline.keyPressEvent(event)
-#        else:
-            if str(event.text()) == '\r':
-                return
-            ks = self.session.keyboard_shortcuts
-            ks.key_pressed(event)
+        k = event.key()
+        if k == Qt.Key_Escape:
+            self.enable_shortcuts(not self.shortcuts_enabled)
+            return
 
-#        w = self.toolbar.widgetForAction(a)  # QToolButton
-# TODO: show tool tip immediately
+        if self.shortcuts_enabled and (k == Qt.Key_Return or k == Qt.Key_Enter):
+            self.enable_shortcuts(False)
+            return
+
+        self.command_line.event(event)
+
+    def command_text_changed(self, text):
+
+        if self.shortcuts_enabled:
+            ks = self.session.keyboard_shortcuts
+            if ks.try_shortcut(text):
+                self.command_line.setText('')
 
     def command_entered(self):
         cline = self.command_line
@@ -196,6 +212,31 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
             finally:
                 self.view.unblock_redraw()
+
+class Command_Line(QtWidgets.QLineEdit):
+
+    def __init__(self, parent, session):
+        self.session = session
+        QtWidgets.QLineEdit.__init__(self, parent)
+
+    def keyPressEvent(self, event):
+        t = event.text()
+        ctrlp = b'\x10'.decode('utf-8')
+        ctrln = b'\x0e'.decode('utf-8')
+        from .qt import Qt
+        if t in (ctrlp, ctrln):
+            s = self.session
+            s.main_window.enable_shortcuts(False)
+            if t == ctrlp:
+                s.commands.history.show_previous_command()
+            elif t == ctrln:
+                s.commands.history.show_next_command()
+        elif event.key() == Qt.Key_Escape:
+            event.ignore()      # Handled by MainWindow.keyPressEvent()
+            return
+        else:
+            QtWidgets.QLineEdit.keyPressEvent(self, event)
+        event.accept()
 
 def icon(filename):
     from os.path import dirname, join

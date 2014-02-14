@@ -1,4 +1,4 @@
-mol_attrs = ('path', 'id', 'database_fetch', 'displayed', 'atom_style',
+mol_attrs = ('path', 'id', 'database_fetch', 'display', 'atom_style',
              'color_mode', 'ribbon_radius', 'ball_scale')
 
 def molecule_state(m):  
@@ -45,6 +45,8 @@ def set_molecule_state(m, ms, session):
     from ..geometry.place import Place
     m.place = Place(ms['place'])
     m.copies = [Place(c) for c in ms.get('copies', [])]
+    if 'displayed' in ms:
+        ms['display'] = ms['displayed']     # Fix old session files
     for attr in mol_attrs:
         if attr in ms:
             setattr(m, attr, ms[attr])
@@ -54,11 +56,17 @@ def set_molecule_state(m, ms, session):
         m.bonds = bonds
     from numpy import bool
     if 'atom_shown' in ms:
-        m.atom_shown = string_to_array(ms['atom_shown'], bool)
-        m.atom_shown_count = m.atom_shown.sum()
+        sa = string_to_array(ms['atom_shown'], bool)
+        sac = sa.sum()
+        if sac == m.atom_count():
+            m.atom_shown = sa
+            m.atom_shown_count = sac
     if 'ribbon_shown' in ms:
-        m.ribbon_shown = string_to_array(ms['ribbon_shown'], bool)
-        m.ribbon_shown_count = m.ribbon_shown.sum()
+        sr = string_to_array(ms['ribbon_shown'], bool)
+        src = sr.sum()
+        if src == m.atom_count():
+            m.ribbon_shown = sr
+            m.ribbon_shown_count = src
 
     m.need_graphics_update = True
 

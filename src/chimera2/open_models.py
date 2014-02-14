@@ -75,6 +75,6 @@ def list(types=None):
 
 def close(model_id):
 	if model_id not in _open_models:
-		raise ValueError("Unknown model")
+		raise ValueError("Unknown model '%s'" % model_id)
 	m = _open_models[model_id]
 	m.close()

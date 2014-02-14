@@ -110,7 +110,7 @@ class Scene:
 
         # Hide all models so models that did not exist in scene are hidden.
         for m in s.model_list():
-            m.displayed = False
+            m.display = False
 
         from .file_io import session_file
         session_file.restore_scene(self.state, s)

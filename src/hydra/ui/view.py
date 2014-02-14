@@ -10,10 +10,16 @@ class View(QtGui.QWindow):
         QtGui.QWindow.__init__(self)
         self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
-        w.setFocusPolicy(QtCore.Qt.ClickFocus)
+#        w.setFocusPolicy(QtCore.Qt.ClickFocus)
+        w.setFocusPolicy(QtCore.Qt.NoFocus)
+
 # TODO: Qt 5.1 has touch events disabled on Mac
 #        w.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
-        
+
+        # Qt 5.2 has touch events disabled because it slows down scrolling.  Reenable them.
+        from .. import _image3d
+        _image3d.accept_touch_events(int(self.winId()))
+
         self.window_size = (w.width(), w.height())		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
@@ -56,6 +62,16 @@ class View(QtGui.QWindow):
     def resizeEvent(self, e):
         s = e.size()
         w, h = s.width(), s.height()
+#
+# TODO: On Mac retina display event window size is half of opengl window size.
+#    Can scale width/height here, but also need mouse event positions to be scaled by 2x.
+#    Not sure how to detect when app moves between non-retina and retina displays.
+#    QWindow has a screenChanged signal but I did not get it in tests with Qt 5.2.
+#    Also did not get moveEvent().  May need to get these on top level window?
+#
+#        r = self.devicePixelRatio()    # 2 on retina display, 1 on non-retina
+#        w,h = int(r*w), int(r*h)
+#
         self.window_size = w, h
         self.camera.window_size = w, h
         if not self.opengl_context is None:
@@ -67,9 +83,11 @@ class View(QtGui.QWindow):
             self.draw_graphics()
 
     def keyPressEvent(self, event):
-        if str(event.text()) == '\r':
-            return
-        self.session.keyboard_shortcuts.key_pressed(event)
+
+        # TODO: This window should never get key events since we set widget.setFocusPolicy(NoFocus)
+        # but it gets them anyways on Mac in Qt 5.2 if the graphics window is clicked.
+        # So we pass them back to the main window.
+        self.session.main_window.event(event)
 
     def create_opengl_context(self):
 
@@ -231,8 +249,12 @@ class View(QtGui.QWindow):
         h = self.window_size[1] if height is None else height
 
         r = self.render
-        if not r.render_to_buffer(w,h):
-            return None
+        from .. import draw
+        fb = draw.Framebuffer(w,h)
+        if not fb.valid():
+            return None         # Image size exceeds framebuffer limits
+
+        r.push_framebuffer(fb)
 
         # Camera needs correct aspect ratio when setting projection matrix.
         c = camera if camera else self.camera
@@ -244,7 +266,9 @@ class View(QtGui.QWindow):
         c.window_size = prev_size
 
         rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
-        r.render_to_screen()
+        r.pop_framebuffer()
+        fb.delete()
+
         ww, wh = self.window_size
         r.set_drawing_region(0,0,ww,wh)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
@@ -330,23 +354,35 @@ class View(QtGui.QWindow):
 
         self.update_level_of_detail()
 
+        selected = [m for m in self.session.selected if m.display]
+
         from time import process_time
         t0 = process_time()
         for vnum in range(camera.number_of_views()):
-            camera.setup(vnum, r)
+            camera.set_framebuffer(vnum, r)
+            r.draw_background()
             if models:
                 self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
-                if self.session.transparent_models_shown():
+                if any_transparent_models(models):
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
                                        lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
-            s = camera.finish_draw(vnum, r)
+                if selected:
+                    r.start_rendering_outline(self.window_size)
+                    self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, selected)
+                    self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, selected)
+                    r.finish_rendering_outline()
+            s = camera.warp_image(vnum, r)
             if s:
                 self.draw_overlays([s])
         t1 = process_time()
         self.last_draw_duration = t1-t0
-
+        
         if self.overlays:
             self.draw_overlays(self.overlays)
+
+    def draw_outline(self, vnum, camera, models):
+
+        r = self.render
 
     def draw_overlays(self, overlays):
 
@@ -466,9 +502,13 @@ class View(QtGui.QWindow):
         Move camera to simulate a rotation of models about current rotation center.
         Axis is in scene coordinates and angle is in degrees.
         '''
-        self.update_center_of_rotation()
+        if models:
+            center = self.session.center(models)
+        else:
+            self.update_center_of_rotation()
+            center = self.center_of_rotation
         from ..geometry import place
-        r = place.rotation(axis, angle, self.center_of_rotation)
+        r = place.rotation(axis, angle, center)
         self.move(r, models)
 
     def translate(self, shift, models = None, update_clip_planes = True):
@@ -499,3 +539,10 @@ class View(QtGui.QWindow):
     def pixel_size(self, p = None):
         '''Return the pixel size in scene length units at point p in the scene.'''
         return self.camera.pixel_size(self.center_of_rotation if p is None else p)
+
+def any_transparent_models(models):
+
+    for m in models:
+        if m.showing_transparent():
+            return True
+    return False
