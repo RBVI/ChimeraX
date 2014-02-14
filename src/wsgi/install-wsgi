@@ -36,8 +36,11 @@ for action in $actions; do
 		if [ ! -e $target/sessions ]; then
 			mkdir $target/sessions
 		fi
-		if which audit > /dev/null 2>&1; then
-			audit apachedir $target/sessions
+		if [ `uname -s` = Linux ]
+		then
+			if which audit > /dev/null 2>&1; then
+				audit apachedir $target/sessions
+			fi
 		fi
 		;;
 
