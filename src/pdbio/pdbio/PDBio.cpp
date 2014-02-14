@@ -1485,6 +1485,16 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
     return mb;
 }
 
+static const char*
+docstr_read_pdb_file = "read_pdb_file(f, log=None, explode=True)\n" \
+    "'f' is a file-like object open for reading containing the PDB info.\n" \
+    "'log', if given, is a file-like object open for writing that\n" \
+    "    warnings/errors and other information will be written to.\n" \
+    "'explode' controls whether NMR ensembles will be handled as\n" \
+    "    separate models (True) or as one model with multiple coordinate\n" \
+    "    sets (False).\n" \
+    "Returns an access.MolBlob.";
+
 PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 {
@@ -1513,7 +1523,8 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 
 static struct PyMethodDef pdbio_functions[] =
 {
-    { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS|METH_KEYWORDS, "" },
+    { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS|METH_KEYWORDS,
+        docstr_read_pdb_file },
     { NULL, NULL, 0, NULL }
 };
 
