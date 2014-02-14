@@ -35,10 +35,10 @@ uniform float depth_cue_darkest;
 
 #endif
 
+#ifdef USE_VERTEX_COLORS
 in vec4 color;
-
-#ifdef USE_SINGLE_COLOR
-uniform vec4 scolor;
+#else
+uniform vec4 color;
 #endif
 
 #ifdef USE_TEXTURE_2D
@@ -66,11 +66,7 @@ void main (void)
   vec4 fcolor = texture(tex2d, tex_coord) * color;
 #endif
 #else
-#ifdef USE_SINGLE_COLOR
-  vec4 fcolor = scolor;
-#else
   vec4 fcolor = color;
-#endif
 #endif
 
 #ifdef USE_LIGHTING

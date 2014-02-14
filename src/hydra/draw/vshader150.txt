@@ -17,15 +17,17 @@ uniform mat4 model_view_matrix;
 uniform mat4 projection_matrix;
 
 in vec3 position;
-in vec3 normal;
 
 #ifdef USE_LIGHTING
+in vec3 normal;
 out vec3 N;
 out vec3 v;
 #endif
 
+#ifdef USE_VERTEX_COLORS
 in vec4 vcolor;
 out vec4 color;
+#endif
 
 #ifdef USE_TEXTURE_2D
 in vec2 tex_coord_2d;
@@ -68,7 +70,10 @@ void main(void)
   tex_coord = tex_coord_2d;
 #endif
 
+#ifdef USE_VERTEX_COLORS
   color = vcolor;
+#endif
+
   gl_Position = projection_matrix * vEye;
 }
 
