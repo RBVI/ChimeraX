@@ -7,10 +7,10 @@ LIBNAME = base-geom
 LIB= lib$(LIBNAME).a
 CXXFLAGS += -I..
 
-$(LIB): $(OBJS)
+$(LIB): imex.h $(OBJS)
 	ar -r $(LIB) $(OBJS)
 
 install: $(LIB)
 
 clean:
-	/bin/rm -f $(LIB) $(OBJS)
+	/bin/rm -f $(LIB) $(OBJS) imex.h

@@ -1,5 +1,6 @@
+// vim: set expandtab ts=4 sw=4:
 #ifndef templates_restmpl
-#define	templates_restmpl
+#define    templates_restmpl
 
 #include "TmplAtom.h"
 #include "TmplBond.h"

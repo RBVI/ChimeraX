@@ -61,3 +61,7 @@ Miscellaneous Modules
    math3d.rst
 
    triggerset.rst
+
+   pdbio.rst
+
+   molaccess.rst

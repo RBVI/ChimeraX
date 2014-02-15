@@ -4,10 +4,11 @@
 # include <string>
 # include <vector>
 # include <fstream>
+# include "imex.h"
 
 class PathFinder;
 
-class PathFactory {
+class UTIL_IMEX PathFactory {
 	// singleton class
 	static PathFactory *_path_factory;
 	PathFactory();
@@ -22,7 +23,7 @@ public:
 	static char	path_separator();
 };
 
-class PathFinder {
+class UTIL_IMEX PathFinder {
 	void operator=(const PathFinder &p);	// disable
 public:
 	PathFinder(const PathFinder &p);
@@ -112,7 +113,7 @@ private:
 	const bool	_use_home_default;
 };
 
-class InputFile {
+class UTIL_IMEX InputFile {
 	InputFile(const InputFile&);		// disable
 	InputFile& operator=(const InputFile&);	// disable
 public:
@@ -127,7 +128,7 @@ private:
 	std::ifstream *ifs_;
 };
 
-class OutputFile {
+class UTIL_IMEX OutputFile {
 	OutputFile(const OutputFile&);			// disable
 	OutputFile& operator=(const OutputFile&);	// disable
 public:

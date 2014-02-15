@@ -192,6 +192,9 @@ LIBRARY = lib$(LIBNAME).$(LIB_EXT)
 SHLIB = lib$(LIBNAME).$(SHLIB_EXT)
 PYMOD = $(PYMOD_NAME).$(PYMOD_EXT)
 PROG = $(PROG_NAME)$(PROG_EXT)
+UPLIBNAME = $(shell echo $(LIBNAME) | tr "[:lower:]" "[:upper:]" | tr '-' '_')
+imex.h:
+	cat $(includedir)/imex.i | sed -e 's/LIBNAME/$(UPLIBNAME)/' > imex.h
 
 NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
 

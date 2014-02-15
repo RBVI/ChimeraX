@@ -3,11 +3,12 @@ include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
-LIBNAME = access
-PYMOD= $(LIBNAME).so
+PYMOD_NAME = molaccess
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(shlibdir) -lmolecule -lcapsule
-INCS += $(NUMPY_INC)
+ifneq ($(OS),Windows)
+CXXFLAGS += -std=c++11 -stdlib=libc++ -Wno-invalid-offsetof -Wno-deprecated-writable-strings
+endif
+LIBS += -L$(shlibdir) -lblob
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
