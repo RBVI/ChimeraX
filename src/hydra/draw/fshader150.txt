@@ -1,5 +1,19 @@
 #version 150
 
+#ifdef USE_TEXTURE_MASK
+
+in vec2 tex_coord;
+uniform sampler2D tex2d;
+uniform vec4 color;
+out vec4 frag_color;
+void main (void)
+{
+  float f = ceil(texture(tex2d, tex_coord).r);
+  frag_color = color * f;
+}
+
+#else
+
 #ifdef USE_LIGHTING
 uniform vec3 key_light_position;
 uniform vec3 key_light_diffuse_color;
@@ -13,13 +27,28 @@ uniform vec3 ambient_color;
 
 in vec3 N;
 in vec3 v;
+
+#ifdef USE_DEPTH_CUE
+uniform float depth_cue_distance;
+uniform float depth_cue_darkest;
 #endif
 
+#endif
+
+#ifdef USE_VERTEX_COLORS
 in vec4 color;
+#else
+uniform vec4 color;
+#endif
 
 #ifdef USE_TEXTURE_2D
 in vec2 tex_coord;
 uniform sampler2D tex2d;
+#endif
+
+#ifdef USE_TEXTURE_WARP
+uniform vec2 warp_center;
+uniform vec4 radial_warp;
 #endif
 
 out vec4 frag_color;
@@ -27,7 +56,15 @@ out vec4 frag_color;
 void main (void)
 {
 #ifdef USE_TEXTURE_2D
+#ifdef USE_TEXTURE_WARP
+  float ds = tex_coord.s - warp_center.s;
+  float dt = tex_coord.t - warp_center.t;
+  float r2 = 4*ds*ds + 6.25*dt*dt;
+  float f = radial_warp[0] + r2*(radial_warp[1] + r2*(radial_warp[2] + r2*radial_warp[3]));
+  vec4 fcolor = texture(tex2d, vec2(warp_center.s+f*ds,warp_center.t+f*dt)) * color;
+#else
   vec4 fcolor = texture(tex2d, tex_coord) * color;
+#endif
 #else
   vec4 fcolor = color;
 #endif
@@ -53,6 +90,12 @@ void main (void)
 
   // total color
   vec3 Ifrag = Iscene + Idiff + Ispec;
+
+#ifdef USE_DEPTH_CUE
+  float dim = max(depth_cue_darkest, 1.0 / max(1.0, -dot(E,v)/depth_cue_distance));
+  Ifrag *= dim;
+#endif
+
 #else
   vec3 Ifrag = fcolor.rgb;
 #endif
@@ -63,13 +106,8 @@ void main (void)
   a = 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(N1.z),0.01));
 #endif
 
-#ifdef USE_HATCHING
-  // Highlight with zebra stripes
-  float hsize = 8;
-  float df = 0.3 + 1.6*mod(gl_FragCoord.x + gl_FragCoord.y, hsize)/hsize;
-  Ifrag = df*Ifrag;
-#endif
-
   // final color
   frag_color = vec4(Ifrag, a);
 }
+
+#endif	// USE_IMAGE_BLEND

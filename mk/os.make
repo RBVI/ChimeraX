@@ -17,8 +17,21 @@ ifdef DEBUG
 else
 	OPT = -O3
 endif
-	CC = gcc -pipe -fPIC
+	GCC_VER	= $(shell $(CC) -dumpversion)
+	CC = gcc -pipe -fPIC -std=gnu99
 	CXX = g++ -pipe -fPIC
+ifneq (,$(shell echo $(GCC_VER) | sed -e 's/^[1-3]\..*//' -e 's/^4\.[0-6]\..*//'))
+	# gcc 4.7 or newer
+	CXX += -std=c++11
+else
+	ERROR := $(error "gcc $(GCC_VER) is too old")
+endif
+#TODO
+#ifndef PREREQ_MAKE
+#	# require explicit exporting in all code we write
+#	CC += -fvisibility-ms-compat
+#	CXX += -fvisibility-ms-compat
+#endif
 
 	PYDEF = -fvisibility-ms-compat -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 	PYMOD_EXT = so
@@ -92,10 +105,10 @@ else
 endif
 ifdef USE_XCODE4
 	CC = clang --sysroot $(SYSROOT)
-	CXX = clang++ --sysroot $(SYSROOT)
+	CXX = clang++ --sysroot $(SYSROOT) -std=c++11 -stdlib=libc++
 else
 	CC = gcc -pipe -isysroot $(SYSROOT)
-	CXX = g++ -pipe -isysroot $(SYSROOT)
+	CXX = g++ -pipe -isysroot $(SYSROOT) -std=c++11
 endif
 	EXTRA_CFLAGS = -fPIC
 	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
@@ -179,6 +192,9 @@ LIBRARY = lib$(LIBNAME).$(LIB_EXT)
 SHLIB = lib$(LIBNAME).$(SHLIB_EXT)
 PYMOD = $(PYMOD_NAME).$(PYMOD_EXT)
 PROG = $(PROG_NAME)$(PROG_EXT)
+UPLIBNAME = $(shell echo $(LIBNAME) | tr "[:lower:]" "[:upper:]" | tr '-' '_')
+imex.h:
+	cat $(includedir)/imex.i | sed -e 's/LIBNAME/$(UPLIBNAME)/' > imex.h
 
 NUMPY_INC += -I"$(shell $(bindir)/python$(PYTHON_VERSION) -c "import numpy; print(numpy.get_include())")"
 

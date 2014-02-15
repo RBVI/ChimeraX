@@ -1,13 +1,9 @@
-keyboard_shortcuts = None
-
-def register_shortcuts(viewer):
-
-    global keyboard_shortcuts
-    if keyboard_shortcuts is None:
-        keyboard_shortcuts = Keyboard_Shortcuts(viewer)
+def register_shortcuts(keyboard_shortcuts):
+    '''Register the standard keyboard shortcuts.'''
 
     ks = keyboard_shortcuts
-    v = viewer
+    s = ks.session
+    v = s.main_window.view
 
     map_shortcuts = (
       ('me', show_mesh, 'Show mesh'),
@@ -18,7 +14,6 @@ def register_shortcuts(viewer):
       ('pa', show_all_planes, 'Show all planes'),
       ('o3', toggle_orthoplanes, 'Show 3 orthogonal planes'),
       ('bx', toggle_box_faces, 'Show box faces'),
-      ('t5', show_map_transparent, 'Make map transparent'),
       ('fr', show_map_full_resolution, 'Show map at full resolution'),
       )
     mapcat = 'Map Display'
@@ -26,13 +21,13 @@ def register_shortcuts(viewer):
       ks.add_shortcut(k, f, d, category = mapcat, each_map = True)
 
     mol_shortcuts = (
-        ('bu', show_biological_unit, 'Show biological unit'),
-        ('as', show_asymmetric_unit, 'Show asymmetric unit'),
+        ('bu', lambda m,s=s: show_biological_unit(m,s), 'Show biological unit'),
+        ('as', lambda m,s=s: show_asymmetric_unit(m,s), 'Show asymmetric unit'),
         ('c1', color_one_color, 'Color molecule one color'),
         ('ce', color_by_element, 'Color atoms by element'),
         ('cc', color_by_chain, 'Color chains'),
-        ('ms', lambda m,v=v: show_molecular_surface(m,v), 'Show molecular surface'),
-        ('mb', molecule_bonds, 'Compute molecule bonds using templates'),
+        ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface'),
+        ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates'),
         ('da', show_atoms, 'Display molecule atoms'),
         ('ha', hide_atoms, 'Undisplay molecule atoms'),
         ('bs', show_ball_and_stick, 'Display atoms in ball and stick'),
@@ -45,105 +40,152 @@ def register_shortcuts(viewer):
         ('hw', hide_waters, 'Hide water atoms'),
         ('r+', fat_ribbons, 'Fat ribbons'),
         ('r-', thin_ribbons, 'Thin ribbons'),
+        ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area'),
     )
     molcat = 'Molecule Display'
     for k,f,d in mol_shortcuts:
       ks.add_shortcut(k, f, d, category = molcat, each_molecule = True)
 
+    surf_shortcuts = (
+        ('t5', show_surface_transparent, 'Make surface transparent'),
+    )
+    for k,f,d in surf_shortcuts:
+      ks.add_shortcut(k, f, d, category = mapcat, each_surface = True)
+
     ocat = 'Open, Save, Close'   # shortcut documentation category
     gcat = 'General Controls'
-    from ..file_io import session, opensave
-    from ..file_io.history import history
     view_shortcuts = (
-        ('op', opensave.show_open_file_dialog, 'Open file', ocat),
-        ('sv', opensave.save_session_as, 'Save session as...', ocat),
-        ('Sv', opensave.save_session, 'Save session', ocat),
-        ('si', opensave.save_image, 'Save image', ocat),
-        ('oi', opensave.open_image, 'Open image', ocat),
-        ('Ca', close_all_models, 'Close all models', ocat),
-        ('mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
+        ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat),
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat),
-        ('ro', enable_rotate_selected_mouse_mode, 'Rotate selected mouse mode', gcat),
-        ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat),
-        ('sh', tile_models, 'Show or hide models', gcat),
         ('bk', set_background_black, 'Black background', gcat),
         ('wb', set_background_white, 'White background', gcat),
         ('gb', set_background_gray, 'Gray background', gcat),
-        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat),
+        ('dq', depth_cue, 'Toggle depth cue', gcat),
+        ('bl', motion_blur, 'Toggle motion blur', gcat),
+        ('Mo', mono_mode, 'Set mono camera mode', gcat),
+        ('So', stereo_mode, 'Set sequential stereo mode', gcat),
+        ('Oc', oculus_mode, 'Set Oculus Rift stereo mode', gcat),
+    )
+    for k,f,d,cat in view_shortcuts:
+      ks.add_shortcut(k, f, d, category = cat, view_arg = True)
+
+    misc_shortcuts = (
+        ('dv', v.initial_camera_view, 'Default view', gcat),
+        ('va', v.view_all, 'View all', gcat),
+        ('cs', s.clear_selection, 'Clear selection', gcat),
+        )
+    for k,f,d,cat in misc_shortcuts:
+      ks.add_shortcut(k, f, d, category = cat)
+
+    from ..file_io import opensave
+    from .modelpanel import show_model_panel
+    session_shortcuts = (
+        ('op', opensave.show_open_file_dialog, 'Open file', ocat),
+        ('sv', opensave.save_session_as, 'Save session as...', ocat),
+        ('Sv', opensave.save_session, 'Save session', ocat),
+        ('si', lambda s: opensave.save_image(None,s), 'Save image', ocat),
+        ('oi', opensave.open_image, 'Open image', ocat),
+        ('Ca', close_all_models, 'Close all models', ocat),
+        ('mp', show_model_panel, 'Show/hide model panel', ocat),
         ('Ds', delete_selected_models, 'Delete selected models', ocat),
+        ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
+        ('rs', show_file_history, 'Show recent sessions', ocat),
+        ('gr', show_graphics_window, 'Show graphics window', gcat),
+        ('mn', show_manual, 'Show manual', gcat),
+        ('ch', show_command_history, 'Show command history', gcat),
+        ('sc', show_scenes, 'Show scene thumbnails', gcat),
+        ('rt', show_stats, 'Show model statistics', gcat),
+        ('lg', show_log, 'Show command log', gcat),
+        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat),
+        ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat),
+        ('cl', command_line, 'Enter command', gcat),
+        ('sn', toggle_space_navigator, 'Toggle use of space navigator', gcat),
+        ('nf', toggle_space_navigator_fly_mode, 'Toggle space navigator fly mode', gcat),
+        ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat),
+        ('oc', start_oculus, 'Start Oculus Rift stereo', gcat),
+        ('ow', oculus_warp, 'Toggle Oculus Rift lens correction', gcat),
         ('lp', leap_position_mode, 'Enable leap motion input device', gcat),
         ('lx', leap_chopsticks_mode, 'Enable leap motion chopstick mode', gcat),
         ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat),
         ('lf', leap_focus, 'Check if app has leap focus', gcat),
         ('lq', leap_quit, 'Quit using leap motion input device', gcat),
-        ('bl', motion_blur, 'Toggle motion blur', gcat),
-    )
-    for k,f,d,cat in view_shortcuts:
-      ks.add_shortcut(k, f, d, category = cat, view_arg = True)
-
-    from .gui import show_log
-    misc_shortcuts = (
-        ('dv', v.initial_camera_view, 'Default view', gcat),
-        ('va', v.view_all, 'View all', gcat),
-        ('rs', history.show_thumbnails, 'Show recent sessions', ocat),
-        ('cs', v.clear_selection, 'Clear selection', gcat),
-        ('Qt', v.quit, 'Quit', ocat),
-        ('cl', command_line, 'Enter command', gcat),
-        ('gr', show_graphics_window, 'Show graphics window', gcat),
-        ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
-        ('mn', show_manual, 'Show manual', gcat),
-        ('lg', show_log, 'Show command log', gcat),
-        ('ch', show_command_history, 'Show command history', gcat),
-        ('sc', show_scenes, 'Show scene thumbnails', gcat),
-        ('rt', show_stats, 'Show model statistics', gcat),
+        ('Qt', quit, 'Quit', ocat),
         )
-    for k,f,d,cat in misc_shortcuts:
-      ks.add_shortcut(k, f, d, category = cat)
+    for k,f,d,cat in session_shortcuts:
+        ks.add_shortcut(k, f, d, category = cat, session_arg = True)
 
     ks.category_columns = ((ocat,mapcat), (molcat,), (gcat,))
 
     return ks
 
 class Keyboard_Shortcuts:
-
-  def __init__(self, viewer):
+  '''
+  Maintain a list of multi-key keyboard shortcuts and run them in response to key presses.
+  '''
+  def __init__(self, session):
 
     # Keyboard shortcuts
     self.shortcuts = {}
     self.keys = ''
-    self.viewer = viewer
+    self.session = session
 
-  def add_shortcut(self, key_seq, func, description = '', category = None,
-                   each_map = False, each_molecule = False, view_arg = False):
+  def add_shortcut(self, key_seq, func, description = '', key_name = None, category = None,
+                   each_map = False, each_molecule = False,
+                   each_surface = False, view_arg = False, session_arg = False):
+    '''
+    Add a keyboard shortcut with a given key sequence and function to call when
+    that key sequence is entered.  Shortcuts are put in categories and have
+    textual descriptions for automatically creating documentation.  A shortcut
+    function can take no arguments or it can take a map, molecule, surface or
+    view argument.
+    '''
 
-    v = self.viewer
+    s = self.session
     if each_map:
-        def f(v=v, func=func):
-            for m in shortcut_maps(v):
+        def f(s=s, func=func):
+            for m in shortcut_maps(s):
                 func(m)
     elif each_molecule:
-        def f(v=v, func=func):
-            for m in shortcut_molecules(v):
+        def f(s=s, func=func):
+            for m in shortcut_molecules(s):
+                func(m)
+    elif each_surface:
+        def f(s=s, func=func):
+            for m in shortcut_surfaces(s):
                 func(m)
     elif view_arg:
+        v = s.main_window.view
         def f(v=v, func=func):
             func(v)
+    elif session_arg:
+        def f(s=s, func=func):
+            func(s)
     else:
         f = func
-    self.shortcuts[key_seq] = (f, description, category)
+    kn = key_seq if key_name is None else key_name
+    self.shortcuts[key_seq] = (f, description, kn, category)
 
   def key_pressed(self, event):
 
+#    t = event.text()
+#    print(event, t, type(t), len(t), str(t), t.encode(), '%x' % event.key(), '%x' % int(event.modifiers()), event.count())
+
     c = str(event.text())
     self.keys += c
+    self.try_shortcut()
+
+  def try_shortcut(self, keys = None):
+
+    if not keys is None:
+        self.keys = keys
     k = self.keys
     s = self.shortcuts
     if k in s:
       keys = self.keys
       self.keys = ''
       self.run_shortcut(keys)
-      return
+      return True
     
     is_prefix = False
     for ks in s.keys():
@@ -154,38 +196,42 @@ class Keyboard_Shortcuts:
     if not is_prefix:
         self.keys = ''
 
-    from .gui import show_status
-    show_status(msg)
+    self.session.show_status(msg)
+    return not is_prefix
 
   def run_shortcut(self, keys):
-      fdc = self.shortcuts.get(keys)
-      if fdc is None:
+      fdnc = self.shortcuts.get(keys)
+      if fdnc is None:
         return
-      f,d,c = fdc
-      msg = '%s - %s' % (keys, d)
-      from .gui import show_status, show_info
-      show_status(msg)
-      show_info(msg, color = '#808000')
+      f,d,n,c = fdnc
+      msg = '%s - %s' % (n, d)
+      s = self.session
+      s.show_status(msg)
+      s.show_info(msg, color = '#808000')
       f()
 
-def shortcut_maps(v):
-  mlist = [m for m in v.maps() if m.selected]
+def shortcut_maps(session):
+  mlist = [m for m in session.maps() if m.selected]
   if len(mlist) == 0:
-    mlist = [m for m in v.maps() if m.display]
+    mlist = [m for m in session.maps() if m.display]
   return mlist
 
-def shortcut_molecules(v):
-  mlist = [m for m in v.molecules() if m.selected]
+def shortcut_molecules(session):
+  mlist = [m for m in session.molecules() if m.selected]
   if len(mlist) == 0:
-    mlist = [m for m in v.molecules() if m.display]
+    mlist = [m for m in session.molecules() if m.display]
   return mlist
 
-def close_all_models(viewer):
-    viewer.close_all_models()
-    from .. import scenes
-    scenes.delete_all_scenes()
-    from ..file_io.history import history
-    history.show_thumbnails()
+def shortcut_surfaces(session):
+  mlist = [m for m in session.surfaces() if m.selected]
+  if len(mlist) == 0:
+    mlist = [m for m in session.surfaces() if m.display]
+  return mlist
+
+def close_all_models(session):
+    session.close_all_models()
+    session.scenes.delete_all_scenes()
+    session.file_history.show_thumbnails()
 
 def show_mesh(m):
   m.set_representation('mesh')
@@ -236,26 +282,22 @@ def toggle_box_faces(m):
 
 def enable_move_planes_mouse_mode(viewer, button = 'right'):
 
-  from ..VolumeViewer.moveplanes import planes_mouse_mode as pmm
-  viewer.bind_mouse_mode(button,
+  from ..map.moveplanes import planes_mouse_mode as pmm
+  viewer.mouse_modes.bind_mouse_mode(button,
                          lambda e,v=viewer: pmm.mouse_down(v,e),
                          lambda e,v=viewer: pmm.mouse_drag(v,e),
                          lambda e,v=viewer: pmm.mouse_up(v,e))
 
 def enable_contour_mouse_mode(viewer, button = 'right'):
-  v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_contour_level, v.mouse_up)
+  m = viewer.mouse_modes
+  m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
 
 def enable_move_selected_mouse_mode(viewer, button = 'right'):
-  v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_translate_selected, v.mouse_up)
+  m = viewer.mouse_modes
+  m.move_selected = not m.move_selected
 
-def enable_rotate_selected_mouse_mode(viewer, button = 'right'):
-  v = viewer
-  v.bind_mouse_mode(button, v.mouse_down, v.mouse_rotate_selected, v.mouse_up)
-
-def fit_molecule_in_map(viewer):
-    mols, maps = viewer.molecules(), viewer.maps()
+def fit_molecule_in_map(session):
+    mols, maps = session.molecules(), session.maps()
     if len(mols) != 1 or len(maps) != 1:
         print('ft: Fit molecule in map requires exactly one open molecule and one open map.')
         return
@@ -265,13 +307,13 @@ def fit_molecule_in_map(viewer):
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.place.inverse() * mol.place
-    from .. import FitMap
-    move_tf, stats = FitMap.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
+    from ..map import fit
+    move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.place = mol.place * move_tf
     for k,v in stats.items():
         print(k,v)
 
-def show_biological_unit(m):
+def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
         from ..file_io import biomt
@@ -280,46 +322,25 @@ def show_biological_unit(m):
         if matrices:
             m.copies = matrices
             m.redraw_needed = True
-            from .gui import main_window
-            m.update_level_of_detail(main_window.view)
+            m.update_level_of_detail(session.view)
 
-def show_asymmetric_unit(m):
+def show_asymmetric_unit(m, session):
 
     if len(m.copies) > 0:
         m.copies = []
         m.redraw_needed = True
-        from .gui import main_window
-        m.update_level_of_detail(main_window.view)
+        m.update_level_of_detail(session.view)
 
-def show_map_transparent(m):
-    m.surface_colors = tuple((r,g,b,0.5 if a == 1 else 1) for r,g,b,a in m.surface_colors)
-    m.show()
-
-def tile_models(viewer):
-    viewer.tile_models = not viewer.tile_models
-    viewer.bind_mouse_mode('left', lambda e,v=viewer: hide_show_mouse_mode(e,v))
-  
-def hide_show_mouse_mode(event, viewer):
-    if not viewer.tile_models:
-        viewer.bind_standard_mouse_modes(['left'])
-        return
-    w, h = viewer.window_size
-    x,y = event.x(), event.y()
-    y = (h-1)-y   # OpenGL origin is lower left corner, Qt is upper left corner
-    tiles = viewer.tiles()
-    t = None
-    for i,(tx,ty,tw,th) in enumerate(tiles):
-        if x >= tx and y >= ty and x < tx+tw and y < ty+th:
-            t = i
-            break
-    if t == 0 or t is None:
-        viewer.tile_models = False
-        viewer.bind_standard_mouse_modes(['left'])
-    else:
-        models = viewer.models
-        if i <= len(models):
-            m = models[i-1]
-            m.display = not m.display
+def show_surface_transparent(m):
+    from ..map import Volume
+    from ..surface import Surface
+    if isinstance(m, Volume):
+        m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
+        m.show()
+    elif isinstance(m, Surface):
+        for p in m.surface_pieces():
+            r,g,b,a = p.color
+            p.color = (r,g,b, (0.5 if a == 1 else 1))
 
 def set_background_color(viewer, color):
     viewer.background_color = color
@@ -330,50 +351,36 @@ def set_background_gray(viewer):
 def set_background_white(viewer):
     set_background_color(viewer, (1,1,1,1))
 
-def selection_mouse_mode(viewer):
-    def mouse_down(event, v=viewer):
-        x,y = event.x(), event.y()
-        p, s = v.first_intercept(x,y)
-        from .gui import show_status
-        if s is None:
-            v.clear_selection()
-            show_status('cleared selection')
-        else:
-            for m in s.models():
-                m.selected = not m.selected
-                if m.selected:
-                    from .qt import QtCore
-                    if not (event.modifiers() & QtCore.Qt.ShiftModifier):
-                        v.clear_selection()
-                        v.select_model(m)
-                        show_status('Selected %s' % m.name)
-                else:
-                    v.unselect_model(m)
-    viewer.bind_mouse_mode('right', mouse_down)
+def depth_cue(viewer):
+    r = viewer.render
+    c = r.default_capabilities
+    if r.SHADER_DEPTH_CUE in c:
+        c.remove(r.SHADER_DEPTH_CUE)
+    else:
+        c.add(r.SHADER_DEPTH_CUE)
+    viewer.redraw_needed = True
+    
+def selection_mouse_mode(session):
+    v = session.view
+    v.mouse_modes.bind_mouse_mode('right', v.mouse_modes.mouse_select)
 
-def command_line():
-  from .gui import main_window
-  main_window.focus_on_command_line()
+def command_line(session):
+    session.main_window.focus_on_command_line()
 #  from .qt import QtCore
 #  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
 
-def delete_selected_models(viewer):
-  viewer.close_models(tuple(viewer.selected))
+def delete_selected_models(session):
+  session.close_models(tuple(session.selected))
 
 def show_map_full_resolution(m):
   m.new_region(ijk_step = (1,1,1), adjust_step = False)
 
-def show_molecular_surface(m, viewer, res = 3.0, grid = 0.5):
-  if hasattr(m, 'molsurf') and m.molsurf in viewer.models:
+def show_molecular_surface(m, session, res = 3.0, grid = 0.5):
+  if hasattr(m, 'molsurf') and m.molsurf in session.model_list():
     m.molsurf.display = True
   else:
-    from .. import molecule, molmap
-    atoms = molecule.Atom_Set()
-    atoms.add_molecules([m])
-    s = molmap.molecule_map(atoms, res, grid)
-    s.new_region(ijk_step = (1,1,1), adjust_step = False)
-    s.show()
-    m.molsurf = s
+    from ..surface.gridsurf import surface
+    m.molsurf = surface(m.atoms(), session)
 
 def color_by_element(m):
   m.set_color_mode('by element')
@@ -406,33 +413,34 @@ def show_waters(m):
     m.show_solvent()
 def hide_waters(m):
     m.hide_solvent()
-def molecule_bonds(m):
+def molecule_bonds(m, session):
     if m.bonds is None:
         from ..molecule import connect
-        m.bonds, missing = connect.molecule_bonds(m)
+        m.bonds, missing = connect.molecule_bonds(m, session)
         msg = 'Created %d bonds for %s using templates' % (len(m.bonds), m.name)
-        from .gui import show_status, show_info
-        show_status(msg)
-        show_info(msg)
+        session.show_status(msg)
+        session.show_info(msg)
         if missing:
-            show_info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+            session.show_info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+def accessible_surface_area(m, session):
+    from .. import surface
+    a = surface.accessible_surface_area(m)
+    msg = 'Accessible surface area of %s = %.5g' % (m.name, a.sum())
+    session.show_status(msg)
+    session.show_info(msg)
 
-def list_keyboard_shortcuts():
-  from .gui import main_window as m
-  if m.showing_text() and m.text_id == 'keyboard shortcuts':
-    m.show_graphics()
-  else:
-    t = shortcut_descriptions(html = True)
-    m.show_text(t, html = True, id = "keyboard shortcuts")
+def list_keyboard_shortcuts(session):
+    m = session.main_window
+    if m.showing_text() and m.text_id == 'keyboard shortcuts':
+        m.show_graphics()
+    else:
+        t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
+        m.show_text(t, html = True, id = "keyboard shortcuts")
 
-def shortcut_descriptions(html = False):
-  global keyboard_shortcuts
-  if keyboard_shortcuts is None:
-    return 'No keyboard shortcuts registered'
-  ks = keyboard_shortcuts
+def shortcut_descriptions(ks, html = False):
   ksc = {}
-  for k, (f,d,c) in ks.shortcuts.items():
-    ksc.setdefault(c,[]).append((k,d))
+  for k, (f,d,n,c) in ks.shortcuts.items():
+    ksc.setdefault(c,[]).append((n,d))
   cats = list(ksc.keys())
   cats.sort()
   for cat in cats:
@@ -448,24 +456,27 @@ def shortcut_descriptions(html = False):
       lines.append('<td>')
       for cat in colcats:
         lines.extend(['<table>', '<tr><th colspan=2 align=left>%s' % cat])
-        lines.extend(['<tr><td width=40>%s<td>%s' % (k,d) for k,d in ksc[cat]])
+        lines.extend(['<tr><td width=40>%s<td>%s' % (n,d) for n,d in ksc[cat]])
         lines.append('</table>')
     lines.append('</table>') # Multi-column table
   else:
     lines = ['Keyboard shortcuts']
     for cat in cats:
       lines.extend(['', cat])
-      lines.extend(['%s - %s' % (k,d) for k,d in ksc[cat]])
+      lines.extend(['%s - %s' % (n,d) for n,d in ksc[cat]])
   descrip = '\n'.join(lines)
   return descrip
 
-def show_graphics_window():
-  from .gui import main_window as m
-  m.show_graphics()
-  m.show_back_forward_buttons(False)
+def show_graphics_window(session):
+    m = session.main_window
+    m.show_graphics()
+    m.show_back_forward_buttons(False)
 
-def show_manual():
-  from .gui import main_window as m
+def show_log(session):
+  session.log.show()
+
+def show_manual(session):
+  m = session.main_window
   if m.showing_text() and m.text_id == 'manual':
     m.show_graphics()
     m.show_back_forward_buttons(False)
@@ -482,41 +493,41 @@ def show_manual():
     from .qt import QtCore
     m.text.setSource(QtCore.QUrl(url))
 
-def show_command_history():
-    from . import commands
-    commands.show_command_history()
+def show_file_history(session):
+    session.file_history.show_thumbnails()
 
-def show_scenes():
-    from .. import scenes
-    scenes.show_thumbnails(toggle = True)
+def show_command_history(session):
+    session.commands.history.show_command_history()
 
-def show_stats():
-    from .gui import main_window as mw, show_status
-    v = mw.view
+def show_scenes(session):
+    session.scenes.show_thumbnails(toggle = True)
+
+def show_stats(session):
+    v = session.view
     na = v.atoms_shown
     r = 1.0/v.last_draw_duration
-    n = len(v.models)
-    show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
+    n = session.model_count()
+    session.show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
 
-def leap_chopsticks_mode(viewer):
+def leap_chopsticks_mode(session):
     from . import c2leap
-    c2leap.leap_mode('chopsticks', viewer)
+    c2leap.leap_mode('chopsticks', session)
 
-def leap_position_mode(viewer):
+def leap_position_mode(session):
     from . import c2leap
-    c2leap.leap_mode('position', viewer)
+    c2leap.leap_mode('position', session)
 
-def leap_velocity_mode(viewer):
+def leap_velocity_mode(session):
     from . import c2leap
-    c2leap.leap_mode('velocity', viewer)
+    c2leap.leap_mode('velocity', session)
 
-def leap_focus(viewer):
+def leap_focus(session):
     from . import c2leap
-    c2leap.report_leap_focus(viewer)
+    c2leap.report_leap_focus(session)
 
-def leap_quit(viewer):
+def leap_quit(session):
     from . import c2leap
-    c2leap.quit_leap(viewer)
+    c2leap.quit_leap(session)
 
 def motion_blur(viewer):
     from .crossfade import Motion_Blur
@@ -525,3 +536,32 @@ def motion_blur(viewer):
         viewer.remove_overlays(mb)
     else:
         Motion_Blur(viewer)
+
+def mono_mode(viewer):
+    viewer.set_camera_mode('mono')
+def stereo_mode(viewer):
+    viewer.set_camera_mode('stereo')
+def oculus_mode(viewer):
+    viewer.set_camera_mode('oculus')
+def start_oculus(session):
+    from . import oculus
+    oculus.start_oculus(session)
+def oculus_warp(session):
+    from . import oculus
+    oculus.toggle_warping(session)
+
+def toggle_space_navigator(session):
+    from . import spacenavigator
+    spacenavigator.toggle_space_navigator(session)
+
+def toggle_space_navigator_fly_mode(session):
+    from . import spacenavigator
+    spacenavigator.toggle_fly_mode(session)
+
+def space_navigator_collisions(session):
+    from . import spacenavigator
+    spacenavigator.avoid_collisions(session)
+
+def quit(session):
+    import sys
+    sys.exit(0)

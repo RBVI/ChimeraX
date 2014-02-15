@@ -135,7 +135,10 @@ Commands
 
 <table>
 <tr><td>
-<tr><td><b>open</b> <i>filename</i>|<i>PDB-id,...</i>|emdb:<i>id</i> - open files
+<tr><td><b>open</b> <i>filename,...</i>|<i>database-id,...</i> [fromDatabase PDB|EMDB|EDS] - open files
+<tr><td><b>save</b> <i>filename.[jpg|png|ppm|bmp]</i> [width <i>w</i>] [height <i>h</i>] - save an image
+<tr><td><b>save</b> <i>filename.hy</i> - save a session file
+<tr><td><b>save</b> <i>filename.mrc</i> - save a density map file
 <tr><td><b>close</b> [<i>model-spec</i>|all] - close models
 <tr><td><b>scene</b> add|show|delete [id] - remember views
 <tr><td>
@@ -143,9 +146,11 @@ Commands
 <tr><td><a href="fitmap.html">fitmap</a> - Fit molecules in maps.
 <tr><td><a href="molmap.html">molmap</a> - Calculated simulated density maps from molecules.
 <tr><td>
-<tr><td><b>show</b> <i>atom-spec</i> [atoms] [ribbon] [only] - display specific atoms or ribbons
-<tr><td><b>hide</b> <i>atom-spec</i> [atoms] [ribbon] [only] - hide specific atoms or ribbons
-<tr><td><b>align</b> <i>atom-spec</i> <i>ref-atoms</i> [move molecules|chains|residues|atoms|false] [each molecule|chain] [same n] [report_matrix true|false] - align molecules to minimize RMSD
+<tr><td><b>show</b> <i>atom-spec</i> [atoms] [ribbon] [only] - display specific atoms or ribbons.
+<tr><td><b>hide</b> <i>atom-spec</i> [atoms] [ribbon] [only] - hide specific atoms or ribbons.
+<tr><td><b>align</b> <i>atom-spec</i> <i>ref-atoms</i> [move molecules|chains|residues|atoms|false] [each molecule|chain] [same n] [report_matrix true|false] - align molecules to minimize RMSD.
+<tr><td><b>surface</b> <i>atom-spec</i> [probeRadius <i>r</i>] [gridSpacing <i>s</i>] [waters] - Show a solvent excluded molecular surface.
+<tr><td><b>camera</b> [mono|stereo|oculus] [fieldOfView <i>degrees</i>] [eyeSeparation <i>millimeters</i>] [screenWidth <i>millimeters</i>] [sEyeSeparation <i>scene-dist</i>] [middleDistance] [depthScale <i>f</i>] [nearFarClip <i>neardist,fardist</i>] [report] - Adjust or report camera settings.
 </table>
 
 </body>

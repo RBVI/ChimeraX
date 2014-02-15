@@ -20,12 +20,9 @@
 
 namespace llgr {
 
-using std::string;
+namespace internal {
 
-#ifndef OTF_NO_LOCALE
-const std::ctype<string::value_type> &ct
-    = std::use_facet<std::ctype<string::value_type> >(std::locale::classic());
-#endif
+using std::string;
 
 GLuint	current_programObj;
 
@@ -396,16 +393,6 @@ ShaderVariable::draw_uniform() const
 	}
 }
 
-inline bool
-isSpace(string::traits_type::char_type c)
-{
-#ifdef OTF_NO_LOCALE
-	return isspace(c);
-#else
-	return ct.is(ct.space, c);
-#endif
-}
-
 ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment_shader, const string& attribute0_name): programObj(0), vs(0), fs(0)
 {
 	class GuardProgram {
@@ -568,17 +555,13 @@ ShaderProgram::ShaderProgram(const string& vertex_shader, const string& fragment
 		typeMap[ShaderVariable::Mat4x3] = "float_mat4x3";
 
 		std::cerr << "  program uniforms:\n";
-		for (Variables::iterator i = uniforms_.begin(),
-					e = uniforms_.end(); i != e; ++i) {
-			ShaderVariable *sv = *i;
+		for (ShaderVariable *sv: uniforms_) {
 			std::cerr << "    " << sv->name() << ' '
 				<< ' ' << typeMap[sv->type()]
 				<< " loc: " << sv->location() << '\n';
 		}
 		std::cerr << "  vertex attributes:\n";
-		for (Variables::iterator i = attributes_.begin(),
-					e = attributes_.end(); i != e; ++i) {
-			ShaderVariable *sv = *i;
+		for (ShaderVariable *sv: attributes_) {
 			std::cerr << "    " << sv->name() << ' '
 				<< ' ' << typeMap[sv->type()]
 				<< " loc: " << sv->location() << '\n';
@@ -597,14 +580,10 @@ ShaderProgram::~ShaderProgram()
 		glDeleteShader(vs);
 	if (fs)
 		glDeleteShader(fs);
-	for (Variables::iterator i = uniforms_.begin(), e = uniforms_.end();
-								i != e; ++i) {
-		ShaderVariable *sv = *i;
+	for (ShaderVariable *sv: uniforms_) {
 		delete sv;
 	}
-	for (Variables::iterator i = attributes_.begin(), e = attributes_.end();
-								i != e; ++i) {
-		ShaderVariable *sv = *i;
+	for (ShaderVariable *sv: attributes_) {
 		delete sv;
 	}
 }
@@ -612,11 +591,9 @@ ShaderProgram::~ShaderProgram()
 ShaderVariable*
 ShaderProgram::uniform(const string& name, bool exceptions) const
 {
-	for (Variables::const_iterator i = uniforms_.begin();
-						i != uniforms_.end(); ++i) {
-		Var* var = *i;
-		if (var->name() == name)
-			return var;
+	for (ShaderVariable *sv: uniforms_) {
+		if (sv->name() == name)
+			return sv;
 	}
 	if (exceptions)
 		throw std::runtime_error("shader uniform not found");
@@ -626,11 +603,9 @@ ShaderProgram::uniform(const string& name, bool exceptions) const
 ShaderVariable*
 ShaderProgram::attribute(const string& name, bool exceptions) const
 {
-	for (Variables::const_iterator i = attributes_.begin();
-						i != attributes_.end(); ++i) {
-		Var* var = *i;
-		if (var->name() == name)
-			return var;
+	for (ShaderVariable *sv: attributes_) {
+		if (sv->name() == name)
+			return sv;
 	}
 	if (exceptions)
 		throw std::runtime_error("shader attribute not found");
@@ -645,9 +620,7 @@ ShaderProgram::setup() const throw ()
 
 	glUseProgram(programObj);
 	current_programObj = programObj;
-	for (Variables::const_iterator i = uniforms_.begin();
-						i != uniforms_.end(); ++i) {
-		ShaderVariable *sv = *i;
+	for (ShaderVariable *sv: uniforms_) {
 		if (sv->location() == -1 || !sv->has_value())
 			continue;
 		sv->draw_uniform();
@@ -662,5 +635,7 @@ ShaderProgram::cleanup() const throw ()
 	glUseProgram(0);
 	current_programObj = 0;
 }
+
+} // namespace internal
 
 } // namespace llgr

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.6c11
+VERSION = 1.4.2
 DISTRIBUTION = setuptools-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/setuptools-$(VERSION)
 

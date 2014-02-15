@@ -9,7 +9,6 @@
 
 //#include <iostream>			// use std::cerr for debugging
 #include <set>				// use std::set<>
-#include <stdexcept>			// use std::runtime_error
 
 #include <math.h>			// use sqrt()
 
@@ -69,9 +68,6 @@ public:
 
 // ----------------------------------------------------------------------------
 //
-static void parse_geometry(PyObject *vertex_array, PyObject *triangle_array,
-			   PyObject *normals_array, FArray &varray,
-			   FArray &narray, IArray &tarray);
 static PyObject *python_geometry(PyObject *v, PyObject *t, PyObject *n);
 static void find_edges(const IArray &tc, std::set<Edge> &eset);
 static void subdivided_vertices(const FArray &varray, std::set<Edge> &eset,
@@ -138,30 +134,6 @@ subdivide_triangles(PyObject *s, PyObject *args, PyObject *keywds)
     }
 
   return python_geometry(varray2, tarray2, narray2);
-}
-
-// ----------------------------------------------------------------------------
-//
-static void parse_geometry(PyObject *vertex_array, PyObject *triangle_array,
-			   PyObject *normals_array, FArray &varray,
-			   FArray &narray, IArray &tarray)
-{
- varray = array_from_python(vertex_array, 2, Numeric_Array::Float);
-  if (varray.size(1) != 3)
-    throw std::runtime_error("vertex array second dimension must be 3");
-
-  tarray = array_from_python(triangle_array, 2, Numeric_Array::Int);
-  if (tarray.size(1) != 3)
-    throw std::runtime_error("triangle array second dimension must be 3");
-
-  if (normals_array)
-    {
-      narray = array_from_python(normals_array, 2, Numeric_Array::Float);
-      if (narray.size(1) != 3)
-	throw std::runtime_error("normal array second dimension must be 3");
-      if (narray.size(0) != varray.size(0))
-	throw std::runtime_error("normal array size differs from vertex array");
-    }
 }
 
 // ----------------------------------------------------------------------------

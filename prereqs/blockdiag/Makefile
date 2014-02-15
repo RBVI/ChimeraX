@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.2.4
+VERSION = 1.3.2
 DISTRIBUTION = blockdiag-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/blockdiag-$(VERSION)
 

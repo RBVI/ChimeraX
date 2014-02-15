@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 8.32
+VERSION = 8.33
 DISTRIBUTION = pcre-$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/pcre-$(VERSION)
 

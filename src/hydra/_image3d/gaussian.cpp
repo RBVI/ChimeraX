@@ -96,3 +96,82 @@ extern "C" PyObject *py_sum_of_gaussians(PyObject *, PyObject *args,
   Py_INCREF(Py_None);
   return Py_None;
 }
+
+// -----------------------------------------------------------------------------
+//
+static void sum_of_balls(const FArray &centers, const FArray &radii,
+			 float sdev, float maxrange, FArray &matrix)
+{
+  const int *msize = matrix.sizes();
+  int n = centers.size(0);
+  const float *ca = centers.values();
+  int cs0 = centers.stride(0), cs1 = centers.stride(1);
+  const float *ra = radii.values();
+  int rs0 = radii.stride(0);
+  float *ma = matrix.values();
+  int ms0 = matrix.stride(0), ms1 = matrix.stride(1), ms2 = matrix.stride(2);
+  for (int c = 0 ; c < n ; ++c)
+    {
+      float cijk[3];
+      int ijk_min[3], ijk_max[3];
+      float r = ra[rs0*c];
+      float r2 = r*r;
+      for (int p = 0 ; p < 3 ; ++p)
+	{
+	  float x = ca[cs0*c+cs1*p];
+	  cijk[p] = x;
+	  ijk_min[p] = clamp((int)ceil(x-r-maxrange*sdev), msize[2-p]);
+	  ijk_max[p] = clamp((int)floor(x+r+maxrange*sdev), msize[2-p]);
+	}
+      for (int k = ijk_min[2] ; k <= ijk_max[2] ; ++k)
+	{
+	  float dk = (k-cijk[2]);
+	  float k2 = dk*dk;
+	  for (int j = ijk_min[1] ; j <= ijk_max[1] ; ++j)
+	    {
+	      float dj = (j-cijk[1]);
+	      float jk2 = dj*dj + k2;
+	      for (int i = ijk_min[0] ; i <= ijk_max[0] ; ++i)
+		{
+		  float di = (i-cijk[0]);
+		  float ijk2 = di*di + jk2;
+		  float v = 1;
+		  if (ijk2 > r2)
+		    {
+		      float gr = (sqrt(ijk2) - r)/sdev;
+		      v = exp(-0.5*gr*gr);
+		    }
+		  ma[k*ms0+j*ms1+i*ms2] += v;
+		}
+	    }
+	}
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *py_sum_of_balls(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray centers, radii, matrix;
+  float sdev, maxrange;
+  const char *kwlist[] = {"centers", "radii", "sdev", "maxrange", "matrix", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&O&ffO&"), (char **)kwlist,
+				   parse_float_n3_array, &centers,
+				   parse_float_n_array, &radii,
+				   &sdev, &maxrange,
+				   parse_writable_float_3d_array, &matrix))
+    return NULL;
+
+  if (radii.size(0) != centers.size(0))
+    {
+      PyErr_SetString(PyExc_TypeError,
+		      "Lengths of centers and radii don't match.");
+      return NULL;
+    }
+
+  sum_of_balls(centers, radii, sdev, maxrange, matrix);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}

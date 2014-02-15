@@ -26,6 +26,8 @@ static int count_pdb_atoms(const char *pdb)
   for (int i = 0 ; pdb[i] ; i = next_line(pdb, i))
     if (atom_line(pdb+i))
       count += 1;
+    else if (strncmp(pdb+i, "ENDMDL", 6) == 0)
+      break;
   return count;
 }
 
@@ -83,12 +85,15 @@ static int parse_pdb(const char *pdb, int natom,
 {
   char buf[9];
   buf[8] = '\0';
-  int a = 0, ni, s, e;
+  int a = 0, ni, s;
+  char last_alt_loc = ' ';
   for (int i = 0 ; pdb[i] && a < natom ; i = ni)
     {
       	const char *line = pdb + i;
 	ni = next_line(pdb, i);
 	int line_len = ni - i;
+	if (strncmp(line, "ENDMDL", 6) == 0)
+	  return a;	// Only parse the first model in the file.
 	if (atom_line(line) && line_len > 46)
 	  {
 	    int a3 = 3*a;
@@ -111,6 +116,17 @@ static int parse_pdb(const char *pdb, int natom,
 	    for (e = 15 ; e > 11 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
 	      strncpy(atom_names + 4*a, line+s, e-s+1);
+	    if (a > 0 && line[16] != last_alt_loc &&
+		residue_nums[a] == residue_nums[a-1] &&
+		strncmp(atom_names+4*a, atom_names+4*(a-1), 4) == 0 &&
+		strncmp(residue_names+3*a, residue_names+3*(a-1), 3) == 0 &&
+		chain_ids[a] == chain_ids[a-1])
+	      {
+		memset(residue_names+3*a, 0, 3);
+		memset(atom_names+4*a, 0, 4);
+		continue;		// Skip atom that differs only in alt-loc
+	      }
+	    last_alt_loc = line[16];
 	    a += 1;
 	  }
     }
@@ -124,7 +140,7 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
 {
   const char *pdb_text;
   const char *kwlist[] = {"text", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("s"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("y"),
 				   (char **)kwlist, &pdb_text))
     return NULL;
 
@@ -142,8 +158,28 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
   PyObject *atom_names_py = python_string_array(natom, 4, &atom_names);
   memset(atom_names, 0, 4*natom);
 
-  parse_pdb(pdb_text, natom, xyz, element_nums, chain_ids,
-	    residue_nums, residue_names, atom_names);
+  int na = parse_pdb(pdb_text, natom, xyz, element_nums, chain_ids,
+		     residue_nums, residue_names, atom_names);
+  if (na < natom)
+    {
+      // Dropped extra altloc atoms.  So resize to actual number of atoms.
+      float *xyz2;
+      int *residue_nums2;
+      unsigned char *element_nums2;
+      char *chain_ids2, *residue_names2, *atom_names2;
+      PyObject *xyz_py2 = python_float_array(na, 3, &xyz2);
+      memcpy(xyz2, xyz, 3*na*sizeof(float)); Py_DECREF(xyz_py); xyz_py = xyz_py2;
+      PyObject *element_nums_py2 = python_uint8_array(na, &element_nums2);
+      memcpy(element_nums2, element_nums, na); Py_DECREF(element_nums_py); element_nums_py = element_nums_py2;
+      PyObject *chain_ids_py2 = python_string_array(na, 1, &chain_ids2);
+      memcpy(chain_ids2, chain_ids, na); Py_DECREF(chain_ids_py); chain_ids_py = chain_ids_py2;
+      PyObject *residue_nums_py2 = python_int_array(na, &residue_nums2);
+      memcpy(residue_nums2, residue_nums, na*sizeof(int)); Py_DECREF(residue_nums_py); residue_nums_py = residue_nums_py2;
+      PyObject *residue_names_py2 = python_string_array(na, 3, &residue_names2);
+      memcpy(residue_names2, residue_names, 3*na); Py_DECREF(residue_names_py); residue_names_py = residue_names_py2;
+      PyObject *atom_names_py2 = python_string_array(na, 4, &atom_names2);
+      memcpy(atom_names2, atom_names, 4*na); Py_DECREF(atom_names_py); atom_names_py = atom_names_py2;
+    }
 
   PyObject *t = PyTuple_New(6);
   PyTuple_SetItem(t, 0, xyz_py);
@@ -161,15 +197,26 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
 extern "C" PyObject *
 element_radii(PyObject *s, PyObject *args, PyObject *keywds)
 {
-  PyObject *elnum;
+  Numeric_Array elnum;
   const char *kwlist[] = {"element_numbers", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O"),
-				   (char **)kwlist, &elnum))
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_writable_array, &elnum))
     return NULL;
 
-  Numeric_Array e = array_from_python(elnum, 1, Numeric_Array::Unsigned_Char, false);
-  unsigned char *el = (unsigned char *)e.values();
-  int n = e.size();
+  if (elnum.dimension() != 1)
+    {
+      PyErr_Format(PyExc_TypeError, "Element array must be 1-dimensional, got %d",
+		   elnum.dimension());
+      return NULL;
+    }
+  if (elnum.value_type() != Numeric_Array::Unsigned_Char)
+    {
+      PyErr_SetString(PyExc_TypeError, "Element array must be type unsigned char");
+      return NULL;
+    }
+  unsigned char *el = (unsigned char *)elnum.values();
+  int n = elnum.size();
   float *radii;
   PyObject *radii_py = python_float_array(n, &radii);
   element_radii(el, n, radii);

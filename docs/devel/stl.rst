@@ -1,3 +1,3 @@
-.. automodule:: chimera2.stl
+.. automodule:: chimera2.io.formats.stl
     :members:
     :show-inheritance:

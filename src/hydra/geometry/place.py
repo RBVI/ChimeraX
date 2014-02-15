@@ -1,10 +1,8 @@
 '''
-Math for points, vectors and coordinate systems.
-================================================
+place: Coordinate systems
+=========================
 
-A point or vector is a one-dimensional numpy array of 3 floating point
-values.  Multiple points or vectors are represented as two-dimensional
-numpy arrays of size N by 3.  A coordinate system is represented by a
+A coordinate system is represented by a
 Place object which defines an origin and three axes specified relative
 to another coordinate system.  A Place can specify the position and
 orientation of a model in a scene, defining the local coordinate
@@ -14,9 +12,14 @@ of a camera within a scene.  A Place can also be thought of as a
 coordinate transformation mapping Place coordinates to the other
 coordinate system.  The transform consists of a linear part (often a
 rotation, but more generally a 3 by 3 matrix) followed by a shift
-along the 3 axes.  Points and vectors can have 32-bit or 64-bit
-floating point coordinates.  Place objects use 64-bit coordinates for
+along the 3 axes.  Place objects use 64-bit coordinates for
 axes and origin.
+
+
+A point or vector is a one-dimensional numpy array of 3 floating point
+values.  Multiple points or vectors are represented as two-dimensional
+numpy arrays of size N by 3. Points and vectors can have 32-bit or 64-bit
+floating point coordinates.
 
 '''
 
@@ -131,7 +134,7 @@ class Place:
 
     def axis_center_angle_shift(self):
         '''Parameterize the transform as a rotation about a point around an axis and shift along that axis.
-        Return the rotation axis, a point on the axis, rotation angle (in radians), and shift distance
+        Return the rotation axis, a point on the axis, rotation angle (in degrees), and shift distance
         parallel to the axis.  This assumes the transformation linear part is a rotation.
         '''
         return m34.axis_center_angle_shift(self.matrix)
@@ -179,7 +182,7 @@ def translation(v):
     '''Return a transform which is a shift by vector v.'''
     return Place(origin = v)
 
-def rotation(axis, angle, center = None):
+def rotation(axis, angle, center = (0,0,0)):
     '''Return a transform which is a rotation about the specified center and axis by the given angle (degrees).'''
     return Place(m34.rotation_transform(axis, angle, center))
 
@@ -188,11 +191,11 @@ def vector_rotation(u,v):
     The vectors can have any length and the transform maps the direction of u to the direction of v.'''
     return Place(m34.vector_rotation_transform(u,v))
 
-def orthonormal_frame(zaxis, ydir = None):
+def orthonormal_frame(zaxis, ydir = None, xdir = None):
     '''Return a Place object with the specifiec z axis.  Any rotation about that z axis is allowed, unless a
     vector ydir is given in which case the y axis will be in the plane define by the z axis and ydir.
     '''
-    return Place(axes = m34.orthonormal_frame(zaxis, ydir))
+    return Place(axes = m34.orthonormal_frame(zaxis, ydir, xdir))
 
 def skew_axes(cell_angles):
     '''Return a Place object representing the skewing with cell angles alpha, beta and gamma (degrees).

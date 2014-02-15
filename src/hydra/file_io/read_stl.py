@@ -1,7 +1,9 @@
 # -----------------------------------------------------------------------------
-# Read in an STL file and create a surface.
 # 
-def read_stl(path, color = (.7,.7,.7,1)):
+def read_stl(path, session, color = (.7,.7,.7,1)):
+    '''
+    Read a STL (Stereo Lithography) surface file and create a surface.
+    '''
 
     f = open(path, 'rb')
     stl_data = f.read()
@@ -11,7 +13,7 @@ def read_stl(path, color = (.7,.7,.7,1)):
     comment, va, na, ta = _image3d.parse_stl(stl_data)
 
     s = STL_Surface(path)
-    p = s.newPiece()
+    p = s.new_piece()
     p.geometry = va, ta
     p.normals = na
     p.color = color
@@ -93,7 +95,7 @@ class STL_Surface(Surface):
         p = self.plist[0]
         s = {'id':self.id,
              'path':self.path,
-             'displayed': self.displayed,
+             'display': self.display,
              'place':self.place.matrix,
              'color':p.color}
         if p.copies:
@@ -102,10 +104,11 @@ class STL_Surface(Surface):
 
 # -----------------------------------------------------------------------------
 #
-def restore_stl_surfaces(surfs, viewer, attributes_only = False):
+def restore_stl_surfaces(surfs, session, attributes_only = False):
 
     if attributes_only:
-        sids = dict((m.id,m) for m in viewer.models if isinstance(m, STL_Surface))
+        models = session.model_list()
+        sids = dict((m.id,m) for m in models if isinstance(m, STL_Surface))
     from ..geometry.place import Place
     for st in surfs:
         if attributes_only:
@@ -115,12 +118,14 @@ def restore_stl_surfaces(surfs, viewer, attributes_only = False):
             else:
                 continue
         else:
-            s = read_stl(st['path'])
+            s = read_stl(st['path'], session)
             s.id = st['id']
-        s.displayed = st['displayed']
+        if 'displayed' in st:
+            st['display'] = st['displayed']     # Fix old session files
+        s.display = st['display']
         s.place = Place(st['place'])
         p = s.plist[0]
         p.color = st['color']
         if 'copies' in st:
             p.copies = [Place(c) for c in st['copies']]
-        viewer.add_model(s)
+        session.add_model(s)

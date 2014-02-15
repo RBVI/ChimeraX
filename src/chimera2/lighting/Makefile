@@ -7,7 +7,7 @@ PYSRCS	= $(wildcard *.py)
 all: $(PYOBJS)
 
 install: all
-	-mkdir $(PKG_DIR)
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 lint:

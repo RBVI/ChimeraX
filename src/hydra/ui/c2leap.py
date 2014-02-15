@@ -224,7 +224,7 @@ def chopstick_motion(lp, p):
 def keep_within_frustum(t, v):
 
     c = v.center_of_rotation
-    cvi = v.camera_view_inverse
+    cvi = v.camera.view_inverse
     p1 = cvi * c
     p2 = add(p1, t)
     from math import pi, sin, cos
@@ -285,7 +285,8 @@ def frame_rotation(lf, f):
     return R_to_axis_angle(r)
 
 def R_to_axis_angle(matrix):
-    """Convert the rotation matrix into the axis-angle notation.
+    """
+    Private. Convert the rotation matrix into the axis-angle notation.
 
     Conversion equations
     ====================
@@ -340,18 +341,17 @@ def leap_listener(viewer):
         
     return v.leap_listener
 
-def leap_mode(mode, viewer):
-    l = leap_listener(viewer)
+def leap_mode(mode, session):
+    l = leap_listener(session.view)
     l.mode = mode
 
-def report_leap_focus(viewer):
-    v = viewer
+def report_leap_focus(session):
+    v = session.view
     if hasattr(v, 'leap_controller'):
-        from .gui import show_status
         msg = 'App has leap focus' if v.leap_controller.has_focus else 'App does not have Leap focus'
-        show_status(msg)
+        session.show_status(msg)
 
-def quit_leap(viewer):
-    v = viewer
+def quit_leap(session):
+    v = session.view
     if hasattr(v, 'leap_listener'):
         v.leap_controller.remove_listener(v.leap_listener)

@@ -84,6 +84,7 @@ exclude_patterns = ['_build']
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
 #add_module_names = True
+add_module_names = False
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
@@ -281,3 +282,15 @@ intersphinx_mapping = {
 extlinks = {
 	'jquery': ('http://api.jquery.com/jQuery.%s/', "jQuery API's "),
 }
+
+# Skip objects with doc strings that start with 'Private'.
+def skip_private(app, what, name, obj, skip, options):
+    if (not skip and
+        hasattr(obj, '__doc__') and
+        isinstance(obj.__doc__,str) and
+        obj.__doc__.lstrip().startswith('Private')):
+        return True
+    return skip
+
+def setup(app):
+    app.connect('autodoc-skip-member', skip_private)

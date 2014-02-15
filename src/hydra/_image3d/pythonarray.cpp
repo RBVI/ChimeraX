@@ -6,9 +6,6 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>		// use PyArray_*(), NPY_*
 
-#include <stdexcept>			// use std::runtime_error
-#include <sstream>			// use std::ostringstream
-
 #include "pythonarray.h"
 #include "rcarray.h"			// use Numeric_Array, Release_Data
 
@@ -36,7 +33,7 @@ private:
 
 // ----------------------------------------------------------------------------
 //
-Numeric_Array array_from_python(PyObject *array, int dim, bool allow_data_copy)
+bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_data_copy)
 {
   initialize_numpy();
 
@@ -49,12 +46,15 @@ Numeric_Array array_from_python(PyObject *array, int dim, bool allow_data_copy)
   else if (allow_data_copy)
     a = (PyArrayObject *) PyArray_FromObject(array, NPY_NOTYPE, 0, 0);
   else
-    throw std::runtime_error("NumPy array required");
+    {
+      PyErr_SetString(PyExc_TypeError, "NumPy array required");
+      return false;
+    }
 
   if (a == (PyArrayObject *)0)
     {
-      PyErr_Clear();
-      throw std::runtime_error("Invalid array argument");
+      PyErr_SetString(PyExc_TypeError, "Invalid array argument");
+      return false;
     }
 
   if (dim == 0)
@@ -62,10 +62,8 @@ Numeric_Array array_from_python(PyObject *array, int dim, bool allow_data_copy)
   else if (PyArray_NDIM(a) != dim)
     {
       Py_DECREF((PyObject *) a);
-      std::ostringstream msg;
-      msg << "Array must be " << dim << "-dimensional, got "
-	  << PyArray_NDIM(a) << "-dimensional" << std::endl;
-      throw std::runtime_error(msg.str());
+      PyErr_Format(PyExc_TypeError, "Array must be %d-dimensional, got %d-dimensional", dim, PyArray_NDIM(a));
+      return false;
     }
 
   Numeric_Array::Value_Type dtype;
@@ -87,7 +85,8 @@ Numeric_Array array_from_python(PyObject *array, int dim, bool allow_data_copy)
     case NPY_FLOAT:	dtype = Numeric_Array::Float;		break;
     case NPY_DOUBLE:	dtype = Numeric_Array::Double;		break;
     default:
-      throw std::runtime_error("Array argument has non-numeric values");
+      PyErr_SetString(PyExc_TypeError, "Array argument has non-numeric values");
+      return false;
     };
 
   int *sizes = new int[dim];
@@ -106,12 +105,12 @@ Numeric_Array array_from_python(PyObject *array, int dim, bool allow_data_copy)
   void *data = PyArray_DATA(a);
   Release_Data *release = new Python_Decref((PyObject *)a);
 
-  Numeric_Array na(dtype, dim, sizes, strides, data, release);
+  *na = Numeric_Array(dtype, dim, sizes, strides, data, release);
 
   delete [] strides;
   delete [] sizes;
 
-  return na;
+  return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -131,43 +130,48 @@ PyObject *array_python_source(const Untyped_Array &a)
 
 // ----------------------------------------------------------------------------
 //
-Numeric_Array array_from_python(PyObject *array, int dim,
-				Numeric_Array::Value_Type required_type,
-				bool allow_data_copy)
+bool array_from_python(PyObject *array, int dim,
+		       Numeric_Array::Value_Type required_type, Numeric_Array *na,
+		       bool allow_data_copy)
 {
-  Numeric_Array a = array_from_python(array, dim, allow_data_copy);
-  if (a.value_type() == required_type)
-    return a;
+  Numeric_Array a;
+  if (!array_from_python(array, dim, &a, allow_data_copy))
+    return false;
 
-  if (allow_data_copy)
-    a = a.as_type(required_type);
-  else
+  if (a.value_type() == required_type)
     {
-      std::ostringstream msg;
-      msg << "Require array value type "
-	  << Numeric_Array::value_type_name(required_type)
-	  << ", got "
-	  << Numeric_Array::value_type_name(a.value_type())
-	  << std::endl;
-      throw std::runtime_error(msg.str());
+      *na = a;
+      return true;
     }
 
-  return a;
+  if (!allow_data_copy)
+    {
+      PyErr_Format(PyExc_TypeError, "Require array value type %s, got %s",
+		   Numeric_Array::value_type_name(required_type),
+		   Numeric_Array::value_type_name(a.value_type()));
+	return false;
+    }
+
+  *na = a.as_type(required_type);
+
+  return true;
 }
 
 // ----------------------------------------------------------------------------
 //
-void python_array_to_c(PyObject *a, double *values, int size)
+bool python_array_to_c(PyObject *a, double *values, int size)
 {
   if (!PySequence_Check(a))
-    throw std::runtime_error("Array argument is not a sequence");
+    {
+      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      return false;
+    }
 
   if (PySequence_Size(a) != size)
     {
-      std::ostringstream msg;
-      msg << "Incorrect array size, got " << PySequence_Size(a)
-	  << ", should be " << size << std::endl;
-      throw std::runtime_error(msg.str());
+      PyErr_Format(PyExc_TypeError, "Incorrect array size, got %d, should be %d",
+		   PySequence_Size(a), size);
+      return false;
     }
 
   for (int k = 0 ; k < size ; ++k)
@@ -176,30 +180,37 @@ void python_array_to_c(PyObject *a, double *values, int size)
       if (!PyNumber_Check(e))
 	{
 	  Py_DECREF(e);
-	  throw std::runtime_error("Array element is not a number");
+	  PyErr_SetString(PyExc_TypeError, "Array element is not a number");
+	  return false;
 	}
       PyObject *f = PyNumber_Float(e);
       Py_DECREF(e);
       if (f == (PyObject *) 0)
-	throw std::runtime_error("Array element is not a float");
+	{
+	  PyErr_SetString(PyExc_TypeError, "Array element is not a float");
+	  return false;
+	}
       values[k] = PyFloat_AsDouble(f);
       Py_DECREF(f);
     }
+  return true;
 }
 
 // ----------------------------------------------------------------------------
 //
-void python_array_to_c(PyObject *a, float *values, int size)
+bool python_array_to_c(PyObject *a, float *values, int size)
 {
   if (!PySequence_Check(a))
-    throw std::runtime_error("Array argument is not a sequence");
+    {
+      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      return false;
+    }
 
   if (PySequence_Size(a) != size)
     {
-      std::ostringstream msg;
-      msg << "Incorrect array size, got " << PySequence_Size(a)
-	  << ", should be " << size << std::endl;
-      throw std::runtime_error(msg.str());
+      PyErr_Format(PyExc_TypeError, "Incorrect array size, got %d, should be %d",
+		   PySequence_Size(a), size);
+      return false;
     }
 
   for (int k = 0 ; k < size ; ++k)
@@ -208,36 +219,42 @@ void python_array_to_c(PyObject *a, float *values, int size)
       if (!PyNumber_Check(e))
 	{
 	  Py_DECREF(e);
-	  throw std::runtime_error("Array element is not a number");
+	  PyErr_SetString(PyExc_TypeError, "Array element is not a number");
+	  return false;
 	}
       PyObject *f = PyNumber_Float(e);
       Py_DECREF(e);
       if (f == (PyObject *) 0)
-	throw std::runtime_error("Array element is not a float");
+	{
+	  PyErr_SetString(PyExc_TypeError, "Array element is not a float");
+	  return false;
+	}
       double v = PyFloat_AsDouble(f);
       values[k] = static_cast<float>(v);
       Py_DECREF(f);
     }
+  return true;
 }
 
 // ----------------------------------------------------------------------------
 //
-void python_array_to_c(PyObject *a, float *values, int size0, int size1)
+bool python_array_to_c(PyObject *a, float *values, int size0, int size1)
 {
   initialize_numpy();		// required before using NumPy.
 
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_DOUBLE, 2, 2);
   if (na == NULL)
-    return;
+    {
+      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      return false;
+    }
 
   PyArrayObject *ao = reinterpret_cast<PyArrayObject *>(na);
   if (PyArray_DIM(ao,0) != size0 || PyArray_DIM(ao,1) != size1)
     {
-      std::ostringstream msg;
-      msg << "Incorrect 2-D array size, got ("
-	  << PyArray_DIM(ao,0) << ", " << PyArray_DIM(ao,1) << "), "
-	  << "expected (" << size0 << ", " << size1 << ")" << std::endl;
-      throw std::runtime_error(msg.str());
+      PyErr_Format(PyExc_TypeError, "Incorrect 2-D array size, got (%d,%d), expected (%d,%d)",
+		   PyArray_DIM(ao,0), PyArray_DIM(ao,1), size0, size1);
+      return false;
     }
 
   int n = size0 * size1;
@@ -246,26 +263,28 @@ void python_array_to_c(PyObject *a, float *values, int size0, int size1)
       values[k] = static_cast<float>(d[k]);
 
   Py_DECREF(na);
+  return true;
 }
 
 // ----------------------------------------------------------------------------
 //
-void python_array_to_c(PyObject *a, double *values, int size0, int size1)
+bool python_array_to_c(PyObject *a, double *values, int size0, int size1)
 {
   initialize_numpy();		// required before using NumPy.
 
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_DOUBLE, 2, 2);
   if (na == NULL)
-    return;
+    {
+      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      return false;
+    }
 
   PyArrayObject *ao = reinterpret_cast<PyArrayObject *>(na);
   if (PyArray_DIM(ao,0) != size0 || PyArray_DIM(ao,1) != size1)
     {
-      std::ostringstream msg;
-      msg << "Incorrect 2-D array size, got ("
-	  << PyArray_DIM(ao,0) << ", " << PyArray_DIM(ao,1) << "), "
-	  << "expected (" << size0 << ", " << size1 << ")" << std::endl;
-      throw std::runtime_error(msg.str());
+      PyErr_Format(PyExc_TypeError, "Incorrect 2-D array size, got (%d,%d), expected (%d,%d)",
+		   PyArray_DIM(ao,0), PyArray_DIM(ao,1), size0, size1);
+      return false;
     }
 
   int n = size0 * size1;
@@ -274,25 +293,28 @@ void python_array_to_c(PyObject *a, double *values, int size0, int size1)
       values[k] = d[k];
 
   Py_DECREF(na);
+  return true;
 }
 
 // ----------------------------------------------------------------------------
 //
-void python_array_to_c(PyObject *a, int *values, int size)
+bool python_array_to_c(PyObject *a, int *values, int size)
 {
   initialize_numpy();		// required before using NumPy.
 
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_INT, 1, 1);
   if (na == NULL)
-    return;
+    {
+      PyErr_SetString(PyExc_TypeError, "Array argument is not a sequence");
+      return false;
+    }
 
   PyArrayObject *ao = reinterpret_cast<PyArrayObject *>(na);
   if (PyArray_DIM(ao,0) != size)
     {
-      std::ostringstream msg;
-      msg << "Incorrect 1-D array size, got "
-	  << PyArray_DIM(ao,0) << ", " << "expected " << size << std::endl;
-      throw std::runtime_error(msg.str());
+      PyErr_Format(PyExc_TypeError, "Incorrect 2-D array size, got %d, expected %d",
+		   PyArray_DIM(ao,0), size);
+      return false;
     }
 
   int *d = reinterpret_cast<int *>(PyArray_DATA(ao));
@@ -300,6 +322,7 @@ void python_array_to_c(PyObject *a, int *values, int size)
       values[k] = d[k];
 
   Py_DECREF(na);
+  return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -393,12 +416,12 @@ static PyObject *allocate_python_array(int dim, int *size, int type)
   delete [] sn;
   if (a == NULL)
     {
-      std::ostringstream msg;
-      msg << numpy_type_name(type) << " array allocation of size (";
+      long s = 1;
       for (int a = 0 ; a < dim ; ++a)
-	msg << size[a] << (a < dim-1 ? ", " : "");
-      msg << ") failed " << std::endl;
-      throw std::runtime_error(msg.str());
+	s *= size[a];
+      PyErr_Format(PyExc_MemoryError,  "%s array allocation of size %ld, dimension %d, value type %d failed",
+		   numpy_type_name(type), s, dim, type);
+      return false;
     }
   return a;
 }
@@ -416,12 +439,12 @@ static PyObject *allocate_python_array(int dim, int *size, PyArray_Descr *dtype)
   delete [] sn;
   if (a == NULL)
     {
-      std::ostringstream msg;
-      msg << "Array allocation of size (";
+      long s = 1;
       for (int a = 0 ; a < dim ; ++a)
-	msg << size[a] << (a < dim-1 ? ", " : "");
-      msg << ") failed " << std::endl;
-      throw std::runtime_error(msg.str());
+	s *= size[a];
+      PyErr_Format(PyExc_MemoryError,  "array allocation of size %ld, dimension %d, value type %c failed",
+		   s, dim, dtype->type);
+      return false;
     }
   return a;
 }
@@ -665,19 +688,40 @@ PyObject *python_float_array(int size1, int size2, int size3, float **data)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_double_array(int size, double **data)
+{
+  initialize_numpy();		// required before using NumPy.
+
+  int dimensions[1] = {size};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_DOUBLE);
+  if (data)
+    *data = (double *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_1d_array(PyObject *arg, void *array)
+{
+  Numeric_Array *na = static_cast<Numeric_Array *>(array);
+  return  array_from_python(arg, 1, na) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_2d_array(PyObject *arg, void *array)
+{
+  Numeric_Array *na = static_cast<Numeric_Array *>(array);
+  return  array_from_python(arg, 2, na) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_3d_array(PyObject *arg, void *array)
 {
   Numeric_Array *na = static_cast<Numeric_Array *>(array);
-  try
-    {
-      *na = array_from_python(arg, 3);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
-  return 1;
+  return  array_from_python(arg, 3, na) ? 1 : 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -685,16 +729,44 @@ extern "C" int parse_3d_array(PyObject *arg, void *array)
 extern "C" int parse_writable_3d_array(PyObject *arg, void *array)
 {
   Numeric_Array *na = static_cast<Numeric_Array *>(array);
-  try
+  return array_from_python(arg, 3, na, false) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_array(PyObject *arg, void *array)
+{
+  Numeric_Array *na = static_cast<Numeric_Array *>(array);
+  return  array_from_python(arg, 0, na) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_writable_array(PyObject *arg, void *array)
+{
+  Numeric_Array *na = static_cast<Numeric_Array *>(array);
+  return  array_from_python(arg, 0, na, false) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_float_array(PyObject *arg, void *farray)
+{
+  Numeric_Array na;
+  if (array_from_python(arg, 0, Numeric_Array::Float, &na))
     {
-      *na = array_from_python(arg, 3, false);
+      *static_cast<FArray *>(farray) = na;
+      return 1;
     }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
-  return 1;
+  return 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_writable_4d_array(PyObject *arg, void *array)
+{
+  Numeric_Array *na = static_cast<Numeric_Array *>(array);
+  return array_from_python(arg, 4, na, false) ? 1 : 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -715,113 +787,98 @@ extern "C" int parse_bool(PyObject *arg, void *b)
 //
 extern "C" int parse_int_3_array(PyObject *arg, void *i3)
 {
-  try
-    {
-      python_array_to_c(arg, static_cast<int*>(i3), 3);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
-  return 1;
+  return python_array_to_c(arg, static_cast<int*>(i3), 3) ? 1 : 0;
 }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_float_3_array(PyObject *arg, void *f3)
 {
-  try
-    {
-      python_array_to_c(arg, static_cast<float*>(f3), 3);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
-  return 1;
+  return python_array_to_c(arg, static_cast<float*>(f3), 3) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_float_4_array(PyObject *arg, void *f4)
+{
+  return python_array_to_c(arg, static_cast<float*>(f4), 4) ? 1 : 0;
 }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_double_3_array(PyObject *arg, void *f3)
 {
-  try
-    {
-      python_array_to_c(arg, static_cast<double*>(f3), 3);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
+  return python_array_to_c(arg, static_cast<double*>(f3), 3) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+static int parse_float_n(PyObject *arg, void *farray, bool allow_copy, bool f64)
+{
+  Numeric_Array::Value_Type ftype = (f64 ? Numeric_Array::Double : Numeric_Array::Float);
+  Numeric_Array v;
+  if (!array_from_python(arg, 1, ftype, &v, allow_copy))
+    return 0;
+  if (f64)
+    *static_cast<DArray*>(farray) = static_cast<DArray>(v);
+  else
+    *static_cast<FArray*>(farray) = static_cast<FArray>(v);
   return 1;
 }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_float_n_array(PyObject *arg, void *farray)
-{
-  try
-    {
-      Numeric_Array v = array_from_python(arg, 1, Numeric_Array::Float);
-      *static_cast<FArray*>(farray) = static_cast<FArray>(v);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
-
-  return 1;
-}
+  { return parse_float_n(arg, farray, true, false); }
+extern "C" int parse_writable_float_n_array(PyObject *arg, void *farray)
+  { return parse_float_n(arg, farray, false, false); }
+extern "C" int parse_double_n_array(PyObject *arg, void *farray)
+  { return parse_float_n(arg, farray, true, true); }
+extern "C" int parse_writable_double_n_array(PyObject *arg, void *farray)
+  { return parse_float_n(arg, farray, false, true); }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_float_3x4_array(PyObject *arg, void *f34)
 {
-  try
-    {
-      python_array_to_c(arg, static_cast<float*>(f34), 3, 4);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
-  return 1;
+  return python_array_to_c(arg, static_cast<float*>(f34), 3, 4) ? 1 : 0;
 }
 
 // ----------------------------------------------------------------------------
 //
-static int parse_float_n3(PyObject *arg, void *farray, bool allow_copy)
+extern "C" int parse_double_3x4_array(PyObject *arg, void *d34)
 {
-  try
+  return python_array_to_c(arg, static_cast<double*>(d34), 3, 4) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, bool f64)
+{
+  Numeric_Array::Value_Type ftype = (f64 ? Numeric_Array::Double : Numeric_Array::Float);
+  Numeric_Array v;
+  if (!array_from_python(arg, 0, ftype, &v, allow_copy))
+    return 0;
+
+  if (v.dimension() == 1 && v.size() == 0)
     {
-      Numeric_Array v = array_from_python(arg, 0, Numeric_Array::Float,
-					  allow_copy);
-      if (v.dimension() == 1 && v.size() == 0)
-	{
-	  int size[2] = {0,3};
-	  v = Numeric_Array(Numeric_Array::Float, 2, size);
-	}
-      if (v.dimension() != 2)
-	{
-	  std::ostringstream msg;
-	  msg << "Array must be 2 dimensional, got "
-	      << v.dimension() << " dimensional";
-	  throw std::runtime_error(msg.str());
-	}
-      if (v.size(1) != 3)
-	throw std::runtime_error("Second array dimension must have size 3.");
-      *static_cast<FArray*>(farray) = static_cast<FArray>(v);
+      int size[2] = {0,m};
+      v = Numeric_Array(ftype, 2, size);
     }
-  catch (std::runtime_error &e)
+  if (v.dimension() != 2)
     {
-      PyErr_SetString(PyExc_TypeError, e.what());
+      PyErr_Format(PyExc_TypeError, "Array must be 2 dimensional, got %d dimensional", v.dimension());
       return 0;
     }
+  if (v.size(1) != m)
+    {
+      PyErr_Format(PyExc_TypeError, "Second array dimension must have size %d.", m);
+      return 0;
+    }
+  if (f64)
+    *static_cast<DArray*>(farray) = static_cast<DArray>(v);
+  else
+    *static_cast<FArray*>(farray) = static_cast<FArray>(v);
 
   return 1;
 }
@@ -829,24 +886,26 @@ static int parse_float_n3(PyObject *arg, void *farray, bool allow_copy)
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_float_n3_array(PyObject *arg, void *farray)
-  { return parse_float_n3(arg, farray, true); }
+  { return parse_float_nm(arg, 3, farray, true, false); }
 extern "C" int parse_writable_float_n3_array(PyObject *arg, void *farray)
-  { return parse_float_n3(arg, farray, false); }
+  { return parse_float_nm(arg, 3, farray, false, false); }
+extern "C" int parse_double_n3_array(PyObject *arg, void *darray)
+  { return parse_float_nm(arg, 3, darray, true, true); }
+extern "C" int parse_writable_double_n3_array(PyObject *arg, void *darray)
+  { return parse_float_nm(arg, 3, darray, false, true); }
+extern "C" int parse_float_n4_array(PyObject *arg, void *farray)
+  { return parse_float_nm(arg, 4, farray, true, false); }
+extern "C" int parse_writable_float_n4_array(PyObject *arg, void *farray)
+  { return parse_float_nm(arg, 4, farray, false, false); }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" int parse_writable_float_3d_array(PyObject *arg, void *farray)
 {
-  try
-    {
-      Numeric_Array v = array_from_python(arg, 3, Numeric_Array::Float, false);
-      *static_cast<FArray*>(farray) = static_cast<FArray>(v);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
+  Numeric_Array v;
+  if (!array_from_python(arg, 3, Numeric_Array::Float, &v, false))
+    return 0;
+  *static_cast<FArray*>(farray) = static_cast<FArray>(v);
 
   return 1;
 }
@@ -855,48 +914,38 @@ extern "C" int parse_writable_float_3d_array(PyObject *arg, void *farray)
 //
 static int parse_int_nm(PyObject *arg, int m, void *iarray, bool allow_copy)
 {
-  try
+  Numeric_Array v;
+  if (!array_from_python(arg, 0, &v, allow_copy))
+    return 0;
+
+  if (v.dimension() == 1 && v.size() == 0)
     {
-      Numeric_Array v = array_from_python(arg, 0, allow_copy);
-      if (v.dimension() == 1 && v.size() == 0)
-	{
-	  int size[2] = {0,3};
-	  v = Numeric_Array(Numeric_Array::Int, 2, size);
-	}
-      if (v.dimension() != 2)
-	{
-	  std::ostringstream msg;
-	  msg << "Array must be 2 dimensional, got "
-	      << v.dimension() << " dimensional";
-	  throw std::runtime_error(msg.str());
-	}
-      if (v.value_type() == Numeric_Array::Long_Int && allow_copy)
-	{
-	  IArray vi = IArray(v.dimension(), v.sizes());
-	  vi.set(Reference_Counted_Array::Array<long int>(v));
-	  v = Numeric_Array(Numeric_Array::Int, vi);
-	}
-      if (v.value_type() != Numeric_Array::Int)
-	{
-	  std::ostringstream msg;
-	  msg << "array type must be int or long int, got "
-	      << Numeric_Array::value_type_name(v.value_type());
-	  throw std::runtime_error(msg.str());
-	}
-      if (v.size(1) != m)
-	{
-	  std::ostringstream msg;
-	  msg << "Second array dimension must have size " << m
-	      << ", got " << v.size(1) << std::endl;
-	  throw std::runtime_error(msg.str());
-	}
-      *static_cast<IArray*>(iarray) = static_cast<IArray>(v);
+      int size[2] = {0,3};
+      v = Numeric_Array(Numeric_Array::Int, 2, size);
     }
-  catch (std::runtime_error &e)
+  if (v.dimension() != 2)
     {
-      PyErr_SetString(PyExc_TypeError, e.what());
+      PyErr_Format(PyExc_TypeError, "Array must be 2 dimensional, got %d dimensional", v.dimension());
       return 0;
     }
+  if (v.value_type() == Numeric_Array::Long_Int && allow_copy)
+    {
+      IArray vi = IArray(v.dimension(), v.sizes());
+      vi.set(Reference_Counted_Array::Array<long int>(v));
+      v = Numeric_Array(Numeric_Array::Int, vi);
+    }
+  if (v.value_type() != Numeric_Array::Int)
+    {
+      PyErr_Format(PyExc_TypeError, "array type must be int or long int, got %s",
+		   Numeric_Array::value_type_name(v.value_type()));
+      return 0;
+    }
+  if (v.size(1) != m)
+    {
+      PyErr_Format(PyExc_TypeError, "Second array dimension must have size %d, got %d", m, v.size(1));
+      return 0;
+    }
+  *static_cast<IArray*>(iarray) = static_cast<IArray>(v);
 
   return 1;
 }
@@ -905,17 +954,10 @@ static int parse_int_nm(PyObject *arg, int m, void *iarray, bool allow_copy)
 //
 static int parse_int_array(PyObject *arg, void *iarray, bool allow_copy)
 {
-  try
-    {
-      Numeric_Array v = array_from_python(arg, 1, Numeric_Array::Int,
-					  allow_copy);
-      *static_cast<IArray*>(iarray) = static_cast<IArray>(v);
-    }
-  catch (std::runtime_error &e)
-    {
-      PyErr_SetString(PyExc_TypeError, e.what());
-      return 0;
-    }
+  Numeric_Array v;
+  if (!array_from_python(arg, 1, Numeric_Array::Int, &v, allow_copy))
+    return 0;
+  *static_cast<IArray*>(iarray) = static_cast<IArray>(v);
 
   return 1;
 }
@@ -1039,4 +1081,43 @@ static void *initialize_numpy()
       import_array();
     }
   return NULL;
+}
+
+// ----------------------------------------------------------------------------
+//
+bool check_array_size(FArray &a, int n, int m, bool require_contiguous)
+{
+  if (a.size(0) != n)
+    {
+      PyErr_Format(PyExc_TypeError, "Array size %d does not match other array argument size %d", a.size(0), n);
+      return false;
+    }
+  if (a.size(1) != m)
+    {
+      PyErr_Format(PyExc_TypeError, "The 2nd dimension of array must have size %d, got %d", m, a.size(1));
+      return false;
+    }
+  if (require_contiguous && !a.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError, "Array is non-contiguous");
+      return false;
+    }
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+//
+bool check_array_size(FArray &a, int n, bool require_contiguous)
+{
+  if (a.size(0) != n)
+    {
+      PyErr_Format(PyExc_TypeError, "Array size %d does not match other array argument size %d", a.size(0), n);
+      return false;
+    }
+  if (require_contiguous && !a.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError, "Array is non-contiguous");
+      return false;
+    }
+  return true;
 }

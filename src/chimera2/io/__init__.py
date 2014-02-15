@@ -22,14 +22,7 @@ __all__ = [
 	'register_fetch',
 	'register_save',
 	'register_compression',
-	'DEFAULT_CATEGORY',
-	'DYNAMICS',
-	'GENERIC3D',
 	'SCRIPT',
-	'SEQUENCE',
-	'STRUCTURE',
-	'SURFACE',
-	'VOLUME',
 	'open',
 	'prefixes',
 	'extensions',
@@ -73,20 +66,7 @@ def compression_suffixes():
 	return _compression.keys()
 
 # some well known file format categories
-DEFAULT_CATEGORY = "Miscellaneous"	#: default file format category
-DYNAMICS = "Molecular trajectory"	#: trajectory
-GENERIC3D = "Generic 3D object"
 SCRIPT = "Command script"
-SEQUENCE = "Sequence alignment"
-STRUCTURE = "Molecular structure"
-SURFACE = "Molecular surface"
-VOLUME = "Volume data"
-
-Categories = (
-	DEFAULT_CATEGORY, DYNAMICS, GENERIC3D,
-	SCRIPT, SEQUENCE, STRUCTURE, SURFACE,
-	VOLUME,
-)
 
 class _FileFormatInfo:
 	"""Keep tract of information about various data sources
@@ -153,9 +133,9 @@ class _FileFormatInfo:
 
 _file_formats = {}
 
-#TODO: _triggers = triggerSet.TriggerSet()
-#TODO: NEW_FILE_FORMAT = "new file format"
-#TODO: _triggers.addTrigger(NEWFILEFORMAT)
+from chimera2 import triggers as _triggers
+NEW_FILE_FORMAT = "new file format"
+_triggers.add_trigger(NEW_FILE_FORMAT)
 
 def register_format(name, category, extensions, prefixes=(), mime=(), reference=None, dangerous=None, **kw):
 	"""Register file format's I/O functions and meta-data
@@ -195,7 +175,7 @@ def register_format(name, category, extensions, prefixes=(), mime=(), reference=
 			'save_func', 'save_notes']:
 		if attr in kw:
 			setattr(ff, attr, kw[attr])
-	#TODO: _triggers.activateTrigger(NEW_FILE_FORMAT, name)
+	_triggers.activate_trigger(NEW_FILE_FORMAT, name)
 
 def prefixes(name):
 	"""Return filename prefixes for named format.
@@ -347,9 +327,10 @@ def initialize_formats():
 def deduce_format(filename, default_name=None, prefixable=True):
 	"""Figure out named format associated with filename
 	
-	Return tuple of deduced format, whether it was a prefix reference,
-	the unmangled filename, and the compression format (if present).
-	If it is a prefix reference, then it needs to be fetched.
+	Return tuple of deduced format namea, whether it was a prefix
+	reference, the unmangled filename, and the compression format
+	(if present).  If it is a prefix reference, then it needs to
+	be fetched.
 	"""
 	name = None
 	prefixed = False
@@ -430,12 +411,12 @@ def open(filespec, identify_as=None, **kw):
 	uncompressed into a temporary file before calling the open function.
 	"""
 
-	from chimera2.cmds import UserError
-	name, prefix, filelike, compression = deduce_format(filespec)
-	if not identify_as:
-		identify_as = filespec
+	from chimera2.cli import UserError
+	name, prefix, filename, compression = deduce_format(filespec)
 	if name is None:
 		raise UserError("Missing or unknown file type")
+	if not identify_as:
+		identify_as = filename
 	open_func = open_function(name)
 	if open_func is None:
 		raise UserError("unable to open %s files" % name)
@@ -443,11 +424,11 @@ def open(filespec, identify_as=None, **kw):
 		fetch = fetch_function(name)
 		if fetch is None:
 			raise UserError("unable to fetch %s files" % name)
-		stream = fetch(filelike)
+		stream = fetch(filename)
 	else:
 		if not compression:
 			import os
-			filename = os.path.expanduser(os.path.expandvars(filelike))
+			filename = os.path.expanduser(os.path.expandvars(filename))
 			try:
 				stream = _builtin_open(filename, 'rb')
 			except OSError as e:
@@ -455,7 +436,7 @@ def open(filespec, identify_as=None, **kw):
 		else:
 			stream_type = _compression[name]
 			try:
-				stream = stream_type(filelike)
+				stream = stream_type(filename)
 			except OSError as e:
 				raise UserError(e)
 			if requires_seeking(name):
@@ -471,17 +452,27 @@ def open(filespec, identify_as=None, **kw):
 					tf.write(data)
 				tf.seek(0)
 				stream = tf
-	return open_func(stream, identify_as=identify_as, **kw)
+	from chimera2.trackchanges import track
+	try:
+		track.block()
+		models, status = open_func(stream, **kw)
+		for m in models:
+			m.name = identify_as
+		from chimera2 import open_models
+		open_models.add(models)
+	finally:
+		track.release()
+	return status
 
 def save(filename, **kw):
-	from chimera2.cmds import UserError
-	name, prefix, filelike, compression = deduce_format(filename, prefixable=False)
+	from chimera2.cli import UserError
+	name, prefix, filename, compression = deduce_format(filename, prefixable=False)
 	if name is None:
 		raise UserError("Missing or unknown file type")
 	func = save_function(name)
 	if not compression:
-		stream = open(filelike, 'wb')
+		stream = open(filename, 'wb')
 	else:
 		stream_type = _compression[name]
-		stream = stream_type(filelike)
+		stream = stream_type(filename)
 	return func(stream, **kw)

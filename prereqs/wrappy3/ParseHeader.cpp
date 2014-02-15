@@ -639,16 +639,15 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 	int preprocDepth = 0;
 	int skipDepth = -1;
 	for (lex->nextToken(); lex->token() != Lex::EOI; lex->nextToken()) {
-		std::auto_ptr<Decl> d;
+		std::unique_ptr<Decl> d;
 		switch (lex->token()) {
 		  default: {
 			printError(lex, "unexpected " + lex->str());
 			return;
 		  }
 		  case '#': {
-			std::auto_ptr<Decl> t(new Decl(Decl::PREPROCESSOR,
+			d = std::unique_ptr<Decl>(new Decl(Decl::PREPROCESSOR,
 						level, scope, filename));
-			d = t;
 			lex->nextToken(Lex::ANY, true);
 			string directive = lex->str();
 			d->text = directive;
@@ -678,9 +677,8 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 		  case Lex::ENUM: {
 			lex->nextToken(Lex::ANY, true);
 			if (lex->token() == Lex::IDENT) {
-				std::auto_ptr<Decl> t(new Decl(Decl::ENUM,
+				d = std::unique_ptr<Decl>(new Decl(Decl::ENUM,
 						level, scope, filename));
-				d = t;
 				d->tag = Symbol(lex->str());
 				lex->nextToken(Lex::ANY, true);
 			} else {
@@ -738,9 +736,8 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 			break;
 		  }
 		  case Lex::COMMENT: {
-			std::auto_ptr<Decl> t(new Decl(Decl::COMMENT, level,
+			d = std::unique_ptr<Decl>(new Decl(Decl::COMMENT, level,
 							scope, filename));
-			d = t;
 			d->text = lex->str();
 			if (include.exec(d->text.c_str())) {
 				Reg::Interval i = include.match(1);
@@ -750,16 +747,14 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 			break;
 		  }
 		  case Lex::FRIEND: {
-			std::auto_ptr<Decl> t(new Decl(Decl::FRIEND, level,
+			d = std::unique_ptr<Decl>(new Decl(Decl::FRIEND, level,
 							scope, filename));
-			d = t;
 			d->text = lex->snarfText(';');
 			break;
 		  }
 		  case Lex::PRIVATE: {
-			std::auto_ptr<Decl> t(new Decl(Decl::ACCESS, PRIVATE,
+			d = std::unique_ptr<Decl>(new Decl(Decl::ACCESS, PRIVATE,
 							scope, filename));
-			d = t;
 			if (level == GLOBAL) {
 				printError(lex, "private only in class scope");
 				return;
@@ -770,9 +765,8 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 			break;
 		  }
 		  case Lex::PROTECTED: {
-			std::auto_ptr<Decl> t(new Decl(Decl::ACCESS, PROTECTED,
+			d = std::unique_ptr<Decl>(new Decl(Decl::ACCESS, PROTECTED,
 							scope, filename));
-			d = t;
 			if (level == GLOBAL) {
 				printError(lex,
 					"protected only in class scope");
@@ -784,9 +778,8 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 			break;
 		  }
 		  case Lex::PUBLIC: {
-			std::auto_ptr<Decl> t(new Decl(Decl::ACCESS, PUBLIC,
+			d = std::unique_ptr<Decl>(new Decl(Decl::ACCESS, PUBLIC,
 						scope, filename));
-			d = t;
 			if (level == GLOBAL) {
 				printError(lex, "public only in class scope");
 				return;
@@ -797,7 +790,7 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 			break;
 		  }
 		  case Lex::TYPEDEF: {
-			std::auto_ptr<Decl> t(new Decl(Decl::TYPEDEF, level,
+			std::unique_ptr<Decl> t(new Decl(Decl::TYPEDEF, level,
 							scope, filename));
 			string tmp = lex->snarfText(';');
 			extractTagAndType(tmp, &t->tag, &t->text);
@@ -805,15 +798,14 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 			DeclList::RAConstRange range
 						= result->rAequal_range(t->tag);
 			if (range.first == range.second)
-				d = t;
+				d = std::move(t);
 			break;
 		  }
 		  case Lex::USING: {
 			// These need to be expanded in later once all of
 			// the declarations have been read in.
-			std::auto_ptr<Decl> t(new Decl(Decl::USING, level,
+			d = std::unique_ptr<Decl>(new Decl(Decl::USING, level,
 							scope, filename));
-			d = t;
 			d->text = "using ";
 			d->text += removeBlanks(lex->snarfText(';'));
 			break;
@@ -822,7 +814,7 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 		  case Lex::STRUCT: {
 			Access defaultAccess = lex->token() == Lex::CLASS
 							? PRIVATE : PUBLIC;
-			std::auto_ptr<ClassDecl> cd(
+			std::unique_ptr<ClassDecl> cd(
 				new ClassDecl(lex->token() == Lex::CLASS, level,
 							scope, filename));
 			if (!lex->nextToken(Lex::IDENT, true))
@@ -857,12 +849,11 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 				printError(lex, /*{*/ "expected ; after }");
 				return;
 			}
-			std::auto_ptr<Decl> t(cd.release());
-			d = t;
+			d = std::move(cd);
 			break;
 		  }
 		  case Lex::NAMESPACE: {
-			std::auto_ptr<NamespaceDecl> nd(new
+			std::unique_ptr<NamespaceDecl> nd(new
 					NamespaceDecl(level, scope, filename));
 			lex->nextToken(Lex::ANY, true);
 			if (lex->token() == Lex::IDENT) {
@@ -885,8 +876,7 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 			if (previous == NULL) {
 				parse(&nsLex, level, &nd->decls, nd.get(), skip,
 								filename);
-				std::auto_ptr<Decl> t(nd.release());
-				d = t;
+				d = std::move(nd);
 			} else {
 				NamespaceDecl *ond
 				= dynamic_cast<NamespaceDecl *>(previous);
@@ -986,8 +976,8 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 				// must be constructor/destructor
 				tag = Symbol(type);
 			if (function) {
-				FuncDecl *fd = new FuncDecl(level, scope,
-							filename);
+				std::unique_ptr<FuncDecl> fd(
+					new FuncDecl(level, scope, filename));
 				fd->tag = tag;
 				fd->returnType = type;
 				fd->isConst = isConst;
@@ -1001,11 +991,10 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 					parseExceptions(&eLex,
 							&fd->exceptionSpec);
 				}
-				std::auto_ptr<Decl> t(fd);
-				d = t;
+				d = std::move(fd);
 			} else {
-				VarDecl *vd = new VarDecl(level, scope,
-								filename);
+				std::unique_ptr<VarDecl> vd(
+					new VarDecl(level, scope, filename));
 				vd->tag = tag;
 				if (type.compare(0, 7, "static ") == 0) {
 					// Since we don't support class
@@ -1021,8 +1010,7 @@ parse(Lex *lex, Access level, DeclList *result, Decl *scope, bool skip,
 						type += '&';
 					vd->type = type;
 				}
-				std::auto_ptr<Decl> t(vd);
-				d = t;
+				d = std::move(vd);
 			}
 			if (*tmp.rbegin() == '{' /*}*/) {
 				// function definition, variable initialization

@@ -37,7 +37,7 @@ class Binned_Transforms:
             return []
 
         close = []
-        itf = tf.invese()
+        itf = tf.inverse()
         d2max = self.translation*self.translation
         for ctf in clist:
             cx,cy,cz = ctf * self.center

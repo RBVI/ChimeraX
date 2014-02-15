@@ -176,6 +176,9 @@ class Xform:
                 self._pure = False
                 raise
 
+    def __repr__(self):
+        return repr(self._matrix)
+
     def getOpenGLMatrix(self):
         m = self._matrix.astype(float64)
         return m.flatten(order='F')
@@ -341,6 +344,12 @@ def Identity():
 
 def Rotation(axis, angle, inDegrees=False):
     """Build a rotation transformation"""
+    if axis == 'x':
+        axis = (1, 0, 0)
+    elif axis == 'y':
+        axis = (0, 1, 0)
+    elif axis == 'z':
+        axis = (0, 0, 1)
     assert(len(axis) == 3)
     if inDegrees:
         angle = radians(angle)
@@ -535,6 +544,10 @@ class BBox:
         if urf is not None:
             self.urf = Point(urf)
 
+    def __repr__(self):
+        cls = self.__class__
+        return "%s.%s(%r, %r)" % (cls.__module__, cls.__qualname__, self.llb, self.urf)
+
     def add(self, pt):
         """expand bounding box to encompass given point
 
@@ -619,3 +632,23 @@ class BBox:
                     b.urf[i] += self.llb[j] * coeff
         self.llb = b.llb
         self.urf = b.urf
+
+    def merge(self, bbox):
+        if self.llb is None:
+            if bbox.llb is None:
+                return
+            self.llb = Point(bbox.llb)
+            self.urf = Point(bbox.urf)
+            return
+        if bbox.llb[0] < self.llb[0]:
+            self.llb[0] = bbox.llb[0]
+        if bbox.llb[1] < self.llb[1]:
+            self.llb[1] = bbox.llb[1]
+        if bbox.llb[2] < self.llb[2]:
+            self.llb[2] = bbox.llb[2]
+        if bbox.urf[0] > self.urf[0]:
+            self.urf[0] = bbox.urf[0]
+        if bbox.urf[1] > self.urf[1]:
+            self.urf[1] = bbox.urf[1]
+        if bbox.urf[2] > self.urf[2]:
+            self.urf[2] = bbox.urf[2]

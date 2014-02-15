@@ -47,14 +47,13 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		if app is None:
 			# not initialized yet
 			return
-		from chimera2 import scene
 		# assume 18 inches from screen
 		dist_in = 18
 		height_in = self.height() / app.physicalDotsPerInch()
 		import math
-		scene.set_fov(2 * math.atan2(height_in, dist_in))
-		scene.set_viewport(*self.viewport[2:4])
-		scene.render()
+		app.main_view.fov = 2 * math.atan2(height_in, dist_in)
+		app.main_view.viewport = self.viewport[2:4]
+		app.main_view.render()
 
 	def vsphere_press(self, x, y):
 		import llgr
@@ -74,14 +73,12 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		rot = math3d.Rotation(axis, angle)
 		if rot.isIdentity:
 			return
-		from chimera2 import scene
 		try:
-			center = scene.bbox.center()
+			center = app.main_view.bbox.center()
 		except ValueError:
 			return
-		if scene.camera:
-			scene.camera.xform(rot)
-		self.updateGL()
+		if app.main_view.camera:
+			app.main_view.camera.xform(rot)
 		return cursor
 
 	def vsphere_release(self):
@@ -90,17 +87,15 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		#llgr.vsphere_release(self.vsphere_id)
 
 	def translate_xy(self, delta):
-		from chimera2 import scene
 		try:
-			width, height, _ = scene.bbox.size()
+			width, height, _ = app.main_view.bbox.size()
 		except ValueError:
 			return
 		dx = delta.x() * width / self.width()
 		dy = -delta.y() * height / self.height()
 		trans = math3d.Translation((dx, dy, 0))
-		if scene.camera:
-			# TODO: use camera coordinate system
-			scene.camera.xform(trans)
+		if app.main_view.camera:
+			app.main_view.camera.xform(trans)
 		self.updateGL()
 
 	def pick(self, x, y):
@@ -117,45 +112,55 @@ class BaseApplication:
 		self.setOrganizationDomain("cgl.ucsf.edu")
 		self.setOrganizationName("UCSF RBVI")
 
-		from chimera2 import cmds
-		self.command = cmds.Command()
-		cmds.register('exit', self.cmd_exit)
-		cmds.register('open', self.cmd_open)
-		cmds.register('stop', self.cmd_stop)
-		cmds.register('stereo', self.cmd_noop)
-		def delay_lighting():
-			import chimera2.lighting.cmd as cmd
-			cmd.register()
-		cmds.register('lighting', cmds.Defer(delay_lighting))
+		from chimera2 import cli, commands
+		commands.register()
+		self.command = cli.Command()
+		# replace some commands with GUI version
+		# TODO: find way to eliminate this special cases
+		cli.register('exit', (), self.cmd_exit)
+		cli.register('stereo', ([], [('ignore', cli.rest_of_line)]), self.cmd_noop)
+		cli.register('window', (), self.cmd_window)
 
 		# potentially changed in subclass:
 		self.graphics = None
 		self.statusbar = None
 
-	def cmd_noop(self):
-		pass
+		from chimera2 import scene
+		self.main_view = scene.View()
 
-	def status(self, message, timeout=2000):
-		# 2000 == 2 seconds
+	def cmd_noop(self, ignore=None):
+		from chimera2 import cli
+		raise cli.UserError("'%s' is not implemented" % self.command.command_name)
+
+	def cmd_window(self):
+		self.main_view.reset_camera()
+
+	def status(self, message, timeout=3000):
+		# 1000 == 1 second
 		if self.statusbar:
 			self.statusbar.showMessage(message, timeout)
 		else:
 			print(message)
 
 	def process_command(self, text=""):
-		from chimera2 import cmds
+		from chimera2 import cli
+		from chimera2.trackchanges import track
 		try:
-			if text:
-				self.command.parse_text(text, autocomplete=True)
+			track.block()
+			if not text:
+				text = self.command.current_text
+			self.command.parse_text(text, final=True)
 			info = self.command.execute()
 			if isinstance(info, str):
 				self.status(info)
-		except cmds.UserError as e:
+		except cli.UserError as e:
 			self.status(str(e))
 		except Exception:
 			# TODO: report error
 			import traceback
 			traceback.print_exc()
+		finally:
+			track.release()
 
 	def cmd_exit(self):
 		# TODO: if nogui starts using event loop, then just self.quit
@@ -164,51 +169,35 @@ class BaseApplication:
 		else:
 			raise SystemExit(0)
 
-	def cmd_stop(self):
-		self.status('use "exit"')
-
-	def cmd_open(self, filename):
-		if self.graphics:
-			self.graphics.makeCurrent()
-		from chimera2 import scene
-		scene.reset()
-		try:
-			from chimera2 import io
-			return io.open(filename)
-		except OSError as e:
-			raise cmds.UserError(e)
-		finally:
-			if self.graphics:
-				self.graphics.updateGL()
-
 class ConsoleApplication(QCoreApplication, BaseApplication):
 
 	def __init__(self, *args, **kw):
 		QCoreApplication.__init__(self, *args, **kw)
 		BaseApplication.__init__(self)
 
-		from chimera2 import scene
-		scene.set_viewport(200, 200)
-
-		from chimera2 import cmds
-		cmds.register('render', self.cmd_render)
-		cmds.register('windowsize', self.cmd_window_size)
+		from chimera2 import cli
+		cli.register('render', (), self.cmd_render)
+		cli.register('windowsize', ([ ('width', cli.positive_int_arg),
+				('height', cli.positive_int_arg)
+			],), self.cmd_window_size)
 
 	def physicalDotsPerInch(self):
 		# assume 100 dpi
 		return 100
 
 	def cmd_render(self):
-		scene.render()
+		self.main_view.render()
 
 	def cmd_window_size(self, width: int, height: int):
-		from chimera2 import scene
+		from chimera2.trackchanges import track
 		# assume 18 inches from screen
 		dist_in = 18
 		height_in = height / self.physicalDotsPerInch()
 		import math
-		scene.set_fov(2 * math.atan2(height_in, dist_in))
-		scene.set_viewport(width, height)
+		track.block()
+		self.main_view.fov = 2 * math.atan2(height_in, dist_in)
+		self.main_view.viewport = width, height
+		track.release()
 
 def build_ui(app):
 	from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
@@ -247,6 +236,7 @@ class GuiApplication(QApplication, BaseApplication):
 		assert self.statusbar is not None
 		self.graphics = self.find_object("graphicsViewGL")
 		assert self.graphics is not None
+		self.graphics.makeCurrent()
 		self.graphics.setFocusPolicy(Qt.WheelFocus)
 		self.line_edit = self.find_object("lineEdit")
 		assert self.line_edit is not None
@@ -266,6 +256,14 @@ class GuiApplication(QApplication, BaseApplication):
 		self.timer = QTimer(self.view)
 		self.active_timer = False
 
+		from chimera2.trackchanges import track
+		from chimera2 import scene
+		track.add_handler(scene.View, self._update_cb)
+
+	def _update_cb(self, *args, **kw):
+		if self.graphics:
+			self.graphics.updateGL()
+
 	def physicalDotsPerInch(self):
 		screen = self.primaryScreen()
 		return screen.physicalDotsPerInch()
@@ -281,7 +279,8 @@ class GuiApplication(QApplication, BaseApplication):
 				self.view, caption="Open File",
 				filter=io.qt_open_file_filter())
 		if filename:
-			self.cmd_open(filename)
+			from chimera2 import commands
+			commands.cmd_open(filename)
 
 	@property
 	def mouse_mode(self):
@@ -341,7 +340,7 @@ class GuiApplication(QApplication, BaseApplication):
 
 	@pyqtSlot(str)
 	def save_command(self, text):
-		self.command.parse_text(text, autocomplete=False)
+		self.command.parse_text(text)
 		self.completer.setCompletionPrefix(self.command.completion_prefix)
 		self.completer.model().setStringList(self.command.completions)
 		self.completer.complete()
@@ -363,23 +362,39 @@ def main():
 	if '--nogui' in sys.argv:
 		app = ConsoleApplication(sys.argv)
 	else:
-		set_default_context(3, 2, QGLFormat.CoreProfile)
+		set_default_context(3, 3, QGLFormat.CoreProfile)
 		app = GuiApplication(sys.argv)
 	argv = sys.argv
 	argv[0] = app.applicationName().casefold()
 	import getopt
 	try:
-		opts, args = getopt.getopt(argv[1:], 'd:', ['dump=', 'nogui'])
+		opts, args = getopt.getopt(argv[1:], 'd:', [
+			'dump=', 'nogui', 'profile'
+		])
 	except getopt.error:
 		print("usage: %s [--nogui] [-d|--dump format]" % argv[0],
 				file=sys.stderr)
 		raise SystemExit(2)
 	global dump_format
+	profile = False
 	for option, value in opts:
 		if option in ("-d", "--dump"):
 			dump_format = value
 		elif option == '--nogui':
 			pass
+		elif option == '--profile':
+			profile = True
+
+	if profile:
+		# install profile decorator
+		# and write results on exit
+		import line_profiler, builtins, atexit
+		prof = line_profiler.LineProfiler()
+		builtins.__dict__['profile'] = prof
+		atexit.register(prof.dump_stats, "chimera2.lprof")
+	else:
+		import builtins
+		builtins.__dict__['profile'] = lambda x: x
 
 	sys.path.insert(0, '../../build/lib')
 
@@ -397,22 +412,34 @@ def main():
 				file=sys.stderr)
 		raise SystemExit(1)
 
+	from chimera2 import scene
 	import llgr
 	if dump_format:
 		llgr.set_output(dump_format)
 		if dump_format == 'json':
-			from chimera2 import scene
 			scene.set_glsl_version('webgl')
 	else:
-		llgr.set_output('pyopengl')
+		if 0:
+			llgr.set_output('opengl')
+		else:
+			import OpenGL
+			OpenGL.ERROR_LOGGING = True
+			OpenGL.ERROR_ON_COPY = True
+			OpenGL.FORWARD_COMPATIBLE_ONLY = True
+			import logging
+			if 1:
+				logging.basicConfig(level=logging.ERROR)
+			else:
+				OpenGL.FULL_LOGGING = True
+				logging.basicConfig(level=logging.DEBUG)
+			llgr.set_output('pyopengl')
+	scene.reset()
 	import chimera2.io
 	chimera2.io.initialize_formats()
 	if len(args) > 0:
 		print("%s: ignoring extra arguments: %s"
 				% (argv[0], ' '.join(args)), file=sys.stderr)
 
-	#from chimera2 import formats
-	#formats.initialize()
 	if app.graphics:
 		sys.exit(app.exec_())
 	else:

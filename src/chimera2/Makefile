@@ -11,10 +11,14 @@ PYSRCS = $(wildcard *.py)
 
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	$(RSYNC) ../shaders/*_webgl.txt ../shaders/*150.txt $(PKG_DIR)
+
+dir:
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+
+$(SUBDIR_INSTALL): dir
 
 lint:
 	pyflakes $(PYSRCS)

@@ -1,3 +1,3 @@
-.. automodule:: chimera2.bild
+.. automodule:: chimera2.io.formats.bild
     :members:
     :show-inheritance:

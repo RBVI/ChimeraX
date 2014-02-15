@@ -1,3 +1,4 @@
+#include "llgr.h"
 #include "llgr_int.h"
 #include "llgr_ui.h"
 #include "limits.h"
@@ -17,17 +18,9 @@
 
 namespace llgr {
 
-float clear_color[4];
+namespace internal {
 
-void
-set_clear_color(float r, float g, float b, float a)
-{
-	clear_color[0] = r;
-	clear_color[1] = g;
-	clear_color[2] = b;
-	clear_color[3] = a;
-	glClearColor(r, g, b, a);
-}
+float clear_color[4];
 
 GLenum
 cvt_DataType(DataType dt)
@@ -132,14 +125,17 @@ private:
 void
 setup_array_attribute(const BufferInfo &bi, const AttributeInfo &ai, int loc, unsigned num_locations)
 {
-	// TODO? do we need more than one VAPointer for arrays of matrices?
-	GLenum type = cvt_DataType(ai.type);
+	GLenum gl_type = cvt_DataType(ai.type);
+	size_t size = ai.count * data_size(ai.type);
 	glBindBuffer(bi.target, bi.buffer);
-	// TODO: if shader variable is int, use glVertexAttribIPointer
-	glVertexAttribPointer(loc, ai.count, type, ai.normalized,
-			ai.stride, reinterpret_cast<char *>(ai.offset));
-	for (unsigned i = 0; i != num_locations; ++i)
+	// TODO? if shader variable is int, use glVertexAttribIPointer
+	uint32_t offset = ai.offset;
+	for (unsigned i = 0; i != num_locations; ++i) {
+		glVertexAttribPointer(loc + i, ai.count, gl_type, ai.normalized,
+			ai.stride, reinterpret_cast<char *>(offset));
 		glEnableVertexAttribArray(loc + i);
+		offset += size;
+	}
 }
 
 void
@@ -234,14 +230,13 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 {
 	typedef ShaderProgram::Variables Vars;
 	const Vars &attrs = sp->attributes();
-	Vars::const_iterator i = std::find_if(attrs.begin(), attrs.end(),
-							Attr_Name(ai.name));
+	auto i = std::find_if(attrs.begin(), attrs.end(), Attr_Name(ai.name));
 	if (i == attrs.end())
 		return;
 	ShaderVariable *sv = *i;
 	int loc = sv->location();
 
-	AllBuffers::iterator bii = all_buffers.find(ai.data_id);
+	auto bii = all_buffers.find(ai.data_id);
 	if (bii == all_buffers.end())
 		return;
 	const BufferInfo &bi = bii->second;
@@ -269,9 +264,24 @@ setup_attribute(ShaderProgram *sp, const AttributeInfo &ai)
 int pick_x, pick_y;
 #endif
 
+}
+
+using namespace internal;
+
 void
-render()
+set_clear_color(float r, float g, float b, float a)
 {
+	clear_color[0] = r;
+	clear_color[1] = g;
+	clear_color[2] = b;
+	clear_color[3] = a;
+	glClearColor(r, g, b, a);
+}
+
+void
+render(const Groups &groups)
+{
+	// TODO: switch to group rendering
 	if (!initialized)
 		init();
 #if __APPLE__ && __MACH__
@@ -299,25 +309,16 @@ render()
 
 	ShaderProgram *sp = NULL;
 	Id current_program_id = 0;
-	Id current_matrix_id = INT_MAX;
-	// instance transform singleton info
-	DataType it_type = Float;
-	unsigned char *it_data = NULL;
-	int it_loc = -1;
-	unsigned it_locations, it_elements;
-	attr_location_info(ShaderVariable::Mat4x4, &it_locations, &it_elements);
 	// TODO: only for opaque objects
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-	for (AllObjects::iterator i = all_objects.begin(),
-					e = all_objects.end(); i != e; ++i) {
-		ObjectInfo *oi = i->second;
+	for (auto& i: all_objects) {
+		ObjectInfo *oi = i.second;
 		if (oi->hide || !oi->program_id)
 			continue;
 		// setup program
 		if (oi->program_id != current_program_id) {
-			AllPrograms::iterator i
-					= all_programs.find(oi->program_id);
+			auto i = all_programs.find(oi->program_id);
 			if (sp)
 				sp->cleanup();
 			if (i == all_programs.end()) {
@@ -327,96 +328,26 @@ render()
 			sp = i->second;
 			sp->setup();
 			current_program_id = oi->program_id;
-			current_matrix_id = INT_MAX;
-			ShaderVariable *sv = sp->attribute("instanceTransform");
-			it_loc = sv->location();
 		}
 		if (sp == NULL)
 			continue;
-#ifdef USE_VAO
 		glBindVertexArray(oi->vao);
-#else
-		// setup index buffer
-		const BufferInfo *ibi = NULL;
-		if (oi->index_buffer_id) {
-			AllBuffers::const_iterator bii
-				= all_buffers.find(oi->index_buffer_id);
-			if (bii == all_buffers.end())
-				continue;
-			ibi = &bii->second;
+		for (auto& si: oi->singleton_cache) {
+			setup_singleton_attribute(si.data, si.type,
+					  si.normalized, si.base_location,
+					  si.num_locations, si.num_elements);
 		}
-#endif
-		// setup instance matrix attribute
-		if (oi->matrix_id != current_matrix_id) {
-			Id data_id;
-			if (oi->matrix_id == 0) {
-				data_id = 0;
-			} else {
-				AllMatrices::iterator mii
-					= all_matrices.find(oi->matrix_id);
-				if (mii == all_matrices.end())
-					continue;
-				const MatrixInfo &mi = mii->second;
-				data_id = mi.data_id;
-			}
-			AllBuffers::iterator bii = all_buffers.find(data_id);
-			if (bii == all_buffers.end())
-				continue;
-			const BufferInfo &bi = bii->second;
-			it_data = bi.data;
-			setup_singleton_attribute(it_data, it_type, false, it_loc, it_locations, it_elements);
-			current_matrix_id = oi->matrix_id;
-		}
-#ifdef USE_VAO
-		for (SingletonCache::iterator sci = oi->singleton_cache.begin(); sci != oi->singleton_cache.end(); ++sci) {
-			const SingletonInfo &si = *sci;
-			setup_singleton_attribute(si.data, si.type, si.normalized, si.base_location, si.num_locations, si.num_elements);
-		}
-#else
-		// setup other attributes
-		for (AttributeInfos::iterator aii = oi->ais.begin();
-						aii != oi->ais.end(); ++aii) {
-			setup_attribute(sp, *aii);
-		}
-#endif
 		// finally draw object
-#ifndef USE_VAO
-		if (!ibi) {
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#else
 		if (!oi->index_buffer_id) {
-#endif
 			glDrawArrays(oi->ptype, oi->first, oi->count);
 		} else {
-#ifndef USE_VAO
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibi->buffer);
-#endif
 			glDrawElements(oi->ptype, oi->count,
 				cvt_DataType(oi->index_buffer_type),
 				reinterpret_cast<char *>(oi->first
 					* data_size(oi->index_buffer_type)));
 		}
-#ifndef USE_VAO
-		// cleanup
-		// TODO: minimize cleanup between objects
-		typedef ShaderProgram::Variables Vars;
-		const Vars &attrs = sp->attributes();
-		for (Vars::const_iterator svi = attrs.begin(); svi != attrs.end(); ++svi) {
-			ShaderVariable *sv = *svi;
-			int loc = sv->location();
-			if (loc == -1)
-				continue;
-			glDisableVertexAttribArray(loc);
-			// TODO: might be matrix, so disable more than one
-		}
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-#endif
 	}
-#ifdef USE_VAO
 	glBindVertexArray(0);
-#else
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#endif
 	if (sp)
 		sp->cleanup();
 }
@@ -452,14 +383,11 @@ pick(int x, int y)
 
 	ShaderProgram *sp = NULL;
 	Id current_program_id = 0;
-	Id current_matrix_id = INT_MAX;
-	AttributeInfo matrix_ai("instanceTransform", 0, 0, 0, 16, Float);
 	Id pick_buffer_id = --internal_buffer_id;
 	create_singleton(pick_buffer_id, 4, NULL);
 	uint32_t *pick_id = NULL;
 	{
-		AllBuffers::const_iterator bii
-				= all_buffers.find(pick_buffer_id);
+		auto bii = all_buffers.find(pick_buffer_id);
 		assert(bii != all_buffers.end());
 		const BufferInfo &bi = bii->second;
 		pick_id = reinterpret_cast<uint32_t *>(bi.data);
@@ -470,16 +398,14 @@ pick(int x, int y)
 	// TODO: only for opaque objects
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-	for (AllObjects::iterator i = all_objects.begin(),
-					e = all_objects.end(); i != e; ++i) {
-		Id oid = i->first;
-		ObjectInfo *oi = i->second;
+	for (auto& i: all_objects) {
+		Id oid = i.first;
+		ObjectInfo *oi = i.second;
 		if (oi->hide || !oi->program_id)
 			continue;
 		// setup program
 		if (oi->program_id != current_program_id) {
-			AllPrograms::iterator i
-					= pick_programs.find(oi->program_id);
+			auto i = pick_programs.find(oi->program_id);
 			if (sp)
 				sp->cleanup();
 			if (i == pick_programs.end()) {
@@ -489,33 +415,16 @@ pick(int x, int y)
 			sp = i->second;
 			sp->setup();
 			current_program_id = oi->program_id;
-			current_matrix_id = INT_MAX;
 		}
 		if (sp == NULL)
 			continue;
 		// setup index buffer
 		const BufferInfo *ibi = NULL;
 		if (oi->index_buffer_id) {
-			AllBuffers::const_iterator bii
-				= all_buffers.find(oi->index_buffer_id);
+			auto bii = all_buffers.find(oi->index_buffer_id);
 			if (bii == all_buffers.end())
 				continue;
 			ibi = &bii->second;
-		}
-		// setup instance matrix attribute
-		if (oi->matrix_id != current_matrix_id) {
-			if (oi->matrix_id == 0) {
-				matrix_ai.data_id = 0;
-			} else {
-				AllMatrices::iterator mii
-					= all_matrices.find(oi->matrix_id);
-				if (mii == all_matrices.end())
-					continue;
-				const MatrixInfo &mi = mii->second;
-				matrix_ai.data_id = mi.data_id;
-			}
-			setup_attribute(sp, matrix_ai);
-			current_matrix_id = oi->matrix_id;
 		}
 		// setup pick id
 #ifndef PICK_DEBUG
@@ -526,9 +435,8 @@ static uint32_t colors[8] = { 0x90, 0xf0, 0x9000, 0xf000, 0x900000, 0xf00000, 0x
 #endif
 		setup_attribute(sp, pick_ai);
 		// setup other attributes
-		for (AttributeInfos::iterator aii = oi->ais.begin();
-						aii != oi->ais.end(); ++aii) {
-			setup_attribute(sp, *aii);
+		for (auto& ai: oi->ais) {
+			setup_attribute(sp, ai);
 		}
 		// finally draw object
 		if (!ibi) {
@@ -543,10 +451,7 @@ static uint32_t colors[8] = { 0x90, 0xf0, 0x9000, 0xf000, 0x900000, 0xf00000, 0x
 		}
 		// cleanup
 		// TODO: minimize cleanup between objects
-		typedef ShaderProgram::Variables Vars;
-		const Vars &attrs = sp->attributes();
-		for (Vars::const_iterator svi = attrs.begin(); svi != attrs.end(); ++svi) {
-			ShaderVariable *sv = *svi;
+		for (auto sv: sp->attributes()) {
 			int loc = sv->location();
 			if (loc == -1)
 				continue;

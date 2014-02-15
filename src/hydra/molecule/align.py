@@ -50,9 +50,9 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
         write_matrix(tf, atoms, ref_atoms)
 
     msg = 'RMSD between %d atom pairs is %.3f Angstroms' % (ref_atoms.count(), rmsd)
-    from ..ui.gui import show_status, log_message
+    from ..ui import show_status, show_info
     show_status(msg)
-    log_message(msg + '\n')
+    show_info(msg + '\n')
 
     if move is None:
         move = 'molecules'
@@ -141,16 +141,14 @@ def quaternion_rotation_matrix(q):
 def paired_atoms(atoms, ref_atoms):
     cas = atoms.separate_chains()
     cras = ref_atoms.separate_chains()
-    from .molecule import Atom_Set
-    paset = Atom_Set()
-    praset = Atom_Set()
+    from .molecule import Atoms
+    paset = Atoms()
+    praset = Atoms()
     for i in range(min(len(cas), len(cras))):
         ca, cra = cas[i], cras[i]
-        m, a = ca.molatoms[0]
-        rm, ra = cra.molatoms[0]
-        pa, pra = pairing(m.residue_nums[a], rm.residue_nums[ra])
-        paset.add_atoms(m, a[pa])
-        praset.add_atoms(rm, ra[pra])
+        pa, pra = pairing(ca.residue_numbers(), cra.residue_numbers())
+        paset.add_atoms(ca.subset(pa))
+        praset.add_atoms(cra.subset(pra))
     return paset, praset
 
 def pairing(rnums1, rnums2):
@@ -173,13 +171,10 @@ def pairing(rnums1, rnums2):
     
 def write_matrix(tf, atoms, ref_atoms):
 
-    import Matrix as M
     m = atoms.molecules()[0]
     mp = m.place
-    mpinv = M.invert_matrix(mtf)
-    mtf = M.multiply_matrices(mpinv, tf, mp)
-    dtf = M.transformation_description(mtf)
-    msg = ('Alignment matrix in molecule %s coordinates\n%s' % dtf)
+    mtf = mp.inverse() * tf * mp
+    msg = ('Alignment matrix in molecule %s coordinates\n%s' % (m.name, mtf.description()))
     from ..ui.gui import log_message
     log_message(msg)
 
@@ -220,7 +215,7 @@ def test_align_points(n = 100):
     arms = sqrt((dp*dp).sum())
     print ('align %d points' % n, atf - tf, rms, arms)
 
-def align_command(cmdname, args):
+def align_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, string_arg, bool_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
@@ -229,7 +224,7 @@ def align_command(cmdname, args):
     kw_args = (('move', string_arg),
                ('each', string_arg),
                ('same', string_arg),
-               ('show_matrix', bool_arg))
+               ('report_matrix', bool_arg))
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     align(**kw)

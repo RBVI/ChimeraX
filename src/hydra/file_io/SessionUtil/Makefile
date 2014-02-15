@@ -7,8 +7,7 @@ PYSRCS = __init__.py objecttree.py stateclasses.py
 
 all: $(PYOBJS)
 
-install: all
-	-mkdir $(PKG_DIR)
+install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 clean:

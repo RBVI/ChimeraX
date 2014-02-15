@@ -76,7 +76,8 @@ extern "C" PyObject *blur_blend_images(PyObject *s, PyObject *args, PyObject *ke
       PyErr_SetString(PyExc_TypeError, "blend_images: arrays must have third dimension of size 4");
       return NULL;
     }
-  bgcolor = array_from_python(bgcolor_py, 1, m.value_type());
+  if (!array_from_python(bgcolor_py, 1, m.value_type(), &bgcolor))
+    return NULL;
   if (bgcolor.size() != 3 || !bgcolor.is_contiguous())
     {
       PyErr_SetString(PyExc_TypeError, "blend_images: bgcolor must be contiguous 3 element array");

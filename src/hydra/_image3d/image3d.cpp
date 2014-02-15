@@ -3,9 +3,12 @@
 
 #include "blend_rgba.h"			// use blur_blend_images
 #include "combine.h"			// use linear_combination
+#include "connected.h"			// use connected_triangles, ...
+#include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
 #include "intercept.h"			// use closest_geometry_intercept
+#include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "mesh_edges.h"			// use masked_edges
 #include "parsecif.h"			// use parse_mmcif_file
 #include "parsepdb.h"			// use parse_pdb_file
@@ -14,9 +17,12 @@
 #include "pycontour.h"			// use surface_py, ...
 #include "pydistances.h"		// use py_distances_from_origin, ...
 #include "pyinterpolate.h"		// use interpolate_volume_data, ...
+#include "sasa.h"			// use surface_area_of_spheres
+#include "setfileicon.h"		// use set_file_icon
 #include "spline.h"			// use natural_cubic_spline
 #include "squaremesh.h"			// use principle_plane_edges
 #include "subdivide.h"			// use subdivide_triangles
+#include "touchevents.h"		// use accept_touch_events
 #include "transfer.h"			// use data_to_rgba,...
 #include "tube.h"			// use tube_geometry
 
@@ -37,8 +43,22 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("inner_product_64"), (PyCFunction)inner_product_64,
    METH_VARARGS|METH_KEYWORDS},
 
+  /* connected.h */
+  {const_cast<char*>("connected_triangles"), (PyCFunction)connected_triangles,
+   METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("triangle_vertices"), (PyCFunction)triangle_vertices,
+   METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("connected_pieces"), (PyCFunction)connected_pieces,
+   METH_VARARGS|METH_KEYWORDS},
+
+  /* distgrid.h */
+  {const_cast<char*>("sphere_surface_distance"), (PyCFunction)py_sphere_surface_distance,
+   METH_VARARGS|METH_KEYWORDS},
+
   /* gaussian.h */
   {const_cast<char*>("sum_of_gaussians"), (PyCFunction)py_sum_of_gaussians,
+   METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("sum_of_balls"), (PyCFunction)py_sum_of_balls,
    METH_VARARGS|METH_KEYWORDS},
 
   /* histogram.h */
@@ -55,6 +75,22 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("closest_geometry_intercept"), (PyCFunction)closest_geometry_intercept,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* measure.h */
+  {const_cast<char*>("enclosed_volume"), (PyCFunction)enclosed_volume,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("surface_area"), (PyCFunction)surface_area,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("vertex_areas"), (PyCFunction)vertex_areas,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("boundary_edges"), (PyCFunction)boundary_edges,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("boundary_loops"), (PyCFunction)boundary_loops,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* mesh_edges.h */
+  {const_cast<char*>("masked_edges"), (PyCFunction)masked_edges,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* parsecif.h */
@@ -94,9 +130,15 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("interpolate_colormap"), interpolate_colormap, METH_VARARGS, NULL},
   {const_cast<char*>("set_outside_volume_colors"), set_outside_volume_colors, METH_VARARGS, NULL},
 
-  /* mesh_edges.h */
-  {const_cast<char*>("masked_edges"), (PyCFunction)masked_edges,
+  /* sasa.h */
+  {const_cast<char*>("surface_area_of_spheres"), (PyCFunction)surface_area_of_spheres,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("estimate_surface_area_of_spheres"), (PyCFunction)estimate_surface_area_of_spheres,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* setfileicon.h */
+  {const_cast<char*>("can_set_file_icon"), (PyCFunction)can_set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("set_file_icon"), (PyCFunction)set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
@@ -123,6 +165,10 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS, NULL},
   {const_cast<char*>("reverse_triangle_vertex_order"),
    reverse_triangle_vertex_order, METH_VARARGS, NULL},
+
+  /* touchevents.h */
+  {const_cast<char*>("accept_touch_events"), (PyCFunction)accept_touch_events,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* transfer.h */
   {const_cast<char*>("transfer_function_colormap"), (PyCFunction)transfer_function_colormap,

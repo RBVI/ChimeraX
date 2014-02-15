@@ -1,6 +1,9 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
+# TODO: remove this when everywhere
+CXX += -fvisibility-ms-compat
+
 ifdef WIN32
 INCS = -I'$(shell cygpath -m '$(includedir)')'
 else
@@ -8,7 +11,7 @@ INCS = -I$(includedir)
 endif
 
 ifeq ($(WIN32),msvc)
-DEFS += -DLLGR_DLL -DLLGR_EXPORT
+DEFS += -DLLGR_EXPORT
 LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')' glew32.lib opengl32.lib msvcrt.lib
 else
 LIBS = $(OPENGL_LIBS)
@@ -16,7 +19,7 @@ endif
 
 SRCS = ShaderProgram.cpp programs.cpp buffers.cpp matrices.cpp objects.cpp \
        optimize.cpp render.cpp spiral.cpp primitives.cpp vsphere.cpp \
-       init.cpp
+       init.cpp groups.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 LIBNAME = llgr
 
@@ -24,7 +27,7 @@ LIBNAME = llgr
 all: $(SHLIB)
 
 install: all
-	cp llgr.h llgr_ui.h $(includedir)
+	cp llgr.h llgr_int.h llgr_impl.h llgr_ui.h ShaderProgram.h $(includedir)
 	cp $(SHLIB) $(shlibdir)
 ifdef WIN32
 	cp lib$(LIBNAME).lib $(libdir)

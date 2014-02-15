@@ -21,8 +21,8 @@ class Cross_Fade(Surface):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        from ..draw import drawing
-        self.rgba = drawing.frame_buffer_image_rgba8(w, h)
+        r = v.render
+        self.rgba = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGBA8)
 
         # Make textured square surface piece
         from .. import surface
@@ -38,15 +38,14 @@ class Cross_Fade(Surface):
             v = self.viewer
             v.remove_new_frame_callback(self.next_frame)
             v.remove_overlays([self])
-            self.removeAllPieces()
+            self.remove_all_pieces()
             return
 
         # Increase texture transparency
         self.frame = f
         alpha = int(255 * (n-f) / n)
         self.rgba[:,:,3] = alpha
-        from ..draw import drawing
-        drawing.reload_texture(self.piece.textureId, self.rgba)
+        self.piece.texture.reload_texture(self.rgba)
         self.redraw_needed = True
 
 class Motion_Blur(Surface):
@@ -74,8 +73,8 @@ class Motion_Blur(Surface):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        from ..draw import drawing
-        rgba = drawing.frame_buffer_image_rgba8(w, h)
+        r = v.render
+        rgba = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGBA8)
 
         if self.rgba is None:
             self.rgba = rgba
@@ -85,7 +84,7 @@ class Motion_Blur(Surface):
             v.add_overlay(self)
         elif self.rgba.shape != (h,w,4):
             # Resize texture and motion blur image
-            self.removePiece(self.piece)
+            self.remove_piece(self.piece)
             from .. import surface
             self.piece = surface.rgba_surface_piece(rgba, (-1,-1), (2,2), self)
             self.rgba = rgba
@@ -102,8 +101,7 @@ class Motion_Blur(Surface):
                                            bgcolor, alpha, self.rgba)
             if c == 0:
                 return False    # No change
-            from ..draw import drawing
-            drawing.reload_texture(self.piece.textureId, self.rgba)
+            self.piece.texture.reload_texture(self.rgba)
         self.redraw_needed = True
         return True
 

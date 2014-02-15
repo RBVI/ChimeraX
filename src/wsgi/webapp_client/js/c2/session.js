@@ -74,8 +74,8 @@ function call(session, password, tag, tag_data, state, cb) {
 	call_id = cid + 1;
 	call_data.push([ cid, tag, tag_data ]);
 	// alert("call: " + JSON.stringify(call_data));
-	function clear_callback() {
-		alert("getJSON failed");
+	function clear_callback(jqxhr, textStatus, error) {
+		alert("Request failed: " + textStatus + ", " + error);
 	}
 	var data = {
 		action: "call",
@@ -137,64 +137,84 @@ function ui_init(url) {
 	$c2_session.password = "";
 
 	// Register mouse-click handler for the open buttons
-	$("#open_session").click(open_session);
-	$("#delete_session").click(delete_session);
-	$("#open_new_session").click(open_new_session);
-	$("#open_shared_session").click(open_shared_session);
+	$("#open-session").click(open_session);
+	$("#delete-session").click(delete_session);
+	$("#open-new-session").click(open_new_session);
+	$("#open-shared-session").click(open_shared_session);
 	update_session_list();
 }
 
 function open_session() {
 	// verify and set default session parameters (name and password)
-	var session = $("#my_sessions").val();
-	var password = $("#my_password").val();
+	var session = $("#my-sessions").val();
+	var password = $("#my-password").val();
 	if (!existing_session(session)) {
 		alert("Session \"" + session + "\" does not exist.");
 		return;
 	}
 	// alert("Session \"" + session + "\" selected.");
-	save_session_info(session, password);
+	save_session_info("", session, password);
+	$("#popup-session-open").popup("close");
 }
 
-function save_session_info(session, password) {
+function save_session_info(user, session, password) {
+	$c2_session.user = user;
 	$c2_session.session = session;
 	$c2_session.password = password;
 	var msg = "No session selected";
 	if (session)
 		msg = "Active session: " + session;
-	$("#active_session").html(msg);
-	$("#session_popup").popup("close");
+	$("#active-session").html(msg);
 }
 
 function delete_session() {
 	// Delete using session parameters (name and password)
-	var session = $("#my_sessions").val();
-	var password = $("#my_password").val();
+	var session = $("#my-sessions").val();
+	var password = $("#my-password").val();
 	$c2_session.server.delete_session(session, password)
 						.done(delete_session_cb);
 	alert("Deleting ession \"" + session + "\".");
 }
 
 function delete_session_cb() {
-	var session = $("#my_sessions").val();
-	var password = $("#my_password").val();
+	var session = $("#my-sessions").val();
+	var password = $("#my-password").val();
 	alert("Session \"" + session + "\" deleted.");
-	save_session_info("", "");
+	save_session_info("", "", "");
+	$("#popup-session-open").popup("close");
 }
 
 function open_new_session() {
 	// Create using session parameters (name and password)
-	var session = $("#new_session").val();
-	var password = $("#new_password").val();
+	var session = $("#new-session").val();
+	var password = $("#new-password").val();
 	$c2_session.server.create_session(session, password)
 						.done(open_new_session_cb);
 }
 
 function open_new_session_cb() {
-	var session = $("#new_session").val();
-	var password = $("#new_password").val();
+	var session = $("#new-session").val();
+	var password = $("#new-password").val();
 	// alert("Session \"" + session + "\" created.");
-	save_session_info(session, password);
+	save_session_info("", session, password);
+	$("#popup-session-new").popup("close");
+}
+
+function open_shared_session() {
+	// Shared session parameters (user, session and password)
+	var user = $("#shared-username").val();
+	var session = $("#shared-session").val();
+	var password = $("#shared-password").val();
+	// TODO: verify session exists
+}
+
+function open_shared_session_cb() {
+	var user = $("#shared-username").val();
+	var session = $("#shared-session").val();
+	var password = $("#shared-password").val();
+	// alert("Shared session \"" + session + "\" opened.");
+	save_session_info(user, session, password);
+	$("#popup-session-shared").popup("close");
 }
 
 function update_session_list() {
@@ -210,7 +230,7 @@ function update_session_list_cb(session_info) {
 	if (session_list.length == 0)
 		alert("no sessions found on server for " + session_info[0]);
 	// update combobox and button states
-	var s = $("#my_sessions");
+	var s = $("#my-sessions");
 	var old_value = s.val();
 	var found = false;
 	s.empty();

@@ -13,7 +13,9 @@ The C++ interface documentation is considered to be the reference documentation.
 In addition to the C++ interface,
 the Python interface is extended to optionally manage :cpp:type:`Id`'s
 with the :py:func:`next_data_id`, :py:func:`next_matrix_id`,
-:py:func:`next_object_id`, and :py:func:`next_program_id` functions.
+:py:func:`next_object_id`,
+:py:func:`next_group_id`,
+and :py:func:`next_program_id` functions.
 
 Python interface
 ^^^^^^^^^^^^^^^^
@@ -22,7 +24,7 @@ Python interface
 _llgr_syms = [
 	## from _llgr
 	# functions
-	"add_cylinder", "add_sphere",
+	"add_cone", "add_cylinder", "add_disk", "add_sphere",
 	"clear_all", "clear_buffers", "clear_matrices",
 	"clear_objects", "clear_primitives", "clear_programs",
 	"create_buffer", "create_matrix", "create_object",
@@ -30,6 +32,9 @@ _llgr_syms = [
 	"delete_buffer", "delete_matrix", "delete_object", "delete_program",
 	"hide_objects", "opaque", "render",
 	"selection_add", "selection_clear", "selection_remove",
+	"create_group", "delete_group", "clear_groups",
+	"group_add", "group_remove", "hide_group", "show_group",
+	"selection_add_group", "selection_remove_group",
 	"set_clear_color", "set_uniform", "set_uniform_matrix",
 	"show_objects", "transparent",
 	# classes
@@ -62,6 +67,7 @@ _local_syms = [
 	"next_data_id",
 	"next_matrix_id",
 	"next_object_id",
+	"next_group_id",
 	"next_program_id",
 	#"next_texture_id",
 ]
@@ -133,10 +139,11 @@ def set_output(type):
 import itertools
 
 def _init():
-	global _data_id, _matrix_id, _object_id, _program_id, _texture_id
+	global _data_id, _matrix_id, _object_id, _group_id, _program_id, _texture_id
 	_data_id = itertools.count(start=1)
 	_matrix_id = itertools.count(start=1)
 	_object_id = itertools.count(start=1)
+	_group_id = itertools.count(start=1)
 	_program_id = itertools.count(start=1)
 	_texture_id = itertools.count(start=1)
 _init()
@@ -150,6 +157,7 @@ def clear_buffers():
 	global _data_id
 	_clear_buffers()
 	_data_id = itertools.count(start=1)
+	_matrix_id = itertools.count(start=1)
 
 """TODO:
 def clear_textures():
@@ -167,6 +175,12 @@ def clear_objects():
 	global _object_id
 	_clear_objects()
 	_object_id = itertools.count(start=1)
+	_group_id = itertools.count(start=1)
+
+def clear_groups():
+	global _group_id
+	_clear_groups()
+	_group_id = itertools.count(start=1)
 
 def clear_all():
 	_clear_all()
@@ -192,6 +206,13 @@ def next_object_id():
 	Reset when :py:func:`clear_all` and :py:func:`clear_objects` is called.
 	"""
 	return next(_object_id)
+
+def next_group_id():
+	"""Return next available integer group id
+	
+	Reset when :py:func:`clear_all` and :py:func:`clear_groups` is called.
+	"""
+	return next(_group_id)
 
 def next_program_id():
 	"""Return next available integer program id

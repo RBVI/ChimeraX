@@ -40,8 +40,12 @@
 # displayed +/- radius along y axis.  Probably best to display just the
 # first soma point.
 # 
-def read_swc(path):
-
+def read_swc(path, session):
+    '''
+    Read a Stockley-Wheal-Cannon (SWC) format traced neuron file
+    and create a fake molecule model using atoms and bonds to represent
+    the neuron.
+    '''
     f = open(path, 'r')
     lines = f.readlines()
     f.close()
@@ -91,7 +95,7 @@ def read_swc(path):
     m.bond_radii *= scale
     m.ball_scale = 1
     m.set_atom_style('ballstick')
-    from ..ui.gui import show_info
+    from ..ui import show_info
     show_info('Read neuron trace %s, %d nodes' % (path, np))
     return m
     
@@ -105,7 +109,7 @@ def parse_swc_points(lines):
         fields = sline.split()
         if len(fields) != 7:
             msg = 'Line %d does not have 7 fields: "%s"' % (i, line)
-            from ..ui.gui import show_info
+            from ..ui import show_info
             show_info(msg)
             continue
         try:
@@ -116,7 +120,7 @@ def parse_swc_points(lines):
             pid = int(fields[6])    # parent id, or -1 if no parent
         except ValueError:
             msg = 'Error parsing line %d: "%s"' % (i, line)
-            from ..ui.gui import show_info
+            from ..ui import show_info
             show_info(msg)
             continue
         if t == 1 and pid != -1:

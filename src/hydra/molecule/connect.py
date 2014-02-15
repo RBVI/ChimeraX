@@ -1,11 +1,11 @@
-def molecule_bonds(molecule):
+def molecule_bonds(molecule, session):
     '''
     Return bonds derived from residue templates where each bond is a pair of atom numbers.
     Returned bonds are an N by 2 numpy array.
     '''
-    global bond_templates
+    bond_templates = session.bond_templates
     if bond_templates is None:
-        bond_templates = Bond_Templates()
+        session.bond_templates = bond_templates = Bond_Templates()
     from time import time
     t0 = time()
     bonds, missing = bond_templates.molecule_bonds(molecule)
@@ -14,8 +14,6 @@ def molecule_bonds(molecule):
     
     missing_temp = bond_templates.missing_templates(molecule) if missing > 0 else []
     return bonds, missing_temp
-
-bond_templates = None
 
 class Bond_Templates:
     '''

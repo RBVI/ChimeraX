@@ -1,4 +1,4 @@
-def show_command(cmdname, args):
+def show_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, no_arg, parse_arguments
     req_args = ()
@@ -7,10 +7,11 @@ def show_command(cmdname, args):
                ('ribbons', no_arg),
                ('only', no_arg),)
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     show(**kw)
 
-def show(what = None, atoms = False, ribbons = False, only = False):
+def show(what = None, atoms = False, ribbons = False, only = False, session = None):
 
     if not atoms and not ribbons:
         atoms = True
@@ -18,18 +19,14 @@ def show(what = None, atoms = False, ribbons = False, only = False):
 
     if what is None:
         from . import molecule
-        what = molecule.all_atoms()
+        what = molecule.all_atoms(session)
 
-    for m, ai in what.molatoms:
-        if only:
-            m.show_atoms((), only)
-            m.show_ribbon((), only)
-        if atoms:
-            m.show_atoms(ai)
-        if ribbons:
-            m.show_ribbon(ai)
+    if atoms:
+        what.show_atoms(only)
+    if ribbons:
+        what.show_ribbon(only)
 
-def hide_command(cmdname, args):
+def hide_command(cmdname, args, session):
 
     from ..ui.commands import atoms_arg, no_arg, parse_arguments
     req_args = ()
@@ -37,10 +34,11 @@ def hide_command(cmdname, args):
     kw_args = (('atoms', no_arg),
                ('ribbons', no_arg),)
 
-    kw = parse_arguments(cmdname, args, req_args, opt_args, kw_args)
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
     hide(**kw)
 
-def hide(what = None, atoms = False, ribbons = False):
+def hide(what = None, atoms = False, ribbons = False, session = None):
 
     if not atoms and not ribbons:
         atoms = True
@@ -48,10 +46,9 @@ def hide(what = None, atoms = False, ribbons = False):
 
     if what is None:
         from . import molecule
-        what = molecule.all_atoms()
+        what = molecule.all_atoms(session)
 
-    for m, ai in what.molatoms:
-        if atoms:
-            m.hide_atoms(ai)
-        if ribbons:
-            m.hide_ribbon(ai)
+    if atoms:
+        what.hide_atoms()
+    if ribbons:
+        what.hide_ribbon()

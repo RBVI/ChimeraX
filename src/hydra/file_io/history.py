@@ -1,21 +1,24 @@
 # Keep list of recently accessed files and thumbnail images.
 class File_History:
 
-  def __init__(self, history_file = None):
+  def __init__(self, session, history_file = None):
+
+    self.session = session
 
     if history_file is None:
       from os.path import join
-      history_file = join(self.default_history_directory(), 'sessions')
+      history_file = self.recent_files_index()
 
     self.history_file = history_file
-    from os.path import dirname
-    self.thumbnail_directory = dirname(history_file)
+    from os.path import dirname, join
+    self.thumbnail_directory = join(dirname(history_file), 'images')
     self.read = False
     self.changed = False
     self.files = {}             # Path to (access_time, image_name)
     self.thumbnail_size = 256
     self.image_format = 'JPG'
-    self.render_cb = None
+
+    session.at_quit(self.write_history)
 
   def read_history(self, remove_missing = True):
 
@@ -32,15 +35,17 @@ class File_History:
     files = {}
     for line in lines:
       fields = line.rstrip().split('|')
-      spath,iname = fields[:2]
-      atime = int(fields[2])
-      files[spath] = (atime, iname)
+      if len(fields) == 3:
+        fields.insert(1, '')  # No database specified
+      spath,dbname,iname = fields[:3]
+      atime = int(fields[3])
+      files[spath] = (atime, iname, dbname)
 
     if remove_missing:
       removed_some = False
-      for spath, (atime,iname) in tuple(files.items()):
-        if not isfile(spath):
-          files.remove(spath)
+      for spath, (atime,iname,dbname) in tuple(files.items()):
+        if not dbname and len([p for p in spath.split(',') if not isfile(p)]) > 0:
+          files.pop(spath)
           removed_some = True
       if removed_some:
         self.changed = True
@@ -61,6 +66,10 @@ class File_History:
     # Make directory for example sessions
     mkdir(sdir)
 
+    # Make thumbnail images directory
+    if not exists(self.thumbnail_directory):
+      mkdir(self.thumbnail_directory)
+
     import hydra
     esdir = join(dirname(hydra.__file__), 'example_sessions')
     f = open(join(esdir, 'sessions'), 'r')
@@ -72,11 +81,11 @@ class File_History:
     from shutil import copyfile
     for line in slines:
       fields = line.split('|')
-      if len(fields) == 3:
-        sname, iname, atime = [f.strip() for f in fields]
+      if len(fields) == 4:
+        sname, dbname, iname, atime = [f.strip() for f in fields]
         copyfile(join(esdir,sname), join(sdir,sname))
-        copyfile(join(esdir,iname), join(sdir,iname))
-        sfile.write('%s|%s|%s\n' % (join(sdir,sname), join('example_sessions',iname), atime))
+        copyfile(join(esdir,iname), join(self.thumbnail_directory,iname))
+        sfile.write('%s|%s|%s|%s\n' % (join(sdir,sname), dbname, iname, atime))
     sfile.close()
 
     return True
@@ -86,62 +95,63 @@ class File_History:
     if not self.changed:
       return
 
-    from os.path import basename
     f = open(self.history_file, 'w')
-    f.write('\n'.join('%s|%s|%d' % (spath,iname,atime)
-                      for spath,atime,iname in self.files_sorted_by_access_time()))
+    f.write('\n'.join('%s|%s|%s|%d' % (spath,dbname,iname,atime)
+                      for spath,atime,iname,dbname in self.files_sorted_by_access_time()))
     f.close()
 
   def files_sorted_by_access_time(self):
 
-    s = [(spath, atime, iname) for spath,(atime,iname) in self.files.items()]
+    s = [(spath, atime, iname, dbname) for spath,(atime,iname,dbname) in self.files.items()]
     s.sort(key = lambda sai: sai[1])
     s.reverse()
     return s
 
-  def add_entry(self, path, viewer, replace_image = False, wait_for_render = False):
+  def add_entry(self, path, from_database = None, replace_image = False, models = None):
 
     if not self.read:
       self.read_history()
 
-    atime,iname = self.files.get(path, (None,None))
+    atime,iname,dbname = self.files.get(path, (None,None,None))
     if iname is None:
-      from os.path import splitext, basename
-      bname = splitext(basename(path))[0] + '.' + self.image_format.lower()
-      iname = unique_file_name(bname, self.thumbnail_directory)
-      self.save_thumbnail(iname, viewer, wait_for_render)
+      iname = self.thumbnail_filename(path)
+      self.save_thumbnail(iname, models)
     elif replace_image:
-      self.save_thumbnail(iname, viewer, wait_for_render)
+      self.save_thumbnail(iname, models)
 
     from time import time
     atime = time()
 
-    self.files[path] = (atime,iname)
+    dbname = '' if from_database is None else from_database
+    self.files[path] = (atime,iname,dbname)
     self.changed = True
 
-  def save_thumbnail(self, iname, viewer, wait_for_render = False):
+  def thumbnail_filename(self, path):
 
-    if self.render_cb:
-      viewer.remove_rendered_frame_callback(self.render_cb)
-      self.render_cb = None
+    p0 = path.split(',')[0]
+    from os.path import splitext, basename
+    bname = splitext(basename(p0))[0] + '.' + self.image_format.lower()
+    iname = unique_file_name(bname, self.thumbnail_directory)
+    return iname
 
-    if wait_for_render and viewer.redraw_needed:
-      self.render_cb = cb = lambda s=self,i=iname,v=viewer: s.save_thumbnail(i,v)
-      viewer.add_rendered_frame_callback(cb)
-    else:
-      from os.path import join
-      ipath = join(self.thumbnail_directory, iname)
-      s = self.thumbnail_size
-      i = viewer.image((s,s))
-      i.save(ipath, self.image_format)
+  def save_thumbnail(self, iname, models = None):
 
-  def default_history_directory(self):
+    from os.path import join
+    ipath = join(self.thumbnail_directory, iname)
+    s = self.thumbnail_size
+    v = self.session.view
+    from ..ui import camera
+    c = camera.camera_framing_models(s,s,models) if models else v.camera
+    i = v.image(s,s, camera = c, models = models)
+    i.save(ipath, self.image_format)
 
-    return user_settings_path('RecentSessions', directory = True)
+  def recent_files_index(self):
+
+    return user_settings_path('recent_files')
 
   def show_thumbnails(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     if self.history_shown():
       mw.show_graphics()
       return
@@ -154,24 +164,27 @@ class File_History:
 
   def open_clicked_session(self, url):
 
-    path = url.toString(url.PreferLocalFile)         # session file path
+    href = url.toString(url.PreferLocalFile)         # session file path
+    path, db = href.split('@') if '@' in href else (href, None)
+
+    p0 = path.split(',')[0]
     import os.path
-    if not os.path.exists(path):
-      from ..ui.gui import show_status
-      show_status('Session file not found: %s' % path)
+    if db is None and not os.path.exists(p0):
+      self.session.show_status('File not found: %s' % p0)
       return
+
     self.hide_history()
     from . import opensave
-    opensave.open_session(path)
+    opensave.open_data(path, self.session, from_database = db)
 
   def history_shown(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     return mw.showing_text() and mw.text_id == 'recent sessions'
 
   def hide_history(self):
 
-    from ..ui.gui import main_window as mw
+    mw = self.session.main_window
     mw.show_graphics()
 
   def most_recent_directory(self):
@@ -180,7 +193,7 @@ class File_History:
       self.read_history()
     if len(self.files) == 0:
       return None
-    p, atime, iname = self.files_sorted_by_access_time()[0]
+    p, atime, iname, dbname = self.files_sorted_by_access_time()[0]
     from os.path import dirname
     return dirname(p)
     
@@ -196,11 +209,12 @@ class File_History:
              #           'td { text-align:center; }',        # Does not work in Qt 5.0.2
              '</style>', '</head>', '<body>']
     s = self.files_sorted_by_access_time()
-    for spath, atime, iname in s:
-      sname = splitext(basename(spath))[0]
+    for spath, atime, iname, dbname in s:
+      url = '%s@%s' % (spath, dbname) if dbname else spath
+      sname = self.display_name(spath)
       ipath = join(self.thumbnail_directory, iname)
       lines.extend(['',
-                    '<a href="%s">' % spath,
+                    '<a href="%s">' % url,
                     '<table style="float:left;">',
                     '<tr><td><img src="%s" height=180>' % ipath,
                     '<tr><td><center>%s</center>' % sname,
@@ -209,6 +223,18 @@ class File_History:
     lines.extend(['</body>', '</html>'])
     html = '\n'.join(lines)
     return html
+
+  def display_name(self, path):
+
+    from os.path import basename, splitext, join
+    paths = path.split(',')
+    np = len(paths)
+    if np == 1:
+      n = splitext(basename(paths[0]))[0]
+    else:
+      fmt = '%s %s' if np == 2 else '%s ... %s'
+      n = fmt % tuple(splitext(basename(p))[0] for p in (paths[0],paths[-1]))
+    return n
 
 def unique_file_name(name, directory):
   from os.path import join, dirname, splitext, basename, isfile
@@ -239,5 +265,3 @@ def user_settings_path(filename = None, directory = False):
     import os
     os.mkdir(fpath)
   return fpath
-
-history = File_History()

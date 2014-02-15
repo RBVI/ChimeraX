@@ -29,6 +29,29 @@ with occasional help from C or C++ code.
    conventions.rst
 
 
+Hydra Modules
+=============
+
+.. toctree::
+   :maxdepth: 2
+
+   draw.rst
+
+   file_io.rst
+
+   geometry.rst
+
+   map.rst
+
+   molecule.rst
+
+   session.rst
+
+   surface.rst
+
+   ui.rst
+
+
 Miscellaneous Modules
 =====================
 
@@ -39,4 +62,6 @@ Miscellaneous Modules
 
    triggerset.rst
 
-   place.rst
+   pdbio.rst
+
+   molaccess.rst

@@ -1,12 +1,15 @@
-def open_pdb_file(path):
+def open_pdb_file(path, session):
+  '''
+  Open a PDB file.
+  '''
 #  mols = open_pdb_file_with_pdbio(path)
-  mols = open_pdb_file_with_image3d(path)
+  mols = open_pdb_file_with_image3d(path, session)
   return mols
 
-def open_pdb_file_with_image3d(path):
+def open_pdb_file_with_image3d(path, session):
   from time import time
   t0 = time()
-  f = open(path, 'r')
+  f = open(path, 'rb')
   text = f.read()
   f.close()
   ft1 = time()
@@ -19,7 +22,7 @@ def open_pdb_file_with_image3d(path):
   m.pdb_text = text
   from ..molecule import connect
   t2 = time()
-  bonds, missing = connect.molecule_bonds(m)
+  bonds, missing = connect.molecule_bonds(m, session)
   m.bonds = bonds
   t3 = time()
   from os.path import basename
@@ -98,7 +101,10 @@ def open_pdb_file_python(path):
   m.pdb_text = text
   return m
 
-def open_mmcif_file(path):
+def open_mmcif_file(path, session):
+  '''
+  Open an mmCIF file.
+  '''
   from os.path import basename
   from time import time
   ft0 = time()
@@ -111,9 +117,12 @@ def open_mmcif_file(path):
   xyz, element_nums, chain_ids, res_nums, res_names, atom_names = \
       _image3d.parse_mmcif_file(text)
   t1 = time()
-  print ('Read', basename(path), len(xyz), 'atoms at', int(len(xyz)/(ft1-ft0)), 'per second')
-  print ('Parsed', basename(path), len(xyz), 'atoms at', int(len(xyz)/(t1-t0)), 'per second')
-  print ('Read+Parsed', basename(path), len(xyz), 'atoms at', int(len(xyz)/((t1-t0)+(ft1-ft0))), 'per second')
+  session.show_info('Read %s %d atoms at %d per second\n' %
+                    (basename(path), len(xyz), int(len(xyz)/(ft1-ft0))))
+  session.show_info('Parsed %s %d atoms at %d per second\n' %
+                    (basename(path), len(xyz), int(len(xyz)/(t1-t0))))
+  session.show_info('Read+Parsed %s %d atoms at %d per second\n' %
+                    (basename(path), len(xyz), int(len(xyz)/((t1-t0)+(ft1-ft0)))))
   from ..molecule import Molecule
   m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
   return m
