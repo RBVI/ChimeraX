@@ -1,5 +1,5 @@
 // vim: set expandtab ts=4 sw=4:
-#include "blob.h"
+#include "Blob.h"
 #include "AtomBlob.h"
 #include "ResBlob.h"
 #include "numpy_common.h"
