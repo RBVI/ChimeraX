@@ -6,7 +6,7 @@ OBJS= $(SRCS:.cpp=.o)
 LIBNAME = blob
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
 ifneq ($(OS),Windows)
-CXXFLAGS += -std=c++11 -stdlib=libc++ -Wno-invalid-offsetof -Wno-deprecated-writable-strings
+CXXFLAGS += -Wno-invalid-offsetof -Wno-deprecated-writable-strings
 endif
 LIBS += $(PYTHON_LIB)
 INCS += $(NUMPY_INC)

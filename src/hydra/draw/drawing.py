@@ -91,7 +91,7 @@ class Render:
             if self.SHADER_TEXTURE_WARP in capabilities:
                 self.set_texture_warp_parameters()
             if not self.SHADER_VERTEX_COLORS in capabilities:
-                self.set_shader_single_color()
+                self.set_single_color()
 
         return p
 
@@ -219,10 +219,12 @@ class Render:
         dc_darkest = GL.glGetUniformLocation(p, b"depth_cue_darkest")
         GL.glUniform1f(dc_darkest, lp.depth_cue_darkest)
 
-    def set_shader_single_color(self):
+    def set_single_color(self, color = None):
         '''
         Set the OpenGL shader color for shader single color mode.
         '''
+        if not color is None:
+            self.single_color = color
         p = self.current_shader_program.program_id
         c = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(c, 1, self.single_color)
