@@ -252,12 +252,12 @@ class ShaderProgram:
 		status = shaders.glGetShaderiv(self.vs, GL.GL_COMPILE_STATUS)
 		if not status:
 			compiled = False
-			log = shaders.gletShaderLog(self.vs)
+			log = shaders.glGetShaderInfoLog(self.vs)
 			print("compiling vertex shader failed:\n%s" % log, file=sys.stderr)
 		status = shaders.glGetShaderiv(self.fs, GL.GL_COMPILE_STATUS)
 		if not status:
 			compiled = False
-			log = shaders.gletShaderLog(self.fs)
+			log = shaders.glGetShaderInfoLog(self.fs)
 			print("compiling fragment shader failed:\n%s" % log, file=sys.stderr)
 		if not compiled:
 			raise RuntimeError("failed to compile shader program")
