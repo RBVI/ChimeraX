@@ -3,6 +3,7 @@
 #include "AtomBlob.h"
 #include "ResBlob.h"
 #include "numpy_common.h"
+#include <stddef.h>
 
 template PyObject* newBlob<AtomBlob>(PyTypeObject*);
 
