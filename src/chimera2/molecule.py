@@ -24,10 +24,9 @@ class Molecule(open_models.Model):
 		if self.mol_blob is None:
 			return
 		self.graphics = scene.Graphics()
-		import access
-		atom_blob, bond_list = access.atoms_bonds(self.mol_blob)
-		coords = access.coords(atom_blob)
-		element_numbers = access.element_numbers(atom_blob)
+		atom_blob, bond_list = self.mol_blob.atoms_bonds
+		coords = atom_blob.coords
+		element_numbers = atom_blob.element_numbers
 		self.num_atoms = len(coords)
 		self.num_bonds = len(bond_list)
 
