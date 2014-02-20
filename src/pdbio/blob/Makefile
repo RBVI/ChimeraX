@@ -19,4 +19,4 @@ install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
 
 clean:
-	/bin/rm -f $(SHLIB) $(OBJS) imex.h
+	/bin/rm -f $(SHLIB) $(OBJS)
