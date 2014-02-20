@@ -233,7 +233,7 @@ class ShaderProgram:
 		import sys
 		self.program = shaders.glCreateProgram()
 		if self.program == 0:
-			check_GLerror()
+			check_GLerror("Unable to create program")
 			return
 		self.uniforms = []
 		self.attributes = []

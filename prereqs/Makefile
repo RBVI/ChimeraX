@@ -47,7 +47,7 @@ Mesa.install:
 endif
 
 SUBDIRS	+= cython docutils expat fonts \
-	   glew hdf5 jinja2 line_profiler numexpr numpy openssl \
+	   glew hdf5 imex jinja2 line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python PyQt qt \
 	   setuptools sip sphinx wrappy3 zlib

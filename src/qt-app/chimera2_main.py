@@ -359,6 +359,16 @@ def set_default_context(major_version, minor_version, profile):
 def main():
 	# typical Qt application startup
 	global app
+	if '--lineprofile' not in sys.argv:
+		import builtins
+		builtins.__dict__['lineprofile'] = lambda x: x
+	else:
+		# install lineprofile decorator
+		# and write results on exit
+		import line_profiler, builtins, atexit
+		prof = line_profiler.LineProfiler()
+		builtins.__dict__['lineprofile'] = prof
+		atexit.register(prof.dump_stats, "chimera2.lprof")
 	if '--nogui' in sys.argv:
 		app = ConsoleApplication(sys.argv)
 	else:
@@ -369,32 +379,20 @@ def main():
 	import getopt
 	try:
 		opts, args = getopt.getopt(argv[1:], 'd:', [
-			'dump=', 'nogui', 'profile'
+			'dump=', 'nogui', 'lineprofile'
 		])
 	except getopt.error:
 		print("usage: %s [--nogui] [-d|--dump format]" % argv[0],
 				file=sys.stderr)
 		raise SystemExit(2)
 	global dump_format
-	profile = False
 	for option, value in opts:
 		if option in ("-d", "--dump"):
 			dump_format = value
 		elif option == '--nogui':
 			pass
-		elif option == '--profile':
-			profile = True
-
-	if profile:
-		# install profile decorator
-		# and write results on exit
-		import line_profiler, builtins, atexit
-		prof = line_profiler.LineProfiler()
-		builtins.__dict__['profile'] = prof
-		atexit.register(prof.dump_stats, "chimera2.lprof")
-	else:
-		import builtins
-		builtins.__dict__['profile'] = lambda x: x
+		elif option == '--lineprofile':
+			pass
 
 	sys.path.insert(0, '../../build/lib')
 

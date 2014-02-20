@@ -4,6 +4,7 @@
 #include "ResBlob.h"
 #include "molecule/Bond.h"
 #include <map>
+#include <stddef.h>
 
 template PyObject* newBlob<MolBlob>(PyTypeObject*);
 

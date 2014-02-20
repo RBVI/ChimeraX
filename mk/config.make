@@ -8,6 +8,9 @@ shlibdir = $(libdir)
 tmpdir = $(build_prefix)/tmp
 webdir = $(build_prefix)/webapp
 
+# by default, don't do anything
+all:
+
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.3
@@ -39,8 +42,6 @@ PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
-
-all:
 
 pkg_dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi

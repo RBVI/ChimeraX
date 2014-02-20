@@ -1,8 +1,9 @@
 // vim: set expandtab ts=4 sw=4:
-#include "blob.h"
+#include "Blob.h"
 #include "ResBlob.h"
 #include "molecule/Residue.h"
 #include "numpy_common.h"
+#include <stddef.h>
 
 template PyObject* newBlob<ResBlob>(PyTypeObject*);
 
