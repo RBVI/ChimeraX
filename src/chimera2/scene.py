@@ -437,7 +437,7 @@ class Graphics:
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
 		return [obj_id]
 
-	def add_cylinder(self, radius, p0, p1, color, bottom=True, top=True, xform=None, group_add=False):
+	def add_cylinder(self, radius, p0, p1, color, bottom=True, top=True, xform=None, group_add=None):
 		"""add cylinder to scene
 		
 		:param radius: the radius of the cylinder
@@ -515,7 +515,7 @@ class Graphics:
 		objs.append(obj_id)
 		return objs
 
-	def add_cone(self, radius, p0, p1, color, bottom=True, xform=None, group_add=False):
+	def add_cone(self, radius, p0, p1, color, bottom=True, xform=None, group_add=None):
 		"""add open cone to scene
 		
 		:param radius: the radius of the cone
@@ -584,7 +584,7 @@ class Graphics:
 		objs.append(obj_id)
 		return objs
 
-	def add_disk(self, inner_radius, outer_radius, color, xform=None, group_add=False):
+	def add_disk(self, inner_radius, outer_radius, color, xform=None, group_add=None):
 		"""add disk to scene
 		
 		:param inner_radius: the inner radius of the disk
@@ -627,7 +627,7 @@ class Graphics:
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
 		return [obj_id]
 
-	def add_box(self, p0, p1, color, xform=None, group_add=False):
+	def add_box(self, p0, p1, color, xform=None, group_add=None):
 		if xform is None:
 			xform = Identity()
 		else:
@@ -651,7 +651,6 @@ class Graphics:
 			make_box_primitive()
 
 		scale_id = llgr.next_data_id()
-		print('box scale', scale)
 		llgr.create_singleton(scale_id, array(scale, dtype=float32))
 
 		matrix_id = llgr.next_matrix_id()
@@ -679,7 +678,7 @@ class Graphics:
 		track.modified(Graphics, [self], self.MORE_OBJECTS)
 		return [obj_id]
 
-	def add_triangles(self, vertices, normals, color, indices, group_add=False):
+	def add_triangles(self, vertices, normals, color, indices, group_add=None):
 		# vertices: Nx3 numpy array of float32 vertices
 		# normals: Nx3 numpy array of float32 normals
 		# color: a color_id or a length 4 collection of RGBA
