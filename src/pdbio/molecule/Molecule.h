@@ -14,6 +14,7 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "Residue.h"
+#include "Sequence.h"
 #include "imex.h"
 
 class Element;
@@ -23,7 +24,9 @@ public:
     typedef std::vector<std::unique_ptr<Atom>>  Atoms;
     typedef std::vector<std::unique_ptr<Bond>>  Bonds;
     typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
+    typedef std::vector<std::vector<Residue*>>  Res_Lists;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
+    typedef std::vector<Sequence>  Sequences;
 private:
     CoordSet *  _active_coord_set;
     Atoms  _atoms;
@@ -45,6 +48,8 @@ public:
         std::string &name) const;
     bool  is_traj;
     bool  lower_case_chains;
+    void  make_chains(Res_Lists* chain_members = nullptr,
+        Sequences* full_sequences = nullptr) const;
     Atom *  new_atom(std::string &name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
