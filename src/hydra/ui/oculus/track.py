@@ -75,6 +75,8 @@ class Oculus_Head_Tracking:
 
     def use_oculus_orientation(self):
 
+        self.view.render.finish_rendering()     # Reduce latency by finishing current graphics draw.
+
         from . import _oculus
         q = _oculus.state()
         w,x,y,z = q     # quaternion orientation = (cos(a/2), axis * sin(a/2))

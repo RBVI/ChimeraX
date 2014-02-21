@@ -445,6 +445,9 @@ class Render:
 #        GL.glDepthFunc(GL.GL_LEQUAL)   # Get z-fighting with screen depth copied to framebuffer object on Mac/Nvidia
         GL.glDepthRange(min, max)
 
+    def finish_rendering(self):
+        GL.glFinish()
+
 class Framebuffer:
 
     def __init__(self, width = None, height = None, texture = None, depth = True):
