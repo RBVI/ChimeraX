@@ -6,6 +6,11 @@ class Oculus_Head_Tracking:
 
         self.last_rotation = None
         self.view = None
+        self.scale = 1.0        # Scale eye images to fill oculus display.
+        self.last_angle = 0
+        self.last_axis = (0,0,1)
+        self.min_angle_change = 1e-4
+        self.min_axis_change = 1e-4
 
     def start_event_processing(self, view):
 
@@ -29,7 +34,7 @@ class Oculus_Head_Tracking:
     def display_size(self):
 
         p = self.parameters
-        w, h = int(p['HResolution']), int(p['VResolution'])
+        w, h = int(p['HResolution']), int(p['VResolution'])     # SDK values 1280, 800
         return w,h
 
     def field_of_view(self):
@@ -39,8 +44,11 @@ class Oculus_Head_Tracking:
         # The actual distance from center of lens to screen at closest accordion setting is 5 cm.
         # So it appears EyeToScreenDistance is an effective value accounting for magnification.
         p = self.parameters
+        d = p['EyeToScreenDistance']	# meters, devkit value 0.041
+        w = p['HScreenSize']            # meters, devkit value 0.15
+        s = self.scale
         from math import atan2
-        fov = 2*atan2(0.25*p['HScreenSize'], p['EyeToScreenDistance'])
+        fov = 2*atan2(0.25*w*s, d)
         return fov
 
     def image_shift_pixels(self):
@@ -49,17 +57,21 @@ class Oculus_Head_Tracking:
         # Taken from Oculus SDK Overview, page 24
         # Center should be at lens separation / 2 instead of viewport width / 2.
         p = self.parameters
-        w = 0.5*p['HScreenSize']                # meters
-        s = p['LensSeparationDistance']         # meters
-        dx = 0.5*s - 0.5*w                      # meters
-        ppm = p['HResolution'] / p['HScreenSize']       # pixels per meter
+        w = p['HScreenSize']                    # meters, devkit value 0.15, VScreenSize 0.0936
+        hw = 0.5*w
+        s = p['LensSeparationDistance']         # meters, devkit value 0.0635, InterpupillaryDistance 0.064
+        dx = 0.5*s - 0.5*hw                     # meters
+        wpx = p['HResolution']                  # pixels, devkit value 1280
+        ppm = wpx / w       # pixels per meter
         xp = dx * ppm
         return xp
 
     def radial_warp_parameters(self):
 
         p = self.parameters
-        return p['DistortionK']
+        k0,k1,k2,k3 =  p['DistortionK']         # devkit values (1.0, 0.22, 0.24, 0)
+        s = self.scale
+        return (k0/s, k1/s, k2/s, k3/s)
 
     def use_oculus_orientation(self):
 
@@ -71,6 +83,10 @@ class Oculus_Head_Tracking:
         vn = sqrt(x*x+y*y+z*z)
         a = 2*atan2(vn, w)
         axis = (x/vn, y/vn, z/vn) if vn > 0 else (0,0,1)
+        if (abs(a - self.last_angle) < self.min_angle_change or
+            max(abs(x1-x0) for x0, x1 in zip(axis, self.last_axis)) < self.min_axis_change):
+            return
+        self.last_angle, self.last_axis = a, axis
         from ...geometry import place
         r = place.rotation(axis, a*180/pi)
         if not self.last_rotation is None:
