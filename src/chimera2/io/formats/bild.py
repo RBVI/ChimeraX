@@ -82,16 +82,19 @@ def open(stream, *args, **kw):
 		if tokens[0] in ('.c', '.comment'):
 			pass
 		elif tokens[0] == '.color':
-			if len(tokens) == 2 and is_int(tokens[1]):
-				try:
-					cur_color[0:3] = RGB_color(int(tokens[1]))
-				except ValueError as e:
-					raise UserError("%s on line %d"
-								% (e, lineno))
-			elif len(tokens) != 4:
-				raise UserError("expected R, G, B values after .color on line %d" % lineno)
-			else:
-				cur_color[0:3] = [float(x) for x in tokens[1:4]]
+			try:
+				if len(tokens) == 2:
+					if is_int(tokens[1]):
+						cur_color[0:3] = RGB_color(int(tokens[1]))
+					else:
+						from chimera2.color import Color_arg
+						cur_color[0:3] = Color_arg.parse(tokens[1]).rgb
+				elif len(tokens) != 4:
+					raise UserError("expected R, G, B values after .color on line %d" % lineno)
+				else:
+					cur_color[0:3] = [float(x) for x in tokens[1:4]]
+			except ValueError as e:
+				raise UserError("%s on line %d" % (e, lineno))
 		elif tokens[0] == '.transparency':
 			if len(tokens) != 2:
 				raise UserError("expected value after .transparency on line %d" % lineno)
