@@ -678,6 +678,7 @@ function flip_zone(checkbutton, div)
 					progress: molview_update_size });
 		}
 	}
+	//$("#app").trigger("updatelayout");
 }
 
 function update_zone_layout()
@@ -737,11 +738,43 @@ $(document).bind("pageshow", "#app", function() {
 <!-- model panel -->
 <!-- script type="text/html" src="tools/modelpanel.html"></script -->
 
+<style type="text/css">
+.c2-model-item {
+	position: relative;
+	background: white url('img/thumb.png') no-repeat left top;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+	width: 224px;
+	height: 224px;
+}
+.c2-model-upper-left {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+}
+.c2-model-upper-right {
+	float: right;
+}
+.c2-model-lower-left {
+	float: left;
+	position: absolute;
+	bottom: 2px;
+	left: 2px
+}
+.c2-model-lower-right {
+	position: absolute;
+	bottom: 2px;
+	right: 2px;
+	background: white;
+}
+</style>
+
 <script id="model-item" type="text/x-template">
-	<div id="model<%=id%>" style="position:relative; background:white url('img/thumb.png') no-repeat left top; background-size:cover; width:224px; height:224px">
+	<div id="model<%=id%>" class="c2-model-item">
 		<div data-role="controlgroup" data-type="horizontal"
-				data-mini="true"
-				style="position:absolute; top:2px; left:2px">
+				data-mini="true" class="c2-model-upper-left">
 			<a data-role="button" data-iconpos="notext"
 				data-icon="check" data-theme="a"
 				data-inline="true">Active</a>
@@ -753,20 +786,20 @@ $(document).bind("pageshow", "#app", function() {
 				data-inline="true">Focus</a>
 		</div>
 		<div data-role="controlgroup" data-type="horizontal"
-				data-mini="true" style="float:right">
+				data-mini="true" class="c2-model-upper-right">
 			<a id="model<%=id%>-close" data-role="button"
 				data-iconpos="notext" data-icon="delete"
 				data-theme="a" data-inline="true">Close</a>
 		</div>
 		<div data-role="controlgroup" data-type="horizontal"
-			data-mini="true"
-			style="float:left; position:absolute; bottom:2px; left:2px">
+			data-mini="true" class="c2-model-lower-left">
 			<a data-role="button" data-iconpos="notext"
 				data-icon="arrow-d" data-theme="a"
 				data-inline="true">Expand</a>
 		</div>
-		<div id="model<%=id%>-name" class="ui-body ui-corner-all"
-			style="position:absolute; bottom:2px; right:2px; background:white;"><b><%=id%>:</b> <%-name%></div>
+		<div id="model<%=id%>-name"
+			class="ui-body ui-corner-all c2-model-lower-right">
+			<b><%=id%>:</b> <%-name%></div>
 	</div>
 </script>
 
@@ -994,7 +1027,7 @@ update_model_panel = function (model_info) {
 		<label for="command-line">Command:</label>
 		<input id="command-line" type="text" size="100"/>
 	</div>
-	<div id="status-line"><i>Status line<i></div>
+	<div id="status-line"><i>Simple informational messages will appear here.<i></div>
 </div>
 <!--end bottom zone-->
 
