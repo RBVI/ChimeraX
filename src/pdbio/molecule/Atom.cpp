@@ -81,6 +81,10 @@ Atom::coord() const
 {
     if (_coord_index == COORD_UNASSIGNED)
         throw std::logic_error("coordinate value hasn't been assigned");
+    if (_alt_loc != ' ') {
+        _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
+        return (*i).second.coord;
+    }
     CoordSet *cs = molecule()->active_coord_set();
     if (cs == NULL)
         throw std::logic_error("no active coordinate set");
@@ -108,6 +112,7 @@ Atom::set_alt_loc(char alt_loc, bool create)
             return;
         }
         _alt_loc_map.insert(std::pair<char, _Alt_loc_info>(alt_loc, _Alt_loc_info()));
+        _alt_loc = alt_loc;
         return;
     }
 
@@ -174,7 +179,13 @@ Atom::set_coord(const Coord &coord, CoordSet *cs)
         }
     }
     
-    _coordset_set_coord(coord, cs);
+    if (_alt_loc != ' ') {
+        _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
+        (*i).second.coord = coord;
+        if (_coord_index == COORD_UNASSIGNED)
+            _coord_index = _new_coord(coord);
+    } else
+        _coordset_set_coord(coord, cs);
 }
 
 void
