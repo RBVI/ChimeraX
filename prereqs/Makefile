@@ -50,7 +50,7 @@ SUBDIRS	+= cython docutils expat fonts \
 	   glew hdf5 imex jinja2 line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python PyQt qt \
-	   setuptools sip sphinx wrappy3 zlib
+	   setuptools sip sphinx wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -126,6 +126,7 @@ pythomnic3k.install: Python.install
 Python.install: zlib.install openssl.install expat.install
 PyQt.install: Python.install qt.install sip.install
 qt.install: p7zip.install openssl.install zlib.install
+wx.install: Python.install
 # qt.install: png.install jpeg.install
 setuptools.install: Python.install
 sip.install: Python.install
