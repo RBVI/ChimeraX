@@ -11,6 +11,7 @@ class Oculus_Head_Tracking:
         self.last_axis = (0,0,1)
         self.min_angle_change = 1e-4
         self.min_axis_change = 1e-4
+        self.predict_orientation = 0.030        # Time (seconds) in future to predict oculus orientation.
 
     def start_event_processing(self, view):
 
@@ -19,6 +20,8 @@ class Oculus_Head_Tracking:
             _oculus.connect()
         except:
             return False
+
+        _oculus.set_prediction_time(self.predict_orientation)
 
         self.parameters = p = _oculus.parameters()
         for k,v in p.items():
@@ -49,6 +52,12 @@ class Oculus_Head_Tracking:
         s = self.scale
         from math import atan2
         fov = 2*atan2(0.25*w*s, d)
+# TODO: Using 90% of the field of view seems to give less warping when rotating head.
+#       Maybe I am not computing the field of view correctly.  Do I need to apply a spherical
+#       aberration correction?  Not according to SDK docs. But SDK docs describe vertical field
+#       of view and I am using horizontal field of view.  Aha!  But eye is not centered in horz
+#       half display.  But my rendering is so it should be fine.  Needs more study.
+#        fov = 0.9*2*atan2(0.25*w*s, d)
         return fov
 
     def image_shift_pixels(self):
@@ -72,6 +81,11 @@ class Oculus_Head_Tracking:
         k0,k1,k2,k3 =  p['DistortionK']         # devkit values (1.0, 0.22, 0.24, 0)
         s = self.scale
         return (k0/s, k1/s, k2/s, k3/s)
+
+    def chromatic_aberration_parameters(self):
+        p = self.parameters
+        cab = p['ChromaAbCorrection']          # defkit values (0.996, -0.004, 1.014, 0)
+        return cab
 
     def use_oculus_orientation(self):
 
@@ -128,11 +142,13 @@ def set_oculus_camera_mode(session):
         fov = oht.field_of_view()
         ishift = oht.image_shift_pixels()
         warp = oht.radial_warp_parameters()
+        cwarp = oht.chromatic_aberration_parameters()
         print ('Radial warp', warp)
     else:
         fov = 1.5
         ishift = -50
-        warp = (1, 0.2, 0, 0)
+        warp = (1, 0, 0, 0)
+        cwarp = (1, 0, 1, 0)
 
     view = session.view
     c = view.camera
@@ -141,7 +157,9 @@ def set_oculus_camera_mode(session):
     c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
     c.eye_separation_pixels = 2*ishift
     view.set_camera_mode('oculus')
-    view.render.radial_warp_coefficients = warp
+    r = view.render
+    r.radial_warp_coefficients = warp
+    r.chromatic_warp_coefficients = cwarp
 
 # Go full screen on oculus display
 def oculus_full_screen(full, session):

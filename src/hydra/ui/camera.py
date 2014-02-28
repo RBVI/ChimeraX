@@ -259,7 +259,7 @@ class Camera:
             p.color = (1,1,1,1)
             p.use_lighting = False
             p.texture_coordinates = tc
-            p.use_texture_warp = True
+            p.use_radial_warp = True
 
         s = self.warp_surface
         p = s.surface_pieces()[0]
