@@ -43,22 +43,41 @@ class Oculus_Head_Tracking:
     def field_of_view(self):
 
         # Horizontal field of view from Oculus SDK Overview.
-        # For oculus developer kit, EyeToScreenDistance is 4.1 cm and HScreenSize is 15 cm.
-        # The actual distance from center of lens to screen at closest accordion setting is 5 cm.
-        # So it appears EyeToScreenDistance is an effective value accounting for magnification.
         p = self.parameters
-        d = p['EyeToScreenDistance']	# meters, devkit value 0.041
+        d = self.eye_to_screen_distance()
         w = p['HScreenSize']            # meters, devkit value 0.15
         s = self.scale
         from math import atan2
         fov = 2*atan2(0.25*w*s, d)
-# TODO: Using 90% of the field of view seems to give less warping when rotating head.
-#       Maybe I am not computing the field of view correctly.  Do I need to apply a spherical
-#       aberration correction?  Not according to SDK docs. But SDK docs describe vertical field
-#       of view and I am using horizontal field of view.  Aha!  But eye is not centered in horz
-#       half display.  But my rendering is so it should be fine.  Needs more study.
-#        fov = 0.9*2*atan2(0.25*w*s, d)
         return fov
+
+    def eye_to_screen_distance(self):
+        #
+        # Using the eye to screen distance reported by the developer kit of 41 mm gives warping
+        # as I view side to side as if the field of view is wrong.  I tried different field of view
+        # values and found that 0.90 times the calculated value gave much less warping.
+        # The eye to screen distance for field of view calculation should be the screen to the center
+        # of lens distance.  Direct measurements show that number is 47 mm for the "A" lenses (no
+        # diopter correction), 44 mm for the B lenses and 40 mm for the C lenses.  With 47 mm the
+        # warping is much reduced and this corresponds to 0.90 times field of view with 41 mm
+        # (85 degree horz field with 41 mm, and 77 degree horz field with 47 mm).  Testing with
+        # the C lenses 41 mm worked well with little warp while 47 mm showed significant warping.
+        # Tests with the oculus configuration tool where the lenses A, B, C can be specified show
+        # it does not change the eye distance 41 mm reported by the SDK.  Posts on the web also
+        # show that the 41 mm is hard-coded in the SDK independent of lenses.
+        #
+        # TODO: For now I override the SDK value to give minimal warping.
+        #
+        lens = 'A'
+        if lens == 'A':
+            d = 0.047
+        elif lens == 'B':
+            d = 0.044
+        elif lens == 'C':
+            d = 0.040
+        else:
+            d = self.parameters['EyeToScreenDistance']	# meters, devkit value 0.041
+        return d
 
     def image_shift_pixels(self):
 
@@ -77,6 +96,15 @@ class Oculus_Head_Tracking:
 
     def radial_warp_parameters(self):
 
+        # TODO:
+        # Experiments show that increasing the space between the human eye and lense
+        # using the face mask adjustment causes the radial warping correction to not
+        # work as well.  The SDK parameters seem to work well with the eyes close to
+        # the lenses ("A" lenses, no diopter correction).  But if the maximum spacing
+        # between eyes and lenses is used, with or without glasses, there is very
+        # noticable warping where an object crossing the field of view appears to change
+        # its distance, far then near then far, with the near position in center of view.
+        # This in and out motion is somewhat nauseating.
         p = self.parameters
         k0,k1,k2,k3 =  p['DistortionK']         # devkit values (1.0, 0.22, 0.24, 0)
         s = self.scale
