@@ -74,9 +74,6 @@ function call(session, password, tag, tag_data, state, cb) {
 	call_id = cid + 1;
 	call_data.push([ cid, tag, tag_data ]);
 	// alert("call: " + JSON.stringify(call_data));
-	function clear_callback(jqxhr, textStatus, error) {
-		alert("Request failed: " + textStatus + ", " + error);
-	}
 	var data = {
 		action: "call",
 		session: session,
@@ -84,8 +81,7 @@ function call(session, password, tag, tag_data, state, cb) {
 		command: JSON.stringify(call_data),
 	}
 	return $.getJSON($c2_session.server.url, data)
-			.done(debug_log)
-			.fail(clear_callback);
+			.done(debug_log);
 }
 
 function debug_log(data) {
@@ -137,16 +133,48 @@ function ui_init(url) {
 	$c2_session.password = "";
 
 	// Register mouse-click handler for the open buttons
+	$("#my-sessions-input").on("change keyup paste click",
+			update_session_buttons);
 	$("#open-session").click(open_session);
 	$("#delete-session").click(delete_session);
-	$("#open-new-session").click(open_new_session);
+	$("#new-session").click(open_new_session);
+	$("#refresh-session").click(update_session_list);
 	$("#open-shared-session").click(open_shared_session);
 	update_session_list();
 }
 
+function callback_failed(jqxhr, textStatus, error) {
+	alert("Session request failed: " + textStatus + ", " + error);
+}
+
+function update_session_buttons(event)
+{
+	if (event !== undefined)
+		event.preventDefault();
+	//event.stopPropagation();
+	var session = $("#my-sessions-input").val();
+	if (existing_session(session)) {
+		$("#new-session").addClass("ui-state-disabled");
+		$("#new-session").removeClass("ui-btn-active");
+		$("#open-session").addClass("ui-btn-active");
+		$("#open-session").removeClass("ui-state-disabled");
+		$("#delete-session").removeClass("ui-state-disabled");
+		if (event !== undefined && event.keyCode === 13)
+			open_session();
+	} else {
+		$("#new-session").removeClass("ui-state-disabled");
+		$("#new-session").addClass("ui-btn-active");
+		$("#open-session").removeClass("ui-btn-active");
+		$("#open-session").addClass("ui-state-disabled");
+		$("#delete-session").addClass("ui-state-disabled");
+		if (event !== undefined && event.keyCode === 13)
+			open_new_session();
+	}
+}
+
 function open_session() {
 	// verify and set default session parameters (name and password)
-	var session = $("#my-sessions").val();
+	var session = $("#my-sessions-input").val();
 	var password = $("#my-password").val();
 	if (!existing_session(session)) {
 		alert("Session \"" + session + "\" does not exist.");
@@ -169,15 +197,16 @@ function save_session_info(user, session, password) {
 
 function delete_session() {
 	// Delete using session parameters (name and password)
-	var session = $("#my-sessions").val();
+	var session = $("#my-sessions-input").val();
 	var password = $("#my-password").val();
 	$c2_session.server.delete_session(session, password)
-						.done(delete_session_cb);
-	alert("Deleting ession \"" + session + "\".");
+			.fail(callback_failed)
+			.done(delete_session_cb);
+	alert("Deleting session \"" + session + "\".");
 }
 
 function delete_session_cb() {
-	var session = $("#my-sessions").val();
+	var session = $("#my-sessions-input").val();
 	var password = $("#my-password").val();
 	alert("Session \"" + session + "\" deleted.");
 	save_session_info("", "", "");
@@ -186,18 +215,19 @@ function delete_session_cb() {
 
 function open_new_session() {
 	// Create using session parameters (name and password)
-	var session = $("#new-session").val();
-	var password = $("#new-password").val();
+	var session = $("#my-sessions-input").val();
+	var password = $("#my-password").val();
 	$c2_session.server.create_session(session, password)
-						.done(open_new_session_cb);
+			.fail(callback_failed)
+			.done(open_new_session_cb);
 }
 
 function open_new_session_cb() {
-	var session = $("#new-session").val();
-	var password = $("#new-password").val();
+	var session = $("#my-sessions-input").val();
+	var password = $("#my-password").val();
 	// alert("Session \"" + session + "\" created.");
 	save_session_info("", session, password);
-	$("#popup-session-new").popup("close");
+	$("#popup-session-open").popup("close");
 }
 
 function open_shared_session() {
@@ -211,15 +241,16 @@ function open_shared_session() {
 function open_shared_session_cb() {
 	var user = $("#shared-username").val();
 	var session = $("#shared-session").val();
-	var password = $("#shared-password").val();
-	// alert("Shared session \"" + session + "\" opened.");
+	var password = $("#shared-password").val(); // alert("Shared session \"" + session + "\" opened.");
 	save_session_info(user, session, password);
 	$("#popup-session-shared").popup("close");
 }
 
-function update_session_list() {
+function update_session_list(event) {
 	// disable button and initiate AJAX to update list
-	$c2_session.server.list_sessions().done(update_session_list_cb)
+	$c2_session.server.list_sessions()
+			.fail(callback_failed)
+			.done(update_session_list_cb);
 }
 
 function update_session_list_cb(session_info) {
@@ -227,22 +258,36 @@ function update_session_list_cb(session_info) {
 	$c2_session.user = session_info[0];
 	var session_list = session_info[1];
 	$c2_session.session_list = session_list;
-	if (session_list.length == 0)
-		alert("no sessions found on server for " + session_info[0]);
-	// update combobox and button states
-	var s = $("#my-sessions");
-	var old_value = s.val();
-	var found = false;
-	s.empty();
+	update_session_buttons();
+	// sort sessions by name
+	session_list.sort(function (a, b) {
+		var x = a.name.toLowerCase();
+		var y = b.name.toLowerCase();
+		if (x < y)
+			return -1;
+		if (x > y)
+			return 1;
+		return 0;
+	});
+	// update listview
+	var ul = $("#my-sessions");
+	var html = "<thead><tr><th data-priority='persist'>Session Name</th><th>Last Accessed</th></tr></thead><tbody>";
 	for (var i = 0; i != session_list.length; ++i) {
-		var v = session_list[i].name;
-		if (v == old_value)
-			found = true;
-		s.append($("<option/>").attr("value", v).text(v));
+		var session = session_list[i];
+		var name = session_list[i].name;
+		//html += '<li class="ui-state-hidden" data-filtertext=' +
+		//	JSON.stringify(session.name) + '>' +
+		//	_.escape(session.name) + 
+		//	" (" + _.escape(session.access) + ")</li>";
+		html += "<tr><td><a href='#' class='ui-btn ui-mini no-margin' onclick='$(\"#my-sessions-input\").val($(this).html()).change()'>"
+			+ _.escape(session.name) + "</a></td><td>"
+			+ _.escape(session.access) + "</td>";
 	}
-	if (!found && session_list.length > 0)
-		s.val(session_list[0].name);
-	s.selectmenu("refresh", true);
+	html += "</tbody></table>";
+	ul.html(html);
+	ul.filterable("refresh");
+	//ul.trigger("updatelayout");
+	$("#popup-session-open").trigger("updatelayout");
 }
 
 function existing_session(name) {
@@ -255,8 +300,7 @@ function existing_session(name) {
 	return false;
 }
 
-function log(output) {
-	$("#log").append(output);
+function log(output) { $("#log").append(output);
 }
 
 $.extend($c2_session, {
@@ -336,6 +380,10 @@ function redistribute_data(data) {
 	}
 }
 
+function callback_failed(jqxhr, textStatus, error) {
+	alert("Commaned failed: " + textStatus + ", " + error);
+}
+
 function send_command(data) {
 	// send command line to server
 	if ($c2_session.session === "") {
@@ -343,7 +391,9 @@ function send_command(data) {
 		return;
 	}
 	$c2_session.server.call($c2_session.session, $c2_session.password,
-			"command", data, state).done(redistribute_data);
+				"command", data, state)
+			.fail(callback_failed)
+			.done(redistribute_data);
 }
 
 // --------------------------------------------------------------------

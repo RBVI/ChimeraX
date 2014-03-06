@@ -73,6 +73,7 @@ class App(object):
 			hdrs = None
 			import traceback
 			output = [ "<pre>\n", traceback.format_exc(), "</pre>" ]
+			_debug_print("trackback: %s" % output)
 		if isinstance(output, basestring):
 			length = len(output)
 			output = [ output ]
@@ -226,6 +227,7 @@ class App(object):
 			if not s:
 				raise WSGIError(STATUS_BAD_REQUEST,
 					"No session named \"%s\"" % session)
+			session_list = self.sessions.get_session_list(account)
 			session_list.remove(s)
 			self.sessions.update_session_list(account, session_list)
 		output = "<p>Session <i>%s</i> deleted" % session
@@ -386,10 +388,10 @@ class Session(object):
 				output = self.pipe[2].read()
 				_debug_print("exitcode: %d" % self.process.exitcode)
 				_debug_print("error output: %s" % output)
-		_debug_print("output: %s" % str(output))
+		#_debug_print("output: %s" % str(output))
 		status, content_type, headers, data = output
 		results = (str(status), str(content_type), headers, str(data))
-		_debug_print("results: %s" % str(results))
+		#_debug_print("results: %s" % str(results))
 		return results
 
 	def disconnect(self):
