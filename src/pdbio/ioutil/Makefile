@@ -17,4 +17,4 @@ $(LIB): imex.h $(OBJS)
 install: $(LIB)
 
 clean:
-	/bin/rm -f $(OBJS) $(LIB) imex.h
+	/bin/rm -f $(OBJS) $(LIB)

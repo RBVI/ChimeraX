@@ -172,7 +172,7 @@ class Xform:
         else:
             try:
                 self.make_orthonormal()
-            except:
+            except ValueError:
                 self._pure = False
                 raise
 
@@ -393,7 +393,7 @@ def transform(translation=None, center=None, rotation=None, scaleOrientation=Non
     """
     #    xf = t * c * r * sr * s * -sr * -c
     if scale is None:
-        xf = Identity(4)
+        xf = Identity()
     elif scaleOrientation is not None:
         sc = Scale(scale)
         orient = Rotation(*scaleOrientation)

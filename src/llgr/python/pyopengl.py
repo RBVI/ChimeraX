@@ -335,14 +335,14 @@ def delete_buffer(data_id: Id):
 		return
 	del _all_buffers[data_id]
 	if bi.buffer:
-		GL.glDeleteBuffers(1, [bi.buffer])
+		GL.glDeleteBuffers(1, numpy.array([bi.buffer], dtype=numpy.uint32))
 
 def clear_buffers():
 	buffers = _all_buffers
 	_all_buffers.clear()
 	for bi in buffers:
 		if bi.buffer:
-			GL.glDeleteBuffers(1, [bi.buffer])
+			GL.glDeleteBuffers(1, numpy.array([bi.buffer], dtype=numpy.uint32))
 	global _internal_buffer_id
 	_internal_buffer_id = itertools.count(start=-1, step=-1)
 	# clear internal data structures that created buffers
@@ -354,8 +354,8 @@ def create_singleton(data_id: Id, data: IsBuffer):
 	if not _all_buffers:
 		_all_buffers[0] = _BufferInfo(None, GL.GL_ARRAY_BUFFER, _identity4x4_data)
 	if data_id in _all_buffers:
-		buffer = _all_buffers[data_id].buffer
-		GL.glDeleteBuffers(1, [buffer])
+		bi = _all_buffers[data_id]
+		GL.glDeleteBuffers(1, numpy.array([bi.buffer], dtype=numpy.uint32))
 	_all_buffers[data_id] = _BufferInfo(None, GL.GL_ARRAY_BUFFER, data)
 
 """
@@ -486,7 +486,8 @@ class _GroupInfo:
 		self.optimized = False
 		# free instancing buffers
 		if self.buffers:
-			GL.glDeleteBuffers(len(self.buffers), self.buffers)
+			GL.glDeleteBuffers(len(self.buffers),
+				numpy.array(self.buffers, dtype=numpy.uint32))
 			self.buffers.clear()
 
 	def optimize(self):
@@ -886,8 +887,12 @@ def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
 	if index_data_id and index_buffer_type not in (UByte, UShort, UInt):
 		raise ValueError("index_buffer_type must be unsigned")
 	ais = list(ais)
-	mi = _all_matrices.get(matrix_id, None)
-	if mi is not None: ais.append(AttributeInfo("instanceTransform", mi.data_id, 0, 0, 16, Float))
+	if matrix_id == 0:
+		mi = _MatrixInfo(0, False)
+	else:
+		mi = _all_matrices.get(matrix_id, None)
+	if mi is not None:
+		ais.append(AttributeInfo("instanceTransform", mi.data_id, 0, 0, 16, Float))
 	oi = _ObjectInfo(program_id, matrix_id, ais,
 			primitive_type, first, count,
 			index_data_id, index_buffer_type)

@@ -50,6 +50,7 @@ private:
 
 public:
     void  add_bond(Bond *b) { add_connection(b); }
+    char  alt_loc() const { return _alt_loc; }
     float  bfactor() const;
     Bonds  bonds() const { return connections(); }
     const BondsMap &    bonds_map() const { return connections_map(); }
@@ -60,6 +61,7 @@ public:
     Molecule *  molecule() const { return _molecule; }
     const std::string  name() const { return _name; }
     float  occupancy() const;
+    int  serial_number() const { return _serial_number; }
     void  register_field(std::string name, int value) {}
     void  register_field(std::string name, double value) {}
     void  register_field(std::string name, const std::string value) {}

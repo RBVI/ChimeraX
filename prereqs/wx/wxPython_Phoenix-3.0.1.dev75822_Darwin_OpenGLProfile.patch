@@ -1,0 +1,64 @@
+diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/include/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/include/wx/glcanvas.h
+--- wxPython_Phoenix-3.0.1.dev75822/wxWidgets/include/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
++++ wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/include/wx/glcanvas.h	2014-02-21 09:25:01.000000000 -0800
+@@ -48,7 +48,13 @@
+     WX_GL_MIN_ACCUM_BLUE,  // use blue buffer with most bits (> MIN_ACCUM_BLUE bits)
+     WX_GL_MIN_ACCUM_ALPHA, // use alpha buffer with most bits (> MIN_ACCUM_ALPHA bits)
+     WX_GL_SAMPLE_BUFFERS,  // 1 for multisampling support (antialiasing)
+-    WX_GL_SAMPLES          // 4 for 2x2 antialiasing supersampling on most graphics cards
++    WX_GL_SAMPLES,         // 4 for 2x2 antialiasing supersampling on most graphics cards
++    WX_GL_OPENGL_PROFILE,  // opengl profile selector for Mac OS X
++};
++
++enum {
++    WX_GL_OPENGL_PROFILE_LEGACY,
++    WX_GL_OPENGL_PROFILE_3_2CORE,
+ };
+ 
+ #define wxGLCanvasName wxT("GLCanvas")
+diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/interface/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/interface/wx/glcanvas.h
+--- wxPython_Phoenix-3.0.1.dev75822/wxWidgets/interface/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
++++ wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/interface/wx/glcanvas.h	2014-02-21 09:25:10.000000000 -0800
+@@ -137,8 +137,18 @@
+     WX_GL_SAMPLE_BUFFERS,
+ 
+     /// 4 for 2x2 antialiasing supersampling on most graphics cards
+-    WX_GL_SAMPLES
++    WX_GL_SAMPLES,
+ 
++    /// OpenGL profile selector for Mac OS X
++    WX_GL_OPENGL_PROFILE,
++};
++
++enum {
++    /// Legacy OpenGL 1.x/2.x profile
++    WX_GL_OPENGL_PROFILE_LEGACY,
++
++    /// OpenGL 3.2+ profile (no legacy support)
++    WX_GL_OPENGL_PROFILE_3_2CORE,
+ };
+ 
+ /**
+diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/src/osx/cocoa/glcanvas.mm wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/src/osx/cocoa/glcanvas.mm
+--- wxPython_Phoenix-3.0.1.dev75822/wxWidgets/src/osx/cocoa/glcanvas.mm	2013-09-25 23:31:20.000000000 -0700
++++ wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/src/osx/cocoa/glcanvas.mm	2014-02-21 09:25:30.000000000 -0800
+@@ -213,6 +213,19 @@
+                     data[p++] = NSOpenGLPFASamples;
+                     data[p++] = (NSOpenGLPixelFormatAttribute) attribList[arg++];
+                     break;
++
++                case WX_GL_OPENGL_PROFILE:
++                    data[p++] = NSOpenGLPFAOpenGLProfile;
++                    switch ( attribList[arg++] ) {
++                        case WX_GL_OPENGL_PROFILE_LEGACY:
++                        default:
++                            data[p++] = NSOpenGLProfileVersionLegacy;
++                            break;
++                        case WX_GL_OPENGL_PROFILE_3_2CORE:
++                            data[p++] = NSOpenGLProfileVersion3_2Core;
++                            break;
++                    }
++                    break;
+             }
+         }
+ 

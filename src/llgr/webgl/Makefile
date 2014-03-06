@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-JS = llgr_webgl.js webgl-debug.js webgl-utils.js
+JS = llgr_webgl.js
 
 all:
 

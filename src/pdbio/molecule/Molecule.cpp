@@ -186,6 +186,38 @@ Molecule::find_residue(std::string &chain_id, int pos, char insert, std::string 
     return NULL;
 }
 
+void
+Molecule::make_chains(Molecule::Res_Lists* chain_members,
+    Molecule::Sequences* full_sequences) const
+// if both args supplied, the res lists in chain_members correspond
+// one for one with the sequences in full_sequences (including possible
+// null residue pointers);  if just chain_members supplied, use SEQRES
+// records if available to form full sequence, and the chain_members
+// may need het residues weeded out and in some cases broken into more
+// chains (but never combined);  if neither supplied, use the residues
+// stored in the Molecule and break them into chains ala the chain_members-
+// only case and extract the sequence from them
+{
+    Res_Lists* chain_membs = chain_members;
+    Sequences* full_seqs = full_sequences;
+
+    if (chain_membs == nullptr) {
+        chain_membs = new Res_Lists;
+        Residues::const_iterator ri = _residues.begin();
+        Residue* prev = ri->get();
+        ri++;
+        while(ri != _residues.end()) {
+            Residue* cur = ri->get();
+            ri++;
+        }
+    }
+
+    if (chain_members == nullptr)
+        delete chain_membs;
+    if (full_sequences == nullptr)
+        delete full_seqs;
+}
+
 Atom *
 Molecule::new_atom(std::string &name, Element e)
 {

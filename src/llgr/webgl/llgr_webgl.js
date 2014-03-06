@@ -1263,7 +1263,7 @@ llgr = {
 			if (bi.buffer)
 				gl.deleteBuffer(bi.buffer);
 		});
-		all_buffers = {};
+		all_buffers = null;
 		llgr.clear_matrices();
 		llgr.clear_primitives();
 	},
@@ -1360,7 +1360,11 @@ llgr = {
 			ais.push(new llgr.AttributeInfo(name, data_id, offset,
 					stride, cnt, data_type, normalized));
 		}
-		var mi = all_matrices[matrix_id];
+		var mi;
+		if (matrix_id === 0)
+			mi = new MatrixInfo(0, false);
+		else
+			mi = all_matrices[matrix_id];
 		if (mi !== undefined) {
 			ais.push(new llgr.AttributeInfo("instanceTransform",
 					mi.data_id, 0, 0, 16, llgr.Float));
