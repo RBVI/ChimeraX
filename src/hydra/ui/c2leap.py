@@ -19,39 +19,53 @@ class LeapListener(Leap.Listener):
         				#  millimeter of physical motion
         self.min_translation = 15       # millimeters
 
-    def on_init(self, controller):
-        print ("Initialized leap")
+        self.frames = []
+        viewer.add_new_frame_callback(self.process_leap_events)
 
-    def on_connect(self, controller):
-        print ("Connected leap")
-        if not controller.has_focus:
-            print('Application does not have Leap focus')
+    # def on_init(self, controller):
+    #     print ("Initialized leap")
 
-    def on_focus_gained(self, controller):
-        print ("App got Leap focus")
+    # def on_connect(self, controller):
+    #     print ("Connected leap")
+    #     if not controller.has_focus:
+    #         print('Application does not have Leap focus')
 
-    def on_focus_lost(self, controller):
-        print ("App lost Leap focus")
+    # def on_focus_gained(self, controller):
+    #     print ("App got Leap focus")
 
-    def on_disconnect(self, controller):
-        # Note: not dispatched when running in a debugger.
-        print ("Disconnected leap")
+    # def on_focus_lost(self, controller):
+    #     print ("App lost Leap focus")
 
-    def on_exit(self, controller):
-        print ("Exited leap")
+    # def on_disconnect(self, controller):
+    #     # Note: not dispatched when running in a debugger.
+    #     print ("Disconnected leap")
+
+    # def on_exit(self, controller):
+    #     print ("Exited leap")
 
     def on_frame(self, controller):
-        m = self.mode
-        if m == 'chopsticks':
-            self.chopsticks(controller)
-        elif m == 'position':
-            self.position(controller)
-        elif m == 'velocity':
-            self.velocity(controller)
+        # Callbacks happen in a different thread.
+        # So queue them up and process them before redraw in main thread.
+        f = controller.frame()
+        self.frames.append(f)
 
-    def chopsticks(self, controller):
+    def process_leap_events(self):
+        if len(self.frames) == 0:
+            return
+        m = self.mode
+        flist = tuple(self.frames)
+        self.frames = []
+        for f in flist:
+            if m == 'chopsticks':
+                self.chopsticks(f)
+            elif m == 'position':
+                self.position(f)
+            elif m == 'velocity':
+                self.velocity(f)
+        self.viewer.redraw_needed = True
+
+    def chopsticks(self, frame):
         # Get the most recent frame and report some basic information
-        frame = controller.frame()
         hands = frame.hands
         if len(hands) != 2:
             return
@@ -78,26 +92,29 @@ class LeapListener(Leap.Listener):
 
         v = self.viewer
         s = max(v.window_size)*v.pixel_size()
+        tf = v.camera.view()
         if zmag == mmax:
             # Zoom
             f = dsep/sep
-            v.translate(0, 0, f*s)
+            ts = tf.apply_without_translation((0, 0, f*s))       # Scene coordinates
+            v.translate(ts)
         elif tmag == mmax:
             # Translate (coordinates in millimeters)
             f = s*self.translation_speed
-            tx,ty,tz = keep_within_frustum((f*dmid[0], f*dmid[1], 0), v)
-            v.translate(tx,ty,tz)
+            tc = keep_within_frustum((f*dmid[0], f*dmid[1], 0), v)
+            ts = tf.apply_without_translation(tc)	# Scene coordinates
+            v.translate(ts)
         elif rmag == mmax:
             # Rotation
             from math import pi
-            v.rotate(raxis, self.rotation_speed*rangle*180/pi)
+            saxis = tf.apply_without_translation(raxis)       # Scene coordinates
+            v.rotate(saxis, self.rotation_speed*rangle*180/pi)
 
         self.last_time = t
         self.last_positions = (p1,p2)
 
-    def position(self, controller):
+    def position(self, frame):
         # Get the most recent frame and report some basic information
-        frame = controller.frame()
         hands = frame.hands
         if len(hands) != 1:
             return
@@ -137,19 +154,21 @@ class LeapListener(Leap.Listener):
 
         v = self.viewer
         s = max(v.window_size)*v.pixel_size()
+        tf = v.camera.view()
         if tmag == mmax:
             # Translate (coordinates in millimeters)
             f = s*self.translation_speed
-            tx,ty,tz = keep_within_frustum((f*t[0], f*t[1], f*t[2]), v)
-            v.translate(tx,ty,tz)
+            tc = keep_within_frustum((f*t[0], f*t[1], f*t[2]), v)
+            ts = tf.apply_without_translation(tc)       # Scene coordinates
+            v.translate(ts)
         elif rmag == mmax:
             # Rotation
+            saxis = tf.apply_without_translation(axis)       # Scene coordinates
             from math import pi
-            v.rotate(axis, self.rotation_speed*angle*180/pi)
+            v.rotate(saxis, self.rotation_speed*angle*180/pi)
 
-    def velocity(self, controller):
+    def velocity(self, frame):
         # Get the most recent frame and report some basic information
-        frame = controller.frame()
         hands = frame.hands
         if len(hands) != 1:
             return
@@ -184,18 +203,21 @@ class LeapListener(Leap.Listener):
 
         v = self.viewer
         s = max(v.window_size)*v.pixel_size()
+        tf = v.camera.view()
         if tmag == mmax:
             # Translate (coordinates in millimeters)
             if tmag >= self.min_translation:
                 f = 0.03*s*self.translation_speed*(1.0-self.min_translation/tmag)**2
-                tx,ty,tz = keep_within_frustum((f*t[0], f*t[1], f*t[2]), v)
-                v.translate(tx,ty,tz)
+                tc = keep_within_frustum((f*t[0], f*t[1], f*t[2]), v)
+                ts = tf.apply_without_translation(tc)       # Scene coordinates
+                v.translate(ts)
         elif rmag == mmax:
             # Rotation
             from math import pi
             if angle >= self.min_rotation*pi/180:
+                saxis = tf.apply_without_translation(axis)       # Scene coordinates
                 ra = 0.1*self.rotation_speed*angle*180/pi*(1.0 - self.min_rotation/(angle*180/pi))**2
-                v.rotate(axis, ra)
+                v.rotate(saxis, ra)
 
 def chopstick_motion(lp, p):
     from math import sqrt, asin
@@ -224,11 +246,11 @@ def chopstick_motion(lp, p):
 def keep_within_frustum(t, v):
 
     c = v.center_of_rotation
-    cvi = v.camera.view_inverse
+    cvi = v.camera.view_inverse()
     p1 = cvi * c
     p2 = add(p1, t)
     from math import pi, sin, cos
-    a = 0.5*v.field_of_view*pi/180
+    a = 0.5*v.camera.field_of_view*pi/180
     ca, sa = cos(a), sin(a)
     ww,wh = v.window_size
     aspect = float(wh)/ww
@@ -355,3 +377,13 @@ def quit_leap(session):
     v = session.view
     if hasattr(v, 'leap_listener'):
         v.leap_controller.remove_listener(v.leap_listener)
+
+def leap_command(enable = None, mode = None, session = None):
+
+    if not enable is None:
+        leap_listener(session.view)
+    else:
+        quit_leap(session)
+
+    if not mode is None:
+        leap_mode(mode, session)
