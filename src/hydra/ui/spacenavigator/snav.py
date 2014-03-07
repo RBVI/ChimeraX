@@ -162,7 +162,7 @@ def space_navigator(session):
 # -----------------------------------------------------------------------------
 #
 def toggle_space_navigator(session):
-    sn = space_navigator()
+    sn = space_navigator(session)
     if sn.processing_events:
         sn.stop_event_processing(session)
     else:
