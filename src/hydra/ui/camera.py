@@ -24,6 +24,8 @@ class Camera:
         self.eye_separation_scene = 1.0           # Scene distance units
         self.eye_separation_pixels = eye_separation_pixels        # Screen pixel units
 
+        self.warp_window_size = window_size       # Used for scaling in oculus mode
+
         self.redraw_needed = False
 
     def initialize_view(self, center, size):
@@ -146,18 +148,18 @@ class Camera:
         if far <= near:
             far = 2*near
         w = 2*near*tan(0.5*fov)
-        ww,wh = self.window_size if win_size is None else win_size
+        ww,wh = w0,h0 = self.window_size if win_size is None else win_size
         m = self.mode
         if m == 'oculus':
             # Only half of window width used per eye in oculus mode.
-            ww *= 0.5
+            ww,wh = self.warp_window_size
         aspect = float(wh)/ww
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
         if m in ('stereo','oculus') and not view_num is None:
             s = -1 if view_num == 0 else 1
             esp = self.eye_separation_pixels
-            xwshift = s*float(esp)/ww
+            xwshift = s*float(esp)/(0.5*w0)
         else:
             xwshift = 0
         pm = frustum(left, right, bot, top, near, far, xwshift)
@@ -229,14 +231,12 @@ class Camera:
             if view_num == 0:
                 coffset = -coffset
             render.warp_center = (0.5 + coffset, 0.5)
-#            render.radial_warp_coefficients = (1,1.8,0,0)
             return self.warping_surface(render)
         return None
 
     def warping_framebuffer(self):
 
-        w,th = self.window_size
-        tw = w // 2 if self.mode == 'oculus' else w
+        tw,th = self.warp_window_size
         fb = getattr(self, 'warp_framebuffer', None)
         if fb is None or fb.width != tw or fb.height != th:
             from .. import draw
