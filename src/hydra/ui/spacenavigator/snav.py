@@ -152,17 +152,22 @@ def find_device():
 
 # -----------------------------------------------------------------------------
 #
-def toggle_space_navigator(session):
+def space_navigator(session):
     sn = session.space_navigator
     if sn is None:
         sn = Space_Navigator()
-        success = sn.start_event_processing(session)
-        session.show_info('started space navigator: %s' % str(bool(success)))
         session.space_navigator = sn
-    elif sn.processing_events:
+    return sn
+
+# -----------------------------------------------------------------------------
+#
+def toggle_space_navigator(session):
+    sn = space_navigator()
+    if sn.processing_events:
         sn.stop_event_processing(session)
     else:
-        sn.start_event_processing(session)
+        success = sn.start_event_processing(session)
+        session.show_info('started space navigator: %s' % str(bool(success)))
 
 # -----------------------------------------------------------------------------
 #
@@ -183,3 +188,17 @@ def avoid_collisions(session):
         sn.collision_map = maps[0]
     else:
         sn.collision_map = None
+
+# -----------------------------------------------------------------------------
+#
+def snav_command(enable = None, fly = None, session = None):
+
+    sn = space_navigator(session)
+    if not enable is None:
+        if enable:
+            sn.start_event_processing(session)
+        else:
+            sn.stop_event_processing(session)
+        
+    if not fly is None:
+        sn.fly_mode = bool(fly)
