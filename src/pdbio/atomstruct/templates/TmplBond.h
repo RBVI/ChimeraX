@@ -7,7 +7,7 @@
 class TmplAtom;
 class TmplMolecule;
 
-class MOLECULE_IMEX TmplBond {
+class ATOMSTRUCT_IMEX TmplBond {
     friend class TmplAtom;
     friend class TmplMolecule;
     void    operator=(const TmplBond &);    // disable

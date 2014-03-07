@@ -13,7 +13,7 @@
 #include "TmplResidue.h"
 #include "../imex.h"
 
-class MOLECULE_IMEX TmplMolecule {
+class ATOMSTRUCT_IMEX TmplMolecule {
 public:
         ~TmplMolecule();
     TmplAtom    *new_atom(std::string n, Element e);

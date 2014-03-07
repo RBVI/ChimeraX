@@ -13,7 +13,7 @@ class TmplMolecule;
 class TmplResidue;
 class TmplBond;
 
-class MOLECULE_IMEX TmplAtom {
+class ATOMSTRUCT_IMEX TmplAtom {
     friend class TmplMolecule;
     friend class TmplResidue;
     void    operator=(const TmplAtom &);    // disable

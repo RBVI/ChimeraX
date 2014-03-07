@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef molecule_Atom
-#define molecule_Atom
+#ifndef atomic_Atom
+#define atomic_Atom
 
 #include <vector>
 #include <string>
@@ -14,11 +14,11 @@
 #include "imex.h"
 
 class CoordSet;
-class Molecule;
+class AtomicStructure;
 class Residue;
 
-class MOLECULE_IMEX Atom: public BaseSphere<Bond, Atom> {
-    friend class Molecule;
+class ATOMSTRUCT_IMEX Atom: public BaseSphere<Bond, Atom> {
+    friend class AtomicStructure;
     friend class Residue;
 public:
     typedef ConnectionsMap BondsMap;
@@ -26,10 +26,10 @@ public:
 
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
-    Atom(Molecule *m, std::string &name, Element e);
+    Atom(AtomicStructure *as, std::string &name, Element e);
     unsigned int  _coord_index;
     Element  _element;
-    Molecule *  _molecule;
+    AtomicStructure *  _structure;
     std::string  _name;
     Residue *  _residue;
     typedef struct {
@@ -58,7 +58,7 @@ public:
     unsigned int  coord_index() const { return _coord_index; }
     virtual const Coord &coord() const;
     Element  element() const { return _element; }
-    Molecule *  molecule() const { return _molecule; }
+    AtomicStructure *  structure() const { return _structure; }
     const std::string  name() const { return _name; }
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
@@ -76,4 +76,4 @@ public:
     void  set_serial_number(int);
 };
 
-#endif  // molecule_Atom
+#endif  // atomic_Atom

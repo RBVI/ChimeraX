@@ -8,7 +8,7 @@
 #include "../imex.h"
 
 
-MOLECULE_IMEX extern const TmplResidue *
+ATOMSTRUCT_IMEX extern const TmplResidue *
     find_template_residue(const std::string &name, bool start, bool end);
 
 #endif  // templates_residues
