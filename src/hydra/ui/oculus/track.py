@@ -4,6 +4,7 @@ class Oculus_Head_Tracking:
 
     def __init__(self):
 
+        self.connected = False
         self.last_rotation = None
         self.view = None
         self.scale = 1.0        # Scale eye images to fill oculus display.
@@ -12,14 +13,18 @@ class Oculus_Head_Tracking:
         self.min_angle_change = 1e-4
         self.min_axis_change = 1e-4
         self.predict_orientation = 0.030        # Time (seconds) in future to predict oculus orientation.
+        self.frame_cb = None
 
     def start_event_processing(self, view):
 
         from . import _oculus
-        try:
-            _oculus.connect()
-        except:
-            return False
+
+        if not self.connected:
+            try:
+                _oculus.connect()
+                self.connected = True
+            except:
+                return False
 
         _oculus.set_prediction_time(self.predict_orientation)
 
@@ -31,8 +36,15 @@ class Oculus_Head_Tracking:
         print('oculus image shift %.1f pixels' % self.image_shift_pixels())
 
         self.view = view
-        view.add_new_frame_callback(self.use_oculus_orientation)
+        if self.frame_cb is None:
+            self.frame_cb = self.use_oculus_orientation
+            view.add_new_frame_callback(self.frame_cb)
         return True
+
+    def stop_event_processing(self):
+        if self.frame_cb:
+            self.view.remove_new_frame_callback(self.frame_cb)
+            self.frame_cb = None
 
     def display_size(self):
 
@@ -144,24 +156,35 @@ class Oculus_Head_Tracking:
 def start_oculus(session):
 
     oht = session.oculus
-    start = (oht is None)
-    if start:
-        session.oculus = oht = initialize_head_tracking(session)
+    if oht is None:
+        session.oculus = oht = Oculus_Head_Tracking()
+
+    if oht:
+        success = oht.start_event_processing(session.view)
+        msg = 'started oculus head tracking ' if success else 'failed to start oculus head tracking'
+        session.show_status(msg)
+        session.show_info(msg)
+        oculus_full_screen(True, session)
 
     set_oculus_camera_mode(session)
 
-    if oht:
-        oculus_full_screen(start, session)
+def oculus_on(session):
 
-def initialize_head_tracking(session):
+    oht = session.oculus
+    return oht and oht.frame_cb
 
-    oht = Oculus_Head_Tracking()
-    view = session.view
-    success = oht.start_event_processing(view)
-    msg = 'started oculus head tracking ' + ('success' if success else 'failed')
-    session.show_status(msg)
-    session.show_info(msg)
-    return oht if success else None
+def stop_oculus(session):
+
+    oht = session.oculus
+    if oht is None:
+        return
+    oht.stop_event_processing()
+
+    oculus_full_screen(False, session)
+
+    v = session.view
+    v.set_camera_mode('mono')
+    v.field_of_view = 30.0
 
 # Set stereo camera mode
 def set_oculus_camera_mode(session):
@@ -235,3 +258,10 @@ def move_window_to_primary_screen(session):
     mw.move(x, 0)       # Work around bug where y-placement is wrong.
     mw.move(x, y)
 
+def oculus_command(enable = None, session = None):
+
+    if not enable is None:
+        if enable:
+            start_oculus(session)
+        else:
+            stop_oculus(session)
