@@ -14,6 +14,9 @@ class Space_Navigator:
 
     def start_event_processing(self, session):
 
+        if self.processing_events:
+            return True
+
         if self.device is None:
             try:
                 self.device = find_device()
@@ -172,10 +175,10 @@ def toggle_space_navigator(session):
 # -----------------------------------------------------------------------------
 #
 def toggle_fly_mode(session):
-    sn = session.space_navigator
-    if sn is None:
-        toggle_space_navigator(session)
+    sn = space_navigator(session)
     sn.fly_mode = not sn.fly_mode
+    if not sn.processing_events:
+        toggle_space_navigator(session)
 
 # -----------------------------------------------------------------------------
 #
