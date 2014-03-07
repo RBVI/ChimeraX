@@ -6,7 +6,7 @@
 
 extern PyTypeObject AtomBlob_type;
 
-#include "molecule/Atom.h"
+#include "atomstruct/Atom.h"
 typedef RawBlob<Atom> AtomBlob;
 
 extern template BLOB_IMEX PyObject* newBlob<AtomBlob>(PyTypeObject*);

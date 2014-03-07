@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef molecule_Element
-# define molecule_Element
+#ifndef atomic_Element
+# define atomic_Element
 
 // Copyright (c) 1996-2009 The Regents of the University of California.
 // All rights reserved.
@@ -26,7 +26,7 @@
 #include <iostream>
 #include "imex.h"
 
-class MOLECULE_IMEX Element {
+class ATOMSTRUCT_IMEX Element {
 public:
     // Atomic Symbols:
     enum AS {
@@ -74,4 +74,4 @@ operator<<(std::ostream &os, const Element &a)
     return os;
 }
 
-#endif  // molecule_Element
+#endif  // atomic_Element

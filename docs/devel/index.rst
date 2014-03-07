@@ -64,4 +64,4 @@ Miscellaneous Modules
 
    pdbio.rst
 
-   molaccess.rst
+   structaccess.rst

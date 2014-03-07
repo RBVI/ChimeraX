@@ -2,12 +2,12 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
-#include "Molecule.h"
+#include "AtomicStructure.h"
 #include <utility>  // for std::pair
 #include <stdexcept>
 
-Atom::Atom(Molecule *m, std::string &name, Element e):
-    _name(name), _molecule(m), _residue(NULL), _element(e),
+Atom::Atom(AtomicStructure *as, std::string &name, Element e):
+    _name(name), _structure(as), _residue(NULL), _element(e),
     _coord_index(COORD_UNASSIGNED), _alt_loc(' '), _serial_number(-1),
     _aniso_u(NULL), BaseSphere<Bond, Atom>()
 {
@@ -20,18 +20,18 @@ Atom::bfactor() const
         _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
         return (*i).second.bfactor;
     }
-    return molecule()->active_coord_set()->get_bfactor(this);
+    return structure()->active_coord_set()->get_bfactor(this);
 }
 
 void
 Atom::_coordset_set_coord(const Point &coord)
 {
-    CoordSet *cs = molecule()->active_coord_set();
+    CoordSet *cs = structure()->active_coord_set();
     if (cs == NULL) {
-        cs = molecule()->find_coord_set(0);
+        cs = structure()->find_coord_set(0);
         if (cs == NULL)
-            cs = molecule()->new_coord_set(0);
-        molecule()->set_active_coord_set(cs);
+            cs = structure()->new_coord_set(0);
+        structure()->set_active_coord_set(cs);
     }
     set_coord(coord, cs);
 }
@@ -39,8 +39,8 @@ Atom::_coordset_set_coord(const Point &coord)
 void
 Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
 {
-    if (molecule()->active_coord_set() == NULL)
-        molecule()->set_active_coord_set(cs);
+    if (structure()->active_coord_set() == NULL)
+        structure()->set_active_coord_set(cs);
     if (_coord_index == COORD_UNASSIGNED)
         _coord_index = _new_coord(coord);
     else if (_coord_index >= cs->coords().size()) {
@@ -50,7 +50,7 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs)
                 while (_coord_index > fill_cs->coords().size()) {
                     fill_cs->add_coord(Point());
                 }
-                fill_cs = molecule()->find_coord_set(fill_cs->id()-1);
+                fill_cs = structure()->find_coord_set(fill_cs->id()-1);
             }
         }
         cs->add_coord(coord);
@@ -63,7 +63,7 @@ unsigned int
 Atom::_new_coord(const Point &coord)
 {
     unsigned int index = COORD_UNASSIGNED;
-    auto& css = molecule()->coord_sets();
+    auto& css = structure()->coord_sets();
     for (auto csi = css.begin(); csi != css.end(); ++csi) {
         CoordSet *cs = (*csi).get();
         if (index == COORD_UNASSIGNED) {
@@ -85,7 +85,7 @@ Atom::coord() const
         _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
         return (*i).second.coord;
     }
-    CoordSet *cs = molecule()->active_coord_set();
+    CoordSet *cs = structure()->active_coord_set();
     if (cs == NULL)
         throw std::logic_error("no active coordinate set");
     return cs->coords()[_coord_index];
@@ -98,7 +98,7 @@ Atom::occupancy() const
         _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
         return (*i).second.occupancy;
     }
-    return molecule()->active_coord_set()->get_occupancy(this);
+    return structure()->active_coord_set()->get_occupancy(this);
 }
 
 void
@@ -162,20 +162,20 @@ Atom::set_bfactor(float bfactor)
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.bfactor = bfactor;
     } else
-        molecule()->active_coord_set()->set_bfactor(this, bfactor);
+        structure()->active_coord_set()->set_bfactor(this, bfactor);
 }
 
 void
 Atom::set_coord(const Coord &coord, CoordSet *cs)
 {
     if (cs == NULL) {
-        cs = molecule()->active_coord_set();
+        cs = structure()->active_coord_set();
         if (cs == NULL) {
-            cs = molecule()->find_coord_set(0);
+            cs = structure()->find_coord_set(0);
             if (cs == NULL) {
-                cs = molecule()->new_coord_set(0);
+                cs = structure()->new_coord_set(0);
             }
-            molecule()->set_active_coord_set(cs);
+            structure()->set_active_coord_set(cs);
         }
     }
     
@@ -195,7 +195,7 @@ Atom::set_occupancy(float occupancy)
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.occupancy = occupancy;
     } else
-        molecule()->active_coord_set()->set_occupancy(this, occupancy);
+        structure()->active_coord_set()->set_occupancy(this, occupancy);
 }
 
 void

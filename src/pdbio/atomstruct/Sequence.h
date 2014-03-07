@@ -1,13 +1,13 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef molecule_Sequence
-#define molecule_Sequence
+#ifndef atomic_Sequence
+#define atomic_Sequence
 
 #include <vector>
 #include <map>
 #include <string>
 #include "imex.h"
 
-class MOLECULE_IMEX Sequence {
+class ATOMSTRUCT_IMEX Sequence {
 public:
     typedef std::vector<unsigned char> Contents;
 protected:
@@ -25,4 +25,4 @@ public:
     const Contents&  sequence() const { return _sequence; }
 };
 
-#endif  // molecule_Sequence
+#endif  // atomic_Sequence

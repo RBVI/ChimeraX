@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef molecule_CoordSet
-#define molecule_CoordSet
+#ifndef atomic_CoordSet
+#define atomic_CoordSet
 
 #include "base-geom/Coord.h"
 #include "imex.h"
@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-class MOLECULE_IMEX CoordSet {
+class ATOMSTRUCT_IMEX CoordSet {
     friend class Atom;
-    friend class Molecule;
+    friend class AtomicStructure;
 
 public:
     typedef std::vector<Coord>  Coords;
@@ -35,4 +35,4 @@ public:
     void  set_occupancy(const Atom *, float);
 };
 
-#endif  // molecule_CoordSet
+#endif  // atomic_CoordSet

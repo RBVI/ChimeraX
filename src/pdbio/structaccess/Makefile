@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
-PYMOD_NAME = molaccess
+PYMOD_NAME = structaccess
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
 ifneq ($(OS),Windows)
 CXXFLAGS += -Wno-invalid-offsetof -Wno-deprecated-writable-strings

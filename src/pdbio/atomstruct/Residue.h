@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef molecule_Residue
-#define molecule_Residue
+#ifndef atomic_Residue
+#define atomic_Residue
 
 #include <vector>
 #include <map>
@@ -8,22 +8,22 @@
 #include "imex.h"
 
 class Atom;
-class Molecule;
+class AtomicStructure;
 
-class MOLECULE_IMEX Residue {
-    friend class Molecule;
+class ATOMSTRUCT_IMEX Residue {
+    friend class AtomicStructure;
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<std::string, Atom *>  AtomsMap;
 private:
-    Residue(Molecule *m, std::string &name, std::string &chain, int pos, char insert);
+    Residue(AtomicStructure *as, std::string &name, std::string &chain, int pos, char insert);
     Atoms  _atoms;
     std::string  _chain_id;
     char  _insertion_code;
     bool  _is_helix;
     bool  _is_het;
     bool  _is_sheet;
-    Molecule *  _molecule;
+    AtomicStructure *  _structure;
     std::string  _name;
     int  _position;
     int  _ss_id;
@@ -47,4 +47,4 @@ public:
     std::string  str() const;
 };
 
-#endif  // molecule_Residue
+#endif  // atomic_Residue

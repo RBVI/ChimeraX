@@ -1,15 +1,15 @@
 // vim: set expandtab ts=4 sw=4:
 #include "PDBio.h"
 #include "pdb/PDB.h"
-#include "molecule/Molecule.h"
-#include "molecule/Residue.h"
-#include "molecule/Bond.h"
-#include "molecule/Atom.h"
-#include "molecule/CoordSet.h"
-#include "molecule/templates/TmplResidue.h"
-#include "molecule/templates/TmplAtom.h"
-#include "molecule/templates/residues.h"
-#include "blob/MolBlob.h"
+#include "atomstruct/AtomicStructure.h"
+#include "atomstruct/Residue.h"
+#include "atomstruct/Bond.h"
+#include "atomstruct/Atom.h"
+#include "atomstruct/CoordSet.h"
+#include "atomstruct/templates/TmplResidue.h"
+#include "atomstruct/templates/TmplAtom.h"
+#include "atomstruct/templates/residues.h"
+#include "blob/StructBlob.h"
 #include <set>
 #include <sstream>
 #include <algorithm>  // for std::sort
@@ -179,11 +179,11 @@ std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
 static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_postswitch_t, cum_postloop_t;
 #endif
 // return NULL on error
-// return input if PDB records implying a molecule encountered
+// return input if PDB records implying a structure encountered
 // return PyNone otherwise (e.g. only blank lines, MASTER records, etc.)
 static void *
-read_one_molecule(std::pair<char *, PyObject *> (*read_func)(void *),
-    void *input, Molecule *m,
+read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
+    void *input, AtomicStructure *as,
     int *line_num, std::map<int, Atom *> &asn,
     std::vector<Residue *> *start_residues,
     std::vector<Residue *> *end_residues,
@@ -195,11 +195,11 @@ read_one_molecule(std::pair<char *, PyObject *> (*read_func)(void *),
 {
     bool        start_connect = true;
     int            in_model = 0;
-    Molecule::Residues::size_type cur_res_index = 0;
+    AtomicStructure::Residues::size_type cur_res_index = 0;
     Residue        *cur_residue = NULL;
     MolResId    cur_rid;
     PDB            record;
-    bool        actual_molecule = false;
+    bool        actual_structure = false;
     bool        in_headers = true;
     bool        is_SCOP = false;
     bool        is_babel = false; // have we seen Babel-style atom names?
@@ -277,8 +277,8 @@ start_t = end_t;
 
           case PDB::MODEL: {
             cur_res_index = 0;
-            if (in_model && !m->residues().empty())
-                cur_residue = m->residues()[0].get();
+            if (in_model && !as->residues().empty())
+                cur_residue = as->residues()[0].get();
             else {
                 cur_residue = NULL;
                 if (in_model)
@@ -293,23 +293,23 @@ start_t = end_t;
             int csid = record.model.serial;
             if (in_model > 1) {
                 // make additional CoordSets same size as others
-                int cs_size = m->active_coord_set()->coords().size();
-                if (!explode && csid > m->active_coord_set()->id() + 1) {
+                int cs_size = as->active_coord_set()->coords().size();
+                if (!explode && csid > as->active_coord_set()->id() + 1) {
                     // fill in coord sets for Monte-Carlo
                     // trajectories
-                    const CoordSet *acs = m->active_coord_set();
+                    const CoordSet *acs = as->active_coord_set();
                     for (int fill_in_ID = acs->id()+1; fill_in_ID < csid; ++fill_in_ID) {
-                        CoordSet *cs = m->new_coord_set(fill_in_ID, cs_size);
+                        CoordSet *cs = as->new_coord_set(fill_in_ID, cs_size);
                         cs->fill(acs);
                     }
                 }
-                CoordSet *cs = m->new_coord_set(csid, cs_size);
-                m->set_active_coord_set(cs);
-                m->is_traj = true;
+                CoordSet *cs = as->new_coord_set(csid, cs_size);
+                as->set_active_coord_set(cs);
+                as->is_traj = true;
             } else {
                 // first CoordSet starts empty
-                CoordSet *cs = m->new_coord_set(csid);
-                m->set_active_coord_set(cs);
+                CoordSet *cs = as->new_coord_set(csid);
+                as->set_active_coord_set(cs);
             }
             break;
         }
@@ -317,11 +317,11 @@ start_t = end_t;
         case PDB::ENDMDL:
             if (explode)
                 goto finished;
-            if (in_model > 1 && m->coord_sets().size() > 1) {
+            if (in_model > 1 && as->coord_sets().size() > 1) {
                 // fill in coord set for Monte-Carlo
                 // trajectories if necessary
-                CoordSet *acs = m->active_coord_set();
-                const CoordSet *prev_cs = m->find_coord_set(acs->id()-1);
+                CoordSet *acs = as->active_coord_set();
+                const CoordSet *prev_cs = as->find_coord_set(acs->id()-1);
                 if (prev_cs != NULL && acs->coords().size() < prev_cs->coords().size())
                     acs->fill(prev_cs);
             }
@@ -340,12 +340,12 @@ start_t = end_t;
         case PDB::HETATM:
         case PDB::ATOM:
         case PDB::ATOMQR: {
-            actual_molecule = true;
+            actual_structure = true;
 
             std::string aname, rname;
             char cid = record.atom.res.chain_id;
             if (islower(cid))
-                m->lower_case_chains = true;
+                as->lower_case_chains = true;
             if (islower(record.atom.res.i_code))
                 record.atom.res.i_code = toupper(record.atom.res.i_code);
             int seq_num = record.atom.res.seq_num;
@@ -370,19 +370,19 @@ start_t = end_t;
                 if (MolResId(cur_residue) != rid
                 || cur_residue->name() != rname) {
                     if (explode) {
-                        if (cur_res_index + 1 < m->residues().size())
-                            cur_residue = m->residues()[++cur_res_index].get();
+                        if (cur_res_index + 1 < as->residues().size())
+                            cur_residue = as->residues()[++cur_res_index].get();
                     } else {
                         // Monte-Carlo traj?
                         std::string string_cid;
                         string_cid += cid;
-                        cur_residue = m->find_residue(string_cid, seq_num, i_code);
+                        cur_residue = as->find_residue(string_cid, seq_num, i_code);
                         if (cur_residue == NULL) {
                             // if chain ID is space and res is het,
                             // then chain ID probably should be
                             // space, check that...
                             string_cid = " ";
-                            cur_residue = m->find_residue(string_cid, seq_num, i_code);
+                            cur_residue = as->find_residue(string_cid, seq_num, i_code);
                             if (cur_residue != NULL)
                                 rid = MolResId(' ', seq_num, i_code);
                         }
@@ -447,16 +447,16 @@ start_t = end_t;
                 if (start_connect && cur_residue != NULL)
                     end_residues->push_back(cur_residue);
                 cur_rid = rid;
-                cur_residue = m->new_residue(rname, rid.chain, rid.pos, rid.insert);
+                cur_residue = as->new_residue(rname, rid.chain, rid.pos, rid.insert);
                 if (record.type() == PDB::HETATM)
                     cur_residue->set_is_het(true);
-                cur_res_index = m->residues().size() - 1;
+                cur_res_index = as->residues().size() - 1;
                 if (start_connect)
                     start_residues->push_back(cur_residue);
                 start_connect = false;
             }
             aname = record.atom.name;
-            canonicalize_atom_name(&aname, &m->asterisks_translated);
+            canonicalize_atom_name(&aname, &as->asterisks_translated);
             Coord c(record.atom.xyz);
             if (in_model > 1) {
                 Atom *a = cur_residue->find_atom(aname);
@@ -470,7 +470,7 @@ start_t = end_t;
                 // (Monte Carlo trajectories had better use unique names!)
                 if (cur_residue->count_atom(aname) > 1) {
                     // no lookup from coord_index to atom, so search the Residue...
-                    unsigned int index = m->active_coord_set()->coords().size();
+                    unsigned int index = as->active_coord_set()->coords().size();
                     const Residue::Atoms &atoms = cur_residue->atoms();
                     for (Residue::Atoms::const_iterator rai = atoms.begin();
                     rai != atoms.end(); ++rai) {
@@ -552,7 +552,7 @@ start_t = end_t;
                 a->set_bfactor(record.atom.temp_factor);
                 a->set_occupancy(record.atom.occupancy);
             } else {
-                a = m->new_atom(aname, *e);
+                a = as->new_atom(aname, *e);
                 if (record.atom.alt_loc)
                     a->set_alt_loc(record.atom.alt_loc, true);
                 cur_residue->add_atom(a);
@@ -610,7 +610,7 @@ start_t = end_t;
             // used to use them that way
             std::string string_chain_id;
             string_chain_id += record.ssbond.res[0].chain_id;
-            Residue *ssres = m->find_residue(string_chain_id,
+            Residue *ssres = as->find_residue(string_chain_id,
                 record.ssbond.res[0].seq_num, record.ssbond.res[0].i_code);
             if (ssres == NULL)
                 break;
@@ -628,7 +628,7 @@ start_t = end_t;
 
             string_chain_id = "";
             string_chain_id += record.ssbond.res[1].chain_id;
-            ssres = m->find_residue(string_chain_id,
+            ssres = as->find_residue(string_chain_id,
                 record.ssbond.res[1].seq_num, record.ssbond.res[1].i_code);
             if (ssres == NULL)
                 break;
@@ -644,7 +644,7 @@ start_t = end_t;
                 break;
             }
             if (!ap0->connects_to(ap1))
-                (void) ap0->molecule()->new_bond(ap0, ap1);
+                (void) ap0->structure()->new_bond(ap0, ap1);
             break;
         }
         }
@@ -681,7 +681,7 @@ start_t = end_t;
                 for (int i = key.length()-1; i >= 0 && key[i] == ' '; i--)
                     key.erase(i, 1);
                 
-                std::vector<std::string> &h = m->pdb_headers[key];
+                std::vector<std::string> &h = as->pdb_headers[key];
                 h.push_back(std::string((const char *)line));
                 break;
 
@@ -702,12 +702,12 @@ start_t = clock();
     if (cur_residue != NULL) {
         end_residues->push_back(cur_residue);
     }
-    m->pdb_version = record.pdb_input_version();
+    as->pdb_version = record.pdb_input_version();
 
 #ifdef CLOCK_PROFILING
 cum_postloop_t += clock() - start_t;
 #endif
-    if (actual_molecule)
+    if (actual_structure)
         return input;
     return Py_None;
 }
@@ -716,11 +716,11 @@ inline static void
 add_bond(Atom *a1, Atom *a2)
 {
     if (!a1->connects_to(a2))
-        (void) a1->molecule()->new_bond(a1, a2);
+        (void) a1->structure()->new_bond(a1, a2);
 }
 
 // add_bond:
-//    Add a bond to molecule given two atom serial numbers.
+//    Add a bond to structure given two atom serial numbers.
 //    (atom_serial_nums argument should be const, but operator[] isn't const)
 static void
 add_bond(std::map<int, Atom *> &atom_serial_nums, int from, int to, PyObject *log_file)
@@ -744,10 +744,10 @@ add_bond(std::map<int, Atom *> &atom_serial_nums, int from, int to, PyObject *lo
 //    Assign secondary structure state to residues using PDB
 //    HELIX and SHEET records
 void
-assign_secondary_structure(Molecule *m, const std::vector<PDB> &ss, PyObject *log_file)
+assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyObject *log_file)
 {
-    std::vector<std::pair<Molecule::Residues::const_iterator,
-        Molecule::Residues::const_iterator> > strand_ranges;
+    std::vector<std::pair<AtomicStructure::Residues::const_iterator,
+        AtomicStructure::Residues::const_iterator> > strand_ranges;
     int ss_id;
     for (std::vector<PDB>::const_iterator i = ss.begin(); i != ss.end(); ++i) {
         const PDB &r = *i;
@@ -769,7 +769,7 @@ assign_secondary_structure(Molecule *m, const std::vector<PDB> &ss, PyObject *lo
         std::string string_chain_id = "";
         string_chain_id += init->chain_id;
         std::string string_name = init->name;
-        Residue *init_res = m->find_residue(string_chain_id, init->seq_num,
+        Residue *init_res = as->find_residue(string_chain_id, init->seq_num,
             init->i_code, string_name);
         if (init_res == NULL) {
             LOG_PY_ERROR_VOID("Start residue of secondary structure not found: "
@@ -779,17 +779,17 @@ assign_secondary_structure(Molecule *m, const std::vector<PDB> &ss, PyObject *lo
         string_chain_id = "";
         string_chain_id += end->chain_id;
         string_name = end->name;
-        Residue *end_res = m->find_residue(string_chain_id, end->seq_num,
+        Residue *end_res = as->find_residue(string_chain_id, end->seq_num,
             end->i_code, string_name);
         if (end_res == NULL) {
             LOG_PY_ERROR_VOID("End residue of secondary structure not found: "
                 << r.c_str() << '\n');
             continue;
         }
-        Molecule::Residues::const_iterator first = m->residues().end();
-        Molecule::Residues::const_iterator last = m->residues().end();
-        for (Molecule::Residues::const_iterator
-        ri = m->residues().begin(); ri != m->residues().end(); ++ri) {
+        AtomicStructure::Residues::const_iterator first = as->residues().end();
+        AtomicStructure::Residues::const_iterator last = as->residues().end();
+        for (AtomicStructure::Residues::const_iterator
+        ri = as->residues().begin(); ri != as->residues().end(); ++ri) {
             Residue *r = (*ri).get();
             if (r == init_res)
                 first = ri;
@@ -798,18 +798,18 @@ assign_secondary_structure(Molecule *m, const std::vector<PDB> &ss, PyObject *lo
                 break;
             }
         }
-        if (first == m->residues().end()
-        || last == m->residues().end()) {
+        if (first == as->residues().end()
+        || last == as->residues().end()) {
             LOG_PY_ERROR_VOID("Bad residue range for secondary structure: "
                 << r.c_str() << '\n');
             continue;
         }
         if (r.type() == PDB::SHEET)
-            strand_ranges.push_back(std::pair<Molecule::Residues::const_iterator,
-                Molecule::Residues::const_iterator>(first, last));
+            strand_ranges.push_back(std::pair<AtomicStructure::Residues::const_iterator,
+                AtomicStructure::Residues::const_iterator>(first, last));
         else  {
-            for (Molecule::Residues::const_iterator ri = first;
-            ri != m->residues().end(); ++ri) {
+            for (AtomicStructure::Residues::const_iterator ri = first;
+            ri != as->residues().end(); ++ri) {
                 (*ri)->set_is_helix(true);
                 (*ri)->set_ss_id(ss_id);
                 if (ri == last)
@@ -820,15 +820,15 @@ assign_secondary_structure(Molecule *m, const std::vector<PDB> &ss, PyObject *lo
     std::sort(strand_ranges.begin(), strand_ranges.end());
     int id = 0;
     char last_chain = '\0';
-    for (std::vector<std::pair<Molecule::Residues::const_iterator, Molecule::Residues::const_iterator> >::iterator sri = strand_ranges.begin(); sri != strand_ranges.end(); ++sri) {
+    for (std::vector<std::pair<AtomicStructure::Residues::const_iterator, AtomicStructure::Residues::const_iterator> >::iterator sri = strand_ranges.begin(); sri != strand_ranges.end(); ++sri) {
         char chain_id = (*sri->first)->chain_id()[0];
         if (chain_id != last_chain) {
             id = 0;
             last_chain = chain_id;
         }
         ++id;
-        for (Molecule::Residues::const_iterator ri = sri->first;
-        ri != m->residues().end(); ++ri) {
+        for (AtomicStructure::Residues::const_iterator ri = sri->first;
+        ri != as->residues().end(); ++ri) {
             Residue *r = (*ri).get();
             r->set_ss_id(id);
             r->set_is_sheet(true);
@@ -888,10 +888,10 @@ connect_atom_by_distance(Atom *a, const Residue::Atoms &atoms,
             short_dist = dist;
             close_atom = oa;
         } else
-            (void) a->molecule()->new_bond(a, oa);
+            (void) a->structure()->new_bond(a, oa);
     }
     if (H_or_LP && short_dist != 0) {
-        (void) a->molecule()->new_bond(a, close_atom);
+        (void) a->structure()->new_bond(a, close_atom);
     }
 }
 
@@ -948,7 +948,7 @@ connect_residue_by_template(Residue *r, const TmplResidue *tr,
             if (b == NULL)
                 continue;
             if (!a->connects_to(b))
-                (void) a->molecule()->new_bond(a, b);
+                (void) a->structure()->new_bond(a, b);
         }
     }
     // For each atom that wasn't connected (i.e. not in template),
@@ -1036,11 +1036,11 @@ hookup(Atom *a, Residue *res, bool definitely_connect=true)
     return made_connection;
 }
 
-// connect_molecule:
-//    Connect atoms in molecule by template if one is found, or by distance.
+// connect_structure:
+//    Connect atoms in structure by template if one is found, or by distance.
 //    Adjacent residues are connected if appropriate.
 void
-connect_molecule(Molecule *m, std::vector<Residue *> *start_residues,
+connect_structure(AtomicStructure *as, std::vector<Residue *> *start_residues,
     std::vector<Residue *> *end_residues, std::set<Atom *> *conect_atoms,
     std::set<MolResId> *mod_res)
 {
@@ -1049,8 +1049,8 @@ connect_molecule(Molecule *m, std::vector<Residue *> *start_residues,
     Residue *link_res = NULL, *prev_res = NULL, *first_res = NULL;
     Atom *link_atom;
     std::string link_atom_name("");
-    for (Molecule::Residues::const_iterator ri = m->residues().begin();
-    ri != m->residues().end(); ++ri) {
+    for (AtomicStructure::Residues::const_iterator ri = as->residues().begin();
+    ri != as->residues().end(); ++ri) {
         Residue *r = (*ri).get();
 
         if (!first_res)
@@ -1124,8 +1124,8 @@ connect_molecule(Molecule *m, std::vector<Residue *> *start_residues,
     // involving at least one non-standard residue
     bool break_long = false;
     if (conect_atoms->empty() && mod_res->empty()) {
-        for (Molecule::Residues::const_iterator ri=m->residues().begin()
-        ; ri != m->residues().end(); ++ri) {
+        for (AtomicStructure::Residues::const_iterator ri=as->residues().begin()
+        ; ri != as->residues().end(); ++ri) {
             Residue *r = (*ri).get();
             if (standard_residue(r->name()) || r->name() == "UNK")
                 continue;
@@ -1137,8 +1137,8 @@ connect_molecule(Molecule *m, std::vector<Residue *> *start_residues,
     }
     if (break_long) {
         std::vector<Bond *> break_these;
-        for (Molecule::Bonds::const_iterator bi = m->bonds().begin();
-        bi != m->bonds().end(); ++bi) {
+        for (AtomicStructure::Bonds::const_iterator bi = as->bonds().begin();
+        bi != as->bonds().end(); ++bi) {
             Bond *b = (*bi).get();
             const Bond::Atoms & atoms = b->atoms();
             Residue *r1 = atoms[0]->residue();
@@ -1156,17 +1156,17 @@ connect_molecule(Molecule *m, std::vector<Residue *> *start_residues,
         for (std::vector<Bond *>::iterator bi = break_these.begin();
         bi != break_these.end(); ++bi) {
             Bond *b = *bi;
-            m->delete_bond(b);
+            as->delete_bond(b);
         }
     }
 }
 
-void prune_short_bonds(Molecule *m)
+void prune_short_bonds(AtomicStructure *as)
 {
     std::vector<Bond *> short_bonds;
 
-    const Molecule::Bonds &bonds = m->bonds();
-    for (Molecule::Bonds::const_iterator bi = bonds.begin(); bi != bonds.end(); ++bi) {
+    const AtomicStructure::Bonds &bonds = as->bonds();
+    for (AtomicStructure::Bonds::const_iterator bi = bonds.begin(); bi != bonds.end(); ++bi) {
         Bond *b = (*bi).get();
         Coord c1 = b->atoms()[0]->coord();
         Coord c2 = b->atoms()[1]->coord();
@@ -1176,12 +1176,12 @@ void prune_short_bonds(Molecule *m)
 
     for (std::vector<Bond *>::iterator sbi = short_bonds.begin();
             sbi != short_bonds.end(); ++sbi) {
-        m->delete_bond(*sbi);
+        as->delete_bond(*sbi);
     }
 }
 
 static void
-link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
+link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
                         PyObject *log_file)
 {
     if (link.sym[0] != link.sym[1]) {
@@ -1196,7 +1196,7 @@ link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
     cid += res.chain_id;
     rname = res.name;
     canonicalize_res_name(&rname);
-    Residue *res1 = m->find_residue(cid, res.seq_num, res.i_code, rname);
+    Residue *res1 = as->find_residue(cid, res.seq_num, res.i_code, rname);
     if (!res1) {
         LOG_PY_ERROR_VOID("warning: cannot find LINK residue " << res.name << " ("
             << res.seq_num << res.i_code << ")\n");
@@ -1207,28 +1207,28 @@ link_up(PDB::Link_ &link, Molecule *m, std::set<Atom *> *conect_atoms,
     cid += res.chain_id;
     rname = res.name;
     canonicalize_res_name(&rname);
-    Residue *res2 = m->find_residue(cid, res.seq_num, res.i_code, rname);
+    Residue *res2 = as->find_residue(cid, res.seq_num, res.i_code, rname);
     if (!res2) {
         LOG_PY_ERROR_VOID("warning: cannot find LINK residue " << res.name << " ("
             << res.seq_num << res.i_code << ")\n");
         return;
     }
     aname = link.name[0];
-    canonicalize_atom_name(&aname, &m->asterisks_translated);
+    canonicalize_atom_name(&aname, &as->asterisks_translated);
     Atom *a1 = res1->find_atom(aname);
     if (a1 == NULL) {
         LOG_PY_ERROR_VOID("error: cannot find LINK atom " << aname << " in residue " << res1->str() << "\n");
         return;
     }
     aname = link.name[1];
-    canonicalize_atom_name(&aname, &m->asterisks_translated);
+    canonicalize_atom_name(&aname, &as->asterisks_translated);
     Atom *a2 = res2->find_atom(aname);
     if (a2 == NULL) {
         LOG_PY_ERROR_VOID("error: cannot find LINK atom " << aname << " in residue " << res2->str() << "\n");
         return;
     }
     if (!a1->connects_to(a2)) {
-        m->new_bond(a1, a2);
+        as->new_bond(a1, a2);
         conect_atoms->insert(a1);
         conect_atoms->insert(a2);
     }
@@ -1259,26 +1259,26 @@ read_fileno(void *f)
 PyObject *
 read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 {
-    std::vector<Molecule *> file_mols;
+    std::vector<AtomicStructure *> file_structs;
     bool reached_end;
-    std::map<Molecule *, std::vector<Residue *> > start_res_map, end_res_map;
-    std::map<Molecule *, std::vector<PDB> > ss_map;
+    std::map<AtomicStructure *, std::vector<Residue *> > start_res_map, end_res_map;
+    std::map<AtomicStructure *, std::vector<PDB> > ss_map;
     typedef std::vector<PDB::Conect_> Conects;
-    typedef std::map<Molecule *, Conects> ConectMap;
+    typedef std::map<AtomicStructure *, Conects> ConectMap;
     ConectMap conect_map;
     typedef std::vector<PDB::Link_> Links;
-    typedef std::map<Molecule *, Links> LinkMap;
+    typedef std::map<AtomicStructure *, Links> LinkMap;
     LinkMap link_map;
-    std::map<Molecule *, std::set<MolResId> > mod_res_map;
+    std::map<AtomicStructure *, std::set<MolResId> > mod_res_map;
     // Atom Serial Numbers -> Atom*
     typedef std::map<int, Atom *, std::less<int> > Asns;
-    std::map<Molecule *, Asns > asn_map;
+    std::map<AtomicStructure *, Asns > asn_map;
     bool per_model_conects = false;
     int line_num = 0;
     bool eof;
     std::pair<char *, PyObject *> (*read_func)(void *);
     void *input;
-    std::vector<Molecule *> *mols = new std::vector<Molecule *>();
+    std::vector<AtomicStructure *> *structs = new std::vector<AtomicStructure *>();
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
@@ -1329,16 +1329,16 @@ clock_t start_t, end_t;
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
-        Molecule *m = new Molecule;
-        void *ret = read_one_molecule(read_func, input, m, &line_num, asn_map[m],
-          &start_res_map[m], &end_res_map[m], &ss_map[m], &conect_map[m],
-          &link_map[m], &mod_res_map[m], &reached_end, log_file, explode, &eof);
+        AtomicStructure *as = new AtomicStructure;
+        void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
+          &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
+          &link_map[as], &mod_res_map[as], &reached_end, log_file, explode, &eof);
         if (ret == NULL) {
-            for (std::vector<Molecule *>::iterator mi = mols->begin();
-            mi != mols->end(); ++mi) {
-                delete *mi;
+            for (std::vector<AtomicStructure *>::iterator si = structs->begin();
+            si != structs->end(); ++si) {
+                delete *si;
             }
-            delete m;
+            delete as;
             return NULL;
         }
 #ifdef CLOCK_PROFILING
@@ -1347,14 +1347,14 @@ std::cerr << "read pdb: " << ((float)(end_t - start_t))/CLOCKS_PER_SEC << "\n";
 start_t = end_t;
 #endif
         if (ret == Py_None) {
-            if (!file_mols.empty()) {
+            if (!file_structs.empty()) {
                 // NMR ensembles can have trailing CONECT
                 // records; integrate them before deleting 
-                // the null molecule
+                // the null structure
                 if (per_model_conects)
-                    conect_map[file_mols.back()] = conect_map[m];
+                    conect_map[file_structs.back()] = conect_map[as];
                 else {
-                    Conects &conects = conect_map[m];
+                    Conects &conects = conect_map[as];
                     for (Conects::iterator ci = conects.begin();
                             ci != conects.end(); ++ci) {
                         PDB::Conect_ &conect = *ci;
@@ -1362,7 +1362,7 @@ start_t = end_t;
                         bool matched = false;
                         for (ConectMap::iterator cmi = conect_map.begin();
                         cmi != conect_map.end(); ++cmi) {
-                            Molecule *cm = (*cmi).first;
+                            AtomicStructure *cm = (*cmi).first;
                             Conects &cm_conects = (*cmi).second;
                             Asns &asns = asn_map[cm];
                             if (asns.find(serial) != asns.end()) {
@@ -1377,23 +1377,23 @@ start_t = end_t;
                     }
                 }
             }
-            delete m;
-            m = NULL;
+            delete as;
+            as = NULL;
         } else {
             // give all members of an ensemble the same pdb_headers
-            if (explode && ! mols->empty()) {
-                if (m->pdb_headers.empty())
-                    m->pdb_headers = (*mols)[0]->pdb_headers;
-                if (ss_map[m].empty())
-                    ss_map[m] = ss_map[(*mols)[0]];
+            if (explode && ! structs->empty()) {
+                if (as->pdb_headers.empty())
+                    as->pdb_headers = (*structs)[0]->pdb_headers;
+                if (ss_map[as].empty())
+                    ss_map[as] = ss_map[(*structs)[0]];
             }
-            if (per_model_conects || (!file_mols.empty() && !conect_map[m].empty())) {
+            if (per_model_conects || (!file_structs.empty() && !conect_map[as].empty())) {
                 per_model_conects = true;
-                conect_map[file_mols.back()] = conect_map[m];
-                conect_map[m].clear();
+                conect_map[file_structs.back()] = conect_map[as];
+                conect_map[as].clear();
             }
-            mols->push_back(m);
-            file_mols.push_back(m);
+            structs->push_back(as);
+            file_structs.push_back(as);
         }
 #ifdef CLOCK_PROFILING
 end_t = clock();
@@ -1405,11 +1405,11 @@ start_t = end_t;
             continue;
 
         per_model_conects = false;
-        for (std::vector<Molecule *>::iterator fmi = file_mols.begin();
-        fmi != file_mols.end(); ++fmi) {
-            Molecule *fm = *fmi;
-            Conects &conects = conect_map[fm];
-            Asns &asns = asn_map[fm];
+        for (std::vector<AtomicStructure *>::iterator fsi = file_structs.begin();
+        fsi != file_structs.end(); ++fsi) {
+            AtomicStructure *fs = *fsi;
+            Conects &conects = conect_map[fs];
+            Asns &asns = asn_map[fs];
             std::set<Atom *> conect_atoms;
             for (Conects::iterator ci = conects.begin(); ci != conects.end(); ++ci) {
                 PDB::Conect_ &conect = *ci;
@@ -1442,14 +1442,14 @@ start_t = end_t;
                 }
             }
 
-            assign_secondary_structure(fm, ss_map[fm], log_file);
+            assign_secondary_structure(fs, ss_map[fs], log_file);
 
-            Links &links = link_map[fm];
+            Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
-                link_up(*li, fm, &conect_atoms, log_file);
-            connect_molecule(fm, &start_res_map[fm], &end_res_map[fm], &conect_atoms, &mod_res_map[fm]);
-            prune_short_bonds(fm);
-            fm->use_best_alt_locs();
+                link_up(*li, fs, &conect_atoms, log_file);
+            connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs]);
+            prune_short_bonds(fs);
+            fs->use_best_alt_locs();
         }
 #ifdef CLOCK_PROFILING
 end_t = clock();
@@ -1459,7 +1459,7 @@ start_t = end_t;
 
         if (eof)
             break;
-        file_mols.clear();
+        file_structs.clear();
         asn_map.clear();
         ss_map.clear();
         conect_map.clear();
@@ -1471,18 +1471,18 @@ start_t = end_t;
 std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
-    // ensure molaccess module objects are initialized
-    PyObject* molaccess_mod = PyImport_ImportModule("molaccess");
-    if (molaccess_mod == NULL) {
-        delete mols;
+    // ensure structaccess module objects are initialized
+    PyObject* structaccess_mod = PyImport_ImportModule("structaccess");
+    if (structaccess_mod == NULL) {
+        delete structs;
         return NULL;
     }
-    MolBlob* mb = static_cast<MolBlob*>(newBlob<MolBlob>(&MolBlob_type));
-    for (auto mi = mols->begin(); mi != mols->end(); ++mi) {
-        mb->_items->emplace_back(*mi);
+    StructBlob* sb = static_cast<StructBlob*>(newBlob<StructBlob>(&StructBlob_type));
+    for (auto si = structs->begin(); si != structs->end(); ++si) {
+        sb->_items->emplace_back(*si);
     }
-    delete mols;
-    return mb;
+    delete structs;
+    return sb;
 }
 
 static const char*
@@ -1498,7 +1498,7 @@ docstr_read_pdb_file =
 "  Controls whether NMR ensembles will be handled as separate models (True)\n" \
 "  or as one model with multiple coordinate sets (False)\n" \
 "\n" \
-"Returns an molaccess.MolBlob.";
+"Returns a structaccess.StructBlob.";
 
 PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)

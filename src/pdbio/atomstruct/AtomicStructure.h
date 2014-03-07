@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef molecule_Molecule
-#define molecule_Molecule
+#ifndef atomic_AtomicStructure
+#define atomic_AtomicStructure
 
 #include <vector>
 #include <string>
@@ -19,7 +19,7 @@
 
 class Element;
 
-class MOLECULE_IMEX Molecule {
+class ATOMSTRUCT_IMEX AtomicStructure {
 public:
     typedef std::vector<std::unique_ptr<Atom>>  Atoms;
     typedef std::vector<std::unique_ptr<Bond>>  Bonds;
@@ -34,7 +34,7 @@ private:
     CoordSets  _coord_sets;
     Residues  _residues;
 public:
-    Molecule();
+    AtomicStructure();
     const Atoms &    atoms() const { return _atoms; }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
@@ -64,4 +64,4 @@ public:
     void  use_best_alt_locs();
 };
 
-#endif  // molecule_Molecule
+#endif  // atomic_AtomicStructure

@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef molecule_chain
-#define molecule_chain
+#ifndef atomic_chain
+#define atomic_chain
 
 #include "Sequence.h"
 #include <string>
@@ -9,7 +9,7 @@
 
 class Residue;
 
-class MOLECULE_IMEX Chain: public Sequence {
+class ATOMSTRUCT_IMEX Chain: public Sequence {
 public:
     typedef std::vector<Residue *>  Residues;
 private:
@@ -25,4 +25,4 @@ public:
             Sequence::Contents* chars = nullptr);
 };
 
-#endif  // molecule_chain
+#endif  // atomic_chain

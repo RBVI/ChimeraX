@@ -1,35 +1,35 @@
 // vim: set expandtab ts=4 sw=4:
-#include "MolBlob.h"
+#include "StructBlob.h"
 #include "AtomBlob.h"
 #include "ResBlob.h"
-#include "molecule/Bond.h"
+#include "atomstruct/Bond.h"
 #include <map>
 #include <stddef.h>
 
-template PyObject* newBlob<MolBlob>(PyTypeObject*);
+template PyObject* newBlob<StructBlob>(PyTypeObject*);
 
 extern "C" {
     
 static void
-MolBlob_dealloc(PyObject* obj)
+StructBlob_dealloc(PyObject* obj)
 {
-    MolBlob* self = static_cast<MolBlob*>(obj);
+    StructBlob* self = static_cast<StructBlob*>(obj);
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);
     obj->ob_type->tp_free(obj);
 }
 
-static const char MolBlob_doc[] = "MolBlob documentation";
+static const char StructBlob_doc[] = "StructBlob documentation";
 
 static PyObject*
-mb_atoms(PyObject* self, void* null)
+sb_atoms(PyObject* self, void* null)
 {
     PyObject* py_ab = newBlob<AtomBlob>(&AtomBlob_type);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
-    MolBlob* mb = static_cast<MolBlob*>(self);
-    for (auto mi = mb->_items->begin(); mi != mb->_items->end(); ++mi) {
-        const Molecule::Atoms& atoms = (*mi).get()->atoms();
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    for (auto mi = sb->_items->begin(); mi != sb->_items->end(); ++mi) {
+        const AtomicStructure::Atoms& atoms = (*mi).get()->atoms();
         for (auto ai = atoms.begin(); ai != atoms.end(); ++ai)
             ab->_items->emplace_back((*ai).get());
     }
@@ -37,10 +37,10 @@ mb_atoms(PyObject* self, void* null)
 }
 
 static PyObject*
-mb_atoms_bonds(PyObject* self, void* null)
+sb_atoms_bonds(PyObject* self, void* null)
 {
-    MolBlob* mb = static_cast<MolBlob*>(self);
-    PyObject* py_ab = mb_atoms(self, nullptr);
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    PyObject* py_ab = sb_atoms(self, nullptr);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
     std::map<Atom *, AtomBlob::ItemsType::size_type> atom_map;
     decltype(atom_map)::mapped_type i = 0;
@@ -48,18 +48,18 @@ mb_atoms_bonds(PyObject* self, void* null)
     for (auto ai = a_items->begin(); ai != a_items->end(); ++ai, ++i) {
         atom_map[(*ai).get()] = i;
     }
-    Molecule::Bonds::size_type bonds_size = 0;
-    auto& m_items = mb->_items;
-    for (auto mi = m_items->begin(); mi != m_items->end(); ++mi) {
-        Molecule *m = (*mi).get();
-        bonds_size += m->bonds().size();
+    AtomicStructure::Bonds::size_type bonds_size = 0;
+    auto& s_items = sb->_items;
+    for (auto si = s_items->begin(); si != s_items->end(); ++si) {
+        AtomicStructure *s = (*si).get();
+        bonds_size += s->bonds().size();
     }
     i = 0;
     PyObject *bond_list = PyList_New(bonds_size);
-    for (auto mi = m_items->begin(); mi != m_items->end(); ++mi) {
-        Molecule *m = (*mi).get();
-        auto& m_bonds = m->bonds();
-        for (auto bi = m_bonds.begin(); bi != m_bonds.end(); ++bi) {
+    for (auto si = s_items->begin(); si != s_items->end(); ++si) {
+        AtomicStructure *s = (*si).get();
+        auto& s_bonds = s->bonds();
+        for (auto bi = s_bonds.begin(); bi != s_bonds.end(); ++bi) {
             Bond *b = (*bi).get();
             auto& b_atoms = b->atoms();
             PyObject *index_tuple = PyTuple_New(2);
@@ -77,56 +77,56 @@ mb_atoms_bonds(PyObject* self, void* null)
 }
 
 static PyObject*
-mb_molecules(PyObject* self, void* null)
+sb_structures(PyObject* self, void* null)
 {
-    MolBlob* mb = static_cast<MolBlob*>(self);
-    PyObject *mol_list = PyList_New(mb->_items->size());
-    MolBlob::ItemsType::size_type i = 0;
-    for (auto mi = mb->_items->begin(); mi != mb->_items->end(); ++mi) {
-        PyObject* py_single_mb = PyObject_New(MolBlob, &MolBlob_type);
-        PyList_SET_ITEM(mol_list, i++, py_single_mb);
-        MolBlob* single_mb = static_cast<MolBlob*>(py_single_mb);
-        single_mb->_items->emplace_back((*mi).get());
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    PyObject *struct_list = PyList_New(sb->_items->size());
+    StructBlob::ItemsType::size_type i = 0;
+    for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
+        PyObject* py_single_sb = PyObject_New(StructBlob, &StructBlob_type);
+        PyList_SET_ITEM(struct_list, i++, py_single_sb);
+        StructBlob* single_sb = static_cast<StructBlob*>(py_single_sb);
+        single_sb->_items->emplace_back((*si).get());
     }
-    return mol_list;
+    return struct_list;
 }
 
 static PyObject*
-mb_residues(PyObject* self, void* null)
+sb_residues(PyObject* self, void* null)
 {
     PyObject* py_rb = newBlob<ResBlob>(&ResBlob_type);
     ResBlob* rb = static_cast<ResBlob*>(py_rb);
-    MolBlob* mb = static_cast<MolBlob*>(self);
-    for (auto mi = mb->_items->begin(); mi != mb->_items->end(); ++mi) {
-        const Molecule::Residues& residues = (*mi).get()->residues();
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
+        const AtomicStructure::Residues& residues = (*si).get()->residues();
         for (auto ri = residues.begin(); ri != residues.end(); ++ri)
             rb->_items->emplace_back((*ri).get());
     }
     return py_rb;
 }
 
-static PyMethodDef MolBlob_methods[] = {
+static PyMethodDef StructBlob_methods[] = {
     { NULL, NULL, 0, NULL }
 };
 
-static PyGetSetDef MolBlob_getset[] = {
-    { "atoms", mb_atoms, NULL, "AtomBlob", NULL},
-    { "atoms_bonds", mb_atoms_bonds, NULL,
+static PyGetSetDef StructBlob_getset[] = {
+    { "atoms", sb_atoms, NULL, "AtomBlob", NULL},
+    { "atoms_bonds", sb_atoms_bonds, NULL,
         "2-tuple of (AtomBlob, list of atom-index 2-tuples)", NULL},
-    { "molecules", mb_molecules, NULL,
-        "list of one-molecule-model MolBlobs", NULL},
-    { "residues", mb_residues, NULL, "ResBlob", NULL},
+    { "structures", sb_structures, NULL,
+        "list of one-structure-model StructBlobs", NULL},
+    { "residues", sb_residues, NULL, "ResBlob", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
 
 } // extern "C"
 
-PyTypeObject MolBlob_type = {
+PyTypeObject StructBlob_type = {
     PyObject_HEAD_INIT(NULL)
-    "molaccess.MolBlob", // tp_name
-    sizeof (MolBlob), // tp_basicsize
+    "structaccess.StructBlob", // tp_name
+    sizeof (StructBlob), // tp_basicsize
     0, // tp_itemsize
-    MolBlob_dealloc, // tp_dealloc
+    StructBlob_dealloc, // tp_dealloc
     0, // tp_print
     0, // tp_getattr
     0, // tp_setattr
@@ -142,16 +142,16 @@ PyTypeObject MolBlob_type = {
     0, // tp_setattro
     0, // tp_as_buffer
     Py_TPFLAGS_DEFAULT, // tp_flags
-    MolBlob_doc, // tp_doc
+    StructBlob_doc, // tp_doc
     0, // tp_traverse
     0, // tp_clear
     0, // tp_richcompare
-    offsetof(MolBlob, _weaklist), // tp_weaklist
+    offsetof(StructBlob, _weaklist), // tp_weaklist
     0, // tp_iter
     0, // tp_iternext
-    MolBlob_methods, // tp_methods
+    StructBlob_methods, // tp_methods
     0, // tp_members
-    MolBlob_getset, // tp_getset
+    StructBlob_getset, // tp_getset
     0, // tp_base
     0, // tp_dict
     0, // tp_descr_get
