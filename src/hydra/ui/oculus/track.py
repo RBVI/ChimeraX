@@ -7,7 +7,7 @@ class Oculus_Head_Tracking:
         self.connected = False
         self.last_rotation = None
         self.view = None
-        self.scale = 1.0        # Scale eye images to fill oculus display.
+        self.scale = 1.5        # Scale eye images to use edges of oculus display.
         self.last_angle = 0
         self.last_axis = (0,0,1)
         self.min_angle_change = 1e-4
@@ -194,12 +194,15 @@ def set_oculus_camera_mode(session):
         ishift = oht.image_shift_pixels()
         warp = oht.radial_warp_parameters()
         cwarp = oht.chromatic_aberration_parameters()
-        print ('Radial warp', warp)
+        w,h = oht.display_size()
+        s = oht.scale
+        wsize = (int(s*0.5*w), int(s*h))
     else:
         fov = 1.5
         ishift = -50
         warp = (1, 0, 0, 0)
         cwarp = (1, 0, 1, 0)
+        wsize = (640,800)
 
     view = session.view
     c = view.camera
@@ -207,6 +210,7 @@ def set_oculus_camera_mode(session):
     c.field_of_view = fov * 180 / pi
     c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
     c.eye_separation_pixels = 2*ishift
+    c.warp_window_size = wsize
     view.set_camera_mode('oculus')
     r = view.render
     r.radial_warp_coefficients = warp
