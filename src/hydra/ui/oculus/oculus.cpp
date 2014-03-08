@@ -30,6 +30,7 @@ public:
       sFusion->AttachToSensor(pSensor);
     else
       error = "Failed to attach to oculus sensor.";
+    prediction_time = 0;
   }
   ~ovr_sensor()
   {
@@ -42,7 +43,12 @@ public:
   }
   Quatf orientation()
   {
-    return sFusion->GetOrientation();
+    //    return sFusion->GetOrientation();
+    return sFusion->GetPredictedOrientation(prediction_time);
+  }
+  void set_prediction_time(float t)
+  {
+    prediction_time = t;
   }
   Ptr<HMDDevice> device() const
   {
@@ -55,6 +61,7 @@ private:
   Ptr<HMDDevice>     pHMD;
   Ptr<SensorDevice>  pSensor;
   SensorFusion       *sFusion;
+  float		     prediction_time; // Predict orientation this many seconds in future.
 };
 
 static ovr_sensor *ovrs = NULL;
@@ -82,6 +89,26 @@ extern "C" PyObject *oculus_state(PyObject *, PyObject *args)
   PyTuple_SetItem(s, 3, PyFloat_FromDouble(q.z));
 
   return s;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *oculus_set_prediction_time(PyObject *, PyObject *args)
+{
+  float t;
+  if (!PyArg_ParseTuple(args, const_cast<char *>("f"), &t))
+    return NULL;
+
+  if (!ovrs)
+    {
+      PyErr_SetString(PyExc_TypeError, "Must call oculus_connect() before oculus_state()");
+      return NULL;
+    }
+
+  ovrs->set_prediction_time(t);
+
+  Py_INCREF(Py_None);
+  return Py_None;
 }
 
 // ----------------------------------------------------------------------------
@@ -114,6 +141,10 @@ extern "C" PyObject *oculus_parameters(PyObject *, PyObject *args)
   for (int i = 0 ; i < 4 ; ++i)
     PyTuple_SetItem(dk, i, PyFloat_FromDouble(di.DistortionK[i]));
   PyDict_SetItemString(params, "DistortionK", dk);
+  PyObject *ca = PyTuple_New(4);
+  for (int i = 0 ; i < 4 ; ++i)
+    PyTuple_SetItem(ca, i, PyFloat_FromDouble(di.ChromaAbCorrection[i]));
+  PyDict_SetItemString(params, "ChromaAbCorrection", ca);
 
   return params;
 }
@@ -161,6 +192,7 @@ static struct PyMethodDef oculus_methods[] =
   {const_cast<char*>("connect"), (PyCFunction)oculus_connect, METH_VARARGS, NULL},
   {const_cast<char*>("parameters"), (PyCFunction)oculus_parameters, METH_VARARGS, NULL},
   {const_cast<char*>("state"), (PyCFunction)oculus_state, METH_VARARGS, NULL},
+  {const_cast<char*>("set_prediction_time"), (PyCFunction)oculus_set_prediction_time, METH_VARARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
 

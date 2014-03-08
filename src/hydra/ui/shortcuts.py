@@ -545,7 +545,10 @@ def oculus_mode(viewer):
     viewer.set_camera_mode('oculus')
 def start_oculus(session):
     from . import oculus
-    oculus.start_oculus(session)
+    if oculus.oculus_on(session):
+        oculus.stop_oculus(session)
+    else:
+        oculus.start_oculus(session)
 def oculus_warp(session):
     from . import oculus
     oculus.toggle_warping(session)

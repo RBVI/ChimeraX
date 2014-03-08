@@ -336,8 +336,8 @@ class Surface_Piece(object):
     t = self.texture
     if not t is None:
       sopt[r.SHADER_TEXTURE_2D] = True
-      if hasattr(self, 'use_texture_warp') and self.use_texture_warp:
-        sopt[r.SHADER_TEXTURE_WARP] = True
+      if hasattr(self, 'use_radial_warp') and self.use_radial_warp:
+        sopt[r.SHADER_RADIAL_WARP] = True
     if not self.shift_and_scale is None:
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
     elif not self.copies44 is None:

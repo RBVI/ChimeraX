@@ -35,6 +35,8 @@ def register_commands(commands):
     add('scene', scenes.scene_command)
     from . import camera
     add('camera', camera.camera_command)
+    from . import device
+    add('device', device.device_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -957,13 +959,16 @@ def perform_operation(cmdname, args, ops, session):
     alist = args.split()
     a0 = alist[0].lower() if alist else None
     if not a0 in abbr:
-        opnames = ops.keys()
+        opnames = list(ops.keys())
         opnames.sort()
         raise CommandError('First argument must be one of %s'
                            % ', '.join(opnames))
 
     f, req_args, opt_args, kw_args = ops[abbr[a0]]
     kw = parse_arguments(cmdname, args[len(a0):], session, req_args, opt_args, kw_args)
+    import inspect
+    if 'session' in inspect.getargspec(f)[0] and not 'session' in kw:
+        kw['session'] = session
     f(**kw)
 
 # -----------------------------------------------------------------------------

@@ -38,6 +38,7 @@ class Render:
         # Texture warp parameters
         self.warp_center = (0.5, 0.5)
         self.radial_warp_coefficients = (1,0,0,0)
+        self.chromatic_warp_coefficients = (1,0,1,0)
 
         self.single_color = (1,1,1,1)
 
@@ -45,7 +46,7 @@ class Render:
     SHADER_LIGHTING = 'USE_LIGHTING'
     SHADER_DEPTH_CUE = 'USE_DEPTH_CUE'
     SHADER_TEXTURE_2D = 'USE_TEXTURE_2D'
-    SHADER_TEXTURE_WARP = 'USE_TEXTURE_WARP'
+    SHADER_RADIAL_WARP = 'USE_RADIAL_WARP'
     SHADER_SHIFT_AND_SCALE = 'USE_INSTANCING_SS'
     SHADER_INSTANCING = 'USE_INSTANCING_44'
     SHADER_TEXTURE_MASK = 'USE_TEXTURE_MASK'
@@ -88,8 +89,8 @@ class Render:
             self.set_model_view_matrix()
             if self.SHADER_TEXTURE_2D in capabilities:
                 GL.glUniform1i(p.uniform_id("tex2d"), 0)    # Texture unit 0.
-            if self.SHADER_TEXTURE_WARP in capabilities:
-                self.set_texture_warp_parameters()
+            if self.SHADER_RADIAL_WARP in capabilities:
+                self.set_radial_warp_parameters()
             if not self.SHADER_VERTEX_COLORS in capabilities:
                 self.set_single_color()
 
@@ -229,12 +230,14 @@ class Render:
         c = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(c, 1, self.single_color)
 
-    def set_texture_warp_parameters(self):
+    def set_radial_warp_parameters(self):
         p = self.current_shader_program.program_id
         wcenter = GL.glGetUniformLocation(p, b"warp_center")
         GL.glUniform2fv(wcenter, 1, self.warp_center)
         rcoef = GL.glGetUniformLocation(p, b"radial_warp")
         GL.glUniform4fv(rcoef, 1, self.radial_warp_coefficients)
+        ccoef = GL.glGetUniformLocation(p, b"chromatic_warp")
+        GL.glUniform4fv(ccoef, 1, self.chromatic_warp_coefficients)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -444,6 +447,9 @@ class Render:
     def set_depth_range(self, min, max):
 #        GL.glDepthFunc(GL.GL_LEQUAL)   # Get z-fighting with screen depth copied to framebuffer object on Mac/Nvidia
         GL.glDepthRange(min, max)
+
+    def finish_rendering(self):
+        GL.glFinish()
 
 class Framebuffer:
 
@@ -938,10 +944,10 @@ class Texture:
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_BORDER)
 #        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
 #        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
         if ncomp == 1 or ncomp == 2:
             GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
