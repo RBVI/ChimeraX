@@ -115,7 +115,7 @@ static PyGetSetDef AtomBlob_getset[] = {
 
 PyTypeObject AtomBlob_type = {
     PyObject_HEAD_INIT(NULL)
-    "molaccess.AtomBlob", // tp_name
+    "structaccess.AtomBlob", // tp_name
     sizeof (AtomBlob), // tp_basicsize
     0, // tp_itemsize
     AtomBlob_dealloc, // tp_dealloc

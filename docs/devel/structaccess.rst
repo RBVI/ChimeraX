@@ -1,6 +1,6 @@
-molaccess: batch access to molecular data
+structaccess: batch access to molecular data
 =========================================
 
-.. automodule:: molaccess
+.. automodule:: structaccess
     :members:
     :show-inheritance:

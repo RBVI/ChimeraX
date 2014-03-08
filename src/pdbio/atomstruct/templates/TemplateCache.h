@@ -20,7 +20,7 @@ public:
     void add_condition(const char *cond, const char *type);
 };
 
-class MOLECULE_IMEX TemplateCache {
+class ATOMSTRUCT_IMEX TemplateCache {
 public:
     typedef std::pair<std::string, ConditionalTemplate *> AtomMappings;
         // <normal IDATM type, conditional IDATM types>

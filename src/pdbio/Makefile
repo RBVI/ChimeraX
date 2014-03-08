@@ -6,11 +6,11 @@ NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= ioutil pdb base-geom util molecule blob pdbio molaccess
+SUBDIRS	+= ioutil pdb base-geom util atomstruct blob pdbio structaccess
 SRCS = test.cpp
 OBJS = test.o
 INCS += $(PYTHON_INCLUDE_DIRS)
-LIBS += pdbio/pdbio.o molecule/libmolecule.$(SHLIB_EXT) molecule/templates/libtmpl.$(SHLIB_EXT) pdb/libpdb.a util/libutil.a 
+LIBS += pdbio/pdbio.o atomstruct/libatomstruct.$(SHLIB_EXT) atomstruct/templates/libtmpl.$(SHLIB_EXT) pdb/libpdb.a util/libutil.a 
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -20,8 +20,8 @@ all: install
 clean:
 	/bin/rm -f $(OBJS) pdbio.bild
 
-molaccess.install: molecule.install blob.install
-pdbio.install: molecule.install pdb.install blob.install
+structaccess.install: atomstruct.install blob.install
+pdbio.install: atomstruct.install pdb.install blob.install
 
 testrun:
 	$(bindir)/python3

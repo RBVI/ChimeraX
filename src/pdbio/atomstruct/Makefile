@@ -6,7 +6,7 @@ include $(TOP)/mk/config.make
 SUBDIRS= templates
 include $(TOP)/mk/subdir.make
 
-LIBNAME = molecule
+LIBNAME = atomstruct
 CXXFLAGS += -I..
 LIBS += ../base-geom/libbase-geom.a
 

@@ -3,21 +3,21 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "Element.h"
-#include "Molecule.h"
+#include "AtomicStructure.h"
 #include "Residue.h"
 
 #include <algorithm>  // for std::find
 #include <stdexcept>
 #include <set>
 
-Molecule::Molecule():
+AtomicStructure::AtomicStructure():
     _active_coord_set(NULL), asterisks_translated(false), lower_case_chains(false),
     pdb_version(0), is_traj(false)
 {
 }
 
 std::map<Atom *, char>
-Molecule::best_alt_locs() const
+AtomicStructure::best_alt_locs() const
 {
     // check the common case of all blank alt locs first...
     bool all_blank = true;
@@ -138,12 +138,12 @@ Molecule::best_alt_locs() const
 }
 
 void
-Molecule::delete_bond(Bond *b)
+AtomicStructure::delete_bond(Bond *b)
 {
     Bonds::iterator i = std::find_if(_bonds.begin(), _bonds.end(),
                 [&b](std::unique_ptr<Bond>& vb) { return vb.get() == b; });
     if (i == _bonds.end())
-        throw std::invalid_argument("delete_bond called for Bond not in Molecule");
+        throw std::invalid_argument("delete_bond called for Bond not in AtomicStructure");
 
     b->atoms()[0]->remove_bond(b);
     b->atoms()[1]->remove_bond(b);
@@ -152,7 +152,7 @@ Molecule::delete_bond(Bond *b)
 }
 
 CoordSet *
-Molecule::find_coord_set(int id) const
+AtomicStructure::find_coord_set(int id) const
 {
     for (auto csi = _coord_sets.begin(); csi != _coord_sets.end(); ++csi) {
         if ((*csi)->id() == id)
@@ -163,7 +163,7 @@ Molecule::find_coord_set(int id) const
 }
 
 Residue *
-Molecule::find_residue(std::string &chain_id, int pos, char insert) const
+AtomicStructure::find_residue(std::string &chain_id, int pos, char insert) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = (*ri).get();
@@ -175,7 +175,7 @@ Molecule::find_residue(std::string &chain_id, int pos, char insert) const
 }
 
 Residue *
-Molecule::find_residue(std::string &chain_id, int pos, char insert, std::string &name) const
+AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::string &name) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
         Residue *r = (*ri).get();
@@ -187,16 +187,16 @@ Molecule::find_residue(std::string &chain_id, int pos, char insert, std::string 
 }
 
 void
-Molecule::make_chains(Molecule::Res_Lists* chain_members,
-    Molecule::Sequences* full_sequences) const
+AtomicStructure::make_chains(AtomicStructure::Res_Lists* chain_members,
+    AtomicStructure::Sequences* full_sequences) const
 // if both args supplied, the res lists in chain_members correspond
 // one for one with the sequences in full_sequences (including possible
 // null residue pointers);  if just chain_members supplied, use SEQRES
 // records if available to form full sequence, and the chain_members
 // may need het residues weeded out and in some cases broken into more
 // chains (but never combined);  if neither supplied, use the residues
-// stored in the Molecule and break them into chains ala the chain_members-
-// only case and extract the sequence from them
+// stored in the AtomicStructure and break them into chains ala the
+// chain_members-only case and extract the sequence from them
 {
     Res_Lists* chain_membs = chain_members;
     Sequences* full_seqs = full_sequences;
@@ -219,21 +219,21 @@ Molecule::make_chains(Molecule::Res_Lists* chain_members,
 }
 
 Atom *
-Molecule::new_atom(std::string &name, Element e)
+AtomicStructure::new_atom(std::string &name, Element e)
 {
     _atoms.emplace_back(new Atom(this, name, e));
     return _atoms.back().get();
 }
 
 Bond *
-Molecule::new_bond(Atom *a1, Atom *a2)
+AtomicStructure::new_bond(Atom *a1, Atom *a2)
 {
     _bonds.emplace_back(new Bond(this, a1, a2));
     return _bonds.back().get();
 }
 
 CoordSet *
-Molecule::new_coord_set()
+AtomicStructure::new_coord_set()
 {
     if (_coord_sets.empty())
         return new_coord_set(0);
@@ -241,7 +241,7 @@ Molecule::new_coord_set()
 }
 
 static void
-_coord_set_insert(Molecule::CoordSets &coord_sets,
+_coord_set_insert(AtomicStructure::CoordSets &coord_sets,
     std::unique_ptr<CoordSet>& cs, int index)
 {
     if (coord_sets.empty() || coord_sets.back()->id() < index) {
@@ -261,7 +261,7 @@ _coord_set_insert(Molecule::CoordSets &coord_sets,
 }
 
 CoordSet*
-Molecule::new_coord_set(int index)
+AtomicStructure::new_coord_set(int index)
 {
     if (!_coord_sets.empty())
         return new_coord_set(index, _coord_sets.back()->coords().size());
@@ -272,7 +272,7 @@ Molecule::new_coord_set(int index)
 }
 
 CoordSet*
-Molecule::new_coord_set(int index, int size)
+AtomicStructure::new_coord_set(int index, int size)
 {
     std::unique_ptr<CoordSet> cs(new CoordSet(index, size));
     CoordSet* retval = cs.get();
@@ -281,8 +281,8 @@ Molecule::new_coord_set(int index, int size)
 }
 
 Residue*
-Molecule::new_residue(std::string &name, std::string &chain, int pos, char insert,
-    Residue *neighbor, bool after)
+AtomicStructure::new_residue(std::string &name, std::string &chain, int pos,
+    char insert, Residue *neighbor, bool after)
 {
     if (neighbor == NULL) {
         _residues.emplace_back(new Residue(this, name, chain, pos, insert));
@@ -301,7 +301,7 @@ Molecule::new_residue(std::string &name, std::string &chain, int pos, char inser
 }
 
 void
-Molecule::set_active_coord_set(CoordSet *cs)
+AtomicStructure::set_active_coord_set(CoordSet *cs)
 {
     CoordSet *new_active;
     if (cs == NULL) {
@@ -319,7 +319,7 @@ Molecule::set_active_coord_set(CoordSet *cs)
 }
 
 void
-Molecule::use_best_alt_locs()
+AtomicStructure::use_best_alt_locs()
 {
     std::map<Atom *, char> alt_loc_map = best_alt_locs();
     for (std::map<Atom *, char>::iterator almi = alt_loc_map.begin();
