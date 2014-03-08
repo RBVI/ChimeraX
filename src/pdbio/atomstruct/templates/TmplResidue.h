@@ -10,7 +10,7 @@
 class TmplAtom;
 class TmplMolecule;
 
-class MOLECULE_IMEX TmplResidue {
+class ATOMSTRUCT_IMEX TmplResidue {
     friend class TmplMolecule;
     void    operator=(const TmplResidue &);    // disable
         TmplResidue(const TmplResidue &);    // disable

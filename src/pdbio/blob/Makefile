@@ -10,7 +10,7 @@ CXXFLAGS += -Wno-invalid-offsetof -Wno-deprecated-writable-strings
 endif
 LIBS += $(PYTHON_LIB)
 INCS += $(NUMPY_INC)
-LIBS += -L$(shlibdir) -lmolecule
+LIBS += -L$(shlibdir) -latomstruct
 
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)

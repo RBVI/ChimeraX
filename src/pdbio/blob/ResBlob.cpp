@@ -1,7 +1,7 @@
 // vim: set expandtab ts=4 sw=4:
 #include "Blob.h"
 #include "ResBlob.h"
-#include "molecule/Residue.h"
+#include "atomstruct/Residue.h"
 #include "numpy_common.h"
 #include <stddef.h>
 
@@ -78,7 +78,7 @@ static PyGetSetDef ResBlob_getset[] = {
 
 PyTypeObject ResBlob_type = {
     PyObject_HEAD_INIT(NULL)
-    "molaccess.ResBlob", // tp_name
+    "structaccess.ResBlob", // tp_name
     sizeof (ResBlob), // tp_basicsize
     0, // tp_itemsize
     ResBlob_dealloc, // tp_dealloc

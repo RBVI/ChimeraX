@@ -6,15 +6,15 @@
 #include "../imex.h"
 
 // things templateAssign() can throw...
-class MOLECULE_IMEX TA_exception : public std::runtime_error {
+class ATOMSTRUCT_IMEX TA_exception : public std::runtime_error {
 public:
     TA_exception(const std::string &msg) : std::runtime_error(msg) {}
 };
-class MOLECULE_IMEX TA_TemplateSyntax : public TA_exception {
+class ATOMSTRUCT_IMEX TA_TemplateSyntax : public TA_exception {
 public:
     TA_TemplateSyntax(const std::string &msg) : TA_exception(msg) {}
 };
-class MOLECULE_IMEX TA_NoTemplate : public TA_exception {
+class ATOMSTRUCT_IMEX TA_NoTemplate : public TA_exception {
 public:
     TA_NoTemplate(const std::string &msg) : TA_exception(msg) {}
 };
