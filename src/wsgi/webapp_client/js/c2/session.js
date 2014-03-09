@@ -189,9 +189,9 @@ function save_session_info(user, session, password) {
 	$c2_session.user = user;
 	$c2_session.session = session;
 	$c2_session.password = password;
-	var msg = "No session selected";
+	var msg = "<i>None</i>";
 	if (session)
-		msg = "Active session: " + session;
+		msg = session;
 	$("#active-session").html(msg);
 }
 
@@ -271,7 +271,8 @@ function update_session_list_cb(session_info) {
 	});
 	// update listview
 	var ul = $("#my-sessions");
-	var html = "<thead><tr><th data-priority='persist'>Session Name</th><th>Last Accessed</th></tr></thead><tbody>";
+	//var html = "<thead><tr><th data-priority='persist'>Session Name</th><th>Last Accessed</th></tr></thead><tbody>";
+	var html = "<tbody>";
 	for (var i = 0; i != session_list.length; ++i) {
 		var session = session_list[i];
 		var name = session_list[i].name;

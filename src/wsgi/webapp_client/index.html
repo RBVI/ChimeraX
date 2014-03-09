@@ -33,14 +33,16 @@
 <style type="text/css">
 html, body { height:100%; }
 th, td { padding:0; }
-#app .ui-header { height:50px; }
-#app .ui-footer { height:50px; }
 .header-left { text-align:left; padding:0px 10px; }
+/* use 2 times ui-controlgroup's margin-top for header-center */
+.header-center { text-align:left; padding:0px 10px; margin-top:1em; }
 .header-right { text-align:right; padding:0px 10px; }
+/*
 .footer-button { width:100px; }
 .footer-left { text-align:left; padding:0px 10px; line-height:50px; }
 .footer-center { text-align:center; padding:0px 10px; line-height:50px; }
 .footer-right { text-align:right; padding:0px 10px; line-height:25px; }
+*/
 .panel-button-div { position:absolute; top:0; right:0; }
 .panel-button { margin:1px; display:inline-block; }
 .panel-log { font-size: smaller; height:90vh; overflow:auto; }
@@ -48,7 +50,7 @@ th, td { padding:0; }
 .no-padding { padding:0px; }
 
 /* These are for singletons on the page */
-#zone-three-column { position:absolute; top:0px; right:0; left:0;
+#zone-three-column { position:absolute; top:0px; right:0; left:0; bottom:0;
 			padding:0; margin:0; }
 #zone-div-left { position:absolute; left:0; height:100%; display:inline-block;
 			margin:0; padding:0; overflow:auto; }
@@ -59,8 +61,9 @@ th, td { padding:0; }
 #zone-div-bottom { position:absolute; bottom:0; left:0px; right:0px; }
 #molview { position: relative; margin: 0px; padding: 0px;
 			width: 100%; height: 100%; }
-#my-sessions table,th,td { border:1px solid black; }
-#my-sessions td { padding:2px; margin-top:0px; margin-bottom:0px; }
+#my-sessions th { border:1px solid black; }
+#my-sessions td { padding:2px; margin-top:0px; margin-bottom:0px; border:1px solid black;}
+#status-line { margin: 0px 4px; }
 </style>
 
 <script type="text/javascript">
@@ -536,10 +539,9 @@ function molview_mouse_up(event)
 
 function molview_update_size()
 {
-	var footer = $("[data-role=footer]");
 	var zbottom = $("#zone-div-bottom");
 
-	var bottom_height = 0;
+	var bottom_height = ".25em"; // TODO: where does this come from?
 	if (zbottom.is(":visible"))
 		bottom_height = zbottom.outerHeight(true);
 	var content = $("#zone-three-column");
@@ -603,7 +605,7 @@ function molview_init()
 </b><ul><li>" + msg.join("<li>") + "</ul> \
 <p>\
 A common solution is to use a different web browser, \
-<i>e.g.<\i>, <a href='http://www.google.com/chrome'>\
+<i>e.g.</i>, <a href='http://www.google.com/chrome'>\
 Google Chrome</a>.  But if that doesn't work, \
 you will need to \
 <a href='http://get.webgl.org/troubleshooting/'>\
@@ -667,8 +669,7 @@ function flip_zone(checkbutton, div)
 			//console.log("showing " + div);
 			div.show({
 				duration: duration,
-				progress: molview_update_size,
-				complete: molview_update_size,
+				progress: molview_update_size
 			});
 		}
 	} else {
@@ -676,11 +677,11 @@ function flip_zone(checkbutton, div)
 			//console.log("hiding " + div);
 			div.hide({
 				duration: duration,
-				progress: molview_update_size,
-				complete: molview_update_size,
+				progress: molview_update_size
 			});
 		}
 	}
+	molview_update_size();
 	//$("#app").trigger("updatelayout");
 }
 
@@ -713,7 +714,7 @@ $(document).ready(function() {
 	molview_init();
 })
 
-$(document).bind("pageinit", "#app", function() {
+$(document).bind("pagecreate", "#app", function() {
 	$("#debug-clear").bind("vclick", function(event) {
 		$("#debug").html("");
 	});
@@ -730,7 +731,14 @@ $(document).bind("pageinit", "#app", function() {
 
 $(document).bind("pageshow", "#app", function() {
 	update_zone_layout();
+	if ($c2_session.session === undefined || $c2_session.session === "") {
+		window.setTimeout(function () {
+			console.log("session5", $c2_session.session);
+			$("#popup-session-open").popup("open");
+		}, 100);
+	}
 });
+
 
 }());
 
@@ -913,14 +921,22 @@ update_model_panel = function (model_info) {
 
 <!--header-->
 <div data-role="header" data-position="fixed" data-tap-toggle="false">
-	<div class="ui-grid-a">
-		<div class="ui-block-a header-left">
-		<div data-role="controlgroup"
-				data-type="horizontal" data-mini="true">
+	<div class="ui-grid-b">
+		<div class="ui-block-a header-left ui-mini" style="width:35%;">
+			Active session:
 			<a href="#popup-session-open" data-rel="popup"
+				id="active-session" style="width:initial"
 				class="ui-btn ui-btn-inline ui-corner-all"
 				data-transition="slidedown">
-				Sessions...</a>
+				<i>None</i></a>
+		</div>
+		<div class="ui-block-b header-center" style="width:40%;">
+			<a target="_blank" href="http://www.rbvi.ucsf.edu">UCSF RBVI</a>'s
+			<a target="_blank" href="http://www.cgl.ucsf.edu/trac/chimera2/wiki/Mobile">Chimera 2 Mobile</a>
+		</div>
+		<div class="ui-block-c header-right" style="width:25%">
+		<div data-role="controlgroup"
+				data-type="horizontal" data-mini="true">
 			<a href="#menuZone" data-rel="popup"
 				class="ui-btn ui-btn-inline ui-corner-all"
 				data-transition="slidedown">
@@ -938,19 +954,26 @@ update_model_panel = function (model_info) {
 						name="zone-right"
 						id="zone-right">
 					<label for="zone-right">Right</label>
-					<input type="checkbox"
-						checked="checked"
+					<input type="checkbox" checked="checked"
 						name="zone-bottom"
 						id="zone-bottom">
 					<label for="zone-bottom">Bottom</label>
 					</select>
 				</fieldset>
 			</div>
+			<a href="#menuLogging" data-rel="popup"
+				class="ui-btn ui-btn-inline ui-corner-all"
+				data-transition="slidedown">
+				Logging</a>
+			<div data-role="popup" id="menuLogging">
+				<ul data-role="listview" data-inset="true"
+						data-mini="true">
+					<li><a href="#log-panel" onclick='$("#menuLogging").popup("close")'>Log</a></li>
+					<li><a href="#debug-panel" onclick='$("#menuLogging").popup("close")'>Debug Log</a></li>
+				</ul>
+			</div>
 		</div><!--end controlgroup-->
-		</div><!--end header-left-->
-		<div class="ui-block-b header-right">
-			<a class="ui-btn ui-btn-inline">Help</a>
-		</div>
+		</div><!--end header-right-->
 	</div>
 </div>
 <!--end header-->
@@ -978,37 +1001,28 @@ update_model_panel = function (model_info) {
 	<!--bottom zone-->
 	<div id="zone-div-bottom">
 		<div id="bottom-widgets" style="position:relative;">
+			<!--
 			<label for="command-line"><b>Command:</b></label>
-			<input id="command-line" type="text" size="100"/>
+			<input id="command-line" type="text"/>
+			-->
+			<fieldset class="no-padding" style="border:1px black solid; border-radius:4px;">
+				<table style="width:100%"><tr>
+					<td><b>Command:</b></td>
+					<td style="width:100%"><input id="command-line" type="text"/></td>
+				</tr></table>
+			</fieldset>
 		</div>
-		<div id="status-line"><i>Simple informational messages will appear here.</i></div>
+		<div id="status-line"><i>Informational messages will appear here.</i></div>
 	</div>
 	<!--end bottom zone-->
 </div>
 <!--end main-->
 
 <!--footer-->
+<!--
 <div data-role="footer" data-position="fixed">
-	<div class="ui-grid-b">
-		<div class="ui-block-a footer-left">
-		<div data-role="controlgroup" data-type="horizontal"
-				data-mini="true">
-			<a class="ui-btn ui-mini footer-button"
-				href="#log-panel">Log</a>
-			<a class="ui-btn ui-mini footer-button"
-				href="#debug-panel">Debug Log</a>
-			</div>
-		</div>
-		<div class="ui-block-b footer-center">
-			<span id="active-session">No session selected</span>
-		</div>
-		<div class="ui-block-c footer-right">
-			Chimera 2 Mobile<br/>
-			Developed at the
-			<a href="http://www.rbvi.ucsf.edu">RBVI</a>
-		</div>
-	</div>
 </div>
+-->
 <!--end footer-->
 
 </div>
