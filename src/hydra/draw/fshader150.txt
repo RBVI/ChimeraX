@@ -58,6 +58,7 @@ void main (void)
 {
 #ifdef USE_TEXTURE_2D
 #ifdef USE_RADIAL_WARP
+  // Correction of spherical and chromatic aberration for Oculus Rift goggles
   float aspect = 1.25;
   float ds = tex_coord.s - warp_center.s;
   float dt = tex_coord.t - warp_center.t;
