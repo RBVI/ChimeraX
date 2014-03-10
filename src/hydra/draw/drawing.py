@@ -559,10 +559,9 @@ class Framebuffer:
 
 class Lighting:
     '''
-    Lighting parameters specifying colors and positions of two
-    lights: a key (main) light, and a fill light, as well as specular lighting
-    color and exponent and an ambient light color.  These are attributes of the
-    specified lighting_params object named
+    Lighting parameters specifying colors and positions of two lights:
+    a key (main) light, and a fill light, as well as specular lighting color
+    and exponent and an ambient light color.
 
       key_light_direction
       key_light_diffuse_color
@@ -572,19 +571,19 @@ class Lighting:
       fill_light_diffuse_color
       ambient_light_color
 
-    Colors are R,G,B float values in the range 0-1, positions are x,y,z float values,
-    and specular exponent is a single float value used as an exponent e with specular
-    color scaled by cosine(a) ** 0.3*e where a is the angle between the reflected light
-    and the view direction.  A typical value for e is 20.
+    Directions are unit vectors in camera coordinates (x right, y up, z opposite camera view).
+    Colors are R,G,B float values in the range 0-1, and specular exponent is a single float
+    value used as an exponent e with specular color scaled by cosine(a) ** e where a is the
+    angle between the reflected light and the view direction.  A typical value for e is 30.
     '''
 
     def __init__(self):
         # Lighting parameters
-        self.key_light_direction = (-.577,.577,.577)    # Should have unit length
+        self.key_light_direction = (.577,-.577,-.577)    # Should have unit length
         self.key_light_diffuse_color = (.6,.6,.6)
         self.key_light_specular_color = (.3,.3,.3)
         self.key_light_specular_exponent = 30
-        self.fill_light_direction = (.2,.2,.959)        # Should have unit length
+        self.fill_light_direction = (-.2,-.2,-.959)        # Should have unit length
         self.fill_light_diffuse_color = (.3,.3,.3)
         self.ambient_light_color = (.3,.3,.3)
 
