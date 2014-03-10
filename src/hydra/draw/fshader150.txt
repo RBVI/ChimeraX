@@ -85,18 +85,18 @@ void main (void)
   N1 *= (gl_FrontFacing ? 1.0 : -1.0);  // Two sided lighting
   vec3 R = normalize(-reflect(key_light_direction,N1)); 
 
-  // diffuse
+  // diffuse color, radiated equally in all directions, strength based on incoming light direction and surface normal.
   vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * max(dot(N1,key_light_direction),0.0)
                          + fill_light_diffuse_color * max(dot(N1,fill_light_direction),0.0));
 
-  // specular
+  // specular color, reflection of incoming light towards the camera.
   vec3 Ispec = key_light_specular_color * pow(max(dot(R,E),0.0), key_light_specular_exponent);
 
-  // scene
-  vec3 Iscene = fcolor.rgb * ambient_color;
+  // ambient color, uniform intensity light from all surfaces.
+  vec3 Iamb = fcolor.rgb * ambient_color;
 
   // total color
-  vec3 Ifrag = Iscene + Idiff + Ispec;
+  vec3 Ifrag = Iamb + Idiff + Ispec;
 
 #ifdef USE_DEPTH_CUE
   float dim = max(depth_cue_darkest, 1.0 / max(1.0, -dot(E,v)/depth_cue_distance));
