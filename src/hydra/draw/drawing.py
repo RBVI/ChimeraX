@@ -167,6 +167,7 @@ class Render:
                 if all(view_matrix_inverse == self.current_inv_view_matrix):
                     return
             v = view_matrix_inverse
+#            self.vinv = v
             m = model_matrix
             # TODO: optimize matrix multiply.  Rendering bottleneck with 200 models open.
             mv4 = (v*m).opengl_matrix()
@@ -188,8 +189,10 @@ class Render:
         lp = self.lighting_params
 
         # Key light
-        key_light_pos = GL.glGetUniformLocation(p, b"key_light_position")
-        GL.glUniform3f(key_light_pos, *lp.key_light_position)
+        key_light_pos = GL.glGetUniformLocation(p, b"key_light_direction")
+#        klp = self.vinv * lp.key_light_direction
+#        GL.glUniform3f(key_light_pos, *tuple(-klp))
+        GL.glUniform3f(key_light_pos, *lp.key_light_direction)
         key_diffuse = GL.glGetUniformLocation(p, b"key_light_diffuse_color")
         GL.glUniform3f(key_diffuse, *lp.key_light_diffuse_color)
 
@@ -200,8 +203,10 @@ class Render:
         GL.glUniform1f(key_shininess, lp.key_light_specular_exponent)
 
         # Fill light
-        fill_light_pos = GL.glGetUniformLocation(p, b"fill_light_position")
-        GL.glUniform3f(fill_light_pos, *lp.fill_light_position)
+        fill_light_pos = GL.glGetUniformLocation(p, b"fill_light_direction")
+#        flp = self.vinv * lp.fill_light_direction
+#        GL.glUniform3f(fill_light_pos, *tuple(-flp))
+        GL.glUniform3f(fill_light_pos, *lp.fill_light_direction)
         fill_diffuse = GL.glGetUniformLocation(p, b"fill_light_diffuse_color")
         GL.glUniform3f(fill_diffuse, *lp.key_light_diffuse_color)
 
@@ -559,11 +564,11 @@ class Lighting:
     color and exponent and an ambient light color.  These are attributes of the
     specified lighting_params object named
 
-      key_light_position
+      key_light_direction
       key_light_diffuse_color
       key_light_specular_color
       key_light_specular_exponent
-      fill_light_position
+      fill_light_direction
       fill_light_diffuse_color
       ambient_light_color
 
@@ -575,11 +580,11 @@ class Lighting:
 
     def __init__(self):
         # Lighting parameters
-        self.key_light_position = (-.577,.577,.577)
+        self.key_light_direction = (-.577,.577,.577)    # Should have unit length
         self.key_light_diffuse_color = (.6,.6,.6)
         self.key_light_specular_color = (.3,.3,.3)
-        self.key_light_specular_exponent = 100
-        self.fill_light_position = (.2,.2,.959)
+        self.key_light_specular_exponent = 30
+        self.fill_light_direction = (.2,.2,.959)        # Should have unit length
         self.fill_light_diffuse_color = (.3,.3,.3)
         self.ambient_light_color = (.3,.3,.3)
 
