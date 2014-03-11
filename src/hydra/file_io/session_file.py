@@ -177,13 +177,16 @@ def restore_camera(cs, camera):
 # -----------------------------------------------------------------------------
 #
 light_parameters = (
-  'key_light_position',
+  'key_light_direction',
   'key_light_diffuse_color',
   'key_light_specular_color',
   'key_light_specular_exponent',
-  'fill_light_position',
+  'fill_light_direction',
   'fill_light_diffuse_color',
   'ambient_light_color',
+  'depth_cue_distance',
+  'depth_cue_darkest',
+  'move_lights_with_camera',
   )
 
 # -----------------------------------------------------------------------------

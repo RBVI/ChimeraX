@@ -11,7 +11,7 @@ class Model_Panel:
         dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
 
         class Thumbnail_Viewer(QtWidgets.QTextBrowser):
-            height = 140
+            height = 165
             def sizeHint(self):
                 return QtCore.QSize(600,self.height)
         self.text = e = Thumbnail_Viewer(dw)
@@ -25,15 +25,30 @@ class Model_Panel:
     def show(self):
         from .qt import QtGui, QtCore
         d = self.text.document()
-        img_lines = []
+        lines = ['<html>', '<head>', '<style>',
+                 'body { background-color: black; }',
+                 'a { text-decoration: none; }',      # No underlining of links
+                 'a:link { color: white; }',          # Link text color
+                 'table { float:left; }',             # Multiple image/caption tables per row.
+                 '</style>', '</head>', '<body>']
         mlist = list(self.session.model_list())
         mlist.sort(key = lambda m: m.id)
+        from os.path import splitext
         for m in mlist:
             qi = self.model_image(m)
             uri = "file://image%d" % m.id
             d.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), qi)
-            img_lines.append('<a href="%d"><img src="%s"></a>' % (m.id, uri))
-        self.html = html = '\n'.join(img_lines)
+            n = splitext(m.name)[0]
+            lines.extend(['',
+                          '<a href="%d">' % m.id,
+                          '<table>',
+                          '<tr><td width=128><img src="%s">' % uri,
+                          '<tr><td><center>#%d %s</center>' % (m.id, n),
+                          '</table>',
+                          '</a>'])
+        lines.extend(['</body>', '</html>'])
+
+        self.html = html = '\n'.join(lines)
         self.text.setHtml(html)
 
         from .qt import QtCore
@@ -51,8 +66,6 @@ class Model_Panel:
         from . import camera
         c = camera.camera_framing_models(w, h, [model])
         qi = v.image(w,h,c,[model])
-        from . import qt
-        qt.draw_image_text(qi, str(model.id), bgcolor = (0,0,0), font_size = 24)
         model.thumbnail_image = qi
         return qi
 
