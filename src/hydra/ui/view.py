@@ -387,9 +387,11 @@ class View(QtGui.QWindow):
     def draw_overlays(self, overlays):
 
         i = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
+        from ..geometry import place
+        ip = place.identity()
         r = self.render
         r.set_projection_matrix(i)
-        r.set_model_view_matrix(matrix = i)
+        r.set_model_view_matrix(ip,ip)
         r.enable_depth_test(False)
         for m in overlays:
             m.draw(self, self.OPAQUE_DRAW_PASS)
