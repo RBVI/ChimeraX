@@ -43,6 +43,7 @@ class View(QtGui.QWindow):
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
         self.redraw_needed = False
+        self.update_lighting = False
         self.block_redraw_count = 0
         self.new_frame_callbacks = []
         self.rendered_callbacks = []
@@ -351,6 +352,9 @@ class View(QtGui.QWindow):
 
         r = self.render
         r.set_background_color(self.background_rgba)
+        if self.update_lighting:
+            self.update_lighting = False
+            r.set_shader_lighting_parameters()
 
         self.update_level_of_detail()
 

@@ -37,6 +37,8 @@ def register_commands(commands):
     add('camera', camera.camera_command)
     from . import device
     add('device', device.device_command)
+    from . import lightcmd
+    add('lighting', lightcmd.lighting_command)
 
 # -----------------------------------------------------------------------------
 #
