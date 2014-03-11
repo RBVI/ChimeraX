@@ -63,12 +63,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_command_line(self):
 
         d = QtWidgets.QDockWidget('Command line', self)
-        cline = Command_Line(d, self.session)
-#        cline = QtWidgets.QLineEdit(d)
-#        cline.setFocusPolicy(QtCore.Qt.ClickFocus)
+        w = QtWidgets.QWidget(d)
+        hbox = QtWidgets.QHBoxLayout(w)
+        hbox.setContentsMargins(0,0,0,0)
+        t = QtWidgets.QLabel(' Command', w)
+        hbox.addWidget(t)
+        cline = Command_Line(w, self.session)
+        hbox.addWidget(cline)
+        w.setLayout(hbox)
         cline.setFocus(QtCore.Qt.OtherFocusReason)      # Set the initial focus to the command-line
-#        self.setFocusProxy(cline)
-        d.setWidget(cline)
+        d.setWidget(w)
         d.setTitleBarWidget(QtWidgets.QWidget(d))   # No title bar
         d.setFeatures(d.NoDockWidgetFeatures)   # No close button
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, d)
