@@ -171,7 +171,7 @@ def start_oculus(session):
 def oculus_on(session):
 
     oht = session.oculus
-    return oht and oht.frame_cb
+    return oht and oht.connected and oht.frame_cb
 
 def stop_oculus(session):
 
@@ -201,9 +201,11 @@ def set_oculus_camera_mode(session):
         from math import atan2
         fov = 1.75              # 100 degrees, scale 1.5 value.
         ishift = -49
-        warp = (1.0, 0.22, 0.24, 0)
+        s = oht.scale
+        warp = (1.0/s, 0.22/s, 0.24/s, 0/s)
         cwarp = (0.996, -0.004, 1.014, 0)
-        wsize = (640,800)
+        w,h = (640,800)
+        wsize = (int(s*0.5*w), int(s*h))
 
     view = session.view
     c = view.camera
@@ -240,11 +242,18 @@ def toggle_warping(session):
     if r.radial_warp_coefficients == (1,0,0,0):
         if oht.connected:
             wc = oht.radial_warp_parameters()
+            cwc = oht.chromatic_aberration_parameters()
         else:
-            wc = (1.0, 0.22, 0.24, 0)
+            s = oht.scale
+            wc = (1.0/s, 0.22/s, 0.24/s, 0/s)
+            cwc = (0.996, -0.004, 1.014, 0)
     else:
         wc = (1,0,0,0)
-    r.radial_warp_coefficients wc
+        cwc = (1,0,1,0)
+
+    r.radial_warp_coefficients = wc
+    r.chromatic_warp_coefficients = cwc
+    session.view.redraw_needed = True
 
 def move_window_to_oculus(session, w, h):
     d = session.application.desktop()
