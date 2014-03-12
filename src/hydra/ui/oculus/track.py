@@ -7,7 +7,8 @@ class Oculus_Head_Tracking:
         self.connected = False
         self.last_rotation = None
         self.view = None
-        self.scale = 1.5        # Scale eye images to use edges of oculus display.
+        self.lens_correction = True
+        self.scale = 1.5 	       # Scale eye images to use edges of oculus display.
         self.last_angle = 0
         self.last_axis = (0,0,1)
         self.min_angle_change = 1e-4
@@ -153,20 +154,57 @@ class Oculus_Head_Tracking:
             v.move(mtf, update_clip_planes = True)
         self.last_rotation = r
 
+    def set_camera_mode(self, view):
+        if self.connected:
+            fov = self.field_of_view()
+            ishift = self.image_shift_pixels()
+            warp = self.radial_warp_parameters()
+            cwarp = self.chromatic_aberration_parameters()
+            w,h = dsize = self.display_size()
+            s = self.scale
+            wsize = (int(s*0.5*w), int(s*h))
+        else:
+            from math import atan2
+            fov = 1.75              # 100 degrees, scale 1.5 value.
+            ishift = -49
+            s = self.scale
+            warp = (1.0/s, 0.22/s, 0.24/s, 0/s)
+            cwarp = (0.996, -0.004, 1.014, 0)
+            w,h = dsize = (1280,800)
+            wsize = (int(s*0.5*w), int(s*h))
+
+        c = view.camera
+        from math import pi
+        c.field_of_view = fov * 180 / pi
+        c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
+        c.eye_separation_pixels = 2*ishift
+        view.set_camera_mode('oculus')
+        r = view.render
+        if self.lens_correction:
+            c.warp_window_size = wsize
+            r.radial_warp_coefficients = warp
+            r.chromatic_warp_coefficients = cwarp
+        else:
+            c.warp_window_size = dsize
+            r.radial_warp_coefficients = (1,0,0,0)
+            r.chromatic_warp_coefficients = (1,0,1,0)
+
+        view.redraw_needed = True
+
 def start_oculus(session):
 
     oht = session.oculus
     if oht is None:
         session.oculus = oht = Oculus_Head_Tracking()
 
-    if oht:
-        success = oht.start_event_processing(session.view)
-        msg = 'started oculus head tracking ' if success else 'failed to start oculus head tracking'
-        session.show_status(msg)
-        session.show_info(msg)
+    success = oht.start_event_processing(session.view)
+    msg = 'started oculus head tracking ' if success else 'failed to start oculus head tracking'
+    session.show_status(msg)
+    session.show_info(msg)
+    if oht.connected:
         oculus_full_screen(True, session)
 
-    set_oculus_camera_mode(session)
+    oht.set_camera_mode(session.view)
 
 def oculus_on(session):
 
@@ -186,44 +224,11 @@ def stop_oculus(session):
     v.set_camera_mode('mono')
     v.field_of_view = 30.0
 
-# Set stereo camera mode
-def set_oculus_camera_mode(session):
-    oht = session.oculus
-    if oht and oht.connected:
-        fov = oht.field_of_view()
-        ishift = oht.image_shift_pixels()
-        warp = oht.radial_warp_parameters()
-        cwarp = oht.chromatic_aberration_parameters()
-        w,h = oht.display_size()
-        s = oht.scale
-        wsize = (int(s*0.5*w), int(s*h))
-    else:
-        from math import atan2
-        fov = 1.75              # 100 degrees, scale 1.5 value.
-        ishift = -49
-        s = oht.scale
-        warp = (1.0/s, 0.22/s, 0.24/s, 0/s)
-        cwarp = (0.996, -0.004, 1.014, 0)
-        w,h = (1280,800)
-        wsize = (int(s*0.5*w), int(s*h))
-
-    view = session.view
-    c = view.camera
-    from math import pi
-    c.field_of_view = fov * 180 / pi
-    c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
-    c.eye_separation_pixels = 2*ishift
-    c.warp_window_size = wsize
-    view.set_camera_mode('oculus')
-    r = view.render
-    r.radial_warp_coefficients = warp
-    r.chromatic_warp_coefficients = cwarp
-
 # Go full screen on oculus display
 def oculus_full_screen(full, session):
     d = session.application.desktop()
     mw = session.main_window
-    if full or mw.toolbar.isVisible():
+    if full and mw.toolbar.isVisible():
         mw.toolbar.hide()
         mw.show_command_line(False)
         mw.statusBar().hide()
@@ -278,10 +283,22 @@ def move_window_to_primary_screen(session):
     mw.move(x, 0)       # Work around bug where y-placement is wrong.
     mw.move(x, y)
 
-def oculus_command(enable = None, session = None):
+def oculus_command(enable = None, scale = None, lensCorrection = None, session = None):
 
     if not enable is None:
         if enable:
             start_oculus(session)
         else:
             stop_oculus(session)
+
+    if not scale is None:
+        oht = session.oculus
+        if oht:
+            oht.scale = scale
+            oht.set_camera_mode(session.view)
+
+    if not lensCorrection is None:
+        oht = session.oculus
+        if oht:
+            oht.lens_correction = lensCorrection
+            oht.set_camera_mode(session.view)
