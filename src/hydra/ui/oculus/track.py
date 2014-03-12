@@ -222,14 +222,14 @@ def oculus_full_screen(full, session):
     mw = session.main_window
     if full or mw.toolbar.isVisible():
         mw.toolbar.hide()
-        mw.command_line.hide()
+        mw.show_command_line(False)
         mw.statusBar().hide()
         w,h = session.oculus.display_size()
         move_window_to_oculus(session, w, h)
     else:
         move_window_to_primary_screen(session)
         mw.toolbar.show()
-        mw.command_line.show()
+        mw.show_command_line(True)
         mw.statusBar().show()
 
 def toggle_warping(session):
