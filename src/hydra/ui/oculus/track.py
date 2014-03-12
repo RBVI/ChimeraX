@@ -189,7 +189,7 @@ def stop_oculus(session):
 # Set stereo camera mode
 def set_oculus_camera_mode(session):
     oht = session.oculus
-    if oht:
+    if oht and oht.connected:
         fov = oht.field_of_view()
         ishift = oht.image_shift_pixels()
         warp = oht.radial_warp_parameters()
@@ -224,8 +224,9 @@ def oculus_full_screen(full, session):
         mw.toolbar.hide()
         mw.command_line.hide()
         mw.statusBar().hide()
-        w,h = session.oculus.display_size()
-        move_window_to_oculus(session, w, h)
+        if session.oculus.connected:
+            w,h = session.oculus.display_size()
+            move_window_to_oculus(session, w, h)
     else:
         move_window_to_primary_screen(session)
         mw.toolbar.show()
