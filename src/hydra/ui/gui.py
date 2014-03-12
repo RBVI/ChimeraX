@@ -63,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_command_line(self):
 
         d = QtWidgets.QDockWidget('Command line', self)
-        w = QtWidgets.QWidget(d)
+        self.command_line_frame = w = QtWidgets.QWidget(d)
         hbox = QtWidgets.QHBoxLayout(w)
         hbox.setContentsMargins(0,0,0,0)
         t = QtWidgets.QLabel(' Command', w)
@@ -79,6 +79,13 @@ class MainWindow(QtWidgets.QMainWindow):
         cline.returnPressed.connect(self.command_entered)
         cline.textEdited.connect(self.command_text_changed)
         return cline
+
+    def show_command_line(self, show):
+        f = self.command_line_frame
+        if show:
+            f.show()
+        else:
+            f.hide()
 
     def focus_on_command_line(self):
         cline = self.command_line
