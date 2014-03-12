@@ -160,7 +160,7 @@ class Oculus_Head_Tracking:
             ishift = self.image_shift_pixels()
             warp = self.radial_warp_parameters()
             cwarp = self.chromatic_aberration_parameters()
-            w,h = dsize = self.display_size()
+            w,h = self.display_size()
             s = self.scale
             wsize = (int(s*0.5*w), int(s*h))
         else:
@@ -170,7 +170,7 @@ class Oculus_Head_Tracking:
             s = self.scale
             warp = (1.0/s, 0.22/s, 0.24/s, 0/s)
             cwarp = (0.996, -0.004, 1.014, 0)
-            w,h = dsize = (1280,800)
+            w,h = (1280,800)
             wsize = (int(s*0.5*w), int(s*h))
 
         c = view.camera
@@ -185,7 +185,7 @@ class Oculus_Head_Tracking:
             r.radial_warp_coefficients = warp
             r.chromatic_warp_coefficients = cwarp
         else:
-            c.warp_window_size = dsize
+            c.warp_window_size = (w//2,h)
             r.radial_warp_coefficients = (1,0,0,0)
             r.chromatic_warp_coefficients = (1,0,1,0)
 
