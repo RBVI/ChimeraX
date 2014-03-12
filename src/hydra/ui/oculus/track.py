@@ -97,7 +97,7 @@ class Oculus_Head_Tracking:
         # Taken from Oculus SDK Overview, page 24
         # Center should be at lens separation / 2 instead of viewport width / 2.
         p = self.parameters
-        w = p['HScreenSize']                    # meters, devkit value 0.15, VScreenSize 0.0936
+        w = p['HScreenSize']                    # meters, devkit value 0.15
         hw = 0.5*w
         s = p['LensSeparationDistance']         # meters, devkit value 0.0635, InterpupillaryDistance 0.064
         dx = 0.5*s - 0.5*hw                     # meters
@@ -198,10 +198,11 @@ def set_oculus_camera_mode(session):
         s = oht.scale
         wsize = (int(s*0.5*w), int(s*h))
     else:
-        fov = 1.5
-        ishift = -50
-        warp = (1, 0, 0, 0)
-        cwarp = (1, 0, 1, 0)
+        from math import atan2
+        fov = 1.75              # 100 degrees, scale 1.5 value.
+        ishift = -49
+        warp = (1.0, 0.22, 0.24, 0)
+        cwarp = (0.996, -0.004, 1.014, 0)
         wsize = (640,800)
 
     view = session.view
@@ -235,10 +236,15 @@ def oculus_full_screen(full, session):
 
 def toggle_warping(session):
     r = session.view.render
+    oht = session.oculus
     if r.radial_warp_coefficients == (1,0,0,0):
-        r.radial_warp_coefficients = session.oculus.radial_warp_parameters()
+        if oht.connected:
+            wc = oht.radial_warp_parameters()
+        else:
+            wc = (1.0, 0.22, 0.24, 0)
     else:
-        r.radial_warp_coefficients = (1,0,0,0)
+        wc = (1,0,0,0)
+    r.radial_warp_coefficients wc
 
 def move_window_to_oculus(session, w, h):
     d = session.application.desktop()
