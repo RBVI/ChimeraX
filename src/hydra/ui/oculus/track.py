@@ -204,7 +204,7 @@ def set_oculus_camera_mode(session):
         s = oht.scale
         warp = (1.0/s, 0.22/s, 0.24/s, 0/s)
         cwarp = (0.996, -0.004, 1.014, 0)
-        w,h = (640,800)
+        w,h = (1280,800)
         wsize = (int(s*0.5*w), int(s*h))
 
     view = session.view
