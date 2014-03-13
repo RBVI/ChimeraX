@@ -39,6 +39,8 @@ def register_commands(commands):
     add('device', device.device_command)
     from . import lightcmd
     add('lighting', lightcmd.lighting_command)
+    from . import gui
+    add('windowsize', gui.window_size_command)
 
 # -----------------------------------------------------------------------------
 #

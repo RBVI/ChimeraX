@@ -359,3 +359,28 @@ class Log:
                     self.log.log_message(self.text.rstrip())
                     self.text = ''
         return Log_Output_Stream(self)
+
+def window_size_command(cmdname, args, session):
+
+    from .commands import int_arg, parse_arguments
+    req_args = ()
+    opt_args = ((('width', int_arg),
+                 ('height', int_arg),))
+    kw_args = ()
+
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    set_window_size(session, **kw)
+
+def set_window_size(session, width = None, height = None):
+
+    mw = session.main_window
+    g = mw.stack
+    if width is None and height is None:
+        from . import show_status, show_info
+        msg = 'Graphics size %d, %d' % (g.width(), g.height())
+        show_status(msg)
+        show_info(msg)
+    else:
+        # Have to resize main window.  Main window will not resize for central graphics window.
+        wpad, hpad = mw.width()-g.width(), mw.height()-g.height()
+        mw.resize(width + wpad, height + hpad)

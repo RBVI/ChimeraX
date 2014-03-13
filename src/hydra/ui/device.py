@@ -3,7 +3,7 @@
 #
 def device_command(cmd_name, args, session):
 
-    from .commands import bool_arg, string_arg, perform_operation
+    from .commands import bool_arg, string_arg, float_arg, perform_operation
     from .oculus import oculus_command
     from .spacenavigator import snav_command
     from .c2leap import leap_command
@@ -11,7 +11,8 @@ def device_command(cmd_name, args, session):
         'OculusRift': (oculus_command,
                        (),
                        (('enable', bool_arg),),
-                       ()),
+                       (('scale', float_arg),
+                        ('lensCorrection', bool_arg),)),
         'SpaceNavigator': (snav_command,
                            (),
                            (('enable', bool_arg),),
