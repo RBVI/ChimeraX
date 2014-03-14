@@ -22,9 +22,9 @@
 <script type="text/javascript" src="js/c2/session.js"></script>
 
 <!-- WebGL support -->
-<script type="text/javascript" src="webgl/webgl-debug.js"></script>
-<script type="text/javascript" src="webgl/webgl-utils.js"></script>
-<script type="text/javascript" src="webgl/webgl-context.js"></script>
+<script type="text/javascript" src="js/webgl-debug.js"></script>
+<script type="text/javascript" src="js/webgl-utils.js"></script>
+<script type="text/javascript" src="js/webgl-context.js"></script>
 <script type="text/javascript" src="webgl/llgr_webgl.js"></script>
 <script type="text/javascript" src="js/gl-matrix.js"></script>
 <script type="text/javascript" src="js/vsphere.js"></script>
@@ -67,6 +67,7 @@ th, td { padding:0; }
 </style>
 
 <script type="text/javascript">
+<!--
 
 function find_last_index(array, predicate, context)
 {
@@ -535,6 +536,9 @@ function molview_mouse_up(event)
 	//console.log("mouse_up:", event);
 	event.stopPropagation();
 	button_pressed = false;
+	var canvas = event.currentTarget;
+	var position = get_rel_xy(event);
+	console.log('picked', llgr.pick(open_model_groups, position.x, canvas.height - position.y));
 }
 
 function molview_update_size()
@@ -631,7 +635,7 @@ function draw_view(ci)
 	var height = canvas.height;
 	$c2_session.set_state("width", width);
 	$c2_session.set_state("height", height);
-	llgr.set_context(gl);
+	llgr.set_context(gl, width, height);
 	gl.viewport(0, 0, width, height);
 	if (camera !== null) {
 		camera.update_viewport(width, height);
@@ -733,7 +737,6 @@ $(document).bind("pageshow", "#app", function() {
 	update_zone_layout();
 	if ($c2_session.session === undefined || $c2_session.session === "") {
 		window.setTimeout(function () {
-			console.log("session5", $c2_session.session);
 			$("#popup-session-open").popup("open");
 		}, 100);
 	}
@@ -742,6 +745,7 @@ $(document).bind("pageshow", "#app", function() {
 
 }());
 
+//-->
 </script>
 
 <!-- model panel -->
@@ -808,6 +812,7 @@ $(document).bind("pageshow", "#app", function() {
 </script>
 
 <script type="text/javascript">
+<!--
 
 // exported functions/variables
 var update_model_panel;
@@ -832,7 +837,6 @@ update_model_panel = function (model_info) {
 	_.each(model_info, function (info) {
 		model_panel.append(template(info));
 		var close = $("#model" + info.id + "-close");
-		console.log('close', close);
 		close.bind("click", function (event) {
 			model_close(info.id);
 		});
@@ -842,11 +846,18 @@ update_model_panel = function (model_info) {
 
 })();
 
+//-->
 </script>
 
 <!-- end model panel -->
 </head>
 <body>
+<noscript>
+	<h1>Javascript is unavailable</h1>
+	<p>You must enable javascript for
+	<a href="http://www.cgl.ucsf.edu/trac/chimera2/wiki/Mobile">
+		Chimers 2 Mobile</a> to work.
+</noscript>
 <div id="app" data-role="page" class="ui-responsive-panel"
 		style="overflow:hidden; padding:0;">
 

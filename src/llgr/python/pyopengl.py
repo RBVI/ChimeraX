@@ -910,6 +910,8 @@ def delete_object(obj_id: Id):
 	for gi in oi.groups:
 		if gi.optimized:
 			gi.reset_optimization()
+	if oi.vao:
+		GL.glDeleteVertexArrays(1, numpy.array([oi.vao], dtype=numpy.uint32))
 	del _all_objects[obj_id]
 
 def clear_objects():

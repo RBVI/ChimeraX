@@ -177,7 +177,7 @@ var create3DContext = function(canvas, opt_attribs) {
   }
   if (0) {
     function logGLCall(functionName, args) {
-      console.log("gl." + functionName + "(" + 
+      console.log("webgl." + functionName + "(" + 
       WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");   
     } 
     context = WebGLDebugUtils.makeDebugContext(context, undefined, logGLCall);
