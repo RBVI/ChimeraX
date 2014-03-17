@@ -90,7 +90,7 @@ def register_shortcuts(keyboard_shortcuts):
         ('mp', show_model_panel, 'Show/hide model panel', ocat),
         ('Ds', delete_selected_models, 'Delete selected models', ocat),
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat),
-        ('rs', show_file_history, 'Show recent sessions', ocat),
+        ('rf', show_file_history, 'Show recent files', ocat),
         ('gr', show_graphics_window, 'Show graphics window', gcat),
         ('mn', show_manual, 'Show manual', gcat),
         ('ch', show_command_history, 'Show command history', gcat),
