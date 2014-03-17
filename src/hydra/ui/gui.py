@@ -28,8 +28,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view = v = View(session, st)
         st.addWidget(v.widget)
 
-#        self.text = e = QtGui.QTextEdit(st)
         self.text = e = QtWidgets.QTextBrowser(st)          # Handle clicks on anchors
+
+        # Create close button for text widget.
+        self.close_text = ct = QtWidgets.QPushButton('X', e)
+        ct.setStyleSheet("padding: 1px; min-width: 1em")
+        ct.clicked.connect(lambda e: self.show_graphics())
+
         e.setFocusPolicy(QtCore.Qt.NoFocus)
         e.setReadOnly(True)
         e.anchorClicked.connect(self.anchor_callback)
@@ -60,6 +65,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # by qt adjustSize() routine.
 #        lo = self.layout()
 #        lo.setSizeConstraint(lo.SetFixedSize)
+
+    def resizeEvent(self, e):
+        s = e.size()
+        ct = self.close_text
+        ct.move(s.width()-ct.width()-5,5)
 
     def create_command_line(self):
 
@@ -227,6 +237,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return self.stack.currentWidget() == self.view.widget
     def show_graphics(self):
         self.stack.setCurrentWidget(self.view.widget)
+        self.show_back_forward_buttons(False)
 
     def show_status(self, msg, append = False):
         sb = self.statusBar()
