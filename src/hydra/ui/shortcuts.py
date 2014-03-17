@@ -105,7 +105,8 @@ def register_shortcuts(keyboard_shortcuts):
         ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat),
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat),
         ('ow', oculus_warp, 'Toggle Oculus Rift lens correction', gcat),
-        ('lp', leap_position_mode, 'Enable leap motion input device', gcat),
+        ('lp', toggle_leap, 'Toggle leap motion input device', gcat),
+        ('lP', leap_position_mode, 'Enable leap motion position mode', gcat),
         ('lx', leap_chopsticks_mode, 'Enable leap motion chopstick mode', gcat),
         ('lv', leap_velocity_mode, 'Enable leap motion velocity mode', gcat),
         ('lf', leap_focus, 'Check if app has leap focus', gcat),
@@ -508,6 +509,10 @@ def show_stats(session):
     r = 1.0/v.last_draw_duration
     n = session.model_count()
     session.show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
+
+def toggle_leap(session):
+    from . import c2leap
+    c2leap.toggle_leap(session)
 
 def leap_chopsticks_mode(session):
     from . import c2leap
