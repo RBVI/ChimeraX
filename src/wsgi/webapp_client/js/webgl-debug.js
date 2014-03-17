@@ -23,7 +23,7 @@
 
 // Various functions for helping debug WebGL apps.
 
-var WebGLDebugUtils = function() {
+WebGLDebugUtils = function() {
 
 /**
  * Wrapped logging function.
@@ -145,10 +145,14 @@ var glValidEnumContexts = {
   'cullFace': {1: { 0:true }},
   'frontFace': {1: { 0:true }},
 
-  // ANGLE extension
+  // ANGLE_instanced_arrays extension
 
   'drawArraysInstancedANGLE': {4: { 0:true }},
   'drawElementsInstancedANGLE': {5: { 0:true, 2:true }},
+
+  // EXT_blend_minmax extension
+
+  'blendEquationEXT': {1: { 0:true }},
 };
 
 /**
@@ -295,9 +299,11 @@ function makeFunctionWrapper(original, functionName) {
  * @param {!function(funcName, args): void} opt_onFunc The
  *        function to call when each webgl function is called.
  *        You can use this to log all calls for example.
+ * @param {!WebGLRenderingContext} opt_err_ctx The webgl context
+ *        to call getError on if different than ctx.
  */
-function makeDebugContext(ctx, opt_onErrorFunc, opt_onFunc, err_ctx) {
-  err_ctx = err_ctx || ctx;
+function makeDebugContext(ctx, opt_onErrorFunc, opt_onFunc, opt_err_ctx) {
+  opt_err_ctx = opt_err_ctx || ctx;
   init(ctx);
   opt_onErrorFunc = opt_onErrorFunc || function(err, functionName, args) {
         // apparently we can't do args.join(",");
@@ -322,7 +328,7 @@ function makeDebugContext(ctx, opt_onErrorFunc, opt_onFunc, err_ctx) {
         opt_onFunc(functionName, arguments);
       }
       var result = ctx[functionName].apply(ctx, arguments);
-      var err = err_ctx.getError();
+      var err = opt_err_ctx.getError();
       if (err != 0) {
         glErrorShadow[err] = true;
         opt_onErrorFunc(err, functionName, arguments);
@@ -342,8 +348,8 @@ function makeDebugContext(ctx, opt_onErrorFunc, opt_onFunc, err_ctx) {
 	  var wrapped = makeErrorWrapper(ctx, propertyName);
 	  wrapper[propertyName] = function () {
 	     var result = wrapped.apply(ctx, arguments);
-	     return makeDebugContext(result, opt_onErrorFunc, opt_onFunc, err_ctx);
-	  }
+	     return makeDebugContext(result, opt_onErrorFunc, opt_onFunc, opt_err_ctx);
+	  };
        }
      } else {
        makePropertyWrapper(wrapper, ctx, propertyName);
@@ -427,7 +433,7 @@ function resetToInitialState(ctx) {
   ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT | ctx.STENCIL_BUFFER_BIT);
 
   // TODO: This should NOT be needed but Firefox fails with 'hint'
-  while(ctx.getError()) continue;
+  while(ctx.getError());
 }
 
 function makeLostContextSimulatingCanvas(canvas) {
@@ -508,7 +514,7 @@ function makeLostContextSimulatingCanvas(canvas) {
       contextLost_ = true;
       numCallsToLoseContext_ = 0;
       ++contextId_;
-      while (unwrappedContext_.getError()) continue;
+      while (unwrappedContext_.getError());
       clearErrors();
       glErrorShadow_[unwrappedContext_.CONTEXT_LOST_WEBGL] = true;
       var event = makeWebGLContextEvent("context lost");
