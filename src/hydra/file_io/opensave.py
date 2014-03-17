@@ -190,10 +190,11 @@ def save_image(path, session, width = None, height = None, format = None):
     view = session.view
     if path is None:
         filters = 'Image (*.jpg *.png *.ppm *.bmp)'
-        path = QtWidgets.QFileDialog.getSaveFileName(view.widget, 'Save Image', '.',
-                                                     filters)
-        if path is None:
+        pf = QtWidgets.QFileDialog.getSaveFileName(view.widget, 'Save Image', '.', filters)
+        # Returns path and filter name.
+        if pf is None:
             return
+        path = pf[0]
 
     import os.path
     path = os.path.expanduser(path)         # Tilde expansion
