@@ -49,6 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
         st.setCurrentWidget(v.widget)
         self.setCentralWidget(st)
 
+        self.create_menus()
         self.create_toolbar()
 
         self.shortcuts_enabled = False
@@ -89,13 +90,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def focus_on_command_line(self):
         cline = self.command_line
-#        self.view.setFocus(QtCore.Qt.OtherFocusReason)
         cline.setFocus(QtCore.Qt.OtherFocusReason)
-#        self.releaseKeyboard()
-#        cline.activateWindow()
-#        cline.setEnabled(True)
-#        self.view.setFocus(QtCore.Qt.MouseFocusReason)
-#       cline.setFocus(QtCore.Qt.MouseFocusReason)
+
+    def create_menus(self):
+
+#        self.menuBar = mb = QtWidgets.QMenuBar()
+        mb = self.menuBar()
+        fm = mb.addMenu('File')
+        ks = self.session.keyboard_shortcuts
+        for name, scut in (('Open', 'op'), ('Save Session As...', 'sv'), ('Save Image', 'si')):
+            a = QtWidgets.QAction(name, self)
+            a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
+            fm.addAction(a)
 
     def create_toolbar(self):
 
@@ -266,6 +272,7 @@ def set_default_context(major_version, minor_version, profile):
 class Hydra_App(QtWidgets.QApplication):
 
     def __init__(self, argv, session):
+        fix_qt_plugin_path()
         QtWidgets.QApplication.__init__(self, argv)
         self.session = session
         self.setWindowIcon(icon('reo.png'))
@@ -281,6 +288,14 @@ class Hydra_App(QtWidgets.QApplication):
             return True
         else:
             return QtWidgets.QApplication.event(self, e)
+
+def fix_qt_plugin_path():
+    # Remove plugin location set in QtCore library (qt_plugpath in binary) which points to build location
+    # instead of install location.  Messes up application menu on Mac when run on build machine if build
+    # path is used, and gives numerous warnings to start-up shell.  Installed Qt plugins are in PyQt5/plugins.
+    libpaths = [p for p in QtCore.QCoreApplication.libraryPaths()
+                if not str(p).endswith('plugins') or str(p).endswith('PyQt5/plugins')]
+    QtCore.QCoreApplication.setLibraryPaths(libpaths)
 
 def start_event_loop(app):
     status = app.exec_()
