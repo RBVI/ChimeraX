@@ -103,6 +103,14 @@ class MainWindow(QtWidgets.QMainWindow):
             a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
             fm.addAction(a)
 
+        dm = mb.addMenu('Device')
+        for name, scut in (('Oculus Rift', 'oc'), ('Space Navigator', 'sn'),
+                           ('Space Navigator Fly Mode', 'nf'), ('Leap Motion', 'lp')):
+            a = QtWidgets.QAction(name, self)
+            a.setCheckable(True)
+            a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
+            dm.addAction(a)
+        
     def create_toolbar(self):
 
 # TODO: tooltips take too long to show and don't hide when mouse moves off button on Mac.
