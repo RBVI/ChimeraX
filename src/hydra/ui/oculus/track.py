@@ -222,7 +222,7 @@ def stop_oculus(session):
 
     v = session.view
     v.set_camera_mode('mono')
-    v.field_of_view = 30.0
+    v.camera.field_of_view = 30.0
 
 # Go full screen on oculus display
 def oculus_full_screen(full, session):
