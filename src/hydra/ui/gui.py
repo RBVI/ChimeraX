@@ -98,7 +98,9 @@ class MainWindow(QtWidgets.QMainWindow):
         mb = self.menuBar()
         fm = mb.addMenu('File')
         ks = self.session.keyboard_shortcuts
-        for name, scut in (('Open', 'op'), ('Save Session As...', 'sv'), ('Save Image', 'si')):
+        for name, scut in (('Open', 'op'), ('Recent File Thumbnails', 'rf'),
+                           ('Save Session As...', 'sv'), ('Save Image', 'si'),
+                           ('Close All Models', 'Ca')):
             a = QtWidgets.QAction(name, self)
             a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
             fm.addAction(a)
@@ -110,6 +112,12 @@ class MainWindow(QtWidgets.QMainWindow):
             a.setCheckable(True)
             a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
             dm.addAction(a)
+
+        hm = mb.addMenu('Help')
+        for name, scut in (('Show Manual', 'mn'), ('List Keyboard Shortcuts', 'ks')):
+            a = QtWidgets.QAction(name, self)
+            a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
+            hm.addAction(a)
         
     def create_toolbar(self):
 
@@ -141,7 +149,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_shortcut_icon('book.png', 'Show manual', 'mn')
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('grid.png', 'Show recent sessions', 'rs')
+        self.add_shortcut_icon('grid.png', 'Show recent files', 'rf')
         self.add_shortcut_icon('savesession.png', 'Save session', 'sv')
 
     def add_shortcut_icon(self, icon_file, descrip, shortcut):
