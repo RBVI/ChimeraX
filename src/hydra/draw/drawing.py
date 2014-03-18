@@ -688,7 +688,7 @@ INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type('instanceShiftAndScale', instance_
 INSTANCE_MATRIX_BUFFER = Buffer_Type('instancePlacement', instance_buffer = True)
 INSTANCE_COLOR_BUFFER = Buffer_Type('vcolor', instance_buffer = True, value_type = uint8, normalize = True,
                                     requires_capabilities = (Render.SHADER_VERTEX_COLORS,))
-TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d')
+TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d', requires_capabilities = (Render.SHADER_TEXTURE_2D,))
 ELEMENT_BUFFER = Buffer_Type(None, buffer_type = GL.GL_ELEMENT_ARRAY_BUFFER, value_type = uint32)
 
 class Buffer:
