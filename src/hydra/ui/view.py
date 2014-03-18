@@ -366,6 +366,7 @@ class View(QtGui.QWindow):
             camera.set_framebuffer(vnum, r)
             r.draw_background()
             if models:
+                self.update_projection(vnum, camera = camera)
                 self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
                 if any_transparent_models(models):
                     r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
@@ -410,7 +411,6 @@ class View(QtGui.QWindow):
 
     def draw(self, draw_pass, view_num, camera, models):
 
-        self.update_projection(view_num, camera = camera)
         for m in models:
             self.draw_model(m, draw_pass, view_num, camera)
 
