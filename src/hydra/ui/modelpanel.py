@@ -25,6 +25,7 @@ class Model_Panel:
 
         e.close_button = ct = QtWidgets.QPushButton('X', e)
         ct.setStyleSheet("padding: 1px; min-width: 1em")
+        ct.adjustSize()
         ct.clicked.connect(lambda e: self.hide())
 
         dw.setWidget(e)
