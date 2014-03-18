@@ -2,12 +2,12 @@
 #
 def pdb_biomt_matrices(pdb_text):
 
-    lines = lines_with_prefix(pdb_text, 'REMARK 350')
+    lines = lines_with_prefix(pdb_text, b'REMARK 350')
 
     mtable = {}
     for line in lines:
         fields = line.split()
-        if len(fields) >= 8 and fields[2].startswith('BIOMT'):
+        if len(fields) >= 8 and fields[2].startswith(b'BIOMT'):
             try:
                 matrix_num = int(fields[3])
             except ValueError:
@@ -15,7 +15,7 @@ def pdb_biomt_matrices(pdb_text):
             if not matrix_num in mtable:
                 mtable[matrix_num] = [None, None, None]
             try:
-                row = int(fields[2][5]) - 1
+                row = int(fields[2][5:6]) - 1
             except ValueError:
                 continue
             if row >= 0 and row <= 2:
@@ -40,7 +40,7 @@ def lines_with_prefix(text, prefix):
         i = text.find(prefix,s)
         if i == -1:
             break
-        ie = text.find('\n',i)
+        ie = text.find(b'\n',i)
         if ie == -1:
             ie = len(text)
         lines.append(text[i:ie])
