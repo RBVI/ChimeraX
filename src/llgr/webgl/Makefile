@@ -6,7 +6,7 @@ JS = llgr_webgl.js
 all:
 
 install:
-	$(RSYNC) $(JS) $(webdir)
+	$(RSYNC) $(JS) $(webdir)/www/webgl/
 
 # do syntax checking so debugging in browser is just runtime errors
 lint:

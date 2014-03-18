@@ -258,13 +258,13 @@ def render(groups: sequence_of(Id), as_data: bool=False):
 def create_program(program_id: Id, vertex_shader: str, fragment_shader: str,
 		pick_vertex_shader: str):
 	if _dump_format == JSON_FORMAT:
-		_calls.append(['create_program', [program_id, vertex_shader, fragment_shader]])
+		_calls.append(['create_program', [program_id, vertex_shader, fragment_shader, pick_vertex_shader]])
 		return
 	vs = repr(vertex_shader)[1:-1]
 	vs = vs.replace('"', '\\"').replace('\\n', '\\n\\\n')
 	fs = repr(fragment_shader)[1:-1]
 	fs = fs.replace('"', '\\"').replace('\\n', '\\n\\\n')
-	pvs = repr(fragment_shader)[1:-1]
+	pvs = repr(pick_vertex_shader)[1:-1]
 	pvs = fs.replace('"', '\\"').replace('\\n', '\\n\\\n')
 	_calls.append('\tcreate_program(%s, "%s", "%s", "%s");' % (program_id, vs, fs, pvs))
 
