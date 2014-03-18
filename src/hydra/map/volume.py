@@ -1609,6 +1609,9 @@ class Volume(Surface):
     if self.representation in ('surface', 'mesh'):
       Surface.draw(self, viewer, draw_pass)
     else:
+      p = self.outline_box.piece
+      if not p is None:
+        self.draw_pieces([p], viewer, draw_pass)
       self.solid.volume.draw(viewer, draw_pass)
 
   # ---------------------------------------------------------------------------
