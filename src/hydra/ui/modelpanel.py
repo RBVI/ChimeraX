@@ -12,10 +12,21 @@ class Model_Panel:
 
         class Thumbnail_Viewer(QtWidgets.QTextBrowser):
             height = 165
+            close_button = None
             def sizeHint(self):
                 return QtCore.QSize(600,self.height)
+            def resizeEvent(self, e):
+                QtWidgets.QTextBrowser.resizeEvent(self, e)
+                c = self.close_button
+                if c:
+                    c.move(e.size().width()-c.width()-5,5)
         self.text = e = Thumbnail_Viewer(dw)
         e.setOpenLinks(False)
+
+        e.close_button = ct = QtWidgets.QPushButton('X', e)
+        ct.setStyleSheet("padding: 1px; min-width: 1em")
+        ct.clicked.connect(lambda e: self.hide())
+
         dw.setWidget(e)
         dw.setVisible(False)
 
