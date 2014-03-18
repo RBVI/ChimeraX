@@ -106,6 +106,9 @@ def set_session_state(s, session, attributes_only = False):
     from .. import scenes
     scenes.restore_scenes(scene_states, session)
 
+  if not attributes_only:
+    session.next_id = max(m.id for m in session.models) + 1
+
 # -----------------------------------------------------------------------------
 #
 def scene_state(session):
