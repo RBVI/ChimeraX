@@ -628,9 +628,8 @@ class Bindings:
             return
 
         shader = self.shader
-        for cap in buffer.requires_capabilities:
-            if not cap in shader.capabilities:
-                return
+        if not buffer.shader_has_required_capabilities(shader):
+            return
 
         attr_id = shader.attribute_id(vname)
         if attr_id == -1:
@@ -677,7 +676,7 @@ class Buffer_Type:
         self.value_type = value_type
         self.normalize = normalize
         self.instance_buffer = instance_buffer
-        self.requires_capabilities = requires_capabilities
+        self.requires_capabilities = requires_capabilities      # Requires at least one of these.
 
 # Buffer types with associated shader variable names
 VERTEX_BUFFER = Buffer_Type('position')
@@ -688,7 +687,8 @@ INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type('instanceShiftAndScale', instance_
 INSTANCE_MATRIX_BUFFER = Buffer_Type('instancePlacement', instance_buffer = True)
 INSTANCE_COLOR_BUFFER = Buffer_Type('vcolor', instance_buffer = True, value_type = uint8, normalize = True,
                                     requires_capabilities = (Render.SHADER_VERTEX_COLORS,))
-TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d', requires_capabilities = (Render.SHADER_TEXTURE_2D,))
+TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d', requires_capabilities = (Render.SHADER_TEXTURE_2D,
+                                                                                Render.SHADER_TEXTURE_MASK))
 ELEMENT_BUFFER = Buffer_Type(None, buffer_type = GL.GL_ELEMENT_ARRAY_BUFFER, value_type = uint32)
 
 class Buffer:
@@ -796,6 +796,15 @@ class Buffer:
             GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, None)
         else:
             glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
+
+    def shader_has_required_capabilities(self, shader):
+        if not self.requires_capabilities:
+            return True
+        # Require at least one capability of list
+        for cap in self.requires_capabilities:
+            if cap in shader.capabilities:
+                return True
+        return False
 
 def glDrawElementsInstanced(mode, count, etype, indices, ninst):
     'Private. Handle old or defective OpenGL instanced drawing.'
