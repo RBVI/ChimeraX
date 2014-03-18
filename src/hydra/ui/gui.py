@@ -106,28 +106,29 @@ class MainWindow(QtWidgets.QMainWindow):
 
 #        self.menuBar = mb = QtWidgets.QMenuBar()
         mb = self.menuBar()
-        fm = mb.addMenu('File')
+
+        from .shortcuts import standard_shortcuts
+        scuts = standard_shortcuts(self.session)[0]
+        mnames = []
+        for sc in scuts:
+            m = sc.menu
+            if m and not m in mnames:
+                mnames.append(m)
+        menus = {}
+        for mname in mnames:
+            menus[mname] = mb.addMenu(mname)
+
         ks = self.session.keyboard_shortcuts
-        for name, scut in (('Open', 'op'), ('Recent File Thumbnails', 'rf'),
-                           ('Save Session As...', 'sv'), ('Save Image', 'si'),
-                           ('Close All Models', 'Ca')):
-            a = QtWidgets.QAction(name, self)
-            a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
-            fm.addAction(a)
+        for sc in scuts:
+            m = sc.menu
+            if m:
+                a = QtWidgets.QAction(sc.description, self)
+                a.triggered.connect(lambda a,ks=ks,s=sc.key_seq: ks.run_shortcut(s))
+                menus[m].addAction(a)
+                if sc.menu_separator:
+                    menus[m].addSeparator()
 
-        dm = mb.addMenu('Device')
-        for name, scut in (('Oculus Rift', 'oc'), ('Space Navigator', 'sn'),
-                           ('Space Navigator Fly Mode', 'nf'), ('Leap Motion', 'lp')):
-            a = QtWidgets.QAction(name, self)
-            a.setCheckable(True)
-            a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
-            dm.addAction(a)
-
-        hm = mb.addMenu('Help')
-        for name, scut in (('Show Manual', 'mn'), ('List Keyboard Shortcuts', 'ks')):
-            a = QtWidgets.QAction(name, self)
-            a.triggered.connect(lambda a,ks=ks,s=scut: ks.run_shortcut(s))
-            hm.addAction(a)
+#            a.setCheckable(True)
         
     def create_toolbar(self):
 
