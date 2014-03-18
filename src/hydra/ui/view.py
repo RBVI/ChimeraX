@@ -449,7 +449,7 @@ class View(QtGui.QWindow):
         if center is None:
             return
         shift = self.camera.view_all(center, s)
-        self.translate(-shift, update_clip_planes = False)
+        self.translate(-shift)
 
     def center_of_rotation_needs_update(self):
         self.update_center = True
@@ -471,7 +471,6 @@ class View(QtGui.QWindow):
             if cr is None:
                 return
         self.center_of_rotation = cr
-        self.camera.set_near_far_clip(center, s)
 
     def front_center_point(self):
         w, h = self.window_size
@@ -479,7 +478,7 @@ class View(QtGui.QWindow):
         return p
 
     def first_intercept(self, win_x, win_y):
-        xyz1, xyz2 = self.camera.clip_plane_points(win_x, win_y)
+        xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         f = None
         s = None
         models = self.session.model_list()
@@ -500,8 +499,29 @@ class View(QtGui.QWindow):
         c = self.camera if camera is None else camera
         ww,wh = c.window_size if win_size is None else win_size
         if ww > 0 and wh > 0:
-            pm = c.projection_matrix(view_num, (ww,wh))
+            nf = self.near_far_clip(camera, view_num)
+            pm = c.projection_matrix(nf, view_num, (ww,wh))
             self.render.set_projection_matrix(pm)
+
+    def near_far_clip(self, camera, view_num):
+
+        cp = camera.position(view_num)
+        vd = camera.view_direction(view_num)
+        center, size = self.session.bounds_center_and_width()
+        d = sum((center-cp)*vd)         # camera to center of models
+        nf = (d - size, d + size)
+        return nf
+
+    def clip_plane_points(self, window_x, window_y, camera = None, view_num = None):
+        '''
+        Two scene points at the near and far clip planes at the specified window pixel position.
+        The points are in scene coordinates.
+        '''
+        c = camera if camera else self.camera
+        nf = self.near_far_clip(c, view_num)
+        cpts = c.clip_plane_points(window_x, window_y, nf)   # Camera coords
+        scene_pts = c.place * cpts
+        return scene_pts
 
     def rotate(self, axis, angle, models = None):
         '''
@@ -517,14 +537,14 @@ class View(QtGui.QWindow):
         r = place.rotation(axis, angle, center)
         self.move(r, models)
 
-    def translate(self, shift, models = None, update_clip_planes = True):
+    def translate(self, shift, models = None):
         '''Move camera to simulate a translation of models.  Translation is in scene coordinates.'''
         self.center_of_rotation_needs_update()
         from ..geometry import place
         t = place.translation(shift)
-        self.move(t, models, update_clip_planes)
+        self.move(t, models)
 
-    def move(self, tf, models = None, update_clip_planes = False):
+    def move(self, tf, models = None):
         '''Move camera to simulate a motion of models.'''
         if models is None:
             c = self.camera
@@ -533,12 +553,6 @@ class View(QtGui.QWindow):
         else:
             for m in models:
                 m.place = tf * m.place
-        if update_clip_planes:
-            cr = self.center_of_rotation
-            shift = (tf*cr) - cr
-            c = self.camera
-            dz = c.view_inverse().apply_without_translation(shift)[2]
-            c.shift_near_far_clip(-dz)
 
         self.redraw_needed = True
 

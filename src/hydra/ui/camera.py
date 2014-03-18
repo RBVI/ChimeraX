@@ -18,7 +18,6 @@ class Camera:
         from ..geometry.place import Place
         self.place = self.place_inverse = Place()
         self.field_of_view = 45                   # degrees, width
-        self.near_far_clip = (1,100)              # along -z in camera coordinates
 
         self.mode = mode                          # 'mono', 'stereo', 'oculus'
         self.eye_separation_scene = 1.0           # Scene distance units
@@ -39,7 +38,6 @@ class Camera:
         camdist = 0.5*size + 0.5*size/tan(0.5*fov)
         from ..geometry import place
         self.set_view(place.translation((cx,cy,cz+camdist)))
-        self.near_far_clip = (camdist - size, camdist + size)
 
     def view_all(self, center, size):
         '''
@@ -53,7 +51,6 @@ class Camera:
         cp = self.position()
         from numpy import array, float32
         shift = array(tuple((center[a]-d*vd[a])-cp[a] for a in (0,1,2)), float32)
-        self.near_far_clip = (d - size, d + size)
         return shift
 
     def view(self, view_num = None):
@@ -117,18 +114,6 @@ class Camera:
         ps = vector.distance(c,center) * 2*tan(0.5*fov) / w
         return ps
 
-    def set_near_far_clip(self, center, size):
-        '''Set the near far clip plane to bound models centered at center with radius size.'''
-        cp = self.position()
-        vd = self.view_direction()
-        d = sum((center-cp)*vd)         # camera to center of models
-        self.near_far_clip = (d - size, d + size)
-
-    def shift_near_far_clip(self, dz):
-        '''Translate the near far clip planes in z.'''
-        n,f = self.near_far_clip
-        self.near_far_clip = (n+dz,f+dz)
-
     def position(self, view_num = None):
         '''The position of the camera in scene coordinates.'''
         return self.view(view_num).translation()
@@ -137,12 +122,12 @@ class Camera:
         '''The view direction of the camera in scene coordinates.'''
         return -self.view(view_num).z_axis()
 
-    def projection_matrix(self, view_num = None, win_size = None):
+    def projection_matrix(self, near_far_clip, view_num = None, win_size = None):
         '''The 4 by 4 OpenGL perspective projection matrix for rendering the scene using this camera view.'''
         # Perspective projection to origin with center of view along z axis
         from math import pi, tan
         fov = self.field_of_view*pi/180
-        near,far = self.near_far_clip
+        near,far = near_far_clip
         near_min = 0.001*(far - near) if far > near else 1
         near = max(near, near_min)
         if far <= near:
@@ -165,33 +150,23 @@ class Camera:
         pm = frustum(left, right, bot, top, near, far, xwshift)
         return pm
 
-    # Returns camera coordinates.
-    def camera_clip_plane_points(self, window_x, window_y):
+    def clip_plane_points(self, window_x, window_y, z_distances):
         '''
         Two scene points at the near and far clip planes at the specified window pixel position.
         The points are in the camera coordinate frame.
         '''
-        znear, zfar = self.near_far_clip
         from math import pi, tan
         fov = self.field_of_view*pi/180
-        wn = 2*znear*tan(0.5*fov)   # Screen width in model units, near clip
-        wf = 2*zfar*tan(0.5*fov)    # Screen width in model units, far clip
+        t = tan(0.5*fov)
         wp,hp = self.window_size     # Screen size in pixels
-        rn, rf = (wn/wp, wf/wp) if wp != 0 else (1,1)
         wx,wy = window_x - 0.5*wp, -(window_y - 0.5*hp)
-        cn = (rn*wx, rn*wy, -znear)
-        cf = (rf*wx, rf*wy, -zfar)
-        return cn, cf
-
-    # Returns scene coordinates.
-    def clip_plane_points(self, window_x, window_y):
-        '''
-        Two scene points at the near and far clip planes at the specified window pixel position.
-        The points are in scene coordinates.
-        '''
-        cn, cf = self.camera_clip_plane_points(window_x, window_y)
-        mn, mf = self.place * (cn,cf)
-        return mn, mf
+        cpts = []
+        for z in z_distances:
+            w = 2*z*t   # Screen width in scene units
+            r = w/wp if wp != 0 else 0
+            c = (r*wx, r*wy, -z)
+            cpts.append(c)
+        return cpts
 
     def number_of_views(self):
         '''Number of view points for this camera.  Stereo modes have 2 views for left and right eyes.'''
@@ -317,8 +292,7 @@ def camera_command(cmdname, args, session):
 
 def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = None, 
            eyeSeparation = None, screenWidth = None, sEyeSeparation = None,
-           middleDistance = False, depthScale = None,
-           nearFarClip = None, report = False):
+           middleDistance = False, depthScale = None, report = False):
 
     v = session.view
     c = v.camera
@@ -349,13 +323,6 @@ def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = Non
         c.eye_separation_pixels *= depthScale
         c.eye_separation_scene *= depthScale
         c.redraw_needed = True
-    if not nearFarClip is None:
-        n,f = nearFarClip
-        if n >= f:
-            from .commands import CommandError
-            raise CommandError('Near clip distance must be less than far clip distance')
-        c.near_far_clip = nearFarClip
-        c.redraw_needed = True
     if report:
         msg = ('Camera\n' +
                'position %.5g %.5g %.5g\n' % tuple(c.position()) +
@@ -363,7 +330,6 @@ def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = Non
                'field of view %.5g degrees\n' % c.field_of_view +
                'window size %d %d\n' % tuple(c.window_size) +
                'mode %s\n' % c.mode +
-               'near clip %.5g, far clip %.5g\n' % tuple(c.near_far_clip) +
                'eye separation pixels %.5g, scene %.5g' % (c.eye_separation_pixels, c.eye_separation_scene))
         session.show_info(msg)
         smsg = 'Camera mode %s, field of view %.4g degrees' % (c.mode, c.field_of_view)

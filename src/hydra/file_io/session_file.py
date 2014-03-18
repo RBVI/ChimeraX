@@ -133,7 +133,7 @@ def view_state(viewer):
 # -----------------------------------------------------------------------------
 #
 def restore_view(vs, viewer):
-  exclude = set(('window_size', 'camera_view', 'field_of_view', 'near_far_clip'))
+  exclude = set(('window_size', 'camera_view', 'field_of_view'))
   for name in view_parameters:
     if name in vs and not name in exclude:
       setattr(viewer, name, vs[name])
@@ -143,7 +143,6 @@ def restore_view(vs, viewer):
     c = viewer.camera
     c.set_view(Place(vs['camera_view']))
     c.field_of_view = vs['field_of_view']
-    c.near_far_clip = vs['near_far_clip']
 
   return True
 
@@ -152,7 +151,6 @@ def restore_view(vs, viewer):
 camera_parameters = (
   'place',
   'field_of_view',
-  'near_far_clip',
   'stereo',
   'eye_separation',
   'screen_distance',

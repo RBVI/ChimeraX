@@ -151,7 +151,7 @@ class Oculus_Head_Tracking:
             v = self.view
             c = v.camera
             mtf = c.view()*rdelta.inverse()*c.view_inverse()
-            v.move(mtf, update_clip_planes = True)
+            v.move(mtf)
         self.last_rotation = r
 
     def set_camera_mode(self, view):

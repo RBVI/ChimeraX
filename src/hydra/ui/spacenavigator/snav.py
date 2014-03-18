@@ -112,7 +112,7 @@ class Space_Navigator:
         stf = cv * translation(cr) * tf * translation(-cr) * cvinv
         if self.collision(stf.inverse() * cam.position()):
             return
-        v.move(stf, update_clip_planes = True)
+        v.move(stf)
 
     def collision(self, xyz):
         cm = self.collision_map

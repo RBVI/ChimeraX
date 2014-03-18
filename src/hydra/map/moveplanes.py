@@ -18,7 +18,7 @@ class Planes_Mouse_Mode:
         
     def mouse_down(self, viewer, event):
         self.xy_last = (x,y) = (event.x(), event.y())
-        line = viewer.camera.clip_plane_points(x,y)    # scene coordinates
+        line = viewer.clip_plane_points(x,y)    # scene coordinates
         from .slice import nearest_volume_face
         self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, viewer.session)
         self.drag = False
