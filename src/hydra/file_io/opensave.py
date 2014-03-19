@@ -20,6 +20,42 @@ def show_open_file_dialog(session):
         session.file_history.add_entry(','.join(paths), models = mlist)
     session.main_window.show_graphics()
 
+# -----------------------------------------------------------------------------
+# Add label to open file dialog
+#
+def locate_file_dialog(path):
+
+    pdir = existing_directory(path)
+    caption = 'Locate %s' % path
+    from ..ui.qt import QtWidgets
+    fd = QtWidgets.QFileDialog(None, caption, pdir)
+    # Cannot add widgets to native dialog.
+    fd.setOptions(QtWidgets.QFileDialog.DontUseNativeDialog)
+    result = [None]
+    def file_selected(path, result = result):
+        result[0] = path
+    fd.fileSelected.connect(file_selected)
+    lo = fd.layout()
+    lbl = QtWidgets.QLabel('Locate missing file %s' % path, fd)
+    lo.addWidget(lbl)
+    fd.exec()
+    p = result[0]
+    return p
+
+# -----------------------------------------------------------------------------
+# Find the deepest directory of the given path that exists.
+#
+def existing_directory(path):
+
+    from os.path import dirname, isdir
+    while path:
+        d = dirname(path)
+        if isdir(d):
+            return d
+        else:
+            path = d
+    return None
+
 def file_types(session):
     '''
     Return a list of file readers, each reader being represented by 3-tuple

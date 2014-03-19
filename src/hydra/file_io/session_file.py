@@ -116,11 +116,12 @@ def set_session_state(s, session, file_paths, attributes_only = False):
 # Locate files using relative paths.
 #
 class File_Locator:
+
   def __init__(self, new_path, old_path):
     self.new_path = new_path
     self.old_path = old_path
     self.replaced = {}
-    self.chosen_file = None
+
   def find(self, path):
     from os.path import isfile
     if self.new_path == self.old_path or self.old_path is None:
@@ -151,32 +152,14 @@ class File_Locator:
           rp = join(repl[d], basename(p))
           if isfile(rp):
             return rp
-        rp = self.locate_file_dialog(path)	# Ask for replacement file with a dialog.
+        from . import opensave
+        rp = opensave.locate_file_dialog(path)	# Ask for replacement file with a dialog.
         if rp:
           repl[p] = rp
           repl[d] = dirname(rp)
           return rp
 
     return None
-
-  def locate_file_dialog(self, path):
-    pdir = existing_directory(path)
-    caption = 'Locate %s' % path
-    from ..ui.qt import QtWidgets, QtCore
-    fd = QtWidgets.QFileDialog(None, caption, pdir)
-    # Cannot add widgets to native dialog.
-    fd.setOptions(QtWidgets.QFileDialog.DontUseNativeDialog)
-    fd.fileSelected.connect(self.selected_file)
-    lo = fd.layout()
-    lbl = QtWidgets.QLabel('Locate missing file %s' % path, fd)
-    lo.addWidget(lbl)
-    lo.setAlignment(lbl, QtCore.Qt.AlignTop)
-    fd.exec()
-    rp = self.chosen_file
-    return rp
-
-  def selected_file(self, p):
-    self.chosen_file = p
 
 # -----------------------------------------------------------------------------
 # Divide a file path into list of directories and filename.
@@ -197,19 +180,6 @@ def initial_match_count(a,b):
     if a[i] != b[i]:
       return i
   return n
-
-# -----------------------------------------------------------------------------
-# Find the deepest directory of the given path that exists.
-#
-def existing_directory(path):
-  from os.path import dirname, isdir
-  while path:
-    d = dirname(path)
-    if isdir(d):
-      return d
-    else:
-      path = d
-  return None
 
 # -----------------------------------------------------------------------------
 #
