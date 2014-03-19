@@ -309,6 +309,7 @@ class View(QtGui.QWindow):
             for m in mlist:
                 if m.redraw_needed:
                     m.redraw_needed = False
+                    s.bounds_changed = True
                     draw = True
         if draw:
             self.redraw_needed = False
@@ -508,6 +509,8 @@ class View(QtGui.QWindow):
         cp = camera.position(view_num)
         vd = camera.view_direction(view_num)
         center, size = self.session.bounds_center_and_width()
+        if center is None:
+            return 0,1  # Nothing shown
         d = sum((center-cp)*vd)         # camera to center of models
         nf = (d - size, d + size)
         return nf
