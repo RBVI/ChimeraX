@@ -104,7 +104,7 @@ class STL_Surface(Surface):
 
 # -----------------------------------------------------------------------------
 #
-def restore_stl_surfaces(surfs, session, attributes_only = False):
+def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
 
     if attributes_only:
         models = session.model_list()
@@ -118,7 +118,10 @@ def restore_stl_surfaces(surfs, session, attributes_only = False):
             else:
                 continue
         else:
-            s = read_stl(st['path'], session)
+            p = file_paths.find(st['path'])
+            if p is None:
+                continue
+            s = read_stl(p, session)
             s.id = st['id']
         if 'displayed' in st:
             st['display'] = st['displayed']     # Fix old session files

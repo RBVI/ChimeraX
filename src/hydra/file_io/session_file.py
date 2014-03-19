@@ -6,7 +6,8 @@ def save_session(path, session):
   '''
   from os.path import expanduser
   p = expanduser(path)
-  s = session_state(session, p)
+  s = session_state(session)
+  s['session path'] = path
   f = open(p, 'w')
   from ..file_io.SessionUtil import objecttree
   objecttree.write_basic_tree(s, f)
@@ -31,13 +32,14 @@ def restore_session(path, session):
   d = ast.literal_eval(s)
   session.close_all_models()
 
-  set_session_state(d, session)
+  file_paths = File_Locator(path, d.get('session path'))
+  set_session_state(d, session, file_paths)
 
   session.file_history.add_entry(path)
 
 # -----------------------------------------------------------------------------
 #
-def session_state(session, rel_path = None, attributes_only = False):
+def session_state(session, attributes_only = False):
   '''
   Create a dictionary representing a session including molecule models,
   surface models, density map models and scenes.  This dictionary is written
@@ -52,7 +54,7 @@ def session_state(session, rel_path = None, attributes_only = False):
   }
 
   from ..map import session as session_file
-  vs = session_file.map_states(session, rel_path)
+  vs = session_file.map_states(session)
   if vs:
     s['volumes'] = vs
 
@@ -77,7 +79,7 @@ def session_state(session, rel_path = None, attributes_only = False):
 
 # -----------------------------------------------------------------------------
 #
-def set_session_state(s, session, attributes_only = False):
+def set_session_state(s, session, file_paths, attributes_only = False):
 
   v = session.view
   if 'view' in s:
@@ -91,15 +93,15 @@ def set_session_state(s, session, attributes_only = False):
 
   if 'volumes' in s:
     from ..map import session as map_session
-    map_session.restore_maps(s['volumes'], session, attributes_only)
+    map_session.restore_maps(s['volumes'], session, file_paths, attributes_only)
 
   if 'molecules' in s:
     from ..molecule import mol_session
-    mol_session.restore_molecules(s['molecules'], session, attributes_only)
+    mol_session.restore_molecules(s['molecules'], session, file_paths, attributes_only)
 
   if 'stl surfaces' in s:
     from . import read_stl
-    read_stl.restore_stl_surfaces(s['stl surfaces'], session, attributes_only)
+    read_stl.restore_stl_surfaces(s['stl surfaces'], session, file_paths, attributes_only)
 
   if not attributes_only:
     scene_states = s.get('scenes', [])
@@ -107,7 +109,107 @@ def set_session_state(s, session, attributes_only = False):
     scenes.restore_scenes(scene_states, session)
 
   if not attributes_only:
-    session.next_id = max(m.id for m in session.models) + 1
+    session.next_id = max(m.id for m in session.models) + 1 if len(session.models) > 0 else 1
+
+
+# -----------------------------------------------------------------------------
+# Locate files using relative paths.
+#
+class File_Locator:
+  def __init__(self, new_path, old_path):
+    self.new_path = new_path
+    self.old_path = old_path
+    self.replaced = {}
+    self.chosen_file = None
+  def find(self, path):
+    from os.path import isfile
+    if self.new_path == self.old_path or self.old_path is None:
+      p = path
+    elif isfile(path):
+      p = path
+    else:
+      # Try a relative path.
+      sp = split_path(path)
+      so = split_path(self.old_path)
+      m = initial_match_count(sp, so)
+      sn = split_path(self.new_path)
+      from os.path import join
+      p = join(*tuple(sn[:len(sn)-len(so)+m] + sp[m:]))
+
+    if isfile(p):
+      return p
+    else:
+      # Check if replacement file was chosen previously.
+      repl = self.replaced
+      if p in repl:
+        return repl[p]
+      else:
+        # Check for previously replaced file in same directory as this one.
+        from os.path import dirname, basename, join
+        d = dirname(p)
+        if d in repl:
+          rp = join(repl[d], basename(p))
+          if isfile(rp):
+            return rp
+        rp = self.locate_file_dialog(path)	# Ask for replacement file with a dialog.
+        if rp:
+          repl[p] = rp
+          repl[d] = dirname(rp)
+          return rp
+
+    return None
+
+  def locate_file_dialog(self, path):
+    pdir = existing_directory(path)
+    caption = 'Locate %s' % path
+    from ..ui.qt import QtWidgets, QtCore
+    fd = QtWidgets.QFileDialog(None, caption, pdir)
+    # Cannot add widgets to native dialog.
+    fd.setOptions(QtWidgets.QFileDialog.DontUseNativeDialog)
+    fd.fileSelected.connect(self.selected_file)
+    lo = fd.layout()
+    lbl = QtWidgets.QLabel('Locate missing file %s' % path, fd)
+    lo.addWidget(lbl)
+    lo.setAlignment(lbl, QtCore.Qt.AlignTop)
+    fd.exec()
+    rp = self.chosen_file
+    return rp
+
+  def selected_file(self, p):
+    self.chosen_file = p
+
+# -----------------------------------------------------------------------------
+# Divide a file path into list of directories and filename.
+#
+def split_path(p):
+  from os.path import basename, dirname
+  b = basename(p)
+  if b:
+    return split_path(dirname(p)) + [b]
+  return [p]
+
+# -----------------------------------------------------------------------------
+# Count number of initial entries of sequences a and b that match.
+#
+def initial_match_count(a,b):
+  n = min(len(a),len(b))
+  for i in range(n):
+    if a[i] != b[i]:
+      return i
+  return n
+
+# -----------------------------------------------------------------------------
+# Find the deepest directory of the given path that exists.
+#
+def existing_directory(path):
+  from os.path import dirname, isdir
+  while path:
+    d = dirname(path)
+    if isdir(d):
+      return d
+    else:
+      path = d
+  return None
 
 # -----------------------------------------------------------------------------
 #

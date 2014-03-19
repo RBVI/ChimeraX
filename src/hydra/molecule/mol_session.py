@@ -14,7 +14,7 @@ def molecule_state(m):
     ms['ribbon_shown'] = array_to_string(m.ribbon_shown)
     return ms
 
-def restore_molecules(mstate, session, attributes_only = False):
+def restore_molecules(mstate, session, file_paths, attributes_only = False):
     if attributes_only:
         mids = dict((m.id, m) for m in session.molecules())
     from ..file_io.opensave import open_files
@@ -32,9 +32,12 @@ def restore_molecules(mstate, session, attributes_only = False):
                     continue
                 session.add_models(mlist)
             else:
-                mlist = open_files([ms['path']], session, set_camera = False)
+                p = file_paths.find(ms['path'])
+                if p is None:
+                    continue
+                mlist = open_files([p], session, set_camera = False)
                 if len(mlist) != 1:
-                    session.show_info('File %s unexpectedly contained %d models' % (ms['path'], len(mlist),))
+                    session.show_info('File %s unexpectedly contained %d models' % (p, len(mlist),))
                     continue
             m = mlist[0]
         if m:
