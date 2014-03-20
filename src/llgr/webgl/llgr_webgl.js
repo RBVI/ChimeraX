@@ -727,13 +727,13 @@ function ObjectInfo(object_id, program_id, matrix_id, attrinfo, primitive, first
 
 ObjectInfo.prototype.close = function ()
 {
-	if (oi.vao) {
-		vao_ext.deleteVertexArrayOES(oi.vao);
-		oi.vao = null;
+	if (this.vao) {
+		vao_ext.deleteVertexArrayOES(this.vao);
+		this.vao = null;
 	}
-	if (oi.pick_vao) {
-		vao_ext.deleteVertexArrayOES(oi.pick_vao);
-		oi.pick_vao = null;
+	if (this.pick_vao) {
+		vao_ext.deleteVertexArrayOES(this.pick_vao);
+		this.pick_vao = null;
 	}
 };
 
