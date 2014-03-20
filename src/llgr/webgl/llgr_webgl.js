@@ -304,10 +304,9 @@ GroupInfo.prototype.optimize = function ()
 		if (oi === undefined || oi.incomplete || oi._hide)
 			return;
 		var k = group_key(oi);
-		try {
+		if (k in groupings) {
 			groupings[k].push(oi);
-		} catch (e) {
-			// assert(e isinstanceof TypeError);
+		} else {
 			groupings[k] = [oi];
 		}
 	});
