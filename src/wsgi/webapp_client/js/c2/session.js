@@ -95,7 +95,7 @@ function debug_log(data) {
 			output = output + "  <b>" + key + ":</b> "
 				+ JSON.stringify(response[key]) + "<br>\n";
 	}
-	$("#debug").html(output);
+	$("#debug-log").html(output);
 }
 
 // --------------------------------------------------------------------
@@ -133,13 +133,13 @@ function ui_init(url) {
 	$c2_session.password = "";
 
 	// Register mouse-click handler for the open buttons
-	$("#my-sessions-input").on("change keyup paste click",
+	$("#c2-sessions").on("change keyup paste click",
 			update_session_buttons);
+	$("#c2-share-session").click(update_session_buttons);
 	$("#open-session").click(open_session);
 	$("#delete-session").click(delete_session);
 	$("#new-session").click(open_new_session);
 	$("#refresh-session").click(update_session_list);
-	$("#open-shared-session").click(open_shared_session);
 	update_session_list();
 }
 
@@ -152,7 +152,22 @@ function update_session_buttons(event)
 	if (event !== undefined)
 		event.preventDefault();
 	//event.stopPropagation();
-	var session = $("#my-sessions-input").val();
+	var session = $("#c2-sessions").val();
+	var shared = $("#c2-share-session").is(":checked");
+	if (shared) {
+		$("#c2-username-div").show();
+		$("#c2-saved-sessions").html("");
+		$("#new-session").addClass("ui-state-disabled");
+		$("#new-session").removeClass("ui-btn-active");
+		$("#open-session").removeClass("ui-state-disabled");
+		$("#open-session").addClass("ui-btn-active");
+		$("#delete-session").addClass("ui-state-disabled");
+		$("#refresh-session").addClass("ui-state-disabled");
+		return;
+	}
+	$("#c2-username-div").hide();
+	update_session_list_cb();
+	$("#refresh-session").removeClass("ui-state-disabled");
 	if (existing_session(session)) {
 		$("#new-session").addClass("ui-state-disabled");
 		$("#new-session").removeClass("ui-btn-active");
@@ -173,9 +188,13 @@ function update_session_buttons(event)
 }
 
 function open_session() {
+	var shared = $("#c2-share-session").is(":checked");
+	if (shared)
+		return open_shared_session();
+
 	// verify and set default session parameters (name and password)
-	var session = $("#my-sessions-input").val();
-	var password = $("#my-password").val();
+	var session = $("#c2-sessions").val();
+	var password = $("#c2-password").val();
 	if (!existing_session(session)) {
 		alert("Session \"" + session + "\" does not exist.");
 		return;
@@ -197,8 +216,8 @@ function save_session_info(user, session, password) {
 
 function delete_session() {
 	// Delete using session parameters (name and password)
-	var session = $("#my-sessions-input").val();
-	var password = $("#my-password").val();
+	var session = $("#c2-sessions").val();
+	var password = $("#c2-password").val();
 	$c2_session.server.delete_session(session, password)
 			.fail(callback_failed)
 			.done(delete_session_cb);
@@ -206,8 +225,8 @@ function delete_session() {
 }
 
 function delete_session_cb() {
-	var session = $("#my-sessions-input").val();
-	var password = $("#my-password").val();
+	var session = $("#c2-sessions").val();
+	var password = $("#c2-password").val();
 	alert("Session \"" + session + "\" deleted.");
 	save_session_info("", "", "");
 	$("#popup-session-open").popup("close");
@@ -215,16 +234,16 @@ function delete_session_cb() {
 
 function open_new_session() {
 	// Create using session parameters (name and password)
-	var session = $("#my-sessions-input").val();
-	var password = $("#my-password").val();
+	var session = $("#c2-sessions").val();
+	var password = $("#c2-password").val();
 	$c2_session.server.create_session(session, password)
 			.fail(callback_failed)
 			.done(open_new_session_cb);
 }
 
 function open_new_session_cb() {
-	var session = $("#my-sessions-input").val();
-	var password = $("#my-password").val();
+	var session = $("#c2-sessions").val();
+	var password = $("#c2-password").val();
 	// alert("Session \"" + session + "\" created.");
 	save_session_info("", session, password);
 	$("#popup-session-open").popup("close");
@@ -232,16 +251,18 @@ function open_new_session_cb() {
 
 function open_shared_session() {
 	// Shared session parameters (user, session and password)
-	var user = $("#shared-username").val();
-	var session = $("#shared-session").val();
-	var password = $("#shared-password").val();
+	var user = $("#c2-username").val();
+	var session = $("#c2-session").val();
+	var password = $("#c2-password").val();
 	// TODO: verify session exists
+	alert("shared sessions are not supported yet");
 }
 
 function open_shared_session_cb() {
-	var user = $("#shared-username").val();
-	var session = $("#shared-session").val();
-	var password = $("#shared-password").val(); // alert("Shared session \"" + session + "\" opened.");
+	var user = $("#c2-username").val();
+	var session = $("#c2-session").val();
+	var password = $("#c2-password").val();
+	// alert("Shared session \"" + session + "\" opened.");
 	save_session_info(user, session, password);
 	$("#popup-session-shared").popup("close");
 }
@@ -254,40 +275,40 @@ function update_session_list(event) {
 }
 
 function update_session_list_cb(session_info) {
-	// save session information for later use
-	$c2_session.user = session_info[0];
-	var session_list = session_info[1];
-	$c2_session.session_list = session_list;
-	update_session_buttons();
-	// sort sessions by name
-	session_list.sort(function (a, b) {
-		var x = a.name.toLowerCase();
-		var y = b.name.toLowerCase();
-		if (x < y)
-			return -1;
-		if (x > y)
-			return 1;
-		return 0;
-	});
+	var session_list;
+	if (session_info === undefined) {
+		session_list = $c2_session.session_list;
+	} else {
+		// save session information for later use
+		$c2_session.user = session_info[0];
+		session_list = session_info[1];
+		$c2_session.session_list = session_list;
+		update_session_buttons();
+		// sort sessions by name
+		session_list.sort(function (a, b) {
+			var x = a.name.toLowerCase();
+			var y = b.name.toLowerCase();
+			if (x < y)
+				return -1;
+			if (x > y)
+				return 1;
+			return 0;
+		});
+	}
 	// update listview
-	var ul = $("#my-sessions");
+	var ul = $("#c2-saved-sessions");
 	//var html = "<thead><tr><th data-priority='persist'>Session Name</th><th>Last Accessed</th></tr></thead><tbody>";
 	var html = "<tbody>";
 	for (var i = 0; i != session_list.length; ++i) {
 		var session = session_list[i];
 		var name = session_list[i].name;
-		//html += '<li class="ui-state-hidden" data-filtertext=' +
-		//	JSON.stringify(session.name) + '>' +
-		//	_.escape(session.name) + 
-		//	" (" + _.escape(session.access) + ")</li>";
-		html += "<tr><td><a href='#' class='ui-btn ui-mini no-margin' onclick='$(\"#my-sessions-input\").val($(this).html()).change()'>"
+		html += "<tr><td><a href='#' class='ui-btn ui-mini no-margin' onclick='$(\"#c2-sessions\").val($(this).html()).change()'>"
 			+ _.escape(session.name) + "</a></td><td>"
 			+ _.escape(session.access) + "</td>";
 	}
 	html += "</tbody></table>";
 	ul.html(html);
 	ul.filterable("refresh");
-	//ul.trigger("updatelayout");
 	$("#popup-session-open").trigger("updatelayout");
 }
 
@@ -301,7 +322,8 @@ function existing_session(name) {
 	return false;
 }
 
-function log(output) { $("#log").append(output);
+function log(output) {
+	$("#log").append(output);
 }
 
 $.extend($c2_session, {
