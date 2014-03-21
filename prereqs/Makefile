@@ -48,8 +48,8 @@ endif
 
 SUBDIRS	+= cython docutils expat fonts \
 	   glew hdf5 imex jinja2 line_profiler numexpr numpy openssl \
-	   p7zip pcre pillow \
-	   pygments pyflakes PyOpenGL pytables pythomnic3k Python PyQt qt \
+	   p7zip pcre pillow pycollada \
+	   pygments pyflakes PyOpenGL pytables pythomnic3k Python python-dateutil PyQt qt \
 	   setuptools sip sphinx wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
@@ -117,6 +117,7 @@ numpy.install: Python.install
 pcre.install: zlib.install
 pillow.install: Python.install setuptools.install zlib.install
 # pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
+pycollada.install: Python.install python-dateutil.install
 pyflakes.install: Python.install
 pygments.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
@@ -124,6 +125,7 @@ pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.ins
 pytables.install: hdf5.install numexpr.install cython.install Python.install zlib.install
 pythomnic3k.install: Python.install
 Python.install: zlib.install openssl.install expat.install
+python-dateutil.install: Python.install
 PyQt.install: Python.install qt.install sip.install
 qt.install: p7zip.install openssl.install zlib.install
 wx.install: Python.install
