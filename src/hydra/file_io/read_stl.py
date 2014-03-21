@@ -131,4 +131,5 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
         p.color = st['color']
         if 'copies' in st:
             p.copies = [Place(c) for c in st['copies']]
-        session.add_model(s)
+        if not attributes_only:
+            session.add_model(s)
