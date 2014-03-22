@@ -56,37 +56,48 @@ def create_surfaces(apr_path, pieces, session):
     fnames.sort()
     surfs = []
     for fname in fnames:
-        path = join(dir, fname)
+        path_prefix = join(dir, fname)
         tflist = pieces[fname]
-#        pdb_path = path + '.pdb'
+        if len(tflist) == 0:
+            continue
+#        pdb_path = path_prefix + '.pdb'
 #        if exists(pdb_path):
 #            pdbs.append((pdb_path, tflist))
 #        else:
-        stl_path = path + '.stl'
-        surf = create_surface_copies(stl_path, tflist, session)
         descrip = '%s, %d copies' % (fname, len(tflist))
+        surf = create_surface_copies(path_prefix, tflist, session)
         if surf:
             surfs.append(surf)
         else:
             not_found.add(fname)
             descrip += ', file not found'
+
         print(descrip)
 
 #    make_multiscale_models(pdbs)
 
     return surfs
 
-def create_surface_copies(path, tflist, session):
+def create_surface_copies(path_prefix, tflist, session):
 
+    path = path_prefix + '.stl'
     from os.path import exists
-    if not exists(path) or len(tflist) == 0:
-        return None
-
-    from .read_stl import read_stl
-    surf = read_stl(path, session)
-    p = surf.plist[0]
-    p.color = color = random_color(surf.name)
-    p.copies = tflist
+    if exists(path):
+        from .read_stl import read_stl
+        surf = read_stl(path, session)
+        p = surf.surface_pieces()[0]
+        p.color = color = random_color(surf.name)
+    else:
+        path = path_prefix + '.dae'
+        if not exists(path):
+            return None
+        from . import collada
+        surf = collada.read_collada_surfaces(path, session)
+        for p in surf.surface_pieces():
+            if p.copies:
+                p.copies = sum([[pl1*pl2 for pl1 in tflist] for pl2 in p.copies], [])
+            else:
+                p.copies = tflist
     return surf
 
 def make_multiscale_models(pdbs):
