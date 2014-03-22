@@ -10,6 +10,13 @@ def read_collada_surfaces(path, session, color = (.7,.7,.7,1)):
     splist = surface_pieces_from_nodes(c.scene.nodes, s, color, Place(), {})
     fix_up_instances(splist)
 
+    ai = c.assetInfo
+    if ai:
+        # TODO: If unit meter tag omitted in file PyCollada sets unit name to None.
+        #  Probably should patch pycollada to return unit name even if unit meter scale factor not given.
+        if ai.unitname == 'meter' or ai.unitname is None:
+            scale_vertices(splist, 100)
+
     return s
 
 def surface_pieces_from_nodes(nodes, surf, color, place, ginst):
@@ -110,3 +117,9 @@ def same_color(colors, color):
         if c != color:
             return False
     return True
+
+def scale_vertices(splist, scale):
+    for p in splist:
+        va, ta = p.geometry
+        va *= scale
+        p.geometry = va, ta
