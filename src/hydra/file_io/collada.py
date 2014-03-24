@@ -12,10 +12,8 @@ def read_collada_surfaces(path, session, color = (.7,.7,.7,1)):
 
     ai = c.assetInfo
     if ai:
-        # TODO: If unit meter tag omitted in file PyCollada sets unit name to None.
-        #  Probably should patch pycollada to return unit name even if unit meter scale factor not given.
-        if ai.unitname == 'meter' or ai.unitname is None:
-            scale_vertices(splist, 100)
+        s.collada_unit_name = ai.unitname
+        s.collada_contributors = ai.contributors
 
     return s
 
@@ -117,9 +115,3 @@ def same_color(colors, color):
         if c != color:
             return False
     return True
-
-def scale_vertices(splist, scale):
-    for p in splist:
-        va, ta = p.geometry
-        va *= scale
-        p.geometry = va, ta
