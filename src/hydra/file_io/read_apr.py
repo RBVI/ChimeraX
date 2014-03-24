@@ -93,12 +93,47 @@ def create_surface_copies(path_prefix, tflist, session):
             return None
         from . import collada
         surf = collada.read_collada_surfaces(path, session)
+        if hasattr(surf, 'collada_unit_name') and surf.collada_unit_name in ('meter', None):
+            # TODO: If unit meter tag omitted in file PyCollada sets unit name to None.
+            #  Probably should patch pycollada to return unit name even if unit meter scale factor not given.
+            scale_vertices(surf.plist, 100)
+        if is_cinema4d_collada_surface(surf):
+            swap_xz(surf)       # Correct left-handed Cinema4d coordinates
+
         for p in surf.surface_pieces():
             if p.copies:
                 p.copies = sum([[pl1*pl2 for pl1 in tflist] for pl2 in p.copies], [])
             else:
                 p.copies = tflist
     return surf
+
+def scale_vertices(splist, scale):
+    for p in splist:
+        va, ta = p.geometry
+        va *= scale
+        p.geometry = va, ta
+
+def is_cinema4d_collada_surface(surf):
+    if not hasattr(surf, 'collada_contributors'):
+        return False
+    for c in surf.collada_contributors:
+        a = c.authoring_tool
+        if a and a.startswith('CINEMA4D'):
+            return True
+    return False
+
+def swap_xz(surf):
+    for p in surf.surface_pieces():
+        v, t = p.geometry
+        n = p.normals
+
+        vc,nc = v.copy(), n.copy()
+        vc[:,0] = v[:,2]
+        vc[:,2] = v[:,0]
+        nc[:,0] = n[:,2]
+        nc[:,2] = n[:,0]
+        p.geometry = vc, t
+        p.normals = -nc
 
 def make_multiscale_models(pdbs):
 
