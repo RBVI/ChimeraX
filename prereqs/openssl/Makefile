@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.0.1e
+VERSION = 1.0.1f
 DISTRIBUTION = openssl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/openssl-$(VERSION)
 
