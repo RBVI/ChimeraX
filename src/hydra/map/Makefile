@@ -6,8 +6,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/map
 SUBDIRS	= data fit
 
 PYSRCS = __init__.py defaultsettings.py grayscale.py molmap.py moveplanes.py \
-	selectregion.py session.py slice.py solid.py subsample.py \
-	volume.py volumecommand.py
+	session.py slice.py solid.py subsample.py volume.py volumecommand.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
