@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.7.3
+VERSION = 0.8
 DISTRIBUTION = pyflakes-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/pyflakes-$(VERSION)
 

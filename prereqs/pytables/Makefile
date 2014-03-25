@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.0
+VERSION = 3.1.0
 DISTRIBUTION = tables-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/tables-$(VERSION)
 HDF_CONFIG = --hdf5='$(build_prefix)'
