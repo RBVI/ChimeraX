@@ -172,8 +172,8 @@ class Surface_Piece(object):
     self.triangles = None
     self.normals = None
     self.shift_and_scale = None         # Instance copies
-    self.copies34 = []                  # Instance matrices, 3x4
-    self.copies44 = None                # Instance matrices, 4x4 opengl
+    self.copy_places = []               # Instance placements
+    self.copy_matrices = None           # Instance matrices, 4x4 opengl
     self.vertex_colors = None
     self.instance_colors = None         # N by 4 uint8 values
     self.edge_mask = None
@@ -194,7 +194,7 @@ class Surface_Piece(object):
     bufs = (('vertices', draw.VERTEX_BUFFER),
             ('normals', draw.NORMAL_BUFFER),
             ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('copies44', draw.INSTANCE_MATRIX_BUFFER),
+            ('copy_matrices', draw.INSTANCE_MATRIX_BUFFER),
             ('vertex_colors', draw.VERTEX_COLOR_BUFFER),
             ('instance_colors', draw.INSTANCE_COLOR_BUFFER),
             ('texture_coordinates', draw.TEXTURE_COORDS_2D_BUFFER),
@@ -233,10 +233,10 @@ class Surface_Piece(object):
   '''Geometry is the array of vertices and array of triangles.'''
 
   def get_copies(self):
-    return self.copies34
+    return self.copy_places
   def set_copies(self, copies):
-    self.copies34 = copies
-    self.copies44 = opengl_matrices(copies) if copies else None
+    self.copy_places = copies
+    self.copy_matrices = None   # Compute when drawing
     self.surface.redraw_needed = True
   copies = property(get_copies, set_copies)
   '''
@@ -258,6 +258,9 @@ class Surface_Piece(object):
     shader_change = self.shader_changed(shader)
     if shader_change:
       self.bind_buffers(shader)
+
+    if self.copy_places and self.copy_matrices is None:
+      self.copy_matrices = opengl_matrices(self.copy_places)
 
     for b in self.opengl_buffers:
       data = getattr(self, b.surface_piece_attribute_name)
@@ -340,15 +343,17 @@ class Surface_Piece(object):
         sopt[r.SHADER_RADIAL_WARP] = True
     if not self.shift_and_scale is None:
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
-    elif not self.copies44 is None:
+    elif self.copy_places or not self.copy_matrices is None:
       sopt[r.SHADER_INSTANCING] = True
     return sopt
 
   def instance_count(self):
     if not self.shift_and_scale is None:
       ninst = len(self.shift_and_scale)
-    elif not self.copies44 is None:
-      ninst = len(self.copies44)
+    elif self.copy_places:
+      ninst = len(self.copy_places)
+    elif not self.copy_matrices is None:
+      ninst = len(self.copy_matrices)
     else:
       ninst = None
     return ninst

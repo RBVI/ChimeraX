@@ -177,7 +177,7 @@ class Molecule(Surface):
     p.normals = na
 
     r = self.bond_radius if self.bond_radii is None else self.bond_radii
-    p.copies44 = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
+    p.copy_matrices = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
 
   def set_bond_colors(self, bonds):
 
