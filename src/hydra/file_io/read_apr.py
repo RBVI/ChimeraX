@@ -3,20 +3,47 @@ def open_autopack_results(path, session):
     Open an Autopack results files (.apr suffix) and create surfaces
     for each component of the model.
     '''
-    pieces = read_apr_file(path)
-    surfs = create_surfaces(path, pieces, session)
+    surfs = []
+    recpath, pieces = parse_apr_file(path)
+    if recpath:
+        from os.path import dirname, join
+        rp = join(dirname(path), '..', 'recipes', recpath)
+        rsurfs = read_recipe_file(rp, session)
+        surfs.extend(rsurfs)
+
+    surfs.extend(create_surfaces(path, pieces, session))
+
+    # Hack to shorten names
+    # for s in surfs:
+    #     n = s.name
+    #     if n.startswith('HIV1_'):
+    #         n = n[5:]
+    #     sf = n.find('_0')
+    #     if sf > 0:
+    #         n = n[:sf]
+    #     sf = n.find('_Rep')
+    #     if sf > 0:
+    #         n = n[:sf]
+    #     s.name = n
+
     return surfs
 
-def read_apr_file(path):
+def parse_apr_file(path):
 
     import sys
     f = open(path, 'r')
     lines = f.readlines()
     f.close()
 
+    recpath = None
     pieces = {}
     from ..geometry.place import Place
     for line in lines:
+        if line.startswith('#'):
+            rprefix = '# recipe '
+            if line.startswith(rprefix):
+                recpath = line[len(rprefix):].strip()
+            continue
         fields = line.replace('<','').replace('>','').split(',')
         if len(fields) < 23:
             continue
@@ -37,7 +64,7 @@ def read_apr_file(path):
         else:
             pieces[fname] = [tf]
 
-    return pieces
+    return recpath, pieces
 
 def print_pieces(pieces):
 
@@ -51,12 +78,12 @@ def create_surfaces(apr_path, pieces, session):
     not_found = set()
     pdbs = []
     from os.path import dirname, basename, join, exists
-    dir = dirname(apr_path)
+    gdir = join(dirname(apr_path), '..', 'geometries')
     fnames = list(pieces.keys())
     fnames.sort()
     surfs = []
     for fname in fnames:
-        path_prefix = join(dir, fname)
+        path_prefix = join(gdir, fname)
         tflist = pieces[fname]
         if len(tflist) == 0:
             continue
@@ -245,3 +272,15 @@ def read_sphere_file(path, session):
     m.color = (180,180,180,128)
     m.color_mode = 'custom'
     return m
+
+def read_recipe_file(recipe_path, session):
+    from xml.dom.minidom import parse
+    from os.path import basename, dirname, join
+    t = parse(recipe_path)
+    models = []
+    for c in t.getElementsByTagName('compartment'):
+        rf = c.getAttribute('rep_file')
+        if rf and rf.endswith('.dae'):
+            rfr = join(dirname(recipe_path),'..','geometries',basename(rf))
+            models.append(read_collada_surface(rfr, session))
+    return models
