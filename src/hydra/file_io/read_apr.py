@@ -3,20 +3,47 @@ def open_autopack_results(path, session):
     Open an Autopack results files (.apr suffix) and create surfaces
     for each component of the model.
     '''
-    pieces = read_apr_file(path)
-    surfs = create_surfaces(path, pieces, session)
+    surfs = []
+    recpath, pieces = parse_apr_file(path)
+    if recpath:
+        from os.path import dirname, join
+        rp = join(dirname(path), '..', 'recipes', recpath)
+        rsurfs = read_recipe_file(rp, session)
+        surfs.extend(rsurfs)
+
+    surfs.extend(create_surfaces(path, pieces, session))
+
+    # Hack to shorten names
+    # for s in surfs:
+    #     n = s.name
+    #     if n.startswith('HIV1_'):
+    #         n = n[5:]
+    #     sf = n.find('_0')
+    #     if sf > 0:
+    #         n = n[:sf]
+    #     sf = n.find('_Rep')
+    #     if sf > 0:
+    #         n = n[:sf]
+    #     s.name = n
+
     return surfs
 
-def read_apr_file(path):
+def parse_apr_file(path):
 
     import sys
     f = open(path, 'r')
     lines = f.readlines()
     f.close()
 
+    recpath = None
     pieces = {}
     from ..geometry.place import Place
     for line in lines:
+        if line.startswith('#'):
+            rprefix = '# recipe '
+            if line.startswith(rprefix):
+                recpath = line[len(rprefix):].strip()
+            continue
         fields = line.replace('<','').replace('>','').split(',')
         if len(fields) < 23:
             continue
@@ -37,7 +64,7 @@ def read_apr_file(path):
         else:
             pieces[fname] = [tf]
 
-    return pieces
+    return recpath, pieces
 
 def print_pieces(pieces):
 
@@ -51,12 +78,12 @@ def create_surfaces(apr_path, pieces, session):
     not_found = set()
     pdbs = []
     from os.path import dirname, basename, join, exists
-    dir = dirname(apr_path)
+    gdir = join(dirname(apr_path), '..', 'geometries')
     fnames = list(pieces.keys())
     fnames.sort()
     surfs = []
     for fname in fnames:
-        path_prefix = join(dir, fname)
+        path_prefix = join(gdir, fname)
         tflist = pieces[fname]
         if len(tflist) == 0:
             continue
@@ -91,14 +118,55 @@ def create_surface_copies(path_prefix, tflist, session):
         path = path_prefix + '.dae'
         if not exists(path):
             return None
-        from . import collada
-        surf = collada.read_collada_surfaces(path, session)
-        for p in surf.surface_pieces():
-            if p.copies:
-                p.copies = sum([[pl1*pl2 for pl1 in tflist] for pl2 in p.copies], [])
-            else:
-                p.copies = tflist
+        surf = read_collada_surface(path, session)
+
+    for p in surf.surface_pieces():
+        if p.copies:
+            p.copies = sum([[pl1*pl2 for pl1 in tflist] for pl2 in p.copies], [])
+        else:
+            p.copies = tflist
+
     return surf
+
+def read_collada_surface(path, session):
+
+    from . import collada
+    surf = collada.read_collada_surfaces(path, session)
+    if hasattr(surf, 'collada_unit_name') and surf.collada_unit_name in ('meter', None):
+        # TODO: If unit meter tag omitted in file PyCollada sets unit name to None.
+        #  Probably should patch pycollada to return unit name even if unit meter scale factor not given.
+        scale_vertices(surf.plist, 100)
+    if is_cinema4d_collada_surface(surf):
+        swap_xz(surf)       # Correct left-handed Cinema4d coordinates
+    return surf
+
+def scale_vertices(splist, scale):
+    for p in splist:
+        va, ta = p.geometry
+        va *= scale
+        p.geometry = va, ta
+
+def is_cinema4d_collada_surface(surf):
+    if not hasattr(surf, 'collada_contributors'):
+        return False
+    for c in surf.collada_contributors:
+        a = c.authoring_tool
+        if a and a.startswith('CINEMA4D'):
+            return True
+    return False
+
+def swap_xz(surf):
+    for p in surf.surface_pieces():
+        v, t = p.geometry
+        n = p.normals
+
+        vc,nc = v.copy(), n.copy()
+        vc[:,0] = v[:,2]
+        vc[:,2] = v[:,0]
+        nc[:,0] = n[:,2]
+        nc[:,2] = n[:,0]
+        p.geometry = vc, t
+        p.normals = -nc
 
 def make_multiscale_models(pdbs):
 
@@ -145,3 +213,74 @@ def string_hash(s):
   for c in s:
     h = (ord(c) + (h << 6) + (h << 16) - h) % hmax
   return h
+
+def read_ingredient_file(xml_path, session):
+    from .opensave import open_from_database
+    from .fetch import fetch_from_database
+    from xml.dom.minidom import parse
+    from os.path import basename, dirname, join
+    t = parse(xml_path)
+    models = []
+    for i in t.getElementsByTagName('ingredient'):
+        mf = i.getAttribute('meshFile')
+        if mf and mf.endswith('.dae'):
+            mfr = join(dirname(xml_path),'..','geometries',basename(mf))
+            models.append(read_collada_surface(mfr, session))
+        sf = i.getAttribute('sphereFile')
+        if sf:
+            sfr = join(dirname(xml_path),'..','collisionTrees',basename(sf))
+            models.append(read_sphere_file(sfr, session))
+        pdb_id = i.getAttribute('pdb')
+        if pdb_id and len(pdb_id) == 4:
+            models.extend(fetch_from_database(pdb_id, 'PDB', session))
+    return models
+
+def read_sphere_file(path, session):
+    f = open(path)
+    lines = f.readlines()
+    f.close()
+    
+    for s,line in enumerate(lines):
+        if line.startswith('# x y z r of spheres'):
+            break
+
+    xyzr = []
+    for line in lines[s:]:
+        fields = line.split()
+        if len(fields) == 4:
+            try:
+                xyzr.append(tuple(float(x) for x in fields))
+            except ValueError:
+                pass
+
+    n = len(xyzr)
+    from numpy import array, float32, ones, uint8, empty, arange
+    xyzra = array(xyzr, float32)
+    xyz = xyzra[:,:3].copy()
+    r = xyzra[:,3].copy()
+    element_nums = ones((n,), uint8)
+    chain_ids = empty((n,), 'S1')
+    chain_ids[:] = 'A'
+    res_nums = arange(1,n+1)
+    res_names = empty((n,), 'S3')
+    res_names[:] = "S"
+    atom_names = empty((n,), 'S3')
+    atom_names[:] = 's'
+    from ..molecule import Molecule
+    m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
+    m.radii = r
+    m.color = (180,180,180,128)
+    m.color_mode = 'custom'
+    return m
+
+def read_recipe_file(recipe_path, session):
+    from xml.dom.minidom import parse
+    from os.path import basename, dirname, join
+    t = parse(recipe_path)
+    models = []
+    for c in t.getElementsByTagName('compartment'):
+        rf = c.getAttribute('rep_file')
+        if rf and rf.endswith('.dae'):
+            rfr = join(dirname(recipe_path),'..','geometries',basename(rf))
+            models.append(read_collada_surface(rfr, session))
+    return models

@@ -140,6 +140,7 @@ class Molecule(Surface):
     if p is None:
       return
 
+    p.color = tuple(c/255.0 for c in self.color)   # Transparency used to identify transparent atoms.
     p.instance_colors = self.shown_atom_array_values(self.atom_rgba())
 
   def update_bond_graphics(self, viewer):

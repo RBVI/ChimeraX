@@ -13,12 +13,13 @@ class Chimera(wx.Frame):
 			"BILD files|*.bild|"
 			)
 
-	def __init__(self, app):
+	def __init__(self, app, title="wxChimera"):
 		"""Create Chimera application instance.
 		
 		"app" is the main wx.App instance."""
 		
-		wx.Frame.__init__(self, None, title="wxChimera")
+		self.title = title
+		wx.Frame.__init__(self, None, title=title, size=wx.Size(300,300))
 		self.app = app
 
 		self._create_menu()
@@ -63,37 +64,109 @@ class Chimera(wx.Frame):
 		self.Bind(wx.EVT_MENU, self._quit_cb, id=wx.ID_EXIT)
 
 		file_menu = wx.Menu()
-		file_menu.Append(100, "&Open", "Open file", wx.ITEM_NORMAL)
+		o = file_menu.Append(wx.ID_ANY, "&Open",
+					"Open file", wx.ITEM_NORMAL)
 		self.open_dialog = None
-		self.Bind(wx.EVT_MENU, self._open_cb, id=100)
-		if 1:
-			file_menu.AppendSeparator()
-			file_menu.Append(101, "E&xit", "Quit wxChimera",
-								wx.ITEM_NORMAL)
-			self.Bind(wx.EVT_MENU, self._quit_cb, id=101)
+		self.Bind(wx.EVT_MENU, self._open_cb, id=o.GetId())
+		file_menu.AppendSeparator()
+		o = file_menu.Append(wx.ID_ANY, "E&xit",
+						"Quit wxChimera",
+						wx.ITEM_NORMAL)
+		self.Bind(wx.EVT_MENU, self._quit_cb, id=o.GetId())
 		self.menubar.Append(file_menu, "&File")
 
+		help_menu = wx.Menu()
+		o = help_menu.Append(wx.ID_ANY, "%s &Help" % self.title,
+					"Show help messages", wx.ITEM_NORMAL)
+		self.Bind(wx.EVT_MENU, self._help_cb, id=o.GetId())
+		self.menubar.Append(help_menu, "&Help")
+
 	def _create_ui(self):
-		self.ui_panel = wx.Panel(self)
-		box = wx.BoxSizer(wx.VERTICAL)
+		# self.top_level is used to switch among top level
+		# windows such as main UI, rapid access and help
+		self.top_level = wx.BoxSizer(wx.HORIZONTAL)
+		self.SetSizer(self.top_level)
 
-		self.canvas = ChimeraGLCanvas(self, self.ui_panel)
-		box.Add(self.canvas, 10, wx.EXPAND|wx.ALL, 0)
+		#
+		# Create main UI
+		#
+		self._create_main_ui()
 
+		#
+		# Create help window
+		#
+		self._create_help()
+
+	def _create_main_ui(self):
+		self.main_ui_panel = MainUI(self, self, wx.ID_ANY,
+						style=wx.SP_PERMIT_UNSPLIT |
+							wx.SP_LIVE_UPDATE)
+		self.top_level.Add(self.main_ui_panel, 10, wx.EXPAND, 0)
+
+		self.main_top_panel = wx.Panel(self.main_ui_panel)
+		self.main_top_panel.SetSizer(wx.BoxSizer(wx.VERTICAL))
+		self._create_graphics(self.main_top_panel)
+		self.main_bottom_panel = wx.Panel(self.main_ui_panel)
+		self.main_bottom_panel.SetSizer(wx.BoxSizer(wx.VERTICAL))
+		self._create_command_line(self.main_bottom_panel)
+
+		self.main_ui_panel.SplitHorizontally(self.main_top_panel,
+							self.main_bottom_panel)
+		min_size = 26
+		self.main_ui_panel.SetMinimumPaneSize(min_size)
+		self.main_ui_panel.SetSashGravity(1.0)
+		self.main_ui_panel.SetSashPosition(-min_size)
+
+	def _create_graphics(self, panel):
+		self.canvas = ChimeraGLCanvas(self, panel)
+		panel.GetSizer().Add(self.canvas, 10, wx.EXPAND, 0)
+
+	def _create_command_line(self, panel):
 		cmdline = wx.BoxSizer(wx.HORIZONTAL)
-		box.Add(cmdline, 0, wx.BOTTOM|wx.EXPAND, 0)
-		t = wx.StaticText(self.ui_panel, label= "Command:")
+		panel.GetSizer().Add(cmdline, 0, wx.BOTTOM|wx.EXPAND, 0)
+		t = wx.StaticText(panel, label= "Command:")
 		cmdline.Add(t, 0, wx.ALL, 2)
-		self.command_text = wx.TextCtrl(self.ui_panel,
-					style=wx.TE_PROCESS_ENTER)
+		self.command_text = wx.TextCtrl(panel,
+						style=wx.TE_PROCESS_ENTER)
 		cmdline.Add(self.command_text, 10, wx.EXPAND|wx.ALL, 1)
 		self.Bind(wx.EVT_TEXT_ENTER, self._command_cb,
-					self.command_text)
+						self.command_text)
 
-		self.ui_panel.SetSizer(box)
+	def _create_help(self):
+		self.help_panel = wx.Panel(self)
+		self.top_level.Add(self.help_panel, 10, wx.EXPAND, 0)
+		self.top_level.Hide(self.help_panel)
+
+		box = wx.BoxSizer(wx.VERTICAL)
+		self.help_panel.SetSizer(box)
+		# Create subcomponents of help panel
+		from wx import html2
+		self.help_window = html2.WebView.New(self.help_panel)
+		self.help_window.Bind(html2.EVT_WEBVIEW_LOADED,
+					self._help_navigate_cb)
+		self.help_window.Bind(html2.EVT_WEBVIEW_NAVIGATING,
+					self._help_navigate_cb)
+		box.Add(self.help_window, 10, wx.EXPAND, 0)
+		buttons = wx.BoxSizer(wx.HORIZONTAL)
+		box.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
+		b = wx.Button(self.help_panel, wx.ID_HOME)
+		b.Bind(wx.EVT_BUTTON, self._help_home_cb)
+		buttons.Add(b)
+		b = wx.Button(self.help_panel, wx.ID_CLOSE)
+		b.Bind(wx.EVT_BUTTON, self._help_close_cb)
+		buttons.Add(b)
 
 	def _create_status_bar(self):
 		self.CreateStatusBar()
+
+	def _show_panel(self, panel):
+		for c in self.top_level.GetChildren():
+			w = c.GetWindow()
+			if w is panel:
+				self.top_level.Show(w)
+			else:
+				self.top_level.Hide(w)
+		self.top_level.Layout()
 
 	#
 	# Callbacks registered for UI
@@ -107,7 +180,7 @@ class Chimera(wx.Frame):
 	def _open_cb(self, evt):
 		if self.open_dialog is None:
 			import os
-			self.open_dialog = wx.FileDialog(self.ui_panel,
+			self.open_dialog = wx.FileDialog(self.main_ui_panel,
 						defaultDir=os.getcwd(),
 						defaultFile="",
 						wildcard=self._FileTypes,
@@ -124,9 +197,31 @@ class Chimera(wx.Frame):
 			print("open:", p)
 			commands.cmd_open(p)
 
+	def _help_cb(self, evt):
+		self._help_home_cb(evt)
+		self._show_panel(self.help_panel)
+
+	def _help_home_cb(self, evt):
+		import os.path
+		url = "file://%s/help.html" % os.path.abspath(
+						os.path.dirname(__file__))
+		self.help_window.LoadURL(url)
+
+	def _help_close_cb(self, evt):
+		self._show_panel(self.main_ui_panel)
+
+	def _help_navigate_cb(self, evt):
+		from wx import html2
+		import time
+		if evt.EventType == html2.wxEVT_WEBVIEW_NAVIGATING:
+			self.__start_nav = time.time()
+		elif evt.EventType == html2.wxEVT_WEBVIEW_LOADED:
+			now = time.time()
+			print("Load time: %.1fs" % (now - self.__start_nav))
+			del self.__start_nav
+
 	def _command_cb(self, evt):
 		cmd = self.command_text.GetValue()
-		print("Command:", cmd);
 		self.process_command(cmd)
 		self.command_text.SelectAll()
 
@@ -185,7 +280,8 @@ class ChimeraGLCanvas(glcanvas.GLCanvas):
 		self.Bind(wx.EVT_PAINT, self._paint_cb)
 
 		self.vsphere_id = 1
-		self._mouse_mode = None	# one of None, 'rotate', 'translate', 'scale'
+		self._mouse_mode = None		# one of None, 'rotate',
+						# 'translate', 'scale'
 		self._motion_bound = False
 		self._last_xy = None
 		self.Bind(wx.EVT_LEFT_DOWN, self._button_down_cb)
@@ -295,7 +391,8 @@ class ChimeraGLCanvas(glcanvas.GLCanvas):
 
 	def _vsphere_drag(self, x, y, throttle):
 		import llgr
-		cursor, axis, angle = llgr.vsphere_drag(self.vsphere_id, x, y, throttle)
+		cursor, axis, angle = llgr.vsphere_drag(self.vsphere_id,
+								x, y, throttle)
 		if angle == 0:
 			return cursor
 		# update global transformation matrix
@@ -339,6 +436,17 @@ class ChimeraGLCanvas(glcanvas.GLCanvas):
 		w, h = self.GetClientSize()
 		y = h - y
 		print(llgr.pick(x, y))
+
+class MainUI(wx.SplitterWindow):
+
+	def __init__(self, chimera, *args, **kw):
+		self.chimera = chimera
+		super().__init__(*args, **kw)
+		#self.Bind(wx.EVT_SIZE, self._size_cb)
+
+	def _size_cb(self, evt):
+		self.chimera.main_ui_panel.SetSashGravity(1.0)
+		self.chimera.main_ui_panel.SetMinimumPaneSize(28)
 
 def main():
 	try:
