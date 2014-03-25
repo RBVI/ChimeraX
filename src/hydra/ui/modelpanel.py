@@ -54,7 +54,7 @@ class Model_Panel:
             lines.extend(['',
                           '<a href="%d">' % m.id,
                           '<table>',
-                          '<tr><td width=128><img src="%s">' % uri,
+                          '<tr><td height=%d><img src="%s">' % (self.image_size[1], uri),
                           '<tr><td><center>#%d %s</center>' % (m.id, n),
                           '</table>',
                           '</a>'])
