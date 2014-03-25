@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.0
+VERSION = 2.2
 DISTRIBUTION = python-dateutil-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/python-dateutil-$(VERSION)
 
