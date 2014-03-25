@@ -67,7 +67,7 @@ def file_types(session):
     if ftypes is None:
         from .pdb import open_pdb_file, open_mmcif_file
         from .read_stl import read_stl
-        from .read_apr import open_autopack_results
+        from .read_apr import open_autopack_results, read_ingredient_file, read_sphere_file
         from .read_swc import read_swc
         from .collada import read_collada_surfaces
         ftypes = [
@@ -75,6 +75,8 @@ def file_types(session):
             ('mmCIF', ['cif'], open_mmcif_file),
             ('Session', ['hy'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),
+            ('AutoPack Ingredient', ['xml'], read_ingredient_file),
+            ('AutoPack sphere file', ['sph'], read_sphere_file),
             ('STL', ['stl'], read_stl),
             ('Collada', ['dae'], read_collada_surfaces),
             ('Neuron SWC', ['swc'], read_swc),
