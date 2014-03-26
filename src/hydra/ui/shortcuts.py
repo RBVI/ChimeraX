@@ -54,8 +54,11 @@ def standard_shortcuts(session):
         ('va', view_all, 'View all', gcat, viewarg, smenu),
         ('dv', default_view, 'Default orientation', gcat, viewarg, smenu, sep),
 
-        ('cs', s.clear_selection, 'Clear selection', gcat, noarg, smenu),
+        ('dA', display_all, 'Display all', gcat, sesarg, smenu),
+        ('ds', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
+        ('hs', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
+        ('cs', s.clear_selection, 'Clear selection', gcat, noarg, smenu),
 
         ('bk', set_background_black, 'Black background', gcat, viewarg, smenu),
         ('wb', set_background_white, 'White background', gcat, viewarg, smenu),
@@ -67,6 +70,7 @@ def standard_shortcuts(session):
         ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
         ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
+        ('uh', undisplay_half, 'Undisplay z > 0', gcat, sesarg, smenu),
         ('rt', show_stats, 'Show model statistics', gcat, sesarg, smenu),
 
         # Maps
@@ -420,6 +424,12 @@ def command_line(session):
 #  from .qt import QtCore
 #  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
 
+def display_selected_models(session):
+  session.display_models(tuple(session.selected))
+
+def hide_selected_models(session):
+  session.hide_models(tuple(session.selected))
+
 def delete_selected_models(session):
   session.close_models(tuple(session.selected))
 
@@ -629,3 +639,27 @@ def space_navigator_collisions(session):
 def quit(session):
     import sys
     sys.exit(0)
+
+def undisplay_half(session):
+    for m in session.models:
+        mp = m.place
+        for p in m.surface_pieces():
+            va = p.vertices
+            c = 0.5*(va.min(axis=0) + va.max(axis=0))
+            pc = p.copies
+            if len(pc) == 0:
+                if (mp*c)[2] > 0:
+                    p.display = False
+                    m.redraw_needed = True
+            else:
+                from numpy import array, bool
+                p.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
+                p.displayed_copy_matrices = None
+                m.redraw_needed = True
+
+def display_all(session):
+    for m in session.models:
+        for p in m.surface_pieces():
+            p.display = True
+            p.instance_display = None
+            m.redraw_needed = True
