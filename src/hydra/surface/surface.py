@@ -174,8 +174,11 @@ class Surface_Piece(object):
     self.shift_and_scale = None         # Instance copies
     self.copy_places = []               # Instance placements
     self.copy_matrices = None           # Instance matrices, 4x4 opengl
+    self.displayed_copy_matrices = None # 4x4 matrices for displayed instances
     self.vertex_colors = None
     self.instance_colors = None         # N by 4 uint8 values
+    self.displayed_instance_colors = None
+    self.instance_display = None        # bool numpy array, show only some instances
     self.edge_mask = None
     self.masked_edges = None
     self.display = True
@@ -194,9 +197,9 @@ class Surface_Piece(object):
     bufs = (('vertices', draw.VERTEX_BUFFER),
             ('normals', draw.NORMAL_BUFFER),
             ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('copy_matrices', draw.INSTANCE_MATRIX_BUFFER),
+            ('displayed_copy_matrices', draw.INSTANCE_MATRIX_BUFFER),
             ('vertex_colors', draw.VERTEX_COLOR_BUFFER),
-            ('instance_colors', draw.INSTANCE_COLOR_BUFFER),
+            ('displayed_instance_colors', draw.INSTANCE_COLOR_BUFFER),
             ('texture_coordinates', draw.TEXTURE_COORDS_2D_BUFFER),
             ('elements', draw.ELEMENT_BUFFER),
             )
@@ -261,6 +264,15 @@ class Surface_Piece(object):
 
     if self.copy_places and self.copy_matrices is None:
       self.copy_matrices = opengl_matrices(self.copy_places)
+
+    disp = self.instance_display
+    if disp is None:
+      self.displayed_instance_colors = self.instance_colors
+      self.displayed_copy_matrices = self.copy_matrices
+    elif self.displayed_copy_matrices is None:
+      self.displayed_copy_matrices = self.copy_matrices[disp,:,:]
+      ic = self.instance_colors
+      self.displayed_instance_colors = ic[disp,:] if not ic is None else None
 
     for b in self.opengl_buffers:
       data = getattr(self, b.surface_piece_attribute_name)
@@ -350,6 +362,8 @@ class Surface_Piece(object):
   def instance_count(self):
     if not self.shift_and_scale is None:
       ninst = len(self.shift_and_scale)
+    elif not self.instance_display is None:
+      ninst = self.instance_display.sum()
     elif self.copy_places:
       ninst = len(self.copy_places)
     elif not self.copy_matrices is None:
@@ -433,11 +447,14 @@ class Surface_Piece(object):
       if not fmin is None and (f is None or fmin < f):
         f = fmin
     else:
-      for tf in self.copies:
-        cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-        fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
-        if not fmin is None and (f is None or fmin < f):
-          f = fmin
+      # TODO: This will be very slow for large numbers of copies.
+      id = self.instance_display
+      for c,tf in enumerate(self.copies):
+        if id is None or id[c]:
+          cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+          fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+          if not fmin is None and (f is None or fmin < f):
+            f = fmin
     return f
 
 class Surface_Piece_Selection:
