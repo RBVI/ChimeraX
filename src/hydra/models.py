@@ -76,6 +76,16 @@ class Models:
             self.redraw_needed = True
         self.selected.clear()
 
+    def display_models(self, mlist):
+        for m in mlist:
+            m.display = True
+            m.redraw_needed = True
+
+    def hide_models(self, mlist):
+        for m in mlist:
+            m.display = False
+            m.redraw_needed = True
+
     def maps(self):
         '''Return a list of the Volume models in the scene.'''
         from .map import Volume
