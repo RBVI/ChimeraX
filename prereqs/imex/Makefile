@@ -5,3 +5,5 @@ all:
 
 install:
 	$(RSYNC) imex.i $(includedir)
+
+clean:
