@@ -20,6 +20,42 @@ def show_open_file_dialog(session):
         session.file_history.add_entry(','.join(paths), models = mlist)
     session.main_window.show_graphics()
 
+# -----------------------------------------------------------------------------
+# Add label to open file dialog
+#
+def locate_file_dialog(path):
+
+    pdir = existing_directory(path)
+    caption = 'Locate %s' % path
+    from ..ui.qt import QtWidgets
+    fd = QtWidgets.QFileDialog(None, caption, pdir)
+    # Cannot add widgets to native dialog.
+    fd.setOptions(QtWidgets.QFileDialog.DontUseNativeDialog)
+    result = [None]
+    def file_selected(path, result = result):
+        result[0] = path
+    fd.fileSelected.connect(file_selected)
+    lo = fd.layout()
+    lbl = QtWidgets.QLabel('Locate missing file %s' % path, fd)
+    lo.addWidget(lbl)
+    fd.exec()
+    p = result[0]
+    return p
+
+# -----------------------------------------------------------------------------
+# Find the deepest directory of the given path that exists.
+#
+def existing_directory(path):
+
+    from os.path import dirname, isdir
+    while path:
+        d = dirname(path)
+        if isdir(d):
+            return d
+        else:
+            path = d
+    return None
+
 def file_types(session):
     '''
     Return a list of file readers, each reader being represented by 3-tuple
@@ -31,14 +67,18 @@ def file_types(session):
     if ftypes is None:
         from .pdb import open_pdb_file, open_mmcif_file
         from .read_stl import read_stl
-        from .read_apr import open_autopack_results
+        from .read_apr import open_autopack_results, read_ingredient_file, read_sphere_file
         from .read_swc import read_swc
+        from .collada import read_collada_surfaces
         ftypes = [
             ('PDB', ['pdb','ent'], lambda path,s=session: open_pdb_file(path,s)),
             ('mmCIF', ['cif'], open_mmcif_file),
             ('Session', ['hy'], open_session),
             ('AutoPack', ['apr'], open_autopack_results),
+            ('AutoPack Ingredient', ['xml'], read_ingredient_file),
+            ('AutoPack sphere file', ['sph'], read_sphere_file),
             ('STL', ['stl'], read_stl),
+            ('Collada', ['dae'], read_collada_surfaces),
             ('Neuron SWC', ['swc'], read_swc),
             ('Python', ['py'], read_python),
         ]
@@ -190,10 +230,11 @@ def save_image(path, session, width = None, height = None, format = None):
     view = session.view
     if path is None:
         filters = 'Image (*.jpg *.png *.ppm *.bmp)'
-        path = QtWidgets.QFileDialog.getSaveFileName(view.widget, 'Save Image', '.',
-                                                     filters)
-        if path is None:
+        pf = QtWidgets.QFileDialog.getSaveFileName(view.widget, 'Save Image', '.', filters)
+        # Returns path and filter name.
+        if pf is None:
             return
+        path = pf[0]
 
     import os.path
     path = os.path.expanduser(path)         # Tilde expansion

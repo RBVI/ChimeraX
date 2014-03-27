@@ -363,6 +363,13 @@ def leap_listener(viewer):
         
     return v.leap_listener
 
+def toggle_leap(session):
+    v = session.view
+    if hasattr(v, 'leap_controller'):
+        quit_leap(session)
+    else:
+        leap_listener(v)
+
 def leap_mode(mode, session):
     l = leap_listener(session.view)
     l.mode = mode
@@ -377,6 +384,8 @@ def quit_leap(session):
     v = session.view
     if hasattr(v, 'leap_listener'):
         v.leap_controller.remove_listener(v.leap_listener)
+        del v.leap_listener
+        del v.leap_controller
 
 def leap_command(enable = None, mode = None, session = None):
 

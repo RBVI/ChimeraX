@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------
 #
-class Gray_Scale_Drawing(object):
+class Gray_Scale_Drawing:
 
   def __init__(self, surface):
 
@@ -119,8 +119,11 @@ class Gray_Scale_Drawing(object):
     vaxis = viewer.camera.view_direction()
     reverse = ((zaxis * vaxis).sum() > 0)
 
+    spieces = self.surface_pieces
+    plist = spieces[::-1] if reverse else spieces
+
     from ..surface import Surface
-    Surface.draw(self.surface, viewer, draw_pass, reverse)
+    self.surface.draw_pieces(plist, viewer, draw_pass)
 
   def show(self):
 

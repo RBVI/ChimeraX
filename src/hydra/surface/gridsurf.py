@@ -110,14 +110,17 @@ def surface(atoms, session, probeRadius = 1.4, gridSpacing = 0.5, waters = False
     '''
     if not waters:
         atoms = atoms.exclude_water()
-    xyz = atoms.coordinates()
+    xyz = atoms.coordinates()           # Scene coordinates
     r = atoms.radii()
     va,na,ta = ses_surface_geometry(xyz, r, probeRadius, gridSpacing)
 
     # Create surface model to show surface
     m0 = atoms.molecules()[0]
+    p = m0.place
+    if not p.is_identity(tolerance = 0):
+        p.inverse().move(va)    # Move to model coordinates.
+        
     name = '%s SES surface' % m0.name
-    surf = show_surface(name, va, na, ta, session,
-                        color = (.7,.8,.5,1), place = m0.place)
+    surf = show_surface(name, va, na, ta, session, color = (.7,.8,.5,1), place = p)
 
     return surf

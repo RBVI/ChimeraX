@@ -206,7 +206,7 @@ PYOBJS = $(addprefix __pycache__/,$(addsuffix .cpython-$(PYVER_NODOT).pyc,$(base
 
 .SUFFIXES: .py .pyc .pyo
 ifdef UNIX
-__pycache__/%.cpython-33.pyc : %.py
+__pycache__/%.cpython-$(PYVER_NODOT).pyc : %.py
 	$(bindir)/python3 -t -m py_compile '$<'
 
 .py.pyc:

@@ -1,22 +1,20 @@
 # -----------------------------------------------------------------------------
 # Save and restore volume viewer state.
 #
-def map_states(session, rel_path = None):
+def map_states(session):
   d2v = {}
   for v in session.maps():
     d2v.setdefault(v.data,[]).append(v)
   s = state_from_maps(d2v)
-  if rel_path:
-      use_relative_paths(s, rel_path)
   return s
 
 # -----------------------------------------------------------------------------
 #
-def restore_maps(dms, session, attributes_only = False):
+def restore_maps(dms, session, file_paths = None, attributes_only = False):
   if attributes_only:
     restore_map_attributes(dms, session)
   else:
-    create_maps_from_state(dms, session)
+    create_maps_from_state(dms, session, file_paths)
   return True
 
 # -----------------------------------------------------------------------------
@@ -54,14 +52,14 @@ def state_from_maps(data_maps, include_unsaved_volumes = False):
 
 # ---------------------------------------------------------------------------
 #
-def create_maps_from_state(dms, session):
+def create_maps_from_state(dms, session, file_paths):
 
   # Cache of Grid_Data objects improves load speed when multiple regions
   # are using same data file.  Especially important for files that contain
   # many data arrays.
   gdcache = {}        # (path, grid_id) -> Grid_Data object
   for ds, vslist in dms:
-    data = grid_data_from_state(ds, gdcache, session)
+    data = grid_data_from_state(ds, gdcache, session, file_paths)
     if data:        # Can be None if user does not replace missing file.
       for vs in vslist:
         v = create_map_from_state(vs, data, session)
@@ -102,46 +100,19 @@ def find_volume_by_session_id(id, session):
       return v
   return None
 
-# ---------------------------------------------------------------------------
-#
-def use_relative_paths(dms, directory):
-
-  for ds, vslist in dms:
-    p = ds['path']
-    if p:
-      ds['path'] = relative_path(p, directory)
-
 # -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
 #
-def relative_path(path, dir):
-
-  if isinstance(path, (tuple, list)):
-    return tuple([relative_path(p, dir) for p in path])
-
-  if not isinstance(path, str):
-    return path
-
-  from os.path import join
-  d = join(dir, '')       # Make directory end with "/".
-  if not path.startswith(d):
-    return path
-
-  rpath = path[len(d):]
-  return rpath
-
-# -----------------------------------------------------------------------------
-# Path can be a tuple of paths.
-#
-def absolute_path(path):
+def absolute_path(path, file_paths):
 
   from os.path import abspath
   if isinstance(path, (tuple, list)):
-    apath = tuple([abspath(p) for p in path])
-  elif isinstance(path, str):
-    apath = abspath(path)
+    apath = tuple(file_paths.find(p) for p in path)
+    apath = tuple(abspath(p) for p in apath if p)
   else:
-    apath = path
+    apath = file_paths.find(path)
+    if not apath is None:
+      apath = abspath(apath)
   return apath
 
 # ---------------------------------------------------------------------------
@@ -180,14 +151,16 @@ def state_from_grid_data(data):
 
 # ---------------------------------------------------------------------------
 #
-def grid_data_from_state(s, gdcache, session):
+def grid_data_from_state(s, gdcache, session, file_paths):
 
-  path = absolute_path(s['path'])
+  path = absolute_path(s['path'], file_paths)
+  if path is None:
+    return None
+
   gid = s.get('grid_id','')
   file_type = s['file_type']
   dbfetch = s.get('database_fetch')
   dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
-
 
   for data in dlist:
     data.name = s['name']
@@ -222,7 +195,7 @@ def grid_data_from_state(s, gdcache, session):
       dslist.append(data)
     dlist = dslist
     for cell_size, dstate in s['available_subsamplings'].items():
-      if absolute_path(dstate.path) != path:
+      if absolute_path(dstate.path, file_paths) != path:
         ssdlist = dstate.create_object(gdcache)
         for i,ssdata in enumerate(ssdlist):
           dlist[i].add_subsamples(ssdata, cell_size)

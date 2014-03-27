@@ -28,8 +28,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view = v = View(session, st)
         st.addWidget(v.widget)
 
-#        self.text = e = QtGui.QTextEdit(st)
         self.text = e = QtWidgets.QTextBrowser(st)          # Handle clicks on anchors
+
+        # Create close button for text widget.
+        self.close_text = ct = QtWidgets.QPushButton('X', e)
+        ct.setStyleSheet("padding: 1px; min-width: 1em")
+        ct.clicked.connect(lambda e: self.show_graphics())
+
         e.setFocusPolicy(QtCore.Qt.NoFocus)
         e.setReadOnly(True)
         e.anchorClicked.connect(self.anchor_callback)
@@ -49,6 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         st.setCurrentWidget(v.widget)
         self.setCentralWidget(st)
 
+        self.create_menus()
         self.create_toolbar()
 
         self.shortcuts_enabled = False
@@ -60,15 +66,24 @@ class MainWindow(QtWidgets.QMainWindow):
 #        lo = self.layout()
 #        lo.setSizeConstraint(lo.SetFixedSize)
 
+    def resizeEvent(self, e):
+        s = e.size()
+        ct = self.close_text
+        ct.move(s.width()-ct.width()-5,5)
+
     def create_command_line(self):
 
         d = QtWidgets.QDockWidget('Command line', self)
-        cline = Command_Line(d, self.session)
-#        cline = QtWidgets.QLineEdit(d)
-#        cline.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.command_line_frame = w = QtWidgets.QWidget(d)
+        hbox = QtWidgets.QHBoxLayout(w)
+        hbox.setContentsMargins(0,0,0,0)
+        t = QtWidgets.QLabel(' Command', w)
+        hbox.addWidget(t)
+        cline = Command_Line(w, self.session)
+        hbox.addWidget(cline)
+        w.setLayout(hbox)
         cline.setFocus(QtCore.Qt.OtherFocusReason)      # Set the initial focus to the command-line
-#        self.setFocusProxy(cline)
-        d.setWidget(cline)
+        d.setWidget(w)
         d.setTitleBarWidget(QtWidgets.QWidget(d))   # No title bar
         d.setFeatures(d.NoDockWidgetFeatures)   # No close button
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, d)
@@ -76,16 +91,45 @@ class MainWindow(QtWidgets.QMainWindow):
         cline.textEdited.connect(self.command_text_changed)
         return cline
 
+    def show_command_line(self, show):
+        f = self.command_line_frame
+        if show:
+            f.show()
+        else:
+            f.hide()
+
     def focus_on_command_line(self):
         cline = self.command_line
-#        self.view.setFocus(QtCore.Qt.OtherFocusReason)
         cline.setFocus(QtCore.Qt.OtherFocusReason)
-#        self.releaseKeyboard()
-#        cline.activateWindow()
-#        cline.setEnabled(True)
-#        self.view.setFocus(QtCore.Qt.MouseFocusReason)
-#       cline.setFocus(QtCore.Qt.MouseFocusReason)
 
+    def create_menus(self):
+
+#        self.menuBar = mb = QtWidgets.QMenuBar()
+        mb = self.menuBar()
+
+        from .shortcuts import standard_shortcuts
+        scuts = standard_shortcuts(self.session)[0]
+        mnames = []
+        for sc in scuts:
+            m = sc.menu
+            if m and not m in mnames:
+                mnames.append(m)
+        menus = {}
+        for mname in mnames:
+            menus[mname] = mb.addMenu(mname)
+
+        ks = self.session.keyboard_shortcuts
+        for sc in scuts:
+            m = sc.menu
+            if m:
+                a = QtWidgets.QAction(sc.description, self)
+                a.triggered.connect(lambda a,ks=ks,s=sc.key_seq: ks.run_shortcut(s))
+                menus[m].addAction(a)
+                if sc.menu_separator:
+                    menus[m].addSeparator()
+
+#            a.setCheckable(True)
+        
     def create_toolbar(self):
 
 # TODO: tooltips take too long to show and don't hide when mouse moves off button on Mac.
@@ -116,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_shortcut_icon('book.png', 'Show manual', 'mn')
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('grid.png', 'Show recent sessions', 'rs')
+        self.add_shortcut_icon('grid.png', 'Show recent files', 'rf')
         self.add_shortcut_icon('savesession.png', 'Save session', 'sv')
 
     def add_shortcut_icon(self, icon_file, descrip, shortcut):
@@ -194,6 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return self.stack.currentWidget() == self.view.widget
     def show_graphics(self):
         self.stack.setCurrentWidget(self.view.widget)
+        self.show_back_forward_buttons(False)
 
     def show_status(self, msg, append = False):
         sb = self.statusBar()
@@ -255,6 +300,7 @@ def set_default_context(major_version, minor_version, profile):
 class Hydra_App(QtWidgets.QApplication):
 
     def __init__(self, argv, session):
+        fix_qt_plugin_path()
         QtWidgets.QApplication.__init__(self, argv)
         self.session = session
         self.setWindowIcon(icon('reo.png'))
@@ -270,6 +316,14 @@ class Hydra_App(QtWidgets.QApplication):
             return True
         else:
             return QtWidgets.QApplication.event(self, e)
+
+def fix_qt_plugin_path():
+    # Remove plugin location set in QtCore library (qt_plugpath in binary) which points to build location
+    # instead of install location.  Messes up application menu on Mac when run on build machine if build
+    # path is used, and gives numerous warnings to start-up shell.  Installed Qt plugins are in PyQt5/plugins.
+    libpaths = [p for p in QtCore.QCoreApplication.libraryPaths()
+                if not str(p).endswith('plugins') or str(p).endswith('PyQt5/plugins')]
+    QtCore.QCoreApplication.setLibraryPaths(libpaths)
 
 def start_event_loop(app):
     status = app.exec_()
@@ -348,3 +402,28 @@ class Log:
                     self.log.log_message(self.text.rstrip())
                     self.text = ''
         return Log_Output_Stream(self)
+
+def window_size_command(cmdname, args, session):
+
+    from .commands import int_arg, parse_arguments
+    req_args = ()
+    opt_args = ((('width', int_arg),
+                 ('height', int_arg),))
+    kw_args = ()
+
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    set_window_size(session, **kw)
+
+def set_window_size(session, width = None, height = None):
+
+    mw = session.main_window
+    g = mw.stack
+    if width is None and height is None:
+        from . import show_status, show_info
+        msg = 'Graphics size %d, %d' % (g.width(), g.height())
+        show_status(msg)
+        show_info(msg)
+    else:
+        # Have to resize main window.  Main window will not resize for central graphics window.
+        wpad, hpad = mw.width()-g.width(), mw.height()-g.height()
+        mw.resize(width + wpad, height + hpad)

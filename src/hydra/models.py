@@ -9,6 +9,8 @@ class Models:
         self.next_id = 1
         self.selected = set()
         self.redraw_needed = False
+        self.xyz_bounds = None
+        self.bounds_changed = True
 
     def model_list(self):
         '''List of open models.'''
@@ -28,6 +30,7 @@ class Models:
             self.next_id += 1
         if model.display:
             self.redraw_needed = True
+            self.bounds_changed = True
 
     def add_models(self, mlist):
         '''
@@ -48,6 +51,7 @@ class Models:
                 self.redraw_needed = True
             m.delete()
         self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
+        self.bounds_changed = True
         
     def close_all_models(self):
         '''
@@ -88,13 +92,17 @@ class Models:
         return tuple(m for m in self.models if not isinstance(m,(Molecule)))
 
     def bounds(self):
-        from .geometry import bounds
-        b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
-        return b
+        if self.bounds_changed:
+            from .geometry import bounds
+            b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
+            self.xyz_bounds = b
+            self.bounds_changed = False
+        return self.xyz_bounds
 
     def bounds_center_and_width(self):
         from .geometry import bounds
-        return bounds.bounds_center_and_radius(self.bounds())
+        c,r = bounds.bounds_center_and_radius(self.bounds())
+        return c,r
 
     def center(self, models = None):
         if models is None:

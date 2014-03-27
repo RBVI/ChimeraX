@@ -175,7 +175,7 @@ class Surface_Piece(object):
     self.copies34 = []                  # Instance matrices, 3x4
     self.copies44 = None                # Instance matrices, 4x4 opengl
     self.vertex_colors = None
-    self.instance_colors = None
+    self.instance_colors = None         # N by 4 uint8 values
     self.edge_mask = None
     self.masked_edges = None
     self.display = True

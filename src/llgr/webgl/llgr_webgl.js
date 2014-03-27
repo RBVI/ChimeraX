@@ -1,4 +1,4 @@
-/*
+/*sp;
  * Copyright (c) 2013 The Regents of the University of California.
  * All rights reserved.
  *
@@ -21,6 +21,7 @@ var llgr = {};	// only llgr is exported
 "use strict";
 
 var all_programs = {};
+var pick_programs = {};
 var all_buffers = null;
 var all_matrices = {};
 var all_objects = {};
@@ -28,11 +29,17 @@ var all_groups = {};
 
 // set with set_context()
 var gl;		// OpenGL API
-var vao_ext;	// ES_vertex_array_object API
+var vao_ext;	// OES_vertex_array_object API
 var inst_ext;	// ANGLE_instanced_arrays API
+var width;	// context's default renderbuffer width
+var height;	// context's default renderbuffer height
 
 var internal_buffer_id = 0;	// decrement before using
 var current_program = null;
+
+var pick_fb = null;		// Framebuffer
+var pick_fb_valid = null;	// true iff pick_fb is current
+var clear_color = [0, 0, 0, 0];
 
 var name_map = {
 	position: "position",
@@ -208,12 +215,13 @@ function MatrixInfo(id, renorm)
 	this.renormalize = renorm;
 }
 
-function SingletonInfo(data_type, normalized, data, location, num_locations, num_elements)
+function SingletonInfo(data_type, normalized, data, location, pick_location, num_locations, num_elements)
 {
 	this.data_type = data_type;
 	this.normalized = normalized;
 	this.data = data;
 	this.base_location = location;
+	this.pick_location = pick_location;
 	this.num_locations = num_locations;
 	this.num_elements = num_elements;
 }
@@ -296,10 +304,9 @@ GroupInfo.prototype.optimize = function ()
 		if (oi === undefined || oi.incomplete || oi._hide)
 			return;
 		var k = group_key(oi);
-		try {
+		if (k in groupings) {
 			groupings[k].push(oi);
-		} catch (e) {
-			// assert(e isinstanceof TypeError);
+		} else {
 			groupings[k] = [oi];
 		}
 	});
@@ -342,18 +349,21 @@ GroupInfo.prototype.optimize = function ()
 	// TODO: if a particular  singleton is the same in all objects,
 	// then keep it as a singleton
 	var sp = null;
+	var pick_sp = null;
+	var pick_sv;	// for pickId attribute location
 	var current_program_id = null;
 	var si;
 	_.each(instancing, function (ois) {
 		var ai, bi;
 		// aggregate singletons
 		var proto = ois[0];
-		var oi = new ObjectInfo(proto.program_id, 0, [], proto.ptype,
+		var oi = new ObjectInfo(undefined, proto.program_id, 0, [], proto.ptype,
 			proto.first, proto.count,
 			proto.index_buffer_id, proto.index_buffer_type);
 		oi.instance_count = ois.length;
 		if (oi.program_id != current_program_id) {
 			sp = all_programs[oi.program_id];
+			pick_sp = pick_programs[oi.program_id];
 			if (sp === undefined) {
 				current_program_id = null;
 				oi.incomplete = true;
@@ -361,11 +371,18 @@ GroupInfo.prototype.optimize = function ()
 			}
 			current_program_id = oi.program_id;
 		}
+		if (!pick_sp)
+			oi.pick_vao = null;
+		else {
+			oi.pick_vao = vao_ext.createVertexArrayOES();
+			pick_sv = pick_sp.attributes["pickId"];
+			if (!pick_sv)
+				pick_sp = null;
+		}
 		oi.vao = vao_ext.createVertexArrayOES();
 		vao_ext.bindVertexArrayOES(oi.vao);
 
-		_.each(proto.ais, function (ai) {
-			if (!ai._is_array || oi.incomplete)
+		_.each(proto.ais, function (ai) { if (!ai._is_array || oi.incomplete)
 				return;
 			var sv = sp.attributes[ai.name];
 			bi = all_buffers[ai.data_id];
@@ -373,16 +390,20 @@ GroupInfo.prototype.optimize = function ()
 				// buffer deleted after object creation,
 				// and before rendering
 				oi.incomplete = true;
+				oi.close();
 				return;
 			}
 			var num_locations = sv.location_info()[0];
 			setup_array_attribute(bi, ai, sv.location,
 							num_locations);
 		});
-		if (oi.incomplete)
+		if (oi.incomplete) {
+			oi.close();
 			return;
+		}
+		var ibi;
 		if (proto.index_buffer_id) {
-			var ibi = all_buffers[proto.index_buffer_id];
+			ibi = all_buffers[proto.index_buffer_id];
 			if (ibi !== undefined) {
 				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibi.buffer);
 			}
@@ -400,50 +421,106 @@ GroupInfo.prototype.optimize = function ()
 			sizes.push(size);
 			stride += size;
 		});
-		if (stride === 0) {
-			this_gi.ois.push(oi);
-			return;
-		}
-		// TODO: assert(stride < glGetInteger(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET))
-		var buffer = gl.createBuffer();
-		var buflen = ois.length * stride;
-		this_gi.buffers.push(buffer);
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, buflen, gl.STATIC_DRAW);
+		var si_bi;	// singleton BufferInfo
+		if (stride > 0) {
+			// TODO: assert(stride < glGetInteger(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET))
+			var buffer = gl.createBuffer();
+			var buflen = ois.length * stride;
+			this_gi.buffers.push(buffer);
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.bufferData(gl.ARRAY_BUFFER, buflen, gl.STATIC_DRAW);
 
-		var pos = 0;
-		_.each(ois, function (oi2) {
+			var pos = 0;
+			_.each(ois, function (oi2) {
+				for (i = 0; i < sizes.length; ++i) {
+					size = sizes[i];
+					si = oi2.singleton_cache[i];
+					gl.bufferSubData(gl.ARRAY_BUFFER, pos,
+								si.data);
+					pos += size;
+				}
+			});
+			if (pos != buflen) {
+				console.log("tried to fill " + buflen +
+					" byte buffer with " + pos + " bytes");
+			}
+			si_bi = new BufferInfo(buffer, llgr.ARRAY);
+			var offset = 0;
 			for (i = 0; i < sizes.length; ++i) {
 				size = sizes[i];
-				si = oi2.singleton_cache[i];
-				gl.bufferSubData(gl.ARRAY_BUFFER, pos,
-								si.data);
-				pos += size;
-			}
-		});
-		if (pos != buflen) {
-			console.log("tried to fill " + buflen + " byte buffer with " + pos + " bytes");
-		}
-		bi = new BufferInfo(buffer, llgr.ARRAY);
-		var offset = 0;
-		for (i = 0; i < sizes.length; ++i) {
-			size = sizes[i];
-			si = proto.singleton_cache[i];
-			ai = new llgr.AttributeInfo(null, null, offset, stride,
-				si.num_elements, si.data_type,
-				si.normalized);
-			offset += size;
-			setup_array_attribute(bi, ai, si.base_location,
-						si.num_locations);
-			for (var j = 0; j != si.num_locations; ++j) {
-				inst_ext.vertexAttribDivisorANGLE(si.base_location + j, 1);
+				si = proto.singleton_cache[i];
+				ai = new llgr.AttributeInfo(null, null, offset,
+					stride, si.num_elements, si.data_type,
+					si.normalized);
+				offset += size;
+				setup_array_attribute(si_bi, ai,
+					si.base_location, si.num_locations);
+				for (var j = 0; j != si.num_locations; ++j) {
+					inst_ext.vertexAttribDivisorANGLE(
+						si.base_location + j, 1);
+				}
 			}
 		}
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
 		if (!oi.incomplete)
 			this_gi.ois.push(oi);
+
+		if (pick_sp) {
+			// initialize pick_vao
+			vao_ext.bindVertexArrayOES(oi.pick_vao);
+			// create array of pick_ids per instance
+			var pick_ids = new Uint32Array(ois.length);
+			for (var i = 0; i < ois.length; ++i) {
+				pick_ids[i] = ois[i].object_id;
+			}
+			var pick_buffer = gl.createBuffer();
+			this_gi.buffers.push(pick_buffer);
+			gl.bindBuffer(gl.ARRAY_BUFFER, pick_buffer);
+			gl.bufferData(gl.ARRAY_BUFFER, pick_ids, gl.STATIC_DRAW);
+			// setup pickId array
+			var pick_bi = new BufferInfo(pick_buffer, llgr.ARRAY);
+			ai = new llgr.AttributeInfo(null, null, 0, 0,
+					4, llgr.UByte, true);
+			setup_array_attribute(pick_bi, ai, pick_sv.location, 1);
+			inst_ext.vertexAttribDivisorANGLE(pick_sv.location, 1);
+
+			_.each(proto.ais, function (ai) {
+				if (!ai._is_array || oi.incomplete)
+					return;
+				var sv = pick_sp.attributes[ai.name];
+				if (sv === undefined)
+					return;
+				bi = all_buffers[ai.data_id];
+				var num_locations = sv.location_info()[0];
+				setup_array_attribute(bi, ai, sv.location,
+								num_locations);
+			});
+			if (proto.index_buffer_id) {
+				ibi = all_buffers[proto.index_buffer_id];
+				if (ibi !== undefined) {
+					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibi.buffer);
+				}
+			}
+			offset = 0;
+			for (i = 0; i < sizes.length; ++i) {
+				size = sizes[i];
+				si = proto.singleton_cache[i];
+				if (!si.pick_location) {
+					offset += size;
+					continue;
+				}
+				ai = new llgr.AttributeInfo(null, null, offset, stride,
+					si.num_elements, si.data_type,
+					si.normalized);
+				offset += size;
+				setup_array_attribute(si_bi, ai,
+					si.pick_location, si.num_locations);
+				for (j = 0; j != si.num_locations; ++j) {
+					inst_ext.vertexAttribDivisorANGLE(si.base_location + j, 1);
+				}
+			}
+		}
 	});
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
 	// third pass: look at left over groupings
 	// TODO: If different first and count, try to group
@@ -499,7 +576,7 @@ GroupInfo.prototype.render = function ()
 	if (!this.optimized)
 		this.optimize();
 
-	var sp = null;
+	var sp = null;		// shader program
 	var current_program_id = 0;
 	_.each(this.ois, function (oi) {
 		if (oi.hide() || oi.incomplete)
@@ -558,14 +635,76 @@ GroupInfo.prototype.render = function ()
 
 GroupInfo.prototype.pick = function ()
 {
-	// TODO
+	if (!this.optimized)
+		this.optimize();
+
+	var sp = null;		// shader program
+	var current_program_id = 0;
+	_.each(this.ois, function (oi) {
+		if (oi.pick_vao === null || oi.hide() || oi.incomplete)
+			return;
+		// setup program
+		if (oi.program_id != current_program_id) {
+			var new_sp = pick_programs[oi.program_id];
+			if (new_sp === undefined)
+				return;
+			new_sp.setup();
+			sp = new_sp;
+			current_program_id = oi.program_id;
+		}
+		if (sp === null)
+			return;
+		vao_ext.bindVertexArrayOES(oi.pick_vao);
+		// TODO:
+		//_.each(oi.pick_singleton_cache, function (si) {
+		//	setup_singleton_attribute(si.data,
+		//		si.data_type, si.normalized,
+		//		si.base_location, si.num_locations,
+		//		si.num_elements);
+		//});
+		// finally draw pick object
+		var offset;
+		if (oi.instance_count === 0) {
+			// TODO: convert oi.object_id to floating point
+			// and set appropiate vertex atttribute
+			if (oi.index_buffer_id === 0) {
+				gl.drawArrays(oi.ptype, oi.first, oi.count);
+			} else {
+				if (oi.first === 0)
+					offset = 0;
+				else
+					offset = oi.first *
+					    data_size(oi.index_buffer_type);
+				gl.drawElements(oi.ptype, oi.count,
+					cvt_data_type(oi.index_buffer_type),
+					offset);
+			}
+		} else if (oi.index_buffer_id === 0) {
+			inst_ext.drawArraysInstancedANGLE(oi.ptype, oi.first,
+						oi.count, oi.instance_count);
+		} else {
+			if (oi.first === 0)
+				offset = 0;
+			else
+				offset = oi.first *
+				    data_size(oi.index_buffer_type);
+			inst_ext.drawElementsInstancedANGLE(oi.ptype, oi.count,
+				cvt_data_type(oi.index_buffer_type), offset,
+				oi.instance_count);
+		}
+	});
+	vao_ext.bindVertexArrayOES(null);
+	if (sp)
+		sp.cleanup();
 }; 
-function ObjectInfo(program_id, matrix_id, attrinfo, primitive, first, count, index_id, index_type)
+
+function ObjectInfo(object_id, program_id, matrix_id, attrinfo, primitive, first, count, index_id, index_type)
 {
 	// create ObjectInfo object
 	if (index_id === undefined) index_id = 0;
 	if (index_type === undefined) index_type = llgr.UByte;
 
+	this.object_id = object_id;
 	this.program_id = program_id;
 	this.matrix_id = matrix_id;
 	this.ais = attrinfo;		// TODO: copy
@@ -579,10 +718,24 @@ function ObjectInfo(program_id, matrix_id, attrinfo, primitive, first, count, in
 	this.selected = false;
 	this.singleton_cache = [];
 	this.vao = null;
+	this.pick_vao = null;
 	this.groups = new HashSet();
 	this.incomplete = false;
 	this.instance_count = 0;
 }
+
+
+ObjectInfo.prototype.close = function ()
+{
+	if (this.vao) {
+		vao_ext.deleteVertexArrayOES(this.vao);
+		this.vao = null;
+	}
+	if (this.pick_vao) {
+		vao_ext.deleteVertexArrayOES(this.pick_vao);
+		this.pick_vao = null;
+	}
+};
 
 ObjectInfo.prototype.hide = function ()
 {
@@ -624,6 +777,7 @@ function check_attributes(obj_id, oi)
 	}
 	oi.singleton_cache.length = 0;
 	var sp = all_programs[oi.program_id];
+	var pick_sp = pick_programs[oi.program_id];
 	for (var name in sp.attributes) {
 		var ai = null;
 		for (var i = 0; i < oi.ais.length; ++i) {
@@ -646,6 +800,12 @@ function check_attributes(obj_id, oi)
 		}
 		var sv = sp.attributes[name];
 		var info = sv.location_info();
+		var pick_sv = undefined;
+		if (pick_sp)
+			pick_sv = pick_sp.attributes[name];
+		var pick_location = undefined;
+		if (pick_sv)
+			pick_location = pick_sv.location;
 		if (bi.data === null) {
 			ai._is_array = true;
 			continue;
@@ -657,7 +817,7 @@ function check_attributes(obj_id, oi)
 		}
 		ai._is_array = false;
 		oi.singleton_cache.push(new SingletonInfo(ai.data_type,
-				ai.normalized, bi.data, sv.location,
+				ai.normalized, bi.data, sv.location, pick_location,
 				info[0], info[1]));
 	}
 	// sort attributes -- arrays first
@@ -775,7 +935,7 @@ function setup_singleton_attribute(data, data_type, normalized, loc, num_locatio
 		bytes = new Float32Array(data);
 		func.call(gl, loc, bytes);
 	} else {
-		var bytes = new Float32Array(data);
+		bytes = new Float32Array(data);
 		for (var i = 0; i < num_locations; ++i) {
 			var subarray = bytes.subarray(i * num_elements,
 							(i + 1) * num_elements);
@@ -1005,8 +1165,96 @@ function build_fan(num_spokes)
 	proto_fans[num_spokes] = new PrimitiveInfo(pts_id, num_indices, 0, 0);
 }
 
+function Framebuffer(width, height)
+{
+	var use_texture = true;	// simple RGBA8 attachment not support in WebGL 1.0
+	this.texture = null;
+	this.width = width;
+	this.height = height;
+	this.framebuffer = gl.createFramebuffer();
+	this.color = gl.createRenderbuffer();
+	this.depth_stencil = gl.createRenderbuffer();
+	gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+	gl.bindRenderbuffer(gl.RENDERBUFFER, this.color);
+	if (!use_texture) {
+		gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, width, height);
+		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+					gl.RENDERBUFFER, this.color);
+	} else {
+		this.texture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.texture);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S,
+				gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T,
+				gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
+				gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,
+				gl.NEAREST);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0,
+				gl.RGBA, gl.UNSIGNED_BYTE, null);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+				gl.TEXTURE_2D, this.texture, 0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+	}
+	gl.bindRenderbuffer(gl.RENDERBUFFER, this.depth_stencil);
+	gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT,
+					gl.RENDERBUFFER, this.depth_stencil);
+	gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, width, height);
+	var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	if (status === gl.FRAMEBUFFER_COMPLETE)
+		return;
+	if (status === gl.FRAMEBUFFER_UNSUPPORTED)
+		throw "unsupported framebuffer";
+	if (status === gl.FRAMEBUFFER_INCOMPLETE_ATTACHEMENT)
+		throw "incomplete attachement";
+	if (status === gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS)
+		throw "inconsisten dimensions";
+	if (status === gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
+		throw "incomplete missing attachement";
+	throw "unable to create framebufer: " + status;
+}
+
+Framebuffer.prototype.close = function ()
+{
+	if (this.depth_stencil) {
+		gl.deleteRenderbuffer(this.depth_stencil);
+		this.color = null;
+	}
+	if (this.color) {
+		gl.deleteRenderbuffer(this.color);
+		this.color = null;
+	}
+	if (this.color) {
+		gl.deleteRenderbuffer(this.color);
+		this.color = null;
+	}
+	if (this.texture) {
+		gl.deleteTexture(this.texture);
+		this.texture = null;
+	}
+	if (this.framebuffer) {
+		gl.deleteFramebuffer(this.framebuffer);
+		this.framebuffer = null;
+	}
+}
+
+var pick_frag_shader = "#version 100\n\
+\n\
+precision mediump float;\n\
+\n\
+varying vec4 f_pickId;\n\
+\n\
+void main (void)\n\
+{\n\
+  gl_FragColor = f_pickId;\n\
+}\n";
+
 llgr = {
-	set_context: function(context) {
+	set_context: function(context, w, h) {
+		width = w;
+		height = h;
 		if (gl === context)
 			return;
 		var missing = [];
@@ -1087,30 +1335,58 @@ llgr = {
 		this._is_array = false;
 	},
 
-	create_program: function (program_id, vert_shader, frag_shader) {
+	create_program: function (program_id, vert_shader, frag_shader, pick_vert_shader) {
 		if (program_id <= 0) {
 			throw "need positive program id";
 		}
 		if (program_id in all_programs) {
 			all_programs[program_id].gl_dealloc();
 			delete all_programs[program_id];
+			if (program_id in pick_programs) {
+				pick_programs[program_id].gl_dealloc();
+				delete pick_programs[program_id];
+			}
 		}
+		var has_pick_shader = pick_vert_shader !== undefined;
 		var vs = gl.createShader(gl.VERTEX_SHADER);
 		var fs = gl.createShader(gl.FRAGMENT_SHADER);
+		var pvs, pfs;
+		if (has_pick_shader) {
+			pvs = gl.createShader(gl.VERTEX_SHADER);
+			pfs = gl.createShader(gl.FRAGMENT_SHADER);
+		}
 		gl.shaderSource(vs, vert_shader);
 		gl.shaderSource(fs, frag_shader);
+		if (has_pick_shader) {
+			gl.shaderSource(pvs, pick_vert_shader);
+			gl.shaderSource(pfs, pick_frag_shader);
+		}
 		gl.compileShader(vs);
 		gl.compileShader(fs);
+		if (has_pick_shader) {
+			gl.compileShader(pvs);
+			gl.compileShader(pfs);
+		}
 		if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
-			console.log(gl.getShaderInfoLog(vs));
+			console.log("vertex shader compile failed:",
+					gl.getShaderInfoLog(vs));
 			gl.deleteShader(vs);
 			gl.deleteShader(fs);
+			if (has_pick_shader) {
+				gl.deleteShader(pvs);
+				gl.deleteShader(pfs);
+			}
 			return;
 		}
 		if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-			console.log(gl.getShaderInfoLog(fs));
+			console.log("fragment shader compile failed:",
+					gl.getShaderInfoLog(fs));
 			gl.deleteShader(vs);
 			gl.deleteShader(fs);
+			if (has_pick_shader) {
+				gl.deleteShader(pvs);
+				gl.deleteShader(pfs);
+			}
 			return;
 		}
 		var program = gl.createProgram();
@@ -1122,32 +1398,104 @@ llgr = {
 			gl.bindAttribLocation(program, 0, attribute0_name);
 		gl.linkProgram(program);
 		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-			console.log(gl.getProgramInfoLog(program));
+			console.log("glsl program link failed:",
+					gl.getProgramInfoLog(program));
 			gl.deleteProgram(program);
 			gl.deleteShader(vs);
 			gl.deleteShader(fs);
+			if (has_pick_shader) {
+				gl.deleteShader(pvs);
+				gl.deleteShader(pfs);
+			}
 			return;
 		}
 		gl.validateProgram(program);
 		if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
-			console.log(gl.getProgramInfoLog(program));
+			console.log("glsl program validate failed:",
+					gl.getProgramInfoLog(program));
 			gl.deleteProgram(program);
 			gl.deleteShader(vs);
 			gl.deleteShader(fs);
+			if (has_pick_shader) {
+				gl.deleteShader(pvs);
+				gl.deleteShader(pfs);
+			}
 			return;
 		}
 
-		all_programs[program_id] = new ShaderProgram(program, vs, fs);
+		var sp = new ShaderProgram(program, vs, fs);
+		all_programs[program_id] = sp;
+
+		if (!has_pick_shader)
+			return;
+
+		if (!gl.getShaderParameter(pvs, gl.COMPILE_STATUS)) {
+			console.log("pick vertex shader compile failed:",
+					gl.getShaderInfoLog(pvs));
+			gl.deleteShader(pvs);
+			gl.deleteShader(pfs);
+			return;
+		}
+		if (!gl.getShaderParameter(pfs, gl.COMPILE_STATUS)) {
+			console.log("pick fragment shader compile failed:",
+					gl.getShaderInfoLog(pfs));
+			gl.deleteShader(pvs);
+			gl.deleteShader(pfs);
+			return;
+		}
+		program = gl.createProgram();
+		gl.attachShader(program, pvs);
+		gl.attachShader(program, pfs);
+
+		// for any pick shader attribute, bind it to the same location
+		// as the regular shader attribute so singletons are valid for
+		// both shaders
+		gl.linkProgram(program);
+		var pick_sp = new ShaderProgram(program, pvs, pfs);
+		for (name in pick_sp.attributes) {
+			var sv = sp.attributes[name];
+			if (sv === undefined)
+				continue;
+			gl.bindAttribLocation(program, sv.location, name);
+		}
+
+		gl.linkProgram(program);
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			console.log("pick program link failed:",
+					gl.getProgramInfoLog(program));
+			gl.deleteProgram(program);
+			gl.deleteShader(pvs);
+			gl.deleteShader(pfs);
+			return;
+		}
+		gl.validateProgram(program);
+		if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+			console.log("pick program validate failed:",
+					gl.getProgramInfoLog(program));
+			gl.deleteProgram(program);
+			gl.deleteShader(pvs);
+			gl.deleteShader(pfs);
+			return;
+		}
+
+		// refetch uniform and attribute locations
+		pick_sp = new ShaderProgram(program, pvs, pfs);
+		pick_programs[program_id] = pick_sp;
 	},
 	delete_program: function (program_id) {
-		if (program_id in all_programs) {
-			sp = all_programs[program_id];
-			if (sp === current_program) {
-				current_program = null;
-				gl.useProgram(0);
-			}
+		var sp = all_programs[program_id];
+		if (sp === undefined)
+			return;
+		if (sp === current_program) {
+			current_program = null;
+			gl.useProgram(0);
+		}
+		sp.gl_dealloc();
+		delete all_programs[program_id];
+		sp = pick_programs[program_id];
+		if (sp !== undefined) {
 			sp.gl_dealloc();
-			delete all_programs[program_id];
+			delete pick_programs[program_id];
 		}
 	},
 	clear_programs: function () {
@@ -1157,6 +1505,10 @@ llgr = {
 			sp.gl_dealloc();
 		});
 		all_programs = {};
+		_.each(pick_programs, function (sp) {
+			sp.gl_dealloc();
+		});
+		pick_programs = {};
 	},
 
 	set_uniform: function (program_id, name, shader_type, data) {
@@ -1187,15 +1539,22 @@ llgr = {
 		}
 		var programs;
 		if (program_id) {
-			programs = { program_id: all_programs[program_id] };
+			programs = [];
+			if (program_id in all_programs)
+				programs.push(all_programs[program_id]);
+			if (program_id in pick_programs)
+				programs.push(pick_programs[program_id]);
 		} else {
-			programs = all_programs;
+			programs = _.values(all_programs).concat(
+							_.values(pick_programs));
 		}
 		_.each(programs, function (sp) {
+			if (!(name in sp.uniforms))
+				return;
+			var location = sp.uniforms[name].location;
+			if (location === undefined)
+				return;
 			if (sp === current_program) {
-				var location = sp.uniforms[name].location;
-				if (location === undefined)
-					return;
 				args = [location].concat(u.slice(2));
 				u[0].apply(gl, args);
 			} else {
@@ -1222,15 +1581,22 @@ llgr = {
 		}
 		var programs;
 		if (program_id) {
-			programs = { program_id: all_programs[program_id] };
+			programs = [];
+			if (program_id in all_programs)
+				programs.push(all_programs[program_id]);
+			if (program_id in pick_programs)
+				programs.push(pick_programs[program_id]);
 		} else {
-			programs = all_programs;
+			programs = _.values(all_programs).concat(
+							_.values(pick_programs));
 		}
 		_.each(programs, function (sp) {
+			if (!(name in sp.uniforms))
+				return;
+			var location = sp.uniforms[name].location;
+			if (location === undefined)
+				return;
 			if (sp === current_program) {
-				var location = sp.uniforms[name].location;
-				if (location === undefined)
-					return;
 				args = [location].concat(u.slice(2));
 				u[0].apply(gl, args);
 			} else {
@@ -1252,11 +1618,14 @@ llgr = {
 		all_buffers[data_id] = new BufferInfo(buffer, buffer_target);
 	},
 	delete_buffer: function (data_id) {
-		if (data_id in all_buffers) {
-			var bi = all_buffers[data_id];
-			if (bi.buffer) gl.deleteBuffer(bi.buffer);
-			delete all_buffers[data_id];
-		}
+		if (!all_buffers)
+			return;
+		var bi = all_buffers[data_id];
+		if (bi ===  undefined)
+			return;
+		if (bi.buffer)
+			gl.deleteBuffer(bi.buffer);
+		delete all_buffers[data_id];
 	},
 	clear_buffers: function () {
 		_.each(all_buffers, function (bi) {
@@ -1296,6 +1665,8 @@ llgr = {
 	},
 	delete_matrix: function (matrix_id) {
 		var info = all_matrices[matrix_id];
+		if (info === undefined)
+			return;
 		llgr.delete_buffer(info.data_id);
 		delete all_matrices[matrix_id];
 	},
@@ -1369,7 +1740,7 @@ llgr = {
 			ais.push(new llgr.AttributeInfo("instanceTransform",
 					mi.data_id, 0, 0, 16, llgr.Float));
 		}
-		var oi = new ObjectInfo(program_id, matrix_id, ais,
+		var oi = new ObjectInfo(obj_id, program_id, matrix_id, ais,
 				primitive_type, first, count,
 				index_buffer_id, index_buffer_type);
 		llgr.delete_object(obj_id);
@@ -1377,6 +1748,14 @@ llgr = {
 		all_objects[obj_id] = oi;
 	},
 	delete_object: function (obj_id) {
+		var oi = all_objects[obj_id];
+		if (oi === undefined)
+			return;
+		_.each(oi.groups, function (gi) {
+			if (gi.optimized)
+				gi.reset_optimization();
+		});
+		oi.close();
 		delete all_objects[obj_id];
 	},
 	clear_objects: function () {
@@ -1610,7 +1989,8 @@ llgr = {
 	},
 
 	set_clear_color: function(red, green, blue, alpha) {
-		gl.clearColor(red, green, blue, alpha);
+		clear_color = [red, green, blue, alpha];
+		gl.clearColor.apply(gl, clear_color);
 	},
 
 	load_json: function (json) {
@@ -1669,6 +2049,7 @@ llgr = {
 	},
 
 	render: function (groups) {
+		pick_fb_valid = false;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 		gl.enable(gl.DEPTH_TEST);
 		gl.enable(gl.DITHER);
@@ -1697,6 +2078,69 @@ llgr = {
 			//		' on line ', e.lineNumber);
 			//}
 		});
+	},
+
+	pick: function (groups, x, y) {
+		if (pick_fb &&
+		(pick_fb.width !== width || pick_fb.height !== height)) {
+			pick_fb.close();
+			pick_fb = null;
+		}
+		if (!pick_fb) {
+			pick_fb = new Framebuffer(width, height);
+			pick_fb_valid = false;
+		}
+		if (pick_fb_valid) {
+			// TODO: skip to readPixels
+		}
+		if (!pick_fb) {
+			console.log("missing pick framebuffer");
+			return 0;
+		}
+		// Just like rendering except the color is integral
+		// and varies by object, not within an object.
+		// Assume WebGL defaults of 8-bits each for red, green, and
+		// blue, for a maximum of 16,777,215 (2^24 - 1) objects and
+		// that object ids are also less than 16,777,215.
+
+		gl.bindFramebuffer(gl.FRAMEBUFFER, pick_fb.framebuffer);
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+		gl.clearColor.apply(gl, clear_color);
+		gl.enable(gl.DEPTH_TEST);
+		gl.disable(gl.DITHER);
+		gl.disable(gl.SCISSOR_TEST);
+		gl.enable(gl.CULL_FACE);
+		gl.disable(gl.BLEND);
+
+		var gis = [];
+		_.each(groups, function (gid) {
+			var gi = all_groups[gid];
+			if (gi === undefined || gi.objects.length === 0)
+				return;
+			gis.push(gi);
+		});
+
+		// TODO: multipass to minimize shader program changes
+		// and support transparency
+		_.each(gis, function (gi) {
+			//try {
+				gi.pick();
+			//} catch (e) {
+			//	console.log('pick failed:', e.message,
+			//		' in file ', e.fileName,
+			//		' on line ', e.lineNumber);
+			//}
+		});
+
+		var raw_data = new ArrayBuffer(5 * 5 * 4);
+		var data = new Uint8Array(raw_data);
+		gl.readPixels(x - 2, y - 2, 5, 5, gl.RGBA, gl.UNSIGNED_BYTE, data);
+		// TODO: look at the neighborhood for most likely object
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		pick_fb_valid = true;
+		var pixels = new Uint32Array(raw_data);
+		return pixels[13] & 0xffffff;
 	}
 };
 

@@ -5,7 +5,7 @@ precision mediump float;
 uniform mat4 ProjectionMatrix;
 uniform mat4 ModelViewMatrix;
 
-varying vec3 f_pickId;
+varying vec4 f_pickId;
 
 attribute vec4 position;
 attribute vec4 pickId;

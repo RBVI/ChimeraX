@@ -103,8 +103,8 @@ class Backend(Server):
 		self.name = sys.argv[0]
 		self.session_dir = sys.argv[1]
 		self.session_name = sys.argv[2]
-		self.log = open("/tmp/chimera2_backend.log", "w")
-		self.set_log(self.log)
+		#self.log = open("/tmp/chimera2_backend.log", "w")
+		#self.set_log(self.log)
 		# register handlers for web client data
 		self.register_handler("client_state", self._client_state_handler)
 		self.register_handler("command", self._command_handler)
@@ -160,8 +160,6 @@ if __name__ == "__main__":
 		Backend().run()
 	except BaseException:
 		import traceback
-		with open("/tmp/chimera2_debug.log", "a") as f:
-			traceback.print_exc(file=f)
+		_debug_print(traceback.format_exc())
 	else:
-		with open("/tmp/chimera2_debug.log", "a") as f:
-			print("run returned", file=f)
+		_debug_print("run returned")

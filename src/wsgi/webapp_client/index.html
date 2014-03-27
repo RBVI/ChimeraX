@@ -1,5 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
-	"https://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
@@ -10,23 +9,22 @@
 <script type="text/javascript" src="js/underscore.js"></script>
 <script type="text/javascript" src="js/hashtable.js"></script>
 <script type="text/javascript" src="js/hashset.js"></script>
-<!-- standard jquery/jquery-ui -->
-<script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.js"></script>
-<link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
-<script type="text/javascript" src="https://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
-<link rel="stylesheet" href="https://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.css" />
-<script src="https://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.js"></script>
+<!-- standard jquery/jquery-mobile -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.css">
+<script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+<script src="https://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
 
 <!-- additional widgets -->
-<script type="text/javascript" src="js/jquery.jec-1.3.4.js"></script>
+<!-- script type="text/javascript" src="js/jquery.jec-1.3.4.js"></script -->
 
 <!-- chimera2 libraries -->
 <script type="text/javascript" src="js/c2/session.js"></script>
 
 <!-- WebGL support -->
-<script type="text/javascript" src="webgl/webgl-debug.js"></script>
-<script type="text/javascript" src="webgl/webgl-utils.js"></script>
-<script type="text/javascript" src="webgl/webgl-context.js"></script>
+<script type="text/javascript" src="js/webgl-debug.js"></script>
+<script type="text/javascript" src="js/webgl-utils.js"></script>
+<script type="text/javascript" src="js/webgl-context.js"></script>
 <script type="text/javascript" src="webgl/llgr_webgl.js"></script>
 <script type="text/javascript" src="js/gl-matrix.js"></script>
 <script type="text/javascript" src="js/vsphere.js"></script>
@@ -35,20 +33,24 @@
 <style type="text/css">
 html, body { height:100%; }
 th, td { padding:0; }
-#app .ui-header { height:50px; }
-#app .ui-footer { height:50px; }
 .header-left { text-align:left; padding:0px 10px; }
+/* use 2 times ui-controlgroup's margin-top for header-center */
+.header-center { text-align:left; padding:0px 10px; margin-top:1em; }
 .header-right { text-align:right; padding:0px 10px; }
+/*
 .footer-button { width:100px; }
 .footer-left { text-align:left; padding:0px 10px; line-height:50px; }
 .footer-center { text-align:center; padding:0px 10px; line-height:50px; }
 .footer-right { text-align:right; padding:0px 10px; line-height:25px; }
+*/
 .panel-button-div { position:absolute; top:0; right:0; }
 .panel-button { margin:1px; display:inline-block; }
 .panel-log { font-size: smaller; height:90vh; overflow:auto; }
+.no-margin { padding:2px; margin-top:0px; margin-bottom:0px; }
+.no-padding { padding:0px; }
 
 /* These are for singletons on the page */
-#zone-three-column { position:absolute; top:52px; right:0; left:0;
+#zone-three-column { position:absolute; top:0px; right:0; left:0; bottom:0;
 			padding:0; margin:0; }
 #zone-div-left { position:absolute; left:0; height:100%; display:inline-block;
 			margin:0; padding:0; overflow:auto; }
@@ -59,58 +61,23 @@ th, td { padding:0; }
 #zone-div-bottom { position:absolute; bottom:0; left:0px; right:0px; }
 #molview { position: relative; margin: 0px; padding: 0px;
 			width: 100%; height: 100%; }
+#c2-saved-sessions th { border:1px solid black; }
+#c2-saved-sessions td { padding:2px; margin-top:0px; margin-bottom:0px; border:1px solid black;}
+#status-line { margin: 0px 4px; }
 </style>
 
 <script type="text/javascript">
+<!--
 
-function array_search(arr, func)
+function find_last_index(array, predicate, context)
 {
-	if (!func || typeof(func) != 'function')
-		return -1;
-	if (!arr || !arr.length || arr.length < 1)
-		return -1;
-	var len = arr.length;
-	for (var i = 0; i < len; ++i) {
-		if (func(arr[i]))
+	var i = array.length;
+	while (i--) {
+		if (predicate.call(context, array[i]))
 			return i;
 	}
 	return -1;
 }
-
-function array_reverse_search(arr, func)
-{
-	if (!func || typeof(func) != 'function')
-		return -1;
-	if (!arr || !arr.length || arr.length < 1)
-		return -1;
-	for (var i = arr.length - 1; i >= 0; --i) {
-		if (func(arr[i]))
-			return i;
-	}
-	return -1;
-}
-
-function array_index_of(arr, field, value)
-{
-	var i = array_search(arr, function(obj) {
-		if (obj[field] != undefined)
-			return obj[field] == value;
-		else
-			return false;
-	});
-	return i;
-} 
-
-function array_last_index_of(arr, field, value)
-{
-	var i = array_reverse_search(arr, function(obj) {
-		if (obj[field] != undefined)
-			return obj[field] == value;
-		else
-			return false;
-	});
-	return i;
-} 
 
 // show_error is global
 function show_error(message)
@@ -163,7 +130,8 @@ function show_status(message, options)
 	}
 }
 
-/**
+/*
+ * (Extend gl-matrix's mat4.)
  * Generates a camera orientation matrix with the given eye position,
  * focal point, and up axis.  It similar to the look-at matrix, but the
  * center is placed at the origin instead of the eye.
@@ -443,7 +411,8 @@ Camera.prototype.xform = function (xf)
 function process_llgr_data(json)
 {
 	// json is list of llgr commands
-	var index = array_last_index_of(json, 0, "clear_all");
+	var index = find_last_index(json,
+			function (value) { return (value[0] == "clear_all"); });
 	if (index == -1) {
 		// partial update, so merge with existing data
 		llgr.load_json(json);
@@ -494,6 +463,12 @@ function process_open_models(data)
 		var info = data[i];
 		open_model_groups.push(info[2]);
 	}
+	var model_info = [];
+	for (var i = 0; i < data.length; ++i) {
+		var info = data[i];
+		model_info.push({ id: info[0], name: info[1] });
+	}
+	update_model_panel(model_info);
 }
 
 var molview_ci;		// molview context information
@@ -561,18 +536,18 @@ function molview_mouse_up(event)
 	//console.log("mouse_up:", event);
 	event.stopPropagation();
 	button_pressed = false;
+	var canvas = event.currentTarget;
+	var position = get_rel_xy(event);
+	console.log('picked', llgr.pick(open_model_groups, position.x, canvas.height - position.y));
 }
 
 function molview_update_size()
 {
-	var footer = $("[data-role=footer]");
 	var zbottom = $("#zone-div-bottom");
 
-	var footer_height = footer.outerHeight(true);
-	zbottom.css("bottom", footer_height);
-	var bottom_height = footer_height;
+	var bottom_height = ".25em"; // TODO: where does this come from?
 	if (zbottom.is(":visible"))
-		bottom_height += zbottom.outerHeight(true);
+		bottom_height = zbottom.outerHeight(true);
 	var content = $("#zone-three-column");
 	content.css({ bottom: bottom_height });
 
@@ -601,7 +576,7 @@ function show_failure(canvas, msg)
 	var container = canvas.parentNode;
 	if (container) {
 		container.innerHTML = '' +
-		'<table style="background-color: #8CE; width: 100%; height: 100%;"><tr>' +
+		'<table style="background-color: #DDD; width: 100%; height: 100%;"><tr>' +
 		'<td>' +
 		'<div style="display: table-cell; vertical-align: middle;">' +
 		'<div style="">' + msg + '</div>' +
@@ -629,15 +604,18 @@ function molview_init()
 		console.log('init error', typeof msg, msg);
 		molview_ci = null;
 		show_failure(canvas,
-			"<p><b>Unable to create suitable graphics window:</b>"
-			+ "<ul><li>" + msg.join("<li>") + "</ul>"
-			+ "Using a different web browser might work, "
-			+ "but often you will need to update your computer, "
-			+ "<i>i.e.</i>, update either the graphics driver, "
-			+ "the browser, the operating system, "
-			+ "and/or the hardware.&nbsp; "
-			+ "<a href='http://get.webgl.org/troubleshooting/'>"
-			+ "Click here to troubleshoot your current configuration.</a>");
+"<p>\
+<b>Unable to create a suitable 3D graphics window:</b> \
+</b><ul><li>" + msg.join("<li>") + "</ul> \
+<p>\
+A common solution is to use a different web browser, \
+<i>e.g.</i>, <a href='http://www.google.com/chrome'>\
+Google Chrome</a>.  But if that doesn't work, \
+you will need to \
+<a href='http://get.webgl.org/troubleshooting/'>\
+update your computer's graphics driver</a>, \
+your computer's operating system, \
+or your computer.");
 		return;
 	}
 	molview_ci.redraw();
@@ -657,7 +635,7 @@ function draw_view(ci)
 	var height = canvas.height;
 	$c2_session.set_state("width", width);
 	$c2_session.set_state("height", height);
-	llgr.set_context(gl);
+	llgr.set_context(gl, width, height);
 	gl.viewport(0, 0, width, height);
 	if (camera !== null) {
 		camera.update_viewport(width, height);
@@ -693,16 +671,22 @@ function flip_zone(checkbutton, div)
 	if (checkbutton.prop("checked")) {
 		if (!div.is(":visible")) {
 			//console.log("showing " + div);
-			div.show({ duration: duration,
-					progress: molview_update_size });
+			div.show({
+				duration: duration,
+				progress: molview_update_size
+			});
 		}
 	} else {
 		if (div.is(":visible")) {
 			//console.log("hiding " + div);
-			div.hide({duration: duration,
-					progress: molview_update_size });
+			div.hide({
+				duration: duration,
+				progress: molview_update_size
+			});
 		}
 	}
+	molview_update_size();
+	//$("#app").trigger("updatelayout");
 }
 
 function update_zone_layout()
@@ -734,7 +718,7 @@ $(document).ready(function() {
 	molview_init();
 })
 
-$(document).bind("pageinit", "#app", function() {
+$(document).bind("pagecreate", "#app", function() {
 	$("#debug-clear").bind("vclick", function(event) {
 		$("#debug").html("");
 	});
@@ -747,19 +731,133 @@ $(document).bind("pageinit", "#app", function() {
 	$(window).on("resize", function(event) {
 		update_zone_layout();
 	});
-	$("[data-role=header]").fixedtoolbar({ tapToggle: false });
-	$("[data-role=footer]").fixedtoolbar();
 });
 
 $(document).bind("pageshow", "#app", function() {
 	update_zone_layout();
+	if ($c2_session.session === undefined || $c2_session.session === "") {
+		window.setTimeout(function () {
+			$("#popup-session-open").popup("open");
+		}, 100);
+	}
 });
+
 
 }());
 
+//-->
 </script>
+
+<!-- model panel -->
+<!-- script type="text/html" src="tools/modelpanel.html"></script -->
+
+<style type="text/css">
+.c2-model-item {
+	position: relative;
+	background: white url('img/thumb.png') no-repeat left top;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+	width: 224px;
+	height: 224px;
+}
+.c2-model-upper-left {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+}
+.c2-model-upper-right {
+	float: right;
+}
+.c2-model-lower-left {
+	float: left;
+	position: absolute;
+	bottom: 2px;
+	left: 2px
+}
+.c2-model-lower-right {
+	position: absolute;
+	bottom: 2px;
+	right: 2px;
+	background: white;
+}
+</style>
+
+<script id="model-item" type="text/x-template">
+	<div id="model<%=id%>" class="c2-model-item">
+		<div data-role="controlgroup" data-type="horizontal"
+				data-mini="true" class="c2-model-upper-left">
+			<a class="ui-btn ui-btn-inline ui-icon-check ui-btn-icon-notext"
+				>Active</a>
+			<a class="ui-btn ui-btn-inline ui-icon-minus ui-btn-icon-notext"
+				>Hide</a>
+			<a class="ui-btn ui-btn-inline ui-icon-eye ui-btn-icon-notext"
+				>Focus</a>
+		</div>
+		<div data-role="controlgroup" data-type="horizontal"
+				data-mini="true" class="c2-model-upper-right">
+			<a id="model<%=id%>-close"
+				class="ui-btn ui-btn-inline ui-icon-delete ui-btn-icon-notext">Close</a>
+		</div>
+		<div data-role="controlgroup" data-type="horizontal"
+			data-mini="true" class="c2-model-lower-left">
+			<a class="ui-btn ui-btn-inline ui-icon-arrow-d ui-btn-icon-notext"
+				>Expand</a>
+		</div>
+		<div id="model<%=id%>-name"
+			class="ui-body ui-corner-all c2-model-lower-right">
+			<b><%=id%>:</b> <%-name%></div>
+	</div>
+</script>
+
+<script type="text/javascript">
+<!--
+
+// exported functions/variables
+var update_model_panel;
+
+(function () {
+"use strict";
+
+function model_close(id)
+{
+	$c2_session.send_command("close " + id);
+}
+
+update_model_panel = function (model_info) {
+	var model_panel = $("#model-panel");
+	if (model_info.length === 0) {
+		model_panel.html("<i>No models opened.</i>");
+		return;
+	}
+	model_panel.html("");
+	var model_item = $("#model-item");
+	var template = _.template(model_item.html());
+	_.each(model_info, function (info) {
+		model_panel.append(template(info));
+		var close = $("#model" + info.id + "-close");
+		close.bind("click", function (event) {
+			model_close(info.id);
+		});
+	});
+	model_panel.trigger("create");
+};
+
+})();
+
+//-->
+</script>
+
+<!-- end model panel -->
 </head>
 <body>
+<noscript>
+	<h1>Javascript is unavailable</h1>
+	<p>You must enable javascript for
+	<a href="http://www.cgl.ucsf.edu/trac/chimera2/wiki/Mobile">
+		Chimers 2 Mobile</a> to work.
+</noscript>
 <div id="app" data-role="page" class="ui-responsive-panel"
 		style="overflow:hidden; padding:0;">
 
@@ -767,13 +865,10 @@ $(document).bind("pageshow", "#app", function() {
 <div data-role="panel" data-position-fixed="true"
 		data-display="push" id="log-panel">
 	<div class="panel-button-div">
-		<a href="#" id="log-clear"
-			data-rel="clear" data-role="button"
-			data-icon="minus" data-iconpos="notext"
-			class="panel-button">Clear
-		</a><a href="#" data-rel="close" data-role="button"
-			data-icon="delete" data-iconpos="notext"
-			class="panel-button">Close</a>
+		<a href="#" id="log-clear" data-rel="clear"
+			class="ui-btn ui-corner-all ui-icon-minus ui-btn-icon-notext panel-button">Clear</a>
+		<a href="#" data-rel="close"
+			class="ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext panel-button">Close</a>
 	</div>
 	<div class="ui-bar"><h2>Message Log</h2></div>
 	<p id="log" class="panel-log"/>
@@ -781,192 +876,152 @@ $(document).bind("pageshow", "#app", function() {
 <div data-role="panel" data-position-fixed="true"
 	data-display="push" data-position="right" id="debug-panel">
 	<div class="panel-button-div">
-		<a href="#" id="debug-clear"
-			data-rel="clear" data-role="button"
-			data-icon="minus" data-iconpos="notext"
-			class="panel-button">Clear
-		</a><a href="#" data-rel="close" data-role="button"
-			data-icon="delete" data-iconpos="notext"
-			class="panel-button">Close</a>
+		<a href="#" id="debug-clear" data-rel="clear"
+			class="ui-btn ui-corner-all ui-icon-minus ui-btn-icon-notext panel-button">Clear</a>
+		<a href="#" data-rel="close"
+			class="ui-btn ui-corner-all ui-icon-delete ui-btn-icon-notext panel-button"
+			>Close</a>
 	</div>
 	<div class="ui-bar"><h2>Debug Log</h2></div>
-	<p id="debug" class="panel-log">Debug text</p>
+	<p id="debug-log" class="panel-log">Debug text</p>
 </div>
 <!--end panels-->
 
 <!--popups-->
-<div name="popup-session-open" id="popup-session-open"
-			data-role="popup" class="ui-content">
-	<a href="#" data-rel="back" data-role="button"
-			data-icon="delete" data-iconpos="notext"
-			class="ui-btn-right">Close</a>
+<div name="popup-session-open" id="popup-session-open" data-role="popup"
+		class="ui-content" data-dismissible="false">
+	<a href="#" data-rel="back"
+		class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-btn-right" >Close</a>
 	<h3>My Sessions</h3>
 	<form>
-		<label for="my-sessions">Session:</label>
-		<select name="my-sessions" id="my-sessions" data-mini="true">
-			<option value="xyzzy">xyzzy</option>
-			<option value="plugh">plugh</option>
-		</select>
-		<label for="my-password">Password:</label>
-		<input type="password" name="my-password" id="my-password"
-			value="" data-mini="true" />
-		<input type="button" value="Open" id="open-session"
-			data-inline="true" data-mini="true" data-theme="b"/>
-		<input type="button" value="Delete" id="delete-session"
-			data-inline="true" data-mini="true" data-theme="b"/>
+		<label for="share-session">Shared sessions</label>
+		<input name="share-session" id="c2-share-session" type="checkbox" data-mini="true" data-inline="true"/>
+		<label for="c2-sessions">Session:</label>
+		<input type="text" data-type="search" id="c2-sessions" placeholder="session name ..." value="" width="16em"/>
+		<blockquote style="margin-top:0">
+		<table id="c2-saved-sessions" data-role="table" data-inset="true" data-filter="true" data-input="#c2-sessions" class="ui-responsive" style="margin:0 auto;">
+		</table>
+		</blockquote>
+		<div id="c2-username-div">
+			<label for="c2-username">User name:</label>
+			<input type="text" name="c2-username" id="c2-username"
+				value="" value="" width="16em"/>
+		</div>
+		<label for="c2-password">Password:</label>
+		<input type="password" name="c2-password" id="c2-password"
+			value="" placeholder="optional" style="width:16em"/>
 	</form>
-</div>
-<div name="popup-session-new" id="popup-session-new"
-			data-role="popup" class="ui-content">
-	<a href="#" data-rel="back" data-role="button"
-			data-icon="delete" data-iconpos="notext"
-			class="ui-btn-right">Close</a>
-	<h3>New Sessions</h3>
-	<form>
-		<label for="new-session">Session:</label>
-		<input type="text" name="new-session" id="new-session"
-			value="" data-mini="true" />
-		<label for="new-password">Password:</label>
-		<input type="password" name="new-password" id="new-password"
-			value="" data-mini="true" />
-		<input type="button" value="Create" id="open-new-session"
-			data-inline="true" data-mini="true" data-theme="b"/>
-	</form>
-</div>
-<div name="popup-session-shared" id="popup-session-shared"
-			data-role="popup" class="ui-content">
-	<a href="#" data-rel="back" data-role="button"
-			data-icon="delete" data-iconpos="notext"
-			class="ui-btn-right">Close</a>
-	<h3>Shared Session</h3>
-	<form>
-		<label for="shared-username">User name:</label>
-		<input type="text" name="shared-username" id="shared-username"
-			value="" data-mini="true" />
-		<label for="shared-session">Session:</label>
-		<input type="text" name="shared-session" id="shared-session"
-			value="" data-mini="true" />
-		<label for="shared-password">Password:</label>
-		<input type="password" name="shared-password"
-			id="shared-password"
-			value="" data-mini="true"/>
-		<input type="button" value="Open" id="open-shared-session"
-			data-inline="true" data-mini="true" data-theme="b"/>
-	</form>
+	<a href="#" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-mini" id="new-session">New</a>
+	<a href="#" class="ui-btn ui-btn-inline ui-state-disabled ui-corner-all ui-shadow ui-mini" id="open-session">Open</a>
+	<a href="#" class="ui-btn ui-btn-inline ui-state-disabled ui-corner-all ui-shadow ui-mini" id="delete-session">Delete</a>
+	<a href="#" class="ui-btn ui-btn-inline ui-corner-all ui-shadow ui-mini" id="refresh-session">Refresh</a>
 </div>
 <!--end popups-->
 
 <!--header-->
-<div data-role="header" data-position="fixed">
-	<div class="ui-grid-a">
-		<div class="ui-block-a header-left">
+<div data-role="header" data-position="fixed" data-tap-toggle="false">
+	<div class="ui-grid-b">
+		<div class="ui-block-a header-left ui-mini" style="width:35%;">
+			Active session:
+			<a href="#popup-session-open" data-rel="popup"
+				id="active-session" style="width:initial"
+				class="ui-btn ui-btn-inline ui-corner-all"
+				data-transition="slidedown">
+				<i>None</i></a>
+		</div>
+		<div class="ui-block-b header-center" style="width:40%;">
+			<a target="_blank" href="http://www.rbvi.ucsf.edu">UCSF RBVI</a>'s
+			<a target="_blank" href="http://www.cgl.ucsf.edu/trac/chimera2/wiki/Mobile">Chimera 2 Mobile</a>
+		</div>
+		<div class="ui-block-c header-right" style="width:25%">
 		<div data-role="controlgroup"
 				data-type="horizontal" data-mini="true">
-			<a href="#menuSession" data-rel="popup"
-				data-role="button" data-inline="true"
-				data-transition="slidedown">
-				Sessions...</a>
-			<div data-role="popup" id="menuSession">
-				<a href="#" data-rel="back" data-role="button"
-					data-icon="delete" data-iconpos="notext"
-					class="ui-btn-right">Close</a>
-				<ul data-role="listview" data-inset="true">
-					<li><a data-rel="popup"
-						href="#popup-session-open">
-						Open Session</a></li>
-					<li><a data-rel="popup"
-						href="#popup-session-new">
-						New Session</a></li>
-					<li><a data-rel="popup"
-						href="#popup-session-shared">
-						Shared Session</a></li>
-				</ul>
-			</div>
 			<a href="#menuZone" data-rel="popup"
-				data-role="button" data-inline="true"
+				class="ui-btn ui-btn-inline ui-corner-all"
 				data-transition="slidedown">
 				Zones...</a>
 			<div data-role="popup" id="menuZone">
-				<a href="#" data-rel="back" data-role="button"
-					data-icon="delete" data-iconpos="notext"
-					class="ui-btn-right">Close</a>
+				<a href="#" data-rel="back"
+					class="ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-shadow ui-btn-right">Close</a>
 				<fieldset data-role="controlgroup"
 						style="margin:0;">
-					<input type="checkbox"
-						checked="checked"
+					<input type="checkbox" checked="checked"
 						name="zone-left"
 						id="zone-left">
 					<label for="zone-left">Left</label>
 					<input type="checkbox"
-						checked="checked"
 						name="zone-right"
 						id="zone-right">
 					<label for="zone-right">Right</label>
-					<input type="checkbox"
-						checked="checked"
+					<input type="checkbox" checked="checked"
 						name="zone-bottom"
 						id="zone-bottom">
 					<label for="zone-bottom">Bottom</label>
 					</select>
 				</fieldset>
 			</div>
+			<a href="#menuLogging" data-rel="popup"
+				class="ui-btn ui-btn-inline ui-corner-all"
+				data-transition="slidedown">
+				Logging</a>
+			<div data-role="popup" id="menuLogging">
+				<ul data-role="listview" data-inset="true"
+						data-mini="true">
+					<li><a href="#log-panel" onclick='$("#menuLogging").popup("close")'>Log</a></li>
+					<li><a href="#debug-panel" onclick='$("#menuLogging").popup("close")'>Debug Log</a></li>
+				</ul>
+			</div>
 		</div><!--end controlgroup-->
-		</div><!--end header-left-->
-		<div class="ui-block-b header-right">
-			<a data-role="button" data-inline="true">Help</a>
-		</div>
+		</div><!--end header-right-->
 	</div>
 </div>
 <!--end header-->
 
 <!--main content-->
-<!-- three columns for left-zone, graphics, right-zone -->
-<div id="zone-three-column">
-	<!-- keep /div next to div to prevent gratuitous whitespace -->
-	<div id="zone-div-left" style="width:20%;">
-		Hello, left
-	</div><div id="zone-div-center">
-		<canvas id="molview" style="margin:0; border:0; height:100%;"/>
-	</div><div id="zone-div-right" style="width:20%;">
-		Hello, right
+<div "main" class="ui-content no-padding">
+	<!-- three columns for left-zone, graphics, right-zone -->
+	<div id="zone-three-column">
+		<!-- keep /div next to div to prevent gratuitous whitespace -->
+		<div id="zone-div-left" style="width:20%;">
+			<!-- tools might appear here -->
+			<div data-role="collapsible" data-theme="a" data-content-theme="d">
+				<h4>Model Panel</h4>
+				<div id="model-panel">
+					<i>No models opened.</i>
+				</div>
+			</div>
+		</div><div id="zone-div-center">
+			<canvas id="molview" style="margin:0; border:0; height:100%;"/>
+		</div><div id="zone-div-right" style="width:20%;">
+			<!-- tools might appear here -->
+		</div>
 	</div>
-</div>
-<!--end main content-->
 
-<!--bottom zone-->
-<div id="zone-div-bottom">
-	<div id="bottom-widgets" style="position:relative;">
-		<label for="command-line">Command:</label>
-		<input id="command-line" type="text" size="100"/>
+	<!--bottom zone-->
+	<div id="zone-div-bottom">
+		<div id="bottom-widgets" style="position:relative;">
+			<!--
+			<label for="command-line"><b>Command:</b></label>
+			<input id="command-line" type="text"/>
+			-->
+			<fieldset class="no-padding" style="border:1px black solid; border-radius:4px;">
+				<table style="width:100%"><tr>
+					<td><b>Command:</b></td>
+					<td style="width:100%"><input id="command-line" type="text"/></td>
+				</tr></table>
+			</fieldset>
+		</div>
+		<div id="status-line"><i>Informational messages will appear here.</i></div>
 	</div>
-	<div id="status-line">Status line</div>
+	<!--end bottom zone-->
 </div>
-<!--end bottom zone-->
+<!--end main-->
 
 <!--footer-->
+<!--
 <div data-role="footer" data-position="fixed">
-	<div class="ui-grid-b">
-		<div class="ui-block-a footer-left">
-		<div data-role="controlgroup" data-type="horizontal"
-				data-mini="true">
-			<a data-role="button" data-mini="true"
-				class="footer-button"
-				href="#log-panel">Log</a>
-			<a data-role="button" data-mini="true"
-				class="footer-button"
-				href="#debug-panel">Debug Log</a>
-			</div>
-		</div>
-		<div class="ui-block-b footer-center">
-			<span id="active-session">No session selected</span>
-		</div>
-		<div class="ui-block-c footer-right">
-			Chimera 2 Mobile<br/>
-			Developed at the
-			<a href="http://www.rbvi.ucsf.edu">RBVI</a>
-		</div>
-	</div>
 </div>
+-->
 <!--end footer-->
 
 </div>
