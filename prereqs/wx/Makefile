@@ -8,6 +8,10 @@ SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
 BUILD_OPTS =
 INSTALL_OPTS =
 
+PATCHES = $(wildcard wxPython_Phoenix-$(VERSION)_$(OS)_*.patch) \
+	$(wildcard wxPython_Phoenix-$(VERSION)-*.patch)
+WAF = $(wildcard waf-1.7.15)
+
 ifdef UNIX
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
 QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
@@ -39,9 +43,14 @@ endif
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
-	for f in wxPython_Phoenix-$(VERSION)_$(OS)_*.patch ; do \
+ifneq (,$(PATCHES))
+	for f in $(PATCHES) ; do \
 		( cd $(SOURCE) && patch -p1 ) < $$f ; \
 	done
+endif
+ifneq (,$(WAF))
+	cp $(WAF) $(SOURCE)/Phoenix/bin
+endif
 ifeq ($(OS),Darwin)
 	# On Darwin, we patch to add support for selecting
 	# OpenGL profile, so we need to rerun sip to get our
