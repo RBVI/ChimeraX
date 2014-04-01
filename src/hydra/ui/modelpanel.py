@@ -34,6 +34,9 @@ class Model_Panel:
         e.setReadOnly(True)
         e.anchorClicked.connect(self.anchor_callback)          # Handle clicks on anchors
 
+        session.add_model_callbacks.append(self.models_changed)
+        session.close_model_callbacks.append(self.models_changed)
+
     def show(self):
         from .qt import QtGui, QtCore
         d = self.text.document()
@@ -95,6 +98,11 @@ class Model_Panel:
             if m.id == id:
                 m.display = not m.display
                 m.redraw_needed = True
+
+    # Models were added or closed.
+    def models_changed(self, models):
+        if self.shown():
+            self.show()
 
 def show_model_panel(session):
     if not hasattr(session, 'model_panel'):
