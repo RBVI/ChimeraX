@@ -13,18 +13,7 @@ def open_autopack_results(path, session):
 
     surfs.extend(create_surfaces(path, pieces, session))
 
-    # Hack to shorten names
-    # for s in surfs:
-    #     n = s.name
-    #     if n.startswith('HIV1_'):
-    #         n = n[5:]
-    #     sf = n.find('_0')
-    #     if sf > 0:
-    #         n = n[:sf]
-    #     sf = n.find('_Rep')
-    #     if sf > 0:
-    #         n = n[:sf]
-    #     s.name = n
+    use_short_names(surfs)
 
     return surfs
 
@@ -284,3 +273,10 @@ def read_recipe_file(recipe_path, session):
             rfr = join(dirname(recipe_path),'..','geometries',basename(rf))
             models.append(read_collada_surface(rfr, session))
     return models
+
+# Strip common prefix and numeric suffixes from surface names.
+def use_short_names(surfs):
+    from os.path import commonprefix, splitext
+    plen = len(commonprefix([s.name for s in surfs]))
+    for s in surfs:
+        s.name = splitext(s.name[plen:])[0].rstrip('_0123456789')
