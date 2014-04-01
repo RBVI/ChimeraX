@@ -137,7 +137,7 @@ def read_collada_surface(path, session):
         #  Probably should patch pycollada to return unit name even if unit meter scale factor not given.
         scale_vertices(surf.plist, 100)
     if is_cinema4d_collada_surface(surf):
-        swap_xz(surf)       # Correct left-handed Cinema4d coordinates
+        fix_cinema4d_coordinates(surf)       # Correct for Cinema4d coordinates
     return surf
 
 def scale_vertices(splist, scale):
@@ -155,18 +155,18 @@ def is_cinema4d_collada_surface(surf):
             return True
     return False
 
-def swap_xz(surf):
+def fix_cinema4d_coordinates(surf):
     for p in surf.surface_pieces():
         v, t = p.geometry
         n = p.normals
 
         vc,nc = v.copy(), n.copy()
-        vc[:,0] = v[:,2]
+        vc[:,0] = -v[:,2]
         vc[:,2] = v[:,0]
-        nc[:,0] = n[:,2]
+        nc[:,0] = -n[:,2]
         nc[:,2] = n[:,0]
         p.geometry = vc, t
-        p.normals = -nc
+        p.normals = nc
 
 def make_multiscale_models(pdbs):
 
