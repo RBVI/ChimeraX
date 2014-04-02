@@ -153,10 +153,10 @@ class Fit:
 
         mtf_list = []
         v = self.volume
-        if v.__destroyed__:
+        if v.was_deleted:
             return mtf_list
         for m, tf in zip(self.models, self.transforms):
-            if m is None or m.__destroyed__:
+            if m is None or m.was_deleted:
                 continue
             vtf = v.position * tf
             mtf_list.append((m, vtf))
@@ -188,7 +188,7 @@ class Fit:
             return self.stats['clash']
 
         v = self.volume
-        if v is None or v.__destroyed__:
+        if v is None or v.was_deleted:
             return None
         
         # Check if volume has symmetries.
@@ -199,7 +199,7 @@ class Fit:
         # Look for exactly one map that was fit into volume.
         from .. import Volume
         vtf = [(m,tf) for m, tf in zip(self.models, self.transforms)
-               if m and not m.__destroyed__ and isinstance(m, Volume)]
+               if m and not m.was_deleted and isinstance(m, Volume)]
         if len(vtf) != 1:
             return None
         m, tf = vtf[0]
@@ -279,10 +279,10 @@ def move_models(models, transforms, base_model, frames, session):
 
     move_table = session.move_table
     add = (len(move_table) == 0)
-    if base_model.__destroyed__:
+    if base_model.was_deleted:
         return
     for m, tf in zip(models, transforms):
-        if m and not m.__destroyed__:
+        if m and not m.was_deleted:
             move_table[m] = [tf, base_model, frames]
     if move_table and add:
         cb = []
@@ -297,7 +297,7 @@ def move_step(move_table, cb, session):
 
     mt = session.move_table
     for m, (rxf, base_model, frames) in tuple(mt.items()):
-        if m.__destroyed__ or base_model.__destroyed__:
+        if m.was_deleted or base_model.was_deleted:
             del mt[m]
             continue
         tf = base_model.position * rxf

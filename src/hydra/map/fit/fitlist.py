@@ -161,7 +161,7 @@ class Fit_List:
         pic = fit.points_inside_contour()
         pics = ('%8s' % '') if pic is None else '%8.3f' % pic
         fv = fit.volume
-        vname = 'deleted' if fv is None or fv.__destroyed__ else fv.name
+        vname = 'deleted' if fv is None or fv.was_deleted else fv.name
         line = '%8s %s %s%s %15s %15s %5d' % (cs, amvs, pics, clash, mname,
                                               vname, fit.hits())
         return line

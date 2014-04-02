@@ -564,7 +564,7 @@ class Volume(Surface):
   def match_surface_pieces(self, levels):
 
     smodel = self
-    plist = [p for p in self.surface_piece_list if not p.__destroyed__]
+    plist = [p for p in self.surface_piece_list if not p.was_deleted]
     for k,level in enumerate(levels):
       if k < len(plist) and level == plist[k].contour_settings['level']:
         pass
@@ -723,7 +723,7 @@ class Volume(Surface):
   def remove_surfaces(self):
 
     for p in self.surface_piece_list:
-      if not p.__destroyed__:
+      if not p.was_deleted:
         self.remove_piece(p)
     self.surface_piece_list = []
     
@@ -1861,7 +1861,7 @@ class Outline_Box:
 
     p = self.piece
     if not p is None:
-      if not p.__destroyed__:
+      if not p.was_deleted:
         self.model.remove_piece(p)
       self.piece = None
       self.corners = None

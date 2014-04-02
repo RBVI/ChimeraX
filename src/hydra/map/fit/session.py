@@ -126,7 +126,7 @@ class Fit_State:
 #
 def model_id(model):
 
-  if model is None or model.__destroyed__:
+  if model is None or model.was_deleted:
     return None
 
   from SimpleSession import sessionID

@@ -18,7 +18,7 @@ class Surface:
     self.plist = []
     self.selected = False
     self.redraw_needed = False
-    self.__destroyed__ = False
+    self.was_deleted = False
 
   def surface_pieces(self):
     '''Return the list of surface pieces.'''
@@ -167,14 +167,7 @@ class Surface_Piece:
     self.vertices = None
     self.triangles = None
     self.normals = None
-    self.shift_and_scale = None         # Instance copies
-    self.copy_places = []               # Instance placements
-    self.copy_matrices = None           # Instance matrices, 4x4 opengl
-    self.displayed_copy_matrices = None # 4x4 matrices for displayed instances
     self.vertex_colors = None
-    self.instance_colors = None         # N by 4 uint8 values
-    self.displayed_instance_colors = None
-    self.instance_display = None        # bool numpy array, show only some instances
     self.edge_mask = None
     self.masked_edges = None
     self.display = True
@@ -183,9 +176,19 @@ class Surface_Piece:
     self.texture = None
     self.texture_coordinates = None
     self.opaque_texture = False
-    self.__destroyed__ = False
+
+    # Instancing
+    self.shift_and_scale = None         # Instance copies
+    self.copy_places = []               # Instance placements
+    self.copy_matrices = None           # Instance matrices, 4x4 opengl
+    self.displayed_copy_matrices = None # 4x4 matrices for displayed instances
+    self.instance_colors = None         # N by 4 uint8 values
+    self.displayed_instance_colors = None
+    self.instance_display = None        # bool numpy array, show only some instances
 
     self.vao = None     	# Holds the buffer pointers and bindings
+
+    self.was_deleted = False
 
     # Surface piece attribute name, shader variable name, instancing
     from .. import draw
@@ -220,6 +223,7 @@ class Surface_Piece:
       b.delete_buffer()
 
     self.vao = None
+    self.was_deleted = True
 
   def get_geometry(self):
     return self.vertices, self.triangles

@@ -64,11 +64,11 @@ def position_state(models, atoms, base_model):
 def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
 
     base_model, model_transforms, atom_positions = pstate
-    if base_model.__destroyed__:
+    if base_model.was_deleted:
         return False
     changed = False
     for m, mtf in model_transforms:
-        if m.__destroyed__:
+        if m.was_deleted:
             continue
         tf = base_model.position * mtf
         if not tf.same(m.position, angle_tolerance, shift_tolerance):
