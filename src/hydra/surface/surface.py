@@ -138,7 +138,7 @@ class Surface:
     '''
     self.remove_all_pieces()
   
-class Surface_Piece(object):
+class Surface_Piece:
   '''
   Surface_Pieces are created by the Surface new_piece() method and represent a set of triangles
   that can be added or removed from a Surface independent of other sets of triangles.  The basic
