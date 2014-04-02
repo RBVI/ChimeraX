@@ -127,7 +127,7 @@ def molecule_grid_data(atoms, resolution, step, pad,
     # Transform coordinates to local coordinates of the molecule containing
     # the first atom.  This handles multiple unaligned molecules.
 #    m0 = atoms[0].molecule
-#    tf = m0.place
+#    tf = m0.position
 #    tf.inverse().move(xyz)
 #    if csys:
 #        tf = csys.inverse() * tf

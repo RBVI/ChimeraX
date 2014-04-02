@@ -14,8 +14,7 @@ class Surface:
     self.id = None              # positive integer
     self._display = True       # private. use display property
     from ..geometry.place import Place
-    self.placement = Place()
-    self.copies = []
+    self.positions = [Place()]          # List of Place objects
     self.plist = []
     self.selected = False
     self.redraw_needed = False
@@ -59,12 +58,12 @@ class Surface:
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
-  def get_place(self):
-    return self.placement
-  def set_place(self, place):
-    self.placement = place
+  def get_position(self):
+    return self.positions[0]
+  def set_position(self, pos):
+    self.positions[0] = pos
     self.redraw_needed = True
-  place = property(get_place, set_place)
+  position = property(get_position, set_position)
   '''Position and orientation of the surface in space.'''
 
   def showing_transparent(self):
@@ -107,14 +106,11 @@ class Surface:
     b = self.bounds()
     if b is None or b == (None, None):
       return None
-    if self.copies:
-      copies = self.copies
-    elif not self.placement.is_identity(tolerance = 0):
-      copies = [self.placement]
-    else:
+    p = self.positions
+    if len(p) == 1 and p[0].is_identity(tolerance = 0):
       return b
     from ..geometry import bounds
-    return bounds.copies_bounding_box(b, copies)
+    return bounds.copies_bounding_box(b, p)
 
   def first_intercept(self, mxyz1, mxyz2):
     '''

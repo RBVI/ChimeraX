@@ -172,7 +172,7 @@ def pairing(rnums1, rnums2):
 def write_matrix(tf, atoms, ref_atoms):
 
     m = atoms.molecules()[0]
-    mp = m.place
+    mp = m.position
     mtf = mp.inverse() * tf * mp
     msg = ('Alignment matrix in molecule %s coordinates\n%s' % (m.name, mtf.description()))
     from ..ui.gui import log_message
@@ -182,7 +182,7 @@ def move_atoms(atoms, ref_atoms, tf, move):
 
     if move == 'molecules' or move is True:
         for m in atoms.molecules():
-            m.place = tf * m.place
+            m.position = tf * m.position
             m.redraw_needed = True
     else:
         if move == 'atoms':

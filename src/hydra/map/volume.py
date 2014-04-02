@@ -1052,7 +1052,7 @@ class Volume(Surface):
   def ijk_to_global_xyz(self, ijk):
 
     pm = self.data.ijk_to_xyz(ijk)
-    p = self.place * pm
+    p = self.position * pm
     return p
 
   # ---------------------------------------------------------------------------
@@ -1063,7 +1063,7 @@ class Volume(Surface):
     d = self.data
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
     lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
-    v = self.place * lv
+    v = self.position * lv
     from ..geometry import vector
     vn = vector.normalize_vector(v)
     return vn
@@ -1443,7 +1443,7 @@ class Volume(Surface):
     if source_to_scene_transform:
       # Handle case where vertices and volume have different model transforms.
       scene_to_source_tf = source_to_scene_transform.inverse()
-      m2s_transform = scene_to_source_tf * self.place * m2s_transform
+      m2s_transform = scene_to_source_tf * self.position * m2s_transform
       
     s2m_transform = m2s_transform.inverse()
 
@@ -1668,7 +1668,7 @@ class Volume(Surface):
   #
   def model_transform(self):
 
-    return self.place
+    return self.position
   
   # ---------------------------------------------------------------------------
   #

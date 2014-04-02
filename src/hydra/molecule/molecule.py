@@ -461,9 +461,9 @@ class Molecule(Surface):
     xyz = self.shown_atom_array_values(self.xyz)
     r = self.shown_atom_array_values(self.radii)
     from .. import _image3d
-    if self.copies:
+    if len(self.positions) > 1:
       intercepts = []
-      for tf in self.copies:
+      for tf in self.positions:
         cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
         fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
         if not fmin is None:
@@ -481,7 +481,7 @@ class Molecule(Surface):
 
   def shown_atom_count(self):
     '''Return the number of displayed atoms in the molecule. Includes molecule copies.'''
-    nc = max(1, len(self.copies))
+    nc = max(1, len(self.positions))
     na = self.atom_shown_count
     return na * nc
 
@@ -598,7 +598,7 @@ class Atoms:
     coords = []
     for m,a in self.molatoms:
         xyz = m.xyz[a]
-        m.place.move(xyz)
+        m.position.move(xyz)
         coords.append(xyz)
     import numpy
     if len(coords) == 0:
@@ -647,7 +647,7 @@ class Atoms:
     '''Move atoms using a transform acting in scene global coordinates.'''
     for m,a in self.molatoms:
       axyz = m.xyz[a]
-      atf = m.place.inverse() * tf * m.place
+      atf = m.position.inverse() * tf * m.position
       atf.move(axyz)
       m.xyz[a] = axyz
       m.need_graphics_update = True

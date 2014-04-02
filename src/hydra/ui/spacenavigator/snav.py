@@ -119,7 +119,7 @@ class Space_Navigator:
         if cm is None:
             return False
         clev = max(cm.surface_levels)
-        return (cm.interpolated_values([xyz], cm.place) >= clev)
+        return (cm.interpolated_values([xyz], cm.position) >= clev)
 
     def toggle_dominant_mode(self):
 

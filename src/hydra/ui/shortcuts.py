@@ -361,10 +361,10 @@ def fit_molecule_in_map(session):
     points = mol.xyz
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
-    xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.place.inverse() * mol.place
+    xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
     from ..map import fit
     move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
-    mol.place = mol.place * move_tf
+    mol.position = mol.position * move_tf
     for k,v in stats.items():
         print(k,v)
 
@@ -372,17 +372,17 @@ def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
         from ..file_io import biomt
-        matrices = biomt.pdb_biomt_matrices(m.pdb_text)
-        print (m.path, 'biomt', len(matrices))
-        if matrices:
-            m.copies = matrices
+        places = biomt.pdb_biomt_matrices(m.pdb_text)
+        print (m.path, 'biomt', len(places))
+        if places:
+            m.positions = places
             m.redraw_needed = True
             m.update_level_of_detail(session.view)
 
 def show_asymmetric_unit(m, session):
 
-    if len(m.copies) > 0:
-        m.copies = []
+    if len(m.positions) > 1:
+        m.positions = m.positions[:1]
         m.redraw_needed = True
         m.update_level_of_detail(session.view)
 
@@ -642,7 +642,7 @@ def quit(session):
 
 def undisplay_half(session):
     for m in session.models:
-        mp = m.place
+        mp = m.position
         for p in m.surface_pieces():
             va = p.vertices
             c = 0.5*(va.min(axis=0) + va.max(axis=0))

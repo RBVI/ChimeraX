@@ -318,7 +318,7 @@ def apply_volume_options(v, doptions, roptions, session):
         if 'centerIndex' in doptions:
             c = v.data.ijk_to_xyz(doptions['centerIndex'])
             if csys != v.openState:
-                c = csys.place.inverse() * (v.place * c)
+                c = csys.position.inverse() * (v.position * c)
         from ..SymmetryCopies import symcmd
         tflist, csys = symcmd.parse_symmetry(sym, c, a, csys, v, 'volume')
         if csys != v.openState:

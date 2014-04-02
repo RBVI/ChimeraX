@@ -50,12 +50,12 @@ class Position_History:
 #
 def position_state(models, atoms, base_model):
 
-  btfinv = base_model.place.inverse()
+  btfinv = base_model.position.inverse()
   mset = set(models)
   mset.update(atoms.molecules())
   model_transforms = []
   for m in mset:
-      model_transforms.append((m, btfinv * m.place))
+      model_transforms.append((m, btfinv * m.position))
   atom_positions = (atoms, atoms.coordinates().copy())
   return (base_model, model_transforms, atom_positions)
 
@@ -70,8 +70,8 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
     for m, mtf in model_transforms:
         if m.__destroyed__:
             continue
-        tf = base_model.place * mtf
-        if not tf.same(m.place, angle_tolerance, shift_tolerance):
+        tf = base_model.position * mtf
+        if not tf.same(m.position, angle_tolerance, shift_tolerance):
             changed = True
         m.set_place(tf)
 
@@ -92,7 +92,7 @@ def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
     global position_history
     position_history.record_position(models, atoms, base_model)
     for m in models:
-        m.set_place(tf * m.place)
+        m.set_position(tf * m.position)
     atoms.move_atoms(tf)
     position_history.record_position(models, atoms, base_model)
 

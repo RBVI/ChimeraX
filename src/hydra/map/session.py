@@ -296,7 +296,7 @@ def state_from_map(volume):
   v = volume
   s = dict((attr, getattr(v, attr)) for attr in basic_map_attributes)
 
-  s['place'] = v.place.matrix
+  s['place'] = v.position.matrix
   s['rendering_options'] = state_from_rendering_options(v.rendering_options)
   s['region_list'] = state_from_region_list(v.region_list)
   s['session_volume_id'] = session_volume_id(v)
@@ -341,7 +341,7 @@ def set_map_state(s, volume, notify = True):
       setattr(v, attr, s[attr])
 
   from ..geometry.place import Place
-  v.place = Place(s['place'])
+  v.position = Place(s['place'])
 
   v.new_region(*s['region'], show = False, adjust_step = False)
 
