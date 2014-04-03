@@ -195,20 +195,21 @@ class Surface_Piece:
     from numpy import uint32, uint8
     bufs = (('vertices', draw.VERTEX_BUFFER),
             ('normals', draw.NORMAL_BUFFER),
-            ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('displayed_copy_matrices', draw.INSTANCE_MATRIX_BUFFER),
             ('vertex_colors', draw.VERTEX_COLOR_BUFFER),
-            ('displayed_instance_colors', draw.INSTANCE_COLOR_BUFFER),
             ('texture_coordinates', draw.TEXTURE_COORDS_2D_BUFFER),
             ('elements', draw.ELEMENT_BUFFER),
+            ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('displayed_copy_matrices', draw.INSTANCE_MATRIX_BUFFER),
+            ('displayed_instance_colors', draw.INSTANCE_COLOR_BUFFER),
             )
     obufs = []
     for a,v in bufs:
       b = draw.Buffer(v)
       b.surface_piece_attribute_name = a
       obufs.append(b)
+      if a == 'elements':
+        self.element_buffer = b
     self.opengl_buffers = obufs
-    self.element_buffer = obufs[-1]
 
   def delete(self):
     '''Release all the arrays and graphics memory associated with the surface piece.'''
@@ -219,6 +220,13 @@ class Surface_Piece:
     self.texture = None
     self.texture_coordinates = None
     self.masked_edges = None
+    self.shift_and_scale = None
+    self.copy_places = []
+    self.copy_matrices = None
+    self.displayed_copy_matrices = None
+    self.instance_colors = None
+    self.displayed_instance_colors = None
+    self.instance_display = None
     for b in self.opengl_buffers:
       b.delete_buffer()
 
