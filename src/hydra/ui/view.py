@@ -418,12 +418,12 @@ class View(QtGui.QWindow):
     def draw_model(self, m, draw_pass, view_num, camera):
         cvinv = camera.view_inverse(view_num)
         r = self.render
-        if m.copies:
-            for p in m.copies:
+        if m.positions:
+            for p in m.positions:
                 r.set_model_view_matrix(cvinv, p)
                 m.draw(self, draw_pass)
         else:
-            r.set_model_view_matrix(cvinv, m.place)
+            r.set_model_view_matrix(cvinv, m.position)
             m.draw(self, draw_pass)
 
     def update_level_of_detail(self):
@@ -485,7 +485,7 @@ class View(QtGui.QWindow):
         models = self.session.model_list()
         for m in models:
             if m.display:
-                mxyz1, mxyz2 = m.place.inverse() * (xyz1,xyz2)
+                mxyz1, mxyz2 = m.position.inverse() * (xyz1,xyz2)
                 fmin, smin = m.first_intercept(mxyz1, mxyz2)
                 if not fmin is None and (f is None or fmin < f):
                     f = fmin
@@ -555,7 +555,7 @@ class View(QtGui.QWindow):
             c.set_view(tf.inverse() * cv)
         else:
             for m in models:
-                m.place = tf * m.place
+                m.position = tf * m.position
 
         self.redraw_needed = True
 

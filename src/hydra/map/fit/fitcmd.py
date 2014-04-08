@@ -239,7 +239,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     apoint_weights = point_weights[indices]
 
     data_array, xyz_to_ijk_transform = \
-      v.matrix_and_transform(volume.place, subregion = None, step = 1)
+      v.matrix_and_transform(volume.position, subregion = None, step = 1)
 
     from chimera import tasks, CancelOperation
     task = tasks.Task("Symmetric fit", modal=True)
@@ -258,7 +258,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     if stats is None:
         return          # Fit cancelled
 
-    ctf = volume.place.inverse()
+    ctf = volume.position.inverse()
     vtf = ctf.inverse() * move_tf.inverse() * ctf
     from . import move
     move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
@@ -285,7 +285,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
     me = fitting_metric(metric)
     if v is None:
         points = atoms.coordinates()
-        volume.place.inverse().move(points)
+        volume.position.inverse().move(points)
         point_weights = None
     else:
         points, point_weights = map_fitting_points(v, envelope)

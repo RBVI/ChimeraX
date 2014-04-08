@@ -51,7 +51,7 @@ def per_model_clip_planes(clip_plane_model):
     plane = (normal, offset)
     planes.append(plane)
 
-  model_to_screen = clip_plane_model.place
+  model_to_screen = clip_plane_model.position
   tplanes = [transform_plane(p, model_to_screen) for p in planes]
 
   return tplanes
@@ -266,17 +266,14 @@ def volume_segment(volume, line):
 #
 def volume_index_segment(volume, line, clipping_model = None):
 
-  from . import selectregion
-  box, tf, xform = selectregion.box_transform_and_xform(volume)
-
   # box is in volume index coordinates, line in scene coordinates.
-  box_to_line_transform = volume.place * volume.data.ijk_to_xyz_transform
+  box_to_line_transform = volume.position * volume.data.ijk_to_xyz_transform
 
   if clipping_model is None:
     clipping_model = volume
 
   ijk_in, ijk_out = box_intercepts(line, box_to_line_transform,
-                                   box, clipping_model)
+                                   volume.ijk_bounds(), clipping_model)
   
   return ijk_in, ijk_out
 

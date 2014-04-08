@@ -56,7 +56,7 @@ def write_surface_pieces(plist, file):
     # TODO: handle surface instances
     for p in plist:
         varray,tarray = p.geometry
-        tf = p.surface.placement
+        tf = p.surface.positions[0]
         if not tf.is_identity():
             tf.move(varray)
         file.write(stl_triangle_geometry(varray, tarray))

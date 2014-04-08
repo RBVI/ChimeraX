@@ -279,6 +279,8 @@ class Mouse_Modes:
         t = event.type()
         if t == QtCore.QEvent.TouchUpdate:
             self.process_touches(event.touchPoints())
+        elif t == QtCore.QEvent.TouchEnd:
+            self.last_trackpad_touch_count = 0
 
     def process_touches(self, touches):
         min_pinch = 0.1

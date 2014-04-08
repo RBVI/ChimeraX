@@ -637,7 +637,7 @@ def move_atom_to_maximum(a, max_steps = 2000,
                                        optimize_rotation = False)
 
     # Update atom position.
-    p = a.molecule.place.inverse() * (move_tf * a.xformCoord())
+    p = a.molecule.position.inverse() * (move_tf * a.xformCoord())
     a.setCoord(p)
 
 # -----------------------------------------------------------------------------
@@ -725,11 +725,11 @@ def transformation_matrix_message(model, map):
     
     m = model
     mname = '%s (#%d)' % (m.name, m.id)
-    mtf = m.place
+    mtf = m.position
 
     f = map
     fname = '%s (#%d)' % (f.name, f.id)
-    ftf = f.place
+    ftf = f.position
     
     rtf = ftf.inverse() * mtf
     message = ('Position of %s relative to %s coordinates:\n'

@@ -14,12 +14,11 @@ class Surface:
     self.id = None              # positive integer
     self._display = True       # private. use display property
     from ..geometry.place import Place
-    self.placement = Place()
-    self.copies = []
+    self.positions = [Place()]          # List of Place objects
     self.plist = []
     self.selected = False
     self.redraw_needed = False
-    self.__destroyed__ = False
+    self.was_deleted = False
 
   def surface_pieces(self):
     '''Return the list of surface pieces.'''
@@ -59,12 +58,12 @@ class Surface:
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
-  def get_place(self):
-    return self.placement
-  def set_place(self, place):
-    self.placement = place
+  def get_position(self):
+    return self.positions[0]
+  def set_position(self, pos):
+    self.positions[0] = pos
     self.redraw_needed = True
-  place = property(get_place, set_place)
+  position = property(get_position, set_position)
   '''Position and orientation of the surface in space.'''
 
   def showing_transparent(self):
@@ -107,14 +106,11 @@ class Surface:
     b = self.bounds()
     if b is None or b == (None, None):
       return None
-    if self.copies:
-      copies = self.copies
-    elif not self.placement.is_identity(tolerance = 0):
-      copies = [self.placement]
-    else:
+    p = self.positions
+    if len(p) == 1 and p[0].is_identity(tolerance = 0):
       return b
     from ..geometry import bounds
-    return bounds.copies_bounding_box(b, copies)
+    return bounds.copies_bounding_box(b, p)
 
   def first_intercept(self, mxyz1, mxyz2):
     '''
@@ -142,7 +138,7 @@ class Surface:
     '''
     self.remove_all_pieces()
   
-class Surface_Piece(object):
+class Surface_Piece:
   '''
   Surface_Pieces are created by the Surface new_piece() method and represent a set of triangles
   that can be added or removed from a Surface independent of other sets of triangles.  The basic
@@ -171,11 +167,7 @@ class Surface_Piece(object):
     self.vertices = None
     self.triangles = None
     self.normals = None
-    self.shift_and_scale = None         # Instance copies
-    self.copies34 = []                  # Instance matrices, 3x4
-    self.copies44 = None                # Instance matrices, 4x4 opengl
     self.vertex_colors = None
-    self.instance_colors = None         # N by 4 uint8 values
     self.edge_mask = None
     self.masked_edges = None
     self.display = True
@@ -184,29 +176,40 @@ class Surface_Piece(object):
     self.texture = None
     self.texture_coordinates = None
     self.opaque_texture = False
-    self.__destroyed__ = False
+
+    # Instancing
+    self.shift_and_scale = None         # Instance copies
+    self.copy_places = []               # Instance placements
+    self.copy_matrices = None           # Instance matrices, 4x4 opengl
+    self.displayed_copy_matrices = None # 4x4 matrices for displayed instances
+    self.instance_colors = None         # N by 4 uint8 values
+    self.displayed_instance_colors = None
+    self.instance_display = None        # bool numpy array, show only some instances
 
     self.vao = None     	# Holds the buffer pointers and bindings
+
+    self.was_deleted = False
 
     # Surface piece attribute name, shader variable name, instancing
     from .. import draw
     from numpy import uint32, uint8
     bufs = (('vertices', draw.VERTEX_BUFFER),
             ('normals', draw.NORMAL_BUFFER),
-            ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('copies44', draw.INSTANCE_MATRIX_BUFFER),
             ('vertex_colors', draw.VERTEX_COLOR_BUFFER),
-            ('instance_colors', draw.INSTANCE_COLOR_BUFFER),
             ('texture_coordinates', draw.TEXTURE_COORDS_2D_BUFFER),
             ('elements', draw.ELEMENT_BUFFER),
+            ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('displayed_copy_matrices', draw.INSTANCE_MATRIX_BUFFER),
+            ('displayed_instance_colors', draw.INSTANCE_COLOR_BUFFER),
             )
     obufs = []
     for a,v in bufs:
       b = draw.Buffer(v)
       b.surface_piece_attribute_name = a
       obufs.append(b)
+      if a == 'elements':
+        self.element_buffer = b
     self.opengl_buffers = obufs
-    self.element_buffer = obufs[-1]
 
   def delete(self):
     '''Release all the arrays and graphics memory associated with the surface piece.'''
@@ -217,10 +220,18 @@ class Surface_Piece(object):
     self.texture = None
     self.texture_coordinates = None
     self.masked_edges = None
+    self.shift_and_scale = None
+    self.copy_places = []
+    self.copy_matrices = None
+    self.displayed_copy_matrices = None
+    self.instance_colors = None
+    self.displayed_instance_colors = None
+    self.instance_display = None
     for b in self.opengl_buffers:
       b.delete_buffer()
 
     self.vao = None
+    self.was_deleted = True
 
   def get_geometry(self):
     return self.vertices, self.triangles
@@ -233,10 +244,10 @@ class Surface_Piece(object):
   '''Geometry is the array of vertices and array of triangles.'''
 
   def get_copies(self):
-    return self.copies34
+    return self.copy_places
   def set_copies(self, copies):
-    self.copies34 = copies
-    self.copies44 = opengl_matrices(copies) if copies else None
+    self.copy_places = copies
+    self.copy_matrices = None   # Compute when drawing
     self.surface.redraw_needed = True
   copies = property(get_copies, set_copies)
   '''
@@ -258,6 +269,18 @@ class Surface_Piece(object):
     shader_change = self.shader_changed(shader)
     if shader_change:
       self.bind_buffers(shader)
+
+    if self.copy_places and self.copy_matrices is None:
+      self.copy_matrices = opengl_matrices(self.copy_places)
+
+    disp = self.instance_display
+    if disp is None:
+      self.displayed_instance_colors = self.instance_colors
+      self.displayed_copy_matrices = self.copy_matrices
+    elif self.displayed_copy_matrices is None:
+      self.displayed_copy_matrices = self.copy_matrices[disp,:,:]
+      ic = self.instance_colors
+      self.displayed_instance_colors = ic[disp,:] if not ic is None else None
 
     for b in self.opengl_buffers:
       data = getattr(self, b.surface_piece_attribute_name)
@@ -340,15 +363,19 @@ class Surface_Piece(object):
         sopt[r.SHADER_RADIAL_WARP] = True
     if not self.shift_and_scale is None:
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
-    elif not self.copies44 is None:
+    elif self.copy_places or not self.copy_matrices is None:
       sopt[r.SHADER_INSTANCING] = True
     return sopt
 
   def instance_count(self):
     if not self.shift_and_scale is None:
       ninst = len(self.shift_and_scale)
-    elif not self.copies44 is None:
-      ninst = len(self.copies44)
+    elif not self.instance_display is None:
+      ninst = self.instance_display.sum()
+    elif self.copy_places:
+      ninst = len(self.copy_places)
+    elif not self.copy_matrices is None:
+      ninst = len(self.copy_matrices)
     else:
       ninst = None
     return ninst
@@ -428,11 +455,14 @@ class Surface_Piece(object):
       if not fmin is None and (f is None or fmin < f):
         f = fmin
     else:
-      for tf in self.copies:
-        cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-        fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
-        if not fmin is None and (f is None or fmin < f):
-          f = fmin
+      # TODO: This will be very slow for large numbers of copies.
+      id = self.instance_display
+      for c,tf in enumerate(self.copies):
+        if id is None or id[c]:
+          cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+          fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+          if not fmin is None and (f is None or fmin < f):
+            f = fmin
     return f
 
 class Surface_Piece_Selection:

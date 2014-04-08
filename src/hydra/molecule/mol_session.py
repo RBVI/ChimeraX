@@ -2,12 +2,12 @@ mol_attrs = ('path', 'id', 'database_fetch', 'display', 'atom_style',
              'color_mode', 'ribbon_radius', 'ball_scale')
 
 def molecule_state(m):  
-    ms = {'place':m.place.matrix}
+    ms = {'place':m.position.matrix}
     for attr in mol_attrs:
         if hasattr(m,attr):
             ms[attr] = getattr(m,attr)
-    if m.copies:
-        ms['copies'] = tuple(c.matrix for c in m.copies)
+    if len(m.positions) > 1:
+        ms['copies'] = tuple(c.matrix for c in m.positions)
     if not m.bonds is None:
         ms['has_bonds'] = True
     ms['atom_shown'] = array_to_string(m.atom_shown)
@@ -46,8 +46,9 @@ def restore_molecules(mstate, session, file_paths, attributes_only = False):
 
 def set_molecule_state(m, ms, session):
     from ..geometry.place import Place
-    m.place = Place(ms['place'])
-    m.copies = [Place(c) for c in ms.get('copies', [])]
+    m.position = Place(ms['place'])
+    if 'copies' in ms:
+        m.positions = [Place(c) for c in ms['copies']]
     if 'displayed' in ms:
         ms['display'] = ms['displayed']     # Fix old session files
     for attr in mol_attrs:

@@ -456,7 +456,7 @@ class Solid:
   def align_to_model(self):
 
     am = self.attached_model
-#    if am.__destroyed__:
+#    if am.was_deleted:
 #      self.attached_model = am = None
     return am
 

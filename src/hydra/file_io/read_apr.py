@@ -13,18 +13,7 @@ def open_autopack_results(path, session):
 
     surfs.extend(create_surfaces(path, pieces, session))
 
-    # Hack to shorten names
-    # for s in surfs:
-    #     n = s.name
-    #     if n.startswith('HIV1_'):
-    #         n = n[5:]
-    #     sf = n.find('_0')
-    #     if sf > 0:
-    #         n = n[:sf]
-    #     sf = n.find('_Rep')
-    #     if sf > 0:
-    #         n = n[:sf]
-    #     s.name = n
+    use_short_names(surfs)
 
     return surfs
 
@@ -137,7 +126,7 @@ def read_collada_surface(path, session):
         #  Probably should patch pycollada to return unit name even if unit meter scale factor not given.
         scale_vertices(surf.plist, 100)
     if is_cinema4d_collada_surface(surf):
-        swap_xz(surf)       # Correct left-handed Cinema4d coordinates
+        fix_cinema4d_coordinates(surf)       # Correct for Cinema4d coordinates
     return surf
 
 def scale_vertices(splist, scale):
@@ -155,18 +144,18 @@ def is_cinema4d_collada_surface(surf):
             return True
     return False
 
-def swap_xz(surf):
+def fix_cinema4d_coordinates(surf):
     for p in surf.surface_pieces():
         v, t = p.geometry
         n = p.normals
 
         vc,nc = v.copy(), n.copy()
-        vc[:,0] = v[:,2]
+        vc[:,0] = -v[:,2]
         vc[:,2] = v[:,0]
-        nc[:,0] = n[:,2]
+        nc[:,0] = -n[:,2]
         nc[:,2] = n[:,0]
         p.geometry = vc, t
-        p.normals = -nc
+        p.normals = nc
 
 def make_multiscale_models(pdbs):
 
@@ -284,3 +273,10 @@ def read_recipe_file(recipe_path, session):
             rfr = join(dirname(recipe_path),'..','geometries',basename(rf))
             models.append(read_collada_surface(rfr, session))
     return models
+
+# Strip common prefix and numeric suffixes from surface names.
+def use_short_names(surfs):
+    from os.path import commonprefix, splitext
+    plen = len(commonprefix([s.name for s in surfs]))
+    for s in surfs:
+        s.name = splitext(s.name[plen:])[0].rstrip('_0123456789')

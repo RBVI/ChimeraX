@@ -81,7 +81,7 @@ def show_surface(name, va, na, ta, session, color = (.7,.7,.7,1), place = None):
     from . import Surface
     surf = Surface(name)
     if not place is None:
-        surf.place = place
+        surf.position = place
     p = surf.new_piece()
     p.geometry = va, ta
     p.normals = na
@@ -116,7 +116,7 @@ def surface(atoms, session, probeRadius = 1.4, gridSpacing = 0.5, waters = False
 
     # Create surface model to show surface
     m0 = atoms.molecules()[0]
-    p = m0.place
+    p = m0.position
     if not p.is_identity(tolerance = 0):
         p.inverse().move(va)    # Move to model coordinates.
         

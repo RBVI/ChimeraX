@@ -54,8 +54,11 @@ def standard_shortcuts(session):
         ('va', view_all, 'View all', gcat, viewarg, smenu),
         ('dv', default_view, 'Default orientation', gcat, viewarg, smenu, sep),
 
-        ('cs', s.clear_selection, 'Clear selection', gcat, noarg, smenu),
+        ('dA', display_all, 'Display all', gcat, sesarg, smenu),
+        ('ds', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
+        ('hs', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
+        ('cs', s.clear_selection, 'Clear selection', gcat, noarg, smenu),
 
         ('bk', set_background_black, 'Black background', gcat, viewarg, smenu),
         ('wb', set_background_white, 'White background', gcat, viewarg, smenu),
@@ -67,6 +70,7 @@ def standard_shortcuts(session):
         ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
         ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
+        ('uh', undisplay_half, 'Undisplay z > 0', gcat, sesarg, smenu),
         ('rt', show_stats, 'Show model statistics', gcat, sesarg, smenu),
 
         # Maps
@@ -357,10 +361,10 @@ def fit_molecule_in_map(session):
     points = mol.xyz
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
-    xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.place.inverse() * mol.place
+    xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
     from ..map import fit
     move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
-    mol.place = mol.place * move_tf
+    mol.position = mol.position * move_tf
     for k,v in stats.items():
         print(k,v)
 
@@ -368,17 +372,17 @@ def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
         from ..file_io import biomt
-        matrices = biomt.pdb_biomt_matrices(m.pdb_text)
-        print (m.path, 'biomt', len(matrices))
-        if matrices:
-            m.copies = matrices
+        places = biomt.pdb_biomt_matrices(m.pdb_text)
+        print (m.path, 'biomt', len(places))
+        if places:
+            m.positions = places
             m.redraw_needed = True
             m.update_level_of_detail(session.view)
 
 def show_asymmetric_unit(m, session):
 
-    if len(m.copies) > 0:
-        m.copies = []
+    if len(m.positions) > 1:
+        m.positions = m.positions[:1]
         m.redraw_needed = True
         m.update_level_of_detail(session.view)
 
@@ -419,6 +423,12 @@ def command_line(session):
     session.main_window.focus_on_command_line()
 #  from .qt import QtCore
 #  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
+
+def display_selected_models(session):
+  session.display_models(tuple(session.selected))
+
+def hide_selected_models(session):
+  session.hide_models(tuple(session.selected))
 
 def delete_selected_models(session):
   session.close_models(tuple(session.selected))
@@ -629,3 +639,27 @@ def space_navigator_collisions(session):
 def quit(session):
     import sys
     sys.exit(0)
+
+def undisplay_half(session):
+    for m in session.models:
+        mp = m.position
+        for p in m.surface_pieces():
+            va = p.vertices
+            c = 0.5*(va.min(axis=0) + va.max(axis=0))
+            pc = p.copies
+            if len(pc) == 0:
+                if (mp*c)[2] > 0:
+                    p.display = False
+                    m.redraw_needed = True
+            else:
+                from numpy import array, bool
+                p.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
+                p.displayed_copy_matrices = None
+                m.redraw_needed = True
+
+def display_all(session):
+    for m in session.models:
+        for p in m.surface_pieces():
+            p.display = True
+            p.instance_display = None
+            m.redraw_needed = True
