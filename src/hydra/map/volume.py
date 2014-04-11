@@ -1002,6 +1002,21 @@ class Volume(Surface):
     return (xyz_min, xyz_max)
 
   # ---------------------------------------------------------------------------
+  #
+  def first_intercept(self, mxyz1, mxyz2):
+
+    if self.representation == 'solid':
+      from . import slice
+      xyz_in, xyz_out = slice.box_line_intercepts((mxyz1, mxyz2), self.xyz_bounds())
+      if xyz_in is None or xyz_out is None:
+        return None, None
+      from ..geometry.vector import norm
+      f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
+      return f, None
+
+    return Surface.first_intercept(self, mxyz1, mxyz2)
+
+  # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
   #
   def ijk_bounds(self, step = None, subregion = None, integer = False):
@@ -1611,7 +1626,7 @@ class Volume(Surface):
     else:
       p = self.outline_box.piece
       if not p is None:
-        self.draw(viewer, camera_view, draw_pass, pieces = [p])
+        Surface.draw(self, viewer, camera_view, draw_pass, pieces = [p])
       self.solid.volume.draw(viewer, camera_view, draw_pass)
 
   # ---------------------------------------------------------------------------
