@@ -1801,6 +1801,8 @@ class Outline_Box:
     p.geometry = array(vlist), array(tlist)
     p.triangle_and_edge_mask = hide_diagonals
     p.color = rgba
+    # Don't detect outline when finding front-center point for center of rotation
+    p.ignore_intercept = True
 
     self.piece = p
     self.corners = corners

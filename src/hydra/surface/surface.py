@@ -193,6 +193,8 @@ class Surface_Piece:
 
     self.vao = None     	# Holds the buffer pointers and bindings
 
+    self.ignore_intercept = False       # Calls to first_intercept() return None if ignore_intercept is true.
+					# This is so outline boxes are not used for front-center rotation.
     self.was_deleted = False
 
     # Surface piece attribute name, shader variable name, instancing
@@ -450,6 +452,8 @@ class Surface_Piece:
     return the fraction of the distance along the segment where the intersection occurs
     or None if no intersection occurs.  Intercepts with masked triangle are included.
     '''
+    if self.ignore_intercept:
+      return None
     # TODO check intercept of bounding box as optimization
     # TODO handle surface piece shift_and_scale.
     f = None
