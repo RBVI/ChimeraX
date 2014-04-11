@@ -73,10 +73,15 @@ class Surface:
         return True
     return False
 
-  def draw(self, viewer, draw_pass, reverse_order = False):
+  def draw(self, viewer, camera_view, draw_pass, reverse_order = False, pieces = None):
     '''Draw all displayed surface pieces in the specified view using the given draw pass.'''
-    plist = self.plist[::-1] if reverse_order else self.plist
-    self.draw_pieces(plist, viewer, draw_pass)
+    plist = self.plist if pieces is None else pieces
+    if reverse_order:
+      plist = plist[::-1]
+    r = viewer.render
+    for p in self.positions:
+      r.set_model_view_matrix(camera_view, p)
+      self.draw_pieces(plist, viewer, draw_pass)
 
   def draw_pieces(self, plist, viewer, draw_pass):
     '''Draw the specified surface pieces in a view using the given draw pass.'''

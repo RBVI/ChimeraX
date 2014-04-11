@@ -392,18 +392,16 @@ class View(QtGui.QWindow):
 
     def draw_overlays(self, overlays):
 
-        i = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
-        from ..geometry import place
-        ip = place.identity()
         r = self.render
-        r.set_projection_matrix(i)
-        r.set_model_view_matrix(ip,ip)
+        r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
+        from ..geometry import place
+        cvinv = place.identity()
         r.enable_depth_test(False)
         for m in overlays:
-            m.draw(self, self.OPAQUE_DRAW_PASS)
+            m.draw(self, cvinv, self.OPAQUE_DRAW_PASS)
         r.enable_blending(True)
         for m in overlays:
-            m.draw(self, self.TRANSPARENT_DRAW_PASS)
+            m.draw(self, cvinv, self.TRANSPARENT_DRAW_PASS)
         r.enable_depth_test(True)
 
     OPAQUE_DRAW_PASS = 'opaque'
@@ -416,15 +414,9 @@ class View(QtGui.QWindow):
             self.draw_model(m, draw_pass, view_num, camera)
 
     def draw_model(self, m, draw_pass, view_num, camera):
+
         cvinv = camera.view_inverse(view_num)
-        r = self.render
-        if m.positions:
-            for p in m.positions:
-                r.set_model_view_matrix(cvinv, p)
-                m.draw(self, draw_pass)
-        else:
-            r.set_model_view_matrix(cvinv, m.position)
-            m.draw(self, draw_pass)
+        m.draw(self, cvinv, draw_pass)
 
     def update_level_of_detail(self):
         # Level of detail updating.
