@@ -1006,13 +1006,15 @@ class Volume(Surface):
   def first_intercept(self, mxyz1, mxyz2):
 
     if self.representation == 'solid':
-      from . import slice
-      xyz_in, xyz_out = slice.box_line_intercepts((mxyz1, mxyz2), self.xyz_bounds())
-      if xyz_in is None or xyz_out is None:
-        return None, None
-      from ..geometry.vector import norm
-      f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-      return f, None
+      ro = self.rendering_options
+      if not ro.box_faces and ro.orthoplanes_shown == (False,False,False):
+        from . import slice
+        xyz_in, xyz_out = slice.box_line_intercepts((mxyz1, mxyz2), self.xyz_bounds())
+        if xyz_in is None or xyz_out is None:
+          return None, None
+        from ..geometry.vector import norm
+        f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
+        return f, None
 
     return Surface.first_intercept(self, mxyz1, mxyz2)
 
