@@ -98,7 +98,7 @@ class Surface:
   def bounds(self):
     '''
     The bounds of all surface pieces including undisplayed ones in the
-    coordinate system of the surface.  Does not include copies.
+    coordinate system of the surface.  Includes surface piece copies but not surface copies.
     '''
     from ..geometry.bounds import union_bounds
     return union_bounds(p.bounds() for p in self.plist)
