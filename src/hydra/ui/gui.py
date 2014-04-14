@@ -338,9 +338,9 @@ class Log:
         self.html_text = ''
         self.thumbnail_size = 128       # Pixels
         self.keep_images = []
-    def show(self):
+    def show(self, toggle = True):
         mw = self.main_window
-        if mw.showing_text() and mw.text_id == 'log':
+        if mw.showing_text() and mw.text_id == 'log' and toggle:
             mw.show_graphics()
         else:
 #            mw.show_text(self.html_text, html = True, id = "log", open_links = True)
@@ -380,7 +380,7 @@ class Log:
         elines = tuple(cgi.escape(line) for line in lines)
         tb = '<p style="color:#A00000;">\n%s</p>' % '<br><br>'.join(elines)
         self.log_message(tb, html = True)
-        self.show()
+        self.show(toggle = False)
 
     def stdout_to_log(self):
         import sys
