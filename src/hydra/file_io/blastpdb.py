@@ -363,10 +363,101 @@ def sequence_residue_numbers(mmcif_path):
         f.close()
         return cr2s
 
+def mmcif_sequences(mmcif_path):
+        '''
+        Read an mmcif file to find how residue numbers map to sequence positions.
+        This is not available in PDB format.
+        '''
+        eps, sa = read_mmcif_tables(mmcif_path, ('_entity_poly_seq', '_struct_asym'))
+        if sa is None or eps is None:
+                print('Missing sequence info in mmCIF file %s (_entity_poly_seq and _struct_asym tables)' % mmcif_path)
+                return {}
+        ce = sa.mapping('id', 'entity_id')
+        es = eps.mapping('num', 'mon_id', foreach = 'entity_id')
+
+        eseq = {}
+        from ..molecule.residue_codes import res3to1
+        for eid, seq in es.items():
+                rnums = [int(i) for i in seq.keys()]
+                rnums.sort()
+                r0,r1 = rnums[0], rnums[-1]
+                if rnums != list(range(r0,r1+1)):
+                        from os.path import basename
+                        print(basename(mmcif_path), 'non-contiguous sequence for entity', eid, 'residue numbers', rnums)
+                        continue
+                eseq[eid] = (r0, ''.join(res3to1(seq[str(i)]) for i in rnums))
+
+        cseq = {}
+        for cid, eid in ce.items():
+                if eid in eseq:
+                        cseq[cid] = eseq[eid]
+        
+        return cseq
+
+def read_mmcif_tables(mmcif_path, table_names):
+        f = open(mmcif_path)
+        tables = {}
+        tname = None
+        while True:
+                line = f.readline()
+                if tname is None:
+                        if line == '':
+                                break
+                        for tn in table_names:
+                                if line.startswith(tn + '.'):
+                                        tname = tn
+                                        tags = [line.split('.')[1].strip()]
+                                        values = []
+                                        break
+                elif line.startswith(tname + '.'):
+                        tags.append(line.split('.')[1].strip())
+                elif line.startswith('#') or line == '':
+                        tables[tname] = mmCIF_Table(tname, tags, values)
+                        tname = None
+                else:
+                        values.append(line.split())
+        f.close()
+        tlist = [tables.get(tn, None) for tn in table_names]
+        return tlist
+
+class mmCIF_Table:
+        def __init__(self, table_name, tags, values):
+                self.table_name = table_name
+                self.tags = tags
+                self.values = values
+        def mapping(self, key_name, value_name, foreach = None):
+                t = self.tags
+                for n in (key_name, value_name, foreach):
+                        if n and not n in t:
+                                raise ValueError('Field "%s" not in table "%s", have fields %s' %
+                                                 (n, self.table_name, ', '.join(t)))
+                ki,vi = t.index(key_name), t.index(value_name)
+                if foreach:
+                        fi = t.index(foreach)
+                        m = {}
+                        for f in set(v[fi] for v in self.values):
+                                m[f] = dict((v[ki],v[vi]) for v in self.values if v[fi] == f)
+                else:
+                        m = dict((v[ki],v[vi]) for v in self.values)
+                return m
+
+def write_fasta(name, seq, file):
+        file.write('>%s\n%s\n' % (name, seq))
+
+def run_blastp(fasta_path, output_path):
+        # ../bin/blastp -db pdbaa -query 2v5z.fasta -outfmt 5 -out test.xml
+        blastdb = '/usr/local/ncbi/blast/db'
+        blastp = '/usr/local/ncbi/blast/bin/blastp'
+        cmd = 'env BLASTDB=%s %s -db pdbaa -query %s -outfmt 5 -out %s' % (blastdb, blastp, fasta_path, output_path)
+        print ('BLAST: %s' % cmd)
+        import os
+        os.system(cmd)
+
 def blast_command(cmdname, args, session):
 
-        from ..ui.commands import molecule_arg, parse_arguments
-        req_args = (('molecule', molecule_arg),)
+        from ..ui.commands import molecule_arg, string_arg, parse_arguments
+        req_args = (('molecule', molecule_arg),
+                    ('chain', string_arg),)
         opt_args = ()
         kw_args = ()
 
@@ -374,10 +465,18 @@ def blast_command(cmdname, args, session):
         kw['session'] = session
         blast(**kw)
 
-def blast(molecule, session):
+def blast(molecule, chain, session):
         # ../bin/blastp -db pdbaa -query 2v5z.fasta -outfmt 5 -out test.xml
-        path = '/usr/local/ncbi/blast/db/test.xml'
-        report_blast_results(molecule, path, session)
-#        path = '/Users/goddard/Downloads/Chimera/PDB/1GOS.cif'
-#        srn = sequence_residue_numbers(path)
-#        print (srn)
+        s = mmcif_sequences(molecule.path)
+        start,seq = s[chain]
+        from os.path import basename, splitext
+        prefix = splitext(basename(molecule.path))[0]
+        import tempfile
+        fasta_file = tempfile.NamedTemporaryFile('w', suffix = '.fasta', prefix = prefix+'_', delete = False)
+        sname = '%s %s' % (prefix, chain)
+        write_fasta(sname, seq, fasta_file)
+        fasta_file.close()
+        blast_output = splitext(fasta_file.name)[0] + '.xml'
+        run_blastp(fasta_file.name, blast_output)
+#        path = '/usr/local/ncbi/blast/db/test.xml'
+        report_blast_results(molecule, blast_output, session)
