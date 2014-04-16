@@ -64,12 +64,12 @@ class Molecule(Surface):
     a.add_molecules([self])
     return a
 
-  def draw(self, viewer, draw_pass):
+  def draw(self, viewer, camera_view, draw_pass):
     '''Draw the molecule using the current style.'''
 
     self.update_graphics(viewer)
 
-    Surface.draw(self, viewer, draw_pass)
+    Surface.draw(self, viewer, camera_view, draw_pass)
 
   def update_graphics(self, viewer):
 

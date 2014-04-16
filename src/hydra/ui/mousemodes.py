@@ -202,27 +202,35 @@ class Mouse_Modes:
 
     def translate(self, shift):
 
-        v = self.view
-        psize = v.pixel_size()
+        psize = self.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
+        v = self.view
         step = v.camera.view().apply_without_translation(s)    # Scene coord system
         v.translate(step, self.models())
 
     def mouse_zoom(self, event):        
 
         dx, dy = self.mouse_motion(event)
+        psize = self.pixel_size()
         v = self.view
-        psize = v.pixel_size()
         shift = v.camera.view().apply_without_translation((0, 0, 3*psize*dy))
         v.translate(shift)
 
     def wheel_zoom(self, event):        
 
         d = event.angleDelta().y()/120.0   # Usually one wheel click is delta of 120
+        psize = self.pixel_size()
         v = self.view
-        psize = v.pixel_size()
         shift = v.camera.view().apply_without_translation((0, 0, 100*d*psize))
         v.translate(shift)
+
+    def pixel_size(self, min_scene_frac = 1e-5):
+
+        v = self.view
+        psize = v.pixel_size()
+        c,r = v.session.bounds_center_and_width()
+        psize = max(psize, r*min_scene_frac)
+        return psize
 
     def mouse_select(self, event):
 

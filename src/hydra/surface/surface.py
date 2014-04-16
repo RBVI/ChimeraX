@@ -73,10 +73,15 @@ class Surface:
         return True
     return False
 
-  def draw(self, viewer, draw_pass, reverse_order = False):
+  def draw(self, viewer, camera_view, draw_pass, reverse_order = False, pieces = None):
     '''Draw all displayed surface pieces in the specified view using the given draw pass.'''
-    plist = self.plist[::-1] if reverse_order else self.plist
-    self.draw_pieces(plist, viewer, draw_pass)
+    plist = self.plist if pieces is None else pieces
+    if reverse_order:
+      plist = plist[::-1]
+    r = viewer.render
+    for p in self.positions:
+      r.set_model_view_matrix(camera_view, p)
+      self.draw_pieces(plist, viewer, draw_pass)
 
   def draw_pieces(self, plist, viewer, draw_pass):
     '''Draw the specified surface pieces in a view using the given draw pass.'''
@@ -93,7 +98,7 @@ class Surface:
   def bounds(self):
     '''
     The bounds of all surface pieces including undisplayed ones in the
-    coordinate system of the surface.  Does not include copies.
+    coordinate system of the surface.  Includes surface piece copies but not surface copies.
     '''
     from ..geometry.bounds import union_bounds
     return union_bounds(p.bounds() for p in self.plist)
@@ -188,6 +193,8 @@ class Surface_Piece:
 
     self.vao = None     	# Holds the buffer pointers and bindings
 
+    self.ignore_intercept = False       # Calls to first_intercept() return None if ignore_intercept is true.
+					# This is so outline boxes are not used for front-center rotation.
     self.was_deleted = False
 
     # Surface piece attribute name, shader variable name, instancing
@@ -445,6 +452,8 @@ class Surface_Piece:
     return the fraction of the distance along the segment where the intersection occurs
     or None if no intersection occurs.  Intercepts with masked triangle are included.
     '''
+    if self.ignore_intercept:
+      return None
     # TODO check intercept of bounding box as optimization
     # TODO handle surface piece shift_and_scale.
     f = None

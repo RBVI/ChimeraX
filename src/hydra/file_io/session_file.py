@@ -186,7 +186,7 @@ def initial_match_count(a,b):
 def scene_state(session):
   return session_state(session, attributes_only = True)
 def restore_scene(s, session):
-  set_session_state(s, session, attributes_only = True)
+  set_session_state(s, session, None, attributes_only = True)
 
 # -----------------------------------------------------------------------------
 #
