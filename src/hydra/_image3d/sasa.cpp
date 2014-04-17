@@ -731,10 +731,12 @@ static double estimate_buried_sphere_area(int i, const Index_List &iclose, doubl
       if (dij2 > (r+rj)*(r+rj))
 	continue;	// Spheres don't intersect.
       if (dij2 == 0 && rj == r)
-	if (j > i)
-	  continue;	// Identical spheres, only first is outside
-	else
-	  return 4*M_PI*r*r;	// Rest are entirely buried.
+	{
+	  if (j > i)
+	    continue;	// Identical spheres, only first is outside
+	  else
+	    return 4*M_PI*r*r;	// Rest are entirely buried.
+	}
       double r2 = rj*rj;
       for (int k = 0 ; k < np ; ++k)
 	if (!ibuf[k])
