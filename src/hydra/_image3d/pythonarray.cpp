@@ -421,7 +421,7 @@ static PyObject *allocate_python_array(int dim, int *size, int type)
 	s *= size[a];
       PyErr_Format(PyExc_MemoryError,  "%s array allocation of size %ld, dimension %d, value type %d failed",
 		   numpy_type_name(type), s, dim, type);
-      return false;
+      return NULL;
     }
   return a;
 }
@@ -444,7 +444,7 @@ static PyObject *allocate_python_array(int dim, int *size, PyArray_Descr *dtype)
 	s *= size[a];
       PyErr_Format(PyExc_MemoryError,  "array allocation of size %ld, dimension %d, value type %c failed",
 		   s, dim, dtype->type);
-      return false;
+      return NULL;
     }
   return a;
 }
