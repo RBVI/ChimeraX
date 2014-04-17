@@ -11,6 +11,7 @@
 
 #define MAX_CHAR_ELEMENT_NAME 4
 #define MAX_CHAR_ATOM_NAME 4
+#define MAX_CHAR_ALT_LOC 1
 #define MAX_CHAR_RES_NAME 4
 #define MAX_CHAR_CHAIN_ID 4
 
@@ -19,14 +20,23 @@ class Atom
 public:
   Atom()
   {
-    memset(atom_name, 0, MAX_CHAR_ELEMENT_NAME);
+    memset(element_name, 0, MAX_CHAR_ELEMENT_NAME);
     memset(atom_name, 0, MAX_CHAR_ATOM_NAME);
+    memset(alt_loc, 0, MAX_CHAR_ALT_LOC);
     memset(residue_name, 0, MAX_CHAR_RES_NAME);
     memset(chain_id, 0, MAX_CHAR_CHAIN_ID);
     model_num = 1;
   }
+  bool same_atom(const Atom &a) const
+  {
+    return (residue_num == a.residue_num &&
+	    strncmp(atom_name, a.atom_name, MAX_CHAR_ATOM_NAME) == 0 &&
+	    strncmp(residue_name, a.residue_name, MAX_CHAR_RES_NAME) == 0 &&
+	    strncmp(chain_id, a.chain_id, MAX_CHAR_CHAIN_ID) == 0);
+  }
   char element_name[MAX_CHAR_ELEMENT_NAME];
   char atom_name[MAX_CHAR_ATOM_NAME];
+  char alt_loc[MAX_CHAR_ALT_LOC];
   char residue_name[MAX_CHAR_RES_NAME];
   char chain_id[MAX_CHAR_CHAIN_ID];
   int residue_num;
@@ -37,7 +47,7 @@ public:
 class Atom_Site_Columns
 {
 public:
-  Atom_Site_Columns() : type_symbol(-1), label_atom_id(-1), label_comp_id(-1),
+  Atom_Site_Columns() : type_symbol(-1), label_atom_id(-1), label_alt_id(-1), label_comp_id(-1),
 			label_asym_id(-1), Cartn_x(-1), Cartn_y(-1), Cartn_z(-1),
 			model_num(-1), max_column(-1)
   {}
@@ -48,6 +58,7 @@ public:
   }
   int type_symbol;
   int label_atom_id;
+  int label_alt_id;
   int label_comp_id;
   int label_asym_id;
   int label_seq_id;
@@ -78,14 +89,17 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<Atom> &atoms)
       std::cerr << "Missing atom_site columns\n";
       return false;
     }
-  while (strncmp(line, "ATOM", 4) == 0 || strncmp(line, "HETATM", 6) == 0)
+  for ( ; strncmp(line, "ATOM", 4) == 0 || strncmp(line, "HETATM", 6) == 0 ; line = next_line(line))
     {
       Atom a;
       parse_atom_site_line(line, a, fields);
       if (a.model_num > 1)
-	break;	// TODO: Handle more than one model.
+	break;	// TODO: Currently skip all but first model.
+      if (atoms.size() > 0 &&
+	  strncmp(a.alt_loc, atoms.back().alt_loc, MAX_CHAR_ALT_LOC) != 0 &&
+	  a.same_atom(atoms.back()))
+	continue;	// TODO: Currently skipping alternate locations.
       atoms.push_back(a);
-      line = next_line(line);
     }
   return true;
 }
@@ -106,6 +120,7 @@ static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_C
       const char *colname = line + 11;
       if (strncmp(colname, "type_symbol", 11) == 0) { f.type_symbol = c; cmax = max(c,cmax); }
       else if (strncmp(colname, "label_atom_id", 13) == 0) { f.label_atom_id = c; cmax = max(c,cmax); }
+      else if (strncmp(colname, "label_alt_id", 12) == 0) { f.label_alt_id = c; cmax = max(c,cmax); }
       else if (strncmp(colname, "label_comp_id", 13) == 0) { f.label_comp_id = c; cmax = max(c,cmax); }
       else if (strncmp(colname, "label_asym_id", 13) == 0) { f.label_asym_id = c; cmax = max(c,cmax); }
       else if (strncmp(colname, "label_seq_id", 12) == 0) { f.label_seq_id = c; cmax = max(c,cmax); }
@@ -136,6 +151,9 @@ static bool parse_atom_site_line(const char *line, Atom &a, Atom_Site_Columns &f
       else if (c == f.label_atom_id)
 	for (int i = 0 ; i < fl && i < MAX_CHAR_ATOM_NAME ; ++i)
 	  a.atom_name[i] = line[i];
+      else if (c == f.label_alt_id)
+	for (int i = 0 ; i < fl && i < MAX_CHAR_ALT_LOC ; ++i)
+	  a.alt_loc[i] = line[i];
       else if (c == f.label_comp_id)
 	for (int i = 0 ; i < fl && i < MAX_CHAR_RES_NAME ; ++i)
 	  a.residue_name[i] = line[i];
