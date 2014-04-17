@@ -3,7 +3,10 @@ _GapChars = "-. "
 class Blast_Output_Parser:
         """Parser for XML output from blastp (tested against version 2.2.29+)."""
 
-        def __init__(self, xmlText):
+        def __init__(self, name, xmlText):
+
+                self.name = name
+
                 # Bookkeeping data
                 self.matches = []
                 self.matchDict = {}
@@ -219,6 +222,121 @@ class Match:
                 print >> f, self
                 self.printSequence(f, '')
 
+        def load_structures(self, session, mmcif_dir):
+
+                mols = []
+                for id,chains,desc in self.chains():
+                        m = load_mmcif(id, session, mmcif_dir)
+                        if m:
+                                m.blast_match = self
+                                m.blast_match_chains = chains
+                                mols.append(m)
+                return mols
+
+        # Map hit residue number to query residue number.  One is first character in sequence.
+        def residue_number_map(self):
+                rmap = {}
+                hs, qs = self.hSeq, self.qSeq
+                h, q = self.hStart+1, self.qStart+1
+                n = min(len(hs), len(qs))
+                for i in range(n):
+                        hstep = 0 if hs[i] in _GapChars else 1
+                        qstep = 0 if qs[i] in _GapChars else 1
+                        if hstep and qstep:
+                                rmap[h] = q
+                        h += hstep
+                        q += qstep
+                return rmap
+
+def check_hit_sequences_match_mmcif_sequences(mols):
+
+        for m in mols:
+                ma = m.blast_match
+                chains = m.blast_match_chains
+
+                # Compute gapless hit sequence from match
+                hseq = ma.hSeq
+                for c in _GapChars:
+                        hseq = hseq.replace(c,'')
+                hseq = '.'*ma.hStart + hseq
+
+                # Using mmcif files the residue number (label_seq_id) is the index into the sequence.
+                # This is not true of PDB files.
+                for cid in chains:
+                        cseq = chain_sequence(m, cid)
+                        # Check that hit sequence matches PDB sequence
+                        if not sequences_match(hseq,cseq):
+                                print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
+
+def report_match_metrics(molecule, chain, mols):
+        qres = residue_number_to_name(molecule, chain)
+        qatoms = molecule.atom_subset('CA', chain)
+        qrnum = set(qres.keys())
+        for m in mols:
+                ma = m.blast_match
+                chains = m.blast_match_chains
+                rmap = ma.residue_number_map()
+                for cid in chains:
+                        mres = residue_number_to_name(m, cid)
+                        if len(mres) == 0:
+                                # TODO: This indicates that mmCIF uses a different chain identifier
+                                # from the PDB file. The blast database is using the PDB chain identifier.
+                                print ('Warning: mmCIF %s has no chain sequence %s' % (m.name, cid))
+                                continue
+                        pairs = eqpairs = 0
+                        for hi,qi in rmap.items():
+                                if hi in mres and qi in qres:
+                                        pairs += 1
+                                        if mres[hi] == qres[qi]:
+                                                eqpairs += 1
+#                        print ('%s %s %d %d' % (m.name, cid, pairs, eqpairs))
+#                        print ('%s\n%s' % (ma.qSeq, ma.hSeq))
+
+                        # TODO: Need hit and query CA atoms that are matched and exist in hit/query structures.
+                        hatoms = m.atom_subset('CA', cid)
+                        hpres = set(r for r in mres.keys() if r in rmap and rmap[r] in qrnum)
+                        hpatoms = hatoms.subset([i for i,r in enumerate(hatoms.residue_numbers()) if r in hpres])
+                        qpres = set(rmap[r] for r in hpres)
+                        qpatoms = qatoms.subset([i for i,r in enumerate(qatoms.residue_numbers()) if r in qpres])
+
+                        if hpatoms.count() != qpatoms.count():
+                                print (m.name, cid, hpatoms.count(), qpatoms.count(), len(rmap))
+                                print (hpatoms.names())
+                                print (qpatoms.names())
+                                continue
+
+                        from ..molecule import align
+                        tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
+                        print ('%s %s rmsd %.2f, paired residues %d, identity %.0f%%'
+                               % (m.name, cid, rmsd, pairs, 100.0*eqpairs/pairs))
+
+def residue_number_to_name(mol, chain_id):
+        atoms = mol.atom_subset('CA', chain_id)
+        rnums = atoms.residue_numbers()
+        rnames = atoms.residue_names()
+        return dict(zip(rnums, rnames))
+
+def chain_sequence(mol, chain_id):
+        atoms = mol.atom_subset('CA', chain_id)
+        if atoms.count() == 0:
+                return ''
+        rnums = atoms.residue_numbers()
+        rnames = atoms.residue_names()
+        nr = rnums.max()
+        seq = ['.']*nr
+        from ..molecule.residue_codes import res3to1
+        for i,n in zip(rnums,rnames):
+                seq[i-1] = res3to1(n.tostring().decode('utf-8'))
+        cseq = ''.join(seq)
+        return cseq
+
+def sequences_match(s, seq):
+        n = min(len(s), len(seq))
+        for i in range(n):
+                if s[i] != seq[i] and s[i] != '.' and s[i] != 'X' and seq[i] != '.' and seq[i] != 'X':
+                        return False
+        return True
+
 def split_description(desc):
         ds = []
         d = desc
@@ -231,20 +349,20 @@ def split_description(desc):
         ds.append(d)
         return ds
 
-def load_pdb(id, session, dbdir = '/usr/local/pdb'):
+def load_pdb(id, session, pdb_dir = '/usr/local/pdb'):
 
         from os.path import join, exists
-        p = join(dbdir, id[1:3].lower(), 'pdb%s.ent' % id.lower())
+        p = join(pdb_dir, id[1:3].lower(), 'pdb%s.ent' % id.lower())
         if not exists(p):
                 return None
         from . import pdb
         m = pdb.open_pdb_file(p, session)
         return m
 
-def load_mmcif(id, session, dbdir = '/usr/local/mmCIF'):
+def load_mmcif(id, session, mmcif_dir):
 
         from os.path import join, exists
-        p = join(dbdir, id[1:3].lower(), '%s.cif' % id.lower())
+        p = join(mmcif_dir, id[1:3].lower(), '%s.cif' % id.lower())
         if not exists(p):
                 return None
         from . import pdb
@@ -264,62 +382,17 @@ def pdb_residue_numbering(path):
         f.close()
         return rnum
 
-def report_blast_results(mol, xml_path, session):
-        f = open(xml_path)
-        xml_text = f.read()
-        f.close()
-
-        p = Blast_Output_Parser(xml_text)
-        np = sum(len(m.chains()) for m in p.matches)
-        nc = sum(sum(len(c) for id,c,desc in m.chains()) for m in p.matches)
-        print ('%s %d matches, %d pdbs, %d chains' % (mol.name, len(p.matches), np, nc))
-#        for m in p.matches:
-#                print(m.score)
-#                for id,chains,desc in m.chains():
-#                        print(' ', id, chains, desc)
-
-        mols = []
-        for match in p.matches:
-                for id,chains,desc in match.chains():
-                        m = load_mmcif(id, session)
-                        if m:
-#                                csnum = sequence_residue_numbers(m.path)
-#                                m.chain_first_residue_number = rnum = pdb_residue_numbering(m.path)
-                                mols.append(m)
-                                from ..molecule.residue_codes import res3to1
-                                hseq = match.hSeq
-                                for c in _GapChars:
-                                        hseq = hseq.replace(c,'')
-                                hseq = '.'*match.hStart + hseq
-                                for cid in chains:
-                                        atoms = m.atom_subset('CA', cid)
-                                        rnums = atoms.residue_numbers()
-                                        rnames = atoms.residue_names()
-                                        rseq = [res3to1(nm.tostring().decode('utf-8')) for nm in rnames]
-#                                        if not cid in csnum:
-#                                                print('No sequence numbering info %s, chain %s' % (m.name, cid))
-#                                                continue
-#                                        snum = csnum[cid]
-#                                        roff = rnum.get(cid,1) + match.hStart   # Residue number for start of hit sequence
-                                        hlen = len(hseq)
-                                        # Check that hit sequence matches PDB sequence
-#                                        print ('sm', len(hseq), rnums)
-#                                        hs = [hseq[i-roff] for i in rnums if i-roff < hlen]
-#                                        sm = sum(rn == hseq[i-roff] for i,rn in zip(rnums,rseq) if i-roff < hlen)
-#                                        hs = [hseq[snum[i]-1] for i in rnums if snum[i] <= hlen]
-#                                        sm = sum(rn == hseq[snum[i]-1] for i,rn in zip(rnums,rseq) if snum[i] <= hlen)
-                                        hs = [hseq[i-1] for i in rnums if i <= hlen]
-                                        sm = sum((i > hlen or rn == hseq[i-1] or hseq[i-1] == '.' or hseq[i-1] == 'X')
-                                                 for i,rn in zip(rnums,rseq))
-                                        if sm != len(rnums):
-                                                print (m.name, cid, len(rnums), sm)
-                                                print (''.join(rseq))
-                                                print (''.join(hs))
-#                                                print (rnums[0], roff, match.hStart, match.hEnd, len(rseq))
-                                                print (rnums[0], match.hStart, match.hEnd, len(rseq))
-                                                print (hseq)
-                                                
-#                                print (m.name, len(m.xyz))
+def summarize_results(results):
+        r = results
+        np = sum(len(m.chains()) for m in r.matches)
+        nc = sum(sum(len(c) for id,c,desc in m.chains()) for m in r.matches)
+        lines = ['%s %d matches, %d pdbs, %d chains' % (results.name, len(r.matches), np, nc)]
+        for m in r.matches:
+                lines.append('%d' % m.score)
+                for id,chains,desc in m.chains():
+                        lines.append(' %s %s %s' % (id, ','.join(chains), desc))
+        msg = '\n'.join(lines)
+        return msg
 
 def sequence_residue_numbers(mmcif_path):
         '''
@@ -444,14 +517,18 @@ class mmCIF_Table:
 def write_fasta(name, seq, file):
         file.write('>%s\n%s\n' % (name, seq))
 
-def run_blastp(fasta_path, output_path):
+def run_blastp(name, fasta_path, output_path, blast_program, blast_database):
         # ../bin/blastp -db pdbaa -query 2v5z.fasta -outfmt 5 -out test.xml
-        blastdb = '/usr/local/ncbi/blast/db'
-        blastp = '/usr/local/ncbi/blast/bin/blastp'
-        cmd = 'env BLASTDB=%s %s -db pdbaa -query %s -outfmt 5 -out %s' % (blastdb, blastp, fasta_path, output_path)
-        print ('BLAST: %s' % cmd)
+        cmd = ('env BLASTDB=%s %s -db pdbaa -query %s -outfmt 5 -out %s' %
+               (blast_database, blast_program, fasta_path, output_path))
+        print (cmd)
         import os
         os.system(cmd)
+        f = open(output_path)
+        xml_text = f.read()
+        f.close()
+        results = Blast_Output_Parser(name, xml_text)
+        return results
 
 def blast_command(cmdname, args, session):
 
@@ -459,14 +536,20 @@ def blast_command(cmdname, args, session):
         req_args = (('molecule', molecule_arg),
                     ('chain', string_arg),)
         opt_args = ()
-        kw_args = ()
+        kw_args = (('blastProgram', string_arg),
+                   ('blastDatabase', string_arg),
+                   ('mmcifDirectory', string_arg),)
 
         kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
         kw['session'] = session
         blast(**kw)
 
-def blast(molecule, chain, session):
-        # ../bin/blastp -db pdbaa -query 2v5z.fasta -outfmt 5 -out test.xml
+def blast(molecule, chain, session,
+          blastProgram = '/usr/local/ncbi/blast/bin/blastp',
+          blastDatabase = '/usr/local/ncbi/blast/db',
+          mmcifDirectory = '/usr/local/mmCIF'):
+
+        # Write FASTA sequence file for molecule
         s = mmcif_sequences(molecule.path)
         start,seq = s[chain]
         from os.path import basename, splitext
@@ -476,7 +559,13 @@ def blast(molecule, chain, session):
         sname = '%s %s' % (prefix, chain)
         write_fasta(sname, seq, fasta_file)
         fasta_file.close()
+
+        # Run blastp standalone program and parse results
         blast_output = splitext(fasta_file.name)[0] + '.xml'
-        run_blastp(fasta_file.name, blast_output)
-#        path = '/usr/local/ncbi/blast/db/test.xml'
-        report_blast_results(molecule, blast_output, session)
+        results = run_blastp(molecule.name, fasta_file.name, blast_output, blastProgram, blastDatabase)
+        print (summarize_results(results))
+
+        # Load matching structures and report match metrics
+        mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
+        check_hit_sequences_match_mmcif_sequences(mols)
+        report_match_metrics(molecule, chain, mols)
