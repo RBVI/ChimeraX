@@ -23,6 +23,7 @@ public:
     memset(atom_name, 0, MAX_CHAR_ATOM_NAME);
     memset(residue_name, 0, MAX_CHAR_RES_NAME);
     memset(chain_id, 0, MAX_CHAR_CHAIN_ID);
+    model_num = 1;
   }
   char element_name[MAX_CHAR_ELEMENT_NAME];
   char atom_name[MAX_CHAR_ATOM_NAME];
@@ -30,6 +31,7 @@ public:
   char chain_id[MAX_CHAR_CHAIN_ID];
   int residue_num;
   float x, y, z;
+  int model_num;
 };
 
 class Atom_Site_Columns
@@ -37,7 +39,7 @@ class Atom_Site_Columns
 public:
   Atom_Site_Columns() : type_symbol(-1), label_atom_id(-1), label_comp_id(-1),
 			label_asym_id(-1), Cartn_x(-1), Cartn_y(-1), Cartn_z(-1),
-			max_column(-1)
+			model_num(-1), max_column(-1)
   {}
   bool found_all_columns()
   { return (type_symbol != -1 && label_atom_id != -1 && label_comp_id != -1 &&
@@ -52,6 +54,7 @@ public:
   int Cartn_x;
   int Cartn_y;
   int Cartn_z;
+  int model_num;
   int max_column;
 };
 
@@ -79,6 +82,8 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<Atom> &atoms)
     {
       Atom a;
       parse_atom_site_line(line, a, fields);
+      if (a.model_num > 1)
+	break;	// TODO: Handle more than one model.
       atoms.push_back(a);
       line = next_line(line);
     }
@@ -107,6 +112,7 @@ static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_C
       else if (strncmp(colname, "Cartn_x", 7) == 0 && isspace(colname[7])) { f.Cartn_x = c; cmax = max(c,cmax); }
       else if (strncmp(colname, "Cartn_y", 7) == 0 && isspace(colname[7])) { f.Cartn_y = c; cmax = max(c,cmax); }
       else if (strncmp(colname, "Cartn_z", 7) == 0 && isspace(colname[7])) { f.Cartn_z = c; cmax = max(c,cmax); }
+      else if (strncmp(colname, "pdbx_PDB_model_num", 18) == 0) { f.model_num = c; cmax = max(c,cmax); }
       c += 1;
       line = next_line(line);
     }
@@ -144,6 +150,8 @@ static bool parse_atom_site_line(const char *line, Atom &a, Atom_Site_Columns &f
 	a.y = strtof(line, NULL);
       else if (c == f.Cartn_z)
 	a.z = strtof(line, NULL);
+      else if (c == f.model_num)
+	a.model_num = strtol(line, NULL, 10);
       if (c >= f.max_column)
 	break;
     }
