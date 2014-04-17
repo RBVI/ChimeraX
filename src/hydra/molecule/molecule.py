@@ -670,8 +670,24 @@ class Atoms:
         resnums.append(m.residue_nums[a])
     if len(resnums) == 1:
         return resnums[0]
+    elif len(resnums) == 0:
+        import numpy
+        return numpy.zeros((0,), numpy.int32)
     import numpy
     return numpy.concatenate(resnums)
+
+  def residue_names(self):
+    '''Return a numpy array of residue names for each atom.'''
+    resnames = []
+    for m,a in self.molatoms:
+        resnames.append(m.residue_names[a])
+    if len(resnames) == 1:
+        return resnames[0]
+    elif len(resnames) == 0:
+        import numpy
+        return numpy.zeros((0,), 'S4')
+    import numpy
+    return numpy.concatenate(resnames)
 
   def subset(self, indices):
     '''
