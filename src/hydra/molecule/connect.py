@@ -10,7 +10,7 @@ def molecule_bonds(molecule, session):
     t0 = time()
     bonds, missing = bond_templates.molecule_bonds(molecule)
     t1 = time()
-    print('Computed', len(bonds), 'bonds for', molecule.name, 'in', '%.3f' % (t1-t0), 'seconds', missing, 'missing templates')
+#    print('Computed', len(bonds), 'bonds for', molecule.name, 'in', '%.3f' % (t1-t0), 'seconds', missing, 'missing templates')
     
     missing_temp = bond_templates.missing_templates(molecule) if missing > 0 else []
     return bonds, missing_temp
