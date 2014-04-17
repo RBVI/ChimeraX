@@ -89,7 +89,7 @@ def oppositely_directed_line(line):
 def box_entry_point(line, xyz_region):
 
   xyz1, xyz2 = line
-  p, d = xyz1, [a-b for a,b in zip(xyz2,xyz1)]
+  p, d = xyz1, xyz2-xyz1
   xyz_min, xyz_max = xyz_region
   planes = (((1,0,0), xyz_min[0]), ((-1,0,0), -xyz_max[0]),
             ((0,1,0), xyz_min[1]), ((0,-1,0), -xyz_max[1]),
@@ -98,7 +98,7 @@ def box_entry_point(line, xyz_region):
     nd = inner_product(n, d)
     if nd > 0:
       t = (c - inner_product(n,p)) / nd
-      xyz = tuple(a + t*b for a,b in zip(p, d))
+      xyz = p + t*d
       outside = False
       for n2, c2 in planes:
         if n2 != n or c2 != c:
@@ -160,7 +160,7 @@ def nearest_volume_face(line, session):
     for v in volume_list(session):
         if v.shown():
           ijk, axis, side = face_intercept(v, line)
-          if ijk:
+          if not ijk is None:
             xyz = v.ijk_to_global_xyz(ijk)
             z = line_position(xyz, line)
             if zmin is None or z < zmin:
@@ -184,7 +184,7 @@ def face_intercept(v, line):
         zmin = z
   else:
     ijk_in, ijk_out = volume_index_segment(v, line)
-    if ijk_in:
+    if not ijk_in is None:
       xyz = v.ijk_to_global_xyz(ijk_in)
       z = line_position(xyz, line)
       if zmin is None or z > zmin:

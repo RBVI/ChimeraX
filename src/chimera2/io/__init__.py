@@ -100,7 +100,7 @@ class _FileFormatInfo:
 	
 		function that opens files: func(stream, identify_as=None)
 
-	..attribute:: requires_seekable
+	..attribute:: requires_seeking
 	
 		True if open function needs seekable files
 
@@ -126,7 +126,7 @@ class _FileFormatInfo:
 		self.dangerous = dangerous
 
 		self.open_func = None
-		self.requires_seekable = False
+		self.requires_seeking = False
 		self.fetch_func = None
 		self.save_func = None
 		self.save_notes = None
@@ -171,7 +171,7 @@ def register_format(name, category, extensions, prefixes=(), mime=(), reference=
 		mime = ()
 	ff = _file_formats[name] = _FileFormatInfo(category, exts, prefixes,
 			mime, reference, dangerous)
-	for attr in ['open_func', 'requires_seekable', 'fetch_func',
+	for attr in ['open_func', 'requires_seeking', 'fetch_func',
 			'save_func', 'save_notes']:
 		if attr in kw:
 			setattr(ff, attr, kw[attr])

@@ -41,6 +41,8 @@ def register_commands(commands):
     add('lighting', lightcmd.lighting_command)
     from . import gui
     add('windowsize', gui.window_size_command)
+    from ..file_io import blastpdb
+    add('blast', blastpdb.blast_command)
 
 # -----------------------------------------------------------------------------
 #

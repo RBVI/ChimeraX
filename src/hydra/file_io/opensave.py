@@ -373,7 +373,7 @@ def read_python(path, session):
     code = f.read()
     f.close()
     ccode = compile(code, path, 'exec')
-    globals = locals = None
+    globals = locals = {}
     exec(ccode, globals, locals)
     return []
 

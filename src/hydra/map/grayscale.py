@@ -102,7 +102,7 @@ class Gray_Scale_Drawing:
   def texture_matrix(self):	# Maps local coordinates to texture coords.
     pass
 
-  def draw(self, viewer, draw_pass):
+  def draw(self, viewer, camera_view, draw_pass):
 
     dopaq = (draw_pass == viewer.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
     dtransp = (draw_pass == viewer.TRANSPARENT_DRAW_PASS and 'a' in self.color_mode)
@@ -123,7 +123,7 @@ class Gray_Scale_Drawing:
     plist = spieces[::-1] if reverse else spieces
 
     from ..surface import Surface
-    self.surface.draw_pieces(plist, viewer, draw_pass)
+    Surface.draw(self.surface, viewer, camera_view, draw_pass, pieces = plist)
 
   def show(self):
 
