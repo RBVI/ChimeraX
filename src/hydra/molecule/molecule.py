@@ -785,3 +785,27 @@ class Atom_Selection:
     return self.molecule.atom_index_description(self.atom)
   def models(self):
     return [self.molecule]
+
+# -----------------------------------------------------------------------------
+#
+def residue_number_to_name(mol, chain_id):
+  atoms = mol.atom_subset('CA', chain_id)
+  rnums = atoms.residue_numbers()
+  rnames = atoms.residue_names()
+  return dict(zip(rnums, rnames))
+
+# -----------------------------------------------------------------------------
+#
+def chain_sequence(mol, chain_id):
+  atoms = mol.atom_subset('CA', chain_id)
+  if atoms.count() == 0:
+    return ''
+  rnums = atoms.residue_numbers()
+  rnames = atoms.residue_names()
+  nr = rnums.max()
+  seq = ['.']*nr
+  from .residue_codes import res3to1
+  for i,n in zip(rnums,rnames):
+    seq[i-1] = res3to1(n.tostring().decode('utf-8'))
+  cseq = ''.join(seq)
+  return cseq
