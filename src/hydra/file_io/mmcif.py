@@ -23,6 +23,11 @@ def open_mmcif_file(path, session):
 #  session.show_info('Read %s %d atoms\n' % (basename(path), len(xyz)))
   from ..molecule import Molecule
   m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
+
+  from ..molecule import connect
+  bonds, missing = connect.molecule_bonds(m, session)
+  m.bonds = bonds
+
   return m
 
 def load_mmcif_local(id, session, mmcif_dir):
