@@ -66,7 +66,8 @@ class Blast_Output_Parser:
   def _extractHit(self, he):
     hid = self._text(he, "Hit_id")
     hdef = self._text(he, "Hit_def")
-    desc = '>%s %s' % (hid, hdef)
+#    desc = '>%s %s' % (hid, hdef)
+    desc = hdef
     for hspe in he.findall("./Hit_hsps/Hsp"):
       self._extractHSP(hspe, desc)
 
@@ -105,32 +106,28 @@ class Match:
     return ' '.join('%s %s' % (id, ','.join(c)) for id,c,desc in self.pdb_chains())
 
   def pdb_chains(self):
-    '''Return PDB chains for this match as a list of 3-tuples, containing pdb id, list of chain ids, and pdb description.'''
+    '''Return PDB chains for this match as a list of 3-tuples,
+    containing pdb id, list of chain ids, and pdb description.'''
 
     pdbs = {}
-    for d in divide_string(self.description, '>gi'):
-      j = d.find('|pdb|')
-      if j != -1:
-        pdb_id = d[j+5:j+9]
-        cid = d[j+10:j+11]
-        desc = d[j+21:].strip()
-        if pdb_id in pdbs:
-          pdbs[id][0].append(c)
-        else:
-          pdbs[id] = ([cid],desc)
+    for pc in self.description.split('|'):
+      pdb_id, chains, desc = pc.split(maxsplit = 2)
+      cids = chains.split(',')
+      pdbs[pdb_id] = (cids,desc)
 
-    pcd = [(id,c,desc) for id,(c,desc) in pdbs.items()]
+    pcd = [(pdb_id,c,desc) for pdb_id,(c,desc) in pdbs.items()]
     pcd.sort()
     return pcd
 
   def load_structures(self, session, mmcif_dir):
     mols = []
     from . import mmcif
-    for id,chains,desc in self.pdb_chains():
-      m = mmcif.load_mmcif_local(id, session, mmcif_dir)
+    for pdb_id,chains,desc in self.pdb_chains():
+      m = mmcif.load_mmcif_local(pdb_id, session, mmcif_dir)
       if m:
         m.blast_match = self
         m.blast_match_chains = chains
+        m.blast_match_description = desc
         mols.append(m)
     return mols
 
@@ -175,11 +172,12 @@ def report_match_metrics(molecule, chain, mols):
   qres = residue_number_to_name(molecule, chain)
   qatoms = molecule.atom_subset('CA', chain)
   qrnum = set(qres.keys())
+  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   for m in mols:
     ma = m.blast_match
     chains = m.blast_match_chains
     rmap = ma.residue_number_map()
-    for cid in chains:
+    for c,cid in enumerate(chains):
       mres = residue_number_to_name(m, cid)
       if len(mres) == 0:
         # TODO: This indicates that mmCIF uses a different chain identifier
@@ -211,8 +209,13 @@ def report_match_metrics(molecule, chain, mols):
 
       from ..molecule import align
       tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
-      print ('%s %s rmsd %.2f, paired residues %d, identity %.0f%%'
-             % (m.name, cid, rmsd, pairs, 100.0*eqpairs/pairs))
+      name = m.name[:-4] if m.name.endswith('.cif') else m.name
+      desc = m.blast_match_description if c == 0 else ''
+      lines.append('%4s %3s %7.2f %5d %5.0f   %5d %5.0f  %5d    %s'
+                   % (name, cid, rmsd, pairs, 100*float(pairs)/len(qres),
+                      eqpairs, 100.0*eqpairs/pairs, ma.score, desc))
+
+  print('\n'.join(lines))
 
 def sequences_match(s, seq):
   n = min(len(s), len(seq))
@@ -223,24 +226,25 @@ def sequences_match(s, seq):
 
 def divide_string(s, prefix):
   ds = []
-  s = 0
+  i = 0
   while True:
-    e = desc.find(prefix,s+1)
+    e = s.find(prefix,i+1)
     if e == -1:
-      ds.append(desc[s:])
+      ds.append(s[i:])
       break
-    ds.append(d[s:e])
+    ds.append(s[i:e])
+    i = e
   return ds
 
 def summarize_results(results):
   r = results
   np = sum(len(m.pdb_chains()) for m in r.matches)
   nc = sum(sum(len(c) for id,c,desc in m.pdb_chains()) for m in r.matches)
-  lines = ['%s %d matches, %d pdbs, %d chains' % (results.name, len(r.matches), np, nc)]
-  for m in r.matches:
-    lines.append('%d' % m.score)
-    for id,chains,desc in m.pdb_chains():
-      lines.append(' %s %s %s' % (id, ','.join(chains), desc))
+  lines = ['%s %d sequence matches, %d PDBs, %d chains' % (results.name, len(r.matches), np, nc)]
+#  for m in r.matches:
+#    lines.append('%d' % m.score)
+#    for id,chains,desc in m.pdb_chains():
+#      lines.append(' %s %s %s' % (id, ','.join(chains), desc))
   msg = '\n'.join(lines)
   return msg
 
@@ -252,17 +256,22 @@ def create_fasta_database(mmcif_dir):
   from . import mmcif
   for dir2 in listdir(mmcif_dir):
     d2 = path.join(mmcif_dir,dir2)
-    if dir2 == '00' and path.isdir(d2):
+    if path.isdir(d2):
+      print(dir2)
       for ciffile in listdir(d2):
         if ciffile.endswith('.cif'):
           cifpath = path.join(d2, ciffile)
           cseq = mmcif.mmcif_sequences(cifpath)
           pdb_id = ciffile[:4]
-          for cid, (start,seq) in cseq.items():
-            seq_ids.setdefault(seq,{}).setdefault(pdb_id, []).append(cid)
+          for cid, (start,seq,desc) in cseq.items():
+            pt = seq_ids.setdefault(seq,{})
+            if pdb_id in pt:
+              pt[pdb_id][0].append(cid)
+            else:
+              pt[pdb_id] = ([cid],desc)
   lines = []
   for seq, ids in seq_ids.items():
-    lines.append('>%s' % '|'.join('%s %s' % (id, ','.join(cids)) for id,cids in ids.items()))
+    lines.append('>%s' % '|'.join('%s %s %s' % (id, ','.join(sorted(cids)), desc) for id,(cids,desc) in ids.items()))
     lines.append(seq)
   fa = '\n'.join(lines)
   return fa
@@ -272,8 +281,10 @@ def write_fasta(name, seq, file):
 
 def run_blastp(name, fasta_path, output_path, blast_program, blast_database):
   # ../bin/blastp -db pdbaa -query 2v5z.fasta -outfmt 5 -out test.xml
-  cmd = ('env BLASTDB=%s %s -db pdbaa -query %s -outfmt 5 -out %s' %
-         (blast_database, blast_program, fasta_path, output_path))
+  from os.path import dirname, basename
+  dbdir, dbname = dirname(blast_database), basename(blast_database)
+  cmd = ('env BLASTDB=%s %s -db %s -query %s -outfmt 5 -out %s' %
+         (dbdir, blast_program, dbname, fasta_path, output_path))
   print (cmd)
   import os
   os.system(cmd)
@@ -299,16 +310,13 @@ def blast_command(cmdname, args, session):
 
 def blast(molecule, chain, session,
           blastProgram = '/usr/local/ncbi/blast/bin/blastp',
-          blastDatabase = '/usr/local/ncbi/blast/db',
+          blastDatabase = '/usr/local/ncbi/blast/db/mmcif',
           mmcifDirectory = '/usr/local/mmCIF'):
-
-#  print(create_fasta_database('/usr/local/mmCIF'))
-#  return
 
   # Write FASTA sequence file for molecule
   from . import mmcif
   s = mmcif.mmcif_sequences(molecule.path)
-  start,seq = s[chain]
+  start,seq,desc = s[chain]
   from os.path import basename, splitext
   prefix = splitext(basename(molecule.path))[0]
   import tempfile
@@ -320,9 +328,9 @@ def blast(molecule, chain, session,
   # Run blastp standalone program and parse results
   blast_output = splitext(fasta_file.name)[0] + '.xml'
   results = run_blastp(molecule.name, fasta_file.name, blast_output, blastProgram, blastDatabase)
-  print (summarize_results(results))
 
   # Load matching structures and report match metrics
+  print (summarize_results(results))
   mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
   check_hit_sequences_match_mmcif_sequences(mols)
   report_match_metrics(molecule, chain, mols)
