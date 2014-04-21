@@ -20,7 +20,7 @@ def open_mmcif_file(path, session):
 #                    (basename(path), len(xyz), int(len(xyz)/(t1-t0))))
 #  session.show_info('Read+Parsed %s %d atoms at %d per second\n' %
 #                    (basename(path), len(xyz), int(len(xyz)/((t1-t0)+(ft1-ft0)))))
-  session.show_info('Read %s %d atoms\n' % (basename(path), len(xyz)))
+#  session.show_info('Read %s %d atoms\n' % (basename(path), len(xyz)))
   from ..molecule import Molecule
   m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
   return m
@@ -39,12 +39,13 @@ def mmcif_sequences(mmcif_path):
   Read an mmcif file to find how residue numbers map to sequence positions.
   This is not available in PDB format.
   '''
-  eps, sa = read_mmcif_tables(mmcif_path, ('_entity_poly_seq', '_struct_asym'))
+  eps, sa, en = read_mmcif_tables(mmcif_path, ('_entity_poly_seq', '_struct_asym', '_entity'))
   if sa is None or eps is None:
     print('Missing sequence info in mmCIF file %s (_entity_poly_seq and _struct_asym tables)' % mmcif_path)
     return {}
   ce = sa.mapping('id', 'entity_id')
   es = eps.mapping('num', 'mon_id', foreach = 'entity_id')
+  ed = en.mapping('id', 'pdbx_description')
 
   eseq = {}
   from ..molecule.residue_codes import res3to1
@@ -56,7 +57,8 @@ def mmcif_sequences(mmcif_path):
       from os.path import basename
       print(basename(mmcif_path), 'non-contiguous sequence for entity', eid, 'residue numbers', rnums)
       continue
-    eseq[eid] = (r0, ''.join(res3to1(seq[str(i)]) for i in rnums))
+    desc = ed.get(eid,'')
+    eseq[eid] = (r0, ''.join(res3to1(seq[str(i)]) for i in rnums), desc)
 
   cseq = {}
   for cid, eid in ce.items():
@@ -111,6 +113,8 @@ def read_mmcif_tables(mmcif_path, table_names):
   f = open(mmcif_path)
   tables = {}
   tname = None
+  vcontinue = False
+  semicolon_quote = False
   while True:
     line = f.readline()
     if tname is None:
@@ -130,19 +134,70 @@ def read_mmcif_tables(mmcif_path, table_names):
       tag = tfields[0]
       tags.append(tag)
       if len(tfields) == 2:
-        value = tfields[1]
+        value = remove_quotes(tfields[1])
         if values:            # Tags have values on same line without loop.
           values[0].append(value)
         else:
           values.append([value])
+      elif values:
+        # Other tags have values, so this one must have value on next line, e.g. 1afi _entity table.
+        # Should really be looking for loop_.
+        vcontinue = True
     elif line.startswith('#') or line == '':
+      if [v for v in values if len(v) != len(tags)]:
+        # Error: Number of values doesn't match number of tags.
+        print (mmcif_path, tags, values)
       tables[tname] = mmCIF_Table(tname, tags, values)
       tname = None
     else:
-      values.append(line.split())
+      if line.startswith(';'):
+        # Fields can extend onto next line if that line is preceded by a semicolon.
+        # The whole line is treated as a single values as if quoted.
+        lval = semicolon_quote = line[1:].rstrip()
+        if lval:
+          values[-1].append(lval)
+      elif semicolon_quote:
+        # Line that starts with semicolon continues on following lines until a line with only a semicolon.
+        values[-1][-1] += line.rstrip()
+      elif vcontinue:
+        # Values simply continue on next line sometimes (e.g. 207l.cif _entity table).
+        values[-1].extend(combine_quoted_values(line.split()))
+      else:
+        # New line of values
+        values.append(combine_quoted_values(line.split()))
+      vcontinue = (len(values[-1]) < len(tags))
+        
   f.close()
   tlist = [tables.get(tn, None) for tn in table_names]
   return tlist
+
+def combine_quoted_values(values):
+  qvalues = []
+  in_quote = False
+  for e in values:
+    if in_quote:
+      if e.endswith(in_quote):
+        qv.append(e[:-1])
+        qvalues.append(' '.join(qv))
+        in_quote = False
+      else:
+        qv.append(e)
+    elif e.startswith("'") or e.startswith('"'):
+      q = e[0]
+      if e.endswith(q):
+        qvalues.append(e[1:-1])
+      else:
+        in_quote = q
+        qv = [e[1:]]
+    else:
+      qvalues.append(e)
+  return qvalues
+
+def remove_quotes(s):
+  t = s.strip()
+  if (t.startswith("'") and t.endswith("'")) or (t.startswith('"') and t.endswith('"')):
+    return t[1:-1]
+  return t
 
 class mmCIF_Table:
   def __init__(self, table_name, tags, values):
