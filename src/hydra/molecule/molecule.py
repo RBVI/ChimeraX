@@ -670,8 +670,24 @@ class Atoms:
         resnums.append(m.residue_nums[a])
     if len(resnums) == 1:
         return resnums[0]
+    elif len(resnums) == 0:
+        import numpy
+        return numpy.zeros((0,), numpy.int32)
     import numpy
     return numpy.concatenate(resnums)
+
+  def residue_names(self):
+    '''Return a numpy array of residue names for each atom.'''
+    resnames = []
+    for m,a in self.molatoms:
+        resnames.append(m.residue_names[a])
+    if len(resnames) == 1:
+        return resnames[0]
+    elif len(resnames) == 0:
+        import numpy
+        return numpy.zeros((0,), 'S4')
+    import numpy
+    return numpy.concatenate(resnames)
 
   def subset(self, indices):
     '''
@@ -769,3 +785,27 @@ class Atom_Selection:
     return self.molecule.atom_index_description(self.atom)
   def models(self):
     return [self.molecule]
+
+# -----------------------------------------------------------------------------
+#
+def residue_number_to_name(mol, chain_id):
+  atoms = mol.atom_subset('CA', chain_id)
+  rnums = atoms.residue_numbers()
+  rnames = atoms.residue_names()
+  return dict(zip(rnums, rnames))
+
+# -----------------------------------------------------------------------------
+#
+def chain_sequence(mol, chain_id):
+  atoms = mol.atom_subset('CA', chain_id)
+  if atoms.count() == 0:
+    return ''
+  rnums = atoms.residue_numbers()
+  rnames = atoms.residue_names()
+  nr = rnums.max()
+  seq = ['.']*nr
+  from .residue_codes import res3to1
+  for i,n in zip(rnums,rnames):
+    seq[i-1] = res3to1(n.tostring().decode('utf-8'))
+  cseq = ''.join(seq)
+  return cseq

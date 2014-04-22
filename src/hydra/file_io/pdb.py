@@ -26,9 +26,10 @@ def open_pdb_file_with_image3d(path, session):
   m.bonds = bonds
   t3 = time()
   from os.path import basename
-  print ('image3d', basename(path), 'read time', '%.3f' % (ft1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(ft1-t0)))
+#  print ('image3d', basename(path), 'read time', '%.3f' % (ft1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(ft1-t0)))
   t = (t1-t0)+(t3-t2)
-  print('image3d', basename(path), 'read+parse time', '%.3f' % t, 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/t))
+#  print('image3d', basename(path), 'read+parse time', '%.3f' % t, 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/t))
+  print(basename(path), len(xyz), 'atoms')
 #  from ..molecule import connect
 #  t2 = time()
 #  connect.create_molecule_bonds(m)
@@ -101,28 +102,11 @@ def open_pdb_file_python(path):
   m.pdb_text = text
   return m
 
-def open_mmcif_file(path, session):
-  '''
-  Open an mmCIF file.
-  '''
-  from os.path import basename
-  from time import time
-  ft0 = time()
-  f = open(path, 'r')
-  text = f.read()
-  f.close()
-  ft1 = time()
-  from .. import _image3d
-  t0 = time()
-  xyz, element_nums, chain_ids, res_nums, res_names, atom_names = \
-      _image3d.parse_mmcif_file(text)
-  t1 = time()
-  session.show_info('Read %s %d atoms at %d per second\n' %
-                    (basename(path), len(xyz), int(len(xyz)/(ft1-ft0))))
-  session.show_info('Parsed %s %d atoms at %d per second\n' %
-                    (basename(path), len(xyz), int(len(xyz)/(t1-t0))))
-  session.show_info('Read+Parsed %s %d atoms at %d per second\n' %
-                    (basename(path), len(xyz), int(len(xyz)/((t1-t0)+(ft1-ft0)))))
-  from ..molecule import Molecule
-  m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
-  return m
+def load_pdb_local(id, session, pdb_dir = '/usr/local/pdb'):
+    '''Load a PDB file given its id from a local copy of the "divided" database.'''
+    from os.path import join, exists
+    p = join(pdb_dir, id[1:3].lower(), 'pdb%s.ent' % id.lower())
+    if not exists(p):
+      return None
+    m = open_pdb_file(p, session)
+    return m
