@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <set>
 
 #include "Element.h"
 #include "base-geom/Point.h"
@@ -51,6 +52,7 @@ private:
 public:
     void  add_bond(Bond *b) { add_connection(b); }
     char  alt_loc() const { return _alt_loc; }
+    std::set<char>  alt_locs() const;
     float  bfactor() const;
     Bonds  bonds() const { return connections(); }
     const BondsMap &    bonds_map() const { return connections_map(); }
@@ -58,7 +60,8 @@ public:
     unsigned int  coord_index() const { return _coord_index; }
     virtual const Coord &coord() const;
     Element  element() const { return _element; }
-    AtomicStructure *  structure() const { return _structure; }
+    bool  has_alt_loc(char al) const
+      { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
     const std::string  name() const { return _name; }
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
@@ -67,13 +70,14 @@ public:
     void  register_field(std::string name, const std::string value) {}
     void  remove_bond(Bond *b) { remove_connection(b); }
     Residue *  residue() const { return _residue; }
-    void  set_alt_loc(char alt_loc, bool create=false);
+    void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
     virtual void  set_coord(const Point & coord) { set_coord(coord, NULL); }
     void  set_coord(const Point & coord, CoordSet * cs);
     void  set_occupancy(float);
     void  set_serial_number(int);
+    AtomicStructure *  structure() const { return _structure; }
 };
 
 #endif  // atomic_Atom

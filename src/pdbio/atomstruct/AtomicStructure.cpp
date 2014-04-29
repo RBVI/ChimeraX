@@ -6,7 +6,7 @@
 #include "AtomicStructure.h"
 #include "Residue.h"
 
-#include <algorithm>  // for std::find
+#include <algorithm>  // for std::find, std::sort
 #include <stdexcept>
 #include <set>
 
@@ -16,7 +16,7 @@ AtomicStructure::AtomicStructure():
 {
 }
 
-std::map<Atom *, char>
+std::map<Residue *, char>
 AtomicStructure::best_alt_locs() const
 {
     // check the common case of all blank alt locs first...
@@ -27,113 +27,109 @@ AtomicStructure::best_alt_locs() const
             break;
         }
     }
-    std::map<Atom *, char> best_locs;
+    std::map<Residue *, char> best_locs;
     if (all_blank) {
-        for (auto ai = _atoms.begin(); ai != _atoms.end(); ++ai) {
-            best_locs.insert(std::pair<Atom *, char>((*ai).get(), ' '));
-        }
         return best_locs;
     }
 
-    // non-blank alt locs present
-    std::set<Atom *> seen;
-    for (auto ai = _atoms.begin(); ai != _atoms.end(); ++ai) {
-        Atom *a = (*ai).get();
-        if (seen.find(a) != seen.end())
+    // go through the residues and collate a group of residues with
+    //   related alt locs
+    // use the alt loc with the highest average occupancy; if tied,
+    //  the lowest bfactors; if tied, first alphabetically
+    std::set<Residue *> seen;
+    for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
+        Residue *r = (*ri).get();
+        if (seen.find(r) != seen.end())
             continue;
-        seen.insert(a);
-        std::set<Atom *> todo;
-        todo.insert(a);
+        seen.insert(r);
+        std::set<Residue *> res_group;
         std::set<char> alt_loc_set;
-        if (!a->_alt_loc_map.empty()) {
-            for (Atom::_Alt_loc_map::iterator ali = a->_alt_loc_map.begin();
-                    ali != a->_alt_loc_map.end(); ++ali) {
-                alt_loc_set.insert((*ali).first);
-            }
+        for (auto ai = r->_atoms.begin(); ai != r->_atoms.end(); ++ai) {
+            Atom *a = *ai;
+            alt_loc_set = a->alt_locs();
+            if (!alt_loc_set.empty())
+                break;
         }
+        // if residue has no altlocs, skip it
+        if (alt_loc_set.empty())
+            continue;
+        // for this residue and neighbors linked through alt loc,
+        // collate occupancy/bfactor info
+        res_group.insert(r);
+        std::vector<Residue *> todo;
+        todo.push_back(r);
         std::map<char, int> occurances;
         std::map<char, float> occupancies, bfactors;
-        std::vector<Atom *> cur_atoms;
         while (!todo.empty()) {
-            Atom *ta = *todo.begin();
-            todo.erase(todo.begin());
-            seen.insert(ta);
-            cur_atoms.push_back(ta);
-            if (!alt_loc_set.empty()) {
-                for (Atom::_Alt_loc_map::iterator ali = a->_alt_loc_map.begin();
-                        ali != a->_alt_loc_map.end(); ++ali) {
-                    char alt_loc = (*ali).first;
-                    Atom::_Alt_loc_info info = (*ali).second;
+            Residue *cr = todo.back();
+            todo.pop_back();
+            for (auto ai = cr->_atoms.begin(); ai != cr->_atoms.end(); ++ai) {
+                Atom *a = *ai;
+                bool check_neighbors = true;
+                for (auto alsi = alt_loc_set.begin(); alsi != alt_loc_set.end();
+                ++alsi) {
+                    char alt_loc = *alsi;
+                    if (!a->has_alt_loc(alt_loc)) {
+                        check_neighbors = false;
+                        break;
+                    }
                     occurances[alt_loc] += 1;
+                    Atom::_Alt_loc_info info = a->_alt_loc_map[alt_loc];
                     occupancies[alt_loc] += info.occupancy;
                     bfactors[alt_loc] += info.bfactor;
                 }
-            }
-
-            const Atom::BondsMap &bm = a->bonds_map();
-            for (Atom::BondsMap::const_iterator bmi = bm.begin(); bmi != bm.end(); ++bmi) {
-                Atom *nb = (*bmi).first;
-                if (seen.find(nb) != seen.end())
-                    continue;
-                if (alt_loc_set.empty()) {
-                    if (nb->_alt_loc_map.empty())
-                        todo.insert(nb);
-                } else {
-                    for (std::set<char>::iterator ali = alt_loc_set.begin();
-                            ali != alt_loc_set.end(); ++ali) {
-                        if (nb->_alt_loc_map.find(*ali) != nb->_alt_loc_map.end()) {
-                            todo.insert(nb);
-                            break;
+                if (check_neighbors) {
+                    const Atom::BondsMap &bm = a->bonds_map();
+                    for (auto bi = bm.begin(); bi != bm.end(); ++bi) {
+                        Atom *nb = (*bi).first;
+                        Residue *nr = nb->residue();
+                        if (nr != cr && nb->has_alt_loc(*alt_loc_set.begin())
+                        && seen.find(nr) == seen.end()) {
+                            seen.insert(nr);
+                            todo.push_back(nr);
+                            res_group.insert(nr);
                         }
                     }
                 }
             }
         }
-        char best_loc;
-        if (alt_loc_set.empty()) {
-            best_loc = ' ';
-        } else {
-            int best_occurances = 0;
-            float best_occupancies = 0.0, best_bfactors = 0.0;
-            best_loc = '\0';
-            for (std::set<char>::iterator ali = alt_loc_set.begin();
-                    ali != alt_loc_set.end(); ++ ali) {
-                char alt_loc = *ali;
-                bool is_best = best_loc == '\0';
-                float occurance = occurances[alt_loc];
-                if (!is_best) {
-                    if (occurance < best_occurances)
-                        continue;
-                    else if (occurance > best_occurances)
-                        is_best = true;
-                }
-                float occupancy = occupancies[alt_loc];
-                if (!is_best) {
-                    if (occupancy < best_occupancies)
-                        continue;
-                    else if (occupancy > best_occupancies)
-                        is_best = true;
-                }
-                float bfactor = bfactors[alt_loc];
-                if (!is_best) {
-                    if (bfactor > best_bfactors)
-                        continue;
-                    else if (bfactor < best_bfactors || alt_loc < best_loc)
-                        is_best = true;
-                }
-                if (is_best) {
-                    best_loc = alt_loc;
-                    best_occurances = occurance;
-                    best_occupancies = occupancy;
-                    best_bfactors = bfactor;
-                }
+        // go through the occupancy/bfactor info and decide on
+        // the best alt loc
+        char best_loc = '\0';
+        std::vector<char> alphabetic_alt_locs(alt_loc_set.begin(),
+            alt_loc_set.end());
+        std::sort(alphabetic_alt_locs.begin(), alphabetic_alt_locs.end());
+        float best_occupancies = 0.0, best_bfactors = 0.0;
+        for (auto ali = alphabetic_alt_locs.begin();
+        ali != alphabetic_alt_locs.end(); ++ali) {
+            char al = *ali;
+            bool is_best = best_loc == '\0';
+            float occ = occupancies[al] / occurances[al];
+            if (!is_best) {
+                if (occ > best_occupancies)
+                    is_best = true;
+                else if (occ < best_occupancies)
+                    continue;
             }
-            for (std::vector<Atom *>::iterator ai = cur_atoms.begin(); ai != cur_atoms.end();
-                    ++ai) {
-                best_locs[*ai] = best_loc;
+            float bf = bfactors[al] / occurances[al];
+            if (!is_best) {
+                if (bf < best_bfactors)
+                    is_best = true;
+                else if (bf < best_bfactors)
+                    continue;
+            }
+            if (is_best) {
+                best_loc = al;
+                best_occupancies = occ;
+                best_bfactors = bf;
             }
         }
+        // note the best alt loc for these residues in the map
+        for (auto rgi = res_group.begin(); rgi != res_group.end(); ++rgi) {
+            best_locs[*rgi] = best_loc;
+        }
     }
+
     return best_locs;
 }
 
@@ -321,9 +317,8 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
 void
 AtomicStructure::use_best_alt_locs()
 {
-    std::map<Atom *, char> alt_loc_map = best_alt_locs();
-    for (std::map<Atom *, char>::iterator almi = alt_loc_map.begin();
-            almi != alt_loc_map.end(); ++almi) {
+    std::map<Residue *, char> alt_loc_map = best_alt_locs();
+    for (auto almi = alt_loc_map.begin(); almi != alt_loc_map.end(); ++almi) {
         (*almi).first->set_alt_loc((*almi).second);
     }
 }
