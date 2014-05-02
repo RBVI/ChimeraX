@@ -318,25 +318,28 @@ class Molecule(Surface):
     from numpy import arange
     return arange(self.atom_count())
 
-  def atom_subset(self, atom_name = None, chain_id = None, residue_range = None,
-                  residue_name = None, invert = False, restrict_to_atoms = None):
+  def atom_subset(self, atom_name = None, chain_id = None,
+                  residue_range = None, residue_numbers = None, residue_name = None,
+                  invert = False, restrict_to_atoms = None):
     '''
     Return a subset of atoms with specifie atom name, chain id, residue range,
     and residue name.
     '''
-    ai = self.atom_index_subset(atom_name, chain_id, residue_range, residue_name,
+    ai = self.atom_index_subset(atom_name, chain_id,
+                                residue_range, residue_numbers, residue_name,
                                 invert, restrict_to_atoms)
     a = Atoms()
     if len(ai) > 0:
       a.add_atom_indices(self, ai)
     return a
 
-  def atom_index_subset(self, atom_name = None, chain_id = None, residue_range = None,
-                        residue_name = None, invert = False, restrict_to_atoms = None):
+  def atom_index_subset(self, atom_name = None, chain_id = None,
+                        residue_range = None, residue_numbers = None, residue_name = None,
+                        invert = False, restrict_to_atoms = None):
 
     anames = self.atom_names
     na = self.atom_count()
-    from numpy import zeros, bool, logical_or, logical_and, logical_not
+    from numpy import zeros, bool, logical_or, logical_and, logical_not, in1d
     nimask = zeros((na,), bool)
     if atom_name is None:
       nimask[:] = 1
@@ -359,7 +362,8 @@ class Molecule(Surface):
         logical_and(nimask, (self.residue_nums >= r1), nimask)
       if not r2 is None:
         logical_and(nimask, (self.residue_nums <= r2), nimask)
-
+    if not residue_numbers is None:
+      logical_and(nimask, in1d(self.residue_nums,residue_numbers), nimask)
     if not residue_name is None:
       rnames = self.residue_names
       logical_and(nimask, (rnames == residue_name.encode('utf-8')), nimask)
