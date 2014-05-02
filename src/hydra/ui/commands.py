@@ -1116,9 +1116,10 @@ def parse_specifier(spec, session):
     s = Selection()
     from ..molecule import Molecule
     smodels = []
+    rnums = None
     for m in mlist:
         if isinstance(m, Molecule):
-            atoms = m.atom_subset(aname, cid, rrange, rname, invert)
+            atoms = m.atom_subset(aname, cid, rrange, rnums, rname, invert)
             if atoms.count() > 0:
                 s.add_atoms(atoms)
         else:
