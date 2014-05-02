@@ -199,13 +199,6 @@ def report_match_metrics(molecule, chain, mols):
       hpatoms = m.atom_subset('CA', cid, residue_numbers = hpres)
       qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qpres)
 
-      # Check that number of paired CA atoms is same for hit and query.  Sanity check.
-      if hpatoms.count() != qpatoms.count():
-        print (m.name, cid, hpatoms.count(), qpatoms.count(), len(rmap))
-        print (hpatoms.names())
-        print (qpatoms.names())
-        continue
-
       # Compute RMSD of aligned hit and query.
       from ..molecule import align
       tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
