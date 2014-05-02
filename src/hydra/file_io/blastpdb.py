@@ -167,7 +167,7 @@ def check_hit_sequences_match_mmcif_sequences(mols):
       if not sequences_match(hseq,cseq):
         print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
 
-def report_match_metrics(molecule, chain, mols):
+def match_metrics_table(molecule, chain, mols):
   from ..molecule.molecule import residue_number_to_name
   qres = residue_number_to_name(molecule, chain)
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
@@ -210,7 +210,7 @@ def report_match_metrics(molecule, chain, mols):
                    % (name, cid, rmsd, pairs, 100*float(pairs)/len(qres),
                       eqpairs, 100.0*eqpairs/pairs, ma.score, desc))
 
-  print('\n'.join(lines))
+  return '\n'.join(lines)
 
 def sequences_match(s, seq):
   n = min(len(s), len(seq))
@@ -328,4 +328,4 @@ def blast(molecule, chain, session,
   print (summarize_results(results))
   mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
   check_hit_sequences_match_mmcif_sequences(mols)
-  report_match_metrics(molecule, chain, mols)
+  print (match_metrics_table(molecule, chain, mols))
