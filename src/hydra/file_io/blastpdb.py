@@ -171,46 +171,51 @@ def report_match_metrics(molecule, chain, mols):
   from ..molecule.molecule import residue_number_to_name
   qres = residue_number_to_name(molecule, chain)
   qatoms = molecule.atom_subset('CA', chain)
-  qrnum = set(qres.keys())
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   for m in mols:
     ma = m.blast_match
     chains = m.blast_match_chains
-    rmap = ma.residue_number_map()
-    for c,cid in enumerate(chains):
-      mres = residue_number_to_name(m, cid)
-      if len(mres) == 0:
-        # TODO: This indicates that mmCIF uses a different chain identifier
-        # from the PDB file. The blast database is using the PDB chain identifier.
+    rmap = ma.residue_number_map()      # Hit to query residue number map.
+
+    for cid in chains:
+      hres = residue_number_to_name(m, cid)
+      if len(hres) == 0:
+        # TODO: This indicates that blast database chain identifier is not present in
+        # the mmCIF file.  This can happen if the blast database was built using PDB
+        # chain identifiers which can differ from mmcif chain identifiers.
         print ('Warning: mmCIF %s has no chain sequence %s' % (m.name, cid))
         continue
+
+      # Compute sequence identity between hit and query.
       pairs = eqpairs = 0
       for hi,qi in rmap.items():
-        if hi in mres and qi in qres:
+        if hi in hres and qi in qres:
           pairs += 1
-          if mres[hi] == qres[qi]:
+          if hres[hi] == qres[qi]:
             eqpairs += 1
-#      print ('%s %s %d %d' % (m.name, cid, pairs, eqpairs))
-#      print ('%s\n%s' % (ma.qSeq, ma.hSeq))
 
-      # TODO: Need hit and query CA atoms that are matched and exist in hit/query structures.
-      hatoms = m.atom_subset('CA', cid)
-      hpres = set(r for r in mres.keys() if r in rmap and rmap[r] in qrnum)
-      hpatoms = hatoms.subset([i for i,r in enumerate(hatoms.residue_numbers()) if r in hpres])
+      # Find paired hit and query residues for doing an alignment.
+      qrnum = set(qres.keys())
+      hpres = set(r for r in hres.keys() if r in rmap and rmap[r] in qrnum)
       qpres = set(rmap[r] for r in hpres)
+      hatoms = m.atom_subset('CA', cid)
+      hpatoms = hatoms.subset([i for i,r in enumerate(hatoms.residue_numbers()) if r in hpres])
       qpatoms = qatoms.subset([i for i,r in enumerate(qatoms.residue_numbers()) if r in qpres])
 
-      # Sanity check.
+      # Check that number of paired CA atoms is same for hit and query.  Sanity check.
       if hpatoms.count() != qpatoms.count():
         print (m.name, cid, hpatoms.count(), qpatoms.count(), len(rmap))
         print (hpatoms.names())
         print (qpatoms.names())
         continue
 
+      # Compute RMSD of aligned hit and query.
       from ..molecule import align
       tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
+
+      # Create table output line showing how well hit matches query.
       name = m.name[:-4] if m.name.endswith('.cif') else m.name
-      desc = m.blast_match_description if c == 0 else ''
+      desc = m.blast_match_description if cid == chains[0] else ''
       lines.append('%4s %3s %7.2f %5d %5.0f   %5d %5.0f  %5d    %s'
                    % (name, cid, rmsd, pairs, 100*float(pairs)/len(qres),
                       eqpairs, 100.0*eqpairs/pairs, ma.score, desc))
