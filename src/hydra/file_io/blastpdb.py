@@ -170,7 +170,6 @@ def check_hit_sequences_match_mmcif_sequences(mols):
 def report_match_metrics(molecule, chain, mols):
   from ..molecule.molecule import residue_number_to_name
   qres = residue_number_to_name(molecule, chain)
-  qatoms = molecule.atom_subset('CA', chain)
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   for m in mols:
     ma = m.blast_match
@@ -194,13 +193,11 @@ def report_match_metrics(molecule, chain, mols):
           if hres[hi] == qres[qi]:
             eqpairs += 1
 
-      # Find paired hit and query residues for doing an alignment.
-      qrnum = set(qres.keys())
-      hpres = set(r for r in hres.keys() if r in rmap and rmap[r] in qrnum)
-      qpres = set(rmap[r] for r in hpres)
-      hatoms = m.atom_subset('CA', cid)
-      hpatoms = hatoms.subset([i for i,r in enumerate(hatoms.residue_numbers()) if r in hpres])
-      qpatoms = qatoms.subset([i for i,r in enumerate(qatoms.residue_numbers()) if r in qpres])
+      # Find paired hit and query residues having CA atoms for doing an alignment.
+      hpres = tuple(r for r in hres.keys() if r in rmap and rmap[r] in qres)
+      qpres = tuple(rmap[r] for r in hpres)
+      hpatoms = m.atom_subset('CA', cid, residue_numbers = hpres)
+      qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qpres)
 
       # Check that number of paired CA atoms is same for hit and query.  Sanity check.
       if hpatoms.count() != qpatoms.count():
