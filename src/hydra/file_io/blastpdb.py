@@ -203,6 +203,9 @@ def match_metrics_table(molecule, chain, mols):
       from ..molecule import align
       tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
 
+      # Align hit chain to query chain
+      m.atom_subset(chain_id = cid).move_atoms(tf)
+
       # Create table output line showing how well hit matches query.
       name = m.name[:-4] if m.name.endswith('.cif') else m.name
       desc = m.blast_match_description if cid == chains[0] else ''
@@ -211,6 +214,15 @@ def match_metrics_table(molecule, chain, mols):
                       eqpairs, 100.0*eqpairs/pairs, ma.score, desc))
 
   return '\n'.join(lines)
+
+def show_matched_as_ribbons(mols):
+  for m in mols:
+    show_only_ribbons(m, m.blast_match_chains)
+
+def show_only_ribbons(m, chains):
+    m.atoms().hide_atoms()
+    for cid in chains:
+      m.atom_subset(chain_id = cid).show_ribbon()
 
 def sequences_match(s, seq):
   n = min(len(s), len(seq))
@@ -327,5 +339,8 @@ def blast(molecule, chain, session,
   # Load matching structures and report match metrics
   print (summarize_results(results))
   mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
-  check_hit_sequences_match_mmcif_sequences(mols)
+#  check_hit_sequences_match_mmcif_sequences(mols)
+  session.add_models(mols)
+  show_only_ribbons(molecule, [chain])
+  show_matched_as_ribbons(mols)
   print (match_metrics_table(molecule, chain, mols))
