@@ -98,8 +98,8 @@ def standard_shortcuts(session):
 
         ('rb', show_ribbon, 'Display ribbon', molcat, molarg, mlmenu),
         ('hr', hide_ribbon, 'Undisplay ribbon', molcat, molarg, mlmenu),
-        ('r+', fat_ribbons, 'Fat ribbons', molcat, molarg, mlmenu),
-        ('r-', thin_ribbons, 'Thin ribbons', molcat, molarg, mlmenu, sep),
+        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
+        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
         ('la', show_ligands, 'Show ligand atoms', molcat, molarg, mlmenu),
         ('sw', show_waters, 'Show water atoms', molcat, molarg, mlmenu),
@@ -464,10 +464,10 @@ def show_ribbon(m):
   m.set_ribbon_display(True)
 def hide_ribbon(m):
   m.set_ribbon_display(False)
-def fat_ribbons(m):
-    m.set_ribbon_radius(1.0)
-def thin_ribbons(m):
-    m.set_ribbon_radius(0.5)
+def fatter_ribbons(m):
+    m.set_ribbon_radius(2*m.ribbon_radius)
+def thinner_ribbons(m):
+    m.set_ribbon_radius(0.5*m.ribbon_radius)
 def show_ligands(m):
     m.show_ligand_atoms()
 def show_waters(m):
