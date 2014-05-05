@@ -223,7 +223,7 @@ class Molecule(Surface):
     import sys
     rsp = self.ribbon_surface_pieces
     if not self.any_ribbons_shown():
-      self.remove_pieces(rsp.values())
+      self.remove_pieces(sum(rsp.values(),[]))
       rsp.clear()
       return
 
@@ -234,23 +234,26 @@ class Molecule(Surface):
       s = self.ribbon_guide_atom_indices(cid)
       if len(s) <= 1:
         continue
+      if cid in rsp:
+        self.remove_pieces(rsp.pop(cid))
+
       rshow = self.ribbon_shown[s]
       if rshow.sum() == 0:
-        if cid in rsp:
-          self.remove_piece(rsp.pop(cid))
-        continue
-      path = self.xyz[s]
-    
-      color = rgba_256[cid[0]]
-      va,na,ta,ca = self.ribbon_geometry(path, color)
+        continue        # TODO: Allow showing part of a ribbon.  Currently it is all or nothing.
 
-      if cid in rsp:
-        p = rsp[cid]
-      else:
-        rsp[cid] = p = self.new_piece()
-      p.geometry = va, ta
-      p.normals = na
-      p.vertex_colors = ca
+      path = self.xyz[s]
+      color = rgba_256[cid[0]]  # TODO: Allow per-residue coloring.
+
+      plist = []
+      cint = contiguous_intervals(self.residue_nums[s])
+      for i1,i2 in cint:
+        va,na,ta,ca = self.ribbon_geometry(path[i1:i2+1], color)
+        p = self.new_piece()
+        p.geometry = va, ta
+        p.normals = na
+        p.vertex_colors = ca
+        plist.append(p)
+      rsp[cid] = plist
 
   def ribbon_geometry(self, path, color):
     sd, cd = self.ribbon_subdivisions
@@ -571,6 +574,28 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
     p[:,:3,:3] = rs
   pt = transpose(p,(0,2,1))
   return pt
+
+# -----------------------------------------------------------------------------
+#
+def contiguous_intervals(a):
+  '''
+  Find intervals of contiguous integer values (i,i+1,i+2,...,i+k) in an array of increasing integer values.
+  Do not include intervals of length 1.  Return pairs of a initial and final index in the input array.
+  This is used for finding sequences of residues to compute ribbon splines.
+  TODO: Optimize this by moving to C++.
+  '''
+  cints = []
+  n = len(a)
+  s = e = 0
+  while e+1 < n:
+    if a[e+1] != a[e]+1:
+      if e > s:
+        cints.append((s,e))
+      s = e+1
+    e += 1
+  if e > s:
+    cints.append((s,e))
+  return cints
 
 # -----------------------------------------------------------------------------
 #
