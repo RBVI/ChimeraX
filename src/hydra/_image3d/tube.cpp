@@ -15,8 +15,6 @@ static void stitch_cap(int *triangles, int m, int voffset, bool clockwise);
 // -----------------------------------------------------------------------------
 // Create triangle geometry for a tube with given center-line path and cross-section.
 //
-// TODO: Add tube end-caps.
-//
 static void tube(float *path, float *tangents, int n,
 		 float *cross_section, float *cross_section_normals, int m,
 		 bool end_caps,
