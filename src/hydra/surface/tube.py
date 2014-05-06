@@ -1,9 +1,11 @@
 # -----------------------------------------------------------------------------
 # Create tube surface geometry passing through specified points.
+# Colors can be a 4-tuple (red, green, blue, opacity) or an N by 4 array,
+# with one color per path point.
 #
 def tube_through_points(path, radius = 1.0, band_length = 0,
                         segment_subdivisions = 10, circle_subdivisions = 15,
-                        color = (.745,.745,.745,1)):
+                        colors = (.745,.745,.745,1)):
 
     from .._image3d import natural_cubic_spline, tube_geometry
     spath, stan = natural_cubic_spline(path, segment_subdivisions)
@@ -11,12 +13,33 @@ def tube_through_points(path, radius = 1.0, band_length = 0,
     circle = circle_points(circle_subdivisions, radius)
     circle_normals = circle_points(circle_subdivisions, 1.0)
     va,na,ta = tube_geometry(spath, stan, circle, circle_normals)
-
-    from numpy import empty, float32
-    ca = empty((len(va),4), float32)
-    ca[:,:] = color
+    ca = tube_colors(colors, len(path), segment_subdivisions, circle_subdivisions)
 
     return va,na,ta,ca
+
+# -----------------------------------------------------------------------------
+# Return array of tube geometry vertex colors given path point colors.
+#
+def tube_colors(colors, np, ns, nc):
+
+    from numpy import empty, float32, ndarray
+    nsp = (np + (np-1)*ns) if np > 1 else np
+    nv = (nsp+2)*nc
+    ca = empty((nv,4), float32)
+    if isinstance(colors,ndarray) and colors.shape == (np,4):
+        nrv = (ns+1)*nc
+        s = s0 = ((ns+1)//2)*nc
+        for i in range(1,np-1):
+            ca[s:s+nrv,:] = colors[i]
+            s += nrv
+        ca[:s0,:] = colors[0,:]              # First half-segment
+        ca[nv-2*nc:nv-nc,:] = colors[0,:]    # End cap
+        ca[s:nv-2*nc,:] = colors[np-1,:]        # Last half-segment
+        ca[nv-nc:,:] = colors[np-1,:]              # End cap
+    else:
+        ca[:,:] = colors        # Single color specified
+
+    return ca
 
 # -----------------------------------------------------------------------------
 #
