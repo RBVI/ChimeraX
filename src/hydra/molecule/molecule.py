@@ -45,7 +45,8 @@ class Molecule(Surface):
     self.bond_color = (150,150,150,255)
     self.half_bond_coloring = True
     self.ribbon_shown_count = 0
-    self.ribbon_shown = zeros((n,), bool)        # Only ribbon guide atoms used
+    self.ribbon_shown = zeros((n,), bool)       # Only ribbon guide atoms used
+    self.ribbon_colors = None                   # Color for each atom, but only guide atom color used.
     self.ribbon_radius = 1.0
     self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
     self.ribbon_surface_pieces = {}     # Map chain id to surface piece
@@ -228,7 +229,6 @@ class Molecule(Surface):
       return
 
     cids = set(self.chain_ids)
-    from .colors import rgba_256
     from numpy import uint8
     for cid in cids:
       s = self.ribbon_guide_atom_indices(cid)
@@ -242,12 +242,15 @@ class Molecule(Surface):
         continue        # TODO: Allow showing part of a ribbon.  Currently it is all or nothing.
 
       path = self.xyz[s]
-      color = rgba_256[cid[0]]  # TODO: Allow per-residue coloring.
+      rc = self.ribbon_colors
+      from .colors import rgba_256
+      colors = rgba_256[cid[0]] if rc is None else rc[s]
 
       plist = []
       cint = contiguous_intervals(self.residue_nums[s])
       for i1,i2 in cint:
-        va,na,ta,ca = self.ribbon_geometry(path[i1:i2+1], color)
+        rcolor = colors[i1:i2+1] if rc else colors
+        va,na,ta,ca = self.ribbon_geometry(path[i1:i2+1], rcolor)
         p = self.new_piece()
         p.geometry = va, ta
         p.normals = na
@@ -255,11 +258,11 @@ class Molecule(Surface):
         plist.append(p)
       rsp[cid] = plist
 
-  def ribbon_geometry(self, path, color):
+  def ribbon_geometry(self, path, colors):
     sd, cd = self.ribbon_subdivisions
     from ..surface import tube
     va,na,ta,ca = tube.tube_through_points(path, radius = self.ribbon_radius,
-                                           color = color,
+                                           colors = colors,
                                            segment_subdivisions = sd,
                                            circle_subdivisions = cd)
     return va, na, ta, ca
