@@ -5,12 +5,24 @@
 #include "AtomicStructure.h"
 #include <utility>  // for std::pair
 #include <stdexcept>
+#include <sstream>
 
 Atom::Atom(AtomicStructure *as, std::string &name, Element e):
     _name(name), _structure(as), _residue(NULL), _element(e),
     _coord_index(COORD_UNASSIGNED), _alt_loc(' '), _serial_number(-1),
     _aniso_u(NULL), BaseSphere<Bond, Atom>()
 {
+}
+
+std::set<char>
+Atom::alt_locs() const
+{
+    std::set<char> alt_locs;
+    for (auto almi = _alt_loc_map.begin(); almi != _alt_loc_map.end();
+    ++almi) {
+        alt_locs.insert((*almi).first);
+    }
+    return alt_locs;
 }
 
 float
@@ -102,7 +114,7 @@ Atom::occupancy() const
 }
 
 void
-Atom::set_alt_loc(char alt_loc, bool create)
+Atom::set_alt_loc(char alt_loc, bool create, bool from_residue)
 {
     if (alt_loc == _alt_loc || alt_loc == ' ')
         return;
@@ -117,22 +129,21 @@ Atom::set_alt_loc(char alt_loc, bool create)
     }
 
     _Alt_loc_map::iterator i = _alt_loc_map.find(alt_loc);
-    if (i == _alt_loc_map.end())
-        throw std::invalid_argument("Alternate location given to set_alt_loc()"
-            " does not exist!");
-    _Alt_loc_info &info = (*i).second;
-    _aniso_u = info.aniso_u;
-    _coordset_set_coord(info.coord);
-    _serial_number = info.serial_number;
-    _alt_loc = alt_loc;
-    if (!create) {
-        // set neighboring alt locs
-        const BondsMap &bm = bonds_map();
-        for (BondsMap::const_iterator bmi = bm.begin(); bmi != bm.end(); ++bmi) {
-            Atom *nb = (*bmi).first;
-            if (nb->_alt_loc_map.find(alt_loc) != nb->_alt_loc_map.end())
-                nb->set_alt_loc(alt_loc);
-        }
+    if (i == _alt_loc_map.end()) {
+        std::stringstream msg;
+        msg << "set_alt_loc(): atom " << name() << " in residue "
+            << residue()->str() << " does not have an alt loc '"
+            << alt_loc << "'";
+        throw std::invalid_argument(msg.str().c_str());
+    }
+    if (from_residue) {
+        _Alt_loc_info &info = (*i).second;
+        _aniso_u = info.aniso_u;
+        _coordset_set_coord(info.coord);
+        _serial_number = info.serial_number;
+        _alt_loc = alt_loc;
+    } else {
+        residue()->set_alt_loc(alt_loc);
     }
 }
 

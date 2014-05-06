@@ -17,6 +17,7 @@ public:
     typedef std::multimap<std::string, Atom *>  AtomsMap;
 private:
     Residue(AtomicStructure *as, std::string &name, std::string &chain, int pos, char insert);
+    char  _alt_loc;
     Atoms  _atoms;
     std::string  _chain_id;
     char  _insertion_code;
@@ -40,6 +41,7 @@ public:
     bool  is_het() const { return _is_het; }
     const std::string &  name() { return _name; }
     int  position() const { return _position; }
+    void  set_alt_loc(char alt_loc);
     void  set_is_helix(bool ih) { _is_helix = ih; }
     void  set_is_het(bool ih) { _is_het = ih; }
     void  set_is_sheet(bool is) { _is_sheet = is; }

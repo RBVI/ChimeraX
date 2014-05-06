@@ -55,9 +55,44 @@ void PDB::parse_line(const char *buf)
 			}
 			break;
 		}
-		// handle atom serial number overflows
-		if (strncmp(&buf[6], "*****", 5) != 0)
+		if (isupper(buf[6])) {
+			// possible weird base-36 number for large structures
+			atom_serial_number = 0;
+			for (int i = 6; i < 11; ++i) {
+				// for some unknown reason, if the variable 'c' is
+				// declared as char, the computed value is wrong!
+				int c = buf[i];
+				int val;
+				if (isupper(c))
+					val = c - 'A' + 10;
+				else if (isdigit(c))
+					val = c - '0';
+				else
+					goto unknown;
+				atom_serial_number = 36 * atom_serial_number + val;
+			}
+		} else if (isdigit(buf[11])) {
+			// serial numbers overflowing to the right?
+			char altfmt[80];
+			strcpy(altfmt, "%6 %6d%4s%c%4s%c%5d   %8f%8f%8f%6f%6f");
+			if (input_version == 2 && strlen(buf) >= 80)
+				strcat(altfmt, "%6 %4s%2s%2s");
+			if (0 <= sscanf(buf, fmt,
+					&atom.serial, atom.name,
+					&atom.alt_loc, atom.res.name,
+					&atom.res.chain_id, &atom.res.seq_num,
+					&atom.xyz[0], &atom.xyz[1], &atom.xyz[2], &atom.occupancy,
+					&atom.temp_factor, atom.seg_id,
+					atom.element, atom.charge)) {
+				if (r_type != HETATM) {
+					atom.serial += 1000000 * (r_type - ATOM);
+					r_type = ATOM;
+				}
+				break;
+			}
+		} else if (strncmp(&buf[6], "*****", 5) != 0)
 			goto atomqr;
+		// handle atom serial number overflows (and base-36 numbers)
 		char new_buf[BUF_LEN];
 		strncpy(new_buf, buf, BUF_LEN);
 		strncpy(&new_buf[6], "00000", 5);

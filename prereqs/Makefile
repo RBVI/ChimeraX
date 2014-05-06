@@ -124,7 +124,7 @@ PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
 pytables.install: hdf5.install numexpr.install cython.install Python.install zlib.install
 pythomnic3k.install: Python.install
-Python.install: zlib.install openssl.install expat.install
+Python.install: p7zip.install zlib.install openssl.install expat.install
 python-dateutil.install: Python.install
 PyQt.install: Python.install qt.install sip.install
 qt.install: p7zip.install openssl.install zlib.install

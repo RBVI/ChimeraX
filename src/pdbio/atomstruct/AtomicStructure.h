@@ -38,7 +38,7 @@ public:
     const Atoms &    atoms() const { return _atoms; }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    std::map<Atom *, char>  best_alt_locs() const;
+    std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return _bonds; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_bond(Bond *);
