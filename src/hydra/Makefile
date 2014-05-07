@@ -17,14 +17,23 @@ ifeq ($(OS),Darwin)
   ALL_QT_FRAMEWORKS = QtCLucene QtConcurrent QtCore QtDeclarative QtDesigner QtDesignerComponents QtGui QtHelp QtMultimedia QtMultimediaQuick_p QtMultimediaWidgets QtNetwork QtOpenGL QtPrintSupport QtQml QtQuick QtQuickParticles QtQuickTest QtScript QtScriptTools QtSensors QtSerialPort QtSql QtSvg QtTest QtV8 QtWebKit QtWebKitWidgets QtWidgets QtXml QtXmlPatterns
   QT_LIBS = $(foreach fw,$(QT_FRAMEWORKS),$(fw).framework/Versions/5/$(fw))
   ALL_QT_LIBS = $(foreach fw,$(ALL_QT_FRAMEWORKS),$(fw).framework/Versions/5/$(fw))
-  PY_INSTALL=$(FW_DIR)/Python.framework/Versions/3.3
-  PY_SITE_INSTALL=$(PY_INSTALL)/lib/python3.3/site-packages
+  PY_INSTALL=$(FW_DIR)/Python.framework/Versions/$(PYTHON_VERSION)
+  PY_SITE_INSTALL=$(PY_INSTALL)/lib/python$(PYTHON_VERSION)/site-packages
   PY_NAME = python$(PYTHON_VERSION)$(PYTHON_ABI)
   PY_EXE = $(bindir)/$(PY_NAME)
-  PY_LIB = $(frameworkdir)/Python.framework/Versions/3.3/Python
+  PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
   QT_PLUGINS = plugins/platforms/libqcocoa.dylib \
 		plugins/imageformats/libqjpeg.dylib \
 		plugins/accessible/libqtaccessiblewidgets.dylib
+  PYOPENGL_VERSION = 3.1.0a1
+  PYOPENGL_EGG = PyOpenGL-$(PYOPENGL_VERSION)-py$(PYTHON_VERSION).egg
+  NUMEXPR_VERSION = 2.3.1
+  NUMEXPR_EGG = numexpr-$(NUMEXPR_VERSION)-py$(PYTHON_VERSION)-macosx-$(MACOSX_DEPLOYMENT_TARGET)-x86_64.egg
+  PYCOLLADA_VERSION = 0.4
+  PYCOLLADA_EGG = pycollada-$(PYCOLLADA_VERSION)-py$(PYTHON_VERSION).egg
+  DATEUTIL_VERSION = 2.2
+  DATEUTIL_EGG = python_dateutil-$(DATEUTIL_VERSION)-py$(PYTHON_VERSION).egg
+  HDF_VERSION = 5.8
 endif
 
 # All needed subdirectories must be set by now.
@@ -34,23 +43,31 @@ all: $(PYOBJS)
 
 install: all pkg_dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+ifeq ($(OS),Darwin)
+	$(MAKE) install_mac_app
+endif
 
 ifeq ($(OS),Darwin)
-install_mac_app: install mac_app_dirs
+
+install_mac_app: mac_app_dirs
 # Build application directory hierarchy
 	$(RSYNC) $(APP_NAME) $(APPS_DIR)
+
+# Copy Python
 	$(RSYNC) $(PY_EXE) $(APPS_DIR)/$(APP_NAME)/Contents/MacOS
-	install_name_tool -change $(PY_LIB) @executable_path/../Frameworks/Python.framework/Versions/3.3/Python $(APPS_DIR)/$(APP_NAME)/Contents/MacOS/$(PY_NAME)
-	$(RSYNC) --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
+	install_name_tool -change $(PY_LIB) @executable_path/../Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python $(APPS_DIR)/$(APP_NAME)/Contents/MacOS/$(PY_NAME)
+# Python 3.4 framework has symbolic link to the non-framework lib/python3.4.
+# To copy that we use rsync option -copy-unsafe-links to copy links outside the tree.
+	$(RSYNC) --copy-unsafe-links --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
+	-chmod u+w $(PY_INSTALL)/Python
+	install_name_tool -change $(PY_LIB) @executable_path/../../../../Python $(PY_INSTALL)/Resources/Python.app/Contents/MacOS/Python
 
 # Copy only the Python packages needed for distribution.
-	cd $(libdir)/python3.3/site-packages ; $(RSYNC) numexpr-2.2.2-py3.3-macosx-10.8-x86_64.egg/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
-	cd $(PYSITEDIR) ; $(RSYNC) hydra LeapMotion pycollada-0.4-py3.3.egg/collada PyOpenGL-3.1.0a1-py3.3.egg/OpenGL python_dateutil-2.0-py3.3.egg/dateutil $(PY_SITE_INSTALL)
-
-# Fix Python executable reference to python shared library
-	install_name_tool -change $(PY_LIB) @executable_path/../Python $(FW_DIR)/Python.framework/Versions/3.3/bin/python3.3
-	-chmod u+w $(FW_DIR)/Python.framework/Versions/3.3/Python
-	install_name_tool -change $(PY_LIB) @executable_path/../../../../Python $(FW_DIR)/Python.framework/Versions/3.3/Resources/Python.app/Contents/MacOS/Python
+	cd $(libdir)/python$(PYTHON_VERSION)/site-packages ; \
+	  $(RSYNC) $(NUMEXPR_EGG)/numexpr numpy tables PyQt5 sip.so $(PY_SITE_INSTALL)
+	cd $(PYSITEDIR) ; \
+	  $(RSYNC) hydra LeapMotion $(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL \
+	           $(DATEUTIL_EGG)/dateutil $(PY_SITE_INSTALL)
 
 # Copy Qt frameworks into PyQt5 python module
 	cd $(libdir) ; $(RSYNC) $(QT_FRAMEWORKS:%=%.framework) $(PY_SITE_INSTALL)/PyQt5/frameworks
@@ -81,14 +98,14 @@ install_mac_app: install mac_app_dirs
 		done ; \
 	done
 
-# Make PyTables link to libhdf5.8.dylib
-	$(RSYNC) $(libdir)/libhdf5.8.dylib $(PY_SITE_INSTALL)/tables
+# Make PyTables link to libhdf.dylib
+	$(RSYNC) $(libdir)/libhdf$(HDF_VERSION).dylib $(PY_SITE_INSTALL)/tables
 	for tableslib in $(PY_SITE_INSTALL)/tables/*.so ; do \
-		install_name_tool -change $(libdir)/libhdf5.8.dylib @loader_path/libhdf5.8.dylib $$tableslib ; \
+		install_name_tool -change $(libdir)/libhdf$(HDF_VERSION).dylib @loader_path/libhdf$(HDF_VERSION).dylib $$tableslib ; \
 	done
 
 # Missing lib-dynload in Python framework
-	$(RSYNC) $(libdir)/python3.3/lib-dynload $(FW_DIR)/Python.framework/Versions/3.3/lib/python3.3
+	$(RSYNC) $(libdir)/python$(PYTHON_VERSION)/lib-dynload $(PY_INSTALL)/lib/python$(PYTHON_VERSION)
 
 # Fix _image3d.so path to python library
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/_image3d.so
@@ -100,13 +117,13 @@ install_mac_app: install mac_app_dirs
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PY_SITE_INSTALL)/hydra/ui/oculus/_oculus.so
 
 # Install pdbio and fix paths to libraries
-	$(RSYNC) $(libdir)/libmolecule.dylib $(libdir)/libtmpl.dylib $(libdir)/libcapsule.dylib $(PY_SITE_INSTALL)/hydra/lib
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PY_SITE_INSTALL)/hydra/lib/libcapsule.dylib
-	$(RSYNC) $(PYSITEDIR)/pdbio.so $(PYSITEDIR)/access.so $(PY_SITE_INSTALL)/hydra
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/access.so 
+	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(PY_SITE_INSTALL)/hydra/lib
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PY_SITE_INSTALL)/hydra/lib/libblob.dylib
+	$(RSYNC) $(PYSITEDIR)/pdbio.so $(PYSITEDIR)/structaccess.so $(PY_SITE_INSTALL)/hydra
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/structaccess.so 
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PY_SITE_INSTALL)/hydra/pdbio.so
-	for pymod in access.so pdbio.so ; do \
-		for lib in libmolecule.dylib libcapsule.dylib libtmpl.dylib ; do \
+	for pymod in structaccess.so pdbio.so ; do \
+		for lib in libatomstruct.dylib libblob.dylib libtmpl.dylib ; do \
 			install_name_tool -change @executable_path/../lib/$$lib @loader_path/lib/$$lib $(PY_SITE_INSTALL)/hydra/$$pymod ; \
 		done ; \
 	done
