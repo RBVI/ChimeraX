@@ -239,33 +239,37 @@ class Molecule(Surface):
 
       rshow = self.ribbon_shown[s]
       if rshow.sum() == 0:
-        continue        # TODO: Allow showing part of a ribbon.  Currently it is all or nothing.
+        continue
 
       path = self.xyz[s]
-      rc = self.ribbon_colors
-      from .colors import rgba_256
-      colors = rgba_256[cid[0]] if rc is None else rc[s]
 
+      rc = self.ribbon_colors
+      colors = None if rc is None else rc[s]
+      from .colors import rgba_256
+      color = rgba_256[cid[0]]
+
+      # For each contiguous set of residues compute a spline and then
+      # draw shown segments.
       plist = []
       cint = contiguous_intervals(self.residue_nums[s])
+      sd, cd = self.ribbon_subdivisions
+      from .._image3d import natural_cubic_spline
+      from ..surface import tube
       for i1,i2 in cint:
-        rcolor = colors[i1:i2+1] if rc else colors
-        va,na,ta,ca = self.ribbon_geometry(path[i1:i2+1], rcolor)
-        p = self.new_piece()
-        p.geometry = va, ta
-        p.normals = na
-        p.vertex_colors = ca
-        plist.append(p)
+        if rshow[i1:i2+1].sum() == 0:
+          continue      # Segment not shown
+        spath, stan = natural_cubic_spline(path[i1:i2+1], sd)
+        for j1,j2 in mask_intervals(rshow, i1, i2):
+          p1, p2 = (j1-i1)*(sd+1), (j2+1-i1)*(sd+1)
+          jpath, jtan = spath[p1:p2], stan[p1:p2]
+          va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
+          ca = color_array(color,len(va)) if colors is None else tube.tube_geometry_colors(colors[j1:j2+1], sd, cd)
+          p = self.new_piece()
+          p.geometry = va, ta
+          p.normals = na
+          p.vertex_colors = ca
+          plist.append(p)
       rsp[cid] = plist
-
-  def ribbon_geometry(self, path, colors):
-    sd, cd = self.ribbon_subdivisions
-    from ..surface import tube
-    va,na,ta,ca = tube.tube_through_points(path, radius = self.ribbon_radius,
-                                           colors = colors,
-                                           segment_subdivisions = sd,
-                                           circle_subdivisions = cd)
-    return va, na, ta, ca
 
   def ribbon_guide_atom_indices(self, chain_id):
     s = self.atom_index_subset('CA', chain_id)
@@ -599,6 +603,34 @@ def contiguous_intervals(a):
   if e > s:
     cints.append((s,e))
   return cints
+
+# -----------------------------------------------------------------------------
+#
+def mask_intervals(mask, i1, i2):
+  ''' 
+  Find intervals where bool array mask is true in index interval i1 to i2.
+  TODO: Optimize this in C++.
+  '''
+  mint = []
+  s = None
+  for i in range(i1, i2+1):
+    if s is None:
+      if mask[i]:
+        s = i
+    elif not mask[i]:
+      mint.append((s,i-1))
+      s = None
+  if not s is None:
+    mint.append((s,i2))
+  return mint
+
+# -----------------------------------------------------------------------------
+#
+def color_array(color, n):
+  from numpy import empty, uint8
+  ca = empty((n,4),uint8)
+  ca[:,:] = color
+  return ca
 
 # -----------------------------------------------------------------------------
 #
