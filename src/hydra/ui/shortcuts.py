@@ -444,11 +444,11 @@ def show_molecular_surface(m, session, res = 3.0, grid = 0.5):
     m.molsurf = surface(m.atoms(), session)
 
 def color_by_element(m):
-  m.set_color_mode('by element')
+  m.color_by_element()
 def color_by_chain(m):
-  m.set_color_mode('by chain')
+  m.color_by_chain()
 def color_one_color(m):
-  m.set_color_mode('single')
+  m.single_color()
 
 def show_atoms(m):
   m.show_all_atoms()
