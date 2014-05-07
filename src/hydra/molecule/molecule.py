@@ -214,7 +214,9 @@ class Molecule(Surface):
     self.redraw_needed = True
 
   def color_by_chain(self):
-    self.atom_colors = chain_colors(self.chain_ids)
+    c = chain_colors(self.chain_ids)
+    self.atom_colors = c
+    self.ribbon_colors = c.copy()
     self.need_graphics_update = True
     self.redraw_needed = True
     
@@ -249,8 +251,7 @@ class Molecule(Surface):
 
       rc = self.ribbon_colors
       colors = None if rc is None else rc[s]
-      from .colors import rgba_256
-      color = rgba_256[cid[0]]
+      color = self.color
 
       # For each contiguous set of residues compute a spline and then
       # draw shown segments.
