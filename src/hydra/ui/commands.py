@@ -1084,7 +1084,7 @@ def split_first(s):
 def parse_specifier(spec, session):
 
     parts = specifier_parts(spec)
-    mid1 = mid2 = cid = rrange = rname = aname = None
+    mids = cid = rrange = rname = aname = None
     invert = False
     for p in parts:
         if p.startswith('#'):
