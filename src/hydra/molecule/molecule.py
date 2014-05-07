@@ -210,6 +210,7 @@ class Molecule(Surface):
 
   def single_color(self):
     self.atom_colors = None
+    self.ribbon_colors = None
     self.need_graphics_update = True
     self.redraw_needed = True
 
