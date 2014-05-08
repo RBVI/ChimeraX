@@ -42,6 +42,3 @@ PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
-
-$(PKG_DIR):
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
