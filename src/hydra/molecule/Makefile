@@ -9,7 +9,7 @@ DATA = bond_templates
 
 all: $(PYOBJS)
 
-install: all pkg_dir
+install: all $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
 
 clean:

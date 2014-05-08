@@ -16,6 +16,8 @@ INCS += $(PYTHON_INCLUDE_DIRS) $(OCINC)
 LIBS	+= $(PYTHON_LIB) $(OCSDK)/LibOVR/Lib/MacOS/Debug/libovr.a
 LIBS	+= -framework Carbon -framework IOKit
 
+PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
+
 # libovr is compiled without rtti and without exceptions
 OPT = -fno-rtti -fno-exceptions -g
 
@@ -25,8 +27,12 @@ all: $(PYMOD) $(PYOBJS)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
+ifeq ($(OS),Darwin)
+# Fix _oculus.so to use relative path to Python framework library.
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PYMOD)
+endif
 
-install: all pkg_dir
+install: all $(PKG_DIR)
 	$(RSYNC) $(PYMOD) $(PYSRCS) $(PKG_DIR)
 
 clean:

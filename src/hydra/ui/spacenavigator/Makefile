@@ -14,14 +14,20 @@ INCS += $(PYTHON_INCLUDE_DIRS) $(SNINC)
 
 LIBS	+= $(PYTHON_LIB) -F/Library/Frameworks -framework 3DconnexionClient
 
+PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
+
 ifeq ($(shell test -e $(SNFW) && echo found),found)
 
 all: $(PYMOD) $(PYOBJS)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
+ifeq ($(OS),Darwin)
+# Fix _spacenavigator.so to use relative path to Python framework library.
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PYMOD)
+endif
 
-install: all pkg_dir
+install: all $(PKG_DIR)
 	$(RSYNC) $(PYMOD) $(PYSRCS) $(PKG_DIR)
 
 clean:

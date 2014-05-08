@@ -6,7 +6,7 @@ DATA_FILES = 6bna.hy 6bna.jpg Tropomyosin.hy Tropomyosin.jpg \
 	     XrayDensity.hy XrayDensity.jpg Reovirus.hy Reovirus.jpg \
 	     sessions
 
-install: all pkg_dir
+install: all $(PKG_DIR)
 	$(RSYNC) $(DATA_FILES) $(PKG_DIR)
 
 clean:
