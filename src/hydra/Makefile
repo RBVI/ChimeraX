@@ -136,7 +136,8 @@ install_app_prereqs:
 
 endif
 
-
+$(PKG_DIR):
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 
 clean:
 	rm -rf __pycache__

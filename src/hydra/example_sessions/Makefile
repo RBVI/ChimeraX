@@ -9,4 +9,7 @@ DATA_FILES = 6bna.hy 6bna.jpg Tropomyosin.hy Tropomyosin.jpg \
 install: all $(PKG_DIR)
 	$(RSYNC) $(DATA_FILES) $(PKG_DIR)
 
+$(PKG_DIR):
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+
 clean:

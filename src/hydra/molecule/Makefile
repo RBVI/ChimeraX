@@ -12,5 +12,8 @@ all: $(PYOBJS)
 install: all $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
 
+$(PKG_DIR):
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+
 clean:
 	rm -rf __pycache__

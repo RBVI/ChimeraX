@@ -20,5 +20,8 @@ install: all $(PKG_DIR)
 
 $(SUBDIR_INSTALL): $(PKG_DIR)
 
+$(PKG_DIR):
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+
 clean:
 	rm -rf __pycache__
