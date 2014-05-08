@@ -19,8 +19,6 @@ ifeq ($(OS),Darwin)
   ALL_QT_LIBS = $(foreach fw,$(ALL_QT_FRAMEWORKS),$(fw).framework/Versions/5/$(fw))
   PY_INSTALL=$(FW_DIR)/Python.framework/Versions/$(PYTHON_VERSION)
   PY_SITE_INSTALL=$(PY_INSTALL)/lib/python$(PYTHON_VERSION)/site-packages
-  PY_NAME = python$(PYTHON_VERSION)$(PYTHON_ABI)
-  PY_EXE = $(bindir)/$(PY_NAME)
   PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
   QT_PLUGINS = plugins/platforms/libqcocoa.dylib \
 		plugins/imageformats/libqjpeg.dylib \
@@ -54,8 +52,8 @@ install_mac_app: mac_app_dirs
 	$(RSYNC) $(APP_NAME) $(APPS_DIR)
 
 # Copy Python
-	$(RSYNC) $(PY_EXE) $(APPS_DIR)/$(APP_NAME)/Contents/MacOS
-	install_name_tool -change $(PY_LIB) @executable_path/../Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python $(APPS_DIR)/$(APP_NAME)/Contents/MacOS/$(PY_NAME)
+	$(RSYNC) $(bindir)/python$(PYTHON_VERSION)noapp $(APPS_DIR)/$(APP_NAME)/Contents/MacOS/python
+	install_name_tool -change $(PY_LIB) @executable_path/../Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python $(APPS_DIR)/$(APP_NAME)/Contents/MacOS/python
 # Python 3.4 framework has symbolic link to the non-framework lib/python3.4.
 # To copy that we use rsync option -copy-unsafe-links to copy links outside the tree.
 	$(RSYNC) --copy-unsafe-links --exclude site-packages $(frameworkdir)/Python.framework $(FW_DIR)
