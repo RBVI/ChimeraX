@@ -15,7 +15,6 @@ def show(what = None, atoms = False, ribbons = False, only = False, session = No
 
     if not atoms and not ribbons:
         atoms = True
-        ribbons = True
 
     if what is None:
         from . import molecule
