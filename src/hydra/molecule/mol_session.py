@@ -51,7 +51,7 @@ def restore_molecules(mstate, session, file_paths, attributes_only = False):
 def set_molecule_state(m, ms, session):
     from ..geometry.place import Place
     m.position = Place(ms['place'])
-    if 'copies' in ms:
+    if 'copies' in ms and len(ms['copies']) > 0:
         m.positions = [Place(c) for c in ms['copies']]
     if 'displayed' in ms:
         ms['display'] = ms['displayed']     # Fix old session files
