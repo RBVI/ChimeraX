@@ -14,11 +14,13 @@ def open_pdb_file_with_image3d(path, session):
   f.close()
   ft1 = time()
   from .. import _image3d
-  xyz, element_nums, chain_ids, res_nums, res_names, atom_names = \
-      _image3d.parse_pdb_file(text)
+  a = _image3d.parse_pdb_file(text)
   t1 = time()
+  atoms = atom_array(a)
+  enums = atoms['element_number'].squeeze()
+  atoms['radius'][:,0] = _image3d.element_radii(enums)
   from ..molecule import Molecule
-  m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
+  m = Molecule(path, atoms)
   m.pdb_text = text
   from ..molecule import connect
   t2 = time()
@@ -29,7 +31,7 @@ def open_pdb_file_with_image3d(path, session):
 #  print ('image3d', basename(path), 'read time', '%.3f' % (ft1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(ft1-t0)))
   t = (t1-t0)+(t3-t2)
 #  print('image3d', basename(path), 'read+parse time', '%.3f' % t, 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/t))
-  print(basename(path), len(xyz), 'atoms')
+  print(basename(path), len(atoms), 'atoms')
 #  from ..molecule import connect
 #  t2 = time()
 #  connect.create_molecule_bonds(m)
@@ -43,6 +45,24 @@ def open_pdb_file_with_image3d(path, session):
 #  print('rnames', res_names.shape, res_names.dtype, res_names[:5])
 #  print('anames', atom_names.shape, atom_names.dtype, atom_names[:5])
   return m
+
+# Convert numpy byte array of C Atom structure to a numpy structured array.
+def atom_array(a):
+  dtype = [('atom_name', 'a4'),
+           ('element_number', 'i4'),
+           ('xyz', 'f4', (3,)),
+           ('radius', 'f4'),
+           ('residue_name', 'a4'),
+           ('residue_number', 'i4'),
+           ('chain_id', 'a4'),
+           ('atom_color', 'u1', (4,)),
+           ('ribbon_color', 'u1', (4,)),
+           ('atom_shown', 'u1'),
+           ('ribbon_shown', 'u1'),
+           ('pad', 'u2'),               # C struct size is multiple of 4 bytes
+          ]
+  atoms = a.view(dtype)
+  return atoms
 
 def open_pdb_file_with_pdbio(path):
   from time import time

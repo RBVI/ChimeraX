@@ -2,7 +2,9 @@
 #include <stdlib.h>			// use strtof, strncpy
 #include <ctype.h>			// use isspace
 #include <string.h>			// use memset
+#include <vector>			// use std::vector
 
+#include "parsepdb.h"			// use Atom
 #include "pythonarray.h"		// use python_float_array
 
 inline bool atom_line(const char *line)
@@ -18,17 +20,6 @@ inline int next_line(const char *s, int i)
   if (c == '\n')
     i++;
   return i;
-}
-
-static int count_pdb_atoms(const char *pdb)
-{
-  int count = 0;
-  for (int i = 0 ; pdb[i] ; i = next_line(pdb, i))
-    if (atom_line(pdb+i))
-      count += 1;
-    else if (strncmp(pdb+i, "ENDMDL", 6) == 0)
-      break;
-  return count;
 }
 
 static unsigned int element_hash(const char *element_name)
@@ -60,7 +51,7 @@ int element_number(const char *element_name)
   return elnum[e];
 }
 
-static void element_radii(unsigned char *element_nums, int n, float *radii)
+static void element_radii(int *element_nums, long n, long stride, float *radii)
 {
   static float *erad = NULL;
   if (erad == NULL)
@@ -76,61 +67,62 @@ static void element_radii(unsigned char *element_nums, int n, float *radii)
       erad[16] = 1.782;	// S
     }
   for (int e = 0 ; e < n ; ++e)
-    radii[e] = erad[element_nums[e]];
+    {
+      int en = element_nums[e*stride];
+      radii[e] = (en < 256 ? erad[en] : 0);
+    }
 }
 
-static int parse_pdb(const char *pdb, int natom,
-		     float *xyz, unsigned char *element_nums, char *chain_ids,
-		     int *residue_nums, char *residue_names, char *atom_names)
+static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
 {
   char buf[9];
   buf[8] = '\0';
-  int a = 0, ni, s;
+  int ni, s;
   char last_alt_loc = ' ';
-  for (int i = 0 ; pdb[i] && a < natom ; i = ni)
+  size_t asize = sizeof(Atom);
+  Atom atom;
+  for (int i = 0 ; pdb[i] ; i = ni)
     {
       	const char *line = pdb + i;
 	ni = next_line(pdb, i);
 	int line_len = ni - i;
 	if (strncmp(line, "ENDMDL", 6) == 0)
-	  return a;	// Only parse the first model in the file.
+	  return;	// Only parse the first model in the file.
 	if (atom_line(line) && line_len > 46)
 	  {
-	    int a3 = 3*a;
+	    memset(&atom, 0, asize);
 	    strncpy(buf, line+30, 8);
-	    xyz[a3] = strtof(buf, NULL);
+	    atom.x = strtof(buf, NULL);
 	    strncpy(buf, line+38, 8);
-	    xyz[a3+1] = strtof(buf, NULL);
+	    atom.y = strtof(buf, NULL);
 	    strncpy(buf, line+46, 8);
-	    xyz[a3+2] = strtof(buf, NULL);
-	    chain_ids[a] = line[21];
+	    atom.z = strtof(buf, NULL);
+	    atom.chain_id[0] = line[21];
 	    int e = (line_len > 76 ? element_number(line + 76) : 0);
-	    element_nums[a] = e;
+	    atom.element_number = e;
 	    strncpy(buf, line+22, 4);
-	    residue_nums[a] = strtol(buf, NULL, 10);
+	    atom.residue_number = strtol(buf, NULL, 10);
 	    for (s = 17 ; s < 19 && line[s] == ' ' ; ++s) ;	// Skip leading spaces.
 	    for (e = 19 ; e > 16 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
-	      strncpy(residue_names + 3*a, line+s, e-s+1);
+	      strncpy(atom.residue_name, line+s, e-s+1);
 	    for (s = 12 ; s < 15 && line[s] == ' ' ; ++s) ;	// Skip leading spaces.
 	    for (e = 15 ; e > 11 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
-	      strncpy(atom_names + 4*a, line+s, e-s+1);
-	    if (a > 0 && line[16] != last_alt_loc &&
-		residue_nums[a] == residue_nums[a-1] &&
-		strncmp(atom_names+4*a, atom_names+4*(a-1), 4) == 0 &&
-		strncmp(residue_names+3*a, residue_names+3*(a-1), 3) == 0 &&
-		chain_ids[a] == chain_ids[a-1])
+	      strncpy(atom.atom_name, line+s, e-s+1);
+	    if (!atoms.empty() && line[16] != last_alt_loc)
 	      {
-		memset(residue_names+3*a, 0, 3);
-		memset(atom_names+4*a, 0, 4);
-		continue;		// Skip atom that differs only in alt-loc
+		const Atom &prev_atom = atoms.back();
+		if (atom.residue_number == prev_atom.residue_number &&
+		    strncmp(atom.atom_name, prev_atom.atom_name, ATOM_NAME_LEN) == 0 &&
+		    strncmp(atom.residue_name, prev_atom.residue_name, RESIDUE_NAME_LEN) == 0 &&
+		    atom.chain_id[0] == prev_atom.chain_id[0])
+		  continue;		// Skip atom that differs only in alt-loc
 	      }
 	    last_alt_loc = line[16];
-	    a += 1;
+	    atoms.push_back(atom);
 	  }
     }
-  return a;
 }
 
 // ----------------------------------------------------------------------------
@@ -144,52 +136,15 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
 				   (char **)kwlist, &pdb_text))
     return NULL;
 
-  int natom = count_pdb_atoms(pdb_text);
-  float *xyz;
-  int *residue_nums;
-  unsigned char *element_nums;
-  char *chain_ids, *residue_names, *atom_names;
-  PyObject *xyz_py = python_float_array(natom, 3, &xyz);
-  PyObject *element_nums_py = python_uint8_array(natom, &element_nums);
-  PyObject *chain_ids_py = python_string_array(natom, 1, &chain_ids);
-  PyObject *residue_nums_py = python_int_array(natom, &residue_nums);
-  PyObject *residue_names_py = python_string_array(natom, 3, &residue_names);
-  memset(residue_names, 0, 3*natom);
-  PyObject *atom_names_py = python_string_array(natom, 4, &atom_names);
-  memset(atom_names, 0, 4*natom);
+  std::vector<Atom> atoms;
+  parse_pdb(pdb_text, atoms);
 
-  int na = parse_pdb(pdb_text, natom, xyz, element_nums, chain_ids,
-		     residue_nums, residue_names, atom_names);
-  if (na < natom)
-    {
-      // Dropped extra altloc atoms.  So resize to actual number of atoms.
-      float *xyz2;
-      int *residue_nums2;
-      unsigned char *element_nums2;
-      char *chain_ids2, *residue_names2, *atom_names2;
-      PyObject *xyz_py2 = python_float_array(na, 3, &xyz2);
-      memcpy(xyz2, xyz, 3*na*sizeof(float)); Py_DECREF(xyz_py); xyz_py = xyz_py2;
-      PyObject *element_nums_py2 = python_uint8_array(na, &element_nums2);
-      memcpy(element_nums2, element_nums, na); Py_DECREF(element_nums_py); element_nums_py = element_nums_py2;
-      PyObject *chain_ids_py2 = python_string_array(na, 1, &chain_ids2);
-      memcpy(chain_ids2, chain_ids, na); Py_DECREF(chain_ids_py); chain_ids_py = chain_ids_py2;
-      PyObject *residue_nums_py2 = python_int_array(na, &residue_nums2);
-      memcpy(residue_nums2, residue_nums, na*sizeof(int)); Py_DECREF(residue_nums_py); residue_nums_py = residue_nums_py2;
-      PyObject *residue_names_py2 = python_string_array(na, 3, &residue_names2);
-      memcpy(residue_names2, residue_names, 3*na); Py_DECREF(residue_names_py); residue_names_py = residue_names_py2;
-      PyObject *atom_names_py2 = python_string_array(na, 4, &atom_names2);
-      memcpy(atom_names2, atom_names, 4*na); Py_DECREF(atom_names_py); atom_names_py = atom_names_py2;
-    }
+  size_t na = atoms.size(), asize = sizeof(Atom);
+  char *adata;
+  PyObject *atoms_py = python_char_array(na, asize, &adata);
+  memcpy(adata, atoms.data(), na*asize);
 
-  PyObject *t = PyTuple_New(6);
-  PyTuple_SetItem(t, 0, xyz_py);
-  PyTuple_SetItem(t, 1, element_nums_py);
-  PyTuple_SetItem(t, 2, chain_ids_py);
-  PyTuple_SetItem(t, 3, residue_nums_py);
-  PyTuple_SetItem(t, 4, residue_names_py);
-  PyTuple_SetItem(t, 5, atom_names_py);
-
-  return t;
+  return atoms_py;
 }
 
 // ----------------------------------------------------------------------------
@@ -201,25 +156,13 @@ element_radii(PyObject *s, PyObject *args, PyObject *keywds)
   const char *kwlist[] = {"element_numbers", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
 				   (char **)kwlist,
-				   parse_writable_array, &elnum))
+				   parse_int_n_array, &elnum))
     return NULL;
-
-  if (elnum.dimension() != 1)
-    {
-      PyErr_Format(PyExc_TypeError, "Element array must be 1-dimensional, got %d",
-		   elnum.dimension());
-      return NULL;
-    }
-  if (elnum.value_type() != Numeric_Array::Unsigned_Char)
-    {
-      PyErr_SetString(PyExc_TypeError, "Element array must be type unsigned char");
-      return NULL;
-    }
-  unsigned char *el = (unsigned char *)elnum.values();
-  int n = elnum.size();
+  int *el = (int *)elnum.values();
+  long n = elnum.size(), st = elnum.stride(0);
   float *radii;
   PyObject *radii_py = python_float_array(n, &radii);
-  element_radii(el, n, radii);
+  element_radii(el, n, st, radii);
 
   return radii_py;
 }

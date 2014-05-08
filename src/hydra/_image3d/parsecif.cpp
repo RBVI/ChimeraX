@@ -6,41 +6,27 @@
 #include <string.h>			// use memset()
 #include <vector>
 
-#include "parsepdb.h"			// use element_number()
+#include "parsepdb.h"			// use element_number(), Atom
 #include "pythonarray.h"		// use python_float_array
 
-#define MAX_CHAR_ELEMENT_NAME 4
-#define MAX_CHAR_ATOM_NAME 4
-#define MAX_CHAR_ALT_LOC 1
-#define MAX_CHAR_RES_NAME 4
-#define MAX_CHAR_CHAIN_ID 4
-
-class Atom
+class mmCIF_Atom
 {
 public:
-  Atom()
+  mmCIF_Atom()
   {
-    memset(element_name, 0, MAX_CHAR_ELEMENT_NAME);
-    memset(atom_name, 0, MAX_CHAR_ATOM_NAME);
-    memset(alt_loc, 0, MAX_CHAR_ALT_LOC);
-    memset(residue_name, 0, MAX_CHAR_RES_NAME);
-    memset(chain_id, 0, MAX_CHAR_CHAIN_ID);
+    memset(&atom, 0, sizeof(Atom));
+    alt_loc = '\0';
     model_num = 1;
   }
-  bool same_atom(const Atom &a) const
+  bool same_atom(const mmCIF_Atom &a) const
   {
-    return (residue_num == a.residue_num &&
-	    strncmp(atom_name, a.atom_name, MAX_CHAR_ATOM_NAME) == 0 &&
-	    strncmp(residue_name, a.residue_name, MAX_CHAR_RES_NAME) == 0 &&
-	    strncmp(chain_id, a.chain_id, MAX_CHAR_CHAIN_ID) == 0);
+    return (atom.residue_number == a.atom.residue_number &&
+	    strncmp(atom.atom_name, a.atom.atom_name, ATOM_NAME_LEN) == 0 &&
+	    strncmp(atom.residue_name, a.atom.residue_name, RESIDUE_NAME_LEN) == 0 &&
+	    strncmp(atom.chain_id, a.atom.chain_id, CHAIN_ID_LEN) == 0);
   }
-  char element_name[MAX_CHAR_ELEMENT_NAME];
-  char atom_name[MAX_CHAR_ATOM_NAME];
-  char alt_loc[MAX_CHAR_ALT_LOC];
-  char residue_name[MAX_CHAR_RES_NAME];
-  char chain_id[MAX_CHAR_CHAIN_ID];
-  int residue_num;
-  float x, y, z;
+  Atom atom;
+  char alt_loc;
   int model_num;
 };
 
@@ -71,7 +57,7 @@ public:
 
 static bool parse_mmcif_atoms(const char *buf, std::vector<Atom> &atoms);
 static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_Columns &f);
-static bool parse_atom_site_line(const char *line, Atom &a, Atom_Site_Columns &f);
+static bool parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Columns &f);
 
 static const char *next_line(const char *line)
 {
@@ -80,7 +66,7 @@ static const char *next_line(const char *line)
   return (*line == '\n' ? line+1 : line);
 }
 
-static bool parse_mmcif_atoms(const char *buf, std::vector<Atom> &atoms)
+static bool parse_mmcif_atoms(const char *buf, std::vector<mmCIF_Atom> &atoms)
 {
   Atom_Site_Columns fields;
   const char *line = parse_atom_site_column_positions(buf, fields);
@@ -91,12 +77,12 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<Atom> &atoms)
     }
   for ( ; strncmp(line, "ATOM", 4) == 0 || strncmp(line, "HETATM", 6) == 0 ; line = next_line(line))
     {
-      Atom a;
+      mmCIF_Atom a;
       parse_atom_site_line(line, a, fields);
       if (a.model_num > 1)
 	break;	// TODO: Currently skip all but first model.
       if (atoms.size() > 0 &&
-	  strncmp(a.alt_loc, atoms.back().alt_loc, MAX_CHAR_ALT_LOC) != 0 &&
+	  a.alt_loc != atoms.back().alt_loc &&
 	  a.same_atom(atoms.back()))
 	continue;	// TODO: Currently skipping alternate locations.
       atoms.push_back(a);
@@ -135,9 +121,10 @@ static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_C
   return line;
 }
 
-static bool parse_atom_site_line(const char *line, Atom &a, Atom_Site_Columns &f)
+static bool parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Columns &f)
 {
   int c = 0;
+  Atom &ad = a.atom;
   while (*line != '\n')
     {
       while (*line != ' ') line += 1;
@@ -146,28 +133,26 @@ static bool parse_atom_site_line(const char *line, Atom &a, Atom_Site_Columns &f
       int fl = 0;
       for (fl = 0 ; line[fl] != ' ' ; ++fl) ;
       if (c == f.type_symbol)
-	for (int i = 0 ; i < fl && i < MAX_CHAR_ELEMENT_NAME ; ++i)
-	  a.element_name[i] = line[i];
+	ad.element_number = element_number(line);
       else if (c == f.label_atom_id)
-	for (int i = 0 ; i < fl && i < MAX_CHAR_ATOM_NAME ; ++i)
-	  a.atom_name[i] = line[i];
+	for (int i = 0 ; i < fl && i < ATOM_NAME_LEN ; ++i)
+	  ad.atom_name[i] = line[i];
       else if (c == f.label_alt_id)
-	for (int i = 0 ; i < fl && i < MAX_CHAR_ALT_LOC ; ++i)
-	  a.alt_loc[i] = line[i];
+	a.alt_loc = line[0];
       else if (c == f.label_comp_id)
-	for (int i = 0 ; i < fl && i < MAX_CHAR_RES_NAME ; ++i)
-	  a.residue_name[i] = line[i];
+	for (int i = 0 ; i < fl && i < RESIDUE_NAME_LEN ; ++i)
+	  ad.residue_name[i] = line[i];
       else if (c == f.label_asym_id)
-	for (int i = 0 ; i < fl && i < MAX_CHAR_CHAIN_ID ; ++i)
-	  a.chain_id[i] = line[i];
+	for (int i = 0 ; i < fl && i < CHAIN_ID_LEN ; ++i)
+	  ad.chain_id[i] = line[i];
       else if (c == f.label_seq_id)
-	a.residue_num = strtol(line, NULL, 10);
+	ad.residue_number = strtol(line, NULL, 10);
       else if (c == f.Cartn_x)
-	a.x = strtof(line, NULL);
+	ad.x = strtof(line, NULL);
       else if (c == f.Cartn_y)
-	a.y = strtof(line, NULL);
+	ad.y = strtof(line, NULL);
       else if (c == f.Cartn_z)
-	a.z = strtof(line, NULL);
+	ad.z = strtof(line, NULL);
       else if (c == f.model_num)
 	a.model_num = strtol(line, NULL, 10);
       if (c >= f.max_column)
@@ -187,7 +172,7 @@ parse_mmcif_file(PyObject *s, PyObject *args, PyObject *keywds)
 				   (char **)kwlist, &mmcif_text))
     return NULL;
 
-  std::vector<Atom> atoms;
+  std::vector<mmCIF_Atom> atoms;
   if (!parse_mmcif_atoms(mmcif_text, atoms))
     {
       PyErr_SetString(PyExc_ValueError, "parse_mmcif_file: error parsing file");
@@ -195,36 +180,11 @@ parse_mmcif_file(PyObject *s, PyObject *args, PyObject *keywds)
 
     }
 
-  int natom = atoms.size();
-  float *xyz;
-  int *residue_nums;
-  unsigned char *element_nums;
-  char *residue_names, *atom_names, *chain_ids;
-  PyObject *xyz_py = python_float_array(natom, 3, &xyz);
-  PyObject *element_nums_py = python_uint8_array(natom, &element_nums);
-  PyObject *chain_ids_py = python_string_array(natom, MAX_CHAR_CHAIN_ID, &chain_ids);
-  PyObject *residue_nums_py = python_int_array(natom, &residue_nums);
-  PyObject *residue_names_py = python_string_array(natom, MAX_CHAR_RES_NAME, &residue_names);
-  PyObject *atom_names_py = python_string_array(natom, MAX_CHAR_ATOM_NAME, &atom_names);
+  size_t na = atoms.size(), asize = sizeof(Atom);
+  char *adata;
+  PyObject *atoms_py = python_char_array(na, asize, &adata);
+  for (int i = 0 ; i < na ; ++i)
+    memcpy(adata + i*asize, &atoms[i].atom, asize);
 
-  for (int i = 0 ; i < natom ; ++i)
-    {
-      Atom &a = atoms[i];
-      xyz[3*i] = a.x; xyz[3*i+1] = a.y; xyz[3*i+2] = a.z;
-      residue_nums[i] = a.residue_num;
-      memcpy(atom_names+MAX_CHAR_ATOM_NAME*i, a.atom_name, MAX_CHAR_ATOM_NAME);
-      memcpy(residue_names+MAX_CHAR_RES_NAME*i, a.residue_name, MAX_CHAR_RES_NAME);
-      memcpy(chain_ids+MAX_CHAR_CHAIN_ID*i, a.chain_id, MAX_CHAR_CHAIN_ID);
-      element_nums[i] = element_number(a.element_name);
-    }
-
-  PyObject *t = PyTuple_New(6);
-  PyTuple_SetItem(t, 0, xyz_py);
-  PyTuple_SetItem(t, 1, element_nums_py);
-  PyTuple_SetItem(t, 2, chain_ids_py);
-  PyTuple_SetItem(t, 3, residue_nums_py);
-  PyTuple_SetItem(t, 4, residue_names_py);
-  PyTuple_SetItem(t, 5, atom_names_py);
-
-  return t;
+  return atoms_py;
 }

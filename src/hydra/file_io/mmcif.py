@@ -11,9 +11,12 @@ def open_mmcif_file(path, session):
   ft1 = time()
   from .. import _image3d
   t0 = time()
-  xyz, element_nums, chain_ids, res_nums, res_names, atom_names = \
-      _image3d.parse_mmcif_file(text)
+  a = _image3d.parse_mmcif_file(text)
   t1 = time()
+  from . import pdb
+  atoms = pdb.atom_array(a)
+  enums = atoms['element_number'].squeeze()
+  atoms['radius'][:,0] = _image3d.element_radii(enums)
 #  session.show_info('Read %s %d atoms at %d per second\n' %
 #                    (basename(path), len(xyz), int(len(xyz)/(ft1-ft0))))
 #  session.show_info('Parsed %s %d atoms at %d per second\n' %
@@ -22,7 +25,7 @@ def open_mmcif_file(path, session):
 #                    (basename(path), len(xyz), int(len(xyz)/((t1-t0)+(ft1-ft0)))))
 #  session.show_info('Read %s %d atoms\n' % (basename(path), len(xyz)))
   from ..molecule import Molecule
-  m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
+  m = Molecule(path, atoms)
 
   from ..molecule import connect
   bonds, missing = connect.molecule_bonds(m, session)

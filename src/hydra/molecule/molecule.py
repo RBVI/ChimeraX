@@ -5,58 +5,59 @@ class Molecule(Surface):
   defined by the Protein Data Bank.  The data includes atomic coordinates, atom names,
   residue names and numbers, and chain identifiers.  A molecule represents both the data and
   the display style, color, and visibility used for drawing the molecule.
+
+  The atoms argument is a numpy structured array with fields atom_name, element_number, xyz,
+  radius, residue_name, residue_number, chain_id, atom_shown, atom_color, ribbon_shown, ribbon_color.
   '''
 
-  def __init__(self, path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names):
+  def __init__(self, path, atoms):
     from os.path import basename
     name = basename(path)
     Surface.__init__(self, name)
 
     self.path = path
-    self.xyz = xyz
-    self.element_nums = element_nums
-    from .. import _image3d
-    self.radii = _image3d.element_radii(element_nums)
-    #
-    # Chain ids, residue names and atom names are Numpy string arrays.
-    # The strings have maximum fixed length.  The strings are python byte arrays,
-    # not Python unicode strings.  Comparison to a Python unicode string will
-    # always give false.  Need to compare to a byte array.
-    # For example, atom_names == 'CA'.encode('utf-8')
-    #
-    self.chain_ids = chain_ids
-    self.residue_nums = res_nums
-    self.residue_names = res_names
-    self.atom_names = atom_names
-    self.atom_colors = None
 
+    #
+    # Atom names, residue names and chain ids are Numpy strings with maximum fixed length.
+    # The strings are python byte arrays, not Python unicode strings.  Comparison to a Python
+    # unicode string will always give false.  Need to compare to a byte array, for example, atom_names == b'CA'.
+    #
+    import numpy
+    self.atom_names = atoms['atom_name'].squeeze()
+    self.element_nums = atoms['element_number'].squeeze()
+    self.xyz = atoms['xyz'].squeeze()
+    self.radii = atoms['radius'].squeeze()
+    self.chain_ids = atoms['chain_id'].squeeze()
+    self.residue_nums = atoms['residue_number'].squeeze()
+    self.residue_names = atoms['residue_name'].squeeze()
+    self.atom_shown = atoms['atom_shown'].squeeze().view(numpy.bool)
+    self.atom_colors = atoms['atom_color'].squeeze()
+    self.ribbon_shown = atoms['ribbon_shown'].squeeze().view(numpy.bool)
+    self.ribbon_colors = atoms['ribbon_color'].squeeze()      # Color for each atom, but only guide atom color used.
+
+    # Bonds
     self.bonds = None                   # N by 2 array of atom indices
-    self.bond_radius = 0.2
-    self.bond_radii = None
 
     # Graphics settings
-    self.atom_shown_count = n = len(xyz)
-    from numpy import ones, zeros, bool
-    self.atom_shown = ones((n,), bool)
-    self.atoms_surface_piece = None
+    self.atom_shown[:] = 1
+    self.atom_shown_count = len(atoms)
     self.atom_style = 'sphere'          # sphere, stick or ballstick
     self.ball_scale = 0.3               # Atom radius scale factor in ball and stick.
-    self.bonds_surface_piece = None
+    self.bond_radius = 0.2
+    self.bond_radii = None
     self.bond_color = (150,150,150,255)
     self.half_bond_coloring = True
     self.ribbon_shown_count = 0
-    self.ribbon_shown = zeros((n,), bool)       # Only ribbon guide atoms used
-    self.ribbon_colors = None                   # Color for each atom, but only guide atom color used.
     self.ribbon_radius = 1.0
     self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
-    self.ribbon_surface_pieces = {}     # Map chain id to surface piece
-
     self.color = (180,180,180,255)      # RGBA 0-255 integer values, used if no per-atom colors
 
     # Graphics objects
     self.triangles_per_sphere = 20      # Current level of detail
     self.need_graphics_update = True    # Update is done before drawing
-    self.atom_surface_piece = None
+    self.atoms_surface_piece = None
+    self.bonds_surface_piece = None
+    self.ribbon_surface_pieces = {}     # Map chain id to surface piece list
 
     # Set initial coloring
     self.color_by_chain()
@@ -96,7 +97,7 @@ class Molecule(Surface):
       return
 
     p.color = tuple(c/255.0 for c in self.color)   # Transparency used to identify transparent atoms.
-    ic = self.shown_atom_array_values(self.atom_rgba())
+    ic = self.shown_atom_array_values(self.atom_colors)
     # Use a view so array pointer changes causing color opengl buffer to update.
     p.instance_colors = ic.view()
 
@@ -193,36 +194,28 @@ class Molecule(Surface):
     p.color = tuple(c/255.0 for c in self.bond_color)
 
     if self.half_bond_coloring:
-      acolors = self.atom_rgba()
+      acolors = self.atom_colors
       bc0,bc1 = acolors[bonds[:,0],:], acolors[bonds[:,1],:]
       from numpy import concatenate
       p.instance_colors = concatenate((bc0,bc1))
     else:
       p.instance_colors = None
 
-  def atom_rgba(self):
-    ac = self.atom_colors
-    if ac is None:
-      from numpy import empty, uint8
-      self.atom_colors = ac = empty((self.atom_count(),4),uint8)
-      ac[:,:] = self.color
-    return ac
-
   def single_color(self):
-    self.atom_colors = None
-    self.ribbon_colors = None
+    self.atom_colors[:] = self.color
+    self.ribbon_colors[:] = self.color
     self.need_graphics_update = True
     self.redraw_needed = True
 
   def color_by_chain(self):
     c = chain_colors(self.chain_ids)
-    self.atom_colors = c
-    self.ribbon_colors = c.copy()
+    self.atom_colors[:] = c
+    self.ribbon_colors[:] = c.copy()
     self.need_graphics_update = True
     self.redraw_needed = True
     
   def color_by_element(self):
-    self.atom_colors = element_colors(self.element_nums)
+    self.atom_colors[:] = element_colors(self.element_nums)
     self.need_graphics_update = True
     self.redraw_needed = True
 
@@ -249,10 +242,7 @@ class Molecule(Surface):
         continue
 
       path = self.xyz[s]
-
-      rc = self.ribbon_colors
-      colors = None if rc is None else rc[s]
-      color = self.color
+      colors = self.ribbon_colors[s]
 
       # For each contiguous set of residues compute a spline and then
       # draw shown segments.
@@ -269,7 +259,7 @@ class Molecule(Surface):
           p1, p2 = (j1-i1)*(sd+1), (j2+1-i1)*(sd+1)
           jpath, jtan = spath[p1:p2], stan[p1:p2]
           va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
-          ca = color_array(color,len(va)) if colors is None else tube.tube_geometry_colors(colors[j1:j2+1], sd, cd)
+          ca = tube.tube_geometry_colors(colors[j1:j2+1], sd, cd)
           p = self.new_piece()
           p.geometry = va, ta
           p.normals = na
@@ -461,8 +451,6 @@ class Molecule(Surface):
     if len(atom_indices) == 0:
       return
     rc = self.ribbon_colors
-    if rc is None:
-      self.ribbon_colors = rc = self.atom_rgba().copy()
     rc[atom_indices,:] = color
     self.need_graphics_update = True
     self.redraw_needed = True
@@ -549,10 +537,9 @@ class Molecule(Surface):
 def chain_colors(cids):
 
   # Use first character of multi-character chain ids.
-  from numpy import uint8
-  cids = cids.view(uint8)[::cids.itemsize]
+  from numpy import mod, uint32
   from .colors import rgba_256
-  return rgba_256[cids]
+  return rgba_256[mod(cids.view(uint32),256)]
 
 def chain_colors_old(cids):
 
