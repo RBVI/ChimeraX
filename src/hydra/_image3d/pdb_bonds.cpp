@@ -30,17 +30,16 @@ public:
   Bond_Templates(const IArray &cc_index, const CArray &all_bonds, const std::string &rname_letters);
   ~Bond_Templates();
 
-  void molecule_bonds(const char *rnames, int rname_chars,
-		      const int *rnums,
-		      const char *cids, int cid_chars,
-		      const char *anames, int aname_chars,
+  void molecule_bonds(const char *rnames, int rname_chars, int rname_stride,
+		      const int *rnums, int rnum_stride,
+		      const char *cids, int cid_chars, int cid_stride,
+		      const char *anames, int aname_chars, int aname_stride,
 		      int natoms,
 		      Bond_List &bonds,
 		      int *missing_template);
-  void backbone_bonds(const char *rnames, int rname_chars,
-		      const int *rnums,
-		      const char *cids, int cid_chars,
-		      const char *anames, int aname_chars,
+  void backbone_bonds(const int *rnums, int rnum_stride,
+		      const char *cids, int cid_chars, int cid_stride,
+		      const char *anames, int aname_chars, int aname_stride,
 		      int natoms,
 		      Bond_List &bonds);
   Res_Template *chemical_component_bond_table(const char *rname, int rname_chars);
@@ -88,10 +87,10 @@ Bond_Templates::~Bond_Templates()
   cc_templates = NULL;
 }
   
-void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
-				    const int *rnums,
-				    const char *cids, int cid_chars,
-				    const char *anames, int aname_chars,
+void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars, int rname_stride,
+				    const int *rnums, int rnum_stride,
+				    const char *cids, int cid_chars, int cid_stride,
+				    const char *anames, int aname_chars, int aname_stride,
 				    int natoms,
 				    Bond_List &bonds,
 				    int *missing_template)
@@ -106,9 +105,9 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
   int amin = 0;
   for (int a = 0 ; a < natoms ; ++a)
     {
-      const char *rname = rnames + rname_chars*a;
-      int rnum = rnums[a];
-      const char *cid = cids + cid_chars*a;
+      const char *rname = rnames + rname_stride*a;
+      int rnum = rnums[a*rnum_stride];
+      const char *cid = cids + cid_stride*a;
       bool same_res = (rnum == res_rnum &&
 		       res_rname != NULL && strncmp(rname, res_rname, rname_chars) == 0 &&
 		       res_cid != NULL && strncmp(cid, res_cid, cid_chars) == 0);
@@ -125,7 +124,7 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
 	  amin = a;
 	}
 
-      const char *aname = anames + a*aname_chars;
+      const char *aname = anames + a*aname_stride;
       int ai;
       if (rtemplate && rtemplate->atom_index(aname, aname_chars, &ai))
       	atom_num[ai] = a;
@@ -136,7 +135,7 @@ void Bond_Templates::molecule_bonds(const char *rnames, int rname_chars,
   if (rtemplate)
     rtemplate->bonds(atom_num, amin, bonds);
 
-  backbone_bonds(rnames, rname_chars, rnums, cids, cid_chars, anames, aname_chars, natoms, bonds);
+  backbone_bonds(rnums, rnum_stride, cids, cid_chars, cid_stride, anames, aname_chars, aname_stride, natoms, bonds);
 }
 
 void Res_Template::bonds(int *atom_num, int amin, Bond_List &bonds)
@@ -205,10 +204,9 @@ bool Res_Template::atom_index(const char *aname, int alen, int *ai)
 }
 
 // Connect consecutive residues in proteins and nucleic acids.
-void Bond_Templates::backbone_bonds(const char *rnames, int rname_chars,
-				    const int *rnums,
-				    const char *cids, int cid_chars,
-				    const char *anames, int aname_chars,
+void Bond_Templates::backbone_bonds(const int *rnums, int rnum_stride,
+				    const char *cids, int cid_chars, int cid_stride,
+				    const char *anames, int aname_chars, int aname_stride,
 				    int natoms,
 				    Bond_List &bonds)
 {
@@ -218,15 +216,15 @@ void Bond_Templates::backbone_bonds(const char *rnames, int rname_chars,
   const char *cur_cid = "";
   for (int a = 0 ; a < natoms ; ++a)
     {
-      int rnum = rnums[a];
-      const char *cid = cids + a*cid_chars;
+      int rnum = rnums[a*rnum_stride];
+      const char *cid = cids + a*cid_stride;
       if (rnum != cur_rnum || strncmp(cid, cur_cid, cid_chars) != 0)
 	{
 	  alink = ((rnum == cur_rnum + 1 && strncmp(cid, cur_cid, cid_chars) == 0) ? a1 : -1);
 	  cur_rnum = rnum;
 	  cur_cid = cid;
 	}
-      const char *an = anames + a*aname_chars;
+      const char *an = anames + a*aname_stride;
       if ((an[0] == 'C' && an[1] == '\0') ||
 	  (an[0] == 'O' && an[1] == '3' && an[2] == '\'' && an[3] == '\0'))
 	a1 = a;
@@ -331,10 +329,11 @@ molecule_bonds(PyObject *s, PyObject *args, PyObject *keywds)
   int natom = anames.size(0);
   bonds.reserve(2*(natom + natom/10));	// Estimate number of bonds.
   int missing;
-  bond_templates->molecule_bonds(rnames.values(), rnames.size(1), rnums.values(),
-				 cids.values(), cids.size(1),
-				 anames.values(), anames.size(1), natom,
-				 bonds, &missing);
+  bond_templates->molecule_bonds(rnames.values(), rnames.size(1), rnames.stride(0),
+				 rnums.values(), rnums.stride(0),
+				 cids.values(), cids.size(1), cids.stride(0),
+				 anames.values(), anames.size(1), anames.stride(0),
+				 natom, bonds, &missing);
 
   int nb2 = bonds.size();
   int nb = nb2/2;
