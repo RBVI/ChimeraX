@@ -13,7 +13,8 @@ static bool triangle_intercept(const float *va, const float *vb,
 			       const float *vc,
 			       const float *xyz1, const float *xyz2,
 			       float *fret);
-static bool closest_sphere_intercept(const float *centers, const float *radii, int n,
+static bool closest_sphere_intercept(const float *centers, int n, int cstride0, int cstride1,
+				     const float *radii, int rstride,
 				     const float *xyz1, const float *xyz2,
 				     float *fmin, int *snum);
 
@@ -166,7 +167,8 @@ PyObject *closest_sphere_intercept(PyObject *, PyObject *args, PyObject *keywds)
   float fmin;
   int s;
   PyObject *py_fmin, *py_snum;
-  if (closest_sphere_intercept(centers.values(), radii.values(), centers.size(0),
+  if (closest_sphere_intercept(centers.values(), centers.size(0), centers.stride(0), centers.stride(1),
+			       radii.values(), radii.stride(0),
 			       xyz1, xyz2, &fmin, &s))
     {
       py_fmin = PyFloat_FromDouble(fmin);
@@ -184,7 +186,8 @@ PyObject *closest_sphere_intercept(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static bool closest_sphere_intercept(const float *centers, const float *radii, int n,
+static bool closest_sphere_intercept(const float *centers, int n, int cstride0, int cstride1,
+				     const float *radii, int rstride,
 				     const float *xyz1, const float *xyz2,
 				     float *fmin, int *snum)
 {
@@ -199,8 +202,8 @@ static bool closest_sphere_intercept(const float *centers, const float *radii, i
   int sc;
   for (int s = 0 ; s < n ; ++s)
     {
-      int s3 = 3*s;
-      float x = centers[s3], y = centers[s3+1], z = centers[s3+2], r = radii[s];
+      int s3 = cstride0*s;
+      float x = centers[s3], y = centers[s3+cstride1], z = centers[s3+2*cstride1], r = radii[s*rstride];
       float p = (x-x1)*dx + (y-y1)*dy + (z-z1)*dz;
       if (p >= 0 && p <= d + r && p < dc + r)
 	{
