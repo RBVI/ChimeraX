@@ -202,6 +202,8 @@ static struct PyMethodDef image3d_methods[] =
   /* tube.h */
   {const_cast<char*>("tube_geometry"), (PyCFunction)tube_geometry,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("tube_geometry_colors"), (PyCFunction)tube_geometry_colors,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}
 };
