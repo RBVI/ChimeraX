@@ -61,7 +61,7 @@ class Molecule(Surface):
     self.need_graphics_update = True    # Update is done before drawing
     self.atoms_surface_piece = None
     self.bonds_surface_piece = None
-    self.ribbon_surface_pieces = {}     # Map chain id to surface piece list
+    self.ribbon_surface_piece = None
 
     # Set initial coloring
     self.color_by_chain()
@@ -225,19 +225,17 @@ class Molecule(Surface):
 
   def update_ribbon_graphics(self):
 
-    rsp = self.ribbon_surface_pieces
-    if not self.any_ribbons_shown():
-      self.remove_pieces(sum(rsp.values(),[]))
-      rsp.clear()
-      return
+    rsp = self.ribbon_surface_piece
+    if rsp:
+      self.remove_piece(rsp)
+      self.ribbon_surface_piece = None
 
+    geom = []
     cids = self.chain_identifiers()
     for cid in cids:
       s = self.ribbon_guide_atom_indices(cid)
       if len(s) <= 1:
         continue
-      if cid in rsp:
-        self.remove_pieces(rsp.pop(cid))
 
       rshow = self.ribbon_shown[s]
       if rshow.sum() == 0:
@@ -264,12 +262,14 @@ class Molecule(Surface):
           jpath, jtan = spath[p1:p2], stan[p1:p2]
           va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
           ca = tube.tube_geometry_colors(colors[j1:j2+1], sd, cd)
-          p = self.new_piece()
-          p.geometry = va, ta
-          p.normals = na
-          p.vertex_colors = ca
-          plist.append(p)
-      rsp[cid] = plist
+          geom.append((va,na,ta,ca))
+
+    if geom:
+      va,na,ta,ca = combine_geometry(geom)
+      self.ribbon_surface_piece = p = self.new_piece()
+      p.geometry = va, ta
+      p.normals = na
+      p.vertex_colors = ca
 
   def chain_identifiers(self):
     cids = self.cids
@@ -564,6 +564,21 @@ class Molecule(Surface):
                             self.residue_nums[a],
                             self.atom_names[a].decode('utf-8'))
     return d
+
+def combine_geometry(geom):
+  from numpy import concatenate
+  cva = concatenate(tuple(va for va,na,ta,ca in geom))
+  cna = concatenate(tuple(na for va,na,ta,ca in geom))
+  cta = concatenate(tuple(ta for va,na,ta,ca in geom))
+  cca = concatenate(tuple(ca for va,na,ta,ca in geom))
+
+  voff = t = 0
+  for va,na,ta,ca in geom:
+    nt = len(ta)
+    cta[t:t+nt,:] += voff
+    voff += len(va)
+    t += nt
+  return cva, cna, cta, cca
 
 def chain_colors(cids):
 
