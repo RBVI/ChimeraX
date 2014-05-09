@@ -16,13 +16,14 @@
 #include "Residue.h"
 #include "Sequence.h"
 #include "imex.h"
+#include "base-geom/Graph.h"
 
 class Element;
 
-class ATOMSTRUCT_IMEX AtomicStructure {
+class ATOMSTRUCT_IMEX AtomicStructure: public Graph<Atom, Bond> {
 public:
-    typedef std::vector<std::unique_ptr<Atom>>  Atoms;
-    typedef std::vector<std::unique_ptr<Bond>>  Bonds;
+    typedef Vertices  Atoms;
+    typedef Edges  Bonds;
     typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
     typedef std::vector<std::vector<Residue*>>  Res_Lists;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;

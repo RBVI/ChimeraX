@@ -136,15 +136,13 @@ AtomicStructure::best_alt_locs() const
 void
 AtomicStructure::delete_bond(Bond *b)
 {
-    Bonds::iterator i = std::find_if(_bonds.begin(), _bonds.end(),
-                [&b](std::unique_ptr<Bond>& vb) { return vb.get() == b; });
-    if (i == _bonds.end())
+    try {
+        delete_edge(b);
+    } catch (std::invalid_argument &e) {
         throw std::invalid_argument("delete_bond called for Bond not in AtomicStructure");
-
+    }
     b->atoms()[0]->remove_bond(b);
     b->atoms()[1]->remove_bond(b);
-
-    _bonds.erase(i);
 }
 
 CoordSet *
@@ -217,15 +215,17 @@ AtomicStructure::make_chains(AtomicStructure::Res_Lists* chain_members,
 Atom *
 AtomicStructure::new_atom(std::string &name, Element e)
 {
-    _atoms.emplace_back(new Atom(this, name, e));
-    return _atoms.back().get();
+    Atom *a = new Atom(this, name, e);
+    add_vertex(a);
+    return a;
 }
 
 Bond *
 AtomicStructure::new_bond(Atom *a1, Atom *a2)
 {
-    _bonds.emplace_back(new Bond(this, a1, a2));
-    return _bonds.back().get();
+    Bond *b = new Bond(this, a1, a2);
+    add_edge(b);
+    return b;
 }
 
 CoordSet *
