@@ -423,7 +423,8 @@ class Molecule(Surface):
       cids = self.chain_ids
       from .._image3d import value_ranges
       self.chain_ranges = cr = dict((cids[s],(s,e)) for s,e in value_ranges(cids))
-    return cr[chain_id]
+    cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
+    return cr[cid]
 
   def chain_atom_mask(self, chain_id, s = None, e = None):
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
