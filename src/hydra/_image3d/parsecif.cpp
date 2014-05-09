@@ -135,8 +135,13 @@ static bool parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Colu
       if (c == f.type_symbol)
 	ad.element_number = element_number(line);
       else if (c == f.label_atom_id)
-	for (int i = 0 ; i < fl && i < ATOM_NAME_LEN ; ++i)
-	  ad.atom_name[i] = line[i];
+	{
+	  char cs = *line, ce = line[fl-1];
+	  if ((cs == '\"' && ce == '\"') || (cs == '\'' && ce == '\''))
+	    { line += 1; fl -= 2; }	// Quoted atom name.
+	  for (int i = 0 ; i < fl && i < ATOM_NAME_LEN ; ++i)
+	    ad.atom_name[i] = line[i];
+	}
       else if (c == f.label_alt_id)
 	a.alt_loc = line[0];
       else if (c == f.label_comp_id)
