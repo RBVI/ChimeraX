@@ -71,6 +71,7 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
   switch ((NPY_TYPES) type)
     {
     case NPY_CHAR:	dtype = Numeric_Array::Char;		break;
+    case NPY_BOOL:	dtype = Numeric_Array::Unsigned_Char;	break;
     case NPY_UBYTE:	dtype = Numeric_Array::Unsigned_Char;	break;
     case NPY_BYTE:	dtype = Numeric_Array::Signed_Char;	break;
     case NPY_SHORT:	dtype = Numeric_Array::Short_Int;	break;

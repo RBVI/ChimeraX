@@ -15,8 +15,6 @@ def open_mmcif_file(path, session):
   t1 = time()
   from . import pdb
   atoms = pdb.atom_array(a)
-  enums = atoms['element_number'].squeeze()
-  atoms['radius'][:,0] = _image3d.element_radii(enums)
 #  session.show_info('Read %s %d atoms at %d per second\n' %
 #                    (basename(path), len(xyz), int(len(xyz)/(ft1-ft0))))
 #  session.show_info('Parsed %s %d atoms at %d per second\n' %

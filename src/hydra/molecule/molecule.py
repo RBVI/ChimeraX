@@ -23,17 +23,19 @@ class Molecule(Surface):
     # unicode string will always give false.  Need to compare to a byte array, for example, atom_names == b'CA'.
     #
     import numpy
-    self.atom_names = atoms['atom_name'].squeeze()
-    self.element_nums = atoms['element_number'].squeeze()
-    self.xyz = atoms['xyz'].squeeze()
-    self.radii = atoms['radius'].squeeze()
-    self.chain_ids = atoms['chain_id'].squeeze()
-    self.residue_nums = atoms['residue_number'].squeeze()
-    self.residue_names = atoms['residue_name'].squeeze()
-    self.atom_shown = atoms['atom_shown'].squeeze().view(numpy.bool)
-    self.atom_colors = atoms['atom_color'].squeeze()
-    self.ribbon_shown = atoms['ribbon_shown'].squeeze().view(numpy.bool)
-    self.ribbon_colors = atoms['ribbon_color'].squeeze()      # Color for each atom, but only guide atom color used.
+    self.atom_names = atoms['atom_name']
+    self.element_nums = atoms['element_number']
+    self.xyz = atoms['xyz']
+    self.radii = atoms['radius']
+    self.chain_ids = atoms['chain_id']
+    self.residue_nums = atoms['residue_number']
+    self.residue_names = atoms['residue_name']
+    self.atom_shown = atoms['atom_shown'].view(numpy.bool)
+    self.atom_colors = atoms['atom_color']
+    self.ribbon_shown = atoms['ribbon_shown'].view(numpy.bool)
+    self.ribbon_colors = atoms['ribbon_color']      # Color for each atom, but only guide atom color used.
+
+    self.chain_ranges = None    # Dictionary mapping chain id to atom index ranges
 
     # Bonds
     self.bonds = None                   # N by 2 array of atom indices
@@ -221,6 +223,8 @@ class Molecule(Surface):
 
   def update_ribbon_graphics(self):
 
+    from time import time
+    t0 = time()
     import sys
     rsp = self.ribbon_surface_pieces
     if not self.any_ribbons_shown():
@@ -228,10 +232,13 @@ class Molecule(Surface):
       rsp.clear()
       return
 
+    tga = tci = tcs = tmi = tg = 0
     cids = set(self.chain_ids)
     from numpy import uint8
     for cid in cids:
+      t = time()
       s = self.ribbon_guide_atom_indices(cid)
+      tga += time()-t
       if len(s) <= 1:
         continue
       if cid in rsp:
@@ -247,15 +254,24 @@ class Molecule(Surface):
       # For each contiguous set of residues compute a spline and then
       # draw shown segments.
       plist = []
+      from .._image3d import contiguous_intervals, mask_intervals
+      t = time()
       cint = contiguous_intervals(self.residue_nums[s])
+      tci += time()-t
       sd, cd = self.ribbon_subdivisions
       from .._image3d import natural_cubic_spline
       from ..surface import tube
       for i1,i2 in cint:
         if rshow[i1:i2+1].sum() == 0:
           continue      # Segment not shown
+        t = time()
         spath, stan = natural_cubic_spline(path[i1:i2+1], sd)
-        for j1,j2 in mask_intervals(rshow, i1, i2):
+        tcs += time()-t
+        t = time()
+        mints = mask_intervals(rshow, i1, i2)
+        tmi = time()-t
+        t = time()
+        for j1,j2 in mints:
           p1, p2 = (j1-i1)*(sd+1), (j2+1-i1)*(sd+1)
           jpath, jtan = spath[p1:p2], stan[p1:p2]
           va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
@@ -265,7 +281,9 @@ class Molecule(Surface):
           p.normals = na
           p.vertex_colors = ca
           plist.append(p)
+        tg += time()-t
       rsp[cid] = plist
+    print ('ribtime', time()-t0, 'tga', tga, 'tci', tci, 'tcs', tcs, 'tmi', tmi, 'tg', tg)
 
   def ribbon_guide_atom_indices(self, chain_id):
     s = self.atom_index_subset('CA', chain_id)
@@ -343,13 +361,19 @@ class Molecule(Surface):
                         residue_range = None, residue_numbers = None, residue_name = None,
                         invert = False, restrict_to_atoms = None):
 
-    anames = self.atom_names
     na = self.atom_count()
+    if chain_id is None or isinstance(chain_id, (list,tuple)) or invert:
+      s,e = 0,na
+    else:
+      s,e = self.chain_atom_range(chain_id)
+    ni = e-s
+
     from numpy import zeros, bool, logical_or, logical_and, logical_not, in1d
-    nimask = zeros((na,), bool)
+    nimask = zeros((ni,), bool)
     if atom_name is None:
       nimask[:] = 1
     else:
+      anames = self.atom_names[s:e]
       logical_or(nimask, (anames == atom_name.encode('utf-8')), nimask)
 
     if not chain_id is None:
@@ -359,19 +383,21 @@ class Molecule(Surface):
         for cid in chain_ids[1:]:
           logical_or(cmask, self.chain_atom_indices(cid), cmask)
       else:
-        cmask = self.chain_atom_mask(chain_id)
+        cmask = self.chain_atom_mask(chain_id, s, e)
       logical_and(nimask, cmask, nimask)
 
     if not residue_range is None:
+      rnums = self.residue_nums[s:e]
       r1, r2 = residue_range
       if not r1 is None:
-        logical_and(nimask, (self.residue_nums >= r1), nimask)
+        logical_and(nimask, (rnums >= r1), nimask)
       if not r2 is None:
-        logical_and(nimask, (self.residue_nums <= r2), nimask)
+        logical_and(nimask, (rnums <= r2), nimask)
     if not residue_numbers is None:
-      logical_and(nimask, in1d(self.residue_nums,residue_numbers), nimask)
+      rnums = self.residue_nums[s:e]
+      logical_and(nimask, in1d(rnums,residue_numbers), nimask)
     if not residue_name is None:
-      rnames = self.residue_names
+      rnames = self.residue_names[s:e]
       logical_and(nimask, (rnames == residue_name.encode('utf-8')), nimask)
 
     if invert:
@@ -380,14 +406,26 @@ class Molecule(Surface):
     if not restrict_to_atoms is None:
       ramask = zeros((na,), bool)
       ramask[restrict_to_atoms] = 1
-      logical_and(nimask, ramask, nimask)
+      logical_and(nimask, ramask[s:e], nimask)
 
     i = nimask.nonzero()[0]
+    if s > 0:
+      i += s
+
     return i
 
-  def chain_atom_mask(self, chain_id):
+  def chain_atom_range(self, chain_id):
+    cr = self.chain_ranges
+    if cr is None:
+      cids = self.chain_ids
+      from .._image3d import value_ranges
+      self.chain_ranges = cr = dict((cids[s],(s,e)) for s,e in value_ranges(cids))
+    return cr[chain_id]
+
+  def chain_atom_mask(self, chain_id, s = None, e = None):
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
-    cmask = (self.chain_ids == cid)
+    cids = self.chain_ids if s is None or e is None else self.chain_ids[s:e]
+    cmask = (cids == cid)
     return cmask
 
   def update_level_of_detail(self, viewer):
@@ -594,48 +632,6 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
     p[:,:3,:3] = rs
   pt = transpose(p,(0,2,1))
   return pt
-
-# -----------------------------------------------------------------------------
-#
-def contiguous_intervals(a):
-  '''
-  Find intervals of contiguous integer values (i,i+1,i+2,...,i+k) in an array of increasing integer values.
-  Do not include intervals of length 1.  Return pairs of a initial and final index in the input array.
-  This is used for finding sequences of residues to compute ribbon splines.
-  TODO: Optimize this by moving to C++.
-  '''
-  cints = []
-  n = len(a)
-  s = e = 0
-  while e+1 < n:
-    if a[e+1] != a[e]+1:
-      if e > s:
-        cints.append((s,e))
-      s = e+1
-    e += 1
-  if e > s:
-    cints.append((s,e))
-  return cints
-
-# -----------------------------------------------------------------------------
-#
-def mask_intervals(mask, i1, i2):
-  ''' 
-  Find intervals where bool array mask is true in index interval i1 to i2.
-  TODO: Optimize this in C++.
-  '''
-  mint = []
-  s = None
-  for i in range(i1, i2+1):
-    if s is None:
-      if mask[i]:
-        s = i
-    elif not mask[i]:
-      mint.append((s,i-1))
-      s = None
-  if not s is None:
-    mint.append((s,i2))
-  return mint
 
 # -----------------------------------------------------------------------------
 #

@@ -207,5 +207,6 @@ class VOLUMEARRAY_IMEX Numeric_Array : public Untyped_Array
 typedef Reference_Counted_Array::Array<float> FArray;
 typedef Reference_Counted_Array::Array<double> DArray;
 typedef Reference_Counted_Array::Array<int> IArray;
+typedef Reference_Counted_Array::Array<char> CArray;
 
 #endif

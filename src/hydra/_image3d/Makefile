@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra
 
 PYMOD_NAME = _image3d
-SRCS	= blend_rgba.cpp combine.cpp \
+SRCS	= arrayops.cpp blend_rgba.cpp combine.cpp \
 	  connected.cpp contourdata.cpp pycontour.cpp \
 	  distgrid.cpp distances.cpp pydistances.cpp  \
 	  gaussian.cpp \

@@ -17,8 +17,6 @@ def open_pdb_file_with_image3d(path, session):
   a = _image3d.parse_pdb_file(text)
   t1 = time()
   atoms = atom_array(a)
-  enums = atoms['element_number'].squeeze()
-  atoms['radius'][:,0] = _image3d.element_radii(enums)
   from ..molecule import Molecule
   m = Molecule(path, atoms)
   m.pdb_text = text
@@ -61,7 +59,13 @@ def atom_array(a):
            ('ribbon_shown', 'u1'),
            ('pad', 'u2'),               # C struct size is multiple of 4 bytes
           ]
-  atoms = a.view(dtype)
+  atoms = a.view(dtype).reshape((len(a),))
+  satoms = atoms.view('S%d'%atoms.itemsize)     # Need string array for C++ sort routine.
+  from .. import _image3d
+  _image3d.sort_atoms_by_chain(satoms)
+  enums = atoms['element_number']
+  atoms['radius'][:] = _image3d.element_radii(enums)
+
   return atoms
 
 def open_pdb_file_with_pdbio(path):
