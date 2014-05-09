@@ -324,6 +324,7 @@ class Molecule(Surface):
 
     if r != self.ribbon_radius:
       self.ribbon_radius = r
+      self.update_ribbons = True
       self.need_graphics_update = True
       self.redraw_needed = True
 
