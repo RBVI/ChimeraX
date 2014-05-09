@@ -51,9 +51,9 @@ class Molecule(Surface):
     self.bond_radii = None
     self.bond_color = (150,150,150,255)
     self.half_bond_coloring = True
-    self.ribbon_shown_count = 0
     self.ribbon_radius = 1.0
     self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
+    self.update_ribbons = False
     self.color = (180,180,180,255)      # RGBA 0-255 integer values, used if no per-atom colors
 
     # Graphics objects
@@ -151,7 +151,7 @@ class Molecule(Surface):
     return self.atom_count() == self.atom_shown_count
 
   def any_ribbons_shown(self):
-    return self.ribbon_shown_count > 0
+    return self.ribbon_shown.sum() > 0
 
   def update_bond_graphics(self, viewer):
 
@@ -208,13 +208,15 @@ class Molecule(Surface):
   def single_color(self):
     self.atom_colors[:] = self.color
     self.ribbon_colors[:] = self.color
+    self.update_ribbons = True
     self.need_graphics_update = True
     self.redraw_needed = True
 
   def color_by_chain(self):
     c = chain_colors(self.chain_ids)
     self.atom_colors[:] = c
-    self.ribbon_colors[:] = c.copy()
+    self.ribbon_colors[:] = c
+    self.update_ribbons = True
     self.need_graphics_update = True
     self.redraw_needed = True
     
@@ -225,10 +227,17 @@ class Molecule(Surface):
 
   def update_ribbon_graphics(self):
 
+    if not self.update_ribbons:
+      return
+    self.update_ribbons = False
+
     rsp = self.ribbon_surface_piece
     if rsp:
       self.remove_piece(rsp)
       self.ribbon_surface_piece = None
+
+    if not self.any_ribbons_shown():
+      return
 
     geom = []
     cids = self.chain_identifiers()
@@ -459,13 +468,19 @@ class Molecule(Surface):
     self.need_graphics_update = True
     self.redraw_needed = True
 
+  def set_ribbon_display(self, display):
+    self.ribbon_shown[:] = (1 if display else 0)
+    self.update_ribbons = True
+    self.need_graphics_update = True
+    self.redraw_needed = True
+
   def show_ribbon_for_index_atoms(self, atom_indices, only_these = False):
     rs = self.ribbon_shown
     if only_these:
       rs[:] = False
     if len(atom_indices) > 0:
       rs[atom_indices] = True
-    self.ribbon_shown_count = rs.sum()
+    self.update_ribbons = True
     self.need_graphics_update = True
     self.redraw_needed = True
 
@@ -474,7 +489,7 @@ class Molecule(Surface):
       return
     rs = self.ribbon_shown
     rs[atom_indices] = False
-    self.ribbon_shown_count = rs.sum()
+    self.update_ribbons = True
     self.need_graphics_update = True
     self.redraw_needed = True
 
@@ -483,6 +498,7 @@ class Molecule(Surface):
       return
     rc = self.ribbon_colors
     rc[atom_indices,:] = color
+    self.update_ribbons = True
     self.need_graphics_update = True
     self.redraw_needed = True
 
@@ -500,12 +516,6 @@ class Molecule(Surface):
       self.atom_shown_count = 0
       self.need_graphics_update = True
       self.redraw_needed = True
-
-  def set_ribbon_display(self, display):
-    self.ribbon_shown[:] = (1 if display else 0)
-    self.ribbon_shown_count = self.ribbon_shown.sum()
-    self.need_graphics_update = True
-    self.redraw_needed = True
 
   def set_atom_style(self, style):
     '''Set the atom display style to "sphere", "stick", or "ballstick".'''
