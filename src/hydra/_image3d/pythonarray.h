@@ -46,6 +46,7 @@ VOLUMEARRAY_IMEX int parse_float_n3_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_writable_float_n3_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_double_n3_array(PyObject *arg, void *darray);
 VOLUMEARRAY_IMEX int parse_writable_double_n3_array(PyObject *arg, void *darray);
+VOLUMEARRAY_IMEX int parse_uint8_n4_array(PyObject *arg, void *iarray);
 VOLUMEARRAY_IMEX int parse_float_n4_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_writable_float_n4_array(PyObject *arg, void *farray);
 VOLUMEARRAY_IMEX int parse_float_n_array(PyObject *arg, void *farray);
@@ -120,6 +121,8 @@ PyObject *c_array_to_python(const double *values, int size0, int size1);
 //
 VOLUMEARRAY_IMEX
 PyObject *python_uint8_array(int size, unsigned char **data = NULL);
+VOLUMEARRAY_IMEX
+PyObject *python_uint8_array(int size1, int size2, unsigned char **data = NULL);
 VOLUMEARRAY_IMEX
 PyObject *python_char_array(int size1, int size2, char **data = NULL);
 VOLUMEARRAY_IMEX
