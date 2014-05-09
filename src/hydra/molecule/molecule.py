@@ -35,6 +35,8 @@ class Molecule(Surface):
     self.ribbon_shown = atoms['ribbon_shown'].view(numpy.bool)
     self.ribbon_colors = atoms['ribbon_color']      # Color for each atom, but only guide atom color used.
 
+    # Derived data
+    self.cids = None            # Array of unique chain identifiers
     self.chain_ranges = None    # Dictionary mapping chain id to atom index ranges
 
     # Bonds
@@ -223,22 +225,15 @@ class Molecule(Surface):
 
   def update_ribbon_graphics(self):
 
-    from time import time
-    t0 = time()
-    import sys
     rsp = self.ribbon_surface_pieces
     if not self.any_ribbons_shown():
       self.remove_pieces(sum(rsp.values(),[]))
       rsp.clear()
       return
 
-    tga = tci = tcs = tmi = tg = 0
-    cids = set(self.chain_ids)
-    from numpy import uint8
+    cids = self.chain_identifiers()
     for cid in cids:
-      t = time()
       s = self.ribbon_guide_atom_indices(cid)
-      tga += time()-t
       if len(s) <= 1:
         continue
       if cid in rsp:
@@ -255,22 +250,15 @@ class Molecule(Surface):
       # draw shown segments.
       plist = []
       from .._image3d import contiguous_intervals, mask_intervals
-      t = time()
       cint = contiguous_intervals(self.residue_nums[s])
-      tci += time()-t
       sd, cd = self.ribbon_subdivisions
       from .._image3d import natural_cubic_spline
       from ..surface import tube
       for i1,i2 in cint:
         if rshow[i1:i2+1].sum() == 0:
           continue      # Segment not shown
-        t = time()
         spath, stan = natural_cubic_spline(path[i1:i2+1], sd)
-        tcs += time()-t
-        t = time()
         mints = mask_intervals(rshow, i1, i2)
-        tmi = time()-t
-        t = time()
         for j1,j2 in mints:
           p1, p2 = (j1-i1)*(sd+1), (j2+1-i1)*(sd+1)
           jpath, jtan = spath[p1:p2], stan[p1:p2]
@@ -281,9 +269,14 @@ class Molecule(Surface):
           p.normals = na
           p.vertex_colors = ca
           plist.append(p)
-        tg += time()-t
       rsp[cid] = plist
-    print ('ribtime', time()-t0, 'tga', tga, 'tci', tci, 'tcs', tcs, 'tmi', tmi, 'tg', tg)
+
+  def chain_identifiers(self):
+    cids = self.cids
+    if cids is None:
+      from numpy import unique
+      self.cids = cids = unique(self.chain_ids)
+    return cids
 
   def ribbon_guide_atom_indices(self, chain_id):
     s = self.atom_index_subset('CA', chain_id)
