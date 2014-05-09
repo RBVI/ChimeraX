@@ -45,18 +45,21 @@ class Molecule(Surface):
     self.bond_color = (150,150,150,255)
     self.half_bond_coloring = True
     self.ribbon_shown_count = 0
-    self.ribbon_shown = zeros((n,), bool)        # Only ribbon guide atoms used
+    self.ribbon_shown = zeros((n,), bool)       # Only ribbon guide atoms used
+    self.ribbon_colors = None                   # Color for each atom, but only guide atom color used.
     self.ribbon_radius = 1.0
     self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
     self.ribbon_surface_pieces = {}     # Map chain id to surface piece
 
-    self.color = (180,180,180,255)      # RGBA 0-255 integer values
-    self.color_mode = 'by chain'        # by chain, by element, or single
+    self.color = (180,180,180,255)      # RGBA 0-255 integer values, used if no per-atom colors
 
     # Graphics objects
     self.triangles_per_sphere = 20      # Current level of detail
     self.need_graphics_update = True    # Update is done before drawing
     self.atom_surface_piece = None
+
+    # Set initial coloring
+    self.color_by_chain()
 
   def atoms(self):
     '''Return an Atoms object containing all the molecule atoms.'''
@@ -84,7 +87,18 @@ class Molecule(Surface):
   def update_atom_graphics(self, viewer):
 
     self.create_atom_spheres()
-    self.set_atom_colors()
+    self.update_atom_colors()
+
+  def update_atom_colors(self):
+
+    p = self.atoms_surface_piece
+    if p is None:
+      return
+
+    p.color = tuple(c/255.0 for c in self.color)   # Transparency used to identify transparent atoms.
+    ic = self.shown_atom_array_values(self.atom_rgba())
+    # Use a view so array pointer changes causing color opengl buffer to update.
+    p.instance_colors = ic.view()
 
   def create_atom_spheres(self):
 
@@ -133,15 +147,6 @@ class Molecule(Surface):
 
   def any_ribbons_shown(self):
     return self.ribbon_shown_count > 0
-
-  def set_atom_colors(self):
-
-    p = self.atoms_surface_piece
-    if p is None:
-      return
-
-    p.color = tuple(c/255.0 for c in self.color)   # Transparency used to identify transparent atoms.
-    p.instance_colors = self.shown_atom_array_values(self.atom_rgba())
 
   def update_bond_graphics(self, viewer):
 
@@ -195,71 +200,82 @@ class Molecule(Surface):
     else:
       p.instance_colors = None
 
-  def set_color_mode(self, mode):
-    if mode == self.color_mode:
-      return
-    self.color_mode = mode
+  def atom_rgba(self):
+    ac = self.atom_colors
+    if ac is None:
+      from numpy import empty, uint8
+      self.atom_colors = ac = empty((self.atom_count(),4),uint8)
+      ac[:,:] = self.color
+    return ac
+
+  def single_color(self):
+    self.atom_colors = None
+    self.ribbon_colors = None
     self.need_graphics_update = True
     self.redraw_needed = True
 
-  def atom_rgba(self):
-
-    if not self.atom_colors is None:
-      return self.atom_colors
-
-    cm = self.color_mode
-    if cm == 'by chain':
-      colors = chain_colors(self.chain_ids)
-    elif cm == 'by element':
-      colors = element_colors(self.element_nums)
-    else:
-      from numpy import empty, uint8
-      colors = empty((self.atom_count(),4),uint8)
-      colors[:,:] = self.color
-    return colors
+  def color_by_chain(self):
+    c = chain_colors(self.chain_ids)
+    self.atom_colors = c
+    self.ribbon_colors = c.copy()
+    self.need_graphics_update = True
+    self.redraw_needed = True
+    
+  def color_by_element(self):
+    self.atom_colors = element_colors(self.element_nums)
+    self.need_graphics_update = True
+    self.redraw_needed = True
 
   def update_ribbon_graphics(self):
 
     import sys
     rsp = self.ribbon_surface_pieces
     if not self.any_ribbons_shown():
-      self.remove_pieces(rsp.values())
+      self.remove_pieces(sum(rsp.values(),[]))
       rsp.clear()
       return
 
     cids = set(self.chain_ids)
-    from .colors import rgba_256
     from numpy import uint8
     for cid in cids:
       s = self.ribbon_guide_atom_indices(cid)
       if len(s) <= 1:
         continue
+      if cid in rsp:
+        self.remove_pieces(rsp.pop(cid))
+
       rshow = self.ribbon_shown[s]
       if rshow.sum() == 0:
-        if cid in rsp:
-          self.remove_piece(rsp.pop(cid))
         continue
+
       path = self.xyz[s]
-    
-      color = rgba_256[cid[0]]
-      va,na,ta,ca = self.ribbon_geometry(path, color)
 
-      if cid in rsp:
-        p = rsp[cid]
-      else:
-        rsp[cid] = p = self.new_piece()
-      p.geometry = va, ta
-      p.normals = na
-      p.vertex_colors = ca
+      rc = self.ribbon_colors
+      colors = None if rc is None else rc[s]
+      color = self.color
 
-  def ribbon_geometry(self, path, color):
-    sd, cd = self.ribbon_subdivisions
-    from ..surface import tube
-    va,na,ta,ca = tube.tube_through_points(path, radius = self.ribbon_radius,
-                                           color = color,
-                                           segment_subdivisions = sd,
-                                           circle_subdivisions = cd)
-    return va, na, ta, ca
+      # For each contiguous set of residues compute a spline and then
+      # draw shown segments.
+      plist = []
+      cint = contiguous_intervals(self.residue_nums[s])
+      sd, cd = self.ribbon_subdivisions
+      from .._image3d import natural_cubic_spline
+      from ..surface import tube
+      for i1,i2 in cint:
+        if rshow[i1:i2+1].sum() == 0:
+          continue      # Segment not shown
+        spath, stan = natural_cubic_spline(path[i1:i2+1], sd)
+        for j1,j2 in mask_intervals(rshow, i1, i2):
+          p1, p2 = (j1-i1)*(sd+1), (j2+1-i1)*(sd+1)
+          jpath, jtan = spath[p1:p2], stan[p1:p2]
+          va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
+          ca = color_array(color,len(va)) if colors is None else tube.tube_geometry_colors(colors[j1:j2+1], sd, cd)
+          p = self.new_piece()
+          p.geometry = va, ta
+          p.normals = na
+          p.vertex_colors = ca
+          plist.append(p)
+      rsp[cid] = plist
 
   def ribbon_guide_atom_indices(self, chain_id):
     s = self.atom_index_subset('CA', chain_id)
@@ -318,25 +334,28 @@ class Molecule(Surface):
     from numpy import arange
     return arange(self.atom_count())
 
-  def atom_subset(self, atom_name = None, chain_id = None, residue_range = None,
-                  residue_name = None, invert = False, restrict_to_atoms = None):
+  def atom_subset(self, atom_name = None, chain_id = None,
+                  residue_range = None, residue_numbers = None, residue_name = None,
+                  invert = False, restrict_to_atoms = None):
     '''
     Return a subset of atoms with specifie atom name, chain id, residue range,
     and residue name.
     '''
-    ai = self.atom_index_subset(atom_name, chain_id, residue_range, residue_name,
+    ai = self.atom_index_subset(atom_name, chain_id,
+                                residue_range, residue_numbers, residue_name,
                                 invert, restrict_to_atoms)
     a = Atoms()
     if len(ai) > 0:
       a.add_atom_indices(self, ai)
     return a
 
-  def atom_index_subset(self, atom_name = None, chain_id = None, residue_range = None,
-                        residue_name = None, invert = False, restrict_to_atoms = None):
+  def atom_index_subset(self, atom_name = None, chain_id = None,
+                        residue_range = None, residue_numbers = None, residue_name = None,
+                        invert = False, restrict_to_atoms = None):
 
     anames = self.atom_names
     na = self.atom_count()
-    from numpy import zeros, bool, logical_or, logical_and, logical_not
+    from numpy import zeros, bool, logical_or, logical_and, logical_not, in1d
     nimask = zeros((na,), bool)
     if atom_name is None:
       nimask[:] = 1
@@ -359,7 +378,8 @@ class Molecule(Surface):
         logical_and(nimask, (self.residue_nums >= r1), nimask)
       if not r2 is None:
         logical_and(nimask, (self.residue_nums <= r2), nimask)
-
+    if not residue_numbers is None:
+      logical_and(nimask, in1d(self.residue_nums,residue_numbers), nimask)
     if not residue_name is None:
       rnames = self.residue_names
       logical_and(nimask, (rnames == residue_name.encode('utf-8')), nimask)
@@ -402,12 +422,21 @@ class Molecule(Surface):
     self.redraw_needed = True
 
   def hide_index_atoms(self, atom_indices):
+    if len(atom_indices) == 0:
+      return
     a = self.atom_shown
-    if len(atom_indices) > 0:
-      a[atom_indices] = False
-      self.atom_shown_count = a.sum()
-      self.need_graphics_update = True
-      self.redraw_needed = True
+    a[atom_indices] = False
+    self.atom_shown_count = a.sum()
+    self.need_graphics_update = True
+    self.redraw_needed = True
+
+  def color_index_atoms(self, atom_indices, color):
+    if len(atom_indices) == 0:
+      return
+    ac = self.atom_colors
+    ac[atom_indices,:] = color
+    self.need_graphics_update = True
+    self.redraw_needed = True
 
   def show_ribbon_for_index_atoms(self, atom_indices, only_these = False):
     rs = self.ribbon_shown
@@ -420,12 +449,23 @@ class Molecule(Surface):
     self.redraw_needed = True
 
   def hide_ribbon_for_index_atoms(self, atom_indices):
+    if len(atom_indices) == 0:
+      return
     rs = self.ribbon_shown
-    if len(atom_indices) > 0:
-      rs[atom_indices] = False
-      self.ribbon_shown_count = rs.sum()
-      self.need_graphics_update = True
-      self.redraw_needed = True
+    rs[atom_indices] = False
+    self.ribbon_shown_count = rs.sum()
+    self.need_graphics_update = True
+    self.redraw_needed = True
+
+  def color_ribbon_for_index_atoms(self, atom_indices, color):
+    if len(atom_indices) == 0:
+      return
+    rc = self.ribbon_colors
+    if rc is None:
+      self.ribbon_colors = rc = self.atom_rgba().copy()
+    rc[atom_indices,:] = color
+    self.need_graphics_update = True
+    self.redraw_needed = True
 
   def show_all_atoms(self):
     n = self.atom_count()
@@ -570,6 +610,56 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
 
 # -----------------------------------------------------------------------------
 #
+def contiguous_intervals(a):
+  '''
+  Find intervals of contiguous integer values (i,i+1,i+2,...,i+k) in an array of increasing integer values.
+  Do not include intervals of length 1.  Return pairs of a initial and final index in the input array.
+  This is used for finding sequences of residues to compute ribbon splines.
+  TODO: Optimize this by moving to C++.
+  '''
+  cints = []
+  n = len(a)
+  s = e = 0
+  while e+1 < n:
+    if a[e+1] != a[e]+1:
+      if e > s:
+        cints.append((s,e))
+      s = e+1
+    e += 1
+  if e > s:
+    cints.append((s,e))
+  return cints
+
+# -----------------------------------------------------------------------------
+#
+def mask_intervals(mask, i1, i2):
+  ''' 
+  Find intervals where bool array mask is true in index interval i1 to i2.
+  TODO: Optimize this in C++.
+  '''
+  mint = []
+  s = None
+  for i in range(i1, i2+1):
+    if s is None:
+      if mask[i]:
+        s = i
+    elif not mask[i]:
+      mint.append((s,i-1))
+      s = None
+  if not s is None:
+    mint.append((s,i2))
+  return mint
+
+# -----------------------------------------------------------------------------
+#
+def color_array(color, n):
+  from numpy import empty, uint8
+  ca = empty((n,4),uint8)
+  ca[:,:] = color
+  return ca
+
+# -----------------------------------------------------------------------------
+#
 class Atoms:
   '''
   An atom set is a collection of atoms from one or more molecules.
@@ -633,6 +723,11 @@ class Atoms:
     for m, ai in self.molatoms:
       m.hide_index_atoms(ai)
 
+  def color_atoms(self, color):
+    '''Color atoms.'''
+    for m, ai in self.molatoms:
+      m.color_index_atoms(ai, color)
+
   def show_ribbon(self, only_these = False):
     '''Show ribbons for residues containing the specified atoms.'''
     for m, ai in self.molatoms:
@@ -642,6 +737,11 @@ class Atoms:
     '''Hide ribbons for residues containing the specified atoms.'''
     for m, ai in self.molatoms:
       m.hide_ribbon_for_index_atoms(ai)
+
+  def color_ribbon(self, color):
+    '''Color ribbons.'''
+    for m, ai in self.molatoms:
+      m.color_ribbon_for_index_atoms(ai, color)
 
   def move_atoms(self, tf):
     '''Move atoms using a transform acting in scene global coordinates.'''

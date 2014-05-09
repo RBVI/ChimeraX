@@ -25,10 +25,11 @@ def register_commands(commands):
     add('volume', volumecommand.volume_command)
     from ..map.fit import fitcmd
     add('fitmap', fitcmd.fitmap_command)
-    from ..molecule import align, showcmd
+    from ..molecule import align, showcmd, colorcmd
     add('align', align.align_command)
     add('show', showcmd.show_command)
     add('hide', showcmd.hide_command)
+    add('color', colorcmd.color_command)
     from ..surface import gridsurf
     add('surface', gridsurf.surface_command)
     from .. import scenes
@@ -1084,11 +1085,13 @@ def split_first(s):
 def parse_specifier(spec, session):
 
     parts = specifier_parts(spec)
-    mid1 = mid2 = cid = rrange = rname = aname = None
+    mids = cid = rrange = rname = aname = None
     invert = False
     for p in parts:
         if p.startswith('#'):
-            mid1, mid2 = integer_range(p[1:])
+            mids = integer_set(p[1:])
+            if len(mids) == 0:
+                mids = set(m.id for m in session.model_list())
         elif p.startswith('.'):
             cid = p[1:]
         elif p.startswith(':'):
@@ -1100,7 +1103,7 @@ def parse_specifier(spec, session):
         elif p.startswith('!'):
             invert = True
     
-    if mid1 is None:
+    if mids is None:
         if cid is None and rrange is None and rname is None and aname is None:
             if spec == 'all':
                 mlist = session.model_list()
@@ -1109,16 +1112,17 @@ def parse_specifier(spec, session):
         else:
             mlist = session.molecules()
     else:
-        mlist = [m for m in session.model_list() if m.id >= mid1 and m.id <= mid2]
+        mlist = [m for m in session.model_list() if m.id in mids]
     if len(mlist) == 0:
         raise CommandError('No models specified by "%s"' % spec)
 
     s = Selection()
     from ..molecule import Molecule
     smodels = []
+    rnums = None
     for m in mlist:
         if isinstance(m, Molecule):
-            atoms = m.atom_subset(aname, cid, rrange, rname, invert)
+            atoms = m.atom_subset(aname, cid, rrange, rnums, rname, invert)
             if atoms.count() > 0:
                 s.add_atoms(atoms)
         else:
@@ -1127,8 +1131,8 @@ def parse_specifier(spec, session):
         sm = set(smodels)
         smodels = [m for m in session.model_list()
                    if not isinstance(m, Molecule) and not m in sm]
-        if not mid1 is None:
-            smodels.extend(m for m in session.molecules() if m.id < mid1 or m.id > mid2)
+        if not mids is None:
+            smodels.extend(m for m in session.molecules() if not m.id in mids)
     s.add_models(smodels)
 
     return s
@@ -1159,6 +1163,18 @@ def integer_range(rstring):
     except ValueError:
         return None
     return (r1,r2)
+
+# -----------------------------------------------------------------------------
+#
+def integer_set(rstring):
+    s = set()
+    for rint in rstring.split(','):
+        r = rint.split('-')
+        if r[0]:
+            r1 = int(r[0])
+            r2 = int(r[1]) if len(r) == 2 else r1
+            s |= set(range(r1,r2+1))
+    return s
 
 # -----------------------------------------------------------------------------
 #

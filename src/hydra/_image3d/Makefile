@@ -24,6 +24,8 @@ OBJS += setfileicon_mac.o
 LIBS += -framework AppKit
 
 OBJS += touchevents_mac.o
+
+PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 endif
 
 ifdef WIN32
@@ -55,6 +57,10 @@ install: all
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
+ifeq ($(OS),Darwin)
+# Fix _image3d.so to use relative path to Python framework library.
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PYMOD)
+endif
 
 clean:
 	rm -f $(PYMOD) $(OBJS)

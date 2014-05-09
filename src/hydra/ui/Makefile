@@ -15,10 +15,10 @@ endif
 
 all: $(PYOBJS)
 
-install: all pkg_dir
+install: all $(PKG_DIR)
 	$(RSYNC) $(PYSRCS) $(ICONS) $(PKG_DIR)
 
-$(SUBDIR_INSTALL): pkg_dir
+$(SUBDIR_INSTALL): $(PKG_DIR)
 
 clean:
 	rm -rf __pycache__

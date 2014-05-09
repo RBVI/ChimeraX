@@ -102,6 +102,9 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
 	cp $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)/pyconfig.h $(frameworkdir)/Python.framework/Headers/
+# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
+# This causes the Hydra app menu name to be Python. So we install the non-framework python executable also.
+	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)noapp
 endif
 	# double check that pyexpat was successfully made
 	test -f $(DYNLOAD_DIR)/pyexpat.*

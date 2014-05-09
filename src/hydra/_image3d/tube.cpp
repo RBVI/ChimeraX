@@ -15,8 +15,6 @@ static void stitch_cap(int *triangles, int m, int voffset, bool clockwise);
 // -----------------------------------------------------------------------------
 // Create triangle geometry for a tube with given center-line path and cross-section.
 //
-// TODO: Add tube end-caps.
-//
 static void tube(float *path, float *tangents, int n,
 		 float *cross_section, float *cross_section_normals, int m,
 		 bool end_caps,
@@ -198,7 +196,8 @@ PyObject *tube_geometry(PyObject *s, PyObject *args, PyObject *keywds)
   PyObject *normals_py = python_float_array((n+2)*m, 3, &normals);
   PyObject *triangles_py = python_int_array(2*(n-1)*m+2*(m-2), 3, &triangles);
 
-  tube(p, t, n, cs, csn, m, true, vertices, normals, triangles);
+  bool end_caps = true;
+  tube(p, t, n, cs, csn, m, end_caps, vertices, normals, triangles);
 
   PyObject *pt = python_tuple(vertices_py, normals_py, triangles_py);
   return pt;

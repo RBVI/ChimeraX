@@ -6,6 +6,9 @@ VERSION = 2.3.1
 DISTRIBUTION = Pillow-$(VERSION).zip
 SOURCE = $(tmpdir)/Pillow-$(VERSION)
 
+PATCHES	= $(wildcard Pillow-$(VERSION)-*.patch) \
+	  $(wildcard Pillow-$(VERSION)_$(OS).patch)
+
 SETUP_BUILD =
 ifdef DEBUG
 ifndef WIN32
@@ -21,6 +24,11 @@ install: $(SOURCE)
 
 $(SOURCE):
 	unzip $(DISTRIBUTION) -d $(tmpdir)
+ifneq (,$(PATCHES))
+	for p in $(PATCHES); do \
+		(cd $(SOURCE) && patch -f -p0) < $$p ; \
+	done
+endif
 
 clean:
 	rm -rf $(SOURCE)

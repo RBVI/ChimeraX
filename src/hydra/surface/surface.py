@@ -172,7 +172,7 @@ class Surface_Piece:
     self.vertices = None
     self.triangles = None
     self.normals = None
-    self.vertex_colors = None
+    self.vertex_colors = None           # N by 4 uint8 values
     self.edge_mask = None
     self.masked_edges = None
     self.display = True

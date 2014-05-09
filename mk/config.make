@@ -43,5 +43,5 @@ PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 
-pkg_dir:
+$(PKG_DIR):
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
