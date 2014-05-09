@@ -230,7 +230,7 @@ static void tube_geometry_colors(unsigned int *colors, int n,
   // Last half-segment
   unsigned int cn = colors[n-1];
   int h2 = (ns+2)*nc - h1;
-  for (int i = 0 ; i < h2 ; ++i)
+  for (int i = 0 ; i < h2 ; ++i, ++ca)
     *ca = cn;
 
   // End caps
@@ -255,7 +255,7 @@ PyObject *tube_geometry_colors(PyObject *s, PyObject *args, PyObject *keywds)
 				   &ns, &nc))
     return NULL;
 
-  int n = colors.size();
+  int n = colors.size(0);
   unsigned int *ca = reinterpret_cast<unsigned int *>(colors.values());
   unsigned char *vc;
   int nv = ((n-1)*(ns+1)+1 + 2)*nc;
