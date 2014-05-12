@@ -117,7 +117,7 @@ def standard_shortcuts(session):
 
         ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates', molcat, molarg),
 
-        ('bc', cycle_blast, 'Cycle through display of blast molecules', molcat, sesarg, mlmenu),
+        ('/', cycle_blast, 'Cycle through display of blast molecules', molcat, sesarg, mlmenu),
         ('+', blast_next, 'Show next blast hit', molcat, sesarg, mlmenu),
         ('-', blast_previous, 'Show previous blast hit', molcat, sesarg, mlmenu),
         ('*', blast_all, 'Show all blast hits', molcat, sesarg, mlmenu),

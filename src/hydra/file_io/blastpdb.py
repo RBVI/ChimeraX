@@ -381,18 +381,25 @@ class Blast_Display_Cycler:
       v = self.session.view
       v.add_new_frame_callback(self.next_frame)
     else:
-      self.frame = None
-      v = self.session.view
-      v.remove_new_frame_callback(self.next_frame)
+      self.stop_play()
       self.show_all()
+  def stop_play(self):
+    if self.frame is None:
+      return
+    self.frame = None
+    v = self.session.view
+    v.remove_new_frame_callback(self.next_frame)
   def hit_molecules(self):
     return self.session.blast_results[3]
   def show_next(self):
+    self.stop_play()
     self.show_hit((self.hit_num + 1) % len(self.hit_chains))
   def show_previous(self):
+    self.stop_play()
     nh = len(self.hit_chains)
     self.show_hit((self.hit_num + nh - 1) % nh)
   def show_all(self):
+    self.stop_play()
     for m in self.hit_molecules():
       m.display = True
       show_only_ribbons(m, m.blast_match_chains)
