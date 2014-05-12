@@ -267,8 +267,8 @@ class Molecule(Surface):
         spath, stan = natural_cubic_spline(path[i1:i2+1], sd)
         mints = mask_intervals(rshow, i1, i2)
         for j1,j2 in mints:
-          p1, p2 = (j1-i1)*(sd+1), (j2+1-i1)*(sd+1)
-          jpath, jtan = spath[p1:p2], stan[p1:p2]
+          p1, p2 = (j1-i1)*(sd+1), (j2-i1)*(sd+1)
+          jpath, jtan = spath[p1:p2+1], stan[p1:p2+1]
           va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
           ca = tube.tube_geometry_colors(colors[j1:j2+1], sd, cd)
           geom.append((va,na,ta,ca))
@@ -384,7 +384,7 @@ class Molecule(Surface):
         chain_ids = chain_id
         cmask = self.chain_atom_mask(chain_ids[0])
         for cid in chain_ids[1:]:
-          logical_or(cmask, self.chain_atom_indices(cid), cmask)
+          logical_or(cmask, self.chain_atom_mask(cid), cmask)
       else:
         cmask = self.chain_atom_mask(chain_id, s, e)
       logical_and(nimask, cmask, nimask)
@@ -555,12 +555,6 @@ class Molecule(Surface):
     nc = max(1, len(self.positions))
     na = self.atom_shown_count
     return na * nc
-
-  def chain_atom_indices(self, chain_id):
-    from numpy import fromstring
-    cid = fromstring(chain_id, self.chain_ids.dtype)
-    atoms = (self.chain_ids == cid).nonzero()[0]
-    return atoms
 
   def bounds(self):
     # TODO: bounds should only include displayed atoms.
