@@ -176,6 +176,8 @@ def match_metrics_table(molecule, chain, mols):
     chains = m.blast_match_chains
     rmap = ma.residue_number_map()      # Hit to query residue number map.
 
+    m.blast_match_rmsds = rmsds = {}
+
     for cid in chains:
       hres = residue_number_to_name(m, cid)
       if len(hres) == 0:
@@ -202,6 +204,7 @@ def match_metrics_table(molecule, chain, mols):
       # Compute RMSD of aligned hit and query.
       from ..molecule import align
       tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
+      rmsds[cid] = rmsd
 
       # Align hit chain to query chain
       m.atom_subset(chain_id = cid).move_atoms(tf)
@@ -215,14 +218,18 @@ def match_metrics_table(molecule, chain, mols):
 
   return '\n'.join(lines)
 
-def show_matched_as_ribbons(mols):
+def show_matches_as_ribbons(qmol, chain, mols):
   for m in mols:
     show_only_ribbons(m, m.blast_match_chains)
+    m.single_color()
+    m.set_ribbon_radius(0.25)
+  qmol.set_ribbon_radius(0.25)
+  show_only_ribbons(qmol, [chain])
 
 def show_only_ribbons(m, chains):
     m.atoms().hide_atoms()
     for cid in chains:
-      m.atom_subset(chain_id = cid).show_ribbon()
+      m.atom_subset(chain_id = cid).show_ribbon(only_these = True)
 
 def sequences_match(s, seq):
   n = min(len(s), len(seq))
@@ -341,6 +348,82 @@ def blast(molecule, chain, session,
   mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
 #  check_hit_sequences_match_mmcif_sequences(mols)
   session.add_models(mols)
-  show_only_ribbons(molecule, [chain])
-  show_matched_as_ribbons(mols)
+  show_matches_as_ribbons(molecule, chain, mols)
   print (match_metrics_table(molecule, chain, mols))
+  session.blast_results = (molecule, chain, results, mols)
+
+def cycle_blast_molecule_display(session):
+  cycler(session).toggle_play()
+def next_blast_molecule_display(session):
+  cycler(session).show_next()
+def previous_blast_molecule_display(session):
+  cycler(session).show_previous()
+def all_blast_molecule_display(session):
+  cycler(session).show_all()
+
+def cycler(session):
+  if not hasattr(session, 'blast_cycler'):
+    session.blast_cycler = Blast_Display_Cycler(session)
+  return session.blast_cycler
+
+class Blast_Display_Cycler:
+  def __init__(self, session):
+    self.frame = None
+    self.frames_per_molecule = 10
+    self.session = session
+    self.hit_chains = sum([[(m,c) for c in m.blast_match_chains] for m in self.hit_molecules()], [])
+    self.last_mol = None
+    self.hit_num = 0
+  def toggle_play(self):
+    if self.frame is None:
+      self.frame = 0
+      self.show_none()
+      v = self.session.view
+      v.add_new_frame_callback(self.next_frame)
+    else:
+      self.frame = None
+      v = self.session.view
+      v.remove_new_frame_callback(self.next_frame)
+      self.show_all()
+  def hit_molecules(self):
+    return self.session.blast_results[3]
+  def show_next(self):
+    self.show_hit((self.hit_num + 1) % len(self.hit_chains))
+  def show_previous(self):
+    nh = len(self.hit_chains)
+    self.show_hit((self.hit_num + nh - 1) % nh)
+  def show_all(self):
+    for m in self.hit_molecules():
+      m.display = True
+      show_only_ribbons(m, m.blast_match_chains)
+    self.last_mol = None
+  def show_none(self):
+    for m in self.hit_molecules():
+      m.display = False
+    self.last_mol = None
+  def show_hit(self, hnum):
+    self.hit_num = hnum
+    hc = self.hit_chains
+    m,c = hc[hnum]
+    lm = self.last_mol
+    if not m is lm:
+      if lm:
+        lm.display = False
+      else:
+        self.show_none()
+      m.display = True
+      self.last_mol = m
+    show_only_ribbons(m,[c])
+    s = self.session
+    s.show_status('%s %s   rmsd %.2f   %s' %
+                  (m.name, c, m.blast_match_rmsds[c], m.blast_match_description))
+  def next_frame(self):
+    f = self.frame
+    if f == 0:
+      self.show_hit(self.hit_num)
+    if f+1 >= self.frames_per_molecule:
+      self.frame = 0
+      self.hit_num = (self.hit_num + 1) % len(self.hit_chains)
+    else:
+      self.frame += 1
+

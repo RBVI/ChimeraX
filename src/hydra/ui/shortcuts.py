@@ -117,6 +117,11 @@ def standard_shortcuts(session):
 
         ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates', molcat, molarg),
 
+        ('bc', cycle_blast, 'Cycle through display of blast molecules', molcat, sesarg, mlmenu),
+        ('+', blast_next, 'Show next blast hit', molcat, sesarg, mlmenu),
+        ('-', blast_previous, 'Show previous blast hit', molcat, sesarg, mlmenu),
+        ('*', blast_all, 'Show all blast hits', molcat, sesarg, mlmenu),
+
         # Pane
         ('mp', show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
         ('lg', show_log, 'Show command log', gcat, sesarg, pmenu),
@@ -663,3 +668,16 @@ def display_all(session):
             p.display = True
             p.instance_display = None
             m.redraw_needed = True
+
+def cycle_blast(session):
+    from ..file_io import blastpdb
+    blastpdb.cycle_blast_molecule_display(session)
+def blast_next(session):
+    from ..file_io import blastpdb
+    blastpdb.next_blast_molecule_display(session)
+def blast_previous(session):
+    from ..file_io import blastpdb
+    blastpdb.previous_blast_molecule_display(session)
+def blast_all(session):
+    from ..file_io import blastpdb
+    blastpdb.all_blast_molecule_display(session)

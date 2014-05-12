@@ -23,23 +23,8 @@ def tube_spline(path, radius = 1.0, segment_subdivisions = 10, circle_subdivisio
 #
 def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions):
 
-    np = len(colors)
-    ns, nc = segment_subdivisions, circle_subdivisions
-    nsp = (np + (np-1)*ns) if np > 1 else np
-    nv = (nsp+2)*nc
-    from numpy import empty, float32, ndarray
-    ca = empty((nv,4), float32)
-    nrv = (ns+1)*nc
-    s = s0 = ((ns+1)//2)*nc
-    for i in range(1,np-1):
-        ca[s:s+nrv,:] = colors[i]
-        s += nrv
-    ca[:s0,:] = colors[0,:]              # First half-segment
-    ca[nv-2*nc:nv-nc,:] = colors[0,:]    # End cap
-    ca[s:nv-2*nc,:] = colors[np-1,:]     # Last half-segment
-    ca[nv-nc:,:] = colors[np-1,:]        # End cap
-
-    return ca
+    from .. import _image3d
+    return _image3d.tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions)
 
 # -----------------------------------------------------------------------------
 #

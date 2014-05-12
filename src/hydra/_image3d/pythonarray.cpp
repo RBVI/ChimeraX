@@ -71,6 +71,7 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
   switch ((NPY_TYPES) type)
     {
     case NPY_CHAR:	dtype = Numeric_Array::Char;		break;
+    case NPY_BOOL:	dtype = Numeric_Array::Unsigned_Char;	break;
     case NPY_UBYTE:	dtype = Numeric_Array::Unsigned_Char;	break;
     case NPY_BYTE:	dtype = Numeric_Array::Signed_Char;	break;
     case NPY_SHORT:	dtype = Numeric_Array::Short_Int;	break;
@@ -574,6 +575,20 @@ PyObject *python_uint8_array(int size, unsigned char **data)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_uint8_array(int size1, int size2, unsigned char **data)
+{
+  initialize_numpy();		// required before using NumPy.
+
+  int dimensions[2] = {size1, size2};
+  PyObject *a = allocate_python_array(2, dimensions, NPY_UINT8);
+  if (data)
+    *data = (unsigned char *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 PyObject *python_char_array(int size1, int size2, char **data)
 {
   initialize_numpy();		// required before using NumPy.
@@ -853,17 +868,16 @@ extern "C" int parse_double_3x4_array(PyObject *arg, void *d34)
 
 // ----------------------------------------------------------------------------
 //
-static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, bool f64)
+static int parse_nm_array(PyObject *arg, Numeric_Array::Value_Type vtype, int m, bool allow_copy,
+			  Numeric_Array &v)
 {
-  Numeric_Array::Value_Type ftype = (f64 ? Numeric_Array::Double : Numeric_Array::Float);
-  Numeric_Array v;
-  if (!array_from_python(arg, 0, ftype, &v, allow_copy))
+  if (!array_from_python(arg, 0, vtype, &v, allow_copy))
     return 0;
 
   if (v.dimension() == 1 && v.size() == 0)
     {
       int size[2] = {0,m};
-      v = Numeric_Array(ftype, 2, size);
+      v = Numeric_Array(vtype, 2, size);
     }
   if (v.dimension() != 2)
     {
@@ -875,12 +889,24 @@ static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, b
       PyErr_Format(PyExc_TypeError, "Second array dimension must have size %d.", m);
       return 0;
     }
-  if (f64)
-    *static_cast<DArray*>(farray) = static_cast<DArray>(v);
-  else
-    *static_cast<FArray*>(farray) = static_cast<FArray>(v);
-
   return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, bool f64)
+{
+  Numeric_Array::Value_Type ftype = (f64 ? Numeric_Array::Double : Numeric_Array::Float);
+  Numeric_Array v;
+  int s = parse_nm_array(arg, ftype, m, allow_copy, v);
+  if (s)
+    {
+      if (f64)
+	*static_cast<DArray*>(farray) = static_cast<DArray>(v);
+      else
+	*static_cast<FArray*>(farray) = static_cast<FArray>(v);
+    }
+  return s;
 }
 
 // ----------------------------------------------------------------------------
@@ -908,6 +934,17 @@ extern "C" int parse_writable_float_3d_array(PyObject *arg, void *farray)
   *static_cast<FArray*>(farray) = static_cast<FArray>(v);
 
   return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_uint8_n4_array(PyObject *arg, void *iarray)
+{
+  Numeric_Array v;
+  int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 4, false, v);
+  if (s)
+    *static_cast<CArray*>(iarray) = static_cast<CArray>(v);
+  return s;
 }
 
 // ----------------------------------------------------------------------------

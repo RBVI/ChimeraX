@@ -1,6 +1,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "arrayops.h"			// use value_ranges
 #include "blend_rgba.h"			// use blur_blend_images
 #include "combine.h"			// use linear_combination
 #include "connected.h"			// use connected_triangles, ...
@@ -33,6 +34,14 @@ namespace Image_3d
 //
 static struct PyMethodDef image3d_methods[] =
 {
+  /* arrayops.h */
+  {const_cast<char*>("value_ranges"), (PyCFunction)value_ranges,
+   METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("contiguous_intervals"), (PyCFunction)contiguous_intervals,
+   METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("mask_intervals"), (PyCFunction)mask_intervals,
+   METH_VARARGS|METH_KEYWORDS},
+
   /* blend_rgba.h */
   {const_cast<char*>("blur_blend_images"), (PyCFunction)blur_blend_images,
    METH_VARARGS|METH_KEYWORDS},
@@ -101,6 +110,8 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("parse_pdb_file"), (PyCFunction)parse_pdb_file,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("element_radii"), (PyCFunction)element_radii,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("sort_atoms_by_chain"), (PyCFunction)sort_atoms_by_chain,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* parse_stl.h */
@@ -190,6 +201,8 @@ static struct PyMethodDef image3d_methods[] =
 
   /* tube.h */
   {const_cast<char*>("tube_geometry"), (PyCFunction)tube_geometry,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("tube_geometry_colors"), (PyCFunction)tube_geometry_colors,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}

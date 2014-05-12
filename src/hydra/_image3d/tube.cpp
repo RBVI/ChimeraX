@@ -202,3 +202,65 @@ PyObject *tube_geometry(PyObject *s, PyObject *args, PyObject *keywds)
   PyObject *pt = python_tuple(vertices_py, normals_py, triangles_py);
   return pt;
 }
+
+// -----------------------------------------------------------------------------
+// Return array of tube geometry vertex colors given path point colors.
+//
+static void tube_geometry_colors(unsigned int *colors, int n,
+				 int segment_subdivisions, int circle_subdivisions,
+				 unsigned int *ca)
+{
+  int ns = segment_subdivisions, nc = circle_subdivisions;
+
+  // First half-segment
+  unsigned int c0 = colors[0];
+  int h1 = ((ns+2)/2)*nc;
+  for (int i = 0 ; i < h1 ; ++i, ++ca)
+    *ca = c0;
+
+  // Middle segments
+  int nrv = (ns+1)*nc;
+  for (int i = 1 ; i < n-1 ; ++i)
+    {
+      unsigned int c = colors[i];
+      for (int j = 0 ; j < nrv ; ++j, ++ca)
+	*ca = c;
+    }
+
+  // Last half-segment
+  unsigned int cn = colors[n-1];
+  int h2 = (ns+2)*nc - h1;
+  for (int i = 0 ; i < h2 ; ++i, ++ca)
+    *ca = cn;
+
+  // End caps
+  for (int i = 0 ; i < nc ; ++i, ++ca)
+    *ca = c0;
+  for (int i = 0 ; i < nc ; ++i, ++ca)
+    *ca = cn;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *tube_geometry_colors(PyObject *s, PyObject *args, PyObject *keywds)
+{
+  CArray colors;
+  int ns, nc;
+  FArray path, tangents, cross_section, cross_section_normals;
+  const char *kwlist[] = {"colors", "segment_subdivisions", "circle_subdivisions", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ii"),
+				   (char **)kwlist,
+				   parse_uint8_n4_array, &colors,
+				   &ns, &nc))
+    return NULL;
+
+  int n = colors.size(0);
+  unsigned int *ca = reinterpret_cast<unsigned int *>(colors.values());
+  unsigned char *vc;
+  int nv = ((n-1)*(ns+1)+1 + 2)*nc;
+  PyObject *r = python_uint8_array(nv, 4, &vc);
+  tube_geometry_colors(ca, n, ns, nc, reinterpret_cast<unsigned int *>(vc));
+
+  return r;
+}
