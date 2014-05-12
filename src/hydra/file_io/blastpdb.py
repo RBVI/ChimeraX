@@ -176,6 +176,7 @@ def match_metrics_table(molecule, chain, mols):
     chains = m.blast_match_chains
     rmap = ma.residue_number_map()      # Hit to query residue number map.
 
+    m.blast_match_residue_numbers = tuple(rmap.keys())
     m.blast_match_rmsds = rmsds = {}
 
     for cid in chains:
@@ -218,10 +219,13 @@ def match_metrics_table(molecule, chain, mols):
 
   return '\n'.join(lines)
 
-def show_matches_as_ribbons(qmol, chain, mols):
+def show_matches_as_ribbons(qmol, chain, mols, rescolor = (225,130,130,255)):
   for m in mols:
-    show_only_ribbons(m, m.blast_match_chains)
     m.single_color()
+    for cid in m.blast_match_chains:
+      r = m.atom_subset(chain_id = cid, residue_numbers = m.blast_match_residue_numbers)
+      r.color_ribbon(rescolor)
+    show_only_ribbons(m, m.blast_match_chains)
     m.set_ribbon_radius(0.25)
   qmol.set_ribbon_radius(0.25)
   show_only_ribbons(qmol, [chain])
@@ -348,8 +352,8 @@ def blast(molecule, chain, session,
   mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
 #  check_hit_sequences_match_mmcif_sequences(mols)
   session.add_models(mols)
-  show_matches_as_ribbons(molecule, chain, mols)
   print (match_metrics_table(molecule, chain, mols))
+  show_matches_as_ribbons(molecule, chain, mols)
   session.blast_results = (molecule, chain, results, mols)
 
 def cycle_blast_molecule_display(session):
@@ -371,7 +375,8 @@ class Blast_Display_Cycler:
     self.frame = None
     self.frames_per_molecule = 10
     self.session = session
-    self.hit_chains = sum([[(m,c) for c in m.blast_match_chains] for m in self.hit_molecules()], [])
+    self.results_id = None
+    self.hchains = None
     self.last_mol = None
     self.hit_num = 0
   def toggle_play(self):
@@ -391,12 +396,17 @@ class Blast_Display_Cycler:
     v.remove_new_frame_callback(self.next_frame)
   def hit_molecules(self):
     return self.session.blast_results[3]
+  def hit_chains(self):
+    if self.hchains is None or id(self.session.blast_results) != self.results_id:
+      self.hchains = sum([[(m,c) for c in m.blast_match_chains] for m in self.hit_molecules()], [])
+      self.results_id = id(self.session.blast_results)
+    return self.hchains
   def show_next(self):
     self.stop_play()
-    self.show_hit((self.hit_num + 1) % len(self.hit_chains))
+    self.show_hit((self.hit_num + 1) % len(self.hit_chains()))
   def show_previous(self):
     self.stop_play()
-    nh = len(self.hit_chains)
+    nh = len(self.hit_chains())
     self.show_hit((self.hit_num + nh - 1) % nh)
   def show_all(self):
     self.stop_play()
@@ -410,7 +420,7 @@ class Blast_Display_Cycler:
     self.last_mol = None
   def show_hit(self, hnum):
     self.hit_num = hnum
-    hc = self.hit_chains
+    hc = self.hit_chains()
     m,c = hc[hnum]
     lm = self.last_mol
     if not m is lm:
@@ -430,7 +440,7 @@ class Blast_Display_Cycler:
       self.show_hit(self.hit_num)
     if f+1 >= self.frames_per_molecule:
       self.frame = 0
-      self.hit_num = (self.hit_num + 1) % len(self.hit_chains)
+      self.hit_num = (self.hit_num + 1) % len(self.hit_chains())
     else:
       self.frame += 1
 
