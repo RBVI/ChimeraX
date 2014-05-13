@@ -133,7 +133,9 @@ class Match:
 
   # Map hit residue number to query residue number.  One is first character in sequence.
   def residue_number_map(self):
-    rmap = {}
+    if hasattr(self, 'rnum_map'):
+      return self.rnum_map
+    self.rnum_map = rmap = {}
     hs, qs = self.hSeq, self.qSeq
     h, q = self.hStart+1, self.qStart+1
     n = min(len(hs), len(qs))
@@ -232,8 +234,44 @@ def show_matches_as_ribbons(qmol, chain, mols, rescolor = (225,130,130,255)):
 
 def show_only_ribbons(m, chains):
     m.atoms().hide_atoms()
-    for cid in chains:
-      m.atom_subset(chain_id = cid).show_ribbon(only_these = True)
+    m.atom_subset(chain_id = chains).show_ribbon(only_these = True)
+
+def color_by_coverage(matches, mol, chain, c50 = (150,255,150,255), c0 = (255,255,150,255)):
+  rmax = max(ma.qEnd for ma in matches) + 1     # qEnd uses zero-base indexing, need 1-base
+  from numpy import zeros, int32, logical_and
+  qrc = zeros((rmax+1,), int32)
+  for ma in matches:
+    rmap = ma.residue_number_map()
+    qrnum = list(rmap.values())
+    qrc[qrnum] += 1
+  n = len(matches)
+  mol.single_color()
+  q50 = (qrc > 0.5*n).nonzero()[0]
+  mol.atom_subset(chain_id = chain, residue_numbers = q50).color_ribbon(c50)
+  q0 = logical_and(qrc > 0, qrc < 0.5*n).nonzero()[0]
+  mol.atom_subset(chain_id = chain, residue_numbers = q0).color_ribbon(c0)
+
+def blast_color_by_coverage(session):
+  if not hasattr(session, 'blast_results'):
+    return 
+  mol, chain, results, mols = session.blast_results
+  for m in mols:
+    m.display = False
+  color_by_coverage(results.matches, mol, chain)
+
+def show_only_matched_residues(mols):
+  for m in mols:
+    ma = m.blast_match
+    rmap = ma.residue_number_map()
+    hrnum = tuple(rmap.keys())
+    m.atom_subset(chain_id = m.blast_match_chains, residue_numbers = hrnum).show_ribbon(only_these = True)
+    m.display = True
+
+def blast_show_matched_residues(session):
+  if not hasattr(session, 'blast_results'):
+    return 
+  mol, chain, results, mols = session.blast_results
+  show_only_matched_residues(mols)
 
 def sequences_match(s, seq):
   n = min(len(s), len(seq))
