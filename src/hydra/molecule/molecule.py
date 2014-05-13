@@ -515,6 +515,18 @@ class Molecule(Surface):
     self.need_graphics_update = True
     self.redraw_needed = True
 
+  def color_ribbon(self, chain_id, residue_colors):
+    '''
+    Residue colors is n by 4 uint8 array where first index is residue number
+    and second index is red, green, blue, alpha values.
+    '''
+    s = self.ribbon_guide_atom_indices(chain_id)
+    qrnums = self.residue_nums[s]
+    self.ribbon_colors[s] = residue_colors[qrnums,:]
+    self.update_ribbons = True
+    self.need_graphics_update = True
+    self.redraw_needed = True
+
   def show_all_atoms(self):
     n = self.atom_count()
     if self.atom_shown_count < n:
