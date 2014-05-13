@@ -1,4 +1,9 @@
 // vim: set expandtab ts=4 sw=4:
+#include <set>
+#include <sstream>
+#include <algorithm>  // for std::sort
+#include <stdio.h>  // fgets
+
 #include "PDBio.h"
 #include "pdb/PDB.h"
 #include "atomstruct/AtomicStructure.h"
@@ -6,14 +11,8 @@
 #include "atomstruct/Bond.h"
 #include "atomstruct/Atom.h"
 #include "atomstruct/CoordSet.h"
-#include "atomstruct/templates/TmplResidue.h"
-#include "atomstruct/templates/TmplAtom.h"
-#include "atomstruct/templates/residues.h"
 #include "blob/StructBlob.h"
-#include <set>
-#include <sstream>
-#include <algorithm>  // for std::sort
-#include <stdio.h>  // fgets
+#include "connectivity/connect.h"
 
 #define LOG_PY_ERROR_NULL(arg) \
                 if (log_file != Py_None) { \
@@ -38,71 +37,6 @@ std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
 std::string pqr_charge("charge");
 std::string pqr_radius("radius");
-
-// standard_residues contains the names of residues that should have PDB ATOM records.
-static std::set<std::string, std::less<std::string> >    standard_residues;
-
-static void
-init_standard_residues()
-{
-    standard_residues.insert("A");
-    standard_residues.insert("ALA");
-    standard_residues.insert("ARG");
-    standard_residues.insert("ASN");
-    standard_residues.insert("ASP");
-    standard_residues.insert("ASX");
-    standard_residues.insert("C");
-    standard_residues.insert("CYS");
-    standard_residues.insert("DA");
-    standard_residues.insert("DC");
-    standard_residues.insert("DG");
-    standard_residues.insert("DT");
-    standard_residues.insert("G");
-    standard_residues.insert("GLN");
-    standard_residues.insert("GLU");
-    standard_residues.insert("GLX");
-    standard_residues.insert("GLY");
-    standard_residues.insert("HIS");
-    standard_residues.insert("I");
-    standard_residues.insert("ILE");
-    standard_residues.insert("LEU");
-    standard_residues.insert("LYS");
-    standard_residues.insert("MET");
-    standard_residues.insert("PHE");
-    standard_residues.insert("PRO");
-    standard_residues.insert("SER");
-    standard_residues.insert("T");
-    standard_residues.insert("THR");
-    standard_residues.insert("TRP");
-    standard_residues.insert("TYR");
-    standard_residues.insert("U");
-    standard_residues.insert("VAL");
-}
-
-//TODO: these 3 funcs need to be wrapped also
-bool
-standard_residue(const std::string &name)
-{
-    if (standard_residues.empty())
-        init_standard_residues();
-    return standard_residues.find(name) != standard_residues.end();
-}
-
-void
-add_standard_residue(const std::string &name)
-{
-    if (standard_residues.empty())
-        init_standard_residues();
-    standard_residues.insert(name);
-}
-
-void
-remove_standard_residue(const std::string &name)
-{
-    if (standard_residues.empty())
-        init_standard_residues();
-    standard_residues.erase(name);
-}
 
 static void
 canonicalize_atom_name(std::string *aname, bool *asterisks_translated)
@@ -133,45 +67,6 @@ canonicalize_res_name(std::string *rname)
         }
         (*rname)[i] = toupper((*rname)[i]);
     }
-}
-
-class MolResId {
-    // convenience class for testing chain/position/insert-code equality
-public:
-    int    pos;
-    std::string chain;
-    char insert;
-    MolResId() {};
-    MolResId(char c, int p, char ic) {
-        chain = c;
-        pos = p;
-        insert = ic;
-    };
-    MolResId(const Residue *r) {
-        chain = r->chain_id();
-        pos = r->position();
-        insert = r->insertion_code();
-    };
-    bool operator==(const MolResId &rid) const {
-        return rid.pos == pos && rid.chain == chain && rid.insert == insert;
-    }
-    bool operator!=(const MolResId &rid) const {
-        return rid.pos != pos || rid.chain != chain || rid.insert != insert;
-    }
-    bool operator<(const MolResId &rid) const {
-        return chain < rid.chain || 
-            (chain == rid.chain && (pos < rid.pos || 
-            (pos == rid.pos && insert < rid.insert)));
-    }
-};
-
-std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
-    os << rid.pos;
-    if (rid.insert != ' ')
-        os << rid.insert;
-    if (rid.chain != " ")
-        os << "." << rid.chain;
-    return os;
 }
 
 #ifdef CLOCK_PROFILING
@@ -895,69 +790,6 @@ connect_atom_by_distance(Atom *a, const Residue::Atoms &atoms,
     }
 }
 
-// connect_residue_by_distance:
-//    Connect atoms in residue by distance.  This is an n-squared algorithm.
-//    Takes into account alternate atom locations.  'conect_atoms' are
-//    atoms whose connectivity is already known.
-void
-connect_residue_by_distance(Residue *r, std::set<Atom *> *conect_atoms)
-{
-    // connect up atoms in residue by distance
-    const Residue::Atoms &atoms = r->atoms();
-    for (Residue::Atoms::const_iterator ai = atoms.begin(); ai != atoms.end(); ++ai) {
-        Atom *a = *ai;
-        if (conect_atoms && conect_atoms->find(a) != conect_atoms->end()) {
-            // connectivity specified in a CONECT record, skip
-            continue;
-        }
-        connect_atom_by_distance(a, atoms, ai, conect_atoms);
-    }
-}
-
-// connect_residue_by_template:
-//    Connect bonds in residue according to the given template.  Takes into
-//    acount alternate atom locations.
-static void
-connect_residue_by_template(Residue *r, const TmplResidue *tr,
-                        std::set<Atom *> *conect_atoms)
-{
-    // foreach atom in residue
-    //    connect up like atom in template
-    bool some_connectivity_unknown = false;
-    std::set<Atom *> known_connectivity;
-    const Residue::Atoms &atoms = r->atoms();
-    for (Residue::Atoms::const_iterator ai = atoms.begin(); ai != atoms.end(); ++ai) {
-        Atom *a = *ai;
-        if (conect_atoms->find(a) != conect_atoms->end()) {
-            // connectivity specified in a CONECT record, skip
-            known_connectivity.insert(a);
-            continue;
-        }
-        TmplAtom *ta = tr->find_atom(a->name());
-        if (ta == NULL) {
-            some_connectivity_unknown = true;
-            continue;
-         }
-        // non-template atoms will be able to connect to known atoms;
-        // avoid rechecking known atoms though...
-        known_connectivity.insert(a);
-
-        for (TmplAtom::BondsMap::const_iterator bi = ta->bonds_map().begin();
-        bi != ta->bonds_map().end(); ++bi) {
-            Atom *b = r->find_atom(bi->first->name());
-            if (b == NULL)
-                continue;
-            if (!a->connects_to(b))
-                (void) a->structure()->new_bond(a, b);
-        }
-    }
-    // For each atom that wasn't connected (i.e. not in template),
-    // connect it by distance
-    if (!some_connectivity_unknown)
-        return;
-    connect_residue_by_distance(r, &known_connectivity);
-}
-
 // find_closest:
 //    Find closest heavy atom to given heavy atom with residue that has
 //    the same alternate location identifier (or none) and optionally return
@@ -991,174 +823,6 @@ find_closest(Atom *a, Residue *r, float *ret_dist_sq)
     if (ret_dist_sq)
         *ret_dist_sq = dist_sq;
     return closest;
-}
-
-// add_bond_nearest_pair:
-//    Add a bond between two residues.
-static void
-add_bond_nearest_pair(Residue *from, Residue *to, bool any_length=true)
-{
-    Atom    *fsave = NULL, *tsave = NULL;
-    float    dist_sq = 0.0;
-
-    const Residue::Atoms &atoms = from->atoms();
-    for (Residue::Atoms::const_iterator ai = atoms.begin(); ai != atoms.end(); ++ai) {
-        float    new_dist_sq;
-
-        Atom *a = *ai;
-        Atom *b = find_closest(a, to, &new_dist_sq);
-        if (b == NULL)
-            continue;
-        if (fsave == NULL || new_dist_sq < dist_sq) {
-            fsave = a;
-            tsave = b;
-            dist_sq = new_dist_sq;
-        }
-    }
-    if (fsave != NULL) {
-        if (!any_length && bonded_dist(fsave, tsave) == 0.0)
-            return;
-        add_bond(fsave, tsave);
-    }
-}
-
-static bool
-hookup(Atom *a, Residue *res, bool definitely_connect=true)
-{
-    bool made_connection = false;
-    Atom *b = find_closest(a, res, NULL);
-    if (!definitely_connect && b->coord().sqdistance(a->coord()) > 9.0)
-        return false;
-    if (b != NULL) {
-        add_bond(a, b);
-        made_connection = true;
-    }
-    return made_connection;
-}
-
-// connect_structure:
-//    Connect atoms in structure by template if one is found, or by distance.
-//    Adjacent residues are connected if appropriate.
-void
-connect_structure(AtomicStructure *as, std::vector<Residue *> *start_residues,
-    std::vector<Residue *> *end_residues, std::set<Atom *> *conect_atoms,
-    std::set<MolResId> *mod_res)
-{
-    // walk the residues, connecting residues as appropriate and
-    // connect the atoms within the residue
-    Residue *link_res = NULL, *prev_res = NULL, *first_res = NULL;
-    Atom *link_atom;
-    std::string link_atom_name("");
-    for (AtomicStructure::Residues::const_iterator ri = as->residues().begin();
-    ri != as->residues().end(); ++ri) {
-        Residue *r = (*ri).get();
-
-        if (!first_res)
-            first_res = r;
-        const TmplResidue *tr;
-        if (mod_res->find(MolResId(r)) != mod_res->end())
-            // residue in MODRES record;
-            // don't try to use template connectivity
-            tr = NULL;
-        else
-            tr = find_template_residue(r->name(),
-                std::find(start_residues->begin(),
-                start_residues->end(), r) != start_residues->end(),
-                std::find(end_residues->begin(),
-                end_residues->end(), r) != end_residues->end());
-        if (tr != NULL)
-            connect_residue_by_template(r, tr, conect_atoms);
-        else
-            connect_residue_by_distance(r, conect_atoms);
-
-        // connect up previous residue
-        if (link_res != NULL) {
-            if (tr == NULL || tr->chief() == NULL) {
-                add_bond_nearest_pair(link_res, r);
-            } else {
-                bool made_connection = false;
-                // don't definitely connect a leading HET residue
-                bool definitely_connect = (link_res != first_res
-                    || link_atom_name != "");
-                Atom *chief = r->find_atom(tr->chief()->name());
-                if (chief != NULL) {
-                    if (link_atom != NULL) {
-                        add_bond(link_atom, chief);
-                        made_connection = true;
-                    } else {
-                        made_connection = hookup(chief, link_res, definitely_connect);
-                    }
-                }
-                if (!made_connection && definitely_connect)
-                    add_bond_nearest_pair(link_res, r);
-            }
-        } else if (r->atoms().size() > 1 && prev_res != NULL
-                && prev_res->chain_id() == r->chain_id()
-                && r->is_het() && conect_atoms->find(
-                (*r->atoms().begin())) == conect_atoms->end()) {
-            // multi-atom HET residues with no CONECTs (i.e. _not_
-            // a standard PDB entry) _may_ connect to previous residue...
-            add_bond_nearest_pair(prev_res, r, false);
-        }
-
-        prev_res = r;
-        if (std::find(end_residues->begin(), end_residues->end(), r)
-        != end_residues->end()) {
-            link_res = NULL;
-        } else {
-            link_res = r;
-            if (tr == NULL || tr->link() == NULL) {
-                link_atom_name = "";
-                link_atom = NULL;
-            } else {
-                link_atom_name = tr->link()->name();
-                link_atom = r->find_atom(link_atom_name);
-            }
-        }
-    }
-
-    // if no CONECT/MODRES records and there are non-standard residues not
-    // in HETATM records (i.e. this is clearly a non-standard PDB
-    // like those output by CCP4's refmac), then examine the inter-
-    // residue bonds and break the non-physical ones (> 1.5 normal length)
-    // involving at least one non-standard residue
-    bool break_long = false;
-    if (conect_atoms->empty() && mod_res->empty()) {
-        for (AtomicStructure::Residues::const_iterator ri=as->residues().begin()
-        ; ri != as->residues().end(); ++ri) {
-            Residue *r = (*ri).get();
-            if (standard_residue(r->name()) || r->name() == "UNK")
-                continue;
-            if (!r->is_het()) {
-                break_long = true;
-                break;
-            }
-        }
-    }
-    if (break_long) {
-        std::vector<Bond *> break_these;
-        for (AtomicStructure::Bonds::const_iterator bi = as->bonds().begin();
-        bi != as->bonds().end(); ++bi) {
-            Bond *b = (*bi).get();
-            const Bond::Atoms & atoms = b->atoms();
-            Residue *r1 = atoms[0]->residue();
-            Residue *r2 = atoms[1]->residue();
-            if (r1 == r2)
-                continue;
-            if (standard_residue(r1->name()) && standard_residue(r2->name()))
-                continue;
-            // break if non-physical
-            float criteria = 1.5 * Element::bond_length(atoms[0]->element(),
-                atoms[1]->element());
-            if (criteria * criteria < b->sqlength())
-                break_these.push_back(b);
-        }
-        for (std::vector<Bond *>::iterator bi = break_these.begin();
-        bi != break_these.end(); ++bi) {
-            Bond *b = *bi;
-            as->delete_bond(b);
-        }
-    }
 }
 
 void prune_short_bonds(AtomicStructure *as)
