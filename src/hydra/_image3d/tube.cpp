@@ -9,7 +9,7 @@
 static void vector_rotation(float *v1, float *v2, float *r);
 static void transform(float *points, int m, float *rot, float *offset, float *result);
 static void matrix_multiply(float *a, float *b, float *c);
-static void stitch_sections(int n, int m, int *triangles);
+static void stitch_sections(int n, int m, int voffset, int *triangles);
 static void stitch_cap(int *triangles, int m, int voffset, bool clockwise);
 
 // -----------------------------------------------------------------------------
@@ -22,30 +22,31 @@ static void tube(float *path, float *tangents, int n,
 {
   float t[3] = {0,0,1}, zero_offset[3] = {0,0,0};
   float r[9], cr[9] = {1,0,0, 0,1,0, 0,0,1};
+  int cv = (end_caps ? 3*m : 0), ct = (end_caps ? 3*(m-2) : 0);
   for (int i = 0 ; i < n ; ++i)
     {
       int i3 = 3*i;
       vector_rotation(t, tangents + i3, r);
       matrix_multiply(r, cr, cr);
       t[0] = tangents[i3]; t[1] = tangents[i3+1]; t[2] = tangents[i3+2];
-      transform(cross_section, m, cr, path + i3, vertices + i3*m);
-      transform(cross_section_normals, m, cr, zero_offset, normals + i3*m);
+      transform(cross_section, m, cr, path + i3, vertices + i3*m + cv);
+      transform(cross_section_normals, m, cr, zero_offset, normals + i3*m + cv);
     }
-  stitch_sections(n, m, triangles);
+  stitch_sections(n, m, m, triangles + ct);
 
   if (end_caps)
     {
-      int m3 = 3*m, e = 3*(n-1)*m, c1 = 3*n*m, c2 = 3*(n+1)*m;
+      int m3 = 3*m, e = 3*n*m, c2 = 3*(n+1)*m;
       float *t2 = tangents + 3*(n-1);
       for (int i = 0 ; i < m3 ; ++i)
 	{
-	  vertices[c1+i] = vertices[i];
-	  normals[c1+i] = -tangents[i%3];
+	  vertices[i] = vertices[cv+i];
+	  normals[i] = -tangents[i%3];
 	  vertices[c2+i] = vertices[e+i];
 	  normals[c2+i] = t2[i%3];
 	}
-      stitch_cap(triangles+3*2*(n-1)*m, m, n*m, false);
-      stitch_cap(triangles+3*2*(n-1)*m + 3*(m-2), m, (n+1)*m, true);
+      stitch_cap(triangles, m, 0, false);
+      stitch_cap(triangles + ct + 3*2*(n-1)*m, m, (n+1)*m, true);
     }
 }
 
@@ -114,12 +115,12 @@ static void matrix_multiply(float *a, float *b, float *c)
 // -----------------------------------------------------------------------------
 // Make triangulation for n sections each having m points
 //
-static void stitch_sections(int n, int m, int *triangles)
+static void stitch_sections(int n, int m, int voffset, int *triangles)
 {
   int t = 0;
   for (int i = 0 ; i < n-1 ; ++i)
     {
-      int mi = m*i, mi1 = mi + m;
+      int mi = m*i + voffset, mi1 = mi + m;
       for (int j = 0 ; j < m ; ++j)
 	{
 	  int j1 = (j+1)%m;
@@ -222,6 +223,10 @@ static void tube_geometry_colors(unsigned int *colors, int n,
       return;
     }
 
+  // End cap
+  for (int i = 0 ; i < nc ; ++i, ++ca)
+    *ca = c0;
+
   // First segment
   int h1 = (ed1 + ((ns+2)/2))*nc;
   for (int i = 0 ; i < h1 ; ++i, ++ca)
@@ -242,9 +247,7 @@ static void tube_geometry_colors(unsigned int *colors, int n,
   for (int i = 0 ; i < h2 ; ++i, ++ca)
     *ca = cn;
 
-  // End caps
-  for (int i = 0 ; i < nc ; ++i, ++ca)
-    *ca = c0;
+  // End cap
   for (int i = 0 ; i < nc ; ++i, ++ca)
     *ca = cn;
 }
