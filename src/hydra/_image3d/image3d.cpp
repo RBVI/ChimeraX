@@ -41,6 +41,8 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS|METH_KEYWORDS},
   {const_cast<char*>("mask_intervals"), (PyCFunction)mask_intervals,
    METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("duplicate_midpoints"), (PyCFunction)duplicate_midpoints,
+   METH_VARARGS|METH_KEYWORDS},
 
   /* blend_rgba.h */
   {const_cast<char*>("blur_blend_images"), (PyCFunction)blur_blend_images,

@@ -164,4 +164,49 @@ mask_intervals(PyObject *s, PyObject *args, PyObject *keywds)
   return r;
 }
 
+// -----------------------------------------------------------------------------
+// Duplicate interval midpoints.
+//
+static void duplicate_midpoints(const float *a, int n, int stride0, int stride1, int interval,
+				float *da)
+{
+  int di = interval/2;
+  for (int i = 0, j = 0 ; i < n ; ++i, j += 3)
+    {
+      const float *a0 = a + i*stride0;
+      float *daj = da + j;
+      for (int a = 0 ; a < 3 ; ++a)
+	daj[a] = a0[a*stride1];
+      if (i % interval == di)
+	{
+	  j += 3;
+	  daj += 3;
+	  for (int a = 0 ; a < 3 ; ++a)
+	    daj[a] = a0[a*stride1];
+	}
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+duplicate_midpoints(PyObject *s, PyObject *args, PyObject *keywds)
+{
+  FArray a;
+  int interval;
+  const char *kwlist[] = {"array", "interval", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&i"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &a,
+				   &interval))
+    return NULL;
+
+  const float *aa = a.values();
+  int n = a.size(0), st0 = a.stride(0), st1 = a.stride(1);
+  float *da;
+  PyObject *r = python_float_array(n + n/interval, 3, &da);
+  duplicate_midpoints(aa, n, st0, st1, interval, da);
+  return r;
+}
+
 } // namespace Image_3d
