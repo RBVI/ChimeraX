@@ -236,20 +236,20 @@ def show_only_ribbons(m, chains):
     m.atoms().hide_atoms()
     m.atom_subset(chain_id = chains).show_ribbon(only_these = True)
 
-def color_by_coverage(matches, mol, chain, c50 = (150,255,150,255), c0 = (255,255,150,255)):
+def color_by_coverage(matches, mol, chain,
+                      c0 = (200,200,200,255), c100 = (0,255,0,255)):
   rmax = max(ma.qEnd for ma in matches) + 1     # qEnd uses zero-base indexing, need 1-base
-  from numpy import zeros, int32, logical_and
-  qrc = zeros((rmax+1,), int32)
+  from numpy import zeros, float32, outer, uint8
+  qrc = zeros((rmax+1,), float32)
   for ma in matches:
     rmap = ma.residue_number_map()
     qrnum = list(rmap.values())
     qrc[qrnum] += 1
-  n = len(matches)
-  mol.single_color()
-  q50 = (qrc > 0.5*n).nonzero()[0]
-  mol.atom_subset(chain_id = chain, residue_numbers = q50).color_ribbon(c50)
-  q0 = logical_and(qrc > 0, qrc < 0.5*n).nonzero()[0]
-  mol.atom_subset(chain_id = chain, residue_numbers = q0).color_ribbon(c0)
+
+  qrc /= len(matches)
+  rcolors = (outer((1-qrc),c0) + outer(qrc,c100)).astype(uint8)
+  mol.color_ribbon(chain, rcolors)
+  return qrc[1:].min(), qrc[1:].max()
 
 def blast_color_by_coverage(session):
   if not hasattr(session, 'blast_results'):
@@ -257,7 +257,8 @@ def blast_color_by_coverage(session):
   mol, chain, results, mols = session.blast_results
   for m in mols:
     m.display = False
-  color_by_coverage(results.matches, mol, chain)
+  cmin, cmax = color_by_coverage(results.matches, mol, chain)
+  session.show_status('Residues colored by number of sequence hits (%.0f-%.0f%%)' % (100*cmin, 100*cmax))
 
 def show_only_matched_residues(mols):
   for m in mols:
