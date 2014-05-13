@@ -241,6 +241,9 @@ class Molecule(Surface):
 
     geom = []
     cids = self.chain_identifiers()
+    self.ribbon_ranges = rr = []
+    self.ribbon_range_triangles = rtri = []
+    ntri = 0
     for cid in cids:
       s = self.ribbon_guide_atom_indices(cid)
       if len(s) <= 1:
@@ -257,7 +260,8 @@ class Molecule(Surface):
       # draw shown segments.
       plist = []
       from .._image3d import contiguous_intervals, mask_intervals
-      cint = contiguous_intervals(self.residue_nums[s])
+      rnums = self.residue_nums[s]
+      cint = contiguous_intervals(rnums)
       sd, cd = self.ribbon_subdivisions
       from .._image3d import natural_cubic_spline, duplicate_midpoints
       from ..surface import tube
@@ -275,6 +279,10 @@ class Molecule(Surface):
           va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
           ca = tube.tube_geometry_colors(colors[j1:j2+1], sd+1, cd, ed1, ed2)
           geom.append((va,na,ta,ca))
+          # Record residue triangle ranges for mouse-over to identify residue.
+          rr.append((rnums[j1],rnums[j2],cid))
+          ntri += len(ta)
+          rtri.append(ntri)
 
     if geom:
       va,na,ta,ca = combine_geometry(geom)
@@ -547,6 +555,21 @@ class Molecule(Surface):
       fmin, anum = _image3d.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
     if not anum is None and not self.all_atoms_shown():
       anum = self.atom_shown.nonzero()[0][anum]
+    # Check for ribbon intercept.
+    rsp = self.ribbon_surface_piece
+    if rsp:
+      va, ta = rsp.geometry
+      f, t = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
+      if not f is None and (fmin is None or f < fmin):
+        # Figure out residue from triangle number.
+        import bisect
+        rrt = self.ribbon_range_triangles
+        i = bisect.bisect_left(rrt, t)
+        r1,r2,cid = self.ribbon_ranges[i]
+        # TODO: Should use exact calculation of residue number.
+        fr = (rrt[i] - t) / ((rrt[i] - rrt[i-1]) if i > 0 else rrt[i])
+        rnum = round(fr*r1 + (1-fr)*r2)
+        return f, Residue_Selection(self, cid, rnum)
     return fmin, Atom_Selection(self, anum)
 
   def atom_count(self):
@@ -882,7 +905,22 @@ class Atom_Selection:
     self.molecule = mol
     self.atom = a
   def description(self):
-    return self.molecule.atom_index_description(self.atom)
+    m, a = self.molecule, self.atom
+    if a is None:
+      return m.name
+    return m.atom_index_description(a)
+  def models(self):
+    return [self.molecule]
+
+# -----------------------------------------------------------------------------
+#
+class Residue_Selection:
+  def __init__(self, mol, cid, rnum):
+    self.molecule = mol
+    self.chain_id = cid
+    self.residue_number = rnum
+  def description(self):
+    return '%s %s:%d' % (self.molecule.name, self.chain_id.decode('utf-8'), self.residue_number)
   def models(self):
     return [self.molecule]
 
