@@ -212,8 +212,15 @@ static void tube_geometry_colors(unsigned int *colors, int n,
 {
   int ns = segment_subdivisions, nc = circle_subdivisions;
 
-  // First half-segment
   unsigned int c0 = colors[0];
+  if (n == 1)
+    {
+      for (int i = 0 ; i < 3*nc ; ++i, ++ca)
+	*ca = c0;
+      return;
+    }
+    
+  // First half-segment
   int h1 = ((ns+2)/2)*nc;
   for (int i = 0 ; i < h1 ; ++i, ++ca)
     *ca = c0;
@@ -256,6 +263,8 @@ PyObject *tube_geometry_colors(PyObject *s, PyObject *args, PyObject *keywds)
     return NULL;
 
   int n = colors.size(0);
+  if (n == 0)
+    return python_uint8_array(0,4);
   unsigned int *ca = reinterpret_cast<unsigned int *>(colors.values());
   unsigned char *vc;
   int nv = ((n-1)*(ns+1)+1 + 2)*nc;
