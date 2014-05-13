@@ -21,10 +21,12 @@ def tube_spline(path, radius = 1.0, segment_subdivisions = 10, circle_subdivisio
 # -----------------------------------------------------------------------------
 # Return array of tube geometry vertex colors given path point colors.
 #
-def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions):
+def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
+                         start_divisions, end_divisions):
 
     from .. import _image3d
-    return _image3d.tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions)
+    return _image3d.tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
+                                         start_divisions, end_divisions)
 
 # -----------------------------------------------------------------------------
 #

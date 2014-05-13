@@ -52,7 +52,7 @@ class Molecule(Surface):
     self.bond_color = (150,150,150,255)
     self.half_bond_coloring = True
     self.ribbon_radius = 1.0
-    self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
+    self.ribbon_subdivisions = (6,10)   # per-residue along length, and circumference
     self.update_ribbons = False
     self.color = (180,180,180,255)      # RGBA 0-255 integer values, used if no per-atom colors
 
@@ -266,11 +266,14 @@ class Molecule(Surface):
           continue      # Segment not shown
         spath, stan = natural_cubic_spline(path[i1:i2+1], sd)
         mints = mask_intervals(rshow, i1, i2)
+#        print ('mints', cid, i1, i2, mints)
         for j1,j2 in mints:
           p1, p2 = (j1-i1)*(sd+1), (j2-i1)*(sd+1)
-          jpath, jtan = spath[p1:p2+1], stan[p1:p2+1]
+          ed1 = sd//2 if j1 > i1 else 0
+          ed2 = sd//2 if j2 < i2 else 0
+          jpath, jtan = spath[p1-ed1:p2+1+ed2], stan[p1-ed1:p2+1+ed2]
           va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
-          ca = tube.tube_geometry_colors(colors[j1:j2+1], sd, cd)
+          ca = tube.tube_geometry_colors(colors[j1:j2+1], sd, cd, ed1, ed2)
           geom.append((va,na,ta,ca))
 
     if geom:
