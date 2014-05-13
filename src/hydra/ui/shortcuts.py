@@ -117,10 +117,12 @@ def standard_shortcuts(session):
 
         ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates', molcat, molarg),
 
-        ('bc', cycle_blast, 'Cycle through display of blast molecules', molcat, sesarg, mlmenu),
+        ('/', cycle_blast, 'Cycle through display of blast molecules', molcat, sesarg, mlmenu),
         ('+', blast_next, 'Show next blast hit', molcat, sesarg, mlmenu),
         ('-', blast_previous, 'Show previous blast hit', molcat, sesarg, mlmenu),
         ('*', blast_all, 'Show all blast hits', molcat, sesarg, mlmenu),
+        ('=', blast_coverage, 'Color blast query by coverage', molcat, sesarg, mlmenu),
+        ('9', blast_show_matched, 'Show blast hit residues that match query', molcat, sesarg, mlmenu),
 
         # Pane
         ('mp', show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
@@ -681,3 +683,9 @@ def blast_previous(session):
 def blast_all(session):
     from ..file_io import blastpdb
     blastpdb.all_blast_molecule_display(session)
+def blast_coverage(session):
+    from ..file_io import blastpdb
+    blastpdb.blast_color_by_coverage(session)
+def blast_show_matched(session):
+    from ..file_io import blastpdb
+    blastpdb.blast_show_matched_residues(session)

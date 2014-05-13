@@ -208,13 +208,22 @@ PyObject *tube_geometry(PyObject *s, PyObject *args, PyObject *keywds)
 //
 static void tube_geometry_colors(unsigned int *colors, int n,
 				 int segment_subdivisions, int circle_subdivisions,
+				 int ed1, int ed2,
 				 unsigned int *ca)
 {
   int ns = segment_subdivisions, nc = circle_subdivisions;
 
-  // First half-segment
   unsigned int c0 = colors[0];
-  int h1 = ((ns+2)/2)*nc;
+  if (n == 1)
+    {
+      int np = (3 + ed1 + ed2)*nc;
+      for (int i = 0 ; i < np ; ++i, ++ca)
+	*ca = c0;
+      return;
+    }
+
+  // First segment
+  int h1 = (ed1 + ((ns+2)/2))*nc;
   for (int i = 0 ; i < h1 ; ++i, ++ca)
     *ca = c0;
 
@@ -227,9 +236,9 @@ static void tube_geometry_colors(unsigned int *colors, int n,
 	*ca = c;
     }
 
-  // Last half-segment
+  // Last segment
   unsigned int cn = colors[n-1];
-  int h2 = (ns+2)*nc - h1;
+  int h2 = (ed2 + (ns+2) - (ns+2)/2)*nc;
   for (int i = 0 ; i < h2 ; ++i, ++ca)
     *ca = cn;
 
@@ -246,21 +255,24 @@ extern "C"
 PyObject *tube_geometry_colors(PyObject *s, PyObject *args, PyObject *keywds)
 {
   CArray colors;
-  int ns, nc;
+  int ns, nc, ed1, ed2;
   FArray path, tangents, cross_section, cross_section_normals;
-  const char *kwlist[] = {"colors", "segment_subdivisions", "circle_subdivisions", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ii"),
+  const char *kwlist[] = {"colors", "segment_subdivisions", "circle_subdivisions",
+			  "start_divisions", "end_divisions", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&iiii"),
 				   (char **)kwlist,
 				   parse_uint8_n4_array, &colors,
-				   &ns, &nc))
+				   &ns, &nc, &ed1, &ed2))
     return NULL;
 
   int n = colors.size(0);
+  if (n == 0)
+    return python_uint8_array(0,4);
   unsigned int *ca = reinterpret_cast<unsigned int *>(colors.values());
   unsigned char *vc;
-  int nv = ((n-1)*(ns+1)+1 + 2)*nc;
+  int nv = ((n-1)*(ns+1)+1 + ed1 + ed2 + 2)*nc;
   PyObject *r = python_uint8_array(nv, 4, &vc);
-  tube_geometry_colors(ca, n, ns, nc, reinterpret_cast<unsigned int *>(vc));
+  tube_geometry_colors(ca, n, ns, nc, ed1, ed2, reinterpret_cast<unsigned int *>(vc));
 
   return r;
 }
