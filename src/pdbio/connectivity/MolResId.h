@@ -1,6 +1,7 @@
 // vim: set expandtab ts=4 sw=4:
 
 #include <string>
+#include <sstream>
 #include "atomstruct/Residue.h"
 #include "imex.h"
 
