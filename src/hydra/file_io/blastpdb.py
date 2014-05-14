@@ -132,22 +132,31 @@ class Match:
         mols.append(m)
     return mols
 
-  # Map hit residue number to query residue number.  One is first character in sequence.
-  def residue_number_map(self):
-    if hasattr(self, 'rnum_map'):
-      return self.rnum_map
-    self.rnum_map = rmap = {}
+  def residue_number_pairing(self):
+    '''
+    Returns two arrays of matching hit and query residue numbers.
+    Sequence position 1 is residue number 1.
+    '''
+    if hasattr(self, 'rnum_pairs'):
+      return self.rnum_pairs
     hs, qs = self.hSeq, self.qSeq
     h, q = self.hStart+1, self.qStart+1
     n = min(len(hs), len(qs))
+    from numpy import empty, int32
+    hp,qp = empty((n,), int32), empty((n,), int32)
+    p = 0
     for i in range(n):
       hstep = 0 if hs[i] in _GapChars else 1
       qstep = 0 if qs[i] in _GapChars else 1
       if hstep and qstep:
-        rmap[h] = q
+        hp[p] = h
+        qp[p] = q
+        p += 1
       h += hstep
       q += qstep
-    return rmap
+    from numpy import resize
+    self.rnum_pairs = hqp = resize(hp, (p,)), resize(qp, (p,))
+    return hqp
 
   def identical_residue_count(self):
     if not hasattr(self, 'nequal'):
@@ -178,8 +187,7 @@ def check_hit_sequences_match_mmcif_sequences(mols):
 
 def match_metrics_table(molecule, chain, mols):
   nqres = len(molecule.sequence)
-  from ..molecule.molecule import residue_number_to_name
-  qres = set(molecule.residue_numbers(chain))
+  qrmask = molecule.residue_mask(chain, nqres)
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   from time import time
   tm = ta = trm = 0
@@ -187,31 +195,24 @@ def match_metrics_table(molecule, chain, mols):
     ma = m.blast_match
     chains = m.blast_match_chains
     t0 = time()
-    rmap = ma.residue_number_map()      # Hit to query residue number map.
-    npair = len(rmap)
+    hrnum, qrnum = ma.residue_number_pairing()      # Hit and query residue number pairing
+    npair = len(hrnum)
     neq = ma.identical_residue_count()
     trm += time() - t0
 
-    m.blast_match_residue_numbers = tuple(rmap.keys())
+    m.blast_match_residue_numbers = hrnum
     m.blast_match_rmsds = rmsds = {}
 
     for cid in chains:
 
       t0 = time()
       # Find paired hit and query residues having CA atoms for doing an alignment.
-      hres = m.residue_numbers(cid)
-      hpres = tuple(r for r in hres if r in rmap and rmap[r] in qres)
-      qpres = tuple(rmap[r] for r in hpres)
-      hpatoms = m.atom_subset('CA', cid, residue_numbers = hpres)
-      qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qpres)
+      hrmask = m.residue_mask(cid, hrnum.max())
+      from numpy import logical_and
+      p = logical_and(hrmask[hrnum],qrmask[qrnum]).nonzero()[0]
+      hpatoms = m.atom_subset('CA', cid, residue_numbers = hrnum[p])
+      qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qrnum[p])
       tm += time() - t0
-
-      if len(hres) == 0:
-        # TODO: This indicates that blast database chain identifier is not present in
-        # the mmCIF file.  This can happen if the blast database was built using PDB
-        # chain identifiers which can differ from mmcif chain identifiers.
-        print ('Warning: mmCIF %s has no chain sequence %s' % (m.name, cid))
-        continue
 
       t0 = time()
       # Compute RMSD of aligned hit and query.
@@ -254,8 +255,7 @@ def color_by_coverage(matches, mol, chain,
   from numpy import zeros, float32, outer, uint8
   qrc = zeros((rmax+1,), float32)
   for ma in matches:
-    rmap = ma.residue_number_map()
-    qrnum = list(rmap.values())
+    hrnum, qrnum = ma.residue_number_pairing()
     qrc[qrnum] += 1
 
   qrc /= len(matches)
@@ -275,8 +275,7 @@ def blast_color_by_coverage(session):
 def show_only_matched_residues(mols):
   for m in mols:
     ma = m.blast_match
-    rmap = ma.residue_number_map()
-    hrnum = tuple(rmap.keys())
+    hrnum, qrnum = ma.residue_number_pairing()
     m.atom_subset(chain_id = m.blast_match_chains, residue_numbers = hrnum).show_ribbon(only_these = True)
     m.display = True
 
