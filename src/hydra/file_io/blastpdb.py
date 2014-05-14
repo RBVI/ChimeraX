@@ -158,6 +158,10 @@ class Match:
     self.rnum_pairs = hqp = resize(hp, (p,)), resize(qp, (p,))
     return hqp
 
+  def paired_residues_count(self):
+    hrnum, qrnum = self.residue_number_pairing()
+    return len(hrnum)
+
   def identical_residue_count(self):
     if not hasattr(self, 'nequal'):
       from numpy import frombuffer, byte
@@ -185,22 +189,14 @@ def check_hit_sequences_match_mmcif_sequences(mols):
       if not sequences_match(hseq,cseq):
         print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
 
-def match_metrics_table(molecule, chain, mols):
+def align_hits(molecule, chain, mols):
   nqres = len(molecule.sequence)
   qrmask = molecule.residue_number_mask(chain, nqres)
-  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   for m in mols:
     ma = m.blast_match
-    chains = m.blast_match_chains
     hrnum, qrnum = ma.residue_number_pairing()      # Hit and query residue number pairing
-    npair = len(hrnum)
-    neq = ma.identical_residue_count()
-
-    m.blast_match_residue_numbers = hrnum
     m.blast_match_rmsds = rmsds = {}
-
-    for cid in chains:
-
+    for cid in m.blast_match_chains:
       # Find paired hit and query residues having CA atoms for doing an alignment.
       hrmask = m.residue_number_mask(cid, hrnum.max())
       from numpy import logical_and
@@ -216,10 +212,21 @@ def match_metrics_table(molecule, chain, mols):
       # Align hit chain to query chain
       m.atom_subset(chain_id = cid).move_atoms(tf)
 
+def match_metrics_table(molecule, chain, mols):
+  nqres = len(molecule.sequence)
+  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
+  for m in mols:
+    ma = m.blast_match
+    npair = ma.paired_residues_count()
+    neq = ma.identical_residue_count()
+    rmsds = getattr(m, 'blast_match_rmsds', {})
+    chains = m.blast_match_chains
+    for cid in chains:
       # Create table output line showing how well hit matches query.
       name = m.name[:-4] if m.name.endswith('.cif') else m.name
       desc = m.blast_match_description if cid == chains[0] else ''
-      lines.append('%4s %3s %7.2f %5d %5.0f   %5d %5.0f  %5d    %s'
+      rmsd = ('%7.2f' % rmsds[cid]) if cid in rmsds else 'N/A'
+      lines.append('%4s %3s %s %5d %5.0f   %5d %5.0f  %5d    %s'
                    % (name, cid, rmsd, npair, 100*npair/nqres,
                       neq, 100.0*neq/npair, ma.score, desc))
 
@@ -229,7 +236,8 @@ def show_matches_as_ribbons(qmol, chain, mols, rescolor = (225,130,130,255)):
   for m in mols:
     m.single_color()
     for cid in m.blast_match_chains:
-      r = m.atom_subset(chain_id = cid, residue_numbers = m.blast_match_residue_numbers)
+      hrnum, qrnum = m.blast_match.residue_number_pairing()
+      r = m.atom_subset(chain_id = cid, residue_numbers = hrnum)
       r.color_ribbon(rescolor)
     show_only_ribbons(m, m.blast_match_chains)
     m.set_ribbon_radius(0.25)
@@ -392,6 +400,7 @@ def blast(molecule, chain, session,
 
   # Report match metrics, align hit structures and show ribbons
   session.show_status('Blast %s chain %s, computing RMSDs...' % (molecule.name, chain))
+  align_hits(molecule, chain, mols)
   session.show_info(match_metrics_table(molecule, chain, mols))
   session.show_status('Blast %s chain %s, show hits as ribbons...' % (molecule.name, chain))
   show_matches_as_ribbons(molecule, chain, mols)
