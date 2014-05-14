@@ -173,11 +173,9 @@ class View(QtGui.QWindow):
         r.initialize_opengl()
 
         s = self.session
-        s.show_info('OpenGL version %s' % r.opengl_version())
-
         f = self.opengl_context.format()
-        s.show_info('OpenGL stereo %d, color buffer size %d, depth buffer size %d, stencil buffer size %d'
-                    % (f.stereo(), f.redBufferSize(), f.depthBufferSize(), f.stencilBufferSize()))
+        stereo = 'stereo' if f.stereo() else 'no stereo'
+        s.show_info('OpenGL version %s, %s' % (r.opengl_version(), stereo))
 
         from ..draw import llgrutil as gr
         if gr.use_llgr:
