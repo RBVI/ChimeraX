@@ -23,21 +23,26 @@ class MainWindow(QtWidgets.QMainWindow):
                 return QtCore.QSize(800,800)
 
         self.stack = st = GraphicsArea(self)
-        st.setFocusPolicy(QtCore.Qt.NoFocus)
         from .view import View
         self.view = v = View(session, st)
         st.addWidget(v.widget)
 
-        self.text = e = QtWidgets.QTextBrowser(st)          # Handle clicks on anchors
+        class TextArea(QtWidgets.QTextBrowser):
+            def keyPressEvent(self, event):
+                if event.key() in (Qt.Key_Space, Qt.Key_Enter, Qt.Key_Return):
+                    event.ignore()       # Make space and enter keys pass through to command-line.
+                else:
+                    QtWidgets.QTextBrowser.keyPressEvent(self, event)
+
+        self.text = e = TextArea(st)
 
         # Create close button for text widget.
         self.close_text = ct = QtWidgets.QPushButton('X', e)
         ct.setStyleSheet("padding: 1px; min-width: 1em")
         ct.clicked.connect(lambda e: self.show_graphics())
 
-        e.setFocusPolicy(QtCore.Qt.NoFocus)
         e.setReadOnly(True)
-        e.anchorClicked.connect(self.anchor_callback)
+        e.anchorClicked.connect(self.anchor_callback)          # Handle clicks on anchors
         self.anchor_cb = None
         self.back_action = ba = QtWidgets.QAction(icon('back.png'), 'Go back in web browser', self)
         ba.triggered.connect(e.backward)
