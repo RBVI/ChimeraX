@@ -313,6 +313,10 @@ class Molecule(Surface):
         cres.append((cid, self.residue_nums[s]))
     return cres
 
+  def residue_numbers(self, chain_id):
+    s = self.ribbon_guide_atom_indices(chain_id)
+    return self.residue_nums[s]
+
   # Ligand atoms are everything except ribbon and HOH residues
   def show_ligand_atoms(self):
     cres = self.ribbon_residues()
