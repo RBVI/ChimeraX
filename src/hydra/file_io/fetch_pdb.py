@@ -4,7 +4,7 @@ def fetch_pdb(id, session, ignore_cache=False):
     '''
 
     site = 'www.rcsb.org'
-    url_pattern = 'pdb/files/%s.pdb'
+    url_pattern = 'pdb/files/%s.pdb.gz'
     idu = id.upper()
     url = "http://%s/%s" % (site, url_pattern % idu)
     save_dir = 'PDB'
@@ -14,8 +14,8 @@ def fetch_pdb(id, session, ignore_cache=False):
     from .fetch import fetch_file
     try:
         path, headers = fetch_file(url, id, session, min_file_size,
-                                   save_dir, save_name,
-                                   ignore_cache=ignore_cache)
+                                   save_dir, save_name, uncompress = 'always',
+                                   ignore_cache = ignore_cache)
     except IOError as e:
       raise
 
