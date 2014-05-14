@@ -148,6 +148,12 @@ class Match:
       q += qstep
     return rmap
 
+  def identical_residue_count(self):
+    if not hasattr(self, 'nequal'):
+      from numpy import frombuffer, byte
+      self.nequal = sum(frombuffer(self.hSeq.encode('utf-8'), byte) == frombuffer(self.qSeq.encode('utf-8'), byte))
+    return self.nequal
+
 def check_hit_sequences_match_mmcif_sequences(mols):
 
   for m in mols:
@@ -170,19 +176,35 @@ def check_hit_sequences_match_mmcif_sequences(mols):
         print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
 
 def match_metrics_table(molecule, chain, mols):
+  nqres = len(molecule.sequence)
   from ..molecule.molecule import residue_number_to_name
-  qres = residue_number_to_name(molecule, chain)
+  qres = set(molecule.residue_numbers(chain))
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
+  from time import time
+  tm = ta = trm = 0
   for m in mols:
     ma = m.blast_match
     chains = m.blast_match_chains
+    t0 = time()
     rmap = ma.residue_number_map()      # Hit to query residue number map.
+    npair = len(rmap)
+    neq = ma.identical_residue_count()
+    trm += time() - t0
 
     m.blast_match_residue_numbers = tuple(rmap.keys())
     m.blast_match_rmsds = rmsds = {}
 
     for cid in chains:
-      hres = residue_number_to_name(m, cid)
+
+      t0 = time()
+      # Find paired hit and query residues having CA atoms for doing an alignment.
+      hres = m.residue_numbers(cid)
+      hpres = tuple(r for r in hres if r in rmap and rmap[r] in qres)
+      qpres = tuple(rmap[r] for r in hpres)
+      hpatoms = m.atom_subset('CA', cid, residue_numbers = hpres)
+      qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qpres)
+      tm += time() - t0
+
       if len(hres) == 0:
         # TODO: This indicates that blast database chain identifier is not present in
         # the mmCIF file.  This can happen if the blast database was built using PDB
@@ -190,20 +212,7 @@ def match_metrics_table(molecule, chain, mols):
         print ('Warning: mmCIF %s has no chain sequence %s' % (m.name, cid))
         continue
 
-      # Compute sequence identity between hit and query.
-      pairs = eqpairs = 0
-      for hi,qi in rmap.items():
-        if hi in hres and qi in qres:
-          pairs += 1
-          if hres[hi] == qres[qi]:
-            eqpairs += 1
-
-      # Find paired hit and query residues having CA atoms for doing an alignment.
-      hpres = tuple(r for r in hres.keys() if r in rmap and rmap[r] in qres)
-      qpres = tuple(rmap[r] for r in hpres)
-      hpatoms = m.atom_subset('CA', cid, residue_numbers = hpres)
-      qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qpres)
-
+      t0 = time()
       # Compute RMSD of aligned hit and query.
       from ..molecule import align
       tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
@@ -211,14 +220,16 @@ def match_metrics_table(molecule, chain, mols):
 
       # Align hit chain to query chain
       m.atom_subset(chain_id = cid).move_atoms(tf)
+      ta += time() - t0
 
       # Create table output line showing how well hit matches query.
       name = m.name[:-4] if m.name.endswith('.cif') else m.name
       desc = m.blast_match_description if cid == chains[0] else ''
       lines.append('%4s %3s %7.2f %5d %5.0f   %5d %5.0f  %5d    %s'
-                   % (name, cid, rmsd, pairs, 100*float(pairs)/len(qres),
-                      eqpairs, 100.0*eqpairs/pairs, ma.score, desc))
+                   % (name, cid, rmsd, npair, 100*npair/nqres,
+                      neq, 100.0*neq/npair, ma.score, desc))
 
+  print ('trm', trm, 'tm', tm, 'ta', ta)
   return '\n'.join(lines)
 
 def show_matches_as_ribbons(qmol, chain, mols, rescolor = (225,130,130,255)):
@@ -293,18 +304,6 @@ def divide_string(s, prefix):
     i = e
   return ds
 
-def summarize_results(results):
-  r = results
-  np = sum(len(m.pdb_chains()) for m in r.matches)
-  nc = sum(sum(len(c) for id,c,desc in m.pdb_chains()) for m in r.matches)
-  lines = ['%s %d sequence matches, %d PDBs, %d chains' % (results.name, len(r.matches), np, nc)]
-#  for m in r.matches:
-#    lines.append('%d' % m.score)
-#    for id,chains,desc in m.pdb_chains():
-#      lines.append(' %s %s %s' % (id, ','.join(chains), desc))
-  msg = '\n'.join(lines)
-  return msg
-
 def create_fasta_database(mmcif_dir):
   '''Create fasta file for blast database using mmcif divided database sequences.
   Make just one entry for identical sequences that come from multiple pdbs or chains.'''
@@ -371,9 +370,11 @@ def blast(molecule, chain, session,
           mmcifDirectory = '/usr/local/mmCIF'):
 
   # Write FASTA sequence file for molecule
+  session.show_status('Blast %s chain %s, running...' % (molecule.name, chain))
   from . import mmcif
   s = mmcif.mmcif_sequences(molecule.path)
   start,seq,desc = s[chain]
+  molecule.sequence = seq
   from os.path import basename, splitext
   prefix = splitext(basename(molecule.path))[0]
   import tempfile
@@ -385,14 +386,29 @@ def blast(molecule, chain, session,
   # Run blastp standalone program and parse results
   blast_output = splitext(fasta_file.name)[0] + '.xml'
   results = run_blastp(molecule.name, fasta_file.name, blast_output, blastProgram, blastDatabase)
+  matches = results.matches
 
-  # Load matching structures and report match metrics
-  print (summarize_results(results))
+  # Report number of matches
+  np = sum(len(m.pdb_chains()) for m in matches)
+  nc = sum(sum(len(c) for id,c,desc in m.pdb_chains()) for m in matches)
+  msg = ('%s chain %s, sequence length %d %s\n%d sequence matches, %d PDBs, %d chains'
+         % (molecule.name, chain, len(seq), seq, len(matches), np, nc))
+  session.show_info(msg)
+
+  # Load matching structures
+  session.show_status('Blast %s chain %s, loading %d sequence hits'
+                      % (molecule.name, chain, len(results.matches)))
   mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
-#  check_hit_sequences_match_mmcif_sequences(mols)
   session.add_models(mols)
-  print (match_metrics_table(molecule, chain, mols))
+
+  # Report match metrics, align hit structures and show ribbons
+  session.show_status('Blast %s chain %s, computing RMSDs...' % (molecule.name, chain))
+  session.show_info(match_metrics_table(molecule, chain, mols))
+  session.show_status('Blast %s chain %s, show hits as ribbons...' % (molecule.name, chain))
   show_matches_as_ribbons(molecule, chain, mols)
+  session.show_status('Blast %s chain %s, done...' % (molecule.name, chain))
+
+  # Preserve most recent blast results for use by keyboard shortcuts
   session.blast_results = (molecule, chain, results, mols)
 
 def cycle_blast_molecule_display(session):
