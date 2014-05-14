@@ -189,32 +189,25 @@ def match_metrics_table(molecule, chain, mols):
   nqres = len(molecule.sequence)
   qrmask = molecule.residue_number_mask(chain, nqres)
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
-  from time import time
-  tm = ta = trm = 0
   for m in mols:
     ma = m.blast_match
     chains = m.blast_match_chains
-    t0 = time()
     hrnum, qrnum = ma.residue_number_pairing()      # Hit and query residue number pairing
     npair = len(hrnum)
     neq = ma.identical_residue_count()
-    trm += time() - t0
 
     m.blast_match_residue_numbers = hrnum
     m.blast_match_rmsds = rmsds = {}
 
     for cid in chains:
 
-      t0 = time()
       # Find paired hit and query residues having CA atoms for doing an alignment.
       hrmask = m.residue_number_mask(cid, hrnum.max())
       from numpy import logical_and
       p = logical_and(hrmask[hrnum],qrmask[qrnum]).nonzero()[0]
       hpatoms = m.atom_subset('CA', cid, residue_numbers = hrnum[p])
       qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qrnum[p])
-      tm += time() - t0
 
-      t0 = time()
       # Compute RMSD of aligned hit and query.
       from ..molecule import align
       tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
@@ -222,7 +215,6 @@ def match_metrics_table(molecule, chain, mols):
 
       # Align hit chain to query chain
       m.atom_subset(chain_id = cid).move_atoms(tf)
-      ta += time() - t0
 
       # Create table output line showing how well hit matches query.
       name = m.name[:-4] if m.name.endswith('.cif') else m.name
@@ -231,7 +223,6 @@ def match_metrics_table(molecule, chain, mols):
                    % (name, cid, rmsd, npair, 100*npair/nqres,
                       neq, 100.0*neq/npair, ma.score, desc))
 
-  print ('trm', trm, 'tm', tm, 'ta', ta)
   return '\n'.join(lines)
 
 def show_matches_as_ribbons(qmol, chain, mols, rescolor = (225,130,130,255)):
