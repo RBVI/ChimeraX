@@ -150,6 +150,9 @@ def finished_opening(opened, set_camera, session):
         view = s.main_window.view
         view.remove_overlays()
         view.initial_camera_view()
+
+def report_opening(opened, session):
+    s = session
     if len(opened) == 1 and opened:
         msg = 'Opened %s' % opened[0]
         s.show_info(msg, color = '#000080')
@@ -313,7 +316,7 @@ def open_command(cmdname, args, session):
         kw.pop('fromDatabase')
     open_data(**kw)
 
-def open_data(path, session, from_database = None, set_camera = None):
+def open_data(path, session, from_database = None, set_camera = None, history = True):
 
     db = from_database
     if not db is None:
@@ -336,7 +339,7 @@ def open_data(path, session, from_database = None, set_camera = None):
             mlist = open_from_database(ids, session, db, set_camera)
 
     session.main_window.show_graphics()
-    if mlist:
+    if history and mlist:
         session.file_history.add_entry(path, from_database = db, models = mlist)
     return mlist
 
