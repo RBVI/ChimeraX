@@ -273,6 +273,9 @@ class Command_Line(QtWidgets.QLineEdit):
         t = event.text()
         ctrlp = b'\x10'.decode('utf-8')
         ctrln = b'\x0e'.decode('utf-8')
+        ctrlk = b'\x0b'.decode('utf-8')
+        ctrlb = b'\x02'.decode('utf-8')
+        ctrlf = b'\x06'.decode('utf-8')
         from .qt import Qt
         if t in (ctrlp, ctrln):
             s = self.session
@@ -281,6 +284,13 @@ class Command_Line(QtWidgets.QLineEdit):
                 s.commands.history.show_previous_command()
             elif t == ctrln:
                 s.commands.history.show_next_command()
+        elif t in (ctrlk, ctrlb, ctrlf):
+            if t == ctrlk:
+                self.setText(self.text()[:self.cursorPosition()])
+            elif t == ctrlb:
+                self.cursorBackward(False)
+            elif t == ctrlf:
+                self.cursorForward(False)
         elif event.key() == Qt.Key_Escape:
             event.ignore()      # Handled by MainWindow.keyPressEvent()
             return
