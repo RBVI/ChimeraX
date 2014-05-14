@@ -119,11 +119,12 @@ class Match:
     pcd.sort()
     return pcd
 
-  def load_structures(self, session, mmcif_dir):
+  def load_structures(self, session):
     mols = []
     from . import mmcif
+    from .opensave import open_data
     for pdb_id,chains,desc in self.pdb_chains():
-      m = mmcif.load_mmcif_local(pdb_id, session, mmcif_dir)
+      m = open_data(pdb_id, session, from_database = 'PDBmmCIF', history = False)[0]
       if m:
         m.blast_match = self
         m.blast_match_chains = chains
@@ -357,8 +358,7 @@ def blast_command(cmdname, args, session):
               ('chain', string_arg),)
   opt_args = ()
   kw_args = (('blastProgram', string_arg),
-             ('blastDatabase', string_arg),
-             ('mmcifDirectory', string_arg),)
+             ('blastDatabase', string_arg),)
 
   kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
   kw['session'] = session
@@ -366,8 +366,7 @@ def blast_command(cmdname, args, session):
 
 def blast(molecule, chain, session,
           blastProgram = '/usr/local/ncbi/blast/bin/blastp',
-          blastDatabase = '/usr/local/ncbi/blast/db/mmcif',
-          mmcifDirectory = '/usr/local/mmCIF'):
+          blastDatabase = '/usr/local/ncbi/blast/db/mmcif'):
 
   # Write FASTA sequence file for molecule
   session.show_status('Blast %s chain %s, running...' % (molecule.name, chain))
@@ -391,14 +390,14 @@ def blast(molecule, chain, session,
   # Report number of matches
   np = sum(len(m.pdb_chains()) for m in matches)
   nc = sum(sum(len(c) for id,c,desc in m.pdb_chains()) for m in matches)
-  msg = ('%s chain %s, sequence length %d %s\n%d sequence matches, %d PDBs, %d chains'
+  msg = ('%s chain %s, sequence length %d\nsequence %s\n%d sequence matches, %d PDBs, %d chains'
          % (molecule.name, chain, len(seq), seq, len(matches), np, nc))
   session.show_info(msg)
 
   # Load matching structures
   session.show_status('Blast %s chain %s, loading %d sequence hits'
                       % (molecule.name, chain, len(results.matches)))
-  mols = sum([m.load_structures(session, mmcifDirectory) for m in results.matches], [])
+  mols = sum([m.load_structures(session) for m in results.matches], [])
   session.add_models(mols)
 
   # Report match metrics, align hit structures and show ribbons
