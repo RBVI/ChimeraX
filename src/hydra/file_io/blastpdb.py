@@ -187,7 +187,7 @@ def check_hit_sequences_match_mmcif_sequences(mols):
 
 def match_metrics_table(molecule, chain, mols):
   nqres = len(molecule.sequence)
-  qrmask = molecule.residue_mask(chain, nqres)
+  qrmask = molecule.residue_number_mask(chain, nqres)
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   from time import time
   tm = ta = trm = 0
@@ -207,7 +207,7 @@ def match_metrics_table(molecule, chain, mols):
 
       t0 = time()
       # Find paired hit and query residues having CA atoms for doing an alignment.
-      hrmask = m.residue_mask(cid, hrnum.max())
+      hrmask = m.residue_number_mask(cid, hrnum.max())
       from numpy import logical_and
       p = logical_and(hrmask[hrnum],qrmask[qrnum]).nonzero()[0]
       hpatoms = m.atom_subset('CA', cid, residue_numbers = hrnum[p])
