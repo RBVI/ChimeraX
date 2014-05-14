@@ -317,6 +317,16 @@ class Molecule(Surface):
     s = self.ribbon_guide_atom_indices(chain_id)
     return self.residue_nums[s]
 
+  # Index of returned mask is residue number, value is whether ribbon guide atom present.
+  # TODO: Should probably be simply whether any residue atom is exists.
+  def residue_number_mask(self, chain_id, nmax):
+    rnums = self.residue_numbers(chain_id)
+    from numpy import zeros, bool
+    msize = max(nmax,rnums.max())+1
+    rmask = zeros((msize,), bool)
+    rmask[rnums] = True
+    return rmask
+
   # Ligand atoms are everything except ribbon and HOH residues
   def show_ligand_atoms(self):
     cres = self.ribbon_residues()
