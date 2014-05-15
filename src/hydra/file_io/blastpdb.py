@@ -43,6 +43,8 @@ class Blast_Output_Parser:
       self._extractHit(he)
     self._extractStats(iteration.find("./Iteration_stat/Statistics"))
 
+    self.matches.sort(key = lambda ma: ma.score, reverse = True)
+
   def _text(self, parent, tag):
     e = parent.find(tag)
     return e is not None and e.text.strip() or None
