@@ -79,8 +79,7 @@ def fetch_file(url, name, session, minimum_file_size = None, save_dir = '',
         try:
                 path, headers = request.urlretrieve(url, reporthook = report_cb)
         except IOError as v:
-                from chimera import NonChimeraError
-                raise NonChimeraError('Error fetching %s: %s' % (name, str(v)))
+            raise IOError('Error fetching %s: %s' % (name, str(v)))
 #       finally:
 #               task.finished()         # Remove from tasks panel
 
