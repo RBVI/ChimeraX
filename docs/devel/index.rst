@@ -65,3 +65,11 @@ Miscellaneous Modules
    pdbio.rst
 
    structaccess.rst
+
+C++ APIs
+========
+
+.. toctree::
+   :maxdepth: 2
+
+   connectivity.rst
