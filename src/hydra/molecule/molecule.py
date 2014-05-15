@@ -729,6 +729,10 @@ class Atoms:
   def molecules(self):
     '''List of molecules in set.'''
     return list(set(m for m,a in self.molatoms))
+  def chains(self):
+    '''List of pairs of molecule and chain id in set.'''
+    from numpy import unique
+    return list(set((m,cid) for (m,a) in self.molatoms for cid in unique(m.chain_ids[a])))
   def count(self):
     '''Number of atoms in set.'''
     return sum(len(a) for m,a in self.molatoms)
