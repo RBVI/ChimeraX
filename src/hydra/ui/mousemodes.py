@@ -142,10 +142,11 @@ class Mouse_Modes:
             self.last_mouse_time = t
 
     def mouse_pause(self):
-        lp = self.mouse_pause_position
         v = self.view
-        p, s = v.first_intercept(lp.x(), lp.y())
-        v.session.show_status('Mouse over %s' % s.description() if s else '')
+        if v.session.main_window.showing_graphics():
+            lp = self.mouse_pause_position
+            p, s = v.first_intercept(lp.x(), lp.y())
+            v.session.show_status('Mouse over %s' % s.description() if s else '')
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
