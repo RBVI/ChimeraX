@@ -206,43 +206,50 @@ def check_hit_sequences_match_mmcif_sequences(mols):
       if not sequences_match(hseq,cseq):
         print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
 
-def align_hits(molecule, chain, mols, nqres):
-  if molecule is None:
-    # Align to first hit.
-    molecule = mols[0]
-    chain = molecule.blast_match_chains[0]
-    hrnum, qrnum = molecule.blast_match.residue_number_pairing()
-    qtoa = integer_array_map(qrnum, hrnum, nqres+1)
-  else:
-    qtoa = None
-  qrmask = molecule.residue_number_mask(chain, nqres)
+def align_hits_to_query(qmol, qchain, mols):
+  qrmask = qmol.residue_number_mask(qchain, len(qmol.sequence))
+  qtoref = None
+  align_hit_chains(mols, qmol, qchain, qrmask, qtoref)
+
+def align_hits_to_hit(hmol, hchain, mols):
+  ma = hmol.blast_match
+  hrnum, qrnum = ma.residue_number_pairing()
+  qtoh = integer_array_map(qrnum, hrnum, ma.qLen+1)
+  hrmask = hmol.residue_number_mask(hchain, qtoh.max())
+  align_hit_chains(mols, hmol, hchain, hrmask, qtoh)
+
+def align_hit_chains(mols, ref_mol, ref_chain, ref_rmask, qtoref):
   for m in mols:
     ma = m.blast_match
-    hrnum, qrnum = ma.residue_number_pairing()      # Hit and query residue number pairing
-    if not qtoa is None:
-      qrnum = qtoa[qrnum]
+    rnum, qrnum = ma.residue_number_pairing()
+    ref_rnum = qrnum if qtoref is None else qtoref[qrnum]
     m.blast_match_rmsds = rmsds = {}
     for cid in m.blast_match_chains:
-      if m is molecule and cid == chain:
-        rmsds[cid] = 0
-        continue
-      # Find paired hit and query residues having CA atoms for doing an alignment.
-      hrmask = m.residue_number_mask(cid, hrnum.max())
-      from numpy import logical_and
-      p = logical_and(hrmask[hrnum],qrmask[qrnum]).nonzero()[0]
-      hpatoms = m.atom_subset('CA', cid, residue_numbers = hrnum[p])
-      qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qrnum[p])
+      if m is ref_mol and cid == ref_chain:
+        rmsd = 0
+      else:
+        rmsd = align_chain(m, cid, rnum, ref_mol, ref_chain, ref_rnum, ref_rmask)
+      if not rmsd is None:
+        rmsds[cid] = rmsd
 
-      if hpatoms.count() == 0:
-        continue
+def align_chain(mol, chain, rnum, ref_mol, ref_chain, ref_rnum, ref_rmask):
+  # Restrict paired residues to those with CA atoms.
+  rmask = mol.residue_number_mask(chain, rnum.max())
+  from numpy import logical_and
+  p = logical_and(rmask[rnum],ref_rmask[ref_rnum]).nonzero()[0]
+  atoms = mol.atom_subset('CA', chain, residue_numbers = rnum[p])
+  ref_atoms = ref_mol.atom_subset('CA', ref_chain, residue_numbers = ref_rnum[p])
+  if atoms.count() == 0:
+    return None
 
-      # Compute RMSD of aligned hit and query.
-      from ..molecule import align
-      tf, rmsd = align.align_points(hpatoms.coordinates(), qpatoms.coordinates())
-      rmsds[cid] = rmsd
+  # Compute RMSD of aligned hit and query.
+  from ..molecule import align
+  tf, rmsd = align.align_points(atoms.coordinates(), ref_atoms.coordinates())
 
-      # Align hit chain to query chain
-      m.atom_subset(chain_id = cid).move_atoms(tf)
+  # Align hit chain to query chain
+  mol.atom_subset(chain_id = chain).move_atoms(tf)
+
+  return rmsd
 
 def integer_array_map(key, value, max_key):
   from numpy import zeros
@@ -250,10 +257,11 @@ def integer_array_map(key, value, max_key):
   m[key] = value
   return m
 
-def match_metrics_table(mols, nqres):
+def match_metrics_table(mols):
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   for m in mols:
     ma = m.blast_match
+    nqres = ma.qLen
     npair = ma.paired_residues_count()
     neq = ma.identical_residue_count()
     rmsds = getattr(m, 'blast_match_rmsds', {})
@@ -481,13 +489,17 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
   session.show_info(msg)
 
   # Load matching structures
-  session.show_status('Blast %s, loading %d sequence hits' % (seq_name, len(results.matches)))
-  mols = sum([m.load_structures(session) for m in results.matches], [])
+  session.show_status('Blast %s, loading %d sequence hits' % (seq_name, len(matches)))
+  mols = sum([m.load_structures(session) for m in matches], [])
 
   # Report match metrics, align hit structures and show ribbons
   session.show_status('Blast %s, computing RMSDs...' % (seq_name,))
-  align_hits(molecule, chain_id, mols, len(seq))
-  text_table = match_metrics_table(mols, len(seq))
+  if molecule is None:
+    # Align to best scoring hit.
+    align_hits_to_hit(mols[0], mols[0].blast_match_chains[0], mols)
+  else:
+    align_hits_to_query(molecule, chain_id, mols)
+  text_table = match_metrics_table(mols)
   session.show_info(text_table)
   session.show_status('Blast %s, show hits as ribbons...' % (seq_name,))
   show_matches_as_ribbons(mols, molecule, chain_id)
