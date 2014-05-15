@@ -146,6 +146,7 @@ class Match:
     from numpy import empty, int32
     hp,qp = empty((n,), int32), empty((n,), int32)
     p = 0
+    eqrnum = []
     for i in range(n):
       hstep = 0 if hs[i] in _GapChars else 1
       qstep = 0 if qs[i] in _GapChars else 1
@@ -153,11 +154,20 @@ class Match:
         hp[p] = h
         qp[p] = q
         p += 1
+        if hs[i] == qs[i]:
+          eqrnum.append(h)
       h += hstep
       q += qstep
-    from numpy import resize
+    from numpy import resize, array, int32
     self.rnum_pairs = hqp = resize(hp, (p,)), resize(qp, (p,))
+    self.rnum_equal = array(eqrnum, int32)
     return hqp
+
+  def identical_residue_numbers(self):
+    if hasattr(self, 'rnum_equal'):
+      return self.rnum_equal
+    residue_number_pairing()
+    return self.rnum_equal
 
   def paired_residues_count(self):
     hrnum, qrnum = self.residue_number_pairing()
@@ -259,13 +269,16 @@ def match_metrics_table(mols, nqres):
 
   return '\n'.join(lines)
 
-def show_matches_as_ribbons(mols, qmol, chain, rescolor = (225,130,130,255)):
+def show_matches_as_ribbons(mols, qmol, chain, rescolor = (225,150,150,255), eqcolor = (225,100,100,255)):
   for m in mols:
     m.single_color()
     for cid in m.blast_match_chains:
-      hrnum, qrnum = m.blast_match.residue_number_pairing()
+      ma = m.blast_match
+      hrnum, qrnum = ma.residue_number_pairing()
       r = m.atom_subset(chain_id = cid, residue_numbers = hrnum)
       r.color_ribbon(rescolor)
+      req = m.atom_subset(chain_id = cid, residue_numbers = ma.identical_residue_numbers())
+      req.color_ribbon(eqcolor)
     show_only_ribbons(m, m.blast_match_chains)
     m.set_ribbon_radius(0.25)
   if qmol:
