@@ -212,7 +212,7 @@ def align_hits(molecule, chain, mols, nqres):
     molecule = mols[0]
     chain = molecule.blast_match_chains[0]
     hrnum, qrnum = molecule.blast_match.residue_number_pairing()
-    qtoa = integer_array_map(qrnum, hrnum, nqres)
+    qtoa = integer_array_map(qrnum, hrnum, nqres+1)
   else:
     qtoa = None
   qrmask = molecule.residue_number_mask(chain, nqres)
@@ -269,16 +269,20 @@ def match_metrics_table(mols, nqres):
 
   return '\n'.join(lines)
 
-def show_matches_as_ribbons(mols, qmol, chain, rescolor = (225,150,150,255), eqcolor = (225,100,100,255)):
+def show_matches_as_ribbons(mols, qmol, chain,
+                            rescolor = (225,150,150,255), eqcolor = (225,100,100,255),
+                            unaligned_rescolor = (225,225,150,255), unaligned_eqcolor = (225,225,100,255)):
   for m in mols:
     m.single_color()
+    aligned = getattr(m,'blast_match_rmsds', {})
     for cid in m.blast_match_chains:
+      c1, c2 = (rescolor, eqcolor) if cid in aligned else (unaligned_rescolor, unaligned_eqcolor)
       ma = m.blast_match
       hrnum, qrnum = ma.residue_number_pairing()
       r = m.atom_subset(chain_id = cid, residue_numbers = hrnum)
-      r.color_ribbon(rescolor)
+      r.color_ribbon(c1)
       req = m.atom_subset(chain_id = cid, residue_numbers = ma.identical_residue_numbers())
-      req.color_ribbon(eqcolor)
+      req.color_ribbon(c2)
     show_only_ribbons(m, m.blast_match_chains)
     m.set_ribbon_radius(0.25)
   if qmol:
@@ -372,8 +376,30 @@ def create_fasta_database(mmcif_dir):
   fa = '\n'.join(lines)
   return fa
 
+def write_temporary_fasta(seq_name, seq, prefix):
+  # Write FASTA sequence file
+  import tempfile
+  fasta_file = tempfile.NamedTemporaryFile('w', suffix = '.fasta', prefix = prefix, delete = False)
+  write_fasta(seq_name, seq, fasta_file)
+  fasta_file.close()
+  fasta_path = fasta_file.name
+  return fasta_path
+
+def temporary_file_path(prefix = None, suffix = None):
+  import tempfile
+  f = tempfile.NamedTemporaryFile('w', prefix = prefix, suffix = suffix, delete = True)
+  path = f.name
+  f.close()
+  return path
+
 def write_fasta(name, seq, file):
   file.write('>%s\n%s\n' % (name, seq))
+
+def fasta_sequence(path):
+  f = open(path, 'r')
+  lines = [line.strip() for line in f.readlines() if not line[0] in ('>', '#')]
+  f.close()
+  return ''.join(lines)
 
 def run_blastp(name, fasta_path, output_path, blast_program, blast_database):
   # ../bin/blastp -db pdbaa -query 2v5z.fasta -outfmt 5 -out test.xml
@@ -396,6 +422,7 @@ def blast_command(cmdname, args, session):
   req_args = ()
   opt_args = (('chain', chain_arg),)
   kw_args = (('sequence', string_arg),
+             ('uniprot', string_arg),
              ('blastProgram', string_arg),
              ('blastDatabase', string_arg),)
 
@@ -403,14 +430,12 @@ def blast_command(cmdname, args, session):
   kw['session'] = session
   blast(**kw)
 
-def blast(chain = None, session = None, sequence = None,
+def blast(chain = None, session = None, sequence = None, uniprot = None,
           blastProgram = '/usr/local/ncbi/blast/bin/blastp',
           blastDatabase = '/usr/local/ncbi/blast/db/mmcif'):
 
-  if chain is None and sequence is None:
-    from ..ui.commands import CommandError
-    raise CommandError('blast: Must specify an open chain or sequence argument')
-  elif chain:
+  from os import path
+  if not chain is None:
     molecule, chain_id = chain
     cid = chain_id.decode('utf-8')
     if not molecule.path.endswith('.cif'):
@@ -424,24 +449,28 @@ def blast(chain = None, session = None, sequence = None,
     mname = path.splitext(molecule.name)[0]
     seq_name = '%s chain %s' % (mname, cid)
     fasta_prefix =  '%s_%s_' % (mname, cid)
-  else:
+    fasta_path = write_temporary_fasta(seq_name, seq, fasta_prefix)
+    blast_output = path.splitext(fasta_path)[0] + '.xml'
+  elif not sequence is None:
     seq = sequence
     seq_name = '%s...%s' % (seq[:4], seq[-4:]) if len(seq) > 8 else seq
-    fasta_prefix = seq[:6]
+    fasta_path = write_temporary_fasta(seq_name, seq, prefix = seq[:6])
+    blast_output = path.splitext(fasta_path)[0] + '.xml'
     molecule = chain_id = None
-
-  # Write FASTA sequence file
-  import tempfile
-  fasta_file = tempfile.NamedTemporaryFile('w', suffix = '.fasta',
-                                           prefix = fasta_prefix, delete = False)
-  write_fasta(seq_name, seq, fasta_file)
-  fasta_file.close()
+  elif not uniprot is None:
+    from .fetch_uniprot import fetch_uniprot
+    seq_name = 'UniProt %s' % uniprot
+    fasta_path = fetch_uniprot(uniprot, session)
+    seq = fasta_sequence(fasta_path)
+    blast_output = temporary_file_path(prefix = uniprot, suffix = '.xml')
+    molecule = chain_id = None
+  else:
+    from ..ui.commands import CommandError
+    raise CommandError('blast: Must specify an open chain or sequence or uniprot id argument')
 
   # Run blastp standalone program and parse results
   session.show_status('Blast %s, running...' % (seq_name,))
-  from os import path
-  blast_output = path.splitext(fasta_file.name)[0] + '.xml'
-  results = run_blastp(seq_name, fasta_file.name, blast_output, blastProgram, blastDatabase)
+  results = run_blastp(seq_name, fasta_path, blast_output, blastProgram, blastDatabase)
   matches = results.matches
 
   # Report number of matches
@@ -459,7 +488,8 @@ def blast(chain = None, session = None, sequence = None,
   # Report match metrics, align hit structures and show ribbons
   session.show_status('Blast %s, computing RMSDs...' % (seq_name,))
   align_hits(molecule, chain_id, mols, len(seq))
-  session.show_info(match_metrics_table(mols, len(seq)))
+  text_table = match_metrics_table(mols, len(seq))
+  session.show_info(text_table)
   session.show_status('Blast %s, show hits as ribbons...' % (seq_name,))
   show_matches_as_ribbons(mols, molecule, chain_id)
   session.show_status('Blast %s, done...' % (seq_name,))
