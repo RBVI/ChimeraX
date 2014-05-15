@@ -483,7 +483,6 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
   # Load matching structures
   session.show_status('Blast %s, loading %d sequence hits' % (seq_name, len(results.matches)))
   mols = sum([m.load_structures(session) for m in results.matches], [])
-  session.add_models(mols)
 
   # Report match metrics, align hit structures and show ribbons
   session.show_status('Blast %s, computing RMSDs...' % (seq_name,))
