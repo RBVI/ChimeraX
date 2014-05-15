@@ -451,6 +451,18 @@ def molecules_arg(s, session, min = 0):
 
 # -----------------------------------------------------------------------------
 #
+def chain_arg(s, session):
+
+    sel = parse_specifier(s, session)
+    clist = sel.chains()
+    if len(clist) == 0:
+        raise CommandError('No chains specified')
+    elif len(clist) > 1:
+        raise CommandError('Multiple chains specified')
+    return clist[0]
+
+# -----------------------------------------------------------------------------
+#
 def atoms_arg(s, session):
 
     sel = parse_specifier(s, session)
@@ -1195,6 +1207,8 @@ class Selection:
         return self._models + list(self.molecules())
     def molecules(self):
         return self.aset.molecules()
+    def chains(self):
+        return self.aset.chains()
     def atom_set(self):
         return self.aset
 
