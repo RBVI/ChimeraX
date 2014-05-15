@@ -80,19 +80,20 @@ class Blast_Output_Parser:
     hSeq = self._text(hspe, "Hsp_hseq")
     hStart = int(self._text(hspe, "Hsp_hit-from"))
     hEnd = int(self._text(hspe, "Hsp_hit-to"))
-    m = Match(desc, score, evalue, qStart, qEnd, qSeq, hStart, hEnd, hSeq) #SH
+    m = Match(desc, score, evalue, qStart, qEnd, qSeq, self.queryLength, hStart, hEnd, hSeq) #SH
     self.matches.append(m)
 
 class Match:
   """Data from a single BLAST hit."""
 
-  def __init__(self, desc, score, evalue, qStart, qEnd, qSeq, hStart, hEnd, hSeq): #SH
+  def __init__(self, desc, score, evalue, qStart, qEnd, qSeq, qLen, hStart, hEnd, hSeq): #SH
     self.description = desc
     self.score = score
     self.evalue = evalue
     self.qStart = qStart - 1        # switch to 0-base indexing
     self.qEnd = qEnd - 1
     self.qSeq = qSeq
+    self.qLen = qLen                # Full query sequence length
     self.hStart = hStart - 1        # switch to 0-base indexing
     self.hEnd = hEnd - 1
     self.hSeq = hSeq
@@ -167,6 +168,12 @@ class Match:
       from numpy import frombuffer, byte
       self.nequal = sum(frombuffer(self.hSeq.encode('utf-8'), byte) == frombuffer(self.qSeq.encode('utf-8'), byte))
     return self.nequal
+
+  def identity(self):
+    return self.identical_residue_count() / self.paired_residues_count()
+
+  def coverage(self):
+    return self.paired_residues_count() / self.qLen
 
 def check_hit_sequences_match_mmcif_sequences(mols):
 
@@ -523,9 +530,13 @@ class Blast_Display_Cycler:
       self.last_mol = m
     show_only_ribbons(m,[c])
     s = self.session
+    from os import path
+    mname = path.splitext(m.name)[0]
     rmsd = '%.2f' % m.blast_match_rmsds[c] if c in m.blast_match_rmsds else '.'
-    s.show_status('%s %s   rmsd %s   %s' %
-                  (m.name, c, rmsd, m.blast_match_description))
+    ma = m.blast_match
+    s.show_status('%s chain %s, %.0f%% identity, %.0f%% coverage, rmsd %s   %s' %
+                  (mname, c, 100*ma.identity(), 100*ma.coverage(),
+                   rmsd, m.blast_match_description))
   def next_frame(self):
     f = self.frame
     if f == 0:
