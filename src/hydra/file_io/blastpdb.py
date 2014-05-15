@@ -189,20 +189,35 @@ def check_hit_sequences_match_mmcif_sequences(mols):
       if not sequences_match(hseq,cseq):
         print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
 
-def align_hits(molecule, chain, mols):
-  nqres = len(molecule.sequence)
+def align_hits(molecule, chain, mols, nqres):
+  if molecule is None:
+    # Align to first hit.
+    molecule = mols[0]
+    chain = molecule.blast_match_chains[0]
+    hrnum, qrnum = molecule.blast_match.residue_number_pairing()
+    qtoa = integer_array_map(qrnum, hrnum, nqres)
+  else:
+    qtoa = None
   qrmask = molecule.residue_number_mask(chain, nqres)
   for m in mols:
     ma = m.blast_match
     hrnum, qrnum = ma.residue_number_pairing()      # Hit and query residue number pairing
+    if not qtoa is None:
+      qrnum = qtoa[qrnum]
     m.blast_match_rmsds = rmsds = {}
     for cid in m.blast_match_chains:
+      if m is molecule and cid == chain:
+        rmsds[cid] = 0
+        continue
       # Find paired hit and query residues having CA atoms for doing an alignment.
       hrmask = m.residue_number_mask(cid, hrnum.max())
       from numpy import logical_and
       p = logical_and(hrmask[hrnum],qrmask[qrnum]).nonzero()[0]
       hpatoms = m.atom_subset('CA', cid, residue_numbers = hrnum[p])
       qpatoms = molecule.atom_subset('CA', chain, residue_numbers = qrnum[p])
+
+      if hpatoms.count() == 0:
+        continue
 
       # Compute RMSD of aligned hit and query.
       from ..molecule import align
@@ -212,8 +227,13 @@ def align_hits(molecule, chain, mols):
       # Align hit chain to query chain
       m.atom_subset(chain_id = cid).move_atoms(tf)
 
-def match_metrics_table(molecule, chain, mols):
-  nqres = len(molecule.sequence)
+def integer_array_map(key, value, max_key):
+  from numpy import zeros
+  m = zeros((max_key+1,), value.dtype)
+  m[key] = value
+  return m
+
+def match_metrics_table(mols, nqres):
   lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
   for m in mols:
     ma = m.blast_match
@@ -225,14 +245,14 @@ def match_metrics_table(molecule, chain, mols):
       # Create table output line showing how well hit matches query.
       name = m.name[:-4] if m.name.endswith('.cif') else m.name
       desc = m.blast_match_description if cid == chains[0] else ''
-      rmsd = ('%7.2f' % rmsds[cid]) if cid in rmsds else 'N/A'
-      lines.append('%4s %3s %s %5d %5.0f   %5d %5.0f  %5d    %s'
+      rmsd = ('%7.2f' % rmsds[cid]) if cid in rmsds else '.'
+      lines.append('%4s %3s %7s %5d %5.0f   %5d %5.0f  %5d    %s'
                    % (name, cid, rmsd, npair, 100*npair/nqres,
                       neq, 100.0*neq/npair, ma.score, desc))
 
   return '\n'.join(lines)
 
-def show_matches_as_ribbons(qmol, chain, mols, rescolor = (225,130,130,255)):
+def show_matches_as_ribbons(mols, qmol, chain, rescolor = (225,130,130,255)):
   for m in mols:
     m.single_color()
     for cid in m.blast_match_chains:
@@ -241,8 +261,9 @@ def show_matches_as_ribbons(qmol, chain, mols, rescolor = (225,130,130,255)):
       r.color_ribbon(rescolor)
     show_only_ribbons(m, m.blast_match_chains)
     m.set_ribbon_radius(0.25)
-  qmol.set_ribbon_radius(0.25)
-  show_only_ribbons(qmol, [chain])
+  if qmol:
+    qmol.set_ribbon_radius(0.25)
+    show_only_ribbons(qmol, [chain])
 
 def show_only_ribbons(m, chains):
     m.atoms().hide_atoms()
@@ -351,63 +372,80 @@ def run_blastp(name, fasta_path, output_path, blast_program, blast_database):
 
 def blast_command(cmdname, args, session):
 
-  from ..ui.commands import molecule_arg, string_arg, parse_arguments
-  req_args = (('molecule', molecule_arg),
-              ('chain', string_arg),)
-  opt_args = ()
-  kw_args = (('blastProgram', string_arg),
+  from ..ui.commands import chain_arg, string_arg, parse_arguments
+  req_args = ()
+  opt_args = (('chain', chain_arg),)
+  kw_args = (('sequence', string_arg),
+             ('blastProgram', string_arg),
              ('blastDatabase', string_arg),)
 
   kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
   kw['session'] = session
   blast(**kw)
 
-def blast(molecule, chain, session,
+def blast(chain = None, session = None, sequence = None,
           blastProgram = '/usr/local/ncbi/blast/bin/blastp',
           blastDatabase = '/usr/local/ncbi/blast/db/mmcif'):
 
-  # Write FASTA sequence file for molecule
-  session.show_status('Blast %s chain %s, running...' % (molecule.name, chain))
-  from . import mmcif
-  s = mmcif.mmcif_sequences(molecule.path)
-  start,seq,desc = s[chain]
-  molecule.sequence = seq
-  from os.path import basename, splitext
-  prefix = splitext(basename(molecule.path))[0]
+  if chain is None and sequence is None:
+    from ..ui.commands import CommandError
+    raise CommandError('blast: Must specify an open chain or sequence argument')
+  elif chain:
+    molecule, chain_id = chain
+    cid = chain_id.decode('utf-8')
+    if not molecule.path.endswith('.cif'):
+      from ..ui.commands import CommandError
+      raise CommandError('blast: Can only handle sequences from mmCIF files.')
+    from . import mmcif
+    s = mmcif.mmcif_sequences(molecule.path)
+    start,seq,desc = s[cid]
+    molecule.sequence = seq
+    from os import path
+    mname = path.splitext(molecule.name)[0]
+    seq_name = '%s chain %s' % (mname, cid)
+    fasta_prefix =  '%s_%s_' % (mname, cid)
+  else:
+    seq = sequence
+    seq_name = '%s...%s' % (seq[:4], seq[-4:]) if len(seq) > 8 else seq
+    fasta_prefix = seq[:6]
+    molecule = chain_id = None
+
+  # Write FASTA sequence file
   import tempfile
-  fasta_file = tempfile.NamedTemporaryFile('w', suffix = '.fasta', prefix = prefix+'_', delete = False)
-  sname = '%s %s' % (prefix, chain)
-  write_fasta(sname, seq, fasta_file)
+  fasta_file = tempfile.NamedTemporaryFile('w', suffix = '.fasta',
+                                           prefix = fasta_prefix, delete = False)
+  write_fasta(seq_name, seq, fasta_file)
   fasta_file.close()
 
   # Run blastp standalone program and parse results
-  blast_output = splitext(fasta_file.name)[0] + '.xml'
-  results = run_blastp(molecule.name, fasta_file.name, blast_output, blastProgram, blastDatabase)
+  session.show_status('Blast %s, running...' % (seq_name,))
+  from os import path
+  blast_output = path.splitext(fasta_file.name)[0] + '.xml'
+  results = run_blastp(seq_name, fasta_file.name, blast_output, blastProgram, blastDatabase)
   matches = results.matches
 
   # Report number of matches
   np = sum(len(m.pdb_chains()) for m in matches)
   nc = sum(sum(len(c) for id,c,desc in m.pdb_chains()) for m in matches)
-  msg = ('%s chain %s, sequence length %d\nsequence %s\n%d sequence matches, %d PDBs, %d chains'
-         % (molecule.name, chain, len(seq), seq, len(matches), np, nc))
+  msg = ('%s, sequence length %d\nsequence %s\n%d sequence matches, %d PDBs, %d chains'
+         % (seq_name, len(seq), seq, len(matches), np, nc))
   session.show_info(msg)
 
   # Load matching structures
-  session.show_status('Blast %s chain %s, loading %d sequence hits'
-                      % (molecule.name, chain, len(results.matches)))
+  session.show_status('Blast %s, loading %d sequence hits' % (seq_name, len(results.matches)))
   mols = sum([m.load_structures(session) for m in results.matches], [])
   session.add_models(mols)
 
   # Report match metrics, align hit structures and show ribbons
-  session.show_status('Blast %s chain %s, computing RMSDs...' % (molecule.name, chain))
-  align_hits(molecule, chain, mols)
-  session.show_info(match_metrics_table(molecule, chain, mols))
-  session.show_status('Blast %s chain %s, show hits as ribbons...' % (molecule.name, chain))
-  show_matches_as_ribbons(molecule, chain, mols)
-  session.show_status('Blast %s chain %s, done...' % (molecule.name, chain))
+  session.show_status('Blast %s, computing RMSDs...' % (seq_name,))
+  align_hits(molecule, chain_id, mols, len(seq))
+  session.show_info(match_metrics_table(mols, len(seq)))
+  session.show_status('Blast %s, show hits as ribbons...' % (seq_name,))
+  show_matches_as_ribbons(mols, molecule, chain_id)
+  session.show_status('Blast %s, done...' % (seq_name,))
 
   # Preserve most recent blast results for use by keyboard shortcuts
-  session.blast_results = (molecule, chain, results, mols)
+  session.blast_results = (molecule, chain_id, results, mols)
 
 def cycle_blast_molecule_display(session):
   cycler(session).toggle_play()
@@ -485,8 +523,9 @@ class Blast_Display_Cycler:
       self.last_mol = m
     show_only_ribbons(m,[c])
     s = self.session
-    s.show_status('%s %s   rmsd %.2f   %s' %
-                  (m.name, c, m.blast_match_rmsds[c], m.blast_match_description))
+    rmsd = '%.2f' % m.blast_match_rmsds[c] if c in m.blast_match_rmsds else '.'
+    s.show_status('%s %s   rmsd %s   %s' %
+                  (m.name, c, rmsd, m.blast_match_description))
   def next_frame(self):
     f = self.frame
     if f == 0:
