@@ -22,7 +22,7 @@ inline int next_line(const char *s, int i)
   return i;
 }
 
-static unsigned int element_hash(const char *element_name)
+inline unsigned int element_hash(const char *element_name)
 {
   unsigned char c0 = element_name[0], c1 = element_name[1];
   unsigned int e = (isspace(c0) ? 0 : (unsigned int) c0);
