@@ -57,7 +57,9 @@ public:
 
 static bool parse_mmcif_atoms(const char *buf, std::vector<Atom> &atoms);
 static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_Columns &f);
-static bool parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Columns &f);
+static const char *parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Columns &f);
+static void record_field_positions(const char *line, int *pos, int n);
+static const char *parse_atom_site_line_fixed_fields(const char *line, mmCIF_Atom &a, Atom_Site_Columns &fc, int *fpos);
 
 static const char *next_line(const char *line)
 {
@@ -75,10 +77,23 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<mmCIF_Atom> &atoms)
       std::cerr << "Missing atom_site columns\n";
       return false;
     }
+  bool assume_fixed_fields = true;
+  int *fpos = NULL;
   for ( ; strncmp(line, "ATOM", 4) == 0 || strncmp(line, "HETATM", 6) == 0 ; line = next_line(line))
     {
       mmCIF_Atom a;
-      parse_atom_site_line(line, a, fields);
+      if (assume_fixed_fields)
+	{
+	  if (atoms.empty())
+	    {
+	      fpos = new int[fields.max_column+1];
+	      record_field_positions(line, fpos, fields.max_column+1);
+	    }
+	  line = parse_atom_site_line_fixed_fields(line, a, fields, fpos);
+	}
+      else
+	line = parse_atom_site_line(line, a, fields);
+
       if (a.model_num > 1)
 	break;	// TODO: Currently skip all but first model.
       if (atoms.size() > 0 &&
@@ -87,6 +102,7 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<mmCIF_Atom> &atoms)
 	continue;	// TODO: Currently skipping alternate locations.
       atoms.push_back(a);
     }
+  delete [] fpos;
   return true;
 }
 
@@ -121,17 +137,61 @@ static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_C
   return line;
 }
 
-static bool parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Columns &f)
+inline float mystrtof(const char *s)
 {
-  int c = 0;
+  bool neg = false;
+  float fa = 0, v = 0;
+  while (true)
+    {
+      char c = *s;
+      if (c >= '0' && c <= '9')
+	{
+	  if (fa)
+	    { v += fa * (c-'0'); fa *= 0.1; }
+	  else
+	    v = 10*v + (c-'0');
+	}
+      else if (c == '.')
+	fa = 0.1;
+      else if (c == '-')
+	neg = true;
+      else
+	break;
+      s += 1;
+    }
+  return (neg ? -v : v);
+}
+
+inline int mystrtoi(const char *s)
+{
+  bool neg = (*s == '-');
+  int v = 0;
+  if (neg)
+    s += 1;
+  
+  while (true)
+    {
+      char c = *s;
+      if (c >= '0' && c <= '9')
+	v = 10*v + (c-'0');
+      else
+	break;
+      s += 1;
+    }
+  return (neg ? -v : v);
+}
+
+static const char *parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Columns &f)
+{
+  int c = 0, fl;
   Atom &ad = a.atom;
   while (*line != '\n')
     {
       while (*line != ' ') line += 1;
       while (*line == ' ') line += 1;
       c += 1;
-      int fl = 0;
-      for (fl = 0 ; line[fl] != ' ' ; ++fl) ;
+      for (fl = 0 ; line[fl] != ' ' ; ++fl)
+	;
       if (c == f.type_symbol)
 	ad.element_number = element_number(line);
       else if (c == f.label_atom_id)
@@ -151,19 +211,84 @@ static bool parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Colu
 	for (int i = 0 ; i < fl && i < CHAIN_ID_LEN ; ++i)
 	  ad.chain_id[i] = line[i];
       else if (c == f.label_seq_id)
-	ad.residue_number = strtol(line, NULL, 10);
+	ad.residue_number = mystrtoi(line);
       else if (c == f.Cartn_x)
-	ad.x = strtof(line, NULL);
+	ad.x = mystrtof(line);
       else if (c == f.Cartn_y)
-	ad.y = strtof(line, NULL);
+	ad.y = mystrtof(line);
       else if (c == f.Cartn_z)
-	ad.z = strtof(line, NULL);
+	ad.z = mystrtof(line);
       else if (c == f.model_num)
-	a.model_num = strtol(line, NULL, 10);
+	a.model_num = mystrtoi(line);
+      line += fl;
       if (c >= f.max_column)
 	break;
     }
-  return true;
+  return line;
+}
+
+static void record_field_positions(const char *line, int *pos, int n)
+{
+  int p = 0;
+  pos[0] = p;
+  for (int f = 1 ; f < n && *line != '\n' ; ++f)
+    {
+      while (line[p] != ' ') p += 1;
+      while (line[p] == ' ') p += 1;
+      pos[f] = p;
+    }
+}
+
+//
+// Files from PDB use fixed fields for _atom_site lines.  The field positions and widths vary from one PDB entry
+// to another -- the minimal size fields are used based on the actual data.  So to use this would need to read
+// the first atom site line and figure out the field positions.
+//
+static const char *parse_atom_site_line_fixed_fields(const char *line, mmCIF_Atom &a, Atom_Site_Columns &fc, int *fpos)
+{
+  int fl;
+  Atom &ad = a.atom;
+
+  const char *f = line + fpos[fc.type_symbol];
+  ad.element_number = element_number(f);
+
+  f = line + fpos[fc.label_atom_id];
+  for (fl = 0 ; f[fl] != ' ' ; ++fl) ;
+  char cs = *f, ce = f[fl-1];
+  if ((cs == '\"' && ce == '\"') || (cs == '\'' && ce == '\''))
+    { f += 1; fl -= 2; }	// Quoted atom name.
+  for (int i = 0 ; i < fl && i < ATOM_NAME_LEN ; ++i)
+    ad.atom_name[i] = f[i];
+
+  f = line + fpos[fc.label_alt_id];
+  a.alt_loc = f[0];
+
+  f = line + fpos[fc.label_comp_id];
+  for (fl = 0 ; f[fl] != ' ' ; ++fl) ;
+  for (int i = 0 ; i < fl && i < RESIDUE_NAME_LEN ; ++i)
+    ad.residue_name[i] = f[i];
+
+  f = line + fpos[fc.label_asym_id];
+  for (fl = 0 ; f[fl] != ' ' ; ++fl) ;
+  for (int i = 0 ; i < fl && i < CHAIN_ID_LEN ; ++i)
+    ad.chain_id[i] = f[i];
+
+  f = line + fpos[fc.label_seq_id];
+  ad.residue_number = mystrtoi(f);
+
+  f = line + fpos[fc.Cartn_x];
+  ad.x = mystrtof(f);
+
+  f = line + fpos[fc.Cartn_y];
+  ad.y = mystrtof(f);
+
+  f = line + fpos[fc.Cartn_z];
+  ad.z = mystrtof(f);
+
+  f = line + fpos[fc.model_num];
+  a.model_num = mystrtoi(f);
+
+  return line + fpos[fc.max_column];
 }
 
 // ----------------------------------------------------------------------------
