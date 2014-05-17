@@ -208,25 +208,127 @@ def check_hit_sequences_match_mmcif_sequences(mols):
       if not sequences_match(hseq,cseq):
         print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
 
+# Figure out how many non-overlapping subsets of hits exist.
+def connected_hit_groups(mols):
+  if len(mols) == 0:
+    return 0
+  qlen = mols[0].blast_match.qLen
+  from numpy import empty, int32, minimum, in1d, unique
+  min_m = empty((qlen+1,), int32)
+  min_c = empty((qlen+1,), int32)       # Min covering hit.
+  n = sum(len(m.blast_match_chains) for m in mols)
+  min_m[:] = n
+  min_c[:] = n
+  joins = []
+  ci = 0
+  clist = []
+  for m in mols:
+    ma = m.blast_match
+    rnum, qrnum = ma.residue_number_pairing()
+    for cid in m.blast_match_chains:
+      rmask = m.residue_number_mask(cid, rnum.max())
+      # Restrict to rnum with CA atoms.
+      p = rmask[rnum].nonzero()[0]
+      if len(p) == 0:
+        # Blast match is entirely residues without coordinates
+        continue
+      qrnum_ca = qrnum[p]
+      olap = min_m[qrnum_ca]
+      minimum(olap, ci, olap)
+      clap = minimum(min_c[qrnum_ca], ci)
+      for j in unique(olap):
+        if j < ci:
+          joins.append((ci, clap[olap == j].min()))
+      min_c[qrnum_ca] = clap
+      min_m[qrnum_ca] = olap
+      min_m[in1d(min_m, olap)] = olap.min()
+      ci += 1
+      clist.append((m,cid))
+  um = unique(min_m)[:-1]       # Remove n, always present at index 0.
+  unhit = (min_m == n).sum()-1
+  print('%d non-overlapping groups %s, uncovered query residues %d' % (len(um), ' '. join(str(i) for i in um), unhit))
+  print('%d joins' % len(joins))
+  show_covering_ribbons(min_c, clist)
+  print('Covered by %d chains' % (len(unique(min_c))-1))
+  ctrees = graph_trees(joins, clist)
+  return ctrees
+
+def graph_trees(joins, clist):
+  t = {}
+  for j1, j2 in joins:
+    t.setdefault(j1,[]).append(j2)
+    t.setdefault(j2,[]).append(j1)
+
+  trees = []
+  while t:
+    root = min(t.keys())
+    trees.append(dict_tree(root, t, clist))
+
+  return trees
+
+def dict_tree(root, d, replace):
+  children = d.pop(root)
+  return (replace[root], tuple(dict_tree(c, d, replace) for c in children if c in d))
+
+def show_covering_ribbons(min_c, clist):
+  mcset = set()
+  rclist = []
+  from numpy import unique
+  for ci in unique(min_c):
+    if ci >= len(clist):
+      continue
+    m,cid = clist[ci]
+    ma = m.blast_match
+    rnum, qrnum = ma.residue_number_pairing()
+    r = m.atom_subset('CA', cid, residue_numbers = rnum[(min_c == ci)[qrnum]])
+    rclist.append((m,cid,r))
+    mcset.add(m)
+  mols = set(m for m,c in clist)
+  for m in mols:
+    m.display = (m in mcset)
+    m.set_ribbon_display(False)
+    m.atoms().hide_atoms()
+  from random import randint as rint
+  for m,cid,r in rclist:
+    r.show_ribbon()
+    print('Covering %s, chain %s, %d residues' % (m.name, cid, r.count()))
+    color = (rint(100,255),rint(100,255),rint(100,255),255)
+    r.color_ribbon(color)
+    
+def align_connected(ctrees):
+  for ctree in ctrees:
+    (mref, cref), children = ctree
+    if children:
+      mc_align = [(m,[c]) for (m,c),cc in children]
+      align_chains_to_hit(mref, cref, mc_align)
+      align_connected(children)
+
 def align_hits_to_query(qmol, qchain, mols):
   qrmask = qmol.residue_number_mask(qchain, len(qmol.sequence))
   qtoref = None
-  align_hit_chains(mols, qmol, qchain, qrmask, qtoref)
+  mc = [(m,m.blast_match_chains) for m in mols]
+  align_hit_chains(mc, qmol, qchain, qrmask, qtoref)
 
 def align_hits_to_hit(hmol, hchain, mols):
+  mc = [(m,m.blast_match_chains) for m in mols]
+  align_chains_to_hit(hmol, hchain, mc)
+
+def align_chains_to_hit(hmol, hchain, mc):
   ma = hmol.blast_match
   hrnum, qrnum = ma.residue_number_pairing()
   qtoh = integer_array_map(qrnum, hrnum, ma.qLen+1)
   hrmask = hmol.residue_number_mask(hchain, qtoh.max())
-  align_hit_chains(mols, hmol, hchain, hrmask, qtoh)
+  align_hit_chains(mc, hmol, hchain, hrmask, qtoh)
 
-def align_hit_chains(mols, ref_mol, ref_chain, ref_rmask, qtoref):
-  for m in mols:
+def align_hit_chains(mc, ref_mol, ref_chain, ref_rmask, qtoref):
+  for m,chains in mc:
     ma = m.blast_match
     rnum, qrnum = ma.residue_number_pairing()
     ref_rnum = qrnum if qtoref is None else qtoref[qrnum]
-    m.blast_match_rmsds = rmsds = {}
-    for cid in m.blast_match_chains:
+    if not hasattr(m, 'blast_match_rmsds'):
+      m.blast_match_rmsds = {}
+    rmsds = m.blast_match_rmsds
+    for cid in chains:
       if m is ref_mol and cid == ref_chain:
         rmsd = 0
       else:
@@ -496,15 +598,19 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
 
   # Report match metrics, align hit structures and show ribbons
   session.show_status('Blast %s, computing RMSDs...' % (seq_name,))
-  if molecule is None:
-    # Align to best scoring hit.
-    align_hits_to_hit(mols[0], mols[0].blast_match_chains[0], mols)
-  else:
-    align_hits_to_query(molecule, chain_id, mols)
+  # if molecule is None:
+  #   # Align to best scoring hit.
+  #   align_hits_to_hit(mols[0], mols[0].blast_match_chains[0], mols)
+  # else:
+  #   align_hits_to_query(molecule, chain_id, mols)
+
+  ctrees = connected_hit_groups(mols)
+  align_connected(ctrees)
+
   text_table = match_metrics_table(mols)
   session.show_info(text_table)
   session.show_status('Blast %s, show hits as ribbons...' % (seq_name,))
-  show_matches_as_ribbons(mols, molecule, chain_id)
+#  show_matches_as_ribbons(mols, molecule, chain_id)
   session.show_status('Blast %s, done...' % (seq_name,))
 
   # Preserve most recent blast results for use by keyboard shortcuts
