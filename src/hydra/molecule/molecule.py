@@ -616,11 +616,11 @@ class Molecule(Surface):
     return xyz.min(axis = 0), xyz.max(axis = 0)
 
   def atom_index_description(self, a):
-    d = '%s %s %s %d %s' % (self.name,
-                            self.chain_ids[a].decode('utf-8'),
-                            self.residue_names[a].decode('utf-8'),
-                            self.residue_nums[a],
-                            self.atom_names[a].decode('utf-8'))
+    d = '%s %d.%s %s %d %s' % (self.name, self.id,
+                               self.chain_ids[a].decode('utf-8'),
+                               self.residue_names[a].decode('utf-8'),
+                               self.residue_nums[a],
+                               self.atom_names[a].decode('utf-8'))
     return d
 
 def combine_geometry(geom):
@@ -950,7 +950,8 @@ class Residue_Selection:
     self.chain_id = cid
     self.residue_number = rnum
   def description(self):
-    return '%s %s:%d' % (self.molecule.name, self.chain_id.decode('utf-8'), self.residue_number)
+    m = self.molecule
+    return '%s %d.%s:%d' % (m.name, m.id, self.chain_id.decode('utf-8'), self.residue_number)
   def models(self):
     return [self.molecule]
 
