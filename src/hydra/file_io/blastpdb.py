@@ -43,7 +43,8 @@ class Blast_Output_Parser:
       self._extractHit(he)
     self._extractStats(iteration.find("./Iteration_stat/Statistics"))
 
-    self.matches.sort(key = lambda ma: ma.score, reverse = True)
+    self.matches.sort(key = lambda ma: ma.seq_match.evalue)
+#    self.matches.sort(key = lambda ma: ma.seq_match.score, reverse = True)
 
   def _text(self, parent, tag):
     e = parent.find(tag)
@@ -82,14 +83,24 @@ class Blast_Output_Parser:
     hSeq = self._text(hspe, "Hsp_hseq")
     hStart = int(self._text(hspe, "Hsp_hit-from"))
     hEnd = int(self._text(hspe, "Hsp_hit-to"))
-    m = Match(desc, score, evalue, qStart, qEnd, qSeq, self.queryLength, hStart, hEnd, hSeq) #SH
-    self.matches.append(m)
+    sm = Sequence_Match(score, evalue, qStart, qEnd, qSeq, self.queryLength, hStart, hEnd, hSeq)
+    matches = [Match(pdb_id, chain_id, hdesc, sm) for pdb_id, chain_id, hdesc in parse_blast_hit_chains(desc)]
+    self.matches.extend(matches)
 
-class Match:
-  """Data from a single BLAST hit."""
+def parse_blast_hit_chains(blast_desc):
+  '''Parse blast hit description and make  a list of 3-tuples,
+  containing pdb id, list of chain ids, and pdb description.'''
+  pcd = []
+  for pc in blast_desc.split('|'):
+    pdb_id, chains, desc = pc.split(maxsplit = 2)
+    cids = chains.split(',')
+    pcd.extend([(pdb_id,cid,desc) for cid in cids])
+  return pcd
 
-  def __init__(self, desc, score, evalue, qStart, qEnd, qSeq, qLen, hStart, hEnd, hSeq): #SH
-    self.description = desc
+class Sequence_Match:
+  """Sequence alignment from a single BLAST hit."""
+
+  def __init__(self, score, evalue, qStart, qEnd, qSeq, qLen, hStart, hEnd, hSeq):
     self.score = score
     self.evalue = evalue
     self.qStart = qStart - 1        # switch to 0-base indexing
@@ -101,39 +112,6 @@ class Match:
     self.hSeq = hSeq
     if len(qSeq) != len(hSeq):
       raise ValueError("sequence alignment length mismatch")
-
-  def __repr__(self):
-    return "<Match %s>" % (self.name(),)
-
-  def name(self):
-    return ' '.join('%s %s' % (id, ','.join(c)) for id,c,desc in self.pdb_chains())
-
-  def pdb_chains(self):
-    '''Return PDB chains for this match as a list of 3-tuples,
-    containing pdb id, list of chain ids, and pdb description.'''
-
-    pdbs = {}
-    for pc in self.description.split('|'):
-      pdb_id, chains, desc = pc.split(maxsplit = 2)
-      cids = chains.split(',')
-      pdbs[pdb_id] = (cids,desc)
-
-    pcd = [(pdb_id,c,desc) for pdb_id,(c,desc) in pdbs.items()]
-    pcd.sort()
-    return pcd
-
-  def load_structures(self, session):
-    mols = []
-    from . import mmcif
-    from .opensave import open_data
-    for pdb_id,chains,desc in self.pdb_chains():
-      m = open_data(pdb_id, session, from_database = 'PDBmmCIF', history = False)[0]
-      if m:
-        m.blast_match = self
-        m.blast_match_chains = chains
-        m.blast_match_description = desc
-        mols.append(m)
-    return mols
 
   def residue_number_pairing(self):
     '''
@@ -187,73 +165,150 @@ class Match:
   def coverage(self):
     return self.paired_residues_count() / self.qLen
 
-def check_hit_sequences_match_mmcif_sequences(mols):
+class Match:
+  """Single PDB chain match to a query sequence from BLAST."""
 
-  for m in mols:
-    ma = m.blast_match
-    chains = m.blast_match_chains
+  extra_chains = {}
+
+  def __init__(self, pdb_id, chain_id, desc, seq_match):
+    self.pdb_id = pdb_id
+    self.chain_id = chain_id
+    self.description = desc
+    self.seq_match = seq_match
+    self.mol = None
+    self.rmsd = None
+
+  def name(self):
+    return '%s %s' % (self.pdb_id, self.chain_id)
+
+  def load_structure(self, session):
+    m = self.mol
+    if m:
+      return m
+
+    # See if chain of already opened molecule can be used.
+    k = (self.pdb_id, self.chain_id)
+    ec = self.extra_chains
+    if k in ec:
+      m = self.mol = ec[k]
+      del ec[k]
+      return m
+      
+    from . import mmcif
+    from .opensave import open_data
+    m = open_data(self.pdb_id, session, from_database = 'PDBmmCIF', history = False)[0]
+    self.mol = m
+    for cid in m.chain_identifiers():
+      cid = cid.decode('utf-8')
+      if cid != self.chain_id:
+        ec[(self.pdb_id, cid)] = m
+    return m
+
+def check_hit_sequences_match_mmcif_sequences(matches):
+
+  for ma in matches:
+
+    m,cid = ma.mol, ma.chain_id
 
     # Compute gapless hit sequence from match
-    hseq = ma.hSeq
+    sm = ma.seq_match
+    hseq = sm.hSeq
     for c in _GapChars:
       hseq = hseq.replace(c,'')
-    hseq = '.'*ma.hStart + hseq
+    hseq = '.'*sm.hStart + hseq
 
     # Using mmcif files the residue number (label_seq_id) is the index into the sequence.
     # This is not true of PDB files.
     from ..molecule.molecule import chain_sequence
-    for cid in chains:
-      cseq = chain_sequence(m, cid)
-      # Check that hit sequence matches PDB sequence
-      if not sequences_match(hseq,cseq):
-        print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
+    cseq = chain_sequence(m, cid)
+    # Check that hit sequence matches PDB sequence
+    if not sequences_match(hseq,cseq):
+      print ('%s %s\n%s\n%s' % (m.name, cid, cseq, hseq))
 
-# Figure out how many non-overlapping subsets of hits exist.
-def connected_hit_groups(mols):
-  if len(mols) == 0:
-    return 0
-  qlen = mols[0].blast_match.qLen
+# Find groups of overlapping structures and choose pairwise alignments to align structures within each group.
+# A structure is aligned to the best scoring sequence hit it overlaps.
+def connected_hit_groups(matches):
+  if len(matches) == 0:
+    return []
+  qlen = matches[0].seq_match.qLen
   from numpy import empty, int32, minimum, in1d, unique
   min_m = empty((qlen+1,), int32)
   min_c = empty((qlen+1,), int32)       # Min covering hit.
-  n = sum(len(m.blast_match_chains) for m in mols)
+  n = len(matches)
   min_m[:] = n
   min_c[:] = n
   joins = []
-  ci = 0
-  clist = []
-  for m in mols:
-    ma = m.blast_match
-    rnum, qrnum = ma.residue_number_pairing()
-    for cid in m.blast_match_chains:
-      rmask = m.residue_number_mask(cid, rnum.max())
-      # Restrict to rnum with CA atoms.
-      p = rmask[rnum].nonzero()[0]
-      if len(p) == 0:
-        # Blast match is entirely residues without coordinates
-        continue
-      qrnum_ca = qrnum[p]
-      olap = min_m[qrnum_ca]
-      minimum(olap, ci, olap)
-      clap = minimum(min_c[qrnum_ca], ci)
-      for j in unique(olap):
-        if j < ci:
-          joins.append((ci, clap[olap == j].min()))
-      min_c[qrnum_ca] = clap
-      min_m[qrnum_ca] = olap
-      min_m[in1d(min_m, olap)] = olap.min()
-      ci += 1
-      clist.append((m,cid))
+  mshort = []
+  for mi,ma in enumerate(matches):
+    sm = ma.seq_match
+    rnum, qrnum = sm.residue_number_pairing()
+    cid = ma.chain_id
+    m = ma.mol
+    rmask = m.residue_number_mask(cid, rnum.max())
+    # Restrict to rnum with CA atoms.
+    p = rmask[rnum].nonzero()[0]
+#    if len(p) == 0:
+    if len(p) < 3:
+      # Blast match does not have enough CA atom coordinates for a unique alignment.
+      mshort.append((ma, len(p)))
+      continue
+    qrnum_ca = qrnum[p]
+    olap = min_m[qrnum_ca]
+    minimum(olap, mi, olap)
+    clap = minimum(min_c[qrnum_ca], mi)
+    # Loop over disconnected overlapped subsets.
+    joined = [mi]
+    for j in unique(olap):
+      if j < mi:
+        clapj = clap[olap == j]
+# Align longest overlap.  Really this is getting the highest overlap counting only
+# residues that are the best scoring match at their residue position.  That is weird and hard to explain.
+#        nol, jalign = max(((clapj == ja).sum(), ja) for ja in unique(clapj))
+        # Align highest score chain of island j that overlaps mi
+        jalign = clapj.min()
+        nol = (clapj == jalign).sum()
+        if nol < 3:
+          # If highest score overlap is less than 3 residues choose the highest
+          # that has at least 3 residues overlap.
+          for ja in unique(clapj):
+            nol = (clapj == ja).sum()
+            if nol >= 3:
+              jalign = ja
+              break
+        if nol < 3:
+          # No overlap has at least 3 residues.
+          maj = matches[j]
+          mj,cj = maj.mol, maj.chain_id
+          smj = maj.seq_match
+          print('Alignment of %s %s %d-%d with best match %s %s %d-%d has only %d CA overlaps.' %
+                (m.name, cid, sm.qStart+1, sm.qEnd+1, mj.name, cj, smj.qStart+1, smj.qEnd+1, nol))
+#           print('Overlap sizes ', ','.join(('%d=%d' % (ja,(clapj == ja).sum()) for ja in unique(clapj))))
+        else:
+          joins.append((mi, jalign))
+          joined.append(j)
+    min_c[qrnum_ca] = clap
+    min_m[qrnum_ca] = olap
+    min_m[in1d(min_m,joined)] = min(joined)
+
+  if mshort:
+    print('%d matches had less than 3 matched CA atoms, preventing a unique alignment\n' % len(mshort) + 
+          ', '.join('%d-%d %s %s %d' % (ma.seq_match.qStart+1, ma.seq_match.qEnd+1,
+                                        ma.pdb_id, ma.chain_id, nca) for ma,nca in mshort))
+
   um = unique(min_m)[:-1]       # Remove n, always present at index 0.
   unhit = (min_m == n).sum()-1
-  print('%d non-overlapping groups %s, uncovered query residues %d' % (len(um), ' '. join(str(i) for i in um), unhit))
-  print('%d joins' % len(joins))
-  show_covering_ribbons(min_c, clist)
-  print('Covered by %d chains' % (len(unique(min_c))-1))
-  ctrees = graph_trees(joins, clist)
+  gra = {}
+  for s,e in runs(min_m[1:]):
+    if min_m[s+1] != n:
+      gra.setdefault(min_m[s+1],[]).append('%d-%d' % (s+1,e+1))
+  granges = [('(%s)' % ','.join(ra)) for ra in gra.values()]
+  print('%d alignment groups %s' % (len(um), ', '.join(granges)))
+#  print('%d joins' % len(joins))
+  show_covering_ribbons(min_c, matches)
+  ctrees = graph_trees(joins, matches)
   return ctrees
 
-def graph_trees(joins, clist):
+def graph_trees(joins, matches):
   t = {}
   for j1, j2 in joins:
     t.setdefault(j1,[]).append(j2)
@@ -262,7 +317,7 @@ def graph_trees(joins, clist):
   trees = []
   while t:
     root = min(t.keys())
-    trees.append(dict_tree(root, t, clist))
+    trees.append(dict_tree(root, t, matches))
 
   return trees
 
@@ -270,20 +325,20 @@ def dict_tree(root, d, replace):
   children = d.pop(root)
   return (replace[root], tuple(dict_tree(c, d, replace) for c in children if c in d))
 
-def show_covering_ribbons(min_c, clist):
+def show_covering_ribbons(min_c, matches):
   mcset = set()
   rclist = []
   from numpy import unique
-  for ci in unique(min_c):
-    if ci >= len(clist):
+  for mi in unique(min_c):
+    if mi >= len(matches):
       continue
-    m,cid = clist[ci]
-    ma = m.blast_match
-    rnum, qrnum = ma.residue_number_pairing()
-    r = m.atom_subset('CA', cid, residue_numbers = rnum[(min_c == ci)[qrnum]])
+    ma = matches[mi]
+    m,cid = ma.mol, ma.chain_id
+    rnum, qrnum = ma.seq_match.residue_number_pairing()
+    r = m.atom_subset('CA', cid, residue_numbers = rnum[(min_c == mi)[qrnum]])
     rclist.append((m,cid,r))
     mcset.add(m)
-  mols = set(m for m,c in clist)
+  mols = set(ma.mol for ma in matches)
   for m in mols:
     m.display = (m in mcset)
     m.set_ribbon_display(False)
@@ -291,50 +346,86 @@ def show_covering_ribbons(min_c, clist):
   from random import randint as rint
   for m,cid,r in rclist:
     r.show_ribbon()
-    print('Covering %s, chain %s, %d residues' % (m.name, cid, r.count()))
+#    cr = m.atom_subset(chain_id = cid)
+#    cr.show_ribbon()
+#    cr.color_ribbon((128,128,128,255))
+#    print('Covering %s, chain %s, %d residues' % (m.name, cid, r.count()))
     color = (rint(100,255),rint(100,255),rint(100,255),255)
     r.color_ribbon(color)
-    
+
+  # Show best e-value coverage per residue.
+  csegs = []
+  g = gr = 0
+  segs = runs(min_c[1:])
+  for s,e in segs:
+    mi = min_c[s+1]
+    ra = '%d-%d' % (s+1, e+1)
+    if mi < len(matches):
+      ma = matches[mi]
+      m,c = ma.mol, ma.chain_id
+      ev = ma.seq_match.evalue
+      from os import path
+      mname = path.splitext(m.name)[0]
+      mc = '#%d.%s' % (m.id, c)
+      cseg = '%10s %5d %6s %8s %8.0e' % (ra, e-s+1, mname, mc, ev)
+    else:
+      cseg = '%10s %5d %6s' % (ra, e-s+1, 'gap')
+      g += 1
+      gr += e-s+1
+    csegs.append(cseg)
+  from numpy import unique
+  nc = len(unique(min_c))-1
+  print('Best E-value coverage, %d segments with %d gaps (%d of %d residues), using %d chains'
+        % (len(segs)-g, g, gr, len(min_c)-1, nc))
+  print('\n'.join(csegs))
+
+#  print('min_c', ' '.join('%d' % i for i in min_c))
+
+def runs(a):
+  r = []
+  s = e = 0
+  while e < len(a):
+    if a[e] != a[s]:
+      r.append((s,e-1))
+      s = e
+    e += 1
+  if s < len(a):
+    r.append((s,e-1))
+  return r
+
 def align_connected(ctrees):
   for ctree in ctrees:
-    (mref, cref), children = ctree
+    ma_ref, children = ctree
     if children:
-      mc_align = [(m,[c]) for (m,c),cc in children]
-      align_chains_to_hit(mref, cref, mc_align)
+      ma_align = [ma for ma,cc in children]
+      align_matches_to_match(ma_align, ma_ref)
       align_connected(children)
 
-def align_hits_to_query(qmol, qchain, mols):
+def align_matches_to_chain(matches, qmol, qchain):
   qrmask = qmol.residue_number_mask(qchain, len(qmol.sequence))
   qtoref = None
-  mc = [(m,m.blast_match_chains) for m in mols]
-  align_hit_chains(mc, qmol, qchain, qrmask, qtoref)
+  for ma in matches:
+    align_match(ma, qmol, qchain, qrmask, qtoref)
 
-def align_hits_to_hit(hmol, hchain, mols):
-  mc = [(m,m.blast_match_chains) for m in mols]
-  align_chains_to_hit(hmol, hchain, mc)
+def align_matches_to_match(matches, ref_match):
+  rsm = ref_match.seq_match
+  hrnum, qrnum = rsm.residue_number_pairing()
+  qtoh = integer_array_map(qrnum, hrnum, rsm.qLen+1)
+  m,c = ref_match.mol, ref_match.chain_id
+  hrmask = m.residue_number_mask(c, qtoh.max())
+  for match in matches:
+    align_match(match, m, c, hrmask, qtoh)
 
-def align_chains_to_hit(hmol, hchain, mc):
-  ma = hmol.blast_match
-  hrnum, qrnum = ma.residue_number_pairing()
-  qtoh = integer_array_map(qrnum, hrnum, ma.qLen+1)
-  hrmask = hmol.residue_number_mask(hchain, qtoh.max())
-  align_hit_chains(mc, hmol, hchain, hrmask, qtoh)
-
-def align_hit_chains(mc, ref_mol, ref_chain, ref_rmask, qtoref):
-  for m,chains in mc:
-    ma = m.blast_match
-    rnum, qrnum = ma.residue_number_pairing()
-    ref_rnum = qrnum if qtoref is None else qtoref[qrnum]
-    if not hasattr(m, 'blast_match_rmsds'):
-      m.blast_match_rmsds = {}
-    rmsds = m.blast_match_rmsds
-    for cid in chains:
-      if m is ref_mol and cid == ref_chain:
-        rmsd = 0
-      else:
-        rmsd = align_chain(m, cid, rnum, ref_mol, ref_chain, ref_rnum, ref_rmask)
-      if not rmsd is None:
-        rmsds[cid] = rmsd
+def align_match(match, ref_mol, ref_chain, ref_rmask, qtoref):
+  rnum, qrnum = match.seq_match.residue_number_pairing()
+  ref_rnum = qrnum if qtoref is None else qtoref[qrnum]
+  m, cid = match.mol, match.chain_id
+  if m is ref_mol and cid == ref_chain:
+    rmsd = 0
+  else:
+    rmsd = align_chain(m, cid, rnum, ref_mol, ref_chain, ref_rnum, ref_rmask)
+  if not rmsd is None:
+    match.rmsd = rmsd
 
 def align_chain(mol, chain, rnum, ref_mol, ref_chain, ref_rnum, ref_rmask):
   # Restrict paired residues to those with CA atoms.
@@ -353,6 +444,16 @@ def align_chain(mol, chain, rnum, ref_mol, ref_chain, ref_rnum, ref_rmask):
   # Align hit chain to query chain
   mol.atom_subset(chain_id = chain).move_atoms(tf)
 
+#  if atoms.count() < 5:
+#    ma = mol.blast_match
+#    ref_ma = ref_mol.blast_match
+#    print('aligned %d residues between %d %s %s %d-%d (max %d) %d (%d CA) and %d %s %s %d-%d (%d CA)' %
+#          (atoms.count(), mol.id, mol.name, chain, ma.qStart+1, ma.qEnd+1, rnum.max(), rmask.sum(), rmask[rnum].sum(),
+#           ref_mol.id, ref_mol.name, ref_chain, ref_ma.qStart+1, ref_ma.qEnd+1, ref_rmask[ref_rnum].sum()))
+#    print(ma.hSeq)
+#    print(ma.qSeq)
+#    rn, qrn = ma.residue_number_pairing()
+
   return rmsd
 
 def integer_array_map(key, value, max_key):
@@ -361,49 +462,56 @@ def integer_array_map(key, value, max_key):
   m[key] = value
   return m
 
-def match_metrics_table(mols):
-  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) Score  Description']
-  for m in mols:
-    ma = m.blast_match
-    nqres = ma.qLen
-    npair = ma.paired_residues_count()
-    neq = ma.identical_residue_count()
-    rmsds = getattr(m, 'blast_match_rmsds', {})
-    chains = m.blast_match_chains
-    for cid in chains:
-      # Create table output line showing how well hit matches query.
-      name = m.name[:-4] if m.name.endswith('.cif') else m.name
-      desc = m.blast_match_description if cid == chains[0] else ''
-      rmsd = ('%7.2f' % rmsds[cid]) if cid in rmsds else '.'
-      lines.append('%4s %3s %7s %5d %5.0f   %5d %5.0f  %5d    %s'
-                   % (name, cid, rmsd, npair, 100*npair/nqres,
-                      neq, 100.0*neq/npair, ma.score, desc))
+def match_metrics_table(matches):
+  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) E-value Description']
+  sms = set()
+  for ma in matches:
+    sm = ma.seq_match
+    nqres = sm.qLen
+    npair = sm.paired_residues_count()
+    neq = sm.identical_residue_count()
+    # Create table output line showing how well hit matches query.
+    m, cid = ma.mol, ma.chain_id
+    name = m.name[:-4] if m.name.endswith('.cif') else m.name
+    desc = ma.description if not sm in sms else ''
+    sms.add(sm)
+    rmsd = ('%7.2f' % ma.rmsd) if not ma.rmsd is None else '.'
+    lines.append('%4s %3s %7s %5d %5.0f   %5d %5.0f  %8.0e  %s'
+                 % (name, cid, rmsd, npair, 100*npair/nqres,
+                    neq, 100.0*neq/npair, sm.evalue, desc))
 
   return '\n'.join(lines)
 
-def show_matches_as_ribbons(mols, qmol, chain,
+def show_matches_as_ribbons(matches, ref_mol, ref_chain,
                             rescolor = (225,150,150,255), eqcolor = (225,100,100,255),
                             unaligned_rescolor = (225,225,150,255), unaligned_eqcolor = (225,225,100,255)):
-  for m in mols:
+  mset = set()
+  for ma in matches:
+    m = ma.mol
     m.single_color()
     aligned = getattr(m,'blast_match_rmsds', {})
-    for cid in m.blast_match_chains:
-      c1, c2 = (rescolor, eqcolor) if cid in aligned else (unaligned_rescolor, unaligned_eqcolor)
-      ma = m.blast_match
-      hrnum, qrnum = ma.residue_number_pairing()
-      r = m.atom_subset(chain_id = cid, residue_numbers = hrnum)
-      r.color_ribbon(c1)
-      req = m.atom_subset(chain_id = cid, residue_numbers = ma.identical_residue_numbers())
-      req.color_ribbon(c2)
-    show_only_ribbons(m, m.blast_match_chains)
-    m.set_ribbon_radius(0.25)
-  if qmol:
-    qmol.set_ribbon_radius(0.25)
-    show_only_ribbons(qmol, [chain])
+    cid = ma.chain_id
+    c1, c2 = (rescolor, eqcolor) if not ma.rmsd is None else (unaligned_rescolor, unaligned_eqcolor)
+    sm = ma.seq_match
+    hrnum, qrnum = sm.residue_number_pairing()
+    r = m.atom_subset(chain_id = cid, residue_numbers = hrnum)
+    r.color_ribbon(c1)
+    req = m.atom_subset(chain_id = cid, residue_numbers = sm.identical_residue_numbers())
+    req.color_ribbon(c2)
+    if not m in mset:
+      hide_atoms_and_ribbons(m)
+      m.set_ribbon_radius(0.25)
+      mset.add(m)
+    m.atom_subset(chain_id = cid).show_ribbon()
+  if ref_mol:
+    ref_mol.set_ribbon_radius(0.25)
+    hide_atoms_and_ribbons(ref_mol)
+    ref_mol.atom_subset(chain_id = ref_chain).show_ribbon()
 
-def show_only_ribbons(m, chains):
-    m.atoms().hide_atoms()
-    m.atom_subset(chain_id = chains).show_ribbon(only_these = True)
+def hide_atoms_and_ribbons(m):
+    atoms = m.atoms()
+    atoms.hide_atoms()
+    atoms.hide_ribbon()
 
 def color_by_coverage(matches, mol, chain,
                       c0 = (200,200,200,255), c100 = (0,255,0,255)):
@@ -411,7 +519,7 @@ def color_by_coverage(matches, mol, chain,
   from numpy import zeros, float32, outer, uint8
   qrc = zeros((rmax+1,), float32)
   for ma in matches:
-    hrnum, qrnum = ma.residue_number_pairing()
+    hrnum, qrnum = ma.seq_match.residue_number_pairing()
     qrc[qrnum] += 1
 
   qrc /= len(matches)
@@ -422,24 +530,27 @@ def color_by_coverage(matches, mol, chain,
 def blast_color_by_coverage(session):
   if not hasattr(session, 'blast_results'):
     return 
-  mol, chain, results, mols = session.blast_results
-  for m in mols:
-    m.display = False
+  mol, chain, results = session.blast_results
+  for ma in results.matches:
+    ma.mol.display = False
   cmin, cmax = color_by_coverage(results.matches, mol, chain)
   session.show_status('Residues colored by number of sequence hits (%.0f-%.0f%%)' % (100*cmin, 100*cmax))
 
-def show_only_matched_residues(mols):
-  for m in mols:
-    ma = m.blast_match
-    hrnum, qrnum = ma.residue_number_pairing()
-    m.atom_subset(chain_id = m.blast_match_chains, residue_numbers = hrnum).show_ribbon(only_these = True)
-    m.display = True
+def show_only_matched_residues(matches):
+  mset = set()
+  for ma in matches:
+    hrnum, qrnum = ma.seq_match.residue_number_pairing()
+    m = ma.mol
+    if not m in mset:
+      m.display = True
+      hide_atoms_and_ribbons(m)
+    m.atom_subset(chain_id = ma.chain_id, residue_numbers = hrnum).show_ribbon()
 
 def blast_show_matched_residues(session):
   if not hasattr(session, 'blast_results'):
     return 
-  mol, chain, results, mols = session.blast_results
-  show_only_matched_residues(mols)
+  mol, chain, results = session.blast_results
+  show_only_matched_residues(results.matches)
 
 def sequences_match(s, seq):
   n = min(len(s), len(seq))
@@ -586,35 +697,36 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
   matches = results.matches
 
   # Report number of matches
-  np = sum(len(m.pdb_chains()) for m in matches)
-  nc = sum(sum(len(c) for id,c,desc in m.pdb_chains()) for m in matches)
+  np = len(set(ma.pdb_id for ma in matches))
+  nc = len(set((ma.pdb_id,ma.chain_id) for ma in matches))
   msg = ('%s, sequence length %d\nsequence %s\n%d sequence matches, %d PDBs, %d chains'
          % (seq_name, len(seq), seq, len(matches), np, nc))
   session.show_info(msg)
 
   # Load matching structures
   session.show_status('Blast %s, loading %d sequence hits' % (seq_name, len(matches)))
-  mols = sum([m.load_structures(session) for m in matches], [])
+  for ma in matches:
+    ma.load_structure(session)
 
   # Report match metrics, align hit structures and show ribbons
   session.show_status('Blast %s, computing RMSDs...' % (seq_name,))
   # if molecule is None:
   #   # Align to best scoring hit.
-  #   align_hits_to_hit(mols[0], mols[0].blast_match_chains[0], mols)
+  #   align_matches_to_match(matches, matches[0])
   # else:
-  #   align_hits_to_query(molecule, chain_id, mols)
+  #   align_matches_to_chain(matches, molecule, chain_id)
 
-  ctrees = connected_hit_groups(mols)
+  ctrees = connected_hit_groups(matches)
   align_connected(ctrees)
 
-  text_table = match_metrics_table(mols)
+  text_table = match_metrics_table(matches)
   session.show_info(text_table)
   session.show_status('Blast %s, show hits as ribbons...' % (seq_name,))
-#  show_matches_as_ribbons(mols, molecule, chain_id)
+#  show_matches_as_ribbons(matches, molecule, chain_id)
   session.show_status('Blast %s, done...' % (seq_name,))
 
   # Preserve most recent blast results for use by keyboard shortcuts
-  session.blast_results = (molecule, chain_id, results, mols)
+  session.blast_results = (molecule, chain_id, results)
 
 def cycle_blast_molecule_display(session):
   cycler(session).toggle_play()
@@ -635,10 +747,8 @@ class Blast_Display_Cycler:
     self.frame = None
     self.frames_per_molecule = 10
     self.session = session
-    self.results_id = None
-    self.hchains = None
-    self.last_mol = None
-    self.hit_num = 0
+    self.last_match = None
+    self.match_num = 0
   def toggle_play(self):
     if self.frame is None:
       self.frame = 0
@@ -654,58 +764,54 @@ class Blast_Display_Cycler:
     self.frame = None
     v = self.session.view
     v.remove_new_frame_callback(self.next_frame)
-  def hit_molecules(self):
-    return self.session.blast_results[3]
-  def hit_chains(self):
-    if self.hchains is None or id(self.session.blast_results) != self.results_id:
-      self.hchains = sum([[(m,c) for c in m.blast_match_chains] for m in self.hit_molecules()], [])
-      self.results_id = id(self.session.blast_results)
-    return self.hchains
+  def matches(self):
+    return self.session.blast_results[2].matches
   def show_next(self):
     self.stop_play()
-    self.show_hit((self.hit_num + 1) % len(self.hit_chains()))
+    self.show_hit((self.match_num + 1) % len(self.matches()))
   def show_previous(self):
     self.stop_play()
-    nh = len(self.hit_chains())
-    self.show_hit((self.hit_num + nh - 1) % nh)
+    nh = len(self.matches())
+    self.show_hit((self.match_num + nh - 1) % nh)
   def show_all(self):
     self.stop_play()
-    for m in self.hit_molecules():
+    for ma in self.matches():
+      m, cid = ma.mol, ma.chain_id
       m.display = True
-      show_only_ribbons(m, m.blast_match_chains)
-    self.last_mol = None
+      m.atom_subset(chain_id = cid).show_ribbon()
+    self.last_match = None
   def show_none(self):
-    for m in self.hit_molecules():
-      m.display = False
-    self.last_mol = None
-  def show_hit(self, hnum):
-    self.hit_num = hnum
-    hc = self.hit_chains()
-    m,c = hc[hnum]
-    lm = self.last_mol
-    if not m is lm:
+    for ma in self.matches():
+      ma.mol.display = False
+    self.last_match = None
+  def show_hit(self, match_num):
+    self.match_num = match_num
+    ma = self.matches()[match_num]
+    m,c = ma.mol, ma.chain_id
+    lm = self.last_match
+    if not ma is lm:
       if lm:
-        lm.display = False
+        lm.mol.display = False
       else:
         self.show_none()
       m.display = True
-      self.last_mol = m
-    show_only_ribbons(m,[c])
+      self.last_match = ma
+    m.atom_subset(chain_id = c).show_ribbon(only_these = True)
     s = self.session
     from os import path
     mname = path.splitext(m.name)[0]
-    rmsd = '%.2f' % m.blast_match_rmsds[c] if c in m.blast_match_rmsds else '.'
-    ma = m.blast_match
+    rmsd = '%.2f' % ma.rmsd if not ma.rmsd is None else '.'
+    sm = ma.seq_match
     s.show_status('%s chain %s, %.0f%% identity, %.0f%% coverage, rmsd %s   %s' %
-                  (mname, c, 100*ma.identity(), 100*ma.coverage(),
-                   rmsd, m.blast_match_description))
+                  (mname, c, 100*sm.identity(), 100*sm.coverage(),
+                   rmsd, ma.description))
   def next_frame(self):
     f = self.frame
     if f == 0:
-      self.show_hit(self.hit_num)
+      self.show_hit(self.match_num)
     if f+1 >= self.frames_per_molecule:
       self.frame = 0
-      self.hit_num = (self.hit_num + 1) % len(self.hit_chains())
+      self.match_num = (self.match_num + 1) % len(self.matches())
     else:
       self.frame += 1
 
