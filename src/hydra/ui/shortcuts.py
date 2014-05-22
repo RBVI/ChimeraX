@@ -39,7 +39,7 @@ def standard_shortcuts(session):
     sep = True  # Add menu separator after entry.
     from ..file_io import opensave
     from .modelpanel import show_model_panel
-    shortcuts = (
+    shortcuts = [
         # Sessions
         ('op', opensave.show_open_file_dialog, 'Open file', ocat, sesarg, fmenu),
         ('rf', show_file_history, 'Show recent files', ocat, sesarg, fmenu),
@@ -117,13 +117,6 @@ def standard_shortcuts(session):
 
         ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates', molcat, molarg),
 
-        ('/', cycle_blast, 'Cycle through display of blast molecules', molcat, sesarg, mlmenu),
-        ('+', blast_next, 'Show next blast hit', molcat, sesarg, mlmenu),
-        ('-', blast_previous, 'Show previous blast hit', molcat, sesarg, mlmenu),
-        ('*', blast_all, 'Show all blast hits', molcat, sesarg, mlmenu),
-        ('=', blast_coverage, 'Color blast query by coverage', molcat, sesarg, mlmenu),
-        ('9', blast_show_matched, 'Show blast hit residues that match query', molcat, sesarg, mlmenu),
-
         # Pane
         ('mp', show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
         ('lg', show_log, 'Show command log', gcat, sesarg, pmenu),
@@ -157,7 +150,10 @@ def standard_shortcuts(session):
         # Help
         ('mn', show_manual, 'Show manual', gcat, sesarg, hmenu),
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
-        )
+        ]
+
+    from ..file_io.blastpdb import blast_shortcuts
+    shortcuts.extend(blast_shortcuts())
 
     scuts = []
     for sc in shortcuts:
@@ -670,22 +666,3 @@ def display_all(session):
             p.display = True
             p.instance_display = None
             m.redraw_needed = True
-
-def cycle_blast(session):
-    from ..file_io import blastpdb
-    blastpdb.cycle_blast_molecule_display(session)
-def blast_next(session):
-    from ..file_io import blastpdb
-    blastpdb.next_blast_molecule_display(session)
-def blast_previous(session):
-    from ..file_io import blastpdb
-    blastpdb.previous_blast_molecule_display(session)
-def blast_all(session):
-    from ..file_io import blastpdb
-    blastpdb.all_blast_molecule_display(session)
-def blast_coverage(session):
-    from ..file_io import blastpdb
-    blastpdb.blast_color_by_coverage(session)
-def blast_show_matched(session):
-    from ..file_io import blastpdb
-    blastpdb.blast_show_matched_residues(session)
