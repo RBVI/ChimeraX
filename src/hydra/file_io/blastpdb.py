@@ -161,6 +161,7 @@ class Sequence_Match:
     hp,qp = empty((n,), int32), empty((n,), int32)
     p = 0
     eqrnum = []
+    nins = nrins = ndel = nrdel = 0
     for i in range(n):
       hstep = 0 if hs[i] in _GapChars else 1
       qstep = 0 if qs[i] in _GapChars else 1
@@ -170,12 +171,31 @@ class Sequence_Match:
         p += 1
         if hs[i] == qs[i]:
           eqrnum.append(h)
+      elif hstep:
+        nrins += 1
+        if i == 0 or not qs[i-1] in _GapChars:
+          nins += 1
+      elif qstep:
+        nrdel += 1
+        if i == 0 or not hs[i-1] in _GapChars:
+          ndel += 1
       h += hstep
       q += qstep
     from numpy import resize, array, int32
     self.rnum_pairs = hqp = resize(hp, (p,)), resize(qp, (p,))
     self.rnum_equal = array(eqrnum, int32)
+    self.nins, self.nrins = nins, nrins
+    self.ndel, self.nrdel = ndel, nrdel
     return hqp
+
+  def insertion_count(self):
+    return self.nins
+  def insertion_residue_count(self):
+    return self.nrins
+  def deletion_count(self):
+    return self.ndel
+  def deletion_residue_count(self):
+    return self.nrdel
 
   def identical_residue_numbers(self):
     if hasattr(self, 'rnum_equal'):
@@ -345,6 +365,118 @@ def short_matches(matches, min_res):
     if len(rnum) < min_res:
       mshort.append((ma, len(rnum)))
   return mshort
+
+def mosaic_model(br):
+  qlen = br.query_length()
+  from numpy import empty, float32, zeros, int32
+  xyz = empty((qlen+1,3), float32)
+  found = zeros((qlen+1,), int32)
+  mai = zeros((qlen+1,), int32)
+  mbest = br.best_match_per_residue()
+  matches = br.matches
+  n = len(matches)
+
+  # Find leftmost match
+  m0 = mbest[(mbest < n).nonzero()[0][0]]
+  ma = matches[m0]
+
+  nar = 3
+#  nar = 10
+
+  # Start with 3 leftmost coordinates
+  rnum, qrnum = ma.residues_with_coords_pairing()
+  qi3 = qrnum[:nar]
+  found[qi3] = 1
+  xyz[qi3,:] = ma.mol.atom_subset('CA', ma.chain_id, residue_numbers = rnum[:nar]).coordinates()
+
+  # Extend coordinates left to right by matching preceding 3 residues.
+  qistart = qi3.max() + 1
+  for qi in range(qistart, qlen):
+    mi = mbest[qi]
+    if mi == n:
+      continue          # No coverage
+    smat = []
+    for mj in range(mi,n):
+      ma = matches[mj]
+      rnum, qrnum = ma.residues_with_coords_pairing()
+      if qi in qrnum:
+        f = found[qrnum[qrnum<qi]]
+        fs = f.sum()
+        if fs >= nar:
+          p = f.nonzero()[0][-nar:]
+          rnum3,qrnum3 = rnum[p],qrnum[p]
+          ri = rnum[(qrnum == qi).nonzero()[0][0]]
+          smat.append((max(qi-qrnum3[0],ri-rnum3[0]), mj))
+#          break
+# TODO: Also scan right to left to fill in gaps
+#    if fs < nar:
+#      continue          # No sequence matches 3 already found residues.
+    if len(smat) == 0:
+      continue
+    mi = min(smat)[1]
+    ma = matches[mi]
+    rnum, qrnum = ma.residues_with_coords_pairing()
+    f = found[qrnum[qrnum<qi]]
+
+    p = f.nonzero()[0][-nar:]
+    rnum3,qrnum3 = rnum[p],qrnum[p]        # Residue numbers of preceding 3.
+    ri = rnum[(qrnum == qi).nonzero()[0][0]]
+    if qrnum3[0] + nar < qi or rnum3[0] + nar < ri:
+      print('gap', qi, qrnum3, ri, rnum3, ma.pdb_id, ma.chain_id)
+    xyz3 = ma.mol.atom_subset('CA', ma.chain_id, residue_numbers = rnum3).coordinates()
+    from ..molecule import align
+    tf, rmsd = align.align_points(xyz3, xyz[qrnum3])
+    xyzi = ma.mol.atom_subset('CA', ma.chain_id, residue_numbers = [ri]).coordinates()
+    xyz[qi,:] = tf*xyzi
+    found[qi] = 1
+    mai[qi] = mi
+
+  # Color residue according to which match used to extend
+  from numpy import random, uint8
+  mcolors = random.randint(100,255,(mai.max()+1,4)).astype(uint8)
+  mcolors[:,3] = 255
+  colors = mcolors[mai,:]
+
+  m = create_ca_trace(br.name, xyz, found, colors)
+  print('created mosaic model', found.sum())
+  return m
+
+def create_ca_trace(name, xyz, found, colors):
+
+  dtype = [('atom_name', 'S4'),
+           ('element_number', 'i4'),
+           ('xyz', 'f4', (3,)),
+           ('radius', 'f4'),
+           ('residue_name', 'S4'),
+           ('residue_number', 'i4'),
+           ('chain_id', 'S4'),
+           ('atom_color', 'u1', (4,)),
+           ('ribbon_color', 'u1', (4,)),
+           ('atom_shown', 'u1'),
+           ('ribbon_shown', 'u1'),
+           ('pad', 'u2')]
+
+  n = found.sum()
+  fi = found.nonzero()[0]
+  from numpy import zeros
+  atoms = zeros((n,), dtype)
+  atoms['atom_name'] = b'CA'
+  atoms['element_number'] = 6
+  atoms['xyz'] = xyz[fi]
+  atoms['radius'] = 1.7
+  atoms['residue_name'] = b'ALA'
+  atoms['residue_number'] = fi
+  atoms['chain_id'] = b'A'
+  atoms['atom_color'] = (255,255,0,255)
+  atoms['ribbon_color'] = colors[fi]
+#  atoms['ribbon_color'] = (255,0,255,255)
+#  atoms['ribbon_color'][::2] = (255,255,255,255)
+  atoms['atom_shown'] = 0
+  atoms['ribbon_shown'] = 1
+
+  from ..molecule import Molecule
+  m = Molecule(name, atoms)
+  return m
 
 # Find groups of overlapping structures and choose pairwise alignments to align structures within each group.
 # A structure is aligned to the best scoring sequence hit it overlaps.
@@ -559,23 +691,32 @@ def integer_array_map(key, value, max_key):
   m[key] = value
   return m
 
+def find_first(e,a):
+  return (a == e).nonzero()[0][0]
+
 def match_metrics_table(matches):
-  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) E-value Description']
+  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) NCoord MissCrd NIns NRIns NDel NRDel E-value Description']
   sms = set()
   for ma in matches:
     sm = ma.seq_match
     nqres = sm.qLen
     npair = sm.paired_residues_count()
     neq = sm.identical_residue_count()
+    srnum, sqrnum = sm.residue_number_pairing()
+    rnum,qrnum = ma.residues_with_coords_pairing()
+    missing_coords = (find_first(rnum[-1],srnum) - find_first(rnum[0],srnum) + 1) - len(rnum)
     # Create table output line showing how well hit matches query.
     m, cid = ma.mol, ma.chain_id
     name = m.name[:-4] if m.name.endswith('.cif') else m.name
     desc = ma.description if not sm in sms else ''
     sms.add(sm)
     rmsd = ('%7.2f' % ma.rmsd) if not ma.rmsd is None else '.'
-    lines.append('%4s %3s %7s %5d %5.0f   %5d %5.0f  %8.0e  %s'
+    lines.append('%4s %3s %7s %5d %5.0f   %5d %5.0f    %5d %5d %5d %5d %5d %5d %8.0e  %s'
                  % (name, cid, rmsd, npair, 100*npair/nqres,
-                    neq, 100.0*neq/npair, sm.evalue, desc))
+                    neq, 100.0*neq/npair, len(rnum), missing_coords,
+                    sm.insertion_count(), sm.insertion_residue_count(),
+                    sm.deletion_count(), sm.deletion_residue_count(),
+                    sm.evalue, desc))
 
   return '\n'.join(lines)
 
@@ -871,6 +1012,9 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
   random_ribbon_colors(ma_cover)
   show_covering_ribbons(mbest, matches)
   report_best_match_coverage(mbest, matches)
+
+#  m = mosaic_model(br)
+#  session.add_model(m)
 
   text_table = match_metrics_table(matches)
   session.show_info(text_table)
