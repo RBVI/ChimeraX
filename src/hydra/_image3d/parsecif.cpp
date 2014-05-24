@@ -139,8 +139,10 @@ static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_C
 
 inline float mystrtof(const char *s)
 {
-  bool neg = false;
   float fa = 0, v = 0;
+  bool neg = (*s == '-');
+  if (neg)
+    s += 1;
   while (true)
     {
       char c = *s;
@@ -153,8 +155,6 @@ inline float mystrtof(const char *s)
 	}
       else if (c == '.')
 	fa = 0.1;
-      else if (c == '-')
-	neg = true;
       else
 	break;
       s += 1;
