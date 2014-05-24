@@ -20,6 +20,7 @@ def open_pdb_file_with_image3d(path, session):
   from ..molecule import Molecule
   m = Molecule(path, atoms)
   m.pdb_text = text
+  m.color_by_chain()
   from ..molecule import connect
   t2 = time()
   bonds, missing = connect.molecule_bonds(m, session)
@@ -63,6 +64,7 @@ def atom_array(a):
   satoms = atoms.view('S%d'%atoms.itemsize)     # Need string array for C++ sort routine.
   from .. import _image3d
   _image3d.sort_atoms_by_chain(satoms)
+  atoms['atom_shown'] = True
   enums = atoms['element_number']
   atoms['radius'][:] = _image3d.element_radii(enums)
 

@@ -43,8 +43,7 @@ class Molecule(Surface):
     self.bonds = None                   # N by 2 array of atom indices
 
     # Graphics settings
-    self.atom_shown[:] = 1
-    self.atom_shown_count = len(atoms)
+    self.atom_shown_count = self.atom_shown.sum()
     self.atom_style = 'sphere'          # sphere, stick or ballstick
     self.ball_scale = 0.3               # Atom radius scale factor in ball and stick.
     self.bond_radius = 0.2
@@ -53,7 +52,7 @@ class Molecule(Surface):
     self.half_bond_coloring = True
     self.ribbon_radius = 1.0
     self.ribbon_subdivisions = (5,10)   # per-residue along length, and circumference
-    self.update_ribbons = False
+    self.update_ribbons = True
     self.color = (180,180,180,255)      # RGBA 0-255 integer values, used if no per-atom colors
 
     # Graphics objects
@@ -62,9 +61,6 @@ class Molecule(Surface):
     self.atoms_surface_piece = None
     self.bonds_surface_piece = None
     self.ribbon_surface_piece = None
-
-    # Set initial coloring
-    self.color_by_chain()
 
   def atoms(self):
     '''Return an Atoms object containing all the molecule atoms.'''
