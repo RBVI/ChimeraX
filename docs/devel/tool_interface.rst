@@ -12,6 +12,8 @@ Modules
 
 .. toctree::
 
+        cli.rst
+
         cmds.rst
 
         qtutils.rst
