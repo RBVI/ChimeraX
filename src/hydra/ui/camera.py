@@ -182,7 +182,6 @@ class Camera:
     def set_framebuffer(self, view_num, render):
         '''Set the OpenGL drawing buffer and view port to render the scene.'''
         m = self.mode
-        from .. import draw
         if m == 'mono':
             render.set_mono_buffer()
         elif m == 'stereo':
