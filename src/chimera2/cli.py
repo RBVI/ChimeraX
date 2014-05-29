@@ -979,6 +979,8 @@ class Command:
 				if name in self._ci.required:
 					self._error = "Invalid '%s' argument: %s" % (name, err)
 					return
+				# optional and wrong type, try as keyword
+				break
 		self._error = ""
 
 		# process keyword arguments
@@ -1001,7 +1003,7 @@ class Command:
 					c = self.completions[0]
 					text = self._complete(chars, c[len(word):])
 					continue
-				self._error = "Expected keyword argument"
+				self._error = "Expected keyword, got '%s'" % word
 				return
 			self.amount_parsed += len(chars)
 			text = text[len(chars):]
@@ -1082,6 +1084,17 @@ if __name__ == '__main__':
 	def test7(center=None):
 		print('test7 center:', center)
 
+	test8_info = CmdInfo(
+		optional=[
+			('always', bool_arg),
+			('target', string_arg),
+			('names', List_of(string_arg)),
+			]
+	)
+	@register('test8', test8_info)
+	def test8(always=True, target="all", names=[None]):
+		print('test8 always, target, names:', always, target, names)
+
 	tests = [
 		(True,	'test1 color red 12 3.5'),
 		(True,	'test1 12 color red 3.5'),
@@ -1113,6 +1126,10 @@ if __name__ == '__main__':
 		(True,	'test6 3.4 abc 7.8'),
 		(True,	'test7 center 3.4, 5.6, 7.8'),
 		(True,	'test7 center 3.4, 5.6'),
+		(True,  'test8 always false'),
+		(True,  'test8 always true target tool'),
+		(True,  'test8 always true tool'),
+		(True,  'test8 always tool'),
 	]
 	cmd = Command()
 	for t in tests:
@@ -1122,7 +1139,7 @@ if __name__ == '__main__':
 			cmd.parse_text(text, final=final)
 			if cmd.current_text != text:
 				print(cmd.current_text)
-			#print(cmd._args, cmd._kwargs)
+			#print(cmd.current_text, cmd._kwargs)
 			p = cmd.completions
 			if p:
 				print('completions:', p)
