@@ -219,8 +219,8 @@ class Aggregate(Annotation):
 	:param annotation: annotation for values in the collection.
 	:param constructor: function/type to create an empty collection.
 	:param add_to: function to add an element to the collection,
-	typically an unbound method.  For immutable collections,
-	return a new colllection.
+	    typically an unbound method.  For immutable collections,
+	    return a new colllection.
 	:param min_size: minimum size of collection, default `None`.
 	:param max_size: maximun size of collection, default `None`.
 	"""
@@ -1130,6 +1130,7 @@ if __name__ == '__main__':
 		(True,  'test8 always true target tool'),
 		(True,  'test8 always true tool'),
 		(True,  'test8 always tool'),
+		(True,  'test8 TRUE tool xyzzy, plugh '),
 	]
 	cmd = Command()
 	for t in tests:
