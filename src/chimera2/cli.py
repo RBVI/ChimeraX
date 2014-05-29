@@ -1,10 +1,10 @@
-"""""
+"""
 cli: application command line support
 =====================================
 
 This module provides a method for parsing text commands
 and calling the functions that implement them.
-First, commands are :py:func:`register`ed
+First, commands are registered
 with a description of the arguments they take,
 and with a function that implements the command.
 Later, a :py:class:`Command` instance is used to parse
@@ -15,19 +15,30 @@ so possible completions can be suggested.
 Text Commands
 -------------
 
-Text commands are composed of a command name, which can be several
-separate words, followed by required arguments, optional arguments
-(optionally introduced with a keyword), and keyword arguments.
-Keyword arguments are a keyword followed by a value.
+Synopsis::
+
+	command_name r1 r2 [o1 [o2]] [k1 v1] [k2 v2]
+
+Text commands are composed of a command name, which can be multiple words,
+followed by required positional arguments, *rX*,
+optional positional arguments, *oX*,
+and keyword arguments with a value, *kX vX*.
+Each argument has an associated Python argument name
+(for keyword arguments it is the keyword),
+so *rX*, *oX*, and *vX* are the type-checked values.
+The names of the optional arguments are used to
+let them be given as keyword arguments as well.
 Multiple value arguments are separated by commas
-that are optionally followed by whitespace.
+and the commas may be followed by whitespace.
 Depending on the type of an argument, *e.g.*, a color name,
 whitespace can also appear within an argument value.
 Argument values may be quoted with double quotes.
 And in quoted strings, Python's string escape sequences are recognized,
-*e.g.*, ``\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign.
+*e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
+\N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
-Words in the command text are automatically completed to the first registered
+Words in the command text may be abbreviated
+and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
 Registering Commands
@@ -37,7 +48,7 @@ To add a command, :py:func:`register` the command name,
 a description of the arguments it takes,
 and the function to call that implements the command.
 Command registration can be partially delayed to avoid importing
-the command description and and function until needed.
+the command description and function until needed.
 See :py:func:`register` and :py:func:`defer_registration` for details.
 
 The description is either an instance of the Command Information class,
@@ -65,15 +76,15 @@ as much as possible:
 +-------------------------------+---------------------------------------+
 + :py:class:`str`		| ``string_arg``			|
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`bool`s	| ``bool3_arg``				|
++ tuple of 3 :py:class:`bool`	| ``bool3_arg``				|
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`float`s	| ``float3_arg``			|
++ tuple of 3 :py:class:`float`	| ``float3_arg``			|
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`int`s	| ``int3_arg``				|
++ tuple of 3 :py:class:`int`	| ``int3_arg``				|
 +-------------------------------+---------------------------------------+
-+ list of :py:class:`float`s	| ``floats_arg``			|
++ list of :py:class:`float`	| ``floats_arg``			|
 +-------------------------------+---------------------------------------+
-+ list of :py:class:`int`s	| ``ints_arg``				|
++ list of :py:class:`int`	| ``ints_arg``				|
 +-------------------------------+---------------------------------------+
 
 .. molecule_arg(s):
@@ -112,8 +123,8 @@ Annotations can be extended with various specializers:
 +-----------------------+-----------------------------------------------+
 + :py:class:`Or`	| ``Or(float_arg, string_arg)``	*discouraged*	|
 +-----------------------+-----------------------------------------------+
-+ :py:class:`Enum_of`	| ennumerated values				|
-+-------------------------------+---------------------------------------+
++ :py:class:`Enum_of`	| enumerated values				|
++-----------------------+-----------------------------------------------+
 
 Creating Your Own Type Annotation
 ---------------------------------
@@ -153,13 +164,9 @@ Here is a simple example::
 
 .. todo::
 
-    Issues: autocompletion, minimum 2 letters? extensions?  Delaying
-    introspect for extensions, help URL? affect graphics flag?
+    Issues: autocompletion, minimum 2 letters? extensions?
+    help URL? affect graphics flag?
 
-.. todo::
-
-    Maybe let typed argument conversion determine how much text to consume
-    (so arguments could have spaces in them)
 """
 
 class UserError(ValueError):
@@ -194,8 +201,10 @@ class Annotation:
 
 	@staticmethod
 	def parse(text):
-		"""Return :param text: converted to appropiate type
+		"""Return text converted to appropriate type.
 		
+		:param text: command line text to parse 
+
 		Abbreviations should be not accepted, instead they
 		should be discovered via the possible completions.
 		"""
@@ -203,8 +212,10 @@ class Annotation:
 
 	@staticmethod
 	def completions(text):
-		"""Return list of possible completions of the :param text:
+		"""Return list of possible completions of the given text.
 			
+		:param text: Text to check for possible completions
+
 		Note that if invalid completions are given, then parsing
 		can go into an infinite loop when trying to automatically
 		complete text.
@@ -212,7 +223,7 @@ class Annotation:
 		raise NotImplemented
 
 class Aggregate(Annotation):
-	"""Commmon class for collections of values.
+	"""Common class for collections of values.
 
 	Aggregate(annotation, constructor, add_to, min_size=None, max_size=None, name=None) -> annotation
 	
@@ -220,9 +231,9 @@ class Aggregate(Annotation):
 	:param constructor: function/type to create an empty collection.
 	:param add_to: function to add an element to the collection,
 	    typically an unbound method.  For immutable collections,
-	    return a new colllection.
+	    return a new collection.
 	:param min_size: minimum size of collection, default `None`.
-	:param max_size: maximun size of collection, default `None`.
+	:param max_size: maximum size of collection, default `None`.
 	"""
 	min_size = 0
 	max_size = sys.maxsize
@@ -344,14 +355,14 @@ class string_arg(Annotation):
 		return []
 
 class Bounded(Annotation):
-	"""Support bounded numberical values
+	"""Support bounded numerical values
 
 	Bounded(annotation, min=None, max=None, name=None) -> a Bounded object
 
 	:param annotation: numerical annotation
 	:param min: optional lower bound
 	:param max: optional upper bound
-	:param name: optional explict name for annotation
+	:param name: optional explicit name for annotation
 	"""
 
 	def __init__(self, annotation, min=None, max=None, name=None):
@@ -381,15 +392,15 @@ class Bounded(Annotation):
 		return self.anno.completions(text)
 
 class Enum_of(Annotation):
-	"""Support enummerated types
+	"""Support enumerated types
 
 	Enum(values, ids=None, name=None) -> an Enum object
 
-	:param values: list/tuple of values
-	:param ids: optional list/tuple of identifiers
+	:param values: sequence of values
+	:param ids: optional sequence of identifiers
 	:param name: optional explicit name for annotation
 
-	If the :param ids: are given, there must be one for each
+	If the *ids* are given, then there must be one for each
 	and every value, otherwise the values are used as the identifiers.
 	The identifiers must all be strings.
 	"""
@@ -427,7 +438,7 @@ class Or(Annotation):
 	
 	Or(annotation, annotation [, annotation]*, name=None) -> annotation
 
-	:param name: optional explict name for annotation
+	:param name: optional explicit name for annotation
 	"""
 
 	def __init__(self, *annotations, name=None):
@@ -534,12 +545,15 @@ def _check_autocomplete(word, mapping, name):
 			raise ValueError("'%s' is a prefix of an existing command" % name)
 
 class CmdInfo:
-	"""Hold information about commands
+	"""Hold information about commands.
 
-	The CmdInfo initializer takes tuples describing the required,
-	optional, and keyword arguments.
-	Each tuple, contains tuples with the argument name and a type
-	annotation.
+	:param required: required positional arguments tuple
+	:param optional: optional positional arguments tuple
+	:param keyword: keyword arguments tuple
+
+	Each tuple contains tuples with the argument name and a type annotation.
+	The command line parser uses the *optional* argument names to as
+	keyword arguments.
 	"""
 	__slots__ = [
 		'required', 'optional', 'keyword',
@@ -618,8 +632,8 @@ def register(name, cmd_info, function=None):
 	
 	:param name: the name of the command and may include spaces.
 	:param cmd_info: information about the command, either an
-	instance of :py:class:`CmdInfo`, or the tuple with CmdInfo
-	parameters.
+	    instance of :py:class:`CmdInfo`, or the tuple with CmdInfo
+	    parameters.
 	:param function: the callback function.
 
 	If the function is None, then it assumed that :py:func:`register`
