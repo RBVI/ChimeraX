@@ -56,6 +56,8 @@ class Place:
         self.matrix = m
         '''3 by 4 numpy array, first 3 columns are axes, last column is origin.'''
 
+        self._is_identity = (matrix is None and axes is None and origin is None)
+
 
     def __mul__(self, p):
         '''Multiplication of a Place and a point transforms from local point coordinates to global coordinates,
@@ -172,7 +174,7 @@ class Place:
         '''Is the transform the identity transformation?  Tests if each of the 3 by 4 matrix elements
         is within the specified tolerance of the identity transform.
         '''
-        return m34.is_identity_matrix(self.matrix)
+        return self._is_identity or m34.is_identity_matrix(self.matrix)
 
 '''
 The following routines create Place objects representing specific transformations.
