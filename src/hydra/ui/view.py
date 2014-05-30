@@ -329,10 +329,6 @@ class View(QtGui.QWindow):
         self.rendered_callbacks.remove(cb)
 
     def draw_scene(self, camera = None, models = None):
-        from ..graphics import llgrutil as gr
-        if gr.use_llgr:
-            gr.render(self)
-            return
 
         if camera is None:
             camera = self.camera
@@ -351,58 +347,24 @@ class View(QtGui.QWindow):
 
         from time import process_time
         t0 = process_time()
-        from ..graphics import Drawing as d
+        from .. import graphics
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
             r.draw_background()
             if models:
                 self.update_projection(vnum, camera = camera)
-                self.draw(d.OPAQUE_DRAW_PASS, vnum, camera, models)
-                if any_transparent_models(models):
-                    r.draw_transparent(lambda: self.draw(d.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
-                                       lambda: self.draw(d.TRANSPARENT_DRAW_PASS, vnum, camera, models))
+                cvinv = camera.view_inverse(vnum)
+                graphics.draw_drawings(r, cvinv, models)
                 if selected:
-                    r.start_rendering_outline(self.window_size)
-                    self.draw(d.OPAQUE_DRAW_PASS, vnum, camera, selected)
-                    self.draw(d.TRANSPARENT_DRAW_PASS, vnum, camera, selected)
-                    r.finish_rendering_outline()
+                    graphics.draw_outline(self.window_size, r, cvinv, selected)
             s = camera.warp_image(vnum, r)
             if s:
-                self.draw_overlays([s])
+                graphics.draw_overlays([s], r)
         t1 = process_time()
         self.last_draw_duration = t1-t0
         
         if self.overlays:
-            self.draw_overlays(self.overlays)
-
-    def draw_outline(self, vnum, camera, models):
-
-        r = self.render
-
-    def draw_overlays(self, overlays):
-
-        r = self.render
-        r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
-        from ..geometry import place
-        cvinv = place.identity()
-        r.enable_depth_test(False)
-        from ..graphics import Drawing as d
-        for m in overlays:
-            m.draw(r, cvinv, d.OPAQUE_DRAW_PASS)
-        r.enable_blending(True)
-        for m in overlays:
-            m.draw(r, cvinv, d.TRANSPARENT_DRAW_PASS)
-        r.enable_depth_test(True)
-
-    def draw(self, draw_pass, view_num, camera, models):
-
-        for m in models:
-            self.draw_model(m, draw_pass, view_num, camera)
-
-    def draw_model(self, m, draw_pass, view_num, camera):
-
-        cvinv = camera.view_inverse(view_num)
-        m.draw(self.render, cvinv, draw_pass)
+            graphics.draw_overlays(self.overlays, r)
 
     def update_level_of_detail(self):
         # Level of detail updating.
@@ -540,10 +502,3 @@ class View(QtGui.QWindow):
     def pixel_size(self, p = None):
         '''Return the pixel size in scene length units at point p in the scene.'''
         return self.camera.pixel_size(self.center_of_rotation if p is None else p)
-
-def any_transparent_models(models):
-
-    for m in models:
-        if m.showing_transparent():
-            return True
-    return False

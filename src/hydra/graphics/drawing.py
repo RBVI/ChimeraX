@@ -498,6 +498,42 @@ class Drawing:
             f = fmin
     return f
 
+def draw_drawings(renderer, cvinv, drawings):
+  r = renderer
+  draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
+  if any_transparent_drawings(drawings):
+    r.draw_transparent(lambda: draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+                       lambda: draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DRAW_PASS))
+
+def draw_multiple(drawings, r, cvinv, draw_pass):
+  for d in drawings:
+    d.draw(r, cvinv, draw_pass)
+
+def any_transparent_drawings(drawings):
+  for d in drawings:
+    if d.showing_transparent():
+      return True
+  return False
+
+def draw_overlays(drawings, renderer):
+
+  r = renderer
+  r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
+  from ..geometry import place
+  cvinv = place.identity()
+  r.enable_depth_test(False)
+  draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
+  r.enable_blending(True)
+  draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DRAW_PASS)
+  r.enable_depth_test(True)
+
+def draw_outline(window_size, renderer, cvinv, drawings):
+  r = renderer
+  r.start_rendering_outline(window_size)
+  draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
+  draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DRAW_PASS)
+  r.finish_rendering_outline()
+
 class Drawing_Selection:
   '''
   Represent a selected drawing as a generic selection object.

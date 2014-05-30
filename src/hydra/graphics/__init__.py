@@ -1,4 +1,4 @@
-from .drawing import Drawing
+from .drawing import Drawing, draw_drawings, draw_outline, draw_overlays
 from .drawing import image_drawing, rgba_drawing
 
 from .opengl import Render, Framebuffer, Lighting, Bindings, Buffer, Texture
