@@ -198,20 +198,20 @@ class Surface_Piece:
     self.was_deleted = False
 
     # Surface piece attribute name, shader variable name, instancing
-    from .. import draw
+    from .. import graphics
     from numpy import uint32, uint8
-    bufs = (('vertices', draw.VERTEX_BUFFER),
-            ('normals', draw.NORMAL_BUFFER),
-            ('vertex_colors', draw.VERTEX_COLOR_BUFFER),
-            ('texture_coordinates', draw.TEXTURE_COORDS_2D_BUFFER),
-            ('elements', draw.ELEMENT_BUFFER),
-            ('shift_and_scale', draw.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('displayed_copy_matrices', draw.INSTANCE_MATRIX_BUFFER),
-            ('displayed_instance_colors', draw.INSTANCE_COLOR_BUFFER),
+    bufs = (('vertices', graphics.VERTEX_BUFFER),
+            ('normals', graphics.NORMAL_BUFFER),
+            ('vertex_colors', graphics.VERTEX_COLOR_BUFFER),
+            ('texture_coordinates', graphics.TEXTURE_COORDS_2D_BUFFER),
+            ('elements', graphics.ELEMENT_BUFFER),
+            ('shift_and_scale', graphics.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('displayed_copy_matrices', graphics.INSTANCE_MATRIX_BUFFER),
+            ('displayed_instance_colors', graphics.INSTANCE_COLOR_BUFFER),
             )
     obufs = []
     for a,v in bufs:
-      b = draw.Buffer(v)
+      b = graphics.Buffer(v)
       b.surface_piece_attribute_name = a
       obufs.append(b)
       if a == 'elements':
@@ -267,8 +267,8 @@ class Surface_Piece:
 
   def bind_buffers(self, shader = None):
     if self.shader_changed(shader):
-      from .. import draw
-      self.vao = draw.Bindings(shader)
+      from .. import graphics
+      self.vao = graphics.Bindings(shader)
     self.vao.activate()
 
   def update_buffers(self, shader):
@@ -357,7 +357,7 @@ class Surface_Piece:
 
   def shader_options(self):
     sopt = {}
-    from ..draw import Render as r
+    from ..graphics import Render as r
     lit = getattr(self, 'use_lighting', True)
     if not lit:
       sopt[r.SHADER_LIGHTING] = False
@@ -512,7 +512,7 @@ def rgba_surface_piece(rgba, pos, size, surf):
   p.color = (1,1,1,1)         # Modulates texture values
   p.use_lighting = False
   p.texture_coordinates = tc
-  from ..draw import Texture
+  from ..graphics import Texture
   p.texture = Texture(rgba)
   return p
 

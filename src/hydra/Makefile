@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= docs draw example_sessions file_io geometry map molecule surface ui _image3d
+SUBDIRS	= docs example_sessions file_io geometry graphics map molecule surface ui _image3d
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app

@@ -1,7 +1,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/draw
+PKG_DIR = $(PYSITEDIR)/hydra/graphics
 
 PYSRCS = __init__.py llgrutil.py opengl.py pyopengl_draw_instanced.py
 

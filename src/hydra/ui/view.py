@@ -37,8 +37,8 @@ class View(QtGui.QWindow):
 
         self.opengl_context = None
 
-        from .. import draw
-        self.render = draw.Render()
+        from .. import graphics
+        self.render = graphics.Render()
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -177,7 +177,7 @@ class View(QtGui.QWindow):
         stereo = 'stereo' if f.stereo() else 'no stereo'
         s.show_info('OpenGL version %s, %s' % (r.opengl_version(), stereo))
 
-        from ..draw import llgrutil as gr
+        from ..graphics import llgrutil as gr
         if gr.use_llgr:
             gr.initialize_llgr()
 
@@ -248,8 +248,8 @@ class View(QtGui.QWindow):
         h = self.window_size[1] if height is None else height
 
         r = self.render
-        from .. import draw
-        fb = draw.Framebuffer(w,h)
+        from .. import graphics
+        fb = graphics.Framebuffer(w,h)
         if not fb.valid():
             return None         # Image size exceeds framebuffer limits
 
@@ -339,7 +339,7 @@ class View(QtGui.QWindow):
         self.rendered_callbacks.remove(cb)
 
     def draw_scene(self, camera = None, models = None):
-        from ..draw import llgrutil as gr
+        from ..graphics import llgrutil as gr
         if gr.use_llgr:
             gr.render(self)
             return

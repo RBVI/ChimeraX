@@ -214,7 +214,7 @@ class Gray_Scale_Drawing:
     t = self.texture_planes.get((k,axis))
     if t is None:
       d = self.color_plane(k, axis)
-      from ..draw import Texture
+      from ..graphics import Texture
       t = Texture(d)
       self.texture_planes[(k,axis)] = t
     return t

@@ -213,10 +213,10 @@ class Camera:
         tw,th = self.warp_window_size
         fb = getattr(self, 'warp_framebuffer', None)
         if fb is None or fb.width != tw or fb.height != th:
-            from .. import draw
-            t = draw.Texture()
+            from .. import graphics
+            t = graphics.Texture()
             t.initialize_rgba(tw,th)
-            self.warp_framebuffer = fb = draw.Framebuffer(texture = t)
+            self.warp_framebuffer = fb = graphics.Framebuffer(texture = t)
         return fb
 
     def warping_surface(self, render):
