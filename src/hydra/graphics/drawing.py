@@ -148,11 +148,15 @@ class Drawing:
     if not self.display:
       return
     for p in self.positions:
-      if not self.empty_drawing():
-        # TODO: Avoid setting same model view over and over when position matrices are identity.
+      if p.is_identity():
+        # Avoid setting same model view when placement is identity
+        cvp = camera_view
+      else:
         renderer.set_model_view_matrix(camera_view, p)
+        cvp = camera_view*p
+      if not self.empty_drawing():
         self.draw_self(renderer, draw_pass)
-      self.draw_children(renderer, camera_view*p, draw_pass, reverse_order, children)
+      self.draw_children(renderer, cvp, draw_pass, reverse_order, children)
 
   def draw_self(self, renderer, draw_pass):
     '''Draw this drawing without children using the given draw pass.'''
@@ -500,6 +504,8 @@ class Drawing:
 
 def draw_drawings(renderer, cvinv, drawings):
   r = renderer
+  from ..geometry.place import Place
+  r.set_model_view_matrix(cvinv, Place())
   draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
   if any_transparent_drawings(drawings):
     r.draw_transparent(lambda: draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
