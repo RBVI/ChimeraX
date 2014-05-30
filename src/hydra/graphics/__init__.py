@@ -1,3 +1,6 @@
+from .drawing import Drawing
+from .drawing import image_drawing, rgba_drawing
+
 from .opengl import Render, Framebuffer, Lighting, Bindings, Buffer, Texture
 
 # Specific buffer types

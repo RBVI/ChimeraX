@@ -1,6 +1,6 @@
 '''
-draw: OpenGL graphics
-=====================
+OpenGL classes
+==============
 
 All calls to OpenGL are made through this module.  Currently all OpenGL is done with PyOpenGL.
 

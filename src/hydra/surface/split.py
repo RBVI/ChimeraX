@@ -16,9 +16,8 @@ def split_surfaces(plist, session, in_place = False):
   surf = None
   if not in_place:
     name = '%s split' % plist[0].surface.name if plist else 'split surface'
-    from .surface import Surface
-    surf = Surface(name)
-    om.add([surf])
+    from ..graphics import Drawing
+    surf = Drawing(name)
     session.add_model(surf)
 
   pplist = []
@@ -28,7 +27,7 @@ def split_surfaces(plist, session, in_place = False):
     if pieces:
       # TODO: Select pieces if original surface selected.
       if in_place:
-        p.surface.remove_piece(p)
+        p.surface.remove_drawing(p)
       else:
         p.display = False
 
@@ -97,7 +96,7 @@ def copy_piece_blob(m, varray, tarray, narray, color, vrgba, temask,
   vmap[vi] = arange(len(vi), dtype = vmap.dtype)
   ta = vmap.take(ta.ravel()).reshape((len(ti),3))
 
-  gp = m.new_piece()
+  gp = m.new_drawing()
   gp.geometry = va, ta
   gp.save_in_session = True
 

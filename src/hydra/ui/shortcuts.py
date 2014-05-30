@@ -379,24 +379,23 @@ def show_biological_unit(m, session):
         print (m.path, 'biomt', len(places))
         if places:
             m.positions = places
-            m.redraw_needed = True
             m.update_level_of_detail(session.view)
 
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
         m.positions = m.positions[:1]
-        m.redraw_needed = True
         m.update_level_of_detail(session.view)
 
 def show_surface_transparent(m):
     from ..map import Volume
-    from ..surface import Surface
+    from ..graphics import Drawing
     if isinstance(m, Volume):
         m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
         m.show()
-    elif isinstance(m, Surface):
-        for p in m.surface_pieces():
+    elif isinstance(m, Drawing):
+        # TODO: Change all drawings, not just children.
+        for p in m.child_drawings():
             r,g,b,a = p.color
             p.color = (r,g,b, (0.5 if a == 1 else 1))
 
@@ -646,23 +645,21 @@ def quit(session):
 def undisplay_half(session):
     for m in session.models:
         mp = m.position
-        for p in m.surface_pieces():
+        for p in m.child_drawings():
             va = p.vertices
             c = 0.5*(va.min(axis=0) + va.max(axis=0))
             pc = p.copies
             if len(pc) == 0:
                 if (mp*c)[2] > 0:
                     p.display = False
-                    m.redraw_needed = True
             else:
                 from numpy import array, bool
                 p.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
                 p.displayed_copy_matrices = None
-                m.redraw_needed = True
+                p.redraw_needed()
 
 def display_all(session):
     for m in session.models:
-        for p in m.surface_pieces():
+        for p in m.child_drawings():
             p.display = True
             p.instance_display = None
-            m.redraw_needed = True

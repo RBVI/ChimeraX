@@ -5,10 +5,11 @@ def write_surfaces_as_stl(path, surfaces, session, displayed_only = True):
 
     if displayed_only:
         surfs = [s for s in surfaces if s.display]
-        plist = sum(([p for p in s.surface_pieces() if p.display] for s in surfs), [])
+        # TODO: Write full hierarchy, not just child drawings.
+        plist = sum(([p for p in s.child_drawings() if p.display] for s in surfs), [])
     else:
         surfs = surfaces
-        plist = sum((s.surface_pieces() for s in surfaces), [])
+        plist = sum((s.child_drawings() for s in surfaces), [])
     f = open(path, 'wb')
     write_surface_pieces(plist, f)
     f.close()

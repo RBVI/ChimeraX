@@ -222,9 +222,10 @@ class Camera:
     def warping_surface(self, render):
 
         if not hasattr(self, 'warp_surface'):
-            from ..surface import Surface
-            self.warp_surface = s = Surface('warp plane')
-            p = s.new_piece()
+            from ..graphics import Drawing
+            self.warp_surface = s = Drawing('warp plane')
+            # TODO: Use a childless drawing.
+            p = s.new_drawing()
             from numpy import array, float32, int32
             va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
             ta = array(((0,1,2),(0,2,3)), int32)
@@ -236,7 +237,7 @@ class Camera:
             p.use_radial_warp = True
 
         s = self.warp_surface
-        p = s.surface_pieces()[0]
+        p = s.child_drawings()[0]
         p.texture = self.warp_framebuffer.texture
 
         return s

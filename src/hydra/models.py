@@ -21,10 +21,14 @@ class Models:
     def model_count(self):
         '''Number of open models.'''
         return len(self.models)
+    
+    def model_redraw_needed(self):
+        self.redraw_needed = True
+        self.bounds_changed = True
 
     def add_model(self, model, callbacks = True):
         '''
-        Add a model to the scene.  A model is a Surface object.
+        Add a model to the scene.  A model is a Drawing object.
         '''
         self.models.append(model)
         if model.id is None:
@@ -33,6 +37,8 @@ class Models:
         if model.display:
             self.redraw_needed = True
             self.bounds_changed = True
+
+        model.redraw_needed = self.model_redraw_needed
 
         if callbacks:
             for cb in self.add_model_callbacks:
@@ -91,12 +97,12 @@ class Models:
     def display_models(self, mlist):
         for m in mlist:
             m.display = True
-            m.redraw_needed = True
+            m.redraw_needed()
 
     def hide_models(self, mlist):
         for m in mlist:
             m.display = False
-            m.redraw_needed = True
+            m.redraw_needed()
 
     def maps(self):
         '''Return a list of the Volume models in the scene.'''
@@ -109,7 +115,7 @@ class Models:
         return tuple(m for m in self.models if isinstance(m,Molecule))
 
     def surfaces(self):
-        '''Return a list of the Surface models in the scene which are not Molecules.'''
+        '''Return a list of the Drawings in the scene which are not Molecules.'''
         from .molecule import Molecule
         return tuple(m for m in self.models if not isinstance(m,(Molecule)))
 

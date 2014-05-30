@@ -138,7 +138,7 @@ class View(QtGui.QWindow):
         # Maybe calling destroy on the QWindow, then setFormat() and create() would work.  Did not try.
         # It may be necessary to simply destroy the old QWindow and QWidget container and make a new
         # one. A third difficulty is that OpenGL does not allow sharing VAOs between contexts.
-        # Surface models use VAOs, so those would have to be destroyed and recreated.  Sharing does
+        # Drawings use VAOs, so those would have to be destroyed and recreated.  Sharing does
         # handle VBOs, textures and shaders.
         #
         # Test code follows.
@@ -299,16 +299,6 @@ class View(QtGui.QWindow):
         c = self.camera
         s = self.session
         draw = self.redraw_needed or c.redraw_needed or s.redraw_needed
-        mlist = s.model_list() + self.overlays
-        if draw:
-            for m in mlist:
-                m.redraw_needed = False
-        else:
-            for m in mlist:
-                if m.redraw_needed:
-                    m.redraw_needed = False
-                    s.bounds_changed = True
-                    draw = True
         if draw:
             self.redraw_needed = False
             c.redraw_needed = False
@@ -361,19 +351,20 @@ class View(QtGui.QWindow):
 
         from time import process_time
         t0 = process_time()
+        from ..graphics import Drawing as d
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
             r.draw_background()
             if models:
                 self.update_projection(vnum, camera = camera)
-                self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
+                self.draw(d.OPAQUE_DRAW_PASS, vnum, camera, models)
                 if any_transparent_models(models):
-                    r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
-                                       lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
+                    r.draw_transparent(lambda: self.draw(d.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
+                                       lambda: self.draw(d.TRANSPARENT_DRAW_PASS, vnum, camera, models))
                 if selected:
                     r.start_rendering_outline(self.window_size)
-                    self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, selected)
-                    self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, selected)
+                    self.draw(d.OPAQUE_DRAW_PASS, vnum, camera, selected)
+                    self.draw(d.TRANSPARENT_DRAW_PASS, vnum, camera, selected)
                     r.finish_rendering_outline()
             s = camera.warp_image(vnum, r)
             if s:
@@ -395,16 +386,13 @@ class View(QtGui.QWindow):
         from ..geometry import place
         cvinv = place.identity()
         r.enable_depth_test(False)
+        from ..graphics import Drawing as d
         for m in overlays:
-            m.draw(self, cvinv, self.OPAQUE_DRAW_PASS)
+            m.draw(r, cvinv, d.OPAQUE_DRAW_PASS)
         r.enable_blending(True)
         for m in overlays:
-            m.draw(self, cvinv, self.TRANSPARENT_DRAW_PASS)
+            m.draw(r, cvinv, d.TRANSPARENT_DRAW_PASS)
         r.enable_depth_test(True)
-
-    OPAQUE_DRAW_PASS = 'opaque'
-    TRANSPARENT_DRAW_PASS = 'transparent'
-    TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
 
     def draw(self, draw_pass, view_num, camera, models):
 
@@ -414,7 +402,7 @@ class View(QtGui.QWindow):
     def draw_model(self, m, draw_pass, view_num, camera):
 
         cvinv = camera.view_inverse(view_num)
-        m.draw(self, cvinv, draw_pass)
+        m.draw(self.render, cvinv, draw_pass)
 
     def update_level_of_detail(self):
         # Level of detail updating.

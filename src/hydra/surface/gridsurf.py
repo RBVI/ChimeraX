@@ -78,11 +78,11 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
 
 def show_surface(name, va, na, ta, session, color = (.7,.7,.7,1), place = None):
 
-    from . import Surface
-    surf = Surface(name)
+    from ..graphics import Drawing
+    surf = Drawing(name)
     if not place is None:
         surf.position = place
-    p = surf.new_piece()
+    p = surf.new_drawing()
     p.geometry = va, ta
     p.normals = na
     p.color = color
