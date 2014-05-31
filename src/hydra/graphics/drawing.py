@@ -269,7 +269,7 @@ class Drawing:
   '''
 
   def shader_changed(self, shader):
-    return self.vao is None or shader != self.vao.shader
+    return self.vao is None or (shader != self.vao.shader and not shader is None)
 
   def bind_buffers(self, shader = None):
     if self.shader_changed(shader):
@@ -360,6 +360,7 @@ class Drawing:
 
     self.bind_buffers()     # Need bound vao to compile shader
 
+    # TODO: Optimize so shader options are not recomputed every frame.
     sopt = self.shader_options()
     p = renderer.use_shader(sopt)
 
@@ -371,6 +372,7 @@ class Drawing:
     if not t is None:
       t.bind_texture()
 
+    # TODO: Optimize so buffer update is not done if nothing changed.
     self.update_buffers(p)
 
     # Draw triangles
