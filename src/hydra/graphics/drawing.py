@@ -273,7 +273,7 @@ class Drawing:
 
   def bind_buffers(self, shader = None):
     if self.shader_changed(shader):
-      from .. import opengl
+      from . import opengl
       self.vao = opengl.Bindings(shader)
     self.vao.activate()
 
