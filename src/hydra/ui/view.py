@@ -228,6 +228,7 @@ class View(QtGui.QWindow):
         self.redraw_needed = True
 
     def add_overlay(self, overlay):
+        overlay.redraw_needed = self.session.model_redraw_needed
         self.overlays.append(overlay)
         self.redraw_needed = True
 
