@@ -528,7 +528,8 @@ def draw_overlays(drawings, renderer):
   r = renderer
   r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
   from ..geometry import place
-  cvinv = place.identity()
+  cvinv = pl = place.identity()
+  r.set_model_view_matrix(cvinv, pl)
   r.enable_depth_test(False)
   draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
   r.enable_blending(True)
