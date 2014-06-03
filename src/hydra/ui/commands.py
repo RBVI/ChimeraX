@@ -34,8 +34,8 @@ def register_commands(commands):
     add('surface', gridsurf.surface_command)
     from .. import scenes
     add('scene', scenes.scene_command)
-    from . import camera
-    add('camera', camera.camera_command)
+    from . import cameracmd
+    add('camera', cameracmd.camera_command)
     from . import device
     add('device', device.device_command)
     from . import lightcmd
