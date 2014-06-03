@@ -273,26 +273,26 @@ class Drawing:
 
   def bind_buffers(self, shader = None):
     if self.shader_changed(shader):
-      from .. import graphics
-      self.vao = graphics.Bindings(shader)
+      from .. import opengl
+      self.vao = opengl.Bindings(shader)
     self.vao.activate()
 
   def create_opengl_buffers(self):
     # Surface piece attribute name, shader variable name, instancing
-    from .. import graphics
+    from . import opengl
     from numpy import uint32, uint8
-    bufs = (('vertices', graphics.VERTEX_BUFFER),
-            ('normals', graphics.NORMAL_BUFFER),
-            ('vertex_colors', graphics.VERTEX_COLOR_BUFFER),
-            ('texture_coordinates', graphics.TEXTURE_COORDS_2D_BUFFER),
-            ('elements', graphics.ELEMENT_BUFFER),
-            ('shift_and_scale', graphics.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('displayed_copy_matrices', graphics.INSTANCE_MATRIX_BUFFER),
-            ('displayed_instance_colors', graphics.INSTANCE_COLOR_BUFFER),
+    bufs = (('vertices', opengl.VERTEX_BUFFER),
+            ('normals', opengl.NORMAL_BUFFER),
+            ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
+            ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
+            ('elements', opengl.ELEMENT_BUFFER),
+            ('shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('displayed_copy_matrices', opengl.INSTANCE_MATRIX_BUFFER),
+            ('displayed_instance_colors', opengl.INSTANCE_COLOR_BUFFER),
             )
     obufs = []
     for a,v in bufs:
-      b = graphics.Buffer(v)
+      b = opengl.Buffer(v)
       b.surface_piece_attribute_name = a
       obufs.append(b)
       if a == 'elements':
@@ -581,8 +581,8 @@ def rgba_drawing(rgba, pos, size, drawing):
   d.color = (1,1,1,1)         # Modulates texture values
   d.use_lighting = False
   d.texture_coordinates = tc
-  from ..graphics import Texture
-  d.texture = Texture(rgba)
+  from . import opengl
+  d.texture = opengl.Texture(rgba)
   return d
 
 # Extract rgba values from a QImage.
