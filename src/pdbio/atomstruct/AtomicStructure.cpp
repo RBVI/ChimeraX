@@ -181,35 +181,46 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::
 }
 
 void
-AtomicStructure::make_chains(AtomicStructure::Res_Lists* chain_members,
-    AtomicStructure::Sequences* full_sequences) const
-// if both args supplied, the res lists in chain_members correspond
-// one for one with the sequences in full_sequences (including possible
-// null residue pointers);  if just chain_members supplied, use SEQRES
-// records if available to form full sequence, and the chain_members
-// may need het residues weeded out and in some cases broken into more
-// chains (but never combined);  if neither supplied, use the residues
-// stored in the AtomicStructure and break them into chains ala the
-// chain_members-only case and extract the sequence from them
+AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info)
+// if null, fall back to chains derived from the structure directly
 {
-    Res_Lists* chain_membs = chain_members;
-    Sequences* full_seqs = full_sequences;
+    ChainInfo* ci = (ChainInfo*)chain_info;
 
-    if (chain_membs == nullptr) {
-        chain_membs = new Res_Lists;
-        Residues::const_iterator ri = _residues.begin();
-        Residue* prev = ri->get();
-        ri++;
-        while(ri != _residues.end()) {
-            Residue* cur = ri->get();
-            ri++;
+    if (ci == nullptr) {
+        auto polys = polymers();
+        // gather chain IDs and, if not unique, use numbers instead
+        std::vector<const std::string> ids;
+        for (auto pi = polys.begin(); pi != polys.end(); ++pi) {
+            ids.push_back((*(*pi).begin())->chain_id());
+        }
+        std::set<const std::string> unique_ids(ids.begin(), ids.end());
+        if (ids.size() != unique_ids.size()) {
+            ids.clear();
+            for (int i = 1; i <= polys.size(); ++i) {
+                ids.push_back(std::to_string(i));
+            }
+        }
+        ci = new ChainInfo();
+        auto idi = ids.begin();
+        for (auto pi = polys.begin(); pi != polys.end(); ++pi, ++idi) {
+            ci->insert(ChainInfo::value_type(
+                *idi, CI_Chain_Pairing(*pi, nullptr)));
         }
     }
 
-    if (chain_members == nullptr)
-        delete chain_membs;
-    if (full_sequences == nullptr)
-        delete full_seqs;
+    Chains* chains = new Chains();
+    for (auto cii = ci->begin(); cii != ci->end(); ++cii) {
+       const std::string& chain_id = (*cii).first;
+       CI_Chain_Pairing chain_pairing = (*cii).second;
+       Chain::Residues& residues = chain_pairing.first;
+       Sequence::Contents* chars = chain_pairing.second;
+       auto chain = new Chain(chain_id);
+       chains->emplace_back(chain);
+       chain->bulk_set(residues, chars);
+    }
+
+    if (chain_info == nullptr)
+        delete ci;
 }
 
 Atom *
@@ -294,6 +305,23 @@ AtomicStructure::new_residue(std::string &name, std::string &chain, int pos,
     Residue *r = new Residue(this, name, chain, pos, insert);
     _residues.insert(ri, std::unique_ptr<Residue>(r));
     return r;
+}
+
+std::vector<Chain::Residues>
+AtomicStructure::polymers() const
+{
+    // Find all polymeric connections and make a map
+    // keyed on residue with value of next polymeric residue
+    std::map<Residue*, Residue*> connected;
+
+    //TODO: go through missing-structure pseudobonds
+
+    // Go through residue list; if residue not in any
+    // chain yet but is in map, then start a chain with it
+
+    // Go through map to gather complete chain; ensure we
+    // don't go infinite in cases where the polymer is circular
+    return std::vector<Chain::Residues>();
 }
 
 void

@@ -21,7 +21,7 @@ public:
     static unsigned char  rname3to1(const char *);
     static unsigned char  rname3to1(const std::string &rn)
         { return rname3to1(rn.c_str()); }
-    Sequence();
+    Sequence() {}
     const Contents&  sequence() const { return _sequence; }
 };
 
