@@ -21,7 +21,8 @@ AtomicStructure::best_alt_locs() const
 {
     // check the common case of all blank alt locs first...
     bool all_blank = true;
-    for (auto ai = _atoms.begin(); ai != _atoms.end(); ++ai) {
+    const Atoms& as = atoms();
+    for (auto ai = as.begin(); ai != as.end(); ++ai) {
         if (!(*ai)->_alt_loc_map.empty()) {
             all_blank = false;
             break;
