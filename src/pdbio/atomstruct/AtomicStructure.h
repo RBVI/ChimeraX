@@ -30,17 +30,15 @@ public:
     typedef std::vector<Sequence>  Sequences;
 private:
     CoordSet *  _active_coord_set;
-    Atoms  _atoms;
-    Bonds  _bonds;
     CoordSets  _coord_sets;
     Residues  _residues;
 public:
     AtomicStructure();
-    const Atoms &    atoms() const { return _atoms; }
+    const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
     std::map<Residue *, char>  best_alt_locs() const;
-    const Bonds &    bonds() const { return _bonds; }
+    const Bonds &    bonds() const { return edges(); }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_bond(Bond *);
     CoordSet *  find_coord_set(int) const;
