@@ -856,10 +856,15 @@ class Command:
 				and completions:
 					c = completions[0][len(word):]
 					if multiword:
+						if c[0].isspace():
+							text = text[len(chars):]
+							continue
 						c = c.split(None, 1)[0]
 					text = self._complete(chars, c)
 					del all_words[-1]
 					del all_chars[-1]
+					chars = ''.join(all_chars)
+					text = text[len(chars):]
 					continue
 				self._error = err
 				if multiword and not completions:
@@ -871,7 +876,7 @@ class Command:
 				self.completions = completions
 				raise
 		self.amount_parsed += len(chars)
-		text = text[len(chars):]
+		text = self.current_text[self.amount_parsed:]
 		return value, text
 
 	def _parse_aggregate(self, anno, text, final):
@@ -984,6 +989,7 @@ class Command:
 		self._error = ""
 
 		# process keyword arguments
+		word_map = self._ci.keyword
 		while 1:
 			word, chars = self._next_token(text)
 			if not word:
@@ -1002,6 +1008,7 @@ class Command:
 					# and retry
 					c = self.completions[0]
 					text = self._complete(chars, c[len(word):])
+					self.completions = []
 					continue
 				self._error = "Expected keyword, got '%s'" % word
 				return
@@ -1022,9 +1029,33 @@ class Command:
 
 if __name__ == '__main__':
 
+	class Color_arg(Annotation):
+		multiword = True
+		name = 'a color'
+
+		Builtin_Colors = {
+			"light gray": (211, 211, 211),
+			"red": (255, 0, 0)
+		}
+
+		@staticmethod
+		def parse(text):
+			text = text.casefold()
+			try:
+				color = Color_arg.Builtin_Colors[text]
+			except KeyError:
+				raise ValueError("Invalid color name")
+			return ([x / 255.0 for x in color])
+
+		@staticmethod
+		def completions(text):
+			text = text.casefold()
+			names = [n for n in Color_arg.Builtin_Colors if n.startswith(text)]
+			return names
+
 	test1_info = CmdInfo(
 		required=[('a', int_arg), ('b', float_arg)], 
-		keyword=[('color', string_arg)]
+		keyword=[('color', Color_arg)]
 	)
 	@register('test1', test1_info)
 	def test1(a: int, b: float, color=None):
@@ -1035,7 +1066,7 @@ if __name__ == '__main__':
 	test2_info = CmdInfo(
 		#required=[('a', string_arg)],
 		#optional=[('text', rest_of_line)],
-		keyword=[('color', string_arg), ('radius', float_arg)]
+		keyword=[('color', Color_arg), ('radius', float_arg)]
 	)
 	@register('test2', test2_info)
 	def test2(a: str='', text='', color=None, radius: float=0):
@@ -1105,8 +1136,10 @@ if __name__ == '__main__':
 		(True,	'test2 color red radius 3.5'),
 		(True,	'test2 color red radius xyzzy'),
 		(True,	'test2 color red radius'),
-		(True,	'test2 color light gray'),
 		(True,	'test2 color "light gray"'),
+		(True,	'test2 color light gray'),
+		(True,	'test2 color li gr'),
+		(True,	'test2 co light gray rad 11'),
 		(True,	'test2 c'),
 		(True,	'test3 radius'),
 		(True,	'test3 radius 12.3'),
