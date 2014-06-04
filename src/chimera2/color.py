@@ -83,6 +83,8 @@ class Color:
 
 from chimera2 import cli
 class Color_arg(cli.Annotation):
+	multiword = True
+	name = 'a color'
 
 	@staticmethod
 	def parse(text):
