@@ -102,7 +102,7 @@ class Gray_Scale_Drawing:
   def texture_matrix(self):	# Maps local coordinates to texture coords.
     pass
 
-  def draw(self, renderer, camera_view, draw_pass):
+  def draw(self, renderer, place, draw_pass):
 
     from ..graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
@@ -117,13 +117,14 @@ class Gray_Scale_Drawing:
       self.update_colors = False
 
     zaxis = self.ijk_to_xyz.z_axis()
-    czaxis = camera_view.apply_without_translation(zaxis) # z axis in camera coords
+    cv = renderer.current_view_matrix
+    czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
     reverse = (czaxis[2] < 0)
 
     spieces = self.plane_drawings
     plist = spieces[::-1] if reverse else spieces
 
-    Drawing.draw(self.surface, renderer, camera_view, draw_pass, children = plist)
+    Drawing.draw(self.surface, renderer, place, draw_pass, children = plist)
 
   def show(self):
 

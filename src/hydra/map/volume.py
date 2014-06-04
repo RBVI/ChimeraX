@@ -1622,14 +1622,14 @@ class Volume(Drawing):
   
   # ---------------------------------------------------------------------------
   #
-  def draw(self, viewer, camera_view, draw_pass):
+  def draw(self, renderer, place, draw_pass):
     if self.representation in ('surface', 'mesh'):
-      Drawing.draw(self, viewer, camera_view, draw_pass)
+      Drawing.draw(self, renderer, place, draw_pass)
     else:
       p = self.outline_box.piece
       if not p is None:
-        Drawing.draw(self, viewer, camera_view, draw_pass, pieces = [p])
-      self.solid.volume.draw(viewer, camera_view, draw_pass)
+        Drawing.draw(self, renderer, place, draw_pass, pieces = [p])
+      self.solid.volume.draw(renderer, place, draw_pass)
 
   # ---------------------------------------------------------------------------
   #

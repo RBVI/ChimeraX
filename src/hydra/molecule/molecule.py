@@ -68,24 +68,24 @@ class Molecule(Drawing):
     a.add_molecules([self])
     return a
 
-  def draw(self, viewer, camera_view, draw_pass):
+  def draw(self, renderer, place, draw_pass):
     '''Draw the molecule using the current style.'''
 
-    self.update_graphics(viewer)
+    self.update_graphics()
 
-    Drawing.draw(self, viewer, camera_view, draw_pass)
+    Drawing.draw(self, renderer, place, draw_pass)
 
-  def update_graphics(self, viewer):
+  def update_graphics(self):
 
     if not self.need_graphics_update:
       return
     self.need_graphics_update = False
 
-    self.update_atom_graphics(viewer)
-    self.update_bond_graphics(viewer)
+    self.update_atom_graphics()
+    self.update_bond_graphics()
     self.update_ribbon_graphics()
 
-  def update_atom_graphics(self, viewer):
+  def update_atom_graphics(self):
 
     self.create_atom_spheres()
     self.update_atom_colors()
@@ -149,7 +149,7 @@ class Molecule(Drawing):
   def any_ribbons_shown(self):
     return self.ribbon_shown.sum() > 0
 
-  def update_bond_graphics(self, viewer):
+  def update_bond_graphics(self):
 
     bonds = self.shown_bonds()
     self.create_bond_cylinders(bonds)

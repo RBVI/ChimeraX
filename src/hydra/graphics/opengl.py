@@ -27,7 +27,7 @@ class Render:
         self.current_projection_matrix = None   # Used when switching shaders
         self.current_model_view_matrix = None   # Used when switching shaders
         self.current_model_matrix = None        # Used for optimizing model view matrix updates
-        self.current_inv_view_matrix = None        # Used for optimizing model view matrix updates
+        self.current_view_matrix = None         # Maps scene to camera coordinates
 
         self.lighting_params = Lighting()
 
@@ -86,7 +86,7 @@ class Render:
             if self.SHADER_DEPTH_CUE in capabilities:
                 self.set_depth_cue_parameters()
             self.set_projection_matrix()
-            self.set_model_view_matrix()
+            self.set_model_matrix()
             if self.SHADER_TEXTURE_2D in capabilities:
                 GL.glUniform1i(p.uniform_id("tex2d"), 0)    # Texture unit 0.
             if self.SHADER_RADIAL_WARP in capabilities:
@@ -145,11 +145,16 @@ class Render:
         if not p is None:
             GL.glUniformMatrix4fv(p.uniform_id('projection_matrix'), 1, False, pm)
 
-    def set_model_view_matrix(self, view_matrix_inverse = None, model_matrix = None):
+    def set_view_matrix(self, vm):
+        '''Set the camera view matrix, mapping scene to camera coordinates.'''
+        self.current_view_matrix = vm
+        self.current_model_matrix = None
+        self.current_model_view_matrix = None
+
+    def set_model_matrix(self, model_matrix = None):
         '''
-        Set the shader to use matrix as the given 4x4 OpenGL model view matrix.
-        Or if matrix is not specified use the given model_matrix and view_matrix Place objects
-        to calculate the model view matrix.
+        Set the shader model view using the given model matrix and previously set view matrix.
+        If no matrix is specified, the shader gets the last used one model view matrix.
         '''
 
         if model_matrix is None:
@@ -157,14 +162,15 @@ class Render:
             if mv4 is None:
                 return
         else:
-            if model_matrix == self.current_model_matrix:
-                from numpy import all
-                if all(view_matrix_inverse == self.current_inv_view_matrix):
+            # TODO: optimize check of same model matrix.
+            cmm = self.current_model_matrix
+            if cmm:
+                if (model_matrix.is_identity() and cmm.is_identity()) or model_matrix.same(cmm):
                     return
-            self.current_inv_view_matrix = v = view_matrix_inverse
-            self.current_model_matrix = m = model_matrix
+            self.current_model_matrix = model_matrix
             # TODO: optimize matrix multiply.  Rendering bottleneck with 200 models open.
-            self.current_model_view_matrix = mv4 = (v*m).opengl_matrix()
+            mv4 = (self.current_view_matrix * model_matrix).opengl_matrix()
+            self.current_model_view_matrix = mv4
 
         p = self.current_shader_program
         if not p is None:
@@ -181,7 +187,7 @@ class Render:
         p = self.current_shader_program.program_id
         lp = self.lighting_params
 
-        move = None if lp.move_lights_with_camera else self.current_inv_view_matrix
+        move = None if lp.move_lights_with_camera else self.current_view_matrix
 
         # Key light
         key_light_dir = GL.glGetUniformLocation(p, b"key_light_direction")
