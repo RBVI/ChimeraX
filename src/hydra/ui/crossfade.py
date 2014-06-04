@@ -27,7 +27,7 @@ class Cross_Fade(Drawing):
         # TODO: Use a childless drawing.
         # Make textured square surface piece
         from .. import graphics
-        self.piece = surface.rgba_drawing(self.rgba, (-1,-1), (2,2), self)
+        self.piece = graphics.rgba_drawing(self.rgba, (-1,-1), (2,2), self)
 
         v.add_overlay(self)
         v.add_new_frame_callback(self.next_frame)
@@ -47,7 +47,7 @@ class Cross_Fade(Drawing):
         alpha = int(255 * (n-f) / n)
         self.rgba[:,:,3] = alpha
         self.piece.texture.reload_texture(self.rgba)
-        self.redraw_needed = True
+        self.redraw_needed()
 
 class Motion_Blur(Drawing):
     
@@ -61,15 +61,15 @@ class Motion_Blur(Drawing):
         self.changed = True
         self.capture_image()
 
-    def draw(self, viewer, camera_view, draw_pass):
-        if draw_pass == viewer.OPAQUE_DRAW_PASS:
+    def draw(self, renderer, place, draw_pass):
+        if draw_pass == self.OPAQUE_DRAW_PASS:
             self.changed = self.capture_image()
         elif self.changed:
-            Drawing.draw(self, viewer, camera_view, draw_pass)
+            Drawing.draw(self, renderer, place, draw_pass)
 
     def capture_image(self):
 
-        self.redraw_needed = True
+        self.redraw_needed()
 
         # Capture current image
         v = self.viewer
@@ -103,7 +103,7 @@ class Motion_Blur(Drawing):
             if c == 0:
                 return False    # No change
             self.piece.texture.reload_texture(self.rgba)
-        self.redraw_needed = True
+        self.redraw_needed()
         return True
 
     def delete(self):

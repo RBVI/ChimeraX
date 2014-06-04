@@ -143,20 +143,16 @@ class Drawing:
   TRANSPARENT_DRAW_PASS = 'transparent'
   TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
 
-  def draw(self, renderer, camera_view, draw_pass, reverse_order = False, children = None):
+  def draw(self, renderer, place, draw_pass, reverse_order = False, children = None):
     '''Draw this drawing and children using the given draw pass.'''
     if not self.display:
       return
     for p in self.positions:
-      if p.is_identity():
-        # Avoid setting same model view when placement is identity
-        cvp = camera_view
-      else:
-        renderer.set_model_view_matrix(camera_view, p)
-        cvp = camera_view*p
+      pp = place if p.is_identity() else place*p
       if not self.empty_drawing():
+        renderer.set_model_matrix(pp)
         self.draw_self(renderer, draw_pass)
-      self.draw_children(renderer, cvp, draw_pass, reverse_order, children)
+      self.draw_children(renderer, pp, draw_pass, reverse_order, children)
 
   def draw_self(self, renderer, draw_pass):
     '''Draw this drawing without children using the given draw pass.'''
@@ -167,12 +163,12 @@ class Drawing:
       if not self.opaque():
         self.draw_geometry(renderer)
 
-  def draw_children(self, renderer, camera_view, draw_pass, reverse_order = False, children = None):
+  def draw_children(self, renderer, place, draw_pass, reverse_order = False, children = None):
     dlist = self.child_drawings() if children is None else children
     if reverse_order:
       dlist = dlist[::-1]
     for d in dlist:
-      d.draw(renderer, camera_view, draw_pass)
+      d.draw(renderer, place, draw_pass)
 
   def bounds(self):
     '''
@@ -273,26 +269,26 @@ class Drawing:
 
   def bind_buffers(self, shader = None):
     if self.shader_changed(shader):
-      from .. import graphics
-      self.vao = graphics.Bindings(shader)
+      from . import opengl
+      self.vao = opengl.Bindings(shader)
     self.vao.activate()
 
   def create_opengl_buffers(self):
     # Surface piece attribute name, shader variable name, instancing
-    from .. import graphics
+    from . import opengl
     from numpy import uint32, uint8
-    bufs = (('vertices', graphics.VERTEX_BUFFER),
-            ('normals', graphics.NORMAL_BUFFER),
-            ('vertex_colors', graphics.VERTEX_COLOR_BUFFER),
-            ('texture_coordinates', graphics.TEXTURE_COORDS_2D_BUFFER),
-            ('elements', graphics.ELEMENT_BUFFER),
-            ('shift_and_scale', graphics.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('displayed_copy_matrices', graphics.INSTANCE_MATRIX_BUFFER),
-            ('displayed_instance_colors', graphics.INSTANCE_COLOR_BUFFER),
+    bufs = (('vertices', opengl.VERTEX_BUFFER),
+            ('normals', opengl.NORMAL_BUFFER),
+            ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
+            ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
+            ('elements', opengl.ELEMENT_BUFFER),
+            ('shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('displayed_copy_matrices', opengl.INSTANCE_MATRIX_BUFFER),
+            ('displayed_instance_colors', opengl.INSTANCE_COLOR_BUFFER),
             )
     obufs = []
     for a,v in bufs:
-      b = graphics.Buffer(v)
+      b = opengl.Buffer(v)
       b.surface_piece_attribute_name = a
       obufs.append(b)
       if a == 'elements':
@@ -506,16 +502,17 @@ class Drawing:
 
 def draw_drawings(renderer, cvinv, drawings):
   r = renderer
+  r.set_view_matrix(cvinv)
   from ..geometry.place import Place
-  r.set_model_view_matrix(cvinv, Place())
-  draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
+  p = Place()
+  draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
   if any_transparent_drawings(drawings):
-    r.draw_transparent(lambda: draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-                       lambda: draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DRAW_PASS))
+    r.draw_transparent(lambda: draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+                       lambda: draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
 
-def draw_multiple(drawings, r, cvinv, draw_pass):
+def draw_multiple(drawings, r, place, draw_pass):
   for d in drawings:
-    d.draw(r, cvinv, draw_pass)
+    d.draw(r, place, draw_pass)
 
 def any_transparent_drawings(drawings):
   for d in drawings:
@@ -528,18 +525,23 @@ def draw_overlays(drawings, renderer):
   r = renderer
   r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
   from ..geometry import place
-  cvinv = place.identity()
+  p0 = place.identity()
+  r.set_view_matrix(p0)
+  r.set_model_matrix(p0)
   r.enable_depth_test(False)
-  draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
+  draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
   r.enable_blending(True)
-  draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DRAW_PASS)
+  draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
   r.enable_depth_test(True)
 
 def draw_outline(window_size, renderer, cvinv, drawings):
   r = renderer
+  r.set_view_matrix(cvinv)
   r.start_rendering_outline(window_size)
-  draw_multiple(drawings, r, cvinv, Drawing.OPAQUE_DRAW_PASS)
-  draw_multiple(drawings, r, cvinv, Drawing.TRANSPARENT_DRAW_PASS)
+  from ..geometry.place import Place
+  p = Place()
+  draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
+  draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS)
   r.finish_rendering_outline()
 
 class Drawing_Selection:
@@ -580,8 +582,8 @@ def rgba_drawing(rgba, pos, size, drawing):
   d.color = (1,1,1,1)         # Modulates texture values
   d.use_lighting = False
   d.texture_coordinates = tc
-  from ..graphics import Texture
-  d.texture = Texture(rgba)
+  from . import opengl
+  d.texture = opengl.Texture(rgba)
   return d
 
 # Extract rgba values from a QImage.

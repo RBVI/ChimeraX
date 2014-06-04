@@ -31,8 +31,8 @@ class View(QtGui.QWindow):
         eye_separation_pixels = psize * (eye_spacing / ssize)
 
         # Create camera
-        from . import camera
-        self.camera = camera.Camera(self.window_size, 'mono', eye_separation_pixels)
+        from ..graphics import Camera
+        self.camera = Camera(self.window_size, 'mono', eye_separation_pixels)
         '''The camera controlling the vantage shown in the graphics window.'''
 
         self.opengl_context = None
@@ -228,6 +228,7 @@ class View(QtGui.QWindow):
         self.redraw_needed = True
 
     def add_overlay(self, overlay):
+        overlay.redraw_needed = self.session.model_redraw_needed
         self.overlays.append(overlay)
         self.redraw_needed = True
 
