@@ -1,5 +1,5 @@
-from ..surface import Surface
-class Molecule(Surface):
+from ..graphics import Drawing
+class Molecule(Drawing):
   '''
   A Molecule represents atoms, bonds, residues and chains, typically read from file formats
   defined by the Protein Data Bank.  The data includes atomic coordinates, atom names,
@@ -13,7 +13,7 @@ class Molecule(Surface):
   def __init__(self, path, atoms):
     from os.path import basename
     name = basename(path)
-    Surface.__init__(self, name)
+    Drawing.__init__(self, name)
 
     self.path = path
 
@@ -58,9 +58,9 @@ class Molecule(Surface):
     # Graphics objects
     self.triangles_per_sphere = 20      # Current level of detail
     self.need_graphics_update = True    # Update is done before drawing
-    self.atoms_surface_piece = None
-    self.bonds_surface_piece = None
-    self.ribbon_surface_piece = None
+    self.atoms_drawing = None
+    self.bonds_drawing = None
+    self.ribbon_drawing = None
 
   def atoms(self):
     '''Return an Atoms object containing all the molecule atoms.'''
@@ -73,7 +73,7 @@ class Molecule(Surface):
 
     self.update_graphics(viewer)
 
-    Surface.draw(self, viewer, camera_view, draw_pass)
+    Drawing.draw(self, viewer, camera_view, draw_pass)
 
   def update_graphics(self, viewer):
 
@@ -92,7 +92,7 @@ class Molecule(Surface):
 
   def update_atom_colors(self):
 
-    p = self.atoms_surface_piece
+    p = self.atoms_drawing
     if p is None:
       return
 
@@ -103,15 +103,15 @@ class Molecule(Surface):
 
   def create_atom_spheres(self):
 
-    p = self.atoms_surface_piece
+    p = self.atoms_drawing
     if self.atom_shown_count == 0:
       if p:
-        self.atoms_surface_piece = None
-        self.remove_piece(p)
+        self.atoms_drawing = None
+        self.remove_drawing(p)
       return
 
     if p is None:
-      self.atoms_surface_piece = p = self.new_piece()
+      self.atoms_drawing = p = self.new_drawing()
 
     ntri = self.triangles_per_sphere
     from .. import surface
@@ -167,15 +167,15 @@ class Molecule(Surface):
 
   def create_bond_cylinders(self, bonds):
 
-    p = self.bonds_surface_piece
+    p = self.bonds_drawing
     if self.atom_shown_count == 0 or bonds is None or self.atom_style == 'sphere':
       if p:
-        self.bonds_surface_piece = None
-        self.remove_piece(p)
+        self.bonds_drawing = None
+        self.remove_drawing(p)
       return
 
     if p is None:
-      self.bonds_surface_piece = p = self.new_piece()
+      self.bonds_drawing = p = self.new_drawing()
 
     from .. import surface
     va, na, ta = surface.cylinder_geometry(caps = False)
@@ -187,7 +187,7 @@ class Molecule(Surface):
 
   def set_bond_colors(self, bonds):
 
-    p = self.bonds_surface_piece
+    p = self.bonds_drawing
     if p is None:
       return
 
@@ -206,7 +206,7 @@ class Molecule(Surface):
     self.ribbon_colors[:] = self.color
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def color_by_chain(self):
     c = chain_colors(self.chain_ids)
@@ -214,12 +214,12 @@ class Molecule(Surface):
     self.ribbon_colors[:] = c
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
     
   def color_by_element(self):
     self.atom_colors[:] = element_colors(self.element_nums)
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def update_ribbon_graphics(self):
 
@@ -227,10 +227,10 @@ class Molecule(Surface):
       return
     self.update_ribbons = False
 
-    rsp = self.ribbon_surface_piece
+    rsp = self.ribbon_drawing
     if rsp:
-      self.remove_piece(rsp)
-      self.ribbon_surface_piece = None
+      self.remove_drawing(rsp)
+      self.ribbon_drawing = None
 
     if not self.any_ribbons_shown():
       return
@@ -282,7 +282,7 @@ class Molecule(Surface):
 
     if geom:
       va,na,ta,ca = combine_geometry(geom)
-      self.ribbon_surface_piece = p = self.new_piece()
+      self.ribbon_drawing = p = self.new_drawing()
       p.geometry = va, ta
       p.normals = na
       p.vertex_colors = ca
@@ -339,7 +339,7 @@ class Molecule(Surface):
       sa[i] |= (((cid[i], rnum[i]) not in cr) and rname[i] != b'HOH')
     self.atom_shown_count = sa.sum()
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def set_ribbon_radius(self, r):
 
@@ -347,19 +347,19 @@ class Molecule(Surface):
       self.ribbon_radius = r
       self.update_ribbons = True
       self.need_graphics_update = True
-      self.redraw_needed = True
+      self.redraw_needed()
 
   def show_solvent(self):
     self.atom_shown |= (self.residue_names == b'HOH')
     self.atom_shown_count = self.atom_shown.sum()
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def hide_solvent(self):
     self.atom_shown &= (self.residue_names != b'HOH')
     self.atom_shown_count = self.atom_shown.sum()
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
     
   def all_atom_indices(self):
 
@@ -472,7 +472,7 @@ class Molecule(Surface):
       a[atom_indices] = True
     self.atom_shown_count = a.sum()
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def hide_index_atoms(self, atom_indices):
     if len(atom_indices) == 0:
@@ -481,7 +481,7 @@ class Molecule(Surface):
     a[atom_indices] = False
     self.atom_shown_count = a.sum()
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def color_index_atoms(self, atom_indices, color):
     if len(atom_indices) == 0:
@@ -489,13 +489,13 @@ class Molecule(Surface):
     ac = self.atom_colors
     ac[atom_indices,:] = color
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def set_ribbon_display(self, display):
     self.ribbon_shown[:] = (1 if display else 0)
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def show_ribbon_for_index_atoms(self, atom_indices, only_these = False):
     rs = self.ribbon_shown
@@ -505,7 +505,7 @@ class Molecule(Surface):
       rs[atom_indices] = True
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def hide_ribbon_for_index_atoms(self, atom_indices):
     if len(atom_indices) == 0:
@@ -514,7 +514,7 @@ class Molecule(Surface):
     rs[atom_indices] = False
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def color_ribbon_for_index_atoms(self, atom_indices, color):
     if len(atom_indices) == 0:
@@ -523,7 +523,7 @@ class Molecule(Surface):
     rc[atom_indices,:] = color
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def color_ribbon(self, chain_id, residue_colors):
     '''
@@ -535,7 +535,7 @@ class Molecule(Surface):
     self.ribbon_colors[s] = residue_colors[qrnums,:]
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed = True
+    self.redraw_needed()
 
   def show_all_atoms(self):
     n = self.atom_count()
@@ -543,21 +543,21 @@ class Molecule(Surface):
       self.atom_shown[:] = True
       self.atom_shown_count = n
       self.need_graphics_update = True
-      self.redraw_needed = True
+      self.redraw_needed()
 
   def hide_all_atoms(self):
     if self.atom_shown_count > 0:
       self.atom_shown[:] = False
       self.atom_shown_count = 0
       self.need_graphics_update = True
-      self.redraw_needed = True
+      self.redraw_needed()
 
   def set_atom_style(self, style):
     '''Set the atom display style to "sphere", "stick", or "ballstick".'''
     if style != self.atom_style:
       self.atom_style = style
       self.need_graphics_update = True
-      self.redraw_needed = True
+      self.redraw_needed()
 
   def first_intercept(self, mxyz1, mxyz2):
     # TODO check intercept of bounding box as optimization
@@ -578,7 +578,7 @@ class Molecule(Surface):
     if not anum is None and not self.all_atoms_shown():
       anum = self.atom_shown.nonzero()[0][anum]
     # Check for ribbon intercept.
-    rsp = self.ribbon_surface_piece
+    rsp = self.ribbon_drawing
     if rsp:
       va, ta = rsp.geometry
       f, t = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
@@ -800,7 +800,7 @@ class Atoms:
       atf.move(axyz)
       m.xyz[a] = axyz
       m.need_graphics_update = True
-      m.redraw_needed = True
+      m.redraw_needed()
 
   def element_numbers(self):
     '''Return a numpy array of atom element numbers (e.g. 6 = carbon, 8 = oxygen).'''

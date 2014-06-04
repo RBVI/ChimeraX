@@ -583,7 +583,7 @@ class CmdInfo:
 		for p in signature.parameters.values():
 			if p.default != EMPTY or p.name in self.required:
 				continue
-			raise ValueError("Wrong function or %s argument must be required or have a default value" % p.name)
+			raise ValueError("Wrong function or '%s' argument must be required or have a default value" % p.name)
 
 		self.function = function
 
@@ -797,7 +797,7 @@ class Command:
 		start = m.end() if m else 0
 		if start == len(text):
 			return '', text
-		if text[0] == '"':
+		if text[start] == '"':
 			m = double.match(text, start)
 			if m:
 				end = m.end()
@@ -806,7 +806,7 @@ class Command:
 				end = len(text)
 				token = text[start + 1:end]
 				self._error = "incomplete quoted text"
-		elif text[0] == "'":
+		elif text[start] == "'":
 			m = single.match(text, start)
 			if m:
 				end = m.end()
@@ -1047,14 +1047,14 @@ if __name__ == '__main__':
 		print('test1 color: %s %s' % (type(color), color))
 
 	test2_info = CmdInfo(
-		required=[('a', string_arg)],
-		optional=[('text', rest_of_line)],
+		#required=[('a', string_arg)],
+		#optional=[('text', rest_of_line)],
 		keyword=[('color', string_arg), ('radius', float_arg)]
 	)
 	@register('test2', test2_info)
-	def test2(a: str, text='', color=None, radius: float=0):
-		print('test2 a: %s %s' % (type(a), a))
-		print('test2 text: %s %s' % (type(text), text))
+	def test2(a: str='', text='', color=None, radius: float=0):
+		#print('test2 a: %s %s' % (type(a), a))
+		#print('test2 text: %s %s' % (type(text), text))
 		print('test2 color: %s %s' % (type(color), color))
 		print('test2 radius: %s %s' % (type(radius), radius))
 
@@ -1115,10 +1115,12 @@ if __name__ == '__main__':
 		(True,	'test1 12 3.5 color red'),
 		(True,	'test1 12 3.5 color'),
 		(True,	'te'),
-		(True,	'test2 color red center 3.5 foo'),
-		(True,	'test2 color red center 3.5'),
-		(True,	'test2 color red center xyzzy'),
-		(True,	'test2 color red center'),
+		(True,	'test2 color red radius 3.5 foo'),
+		(True,	'test2 color red radius 3.5'),
+		(True,	'test2 color red radius xyzzy'),
+		(True,	'test2 color red radius'),
+		(True,	'test2 color light gray'),
+		(True,	'test2 color "light gray"'),
 		(True,	'test2 c'),
 		(True,	'test3 radius'),
 		(True,	'test3 radius 12.3'),
@@ -1130,7 +1132,7 @@ if __name__ == '__main__':
 		(True,	'test5 ints 5, 6, 7, 8, 9'),
 		(True,	'mw test1 color red 12 3.5'),
 		(True,	'mw test1 color red 12 3.5'),
-		(True,	'mw test2 color red center 3.5 foo'),
+		(True,	'mw test2 color red radius 3.5 foo'),
 		(False,	'mw te'),
 		(True,	'mw '),
 		(False,	'mw'),

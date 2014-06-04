@@ -182,7 +182,6 @@ class Camera:
     def set_framebuffer(self, view_num, render):
         '''Set the OpenGL drawing buffer and view port to render the scene.'''
         m = self.mode
-        from .. import draw
         if m == 'mono':
             render.set_mono_buffer()
         elif m == 'stereo':
@@ -214,18 +213,19 @@ class Camera:
         tw,th = self.warp_window_size
         fb = getattr(self, 'warp_framebuffer', None)
         if fb is None or fb.width != tw or fb.height != th:
-            from .. import draw
-            t = draw.Texture()
+            from .. import graphics
+            t = graphics.Texture()
             t.initialize_rgba(tw,th)
-            self.warp_framebuffer = fb = draw.Framebuffer(texture = t)
+            self.warp_framebuffer = fb = graphics.Framebuffer(texture = t)
         return fb
 
     def warping_surface(self, render):
 
         if not hasattr(self, 'warp_surface'):
-            from ..surface import Surface
-            self.warp_surface = s = Surface('warp plane')
-            p = s.new_piece()
+            from ..graphics import Drawing
+            self.warp_surface = s = Drawing('warp plane')
+            # TODO: Use a childless drawing.
+            p = s.new_drawing()
             from numpy import array, float32, int32
             va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
             ta = array(((0,1,2),(0,2,3)), int32)
@@ -237,7 +237,7 @@ class Camera:
             p.use_radial_warp = True
 
         s = self.warp_surface
-        p = s.surface_pieces()[0]
+        p = s.child_drawings()[0]
         p.texture = self.warp_framebuffer.texture
 
         return s

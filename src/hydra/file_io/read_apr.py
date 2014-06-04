@@ -101,7 +101,7 @@ def create_surface_copies(path_prefix, tflist, session):
     if exists(path):
         from .read_stl import read_stl
         surf = read_stl(path, session)
-        p = surf.surface_pieces()[0]
+        p = surf.child_drawings()[0]
         p.color = color = random_color(surf.name)
     else:
         path = path_prefix + '.dae'
@@ -109,7 +109,7 @@ def create_surface_copies(path_prefix, tflist, session):
             return None
         surf = read_collada_surface(path, session)
 
-    for p in surf.surface_pieces():
+    for p in surf.child_drawings():
         if p.copies:
             p.copies = sum([[pl1*pl2 for pl1 in tflist] for pl2 in p.copies], [])
         else:
@@ -145,7 +145,7 @@ def is_cinema4d_collada_surface(surf):
     return False
 
 def fix_cinema4d_coordinates(surf):
-    for p in surf.surface_pieces():
+    for p in surf.child_drawings():
         v, t = p.geometry
         n = p.normals
 

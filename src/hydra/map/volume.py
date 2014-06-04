@@ -3,8 +3,8 @@
 # Holds surface and solid thresholds, color, and transparency and brightness
 # factors.
 #
-from ..surface import Surface
-class Volume(Surface):
+from ..graphics import Drawing
+class Volume(Drawing):
   '''
   A Volume is a rendering of a 3-d image Grid_Data object.  It includes
   color, display styles including surface, mesh and grayscale, contouring levels,
@@ -15,7 +15,7 @@ class Volume(Surface):
   def __init__(self, data, session, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
-    Surface.__init__(self, data.name)
+    Drawing.__init__(self, data.name)
 
     self.session = session
     if not model_id is None:
@@ -55,7 +55,7 @@ class Volume(Surface):
     # Surface display parameters
     self.surface_levels = []
     self.surface_colors = []
-    self.surface_piece_list = []    # SurfacePiece graphics objects
+    self.surface_drawings = []    		# Drawing graphics objects
     self.surface_brightness_factor = 1
     self.transparency_factor = 0                # for surface/mesh
     self.outline_box = Outline_Box(self)
@@ -137,11 +137,11 @@ class Volume(Surface):
     if not change:
       return
 
-    if len(self.surface_piece_list) != len(self.surface_colors):
+    if len(self.surface_drawings) != len(self.surface_colors):
       return
 
     pindex = {}
-    for i, p in enumerate(self.surface_piece_list):
+    for i, p in enumerate(self.surface_drawings):
       pindex[p] = i
 
     # Check if surface pieces for this volume have changed.
@@ -160,7 +160,7 @@ class Volume(Surface):
     # Check if display style of all surface pieces has changed.
     if pchange and self.representation != 'solid':
       styles = set()
-      for p in self.surface_piece_list:
+      for p in self.surface_drawings:
         styles.add(p.display_style)
       if len(styles) == 1:
         pstyle = {p.Solid: 'surface', p.Mesh: 'mesh'}.get(styles.pop(), None)
@@ -465,7 +465,7 @@ class Volume(Surface):
     Set display style to "surface", "mesh", or "solid".
     '''
     if rep != self.representation:
-      self.redraw_needed = True  # Switch to solid does not change surface until draw
+      self.redraw_needed()  # Switch to solid does not change surface until draw
       if rep == 'solid' or self.representation == 'solid':
         ro = self.rendering_options
         adjust_step = (ro.box_faces or ro.any_orthoplanes_shown())
@@ -517,7 +517,7 @@ class Volume(Surface):
     if show:
       self.update_surface(show_mesh, rendering_options)
       self.display = True
-      for p in self.surface_piece_list:
+      for p in self.surface_drawings:
         p.display = True
     else:
       self.hide_surface()
@@ -536,7 +536,7 @@ class Volume(Surface):
   def update_surface(self, show_mesh = None, rendering_options = None):
 
     pieces = self.match_surface_pieces(self.surface_levels)
-    self.surface_piece_list = pieces
+    self.surface_drawings = pieces
     if show_mesh is None:
       show_mesh = (self.representation == 'mesh')
     ro = self.rendering_options if rendering_options is None else rendering_options
@@ -564,7 +564,7 @@ class Volume(Surface):
   def match_surface_pieces(self, levels):
 
     smodel = self
-    plist = [p for p in self.surface_piece_list if not p.was_deleted]
+    plist = [p for p in self.surface_drawings if not p.was_deleted]
     for k,level in enumerate(levels):
       if k < len(plist) and level == plist[k].contour_settings['level']:
         pass
@@ -572,16 +572,16 @@ class Volume(Surface):
             levels[k+1] == plist[k+1].contour_settings['level']):
         pass
       elif k+1 < len(plist) and level == plist[k+1].contour_settings['level']:
-        smodel.remove_piece(plist[k])
+        smodel.remove_drawing(plist[k])
         del plist[k]
       elif (k < len(plist) and k+1 < len(levels) and
             levels[k+1] == plist[k].contour_settings['level']):
-        plist.insert(k, smodel.new_piece())
+        plist.insert(k, smodel.new_drawing())
       elif k >= len(plist):
-        plist.append(smodel.new_piece())
+        plist.append(smodel.new_drawing())
 
     while len(plist) > len(levels):
-      smodel.remove_piece(plist[-1])
+      smodel.remove_drawing(plist[-1])
       del plist[-1]
       
     return plist
@@ -722,10 +722,10 @@ class Volume(Surface):
   #
   def remove_surfaces(self):
 
-    for p in self.surface_piece_list:
+    for p in self.surface_drawings:
       if not p.was_deleted:
-        self.remove_piece(p)
-    self.surface_piece_list = []
+        self.remove_drawing(p)
+    self.surface_drawings = []
     
   # ---------------------------------------------------------------------------
   #
@@ -981,7 +981,7 @@ class Volume(Surface):
   #
   def bounds(self):
 
-    b = Surface.bounds(self)
+    b = Drawing.bounds(self)
     if b is None:
       b = self.xyz_bounds()
     return b
@@ -1016,7 +1016,7 @@ class Volume(Surface):
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
         return f, None
 
-    return Surface.first_intercept(self, mxyz1, mxyz2)
+    return Drawing.first_intercept(self, mxyz1, mxyz2)
 
   # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
@@ -1624,11 +1624,11 @@ class Volume(Surface):
   #
   def draw(self, viewer, camera_view, draw_pass):
     if self.representation in ('surface', 'mesh'):
-      Surface.draw(self, viewer, camera_view, draw_pass)
+      Drawing.draw(self, viewer, camera_view, draw_pass)
     else:
       p = self.outline_box.piece
       if not p is None:
-        Surface.draw(self, viewer, camera_view, draw_pass, pieces = [p])
+        Drawing.draw(self, viewer, camera_view, draw_pass, pieces = [p])
       self.solid.volume.draw(viewer, camera_view, draw_pass)
 
   # ---------------------------------------------------------------------------
@@ -1636,8 +1636,8 @@ class Volume(Surface):
   def showing_transparent(self):
     if self.representation == 'solid' and self.solid:
       return 'a' in self.solid.color_mode
-    from ..surface import Surface
-    return Surface.showing_transparent(self)
+    from ..graphics import Drawing
+    return Drawing.showing_transparent(self)
       
   # ---------------------------------------------------------------------------
   #
@@ -1697,7 +1697,7 @@ class Volume(Surface):
   #
   def hide_surface(self):
 
-    for p in self.surface_piece_list:
+    for p in self.surface_drawings:
       p.display = False
   
   # ---------------------------------------------------------------------------
@@ -1719,7 +1719,7 @@ class Volume(Surface):
   #
   def close_surface(self):
 
-    self.remove_all_pieces()
+    self.remove_all_drawings()
       
   # ---------------------------------------------------------------------------
   #
@@ -1807,7 +1807,7 @@ class Outline_Box:
     hide_diagonals = [b]*len(tlist)
 
     rgba = tuple(rgb) + (1,)
-    p = self.model.new_piece()
+    p = self.model.new_drawing()
     p.display_style = p.Mesh
     p.lineThickness = linewidth
     p.use_lighting = False
@@ -1881,7 +1881,7 @@ class Outline_Box:
     p = self.piece
     if not p is None:
       if not p.was_deleted:
-        self.model.remove_piece(p)
+        self.model.remove_drawing(p)
       self.piece = None
       self.corners = None
       self.rgb = None

@@ -21,5 +21,5 @@ file_io: Reading and writing files
     :members:
 .. automodule:: hydra.file_io.read_swc
     :members:
-.. automodule:: hydra.file_io.session
+.. automodule:: hydra.file_io.session_file
     :members:

@@ -1,8 +1,8 @@
 def read_collada_surfaces(path, session, color = (.7,.7,.7,1)):
 
     from os.path import basename
-    from ..surface import Surface
-    s = Surface(basename(path))
+    from ..graphics import Drawing
+    s = Drawing(basename(path))
 
     from collada import Collada
     c = Collada(path)
@@ -19,6 +19,8 @@ def read_collada_surfaces(path, session, color = (.7,.7,.7,1)):
 
 def surface_pieces_from_nodes(nodes, surf, color, place, ginst):
 
+    # TODO: Copy collada hierarchy instead of flattening it.
+    #       Code was originally written when only 2-level hierarchy was supported.
     splist = []
     from collada.scene import GeometryNode, Node
     from ..geometry.place import Place
@@ -59,7 +61,7 @@ def geometry_surface_pieces(primitives, place, color, s2m, surf):
         vn = empty(v.shape, n.dtype)
         vn[t.ravel(),:] = n[ni.ravel(),:]
 
-        sp = surf.new_piece()
+        sp = surf.new_drawing()
         sp.geometry = v, t
         sp.normals = vn
         c = material_color(s2m.get(p.material), color)

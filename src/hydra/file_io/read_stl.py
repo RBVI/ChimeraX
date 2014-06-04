@@ -13,10 +13,10 @@ def read_stl(path, session, color = (.7,.7,.7,1)):
     comment, va, na, ta = _image3d.parse_stl(stl_data)
 
     s = STL_Surface(path)
-    p = s.new_piece()
-    p.geometry = va, ta
-    p.normals = na
-    p.color = color
+    d = s.new_drawing()
+    d.geometry = va, ta
+    d.normals = na
+    d.color = color
 
     return s
 
@@ -80,14 +80,14 @@ def parse_stl_geometry(nv):
 # -----------------------------------------------------------------------------
 # Make special surface class for restoring sessions
 #
-from ..surface import Surface
-class STL_Surface(Surface):
+from ..graphics import Drawing
+class STL_Surface(Drawing):
 
     def __init__(self, path):
 
         from os.path import basename
         name = basename(path)
-        Surface.__init__(self, name)
+        Drawing.__init__(self, name)
 
         self.path = path
 
@@ -127,7 +127,7 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
             st['display'] = st['displayed']     # Fix old session files
         s.display = st['display']
         s.place = Place(st['place'])
-        p = s.plist[0]
+        p = s.child_drawings()[0]
         p.color = st['color']
         if 'copies' in st:
             p.copies = [Place(c) for c in st['copies']]

@@ -8,7 +8,7 @@ class Gray_Scale_Drawing:
     self.color_grid = None
     self.get_color_plane = None
     self.surface = surface      # Stack of rectangles
-    self.surface_pieces = None
+    self.plane_drawings = None
     self.texture_planes = {}    # maps plane index to texture id
     self.update_colors = False
 
@@ -102,49 +102,49 @@ class Gray_Scale_Drawing:
   def texture_matrix(self):	# Maps local coordinates to texture coords.
     pass
 
-  def draw(self, viewer, camera_view, draw_pass):
+  def draw(self, renderer, camera_view, draw_pass):
 
-    dopaq = (draw_pass == viewer.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
-    dtransp = (draw_pass == viewer.TRANSPARENT_DRAW_PASS and 'a' in self.color_mode)
+    from ..graphics import Drawing
+    dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
+    dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and 'a' in self.color_mode)
     if not dopaq and not dtransp:
       return
 
-    if self.surface_pieces is None:
-      self.surface_pieces = self.make_planes()
+    if self.plane_drawings is None:
+      self.plane_drawings = self.make_planes()
     elif self.update_colors:
       self.reload_textures()
       self.update_colors = False
 
     zaxis = self.ijk_to_xyz.z_axis()
-    vaxis = viewer.camera.view_direction()
-    reverse = ((zaxis * vaxis).sum() > 0)
+    czaxis = camera_view.apply_without_translation(zaxis) # z axis in camera coords
+    reverse = (czaxis[2] < 0)
 
-    spieces = self.surface_pieces
+    spieces = self.plane_drawings
     plist = spieces[::-1] if reverse else spieces
 
-    from ..surface import Surface
-    Surface.draw(self.surface, viewer, camera_view, draw_pass, pieces = plist)
+    Drawing.draw(self.surface, renderer, camera_view, draw_pass, children = plist)
 
   def show(self):
 
-    if self.surface_pieces:
-      for p in self.surface_pieces:
+    if self.plane_drawings:
+      for p in self.plane_drawings:
         p.display = True
 
   def hide(self):
 
-    if self.surface_pieces:
-      for p in self.surface_pieces:
+    if self.plane_drawings:
+      for p in self.plane_drawings:
         p.display = False
 
   def delete(self):
-    plist = self.surface_pieces
+    plist = self.plane_drawings
     if plist is None:
       return
 
     self.texture_planes = {}
-    self.surface.remove_pieces(plist)
-    self.surface_pieces = None
+    self.surface.remove_drawings(plist)
+    self.plane_drawings = None
 
   def make_planes(self):
 
@@ -159,7 +159,7 @@ class Gray_Scale_Drawing:
   def make_axis_planes(self, axis = 2):
 
     planes = tuple((k, axis) for k in range(0,self.grid_size[axis]))
-    plist = self.plane_surface_pieces(planes)
+    plist = self.make_plane_drawings(planes)
     return plist
 
   def make_ortho_planes(self):
@@ -168,7 +168,7 @@ class Gray_Scale_Drawing:
     p = self.orthoPlanesPosition
     show_axis = (op & 0x1, op & 0x2, op & 0x4)
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
-    plist = self.plane_surface_pieces(planes)
+    plist = self.make_plane_drawings(planes)
     return plist
 
   def make_box_faces(self):
@@ -176,11 +176,11 @@ class Gray_Scale_Drawing:
     gs = self.grid_size
     planes = (tuple((0,axis) for axis in (0,1,2)) +
               tuple((gs[axis]-1,axis) for axis in (0,1,2)))
-    plist = self.plane_surface_pieces(planes)
+    plist = self.make_plane_drawings(planes)
     return plist
 
   # Each plane is an index position and axis (k,axis).
-  def plane_surface_pieces(self, planes):
+  def make_plane_drawings(self, planes):
 
     s = self.surface
     gs = self.grid_size
@@ -197,7 +197,7 @@ class Gray_Scale_Drawing:
       va[1:3,a0] += gs[a0]
       va[2:4,a1] += gs[a1]
       self.ijk_to_xyz.move(va)
-      p = s.new_piece()
+      p = s.new_drawing()
       p.geometry = va, ta
       p.color = self.modulation_rgba()
       p.use_lighting = False
@@ -214,7 +214,7 @@ class Gray_Scale_Drawing:
     t = self.texture_planes.get((k,axis))
     if t is None:
       d = self.color_plane(k, axis)
-      from ..draw import Texture
+      from ..graphics import Texture
       t = Texture(d)
       self.texture_planes[(k,axis)] = t
     return t
@@ -236,10 +236,10 @@ class Gray_Scale_Drawing:
 
   def reload_textures(self):
 
-    if self.surface_pieces is None:
+    if self.plane_drawings is None:
       return
 
-    for p in self.surface_pieces:
+    for p in self.plane_drawings:
       t = p.texture
       k,axis = p.plane
       data = self.color_plane(k,axis)

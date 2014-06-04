@@ -332,7 +332,9 @@ def inner_product(u,v):
   
 # -----------------------------------------------------------------------------
 #
-from .._image3d import inner_product_64
+def inner_product_64(u,v):
+  from .. import _image3d
+  return _image3d.inner_product_64(u,v)
   
 # -----------------------------------------------------------------------------
 #

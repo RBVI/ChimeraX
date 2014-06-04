@@ -97,7 +97,6 @@ class Model_Panel:
         for m in self.session.model_list():
             if m.id == id:
                 m.display = not m.display
-                m.redraw_needed = True
 
     # Models were added or closed.
     def models_changed(self, models):

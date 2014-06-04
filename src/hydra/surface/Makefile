@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/surface
 
-PYSRCS = __init__.py gridsurf.py sasa.py shapes.py split.py surface.py tube.py
+PYSRCS = __init__.py gridsurf.py sasa.py shapes.py split.py tube.py
 
 all: $(PYOBJS)
 

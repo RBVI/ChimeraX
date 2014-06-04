@@ -183,7 +183,7 @@ def move_atoms(atoms, ref_atoms, tf, move):
     if move == 'molecules' or move is True:
         for m in atoms.molecules():
             m.position = tf * m.position
-            m.redraw_needed = True
+            m.redraw_needed()
     else:
         if move == 'atoms':
             matoms = atoms
