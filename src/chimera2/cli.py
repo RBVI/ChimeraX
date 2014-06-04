@@ -17,15 +17,15 @@ Text Commands
 
 Synopsis::
 
-	command_name r1 r2 [o1 [o2]] [k1 v1] [k2 v2]
+	command_name rv1 rv2 [ov1 [ov2]] [kn1 kv1] [kn2 kv2]
 
 Text commands are composed of a command name, which can be multiple words,
-followed by required positional arguments, *rX*,
-optional positional arguments, *oX*,
-and keyword arguments with a value, *kX vX*.
+followed by required positional arguments, *rvX*,
+optional positional arguments, *ovX*,
+and keyword arguments with a value, *knX kvX*.
 Each argument has an associated Python argument name
-(for keyword arguments it is the keyword),
-so *rX*, *oX*, and *vX* are the type-checked values.
+(for keyword arguments it is the keyword, *knX*).
+*rvX*, *ovX*, and *kvX* are the type-checked values.
 The names of the optional arguments are used to
 let them be given as keyword arguments as well.
 Multiple value arguments are separated by commas
@@ -202,8 +202,8 @@ class Annotation:
 	@staticmethod
 	def parse(text):
 		"""Return text converted to appropriate type.
-		
-		:param text: command line text to parse 
+
+		:param text: command line text to parse
 
 		Abbreviations should be not accepted, instead they
 		should be discovered via the possible completions.
@@ -213,7 +213,7 @@ class Annotation:
 	@staticmethod
 	def completions(text):
 		"""Return list of possible completions of the given text.
-			
+
 		:param text: Text to check for possible completions
 
 		Note that if invalid completions are given, then parsing
@@ -226,7 +226,7 @@ class Aggregate(Annotation):
 	"""Common class for collections of values.
 
 	Aggregate(annotation, constructor, add_to, min_size=None, max_size=None, name=None) -> annotation
-	
+
 	:param annotation: annotation for values in the collection.
 	:param constructor: function/type to create an empty collection.
 	:param add_to: function to add an element to the collection,
@@ -263,14 +263,14 @@ class Aggregate(Annotation):
 
 def List_of(annotation, min_size=None, max_size=None):
 	"""Annotation for lists of a single type
-	
+
 	List_of(annotation, min_size=None, max_size=None) -> annotation
 	"""
 	return Aggregate(annotation, list, list.append, min_size, max_size)
 
 def Set_of(annotation, min_size=None, max_size=None):
 	"""Annotation for sets of a single type
-	
+
 	Set_of(annotation, min_size=None, max_size=None) -> annotation
 	"""
 	return Aggregate(annotation, set, set.add, min_size, max_size)
@@ -280,7 +280,7 @@ def _tuple_append(t, value):
 
 def Tuple_of(annotation, size):
 	"""Annotation for tuples of a single type
-	
+
 	Tuple_of(annotation, size) -> annotation
 	"""
 	return Aggregate(annotation, tuple, _tuple_append, size, size)
@@ -435,7 +435,7 @@ class Enum_of(Annotation):
 
 class Or(Annotation):
 	"""Support two or more alternative annotations
-	
+
 	Or(annotation, annotation [, annotation]*, name=None) -> annotation
 
 	:param name: optional explicit name for annotation
@@ -505,7 +505,7 @@ class Postcondition:
 
 class SameSize(Postcondition):
 	"""Postcondition check for same size arguments
-	
+
 	SameSize(name1, name2) -> a SameSize object
 
 	:param name1: name of first argument to check
@@ -571,7 +571,7 @@ class CmdInfo:
 
 	def set_function(self, function):
 		"""Set the function to call when the command matches.
-		
+
 		Double check that all function arguments, that do not
 		have default values, are 'required'.
 		"""
@@ -629,7 +629,7 @@ def delay_registration(name, proxy_function, cmd_info=None):
 
 def register(name, cmd_info, function=None):
 	"""register function that implements command
-	
+
 	:param name: the name of the command and may include spaces.
 	:param cmd_info: information about the command, either an
 	    instance of :py:class:`CmdInfo`, or the tuple with CmdInfo
@@ -704,7 +704,7 @@ def _lazy_introspect(cmd_map, word):
 
 def add_keyword_arguments(name, kw_info):
 	"""Make known additional keyword argument(s) for a command
-	
+
 	:param name: the name of the command
 	:param kw_info: { keyword: annotation }
 	"""
@@ -737,7 +737,7 @@ whitespace = re.compile("\s+")
 
 class Command:
 	"""Keep track of partially typed command with possible completions
-	
+
 	:param text: the command text
 	:param final: true if text is the complete command line (final version).
 	"""
@@ -772,7 +772,7 @@ class Command:
 
 	def execute(self):
 		"""If command is valid, execute it."""
-		
+
 		if not self._error_checked:
 			self.error_check()
 		try:
@@ -838,7 +838,7 @@ class Command:
 		else:
 			completion = chars[:-1] + suffix + chars[-1]
 		j = self.amount_parsed
-		t = self.current_text 
+		t = self.current_text
 		self.current_text = t[0:j] + completion + t[i + j:]
 		return self.current_text[j:]
 
@@ -928,7 +928,7 @@ class Command:
 
 	def parse_text(self, text, final=False):
 		"""Parse text into function and arguments
-		
+
 		:param text: The text to be parsed.
 		:param final: True if last version of command text
 
@@ -977,6 +977,7 @@ class Command:
 			self._ci = what
 			self.command_name =  self.current_text[:self.amount_parsed]
 			break
+		word_map = self._ci.keyword
 
 		# process positional arguments
 		positional = self._ci.required.copy()
@@ -986,6 +987,11 @@ class Command:
 		for name, anno in positional.items():
 			if name in self._ci.optional:
 				self._error = ""
+				if not text:
+					break
+				tmp = text.split(None, 1)[0]
+				if tmp in word_map:
+					break
 			else:
 				self._error = "Missing required argument %s" % name
 			try:
@@ -1003,7 +1009,6 @@ class Command:
 		self._error = ""
 
 		# process keyword arguments
-		word_map = self._ci.keyword
 		while 1:
 			word, chars = self._next_token(text)
 			if not word:
@@ -1068,7 +1073,7 @@ if __name__ == '__main__':
 			return names
 
 	test1_info = CmdInfo(
-		required=[('a', int_arg), ('b', float_arg)], 
+		required=[('a', int_arg), ('b', float_arg)],
 		keyword=[('color', Color_arg)]
 	)
 	@register('test1', test1_info)
@@ -1153,7 +1158,7 @@ if __name__ == '__main__':
 		(True,	'test2 color "light gray"'),
 		(True,	'test2 color light gray'),
 		(True,	'test2 color li gr'),
-		(True,	'test2 co light gray rad 11'),
+		(True,	'test2 co li gr rad 11'),
 		(True,	'test2 c'),
 		(True,	'test3 radius'),
 		(True,	'test3 radius 12.3'),
