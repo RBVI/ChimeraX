@@ -13,10 +13,9 @@ def read_stl(path, session, color = (.7,.7,.7,1)):
     comment, va, na, ta = _image3d.parse_stl(stl_data)
 
     s = STL_Surface(path)
-    d = s.new_drawing()
-    d.geometry = va, ta
-    d.normals = na
-    d.color = color
+    s.geometry = va, ta
+    s.normals = na
+    s.color = color
 
     return s
 
@@ -92,14 +91,13 @@ class STL_Surface(Drawing):
         self.path = path
 
     def session_state(self):
-        p = self.child_drawings()[0]
         s = {'id':self.id,
              'path':self.path,
              'display': self.display,
              'positions': tuple(p.matrix for p in self.positions),
-             'color':p.color}
-        if p.copies:
-            s['copies'] = tuple(c.matrix for c in p.copies)
+             'color':self.color}
+        if self.copies:
+            s['copies'] = tuple(c.matrix for c in self.copies)
         return s
 
 # -----------------------------------------------------------------------------
@@ -128,9 +126,8 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
         s.display = st['display']
         if 'positions' in st:
             s.positions = [Place(m) for m in st['positions']]
-        p = s.child_drawings()[0]
-        p.color = st['color']
+        s.color = st['color']
         if 'copies' in st:
-            p.copies = [Place(c) for c in st['copies']]
+            s.copies = [Place(c) for c in st['copies']]
         if not attributes_only:
             session.add_model(s)
