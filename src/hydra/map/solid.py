@@ -132,6 +132,7 @@ class Solid:
       self.volume = self.make_model(surface)
 
     v = self.volume
+    v.display = True
     v.set_array_coordinates(self.transform)
     v.color_mode = self.c_mode
     v.set_modulation_rgba(self.luminance_color())
@@ -159,25 +160,14 @@ class Solid:
     if create_volume or self.update_colors:
       self.update_colors = False
       self.update_coloring()
-
-    self.volume.display = True
-
-#     if create_volume and open:
-#       am = self.align_to_model()
-#       from chimera import openModels
-#       if am and not am in openModels.list():
-#         # Defer adding model to model list until attached model is added so
-#         # that the solid model with have the same id number as attached model.
-#         self.add_handler = openModels.addAddHandler(self.open_model_cb, None)
-#       else:
-#         self.open_model()
     
   # ---------------------------------------------------------------------------
   #
   def make_model(self, surface):
 
     from . import grayscale
-    gsd = grayscale.Gray_Scale_Drawing(surface)
+    gsd = grayscale.Gray_Scale_Drawing()
+    surface.add_drawing(gsd)
 
     return gsd
 
@@ -185,34 +175,13 @@ class Solid:
   #
   def show(self):
 
-    self.volume.show()
+    self.volume.display = True
 
   # ---------------------------------------------------------------------------
   #
   def hide(self):
 
-    self.volume.hide()
-
-  # ---------------------------------------------------------------------------
-  #
-  def open_model(self):
-
-    from chimera import openModels, addModelClosedCallback
-    openModels.add([self.volume], sameAs = self.align_to_model())
-    addModelClosedCallback(self.volume, self.model_closed_cb)
-    
-  # ---------------------------------------------------------------------------
-  # Defer adding model to model list until attached model is added so
-  # that the solid model with have the same id number as attached model.
-  #
-  def open_model_cb(self, trigger_name, x, models):
-
-    am = self.align_to_model()
-    if am is None or am in models:
-      from chimera import openModels
-      openModels.deleteAddHandler(self.add_handler)
-      self.add_handler = None
-      self.open_model()
+    self.volume.display = False
     
   # ---------------------------------------------------------------------------
   #
@@ -450,15 +419,6 @@ class Solid:
       else:
         pm = '2d-xyz'
     return pm
-      
-  # ---------------------------------------------------------------------------
-  #
-  def align_to_model(self):
-
-    am = self.attached_model
-#    if am.was_deleted:
-#      self.attached_model = am = None
-    return am
 
   # ---------------------------------------------------------------------------
   #
@@ -470,14 +430,9 @@ class Solid:
   #
   def close_model(self):
 
-    self.volume.delete()
-    
-  # ---------------------------------------------------------------------------
-  #
-  def model_closed_cb(self, model):
-
-    if model == self.volume:
-      self.volume = None
+    v = self.volume
+    v.parent.delete(v)
+    self.volume = None
 
 # -----------------------------------------------------------------------------
 #
