@@ -148,13 +148,13 @@ class Solid:
     v.show_outline_box = self.show_outline_box
     v.outline_box_rgb = self.outline_box_rgb
     v.outline_box_linewidth = self.outline_box_linewidth
-    v.showBoxFaces = self.box_faces
+    v.show_box_faces = self.box_faces
     axis_bits = 0
     for a in (0,1,2):
       if self.orthoplanes_shown[a]:
         axis_bits |= (1 << a)
-    v.showOrthoPlanes = axis_bits
-    v.orthoPlanesPosition = self.orthoplane_mijk
+    v.show_ortho_planes = axis_bits
+    v.ortho_planes_position = self.orthoplane_mijk
 
     if create_volume or self.update_colors:
       self.update_colors = False

@@ -41,26 +41,26 @@ class Gray_Scale_Drawing:
     self.outline_box_rgb = (1,1,1,1)
     self.outline_box_linewidth = 1
 
-    self.show_box_faces = False
+    self._show_box_faces = False
 
-    self.show_ortho_planes = 0  # bits 0,1,2 correspond to axes x,y,z.
-    self.orthoPlanesPosition = (0,0,0)
+    self._show_ortho_planes = 0  # bits 0,1,2 correspond to axes x,y,z.
+    self.ortho_planes_position = (0,0,0)
 
   def shown_orthoplanes(self):
-    return self.show_ortho_planes
+    return self._show_ortho_planes
   def set_shown_orthoplanes(self, s):
-    if s != self.show_ortho_planes:
-      self.show_ortho_planes = s
+    if s != self._show_ortho_planes:
+      self._show_ortho_planes = s
       self.delete()
-  showOrthoPlanes = property(shown_orthoplanes, set_shown_orthoplanes)
+  show_ortho_planes = property(shown_orthoplanes, set_shown_orthoplanes)
 
   def showing_box_faces(self):
-    return self.show_box_faces
+    return self._show_box_faces
   def set_showing_box_faces(self, s):
-    if s != self.show_box_faces:
-      self.show_box_faces = s
+    if s != self._show_box_faces:
+      self._show_box_faces = s
       self.delete()
-  showBoxFaces = property(showing_box_faces, set_showing_box_faces)
+  show_box_faces = property(showing_box_faces, set_showing_box_faces)
   
   def modulation_rgba(self):
     return self.mod_rgba
@@ -149,9 +149,9 @@ class Gray_Scale_Drawing:
 
   def make_planes(self):
 
-    if self.show_box_faces:
+    if self._show_box_faces:
       plist = self.make_box_faces()
-    elif self.show_ortho_planes:
+    elif self._show_ortho_planes:
       plist = self.make_ortho_planes()
     else:
       plist = self.make_axis_planes()
@@ -165,8 +165,8 @@ class Gray_Scale_Drawing:
 
   def make_ortho_planes(self):
     
-    op = self.show_ortho_planes
-    p = self.orthoPlanesPosition
+    op = self._show_ortho_planes
+    p = self.ortho_planes_position
     show_axis = (op & 0x1, op & 0x2, op & 0x4)
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
     plist = self.make_plane_drawings(planes)
