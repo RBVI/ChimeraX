@@ -84,16 +84,27 @@ class Drawing:
     '''Return the list of surface pieces.'''
     return self._child_drawings
 
+  def all_drawings(self):
+    '''Return all drawings including self and children at all levels.'''
+    dlist = [self]
+    for d in self.child_drawings():
+      dlist.extend(d.all_drawings())
+    return dlist
+
   def new_drawing(self, name = None):
     '''Create a new empty child drawing.'''
     d = Drawing(name)
+    self.add_drawing(d)
+    return d
+
+  def add_drawing(self, d):
+    '''Add a child drawing.'''
     d.redraw_needed = self.redraw_needed
     cd = self._child_drawings
     cd.append(d)
     d.id = len(cd)
     d.parent = self
     self.redraw_needed()
-    return d
 
   def remove_drawing(self, d):
     '''Delete a specified child drawing.'''
@@ -128,13 +139,6 @@ class Drawing:
     self.redraw_needed()
   position = property(get_position, set_position)
   '''Position and orientation of the surface in space.'''
-
-  def showing_transparent(self):
-    '''Are any transparent objects being displayed.'''
-    for d in self.child_drawings():
-      if d.display and not d.opaque():
-        return True
-    return False
 
   def empty_drawing(self):
     return self.vertices is None
@@ -175,15 +179,16 @@ class Drawing:
     The bounds of drawing and children including undisplayed.
     Uses coordinate system of the drawing.  Does not include copies of this drawing.
     '''
+    # TODO: Should this only include displayed drawings?
     from ..geometry.bounds import union_bounds
-    b = self.geometry_bounds()
-    cbounds = union_bounds(d.bounds() for d in self.child_drawings())
-    return union_bounds((b,cbounds))
+    b = union_bounds(d.geometry_bounds() for d in self.all_drawings() if not d.empty_drawing())
+    return b
 
   def placed_bounds(self):
     '''
     The bounds of drawing and children including undisplayed including copies.
     '''
+    # TODO: Should this only include displayed drawings?
     b = self.bounds()
     if b is None or b == (None, None):
       return None
@@ -192,6 +197,30 @@ class Drawing:
       return b
     from ..geometry import bounds
     return bounds.copies_bounding_box(b, p)
+
+  def geometry_bounds(self):
+    '''
+    Return the bounds of the surface piece in surface coordinates including
+    any surface piece copies, but not including whole surface copies.
+    Does not include children.
+    '''
+    # TODO: cache surface piece bounds
+    va = self.vertices
+    if va is None or len(va) == 0:
+      return None
+    xyz_min = va.min(axis = 0)
+    xyz_max = va.max(axis = 0)
+    sas = self.shift_and_scale
+    if not sas is None and len(sas) > 0:
+      xyz = sas[:,:3]
+      xyz_min += xyz.min(axis = 0)
+      xyz_max += xyz.max(axis = 0)
+      # TODO: use scale factors
+    b = (xyz_min, xyz_max)
+    if self.copies:
+      from ..geometry import bounds
+      b = bounds.copies_bounding_box(b, self.copies)
+    return b
 
   def first_intercept(self, mxyz1, mxyz2):
     '''
@@ -205,7 +234,7 @@ class Drawing:
     sd = None
     # TODO handle copies.
     from .. import _image3d
-    for d in self.child_drawings():
+    for d in self.all_drawings():
       if d.display:
         fmin = d.first_geometry_intercept(mxyz1, mxyz2)
         if not fmin is None and (f is None or fmin < f):
@@ -348,6 +377,16 @@ class Drawing:
   def opaque(self):
     return self.color_rgba[3] == 1 and (self.texture is None or self.opaque_texture)
 
+  def showing_transparent(self):
+    '''Are any transparent objects being displayed. Includes all children.'''
+    if self.display:
+      if not self.empty_drawing() and not self.opaque():
+        return True
+      for d in self.child_drawings():
+        if d.showing_transparent():
+          return True
+    return False
+
   def draw_geometry(self, renderer):
     ''' Draw the geometry.'''
 
@@ -449,36 +488,14 @@ class Drawing:
     self.redraw_needed()
     self.masked_edges = None
 
-  def geometry_bounds(self):
-    '''
-    Return the bounds of the surface piece in surface coordinates including
-    any surface piece copies, but not including whole surface copies.
-    '''
-    # TODO: cache surface piece bounds
-    va = self.vertices
-    if va is None or len(va) == 0:
-      return None
-    xyz_min = va.min(axis = 0)
-    xyz_max = va.max(axis = 0)
-    sas = self.shift_and_scale
-    if not sas is None and len(sas) > 0:
-      xyz = sas[:,:3]
-      xyz_min += xyz.min(axis = 0)
-      xyz_max += xyz.max(axis = 0)
-      # TODO: use scale factors
-    b = (xyz_min, xyz_max)
-    if self.copies:
-      from ..geometry import bounds
-      b = bounds.copies_bounding_box(b, self.copies)
-    return b
-
   def first_geometry_intercept(self, mxyz1, mxyz2):
     '''
     Find the first intercept of a line segment with the surface piece and
     return the fraction of the distance along the segment where the intersection occurs
     or None if no intersection occurs.  Intercepts with masked triangle are included.
+    Children drawings are not considered.
     '''
-    if self.ignore_intercept:
+    if self.ignore_intercept or self.empty_drawing():
       return None
     # TODO check intercept of bounding box as optimization
     # TODO handle surface piece shift_and_scale.
