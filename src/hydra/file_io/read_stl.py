@@ -92,11 +92,11 @@ class STL_Surface(Drawing):
         self.path = path
 
     def session_state(self):
-        p = self.plist[0]
+        p = self.child_drawings()[0]
         s = {'id':self.id,
              'path':self.path,
              'display': self.display,
-             'place':self.place.matrix,
+             'positions': tuple(p.matrix for p in self.positions),
              'color':p.color}
         if p.copies:
             s['copies'] = tuple(c.matrix for c in p.copies)
@@ -126,7 +126,8 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
         if 'displayed' in st:
             st['display'] = st['displayed']     # Fix old session files
         s.display = st['display']
-        s.place = Place(st['place'])
+        if 'positions' in st:
+            s.positions = [Place(m) for m in st['positions']]
         p = s.child_drawings()[0]
         p.color = st['color']
         if 'copies' in st:
