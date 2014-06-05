@@ -1628,7 +1628,7 @@ class Volume(Drawing):
     else:
       p = self.outline_box.piece
       if not p is None:
-        Drawing.draw(self, renderer, place, draw_pass, pieces = [p])
+        Drawing.draw(self, renderer, place, draw_pass, children = [p])
       self.solid.volume.draw(renderer, place, draw_pass)
 
   # ---------------------------------------------------------------------------
