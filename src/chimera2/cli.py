@@ -127,7 +127,7 @@ Annotations can be extended with various specializers:
 +-----------------------+-----------------------------------------------+
 
 Creating Your Own Type Annotation
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Annotations perform several functions:
 (1) to convert text to a value of the appropriate type,
