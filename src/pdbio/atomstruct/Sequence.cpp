@@ -1,6 +1,9 @@
 // vim: set expandtab ts=4 sw=4:
 #include "Sequence.h"
 
+const std::set<unsigned char>
+Sequence::nucleic_letters = { 'A', 'C', 'G', 'T', 'U' };
+
 Sequence::_1Letter_Map Sequence::_rname3to1 = {
         {"A", 'A'},
         {"+A", 'A'},

@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <string>
 #include "imex.h"
 
@@ -18,6 +19,7 @@ protected:
 public:
     unsigned char&  operator[](unsigned i) { return _sequence[i]; }
     unsigned char  operator[](unsigned i) const { return _sequence[i]; }
+    static const std::set<unsigned char>  nucleic_letters;
     static unsigned char  rname3to1(const char *);
     static unsigned char  rname3to1(const std::string &rn)
         { return rname3to1(rn.c_str()); }

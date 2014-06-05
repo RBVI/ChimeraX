@@ -314,15 +314,48 @@ AtomicStructure::polymers() const
     // Find all polymeric connections and make a map
     // keyed on residue with value of next polymeric residue
     std::map<Residue*, Residue*> connected;
+    const Bonds& bs = bonds();
+    for (auto bi = bs.begin(); bi != bs.end(); ++bi) {
+        Bond* b = bi->get();
+        Atom* start = b->polymeric_start_atom();
+        if (start != nullptr) {
+            connected[start->residue()] = b->other_atom(start)->residue();
+        }
+    }
 
     //TODO: go through missing-structure pseudobonds
 
     // Go through residue list; if residue not in any
     // chain yet but is in map, then start a chain with it
+    std::vector<Chain::Residues> polys;
+    std::set<Residue*> in_chains;
+    for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
+        Residue* r = ri->get();
 
-    // Go through map to gather complete chain; ensure we
-    // don't go infinite in cases where the polymer is circular
-    return std::vector<Chain::Residues>();
+        if (in_chains.find(r) != in_chains.end())
+            continue;
+
+        auto connection = connected.find(r);
+        if (connection == connected.end())
+            continue;
+
+        // Go through map to gather complete chain; ensure we
+        // don't go infinite in cases where the polymer is circular
+        Residue* chain_end = (*connection).first;
+        Chain::Residues chain;
+        chain.push_back(chain_end);
+        in_chains.insert(chain_end);
+        while((connection = connected.find(chain_end)) != connected.end()) {
+            chain_end = (*connection).second;
+            if (in_chains.find(chain_end) != in_chains.end())
+                break;
+            chain.push_back(chain_end);
+            in_chains.insert(chain_end);
+        }
+        polys.push_back(chain);
+    }
+
+    return polys;
 }
 
 void

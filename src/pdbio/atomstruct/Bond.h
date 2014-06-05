@@ -18,7 +18,8 @@ private:
     Bond(AtomicStructure *, Atom *, Atom *);
 
 public:
-    const Atoms    &  atoms() const { return end_points(); }
+    const Atoms&  atoms() const { return end_points(); }
     Atom *  other_atom(Atom *a) const { return other_end(a); }
+    Atom *  polymeric_start_atom() const;
 };
 #endif  // atomic_Bond
