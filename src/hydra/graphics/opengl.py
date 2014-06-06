@@ -569,31 +569,32 @@ class Lighting:
     '''
     Lighting parameters specifying colors and directions of two lights:
     a key (main) light, and a fill light, as well as ambient light color.
-
-      key_light_direction
-      key_light_color
-      fill_light_direction
-      fill_light_color
-      ambient_light_color
-
     Directions are unit vectors in camera coordinates (x right, y up, z opposite camera view).
     Colors are R,G,B float values in the range 0-1.
     '''
 
     def __init__(self):
-        # Lighting parameters
+
         self.key_light_direction = (.577,-.577,-.577)    # Should have unit length
+        '''Direction key light shines in.'''
+
         self.key_light_color = (1,1,1)
+        '''Key light color.'''
 
         self.fill_light_direction = (-.2,-.2,-.959)        # Should have unit length
+        '''Direction fill light shines in.'''
+
         self.fill_light_color = (.5,.5,.5)
+        '''Fill light color.'''
 
         self.ambient_light_color = (1,1,1)
+        '''Ambient light color.'''
 
         self.depth_cue_distance = 15.0  # Distance where dimming begins (Angstroms)
         self.depth_cue_darkest = 0.2    # Smallest dimming factor
 
         self.move_lights_with_camera = True
+        '''Whether lights are attached to camera, or fixed in the scene.'''
 
 class Material:
     '''

@@ -1,3 +1,8 @@
+'''
+Camera
+======
+'''
+
 class Camera:
     '''
     A Camera has a position in the scene and viewing direction given by a Place object.
