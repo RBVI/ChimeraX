@@ -177,7 +177,7 @@ class Drawing:
     if reverse_order:
       dlist = dlist[::-1]
     for d in dlist:
-      d.draw(renderer, place, draw_pass, reverse_order)
+      d.draw(renderer, place, draw_pass, only, reverse_order)
 
   def bounds(self):
     '''
