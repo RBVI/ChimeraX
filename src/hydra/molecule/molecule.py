@@ -68,12 +68,12 @@ class Molecule(Drawing):
     a.add_molecules([self])
     return a
 
-  def draw(self, renderer, place, draw_pass):
+  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
     '''Draw the molecule using the current style.'''
 
     self.update_graphics()
 
-    Drawing.draw(self, renderer, place, draw_pass)
+    Drawing.draw(self, renderer, place, draw_pass, only, reverse_order)
 
   def update_graphics(self):
 

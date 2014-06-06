@@ -98,7 +98,7 @@ class Gray_Scale_Drawing(Drawing):
     self.remove_planes()
     self.grid_size = grid_size
 
-  def draw(self, renderer, place, draw_pass, reverse_order = False, children = None):
+  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
 
     from ..graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
@@ -119,7 +119,7 @@ class Gray_Scale_Drawing(Drawing):
     czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
     reverse = (czaxis[2] < 0)
 
-    Drawing.draw(self, renderer, place, draw_pass, reverse_order = reverse, children = children)
+    Drawing.draw(self, renderer, place, draw_pass, only, reverse_order = reverse)
 
   def remove_planes(self):
 
