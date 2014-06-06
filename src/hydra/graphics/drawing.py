@@ -569,11 +569,14 @@ class Drawing_Selection:
     self.drawing = d
   def description(self):
     d = self.drawing
-    n =  '%d triangles' % len(d.triangles) if d.name is None else d.name
-    desc = '%s %s' % (d.parent.name, n)
+    nt =  '%d triangles' % len(d.triangles)
+    desc = nt if d.name is None else ('%s %s' % (d.name, nt))
     return desc
   def models(self):
-    return [self.drawing.parent]
+    d = self.drawing
+    while hasattr(d, 'parent'):
+      d = d.parent
+    return [d]
 
 def image_drawing(qi, pos, size, drawing = None):
   '''

@@ -50,7 +50,8 @@ def session_state(session, attributes_only = False):
   s = {'version': 2,
        'view': view_state(viewer),
        'camera': camera_state(viewer.camera),
-       'lighting': lighting_state(viewer.render.lighting_params),
+       'lighting': lighting_state(viewer.render.lighting),
+       'material': material_state(viewer.render.material),
   }
 
   from ..map import session as session_file
@@ -89,7 +90,10 @@ def set_session_state(s, session, file_paths, attributes_only = False):
     restore_camera(s['camera'], v.camera)
 
   if 'lighting' in s:
-    restore_lighting(s['lighting'], v.render.lighting_params)
+    restore_lighting(s['lighting'], v.render.lighting)
+
+  if 'material' in s:
+    restore_material(s['material'], v.render.material)
 
   if 'volumes' in s:
     from ..map import session as map_session
@@ -251,11 +255,9 @@ def restore_camera(cs, camera):
 #
 light_parameters = (
   'key_light_direction',
-  'key_light_diffuse_color',
-  'key_light_specular_color',
-  'key_light_specular_exponent',
+  'key_light_color',
   'fill_light_direction',
-  'fill_light_diffuse_color',
+  'fill_light_color',
   'ambient_light_color',
   'depth_cue_distance',
   'depth_cue_darkest',
@@ -274,3 +276,25 @@ def restore_lighting(ls, light_params):
   for name in light_parameters:
     if name in ls:
       setattr(light_params, name, ls[name])
+
+# -----------------------------------------------------------------------------
+#
+material_parameters = (
+  'ambient_reflectivity',
+  'diffuse_reflectivity',
+  'specular_reflectivity',
+  'specular_exponent',
+  )
+
+# -----------------------------------------------------------------------------
+#
+def material_state(material):
+  v = dict((name,getattr(material,name)) for name in material_parameters)
+  return v
+
+# -----------------------------------------------------------------------------
+#
+def restore_material(ms, material):
+  for name in material_parameters:
+    if name in ms:
+      setattr(material, name, ms[name])
