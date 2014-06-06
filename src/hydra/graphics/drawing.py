@@ -16,7 +16,7 @@ class Drawing:
   Child drawings are created by the new_drawing() method and represent a set of triangles
   that can be added or removed from a parent drawing independent of other sets of triangles.  The basic
   data defining the triangles is an N by 3 array of vertices (float32 numpy array) and an array
-  that defines triangles by specify 3 integer index values into the vertex array which define the
+  that defines triangles as 3 integer index values into the vertex array which define the
   3 corners of a triangle.  The triangle array is of shape T by 3 and is a numpy int32 array.
   The filled triangles or a mesh consisting of just the triangle edges can be shown.
   The vertices can be individually colored with linear interpolation of colors across triangles,
@@ -32,14 +32,13 @@ class Drawing:
 
   def __init__(self, name):
     self.name = name
-    self.id = None              # positive integer
-    self._display = True       # private. use display property
+    self.id = None                      # positive integer
     from ..geometry.place import Place
     self.positions = [Place()]          # List of Place objects
     self._child_drawings = []
+    self.subsets = set(['displayed'])     # Subsets drawing belongs to.
     self.selected = False
-    def redraw_no_op():
-      pass
+
     self.redraw_needed = redraw_no_op
     self.was_deleted = False
 
@@ -50,7 +49,6 @@ class Drawing:
     self.vertex_colors = None           # N by 4 uint8 values
     self.edge_mask = None
     self.masked_edges = None
-    self.display = True
     self.display_style = self.Solid
     self.color_rgba = (.7,.7,.7,1)
     self.texture = None
@@ -66,12 +64,11 @@ class Drawing:
     self.displayed_instance_colors = None
     self.instance_display = None        # bool numpy array, show only some instances
 
-    self.vao = None     	# Holds the buffer pointers and bindings
-
     self.ignore_intercept = False       # Calls to first_intercept() return None if ignore_intercept is true.
 					# This is so outline boxes are not used for front-center rotation.
-    self.was_deleted = False
 
+    # OpenGL rendering                                    
+    self.bindings = None                # Holds the buffer pointers and shader variable bindings
     self.opengl_buffers = []
     self.element_buffer = None
 
@@ -125,10 +122,16 @@ class Drawing:
     self.remove_drawings(self.child_drawings())
 
   def get_display(self):
-    return self._display
+    return 'displayed' in self.subsets
   def set_display(self, display):
-    self._display = display
-    self.redraw_needed()
+    s = self.subsets
+    d = 'displayed' in s
+    if display != d:
+      if display:
+        s.add('displayed')
+      else:
+        s.remove('displayed')
+      self.redraw_needed()
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
@@ -147,16 +150,18 @@ class Drawing:
   TRANSPARENT_DRAW_PASS = 'transparent'
   TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
 
-  def draw(self, renderer, place, draw_pass, reverse_order = False, children = None):
+  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
     '''Draw this drawing and children using the given draw pass.'''
-    if not self.display:
-      return
+    s = self.subsets
+    for o in only:
+      if o not in s:
+        return
     for p in self.positions:
       pp = place if p.is_identity() else place*p
       if not self.empty_drawing():
         renderer.set_model_matrix(pp)
         self.draw_self(renderer, draw_pass)
-      self.draw_children(renderer, pp, draw_pass, reverse_order, children)
+      self.draw_children(renderer, pp, draw_pass, only, reverse_order)
 
   def draw_self(self, renderer, draw_pass):
     '''Draw this drawing without children using the given draw pass.'''
@@ -167,12 +172,12 @@ class Drawing:
       if not self.opaque():
         self.draw_geometry(renderer)
 
-  def draw_children(self, renderer, place, draw_pass, reverse_order = False, children = None):
-    dlist = self.child_drawings() if children is None else children
+  def draw_children(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
+    dlist = self.child_drawings()
     if reverse_order:
       dlist = dlist[::-1]
     for d in dlist:
-      d.draw(renderer, place, draw_pass)
+      d.draw(renderer, place, draw_pass, reverse_order)
 
   def bounds(self):
     '''
@@ -232,7 +237,6 @@ class Drawing:
     '''
     f = None
     sd = None
-    # TODO handle copies.
     from .. import _image3d
     for d in self.all_drawings():
       if d.display:
@@ -241,6 +245,35 @@ class Drawing:
           f = fmin
           sd = d
     return f, Drawing_Selection(sd)
+
+  def first_geometry_intercept(self, mxyz1, mxyz2):
+    '''
+    Find the first intercept of a line segment with the surface piece and
+    return the fraction of the distance along the segment where the intersection occurs
+    or None if no intersection occurs.  Intercepts with masked triangle are included.
+    Children drawings are not considered.
+    '''
+    if self.ignore_intercept or self.empty_drawing():
+      return None
+    # TODO check intercept of bounding box as optimization
+    # TODO handle surface piece shift_and_scale.
+    f = None
+    va, ta = self.geometry
+    from .. import _image3d
+    if len(self.copies) == 0:
+      fmin, tmin = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
+      if not fmin is None and (f is None or fmin < f):
+        f = fmin
+    else:
+      # TODO: This will be very slow for large numbers of copies.
+      id = self.instance_display
+      for c,tf in enumerate(self.copies):
+        if id is None or id[c]:
+          cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+          fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+          if not fmin is None and (f is None or fmin < f):
+            f = fmin
+    return f
 
   def delete(self):
     '''
@@ -268,7 +301,7 @@ class Drawing:
     for b in self.opengl_buffers:
       b.delete_buffer()
 
-    self.vao = None
+    self.bindings = None
     self.was_deleted = True
 
   def get_geometry(self):
@@ -294,13 +327,13 @@ class Drawing:
   '''
 
   def shader_changed(self, shader):
-    return self.vao is None or (shader != self.vao.shader and not shader is None)
+    return self.bindings is None or (shader != self.bindings.shader and not shader is None)
 
   def bind_buffers(self, shader = None):
     if self.shader_changed(shader):
       from . import opengl
-      self.vao = opengl.Bindings(shader)
-    self.vao.activate()
+      self.bindings = opengl.Bindings(shader)
+    self.bindings.activate()
 
   def create_opengl_buffers(self):
     # Surface piece attribute name, shader variable name, instancing
@@ -347,7 +380,7 @@ class Drawing:
     for b in self.opengl_buffers:
       data = getattr(self, b.surface_piece_attribute_name)
       if b.update_buffer_data(data) or shader_change:
-        self.vao.bind_shader_variable(b)
+        self.bindings.bind_shader_variable(b)
 
   def get_elements(self):
 
@@ -488,35 +521,6 @@ class Drawing:
     self.redraw_needed()
     self.masked_edges = None
 
-  def first_geometry_intercept(self, mxyz1, mxyz2):
-    '''
-    Find the first intercept of a line segment with the surface piece and
-    return the fraction of the distance along the segment where the intersection occurs
-    or None if no intersection occurs.  Intercepts with masked triangle are included.
-    Children drawings are not considered.
-    '''
-    if self.ignore_intercept or self.empty_drawing():
-      return None
-    # TODO check intercept of bounding box as optimization
-    # TODO handle surface piece shift_and_scale.
-    f = None
-    va, ta = self.geometry
-    from .. import _image3d
-    if len(self.copies) == 0:
-      fmin, tmin = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
-      if not fmin is None and (f is None or fmin < f):
-        f = fmin
-    else:
-      # TODO: This will be very slow for large numbers of copies.
-      id = self.instance_display
-      for c,tf in enumerate(self.copies):
-        if id is None or id[c]:
-          cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-          fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
-          if not fmin is None and (f is None or fmin < f):
-            f = fmin
-    return f
-
 def draw_drawings(renderer, cvinv, drawings):
   r = renderer
   r.set_view_matrix(cvinv)
@@ -560,6 +564,9 @@ def draw_outline(window_size, renderer, cvinv, drawings):
   draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
   draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS)
   r.finish_rendering_outline()
+
+def redraw_no_op():
+  pass
 
 class Drawing_Selection:
   '''
