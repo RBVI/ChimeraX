@@ -1619,17 +1619,6 @@ class Volume(Drawing):
     from .data import save_grid_data
     d = self.grid_data()
     format = save_grid_data(d, path, self.session, format, options, temporary)
-  
-  # ---------------------------------------------------------------------------
-  #
-  def draw(self, renderer, place, draw_pass):
-    if self.representation in ('surface', 'mesh'):
-      Drawing.draw(self, renderer, place, draw_pass)
-    else:
-      p = self.outline_box.piece
-      if not p is None:
-        Drawing.draw(self, renderer, place, draw_pass, children = [p])
-      self.solid.volume.draw(renderer, place, draw_pass)
 
   # ---------------------------------------------------------------------------
   #
