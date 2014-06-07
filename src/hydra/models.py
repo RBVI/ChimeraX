@@ -7,7 +7,7 @@ class Models:
 
         self.models = []
         self.next_id = 1
-        self.selected = set()
+        self._selected_models = None
         self.redraw_needed = False
         self.xyz_bounds = None
         self.bounds_changed = True
@@ -38,7 +38,7 @@ class Models:
             self.redraw_needed = True
             self.bounds_changed = True
 
-        model.redraw_needed = self.model_redraw_needed
+        model.set_redraw_callback(self.model_redraw_needed)
 
         if callbacks:
             for cb in self.add_model_callbacks:
@@ -61,10 +61,10 @@ class Models:
         olist = self.models
         for m in models:
             olist.remove(m)
-            self.selected.discard(m)
             if m.display:
                 self.redraw_needed = True
             m.delete()
+        self._selected_models = None
         self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
         self.bounds_changed = True
 
@@ -77,22 +77,24 @@ class Models:
         '''
         self.close_models(tuple(self.models))
 
-    def select_model(self, m):
-        self.selected.add(m)
-        if m.display:
-            self.redraw_needed = True
-
-    def unselect_model(self, m):
-        self.selected.discard(m)
-        if m.display:
-            self.redraw_needed = True
+    def selected_models(self):
+        sm = self._selected_models
+        if sm is None:
+            sm = tuple(m for m in self.model_list() if m.selected)
+            self._selected_models = sm
+        return sm
 
     def clear_selection(self):
-        for m in self.selected:
+        sm = self.selected_models()
+        for m in sm:
             m.selected = False
-        if self.selected:
+        self._selected_models = ()
+        if sm:
             self.redraw_needed = True
-        self.selected.clear()
+
+    def selection_changed(self):
+        self._selected_models = None
+        self.redraw_needed = True
 
     def display_models(self, mlist):
         for m in mlist:
