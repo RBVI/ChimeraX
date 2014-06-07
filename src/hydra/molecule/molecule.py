@@ -135,7 +135,7 @@ class Molecule(Drawing):
     xyzr[:,3] = r
 
     sas = self.shown_atom_array_values(xyzr)
-    p.shift_and_scale = sas
+    p.instance_shift_and_scale = sas
 
   def shown_atom_array_values(self, a):
     if self.all_atoms_shown():
@@ -183,7 +183,7 @@ class Molecule(Drawing):
     p.normals = na
 
     r = self.bond_radius if self.bond_radii is None else self.bond_radii
-    p.copy_matrices = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
+    p.instance_matrices = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
 
   def set_bond_colors(self, bonds):
 
