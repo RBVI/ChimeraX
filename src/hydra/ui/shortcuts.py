@@ -427,13 +427,13 @@ def command_line(session):
 #  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
 
 def display_selected_models(session):
-  session.display_models(tuple(session.selected))
+  session.display_models(session.selected_models())
 
 def hide_selected_models(session):
-  session.hide_models(tuple(session.selected))
+  session.hide_models(session.selected_models())
 
 def delete_selected_models(session):
-  session.close_models(tuple(session.selected))
+  session.close_models(session.selected_models())
 
 def show_map_full_resolution(m):
   m.new_region(ijk_step = (1,1,1), adjust_step = False)
@@ -655,7 +655,7 @@ def undisplay_half(session):
             else:
                 from numpy import array, bool
                 p.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
-                p.displayed_copy_matrices = None
+                p.displayed_instance_matrices = None
                 p.redraw_needed()
 
 def display_all(session):

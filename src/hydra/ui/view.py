@@ -344,7 +344,7 @@ class View(QtGui.QWindow):
 
         self.update_level_of_detail()
 
-        selected = [m for m in self.session.selected if m.display]
+        selected = [m for m in self.session.selected_models() if m.display]
 
         from time import process_time
         t0 = process_time()
