@@ -644,22 +644,28 @@ def quit(session):
 
 def undisplay_half(session):
     for m in session.models:
+        undisplay_half_model(m)
+
+def undisplay_half_model(m):
+    if not m.empty_drawing():
         mp = m.position
-        for p in m.child_drawings():
-            va = p.vertices
-            c = 0.5*(va.min(axis=0) + va.max(axis=0))
-            pc = p.copies
-            if len(pc) == 0:
-                if (mp*c)[2] > 0:
-                    p.display = False
-            else:
-                from numpy import array, bool
-                p.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
-                p.displayed_instance_matrices = None
-                p.redraw_needed()
+        va = m.vertices
+        c = 0.5*(va.min(axis=0) + va.max(axis=0))
+        pc = m.copies
+        if len(pc) == 0:
+            if (mp*c)[2] > 0:
+                m.display = False
+        else:
+            from numpy import array, bool
+            m.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
+            print('uh', m.name, m.instance_display.sum())
+            m.displayed_instance_matrices = None
+            m.redraw_needed()
+    for c in m.child_drawings():
+        undisplay_half_model(c)
 
 def display_all(session):
     for m in session.models:
-        for p in m.child_drawings():
-            p.display = True
-            p.instance_display = None
+        for c in m.all_drawings():
+            c.display = True
+            c.instance_display = None
