@@ -36,8 +36,7 @@ class Drawing:
     from ..geometry.place import Place
     self.positions = [Place()]          # List of Place objects
     self._child_drawings = []
-    self.subsets = set(['displayed'])     # Subsets drawing belongs to.
-    self.selected = False
+    self.subsets = set(['displayed'])   # Subsets this drawing belongs to.
 
     self.redraw_needed = redraw_no_op
     self.was_deleted = False
@@ -56,13 +55,13 @@ class Drawing:
     self.opaque_texture = False
 
     # Instancing
-    self.shift_and_scale = None         # Instance copies
-    self.copy_places = []               # Instance placements
-    self.copy_matrices = None           # Instance matrices, 4x4 opengl
-    self.displayed_copy_matrices = None # 4x4 matrices for displayed instances
-    self.instance_colors = None         # N by 4 uint8 values
+    self.instance_shift_and_scale = None    # Instance copies
+    self.instance_places = []               # Instance placements
+    self.instance_matrices = None           # Instance matrices, 4x4 opengl
+    self.instance_colors = None             # N by 4 uint8 values
+    self.instance_display = None            # bool numpy array, show only some instances
+    self.displayed_instance_matrices = None # 4x4 matrices for displayed instances
     self.displayed_instance_colors = None
-    self.instance_display = None        # bool numpy array, show only some instances
 
     self.ignore_intercept = False       # Calls to first_intercept() return None if ignore_intercept is true.
 					# This is so outline boxes are not used for front-center rotation.
@@ -118,8 +117,13 @@ class Drawing:
     self.redraw_needed()
 
   def remove_all_drawings(self):
-    '''Delete all surface pieces.'''
+    '''Delete all child drawings.'''
     self.remove_drawings(self.child_drawings())
+
+  def set_redraw_callback(self, redraw_needed):
+    self.redraw_needed = redraw_needed
+    for d in self.child_drawings():
+      d.set_redraw_callback(redraw_needed)
 
   def get_display(self):
     return 'displayed' in self.subsets
@@ -135,6 +139,17 @@ class Drawing:
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
+  def get_selected(self):
+    return 'selected' in self.subsets
+  def set_selected(self, sel):
+    s = self.subsets
+    if sel:
+      s.add('selected')
+    else:
+      s.discard('selected')
+  selected = property(get_selected, set_selected)
+  '''Whether or not the drawing is selected.'''
+
   def get_position(self):
     return self.positions[0]
   def set_position(self, pos):
@@ -146,22 +161,39 @@ class Drawing:
   def empty_drawing(self):
     return self.vertices is None
 
+  def in_subset(self, only):
+    self_in = children_in = True
+    children_only = only
+    s = self.subsets
+    for o in only:
+      require_in_parents = (o == 'displayed')
+      if o not in s:
+        self_in = False
+        if require_in_parents:
+          children_in = False
+          break
+      elif not require_in_parents:
+        if children_only is only:
+          children_only = set(only)
+        children_only.remove(o)
+    return self_in, children_in, children_only
+
   OPAQUE_DRAW_PASS = 'opaque'
   TRANSPARENT_DRAW_PASS = 'transparent'
   TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
 
   def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
     '''Draw this drawing and children using the given draw pass.'''
-    s = self.subsets
-    for o in only:
-      if o not in s:
-        return
+    dself, dchildren, onlyc = self.in_subset(only)
+    if not dself and not dchildren:
+      return
     for p in self.positions:
       pp = place if p.is_identity() else place*p
-      if not self.empty_drawing():
+      if dself and not self.empty_drawing():
         renderer.set_model_matrix(pp)
         self.draw_self(renderer, draw_pass)
-      self.draw_children(renderer, pp, draw_pass, only, reverse_order)
+      if dchildren:
+        self.draw_children(renderer, pp, draw_pass, onlyc, reverse_order)
 
   def draw_self(self, renderer, draw_pass):
     '''Draw this drawing without children using the given draw pass.'''
@@ -178,6 +210,37 @@ class Drawing:
       dlist = dlist[::-1]
     for d in dlist:
       d.draw(renderer, place, draw_pass, only, reverse_order)
+
+  def draw_geometry(self, renderer):
+    ''' Draw the geometry.'''
+
+    if self.triangles is None:
+      return
+
+    self.bind_buffers()     # Need bound vao to compile shader
+
+    # TODO: Optimize so shader options are not recomputed every frame.
+    sopt = self.shader_options()
+    p = renderer.use_shader(sopt)
+
+    # Set color
+    if self.vertex_colors is None and self.instance_colors is None:
+      renderer.set_single_color(self.color_rgba)
+
+    t = self.texture
+    if not t is None:
+      t.bind_texture()
+
+    # TODO: Optimize so buffer update is not done if nothing changed.
+    self.update_buffers(p)
+
+    # Draw triangles
+    eb = self.element_buffer
+    etype = element_type(self.display_style)
+    eb.draw_elements(etype, self.instance_count())
+
+    if not self.texture is None:
+      self.texture.unbind_texture()
 
   def bounds(self):
     '''
@@ -215,7 +278,7 @@ class Drawing:
       return None
     xyz_min = va.min(axis = 0)
     xyz_max = va.max(axis = 0)
-    sas = self.shift_and_scale
+    sas = self.instance_shift_and_scale
     if not sas is None and len(sas) > 0:
       xyz = sas[:,:3]
       xyz_min += xyz.min(axis = 0)
@@ -256,7 +319,7 @@ class Drawing:
     if self.ignore_intercept or self.empty_drawing():
       return None
     # TODO check intercept of bounding box as optimization
-    # TODO handle surface piece shift_and_scale.
+    # TODO handle surface piece instance_shift_and_scale.
     f = None
     va, ta = self.geometry
     from .. import _image3d
@@ -291,10 +354,10 @@ class Drawing:
     self.texture = None
     self.texture_coordinates = None
     self.masked_edges = None
-    self.shift_and_scale = None
-    self.copy_places = []               # Instances
-    self.copy_matrices = None
-    self.displayed_copy_matrices = None
+    self.instance_shift_and_scale = None
+    self.instance_places = []               # Instances
+    self.instance_matrices = None
+    self.displayed_instance_matrices = None
     self.instance_colors = None
     self.displayed_instance_colors = None
     self.instance_display = None
@@ -315,10 +378,10 @@ class Drawing:
   '''Geometry is the array of vertices and array of triangles.'''
 
   def get_copies(self):
-    return self.copy_places
+    return self.instance_places
   def set_copies(self, copies):
-    self.copy_places = copies
-    self.copy_matrices = None   # Compute when drawing
+    self.instance_places = copies
+    self.instance_matrices = None   # Compute when drawing
     self.redraw_needed()
   copies = property(get_copies, set_copies)
   '''
@@ -344,8 +407,8 @@ class Drawing:
             ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
             ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
             ('elements', opengl.ELEMENT_BUFFER),
-            ('shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('displayed_copy_matrices', opengl.INSTANCE_MATRIX_BUFFER),
+            ('instance_shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('displayed_instance_matrices', opengl.INSTANCE_MATRIX_BUFFER),
             ('displayed_instance_colors', opengl.INSTANCE_COLOR_BUFFER),
             )
     obufs = []
@@ -365,15 +428,16 @@ class Drawing:
     if shader_change:
       self.bind_buffers(shader)
 
-    if self.copy_places and self.copy_matrices is None:
-      self.copy_matrices = opengl_matrices(self.copy_places)
+    if self.instance_places and self.instance_matrices is None:
+      self.instance_matrices = opengl_matrices(self.instance_places)
 
-    disp = self.instance_display
+    disp = self.instance_display        # bool array
     if disp is None:
       self.displayed_instance_colors = self.instance_colors
-      self.displayed_copy_matrices = self.copy_matrices
-    elif self.displayed_copy_matrices is None:
-      self.displayed_copy_matrices = self.copy_matrices[disp,:,:]
+      self.displayed_instance_matrices = self.instance_matrices
+    elif self.displayed_instance_matrices is None:
+      # TODO: Changing instance_display does not cause update.
+      self.displayed_instance_matrices = self.instance_matrices[disp,:,:]
       ic = self.instance_colors
       self.displayed_instance_colors = ic[disp,:] if not ic is None else None
 
@@ -420,39 +484,6 @@ class Drawing:
           return True
     return False
 
-  def draw_geometry(self, renderer):
-    ''' Draw the geometry.'''
-
-    if self.triangles is None:
-      return
-
-    self.bind_buffers()     # Need bound vao to compile shader
-
-    # TODO: Optimize so shader options are not recomputed every frame.
-    sopt = self.shader_options()
-    p = renderer.use_shader(sopt)
-
-    # Set color
-    if self.vertex_colors is None and self.instance_colors is None:
-      renderer.set_single_color(self.color_rgba)
-
-    t = self.texture
-    if not t is None:
-      t.bind_texture()
-
-    # TODO: Optimize so buffer update is not done if nothing changed.
-    self.update_buffers(p)
-
-    # Draw triangles
-    eb = self.element_buffer
-    etype = {self.Solid: eb.triangles,
-             self.Mesh: eb.lines,
-             self.Dot: eb.points}[self.display_style]
-    eb.draw_elements(etype, self.instance_count())
-
-    if not self.texture is None:
-      self.texture.unbind_texture()
-
   def shader_options(self):
     sopt = {}
     from ..graphics import Render as r
@@ -466,21 +497,21 @@ class Drawing:
       sopt[r.SHADER_TEXTURE_2D] = True
       if hasattr(self, 'use_radial_warp') and self.use_radial_warp:
         sopt[r.SHADER_RADIAL_WARP] = True
-    if not self.shift_and_scale is None:
+    if not self.instance_shift_and_scale is None:
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
-    elif self.copy_places or not self.copy_matrices is None:
+    elif self.instance_places or not self.instance_matrices is None:
       sopt[r.SHADER_INSTANCING] = True
     return sopt
 
   def instance_count(self):
-    if not self.shift_and_scale is None:
-      ninst = len(self.shift_and_scale)
+    if not self.instance_shift_and_scale is None:
+      ninst = len(self.instance_shift_and_scale)
     elif not self.instance_display is None:
       ninst = self.instance_display.sum()
-    elif self.copy_places:
-      ninst = len(self.copy_places)
-    elif not self.copy_matrices is None:
-      ninst = len(self.copy_matrices)
+    elif self.instance_places:
+      ninst = len(self.instance_places)
+    elif not self.instance_matrices is None:
+      ninst = len(self.instance_matrices)
     else:
       ninst = None
     return ninst
@@ -564,6 +595,16 @@ def draw_outline(window_size, renderer, cvinv, drawings):
   draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
   draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS)
   r.finish_rendering_outline()
+
+def element_type(display_style):
+  from .opengl import Buffer
+  if display_style == Drawing.Solid:
+    t = Buffer.triangles
+  elif display_style == Drawing.Mesh:
+    t = Buffer.lines
+  elif display_style == Drawing.Dot:
+    t = Buffer.points
+  return t
 
 def redraw_no_op():
   pass
