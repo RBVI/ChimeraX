@@ -26,7 +26,7 @@ def parse_apr_file(path):
 
     recpath = None
     pieces = {}
-    from ..geometry.place import Place
+    from ..geometry.place import Place, Places
     for line in lines:
         if line.startswith('#'):
             rprefix = '# recipe '
@@ -102,7 +102,7 @@ def create_surface_copies(path_prefix, tflist, session):
         from .read_stl import read_stl
         surf = read_stl(path, session)
         p = surf.child_drawings()[0]
-        p.color = color = random_color(surf.name)
+        p.color = random_color(surf.name)
     else:
         path = path_prefix + '.dae'
         if not exists(path):
@@ -110,10 +110,8 @@ def create_surface_copies(path_prefix, tflist, session):
         surf = read_collada_surface(path, session)
 
     for p in surf.child_drawings():
-        if p.copies:
-            p.copies = sum([[pl1*pl2 for pl1 in tflist] for pl2 in p.copies], [])
-        else:
-            p.copies = tflist
+        from ..geometry.place import Places
+        p.positions = Places(tflist) * p.positions
 
     return surf
 
@@ -124,7 +122,7 @@ def read_collada_surface(path, session):
     if hasattr(surf, 'collada_unit_name') and surf.collada_unit_name in ('meter', None):
         # TODO: If unit meter tag omitted in file PyCollada sets unit name to None.
         #  Probably should patch pycollada to return unit name even if unit meter scale factor not given.
-        scale_vertices(surf.plist, 100)
+        scale_vertices(surf.child_drawings(), 100)
     if is_cinema4d_collada_surface(surf):
         fix_cinema4d_coordinates(surf)       # Correct for Cinema4d coordinates
     return surf
@@ -192,7 +190,7 @@ def random_color(seed = None):
             seed = string_hash(seed)
         random.seed(seed)
     from random import uniform
-    return (uniform(.2,1), uniform(.2,1), uniform(.2,1), 1)
+    return (int(255*uniform(.2,1)), int(255*uniform(.2,1)), int(255*uniform(.2,1)), 255)
 
 # Hash that produces the same value across sessions and platforms.
 # Python 3 hash() returns different values for the same string in different sessions.
@@ -243,23 +241,23 @@ def read_sphere_file(path, session):
                 pass
 
     n = len(xyzr)
-    from numpy import array, float32, ones, uint8, empty, arange
+    from numpy import zeros, array, float32, arange
+    from ..molecule import atom_dtype, Molecule
+    atoms = zeros((n,), atom_dtype)
+    atoms['atom_name'] = b's'
+    atoms['element_number'] = 1
     xyzra = array(xyzr, float32)
-    xyz = xyzra[:,:3].copy()
-    r = xyzra[:,3].copy()
-    element_nums = ones((n,), uint8)
-    chain_ids = empty((n,), 'S1')
-    chain_ids[:] = 'A'
-    res_nums = arange(1,n+1)
-    res_names = empty((n,), 'S3')
-    res_names[:] = "S"
-    atom_names = empty((n,), 'S3')
-    atom_names[:] = 's'
-    from ..molecule import Molecule
-    m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
-    m.radii = r
-    m.color = (180,180,180,128)
-    m.color_mode = 'custom'
+    atoms['xyz'] = xyzra[:,:3]
+    atoms['radius'] = xyzra[:,3]
+    atoms['residue_name'] = b'S'
+    atoms['residue_number'] = arange(1,n+1)
+    atoms['chain_id'] = b'A'
+    atoms['atom_color'] = (178,178,178,120)
+    atoms['ribbon_color'] = (255,255,255,255)
+    atoms['atom_shown'] = 1
+    atoms['ribbon_shown'] = 0
+    from os.path import basename
+    m = Molecule(basename(path), atoms)
     return m
 
 def read_recipe_file(recipe_path, session):
