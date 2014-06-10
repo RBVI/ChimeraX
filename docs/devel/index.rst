@@ -35,11 +35,11 @@ Hydra Modules
 .. toctree::
    :maxdepth: 2
 
-   draw.rst
-
    file_io.rst
 
    geometry.rst
+
+   graphics.rst
 
    map.rst
 

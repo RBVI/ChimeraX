@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= docs draw example_sessions file_io geometry map molecule surface ui _image3d
+SUBDIRS	= docs example_sessions file_io geometry graphics map molecule surface ui _image3d
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
@@ -37,6 +37,8 @@ ifeq ($(OS),Darwin)
   DATEUTIL_VERSION = 2.2
   DATEUTIL_EGG = python_dateutil-$(DATEUTIL_VERSION)-py$(PYTHON_VERSION).egg
   HDF_VERSION = 5.8
+  SIX_VERSION = 1.6.1
+  SIX_EGG = six-$(SIX_VERSION)-py$(PYTHON_VERSION).egg
 endif
 
 # All needed subdirectories must be set by now.
@@ -75,7 +77,7 @@ $(APP):
 	  $(RSYNC) $(NUMEXPR_EGG)/numexpr numpy tables PyQt5 sip.so $(APP_PY_SITE)
 	cd $(PYSITEDIR) ; \
 	  $(RSYNC) LeapMotion $(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL \
-	           $(DATEUTIL_EGG)/dateutil $(APP_PY_SITE)
+	           $(DATEUTIL_EGG)/dateutil $(SIX_EGG)/six.py $(APP_PY_SITE)
 
 # Copy Qt frameworks into PyQt5 python module
 	-mkdir $(APP_PYQT)/frameworks

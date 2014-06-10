@@ -7,7 +7,7 @@ class Models:
 
         self.models = []
         self.next_id = 1
-        self.selected = set()
+        self._selected_models = None
         self.redraw_needed = False
         self.xyz_bounds = None
         self.bounds_changed = True
@@ -21,10 +21,14 @@ class Models:
     def model_count(self):
         '''Number of open models.'''
         return len(self.models)
+    
+    def model_redraw_needed(self):
+        self.redraw_needed = True
+        self.bounds_changed = True
 
     def add_model(self, model, callbacks = True):
         '''
-        Add a model to the scene.  A model is a Surface object.
+        Add a model to the scene.  A model is a Drawing object.
         '''
         self.models.append(model)
         if model.id is None:
@@ -33,6 +37,8 @@ class Models:
         if model.display:
             self.redraw_needed = True
             self.bounds_changed = True
+
+        model.set_redraw_callback(self.model_redraw_needed)
 
         if callbacks:
             for cb in self.add_model_callbacks:
@@ -55,10 +61,10 @@ class Models:
         olist = self.models
         for m in models:
             olist.remove(m)
-            self.selected.discard(m)
             if m.display:
                 self.redraw_needed = True
             m.delete()
+        self._selected_models = None
         self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
         self.bounds_changed = True
 
@@ -71,32 +77,34 @@ class Models:
         '''
         self.close_models(tuple(self.models))
 
-    def select_model(self, m):
-        self.selected.add(m)
-        if m.display:
-            self.redraw_needed = True
-
-    def unselect_model(self, m):
-        self.selected.discard(m)
-        if m.display:
-            self.redraw_needed = True
+    def selected_models(self):
+        sm = self._selected_models
+        if sm is None:
+            sm = tuple(m for m in self.model_list() if m.selected)
+            self._selected_models = sm
+        return sm
 
     def clear_selection(self):
-        for m in self.selected:
+        sm = self.selected_models()
+        for m in sm:
             m.selected = False
-        if self.selected:
+        self._selected_models = ()
+        if sm:
             self.redraw_needed = True
-        self.selected.clear()
+
+    def selection_changed(self):
+        self._selected_models = None
+        self.redraw_needed = True
 
     def display_models(self, mlist):
         for m in mlist:
             m.display = True
-            m.redraw_needed = True
+            m.redraw_needed()
 
     def hide_models(self, mlist):
         for m in mlist:
             m.display = False
-            m.redraw_needed = True
+            m.redraw_needed()
 
     def maps(self):
         '''Return a list of the Volume models in the scene.'''
@@ -109,14 +117,14 @@ class Models:
         return tuple(m for m in self.models if isinstance(m,Molecule))
 
     def surfaces(self):
-        '''Return a list of the Surface models in the scene which are not Molecules.'''
+        '''Return a list of the Drawings in the scene which are not Molecules.'''
         from .molecule import Molecule
         return tuple(m for m in self.models if not isinstance(m,(Molecule)))
 
     def bounds(self):
         if self.bounds_changed:
             from .geometry import bounds
-            b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
+            b = bounds.union_bounds(m.bounds() for m in self.models if m.display)
             self.xyz_bounds = b
             self.bounds_changed = False
         return self.xyz_bounds
@@ -130,6 +138,6 @@ class Models:
         if models is None:
             models = [m for m in self.models if m.display]
         from .geometry import bounds
-        b = bounds.union_bounds(m.placed_bounds() for m in models)
+        b = bounds.union_bounds(m.bounds() for m in models)
         c,r = bounds.bounds_center_and_radius(b)
         return c

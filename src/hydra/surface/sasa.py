@@ -19,7 +19,7 @@ def buried_sphere_area(i, centers, radii, draw = False):
 #        jlist = list(range(i)) + list(range(i+1,len(centers)))
         print(len(jlist), 'spheres intersect sphere', i)
         surfn = sphere_model(jlist, centers, radii)
-        for p in surfn.surface_pieces():
+        for p in surfn.child_drawings():
             p.color = (.7,.7,.9,.7)
         draw.add_models((surf0, surfn))
 
@@ -83,15 +83,15 @@ def area_in_circles_on_unit_sphere(circles, draw = False, draw_center = (0,0,0),
         return 0
 
     if draw:
-        from .surface import Surface
-        surfc = Surface('circles')
+        from ..graphics import Drawing
+        surfc = Drawing('circles')
         s0 = (draw_center, draw_radius)
         draw_circles(circles, s0, surfc, width = 0.01, offset = 0.01)
 
     cint, lc, nreg = circle_intersections(circles, draw)
 
     if draw:
-        surfi = Surface('boundary points')
+        surfi = Drawing('boundary points')
         draw_sphere_points([ci.point for ci in cint], s0, surfi, (.8,.2,0,1), offset = 0.02)
 
     # Check if circles cover the sphere
@@ -105,7 +105,7 @@ def area_in_circles_on_unit_sphere(circles, draw = False, draw_center = (0,0,0),
 #          (('for %d regions' % (nreg + len(lc))) if nreg < len(paths) else ''))
 
     if draw:
-        surfb = Surface('boundary')
+        surfb = Drawing('boundary')
         for bp in paths:
             draw_boundary(bp, s0, surfb, color = (.8,.5,.5,1), width = 0.01, offset = 0.02)
         draw_circles(tuple(lc), s0, surfb, color = (.8,.5,.5,1), width = 0.01, offset = 0.02)
@@ -335,7 +335,7 @@ def draw_arc(circle, p1, p2, sphere, surf, color, width, offset):
     c, r = sphere
     va *= r + offset
     va += c
-    p = surf.new_piece()
+    p = surf.new_drawing()
     p.geometry = va, ta
     p.normals = na
     p.color = color
@@ -355,7 +355,7 @@ def draw_circles(circles, sphere, s, offset, width, color = (0,.2,.9,1)):
         f.move(va)
         f.move(na)
         va += cs
-        p = s.new_piece()
+        p = s.new_drawing()
         p.geometry = va, ta
         p.normals = na
         p.color = color
@@ -423,13 +423,13 @@ def arc_points(arc, n):
 
 def sphere_model(indices, centers, radii, ntri = 2000):
 
-    from .surface import Surface
-    s = Surface('spheres')
+    from ..graphics import Drawing
+    s = Drawing('spheres')
     from .shapes import sphere_geometry
     for i in indices:
         va, na, ta = sphere_geometry(ntri)
         va = va*radii[i] + centers[i]
-        p = s.new_piece()
+        p = s.new_drawing()
         p.geometry = va, ta
         p.normals = na
 

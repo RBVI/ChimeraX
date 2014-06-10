@@ -56,6 +56,8 @@ class Place:
         self.matrix = m
         '''3 by 4 numpy array, first 3 columns are axes, last column is origin.'''
 
+        self._is_identity = (matrix is None and axes is None and origin is None)
+
 
     def __mul__(self, p):
         '''Multiplication of a Place and a point transforms from local point coordinates to global coordinates,
@@ -172,7 +174,7 @@ class Place:
         '''Is the transform the identity transformation?  Tests if each of the 3 by 4 matrix elements
         is within the specified tolerance of the identity transform.
         '''
-        return m34.is_identity_matrix(self.matrix)
+        return self._is_identity or m34.is_identity_matrix(self.matrix)
 
 '''
 The following routines create Place objects representing specific transformations.
@@ -214,3 +216,78 @@ def cross_product(u):
 def identity():
     '''Return the identity transform.'''
     return Place()
+
+class Places:
+    '''
+    The Places class represents a list of 0 or more Place objects.  The advantage of Places over
+    using a list of Place objects is that it doesn't need to create a separate Python Place object
+    for each position, instead it is able to represent for example 10,000 atom positions as a numpy
+    array of positioning matrices.  So this class is primarily to allow efficient handling of large
+    numbers of positions.
+    '''
+    def __init__(self, places = None, place_array = None, shift_and_scale = None, opengl_array = None):
+        if not place_array is None or not shift_and_scale is None or not opengl_array is None:
+            pl = None
+        elif places is None:
+            pl = [identity()]
+        else:
+            pl = list(places)
+        self._place_list = pl
+        self._place_array = place_array
+        self._opengl_array = opengl_array
+        self._shift_and_scale = shift_and_scale
+
+    def array(self):
+        pa = self._place_array
+        if pa is None:
+            from numpy import array, float32
+            self._place_array = pa = array(tuple(p.matrix for p in self._place_list), float32)
+        return pa
+
+    def shift_and_scale_array(self):
+        return self._shift_and_scale
+
+    def opengl_matrices(self):
+        '''
+        Return array of 4x4 matrices with column-major order.
+        '''
+        m = self._opengl_array
+        if m is None:
+            from numpy import empty, float32, transpose
+            n = len(self)
+            m = empty((n,4,4), float32)
+            m[:,:,:3] = transpose(self.array(), axes = (0,2,1))
+            m[:,:3,3] = 0
+            m[:,3,3] = 1
+            self._opengl_array = m
+        return m
+        
+    def __getitem__(self, i):
+        return self._place_list[i]
+    def __setitem__(self, i, p):
+        self._place_list[i] = p
+    def __len__(self):
+        if not self._place_list is None:
+            n = len(self._place_list)
+        elif not self._place_array is None:
+            n = len(self._place_array)
+        elif not self._shift_and_scale is None:
+            n = len(self._shift_and_scale)
+        elif not self._opengl_array is None:
+            n = len(self._opengl_array)
+        return n
+    def __iter__(self):
+        pl = self._place_list
+        if pl is None:
+            self._place_list = pl = tuple(Place(m) for m in self._place_array)
+        return pl.__iter__()
+
+    def __mul__(self, places):
+        pp = []
+        for p in self:
+            for p2 in places:
+                pp.append(Place(m34.multiply_matrices(p.matrix, p2.matrix)))
+        return Places(pp)
+
+    def is_identity(self):
+        return len(self) == 1 and self[0].is_identity()

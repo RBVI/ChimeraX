@@ -1,10 +1,10 @@
-"""""
+"""
 cli: application command line support
 =====================================
 
 This module provides a method for parsing text commands
 and calling the functions that implement them.
-First, commands are :py:func:`register`ed
+First, commands are registered
 with a description of the arguments they take,
 and with a function that implements the command.
 Later, a :py:class:`Command` instance is used to parse
@@ -15,19 +15,30 @@ so possible completions can be suggested.
 Text Commands
 -------------
 
-Text commands are composed of a command name, which can be several
-separate words, followed by required arguments, optional arguments
-(optionally introduced with a keyword), and keyword arguments.
-Keyword arguments are a keyword followed by a value.
+Synopsis::
+
+	command_name rv1 rv2 [ov1 [ov2]] [kn1 kv1] [kn2 kv2]
+
+Text commands are composed of a command name, which can be multiple words,
+followed by required positional arguments, *rvX*,
+optional positional arguments, *ovX*,
+and keyword arguments with a value, *knX kvX*.
+Each argument has an associated Python argument name
+(for keyword arguments it is the keyword, *knX*).
+*rvX*, *ovX*, and *kvX* are the type-checked values.
+The names of the optional arguments are used to
+let them be given as keyword arguments as well.
 Multiple value arguments are separated by commas
-that are optionally followed by whitespace.
+and the commas may be followed by whitespace.
 Depending on the type of an argument, *e.g.*, a color name,
 whitespace can also appear within an argument value.
 Argument values may be quoted with double quotes.
 And in quoted strings, Python's string escape sequences are recognized,
-*e.g.*, ``\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign.
+*e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
+\N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
-Words in the command text are automatically completed to the first registered
+Words in the command text may be abbreviated
+and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
 Registering Commands
@@ -37,7 +48,7 @@ To add a command, :py:func:`register` the command name,
 a description of the arguments it takes,
 and the function to call that implements the command.
 Command registration can be partially delayed to avoid importing
-the command description and and function until needed.
+the command description and function until needed.
 See :py:func:`register` and :py:func:`defer_registration` for details.
 
 The description is either an instance of the Command Information class,
@@ -65,15 +76,15 @@ as much as possible:
 +-------------------------------+---------------------------------------+
 + :py:class:`str`		| ``string_arg``			|
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`bool`s	| ``bool3_arg``				|
++ tuple of 3 :py:class:`bool`	| ``bool3_arg``				|
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`float`s	| ``float3_arg``			|
++ tuple of 3 :py:class:`float`	| ``float3_arg``			|
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`int`s	| ``int3_arg``				|
++ tuple of 3 :py:class:`int`	| ``int3_arg``				|
 +-------------------------------+---------------------------------------+
-+ list of :py:class:`float`s	| ``floats_arg``			|
++ list of :py:class:`float`	| ``floats_arg``			|
 +-------------------------------+---------------------------------------+
-+ list of :py:class:`int`s	| ``ints_arg``				|
++ list of :py:class:`int`	| ``ints_arg``				|
 +-------------------------------+---------------------------------------+
 
 .. molecule_arg(s):
@@ -112,11 +123,11 @@ Annotations can be extended with various specializers:
 +-----------------------+-----------------------------------------------+
 + :py:class:`Or`	| ``Or(float_arg, string_arg)``	*discouraged*	|
 +-----------------------+-----------------------------------------------+
-+ :py:class:`Enum_of`	| ennumerated values				|
-+-------------------------------+---------------------------------------+
++ :py:class:`Enum_of`	| enumerated values				|
++-----------------------+-----------------------------------------------+
 
 Creating Your Own Type Annotation
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Annotations perform several functions:
 (1) to convert text to a value of the appropriate type,
@@ -153,13 +164,9 @@ Here is a simple example::
 
 .. todo::
 
-    Issues: autocompletion, minimum 2 letters? extensions?  Delaying
-    introspect for extensions, help URL? affect graphics flag?
+    Issues: autocompletion, minimum 2 letters? extensions?
+    help URL? affect graphics flag?
 
-.. todo::
-
-    Maybe let typed argument conversion determine how much text to consume
-    (so arguments could have spaces in them)
 """
 
 class UserError(ValueError):
@@ -194,8 +201,10 @@ class Annotation:
 
 	@staticmethod
 	def parse(text):
-		"""Return :param text: converted to appropiate type
-		
+		"""Return text converted to appropriate type.
+
+		:param text: command line text to parse
+
 		Abbreviations should be not accepted, instead they
 		should be discovered via the possible completions.
 		"""
@@ -203,8 +212,10 @@ class Annotation:
 
 	@staticmethod
 	def completions(text):
-		"""Return list of possible completions of the :param text:
-			
+		"""Return list of possible completions of the given text.
+
+		:param text: Text to check for possible completions
+
 		Note that if invalid completions are given, then parsing
 		can go into an infinite loop when trying to automatically
 		complete text.
@@ -212,17 +223,17 @@ class Annotation:
 		raise NotImplemented
 
 class Aggregate(Annotation):
-	"""Commmon class for collections of values.
+	"""Common class for collections of values.
 
 	Aggregate(annotation, constructor, add_to, min_size=None, max_size=None, name=None) -> annotation
-	
+
 	:param annotation: annotation for values in the collection.
 	:param constructor: function/type to create an empty collection.
 	:param add_to: function to add an element to the collection,
-	typically an unbound method.  For immutable collections,
-	return a new colllection.
+	    typically an unbound method.  For immutable collections,
+	    return a new collection.
 	:param min_size: minimum size of collection, default `None`.
-	:param max_size: maximun size of collection, default `None`.
+	:param max_size: maximum size of collection, default `None`.
 	"""
 	min_size = 0
 	max_size = sys.maxsize
@@ -252,14 +263,14 @@ class Aggregate(Annotation):
 
 def List_of(annotation, min_size=None, max_size=None):
 	"""Annotation for lists of a single type
-	
+
 	List_of(annotation, min_size=None, max_size=None) -> annotation
 	"""
 	return Aggregate(annotation, list, list.append, min_size, max_size)
 
 def Set_of(annotation, min_size=None, max_size=None):
 	"""Annotation for sets of a single type
-	
+
 	Set_of(annotation, min_size=None, max_size=None) -> annotation
 	"""
 	return Aggregate(annotation, set, set.add, min_size, max_size)
@@ -269,7 +280,7 @@ def _tuple_append(t, value):
 
 def Tuple_of(annotation, size):
 	"""Annotation for tuples of a single type
-	
+
 	Tuple_of(annotation, size) -> annotation
 	"""
 	return Aggregate(annotation, tuple, _tuple_append, size, size)
@@ -344,14 +355,14 @@ class string_arg(Annotation):
 		return []
 
 class Bounded(Annotation):
-	"""Support bounded numberical values
+	"""Support bounded numerical values
 
 	Bounded(annotation, min=None, max=None, name=None) -> a Bounded object
 
 	:param annotation: numerical annotation
 	:param min: optional lower bound
 	:param max: optional upper bound
-	:param name: optional explict name for annotation
+	:param name: optional explicit name for annotation
 	"""
 
 	def __init__(self, annotation, min=None, max=None, name=None):
@@ -381,15 +392,15 @@ class Bounded(Annotation):
 		return self.anno.completions(text)
 
 class Enum_of(Annotation):
-	"""Support enummerated types
+	"""Support enumerated types
 
 	Enum(values, ids=None, name=None) -> an Enum object
 
-	:param values: list/tuple of values
-	:param ids: optional list/tuple of identifiers
+	:param values: sequence of values
+	:param ids: optional sequence of identifiers
 	:param name: optional explicit name for annotation
 
-	If the :param ids: are given, there must be one for each
+	If the *ids* are given, then there must be one for each
 	and every value, otherwise the values are used as the identifiers.
 	The identifiers must all be strings.
 	"""
@@ -424,10 +435,10 @@ class Enum_of(Annotation):
 
 class Or(Annotation):
 	"""Support two or more alternative annotations
-	
+
 	Or(annotation, annotation [, annotation]*, name=None) -> annotation
 
-	:param name: optional explict name for annotation
+	:param name: optional explicit name for annotation
 	"""
 
 	def __init__(self, *annotations, name=None):
@@ -494,7 +505,7 @@ class Postcondition:
 
 class SameSize(Postcondition):
 	"""Postcondition check for same size arguments
-	
+
 	SameSize(name1, name2) -> a SameSize object
 
 	:param name1: name of first argument to check
@@ -534,12 +545,15 @@ def _check_autocomplete(word, mapping, name):
 			raise ValueError("'%s' is a prefix of an existing command" % name)
 
 class CmdInfo:
-	"""Hold information about commands
+	"""Hold information about commands.
 
-	The CmdInfo initializer takes tuples describing the required,
-	optional, and keyword arguments.
-	Each tuple, contains tuples with the argument name and a type
-	annotation.
+	:param required: required positional arguments tuple
+	:param optional: optional positional arguments tuple
+	:param keyword: keyword arguments tuple
+
+	Each tuple contains tuples with the argument name and a type annotation.
+	The command line parser uses the *optional* argument names to as
+	keyword arguments.
 	"""
 	__slots__ = [
 		'required', 'optional', 'keyword',
@@ -557,7 +571,7 @@ class CmdInfo:
 
 	def set_function(self, function):
 		"""Set the function to call when the command matches.
-		
+
 		Double check that all function arguments, that do not
 		have default values, are 'required'.
 		"""
@@ -569,7 +583,7 @@ class CmdInfo:
 		for p in signature.parameters.values():
 			if p.default != EMPTY or p.name in self.required:
 				continue
-			raise ValueError("Wrong function or %s argument must be required or have a default value" % p.name)
+			raise ValueError("Wrong function or '%s' argument must be required or have a default value" % p.name)
 
 		self.function = function
 
@@ -615,11 +629,11 @@ def delay_registration(name, proxy_function, cmd_info=None):
 
 def register(name, cmd_info, function=None):
 	"""register function that implements command
-	
+
 	:param name: the name of the command and may include spaces.
 	:param cmd_info: information about the command, either an
-	instance of :py:class:`CmdInfo`, or the tuple with CmdInfo
-	parameters.
+	    instance of :py:class:`CmdInfo`, or the tuple with CmdInfo
+	    parameters.
 	:param function: the callback function.
 
 	If the function is None, then it assumed that :py:func:`register`
@@ -690,7 +704,7 @@ def _lazy_introspect(cmd_map, word):
 
 def add_keyword_arguments(name, kw_info):
 	"""Make known additional keyword argument(s) for a command
-	
+
 	:param name: the name of the command
 	:param kw_info: { keyword: annotation }
 	"""
@@ -723,7 +737,7 @@ whitespace = re.compile("\s+")
 
 class Command:
 	"""Keep track of partially typed command with possible completions
-	
+
 	:param text: the command text
 	:param final: true if text is the complete command line (final version).
 	"""
@@ -758,7 +772,7 @@ class Command:
 
 	def execute(self):
 		"""If command is valid, execute it."""
-		
+
 		if not self._error_checked:
 			self.error_check()
 		try:
@@ -783,7 +797,7 @@ class Command:
 		start = m.end() if m else 0
 		if start == len(text):
 			return '', text
-		if text[0] == '"':
+		if text[start] == '"':
 			m = double.match(text, start)
 			if m:
 				end = m.end()
@@ -792,7 +806,7 @@ class Command:
 				end = len(text)
 				token = text[start + 1:end]
 				self._error = "incomplete quoted text"
-		elif text[0] == "'":
+		elif text[start] == "'":
 			m = single.match(text, start)
 			if m:
 				end = m.end()
@@ -824,7 +838,7 @@ class Command:
 		else:
 			completion = chars[:-1] + suffix + chars[-1]
 		j = self.amount_parsed
-		t = self.current_text 
+		t = self.current_text
 		self.current_text = t[0:j] + completion + t[i + j:]
 		return self.current_text[j:]
 
@@ -856,10 +870,15 @@ class Command:
 				and completions:
 					c = completions[0][len(word):]
 					if multiword:
+						if c[0].isspace():
+							text = text[len(chars):]
+							continue
 						c = c.split(None, 1)[0]
 					text = self._complete(chars, c)
 					del all_words[-1]
 					del all_chars[-1]
+					chars = ''.join(all_chars)
+					text = text[len(chars):]
 					continue
 				self._error = err
 				if multiword and not completions:
@@ -871,7 +890,7 @@ class Command:
 				self.completions = completions
 				raise
 		self.amount_parsed += len(chars)
-		text = text[len(chars):]
+		text = self.current_text[self.amount_parsed:]
 		return value, text
 
 	def _parse_aggregate(self, anno, text, final):
@@ -909,7 +928,7 @@ class Command:
 
 	def parse_text(self, text, final=False):
 		"""Parse text into function and arguments
-		
+
 		:param text: The text to be parsed.
 		:param final: True if last version of command text
 
@@ -958,6 +977,7 @@ class Command:
 			self._ci = what
 			self.command_name =  self.current_text[:self.amount_parsed]
 			break
+		word_map = self._ci.keyword
 
 		# process positional arguments
 		positional = self._ci.required.copy()
@@ -967,6 +987,11 @@ class Command:
 		for name, anno in positional.items():
 			if name in self._ci.optional:
 				self._error = ""
+				if not text:
+					break
+				tmp = text.split(None, 1)[0]
+				if tmp in word_map:
+					break
 			else:
 				self._error = "Missing required argument %s" % name
 			try:
@@ -979,6 +1004,8 @@ class Command:
 				if name in self._ci.required:
 					self._error = "Invalid '%s' argument: %s" % (name, err)
 					return
+				# optional and wrong type, try as keyword
+				break
 		self._error = ""
 
 		# process keyword arguments
@@ -1000,8 +1027,9 @@ class Command:
 					# and retry
 					c = self.completions[0]
 					text = self._complete(chars, c[len(word):])
+					self.completions = []
 					continue
-				self._error = "Expected keyword argument"
+				self._error = "Expected keyword, got '%s'" % word
 				return
 			self.amount_parsed += len(chars)
 			text = text[len(chars):]
@@ -1020,9 +1048,33 @@ class Command:
 
 if __name__ == '__main__':
 
+	class Color_arg(Annotation):
+		multiword = True
+		name = 'a color'
+
+		Builtin_Colors = {
+			"light gray": (211, 211, 211),
+			"red": (255, 0, 0)
+		}
+
+		@staticmethod
+		def parse(text):
+			text = text.casefold()
+			try:
+				color = Color_arg.Builtin_Colors[text]
+			except KeyError:
+				raise ValueError("Invalid color name")
+			return ([x / 255.0 for x in color])
+
+		@staticmethod
+		def completions(text):
+			text = text.casefold()
+			names = [n for n in Color_arg.Builtin_Colors if n.startswith(text)]
+			return names
+
 	test1_info = CmdInfo(
-		required=[('a', int_arg), ('b', float_arg)], 
-		keyword=[('color', string_arg)]
+		required=[('a', int_arg), ('b', float_arg)],
+		keyword=[('color', Color_arg)]
 	)
 	@register('test1', test1_info)
 	def test1(a: int, b: float, color=None):
@@ -1031,14 +1083,14 @@ if __name__ == '__main__':
 		print('test1 color: %s %s' % (type(color), color))
 
 	test2_info = CmdInfo(
-		required=[('a', string_arg)],
-		optional=[('text', rest_of_line)],
-		keyword=[('color', string_arg), ('radius', float_arg)]
+		#required=[('a', string_arg)],
+		#optional=[('text', rest_of_line)],
+		keyword=[('color', Color_arg), ('radius', float_arg)]
 	)
 	@register('test2', test2_info)
-	def test2(a: str, text='', color=None, radius: float=0):
-		print('test2 a: %s %s' % (type(a), a))
-		print('test2 text: %s %s' % (type(text), text))
+	def test2(a: str='', text='', color=None, radius: float=0):
+		#print('test2 a: %s %s' % (type(a), a))
+		#print('test2 text: %s %s' % (type(text), text))
 		print('test2 color: %s %s' % (type(color), color))
 		print('test2 radius: %s %s' % (type(radius), radius))
 
@@ -1082,16 +1134,31 @@ if __name__ == '__main__':
 	def test7(center=None):
 		print('test7 center:', center)
 
+	test8_info = CmdInfo(
+		optional=[
+			('always', bool_arg),
+			('target', string_arg),
+			('names', List_of(string_arg)),
+			]
+	)
+	@register('test8', test8_info)
+	def test8(always=True, target="all", names=[None]):
+		print('test8 always, target, names:', always, target, names)
+
 	tests = [
 		(True,	'test1 color red 12 3.5'),
 		(True,	'test1 12 color red 3.5'),
 		(True,	'test1 12 3.5 color red'),
 		(True,	'test1 12 3.5 color'),
 		(True,	'te'),
-		(True,	'test2 color red center 3.5 foo'),
-		(True,	'test2 color red center 3.5'),
-		(True,	'test2 color red center xyzzy'),
-		(True,	'test2 color red center'),
+		(True,	'test2 color red radius 3.5 foo'),
+		(True,	'test2 color red radius 3.5'),
+		(True,	'test2 color red radius xyzzy'),
+		(True,	'test2 color red radius'),
+		(True,	'test2 color "light gray"'),
+		(True,	'test2 color light gray'),
+		(True,	'test2 color li gr'),
+		(True,	'test2 co li gr rad 11'),
 		(True,	'test2 c'),
 		(True,	'test3 radius'),
 		(True,	'test3 radius 12.3'),
@@ -1103,7 +1170,7 @@ if __name__ == '__main__':
 		(True,	'test5 ints 5, 6, 7, 8, 9'),
 		(True,	'mw test1 color red 12 3.5'),
 		(True,	'mw test1 color red 12 3.5'),
-		(True,	'mw test2 color red center 3.5 foo'),
+		(True,	'mw test2 color red radius 3.5 foo'),
 		(False,	'mw te'),
 		(True,	'mw '),
 		(False,	'mw'),
@@ -1113,6 +1180,11 @@ if __name__ == '__main__':
 		(True,	'test6 3.4 abc 7.8'),
 		(True,	'test7 center 3.4, 5.6, 7.8'),
 		(True,	'test7 center 3.4, 5.6'),
+		(True,  'test8 always false'),
+		(True,  'test8 always true target tool'),
+		(True,  'test8 always true tool'),
+		(True,  'test8 always tool'),
+		(True,  'test8 TRUE tool xyzzy, plugh '),
 	]
 	cmd = Command()
 	for t in tests:
@@ -1122,7 +1194,7 @@ if __name__ == '__main__':
 			cmd.parse_text(text, final=final)
 			if cmd.current_text != text:
 				print(cmd.current_text)
-			#print(cmd._args, cmd._kwargs)
+			#print(cmd.current_text, cmd._kwargs)
 			p = cmd.completions
 			if p:
 				print('completions:', p)

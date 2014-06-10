@@ -31,14 +31,14 @@ class View(QtGui.QWindow):
         eye_separation_pixels = psize * (eye_spacing / ssize)
 
         # Create camera
-        from . import camera
-        self.camera = camera.Camera(self.window_size, 'mono', eye_separation_pixels)
+        from ..graphics import Camera
+        self.camera = Camera(self.window_size, 'mono', eye_separation_pixels)
         '''The camera controlling the vantage shown in the graphics window.'''
 
         self.opengl_context = None
 
-        from .. import draw
-        self.render = draw.Render()
+        from .. import graphics
+        self.render = graphics.Render()
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -138,7 +138,7 @@ class View(QtGui.QWindow):
         # Maybe calling destroy on the QWindow, then setFormat() and create() would work.  Did not try.
         # It may be necessary to simply destroy the old QWindow and QWidget container and make a new
         # one. A third difficulty is that OpenGL does not allow sharing VAOs between contexts.
-        # Surface models use VAOs, so those would have to be destroyed and recreated.  Sharing does
+        # Drawings use VAOs, so those would have to be destroyed and recreated.  Sharing does
         # handle VBOs, textures and shaders.
         #
         # Test code follows.
@@ -177,7 +177,7 @@ class View(QtGui.QWindow):
         stereo = 'stereo' if f.stereo() else 'no stereo'
         s.show_info('OpenGL version %s, %s' % (r.opengl_version(), stereo))
 
-        from ..draw import llgrutil as gr
+        from ..graphics import llgrutil as gr
         if gr.use_llgr:
             gr.initialize_llgr()
 
@@ -228,6 +228,7 @@ class View(QtGui.QWindow):
         self.redraw_needed = True
 
     def add_overlay(self, overlay):
+        overlay.redraw_needed = self.session.model_redraw_needed
         self.overlays.append(overlay)
         self.redraw_needed = True
 
@@ -248,8 +249,8 @@ class View(QtGui.QWindow):
         h = self.window_size[1] if height is None else height
 
         r = self.render
-        from .. import draw
-        fb = draw.Framebuffer(w,h)
+        from .. import graphics
+        fb = graphics.Framebuffer(w,h)
         if not fb.valid():
             return None         # Image size exceeds framebuffer limits
 
@@ -299,16 +300,6 @@ class View(QtGui.QWindow):
         c = self.camera
         s = self.session
         draw = self.redraw_needed or c.redraw_needed or s.redraw_needed
-        mlist = s.model_list() + self.overlays
-        if draw:
-            for m in mlist:
-                m.redraw_needed = False
-        else:
-            for m in mlist:
-                if m.redraw_needed:
-                    m.redraw_needed = False
-                    s.bounds_changed = True
-                    draw = True
         if draw:
             self.redraw_needed = False
             c.redraw_needed = False
@@ -339,10 +330,6 @@ class View(QtGui.QWindow):
         self.rendered_callbacks.remove(cb)
 
     def draw_scene(self, camera = None, models = None):
-        from ..draw import llgrutil as gr
-        if gr.use_llgr:
-            gr.render(self)
-            return
 
         if camera is None:
             camera = self.camera
@@ -357,64 +344,28 @@ class View(QtGui.QWindow):
 
         self.update_level_of_detail()
 
-        selected = [m for m in self.session.selected if m.display]
+        selected = [m for m in self.session.selected_models() if m.display]
 
         from time import process_time
         t0 = process_time()
+        from .. import graphics
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
             r.draw_background()
             if models:
                 self.update_projection(vnum, camera = camera)
-                self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, models)
-                if any_transparent_models(models):
-                    r.draw_transparent(lambda: self.draw(self.TRANSPARENT_DEPTH_DRAW_PASS, vnum, camera, models),
-                                       lambda: self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, models))
+                cvinv = camera.view_inverse(vnum)
+                graphics.draw_drawings(r, cvinv, models)
                 if selected:
-                    r.start_rendering_outline(self.window_size)
-                    self.draw(self.OPAQUE_DRAW_PASS, vnum, camera, selected)
-                    self.draw(self.TRANSPARENT_DRAW_PASS, vnum, camera, selected)
-                    r.finish_rendering_outline()
+                    graphics.draw_outline(self.window_size, r, cvinv, selected)
             s = camera.warp_image(vnum, r)
             if s:
-                self.draw_overlays([s])
+                graphics.draw_overlays([s], r)
         t1 = process_time()
         self.last_draw_duration = t1-t0
         
         if self.overlays:
-            self.draw_overlays(self.overlays)
-
-    def draw_outline(self, vnum, camera, models):
-
-        r = self.render
-
-    def draw_overlays(self, overlays):
-
-        r = self.render
-        r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
-        from ..geometry import place
-        cvinv = place.identity()
-        r.enable_depth_test(False)
-        for m in overlays:
-            m.draw(self, cvinv, self.OPAQUE_DRAW_PASS)
-        r.enable_blending(True)
-        for m in overlays:
-            m.draw(self, cvinv, self.TRANSPARENT_DRAW_PASS)
-        r.enable_depth_test(True)
-
-    OPAQUE_DRAW_PASS = 'opaque'
-    TRANSPARENT_DRAW_PASS = 'transparent'
-    TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
-
-    def draw(self, draw_pass, view_num, camera, models):
-
-        for m in models:
-            self.draw_model(m, draw_pass, view_num, camera)
-
-    def draw_model(self, m, draw_pass, view_num, camera):
-
-        cvinv = camera.view_inverse(view_num)
-        m.draw(self, cvinv, draw_pass)
+            graphics.draw_overlays(self.overlays, r)
 
     def update_level_of_detail(self):
         # Level of detail updating.
@@ -552,10 +503,3 @@ class View(QtGui.QWindow):
     def pixel_size(self, p = None):
         '''Return the pixel size in scene length units at point p in the scene.'''
         return self.camera.pixel_size(self.center_of_rotation if p is None else p)
-
-def any_transparent_models(models):
-
-    for m in models:
-        if m.showing_transparent():
-            return True
-    return False

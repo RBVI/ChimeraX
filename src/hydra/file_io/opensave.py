@@ -295,10 +295,10 @@ def open_image(session):
     if not path:
         return
     i = QtGui.QImage(path, 'JPG')
-    from ..surface import Surface, surface_image
+    from ..graphics import Drawing, image_drawing
     from os.path import basename
-    s = Surface(basename(path))
-    surface_image(i, (-.5,-.5), 1, s)
+    s = Drawing(basename(path))
+    image_drawing(i, (-.5,-.5), 1, s)
     view.add_overlay(s)
 
 def open_command(cmdname, args, session):

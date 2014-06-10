@@ -78,8 +78,8 @@ class Model_Panel:
             return model.thumbnail_image
         v = self.session.view
         w,h = self.image_size
-        from . import camera
-        c = camera.camera_framing_models(w, h, [model])
+        from .. import graphics
+        c = graphics.camera_framing_models(w, h, [model])
         qi = v.image(w,h,c,[model])
         model.thumbnail_image = qi
         return qi
@@ -97,7 +97,6 @@ class Model_Panel:
         for m in self.session.model_list():
             if m.id == id:
                 m.display = not m.display
-                m.redraw_needed = True
 
     # Models were added or closed.
     def models_changed(self, models):

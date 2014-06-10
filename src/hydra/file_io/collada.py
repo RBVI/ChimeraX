@@ -1,14 +1,14 @@
-def read_collada_surfaces(path, session, color = (.7,.7,.7,1)):
+def read_collada_surfaces(path, session, color = (178,178,178,255)):
 
     from os.path import basename
-    from ..surface import Surface
-    s = Surface(basename(path))
+    from ..graphics import Drawing
+    s = Drawing(basename(path))
 
     from collada import Collada
     c = Collada(path)
     from ..geometry.place import Place
     splist = surface_pieces_from_nodes(c.scene.nodes, s, color, Place(), {})
-    fix_up_instances(splist)
+    set_positions_and_colors(splist)
 
     ai = c.assetInfo
     if ai:
@@ -19,6 +19,8 @@ def read_collada_surfaces(path, session, color = (.7,.7,.7,1)):
 
 def surface_pieces_from_nodes(nodes, surf, color, place, ginst):
 
+    # TODO: Copy collada hierarchy instead of flattening it.
+    #       Code was originally written when only 2-level hierarchy was supported.
     splist = []
     from collada.scene import GeometryNode, Node
     from ..geometry.place import Place
@@ -59,13 +61,12 @@ def geometry_surface_pieces(primitives, place, color, s2m, surf):
         vn = empty(v.shape, n.dtype)
         vn[t.ravel(),:] = n[ni.ravel(),:]
 
-        sp = surf.new_piece()
+        sp = surf.new_drawing()
         sp.geometry = v, t
         sp.normals = vn
         c = material_color(s2m.get(p.material), color)
-        sp.color = c
-        sp.copies = [place]
-        sp.instance_colors = [c]
+        sp.color_list = [c]
+        sp.position_list = [place]
 
         splist.append(sp)
 
@@ -75,8 +76,8 @@ def add_geometry_instance(primitives, spieces, place, color, s2m):
 
     for p,sp in zip(primitives, spieces):
         c = material_color(s2m.get(p.material), color)
-        sp.copies.append(place)
-        sp.instance_colors.append(c)
+        sp.position_list.append(place)
+        sp.color_list.append(c)
 
 def material_color(material, color):
 
@@ -86,32 +87,16 @@ def material_color(material, color):
     if e is None:
         return color
     c = e.diffuse
-    return color if c is None else c
+    if c is None:
+        return color
+    c8bit = tuple(int(255*r) for r in c)
+    return c8bit
 
-# Convert surface pieces with one instance to not use instancing.
-# For surface pieces with multiple instances change instance colors to numpy uint8 array.
-def fix_up_instances(splist):
-    for p in splist:
-        if len(p.copies) == 1:
-            pl = p.copies[0]
-            p.copies = []
-            if not pl.is_identity():
-                va, ta = p.geometry
-                pl.move(va)
-                p.geometry = va, ta
-                p.normals = pl.apply_without_translation(p.normals)
-            p.instance_colors = None
-        else:
-            ic = p.instance_colors
-            if same_color(ic, p.color):
-                p.instance_colors = None
-            else:
-                from numpy import array, float32, uint8
-                p.instance_colors = (255*array(ic, float32).reshape((len(ic),4))).astype(uint8)
-            p.copies = p.copies		# Set cached matrix numpy array for surface piece copies property
-
-def same_color(colors, color):
-    for c in colors:
-        if c != color:
-            return False
-    return True
+# For drawings with multiple instances make colors a numpy uint8 array.
+def set_positions_and_colors(drawings):
+    from ..geometry.place import Places
+    for d in drawings:
+        clist = d.color_list
+        from numpy import array, uint8
+        d.colors = array(clist, uint8).reshape((len(clist),4))
+        d.positions = Places(d.position_list)

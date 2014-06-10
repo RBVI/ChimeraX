@@ -1,1 +1,1 @@
-from .molecule import Molecule, Atoms
+from .molecule import Molecule, Atoms, atom_dtype

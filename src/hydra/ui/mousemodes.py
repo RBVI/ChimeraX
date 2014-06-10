@@ -173,7 +173,7 @@ class Mouse_Modes:
 
     def models(self):
         if self.move_selected:
-            m = self.view.session.selected
+            m = self.view.session.selected_models()
             if len(m) == 0:
                 m = None
         else:
@@ -243,16 +243,16 @@ class Mouse_Modes:
             ses.clear_selection()
             ses.show_status('cleared selection')
         else:
-            for m in s.models():
-                m.selected = not m.selected
-                if m.selected:
-                    from .qt import QtCore
-                    if not (event.modifiers() & QtCore.Qt.ShiftModifier):
-                        ses.clear_selection()
-                        ses.select_model(m)
-                        ses.show_status('Selected %s' % m.name)
-                else:
-                    ses.unselect_model(m)
+            from .qt import QtCore
+            append_selection = (event.modifiers() & QtCore.Qt.ShiftModifier)
+            if append_selection:
+                for m in s.models():
+                    m.selected = not m.selected
+            else:
+                ses.clear_selection()
+                for m in s.models():
+                    m.selected = True
+        ses.selection_changed()
         
     def mouse_contour_level(self, event):
 

@@ -1,11 +1,11 @@
 # Allow fading from one scene to another
 
-from ..surface import Surface
-class Cross_Fade(Surface):
+from ..graphics import Drawing
+class Cross_Fade(Drawing):
     
     def __init__(self, viewer, frames):
 
-        Surface.__init__(self, 'cross fade')
+        Drawing.__init__(self, 'cross fade')
         self.viewer = viewer
         self.frames = frames
         self.frame = 0
@@ -24,9 +24,10 @@ class Cross_Fade(Surface):
         r = v.render
         self.rgba = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGBA8)
 
+        # TODO: Use a childless drawing.
         # Make textured square surface piece
-        from .. import surface
-        self.piece = surface.rgba_surface_piece(self.rgba, (-1,-1), (2,2), self)
+        from .. import graphics
+        self.piece = graphics.rgba_drawing(self.rgba, (-1,-1), (2,2), self)
 
         v.add_overlay(self)
         v.add_new_frame_callback(self.next_frame)
@@ -38,7 +39,7 @@ class Cross_Fade(Surface):
             v = self.viewer
             v.remove_new_frame_callback(self.next_frame)
             v.remove_overlays([self])
-            self.remove_all_pieces()
+            self.remove_all_drawings()
             return
 
         # Increase texture transparency
@@ -46,13 +47,13 @@ class Cross_Fade(Surface):
         alpha = int(255 * (n-f) / n)
         self.rgba[:,:,3] = alpha
         self.piece.texture.reload_texture(self.rgba)
-        self.redraw_needed = True
+        self.redraw_needed()
 
-class Motion_Blur(Surface):
+class Motion_Blur(Drawing):
     
     def __init__(self, viewer):
 
-        Surface.__init__(self, 'motion blur')
+        Drawing.__init__(self, 'motion blur')
         self.viewer = viewer
         self.rgba = None
         self.decay_factor = 0.9
@@ -60,15 +61,15 @@ class Motion_Blur(Surface):
         self.changed = True
         self.capture_image()
 
-    def draw(self, viewer, camera_view, draw_pass):
-        if draw_pass == viewer.OPAQUE_DRAW_PASS:
+    def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
+        if draw_pass == self.OPAQUE_DRAW_PASS:
             self.changed = self.capture_image()
         elif self.changed:
-            Surface.draw(self, viewer, camera_view, draw_pass)
+            Drawing.draw(self, renderer, place, draw_pass, only, reverse_order)
 
     def capture_image(self):
 
-        self.redraw_needed = True
+        self.redraw_needed()
 
         # Capture current image
         v = self.viewer
@@ -79,14 +80,14 @@ class Motion_Blur(Surface):
         if self.rgba is None:
             self.rgba = rgba
             # Make textured square surface piece
-            from .. import surface
-            self.piece = surface.rgba_surface_piece(rgba, (-1,-1), (2,2), self)
+            from .. import graphics
+            self.piece = graphics.rgba_drawing(rgba, (-1,-1), (2,2), self)
             v.add_overlay(self)
         elif self.rgba.shape != (h,w,4):
             # Resize texture and motion blur image
-            self.remove_piece(self.piece)
-            from .. import surface
-            self.piece = surface.rgba_surface_piece(rgba, (-1,-1), (2,2), self)
+            self.remove_drawing(self.piece)
+            from .. import graphics
+            self.piece = graphics.rgba_drawing(rgba, (-1,-1), (2,2), self)
             self.rgba = rgba
         else:
             # Numpy is bottleneck for rendering at 60 frames/sec
@@ -102,8 +103,8 @@ class Motion_Blur(Surface):
             if c == 0:
                 return False    # No change
             self.piece.texture.reload_texture(self.rgba)
-        self.redraw_needed = True
+        self.redraw_needed()
         return True
 
     def delete(self):
-        Surface.delete(self)
+        Drawing.delete(self)

@@ -3,7 +3,7 @@
 def fetch_eds_map(id, session, type = '2fofc', ignore_cache=False):
   '''
   Fetch crystallographic density maps from the Upsalla Electron Density Server.
-
+  
    2fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs.omap
     fofc:    http://eds.bmc.uu.se/eds/sfd/1cbs/1cbs_diff.omap
     Info:    http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=1cbs

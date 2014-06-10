@@ -15,7 +15,7 @@ def fit_search(models, points, point_weights, volume, n,
                ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
                request_stop_cb = None):
 
-    b = volume.bounds()
+    b = volume.bounds(positions = False)
     xyz_min, xyz_max = b if not b is None else volume.xyz_bounds(step = 1)
     asym_center_f = (.75,.55,.55)
     asym_center = tuple(x0 + (x1-x0)*f
@@ -301,7 +301,7 @@ def move_step(move_table, cb, session):
             del mt[m]
             continue
         tf = base_model.position * rxf
-        b = m.bounds()
+        b = m.bounds(positions = False)
         if b:
             c = .5 * (b[0] + b[1])
             m.set_place(m.position.interpolate(tf, c, 1.0/frames))

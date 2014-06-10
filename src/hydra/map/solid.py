@@ -132,6 +132,7 @@ class Solid:
       self.volume = self.make_model(surface)
 
     v = self.volume
+    v.display = True
     v.set_array_coordinates(self.transform)
     v.color_mode = self.c_mode
     v.set_modulation_rgba(self.luminance_color())
@@ -148,36 +149,25 @@ class Solid:
     v.show_outline_box = self.show_outline_box
     v.outline_box_rgb = self.outline_box_rgb
     v.outline_box_linewidth = self.outline_box_linewidth
-    v.showBoxFaces = self.box_faces
+    v.show_box_faces = self.box_faces
     axis_bits = 0
     for a in (0,1,2):
       if self.orthoplanes_shown[a]:
         axis_bits |= (1 << a)
-    v.showOrthoPlanes = axis_bits
-    v.orthoPlanesPosition = self.orthoplane_mijk
+    v.show_ortho_planes = axis_bits
+    v.ortho_planes_position = self.orthoplane_mijk
 
     if create_volume or self.update_colors:
       self.update_colors = False
       self.update_coloring()
-
-    self.volume.display = True
-
-#     if create_volume and open:
-#       am = self.align_to_model()
-#       from chimera import openModels
-#       if am and not am in openModels.list():
-#         # Defer adding model to model list until attached model is added so
-#         # that the solid model with have the same id number as attached model.
-#         self.add_handler = openModels.addAddHandler(self.open_model_cb, None)
-#       else:
-#         self.open_model()
     
   # ---------------------------------------------------------------------------
   #
   def make_model(self, surface):
 
     from . import grayscale
-    gsd = grayscale.Gray_Scale_Drawing(surface)
+    gsd = grayscale.Gray_Scale_Drawing()
+    surface.add_drawing(gsd)
 
     return gsd
 
@@ -185,34 +175,13 @@ class Solid:
   #
   def show(self):
 
-    self.volume.show()
+    self.volume.display = True
 
   # ---------------------------------------------------------------------------
   #
   def hide(self):
 
-    self.volume.hide()
-
-  # ---------------------------------------------------------------------------
-  #
-  def open_model(self):
-
-    from chimera import openModels, addModelClosedCallback
-    openModels.add([self.volume], sameAs = self.align_to_model())
-    addModelClosedCallback(self.volume, self.model_closed_cb)
-    
-  # ---------------------------------------------------------------------------
-  # Defer adding model to model list until attached model is added so
-  # that the solid model with have the same id number as attached model.
-  #
-  def open_model_cb(self, trigger_name, x, models):
-
-    am = self.align_to_model()
-    if am is None or am in models:
-      from chimera import openModels
-      openModels.deleteAddHandler(self.add_handler)
-      self.add_handler = None
-      self.open_model()
+    self.volume.display = False
     
   # ---------------------------------------------------------------------------
   #
@@ -272,8 +241,8 @@ class Solid:
   def color_array(self, ctype, cshape):
 
     v = self.volume
-    if hasattr(v, 'colors'):
-      colors = v.colors
+    if hasattr(v, '_grayscale_color_array'):
+      colors = v._grayscale_color_array
       if colors.dtype == ctype and tuple(colors.shape) == cshape:
         return colors
 
@@ -283,7 +252,7 @@ class Solid:
     except MemoryError:
       self.message("Couldn't allocate color array of size (%d,%d,%d,%d) region" % cshape, large_data_only = False)
       raise
-    v.colors = colors        # TODO: make sure this array is freed.
+    v._grayscale_color_array = colors        # TODO: make sure this array is freed.
     return colors
   
   # ---------------------------------------------------------------------------
@@ -450,15 +419,6 @@ class Solid:
       else:
         pm = '2d-xyz'
     return pm
-      
-  # ---------------------------------------------------------------------------
-  #
-  def align_to_model(self):
-
-    am = self.attached_model
-#    if am.was_deleted:
-#      self.attached_model = am = None
-    return am
 
   # ---------------------------------------------------------------------------
   #
@@ -470,14 +430,9 @@ class Solid:
   #
   def close_model(self):
 
-    self.volume.delete()
-    
-  # ---------------------------------------------------------------------------
-  #
-  def model_closed_cb(self, model):
-
-    if model == self.volume:
-      self.volume = None
+    v = self.volume
+    v.parent.remove_drawing(v)
+    self.volume = None
 
 # -----------------------------------------------------------------------------
 #

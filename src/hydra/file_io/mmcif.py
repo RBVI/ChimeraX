@@ -24,6 +24,7 @@ def open_mmcif_file(path, session):
 #  session.show_info('Read %s %d atoms\n' % (basename(path), len(xyz)))
   from ..molecule import Molecule
   m = Molecule(path, atoms)
+  m.color_by_chain()
 
   from ..molecule import connect
   bonds, missing = connect.molecule_bonds(m, session)
