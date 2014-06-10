@@ -178,7 +178,7 @@ class Gray_Scale_Drawing(Drawing):
       self.ijk_to_xyz.move(va)
       p = self.new_drawing()
       p.geometry = va, ta
-      p.color = self.modulation_rgba()
+      p.color = tuple(int(255*r) for r in self.modulation_rgba())
       p.use_lighting = False
       p.texture = self.texture_plane(k, axis)
       p.texture_coordinates = tc1 if axis == 1 else tc
