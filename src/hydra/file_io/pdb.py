@@ -47,27 +47,14 @@ def open_pdb_file_with_image3d(path, session):
 
 # Convert numpy byte array of C Atom structure to a numpy structured array.
 def atom_array(a):
-  dtype = [('atom_name', 'a4'),
-           ('element_number', 'i4'),
-           ('xyz', 'f4', (3,)),
-           ('radius', 'f4'),
-           ('residue_name', 'a4'),
-           ('residue_number', 'i4'),
-           ('chain_id', 'a4'),
-           ('atom_color', 'u1', (4,)),
-           ('ribbon_color', 'u1', (4,)),
-           ('atom_shown', 'u1'),
-           ('ribbon_shown', 'u1'),
-           ('pad', 'u2'),               # C struct size is multiple of 4 bytes
-          ]
-  atoms = a.view(dtype).reshape((len(a),))
+  from ..molecule import atom_dtype
+  atoms = a.view(atom_dtype).reshape((len(a),))
   satoms = atoms.view('S%d'%atoms.itemsize)     # Need string array for C++ sort routine.
   from .. import _image3d
   _image3d.sort_atoms_by_chain(satoms)
   atoms['atom_shown'] = True
   enums = atoms['element_number']
   atoms['radius'][:] = _image3d.element_radii(enums)
-
   return atoms
 
 def open_pdb_file_with_pdbio(path):
@@ -81,16 +68,26 @@ def open_pdb_file_with_pdbio(path):
   mols = []
   mclist = access.molecules(molcaps)
   for mc in mclist:
-    atoms = access.atoms(mc)
-    xyz = access.coords(atoms)
-    element_nums = access.element_numbers(atoms)
-    res = access.atom_residues(atoms)
-    chain_ids = access.residue_chain_ids(res, numpy = True)
-    res_nums = access.residue_numbers(res)
-    res_names = access.residue_names(res, numpy = True)
-    atom_names = access.atom_names(atoms, numpy = True)
     t1 = time()
+    atoms = access.atoms(mc)
+    n = len(atoms)
+    from ..molecule import atom_dtype, Molecule
+    atoms = zeros((n,), atom_dtype)
+    atoms['atom_name'] = access.atom_names(atoms, numpy = True)
+    atoms['element_number'] = access.element_numbers(atoms)
+    atoms['xyz'] = access.coords(atoms)
+    atoms['radius'] = xyzra[:,3]
+    res = access.atom_residues(atoms)
+    atoms['residue_name'] = access.residue_names(res, numpy = True)
+    atoms['residue_number'] = access.residue_numbers(res)
+    atoms['chain_id'] = access.residue_chain_ids(res, numpy = True)
+    atoms['atom_color'] = (178,178,178,255)
+    atoms['ribbon_color'] = (178,178,178,255)
+    atoms['atom_shown'] = 1
+    atoms['ribbon_shown'] = 0
     from os.path import basename
+    # TODO: Not tested since several months ago.
+    m = Molecule(basename(path), atoms)
     print('pdbio', basename(path), 'read+parse time', '%.3f' % (t1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(t1-t0)))
 #    print('xyz', xyz.shape, xyz.dtype, xyz[:5])
 #    print('enums', element_nums.shape, element_nums.dtype, element_nums[:5])
@@ -98,35 +95,11 @@ def open_pdb_file_with_pdbio(path):
 #    print('rnums', res_nums.shape, res_nums.dtype, res_nums[:5])
 #   print('rnames', res_names.shape, res_names.dtype, res_names[:5])
 #    print('anames', atom_names.shape, atom_names.dtype, atom_names[:5])
-    from numpy import float32, array, int32
-    xyz = xyz.astype(float32)
-    m = Molecule(path, xyz, element_nums, chain_ids, res_nums, res_names, atom_names)
     atoms, bonds = access.atoms_bonds(mc)
 #    print ('bonds', len(bonds))
     m.bonds = array(bonds, int32)
     mols.append(m)
   return mols
-
-def open_pdb_file_python(path):
-  # The following was replaced by C++ for speed.
-  f = open(path, 'r')
-  lines = f.readlines()
-  f.close()
-  points = []
-  elements = []
-  chain_ids = []
-  for line in lines:
-    if line.startswith('ATOM') or line.startswith('HETATM'):
-      p = float(line[30:38]),float(line[38:46]),float(line[46:54])
-      points.append(p)
-      el = line[76:78].strip()
-      elements.append(el)
-      chain_id = line[21]
-      chain_ids.append(chain_id)
-  from ..molecule import Molecule
-  m = Molecule(path, points, elements, chain_ids)
-  m.pdb_text = text
-  return m
 
 def load_pdb_local(id, session, pdb_dir = '/usr/local/pdb'):
     '''Load a PDB file given its id from a local copy of the "divided" database.'''

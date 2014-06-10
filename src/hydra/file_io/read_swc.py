@@ -59,14 +59,25 @@ def read_swc(path, session):
         3:(0,255,0,255),     # basal dendrite, green
         4:(255,0,255,255),     # apical dendrite, magenta
     }
-    other_color = (1,1,0,1)   # yellow
+    other_color = (255,255,0,255)   # yellow
 
     from numpy import empty, float32, array, int32, ones, uint8, zeros
     np = len(points)
-    xyz = empty((np,3), float32)
-    radii = empty((np,), float32)
-    colors = empty((np,4), uint8)
-    rnums = empty((np,), int32)
+    from ..molecule import atom_dtype, Molecule
+    atoms = zeros((np,), atom_dtype)
+
+    atoms['atom_name'] = b's'
+    atoms['element_number'] = 1
+    atoms['residue_name'] = b'S'
+    atoms['chain_id'] = b'A'
+    atoms['ribbon_color'] = (178,178,178,255)
+    atoms['atom_shown'] = 1
+    atoms['ribbon_shown'] = 0
+
+    xyz = atoms['xyz']
+    radii = atoms['radius']
+    colors = atoms['atom_color']
+    rnums = atoms['residue_number']
     bonds = []
     brad = []
     for a,(n,t,x,y,z,r,pid) in enumerate(points):
@@ -79,17 +90,14 @@ def read_swc(path, session):
             ap = i2a[pid]
             bonds.append((a, ap))
             brad.append(radii[a])
-    element_nums = ones((np,), uint8)
-    chain_ids = zeros((np,), 'S4')
-    res_names = zeros((np,), 'S4')
-    atom_names = zeros((np,), 'S4')
-    from ..molecule import Molecule
-    m = Molecule(path, xyz, element_nums, chain_ids, rnums, res_names, atom_names)
+
     scale = 10000.0    # Convert microns to Angstroms
-    m.xyz *= scale
-    m.atom_colors = colors
-    m.radii = radii
-    m.radii *= scale
+    xyz *= scale
+    radii *= scale
+
+    from os.path import basename
+    m = Molecule(basename(path), atoms)
+
     m.bonds = array(bonds, int32)
     m.bond_radii = array(brad, float32)
     m.bond_radii *= scale

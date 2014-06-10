@@ -443,23 +443,11 @@ def mosaic_model(br):
 
 def create_ca_trace(name, xyz, found, colors):
 
-  dtype = [('atom_name', 'S4'),
-           ('element_number', 'i4'),
-           ('xyz', 'f4', (3,)),
-           ('radius', 'f4'),
-           ('residue_name', 'S4'),
-           ('residue_number', 'i4'),
-           ('chain_id', 'S4'),
-           ('atom_color', 'u1', (4,)),
-           ('ribbon_color', 'u1', (4,)),
-           ('atom_shown', 'u1'),
-           ('ribbon_shown', 'u1'),
-           ('pad', 'u2')]
-
   n = found.sum()
   fi = found.nonzero()[0]
   from numpy import zeros
-  atoms = zeros((n,), dtype)
+  from ..molecule import atom_dtype
+  atoms = zeros((n,), atom_dtype)
   atoms['atom_name'] = b'CA'
   atoms['element_number'] = 6
   atoms['xyz'] = xyz[fi]
