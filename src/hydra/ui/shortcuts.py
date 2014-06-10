@@ -384,7 +384,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        m.positions = m.positions[:1]
+        m.positions = Places(m.positions[0])
         m.update_level_of_detail(session.view)
 
 def show_surface_transparent(m):
@@ -651,13 +651,12 @@ def undisplay_half_model(m):
         mp = m.position
         va = m.vertices
         c = 0.5*(va.min(axis=0) + va.max(axis=0))
-        pc = m.copies
-        if len(pc) == 0:
+        if len(mp) == 1:
             if (mp*c)[2] > 0:
                 m.display = False
         else:
             from numpy import array, bool
-            m.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
+            m.instance_display = array([(mp*pl*c)[2] <= 0 for pl in mp], bool)
             print('uh', m.name, m.instance_display.sum())
             m.displayed_instance_matrices = None
             m.redraw_needed()
