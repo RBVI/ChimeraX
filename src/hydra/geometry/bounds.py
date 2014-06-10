@@ -37,11 +37,13 @@ def union_bounds(blist):
       xyz_max = tuple(max(x,px) for x,px in zip(xyz_max, pmax))
   return None if xyz_min is None else (xyz_min, xyz_max)
 
-def copies_bounding_box(bounds, plist):
+def copies_bounding_box(bounds, positions):
+  if bounds is None:
+    return None
   (x0,y0,z0),(x1,y1,z1) = bounds
   corners = ((x0,y0,z0),(x1,y0,z0),(x0,y1,z0),(x1,y1,z0),
              (x0,y0,z1),(x1,y0,z1),(x0,y1,z1),(x1,y1,z1))
-  b = union_bounds(point_bounds(p * corners) for p in plist)
+  b = union_bounds(point_bounds(p * corners) for p in positions)
   return b
 
 def point_axis_bounds(points, axis):

@@ -9,5 +9,3 @@ ui: User interface
     :members:
 .. automodule:: hydra.ui.view
     :members:
-.. automodule:: hydra.ui.camera
-    :members:

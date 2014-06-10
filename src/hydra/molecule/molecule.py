@@ -68,24 +68,24 @@ class Molecule(Drawing):
     a.add_molecules([self])
     return a
 
-  def draw(self, viewer, camera_view, draw_pass):
+  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
     '''Draw the molecule using the current style.'''
 
-    self.update_graphics(viewer)
+    self.update_graphics()
 
-    Drawing.draw(self, viewer, camera_view, draw_pass)
+    Drawing.draw(self, renderer, place, draw_pass, only, reverse_order)
 
-  def update_graphics(self, viewer):
+  def update_graphics(self):
 
     if not self.need_graphics_update:
       return
     self.need_graphics_update = False
 
-    self.update_atom_graphics(viewer)
-    self.update_bond_graphics(viewer)
+    self.update_atom_graphics()
+    self.update_bond_graphics()
     self.update_ribbon_graphics()
 
-  def update_atom_graphics(self, viewer):
+  def update_atom_graphics(self):
 
     self.create_atom_spheres()
     self.update_atom_colors()
@@ -96,10 +96,9 @@ class Molecule(Drawing):
     if p is None:
       return
 
-    p.color = tuple(c/255.0 for c in self.color)   # Transparency used to identify transparent atoms.
     ic = self.shown_atom_array_values(self.atom_colors)
     # Use a view so array pointer changes causing color opengl buffer to update.
-    p.instance_colors = ic.view()
+    p.colors = ic.view()
 
   def create_atom_spheres(self):
 
@@ -135,7 +134,8 @@ class Molecule(Drawing):
     xyzr[:,3] = r
 
     sas = self.shown_atom_array_values(xyzr)
-    p.shift_and_scale = sas
+    from ..geometry import place
+    p.positions = place.Places(shift_and_scale = sas)
 
   def shown_atom_array_values(self, a):
     if self.all_atoms_shown():
@@ -149,7 +149,7 @@ class Molecule(Drawing):
   def any_ribbons_shown(self):
     return self.ribbon_shown.sum() > 0
 
-  def update_bond_graphics(self, viewer):
+  def update_bond_graphics(self):
 
     bonds = self.shown_bonds()
     self.create_bond_cylinders(bonds)
@@ -183,7 +183,7 @@ class Molecule(Drawing):
     p.normals = na
 
     r = self.bond_radius if self.bond_radii is None else self.bond_radii
-    p.copy_matrices = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
+    p.positions = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
 
   def set_bond_colors(self, bonds):
 
@@ -197,9 +197,9 @@ class Molecule(Drawing):
       acolors = self.atom_colors
       bc0,bc1 = acolors[bonds[:,0],:], acolors[bonds[:,1],:]
       from numpy import concatenate
-      p.instance_colors = concatenate((bc0,bc1))
+      p.colors = concatenate((bc0,bc1))
     else:
-      p.instance_colors = None
+      p.color = self.color
 
   def single_color(self):
     self.atom_colors[:] = self.color
@@ -604,12 +604,16 @@ class Molecule(Drawing):
     na = self.atom_shown_count
     return na * nc
 
-  def bounds(self):
+  def bounds(self, positions = True):
     # TODO: bounds should only include displayed atoms.
     xyz = self.xyz
     if len(xyz) == 0:
       return None
-    return xyz.min(axis = 0), xyz.max(axis = 0)
+    b = (xyz.min(axis = 0), xyz.max(axis = 0))
+    if positions:
+      from ..geometry import bounds
+      b = bounds.copies_bounding_box(b, self.positions)
+    return b
 
   def atom_index_description(self, a):
     d = '%s %d.%s %s %d %s' % (self.name, self.id,
@@ -618,6 +622,22 @@ class Molecule(Drawing):
                                self.residue_nums[a],
                                self.atom_names[a].decode('utf-8'))
     return d
+
+# Atoms numpy array dtype for Molecule constructor.
+atom_dtype = [
+  ('atom_name', 'a4'),
+  ('element_number', 'i4'),
+  ('xyz', 'f4', (3,)),
+  ('radius', 'f4'),
+  ('residue_name', 'a4'),
+  ('residue_number', 'i4'),
+  ('chain_id', 'a4'),
+  ('atom_color', 'u1', (4,)),
+  ('ribbon_color', 'u1', (4,)),
+  ('atom_shown', 'u1'),
+  ('ribbon_shown', 'u1'),
+  ('pad', 'u2'),               # C struct size is multiple of 4 bytes
+]
 
 def combine_geometry(geom):
   from numpy import concatenate
@@ -693,7 +713,9 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
   else:
     p[:,:3,:3] = rs
   pt = transpose(p,(0,2,1))
-  return pt
+  from ..geometry import place
+  pl = place.Places(opengl_array = pt)
+  return pl
 
 # -----------------------------------------------------------------------------
 #

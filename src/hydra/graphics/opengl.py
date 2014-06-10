@@ -27,9 +27,10 @@ class Render:
         self.current_projection_matrix = None   # Used when switching shaders
         self.current_model_view_matrix = None   # Used when switching shaders
         self.current_model_matrix = None        # Used for optimizing model view matrix updates
-        self.current_inv_view_matrix = None        # Used for optimizing model view matrix updates
+        self.current_view_matrix = None         # Maps scene to camera coordinates
 
-        self.lighting_params = Lighting()
+        self.lighting = Lighting()
+        self.material = Material()              # Currently there is only a global material
 
         self.framebuffer_stack = []
         self.mask_framebuffer = None
@@ -86,7 +87,7 @@ class Render:
             if self.SHADER_DEPTH_CUE in capabilities:
                 self.set_depth_cue_parameters()
             self.set_projection_matrix()
-            self.set_model_view_matrix()
+            self.set_model_matrix()
             if self.SHADER_TEXTURE_2D in capabilities:
                 GL.glUniform1i(p.uniform_id("tex2d"), 0)    # Texture unit 0.
             if self.SHADER_RADIAL_WARP in capabilities:
@@ -145,11 +146,16 @@ class Render:
         if not p is None:
             GL.glUniformMatrix4fv(p.uniform_id('projection_matrix'), 1, False, pm)
 
-    def set_model_view_matrix(self, view_matrix_inverse = None, model_matrix = None):
+    def set_view_matrix(self, vm):
+        '''Set the camera view matrix, mapping scene to camera coordinates.'''
+        self.current_view_matrix = vm
+        self.current_model_matrix = None
+        self.current_model_view_matrix = None
+
+    def set_model_matrix(self, model_matrix = None):
         '''
-        Set the shader to use matrix as the given 4x4 OpenGL model view matrix.
-        Or if matrix is not specified use the given model_matrix and view_matrix Place objects
-        to calculate the model view matrix.
+        Set the shader model view using the given model matrix and previously set view matrix.
+        If no matrix is specified, the shader gets the last used one model view matrix.
         '''
 
         if model_matrix is None:
@@ -157,14 +163,15 @@ class Render:
             if mv4 is None:
                 return
         else:
-            if model_matrix == self.current_model_matrix:
-                from numpy import all
-                if all(view_matrix_inverse == self.current_inv_view_matrix):
+            # TODO: optimize check of same model matrix.
+            cmm = self.current_model_matrix
+            if cmm:
+                if (model_matrix.is_identity() and cmm.is_identity()) or model_matrix.same(cmm):
                     return
-            self.current_inv_view_matrix = v = view_matrix_inverse
-            self.current_model_matrix = m = model_matrix
+            self.current_model_matrix = model_matrix
             # TODO: optimize matrix multiply.  Rendering bottleneck with 200 models open.
-            self.current_model_view_matrix = mv4 = (v*m).opengl_matrix()
+            mv4 = (self.current_view_matrix * model_matrix).opengl_matrix()
+            self.current_model_view_matrix = mv4
 
         p = self.current_shader_program
         if not p is None:
@@ -172,46 +179,54 @@ class Render:
             # Note: Getting about 5000 glUniformMatrix4fv() calls per second on 2013 Mac hardware.
             # This can be a rendering bottleneck for large numbers of models or instances.
             GL.glUniformMatrix4fv(var_id, 1, False, mv4)
-            if not self.lighting_params.move_lights_with_camera:
+            if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
 
     def set_shader_lighting_parameters(self):
         'Private. Sets shader lighting variables using the lighting parameters object given in the contructor.'
 
         p = self.current_shader_program.program_id
-        lp = self.lighting_params
+        lp = self.lighting
+        mp = self.material
 
-        move = None if lp.move_lights_with_camera else self.current_inv_view_matrix
+        move = None if lp.move_lights_with_camera else self.current_view_matrix
 
         # Key light
         key_light_dir = GL.glGetUniformLocation(p, b"key_light_direction")
         kld = tuple(move.apply_without_translation(lp.key_light_direction)) if move else lp.key_light_direction
         GL.glUniform3f(key_light_dir, *kld)
         key_diffuse = GL.glGetUniformLocation(p, b"key_light_diffuse_color")
-        GL.glUniform3f(key_diffuse, *lp.key_light_diffuse_color)
+        ds = mp.diffuse_reflectivity
+        kdc = tuple(ds*c for c in lp.key_light_color)
+        GL.glUniform3f(key_diffuse, *kdc)
 
         # Key light specular
         key_specular = GL.glGetUniformLocation(p, b"key_light_specular_color")
-        GL.glUniform3f(key_specular, *lp.key_light_specular_color)
+        ss = mp.specular_reflectivity
+        ksc = tuple(ss*c for c in lp.key_light_color)
+        GL.glUniform3f(key_specular, *ksc)
         key_shininess = GL.glGetUniformLocation(p, b"key_light_specular_exponent")
-        GL.glUniform1f(key_shininess, lp.key_light_specular_exponent)
+        GL.glUniform1f(key_shininess, mp.specular_exponent)
 
         # Fill light
         fill_light_dir = GL.glGetUniformLocation(p, b"fill_light_direction")
         fld = tuple(move.apply_without_translation(lp.fill_light_direction)) if move else lp.fill_light_direction 
         GL.glUniform3f(fill_light_dir, *fld)
         fill_diffuse = GL.glGetUniformLocation(p, b"fill_light_diffuse_color")
-        GL.glUniform3f(fill_diffuse, *lp.key_light_diffuse_color)
+        fdc = tuple(ds*c for c in lp.fill_light_color)
+        GL.glUniform3f(fill_diffuse, *fdc)
 
         # Ambient light
         ambient = GL.glGetUniformLocation(p, b"ambient_color")
-        GL.glUniform3f(ambient, *lp.ambient_light_color)
+        ams = mp.ambient_reflectivity
+        ac = tuple(ams*c for c in lp.ambient_light_color)
+        GL.glUniform3f(ambient, *ac)
 
     def set_depth_cue_parameters(self):
         'Private. Sets shader depth variables using the lighting parameters object given in the contructor.'
 
         p = self.current_shader_program.program_id
-        lp = self.lighting_params
+        lp = self.lighting
 
         dc_distance = GL.glGetUniformLocation(p, b"depth_cue_distance")
         GL.glUniform1f(dc_distance, lp.depth_cue_distance)
@@ -552,39 +567,58 @@ class Framebuffer:
 
 class Lighting:
     '''
-    Lighting parameters specifying colors and positions of two lights:
-    a key (main) light, and a fill light, as well as specular lighting color
-    and exponent and an ambient light color.
-
-      key_light_direction
-      key_light_diffuse_color
-      key_light_specular_color
-      key_light_specular_exponent
-      fill_light_direction
-      fill_light_diffuse_color
-      ambient_light_color
-
+    Lighting parameters specifying colors and directions of two lights:
+    a key (main) light, and a fill light, as well as ambient light color.
     Directions are unit vectors in camera coordinates (x right, y up, z opposite camera view).
-    Colors are R,G,B float values in the range 0-1, and specular exponent is a single float
-    value used as an exponent e with specular color scaled by cosine(a) ** e where a is the
-    angle between the reflected light and the view direction.  A typical value for e is 30.
+    Colors are R,G,B float values in the range 0-1.
     '''
 
     def __init__(self):
-        # Lighting parameters
+
         self.key_light_direction = (.577,-.577,-.577)    # Should have unit length
-        self.key_light_diffuse_color = (.6,.6,.6)
-        self.key_light_specular_color = (.3,.3,.3)
-        self.key_light_specular_exponent = 30
+        '''Direction key light shines in.'''
+
+        self.key_light_color = (1,1,1)
+        '''Key light color.'''
+
         self.fill_light_direction = (-.2,-.2,-.959)        # Should have unit length
-        self.fill_light_diffuse_color = (.3,.3,.3)
-        self.ambient_light_color = (.3,.3,.3)
+        '''Direction fill light shines in.'''
+
+        self.fill_light_color = (.5,.5,.5)
+        '''Fill light color.'''
+
+        self.ambient_light_color = (1,1,1)
+        '''Ambient light color.'''
 
         self.depth_cue_distance = 15.0  # Distance where dimming begins (Angstroms)
         self.depth_cue_darkest = 0.2    # Smallest dimming factor
 
         self.move_lights_with_camera = True
+        '''Whether lights are attached to camera, or fixed in the scene.'''
 
+class Material:
+    '''
+    Surface properties that control the reflection of light.
+    '''
+    def __init__(self):
+        
+        self.ambient_reflectivity = 0.3
+        '''Fraction of ambient light reflected.  Ambient light comes from all directions
+        and the amount reflected does not depend on the surface orientation of view direction.'''
+
+        self.diffuse_reflectivity = 0.8
+        '''Fraction of direction light reflected diffusely, that is
+        depending on light angle to surface but not viewing direction.'''
+
+        self.specular_reflectivity = 0.3
+        '''Fraction of directional key light reflected specularly, that is
+        depending how close reflected light direction is to the viewing direction.'''
+
+        self.specular_exponent = 30
+        '''Controls the spread of specular light. The specular exponent is a single float value
+        used as an exponent e with reflected intensity scaled by cosine(a) ** e where a is the angle
+        between the reflected light and the view direction. A typical value for e is 30.'''
+        
 class Bindings:
     '''
     Use an OpenGL vertex array object to save buffer bindings.

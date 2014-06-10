@@ -384,7 +384,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        m.positions = m.positions[:1]
+        m.positions = Places(m.positions[0])
         m.update_level_of_detail(session.view)
 
 def show_surface_transparent(m):
@@ -427,13 +427,13 @@ def command_line(session):
 #  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
 
 def display_selected_models(session):
-  session.display_models(tuple(session.selected))
+  session.display_models(session.selected_models())
 
 def hide_selected_models(session):
-  session.hide_models(tuple(session.selected))
+  session.hide_models(session.selected_models())
 
 def delete_selected_models(session):
-  session.close_models(tuple(session.selected))
+  session.close_models(session.selected_models())
 
 def show_map_full_resolution(m):
   m.new_region(ijk_step = (1,1,1), adjust_step = False)
@@ -644,22 +644,27 @@ def quit(session):
 
 def undisplay_half(session):
     for m in session.models:
+        undisplay_half_model(m)
+
+def undisplay_half_model(m):
+    if not m.empty_drawing():
         mp = m.position
-        for p in m.child_drawings():
-            va = p.vertices
-            c = 0.5*(va.min(axis=0) + va.max(axis=0))
-            pc = p.copies
-            if len(pc) == 0:
-                if (mp*c)[2] > 0:
-                    p.display = False
-            else:
-                from numpy import array, bool
-                p.instance_display = array([(mp*pl*c)[2] <= 0 for pl in pc], bool)
-                p.displayed_copy_matrices = None
-                p.redraw_needed()
+        va = m.vertices
+        c = 0.5*(va.min(axis=0) + va.max(axis=0))
+        if len(mp) == 1:
+            if (mp*c)[2] > 0:
+                m.display = False
+        else:
+            from numpy import array, bool
+            m.instance_display = array([(mp*pl*c)[2] <= 0 for pl in mp], bool)
+            print('uh', m.name, m.instance_display.sum())
+            m.displayed_instance_matrices = None
+            m.redraw_needed()
+    for c in m.child_drawings():
+        undisplay_half_model(c)
 
 def display_all(session):
     for m in session.models:
-        for p in m.child_drawings():
-            p.display = True
-            p.instance_display = None
+        for c in m.all_drawings():
+            c.display = True
+            c.instance_display = None

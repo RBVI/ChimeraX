@@ -1,14 +1,16 @@
 # ----------------------------------------------------------------------------
+# Stack of transparent rectangles.
 #
-class Gray_Scale_Drawing:
+from ..graphics import Drawing
+class Gray_Scale_Drawing(Drawing):
 
-  def __init__(self, surface):
+  def __init__(self):
+
+    Drawing.__init__(self, 'grayscale')
 
     self.grid_size = None
     self.color_grid = None
     self.get_color_plane = None
-    self.surface = surface      # Stack of rectangles
-    self.plane_drawings = None
     self.texture_planes = {}    # maps plane index to texture id
     self.update_colors = False
 
@@ -41,26 +43,26 @@ class Gray_Scale_Drawing:
     self.outline_box_rgb = (1,1,1,1)
     self.outline_box_linewidth = 1
 
-    self.show_box_faces = False
+    self._show_box_faces = False
 
-    self.show_ortho_planes = 0  # bits 0,1,2 correspond to axes x,y,z.
-    self.orthoPlanesPosition = (0,0,0)
+    self._show_ortho_planes = 0  # bits 0,1,2 correspond to axes x,y,z.
+    self.ortho_planes_position = (0,0,0)
 
   def shown_orthoplanes(self):
-    return self.show_ortho_planes
+    return self._show_ortho_planes
   def set_shown_orthoplanes(self, s):
-    if s != self.show_ortho_planes:
-      self.show_ortho_planes = s
-      self.delete()
-  showOrthoPlanes = property(shown_orthoplanes, set_shown_orthoplanes)
+    if s != self._show_ortho_planes:
+      self._show_ortho_planes = s
+      self.remove_planes()
+  show_ortho_planes = property(shown_orthoplanes, set_shown_orthoplanes)
 
   def showing_box_faces(self):
-    return self.show_box_faces
+    return self._show_box_faces
   def set_showing_box_faces(self, s):
-    if s != self.show_box_faces:
-      self.show_box_faces = s
-      self.delete()
-  showBoxFaces = property(showing_box_faces, set_showing_box_faces)
+    if s != self._show_box_faces:
+      self._show_box_faces = s
+      self.remove_planes()
+  show_box_faces = property(showing_box_faces, set_showing_box_faces)
   
   def modulation_rgba(self):
     return self.mod_rgba
@@ -73,7 +75,7 @@ class Gray_Scale_Drawing:
   def set_array_coordinates(self, tf):
     self.ijk_to_xyz = tf
     # TODO: Just update vertex buffer.
-    self.delete()
+    self.remove_planes()
 
   def set_volume_colors(self, color_values):	# uint8 or float
     self.color_grid = color_values
@@ -93,16 +95,10 @@ class Gray_Scale_Drawing:
     if grid_size == self.grid_size:
       return
 
-    self.delete()
+    self.remove_planes()
     self.grid_size = grid_size
 
-  def texture_id(self):	  # Get 3d texture id.
-    return 0
-
-  def texture_matrix(self):	# Maps local coordinates to texture coords.
-    pass
-
-  def draw(self, renderer, camera_view, draw_pass):
+  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
 
     from ..graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not 'a' in self.color_mode)
@@ -110,47 +106,31 @@ class Gray_Scale_Drawing:
     if not dopaq and not dtransp:
       return
 
-    if self.plane_drawings is None:
-      self.plane_drawings = self.make_planes()
+    # Create or update the planes.
+    if len(self.child_drawings()) == 0:
+      self.make_planes()
     elif self.update_colors:
       self.reload_textures()
       self.update_colors = False
 
+    # Compare stack z axis to view direction to decide whether to reverse plane drawing order.
     zaxis = self.ijk_to_xyz.z_axis()
-    czaxis = camera_view.apply_without_translation(zaxis) # z axis in camera coords
+    cv = renderer.current_view_matrix
+    czaxis = cv.apply_without_translation(zaxis) # z axis in camera coords
     reverse = (czaxis[2] < 0)
 
-    spieces = self.plane_drawings
-    plist = spieces[::-1] if reverse else spieces
+    Drawing.draw(self, renderer, place, draw_pass, only, reverse_order = reverse)
 
-    Drawing.draw(self.surface, renderer, camera_view, draw_pass, children = plist)
-
-  def show(self):
-
-    if self.plane_drawings:
-      for p in self.plane_drawings:
-        p.display = True
-
-  def hide(self):
-
-    if self.plane_drawings:
-      for p in self.plane_drawings:
-        p.display = False
-
-  def delete(self):
-    plist = self.plane_drawings
-    if plist is None:
-      return
+  def remove_planes(self):
 
     self.texture_planes = {}
-    self.surface.remove_drawings(plist)
-    self.plane_drawings = None
+    self.remove_all_drawings()
 
   def make_planes(self):
 
-    if self.show_box_faces:
+    if self._show_box_faces:
       plist = self.make_box_faces()
-    elif self.show_ortho_planes:
+    elif self._show_ortho_planes:
       plist = self.make_ortho_planes()
     else:
       plist = self.make_axis_planes()
@@ -164,8 +144,8 @@ class Gray_Scale_Drawing:
 
   def make_ortho_planes(self):
     
-    op = self.show_ortho_planes
-    p = self.orthoPlanesPosition
+    op = self._show_ortho_planes
+    p = self.ortho_planes_position
     show_axis = (op & 0x1, op & 0x2, op & 0x4)
     planes = tuple((p[axis], axis) for axis in (0,1,2) if show_axis[axis])
     plist = self.make_plane_drawings(planes)
@@ -182,7 +162,6 @@ class Gray_Scale_Drawing:
   # Each plane is an index position and axis (k,axis).
   def make_plane_drawings(self, planes):
 
-    s = self.surface
     gs = self.grid_size
     from numpy import array, float32, int32, empty
     ta = array(((0,1,2),(0,2,3)), int32)
@@ -197,9 +176,9 @@ class Gray_Scale_Drawing:
       va[1:3,a0] += gs[a0]
       va[2:4,a1] += gs[a1]
       self.ijk_to_xyz.move(va)
-      p = s.new_drawing()
+      p = self.new_drawing()
       p.geometry = va, ta
-      p.color = self.modulation_rgba()
+      p.color = tuple(int(255*r) for r in self.modulation_rgba())
       p.use_lighting = False
       p.texture = self.texture_plane(k, axis)
       p.texture_coordinates = tc1 if axis == 1 else tc
@@ -236,10 +215,8 @@ class Gray_Scale_Drawing:
 
   def reload_textures(self):
 
-    if self.plane_drawings is None:
-      return
-
-    for p in self.plane_drawings:
+    planes = self.child_drawings()
+    for p in planes:
       t = p.texture
       k,axis = p.plane
       data = self.color_plane(k,axis)

@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 # 
-def read_stl(path, session, color = (.7,.7,.7,1)):
+def read_stl(path, session, color = (178,.178,.178,255)):
     '''
     Read a STL (Stereo Lithography) surface file and create a surface.
     '''
@@ -13,10 +13,9 @@ def read_stl(path, session, color = (.7,.7,.7,1)):
     comment, va, na, ta = _image3d.parse_stl(stl_data)
 
     s = STL_Surface(path)
-    d = s.new_drawing()
-    d.geometry = va, ta
-    d.normals = na
-    d.color = color
+    s.geometry = va, ta
+    s.normals = na
+    s.color = color
 
     return s
 
@@ -92,14 +91,11 @@ class STL_Surface(Drawing):
         self.path = path
 
     def session_state(self):
-        p = self.plist[0]
         s = {'id':self.id,
              'path':self.path,
              'display': self.display,
-             'place':self.place.matrix,
-             'color':p.color}
-        if p.copies:
-            s['copies'] = tuple(c.matrix for c in p.copies)
+             'positions': self.positions.array(),
+             'colors':self.colors}
         return s
 
 # -----------------------------------------------------------------------------
@@ -109,7 +105,7 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
     if attributes_only:
         models = session.model_list()
         sids = dict((m.id,m) for m in models if isinstance(m, STL_Surface))
-    from ..geometry.place import Place
+    from ..geometry.place import Places
     for st in surfs:
         if attributes_only:
             sid = st['id']
@@ -126,10 +122,14 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
         if 'displayed' in st:
             st['display'] = st['displayed']     # Fix old session files
         s.display = st['display']
-        s.place = Place(st['place'])
-        p = s.child_drawings()[0]
-        p.color = st['color']
+        if 'positions' in st:
+            s.positions = Places(place_array = st['positions'])
+        if 'color' in st:
+            s.color = tuple(int(255*c) for c in st['color'])
+        if 'colors' in st:
+            s.colors = colors
         if 'copies' in st:
-            p.copies = [Place(c) for c in st['copies']]
+            # Old session files.
+            s.positions = Places(place_array = st['copies'])
         if not attributes_only:
             session.add_model(s)
