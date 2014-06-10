@@ -33,8 +33,9 @@ class Drawing:
   def __init__(self, name):
     self.name = name
     self.id = None                      # positive integer
-    from ..geometry.place import Place
-    self.positions = [Place()]          # List of Place objects
+    from ..geometry.place import Places
+    self._positions = Places()          # Copies of drawing are placed at these positions
+    self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
     self._child_drawings = []
     self.subsets = set(['displayed'])   # Subsets this drawing belongs to.
 
@@ -49,20 +50,19 @@ class Drawing:
     self.edge_mask = None
     self.masked_edges = None
     self.display_style = self.Solid
-    self.color_rgba = (.7,.7,.7,1)
     self.texture = None
     self.texture_coordinates = None
     self.opaque_texture = False
 
     # Instancing
-    self.instance_shift_and_scale = None    # Instance copies
-    self.instance_places = []               # Instance placements
-    self.instance_matrices = None           # Instance matrices, 4x4 opengl
-    self.instance_colors = None             # N by 4 uint8 values
+    # TODO: Generalize to instance subset.
     self.instance_display = None            # bool numpy array, show only some instances
+    self.instance_shift_and_scale = None    # N by 4 array, (x,y,z,scale)
     self.displayed_instance_matrices = None # 4x4 matrices for displayed instances
     self.displayed_instance_colors = None
 
+    # TODO: Get rid of ignore_intercept.  Instead use a subset named "outline box"
+    #       and make first_intercept() take an exclude argument.
     self.ignore_intercept = False       # Calls to first_intercept() return None if ignore_intercept is true.
 					# This is so outline boxes are not used for front-center rotation.
 
@@ -151,12 +151,24 @@ class Drawing:
   '''Whether or not the drawing is selected.'''
 
   def get_position(self):
-    return self.positions[0]
+    return self._positions[0]
   def set_position(self, pos):
-    self.positions[0] = pos
+    from ..geometry.place import Places
+    self._positions = Places([pos])
     self.redraw_needed()
   position = property(get_position, set_position)
   '''Position and orientation of the surface in space.'''
+
+  def get_positions(self):
+    return self._positions
+  def set_positions(self, positions):
+    self._positions = positions
+    self.redraw_needed()
+  positions = property(get_positions, set_positions)
+  '''
+  Copies of the surface piece are placed using a 3 by 4 matrix with the first 3 columns
+  giving a linear transformation, and the last column specifying a shift.
+  '''
 
   def empty_drawing(self):
     return self.vertices is None
@@ -187,12 +199,19 @@ class Drawing:
     dself, dchildren, onlyc = self.in_subset(only)
     if not dself and not dchildren:
       return
-    for p in self.positions:
-      pp = place if p.is_identity() else place*p
-      if dself and not self.empty_drawing():
-        renderer.set_model_matrix(pp)
-        self.draw_self(renderer, draw_pass)
-      if dchildren:
+
+    if dself and not self.empty_drawing():
+      if len(self.positions) == 1:
+        p = self.position
+        pp = place if p.is_identity() else place*p
+      else:
+        pp = place
+      renderer.set_model_matrix(pp)
+      self.draw_self(renderer, draw_pass)
+
+    if dchildren and self.child_drawings():
+      for p in self.positions:
+        pp = place if p.is_identity() else place*p
         self.draw_children(renderer, pp, draw_pass, onlyc, reverse_order)
 
   def draw_self(self, renderer, draw_pass):
@@ -224,8 +243,8 @@ class Drawing:
     p = renderer.use_shader(sopt)
 
     # Set color
-    if self.vertex_colors is None and self.instance_colors is None:
-      renderer.set_single_color(self.color_rgba)
+    if self.vertex_colors is None and len(self._colors) == 1:
+      renderer.set_single_color([c/255.0 for c in self._colors[0]])
 
     t = self.texture
     if not t is None:
@@ -242,52 +261,38 @@ class Drawing:
     if not self.texture is None:
       self.texture.unbind_texture()
 
-  def bounds(self):
+  def bounds(self, positions = True):
     '''
-    The bounds of drawing and children including undisplayed.
-    Uses coordinate system of the drawing.  Does not include copies of this drawing.
+    The bounds of drawing and children including undisplayed and all positions.
     '''
     # TODO: Should this only include displayed drawings?
-    from ..geometry.bounds import union_bounds
-    b = union_bounds(d.geometry_bounds() for d in self.all_drawings() if not d.empty_drawing())
-    return b
 
-  def placed_bounds(self):
-    '''
-    The bounds of drawing and children including undisplayed including copies.
-    '''
-    # TODO: Should this only include displayed drawings?
-    b = self.bounds()
-    if b is None or b == (None, None):
-      return None
-    p = self.positions
-    if len(p) == 1 and p[0].is_identity(tolerance = 0):
-      return b
+    dbounds = [d.bounds() for d in self.child_drawings()]
+    if not self.empty_drawing():
+      dbounds.append(self.geometry_bounds())
     from ..geometry import bounds
-    return bounds.copies_bounding_box(b, p)
+    b = bounds.union_bounds(dbounds)
+    if positions:
+      b = bounds.copies_bounding_box(b, self.positions)
+    return b
 
   def geometry_bounds(self):
     '''
-    Return the bounds of the surface piece in surface coordinates including
-    any surface piece copies, but not including whole surface copies.
-    Does not include children.
+    Return the bounds of the drawing not including positions nor children.
     '''
-    # TODO: cache surface piece bounds
+    # TODO: cache bounds
     va = self.vertices
     if va is None or len(va) == 0:
       return None
     xyz_min = va.min(axis = 0)
     xyz_max = va.max(axis = 0)
-    sas = self.instance_shift_and_scale
+    sas = self.positions.shift_and_scale_array()
     if not sas is None and len(sas) > 0:
       xyz = sas[:,:3]
       xyz_min += xyz.min(axis = 0)
       xyz_max += xyz.max(axis = 0)
       # TODO: use scale factors
     b = (xyz_min, xyz_max)
-    if self.copies:
-      from ..geometry import bounds
-      b = bounds.copies_bounding_box(b, self.copies)
     return b
 
   def first_intercept(self, mxyz1, mxyz2):
@@ -319,18 +324,17 @@ class Drawing:
     if self.ignore_intercept or self.empty_drawing():
       return None
     # TODO check intercept of bounding box as optimization
-    # TODO handle surface piece instance_shift_and_scale.
     f = None
     va, ta = self.geometry
     from .. import _image3d
-    if len(self.copies) == 0:
+    if self.positions.is_identity():
       fmin, tmin = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
       if not fmin is None and (f is None or fmin < f):
         f = fmin
     else:
       # TODO: This will be very slow for large numbers of copies.
       id = self.instance_display
-      for c,tf in enumerate(self.copies):
+      for c,tf in enumerate(self.positions):
         if id is None or id[c]:
           cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
           fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
@@ -354,11 +358,7 @@ class Drawing:
     self.texture = None
     self.texture_coordinates = None
     self.masked_edges = None
-    self.instance_shift_and_scale = None
-    self.instance_places = []               # Instances
-    self.instance_matrices = None
     self.displayed_instance_matrices = None
-    self.instance_colors = None
     self.displayed_instance_colors = None
     self.instance_display = None
     for b in self.opengl_buffers:
@@ -376,18 +376,6 @@ class Drawing:
     self.redraw_needed()
   geometry = property(get_geometry, set_geometry)
   '''Geometry is the array of vertices and array of triangles.'''
-
-  def get_copies(self):
-    return self.instance_places
-  def set_copies(self, copies):
-    self.instance_places = copies
-    self.instance_matrices = None   # Compute when drawing
-    self.redraw_needed()
-  copies = property(get_copies, set_copies)
-  '''
-  Copies of the surface piece are placed using a 3 by 4 matrix with the first 3 columns
-  giving a linear transformation, and the last column specifying a shift.
-  '''
 
   def shader_changed(self, shader):
     return self.bindings is None or (shader != self.bindings.shader and not shader is None)
@@ -414,7 +402,7 @@ class Drawing:
     obufs = []
     for a,v in bufs:
       b = opengl.Buffer(v)
-      b.surface_piece_attribute_name = a
+      b.buffer_attribute_name = a
       obufs.append(b)
       if a == 'elements':
         self.element_buffer = b
@@ -428,21 +416,29 @@ class Drawing:
     if shader_change:
       self.bind_buffers(shader)
 
-    if self.instance_places and self.instance_matrices is None:
-      self.instance_matrices = opengl_matrices(self.instance_places)
-
     disp = self.instance_display        # bool array
-    if disp is None:
-      self.displayed_instance_colors = self.instance_colors
-      self.displayed_instance_matrices = self.instance_matrices
-    elif self.displayed_instance_matrices is None:
-      # TODO: Changing instance_display does not cause update.
-      self.displayed_instance_matrices = self.instance_matrices[disp,:,:]
-      ic = self.instance_colors
+    ic = self._colors
+    sas = self.positions.shift_and_scale_array()
+    if sas is None:
+      if len(self.positions) == 1:
+        self.displayed_instance_matrices = None
+        self.displayed_instance_colors = None
+      elif disp is None:
+          self.displayed_instance_matrices = self.positions.opengl_matrices()
+          self.displayed_instance_colors = ic
+      else:
+        # TODO: Changing instance_display does not cause update.
+        self.displayed_instance_matrices = self.positions.opengl_matrices()[disp,:,:]
+        self.displayed_instance_colors = ic[disp,:] if not ic is None else None
+    elif disp is None:
+      self.instance_shift_and_scale = sas if disp is None else sas[disp,:]
+      self.displayed_instance_colors = ic
+    else:
+      self.instance_shift_and_scale = sas[disp,:]
       self.displayed_instance_colors = ic[disp,:] if not ic is None else None
 
     for b in self.opengl_buffers:
-      data = getattr(self, b.surface_piece_attribute_name)
+      data = getattr(self, b.buffer_attribute_name)
       if b.update_buffer_data(data) or shader_change:
         self.bindings.bind_shader_variable(b)
 
@@ -464,15 +460,27 @@ class Drawing:
     return self.elements.size
 
   def get_color(self):
-    return self.color_rgba
+    return self._colors[0]
   def set_color(self, rgba):
-    self.color_rgba = rgba
+    from numpy import empty, uint8
+    c = empty((1,4),uint8)
+    c[0,:] = rgba
+    self._colors = c
     self.redraw_needed()
   color = property(get_color, set_color)
-  '''Single color of surface piece used when per-vertex coloring is not specified.'''
+  '''Single color of drawing used when per-vertex coloring is not specified.'''
+
+  def get_colors(self):
+    return self._colors
+  def set_colors(self, rgba):
+    self._colors = rgba
+    self.redraw_needed()
+  colors = property(get_colors, set_colors)
+  '''Color for each position used when per-vertex coloring is not specified.'''
 
   def opaque(self):
-    return self.color_rgba[3] == 1 and (self.texture is None or self.opaque_texture)
+    # TODO: Should render transparency for each copy separately
+    return self._colors[0][3] == 255 and (self.texture is None or self.opaque_texture)
 
   def showing_transparent(self):
     '''Are any transparent objects being displayed. Includes all children.'''
@@ -490,30 +498,24 @@ class Drawing:
     lit = getattr(self, 'use_lighting', True)
     if not lit:
       sopt[r.SHADER_LIGHTING] = False
-    if self.vertex_colors is None and self.instance_colors is None:
+    if self.vertex_colors is None and len(self._colors) == 1:
       sopt[r.SHADER_VERTEX_COLORS] = False
     t = self.texture
     if not t is None:
       sopt[r.SHADER_TEXTURE_2D] = True
       if hasattr(self, 'use_radial_warp') and self.use_radial_warp:
         sopt[r.SHADER_RADIAL_WARP] = True
-    if not self.instance_shift_and_scale is None:
+    if not self.positions.shift_and_scale_array() is None:
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
-    elif self.instance_places or not self.instance_matrices is None:
+    elif len(self.positions) > 1:
       sopt[r.SHADER_INSTANCING] = True
     return sopt
 
   def instance_count(self):
-    if not self.instance_shift_and_scale is None:
-      ninst = len(self.instance_shift_and_scale)
-    elif not self.instance_display is None:
+    if not self.instance_display is None:
       ninst = self.instance_display.sum()
-    elif self.instance_places:
-      ninst = len(self.instance_places)
-    elif not self.instance_matrices is None:
-      ninst = len(self.instance_matrices)
     else:
-      ninst = None
+      ninst = len(self.positions)
     return ninst
 
   TRIANGLE_DISPLAY_MASK = 8
@@ -647,7 +649,7 @@ def rgba_drawing(rgba, pos, size, drawing):
   tlist = array(((0,1,2),(0,2,3)), uint32)
   tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
   d.geometry = vlist, tlist
-  d.color = (1,1,1,1)         # Modulates texture values
+  d.color = (255,255,255,255)         # Modulates texture values
   d.use_lighting = False
   d.texture_coordinates = tc
   from . import opengl
@@ -680,17 +682,3 @@ def image_rgba_array(i):
     rgba[:,:,2] = t
 
     return rgba
-
-def opengl_matrices(places):
-  '''
-  Convert a list of Place objects into a numpy array of 3 by 4 matrices
-  for creating surface piece instances.
-  '''
-  m34_list = tuple(p.matrix for p in places)
-  n = len(m34_list)
-  from numpy import empty, float32, transpose
-  m = empty((n,4,4), float32)
-  m[:,:,:3] = transpose(m34_list, axes = (0,2,1))
-  m[:,:3,3] = 0
-  m[:,3,3] = 1
-  return m
