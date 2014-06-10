@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2904c5cc58c5
+VERSION = 06d85a8deb26
 DISTRIBUTION = birkenfeld-sphinx-contrib-$(VERSION).zip
 SOURCE = $(tmpdir)/birkenfeld-sphinx-contrib-$(VERSION)
 
