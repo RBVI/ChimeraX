@@ -559,7 +559,7 @@ class Molecule(Drawing):
       self.need_graphics_update = True
       self.redraw_needed()
 
-  def first_intercept(self, mxyz1, mxyz2):
+  def first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
     # TODO using wrong radius for atoms in stick and ball and stick
     xyz = self.shown_atom_array_values(self.xyz)

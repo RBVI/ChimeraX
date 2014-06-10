@@ -58,13 +58,8 @@ class Drawing:
     # TODO: Generalize to instance subset.
     self.instance_display = None            # bool numpy array, show only some instances
     self.instance_shift_and_scale = None    # N by 4 array, (x,y,z,scale)
-    self.displayed_instance_matrices = None # 4x4 matrices for displayed instances
-    self.displayed_instance_colors = None
-
-    # TODO: Get rid of ignore_intercept.  Instead use a subset named "outline box"
-    #       and make first_intercept() take an exclude argument.
-    self.ignore_intercept = False       # Calls to first_intercept() return None if ignore_intercept is true.
-					# This is so outline boxes are not used for front-center rotation.
+    self.instance_matrices = None	    # 4x4 matrices for displayed instances
+    self.instance_colors = None
 
     # OpenGL rendering                                    
     self.bindings = None                # Holds the buffer pointers and shader variable bindings
@@ -295,7 +290,7 @@ class Drawing:
     b = (xyz_min, xyz_max)
     return b
 
-  def first_intercept(self, mxyz1, mxyz2):
+  def first_intercept(self, mxyz1, mxyz2, exclude = None):
     '''
     Find the first intercept of a line segment with the displayed pieces of the surface.
     Return the fraction of the distance along the segment where the intersection occurs
@@ -307,7 +302,7 @@ class Drawing:
     sd = None
     from .. import _image3d
     for d in self.all_drawings():
-      if d.display:
+      if d.display and (exclude is None or not hasattr(d,exclude)):
         fmin = d.first_geometry_intercept(mxyz1, mxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
@@ -321,7 +316,7 @@ class Drawing:
     or None if no intersection occurs.  Intercepts with masked triangle are included.
     Children drawings are not considered.
     '''
-    if self.ignore_intercept or self.empty_drawing():
+    if self.empty_drawing():
       return None
     # TODO check intercept of bounding box as optimization
     f = None
@@ -358,8 +353,9 @@ class Drawing:
     self.texture = None
     self.texture_coordinates = None
     self.masked_edges = None
-    self.displayed_instance_matrices = None
-    self.displayed_instance_colors = None
+    self.instance_shift_and_scale = None
+    self.instance_matrices = None
+    self.instance_colors = None
     self.instance_display = None
     for b in self.opengl_buffers:
       b.delete_buffer()
@@ -396,8 +392,8 @@ class Drawing:
             ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
             ('elements', opengl.ELEMENT_BUFFER),
             ('instance_shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('displayed_instance_matrices', opengl.INSTANCE_MATRIX_BUFFER),
-            ('displayed_instance_colors', opengl.INSTANCE_COLOR_BUFFER),
+            ('instance_matrices', opengl.INSTANCE_MATRIX_BUFFER),
+            ('instance_colors', opengl.INSTANCE_COLOR_BUFFER),
             )
     obufs = []
     for a,v in bufs:
@@ -421,21 +417,21 @@ class Drawing:
     sas = self.positions.shift_and_scale_array()
     if sas is None:
       if len(self.positions) == 1:
-        self.displayed_instance_matrices = None
-        self.displayed_instance_colors = None
+        self.instance_matrices = None
+        self.instance_colors = None
       elif disp is None:
-          self.displayed_instance_matrices = self.positions.opengl_matrices()
-          self.displayed_instance_colors = ic
+          self.instance_matrices = self.positions.opengl_matrices()
+          self.instance_colors = ic
       else:
         # TODO: Changing instance_display does not cause update.
-        self.displayed_instance_matrices = self.positions.opengl_matrices()[disp,:,:]
-        self.displayed_instance_colors = ic[disp,:] if not ic is None else None
+        self.instance_matrices = self.positions.opengl_matrices()[disp,:,:]
+        self.instance_colors = ic[disp,:] if not ic is None else None
     elif disp is None:
       self.instance_shift_and_scale = sas if disp is None else sas[disp,:]
-      self.displayed_instance_colors = ic
+      self.instance_colors = ic
     else:
       self.instance_shift_and_scale = sas[disp,:]
-      self.displayed_instance_colors = ic[disp,:] if not ic is None else None
+      self.instance_colors = ic[disp,:] if not ic is None else None
 
     for b in self.opengl_buffers:
       data = getattr(self, b.buffer_attribute_name)

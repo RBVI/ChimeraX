@@ -1003,7 +1003,7 @@ class Volume(Drawing):
 
   # ---------------------------------------------------------------------------
   #
-  def first_intercept(self, mxyz1, mxyz2):
+  def first_intercept(self, mxyz1, mxyz2, exclude = None):
 
     if self.representation == 'solid':
       ro = self.rendering_options
@@ -1016,7 +1016,7 @@ class Volume(Drawing):
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
         return f, None
 
-    return Drawing.first_intercept(self, mxyz1, mxyz2)
+    return Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
 
   # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
@@ -1808,7 +1808,7 @@ class Outline_Box:
     p.triangle_and_edge_mask = hide_diagonals
     p.color = tuple(int(255*r) for r in rgba)
     # Don't detect outline when finding front-center point for center of rotation
-    p.ignore_intercept = True
+    p.outline_box = True
 
     self.piece = p
     self.corners = corners
