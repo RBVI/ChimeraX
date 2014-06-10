@@ -124,7 +124,7 @@ class Models:
     def bounds(self):
         if self.bounds_changed:
             from .geometry import bounds
-            b = bounds.union_bounds(m.placed_bounds() for m in self.models if m.display)
+            b = bounds.union_bounds(m.bounds() for m in self.models if m.display)
             self.xyz_bounds = b
             self.bounds_changed = False
         return self.xyz_bounds
@@ -138,6 +138,6 @@ class Models:
         if models is None:
             models = [m for m in self.models if m.display]
         from .geometry import bounds
-        b = bounds.union_bounds(m.placed_bounds() for m in models)
+        b = bounds.union_bounds(m.bounds() for m in models)
         c,r = bounds.bounds_center_and_radius(b)
         return c
