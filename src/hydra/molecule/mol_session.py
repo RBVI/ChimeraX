@@ -7,7 +7,7 @@ def molecule_state(m):
         if hasattr(m,attr):
             ms[attr] = getattr(m,attr)
     if len(m.positions) > 1:
-        ms['copies'] = tuple(c.matrix for c in m.positions)
+        ms['copies'] = m.positions.array()
     if not m.bonds is None:
         ms['has_bonds'] = True
     ms['atom_shown'] = array_to_string(m.atom_shown)
@@ -52,7 +52,8 @@ def set_molecule_state(m, ms, session):
     from ..geometry.place import Place
     m.position = Place(ms['place'])
     if 'copies' in ms and len(ms['copies']) > 0:
-        m.positions = [Place(c) for c in ms['copies']]
+        from ..geometry import place
+        m.positions = place.Places(place_array = ms['copies'])
     if 'displayed' in ms:
         ms['display'] = ms['displayed']     # Fix old session files
     for attr in mol_attrs:
