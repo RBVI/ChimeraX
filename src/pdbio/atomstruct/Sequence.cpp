@@ -1,10 +1,7 @@
 // vim: set expandtab ts=4 sw=4:
 #include "Sequence.h"
 
-const std::set<unsigned char>
-Sequence::nucleic_letters = { 'A', 'C', 'G', 'T', 'U' };
-
-Sequence::_1Letter_Map Sequence::_rname3to1 = {
+Sequence::_1Letter_Map Sequence::_nucleic3to1 = {
         {"A", 'A'},
         {"+A", 'A'},
         {"ADE", 'A'},
@@ -23,7 +20,9 @@ Sequence::_1Letter_Map Sequence::_rname3to1 = {
         {"DT", 'T'},
         {"U", 'U'},
         {"+U", 'U'},
-        {"URA", 'U'},
+        {"URA", 'U'}
+};
+Sequence::_1Letter_Map Sequence::_protein3to1 = {
         {"ALA", 'A'},
         {"ARG", 'R'},
         {"ASH", 'D'}, // Amber (protonated ASP)
@@ -57,12 +56,48 @@ Sequence::_1Letter_Map Sequence::_rname3to1 = {
         {"TYR", 'Y'},
         {"VAL", 'V'}
 };
+Sequence::_1Letter_Map Sequence::_rname3to1;
 
 unsigned char
-Sequence::rname3to1(const char *rn)
+Sequence::nucleic3to1(const std::string& rn)
 {
-    _1Letter_Map::const_iterator l1i = _rname3to1.find(rn);
-    if (l1i == _rname3to1.end())
+    _1Letter_Map::const_iterator l1i = _nucleic3to1.find(rn);
+    if (l1i == _nucleic3to1.end()) {
         return 'X';
+    }
+    return (*l1i).second;
+}
+
+unsigned char
+Sequence::protein3to1(const std::string& rn)
+{
+    _1Letter_Map::const_iterator l1i = _protein3to1.find(rn);
+    if (l1i == _protein3to1.end()) {
+        return 'X';
+    }
+    return (*l1i).second;
+}
+
+void
+Sequence::_init_rname_map()
+{
+    for (auto mapping : Sequence::_nucleic3to1) {
+        Sequence::_rname3to1[mapping.first] = mapping.second;
+    }
+    for (auto mapping : Sequence::_protein3to1) {
+        Sequence::_rname3to1[mapping.first] = mapping.second;
+    }
+}
+
+unsigned char
+Sequence::rname3to1(const std::string& rn)
+{
+    if (_rname3to1.empty())
+        _init_rname_map();
+
+    _1Letter_Map::const_iterator l1i = _rname3to1.find(rn);
+    if (l1i == _rname3to1.end()) {
+        return 'X';
+    }
     return (*l1i).second;
 }

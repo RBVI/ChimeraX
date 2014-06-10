@@ -29,7 +29,7 @@ public:
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
 private:
     CoordSet *  _active_coord_set;
-    Chains *  _chains;
+    mutable Chains *  _chains;
     CoordSets  _coord_sets;
     Residues  _residues;
 public:
@@ -39,6 +39,7 @@ public:
     bool  asterisks_translated;
     std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
+    const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_bond(Bond *);
     CoordSet *  find_coord_set(int) const;
@@ -47,10 +48,9 @@ public:
         std::string &name) const;
     bool  is_traj;
     bool  lower_case_chains;
-    typedef std::pair<Chain::Residues&, Sequence::Contents*>
-            CI_Chain_Pairing;
+    typedef std::pair<Chain::Residues, Sequence::Contents*> CI_Chain_Pairing;
     typedef std::map<std::string, CI_Chain_Pairing> ChainInfo;
-    void  make_chains(const ChainInfo *ci = nullptr);
+    void  make_chains(const ChainInfo *ci = nullptr) const;
     Atom *  new_atom(std::string &name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();

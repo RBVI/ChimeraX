@@ -11,8 +11,8 @@
 #include <set>
 
 AtomicStructure::AtomicStructure():
-    _active_coord_set(NULL), asterisks_translated(false), lower_case_chains(false),
-    pdb_version(0), is_traj(false)
+    _active_coord_set(NULL), asterisks_translated(false),
+    lower_case_chains(false), pdb_version(0), is_traj(false), _chains(nullptr)
 {
 }
 
@@ -182,7 +182,7 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::
 }
 
 void
-AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info)
+AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info) const
 // if null, fall back to chains derived from the structure directly
 {
     ChainInfo* ci = (ChainInfo*)chain_info;
@@ -209,14 +209,17 @@ AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info)
         }
     }
 
-    Chains* chains = new Chains();
+    if (_chains != nullptr)
+        delete _chains;
+
+    _chains = new Chains();
     for (auto cii = ci->begin(); cii != ci->end(); ++cii) {
        const std::string& chain_id = (*cii).first;
        CI_Chain_Pairing chain_pairing = (*cii).second;
        Chain::Residues& residues = chain_pairing.first;
        Sequence::Contents* chars = chain_pairing.second;
        auto chain = new Chain(chain_id);
-       chains->emplace_back(chain);
+       _chains->emplace_back(chain);
        chain->bulk_set(residues, chars);
     }
 

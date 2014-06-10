@@ -29,10 +29,8 @@ Bond::polymeric_start_atom() const
     if (c1 == 'X' || c2 == 'X')
         return nullptr;
 
-    bool n1 = Sequence::nucleic_letters.find(c1)
-        != Sequence::nucleic_letters.end();
-    bool n2 = Sequence::nucleic_letters.find(c2)
-        != Sequence::nucleic_letters.end();
+    bool n1 = Sequence::nucleic3to1(r1->name()) != 'X';
+    bool n2 = Sequence::nucleic3to1(r2->name()) != 'X';
     if (n1 != n2)
         return nullptr;
 
