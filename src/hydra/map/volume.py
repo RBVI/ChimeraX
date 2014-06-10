@@ -152,8 +152,8 @@ class Volume(Drawing):
         i = pindex[p]
         vcolor = self.modulated_surface_color(self.surface_colors[i])
         from numpy import array, single as floatc
-        if (p.color != array(vcolor, floatc)).any():
-          self.surface_colors[i] = p.color
+        if (p.color != tuple(int(255*r) for r in vcolor)).any():
+          self.surface_colors[i] = p.color / 255.0
           ctypes.add('colors changed')
         pchange = True
 
@@ -611,7 +611,7 @@ class Volume(Drawing):
       if self.calculate_contour_surface(level, rendering_options, p):
         p.contour_settings = contour_settings
 
-    p.color = rgba
+    p.color = tuple(int(255*r) for r in rgba)
 
     # OpenGL draws nothing for degenerate triangles where two vertices are
     # identical.  For 2d contours want to see these triangles so show as mesh.
@@ -981,7 +981,7 @@ class Volume(Drawing):
   #
   def bounds(self):
 
-    b = Drawing.bounds(self)
+    b = Drawing.bounds(self, positions = False)
     if b is None:
       b = self.xyz_bounds()
     return b
@@ -1806,7 +1806,7 @@ class Outline_Box:
     from numpy import array
     p.geometry = array(vlist), array(tlist)
     p.triangle_and_edge_mask = hide_diagonals
-    p.color = rgba
+    p.color = tuple(int(255*r) for r in rgba)
     # Don't detect outline when finding front-center point for center of rotation
     p.ignore_intercept = True
 
