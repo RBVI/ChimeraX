@@ -241,8 +241,8 @@ class Solid:
   def color_array(self, ctype, cshape):
 
     v = self.volume
-    if hasattr(v, 'colors'):
-      colors = v.colors
+    if hasattr(v, '_grayscale_color_array'):
+      colors = v._grayscale_color_array
       if colors.dtype == ctype and tuple(colors.shape) == cshape:
         return colors
 
@@ -252,7 +252,7 @@ class Solid:
     except MemoryError:
       self.message("Couldn't allocate color array of size (%d,%d,%d,%d) region" % cshape, large_data_only = False)
       raise
-    v.colors = colors        # TODO: make sure this array is freed.
+    v._grayscale_color_array = colors        # TODO: make sure this array is freed.
     return colors
   
   # ---------------------------------------------------------------------------
@@ -431,7 +431,7 @@ class Solid:
   def close_model(self):
 
     v = self.volume
-    v.parent.delete(v)
+    v.parent.remove_drawing(v)
     self.volume = None
 
 # -----------------------------------------------------------------------------
