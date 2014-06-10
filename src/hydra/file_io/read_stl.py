@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 # 
-def read_stl(path, session, color = (.7,.7,.7,1)):
+def read_stl(path, session, color = (178,.178,.178,255)):
     '''
     Read a STL (Stereo Lithography) surface file and create a surface.
     '''
@@ -94,10 +94,8 @@ class STL_Surface(Drawing):
         s = {'id':self.id,
              'path':self.path,
              'display': self.display,
-             'positions': tuple(p.matrix for p in self.positions),
-             'color':self.color}
-        if self.copies:
-            s['copies'] = tuple(c.matrix for c in self.copies)
+             'positions': self.positions.array(),
+             'colors':self.colors}
         return s
 
 # -----------------------------------------------------------------------------
@@ -107,7 +105,7 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
     if attributes_only:
         models = session.model_list()
         sids = dict((m.id,m) for m in models if isinstance(m, STL_Surface))
-    from ..geometry.place import Place
+    from ..geometry.place import Places
     for st in surfs:
         if attributes_only:
             sid = st['id']
@@ -125,9 +123,13 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
             st['display'] = st['displayed']     # Fix old session files
         s.display = st['display']
         if 'positions' in st:
-            s.positions = [Place(m) for m in st['positions']]
-        s.color = st['color']
+            s.positions = Places(place_array = st['positions'])
+        if 'color' in st:
+            s.color = tuple(int(255*c) for c in st['color'])
+        if 'colors' in st:
+            s.colors = colors
         if 'copies' in st:
-            s.copies = [Place(c) for c in st['copies']]
+            # Old session files.
+            s.positions = Places(place_array = st['copies'])
         if not attributes_only:
             session.add_model(s)
