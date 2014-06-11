@@ -260,10 +260,11 @@ class PyAUIFrame(wx.Frame):
 
         self._mgr.AddPane(self.CreateSizeReportCtrl(), wx.aui.AuiPaneInfo().
                           Name("test9").Caption("Min Size 200x100").
-                          BestSize(wx.Size(200,100)).MinSize(wx.Size(200,100)).
+                          BestSize(wx.Size(400,200)).MinSize(wx.Size(200,100)).
                           Bottom().Layer(1).CloseButton(True).MaximizeButton(True))
 
-        self._mgr.AddPane(self.CreateTextCtrl(), wx.aui.AuiPaneInfo().
+        #self._mgr.AddPane(self.CreateTextCtrl(), wx.aui.AuiPaneInfo().
+        self._mgr.AddPane(self.CreateLog(), wx.aui.AuiPaneInfo().
                           Name("test10").Caption("Log").
                           Bottom().Layer(1).Position(1).CloseButton(True).MaximizeButton(True))
 
@@ -777,6 +778,13 @@ class PyAUIFrame(wx.Frame):
         return ctrl
 
 
+    def CreateLog(self):
+        import wx.html2
+        ctrl = wx.html2.WebView.New(self, size=wx.Size(200,400))
+        ctrl.SetPage(log, "")
+        return ctrl
+
+
     def GetIntroText(self):
         return overview
 
@@ -1164,7 +1172,6 @@ def runTest(frame, nb, log):
 #----------------------------------------------------------------------
 
 
-
 overview = """\
 <html>
 <head>
@@ -1190,6 +1197,27 @@ div {
 </head>
 <body>
 <div>Graphics Window</div>
+</body></html>
+"""
+
+log = """\
+<html>
+<head>
+</head>
+<body>
+<p style="font-size:12px">Thu Apr 7 17:48 PDT 2014<p>
+<ol style="font-size:12px;margin-left:5px;padding-left:10px">
+<li><img src="file://localhost/Users/pett/src/chimera2/src/ui-proto/image1.png"></img>
+Opened <a href=none.html">emd_1862.map</a> (#0), size 255<sup>3</sup>,
+grid spacing 1.27&Aring;, contour level -363, minimum -17270,
+maximum 14818, mean -6649.5, sd 3176.6, rms 7369.3, 16-bit integer
+<img src="file://localhost/Users/pett/src/chimera2/src/ui-proto/image2.png" width="87" height="15"></img>
+<li><img src="file://localhost/Users/pett/src/chimera2/src/ui-proto/image3.png"></img>
+Opened <a href=none.html">1em9.pdb</a> (#1), 2 chains A B,
+2257 atoms, rous sarcoma virus capsid protein: n-terminal domain,
+weight 30.04 KDa, x-ray 2.05 &Aring;
+</ol>
+<p style="font-size:12px">The Apr 8 00:14 PDT 2014<p>
 </body></html>
 """
 
