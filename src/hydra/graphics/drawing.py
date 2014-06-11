@@ -36,6 +36,7 @@ class Drawing:
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
     self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
+    self._display = None                # bool numpy array, show only some positions
     self._child_drawings = []
     self.subsets = set(['displayed'])   # Subsets this drawing belongs to.
 
@@ -56,9 +57,7 @@ class Drawing:
     self.use_lighting = True
     self.use_radial_warp = False
 
-    # Instancing
-    # TODO: Generalize to instance subset.
-    self.instance_display = None            # bool numpy array, show only some instances
+    # Derived arrays used for instancing
     self.instance_shift_and_scale = None    # N by 4 array, (x,y,z,scale)
     self.instance_matrices = None	    # 4x4 matrices for displayed instances
     self.instance_colors = None
@@ -145,6 +144,10 @@ class Drawing:
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
+  def display_positions(self, position_mask):
+    self._display = position_mask
+    self.redraw_needed()
+
   def get_selected(self):
     return 'selected' in self.subsets
   def set_selected(self, sel):
@@ -180,8 +183,8 @@ class Drawing:
     return self._colors[0]
   def set_color(self, rgba):
     from numpy import empty, uint8
-    c = empty((1,4),uint8)
-    c[0,:] = rgba
+    c = empty((len(self._positions),4),uint8)
+    c[:,:] = rgba
     self._colors = c
     self.redraw_needed()
   color = property(get_color, set_color)
@@ -368,7 +371,7 @@ class Drawing:
         f = fmin
     else:
       # TODO: This will be very slow for large numbers of copies.
-      id = self.instance_display
+      id = self._display
       for c,tf in enumerate(self.positions):
         if id is None or id[c]:
           cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
@@ -386,6 +389,9 @@ class Drawing:
   
   def delete_geometry(self):
     '''Release all the arrays and graphics memory associated with the surface piece.'''
+    self._positions = None
+    self._colors = None
+    self._display = None
     self.vertices = None
     self.triangles = None
     self.normals = None
@@ -396,7 +402,6 @@ class Drawing:
     self.instance_shift_and_scale = None
     self.instance_matrices = None
     self.instance_colors = None
-    self.instance_display = None
     for b in self.opengl_buffers:
       b.delete_buffer()
 
@@ -436,7 +441,7 @@ class Drawing:
     self.opengl_buffers = obufs
 
   effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates', 'elements',
-                         'instance_display', '_colors', '_positions'))
+                         '_display', '_colors', '_positions'))
 
   def update_buffers(self, new_bindings):
     if len(self.opengl_buffers) == 0 and not self.vertices is None:
@@ -465,10 +470,12 @@ class Drawing:
       self.instance_shift_and_scale = sas
       self.instance_colors = ic
 
-    disp = self.instance_display        # bool array
+    disp = self._display        # bool array
     if not disp is None:
       im = self.instance_matrices
       self.instance_matrices = im[disp,:,:] if not im is None else None
+      if not ic is None:
+        print('uia', ic.shape, disp.shape, len(self.positions))
       self.instance_colors = ic[disp,:] if not ic is None else None
       self.instance_shift_and_scale = sas[disp,:] if not sas is None else None
 
@@ -530,8 +537,8 @@ class Drawing:
   effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
 
   def instance_count(self):
-    if not self.instance_display is None:
-      ninst = self.instance_display.sum()
+    if not self._display is None:
+      ninst = self._display.sum()
     else:
       ninst = len(self.positions)
     return ninst
