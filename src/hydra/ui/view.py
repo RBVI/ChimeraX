@@ -427,7 +427,7 @@ class View(QtGui.QWindow):
         for m in models:
             if m.display:
                 mxyz1, mxyz2 = m.position.inverse() * (xyz1,xyz2)
-                fmin, smin = m.first_intercept(mxyz1, mxyz2)
+                fmin, smin = m.first_intercept(mxyz1, mxyz2, exclude = 'outline_box')
                 if not fmin is None and (f is None or fmin < f):
                     f = fmin
                     s = smin
