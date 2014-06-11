@@ -979,10 +979,11 @@ class Volume(Drawing):
 
   # ---------------------------------------------------------------------------
   #
-  def bounds(self):
+  def bounds(self, positions = True):
 
-    b = Drawing.bounds(self, positions = False)
+    b = Drawing.bounds(self, positions)
     if b is None:
+      # TODO: Should this be only displayed bounds?
       b = self.xyz_bounds()
     return b
 
@@ -1008,8 +1009,9 @@ class Volume(Drawing):
     if self.representation == 'solid':
       ro = self.rendering_options
       if not ro.box_faces and ro.orthoplanes_shown == (False,False,False):
+        vxyz1, vxyz2 = self.position.inverse() * (mxyz1, mxyz2)
         from . import slice
-        xyz_in, xyz_out = slice.box_line_intercepts((mxyz1, mxyz2), self.xyz_bounds())
+        xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
         if xyz_in is None or xyz_out is None:
           return None, None
         from ..geometry.vector import norm
