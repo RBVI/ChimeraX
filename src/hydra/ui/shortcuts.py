@@ -384,7 +384,8 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        m.positions = Places(m.positions[0])
+        from ..geometry.place import Places
+        m.positions = Places([m.positions[0]])
         m.update_level_of_detail(session.view)
 
 def show_surface_transparent(m):
