@@ -237,6 +237,12 @@ class Places:
         self._opengl_array = opengl_array
         self._shift_and_scale = shift_and_scale
 
+    def place_list(self):
+        pl = self._place_list
+        if pl is None:
+            self._place_list = pl = tuple(Place(m) for m in self._place_array)
+        return pl
+
     def array(self):
         pa = self._place_array
         if pa is None:
@@ -263,7 +269,7 @@ class Places:
         return m
         
     def __getitem__(self, i):
-        return self._place_list[i]
+        return self.place_list()[i]
     def __setitem__(self, i, p):
         self._place_list[i] = p
     def __len__(self):
@@ -277,11 +283,7 @@ class Places:
             n = len(self._opengl_array)
         return n
     def __iter__(self):
-        pl = self._place_list
-        if pl is None:
-            self._place_list = pl = tuple(Place(m) for m in self._place_array)
-        return pl.__iter__()
-
+        return self.place_list().__iter__()
     def __mul__(self, places):
         pp = []
         for p in self:

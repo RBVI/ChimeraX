@@ -56,14 +56,14 @@ class Render:
     def set_override_capabilities(self, ocap):
         self.override_capabilities = ocap
 
-    def use_shader(self, options):
+    def shader(self, options):
         '''
-        Set the shader to use that supports the specified capabilities needed.
-        The capabilities are privided as keyword options with boolean values.
+        Return a shader that supports the specified capabilities.
+        The capabilities are specified as keyword options with boolean values.
         The available option names are given by the values of SHADER_LIGHTING,
-        SHADER_TEXTURE_2D, SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING.
+        SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
+        SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_VERTEX_COLORS
         '''
-
         capabilities = self.default_capabilities.copy()
         ocap = self.override_capabilities
         if ocap:
@@ -76,26 +76,33 @@ class Render:
                 capabilities.discard(opt)
 
         p = self.opengl_shader(capabilities)
-
-        if p != self.current_shader_program:
-#            print ('changed shader',
-#                   self.current_shader_program.capabilities if self.current_shader_program else None, p.capabilities)
-            self.current_shader_program = p
-            GL.glUseProgram(p.program_id)
-            if self.SHADER_LIGHTING in capabilities:
-                self.set_shader_lighting_parameters()
-            if self.SHADER_DEPTH_CUE in capabilities:
-                self.set_depth_cue_parameters()
-            self.set_projection_matrix()
-            self.set_model_matrix()
-            if self.SHADER_TEXTURE_2D in capabilities:
-                GL.glUniform1i(p.uniform_id("tex2d"), 0)    # Texture unit 0.
-            if self.SHADER_RADIAL_WARP in capabilities:
-                self.set_radial_warp_parameters()
-            if not self.SHADER_VERTEX_COLORS in capabilities:
-                self.set_single_color()
-
         return p
+
+    def use_shader(self, shader):
+        '''
+        Set the current shader.
+        '''
+        if shader == self.current_shader_program:
+            return
+
+#        print ('changed shader',
+#               self.current_shader_program.capabilities if self.current_shader_program else None,
+#               shader.capabilities)
+        self.current_shader_program = shader
+        c = shader.capabilities
+        GL.glUseProgram(shader.program_id)
+        if self.SHADER_LIGHTING in c:
+            self.set_shader_lighting_parameters()
+        if self.SHADER_DEPTH_CUE in c:
+            self.set_depth_cue_parameters()
+        self.set_projection_matrix()
+        self.set_model_matrix()
+        if self.SHADER_TEXTURE_2D in c:
+            GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
+        if self.SHADER_RADIAL_WARP in c:
+            self.set_radial_warp_parameters()
+        if not self.SHADER_VERTEX_COLORS in c:
+            self.set_single_color()
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -420,9 +427,10 @@ class Render:
         self.draw_background()
 
         # Render region with texture red > 0.
-        self.use_shader({self.SHADER_TEXTURE_MASK:True,
+        p = self.shader({self.SHADER_TEXTURE_MASK:True,
                          self.SHADER_LIGHTING:False,
                          self.SHADER_VERTEX_COLORS:False})
+        self.use_shader(p)
 
         # Texture map a full-screen quad to blend texture with frame buffer.
         tc = Texture_Copier(self.current_shader_program)

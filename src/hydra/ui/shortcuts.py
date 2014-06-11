@@ -54,7 +54,7 @@ def standard_shortcuts(session):
         ('va', view_all, 'View all', gcat, viewarg, smenu),
         ('dv', default_view, 'Default orientation', gcat, viewarg, smenu, sep),
 
-        ('dA', display_all, 'Display all', gcat, sesarg, smenu),
+        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
         ('ds', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
         ('hs', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
@@ -384,7 +384,8 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        m.positions = Places(m.positions[0])
+        from ..geometry.place import Places
+        m.positions = Places([m.positions[0]])
         m.update_level_of_detail(session.view)
 
 def show_surface_transparent(m):
@@ -648,23 +649,22 @@ def undisplay_half(session):
 
 def undisplay_half_model(m):
     if not m.empty_drawing():
-        mp = m.position
+        mp = m.positions
         va = m.vertices
         c = 0.5*(va.min(axis=0) + va.max(axis=0))
         if len(mp) == 1:
-            if (mp*c)[2] > 0:
+            if (mp[0]*c)[2] > 0:
                 m.display = False
         else:
             from numpy import array, bool
-            m.instance_display = array([(mp*pl*c)[2] <= 0 for pl in mp], bool)
-            print('uh', m.name, m.instance_display.sum())
-            m.displayed_instance_matrices = None
-            m.redraw_needed()
+            pmask = array([(pl*c)[2] <= 0 for pl in mp], bool)
+            m.display_positions(pmask)
+            print('uh', m.name, pmask.sum())
     for c in m.child_drawings():
         undisplay_half_model(c)
 
-def display_all(session):
+def display_all_positions(session):
     for m in session.models:
         for c in m.all_drawings():
-            c.display = True
-            c.instance_display = None
+            if c.display:
+                c.display_positions(None)
