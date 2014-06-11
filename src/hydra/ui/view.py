@@ -387,7 +387,9 @@ class View(QtGui.QWindow):
 
     def view_all(self):
         '''Adjust the camera to show all displayed models.'''
-        center, s = self.session.bounds_center_and_width()
+        ses = self.session
+#        ses.bounds_changed = True       # TODO: Model display changes are not setting bounds changed flag.
+        center, s = ses.bounds_center_and_width()
         if center is None:
             return
         shift = self.camera.view_all(center, s)
@@ -426,8 +428,7 @@ class View(QtGui.QWindow):
         models = self.session.model_list()
         for m in models:
             if m.display:
-                mxyz1, mxyz2 = m.position.inverse() * (xyz1,xyz2)
-                fmin, smin = m.first_intercept(mxyz1, mxyz2, exclude = 'outline_box')
+                fmin, smin = m.first_intercept(xyz1, xyz2, exclude = 'is_outline_box')
                 if not fmin is None and (f is None or fmin < f):
                     f = fmin
                     s = smin
