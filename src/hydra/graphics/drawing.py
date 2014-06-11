@@ -8,7 +8,7 @@ class Drawing:
   A Drawing represents a tree of objects each consisting of a set of triangles in 3 dimensional space.
   Drawings are used to draw molecules, density maps, geometric shapes and other models.
   A Drawing has a name, a unique id number which is a positive integer, it can be displayed or hidden,
-  has a placement in space, or multiple copies can be placed in space, and a surface can be selected.
+  has a placement in space, or multiple copies can be placed in space, and a drawing can be selected.
   The coordinates, colors, normal vectors and other geometric and display properties are managed by the
   Drawing objects.  Individual child drawings can be added or removed.  The purpose of child drawings is
   for convenience in adding and removing parts of a Drawing.
@@ -175,6 +175,39 @@ class Drawing:
   Copies of the surface piece are placed using a 3 by 4 matrix with the first 3 columns
   giving a linear transformation, and the last column specifying a shift.
   '''
+
+  def get_color(self):
+    return self._colors[0]
+  def set_color(self, rgba):
+    from numpy import empty, uint8
+    c = empty((1,4),uint8)
+    c[0,:] = rgba
+    self._colors = c
+    self.redraw_needed()
+  color = property(get_color, set_color)
+  '''Single color of drawing used when per-vertex coloring is not specified.'''
+
+  def get_colors(self):
+    return self._colors
+  def set_colors(self, rgba):
+    self._colors = rgba
+    self.redraw_needed()
+  colors = property(get_colors, set_colors)
+  '''Color for each position used when per-vertex coloring is not specified.'''
+
+  def opaque(self):
+    # TODO: Should render transparency for each copy separately
+    return self._colors[0][3] == 255 and (self.texture is None or self.opaque_texture)
+
+  def showing_transparent(self):
+    '''Are any transparent objects being displayed. Includes all children.'''
+    if self.display:
+      if not self.empty_drawing() and not self.opaque():
+        return True
+      for d in self.child_drawings():
+        if d.showing_transparent():
+          return True
+    return False
 
   def empty_drawing(self):
     return self.vertices is None
@@ -409,26 +442,7 @@ class Drawing:
     if len(self.opengl_buffers) == 0 and not self.vertices is None:
       self.create_opengl_buffers()
 
-    disp = self.instance_display        # bool array
-    ic = self._colors
-    sas = self.positions.shift_and_scale_array()
-    if sas is None:
-      if len(self.positions) == 1:
-        self.instance_matrices = None
-        self.instance_colors = None
-      elif disp is None:
-          self.instance_matrices = self.positions.opengl_matrices()
-          self.instance_colors = ic
-      else:
-        # TODO: Changing instance_display does not cause update.
-        self.instance_matrices = self.positions.opengl_matrices()[disp,:,:]
-        self.instance_colors = ic[disp,:] if not ic is None else None
-    elif disp is None:
-      self.instance_shift_and_scale = sas if disp is None else sas[disp,:]
-      self.instance_colors = ic
-    else:
-      self.instance_shift_and_scale = sas[disp,:]
-      self.instance_colors = ic[disp,:] if not ic is None else None
+    self.update_instance_arrays()
 
     for b in self.opengl_buffers:
       data = getattr(self, b.buffer_attribute_name)
@@ -436,6 +450,27 @@ class Drawing:
         self.bindings.bind_shader_variable(b)
 
     self.need_buffer_update = False
+
+  def update_instance_arrays(self):
+    ic = self._colors
+    sas = self.positions.shift_and_scale_array()
+    if sas is None:
+      if len(self.positions) == 1:
+        self.instance_matrices = None
+        self.instance_colors = None
+      else:
+        self.instance_matrices = self.positions.opengl_matrices()
+        self.instance_colors = ic
+    else:
+      self.instance_shift_and_scale = sas
+      self.instance_colors = ic
+
+    disp = self.instance_display        # bool array
+    if not disp is None:
+      im = self.instance_matrices
+      self.instance_matrices = im[disp,:,:] if not im is None else None
+      self.instance_colors = ic[disp,:] if not ic is None else None
+      self.instance_shift_and_scale = sas[disp,:] if not sas is None else None
 
   def get_elements(self):
 
@@ -453,39 +488,6 @@ class Drawing:
 
   def element_count(self):
     return self.elements.size
-
-  def get_color(self):
-    return self._colors[0]
-  def set_color(self, rgba):
-    from numpy import empty, uint8
-    c = empty((1,4),uint8)
-    c[0,:] = rgba
-    self._colors = c
-    self.redraw_needed()
-  color = property(get_color, set_color)
-  '''Single color of drawing used when per-vertex coloring is not specified.'''
-
-  def get_colors(self):
-    return self._colors
-  def set_colors(self, rgba):
-    self._colors = rgba
-    self.redraw_needed()
-  colors = property(get_colors, set_colors)
-  '''Color for each position used when per-vertex coloring is not specified.'''
-
-  def opaque(self):
-    # TODO: Should render transparency for each copy separately
-    return self._colors[0][3] == 255 and (self.texture is None or self.opaque_texture)
-
-  def showing_transparent(self):
-    '''Are any transparent objects being displayed. Includes all children.'''
-    if self.display:
-      if not self.empty_drawing() and not self.opaque():
-        return True
-      for d in self.child_drawings():
-        if d.showing_transparent():
-          return True
-    return False
 
   def use_bindings(self):
     s = self.shader
