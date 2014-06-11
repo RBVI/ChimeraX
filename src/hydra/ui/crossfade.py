@@ -61,11 +61,11 @@ class Motion_Blur(Drawing):
         self.changed = True
         self.capture_image()
 
-    def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
+    def draw(self, renderer, place, draw_pass, reverse_order = False):
         if draw_pass == self.OPAQUE_DRAW_PASS:
             self.changed = self.capture_image()
         elif self.changed:
-            Drawing.draw(self, renderer, place, draw_pass, only, reverse_order)
+            Drawing.draw(self, renderer, place, draw_pass, reverse_order)
 
     def capture_image(self):
 
