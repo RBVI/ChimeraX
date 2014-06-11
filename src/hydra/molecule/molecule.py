@@ -68,12 +68,12 @@ class Molecule(Drawing):
     a.add_molecules([self])
     return a
 
-  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
+  def draw(self, renderer, place, draw_pass, reverse_order = False):
     '''Draw the molecule using the current style.'''
 
     self.update_graphics()
 
-    Drawing.draw(self, renderer, place, draw_pass, only, reverse_order)
+    Drawing.draw(self, renderer, place, draw_pass, reverse_order)
 
   def update_graphics(self):
 
@@ -564,35 +564,43 @@ class Molecule(Drawing):
     # TODO using wrong radius for atoms in stick and ball and stick
     xyz = self.shown_atom_array_values(self.xyz)
     r = self.shown_atom_array_values(self.radii)
-    from .. import _image3d
-    if len(self.positions) > 1:
-      intercepts = []
-      for tf in self.positions:
-        cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-        fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
-        if not fmin is None:
-          intercepts.append((fmin,anum))
-      fmin, anum = min(intercepts) if intercepts else (None,None)
-    else:
-      fmin, anum = _image3d.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
-    if not anum is None and not self.all_atoms_shown():
-      anum = self.atom_shown.nonzero()[0][anum]
-    # Check for ribbon intercept.
     rsp = self.ribbon_drawing
-    if rsp:
-      va, ta = rsp.geometry
-      f, t = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
-      if not f is None and (fmin is None or f < fmin):
-        # Figure out residue from triangle number.
-        import bisect
-        rrt = self.ribbon_range_triangles
-        i = bisect.bisect_left(rrt, t)
-        r1,r2,cid = self.ribbon_ranges[i]
-        # TODO: Should use exact calculation of residue number.
-        fr = (rrt[i] - t) / ((rrt[i] - rrt[i-1]) if i > 0 else rrt[i])
-        rnum = round(fr*r1 + (1-fr)*r2)
-        return f, Residue_Selection(self, cid, rnum)
-    return fmin, Atom_Selection(self, anum)
+    f = fa = ft = None
+    from .. import _image3d
+    for tf in self.positions:
+      cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+      # Check for atom sphere intercept
+      fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+      if not fmin is None and (f is None or fmin < f):
+        f = fmin
+        fa,ft = anum, None
+      # Check for ribbon intercept
+      if rsp:
+        va, ta = rsp.geometry
+        fmin, t = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+        if not fmin is None and (f is None or fmin < fm):
+          f = fmin
+          fa,ft = None, t
+
+    # Create selection object
+    if not fa is None:
+      if not self.all_atoms_shown():
+        fa = self.atom_shown.nonzero()[0][fa]
+      s = Atom_Selection(self, fa)
+    elif not ft is None:
+      # Figure out residue from triangle number.
+      import bisect
+      rrt = self.ribbon_range_triangles
+      i = bisect.bisect_left(rrt,ft)
+      r1,r2,cid = self.ribbon_ranges[i]
+      # TODO: Should use exact calculation of residue number.
+      fr = (rrt[i] - t) / ((rrt[i] - rrt[i-1]) if i > 0 else rrt[i])
+      rnum = round(fr*r1 + (1-fr)*r2)
+      s = Residue_Selection(self, cid, rnum)
+    else:
+      s = None
+
+    return f, s
 
   def atom_count(self):
     '''Return the number of atoms in the molecule. Does not include molecule copies.'''
