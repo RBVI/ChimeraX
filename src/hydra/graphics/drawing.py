@@ -53,6 +53,8 @@ class Drawing:
     self.texture = None
     self.texture_coordinates = None
     self.opaque_texture = False
+    self.use_lighting = True
+    self.use_radial_warp = False
 
     # Instancing
     # TODO: Generalize to instance subset.
@@ -65,6 +67,15 @@ class Drawing:
     self.bindings = None                # Holds the buffer pointers and shader variable bindings
     self.opengl_buffers = []
     self.element_buffer = None
+    self.shader = None
+    self.need_buffer_update = True
+
+  def __setattr__(self, key, value):
+    if key in self.effects_shader:
+      self.shader = None
+    if key in self.effects_buffers:
+      self.need_buffer_update = True
+    super(Drawing,self).__setattr__(key, value)
 
   # Display styles
   Solid = 'solid'
@@ -231,11 +242,7 @@ class Drawing:
     if self.triangles is None:
       return
 
-    self.bind_buffers()     # Need bound vao to compile shader
-
-    # TODO: Optimize so shader options are not recomputed every frame.
-    sopt = self.shader_options()
-    p = renderer.use_shader(sopt)
+    new_bindings = self.set_shader(renderer)
 
     # Set color
     if self.vertex_colors is None and len(self._colors) == 1:
@@ -245,8 +252,8 @@ class Drawing:
     if not t is None:
       t.bind_texture()
 
-    # TODO: Optimize so buffer update is not done if nothing changed.
-    self.update_buffers(p)
+    if self.need_buffer_update:
+      self.update_buffers(new_bindings)
 
     # Draw triangles
     eb = self.element_buffer
@@ -373,15 +380,6 @@ class Drawing:
   geometry = property(get_geometry, set_geometry)
   '''Geometry is the array of vertices and array of triangles.'''
 
-  def shader_changed(self, shader):
-    return self.bindings is None or (shader != self.bindings.shader and not shader is None)
-
-  def bind_buffers(self, shader = None):
-    if self.shader_changed(shader):
-      from . import opengl
-      self.bindings = opengl.Bindings(shader)
-    self.bindings.activate()
-
   def create_opengl_buffers(self):
     # Surface piece attribute name, shader variable name, instancing
     from . import opengl
@@ -404,13 +402,12 @@ class Drawing:
         self.element_buffer = b
     self.opengl_buffers = obufs
 
-  def update_buffers(self, shader):
+  effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates', 'elements',
+                         'instance_display', '_colors', '_positions'))
+
+  def update_buffers(self, new_bindings):
     if len(self.opengl_buffers) == 0 and not self.vertices is None:
       self.create_opengl_buffers()
-
-    shader_change = self.shader_changed(shader)
-    if shader_change:
-      self.bind_buffers(shader)
 
     disp = self.instance_display        # bool array
     ic = self._colors
@@ -435,8 +432,10 @@ class Drawing:
 
     for b in self.opengl_buffers:
       data = getattr(self, b.buffer_attribute_name)
-      if b.update_buffer_data(data) or shader_change:
+      if b.update_buffer_data(data) or new_bindings:
         self.bindings.bind_shader_variable(b)
+
+    self.need_buffer_update = False
 
   def get_elements(self):
 
@@ -488,10 +487,29 @@ class Drawing:
           return True
     return False
 
+  def use_bindings(self):
+    s = self.shader
+    new_bindings = (self.bindings is None or
+                    (s != self.bindings.shader and not s is None))
+    if new_bindings:
+      from . import opengl
+      self.bindings = opengl.Bindings(s)
+    self.bindings.activate()
+    return new_bindings
+
+  def set_shader(self, renderer):
+    new_bindings = self.use_bindings()     # Need bound vao to compile shader
+    if self.shader is None:
+      sopt = self.shader_options()
+      self.shader = renderer.shader(sopt)
+      new_bindings = self.use_bindings()
+    renderer.use_shader(self.shader)
+    return new_bindings
+
   def shader_options(self):
     sopt = {}
-    from ..graphics import Render as r
-    lit = getattr(self, 'use_lighting', True)
+    from .opengl import Render as r
+    lit = self.use_lighting
     if not lit:
       sopt[r.SHADER_LIGHTING] = False
     if self.vertex_colors is None and len(self._colors) == 1:
@@ -499,13 +517,15 @@ class Drawing:
     t = self.texture
     if not t is None:
       sopt[r.SHADER_TEXTURE_2D] = True
-      if hasattr(self, 'use_radial_warp') and self.use_radial_warp:
+      if self.use_radial_warp:
         sopt[r.SHADER_RADIAL_WARP] = True
     if not self.positions.shift_and_scale_array() is None:
       sopt[r.SHADER_SHIFT_AND_SCALE] = True
     elif len(self.positions) > 1:
       sopt[r.SHADER_INSTANCING] = True
     return sopt
+
+  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
 
   def instance_count(self):
     if not self.instance_display is None:
