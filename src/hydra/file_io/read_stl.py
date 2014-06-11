@@ -124,12 +124,12 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
         s.display = st['display']
         if 'positions' in st:
             s.positions = Places(place_array = st['positions'])
+        if 'copies' in st:
+            # Old session files.
+            s.positions = Places(place_array = st['copies'])
         if 'color' in st:
             s.color = tuple(int(255*c) for c in st['color'])
         if 'colors' in st:
             s.colors = colors
-        if 'copies' in st:
-            # Old session files.
-            s.positions = Places(place_array = st['copies'])
         if not attributes_only:
             session.add_model(s)
