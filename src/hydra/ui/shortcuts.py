@@ -269,22 +269,28 @@ class Keyboard_Shortcuts:
       sc.run(s)
 
 def shortcut_maps(session):
-  mlist = [m for m in session.maps() if m.selected]
-  if len(mlist) == 0:
-    mlist = [m for m in session.maps() if m.display]
-  return mlist
+    maps = set(session.maps())
+    sel = session.selected_models()
+    mlist = [m for m in sel if m in maps]
+    if len(mlist) == 0:
+        mlist = [m for m in maps if m.display]
+    return mlist
 
 def shortcut_molecules(session):
-  mlist = [m for m in session.molecules() if m.selected]
-  if len(mlist) == 0:
-    mlist = [m for m in session.molecules() if m.display]
-  return mlist
+    mols = session.molecules()
+    sel = session.selected_models()
+    mlist = [m for m in sel if m in mols]
+    if len(mlist) == 0:
+        mlist = [m for m in mols if m.display]
+    return mlist
 
 def shortcut_surfaces(session):
-  mlist = [m for m in session.surfaces() if m.selected]
-  if len(mlist) == 0:
-    mlist = [m for m in session.surfaces() if m.display]
-  return mlist
+    surfs = session.surfaces()
+    sel = session.selected_models()
+    mlist = [m for m in sel if m in surfs]
+    if len(mlist) == 0:
+        mlist = [m for m in surfs if m.display]
+    return mlist
 
 def close_all_models(session):
     session.close_all_models()

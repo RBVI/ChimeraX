@@ -16,6 +16,7 @@ private:
 public:
     Connection(End *e1, End *e2, const char *err1 = "Can't connect endpoint to itself",
         const char *err2 = "Connection already exists between endpoints");
+    virtual  ~Connection() {}
     const End_points &  end_points() const { return _end_points; }
     End *  other_end(End *e,
         const char *err = "Endpoint arg of other_end() not in Connection") const;

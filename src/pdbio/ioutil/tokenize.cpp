@@ -17,7 +17,7 @@ tokenize(char *string, char **array, int n)
 // 	**array;	/* returned array of pointers to tokens in string */
 // int	n;		/* maximum number of tokens to look for */
 {
-	register int	i;
+	int	i;
 
 	for (i = 0; i < n; i++) {
 		while (isspace(*string))
