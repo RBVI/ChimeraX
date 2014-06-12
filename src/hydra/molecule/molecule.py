@@ -31,6 +31,7 @@ class Molecule(Drawing):
     self.residue_nums = atoms['residue_number']
     self.residue_names = atoms['residue_name']
     self.atom_shown = atoms['atom_shown'].view(numpy.bool)
+    self.atom_selected = atoms['atom_selected'].view(numpy.bool)
     self.atom_colors = atoms['atom_color']
     self.ribbon_shown = atoms['ribbon_shown'].view(numpy.bool)
     self.ribbon_colors = atoms['ribbon_color']      # Color for each atom, but only guide atom color used.
@@ -68,12 +69,12 @@ class Molecule(Drawing):
     a.add_molecules([self])
     return a
 
-  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
+  def draw(self, renderer, place, draw_pass, selected_only = False):
     '''Draw the molecule using the current style.'''
 
     self.update_graphics()
 
-    Drawing.draw(self, renderer, place, draw_pass, only, reverse_order)
+    Drawing.draw(self, renderer, place, draw_pass, selected_only)
 
   def update_graphics(self):
 
@@ -136,6 +137,10 @@ class Molecule(Drawing):
     sas = self.shown_atom_array_values(xyzr)
     from ..geometry import place
     p.positions = place.Places(shift_and_scale = sas)
+
+    asel = self.atom_selected
+    if asel.sum() > 0:
+      p.selected_positions = asel[self.atom_shown]
 
   def shown_atom_array_values(self, a):
     if self.all_atoms_shown():
@@ -491,6 +496,24 @@ class Molecule(Drawing):
     self.need_graphics_update = True
     self.redraw_needed()
 
+  def select_atom(self, a, toggle = False):
+    asel = self.atom_selected
+    asel[a] = (not asel[a]) if toggle else True
+    self.need_graphics_update = True
+    self.redraw_needed()
+
+  def any_part_selected(self):
+    asel = self.atom_selected
+    return asel.sum() > 0
+
+  def clear_selection(self):
+    asel = self.atom_selected
+    if self.selected or asel.sum() > 0:
+      self.selected = False
+      asel[:] = False
+      self.need_graphics_update = True
+      self.redraw_needed()
+    
   def set_ribbon_display(self, display):
     self.ribbon_shown[:] = (1 if display else 0)
     self.update_ribbons = True
@@ -564,35 +587,43 @@ class Molecule(Drawing):
     # TODO using wrong radius for atoms in stick and ball and stick
     xyz = self.shown_atom_array_values(self.xyz)
     r = self.shown_atom_array_values(self.radii)
-    from .. import _image3d
-    if len(self.positions) > 1:
-      intercepts = []
-      for tf in self.positions:
-        cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-        fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
-        if not fmin is None:
-          intercepts.append((fmin,anum))
-      fmin, anum = min(intercepts) if intercepts else (None,None)
-    else:
-      fmin, anum = _image3d.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
-    if not anum is None and not self.all_atoms_shown():
-      anum = self.atom_shown.nonzero()[0][anum]
-    # Check for ribbon intercept.
     rsp = self.ribbon_drawing
-    if rsp:
-      va, ta = rsp.geometry
-      f, t = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
-      if not f is None and (fmin is None or f < fmin):
-        # Figure out residue from triangle number.
-        import bisect
-        rrt = self.ribbon_range_triangles
-        i = bisect.bisect_left(rrt, t)
-        r1,r2,cid = self.ribbon_ranges[i]
-        # TODO: Should use exact calculation of residue number.
-        fr = (rrt[i] - t) / ((rrt[i] - rrt[i-1]) if i > 0 else rrt[i])
-        rnum = round(fr*r1 + (1-fr)*r2)
-        return f, Residue_Selection(self, cid, rnum)
-    return fmin, Atom_Selection(self, anum)
+    f = fa = ft = None
+    from .. import _image3d
+    for tf in self.positions:
+      cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+      # Check for atom sphere intercept
+      fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+      if not fmin is None and (f is None or fmin < f):
+        f = fmin
+        fa,ft = anum, None
+      # Check for ribbon intercept
+      if rsp:
+        va, ta = rsp.geometry
+        fmin, t = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+        if not fmin is None and (f is None or fmin < f):
+          f = fmin
+          fa,ft = None, t
+
+    # Create selection object
+    if not fa is None:
+      if not self.all_atoms_shown():
+        fa = self.atom_shown.nonzero()[0][fa]
+      s = Picked_Atom(self, fa)
+    elif not ft is None:
+      # Figure out residue from triangle number.
+      import bisect
+      rrt = self.ribbon_range_triangles
+      i = bisect.bisect_left(rrt,ft)
+      r1,r2,cid = self.ribbon_ranges[i]
+      # TODO: Should use exact calculation of residue number.
+      fr = (rrt[i] - t) / ((rrt[i] - rrt[i-1]) if i > 0 else rrt[i])
+      rnum = round(fr*r1 + (1-fr)*r2)
+      s = Picked_Residue(self, cid, rnum)
+    else:
+      s = None
+
+    return f, s
 
   def atom_count(self):
     '''Return the number of atoms in the molecule. Does not include molecule copies.'''
@@ -636,7 +667,8 @@ atom_dtype = [
   ('ribbon_color', 'u1', (4,)),
   ('atom_shown', 'u1'),
   ('ribbon_shown', 'u1'),
-  ('pad', 'u2'),               # C struct size is multiple of 4 bytes
+  ('atom_selected', 'u1'),
+  ('pad', 'u1'),               # C struct size is multiple of 4 bytes
 ]
 
 def combine_geometry(geom):
@@ -948,7 +980,7 @@ def all_atoms(session):
 
 # -----------------------------------------------------------------------------
 #
-class Atom_Selection:
+class Picked_Atom:
   def __init__(self, mol, a):
     self.molecule = mol
     self.atom = a
@@ -959,10 +991,13 @@ class Atom_Selection:
     return m.atom_index_description(a)
   def models(self):
     return [self.molecule]
+  def select(self, toggle = False):
+    m = self.molecule
+    m.select_atom(self.atom, toggle)
 
 # -----------------------------------------------------------------------------
 #
-class Residue_Selection:
+class Picked_Residue:
   def __init__(self, mol, cid, rnum):
     self.molecule = mol
     self.chain_id = cid
@@ -972,6 +1007,9 @@ class Residue_Selection:
     return '%s %d.%s:%d' % (m.name, m.id, self.chain_id.decode('utf-8'), self.residue_number)
   def models(self):
     return [self.molecule]
+  def select(self, toggle = False):
+    m = self.molecule
+    m.selected = not m.selected if toggle else True
 
 # -----------------------------------------------------------------------------
 #

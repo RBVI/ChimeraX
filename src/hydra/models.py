@@ -80,14 +80,15 @@ class Models:
     def selected_models(self):
         sm = self._selected_models
         if sm is None:
-            sm = tuple(m for m in self.model_list() if m.selected)
+            sm = tuple(m for m in self.model_list() if m.any_part_selected())
             self._selected_models = sm
         return sm
 
     def clear_selection(self):
         sm = self.selected_models()
-        for m in sm:
-            m.selected = False
+        for d in sm:
+            for c in d.all_drawings():
+                c.clear_selection()
         self._selected_models = ()
         if sm:
             self.redraw_needed = True

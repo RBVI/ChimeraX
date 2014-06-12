@@ -36,9 +36,11 @@ class Drawing:
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
     self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
-    self._display = None                # bool numpy array, show only some positions
+    self._displayed = True
+    self._displayed_positions = None    # bool numpy array, show only some positions
+    self._selected = False
+    self._selected_positions = None     # bool numpy array, selected positions
     self._child_drawings = []
-    self.subsets = set(['displayed'])   # Subsets this drawing belongs to.
 
     self.redraw_needed = redraw_no_op
     self.was_deleted = False
@@ -63,11 +65,12 @@ class Drawing:
     self.instance_colors = None
 
     # OpenGL rendering                                    
-    self.bindings = None                # Holds the buffer pointers and shader variable bindings
+    self.bindings = None                    # Holds the buffer pointers and shader variable bindings
     self.opengl_buffers = []
     self.element_buffer = None
     self.shader = None
     self.need_buffer_update = True
+    self.reverse_order_children = False     # Used by grayscale rendering for depth ordering
 
   def __setattr__(self, key, value):
     if key in self.effects_shader:
@@ -131,33 +134,46 @@ class Drawing:
       d.set_redraw_callback(redraw_needed)
 
   def get_display(self):
-    return 'displayed' in self.subsets
+    return self._displayed
   def set_display(self, display):
-    s = self.subsets
-    d = 'displayed' in s
-    if display != d:
-      if display:
-        s.add('displayed')
-      else:
-        s.remove('displayed')
-      self.redraw_needed()
+    self._displayed = display
+    self.redraw_needed()
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
   def display_positions(self, position_mask):
-    self._display = position_mask
+    self._displayed_positions = position_mask
     self.redraw_needed()
 
   def get_selected(self):
-    return 'selected' in self.subsets
+    return self._selected
   def set_selected(self, sel):
-    s = self.subsets
-    if sel:
-      s.add('selected')
-    else:
-      s.discard('selected')
+    self._selected = sel
   selected = property(get_selected, set_selected)
   '''Whether or not the drawing is selected.'''
+
+  def get_selected_positions(self):
+    return self._selected_positions
+  def set_selected_positions(self, spos):
+    self._selected_positions = spos
+    self.redraw_needed()
+  selected_positions = property(get_selected_positions, set_selected_positions)
+  '''Mask specifying which drawing positions are selected.'''
+
+  def any_part_selected(self):
+    if self._selected:
+      return True
+    sp = self._selected_positions
+    if not sp is None and sp.sum() > 0:
+      return True
+    for d in self.child_drawings():
+      if d.any_part_selected():
+        return True
+    return False
+
+  def clear_selection(self):
+    self.selected = False
+    self.selected_positions = None
 
   def get_position(self):
     return self._positions[0]
@@ -212,67 +228,74 @@ class Drawing:
           return True
     return False
 
+  def get_geometry(self):
+    return self.vertices, self.triangles
+  def set_geometry(self, g):
+    self.vertices, self.triangles = g
+    self.masked_edges = None
+    self.edge_mask = None
+    self.redraw_needed()
+  geometry = property(get_geometry, set_geometry)
+  '''Geometry is the array of vertices and array of triangles.'''
+
   def empty_drawing(self):
     return self.vertices is None
-
-  def in_subset(self, only):
-    self_in = children_in = True
-    children_only = only
-    s = self.subsets
-    for o in only:
-      require_in_parents = (o == 'displayed')
-      if o not in s:
-        self_in = False
-        if require_in_parents:
-          children_in = False
-          break
-      elif not require_in_parents:
-        if children_only is only:
-          children_only = set(only)
-        children_only.remove(o)
-    return self_in, children_in, children_only
 
   OPAQUE_DRAW_PASS = 'opaque'
   TRANSPARENT_DRAW_PASS = 'transparent'
   TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
+  SELECTION_DRAW_PASS = 'selection'
 
-  def draw(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
+  def draw(self, renderer, place, draw_pass, selected_only = False):
     '''Draw this drawing and children using the given draw pass.'''
-    dself, dchildren, onlyc = self.in_subset(only)
-    if not dself and not dchildren:
+
+    if not self.display:
       return
 
-    if dself and not self.empty_drawing():
-      if len(self.positions) == 1:
-        p = self.position
-        pp = place if p.is_identity() else place*p
-      else:
-        pp = place
-      renderer.set_model_matrix(pp)
-      self.draw_self(renderer, draw_pass)
+    if not self.empty_drawing():
+      self.draw_self(renderer, place, draw_pass, selected_only)
 
-    if dchildren and self.child_drawings():
-      for p in self.positions:
+    if self.child_drawings():
+      sp = self._selected_positions
+      sel_only = selected_only and not self.selected
+      for i,p in enumerate(self.positions):
+        so = sel_only and (sp is None or not sp[i])
         pp = place if p.is_identity() else place*p
-        self.draw_children(renderer, pp, draw_pass, onlyc, reverse_order)
+        self.draw_children(renderer, pp, draw_pass, sel_only)
 
-  def draw_self(self, renderer, draw_pass):
+  def draw_self(self, renderer, place, draw_pass, selected_only = False):
     '''Draw this drawing without children using the given draw pass.'''
+
+    if selected_only and not self.selected and self._selected_positions is None:
+      return
+
+    if len(self.positions) == 1:
+      p = self.position
+      pp = place if p.is_identity() else place*p
+    else:
+      pp = place
+    renderer.set_model_matrix(pp)
+
     if draw_pass == self.OPAQUE_DRAW_PASS:
       if self.opaque():
-          self.draw_geometry(renderer)
+          self.draw_geometry(renderer, selected_only)
     elif draw_pass in (self.TRANSPARENT_DRAW_PASS, self.TRANSPARENT_DEPTH_DRAW_PASS):
       if not self.opaque():
-        self.draw_geometry(renderer)
+        self.draw_geometry(renderer, selected_only)
+    elif draw_pass == self.SELECTION_DRAW_PASS:
+      # TODO: Avoid creating new bindings when drawing selection.
+      self.shader = None        # Use outline drawing shader
+      self.draw_geometry(renderer, selected_only)
+      self.shader = None        # Restore regular shader
 
-  def draw_children(self, renderer, place, draw_pass, only = ['displayed'], reverse_order = False):
+  def draw_children(self, renderer, place, draw_pass, selected_only = False):
     dlist = self.child_drawings()
-    if reverse_order:
+    if self.reverse_order_children:
       dlist = dlist[::-1]
     for d in dlist:
-      d.draw(renderer, place, draw_pass, only, reverse_order)
+      d.draw(renderer, place, draw_pass, selected_only)
 
-  def draw_geometry(self, renderer):
+  def draw_geometry(self, renderer, selected_only = False):
     ''' Draw the geometry.'''
 
     if self.triangles is None:
@@ -288,8 +311,8 @@ class Drawing:
     if not t is None:
       t.bind_texture()
 
-    if self.need_buffer_update:
-      self.update_buffers(new_bindings)
+    if self.need_buffer_update or new_bindings:
+      self.update_buffers(new_bindings, selected_only)
 
     # Draw triangles
     eb = self.element_buffer
@@ -335,50 +358,73 @@ class Drawing:
 
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
     '''
-    Find the first intercept of a line segment with the displayed pieces of the surface.
+    Find the first intercept of a line segment with the drawing and its children.
     Return the fraction of the distance along the segment where the intersection occurs
-    and a Drawing_Selection object for the intercepted piece.  For no intersection
-    two None values are returned.  This routine is used to determine the front-most point
+    and a Picked_Drawing object for the intercepted piece.  For no intersection
+    two None values are returned.  This routine is used for selecting objects, for
+    identifying objects during mouse-over, and to determine the front-most point
     in the center of view to be used as the interactive center of rotation.
     '''
-    f = None
-    sd = None
-    from .. import _image3d
-    for d in self.all_drawings():
-      if d.display and (exclude is None or not hasattr(d,exclude)):
-        fmin = d.first_geometry_intercept(mxyz1, mxyz2)
+    f, dpchain = self.first_drawing_intercept(mxyz1, mxyz2, exclude)
+    s = Picked_Drawing(dpchain) if dpchain else None
+    return f, s
+
+  def first_drawing_intercept(self, mxyz1, mxyz2, exclude = None):
+    '''
+    Find the first intercept of a line segment with the drawing or its descendants and
+    return the fraction of the distance along the segment where the intersection occurs
+    or None if no intersection occurs.  Also return a list of pairs of drawing and copy number
+    descending to the intercepted child drawing.
+    '''
+    f = dpchain = None
+    if self.display and (exclude is None or not hasattr(self,exclude)):
+      if not self.empty_drawing():
+        fmin,p = self.first_intercept_excluding_children(mxyz1, mxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
-          sd = d
-    return f, Drawing_Selection(sd)
+          dpchain = [(self,p)]
+      cd = self.child_drawings()
+      if cd:
+        pos = [p.inverse()*(mxyz1,mxyz2) for p in self.positions]
+        for d in cd:
+          if d.display and (exclude is None or not hasattr(d,exclude)):
+            for cp, (cxyz1,cxyz2) in enumerate(pos):
+              fmin,dc = d.first_drawing_intercept(cxyz1, cxyz2, exclude)
+              if not fmin is None and (f is None or fmin < f):
+                f = fmin
+                dpchain = [(self,cp)] + dc
+    return f, dpchain
 
-  def first_geometry_intercept(self, mxyz1, mxyz2):
+  def first_intercept_excluding_children(self, mxyz1, mxyz2):
     '''
-    Find the first intercept of a line segment with the surface piece and
+    Find the first intercept of a line segment with the drawing and
     return the fraction of the distance along the segment where the intersection occurs
     or None if no intersection occurs.  Intercepts with masked triangle are included.
     Children drawings are not considered.
     '''
-    if self.empty_drawing():
-      return None
     # TODO check intercept of bounding box as optimization
     f = None
-    va, ta = self.geometry
+    p = None    # Position number
+    if self.empty_drawing():
+      return f
+    va,ta = self.geometry
     from .. import _image3d
     if self.positions.is_identity():
       fmin, tmin = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
       if not fmin is None and (f is None or fmin < f):
         f = fmin
+        p = 0
     else:
       # TODO: This will be very slow for large numbers of copies.
-      id = self._display
+      dp = self._displayed_positions
       for c,tf in enumerate(self.positions):
-        if id is None or id[c]:
+        if dp is None or dp[c]:
           cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
           fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
           if not fmin is None and (f is None or fmin < f):
             f = fmin
-    return f
+            p = c
+    return f, p
 
   def delete(self):
     '''
@@ -391,7 +437,7 @@ class Drawing:
     '''Release all the arrays and graphics memory associated with the surface piece.'''
     self._positions = None
     self._colors = None
-    self._display = None
+    self._displayed_positions = None
     self.vertices = None
     self.triangles = None
     self.normals = None
@@ -407,16 +453,6 @@ class Drawing:
 
     self.bindings = None
     self.was_deleted = True
-
-  def get_geometry(self):
-    return self.vertices, self.triangles
-  def set_geometry(self, g):
-    self.vertices, self.triangles = g
-    self.masked_edges = None
-    self.edge_mask = None
-    self.redraw_needed()
-  geometry = property(get_geometry, set_geometry)
-  '''Geometry is the array of vertices and array of triangles.'''
 
   def create_opengl_buffers(self):
     # Surface piece attribute name, shader variable name, instancing
@@ -441,13 +477,13 @@ class Drawing:
     self.opengl_buffers = obufs
 
   effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates', 'elements',
-                         '_display', '_colors', '_positions'))
+                         '_displayed_positions', '_colors', '_positions'))
 
-  def update_buffers(self, new_bindings):
+  def update_buffers(self, new_bindings, selected_only = False):
     if len(self.opengl_buffers) == 0 and not self.vertices is None:
       self.create_opengl_buffers()
 
-    self.update_instance_arrays()
+    self.update_instance_arrays(selected_only)
 
     for b in self.opengl_buffers:
       data = getattr(self, b.buffer_attribute_name)
@@ -456,7 +492,7 @@ class Drawing:
 
     self.need_buffer_update = False
 
-  def update_instance_arrays(self):
+  def update_instance_arrays(self, selected_only = False):
     ic = self._colors
     sas = self.positions.shift_and_scale_array()
     if sas is None:
@@ -470,14 +506,18 @@ class Drawing:
       self.instance_shift_and_scale = sas
       self.instance_colors = ic
 
-    disp = self._display        # bool array
-    if not disp is None:
+    spos = None if self._selected_positions is None else self._selected_positions.sum()
+    dp = self._displayed_positions        # bool array
+    if selected_only:
+      sp = self._selected_positions
+      if not sp is None:
+        import numpy 
+        dp = sp if dp is None else numpy.logical_and(dp, sp)
+    if not dp is None:
       im = self.instance_matrices
-      self.instance_matrices = im[disp,:,:] if not im is None else None
-      if not ic is None:
-        print('uia', ic.shape, disp.shape, len(self.positions))
-      self.instance_colors = ic[disp,:] if not ic is None else None
-      self.instance_shift_and_scale = sas[disp,:] if not sas is None else None
+      self.instance_matrices = im[dp,:,:] if not im is None else None
+      self.instance_colors = ic[dp,:] if not ic is None else None
+      self.instance_shift_and_scale = sas[dp,:] if not sas is None else None
 
   def get_elements(self):
 
@@ -537,8 +577,9 @@ class Drawing:
   effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
 
   def instance_count(self):
-    if not self._display is None:
-      ninst = self._display.sum()
+    dp = self._displayed_positions
+    if not dp is None:
+      ninst = dp.sum()
     else:
       ninst = len(self.positions)
     return ninst
@@ -590,8 +631,9 @@ def draw_drawings(renderer, cvinv, drawings):
                        lambda: draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
 
 def draw_multiple(drawings, r, place, draw_pass):
+  selected_only = (draw_pass == Drawing.SELECTION_DRAW_PASS)
   for d in drawings:
-    d.draw(r, place, draw_pass)
+    d.draw(r, place, draw_pass, selected_only)
 
 def any_transparent_drawings(drawings):
   for d in drawings:
@@ -619,8 +661,7 @@ def draw_outline(window_size, renderer, cvinv, drawings):
   r.start_rendering_outline(window_size)
   from ..geometry.place import Place
   p = Place()
-  draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
-  draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS)
+  draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
   r.finish_rendering_outline()
 
 def element_type(display_style):
@@ -636,22 +677,38 @@ def element_type(display_style):
 def redraw_no_op():
   pass
 
-class Drawing_Selection:
+class Picked_Drawing:
   '''
-  Represent a selected drawing as a generic selection object.
+  Represent a drawing chosen with the mouse as a generic selection object.
   '''
-  def __init__(self, d):
-    self.drawing = d
+  def __init__(self, drawing_chain):
+    self.drawing_chain = drawing_chain
   def description(self):
-    d = self.drawing
-    nt =  '%d triangles' % len(d.triangles)
-    desc = nt if d.name is None else ('%s %s' % (d.name, nt))
+    d,c = self.drawing_chain[-1]
+    fields = []
+    if not d.name is None:
+      fields.append(d.name)
+    if len(d.positions) > 1:
+      fields.append('copy %d' % c)
+    fields.append('triangles %d' % len(d.triangles))
+    desc = ' '.join(fields)
     return desc
   def models(self):
-    d = self.drawing
-    while hasattr(d, 'parent'):
-      d = d.parent
+    d = self.drawing_chain[0][0]
     return [d]
+  def select(self, toggle = False):
+    d,c = self.drawing_chain[-1]
+    n = len(d.positions)
+    if n == 1:
+      d.selected = not d.selected if toggle else True
+    else:
+      # Set selected position
+      pmask = d.selected_positions
+      if pmask is None:
+        from numpy import zeros, bool
+        pmask = zeros((n,), bool)
+      pmask[c] = not pmask[c] if toggle else 1
+      d.selected_positions = pmask
 
 def image_drawing(qi, pos, size, drawing = None):
   '''
