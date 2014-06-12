@@ -11,6 +11,7 @@ private:
     float  _radius;
 public:
     BaseSphere(): _radius(0.0) {}
+    virtual  ~BaseSphere() {}
     void  set_radius(float r) { _radius = r; }
     float  radius() const { return _radius; }
 };
@@ -23,6 +24,7 @@ private:
 public:
     virtual const Coord &  coord() const { return _coord; }
     virtual void  set_coord(const Point & coord) { _coord = coord; }
+    virtual  ~Sphere() {}
 };
 
 #endif  // base_geom_Sphere

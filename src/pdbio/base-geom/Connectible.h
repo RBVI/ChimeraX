@@ -21,6 +21,7 @@ protected:
     void  add_connection(FinalConnection *c) {
         _connections[c->other_end(static_cast<FinalConnectible *>(this))] = c;
     }
+    virtual  ~Connectible() {}
     Connections  connections() const;
     const ConnectionsMap &  connections_map() const { return _connections; }
     void  remove_connection(FinalConnection *c) {
