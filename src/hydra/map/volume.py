@@ -1802,15 +1802,13 @@ class Outline_Box:
     p.display_style = p.Mesh
     p.lineThickness = linewidth
     p.use_lighting = False
-    p.outline_box = True # Do not cap clipped outline box.
+    p.is_outline_box = True # Do not cap clipped outline box.
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
     from numpy import array
     p.geometry = array(vlist), array(tlist)
     p.triangle_and_edge_mask = hide_diagonals
     p.color = tuple(int(255*r) for r in rgba)
-    # Don't detect outline when finding front-center point for center of rotation
-    p.outline_box = True
 
     self.piece = p
     self.corners = corners
