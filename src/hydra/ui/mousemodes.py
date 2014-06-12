@@ -237,22 +237,19 @@ class Mouse_Modes:
 
         x,y = event.x(), event.y()
         v = self.view
-        p, s = v.first_intercept(x,y)
+        p, pick = v.first_intercept(x,y)
         ses = v.session
-        if s is None:
-            ses.clear_selection()
-            ses.show_status('cleared selection')
-        else:
-            from .qt import QtCore
-            append_selection = (event.modifiers() & QtCore.Qt.ShiftModifier)
-            if append_selection:
-                for m in s.models():
-                    m.selected = not m.selected
-            else:
+        from .qt import QtCore
+        toggle = bool(event.modifiers() & QtCore.Qt.ShiftModifier)
+        if pick is None:
+            if not toggle:
                 ses.clear_selection()
-                for m in s.models():
-                    m.selected = True
-        ses.selection_changed()
+                ses.show_status('cleared selection')
+        else:
+            if not toggle:
+                ses.clear_selection()
+            pick.select(toggle)
+            ses.selection_changed()
         
     def mouse_contour_level(self, event):
 
@@ -261,7 +258,7 @@ class Mouse_Modes:
         
         s = self.view.session
         mdisp = [m for m in s.model_list() if m.display]
-        msel = [m for m in mdisp if m.selected]
+        msel = [m for m in s.selected_models() if m.display]
         models = msel if msel else mdisp
         from ..map.volume import Volume
         for m in models:

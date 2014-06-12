@@ -20,6 +20,8 @@ protected:
     void  delete_edge(Edge *e);
     const Edges &  edges() const { return _edges; }
     const Vertices &  vertices() const { return _vertices; }
+public:
+    virtual  ~Graph() {}
 };
 
 template <class Vertex, class Edge>
