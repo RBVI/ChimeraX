@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+namespace pdb {
+
 //
 //	pdb_sscanf performs similarly to sscanf, execept that fields are of
 //	fixed length and a complete line is always consumed.  The field
@@ -160,3 +162,5 @@ PDB::sscanf(const char *buffer, const char *fmt, ...)
 	va_end(ap);
 	return nmatch;
 }
+
+}  // namespace pdb

@@ -15,6 +15,8 @@ extern "C" int strncasecmp (const char *s1, const char *s2, size_t n);
 # define	_toupper	toupper
 # endif
 
+namespace pdb {
+
 int PDB::input_version = 0;
 int PDB::atom_serial_number = 10000;
 int PDB::sigatm_serial_number = 10000;
@@ -288,3 +290,5 @@ PDB::get_type(const char *buf)
 	}
 	return UNKNOWN;
 }
+
+}  // namespace pdb

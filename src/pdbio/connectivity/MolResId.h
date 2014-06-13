@@ -5,6 +5,8 @@
 #include "atomstruct/Residue.h"
 #include "imex.h"
 
+namespace connectivity {
+
 class CONNECTIVITY_IMEX MolResId {
     // convenience class for testing chain/position/insert-code equality
 public:
@@ -18,7 +20,7 @@ public:
         insert = ic;
     };
     MolResId(char c, int p, char ic) : MolResId(std::string(1, c), p, ic) {};
-    MolResId(const Residue *r) {
+    MolResId(const atomstruct::Residue *r) {
         chain = r->chain_id();
         pos = r->position();
         insert = r->insertion_code();
@@ -44,3 +46,5 @@ std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
         os << "." << rid.chain;
     return os;
 }
+
+}  // namespace connectivity

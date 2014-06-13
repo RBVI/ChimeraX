@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <sstream>
 
+namespace atomstruct {
+
 Atom::Atom(AtomicStructure *as, std::string &name, Element e):
     _name(name), _structure(as), _residue(NULL), _element(e),
     _coord_index(COORD_UNASSIGNED), _alt_loc(' '), _serial_number(-1),
@@ -88,7 +90,7 @@ Atom::_new_coord(const Point &coord)
     return index;
 }
 
-const Coord &
+const basegeom::Coord &
 Atom::coord() const
 {
     if (_coord_index == COORD_UNASSIGNED)
@@ -177,7 +179,7 @@ Atom::set_bfactor(float bfactor)
 }
 
 void
-Atom::set_coord(const Coord &coord, CoordSet *cs)
+Atom::set_coord(const basegeom::Coord &coord, CoordSet *cs)
 {
     if (cs == NULL) {
         cs = structure()->active_coord_set();
@@ -218,3 +220,5 @@ Atom::set_serial_number(int sn)
         (*i).second.serial_number = sn;
     }
 }
+
+}  // namespace atomstruct

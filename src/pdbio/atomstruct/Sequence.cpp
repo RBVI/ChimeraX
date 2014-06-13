@@ -1,6 +1,8 @@
 // vim: set expandtab ts=4 sw=4:
 #include "Sequence.h"
 
+namespace atomstruct {
+
 Sequence::_1Letter_Map Sequence::_rname3to1;
 
 unsigned char
@@ -64,3 +66,5 @@ Sequence::rname3to1(const char *rn)
         return 'X';
     return (*l1i).second;
 }
+
+}  // namespace atomstruct

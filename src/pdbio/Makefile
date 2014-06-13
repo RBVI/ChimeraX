@@ -6,7 +6,7 @@ NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= ioutil pdb base-geom util atomstruct blob connectivity pdbio structaccess
+SUBDIRS	+= ioutil pdb basegeom util atomstruct blob connectivity pdbio structaccess
 SRCS = test.cpp
 OBJS = test.o
 INCS += $(PYTHON_INCLUDE_DIRS)

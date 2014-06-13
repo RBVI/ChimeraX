@@ -6,6 +6,12 @@
 #include <map>
 #include <stddef.h>
 
+namespace blob {
+
+using atomstruct::AtomicStructure;
+using atomstruct::Atom;
+using atomstruct::Bond;
+    
 template PyObject* newBlob<StructBlob>(PyTypeObject*);
 
 extern "C" {
@@ -168,3 +174,5 @@ PyTypeObject StructBlob_type = {
     0, // tp_subclasses
     0, // tp_weaklist
 };
+
+}  // namespace blob

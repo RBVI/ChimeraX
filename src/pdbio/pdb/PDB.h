@@ -4,6 +4,8 @@
 #include <iostream>
 #include "imex.h"
 
+namespace pdb {
+
 class PDB_IMEX PDB {
 public:
 	static const int BUF_LEN = 82;		// PDB record length (80 + "\n")
@@ -478,5 +480,7 @@ operator<<(std::ostream &s, const PDB &p)
 	s << p.c_str();
 	return s;
 }
+
+}  // namespace pdb
 
 #endif  //  pdb_PDB
