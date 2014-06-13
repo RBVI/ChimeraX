@@ -93,6 +93,16 @@ class Models:
         if sm:
             self.redraw_needed = True
 
+    def promote_selection(self):
+        sm = self.selected_models()
+        for m in sm:
+            m.promote_selection()
+
+    def demote_selection(self):
+        sm = self.selected_models()
+        for m in sm:
+            m.demote_selection()
+
     def selection_changed(self):
         self._selected_models = None
         self.redraw_needed = True
