@@ -271,6 +271,7 @@ class Command_Line(QtWidgets.QLineEdit):
 
     def keyPressEvent(self, event):
         t = event.text()
+        k = event.key()
         ctrlp = b'\x10'.decode('utf-8')
         ctrln = b'\x0e'.decode('utf-8')
         ctrlk = b'\x0b'.decode('utf-8')
@@ -291,9 +292,13 @@ class Command_Line(QtWidgets.QLineEdit):
                 self.cursorBackward(False)
             elif t == ctrlf:
                 self.cursorForward(False)
-        elif event.key() == Qt.Key_Escape:
+        elif k == Qt.Key_Escape:
             event.ignore()      # Handled by MainWindow.keyPressEvent()
             return
+        elif k == Qt.Key_Up:
+            self.session.promote_selection()
+        elif k == Qt.Key_Down:
+            self.session.demote_selection()
         else:
             QtWidgets.QLineEdit.keyPressEvent(self, event)
         event.accept()
