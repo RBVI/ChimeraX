@@ -16,6 +16,7 @@ class Molecule(Drawing):
     Drawing.__init__(self, name)
 
     self.path = path
+    self.atoms = atoms
 
     #
     # Atom names, residue names and chain ids are Numpy strings with maximum fixed length.
@@ -39,9 +40,12 @@ class Molecule(Drawing):
     # Derived data
     self.cids = None            # Array of unique chain identifiers
     self.chain_ranges = None    # Dictionary mapping chain id to atom index ranges
+    self.rids = None            # Array of unique integer residue ids (same chain and residue number)
 
     # Bonds
     self.bonds = None                   # N by 2 array of atom indices
+
+    self.promotion_tower = []           # For undoing selection promotion
 
     # Graphics settings
     self.atom_shown_count = self.atom_shown.sum()
@@ -453,6 +457,15 @@ class Molecule(Drawing):
 
     return i
 
+  def residue_ids(self):
+    rids = self.rids
+    if rids is None:
+      a = self.atoms
+      satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
+      from .. import _image3d
+      self.rids = rids = _image3d.residue_ids(satoms)
+    return rids
+
   def chain_atom_range(self, chain_id):
     cr = self.chain_ranges
     if cr is None:
@@ -509,15 +522,57 @@ class Molecule(Drawing):
   def select_atom(self, a, toggle = False):
     asel = self.atom_selected
     asel[a] = (not asel[a]) if toggle else True
-    self.update_ribbons = True
-    self.need_graphics_update = True
-    self.redraw_needed()
+    self.selection_changed()
 
   def select_residue(self, cid, rnum, toggle = False):
     asel = self.atom_selected
     ai = self.atom_index_subset(chain_id = cid, residue_range = (rnum,rnum))
     from numpy import logical_not
     asel[ai] = logical_not(asel[ai]) if toggle else True
+    self.selection_changed()
+
+  def promote_selection(self):
+    asel = self.atom_selected
+    n = asel.sum()
+    if n == 0 or n == len(asel):
+      return
+    self.promotion_tower.append(asel.copy())
+    from numpy import unique, in1d
+    rids = self.residue_ids()
+    sel_rids = unique(rids[asel])
+    ares = in1d(rids, sel_rids)
+    if ares.sum() > n:
+      # Promote to entire residues
+      psel = ares
+    else:
+      cids = self.chain_ids
+      sel_cids = unique(cids[asel])
+      ac = in1d(cids, sel_cids)
+      if ac.sum() > n:
+        # Promote to entire chains
+        psel = ac
+      else:
+        # Promote to entire molecule
+        psel = True
+    self.atom_selected[:] = psel
+    self.selection_changed(promotion = True)
+
+  def demote_selection(self):
+    pt = self.promotion_tower
+    if len(pt) > 0:
+      self.atom_selected[:] = pt.pop()
+      self.selection_changed(promotion = True)
+
+  def clear_selection(self):
+    asel = self.atom_selected
+    if self.selected or asel.sum() > 0:
+      self.selected = False
+      asel[:] = False
+      self.selection_changed()
+
+  def selection_changed(self, promotion = False):
+    if not promotion:
+      self.promotion_tower = []
     self.update_ribbons = True
     self.need_graphics_update = True
     self.redraw_needed()
@@ -525,14 +580,6 @@ class Molecule(Drawing):
   def any_part_selected(self):
     asel = self.atom_selected
     return asel.sum() > 0
-
-  def clear_selection(self):
-    asel = self.atom_selected
-    if self.selected or asel.sum() > 0:
-      self.selected = False
-      asel[:] = False
-      self.need_graphics_update = True
-      self.redraw_needed()
     
   def set_ribbon_display(self, display):
     self.ribbon_shown[:] = (1 if display else 0)
