@@ -151,6 +151,7 @@ class Drawing:
     return self._selected
   def set_selected(self, sel):
     self._selected = sel
+    self.redraw_needed()
   selected = property(get_selected, set_selected)
   '''Whether or not the drawing is selected.'''
 
@@ -187,6 +188,46 @@ class Drawing:
   def clear_selection(self):
     self.selected = False
     self.selected_positions = None
+
+  def promote_selection(self):
+    above = self.above_selected()
+    if above:
+      for d in above:
+        d.selected = True
+      if not hasattr(self, 'promotion_tower'):
+        self.promotion_tower = [above]
+      else:
+        pt = self.promotion_tower
+        for d in pt:
+          if not d.selected:
+            self.promotion_tower = pt = []
+            break
+        pt.append(above)
+
+  def above_selected(self):
+    if self.selected:
+      return []
+    if self.child_or_copies_selected():
+      return [self]
+    return sum((d.above_selected() for d in self.child_drawings()), [])
+
+  def child_or_copies_selected(self):
+    sp = self._selected_positions
+    if not sp is None and sp.sum() > 0:
+      return True
+    stm = self._selected_triangles_mask
+    if stm is None and stm.sum() > 0:
+      return True
+    for d in self.child_drawings():
+      if d.selected:
+        return True
+    return False
+
+  def demote_selection(self):
+    pt = getattr(self, 'promotion_tower', None)
+    if pt:
+      for d in pt.pop():
+        d.selected = False
 
   def get_position(self):
     return self._positions[0]
@@ -274,12 +315,15 @@ class Drawing:
       for i,p in enumerate(self.positions):
         so = sel_only and (sp is None or not sp[i])
         pp = place if p.is_identity() else place*p
-        self.draw_children(renderer, pp, draw_pass, sel_only)
+        self.draw_children(renderer, pp, draw_pass, so)
 
   def draw_self(self, renderer, place, draw_pass, selected_only = False):
     '''Draw this drawing without children using the given draw pass.'''
 
-    if selected_only and not self.selected and self._selected_positions is None and self._selected_triangles_mask is None:
+    if (selected_only and
+        not self.selected and
+        self._selected_positions is None and
+        self._selected_triangles_mask is None):
       return
 
     if len(self.positions) == 1:
@@ -521,9 +565,8 @@ class Drawing:
       self.instance_shift_and_scale = sas
       self.instance_colors = ic
 
-    spos = None if self._selected_positions is None else self._selected_positions.sum()
     dp = self._displayed_positions        # bool array
-    if selected_only:
+    if selected_only and not self.selected:
       sp = self._selected_positions
       if not sp is None:
         import numpy 
@@ -539,7 +582,7 @@ class Drawing:
     ta = self.triangles
     if ta is None:
       return None
-    if selected_only:
+    if selected_only and not self.selected:
       tmask = self._selected_triangles_mask
       if not tmask is None:
         ta = ta[tmask,:]
