@@ -4,6 +4,8 @@
 
 #include <utility>  // for pair
 
+namespace atomstruct {
+
 CoordSet::CoordSet(int cs_id): _cs_id(cs_id)
 {
 }
@@ -42,3 +44,5 @@ CoordSet::set_occupancy(const Atom *a, float val)
 {
     _occupancy_map.insert(std::pair<const Atom *, float>(a, val));
 }
+
+}  // namespace atomstruct

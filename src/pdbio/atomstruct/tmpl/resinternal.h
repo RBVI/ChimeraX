@@ -6,13 +6,17 @@
 #include <map>
 #include <string>
 
+namespace tmpl {
+
 struct ResInit {
-    TmplResidue    *(*start)(TmplMolecule *);
-    TmplResidue    *(*middle)(TmplMolecule *);
-    TmplResidue    *(*end)(TmplMolecule *);
+    Residue    *(*start)(Molecule *);
+    Residue    *(*middle)(Molecule *);
+    Residue    *(*end)(Molecule *);
     ResInit(): start(0), middle(0), end(0) {}
 };
 
 typedef std::map<std::string, ResInit> ResInitMap;
+
+}  // namespace tmpl
 
 #endif  // templates_resinternal

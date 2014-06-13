@@ -3,10 +3,12 @@
 
 #include <algorithm> // for std::find
 
+namespace tmpl {
+
 void
-TmplMolecule::set_active_coord_set(TmplCoordSet *cs)
+Molecule::set_active_coord_set(CoordSet *cs)
 {
-    TmplCoordSet *new_active;
+    CoordSet *new_active;
     if (cs == NULL) {
         if (_coord_sets.empty())
             return;
@@ -22,34 +24,34 @@ TmplMolecule::set_active_coord_set(TmplCoordSet *cs)
     _active_cs = new_active;
 }
 
-TmplAtom *
-TmplMolecule::new_atom(std::string n, Element e)
+Atom *
+Molecule::new_atom(std::string n, atomstruct::Element e)
 {
-    TmplAtom *_inst_ = new TmplAtom(this, n, e);
+    Atom *_inst_ = new Atom(this, n, e);
     _atoms.insert(_inst_);
     return _inst_;
 }
 
-TmplBond *
-TmplMolecule::new_bond(TmplAtom *a0, TmplAtom *a1)
+Bond *
+Molecule::new_bond(Atom *a0, Atom *a1)
 {
-    TmplBond *_inst_ = new TmplBond(this, a0, a1);
+    Bond *_inst_ = new Bond(this, a0, a1);
     _bonds.insert(_inst_);
     return _inst_;
 }
 
-TmplCoordSet *
-TmplMolecule::new_coord_set(int k)
+CoordSet *
+Molecule::new_coord_set(int k)
 {
-    TmplCoordSet *_inst_ = new TmplCoordSet(this, k);
+    CoordSet *_inst_ = new CoordSet(this, k);
     if ((int)_coord_sets.size() <= _inst_->id())
         _coord_sets.resize(_inst_->id() + 1, NULL);
     _coord_sets[_inst_->id()] = _inst_;
     return _inst_;
 }
 
-TmplCoordSet *
-TmplMolecule::find_coord_set(int index) const
+CoordSet *
+Molecule::find_coord_set(int index) const
 {
     for (CoordSets::const_iterator csi = _coord_sets.begin(); csi != _coord_sets.end();
     ++csi) {
@@ -59,16 +61,16 @@ TmplMolecule::find_coord_set(int index) const
     return NULL;
 }
 
-TmplResidue *
-TmplMolecule::new_residue(const char *t)
+Residue *
+Molecule::new_residue(const char *t)
 {
-    TmplResidue *_inst_ = new TmplResidue(this, t);
+    Residue *_inst_ = new Residue(this, t);
     _residues[_inst_->name()] = _inst_;
     return _inst_;
 }
 
-TmplResidue *
-TmplMolecule::find_residue(const std::string &index) const
+Residue *
+Molecule::find_residue(const std::string &index) const
 {
     Residues::const_iterator i = _residues.find(index);
     if (i == _residues.end())
@@ -76,11 +78,11 @@ TmplMolecule::find_residue(const std::string &index) const
     return i->second;
 }
 
-TmplMolecule::TmplMolecule(): _active_cs(NULL)
+Molecule::Molecule(): _active_cs(NULL)
 {
 }
 
-TmplMolecule::~TmplMolecule()
+Molecule::~Molecule()
 {
     for (Residues::iterator j = _residues.begin(); j != _residues.end(); ++j) {
         delete (*j).second;
@@ -96,3 +98,4 @@ TmplMolecule::~TmplMolecule()
     }
 }
 
+}  // namespace tmpl

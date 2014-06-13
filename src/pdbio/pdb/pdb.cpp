@@ -1,6 +1,8 @@
 #include "PDB.h"
 #include <string.h>
 
+namespace pdb {
+
 void
 PDB::set_type(RecordType t)
 {
@@ -36,3 +38,5 @@ PDB::reset_state()
 	atom_serial_number = 10000;
 	sigatm_serial_number = 10000;
 }
+
+}  // namespace pdb

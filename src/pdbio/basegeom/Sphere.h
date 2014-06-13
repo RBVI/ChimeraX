@@ -1,10 +1,12 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef base_geom_Sphere
-#define base_geom_Sphere
+#ifndef basegeom_Sphere
+#define basegeom_Sphere
 
 #include "Connectible.h"
 #include "Coord.h"
 
+namespace basegeom {
+    
 template <class FinalConnection, class FinalConnectible>
 class BaseSphere: public Connectible<FinalConnection, FinalConnectible> {
 private:
@@ -27,4 +29,6 @@ public:
     virtual  ~Sphere() {}
 };
 
-#endif  // base_geom_Sphere
+} //  namespace basegeom
+
+#endif  // basegeom_Sphere

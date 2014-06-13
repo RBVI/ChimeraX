@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include <string.h>
 
+namespace pdb {
+
 PDB::PDB(const char *buf)
 {
 	parse_line(buf);
@@ -639,3 +641,5 @@ unknown:
 		break;
 	}
 }
+
+}  // namespace pdb

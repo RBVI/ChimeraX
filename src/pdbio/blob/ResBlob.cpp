@@ -5,6 +5,8 @@
 #include "numpy_common.h"
 #include <stddef.h>
 
+namespace blob {
+
 template PyObject* newBlob<ResBlob>(PyTypeObject*);
 
 extern "C" {
@@ -123,3 +125,5 @@ PyTypeObject ResBlob_type = {
     0, // tp_subclasses
     0, // tp_weaklist
 };
+
+}  // namespace blob

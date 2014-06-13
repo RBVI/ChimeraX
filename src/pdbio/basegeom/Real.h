@@ -1,7 +1,11 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef base_geom_Real
-#define base_geom_Real
+#ifndef basegeom_Real
+#define basegeom_Real
 
+namespace basegeom {
+    
 typedef double Real;
 
-#endif  // base_geom_Real
+} //  namespace basegeom
+
+#endif  // basegeom_Real

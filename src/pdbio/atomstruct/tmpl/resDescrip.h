@@ -2,6 +2,8 @@
 #ifndef templates_resDescrip
 #define templates_resDescrip
 
+namespace tmpl {
+
 typedef struct resDescrip {
     const char *name, *descrip;
 } ResDescript;
@@ -35,4 +37,7 @@ ResDescript res_descripts[] = {
     { "TYR", "tyrosine" },
     { "VAL", "valine" }
 };
+
+}  // namespace tmpl
+
 #endif  // templates_resDescrip

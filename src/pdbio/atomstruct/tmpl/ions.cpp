@@ -1,61 +1,64 @@
 // vim: set expandtab ts=4 sw=4:
 #include "resinternal.h"
 
+namespace tmpl {
 
-static TmplResidue *
-init_Cs(TmplMolecule *m)
+using atomstruct::Element;
+
+static Residue *
+init_Cs(Molecule *m)
 {
-    TmplCoord c;
-    TmplResidue *r = m->new_residue("Cs+");
-    TmplAtom *atom_Csp = m->new_atom("Cs+", Element(55));
+    Coord c;
+    Residue *r = m->new_residue("Cs+");
+    Atom *atom_Csp = m->new_atom("Cs+", Element(55));
     r->add_atom(atom_Csp);
     c.set_xyz(0.0,0.0,0.0);
     atom_Csp->set_coord(c);
     return r;
 }
 
-static TmplResidue *
-init_K(TmplMolecule *m)
+static Residue *
+init_K(Molecule *m)
 {
-    TmplCoord c;
-    TmplResidue *r = m->new_residue("K+");
-    TmplAtom *atom_Kp = m->new_atom("K+", Element(19));
+    Coord c;
+    Residue *r = m->new_residue("K+");
+    Atom *atom_Kp = m->new_atom("K+", Element(19));
     r->add_atom(atom_Kp);
     c.set_xyz(0.0,0.0,0.0);
     atom_Kp->set_coord(c);
     return r;
 }
 
-static TmplResidue *
-init_Li(TmplMolecule *m)
+static Residue *
+init_Li(Molecule *m)
 {
-    TmplCoord c;
-    TmplResidue *r = m->new_residue("Li+");
-    TmplAtom *atom_Lip = m->new_atom("Li+", Element(3));
+    Coord c;
+    Residue *r = m->new_residue("Li+");
+    Atom *atom_Lip = m->new_atom("Li+", Element(3));
     r->add_atom(atom_Lip);
     c.set_xyz(0.0,0.0,0.0);
     atom_Lip->set_coord(c);
     return r;
 }
 
-static TmplResidue *
-init_Na(TmplMolecule *m)
+static Residue *
+init_Na(Molecule *m)
 {
-    TmplCoord c;
-    TmplResidue *r = m->new_residue("Na+");
-    TmplAtom *atom_Nap = m->new_atom("Na+", Element(11));
+    Coord c;
+    Residue *r = m->new_residue("Na+");
+    Atom *atom_Nap = m->new_atom("Na+", Element(11));
     r->add_atom(atom_Nap);
     c.set_xyz(0.0,0.0,0.0);
     atom_Nap->set_coord(c);
     return r;
 }
 
-static TmplResidue *
-init_Rb(TmplMolecule *m)
+static Residue *
+init_Rb(Molecule *m)
 {
-    TmplCoord c;
-    TmplResidue *r = m->new_residue("Rb+");
-    TmplAtom *atom_Rbp = m->new_atom("Rb+", Element(37));
+    Coord c;
+    Residue *r = m->new_residue("Rb+");
+    Atom *atom_Rbp = m->new_atom("Rb+", Element(37));
     r->add_atom(atom_Rbp);
     c.set_xyz(0.0,0.0,0.0);
     atom_Rbp->set_coord(c);
@@ -71,3 +74,5 @@ restmpl_init_ions(ResInitMap *rim)
     (*rim)[std::string("Na+")].middle = init_Na;
     (*rim)[std::string("Rb+")].middle = init_Rb;
 }
+
+}  // namespace tmpl

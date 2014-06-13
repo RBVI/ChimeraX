@@ -1,9 +1,13 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef base_geom_coord
-#define base_geom_coord
+#ifndef basegeom_coord
+#define basegeom_coord
 
 #include "Point.h"
 
+namespace basegeom {
+    
 typedef Point Coord;
 
-#endif  // base_geom_coord
+} //  namespace basegeom
+
+#endif  // basegeom_coord

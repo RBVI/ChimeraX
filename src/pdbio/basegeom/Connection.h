@@ -1,10 +1,12 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef base_geom_Connection
-#define base_geom_Connection
+#ifndef basegeom_Connection
+#define basegeom_Connection
 
 #include "Real.h"
 #include <stdexcept>
 
+namespace basegeom {
+    
 template <class End, class FinalConnection>
 class Connection {
 public:
@@ -49,4 +51,6 @@ Connection<End, FinalConnection>::other_end(End *e, const char *err) const
     throw std::invalid_argument(err);
 }
 
-#endif  // base_geom_Connection
+} //  namespace basegeom
+
+#endif  // basegeom_Connection

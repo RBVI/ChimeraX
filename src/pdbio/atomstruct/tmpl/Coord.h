@@ -1,9 +1,13 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef templates_TmplCoord
-#define    templates_TmplCoord
+#ifndef templates_Coord
+#define    templates_Coord
 
-#include "base-geom/Point.h"
+#include "basegeom/Point.h"
 
-typedef Point  TmplCoord;
+namespace tmpl {
+
+typedef basegeom::Point  Coord;
+
+}  // namespace tmpl
 
 #endif  // templates_TmplCoord

@@ -57,13 +57,13 @@ $1 ~ /^!/ {
 }
 END {
 	print ""
-	print "static TmplResidue *"
-	print "init_ZZZ(TmplMolecule *m)"
+	print "static Residue *"
+	print "init_ZZZ(Molecule *m)"
 	print "{"
-	print "	TmplCoord c;"
-	print "	TmplResidue *r = m->new_residue(\"YYY\");"
+	print "	Coord c;"
+	print "	Residue *r = m->new_residue(\"YYY\");"
 	for (i in atoms) {
-		print "	TmplAtom *" atomname[i] " = m->new_atom(" atoms[i] ");"
+		print "	Atom *" atomname[i] " = m->new_atom(" atoms[i] ");"
 		print "	r->add_atom(" atomname[i] ");"
 # coordinate template values
 		print "	c.set_xyz(" x[i] "," y[i] "," z[i] ");"

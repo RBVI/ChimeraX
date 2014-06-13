@@ -2,6 +2,8 @@
 #include "Point.h"
 #include <sstream>
 
+namespace basegeom {
+    
 Real
 Point::sqdistance(const Point &pt) const {
     Real q1 = _xyz[0] - pt._xyz[0];
@@ -23,3 +25,5 @@ Point::str() const
     crd_string << ")";
     return crd_string.str();
 }
+
+} //  namespace basegeom

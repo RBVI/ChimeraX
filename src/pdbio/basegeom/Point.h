@@ -1,11 +1,13 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef base_geom_Point
-#define base_geom_Point
+#ifndef basegeom_Point
+#define basegeom_Point
 
 #include <string>
 #include "imex.h"
 #include "Real.h"
 
+namespace basegeom {
+    
 class BASE_GEOM_IMEX Point {
     Real  _xyz[3];
 public:
@@ -28,4 +30,6 @@ public:
     std::string  str() const;
 };
 
-#endif  // base_geom_Point
+} //  namespace basegeom
+
+#endif  // basegeom_Point

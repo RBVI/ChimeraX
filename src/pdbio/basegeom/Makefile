@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
-LIBNAME = base-geom
+LIBNAME = basegeom
 LIB= lib$(LIBNAME).a
 CXXFLAGS += -I..
 

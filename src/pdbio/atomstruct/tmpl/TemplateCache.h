@@ -7,6 +7,8 @@
 #include <string>
 #include "../imex.h"
 
+namespace tmpl {
+    
 class CondInfo {
 public:
     std::string op, operand, result;
@@ -44,3 +46,5 @@ private:
 };
 
 #endif  // templates_TemplateCache
+
+}  // namespace tmpl

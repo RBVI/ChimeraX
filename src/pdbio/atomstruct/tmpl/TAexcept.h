@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include "../imex.h"
 
+namespace tmpl {
+    
 // things templateAssign() can throw...
 class ATOMSTRUCT_IMEX TA_exception : public std::runtime_error {
 public:
@@ -20,3 +22,5 @@ public:
 };
 
 #endif  // templates_TAexcept
+
+}  // namespace tmpl

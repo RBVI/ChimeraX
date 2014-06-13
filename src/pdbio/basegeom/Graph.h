@@ -1,11 +1,13 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef base_geom_Graph
-#define base_geom_Graph
+#ifndef basegeom_Graph
+#define basegeom_Graph
 
 #include <vector>
 #include <memory>
 #include <algorithm>
 
+namespace basegeom {
+    
 template <class Vertex, class Edge>
 class Graph {
 protected:
@@ -34,4 +36,7 @@ Graph<Vertex, Edge>::delete_edge(Edge *e)
         throw std::invalid_argument("delete_edge called for Edge not in Graph");
     _edges.erase(i);
 }
-#endif  // base_geom_Graph
+
+} //  namespace basegeom
+
+#endif  // basegeom_Graph

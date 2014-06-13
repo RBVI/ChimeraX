@@ -5,6 +5,8 @@
 #include "numpy_common.h"
 #include <stddef.h>
 
+namespace blob {
+    
 template PyObject* newBlob<AtomBlob>(PyTypeObject*);
 
 extern "C" {
@@ -160,3 +162,5 @@ PyTypeObject AtomBlob_type = {
     0, // tp_subclasses
     0, // tp_weaklist
 };
+
+}  // namespace blob

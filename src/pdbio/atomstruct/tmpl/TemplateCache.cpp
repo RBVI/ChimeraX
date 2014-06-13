@@ -2,7 +2,7 @@
 #include "TAexcept.h"
 #include "TemplateCache.h"
 #include <string>
-#include <util/PathFinder.h>        // use InputFile, PathFactory
+#include <util/PathFinder.h>        // use InputFile, PathFactory, cmp_nocase
 #include <ioutil/direntry.h>    // use ioutil::opendir(), readdir(), DIR
 #include <ioutil/tokenize.h>    // use ioutil::tokenize()
 #include <util/cmp_nocase.h>
@@ -11,6 +11,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <stdlib.h>        // use getenv()
+
+namespace tmpl {
 
 #ifndef S_ISDIR
 # define S_ISDIR(x)    (((x) & S_IFMT) == S_IFDIR)
@@ -63,7 +65,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
     if (root == NULL)
         return;
 
-    char pathsep = PathFactory::path_separator();
+    char pathsep = util::PathFactory::path_separator();
 
     std::string t_dir = (std::string(root) + pathsep + "share" +
                 pathsep + app + pathsep + template_dir);
@@ -94,7 +96,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
             if (dot == NULL)
                 // none found
                 continue;
-            if (cmp_nocase(dot + 1, extension) != 0)
+            if (util::cmp_nocase(dot + 1, extension) != 0)
                 continue;
         }
         
@@ -106,7 +108,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
             // ignore this one
               continue;
 
-        InputFile tf(full_path);
+        util::InputFile tf(full_path);
         std::ifstream &template_file(tf.ifstream());
         if (!template_file) {
             std::cerr << "Could not read"
@@ -144,7 +146,7 @@ TemplateCache::parse_template_file(std::ifstream &template_file, std::string &pa
         template_file.getline(line, sizeof line);
         if (template_file.eof())
             break;
-        num_fields = tokenize(line, fields, 128);
+        num_fields = ioutil::tokenize(line, fields, 128);
         if (num_fields < 0) {
             std::ostringstream os;
             os << "Cannot parse line " << line_num <<
@@ -218,3 +220,4 @@ ConditionalTemplate::add_condition(const char *cond, const char *type)
     }
 }
 
+}  // namespace tmpl

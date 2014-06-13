@@ -77,6 +77,10 @@ if ($#location == 1) then
 endif
 echo '#include "resinternal.h"' > $1.cpp
 echo '' >> $1.cpp
+echo 'namespace tmpl {' > $1.cpp
+echo '' >> $1.cpp
+echo 'using atomstruct::Element;' > $1.cpp
+echo '' >> $1.cpp
 @ i = 1
 while ($i <= $#residues)
 	sed -e s/XXX/$residues[$i]/g -e s/YYY/$outres[$i]/g -e s/ZZZ/$identifiers[$i]/g < extract.awk > $$.awk
@@ -98,4 +102,5 @@ while ($i <= $#residues)
 	@ i++
 end
 echo '}' >> $1.cpp
+echo '}  // namespace template' >> $1.cpp
 rm $$.awk

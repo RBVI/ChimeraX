@@ -7,6 +7,8 @@
 #include <memory>
 #include "imex.h"
 
+namespace blob {
+    
 class Blob: public PyObject {
 public:
     PyObject* _weaklist;
@@ -46,5 +48,7 @@ newBlob(PyTypeObject* type)
     }
     return static_cast<PyObject*>(self);
 }
+
+}  // namespace blob
 
 #endif  // blob_blob

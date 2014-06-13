@@ -21,6 +21,8 @@
 # define S_ISDIR(x)	(((x) & S_IFMT) == S_IFDIR)
 #endif
 
+namespace util {
+
 bool
 existsPath(const std::string &path, bool asFile)
 {
@@ -391,3 +393,5 @@ PathFinder::package_home_default() const
 {
 	return _use_home_default;
 }
+
+}  // namespace util

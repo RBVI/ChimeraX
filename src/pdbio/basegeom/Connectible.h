@@ -1,12 +1,14 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef base_geom_Connectible
-#define base_geom_Connectible
+#ifndef basegeom_Connectible
+#define basegeom_Connectible
 
 #include "Coord.h"
 #include <vector>
 #include <map>
 #include "Connection.h"
 
+namespace basegeom {
+    
 template <class FinalConnection, class FinalConnectible>
 class Connectible {
     friend class Connection<FinalConnectible, FinalConnection>;
@@ -48,4 +50,6 @@ Connectible<FinalConnection, FinalConnectible>::connections() const
     return result;
 }
 
-#endif  // base_geom_Connectible
+} //  namespace basegeom
+
+#endif  // basegeom_Connectible

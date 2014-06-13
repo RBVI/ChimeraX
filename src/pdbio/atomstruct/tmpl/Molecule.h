@@ -1,44 +1,48 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef templates_TmplMolecule
-#define    templates_TmplMolecule
+#ifndef templates_Molecule
+#define    templates_Molecule
 
 #include <set>
 #include <map>
 #include <vector>
 #include <string>
 #include "TAexcept.h"
-#include "TmplAtom.h"
-#include "TmplBond.h"
-#include "TmplCoordSet.h"
-#include "TmplResidue.h"
+#include "Atom.h"
+#include "Bond.h"
+#include "CoordSet.h"
+#include "Residue.h"
 #include "../imex.h"
 
-class ATOMSTRUCT_IMEX TmplMolecule {
+namespace tmpl {
+
+class ATOMSTRUCT_IMEX Molecule {
 public:
-        ~TmplMolecule();
-    TmplAtom    *new_atom(std::string n, Element e);
-    typedef std::set<TmplAtom *> Atoms;
-    typedef std::set<TmplBond *> Bonds;
-    typedef std::vector<TmplCoordSet *> CoordSets;
-    typedef std::map<std::string, TmplResidue *> Residues;
+        ~Molecule();
+    Atom    *new_atom(std::string n, atomstruct::Element e);
+    typedef std::set<Atom *> Atoms;
+    typedef std::set<Bond *> Bonds;
+    typedef std::vector<CoordSet *> CoordSets;
+    typedef std::map<std::string, Residue *> Residues;
 private:
     Atoms    _atoms;
     Bonds    _bonds;
     CoordSets    _coord_sets;
     Residues    _residues;
 public:
-    TmplBond    *new_bond(TmplAtom *a0, TmplAtom *a1);
-    TmplCoordSet    *new_coord_set(int key);
+    Bond    *new_bond(Atom *a0, Atom *a1);
+    CoordSet    *new_coord_set(int key);
     const CoordSets    &coord_sets() const { return _coord_sets; }
-    TmplCoordSet    *find_coord_set(int) const;
-    TmplResidue    *new_residue(const char *t);
-    TmplResidue    *find_residue(const std::string &) const;
-    void        set_active_coord_set(TmplCoordSet *cs);
-    TmplCoordSet    *active_coord_set() const { return _active_cs; }
+    CoordSet    *find_coord_set(int) const;
+    Residue    *new_residue(const char *t);
+    Residue    *find_residue(const std::string &) const;
+    void        set_active_coord_set(CoordSet *cs);
+    CoordSet    *active_coord_set() const { return _active_cs; }
 private:
-    TmplCoordSet    *_active_cs;
+    CoordSet    *_active_cs;
 public:
-    TmplMolecule();
+    Molecule();
 };
 
-#endif  // templates_TmplMolecule
+}  // namespace tmpl
+
+#endif  // templates_Molecule

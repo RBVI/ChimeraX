@@ -1,31 +1,35 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef templates_TmplCoordSet
-#define    templates_TmplCoordSet
+#ifndef templates_CoordSet
+#define    templates_CoordSet
 
 #include <vector>
-#include "TmplCoord.h"
+#include "Coord.h"
 #include "../imex.h"
 
-class TmplMolecule;
+namespace tmpl {
 
-class ATOMSTRUCT_IMEX TmplCoordSet {
-    friend class TmplMolecule;
-    void    operator=(const TmplCoordSet &);    // disable
-        TmplCoordSet(const TmplCoordSet &);    // disable
-        ~TmplCoordSet();
-    std::vector<TmplCoord>    _coords;
+class Molecule;
+
+class ATOMSTRUCT_IMEX CoordSet {
+    friend class Molecule;
+    void    operator=(const CoordSet &);    // disable
+        CoordSet(const CoordSet &);    // disable
+        ~CoordSet();
+    std::vector<Coord>    _coords;
 public:
-    void    add_coord(TmplCoord element);
-    typedef std::vector<TmplCoord> Coords;
+    void    add_coord(Coord element);
+    typedef std::vector<Coord> Coords;
     const Coords    &coords() const { return _coords; }
-    const TmplCoord    *find_coord(std::size_t) const;
-    TmplCoord    *find_coord(std::size_t);
+    const Coord    *find_coord(std::size_t) const;
+    Coord    *find_coord(std::size_t);
 public:
     int        id() const { return _csid; }
 private:
     int    _csid;
 private:
-    TmplCoordSet(TmplMolecule *, int key);
+    CoordSet(Molecule *, int key);
 };
 
-#endif  // templates_TmplCoordSet
+}  // namespace tmpl
+
+#endif  // templates_CoordSet

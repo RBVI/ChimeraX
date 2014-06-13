@@ -2,31 +2,34 @@
 #include <algorithm>        // use std::find()
 #include "restmpl.h"
 
+namespace tmpl {
+
 void
-TmplCoordSet::add_coord(TmplCoord element)
+CoordSet::add_coord(Coord element)
 {
     _coords.push_back(element);
 }
-const TmplCoord *
-TmplCoordSet::find_coord(std::size_t index) const
+const Coord *
+CoordSet::find_coord(std::size_t index) const
 {
     if (index >= _coords.size())
         throw std::out_of_range("index out of range");
     return &_coords[index];
 }
-TmplCoord *
-TmplCoordSet::find_coord(std::size_t index)
+Coord *
+CoordSet::find_coord(std::size_t index)
 {
     if (index >= _coords.size())
         throw std::out_of_range("index out of range");
     return &_coords[index];
 }
-TmplCoordSet::TmplCoordSet(TmplMolecule *, int k): _csid(k)
+CoordSet::CoordSet(Molecule *, int k): _csid(k)
 
 {
 }
 
-TmplCoordSet::~TmplCoordSet()
+CoordSet::~CoordSet()
 {
 }
 
+}  // namespace tmpl

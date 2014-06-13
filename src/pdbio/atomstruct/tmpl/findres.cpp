@@ -4,6 +4,8 @@
 
 #include "resDescrip.h"
 
+namespace tmpl {
+
 extern void    restmpl_init_amino(ResInitMap *);
 extern void    restmpl_init_camino(ResInitMap *);
 extern void    restmpl_init_namino(ResInitMap *);
@@ -11,27 +13,27 @@ extern void    restmpl_init_nucleic(ResInitMap *);
 extern void    restmpl_init_general(ResInitMap *);
 extern void    restmpl_init_ions(ResInitMap *);
 
-static TmplMolecule    *start_mol = NULL, *middle_mol, *end_mol;
+static Molecule    *start_mol = NULL, *middle_mol, *end_mol;
 static ResInitMap    resmap;
 
 void
 restmpl_init()
 {
-    start_mol = new TmplMolecule;
-    middle_mol = new TmplMolecule;
-    end_mol = new TmplMolecule;
+    start_mol = new Molecule;
+    middle_mol = new Molecule;
+    end_mol = new Molecule;
     restmpl_init_amino(&resmap);
     restmpl_init_camino(&resmap);
     restmpl_init_namino(&resmap);
     restmpl_init_nucleic(&resmap);
     restmpl_init_general(&resmap);
     restmpl_init_ions(&resmap);
-    TmplMolecule *mols[3] = { start_mol, middle_mol, end_mol };
+    Molecule *mols[3] = { start_mol, middle_mol, end_mol };
     for (unsigned int i = 0; i != sizeof(res_descripts)/sizeof(ResDescript);
                                     ++i) {
         for (unsigned int mi = 0; mi != 3; ++mi) {
-            TmplMolecule *m = mols[mi];
-            TmplResidue *r = m->find_residue(std::string(res_descripts[i].name));
+            Molecule *m = mols[mi];
+            Residue *r = m->find_residue(std::string(res_descripts[i].name));
             if (r == NULL)
                 continue;
             r->description(std::string(res_descripts[i].descrip));
@@ -40,7 +42,7 @@ restmpl_init()
 }
 
 // need function to find template for residue and fill in what's missing
-const TmplResidue *
+const Residue *
 find_template_residue(const std::string &name, bool start, bool end)
 {
     bool new_r = false;
@@ -65,7 +67,7 @@ find_template_residue(const std::string &name, bool start, bool end)
 
     ResInitMap::iterator i = resmap.find(mapped_name);
     ResInit *ri = (i == resmap.end()) ? NULL : &i->second;
-    TmplResidue *r;
+    Residue *r;
     if (start) {
         r = start_mol->find_residue(mapped_name);
         if (r == NULL && ri && ri->start) {
@@ -90,7 +92,7 @@ find_template_residue(const std::string &name, bool start, bool end)
     }
     if (new_r) {
         try {
-            r->template_assign(&TmplAtom::set_idatm_type,
+            r->template_assign(&Atom::set_idatm_type,
                     "idatm", "templates", "idatmres");
         } catch (TA_NoTemplate) {
             // ssshhhh!
@@ -98,3 +100,5 @@ find_template_residue(const std::string &name, bool start, bool end)
     }
     return r;
 }
+
+}  // namespace tmpl

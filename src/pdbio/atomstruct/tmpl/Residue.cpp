@@ -3,16 +3,18 @@
 
 #include "TemplateCache.h"
 
-std::vector<TmplAtom *>
-TmplResidue::template_assign(void (TmplAtom::*assign_func)(const char *),
+namespace tmpl {
+
+std::vector<Atom *>
+Residue::template_assign(void (Atom::*assign_func)(const char *),
     const char *app, const char *template_dir, const char *extension) const
 {
     return template_assign(tmpl_assigner(assign_func),
                         app, template_dir, extension);
 }
 
-std::vector<TmplAtom *>
-TmplResidue::template_assign(void (*assign_func)(TmplAtom *, const char *),
+std::vector<Atom *>
+Residue::template_assign(void (*assign_func)(Atom *, const char *),
     const char *app, const char *template_dir, const char *extension) const
 {
     return template_assign(tmpl_assigner(assign_func),
@@ -24,17 +26,17 @@ TmplResidue::template_assign(void (*assign_func)(TmplAtom *, const char *),
 //     template syntax error: TA_TemplateSyntax
 //    no template found: TA_NoTemplate
 //    internal logic error: std::logic_error
-std::vector<TmplAtom *>
-TmplResidue::template_assign(tmpl_assigner assign,
+std::vector<Atom *>
+Residue::template_assign(tmpl_assigner assign,
     const char *app, const char *template_dir, const char *extension) const
 {
     TemplateCache *tc = TemplateCache::template_cache();
     TemplateCache::AtomMap *am = tc->res_template(name(), app,
                             template_dir, extension);
-    std::vector<TmplAtom *> assigned;
+    std::vector<Atom *> assigned;
     for (AtomsMap::const_iterator ai = _atoms.begin(); ai != _atoms.end(); ++ai) {
         const std::string& at_name = ai->first;
-        TmplAtom *a = ai->second;
+        Atom *a = ai->second;
 
         TemplateCache::AtomMap::iterator ami = am->find(at_name);
         if (ami == am->end())
@@ -55,11 +57,11 @@ TmplResidue::template_assign(tmpl_assigner assign,
                     AtomsMap::const_iterator opai = _atoms.find(ci.operand);
                     if (opai == _atoms.end())
                         continue;
-                    TmplAtom *opa = opai->second;
-                    const TmplAtom::BondsMap &bm = opa->bonds_map();
-                    for (TmplAtom::BondsMap::const_iterator abi =
+                    Atom *opa = opai->second;
+                    const Atom::BondsMap &bm = opa->bonds_map();
+                    for (Atom::BondsMap::const_iterator abi =
                       bm.begin(); abi != bm.end(); ++abi) {
-                        const TmplAtom *bonded = abi->first;
+                        const Atom *bonded = abi->first;
                         if (bonded->residue()
                         != opa->residue()) {
                             is_terminal = false;
@@ -103,14 +105,14 @@ TmplResidue::template_assign(tmpl_assigner assign,
 }
 
 void
-TmplResidue::add_atom(TmplAtom *element)
+Residue::add_atom(Atom *element)
 {
     element->_residue = this;
     _atoms[element->name()] = element;
 }
 
-TmplAtom *
-TmplResidue::find_atom(const std::string &index) const
+Atom *
+Residue::find_atom(const std::string &index) const
 {
     AtomsMap::const_iterator i = _atoms.find(index);
     if (i == _atoms.end())
@@ -118,11 +120,12 @@ TmplResidue::find_atom(const std::string &index) const
     return i->second;
 }
 
-TmplResidue::TmplResidue(TmplMolecule *, const char *n): _name(n), _chief(0), _link(0) 
+Residue::Residue(Molecule *, const char *n): _name(n), _chief(0), _link(0) 
 {
 }
 
-TmplResidue::~TmplResidue()
+Residue::~Residue()
 {
 }
 
+}  // namespace tmpl

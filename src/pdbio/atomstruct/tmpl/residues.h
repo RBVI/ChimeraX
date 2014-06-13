@@ -7,8 +7,11 @@
 #include <string>
 #include "../imex.h"
 
+namespace tmpl {
 
-ATOMSTRUCT_IMEX extern const TmplResidue *
+ATOMSTRUCT_IMEX extern const Residue *
     find_template_residue(const std::string &name, bool start, bool end);
+
+}  // namespace tmpl
 
 #endif  // templates_residues
