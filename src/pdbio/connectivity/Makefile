@@ -5,7 +5,7 @@ include $(TOP)/mk/config.make
 
 LIBNAME = connectivity
 CXXFLAGS += -I..
-LIBS += -L$(shlibdir) -latomstruct -ltmpl ../base-geom/libbase-geom.a
+LIBS += -L$(shlibdir) -latomstruct -ltmpl ../basegeom/libbasegeom.a
 DIRNAME = $(shell basename `pwd`)
 
 $(SHLIB): imex.h $(OBJS)

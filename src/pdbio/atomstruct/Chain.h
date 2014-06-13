@@ -7,6 +7,8 @@
 #include <vector>
 #include "imex.h"
 
+namespace atomstruct {
+
 class Residue;
 
 class ATOMSTRUCT_IMEX Chain: public Sequence {
@@ -24,5 +26,7 @@ public:
     void  bulk_set(std::vector<Residue *> residues,
             Sequence::Contents* chars = nullptr);
 };
+
+}  // namespace atomstruct
 
 #endif  // atomic_chain

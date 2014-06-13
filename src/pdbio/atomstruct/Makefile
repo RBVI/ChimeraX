@@ -3,12 +3,12 @@ OBJS= $(SRCS:.cpp=.o)
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS= templates
+SUBDIRS= tmpl
 include $(TOP)/mk/subdir.make
 
 LIBNAME = atomstruct
 CXXFLAGS += -I..
-LIBS += ../base-geom/libbase-geom.a
+LIBS += ../basegeom/libbasegeom.a
 DIRNAME = $(shell basename `pwd`)
 
 $(SHLIB): imex.h $(OBJS)

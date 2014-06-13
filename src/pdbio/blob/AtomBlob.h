@@ -3,12 +3,16 @@
 #define blob_AtomBlob
 
 #include "Blob.h"
+#include "atomstruct/Atom.h"
 
+namespace blob {
+    
 extern PyTypeObject AtomBlob_type;
 
-#include "atomstruct/Atom.h"
-typedef RawBlob<Atom> AtomBlob;
+typedef RawBlob<atomstruct::Atom> AtomBlob;
 
 extern template BLOB_IMEX PyObject* newBlob<AtomBlob>(PyTypeObject*);
+
+}  // namespace blob
 
 #endif  // blob_AtomBlob

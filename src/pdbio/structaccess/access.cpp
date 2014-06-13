@@ -6,7 +6,7 @@
 #include "atomstruct/Residue.h"
 #include "atomstruct/Atom.h"
 #include "atomstruct/Bond.h"
-#include "base-geom/Coord.h"
+#include "basegeom/Coord.h"
 #include "atomstruct/Element.h"
 #include <vector>
 #include <map>
@@ -35,6 +35,9 @@ static struct PyModuleDef structaccess_module =
 
 PyMODINIT_FUNC PyInit_structaccess()
 {
+	using blob::StructBlob_type;
+	using blob::ResBlob_type;
+	using blob::AtomBlob_type;
     StructBlob_type.tp_new = PyType_GenericNew;
     ResBlob_type.tp_new = PyType_GenericNew;
     AtomBlob_type.tp_new = PyType_GenericNew;

@@ -6,6 +6,8 @@
 # include <fstream>
 # include "imex.h"
 
+namespace util {
+
 class PathFinder;
 
 class UTIL_IMEX PathFactory {
@@ -142,5 +144,7 @@ public:
 private:
 	std::ofstream *ofs_;
 };
+
+}  // namespace util
 
 #endif  // util_PathFinder

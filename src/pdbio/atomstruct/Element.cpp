@@ -23,6 +23,8 @@
 #include "Element.h"
 #include <ctype.h>
 
+namespace atomstruct {
+
 char const * const symbols[] = {
     "LP",  "H", "He", "Li", "Be",  "B",  "C",  "N",  "O",
      "F", "Ne", "Na", "Mg", "Al", "Si",  "P",  "S", "Cl",
@@ -293,3 +295,5 @@ Element::is_metal() const
         (n >= 3 && n <= 4) || (n >= 37 && n <= 51) ||
         (n >= 55 && n <= 84) || (n >= 87 && n <= 103));
 }
+
+}  // namespace atomstruct

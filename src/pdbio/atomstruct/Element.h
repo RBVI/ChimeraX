@@ -26,6 +26,8 @@
 #include <iostream>
 #include "imex.h"
 
+namespace atomstruct {
+
 class ATOMSTRUCT_IMEX Element {
 public:
     // Atomic Symbols:
@@ -73,5 +75,7 @@ operator<<(std::ostream &os, const Element &a)
     os << a.name();
     return os;
 }
+
+}  // namespace atomstruct
 
 #endif  // atomic_Element

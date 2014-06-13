@@ -3,6 +3,8 @@
 #include <sstream>  // std::ostringstream
 #include "numpy_common.h"
 
+namespace blob {
+    
 // Need to call NumPy import_array() before using NumPy routines
 void *
 initialize_numpy()
@@ -108,3 +110,5 @@ python_string_array(unsigned int size, int string_length, char **data)
     return array;
 }
 #endif
+
+}  // namespace blob
