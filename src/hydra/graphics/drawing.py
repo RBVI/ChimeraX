@@ -40,6 +40,7 @@ class Drawing:
     self._displayed_positions = None    # bool numpy array, show only some positions
     self._selected = False
     self._selected_positions = None     # bool numpy array, selected positions
+    self._selected_triangles_mask = None # bool numpy array
     self._child_drawings = []
 
     self.redraw_needed = redraw_no_op
@@ -67,6 +68,7 @@ class Drawing:
     # OpenGL rendering                                    
     self.bindings = None                    # Holds the buffer pointers and shader variable bindings
     self.opengl_buffers = []
+    self.elements = None                    # Triangles after mask applied
     self.element_buffer = None
     self.shader = None
     self.need_buffer_update = True
@@ -160,11 +162,22 @@ class Drawing:
   selected_positions = property(get_selected_positions, set_selected_positions)
   '''Mask specifying which drawing positions are selected.'''
 
+  def get_selected_triangles_mask(self):
+    return self._selected_triangles_mask
+  def set_selected_triangles_mask(self, tmask):
+    self._selected_triangles_mask = tmask
+    self.redraw_needed()
+  selected_triangles_mask = property(get_selected_triangles_mask, set_selected_triangles_mask)
+  '''Mask specifying which triangles are selected.'''
+
   def any_part_selected(self):
     if self._selected:
       return True
     sp = self._selected_positions
     if not sp is None and sp.sum() > 0:
+      return True
+    tmask = self._selected_triangles_mask
+    if not tmask is None and tmask.sum() > 0:
       return True
     for d in self.child_drawings():
       if d.any_part_selected():
@@ -266,7 +279,7 @@ class Drawing:
   def draw_self(self, renderer, place, draw_pass, selected_only = False):
     '''Draw this drawing without children using the given draw pass.'''
 
-    if selected_only and not self.selected and self._selected_positions is None:
+    if selected_only and not self.selected and self._selected_positions is None and self._selected_triangles_mask is None:
       return
 
     if len(self.positions) == 1:
@@ -483,6 +496,8 @@ class Drawing:
     if len(self.opengl_buffers) == 0 and not self.vertices is None:
       self.create_opengl_buffers()
 
+    self.elements = self.masked_elements(selected_only)
+
     self.update_instance_arrays(selected_only)
 
     for b in self.opengl_buffers:
@@ -519,22 +534,25 @@ class Drawing:
       self.instance_colors = ic[dp,:] if not ic is None else None
       self.instance_shift_and_scale = sas[dp,:] if not sas is None else None
 
-  def get_elements(self):
+  def masked_elements(self, selected_only = False):
 
     ta = self.triangles
     if ta is None:
       return None
+    if selected_only:
+      tmask = self._selected_triangles_mask
+      if not tmask is None:
+        ta = ta[tmask,:]
     if self.display_style == self.Mesh:
-      if self.masked_edges is None:
+      me = self.masked_edges
+      if me is None or selected_only:
         from .._image3d import masked_edges
-        self.masked_edges = (masked_edges(ta) if self.edge_mask is None
-                             else masked_edges(ta, self.edge_mask))
-      ta = self.masked_edges
+        me = (masked_edges(ta) if self.edge_mask is None
+              else masked_edges(ta, self.edge_mask))
+        if not selected_only:
+          self.masked_edges = me
+      ta = me
     return ta
-  elements = property(get_elements, None)
-
-  def element_count(self):
-    return self.elements.size
 
   def use_bindings(self):
     s = self.shader
