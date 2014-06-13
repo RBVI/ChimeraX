@@ -3,6 +3,8 @@
 #include "Sequence.h"
 #include "Residue.h"
 
+namespace atomstruct {
+
 void 
 Chain::set(unsigned i, Residue *r, char character)
 {
@@ -39,3 +41,5 @@ Chain::bulk_set(Chain::Residues& residues, Sequence::Contents* chars)
     if (del_chars)
         delete chars;
 }
+
+}  // namespace atomstruct

@@ -2,19 +2,21 @@
 #ifndef atomic_CoordSet
 #define atomic_CoordSet
 
-#include "base-geom/Coord.h"
+#include "basegeom/Coord.h"
 #include "imex.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
+namespace atomstruct {
+
 class ATOMSTRUCT_IMEX CoordSet {
     friend class Atom;
     friend class AtomicStructure;
 
 public:
-    typedef std::vector<Coord>  Coords;
+    typedef std::vector<basegeom::Coord>  Coords;
 
 private:
     Coords  _coords;
@@ -34,5 +36,7 @@ public:
     void  set_bfactor(const Atom *, float);
     void  set_occupancy(const Atom *, float);
 };
+
+}  // namespace atomstruct
 
 #endif  // atomic_CoordSet

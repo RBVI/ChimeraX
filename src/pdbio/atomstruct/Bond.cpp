@@ -5,6 +5,8 @@
 #include "connectivity/connect.h"
 #include <stdexcept>
 
+namespace atomstruct {
+
 Bond::Bond(AtomicStructure *as, Atom *a1, Atom *a2):
     Connection<Atom, Bond>(a1, a2, "Can't bond an atom to itself",
         "Bond already exists between these atoms")
@@ -49,3 +51,5 @@ Bond::polymeric_start_atom() const
     }
     return nullptr;
 }
+
+}  // namespace atomstruct

@@ -8,17 +8,21 @@
 #include <set>
 
 #include "Element.h"
-#include "base-geom/Point.h"
-#include "base-geom/Coord.h"
+#include "basegeom/Point.h"
+#include "basegeom/Coord.h"
 #include "Bond.h"
-#include "base-geom/Sphere.h"
+#include "basegeom/Sphere.h"
 #include "imex.h"
+
+namespace atomstruct {
+
+using basegeom::Point;
 
 class CoordSet;
 class AtomicStructure;
 class Residue;
 
-class ATOMSTRUCT_IMEX Atom: public BaseSphere<Bond, Atom> {
+class ATOMSTRUCT_IMEX Atom: public basegeom::BaseSphere<Bond, Atom> {
     friend class AtomicStructure;
     friend class Residue;
 public:
@@ -58,7 +62,7 @@ public:
     const BondsMap &    bonds_map() const { return connections_map(); }
     // connects_to() just simply inherited from Connectible (via BaseSphere)
     unsigned int  coord_index() const { return _coord_index; }
-    virtual const Coord &coord() const;
+    virtual const basegeom::Coord &coord() const;
     Element  element() const { return _element; }
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
@@ -79,5 +83,7 @@ public:
     void  set_serial_number(int);
     AtomicStructure *  structure() const { return _structure; }
 };
+
+}  // namespace atomstruct
 
 #endif  // atomic_Atom

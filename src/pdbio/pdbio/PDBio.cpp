@@ -14,6 +14,17 @@
 #include "blob/StructBlob.h"
 #include "connectivity/connect.h"
 
+namespace pdb {
+
+using atomstruct::AtomicStructure;
+using atomstruct::Residue;
+using atomstruct::Bond;
+using atomstruct::Atom;
+using atomstruct::CoordSet;
+using atomstruct::Element;
+using connectivity::MolResId;
+using basegeom::Coord;
+	
 #define LOG_PY_ERROR_NULL(arg) \
                 if (log_file != Py_None) { \
                     std::stringstream msg; \
@@ -1143,7 +1154,8 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
         delete structs;
         return NULL;
     }
-    StructBlob* sb = static_cast<StructBlob*>(newBlob<StructBlob>(&StructBlob_type));
+    using blob::StructBlob;
+    StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
     for (auto si = structs->begin(); si != structs->end(); ++si) {
         sb->_items->emplace_back(*si);
     }
@@ -1216,3 +1228,5 @@ PyMODINIT_FUNC PyInit_pdbio()
 {
     return PyModule_Create(&pdbio_def);
 }
+
+}  // namespace pdb

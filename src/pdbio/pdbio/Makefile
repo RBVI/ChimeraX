@@ -6,7 +6,7 @@ OBJS= $(SRCS:.cpp=.o)
 LIBNAME = pdbio
 PYMOD= $(LIBNAME).so
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob -lconnectivity ../pdb/libpdb.a ../base-geom/libbase-geom.a
+LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob -lconnectivity ../pdb/libpdb.a ../basegeom/libbasegeom.a
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

@@ -1,6 +1,8 @@
 // vim: set expandtab ts=4 sw=4:
 #include "Sequence.h"
 
+namespace atomstruct {
+
 Sequence::_1Letter_Map Sequence::_nucleic3to1 = {
         {"A", 'A'},
         {"+A", 'A'},
@@ -101,3 +103,5 @@ Sequence::rname3to1(const std::string& rn)
     }
     return (*l1i).second;
 }
+
+}  // namespace atomstruct

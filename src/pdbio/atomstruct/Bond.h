@@ -2,14 +2,15 @@
 #ifndef atomic_Bond
 #define atomic_Bond
 
-#include "base-geom/Real.h"
-#include "base-geom/Connection.h"
+#include "basegeom/Connection.h"
 #include "imex.h"
+
+namespace atomstruct {
 
 class Atom;
 class AtomicStructure;
 
-class ATOMSTRUCT_IMEX Bond: public Connection<Atom, Bond> {
+class ATOMSTRUCT_IMEX Bond: public basegeom::Connection<Atom, Bond> {
     friend class AtomicStructure;
 public:
     typedef End_points  Atoms;
@@ -22,4 +23,7 @@ public:
     Atom *  other_atom(Atom *a) const { return other_end(a); }
     Atom *  polymeric_start_atom() const;
 };
+
+}  // namespace atomstruct
+
 #endif  // atomic_Bond

@@ -7,6 +7,8 @@
 #include <string>
 #include "imex.h"
 
+namespace atomstruct {
+
 class Atom;
 class AtomicStructure;
 
@@ -48,5 +50,7 @@ public:
     void  set_ss_id(int ssid) { _ss_id = ssid; }
     std::string  str() const;
 };
+
+}  // namespace atomstruct
 
 #endif  // atomic_Residue

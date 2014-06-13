@@ -16,11 +16,13 @@
 #include "Residue.h"
 #include "Chain.h"
 #include "imex.h"
-#include "base-geom/Graph.h"
+#include "basegeom/Graph.h"
+
+namespace atomstruct {
 
 class Element;
 
-class ATOMSTRUCT_IMEX AtomicStructure: public Graph<Atom, Bond> {
+class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
 public:
     typedef Vertices  Atoms;
     typedef Edges  Bonds;
@@ -65,5 +67,7 @@ public:
     void  set_active_coord_set(CoordSet *cs);
     void  use_best_alt_locs();
 };
+
+}  // namespace atomstruct
 
 #endif  // atomic_AtomicStructure

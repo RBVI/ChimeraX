@@ -3,12 +3,16 @@
 #define blob_StructBlob
 
 #include "Blob.h"
+#include "atomstruct/AtomicStructure.h"
 
+namespace blob {
+    
 extern PyTypeObject StructBlob_type;
 
-#include "atomstruct/AtomicStructure.h"
-typedef UniqueBlob<AtomicStructure> StructBlob;
+typedef UniqueBlob<atomstruct::AtomicStructure> StructBlob;
 
 extern template BLOB_IMEX PyObject* newBlob<StructBlob>(PyTypeObject*);
+
+}  // namespace blob
 
 #endif  // blob_StructBlob
