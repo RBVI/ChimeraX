@@ -135,8 +135,7 @@ class Molecule(Drawing):
     p.positions = place.Places(shift_and_scale = sas)
 
     asel = self.atom_selected
-    if asel.sum() > 0:
-      p.selected_positions = asel[self.atom_shown]
+    p.selected_positions = asel[self.atom_shown] if asel.sum() > 0 else None
 
   def drawing_radii(self):
     astyle = self.atom_style
@@ -198,6 +197,15 @@ class Molecule(Drawing):
 
     r = self.bond_radius if self.bond_radii is None else self.bond_radii
     p.positions = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
+
+    p.selected_positions = None
+    asel = self.atom_selected
+    if asel.sum() > 0:
+      from numpy import logical_and, concatenate
+      bsel = logical_and(asel[bonds[:,0]], asel[bonds[:,1]])
+      if bsel.sum() > 0:
+        psel = concatenate((bsel,bsel)) if self.half_bond_coloring else bsel
+        p.selected_positions = psel
 
   def set_bond_colors(self, bonds):
 
