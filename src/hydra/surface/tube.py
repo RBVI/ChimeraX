@@ -29,6 +29,18 @@ def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
                                          start_divisions, end_divisions)
 
 # -----------------------------------------------------------------------------
+# Return triangle mask corresponding to tube segment mask.
+#
+def tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
+                       start_divisions, end_divisions):
+
+    from .. import _image3d
+    tmask = _image3d.tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
+                                        start_divisions, end_divisions)
+    from numpy import bool
+    return tmask.view(bool)
+
+# -----------------------------------------------------------------------------
 #
 def circle_points(n, radius):
 
