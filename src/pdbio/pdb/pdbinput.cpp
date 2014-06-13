@@ -1,5 +1,7 @@
 #include "PDB.h"
 
+namespace pdb {
+
 std::istream &
 operator>>(std::istream &s, PDB &p)
 {
@@ -9,3 +11,5 @@ operator>>(std::istream &s, PDB &p)
 	p = PDB(buf);
 	return s;
 }
+
+}  // namespace pdb

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
+namespace pdb {
+
 const char *
 PDB::c_str(void) const
 {
@@ -457,3 +459,5 @@ PDB::c_str(void) const
 	buf[count] = '\0';
 	return buf;
 }
+
+}  // namespace pdb

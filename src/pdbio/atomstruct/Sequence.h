@@ -7,6 +7,8 @@
 #include <string>
 #include "imex.h"
 
+namespace atomstruct {
+
 class ATOMSTRUCT_IMEX Sequence {
 public:
     typedef std::vector<unsigned char> Contents;
@@ -24,5 +26,7 @@ public:
     Sequence();
     const Contents&  sequence() const { return _sequence; }
 };
+
+}  // namespace atomstruct
 
 #endif  // atomic_Sequence

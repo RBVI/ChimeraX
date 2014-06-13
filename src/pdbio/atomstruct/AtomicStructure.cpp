@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <set>
 
+namespace atomstruct {
+
 AtomicStructure::AtomicStructure():
     _active_coord_set(NULL), asterisks_translated(false), lower_case_chains(false),
     pdb_version(0), is_traj(false)
@@ -323,3 +325,5 @@ AtomicStructure::use_best_alt_locs()
         (*almi).first->set_alt_loc((*almi).second);
     }
 }
+
+}  // namespace atomstruct

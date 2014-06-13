@@ -5,9 +5,18 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/Residue.h"
 #include "atomstruct/AtomicStructure.h"
-#include "atomstruct/templates/TmplResidue.h"
-#include "atomstruct/templates/TmplAtom.h"
-#include "atomstruct/templates/residues.h"
+#include "atomstruct/tmpl/Residue.h"
+#include "atomstruct/tmpl/Atom.h"
+#include "atomstruct/tmpl/residues.h"
+
+namespace connectivity {
+
+using atomstruct::Residue;
+using atomstruct::Atom;
+using atomstruct::Bond;
+using atomstruct::Element;
+using atomstruct::AtomicStructure;
+using basegeom::Coord;
 
 // standard_residues contains the names of residues that should have PDB ATOM records.
 static std::set<std::string, std::less<std::string> >    standard_residues;
@@ -161,7 +170,7 @@ connect_residue_by_distance(Residue *r, std::set<Atom *> *conect_atoms)
 //    Connect bonds in residue according to the given template.  Takes into
 //    acount alternate atom locations.
 static void
-connect_residue_by_template(Residue *r, const TmplResidue *tr,
+connect_residue_by_template(Residue *r, const tmpl::Residue *tr,
                         std::set<Atom *> *conect_atoms)
 {
     // foreach atom in residue
@@ -176,7 +185,7 @@ connect_residue_by_template(Residue *r, const TmplResidue *tr,
             known_connectivity.insert(a);
             continue;
         }
-        TmplAtom *ta = tr->find_atom(a->name());
+        tmpl::Atom *ta = tr->find_atom(a->name());
         if (ta == NULL) {
             some_connectivity_unknown = true;
             continue;
@@ -185,7 +194,7 @@ connect_residue_by_template(Residue *r, const TmplResidue *tr,
         // avoid rechecking known atoms though...
         known_connectivity.insert(a);
 
-        for (TmplAtom::BondsMap::const_iterator bi = ta->bonds_map().begin();
+        for (tmpl::Atom::BondsMap::const_iterator bi = ta->bonds_map().begin();
         bi != ta->bonds_map().end(); ++bi) {
             Atom *b = r->find_atom(bi->first->name());
             if (b == NULL)
@@ -299,13 +308,13 @@ connect_structure(AtomicStructure *as, std::vector<Residue *> *start_residues,
 
         if (!first_res)
             first_res = r;
-        const TmplResidue *tr;
+        const tmpl::Residue *tr;
         if (mod_res->find(MolResId(r)) != mod_res->end())
             // residue in MODRES record;
             // don't try to use template connectivity
             tr = NULL;
         else
-            tr = find_template_residue(r->name(),
+            tr = tmpl::find_template_residue(r->name(),
                 std::find(start_residues->begin(),
                 start_residues->end(), r) != start_residues->end(),
                 std::find(end_residues->begin(),
@@ -404,3 +413,5 @@ connect_structure(AtomicStructure *as, std::vector<Residue *> *start_residues,
         }
     }
 }
+
+}  // namespace connectivity

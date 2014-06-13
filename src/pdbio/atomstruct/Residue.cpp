@@ -5,6 +5,8 @@
 #include <sstream>
 #include <set>
 
+namespace atomstruct {
+
 Residue::Residue(AtomicStructure *as, std::string &name, std::string &chain,
     int pos, char insert): _structure(as), _name(name), _position(pos),
     _chain_id(chain), _insertion_code(insert), _is_helix(false),
@@ -122,3 +124,5 @@ Residue::str() const
     }
     return ret;
 }
+
+}  // namespace atomstruct
