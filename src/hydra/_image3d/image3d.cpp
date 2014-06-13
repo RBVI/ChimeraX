@@ -206,6 +206,8 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("tube_geometry_colors"), (PyCFunction)tube_geometry_colors,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("tube_triangle_mask"), (PyCFunction)tube_triangle_mask,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}
 };

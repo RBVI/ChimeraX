@@ -279,3 +279,76 @@ PyObject *tube_geometry_colors(PyObject *s, PyObject *args, PyObject *keywds)
 
   return r;
 }
+
+// -----------------------------------------------------------------------------
+// Return triangle mask corresponding to tube segment mask.
+//
+static void tube_triangle_mask(bool *segmask, int n,
+			       int segment_subdivisions, int circle_subdivisions,
+			       int ed1, int ed2,
+			       bool *tmask)
+{
+  int ns = segment_subdivisions, nc = circle_subdivisions;
+
+  bool m0 = segmask[0];
+  if (n == 1)
+    {
+      int nt = 2*(nc-2) + 2*(ed1 + ed2)*nc;
+      for (int i = 0 ; i < nt ; ++i, ++tmask)
+	*tmask = m0;
+      return;
+    }
+
+  // End cap
+  for (int i = 0 ; i < nc-2 ; ++i, ++tmask)
+    *tmask = m0;
+
+  // First segment
+  int h1 = 2*(ed1 + ((ns+2)/2))*nc;
+  for (int i = 0 ; i < h1 ; ++i, ++tmask)
+    *tmask = m0;
+
+  // Middle segments
+  int nrt = 2*(ns+1)*nc;
+  for (int i = 1 ; i < n-1 ; ++i)
+    {
+      bool m = segmask[i];
+      for (int j = 0 ; j < nrt ; ++j, ++tmask)
+	*tmask = m;
+    }
+
+  // Last segment
+  bool mn = segmask[n-1];
+  int h2 = 2*(ed2 + (ns+2) - (ns+2)/2 - 1)*nc;
+  for (int i = 0 ; i < h2 ; ++i, ++tmask)
+    *tmask = mn;
+
+  // End cap
+  for (int i = 0 ; i < nc-2 ; ++i, ++tmask)
+    *tmask = mn;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *tube_triangle_mask(PyObject *s, PyObject *args, PyObject *keywds)
+{
+  CArray segmask;
+  int ns, nc, ed1, ed2;
+  const char *kwlist[] = {"segment_mask", "segment_subdivisions", "circle_subdivisions",
+			  "start_divisions", "end_divisions", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&iiii"),
+				   (char **)kwlist,
+				   parse_uint8_n_array, &segmask,
+				   &ns, &nc, &ed1, &ed2))
+    return NULL;
+
+  int n = segmask.size();
+  bool *ma = reinterpret_cast<bool *>(segmask.values());
+  bool *tmask;
+  int nt = 2*(nc-2) + 2*(ed1 + ed2 + (n-1)*(ns+1))*nc;
+  PyObject *r = python_uint8_array(nt, reinterpret_cast<unsigned char **>(&tmask));
+  tube_triangle_mask(ma, n, ns, nc, ed1, ed2, tmask);
+
+  return r;
+}
