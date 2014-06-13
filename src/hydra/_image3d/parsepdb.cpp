@@ -210,3 +210,54 @@ sort_atoms_by_chain(PyObject *s, PyObject *args, PyObject *keywds)
   Py_INCREF(Py_None);
   return Py_None;
 }
+
+// ----------------------------------------------------------------------------
+// Calculate unique residue ids (same chain id and residue number).
+// Assumes that the atoms are sorted by chain id and residues number.
+//
+static void residue_ids(const Atom *atoms, int n, int *rids)
+{
+  int rid = 0;
+  const Atom *ar = atoms;
+  for (int a = 0 ; a < n ; ++a)
+    {
+      const Atom *aa = &atoms[a];
+      if (aa->residue_number != ar->residue_number || strncmp(aa->chain_id, ar->chain_id, CHAIN_ID_LEN))
+	{
+	  rid += 1;
+	  ar = aa;
+	}
+      rids[a] = rid;
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+residue_ids(PyObject *s, PyObject *args, PyObject *keywds)
+{
+  CArray atoms;
+  const char *kwlist[] = {"atoms", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_string_array, &atoms))
+    return NULL;
+  Atom *aa = (Atom *)atoms.values();
+  int n = atoms.size(0), len = atoms.size(1);
+  if (atoms.dimension() != 2)
+    {
+      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be 2 dimensional");
+      return NULL;
+    }
+  if (!atoms.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be contiguous");
+      return NULL;
+    }
+
+  int *rids;
+  PyObject *rids_py = python_int_array(n, &rids);
+  residue_ids(aa, n, rids);
+
+  return rids_py;
+}

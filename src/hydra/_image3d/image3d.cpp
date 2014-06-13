@@ -115,6 +115,8 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("sort_atoms_by_chain"), (PyCFunction)sort_atoms_by_chain,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("residue_ids"), (PyCFunction)residue_ids,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* parse_stl.h */
   {const_cast<char*>("parse_stl"), (PyCFunction)parse_stl,
