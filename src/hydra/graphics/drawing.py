@@ -198,10 +198,11 @@ class Drawing:
         self.promotion_tower = [above]
       else:
         pt = self.promotion_tower
-        for d in pt:
-          if not d.selected:
-            self.promotion_tower = pt = []
-            break
+        if pt:
+          for d in pt[-1]:
+            if not d.selected:
+              self.promotion_tower = pt = []
+              break
         pt.append(above)
 
   def above_selected(self):
