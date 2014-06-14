@@ -154,7 +154,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
         self.add_shortcut_icon('cube-outline.png', 'Show map outline box', 'ob')
-        self.add_shortcut_icon('icecube.png', 'Make map transparent', 't5')
+        self.add_shortcut_icon('icecube.png', 'Make map transparent', 'tt')
         toolbar.addSeparator()
 
         self.add_shortcut_icon('graphics.png', 'Show graphics window', 'gr')
