@@ -17,8 +17,7 @@ def show(what = None, atoms = False, ribbons = False, only = False, session = No
         atoms = True
 
     if what is None:
-        from . import molecule
-        what = molecule.all_atoms(session)
+        what = session.all_atoms()
 
     if atoms:
         what.show_atoms(only)
@@ -44,8 +43,7 @@ def hide(what = None, atoms = False, ribbons = False, session = None):
         ribbons = True
 
     if what is None:
-        from . import molecule
-        what = molecule.all_atoms(session)
+        what = session.all_atoms()
 
     if atoms:
         what.hide_atoms()

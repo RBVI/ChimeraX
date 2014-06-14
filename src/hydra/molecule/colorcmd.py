@@ -18,8 +18,7 @@ def color(what = None, color = (1,1,1,1), atoms = False, ribbons = False, sessio
         ribbons = True
 
     if what is None:
-        from . import molecule
-        what = molecule.all_atoms(session)
+        what = session.all_atoms()
 
     c8 = tuple(int(255*r) for r in color)       # Molecules require 0-255 color values
     if atoms:
