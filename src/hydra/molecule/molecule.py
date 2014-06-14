@@ -135,7 +135,8 @@ class Molecule(Drawing):
     p.positions = place.Places(shift_and_scale = sas)
 
     asel = self.atom_selected
-    p.selected_positions = asel[self.atom_shown] if asel.sum() > 0 else None
+    sasel = asel[self.atom_shown]
+    p.selected_positions = sasel if sasel.sum() > 0 else None
 
   def drawing_radii(self):
     astyle = self.atom_style
@@ -526,6 +527,13 @@ class Molecule(Drawing):
     ac[atom_indices,:] = color
     self.need_graphics_update = True
     self.redraw_needed()
+
+  def selected_atoms(self):
+    a = Atoms()
+    ind = self.atom_selected.nonzero()[0]
+    if len(ind) > 0:
+      a.add_atom_indices(self, ind)
+    return a
 
   def select_atom(self, a, toggle = False):
     asel = self.atom_selected
@@ -1045,14 +1053,6 @@ class Atoms:
       for a in alist:
         names.append(m.atom_index_description(a))
     return names
-    
-# -----------------------------------------------------------------------------
-#
-def all_atoms(session):
-  '''Return an atom set containing all atoms of all open molecules.'''
-  aset = Atoms()
-  aset.add_molecules(session.molecules())
-  return aset
 
 # -----------------------------------------------------------------------------
 #
