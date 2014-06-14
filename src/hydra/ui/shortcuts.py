@@ -56,8 +56,8 @@ def standard_shortcuts(session):
         ('dv', default_view, 'Default orientation', gcat, viewarg, smenu, sep),
 
         ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('ds', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
-        ('hs', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
+        ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
+        ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
         ('cs', s.clear_selection, 'Clear selection', gcat, noarg, smenu),
 
@@ -411,10 +411,12 @@ def show_surface_transparent(m):
         m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
         m.show()
     elif isinstance(m, Drawing):
-        # TODO: Change all drawings, not just children.
-        for p in m.child_drawings():
-            r,g,b,a = p.color
-            p.color = (r,g,b, (0.5 if a == 1 else 1))
+        for d in m.all_drawings():
+            c = d.colors
+            opaque = (c[:,3] == 255)
+            c[:,3] = 255                # Make transparent opaque
+            c[opaque,3] = 128           # and opaque transparent.
+            d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
 
 def set_background_color(viewer, color):
     viewer.background_color = color
