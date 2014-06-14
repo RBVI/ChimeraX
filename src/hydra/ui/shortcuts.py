@@ -97,8 +97,8 @@ def standard_shortcuts(session):
         ('sp', show_sphere, 'Display atoms in sphere style', molcat, molarg, mlmenu),
         ('st', show_stick, 'Display atoms in stick style', molcat, molarg, mlmenu, sep),
 
-        ('rb', show_ribbon, 'Display ribbon', molcat, molarg, mlmenu),
-        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, molarg, mlmenu),
+        ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
+        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
         ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
         ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
@@ -479,10 +479,10 @@ def show_stick(m):
   m.set_atom_style('stick')
 def show_ball_and_stick(m):
   m.set_atom_style('ballstick')
-def show_ribbon(m):
-  m.set_ribbon_display(True)
-def hide_ribbon(m):
-  m.set_ribbon_display(False)
+def show_ribbon(a):
+  a.show_ribbon()
+def hide_ribbon(a):
+  a.hide_ribbon()
 def fatter_ribbons(m):
     m.set_ribbon_radius(2*m.ribbon_radius)
 def thinner_ribbons(m):
