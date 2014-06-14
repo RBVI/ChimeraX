@@ -21,6 +21,7 @@ def standard_shortcuts(session):
 
     maparg = {'each_map':True}
     molarg = {'each_molecule':True}
+    atomsarg = {'atoms_arg': True}
     surfarg = {'each_surface':True}
     viewarg = {'view_arg':True}
     noarg = {}
@@ -89,8 +90,8 @@ def standard_shortcuts(session):
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
 
         # Molecules
-        ('da', show_atoms, 'Display atoms', molcat, molarg, mlmenu),
-        ('ha', hide_atoms, 'Undisplay atoms', molcat, molarg, mlmenu, sep),
+        ('da', show_atoms, 'Display atoms', molcat, atomsarg, mlmenu),
+        ('ha', hide_atoms, 'Undisplay atoms', molcat, atomsarg, mlmenu, sep),
 
         ('bs', show_ball_and_stick, 'Display atoms in ball and stick', molcat, molarg, mlmenu),
         ('sp', show_sphere, 'Display atoms in sphere style', molcat, molarg, mlmenu),
@@ -169,7 +170,7 @@ class Shortcut:
 
     def __init__(self, key_seq, func, session, description = '', key_name = None, category = None,
                  menu = None, menu_separator = False, each_map = False, each_molecule = False,
-                 each_surface = False, view_arg = False, session_arg = False):
+                 each_surface = False, atoms_arg = False, view_arg = False, session_arg = False):
         '''
         A keyboard shortcut is a key sequence and function to call when
         that key sequence is entered.  Shortcuts are put in categories and have
@@ -188,13 +189,16 @@ class Shortcut:
         self.each_map = each_map
         self.each_molecule = each_molecule
         self.each_surface = each_surface
+        self.atoms_arg = atoms_arg
         self.view_arg = view_arg
         self.session_arg = session_arg
         
     def run(self, session):
         f = self.func
         s = session
-        if self.each_map:
+        if self.atoms_arg:
+            f(shortcut_atoms(s))
+        elif self.each_map:
             for m in shortcut_maps(s):
                 f(m)
         elif self.each_molecule:
@@ -283,6 +287,12 @@ def shortcut_molecules(session):
     if len(mlist) == 0:
         mlist = [m for m in mols if m.display]
     return mlist
+
+def shortcut_atoms(session):
+    a = session.selected_atoms()
+    if a.count() == 0:
+        a = session.all_atoms()
+    return a
 
 def shortcut_surfaces(session):
     surfs = session.surfaces()
@@ -459,10 +469,10 @@ def color_by_chain(m):
 def color_one_color(m):
   m.single_color()
 
-def show_atoms(m):
-  m.show_all_atoms()
-def hide_atoms(m):
-  m.hide_all_atoms()
+def show_atoms(a):
+  a.show_atoms()
+def hide_atoms(a):
+  a.hide_atoms()
 def show_sphere(m):
   m.set_atom_style('sphere')
 def show_stick(m):
