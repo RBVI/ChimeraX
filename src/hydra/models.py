@@ -84,6 +84,23 @@ class Models:
             self._selected_models = sm
         return sm
 
+    def selected_atoms(self):
+        mols = self.molecules()
+        sel = self.selected_models()
+        smols = [m for m in sel if m in mols]
+        from .molecule import Atoms
+        a = Atoms()
+        for m in smols:
+            a.add_atoms(m.selected_atoms())
+        return a
+
+    def all_atoms(self):
+        '''Return an atom set containing all atoms of all open molecules.'''
+        from .molecule import Atoms
+        aset = Atoms()
+        aset.add_molecules(self.molecules())
+        return aset
+
     def clear_selection(self):
         sm = self.selected_models()
         for d in sm:
