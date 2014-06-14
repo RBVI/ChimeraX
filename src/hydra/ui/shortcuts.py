@@ -77,7 +77,9 @@ def standard_shortcuts(session):
         # Maps
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
+        ('tt', toggle_surface_transparency, 'Toggle surface transparency', mapcat, surfarg, mmenu),
         ('t5', show_surface_transparent, 'Make surface transparent', mapcat, surfarg, mmenu),
+        ('t0', show_surface_opaque, 'Make surface opaque', mapcat, surfarg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
         ('sf', show_surface, 'Show surface', mapcat, maparg, mmenu),
@@ -404,7 +406,7 @@ def show_asymmetric_unit(m, session):
         m.positions = Places([m.positions[0]])
         m.update_level_of_detail(session.view)
 
-def show_surface_transparent(m):
+def toggle_surface_transparency(m):
     from ..map import Volume
     from ..graphics import Drawing
     if isinstance(m, Volume):
@@ -417,6 +419,21 @@ def show_surface_transparent(m):
             c[:,3] = 255                # Make transparent opaque
             c[opaque,3] = 128           # and opaque transparent.
             d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+
+def show_surface_transparent(m, alpha = 0.5):
+    from ..map import Volume
+    from ..graphics import Drawing
+    if isinstance(m, Volume):
+        m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
+        m.show()
+    elif isinstance(m, Drawing):
+        for d in m.all_drawings():
+            c = d.colors
+            c[:,3] = int(255*alpha)
+            d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+
+def show_surface_opaque(m):
+    show_surface_transparent(m, alpha = 1)
 
 def set_background_color(viewer, color):
     viewer.background_color = color
