@@ -374,7 +374,9 @@ class Drawing:
     # Draw triangles
     eb = self.element_buffer
     etype = element_type(self.display_style)
-    eb.draw_elements(etype, self.instance_count())
+    ni = self.instance_count()
+    if ni > 0:
+      eb.draw_elements(etype, ni)
 
     if not self.texture is None:
       self.texture.unbind_texture()
@@ -555,6 +557,7 @@ class Drawing:
     ic = self._colors
     sas = self.positions.shift_and_scale_array()
     if sas is None:
+      self.instance_shift_and_scale = None
       if len(self.positions) == 1:
         self.instance_matrices = None
         self.instance_colors = None
@@ -562,6 +565,7 @@ class Drawing:
         self.instance_matrices = self.positions.opengl_matrices()
         self.instance_colors = ic
     else:
+      self.instance_matrices = None
       self.instance_shift_and_scale = sas
       self.instance_colors = ic
 
@@ -638,9 +642,12 @@ class Drawing:
   effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
 
   def instance_count(self):
-    dp = self._displayed_positions
-    if not dp is None:
-      ninst = dp.sum()
+    im = self.instance_matrices
+    isas = self.instance_colors
+    if not im is None:
+      ninst = len(im)
+    elif not isas is None:
+      ninst = len(isas)
     else:
       ninst = len(self.positions)
     return ninst
