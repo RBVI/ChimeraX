@@ -3,16 +3,18 @@ OBJS= $(SRCS:.cpp=.o)
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-LIBNAME = pseudobonds
+#LIBNAME = pseudobond
 CXXFLAGS += -I..
-LIBS += ../base-geom/libbase-geom.a
+#LIBS += ../basegeom/libbasegeom.a
 DIRNAME = $(shell basename `pwd`)
 
-$(SHLIB): imex.h $(OBJS)
-	$(SHLIB_LINK)
+#$(SHLIB): imex.h $(OBJS)
+#	$(SHLIB_LINK)
 
-install: $(SHLIB)
-	$(RSYNC) $(SHLIB) $(shlibdir)
+#install: $(SHLIB)
+
+install:
+	#$(RSYNC) $(SHLIB) $(shlibdir)
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 
