@@ -4,69 +4,75 @@
 
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 
 #include "Group.h"
-#include "PBond.h"
+#include "Link.h"
 
 namespace pseudobond {
 
+//classes
 template <class Grp_Class>
 class Base_Manager {
 protected:
-    std::map<std::string, Grp_Class>  _groups;
+    std::map<std::string, Grp_Class*>  _groups;
 public:
-    virtual  ~Base_Manager() {}
+    virtual  ~Base_Manager() { for (auto i: _groups) delete i.second; }
     virtual Grp_Class*  get_group(std::string& name, bool create = false) = 0;
 };
 
-template <class EndPoint>
-class Global_Manager: Base_Manager<Group<std::set<PBond<EndPoint>*>, EndPoint>> {
+template <class Grp_Class>
+class Global_Manager: Base_Manager<Grp_Class> {
 private:
     static Global_Manager  _manager;
 public:
-    virtual Group<std::set<PBond<EndPoint>*>, EndPoint>*  get_group(std::string& name, bool create = false);
+    virtual Grp_Class*  get_group(std::string& name, bool create = false);
     virtual  ~Global_Manager() {};
     static Global_Manager&  manager() { return _manager; }
 };
 
-template <class Owner, class PBondContainer, class EndPoint>
-class Owned_Manager: Base_Manager<Owned_Group<Owner, PBondContainer, EndPoint>> {
+template <class Owner, class Grp_Class>
+class Owned_Manager: Base_Manager<Grp_Class> {
+protected:
+    Owner*  _owner;
 public:
-    virtual Owned_Group<Owner, PBondContainer, EndPoint>*  get_group(
-            std::string& name, bool create = false);
+    virtual Grp_Class*  get_group(std::string& name,
+            bool create = false);
+    Owned_Manager(Owner* owner): _owner(owner) {}
     virtual  ~Owned_Manager() {};
 };
 
-template <class Owner, class PBondContainer, class EndPoint>
-Owned_Group<Owner, PBondContainer, EndPoint>*
-Owned_Manager<Owner, PBondContainer, EndPoint>::get_group(std::string& name, bool create)
+// methods
+template <class Owner, class Grp_Class>
+Grp_Class*
+Owned_Manager<Owner, Grp_Class>::get_group(std::string& name, bool create)
 {
     auto gmi = this->_groups.find(name);
     if (gmi != this->_groups.end())
-        return &(*gmi).second;
+        return (*gmi).second;
 
     if (!create)
         return nullptr;
 
-    this->_groups.emplace(name, name);
-    return &(*this->_groups.find(name)).second;
+    Grp_Class* grp = new Grp_Class(name, this->_owner);
+    this->_groups[name] = grp;
+    return grp;
 }
 
-template <class EndPoint>
-Group<std::set<PBond<EndPoint>*>, EndPoint>*
-Global_Manager<EndPoint>::get_group(std::string& name, bool create)
+template <class Grp_Class>
+Grp_Class*
+Global_Manager<Grp_Class>::get_group(std::string& name, bool create)
 {
     auto gmi = this->_groups.find(name);
     if (gmi != this->_groups.end())
-        return &(*gmi).second;
+        return (*gmi).second;
 
     if (!create)
         return nullptr;
 
-    this->_groups.emplace(name, name);
-    return &(*(this->_groups).find(name)).second;
+    Grp_Class* grp = new Grp_Class(name);
+    this->_groups[name] = grp;
+    return grp;
 }
 
 }  // namespace pseudobond
