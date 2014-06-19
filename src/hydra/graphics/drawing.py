@@ -143,9 +143,13 @@ class Drawing:
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
-  def display_positions(self, position_mask):
+  def get_display_positions(self):
+    return self._displayed_positions
+  def set_display_positions(self, position_mask):
     self._displayed_positions = position_mask
     self.redraw_needed()
+  display_positions = property(get_display_positions, set_display_positions)
+  '''Mask specifying which copies are displayed.'''
 
   def get_selected(self):
     return self._selected
