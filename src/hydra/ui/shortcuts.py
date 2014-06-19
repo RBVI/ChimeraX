@@ -15,9 +15,10 @@ def standard_shortcuts(session):
     # Shortcut documentation categories
     mapcat = 'Map Display'
     molcat = 'Molecule Display'
+    surfcat = 'Surfaces'
     gcat = 'General Controls'
     ocat = 'Open, Save, Close'
-    catcols = ((ocat,mapcat), (molcat,), (gcat,))
+    catcols = ((ocat,mapcat,surfcat), (molcat,), (gcat,))
 
     maparg = {'each_map':True}
     molarg = {'each_molecule':True}
@@ -31,6 +32,7 @@ def standard_shortcuts(session):
     smenu = 'Scene'
     mmenu = 'Map'
     mlmenu = 'Molecule'
+    sfmenu = 'Surface'
     pmenu = 'Panes'
     msmenu = 'Mouse'
     dmenu = 'Device'
@@ -77,9 +79,6 @@ def standard_shortcuts(session):
         # Maps
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
-        ('tt', toggle_surface_transparency, 'Toggle surface transparency', mapcat, surfarg, mmenu),
-        ('t5', show_surface_transparent, 'Make surface transparent', mapcat, surfarg, mmenu),
-        ('t0', show_surface_opaque, 'Make surface opaque', mapcat, surfarg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
         ('sf', show_surface, 'Show surface', mapcat, maparg, mmenu),
@@ -119,6 +118,13 @@ def standard_shortcuts(session):
         ('au', lambda m,s=s: show_asymmetric_unit(m,s), 'Show asymmetric unit', molcat, molarg, mlmenu),
 
         ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates', molcat, molarg),
+
+        # Surfaces
+        ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
+        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
+        ('tt', toggle_surface_transparency, 'Toggle surface transparency', surfcat, sesarg, sfmenu),
+        ('t5', show_surface_transparent, 'Make surface transparent', surfcat, sesarg, sfmenu),
+        ('t0', show_surface_opaque, 'Make surface opaque', surfcat, sesarg, sfmenu),
 
         # Pane
         ('mp', show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
@@ -304,6 +310,15 @@ def shortcut_surfaces(session):
         mlist = [m for m in surfs if m.display]
     return mlist
 
+def shortcut_surfaces_and_maps(session):
+    som = set(session.surfaces())
+    som.update(session.maps())
+    sel = session.selected_models()
+    mlist = [m for m in sel if m in som]
+    if len(mlist) == 0:
+        mlist = [m for m in som if m.display]
+    return mlist
+
 def close_all_models(session):
     session.close_all_models()
     session.scenes.delete_all_scenes()
@@ -406,34 +421,69 @@ def show_asymmetric_unit(m, session):
         m.positions = Places([m.positions[0]])
         m.update_level_of_detail(session.view)
 
-def toggle_surface_transparency(m):
+def display_surface(session):
+    for m in shortcut_surfaces(session):
+        if m.selected:
+            m.display = True
+        else:
+            sp = m.selected_positions
+            if sp is None or sp.sum() == len(sp):
+                m.display = True
+            else:
+                dp = m.display_positions
+                if dp is None:
+                    m.display_positions = sp
+                else:
+                    from numpy import logical_or
+                    m.display_positions = logical_or(dp,sp)
+
+def hide_surface(session):
+    for m in shortcut_surfaces(session):
+        if m.selected:
+            m.display = False
+        else:
+            sp = m.selected_positions
+            if sp is None or sp.sum() == len(sp):
+                m.display = False
+            else:
+                print('hs', sp.sum(), len(sp))
+                dp = m.display_positions
+                from numpy import logical_and, logical_not
+                if dp is None:
+                    m.display_positions = logical_not(sp)
+                else:
+                    m.display_positions = logical_and(dp,logical_not(sp))
+
+def toggle_surface_transparency(session):
     from ..map import Volume
     from ..graphics import Drawing
-    if isinstance(m, Volume):
-        m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
-        m.show()
-    elif isinstance(m, Drawing):
-        for d in m.all_drawings():
-            c = d.colors
-            opaque = (c[:,3] == 255)
-            c[:,3] = 255                # Make transparent opaque
-            c[opaque,3] = 128           # and opaque transparent.
-            d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+    for m in shortcut_surfaces_and_maps(session):
+        if isinstance(m, Volume):
+            m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
+            m.show()
+        elif isinstance(m, Drawing):
+            for d in m.all_drawings():
+                c = d.colors
+                opaque = (c[:,3] == 255)
+                c[:,3] = 255                # Make transparent opaque
+                c[opaque,3] = 128           # and opaque transparent.
+                d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
 
-def show_surface_transparent(m, alpha = 0.5):
+def show_surface_transparent(session, alpha = 0.5):
     from ..map import Volume
     from ..graphics import Drawing
-    if isinstance(m, Volume):
-        m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
-        m.show()
-    elif isinstance(m, Drawing):
-        for d in m.all_drawings():
-            c = d.colors
-            c[:,3] = int(255*alpha)
-            d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+    for m in shortcut_surfaces_and_maps(session):
+        if isinstance(m, Volume):
+            m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
+            m.show()
+        elif isinstance(m, Drawing):
+            for d in m.all_drawings():
+                c = d.colors
+                c[:,3] = int(255*alpha)
+                d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
 
-def show_surface_opaque(m):
-    show_surface_transparent(m, alpha = 1)
+def show_surface_opaque(session):
+    show_surface_transparent(session, alpha = 1)
 
 def set_background_color(viewer, color):
     viewer.background_color = color
@@ -693,7 +743,7 @@ def undisplay_half_model(m):
         else:
             from numpy import array, bool
             pmask = array([(pl*c)[2] <= 0 for pl in mp], bool)
-            m.display_positions(pmask)
+            m.display_positions = pmask
             print('uh', m.name, pmask.sum())
     for c in m.child_drawings():
         undisplay_half_model(c)
@@ -702,4 +752,4 @@ def display_all_positions(session):
     for m in session.models:
         for c in m.all_drawings():
             if c.display:
-                c.display_positions(None)
+                c.display_positions = None
