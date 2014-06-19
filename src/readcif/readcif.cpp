@@ -473,7 +473,7 @@ CIFFile::internal_parse(bool one_table)
 			continue;
 		}
 		case T_VALUE:
-			throw error("expected data value");
+			throw error("unexpected data value");
 		case T_EOI:
 			break;
 		}

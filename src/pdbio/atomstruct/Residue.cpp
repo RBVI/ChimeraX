@@ -7,10 +7,11 @@
 
 namespace atomstruct {
 
-Residue::Residue(AtomicStructure *as, std::string &name, std::string &chain,
-    int pos, char insert): _structure(as), _name(name), _position(pos),
-    _chain_id(chain), _insertion_code(insert), _is_helix(false),
-    _is_sheet(false), _is_het(false), _ss_id(-1), _alt_loc(' ')
+Residue::Residue(AtomicStructure *as, const std::string &name,
+    const std::string &chain, int pos, char insert): _structure(as),
+    _name(name), _position(pos), _chain_id(chain), _insertion_code(insert),
+    _is_helix(false), _is_sheet(false), _is_het(false), _ss_id(-1),
+    _alt_loc(' ')
 {
 }
 
