@@ -147,7 +147,8 @@ class Models:
     def surfaces(self):
         '''Return a list of the Drawings in the scene which are not Molecules.'''
         from .molecule import Molecule
-        return tuple(m for m in self.models if not isinstance(m,(Molecule)))
+        from .map import Volume
+        return tuple(m for m in self.models if not isinstance(m,(Molecule,Volume)))
 
     def bounds(self):
         if self.bounds_changed:
