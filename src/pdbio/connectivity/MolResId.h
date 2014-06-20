@@ -38,7 +38,7 @@ public:
     }
 };
 
-std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
+inline std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
     os << rid.pos;
     if (rid.insert != ' ')
         os << rid.insert;
