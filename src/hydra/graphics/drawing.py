@@ -38,7 +38,6 @@ class Drawing:
     self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
     self._displayed = True
     self._displayed_positions = None    # bool numpy array, show only some positions
-    self._selected = False
     self._selected_positions = None     # bool numpy array, selected positions
     self._selected_triangles_mask = None # bool numpy array
     self._child_drawings = []
@@ -152,9 +151,20 @@ class Drawing:
   '''Mask specifying which copies are displayed.'''
 
   def get_selected(self):
-    return self._selected
+    sp = self._selected_positions
+    tmask = self._selected_triangles_mask
+    return ((not sp is None) and sp.sum() > 0) or ((not tmask is None) and tmask.sum() > 0)
   def set_selected(self, sel):
-    self._selected = sel
+    if sel:
+      sp = self._selected_positions
+      if sp is None:
+        from numpy import ones, bool
+        self._selected_positions = ones(len(self.positions), bool)
+      else:
+        sp[:] = True
+    else:
+      self._selected_positions = None
+      self._selected_triangles_mask = None
     self.redraw_needed()
   selected = property(get_selected, set_selected)
   '''Whether or not the drawing is selected.'''
@@ -176,63 +186,71 @@ class Drawing:
   '''Mask specifying which triangles are selected.'''
 
   def any_part_selected(self):
-    if self._selected:
-      return True
-    sp = self._selected_positions
-    if not sp is None and sp.sum() > 0:
-      return True
-    tmask = self._selected_triangles_mask
-    if not tmask is None and tmask.sum() > 0:
+    if self.selected:
       return True
     for d in self.child_drawings():
       if d.any_part_selected():
         return True
     return False
 
-  def clear_selection(self):
-    self.selected = False
-    self.selected_positions = None
-
-  def promote_selection(self):
-    above = self.above_selected()
-    if above:
-      for d in above:
-        d.selected = True
-      if not hasattr(self, 'promotion_tower'):
-        self.promotion_tower = [above]
-      else:
-        pt = self.promotion_tower
-        if pt:
-          for d in pt[-1]:
-            if not d.selected:
-              self.promotion_tower = pt = []
-              break
-        pt.append(above)
-
-  def above_selected(self):
-    if self.selected:
-      return []
-    if self.child_or_copies_selected():
-      return [self]
-    return sum((d.above_selected() for d in self.child_drawings()), [])
-
-  def child_or_copies_selected(self):
+  def fully_selected(self):
     sp = self._selected_positions
-    if not sp is None and sp.sum() > 0:
-      return True
-    stm = self._selected_triangles_mask
-    if stm is None and stm.sum() > 0:
+    ns = sp.sum()
+    if not sp is None and ns == len(sp):
       return True
     for d in self.child_drawings():
-      if d.selected:
-        return True
-    return False
+      if not d.fully_selected():
+        return False
+    return True
+
+  def clear_selection(self):
+    self.selected = False
+
+  def promote_selection(self):
+
+    pd = self.deepest_promotable_drawings()
+    if len(pd) == 0:
+      return
+
+    plevel = min(level for level, drawing in pd)
+    pdrawings = tuple(d for level,d in pd if level == plevel)
+    prevsel = tuple((d,d.selected_positions.copy()) for d in pdrawings)
+    if hasattr(self, 'promotion_tower'):
+      self.promotion_tower.append(prevsel)
+    else:
+      self.promotion_tower = [prevsel]
+    for d in pdrawings:
+      d.selected = True
+
+  # A drawing is promotable if some children are fully selected and others are unselected,
+  # or if some copies are selected and other copies are unselected.
+  def deepest_promotable_drawings(self, level = 0):
+
+    sp = self._selected_positions
+    ns = sp.sum()
+    if not sp is None and ns == len(sp):
+      return []         # Fully selected
+    cd = self.child_drawings()
+    if cd:
+      nfsel = [d for d in cd if not d.fully_selected()]
+      if nfsel:
+        pd = sum((d.promotable_drawings(level+1) for d in nfsel),[])
+        if len(pd) == 0 and len(nfsel) < len(cd):
+          pd = [(level+1,d) for d in nfsel]
+        return pd
+    if not sp is None and ns < len(sp):
+      return [(level,self)]
+    return []
 
   def demote_selection(self):
     pt = getattr(self, 'promotion_tower', None)
     if pt:
-      for d in pt.pop():
-        d.selected = False
+      for d,sp in pt.pop():
+        d.selected_positions = sp
+
+  def clear_selection_promotion_history(self):
+    if hasattr(self, 'promotion_tower'):
+      delattr(self, 'promotion_tower')
 
   def get_position(self):
     return self._positions[0]
@@ -316,19 +334,15 @@ class Drawing:
 
     if self.child_drawings():
       sp = self._selected_positions
-      sel_only = selected_only and not self.selected
       for i,p in enumerate(self.positions):
-        so = sel_only and (sp is None or not sp[i])
+        so = selected_only and (sp is None or not sp[i])
         pp = place if p.is_identity() else place*p
         self.draw_children(renderer, pp, draw_pass, so)
 
   def draw_self(self, renderer, place, draw_pass, selected_only = False):
     '''Draw this drawing without children using the given draw pass.'''
 
-    if (selected_only and
-        not self.selected and
-        self._selected_positions is None and
-        self._selected_triangles_mask is None):
+    if selected_only and not self.selected:
       return
 
     if len(self.positions) == 1:
@@ -575,7 +589,7 @@ class Drawing:
       self.instance_colors = ic
 
     dp = self._displayed_positions        # bool array
-    if selected_only and not self.selected:
+    if selected_only:
       sp = self._selected_positions
       if not sp is None:
         import numpy 
@@ -591,7 +605,7 @@ class Drawing:
     ta = self.triangles
     if ta is None:
       return None
-    if selected_only and not self.selected:
+    if selected_only:
       tmask = self._selected_triangles_mask
       if not tmask is None:
         ta = ta[tmask,:]
@@ -771,17 +785,12 @@ class Picked_Drawing:
     return [d]
   def select(self, toggle = False):
     d,c = self.drawing_chain[-1]
-    n = len(d.positions)
-    if n == 1:
-      d.selected = not d.selected if toggle else True
-    else:
-      # Set selected position
-      pmask = d.selected_positions
-      if pmask is None:
-        from numpy import zeros, bool
-        pmask = zeros((n,), bool)
-      pmask[c] = not pmask[c] if toggle else 1
-      d.selected_positions = pmask
+    pmask = d.selected_positions
+    if pmask is None:
+      from numpy import zeros, bool
+      pmask = zeros((len(d.positions),), bool)
+    pmask[c] = not pmask[c] if toggle else 1
+    d.selected_positions = pmask
 
 def image_drawing(qi, pos, size, drawing = None):
   '''

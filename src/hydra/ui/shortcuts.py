@@ -423,36 +423,29 @@ def show_asymmetric_unit(m, session):
 
 def display_surface(session):
     for m in shortcut_surfaces(session):
-        if m.selected:
+        sp = m.selected_positions
+        if sp is None or sp.sum() == len(sp):
             m.display = True
         else:
-            sp = m.selected_positions
-            if sp is None or sp.sum() == len(sp):
-                m.display = True
+            dp = m.display_positions
+            if dp is None:
+                m.display_positions = sp
             else:
-                dp = m.display_positions
-                if dp is None:
-                    m.display_positions = sp
-                else:
-                    from numpy import logical_or
-                    m.display_positions = logical_or(dp,sp)
+                from numpy import logical_or
+                m.display_positions = logical_or(dp,sp)
 
 def hide_surface(session):
     for m in shortcut_surfaces(session):
-        if m.selected:
+        sp = m.selected_positions
+        if sp is None or sp.sum() == len(sp):
             m.display = False
         else:
-            sp = m.selected_positions
-            if sp is None or sp.sum() == len(sp):
-                m.display = False
+            dp = m.display_positions
+            from numpy import logical_and, logical_not
+            if dp is None:
+                m.display_positions = logical_not(sp)
             else:
-                print('hs', sp.sum(), len(sp))
-                dp = m.display_positions
-                from numpy import logical_and, logical_not
-                if dp is None:
-                    m.display_positions = logical_not(sp)
-                else:
-                    m.display_positions = logical_and(dp,logical_not(sp))
+                m.display_positions = logical_and(dp,logical_not(sp))
 
 def toggle_surface_transparency(session):
     from ..map import Volume
