@@ -10,12 +10,17 @@ class Drawing:
   A Drawing has a name, a unique id number which is a positive integer, it can be displayed or hidden,
   has a placement in space, or multiple copies can be placed in space, and a drawing can be selected.
   The coordinates, colors, normal vectors and other geometric and display properties are managed by the
-  Drawing objects.  Individual child drawings can be added or removed.  The purpose of child drawings is
-  for convenience in adding and removing parts of a Drawing.
+  Drawing objects.
 
-  Child drawings are created by the new_drawing() method and represent a set of triangles
-  that can be added or removed from a parent drawing independent of other sets of triangles.  The basic
-  data defining the triangles is an N by 3 array of vertices (float32 numpy array) and an array
+  A drawing can have child drawings.  The purpose of child drawings is for convenience in adding,
+  removing, displaying and selecting parts of a scene. Child drawings are created by the new_drawing()
+  method.
+
+  Multiple copies of a drawing be drawn with specified positions and colors. Copy positions can
+  be specified by a shift and scale factor but no rotation, useful for copies of spheres.  Each copy
+  can be displayed or hidden, selected or unselected.
+
+  The basic data defining the triangles is an N by 3 array of vertices (float32 numpy array) and an array
   that defines triangles as 3 integer index values into the vertex array which define the
   3 corners of a triangle.  The triangle array is of shape T by 3 and is a numpy int32 array.
   The filled triangles or a mesh consisting of just the triangle edges can be shown.
@@ -24,10 +29,8 @@ class Drawing:
   the triangles with texture coordinates assigned to the vertices.  Transparency values can be assigned
   to the vertices. Individual triangles or triangle edges in mesh display style can be hidden.
   An N by 3 float array gives normal vectors, one normal per vertex, for lighting calculations.
-  Multiple copies of the drawing be drawn with each specified
-  by a position and orientation.  Copies can alternatively be specified by a shift and scale factor
-  but no rotation, useful for copies of spheres.  Each copy can have its own single color, or all
-  copies can use the same per-vertex or texture coloring.  Rendering of drawings is done with OpenGL.
+
+  Rendering of drawings is done with OpenGL.
   '''
 
   def __init__(self, name):
@@ -36,8 +39,8 @@ class Drawing:
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
     self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
-    self._displayed = True
     self._displayed_positions = None    # bool numpy array, show only some positions
+    self._any_displayed_positions = True
     self._selected_positions = None     # bool numpy array, selected positions
     self._selected_triangles_mask = None # bool numpy array
     self._child_drawings = []
@@ -135,9 +138,14 @@ class Drawing:
       d.set_redraw_callback(redraw_needed)
 
   def get_display(self):
-    return self._displayed
+    return self._any_displayed_positions and len(self._positions) > 0
   def set_display(self, display):
-    self._displayed = display
+    dp = self._displayed_positions
+    if dp is None:
+      from numpy import empty, bool
+      self._displayed_positions = dp = empty((len(self._positions),),bool)
+    dp[:] = display
+    self._any_displayed_positions = display
     self.redraw_needed()
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
@@ -146,6 +154,7 @@ class Drawing:
     return self._displayed_positions
   def set_display_positions(self, position_mask):
     self._displayed_positions = position_mask
+    self._any_displayed_positions = (position_mask.sum() > 0)
     self.redraw_needed()
   display_positions = property(get_display_positions, set_display_positions)
   '''Mask specifying which copies are displayed.'''
@@ -265,6 +274,8 @@ class Drawing:
     return self._positions
   def set_positions(self, positions):
     self._positions = positions
+    self._displayed_positions = None
+    self._selected_positions = None
     self.redraw_needed()
   positions = property(get_positions, set_positions)
   '''
