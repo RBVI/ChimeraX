@@ -44,9 +44,7 @@ class Drawing:
     self._selected_positions = None     # bool numpy array, selected positions
     self._selected_triangles_mask = None # bool numpy array
     self._child_drawings = []
-
-    self.redraw_needed = redraw_no_op
-    self.was_deleted = False
+    self.reverse_order_children = False     # Used by grayscale rendering for depth ordering
 
     # Geometry and colors
     self.vertices = None
@@ -54,7 +52,6 @@ class Drawing:
     self.normals = None
     self.vertex_colors = None           # N by 4 uint8 values
     self.edge_mask = None
-    self.masked_edges = None
     self.display_style = self.Solid
     self.texture = None
     self.texture_coordinates = None
@@ -62,19 +59,21 @@ class Drawing:
     self.use_lighting = True
     self.use_radial_warp = False
 
-    # Derived arrays used for instancing
+    # Derived arrays
     self.instance_shift_and_scale = None    # N by 4 array, (x,y,z,scale)
     self.instance_matrices = None	    # 4x4 matrices for displayed instances
     self.instance_colors = None
+    self.masked_edges = None
+    self.elements = None                    # Triangles after mask applied
 
     # OpenGL rendering                                    
     self.bindings = None                    # Holds the buffer pointers and shader variable bindings
-    self.opengl_buffers = []
-    self.elements = None                    # Triangles after mask applied
-    self.element_buffer = None
     self.shader = None
+    self.opengl_buffers = []
+    self.element_buffer = None
     self.need_buffer_update = True
-    self.reverse_order_children = False     # Used by grayscale rendering for depth ordering
+    self.redraw_needed = redraw_no_op
+    self.was_deleted = False
 
   def __setattr__(self, key, value):
     if key in self.effects_shader:
@@ -584,20 +583,10 @@ class Drawing:
     self.need_buffer_update = False
 
   def update_instance_arrays(self, selected_only = False):
-    ic = self._colors
     sas = self.positions.shift_and_scale_array()
-    if sas is None:
-      self.instance_shift_and_scale = None
-      if len(self.positions) == 1:
-        self.instance_matrices = None
-        self.instance_colors = None
-      else:
-        self.instance_matrices = self.positions.opengl_matrices()
-        self.instance_colors = ic
-    else:
-      self.instance_matrices = None
-      self.instance_shift_and_scale = sas
-      self.instance_colors = ic
+    np = len(self.positions)
+    ic = self._colors if np > 1 or not sas is None else None
+    im = self.positions.opengl_matrices() if sas is None and np > 1 else None
 
     dp = self._displayed_positions        # bool array
     if selected_only:
@@ -606,10 +595,13 @@ class Drawing:
         import numpy 
         dp = sp if dp is None else numpy.logical_and(dp, sp)
     if not dp is None:
-      im = self.instance_matrices
-      self.instance_matrices = im[dp,:,:] if not im is None else None
-      self.instance_colors = ic[dp,:] if not ic is None else None
-      self.instance_shift_and_scale = sas[dp,:] if not sas is None else None
+      im = im[dp,:,:] if not im is None else None
+      ic = ic[dp,:] if not ic is None else None
+      sas = sas[dp,:] if not sas is None else None
+
+    self.instance_matrices = im
+    self.instance_shift_and_scale = sas
+    self.instance_colors = ic
 
   def masked_elements(self, selected_only = False):
 
@@ -623,9 +615,12 @@ class Drawing:
     if self.display_style == self.Mesh:
       me = self.masked_edges
       if me is None or selected_only:
+        em = self.edge_mask
+        tmask = self._selected_triangles_mask
+        if not tmask is None:
+          em = em[tmask]
         from .._image3d import masked_edges
-        me = (masked_edges(ta) if self.edge_mask is None
-              else masked_edges(ta, self.edge_mask))
+        me = masked_edges(ta) if em is None else masked_edges(ta, em)
         if not selected_only:
           self.masked_edges = me
       ta = me
