@@ -938,12 +938,24 @@ extern "C" int parse_writable_float_3d_array(PyObject *arg, void *farray)
 
 // ----------------------------------------------------------------------------
 //
-extern "C" int parse_uint8_n4_array(PyObject *arg, void *iarray)
+extern "C" int parse_uint8_n_array(PyObject *arg, void *carray)
+{
+  Numeric_Array v;
+  bool allow_copy = false;
+  if (!array_from_python(arg, 1, Numeric_Array::Unsigned_Char, &v, allow_copy))
+    return 0;
+  *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+  return 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_uint8_n4_array(PyObject *arg, void *carray)
 {
   Numeric_Array v;
   int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 4, false, v);
   if (s)
-    *static_cast<CArray*>(iarray) = static_cast<CArray>(v);
+    *static_cast<CArray*>(carray) = static_cast<CArray>(v);
   return s;
 }
 

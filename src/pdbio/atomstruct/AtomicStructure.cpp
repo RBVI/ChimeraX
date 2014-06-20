@@ -216,7 +216,7 @@ AtomicStructure::make_chains(AtomicStructure::Res_Lists* chain_members,
 }
 
 Atom *
-AtomicStructure::new_atom(std::string &name, Element e)
+AtomicStructure::new_atom(const std::string &name, Element e)
 {
     Atom *a = new Atom(this, name, e);
     add_vertex(a);
@@ -280,8 +280,8 @@ AtomicStructure::new_coord_set(int index, int size)
 }
 
 Residue*
-AtomicStructure::new_residue(std::string &name, std::string &chain, int pos,
-    char insert, Residue *neighbor, bool after)
+AtomicStructure::new_residue(const std::string &name, const std::string &chain,
+    int pos, char insert, Residue *neighbor, bool after)
 {
     if (neighbor == NULL) {
         _residues.emplace_back(new Residue(this, name, chain, pos, insert));

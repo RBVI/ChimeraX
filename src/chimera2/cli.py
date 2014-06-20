@@ -987,10 +987,12 @@ class Command:
 		for name, anno in positional.items():
 			if name in self._ci.optional:
 				self._error = ""
-				if not text:
+				tmp = text.split(None, 1)
+				if not tmp:
 					break
-				tmp = text.split(None, 1)[0]
-				if tmp in word_map:
+				if tmp[0] in word_map:
+					# matches keyword,
+					# so switch to keyword processing
 					break
 			else:
 				self._error = "Missing required argument %s" % name
@@ -1192,13 +1194,17 @@ if __name__ == '__main__':
 		try:
 			print("\nTEST: '%s'" % text)
 			cmd.parse_text(text, final=final)
-			if cmd.current_text != text:
-				print(cmd.current_text)
+			print(cmd.current_text)
 			#print(cmd.current_text, cmd._kwargs)
-			p = cmd.completions
-			if p:
-				print('completions:', p)
 			cmd.execute()
 			print('SUCCESS')
 		except UserError as err:
+			rest = cmd.current_text[cmd.amount_parsed:]
+			spaces = len(rest) - len(rest.lstrip())
+			error_at = cmd.amount_parsed + spaces
+			#parsed = cmd.current_text[:cmd.amount_parsed]
+			print("%s^" % ('.' * error_at))
 			print('FAIL:', err)
+			p = cmd.completions
+			if p:
+				print('completions:', p)
