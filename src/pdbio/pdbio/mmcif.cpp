@@ -14,9 +14,12 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <algorithm>
+#include <unordered_map>
 
 using std::string;
 using std::vector;
+using std::unordered_map;
+using std::hash;
 
 using atomstruct::AtomicStructure;
 using atomstruct::Residue;
@@ -73,6 +76,29 @@ struct ExtractCIF: public readcif::CIFFile
     void parse_struct_conn(bool in_loop);
 
     vector<AtomicStructure*> molecules;
+    struct AtomKey {
+        string chain_id;
+        int position;
+        char ins_code;
+        char alt_id;
+        string atom_name;
+        string residue_name;
+        AtomKey(const string& c, int p, char i, char a, const string& n, const string& r):
+            chain_id(c), position(p), ins_code(i), alt_id(a), atom_name(n), residue_name(r) {}
+        bool operator==(const AtomKey& k) const {
+            return position == k.position && ins_code == k.ins_code
+                && alt_id == k.alt_id && atom_name == k.atom_name
+                && residue_name == k.residue_name && chain_id == k.chain_id;
+        }
+    };
+    struct hash_AtomKey {
+        size_t operator()(const AtomKey& k) const {
+            return hash<string>()(k.chain_id) ^ hash<int>()(k.position)
+                ^ hash<char>()(k.ins_code) ^ hash<char>()(k.alt_id)
+                ^ hash<string>()(k.atom_name) ^ hash<string>()(k.residue_name);
+        }
+    };
+    unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
 };
 
 ExtractCIF::ExtractCIF()
@@ -85,12 +111,10 @@ ExtractCIF::ExtractCIF()
         [this] (bool in) {
             parse_atom_site(in/*_loop*/);
         });
-#if 0
     register_category("struct_conn",
         [this] (bool in) {
-            parse_atom_site(in/*_loop*/);
+            parse_struct_conn(in/*_loop*/);
         }, { "atom_site" });
-#endif
 }
 
 void
@@ -107,6 +131,7 @@ void
 ExtractCIF::data_block(const string& name)
 {
     molecules.push_back(new AtomicStructure);
+    atom_map.clear();
 }
 
 void
@@ -147,19 +172,17 @@ ExtractCIF::parse_atom_site(bool in_loop)
     readcif::CIFFile::ParseValues pv;
 	pv.reserve(20);
 
-    Residue* cur_residue = NULL;
-    string chain_id;
-    int position;
-    char ins_code = ' ';
-    char alt_id = '\0';
-    char symbol[3];
-    string atom_name;
-    string residue_name;
-    int atom_serial = 0;
-    int serial = 0;
-    float x, y, z;
-    float occupancy = FLT_MAX;
-    float b_factor = FLT_MAX;
+    string chain_id;            // label_asym_id
+    int position;               // label_seq_id
+    char ins_code = ' ';        // pdbx_PDB_ins_code
+    char alt_id = '\0';         // label_alt_id
+    string atom_name;           // label_atom_id
+    string residue_name;        // label_comp_id
+    char symbol[3];             // type_symbol
+    int serial = 0;             // id
+    float x, y, z;              // Cartn_[xyz]
+    float occupancy = FLT_MAX;  // occupancy
+    float b_factor = FLT_MAX;   // B_iso_or_equiv
 
 	pv.emplace_back(get_column("id", false), false,
         [&] (const char* start, const char* end) {
@@ -182,13 +205,6 @@ ExtractCIF::parse_atom_site(bool in_loop)
 	pv.emplace_back(get_column("label_seq_id", true), false,
         [&] (const char* start, const char*) {
             position = readcif::str_to_int(start);
-            if (position == 0) {
-                // HETATM residues (waters) might be missing a sequence number
-                if (cur_residue == NULL || cur_residue->chain_id() != chain_id)
-                    position = 1;
-                else
-                    ++position;
-            }
         });
 
 	pv.emplace_back(get_column("label_alt_id", false), true,
@@ -247,7 +263,17 @@ ExtractCIF::parse_atom_site(bool in_loop)
             });
 
     auto mol = molecules.back();
+    int atom_serial = 0;
+    Residue* cur_residue = NULL;
 	while (parse_row(pv)) {
+        if (position == 0) {
+            // HETATM residues (waters) might be missing a sequence number
+            if (cur_residue == NULL || cur_residue->chain_id() != chain_id)
+                position = 1;
+            else
+                ++position;
+        }
+
         if (cur_residue == NULL
         || cur_residue->chain_id() != chain_id
         || cur_residue->position() != position
@@ -266,6 +292,11 @@ ExtractCIF::parse_atom_site(bool in_loop)
             cur_residue->add_atom(a);
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
+            if (position != 0) {
+                AtomKey k(chain_id, position, ins_code, alt_id, atom_name,
+                                                            residue_name);
+                atom_map[k] = a;
+            }
         }
         Coord c(x, y, z);
         a->set_coord(c);
@@ -289,101 +320,131 @@ ExtractCIF::parse_struct_conn(bool in_loop)
     if (molecules.size() == 0)
         throw ExtractCIF::error("missing data keyword");
 
-#if 0
+#   define P1 "ptnr1"
+#   define P2 "ptnr2"
+#   define ASYM "_label_asym_id"
+#   define COMP "_label_comp_id"
+#   define SEQ "_label_seq_id"
+#   define ATOM "_label_atom_id"
+#   define ALT "_label_alt_id" // pdbx
+#   define INS "_PDB_ins_code" // pdbx
+
     // bonds from struct_conn records
-    const unsigned conn_type_id = get_column(struct_conn_names, "conn_type_id");
-    const unsigned ptnr1_label_asym_id = get_column(struct_conn_names, "ptnr1_label_asym_id");
-    const unsigned ptnr1_label_comp_id = get_column(struct_conn_names, "ptnr1_label_comp_id");
-    const unsigned ptnr1_label_seq_id = get_column(struct_conn_names, "ptnr1_label_seq_id");
-    const unsigned ptnr1_label_atom_id = get_column(struct_conn_names, "ptnr1_label_atom_id");
-    const unsigned pdbx_ptnr1_label_alt_id = get_column(struct_conn_names, "pdbx_ptnr1_label_alt_id");
-    const unsigned pdbx_ptnr1_PDB_ins_code = get_column(struct_conn_names, "pdbx_ptnr1_PDB_ins_code");
-    const unsigned ptnr2_label_asym_id = get_column(struct_conn_names, "ptnr2_label_asym_id");
-    const unsigned ptnr2_label_comp_id = get_column(struct_conn_names, "ptnr2_label_comp_id");
-    const unsigned ptnr2_label_seq_id = get_column(struct_conn_names, "ptnr2_label_seq_id");
-    const unsigned ptnr2_label_atom_id = get_column(struct_conn_names, "ptnr2_label_atom_id");
-    const unsigned pdbx_ptnr2_label_alt_id = get_column(struct_conn_names, "pdbx_ptnr2_label_alt_id");
-    const unsigned pdbx_ptnr2_PDB_ins_code = get_column(struct_conn_names, "pdbx_ptnr2_PDB_ins_code");
+    string chain_id1, chain_id2;            // ptrn[12]_label_asym_id
+    int position1, position2;               // ptrn[12]_label_seq_id
+    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptrn[12]_PDB_ins_code
+    char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptrn[12]_label_alt_id
+    string atom_name1, atom_name2;          // ptrn[12]_label_atom_id
+    string residue_name1, residue_name2;    // ptrn[12]_label_comp_id
+    string conn_type;                       // conn_type_id
 
-    StringVector search_columns1, search_columns2;
-    if (ptnr1_label_asym_id != -1)
-        search_columns1.push_back("label_asym_id");
-    if (ptnr1_label_comp_id != -1)
-        search_columns1.push_back("label_comp_id");
-    if (ptnr1_label_seq_id != -1)
-        search_columns1.push_back("label_seq_id");
-    if (ptnr1_label_atom_id != -1)
-        search_columns1.push_back("label_atom_id");
-    if (pdbx_ptnr1_label_alt_id != -1)
-        search_columns1.push_back("label_alt_id");
-    if (pdbx_ptnr1_PDB_ins_code != -1)
-        search_columns1.push_back("pdbx_PDB_ins_code");
-    if (ptnr2_label_asym_id != -1)
-        search_columns2.push_back("label_asym_id");
-    if (ptnr2_label_comp_id != -1)
-        search_columns2.push_back("label_comp_id");
-    if (ptnr2_label_seq_id != -1)
-        search_columns2.push_back("label_seq_id");
-    if (ptnr2_label_atom_id != -1)
-        search_columns2.push_back("label_atom_id");
-    if (pdbx_ptnr2_label_alt_id != -1)
-        search_columns2.push_back("label_alt_id");
-    if (pdbx_ptnr2_PDB_ins_code != -1)
-        search_columns2.push_back("pdbx_PDB_ins_code");
+    CIFFile::ParseValues pv;
+    pv.reserve(32);
+	pv.emplace_back(get_column("conn_type_id", true), true,
+			[&] (const char* start, const char* end) {
+				conn_type = string(start, end - start);
+			});
 
-    for (unsigned i = 0, n = struct_conn.GetNumRows(); i < n; ++i) {
-        const StringVector& row = struct_conn.GetRow(i);
-        const string& type = row[conn_type_id];
-        if (type != "covale" && type != "disulf")
-            continue;   // skip hydrogen and modres bonds
-        StringVector targets;
-        if (ptnr1_label_asym_id != -1)
-            targets.push_back(row[ptnr1_label_asym_id]);
-        if (ptnr1_label_comp_id != -1)
-            targets.push_back(row[ptnr1_label_comp_id]);
-        if (ptnr1_label_seq_id != -1)
-            targets.push_back(row[ptnr1_label_seq_id]);
-        if (ptnr1_label_atom_id != -1)
-            targets.push_back(row[ptnr1_label_atom_id]);
-        if (pdbx_ptnr1_label_alt_id != -1) {
-            const string& alt = row[pdbx_ptnr1_label_alt_id]; 
-            targets.push_back(alt == "?" ? "." : alt );
-        }
-        if (pdbx_ptnr1_PDB_ins_code != -1)
-            targets.push_back(row[pdbx_ptnr1_PDB_ins_code]);
-        UIntVector results1;
-        atom_site.Search(results1, targets, search_columns1);
-        targets.clear();
-        if (ptnr2_label_asym_id != -1)
-            targets.push_back(row[ptnr2_label_asym_id]);
-        if (ptnr2_label_comp_id != -1)
-            targets.push_back(row[ptnr2_label_comp_id]);
-        if (ptnr2_label_seq_id != -1)
-            targets.push_back(row[ptnr2_label_seq_id]);
-        if (ptnr2_label_atom_id != -1)
-            targets.push_back(row[ptnr2_label_atom_id]);
-        if (pdbx_ptnr2_label_alt_id != -1) {
-            const string& alt = row[pdbx_ptnr2_label_alt_id]; 
-            targets.push_back(alt == "?" ? "." : alt );
-        }
-        if (pdbx_ptnr2_PDB_ins_code != -1)
-            targets.push_back(row[pdbx_ptnr2_PDB_ins_code]);
-        UIntVector results2;
-        atom_site.Search(results2, targets, search_columns2);
-
-        for (auto j = results1.begin(); j != results1.end(); ++j) {
-            Atom *a1 = mol->atoms()[*j].get();
-            for (auto k = results2.begin(); k != results2.end(); ++k) {
-                Atom *a2 = mol->atoms()[*k].get();
-                try {
-                    mol->new_bond(a1, a2);
-                } catch (std::invalid_argument&) {
-                    // already bonded
-                }
+	pv.emplace_back(get_column(P1 ASYM, true), true,
+        [&] (const char* start, const char* end) {
+            chain_id1 = string(start, end - start);
+        });
+	pv.emplace_back(get_column("pdbx_" P1 INS, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1 && (*start == '.' || *start == '?'))
+                ins_code1 = ' ';
+            else {
+                // TODO: check if more than one character
+                ins_code1 = *start;
             }
+        });
+	pv.emplace_back(get_column(P1 SEQ, true), false,
+        [&] (const char* start, const char*) {
+            position1 = readcif::str_to_int(start);
+        });
+	pv.emplace_back(get_column("pdbx_" P1 ALT, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1
+            && (*start == '.' || *start == '?' || *start == ' '))
+                alt_id1 = '\0';
+            else {
+                // TODO: what about more than one character?
+                alt_id1 = *start;
+            }
+        });
+	pv.emplace_back(get_column(P1 ATOM, true), true,
+			[&] (const char* start, const char* end) {
+                atom_name1 = string(start, end - start);
+			});
+	pv.emplace_back(get_column(P1 COMP, true), true,
+			[&] (const char* start, const char* end) {
+                residue_name1 = string(start, end - start);
+			});
+
+	pv.emplace_back(get_column(P2 ASYM, true), true,
+        [&] (const char* start, const char* end) {
+            chain_id2 = string(start, end - start);
+        });
+	pv.emplace_back(get_column("pdbx_" P2 INS, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1 && (*start == '.' || *start == '?'))
+                ins_code2 = ' ';
+            else {
+                // TODO: check if more than one character
+                ins_code2 = *start;
+            }
+        });
+	pv.emplace_back(get_column(P2 SEQ, true), false,
+        [&] (const char* start, const char*) {
+            position2 = readcif::str_to_int(start);
+        });
+	pv.emplace_back(get_column("pdbx_" P2 ALT, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1
+            && (*start == '.' || *start == '?' || *start == ' '))
+                alt_id2 = '\0';
+            else {
+                // TODO: what about more than one character?
+                alt_id2 = *start;
+            }
+        });
+	pv.emplace_back(get_column(P2 ATOM, true), true,
+			[&] (const char* start, const char* end) {
+                atom_name2 = string(start, end - start);
+			});
+	pv.emplace_back(get_column(P2 COMP, true), true,
+			[&] (const char* start, const char* end) {
+                residue_name2 = string(start, end - start);
+			});
+
+    auto mol = molecules.back();
+    while (parse_row(pv)) {
+        if (conn_type != "covale" && conn_type != "disulf")
+            continue;   // skip hydrogen and modres bonds
+        AtomKey k1(chain_id1, position1, ins_code1, alt_id1, atom_name1,
+                                                        residue_name1);
+        auto ai1 = atom_map.find(k1);
+        if (ai1 == atom_map.end())
+            continue;
+        AtomKey k2(chain_id2, position2, ins_code2, alt_id2, atom_name2,
+                                                        residue_name2);
+        auto ai2 = atom_map.find(k2);
+        if (ai2 == atom_map.end())
+            continue;
+        try {
+            mol->new_bond(ai1->second, ai2->second);
+        } catch (std::invalid_argument& e) {
+            // already bonded
         }
     }
-#endif
+#   undef P1
+#   undef P2
+#   undef ASYM
+#   undef COMP
+#   undef SEQ
+#   undef ATOM
+#   undef ALT
+#   undef INS
 }
 
 PyObject *
@@ -403,6 +464,7 @@ clock_t start_t, end_t;
     using blob::StructBlob;
     StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
     for (auto m: extract.molecules) {
+        // TODO: if not atoms, do not add
         sb->_items->emplace_back(m);
     }
     return sb;
