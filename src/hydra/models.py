@@ -121,6 +121,8 @@ class Models:
             m.demote_selection()
 
     def selection_changed(self):
+        for m in self._selected_models:
+            m.clear_selection_promotion_history()
         self._selected_models = None
         self.redraw_needed = True
 

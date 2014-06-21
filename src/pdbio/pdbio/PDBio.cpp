@@ -801,41 +801,6 @@ connect_atom_by_distance(Atom *a, const Residue::Atoms &atoms,
     }
 }
 
-// find_closest:
-//    Find closest heavy atom to given heavy atom with residue that has
-//    the same alternate location identifier (or none) and optionally return
-static Atom *
-find_closest(Atom *a, Residue *r, float *ret_dist_sq)
-{
-    if (a == NULL)
-        return NULL;
-    if (a->element().number() == 1)
-        return NULL;
-    const Residue::Atoms &r_atoms = r->atoms();
-    Residue::Atoms::const_iterator ai = r_atoms.begin();
-    if (ai == r_atoms.end())
-        return NULL;
-    Atom *closest = NULL;
-    float dist_sq = 0.0;
-    const Coord &c = a->coord();
-    for (; ai != r_atoms.end(); ++ai) {
-        Atom *oa = *ai;
-        if (oa->element().number() == 1)
-            continue;
-        if ((a->residue() == r && a->name() == oa->name()))
-            continue;
-        const Coord &c1 = oa->coord();
-        float new_dist_sq = c.sqdistance(c1);
-        if (closest != NULL && new_dist_sq >= dist_sq)
-            continue;
-        dist_sq = new_dist_sq;
-        closest = oa;
-    }
-    if (ret_dist_sq)
-        *ret_dist_sq = dist_sq;
-    return closest;
-}
-
 void prune_short_bonds(AtomicStructure *as)
 {
     std::vector<Bond *> short_bonds;
