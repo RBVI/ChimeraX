@@ -13,4 +13,4 @@ include $(TOP)/mk/subdir.make
 
 qt-app.install: llgr.install chimera2.install
 hydra.install: pdbio.install
-pdbio.install: readcif.isntall
+pdbio.install: readcif.install
