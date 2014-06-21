@@ -48,6 +48,70 @@
 
 namespace readcif {
 
+// ASCII HT (9), LF (10), CR (13), and SPACE (32)
+// are the only whitespace characters recognized in CIF files.
+// ASCII NUL is both not is_whitespace and not is_not_whitespace.
+
+extern const int Whitespace[];
+extern const int NotWhitespace[];
+
+inline int
+is_whitespace(char c)
+{
+	return Whitespace[(unsigned char) c];
+}
+
+inline int
+is_not_whitespace(char c)
+{
+	return NotWhitespace[(unsigned char) c];
+}
+
+// non-error checking replacement for the standard library's strtof
+// for non-scientific notation
+inline float str_to_float(const char *s)
+{
+	bool neg = false;
+	float fa = 0, v = 0;
+	for (;;) {
+		char c = *s;
+		if (c >= '0' && c <= '9') {
+			if (fa) {
+				v += fa * (c - '0');
+				fa *= 0.1;
+			} else
+				v = 10 * v + (c - '0');
+		}
+		else if (c == '.')
+			fa = 0.1;
+		else if (c == '-')
+			neg = true;
+		else
+			break;
+		s += 1;
+	}
+	return (neg ? -v : v);
+}
+
+// non-error checking replacement for the standard library's atoi/strtol
+inline int str_to_int(const char *s)
+{
+	bool neg = (*s == '-');
+	int v = 0;
+	if (neg)
+		s += 1;
+
+	for (;;) {
+		char c = *s;
+		if (c >= '0' && c <= '9')
+			v = 10 * v + (c - '0');
+		else
+			break;
+		s += 1;
+	}
+	return (neg ? -v : v);
+}
+
 typedef std::vector<std::string> StringVector;
 
 class CIFFile {

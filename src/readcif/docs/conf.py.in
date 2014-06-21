@@ -271,9 +271,9 @@ todo_include_todos = True
 
 # intersphinx configuration:
 intersphinx_mapping = {
-	'matplotlib': ('http://matplotlib.sourceforge.net', None),
-	'numpy': ('http://docs.scipy.org/doc/numpy', None),
-	'python': ('http://docs.python.org/PYTHON_VERSION', None),
+#	'matplotlib': ('http://matplotlib.sourceforge.net', None),
+#	'numpy': ('http://docs.scipy.org/doc/numpy', None),
+#	'python': ('http://docs.python.org/PYTHON_VERSION', None),
 	'sphinx': ('http://sphinx.pocoo.org', None),
 }
 

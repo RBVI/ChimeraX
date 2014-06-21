@@ -117,6 +117,31 @@ C++ API
 
     A std::vector of std::string's.
 
+.. cpp:function:: int is_whitespace(char c)
+
+    **is_whitespace** and **is_not_whitespace** are
+    inline functions to determine if a character is CIF whitespace or not.
+    They are similar to the C/C++ standard library's **isspace** function,
+    but only recognize ASCII HT (9), LF (10), CR (13), and SPACE (32)
+    as whitespace characters.  They are not inverses because
+    ASCII NUL (0) is both not is_whitespace and not is_not_whitespace.
+
+.. cpp:function:: int is_not_whitespace(char c)
+
+    See :cpp:func:`is_whitespace`.
+
+.. cpp:function:: float str_to_float(const char *s)
+
+    Non-error checking inline function to convert a string to a
+    floating point number.  It is similar to the C/C++ standard library's
+    **strtof** function, but does not support scientific notation, and
+    is about twice as fast.
+
+.. cpp:function:: int str_to_int(const char *s)
+
+    Non-error inline function to convert a string to an integer.
+    It is similar to the C/C++ standard library's **atof** function.
+
 .. cpp:class:: CIFFile
 
     The CIFFile is designed to be subclassed by an application to extract
@@ -206,7 +231,7 @@ C++ API
 
         .. cpp:type:: ParseValues
 
-            typedef std::vector<ParseColumn> ParseValues;
+            **typedef std::vector<ParseColumn> ParseValues;**
 
         .. cpp:function:: bool parse_row(ParseValues& pv)
 
