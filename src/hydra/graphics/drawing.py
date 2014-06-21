@@ -59,25 +59,19 @@ class Drawing:
     self.use_lighting = True
     self.use_radial_warp = False
 
-    # Derived arrays
-    self.instance_shift_and_scale = None    # N by 4 array, (x,y,z,scale)
-    self.instance_matrices = None	    # 4x4 matrices for displayed instances
-    self.instance_colors = None
-    self.masked_edges = None
-    self.elements = None                    # Triangles after mask applied
-
-    # OpenGL rendering                                    
-    self.bindings = None                    # Holds the buffer pointers and shader variable bindings
-    self.shader = None
-    self.opengl_buffers = []
-    self.element_buffer = None
+    # OpenGL drawing
+    self.draw_shape = None
+    self.draw_selection = None
+    self._shader_options = None
+    self.vertex_buffers = []
     self.need_buffer_update = True
+
     self.redraw_needed = redraw_no_op
     self.was_deleted = False
 
   def __setattr__(self, key, value):
     if key in self.effects_shader:
-      self.shader = None
+      self._shader_options = None       # Cause shader update
     if key in self.effects_buffers:
       self.need_buffer_update = True
     super(Drawing,self).__setattr__(key, value)
@@ -319,7 +313,6 @@ class Drawing:
     return self.vertices, self.triangles
   def set_geometry(self, g):
     self.vertices, self.triangles = g
-    self.masked_edges = None
     self.edge_mask = None
     self.redraw_needed()
   geometry = property(get_geometry, set_geometry)
@@ -369,10 +362,7 @@ class Drawing:
       if not self.opaque():
         self.draw_geometry(renderer, selected_only)
     elif draw_pass == self.SELECTION_DRAW_PASS:
-      # TODO: Avoid creating new bindings when drawing selection.
-      self.shader = None        # Use outline drawing shader
       self.draw_geometry(renderer, selected_only)
-      self.shader = None        # Restore regular shader
 
   def draw_children(self, renderer, place, draw_pass, selected_only = False):
     dlist = self.child_drawings()
@@ -384,10 +374,21 @@ class Drawing:
   def draw_geometry(self, renderer, selected_only = False):
     ''' Draw the geometry.'''
 
-    if self.triangles is None:
+    if self.vertices is None:
       return
 
-    new_bindings = self.set_shader(renderer)
+    if len(self.vertex_buffers) == 0:
+      self.create_vertex_buffers()
+
+    ds = self.draw_selection if selected_only else self.draw_shape
+    ds.activate_shader_and_bindings(renderer, self.shader_options())
+
+    if self.need_buffer_update:
+      # Updating buffers has to be done after activating bindings to avoid changing
+      # the element buffer binding for the previously active bindings.
+      self.update_buffers()
+      ds.update_bindings()
+      self.need_buffer_update = False
 
     # Set color
     if self.vertex_colors is None and len(self._colors) == 1:
@@ -397,18 +398,65 @@ class Drawing:
     if not t is None:
       t.bind_texture()
 
-    if self.need_buffer_update or new_bindings:
-      self.update_buffers(new_bindings, selected_only)
-
     # Draw triangles
-    eb = self.element_buffer
-    etype = element_type(self.display_style)
-    ni = self.instance_count()
-    if ni > 0:
-      eb.draw_elements(etype, ni)
+    ds.draw(self.display_style)
 
     if not self.texture is None:
       self.texture.unbind_texture()
+
+  def shader_options(self):
+    sopt = self._shader_options
+    if sopt is None:
+      sopt = {}
+      from .opengl import Render as r
+      if not self.use_lighting:
+        sopt[r.SHADER_LIGHTING] = False
+      if self.vertex_colors is None and len(self._colors) == 1:
+        sopt[r.SHADER_VERTEX_COLORS] = False
+      if not self.texture is None:
+        sopt[r.SHADER_TEXTURE_2D] = True
+        if self.use_radial_warp:
+          sopt[r.SHADER_RADIAL_WARP] = True
+      if not self.positions.shift_and_scale_array() is None:
+        sopt[r.SHADER_SHIFT_AND_SCALE] = True
+      elif len(self.positions) > 1:
+        sopt[r.SHADER_INSTANCING] = True
+      self._shader_options = sopt
+    return sopt
+
+  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
+
+  # Update the contents of vertex, element and instance buffers if associated arrays have changed.
+  def update_buffers(self):
+
+    p,c = self.positions, self.colors
+    pm = self.position_mask()
+    pmsel = self.position_mask(True)
+    ta = self.triangles
+    em = self.edge_mask if self.display_style == self.Mesh else None
+    tm = None
+    tmsel = self._selected_triangles_mask
+    ds, dss = self.draw_shape, self.draw_selection
+    ds.update_buffers(p, c, pm, ta, tm, em)
+    dss.update_buffers(p, c, pmsel, ta, tmsel, em)
+
+    bchange = False
+    for b in self.vertex_buffers:
+      data = getattr(self, b.buffer_attribute_name)
+      if b.update_buffer_data(data):
+        bchange = True
+
+    if bchange:
+      ds.reset_bindings = dss.reset_bindings = True
+
+  def position_mask(self, selected_only = False):
+    dp = self._displayed_positions        # bool array
+    if selected_only:
+      sp = self._selected_positions
+      if not sp is None:
+        import numpy 
+        dp = sp if dp is None else numpy.logical_and(dp, sp)
+    return dp
 
   def bounds(self, positions = True):
     '''
@@ -532,150 +580,31 @@ class Drawing:
     self.edge_mask = None
     self.texture = None
     self.texture_coordinates = None
-    self.masked_edges = None
-    self.instance_shift_and_scale = None
-    self.instance_matrices = None
-    self.instance_colors = None
-    for b in self.opengl_buffers:
+
+    for b in self.vertex_buffers:
       b.delete_buffer()
 
-    self.bindings = None
     self.was_deleted = True
 
-  def create_opengl_buffers(self):
-    # Surface piece attribute name, shader variable name, instancing
+  def create_vertex_buffers(self):
     from . import opengl
-    from numpy import uint32, uint8
-    bufs = (('vertices', opengl.VERTEX_BUFFER),
-            ('normals', opengl.NORMAL_BUFFER),
-            ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
-            ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
-            ('elements', opengl.ELEMENT_BUFFER),
-            ('instance_shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
-            ('instance_matrices', opengl.INSTANCE_MATRIX_BUFFER),
-            ('instance_colors', opengl.INSTANCE_COLOR_BUFFER),
+    vbufs = (('vertices', opengl.VERTEX_BUFFER),
+             ('normals', opengl.NORMAL_BUFFER),
+             ('vertex_colors', opengl.VERTEX_COLOR_BUFFER),
+             ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
             )
-    obufs = []
-    for a,v in bufs:
+
+    self.vertex_buffers = vb = []
+    for a,v in vbufs:
       b = opengl.Buffer(v)
       b.buffer_attribute_name = a
-      obufs.append(b)
-      if a == 'elements':
-        self.element_buffer = b
-    self.opengl_buffers = obufs
+      vb.append(b)
 
-  effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates', 'elements',
+    self.draw_shape = Draw_Shape(vb)
+    self.draw_selection = Draw_Shape(vb)
+
+  effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
                          '_displayed_positions', '_colors', '_positions'))
-
-  def update_buffers(self, new_bindings, selected_only = False):
-    if len(self.opengl_buffers) == 0 and not self.vertices is None:
-      self.create_opengl_buffers()
-
-    self.elements = self.masked_elements(selected_only)
-
-    self.update_instance_arrays(selected_only)
-
-    for b in self.opengl_buffers:
-      data = getattr(self, b.buffer_attribute_name)
-      if b.update_buffer_data(data) or new_bindings:
-        self.bindings.bind_shader_variable(b)
-
-    self.need_buffer_update = False
-
-  def update_instance_arrays(self, selected_only = False):
-    sas = self.positions.shift_and_scale_array()
-    np = len(self.positions)
-    ic = self._colors if np > 1 or not sas is None else None
-    im = self.positions.opengl_matrices() if sas is None and np > 1 else None
-
-    dp = self._displayed_positions        # bool array
-    if selected_only:
-      sp = self._selected_positions
-      if not sp is None:
-        import numpy 
-        dp = sp if dp is None else numpy.logical_and(dp, sp)
-    if not dp is None:
-      im = im[dp,:,:] if not im is None else None
-      ic = ic[dp,:] if not ic is None else None
-      sas = sas[dp,:] if not sas is None else None
-
-    self.instance_matrices = im
-    self.instance_shift_and_scale = sas
-    self.instance_colors = ic
-
-  def masked_elements(self, selected_only = False):
-
-    ta = self.triangles
-    if ta is None:
-      return None
-    if selected_only:
-      tmask = self._selected_triangles_mask
-      if not tmask is None:
-        ta = ta[tmask,:]
-    if self.display_style == self.Mesh:
-      me = self.masked_edges
-      if me is None or selected_only:
-        em = self.edge_mask
-        tmask = self._selected_triangles_mask
-        if not tmask is None:
-          em = em[tmask]
-        from .._image3d import masked_edges
-        me = masked_edges(ta) if em is None else masked_edges(ta, em)
-        if not selected_only:
-          self.masked_edges = me
-      ta = me
-    return ta
-
-  def use_bindings(self):
-    s = self.shader
-    new_bindings = (self.bindings is None or
-                    (s != self.bindings.shader and not s is None))
-    if new_bindings:
-      from . import opengl
-      self.bindings = opengl.Bindings(s)
-    self.bindings.activate()
-    return new_bindings
-
-  def set_shader(self, renderer):
-    new_bindings = self.use_bindings()     # Need bound vao to compile shader
-    if self.shader is None:
-      sopt = self.shader_options()
-      self.shader = renderer.shader(sopt)
-      new_bindings = self.use_bindings()
-    renderer.use_shader(self.shader)
-    return new_bindings
-
-  def shader_options(self):
-    sopt = {}
-    from .opengl import Render as r
-    lit = self.use_lighting
-    if not lit:
-      sopt[r.SHADER_LIGHTING] = False
-    if self.vertex_colors is None and len(self._colors) == 1:
-      sopt[r.SHADER_VERTEX_COLORS] = False
-    t = self.texture
-    if not t is None:
-      sopt[r.SHADER_TEXTURE_2D] = True
-      if self.use_radial_warp:
-        sopt[r.SHADER_RADIAL_WARP] = True
-    if not self.positions.shift_and_scale_array() is None:
-      sopt[r.SHADER_SHIFT_AND_SCALE] = True
-    elif len(self.positions) > 1:
-      sopt[r.SHADER_INSTANCING] = True
-    return sopt
-
-  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
-
-  def instance_count(self):
-    im = self.instance_matrices
-    isas = self.instance_colors
-    if not im is None:
-      ninst = len(im)
-    elif not isas is None:
-      ninst = len(isas)
-    else:
-      ninst = len(self.positions)
-    return ninst
 
   TRIANGLE_DISPLAY_MASK = 8
   EDGE0_DISPLAY_MASK = 1
@@ -711,7 +640,6 @@ class Drawing:
       self.edge_mask = em
 
     self.redraw_needed()
-    self.masked_edges = None
 
 def draw_drawings(renderer, cvinv, drawings):
   r = renderer
@@ -769,6 +697,156 @@ def element_type(display_style):
 
 def redraw_no_op():
   pass
+
+class Draw_Shape:
+
+  def __init__(self, vertex_buffers):
+
+    # Arrays derived from positions, colors and geometry
+    self.instance_shift_and_scale = None    # N by 4 array, (x,y,z,scale)
+    self.instance_matrices = None	    # 4x4 matrices for displayed instances
+    self.instance_colors = None
+    self.elements = None                    # Triangles after mask applied
+    self.masked_edges = None
+    self._edge_mask = None
+    self._tri_mask = None
+
+    # OpenGL rendering                                    
+    self.bindings = None                    # Holds the buffer pointers and shader variable bindings
+    self.shader = None
+    self._shader_options = None             # Options for current shader
+    self.vertex_buffers = vertex_buffers
+    self.element_buffer = None
+    self.instance_buffers = []
+
+  def delete(self):
+
+    self.masked_edges = None
+    self.instance_shift_and_scale = None
+    self.instance_matrices = None
+    self.instance_colors = None
+    if self.element_buffer:
+      self.element_buffer.delete_buffer()
+      for b in self.instance_buffers:
+        b.delete_buffer()
+
+    self.bindings = None
+
+  def draw(self, display_style):
+
+    eb = self.element_buffer
+    etype = element_type(display_style)
+    ni = self.instance_count()
+    if ni > 0:
+      eb.draw_elements(etype, ni)
+
+  def create_opengl_buffers(self):
+
+    from . import opengl
+    a,v = ('elements', opengl.ELEMENT_BUFFER)
+    self.element_buffer = eb = opengl.Buffer(v)
+    eb.buffer_attribute_name = a
+
+    ibufs = (('instance_shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+             ('instance_matrices', opengl.INSTANCE_MATRIX_BUFFER),
+             ('instance_colors', opengl.INSTANCE_COLOR_BUFFER),
+            )
+    self.instance_buffers = ib = []
+    for a,v in ibufs:
+      b = opengl.Buffer(v)
+      b.buffer_attribute_name = a
+      ib.append(b)
+
+  def update_buffers(self, positions, colors, position_mask, triangles, tmask, edge_mask):
+
+    if self.element_buffer is None:
+      self.create_opengl_buffers()
+
+    self.elements = self.masked_elements(triangles, tmask, edge_mask)
+
+    self.update_instance_arrays(positions, colors, position_mask)
+
+    bchange = False
+    for b in self.instance_buffers + [self.element_buffer]:
+      data = getattr(self, b.buffer_attribute_name)
+      if b.update_buffer_data(data):
+        bchange = True
+
+    if bchange:
+      self.reset_bindings = True
+
+  def update_instance_arrays(self, positions, colors, position_mask):
+    sas = positions.shift_and_scale_array()
+    np = len(positions)
+    ic = colors if np > 1 or not sas is None else None
+    im = positions.opengl_matrices() if sas is None and np > 1 else None
+
+    pm = position_mask
+    if not pm is None:
+      im = im[pm,:,:] if not im is None else None
+      ic = ic[pm,:] if not ic is None else None
+      sas = sas[pm,:] if not sas is None else None
+
+    self.instance_matrices = im
+    self.instance_shift_and_scale = sas
+    self.instance_colors = ic
+
+  def instance_count(self):
+    im = self.instance_matrices
+    isas = self.instance_colors
+    if not im is None:
+      ninst = len(im)
+    elif not isas is None:
+      ninst = len(isas)
+    else:
+      ninst = 1
+    return ninst
+
+  def masked_elements(self, triangles, tmask, edge_mask):
+
+    ta = triangles
+    if ta is None:
+      return None
+    if not tmask is None:
+      ta = ta[tmask,:]
+    if not edge_mask is None:
+      # TODO: Need to reset masked_edges if edge_mask changed.
+      me = self.masked_edges
+      if me is None or not edge_mask is self._edge_mask or not tmask is self._tri_mask:
+        em = edge_mask if tmask is None else edge_mask[tmask]
+        from .._image3d import masked_edges
+        self.masked_edges = me = masked_edges(ta) if em is None else masked_edges(ta, em)
+        self._edge_mask, self._tri_mask = edge_mask, tmask
+      ta = me
+    return ta
+
+  def activate_shader_and_bindings(self, renderer, sopt):
+    self.activate_bindings()      # Need OpenGL VAO bound to compile shader
+    if not sopt is self._shader_options:
+      shader = renderer.shader(sopt)
+      self._shader_options = sopt
+      self.activate_bindings(shader)      # Create new bindings if shader changed
+    renderer.use_shader(self.bindings.shader)
+    self.update_bindings()
+
+  def update_bindings(self):
+    if self.reset_bindings and self.element_buffer:
+      self.bind_buffers(self.vertex_buffers + [self.element_buffer] + self.instance_buffers)
+      self.reset_bindings = False
+
+  def activate_bindings(self, shader = None):
+    new_bindings = (self.bindings is None or
+                    (shader != self.bindings.shader and not shader is None))
+    if new_bindings:
+      from . import opengl
+      self.bindings = opengl.Bindings(shader)
+      self.reset_bindings = True
+    self.bindings.activate()
+
+  def bind_buffers(self, bufs):
+    bi = self.bindings
+    for b in bufs:
+      bi.bind_shader_variable(b)
 
 class Picked_Drawing:
   '''
