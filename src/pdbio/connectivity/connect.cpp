@@ -355,8 +355,15 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                     || link_atom_name != "");
                 Atom *chief = r->find_atom(tr->chief()->name());
                 if (chief != NULL) {
-                    if (link_atom != NULL) {
-                        add_bond(link_atom, chief);
+                    // 1vqn, chain 5, is a nucleic/amino acid
+                    // hybrid with the na/aa connectivity in
+                    // CONECT records; prevent also adding a
+                    // chief-link bond
+                    if (saturated(chief)) {
+                        made_connection = true;
+                    } if (link_atom != NULL) {
+                        if (!saturated(link_atom))
+                            add_bond(link_atom, chief);
                         made_connection = true;
                     } else {
                         made_connection = hookup(chief, link_res, definitely_connect);
