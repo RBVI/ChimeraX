@@ -1,0 +1,32 @@
+From "Protein Data Bank Contents Guide:
+Atomic Coordinate Entry Format Description
+Version 3.30"
+
+...
+
+Special Characters
+
+Greek letters are spelled out, i.e., alpha, beta, gamma, etc.
+
+Bullets are represented as (DOT).
+
+Right arrow is represented as -->.
+
+Left arrow is represented as <--.
+
+If "=" is surrounded by at least one space on each side, then it is assumed to
+be an equal sign, e.g., 2 + 4 = 6.
+
+Commas, colons, and semi-colons are used as list delimiters in records that
+have one of the following data types:
+
+	List
+
+	SList
+	Specification List
+
+	Specification
+
+If a comma, colon, or semi-colon is used in any context other than as a
+delimiting character, then the character must be escaped, i.e., immediately
+preceded by a backslash, "\".

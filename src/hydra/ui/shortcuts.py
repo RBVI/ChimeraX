@@ -15,12 +15,14 @@ def standard_shortcuts(session):
     # Shortcut documentation categories
     mapcat = 'Map Display'
     molcat = 'Molecule Display'
+    surfcat = 'Surfaces'
     gcat = 'General Controls'
     ocat = 'Open, Save, Close'
-    catcols = ((ocat,mapcat), (molcat,), (gcat,))
+    catcols = ((ocat,mapcat,surfcat), (molcat,), (gcat,))
 
     maparg = {'each_map':True}
     molarg = {'each_molecule':True}
+    atomsarg = {'atoms_arg': True}
     surfarg = {'each_surface':True}
     viewarg = {'view_arg':True}
     noarg = {}
@@ -30,6 +32,7 @@ def standard_shortcuts(session):
     smenu = 'Scene'
     mmenu = 'Map'
     mlmenu = 'Molecule'
+    sfmenu = 'Surface'
     pmenu = 'Panes'
     msmenu = 'Mouse'
     dmenu = 'Device'
@@ -55,8 +58,8 @@ def standard_shortcuts(session):
         ('dv', default_view, 'Default orientation', gcat, viewarg, smenu, sep),
 
         ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('ds', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
-        ('hs', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
+        ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
+        ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
         ('cs', s.clear_selection, 'Clear selection', gcat, noarg, smenu),
 
@@ -76,7 +79,6 @@ def standard_shortcuts(session):
         # Maps
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
-        ('t5', show_surface_transparent, 'Make surface transparent', mapcat, surfarg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
         ('sf', show_surface, 'Show surface', mapcat, maparg, mmenu),
@@ -89,15 +91,15 @@ def standard_shortcuts(session):
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
 
         # Molecules
-        ('da', show_atoms, 'Display atoms', molcat, molarg, mlmenu),
-        ('ha', hide_atoms, 'Undisplay atoms', molcat, molarg, mlmenu, sep),
+        ('da', show_atoms, 'Display atoms', molcat, atomsarg, mlmenu),
+        ('ha', hide_atoms, 'Undisplay atoms', molcat, atomsarg, mlmenu, sep),
 
         ('bs', show_ball_and_stick, 'Display atoms in ball and stick', molcat, molarg, mlmenu),
         ('sp', show_sphere, 'Display atoms in sphere style', molcat, molarg, mlmenu),
         ('st', show_stick, 'Display atoms in stick style', molcat, molarg, mlmenu, sep),
 
-        ('rb', show_ribbon, 'Display ribbon', molcat, molarg, mlmenu),
-        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, molarg, mlmenu),
+        ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
+        ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
         ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
         ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
@@ -116,6 +118,13 @@ def standard_shortcuts(session):
         ('au', lambda m,s=s: show_asymmetric_unit(m,s), 'Show asymmetric unit', molcat, molarg, mlmenu),
 
         ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates', molcat, molarg),
+
+        # Surfaces
+        ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
+        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
+        ('tt', toggle_surface_transparency, 'Toggle surface transparency', surfcat, sesarg, sfmenu),
+        ('t5', show_surface_transparent, 'Make surface transparent', surfcat, sesarg, sfmenu),
+        ('t0', show_surface_opaque, 'Make surface opaque', surfcat, sesarg, sfmenu),
 
         # Pane
         ('mp', show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
@@ -169,7 +178,7 @@ class Shortcut:
 
     def __init__(self, key_seq, func, session, description = '', key_name = None, category = None,
                  menu = None, menu_separator = False, each_map = False, each_molecule = False,
-                 each_surface = False, view_arg = False, session_arg = False):
+                 each_surface = False, atoms_arg = False, view_arg = False, session_arg = False):
         '''
         A keyboard shortcut is a key sequence and function to call when
         that key sequence is entered.  Shortcuts are put in categories and have
@@ -188,13 +197,16 @@ class Shortcut:
         self.each_map = each_map
         self.each_molecule = each_molecule
         self.each_surface = each_surface
+        self.atoms_arg = atoms_arg
         self.view_arg = view_arg
         self.session_arg = session_arg
         
     def run(self, session):
         f = self.func
         s = session
-        if self.each_map:
+        if self.atoms_arg:
+            f(shortcut_atoms(s))
+        elif self.each_map:
             for m in shortcut_maps(s):
                 f(m)
         elif self.each_molecule:
@@ -284,12 +296,27 @@ def shortcut_molecules(session):
         mlist = [m for m in mols if m.display]
     return mlist
 
+def shortcut_atoms(session):
+    a = session.selected_atoms()
+    if a.count() == 0:
+        a = session.all_atoms()
+    return a
+
 def shortcut_surfaces(session):
     surfs = session.surfaces()
     sel = session.selected_models()
     mlist = [m for m in sel if m in surfs]
     if len(mlist) == 0:
         mlist = [m for m in surfs if m.display]
+    return mlist
+
+def shortcut_surfaces_and_maps(session):
+    som = set(session.surfaces())
+    som.update(session.maps())
+    sel = session.selected_models()
+    mlist = [m for m in sel if m in som]
+    if len(mlist) == 0:
+        mlist = [m for m in som if m.display]
     return mlist
 
 def close_all_models(session):
@@ -394,17 +421,62 @@ def show_asymmetric_unit(m, session):
         m.positions = Places([m.positions[0]])
         m.update_level_of_detail(session.view)
 
-def show_surface_transparent(m):
+def display_surface(session):
+    for m in shortcut_surfaces(session):
+        sp = m.selected_positions
+        if sp is None or sp.sum() == len(sp):
+            m.display = True
+        else:
+            dp = m.display_positions
+            if dp is None:
+                m.display_positions = sp
+            else:
+                from numpy import logical_or
+                m.display_positions = logical_or(dp,sp)
+
+def hide_surface(session):
+    for m in shortcut_surfaces(session):
+        sp = m.selected_positions
+        if sp is None or sp.sum() == len(sp):
+            m.display = False
+        else:
+            dp = m.display_positions
+            from numpy import logical_and, logical_not
+            if dp is None:
+                m.display_positions = logical_not(sp)
+            else:
+                m.display_positions = logical_and(dp,logical_not(sp))
+
+def toggle_surface_transparency(session):
     from ..map import Volume
     from ..graphics import Drawing
-    if isinstance(m, Volume):
-        m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
-        m.show()
-    elif isinstance(m, Drawing):
-        # TODO: Change all drawings, not just children.
-        for p in m.child_drawings():
-            r,g,b,a = p.color
-            p.color = (r,g,b, (0.5 if a == 1 else 1))
+    for m in shortcut_surfaces_and_maps(session):
+        if isinstance(m, Volume):
+            m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
+            m.show()
+        elif isinstance(m, Drawing):
+            for d in m.all_drawings():
+                c = d.colors
+                opaque = (c[:,3] == 255)
+                c[:,3] = 255                # Make transparent opaque
+                c[opaque,3] = 128           # and opaque transparent.
+                d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+
+def show_surface_transparent(session, alpha = 0.5):
+    from ..map import Volume
+    from ..graphics import Drawing
+    for m in shortcut_surfaces_and_maps(session):
+        if isinstance(m, Volume):
+            m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
+            m.show()
+        elif isinstance(m, Drawing):
+            for d in m.all_drawings():
+                c = d.colors
+                c[:,3] = int(255*alpha)
+                d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+
+def show_surface_opaque(session):
+    show_surface_transparent(session, alpha = 1)
 
 def set_background_color(viewer, color):
     viewer.background_color = color
@@ -459,20 +531,20 @@ def color_by_chain(m):
 def color_one_color(m):
   m.single_color()
 
-def show_atoms(m):
-  m.show_all_atoms()
-def hide_atoms(m):
-  m.hide_all_atoms()
+def show_atoms(a):
+  a.show_atoms()
+def hide_atoms(a):
+  a.hide_atoms()
 def show_sphere(m):
   m.set_atom_style('sphere')
 def show_stick(m):
   m.set_atom_style('stick')
 def show_ball_and_stick(m):
   m.set_atom_style('ballstick')
-def show_ribbon(m):
-  m.set_ribbon_display(True)
-def hide_ribbon(m):
-  m.set_ribbon_display(False)
+def show_ribbon(a):
+  a.show_ribbon()
+def hide_ribbon(a):
+  a.hide_ribbon()
 def fatter_ribbons(m):
     m.set_ribbon_radius(2*m.ribbon_radius)
 def thinner_ribbons(m):
@@ -664,7 +736,7 @@ def undisplay_half_model(m):
         else:
             from numpy import array, bool
             pmask = array([(pl*c)[2] <= 0 for pl in mp], bool)
-            m.display_positions(pmask)
+            m.display_positions = pmask
             print('uh', m.name, pmask.sum())
     for c in m.child_drawings():
         undisplay_half_model(c)
@@ -673,4 +745,4 @@ def display_all_positions(session):
     for m in session.models:
         for c in m.all_drawings():
             if c.display:
-                c.display_positions(None)
+                c.display_positions = None

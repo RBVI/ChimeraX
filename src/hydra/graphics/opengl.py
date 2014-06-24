@@ -658,7 +658,7 @@ class Bindings:
             for a in self.bound_attr_ids.get(buffer,[]):
                 GL.glDisableVertexAttribArray(a)
             self.bound_attr_ids[buffer] = []
-            if buffer.buffer_type == GL.GL_ELEMENT_ARRAY_BUFFER:
+            if btype == GL.GL_ELEMENT_ARRAY_BUFFER:
                 GL.glBindBuffer(btype, 0)
             return
 

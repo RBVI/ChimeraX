@@ -16,6 +16,7 @@ class Molecule(Drawing):
     Drawing.__init__(self, name)
 
     self.path = path
+    self.atoms = atoms
 
     #
     # Atom names, residue names and chain ids are Numpy strings with maximum fixed length.
@@ -39,9 +40,12 @@ class Molecule(Drawing):
     # Derived data
     self.cids = None            # Array of unique chain identifiers
     self.chain_ranges = None    # Dictionary mapping chain id to atom index ranges
+    self.rids = None            # Array of unique integer residue ids (same chain and residue number)
 
     # Bonds
     self.bonds = None                   # N by 2 array of atom indices
+
+    self.promotion_tower = []           # For undoing selection promotion
 
     # Graphics settings
     self.atom_shown_count = self.atom_shown.sum()
@@ -111,7 +115,7 @@ class Molecule(Drawing):
       return
 
     if p is None:
-      self.atoms_drawing = p = self.new_drawing()
+      self.atoms_drawing = p = self.new_drawing('atoms')
 
     ntri = self.triangles_per_sphere
     from .. import surface
@@ -124,23 +128,28 @@ class Molecule(Drawing):
     from numpy import empty, float32
     xyzr = empty((n,4), float32)
     xyzr[:,:3] = xyz
-
-    astyle = self.atom_style
-    if astyle == 'sphere':
-      r = self.radii
-    elif astyle == 'ballstick':
-      r = self.radii * self.ball_scale
-    elif astyle == 'stick':
-      r = self.bond_radius
-    xyzr[:,3] = r
+    xyzr[:,3] = self.drawing_radii()
 
     sas = self.shown_atom_array_values(xyzr)
     from ..geometry import place
     p.positions = place.Places(shift_and_scale = sas)
 
     asel = self.atom_selected
-    if asel.sum() > 0:
-      p.selected_positions = asel[self.atom_shown]
+    sasel = asel[self.atom_shown]
+    p.selected_positions = sasel if sasel.sum() > 0 else None
+
+  def drawing_radii(self):
+    astyle = self.atom_style
+    if astyle == 'sphere':
+      r = self.radii
+    elif astyle == 'ballstick':
+      r = self.radii * self.ball_scale
+    elif astyle == 'stick':
+      n = len(self.radii)
+      from numpy import empty, float32
+      r = empty((n,), float32)
+      r[:] = self.bond_radius
+    return r
 
   def shown_atom_array_values(self, a):
     if self.all_atoms_shown():
@@ -180,7 +189,7 @@ class Molecule(Drawing):
       return
 
     if p is None:
-      self.bonds_drawing = p = self.new_drawing()
+      self.bonds_drawing = p = self.new_drawing('bonds')
 
     from .. import surface
     va, na, ta = surface.cylinder_geometry(caps = False)
@@ -189,6 +198,15 @@ class Molecule(Drawing):
 
     r = self.bond_radius if self.bond_radii is None else self.bond_radii
     p.positions = bond_cylinder_placements(bonds, self.xyz, r, self.half_bond_coloring)
+
+    p.selected_positions = None
+    asel = self.atom_selected
+    if asel.sum() > 0:
+      from numpy import logical_and, concatenate
+      bsel = logical_and(asel[bonds[:,0]], asel[bonds[:,1]])
+      if bsel.sum() > 0:
+        psel = concatenate((bsel,bsel)) if self.half_bond_coloring else bsel
+        p.selected_positions = psel
 
   def set_bond_colors(self, bonds):
 
@@ -256,6 +274,7 @@ class Molecule(Drawing):
 
       path = self.xyz[s]
       colors = self.ribbon_colors[s]
+      rsel = self.atom_selected[s]
 
       # For each contiguous set of residues compute a spline and then
       # draw shown segments.
@@ -279,18 +298,22 @@ class Molecule(Drawing):
           jpath, jtan = dspath[p1-ed1:p2+1+ed2], dstan[p1-ed1:p2+1+ed2]
           va,na,ta = tube.tube_through_points(jpath, jtan, self.ribbon_radius, cd)
           ca = tube.tube_geometry_colors(colors[j1:j2+1], sd+1, cd, ed1, ed2)
-          geom.append((va,na,ta,ca))
+          tsel = tube.tube_triangle_mask(rsel[j1:j2+1], sd+1, cd, ed1, ed2)
+          geom.append((va,na,ta,tsel,ca))
+
           # Record residue triangle ranges for mouse-over to identify residue.
           rr.append((rnums[j1],rnums[j2],cid))
           ntri += len(ta)
           rtri.append(ntri)
 
     if geom:
-      va,na,ta,ca = combine_geometry(geom)
-      self.ribbon_drawing = p = self.new_drawing()
-      p.geometry = va, ta
-      p.normals = na
-      p.vertex_colors = ca
+      va,na,ta,tsel,ca = combine_geometry(geom)
+      self.ribbon_drawing = d = self.new_drawing('ribbon')
+      d.geometry = va, ta
+      d.normals = na
+      d.vertex_colors = ca
+      if tsel.sum() > 0:
+        d.selected_triangles_mask = tsel
 
   def chain_identifiers(self):
     cids = self.cids
@@ -443,6 +466,15 @@ class Molecule(Drawing):
 
     return i
 
+  def residue_ids(self):
+    rids = self.rids
+    if rids is None:
+      a = self.atoms
+      satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
+      from .. import _image3d
+      self.rids = rids = _image3d.residue_ids(satoms)
+    return rids
+
   def chain_atom_range(self, chain_id):
     cr = self.chain_ranges
     if cr is None:
@@ -496,23 +528,74 @@ class Molecule(Drawing):
     self.need_graphics_update = True
     self.redraw_needed()
 
+  def selected_atoms(self):
+    a = Atoms()
+    ind = self.atom_selected.nonzero()[0]
+    if len(ind) > 0:
+      a.add_atom_indices(self, ind)
+    return a
+
   def select_atom(self, a, toggle = False):
     asel = self.atom_selected
     asel[a] = (not asel[a]) if toggle else True
-    self.need_graphics_update = True
-    self.redraw_needed()
+    self.selection_changed()
 
-  def any_part_selected(self):
+  def select_residue(self, cid, rnum, toggle = False):
     asel = self.atom_selected
-    return asel.sum() > 0
+    ai = self.atom_index_subset(chain_id = cid, residue_range = (rnum,rnum))
+    from numpy import logical_not
+    asel[ai] = logical_not(asel[ai]) if toggle else True
+    self.selection_changed()
+
+  def promote_selection(self):
+    asel = self.atom_selected
+    n = asel.sum()
+    if n == 0 or n == len(asel):
+      return
+    self.promotion_tower.append(asel.copy())
+    from numpy import unique, in1d
+    rids = self.residue_ids()
+    sel_rids = unique(rids[asel])
+    ares = in1d(rids, sel_rids)
+    if ares.sum() > n:
+      # Promote to entire residues
+      psel = ares
+    else:
+      cids = self.chain_ids
+      sel_cids = unique(cids[asel])
+      ac = in1d(cids, sel_cids)
+      if ac.sum() > n:
+        # Promote to entire chains
+        psel = ac
+      else:
+        # Promote to entire molecule
+        psel = True
+    self.atom_selected[:] = psel
+    self.selection_changed(promotion = True)
+
+  def demote_selection(self):
+    pt = self.promotion_tower
+    if len(pt) > 0:
+      self.atom_selected[:] = pt.pop()
+      self.selection_changed(promotion = True)
 
   def clear_selection(self):
     asel = self.atom_selected
     if self.selected or asel.sum() > 0:
       self.selected = False
       asel[:] = False
-      self.need_graphics_update = True
-      self.redraw_needed()
+      self.selection_changed()
+
+  def selection_changed(self, promotion = False):
+    if not promotion:
+      self.promotion_tower = []
+    self.update_ribbons = True
+    self.need_graphics_update = True
+    self.redraw_needed()
+
+  def any_part_selected(self):
+    asel = self.atom_selected
+    return asel.sum() > 0
     
   def set_ribbon_display(self, display):
     self.ribbon_shown[:] = (1 if display else 0)
@@ -586,7 +669,7 @@ class Molecule(Drawing):
     # TODO check intercept of bounding box as optimization
     # TODO using wrong radius for atoms in stick and ball and stick
     xyz = self.shown_atom_array_values(self.xyz)
-    r = self.shown_atom_array_values(self.radii)
+    r = self.shown_atom_array_values(self.drawing_radii())
     rsp = self.ribbon_drawing
     f = fa = ft = None
     from .. import _image3d
@@ -673,18 +756,19 @@ atom_dtype = [
 
 def combine_geometry(geom):
   from numpy import concatenate
-  cva = concatenate(tuple(va for va,na,ta,ca in geom))
-  cna = concatenate(tuple(na for va,na,ta,ca in geom))
-  cta = concatenate(tuple(ta for va,na,ta,ca in geom))
-  cca = concatenate(tuple(ca for va,na,ta,ca in geom))
+  cva = concatenate(tuple(va for va,na,ta,ts,ca in geom))
+  cna = concatenate(tuple(na for va,na,ta,ts,ca in geom))
+  cta = concatenate(tuple(ta for va,na,ta,ts,ca in geom))
+  cts = concatenate(tuple(ts for va,na,ta,ts,ca in geom))
+  cca = concatenate(tuple(ca for va,na,ta,ts,ca in geom))
 
   voff = t = 0
-  for va,na,ta,ca in geom:
+  for va,na,ta,ts,ca in geom:
     nt = len(ta)
     cta[t:t+nt,:] += voff
     voff += len(va)
     t += nt
-  return cva, cna, cta, cca
+  return cva, cna, cta, cts, cca
 
 def chain_colors(cids):
 
@@ -969,14 +1053,6 @@ class Atoms:
       for a in alist:
         names.append(m.atom_index_description(a))
     return names
-    
-# -----------------------------------------------------------------------------
-#
-def all_atoms(session):
-  '''Return an atom set containing all atoms of all open molecules.'''
-  aset = Atoms()
-  aset.add_molecules(session.molecules())
-  return aset
 
 # -----------------------------------------------------------------------------
 #
@@ -1009,7 +1085,7 @@ class Picked_Residue:
     return [self.molecule]
   def select(self, toggle = False):
     m = self.molecule
-    m.selected = not m.selected if toggle else True
+    m.select_residue(self.chain_id, self.residue_number, toggle)
 
 # -----------------------------------------------------------------------------
 #

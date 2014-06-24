@@ -51,13 +51,13 @@ public:
     bool  lower_case_chains;
     void  make_chains(Res_Lists* chain_members = nullptr,
         Sequences* full_sequences = nullptr) const;
-    Atom *  new_atom(std::string &name, Element e);
+    Atom *  new_atom(const std::string &name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
     CoordSet *  new_coord_set(int index);
     CoordSet *  new_coord_set(int index, int size);
-    Residue *  new_residue(std::string &name, std::string &chain, int pos, char insert,
-        Residue *neighbor=NULL, bool after=true);
+    Residue *  new_residue(const std::string &name, const std::string &chain,
+        int pos, char insert, Residue *neighbor=NULL, bool after=true);
     std::map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
     const Residues &  residues() const { return _residues; }

@@ -9,6 +9,7 @@ extern "C"
 {
  PyObject *tube_geometry(PyObject *s, PyObject *args, PyObject *keywds);
  PyObject *tube_geometry_colors(PyObject *s, PyObject *args, PyObject *keywds);
+ PyObject *tube_triangle_mask(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif

@@ -31,7 +31,7 @@ public:
 
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
-    Atom(AtomicStructure *as, std::string &name, Element e);
+    Atom(AtomicStructure *as, const std::string &name, Element e);
     unsigned int  _coord_index;
     Element  _element;
     AtomicStructure *  _structure;
