@@ -115,7 +115,7 @@ class Molecule(Drawing):
       return
 
     if p is None:
-      self.atoms_drawing = p = self.new_drawing()
+      self.atoms_drawing = p = self.new_drawing('atoms')
 
     ntri = self.triangles_per_sphere
     from .. import surface
@@ -189,7 +189,7 @@ class Molecule(Drawing):
       return
 
     if p is None:
-      self.bonds_drawing = p = self.new_drawing()
+      self.bonds_drawing = p = self.new_drawing('bonds')
 
     from .. import surface
     va, na, ta = surface.cylinder_geometry(caps = False)
@@ -308,7 +308,7 @@ class Molecule(Drawing):
 
     if geom:
       va,na,ta,tsel,ca = combine_geometry(geom)
-      self.ribbon_drawing = d = self.new_drawing()
+      self.ribbon_drawing = d = self.new_drawing('ribbon')
       d.geometry = va, ta
       d.normals = na
       d.vertex_colors = ca

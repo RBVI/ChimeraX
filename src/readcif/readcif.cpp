@@ -63,73 +63,8 @@ using readcif::StringVector;
 
 namespace {
 
-// character tables use int insteal of bool because it is faster
-// (presumably because all accesses are aligned)
-
-int Whitespace[UCHAR_MAX + 1] = {
-	// ASCII HT (9), LF (10), CR (13), and SPACE (32)
-	// are the only whitespace characters recognized in CIF files
-	false, false, false, false, false, false, false, false,	// 0-7
-	false, true, true, false, false, true, false, false,	// 8-15
-	false, false, false, false, false, false, false, false,	// 16-23
-	false, false, false, false, false, false, false, false,	// 24-31
-	true, false, false, false, false, false, false, false,	// 32-39
-	// the rest defaults to false
-};
-
-inline int
-is_whitespace(char c)
-{
-	return Whitespace[(unsigned char) c];
-}
-
-int NotWhitespace[UCHAR_MAX + 1] = {
-	// ASCII HT (9), LF (10), CR (13), and SPACE (32)
-	// are the only whitespace characters recognized in CIF files
-	// Treat ASCII NUL (0) as an end of line terminator to
-	// avoid separate testing for NUL.
-	false, true, true, true, true, true, true, true,	// 0-7
-	true, false, false, true, true, false, true, true,	// 8-15
-	true, true, true, true, true, true, true, true,		// 16-23
-	true, true, true, true, true, true, true, true,		// 24-31
-	false, true, true, true, true, true, true, true,	// 32-39
-	true, true, true, true, true, true, true, true,		// 40
-	true, true, true, true, true, true, true, true,		// 48
-	true, true, true, true, true, true, true, true,		// 56
-	true, true, true, true, true, true, true, true,		// 64
-	true, true, true, true, true, true, true, true,		// 72
-	true, true, true, true, true, true, true, true,		// 80
-	true, true, true, true, true, true, true, true,		// 88
-	true, true, true, true, true, true, true, true,		// 96
-	true, true, true, true, true, true, true, true,		// 104
-	true, true, true, true, true, true, true, true,		// 112
-	true, true, true, true, true, true, true, true,		// 120
-	true, true, true, true, true, true, true, true,		// 128
-	true, true, true, true, true, true, true, true,		// 136
-	true, true, true, true, true, true, true, true,		// 144
-	true, true, true, true, true, true, true, true,		// 152
-	true, true, true, true, true, true, true, true,		// 160
-	true, true, true, true, true, true, true, true,		// 168
-	true, true, true, true, true, true, true, true,		// 176
-	true, true, true, true, true, true, true, true,		// 184
-	true, true, true, true, true, true, true, true,		// 192
-	true, true, true, true, true, true, true, true,		// 200
-	true, true, true, true, true, true, true, true,		// 208
-	true, true, true, true, true, true, true, true,		// 216
-	true, true, true, true, true, true, true, true,		// 224
-	true, true, true, true, true, true, true, true,		// 232
-	true, true, true, true, true, true, true, true,		// 240
-	true, true, true, true, true, true, true, true,		// 248-255
-};
-
-inline int
-is_not_whitespace(char c)
-{
-	return NotWhitespace[(unsigned char) c];
-}
-
 #ifdef CR_IS_EOL
-int EndOfLine[UCHAR_MAX + 1] = {
+const int EndOfLine[UCHAR_MAX + 1] = {
 	// ASCII LF (10) and CR (13)
 	// are the end-of-line characters recognized in CIF files
 	// Also treat ASCII NUL (0) as an end of line terminator
@@ -150,7 +85,7 @@ is_eol(char c)
 }
 
 #ifdef CR_IS_EOL
-int NotEndOfLine[UCHAR_MAX + 1] = {
+const int NotEndOfLine[UCHAR_MAX + 1] = {
 	// treat ASCII NUL (0) as an end of line terminator
 	false, true, true, true, true, true, true, true,	// 0-7
 	true, true, false, true, true, false, true, true,	// 8-15
@@ -229,6 +164,59 @@ unescape_mmcif(const string& s)
 } // private namespace
 
 namespace readcif {
+
+// character tables use int insteal of bool because it is faster
+// (presumably because all accesses are aligned)
+
+const int Whitespace[UCHAR_MAX + 1] = {
+	// ASCII HT (9), LF (10), CR (13), and SPACE (32)
+	// are the only whitespace characters recognized in CIF files
+	false, false, false, false, false, false, false, false,	// 0-7
+	false, true, true, false, false, true, false, false,	// 8-15
+	false, false, false, false, false, false, false, false,	// 16-23
+	false, false, false, false, false, false, false, false,	// 24-31
+	true, false, false, false, false, false, false, false,	// 32-39
+	// the rest defaults to false
+};
+
+const int NotWhitespace[UCHAR_MAX + 1] = {
+	// ASCII HT (9), LF (10), CR (13), and SPACE (32)
+	// are the only whitespace characters recognized in CIF files
+	// Treat ASCII NUL (0) as an end of line terminator to
+	// avoid separate testing for NUL.
+	false, true, true, true, true, true, true, true,	// 0-7
+	true, false, false, true, true, false, true, true,	// 8-15
+	true, true, true, true, true, true, true, true,		// 16-23
+	true, true, true, true, true, true, true, true,		// 24-31
+	false, true, true, true, true, true, true, true,	// 32-39
+	true, true, true, true, true, true, true, true,		// 40
+	true, true, true, true, true, true, true, true,		// 48
+	true, true, true, true, true, true, true, true,		// 56
+	true, true, true, true, true, true, true, true,		// 64
+	true, true, true, true, true, true, true, true,		// 72
+	true, true, true, true, true, true, true, true,		// 80
+	true, true, true, true, true, true, true, true,		// 88
+	true, true, true, true, true, true, true, true,		// 96
+	true, true, true, true, true, true, true, true,		// 104
+	true, true, true, true, true, true, true, true,		// 112
+	true, true, true, true, true, true, true, true,		// 120
+	true, true, true, true, true, true, true, true,		// 128
+	true, true, true, true, true, true, true, true,		// 136
+	true, true, true, true, true, true, true, true,		// 144
+	true, true, true, true, true, true, true, true,		// 152
+	true, true, true, true, true, true, true, true,		// 160
+	true, true, true, true, true, true, true, true,		// 168
+	true, true, true, true, true, true, true, true,		// 176
+	true, true, true, true, true, true, true, true,		// 184
+	true, true, true, true, true, true, true, true,		// 192
+	true, true, true, true, true, true, true, true,		// 200
+	true, true, true, true, true, true, true, true,		// 208
+	true, true, true, true, true, true, true, true,		// 216
+	true, true, true, true, true, true, true, true,		// 224
+	true, true, true, true, true, true, true, true,		// 232
+	true, true, true, true, true, true, true, true,		// 240
+	true, true, true, true, true, true, true, true,		// 248-255
+};
 
 CIFFile::CIFFile()
 {
