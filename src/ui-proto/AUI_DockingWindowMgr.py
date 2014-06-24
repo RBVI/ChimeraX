@@ -149,7 +149,7 @@ class PyAUIFrame(wx.Frame):
         self.statusbar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusbar.SetStatusWidths([-2, -3])
         self.statusbar.SetStatusText("Status", 0)
-        self.statusbar.SetStatusText("Welcome To Chimera 2!", 1)
+        self.statusbar.SetStatusText("Welcome To Chimera 2", 1)
 
         # min size for the frame itself isn't completely done.
         # see the end up FrameManager::Update() for the test
@@ -188,30 +188,36 @@ class PyAUIFrame(wx.Frame):
 
         tb3 = wx.ToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,
                          wx.TB_FLAT | wx.TB_NODIVIDER)
-        tb3.SetToolBitmapSize(wx.Size(16,16))
+        tb3.SetToolBitmapSize(wx.Size(48,48))
         tb3_bmp1 = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16))
-        tb3.AddTool(101, "Test", tb3_bmp1)
-        tb3.AddTool(101, "Test", tb3_bmp1)
-        tb3.AddTool(101, "Test", tb3_bmp1)
-        tb3.AddTool(101, "Test", tb3_bmp1)
-        tb3.AddSeparator()
-        tb3.AddTool(101, "Test", tb3_bmp1)
-        tb3.AddTool(101, "Test", tb3_bmp1)
+        tb3.AddTool(101, "", wx.Bitmap(wx.Image("icons/scenes/image1.png")))
+        tb3.AddTool(101, "", wx.Bitmap(wx.Image("icons/scenes/image2.png")))
+        tb3.AddTool(101, "", wx.Bitmap(wx.Image("icons/scenes/image3.png")))
+        tb3.AddTool(101, "", wx.Bitmap(wx.Image("icons/scenes/image4.png")))
+        #tb3.AddTool(101, "Test", tb3_bmp1)
+        #tb3.AddTool(101, "Test", tb3_bmp1)
+        #tb3.AddTool(101, "Test", tb3_bmp1)
+        #tb3.AddTool(101, "Test", tb3_bmp1)
+        #tb3.AddSeparator()
+        #tb3.AddTool(101, "Test", tb3_bmp1)
+        #tb3.AddTool(101, "Test", tb3_bmp1)
         tb3.Realize()
 
         tb4 = wx.ToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,
-                         wx.TB_FLAT | wx.TB_NODIVIDER | wx.TB_HORZ_TEXT)
-        tb4.SetToolBitmapSize(wx.Size(16,16))
+                     wx.TB_FLAT | wx.TB_NODIVIDER | wx.TB_HORZ_TEXT)
+        #tb4 = wx.ToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,
+        #             wx.TB_FLAT | wx.TB_NODIVIDER | wx.TB_HORZ_TEXT)
+        tb4.SetToolBitmapSize(wx.Size(48,48))
         tb4_bmp1 = wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16))
-        tb4.AddTool(101, "hbond", wx.Bitmap(wx.Image("hbond.png")))
-        tb4.AddTool(101, "match", wx.Bitmap(wx.Image("matchmaker.png")))
-        tb4.AddTool(101, "dock prep", wx.Bitmap(wx.Image("dockprep.png")))
+        tb4.AddTool(101, "hbond", wx.Bitmap(wx.Image("icons/tools/hbond.png")))
+        tb4.AddTool(101, "match", wx.Bitmap(wx.Image("icons/tools/matchmaker.png")))
+        tb4.AddTool(101, "dock prep", wx.Bitmap(wx.Image("icons/tools/dockprep.png")))
         #tb4.AddTool(101, "Item 1", tb4_bmp1)
         #tb4.AddTool(101, "Item 2", tb4_bmp1)
         #tb4.AddTool(101, "Item 3", tb4_bmp1)
         #tb4.AddTool(101, "Item 4", tb4_bmp1)
-        tb4.AddSeparator()
-        tb4.AddTool(101, "volume", wx.Bitmap(wx.Image("volumeviewer.gif")))
+        #tb4.AddSeparator()
+        tb4.AddTool(101, "volume", wx.Bitmap(wx.Image("icons/tools/volumeviewer.gif")))
         #tb4.AddTool(101, "Item 5", tb4_bmp1)
         #tb4.AddTool(101, "Item 6", tb4_bmp1)
         #tb4.AddTool(101, "Item 7", tb4_bmp1)
@@ -262,10 +268,9 @@ class PyAUIFrame(wx.Frame):
                           Name("test8").Caption("Model Panel").
                           Left().Layer(1).Position(1).CloseButton(True).MaximizeButton(True))
 
-        self._mgr.AddPane(self.CreateSizeReportCtrl(), wx.aui.AuiPaneInfo().
-                          Name("test9").Caption("Min Size 200x100").
-                          BestSize(wx.Size(400,200)).MinSize(wx.Size(200,100)).
-                          Bottom().Layer(1).CloseButton(True).MaximizeButton(True))
+        self._mgr.AddPane(self.CreateCommandLine(), wx.aui.AuiPaneInfo().
+                          Name("test9").Caption("Command Line").
+                          Bottom().Layer(0).Position(0).CloseButton(True).MaximizeButton(True))
 
         #self._mgr.AddPane(self.CreateTextCtrl(), wx.aui.AuiPaneInfo().
         self._mgr.AddPane(self.CreateLog(), wx.aui.AuiPaneInfo().
@@ -310,12 +315,12 @@ class PyAUIFrame(wx.Frame):
                           LeftDockable(False).RightDockable(False))
 
         self._mgr.AddPane(tb3, wx.aui.AuiPaneInfo().
-                          Name("tb3").Caption("Toolbar 3").
+                          Name("tb3").Caption("Scenes").
                           ToolbarPane().Top().Row(1).Position(1).
                           LeftDockable(False).RightDockable(False))
 
         self._mgr.AddPane(tb4, wx.aui.AuiPaneInfo().
-                          Name("tb4").Caption("Sample Bookmark Toolbar").
+                          Name("tb4").Caption("Tools").
                           ToolbarPane().Top().Row(2).
                           LeftDockable(False).RightDockable(False))
 
@@ -345,6 +350,7 @@ class PyAUIFrame(wx.Frame):
         self._mgr.GetPane("tb5").Hide()
         self._mgr.GetPane("test8").Show().Left().Layer(0).Row(0).Position(0)
         self._mgr.GetPane("test10").Show().Bottom().Layer(0).Row(0).Position(0)
+        self._mgr.GetPane("test9").Show().Bottom().Layer(1).Row(1).Position(1)
         self._mgr.GetPane("html_content").Show()
 
         perspective_default = self._mgr.SavePerspective()
@@ -359,6 +365,7 @@ class PyAUIFrame(wx.Frame):
         self._mgr.GetPane("grid_content").Show()
         self._mgr.GetPane("test10").Show().Left().Layer(0).Row(0).Position(0)
         self._mgr.GetPane("test8").Show().Bottom().Layer(0).Row(0).Position(0)
+        self._mgr.GetPane("test9").Show().Bottom().Layer(1).Row(1).Position(1)
         self._mgr.GetPane("html_content").Show()
 
         perspective_vert = self._mgr.SavePerspective()
@@ -669,6 +676,11 @@ class PyAUIFrame(wx.Frame):
         self._mgr.GetPane("sizereport_content").Show(event.GetId() == ID_SizeReportContent)
         self._mgr.GetPane("html_content").Show(event.GetId() == ID_HTMLContent)
         self._mgr.Update()
+
+
+    def CreateCommandLine(self):
+        return wx.TextCtrl(self,-1, "open 1gcn", wx.Point(0, 0),
+            wx.Size(150, 25), wx.TE_NOHIDESEL)
 
 
     def CreateTextCtrl(self):
