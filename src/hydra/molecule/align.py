@@ -121,6 +121,20 @@ def align_points(xyz, ref_xyz):
 
     return p, rms
 
+def align_and_prune(xyz, ref_xyz, dmax, iterations, mask = None):
+
+    axyz, ref_axyz = (xyz, ref_xyz) if mask is None else (xyz[mask,:], ref_xyz[mask,:])
+    p, rms = align_points(axyz, ref_axyz)
+    dxyz = p*xyz - ref_xyz
+    d2 = (dxyz*dxyz).sum(axis=1)
+    c = (d2 <= dmax*dmax)
+    nc = c.sum()
+    if nc == len(xyz) or (not mask is None and (c == mask).all()):
+        return p, rms, c
+    if nc < 3 or iterations <= 1:
+        return None, None, None
+    return align_and_prune(xyz, ref_xyz, dmax, iterations-1, c)
+
 def quaternion_rotation_matrix(q):
     l,m,n,s = q
     l2 = l*l
