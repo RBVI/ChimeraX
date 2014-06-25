@@ -224,6 +224,7 @@ private:
 	void process_stash();
 
 	// lexical state
+	bool DDL_v2;		// true if '.' separates category in data names
 	enum Token {
 		T_SOI, /* Start Of Input */
 		// keywords
