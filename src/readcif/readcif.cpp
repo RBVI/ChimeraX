@@ -300,6 +300,7 @@ CIFFile::internal_parse(bool one_table)
 			if (stash.size() > 0)
 				process_stash();
 			seen.clear();
+			set_PDBx_stylized(false);
 			current_data_block = current_value();
 			data_block(current_data_block);
 			if (stylized_)
@@ -315,9 +316,26 @@ CIFFile::internal_parse(bool one_table)
 			next_token();
 			if (current_token != T_TAG)
 				throw error("expected data name after loop_");
+			Categories::iterator cii;
 			string cv = current_value();
-			current_category = cv.substr(0, cv.find('.'));
-			auto cii = categories.find(current_category);
+			size_t sep = cv.find('.');
+			DDL_v2 = (sep != std::string::npos);
+			if (DDL_v2) {
+				current_category = cv.substr(0, sep);
+				cii = categories.find(current_category);
+			} else {
+				cii = categories.end();
+				current_category = cv;
+				for (;;) {
+					sep = current_category.rfind('_');
+					if (sep == std::string::npos)
+						break;
+					current_category.resize(sep);
+					cii = categories.find(current_category);
+					if (cii != categories.end())
+						break;
+				}
+			}
 			bool keep = cii != categories.end();
 			if (keep && !one_table) {
 				for (auto d: cii->second.dependencies) {
@@ -336,13 +354,16 @@ CIFFile::internal_parse(bool one_table)
 			}
 			next_token();
 			while (current_token == T_TAG) {
+				size_t clen = current_category.size();
 				cv = current_value();
-				string category = cv.substr(0, cv.find('.'));
-				if (category != current_category)
+				string category = cv.substr(0, clen);
+				if (category != current_category
+				|| (DDL_v2 && cv[clen] != '.')
+				|| (!DDL_v2 && cv[clen] != '_'))
 					throw error("loop_ may only be for one category");
 				if (keep)
-					current_tags.push_back(cv.substr(
-						current_category.size() + 1));
+					current_tags.push_back(
+							cv.substr(clen + 1));
 				next_token();
 			}
 			if (save_values) {
@@ -390,14 +411,33 @@ CIFFile::internal_parse(bool one_table)
 		case T_TAG: {
 			// collapse consectutive tag value pairs with the
 			// same category
-			// TODO: use precomputed value instead of 30
-			values.reserve(30); // avoid default large alloc
+			values.reserve(60); // avoid default large alloc
 			// TODO: CIF category tags (no . separator)
 			current_category.clear();
 			Categories::iterator cii = categories.end();
+			string cv = current_value();
+			size_t sep = cv.find('.');
+			DDL_v2 = (sep != std::string::npos);
 			for (;;) {
-				string cv = current_value();
-				string category = cv.substr(0, cv.find('.'));
+				string category;
+				if (DDL_v2) {
+					category = cv.substr(0, sep);
+				} else {
+					category = cv;
+					sep = current_category.size();
+					if (category.substr(0, sep) == current_category
+					&& category[sep] == '_')
+						category = current_category;
+					else for (;;) {
+						sep = category.rfind('_');
+						if (sep == std::string::npos)
+							break;
+						category.resize(sep);
+						if (categories.find(category)
+							    != categories.end())
+							break;
+					}
+				}
 				if (current_category.empty()
 				|| category != current_category) {
 					const char* first_tag_pos = current_value_start;
@@ -442,6 +482,9 @@ CIFFile::internal_parse(bool one_table)
 				next_token();
 				if (current_token != T_TAG)
 					break;
+				string cv = current_value();
+				if (DDL_v2)
+					sep = cv.find('.');
 			}
 			if (cii != categories.end()) {
 				// flush current category

@@ -16,7 +16,7 @@ class Molecule(Drawing):
     Drawing.__init__(self, name)
 
     self.path = path
-    self.atoms = atoms
+    self._atoms = atoms
 
     #
     # Atom names, residue names and chain ids are Numpy strings with maximum fixed length.
@@ -469,7 +469,7 @@ class Molecule(Drawing):
   def residue_ids(self):
     rids = self.rids
     if rids is None:
-      a = self.atoms
+      a = self._atoms
       satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
       from .. import _image3d
       self.rids = rids = _image3d.residue_ids(satoms)
