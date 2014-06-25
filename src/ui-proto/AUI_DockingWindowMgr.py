@@ -170,20 +170,30 @@ class PyAUIFrame(wx.Frame):
 
         tb2 = wx.ToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,
                          wx.TB_FLAT | wx.TB_NODIVIDER)
-        tb2.SetToolBitmapSize(wx.Size(16,16))
+        tb2.SetToolBitmapSize(wx.Size(32,32))
         tb2_bmp1 = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_OTHER, wx.Size(16, 16))
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddSeparator()
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddSeparator()
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddTool(101, "Test", tb2_bmp1)
-        tb2.AddTool(101, "Test", tb2_bmp1)
+        for fn in ["back.png", "book.png", "gauge.png", "grid.png",
+                "select.png", "icecube.png", "rotmol.png"]:
+            image = wx.Image("../hydra/ui/icons/" + fn)
+            w, h = image.GetWidth(), image.GetHeight()
+            scaling = 32.0 / max(w, h)
+            image.Rescale(int(w * scaling + 0.5), int(h * scaling + 0.5),
+                wx.IMAGE_QUALITY_HIGH)
+            tb2.AddTool( 101, "", wx.Bitmap(image))
+
+        #tb2.AddTool(101, "", wx.Bitmap(wx.Image("../hydra/ui/icons/select.png")))
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddSeparator()
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddSeparator()
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddTool(101, "Test", tb2_bmp1)
+        #tb2.AddTool(101, "Test", tb2_bmp1)
         tb2.Realize()
 
         tb3 = wx.ToolBar(self, -1, wx.DefaultPosition, wx.DefaultSize,
@@ -310,7 +320,7 @@ class PyAUIFrame(wx.Frame):
                           LeftDockable(False).RightDockable(False))
 
         self._mgr.AddPane(tb2, wx.aui.AuiPaneInfo().
-                          Name("tb2").Caption("Toolbar 2").
+                          Name("tb2").Caption("Actions").
                           ToolbarPane().Top().Row(1).
                           LeftDockable(False).RightDockable(False))
 
@@ -321,7 +331,7 @@ class PyAUIFrame(wx.Frame):
 
         self._mgr.AddPane(tb4, wx.aui.AuiPaneInfo().
                           Name("tb4").Caption("Tools").
-                          ToolbarPane().Top().Row(2).
+                          ToolbarPane().Top().Row(1).Position(2).
                           LeftDockable(False).RightDockable(False))
 
         self._mgr.AddPane(tb5, wx.aui.AuiPaneInfo().
