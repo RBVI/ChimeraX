@@ -23,12 +23,14 @@ private:
     int  _cs_id;
     std::map<const Atom *, float>  _bfactor_map;
     std::map<const Atom *, float>  _occupancy_map;
-    CoordSet(int cs_id);
-    CoordSet(int cs_id, int size);
+    AtomicStructure*  _structure;
+    CoordSet(AtomicStructure* as, int cs_id);
+    CoordSet(AtomicStructure* as, int cs_id, int size);
 
 public:
     void  add_coord(const Point &coord) { _coords.push_back(coord); }
     const Coords &  coords() const { return _coords; }
+    virtual  ~CoordSet();
     float  get_bfactor(const Atom *) const;
     float  get_occupancy(const Atom *) const;
     void  fill(const CoordSet *source) { _coords = source->_coords; }

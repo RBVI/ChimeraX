@@ -2,6 +2,7 @@
 #ifndef pseudobonds_Group
 #define pseudobonds_Group
 
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -23,6 +24,7 @@ public:
     Group(std::string& cat): _category(cat) {}
     virtual  ~Group() {}
     virtual Link<EndPoint>*  newPseudoBond(EndPoint* e1, EndPoint* e2) = 0;
+    virtual const std::set<Link<EndPoint>*>&  pseudobonds() const = 0;
 };
 
 template <class Owner, class EndPoint>

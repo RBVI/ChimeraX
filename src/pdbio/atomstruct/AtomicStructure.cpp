@@ -12,9 +12,9 @@
 
 namespace atomstruct {
 
-AtomicStructure::AtomicStructure():
-    _active_coord_set(NULL), asterisks_translated(false), lower_case_chains(false),
-    pdb_version(0), is_traj(false)
+AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
+    asterisks_translated(false), _being_destroyed(false), _cs_pb_mgr(this),
+    lower_case_chains(false), _pb_mgr(this), pdb_version(0), is_traj(false)
 {
 }
 
@@ -264,7 +264,7 @@ AtomicStructure::new_coord_set(int index)
 {
     if (!_coord_sets.empty())
         return new_coord_set(index, _coord_sets.back()->coords().size());
-    std::unique_ptr<CoordSet> cs(new CoordSet(index));
+    std::unique_ptr<CoordSet> cs(new CoordSet(this, index));
     CoordSet* retval = cs.get();
     _coord_set_insert(_coord_sets, cs, index);
     return retval;
@@ -273,7 +273,7 @@ AtomicStructure::new_coord_set(int index)
 CoordSet*
 AtomicStructure::new_coord_set(int index, int size)
 {
-    std::unique_ptr<CoordSet> cs(new CoordSet(index, size));
+    std::unique_ptr<CoordSet> cs(new CoordSet(this, index, size));
     CoordSet* retval = cs.get();
     _coord_set_insert(_coord_sets, cs, index);
     return retval;

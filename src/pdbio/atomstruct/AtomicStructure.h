@@ -13,6 +13,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
+#include "Pseudobond.h"
 #include "Residue.h"
 #include "Sequence.h"
 #include "imex.h"
@@ -32,16 +33,22 @@ public:
     typedef std::vector<Sequence>  Sequences;
 private:
     CoordSet *  _active_coord_set;
+    bool  _being_destroyed;
     CoordSets  _coord_sets;
+    AS_CS_PBManager  _cs_pb_mgr;
+    AS_PBManager  _pb_mgr;
     Residues  _residues;
 public:
     AtomicStructure();
+    virtual  ~AtomicStructure() { _being_destroyed = true; }
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
+    bool  being_destroyed() const { return _being_destroyed; }
     std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const CoordSets &  coord_sets() const { return _coord_sets; }
+    AS_CS_PBManager&  cs_pb_mgr() { return _cs_pb_mgr; }
     void  delete_bond(Bond *);
     CoordSet *  find_coord_set(int) const;
     Residue *  find_residue(std::string &chain_id, int pos, char insert) const;
@@ -58,6 +65,7 @@ public:
     CoordSet *  new_coord_set(int index, int size);
     Residue *  new_residue(const std::string &name, const std::string &chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
+    AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
     const Residues &  residues() const { return _residues; }

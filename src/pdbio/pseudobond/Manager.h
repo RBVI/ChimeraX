@@ -22,7 +22,7 @@ public:
 };
 
 template <class Grp_Class>
-class Global_Manager: Base_Manager<Grp_Class> {
+class Global_Manager: public Base_Manager<Grp_Class> {
 private:
     static Global_Manager  _manager;
 public:
@@ -32,7 +32,7 @@ public:
 };
 
 template <class Owner, class Grp_Class>
-class Owned_Manager: Base_Manager<Grp_Class> {
+class Owned_Manager: public Base_Manager<Grp_Class> {
 protected:
     Owner*  _owner;
 public:

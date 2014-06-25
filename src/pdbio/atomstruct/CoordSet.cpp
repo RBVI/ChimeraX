@@ -1,18 +1,27 @@
 // vim: set expandtab ts=4 sw=4:
 #include "Atom.h"
+#include "AtomicStructure.h"
 #include "CoordSet.h"
 
 #include <utility>  // for pair
 
 namespace atomstruct {
 
-CoordSet::CoordSet(int cs_id): _cs_id(cs_id)
+CoordSet::CoordSet(AtomicStructure* as, int cs_id):
+    _structure(as), _cs_id(cs_id)
 {
 }
 
-CoordSet::CoordSet(int cs_id, int size): _cs_id(cs_id)
+CoordSet::CoordSet(AtomicStructure* as, int cs_id, int size):
+    _structure(as), _cs_id(cs_id)
 {
     _coords.reserve(size);
+}
+
+CoordSet::~CoordSet()
+{
+    if (!_structure->being_destroyed())
+        _structure->cs_pb_mgr().remove_cs(this);
 }
 
 float

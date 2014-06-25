@@ -29,31 +29,80 @@ public:
         return pb;
     }
     PBGroup(std::string& cat): pseudobond::Group<Atom>(cat) {}
+    const std::set<PBond*>&  pseudobonds() const { return _pbonds; }
 };
 
 // global pseudobond manager
 typedef pseudobond::Global_Manager<PBGroup>  PBManager;
 
-// per-AtomicStructure pseudobond manager(s)..
-class AS_PBManager: public pseudobond::Owned_Manager<AtomicStructure, Atom> {};
-
 // in per-AtomicStructure groups there are per-CoordSet groups
 // and overall groups...
 class Owned_PBGroup_Base: public pseudobond::Owned_Group<AtomicStructure, Atom> {
 protected:
-    virtual PBond*  addPseudoBond(PBond *) = 0;
-public:
-    PBond*  newPseudoBond(Atom* a1, Atom* a2);
+    void  _check_ownership(Atom* a1, Atom* a2);
+    Owned_PBGroup_Base(std::string& cat, AtomicStructure* as):
+        Owned_Group<AtomicStructure, Atom>(cat, as) {};
 };
 
 class Owned_PBGroup: public Owned_PBGroup_Base {
 private:
     std::set<PBond*>  _pbonds;
-    PBond*  addPseudoBond(PBond* pb) { _pbonds.insert(pb); return pb; }
 public:
     void  clear() { for (auto pb : _pbonds) delete pb; _pbonds.clear(); }
+    PBond*  newPseudoBond(Atom* a1, Atom* a2) {
+        _check_ownership(a1, a2);
+        PBond* pb = makeLink(a1, a2);
+        _pbonds.insert(pb); return pb;
+    }
+    Owned_PBGroup(std::string& cat, AtomicStructure* as):
+        Owned_PBGroup_Base(cat, as) {}
+    const std::set<PBond*>&  pseudobonds() const { return _pbonds; }
 };
-//class CS_PBGroup: public PBGroup_Base {};
+
+class CS_PBGroup: public Owned_PBGroup_Base
+{
+private:
+    friend class CoordSet;
+    friend class AS_CS_PBManager;
+    mutable std::map<const CoordSet*, std::set<PBond*>>  _pbonds;
+    void  remove_cs(const CoordSet* cs) { _pbonds.erase(cs); }
+public:
+    void  clear() {
+        for (auto cat_set : _pbonds)
+            for (auto pb: cat_set.second) delete pb;
+        _pbonds.clear();
+    }
+    CS_PBGroup(std::string& cat, AtomicStructure* as):
+        Owned_PBGroup_Base(cat, as) {}
+    PBond*  newPseudoBond(Atom* a1, Atom* a2);
+    PBond*  newPseudoBond(Atom* a1, Atom* a2, CoordSet* cs);
+    const std::set<PBond*>&  pseudobonds() const;
+    const std::set<PBond*>&  pseudobonds(const CoordSet* cs) const {
+        return _pbonds[cs];
+    }
+};
+
+// per-AtomicStructure pseudobond manager(s)..
+class AS_CS_PBManager:
+    public pseudobond::Owned_Manager<AtomicStructure, CS_PBGroup>
+{
+private:
+    friend class AtomicStructure;
+    friend class CoordSet;
+    AS_CS_PBManager(AtomicStructure* as):
+        pseudobond::Owned_Manager<AtomicStructure, CS_PBGroup>(as) {}
+    void  remove_cs(const CoordSet* cs) {
+        for (auto pbg_info: _groups) pbg_info.second->remove_cs(cs);
+    }
+};
+
+class AS_PBManager:
+    public pseudobond::Owned_Manager<AtomicStructure, Owned_PBGroup>
+{
+    friend class AtomicStructure;
+    AS_PBManager(AtomicStructure* as):
+        pseudobond::Owned_Manager<AtomicStructure, Owned_PBGroup>(as) {}
+};
 
 }  // namespace atomstruct
 
