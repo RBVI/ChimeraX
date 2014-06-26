@@ -466,6 +466,14 @@ class Molecule(Drawing):
 
     return i
 
+  def copy_chain(self, chain_id):
+    atom_mask = self.chain_atom_mask(chain_id)
+    catoms = self._atoms[atom_mask].copy()
+    m = Molecule(self.name, catoms)
+    if not self.bonds is None:
+      m.bonds = squeeze_bonds(self.bonds, atom_mask)
+    return m
+
   def residue_ids(self):
     rids = self.rids
     if rids is None:
@@ -637,8 +645,8 @@ class Molecule(Drawing):
     and second index is red, green, blue, alpha values.
     '''
     s = self.ribbon_guide_atom_indices(chain_id)
-    qrnums = self.residue_nums[s]
-    self.ribbon_colors[s] = residue_colors[qrnums,:]
+    rnums = self.residue_nums[s]
+    self.ribbon_colors[s] = residue_colors[rnums,:]
     self.update_ribbons = True
     self.need_graphics_update = True
     self.redraw_needed()
@@ -1110,3 +1118,17 @@ def chain_sequence(mol, chain_id):
     seq[i-1] = res3to1(n.tostring().decode('utf-8'))
   cseq = ''.join(seq)
   return cseq
+
+# -----------------------------------------------------------------------------
+# Compute bonds (pairs of atom index), for a subset of atoms renumbered consecutively.
+#
+def squeeze_bonds(bonds, atom_mask):
+  from numpy import logical_and, empty, int32, arange
+  bmask = logical_and(atom_mask[bonds[:,0]], atom_mask[bonds[:,1]])
+  b = bonds[bmask,:]
+  anum = atom_mask.nonzero()[0]
+  amap = empty((len(atom_mask),), int32)
+  amap[anum] = arange(len(anum))
+  b[:,0] = amap[b[:,0]]
+  b[:,1] = amap[b[:,1]]
+  return b
