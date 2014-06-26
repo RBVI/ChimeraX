@@ -228,8 +228,8 @@ class Match:
     self.description = desc
     self.seq_match = seq_match
     self.mol = None
-    self.rmsd = None
     self.pairing = None
+    self.align = None
 
   def name(self):
     return '%s %s' % (self.pdb_id, self.chain_id)
@@ -630,11 +630,15 @@ def report_best_match_coverage(mbest, matches):
       ev = ma.seq_match.evalue
       from os import path
       mname = path.splitext(m.name)[0]
-      mc = '#%d.%s' % (m.id, c)
-      rmsd = ('%8.2f' % ma.rmsd) if not ma.rmsd is None else ('%8s' % '.')
-      cseg = '%5d %5d  %5d %6s %8s %8.0e %8s' % (s+1, e+1, e-s+1, mname, mc, ev, rmsd)
+      al = ma.align
+      if al is None:
+        align = ''
+      else:
+        amol, rmsd, npair = al
+        align = '%5s %5.2f %3d' % ('#%-d' % amol.id, rmsd, npair)
+      cseg = '%5d %5d  %5d %5s %4s %1s %8.0e %15s' % (s+1, e+1, e-s+1, '#%-d' % m.id, mname, c, ev, align)
     else:
-      cseg = '%5d %5d  %5d %6s' % (s+1, e+1, e-s+1, 'gap')
+      cseg = '%5d %5d  %5d %10s' % (s+1, e+1, e-s+1, 'gap')
       g += 1
       gr += e-s+1
     csegs.append(cseg)
@@ -642,7 +646,7 @@ def report_best_match_coverage(mbest, matches):
   nc = len(unique(mbest))-1
   print('Best E-value coverage, %d segments with %d gaps (%d of %d residues), using %d chains\n'
         % (len(segs)-g, g, gr, len(mbest)-1, nc) +
-        'Query range  Length  PDB    Chain   E-value     RMSD\n' + 
+        'Query range  Length  Id    PDB   E-value Align RMSD Npair\n' + 
         '\n'.join(csegs))
 
 def runs(a):
@@ -693,9 +697,9 @@ def align_match(match, ref_mol, ref_rmask, qtoref):
   rnum, qrnum = match.seq_match.residue_number_pairing()
   ref_rnum = qrnum if qtoref is None else qtoref[qrnum]
   m = match.mol
-  rmsd = 0 if m is ref_mol else align_chain(m, rnum, ref_mol, ref_rnum, ref_rmask)
+  rmsd, npairs = (0,0) if m is ref_mol else align_chain(m, rnum, ref_mol, ref_rnum, ref_rmask)
   if not rmsd is None:
-    match.rmsd = rmsd
+    match.align = (ref_mol, rmsd, npairs)
 
 def align_chain(mol, rnum, ref_mol, ref_rnum, ref_rmask):
   # Restrict paired residues to those with CA atoms.
@@ -705,12 +709,12 @@ def align_chain(mol, rnum, ref_mol, ref_rnum, ref_rmask):
   atoms = mol.atom_subset('CA', residue_numbers = rnum[p])
   ref_atoms = ref_mol.atom_subset('CA', residue_numbers = ref_rnum[p])
   if atoms.count() == 0:
-    return None
+    return None, None
 
   # Compute RMSD of aligned hit and query.
   from ..molecule import align
 #  tf, rmsd = align.align_points(atoms.coordinates(), ref_atoms.coordinates())
-  dmax = 3.0
+  dmax = 5.0
   niter = 20
   axyz, raxyz = atoms.coordinates(), ref_atoms.coordinates()
   tf, rmsd, mask = align.align_and_prune(axyz, raxyz, dmax, niter)
@@ -718,9 +722,13 @@ def align_chain(mol, rnum, ref_mol, ref_rnum, ref_rmask):
 #  print('ac', mol.name, ref_mol.name, mask.sum() if not mask is None else 0, rmsd)
   if tf is None:
     tf, rmsd = align.align_points(axyz, raxyz)
+    npairs = len(axyz)
+    print('alignment pruning failed', mol.name, mol.chain_identifiers()[0], mol.id,
+          ref_mol.name, ref_mol.chain_identifiers()[0], ref_mol.id, rmsd)
   else:
     # Color the atoms used for alignment.
     atoms.subset(mask.nonzero()[0]).color_atoms((255,0,0,255))
+    npairs = mask.sum()
 
   # Align hit chain to query chain
   mol.atom_subset().move_atoms(tf)
@@ -735,7 +743,7 @@ def align_chain(mol, rnum, ref_mol, ref_rnum, ref_rmask):
 #    print(ma.qSeq)
 #    rn, qrn = ma.residue_number_pairing()
 
-  return rmsd
+  return rmsd, npairs
 
 def residue_number_mask(mol, rnmax = None):
   rnums = mol.atom_subset('CA').residue_numbers()
@@ -755,7 +763,7 @@ def find_first(e,a):
   return (a == e).nonzero()[0][0]
 
 def match_metrics_table(matches):
-  lines = [' PDB Chain  RMSD  Coverage(#,%) Identity(#,%) NCoord MissCrd NIns NRIns NDel NRDel E-value Description']
+  lines = ['   Id   PDB  Align RMSD Npair Coverage(#,%) Identity(#,%) NCoord MissCrd NIns NRIns NDel NRDel E-value Description']
   sms = set()
   for ma in matches:
     sm = ma.seq_match
@@ -770,9 +778,14 @@ def match_metrics_table(matches):
     name = m.name[:-4] if m.name.endswith('.cif') else m.name
     desc = ma.description if not sm in sms else ''
     sms.add(sm)
-    rmsd = ('%7.2f' % ma.rmsd) if not ma.rmsd is None else '.'
-    lines.append('%4s %3s %7s %5d %5.0f   %5d %5.0f    %5d %5d %5d %5d %5d %5d %8.0e  %s'
-                 % (name, cid, rmsd, npair, 100*npair/nqres,
+    al = ma.align
+    if al is None:
+      align = ''
+    else:
+      amol, rmsd, napair = al
+      align = '%5s %5.2f %3d' % ('#%-d' % amol.id, rmsd, napair)
+    lines.append('%5s %4s %1s %15s %5d %5.0f   %5d %5.0f    %5d %5d %5d %5d %5d %5d %8.0e  %s'
+                 % ('#%-d' % m.id, name, cid, align, npair, 100*npair/nqres,
                     neq, 100.0*neq/npair, len(rnum), missing_coords,
                     sm.insertion_count(), sm.insertion_residue_count(),
                     sm.deletion_count(), sm.deletion_residue_count(),
@@ -788,7 +801,7 @@ def show_matches_as_ribbons(matches, ref_mol, ref_chain,
     m = ma.mol
     m.single_color()
     aligned = getattr(m,'blast_match_rmsds', {})
-    c1, c2 = (rescolor, eqcolor) if not ma.rmsd is None else (unaligned_rescolor, unaligned_eqcolor)
+    c1, c2 = (rescolor, eqcolor) if not ma.align is None else (unaligned_rescolor, unaligned_eqcolor)
     sm = ma.seq_match
     hrnum, qrnum = sm.residue_number_pairing()
     r = m.atom_subset(residue_numbers = hrnum)
@@ -841,7 +854,7 @@ def show_only_matched_residues(matches):
     if not m in mset:
       m.display = True
       hide_atoms_and_ribbons(m)
-    m.set_ribbon_display(True)
+    m.atom_subset('CA', residue_numbers = hrnum).show_ribbon()
 
 def blast_show_matched_residues(session):
   if hasattr(session, 'blast_results'):
@@ -1077,8 +1090,8 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
   show_covering_ribbons(mbest, matches)
   report_best_match_coverage(mbest, matches)
 
-  mc = covering_model(mbest, matches)
-  session.add_model(mc)
+#  mc = covering_model(mbest, matches)
+#  session.add_model(mc)
 
 #  m = mosaic_model(br)
 #  session.add_model(m)
@@ -1166,7 +1179,7 @@ class Blast_Display_Cycler:
     self.last_match = ma
     s = self.session
     from os import path
-    rmsd = '%.2f' % ma.rmsd if not ma.rmsd is None else '.'
+    rmsd = '%.2f' % ma.align[1] if not ma.align is None else '.'
     sm = ma.seq_match
     s.show_status('%s chain %s, %.0f%% identity, %.0f%% coverage, rmsd %s   %s' %
                   (ma.pdb_id, ma.chain_id, 100*sm.identity(), 100*sm.coverage(),
