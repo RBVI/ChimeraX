@@ -28,7 +28,7 @@ public:
         _pbonds.insert(pb);
         return pb;
     }
-    PBGroup(std::string& cat): pseudobond::Group<Atom>(cat) {}
+    PBGroup(const std::string& cat): pseudobond::Group<Atom>(cat) {}
     const std::set<PBond*>&  pseudobonds() const { return _pbonds; }
 };
 
