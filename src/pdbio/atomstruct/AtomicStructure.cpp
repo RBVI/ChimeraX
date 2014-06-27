@@ -136,18 +136,6 @@ AtomicStructure::best_alt_locs() const
     return best_locs;
 }
 
-void
-AtomicStructure::delete_bond(Bond *b)
-{
-    try {
-        delete_edge(b);
-    } catch (std::invalid_argument &e) {
-        throw std::invalid_argument("delete_bond called for Bond not in AtomicStructure");
-    }
-    b->atoms()[0]->remove_bond(b);
-    b->atoms()[1]->remove_bond(b);
-}
-
 CoordSet *
 AtomicStructure::find_coord_set(int id) const
 {

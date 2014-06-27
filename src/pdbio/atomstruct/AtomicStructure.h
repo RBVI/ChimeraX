@@ -49,7 +49,14 @@ public:
     const Bonds &    bonds() const { return edges(); }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     AS_CS_PBManager&  cs_pb_mgr() { return _cs_pb_mgr; }
-    void  delete_bond(Bond *);
+    void  delete_atom(Atom* a) {
+        for (auto b: a->bonds()) delete_bond(b);
+        delete_vertex(a);
+    }
+    void  delete_bond(Bond* b) {
+        for (auto a: b->atoms()) a->remove_bond(b);
+        delete_edge(b);
+    }
     CoordSet *  find_coord_set(int) const;
     Residue *  find_residue(std::string &chain_id, int pos, char insert) const;
     Residue *  find_residue(std::string &chain_id, int pos, char insert,

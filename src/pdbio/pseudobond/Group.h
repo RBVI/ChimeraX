@@ -21,7 +21,7 @@ protected:
     }
 public:
     virtual void  clear() = 0;
-    Group(std::string& cat): _category(cat) {}
+    Group(const std::string& cat): _category(cat) {}
     virtual  ~Group() {}
     virtual Link<EndPoint>*  newPseudoBond(EndPoint* e1, EndPoint* e2) = 0;
     virtual const std::set<Link<EndPoint>*>&  pseudobonds() const = 0;
@@ -33,7 +33,7 @@ protected:
     Owner*  _owner;
 public:
     virtual Link<EndPoint>*  newPseudoBond(EndPoint* e1, EndPoint* e2) = 0;
-    Owned_Group(std::string& cat, Owner* owner):
+    Owned_Group(const std::string& cat, Owner* owner):
             Group<EndPoint>(cat), _owner(owner) {}
     virtual  ~Owned_Group() {};
 };

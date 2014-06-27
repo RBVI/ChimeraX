@@ -1,8 +1,8 @@
 // vim: set expandtab ts=4 sw=4:
 
-#include "MolResId.h"
 #include <algorithm>
 #include <map>
+#include <stdlib.h>
 
 #include "atomstruct/Atom.h"
 #include "atomstruct/Residue.h"
@@ -10,6 +10,7 @@
 #include "atomstruct/tmpl/Residue.h"
 #include "atomstruct/tmpl/Atom.h"
 #include "atomstruct/tmpl/residues.h"
+#include "MolResId.h"
 
 namespace connectivity {
 
@@ -437,6 +438,34 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
         bi != break_these.end(); ++bi) {
             Bond *b = *bi;
             as->delete_bond(b);
+        }
+    } else {
+        // turn long inter-residue bonds into "missing structure" pseudobonds
+        std::vector<Bond*> long_bonds;
+        for (auto& b: as->bonds()) {
+            Atom* a1 = b->atoms()[0];
+            Atom* a2 = b->atoms()[1];
+            Residue* r1 = a1->residue();
+            Residue* r2 = a2->residue();
+            if (r1 == r2)
+                continue;
+            if (r1->chain_id() == r2->chain_id()
+            && abs(r1->position() - r2->position()) < 2)
+                continue;
+            auto idealBL = Element::bond_length(a1->element(), a2->element());
+            if (b->sqlength() >= 3.0625 * idealBL * idealBL)
+                // 3.0625 == 1.75 squared
+                // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
+                // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
+                // to not be classified as missing seqments)
+                long_bonds.push_back(b.get());
+        }
+        if (long_bonds.size() > 0) {
+            auto pbg = as->pb_mgr().get_group("missing structure", true);
+            for (auto lb: long_bonds) {
+                pbg->newPseudoBond(lb->atoms());
+                as->delete_bond(lb);
+            }
         }
     }
 }

@@ -40,7 +40,7 @@ typedef pseudobond::Global_Manager<PBGroup>  PBManager;
 class Owned_PBGroup_Base: public pseudobond::Owned_Group<AtomicStructure, Atom> {
 protected:
     void  _check_ownership(Atom* a1, Atom* a2);
-    Owned_PBGroup_Base(std::string& cat, AtomicStructure* as):
+    Owned_PBGroup_Base(const std::string& cat, AtomicStructure* as):
         Owned_Group<AtomicStructure, Atom>(cat, as) {};
 };
 
@@ -54,7 +54,12 @@ public:
         PBond* pb = makeLink(a1, a2);
         _pbonds.insert(pb); return pb;
     }
-    Owned_PBGroup(std::string& cat, AtomicStructure* as):
+    PBond*  newPseudoBond(Atom* const ends[2]) {
+        // should be in base class, but C++ won't look in base
+        // classes for overloads!
+        return newPseudoBond(ends[0], ends[1]);
+    }
+    Owned_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) {}
     const std::set<PBond*>&  pseudobonds() const { return _pbonds; }
 };
@@ -72,10 +77,20 @@ public:
             for (auto pb: cat_set.second) delete pb;
         _pbonds.clear();
     }
-    CS_PBGroup(std::string& cat, AtomicStructure* as):
+    CS_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) {}
     PBond*  newPseudoBond(Atom* a1, Atom* a2);
+    PBond*  newPseudoBond(Atom* const ends[2]) {
+        // should be in base class, but C++ won't look in base
+        // classes for overloads!
+        return newPseudoBond(ends[0], ends[1]);
+    }
     PBond*  newPseudoBond(Atom* a1, Atom* a2, CoordSet* cs);
+    PBond*  newPseudoBond(Atom* const ends[2], CoordSet* cs) {
+        // should be in base class, but C++ won't look in base
+        // classes for overloads!
+        return newPseudoBond(ends[0], ends[1], cs);
+    }
     const std::set<PBond*>&  pseudobonds() const;
     const std::set<PBond*>&  pseudobonds(const CoordSet* cs) const {
         return _pbonds[cs];
