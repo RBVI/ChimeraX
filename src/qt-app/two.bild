@@ -1,0 +1,6 @@
+.comment two.pdb
+.color 0.823529411765 0.705882352941 0.549019607843
+.transparency 0.0
+.sphere -0.5 0 0 0.352
+.sphere 0.5 0 0 0.352
+.cylinder -0.5 0 0 0.5 0 0 0.2 open

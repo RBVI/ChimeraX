@@ -1,0 +1,22 @@
+# object files and libraries
+*.[oa]
+*.so
+*.obj
+*.lib
+*.dll
+*.dylib
+# patch generated
+*.orig
+*.rej
+# python generated
+*.pyc
+*.pyo
+# OS generated
+.DS_Store
+.DS_Store?
+.Trashes
+Thumbs.db
+# vim
+*.swp
+errs
+build

@@ -1,0 +1,20 @@
+#version 150
+
+uniform mat4 ProjectionMatrix;
+uniform mat4 ModelViewMatrix;
+
+out vec3 f_pickId;
+
+in vec4 position;
+in vec3 pickId;
+in mat4 instanceTransform;
+in vec3 instanceScale;
+
+void main(void)
+{
+  vec3 vi = vec3(instanceTransform * vec4(instanceScale * vec3(position), 1));
+  vec3 v = vec3(ModelViewMatrix * vec4(vi, position.w));
+
+  gl_Position = ProjectionMatrix * vec4(v, 1.0);
+  f_pickId = pickId;
+}

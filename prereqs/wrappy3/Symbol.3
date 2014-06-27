@@ -1,0 +1,66 @@
+.\"	Copyright 1993, U.C.S.F. Computer Graphics Laboratory
+.\"	$Id: Symbol.3 26655 2009-01-07 22:02:30Z gregc $
+.if n .na \" ragged-right edge
+.TH SYMBOL 3 "" UCSFCGL "OTF Reference Manual"
+.SH NAME
+Symbol \(em support class for string table symbols
+.SH SYNOPSIS
+.nf
+#include <mol/Symbol.h>
+
+\fBSymbol\fP name("name");
+.fi
+.SH DESCRIPTION
+.PP
+The
+.B Symbol
+class provides a method for uniquely storing strings
+and quickly comparing them for identity.
+.PP
+Symbol's are small enough that they should never be passed by address
+nor by reference.
+.PP
+Comparison operators for Symbol's and String's are predefined as well.
+.SH "MEMBER FUNCTIONS"
+.LP
+\fBSymbol\fP()
+.br
+\fBSymbol\fP(const char *cp)
+.br
+\fBSymbol\fP(const String &orig)
+.br
+\fBSymbol\fP(Symbol s)
+.RS
+Constructors.
+.RE
+.LP
+int \fBoperator==\fP(Symbol s) const
+.br
+int \fBoperator!=\fP(Symbol s) const
+.br
+int \fBoperator<\fP(Symbol s) const
+.br
+int \fBoperator<=\fP(Symbol s) const
+.br
+int \fBoperator>\fP(Symbol s) const
+.br
+int \fBoperator>=\fP(Symbol s) const
+.RS
+Return result of relational operator.
+Testing for equality and inequality is fast,
+all other comparisons use the
+.I String
+class's operators.
+.RE
+.TP
+bool \fBempty\fP() const
+Returns true if the symbol is empty
+.RI ( i.e. ,
+constructed with the default constructor
+or from an empty string).
+.TP
+const char *\fBchars\fP() const
+Return the character string associated with the symbol.
+.\" SH SEE ALSO
+.SH AUTHOR
+Greg Couch, UCSF Computer Graphics Lab

@@ -1,0 +1,20 @@
+--- xmlwf/unixfilemap.c.orig	2006-06-27 19:55:51.000000000 -0700
++++ xmlwf/unixfilemap.c	2008-02-15 16:46:43.000000000 -0800
+@@ -51,7 +51,7 @@
+     close(fd);
+     return 1;
+   }
+-  p = (void *)mmap((caddr_t)0, (size_t)nbytes, PROT_READ,
++  p = (void *)mmap((void *)0, (size_t)nbytes, PROT_READ,
+                    MAP_FILE|MAP_PRIVATE, fd, (off_t)0);
+   if (p == (void *)-1) {
+     perror(name);
+@@ -59,7 +59,7 @@
+     return 0;
+   }
+   processor(p, nbytes, name, arg);
+-  munmap((caddr_t)p, nbytes);
++  munmap((void *)p, nbytes);
+   close(fd);
+   return 1;
+ }

@@ -1,0 +1,10 @@
+#version 150
+
+in vec3 f_pickId;
+
+out vec3 frag_color;
+
+void main (void)
+{
+  frag_color = f_pickId;
+}

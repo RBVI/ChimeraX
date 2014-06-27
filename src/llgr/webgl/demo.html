@@ -1,0 +1,103 @@
+<html>
+<head>
+<title>Chimera2 Demo -- LLGR</title>
+<meta http-equiv="X-UA-Compatible" content="chrome=1; charset=utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<!-- from http://www.chromium.org/developers/how-tos/chrome-frame-getting-started -->
+<!--[if IE]>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"></script>
+
+  <style>
+    .chromeFrameInstallDefaultStyle {
+      width: 100%; /* default is 800px */
+      border: 5px solid blue;
+    }
+  </style>
+
+  <div id="prompt">
+  Please install <a href="http://www.google.com/chromeframe">Google Chrome Frame</a> to see WebGL content.
+  </div>
+
+  <script>
+  // The conditional ensures that this code will only execute in IE,
+  // Therefore we can use the IE-specific attachEvent without worry
+  window.attachEvent("onload", function() {
+    CFInstall.check({
+      mode: "inline", // the default
+      node: "prompt"
+    });
+  });
+  </script>
+<![endif]-->
+
+<!--<script type="text/javascript" src="webgl-debug.js"></script>-->
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="webgl-context.js"></script>
+<script type="text/javascript" src="llgr_webgl.js"></script>
+
+<script type = "text/javascript">
+
+var molview;		// molview context information
+
+function molview()
+{
+	var canvas = document.getElementById("molview");
+	var gl = getWebGLContext(canvas, {
+		alpha: false,
+		antialias: true
+	});
+	if (!gl)
+		return;
+
+	molview_ci = new ContextInfo(canvas, gl, drawScene);
+	window.onresize = molview_ci.redraw;
+	molview_ci.init();
+	molview_ci.redraw();
+}
+
+
+function drawScene(ci)
+{
+	var canvas = ci.canvas;
+	var gl = ci.gl;
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	llgr.set_context(gl);
+	gl.viewport(0, 0, canvas.width, canvas.height);
+	llgr.render();
+	ci.requestId = null;
+}
+
+function load(url)
+{
+	molview_ci.data = url;
+	molview_ci.init();
+}
+
+window.onload = molview;
+
+</script>
+</head>
+
+<body>
+<style>
+	html, body {
+		width:  90%;
+		height: 90%;
+		margin: 0px;
+	}
+</style>
+	<canvas id="molview" width="10" height="10">
+	Your browser does not support the HTML5
+	<code>&lt;canvas&gt;</code> element.
+	<a href="http://get.webgl.org">Click here to upgrade your browser.</a>
+	</canvas>
+	<p>
+	<button type="button" onclick="load('1a0m.json')">1a0m</button>
+	<button type="button" onclick="load('mtx.json')">mtx</button>
+	<button type="button" onclick="load('two.json')">two</button>
+	<button type="button" onclick="load('two-tri.json')">two triangles</button>
+</body>
+
+</html>

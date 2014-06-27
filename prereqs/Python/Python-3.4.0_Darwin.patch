@@ -1,0 +1,31 @@
+--- Makefile.pre.in.orig	2014-03-16 19:31:30.000000000 -0700
++++ Makefile.pre.in	2014-04-28 15:03:16.000000000 -0700
+@@ -1162,7 +1162,8 @@
+ 		venv venv/scripts venv/scripts/posix \
+ 		curses pydoc_data $(MACHDEPS)
+ libinstall:	build_all $(srcdir)/Lib/$(PLATDIR) $(srcdir)/Modules/xxmodule.c
+-	@for i in $(SCRIPTDIR) $(LIBDEST); \
++	if test "$(BINLIBDEST)" != "$(LIBDEST)"; then $(LN) -s "$(DESTDIR)$(BINLIBDEST)" "$(DESTDIR)$(LIBDEST)"; fi
++	@for i in $(SCRIPTDIR) $(BINLIBDEST); \
+ 	do \
+ 		if test ! -d $(DESTDIR)$$i; then \
+ 			echo "Creating directory $$i"; \
+@@ -1403,12 +1404,12 @@
+ # Install a number of symlinks to keep software that expects a normal unix
+ # install (which includes python-config) happy.
+ frameworkinstallmaclib:
+-	$(LN) -fs "../../../$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(LDVERSION).a"
+-	$(LN) -fs "../../../$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(LDVERSION).dylib"
+-	$(LN) -fs "../../../$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(VERSION).a"
+-	$(LN) -fs "../../../$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(VERSION).dylib"
+-	$(LN) -fs "../$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/libpython$(LDVERSION).dylib"
+-	$(LN) -fs "../$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/libpython$(VERSION).dylib"
++	$(LN) -fs "$(PYTHONFRAMEWORKINSTALLDIR)/$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(LDVERSION).a"
++	$(LN) -fs "$(PYTHONFRAMEWORKINSTALLDIR)/$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(LDVERSION).dylib"
++	$(LN) -fs "$(PYTHONFRAMEWORKINSTALLDIR)/$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(VERSION).a"
++	$(LN) -fs "$(PYTHONFRAMEWORKINSTALLDIR)/$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/python$(VERSION)/config-$(LDVERSION)/libpython$(VERSION).dylib"
++	$(LN) -fs "$(PYTHONFRAMEWORKINSTALLDIR)/$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/libpython$(LDVERSION).dylib"
++	$(LN) -fs "$(PYTHONFRAMEWORKINSTALLDIR)/$(PYTHONFRAMEWORK)" "$(DESTDIR)$(prefix)/lib/libpython$(VERSION).dylib"
+ 
+ # This installs the IDE, the Launcher and other apps into /Applications
+ frameworkinstallapps:

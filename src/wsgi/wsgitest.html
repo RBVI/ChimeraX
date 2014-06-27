@@ -1,0 +1,153 @@
+<html>
+<head>
+<title>Chimera2 Session Management Test</title>
+<script type="text/javascript">
+
+function log(msg) {	// Log to console if available, alert otherwise
+	try {
+		console.log(new Date().valueOf() + ": " + msg);
+	} catch (e) {
+		alert(msg);
+	}
+}
+
+function CallbackWrapper() {
+	var cb = arguments[0];
+	var args = new Array();
+	for (var i = 1; i < arguments.length; ++i)
+		args[i - 1] = arguments[i];
+	return function() {
+		cb.apply(this, args);
+	}
+}
+
+function sendRequest(method, url, data, callback)
+{
+	var xmlhttp = new XMLHttpRequest();
+	if (xmlhttp != null) {
+		xmlhttp.onreadystatechange = callback;
+		xmlhttp.open(method, url);
+		xmlhttp.send(data);
+	}
+}
+
+function ajax_form(results, errors) {
+	var cb = getData;
+	if (document.inputs.action.value == "jlist")
+		cb = jsonList;
+	sendRequest("POST", "/chimera2/wsgi",
+				// FormData is not supported in
+				// Internet Explorer until version 10
+				new FormData(document.inputs),
+				CallbackWrapper(cb, results, errors));
+	// Always return false to prevent form from being submitted by browser
+	return false;
+}
+
+function getData(results, errors)
+{
+	// Are we complete?
+	if (this.readyState == 4) {
+		// Yes, do we have a good http status?
+		var r = document.getElementById(results);
+		var e = document.getElementById(errors);
+		if (this.status == 200) {
+			// HACK ALERT.  Do NOT do this in your code!
+			// We know that we are getting an HTML document back,
+			// so we insert the entire thing in our "results" div,
+			// taking advantage of the fact that browsers do not
+			// care about embedded HTML tags.
+			r.innerHTML = this.responseText;
+			e.innerHTML = "None";
+		} else if (this.status == 400) {
+			alert(this.responseText);
+			r.innerHTML = "None";
+			e.innerHTML = "None";
+		} else {
+			alert("server error");
+			r.innerHTML = "None";
+			e.innerHTML = this.responseText;
+		}
+	}
+}
+
+function jsonList(results, errors)
+{
+	// Are we complete?
+	if (this.readyState == 4) {
+		// Yes, do we have a good http status?
+		var r = document.getElementById(results);
+		var e = document.getElementById(errors);
+		if (this.status == 200) {
+			r.innerHTML = "";
+			e.innerHTML = "None";
+			var sessions = eval(this.responseText);
+			var table = document.createElement("table");
+			r.appendChild(table);
+			for (var i = 0; i !=  sessions.length; ++i) {
+				var tr = document.createElement("tr");
+				table.appendChild(tr);
+				var name = document.createElement("td");
+				name.appendChild(document.createTextNode(sessions[i].name));
+				var access = document.createElement("td");
+				name.appendChild(document.createTextNode(sessions[i].access));
+				tr.appendChild(name);
+				tr.appendChild(access);
+			}
+		} else if (this.status == 400) {
+			alert(this.responseText);
+			r.innerHTML = "None";
+			e.innerHTML = "None";
+		} else {
+			alert("server error");
+			r.innerHTML = "None";
+			e.innerHTML = this.responseText;
+		}
+	}
+}
+
+</script>
+</head>
+<body>
+<h1>Chimera2 Session Management Test</h1>
+<form name="inputs" method="post"
+	onsubmit="return ajax_form('results', 'errors');">
+<table>
+<tr>
+	<td align="right">Session:</td>
+	<td><input type="text" name="session"/>
+</tr>
+<tr>
+	<td align="right">Password:</td>
+	<td><input type="password" name="password"/>
+</tr>
+<tr>
+	<td align="right">Action:</td>
+	<td><select name="action">
+		<option value="list" selected="1">List</option>
+		<option value="jlist">List (using JSON)</option>
+		<option value="call">Call</option>
+		<option value="create">Create</option>
+		<option value="delete">Delete</option>
+		<option value="xyzzy">Do NOT Use</option>
+	</select></td>
+</tr>
+<tr>
+	<td align="right">Command:</td>
+	<td><input type="text" name="command"/>
+</tr>
+<tr>
+	<td/>
+	<td><input type="submit" value="Submit Query"/>
+	<input type="reset" value="Reset"/></td>
+</tr>
+</table>
+</form>
+<hr/>
+<h3>Results:</h3>
+<div id="results">None</div>
+<hr/>
+<h3>Errors:</h3>
+<div id="errors">None</div>
+</body>
+</html>

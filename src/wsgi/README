@@ -1,0 +1,66 @@
+Design and Implementation
+=========================
+The current design for handling requests depends on having a single
+multi-threaded dispatching process that distributes all requests to
+the appropriate backend processes.  This is to make two things easier:
+
+1. Synchronization is done using a single "shelve" instance with an
+associated "threading.RLock" instance.  All accesses to
+the shelve instance is protected by:
+
+	store.lock()
+	try:
+		...
+	finally:
+		store.release()
+
+This probably precludes some parallelism but guarantees data safety.
+The use of "shelve" provides persistent storage for the dispatch process
+data so that session existence (but not session state) can survive WSGI
+application or Apache termination.
+
+2. Backend processes are managed using the "multiprocessing" module.  All
+communications are done via "Connection" instances created by "multiprocessing.pipe".
+This sidesteps the issue of how the dispatch process can find a particular
+backend process, but also requires that there be only one dispatch process
+that serves as the parent for all backend processes.
+
+Consequences of this design is that backend processes must be able to
+save and restore its state.  When the dispatcher process terminates, the
+Connection instances for all backend processes are also released; thus,
+existing backend processes are orphaned and will not be able to communicate
+with new instances of dispatcher processes.  When this condition is detected
+(eg getting an EOF when reading for the next request), a backend process must
+save its state.  On start up, a backend process must check for the existence
+of saved state and restore if possible.
+
+Deployment
+==========
+There is a single source file, chimera2.wsgi, that may be invoked either via
+the command line (usually for debugging) and the web.  To execute in command
+line mode, run the shell command:
+
+	python chimera2.wsgi
+
+Supported command include "list", "create", "delete" and "call".  An empty line
+terminates input.
+
+To execute in web mode, the files need to be combined with LLGR webgl
+files and placed into an install directory and then an URL for accessing
+WSGI functionality needs to be configured.
+
+To install files, run the "install-wsgi" script, which figures out
+the install location from the path of the git repository, which must
+begin with /usr/local/projects/chimera2/git.  For example, the
+repository path "/usr/local/projects/chimera2/git/conrad" has a
+matching install location of "/usr/local/projects/chimera2/wsgi/conrad".
+
+For WSGI configuration, an "https" interface is preferred
+because session passwords are being passed.  See
+
+	/usr/local/www/plato-test-conf.d/SecureVirtualHosts/rbvi-preview.conf
+
+and look for chimera2.wsgi to see how it is currently configured.
+
+Once Apache has been configured and the HTML file placed, visiting the URL
+will provide an interface for testing the code.

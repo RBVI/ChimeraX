@@ -1,0 +1,937 @@
+<!--
+--- UCSF Chimera Copyright ---
+Copyright (c) 2007-2012 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  This notice must be embedded in or
+attached to all copies, including partial copies, of the
+software or any revisions or derivations thereof.
+--- UCSF Chimera Copyright ---
+-->
+
+<html><head>
+<title>volume</title>
+<style type="text/css">
+A.nounder:link {text-decoration: none}
+A.nounder:visited {text-decoration: none}
+A.nounder:active {text-decoration: none}
+A.nounder:hover {text-decoration: underline; color: red;}
+UL.circle {list-style-type: circle}
+</style>
+</head><body>
+<font size="-1">
+<a href="../framecommand.html" target="_top">Chimera Commands Index</a>
+</font>
+<a name="top"></a>
+<h3><a href="usageconventions.html">Usage</a>:
+ <BR><b>volume</b> <i>model-spec</i>
+<a href="#options"><i>options</i></a></h3>
+<p>
+<b>Volume</b> is the command-line implementation of many features in
+<a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+target="_top"><b>Volume Viewer</b></a>, a tool for visualizing
+<a href="../filetypes.html#volume">volume data</a>.
+<a name="modelspec">
+<i>Model-spec</i> can be a specific model number or range of model numbers
+(preceded by #), or simply <b>#</b> or the word <b>all</b> 
+to indicate all volume models.</a>
+Several of the <a href="#sampling">sampling and size options</a>
+apply to all volume models, regardless of which are specified.  
+</p>
+<a name="examples">Examples</a>:
+<blockquote>
+<b>volume #0 style mesh level 0.8 color red level 1.2 color 0,.5,.8</b>
+<br>
+<b>volume #2 level 10,0 level 100,1 level 400,1 color hotpink style solid</b>
+<br>
+<b>vol all hide</b>
+</blockquote>
+<a name="options">
+Option keywords for <b>volume</b></a>
+can be truncated to unique strings, and their case does not matter.  
+Specifications of true (synonyms t, yes, y, on, 1) and false 
+(synonyms f, no, n, off, 0) are also case-independent.
+A vertical bar "|" designates mutually exclusive options, and
+factory default settings are indicated with <b>bold</b>
+(different defaults can be saved from
+<a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+target="_top"><b>Volume Viewer</b></a>, however).
+<blockquote>
+<a href="#general">General Display Options</a>
+<br><a href="#sampling">Sampling and Size Options</a>
+<br><a href="#dimensions">Dimension and Scale Options</a>
+<br><a href="#planes">Planes Options</a>
+<br><a href="#output">File-Saving Options</a>
+<br><a href="#dispsurf">Surface and Mesh Display Options</a>
+<br><a href="#dispsolid">Solid Display Options</a>
+</blockquote>
+
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="general">General Display Options</a>
+&nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top">volume</a>&nbsp;<i>model-spec</i>&nbsp;<i>options</i>)</h4>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>show</b>
+  <br>Display the volume model.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>hide</b>
+  <br>Undisplay the volume model.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="style"><b>style</b> surface | mesh | solid</a>
+  <br>Designate the
+  <a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#display">
+  style</a> of display:  the <b>surface</b> and <b>mesh</b> modes
+  depict isosurfaces (contour surfaces), while the <b>solid</b> mode
+  shows data as a semitransparent solid.
+</blockquote>
+Separate sets of <a href="#level">level</a>, <a href="#color">color</a>,
+<a href="#brightness">brightness</a>, and 
+<a href="#transparency">transparency</a> information
+are maintained for the surface/mesh and solid styles of a volume model;
+switching to solid from surface or mesh (or <i>vice versa</i>) restores 
+any previous assignments for that style.
+See also: <a href="#dispsurf">surface and mesh display options</a>,
+<a href="#dispsolid">solid display options</a>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="level"><b>level</b> <i>threshold-level</i></a>
+  <br>Place a <a name="threshold"><b><i>threshold</i></b></a>
+  for mapping data values to the display.  See the
+<a href="http://www.cgl.ucsf.edu/chimera/data/movie-howto-mar2012/movie_examples
+.html#contour"
+target="_blank">video mini-example</a>.
+  <ul class="circle">
+  <li>For <b>surface</b> and <b>mesh</b> displays, <i>threshold-level</i> is 
+  a single number, the contour level of the surface.  
+  This corresponds to horizontal placement on a histogram in the
+  <a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#dispsurf">
+  graphical interface</a>.
+  <li>For <b>solid</b> displays, <i>threshold-level</i> consists of two numbers 
+  separated by a comma (no spaces). The first number indicates a data value
+  and the second number indicates an intensity ranging from 0.0 to 1.0.
+  These correspond to horizontal and vertical placement, respectively, 
+  on a histogram in the
+  <a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#dispsolid">
+  graphical interface</a>.
+  </ul>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="color"><b>color</b> <i>threshold-color</i></a>
+  <br>Assign <a href="#threshold">threshold</a> color.
+  The <i>threshold-color</i> can be any
+  <a href="color.html#colorname">color name</a>
+  that specifies a single color (with any spaces stripped).
+  The default color is an opaque medium gray (<b>0.7,0.7,0.7,1.0</b>) 
+  for surface and mesh displays, <b>white</b> for solid.
+  See also: <a href="scolor.html"><b>scolor</b></a>
+</blockquote>
+Multiple <a href="#level">level</a> and <a href="#color">color</a>
+specifications can be included in a single command.
+If a color is specified but no levels, the color applies to all existing 
+levels and becomes the default color for the volume model.  
+If levels are given but no color, the model's current default color is used 
+for the levels, and all old levels are removed.  
+If one color and one or more levels are given, that color applies to all 
+levels but does not become the default color.  Otherwise,
+if multiple levels and colors are given, there must be an equal number of each.
+Levels and colors are paired in the order given,
+but they do not need to be interleaved; 
+only the ordering of each type of specification (levels or colors)
+is significant.
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="brightness"><b>brightness</b> <i>value</i></a> 
+  <br>Brightness scales the intensity of the color of the display.  Values
+  can range from 0.01 to 10.0, where <b>1.0</b> (the default) produces no change
+  relative to the <a href="#color">specified colors</a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="transparency"><b>transparency</b> <i>value</i></a>
+  <br>Transparency values range from 0.0 (fully opaque) 
+  to 1.0 (fully transparent).
+  <ul class="circle">
+  <li>For <b>surface</b> and <b>mesh</b> displays, transparency
+  is the fraction of light transmitted from behind the surface or a
+  line of mesh (default <b>0.0</b>).  By default,
+  these objects are dimmed as they are made more transparent
+  (see <a href="#dim"><b>dimTransparency</b></a>.)
+  <li>For <b>solid</b> displays, this transparency setting
+  further modulates initial transparencies obtained from the 
+<a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#transferfunction">transfer function</a>
+in a way that compensates for the thickness of the display
+(<a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#soliddetails">details</a>).
+  Values range from 0.0 (no modulation) to 1.0, default <b>0.5</b>.
+  By default, more transparent voxels are made dimmer
+  (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
+  </ul>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="outline"><b>showOutlineBox</b> true | <b>false</b></a>
+  <br>Outline the bounding box of the 
+  <a href="#dimensions">current display region</a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>outlineBoxRgb</b> <i>outline-color</i>
+  <br>Assign a color to the <a href="#outline">outline box</a>.
+  The <i>outline-color</i> can be any
+  <a href="color.html#colorname">color name</a>
+  that specifies a single color (with any spaces stripped).
+  Any transparency in the color will be ignored.
+  The default color is <b>white</b>.
+</blockquote>
+
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="sampling">Sampling and Size Options</a>
+&nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top">volume</a>&nbsp;<i>model-spec</i>&nbsp;<i>options</i>)</h4>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="step"><b>step</b> <i>N</i> | <i>Nx,Ny,Nz</i></a>
+  <br>Step values indicate sampling density; a step of 1 
+  means all data points are used to generate the display, 
+  while 2 means every other data point is taken along each axis.
+  Step sizes must be integers.  If a single number is supplied, it is
+  used in all three directions; if three numbers are supplied
+  (separated by commas but not spaces), they
+  are used in the X, Y, and Z directions, respectively.
+  Changing a step value will change the data size limit for automatic 
+  step adjustment (see <a href="#voxmax"><b>voxelLimit</b></a>).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="autostep"><b>limitVoxelCount</b> <b>true</b> | false</a>
+  <br>Automatically adjust <a href="#step">step size</a> so that no more
+  than the <a href="#voxmax">specified voxel limit</a> is displayed.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="voxmax"><b>voxelLimit</b> <i>limit</i></a>
+  <br>Set the maximum number of Mvoxels to be displayed (default <b>1.0</b>)
+  when <a href="#autostep"><b>limitVoxelCount</b></a> is set to true.
+</blockquote>
+The remaining options in this section apply to all volume models, 
+regardless of which are <a href="#modelspec">specified</a>:
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="dispopen"><b>showOnOpen</b> <b>true</b> | false</a>
+  <br>Automatically display a data set when it is opened if it does not
+  exceed a <a href="#dispsize">specified size</a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="dispsize"><b>voxelLimitForOpen</b> <i>size</i></a> 
+  <br>Set the data size limit in Mvoxels below which data should be
+  automatically displayed when opened (default <b>256.0</b>) when
+  <a href="#dispopen"><b>showOnOpen</b></a> is set to true.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="dispplane"><b>showPlane</b> <b>true</b> | false</a>
+  <br>Initially display just a single plane (normal to the Z axis) 
+  of a data set if it exceeds a <a href="#planesize">specified size</a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="planesize"><b>voxelLimitForPlane</b> <i>size</i></a>
+  <br>Set the data size limit in Mvoxels above which a single plane of
+  the data should be initially displayed (default <b>256.0</b>) when
+  <a href="#dispplane"><b>showPlane</b></a> is set to true.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>dataCacheSize</b> <i>size</i>
+  <br>Set how much memory in Mb should be dedicated to volume data 
+  (default <b>512</b>).  A cache can improve performance, since accessing 
+  cached data is faster than reading it from disk. 
+  The least recently displayed data values are purged to maintain the specified
+  <i>size</i>. The data cache only accounts for approximately 1/3 to 1/2
+  of the memory used in viewing volume data, as additional memory is 
+  occupied by surfaces and color arrays.
+</blockquote>
+
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="dimensions">Dimension and Scale Options</a>
+&nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top">volume</a>&nbsp;<i>model-spec</i>&nbsp;<i>options</i>)</h4>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>region</b> all | <i>name</i> | <i>i1,j1,k1,i2,j2,k2</i>
+  <br>Show the full data set (specified with <b>all</b>), 
+  or the data region previously <a href="#name">assigned</a>
+  <i>name</i>, or the data region with grid indices 
+  <i>i1&ndash;i2</i> along the X axis,
+  <i>j1&ndash;j2</i> along the Y axis, and
+  <i>k1&ndash;k2</i> along the Z axis.  
+  Grid indices must be integers separated by commas but not spaces.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="name"><b>nameRegion</b> <i>name</i></a>
+  <br>Assign <i>name</i> to the currently displayed region.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="origin"><b>origin</b> <i>x,y,z</i></a>
+  <br>Place the grid origin at coordinates <i>x,y,z</i> (numbers separated
+  by commas but not spaces).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="originIndex"><b>originIndex</b> <i>i,j,k</i></a>
+  <br>Place the coordinate origin (0,0,0)
+   at grid indices <i>i,j,k</i> (numbers separated by commas but not spaces).
+   Fractional and negative values are allowed, as the origin is not 
+   required to coincide with a grid point or even to fall within the grid.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="scale"><b>voxelSize</b> <i>S</i> | <i>Sx,Sy,Sz</i></a>
+  <br>Voxel size indicates the scale of the data set, the spacing of
+  points in units of distance.  If a single number is supplied, it is
+  used in all three directions; if three numbers are supplied 
+  (separated by commas but not spaces), they
+  are used in the X, Y, and Z directions, respectively.
+  The grid is anchored at the coordinate origin 
+  (<a href="#originIndex"><b>originIndex</b></a> remains unchanged).
+</blockquote>
+
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="symmetry"><b>symmetry</b> <i>sym-type</i></a>
+  <br>Assign the specified symmetry to the volume data set.
+  This information is retained in files <a href="#save">saved</a> 
+  in <a href="#chimap">Chimera map</a> format and can be used by 
+  other commands such as <a href="sym.html"><b>sym</b></a>
+  and <a href="fitmap.html"><b>fitmap</b></a>.
+  For automatic symmetry detection and assignment, see the command 
+  <a href="measure.html#symmetry"><b>measure symmetry</b></a>.
+  Specifications of <i>sym-type</i> are case-independent, and
+  most types have additional sub-options or parameters:
+  <ul>
+  <li>symmetry of model <b>#<i>N</i></b>
+  - use <a href="sym.html#biomt">biomt information</a> from a molecule
+  model or the symmetry assignment of another volume model
+    <ul type="none">
+    <li>Example: <b>#4</b>
+    </ul>
+
+  <li><a href="../../ContributedSoftware/cagebuilder/cagebuilder.html">cage
+  model</a> polygon symmetry
+  <b>#<i>N</i>,p<i>M</i></b> or <b>#<i>N</i>,pn<i>M</i></b>
+  - place copies at equivalent positions relative to each M-sided polygon
+  in the <a href="../../ContributedSoftware/cagebuilder/cagebuilder.html">cage
+  model</a> with ID number <b>N</b>.  The <b>p<i>M</i></b> form places
+  one copy per M-sided polygon, whereas <b>pn<i>M</i></b> places M copies per
+  M-sided polygon using C<font size=-1><i>M</i></font> symmetry about the center
+  of the M-sided polygon nearest the original copy.
+    <ul type="none">
+    <li>Examples: <b>#2,p6</b> or <b>#2,pn5</b>
+    </ul>
+
+ <li>cyclic symmetry <b>C<i>n</i></b>
+   around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>C3</b>
+    </ul>
+
+  <li>dihedral symmetry <b>D<i>n</i></b>
+   around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>d7</b>
+    </ul>
+
+  <li>tetrahedral symmetry <b>T[,<i>orientation</i>]</b>
+   around <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>t,z3</b>
+    </ul>
+   where <i>orientation</i> can be:
+   <ul>
+   <li><b>222</b> (default)
+   - with two-fold symmetry axes along the X, Y, and Z axes, a three-fold
+    along axis (1,1,1)
+   <li><b>z3</b> - a three-fold symmetry axis along Z, another three-fold
+   axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
+   symmetry operation (EMAN convention)
+   </ul>
+
+  <li>octahedral symmetry <b>O</b> around <a href="#center">center</a>
+
+  <li>icosahedral symmetry <b>I[,<i>orientation</i>]</b>
+   around <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>i,n25</b>
+    </ul>
+   where <i>orientation</i> can be:
+    <ul>
+    <li><b>222</b> (default)
+    - with two-fold symmetry axes along the X, Y, and Z axes
+    <li><b>2n5</b> - with two-fold symmetry along X and 5-fold along Z
+    <li><b>n25</b> - with two-fold symmetry along Y and 5-fold along Z
+    <li><b>2n3</b> - with two-fold symmetry along X and 3-fold along Z
+    <li><b>222r</b> - same as 222 except rotated 90&deg; about Z
+    <li><b>2n5r</b> - same as 2n5 except rotated 180&deg; about Y
+    <li><b>n25r</b> - same as n25 except rotated 180&deg; about X
+    <li><b>2n3r</b> - same as 2n3 except rotated 180&deg; about Y
+    </ul>
+
+  <li>helical symmetry
+  <b>H,<i>rise,angle,n</i>[,<i>offset</i>]</b>
+  around <a href="#axis">axis</a> and <a href="#center">center</a>
+    <ul type="none">
+    <li>Example: <b>h,43.5,21,6,-2</b>
+    </ul>
+  where <i>rise</i> is the translation along the <a href="#axis">axis</a> per
+  subunit, <i>angle</i> is the rotation in degrees per subunit,
+  and <i>n</i> is how many copies total (including the original)
+  the resulting segment of infinite helix should contain.
+  The integer <i>offset</i> (default <b>0</b>) allows extending the helix in
+  both directions.  The example above would give <i>n</i> = 6 copies total,
+  with two copies in the negative axis direction,
+  one at the identity position, and three in the positive axis direction.
+
+  <li>translational symmetry
+  <b>shift,<i>n,distance</i></b> along <a href="#axis">axis</a>
+  &ndash; or &ndash; <b>shift,<i>n,x,y,z</i></b>
+    <ul type="none">
+    <li>Example: <b>shift,3,26.7</b>
+    </ul>
+  where <i>n</i> is how many copies total (including the original)
+  the result should contain.
+  The translation can be expressed as a
+  <i>distance</i> along the <a href="#axis">axis</a>
+  or as a vector <i>x,y,z</i> in the
+  <a href="#coordinateSystem">reference coordinate system</a>.
+
+  <li>the product of symmetry groups, each specified as described above
+  and separated by <b>*</b> to indicate multiplying each symmetry matrix of one
+  group with each symmetry matrix of another; can be generalized to
+  multiple symmetry groups (not just two)
+    <ul type="none">
+    <li>Example: <b>c2*h,42,21,9,-4</b>
+    </ul>
+  </ul>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="axis"><b>axis</b> <i>axis</i></a>
+  <br>
+  Specify axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
+   <ul>
+   <li><b>x</b> - X-axis
+   <li><b>y</b> - Y-axis
+   <li><b>z</b> - Z-axis
+   <li><i>x,y,z</i>
+   (three values separated by commas only) - an arbitrary vector
+   in the <a href="#coordinateSystem">reference coordinate system</a>
+   <li>an <a href="frameatom_spec.html" target="_top"><i>atom-spec</i></a> of
+   exactly two atoms (not necessarily bonded or in the same model) or one bond.
+   A bond can only be specified by <a href="../selection.html">selecting</a>
+   it and using the word <b>selected</b>, <b>sel</b>, or <b>picked</b>;
+   any atoms also selected at the time will be ignored.
+  </ul>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="center"><b>center</b> <i>center</i></a>
+  <br>
+  Specify center of symmetry in physical coordinates (default <b>0,0,0</b>),
+  where <i>center</i> can be:
+  <ul>
+  <li><i>x,y,z</i>
+   (three values separated by commas only) - an arbitrary point
+  in the <a href="#coordinateSystem">reference coordinate system</a>
+  <li>an <a href="frameatom_spec.html" target="_top"><i>atom-spec</i></a>
+  of any combination of atoms and
+  <a href="atom_spec.html#othermodels">surface pieces</a>.
+  The center of the bounding sphere of the specified items will be used.
+  </ul>
+  This option is overridden by <a href="#centerIndex"><b>centerIndex</b></a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="centerIndex"><b>centerIndex</b>
+  [&nbsp;<i>i</i>&nbsp;|&nbsp;<i>i,j,k</i>&nbsp;]</a>
+  <br>
+  Specify center of symmetry in grid coordinates, given as a single 
+  value or three values separated by commas only.
+  Fractional and negative values can be used.  If a single value is given, 
+  it is used as the grid coordinate along all three axes.
+  This option overrides <a href="#center"><b>center</b></a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="coordinateSystem"><b>coordinateSystem</b> <i>N</i></a>
+  <br>
+  Specify a reference model by model number <i>N</i> preceded by #.
+  The reference coordinate system is used for interpreting specifications of
+  <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
+</blockquote>
+
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="planes">Planes Options</a>
+&nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top">volume</a>&nbsp;<i>model-spec</i>&nbsp;<i>options</i>)</h4>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>planes</b> <i>axis</i>,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]
+  <br>Sequentially display slabs <i>depth</i> planes thick along the
+  specified data <i>axis</i> (<b>x</b>,<b>y</b>, or <b>z</b>) starting from
+  index <i>start</i> and repositioning the slab by <i>increment</i> 
+  grid units per frame until the index at the next frame would 
+  exceed <i>end</i>.  
+  The indices refer to the first displayed plane along the axis.
+  If no <i>end</i> is supplied, only a single slab will be shown.  
+  The default <i>increment</i> and <i>depth</i> are both <b>1</b>.
+  Only planes that are multiples of the <a href="#step">step size</a>
+  will be shown, and the <i>depth</i> refers to the number of planes
+  shown rather than a grid index range.
+  Although an <i>increment</i> smaller than the step size can be specified, 
+  at each frame the grid index will be rounded down to a 
+  multiple of the step size, resulting in the same plane being displayed in
+  more than one frame.  To avoid this, change the step size to 1 beforehand
+  or specify <i>start</i>, <i>end</i> and <i>increment</i> values
+  consistent with the current step size. The <i>start</i>, <i>end</i>,
+  <i>increment</i>, and <i>depth</i> parameters can be floating-point numbers.
+  For example, an <i>increment</i> of 0.25 with step size 1 will show each
+  plane for 4 frames.  See the
+  <a href="http://www.cgl.ucsf.edu/chimera/data/movie-howto-mar2012/movie_examples.html#planes"
+  target="_blank">video mini-example</a>.
+  See also: <a href="vop.html#tile"><b>vop tile</b></a>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="expandSinglePlane"><b>expandSinglePlane</b>&nbsp;true&nbsp;|&nbsp;false</a>
+  <br>
+  Expand a single-plane display
+  along its perpendicular axis to the full thickness of the data.
+  This option does not apply to <a href="#orthoplanes">orthogonal planes</a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="orthoplanes"><b>orthoplanes</b></a>
+  xyz&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xz&nbsp;|&nbsp;off
+  [&nbsp;<b>positionPlanes</b>&nbsp;<i>i,j,k</i>&nbsp;]
+  <br>Display planes perpendicular to the X, Y, and/or Z data axes
+  within the <a href="#dimensions">current region</a>.
+  If only a single plane is shown beforehand, it will be
+  <a href="#expandSinglePlane">expanded</a> to define the region.
+  The <b>positionPlanes</b> option specifies plane locations along the axes 
+  by integer grid indices (default <b>0,0,0</b> or the lowest indices in the
+  <a href="#dimensions">current region</a>).
+  Orthogonal planes automatically use the 
+  <b>solid</b> <a href="#style">display style</a>,
+  opaque <a href="#dispsolid">color mode</a>, 
+  and an <a href="#outline">outline</a>, 
+  although these can be overriden with the corresponding command options. 
+  Turning orthogonal planes <b>off</b> restores the <b>auto8</b>
+  <a href="#dispsolid">color mode</a>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>boxFaces</b>&nbsp;true&nbsp;|&nbsp;false
+  <br>Display orthogonal planes as the six box faces of the
+  <a href="#dimensions">current region</a>.
+  If only a single plane is shown beforehand, it will be
+  <a href="#expandSinglePlane">expanded</a> to define the region.
+  Box-face planes automatically use the
+  <b>solid</b> <a href="#style">display style</a>,
+  opaque <a href="#dispsolid">color mode</a>,   
+  and an <a href="#outline">outline</a>,
+  although these can be overriden with the corresponding command options.
+  Turning box-face planes <b>off</b> restores the <b>auto8</b>
+  <a href="#dispsolid">color mode</a>.
+</blockquote>
+
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="output">File-Saving Options</a>
+&nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top">volume</a>&nbsp;<i>model-spec</i>&nbsp;<i>options</i>)</h4>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="save"><b>save</b> <i>filename</i></a>
+  [ <b>saveStep</b> <i>N</i> | <i>Nx,Ny,Nz</i> ]
+  [&nbsp;<b>saveSubregion</b>&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
+  [&nbsp;<b>maskZone</b>&nbsp;<b>true</b>|false&nbsp;]
+  [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
+  <br>Write the data to a file in
+<a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#mrcout"><b>MRC</b></a> (default), 
+  NetCDF, <a href="#chimap">Chimera map</a>, or BRIX format.
+  The desired format can be indicated with the corresponding
+  <a href="../filetypes.html#volume">filename suffix</a> 
+  <b>.mrc</b>, <b>.nc</b>, <b>.cmap</b> or <b>.cmp</b>, or <b>.brix</b>
+  (overridden by <a href="#format"><b>saveFormat</b></a>).
+  <p>
+  The output pathname <i>filename</i> cannot contain spaces.
+  However, specifying <i>filename</i> as <b>browse</b> or <b>browser</b>
+  will raise a <a href="../opensave.html">dialog</a> for saving the file.
+  Multiple data sets can be written to multiple files by including a 
+  %d integer format specification in <i>filename</i>:
+  <blockquote>
+  <b>volume #2,3,7 save data%d.mrc</b>
+  <br>
+  <b>volume #2,3,7 save data%03d.mrc</b>
+  </blockquote>
+  The first example would generate the files data1.mrc, data2.mrc, 
+  and data3.mrc, while the second would instead use names like data001.mrc.
+  Successive integers starting with <b>baseIndex</b> <i>M</i> (default <b>1</b>)
+  will be used in the new names 
+  regardless of the volume model numbers.  If the format specification is
+  incorrect, <i>filename</i> will be interpreted as the name of a single
+  file.  Only the <a href="#chimap">Chimera map</a> format can accommodate
+  multiple data sets in a single file.
+  </p><p>
+  The output file header will include information for converting
+  between grid indices and Cartesian coordinates,
+  such as the <a href="#origin">origin</a> and <a href="#scale">scale</a>.
+  <ul class="circle">
+  <li><b>saveStep</b> indicates whether to write 
+   the full resolution of the data (step size <b>1</b>, default) or a specified
+<a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#subregiondef">subsample</a>
+  (step size &gt; 1).  Step sizes must be integers.
+  A step size of 1 indicates all data points, 
+  2 indicates every other data point, 3 every third point, <i>etc.</i>
+  If a single number is supplied, it is
+  used along all three axes; if three numbers are supplied
+  (separated by commas but not spaces), they
+  are used along the X, Y, and Z axes, respectively.
+  <li><b>saveSubregion</b> indicates whether to write
+   the full extents of the data or a specified
+  <a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#subregiondef">subregion</a>.  
+  The full extents are specified by <b>all</b>, while
+  a subregion can be specified by <i>name</i> 
+  (previously <a href="#name">assigned</a>) or by grid indices
+  <i>i1&ndash;i2</i> along the X axis,
+  <i>j1&ndash;j2</i> along the Y axis, and
+  <i>k1&ndash;k2</i> along the Z axis.
+  Grid indices must be integers separated by commas but not spaces.
+  If the <b>saveSubregion</b> option is not supplied, the currently displayed 
+  subregion will be written.  
+  In this context, a zone is not considered a subregion.
+  <li>If <b>maskZone</b> is <b>true</b> and zoning is in effect (using
+<a href="../../ContributedSoftware/surfzone/surfzone.html"><b>Surface Zone</b></a> or the
+<a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#zone"><b>Zone</b></a> feature in
+<a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+  target="_top"><b>Volume Viewer</b></a>),
+  data will be written
+  out for a region enclosing the zone, with values outside the zone set to zero.
+  </ul>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="format"><b>saveFormat</b> <b>mrc</b> | netcdf | cmap | dsn6</a>
+  <br>Specify the <a href="#save"><b>save</b></a> format as
+<a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#mrcout"><b>MRC</b></a> (default), 
+  NetCDF, <a href="#chimap">Chimera map</a>, or BRIX; the keywords are the 
+  corresponding <a href="../filetypes.html#volume">filename prefixes</a>.
+  This option overrides any 
+  <a href="../filetypes.html#volume">filename suffix</a> 
+  supplied with <a href="#save"><b>save</b></a>.
+ <p>
+  When <a name="chimap">Chimera map</a> format is <a href="#save">saved</a>:
+  <ul class="circle">
+  <li>multiple data sets can be saved to a single file
+  (multiple models can be <a href="#modelspec">specified</a>)
+  <li>the data layout can be controlled with 
+  <a href="#chunk"><b>chunkShapes</b></a>
+  <li>the file can be compressed with <a href="#compress"><b>compress</b></a>
+  <li>the file will include any <a href="#symmetry">symmetry assignment</a>
+  </ul>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="chunk"><b>chunkShapes</b> <i>order</i></a>
+  <br>Control data layout when <a href="#save">saving</a> Chimera map format.
+  Layout affects the efficiency of later reading the data,
+  primarily a concern for very large data sets (hundreds of Mb).
+  The <i>order</i> can be one or more of the following, 
+  separated by commas but not spaces:
+  <ul class="circle">
+  <li><b>zyx</b> (default)
+  <li>zxy
+  <li>yxz
+  <li>yzx
+  <li>xzy
+  <li>xyz
+  </ul>
+  Data are written in blocks of up to 64 Kb.  The blocks are shaped
+  according to the specified <i>order</i>: 
+  smallest along the first axis and largest along the third.
+  Data planes are read from a file with different efficiencies 
+  depending on their orientations and the layout.
+  For example, from data written in the default order (<b>zyx</b>), XY planes 
+  will be read the most efficiently and YZ planes the least efficiently.
+  When multiple orders are specified, multiple copies of the data are
+  written to the same file.  When the file is read, the most efficient 
+  copy available will be used.
+  Saving a file with an <i>order</i> ending in "z" can be very slow 
+  because one Z-plane is written at a time.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="compress"><b>compress</b> true | <b>false</b></a>
+  <br>Compress the file when <a href="#save">saving</a> Chimera map format.
+  Most useful for volume masks (values 0/1), as other data sets tend to be
+  noisy and compress very little, if at all.
+</blockquote>
+
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="dispsurf">Surface and Mesh Display Options</a>
+&nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top">volume</a>&nbsp;<i>model-spec</i>&nbsp;<i>options</i>)</h4>
+<p>
+The <b>surface</b> and <b>mesh</b> <a href="#style">display styles</a>
+both depict isosurfaces.
+</p>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="smoothing"><b>surfaceSmoothing</b> true | <b>false</b></a>
+  <br>Whether to smooth surface and mesh displays.
+  Smoothing entails moving each vertex
+  a <a href="#smoothfact">specified fraction</a> 
+  of the way toward the average position of its neighbors
+  a <a href="#smoothiter">specified number</a> of times.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="smoothiter"><b>smoothingIterations</b> <i>N</i></a>
+  <br>How many iterations of smoothing to perform (default <b>2</b>)
+  when <a href="#smoothing"><b>surfaceSmoothing</b></a> is set to true.
+  Each vertex is moved once per iteration.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="smoothfact"><b>smoothingFactor</b> <i>f</i></a>
+  <br>How far to move each vertex 
+  when <a href="#smoothing"><b>surfaceSmoothing</b></a> is set to true.
+  In each <a href="#smoothiter">iteration</a>, each vertex
+  is moved a fraction <b><i>f</i></b> (ranging from 0.0 to 1.0,
+  default <b>0.3</b>) of the way toward the average position of the vertices
+  connected to it by triangle edges.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="subdivide"><b>subdivideSurface</b> true | <b>false</b></a>
+  <br>Whether to subdivide each triangle in surface and mesh displays
+  into four smaller triangles a
+  <a href="#sublevels">specified number</a> of times.
+  A triangle is subdivided by connecting the midpoints of its edges.
+  Subdivision can help to produce smoother surfaces 
+  when combined with the <a href="#smoothing"><b>surfaceSmoothing</b></a> 
+  option.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="sublevels"><b>subdivisionLevels</b> <i>j</i></a>
+  <br>How many times to subdivide triangles when
+  <a href="#subdivide"><b>subdivideSurface</b></a> is set to true.
+  The number of triangles is increased by a factor of 
+  4<sup><i>j</i></sup>, where <i>j</i> is a positive integer
+  (default <b>1</b>).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>smoothLines</b> true | <b>false</b>
+  <br>Turn on anti-aliasing to smooth lines in mesh displays.
+  Mesh lines with <a href="#transparency">transparency</a> &gt; 0.0 can 
+  only be smoothed when <a href="#dim"><b>dimTransparency</b></a> is true.
+  A side effect of OpenGL anti-aliasing is that dense meshes 
+ look brighter from some viewpoints and darker from others, depending on the
+  order in which the lines were drawn.  
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>squareMesh</b> <b>true</b> | false
+  <br>Display only a subset of the lines in the triangular mesh.  
+  Lines in the square mesh show the intersection of the 
+  XY, YZ, and XZ grid planes with the contour surface.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+ <b>lineThickness</b> <i>width</i>
+ <br>Set pixel linewidth used in mesh displays. The <i>width</i>
+ must be a positive integer (default <b>1</b>).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="dim"><b>dimTransparency</b> <b>true</b> | false</a>
+  <br>Decrease the brightness of surface and mesh displays as their
+  <a href="#transparency">transparency</a> is increased.
+  When dimming is on, OpenGL (alpha,1&ndash;alpha)
+  blending is used instead of (1,1&ndash;alpha) blending.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="meshlight"><b>meshLighting</b> <b>true</b> | false</a>
+  <br>Make the inside of a mesh-enclosed volume dimmer than the outside
+  by varying the brightness according to the angle
+  between each surface point normal and the line of sight.
+  Brightness is maximal when the outward-facing normal
+  is parallel to the line of sight and pointing at the user
+  (see more on the definition of "outward" under 
+  <a href="#flip"><b>flipNormals</b></a>).
+  When this option is off, brightness is uniform regardless of
+  the angle between the normal and the line of sight.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="two-sided"><b>twoSidedLighting</b> <b>true</b> | false</a>
+  <br>Light both sides of surface displays.
+  Otherwise, only the outside of a surface-enclosed volume will be lit
+  (see more on the definition of "outside" under <a href="#flip">
+  <b>flipNormals</b></a>).
+  The brightness of each lit side varies according to the angle between a
+  surface point normal and the line of sight;
+  brightness is maximal when the normal is parallel to the line of sight.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="flip"><b>flipNormals</b> <b>true</b> | false</a>
+  <br>Affects surface displays when 
+  <a href="#two-sided"><b>twoSidedLighting</b></a> is set to false,
+  mesh displays when
+ <a href="#meshlight"><b>meshLighting</b></a> is set to true.
+  When <b>flipNormals</b> is true,
+  the side toward larger or more positive values is treated
+  as the outside for negative <a href="#threshold">thresholds</a>
+  and the side toward smaller or more negative values is treated 
+  as the outside for positive <a href="#threshold">thresholds</a>
+  (appropriate for data in which the sign is meaningful, 
+  such as <a href="../filetypes.html#esp">electrostatic potential</a>).
+  When <b>flipNormals</b> is false,
+  the side toward smaller or more negative data
+  values is always treated as the outside.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>capFaces</b> <b>true</b> | false
+  <br>Cover the faces of the volume data box where high values would be exposed.
+</blockquote>
+
+<h4><a href="#top" class="nounder"><b>&larr;</b></a>
+<a name="dispsolid">Solid Display Options</a>
+&nbsp;&nbsp;&nbsp;
+(Usage:&nbsp;<a href="#top">volume</a>&nbsp;<i>model-spec</i>&nbsp;<i>options</i>)</h4>
+<p>
+  The <b>solid</b> <a href="#style">display style</a>
+  shows data as a semitransparent solid.
+</p>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>colorMode</b> <i>cmode</i>
+  <br>Specify color pixel format (OpenGL texture format).
+  Possible values of <i>cmode</i> combine 
+  a string describing the types of information:
+  <ul class="circle">
+  <li>rgba - multiple colors and transparency
+  <li>rgb - multiple colors, opaque
+  <li>la - luminance (single color) and transparency
+  <li>l - luminance (single color), opaque
+  <li>auto - set the mode based on the current display
+  </ul>
+  with a number of bits: 4, 8, 12, 16.
+  For example, the default <i>cmode</i> is <b>auto8</b>. 
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="pmode">
+  <b>projectionMode</b> <i>pmode</i></a>
+  <br>Specify projection mode for memory-efficient display of 
+  large data sets such as tomograms.  Possible values of <i>pmode</i>:
+  <ul class="circle">
+  <li><b>auto</b> (default)
+  <li>2d-x
+  <li>2d-y
+  <li>2d-z
+  <li>2d-xyz
+  <li>3d
+  </ul>
+  Displaying just the planes perpendicular to one data axis 
+  (2d-x, 2d-y, or 2d-z) uses less memory than automatically switching
+  to those along the data axis most perpendicular to the screen at a given 
+  time (2d-xyz).  The auto setting uses 2d-z for volumes with X or Y dimensions
+  at least 4 times greater than Z, otherwise 2d-xyz.
+  The 3d option (3D texture mapping) uses planes perpendicular
+  to the current line of sight, which may not lie along any data axis.  
+  If this option is chosen but not supported by the computer hardware, 
+  an empty red outline box will be shown; if it is supported 
+  but the texture is too large, an empty yellow outline box will be shown.  
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>maximumIntensityProjection</b> true | <b>false</b>
+  <br>At each pixel, display the the most intense color value 
+  underlying the pixel along the line of sight.
+  The maximum intensities of the red, green, and blue color components are
+  determined separately, and transparency is ignored.
+  This option can be useful for enhancing detail. Unphysical effects
+  can result, but are usually not very noticeable; examples include
+  the disappearance of a dim spot when it passes in front of a brighter spot
+  and the simulation of a single spot when the maximal values of different
+  color components under the same pixel actually come from different spots.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="dimvox"><b>dimTransparentVoxels</b> <b>true</b> | false</a>
+  <br>Scale voxel brightness in solid displays
+  by a factor of (1&ndash;transparency).
+  Otherwise, increasing the transparency also makes a volume
+  appear brighter, because less light is blocked.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>btCorrection</b> true | <b>false</b>
+  <br>Correct brightness and transparency for the viewing angle.
+  Without this correction, the apparent brightness and transparency
+  of solid displays (in <a href="#pmode">projection modes</a> other than 3d)
+  will depend on the viewing angle relative to the data axes.  
+  For a cube-shaped volume with equal resolution in the X, Y, and Z dimensions,
+  the brightness drops and the transparency increases by a factor of
+  3<sup>1/2</sup> (approximately 1.7)  as the viewing angle is changed
+  from along any axis to along the cube diagonal.
+  The brightness correction remedies this, but doubles rendering time.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>minimalTextureMemory</b> true | <b>false</b>
+  <br>Reuse a single 2D texture for solid displays 
+  (in <a href="#pmode">projection modes</a> other than 3d)
+  instead of allocating
+  separate textures for every plane of the data.  This is useful
+  for viewing large data sets that would otherwise fail to display,
+  but can degrade interactive response.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>linearInterpolation</b> <b>true</b> | false
+  <br>Linearly interpolate brightness and transparency
+  between voxels in solid displays.
+  Turning interpolation off may yield a pixelated appearance
+  but speed up rendering, depending on the graphics hardware.
+</blockquote>
+
+<p>
+See also:
+<a href="open.html"><b>open</b></a>,
+<a href="vop.html"><b>vop</b></a>,
+<a href="mask.html"><b>mask</b></a>,
+<a href="molmap.html"><b>molmap</b></a>,
+<a href="topography.html"><b>topography</b></a>,
+<b><A href="measure.html">measure</A></b>,
+<a href="scolor.html"><b>scolor</b></a>,
+<a href="sym.html"><b>sym</b></a>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="meshmol.html"><b>meshmol</b></a>,
+<a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
+target="_top"><b>Volume Viewer</b></a>
+</p>
+</body></html>
