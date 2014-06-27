@@ -49,13 +49,16 @@ def open_pdb_file_with_image3d(path, session):
 def atom_array(a):
   from ..molecule import atom_dtype
   atoms = a.view(atom_dtype).reshape((len(a),))
+  init_atoms(atoms)
+  return atoms
+
+def init_atoms(atoms):
   satoms = atoms.view('S%d'%atoms.itemsize)     # Need string array for C++ sort routine.
   from .. import _image3d
   _image3d.sort_atoms_by_chain(satoms)
   atoms['atom_shown'] = True
   enums = atoms['element_number']
   atoms['radius'][:] = _image3d.element_radii(enums)
-  return atoms
 
 def open_pdb_file_with_pdbio(path):
   from time import time
