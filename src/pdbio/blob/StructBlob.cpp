@@ -34,11 +34,9 @@ sb_atoms(PyObject* self, void* null)
     PyObject* py_ab = newBlob<AtomBlob>(&AtomBlob_type);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
     StructBlob* sb = static_cast<StructBlob*>(self);
-    for (auto mi = sb->_items->begin(); mi != sb->_items->end(); ++mi) {
-        const AtomicStructure::Atoms& atoms = (*mi).get()->atoms();
-        for (auto ai = atoms.begin(); ai != atoms.end(); ++ai)
-            ab->_items->emplace_back((*ai).get());
-    }
+    for (auto& as: *sb->_items)
+        for (auto& a: as->atoms()) 
+            ab->_items->emplace_back(a.get());
     return py_ab;
 }
 
@@ -89,10 +87,11 @@ sb_structures(PyObject* self, void* null)
     PyObject *struct_list = PyList_New(sb->_items->size());
     StructBlob::ItemsType::size_type i = 0;
     for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
-        PyObject* py_single_sb = PyObject_New(StructBlob, &StructBlob_type);
+        PyObject* py_single_sb = newBlob<StructBlob>(&StructBlob_type);
         PyList_SET_ITEM(struct_list, i++, py_single_sb);
         StructBlob* single_sb = static_cast<StructBlob*>(py_single_sb);
-        single_sb->_items->emplace_back((*si).get());
+        // since it's a shared_ptr, push_back, not emplace_back...
+        single_sb->_items->push_back(*si);
     }
     return struct_list;
 }
