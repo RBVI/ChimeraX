@@ -2,7 +2,14 @@ def open_mmcif_file(path, session):
   '''
   Open an mmCIF file.
   '''
-  from os.path import basename
+  from .pdb import use_pdbio
+  if use_pdbio:
+    m = open_mmcif_file_with_pdbio(path, session)
+  else:
+    m = open_mmcif_file_with_image3d(path, session)
+  return m
+
+def open_mmcif_file_with_image3d(path, session):
   from time import time
   ft0 = time()
   f = open(path, 'r')
@@ -15,6 +22,7 @@ def open_mmcif_file(path, session):
   t1 = time()
   from . import pdb
   atoms = pdb.atom_array(a)
+#  from os.path import basename
 #  session.show_info('Read %s %d atoms at %d per second\n' %
 #                    (basename(path), len(xyz), int(len(xyz)/(ft1-ft0))))
 #  session.show_info('Parsed %s %d atoms at %d per second\n' %
@@ -29,6 +37,33 @@ def open_mmcif_file(path, session):
   from ..molecule import connect
   bonds, missing = connect.molecule_bonds(m, session)
   m.bonds = bonds
+
+  return m
+
+def open_mmcif_file_with_pdbio(path, session):
+  from time import time
+  ft0 = time()
+  f = open(path, 'rb')
+  text = f.read()
+  f.close()
+  ft1 = time()
+  from .. import pdbio
+  t0 = time()
+  sblob = pdbio.parse_mmCIF_file(text)
+  t1 = time()
+
+  from . import pdb
+  atoms, bonds = pdb.structblob_atoms_and_bonds(sblob)
+
+  from ..molecule import Molecule
+  m = Molecule(path, atoms)
+#  m.bonds = bonds
+# TODO: pdbio.parse_mmCIF_file() is not creating bonds
+  from ..molecule import connect
+  bonds, missing = connect.molecule_bonds(m, session)
+  m.bonds = bonds
+
+  m.color_by_chain()
 
   return m
 
