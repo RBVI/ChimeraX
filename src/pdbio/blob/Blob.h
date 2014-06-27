@@ -15,25 +15,25 @@ public:
 };
 
 template <class MolItem>
-class UniqueAPIPointer {
+class SharedAPIPointer {
     MolItem* _ptr;
 public:
-    UniqueAPIPointer(MolItem *ptr): _ptr(ptr) {}
+    SharedAPIPointer(MolItem *ptr): _ptr(ptr) {}
     MolItem* operator->() const { return _ptr; }
     MolItem* get() const { return _ptr; }
 };
 
 template <class MolItem>
-class UniqueBlob: public Blob {
+class SharedBlob: public Blob {
 public:
-    typedef std::vector<std::unique_ptr<MolItem>>  ItemsType;
+    typedef std::vector<std::shared_ptr<MolItem>>  ItemsType;
     ItemsType*  _items;
 };
 
 template <class MolItem>
 class RawBlob: public Blob {
 public:
-    typedef std::vector<UniqueAPIPointer<MolItem>>  ItemsType;
+    typedef std::vector<SharedAPIPointer<MolItem>>  ItemsType;
     ItemsType*  _items;
 };
 
