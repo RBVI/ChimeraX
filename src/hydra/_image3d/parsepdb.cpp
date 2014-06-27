@@ -170,22 +170,29 @@ element_radii(PyObject *s, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 // Ordering function for chain id and residue number.
 //
-static int compare_atom_chains(const void *a1, const void *a2)
+class Atom_Compare
 {
-  const Atom *at1 = static_cast<const Atom *>(a1), *at2 = static_cast<const Atom *>(a2);
-  int ccmp = strncmp(at1->chain_id, at2->chain_id, CHAIN_ID_LEN);
-  if (ccmp == 0)
-    {
-      int r1 = at1->residue_number, r2 = at2->residue_number;
-      ccmp = (r1 < r2 ? -1 : (r1 > r2 ? 1 : 0));
-    }
-  return ccmp;
-}
+public:
+  Atom_Compare(Atom *atoms) : atoms(atoms) {}
+  bool operator() (int i, int j)
+  {
+    const Atom *at1 = &atoms[i], *at2 = &atoms[j];
+    int ccmp = strncmp(at1->chain_id, at2->chain_id, CHAIN_ID_LEN);
+    if (ccmp == 0)
+      {
+	int r1 = at1->residue_number, r2 = at2->residue_number;
+	ccmp = (r1 < r2 ? -1 : (r1 > r2 ? 1 : 0));
+      }
+    return ccmp == -1;
+  }
+private:
+  Atom *atoms;
+};
 
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-sort_atoms_by_chain(PyObject *s, PyObject *args, PyObject *keywds)
+atom_sort_order(PyObject *s, PyObject *args, PyObject *keywds)
 {
   CArray atoms;
   const char *kwlist[] = {"atoms", NULL};
@@ -197,18 +204,22 @@ sort_atoms_by_chain(PyObject *s, PyObject *args, PyObject *keywds)
   int n = atoms.size(0), len = atoms.size(1);
   if (atoms.dimension() != 2)
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be 2 dimensional");
+      PyErr_SetString(PyExc_TypeError, "atom_sort_order(): array must be 2 dimensional");
       return NULL;
     }
   if (!atoms.is_contiguous())
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be contiguous");
+      PyErr_SetString(PyExc_TypeError, "atom_sort_order(): array must be contiguous");
       return NULL;
     }
-  qsort(aa, n, len, compare_atom_chains);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  std::vector<int> order(n);
+  for (int i = 0 ; i < n ; ++i)
+    order[i] = i;
+
+  std::sort(order.begin(), order.end(), Atom_Compare(aa));
+
+  return c_array_to_python(order);
 }
 
 // ----------------------------------------------------------------------------
@@ -246,12 +257,12 @@ residue_ids(PyObject *s, PyObject *args, PyObject *keywds)
   int n = atoms.size(0), len = atoms.size(1);
   if (atoms.dimension() != 2)
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be 2 dimensional");
+      PyErr_SetString(PyExc_TypeError, "residue_ids(): array must be 2 dimensional");
       return NULL;
     }
   if (!atoms.is_contiguous())
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be contiguous");
+      PyErr_SetString(PyExc_TypeError, "residue_ids(): array must be contiguous");
       return NULL;
     }
 
