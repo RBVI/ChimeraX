@@ -87,10 +87,9 @@ def open_pdb_file_with_pdbio(path):
 
 def structblob_atoms_and_bonds(sblob):
 
-  # TODO: sblob.structures currently causes a crash on all tested files 1a0m, 1a0k, 1jj2
-#  sblobs = sblob.structures
-#  if len(sblobs) > 1:
-#    sblob = sblobs[0]   # Take only the first structure in NMR ensembles
+  sblobs = sblob.structures
+  if len(sblobs) > 1:
+    sblob = sblobs[0]   # Take only the first structure in NMR ensembles
 
   ablob = sblob.atoms
   xyz = ablob.coords
