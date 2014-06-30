@@ -8,6 +8,7 @@
 
 #include "parsepdb.h"			// use element_number(), Atom
 #include "pythonarray.h"		// use python_float_array
+#include "stringnum.h"			// use string_to_float()
 
 class mmCIF_Atom
 {
@@ -137,50 +138,6 @@ static const char *parse_atom_site_column_positions(const char *buf, Atom_Site_C
   return line;
 }
 
-inline float mystrtof(const char *s)
-{
-  float fa = 0, v = 0;
-  bool neg = (*s == '-');
-  if (neg)
-    s += 1;
-  while (true)
-    {
-      char c = *s;
-      if (c >= '0' && c <= '9')
-	{
-	  if (fa)
-	    { v += fa * (c-'0'); fa *= 0.1; }
-	  else
-	    v = 10*v + (c-'0');
-	}
-      else if (c == '.')
-	fa = 0.1;
-      else
-	break;
-      s += 1;
-    }
-  return (neg ? -v : v);
-}
-
-inline int mystrtoi(const char *s)
-{
-  bool neg = (*s == '-');
-  int v = 0;
-  if (neg)
-    s += 1;
-  
-  while (true)
-    {
-      char c = *s;
-      if (c >= '0' && c <= '9')
-	v = 10*v + (c-'0');
-      else
-	break;
-      s += 1;
-    }
-  return (neg ? -v : v);
-}
-
 static const char *parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Site_Columns &f)
 {
   int c = 0, fl;
@@ -211,15 +168,15 @@ static const char *parse_atom_site_line(const char *line, mmCIF_Atom &a, Atom_Si
 	for (int i = 0 ; i < fl && i < CHAIN_ID_LEN ; ++i)
 	  ad.chain_id[i] = line[i];
       else if (c == f.label_seq_id)
-	ad.residue_number = mystrtoi(line);
+	ad.residue_number = string_to_integer(line);
       else if (c == f.Cartn_x)
-	ad.x = mystrtof(line);
+	ad.x = string_to_float(line);
       else if (c == f.Cartn_y)
-	ad.y = mystrtof(line);
+	ad.y = string_to_float(line);
       else if (c == f.Cartn_z)
-	ad.z = mystrtof(line);
+	ad.z = string_to_float(line);
       else if (c == f.model_num)
-	a.model_num = mystrtoi(line);
+	a.model_num = string_to_integer(line);
       line += fl;
       if (c >= f.max_column)
 	break;
@@ -274,19 +231,19 @@ static const char *parse_atom_site_line_fixed_fields(const char *line, mmCIF_Ato
     ad.chain_id[i] = f[i];
 
   f = line + fpos[fc.label_seq_id];
-  ad.residue_number = mystrtoi(f);
+  ad.residue_number = string_to_integer(f);
 
   f = line + fpos[fc.Cartn_x];
-  ad.x = mystrtof(f);
+  ad.x = string_to_float(f);
 
   f = line + fpos[fc.Cartn_y];
-  ad.y = mystrtof(f);
+  ad.y = string_to_float(f);
 
   f = line + fpos[fc.Cartn_z];
-  ad.z = mystrtof(f);
+  ad.z = string_to_float(f);
 
   f = line + fpos[fc.model_num];
-  a.model_num = mystrtoi(f);
+  a.model_num = string_to_integer(f);
 
   return line + fpos[fc.max_column];
 }

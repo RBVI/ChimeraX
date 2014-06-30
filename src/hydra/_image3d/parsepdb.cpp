@@ -1,11 +1,12 @@
 //#include <iostream>			// use std:cerr for debugging
-#include <stdlib.h>			// use strtof, strncpy
+#include <stdlib.h>			// use strncpy
 #include <ctype.h>			// use isspace
 #include <string.h>			// use memset
 #include <vector>			// use std::vector
 
 #include "parsepdb.h"			// use Atom
 #include "pythonarray.h"		// use python_float_array
+#include "stringnum.h"			// use string_to_float()
 
 inline bool atom_line(const char *line)
 {
@@ -92,16 +93,16 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
 	  {
 	    memset(&atom, 0, asize);
 	    strncpy(buf, line+30, 8);
-	    atom.x = strtof(buf, NULL);
+	    atom.x = string_to_float(buf);
 	    strncpy(buf, line+38, 8);
-	    atom.y = strtof(buf, NULL);
+	    atom.y = string_to_float(buf);
 	    strncpy(buf, line+46, 8);
-	    atom.z = strtof(buf, NULL);
+	    atom.z = string_to_float(buf);
 	    atom.chain_id[0] = line[21];
 	    int e = (line_len > 76 ? element_number(line + 76) : 0);
 	    atom.element_number = e;
 	    strncpy(buf, line+22, 4);
-	    atom.residue_number = strtol(buf, NULL, 10);
+	    atom.residue_number = string_to_integer(buf);
 	    for (s = 17 ; s < 19 && line[s] == ' ' ; ++s) ;	// Skip leading spaces.
 	    for (e = 19 ; e > 16 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
