@@ -1,4 +1,5 @@
-use_pdbio = True
+#use_pdbio = True
+use_pdbio = False
 
 def open_pdb_file(path, session):
   '''
@@ -18,25 +19,26 @@ def open_pdb_file_with_image3d(path, session):
   f.close()
   ft1 = time()
   from .. import _image3d
-  a = _image3d.parse_pdb_file(text)
+  matoms = _image3d.parse_pdb_file(text)
   t1 = time()
-  atoms = atom_array(a)
-  from ..molecule import Molecule
-  m = Molecule(path, atoms)
-  m.pdb_text = text
-  m.color_by_chain()
-  from ..molecule import connect
-  t2 = time()
-  bonds, missing = connect.molecule_bonds(m, session)
-  m.bonds = bonds
+  mols = []
+  from ..molecule import Molecule, connect
+  for a in matoms:
+    atoms = atom_array(a)
+    m = Molecule(path, atoms)
+    m.pdb_text = text
+    m.color_by_chain()
+    bonds, missing = connect.molecule_bonds(m, session)
+    m.bonds = bonds
+    mols.append(m)
   t3 = time()
-  from os.path import basename
+#  from os.path import basename
 #  print ('image3d', basename(path), 'read time', '%.3f' % (ft1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(ft1-t0)))
-  t = (t1-t0)+(t3-t2)
+#  t = (t1-t0)+(t3-t2)
 #  print('image3d', basename(path), 'read+parse time', '%.3f' % t, 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/t))
-  print(basename(path), len(atoms), 'atoms')
+#  print(basename(path), len(atoms), 'atoms')
 
-  return m
+  return mols
 
 # Convert numpy byte array of C Atom structure to a numpy structured array.
 def atom_array(a):
@@ -72,18 +74,19 @@ def open_pdb_file_with_pdbio(path):
   from .. import pdbio
   sblob = pdbio.read_pdb_file(f)
   f.close()
-
-  atoms, bonds = structblob_atoms_and_bonds(sblob)
   t1 = time()
+#  print('pdbio', path, 'read+parse time', '%.3f' % (t1-t0), 'atoms', len(atoms), 'atoms/sec', int(len(atoms)/(t1-t0)))
 
+  mols = []
   from ..molecule import Molecule
-  m = Molecule(path, atoms)
-  print('pdbio', path, 'read+parse time', '%.3f' % (t1-t0), 'atoms', len(atoms), 'atoms/sec', int(len(atoms)/(t1-t0)))
-  m.bonds = bonds
+  for sb in sblob.structures:
+    atoms, bonds = structblob_atoms_and_bonds(sb)
+    m = Molecule(path, atoms)
+    m.bonds = bonds
+    m.color_by_chain()
+    mols.append(m)
 
-  m.color_by_chain()
-
-  return m
+  return mols
 
 def structblob_atoms_and_bonds(sblob):
 
@@ -124,5 +127,5 @@ def load_pdb_local(id, session, pdb_dir = '/usr/local/pdb'):
     p = join(pdb_dir, id[1:3].lower(), 'pdb%s.ent' % id.lower())
     if not exists(p):
       return None
-    m = open_pdb_file(p, session)
-    return m
+    mols = open_pdb_file(p, session)
+    return mols

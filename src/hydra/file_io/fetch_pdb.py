@@ -22,13 +22,12 @@ def fetch_pdb(id, session, ignore_cache = False, file_format = 'pdb'):
 
     if file_format == 'pdb':
         from .pdb import open_pdb_file
-        m = open_pdb_file(path, session)
+        mols = open_pdb_file(path, session)
     elif file_format == 'mmcif':
         from .mmcif import open_mmcif_file
-        m = open_mmcif_file(path, session)
-    m.database_fetch = (id, file_format)
-    from ..molecule import Molecule
-    return [m] if isinstance(m, Molecule) else m
+        mols = open_mmcif_file(path, session)
+    mols[0].database_fetch = (id, file_format)
+    return mols
 
 # -----------------------------------------------------------------------------
 #

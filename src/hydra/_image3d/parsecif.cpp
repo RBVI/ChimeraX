@@ -69,7 +69,7 @@ static const char *next_line(const char *line)
   return (*line == '\n' ? line+1 : line);
 }
 
-static bool parse_mmcif_atoms(const char *buf, std::vector<mmCIF_Atom> &atoms)
+static bool parse_mmcif_atoms(const char *buf, std::vector<mmCIF_Atom> &atoms, std::vector<int> &molstart)
 {
   Atom_Site_Columns fields;
   const char *line = parse_atom_site_column_positions(buf, fields);
@@ -80,6 +80,7 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<mmCIF_Atom> &atoms)
     }
   bool assume_fixed_fields = true;
   int *fpos = NULL;
+  int mnum = -1;
   for ( ; strncmp(line, "ATOM", 4) == 0 || strncmp(line, "HETATM", 6) == 0 ; line = next_line(line))
     {
       mmCIF_Atom a;
@@ -95,9 +96,12 @@ static bool parse_mmcif_atoms(const char *buf, std::vector<mmCIF_Atom> &atoms)
       else
 	line = parse_atom_site_line(line, a, fields);
 
-      if (a.model_num > 1)
-	break;	// TODO: Currently skip all but first model.
-      if (atoms.size() > 0 &&
+      if (a.model_num > mnum)
+	{
+	  molstart.push_back(atoms.size());
+	  mnum = a.model_num;
+	}
+      if (atoms.size() > molstart.back() &&
 	  a.alt_loc != atoms.back().alt_loc &&
 	  a.same_atom(atoms.back()))
 	continue;	// TODO: Currently skipping alternate locations.
@@ -260,18 +264,26 @@ parse_mmcif_file(PyObject *s, PyObject *args, PyObject *keywds)
     return NULL;
 
   std::vector<mmCIF_Atom> atoms;
-  if (!parse_mmcif_atoms(mmcif_text, atoms))
+  std::vector<int> molstart;
+  if (!parse_mmcif_atoms(mmcif_text, atoms, molstart))
     {
       PyErr_SetString(PyExc_ValueError, "parse_mmcif_file: error parsing file");
       return NULL;
-
     }
 
-  size_t na = atoms.size(), asize = sizeof(Atom);
-  char *adata;
-  PyObject *atoms_py = python_char_array(na, asize, &adata);
-  for (int i = 0 ; i < na ; ++i)
-    memcpy(adata + i*asize, &atoms[i].atom, asize);
+  int nm = molstart.size();
+  PyObject *mol_atoms = PyTuple_New(nm);
+  size_t ta = atoms.size(), asize = sizeof(Atom);
+  for (int m = 0 ; m < nm ; ++m)
+    {
+      char *adata;
+      int ms = molstart[m];
+      int na = (m < nm-1 ? molstart[m+1]-ms : ta-ms);
+      PyObject *atoms_py = python_char_array(na, asize, &adata);
+      for (int i = 0 ; i < na ; ++i)
+	memcpy(adata + i*asize, &atoms[ms+i].atom, asize);
+      PyTuple_SetItem(mol_atoms, m, atoms_py);
+    }
 
-  return atoms_py;
+  return mol_atoms;
 }

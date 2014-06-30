@@ -74,7 +74,7 @@ static void element_radii(int *element_nums, long n, long stride, float *radii)
     }
 }
 
-static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
+static void parse_pdb(const char *pdb, std::vector<Atom> &atoms, std::vector<int> &molstart)
 {
   char buf[9];
   buf[8] = '\0';
@@ -82,14 +82,15 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
   char last_alt_loc = ' ';
   size_t asize = sizeof(Atom);
   Atom atom;
+  molstart.push_back(0);
   for (int i = 0 ; pdb[i] ; i = ni)
     {
       	const char *line = pdb + i;
 	ni = next_line(pdb, i);
 	int line_len = ni - i;
 	if (strncmp(line, "ENDMDL", 6) == 0)
-	  return;	// Only parse the first model in the file.
-	if (atom_line(line) && line_len > 46)
+	  molstart.push_back(atoms.size());
+	else if (atom_line(line) && line_len > 46)
 	  {
 	    memset(&atom, 0, asize);
 	    strncpy(buf, line+30, 8);
@@ -111,7 +112,7 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
 	    for (e = 15 ; e > 11 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
 	      strncpy(atom.atom_name, line+s, e-s+1);
-	    if (!atoms.empty() && line[16] != last_alt_loc)
+	    if (atoms.size() > molstart.back() && line[16] != last_alt_loc)
 	      {
 		const Atom &prev_atom = atoms.back();
 		if (atom.residue_number == prev_atom.residue_number &&
@@ -124,6 +125,8 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
 	    atoms.push_back(atom);
 	  }
     }
+  if (molstart.back() >= atoms.size())
+    molstart.pop_back();
 }
 
 // ----------------------------------------------------------------------------
@@ -138,14 +141,23 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
     return NULL;
 
   std::vector<Atom> atoms;
-  parse_pdb(pdb_text, atoms);
+  std::vector<int> molstart;
+  parse_pdb(pdb_text, atoms, molstart);
 
-  size_t na = atoms.size(), asize = sizeof(Atom);
-  char *adata;
-  PyObject *atoms_py = python_char_array(na, asize, &adata);
-  memcpy(adata, atoms.data(), na*asize);
+  int nm = molstart.size();
+  PyObject *mol_atoms = PyTuple_New(nm);
+  size_t ta = atoms.size(), asize = sizeof(Atom);
+  for (int m = 0 ; m < nm ; ++m)
+    {
+      char *adata;
+      int ms = molstart[m];
+      int na = (m < nm-1 ? molstart[m+1]-ms : ta-ms);
+      PyObject *atoms_py = python_char_array(na, asize, &adata);
+      memcpy(adata, atoms.data() + ms, na*asize);
+      PyTuple_SetItem(mol_atoms, m, atoms_py);
+    }
 
-  return atoms_py;
+  return mol_atoms;
 }
 
 // ----------------------------------------------------------------------------
