@@ -74,6 +74,7 @@ class Commands:
         fields = text.split(maxsplit = 1)
         if len(fields) == 0:
             return
+        self.history.add_to_command_history(text)
         cmd = fields[0]
         cab = self.cmdabbrev
         if cab is None:
@@ -90,7 +91,6 @@ class Commands:
                 failed = True
             if not failed:
                 ses.log.insert_graphics_image()
-            self.history.add_to_command_history(text)
         else:
             ses.show_status('Unknown command %s' % cmd)
 
