@@ -3,6 +3,7 @@
 #include "AtomBlob.h"
 #include "ResBlob.h"
 #include "atomstruct/Bond.h"
+#include "numpy_common.h"
 #include <map>
 #include <stddef.h>
 
@@ -58,6 +59,7 @@ sb_atoms_bonds(PyObject* self, void* null)
         AtomicStructure *s = (*si).get();
         bonds_size += s->bonds().size();
     }
+#ifdef BONDS_AS_LIST
     i = 0;
     PyObject *bond_list = PyList_New(bonds_size);
     for (auto si = s_items->begin(); si != s_items->end(); ++si) {
@@ -74,6 +76,31 @@ sb_atoms_bonds(PyObject* self, void* null)
                 PyLong_FromLong(atom_map[b_atoms[1]]));
         }
     }
+#else  // as numpy
+    constexpr int bsize_type = sizeof(AtomicStructure::Bonds::size_type);
+    static_assert(bsize_type == sizeof(unsigned int)
+        || bsize_type == sizeof(unsigned long)
+        || bsize_type == sizeof(unsigned long long),
+        "Need to handle more Numpy size types");
+    int numpy_type;
+    if (bsize_type == sizeof(unsigned int))
+        numpy_type = NPY_UINT;
+    else if (bsize_type == sizeof(unsigned long))
+        numpy_type = NPY_ULONG;
+    else
+        numpy_type = NPY_ULONGLONG;
+    unsigned int shape[2] = {(unsigned int)bonds_size, 2};
+    PyObject* bond_list = allocate_python_array(2, shape, numpy_type);
+    AtomicStructure::Bonds::size_type* index_data =
+        (AtomicStructure::Bonds::size_type*) PyArray_DATA(
+        (PyArrayObject*)bond_list);
+    for (auto& as: *s_items) {
+        for (auto& b: as->bonds()) {
+            *index_data++ = atom_map[b->atoms()[0]];
+            *index_data++ = atom_map[b->atoms()[1]];
+        }
+    }
+#endif
     PyObject *ret_val = PyTuple_New(2);
     PyTuple_SET_ITEM(ret_val, 0, py_ab);
     PyTuple_SET_ITEM(ret_val, 1, bond_list);
@@ -117,7 +144,12 @@ static PyMethodDef StructBlob_methods[] = {
 static PyGetSetDef StructBlob_getset[] = {
     { "atoms", sb_atoms, NULL, "AtomBlob", NULL},
     { "atoms_bonds", sb_atoms_bonds, NULL,
-        "2-tuple of (AtomBlob, list of atom-index 2-tuples)", NULL},
+#ifdef BONDS_AS_LIST
+        "2-tuple of (AtomBlob, list of atom-index 2-tuples)",
+#else
+        "2-tuple of (AtomBlob, numpy Nx2 array of atom indices)",
+#endif
+    NULL},
     { "structures", sb_structures, NULL,
         "list of one-structure-model StructBlobs", NULL},
     { "residues", sb_residues, NULL, "ResBlob", NULL},
