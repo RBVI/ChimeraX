@@ -100,9 +100,8 @@ def structblob_atoms_and_bonds(sblob):
   cids = rblob.chain_ids
   rnames = rblob.names
   rnums = rblob.numbers
-  from numpy import array, int32, empty, zeros
-  bondlist = sblob.atoms_bonds[1]
-  bonds = array(bondlist, int32) if bondlist else empty((0,2),int32)
+  from numpy import int32, empty, zeros
+  bonds = sblob.atoms_bonds[1].astype(int32)    # Getting uint64
 
   from ..molecule import atom_dtype
   atoms = zeros((n,), atom_dtype)
