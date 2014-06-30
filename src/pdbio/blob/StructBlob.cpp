@@ -82,6 +82,7 @@ sb_atoms_bonds(PyObject* self, void* null)
         || bsize_type == sizeof(unsigned long)
         || bsize_type == sizeof(unsigned long long),
         "Need to handle more Numpy size types");
+    initialize_numpy();
     int numpy_type;
     if (bsize_type == sizeof(unsigned int))
         numpy_type = NPY_UINT;
