@@ -7,6 +7,8 @@
 inline float string_to_float(const char *s)
 {
   float fa = 0, v = 0;
+  while(*s == ' ')
+    s += 1;
   bool neg = (*s == '-');
   if (neg)
     s += 1;
@@ -31,11 +33,12 @@ inline float string_to_float(const char *s)
 
 inline int string_to_integer(const char *s)
 {
+  while(*s == ' ')
+    s += 1;
   bool neg = (*s == '-');
   int v = 0;
   if (neg)
     s += 1;
-  
   while (true)
     {
       char c = *s;
