@@ -119,7 +119,7 @@ class Command_History:
             f.close()
         else:
             h = []
-        self.commands = h
+        self.commands = remove_repeats(h)
         self.file_lines = len(h)
 
     def save_command_history(self, filename = 'commands'):
@@ -203,6 +203,17 @@ class Command_History:
 
     def show_next_command(self):
         self.show_previous_command(step = 1)
+
+# -----------------------------------------------------------------------------
+#
+def remove_repeats(strings):
+    us = []
+    sprev = None
+    for s in strings:
+        if s != sprev:
+            us.append(s)
+            sprev = s
+    return us
 
 # -----------------------------------------------------------------------------
 #
