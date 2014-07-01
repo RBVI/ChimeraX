@@ -3,6 +3,7 @@
 #include "AtomBlob.h"
 #include "ResBlob.h"
 #include "atomstruct/Bond.h"
+#include "numpy_common.h"
 #include <map>
 #include <stddef.h>
 
@@ -34,11 +35,9 @@ sb_atoms(PyObject* self, void* null)
     PyObject* py_ab = newBlob<AtomBlob>(&AtomBlob_type);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
     StructBlob* sb = static_cast<StructBlob*>(self);
-    for (auto mi = sb->_items->begin(); mi != sb->_items->end(); ++mi) {
-        const AtomicStructure::Atoms& atoms = (*mi).get()->atoms();
-        for (auto ai = atoms.begin(); ai != atoms.end(); ++ai)
-            ab->_items->emplace_back((*ai).get());
-    }
+    for (auto& as: *sb->_items)
+        for (auto& a: as->atoms()) 
+            ab->_items->emplace_back(a.get());
     return py_ab;
 }
 
@@ -60,6 +59,7 @@ sb_atoms_bonds(PyObject* self, void* null)
         AtomicStructure *s = (*si).get();
         bonds_size += s->bonds().size();
     }
+#ifdef BONDS_AS_LIST
     i = 0;
     PyObject *bond_list = PyList_New(bonds_size);
     for (auto si = s_items->begin(); si != s_items->end(); ++si) {
@@ -76,6 +76,22 @@ sb_atoms_bonds(PyObject* self, void* null)
                 PyLong_FromLong(atom_map[b_atoms[1]]));
         }
     }
+#else  // as numpy
+    // since the type of the shape array is unsigned int, don't bother
+    // with sophisticated code to determine the size of indices, just
+    // use NPY_INT, (not unsigned so that the Python code can do tricks
+    // if it likes by using negative indices)
+    initialize_numpy();
+    unsigned int shape[2] = {(unsigned int)bonds_size, 2};
+    PyObject* bond_list = allocate_python_array(2, shape, NPY_INT);
+    int* index_data = (int*) PyArray_DATA((PyArrayObject*)bond_list);
+    for (auto& as: *s_items) {
+        for (auto& b: as->bonds()) {
+            *index_data++ = atom_map[b->atoms()[0]];
+            *index_data++ = atom_map[b->atoms()[1]];
+        }
+    }
+#endif
     PyObject *ret_val = PyTuple_New(2);
     PyTuple_SET_ITEM(ret_val, 0, py_ab);
     PyTuple_SET_ITEM(ret_val, 1, bond_list);
@@ -89,10 +105,11 @@ sb_structures(PyObject* self, void* null)
     PyObject *struct_list = PyList_New(sb->_items->size());
     StructBlob::ItemsType::size_type i = 0;
     for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
-        PyObject* py_single_sb = PyObject_New(StructBlob, &StructBlob_type);
+        PyObject* py_single_sb = newBlob<StructBlob>(&StructBlob_type);
         PyList_SET_ITEM(struct_list, i++, py_single_sb);
         StructBlob* single_sb = static_cast<StructBlob*>(py_single_sb);
-        single_sb->_items->emplace_back((*si).get());
+        // since it's a shared_ptr, push_back, not emplace_back...
+        single_sb->_items->push_back(*si);
     }
     return struct_list;
 }
@@ -118,7 +135,12 @@ static PyMethodDef StructBlob_methods[] = {
 static PyGetSetDef StructBlob_getset[] = {
     { "atoms", sb_atoms, NULL, "AtomBlob", NULL},
     { "atoms_bonds", sb_atoms_bonds, NULL,
-        "2-tuple of (AtomBlob, list of atom-index 2-tuples)", NULL},
+#ifdef BONDS_AS_LIST
+        "2-tuple of (AtomBlob, list of atom-index 2-tuples)",
+#else
+        "2-tuple of (AtomBlob, numpy Nx2 array of atom indices)",
+#endif
+    NULL},
     { "structures", sb_structures, NULL,
         "list of one-structure-model StructBlobs", NULL},
     { "residues", sb_residues, NULL, "ResBlob", NULL},

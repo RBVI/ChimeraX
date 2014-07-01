@@ -1,13 +1,16 @@
 // vim: set expandtab ts=4 sw=4:
 
-#include "MolResId.h"
 #include <algorithm>
+#include <map>
+#include <stdlib.h>
+
 #include "atomstruct/Atom.h"
 #include "atomstruct/Residue.h"
 #include "atomstruct/AtomicStructure.h"
 #include "atomstruct/tmpl/Residue.h"
 #include "atomstruct/tmpl/Atom.h"
 #include "atomstruct/tmpl/residues.h"
+#include "MolResId.h"
 
 namespace connectivity {
 
@@ -60,7 +63,7 @@ init_standard_residues()
 
 //TODO: these 3 funcs need to be wrapped also
 bool
-standard_residue(const std::string &name)
+standard_residue(const std::string& name)
 {
     if (standard_residues.empty())
         init_standard_residues();
@@ -68,7 +71,7 @@ standard_residue(const std::string &name)
 }
 
 void
-add_standard_residue(const std::string &name)
+add_standard_residue(const std::string& name)
 {
     if (standard_residues.empty())
         init_standard_residues();
@@ -76,7 +79,7 @@ add_standard_residue(const std::string &name)
 }
 
 void
-remove_standard_residue(const std::string &name)
+remove_standard_residue(const std::string& name)
 {
     if (standard_residues.empty())
         init_standard_residues();
@@ -84,7 +87,7 @@ remove_standard_residue(const std::string &name)
 }
 
 inline static void
-add_bond(Atom *a1, Atom *a2)
+add_bond(Atom* a1, Atom* a2)
 {
     if (!a1->connects_to(a2))
         (void) a1->structure()->new_bond(a1, a2);
@@ -94,7 +97,7 @@ add_bond(Atom *a1, Atom *a2)
 //    Are given atoms close enough to bond?  If so, return bond distance,
 // otherwise return zero.
 static float
-bonded_dist(Atom *a, Atom *b)
+bonded_dist(Atom* a, Atom* b)
 {
     float bond_len = Element::bond_length(a->element(), b->element());
     if (bond_len == 0.0)
@@ -112,8 +115,8 @@ bonded_dist(Atom *a, Atom *b)
 // hydrogen or lone pair more than once, nor connect to one that's already
 // bonded.
 static void
-connect_atom_by_distance(Atom *a, const Residue::Atoms &atoms,
-    Residue::Atoms::const_iterator &a_it, std::set<Atom *> *conect_atoms)
+connect_atom_by_distance(Atom* a, const Residue::Atoms& atoms,
+    Residue::Atoms::const_iterator& a_it, std::set<Atom *>* conect_atoms)
 {
     float short_dist = 0.0;
     Atom *close_atom = NULL;
@@ -152,7 +155,7 @@ connect_atom_by_distance(Atom *a, const Residue::Atoms &atoms,
 //    Takes into account alternate atom locations.  'conect_atoms' are
 //    atoms whose connectivity is already known.
 static void
-connect_residue_by_distance(Residue *r, std::set<Atom *> *conect_atoms)
+connect_residue_by_distance(Residue* r, std::set<Atom *>* conect_atoms)
 {
     // connect up atoms in residue by distance
     const Residue::Atoms &atoms = r->atoms();
@@ -170,8 +173,8 @@ connect_residue_by_distance(Residue *r, std::set<Atom *> *conect_atoms)
 //    Connect bonds in residue according to the given template.  Takes into
 //    acount alternate atom locations.
 static void
-connect_residue_by_template(Residue *r, const tmpl::Residue *tr,
-                        std::set<Atom *> *conect_atoms)
+connect_residue_by_template(Residue* r, const tmpl::Residue* tr,
+                        std::set<Atom *>* conect_atoms)
 {
     // foreach atom in residue
     //    connect up like atom in template
@@ -210,11 +213,25 @@ connect_residue_by_template(Residue *r, const tmpl::Residue *tr,
     connect_residue_by_distance(r, &known_connectivity);
 }
 
+static std::map<Element, unsigned long>  _saturationMap = {
+    {Element::H, 1},
+    {Element::O, 2}
+};
+static bool
+saturated(Atom* a)
+{
+    auto info = _saturationMap.find(a->element());
+    if (info == _saturationMap.end())
+        return a->bonds().size() >= 4;
+    return a->bonds().size() >= (*info).second;
+
+}
+
 // find_closest:
 //    Find closest heavy atom to given heavy atom with residue that has
 //    the same alternate location identifier (or none) and optionally return
 static Atom *
-find_closest(Atom *a, Residue *r, float *ret_dist_sq)
+find_closest(Atom* a, Residue* r, float* ret_dist_sq, bool nonSaturated=false)
 {
     if (a == NULL)
         return NULL;
@@ -230,6 +247,8 @@ find_closest(Atom *a, Residue *r, float *ret_dist_sq)
     for (; ai != r_atoms.end(); ++ai) {
         Atom *oa = *ai;
         if (oa->element().number() == 1)
+            continue;
+        if (nonSaturated && saturated(oa))
             continue;
         if ((a->residue() == r && a->name() == oa->name()))
             continue;
@@ -248,7 +267,7 @@ find_closest(Atom *a, Residue *r, float *ret_dist_sq)
 // add_bond_nearest_pair:
 //    Add a bond between two residues.
 static void
-add_bond_nearest_pair(Residue *from, Residue *to, bool any_length=true)
+add_bond_nearest_pair(Residue* from, Residue* to, bool any_length=true)
 {
     Atom    *fsave = NULL, *tsave = NULL;
     float    dist_sq = 0.0;
@@ -259,7 +278,9 @@ add_bond_nearest_pair(Residue *from, Residue *to, bool any_length=true)
         float    new_dist_sq;
 
         Atom *a = *ai;
-        Atom *b = find_closest(a, to, &new_dist_sq);
+        if (saturated(a))
+            continue;
+        Atom *b = find_closest(a, to, &new_dist_sq, true);
         if (b == NULL)
             continue;
         if (fsave == NULL || new_dist_sq < dist_sq) {
@@ -276,10 +297,10 @@ add_bond_nearest_pair(Residue *from, Residue *to, bool any_length=true)
 }
 
 static bool
-hookup(Atom *a, Residue *res, bool definitely_connect=true)
+hookup(Atom* a, Residue* res, bool definitely_connect=true)
 {
     bool made_connection = false;
-    Atom *b = find_closest(a, res, NULL);
+    Atom *b = find_closest(a, res, NULL, true);
     if (!definitely_connect && b->coord().sqdistance(a->coord()) > 9.0)
         return false;
     if (b != NULL) {
@@ -293,9 +314,9 @@ hookup(Atom *a, Residue *res, bool definitely_connect=true)
 //    Connect atoms in structure by template if one is found, or by distance.
 //    Adjacent residues are connected if appropriate.
 void
-connect_structure(AtomicStructure *as, std::vector<Residue *> *start_residues,
-    std::vector<Residue *> *end_residues, std::set<Atom *> *conect_atoms,
-    std::set<MolResId> *mod_res)
+connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
+    std::vector<Residue *>* end_residues, std::set<Atom *>* conect_atoms,
+    std::set<MolResId>* mod_res)
 {
     // walk the residues, connecting residues as appropriate and
     // connect the atoms within the residue
@@ -335,8 +356,15 @@ connect_structure(AtomicStructure *as, std::vector<Residue *> *start_residues,
                     || link_atom_name != "");
                 Atom *chief = r->find_atom(tr->chief()->name());
                 if (chief != NULL) {
-                    if (link_atom != NULL) {
-                        add_bond(link_atom, chief);
+                    // 1vqn, chain 5, is a nucleic/amino acid
+                    // hybrid with the na/aa connectivity in
+                    // CONECT records; prevent also adding a
+                    // chief-link bond
+                    if (saturated(chief)) {
+                        made_connection = true;
+                    } if (link_atom != NULL) {
+                        if (!saturated(link_atom))
+                            add_bond(link_atom, chief);
                         made_connection = true;
                     } else {
                         made_connection = hookup(chief, link_res, definitely_connect);
@@ -410,6 +438,34 @@ connect_structure(AtomicStructure *as, std::vector<Residue *> *start_residues,
         bi != break_these.end(); ++bi) {
             Bond *b = *bi;
             as->delete_bond(b);
+        }
+    } else {
+        // turn long inter-residue bonds into "missing structure" pseudobonds
+        std::vector<Bond*> long_bonds;
+        for (auto& b: as->bonds()) {
+            Atom* a1 = b->atoms()[0];
+            Atom* a2 = b->atoms()[1];
+            Residue* r1 = a1->residue();
+            Residue* r2 = a2->residue();
+            if (r1 == r2)
+                continue;
+            if (r1->chain_id() == r2->chain_id()
+            && abs(r1->position() - r2->position()) < 2)
+                continue;
+            auto idealBL = Element::bond_length(a1->element(), a2->element());
+            if (b->sqlength() >= 3.0625 * idealBL * idealBL)
+                // 3.0625 == 1.75 squared
+                // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
+                // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
+                // to not be classified as missing seqments)
+                long_bonds.push_back(b.get());
+        }
+        if (long_bonds.size() > 0) {
+            auto pbg = as->pb_mgr().get_group("missing structure", true);
+            for (auto lb: long_bonds) {
+                pbg->newPseudoBond(lb->atoms());
+                as->delete_bond(lb);
+            }
         }
     }
 }

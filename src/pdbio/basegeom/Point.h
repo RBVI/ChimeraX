@@ -8,7 +8,7 @@
 
 namespace basegeom {
     
-class BASE_GEOM_IMEX Point {
+class BASEGEOM_IMEX Point {
     Real  _xyz[3];
 public:
     Point(Real x, Real y, Real z) {

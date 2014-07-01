@@ -12,9 +12,9 @@
 
 namespace atomstruct {
 
-AtomicStructure::AtomicStructure():
-    _active_coord_set(NULL), asterisks_translated(false),
-    lower_case_chains(false), pdb_version(0), is_traj(false), _chains(nullptr)
+AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
+    asterisks_translated(false), _being_destroyed(false), _cs_pb_mgr(this),
+    lower_case_chains(false), _pb_mgr(this), pdb_version(0), is_traj(false)
 {
 }
 
@@ -136,18 +136,6 @@ AtomicStructure::best_alt_locs() const
     return best_locs;
 }
 
-void
-AtomicStructure::delete_bond(Bond *b)
-{
-    try {
-        delete_edge(b);
-    } catch (std::invalid_argument &e) {
-        throw std::invalid_argument("delete_bond called for Bond not in AtomicStructure");
-    }
-    b->atoms()[0]->remove_bond(b);
-    b->atoms()[1]->remove_bond(b);
-}
-
 CoordSet *
 AtomicStructure::find_coord_set(int id) const
 {
@@ -230,7 +218,7 @@ AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info) const
 }
 
 Atom *
-AtomicStructure::new_atom(std::string &name, Element e)
+AtomicStructure::new_atom(const std::string &name, Element e)
 {
     Atom *a = new Atom(this, name, e);
     add_vertex(a);
@@ -278,7 +266,7 @@ AtomicStructure::new_coord_set(int index)
 {
     if (!_coord_sets.empty())
         return new_coord_set(index, _coord_sets.back()->coords().size());
-    std::unique_ptr<CoordSet> cs(new CoordSet(index));
+    std::unique_ptr<CoordSet> cs(new CoordSet(this, index));
     CoordSet* retval = cs.get();
     _coord_set_insert(_coord_sets, cs, index);
     return retval;
@@ -287,15 +275,15 @@ AtomicStructure::new_coord_set(int index)
 CoordSet*
 AtomicStructure::new_coord_set(int index, int size)
 {
-    std::unique_ptr<CoordSet> cs(new CoordSet(index, size));
+    std::unique_ptr<CoordSet> cs(new CoordSet(this, index, size));
     CoordSet* retval = cs.get();
     _coord_set_insert(_coord_sets, cs, index);
     return retval;
 }
 
 Residue*
-AtomicStructure::new_residue(std::string &name, std::string &chain, int pos,
-    char insert, Residue *neighbor, bool after)
+AtomicStructure::new_residue(const std::string &name, const std::string &chain,
+    int pos, char insert, Residue *neighbor, bool after)
 {
     if (neighbor == NULL) {
         _residues.emplace_back(new Residue(this, name, chain, pos, insert));

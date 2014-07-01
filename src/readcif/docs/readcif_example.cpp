@@ -1,0 +1,267 @@
+#include "readcif.h"
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
+using std::string;
+using std::vector;
+using namespace readcif;
+
+#define MAX_CHAR_ATOM_NAME 4
+#define MAX_CHAR_RES_NAME 4
+#define MAX_CHAR_CHAIN_ID 4
+
+struct Atom
+{
+	Atom() {
+		clear();
+	}
+	void clear() {
+		memset(atom_name, 0, MAX_CHAR_ATOM_NAME);
+		memset(residue_name, 0, MAX_CHAR_RES_NAME);
+		memset(chain_id, 0, MAX_CHAR_CHAIN_ID);
+	}
+	char element;
+	char atom_name[MAX_CHAR_ATOM_NAME];
+	char residue_name[MAX_CHAR_RES_NAME];
+	char chain_id[MAX_CHAR_CHAIN_ID];
+	int residue_num;
+	float x, y, z;
+};
+
+#if 0
+#define mystrtof(x) strtof(x, NULL)
+#define mystrtoi(x) strtol(x, NULL, 0)
+#else
+// using our own version of strtof, speeds things up by 2x
+
+inline float mystrtof(const char *s)
+{
+	bool neg = false;
+	float fa = 0, v = 0;
+	for (;;) {
+		char c = *s;
+		if (c >= '0' && c <= '9') {
+			if (fa) {
+				v += fa * (c - '0');
+				fa *= 0.1;
+			} else
+				v = 10 * v + (c - '0');
+		}
+		else if (c == '.')
+			fa = 0.1;
+		else if (c == '-')
+			neg = true;
+		else
+			break;
+		s += 1;
+	}
+	return (neg ? -v : v);
+}
+
+inline int mystrtoi(const char *s)
+{
+	bool neg = (*s == '-');
+	int v = 0;
+	if (neg)
+		s += 1;
+
+	for (;;) {
+		char c = *s; if (c >= '0' && c <= '9')
+			v = 10 * v + (c - '0');
+		else
+			break;
+		s += 1;
+	}
+	return (neg ? -v : v);
+}
+#endif
+
+struct ExtractCIF: public CIFFile {
+	ExtractCIF();
+	void parse_audit_conform(bool in_loop);
+	void parse_atom_site(bool in_loop);
+	std::vector<Atom> atoms;
+};
+
+ExtractCIF::ExtractCIF()
+{
+#if 0
+	using std::placeholder;
+	if (stylized)
+		register_category("audit_conform", 
+			std::bind(&ExtractCIF::audit_conform, this, _1));
+	register_category("atom_site", 
+		std::bind(&ExtractCIF::parse_atom_site, this, _1));
+#else
+	// Personal preference, I like lambda functions better.
+	// The lambda functions are needed because parse_XXXX
+	// are member functions.
+	register_category("audit_conform", 
+		[this] (bool in) {
+			parse_audit_conform(in/*_loop*/);
+		});
+	register_category("atom_site", 
+		[this] (bool in) {
+			parse_atom_site(in/*_loop*/);
+		});
+#endif
+}
+
+void
+ExtractCIF::parse_audit_conform(bool in_loop)
+{
+	// Looking for a way to tell if the mmCIF file was written
+	// in the PDBx/mmCIF stylized format.  The following technique
+	// is not guaranteed to work, but is sufficient for this example.
+	string dict_name;
+	float dict_version = 0;
+
+	CIFFile::ParseValues pv;
+	pv.reserve(2);
+	pv.emplace_back(get_column("dict_name", true), true,
+		[&dict_name] (const char* start, const char* end) {
+			dict_name = string(start, end - start);
+		});
+	pv.emplace_back(get_column("dict_version"), false,
+		[&dict_version] (const char* start, const char*) {
+			dict_version = atof(start);
+		});
+	parse_row(pv);
+	if (dict_name == "mmcif_pdbx.dic" && dict_version > 4)
+		set_PDBx_stylized(true);
+}
+
+void
+ExtractCIF::parse_atom_site(bool in_loop)
+{
+	CIFFile::ParseValues pv;
+	pv.reserve(10);
+	Atom atom;
+	pv.emplace_back(get_column("type_symbol", true), false,
+			[&atom] (const char* start, const char*) {
+				atom.element = *start;
+			});
+	pv.emplace_back(get_column("label_atom_id", true), true,
+			[&atom] (const char* start, const char* end) {
+				size_t count = end - start;
+				if (count > MAX_CHAR_ATOM_NAME)
+					count = MAX_CHAR_ATOM_NAME;
+				strncpy(atom.atom_name, start, count);
+			});
+	pv.emplace_back(get_column("label_comp_id", true), true,
+			[&atom] (const char* start, const char* end) {
+				size_t count = end - start;
+				if (count > MAX_CHAR_RES_NAME)
+					count = MAX_CHAR_RES_NAME;
+				strncpy(atom.residue_name, start, count);
+			});
+	pv.emplace_back(get_column("label_asym_id", false), true,
+			[&atom] (const char* start, const char* end) {
+				size_t count = end - start;
+				if (count > MAX_CHAR_CHAIN_ID)
+					count = MAX_CHAR_CHAIN_ID;
+				strncpy(atom.chain_id, start, count);
+			});
+	pv.emplace_back(get_column("label_seq_id", true), false,
+			[&atom] (const char* start, const char*) {
+				atom.residue_num = mystrtoi(start);
+			});
+	// x, y, z are not required by mmCIF, but are by us
+	pv.emplace_back(get_column("Cartn_x", true), false,
+			[&atom] (const char* start, const char*) {
+				atom.x = mystrtof(start);
+			});
+	pv.emplace_back(get_column("Cartn_y", true), false,
+			[&atom] (const char* start, const char*) {
+				atom.y = mystrtof(start);
+			});
+	pv.emplace_back(get_column("Cartn_z", true), false,
+			[&atom] (const char* start, const char*) {
+				atom.z = mystrtof(start);
+			});
+	while (parse_row(pv)) {
+		atoms.push_back(atom);
+		atom.clear();
+	}
+}
+
+int
+main(int argc, char **argv)
+{
+	bool debug = false;
+	int opt;
+
+	while ((opt = getopt(argc, argv, "d")) != -1) {
+		switch (opt) {
+			case 'd':
+				debug = true;
+				break;
+			default: // '?'
+				goto usage;
+		}
+	}
+
+	if (optind != argc - 1) {
+usage:
+		std::cerr << "Usage: " << argv[0] << " [-d] mmCIF-filename\n";
+		exit(EXIT_FAILURE);
+	}
+
+	ExtractCIF extract;
+
+	const char* filename = argv[optind];
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1) {
+		std::cerr << "Unable to open " << filename << " for reading.\n";
+		return EXIT_FAILURE;
+	}
+	struct stat sb;
+	if (fstat(fd, &sb) == -1) {
+		perror("fstat");
+		return EXIT_FAILURE;
+	}
+
+	void *whole_file = mmap(NULL, sb.st_size + 1, PROT_READ, MAP_PRIVATE,
+				fd, 0);
+	if (whole_file == MAP_FAILED) {
+		perror("mmap");
+		return EXIT_FAILURE;
+	}
+	extract.parse(reinterpret_cast<const char *>(whole_file));
+	if (munmap(whole_file, sb.st_size + 1) == -1) {
+		perror("munmap");
+		return EXIT_FAILURE;
+	}
+	close(fd);
+
+	size_t n = extract.atoms.size();
+	std::cout << n << " atoms\n";
+
+	if (debug) {
+		size_t e = n > 10 ? 10 : n;
+		for (size_t i = 0 ; i < e ; ++i) {
+			Atom &a = extract.atoms[i];
+			std::cout << a.atom_name << " " << a.residue_name << " "
+				<< a.residue_num << " " << a.chain_id << " "
+				<< a.x << " " << a.y << " " << a.z << '\n';
+		}
+		if (n > 10) {
+			std::cout << "...\n";
+			size_t s = n > 20 ? n - 10 : 10;
+			for (size_t i = s; i < n ; ++i) {
+				Atom &a = extract.atoms[i];
+				std::cout << a.atom_name << " " << a.residue_name << " "
+					<< a.residue_num << " " << a.chain_id << " "
+					<< a.x << " " << a.y << " " << a.z << '\n';
+			}
+		}
+	}
+
+	return EXIT_SUCCESS;
+}

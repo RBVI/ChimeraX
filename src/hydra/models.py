@@ -84,6 +84,23 @@ class Models:
             self._selected_models = sm
         return sm
 
+    def selected_atoms(self):
+        mols = self.molecules()
+        sel = self.selected_models()
+        smols = [m for m in sel if m in mols]
+        from .molecule import Atoms
+        a = Atoms()
+        for m in smols:
+            a.add_atoms(m.selected_atoms())
+        return a
+
+    def all_atoms(self):
+        '''Return an atom set containing all atoms of all open molecules.'''
+        from .molecule import Atoms
+        aset = Atoms()
+        aset.add_molecules(self.molecules())
+        return aset
+
     def clear_selection(self):
         sm = self.selected_models()
         for d in sm:
@@ -93,7 +110,19 @@ class Models:
         if sm:
             self.redraw_needed = True
 
+    def promote_selection(self):
+        sm = self.selected_models()
+        for m in sm:
+            m.promote_selection()
+
+    def demote_selection(self):
+        sm = self.selected_models()
+        for m in sm:
+            m.demote_selection()
+
     def selection_changed(self):
+        for m in self._selected_models:
+            m.clear_selection_promotion_history()
         self._selected_models = None
         self.redraw_needed = True
 
@@ -120,7 +149,8 @@ class Models:
     def surfaces(self):
         '''Return a list of the Drawings in the scene which are not Molecules.'''
         from .molecule import Molecule
-        return tuple(m for m in self.models if not isinstance(m,(Molecule)))
+        from .map import Volume
+        return tuple(m for m in self.models if not isinstance(m,(Molecule,Volume)))
 
     def bounds(self):
         if self.bounds_changed:
