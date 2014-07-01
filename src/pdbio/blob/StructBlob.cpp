@@ -84,8 +84,7 @@ sb_atoms_bonds(PyObject* self, void* null)
     initialize_numpy();
     unsigned int shape[2] = {(unsigned int)bonds_size, 2};
     PyObject* bond_list = allocate_python_array(2, shape, NPY_INT);
-    int* index_data = (AtomicStructure::Bonds::size_type*)
-        PyArray_DATA((PyArrayObject*)bond_list);
+    int* index_data = (int*) PyArray_DATA((PyArrayObject*)bond_list);
     for (auto& as: *s_items) {
         for (auto& b: as->bonds()) {
             *index_data++ = atom_map[b->atoms()[0]];
