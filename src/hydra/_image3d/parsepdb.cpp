@@ -196,7 +196,7 @@ public:
 	int r1 = at1->residue_number, r2 = at2->residue_number;
 	ccmp = (r1 < r2 ? -1 : (r1 > r2 ? 1 : 0));
       }
-    return ccmp == -1;
+    return ccmp < 0;
   }
 private:
   Atom *atoms;
