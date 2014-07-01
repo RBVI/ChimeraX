@@ -332,8 +332,14 @@ CIFFile::internal_parse(bool one_table)
 						break;
 					current_category.resize(sep);
 					cii = categories.find(current_category);
-					if (cii != categories.end())
+					if (cii != categories.end()) {
+						// if already seen, then
+						// category is a prefix
+						if (seen.find(current_category)
+							    != seen.end())
+							cii = categories.end();
 						break;
+					}
 				}
 			}
 			bool keep = cii != categories.end();
@@ -434,8 +440,14 @@ CIFFile::internal_parse(bool one_table)
 							break;
 						category.resize(sep);
 						if (categories.find(category)
-							    != categories.end())
+							    != categories.end()) {
+							// if already seen, then
+							// category is a prefix
+							if (seen.find(current_category)
+								    != seen.end())
+								cii = categories.end();
 							break;
+						}
 					}
 				}
 				if (current_category.empty()
@@ -482,7 +494,7 @@ CIFFile::internal_parse(bool one_table)
 				next_token();
 				if (current_token != T_TAG)
 					break;
-				string cv = current_value();
+				cv = current_value();
 				if (DDL_v2)
 					sep = cv.find('.');
 			}
@@ -1033,8 +1045,10 @@ CIFFile::process_stash()
 		if (seen.find(c) != seen.end())
 			continue;
 		auto si = save_stash.find(c);
-		if (si == save_stash.end())
-			throw error("missing category: " + c);
+		if (si == save_stash.end()) {
+			//std::cerr << error("missing category: " + c).what() << '\n';
+			continue;
+		}
 		pos = si->second.start;
 		lineno = si->second.lineno;
 		internal_parse(true);
