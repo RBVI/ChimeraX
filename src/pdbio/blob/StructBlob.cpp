@@ -77,20 +77,13 @@ sb_atoms_bonds(PyObject* self, void* null)
         }
     }
 #else  // as numpy
-    constexpr int bsize_type = sizeof(AtomicStructure::Bonds::size_type);
-    static_assert(bsize_type == sizeof(unsigned int)
-        || bsize_type == sizeof(unsigned long)
-        || bsize_type == sizeof(unsigned long long),
-        "Need to handle more Numpy size types");
-    int numpy_type;
-    if (bsize_type == sizeof(unsigned int))
-        numpy_type = NPY_UINT;
-    else if (bsize_type == sizeof(unsigned long))
-        numpy_type = NPY_ULONG;
-    else
-        numpy_type = NPY_ULONGLONG;
+    // since the type of the shape array is unsigned int, don't bother
+    // with sophisticated code to determine the size of indices, just
+    // use NPY_INT, (not unsigned so that the Python code can do tricks
+    // if it likes by using negative indices)
+    initialize_numpy();
     unsigned int shape[2] = {(unsigned int)bonds_size, 2};
-    PyObject* bond_list = allocate_python_array(2, shape, numpy_type);
+    PyObject* bond_list = allocate_python_array(2, shape, NPY_INT);
     AtomicStructure::Bonds::size_type* index_data =
         (AtomicStructure::Bonds::size_type*) PyArray_DATA(
         (PyArrayObject*)bond_list);
