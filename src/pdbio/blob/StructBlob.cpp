@@ -83,6 +83,7 @@ sb_atoms_bonds(PyObject* self, void* null)
     // if it likes by using negative indices)
     unsigned int shape[2] = {(unsigned int)bonds_size, 2};
     PyObject* bond_list = allocate_python_array(2, shape, NPY_INT);
+    initialize_numpy();
     AtomicStructure::Bonds::size_type* index_data =
         (AtomicStructure::Bonds::size_type*) PyArray_DATA(
         (PyArrayObject*)bond_list);
