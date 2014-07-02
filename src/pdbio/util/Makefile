@@ -2,13 +2,15 @@ TOP= ../../..
 include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 
-LIB= libutil.a
+LIB= libutil.$(LIB_EXT)
 LIBNAME= util
 
+CXXFLAGS = -DUTIL_EXPORT
+
 $(LIB): imex.h $(OBJS)
-	ar -r $(LIB) $(OBJS)
+	$(LIB_LINK)
 
 install: $(LIB)
 

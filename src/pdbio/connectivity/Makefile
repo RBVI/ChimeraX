@@ -1,11 +1,11 @@
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 TOP= ../../..
 include $(TOP)/mk/config.make
 
 LIBNAME = connectivity
-CXXFLAGS += -I..
-LIBS += -L$(shlibdir) -latomstruct -ltmpl ../basegeom/libbasegeom.a
+CXXFLAGS += -I.. -DCONNECTIVITY_EXPORT
+LIBS += -L$(shlibdir) -latomstruct -ltmpl ../basegeom/libbasegeom.$(LIB_EXT)
 DIRNAME = $(shell basename `pwd`)
 
 $(SHLIB): imex.h $(OBJS)

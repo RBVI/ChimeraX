@@ -1,11 +1,11 @@
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
+OBJS= $(SRCS:.cpp=.(OBJ_EXT))
 TOP= ../../..
 include $(TOP)/mk/config.make
 
 #LIBNAME = pseudobond
 CXXFLAGS += -I..
-#LIBS += ../basegeom/libbasegeom.a
+#LIBS += ../basegeom/libbasegeom.$(LIB_EXT)
 DIRNAME = $(shell basename `pwd`)
 
 #$(SHLIB): imex.h $(OBJS)

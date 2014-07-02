@@ -2,7 +2,7 @@ TOP= ../../..
 include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = structaccess
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
 ifneq ($(OS),Windows)

@@ -2,9 +2,9 @@ TOP= ../../..
 include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 LIBNAME = pdbio
-PYMOD= $(LIBNAME).so
+PYMOD= $(LIBNAME).$(SHLIB_EXT)
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS) -I$(includedir)
 LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob -lconnectivity ../pdb/libpdb.a ../basegeom/libbasegeom.a -lreadcif
 

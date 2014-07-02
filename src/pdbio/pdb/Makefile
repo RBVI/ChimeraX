@@ -2,13 +2,13 @@ TOP= ../../..
 include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
+OBJS= $(SRCS:.cpp=.$(OBJ_EXT))
 LIBNAME = pdb
-LIB= lib$(LIBNAME).a
-CXXFLAGS += -I..
+LIB= lib$(LIBNAME).$(LIB_EXT)
+CXXFLAGS += -I.. -DPDB_EXPORT
 
 $(LIB): imex.h $(OBJS)
-	ar -r $(LIB) $(OBJS)
+	$(LIB_LINK)
 
 install: $(LIB)
 

@@ -7,8 +7,8 @@ SUBDIRS= tmpl
 include $(TOP)/mk/subdir.make
 
 LIBNAME = atomstruct
-CXXFLAGS += -I..
-LIBS += ../basegeom/libbasegeom.a
+CXXFLAGS += -I.. -DATOMSTRUCT_EXPORT
+LIBS += ../basegeom/libbasegeom.$(LIB_EXT)
 DIRNAME = $(shell basename `pwd`)
 
 $(SHLIB): imex.h $(OBJS)

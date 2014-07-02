@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 LIBNAME = blob
-CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
+CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS) -DBLOB_EXPORT
 ifneq ($(OS),Windows)
 CXXFLAGS += -Wno-invalid-offsetof -Wno-deprecated-writable-strings
 endif
