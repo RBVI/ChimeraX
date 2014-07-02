@@ -120,7 +120,7 @@ class Command_History:
         else:
             h = []
         self.commands = remove_repeats(h)
-        self.file_lines = len(h)
+        self.file_lines = len(self.commands)
 
     def save_command_history(self, filename = 'commands'):
         h = self.commands
