@@ -1,4 +1,5 @@
-def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix=False):
+def align(atoms, ref_atoms, move = None, each = None, same = None, sequence = None,
+          dmax = None, iterations = 20, report_matrix=False):
     """Move atoms to minimize RMSD with ref_atoms.
 
     If 'move' is 'molecules', superimpose the models.  If it is 'atoms',
@@ -13,6 +14,9 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
     If 'same' is 'n' then only atoms with matching residue numbers are paired.
     It is assumed the atoms are in residue number order.  Unpaired atoms or ref_atoms
     are not used.
+
+    If 'sequence' names a reference sequence then the previously calculated alignment
+    of atoms and ref_atoms to that reference sequence is used to pair the atoms.
     
     If 'report_matrix' is True, report the transformation matrix to
     the Reply Log.
@@ -23,12 +27,14 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
         if move is None:
             move = 'chains'
         for gatoms in groups:
-            align(gatoms, ref_atoms, move=move, same=same, report_matrix=report_matrix)
+            align(gatoms, ref_atoms, move=move, same=same,
+                  sequence=sequence, report_matrix=report_matrix)
         return
     elif each == 'molecule':
         groups = atoms.separate_molecules()
         for gatoms in groups:
-            align(gatoms, ref_atoms, move=move, same=same, report_matrix=report_matrix)
+            align(gatoms, ref_atoms, move=move, same=same,
+                  sequence=sequence, report_matrix=report_matrix)
         return
 
     if same == 'n':
@@ -37,19 +43,33 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, report_matrix
         if da > 0 or dra > 0:
             from ..ui.gui import log_message
             log_message('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
-        atoms, ref_atoms = patoms, pref_atoms
+    elif not sequence is None:
+        patoms, pref_atoms = sequence_pairing(atoms, ref_atoms, sequence)
+    else:
+        patoms, pref_atoms = atoms, ref_atoms
 
-    if atoms.count() != ref_atoms.count():
+    if patoms.count() != pref_atoms.count():
         from ..ui.commands import CommandError
         raise CommandError('Must align equal numbers of atoms, got %d and %d'
-                           % (atoms.count(), ref_atoms.count()))
+                           % (patoms.count(), pref_atoms.count()))
 
-    tf, rmsd = align_points(atoms.coordinates(), ref_atoms.coordinates())
+    if dmax is None:
+        tf, rmsd = align_points(patoms.coordinates(), pref_atoms.coordinates())
+        np = patoms.count()
+    else:
+        tf, rmsd, mask = align_and_prune(patoms.coordinates(), pref_atoms.coordinates(), dmax, iterations)
+        if tf is None:
+            msg = 'Alignment failed, pruning %d distances > %g left less than 3 pairs' % (patoms.count, dmax)
+            from ..ui import show_status, show_info
+            show_status(msg)
+            show_info(msg + '\n')
+            return
+        np = mask.sum()
 
     if report_matrix:
         write_matrix(tf, atoms, ref_atoms)
 
-    msg = 'RMSD between %d atom pairs is %.3f Angstroms' % (ref_atoms.count(), rmsd)
+    msg = 'RMSD between %d atom pairs is %.3f Angstroms' % (np, rmsd)
     from ..ui import show_status, show_info
     show_status(msg)
     show_info(msg + '\n')
@@ -135,6 +155,7 @@ def align_and_prune(xyz, ref_xyz, dmax, iterations, mask = None):
         print ('prune fail', nc, iterations, rms, len(xyz), len(axyz))
         return None, None, None
     if nc < 3 and len(c) > 3:
+        # TODO: This method of avoiding overpruning is not well thought out.
         dm2 = dmax*dmax
         while True:
             dm2 *= 1.5
@@ -190,7 +211,24 @@ def pairing(rnums1, rnums2):
         else:
             i2 += 1
     return p1, p2
-    
+
+# Pair atoms with same name and same sequence number.
+def sequence_pairing(atoms, ref_atoms, seq_name):
+    snums = atoms.sequence_numbers(seq_name)
+    anames = atoms.atom_names()
+    aind = dict(((snums[i],anames[i]),i) for i in range(atoms.count()) if snums[i] > 0)
+    rsnums = ref_atoms.sequence_numbers(seq_name)
+    ranames = ref_atoms.atom_names()
+    ai = []
+    rai = []
+    for ri in range(ref_atoms.count()):
+        i = aind.get((rsnums[ri],ranames[ri]), None)
+        if not i is None:
+            ai.append(i)
+            rai.append(ri)
+    pa, pra = atoms.subset(ai), ref_atoms.subset(rai)
+    return pa, pra
+
 def write_matrix(tf, atoms, ref_atoms):
 
     m = atoms.molecules()[0]
@@ -239,13 +277,16 @@ def test_align_points(n = 100):
 
 def align_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, string_arg, bool_arg, parse_arguments
+    from ..ui.commands import atoms_arg, string_arg, bool_arg, float_arg, int_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('ref_atoms', atoms_arg))
     opt_args = ()
     kw_args = (('move', string_arg),
                ('each', string_arg),
                ('same', string_arg),
+               ('sequence', string_arg),
+               ('dmax', float_arg),
+               ('iterations', int_arg),
                ('report_matrix', bool_arg))
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)

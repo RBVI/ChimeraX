@@ -74,6 +74,7 @@ class Commands:
         fields = text.split(maxsplit = 1)
         if len(fields) == 0:
             return
+        self.history.add_to_command_history(text)
         cmd = fields[0]
         cab = self.cmdabbrev
         if cab is None:
@@ -90,7 +91,6 @@ class Commands:
                 failed = True
             if not failed:
                 ses.log.insert_graphics_image()
-            self.history.add_to_command_history(text)
         else:
             ses.show_status('Unknown command %s' % cmd)
 
@@ -119,8 +119,8 @@ class Command_History:
             f.close()
         else:
             h = []
-        self.commands = h
-        self.file_lines = len(h)
+        self.commands = remove_repeats(h)
+        self.file_lines = len(self.commands)
 
     def save_command_history(self, filename = 'commands'):
         h = self.commands
@@ -203,6 +203,17 @@ class Command_History:
 
     def show_next_command(self):
         self.show_previous_command(step = 1)
+
+# -----------------------------------------------------------------------------
+#
+def remove_repeats(strings):
+    us = []
+    sprev = None
+    for s in strings:
+        if s != sprev:
+            us.append(s)
+            sprev = s
+    return us
 
 # -----------------------------------------------------------------------------
 #

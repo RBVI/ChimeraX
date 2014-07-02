@@ -2,7 +2,14 @@ def open_mmcif_file(path, session):
   '''
   Open an mmCIF file.
   '''
-  from os.path import basename
+  from .pdb import use_pdbio
+  if use_pdbio:
+    mols = open_mmcif_file_with_pdbio(path, session)
+  else:
+    mols = open_mmcif_file_with_image3d(path, session)
+  return mols
+
+def open_mmcif_file_with_image3d(path, session):
   from time import time
   ft0 = time()
   f = open(path, 'r')
@@ -11,10 +18,20 @@ def open_mmcif_file(path, session):
   ft1 = time()
   from .. import _image3d
   t0 = time()
-  a = _image3d.parse_mmcif_file(text)
+  matoms = _image3d.parse_mmcif_file(text)
   t1 = time()
   from . import pdb
-  atoms = pdb.atom_array(a)
+  from ..molecule import Molecule, connect
+  mols = []
+  for a in matoms:
+    atoms = pdb.atom_array(a)
+    m = Molecule(path, atoms)
+    m.color_by_chain()
+    bonds, missing = connect.molecule_bonds(m, session)
+    m.bonds = bonds
+    mols.append(m)
+
+#  from os.path import basename
 #  session.show_info('Read %s %d atoms at %d per second\n' %
 #                    (basename(path), len(xyz), int(len(xyz)/(ft1-ft0))))
 #  session.show_info('Parsed %s %d atoms at %d per second\n' %
@@ -22,15 +39,35 @@ def open_mmcif_file(path, session):
 #  session.show_info('Read+Parsed %s %d atoms at %d per second\n' %
 #                    (basename(path), len(xyz), int(len(xyz)/((t1-t0)+(ft1-ft0)))))
 #  session.show_info('Read %s %d atoms\n' % (basename(path), len(xyz)))
+
+  return mols
+
+def open_mmcif_file_with_pdbio(path, session):
+  from time import time
+  ft0 = time()
+  f = open(path, 'rb')
+  text = f.read()
+  f.close()
+  ft1 = time()
+  from .. import pdbio
+  t0 = time()
+  sblob = pdbio.parse_mmCIF_file(text)
+  t1 = time()
+
+  from . import pdb
+  mols = []
   from ..molecule import Molecule
-  m = Molecule(path, atoms)
-  m.color_by_chain()
+  for sb in sblob.structures:
+    atoms, bonds = pdb.structblob_atoms_and_bonds(sblob)
+    m = Molecule(path, atoms)
+# TODO: pdbio.parse_mmCIF_file() is not creating bonds
+#  from ..molecule import connect
+#  bonds, missing = connect.molecule_bonds(m, session)
+    m.bonds = bonds
+    m.color_by_chain()
+    mols.append(m)
 
-  from ..molecule import connect
-  bonds, missing = connect.molecule_bonds(m, session)
-  m.bonds = bonds
-
-  return m
+  return mols
 
 def load_mmcif_local(id, session, mmcif_dir):
   '''Load an mmCIF file given its id from a local copy of the "divided" database.'''
@@ -38,8 +75,8 @@ def load_mmcif_local(id, session, mmcif_dir):
   p = join(mmcif_dir, id[1:3].lower(), '%s.cif' % id.lower())
   if not exists(p):
     return None
-  m = open_mmcif_file(p, session)
-  return m
+  mols = open_mmcif_file(p, session)
+  return mols
 
 def mmcif_sequences(mmcif_path):
   '''

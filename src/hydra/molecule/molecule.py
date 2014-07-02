@@ -958,6 +958,19 @@ class Atoms:
     import numpy
     return numpy.concatenate(elnums)
 
+  def atom_names(self):
+    '''Return a numpy array of atoms names.'''
+    anames = []
+    for m,a in self.molatoms:
+        anames.append(m.atom_names[a])
+    if len(anames) == 1:
+        return anames[0]
+    elif len(anames) == 0:
+        import numpy
+        return numpy.zeros((0,), 'S4')
+    import numpy
+    return numpy.concatenate(anames)
+
   def residue_numbers(self):
     '''Return a numpy array of residue numbers for each atom.'''
     resnums = []
@@ -970,6 +983,22 @@ class Atoms:
         return numpy.zeros((0,), numpy.int32)
     import numpy
     return numpy.concatenate(resnums)
+
+  def sequence_numbers(self, sequence_name):
+    '''Return atom sequence numbers for a named alignment.'''
+    seqnums = []
+    for m,a in self.molatoms:
+      if hasattr(m, 'sequence_numbers') and sequence_name in m.sequence_numbers:
+        seqnums.append(m.sequence_numbers[sequence_name][a])
+      else:
+        return None
+    if len(seqnums) == 1:
+      return seqnums[0]
+    elif len(seqnums) == 0:
+        import numpy
+        return numpy.zeros((0,), numpy.int32)
+    import numpy
+    return numpy.concatenate(seqnums)
 
   def residue_names(self):
     '''Return a numpy array of residue names for each atom.'''
