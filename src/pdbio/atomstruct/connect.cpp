@@ -4,21 +4,16 @@
 #include <map>
 #include <stdlib.h>
 
-#include "atomstruct/Atom.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/tmpl/Residue.h"
-#include "atomstruct/tmpl/Atom.h"
-#include "atomstruct/tmpl/residues.h"
+#include "Atom.h"
+#include "Residue.h"
+#include "AtomicStructure.h"
+#include "tmpl/Residue.h"
+#include "tmpl/Atom.h"
+#include "tmpl/residues.h"
 #include "MolResId.h"
 
-namespace connectivity {
+namespace atomstruct {
 
-using atomstruct::Residue;
-using atomstruct::Atom;
-using atomstruct::Bond;
-using atomstruct::Element;
-using atomstruct::AtomicStructure;
 using basegeom::Coord;
 
 // standard_residues contains the names of residues that should have PDB ATOM records.
@@ -470,4 +465,4 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     }
 }
 
-}  // namespace connectivity
+}  // namespace atomstruct
