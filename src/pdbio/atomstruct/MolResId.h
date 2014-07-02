@@ -1,13 +1,15 @@
 // vim: set expandtab ts=4 sw=4:
+#ifndef atomstruct_MolResId
+#define atomstruct_MolResId
 
 #include <string>
 #include <sstream>
 #include "atomstruct/Residue.h"
 #include "imex.h"
 
-namespace connectivity {
+namespace atomstruct {
 
-class CONNECTIVITY_IMEX MolResId {
+class ATOMSTRUCT_IMEX MolResId {
     // convenience class for testing chain/position/insert-code equality
 public:
     int    pos;
@@ -47,4 +49,6 @@ inline std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
     return os;
 }
 
-}  // namespace connectivity
+}  // namespace atomstruct
+
+#endif  // atomstruct_MolResId

@@ -12,7 +12,7 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/CoordSet.h"
 #include "blob/StructBlob.h"
-#include "connectivity/connect.h"
+#include "atomstruct/connect.h"
 
 namespace pdb {
 
@@ -22,7 +22,7 @@ using atomstruct::Bond;
 using atomstruct::Atom;
 using atomstruct::CoordSet;
 using atomstruct::Element;
-using connectivity::MolResId;
+using atomstruct::MolResId;
 using basegeom::Coord;
 	
 #define LOG_PY_ERROR_NULL(arg) \
