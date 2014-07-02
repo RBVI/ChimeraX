@@ -759,7 +759,7 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 			}
 			continue;
 		case '_': {
-			if (not tag_okay)
+			if (!tag_okay)
 				continue;
 			const char* e;
 			for (e = pos + 1; is_not_whitespace(*e); ++e)

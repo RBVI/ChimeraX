@@ -78,12 +78,12 @@ inline float str_to_float(const char *s)
 		if (c >= '0' && c <= '9') {
 			if (fa) {
 				v += fa * (c - '0');
-				fa *= 0.1;
+				fa *= 0.1f;
 			} else
 				v = 10 * v + (c - '0');
 		}
 		else if (c == '.')
-			fa = 0.1;
+			fa = 0.1f;
 		else if (c == '-')
 			neg = true;
 		else
