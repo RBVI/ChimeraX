@@ -56,7 +56,7 @@ ifeq ($(OS),Darwin)
 
 install_app_prereqs: $(APP)
 
-$(APP):
+$(APP) update_prereqs:
 
 # Make directories
 	-mkdir -p $(APPS_DIR) $(APP_FW_DIR)
@@ -117,13 +117,17 @@ $(APP):
 
 # Install pdbio and fix paths to libraries
 	-mkdir -p $(APP_HYDRA)/lib
-	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(APP_HYDRA)/lib
+	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(libdir)/libconnectivity.dylib $(APP_HYDRA)/lib
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(APP_HYDRA)/lib/libblob.dylib
+	install_name_tool -change @executable_path/../lib/libatomstruct.dylib $(APP_HYDRA)/lib/libatomstruct.dylib $(APP_HYDRA)/lib/libblob.dylib
+	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(APP_HYDRA)/lib/libconnectivity.dylib
+	install_name_tool -change @executable_path/../lib/libatomstruct.dylib $(APP_HYDRA)/lib/libatomstruct.dylib $(APP_HYDRA)/lib/libconnectivity.dylib
+	install_name_tool -change @executable_path/../lib/libtmpl.dylib $(APP_HYDRA)/lib/libtmpl.dylib $(APP_HYDRA)/lib/libconnectivity.dylib
 	$(RSYNC) $(PYSITEDIR)/pdbio.so $(PYSITEDIR)/structaccess.so $(APP_HYDRA)
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(APP_HYDRA)/structaccess.so 
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(APP_HYDRA)/pdbio.so
 	for pymod in structaccess.so pdbio.so ; do \
-		for lib in libatomstruct.dylib libblob.dylib libtmpl.dylib ; do \
+		for lib in libatomstruct.dylib libblob.dylib libtmpl.dylib libconnectivity.dylib ; do \
 			install_name_tool -change @executable_path/../lib/$$lib @loader_path/lib/$$lib $(APP_HYDRA)/$$pymod ; \
 		done ; \
 	done

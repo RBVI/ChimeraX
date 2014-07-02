@@ -332,7 +332,12 @@ def same_sequence_rmsds(matches, within_pdb = True):
         rnum = ca.residue_numbers()
         xyz = ca.coordinates()[in1d(rnum,rnum0)]
         from ..molecule import align
-        tf, rmsd = align.align_points(xyz, xyz0[in1d(rnum0,rnum)])
+        pxyz0 = xyz0[in1d(rnum0,rnum)]
+        if len(xyz) != len(pxyz0):
+          print('ssr', len(xyz), ma.pdb_id, ma.chain_id, ca.count(), len(pxyz0), ma0.pdb_id, ma0.chain_id, ca0.count())
+          print(list(rnum))
+          print(list(rnum0))
+        tf, rmsd = align.align_points(xyz, pxyz0)
         rmsds.append((ma0.pdb_id, ma0.chain_id, ca0.count(), ma.pdb_id, ma.chain_id, ca.count(), len(xyz), rmsd))
 
   return rmsds
@@ -569,12 +574,14 @@ def covering_model(mbest, matches):
     m = ma.mol
     r = m.atom_subset('CA', residue_numbers = rnum)
     if not (r.residue_numbers() == rnum).all():
-      print('oops, mismatched residue numbers', rnum, r.residue_numbers())
+      print('oops, mismatched residue numbers', m.name, ma.chain_id, rnum, r.residue_numbers())
+      m,a = r.molatoms[0]
+      print (list(a), list(m.residue_nums[a]))
       raise ValueError()
     rxyz = r.coordinates()
+    print ('realigning molecule', m.id, 'nres', bi.sum(), mi)
     pal = align_segment(rxyz, rnum, qrnum, bi, covered, xyz)
     if not pal is None:
-      print ('realigned molecule', m.id, 'nres', bi.sum(), mi)
       rxyz = pal * rxyz
     xyz[qrnums,:] = rxyz[bi]
     covered[qrnums] = True
@@ -601,12 +608,16 @@ def align_segment(rxyz, rnum, qrnum, rmask, covered, xyz, tail = 3, max_rmsd = 5
     if pre_rmsd > max_rmsd:
       nr = rmask.sum()
       if nm < 2*tail and nr > 5:
-        print('ascm too short', nm, nr, len(rxyz), pre_rmsd)
+        print('ascm overlap too short', nm, nr, len(rxyz), pre_rmsd)
         return None
       from ..molecule import align
       tf, rmsd = align.align_points(mrxyz, mxyz)
       print('ascm realigned', nm, nr, len(rxyz), pre_rmsd, rmsd)
       return tf
+    else:
+      print ('ascm not moving %d, rmsd small %.2f' % (len(rxyz), pre_rmsd))
+  else:
+    print ('ascm not moving %d, overlap %d' % (len(rxyz), nm))
 
   return None
 
@@ -989,7 +1000,7 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
     molecule = chain_id = None
   elif not uniprot is None:
     from .fetch_uniprot import fetch_uniprot
-    seq_name = 'UniProt %s' % uniprot
+    seq_name = uniprot
     fasta_path = fetch_uniprot(uniprot, session)
     seq = fasta_sequence(fasta_path)
     blast_output = temporary_file_path(prefix = uniprot, suffix = '.xml')
@@ -1045,9 +1056,10 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
     min_res = dropShortChains
     mshort = short_matches(matches, min_res)
     if mshort:
-      msg = ('%d matches had less than 3 matched CA atoms, preventing a unique alignment\n' % len(mshort) + 
+      msg = ('%d matches had less than 3 matched CA atoms and have been dropped\n %s' %
+             (len(mshort),
              ', '.join('%d-%d %s %s %d' % (ma.seq_match.qStart+1, ma.seq_match.qEnd+1,
-                                           ma.pdb_id, ma.chain_id, nca) for ma,nca in mshort))
+                                           ma.pdb_id, ma.chain_id, nca) for ma,nca in mshort)))
       session.show_info(msg)
       mdrop = tuple(ma for ma,len in mshort)
       remove_matches(mdrop, br, session)
@@ -1059,6 +1071,14 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
     drop_similar_chains(br, max_rmsd, session, within_pdb = True)
     drop_similar_chains(br, max_rmsd, session, within_pdb = False)
     matches = br.matches
+
+  # Record sequence alignment for molecules for using align command.
+  for ma in matches:
+    m = ma.mol
+    arnums = m.atoms().residue_numbers()
+    rnum, qrnum = ma.seq_match.residue_number_pairing()
+    rmap = integer_array_map(rnum, qrnum, max(arnums.max(),rnum.max()))
+    m.sequence_numbers = {seq_name: rmap[arnums]}
 
   # Report depth of coverage, hits per residue
   from numpy import zeros, int32

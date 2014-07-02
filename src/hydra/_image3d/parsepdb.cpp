@@ -1,11 +1,12 @@
 //#include <iostream>			// use std:cerr for debugging
-#include <stdlib.h>			// use strtof, strncpy
+#include <stdlib.h>			// use strncpy
 #include <ctype.h>			// use isspace
 #include <string.h>			// use memset
 #include <vector>			// use std::vector
 
 #include "parsepdb.h"			// use Atom
 #include "pythonarray.h"		// use python_float_array
+#include "stringnum.h"			// use string_to_float()
 
 inline bool atom_line(const char *line)
 {
@@ -73,7 +74,7 @@ static void element_radii(int *element_nums, long n, long stride, float *radii)
     }
 }
 
-static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
+static void parse_pdb(const char *pdb, std::vector<Atom> &atoms, std::vector<int> &molstart)
 {
   char buf[9];
   buf[8] = '\0';
@@ -81,27 +82,28 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
   char last_alt_loc = ' ';
   size_t asize = sizeof(Atom);
   Atom atom;
+  molstart.push_back(0);
   for (int i = 0 ; pdb[i] ; i = ni)
     {
       	const char *line = pdb + i;
 	ni = next_line(pdb, i);
 	int line_len = ni - i;
 	if (strncmp(line, "ENDMDL", 6) == 0)
-	  return;	// Only parse the first model in the file.
-	if (atom_line(line) && line_len > 46)
+	  molstart.push_back(atoms.size());
+	else if (atom_line(line) && line_len > 46)
 	  {
 	    memset(&atom, 0, asize);
 	    strncpy(buf, line+30, 8);
-	    atom.x = strtof(buf, NULL);
+	    atom.x = string_to_float(buf);
 	    strncpy(buf, line+38, 8);
-	    atom.y = strtof(buf, NULL);
+	    atom.y = string_to_float(buf);
 	    strncpy(buf, line+46, 8);
-	    atom.z = strtof(buf, NULL);
+	    atom.z = string_to_float(buf);
 	    atom.chain_id[0] = line[21];
 	    int e = (line_len > 76 ? element_number(line + 76) : 0);
 	    atom.element_number = e;
 	    strncpy(buf, line+22, 4);
-	    atom.residue_number = strtol(buf, NULL, 10);
+	    atom.residue_number = string_to_integer(buf);
 	    for (s = 17 ; s < 19 && line[s] == ' ' ; ++s) ;	// Skip leading spaces.
 	    for (e = 19 ; e > 16 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
@@ -110,7 +112,7 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
 	    for (e = 15 ; e > 11 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
 	      strncpy(atom.atom_name, line+s, e-s+1);
-	    if (!atoms.empty() && line[16] != last_alt_loc)
+	    if (atoms.size() > molstart.back() && line[16] != last_alt_loc)
 	      {
 		const Atom &prev_atom = atoms.back();
 		if (atom.residue_number == prev_atom.residue_number &&
@@ -123,6 +125,8 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms)
 	    atoms.push_back(atom);
 	  }
     }
+  if (molstart.back() >= atoms.size())
+    molstart.pop_back();
 }
 
 // ----------------------------------------------------------------------------
@@ -137,14 +141,23 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
     return NULL;
 
   std::vector<Atom> atoms;
-  parse_pdb(pdb_text, atoms);
+  std::vector<int> molstart;
+  parse_pdb(pdb_text, atoms, molstart);
 
-  size_t na = atoms.size(), asize = sizeof(Atom);
-  char *adata;
-  PyObject *atoms_py = python_char_array(na, asize, &adata);
-  memcpy(adata, atoms.data(), na*asize);
+  int nm = molstart.size();
+  PyObject *mol_atoms = PyTuple_New(nm);
+  size_t ta = atoms.size(), asize = sizeof(Atom);
+  for (int m = 0 ; m < nm ; ++m)
+    {
+      char *adata;
+      int ms = molstart[m];
+      int na = (m < nm-1 ? molstart[m+1]-ms : ta-ms);
+      PyObject *atoms_py = python_char_array(na, asize, &adata);
+      memcpy(adata, atoms.data() + ms, na*asize);
+      PyTuple_SetItem(mol_atoms, m, atoms_py);
+    }
 
-  return atoms_py;
+  return mol_atoms;
 }
 
 // ----------------------------------------------------------------------------
@@ -170,22 +183,29 @@ element_radii(PyObject *s, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 // Ordering function for chain id and residue number.
 //
-static int compare_atom_chains(const void *a1, const void *a2)
+class Atom_Compare
 {
-  const Atom *at1 = static_cast<const Atom *>(a1), *at2 = static_cast<const Atom *>(a2);
-  int ccmp = strncmp(at1->chain_id, at2->chain_id, CHAIN_ID_LEN);
-  if (ccmp == 0)
-    {
-      int r1 = at1->residue_number, r2 = at2->residue_number;
-      ccmp = (r1 < r2 ? -1 : (r1 > r2 ? 1 : 0));
-    }
-  return ccmp;
-}
+public:
+  Atom_Compare(Atom *atoms) : atoms(atoms) {}
+  bool operator() (int i, int j)
+  {
+    const Atom *at1 = &atoms[i], *at2 = &atoms[j];
+    int ccmp = strncmp(at1->chain_id, at2->chain_id, CHAIN_ID_LEN);
+    if (ccmp == 0)
+      {
+	int r1 = at1->residue_number, r2 = at2->residue_number;
+	ccmp = (r1 < r2 ? -1 : (r1 > r2 ? 1 : 0));
+      }
+    return ccmp < 0;
+  }
+private:
+  Atom *atoms;
+};
 
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-sort_atoms_by_chain(PyObject *s, PyObject *args, PyObject *keywds)
+atom_sort_order(PyObject *s, PyObject *args, PyObject *keywds)
 {
   CArray atoms;
   const char *kwlist[] = {"atoms", NULL};
@@ -197,18 +217,22 @@ sort_atoms_by_chain(PyObject *s, PyObject *args, PyObject *keywds)
   int n = atoms.size(0), len = atoms.size(1);
   if (atoms.dimension() != 2)
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be 2 dimensional");
+      PyErr_SetString(PyExc_TypeError, "atom_sort_order(): array must be 2 dimensional");
       return NULL;
     }
   if (!atoms.is_contiguous())
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be contiguous");
+      PyErr_SetString(PyExc_TypeError, "atom_sort_order(): array must be contiguous");
       return NULL;
     }
-  qsort(aa, n, len, compare_atom_chains);
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  std::vector<int> order(n);
+  for (int i = 0 ; i < n ; ++i)
+    order[i] = i;
+
+  std::sort(order.begin(), order.end(), Atom_Compare(aa));
+
+  return c_array_to_python(order);
 }
 
 // ----------------------------------------------------------------------------
@@ -246,12 +270,12 @@ residue_ids(PyObject *s, PyObject *args, PyObject *keywds)
   int n = atoms.size(0), len = atoms.size(1);
   if (atoms.dimension() != 2)
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be 2 dimensional");
+      PyErr_SetString(PyExc_TypeError, "residue_ids(): array must be 2 dimensional");
       return NULL;
     }
   if (!atoms.is_contiguous())
     {
-      PyErr_SetString(PyExc_TypeError, "sort_atoms_by_chain(): array must be contiguous");
+      PyErr_SetString(PyExc_TypeError, "residue_ids(): array must be contiguous");
       return NULL;
     }
 

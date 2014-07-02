@@ -113,7 +113,7 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("element_radii"), (PyCFunction)element_radii,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("sort_atoms_by_chain"), (PyCFunction)sort_atoms_by_chain,
+  {const_cast<char*>("atom_sort_order"), (PyCFunction)atom_sort_order,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("residue_ids"), (PyCFunction)residue_ids,
    METH_VARARGS|METH_KEYWORDS, NULL},
