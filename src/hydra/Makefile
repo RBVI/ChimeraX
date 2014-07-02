@@ -117,13 +117,13 @@ $(APP) update_prereqs:
 
 # Install pdbio and fix paths to libraries
 	-mkdir -p $(APP_HYDRA)/lib
-	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(libdir)/libconnectivity.dylib $(APP_HYDRA)/lib
+	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(APP_HYDRA)/lib
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(APP_HYDRA)/lib/libblob.dylib
 	install_name_tool -change @executable_path/../lib/libatomstruct.dylib $(APP_HYDRA)/lib/libatomstruct.dylib $(APP_HYDRA)/lib/libblob.dylib
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(APP_HYDRA)/lib/libconnectivity.dylib
-	install_name_tool -change @executable_path/../lib/libatomstruct.dylib $(APP_HYDRA)/lib/libatomstruct.dylib $(APP_HYDRA)/lib/libconnectivity.dylib
-	install_name_tool -change @executable_path/../lib/libtmpl.dylib $(APP_HYDRA)/lib/libtmpl.dylib $(APP_HYDRA)/lib/libconnectivity.dylib
+	install_name_tool -change @executable_path/../lib/libtmpl.dylib $(APP_HYDRA)/lib/libtmpl.dylib $(APP_HYDRA)/lib/libatomstruct.dylib
 	$(RSYNC) $(PYSITEDIR)/pdbio.so $(PYSITEDIR)/structaccess.so $(APP_HYDRA)
+	# Work around pdbio.parse_mmCIF_file() importing structaccess globally.
+	echo "from hydra.structaccess import *" >  $(APP_PY_SITE)/structaccess.py
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(APP_HYDRA)/structaccess.so 
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(APP_HYDRA)/pdbio.so
 	for pymod in structaccess.so pdbio.so ; do \
