@@ -1,4 +1,5 @@
 //#include <iostream>			// use std:cerr for debugging
+#include <algorithm>			// use std::sort()
 #include <stdlib.h>			// use strncpy
 #include <ctype.h>			// use isspace
 #include <string.h>			// use memset
@@ -52,7 +53,7 @@ int element_number(const char *element_name)
   return elnum[e];
 }
 
-static void element_radii(int *element_nums, long n, long stride, float *radii)
+const float *element_radii()
 {
   static float *erad = NULL;
   if (erad == NULL)
@@ -67,11 +68,7 @@ static void element_radii(int *element_nums, long n, long stride, float *radii)
       erad[15] = 1.871;	// P
       erad[16] = 1.782;	// S
     }
-  for (int e = 0 ; e < n ; ++e)
-    {
-      int en = element_nums[e*stride];
-      radii[e] = (en < 256 ? erad[en] : 0);
-    }
+  return erad;
 }
 
 static void parse_pdb(const char *pdb, std::vector<Atom> &atoms, std::vector<int> &molstart)
@@ -135,24 +132,36 @@ extern "C" PyObject *
 parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
 {
   const char *pdb_text;
-  const char *kwlist[] = {"text", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("y"),
-				   (char **)kwlist, &pdb_text))
+  int sort_residues = 0;
+  const char *kwlist[] = {"text", "sort_residues", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("y|p"),
+				   (char **)kwlist, &pdb_text, &sort_residues))
     return NULL;
 
   std::vector<Atom> atoms;
   std::vector<int> molstart;
   parse_pdb(pdb_text, atoms, molstart);
 
+  size_t ta = atoms.size();
+  const float *erad = element_radii();
+  for (size_t i = 0 ; i < ta ; ++i)
+    {
+      Atom &a = atoms[i];
+      a.atom_shown = true;
+      a.radius = erad[a.element_number];
+    }
+
   int nm = molstart.size();
   PyObject *mol_atoms = PyTuple_New(nm);
-  size_t ta = atoms.size(), asize = sizeof(Atom);
+  size_t asize = sizeof(Atom);
   for (int m = 0 ; m < nm ; ++m)
     {
       char *adata;
       int ms = molstart[m];
       int na = (m < nm-1 ? molstart[m+1]-ms : ta-ms);
       PyObject *atoms_py = python_char_array(na, asize, &adata);
+      if (sort_residues)
+	std::sort(atoms.begin()+ms, atoms.begin()+(ms+na), compare_residues);
       memcpy(adata, atoms.data() + ms, na*asize);
       PyTuple_SetItem(mol_atoms, m, atoms_py);
     }
@@ -169,13 +178,16 @@ element_radii(PyObject *s, PyObject *args, PyObject *keywds)
   const char *kwlist[] = {"element_numbers", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
 				   (char **)kwlist,
-				   parse_int_n_array, &elnum))
+				   parse_uint8_n_array, &elnum))
     return NULL;
-  int *el = (int *)elnum.values();
-  long n = elnum.size(), st = elnum.stride(0);
+  unsigned char *el = (unsigned char *)elnum.values();
+  long n = elnum.size(), stride = elnum.stride(0);
   float *radii;
   PyObject *radii_py = python_float_array(n, &radii);
-  element_radii(el, n, st, radii);
+
+  const float *erad = element_radii();
+  for (int e = 0 ; e < n ; ++e)
+    radii[e] = erad[el[e*stride]];
 
   return radii_py;
 }
@@ -187,17 +199,7 @@ class Atom_Compare
 {
 public:
   Atom_Compare(Atom *atoms) : atoms(atoms) {}
-  bool operator() (int i, int j)
-  {
-    const Atom *at1 = &atoms[i], *at2 = &atoms[j];
-    int ccmp = strncmp(at1->chain_id, at2->chain_id, CHAIN_ID_LEN);
-    if (ccmp == 0)
-      {
-	int r1 = at1->residue_number, r2 = at2->residue_number;
-	ccmp = (r1 < r2 ? -1 : (r1 > r2 ? 1 : 0));
-      }
-    return ccmp < 0;
-  }
+  bool operator() (int i, int j) { return compare_residues(atoms[i], atoms[j]); }
 private:
   Atom *atoms;
 };

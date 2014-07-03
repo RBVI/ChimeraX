@@ -2,6 +2,7 @@
 // and it was 15 times slower and took 8 times the memory.
 
 #include <iostream>
+#include <algorithm>			// use std::sort()
 #include <ctype.h>			// use isspace()
 #include <string.h>			// use memset()
 #include <vector>
@@ -19,6 +20,7 @@ public:
     alt_loc = '\0';
     model_num = 1;
   }
+  bool operator<(const mmCIF_Atom &a) const { return compare_residues(atom, a.atom); }
   bool same_atom(const mmCIF_Atom &a) const
   {
     return (atom.residue_number == a.atom.residue_number &&
@@ -258,9 +260,10 @@ extern "C" PyObject *
 parse_mmcif_file(PyObject *s, PyObject *args, PyObject *keywds)
 {
   const char *mmcif_text;
-  const char *kwlist[] = {"text", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("s"),
-				   (char **)kwlist, &mmcif_text))
+  int sort_residues = 0;
+  const char *kwlist[] = {"text", "sort_residues", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("s|p"),
+				   (char **)kwlist, &mmcif_text, &sort_residues))
     return NULL;
 
   std::vector<mmCIF_Atom> atoms;
@@ -271,15 +274,26 @@ parse_mmcif_file(PyObject *s, PyObject *args, PyObject *keywds)
       return NULL;
     }
 
+  size_t ta = atoms.size();
+  const float *erad = element_radii();
+  for (size_t i = 0 ; i < ta ; ++i)
+    {
+      Atom &a = atoms[i].atom;
+      a.atom_shown = true;
+      a.radius = erad[a.element_number];
+    }
+
   int nm = molstart.size();
   PyObject *mol_atoms = PyTuple_New(nm);
-  size_t ta = atoms.size(), asize = sizeof(Atom);
+  size_t asize = sizeof(Atom);
   for (int m = 0 ; m < nm ; ++m)
     {
       char *adata;
       int ms = molstart[m];
       int na = (m < nm-1 ? molstart[m+1]-ms : ta-ms);
       PyObject *atoms_py = python_char_array(na, asize, &adata);
+      if (sort_residues)
+	std::sort(atoms.begin()+ms, atoms.begin()+(ms+na));
       for (int i = 0 ; i < na ; ++i)
 	memcpy(adata + i*asize, &atoms[ms+i].atom, asize);
       PyTuple_SetItem(mol_atoms, m, atoms_py);
