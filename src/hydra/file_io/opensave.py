@@ -349,12 +349,16 @@ def open_from_database(ids, session, from_database, set_camera = None):
         set_camera = (session.model_count() == 0)
     from . import fetch
     mlist = []
+#    from time import time
+#    t0 = time()
     for id in ids:
         m = fetch.fetch_from_database(id, from_database, session)
         if isinstance(m, (list, tuple)):
             mlist.extend(m)
         else:
             mlist.append(m)
+#    t1 = time()
+#    print('opened in %.2f seconds, %s' % (t1-t0, ids))
     session.add_models(mlist)
     finished_opening([m.path for m in mlist], set_camera, session)
     return mlist

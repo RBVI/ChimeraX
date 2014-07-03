@@ -2,11 +2,15 @@ def open_mmcif_file(path, session):
   '''
   Open an mmCIF file.
   '''
+#  from time import time
+#  t0 = time()
   from .pdb import use_pdbio
   if use_pdbio:
     mols = open_mmcif_file_with_pdbio(path, session)
   else:
     mols = open_mmcif_file_with_image3d(path, session)
+#  t1 = time()
+#  print('opened in %.2f sec, %s' % (t1-t0,path))
   return mols
 
 def open_mmcif_file_with_image3d(path, session):
