@@ -4,7 +4,7 @@
 #ifndef STRINGNUM_HEADER_INCLUDED
 #define STRINGNUM_HEADER_INCLUDED
 
-inline float string_to_float(const char *s)
+inline float string_to_float(const char *s, const char *e = NULL)
 {
   float fa = 0, v = 0;
   while(*s == ' ')
@@ -27,11 +27,13 @@ inline float string_to_float(const char *s)
       else
 	break;
       s += 1;
+      if (s == e)
+	break;
     }
   return (neg ? -v : v);
 }
 
-inline int string_to_integer(const char *s)
+inline int string_to_integer(const char *s, const char *e = NULL)
 {
   while(*s == ' ')
     s += 1;
@@ -47,6 +49,8 @@ inline int string_to_integer(const char *s)
       else
 	break;
       s += 1;
+      if (s == e)
+	break;
     }
   return (neg ? -v : v);
 }

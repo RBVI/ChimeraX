@@ -73,8 +73,6 @@ const float *element_radii()
 
 static void parse_pdb(const char *pdb, std::vector<Atom> &atoms, std::vector<int> &molstart)
 {
-  char buf[9];
-  buf[8] = '\0';
   int ni, s;
   char last_alt_loc = ' ';
   size_t asize = sizeof(Atom);
@@ -90,17 +88,13 @@ static void parse_pdb(const char *pdb, std::vector<Atom> &atoms, std::vector<int
 	else if (atom_line(line) && line_len > 46)
 	  {
 	    memset(&atom, 0, asize);
-	    strncpy(buf, line+30, 8);
-	    atom.x = string_to_float(buf);
-	    strncpy(buf, line+38, 8);
-	    atom.y = string_to_float(buf);
-	    strncpy(buf, line+46, 8);
-	    atom.z = string_to_float(buf);
+	    atom.x = string_to_float(line+30,line+38);
+	    atom.y = string_to_float(line+38,line+46);
+	    atom.z = string_to_float(line+46,line+54);
 	    atom.chain_id[0] = line[21];
-	    int e = (line_len > 76 ? element_number(line + 76) : 0);
+	    int e = (line_len > 76 ? element_number(line+76) : 0);
 	    atom.element_number = e;
-	    strncpy(buf, line+22, 4);
-	    atom.residue_number = string_to_integer(buf);
+	    atom.residue_number = string_to_integer(line+22,line+26);
 	    for (s = 17 ; s < 19 && line[s] == ' ' ; ++s) ;	// Skip leading spaces.
 	    for (e = 19 ; e > 16 && line[e] == ' ' ; --e) ;	// Skip trailing spaces.
 	    if (e >= s)
