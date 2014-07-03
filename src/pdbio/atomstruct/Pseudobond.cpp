@@ -32,7 +32,7 @@ PBond*
 CS_PBGroup::newPseudoBond(Atom* a1, Atom* a2, CoordSet* cs)
 {
     _check_ownership(a1, a2);
-    PBond* pb = makeLink(a1, a2);
+    PBond* pb = new PBond(a1, a2);
     auto pbi = _pbonds.find(cs);
     if (pbi == _pbonds.end()) {
         _pbonds[cs].insert(pb);

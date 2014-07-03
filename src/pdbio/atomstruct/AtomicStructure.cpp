@@ -9,12 +9,16 @@
 #include <algorithm>  // for std::find, std::sort
 #include <stdexcept>
 #include <set>
+#include <unordered_map>
 
 namespace atomstruct {
 
+const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
+
 AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
-    asterisks_translated(false), _being_destroyed(false), _cs_pb_mgr(this),
-    lower_case_chains(false), _pb_mgr(this), pdb_version(0), is_traj(false)
+    asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
+    _cs_pb_mgr(this), lower_case_chains(false), _pb_mgr(this), pdb_version(0),
+    is_traj(false)
 {
 }
 
@@ -304,50 +308,75 @@ AtomicStructure::new_residue(const std::string &name, const std::string &chain,
 std::vector<Chain::Residues>
 AtomicStructure::polymers() const
 {
+    // connected polymeric residues have to be adjacent in the residue list,
+    // so make an index map
+    int i = 0;
+    std::unordered_map<const Residue*, int> res_lookup;
+    for (auto& r: _residues) {
+        res_lookup[r.get()] = i++;
+    }
+
     // Find all polymeric connections and make a map
-    // keyed on residue with value of next polymeric residue
-    std::map<Residue*, Residue*> connected;
-    const Bonds& bs = bonds();
-    for (auto bi = bs.begin(); bi != bs.end(); ++bi) {
-        Bond* b = bi->get();
+    // keyed on residue with value of whether that residue
+    // is connected to the next one
+    std::unordered_map<Residue*, bool> connected;
+    for (auto& b: bonds()) {
         Atom* start = b->polymeric_start_atom();
         if (start != nullptr) {
-            connected[start->residue()] = b->other_atom(start)->residue();
+            Residue* sr = start->residue();
+            Residue* nr = b->other_atom(start)->residue();
+            if (res_lookup[sr] + 1 == res_lookup[nr])
+                connected[sr] = true;
         }
     }
 
-    //TODO: go through missing-structure pseudobonds
-
-    // Go through residue list; if residue not in any
-    // chain yet but is in map, then start a chain with it
-    std::vector<Chain::Residues> polys;
-    std::set<Residue*> in_chains;
-    for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
-        Residue* r = ri->get();
-
-        if (in_chains.find(r) != in_chains.end())
-            continue;
-
-        auto connection = connected.find(r);
-        if (connection == connected.end())
-            continue;
-
-        // Go through map to gather complete chain; ensure we
-        // don't go infinite in cases where the polymer is circular
-        Residue* chain_end = (*connection).first;
-        Chain::Residues chain;
-        chain.push_back(chain_end);
-        in_chains.insert(chain_end);
-        while((connection = connected.find(chain_end)) != connected.end()) {
-            chain_end = (*connection).second;
-            if (in_chains.find(chain_end) != in_chains.end())
-                break;
-            chain.push_back(chain_end);
-            in_chains.insert(chain_end);
+    // go through missing-structure pseudobonds
+    auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, false);
+    if (pbg != nullptr) {
+std::cerr << pbg->pseudobonds().size() << " missing structure pseudobonds\n";
+int pbnum = 0;
+        for (auto& pb: pbg->pseudobonds()) {
+            Residue *r1 = pb->atoms()[0]->residue();
+            Residue *r2 = pb->atoms()[1]->residue();
+            int index1 = res_lookup[r1], index2 = res_lookup[r2];
+            if (abs(index1 - index2) == 1) {
+                if (index1 < index2) {
+                    connected[r1] = true;
+                } else {
+                    connected[r2] = true;
+                }
+std::cerr << ++pbnum << " " << r1->str() << " " << r2->str() << "\n";
+            }
         }
+    }
+
+    // Go through residue list; start chains with initially-connected residues
+    std::vector<Chain::Residues> polys;
+    Chain::Residues chain;
+    bool in_chain = false;
+    for (auto& upr: _residues) {
+        Residue* r = upr.get();
+        auto connection = connected.find(r);
+        if (connection == connected.end()) {
+            if (in_chain) {
+std::cerr << " through " << r->str() << "\n";
+                chain.push_back(r);
+                polys.push_back(chain);
+                chain.clear();
+                in_chain = false;
+            }
+        } else {
+if (!in_chain) std::cerr << "chain " << r->str();
+            chain.push_back(r);
+            in_chain = true;
+        }
+    }
+    if (in_chain) {
+std::cerr << " through end\n";
         polys.push_back(chain);
     }
 
+std::cerr << polys.size() << " polymers\n";
     return polys;
 }
 

@@ -51,4 +51,4 @@ Graph<Vertex, Edge>::delete_vertex(Vertex *v)
 
 } //  namespace basegeom
 
-#endif  // basegeom_Graphuthscsa.edu
+#endif  // basegeom_Graph

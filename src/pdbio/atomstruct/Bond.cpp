@@ -1,15 +1,14 @@
 // vim: set expandtab ts=4 sw=4:
-#include "Bond.h"
 #include "Atom.h"
+#include "Bond.h"
+#include "Residue.h"
 #include "Sequence.h"
-#include "connectivity/connect.h"
 #include <stdexcept>
 
 namespace atomstruct {
 
 Bond::Bond(AtomicStructure *as, Atom *a1, Atom *a2):
-    Connection<Atom, Bond>(a1, a2, "Can't bond an atom to itself",
-        "Bond already exists between these atoms")
+    UniqueConnection<Atom, Bond>(a1, a2)
 {
     if (a1->structure() != as || a2->structure() != as)
         throw std::invalid_argument("Cannot bond atoms in different molecules");
@@ -38,9 +37,9 @@ Bond::polymeric_start_atom() const
 
     if (n1) {
         // both nucleic
-        if (a1->name() == "P" && a2->name() == "O3'")
-            return a1;
         if (a1->name() == "O3'" && a2->name() == "P")
+            return a1;
+        if (a1->name() == "P" && a2->name() == "O3'")
             return a2;
     } else {
         // both protein

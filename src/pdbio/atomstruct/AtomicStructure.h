@@ -29,6 +29,7 @@ public:
     typedef Edges  Bonds;
     typedef std::vector<std::unique_ptr<Chain>> Chains;
     typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
+    static const char*  PBG_MISSING_STRUCTURE;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
 private:
     CoordSet *  _active_coord_set;

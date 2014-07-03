@@ -11,7 +11,7 @@ namespace basegeom {
     
 template <class FinalConnection, class FinalConnectible>
 class Connectible {
-    friend class Connection<FinalConnectible, FinalConnection>;
+    friend class UniqueConnection<FinalConnectible, FinalConnection>;
 protected:
     typedef std::map<FinalConnectible *, FinalConnection *> ConnectionsMap;
     typedef std::vector<FinalConnection *> Connections;
