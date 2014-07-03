@@ -748,7 +748,6 @@ class Molecule(Drawing):
 # Atoms numpy array dtype for Molecule constructor.
 atom_dtype = [
   ('atom_name', 'a4'),
-  ('element_number', 'i4'),
   ('xyz', 'f4', (3,)),
   ('radius', 'f4'),
   ('residue_name', 'a4'),
@@ -756,10 +755,11 @@ atom_dtype = [
   ('chain_id', 'a4'),
   ('atom_color', 'u1', (4,)),
   ('ribbon_color', 'u1', (4,)),
+  ('element_number', 'u1'),
   ('atom_shown', 'u1'),
   ('ribbon_shown', 'u1'),
   ('atom_selected', 'u1'),
-  ('pad', 'u1'),               # C struct size is multiple of 4 bytes
+  # If fields are added, pad to multiple of 4 bytes, C struct size is multiple of 4 bytes
 ]
 
 def combine_geometry(geom):
