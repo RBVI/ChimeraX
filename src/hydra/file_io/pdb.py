@@ -19,7 +19,7 @@ def open_pdb_file_with_image3d(path, session):
   f.close()
   ft1 = time()
   from .. import _image3d
-  matoms = _image3d.parse_pdb_file(text)
+  matoms = _image3d.parse_pdb_file(text, sort_residues = True)
   t1 = time()
   mols = []
   from ..molecule import Molecule, connect
@@ -44,9 +44,6 @@ def open_pdb_file_with_image3d(path, session):
 def atom_array(a):
   from ..molecule import atom_dtype
   atoms = a.view(atom_dtype).reshape((len(a),))
-  atoms['atom_shown'] = True
-  set_atom_radii(atoms)
-  sort_atoms(atoms)
   return atoms
 
 def sort_atoms(atoms, bonds = None):

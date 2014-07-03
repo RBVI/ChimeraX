@@ -18,7 +18,7 @@ def open_mmcif_file_with_image3d(path, session):
   ft1 = time()
   from .. import _image3d
   t0 = time()
-  matoms = _image3d.parse_mmcif_file(text)
+  matoms = _image3d.parse_mmcif_file(text, sort_residues = True)
   t1 = time()
   from . import pdb
   from ..molecule import Molecule, connect
