@@ -19,7 +19,9 @@ void contour_surface(const Reference_Counted_Array::Array<T> &data,
 {
   // contouring calculation requires contiguous array
   // put sizes in x, y, z order
-  Index size[3] = {data.size(2), data.size(1), data.size(0)};
+  Index size[3] = {static_cast<Index>(data.size(2)),
+		   static_cast<Index>(data.size(1)),
+		   static_cast<Index>(data.size(0))};
   Stride stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
   *cs = surface(data.values(), size, stride, threshold, cap_faces);
 }
