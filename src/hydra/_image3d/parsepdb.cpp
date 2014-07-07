@@ -53,7 +53,7 @@ int element_number(const char *element_name)
   return elnum[e];
 }
 
-const float *element_radii()
+const float *element_radius_array()
 {
   static float *erad = NULL;
   if (erad == NULL)
@@ -137,7 +137,7 @@ parse_pdb_file(PyObject *s, PyObject *args, PyObject *keywds)
   parse_pdb(pdb_text, atoms, molstart);
 
   size_t ta = atoms.size();
-  const float *erad = element_radii();
+  const float *erad = element_radius_array();
   for (size_t i = 0 ; i < ta ; ++i)
     {
       Atom &a = atoms[i];
@@ -179,7 +179,7 @@ element_radii(PyObject *s, PyObject *args, PyObject *keywds)
   float *radii;
   PyObject *radii_py = python_float_array(n, &radii);
 
-  const float *erad = element_radii();
+  const float *erad = element_radius_array();
   for (int e = 0 ; e < n ; ++e)
     radii[e] = erad[el[e*stride]];
 

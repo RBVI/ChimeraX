@@ -41,6 +41,6 @@ PyObject *residue_ids(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 int element_number(const char *element_name);
-const float *element_radii();
+const float *element_radius_array();
 
 #endif

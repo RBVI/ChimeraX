@@ -275,7 +275,7 @@ parse_mmcif_file(PyObject *s, PyObject *args, PyObject *keywds)
     }
 
   size_t ta = atoms.size();
-  const float *erad = element_radii();
+  const float *erad = element_radius_array();
   for (size_t i = 0 ; i < ta ; ++i)
     {
       Atom &a = atoms[i].atom;
