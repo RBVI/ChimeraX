@@ -12,7 +12,7 @@ def fetch_pdb(id, session, ignore_cache = False, file_format = 'pdb'):
     save_name = '%s.%s' % (idu, file_suffix)
     min_file_size = 80*20
     
-    from .fetch import fetch_file
+    from ..file_io.fetch import fetch_file
     try:
         path, headers = fetch_file(url, id, session, min_file_size,
                                    save_dir, save_name, uncompress = 'always',
@@ -42,7 +42,7 @@ def fetch_mmcif(id, session, ignore_cache = False):
 #
 def register_pdb_fetch(session):
 
-  from .fetch import register_fetch_database as reg
+  from ..file_io.fetch import register_fetch_database as reg
   reg('PDB', fetch_pdb, '1a0m', 'www.rcsb.org/pdb/home',
       'http://www.rcsb.org/pdb/explore/explore.do?structureId=%s', session)
   reg('PDBmmCIF', fetch_mmcif, '1a0m', 'www.rcsb.org/pdb/home',

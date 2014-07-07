@@ -161,7 +161,7 @@ def standard_shortcuts(session):
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
         ]
 
-    from ..file_io.blastpdb import blast_shortcuts
+    from ..molecule.blastpdb import blast_shortcuts
     shortcuts.extend(blast_shortcuts())
 
     scuts = []
@@ -407,7 +407,7 @@ def fit_molecule_in_map(session):
 def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
-        from ..file_io import biomt
+        from ..molecule import biomt
         places = biomt.pdb_biomt_matrices(m.pdb_text)
         print (m.path, 'biomt', len(places))
         if places:

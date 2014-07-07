@@ -1,4 +1,4 @@
-from hydra.file_io import blastpdb
+from hydra.molecule import blastpdb
 fa = blastpdb.create_fasta_database('/usr/local/mmCIF')
 f = open('/Users/goddard/Desktop/mmcif.fasta', 'w')
 f.write(fa)

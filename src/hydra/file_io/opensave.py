@@ -65,8 +65,8 @@ def file_types(session):
     '''
     ftypes = session.file_types
     if ftypes is None:
-        from .pdb import open_pdb_file
-        from .mmcif import open_mmcif_file
+        from ..molecule.pdb import open_pdb_file
+        from ..molecule.mmcif import open_mmcif_file
         from .read_stl import read_stl
         from .read_apr import open_autopack_results, read_ingredient_file, read_sphere_file
         from .read_swc import read_swc

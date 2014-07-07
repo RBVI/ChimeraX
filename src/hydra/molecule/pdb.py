@@ -22,7 +22,7 @@ def open_pdb_file_with_image3d(path, session):
   matoms = _image3d.parse_pdb_file(text, sort_residues = True)
   t1 = time()
   mols = []
-  from ..molecule import Molecule, connect
+  from . import Molecule, connect
   for a in matoms:
     atoms = atom_array(a)
     m = Molecule(path, atoms)
@@ -42,7 +42,7 @@ def open_pdb_file_with_image3d(path, session):
 
 # Convert numpy byte array of C Atom structure to a numpy structured array.
 def atom_array(a):
-  from ..molecule import atom_dtype
+  from . import atom_dtype
   atoms = a.view(atom_dtype).reshape((len(a),))
   return atoms
 
@@ -75,7 +75,7 @@ def open_pdb_file_with_pdbio(path):
 #  print('pdbio', path, 'read+parse time', '%.3f' % (t1-t0), 'atoms', len(atoms), 'atoms/sec', int(len(atoms)/(t1-t0)))
 
   mols = []
-  from ..molecule import Molecule
+  from . import Molecule
   for sb in sblob.structures:
     atoms, bonds = structblob_atoms_and_bonds(sb)
     m = Molecule(path, atoms)
@@ -103,7 +103,7 @@ def structblob_atoms_and_bonds(sblob):
   from numpy import int32, empty, zeros
   bonds = sblob.atoms_bonds[1].astype(int32)    # Getting uint64
 
-  from ..molecule import atom_dtype
+  from . import atom_dtype
   atoms = zeros((n,), atom_dtype)
   atoms['atom_name'][:] = anames
   atoms['element_number'][:] = enums

@@ -25,7 +25,7 @@ def open_mmcif_file_with_image3d(path, session):
   matoms = _image3d.parse_mmcif_file(text, sort_residues = True)
   t1 = time()
   from . import pdb
-  from ..molecule import Molecule, connect
+  from . import Molecule, connect
   mols = []
   for a in matoms:
     atoms = pdb.atom_array(a)
@@ -60,12 +60,12 @@ def open_mmcif_file_with_pdbio(path, session):
 
   from . import pdb
   mols = []
-  from ..molecule import Molecule
+  from . import Molecule
   for sb in sblob.structures:
     atoms, bonds = pdb.structblob_atoms_and_bonds(sblob)
     m = Molecule(path, atoms)
 # TODO: pdbio.parse_mmCIF_file() is not creating bonds
-#  from ..molecule import connect
+#  from . import connect
 #  bonds, missing = connect.molecule_bonds(m, session)
     m.bonds = bonds
     m.color_by_chain()
@@ -96,7 +96,7 @@ def mmcif_sequences(mmcif_path):
   ed = en.mapping('id', 'pdbx_description')
 
   eseq = {}
-  from ..molecule.residue_codes import res3to1
+  from .residue_codes import res3to1
   for eid, seq in es.items():
     rnums = [int(i) for i in seq.keys()]
     rnums.sort()

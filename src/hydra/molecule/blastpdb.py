@@ -242,7 +242,7 @@ class Match:
     if cache and id in cache:
       m = cache[id]
     else:
-      from . import fetch
+      from ..file_io import fetch
       m = fetch.fetch_from_database(id, 'PDBmmCIF', session)[0]
       if not cache is None:
         cache[id] = m
@@ -280,7 +280,7 @@ def check_hit_sequences_match_mmcif_sequences(matches):
 
     # Using mmcif files the residue number (label_seq_id) is the index into the sequence.
     # This is not true of PDB files.
-    from ..molecule.molecule import chain_sequence
+    from .molecule import chain_sequence
     cseq = chain_sequence(m, cid)
     # Check that hit sequence matches PDB sequence
     if not sequences_match(hseq,cseq):
@@ -331,7 +331,7 @@ def same_sequence_rmsds(matches, within_pdb = True):
         ca = ma.mol.atom_subset('CA')
         rnum = ca.residue_numbers()
         xyz = ca.coordinates()[in1d(rnum,rnum0)]
-        from ..molecule import align
+        from . import align
         pxyz0 = xyz0[in1d(rnum0,rnum)]
         if len(xyz) != len(pxyz0):
           print('ssr', len(xyz), ma.pdb_id, ma.chain_id, ca.count(), len(pxyz0), ma0.pdb_id, ma0.chain_id, ca0.count())
@@ -429,7 +429,7 @@ def mosaic_model(br):
     if qrnum3[0] + nar < qi or rnum3[0] + nar < ri:
       print('gap', qi, qrnum3, ri, rnum3, ma.pdb_id, ma.chain_id)
     xyz3 = ma.mol.atom_subset('CA', residue_numbers = rnum3).coordinates()
-    from ..molecule import align
+    from . import align
     tf, rmsd = align.align_points(xyz3, xyz[qrnum3])
     xyzi = ma.mol.atom_subset('CA', residue_numbers = [ri]).coordinates()
     xyz[qi,:] = tf*xyzi
@@ -451,7 +451,7 @@ def random_colors(color_index):
 def create_ca_trace(name, xyz, rnums, colors):
 
   from numpy import zeros
-  from ..molecule import atom_dtype
+  from . import atom_dtype
   atoms = zeros((len(xyz),), atom_dtype)
   atoms['atom_name'] = b'CA'
   atoms['element_number'] = 6
@@ -467,7 +467,7 @@ def create_ca_trace(name, xyz, rnums, colors):
   atoms['atom_shown'] = 0
   atoms['ribbon_shown'] = 1
 
-  from ..molecule import Molecule
+  from . import Molecule
   m = Molecule(name, atoms)
   return m
 
@@ -610,7 +610,7 @@ def align_segment(rxyz, rnum, qrnum, rmask, covered, xyz, tail = 3, max_rmsd = 5
       if nm < 2*tail and nr > 5:
         print('ascm overlap too short', nm, nr, len(rxyz), pre_rmsd)
         return None
-      from ..molecule import align
+      from . import align
       tf, rmsd = align.align_points(mrxyz, mxyz)
       print('ascm realigned', nm, nr, len(rxyz), pre_rmsd, rmsd)
       return tf
@@ -723,7 +723,7 @@ def align_chain(mol, rnum, ref_mol, ref_rnum, ref_rmask):
     return None, None
 
   # Compute RMSD of aligned hit and query.
-  from ..molecule import align
+  from . import align
 #  tf, rmsd = align.align_points(atoms.coordinates(), ref_atoms.coordinates())
   dmax = 5.0
   niter = 20

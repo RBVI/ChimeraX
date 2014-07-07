@@ -31,7 +31,7 @@ def fetch_emdb_map(id, session, open_fit_pdbs = False, ignore_cache=False):
     s.show_info(msg)
     if pdb_ids:
       mlist = []
-      from .fetch_pdb import fetch_pdb
+      from ..molecule.fetch_pdb import fetch_pdb
       for pdb_id in pdb_ids:
         s.show_status('Opening %s' % pdb_id)
         m = fetch_pdb(pdb_id, ignore_cache=ignore_cache)

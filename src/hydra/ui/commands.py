@@ -14,7 +14,8 @@ def register_commands(commands):
     add('open', open_command)
     add('save', save_command)
     add('close', close_command)
-    from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
+    from ..file_io import fetch_emdb, fetch_eds
+    from ..molecule import fetch_pdb
     s = commands.session
     fetch_pdb.register_pdb_fetch(s)
     fetch_emdb.register_emdb_fetch(s)
@@ -44,7 +45,7 @@ def register_commands(commands):
     add('material', materialcmd.material_command)
     from . import gui
     add('windowsize', gui.window_size_command)
-    from ..file_io import blastpdb
+    from ..molecule import blastpdb
     add('blast', blastpdb.blast_command)
 
 # -----------------------------------------------------------------------------

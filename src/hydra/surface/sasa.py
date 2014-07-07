@@ -602,7 +602,7 @@ def test_pdb_models(id_codes, npoints, session):
     print('%6s %6s %9s %9s %5s %5s %8s %8s\n' %
              ('PDB', 'atoms', 'area', 'earea', 'atime', 'etime', 'max err', 'mean err'))
     for id in id_codes:
-            from ..file_io.fetch_pdb import fetch_pdb
+            from ..molecule.fetch_pdb import fetch_pdb
             mlist = fetch_pdb(id)
             session.add_models(mlist)
             
