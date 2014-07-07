@@ -29,7 +29,6 @@
 
 #include "refcount.h"		// use Reference_Count
 #include <stdexcept>		// for std::invalid_argument in rcarrayt.cpp
-#include "volumearray_config.h"	// use VOLUMEARRAY_IMEX
 
 namespace Reference_Counted_Array
 {
@@ -37,7 +36,7 @@ namespace Reference_Counted_Array
 // ----------------------------------------------------------------------------
 // Used by Array.
 //
-class VOLUMEARRAY_IMEX Release_Data
+class Release_Data
 {
 public:
   virtual ~Release_Data() {}
@@ -46,7 +45,7 @@ public:
 // ----------------------------------------------------------------------------
 //
 template<class T>
-class VOLUMEARRAY_IMEX Delete_Data : public Release_Data
+class Delete_Data : public Release_Data
 {
 public:
   Delete_Data(T *data) { this->data = data; }
@@ -58,7 +57,7 @@ private:
 // ----------------------------------------------------------------------------
 // Multi-dimensional reference counted array with unspecified value type.
 //
-class VOLUMEARRAY_IMEX Untyped_Array
+class Untyped_Array
 {
 public:
   Untyped_Array();
@@ -115,7 +114,7 @@ template <class T> class Array_Operator;
 // Multi-dimensional reference counted array with specified value type T.
 //
 template <class T>
-class VOLUMEARRAY_IMEX Array : public Untyped_Array
+class Array : public Untyped_Array
 {
 public:
   Array();
@@ -150,7 +149,7 @@ public:
 // ----------------------------------------------------------------------------
 // Multi-dimensional reference counted array with numeric value type.
 //
-class VOLUMEARRAY_IMEX Numeric_Array : public Untyped_Array
+class Numeric_Array : public Untyped_Array
 {
  public:
   enum Value_Type { Char, Signed_Char, Unsigned_Char,
