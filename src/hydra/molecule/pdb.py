@@ -8,18 +8,18 @@ def open_pdb_file(path, session):
   if use_pdbio:
     mols = open_pdb_file_with_pdbio(path)
   else:
-    mols = open_pdb_file_with_image3d(path, session)
+    mols = open_pdb_file_with_molecule_cpp(path, session)
   return mols
 
-def open_pdb_file_with_image3d(path, session):
+def open_pdb_file_with_molecule_cpp(path, session):
   from time import time
   t0 = time()
   f = open(path, 'rb')
   text = f.read()
   f.close()
   ft1 = time()
-  from .. import _image3d
-  matoms = _image3d.parse_pdb_file(text, sort_residues = True)
+  from .. import molecule_cpp
+  matoms = molecule_cpp.parse_pdb_file(text, sort_residues = True)
   t1 = time()
   mols = []
   from . import Molecule, connect
@@ -33,9 +33,9 @@ def open_pdb_file_with_image3d(path, session):
     mols.append(m)
   t3 = time()
 #  from os.path import basename
-#  print ('image3d', basename(path), 'read time', '%.3f' % (ft1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(ft1-t0)))
+#  print ('molecule_cpp', basename(path), 'read time', '%.3f' % (ft1-t0), 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/(ft1-t0)))
 #  t = (t1-t0)+(t3-t2)
-#  print('image3d', basename(path), 'read+parse time', '%.3f' % t, 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/t))
+#  print('molecule_cpp', basename(path), 'read+parse time', '%.3f' % t, 'atoms', len(xyz), 'atoms/sec', int(len(xyz)/t))
 #  print(basename(path), len(atoms), 'atoms')
 
   return mols
@@ -49,8 +49,8 @@ def atom_array(a):
 def sort_atoms(atoms, bonds = None):
   '''Sort numpy structured array of atoms by chain id and residue number. Update bonds to use new order.'''
   satoms = atoms.view('S%d'%atoms.itemsize)     # Need string array for C++ sort routine.
-  from .. import _image3d
-  order = _image3d.atom_sort_order(satoms)
+  from .. import molecule_cpp
+  order = molecule_cpp.atom_sort_order(satoms)
   satoms[:] = satoms[order]
   if not bonds is None:
     from numpy import empty, int32, arange
@@ -61,8 +61,8 @@ def sort_atoms(atoms, bonds = None):
     bonds[:,1] = amap[bonds[:,1]]
 
 def set_atom_radii(atoms):
-  from .. import _image3d
-  atoms['radius'][:] = _image3d.element_radii(atoms['element_number'])
+  from .. import molecule_cpp
+  atoms['radius'][:] = molecule_cpp.element_radii(atoms['element_number'])
 
 def open_pdb_file_with_pdbio(path):
   from time import time

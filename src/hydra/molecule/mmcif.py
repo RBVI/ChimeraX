@@ -8,21 +8,21 @@ def open_mmcif_file(path, session):
   if use_pdbio:
     mols = open_mmcif_file_with_pdbio(path, session)
   else:
-    mols = open_mmcif_file_with_image3d(path, session)
+    mols = open_mmcif_file_with_molecule_cpp(path, session)
 #  t1 = time()
 #  print('opened in %.2f sec, %s' % (t1-t0,path))
   return mols
 
-def open_mmcif_file_with_image3d(path, session):
+def open_mmcif_file_with_molecule_cpp(path, session):
   from time import time
   ft0 = time()
   f = open(path, 'r')
   text = f.read()
   f.close()
   ft1 = time()
-  from .. import _image3d
+  from .. import molecule_cpp
   t0 = time()
-  matoms = _image3d.parse_mmcif_file(text, sort_residues = True)
+  matoms = molecule_cpp.parse_mmcif_file(text, sort_residues = True)
   t1 = time()
   from . import pdb
   from . import Molecule, connect

@@ -279,11 +279,11 @@ class Molecule(Drawing):
       # For each contiguous set of residues compute a spline and then
       # draw shown segments.
       plist = []
-      from .._image3d import contiguous_intervals, mask_intervals
+      from ..molecule_cpp import contiguous_intervals, mask_intervals
       rnums = self.residue_nums[s]
       cint = contiguous_intervals(rnums)
       sd, cd = self.ribbon_subdivisions
-      from .._image3d import natural_cubic_spline, duplicate_midpoints
+      from ..molecule_cpp import natural_cubic_spline, duplicate_midpoints
       from ..surface import tube
       for i1,i2 in cint:
         if rshow[i1:i2+1].sum() == 0:
@@ -479,15 +479,15 @@ class Molecule(Drawing):
     if rids is None:
       a = self._atoms
       satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
-      from .. import _image3d
-      self.rids = rids = _image3d.residue_ids(satoms)
+      from .. import molecule_cpp
+      self.rids = rids = molecule_cpp.residue_ids(satoms)
     return rids
 
   def chain_atom_range(self, chain_id):
     cr = self.chain_ranges
     if cr is None:
       cids = self.chain_ids
-      from .._image3d import value_ranges
+      from ..molecule_cpp import value_ranges
       self.chain_ranges = cr = dict((cids[s],(s,e)) for s,e in value_ranges(cids))
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
     return cr[cid]
