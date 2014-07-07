@@ -19,11 +19,9 @@
 #include "parse_stl.h"			// use parse_stl
 #include "pdb_bonds.h"			// use molecule_bonds
 #include "sasa.h"			// use surface_area_of_spheres
-#include "setfileicon.h"		// use set_file_icon
 #include "spline.h"			// use natural_cubic_spline
 #include "squaremesh.h"			// use principle_plane_edges
 #include "subdivide.h"			// use subdivide_triangles
-#include "touchevents.h"		// use accept_touch_events
 #include "transfer.h"			// use data_to_rgba,...
 #include "tube.h"			// use tube_geometry
 
@@ -151,10 +149,6 @@ static struct PyMethodDef image3d_methods[] =
   {const_cast<char*>("estimate_surface_area_of_spheres"), (PyCFunction)estimate_surface_area_of_spheres,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
-  /* setfileicon.h */
-  {const_cast<char*>("can_set_file_icon"), (PyCFunction)can_set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("set_file_icon"), (PyCFunction)set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
-
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
    METH_VARARGS|METH_KEYWORDS, NULL},
@@ -180,10 +174,6 @@ static struct PyMethodDef image3d_methods[] =
    METH_VARARGS, NULL},
   {const_cast<char*>("reverse_triangle_vertex_order"),
    reverse_triangle_vertex_order, METH_VARARGS, NULL},
-
-  /* touchevents.h */
-  {const_cast<char*>("accept_touch_events"), (PyCFunction)accept_touch_events,
-   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* transfer.h */
   {const_cast<char*>("transfer_function_colormap"), (PyCFunction)transfer_function_colormap,
