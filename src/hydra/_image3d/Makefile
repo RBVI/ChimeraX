@@ -13,7 +13,6 @@ SRCS	= arrayops.cpp blend_rgba.cpp combine.cpp \
 	  intercept.cpp \
 	  measure.cpp mesh_edges.cpp \
 	  parsecif.cpp parsepdb.cpp parse_stl.cpp pdb_bonds.cpp \
-	  pythonarray.cpp rcarray.cpp refcount.cpp \
 	  sasa.cpp spline.cpp \
 	  squaremesh.cpp subdivide.cpp transfer.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
@@ -22,13 +21,8 @@ ifeq ($(OS),Darwin)
 PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 endif
 
-ifdef WIN32
-INCS = -I'$(shell cygpath -m '$(includedir)')'
-else
-INCS = -I$(includedir)
-endif
-
-INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+LIBS = $(libdir)/libarrays.$(SHLIB_EXT)
 
 #OPT = -g -Wall
 OPT = -O3
@@ -39,10 +33,10 @@ ifeq ($(OS),Linux)
 	LIBS += -lgomp
 endif
 
-ifdef USE_XCODE4
+#ifdef USE_XCODE4
 # clang compiler does not support OpenMP
-CXX = g++ -pipe -isysroot $(SYSROOT)
-endif
+#CXX = g++ -pipe -isysroot $(SYSROOT)
+#endif
 
 all: $(PYMOD)
 
