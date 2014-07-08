@@ -7,7 +7,7 @@
 
 #include <Python.h>			// use PyObject
 
-namespace Image_3d
+namespace Map_Cpp
 {
 
 extern "C" {
@@ -106,6 +106,6 @@ PyObject *data_to_rgba(PyObject *s, PyObject *args, PyObject *keywds);
 
 }	// end extern C
 
-}	// end of namespace Volume_Display
+}	// end of namespace Map_Cpp
 
 #endif

@@ -18,12 +18,12 @@
 #include "subdivide.h"			// use subdivide_triangles
 #include "transfer.h"			// use data_to_rgba,...
 
-namespace Image_3d
+namespace Map_Cpp
 {
 
 // ----------------------------------------------------------------------------
 //
-static struct PyMethodDef image3d_methods[] =
+static struct PyMethodDef map_cpp_methods[] =
 {
   /* blend_rgba.h */
   {const_cast<char*>("blur_blend_images"), (PyCFunction)blur_blend_images,
@@ -155,12 +155,12 @@ struct module_state {
 
 #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
 
-static int image3d_traverse(PyObject *m, visitproc visit, void *arg) {
+static int map_cpp_traverse(PyObject *m, visitproc visit, void *arg) {
     Py_VISIT(GETSTATE(m)->error);
     return 0;
 }
 
-static int image3d_clear(PyObject *m) {
+static int map_cpp_clear(PyObject *m) {
     Py_CLEAR(GETSTATE(m)->error);
     return 0;
 }
@@ -168,13 +168,13 @@ static int image3d_clear(PyObject *m) {
 
 static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
-        "_image3d",
+        "map_cpp",
         NULL,
         sizeof(struct module_state),
-        image3d_methods,
+        map_cpp_methods,
         NULL,
-        image3d_traverse,
-        image3d_clear,
+        map_cpp_traverse,
+        map_cpp_clear,
         NULL
 };
 
@@ -182,7 +182,7 @@ static struct PyModuleDef moduledef = {
 // Initialization routine called by python when module is dynamically loaded.
 //
 extern "C" PyObject *
-PyInit__image3d(void)
+PyInit_map_cpp(void)
 {
     PyObject *module = PyModule_Create(&moduledef);
     
@@ -190,7 +190,7 @@ PyInit__image3d(void)
       return NULL;
     struct module_state *st = GETSTATE(module);
 
-    st->error = PyErr_NewException("_image3d.Error", NULL, NULL);
+    st->error = PyErr_NewException("map_cpp.Error", NULL, NULL);
     if (st->error == NULL) {
         Py_DECREF(module);
         return NULL;
@@ -199,4 +199,4 @@ PyInit__image3d(void)
     return module;
 }
 
-}	// Image_3d
+}	// Map_Cpp namespace

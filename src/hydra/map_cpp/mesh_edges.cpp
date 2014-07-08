@@ -7,7 +7,7 @@
 #define EDGE0_DISPLAY_MASK 1
 #define ALL_EDGES_DISPLAY_MASK 7
 
-namespace Image_3d
+namespace Map_Cpp
 {
 
 // ----------------------------------------------------------------------------
@@ -79,4 +79,4 @@ masked_edges(PyObject *s, PyObject *args, PyObject *keywds)
   return edges_py;
 }
 
-} // namespace Image_3d
+} // namespace Map_Cpp

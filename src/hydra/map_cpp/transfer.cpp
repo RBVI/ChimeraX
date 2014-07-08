@@ -8,7 +8,7 @@
 #include "rcarray.h"			// use Array<T>, Numeric_Array
 using Reference_Counted_Array::Numeric_Array;
 
-namespace Volume_Display
+namespace Map_Cpp
 {
 
 typedef Reference_Counted_Array::Numeric_Array Color_Array;
@@ -1019,4 +1019,4 @@ static void resample_colormap(float bcf1, float bcl1,
   delete [] cmc;
 }
 
-}	// end of namespace Image_3d
+}	// end of namespace Map_Cpp

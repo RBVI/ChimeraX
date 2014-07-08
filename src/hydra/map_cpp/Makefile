@@ -3,11 +3,11 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra
 
-PYMOD_NAME = _image3d
+PYMOD_NAME = map_cpp
 SRCS	= blend_rgba.cpp combine.cpp \
 	  connected.cpp contourdata.cpp contourpy.cpp \
 	  distgrid.cpp distances.cpp distancespy.cpp  \
-	  gaussian.cpp  histogram.cpp image3d.cpp \
+	  gaussian.cpp  histogram.cpp module.cpp \
 	  interpolate.cpp interpolatepy.cpp intercept.cpp \
 	  measure.cpp mesh_edges.cpp parse_stl.cpp \
 	  squaremesh.cpp subdivide.cpp transfer.cpp
@@ -31,7 +31,7 @@ install: all
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 ifeq ($(OS),Darwin)
-# Fix _image3d.so to use relative path to Python framework library.
+# Use relative path to Python framework library.
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PYMOD)
 endif
 

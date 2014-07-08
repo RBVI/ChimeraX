@@ -6,7 +6,7 @@
 #include "pythonarray.h"		// use array_from_python()
 #include "rcarray.h"			// use Numeric_Array, Array<T>
 
-namespace Image_3d
+namespace Map_Cpp
 {
 
 // ----------------------------------------------------------------------------
@@ -235,4 +235,4 @@ high_indices_py(PyObject *s, PyObject *args, PyObject *keywds)
   return indices;
 }
 
-} // namespace Image_3d
+} // namespace Map_Cpp

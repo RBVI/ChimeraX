@@ -680,18 +680,18 @@ class Molecule(Drawing):
     r = self.shown_atom_array_values(self.drawing_radii())
     rsp = self.ribbon_drawing
     f = fa = ft = None
-    from .. import _image3d
+    from .. import map_cpp
     for tf in self.positions:
       cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
       # Check for atom sphere intercept
-      fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+      fmin, anum = map_cpp.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
       if not fmin is None and (f is None or fmin < f):
         f = fmin
         fa,ft = anum, None
       # Check for ribbon intercept
       if rsp:
         va, ta = rsp.geometry
-        fmin, t = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+        fmin, t = map_cpp.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
           fa,ft = None, t

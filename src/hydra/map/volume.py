@@ -647,7 +647,7 @@ class Volume(Drawing):
 
     matrix = self.matrix()
 
-    # _image3d contour code does not handle single data planes.
+    # map_cpp contour code does not handle single data planes.
     # Handle these by stacking two planes on top of each other.
     plane_axis = [a for a in (0,1,2) if matrix.shape[a] == 1]
     for a in plane_axis:
@@ -655,7 +655,7 @@ class Volume(Drawing):
 
     ro = rendering_options
 
-    from .._image3d import surface
+    from ..map_cpp import surface
     try:
       varray, tarray, narray = surface(matrix, level,
                                        cap_faces = ro.cap_faces,
@@ -676,7 +676,7 @@ class Volume(Drawing):
     # Preserve triangle vertex traversal direction about normal.
     transform = self.matrix_indices_to_xyz_transform()
     if transform.determinant() < 0:
-      from .._image3d import reverse_triangle_vertex_order
+      from ..map_cpp import reverse_triangle_vertex_order
       reverse_triangle_vertex_order(tarray)
 
     if ro.subdivide_surface:
@@ -687,8 +687,8 @@ class Volume(Drawing):
     if ro.square_mesh:
       from numpy import empty, int32
       hidden_edges = empty((len(tarray),), int32)
-      from .. import _image3d
-      _image3d.principle_plane_edges(varray, tarray, hidden_edges)
+      from .. import map_cpp
+      map_cpp.principle_plane_edges(varray, tarray, hidden_edges)
 
     if ro.surface_smoothing:
       sf, si = ro.smoothing_factor, ro.smoothing_iterations
