@@ -594,6 +594,9 @@ class Molecule(Drawing):
       asel[:] = False
       self.selection_changed()
 
+  def clear_selection_promotion_history(self):
+    self.promotion_tower = []
+
   def selection_changed(self, promotion = False):
     if not promotion:
       self.promotion_tower = []
