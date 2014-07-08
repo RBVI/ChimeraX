@@ -3,8 +3,8 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra
 
-PYMOD_NAME = mac_cpp
-SRCS	= mac_cpp.cpp setfileicon.cpp touchevents.cpp
+PYMOD_NAME = mac_os_cpp
+SRCS	= module.cpp setfileicon.cpp touchevents.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)
@@ -27,7 +27,7 @@ install: all
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 ifeq ($(OS),Darwin)
-# Fix mac_cpp.so to use relative path to Python framework library.
+# Use relative path to Python framework library.
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(PYMOD)
 endif
 

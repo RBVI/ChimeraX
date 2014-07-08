@@ -19,8 +19,8 @@ class View(QtGui.QWindow):
         # Qt 5.2 has touch events disabled because it slows down scrolling.  Reenable them.
         import sys
         if sys.platform == 'darwin':
-            from .. import mac_cpp
-            mac_cpp.accept_touch_events(int(self.winId()))
+            from .. import mac_os_cpp
+            mac_os_cpp.accept_touch_events(int(self.winId()))
 
         self.window_size = (w.width(), w.height())		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
