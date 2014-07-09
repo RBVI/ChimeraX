@@ -29,7 +29,7 @@ using atomstruct::CoordSet;
 using atomstruct::Element;
 using atomstruct::MolResId;
 using basegeom::Coord;
-	
+
 #define LOG_PY_ERROR_NULL(arg) \
                 if (log_file != Py_None) { \
                     std::stringstream msg; \
@@ -66,7 +66,7 @@ operator<<(std::ostream& os, const vector<t>& v)
     return os;
 }
 
-struct ExtractCIF: public readcif::CIFFile 
+struct ExtractCIF: public readcif::CIFFile
 {
     ExtractCIF();
     virtual void data_block(const string& name);
@@ -104,16 +104,16 @@ struct ExtractCIF: public readcif::CIFFile
 ExtractCIF::ExtractCIF()
 {
     register_category("audit_conform",
-        [this] (bool in) {
-            parse_audit_conform(in/*_loop*/);
+        [this] (bool in_loop) {
+            parse_audit_conform(in_loop);
         });
     register_category("atom_site",
-        [this] (bool in) {
-            parse_atom_site(in/*_loop*/);
+        [this] (bool in_loop) {
+            parse_atom_site(in_loop);
         });
     register_category("struct_conn",
-        [this] (bool in) {
-            parse_struct_conn(in/*_loop*/);
+        [this] (bool in_loop) {
+            parse_struct_conn(in_loop);
         }, { "atom_site" });
 }
 
@@ -170,7 +170,7 @@ ExtractCIF::parse_atom_site(bool in_loop)
     //const unsigned label_entity_id = get_column(atom_site_names, "label_entity_id");
     // x, y, z are not required by mmCIF, but are by us
     readcif::CIFFile::ParseValues pv;
-	pv.reserve(20);
+    pv.reserve(20);
 
     string chain_id;            // label_asym_id
     int position;               // label_seq_id
@@ -184,16 +184,16 @@ ExtractCIF::parse_atom_site(bool in_loop)
     float occupancy = FLT_MAX;  // occupancy
     float b_factor = FLT_MAX;   // B_iso_or_equiv
 
-	pv.emplace_back(get_column("id", false), false,
+    pv.emplace_back(get_column("id", false), false,
         [&] (const char* start, const char* end) {
             serial = readcif::str_to_int(start);
         });
 
-	pv.emplace_back(get_column("label_asym_id", true), true,
+    pv.emplace_back(get_column("label_asym_id", true), true,
         [&] (const char* start, const char* end) {
             chain_id = string(start, end - start);
         });
-	pv.emplace_back(get_column("pdbx_PDB_ins_code", false), true,
+    pv.emplace_back(get_column("pdbx_PDB_ins_code", false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code = ' ';
@@ -202,12 +202,12 @@ ExtractCIF::parse_atom_site(bool in_loop)
                 ins_code = *start;
             }
         });
-	pv.emplace_back(get_column("label_seq_id", true), false,
+    pv.emplace_back(get_column("label_seq_id", true), false,
         [&] (const char* start, const char*) {
             position = readcif::str_to_int(start);
         });
 
-	pv.emplace_back(get_column("label_alt_id", false), true,
+    pv.emplace_back(get_column("label_alt_id", false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -217,55 +217,55 @@ ExtractCIF::parse_atom_site(bool in_loop)
                 alt_id = *start;
             }
         });
-	pv.emplace_back(get_column("type_symbol", true), false,
-			[&] (const char* start, const char*) {
-                symbol[0] = *start;
-                symbol[1] = *(start + 1);
-                if (readcif::is_whitespace(symbol[1]))
-                    symbol[1] = '\0';
-                else
-                    symbol[2] = '\0';
-			});
-	pv.emplace_back(get_column("label_atom_id", true), true,
-			[&] (const char* start, const char* end) {
-                atom_name = string(start, end - start);
-			});
-	pv.emplace_back(get_column("label_comp_id", true), true,
-			[&] (const char* start, const char* end) {
-                residue_name = string(start, end - start);
-			});
-	// x, y, z are not required by mmCIF, but are by us
-	pv.emplace_back(get_column("Cartn_x", true), false,
-			[&] (const char* start, const char*) {
-				x = readcif::str_to_float(start);
-			});
-	pv.emplace_back(get_column("Cartn_y", true), false,
-			[&] (const char* start, const char*) {
-				y = readcif::str_to_float(start);
-			});
-	pv.emplace_back(get_column("Cartn_z", true), false,
-			[&] (const char* start, const char*) {
-				z = readcif::str_to_float(start);
-			});
+    pv.emplace_back(get_column("type_symbol", true), false,
+        [&] (const char* start, const char*) {
+            symbol[0] = *start;
+            symbol[1] = *(start + 1);
+            if (readcif::is_whitespace(symbol[1]))
+                symbol[1] = '\0';
+            else
+                symbol[2] = '\0';
+        });
+    pv.emplace_back(get_column("label_atom_id", true), true,
+        [&] (const char* start, const char* end) {
+            atom_name = string(start, end - start);
+        });
+    pv.emplace_back(get_column("label_comp_id", true), true,
+        [&] (const char* start, const char* end) {
+            residue_name = string(start, end - start);
+        });
+    // x, y, z are not required by mmCIF, but are by us
+    pv.emplace_back(get_column("Cartn_x", true), false,
+        [&] (const char* start, const char*) {
+            x = readcif::str_to_float(start);
+        });
+    pv.emplace_back(get_column("Cartn_y", true), false,
+        [&] (const char* start, const char*) {
+            y = readcif::str_to_float(start);
+        });
+    pv.emplace_back(get_column("Cartn_z", true), false,
+        [&] (const char* start, const char*) {
+            z = readcif::str_to_float(start);
+        });
     pv.emplace_back(get_column("occupancy"), false,
-            [&] (const char* start, const char*) {
-                if (*start == '?')
-                    occupancy = FLT_MAX;
-                else
-                    occupancy = readcif::str_to_float(start);
-            });
+        [&] (const char* start, const char*) {
+            if (*start == '?')
+                occupancy = FLT_MAX;
+            else
+                occupancy = readcif::str_to_float(start);
+        });
     pv.emplace_back(get_column("B_iso_or_equiv"), false,
-            [&] (const char* start, const char*) {
-                if (*start == '?')
-                    b_factor = FLT_MAX;
-                else
-                    b_factor = readcif::str_to_float(start);
-            });
+        [&] (const char* start, const char*) {
+            if (*start == '?')
+                b_factor = FLT_MAX;
+            else
+                b_factor = readcif::str_to_float(start);
+        });
 
     auto mol = molecules.back();
     int atom_serial = 0;
     Residue* cur_residue = NULL;
-	while (parse_row(pv)) {
+    while (parse_row(pv)) {
         if (position == 0) {
             // HETATM residues (waters) might be missing a sequence number
             if (cur_residue == NULL || cur_residue->chain_id() != chain_id)
@@ -311,7 +311,7 @@ ExtractCIF::parse_atom_site(bool in_loop)
         if (occupancy != FLT_MAX)
             a->set_occupancy(occupancy);
 
-	}
+    }
 }
 
 void
@@ -320,14 +320,15 @@ ExtractCIF::parse_struct_conn(bool in_loop)
     if (molecules.size() == 0)
         throw ExtractCIF::error("missing data keyword");
 
-#   define P1 "ptnr1"
-#   define P2 "ptnr2"
-#   define ASYM "_label_asym_id"
-#   define COMP "_label_comp_id"
-#   define SEQ "_label_seq_id"
-#   define ATOM "_label_atom_id"
-#   define ALT "_label_alt_id" // pdbx
-#   define INS "_PDB_ins_code" // pdbx
+    // these strings are concatenated to make the column headers needed
+    #define P1 "ptnr1"
+    #define P2 "ptnr2"
+    #define ASYM "_label_asym_id"
+    #define COMP "_label_comp_id"
+    #define SEQ "_label_seq_id"
+    #define ATOM "_label_atom_id"
+    #define ALT "_label_alt_id" // pdbx
+    #define INS "_PDB_ins_code" // pdbx
 
     // bonds from struct_conn records
     string chain_id1, chain_id2;            // ptrn[12]_label_asym_id
@@ -340,16 +341,16 @@ ExtractCIF::parse_struct_conn(bool in_loop)
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
-	pv.emplace_back(get_column("conn_type_id", true), true,
-			[&] (const char* start, const char* end) {
-				conn_type = string(start, end - start);
-			});
+    pv.emplace_back(get_column("conn_type_id", true), true,
+        [&] (const char* start, const char* end) {
+            conn_type = string(start, end - start);
+        });
 
-	pv.emplace_back(get_column(P1 ASYM, true), true,
+    pv.emplace_back(get_column(P1 ASYM, true), true,
         [&] (const char* start, const char* end) {
             chain_id1 = string(start, end - start);
         });
-	pv.emplace_back(get_column("pdbx_" P1 INS, false), true,
+    pv.emplace_back(get_column("pdbx_" P1 INS, false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code1 = ' ';
@@ -358,11 +359,11 @@ ExtractCIF::parse_struct_conn(bool in_loop)
                 ins_code1 = *start;
             }
         });
-	pv.emplace_back(get_column(P1 SEQ, true), false,
+    pv.emplace_back(get_column(P1 SEQ, true), false,
         [&] (const char* start, const char*) {
             position1 = readcif::str_to_int(start);
         });
-	pv.emplace_back(get_column("pdbx_" P1 ALT, false), true,
+    pv.emplace_back(get_column("pdbx_" P1 ALT, false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -372,20 +373,20 @@ ExtractCIF::parse_struct_conn(bool in_loop)
                 alt_id1 = *start;
             }
         });
-	pv.emplace_back(get_column(P1 ATOM, true), true,
-			[&] (const char* start, const char* end) {
-                atom_name1 = string(start, end - start);
-			});
-	pv.emplace_back(get_column(P1 COMP, true), true,
-			[&] (const char* start, const char* end) {
-                residue_name1 = string(start, end - start);
-			});
+    pv.emplace_back(get_column(P1 ATOM, true), true,
+        [&] (const char* start, const char* end) {
+            atom_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(P1 COMP, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name1 = string(start, end - start);
+        });
 
-	pv.emplace_back(get_column(P2 ASYM, true), true,
+    pv.emplace_back(get_column(P2 ASYM, true), true,
         [&] (const char* start, const char* end) {
             chain_id2 = string(start, end - start);
         });
-	pv.emplace_back(get_column("pdbx_" P2 INS, false), true,
+    pv.emplace_back(get_column("pdbx_" P2 INS, false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code2 = ' ';
@@ -394,11 +395,11 @@ ExtractCIF::parse_struct_conn(bool in_loop)
                 ins_code2 = *start;
             }
         });
-	pv.emplace_back(get_column(P2 SEQ, true), false,
+    pv.emplace_back(get_column(P2 SEQ, true), false,
         [&] (const char* start, const char*) {
             position2 = readcif::str_to_int(start);
         });
-	pv.emplace_back(get_column("pdbx_" P2 ALT, false), true,
+    pv.emplace_back(get_column("pdbx_" P2 ALT, false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -408,14 +409,14 @@ ExtractCIF::parse_struct_conn(bool in_loop)
                 alt_id2 = *start;
             }
         });
-	pv.emplace_back(get_column(P2 ATOM, true), true,
-			[&] (const char* start, const char* end) {
-                atom_name2 = string(start, end - start);
-			});
-	pv.emplace_back(get_column(P2 COMP, true), true,
-			[&] (const char* start, const char* end) {
-                residue_name2 = string(start, end - start);
-			});
+    pv.emplace_back(get_column(P2 ATOM, true), true,
+        [&] (const char* start, const char* end) {
+            atom_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(P2 COMP, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name2 = string(start, end - start);
+        });
 
     auto mol = molecules.back();
     while (parse_row(pv)) {
@@ -437,14 +438,14 @@ ExtractCIF::parse_struct_conn(bool in_loop)
             // already bonded
         }
     }
-#   undef P1
-#   undef P2
-#   undef ASYM
-#   undef COMP
-#   undef SEQ
-#   undef ATOM
-#   undef ALT
-#   undef INS
+    #undef P1
+    #undef P2
+    #undef ASYM
+    #undef COMP
+    #undef SEQ
+    #undef ATOM
+    #undef ALT
+    #undef INS
 }
 
 PyObject *
