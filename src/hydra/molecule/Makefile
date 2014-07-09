@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/molecule
 
-PYSRCS = __init__.py align.py biomt.py blastpdb.py colorcmd.py colors.py connect.py \
+PYSRCS = __init__.py align.py ambient.py biomt.py blastpdb.py colorcmd.py colors.py connect.py \
 	fetch_pdb.py fetch_uniprot.py mmcif.py mol_session.py molecule.py pdb.py \
 	residue_codes.py showcmd.py
 

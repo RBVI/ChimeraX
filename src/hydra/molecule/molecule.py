@@ -926,6 +926,19 @@ class Atoms:
     for m, ai in self.molatoms:
       m.color_index_atoms(ai, color)
 
+  def scale_atom_colors(self, scale):
+    '''Darken colors on some atoms for ambient occlusion lighting.'''
+    si = 0
+    for m, ai in self.molatoms:
+        s = scale[si:si+len(ai)]
+        for c in range(3):
+            m.atom_colors[ai,c] *= s
+            m.ribbon_colors[ai,c] *= s
+        si += len(ai)
+        m.update_ribbons = True
+        m.need_graphics_update = True
+        m.redraw_needed()
+
   def show_ribbon(self, only_these = False):
     '''Show ribbons for residues containing the specified atoms.'''
     for m, ai in self.molatoms:

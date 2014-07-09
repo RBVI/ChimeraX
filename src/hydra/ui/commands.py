@@ -47,6 +47,8 @@ def register_commands(commands):
     add('windowsize', gui.window_size_command)
     from ..molecule import blastpdb
     add('blast', blastpdb.blast_command)
+    from ..molecule import ambient
+    add('ambient', ambient.ambient_occlusion_command)
 
 # -----------------------------------------------------------------------------
 #
