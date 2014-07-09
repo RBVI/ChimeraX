@@ -147,3 +147,6 @@ $(PKG_DIR):
 
 clean:
 	rm -rf __pycache__
+
+map_cpp.all: arrays.install
+molecule_cpp.all: arrays.install
