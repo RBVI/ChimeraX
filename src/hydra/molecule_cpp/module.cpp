@@ -2,6 +2,7 @@
 #include <Python.h>			// use PyObject
 
 #include "arrayops.h"			// use value_ranges
+#include "bounds.h"			// use point_bounds
 #include "parsecif.h"			// use parse_mmcif_file
 #include "parsepdb.h"			// use parse_pdb_file
 #include "pdb_bonds.h"			// use molecule_bonds
@@ -25,6 +26,10 @@ static struct PyMethodDef molecule_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS},
   {const_cast<char*>("duplicate_midpoints"), (PyCFunction)duplicate_midpoints,
    METH_VARARGS|METH_KEYWORDS},
+
+  /* bounds.h */
+  {const_cast<char*>("point_bounds"), (PyCFunction)point_bounds,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* parsecif.h */
   {const_cast<char*>("parse_mmcif_file"), (PyCFunction)parse_mmcif_file,

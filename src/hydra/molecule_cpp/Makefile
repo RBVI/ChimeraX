@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra
 
 PYMOD_NAME = molecule_cpp
-SRCS	= arrayops.cpp module.cpp \
+SRCS	= arrayops.cpp bounds.cpp module.cpp \
 	  parsecif.cpp parsepdb.cpp pdb_bonds.cpp \
 	  sasa.cpp spline.cpp tube.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
