@@ -885,7 +885,7 @@ class Atoms:
     '''Return a numpy array of atom coordinates in the global coordinate system.'''
     coords = []
     for m,a in self.molatoms:
-        xyz = m.xyz[a]
+        xyz = m.xyz[a] if len(a) < len(m.xyz) else m.xyz
         m.position.move(xyz)
         coords.append(xyz)
     import numpy
@@ -932,10 +932,13 @@ class Atoms:
     for m, ai in self.molatoms:
         s = scale[si:si+len(ai)]
         for c in range(3):
+          if len(ai) == len(m.atom_colors):
+            m.atom_colors[:,c] *= s             # Optimization when all colors scaled.
+          else:
             m.atom_colors[ai,c] *= s
-            m.ribbon_colors[ai,c] *= s
+#            m.ribbon_colors[ai,c] *= s
         si += len(ai)
-        m.update_ribbons = True
+#        m.update_ribbons = True
         m.need_graphics_update = True
         m.redraw_needed()
 
