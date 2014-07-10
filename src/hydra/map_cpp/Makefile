@@ -7,9 +7,9 @@ PYMOD_NAME = map_cpp
 SRCS	= blend_rgba.cpp combine.cpp \
 	  connected.cpp contourdata.cpp contourpy.cpp \
 	  distgrid.cpp distances.cpp distancespy.cpp  \
-	  gaussian.cpp  histogram.cpp module.cpp \
+	  gaussian.cpp  histogram.cpp \
 	  interpolate.cpp interpolatepy.cpp intercept.cpp \
-	  measure.cpp mesh_edges.cpp parse_stl.cpp \
+	  measure.cpp mesh_edges.cpp module.cpp occupancy.cpp parse_stl.cpp \
 	  squaremesh.cpp subdivide.cpp transfer.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 

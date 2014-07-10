@@ -13,6 +13,7 @@
 #include "interpolatepy.h"		// use interpolate_volume_data, ...
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "mesh_edges.h"			// use masked_edges
+#include "occupancy.h"			// use fill_occupancy_map
 #include "parse_stl.h"			// use parse_stl
 #include "squaremesh.h"			// use principle_plane_edges
 #include "subdivide.h"			// use subdivide_triangles
@@ -112,6 +113,10 @@ static struct PyMethodDef map_cpp_methods[] =
 
   /* mesh_edges.h */
   {const_cast<char*>("masked_edges"), (PyCFunction)masked_edges,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* occupancy.h */
+  {const_cast<char*>("fill_occupancy_map"), (PyCFunction)fill_occupancy_map,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* parse_stl.h */
