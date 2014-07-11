@@ -47,6 +47,24 @@ def ambient_occlusion_coloring(atoms, fineness = 0.3, light = 0.8, dark = 0.1):
 
     t3 = time()
 
+    scale = darkness_ramp(values, dark, light)
+
+    t4 = time()
+
+    # Scale colors
+    atoms.scale_atom_colors(scale)
+
+    # Color molecular surfaces
+    for mol in atoms.molecules():
+        if hasattr(mol, 'molsurf'):
+            ambient_occlusion_surface_color(mol.molsurf, tf, m, dark, light)
+
+    t5 = time()
+    print('aoc time %.3f (coords %.3f, map %.3f, interp %.3f, ramp %.3f, color %.3f), %d atoms, grid %s'
+          % (t5-t0, t1-t0, t2-t1, t3-t2, t4-t3, t5-t4,
+             atoms.count(), ','.join('%d'%s for s in m.shape[::-1])))
+
+def darkness_ramp(values, dark, light):
     vmin, vmax = values.min(), values.max()
     lev0, lev1 = dark,light
     v0, v1 = vmax - lev0*(vmax-vmin), vmin + (1-lev1)*(vmax-vmin)
@@ -57,16 +75,22 @@ def ambient_occlusion_coloring(atoms, fineness = 0.3, light = 0.8, dark = 0.1):
     if lev0 > 0:
         from numpy import maximum
         maximum(scale, 0, scale)
+    return scale
 
-    t4 = time()
-
-    # Scale colors
-    atoms.scale_atom_colors(scale)
-
-    t5 = time()
-    print('aoc time %.3f (coords %.3f, map %.3f, interp %.3f, ramp %.3f, color %.3f), %d atoms, grid %s, range %g,%g, '
-          % (t5-t0, t1-t0, t2-t1, t3-t2, t4-t3, t5-t4,
-             atoms.count(), ','.join('%d'%s for s in m.shape[::-1]), vmin, vmax))
+def ambient_occlusion_surface_color(surf, tf, m, dark, light):
+    from ..map.data import interpolate_volume_data
+    values, outside = interpolate_volume_data(surf.vertices, tf, m)
+    scale = darkness_ramp(values, dark, light)
+    colors = surf.vertex_colors
+    if colors is None:
+        from numpy import empty, uint8
+        colors = empty((len(values),4), uint8)
+        colors[:] = surf.get_color()
+    else:
+        colors = colors.copy()  # Need this so Drawing knows to update opengl buffers.
+    for c in (0,1,2):
+        colors[:,c] *= scale
+    surf.vertex_colors = colors
 
 def ambient_occlusion_command(cmdname, args, session):
 
