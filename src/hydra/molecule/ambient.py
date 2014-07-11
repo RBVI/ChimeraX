@@ -1,12 +1,20 @@
 #
 # Test of ambient occlusion using gaussian map from molecule.
 #
-def ambient_occlusion_coloring(atoms, fineness = 0.3, light = 0.8, dark = 0.1):
+def ambient_occlusion_coloring(atoms, fineness = None, light = 0.8, dark = 0.1):
 
     from time import time
     t0 = time()
 
     points = atoms.coordinates()
+
+    # Set default fineness
+    if fineness is None:
+        fineness = 0.3
+        if atoms.count() > 70000:
+            # For large atom counts try to emphasize protein boundaries.
+            from math import sqrt
+            fineness /= sqrt(atoms.count()/70000)
 
     # Compute density map for atoms
     from .. import molecule_cpp
