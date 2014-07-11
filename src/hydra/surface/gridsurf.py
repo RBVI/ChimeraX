@@ -82,10 +82,9 @@ def show_surface(name, va, na, ta, session, color = (.7,.7,.7,1), place = None):
     surf = Drawing(name)
     if not place is None:
         surf.position = place
-    p = surf.new_drawing()
-    p.geometry = va, ta
-    p.normals = na
-    p.color = color
+    surf.geometry = va, ta
+    surf.normals = na
+    surf.color = color
     session.add_model(surf)
     return surf
 
@@ -121,6 +120,6 @@ def surface(atoms, session, probeRadius = 1.4, gridSpacing = 0.5, waters = False
         p.inverse().move(va)    # Move to model coordinates.
         
     name = '%s SES surface' % m0.name
-    surf = show_surface(name, va, na, ta, session, color = (.7,.8,.5,1), place = p)
+    surf = show_surface(name, va, na, ta, session, color = (180,205,128,255), place = p)
 
     return surf
