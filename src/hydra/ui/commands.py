@@ -572,8 +572,7 @@ def volume_arg(v, session):
 def volumes_arg(v, session):
 
     sel = parse_specifier(v, session)
-    from ..map import Volume
-    vlist = [m for m in sel.models() if isinstance(m,Volume)]
+    vlist = sel.maps()
     if len(vlist) == 0:
         raise CommandError('No volumes specified')
     return vlist
@@ -1241,6 +1240,10 @@ class Selection:
         return self.aset.chains()
     def atom_set(self):
         return self.aset
+    def maps(self):
+        from ..map import Volume
+        mlist = [m for m in self.models() if isinstance(m,Volume)]
+        return mlist
 
 # -----------------------------------------------------------------------------
 #
