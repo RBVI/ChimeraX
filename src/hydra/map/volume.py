@@ -708,6 +708,7 @@ class Volume(Drawing):
     p = piece
     p.geometry = varray, tarray
     p.normals = narray
+    p.vertex_colors = None
 
     if ro.square_mesh:
       p.set_edge_mask(hidden_edges)
