@@ -909,20 +909,20 @@ class Volume(Drawing):
 
     if copy_xform:
       # Copy position and orientation
-      self.surface_model().openState.xform = v.model_transform()
+      self.position = v.position
 
-    if copy_active:
-      # Copy movability
-      self.surface_model().openState.active = v.surface_model().openState.active
+    # if copy_active:
+    #   # Copy movability
+    #   self.surface_model().openState.active = v.surface_model().openState.active
 
-    if copy_zone:
-      # Copy surface zone
-      sm = v.surface_model()
-      sm_copy = self.surface_model()
-      import SurfaceZone
-      if sm and SurfaceZone.showing_zone(sm) and sm_copy:
-        points, distance = SurfaceZone.zone_points_and_distance(sm)
-        SurfaceZone.surface_zone(sm_copy, points, distance, True)
+    # if copy_zone:
+    #   # Copy surface zone
+    #   sm = v.surface_model()
+    #   sm_copy = self.surface_model()
+    #   import SurfaceZone
+    #   if sm and SurfaceZone.showing_zone(sm) and sm_copy:
+    #     points, distance = SurfaceZone.zone_points_and_distance(sm)
+    #     SurfaceZone.surface_zone(sm_copy, points, distance, True)
 
     # TODO: Should copy color zone too.
 
@@ -2587,6 +2587,9 @@ def volume_from_grid_data(grid_data, session, representation = None,
       v.show()
     else:
       v.message('%s not shown' % v.name)
+
+  if open_model:
+    session.add_model(v)
 
   return v
 

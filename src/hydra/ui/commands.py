@@ -26,6 +26,8 @@ def register_commands(commands):
     add('volume', volumecommand.volume_command)
     from ..map.fit import fitcmd
     add('fitmap', fitcmd.fitmap_command)
+    from ..map.filter import vopcommand
+    add('vop', vopcommand.vop_command)
     from ..molecule import align, showcmd, colorcmd
     add('align', align.align_command)
     add('show', showcmd.show_command)
@@ -427,6 +429,18 @@ def int3_arg(s, session):
     il = [int(x) for x in s.split(',')]
     if len(il) != 3:
         raise CommandError('Require 3 comma-separated values, got %d' % len(il))
+    return il
+
+# -----------------------------------------------------------------------------
+#
+def int1or3_arg(s, session):
+
+    il = [int(x) for x in s.split(',')]
+    if len(il) == 1:
+        i = il[0]
+        il = [i,i,i]
+    elif len(il) != 3:
+        raise CommandError('Require integer or 3 comma-separated values')
     return il
 
 # -----------------------------------------------------------------------------
