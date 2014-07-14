@@ -168,7 +168,7 @@ def open_map(map_path, session):
     '''
     from .. import map
     i = map.data.open_file(map_path)[0]
-    map_drawing = map.volume_from_grid_data(i, session)
+    map_drawing = map.volume_from_grid_data(i, session, open_model = False)
     map_drawing.new_region(ijk_step = (1,1,1), adjust_step = False)
     return map_drawing
 
