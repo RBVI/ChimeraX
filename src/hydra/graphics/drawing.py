@@ -34,6 +34,9 @@ class Drawing:
   '''
 
   def __init__(self, name):
+
+    self.redraw_needed = redraw_no_op
+
     self.name = name
     self.id = None                      # positive integer
     from ..geometry.place import Places
@@ -66,14 +69,15 @@ class Drawing:
     self.vertex_buffers = []
     self.need_buffer_update = True
 
-    self.redraw_needed = redraw_no_op
     self.was_deleted = False
 
   def __setattr__(self, key, value):
     if key in self.effects_shader:
       self._shader_options = None       # Cause shader update
+      self.redraw_needed()
     if key in self.effects_buffers:
       self.need_buffer_update = True
+      self.redraw_needed()
     super(Drawing,self).__setattr__(key, value)
 
   # Display styles
