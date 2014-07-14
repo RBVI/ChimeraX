@@ -5,12 +5,12 @@
 # The standard deviation is specified in xyz units.
 #
 def gaussian_convolve(volume, sdev, step = 1, subregion = None,
-                      value_type = None, modelId = None, task = None):
+                      value_type = None, modelId = None, task = None, session = None):
 
   gg = gaussian_grid(volume, sdev, step, subregion, value_type = value_type,
                      task = task)
-  from VolumeViewer import volume_from_grid_data
-  gv = volume_from_grid_data(gg, show_data = False, model_id = modelId)
+  from .. import volume_from_grid_data
+  gv = volume_from_grid_data(gg, session, show_data = False, model_id = modelId)
   gv.copy_settings_from(volume, copy_region = False)
   gv.show()
   
@@ -35,7 +35,7 @@ def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
   m = v.region_matrix(region)
   gm = gaussian_convolution(m, ijk_sdev, value_type = value_type, task = task)
 
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   d = v.data
   if v.name.endswith('gaussian'): name = v.name
   else:                           name = '%s gaussian' % v.name
@@ -62,7 +62,7 @@ def gaussian_convolution(data, ijk_sdev, value_type = None,
     if size == 1:
       continue          # For a plane don't try to filter normal to plane.
     sdev = ijk_sdev[2-axis]       # Axes i,j,k are 2,1,0.
-    hw = min(size/2, int(cutoff*sdev+1)) if cutoff else size/2
+    hw = min(size//2, int(cutoff*sdev+1)) if cutoff else size//2
     nzeros = 0 if cyclic else hw  # Zero-fill for non-cyclic convolution.
     if nzeros > 0:
       # FFT performance is much better (up to 10x faster in numpy 1.2.1)
@@ -150,7 +150,7 @@ def find_fast_fft_sizes(max_size = 4192, array_size = 1024*1024):
     a = ones((array_size,), single)
     tl = []
     for s in range(2, max_size+1):
-        n = array_size/s
+        n = array_size//s
         b = a[:s*n].reshape((n, s))
         c0 = clock()
         f = rfft(b)

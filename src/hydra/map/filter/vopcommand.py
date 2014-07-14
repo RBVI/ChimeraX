@@ -33,6 +33,7 @@
 def vop_command(cmd_name, args, session):
 
     from ...ui.commands import volumes_arg, int1or3_arg, volume_region_arg, model_id_arg, perform_operation
+    from ...ui.commands import float1or3_arg, value_type_arg
     ops = {
         'bin': (bin_op,
                 (('volumes', volumes_arg),),
@@ -40,6 +41,14 @@ def vop_command(cmd_name, args, session):
                 (('binSize', int1or3_arg),
                  ('subregion', volume_region_arg),
                  ('step', int1or3_arg),
+                 ('modelId', model_id_arg),)),
+        'gaussian': (gaussian_op,
+                (('volumes', volumes_arg),),
+                (),
+                (('sDev', float1or3_arg),
+                 ('subregion', volume_region_arg),
+                 ('step', int1or3_arg),
+                 ('valueType', value_type_arg),
                  ('modelId', model_id_arg),)),
     }
     perform_operation(cmd_name, args, ops, session)
@@ -396,22 +405,12 @@ def fourier_op(volumes, subregion = 'all', step = 1, modelId = None,
 
 # -----------------------------------------------------------------------------
 #
-def gaussian_op(volumes, sDev = 1.0,
+def gaussian_op(volumes, session, sDev = (1.0,1.0,1.0),
                 subregion = 'all', step = 1, valueType = None, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    if isinstance(sDev,str) and ',' in sDev:
-        sDev = parse_floats(sDev, 'sDev', 3)
-    else:
-        check_number(sDev, 'sDev', positive = True)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    value_type = parse_value_type(valueType)
-    modelId = parse_model_id(modelId)
-
-    from gaussian import gaussian_convolve
+    from .gaussian import gaussian_convolve
     for v in volumes:
-        gaussian_convolve(v, sDev, step, subregion, value_type, modelId)
+        gaussian_convolve(v, sDev, step, subregion, valueType, modelId, session = session)
 
 # -----------------------------------------------------------------------------
 #
@@ -629,24 +628,6 @@ def scale_op(volumes, shift = 0, factor = 1, sd = None, rms = None,
     from scale import scaled_volume
     for v in volumes:
         scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, modelId)
-
-# -----------------------------------------------------------------------------
-#
-def parse_value_type(value_type):
-
-    if value_type is None:
-        return value_type
-
-    types = ('int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32',
-             'float32', 'float64')
-    if value_type in types:
-        import numpy
-        vt = getattr(numpy, value_type)
-    else:
-        raise CommandError('Unknown data value type "%s", use %s'
-                           % (value_type, ', '.join(types.keys())))
-
-    return vt
 
 # -----------------------------------------------------------------------------
 #
