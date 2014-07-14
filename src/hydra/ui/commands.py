@@ -407,6 +407,18 @@ def float3_arg(s, session):
 
 # -----------------------------------------------------------------------------
 #
+def float1or3_arg(s, session):
+
+    fl = [float(x) for x in s.split(',')]
+    if len(fl) == 1:
+        f = fl[0]
+        fl = [f,f,f]
+    elif len(fl) != 3:
+        raise CommandError('Require float value or 3 comma-separated values')
+    return fl
+
+# -----------------------------------------------------------------------------
+#
 def floats_arg(s, session, allowed_counts = None):
 
     fl = [float(x) for x in s.split(',')]
@@ -453,6 +465,23 @@ def ints_arg(s, session, allowed_counts = None):
         raise CommandError('Wrong number of values, require %s, got %d'
                            % (allowed, len(il)))
     return il
+
+# -----------------------------------------------------------------------------
+#
+def value_type_arg(s, session):
+
+    if s is None:
+        return None
+
+    types = ('int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32',
+             'float32', 'float64')
+    if s in types:
+        import numpy
+        vt = getattr(numpy, s)
+    else:
+        raise CommandError('Unknown data value type "%s", use %s'
+                           % (s, ', '.join(types.keys())))
+    return vt
 
 # -----------------------------------------------------------------------------
 #
