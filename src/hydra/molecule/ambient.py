@@ -1,7 +1,20 @@
 #
 # Test of ambient occlusion using gaussian map from molecule.
 #
-def ambient_occlusion_coloring(atoms, fineness = None, light = 0.8, dark = 0.1):
+def ambient_occlusion_coloring(model, fineness = None, light = None, dark = 0.1, bin_size = 7):
+
+    atoms = model.atom_set()
+    latom = 0.8 if light is None else light
+    ambient_occlusion_color_atoms(atoms, fineness, latom, dark)
+
+    lmap = 0.5 if light is None else light
+    for m in model.maps():
+        ambient_occlusion_color_map(m, bin_size, lmap, dark)
+
+def ambient_occlusion_color_atoms(atoms, fineness = None, light = 0.8, dark = 0.1):
+
+    if atoms.count() == 0:
+        return
 
     from time import time
     t0 = time()
@@ -89,10 +102,13 @@ def ambient_occlusion_surface_color(surf, tf, m, dark, light):
     from ..map.data import interpolate_volume_data
     values, outside = interpolate_volume_data(surf.vertices, tf, m)
     scale = darkness_ramp(values, dark, light)
+    scale_vertex_colors(surf, scale)
+
+def scale_vertex_colors(surf, scale):
     colors = surf.vertex_colors
     if colors is None:
         from numpy import empty, uint8
-        colors = empty((len(values),4), uint8)
+        colors = empty((len(surf.vertices),4), uint8)
         colors[:] = surf.get_color()
     else:
         colors = colors.copy()  # Need this so Drawing knows to update opengl buffers.
@@ -100,13 +116,30 @@ def ambient_occlusion_surface_color(surf, tf, m, dark, light):
         colors[:,c] *= scale
     surf.vertex_colors = colors
 
+def ambient_occlusion_color_map(v, bin_size = 7, light = 0.5, dark = 0.1):
+    s = bin_size
+    from ..map.filter import bin
+    g = bin.bin_grid(v, (s,s,s))
+    from ..geometry import place
+    from ..map.data import interpolate_volume_data
+    for p in v.surface_drawings:
+        bscale = place.scale(1.0/bin_size)
+        b2 = -0.5*(bin_size-1)
+        bshift = place.translation((b2,b2,b2))
+        tf = bscale * bshift * v.data.xyz_to_ijk_transform
+        values, outside = interpolate_volume_data(p.vertices, tf, g.full_matrix())
+        # TODO: outside 0 values should not effect ramp.
+        scale = darkness_ramp(values, dark, light)
+        scale_vertex_colors(p, scale)
+
 def ambient_occlusion_command(cmdname, args, session):
 
-  from ..ui.commands import atoms_arg, float_arg, parse_arguments
-  req_args = (('atoms', atoms_arg),)
+  from ..ui.commands import specifier_arg, float_arg, int_arg, parse_arguments
+  req_args = (('model', specifier_arg),)
   opt_args = ()
   kw_args = (('fineness', float_arg),
              ('light', float_arg),
-             ('dark', float_arg),)
+             ('dark', float_arg),
+             ('bin_size', int_arg),)
   kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
   ambient_occlusion_coloring(**kw)

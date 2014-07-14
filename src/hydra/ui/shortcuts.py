@@ -110,7 +110,7 @@ def standard_shortcuts(session):
         ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('ce', color_by_element, 'Color atoms by element', molcat, molarg, mlmenu),
         ('cc', color_by_chain, 'Color chains', molcat, molarg, mlmenu, sep),
-        ('ao', ambient_occlusion_coloring, 'Ambient occlusion', molcat, atomsarg, mlmenu, sep),
+        ('ao', ambient_occlusion_coloring, 'Ambient occlusion', molcat, sesarg, mlmenu, sep),
 
         ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, molarg, mlmenu),
         ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, molarg, mlmenu, sep),
@@ -531,9 +531,11 @@ def color_by_chain(m):
   m.color_by_chain()
 def color_one_color(m):
   m.single_color()
-def ambient_occlusion_coloring(atoms):
-    from ..molecule import ambient
-    ambient.ambient_occlusion_coloring(atoms)
+def ambient_occlusion_coloring(session):
+  from ..molecule import ambient
+  ambient.ambient_occlusion_color_atoms(shortcut_atoms(session))
+  for v in shortcut_maps(session):
+    ambient.ambient_occlusion_color_map(v)
 
 def show_atoms(a):
   a.show_atoms()
