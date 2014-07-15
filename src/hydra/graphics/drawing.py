@@ -34,6 +34,9 @@ class Drawing:
   '''
 
   def __init__(self, name):
+
+    self.redraw_needed = redraw_no_op
+
     self.name = name
     self.id = None                      # positive integer
     from ..geometry.place import Places
@@ -66,14 +69,15 @@ class Drawing:
     self.vertex_buffers = []
     self.need_buffer_update = True
 
-    self.redraw_needed = redraw_no_op
     self.was_deleted = False
 
   def __setattr__(self, key, value):
     if key in self.effects_shader:
       self._shader_options = None       # Cause shader update
+      self.redraw_needed()
     if key in self.effects_buffers:
       self.need_buffer_update = True
+      self.redraw_needed()
     super(Drawing,self).__setattr__(key, value)
 
   # Display styles
@@ -544,9 +548,9 @@ class Drawing:
     if self.empty_drawing():
       return f
     va,ta = self.geometry
-    from .. import _image3d
+    from .. import map_cpp
     if self.positions.is_identity():
-      fmin, tmin = _image3d.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
+      fmin, tmin = map_cpp.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
       if not fmin is None and (f is None or fmin < f):
         f = fmin
         p = 0
@@ -556,7 +560,7 @@ class Drawing:
       for c,tf in enumerate(self.positions):
         if dp is None or dp[c]:
           cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-          fmin, tmin = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+          fmin, tmin = map_cpp.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
           if not fmin is None and (f is None or fmin < f):
             f = fmin
             p = c
@@ -814,7 +818,7 @@ class Draw_Shape:
       me = self.masked_edges
       if me is None or not edge_mask is self._edge_mask or not tmask is self._tri_mask:
         em = edge_mask if tmask is None else edge_mask[tmask]
-        from .._image3d import masked_edges
+        from ..map_cpp import masked_edges
         self.masked_edges = me = masked_edges(ta) if em is None else masked_edges(ta, em)
         self._edge_mask, self._tri_mask = edge_mask, tmask
       ta = me

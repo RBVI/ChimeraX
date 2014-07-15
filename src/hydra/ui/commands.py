@@ -14,7 +14,8 @@ def register_commands(commands):
     add('open', open_command)
     add('save', save_command)
     add('close', close_command)
-    from ..file_io import fetch_pdb, fetch_emdb, fetch_eds
+    from ..file_io import fetch_emdb, fetch_eds
+    from ..molecule import fetch_pdb
     s = commands.session
     fetch_pdb.register_pdb_fetch(s)
     fetch_emdb.register_emdb_fetch(s)
@@ -25,6 +26,8 @@ def register_commands(commands):
     add('volume', volumecommand.volume_command)
     from ..map.fit import fitcmd
     add('fitmap', fitcmd.fitmap_command)
+    from ..map.filter import vopcommand
+    add('vop', vopcommand.vop_command)
     from ..molecule import align, showcmd, colorcmd
     add('align', align.align_command)
     add('show', showcmd.show_command)
@@ -44,8 +47,10 @@ def register_commands(commands):
     add('material', materialcmd.material_command)
     from . import gui
     add('windowsize', gui.window_size_command)
-    from ..file_io import blastpdb
+    from ..molecule import blastpdb
     add('blast', blastpdb.blast_command)
+    from ..molecule import ambient
+    add('ambient', ambient.ambient_occlusion_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -402,6 +407,18 @@ def float3_arg(s, session):
 
 # -----------------------------------------------------------------------------
 #
+def float1or3_arg(s, session):
+
+    fl = [float(x) for x in s.split(',')]
+    if len(fl) == 1:
+        f = fl[0]
+        fl = [f,f,f]
+    elif len(fl) != 3:
+        raise CommandError('Require float value or 3 comma-separated values')
+    return fl
+
+# -----------------------------------------------------------------------------
+#
 def floats_arg(s, session, allowed_counts = None):
 
     fl = [float(x) for x in s.split(',')]
@@ -428,6 +445,18 @@ def int3_arg(s, session):
 
 # -----------------------------------------------------------------------------
 #
+def int1or3_arg(s, session):
+
+    il = [int(x) for x in s.split(',')]
+    if len(il) == 1:
+        i = il[0]
+        il = [i,i,i]
+    elif len(il) != 3:
+        raise CommandError('Require integer or 3 comma-separated values')
+    return il
+
+# -----------------------------------------------------------------------------
+#
 def ints_arg(s, session, allowed_counts = None):
 
     il = [int(x) for x in s.split(',')]
@@ -436,6 +465,23 @@ def ints_arg(s, session, allowed_counts = None):
         raise CommandError('Wrong number of values, require %s, got %d'
                            % (allowed, len(il)))
     return il
+
+# -----------------------------------------------------------------------------
+#
+def value_type_arg(s, session):
+
+    if s is None:
+        return None
+
+    types = ('int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32',
+             'float32', 'float64')
+    if s in types:
+        import numpy
+        vt = getattr(numpy, s)
+    else:
+        raise CommandError('Unknown data value type "%s", use %s'
+                           % (s, ', '.join(types.keys())))
+    return vt
 
 # -----------------------------------------------------------------------------
 #
@@ -555,8 +601,7 @@ def volume_arg(v, session):
 def volumes_arg(v, session):
 
     sel = parse_specifier(v, session)
-    from ..map import Volume
-    vlist = [m for m in sel.models() if isinstance(m,Volume)]
+    vlist = sel.maps()
     if len(vlist) == 0:
         raise CommandError('No volumes specified')
     return vlist
@@ -1224,6 +1269,10 @@ class Selection:
         return self.aset.chains()
     def atom_set(self):
         return self.aset
+    def maps(self):
+        from ..map import Volume
+        mlist = [m for m in self.models() if isinstance(m,Volume)]
+        return mlist
 
 # -----------------------------------------------------------------------------
 #

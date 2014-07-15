@@ -279,11 +279,11 @@ class Molecule(Drawing):
       # For each contiguous set of residues compute a spline and then
       # draw shown segments.
       plist = []
-      from .._image3d import contiguous_intervals, mask_intervals
+      from ..molecule_cpp import contiguous_intervals, mask_intervals
       rnums = self.residue_nums[s]
       cint = contiguous_intervals(rnums)
       sd, cd = self.ribbon_subdivisions
-      from .._image3d import natural_cubic_spline, duplicate_midpoints
+      from ..molecule_cpp import natural_cubic_spline, duplicate_midpoints
       from ..surface import tube
       for i1,i2 in cint:
         if rshow[i1:i2+1].sum() == 0:
@@ -479,15 +479,15 @@ class Molecule(Drawing):
     if rids is None:
       a = self._atoms
       satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
-      from .. import _image3d
-      self.rids = rids = _image3d.residue_ids(satoms)
+      from .. import molecule_cpp
+      self.rids = rids = molecule_cpp.residue_ids(satoms)
     return rids
 
   def chain_atom_range(self, chain_id):
     cr = self.chain_ranges
     if cr is None:
       cids = self.chain_ids
-      from .._image3d import value_ranges
+      from ..molecule_cpp import value_ranges
       self.chain_ranges = cr = dict((cids[s],(s,e)) for s,e in value_ranges(cids))
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
     return cr[cid]
@@ -594,6 +594,9 @@ class Molecule(Drawing):
       asel[:] = False
       self.selection_changed()
 
+  def clear_selection_promotion_history(self):
+    self.promotion_tower = []
+
   def selection_changed(self, promotion = False):
     if not promotion:
       self.promotion_tower = []
@@ -680,18 +683,18 @@ class Molecule(Drawing):
     r = self.shown_atom_array_values(self.drawing_radii())
     rsp = self.ribbon_drawing
     f = fa = ft = None
-    from .. import _image3d
+    from .. import map_cpp
     for tf in self.positions:
       cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
       # Check for atom sphere intercept
-      fmin, anum = _image3d.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+      fmin, anum = map_cpp.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
       if not fmin is None and (f is None or fmin < f):
         f = fmin
         fa,ft = anum, None
       # Check for ribbon intercept
       if rsp:
         va, ta = rsp.geometry
-        fmin, t = _image3d.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+        fmin, t = map_cpp.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
           fa,ft = None, t
@@ -748,7 +751,6 @@ class Molecule(Drawing):
 # Atoms numpy array dtype for Molecule constructor.
 atom_dtype = [
   ('atom_name', 'a4'),
-  ('element_number', 'i4'),
   ('xyz', 'f4', (3,)),
   ('radius', 'f4'),
   ('residue_name', 'a4'),
@@ -756,10 +758,11 @@ atom_dtype = [
   ('chain_id', 'a4'),
   ('atom_color', 'u1', (4,)),
   ('ribbon_color', 'u1', (4,)),
+  ('element_number', 'u1'),
   ('atom_shown', 'u1'),
   ('ribbon_shown', 'u1'),
   ('atom_selected', 'u1'),
-  ('pad', 'u1'),               # C struct size is multiple of 4 bytes
+  # If fields are added, pad to multiple of 4 bytes, C struct size is multiple of 4 bytes
 ]
 
 def combine_geometry(geom):
@@ -882,7 +885,7 @@ class Atoms:
     '''Return a numpy array of atom coordinates in the global coordinate system.'''
     coords = []
     for m,a in self.molatoms:
-        xyz = m.xyz[a]
+        xyz = m.xyz[a] if len(a) < len(m.xyz) else m.xyz
         m.position.move(xyz)
         coords.append(xyz)
     import numpy
@@ -922,6 +925,22 @@ class Atoms:
     '''Color atoms.'''
     for m, ai in self.molatoms:
       m.color_index_atoms(ai, color)
+
+  def scale_atom_colors(self, scale):
+    '''Darken colors on some atoms for ambient occlusion lighting.'''
+    si = 0
+    for m, ai in self.molatoms:
+        s = scale[si:si+len(ai)]
+        for c in range(3):
+          if len(ai) == len(m.atom_colors):
+            m.atom_colors[:,c] *= s             # Optimization when all colors scaled.
+          else:
+            m.atom_colors[ai,c] *= s
+#            m.ribbon_colors[ai,c] *= s
+        si += len(ai)
+#        m.update_ribbons = True
+        m.need_graphics_update = True
+        m.redraw_needed()
 
   def show_ribbon(self, only_these = False):
     '''Show ribbons for residues containing the specified atoms.'''

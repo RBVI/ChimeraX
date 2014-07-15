@@ -312,7 +312,7 @@ def sphere_points_and_weights(npoints):
     from .shapes import sphere_geometry
     va, na, ta = sphere_geometry(2*npoints)
     # Weight vertices by area since distribution is not uniform.
-    from .._image3d import vertex_areas
+    from ..map_cpp import vertex_areas
     weights = vertex_areas(va, ta)
     return va, weights
 
@@ -485,13 +485,13 @@ def spheres_surface_area(centers, radii, npoints = 1000):
     results compared with the maximum and average discrepancy printed for debugging.
     This code is not needed except for debugging.
     '''
-    from .. import _image3d
-    areas = _image3d.surface_area_of_spheres(centers, radii)
+    from .. import molecule_cpp
+    areas = molecule_cpp.surface_area_of_spheres(centers, radii)
     return areas
 
 def report_sphere_area_errors(areas, centers, radii, npoints = 1000, max_err = 0.02):
     points, weights = sphere_points_and_weights(npoints)
-    from .._image3d import estimate_surface_area_of_spheres
+    from ..molecule_cpp import estimate_surface_area_of_spheres
     eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
     nf = (areas == -1).sum()
     if nf > 0:
@@ -555,7 +555,7 @@ def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
     from os import listdir
     from os.path import join
     from ..file_io import opensave
-    from .._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
+    from ..molecule_cpp import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
 
@@ -594,7 +594,7 @@ pdbs = ('3znu','2hq3','3zqy','2vb1','2yab','3ze1','3ze2','4baj','3ztp','1jxw','1
 def test_pdb_models(id_codes, npoints, session):
 
     from ..file_io import opensave
-    from .._image3d import surface_area_of_spheres, estimate_surface_area_of_spheres
+    from ..molecule_cpp import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
 
@@ -602,7 +602,7 @@ def test_pdb_models(id_codes, npoints, session):
     print('%6s %6s %9s %9s %5s %5s %8s %8s\n' %
              ('PDB', 'atoms', 'area', 'earea', 'atime', 'etime', 'max err', 'mean err'))
     for id in id_codes:
-            from ..file_io.fetch_pdb import fetch_pdb
+            from ..molecule.fetch_pdb import fetch_pdb
             mlist = fetch_pdb(id)
             session.add_models(mlist)
             

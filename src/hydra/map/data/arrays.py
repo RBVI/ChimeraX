@@ -5,7 +5,7 @@ def interpolate_volume_data(vertices, vertex_transform, array,
                             method = 'linear'):
 
 #  from _interpolate import interpolate_volume_data
-  from ..._image3d import interpolate_volume_data
+  from ...map_cpp import interpolate_volume_data
   values, outside = interpolate_volume_data(vertices, vertex_transform.matrix,
                                             array, method)
   return values, outside
@@ -17,7 +17,7 @@ def interpolate_volume_gradient(vertices, v2m_transform, array,
                                 method = 'linear'):
 
 #  from _interpolate import interpolate_volume_gradient
-  from ..._image3d import interpolate_volume_gradient
+  from ...map_cpp import interpolate_volume_gradient
   gradients, outside = interpolate_volume_gradient(vertices, v2m_transform.matrix,
                                                    array, method)
   return gradients, outside
@@ -32,8 +32,8 @@ class Matrix_Value_Statistics:
     matrices = matrix if isinstance(matrix, (list, tuple)) else [matrix]
       
     # Determine minimum and maximum data values.
-    from ... import _image3d
-    mm = [_image3d.minimum_and_maximum(m) for m in matrices]
+    from ... import map_cpp
+    mm = [map_cpp.minimum_and_maximum(m) for m in matrices]
     self.minimum = min(mn for mn,mx in mm)
     self.maximum = max(mx for mn,mx in mm)
 
@@ -46,7 +46,7 @@ class Matrix_Value_Statistics:
     from numpy import zeros, int32
     counts = zeros((bins,), int32)
     for m in matrices:
-      _image3d.bin_counts(m, bins_start, bins_end, counts)
+      map_cpp.bin_counts(m, bins_start, bins_end, counts)
     self.counts = counts
     self.bins = bins
     self.ccounts = None         # Cumulative counts

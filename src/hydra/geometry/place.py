@@ -193,6 +193,10 @@ def vector_rotation(u,v):
     The vectors can have any length and the transform maps the direction of u to the direction of v.'''
     return Place(m34.vector_rotation_transform(u,v))
 
+def scale(s):
+    '''Return a transform which is a scale by factor s.'''
+    return Place(((s,0,0,0), (0,s,0,0), (0,0,s,0)))
+
 def orthonormal_frame(zaxis, ydir = None, xdir = None):
     '''Return a Place object with the specifiec z axis.  Any rotation about that z axis is allowed, unless a
     vector ydir is given in which case the y axis will be in the plane define by the z axis and ydir.

@@ -647,7 +647,7 @@ class Volume(Drawing):
 
     matrix = self.matrix()
 
-    # _image3d contour code does not handle single data planes.
+    # map_cpp contour code does not handle single data planes.
     # Handle these by stacking two planes on top of each other.
     plane_axis = [a for a in (0,1,2) if matrix.shape[a] == 1]
     for a in plane_axis:
@@ -655,7 +655,7 @@ class Volume(Drawing):
 
     ro = rendering_options
 
-    from .._image3d import surface
+    from ..map_cpp import surface
     try:
       varray, tarray, narray = surface(matrix, level,
                                        cap_faces = ro.cap_faces,
@@ -676,7 +676,7 @@ class Volume(Drawing):
     # Preserve triangle vertex traversal direction about normal.
     transform = self.matrix_indices_to_xyz_transform()
     if transform.determinant() < 0:
-      from .._image3d import reverse_triangle_vertex_order
+      from ..map_cpp import reverse_triangle_vertex_order
       reverse_triangle_vertex_order(tarray)
 
     if ro.subdivide_surface:
@@ -687,8 +687,8 @@ class Volume(Drawing):
     if ro.square_mesh:
       from numpy import empty, int32
       hidden_edges = empty((len(tarray),), int32)
-      from .. import _image3d
-      _image3d.principle_plane_edges(varray, tarray, hidden_edges)
+      from .. import map_cpp
+      map_cpp.principle_plane_edges(varray, tarray, hidden_edges)
 
     if ro.surface_smoothing:
       sf, si = ro.smoothing_factor, ro.smoothing_iterations
@@ -708,6 +708,7 @@ class Volume(Drawing):
     p = piece
     p.geometry = varray, tarray
     p.normals = narray
+    p.vertex_colors = None
 
     if ro.square_mesh:
       p.set_edge_mask(hidden_edges)
@@ -909,20 +910,20 @@ class Volume(Drawing):
 
     if copy_xform:
       # Copy position and orientation
-      self.surface_model().openState.xform = v.model_transform()
+      self.position = v.position
 
-    if copy_active:
-      # Copy movability
-      self.surface_model().openState.active = v.surface_model().openState.active
+    # if copy_active:
+    #   # Copy movability
+    #   self.surface_model().openState.active = v.surface_model().openState.active
 
-    if copy_zone:
-      # Copy surface zone
-      sm = v.surface_model()
-      sm_copy = self.surface_model()
-      import SurfaceZone
-      if sm and SurfaceZone.showing_zone(sm) and sm_copy:
-        points, distance = SurfaceZone.zone_points_and_distance(sm)
-        SurfaceZone.surface_zone(sm_copy, points, distance, True)
+    # if copy_zone:
+    #   # Copy surface zone
+    #   sm = v.surface_model()
+    #   sm_copy = self.surface_model()
+    #   import SurfaceZone
+    #   if sm and SurfaceZone.showing_zone(sm) and sm_copy:
+    #     points, distance = SurfaceZone.zone_points_and_distance(sm)
+    #     SurfaceZone.surface_zone(sm_copy, points, distance, True)
 
     # TODO: Should copy color zone too.
 
@@ -2587,6 +2588,9 @@ def volume_from_grid_data(grid_data, session, representation = None,
       v.show()
     else:
       v.message('%s not shown' % v.name)
+
+  if open_model:
+    session.add_model(v)
 
   return v
 

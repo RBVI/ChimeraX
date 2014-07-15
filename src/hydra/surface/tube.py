@@ -5,7 +5,7 @@ def tube_through_points(path, tangents, radius = 1.0, circle_subdivisions = 15):
 
     circle = circle_points(circle_subdivisions, radius)
     circle_normals = circle_points(circle_subdivisions, 1.0)
-    from .._image3d import tube_geometry
+    from ..molecule_cpp import tube_geometry
     return tube_geometry(path, tangents, circle, circle_normals)
 
 # -----------------------------------------------------------------------------
@@ -14,7 +14,7 @@ def tube_through_points(path, tangents, radius = 1.0, circle_subdivisions = 15):
 #
 def tube_spline(path, radius = 1.0, segment_subdivisions = 10, circle_subdivisions = 15):
 
-    from .._image3d import natural_cubic_spline
+    from ..molecule_cpp import natural_cubic_spline
     spath, stan = natural_cubic_spline(path, segment_subdivisions)
     return tube_through_points(spath, stan, radius, circle_subdivisions)
 
@@ -24,9 +24,9 @@ def tube_spline(path, radius = 1.0, segment_subdivisions = 10, circle_subdivisio
 def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
                          start_divisions, end_divisions):
 
-    from .. import _image3d
-    return _image3d.tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
-                                         start_divisions, end_divisions)
+    from .. import molecule_cpp
+    return molecule_cpp.tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
+                                             start_divisions, end_divisions)
 
 # -----------------------------------------------------------------------------
 # Return triangle mask corresponding to tube segment mask.
@@ -34,9 +34,9 @@ def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
 def tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
                        start_divisions, end_divisions):
 
-    from .. import _image3d
-    tmask = _image3d.tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
-                                        start_divisions, end_divisions)
+    from .. import molecule_cpp
+    tmask = molecule_cpp.tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
+                                            start_divisions, end_divisions)
     from numpy import bool
     return tmask.view(bool)
 
@@ -140,7 +140,7 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
         return None             # No path
 
 #    from ..geometry.spline import natural_cubic_spline
-    from .._image3d import natural_cubic_spline
+    from ..molecule_cpp import natural_cubic_spline
     spath, stan = natural_cubic_spline(xyz_path, segment_subdivisions)
 
     pcolors = band_colors(spath, point_colors, segment_colors,

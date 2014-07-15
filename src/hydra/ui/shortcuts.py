@@ -110,6 +110,7 @@ def standard_shortcuts(session):
         ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('ce', color_by_element, 'Color atoms by element', molcat, molarg, mlmenu),
         ('cc', color_by_chain, 'Color chains', molcat, molarg, mlmenu, sep),
+        ('ao', ambient_occlusion_coloring, 'Ambient occlusion', molcat, sesarg, mlmenu, sep),
 
         ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, molarg, mlmenu),
         ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, molarg, mlmenu, sep),
@@ -161,7 +162,7 @@ def standard_shortcuts(session):
         ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
         ]
 
-    from ..file_io.blastpdb import blast_shortcuts
+    from ..molecule.blastpdb import blast_shortcuts
     shortcuts.extend(blast_shortcuts())
 
     scuts = []
@@ -407,7 +408,7 @@ def fit_molecule_in_map(session):
 def show_biological_unit(m, session):
 
     if hasattr(m, 'pdb_text'):
-        from ..file_io import biomt
+        from ..molecule import biomt
         places = biomt.pdb_biomt_matrices(m.pdb_text)
         print (m.path, 'biomt', len(places))
         if places:
@@ -530,6 +531,11 @@ def color_by_chain(m):
   m.color_by_chain()
 def color_one_color(m):
   m.single_color()
+def ambient_occlusion_coloring(session):
+  from ..molecule import ambient
+  ambient.ambient_occlusion_color_atoms(shortcut_atoms(session))
+  for v in shortcut_maps(session):
+    ambient.ambient_occlusion_color_map(v)
 
 def show_atoms(a):
   a.show_atoms()

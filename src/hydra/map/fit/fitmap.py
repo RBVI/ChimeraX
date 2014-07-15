@@ -286,8 +286,8 @@ def correlation_gradient_direction(points, point_weights, data_array,
     values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
                                  syminv)
-    from ... import _image3d
-    g = _image3d.correlation_gradient(point_weights, values, gradients, about_mean)
+    from ... import map_cpp
+    g = map_cpp.correlation_gradient(point_weights, values, gradients, about_mean)
     return g
 
 # -----------------------------------------------------------------------------
@@ -315,8 +315,8 @@ def sum_product_torque_axis(points, point_weights, center, data_array,
                             xyz_to_ijk_transform):
 
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
-    from ... import _image3d
-    tor = _image3d.torque(points, point_weights, gradients, center)
+    from ... import map_cpp
+    tor = map_cpp.torque(points, point_weights, gradients, center)
     return tor
 
 # -----------------------------------------------------------------------------
@@ -335,15 +335,15 @@ def correlation_torque_axis(points, point_weights, center, data_array,
 
     # TODO: Exclude points outside data.  Currently treated as zero values.
     values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
-    from ... import _image3d
+    from ... import map_cpp
     if len(syminv) == 0:
         gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
-        tor = _image3d.correlation_torque(points, point_weights, values, gradients,
+        tor = map_cpp.correlation_torque(points, point_weights, values, gradients,
                                           center, about_mean)
     else:
         pxg = volume_torques(points, center, xyz_to_ijk_transform, data_array,
                              syminv)
-        tor = _image3d.correlation_torque2(point_weights, values, pxg, about_mean)
+        tor = map_cpp.correlation_torque2(point_weights, values, pxg, about_mean)
 
     return tor
 
@@ -399,13 +399,13 @@ def volume_gradients(points, xyz_to_ijk_transform, data_array, syminv = []):
 def volume_torques(points, center, xyz_to_ijk_transform, data_array,
                    syminv = []):
 
-    from ... import _image3d
+    from ... import map_cpp
     from .. import data as VD
     if len(syminv) == 0:
         gradients, outside = VD.interpolate_volume_gradient(
             points, xyz_to_ijk_transform, data_array)
         torques = gradients
-        _image3d.torques(points, center, gradients, torques)
+        map_cpp.torques(points, center, gradients, torques)
     else:
         from numpy import zeros, float32, add
         torques = zeros(points.shape, float32)
@@ -416,7 +416,7 @@ def volume_torques(points, center, xyz_to_ijk_transform, data_array,
             sinv.move(p)
             g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform,
                                                         data_array)
-            _image3d.torques(p, center, g, g)
+            map_cpp.torques(p, center, g, g)
             add(torques, g, torques)
 
     return torques
@@ -453,8 +453,8 @@ def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
     from ...geometry.place import cross_product, translation
     tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
 
-    from ... import _image3d
-    av = _image3d.maximum_norm(points, tf.matrix)
+    from ... import map_cpp
+    av = map_cpp.maximum_norm(points, tf.matrix)
     
     if av > 0:
         from math import pi
@@ -471,8 +471,8 @@ def maximum_ijk_motion(points, xyz_to_ijk_transform, move_tf):
 
     diff_tf = ijk_moved_tf.matrix - xyz_to_ijk_transform.matrix
 
-    from ... import _image3d
-    d = _image3d.maximum_norm(points, diff_tf)
+    from ... import map_cpp
+    d = map_cpp.maximum_norm(points, diff_tf)
     
     return d
 
@@ -535,8 +535,8 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = None):
     if above_threshold:
         # Keep only points where density is above lowest displayed threshold
         threshold = min(v.surface_levels)
-        from ... import _image3d
-        points_int = _image3d.high_indices(m, threshold)
+        from ... import map_cpp
+        points_int = map_cpp.high_indices(m, threshold)
         from numpy import single as floatc
         points = points_int.astype(floatc)
         weights = m[points_int[:,2],points_int[:,1],points_int[:,0]]

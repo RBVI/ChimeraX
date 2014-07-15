@@ -36,12 +36,12 @@ class Bond_Templates:
     def molecule_bonds(self, molecule):
 
 #        return self.molecule_bonds_orig(molecule)
-        from .. import _image3d
+        from .. import molecule_cpp
         if self.cc_index is None:
             self.read_templates_file()
-            _image3d.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars)
+            molecule_cpp.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars)
         m = molecule
-        return _image3d.molecule_bonds(m.residue_names, m.residue_nums, m.chain_ids, m.atom_names)
+        return molecule_cpp.molecule_bonds(m.residue_names, m.residue_nums, m.chain_ids, m.atom_names)
 
     def molecule_bonds_orig(self, molecule):
 

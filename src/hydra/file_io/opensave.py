@@ -65,8 +65,8 @@ def file_types(session):
     '''
     ftypes = session.file_types
     if ftypes is None:
-        from .pdb import open_pdb_file
-        from .mmcif import open_mmcif_file
+        from ..molecule.pdb import open_pdb_file
+        from ..molecule.mmcif import open_mmcif_file
         from .read_stl import read_stl
         from .read_apr import open_autopack_results, read_ingredient_file, read_sphere_file
         from .read_swc import read_swc
@@ -166,11 +166,13 @@ def open_map(map_path, session):
     '''
     Open a density map file having any of the known density map formats.
     '''
-    from .. import map
-    i = map.data.open_file(map_path)[0]
-    map_drawing = map.volume_from_grid_data(i, session)
-    map_drawing.new_region(ijk_step = (1,1,1), adjust_step = False)
-    return map_drawing
+    maps = []
+    from ..map import data, volume_from_grid_data
+    for d in data.open_file(map_path):
+        v = volume_from_grid_data(d, session, open_model = False)
+        v.new_region(ijk_step = (1,1,1), adjust_step = False)
+        maps.append(v)
+    return maps
 
 def open_session(path, session):
     '''
@@ -349,12 +351,16 @@ def open_from_database(ids, session, from_database, set_camera = None):
         set_camera = (session.model_count() == 0)
     from . import fetch
     mlist = []
+#    from time import time
+#    t0 = time()
     for id in ids:
         m = fetch.fetch_from_database(id, from_database, session)
         if isinstance(m, (list, tuple)):
             mlist.extend(m)
         else:
             mlist.append(m)
+#    t1 = time()
+#    print('opened in %.2f seconds, %s' % (t1-t0, ids))
     session.add_models(mlist)
     finished_opening([m.path for m in mlist], set_camera, session)
     return mlist

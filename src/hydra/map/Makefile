@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/map
 
-SUBDIRS	= data fit
+SUBDIRS	= data filter fit
 
 PYSRCS = __init__.py defaultsettings.py grayscale.py molmap.py moveplanes.py \
 	session.py slice.py solid.py subsample.py volume.py volumecommand.py
