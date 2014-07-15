@@ -884,6 +884,8 @@ CIFFile::find_column_offsets()
 int
 CIFFile::get_column(const char *tag, bool required)
 {
+	if (current_tags.empty())
+		throw std::runtime_error("must be parsing a table before getting a column position");
 	auto i = std::find(current_tags.begin(), current_tags.end(), std::string(tag));
 	if (i != current_tags.end())
 		return i - current_tags.begin();
