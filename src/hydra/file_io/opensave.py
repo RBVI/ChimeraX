@@ -166,11 +166,13 @@ def open_map(map_path, session):
     '''
     Open a density map file having any of the known density map formats.
     '''
-    from .. import map
-    i = map.data.open_file(map_path)[0]
-    map_drawing = map.volume_from_grid_data(i, session, open_model = False)
-    map_drawing.new_region(ijk_step = (1,1,1), adjust_step = False)
-    return map_drawing
+    maps = []
+    from ..map import data, volume_from_grid_data
+    for d in data.open_file(map_path):
+        v = volume_from_grid_data(d, session, open_model = False)
+        v.new_region(ijk_step = (1,1,1), adjust_step = False)
+        maps.append(v)
+    return maps
 
 def open_session(path, session):
     '''
