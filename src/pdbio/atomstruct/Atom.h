@@ -4,7 +4,7 @@
 
 #include <vector>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <set>
 
 #include "Element.h"
@@ -44,7 +44,7 @@ private:
         float  occupancy;
         int  serial_number;
     } _Alt_loc_info;
-    typedef std::map<char, _Alt_loc_info>  _Alt_loc_map;
+    typedef std::unordered_map<char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
     char  _alt_loc;
     std::vector<float> *  _aniso_u;
