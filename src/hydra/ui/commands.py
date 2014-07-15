@@ -1163,7 +1163,7 @@ def parse_specifier(spec, session):
             if len(mids) == 0:
                 mids = set(m.id for m in session.model_list())
         elif p.startswith('.'):
-            cid = p[1:]
+            cids = p[1:].split(',')
         elif p.startswith(':'):
             rrange = integer_range(p[1:])
             if rrange is None:
@@ -1174,7 +1174,7 @@ def parse_specifier(spec, session):
             invert = True
     
     if mids is None:
-        if cid is None and rrange is None and rname is None and aname is None:
+        if cids is None and rrange is None and rname is None and aname is None:
             if spec == 'all':
                 mlist = session.model_list()
             else:
@@ -1192,7 +1192,7 @@ def parse_specifier(spec, session):
     rnums = None
     for m in mlist:
         if isinstance(m, Molecule):
-            atoms = m.atom_subset(aname, cid, rrange, rnums, rname, invert)
+            atoms = m.atom_subset(aname, cids, rrange, rnums, rname, invert)
             if atoms.count() > 0:
                 s.add_atoms(atoms)
         else:
