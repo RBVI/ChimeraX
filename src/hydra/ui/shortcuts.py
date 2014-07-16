@@ -655,7 +655,9 @@ def show_stats(session):
     na = v.atoms_shown
     r = 1.0/v.last_draw_duration
     n = session.model_count()
-    session.show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
+    msg = '%d models, %d atoms, %.1f frames/sec' % (n, na, r)
+    session.show_status(msg)
+    session.show_info(msg)
 
 def default_view(view):
     view.initial_camera_view()
