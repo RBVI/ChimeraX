@@ -51,6 +51,8 @@ def register_commands(commands):
     add('blast', blastpdb.blast_command)
     from ..molecule import ambient
     add('ambient', ambient.ambient_occlusion_command)
+    from .cyclecmd import cycle_command
+    add('cycle', cycle_command)
 
 # -----------------------------------------------------------------------------
 #
