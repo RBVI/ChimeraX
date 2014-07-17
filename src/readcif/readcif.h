@@ -69,7 +69,7 @@ is_not_whitespace(char c)
 
 // non-error checking replacement for the standard library's strtof
 // for non-scientific notation
-inline float str_to_float(const char *s)
+inline float str_to_float(const char* s)
 {
 	bool neg = false;
 	float fa = 0, v = 0;
@@ -94,7 +94,7 @@ inline float str_to_float(const char *s)
 }
 
 // non-error checking replacement for the standard library's atoi/strtol
-inline int str_to_int(const char *s)
+inline int str_to_int(const char* s)
 {
 	bool neg = (*s == '-');
 	int v = 0;
@@ -134,8 +134,9 @@ public:
 			ParseCategory callback, 
 			const StringVector& dependencies = StringVector());
 
-	// The parse function parses a (mm)CIF file.
-	void parse(const char *whole_file); // whole (memmapped) file
+	// The parsing functions
+	void parse_file(const char* filename);	// open file and parse it
+	void parse(const char* buffer); // null-terminated whole file
 
 	// Indiate that CIF file follows the PDBx/mmCIF style guide
 	bool PDBx_stylized() const { return stylized_; }
@@ -170,7 +171,7 @@ public:
 	const StringVector& tags();
 
 	// Convert tag to column position.
-	int get_column(const char *tag, bool required=false);
+	int get_column(const char* tag, bool required=false);
 
 	// return text + " on line #"
 	std::runtime_error error(const std::string& text);
@@ -199,19 +200,19 @@ private:
 						func(f), dependencies(d) {}
 	};
 	typedef std::unordered_map<std::string, CategoryInfo> Categories;
-	Categories categories;
-	StringVector categoryOrder;	// order categories were registered in
+	Categories	categories;
+	StringVector	categoryOrder;	// order categories were registered in
 
 	// parsing state
-	bool parsing;
-	bool stylized_;			// true for PDBx/mmCIF style
+	bool		parsing;
+	bool		stylized_;	// true for PDBx/mmCIF style
 	std::string	version_;	// version given in CIF file
-	const char *whole_file;
-	std::string current_data_block;
-	std::string current_category;
-	StringVector current_tags;	// data tags without category name
-	StringVector values;
-	bool first_row;
+	const char*	whole_file;
+	std::string	current_data_block;
+	std::string	current_category;
+	StringVector	current_tags;	// data tags without category name
+	StringVector	values;
+	bool		first_row;
 	std::vector<int> columns;	// for stylized files
 	// backtracking support:
 	std::unordered_set<std::string> seen;
@@ -233,16 +234,19 @@ private:
 		T_TAG, T_VALUE, T_LEFT_BRACKET, T_RIGHT_BRACKET,
 		T_EOI /* End Of Input */
 	};
-	Token current_token;
+	Token		current_token;
+	bool current_is_keyword() {
+		return current_token >= T_DATA && current_token <= T_STOP;
+	}
 	// current_value for T_DATA, T_TAG, T_VALUE
-	std::string current_value();
-	const char* current_value_start;
-	const char* current_value_end;
-	std::string current_value_tmp;
-	const char* line;	// current line being tokenized
-	size_t lineno;		// current line number
-	const char* pos;	// current position in line/file (index)
-	bool save_values;	// true if T_VALUE values are needed
+	std::string	current_value();
+	const char*	current_value_start;
+	const char*	current_value_end;
+	std::string	current_value_tmp;
+	const char*	line;		// current line being tokenized
+	size_t		lineno;		// current line number
+	const char*	pos;		// current position in line/file (index)
+	bool		save_values;	// true if T_VALUE values are needed
 };
 
 inline const std::string&

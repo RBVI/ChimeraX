@@ -45,6 +45,15 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#ifdef _WIN32
+# define UNICODE
+# include <windows.h>
+#else
+# include <fcntl.h>
+# include <unistd.h>
+# include <sys/mman.h>
+# include <sys/stat.h>
+#endif
 
 #if UCHAR_MAX > 255
 # error "character size is too big for internal tables"
@@ -139,7 +148,7 @@ is_not_eol(char c)
 // icaseeqn: 
 // 	compare name in a case independent way to buf
 bool
-icaseeqn(const char *name, const char *buf, size_t len)
+icaseeqn(const char* name, const char* buf, size_t len)
 {
 	for (size_t i = 0; i < len; ++i) {
 		if (name[i] == '\0' || buf[i] == '\0')
@@ -230,10 +239,10 @@ CIFFile::register_category(const std::string& category, ParseCategory callback,
 	for (auto dep: dependencies) {
 		if (categories.find(dep) != categories.end())
 			continue;
-		std::ostringstream os;
-		os << "Missing dependency " << dep << " for category "
+		std::ostringstream err;
+		err << "Missing dependency " << dep << " for category "
 							<< category;
-		throw std::logic_error(os.str());
+		throw std::logic_error(err.str());
 	}
 	if (callback) {
 		categoryOrder.push_back(category);
@@ -247,10 +256,117 @@ CIFFile::register_category(const std::string& category, ParseCategory callback,
 	}
 }
 
+#ifdef _WIN32
 void
-CIFFile::parse(const char *whole_file)
+throw_windows_error(DWORD errno, const char* where)
 {
-	this->whole_file = whole_file;
+	TSTR message_buffer;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER
+			| FORMAT_MESSAGE_FROM_SYSTEM
+			| FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, errno,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		&message_buffer, 0, NULL);
+	std::ostringstream msg;
+	if (where)
+		msg << where << ": ";
+	msg << message_buffer;
+	throw std::runtime_error(msg.str());
+}
+#endif
+
+void
+CIFFile::parse_file(const char* filename)
+{
+	std::ostringstream err;
+#ifdef _WIN32
+	// TODO: Not tested
+	HANDLE file = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL,
+			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (file == INVALID_HANDLE_VALUE) {
+		DWORD errno = GetLastError();
+		throw_windows_error(errno, "opening file for reading");
+	}
+	LARGE_INTEGER size;
+	if (!GetFileSizeEx(file, &size)) {
+		DWORD errno = GetLastError();
+		CloseHandle(file);
+		throw_windows_error(errno, "getting file size");
+	}
+	HANDLE mapping = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+	if (mapping == INVALID_HANDLE_VALUE) {
+		DWORD errno = GetLastError();
+		CloseHandle(file);
+		throw_windows_error(errno, "creating file mapping");
+	}
+	void *buffer = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, size + 1);
+	if (buffer == NULL) {
+		DWORD errno = GetLastError();
+		CloseHandle(file);
+		CloseHandle(mapping);
+		throw_windows_error(errno, "creating file view");
+	}
+	try {
+		parse(buffer);
+	} catch (...) {
+		UnmapViewOfFile(buffer);
+		CloseHandle(mapping);
+		CloseHandle(file);
+		throw;
+	}
+	UnmapViewOfFile(buffer);
+	CloseHandle(mapping);
+	CloseHandle(file);
+#else
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1) {
+		err << "Unable to open " << filename << " for reading.";
+		throw std::runtime_error(err.str());
+	}
+	struct stat sb;
+	if (fstat(fd, &sb) == -1) {
+		err << "Unable to stat " << filename;
+		throw std::runtime_error(err.str());
+	}
+
+	bool used_mmap = false;
+	char* buffer = NULL;
+
+	long page_size = sysconf(_SC_PAGESIZE);
+	if (sb.st_size % page_size != 0) {
+		void *buf = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE,
+				fd, 0);
+		if (buf == MAP_FAILED) {
+			err << "Unable to mmap " << filename;
+			throw std::runtime_error(err.str());
+		}
+		buffer = reinterpret_cast<char*>(buf);
+		used_mmap = true;
+	} else {
+		buffer = new char [sb.st_size + 1];
+		if (read(fd, buffer, sb.st_size) == -1) {
+			err << "Unable to read " << filename;
+			throw std::runtime_error(err.str());
+		}
+		buffer[sb.st_size] = '\0';
+	}
+	parse(reinterpret_cast<const char*>(buffer));
+	if (used_mmap) {
+		if (munmap(buffer, sb.st_size + 1) == -1) {
+			err << "Unable to munmap " << filename;
+			throw std::runtime_error(err.str());
+		}
+	} else {
+		delete [] buffer;
+	}
+	(void) close(fd);
+#endif
+}
+
+void
+CIFFile::parse(const char* buffer)
+{
+	whole_file = buffer;
 	try {
 		if (parsing)
 			throw error("Already parsing");
@@ -310,9 +426,6 @@ CIFFile::internal_parse(bool one_table)
 			continue;
 		case T_LOOP: {
 			const char* loop_pos = pos - 5;
-			current_category.clear();
-			current_tags.clear();
-			values.clear();
 			next_token();
 			if (current_token != T_TAG)
 				throw error("expected data name after loop_");
@@ -342,21 +455,20 @@ CIFFile::internal_parse(bool one_table)
 					}
 				}
 			}
-			bool keep = cii != categories.end();
-			if (keep && !one_table) {
+			save_values = cii != categories.end();
+			if (save_values && !one_table) {
 				for (auto d: cii->second.dependencies) {
 					if (seen.find(d) != seen.end())
 						continue;
-					keep = false;
+					save_values = false;
 					stash.emplace(current_category,
 					      StashInfo(loop_pos, lineno));
 					break;
 				}
 			}
-			if (keep) {
+			if (save_values) {
 				current_tags.push_back(cv.substr(
 					current_category.size() + 1));
-				save_values = true;
 			}
 			next_token();
 			while (current_token == T_TAG) {
@@ -367,28 +479,31 @@ CIFFile::internal_parse(bool one_table)
 				|| (DDL_v2 && cv[clen] != '.')
 				|| (!DDL_v2 && cv[clen] != '_'))
 					throw error("loop_ may only be for one category");
-				if (keep)
+				if (save_values)
 					current_tags.push_back(
 							cv.substr(clen + 1));
 				next_token();
 			}
 			if (save_values) {
-				ParseCategory& pf = cii->second.func;
 				seen.insert(current_category);
 				first_row = true;
+				ParseCategory& pf = cii->second.func;
 				pf(true);
+				first_row = false;
+				current_category.clear();
+				current_tags.clear();
+				values.clear();
+				save_values = false;
 			}
 			if (one_table)
 				return;
 			// eat remaining values
-			first_row = false;
-			save_values = false;
 			if (stylized_) {
-				// if seen all tables, skip to next data_
-				if (current_token == T_VALUE) {
-					bool tags_okay = seen.size() < categories.size();
+				// if seen all tables, skip to next keyword
+				bool tags_okay = seen.size() < categories.size();
+				if (!current_is_keyword()
+				&& !(tags_okay && current_token == T_TAG))
 					stylized_next_keyword(tags_okay);
-				}
 			}
 			else while (current_token == T_VALUE)
 				next_token();
@@ -453,36 +568,40 @@ CIFFile::internal_parse(bool one_table)
 				if (current_category.empty()
 				|| category != current_category) {
 					const char* first_tag_pos = current_value_start;
-					if (cii != categories.end()) {
+					if (save_values) {
 						// flush current category
-						save_values = false;
-						ParseCategory& pf = cii->second.func;
 						seen.insert(current_category);
 						first_row = true;
+						ParseCategory& pf = cii->second.func;
 						pf(false);
+						first_row = false;
+						//current_category.clear();
+						current_tags.clear();
+						values.clear();
+						save_values = false;
 					}
 					if (!current_category.empty()
-					&& one_table)
+					&& one_table) {
+						current_category.clear();
 						return;
+					}
 					current_category = category;
 					cii = categories.find(current_category);
-					bool keep = cii != categories.end();
-					if (keep && !one_table) {
+					save_values = cii != categories.end();
+					if (save_values && !one_table) {
 						for (auto d: cii->second.dependencies) {
 							if (seen.find(d) != seen.end())
 								continue;
-							keep = false;
+							save_values = false;
 							stash.emplace(current_category,
 							      StashInfo(first_tag_pos, lineno));
 							break;
 						}
 					}
-					if (keep) {
+					if (save_values) {
 						current_tags.push_back(cv.substr(
 							current_category.size() + 1));
-						save_values = true;
-					} else
-						save_values = false;
+					}
 				} else if (save_values)
 					current_tags.push_back(cv.substr(
 						current_category.size() + 1));
@@ -498,19 +617,22 @@ CIFFile::internal_parse(bool one_table)
 				if (DDL_v2)
 					sep = cv.find('.');
 			}
-			if (cii != categories.end()) {
+			if (save_values) {
 				// flush current category
-				save_values = false;
-				ParseCategory& pf = cii->second.func;
 				seen.insert(current_category);
 				first_row = true;
+				ParseCategory& pf = cii->second.func;
 				pf(false);
+				first_row = false;
 				current_category.clear();
+				current_tags.clear();
+				values.clear();
+				save_values = false;
 			}
 			if (one_table)
 				return;
 			if (seen.size() == categories.size()
-			&& (current_token < T_DATA || current_token > T_STOP))
+			&& !current_is_keyword())
 				// if seen all tables, skip to next data_
 				stylized_next_keyword(false);
 			continue;
@@ -882,7 +1004,7 @@ CIFFile::find_column_offsets()
 }
 
 int
-CIFFile::get_column(const char *tag, bool required)
+CIFFile::get_column(const char* tag, bool required)
 {
 	if (current_tags.empty())
 		throw std::runtime_error("must be parsing a table before getting a column position");
@@ -921,7 +1043,7 @@ CIFFile::parse_row(ParseValues& pv)
 		// values were given per-tag
 		// assert(current_tags.size() == values.size())
 		for (; pvi != pve; ++pvi) {
-			const char *buf = values[pvi->column].c_str();
+			const char* buf = values[pvi->column].c_str();
 			current_value_start = buf;
 			current_value_end = buf + values[pvi->column].size();
 			pvi->func(current_value_start, current_value_end);
