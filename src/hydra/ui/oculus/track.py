@@ -46,6 +46,10 @@ class Oculus_Head_Tracking:
         if self.frame_cb:
             self.view.remove_new_frame_callback(self.frame_cb)
             self.frame_cb = None
+            if self.connected:
+                from . import _oculus
+                _oculus.disconnect()
+                self.connected = False
 
     def display_size(self):
 

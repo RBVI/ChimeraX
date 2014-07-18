@@ -44,6 +44,7 @@ class View(QtGui.QWindow):
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
+        # TODO: Maybe redraw interval should be 10 msec to reduce frame drops at 60 frames/sec
         self.redraw_needed = False
         self.update_lighting = False
         self.block_redraw_count = 0
@@ -348,8 +349,8 @@ class View(QtGui.QWindow):
 
         selected = [m for m in self.session.selected_models() if m.display]
 
-        from time import process_time
-        t0 = process_time()
+        from time import time
+        t0 = time()
         from .. import graphics
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
@@ -363,7 +364,9 @@ class View(QtGui.QWindow):
             s = camera.warp_image(vnum, r)
             if s:
                 graphics.draw_overlays([s], r)
-        t1 = process_time()
+#        from OpenGL import GL
+#        GL.glFinish()
+        t1 = time()
         self.last_draw_duration = t1-t0
         
         if self.overlays:

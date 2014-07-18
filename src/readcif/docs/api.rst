@@ -94,7 +94,7 @@ and be used by::
     ExtractCIF extract;
 
     const char* whole_file = ....
-    extract.parse(whole_file)
+    extract.parse_file(filename)
 
 See the associated :download:`readcif_example.cpp` file for a working example
 that reads a subset of the atom_site data from a PDB mmCIF file.
@@ -167,14 +167,14 @@ C++ API
 
     See :cpp:func:`is_whitespace`.
 
-.. cpp:function:: float str_to_float(const char *s)
+.. cpp:function:: float str_to_float(const char* s)
 
     Non-error checking inline function to convert a string to a
     floating point number.  It is similar to the C/C++ standard library's
     **strtof** function, but does not support scientific notation, and
     is about twice as fast.
 
-.. cpp:function:: int str_to_int(const char *s)
+.. cpp:function:: int str_to_int(const char* s)
 
     Non-error inline function to convert a string to an integer.
     It is similar to the C/C++ standard library's **atof** function.
@@ -206,11 +206,20 @@ C++ API
             A category callback function can find out which category
             it is processing with :cpp:func:`category`.
 
-        .. cpp:function:: void parse(const char* whole_file)
+        .. cpp:function:: void parse_file(const char* filename)
+
+            :param filename: Name of file to be parsed
+
+            If possible, memory-map the given file to get the buffer
+            to hand off to :cpp:func:`parse`.  On POSIX systems,
+            files whose size is a multiple of the system page size,
+            have to be read into an allocated buffer instead.
+
+        .. cpp:function:: void parse(const char* buffer)
 
             Parse the input and invoke registered callback functions
 
-            :param whole_file: all of the text of the CIF file
+            :param buffer: Null-terminated text of the CIF file
 
             The text must be terminated with a null character.
             A common technique is to memory map a file
