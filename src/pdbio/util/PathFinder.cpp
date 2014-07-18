@@ -1,3 +1,4 @@
+// vim: set expandtab ts=4 sw=4:
 #include "PathFinder.h"
 
 #include <stdlib.h>
