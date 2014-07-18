@@ -896,44 +896,6 @@ read_fileno(void *f)
     return std::pair<char *, PyObject *>(read_fileno_buffer, NULL);
 }
 
-#include <ctime>
-void test_bonds_map(std::vector<AtomicStructure *> *structs)
-{
-	// gather info needed for tests
-	std::vector<std::pair<Atom*, Atom::Bonds>> bond_vecs;
-	std::vector<const Atom::BondsMap*> bond_maps;
-	for (auto sp: *structs) {
-		for (auto ai = sp->atoms().begin(); ai != sp->atoms().end(); ++ai) {
-			bond_vecs.emplace_back(ai->get(), (*ai)->bonds());
-			bond_maps.push_back(&(*ai)->bonds_map());
-		}
-	}
-
-	// test gathering list of neighbors for both implementations
-	std::vector<Atom*> neighbors;
-
-	// vector test
-	clock_t start = clock();
-	for (auto pr: bond_vecs) {
-		neighbors.clear();
-		auto bv = pr.second;
-		for (auto b: bv) {
-			neighbors.push_back(b->other_atom(pr.first));
-		}
-	}
-	std::cout << "vector time: " << (clock() - start) / (float)CLOCKS_PER_SEC << "\n";
-
-	// map test
-	start = clock();
-	for (auto map: bond_maps) {
-		neighbors.clear();
-		for (auto kv: *map) {
-			neighbors.push_back(kv.first);
-		}
-	}
-	std::cout << "map time: " << (clock() - start) / (float)CLOCKS_PER_SEC << "\n";
-
-}
 PyObject *
 read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 {
@@ -1155,7 +1117,6 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
         delete structs;
         return NULL;
     }
-test_bonds_map(structs);
     using blob::StructBlob;
     StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
     for (auto si = structs->begin(); si != structs->end(); ++si) {
