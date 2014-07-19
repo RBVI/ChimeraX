@@ -1,8 +1,9 @@
 // vim: set expandtab ts=4 sw=4:
+#include <algorithm>  // for std::sort
 #include <set>
 #include <sstream>
-#include <algorithm>  // for std::sort
 #include <stdio.h>  // fgets
+#include <unordered_map>
 
 #include "PDBio.h"
 #include "pdb/PDB.h"
@@ -90,7 +91,7 @@ static clock_t cum_preloop_t, cum_loop_preswitch_t, cum_loop_switch_t, cum_loop_
 static void *
 read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     void *input, AtomicStructure *as,
-    int *line_num, std::map<int, Atom *> &asn,
+    int *line_num, std::unordered_map<int, Atom *> &asn,
     std::vector<Residue *> *start_residues,
     std::vector<Residue *> *end_residues,
     std::vector<PDB> *secondary_structure,
@@ -487,7 +488,7 @@ start_t = end_t;
 
         case PDB::ANISOU: {
             int serial = record.anisou.serial;
-            std::map<int, Atom *>::const_iterator si = asn.find(serial);
+            std::unordered_map<int, Atom *>::const_iterator si = asn.find(serial);
             if (si == asn.end()) {
                 LOG_PY_ERROR_NULL("Unknown atom serial number (" << serial
                     << ") in ANISOU record\n");
@@ -629,7 +630,7 @@ add_bond(Atom *a1, Atom *a2)
 //    Add a bond to structure given two atom serial numbers.
 //    (atom_serial_nums argument should be const, but operator[] isn't const)
 static void
-add_bond(std::map<int, Atom *> &atom_serial_nums, int from, int to, PyObject *log_file)
+add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, PyObject *log_file)
 {
     if (to <= 0 || from <= 0)
         return;
@@ -901,18 +902,18 @@ read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
 {
     std::vector<AtomicStructure *> file_structs;
     bool reached_end;
-    std::map<AtomicStructure *, std::vector<Residue *> > start_res_map, end_res_map;
-    std::map<AtomicStructure *, std::vector<PDB> > ss_map;
+    std::unordered_map<AtomicStructure *, std::vector<Residue *> > start_res_map, end_res_map;
+    std::unordered_map<AtomicStructure *, std::vector<PDB> > ss_map;
     typedef std::vector<PDB::Conect_> Conects;
-    typedef std::map<AtomicStructure *, Conects> ConectMap;
+    typedef std::unordered_map<AtomicStructure *, Conects> ConectMap;
     ConectMap conect_map;
     typedef std::vector<PDB::Link_> Links;
-    typedef std::map<AtomicStructure *, Links> LinkMap;
+    typedef std::unordered_map<AtomicStructure *, Links> LinkMap;
     LinkMap link_map;
-    std::map<AtomicStructure *, std::set<MolResId> > mod_res_map;
+    std::unordered_map<AtomicStructure *, std::set<MolResId> > mod_res_map;
     // Atom Serial Numbers -> Atom*
-    typedef std::map<int, Atom *, std::less<int> > Asns;
-    std::map<AtomicStructure *, Asns > asn_map;
+    typedef std::unordered_map<int, Atom *> Asns;
+    std::unordered_map<AtomicStructure *, Asns > asn_map;
     bool per_model_conects = false;
     int line_num = 0;
     bool eof;

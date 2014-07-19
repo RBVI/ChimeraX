@@ -3,7 +3,7 @@
 #define atomic_Sequence
 
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include "imex.h"
 
@@ -14,7 +14,7 @@ public:
     typedef std::vector<unsigned char> Contents;
 protected:
     Contents  _sequence;
-    typedef std::map<const char *, unsigned char>  _1Letter_Map;
+    typedef std::unordered_map<const char *, unsigned char>  _1Letter_Map;
     static _1Letter_Map _rname3to1;
 
 public:

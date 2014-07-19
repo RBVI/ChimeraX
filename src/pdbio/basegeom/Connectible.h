@@ -4,8 +4,8 @@
 
 #include "Coord.h"
 #include <vector>
-#include <map>
 #include "Connection.h"
+#include "util/VectorMap.h"
 
 namespace basegeom {
     
@@ -13,7 +13,7 @@ template <class FinalConnection, class FinalConnectible>
 class Connectible {
     friend class Connection<FinalConnectible, FinalConnection>;
 protected:
-    typedef std::map<FinalConnectible *, FinalConnection *> ConnectionsMap;
+    typedef util::VectorMap<FinalConnectible *, FinalConnection *> ConnectionsMap;
     typedef std::vector<FinalConnection *> Connections;
 
 private:

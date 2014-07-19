@@ -18,7 +18,7 @@ AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
 {
 }
 
-std::map<Residue *, char>
+std::unordered_map<Residue *, char>
 AtomicStructure::best_alt_locs() const
 {
     // check the common case of all blank alt locs first...
@@ -30,7 +30,7 @@ AtomicStructure::best_alt_locs() const
             break;
         }
     }
-    std::map<Residue *, char> best_locs;
+    std::unordered_map<Residue *, char> best_locs;
     if (all_blank) {
         return best_locs;
     }
@@ -61,8 +61,8 @@ AtomicStructure::best_alt_locs() const
         res_group.insert(r);
         std::vector<Residue *> todo;
         todo.push_back(r);
-        std::map<char, int> occurances;
-        std::map<char, float> occupancies, bfactors;
+        std::unordered_map<char, int> occurances;
+        std::unordered_map<char, float> occupancies, bfactors;
         while (!todo.empty()) {
             Residue *cr = todo.back();
             todo.pop_back();
@@ -308,7 +308,7 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
 void
 AtomicStructure::use_best_alt_locs()
 {
-    std::map<Residue *, char> alt_loc_map = best_alt_locs();
+    std::unordered_map<Residue *, char> alt_loc_map = best_alt_locs();
     for (auto almi = alt_loc_map.begin(); almi != alt_loc_map.end(); ++almi) {
         (*almi).first->set_alt_loc((*almi).second);
     }

@@ -490,7 +490,8 @@ class Molecule(Drawing):
       from ..molecule_cpp import value_ranges
       self.chain_ranges = cr = dict((cids[s],(s,e)) for s,e in value_ranges(cids))
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
-    return cr[cid]
+    s,e = cr[cid] if cid in cr else (0,0)
+    return s,e
 
   def chain_atom_mask(self, chain_id, s = None, e = None):
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
