@@ -893,8 +893,10 @@ class Atoms:
     '''Return a numpy array of atom coordinates in the global coordinate system.'''
     coords = []
     for m,a in self.molatoms:
-        xyz = m.xyz[a] if len(a) < len(m.xyz) else m.xyz
-        m.position.move(xyz)
+        move = not m.position.is_identity(tolerance = 0)
+        xyz = m.xyz[a] if len(a) < len(m.xyz) else (m.xyz.copy() if move else m.xyz)
+        if move:
+          m.position.move(xyz)
         coords.append(xyz)
     import numpy
     if len(coords) == 0:
