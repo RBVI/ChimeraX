@@ -33,8 +33,9 @@ def register_commands(commands):
     add('show', showcmd.show_command)
     add('hide', showcmd.hide_command)
     add('color', colorcmd.color_command)
-    from ..surface import gridsurf
+    from ..surface import gridsurf, sasa
     add('surface', gridsurf.surface_command)
+    add('area', sasa.area_command)
     from .. import scenes
     add('scene', scenes.scene_command)
     from . import cameracmd
