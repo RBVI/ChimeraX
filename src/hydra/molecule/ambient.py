@@ -6,7 +6,9 @@ def ambient_occlusion_coloring(model, fineness = None, light = None, dark = 0.1,
     atoms = model.atom_set()
     latom = 0.8 if light is None else light
     ambient_occlusion_color_atoms(atoms, fineness, latom, dark)
-    ambient_occlusion_color_molecular_surfaces(model.models(), fineness, latom, dark)
+    satoms = model.atom_set(include_surface_atoms = True)
+    satoms.remove_duplicates()
+    ambient_occlusion_color_molecular_surfaces(model.molecular_surfaces(), satoms, fineness, latom, dark)
 
     lmap = 0.5 if light is None else light
     for m in model.maps():
@@ -74,16 +76,7 @@ def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1):
 
     return m, tf
 
-def ambient_occlusion_color_molecular_surfaces(models, fineness = None, light = 0.8, dark = 0.1):
-
-    surfs = [s for s in models if hasattr(s, 'ses_atoms')]
-    if len(surfs) == 0:
-        return
-
-    from .molecule import Atoms
-    atoms = Atoms()
-    for s in surfs:
-        atoms.add_atoms(s.ses_atoms)
+def ambient_occlusion_color_molecular_surfaces(surfs, atoms, fineness = None, light = 0.8, dark = 0.1):
 
     points = atoms.coordinates()
     m, tf = ambient_atom_density(points, fineness, light, dark)

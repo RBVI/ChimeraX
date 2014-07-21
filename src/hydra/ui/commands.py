@@ -1273,8 +1273,21 @@ class Selection:
         return self.aset.molecules()
     def chains(self):
         return self.aset.chains()
-    def atom_set(self):
-        return self.aset
+    def atom_set(self, include_surface_atoms = False):
+        if include_surface_atoms:
+            atoms = self.surface_atoms()
+            atoms.add_atoms(self.aset)
+        else:
+            atoms = self.aset
+        return atoms
+    def surface_atoms(self):
+        from ..molecule import Atoms
+        atoms = Atoms()
+        for s in self.molecular_surfaces():
+            atoms.add_atoms(s.ses_atoms)
+        return atoms
+    def molecular_surfaces(self):
+        return [m for m in self._models if hasattr(m, 'ses_atoms')]
     def maps(self):
         from ..map import Volume
         mlist = [m for m in self.models() if isinstance(m,Volume)]

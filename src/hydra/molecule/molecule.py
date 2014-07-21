@@ -866,9 +866,19 @@ class Atoms:
       self.molatoms.append((m, m.all_atom_indices()))
   def add_atom_indices(self, mol, ai):
     self.molatoms.append((mol, ai))
-  def add_atoms(self, atoms):
+  def add_atoms(self, atoms, remove_duplicates = False):
     '''Add atoms to the set.'''
     self.molatoms.extend(atoms.molatoms)
+  def remove_duplicates(self):
+    '''Make sure atoms included at most once.'''
+    ma = {}
+    for m,a in self.molatoms:
+      if m in ma:
+        ma[m].append(a)
+      else:
+        ma[m] = [a]
+    from numpy import concatenate, unique
+    self.molatoms = [(m, unique(concatenate(alist)) if len(alist) > 1 else alist[0]) for m,alist in ma.items()]
   def molecules(self):
     '''List of molecules in set.'''
     return list(set(m for m,a in self.molatoms))
