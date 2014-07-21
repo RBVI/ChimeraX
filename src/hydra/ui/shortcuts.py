@@ -303,6 +303,14 @@ def shortcut_atoms(session):
         a = session.all_atoms()
     return a
 
+def shortcut_selection(session):
+  from .commands import Selection
+  sel = Selection()
+  sel.add_atoms(shortcut_atoms(session))
+  sel.add_models(shortcut_surfaces(session))
+  sel.add_models(shortcut_maps(session))
+  return sel
+
 def shortcut_surfaces(session):
     surfs = session.surfaces()
     sel = session.selected_models()
@@ -533,9 +541,7 @@ def color_one_color(m):
   m.single_color()
 def ambient_occlusion_coloring(session):
   from ..molecule import ambient
-  ambient.ambient_occlusion_color_atoms(shortcut_atoms(session))
-  for v in shortcut_maps(session):
-    ambient.ambient_occlusion_color_map(v)
+  ambient.ambient_occlusion_coloring(shortcut_selection(session))
 
 def show_atoms(a):
   a.show_atoms()
