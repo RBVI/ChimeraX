@@ -1,4 +1,4 @@
-mol_attrs = ('path', 'id', 'database_fetch', 'display', 'atom_style',
+mol_attrs = ('path', 'id', 'database_fetch', 'display',
              'ribbon_radius', 'ball_scale')
 
 def molecule_state(m):  
@@ -11,8 +11,8 @@ def molecule_state(m):
     if not m.bonds is None:
         ms['has_bonds'] = True
     ms['atom_shown'] = array_to_string(m.atom_shown)
-    if not m.atom_colors is None:
-        ms['atom_colors'] = array_to_string(m.atom_colors)
+    ms['atom_colors'] = array_to_string(m.atom_colors)
+    ms['atom_style'] = array_to_string(m.atom_style)
     ms['ribbon_shown'] = array_to_string(m.ribbon_shown)
     if not m.ribbon_colors is None:
         ms['ribbon_colors'] = array_to_string(m.ribbon_colors)
@@ -68,10 +68,10 @@ def set_molecule_state(m, ms, session):
         sa = string_to_array(ms['atom_shown'], bool)
         sac = sa.sum()
         if sac == m.atom_count():
-            m.atom_shown = sa
+            m.atom_shown[:] = sa
             m.atom_shown_count = sac
     if 'atom_colors' in ms:
-        m.atom_colors = string_to_array(ms['atom_colors'])
+        m.atom_colors[:] = string_to_array(ms['atom_colors'])
     if 'color_mode' in ms:
         # Old sessions.
         cm = ms['color_mode']
@@ -79,6 +79,15 @@ def set_molecule_state(m, ms, session):
             m.color_by_element()
         elif cm == 'by chain':
             m.color_by_chain()
+    if 'atom_style' in ms:
+        astyle = ms['atom_style']
+        if astyle in ('sphere', 'stick', 'ballstick'):
+            # Old session files had whole molecule style.
+            m.atom_style[:] = {'sphere':m.SPHERE_STYLE,
+                               'stick':m.STICK_STYLE,
+                               'ballstick':m.BALL_STICK_STYLE}[astyle]
+        else:
+            m.atom_style[:] = string_to_array(astyle)
     if 'ribbon_shown' in ms:
         sr = string_to_array(ms['ribbon_shown'], bool)
         src = sr.sum()
@@ -86,7 +95,7 @@ def set_molecule_state(m, ms, session):
             m.ribbon_shown = sr
             m.ribbon_shown_count = src
     if 'ribbon_colors' in ms:
-        m.ribbon_colors = string_to_array(ms['ribbon_colors'])
+        m.ribbon_colors[:] = string_to_array(ms['ribbon_colors'])
 
     m.need_graphics_update = True
 
