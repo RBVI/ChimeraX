@@ -299,7 +299,7 @@ def shortcut_molecules(session):
 
 def shortcut_atoms(session):
     a = session.selected_atoms()
-    if a.count() == 0:
+    if a.count() == 0 and not session.selected_models():
         a = session.all_atoms()
     return a
 
