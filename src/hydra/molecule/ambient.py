@@ -58,6 +58,8 @@ def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1):
     xyz_min, xyz_max = molecule_cpp.point_bounds(points)
     size3 = xyz_max - xyz_min
     size = size3.max()
+    if size == 0:
+        size = 1
     resolution = fineness * size
     step = 0.5*resolution
     pad = resolution
@@ -78,6 +80,8 @@ def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1):
 
 def ambient_occlusion_color_molecular_surfaces(surfs, atoms, fineness = None, light = 0.8, dark = 0.1):
 
+    if len(surfs) == 0 or atoms.count() == 0:
+        return
     points = atoms.coordinates()
     m, tf = ambient_atom_density(points, fineness, light, dark)
     from ..map.data import interpolate_volume_data
