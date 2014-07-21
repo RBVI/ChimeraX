@@ -102,7 +102,8 @@ def read_swc(path, session):
     m.bond_radii = array(brad, float32)
     m.bond_radii *= scale
     m.ball_scale = 1
-    m.set_atom_style('ballstick')
+    matoms = m.atoms()
+    matoms.set_atom_style(matoms.BALL_STICK_STYLE)
     from ..ui import show_info
     show_info('Read neuron trace %s, %d nodes' % (path, np))
     return m

@@ -94,9 +94,9 @@ def standard_shortcuts(session):
         ('da', show_atoms, 'Display atoms', molcat, atomsarg, mlmenu),
         ('ha', hide_atoms, 'Undisplay atoms', molcat, atomsarg, mlmenu, sep),
 
-        ('bs', show_ball_and_stick, 'Display atoms in ball and stick', molcat, molarg, mlmenu),
-        ('sp', show_sphere, 'Display atoms in sphere style', molcat, molarg, mlmenu),
-        ('st', show_stick, 'Display atoms in stick style', molcat, molarg, mlmenu, sep),
+        ('bs', show_ball_and_stick, 'Display atoms in ball and stick', molcat, atomsarg, mlmenu),
+        ('sp', show_sphere, 'Display atoms in sphere style', molcat, atomsarg, mlmenu),
+        ('st', show_stick, 'Display atoms in stick style', molcat, atomsarg, mlmenu, sep),
 
         ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
         ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
@@ -541,12 +541,12 @@ def show_atoms(a):
   a.show_atoms()
 def hide_atoms(a):
   a.hide_atoms()
-def show_sphere(m):
-  m.set_atom_style('sphere')
-def show_stick(m):
-  m.set_atom_style('stick')
-def show_ball_and_stick(m):
-  m.set_atom_style('ballstick')
+def show_sphere(atoms):
+  atoms.set_atom_style(atoms.SPHERE_STYLE)
+def show_stick(atoms):
+  atoms.set_atom_style(atoms.STICK_STYLE)
+def show_ball_and_stick(atoms):
+  atoms.set_atom_style(atoms.BALL_STICK_STYLE)
 def show_ribbon(a):
   a.show_ribbon()
 def hide_ribbon(a):
