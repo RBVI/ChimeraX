@@ -34,6 +34,7 @@ class Molecule(Drawing):
     self.atom_shown = atoms['atom_shown'].view(numpy.bool)
     self.atom_selected = atoms['atom_selected'].view(numpy.bool)
     self.atom_colors = atoms['atom_color']
+    self.atom_style = atoms['atom_style']       # 0 = sphere, 1 = stick, 2 = ball and stick
     self.ribbon_shown = atoms['ribbon_shown'].view(numpy.bool)
     self.ribbon_colors = atoms['ribbon_color']      # Color for each atom, but only guide atom color used.
 
@@ -49,7 +50,6 @@ class Molecule(Drawing):
 
     # Graphics settings
     self.atom_shown_count = self.atom_shown.sum()
-    self.atom_style = 'sphere'          # sphere, stick or ballstick
     self.ball_scale = 0.3               # Atom radius scale factor in ball and stick.
     self.bond_radius = 0.2
     self.bond_radii = None
@@ -66,6 +66,11 @@ class Molecule(Drawing):
     self.atoms_drawing = None
     self.bonds_drawing = None
     self.ribbon_drawing = None
+
+  # Atom display styles
+  SPHERE_STYLE = 0
+  STICK_STYLE = 1
+  BALL_STICK_STYLE = 2
 
   def atoms(self):
     '''Return an Atoms object containing all the molecule atoms.'''
@@ -140,15 +145,12 @@ class Molecule(Drawing):
 
   def drawing_radii(self):
     astyle = self.atom_style
-    if astyle == 'sphere':
-      r = self.radii
-    elif astyle == 'ballstick':
-      r = self.radii * self.ball_scale
-    elif astyle == 'stick':
-      n = len(self.radii)
-      from numpy import empty, float32
-      r = empty((n,), float32)
-      r[:] = self.bond_radius
+    if astyle.sum() == 0:
+      r = self.radii    # All sphere
+    else:
+      r = self.radii.copy()
+      r[astyle == self.STICK_STYLE] = self.bond_radius
+      r[astyle == self.BALL_STICK_STYLE] *= self.ball_scale
     return r
 
   def shown_atom_array_values(self, a):
@@ -182,7 +184,7 @@ class Molecule(Drawing):
   def create_bond_cylinders(self, bonds):
 
     p = self.bonds_drawing
-    if self.atom_shown_count == 0 or bonds is None or self.atom_style == 'sphere':
+    if self.atom_shown_count == 0 or bonds is None or self.atom_style.sum() == 0:
       if p:
         self.bonds_drawing = None
         self.remove_drawing(p)
@@ -670,13 +672,6 @@ class Molecule(Drawing):
       self.need_graphics_update = True
       self.redraw_needed()
 
-  def set_atom_style(self, style):
-    '''Set the atom display style to "sphere", "stick", or "ballstick".'''
-    if style != self.atom_style:
-      self.atom_style = style
-      self.need_graphics_update = True
-      self.redraw_needed()
-
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
     # TODO using wrong radius for atoms in stick and ball and stick
@@ -761,8 +756,10 @@ atom_dtype = [
   ('ribbon_color', 'u1', (4,)),
   ('element_number', 'u1'),
   ('atom_shown', 'u1'),
+  ('atom_style', 'u1'),
   ('ribbon_shown', 'u1'),
   ('atom_selected', 'u1'),
+  ('pad', 'u1', (3,)),
   # If fields are added, pad to multiple of 4 bytes, C struct size is multiple of 4 bytes
 ]
 
@@ -869,9 +866,19 @@ class Atoms:
       self.molatoms.append((m, m.all_atom_indices()))
   def add_atom_indices(self, mol, ai):
     self.molatoms.append((mol, ai))
-  def add_atoms(self, atoms):
+  def add_atoms(self, atoms, remove_duplicates = False):
     '''Add atoms to the set.'''
     self.molatoms.extend(atoms.molatoms)
+  def remove_duplicates(self):
+    '''Make sure atoms included at most once.'''
+    ma = {}
+    for m,a in self.molatoms:
+      if m in ma:
+        ma[m].append(a)
+      else:
+        ma[m] = [a]
+    from numpy import concatenate, unique
+    self.molatoms = [(m, unique(concatenate(alist)) if len(alist) > 1 else alist[0]) for m,alist in ma.items()]
   def molecules(self):
     '''List of molecules in set.'''
     return list(set(m for m,a in self.molatoms))
@@ -886,8 +893,10 @@ class Atoms:
     '''Return a numpy array of atom coordinates in the global coordinate system.'''
     coords = []
     for m,a in self.molatoms:
-        xyz = m.xyz[a] if len(a) < len(m.xyz) else m.xyz
-        m.position.move(xyz)
+        move = not m.position.is_identity(tolerance = 0)
+        xyz = m.xyz[a] if len(a) < len(m.xyz) else (m.xyz.copy() if move else m.xyz)
+        if move:
+          m.position.move(xyz)
         coords.append(xyz)
     import numpy
     if len(coords) == 0:
@@ -942,6 +951,16 @@ class Atoms:
 #        m.update_ribbons = True
         m.need_graphics_update = True
         m.redraw_needed()
+
+  SPHERE_STYLE = Molecule.SPHERE_STYLE
+  STICK_STYLE = Molecule.STICK_STYLE
+  BALL_STICK_STYLE = Molecule.BALL_STICK_STYLE
+  def set_atom_style(self, style):
+    '''Set the atom display style to SPHERE_STYLE, STICK_STYLE, or BALL_STICK_STYLE.'''
+    for m, ai in self.molatoms:
+      m.atom_style[ai] = style
+      m.need_graphics_update = True
+      m.redraw_needed()
 
   def show_ribbon(self, only_these = False):
     '''Show ribbons for residues containing the specified atoms.'''

@@ -69,6 +69,9 @@ public:
 	//
 	// 	aptCleanup returns code needed to undo any aptToCpp or
 	// 	cppToActual conversion side effects.
+	//
+	// 	requireAPT returns true if PyArg_ParseTuple should always
+	// 	be used.
 	const std::string &aptType() const;
 	const std::string &aptFormat() const;
 	std::string	aptToCpp(const std::string &arg) const;
@@ -76,6 +79,7 @@ public:
 	std::string	cppToApt(const std::string &arg) const;
 	bool		needTypeCheck() const;
 	std::string	aptCleanup(const std::string &arg) const;
+	bool		requireAPT() const;
 
 	// Knowledge about PyObject*'s:
 	//
@@ -111,6 +115,7 @@ private:
 	std::string	aptType_;
 	std::string	aptFormat_;
 	bool		aptNeedCheck;
+	bool		aptRequired;
 	std::string	aptCleanupPattern;
 	std::string	aptToCppPattern;
 	std::string	cppToActualPattern;
@@ -180,6 +185,12 @@ inline const std::string &
 CvtType::pythonType() const
 {
 	return python_type;
+}
+
+inline bool
+CvtType::requireAPT() const
+{
+	return aptRequired;
 }
 
 extern DeclList::RAConstRange

@@ -28,13 +28,15 @@ def register_commands(commands):
     add('fitmap', fitcmd.fitmap_command)
     from ..map.filter import vopcommand
     add('vop', vopcommand.vop_command)
-    from ..molecule import align, showcmd, colorcmd
+    from ..molecule import align, mcommand
     add('align', align.align_command)
-    add('show', showcmd.show_command)
-    add('hide', showcmd.hide_command)
-    add('color', colorcmd.color_command)
-    from ..surface import gridsurf
+    add('show', mcommand.show_command)
+    add('hide', mcommand.hide_command)
+    add('color', mcommand.color_command)
+    add('style', mcommand.style_command)
+    from ..surface import gridsurf, sasa
     add('surface', gridsurf.surface_command)
+    add('area', sasa.area_command)
     from .. import scenes
     add('scene', scenes.scene_command)
     from . import cameracmd
@@ -372,16 +374,18 @@ def bool3_arg(s, session):
 
 # -----------------------------------------------------------------------------
 #
-def enum_arg(s, session, values, multiple = False):
+def enum_arg(s, session, values, multiple = False, abbrev = False):
 
+    val = abbreviation_table(values) if abbrev else dict((v,v) for v in values)
     if multiple:
-        e = s.split(',')
-        for v in e:
-            if not v in values:
+        vlist = s.split(',')
+        for v in vlist:
+            if not v in val:
                 raise CommandError('Values must be in %s, got "%s"'
                                    % (', '.join(values), s))
-    elif s in values:
-        e = s
+        e = [val[v] for v in vlist]
+    elif s in val:
+        e = val[s]
     else:
         raise CommandError('Value must be one of %s, got "%s"'
                            % (', '.join(values), s))
@@ -1269,8 +1273,21 @@ class Selection:
         return self.aset.molecules()
     def chains(self):
         return self.aset.chains()
-    def atom_set(self):
-        return self.aset
+    def atom_set(self, include_surface_atoms = False):
+        if include_surface_atoms:
+            atoms = self.surface_atoms()
+            atoms.add_atoms(self.aset)
+        else:
+            atoms = self.aset
+        return atoms
+    def surface_atoms(self):
+        from ..molecule import Atoms
+        atoms = Atoms()
+        for s in self.molecular_surfaces():
+            atoms.add_atoms(s.ses_atoms)
+        return atoms
+    def molecular_surfaces(self):
+        return [m for m in self._models if hasattr(m, 'ses_atoms')]
     def maps(self):
         from ..map import Volume
         mlist = [m for m in self.models() if isinstance(m,Volume)]

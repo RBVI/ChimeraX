@@ -20,6 +20,7 @@ typedef struct
   unsigned char ribbon_color[4];
   unsigned char element_number;
   char atom_shown;			// boolean 0/1
+  char atom_style;			// 0=sphere, 1=stick, 2=ball&stick
   char ribbon_shown;			// boolean 0/1
   char atom_selected;			// boolean 0/1
 } Atom;

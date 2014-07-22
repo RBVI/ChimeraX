@@ -6,6 +6,9 @@ def ambient_occlusion_coloring(model, fineness = None, light = None, dark = 0.1,
     atoms = model.atom_set()
     latom = 0.8 if light is None else light
     ambient_occlusion_color_atoms(atoms, fineness, latom, dark)
+    satoms = model.atom_set(include_surface_atoms = True)
+    satoms.remove_duplicates()
+    ambient_occlusion_color_molecular_surfaces(model.molecular_surfaces(), satoms, fineness, latom, dark)
 
     lmap = 0.5 if light is None else light
     for m in model.maps():
@@ -18,35 +21,48 @@ def ambient_occlusion_color_atoms(atoms, fineness = None, light = 0.8, dark = 0.
 
     from time import time
     t0 = time()
-
     points = atoms.coordinates()
+    t1 = time()
+
+    m, tf = ambient_atom_density(points, fineness, light, dark)
+    t2 = time()
+
+    # Interpolate map to find color scale factors
+    from ..map.data import interpolate_volume_data
+    values, outside = interpolate_volume_data(points, tf, m)
+
+    t3 = time()
+    scale = darkness_ramp(values, dark, light)
+    t4 = time()
+
+    # Scale colors
+    atoms.scale_atom_colors(scale)
+
+    t5 = time()
+    print('aoc time %.3f (coords %.3f, map %.3f, interp %.3f, ramp %.3f, color %.3f), %d atoms, grid %s'
+          % (t5-t0, t1-t0, t2-t1, t3-t2, t4-t3, t5-t4,
+             atoms.count(), ','.join('%d'%s for s in m.shape[::-1])))
+
+def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1):
 
     # Set default fineness
     if fineness is None:
         fineness = 0.3
-        if atoms.count() > 70000:
+        if len(points) > 70000:
             # For large atom counts try to emphasize protein boundaries.
             from math import sqrt
-            fineness /= sqrt(atoms.count()/70000)
+            fineness /= sqrt(len(points)/70000)
 
     # Compute density map for atoms
     from .. import molecule_cpp
     xyz_min, xyz_max = molecule_cpp.point_bounds(points)
     size3 = xyz_max - xyz_min
     size = size3.max()
+    if size == 0:
+        size = 1
     resolution = fineness * size
     step = 0.5*resolution
     pad = resolution
-
-    t1 = time()
-
-    # from math import pi, sqrt
-    # from ..map.molmap import molecule_grid_data
-    # grid, molecules = molecule_grid_data(atoms, resolution, step, pad,
-    #                                      cutoff_range = 3,
-    #                                      sigma_factor = 1/(pi*sqrt(2)))
-    # m = grid.full_matrix()
-    # tf = grid.xyz_to_ijk_transform
 
     origin = xyz_min - (pad,pad,pad)
     step3 = (step, step, step)
@@ -60,30 +76,19 @@ def ambient_occlusion_color_atoms(atoms, fineness = None, light = 0.8, dark = 0.
                       (0, 1/step, 0, -origin[1]/step),
                       (0, 0, 1/step, -origin[2]/step)))
 
-    t2 = time()
+    return m, tf
 
-    # Interpolate map to find color scale factors
+def ambient_occlusion_color_molecular_surfaces(surfs, atoms, fineness = None, light = 0.8, dark = 0.1):
+
+    if len(surfs) == 0 or atoms.count() == 0:
+        return
+    points = atoms.coordinates()
+    m, tf = ambient_atom_density(points, fineness, light, dark)
     from ..map.data import interpolate_volume_data
-    values, outside = interpolate_volume_data(points, tf, m)
-
-    t3 = time()
-
-    scale = darkness_ramp(values, dark, light)
-
-    t4 = time()
-
-    # Scale colors
-    atoms.scale_atom_colors(scale)
-
-    # Color molecular surfaces
-    for mol in atoms.molecules():
-        if hasattr(mol, 'molsurf'):
-            ambient_occlusion_surface_color(mol.molsurf, tf, m, dark, light)
-
-    t5 = time()
-    print('aoc time %.3f (coords %.3f, map %.3f, interp %.3f, ramp %.3f, color %.3f), %d atoms, grid %s'
-          % (t5-t0, t1-t0, t2-t1, t3-t2, t4-t3, t5-t4,
-             atoms.count(), ','.join('%d'%s for s in m.shape[::-1])))
+    for surf in surfs:
+        values, outside = interpolate_volume_data(surf.vertices, tf, m)
+        scale = darkness_ramp(values, dark, light)
+        scale_vertex_colors(surf, scale)
 
 def darkness_ramp(values, dark, light):
     vmin, vmax = values.min(), values.max()
@@ -97,12 +102,6 @@ def darkness_ramp(values, dark, light):
         from numpy import maximum
         maximum(scale, 0, scale)
     return scale
-
-def ambient_occlusion_surface_color(surf, tf, m, dark, light):
-    from ..map.data import interpolate_volume_data
-    values, outside = interpolate_volume_data(surf.vertices, tf, m)
-    scale = darkness_ramp(values, dark, light)
-    scale_vertex_colors(surf, scale)
 
 def scale_vertex_colors(surf, scale):
     colors = surf.vertex_colors
