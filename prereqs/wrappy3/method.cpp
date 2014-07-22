@@ -82,6 +82,7 @@ dumpParseArgs(std::ostream &output, int indent, bool single, const FuncDecl *fd,
 
 	// want to know if there are zero, one, or "many" input arguments
 	int numInArgs = 0;
+	const Argument *first_in_arg = NULL;
 	for (ArgList::const_iterator i = fd->args.begin(); i != fd->args.end();
 									++i) {
 		if (!i->in)
@@ -91,9 +92,16 @@ dumpParseArgs(std::ostream &output, int indent, bool single, const FuncDecl *fd,
 			continue;
 		}
 		++numInArgs;
+		if (numInArgs == 1)
+			first_in_arg = &*i;
 		if (!i->defValue.empty())
 			// if default arguments are present, it is always "many"
 			numInArgs = -numInArgs;
+	}
+	if (numInArgs == 1) {
+		CvtType arg(fd->scope, first_in_arg->type, false);
+		if (arg.requireAPT())
+			numInArgs = -1;
 	}
 
 	int argCount = 0;
