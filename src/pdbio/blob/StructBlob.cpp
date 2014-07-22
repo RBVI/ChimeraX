@@ -4,7 +4,7 @@
 #include "ResBlob.h"
 #include "atomstruct/Bond.h"
 #include "numpy_common.h"
-#include <map>
+#include <unordered_map>
 #include <stddef.h>
 
 namespace blob {
@@ -47,7 +47,7 @@ sb_atoms_bonds(PyObject* self, void* null)
     StructBlob* sb = static_cast<StructBlob*>(self);
     PyObject* py_ab = sb_atoms(self, nullptr);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
-    std::map<Atom *, AtomBlob::ItemsType::size_type> atom_map;
+    std::unordered_map<Atom *, AtomBlob::ItemsType::size_type> atom_map;
     decltype(atom_map)::mapped_type i = 0;
     auto& a_items = ab->_items;
     for (auto ai = a_items->begin(); ai != a_items->end(); ++ai, ++i) {

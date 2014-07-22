@@ -3,7 +3,7 @@
 #define atomic_Residue
 
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include "imex.h"
 
@@ -16,7 +16,7 @@ class ATOMSTRUCT_IMEX Residue {
     friend class AtomicStructure;
 public:
     typedef std::vector<Atom *>  Atoms;
-    typedef std::multimap<std::string, Atom *>  AtomsMap;
+    typedef std::unordered_multimap<std::string, Atom *>  AtomsMap;
 private:
     Residue(AtomicStructure *as, const std::string &name, const std::string &chain, int pos, char insert);
     char  _alt_loc;

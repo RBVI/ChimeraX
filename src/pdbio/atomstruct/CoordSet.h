@@ -5,7 +5,7 @@
 #include "basegeom/Coord.h"
 #include "imex.h"
 
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -21,8 +21,8 @@ public:
 private:
     Coords  _coords;
     int  _cs_id;
-    std::map<const Atom *, float>  _bfactor_map;
-    std::map<const Atom *, float>  _occupancy_map;
+    std::unordered_map<const Atom *, float>  _bfactor_map;
+    std::unordered_map<const Atom *, float>  _occupancy_map;
     AtomicStructure*  _structure;
     CoordSet(AtomicStructure* as, int cs_id);
     CoordSet(AtomicStructure* as, int cs_id, int size);
