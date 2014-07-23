@@ -14,15 +14,15 @@ public:
     typedef std::vector<unsigned char> Contents;
 protected:
     Contents  _sequence;
-    typedef std::unordered_map<const char *, unsigned char>  _1Letter_Map;
+    typedef std::unordered_map<std::string, unsigned char>  _1Letter_Map;
     static _1Letter_Map _rname3to1;
 
 public:
+    static void  assign_rname3to1(const std::string& rname, unsigned char let)
+        { _rname3to1[rname] = let; }
     unsigned char&  operator[](unsigned i) { return _sequence[i]; }
     unsigned char  operator[](unsigned i) const { return _sequence[i]; }
-    static unsigned char  rname3to1(const char *);
-    static unsigned char  rname3to1(const std::string &rn)
-        { return rname3to1(rn.c_str()); }
+    static unsigned char  rname3to1(const std::string &rn);
     Sequence();
     const Contents&  sequence() const { return _sequence; }
 };
