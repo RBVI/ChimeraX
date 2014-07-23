@@ -24,7 +24,7 @@ Chain::set(unsigned i, Residue *r, char character)
 }
 
 void
-Chain::bulk_set(std::vector<Residue *> residues, Sequence::Contents* chars)
+Chain::bulk_set(Chain::Residues& residues, Sequence::Contents* chars)
 {
     bool del_chars = chars == nullptr;
     if (del_chars) {

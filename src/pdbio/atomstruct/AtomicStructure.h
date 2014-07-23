@@ -15,7 +15,7 @@
 #include "CoordSet.h"
 #include "Pseudobond.h"
 #include "Residue.h"
-#include "Sequence.h"
+#include "Chain.h"
 #include "imex.h"
 #include "basegeom/Graph.h"
 
@@ -27,13 +27,14 @@ class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
 public:
     typedef Vertices  Atoms;
     typedef Edges  Bonds;
+    typedef std::vector<std::unique_ptr<Chain>> Chains;
     typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
-    typedef std::vector<std::vector<Residue*>>  Res_Lists;
+    static const char*  PBG_MISSING_STRUCTURE;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
-    typedef std::vector<Sequence>  Sequences;
 private:
     CoordSet *  _active_coord_set;
     bool  _being_destroyed;
+    mutable Chains *  _chains;
     CoordSets  _coord_sets;
     AS_CS_PBManager  _cs_pb_mgr;
     AS_PBManager  _pb_mgr;
@@ -47,6 +48,7 @@ public:
     bool  being_destroyed() const { return _being_destroyed; }
     std::unordered_map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
+    const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     AS_CS_PBManager&  cs_pb_mgr() { return _cs_pb_mgr; }
     void  delete_atom(Atom* a) {
@@ -63,8 +65,9 @@ public:
         std::string &name) const;
     bool  is_traj;
     bool  lower_case_chains;
-    void  make_chains(Res_Lists* chain_members = nullptr,
-        Sequences* full_sequences = nullptr) const;
+    typedef std::pair<Chain::Residues, Sequence::Contents*> CI_Chain_Pairing;
+    typedef std::map<std::string, CI_Chain_Pairing> ChainInfo;
+    void  make_chains(const ChainInfo *ci = nullptr) const;
     Atom *  new_atom(const std::string &name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
@@ -75,6 +78,7 @@ public:
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::unordered_map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
+    std::vector<Chain::Residues>  polymers() const;
     const Residues &  residues() const { return _residues; }
     void  set_active_coord_set(CoordSet *cs);
     void  use_best_alt_locs();
