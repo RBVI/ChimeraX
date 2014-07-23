@@ -27,7 +27,7 @@ CoordSet::~CoordSet()
 float
 CoordSet::get_bfactor(const Atom *a) const
 {
-    std::map<const Atom *, float>::const_iterator bfi = _bfactor_map.find(a);
+    std::unordered_map<const Atom *, float>::const_iterator bfi = _bfactor_map.find(a);
     if (bfi == _bfactor_map.end())
         return 0.0;
     return (*bfi).second;
@@ -36,7 +36,7 @@ CoordSet::get_bfactor(const Atom *a) const
 float
 CoordSet::get_occupancy(const Atom *a) const
 {
-    std::map<const Atom *, float>::const_iterator bfi = _occupancy_map.find(a);
+    std::unordered_map<const Atom *, float>::const_iterator bfi = _occupancy_map.find(a);
     if (bfi == _occupancy_map.end())
         return 1.0;
     return (*bfi).second;

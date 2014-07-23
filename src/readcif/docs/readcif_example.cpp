@@ -3,10 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
+#include <unistd.h>	// for getopt
 
 using std::string;
 using std::vector;
@@ -33,54 +30,6 @@ struct Atom
 	int residue_num;
 	float x, y, z;
 };
-
-#if 0
-#define mystrtof(x) strtof(x, NULL)
-#define mystrtoi(x) strtol(x, NULL, 0)
-#else
-// using our own version of strtof, speeds things up by 2x
-
-inline float mystrtof(const char *s)
-{
-	bool neg = false;
-	float fa = 0, v = 0;
-	for (;;) {
-		char c = *s;
-		if (c >= '0' && c <= '9') {
-			if (fa) {
-				v += fa * (c - '0');
-				fa *= 0.1;
-			} else
-				v = 10 * v + (c - '0');
-		}
-		else if (c == '.')
-			fa = 0.1;
-		else if (c == '-')
-			neg = true;
-		else
-			break;
-		s += 1;
-	}
-	return (neg ? -v : v);
-}
-
-inline int mystrtoi(const char *s)
-{
-	bool neg = (*s == '-');
-	int v = 0;
-	if (neg)
-		s += 1;
-
-	for (;;) {
-		char c = *s; if (c >= '0' && c <= '9')
-			v = 10 * v + (c - '0');
-		else
-			break;
-		s += 1;
-	}
-	return (neg ? -v : v);
-}
-#endif
 
 struct ExtractCIF: public CIFFile {
 	ExtractCIF();
@@ -170,20 +119,20 @@ ExtractCIF::parse_atom_site(bool in_loop)
 			});
 	pv.emplace_back(get_column("label_seq_id", true), false,
 			[&atom] (const char* start, const char*) {
-				atom.residue_num = mystrtoi(start);
+				atom.residue_num = readcif::str_to_int(start);
 			});
 	// x, y, z are not required by mmCIF, but are by us
 	pv.emplace_back(get_column("Cartn_x", true), false,
 			[&atom] (const char* start, const char*) {
-				atom.x = mystrtof(start);
+				atom.x = readcif::str_to_float(start);
 			});
 	pv.emplace_back(get_column("Cartn_y", true), false,
 			[&atom] (const char* start, const char*) {
-				atom.y = mystrtof(start);
+				atom.y = readcif::str_to_float(start);
 			});
 	pv.emplace_back(get_column("Cartn_z", true), false,
 			[&atom] (const char* start, const char*) {
-				atom.z = mystrtof(start);
+				atom.z = readcif::str_to_float(start);
 			});
 	while (parse_row(pv)) {
 		atoms.push_back(atom);
@@ -215,30 +164,12 @@ usage:
 
 	ExtractCIF extract;
 
-	const char* filename = argv[optind];
-	int fd = open(filename, O_RDONLY);
-	if (fd == -1) {
-		std::cerr << "Unable to open " << filename << " for reading.\n";
+	try {
+		extract.parse_file(argv[optind]);
+	} catch (std::exception& e) {
+		std::cerr << e.what() << '\n';
 		return EXIT_FAILURE;
 	}
-	struct stat sb;
-	if (fstat(fd, &sb) == -1) {
-		perror("fstat");
-		return EXIT_FAILURE;
-	}
-
-	void *whole_file = mmap(NULL, sb.st_size + 1, PROT_READ, MAP_PRIVATE,
-				fd, 0);
-	if (whole_file == MAP_FAILED) {
-		perror("mmap");
-		return EXIT_FAILURE;
-	}
-	extract.parse(reinterpret_cast<const char *>(whole_file));
-	if (munmap(whole_file, sb.st_size + 1) == -1) {
-		perror("munmap");
-		return EXIT_FAILURE;
-	}
-	close(fd);
 
 	size_t n = extract.atoms.size();
 	std::cout << n << " atoms\n";

@@ -1,3 +1,4 @@
+// vim: set expandtab ts=4 sw=4:
 #include <ctype.h>
 #include "cmp_nocase.h"
 

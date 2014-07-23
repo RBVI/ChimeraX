@@ -7,10 +7,6 @@ NO_SUBDIR_ALL = 1
 include $(TOP)/mk/config.make
 
 SUBDIRS	+= ioutil pdb basegeom util atomstruct blob pdbio structaccess
-SRCS = test.cpp
-OBJS = test.o
-INCS += $(PYTHON_INCLUDE_DIRS)
-LIBS += pdbio/pdbio.o atomstruct/libatomstruct.$(SHLIB_EXT) atomstruct/templates/libtmpl.$(SHLIB_EXT) pdb/libpdb.a util/libutil.a 
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

@@ -187,9 +187,23 @@ extern "C" PyObject *oculus_connect(PyObject *, PyObject *args)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" PyObject *oculus_disconnect(PyObject *, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, const_cast<char *>("")))
+    return NULL;
+
+  close_device();
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+// ----------------------------------------------------------------------------
+//
 static struct PyMethodDef oculus_methods[] =
 {
   {const_cast<char*>("connect"), (PyCFunction)oculus_connect, METH_VARARGS, NULL},
+  {const_cast<char*>("disconnect"), (PyCFunction)oculus_disconnect, METH_VARARGS, NULL},
   {const_cast<char*>("parameters"), (PyCFunction)oculus_parameters, METH_VARARGS, NULL},
   {const_cast<char*>("state"), (PyCFunction)oculus_state, METH_VARARGS, NULL},
   {const_cast<char*>("set_prediction_time"), (PyCFunction)oculus_set_prediction_time, METH_VARARGS, NULL},

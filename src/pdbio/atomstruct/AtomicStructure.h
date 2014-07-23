@@ -4,7 +4,7 @@
 
 #include <vector>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <memory>
 
 // can't use forward declarations for classes that we will
@@ -46,7 +46,7 @@ public:
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
     bool  being_destroyed() const { return _being_destroyed; }
-    std::map<Residue *, char>  best_alt_locs() const;
+    std::unordered_map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
@@ -76,7 +76,7 @@ public:
     Residue *  new_residue(const std::string &name, const std::string &chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
-    std::map<std::string, std::vector<std::string>> pdb_headers;
+    std::unordered_map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
     std::vector<Chain::Residues>  polymers() const;
     const Residues &  residues() const { return _residues; }

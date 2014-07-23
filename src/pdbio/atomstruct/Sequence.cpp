@@ -60,6 +60,30 @@ Sequence::_1Letter_Map Sequence::_protein3to1 = {
 };
 Sequence::_1Letter_Map Sequence::_rname3to1;
 
+void
+Sequence::_init_rname_map()
+{
+    for (auto mapping : Sequence::_nucleic3to1) {
+        Sequence::_rname3to1[mapping.first] = mapping.second;
+    }
+    for (auto mapping : Sequence::_protein3to1) {
+        Sequence::_rname3to1[mapping.first] = mapping.second;
+    }
+}
+
+void
+Sequence::assign_rname3to1(const std::string& rname, unsigned char let,
+    bool protein)
+{
+    if (protein)
+        _protein3to1[rname] = let;
+    else
+        _nucleic3to1[rname] = let;
+    if (_rname3to1.empty())
+        _init_rname_map();
+    _rname3to1[rname] = let;
+}
+
 unsigned char
 Sequence::nucleic3to1(const std::string& rn)
 {
@@ -78,17 +102,6 @@ Sequence::protein3to1(const std::string& rn)
         return 'X';
     }
     return (*l1i).second;
-}
-
-void
-Sequence::_init_rname_map()
-{
-    for (auto mapping : Sequence::_nucleic3to1) {
-        Sequence::_rname3to1[mapping.first] = mapping.second;
-    }
-    for (auto mapping : Sequence::_protein3to1) {
-        Sequence::_rname3to1[mapping.first] = mapping.second;
-    }
 }
 
 unsigned char

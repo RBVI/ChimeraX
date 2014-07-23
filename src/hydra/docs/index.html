@@ -141,18 +141,24 @@ Commands
 <tr><td><b>scene</b> add|show|delete [id] - remember views
 <tr><td>
 <tr><td><a href="volume.html">volume</a> - Control density map display.
+<tr><td><b>vop</b> bin|gaussian <i>map-id</i> [binSize <i>b</i>] [sDev <i>s</i>] [valueType <i>t</i>] [modelId <i>id</i>] - Filter density maps.
 <tr><td><a href="fitmap.html">fitmap</a> - Fit molecules in maps.
 <tr><td><a href="molmap.html">molmap</a> - Calculated simulated density maps from molecules.
 <tr><td>
 <tr><td><b>show</b> <i>atom-spec</i> [atoms] [ribbon] [only] - display specific atoms or ribbons.
 <tr><td><b>hide</b> <i>atom-spec</i> [atoms] [ribbon] [only] - hide specific atoms or ribbons.
+<tr><td><b>cycle</b> <i>models</i> [wait <i>frames</i>] [frames <i>n</i>] [bounce] [stop] - display models one at a time in sequence.
+<tr><td><b>color</b> <i>atom-spec</i> <i>color</i> [atoms] [ribbon] - color atoms or ribbons.
 <tr><td><b>align</b> <i>atom-spec</i> <i>ref-atoms</i> [move molecules|chains|residues|atoms|false] [each molecule|chain] [same n] [report_matrix true|false] - align molecules to minimize RMSD.
 <tr><td><b>surface</b> <i>atom-spec</i> [probeRadius <i>r</i>] [gridSpacing <i>s</i>] [waters] - Show a solvent excluded molecular surface.
+<tr><td><b>area</b> <i>atom-spec</i> [probeRadius <i>r</i>] - Report solvent accessible surface area.
+<tr><td><b>blast</b> <i>chain-spec</i> [sequence <i>seq</i>] [uniprot <i>id</i>] [dropSimilarChains <i>rmsd</i>] [dropShortChains <i>nlen</i>] [blastProgram <i>path</i>] [blastDatabase <i>path</i>] - Find pdb entries with matching a sequence, load and align them.
 <tr><td>
 <tr><td><b>windowsize</b> [<i>width</i> <i>height</i>] - Set or report graphics window size in pixels.
 <tr><td><b>camera</b> [mono|stereo|oculus] [fieldOfView <i>degrees</i>] [eyeSeparation <i>millimeters</i>] [screenWidth <i>millimeters</i>] [sEyeSeparation <i>scene-dist</i>] [middleDistance] [depthScale <i>f</i>] [report] - Adjust or report camera settings.
 <tr><td><b>lighting</b> [direction <i>x,y,z</i>] [color <i>r,g,b|name</i>] [fillDirection <i>x,y,z</i>] [fillColor <i>r,g,b|name</i>] [ambientColor <i>r,g,b|name</i>] [fixed <i>true|false</i>] - Change lighting parameters.  Direction vectors should have unit length.
 <tr><td><b>material</b> [ambientReflectivity <i>r</i>] [diffuseReflectivity <i>r</i>] [specularReflectivity <i>r</i>] [exponent <i>e</i>] - Change surface reflectivity parameters.
+<tr><td><b>ambient</b> <i>model-spec</i> [fineness <i>f</i>] [light <i>l</i>] [dark <i>d</i>] [bin_size <i>b</i>] - Color molecule, surface, or map based on density to approximate ambient occlusion darkening.
 <tr><td><b>device</b> [SpaceNavigator|OculusRift|LeapMotion] [on|off] [fly true|false] [mode position|velocity|chopsticks] [scale <i>f</i>] [lensCorrection true|false] - turn on or off input and output devices.
 </table>
 

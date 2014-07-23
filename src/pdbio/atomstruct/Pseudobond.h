@@ -3,7 +3,7 @@
 #define atomic_Pseudobond
 
 #include <set>
-#include <map>
+#include <unordered_map>
 
 #include "basegeom/Connection.h"
 #include "imex.h"
@@ -85,7 +85,7 @@ class CS_PBGroup: public Owned_PBGroup_Base
 private:
     friend class CoordSet;
     friend class AS_CS_PBManager;
-    mutable std::map<const CoordSet*, std::set<PBond*>>  _pbonds;
+    mutable std::unordered_map<const CoordSet*, std::set<PBond*>>  _pbonds;
     void  remove_cs(const CoordSet* cs) { _pbonds.erase(cs); }
 public:
     void  clear() {

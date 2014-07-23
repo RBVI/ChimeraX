@@ -121,5 +121,6 @@ def surface(atoms, session, probeRadius = 1.4, gridSpacing = 0.5, waters = False
         
     name = '%s SES surface' % m0.name
     surf = show_surface(name, va, na, ta, session, color = (180,205,128,255), place = p)
+    surf.ses_atoms = atoms
 
     return surf

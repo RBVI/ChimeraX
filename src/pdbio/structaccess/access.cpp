@@ -9,7 +9,6 @@
 #include "basegeom/Coord.h"
 #include "atomstruct/Element.h"
 #include <vector>
-#include <map>
 #include <stdexcept>
 #include <sstream>  // std::ostringstream
 

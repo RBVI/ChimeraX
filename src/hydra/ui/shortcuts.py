@@ -94,9 +94,9 @@ def standard_shortcuts(session):
         ('da', show_atoms, 'Display atoms', molcat, atomsarg, mlmenu),
         ('ha', hide_atoms, 'Undisplay atoms', molcat, atomsarg, mlmenu, sep),
 
-        ('bs', show_ball_and_stick, 'Display atoms in ball and stick', molcat, molarg, mlmenu),
-        ('sp', show_sphere, 'Display atoms in sphere style', molcat, molarg, mlmenu),
-        ('st', show_stick, 'Display atoms in stick style', molcat, molarg, mlmenu, sep),
+        ('bs', show_ball_and_stick, 'Display atoms in ball and stick', molcat, atomsarg, mlmenu),
+        ('sp', show_sphere, 'Display atoms in sphere style', molcat, atomsarg, mlmenu),
+        ('st', show_stick, 'Display atoms in stick style', molcat, atomsarg, mlmenu, sep),
 
         ('rb', show_ribbon, 'Display ribbon', molcat, atomsarg, mlmenu),
         ('hr', hide_ribbon, 'Undisplay ribbon', molcat, atomsarg, mlmenu),
@@ -299,9 +299,17 @@ def shortcut_molecules(session):
 
 def shortcut_atoms(session):
     a = session.selected_atoms()
-    if a.count() == 0:
+    if a.count() == 0 and not session.selected_models():
         a = session.all_atoms()
     return a
+
+def shortcut_selection(session):
+  from .commands import Selection
+  sel = Selection()
+  sel.add_atoms(shortcut_atoms(session))
+  sel.add_models(shortcut_surfaces(session))
+  sel.add_models(shortcut_maps(session))
+  return sel
 
 def shortcut_surfaces(session):
     surfs = session.surfaces()
@@ -533,20 +541,18 @@ def color_one_color(m):
   m.single_color()
 def ambient_occlusion_coloring(session):
   from ..molecule import ambient
-  ambient.ambient_occlusion_color_atoms(shortcut_atoms(session))
-  for v in shortcut_maps(session):
-    ambient.ambient_occlusion_color_map(v)
+  ambient.ambient_occlusion_coloring(shortcut_selection(session))
 
 def show_atoms(a):
   a.show_atoms()
 def hide_atoms(a):
   a.hide_atoms()
-def show_sphere(m):
-  m.set_atom_style('sphere')
-def show_stick(m):
-  m.set_atom_style('stick')
-def show_ball_and_stick(m):
-  m.set_atom_style('ballstick')
+def show_sphere(atoms):
+  atoms.set_atom_style(atoms.SPHERE_STYLE)
+def show_stick(atoms):
+  atoms.set_atom_style(atoms.STICK_STYLE)
+def show_ball_and_stick(atoms):
+  atoms.set_atom_style(atoms.BALL_STICK_STYLE)
 def show_ribbon(a):
   a.show_ribbon()
 def hide_ribbon(a):
@@ -655,7 +661,9 @@ def show_stats(session):
     na = v.atoms_shown
     r = 1.0/v.last_draw_duration
     n = session.model_count()
-    session.show_status('%d models, %d atoms, %.1f frames/sec' % (n, na, r))
+    msg = '%d models, %d atoms, %.1f frames/sec' % (n, na, r)
+    session.show_status(msg)
+    session.show_info(msg)
 
 def default_view(view):
     view.initial_camera_view()

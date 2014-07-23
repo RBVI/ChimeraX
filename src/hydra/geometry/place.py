@@ -174,7 +174,7 @@ class Place:
         '''Is the transform the identity transformation?  Tests if each of the 3 by 4 matrix elements
         is within the specified tolerance of the identity transform.
         '''
-        return self._is_identity or m34.is_identity_matrix(self.matrix)
+        return self._is_identity or m34.is_identity_matrix(self.matrix, tolerance)
 
 '''
 The following routines create Place objects representing specific transformations.

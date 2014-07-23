@@ -623,3 +623,32 @@ def test_pdb_models(id_codes, npoints, session):
                 print('%6s %6d %9.1f %9.1f %5.2f %5.2f %8.5f %8.5f\n' %
                          (id, len(centers), areas.sum(), eareas.sum(), t1-t0, t2-t1, aerr.max(), aerr.mean()))
             opensave.close_models()
+
+def area_command(cmdname, args, session):
+
+    from ..ui.commands import atoms_arg, float_arg, parse_arguments
+    req_args = (('atoms', atoms_arg),)
+    opt_args = ()
+    kw_args = (('probeRadius', float_arg),)
+
+    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
+    kw['session'] = session
+    sasa(**kw)
+
+def sasa(atoms, session, probeRadius = 1.4):
+    centers = atoms.coordinates()
+    radii = atoms.radii() + probeRadius
+    areas = spheres_surface_area(centers, radii)
+    area = areas.sum()
+    failed = (areas == -1).sum()
+    if failed > 0:
+        area = areas[areas >= 0].sum()
+    msg = 'Solvent accessible area %.5g, for %d atoms' % (area, atoms.count())
+    mols = list(atoms.molecules())
+    mols.sort(key = lambda m: m.id)
+    mids = '#' + ','.join('%d' % m.id for m in mols)
+    msg += ', model%s %s' % (('s' if len(mols) > 1 else ''), mids)
+    if failed > 0:
+        msg += ', calculation failed for %d atoms' % failed
+    session.show_status(msg)
+    session.show_info(msg)
