@@ -12,6 +12,7 @@
 #include "atomstruct/Bond.h"
 #include "atomstruct/Atom.h"
 #include "atomstruct/CoordSet.h"
+#include "atomstruct/Sequence.h"
 #include "blob/StructBlob.h"
 #include "atomstruct/connect.h"
 
@@ -24,6 +25,7 @@ using atomstruct::Atom;
 using atomstruct::CoordSet;
 using atomstruct::Element;
 using atomstruct::MolResId;
+using atomstruct::Sequence;
 using basegeom::Coord;
 	
 #define LOG_PY_ERROR_NULL(arg) \
@@ -112,6 +114,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     bool        is_babel = false; // have we seen Babel-style atom names?
     bool        recent_TER = false;
     bool        break_hets = false;
+    unsigned char  let;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -173,6 +176,9 @@ start_t = end_t;
             mod_res->insert(MolResId(record.modres.res.chain_id,
                     record.modres.res.seq_num,
                     record.modres.res.i_code));
+            let = Sequence::rname3to1(record.modres.std_res);
+            if (let != 'X')
+                Sequence::assign_rname3to1(record.modres.res.name, let);
             break;
 
         case PDB::HELIX:
