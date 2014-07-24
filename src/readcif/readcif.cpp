@@ -229,7 +229,7 @@ const int NotWhitespace[UCHAR_MAX + 1] = {
 
 CIFFile::CIFFile()
 {
-	reset_parse();
+	internal_reset_parse();
 }
 
 void
@@ -370,7 +370,7 @@ CIFFile::parse(const char* buffer)
 	try {
 		if (parsing)
 			throw error("Already parsing");
-		reset_parse();
+		internal_reset_parse();
 		parsing = true;
 		// Check for CIF version
 		if (line[0] == '#' && strncmp(line, "#\\#CIF_", 7) == 0) {
@@ -386,6 +386,7 @@ CIFFile::parse(const char* buffer)
 		}
 		internal_parse();
 		parsing = false;
+		finished_parse();
 	} catch (std::exception &e) {
 		parsing = false;
 		throw;
@@ -649,7 +650,7 @@ CIFFile::internal_parse(bool one_table)
 }
 
 void
-CIFFile::reset_parse()
+CIFFile::internal_reset_parse()
 {
 	// parsing state
 	version_.clear();
@@ -672,6 +673,17 @@ CIFFile::reset_parse()
 	lineno = 1;
 	pos = line;
 	save_values = false;
+	reset_parse();
+}
+
+void
+CIFFile::reset_parse()
+{
+}
+
+void
+CIFFile::finished_parse()
+{
 }
 
 void
