@@ -1292,6 +1292,10 @@ class Selection:
         from ..map import Volume
         mlist = [m for m in self.models() if isinstance(m,Volume)]
         return mlist
+    def surfaces(self):
+        from ..molecule import Molecule
+        from ..map import Volume
+        return [m for m in self.models() if not isinstance(m,(Molecule,Volume))]
 
 # -----------------------------------------------------------------------------
 #
