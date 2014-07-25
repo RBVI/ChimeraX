@@ -52,8 +52,8 @@ def hide(what = None, atoms = False, ribbons = False, session = None):
 
 def color_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, color_arg, no_arg, parse_arguments
-    req_args = (('what', atoms_arg),
+    from ..ui.commands import specifier_arg, color_arg, no_arg, parse_arguments
+    req_args = (('what', specifier_arg),
                 ('color', color_arg))
     opt_args = ()
     kw_args = (('atoms', no_arg),
@@ -65,18 +65,36 @@ def color_command(cmdname, args, session):
 
 def color(what = None, color = (1,1,1,1), atoms = False, ribbons = False, session = None):
 
-    if not atoms and not ribbons:
-        atoms = True
-        ribbons = True
+    a = session.all_atoms() if what is None else what.atom_set()
+    if a.count() > 0:
+        color_molecule(a, color, atoms, ribbons)
 
-    if what is None:
-        what = session.all_atoms()
+    maps = session.maps() if what is None else what.maps()
+    for m in maps:
+        m.set_color(color)
+
+    surfs = session.surfaces() if what is None else what.surfaces()
+    for s in surfs:
+        color_surface(s, color)
+
+def color_surface(surf, color):
+
+    c8 = tuple(int(255*r) for r in color)       # Require 0-255 color values
+    for d in surf.all_drawings():
+        d.vertex_colors = None
+        d.color = c8
+
+def color_molecule (atoms, color = (1,1,1,1), color_atoms = False, color_ribbons = False):
+
+    if not color_atoms and not color_ribbons:
+        color_atoms = True
+        color_ribbons = True
 
     c8 = tuple(int(255*r) for r in color)       # Molecules require 0-255 color values
-    if atoms:
-        what.color_atoms(c8)
-    if ribbons:
-        what.color_ribbon(c8)
+    if color_atoms:
+        atoms.color_atoms(c8)
+    if color_ribbons:
+        atoms.color_ribbon(c8)
 
 def style_command(cmdname, args, session):
 
