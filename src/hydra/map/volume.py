@@ -293,6 +293,14 @@ class Volume(Drawing):
 
   # ---------------------------------------------------------------------------
   #
+  def set_color(self, rgba):
+    self.surface_colors = [rgba]*len(self.surface_levels)
+    self.solid_colors = [rgba]*len(self.solid_levels)
+    if self.shown():
+      self.show()
+
+  # ---------------------------------------------------------------------------
+  #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
                  show = True, adjust_step = True, save_in_region_queue = True):
     '''
