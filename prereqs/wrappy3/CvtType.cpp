@@ -88,7 +88,8 @@ static Reg cvtPrefix(
 static Reg constPrefix("^const[[:space:]]*", Reg::EXTENDED);
 
 CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
-	implicitAddress(false), cacheMe(false), aptNeedCheck(false)
+	implicitAddress(false), cacheMe(false), aptNeedCheck(false),
+	aptRequired(false)
 	// pyToCppPattern is needed iff aptFormat_ is not 'O'
 {
 	// cpp_type must have extra blanks removed already
@@ -181,6 +182,7 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	if (type_ == "signed char*" || type_ == "unsigned char*") {
 		// TODO: treat as a bytes
 		pyToCppPattern = "?TODO?";
+		aptRequired = true;
 		aptType_ = "Py_buffer";
 		if (noneOk)
 			aptFormat_ = "z*";
@@ -188,7 +190,7 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 			aptFormat_ = "s*";
 		aptNeedCheck = false;
 		aptCleanupPattern = "PyBuffer_Release(&@)";
-		aptToCppPattern = "@.buf";
+		aptToCppPattern = "reinterpret_cast<" + type_ + ">(@.buf)";
 		// cppToAptPattern = bvPattern;
 		typeCheckPattern = "?TODO?";
 		bvFormat_ = '?';

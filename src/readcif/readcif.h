@@ -185,10 +185,16 @@ protected:
 	virtual void save_frame(const std::string& code);
 
 	// global_block is called whenever the global_ keyword is found.
-	// Defaults to throwning an excepetion.
+	// Defaults to throwing an exception.
 	virtual void global_block();
+
+	// reset_parse is called whenever parse is called
+	virtual void reset_parse();
+
+	// reset_parse is called whenever parse has successfully finished
+	virtual void finished_parse();
 private:
-	void reset_parse();
+	void internal_reset_parse();
 	void internal_parse(bool one_table=false);
 	void next_token();
 	void stylized_next_keyword(bool tag_okay=false);

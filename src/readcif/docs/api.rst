@@ -352,3 +352,13 @@ C++ API
             In CIF files, the global\_ keyword is reserved, but unused.
             However, some CIF-like files, *e.g.*, the CCP4 monomer library,
             use the global\_ keyword.
+
+        .. cpp:function:: void reset_parse()
+
+            **reset_parse** is a virtual function that is called whenever
+            the parse function is called.
+
+        .. cpp:function:: void finished_parse()
+
+            **finished_parse** is a virtual function that is called whenever
+            the parse function has successfully finished parsing.

@@ -5,8 +5,9 @@
 #include <set>
 #include <unordered_map>
 
-#include "pseudobond/Manager.h"
+#include "basegeom/Connection.h"
 #include "imex.h"
+#include "pseudobond/Manager.h"
 
 namespace atomstruct {
 
@@ -14,21 +15,36 @@ class Atom;
 class AtomicStructure;
 class CoordSet;
 
-typedef pseudobond::Link<Atom>  PBond;
+class ATOMSTRUCT_IMEX PBond: public basegeom::Connection<Atom>
+{
+    friend class PBGroup;
+    friend class Owned_PBGroup;
+    friend class CS_PBGroup;
+private:
+    PBond(Atom* a1, Atom* a2): basegeom::Connection<Atom>(a1, a2) {};
+protected:
+    const char*  err_msg_loop() const
+        { return "Can't form pseudobond to itself"; }
+    const char*  err_msg_not_end() const
+        { return "Atom given to other_end() not in pseudobond!"; }
+public:
+    typedef End_points  Atoms;
+    const Atoms&  atoms() const { return end_points(); }
+};
 
 // "global" pseudobond groups...
-class PBGroup: pseudobond::Group<Atom>
+class PBGroup: pseudobond::Group<Atom, PBond>
 {
 private:
     std::set<PBond*>  _pbonds;
 public:
     void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
     PBond*  newPseudoBond(Atom* a1, Atom* a2) {
-        PBond* pb = makeLink(a1, a2);
+        PBond* pb = new PBond(a1, a2);
         _pbonds.insert(pb);
         return pb;
     }
-    PBGroup(const std::string& cat): pseudobond::Group<Atom>(cat) {}
+    PBGroup(const std::string& cat): pseudobond::Group<Atom, PBond>(cat) {}
     const std::set<PBond*>&  pseudobonds() const { return _pbonds; }
 };
 
@@ -37,11 +53,11 @@ typedef pseudobond::Global_Manager<PBGroup>  PBManager;
 
 // in per-AtomicStructure groups there are per-CoordSet groups
 // and overall groups...
-class Owned_PBGroup_Base: public pseudobond::Owned_Group<AtomicStructure, Atom> {
+class Owned_PBGroup_Base: public pseudobond::Owned_Group<AtomicStructure, Atom, PBond> {
 protected:
     void  _check_ownership(Atom* a1, Atom* a2);
     Owned_PBGroup_Base(const std::string& cat, AtomicStructure* as):
-        Owned_Group<AtomicStructure, Atom>(cat, as) {};
+        Owned_Group<AtomicStructure, Atom, PBond>(cat, as) {};
 };
 
 class Owned_PBGroup: public Owned_PBGroup_Base {
@@ -51,7 +67,7 @@ public:
     void  clear() { for (auto pb : _pbonds) delete pb; _pbonds.clear(); }
     PBond*  newPseudoBond(Atom* a1, Atom* a2) {
         _check_ownership(a1, a2);
-        PBond* pb = makeLink(a1, a2);
+        PBond* pb = new PBond(a1, a2);
         _pbonds.insert(pb); return pb;
     }
     PBond*  newPseudoBond(Atom* const ends[2]) {

@@ -19,11 +19,12 @@ private:
     Residues  _residues;
 
 public:
+    Chain(const std::string& chain_id): _chain_id(chain_id) {}
     const std::string&  chain_id() const { return _chain_id; }
     const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
     void  set(unsigned i, Residue* r, char character = -1);
-    void  bulk_set(std::vector<Residue *> residues,
+    void  bulk_set(Residues& residues,
             Sequence::Contents* chars = nullptr);
 };
 

@@ -9,12 +9,16 @@
 #include <algorithm>  // for std::find, std::sort
 #include <stdexcept>
 #include <set>
+#include <unordered_map>
 
 namespace atomstruct {
 
+const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
+
 AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
-    asterisks_translated(false), _being_destroyed(false), _cs_pb_mgr(this),
-    lower_case_chains(false), _pb_mgr(this), pdb_version(0), is_traj(false)
+    asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
+    _cs_pb_mgr(this), lower_case_chains(false), _pb_mgr(this), pdb_version(0),
+    is_traj(false)
 {
 }
 
@@ -172,35 +176,49 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::
 }
 
 void
-AtomicStructure::make_chains(AtomicStructure::Res_Lists* chain_members,
-    AtomicStructure::Sequences* full_sequences) const
-// if both args supplied, the res lists in chain_members correspond
-// one for one with the sequences in full_sequences (including possible
-// null residue pointers);  if just chain_members supplied, use SEQRES
-// records if available to form full sequence, and the chain_members
-// may need het residues weeded out and in some cases broken into more
-// chains (but never combined);  if neither supplied, use the residues
-// stored in the AtomicStructure and break them into chains ala the
-// chain_members-only case and extract the sequence from them
+AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info) const
+// if null, fall back to chains derived from the structure directly
 {
-    Res_Lists* chain_membs = chain_members;
-    Sequences* full_seqs = full_sequences;
+    ChainInfo* ci = (ChainInfo*)chain_info;
 
-    if (chain_membs == nullptr) {
-        chain_membs = new Res_Lists;
-        Residues::const_iterator ri = _residues.begin();
-        Residue* prev = ri->get();
-        ri++;
-        while(ri != _residues.end()) {
-            Residue* cur = ri->get();
-            ri++;
+    if (ci == nullptr) {
+        auto polys = polymers();
+        // gather chain IDs and, if not unique, use numbers instead
+        std::vector<const std::string> ids;
+        for (auto pi = polys.begin(); pi != polys.end(); ++pi) {
+            ids.push_back((*(*pi).begin())->chain_id());
+        }
+        std::set<const std::string> unique_ids(ids.begin(), ids.end());
+        if (ids.size() != unique_ids.size()) {
+            ids.clear();
+            for (int i = 1; i <= polys.size(); ++i) {
+                ids.push_back(std::to_string(i));
+            }
+        }
+        ci = new ChainInfo();
+        auto idi = ids.begin();
+        for (auto pi = polys.begin(); pi != polys.end(); ++pi, ++idi) {
+            ci->insert(ChainInfo::value_type(
+                *idi, CI_Chain_Pairing(*pi, nullptr)));
         }
     }
 
-    if (chain_members == nullptr)
-        delete chain_membs;
-    if (full_sequences == nullptr)
-        delete full_seqs;
+    if (_chains != nullptr)
+        delete _chains;
+
+    _chains = new Chains();
+    for (auto cii = ci->begin(); cii != ci->end(); ++cii) {
+       const std::string& chain_id = (*cii).first;
+       CI_Chain_Pairing chain_pairing = (*cii).second;
+       Chain::Residues& residues = chain_pairing.first;
+       Sequence::Contents* chars = chain_pairing.second;
+       auto chain = new Chain(chain_id);
+       _chains->emplace_back(chain);
+       chain->bulk_set(residues, chars);
+    }
+
+    if (chain_info == nullptr)
+        delete ci;
 }
 
 Atom *
@@ -285,6 +303,81 @@ AtomicStructure::new_residue(const std::string &name, const std::string &chain,
     Residue *r = new Residue(this, name, chain, pos, insert);
     _residues.insert(ri, std::unique_ptr<Residue>(r));
     return r;
+}
+
+std::vector<Chain::Residues>
+AtomicStructure::polymers() const
+{
+    // connected polymeric residues have to be adjacent in the residue list,
+    // so make an index map
+    int i = 0;
+    std::unordered_map<const Residue*, int> res_lookup;
+    for (auto& r: _residues) {
+        res_lookup[r.get()] = i++;
+    }
+
+    // Find all polymeric connections and make a map
+    // keyed on residue with value of whether that residue
+    // is connected to the next one
+    std::unordered_map<Residue*, bool> connected;
+    for (auto& b: bonds()) {
+        Atom* start = b->polymeric_start_atom();
+        if (start != nullptr) {
+            Residue* sr = start->residue();
+            Residue* nr = b->other_atom(start)->residue();
+            if (res_lookup[sr] + 1 == res_lookup[nr])
+                connected[sr] = true;
+        }
+    }
+
+    // go through missing-structure pseudobonds
+    auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, false);
+    if (pbg != nullptr) {
+std::cerr << pbg->pseudobonds().size() << " missing structure pseudobonds\n";
+int pbnum = 0;
+        for (auto& pb: pbg->pseudobonds()) {
+            Residue *r1 = pb->atoms()[0]->residue();
+            Residue *r2 = pb->atoms()[1]->residue();
+            int index1 = res_lookup[r1], index2 = res_lookup[r2];
+            if (abs(index1 - index2) == 1) {
+                if (index1 < index2) {
+                    connected[r1] = true;
+                } else {
+                    connected[r2] = true;
+                }
+std::cerr << ++pbnum << " " << r1->str() << " " << r2->str() << "\n";
+            }
+        }
+    }
+
+    // Go through residue list; start chains with initially-connected residues
+    std::vector<Chain::Residues> polys;
+    Chain::Residues chain;
+    bool in_chain = false;
+    for (auto& upr: _residues) {
+        Residue* r = upr.get();
+        auto connection = connected.find(r);
+        if (connection == connected.end()) {
+            if (in_chain) {
+std::cerr << " through " << r->str() << "\n";
+                chain.push_back(r);
+                polys.push_back(chain);
+                chain.clear();
+                in_chain = false;
+            }
+        } else {
+if (!in_chain) std::cerr << "chain " << r->str();
+            chain.push_back(r);
+            in_chain = true;
+        }
+    }
+    if (in_chain) {
+std::cerr << " through end\n";
+        polys.push_back(chain);
+    }
+
+std::cerr << polys.size() << " polymers\n";
+    return polys;
 }
 
 void

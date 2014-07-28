@@ -12,6 +12,7 @@
 #include "atomstruct/Bond.h"
 #include "atomstruct/Atom.h"
 #include "atomstruct/CoordSet.h"
+#include "atomstruct/Sequence.h"
 #include "blob/StructBlob.h"
 #include "atomstruct/connect.h"
 
@@ -24,6 +25,7 @@ using atomstruct::Atom;
 using atomstruct::CoordSet;
 using atomstruct::Element;
 using atomstruct::MolResId;
+using atomstruct::Sequence;
 using basegeom::Coord;
 	
 #define LOG_PY_ERROR_NULL(arg) \
@@ -112,6 +114,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     bool        is_babel = false; // have we seen Babel-style atom names?
     bool        recent_TER = false;
     bool        break_hets = false;
+    unsigned char  let;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -173,6 +176,16 @@ start_t = end_t;
             mod_res->insert(MolResId(record.modres.res.chain_id,
                     record.modres.res.seq_num,
                     record.modres.res.i_code));
+            let = Sequence::protein3to1(record.modres.std_res);
+            if (let != 'X') {
+                Sequence::assign_rname3to1(record.modres.res.name, let, true);
+            } else {
+                let = Sequence::nucleic3to1(record.modres.std_res);
+                if (let != 'X') {
+                    Sequence::assign_rname3to1(record.modres.res.name, let,
+                        false);
+                }
+            }
             break;
 
         case PDB::HELIX:
@@ -1091,6 +1104,8 @@ start_t = end_t;
             connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs]);
             prune_short_bonds(fs);
             fs->use_best_alt_locs();
+            // need to handle SEQRES records
+            fs->make_chains();
         }
 #ifdef CLOCK_PROFILING
 end_t = clock();
