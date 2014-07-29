@@ -153,7 +153,11 @@ class Chimera_HDF_Image:
 
         va = group._v_attrs
         if 'name' in va:
-            return va.name.decode('utf-8')
+            name = va.name
+            if isinstance(name, bytes):
+                # This was needed in Python 2
+                name = name.decode('utf-8')
+            return name
         return ''
 
     # --------------------------------------------------------------------------
