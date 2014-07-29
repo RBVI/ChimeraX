@@ -43,7 +43,7 @@ def ambient_occlusion_color_atoms(atoms, fineness = None, light = 0.8, dark = 0.
           % (t5-t0, t1-t0, t2-t1, t3-t2, t4-t3, t5-t4,
              atoms.count(), ','.join('%d'%s for s in m.shape[::-1])))
 
-def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1):
+def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1, gaussian = True, weights = None):
 
     # Set default fineness
     if fineness is None:
@@ -64,17 +64,30 @@ def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1):
     step = 0.5*resolution
     pad = resolution
 
-    origin = xyz_min - (pad,pad,pad)
-    step3 = (step, step, step)
-    from numpy import ceil, zeros, float32
-    xsz,ysz,zsz = [int(i) for i in ceil((size3 + (2*pad,2*pad,2*pad))/step)]
-    m = zeros((zsz,ysz,xsz), float32)
-    from .. import map_cpp
-    map_cpp.fill_occupancy_map(points, origin, step3, m)
-    from ..geometry import place
-    tf = place.Place(((1/step, 0, 0, -origin[0]/step),
-                      (0, 1/step, 0, -origin[1]/step),
-                      (0, 0, 1/step, -origin[2]/step)))
+    if gaussian:
+        if weights is None:
+            from numpy import ones, float32
+            weights = ones((len(points),), float32)
+        from math import pi, sqrt
+        from ..map.molmap import gaussian_grid_data
+        grid = gaussian_grid_data(points, weights, resolution, step, pad,
+                                  cutoff_range = 3,
+                                  sigma_factor = 1/(pi*sqrt(2)))
+        m = grid.full_matrix()
+        tf = grid.xyz_to_ijk_transform
+    else:
+        # Binning
+        origin = xyz_min - (pad,pad,pad)
+        step3 = (step, step, step)
+        from numpy import ceil, zeros, float32
+        xsz,ysz,zsz = [int(i) for i in ceil((size3 + (2*pad,2*pad,2*pad))/step)]
+        m = zeros((zsz,ysz,xsz), float32)
+        from .. import map_cpp
+        map_cpp.fill_occupancy_map(points, origin, step3, m)
+        from ..geometry import place
+        tf = place.Place(((1/step, 0, 0, -origin[0]/step),
+                          (0, 1/step, 0, -origin[1]/step),
+                          (0, 0, 1/step, -origin[2]/step)))
 
     return m, tf
 
