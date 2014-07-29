@@ -53,6 +53,7 @@
 # include <unistd.h>
 # include <sys/mman.h>
 # include <sys/stat.h>
+# include <errno.h>
 #endif
 
 #if UCHAR_MAX > 255
@@ -320,12 +321,14 @@ CIFFile::parse_file(const char* filename)
 #else
 	int fd = open(filename, O_RDONLY);
 	if (fd == -1) {
-		err << "Unable to open " << filename << " for reading.";
+		int err_num = errno;
+		err << "open: " << strerror(err_num);
 		throw std::runtime_error(err.str());
 	}
 	struct stat sb;
 	if (fstat(fd, &sb) == -1) {
-		err << "Unable to stat " << filename;
+		int err_num = errno;
+		err << "stat: " << strerror(err_num);
 		throw std::runtime_error(err.str());
 	}
 
@@ -337,7 +340,8 @@ CIFFile::parse_file(const char* filename)
 		void *buf = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE,
 				fd, 0);
 		if (buf == MAP_FAILED) {
-			err << "Unable to mmap " << filename;
+			int err_num = errno;
+			err << "mmap: " << strerror(err_num);
 			throw std::runtime_error(err.str());
 		}
 		buffer = reinterpret_cast<char*>(buf);
@@ -345,21 +349,32 @@ CIFFile::parse_file(const char* filename)
 	} else {
 		buffer = new char [sb.st_size + 1];
 		if (read(fd, buffer, sb.st_size) == -1) {
-			err << "Unable to read " << filename;
+			int err_num = errno;
+			err << "read: " << strerror(err_num);
 			throw std::runtime_error(err.str());
 		}
 		buffer[sb.st_size] = '\0';
 	}
-	parse(reinterpret_cast<const char*>(buffer));
+	try {
+		parse(reinterpret_cast<const char*>(buffer));
+	} catch (...) {
+		(void) close(fd);
+		if (used_mmap)
+			(void) munmap(buffer, sb.st_size + 1);
+		else
+			delete [] buffer;
+		throw;
+	}
+	(void) close(fd);
 	if (used_mmap) {
 		if (munmap(buffer, sb.st_size + 1) == -1) {
-			err << "Unable to munmap " << filename;
+			int err_num = errno;
+			err << "munmap: " << strerror(err_num);
 			throw std::runtime_error(err.str());
 		}
 	} else {
 		delete [] buffer;
 	}
-	(void) close(fd);
 #endif
 }
 
