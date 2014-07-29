@@ -58,6 +58,8 @@ class Drawing:
     self.display_style = self.Solid
     self.texture = None
     self.texture_coordinates = None
+    self.ambient_texture = None         	# 3d texture that modulates colors.
+    self.ambient_texture_transform = None       # Drawing to texture coordinates.
     self.opaque_texture = False
     self.use_lighting = True
     self.use_radial_warp = False
@@ -402,6 +404,11 @@ class Drawing:
     if not t is None:
       t.bind_texture()
 
+    at = self.ambient_texture
+    if not at is None:
+      at.bind_texture()
+      renderer.set_ambient_texture_transform(self.ambient_texture_transform)
+
     # Draw triangles
     ds.draw(self.display_style)
 
@@ -421,6 +428,8 @@ class Drawing:
         sopt[r.SHADER_TEXTURE_2D] = True
         if self.use_radial_warp:
           sopt[r.SHADER_RADIAL_WARP] = True
+      if not self.ambient_texture is None:
+        sopt[r.SHADER_TEXTURE_3D_AMBIENT] = True
       if not self.positions.shift_and_scale_array() is None:
         sopt[r.SHADER_SHIFT_AND_SCALE] = True
       elif len(self.positions) > 1:
@@ -428,7 +437,8 @@ class Drawing:
       self._shader_options = sopt
     return sopt
 
-  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
+  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'ambient_texture',
+                        'use_radial_warp', '_positions'))
 
   # Update the contents of vertex, element and instance buffers if associated arrays have changed.
   def update_buffers(self):

@@ -41,12 +41,16 @@ class Render:
         self.radial_warp_coefficients = (1,0,0,0)
         self.chromatic_warp_coefficients = (1,0,1,0)
 
+        # 3D ambient texture transform from model coordinates to texture coordinates.
+        self.ambient_texture_transform = None
+
         self.single_color = (1,1,1,1)
 
     # use_shader() option names
     SHADER_LIGHTING = 'USE_LIGHTING'
     SHADER_DEPTH_CUE = 'USE_DEPTH_CUE'
     SHADER_TEXTURE_2D = 'USE_TEXTURE_2D'
+    SHADER_TEXTURE_3D_AMBIENT = 'USE_TEXTURE_3D_AMBIENT'
     SHADER_RADIAL_WARP = 'USE_RADIAL_WARP'
     SHADER_SHIFT_AND_SCALE = 'USE_INSTANCING_SS'
     SHADER_INSTANCING = 'USE_INSTANCING_44'
@@ -61,7 +65,8 @@ class Render:
         Return a shader that supports the specified capabilities.
         The capabilities are specified as keyword options with boolean values.
         The available option names are given by the values of SHADER_LIGHTING,
-        SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
+        SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
+        SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
         SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_VERTEX_COLORS
         '''
         capabilities = self.default_capabilities.copy()
@@ -99,6 +104,8 @@ class Render:
         self.set_model_matrix()
         if self.SHADER_TEXTURE_2D in c:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
+        if self.SHADER_TEXTURE_3D_AMBIENT in c:
+            GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
         if self.SHADER_RADIAL_WARP in c:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS in c:
@@ -259,6 +266,11 @@ class Render:
         ccoef = GL.glGetUniformLocation(p, b"chromatic_warp")
         GL.glUniform4fv(ccoef, 1, self.chromatic_warp_coefficients)
 
+    def set_ambient_texture_transform(self, tf):
+        p = self.current_shader_program
+        m = tf.opengl_matrix()
+        GL.glUniformMatrix4fv(p.uniform_id("ambient_tex3d_transform"), 1, False, m)
+
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
         return GL.glGetString(GL.GL_VERSION).decode('utf-8')
@@ -382,7 +394,8 @@ class Render:
         # Use flat single color rendering.
         self.set_override_capabilities({self.SHADER_VERTEX_COLORS:False,
                                         self.SHADER_LIGHTING:False,
-                                        self.SHADER_TEXTURE_2D:False})
+                                        self.SHADER_TEXTURE_2D:False,
+                                        self.SHADER_TEXTURE_3D_AMBIENT:False})
         self.set_depth_range(0,0.999)      # Depth test GL_LEQUAL results in z-fighting
         mfb.copy_depth_from_another_framebuffer(fb)
 
@@ -1061,14 +1074,14 @@ class Texture:
         '''
         dim = self.dimension
         from OpenGL import GL
-        if len(data.shape) == dim and data.itemsize == 4:
+        if dim == 2 and len(data.shape) == dim and data.itemsize == 4:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
             tdtype = GL.GL_UNSIGNED_BYTE
             ncomp = 4
             return format, iformat, tdtype, ncomp
 
-        ncomp = data.shape[dim]
+        ncomp = data.shape[dim] if len(data.shape) > dim else 1
         # TODO: Report pyopengl bug, GL_RG missing
         GL.GL_RG = 0x8227
         # luminance texture formats are not in opengl 3.

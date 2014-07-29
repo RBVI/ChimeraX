@@ -220,7 +220,7 @@ class Camera:
         if fb is None or fb.width != tw or fb.height != th:
             from . import opengl
             t = opengl.Texture()
-            t.initialize_rgba(tw,th)
+            t.initialize_rgba((tw,th))
             self.warp_framebuffer = fb = opengl.Framebuffer(texture = t)
         return fb
 

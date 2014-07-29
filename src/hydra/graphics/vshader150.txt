@@ -42,6 +42,11 @@ in vec4 instanceShiftAndScale;
 in mat4 instancePlacement;
 #endif
 
+#ifdef USE_TEXTURE_3D_AMBIENT
+uniform mat4 ambient_tex3d_transform;
+out vec3 ambient_tex_coord;
+#endif
+
 void main(void)
 {
 #ifdef USE_INSTANCING_SS
@@ -52,7 +57,8 @@ void main(void)
     vec4 vi = instancePlacement * vec4(position, 1);
     vec4 vEye = model_view_matrix * vi;
   #else
-    vec4 vEye = model_view_matrix * vec4(position,1);
+    vec4 vi = vec4(position,1);
+    vec4 vEye = model_view_matrix * vi;
   #endif
 #endif
 
@@ -68,6 +74,10 @@ void main(void)
 
 #ifdef USE_TEXTURE_2D
   tex_coord = tex_coord_2d;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+  ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
 #endif
 
 #ifdef USE_VERTEX_COLORS

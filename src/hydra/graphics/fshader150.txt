@@ -46,6 +46,11 @@ in vec2 tex_coord;
 uniform sampler2D tex2d;
 #endif
 
+#ifdef USE_TEXTURE_3D_AMBIENT
+in vec3 ambient_tex_coord;
+uniform sampler3D tex3d;
+#endif
+
 #ifdef USE_RADIAL_WARP
 uniform vec2 warp_center;
 uniform vec4 radial_warp;
@@ -107,6 +112,10 @@ void main (void)
 
 #else
   vec3 Ifrag = fcolor.rgb;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+  Ifrag *= texture(tex3d, ambient_tex_coord).r;
 #endif
 
   // transparency
