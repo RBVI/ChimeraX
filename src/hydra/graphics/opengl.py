@@ -402,7 +402,7 @@ class Render:
         if mfb:
             mfb.delete()
         t = Texture()
-        t.initialize_8_bit(w,h)
+        t.initialize_8_bit(size)
         self.mask_framebuffer = mfb = Framebuffer(texture = t)
         return mfb
 
@@ -414,7 +414,7 @@ class Render:
         if ofb:
             ofb.delete()
         t = Texture()
-        t.initialize_8_bit(w,h)
+        t.initialize_8_bit(size)
         self.outline_framebuffer = ofb = Framebuffer(texture = t, depth = False)
         return ofb
 
@@ -940,7 +940,8 @@ def insert_define_macros(shader, capabilities):
 
 class Texture:
     '''
-    Create an OpenGL 2d texture from a numpy array of of size (h,w,c) or (h,w)
+    Create an OpenGL 1d, 2d, or 3d texture from a numpy array.  For a N dimensional texture
+    the data array can be N or N+1 dimensional.  For example, for 2d shape (h,w,c) or (h,w)
     where w and h are the texture width and height and c is the number of color components.
     If the data array is 2-dimensional, the values must be 32-bit RGBA8.  If the data
     array is 3 dimensional the texture format is GL_RED, GL_RG, GL_RGB, or GL_RGBA depending
@@ -949,24 +950,26 @@ class Texture:
     nearest interpolation is set.  The c = 2 mode uses the second component as alpha and
     the first componet for red,green,blue.
     '''
-    def __init__(self, data = None):
+    def __init__(self, data = None, dimension = 2):
 
         self.id = None
+        self.dimension = dimension
+        self.gl_target = (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension-1]
 
         if not data is None:
-            h, w = data.shape[:2]
+            size = tuple(data.shape[dimension-1::-1])
             format, iformat, tdtype, ncomp = self.texture_format(data)
-            self.initialize_texture(w, h, format, iformat, tdtype, ncomp, data)
+            self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
 
-    def initialize_rgba(self, w, h):
+    def initialize_rgba(self, size):
 
         format = GL.GL_BGRA
         iformat = GL.GL_RGBA8
         tdtype = GL.GL_UNSIGNED_BYTE
         ncomp = 4
-        self.initialize_texture(w, h, format, iformat, tdtype, ncomp)
+        self.initialize_texture(size, format, iformat, tdtype, ncomp)
 
-    def initialize_8_bit(self, w, h):
+    def initialize_8_bit(self, size):
 
         format = GL.GL_RED
         # TODO: PyOpenGL-20130502 does not have GL_R8.
@@ -974,78 +977,98 @@ class Texture:
         iformat = GL_R8
         tdtype = GL.GL_UNSIGNED_BYTE
         ncomp = 1
-        self.initialize_texture(w, h, format, iformat, tdtype, ncomp)
+        self.initialize_texture(size, format, iformat, tdtype, ncomp)
 
-    def initialize_texture(self, w, h, format, iformat, tdtype, ncomp, data = None):
+    def initialize_texture(self, size, format, iformat, tdtype, ncomp, data = None):
 
         from OpenGL import GL
         self.id = t = GL.glGenTextures(1)
-        self.size = (w,h)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, t)
+        self.size = size
+        gl_target = self.gl_target
+        GL.glBindTexture(gl_target, t)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
         if data is None:
             import ctypes
             data = ctypes.c_void_p(0)
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, iformat, w, h, 0,
-                        format, tdtype, data)
+        dim = self.dimension
+        if dim == 1:
+            GL.glTexImage1D(gl_target, 0, iformat, size[0], 0, format, tdtype, data)
+        elif dim == 2:
+            GL.glTexImage2D(gl_target, 0, iformat, size[0], size[1], 0, format, tdtype, data)
+        elif dim == 3:
+            GL.glTexImage3D(gl_target, 0, iformat, size[0], size[1], size[2], 0, format, tdtype, data)
 
-        GL.glTexParameterfv(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_BORDER_COLOR, (0,0,0,0))
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_BORDER)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_BORDER)
-#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-#        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, (0,0,0,0))
+        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_BORDER)
+        if dim >= 2:
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_BORDER)
+        if dim >= 3:
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_BORDER)
+
+#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE)
+
+#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+#        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
         if ncomp == 1 or ncomp == 2:
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_B, GL.GL_RED)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_B, GL.GL_RED)
         if ncomp == 2:
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_SWIZZLE_A, GL.GL_GREEN)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_A, GL.GL_GREEN)
+        GL.glBindTexture(gl_target, 0)
 
     def __del__(self):
         'Delete the OpenGL texture.'
         GL.glDeleteTextures((self.id,))
 
     def bind_texture(self):
-        'Bind the OpenGL 2d texture.'
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.id)
+        'Bind the OpenGL texture.'
+        GL.glBindTexture(self.gl_target, self.id)
 
     def unbind_texture(self):
-        'Unbind the OpenGL 2d texture.'
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        'Unbind the OpenGL texture.'
+        GL.glBindTexture(self.gl_target, 0)
 
     def reload_texture(self, data):
         '''
         Replace the texture values in texture with OpenGL id using numpy array data.
-        The data is interpreted the same as for the texture_2d() function.
+        The data is interpreted the same as for the Texture constructor data argument.
         '''
 
-        h, w = data.shape[:2]
+        dim = self.dimension
+        size = data.shape[dim-1::-1]
         format, iformat, tdtype, ncomp = self.texture_format(data)
         from OpenGL import GL
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.id)
-        GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, w, h, format, tdtype, data)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        gl_target = self.gl_target
+        GL.glBindTexture(gl_target, self.id)
+        if dim == 1:
+            GL.glTexSubImage2D(gl_target, 0, 0, 0, size[0], format, tdtype, data)
+        elif dim == 2:
+            GL.glTexSubImage2D(gl_target, 0, 0, 0, size[0], size[1], format, tdtype, data)
+        elif dim == 3:
+            GL.glTexSubImage3D(gl_target, 0, 0, 0, size[0], size[1], size[2], format, tdtype, data)
+        GL.glBindTexture(gl_target, 0)
 
     def texture_format(self, data):
         '''
         Return the OpenGL texture format, internal format, and texture value type
-        that will be used by the texture_2d() function when creating a texture from
+        that will be used by the glTexImageNd() function when creating a texture from
         a numpy array of colors.
         '''
+        dim = self.dimension
         from OpenGL import GL
-        if len(data.shape) == 2 and data.itemsize == 4:
+        if len(data.shape) == dim and data.itemsize == 4:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
             tdtype = GL.GL_UNSIGNED_BYTE
             ncomp = 4
             return format, iformat, tdtype, ncomp
 
-        ncomp = data.shape[2]
+        ncomp = data.shape[dim]
         # TODO: Report pyopengl bug, GL_RG missing
         GL.GL_RG = 0x8227
         # luminance texture formats are not in opengl 3.
