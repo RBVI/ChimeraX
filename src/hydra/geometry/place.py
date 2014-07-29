@@ -195,7 +195,9 @@ def vector_rotation(u,v):
 
 def scale(s):
     '''Return a transform which is a scale by factor s.'''
-    return Place(((s,0,0,0), (0,s,0,0), (0,0,s,0)))
+    if isinstance(s, (float,int)):
+        return Place(((s,0,0,0), (0,s,0,0), (0,0,s,0)))
+    return Place(((s[0],0,0,0), (0,s[1],0,0), (0,0,s[2],0)))
 
 def orthonormal_frame(zaxis, ydir = None, xdir = None):
     '''Return a Place object with the specifiec z axis.  Any rotation about that z axis is allowed, unless a
