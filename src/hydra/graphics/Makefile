@@ -5,7 +5,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/graphics
 
 PYSRCS = __init__.py camera.py drawing.py llgrutil.py opengl.py pyopengl_draw_instanced.py
 
-OPENGL_SHADERS = fshader150.txt vshader150.txt
+OPENGL_SHADERS = fragmentShader.txt vertexShader.txt
 
 all: $(PYOBJS)
 
