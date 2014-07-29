@@ -132,7 +132,7 @@ class Render:
     def rendering_to_screen(self):
         return len(self.framebuffer_stack) == 0
 
-    def opengl_shader(self, capabilities = (SHADER_LIGHTING,), glsl_version = '150'):
+    def opengl_shader(self, capabilities = (SHADER_LIGHTING,)):
         'Private.  OpenGL shader program id.'
 
         ckey = tuple(sorted(capabilities))
@@ -140,7 +140,7 @@ class Render:
         if not p is None:
             return p
 
-        p = Shader(capabilities, glsl_version)
+        p = Shader(capabilities)
         self.shader_programs[ckey] = p
 
         return p
@@ -884,10 +884,10 @@ def glVertexAttribDivisor(attr_id, d):
 class Shader:
     '''Private. OpenGL shader program with specified capabilities.'''
 
-    def __init__(self, capabilities, glsl_version = '150'):
+    def __init__(self, capabilities):
 
         self.capabilities = capabilities
-        self.program_id = self.compile_shader(capabilities, glsl_version)
+        self.program_id = self.compile_shader(capabilities)
         self.uniform_ids = {}
         self.attribute_ids = {}
         
@@ -910,15 +910,15 @@ class Shader:
 #            print('attrib id for %s is %d, shader %d, cap %s' % (name, aid, p, self.capabilities))
         return aid
 
-    def compile_shader(self, capabilities, glsl_version = '150'):
+    def compile_shader(self, capabilities):
 
         from os.path import dirname, join
         d = dirname(__file__)
-        f = open(join(d,'vshader%s.txt' % glsl_version), 'r')
+        f = open(join(d,'vertexShader.txt'), 'r')
         vshader = insert_define_macros(f.read(), capabilities)
         f.close()
 
-        f = open(join(d,'fshader%s.txt' % glsl_version), 'r')
+        f = open(join(d,'fragmentShader.txt'), 'r')
         fshader = insert_define_macros(f.read(), capabilities)
         f.close()
 
