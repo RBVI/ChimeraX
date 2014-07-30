@@ -70,6 +70,8 @@ def standard_shortcuts(session):
         ('dq', depth_cue, 'Toggle depth cue', gcat, viewarg, smenu),
         ('bl', motion_blur, 'Toggle motion blur', gcat, viewarg, smenu, sep),
 
+        ('sh', toggle_shadows, 'Toggle shadows', gcat, viewarg, smenu),
+
         ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
         ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
@@ -495,6 +497,10 @@ def set_background_gray(viewer):
     set_background_color(viewer, (0.5,0.5,0.5,1))
 def set_background_white(viewer):
     set_background_color(viewer, (1,1,1,1))
+
+def toggle_shadows(viewer):
+    viewer.shadows = not viewer.shadows
+    viewer.redraw_needed = True
 
 def depth_cue(viewer):
     r = viewer.render

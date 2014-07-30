@@ -49,7 +49,7 @@ out vec3 ambient_tex_coord;
 
 #ifdef USE_SHADOWS
 uniform mat4 shadow_transform;
-out vec2 shadow_tex_coord;
+out vec3 shadow_tex_coord;
 #endif
 
 void main(void)
@@ -86,7 +86,7 @@ void main(void)
 #endif
 
 #ifdef USE_SHADOWS
-  shadow_tex_coord = (shadow_transform * vEye).st;
+  shadow_tex_coord = (shadow_transform * vEye).stp;
 #endif
 
 #ifdef USE_VERTEX_COLORS

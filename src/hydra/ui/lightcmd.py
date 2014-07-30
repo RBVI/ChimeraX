@@ -21,12 +21,13 @@ def lighting(session, direction = None, color = None, specularColor = None, expo
     lp = v.render.lighting
 
     from ..geometry.vector import normalize_vector as normalize
+    from numpy import array, float32
     if not direction is None:
-        lp.key_light_direction = normalize(direction)
+        lp.key_light_direction = array(normalize(direction), float32)
     if not color is None:
         lp.key_light_color = color[:3]
     if not fillDirection is None:
-        lp.fill_light_direction = normalize(fillDirection)
+        lp.fill_light_direction = array(normalize(fillDirection), float32)
     if not fillColor is None:
         lp.fill_light_color = fillColor[:3]
     if not ambientColor is None:

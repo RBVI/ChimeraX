@@ -112,7 +112,8 @@ class Render:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
         if self.SHADER_SHADOWS in c:
             GL.glUniform1i(shader.uniform_id("shadow_map"), 0)    # Texture unit 0.
-            GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
+            if not self.shadow_transform is None:
+                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
         if self.SHADER_RADIAL_WARP in c:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS in c:
@@ -121,7 +122,6 @@ class Render:
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
         fb.activate()
-        self.set_drawing_region(0,0,fb.width,fb.height)
 
     def current_framebuffer(self):
         s = self.framebuffer_stack
@@ -283,7 +283,8 @@ class Render:
         # Transform from camera coordinates to shadow map texture coordinates.
         self.shadow_transform = m = tf.opengl_matrix()
         p = self.current_shader_program
-        GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
+        if self.SHADER_SHADOWS in p.capabilities:
+            GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, m)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -595,6 +596,9 @@ class Framebuffer:
     def activate(self):
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
 
+    def set_drawing_region(self):
+        GL.glViewport(0, 0, self.width, self.height)
+
     def delete(self):
         if self.fbo is None:
             return
@@ -624,13 +628,14 @@ class Lighting:
 
     def __init__(self):
 
-        self.key_light_direction = (.577,-.577,-.577)    # Should have unit length
+        from numpy import array, float32
+        self.key_light_direction = array((.577,-.577,-.577), float32)    # Should have unit length
         '''Direction key light shines in.'''
 
         self.key_light_color = (1,1,1)
         '''Key light color.'''
 
-        self.fill_light_direction = (-.2,-.2,-.959)        # Should have unit length
+        self.fill_light_direction = array((-.2,-.2,-.959), float32)        # Should have unit length
         '''Direction fill light shines in.'''
 
         self.fill_light_color = (.5,.5,.5)
@@ -1020,7 +1025,16 @@ class Texture:
         ncomp = 1
         self.initialize_texture(size, format, iformat, tdtype, ncomp)
 
-    def initialize_texture(self, size, format, iformat, tdtype, ncomp, data = None):
+    def initialize_depth(self, size, depth_compare_mode = True):
+
+        format = GL.GL_DEPTH_COMPONENT
+        iformat = GL.GL_DEPTH_COMPONENT24
+        tdtype = GL.GL_FLOAT
+        ncomp = 1
+        self.initialize_texture(size, format, iformat, tdtype, ncomp,
+                                depth_compare_mode = depth_compare_mode)
+
+    def initialize_texture(self, size, format, iformat, tdtype, ncomp, data = None, depth_compare_mode = False):
 
         from OpenGL import GL
         self.id = t = GL.glGenTextures(1)
@@ -1054,6 +1068,11 @@ class Texture:
 #        GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+
+        if depth_compare_mode:
+            # For GLSL sampler2dShadow objects to compare depth to r texture coord.
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_COMPARE_MODE, GL.GL_COMPARE_REF_TO_TEXTURE)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_COMPARE_FUNC, GL.GL_LEQUAL);
 
         if ncomp == 1 or ncomp == 2:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
