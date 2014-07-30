@@ -342,9 +342,9 @@ class View(QtGui.QWindow):
 
         r = self.render
         if self.shadows:
-            # Compute shadow map.
+            # Compute shadow map, and scene to shadow texture transform
             smap, stf = self.compute_shadow_map(models)
-            r.set_shadow_transform(stf)
+            r.set_shadow_transform(stf*camera.view())   # Camera to shadow coordinates
             # TODO: The drawing code might bind another texture replacing this, eg grayscale rendering.
             smap.bind_texture()
 
@@ -383,17 +383,33 @@ class View(QtGui.QWindow):
     def compute_shadow_map(self, models):
         # TODO: Draw depth texture with orthographic camera in key light direction
         #       and view wide enough to include all displayed models.
+
+        if models is None:
+            center, size = self.session.bounds_center_and_width()
+        else:
+            from ..geometry import bounds
+            b = bounds.union_bounds(m.bounds() for m in models)
+            center,size = bounds.bounds_center_and_radius(b)
+        if center is None:
+            return None
+
         r = self.render
+        pm = orthographic_projection(size)
         r.set_projection_matrix(pm)
         from .. import graphics
-        dt = Texture(w, h)
+        # TODO: Need to specify texture format for depths.
+        dt = graphics.Texture(w,h)
         fb = graphics.Framebuffer(depth_texture = dt)
         if not fb.valid():
             return None         # Image size exceeds framebuffer limits
         r.push_framebuffer(fb)
+        ld = r.lighting.key_light_direction
+        cv = camera_frame(ld, center)
+        cvinv = cv.inverse()
         graphics.draw_drawings(r, cvinv, models)
-        return dt
-
+        r.pop_framebuffer()
+        tf = pm * cvinv		 # Scene to texture coordinates
+        return dt, tf
 
     def update_level_of_detail(self):
         # Level of detail updating.
