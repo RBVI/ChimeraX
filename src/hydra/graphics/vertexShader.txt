@@ -47,6 +47,11 @@ uniform mat4 ambient_tex3d_transform;
 out vec3 ambient_tex_coord;
 #endif
 
+#ifdef USE_SHADOWS
+uniform mat4 shadow_transform;
+out vec2 shadow_tex_coord;
+#endif
+
 void main(void)
 {
 #ifdef USE_INSTANCING_SS
@@ -78,6 +83,10 @@ void main(void)
 
 #ifdef USE_TEXTURE_3D_AMBIENT
   ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
+#endif
+
+#ifdef USE_SHADOWS
+  shadow_tex_coord = (shadow_transform * vEye).st;
 #endif
 
 #ifdef USE_VERTEX_COLORS

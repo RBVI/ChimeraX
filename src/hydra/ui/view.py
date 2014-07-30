@@ -41,6 +41,7 @@ class View(QtGui.QWindow):
 
         from .. import graphics
         self.render = graphics.Render()
+        self.shadows = False
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -340,6 +341,13 @@ class View(QtGui.QWindow):
             models = [m for m in self.session.model_list() if m.display]
 
         r = self.render
+        if self.shadows:
+            # Compute shadow map.
+            smap, stf = self.compute_shadow_map(models)
+            r.set_shadow_transform(stf)
+            # TODO: The drawing code might bind another texture replacing this, eg grayscale rendering.
+            smap.bind_texture()
+
         r.set_background_color(self.background_rgba)
         if self.update_lighting:
             self.update_lighting = False
@@ -371,6 +379,21 @@ class View(QtGui.QWindow):
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
+
+    def compute_shadow_map(self, models):
+        # TODO: Draw depth texture with orthographic camera in key light direction
+        #       and view wide enough to include all displayed models.
+        r = self.render
+        r.set_projection_matrix(pm)
+        from .. import graphics
+        dt = Texture(w, h)
+        fb = graphics.Framebuffer(depth_texture = dt)
+        if not fb.valid():
+            return None         # Image size exceeds framebuffer limits
+        r.push_framebuffer(fb)
+        graphics.draw_drawings(r, cvinv, models)
+        return dt
+
 
     def update_level_of_detail(self):
         # Level of detail updating.

@@ -221,7 +221,7 @@ class Camera:
             from . import opengl
             t = opengl.Texture()
             t.initialize_rgba((tw,th))
-            self.warp_framebuffer = fb = opengl.Framebuffer(texture = t)
+            self.warp_framebuffer = fb = opengl.Framebuffer(color_texture = t)
         return fb
 
     def warping_surface(self, render):

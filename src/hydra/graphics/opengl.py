@@ -44,6 +44,9 @@ class Render:
         # 3D ambient texture transform from model coordinates to texture coordinates.
         self.ambient_texture_transform = None
 
+        # Maps camera coordinates to shadow map texture coordinates.
+        self.shadow_transform = None
+
         self.single_color = (1,1,1,1)
 
     # use_shader() option names
@@ -51,6 +54,7 @@ class Render:
     SHADER_DEPTH_CUE = 'USE_DEPTH_CUE'
     SHADER_TEXTURE_2D = 'USE_TEXTURE_2D'
     SHADER_TEXTURE_3D_AMBIENT = 'USE_TEXTURE_3D_AMBIENT'
+    SHADER_SHADOWS = 'USE_SHADOWS'
     SHADER_RADIAL_WARP = 'USE_RADIAL_WARP'
     SHADER_SHIFT_AND_SCALE = 'USE_INSTANCING_SS'
     SHADER_INSTANCING = 'USE_INSTANCING_44'
@@ -66,7 +70,7 @@ class Render:
         The capabilities are specified as keyword options with boolean values.
         The available option names are given by the values of SHADER_LIGHTING,
         SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
-        SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
+        SHADER_SHADOWS, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
         SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_VERTEX_COLORS
         '''
         capabilities = self.default_capabilities.copy()
@@ -106,6 +110,9 @@ class Render:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
         if self.SHADER_TEXTURE_3D_AMBIENT in c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
+        if self.SHADER_SHADOWS in c:
+            GL.glUniform1i(shader.uniform_id("shadow_map"), 0)    # Texture unit 0.
+            GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
         if self.SHADER_RADIAL_WARP in c:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS in c:
@@ -267,9 +274,16 @@ class Render:
         GL.glUniform4fv(ccoef, 1, self.chromatic_warp_coefficients)
 
     def set_ambient_texture_transform(self, tf):
+        # Transform from model coordinates to ambient texture coordinates.
         p = self.current_shader_program
         m = tf.opengl_matrix()
         GL.glUniformMatrix4fv(p.uniform_id("ambient_tex3d_transform"), 1, False, m)
+
+    def set_shadow_transform(self, tf):
+        # Transform from camera coordinates to shadow map texture coordinates.
+        self.shadow_transform = m = tf.opengl_matrix()
+        p = self.current_shader_program
+        GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -395,7 +409,9 @@ class Render:
         self.set_override_capabilities({self.SHADER_VERTEX_COLORS:False,
                                         self.SHADER_LIGHTING:False,
                                         self.SHADER_TEXTURE_2D:False,
-                                        self.SHADER_TEXTURE_3D_AMBIENT:False})
+                                        self.SHADER_TEXTURE_3D_AMBIENT:False,
+                                        self.SHADER_SHADOWS:False,
+                                        })
         self.set_depth_range(0,0.999)      # Depth test GL_LEQUAL results in z-fighting
         mfb.copy_depth_from_another_framebuffer(fb)
 
@@ -404,7 +420,7 @@ class Render:
         self.pop_framebuffer()
         self.set_override_capabilities({})
         self.set_depth_range(0,1)
-        t = self.mask_framebuffer.texture
+        t = self.mask_framebuffer.color_texture
         self.draw_texture_mask_outline(t)
 
     def make_mask_framebuffer(self, size):
@@ -416,7 +432,7 @@ class Render:
             mfb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.mask_framebuffer = mfb = Framebuffer(texture = t)
+        self.mask_framebuffer = mfb = Framebuffer(color_texture = t)
         return mfb
 
     def make_outline_framebuffer(self, size):
@@ -428,7 +444,7 @@ class Render:
             ofb.delete()
         t = Texture()
         t.initialize_8_bit(size)
-        self.outline_framebuffer = ofb = Framebuffer(texture = t, depth = False)
+        self.outline_framebuffer = ofb = Framebuffer(color_texture = t, depth = False)
         return ofb
 
     def draw_texture_mask_outline(self, texture, color = (0,1,0,1)):
@@ -463,7 +479,7 @@ class Render:
         tc.draw_shifted(0,0)
 
         # Now outline is in texture of the outline framebuffer
-        outline = ofb.texture
+        outline = ofb.color_texture
         self.pop_framebuffer()
 
         # Draw outline on original framebuffer
@@ -487,70 +503,82 @@ class Render:
 
 class Framebuffer:
 
-    def __init__(self, width = None, height = None, texture = None, depth = True):
+    def __init__(self, width = None, height = None,
+                 color = True, color_texture = None,
+                 depth = True, depth_texture = None):
 
-        w,h = (width, height) if texture is None else texture.size
+        if not width is None and not height is None:
+            w,h = width,height
+        elif not color_texture is None:
+            w,h = color_texture.size
+        elif not depth_texture is None:
+            w,h = depth_texture.size
+        else:
+            raise ValueError('Framebuffer.__init__(): No width and height specified')
         
         self.width = w
         self.height = h
-        self.texture = texture
 
-        c,d,f = self.init_buffer(w,h,depth) if texture is None else self.init_using_texture(texture,depth)
+        if not self.valid_size(w,h):
+            self.fbo = None
+            return
 
-        self.fbo = f
-        self.color_rb = c
-        self.depth_rb = d
+        self.color_texture = color_texture
+        self.color_rb = None if not color or color_texture else self.color_renderbuffer(w,h)
+        self.depth_texture = depth_texture
+        self.depth_rb = None if not depth or depth_texture else self.depth_renderbuffer(w,h)
+
+        self.fbo = self.create_fbo(color_texture or self.color_rb,
+                                   depth_texture or self.depth_rb)
 
     def __del__(self):
 
         self.delete()
 
-    def init_buffer(self, width, height, depth):
+    def valid_size(self, width, height):
 
         max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
         max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
         max_size = min(max_rb_size, max_tex_size)
-        if width > max_size or height > max_size:
-            return None, None, None
+        return width <= max_size and height <= max_size
+            
+    def color_renderbuffer(self, width, height):
 
         color_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
         GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_RGB8, width, height)
+        return color_rb
 
-        depth_rb, fbo = self.create_fbo(color_rb, width, height, False, depth)
         return color_rb, depth_rb, fbo
 
-    def init_using_texture(self, texture, depth):
+    def depth_renderbuffer(self, width, height):
 
-        w, h = texture.size
-        depth_rb, fbo = self.create_fbo(texture.id, w, h, True, depth)
-        return None, depth_rb, fbo
+        depth_rb = GL.glGenRenderbuffers(1)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT24, width, height)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
+        return depth_rb
 
-    def create_fbo(self, color_buf, width, height, to_texture, depth):
-
-        # Create color and depth buffers
-        if depth:
-            depth_rb = GL.glGenRenderbuffers(1)
-            GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
-            GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT24, width, height)
-            GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
-        else:
-            depth_rb = None
+    def create_fbo(self, color_buf, depth_buf):
 
         fbo = GL.glGenFramebuffers(1)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
 
-        if to_texture:
+        if isinstance(color_buf, Texture):
             level = 0
             GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
-                                      GL.GL_TEXTURE_2D, color_buf, level)
+                                      GL.GL_TEXTURE_2D, color_buf.id, level)
         else:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
                                          GL.GL_RENDERBUFFER, color_buf)
 
-        if depth:
+        if isinstance(depth_buf, Texture):
+            level = 0
+            GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT,
+                                      GL.GL_TEXTURE_2D, depth_buf.id, level)
+        elif not depth_buf is None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT,
-                                         GL.GL_RENDERBUFFER, depth_rb)
+                                         GL.GL_RENDERBUFFER, depth_buf)
 
         status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
         if status != GL.GL_FRAMEBUFFER_COMPLETE:
@@ -559,7 +587,7 @@ class Framebuffer:
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
             return None
 
-        return depth_rb, fbo
+        return fbo
 
     def valid(self):
         return not self.fbo is None
