@@ -35,6 +35,7 @@ class Render:
         self.framebuffer_stack = []
         self.mask_framebuffer = None
         self.outline_framebuffer = None
+        self.shadow_map_framebuffer = None
 
         # Texture warp parameters
         self.warp_center = (0.5, 0.5)
@@ -397,6 +398,61 @@ class Render:
         b = GL.GL_BACK
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
+
+    def start_rendering_shadowmap(self, center, radius, camera_view, size = 1024, depth_bias = 0.005):
+
+        # Set projection matrix to be orthographic and span all models.
+        from ..geometry.place import translation, scale, orthonormal_frame
+        pm = scale((1/radius,1/radius,-1/radius))*translation((0,0,radius))       # orthographic projection along z
+        self.set_projection_matrix(pm.opengl_matrix())
+
+        # Make a framebuffer for depth texture rendering
+        fb = self.shadow_map_framebuffer
+        if fb is None:
+            from .. import graphics
+            dt = graphics.Texture()
+            dt.initialize_depth((size,size))
+            fb = graphics.Framebuffer(depth_texture = dt)
+            if not fb.valid():
+                return           # Requested size exceeds framebuffer limits
+            self.shadow_map_framebuffer = fb
+
+        # Compute the view matrix looking along the light direction.
+        kl = self.lighting.key_light_direction
+        ld = camera_view.apply_without_translation(kl) # Light direction in scene coords.
+        lv = translation(center - radius*ld) * orthonormal_frame(-ld)   # Light view frame
+        lvinv = lv.inverse()	# Scene to light view coordinates
+
+        # Set the transform mapping camera to depth texture coordinates.
+        ntf = translation((0.5,0.5,0.5-depth_bias))*scale(0.5)    # (-1,1) normalized device coords to (0,1) texture coords.
+        tf = ntf * pm * lvinv * camera_view                       # Camera to shadowmap coordinates
+        self.set_shadow_transform(tf)
+
+        # Make sure depth texture is not bound from previous drawing so that it is not
+        # used for rendering shadows while the depth texture is being written.
+        # TODO: The depth rendering should not render colors or shadows.
+        dt = fb.depth_texture
+        dt.unbind_texture()
+
+        # Draw the models recording depth in light direction, i.e. calculate the shadow map.
+        self.push_framebuffer(fb)
+        fb.set_drawing_region()
+        self.draw_background()             # Clear depth buffer
+
+        return lvinv
+
+    def finish_rendering_shadowmap(self, window_size):
+
+        self.pop_framebuffer()
+
+        # Restore the viewport size.
+        w,h = window_size
+        self.set_drawing_region(0,0,w,h)
+
+        # Bind the depth texture for computing shadows.
+        # TODO: Use different texture unit to avoid conflict with texture coloring.
+        fb = self.shadow_map_framebuffer
+        return fb.depth_texture
 
     def start_rendering_outline(self, size):
 

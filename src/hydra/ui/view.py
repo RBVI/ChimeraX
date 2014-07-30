@@ -42,7 +42,6 @@ class View(QtGui.QWindow):
         from .. import graphics
         self.render = graphics.Render()
         self._shadows = False
-        self.shadow_map_framebuffer = None
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -398,7 +397,7 @@ class View(QtGui.QWindow):
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
 
-    def use_shadow_map(self, camera, models, size = 1024, depth_bias = 0.005):
+    def use_shadow_map(self, camera, models):
         # Compute model bounds so shadow map can cover all models.
         if models is None:
             s = self.session
@@ -411,56 +410,15 @@ class View(QtGui.QWindow):
         if center is None:
             return
 
-        # Set projection matrix to be orthographic and span all models.
-        from ..geometry.place import translation, scale, orthonormal_frame
-        pm = scale((1/radius,1/radius,-1/radius))*translation((0,0,radius))       # orthographic projection along z
+        # Compute shadow map depth texture
         r = self.render
-        r.set_projection_matrix(pm.opengl_matrix())
-
-        # Make a framebuffer for depth texture rendering
-        fb = self.shadow_map_framebuffer
-        if fb is None:
-            from .. import graphics
-            dt = graphics.Texture()
-            dt.initialize_depth((size,size))
-            fb = graphics.Framebuffer(depth_texture = dt)
-            if not fb.valid():
-                return           # Requested size exceeds framebuffer limits
-            self.shadow_map_framebuffer = fb
-
-        # Compute the view matrix looking along the light direction.
-        kl = r.lighting.key_light_direction
-        cv = camera.view()
-        ld = cv.apply_without_translation(kl) # Light direction in scene coords.
-        lv = translation(center - radius*ld) * orthonormal_frame(-ld)   # Light view frame
-        lvinv = lv.inverse()
-
-        # Make sure depth texture is not bound from previous drawing so that it is not
-        # used for rendering shadows while the depth texture is being written.
-        # TODO: The depth rendering should not render colors or shadows.
-        dt = fb.depth_texture
-        dt.unbind_texture()
-
-        # Draw the models recording depth in light direction, i.e. calculate the shadow map.
-        r.push_framebuffer(fb)
-        fb.set_drawing_region()
-        r.draw_background()             # Clear depth buffer
+        lvinv = r.start_rendering_shadowmap(center, radius, camera.view())
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
-        r.pop_framebuffer()
+        shadow_map = r.finish_rendering_shadowmap(self.window_size)
 
-        # Restore the viewport size.
-        ww, wh = self.window_size
-        r.set_drawing_region(0,0,ww,wh)
-
-        # Set the transform mapping camera to depth texture coordinates.
-        ntf = translation((0.5,0.5,0.5-depth_bias))*scale(0.5) # (-1,1) normalized device coords to (0,1) texture coords.
-        tf = ntf * pm * lvinv		 # Scene to texture coordinates
-        r.set_shadow_transform(tf*cv)   # Camera to shadow coordinates
-
-        # Bind the depth texture for computing shadows.
-        # TODO: Use different texture unit to avoid conflict with texture coloring.
-        dt.bind_texture()
+        # Bind shadow map for subsequent rendering of shadows.
+        shadow_map.bind_texture()
 
     def update_level_of_detail(self):
         # Level of detail updating.
