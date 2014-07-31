@@ -24,6 +24,7 @@ class Render:
         self.default_capabilities = set((self.SHADER_LIGHTING,self.SHADER_VERTEX_COLORS))
         self.override_capabilities = {}
 
+        self.current_viewport = None
         self.current_projection_matrix = None   # Used when switching shaders
         self.current_model_view_matrix = None   # Used when switching shaders
         self.current_model_matrix = None        # Used for optimizing model view matrix updates
@@ -121,6 +122,8 @@ class Render:
             self.set_single_color()
 
     def push_framebuffer(self, fb):
+        fb.restore_viewport = self.current_viewport
+        self.set_viewport(0,0,fb.width,fb.height)
         self.framebuffer_stack.append(fb)
         fb.activate()
 
@@ -130,7 +133,8 @@ class Render:
 
     def pop_framebuffer(self):
         s = self.framebuffer_stack
-        s.pop()
+        fb = s.pop()
+        self.set_viewport(*fb.restore_viewport)
         if len(s) == 0:
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
         else:
@@ -304,9 +308,11 @@ class Render:
         vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(vao)
 
-    def set_drawing_region(self, x, y, w, h):
+    def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
-        GL.glViewport(x, y, w, h)
+        if (x,y,w,h) != self.current_viewport:
+            GL.glViewport(x, y, w, h)
+            self.current_viewport = (x,y,w,h)
 
     def set_background_color(self, rgba):
         'Set the OpenGL clear color.'
@@ -436,18 +442,13 @@ class Render:
 
         # Draw the models recording depth in light direction, i.e. calculate the shadow map.
         self.push_framebuffer(fb)
-        fb.set_drawing_region()
         self.draw_background()             # Clear depth buffer
 
         return lvinv
 
-    def finish_rendering_shadowmap(self, window_size):
+    def finish_rendering_shadowmap(self):
 
         self.pop_framebuffer()
-
-        # Restore the viewport size.
-        w,h = window_size
-        self.set_drawing_region(0,0,w,h)
 
         # Bind the depth texture for computing shadows.
         # TODO: Use different texture unit to avoid conflict with texture coloring.
@@ -651,9 +652,6 @@ class Framebuffer:
 
     def activate(self):
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
-
-    def set_drawing_region(self):
-        GL.glViewport(0, 0, self.width, self.height)
 
     def delete(self):
         if self.fbo is None:

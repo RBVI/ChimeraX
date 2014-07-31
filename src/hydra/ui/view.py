@@ -80,7 +80,7 @@ class View(QtGui.QWindow):
         self.window_size = w, h
         self.camera.window_size = w, h
         if not self.opengl_context is None:
-            self.render.set_drawing_region(0,0,w,h)
+            self.render.set_viewport(0,0,w,h)
 
     # QWindow method
     def exposeEvent(self, event):
@@ -175,6 +175,9 @@ class View(QtGui.QWindow):
         r.set_background_color(self.background_rgba)
         r.enable_depth_test(True)
         r.initialize_opengl()
+
+        w,h = self.window_size
+        r.set_viewport(0,0,w,h)
 
         s = self.session
         f = self.opengl_context.format()
@@ -277,7 +280,6 @@ class View(QtGui.QWindow):
             return None         # Image size exceeds framebuffer limits
 
         r.push_framebuffer(fb)
-        fb.set_drawing_region()
 
         # Camera needs correct aspect ratio when setting projection matrix.
         c = camera if camera else self.camera
@@ -292,8 +294,6 @@ class View(QtGui.QWindow):
         r.pop_framebuffer()
         fb.delete()
 
-        ww, wh = self.window_size
-        r.set_drawing_region(0,0,ww,wh)
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         return qi
 
@@ -415,7 +415,7 @@ class View(QtGui.QWindow):
         lvinv = r.start_rendering_shadowmap(center, radius, camera.view())
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
-        shadow_map = r.finish_rendering_shadowmap(self.window_size)
+        shadow_map = r.finish_rendering_shadowmap()
 
         # Bind shadow map for subsequent rendering of shadows.
         shadow_map.bind_texture()
