@@ -9,13 +9,14 @@ def lighting_command(cmdname, args, session):
                ('fillColor', color_arg),
                ('ambientColor', color_arg),
                ('fixed', bool_arg),
+               ('shadows', bool_arg),
            )
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
     lighting(session, **kw)
 
 def lighting(session, direction = None, color = None, specularColor = None, exponent = None, 
-             fillDirection = None, fillColor = None, ambientColor = None, fixed = None):
+             fillDirection = None, fillColor = None, ambientColor = None, fixed = None, shadows = None):
 
     v = session.view
     lp = v.render.lighting
@@ -34,6 +35,8 @@ def lighting(session, direction = None, color = None, specularColor = None, expo
         lp.ambient_light_color = ambientColor[:3]
     if not fixed is None:
         lp.move_lights_with_camera = not fixed
+    if not shadows is None:
+        v.shadows = shadows
 
     v.update_lighting = True
     v.redraw_needed = True
