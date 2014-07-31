@@ -241,7 +241,7 @@ class Camera:
             s.use_radial_warp = True
 
         s = self.warp_surface
-        s.texture = self.warp_framebuffer.texture
+        s.texture = self.warp_framebuffer.color_texture
 
         return s
 
