@@ -12,6 +12,23 @@ void main (void)
   frag_color = color * f;
 }
 
+#elif defined(USE_DEPTH_OUTLINE)
+
+in vec2 tex_coord;
+uniform sampler2D tex2d;
+uniform vec4 color;
+uniform vec3 depth_shift_and_jump;
+out vec4 frag_color;
+
+void main (void)
+{
+  float d0 = texture(tex2d, tex_coord).r;
+  float ds = texture(tex2d, vec2(tex_coord.s+depth_shift_and_jump.s, tex_coord.t+depth_shift_and_jump.t)).r;
+  if (ds < d0 + depth_shift_and_jump.p)
+     discard;
+  frag_color = color;
+}
+
 #else
 
 #ifdef USE_LIGHTING

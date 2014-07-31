@@ -42,6 +42,7 @@ class View(QtGui.QWindow):
         from .. import graphics
         self.render = graphics.Render()
         self._shadows = False
+        self.silhouettes = False
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -364,6 +365,9 @@ class View(QtGui.QWindow):
             stf = self.use_shadow_map(camera, models)
 
         r = self.render
+        if self.silhouettes:
+            r.start_silhouette_drawing(self.window_size)
+
         r.set_background_color(self.background_rgba)
 
         if self.update_lighting:
@@ -396,6 +400,9 @@ class View(QtGui.QWindow):
 #        GL.glFinish()
         t1 = time()
         self.last_draw_duration = t1-t0
+
+        if self.silhouettes:
+            r.finish_silhouette_drawing()
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)

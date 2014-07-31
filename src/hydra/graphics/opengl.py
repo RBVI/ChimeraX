@@ -37,6 +37,7 @@ class Render:
         self.mask_framebuffer = None
         self.outline_framebuffer = None
         self.shadow_map_framebuffer = None
+        self._silhouette_framebuffer = None
 
         # Texture warp parameters
         self.warp_center = (0.5, 0.5)
@@ -61,6 +62,7 @@ class Render:
     SHADER_SHIFT_AND_SCALE = 'USE_INSTANCING_SS'
     SHADER_INSTANCING = 'USE_INSTANCING_44'
     SHADER_TEXTURE_MASK = 'USE_TEXTURE_MASK'
+    SHADER_DEPTH_OUTLINE = 'USE_DEPTH_OUTLINE'
     SHADER_VERTEX_COLORS = 'USE_VERTEX_COLORS'
 
     def set_override_capabilities(self, ocap):
@@ -73,7 +75,7 @@ class Render:
         The available option names are given by the values of SHADER_LIGHTING,
         SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
         SHADER_SHADOWS, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
-        SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_VERTEX_COLORS
+        SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS
         '''
         capabilities = self.default_capabilities.copy()
         ocap = self.override_capabilities
@@ -108,7 +110,7 @@ class Render:
             self.set_depth_cue_parameters()
         self.set_projection_matrix()
         self.set_model_matrix()
-        if self.SHADER_TEXTURE_2D in c:
+        if self.SHADER_TEXTURE_2D in c or self.SHADER_TEXTURE_MASK in c or self.SHADER_DEPTH_OUTLINE in c:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
         if self.SHADER_TEXTURE_3D_AMBIENT in c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
@@ -140,8 +142,9 @@ class Render:
         if len(s) == 0:
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
         else:
-            fb = s[-1]
-            fb.activate()
+            cfb = s[-1]
+            cfb.activate()
+        return fb
 
     def rendering_to_screen(self):
         return len(self.framebuffer_stack) == 0
@@ -417,10 +420,9 @@ class Render:
         # Make a framebuffer for depth texture rendering
         fb = self.shadow_map_framebuffer
         if fb is None:
-            from .. import graphics
-            dt = graphics.Texture()
+            dt = Texture()
             dt.initialize_depth((size,size))
-            fb = graphics.Framebuffer(depth_texture = dt)
+            fb = Framebuffer(depth_texture = dt)
             if not fb.valid():
                 return           # Requested size exceeds framebuffer limits
             self.shadow_map_framebuffer = fb
@@ -472,7 +474,7 @@ class Render:
                                         self.SHADER_SHADOWS:False,
                                         })
         self.set_depth_range(0,0.999)      # Depth test GL_LEQUAL results in z-fighting
-        mfb.copy_depth_from_another_framebuffer(fb)
+        mfb.copy_from_another_framebuffer(fb, color = False, restore_read_draw_fbo = mfb)
 
     def finish_rendering_outline(self):
 
@@ -515,13 +517,8 @@ class Render:
         self.draw_background()
 
         # Render region with texture red > 0.
-        p = self.shader({self.SHADER_TEXTURE_MASK:True,
-                         self.SHADER_LIGHTING:False,
-                         self.SHADER_VERTEX_COLORS:False})
-        self.use_shader(p)
-
         # Texture map a full-screen quad to blend texture with frame buffer.
-        tc = Texture_Copier(self.current_shader_program)
+        tc = Texture_Window(self, self.SHADER_TEXTURE_MASK)
         texture.bind_texture()
 
         # Draw 4 shifted copies of mask
@@ -531,11 +528,11 @@ class Render:
         GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
         self.set_texture_mask_color((1,1,1,1))
         for xs,ys in ((-dx,-dy), (dx,-dy), (dx,dy), (-dx,dy)):
-            tc.draw_shifted(xs,ys)
+            tc.draw(xshift = xs, yshift = ys)
 
         # Erase unshifted copy of mask
         GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-        tc.draw_shifted(0,0)
+        tc.draw()
 
         # Now outline is in texture of the outline framebuffer
         outline = ofb.color_texture
@@ -545,7 +542,7 @@ class Render:
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         outline.bind_texture()
         self.set_texture_mask_color(color)
-        tc.draw_shifted(0,0)
+        tc.draw()
         
     def set_texture_mask_color(self, color):
 
@@ -556,6 +553,62 @@ class Render:
     def set_depth_range(self, min, max):
 #        GL.glDepthFunc(GL.GL_LEQUAL)   # Get z-fighting with screen depth copied to framebuffer object on Mac/Nvidia
         GL.glDepthRange(min, max)
+
+    def start_silhouette_drawing(self, size):
+        fb = self.silhouette_framebuffer(size)
+        self.push_framebuffer(fb)
+
+    def finish_silhouette_drawing(self):
+        fb = self.pop_framebuffer()
+        cfb = self.current_framebuffer()
+        fb.copy_to_another_framebuffer(cfb, depth = False, restore_read_draw_fbo = cfb)
+        self.draw_depth_outline(fb.depth_texture)
+
+    def silhouette_framebuffer(self, size = None):
+        sfb = self._silhouette_framebuffer
+        if size is None:
+            return sfb
+        if sfb and (size[0] != sfb.width or size[1] != sfb.height):
+            sfb.delete()
+            sfb = None
+        if sfb is None:
+            dt = Texture()
+            dt.initialize_depth(size, depth_compare_mode = False)
+            self._silhouette_framebuffer = sfb = Framebuffer(depth_texture = dt)
+        return sfb
+
+    def draw_depth_outline(self, depth_texture, color = (0,0,0,1), depth_jump = 0.01):
+
+        # Render pixels with depth less than neighbor pixel by at least depth_jump
+        # Texture map a full-screen quad to blend depth jump pixels with frame buffer.
+        tc = Texture_Window(self, self.SHADER_DEPTH_OUTLINE)
+        depth_texture.bind_texture()
+
+        # Draw 4 shifted copies of mask
+        w,h = depth_texture.size
+        dx, dy = 1.0/w, 1.0/h
+        self.enable_depth_test(False)
+        self.enable_blending(True)
+        GL.glDepthMask(False)   # Disable depth write
+        self.set_depth_outline_color(color)
+        for xs,ys in ((-dx,-dy), (dx,-dy), (dx,dy), (-dx,dy)):
+            self.set_depth_outline_shift_and_jump(xs, ys, depth_jump)
+            tc.draw()
+        GL.glDepthMask(True)
+        self.enable_blending(False)
+        self.enable_depth_test(True)
+
+    def set_depth_outline_color(self, color):
+
+        p = self.current_shader_program.program_id
+        mc = GL.glGetUniformLocation(p, b"color")
+        GL.glUniform4fv(mc, 1, color)
+
+    def set_depth_outline_shift_and_jump(self, xs, ys, depth_jump):
+
+        p = self.current_shader_program.program_id
+        mc = GL.glGetUniformLocation(p, b"depth_shift_and_jump")
+        GL.glUniform3fv(mc, 1, (xs,ys,depth_jump))
 
     def finish_rendering(self):
         GL.glFinish()
@@ -665,13 +718,30 @@ class Framebuffer:
         GL.glDeleteFramebuffers(1, (self.fbo,))
         self.color_rb = self.depth_rb = self.fbo = None
 
-    def copy_depth_from_another_framebuffer(self, framebuffer):
-        # Copy screen depth buffer to fbo
+    def copy_from_another_framebuffer(self, framebuffer, color = True, depth = True, restore_read_draw_fbo = None):
         sfbo = framebuffer.fbo if framebuffer else 0
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, sfbo)
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, self.fbo)
-        w, h = self.width, self.height
-        GL.glBlitFramebuffer(0,0,w,h, 0,0,w,h, GL.GL_DEPTH_BUFFER_BIT, GL.GL_NEAREST)
+        rfbo = restore_read_draw_fbo.fbo if restore_read_draw_fbo else 0
+        copy_framebuffer_data(sfbo, self.fbo, self.width, self.height, color, depth, rfbo)
+
+    def copy_to_another_framebuffer(self, framebuffer, color = True, depth = True, restore_read_draw_fbo = None):
+        dfbo = framebuffer.fbo if framebuffer else 0
+        rfbo = restore_read_draw_fbo.fbo if restore_read_draw_fbo else 0
+        copy_framebuffer_data(self.fbo, dfbo, self.width, self.height, color, depth, rfbo)
+
+def copy_framebuffer_data(source_fbo, destination_fbo, width, height, color = True, depth = True,
+                          restore_read_draw_fbo = None):
+    GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, source_fbo)
+    GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, destination_fbo)
+    what = 0
+    if color:
+        what |= GL.GL_COLOR_BUFFER_BIT
+    if depth:
+        what |= GL.GL_DEPTH_BUFFER_BIT
+    GL.glBlitFramebuffer(0,0,width,height, 0,0,width,height, what, GL.GL_NEAREST)
+    if not restore_read_draw_fbo is None:
+        # Restore read and draw buffers
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, restore_read_draw_fbo)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, restore_read_draw_fbo)
 
 class Lighting:
     '''
@@ -831,7 +901,8 @@ INSTANCE_MATRIX_BUFFER = Buffer_Type('instancePlacement', instance_buffer = True
 INSTANCE_COLOR_BUFFER = Buffer_Type('vcolor', instance_buffer = True, value_type = uint8, normalize = True,
                                     requires_capabilities = (Render.SHADER_VERTEX_COLORS,))
 TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d', requires_capabilities = (Render.SHADER_TEXTURE_2D,
-                                                                                Render.SHADER_TEXTURE_MASK))
+                                                                                Render.SHADER_TEXTURE_MASK,
+                                                                                Render.SHADER_DEPTH_OUTLINE))
 ELEMENT_BUFFER = Buffer_Type(None, buffer_type = GL.GL_ELEMENT_ARRAY_BUFFER, value_type = uint32)
 
 class Buffer:
@@ -1211,12 +1282,18 @@ class Texture:
             raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype, ncomp
 
-class Texture_Copier:
+class Texture_Window:
     '''Draw a texture on a full window rectangle.'''
-    def __init__(self, shader):
+    def __init__(self, render, shader_mode):
 
-        self.vao = vao = Bindings(shader)
+        # Must have vao bound before compiling shader.
+        self.vao = vao = Bindings(None)
         vao.activate()
+
+        p = render.shader({shader_mode:True})
+        render.use_shader(p)
+        vao.shader = p
+
         self.vertex_buf = vb = Buffer(VERTEX_BUFFER)
         from numpy import array, float32, int32
         vb.update_buffer_data(array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32))
@@ -1233,10 +1310,12 @@ class Texture_Copier:
         for b in (self.vertex_buf, self.tex_coord_buf, self.element_buf):
             b.delete_buffer()
 
-    def draw_shifted(self, xshift, yshift):
+    def draw(self, xshift = 0, yshift = 0):
         xs, ys = xshift, yshift
         tcb = self.tex_coord_buf
         from numpy import array, float32
         tcb.update_buffer_data(array(((xs,ys,0),(1+xs,ys,0),(1+xs,1+ys,0),(xs,1+ys,0)), float32))
+        GL.glDepthMask(False)   # Don't overwrite depth buffer
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
+        GL.glDepthMask(True)
