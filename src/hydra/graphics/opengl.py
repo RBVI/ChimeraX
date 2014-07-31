@@ -113,13 +113,15 @@ class Render:
         if self.SHADER_TEXTURE_3D_AMBIENT in c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
         if self.SHADER_SHADOWS in c:
-            GL.glUniform1i(shader.uniform_id("shadow_map"), 0)    # Texture unit 0.
+            GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
             if not self.shadow_transform is None:
                 GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
         if self.SHADER_RADIAL_WARP in c:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS in c:
             self.set_single_color()
+
+    shadow_texture_unit = 1
 
     def push_framebuffer(self, fb):
         fb.restore_viewport = self.current_viewport
@@ -431,20 +433,19 @@ class Render:
 
         # Set the transform mapping camera to depth texture coordinates.
         ntf = translation((0.5,0.5,0.5-depth_bias))*scale(0.5)    # (-1,1) normalized device coords to (0,1) texture coords.
-        tf = ntf * pm * lvinv * camera_view                       # Camera to shadowmap coordinates
-        self.set_shadow_transform(tf)
+        stf = ntf * pm * lvinv                       # Scene to shadowmap coordinates
 
         # Make sure depth texture is not bound from previous drawing so that it is not
         # used for rendering shadows while the depth texture is being written.
         # TODO: The depth rendering should not render colors or shadows.
         dt = fb.depth_texture
-        dt.unbind_texture()
+        dt.unbind_texture(self.shadow_texture_unit)
 
         # Draw the models recording depth in light direction, i.e. calculate the shadow map.
         self.push_framebuffer(fb)
         self.draw_background()             # Clear depth buffer
 
-        return lvinv
+        return lvinv, stf
 
     def finish_rendering_shadowmap(self):
 
@@ -1139,13 +1140,23 @@ class Texture:
         'Delete the OpenGL texture.'
         GL.glDeleteTextures((self.id,))
 
-    def bind_texture(self):
+    def bind_texture(self, tex_unit = None):
         'Bind the OpenGL texture.'
-        GL.glBindTexture(self.gl_target, self.id)
+        if tex_unit is None:
+            GL.glBindTexture(self.gl_target, self.id)
+        else:
+            GL.glActiveTexture(GL.GL_TEXTURE0 + tex_unit)
+            GL.glBindTexture(self.gl_target, self.id)
+            GL.glActiveTexture(GL.GL_TEXTURE0)
 
-    def unbind_texture(self):
+    def unbind_texture(self, tex_unit = None):
         'Unbind the OpenGL texture.'
-        GL.glBindTexture(self.gl_target, 0)
+        if tex_unit is None:
+            GL.glBindTexture(self.gl_target, 0)
+        else:
+            GL.glActiveTexture(GL.GL_TEXTURE0 + tex_unit)
+            GL.glBindTexture(self.gl_target, 0)
+            GL.glActiveTexture(GL.GL_TEXTURE0)
 
     def reload_texture(self, data):
         '''

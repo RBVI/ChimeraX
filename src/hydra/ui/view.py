@@ -361,7 +361,7 @@ class View(QtGui.QWindow):
         mdraw = [m for m in s.model_list() if m.display] if models is None else models
 
         if self.shadows:
-            self.use_shadow_map(camera, models)
+            stf = self.use_shadow_map(camera, models)
 
         r = self.render
         r.set_background_color(self.background_rgba)
@@ -382,6 +382,9 @@ class View(QtGui.QWindow):
             r.draw_background()
             if mdraw:
                 self.update_projection(vnum, camera = camera)
+                if self.shadows:
+                    # Shadow transform is from camera to shadow map texture coords.
+                    r.set_shadow_transform(stf * camera.view())
                 cvinv = camera.view_inverse(vnum)
                 graphics.draw_drawings(r, cvinv, mdraw)
                 if selected:
@@ -412,13 +415,15 @@ class View(QtGui.QWindow):
 
         # Compute shadow map depth texture
         r = self.render
-        lvinv = r.start_rendering_shadowmap(center, radius, camera.view())
+        lvinv, stf = r.start_rendering_shadowmap(center, radius, camera.view())
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
         shadow_map = r.finish_rendering_shadowmap()
 
         # Bind shadow map for subsequent rendering of shadows.
-        shadow_map.bind_texture()
+        shadow_map.bind_texture(r.shadow_texture_unit)
+
+        return stf      # Scene to shadow map texture coordinates
 
     def update_level_of_detail(self):
         # Level of detail updating.
