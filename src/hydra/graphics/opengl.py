@@ -480,7 +480,7 @@ class Render:
                                         self.SHADER_TEXTURE_3D_AMBIENT:False,
                                         self.SHADER_SHADOWS:False,
                                         })
-        self.set_depth_range(0,0.999)      # Depth test GL_LEQUAL results in z-fighting
+        self.set_depth_range(0,0.99999)      # Depth test GL_LEQUAL results in z-fighting
         self.copy_from_framebuffer(fb, color = False)      # Copy depth to outline framebuffer
 
     def finish_rendering_outline(self):
