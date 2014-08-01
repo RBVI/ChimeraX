@@ -13,9 +13,7 @@ class Camera:
     in scene units, and also the eye spacing in pixels in the window.  The two eyes
     are considered 2 views that belong to one camera.
     '''
-    def __init__(self, window_size, mode = 'mono', eye_separation_pixels = 200):
-
-        self.window_size = window_size
+    def __init__(self, mode = 'mono', eye_separation_pixels = 200):
 
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
@@ -28,7 +26,7 @@ class Camera:
         self.eye_separation_scene = 1.0           # Scene distance units
         self.eye_separation_pixels = eye_separation_pixels        # Screen pixel units
 
-        self.warp_window_size = window_size       # Used for scaling in oculus mode
+        self.warp_window_size = None	          # Used for scaling in oculus mode
 
         self.perspective_near_far_ratio = None
 
@@ -106,13 +104,13 @@ class Camera:
         vw = 2*d*tan(0.5*self.field_of_view*pi/180)     # view width at center
         return vw
 
-    def pixel_size(self, center):
+    def pixel_size(self, center, window_size):
         '''
         Return the size of a pixel in scene units for a point at position center.
         Center is given in scene coordinates and perspective projection is accounted for.
         '''
         # Pixel size at center
-        w,h = self.window_size
+        w,h = window_size
         from math import pi, tan
         fov = self.field_of_view * pi/180
 
@@ -129,7 +127,7 @@ class Camera:
         '''The view direction of the camera in scene coordinates.'''
         return -self.view(view_num).z_axis()
 
-    def projection_matrix(self, near_far_clip, view_num = None, win_size = None):
+    def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL perspective projection matrix for rendering the scene using this camera view.'''
         # Perspective projection to origin with center of view along z axis
         from math import pi, tan
@@ -141,24 +139,26 @@ class Camera:
             far = 2*near
         self.perspective_near_far_ratio = near/far
         w = 2*near*tan(0.5*fov)
-        ww,wh = w0,h0 = self.window_size if win_size is None else win_size
+        ww,wh = window_size
         m = self.mode
         if m == 'oculus':
             # Only half of window width used per eye in oculus mode.
-            ww,wh = self.warp_window_size
-        aspect = float(wh)/ww
+            www,wwh = self.warp_window_size
+            aspect = wwh/www
+        else:
+            aspect = wh/ww
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
         if m in ('stereo','oculus') and not view_num is None:
             s = -1 if view_num == 0 else 1
             esp = self.eye_separation_pixels
-            xwshift = s*float(esp)/(0.5*w0)
+            xwshift = s*float(esp)/(0.5*ww)
         else:
             xwshift = 0
         pm = frustum(left, right, bot, top, near, far, xwshift)
         return pm
 
-    def clip_plane_points(self, window_x, window_y, z_distances):
+    def clip_plane_points(self, window_x, window_y, window_size, z_distances):
         '''
         Two scene points at the near and far clip planes at the specified window pixel position.
         The points are in the camera coordinate frame.
@@ -166,7 +166,7 @@ class Camera:
         from math import pi, tan
         fov = self.field_of_view*pi/180
         t = tan(0.5*fov)
-        wp,hp = self.window_size     # Screen size in pixels
+        wp,hp = window_size     # Screen size in pixels
         wx,wy = window_x - 0.5*wp, -(window_y - 0.5*hp)
         cpts = []
         for z in z_distances:
@@ -202,8 +202,8 @@ class Camera:
     def warp_image(self, view_num, render):
         m = self.mode
         if m == 'oculus':
+            w,h = render.render_size()
             render.pop_framebuffer()
-            w,h = self.window_size
             if view_num == 0:
                 render.draw_background()
                 render.set_viewport(0,0,w//2,h)
@@ -266,9 +266,9 @@ def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
          (0, 0, D, 0))
     return m
 
-def camera_framing_models(w, h, models):
+def camera_framing_models(models):
 
-    c = Camera((w,h))
+    c = Camera()
     from ..geometry import bounds
     b = bounds.union_bounds(m.bounds() for m in models)
     center, size = bounds.bounds_center_and_radius(b)

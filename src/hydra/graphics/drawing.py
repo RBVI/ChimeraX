@@ -696,10 +696,10 @@ def draw_overlays(drawings, renderer):
   draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
   r.enable_depth_test(True)
 
-def draw_outline(window_size, renderer, cvinv, drawings):
+def draw_outline(renderer, cvinv, drawings):
   r = renderer
   r.set_view_matrix(cvinv)
-  r.start_rendering_outline(window_size)
+  r.start_rendering_outline()
   from ..geometry.place import Place
   p = Place()
   draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)

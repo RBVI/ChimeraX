@@ -256,20 +256,7 @@ def save_image(path, session, width = None, height = None, format = None):
             from ..ui import commands
             raise commands.CommandError('Unrecognized image file suffix "%s"' % format)
 
-    # Match current window aspect ratio
-    # TODO: Allow different aspect ratios
-    ww,wh = view.window_size
-    if not width is None and not height is None:
-        w,h = width,height
-    elif not width is None:
-        w = width
-        h = (wh*w)//ww          # Choose height to match window aspect ratio.
-    elif not height is None:
-        h = height
-        w = (ww*h)//wh          # Choose width to match window aspect ratio.
-    else:
-        w,h = ww,wh
-    i = view.image(w, h)
+    i = view.image(width, height)
     i.save(path, format)
     print ('saved image', path)
 
