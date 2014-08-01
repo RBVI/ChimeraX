@@ -558,11 +558,11 @@ class Render:
         fb = self.silhouette_framebuffer(size)
         self.push_framebuffer(fb)
 
-    def finish_silhouette_drawing(self):
+    def finish_silhouette_drawing(self, perspective_near_far_ratio):
         fb = self.pop_framebuffer()
         cfb = self.current_framebuffer()
         fb.copy_to_another_framebuffer(cfb, depth = False, restore_read_draw_fbo = cfb)
-        self.draw_depth_outline(fb.depth_texture)
+        self.draw_depth_outline(fb.depth_texture, perspective_near_far_ratio = perspective_near_far_ratio)
 
     def silhouette_framebuffer(self, size = None):
         sfb = self._silhouette_framebuffer
@@ -577,7 +577,7 @@ class Render:
             self._silhouette_framebuffer = sfb = Framebuffer(depth_texture = dt)
         return sfb
 
-    def draw_depth_outline(self, depth_texture, color = (0,0,0,1), depth_jump = 0.01):
+    def draw_depth_outline(self, depth_texture, color = (0,0,0,1), depth_jump = 0.01, perspective_near_far_ratio = 1):
 
         # Render pixels with depth less than neighbor pixel by at least depth_jump
         # Texture map a full-screen quad to blend depth jump pixels with frame buffer.
@@ -592,7 +592,7 @@ class Render:
         GL.glDepthMask(False)   # Disable depth write
         self.set_depth_outline_color(color)
         for xs,ys in ((-dx,-dy), (dx,-dy), (dx,dy), (-dx,dy)):
-            self.set_depth_outline_shift_and_jump(xs, ys, depth_jump)
+            self.set_depth_outline_shift_and_jump(xs, ys, depth_jump, perspective_near_far_ratio)
             tc.draw()
         GL.glDepthMask(True)
         self.enable_blending(False)
@@ -604,11 +604,11 @@ class Render:
         mc = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(mc, 1, color)
 
-    def set_depth_outline_shift_and_jump(self, xs, ys, depth_jump):
+    def set_depth_outline_shift_and_jump(self, xs, ys, depth_jump, perspective_near_far_ratio):
 
         p = self.current_shader_program.program_id
         mc = GL.glGetUniformLocation(p, b"depth_shift_and_jump")
-        GL.glUniform3fv(mc, 1, (xs,ys,depth_jump))
+        GL.glUniform4fv(mc, 1, (xs,ys,depth_jump,perspective_near_far_ratio))
 
     def finish_rendering(self):
         GL.glFinish()

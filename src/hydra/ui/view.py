@@ -402,7 +402,7 @@ class View(QtGui.QWindow):
         self.last_draw_duration = t1-t0
 
         if self.silhouettes:
-            r.finish_silhouette_drawing()
+            r.finish_silhouette_drawing(camera.perspective_near_far_ratio)
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)

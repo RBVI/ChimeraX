@@ -30,6 +30,8 @@ class Camera:
 
         self.warp_window_size = window_size       # Used for scaling in oculus mode
 
+        self.perspective_near_far_ratio = None
+
         self.redraw_needed = False
 
     def initialize_view(self, center, size):
@@ -137,6 +139,7 @@ class Camera:
         near = max(near, near_min)
         if far <= near:
             far = 2*near
+        self.perspective_near_far_ratio = near/far
         w = 2*near*tan(0.5*fov)
         ww,wh = w0,h0 = self.window_size if win_size is None else win_size
         m = self.mode

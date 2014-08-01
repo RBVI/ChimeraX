@@ -17,14 +17,16 @@ void main (void)
 in vec2 tex_coord;
 uniform sampler2D tex2d;
 uniform vec4 color;
-uniform vec3 depth_shift_and_jump;
+uniform vec4 depth_shift_and_jump;
 out vec4 frag_color;
 
 void main (void)
 {
   float d0 = texture(tex2d, tex_coord).r;
   float ds = texture(tex2d, vec2(tex_coord.s+depth_shift_and_jump.s, tex_coord.t+depth_shift_and_jump.t)).r;
-  if (ds < d0 + depth_shift_and_jump.p)
+  float nf = depth_shift_and_jump.q;	// Correct depth compression based on perspective near/far ratio.
+  float nf1 = 1-nf;
+  if (nf*(ds-d0) < depth_shift_and_jump.p * (1-nf1*ds) * (1-nf1*d0))
      discard;
   frag_color = color;
 }
