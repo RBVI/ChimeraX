@@ -39,6 +39,7 @@
 # include <functional>
 # include <algorithm>
 # include <stdexcept>
+# include <limits>
 
 // readcif -- parse CIF and mmCIF files with minimal overhead
 //
@@ -71,11 +72,13 @@ is_not_whitespace(char c)
 // for non-scientific notation
 inline float str_to_float(const char* s)
 {
+	bool saw_digit = false;
 	bool neg = false;
 	float fa = 0, v = 0;
 	for (;;) {
 		char c = *s;
 		if (c >= '0' && c <= '9') {
+			saw_digit = true;
 			if (fa) {
 				v += fa * (c - '0');
 				fa *= 0.1;
@@ -90,7 +93,9 @@ inline float str_to_float(const char* s)
 			break;
 		s += 1;
 	}
-	return (neg ? -v : v);
+	if (saw_digit)
+		return (neg ? -v : v);
+	return std::numeric_limits<float>::quiet_NaN();
 }
 
 // non-error checking replacement for the standard library's atoi/strtol
@@ -138,9 +143,15 @@ public:
 	void parse_file(const char* filename);	// open file and parse it
 	void parse(const char* buffer); // null-terminated whole file
 
-	// Indiate that CIF file follows the PDBx/mmCIF style guide
-	bool PDBx_stylized() const { return stylized_; }
-	void set_PDBx_stylized(bool stylized) { stylized_ = stylized; }
+	// Indicate that CIF file follows the PDBx/mmCIF style guide
+	// with lowercase keywords and tags at beginning of lines
+	bool PDB_style() const { return stylized; }
+	void set_PDB_style(bool stylized) { stylized = stylized; }
+
+	// Indicate that the next CIF table uses PDBx/mmCIF style
+	// fixed column widths
+	bool PDB_fixed_columns() const { return fixed_columns; }
+	void set_PDB_fixed_columns(bool fc) { fixed_columns = fc; }
 
 	// version() returns the version of the CIF file if it is given.
 	// For mmCIF files it is typically empty.
@@ -211,7 +222,8 @@ private:
 
 	// parsing state
 	bool		parsing;
-	bool		stylized_;	// true for PDBx/mmCIF style
+	bool		stylized;	// true for PDBx/mmCIF keyword style
+	bool		fixed_columns;	// true for PDBx/mmCIF fixed column widths
 	std::string	version_;	// version given in CIF file
 	const char*	whole_file;
 	std::string	current_data_block;

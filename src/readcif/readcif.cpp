@@ -432,10 +432,9 @@ CIFFile::internal_parse(bool one_table)
 			if (stash.size() > 0)
 				process_stash();
 			seen.clear();
-			set_PDBx_stylized(false);
 			current_data_block = current_value();
 			data_block(current_data_block);
-			if (stylized_)
+			if (stylized)
 				stylized_next_keyword(true);
 			else
 				next_token();
@@ -506,6 +505,7 @@ CIFFile::internal_parse(bool one_table)
 				ParseCategory& pf = cii->second.func;
 				pf(true);
 				first_row = false;
+				fixed_columns = false;
 				current_category.clear();
 				current_tags.clear();
 				values.clear();
@@ -514,7 +514,7 @@ CIFFile::internal_parse(bool one_table)
 			if (one_table)
 				return;
 			// eat remaining values
-			if (stylized_) {
+			if (stylized) {
 				// if seen all tables, skip to next keyword
 				bool tags_okay = seen.size() < categories.size();
 				if (!current_is_keyword()
@@ -591,6 +591,7 @@ CIFFile::internal_parse(bool one_table)
 						ParseCategory& pf = cii->second.func;
 						pf(false);
 						first_row = false;
+						fixed_columns = false;
 						//current_category.clear();
 						current_tags.clear();
 						values.clear();
@@ -640,6 +641,7 @@ CIFFile::internal_parse(bool one_table)
 				ParseCategory& pf = cii->second.func;
 				pf(false);
 				first_row = false;
+				fixed_columns = false;
 				current_category.clear();
 				current_tags.clear();
 				values.clear();
@@ -670,7 +672,8 @@ CIFFile::internal_reset_parse()
 	// parsing state
 	version_.clear();
 	parsing = false;
-	stylized_ = false;
+	stylized = false;
+	fixed_columns = false;
 	current_data_block.clear();
 	current_category.clear();
 	current_tags.clear();
@@ -1060,7 +1063,7 @@ CIFFile::parse_row(ParseValues& pv)
 			[](const ParseColumn& a, const ParseColumn& b) -> bool {
 				return a.column < b.column;
 			});
-		if (stylized_ && values.empty())
+		if (fixed_columns && stylized && values.empty())
 			columns = find_column_offsets();
 	}
 	auto pvi = pv.begin(), pve = pv.end();
