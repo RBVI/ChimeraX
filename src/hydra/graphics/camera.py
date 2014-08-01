@@ -203,9 +203,9 @@ class Camera:
             w,h = self.window_size
             if view_num == 0:
                 render.draw_background()
-                render.set_drawing_region(0,0,w//2,h)
+                render.set_viewport(0,0,w//2,h)
             elif view_num == 1:
-                render.set_drawing_region(w//2,0,w//2,h)
+                render.set_viewport(w//2,0,w//2,h)
             coffset = 0.5*self.eye_separation_pixels/(w//2)
             if view_num == 0:
                 coffset = -coffset
@@ -241,7 +241,7 @@ class Camera:
             s.use_radial_warp = True
 
         s = self.warp_surface
-        s.texture = self.warp_framebuffer.texture
+        s.texture = self.warp_framebuffer.color_texture
 
         return s
 

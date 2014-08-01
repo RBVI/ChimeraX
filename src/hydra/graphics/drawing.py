@@ -463,6 +463,12 @@ class Drawing:
     if bchange:
       ds.reset_bindings = dss.reset_bindings = True
 
+  def clear_cached_shader(self):
+    # Used when global shader option like shadows changed.
+    for d in self.all_drawings():
+      d._shader_options = None
+    self.redraw_needed()
+
   def position_mask(self, selected_only = False):
     dp = self._displayed_positions        # bool array
     if selected_only:

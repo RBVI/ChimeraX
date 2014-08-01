@@ -24,6 +24,7 @@ class Render:
         self.default_capabilities = set((self.SHADER_LIGHTING,self.SHADER_VERTEX_COLORS))
         self.override_capabilities = {}
 
+        self.current_viewport = None
         self.current_projection_matrix = None   # Used when switching shaders
         self.current_model_view_matrix = None   # Used when switching shaders
         self.current_model_matrix = None        # Used for optimizing model view matrix updates
@@ -35,6 +36,7 @@ class Render:
         self.framebuffer_stack = []
         self.mask_framebuffer = None
         self.outline_framebuffer = None
+        self.shadow_map_framebuffer = None
 
         # Texture warp parameters
         self.warp_center = (0.5, 0.5)
@@ -111,17 +113,21 @@ class Render:
         if self.SHADER_TEXTURE_3D_AMBIENT in c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
         if self.SHADER_SHADOWS in c:
-            GL.glUniform1i(shader.uniform_id("shadow_map"), 0)    # Texture unit 0.
-            GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
+            GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
+            if not self.shadow_transform is None:
+                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
         if self.SHADER_RADIAL_WARP in c:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS in c:
             self.set_single_color()
 
+    shadow_texture_unit = 1
+
     def push_framebuffer(self, fb):
+        fb.restore_viewport = self.current_viewport
+        self.set_viewport(0,0,fb.width,fb.height)
         self.framebuffer_stack.append(fb)
         fb.activate()
-        self.set_drawing_region(0,0,fb.width,fb.height)
 
     def current_framebuffer(self):
         s = self.framebuffer_stack
@@ -129,7 +135,8 @@ class Render:
 
     def pop_framebuffer(self):
         s = self.framebuffer_stack
-        s.pop()
+        fb = s.pop()
+        self.set_viewport(*fb.restore_viewport)
         if len(s) == 0:
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
         else:
@@ -283,7 +290,8 @@ class Render:
         # Transform from camera coordinates to shadow map texture coordinates.
         self.shadow_transform = m = tf.opengl_matrix()
         p = self.current_shader_program
-        GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
+        if self.SHADER_SHADOWS in p.capabilities:
+            GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, m)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -302,9 +310,11 @@ class Render:
         vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(vao)
 
-    def set_drawing_region(self, x, y, w, h):
+    def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
-        GL.glViewport(x, y, w, h)
+        if (x,y,w,h) != self.current_viewport:
+            GL.glViewport(x, y, w, h)
+            self.current_viewport = (x,y,w,h)
 
     def set_background_color(self, rgba):
         'Set the OpenGL clear color.'
@@ -396,6 +406,55 @@ class Render:
         b = GL.GL_BACK
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
+
+    def start_rendering_shadowmap(self, center, radius, camera_view, size = 1024, depth_bias = 0.005):
+
+        # Set projection matrix to be orthographic and span all models.
+        from ..geometry.place import translation, scale, orthonormal_frame
+        pm = scale((1/radius,1/radius,-1/radius))*translation((0,0,radius))       # orthographic projection along z
+        self.set_projection_matrix(pm.opengl_matrix())
+
+        # Make a framebuffer for depth texture rendering
+        fb = self.shadow_map_framebuffer
+        if fb is None:
+            from .. import graphics
+            dt = graphics.Texture()
+            dt.initialize_depth((size,size))
+            fb = graphics.Framebuffer(depth_texture = dt)
+            if not fb.valid():
+                return           # Requested size exceeds framebuffer limits
+            self.shadow_map_framebuffer = fb
+
+        # Compute the view matrix looking along the light direction.
+        kl = self.lighting.key_light_direction
+        ld = camera_view.apply_without_translation(kl) # Light direction in scene coords.
+        lv = translation(center - radius*ld) * orthonormal_frame(-ld)   # Light view frame
+        lvinv = lv.inverse()	# Scene to light view coordinates
+
+        # Set the transform mapping camera to depth texture coordinates.
+        ntf = translation((0.5,0.5,0.5-depth_bias))*scale(0.5)    # (-1,1) normalized device coords to (0,1) texture coords.
+        stf = ntf * pm * lvinv                       # Scene to shadowmap coordinates
+
+        # Make sure depth texture is not bound from previous drawing so that it is not
+        # used for rendering shadows while the depth texture is being written.
+        # TODO: The depth rendering should not render colors or shadows.
+        dt = fb.depth_texture
+        dt.unbind_texture(self.shadow_texture_unit)
+
+        # Draw the models recording depth in light direction, i.e. calculate the shadow map.
+        self.push_framebuffer(fb)
+        self.draw_background()             # Clear depth buffer
+
+        return lvinv, stf
+
+    def finish_rendering_shadowmap(self):
+
+        self.pop_framebuffer()
+
+        # Bind the depth texture for computing shadows.
+        # TODO: Use different texture unit to avoid conflict with texture coloring.
+        fb = self.shadow_map_framebuffer
+        return fb.depth_texture
 
     def start_rendering_outline(self, size):
 
@@ -624,13 +683,14 @@ class Lighting:
 
     def __init__(self):
 
-        self.key_light_direction = (.577,-.577,-.577)    # Should have unit length
+        from numpy import array, float32
+        self.key_light_direction = array((.577,-.577,-.577), float32)    # Should have unit length
         '''Direction key light shines in.'''
 
         self.key_light_color = (1,1,1)
         '''Key light color.'''
 
-        self.fill_light_direction = (-.2,-.2,-.959)        # Should have unit length
+        self.fill_light_direction = array((-.2,-.2,-.959), float32)        # Should have unit length
         '''Direction fill light shines in.'''
 
         self.fill_light_color = (.5,.5,.5)
@@ -1020,7 +1080,16 @@ class Texture:
         ncomp = 1
         self.initialize_texture(size, format, iformat, tdtype, ncomp)
 
-    def initialize_texture(self, size, format, iformat, tdtype, ncomp, data = None):
+    def initialize_depth(self, size, depth_compare_mode = True):
+
+        format = GL.GL_DEPTH_COMPONENT
+        iformat = GL.GL_DEPTH_COMPONENT24
+        tdtype = GL.GL_FLOAT
+        ncomp = 1
+        self.initialize_texture(size, format, iformat, tdtype, ncomp,
+                                depth_compare_mode = depth_compare_mode)
+
+    def initialize_texture(self, size, format, iformat, tdtype, ncomp, data = None, depth_compare_mode = False):
 
         from OpenGL import GL
         self.id = t = GL.glGenTextures(1)
@@ -1055,6 +1124,11 @@ class Texture:
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
+        if depth_compare_mode:
+            # For GLSL sampler2dShadow objects to compare depth to r texture coord.
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_COMPARE_MODE, GL.GL_COMPARE_REF_TO_TEXTURE)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_COMPARE_FUNC, GL.GL_LEQUAL);
+
         if ncomp == 1 or ncomp == 2:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_G, GL.GL_RED)
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_B, GL.GL_RED)
@@ -1066,13 +1140,23 @@ class Texture:
         'Delete the OpenGL texture.'
         GL.glDeleteTextures((self.id,))
 
-    def bind_texture(self):
+    def bind_texture(self, tex_unit = None):
         'Bind the OpenGL texture.'
-        GL.glBindTexture(self.gl_target, self.id)
+        if tex_unit is None:
+            GL.glBindTexture(self.gl_target, self.id)
+        else:
+            GL.glActiveTexture(GL.GL_TEXTURE0 + tex_unit)
+            GL.glBindTexture(self.gl_target, self.id)
+            GL.glActiveTexture(GL.GL_TEXTURE0)
 
-    def unbind_texture(self):
+    def unbind_texture(self, tex_unit = None):
         'Unbind the OpenGL texture.'
-        GL.glBindTexture(self.gl_target, 0)
+        if tex_unit is None:
+            GL.glBindTexture(self.gl_target, 0)
+        else:
+            GL.glActiveTexture(GL.GL_TEXTURE0 + tex_unit)
+            GL.glBindTexture(self.gl_target, 0)
+            GL.glActiveTexture(GL.GL_TEXTURE0)
 
     def reload_texture(self, data):
         '''

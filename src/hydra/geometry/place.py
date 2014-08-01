@@ -200,7 +200,7 @@ def scale(s):
     return Place(((s[0],0,0,0), (0,s[1],0,0), (0,0,s[2],0)))
 
 def orthonormal_frame(zaxis, ydir = None, xdir = None):
-    '''Return a Place object with the specifiec z axis.  Any rotation about that z axis is allowed, unless a
+    '''Return a Place object with the specified z axis.  Any rotation about that z axis is allowed, unless a
     vector ydir is given in which case the y axis will be in the plane define by the z axis and ydir.
     '''
     return Place(axes = m34.orthonormal_frame(zaxis, ydir, xdir))
