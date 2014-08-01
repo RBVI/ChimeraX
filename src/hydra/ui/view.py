@@ -80,7 +80,11 @@ class View(QtGui.QWindow):
 #
         self.window_size = w, h
         if not self.opengl_context is None:
-            self.render.set_viewport(0,0,w,h)
+            from .. import graphics
+            fb = graphics.default_framebuffer()
+            fb.width, fb.height = w,h
+            fb.viewport = (0,0,w,h)
+#            self.render.set_viewport(0,0,w,h)
 
     # QWindow method
     def exposeEvent(self, event):
@@ -365,9 +369,6 @@ class View(QtGui.QWindow):
             stf = self.use_shadow_map(camera, models)
 
         r = self.render
-        if self.silhouettes:
-            r.start_silhouette_drawing()
-
         r.set_background_color(self.background_rgba)
 
         if self.update_lighting:
@@ -383,6 +384,8 @@ class View(QtGui.QWindow):
         from .. import graphics
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
+            if self.silhouettes:
+                r.start_silhouette_drawing()
             r.draw_background()
             if mdraw:
                 self.update_projection(vnum, camera = camera)
@@ -393,16 +396,17 @@ class View(QtGui.QWindow):
                 graphics.draw_drawings(r, cvinv, mdraw)
                 if selected:
                     graphics.draw_outline(r, cvinv, selected)
+            if self.silhouettes:
+                r.finish_silhouette_drawing(camera.perspective_near_far_ratio)
             s = camera.warp_image(vnum, r)
             if s:
                 graphics.draw_overlays([s], r)
+
 #        from OpenGL import GL
 #        GL.glFinish()
         t1 = time()
         self.last_draw_duration = t1-t0
 
-        if self.silhouettes:
-            r.finish_silhouette_drawing(camera.perspective_near_far_ratio)
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
@@ -502,11 +506,11 @@ class View(QtGui.QWindow):
         p = (1.0-f)*xyz1 + f*xyz2
         return p, s
 
-    def update_projection(self, view_num = None, win_size = None, camera = None):
+    def update_projection(self, view_num = None, camera = None):
         
         c = self.camera if camera is None else camera
         r = self.render
-        ww,wh = r.render_size() if win_size is None else win_size
+        ww,wh = r.render_size()
         if ww > 0 and wh > 0:
             nf = self.near_far_clip(c, view_num)
             pm = c.projection_matrix(nf, view_num, (ww,wh))

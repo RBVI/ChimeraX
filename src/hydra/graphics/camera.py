@@ -202,14 +202,15 @@ class Camera:
     def warp_image(self, view_num, render):
         m = self.mode
         if m == 'oculus':
-            w,h = render.render_size()
             render.pop_framebuffer()
+            fb = render.current_framebuffer()
+            w,h = fb.width//2, fb.height
             if view_num == 0:
                 render.draw_background()
-                render.set_viewport(0,0,w//2,h)
+                render.set_viewport(0,0,w,h)
             elif view_num == 1:
-                render.set_viewport(w//2,0,w//2,h)
-            coffset = 0.5*self.eye_separation_pixels/(w//2)
+                render.set_viewport(w,0,w,h)
+            coffset = 0.5*self.eye_separation_pixels/w
             if view_num == 0:
                 coffset = -coffset
             render.warp_center = (0.5 + coffset, 0.5)
