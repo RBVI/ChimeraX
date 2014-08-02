@@ -167,11 +167,20 @@ class Camera:
         fov = self.field_of_view*pi/180
         t = tan(0.5*fov)
         wp,hp = window_size     # Screen size in pixels
-        wx,wy = window_x - 0.5*wp, -(window_y - 0.5*hp)
+        if self.mode == 'oculus':
+            coffset = 0.5*self.eye_separation_pixels
+            cx = (0.25*wp - coffset) if window_x < wp//2 else (0.75*wp + coffset)
+            cy = 0.5*hp
+            wx, wy = window_x - cx, cy - window_y
+            wv = 0.5*wp
+            # TODO: Need to account for radial warp also.
+        else:
+            wx,wy = window_x - 0.5*wp, -(window_y - 0.5*hp)
+            wv = wp
         cpts = []
         for z in z_distances:
             w = 2*z*t   # Screen width in scene units
-            r = w/wp if wp != 0 else 0
+            r = w/wv if wp != 0 else 0
             c = (r*wx, r*wy, -z)
             cpts.append(c)
         return cpts
