@@ -140,50 +140,60 @@ class Camera:
         self.perspective_near_far_ratio = near/far
         w = 2*near*tan(0.5*fov)
         ww,wh = window_size
-        m = self.mode
-        if m == 'oculus':
-            # Only half of window width used per eye in oculus mode.
-            www,wwh = self.warp_window_size
-            aspect = wwh/www
-        else:
-            aspect = wh/ww
+        aspect = wh/ww
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
-        if m in ('stereo','oculus') and not view_num is None:
+        if self.mode == 'stereo' and not view_num is None:
             s = -1 if view_num == 0 else 1
-            esp = self.eye_separation_pixels
+            esp = 0.5*self.eye_separation_pixels
             xwshift = s*float(esp)/(0.5*ww)
         else:
             xwshift = 0
         pm = frustum(left, right, bot, top, near, far, xwshift)
         return pm
 
-    def clip_plane_points(self, window_x, window_y, window_size, z_distances):
+    def clip_plane_points(self, window_x, window_y, window_size, z_distances, render):
         '''
-        Two scene points at the near and far clip planes at the specified window pixel position.
-        The points are in the camera coordinate frame.
+        Return two scene points at the near and far clip planes at the specified window pixel position.
         '''
         from math import pi, tan
         fov = self.field_of_view*pi/180
         t = tan(0.5*fov)
-        wp,hp = window_size     # Screen size in pixels
         if self.mode == 'oculus':
-            coffset = 0.5*self.eye_separation_pixels
-            cx = (0.25*wp - coffset) if window_x < wp//2 else (0.75*wp + coffset)
-            cy = 0.5*hp
-            wx, wy = window_x - cx, cy - window_y
-            wv = 0.5*wp
-            # TODO: Need to account for radial warp also.
+            wx,wy,view_num = self.unwarped_render_position(window_x, window_y, window_size, render)
         else:
-            wx,wy = window_x - 0.5*wp, -(window_y - 0.5*hp)
-            wv = wp
+            wp,hp = window_size     # Screen size in pixels
+            wx,wy,view_num = (window_x - 0.5*wp)/wp, (0.5*hp - window_y)/wp, 0
         cpts = []
         for z in z_distances:
-            w = 2*z*t   # Screen width in scene units
-            r = w/wv if wp != 0 else 0
-            c = (r*wx, r*wy, -z)
+            w = 2*z*t   # Render width in scene units
+            c = (w*wx, w*wy, -z)
             cpts.append(c)
-        return cpts
+        spts = self.view(view_num) * cpts       # Convert camera to scene coordinates
+        return spts
+
+    def unwarped_render_position(self, window_x, window_y, window_size, render):
+        # Returns fractional position in warp framebuffer with origin at center.
+        wp,hp = window_size
+        hw = wp//2
+        coffset = 0.5*self.eye_separation_pixels
+        if window_x < hw:
+            view_num = 0
+            cx = (0.25*wp - coffset)
+        else:
+            view_num = 1
+            cx = (0.75*wp + coffset)
+        cy = 0.5*hp
+        wx, wy = window_x - cx, cy - window_y
+        # Apply radial warp
+        fx, fy = wx/(0.5*hw), wy/(0.5*hw)
+        r2 = fx*fx + fy*fy
+        rc0,rc1,rc2,rc3 = render.radial_warp_coefficients
+        f = rc0 + r2*(rc1 + r2*(rc2 + r2*rc3))
+        wr,hr = render.render_size()
+        wx *= f/wr
+        wy *= f/wr
+        return wx, wy, view_num
 
     def number_of_views(self):
         '''Number of view points for this camera.  Stereo modes have 2 views for left and right eyes.'''

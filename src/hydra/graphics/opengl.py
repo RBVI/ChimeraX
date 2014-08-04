@@ -327,6 +327,10 @@ class Render:
         fb = self.current_framebuffer()
         fb.viewport = (x,y,w,h)
 
+    def full_viewport(self):
+        fb = self.current_framebuffer()
+        self.set_viewport(0,0,fb.width,fb.height)
+
     def set_background_color(self, rgba):
         'Set the OpenGL clear color.'
         r,g,b,a = rgba
@@ -403,7 +407,8 @@ class Render:
                 return rgba8
 
     def set_stereo_buffer(self, eye_num):
-        '''Set the draw and read buffers for the left eye (0) or right eye (0).'''
+        '''Set the draw and read buffers for the left eye (0) or right eye (1).'''
+        self.full_viewport()
         if not self.rendering_to_screen():
             return
         b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
@@ -412,6 +417,7 @@ class Render:
 
     def set_mono_buffer(self):
         '''Set the draw and read buffers for mono rendering.'''
+        self.full_viewport()
         if not self.rendering_to_screen():
             return
         b = GL.GL_BACK

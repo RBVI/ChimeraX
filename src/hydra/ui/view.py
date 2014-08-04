@@ -534,8 +534,7 @@ class View(QtGui.QWindow):
         '''
         c = camera if camera else self.camera
         nf = self.near_far_clip(c, view_num)
-        cpts = c.clip_plane_points(window_x, window_y, self.window_size, nf)   # Camera coords
-        scene_pts = c.place * cpts
+        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf, self.render)
         return scene_pts
 
     def rotate(self, axis, angle, models = None):
