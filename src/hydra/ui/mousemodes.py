@@ -87,8 +87,8 @@ class Mouse_Modes:
     def bind_standard_mouse_modes(self, buttons = ['left', 'middle', 'right', 'wheel']):
         modes = (
             ('left', self.mouse_down, self.mouse_rotate, self.mouse_up_select),
-            ('middle', self.mouse_down, self.mouse_translate, self.mouse_up),
-            ('right', self.mouse_down, self.mouse_contour_level, self.mouse_up),
+            ('right', self.mouse_down, self.mouse_translate, self.mouse_up),
+            ('middle', self.mouse_down, self.mouse_contour_level, self.mouse_up),
             )
         for m in modes:
             if m[0] in buttons:
@@ -258,14 +258,13 @@ class Mouse_Modes:
         f = -0.001*dy
         
         s = self.view.session
-        mdisp = [m for m in s.model_list() if m.display]
-        msel = [m for m in s.selected_models() if m.display]
+        mdisp = [m for m in s.maps() if m.display]
+        sel = set(s.selected_models())
+        msel = [m for m in mdisp if m in sel]
         models = msel if msel else mdisp
-        from ..map.volume import Volume
         for m in models:
-            if isinstance(m, Volume):
-                adjust_threshold_level(m, f)
-                m.show()
+            adjust_threshold_level(m, f)
+            m.show()
         
     def wheel_contour_level(self, event):
         d = event.angleDelta().y()       # Usually one wheel click is delta of 120
