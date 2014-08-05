@@ -433,7 +433,9 @@ class Render:
 
         # Make a framebuffer for depth texture rendering
         fb = self.shadow_map_framebuffer
-        if fb is None:
+        if fb is None or fb.width != size:
+            if fb:
+                fb.delete()
             dt = Texture()
             dt.initialize_depth((size,size))
             fb = Framebuffer(depth_texture = dt)

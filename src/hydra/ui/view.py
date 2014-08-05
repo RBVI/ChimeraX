@@ -42,6 +42,7 @@ class View(QtGui.QWindow):
         from .. import graphics
         self.render = graphics.Render()
         self._shadows = False
+        self.shadowMapSize = 2048
         self.silhouettes = False
 
         self.timer = None			# Redraw timer
@@ -426,7 +427,7 @@ class View(QtGui.QWindow):
 
         # Compute shadow map depth texture
         r = self.render
-        lvinv, stf = r.start_rendering_shadowmap(center, radius, camera.view())
+        lvinv, stf = r.start_rendering_shadowmap(center, radius, camera.view(), size = self.shadowMapSize)
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
         shadow_map = r.finish_rendering_shadowmap()
