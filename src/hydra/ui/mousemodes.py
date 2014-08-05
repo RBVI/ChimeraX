@@ -145,9 +145,8 @@ class Mouse_Modes:
         v = self.view
         if v.session.main_window.showing_graphics():
             lp = self.mouse_pause_position
-            p, s = v.first_intercept(lp.x(), lp.y())
-            id = ('#' + ','.join(('%d' % m.id) for m in s.models())) if s else ''
-            v.session.show_status('Mouse over %s %s' % (id, s.description() if s else ''))
+            f, p = v.first_intercept(lp.x(), lp.y())
+            v.session.show_status('Mouse over %s' % (p.description() if p else ''))
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position

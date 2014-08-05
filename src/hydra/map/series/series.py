@@ -110,6 +110,17 @@ class Map_Series(Drawing):
     v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
     self.solid_level_ranks = ranks
 
+  # ---------------------------------------------------------------------------
+  #
+  def first_intercept(self, mxyz1, mxyz2, exclude = None):
+    fmin = pmin = None
+    for m in self.maps:
+      if m.display:
+        f,p = m.first_intercept(mxyz1, mxyz2, exclude)
+        if not f is None and (fmin is None or f < fmin):
+          fmin,pmin = f,p
+    return fmin,pmin
+
 # -----------------------------------------------------------------------------
 # Avoid creep due to rank -> value and value -> rank not being strict inverses
 # by using passed in ranks if they match given values.

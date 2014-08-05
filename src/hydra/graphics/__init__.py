@@ -1,4 +1,4 @@
-from .drawing import Drawing, draw_drawings, draw_outline, draw_overlays
+from .drawing import Drawing, draw_drawings, draw_outline, draw_overlays, Pick
 from .drawing import image_drawing, rgba_drawing
 
 from .camera import Camera, camera_framing_models

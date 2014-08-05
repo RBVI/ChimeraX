@@ -1132,7 +1132,8 @@ class Atoms:
 
 # -----------------------------------------------------------------------------
 #
-class Picked_Atom:
+from ..graphics import Pick
+class Picked_Atom(Pick):
   def __init__(self, mol, a):
     self.molecule = mol
     self.atom = a
@@ -1140,25 +1141,25 @@ class Picked_Atom:
     m, a = self.molecule, self.atom
     if a is None:
       return m.name
-    return m.atom_index_description(a)
-  def models(self):
-    return [self.molecule]
+    return '%s %s' % (self.id_string(), m.atom_index_description(a))
+  def drawing(self):
+    return self.molecule
   def select(self, toggle = False):
     m = self.molecule
     m.select_atom(self.atom, toggle)
 
 # -----------------------------------------------------------------------------
 #
-class Picked_Residue:
+class Picked_Residue(Pick):
   def __init__(self, mol, cid, rnum):
     self.molecule = mol
     self.chain_id = cid
     self.residue_number = rnum
   def description(self):
     m = self.molecule
-    return '%s %d.%s:%d' % (m.name, m.id, self.chain_id.decode('utf-8'), self.residue_number)
-  def models(self):
-    return [self.molecule]
+    return '%s %s.%s:%d' % (m.name, self.id_string(), self.chain_id.decode('utf-8'), self.residue_number)
+  def drawing(self):
+    return self.molecule
   def select(self, toggle = False):
     m = self.molecule
     m.select_residue(self.chain_id, self.residue_number, toggle)

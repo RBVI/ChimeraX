@@ -868,7 +868,26 @@ class Draw_Shape:
     for b in bufs:
       bi.bind_shader_variable(b)
 
-class Picked_Drawing:
+class Pick:
+  '''
+  A picked object returned by first_intercept() method of the Drawing class.
+  '''
+  def description(self):
+    return None
+  def drawing(self):
+    return None
+  def select(self):
+    pass
+  def id_string(self):
+    d = self.drawing()
+    id_chain = []
+    while d:
+        id_chain.append(d.id)
+        d = getattr(d, 'parent', None)
+    s = '#' + '.'.join(('%d' % id) for id in id_chain[::-1])
+    return s
+
+class Picked_Drawing(Pick):
   '''
   Represent a drawing chosen with the mouse as a generic selection object.
   '''
@@ -876,7 +895,7 @@ class Picked_Drawing:
     self.drawing_chain = drawing_chain
   def description(self):
     d,c = self.drawing_chain[-1]
-    fields = []
+    fields = [self.id_string()]
     if not d.name is None:
       fields.append(d.name)
     if len(d.positions) > 1:
@@ -884,9 +903,9 @@ class Picked_Drawing:
     fields.append('triangles %d' % len(d.triangles))
     desc = ' '.join(fields)
     return desc
-  def models(self):
-    d = self.drawing_chain[0][0]
-    return [d]
+  def drawing(self):
+    d = self.drawing_chain[-1][0]
+    return d
   def select(self, toggle = False):
     d,c = self.drawing_chain[-1]
     pmask = d.selected_positions
