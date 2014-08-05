@@ -44,6 +44,9 @@ class View(QtGui.QWindow):
         self._shadows = False
         self.shadowMapSize = 2048
         self.silhouettes = False
+        self.silhouette_thickness = 1           # pixels
+        self.silhouette_color = (0,0,0,1)       # black
+        self.silhouette_depth_jump = 0.01       # fraction of scene depth
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -398,7 +401,8 @@ class View(QtGui.QWindow):
                 if selected:
                     graphics.draw_outline(r, cvinv, selected)
             if self.silhouettes:
-                r.finish_silhouette_drawing(camera.perspective_near_far_ratio)
+                r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
+                                            self.silhouette_depth_jump, camera.perspective_near_far_ratio)
             s = camera.warp_image(vnum, r)
             if s:
                 graphics.draw_overlays([s], r)

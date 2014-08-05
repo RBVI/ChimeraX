@@ -55,6 +55,8 @@ def register_commands(commands):
     add('ambient', ambient.ambient_occlusion_command)
     from .cyclecmd import cycle_command
     add('cycle', cycle_command)
+    from . import silhouettecmd
+    add('silhouette', silhouettecmd.silhouette_command)
 
 # -----------------------------------------------------------------------------
 #

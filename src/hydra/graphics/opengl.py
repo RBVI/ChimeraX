@@ -574,10 +574,10 @@ class Render:
         fb = self.silhouette_framebuffer(self.render_size())
         self.push_framebuffer(fb)
 
-    def finish_silhouette_drawing(self, perspective_near_far_ratio):
+    def finish_silhouette_drawing(self, thickness, color, depth_jump, perspective_near_far_ratio):
         fb = self.pop_framebuffer()
         self.copy_from_framebuffer(fb, depth = False)
-        self.draw_depth_outline(fb.depth_texture, perspective_near_far_ratio = perspective_near_far_ratio)
+        self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump, perspective_near_far_ratio)
 
     def silhouette_framebuffer(self, size = None):
         sfb = self._silhouette_framebuffer
@@ -592,7 +592,8 @@ class Render:
             self._silhouette_framebuffer = sfb = Framebuffer(depth_texture = dt)
         return sfb
 
-    def draw_depth_outline(self, depth_texture, color = (0,0,0,1), depth_jump = 0.01, perspective_near_far_ratio = 1):
+    def draw_depth_outline(self, depth_texture, thickness = 1, color = (0,0,0,1), depth_jump = 0.01,
+                           perspective_near_far_ratio = 1):
 
         # Render pixels with depth less than neighbor pixel by at least depth_jump
         # Texture map a full-screen quad to blend depth jump pixels with frame buffer.
@@ -606,8 +607,8 @@ class Render:
         self.enable_blending(True)
         GL.glDepthMask(False)   # Disable depth write
         self.set_depth_outline_color(color)
-        for xs,ys in ((-dx,-dy), (dx,-dy), (dx,dy), (-dx,dy)):
-            self.set_depth_outline_shift_and_jump(xs, ys, depth_jump, perspective_near_far_ratio)
+        for xs,ys in disk_grid(thickness):
+            self.set_depth_outline_shift_and_jump(xs*dx, ys*dy, depth_jump, perspective_near_far_ratio)
             tc.draw()
         GL.glDepthMask(True)
         self.enable_blending(False)
@@ -641,6 +642,16 @@ class Render:
 
     def finish_rendering(self):
         GL.glFinish()
+
+def disk_grid(radius, exclude_origin = True):
+    r = int(radius)
+    r2 = radius*radius
+    ij = []
+    for i in range(-r,r+1):
+        for j in range(-r,r+1):
+            if i*i+j*j <= r2 and (not exclude_origin or i != 0 or j != 0):
+                ij.append((i,j))
+    return ij
 
 class Framebuffer:
 
