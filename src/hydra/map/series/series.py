@@ -107,7 +107,7 @@ class Map_Series(Drawing):
     lev2 = [l for l,b in v2.solid_levels]
     levels, ranks = equivalent_rank_values(v1, lev1, v2, lev2,
                                            self.solid_level_ranks)
-    v2.solid_levels = zip(levels, [b for lev,b in v1.solid_levels])
+    v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
     self.solid_level_ranks = ranks
 
 # -----------------------------------------------------------------------------
