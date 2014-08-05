@@ -287,6 +287,7 @@ class Mouse_Modes:
             self.process_touches(event.touchPoints())
         elif t == QtCore.QEvent.TouchEnd:
             self.last_trackpad_touch_count = 0
+            self.mouse_up(event = None)
 
     def process_touches(self, touches):
         min_pinch = 0.1
@@ -331,7 +332,34 @@ class Mouse_Modes:
             dy = sum(y for id,x,y in moves)
             # translation
             if dx != 0 or dy != 0:
-                self.translate((dx, -dy, 0))
+                f = self.mouse_modes.get('right')
+                if f:
+                    fnum = 0 if self.last_mouse_position is None else 1 # 0 = down, 1 = drag, 2 = up
+                    e = self.trackpad_event(dx,dy)
+                    f[fnum](e)
+                    self.remember_mouse_position(e)
+
+    def trackpad_event(self, dx, dy):
+        p = self.last_mouse_position
+        if p is None:
+            v = self.view
+            from .qt import QtGui
+            cp = v.mapFromGlobal(QtGui.QCursor.pos())
+            x,y = cp.x(),cp.y()
+        else:
+            x,y = p.x()+dx, p.y()+dy
+        class Trackpad_Event:
+            def __init__(self,x,y):
+                self._x, self._y = x,y
+            def x(self):
+                return self._x
+            def y(self):
+                return self._y
+            def pos(self):
+                from .qt import QtCore
+                return QtCore.QPoint(self._x,self._y)
+        e = Trackpad_Event(x,y)
+        return e
 
 def adjust_threshold_level(m, f):
     ms = m.matrix_value_statistics()
