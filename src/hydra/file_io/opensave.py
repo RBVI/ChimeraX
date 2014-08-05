@@ -168,10 +168,17 @@ def open_map(map_path, session):
     '''
     maps = []
     from ..map import data, volume_from_grid_data
-    for d in data.open_file(map_path):
-        v = volume_from_grid_data(d, session, open_model = False)
-        v.new_region(ijk_step = (1,1,1), adjust_step = False)
+    grids = data.open_file(map_path)
+    for i,d in enumerate(grids):
+        show = (i == 0)
+        v = volume_from_grid_data(d, session, open_model = False, show_data = show)
+        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)
+    if len(maps) > 1:
+        from os.path import basename
+        name = basename(map_path)
+        from ..map.series import Map_Series
+        return [Map_Series(name, maps)]
     return maps
 
 def open_session(path, session):

@@ -28,6 +28,8 @@ def register_commands(commands):
     add('fitmap', fitcmd.fitmap_command)
     from ..map.filter import vopcommand
     add('vop', vopcommand.vop_command)
+    from ..map import series
+    add('vseries', series.vseries_command)
     from ..molecule import align, mcommand
     add('align', align.align_command)
     add('show', mcommand.show_command)
