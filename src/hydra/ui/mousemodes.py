@@ -87,8 +87,8 @@ class Mouse_Modes:
     def bind_standard_mouse_modes(self, buttons = ['left', 'middle', 'right', 'wheel']):
         modes = (
             ('left', self.mouse_down, self.mouse_rotate, self.mouse_up_select),
-            ('middle', self.mouse_down, self.mouse_translate, self.mouse_up),
-            ('right', self.mouse_down, self.mouse_contour_level, self.mouse_up),
+            ('right', self.mouse_down, self.mouse_translate, self.mouse_up),
+            ('middle', self.mouse_down, self.mouse_contour_level, self.mouse_up),
             )
         for m in modes:
             if m[0] in buttons:
@@ -145,9 +145,8 @@ class Mouse_Modes:
         v = self.view
         if v.session.main_window.showing_graphics():
             lp = self.mouse_pause_position
-            p, s = v.first_intercept(lp.x(), lp.y())
-            id = ('#' + ','.join(('%d' % m.id) for m in s.models())) if s else ''
-            v.session.show_status('Mouse over %s %s' % (id, s.description() if s else ''))
+            f, p = v.first_intercept(lp.x(), lp.y())
+            v.session.show_status('Mouse over %s' % (p.description() if p else ''))
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
@@ -258,14 +257,13 @@ class Mouse_Modes:
         f = -0.001*dy
         
         s = self.view.session
-        mdisp = [m for m in s.model_list() if m.display]
-        msel = [m for m in s.selected_models() if m.display]
+        mdisp = [m for m in s.maps() if m.display]
+        sel = set(s.selected_models())
+        msel = [m for m in mdisp if m in sel]
         models = msel if msel else mdisp
-        from ..map.volume import Volume
         for m in models:
-            if isinstance(m, Volume):
-                adjust_threshold_level(m, f)
-                m.show()
+            adjust_threshold_level(m, f)
+            m.show()
         
     def wheel_contour_level(self, event):
         d = event.angleDelta().y()       # Usually one wheel click is delta of 120
@@ -288,6 +286,7 @@ class Mouse_Modes:
             self.process_touches(event.touchPoints())
         elif t == QtCore.QEvent.TouchEnd:
             self.last_trackpad_touch_count = 0
+            self.mouse_up(event = None)
 
     def process_touches(self, touches):
         min_pinch = 0.1
@@ -332,7 +331,34 @@ class Mouse_Modes:
             dy = sum(y for id,x,y in moves)
             # translation
             if dx != 0 or dy != 0:
-                self.translate((dx, -dy, 0))
+                f = self.mouse_modes.get('right')
+                if f:
+                    fnum = 0 if self.last_mouse_position is None else 1 # 0 = down, 1 = drag, 2 = up
+                    e = self.trackpad_event(dx,dy)
+                    f[fnum](e)
+                    self.remember_mouse_position(e)
+
+    def trackpad_event(self, dx, dy):
+        p = self.last_mouse_position
+        if p is None:
+            v = self.view
+            from .qt import QtGui
+            cp = v.mapFromGlobal(QtGui.QCursor.pos())
+            x,y = cp.x(),cp.y()
+        else:
+            x,y = p.x()+dx, p.y()+dy
+        class Trackpad_Event:
+            def __init__(self,x,y):
+                self._x, self._y = x,y
+            def x(self):
+                return self._x
+            def y(self):
+                return self._y
+            def pos(self):
+                from .qt import QtCore
+                return QtCore.QPoint(self._x,self._y)
+        e = Trackpad_Event(x,y)
+        return e
 
 def adjust_threshold_level(m, f):
     ms = m.matrix_value_statistics()

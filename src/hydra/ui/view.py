@@ -34,7 +34,7 @@ class View(QtGui.QWindow):
 
         # Create camera
         from ..graphics import Camera
-        self.camera = Camera(self.window_size, 'mono', eye_separation_pixels)
+        self.camera = Camera('mono', eye_separation_pixels)
         '''The camera controlling the vantage shown in the graphics window.'''
 
         self.opengl_context = None
@@ -42,7 +42,11 @@ class View(QtGui.QWindow):
         from .. import graphics
         self.render = graphics.Render()
         self._shadows = False
+        self.shadowMapSize = 2048
         self.silhouettes = False
+        self.silhouette_thickness = 1           # pixels
+        self.silhouette_color = (0,0,0,1)       # black
+        self.silhouette_depth_jump = 0.01       # fraction of scene depth
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
@@ -79,9 +83,12 @@ class View(QtGui.QWindow):
 #        w,h = int(r*w), int(r*h)
 #
         self.window_size = w, h
-        self.camera.window_size = w, h
         if not self.opengl_context is None:
-            self.render.set_viewport(0,0,w,h)
+            from .. import graphics
+            fb = graphics.default_framebuffer()
+            fb.width, fb.height = w,h
+            fb.viewport = (0,0,w,h)
+#            self.render.set_viewport(0,0,w,h)
 
     # QWindow method
     def exposeEvent(self, event):
@@ -175,10 +182,9 @@ class View(QtGui.QWindow):
         r = self.render
         r.set_background_color(self.background_rgba)
         r.enable_depth_test(True)
-        r.initialize_opengl()
 
         w,h = self.window_size
-        r.set_viewport(0,0,w,h)
+        r.initialize_opengl(w,h)
 
         s = self.session
         f = self.opengl_context.format()
@@ -271,32 +277,34 @@ class View(QtGui.QWindow):
 
         self.use_opengl()
 
-        w = self.window_size[0] if width is None else width
-        h = self.window_size[1] if height is None else height
+        w,h = self.window_size_matching_aspect(width, height)
 
-        r = self.render
         from .. import graphics
         fb = graphics.Framebuffer(w,h)
         if not fb.valid():
             return None         # Image size exceeds framebuffer limits
 
+        r = self.render
         r.push_framebuffer(fb)
-
-        # Camera needs correct aspect ratio when setting projection matrix.
         c = camera if camera else self.camera
-        prev_size = c.window_size
-        c.window_size = (width,height)
-
         self.draw_scene(c, models)
-
-        c.window_size = prev_size
-
         rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
         r.pop_framebuffer()
         fb.delete()
 
         qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
         return qi
+
+    def window_size_matching_aspect(self, width, height):
+        w,h = width, height
+        vw,vh = self.window_size
+        if not w is None and not h is None:
+            return (w,h)
+        elif not w is None:
+            return (w, (vh*w)//vw)     # Choose height to match window aspect ratio.
+        elif not height is None:
+            return ((vw*h)//vh, h)     # Choose width to match window aspect ratio.
+        return (vw,vh)
 
     def start_update_timer(self):
 
@@ -365,9 +373,6 @@ class View(QtGui.QWindow):
             stf = self.use_shadow_map(camera, models)
 
         r = self.render
-        if self.silhouettes:
-            r.start_silhouette_drawing(self.window_size)
-
         r.set_background_color(self.background_rgba)
 
         if self.update_lighting:
@@ -383,6 +388,8 @@ class View(QtGui.QWindow):
         from .. import graphics
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
+            if self.silhouettes:
+                r.start_silhouette_drawing()
             r.draw_background()
             if mdraw:
                 self.update_projection(vnum, camera = camera)
@@ -392,17 +399,19 @@ class View(QtGui.QWindow):
                 cvinv = camera.view_inverse(vnum)
                 graphics.draw_drawings(r, cvinv, mdraw)
                 if selected:
-                    graphics.draw_outline(self.window_size, r, cvinv, selected)
+                    graphics.draw_outline(r, cvinv, selected)
+            if self.silhouettes:
+                r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
+                                            self.silhouette_depth_jump, camera.perspective_near_far_ratio)
             s = camera.warp_image(vnum, r)
             if s:
                 graphics.draw_overlays([s], r)
+
 #        from OpenGL import GL
 #        GL.glFinish()
         t1 = time()
         self.last_draw_duration = t1-t0
 
-        if self.silhouettes:
-            r.finish_silhouette_drawing(camera.perspective_near_far_ratio)
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
@@ -422,7 +431,7 @@ class View(QtGui.QWindow):
 
         # Compute shadow map depth texture
         r = self.render
-        lvinv, stf = r.start_rendering_shadowmap(center, radius, camera.view())
+        lvinv, stf = r.start_rendering_shadowmap(center, radius, camera.view(), size = self.shadowMapSize)
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
         shadow_map = r.finish_rendering_shadowmap()
@@ -502,14 +511,15 @@ class View(QtGui.QWindow):
         p = (1.0-f)*xyz1 + f*xyz2
         return p, s
 
-    def update_projection(self, view_num = None, win_size = None, camera = None):
+    def update_projection(self, view_num = None, camera = None):
         
         c = self.camera if camera is None else camera
-        ww,wh = c.window_size if win_size is None else win_size
+        r = self.render
+        ww,wh = r.render_size()
         if ww > 0 and wh > 0:
-            nf = self.near_far_clip(camera, view_num)
+            nf = self.near_far_clip(c, view_num)
             pm = c.projection_matrix(nf, view_num, (ww,wh))
-            self.render.set_projection_matrix(pm)
+            r.set_projection_matrix(pm)
 
     def near_far_clip(self, camera, view_num):
 
@@ -529,8 +539,7 @@ class View(QtGui.QWindow):
         '''
         c = camera if camera else self.camera
         nf = self.near_far_clip(c, view_num)
-        cpts = c.clip_plane_points(window_x, window_y, nf)   # Camera coords
-        scene_pts = c.place * cpts
+        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf, self.render)
         return scene_pts
 
     def rotate(self, axis, angle, models = None):
@@ -568,4 +577,6 @@ class View(QtGui.QWindow):
 
     def pixel_size(self, p = None):
         '''Return the pixel size in scene length units at point p in the scene.'''
-        return self.camera.pixel_size(self.center_of_rotation if p is None else p)
+        if p is None:
+            p = self.center_of_rotation
+        return self.camera.pixel_size(p, self.window_size)

@@ -98,9 +98,9 @@ void main (void)
   // Warp red, green and blue channels different to correct chromatic aberration.
   float fred = f*(chromatic_warp[0] + r2*chromatic_warp[1]);
   float fblue = f*(chromatic_warp[2] + r2*chromatic_warp[3]);
-  vec4 cr = texture(tex2d, vec2(warp_center.s+fred*ds,warp_center.t+fred*dt));
-  vec4 cg = texture(tex2d, vec2(warp_center.s+f*ds,warp_center.t+f*dt));
-  vec4 cb = texture(tex2d, vec2(warp_center.s+fblue*ds,warp_center.t+fblue*dt));
+  vec4 cr = texture(tex2d, vec2(0.5+fred*ds,0.5+fred*dt));
+  vec4 cg = texture(tex2d, vec2(0.5+f*ds,0.5+f*dt));
+  vec4 cb = texture(tex2d, vec2(0.5+fblue*ds,0.5+fblue*dt));
   vec4 fcolor = vec4(cr.r, cg.g, cb.b, cg.a) * color;
 #else
   vec4 fcolor = texture(tex2d, tex_coord) * color;

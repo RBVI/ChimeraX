@@ -33,7 +33,7 @@ class Render:
         self.lighting = Lighting()
         self.material = Material()              # Currently there is only a global material
 
-        self.framebuffer_stack = []
+        self.framebuffer_stack = [default_framebuffer()]
         self.mask_framebuffer = None
         self.outline_framebuffer = None
         self.shadow_map_framebuffer = None
@@ -51,6 +51,11 @@ class Render:
         self.shadow_transform = None
 
         self.single_color = (1,1,1,1)
+
+    def render_size(self):
+        fb = self.current_framebuffer()
+        x,y,w,h = fb.viewport
+        return (w,h)
 
     # use_shader() option names
     SHADER_LIGHTING = 'USE_LIGHTING'
@@ -126,25 +131,22 @@ class Render:
     shadow_texture_unit = 1
 
     def push_framebuffer(self, fb):
-        fb.restore_viewport = self.current_viewport
-        self.set_viewport(0,0,fb.width,fb.height)
         self.framebuffer_stack.append(fb)
         fb.activate()
+        self.set_viewport(*fb.viewport)
 
     def current_framebuffer(self):
-        s = self.framebuffer_stack
-        return s[-1] if s else None
+        return self.framebuffer_stack[-1]
 
     def pop_framebuffer(self):
         s = self.framebuffer_stack
-        fb = s.pop()
-        self.set_viewport(*fb.restore_viewport)
+        pfb = s.pop()
         if len(s) == 0:
-            GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
-        else:
-            cfb = s[-1]
-            cfb.activate()
-        return fb
+            raise RuntimeError('No framebuffer left on stack.')
+        fb = s[-1]
+        fb.activate()
+        self.set_viewport(*fb.viewport)
+        return pfb
 
     def rendering_to_screen(self):
         return len(self.framebuffer_stack) == 0
@@ -304,7 +306,7 @@ class Render:
         'Return if sequential stereo is supported.'
         return GL.glGetBoolean(GL.GL_STEREO)
 
-    def initialize_opengl(self):
+    def initialize_opengl(self, width, height):
         'Create an initial vertex array object.'
 
         # OpenGL 3.2 core profile requires a bound vertex array object
@@ -313,11 +315,21 @@ class Render:
         vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(vao)
 
+        fb = default_framebuffer()
+        fb.width, fb.height = width, height
+        self.set_viewport(0,0,width,height)
+
     def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
         if (x,y,w,h) != self.current_viewport:
             GL.glViewport(x, y, w, h)
             self.current_viewport = (x,y,w,h)
+        fb = self.current_framebuffer()
+        fb.viewport = (x,y,w,h)
+
+    def full_viewport(self):
+        fb = self.current_framebuffer()
+        self.set_viewport(0,0,fb.width,fb.height)
 
     def set_background_color(self, rgba):
         'Set the OpenGL clear color.'
@@ -395,7 +407,8 @@ class Render:
                 return rgba8
 
     def set_stereo_buffer(self, eye_num):
-        '''Set the draw and read buffers for the left eye (0) or right eye (0).'''
+        '''Set the draw and read buffers for the left eye (0) or right eye (1).'''
+        self.full_viewport()
         if not self.rendering_to_screen():
             return
         b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
@@ -404,6 +417,7 @@ class Render:
 
     def set_mono_buffer(self):
         '''Set the draw and read buffers for mono rendering.'''
+        self.full_viewport()
         if not self.rendering_to_screen():
             return
         b = GL.GL_BACK
@@ -419,7 +433,9 @@ class Render:
 
         # Make a framebuffer for depth texture rendering
         fb = self.shadow_map_framebuffer
-        if fb is None:
+        if fb is None or fb.width != size:
+            if fb:
+                fb.delete()
             dt = Texture()
             dt.initialize_depth((size,size))
             fb = Framebuffer(depth_texture = dt)
@@ -458,11 +474,10 @@ class Render:
         fb = self.shadow_map_framebuffer
         return fb.depth_texture
 
-    def start_rendering_outline(self, size):
+    def start_rendering_outline(self):
 
         fb = self.current_framebuffer()
-        size = (fb.width, fb.height) if fb else size
-        mfb = self.make_mask_framebuffer(size)
+        mfb = self.make_mask_framebuffer()
         self.push_framebuffer(mfb)
         self.set_background_color((0,0,0,0))
         self.draw_background()
@@ -473,8 +488,8 @@ class Render:
                                         self.SHADER_TEXTURE_3D_AMBIENT:False,
                                         self.SHADER_SHADOWS:False,
                                         })
-        self.set_depth_range(0,0.999)      # Depth test GL_LEQUAL results in z-fighting
-        mfb.copy_from_another_framebuffer(fb, color = False, restore_read_draw_fbo = mfb)
+        self.set_depth_range(0,0.99999)      # Depth test GL_LEQUAL results in z-fighting
+        self.copy_from_framebuffer(fb, color = False)      # Copy depth to outline framebuffer
 
     def finish_rendering_outline(self):
 
@@ -484,7 +499,8 @@ class Render:
         t = self.mask_framebuffer.color_texture
         self.draw_texture_mask_outline(t)
 
-    def make_mask_framebuffer(self, size):
+    def make_mask_framebuffer(self):
+        size = self.render_size()
         mfb = self.mask_framebuffer
         w,h = size
         if mfb and mfb.width == w and mfb.height == h:
@@ -554,15 +570,14 @@ class Render:
 #        GL.glDepthFunc(GL.GL_LEQUAL)   # Get z-fighting with screen depth copied to framebuffer object on Mac/Nvidia
         GL.glDepthRange(min, max)
 
-    def start_silhouette_drawing(self, size):
-        fb = self.silhouette_framebuffer(size)
+    def start_silhouette_drawing(self):
+        fb = self.silhouette_framebuffer(self.render_size())
         self.push_framebuffer(fb)
 
-    def finish_silhouette_drawing(self, perspective_near_far_ratio):
+    def finish_silhouette_drawing(self, thickness, color, depth_jump, perspective_near_far_ratio):
         fb = self.pop_framebuffer()
-        cfb = self.current_framebuffer()
-        fb.copy_to_another_framebuffer(cfb, depth = False, restore_read_draw_fbo = cfb)
-        self.draw_depth_outline(fb.depth_texture, perspective_near_far_ratio = perspective_near_far_ratio)
+        self.copy_from_framebuffer(fb, depth = False)
+        self.draw_depth_outline(fb.depth_texture, thickness, color, depth_jump, perspective_near_far_ratio)
 
     def silhouette_framebuffer(self, size = None):
         sfb = self._silhouette_framebuffer
@@ -577,7 +592,8 @@ class Render:
             self._silhouette_framebuffer = sfb = Framebuffer(depth_texture = dt)
         return sfb
 
-    def draw_depth_outline(self, depth_texture, color = (0,0,0,1), depth_jump = 0.01, perspective_near_far_ratio = 1):
+    def draw_depth_outline(self, depth_texture, thickness = 1, color = (0,0,0,1), depth_jump = 0.01,
+                           perspective_near_far_ratio = 1):
 
         # Render pixels with depth less than neighbor pixel by at least depth_jump
         # Texture map a full-screen quad to blend depth jump pixels with frame buffer.
@@ -591,8 +607,8 @@ class Render:
         self.enable_blending(True)
         GL.glDepthMask(False)   # Disable depth write
         self.set_depth_outline_color(color)
-        for xs,ys in ((-dx,-dy), (dx,-dy), (dx,dy), (-dx,dy)):
-            self.set_depth_outline_shift_and_jump(xs, ys, depth_jump, perspective_near_far_ratio)
+        for xs,ys in disk_grid(thickness):
+            self.set_depth_outline_shift_and_jump(xs*dx, ys*dy, depth_jump, perspective_near_far_ratio)
             tc.draw()
         GL.glDepthMask(True)
         self.enable_blending(False)
@@ -610,8 +626,32 @@ class Render:
         mc = GL.glGetUniformLocation(p, b"depth_shift_and_jump")
         GL.glUniform4fv(mc, 1, (xs,ys,depth_jump,perspective_near_far_ratio))
 
+    def copy_from_framebuffer(self, framebuffer, color = True, depth = True):
+        # Copy current framebuffer contents to another framebuffer.
+        # This leaves read and draw framebuffers set to the current framebuffer.
+        cfb = self.current_framebuffer()
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, framebuffer.fbo)
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, cfb.fbo)
+        what = GL.GL_COLOR_BUFFER_BIT if color else 0
+        if depth:
+            what |= GL.GL_DEPTH_BUFFER_BIT
+        w,h = framebuffer.width, framebuffer.height
+        GL.glBlitFramebuffer(0,0,w,h, 0,0,w,h, what, GL.GL_NEAREST)
+        # Restore read buffer 
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, cfb.fbo)
+
     def finish_rendering(self):
         GL.glFinish()
+
+def disk_grid(radius, exclude_origin = True):
+    r = int(radius)
+    r2 = radius*radius
+    ij = []
+    for i in range(-r,r+1):
+        for j in range(-r,r+1):
+            if i*i+j*j <= r2 and (not exclude_origin or i != 0 or j != 0):
+                ij.append((i,j))
+    return ij
 
 class Framebuffer:
 
@@ -626,22 +666,25 @@ class Framebuffer:
         elif not depth_texture is None:
             w,h = depth_texture.size
         else:
-            raise ValueError('Framebuffer.__init__(): No width and height specified')
+            w = h = None
         
         self.width = w
         self.height = h
-
-        if not self.valid_size(w,h):
-            self.fbo = None
-            return
+        self.viewport = None if w is None else (0,0,w,h)
 
         self.color_texture = color_texture
-        self.color_rb = None if not color or color_texture else self.color_renderbuffer(w,h)
+        self.color_rb = None if not color or color_texture or w is None else self.color_renderbuffer(w,h)
         self.depth_texture = depth_texture
-        self.depth_rb = None if not depth or depth_texture else self.depth_renderbuffer(w,h)
+        self.depth_rb = None if not depth or depth_texture or w is None else self.depth_renderbuffer(w,h)
 
-        self.fbo = self.create_fbo(color_texture or self.color_rb,
-                                   depth_texture or self.depth_rb)
+        if w is None:
+            fbo = 0
+        elif not self.valid_size(w,h):
+            fbo = None
+        else:
+            fbo = self.create_fbo(color_texture or self.color_rb,
+                                  depth_texture or self.depth_rb)
+        self.fbo = fbo
 
     def __del__(self):
 
@@ -718,30 +761,12 @@ class Framebuffer:
         GL.glDeleteFramebuffers(1, (self.fbo,))
         self.color_rb = self.depth_rb = self.fbo = None
 
-    def copy_from_another_framebuffer(self, framebuffer, color = True, depth = True, restore_read_draw_fbo = None):
-        sfbo = framebuffer.fbo if framebuffer else 0
-        rfbo = restore_read_draw_fbo.fbo if restore_read_draw_fbo else 0
-        copy_framebuffer_data(sfbo, self.fbo, self.width, self.height, color, depth, rfbo)
-
-    def copy_to_another_framebuffer(self, framebuffer, color = True, depth = True, restore_read_draw_fbo = None):
-        dfbo = framebuffer.fbo if framebuffer else 0
-        rfbo = restore_read_draw_fbo.fbo if restore_read_draw_fbo else 0
-        copy_framebuffer_data(self.fbo, dfbo, self.width, self.height, color, depth, rfbo)
-
-def copy_framebuffer_data(source_fbo, destination_fbo, width, height, color = True, depth = True,
-                          restore_read_draw_fbo = None):
-    GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, source_fbo)
-    GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, destination_fbo)
-    what = 0
-    if color:
-        what |= GL.GL_COLOR_BUFFER_BIT
-    if depth:
-        what |= GL.GL_DEPTH_BUFFER_BIT
-    GL.glBlitFramebuffer(0,0,width,height, 0,0,width,height, what, GL.GL_NEAREST)
-    if not restore_read_draw_fbo is None:
-        # Restore read and draw buffers
-        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, restore_read_draw_fbo)
-        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, restore_read_draw_fbo)
+_default_framebuffer = None
+def default_framebuffer():
+    global _default_framebuffer
+    if _default_framebuffer is None:
+        _default_framebuffer = fb = Framebuffer(color = False, depth = False)
+    return _default_framebuffer
 
 class Lighting:
     '''

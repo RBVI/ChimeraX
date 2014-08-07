@@ -139,6 +139,7 @@ def standard_shortcuts(session):
         ('cl', command_line, 'Enter command', gcat, sesarg),
 
         # Mouse
+        ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, viewarg, msmenu),
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, viewarg, msmenu),
         ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, viewarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, viewarg, msmenu),
@@ -397,7 +398,13 @@ def enable_contour_mouse_mode(viewer, button = 'right'):
 
 def enable_move_selected_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
-  m.move_selected = not m.move_selected
+  m.bind_standard_mouse_modes()
+  m.move_selected = True
+
+def enable_move_mouse_mode(viewer, button = 'right'):
+  m = viewer.mouse_modes
+  m.bind_standard_mouse_modes()
+  m.move_selected = False
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()

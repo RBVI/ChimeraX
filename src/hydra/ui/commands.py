@@ -28,6 +28,8 @@ def register_commands(commands):
     add('fitmap', fitcmd.fitmap_command)
     from ..map.filter import vopcommand
     add('vop', vopcommand.vop_command)
+    from ..map import series
+    add('vseries', series.vseries_command)
     from ..molecule import align, mcommand
     add('align', align.align_command)
     add('show', mcommand.show_command)
@@ -55,6 +57,8 @@ def register_commands(commands):
     add('ambient', ambient.ambient_occlusion_command)
     from .cyclecmd import cycle_command
     add('cycle', cycle_command)
+    from . import silhouettecmd
+    add('silhouette', silhouettecmd.silhouette_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -1162,6 +1166,7 @@ def parse_specifier(spec, session):
 
     parts = specifier_parts(spec)
     mids = cids = rrange = rname = aname = None
+    subids = []
     invert = False
     for p in parts:
         if p.startswith('#'):
@@ -1169,7 +1174,10 @@ def parse_specifier(spec, session):
             if len(mids) == 0:
                 mids = set(m.id for m in session.model_list())
         elif p.startswith('.'):
-            cids = p[1:].split(',')
+            try:
+                subids.append(integer_set(p[1:]))
+            except ValueError:
+                cids = p[1:].split(',')
         elif p.startswith(':'):
             rrange = integer_range(p[1:])
             if rrange is None:
@@ -1179,18 +1187,16 @@ def parse_specifier(spec, session):
         elif p.startswith('!'):
             invert = True
     
-    if mids is None:
-        if cids is None and rrange is None and rname is None and aname is None:
-            if spec == 'all':
-                mlist = session.model_list()
-            else:
-                mlist = []
-        else:
-            mlist = session.molecules()
+    if spec == 'all':
+        mlist = session.model_list()
+    elif mids or subids or (rrange is None and rname is None and aname is None):
+        mlist = models_matching_ids([mids] + subids, session)
+        print('parse', len(mlist), mids, subids, mlist)
     else:
-        mlist = [m for m in session.model_list() if m.id in mids]
+        mlist = session.molecules()
     if len(mlist) == 0:
         raise CommandError('No models specified by "%s"' % spec)
+    # TODO: Need also to consider that last subids are numeric chain ids.
 
     s = Selection()
     from ..molecule import Molecule
@@ -1204,6 +1210,7 @@ def parse_specifier(spec, session):
         else:
             smodels.append(m)
     if invert:
+        # TODO: Invert doesn't return submodels.
         sm = set(smodels)
         smodels = [m for m in session.model_list()
                    if not isinstance(m, Molecule) and not m in sm]
@@ -1251,6 +1258,16 @@ def integer_set(rstring):
             r2 = int(r[1]) if len(r) == 2 else r1
             s |= set(range(r1,r2+1))
     return s
+
+# -----------------------------------------------------------------------------
+#
+def models_matching_ids(ids, session):
+    mm = []
+    mc = session.model_list()
+    for sid in ids:
+        mm = [m for m in mc if m.id in sid]
+        mc = sum(tuple(m.child_drawings() for m in mm), [])
+    return mm
 
 # -----------------------------------------------------------------------------
 #

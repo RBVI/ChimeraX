@@ -1025,9 +1025,14 @@ class Volume(Drawing):
           return None, None
         from ..geometry.vector import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-        return f, None
+        return f, Picked_Map(self)
 
-    return Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    f, p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    if p:
+      d = p.drawing()
+      detail = '%s triangles %d' % (d.name, len(d.triangles))
+      p = Picked_Map(self, detail)
+    return f,p
 
   # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
@@ -1754,7 +1759,21 @@ class Volume(Drawing):
       from chimera import triggers
       triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
       self.surface_piece_change_handler = None
-
+    
+# -----------------------------------------------------------------------------
+#
+from ..graphics import Pick
+class Picked_Map(Pick):
+  def __init__(self, v, detail = ''):
+    self.map = v
+    self.detail = detail
+  def description(self):
+    return '%s %s %s' % (self.id_string(), self.map.name, self.detail)
+  def drawing(self):
+    return self.map
+  def select(self):
+    self.map.selected = True
+    
 # -----------------------------------------------------------------------------
 #
 class Outline_Box:
