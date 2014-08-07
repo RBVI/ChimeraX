@@ -146,7 +146,10 @@ class Mouse_Modes:
         if v.session.main_window.showing_graphics():
             lp = self.mouse_pause_position
             f, p = v.first_intercept(lp.x(), lp.y())
-            v.session.show_status('Mouse over %s' % (p.description() if p else ''))
+            if p:
+                v.session.show_status('Mouse over %s' % p.description())
+            # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.
+            #      Don't want to clear a different status message, only mouse over message.
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
