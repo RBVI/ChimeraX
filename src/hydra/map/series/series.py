@@ -1,15 +1,15 @@
 # -----------------------------------------------------------------------------
 #
-from ...graphics import Drawing
-class Map_Series(Drawing):
+from ...models import Model
+class Map_Series(Model):
 
   def __init__(self, name, maps):
 
-    Drawing.__init__(self, name)
+    Model.__init__(self, name)
     self.maps = maps
 
     for m in maps:
-      self.add_drawing(m)
+      self.add_model(m)
 
     self.last_shown_time = 0
 

@@ -1,3 +1,22 @@
+from .graphics import Drawing
+class Model(Drawing):
+    '''
+    A model is an object with an id number that can be specified in commands.
+    '''
+    def __init__(self, name):
+        Drawing.__init__(self, name)
+        self.id = None          # Positive integer
+
+    def submodels(self):
+        return [d for d in self.child_drawings() if isinstance(d, Model)]
+
+    def all_models(self):
+        return [self] + sum([m.all_models() for m in self.submodels()],[])
+
+    def add_model(self, model):
+        self.add_drawing(model)
+        if model.id is None:
+            model.id = len(self.child_drawings())
 
 class Models:
     '''
@@ -31,9 +50,7 @@ class Models:
         Add a model to the scene.  A model is a Drawing object.
         '''
         self.models.append(model)
-        if model.id is None:
-            model.id = self.next_id
-            self.next_id += 1
+        self.set_model_id(model)
         if model.display:
             self.redraw_needed = True
             self.bounds_changed = True
@@ -53,6 +70,12 @@ class Models:
 
         for cb in self.add_model_callbacks:
             cb(models)
+
+    def set_model_id(self, model):
+        if not model.id is None:
+            return
+        model.id = self.next_id
+        self.next_id += 1
         
     def close_models(self, models):
         '''

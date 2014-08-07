@@ -79,14 +79,14 @@ def parse_stl_geometry(nv):
 # -----------------------------------------------------------------------------
 # Make special surface class for restoring sessions
 #
-from ..graphics import Drawing
-class STL_Surface(Drawing):
+from ..models import Model
+class STL_Surface(Model):
 
     def __init__(self, path):
 
         from os.path import basename
         name = basename(path)
-        Drawing.__init__(self, name)
+        Model.__init__(self, name)
 
         self.path = path
 

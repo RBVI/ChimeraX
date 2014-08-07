@@ -1280,12 +1280,14 @@ class Selection:
         from ..molecule import Molecule
         mols = [m for m in models if isinstance(m, Molecule)]
         self.aset.add_molecules(mols)
-        other = [m for m in models if not isinstance(m, Molecule)]
+        from ..models import Model
+        other = [m for m in models if isinstance(m, Model) and not isinstance(m, Molecule)]
         self._models.extend(other)
     def add_atoms(self, atoms):
         self.aset.add_atoms(atoms)
-    def models(self):
-        return self._models + list(self.molecules())
+    def models(self, include_submodels = True):
+        mlist = sum([m.all_models() for m in self._models],[]) if include_submodels else self._models
+        return mlist + list(self.molecules())
     def molecules(self):
         return self.aset.molecules()
     def chains(self):

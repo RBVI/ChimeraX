@@ -3,8 +3,8 @@
 # Holds surface and solid thresholds, color, and transparency and brightness
 # factors.
 #
-from ..graphics import Drawing
-class Volume(Drawing):
+from ..models import Model
+class Volume(Model):
   '''
   A Volume is a rendering of a 3-d image Grid_Data object.  It includes
   color, display styles including surface, mesh and grayscale, contouring levels,
@@ -15,7 +15,7 @@ class Volume(Drawing):
   def __init__(self, data, session, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
-    Drawing.__init__(self, data.name)
+    Model.__init__(self, data.name)
 
     self.session = session
     if not model_id is None:
@@ -990,6 +990,7 @@ class Volume(Drawing):
   #
   def bounds(self, positions = True):
 
+    from ..graphics import Drawing
     b = Drawing.bounds(self, positions)
     if b is None:
       # TODO: Should this be only displayed bounds?
@@ -1027,6 +1028,7 @@ class Volume(Drawing):
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
         return f, Picked_Map(self)
 
+    from ..graphics import Drawing
     f, p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
     if p:
       d = p.drawing()
