@@ -256,10 +256,15 @@ class Mouse_Modes:
         
     def mouse_contour_level(self, event):
 
+        v = self.view
+        if getattr(self, 'last_contour_frame', None) == v.frame_number:
+            return # Handle only one recontour event per frame
+        self.last_contour_frame = v.frame_number
+
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
         
-        s = self.view.session
+        s = v.session
         mdisp = [m for m in s.maps() if m.display]
         sel = set(s.selected_models())
         msel = [m for m in mdisp if m in sel]
