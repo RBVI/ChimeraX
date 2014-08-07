@@ -1773,8 +1773,9 @@ class Picked_Map(Pick):
     return '%s %s %s' % (self.id_string(), self.map.name, self.detail)
   def drawing(self):
     return self.map
-  def select(self):
-    self.map.selected = True
+  def select(self, toggle = False):
+    m = self.map
+    m.selected = not m.selected if toggle else True
     
 # -----------------------------------------------------------------------------
 #
