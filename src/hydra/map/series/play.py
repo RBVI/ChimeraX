@@ -311,26 +311,39 @@ class Play_Series:
             uncolor_zone(model)
             delattr(model, 'series_zone_coloring')
 
+  def mouse_up(self, event):
+    self.last_mouse_x = None
+
+  def mouse_down(self, event):
+    self.last_mouse_x = event.x()
+  
   def mouse_drag(self, event):
 
-    ses = self.session
-    mm = ses.view.mouse_modes
-    dx, dy = mm.mouse_motion(event)
-#    TODO: need to accumulate deltas until step is taken, or measure absolute delta from mouse down position.
-    ses.show_status('series drag %d %d' % (dx,dy))
+    if not hasattr(self, 'last_mouse_x') or self.last_mouse_x is None:
+      self.last_mouse_x = event.x()
+      return
+
+    x = event.x()
+    dx = x - self.last_mouse_x
     tstep = int(round(dx/50))
     if tstep == 0:
       return
-    for s in self.series:
-      t = s.last_shown_time
-      tn = t + tstep
-      tmax = s.number_of_times() - 1
-      if tn > tmax:
-        tn = tmax
-      elif tn < 0:
-        tn = 0
-      s.show_time(tn)
-      ses.show_status('%s time %d %d' % (s.name, tn, tstep))
+    self.last_mouse_x = x
+
+    ser = self.series
+    if len(ser) == 0:
+      return 
+    s0 = ser[0]
+    t = s0.last_shown_time
+    tn = t + tstep
+    tmax = s0.number_of_times() - 1
+    if tn > tmax:
+      tn = tmax
+    elif tn < 0:
+      tn = 0
+    if tn != t:
+      self.change_time(tn)
+    self.session.show_status('%s time %d' % (s0.name, tn+1))
 
 # -----------------------------------------------------------------------------
 #
@@ -347,6 +360,6 @@ def label_value_in_range(text, imin, imax):
 def enable_map_series_mouse_mode(session, button = 'right'):
   from . import Map_Series
   series = [m for m in session.model_list() if isinstance(m, Map_Series)]
-  p = Play_Series(series, session)
+  p = Play_Series(series, session, rendering_cache_size = 10)
   mm = session.view.mouse_modes
   mm.bind_mouse_mode(button, mm.mouse_down, p.mouse_drag, mm.mouse_up)
