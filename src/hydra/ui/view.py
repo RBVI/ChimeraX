@@ -48,6 +48,7 @@ class View(QtGui.QWindow):
         self.silhouette_color = (0,0,0,1)       # black
         self.silhouette_depth_jump = 0.01       # fraction of scene depth
 
+        self.frame_number = 1
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
         # TODO: Maybe redraw interval should be 10 msec to reduce frame drops at 60 frames/sec
@@ -215,6 +216,7 @@ class View(QtGui.QWindow):
         c = self.use_opengl()
         self.draw_scene()
         c.swapBuffers(self)
+        self.frame_number += 1
 
     def get_background_color(self):
         return self.background_rgba
