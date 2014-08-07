@@ -874,7 +874,7 @@ class Pick:
     return None
   def drawing(self):
     return None
-  def select(self):
+  def select(self, toggle = False):
     pass
   def id_string(self):
     d = self.drawing()
