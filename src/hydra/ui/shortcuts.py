@@ -143,6 +143,7 @@ def standard_shortcuts(session):
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, viewarg, msmenu),
         ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, viewarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, viewarg, msmenu),
+        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
         ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
         # Devices
@@ -395,6 +396,10 @@ def enable_move_planes_mouse_mode(viewer, button = 'right'):
 def enable_contour_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
   m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
+
+def enable_map_series_mouse_mode(s, button = 'right'):
+  from ..map import series
+  series.enable_map_series_mouse_mode(s, button)
 
 def enable_move_selected_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
