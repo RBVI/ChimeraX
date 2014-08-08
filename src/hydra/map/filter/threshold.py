@@ -3,12 +3,12 @@
 #
 def threshold(volume, minimum = None, set_minimum = None,
               maximum = None, set_maximum = None,
-              step = 1, subregion = None, modelId = None):
+              step = 1, subregion = None, modelId = None, session = None):
 
   tg = threshold_grid(volume, minimum, set_minimum, maximum, set_maximum,
                       step, subregion)
-  from VolumeViewer import volume_from_grid_data
-  tv = volume_from_grid_data(tg, show_data = False, model_id = modelId)
+  from .. import volume_from_grid_data
+  tv = volume_from_grid_data(tg, show_data = False, model_id = modelId, session = session)
   tv.copy_settings_from(volume)
   tv.show()
   
@@ -45,7 +45,7 @@ def threshold_grid(volume, minimum = None, set_minimum = None,
     else:
       putmask(m, m > t, array(set_maximum, m.dtype))
 
-  from VolumeData import Array_Grid_Data
+  from ..data import Array_Grid_Data
   d = v.data
   if v.name.endswith('thresholded'): name = v.name
   else:                         name = '%s thresholded' % v.name

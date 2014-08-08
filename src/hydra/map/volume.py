@@ -1383,8 +1383,17 @@ class Volume(Model):
   # of this volume.  The subregion and step arguments allow interpolating
   # not using the full map v.
   #
-  def add_interpolated_values(self, v, subregion = 'all', step = (1,1,1),
-                              scale = 1):
+  def add_interpolated_values(self, v, subregion = 'all', step = (1,1,1), scale = 1):
+
+    combine_interpolated_values(v, 'add', subregion, step, scale)
+
+  # ---------------------------------------------------------------------------
+  # Combine values from another volume interpolated at grid positions
+  # of this volume by adding, subtracting, taking maximum, multiplying....
+  # The subregion and step arguments allow interpolating not using the full map v.
+  #
+  def combine_interpolated_values(self, v, operation = 'add',
+                                  subregion = 'all', step = (1,1,1), scale = 1):
 
     if scale == 0:
       return
@@ -1396,21 +1405,27 @@ class Volume(Model):
     m = d.full_matrix()
     if scale == 'minrms':
       level = min(v.surface_levels) if v.surface_levels else 0
-      scale = minimum_rms_scale(values, m, level)
-      from chimera.replyobj import info
-      info('Minimum RMS scale factor for "%s" above level %.5g\n'
-           '  subtracted from "%s" is %.5g\n'
-           % (v.name_with_id(), level, self.name_with_id(), -scale))
-    if scale == 1:
-      m[:,:,:] += values
-    elif scale == -1:
-      m[:,:,:] -= values
-    else:
-      # Avoid copying array unless needed for scaling.
+      scale = -minimum_rms_scale(values, m, level)
+      ses = self.session
+      ses.show_info('Minimum RMS scale factor for "%s" above level %.5g\n'
+                    '  subtracted from "%s" is %.5g\n'
+                    % (v.name_with_id(), level, self.name_with_id(), scale))
+    if scale != 1:
+      # Copy array only if scaling.
       if const_values:
         values = values.copy()
       values *= scale
+    if values.dtype != m.dtype:
+      values = values.astype(m.dtype, copy=False)
+    if operation == 'add':
       m[:,:,:] += values
+    elif operation == 'subtract':
+      m[:,:,:] -= values
+    elif operation == 'maximum':
+      from numpy import maximum
+      maximum(m, values, m)
+    elif operation == 'multiply':
+      m[:,:,:] *= values
     d.values_changed()
 
   # ---------------------------------------------------------------------------
