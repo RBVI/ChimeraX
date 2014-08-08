@@ -13,10 +13,6 @@ def vseries_command(cmd_name, args, session):
     from ...ui.commands import floats_arg, parse_subregion, value_type_arg, volume_arg
     from ...ui.commands import perform_operation
     ops = {
-        'open': (open_op,
-                 (('paths', string_arg),),
-                 (),
-                 ()),
         'align': (align_op,
                   (('series', series_arg),),
                   (),
@@ -104,25 +100,6 @@ def stop_op(series):
             if s in p.series:
                 p.stop()
     release_stopped_players()
-    
-# -----------------------------------------------------------------------------
-#
-def open_op(paths):
-
-    from OpenSave import tildeExpand
-    pspec = tildeExpand(paths)
-    import glob
-    path_list = pspec.split(',') if ',' in pspec else glob.glob(pspec)
-    if len(path_list) == 0:
-        raise CommandError('vseries: No files specified by "%s"' % paths)
-
-    from VolumeData import open_file
-    grids = sum([open_file(path) for path in path_list], [])
-    sgrids = list(grids)
-    sgrids.sort(key = lambda g: g.name)
-    from VolumeSeries import Volume_Series, gui
-    ts = Volume_Series(sgrids[0].name, sgrids)
-    gui.add_volume_series(ts)
 
 # -----------------------------------------------------------------------------
 #
