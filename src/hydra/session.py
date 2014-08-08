@@ -31,8 +31,8 @@ class Session(Models):
         self.log = None
         'Command, error, info log, :py:class:`~.ui.gui.Log`'
 
-        self.file_types = None
-        'Table of file types that can be read, used by :py:func:`~.file_io.opensave.file_types`'
+        self.file_readers = None
+        'Table of file types that can be read, used by :py:func:`~.file_io.opensave.file_readers`'
 
         self.databases = {}
         'For fetching pdb and map models from the web, used by :py:func:`~.file_io.fetch.register_fetch_database`'

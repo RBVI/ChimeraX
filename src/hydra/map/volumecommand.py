@@ -440,11 +440,11 @@ def level_and_color_settings(v, options):
 # -----------------------------------------------------------------------------
 # Arguments are axis,pstart,pend,pstep,pdepth.
 #
-def planes_arg(planes):
+def planes_arg(planes, session):
 
     axis, param = (planes.split(',',1) + [''])[:2]
     from ..ui.commands import enum_arg, floats_arg, CommandError
-    p = [enum_arg(axis, ('x','y','z'))] + floats_arg(param)
+    p = [enum_arg(axis, session, ('x','y','z'))] + floats_arg(param, session)
     if len(p) < 2 or len(p) > 5:
         raise CommandError('planes argument must have 2 to 5 comma-separated values: axis,pstart[[[,pend],pstep],pdepth.], got "%s"' % planes)
     return p

@@ -4,8 +4,8 @@ def show_open_file_dialog(session):
     '''
     Display the Open file dialog for opening data files.
     '''
-    filter_lines = ['%s (%s)' % (name, ' '.join('*.%s' % s for s in suffixes))
-                    for name, suffixes, read_func in file_types(session)]
+    filter_lines = ['%s (%s)' % (r.name, ' '.join('*.%s' % s for s in r.suffixes))
+                    for r in file_readers(session)]
     filter_lines.insert(0, 'All (*.*)')
     filters = ';;'.join(filter_lines)
     dir = session.file_history.most_recent_directory()
@@ -56,14 +56,21 @@ def existing_directory(path):
             path = d
     return None
 
-def file_types(session):
+class File_Reader:
+    def __init__(self, name, suffixes, reader, batch = False):
+        self.name = name
+        self.suffixes = suffixes
+        self.reader = reader
+        self.batch = batch
+
+def file_readers(session):
     '''
     Return a list of file readers, each reader being represented by 3-tuple
     consisting of a file type name, a list of recognized suffixes, and a function
     that opens that file type give a path.  The funtion returns a list of models
     which have not been added to the scene.
     '''
-    ftypes = session.file_types
+    ftypes = session.file_readers
     if ftypes is None:
         from ..molecule.pdb import open_pdb_file
         from ..molecule.mmcif import open_mmcif_file
@@ -71,32 +78,33 @@ def file_types(session):
         from .read_apr import open_autopack_results, read_ingredient_file, read_sphere_file
         from .read_swc import read_swc
         from .collada import read_collada_surfaces
+
+        r = File_Reader
         ftypes = [
-            ('PDB', ['pdb','ent'], lambda path,s=session: open_pdb_file(path,s)),
-            ('mmCIF', ['cif'], open_mmcif_file),
-            ('Session', ['hy'], open_session),
-            ('AutoPack', ['apr'], open_autopack_results),
-            ('AutoPack Ingredient', ['xml'], read_ingredient_file),
-            ('AutoPack sphere file', ['sph'], read_sphere_file),
-            ('STL', ['stl'], read_stl),
-            ('Collada', ['dae'], read_collada_surfaces),
-            ('Neuron SWC', ['swc'], read_swc),
-            ('Python', ['py'], read_python),
+            r('PDB', ['pdb','ent'], open_pdb_file),
+            r('mmCIF', ['cif'], open_mmcif_file),
+            r('Session', ['hy'], open_session),
+            r('AutoPack', ['apr'], open_autopack_results),
+            r('AutoPack Ingredient', ['xml'], read_ingredient_file),
+            r('AutoPack sphere file', ['sph'], read_sphere_file),
+            r('STL', ['stl'], read_stl),
+            r('Collada', ['dae'], read_collada_surfaces),
+            r('Neuron SWC', ['swc'], read_swc),
+            r('Python', ['py'], read_python),
         ]
         # Add map file types
         from ..map.data.fileformats import file_types as mft
-        map_file_types = [(d, suffixes, lambda p,s=session: open_map(p,s))
-                          for d,t,prefixes,suffixes,batch in mft]
-        ftypes.extend(map_file_types)
-        session.file_types = ftypes
+        map_readers = [r(d, suffixes, open_map, batch = batch) for d,t,prefixes,suffixes,batch in mft]
+        ftypes.extend(map_readers)
+        session.file_readers = ftypes
     return ftypes
 
-def file_readers(session):
-    r = {}
-    for name, suffixes, read_func in file_types(session):
-        for s in suffixes:
-            r['.' + s] = read_func
-    return r
+def file_reader_table(session):
+    t = {}
+    for r in file_readers(session):
+        for s in r.suffixes:
+            t['.' + s] = r
+    return t
 
 def file_writers(session):
     from . import session_file, write_stl
@@ -114,29 +122,38 @@ def file_writers(session):
 def open_files(paths, session, set_camera = None):
     '''
     Open data files and add the models created to the scene.  The file types are recognized
-    using the file suffix as listed in the list returned by file_types().
+    using the file suffix as listed in the list returned by file_readers().
     '''
     if set_camera is None:
         set_camera = (session.model_count() == 0)
-    r = file_readers(session)
+    fr = file_reader_table(session)
     opened = []
     models = []
+    batched_paths = set()
     from os.path import splitext, isfile
     for path in paths:
         ext = splitext(path)[1]
         if not isfile(path):
             session.show_status('File not found "%s"' % path)
             # TODO issue warning.
-        elif ext in r:
-            file_reader = r[ext]
-            mlist = file_reader(path, session)
+        elif ext in fr:
+            r = fr[ext]
+            if path in batched_paths:
+                continue
+            elif r.batch:
+                bpaths = [p for p in paths if p.endswith(ext)]
+                for p in bpaths:
+                    batched_paths.add(p)
+                mlist = r.reader(bpaths, session)
+            else:
+                mlist = r.reader(path, session)
             if not isinstance(mlist, (list, tuple)):
                 mlist = [mlist]
             models.extend(mlist)
             for m in mlist:
                 session.add_model(m)
             opened.append(path)
-            if set_camera and file_reader == open_session:
+            if set_camera and r.reader == open_session:
                 set_camera = False
         else:
             session.show_status('Unknown file suffix "%s"' % ext)
