@@ -74,7 +74,7 @@ $(APP) update_prereqs:
 
 # Copy only the Python packages needed for distribution.
 	cd $(libdir)/python$(PYTHON_VERSION)/site-packages ; \
-	  $(RSYNC) $(NUMEXPR_EGG)/numexpr numpy tables PyQt5 sip.so $(APP_PY_SITE)
+	  $(RSYNC) $(NUMEXPR_EGG)/numexpr numpy tables PIL PyQt5 sip.so $(APP_PY_SITE)
 	cd $(PYSITEDIR) ; \
 	  $(RSYNC) LeapMotion $(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL \
 	           $(DATEUTIL_EGG)/dateutil $(SIX_EGG)/six.py $(APP_PY_SITE)
