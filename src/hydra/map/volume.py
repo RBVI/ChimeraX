@@ -515,6 +515,8 @@ class Volume(Model):
       self.hide_surface()
       self.show_solid(show, self.rendering_options)
 
+    self.display = show
+
     if show:
       self.call_change_callbacks('displayed')
       
