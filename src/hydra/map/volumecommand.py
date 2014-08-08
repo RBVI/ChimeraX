@@ -21,6 +21,8 @@ def volume_command(cmdname, args, session):
                ('show', ()),
                ('hide', ()),
                ('level', floats_arg, {'allowed_counts': (1,2)}, 'multiple'),
+               ('encloseVolume', floats_arg),
+               ('fastEncloseVolume', floats_arg),
                ('color', color_arg, 'multiple'),
                ('brightness', float_arg, {'min': 0.0}),
                ('transparency', float_arg, {'min': 0.0, 'max':1.0}),
@@ -125,6 +127,8 @@ def volume(volumes = '',                # Specifier
            show = None,
            hide = None,
            level = None,
+           encloseVolume = None,
+           fastEncloseVolume = None,
            color = None,
            brightness = None,
            transparency = None,
@@ -213,7 +217,7 @@ def volume(volumes = '',                # Specifier
                            (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
-    dopt = ('style', 'show', 'hide', 'level',
+    dopt = ('style', 'show', 'hide', 'level', 'encloseVolume', 'fastEncloseVolume',
             'color', 'brightness', 'transparency',
             'step', 'region', 'nameRegion', 'expandSinglePlane', 'origin',
             'originIndex', 'voxelSize', 'planes',
@@ -268,6 +272,14 @@ def apply_volume_options(v, doptions, roptions, session):
     kw.update(ropt)
     if kw:
         v.set_parameters(**kw)
+
+    if 'encloseVolume' in doptions:
+        levels = [v.surface_level_for_enclosed_volume(ev) for ev in doptions['encloseVolume']]
+        v.set_parameters(surface_levels = levels)
+    elif 'fastEncloseVolume' in doptions:
+        levels = [v.surface_level_for_enclosed_volume(ev, rank_method = True)
+                  for ev in doptions['fastEncloseVolume']]
+        v.set_parameters(surface_levels = levels)
 
     if 'region' in doptions or 'step' in doptions:
         r = v.subregion(doptions.get('step', None),

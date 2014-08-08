@@ -671,9 +671,9 @@ class Volume(Model):
                                        cap_faces = ro.cap_faces,
                                        calculate_normals = True)
     except MemoryError:
-      from chimera.replyobj import warning
-      warning('Ran out of memory contouring at level %.3g.\n' % level +
-              'Try a higher contour level.')
+      ses = self.session
+      ses.show_warning('Ran out of memory contouring at level %.3g.\n' % level +
+                       'Try a higher contour level.')
       return False
 
     for a in plane_axis:
@@ -728,6 +728,35 @@ class Volume(Model):
     self.message('')
 
     return True
+    
+  # ---------------------------------------------------------------------------
+  # Rank method ignores tolerance and uses a histogram of data values to
+  # estimate the level that will contain the fraction of grid points corresponding
+  # to the requested volume.
+  #
+  def surface_level_for_enclosed_volume(self, volume, tolerance = 1e-3,
+                                        max_bisections = 30, rank_method = False):
+
+    sx,sy,sz = self.data.step
+    cell_volume = float(sx)*sy*sz
+
+    if rank_method:
+      ms = self.matrix_value_statistics()
+      nx, ny, nz = self.data.size
+      box_volume = cell_volume * nx * ny * nz
+      r = 1.0 - (volume / box_volume)
+      level = ms.rank_data_value(r)
+      return level
+
+    gvolume = volume / cell_volume
+    matrix = self.full_matrix()
+    from . import data
+    try:
+      level = data.surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
+    except MemoryError as e:
+      self.session.show_warning(str(e))
+      level = None
+    return level
     
   # ---------------------------------------------------------------------------
   #
