@@ -9,7 +9,7 @@ class Image_Stack_Grid(Grid_Data):
 
   def __init__(self, paths):
 
-    import imagestack_format
+    from . import imagestack_format
     d = imagestack_format.Image_Stack_Data(paths)
     self.image_stack = d
 

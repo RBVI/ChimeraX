@@ -14,7 +14,7 @@ class Image_Stack_Data:
     if isinstance(paths, str):
       paths = indexed_files(paths)
       if not paths:
-        raise SyntaxError, 'No files found %s' % path
+        raise SyntaxError('No files found %s' % path)
     self.paths = tuple(paths)
 
     from numpy import uint8, uint16, int32, float32, little_endian
@@ -34,8 +34,7 @@ class Image_Stack_Data:
       self.value_type = modes[i.mode]
     else:
       mnames = ', '.join(modes.keys())
-      raise SyntaxError, ('Image mode %s is not supported (%s)'
-                          % (i.mode, mnames))
+      raise SyntaxError('Image mode %s is not supported (%s)' % (i.mode, mnames))
     xsize, ysize = i.size
 
     self.multipage_image = None
