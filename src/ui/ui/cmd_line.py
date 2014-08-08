@@ -12,6 +12,9 @@ class CmdLine:
         parent = self.tool_window.ui_area
         self.text = wx.TextCtrl(parent, size=self.SIZE,
             style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.text, 1, wx.EXPAND)
+        parent.SetSizerAndFit(sizer)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
 
     def OnEnter(self, event):
