@@ -6,7 +6,7 @@ SUBDIRS	= arrays docs example_sessions file_io geometry graphics mac_os_cpp map 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
 
-PYSRCS = __init__.py models.py scenes.py session.py
+PYSRCS = __init__.py models.py scenes.py session.py version.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)
