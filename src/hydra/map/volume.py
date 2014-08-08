@@ -1734,7 +1734,7 @@ class Volume(Model):
 
     s = self.solid
     if s:
-      s.close_model()
+      s.close_model(self)
       self.solid = None
       
   # ---------------------------------------------------------------------------

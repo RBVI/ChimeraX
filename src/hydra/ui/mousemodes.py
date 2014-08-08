@@ -276,10 +276,10 @@ class Mouse_Modes:
     def wheel_contour_level(self, event):
         d = event.angleDelta().y()       # Usually one wheel click is delta of 120
         f = d/(120.0 * 30)
-        models = self.view.session.model_list()
-        for m in models:
-            adjust_threshold_level(m, f)
-            m.show()
+        for m in self.view.session.maps():
+            if m.display:
+                adjust_threshold_level(m, f)
+                m.show()
 
     # Appears that Qt has disabled touch events on Mac due to unresolved scrolling lag problems.
     # Searching for qt setAcceptsTouchEvents shows they were disabled Oct 17, 2012.

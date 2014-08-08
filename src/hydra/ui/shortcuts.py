@@ -758,7 +758,7 @@ def quit(session):
     sys.exit(0)
 
 def undisplay_half(session):
-    for m in session.models:
+    for m in session.models_list():
         undisplay_half_model(m)
 
 def undisplay_half_model(m):
@@ -778,7 +778,7 @@ def undisplay_half_model(m):
         undisplay_half_model(c)
 
 def display_all_positions(session):
-    for m in session.models:
+    for m in session.model_list():
         for c in m.all_drawings():
             if c.display:
                 c.display_positions = None

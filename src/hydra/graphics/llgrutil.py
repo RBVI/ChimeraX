@@ -168,7 +168,7 @@ def update_llgr_surface_piece(p):
 
 def render(viewer):
     v = viewer
-    models = v.session.model_list()
+    models = v.session.top_level_models()
     w,h = v.window_size
     from OpenGL import GL
     GL.glViewport(0,0,w,h)

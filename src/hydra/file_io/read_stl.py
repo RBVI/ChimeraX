@@ -103,8 +103,7 @@ class STL_Surface(Model):
 def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
 
     if attributes_only:
-        models = session.model_list()
-        sids = dict((m.id,m) for m in models if isinstance(m, STL_Surface))
+        sids = dict((m.id,m) for m in session.model_list() if isinstance(m, STL_Surface))
     from ..geometry.place import Places
     for st in surfs:
         if attributes_only:

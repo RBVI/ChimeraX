@@ -880,10 +880,10 @@ class Pick:
     d = self.drawing()
     id_chain = []
     while d:
-      if hasattr(d, 'id'):
+      if hasattr(d, 'id') and not d.id is None:
         id_chain.append(d.id)
       d = getattr(d, 'parent', None)
-    s = '#' + '.'.join(('%d' % id) for id in id_chain[::-1])
+    s = '#' + '.'.join(('%d' % id) for id in id_chain[1::-1])
     return s
 
 class Picked_Drawing(Pick):

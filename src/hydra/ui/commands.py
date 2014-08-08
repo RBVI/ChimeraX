@@ -1172,7 +1172,7 @@ def parse_specifier(spec, session):
         if p.startswith('#'):
             mids = integer_set(p[1:])
             if len(mids) == 0:
-                mids = set(m.id for m in session.model_list())
+                mids = set(m.id for m in session.top_level_models())
         elif p.startswith('.'):
             try:
                 subids.append(integer_set(p[1:]))
@@ -1210,7 +1210,6 @@ def parse_specifier(spec, session):
         else:
             smodels.append(m)
     if invert:
-        # TODO: Invert doesn't return submodels.
         sm = set(smodels)
         smodels = [m for m in session.model_list()
                    if not isinstance(m, Molecule) and not m in sm]
@@ -1263,7 +1262,7 @@ def integer_set(rstring):
 #
 def models_matching_ids(ids, session):
     mm = []
-    mc = session.model_list()
+    mc = session.top_level_models()
     for sid in ids:
         mm = [m for m in mc if m.id in sid]
         mc = sum(tuple(m.child_drawings() for m in mm), [])
