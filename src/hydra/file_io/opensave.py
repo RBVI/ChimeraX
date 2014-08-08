@@ -339,7 +339,7 @@ def open_data(path, session, from_database = None, set_camera = None, history = 
         from os.path import expanduser
         from glob import glob
         paths = sum([glob(expanduser(p)) for p in path.split(',')], [])
-        p0 = paths[0]
+        p0 = paths[0] if paths else ''
         from os.path import isfile
         if isfile(p0):
             mlist = open_files(paths, session)
