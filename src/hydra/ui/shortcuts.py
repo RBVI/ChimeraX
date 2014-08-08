@@ -532,9 +532,7 @@ def selection_mouse_mode(session):
     v.mouse_modes.bind_mouse_mode('right', v.mouse_modes.mouse_select)
 
 def command_line(session):
-    session.main_window.focus_on_command_line()
-#  from .qt import QtCore
-#  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
+    session.main_window.enable_shortcuts(False)
 
 def display_selected_models(session):
   session.display_models(session.selected_models())
