@@ -21,6 +21,10 @@ class Mouse_Modes:
         view.wheelEvent = self.wheel_event
         view.touchEvent = self.touch_event
 
+        self.trackpad_speed = 4         # Trackpad position scaling to match mouse position sensitivity
+        view.add_new_frame_callback(self.collapse_touch_events)
+        self.recent_touch_points = None
+
     # Button is "left", "middle", or "right"
     def bind_mouse_mode(self, button, mouse_down,
                         mouse_drag = None, mouse_up = None):
@@ -291,10 +295,22 @@ class Mouse_Modes:
         from .qt import QtCore
         t = event.type()
         if t == QtCore.QEvent.TouchUpdate:
-            self.process_touches(event.touchPoints())
+            # On Mac touch events get backlogged in queue when the events cause 
+            # time consuming computatation.  It appears Qt does not collapse the events.
+            # So event processing can get tens of seconds behind.  To reduce this problem
+            # we only handle one touch update per redraw.
+            self.recent_touch_points = event.touchPoints()
+#            self.process_touches(event.touchPoints())
         elif t == QtCore.QEvent.TouchEnd:
             self.last_trackpad_touch_count = 0
+            self.recent_touch_points = None
             self.mouse_up(event = None)
+
+    def collapse_touch_events(self):
+        touches = self.recent_touch_points
+        if not touches is None:
+            self.process_touches(touches)
+            self.recent_touch_points = None
 
     def process_touches(self, touches):
         min_pinch = 0.1
@@ -302,7 +318,8 @@ class Mouse_Modes:
         import time
         self.last_trackpad_touch_time = time.time()
         self.last_trackpad_touch_count = n
-        moves = [(id, t.pos().x() - t.lastPos().x(), t.pos().y() - t.lastPos().y()) for t in touches]
+        s = self.trackpad_speed
+        moves = [(id, s*(t.pos().x() - t.lastPos().x()), s*(t.pos().y() - t.lastPos().y())) for t in touches]
         if n == 2:
             (dx0,dy0),(dx1,dy1) = moves[0][1:], moves[1][1:]
             from math import sqrt, exp, atan2, pi
@@ -330,7 +347,7 @@ class Mouse_Modes:
             dy = sum(y for id,x,y in moves)
             # rotation
             from math import sqrt
-            angle = sqrt(dx*dx + dy*dy)
+            angle = 0.3*sqrt(dx*dx + dy*dy)
             if angle != 0:
                 axis = (dy, dx, 0)
                 self.rotate(axis, angle)
