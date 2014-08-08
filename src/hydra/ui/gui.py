@@ -161,6 +161,9 @@ class MainWindow(QtWidgets.QMainWindow):
         a = self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'Mp')
         a.setCheckable(True)
         modes.addAction(a)
+        a = self.add_shortcut_icon('vseries.png', 'Volume series mouse mode', 'vs')
+        a.setCheckable(True)
+        modes.addAction(a)
         toolbar.addSeparator()
 
         self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
