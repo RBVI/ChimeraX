@@ -106,7 +106,7 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
 
     g._v_attrs.chimera_map_version = 1
 
-    from chimera.version import release
+    from ....version import release
     g._v_attrs.chimera_version = release        # string
 
     if grid_data.name:
@@ -121,8 +121,8 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
     if grid_data.cell_angles != (90,90,90):
         g._v_attrs.cell_angles = array(grid_data.cell_angles, float32)
     if grid_data.rotation != ((1,0,0),(0,1,0),(0,0,1)):
-        import Matrix
-        axis, angle = Matrix.rotation_axis_angle(grid_data.rotation)
+        from ....geometry import matrix
+        axis, angle = matrix.rotation_axis_angle(grid_data.rotation)
         g._v_attrs.rotation_axis = array(axis, float32)
         g._v_attrs.rotation_angle = array(angle, float32)
     if len(grid_data.symmetries) > 0:

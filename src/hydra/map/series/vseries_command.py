@@ -10,7 +10,7 @@ players = set()         # Active players.
 def vseries_command(cmd_name, args, session):
 
     from ...ui.commands import bool_arg, float_arg, enum_arg, int_arg, string_arg
-    from ...ui.commands import floats_arg, parse_subregion, volume_arg
+    from ...ui.commands import floats_arg, parse_subregion, value_type_arg, volume_arg
     from ...ui.commands import perform_operation
     ops = {
         'open': (open_op,
@@ -27,7 +27,7 @@ def vseries_command(cmd_name, args, session):
                   ('path', string_arg)),
                  (),
                  (('subregion', parse_subregion),
-                  ('valueType', string_arg),
+                  ('valueType', value_type_arg),
                   ('threshold', float_arg),
                   ('zeroMean', bool_arg),
                   ('scaleFactor', float_arg),
@@ -37,7 +37,7 @@ def vseries_command(cmd_name, args, session):
                   ('align', bool_arg),
                   ('onGrid', volume_arg),
                   ('mask', volume_arg),
-                  ('finalValueType', string_arg),
+                  ('finalValueType', value_type_arg),
                   ('compress', bool_arg)),
                  ),
         'close': (close_op,
@@ -185,19 +185,16 @@ def align(v, vprev):
 def save_op(series, path, subregion = None, valueType = None,
             threshold = None, zeroMean = False, scaleFactor = None,
             encloseVolume = None, fastEncloseVolume = None, normalizeLevel = None,
-            align = False, onGrid = None, mask = None, finalValueType = None, compress = False):
+            align = False, onGrid = None, mask = None, finalValueType = None, compress = False,
+            session = None):
 
     if len(series) > 1:
         raise CommandError('vseries save: Can only save one series in a file, got %d'
                            % len(series))
     s = series[0]
 
-    import OpenSave
-    path = OpenSave.tildeExpand(path)
-
-    from VolumeFilter.vopcommand import parse_value_type
-    value_type = None if valueType is None else parse_value_type(valueType)
-    final_value_type = None if finalValueType is None else parse_value_type(finalValueType)
+    import os.path
+    path = os.path.expanduser(path)         # Tilde expansion
 
     if onGrid is None and align:
         onGrid = s.data_regions[0]
@@ -207,14 +204,14 @@ def save_op(series, path, subregion = None, valueType = None,
         vtype = m.dtype if value_type is None else value_type
         on_grid = onGrid.writable_copy(value_type = vtype, show = False)
 
-    n = len(s.data_regions)
-    for i,v in enumerate(s.data_regions):
-        from chimera import replyobj
-        replyobj.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
-        align_to = s.data_regions[i-1] if align and i > 0 else None
-        d = processed_volume(v, subregion, value_type, threshold, zeroMean, scaleFactor,
+    maps = s.maps
+    n = len(maps)
+    for i,v in enumerate(maps):
+        session.show_status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
+        align_to = maps[i-1] if align and i > 0 else None
+        d = processed_volume(v, subregion, valueType, threshold, zeroMean, scaleFactor,
                              encloseVolume, fastEncloseVolume, normalizeLevel,
-                             align_to, on_grid, mask, final_value_type)
+                             align_to, on_grid, mask, finalValueType)
         d.name = '%04d' % i
         options = {'append': True, 'compress': compress}
         from ..data import cmap
