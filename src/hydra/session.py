@@ -104,6 +104,10 @@ class Session(Models):
         '''Write information such as command output to the log window.'''
         self.log.log_message(msg, color)
 
+    def show_warning(self, msg):
+        '''Write warning such as command output to the log window.'''
+        self.show_status(msg)
+
     def at_quit(self, callback):
         '''Register a callback to run just before the program exits, for example to write a history file.'''
         self.quit_callbacks.append(callback)
