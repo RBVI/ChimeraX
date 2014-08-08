@@ -193,7 +193,7 @@ def open_map(map_path, session):
         maps.append(v)
     if len(maps) > 1:
         from os.path import basename
-        name = basename(map_path)
+        name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from ..map.series import Map_Series
         return [Map_Series(name, maps)]
     return maps

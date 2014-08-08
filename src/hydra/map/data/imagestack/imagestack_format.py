@@ -106,3 +106,15 @@ def indexed_files(path):
     return paths
 
   return [path]
+
+# -----------------------------------------------------------------------------
+#
+def multipage_image(path):
+  from PIL import Image
+  i = Image.open(path)
+  try:
+    frame = 1
+    i.seek(frame)
+  except EOFError:
+    return False
+  return True
