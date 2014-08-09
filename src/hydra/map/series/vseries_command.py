@@ -36,10 +36,6 @@ def vseries_command(cmd_name, args, session):
                   ('finalValueType', value_type_arg),
                   ('compress', bool_arg)),
                  ),
-        'close': (close_op,
-                 (('series', series_arg),),
-                 (),
-                 ()),
         'play': (play_op,
                  (('series', series_arg),),
                  (),
@@ -103,28 +99,18 @@ def stop_op(series):
 
 # -----------------------------------------------------------------------------
 #
-def close_op(series):
-
-    import gui
-    d = gui.volume_series_dialog()
+def align_op(series, encloseVolume = None, fastEncloseVolume = None, session = None):
     for s in series:
-        d.close_series(s)
+        align_series(s, encloseVolume, fastEncloseVolume, session)
 
 # -----------------------------------------------------------------------------
 #
-def align_op(series, encloseVolume = None, fastEncloseVolume = None):
-    for s in series:
-        align_series(s, encloseVolume, fastEncloseVolume)
+def align_series(s, enclose_volume = None, fast_enclose_volume = None, session = None):
 
-# -----------------------------------------------------------------------------
-#
-def align_series(s, enclose_volume = None, fast_enclose_volume = None):
-
-    n = len(s.data_regions)
+    n = len(s.maps)
     vprev = None
-    for i,v in enumerate(s.data_regions):
-        from chimera import replyobj
-        replyobj.status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
+    for i,v in enumerate(s.maps):
+        session.show_status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
         set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
         if vprev:
             align(v, vprev)
@@ -145,7 +131,7 @@ def set_enclosed_volume(v, enclose_volume, fast_enclose_volume):
 #
 def align(v, vprev):
 
-    v.openState.xform = vprev.openState.xform
+    v.position = vprev.position
     from ..fit.fitmap import map_points_and_weights, motion_to_maximum
     points, point_weights = map_points_and_weights(v, above_threshold = True)
     move_tf, stats = motion_to_maximum(points, point_weights, vprev,
@@ -154,8 +140,7 @@ def align(v, vprev):
                                        ijk_step_size_max = 0.5,
                                        optimize_translation = True,
                                        optimize_rotation = True)
-    import Matrix
-    v.openState.globalXform(Matrix.chimera_xform(move_tf))
+    v.position = move_tf * v.position
 
 # -----------------------------------------------------------------------------
 #
@@ -173,15 +158,15 @@ def save_op(series, path, subregion = None, valueType = None,
     import os.path
     path = os.path.expanduser(path)         # Tilde expansion
 
+    maps = s.maps
     if onGrid is None and align:
-        onGrid = s.data_regions[0]
+        onGrid = maps[0]
 
     on_grid = None
     if not onGrid is None:
-        vtype = m.dtype if value_type is None else value_type
+        vtype = maps[0].data.value_type if valueType is None else valueType
         on_grid = onGrid.writable_copy(value_type = vtype, show = False)
 
-    maps = s.maps
     n = len(maps)
     for i,v in enumerate(maps):
         session.show_status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
@@ -210,7 +195,8 @@ def processed_volume(v, subregion = None, value_type = None, threshold = None,
         d = Grid_Subregion(d, ijk_min, ijk_max)
 
     if (value_type is None and threshold is None and not zeroMean and
-        scaleFactor is None and mask is None and final_value_type is None):
+        scaleFactor is None and align_to is None and mask is None and
+        final_value_type is None):
         return d
 
     m = d.full_matrix()
