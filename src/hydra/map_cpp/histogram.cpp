@@ -221,7 +221,7 @@ high_indices_py(PyObject *s, PyObject *args, PyObject *keywds)
   Numeric_Array d;
   float level;
   const char *kwlist[] = {"array", "level", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&f"),
 				   (char **)kwlist,
 				   parse_3d_array, &d,
 				   &level))
