@@ -972,13 +972,13 @@ class Volume(Model):
   def writable_copy(self, require_copy = False,
                     show = True, unshow_original = True, model_id = None,
                     subregion = None, step = (1,1,1), name = None,
-                    copy_colors = True):
+                    copy_colors = True, value_type = None):
 
     r = self.subregion(step, subregion)
     if not require_copy and self.data.writable and self.is_full_region(r):
       return self
 
-    g = self.region_grid(r)
+    g = self.region_grid(r, value_type)
     g.array[:,:,:] = self.region_matrix(r)
 
     if name:
@@ -1414,7 +1414,7 @@ class Volume(Model):
   #
   def add_interpolated_values(self, v, subregion = 'all', step = (1,1,1), scale = 1):
 
-    combine_interpolated_values(v, 'add', subregion, step, scale)
+    self.combine_interpolated_values(v, 'add', subregion, step, scale)
 
   # ---------------------------------------------------------------------------
   # Combine values from another volume interpolated at grid positions
