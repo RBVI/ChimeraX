@@ -231,7 +231,7 @@ def processed_volume(v, subregion = None, value_type = None, threshold = None,
         align(v, align_to)
 
     if not on_grid is None:
-        vc = v.writable_copy(value_type = m.dtype, show = False)
+        vc = v.writable_copy(value_type = m.dtype, show = False, unshow_original = False)
         vc.full_matrix()[:,:,:] = m
         m = on_grid.full_matrix()
         m[:,:,:] = 0
