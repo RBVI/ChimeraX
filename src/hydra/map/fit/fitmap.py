@@ -269,6 +269,7 @@ def sum_product_gradient_direction(points, point_weights, data_array,
         from numpy import float64
         g = gradients.sum(axis=0, dtype = float64)
     else:
+        print ('fitmap spgd', point_weights.dtype, gradients.dtype)
         from ...geometry import vector
         g = vector.vector_sum(point_weights, gradients)
     return g
@@ -525,9 +526,8 @@ def average_map_value(points, xyz_to_ijk_transform, data_array, syminv = []):
 # Returns global coordinates by default.
 # If above_threshold is false filter out points with zero density.
 #
-#from chimera import Xform
-#def map_points_and_weights(v, above_threshold, point_to_world_xform = Xform()):
-def map_points_and_weights(v, above_threshold, point_to_world_xform = None):
+from ...geometry.place import Place
+def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
 
     m, xyz_to_ijk_tf = v.matrix_and_transform(point_to_world_xform,
                                               subregion = None, step = None)
