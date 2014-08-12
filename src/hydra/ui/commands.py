@@ -64,6 +64,8 @@ def register_commands(commands):
     add('wait', wait_command)
     from .turncmd import turn_command
     add('turn', turn_command)
+    from .motion import freeze_command
+    add('freeze', freeze_command)
 
 # -----------------------------------------------------------------------------
 #

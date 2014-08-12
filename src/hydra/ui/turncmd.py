@@ -26,23 +26,5 @@ def turn(axis, angle, frames = 1, session = None):
     else:
         def rotate(r=r,c=c):
             c.set_view(r*c.view())
-        call_for_n_frames(rotate, frames, session)
-
-class call_for_n_frames:
-    
-    def __init__(self, func, n, session):
-        self.func = func
-        self.n = n
-        self.session = session
-        self.frame = 0
-        session.view.add_new_frame_callback(self.call)
-    def call(self):
-        f = self.frame
-        if f >= self.n:
-            self.done()
-        else:
-            self.func()
-            self.frame = f+1
-    def done(self):
-        v = self.session.view
-        v.remove_new_frame_callback(self.call)
+        from . import motion
+        motion.call_for_n_frames(rotate, frames, session)
