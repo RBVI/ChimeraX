@@ -387,6 +387,7 @@ class View(QtGui.QWindow):
 
         from time import time
         t0 = time()
+        perspective_near_far_ratio = 2
         from .. import graphics
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
@@ -394,7 +395,7 @@ class View(QtGui.QWindow):
                 r.start_silhouette_drawing()
             r.draw_background()
             if mdraw:
-                self.update_projection(vnum, camera = camera)
+                perspective_near_far_ratio = self.update_projection(vnum, camera = camera)
                 if self.shadows:
                     # Shadow transform is from camera to shadow map texture coords.
                     r.set_shadow_transform(stf * camera.view())
@@ -404,7 +405,7 @@ class View(QtGui.QWindow):
                     graphics.draw_outline(r, cvinv, selected)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
-                                            self.silhouette_depth_jump, camera.perspective_near_far_ratio)
+                                            self.silhouette_depth_jump, perspective_near_far_ratio)
             s = camera.warp_image(vnum, r)
             if s:
                 graphics.draw_overlays([s], r)
@@ -515,13 +516,17 @@ class View(QtGui.QWindow):
 
     def update_projection(self, view_num = None, camera = None):
         
-        c = self.camera if camera is None else camera
         r = self.render
         ww,wh = r.render_size()
-        if ww > 0 and wh > 0:
-            nf = self.near_far_clip(c, view_num)
-            pm = c.projection_matrix(nf, view_num, (ww,wh))
-            r.set_projection_matrix(pm)
+        if ww == 0 or wh == 0:
+            return
+
+        c = self.camera if camera is None else camera
+        near,far = self.near_far_clip(c, view_num)
+        pm = c.projection_matrix((near,far), view_num, (ww,wh))
+        r.set_projection_matrix(pm)
+
+        return near/far
 
     def near_far_clip(self, camera, view_num):
 
@@ -531,8 +536,15 @@ class View(QtGui.QWindow):
         if center is None:
             return 0,1  # Nothing shown
         d = sum((center-cp)*vd)         # camera to center of models
-        nf = (d - size, d + size)
-        return nf
+        near, far = (d - size, d + size)
+
+        # Clamp near clip > 0.
+        near_min = 0.001*(far - near) if far > near else 1
+        near = max(near, near_min)
+        if far <= near:
+            far = 2*near
+
+        return (near, far)
 
     def clip_plane_points(self, window_x, window_y, camera = None, view_num = None):
         '''
