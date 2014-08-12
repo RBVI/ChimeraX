@@ -62,6 +62,8 @@ def register_commands(commands):
     from ..movie import movie_command, wait_command
     add('movie', movie_command)
     add('wait', wait_command)
+    from .turncmd import turn_command
+    add('turn', turn_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -420,7 +422,27 @@ def float3_arg(s, session):
     fl = [float(x) for x in s.split(',')]
     if len(fl) != 3:
         raise CommandError('Require 3 comma-separated values, got %d' % len(fl))
-    return fl
+    from numpy import array, float32
+    a = array(fl, float32)
+    return a
+
+# -----------------------------------------------------------------------------
+# Return unit vector.  Allow "x", "y", "z".
+#
+def axis_arg(s, session):
+    axes = ('x', 'y', 'z')
+    if s.lower() in axes:
+        from numpy import zeros, float32
+        a = zeros((3,), float32)
+        a[axes.index(s.lower())] = 1
+    else:
+        a = float3_arg(s, session)
+        from math import sqrt
+        d = sqrt((a*a).sum())
+        if d == 0:
+            raise CommandError('Axis must have non-zero length')
+        a /= d
+    return a
 
 # -----------------------------------------------------------------------------
 #
@@ -432,7 +454,9 @@ def float1or3_arg(s, session):
         fl = [f,f,f]
     elif len(fl) != 3:
         raise CommandError('Require float value or 3 comma-separated values')
-    return fl
+    from numpy import array, float32
+    a = array(fl, float32)
+    return a
 
 # -----------------------------------------------------------------------------
 #
@@ -443,7 +467,9 @@ def floats_arg(s, session, allowed_counts = None):
         allowed = ','.join('%d' % c for c in allowed_counts)
         raise CommandError('Wrong number of values, require %s, got %d'
                            % (allowed, len(fl)))
-    return fl
+    from numpy import array, float32
+    a = array(fl, float32)
+    return a
 
 # -----------------------------------------------------------------------------
 #
