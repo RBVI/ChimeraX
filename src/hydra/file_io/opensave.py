@@ -253,7 +253,7 @@ def save_command(cmdname, args, session):
     else:
         session.show_status('Unknown save file type %s' % a0)
 
-def save_image(path, session, width = None, height = None, format = None):
+def save_image(path, session, width = None, height = None, format = None, log_info = True):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -282,7 +282,8 @@ def save_image(path, session, width = None, height = None, format = None):
 
     i = view.image(width, height)
     i.save(path, format)
-    print ('saved image', path)
+    if log_info:
+        session.show_info('saved image %s' % path)
 
 def save_image_command(cmdname, args, session):
 
