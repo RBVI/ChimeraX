@@ -239,7 +239,7 @@ class View(QtGui.QWindow):
         else:
             dc.remove(r.SHADER_SHADOWS)
         for d in self.session.all_drawings():
-            m.clear_cached_shader()
+            d.clear_cached_shader()
         self.redraw_needed = True
     shadows = property(get_shadows, set_shadows)
 
