@@ -155,7 +155,7 @@ class Movie:
 
         v = self.session.view
         from ..file_io.opensave import save_image
-        save_image(save_path, self.session, width, height, self.img_fmt)
+        save_image(save_path, self.session, width, height, self.img_fmt, log_info = False)
 
         if self.postprocess_frames > 0:
             if self.postprocess_action == 'crossfade':
