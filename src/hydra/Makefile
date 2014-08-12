@@ -1,7 +1,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= arrays docs example_sessions file_io geometry graphics mac_os_cpp map map_cpp molecule molecule_cpp surface ui
+SUBDIRS	= arrays docs example_sessions file_io geometry graphics mac_os_cpp \
+	  map map_cpp molecule molecule_cpp movie surface ui
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
@@ -14,6 +15,7 @@ ifeq ($(OS),Darwin)
   APP = $(APPS_DIR)/$(APP_NAME)
   APP_PY_EXE = $(APP)/Contents/MacOS/python
   APP_FW_DIR = $(APP)/Contents/Frameworks
+  APP_BIN_DIR = $(APP)/Contents/Resources/bin
   APP_PY_DIR = $(APP_FW_DIR)/Python.framework/Versions/$(PYTHON_VERSION)
   APP_PY_SITE = $(APP_PY_DIR)/lib/python$(PYTHON_VERSION)/site-packages
   APP_PYQT = $(APP_PY_SITE)/PyQt5
@@ -131,6 +133,10 @@ $(APP) update_prereqs:
 			install_name_tool -change @executable_path/../lib/$$lib @loader_path/lib/$$lib $(APP_HYDRA)/$$pymod ; \
 		done ; \
 	done
+
+# Copy ffmpeg
+	-mkdir -p $(APP_BIN_DIR)
+	$(RSYNC) $(bindir)/ffmpeg $(APP_BIN_DIR)
 
 dmg:
 	cd $(APPS_DIR) ; \

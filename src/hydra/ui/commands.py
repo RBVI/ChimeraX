@@ -59,6 +59,9 @@ def register_commands(commands):
     add('cycle', cycle_command)
     from . import silhouettecmd
     add('silhouette', silhouettecmd.silhouette_command)
+    from ..movie import movie_command, wait_command
+    add('movie', movie_command)
+    add('wait', wait_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -82,12 +85,16 @@ class Commands:
         Invoke a command.  The command and arguments are a string that will be
         parsed by a registered command function.
         '''
+        self.history.add_to_command_history(text)
+        for c in text.split(';'):
+            self.run_single_command(c)
+
+    def run_single_command(self, text):
         ses = self.session
         ses.show_info('> %s' % text, color = '#008000')
         fields = text.split(maxsplit = 1)
         if len(fields) == 0:
             return
-        self.history.add_to_command_history(text)
         cmd = fields[0]
         cab = self.cmdabbrev
         if cab is None:
