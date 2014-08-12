@@ -46,7 +46,7 @@ else
 Mesa.install:
 endif
 
-SUBDIRS	+= cython docutils expat fonts \
+SUBDIRS	+= cython docutils expat ffmpeg fonts \
 	   glew hdf5 imex jinja2 line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow pycollada \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python python-dateutil PyQt qt \
