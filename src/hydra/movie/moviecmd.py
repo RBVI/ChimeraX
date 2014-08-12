@@ -104,7 +104,7 @@ def encode_multiple_op(session, **kw):
         w = kw1.pop('wait') if 'wait' in kw1 else False
         for o in outputs[:-1]:
             encode_op(output = o, resetMode = RESET_NONE, wait = True, **kw1)
-        encode_op(output = outputs[-1], resetMode = r, wait = w, session = sesion, **kw1)
+        encode_op(output = outputs[-1], resetMode = r, wait = w, session = session, **kw1)
     else:
         encode_op(session = session, **kw)
     
@@ -120,6 +120,9 @@ def encode_op(output=None, format=None,
     output_size = None
     bit_rate = None
     qual = None
+    if output:
+        from os import path
+        output = path.expanduser(output)
     if preset:
         preset = preset.upper()
         settings = formats.standard_formats.get(preset)
@@ -228,17 +231,23 @@ def command_keywords():
 def wait_command(cmd_name, args, session):
 
     from ..ui.commands import int_arg, parse_arguments
-    req_args = (('frames', int_arg),)
-    opt_args = ()
+    req_args = ()
+    opt_args = (('frames', int_arg),)
     kw_args = ()
 
     kw = parse_arguments(cmd_name, args, session, req_args, opt_args, kw_args)
     kw['session'] = session
     wait(**kw)
 
-def wait(frames, session):
+def wait(frames = None, session = None):
 
     v = session.view
-    for f in range(frames):
-        v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
-        v.redraw_graphics()
+    if frames is None:
+        from ..ui.motion import motion_in_progress
+        while motion_in_progress(session):
+            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
+            v.redraw_graphics()
+    else:
+        for f in range(frames):
+            v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
+            v.redraw_graphics()
