@@ -225,7 +225,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def showing_text(self):
         return self.stack.currentWidget() == self.text
-    def show_text(self, text = None, html = False, id = None, anchor_callback = None,
+    def show_text(self, text = None, url = None, html = False, id = None, anchor_callback = None,
                   open_links = False, scroll_to_end = False):
         t = self.text
         if not text is None:
@@ -233,6 +233,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 t.setHtml(text)
             else:
                 t.setPlainText(text)
+        elif not url is None:
+            from .qt import QtCore
+            t.setSource(QtCore.QUrl(url))
+
         self.text_id = id
         self.stack.setCurrentWidget(t)
         self.anchor_cb = anchor_callback

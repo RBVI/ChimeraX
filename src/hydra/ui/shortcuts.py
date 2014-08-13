@@ -657,15 +657,8 @@ def show_manual(session):
   else:
     from os.path import join, dirname
     path = join(dirname(dirname(__file__)), 'docs', 'index.html')
-# Can't use back button to initial page if html text provided instead of file url.
-#    f = open(path, 'r')
-#    text = f.read()
-#    f.close()
-#    m.show_text(text, html = True, id = "manual", open_links = True)
     url = 'file:/%s' % path
-    m.show_text(open_links = True, id = 'manual')
-    from .qt import QtCore
-    m.text.setSource(QtCore.QUrl(url))
+    m.show_text(url = url, open_links = True, id = 'manual')
 
 def show_file_history(session):
     session.file_history.show_thumbnails()
