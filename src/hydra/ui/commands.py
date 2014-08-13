@@ -1224,9 +1224,9 @@ def parse_specifier(spec, session):
     
     if spec == 'all':
         mlist = session.model_list()
-    elif mids or subids or (rrange is None and rname is None and aname is None):
-        mlist = models_matching_ids([mids] + subids, session)
-        print('parse', len(mlist), mids, subids, mlist)
+    elif mids or subids or (cids is None and rrange is None and rname is None and aname is None):
+        ids = subids if mids is None else [mids] + subids
+        mlist = models_matching_ids(ids, session)
     else:
         mlist = session.molecules()
     if len(mlist) == 0:
