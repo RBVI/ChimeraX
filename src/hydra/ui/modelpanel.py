@@ -80,7 +80,7 @@ class Model_Panel:
         w,h = self.image_size
         from .. import graphics
         c = graphics.camera_framing_models([model])
-        qi = v.image(w,h,c,[model])
+        qi = v.image(w, h, camera = c, models = [model])
         model.thumbnail_image = qi
         return qi
 
