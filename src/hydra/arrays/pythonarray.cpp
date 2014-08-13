@@ -1119,6 +1119,14 @@ PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3, PyObject *o4)
 }
 
 // ----------------------------------------------------------------------------
+//
+PyObject *python_none()
+{
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+// ----------------------------------------------------------------------------
 // Need to call NumPy import_array() before using NumPy routines.
 //
 static void *initialize_numpy()
