@@ -49,7 +49,6 @@ def standard_shortcuts(session):
         ('Sv', opensave.save_session, 'Save session', ocat, sesarg, fmenu),
         ('sv', opensave.save_session_as, 'Save session as...', ocat, sesarg, fmenu),
         ('si', lambda s: opensave.save_image(None,s), 'Save image', ocat, sesarg, fmenu),
-        ('oi', opensave.open_image, 'Open image', ocat, sesarg),
         ('Ca', close_all_models, 'Close all models', ocat, sesarg, fmenu),
         ('Qt', quit, 'Quit', ocat, sesarg, fmenu),
 

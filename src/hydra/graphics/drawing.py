@@ -914,15 +914,6 @@ class Picked_Drawing(Pick):
     pmask[c] = not pmask[c] if toggle else 1
     d.selected_positions = pmask
 
-def image_drawing(qi, pos, size, drawing = None):
-  '''
-  Make a new surface piece and texture map a QImage onto it.
-  '''
-  rgba = image_rgba_array(qi)
-  if drawing is None:
-    drawing = Drawing('Image')
-  return rgba_drawing(rgba, pos, size, drawing)
-
 def rgba_drawing(rgba, pos, size, drawing):
   '''
   Make a new surface piece and texture map an RGBA color array onto it.
@@ -941,30 +932,3 @@ def rgba_drawing(rgba, pos, size, drawing):
   from . import opengl
   d.texture = opengl.Texture(rgba)
   return d
-
-# Extract rgba values from a QImage.
-def image_rgba_array(i):
-    s = i.size()
-    w,h = s.width(), s.height()
-    from ..ui.qt import QtGui
-    i = i.convertToFormat(QtGui.QImage.Format_RGB32)    #0ffRRGGBB
-    b = i.bits()        # sip.voidptr
-    n = i.byteCount()
-    import ctypes
-    si = ctypes.string_at(int(b), n)
-    # si = b.asstring(n)  # Uses METH_OLDARGS in SIP 4.10, unsupported in Python 3
-
-    # TODO: Handle big-endian machine correctly.
-    # Bytes are B,G,R,A on little-endian machine.
-    from numpy import ndarray, uint8
-    rgba = ndarray(shape = (h,w,4), dtype = uint8, buffer = si)
-
-    # Flip vertical axis.
-    rgba = rgba[::-1,:,:].copy()
-
-    # Swap red and blue to get R,G,B,A
-    t = rgba[:,:,0].copy()
-    rgba[:,:,0] = rgba[:,:,2]
-    rgba[:,:,2] = t
-
-    return rgba

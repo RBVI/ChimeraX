@@ -299,23 +299,6 @@ def save_image_command(cmdname, args, session):
     kw['session'] = session
     save_image(**kw)
 
-def open_image(session):
-    filters = 'JPEG image (*.jpg)'
-    view = session.main_window.view
-    parent = view.widget
-    path = QtWidgets.QFileDialog.getOpenFileName(parent, 'Open Image', '.',
-                                             filters)
-    if isinstance(path, tuple):
-        path = path[0]      # PySide returns path and filter, not PyQt
-    if not path:
-        return
-    i = QtGui.QImage(path, 'JPG')
-    from ..graphics import Drawing, image_drawing
-    from os.path import basename
-    s = Drawing(basename(path))
-    image_drawing(i, (-.5,-.5), 1, s)
-    view.add_overlay(s)
-
 def open_command(cmdname, args, session):
 
     from ..ui.commands import string_arg
