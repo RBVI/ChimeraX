@@ -352,7 +352,7 @@ class Drawing:
     if selected_only and not self.selected:
       return
 
-    if len(self.positions) == 1:
+    if len(self.positions) == 1 and self.positions.shift_and_scale_array() is None:
       p = self.position
       pp = place if p.is_identity() else place*p
     else:
