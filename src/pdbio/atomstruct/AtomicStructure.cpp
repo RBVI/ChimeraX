@@ -333,8 +333,6 @@ AtomicStructure::polymers() const
     // go through missing-structure pseudobonds
     auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, false);
     if (pbg != nullptr) {
-std::cerr << pbg->pseudobonds().size() << " missing structure pseudobonds\n";
-int pbnum = 0;
         for (auto& pb: pbg->pseudobonds()) {
             Residue *r1 = pb->atoms()[0]->residue();
             Residue *r2 = pb->atoms()[1]->residue();
@@ -345,7 +343,6 @@ int pbnum = 0;
                 } else {
                     connected[r2] = true;
                 }
-std::cerr << ++pbnum << " " << r1->str() << " " << r2->str() << "\n";
             }
         }
     }
@@ -359,24 +356,20 @@ std::cerr << ++pbnum << " " << r1->str() << " " << r2->str() << "\n";
         auto connection = connected.find(r);
         if (connection == connected.end()) {
             if (in_chain) {
-std::cerr << " through " << r->str() << "\n";
                 chain.push_back(r);
                 polys.push_back(chain);
                 chain.clear();
                 in_chain = false;
             }
         } else {
-if (!in_chain) std::cerr << "chain " << r->str();
             chain.push_back(r);
             in_chain = true;
         }
     }
     if (in_chain) {
-std::cerr << " through end\n";
         polys.push_back(chain);
     }
 
-std::cerr << polys.size() << " polymers\n";
     return polys;
 }
 
