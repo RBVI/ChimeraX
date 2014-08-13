@@ -253,7 +253,7 @@ def save_command(cmdname, args, session):
     else:
         session.show_status('Unknown save file type %s' % a0)
 
-def save_image(path, session, width = None, height = None, format = None, log_info = True):
+def save_image(path, session, width = None, height = None, format = None, supersample = None, log_info = True):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -280,7 +280,7 @@ def save_image(path, session, width = None, height = None, format = None, log_in
             from ..ui import commands
             raise commands.CommandError('Unrecognized image file suffix "%s"' % format)
 
-    i = view.image(width, height)
+    i = view.image(width, height, supersample = supersample)
     i.save(path, format)
     if log_info:
         session.show_info('saved image %s' % path)
@@ -292,6 +292,7 @@ def save_image_command(cmdname, args, session):
     opt_args = ()
     kw_args = (('width', int_arg),
                ('height', int_arg),
+               ('supersample', int_arg),
                ('format', string_arg),)
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)

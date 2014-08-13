@@ -275,7 +275,7 @@ class View(QtGui.QWindow):
         self.overlays = [o for o in self.overlays if not o in oset]
         self.redraw_needed = True
 
-    def image(self, width = None, height = None, camera = None, models = None):
+    def image(self, width = None, height = None, supersample = None, camera = None, models = None):
 
         self.use_opengl()
 
@@ -289,8 +289,25 @@ class View(QtGui.QWindow):
         r = self.render
         r.push_framebuffer(fb)
         c = camera if camera else self.camera
-        self.draw_scene(c, models)
-        rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
+        if supersample is None:
+            self.draw_scene(c, models)
+            rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
+        else:
+            from numpy import zeros, float32, uint32, empty
+            srgba = zeros((h,w,4), float32)
+            n = supersample
+            s = 1.0/n
+            s0 = -0.5 + 0.5*s
+            for i in range(n):
+                for j in range(n):
+                    c.pixel_shift = (s0 + i*s, s0 + j*s)
+                    self.draw_scene(c, models)
+                    srgba += r.frame_buffer_image(w,h)
+            c.pixel_shift = (0,0)
+            srgba /= n*n
+            rgba8 = srgba.astype(uint32)            # third index 0,1,2,3 is r,g,b,a
+            rgb = empty((h,w), uint32)
+            rgb[:,:] = (rgba8[:,:,0]<<16) + (rgba8[:,:,1]<<8) + rgba8[:,:,2]
         r.pop_framebuffer()
         fb.delete()
 
