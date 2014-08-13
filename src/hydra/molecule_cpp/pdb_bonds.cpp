@@ -292,8 +292,7 @@ initialize_bond_templates(PyObject *s, PyObject *args, PyObject *keywds)
     delete bond_templates;
   bond_templates = new Bond_Templates(cindex, all_bonds, std::string(rlet,nrlet));
 
-  Py_INCREF(Py_None);
-  return Py_None;
+  return python_none();
 }
 
 // ----------------------------------------------------------------------------
