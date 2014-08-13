@@ -59,6 +59,9 @@ def register_commands(commands):
     add('cycle', cycle_command)
     from . import silhouettecmd
     add('silhouette', silhouettecmd.silhouette_command)
+    from ..movie import movie_command, wait_command
+    add('movie', movie_command)
+    add('wait', wait_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -82,12 +85,16 @@ class Commands:
         Invoke a command.  The command and arguments are a string that will be
         parsed by a registered command function.
         '''
+        self.history.add_to_command_history(text)
+        for c in text.split(';'):
+            self.run_single_command(c)
+
+    def run_single_command(self, text):
         ses = self.session
         ses.show_info('> %s' % text, color = '#008000')
         fields = text.split(maxsplit = 1)
         if len(fields) == 0:
             return
-        self.history.add_to_command_history(text)
         cmd = fields[0]
         cab = self.cmdabbrev
         if cab is None:
@@ -1172,7 +1179,7 @@ def parse_specifier(spec, session):
         if p.startswith('#'):
             mids = integer_set(p[1:])
             if len(mids) == 0:
-                mids = set(m.id for m in session.model_list())
+                mids = set(m.id for m in session.top_level_models())
         elif p.startswith('.'):
             try:
                 subids.append(integer_set(p[1:]))
@@ -1210,7 +1217,6 @@ def parse_specifier(spec, session):
         else:
             smodels.append(m)
     if invert:
-        # TODO: Invert doesn't return submodels.
         sm = set(smodels)
         smodels = [m for m in session.model_list()
                    if not isinstance(m, Molecule) and not m in sm]
@@ -1263,7 +1269,7 @@ def integer_set(rstring):
 #
 def models_matching_ids(ids, session):
     mm = []
-    mc = session.model_list()
+    mc = session.top_level_models()
     for sid in ids:
         mm = [m for m in mc if m.id in sid]
         mc = sum(tuple(m.child_drawings() for m in mm), [])
@@ -1280,12 +1286,14 @@ class Selection:
         from ..molecule import Molecule
         mols = [m for m in models if isinstance(m, Molecule)]
         self.aset.add_molecules(mols)
-        other = [m for m in models if not isinstance(m, Molecule)]
+        from ..models import Model
+        other = [m for m in models if isinstance(m, Model) and not isinstance(m, Molecule)]
         self._models.extend(other)
     def add_atoms(self, atoms):
         self.aset.add_atoms(atoms)
-    def models(self):
-        return self._models + list(self.molecules())
+    def models(self, include_submodels = True):
+        mlist = sum([m.all_models() for m in self._models],[]) if include_submodels else self._models
+        return mlist + list(self.molecules())
     def molecules(self):
         return self.aset.molecules()
     def chains(self):

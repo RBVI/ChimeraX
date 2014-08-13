@@ -7,7 +7,7 @@ include $(TOP)/mk/config.make
 
 # TODO: Port other file readers from Python 2 to Python 3.
 
-SUBDIRS	= ccp4 cmap dsn6 mrc
+SUBDIRS	= ccp4 cmap dsn6 imagestack mrc
 
 PKG_DIR = $(PYSITEDIR)/hydra/map/data
 

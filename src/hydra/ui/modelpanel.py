@@ -46,7 +46,7 @@ class Model_Panel:
                  'a:link { color: white; }',          # Link text color
                  'table { float:left; }',             # Multiple image/caption tables per row.
                  '</style>', '</head>', '<body>']
-        mlist = list(self.session.model_list())
+        mlist = list(self.session.top_level_models())
         mlist.sort(key = lambda m: m.id)
         from os.path import splitext
         for m in mlist:
@@ -94,7 +94,7 @@ class Model_Panel:
     def anchor_callback(self, qurl):
         url = qurl.toString()
         id = int(url)
-        for m in self.session.model_list():
+        for m in self.session.top_level_models():
             if m.id == id:
                 m.display = not m.display
 

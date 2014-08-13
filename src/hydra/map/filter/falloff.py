@@ -4,7 +4,7 @@
 # "Outside" grid points are defined to be those with value 0.
 #
 def falloff(volume, iterations = 10, in_place = False,
-            step = 1, subregion = None, modelId = None):
+            step = 1, subregion = None, modelId = None, session = None):
 
     if in_place:
         if not volume.data.writable:
@@ -16,8 +16,9 @@ def falloff(volume, iterations = 10, in_place = False,
         fv = volume
     else:
         fg = falloff_grid(volume, iterations, step, subregion)
-        from VolumeViewer import volume_from_grid_data
-        fv = volume_from_grid_data(fg, show_data = False, model_id = modelId)
+        from .. import volume_from_grid_data
+        fv = volume_from_grid_data(fg, show_data = False, model_id = modelId,
+                                   session = session)
         fv.copy_settings_from(volume)
         fv.show()
         volume.unshow()          # Hide original map
@@ -34,7 +35,7 @@ def falloff_grid(volume, iterations = 10, step = 1, subregion = None):
     m = v.region_matrix(region).copy()
     falloff_matrix(m, iterations)
 
-    from VolumeData import Array_Grid_Data
+    from ..data import Array_Grid_Data
     d = v.data
     name = '%s falloff' % v.name
     forigin, fstep = v.region_origin_and_step(region)

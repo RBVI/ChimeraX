@@ -97,16 +97,17 @@ def suffix_warning(paths):
 def open_file(path, file_type = None):
 
   if file_type == None:
-    file_type = file_type_from_suffix(path)
+    p = path if isinstance(path, str) else path[0]
+    file_type = file_type_from_suffix(p)
     if file_type == None:
-      file_type, path = file_type_from_colon_specifier(path)
+      file_type, path = file_type_from_colon_specifier(p)
       if file_type == None:
-        raise Unknown_File_Type(path)
+        raise Unknown_File_Type(p)
 
   module_name = file_type
   module = __import__(module_name, globals(), level = 1)
 
-  apath = absolute_path(path)
+  apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
   try:
     data = module.open(apath)

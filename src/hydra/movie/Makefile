@@ -1,9 +1,9 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/surface
+PKG_DIR = $(PYSITEDIR)/hydra/movie
 
-PYSRCS = __init__.py area.py gridsurf.py sasa.py shapes.py split.py tube.py
+PYSRCS = __init__.py encode.py formats.py movie.py moviecmd.py
 
 all: $(PYOBJS)
 

@@ -143,6 +143,7 @@ def standard_shortcuts(session):
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, viewarg, msmenu),
         ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, viewarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, viewarg, msmenu),
+        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
         ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
         # Devices
@@ -396,6 +397,10 @@ def enable_contour_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
   m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
 
+def enable_map_series_mouse_mode(s, button = 'right'):
+  from ..map import series
+  series.enable_map_series_mouse_mode(s, button)
+
 def enable_move_selected_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
   m.bind_standard_mouse_modes()
@@ -527,9 +532,7 @@ def selection_mouse_mode(session):
     v.mouse_modes.bind_mouse_mode('right', v.mouse_modes.mouse_select)
 
 def command_line(session):
-    session.main_window.focus_on_command_line()
-#  from .qt import QtCore
-#  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
+    session.main_window.enable_shortcuts(False)
 
 def display_selected_models(session):
   session.display_models(session.selected_models())
@@ -753,7 +756,7 @@ def quit(session):
     sys.exit(0)
 
 def undisplay_half(session):
-    for m in session.models:
+    for m in session.models_list():
         undisplay_half_model(m)
 
 def undisplay_half_model(m):
@@ -773,7 +776,7 @@ def undisplay_half_model(m):
         undisplay_half_model(c)
 
 def display_all_positions(session):
-    for m in session.models:
+    for m in session.model_list():
         for c in m.all_drawings():
             if c.display:
                 c.display_positions = None

@@ -1,3 +1,22 @@
+from .graphics import Drawing
+class Model(Drawing):
+    '''
+    A model is an object with an id number that can be specified in commands.
+    '''
+    def __init__(self, name):
+        Drawing.__init__(self, name)
+        self.id = None          # Positive integer
+
+    def submodels(self):
+        return [d for d in self.child_drawings() if isinstance(d, Model)]
+
+    def all_models(self):
+        return [self] + sum([m.all_models() for m in self.submodels()],[])
+
+    def add_model(self, model):
+        self.add_drawing(model)
+        if model.id is None:
+            model.id = len(self.child_drawings())
 
 class Models:
     '''
@@ -5,7 +24,8 @@ class Models:
     '''
     def __init__(self):
 
-        self.models = []
+        self._root_model = Model('root')        # Root of drawing tree
+        self._models = []                       # All models in drawing tree
         self.next_id = 1
         self._selected_models = None
         self.redraw_needed = False
@@ -16,12 +36,18 @@ class Models:
 
     def model_list(self):
         '''List of open models.'''
-        return self.models
+        return self._models
+
+    def top_level_models(self):
+        return self._root_model.submodels()
 
     def model_count(self):
         '''Number of open models.'''
-        return len(self.models)
-    
+        return len(self.model_list())
+
+    def all_drawings(self):
+        return self._root_model.all_drawings()
+
     def model_redraw_needed(self):
         self.redraw_needed = True
         self.bounds_changed = True
@@ -30,10 +56,9 @@ class Models:
         '''
         Add a model to the scene.  A model is a Drawing object.
         '''
-        self.models.append(model)
-        if model.id is None:
-            model.id = self.next_id
-            self.next_id += 1
+        self._root_model.add_model(model)
+        self._models.extend(model.all_models())
+        self.set_model_id(model)
         if model.display:
             self.redraw_needed = True
             self.bounds_changed = True
@@ -53,17 +78,23 @@ class Models:
 
         for cb in self.add_model_callbacks:
             cb(models)
+
+    def set_model_id(self, model):
+        if not model.id is None:
+            return
+        model.id = self.next_id
+        self.next_id += 1
         
     def close_models(self, models):
         '''
         Remove a list of models from the scene.
         '''
-        olist = self.models
+        cset = sum([m.all_models() for m in models],[])
+        self._models = olist = [m for m in self.model_list() if not m in cset]
         for m in models:
-            olist.remove(m)
             if m.display:
                 self.redraw_needed = True
-            m.delete()
+            m.parent.remove_drawing(m)          # Removes entire drawing tree.
         self._selected_models = None
         self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
         self.bounds_changed = True
@@ -75,7 +106,7 @@ class Models:
         '''
         Remove all models from the scene.
         '''
-        self.close_models(tuple(self.models))
+        self.close_models(tuple(self.top_level_models()))
 
     def selected_models(self):
         sm = self._selected_models
@@ -139,23 +170,23 @@ class Models:
     def maps(self):
         '''Return a list of the Volume models in the scene.'''
         from .map import Volume
-        return tuple(m for m in self.models if isinstance(m,Volume))
+        return tuple(m for m in self.model_list() if isinstance(m,Volume))
 
     def molecules(self):
         '''Return a list of the Molecule models in the scene.'''
         from .molecule import Molecule
-        return tuple(m for m in self.models if isinstance(m,Molecule))
+        return tuple(m for m in self.model_list() if isinstance(m,Molecule))
 
     def surfaces(self):
         '''Return a list of the Drawings in the scene which are not Molecules.'''
         from .molecule import Molecule
         from .map import Volume
-        return tuple(m for m in self.models if not isinstance(m,(Molecule,Volume)))
+        return tuple(m for m in self.model_list() if not isinstance(m,(Molecule,Volume)))
 
     def bounds(self):
         if self.bounds_changed:
             from .geometry import bounds
-            b = bounds.union_bounds(m.bounds() for m in self.models if m.display)
+            b = bounds.union_bounds(m.bounds() for m in self.top_level_models() if m.display)
             self.xyz_bounds = b
             self.bounds_changed = False
         return self.xyz_bounds
@@ -167,7 +198,7 @@ class Models:
 
     def center(self, models = None):
         if models is None:
-            models = [m for m in self.models if m.display]
+            models = [m for m in self.top_level_models() if m.display]
         from .geometry import bounds
         b = bounds.union_bounds(m.bounds() for m in models)
         c,r = bounds.bounds_center_and_radius(b)

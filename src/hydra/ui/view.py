@@ -48,6 +48,7 @@ class View(QtGui.QWindow):
         self.silhouette_color = (0,0,0,1)       # black
         self.silhouette_depth_jump = 0.01       # fraction of scene depth
 
+        self.frame_number = 1
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
         # TODO: Maybe redraw interval should be 10 msec to reduce frame drops at 60 frames/sec
@@ -215,6 +216,7 @@ class View(QtGui.QWindow):
         c = self.use_opengl()
         self.draw_scene()
         c.swapBuffers(self)
+        self.frame_number += 1
 
     def get_background_color(self):
         return self.background_rgba
@@ -236,7 +238,7 @@ class View(QtGui.QWindow):
             dc.add(r.SHADER_SHADOWS)
         else:
             dc.remove(r.SHADER_SHADOWS)
-        for m in self.session.model_list():
+        for d in self.session.all_drawings():
             m.clear_cached_shader()
         self.redraw_needed = True
     shadows = property(get_shadows, set_shadows)
@@ -367,7 +369,7 @@ class View(QtGui.QWindow):
             camera = self.camera
 
         s = self.session
-        mdraw = [m for m in s.model_list() if m.display] if models is None else models
+        mdraw = [m for m in s.top_level_models() if m.display] if models is None else models
 
         if self.shadows:
             stf = self.use_shadow_map(camera, models)
@@ -421,7 +423,7 @@ class View(QtGui.QWindow):
         if models is None:
             s = self.session
             center, radius = s.bounds_center_and_width()
-            models = [m for m in s.model_list() if m.display]
+            models = [m for m in s.top_level_models() if m.display]
         else:
             from ..geometry import bounds
             b = bounds.union_bounds(m.bounds() for m in models)
@@ -499,7 +501,7 @@ class View(QtGui.QWindow):
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         f = None
         s = None
-        models = self.session.model_list()
+        models = self.session.top_level_models()
         for m in models:
             if m.display:
                 fmin, smin = m.first_intercept(xyz1, xyz2, exclude = 'is_outline_box')

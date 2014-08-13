@@ -125,11 +125,11 @@ class Solid:
 
   # ---------------------------------------------------------------------------
   #
-  def update_model(self, surface, open = True):
+  def update_model(self, parent_drawing, open = True):
 
     create_volume = self.volume is None
     if create_volume:
-      self.volume = self.make_model(surface)
+      self.volume = self.make_model(parent_drawing)
 
     v = self.volume
     v.display = True
@@ -163,11 +163,11 @@ class Solid:
     
   # ---------------------------------------------------------------------------
   #
-  def make_model(self, surface):
+  def make_model(self, parent_drawing):
 
     from . import grayscale
     gsd = grayscale.Gray_Scale_Drawing()
-    surface.add_drawing(gsd)
+    parent_drawing.add_drawing(gsd)
 
     return gsd
 
@@ -428,10 +428,11 @@ class Solid:
     
   # ---------------------------------------------------------------------------
   #
-  def close_model(self):
+  def close_model(self, parent_drawing):
 
     v = self.volume
-    v.parent.remove_drawing(v)
+    if not v is None:
+      parent_drawing.remove_drawing(v)
     self.volume = None
 
 # -----------------------------------------------------------------------------

@@ -79,14 +79,14 @@ def parse_stl_geometry(nv):
 # -----------------------------------------------------------------------------
 # Make special surface class for restoring sessions
 #
-from ..graphics import Drawing
-class STL_Surface(Drawing):
+from ..models import Model
+class STL_Surface(Model):
 
     def __init__(self, path):
 
         from os.path import basename
         name = basename(path)
-        Drawing.__init__(self, name)
+        Model.__init__(self, name)
 
         self.path = path
 
@@ -103,8 +103,7 @@ class STL_Surface(Drawing):
 def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
 
     if attributes_only:
-        models = session.model_list()
-        sids = dict((m.id,m) for m in models if isinstance(m, STL_Surface))
+        sids = dict((m.id,m) for m in session.model_list() if isinstance(m, STL_Surface))
     from ..geometry.place import Places
     for st in surfs:
         if attributes_only:

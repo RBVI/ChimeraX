@@ -1,5 +1,5 @@
-from ..graphics import Drawing
-class Molecule(Drawing):
+from ..models import Model
+class Molecule(Model):
   '''
   A Molecule represents atoms, bonds, residues and chains, typically read from file formats
   defined by the Protein Data Bank.  The data includes atomic coordinates, atom names,
@@ -13,7 +13,7 @@ class Molecule(Drawing):
   def __init__(self, path, atoms):
     from os.path import basename
     name = basename(path)
-    Drawing.__init__(self, name)
+    Model.__init__(self, name)
 
     self.path = path
     self._atoms = atoms
@@ -83,6 +83,7 @@ class Molecule(Drawing):
 
     self.update_graphics()
 
+    from ..graphics import Drawing
     Drawing.draw(self, renderer, place, draw_pass, selected_only)
 
   def update_graphics(self):

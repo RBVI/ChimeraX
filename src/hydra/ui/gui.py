@@ -161,6 +161,9 @@ class MainWindow(QtWidgets.QMainWindow):
         a = self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'Mp')
         a.setCheckable(True)
         modes.addAction(a)
+        a = self.add_shortcut_icon('vseries.png', 'Volume series mouse mode', 'vs')
+        a.setCheckable(True)
+        modes.addAction(a)
         toolbar.addSeparator()
 
         self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
@@ -334,6 +337,8 @@ class Hydra_App(QtWidgets.QApplication):
         fix_qt_plugin_path()
         QtWidgets.QApplication.__init__(self, argv)
         self.session = session
+        from os.path import join
+        session.bin_dir = join(self.applicationDirPath(), '..', 'Resources', 'bin')
         self.setWindowIcon(icon('reo.png'))
         set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
         self.main_window = MainWindow(self, session)

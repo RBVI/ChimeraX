@@ -38,7 +38,6 @@ class Drawing:
     self.redraw_needed = redraw_no_op
 
     self.name = name
-    self.id = None                      # positive integer
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
     self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
@@ -109,7 +108,6 @@ class Drawing:
     d.redraw_needed = self.redraw_needed
     cd = self._child_drawings
     cd.append(d)
-    d.id = len(cd)
     d.parent = self
     self.redraw_needed()
 
@@ -876,15 +874,16 @@ class Pick:
     return None
   def drawing(self):
     return None
-  def select(self):
+  def select(self, toggle = False):
     pass
   def id_string(self):
     d = self.drawing()
     id_chain = []
     while d:
+      if hasattr(d, 'id') and not d.id is None:
         id_chain.append(d.id)
-        d = getattr(d, 'parent', None)
-    s = '#' + '.'.join(('%d' % id) for id in id_chain[::-1])
+      d = getattr(d, 'parent', None)
+    s = '#' + '.'.join(('%d' % id) for id in id_chain[1::-1])
     return s
 
 class Picked_Drawing(Pick):

@@ -807,8 +807,12 @@ def linear_combination_3(a, u, b, v, c, w):
 def vector_sum(weights, vectors):
     '''Return a vector which is a linear combination of vectors with specified weights.'''
     d = vectors.shape[1]
-    from numpy import zeros, float64
+    from numpy import zeros, float64, float32
     vsum = zeros((d,), float64)
+    if weights.dtype != vectors.dtype:
+      # inner_product_64() requires same value type for both arrays
+      weights = weights.astype(float32, copy = False)
+      vectors = vectors.astype(float32, copy = False)
     for a in range(d):
         vsum[a] = inner_product_64(weights, vectors[:,a])
     return vsum

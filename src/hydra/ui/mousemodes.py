@@ -21,6 +21,10 @@ class Mouse_Modes:
         view.wheelEvent = self.wheel_event
         view.touchEvent = self.touch_event
 
+        self.trackpad_speed = 4         # Trackpad position scaling to match mouse position sensitivity
+        view.add_new_frame_callback(self.collapse_touch_events)
+        self.recent_touch_points = None
+
     # Button is "left", "middle", or "right"
     def bind_mouse_mode(self, button, mouse_down,
                         mouse_drag = None, mouse_up = None):
@@ -146,7 +150,10 @@ class Mouse_Modes:
         if v.session.main_window.showing_graphics():
             lp = self.mouse_pause_position
             f, p = v.first_intercept(lp.x(), lp.y())
-            v.session.show_status('Mouse over %s' % (p.description() if p else ''))
+            if p:
+                v.session.show_status('Mouse over %s' % p.description())
+            # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.
+            #      Don't want to clear a different status message, only mouse over message.
 
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
@@ -253,10 +260,15 @@ class Mouse_Modes:
         
     def mouse_contour_level(self, event):
 
+        v = self.view
+        if getattr(self, 'last_contour_frame', None) == v.frame_number:
+            return # Handle only one recontour event per frame
+        self.last_contour_frame = v.frame_number
+
         dx, dy = self.mouse_motion(event)
         f = -0.001*dy
         
-        s = self.view.session
+        s = v.session
         mdisp = [m for m in s.maps() if m.display]
         sel = set(s.selected_models())
         msel = [m for m in mdisp if m in sel]
@@ -268,10 +280,10 @@ class Mouse_Modes:
     def wheel_contour_level(self, event):
         d = event.angleDelta().y()       # Usually one wheel click is delta of 120
         f = d/(120.0 * 30)
-        models = self.view.session.model_list()
-        for m in models:
-            adjust_threshold_level(m, f)
-            m.show()
+        for m in self.view.session.maps():
+            if m.display:
+                adjust_threshold_level(m, f)
+                m.show()
 
     # Appears that Qt has disabled touch events on Mac due to unresolved scrolling lag problems.
     # Searching for qt setAcceptsTouchEvents shows they were disabled Oct 17, 2012.
@@ -283,10 +295,22 @@ class Mouse_Modes:
         from .qt import QtCore
         t = event.type()
         if t == QtCore.QEvent.TouchUpdate:
-            self.process_touches(event.touchPoints())
+            # On Mac touch events get backlogged in queue when the events cause 
+            # time consuming computatation.  It appears Qt does not collapse the events.
+            # So event processing can get tens of seconds behind.  To reduce this problem
+            # we only handle one touch update per redraw.
+            self.recent_touch_points = event.touchPoints()
+#            self.process_touches(event.touchPoints())
         elif t == QtCore.QEvent.TouchEnd:
             self.last_trackpad_touch_count = 0
+            self.recent_touch_points = None
             self.mouse_up(event = None)
+
+    def collapse_touch_events(self):
+        touches = self.recent_touch_points
+        if not touches is None:
+            self.process_touches(touches)
+            self.recent_touch_points = None
 
     def process_touches(self, touches):
         min_pinch = 0.1
@@ -294,7 +318,8 @@ class Mouse_Modes:
         import time
         self.last_trackpad_touch_time = time.time()
         self.last_trackpad_touch_count = n
-        moves = [(id, t.pos().x() - t.lastPos().x(), t.pos().y() - t.lastPos().y()) for t in touches]
+        s = self.trackpad_speed
+        moves = [(id, s*(t.pos().x() - t.lastPos().x()), s*(t.pos().y() - t.lastPos().y())) for t in touches]
         if n == 2:
             (dx0,dy0),(dx1,dy1) = moves[0][1:], moves[1][1:]
             from math import sqrt, exp, atan2, pi
@@ -322,7 +347,7 @@ class Mouse_Modes:
             dy = sum(y for id,x,y in moves)
             # rotation
             from math import sqrt
-            angle = sqrt(dx*dx + dy*dy)
+            angle = 0.3*sqrt(dx*dx + dy*dy)
             if angle != 0:
                 axis = (dy, dx, 0)
                 self.rotate(axis, angle)

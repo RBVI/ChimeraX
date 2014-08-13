@@ -113,7 +113,8 @@ def set_session_state(s, session, file_paths, attributes_only = False):
     scenes.restore_scenes(scene_states, session)
 
   if not attributes_only:
-    session.next_id = max(m.id for m in session.models) + 1 if len(session.models) > 0 else 1
+    mlist = session.top_level_models()
+    session.next_id = max(m.id for m in mlist) + 1 if len(mlist) > 0 else 1
 
 
 # -----------------------------------------------------------------------------

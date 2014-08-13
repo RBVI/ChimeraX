@@ -148,7 +148,7 @@ def split_selection_by_model(sel):
             ma[m].append(a)
         else:
             ma[m] = [a]
-    from ..map import Volume
+    from .. import Volume
     from chimera.selection import ItemizedSelection
     vsel = [ItemizedSelection(v) for v in sel.models() if isinstance(v, Volume)]
     msel = [ItemizedSelection(ma[m]) for m in sel.models() if m in ma]
@@ -355,7 +355,7 @@ def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                  maxSteps, gridStepMin, gridStepMax):
 
     if resolution is None:
-        from ..map import Volume
+        from .. import Volume
         vlist = [v for v in atomsOrMap.models() if isinstance(v, Volume)]
         if len(vlist) < 2:
             if len(atomsOrMap.atoms()) > 0:
@@ -397,7 +397,7 @@ def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
 #
 def map_to_fit(selection):
 
-  from ..map import Volume
+  from .. import Volume
   vlist = [m for m in selection.models() if isinstance(m, Volume)]
   if len(vlist) == 0:
     raise CommandError('No atoms or maps for %s' % selection.oslStr)

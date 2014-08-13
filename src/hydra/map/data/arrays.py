@@ -319,3 +319,38 @@ def invert_matrix(m):
     m1d = ravel(m)
     max = m1d[argmax(m1d)]
   subtract(array(max,t), m, m)
+
+# -----------------------------------------------------------------------------
+# Find the contour level enclosing the specified volume.
+#
+# The enclosed volume is a discontinuous function of the level because the
+# marching cubes triangulation makes discrete changes (visually it pops) when
+# the level passes through a grid point data value.
+#
+# This could be made much faster by starting at the level that encloses the
+# correct fraction of grid points (use Matrix_Value_Statistics binning),
+# then increase or decrease 1% to try to find a small bounding interval.
+# This would require fewer subdivisions and avoid making very large surfaces
+# at too low a contour level.
+#
+def surface_level_enclosing_volume(matrix, volume, tolerance = 1e-3,
+                                   max_bisections = 30, session = None):
+  from ... import map_cpp
+  l0, l1 = map_cpp.minimum_and_maximum(matrix)
+  for s in range(max_bisections):
+    level = 0.5*(l0 + l1)
+    try:
+      varray, tarray = map_cpp.surface(matrix, level, cap_faces = True,
+                                       calculate_normals = False)
+    except MemoryError:
+      raise MemoryError('Ran out of memory contouring at level %.3g.\n' % level)
+
+    from ...surface import enclosed_volume
+    evol, holes = enclosed_volume(varray, tarray)
+    if abs(evol-volume) < tolerance*volume:
+      break
+    if evol > volume:
+      l0 = level
+    else:
+      l1 = level
+  return level

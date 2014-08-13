@@ -31,8 +31,8 @@ class Session(Models):
         self.log = None
         'Command, error, info log, :py:class:`~.ui.gui.Log`'
 
-        self.file_types = None
-        'Table of file types that can be read, used by :py:func:`~.file_io.opensave.file_types`'
+        self.file_readers = None
+        'Table of file types that can be read, used by :py:func:`~.file_io.opensave.file_readers`'
 
         self.databases = {}
         'For fetching pdb and map models from the web, used by :py:func:`~.file_io.fetch.register_fetch_database`'
@@ -63,6 +63,9 @@ class Session(Models):
 
         self.oculus = None
         'Oculus Rift head tracking device handler, a :py:class:`~.ui.oculus.track.Oculus_Head_Tracking`'
+
+        self.bin_dir = None
+        'Location of third party executables used by Hydra.'
 
     def start(self):
 
@@ -103,6 +106,13 @@ class Session(Models):
     def show_info(self, msg, color = None):
         '''Write information such as command output to the log window.'''
         self.log.log_message(msg, color)
+
+    def show_warning(self, msg):
+        '''Write warning such as command output to the log window.'''
+        self.show_status(msg)
+
+    def executable_directory(self):
+         return self.bin_dir
 
     def at_quit(self, callback):
         '''Register a callback to run just before the program exits, for example to write a history file.'''

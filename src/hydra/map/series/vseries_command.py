@@ -10,13 +10,9 @@ players = set()         # Active players.
 def vseries_command(cmd_name, args, session):
 
     from ...ui.commands import bool_arg, float_arg, enum_arg, int_arg, string_arg
-    from ...ui.commands import floats_arg, parse_subregion, volume_arg
+    from ...ui.commands import floats_arg, parse_subregion, value_type_arg, volume_arg
     from ...ui.commands import perform_operation
     ops = {
-        'open': (open_op,
-                 (('paths', string_arg),),
-                 (),
-                 ()),
         'align': (align_op,
                   (('series', series_arg),),
                   (),
@@ -27,7 +23,7 @@ def vseries_command(cmd_name, args, session):
                   ('path', string_arg)),
                  (),
                  (('subregion', parse_subregion),
-                  ('valueType', string_arg),
+                  ('valueType', value_type_arg),
                   ('threshold', float_arg),
                   ('zeroMean', bool_arg),
                   ('scaleFactor', float_arg),
@@ -37,13 +33,9 @@ def vseries_command(cmd_name, args, session):
                   ('align', bool_arg),
                   ('onGrid', volume_arg),
                   ('mask', volume_arg),
-                  ('finalValueType', string_arg),
+                  ('finalValueType', value_type_arg),
                   ('compress', bool_arg)),
                  ),
-        'close': (close_op,
-                 (('series', series_arg),),
-                 (),
-                 ()),
         'play': (play_op,
                  (('series', series_arg),),
                  (),
@@ -104,50 +96,21 @@ def stop_op(series):
             if s in p.series:
                 p.stop()
     release_stopped_players()
-    
-# -----------------------------------------------------------------------------
-#
-def open_op(paths):
-
-    from OpenSave import tildeExpand
-    pspec = tildeExpand(paths)
-    import glob
-    path_list = pspec.split(',') if ',' in pspec else glob.glob(pspec)
-    if len(path_list) == 0:
-        raise CommandError('vseries: No files specified by "%s"' % paths)
-
-    from VolumeData import open_file
-    grids = sum([open_file(path) for path in path_list], [])
-    sgrids = list(grids)
-    sgrids.sort(key = lambda g: g.name)
-    from VolumeSeries import Volume_Series, gui
-    ts = Volume_Series(sgrids[0].name, sgrids)
-    gui.add_volume_series(ts)
 
 # -----------------------------------------------------------------------------
 #
-def close_op(series):
-
-    import gui
-    d = gui.volume_series_dialog()
+def align_op(series, encloseVolume = None, fastEncloseVolume = None, session = None):
     for s in series:
-        d.close_series(s)
+        align_series(s, encloseVolume, fastEncloseVolume, session)
 
 # -----------------------------------------------------------------------------
 #
-def align_op(series, encloseVolume = None, fastEncloseVolume = None):
-    for s in series:
-        align_series(s, encloseVolume, fastEncloseVolume)
+def align_series(s, enclose_volume = None, fast_enclose_volume = None, session = None):
 
-# -----------------------------------------------------------------------------
-#
-def align_series(s, enclose_volume = None, fast_enclose_volume = None):
-
-    n = len(s.data_regions)
+    n = len(s.maps)
     vprev = None
-    for i,v in enumerate(s.data_regions):
-        from chimera import replyobj
-        replyobj.status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
+    for i,v in enumerate(s.maps):
+        session.show_status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
         set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
         if vprev:
             align(v, vprev)
@@ -168,7 +131,7 @@ def set_enclosed_volume(v, enclose_volume, fast_enclose_volume):
 #
 def align(v, vprev):
 
-    v.openState.xform = vprev.openState.xform
+    v.position = vprev.position
     from ..fit.fitmap import map_points_and_weights, motion_to_maximum
     points, point_weights = map_points_and_weights(v, above_threshold = True)
     move_tf, stats = motion_to_maximum(points, point_weights, vprev,
@@ -177,44 +140,40 @@ def align(v, vprev):
                                        ijk_step_size_max = 0.5,
                                        optimize_translation = True,
                                        optimize_rotation = True)
-    import Matrix
-    v.openState.globalXform(Matrix.chimera_xform(move_tf))
+    v.position = move_tf * v.position
 
 # -----------------------------------------------------------------------------
 #
 def save_op(series, path, subregion = None, valueType = None,
             threshold = None, zeroMean = False, scaleFactor = None,
             encloseVolume = None, fastEncloseVolume = None, normalizeLevel = None,
-            align = False, onGrid = None, mask = None, finalValueType = None, compress = False):
+            align = False, onGrid = None, mask = None, finalValueType = None, compress = False,
+            session = None):
 
     if len(series) > 1:
         raise CommandError('vseries save: Can only save one series in a file, got %d'
                            % len(series))
     s = series[0]
 
-    import OpenSave
-    path = OpenSave.tildeExpand(path)
+    import os.path
+    path = os.path.expanduser(path)         # Tilde expansion
 
-    from VolumeFilter.vopcommand import parse_value_type
-    value_type = None if valueType is None else parse_value_type(valueType)
-    final_value_type = None if finalValueType is None else parse_value_type(finalValueType)
-
+    maps = s.maps
     if onGrid is None and align:
-        onGrid = s.data_regions[0]
+        onGrid = maps[0]
 
     on_grid = None
     if not onGrid is None:
-        vtype = m.dtype if value_type is None else value_type
+        vtype = maps[0].data.value_type if valueType is None else valueType
         on_grid = onGrid.writable_copy(value_type = vtype, show = False)
 
-    n = len(s.data_regions)
-    for i,v in enumerate(s.data_regions):
-        from chimera import replyobj
-        replyobj.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
-        align_to = s.data_regions[i-1] if align and i > 0 else None
-        d = processed_volume(v, subregion, value_type, threshold, zeroMean, scaleFactor,
+    n = len(maps)
+    for i,v in enumerate(maps):
+        session.show_status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
+        align_to = maps[i-1] if align and i > 0 else None
+        d = processed_volume(v, subregion, valueType, threshold, zeroMean, scaleFactor,
                              encloseVolume, fastEncloseVolume, normalizeLevel,
-                             align_to, on_grid, mask, final_value_type)
+                             align_to, on_grid, mask, finalValueType)
         d.name = '%04d' % i
         options = {'append': True, 'compress': compress}
         from ..data import cmap
@@ -236,7 +195,8 @@ def processed_volume(v, subregion = None, value_type = None, threshold = None,
         d = Grid_Subregion(d, ijk_min, ijk_max)
 
     if (value_type is None and threshold is None and not zeroMean and
-        scaleFactor is None and mask is None and final_value_type is None):
+        scaleFactor is None and align_to is None and mask is None and
+        final_value_type is None):
         return d
 
     m = d.full_matrix()
@@ -271,7 +231,7 @@ def processed_volume(v, subregion = None, value_type = None, threshold = None,
         align(v, align_to)
 
     if not on_grid is None:
-        vc = v.writable_copy(value_type = m.dtype, show = False)
+        vc = v.writable_copy(value_type = m.dtype, show = False, unshow_original = False)
         vc.full_matrix()[:,:,:] = m
         m = on_grid.full_matrix()
         m[:,:,:] = 0
