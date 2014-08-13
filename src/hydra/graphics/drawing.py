@@ -38,7 +38,6 @@ class Drawing:
     self.redraw_needed = redraw_no_op
 
     self.name = name
-    self.id = None                      # positive integer
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
     self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
@@ -58,6 +57,8 @@ class Drawing:
     self.display_style = self.Solid
     self.texture = None
     self.texture_coordinates = None
+    self.ambient_texture = None         	# 3d texture that modulates colors.
+    self.ambient_texture_transform = None       # Drawing to texture coordinates.
     self.opaque_texture = False
     self.use_lighting = True
     self.use_radial_warp = False
@@ -107,7 +108,6 @@ class Drawing:
     d.redraw_needed = self.redraw_needed
     cd = self._child_drawings
     cd.append(d)
-    d.id = len(cd)
     d.parent = self
     self.redraw_needed()
 
@@ -402,6 +402,11 @@ class Drawing:
     if not t is None:
       t.bind_texture()
 
+    at = self.ambient_texture
+    if not at is None:
+      at.bind_texture()
+      renderer.set_ambient_texture_transform(self.ambient_texture_transform)
+
     # Draw triangles
     ds.draw(self.display_style)
 
@@ -421,6 +426,8 @@ class Drawing:
         sopt[r.SHADER_TEXTURE_2D] = True
         if self.use_radial_warp:
           sopt[r.SHADER_RADIAL_WARP] = True
+      if not self.ambient_texture is None:
+        sopt[r.SHADER_TEXTURE_3D_AMBIENT] = True
       if not self.positions.shift_and_scale_array() is None:
         sopt[r.SHADER_SHIFT_AND_SCALE] = True
       elif len(self.positions) > 1:
@@ -428,7 +435,8 @@ class Drawing:
       self._shader_options = sopt
     return sopt
 
-  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'use_radial_warp', '_positions'))
+  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'ambient_texture',
+                        'use_radial_warp', '_positions'))
 
   # Update the contents of vertex, element and instance buffers if associated arrays have changed.
   def update_buffers(self):
@@ -452,6 +460,12 @@ class Drawing:
 
     if bchange:
       ds.reset_bindings = dss.reset_bindings = True
+
+  def clear_cached_shader(self):
+    # Used when global shader option like shadows changed.
+    for d in self.all_drawings():
+      d._shader_options = None
+    self.redraw_needed()
 
   def position_mask(self, selected_only = False):
     dp = self._displayed_positions        # bool array
@@ -680,10 +694,10 @@ def draw_overlays(drawings, renderer):
   draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
   r.enable_depth_test(True)
 
-def draw_outline(window_size, renderer, cvinv, drawings):
+def draw_outline(renderer, cvinv, drawings):
   r = renderer
   r.set_view_matrix(cvinv)
-  r.start_rendering_outline(window_size)
+  r.start_rendering_outline()
   from ..geometry.place import Place
   p = Place()
   draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
@@ -852,7 +866,27 @@ class Draw_Shape:
     for b in bufs:
       bi.bind_shader_variable(b)
 
-class Picked_Drawing:
+class Pick:
+  '''
+  A picked object returned by first_intercept() method of the Drawing class.
+  '''
+  def description(self):
+    return None
+  def drawing(self):
+    return None
+  def select(self, toggle = False):
+    pass
+  def id_string(self):
+    d = self.drawing()
+    id_chain = []
+    while d:
+      if hasattr(d, 'id') and not d.id is None:
+        id_chain.append(d.id)
+      d = getattr(d, 'parent', None)
+    s = '#' + '.'.join(('%d' % id) for id in id_chain[1::-1])
+    return s
+
+class Picked_Drawing(Pick):
   '''
   Represent a drawing chosen with the mouse as a generic selection object.
   '''
@@ -860,7 +894,7 @@ class Picked_Drawing:
     self.drawing_chain = drawing_chain
   def description(self):
     d,c = self.drawing_chain[-1]
-    fields = []
+    fields = [self.id_string()]
     if not d.name is None:
       fields.append(d.name)
     if len(d.positions) > 1:
@@ -868,9 +902,9 @@ class Picked_Drawing:
     fields.append('triangles %d' % len(d.triangles))
     desc = ' '.join(fields)
     return desc
-  def models(self):
-    d = self.drawing_chain[0][0]
-    return [d]
+  def drawing(self):
+    d = self.drawing_chain[-1][0]
+    return d
   def select(self, toggle = False):
     d,c = self.drawing_chain[-1]
     pmask = d.selected_positions

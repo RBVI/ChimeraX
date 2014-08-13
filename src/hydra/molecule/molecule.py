@@ -1,5 +1,5 @@
-from ..graphics import Drawing
-class Molecule(Drawing):
+from ..models import Model
+class Molecule(Model):
   '''
   A Molecule represents atoms, bonds, residues and chains, typically read from file formats
   defined by the Protein Data Bank.  The data includes atomic coordinates, atom names,
@@ -13,7 +13,7 @@ class Molecule(Drawing):
   def __init__(self, path, atoms):
     from os.path import basename
     name = basename(path)
-    Drawing.__init__(self, name)
+    Model.__init__(self, name)
 
     self.path = path
     self._atoms = atoms
@@ -83,6 +83,7 @@ class Molecule(Drawing):
 
     self.update_graphics()
 
+    from ..graphics import Drawing
     Drawing.draw(self, renderer, place, draw_pass, selected_only)
 
   def update_graphics(self):
@@ -1132,7 +1133,8 @@ class Atoms:
 
 # -----------------------------------------------------------------------------
 #
-class Picked_Atom:
+from ..graphics import Pick
+class Picked_Atom(Pick):
   def __init__(self, mol, a):
     self.molecule = mol
     self.atom = a
@@ -1140,25 +1142,25 @@ class Picked_Atom:
     m, a = self.molecule, self.atom
     if a is None:
       return m.name
-    return m.atom_index_description(a)
-  def models(self):
-    return [self.molecule]
+    return '%s %s' % (self.id_string(), m.atom_index_description(a))
+  def drawing(self):
+    return self.molecule
   def select(self, toggle = False):
     m = self.molecule
     m.select_atom(self.atom, toggle)
 
 # -----------------------------------------------------------------------------
 #
-class Picked_Residue:
+class Picked_Residue(Pick):
   def __init__(self, mol, cid, rnum):
     self.molecule = mol
     self.chain_id = cid
     self.residue_number = rnum
   def description(self):
     m = self.molecule
-    return '%s %d.%s:%d' % (m.name, m.id, self.chain_id.decode('utf-8'), self.residue_number)
-  def models(self):
-    return [self.molecule]
+    return '%s %s.%s:%d' % (m.name, self.id_string(), self.chain_id.decode('utf-8'), self.residue_number)
+  def drawing(self):
+    return self.molecule
   def select(self, toggle = False):
     m = self.molecule
     m.select_residue(self.chain_id, self.residue_number, toggle)

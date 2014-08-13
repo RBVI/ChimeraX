@@ -32,8 +32,9 @@
 #
 def vop_command(cmd_name, args, session):
 
-    from ...ui.commands import volumes_arg, int1or3_arg, volume_region_arg, model_id_arg, perform_operation
-    from ...ui.commands import float1or3_arg, value_type_arg
+    from ...ui.commands import volumes_arg, volume_arg, int1or3_arg, int_arg
+    from ...ui.commands import volume_region_arg, model_id_arg, perform_operation
+    from ...ui.commands import float1or3_arg, floats_arg, float_arg, value_type_arg, bool_arg
     ops = {
         'bin': (bin_op,
                 (('volumes', volumes_arg),),
@@ -42,6 +43,14 @@ def vop_command(cmd_name, args, session):
                  ('subregion', volume_region_arg),
                  ('step', int1or3_arg),
                  ('modelId', model_id_arg),)),
+        'falloff': (falloff_op,
+                    (('volumes', volumes_arg),),
+                    (),
+                    (('iterations', int_arg),
+                     ('inPlace', bool_arg),
+                     ('subregion', volume_region_arg),
+                     ('step', int1or3_arg),
+                       ('modelId', model_id_arg),)),
         'gaussian': (gaussian_op,
                 (('volumes', volumes_arg),),
                 (),
@@ -50,6 +59,28 @@ def vop_command(cmd_name, args, session):
                  ('step', int1or3_arg),
                  ('valueType', value_type_arg),
                  ('modelId', model_id_arg),)),
+        'maximum': (maximum_op,
+                    (('volumes', volumes_arg),),
+                    (),
+                    (('onGrid', volumes_arg),
+                     ('boundingGrid', bool_arg),
+                     ('subregion', volume_region_arg),
+                     ('step', int1or3_arg),
+                     ('gridSubregion', volume_region_arg),
+                     ('gridStep', int1or3_arg),
+                     ('inPlace', bool_arg),
+                     ('scaleFactors', floats_arg),
+                     ('modelId', model_id_arg),)),
+        'threshold': (threshold_op,
+                      (('volumes', volumes_arg),),
+                      (),
+                      (('minimum', float_arg),
+                       ('set', float_arg),
+                       ('maximum', float_arg),
+                       ('setMaximum', float_arg),
+                       ('subregion', volume_region_arg),
+                       ('step', int1or3_arg),
+                       ('modelId', model_id_arg),)),
     }
     perform_operation(cmd_name, args, ops, session)
 
@@ -60,19 +91,15 @@ def old_vop_command(cmdname, args):
     gspec = ('onGridSpec', 'onGrid', 'models')
     operations = {
         'add': (add_op, [vspec, gspec]),
-        'bin': (bin_op, [vspec]),
         'boxes': (boxes_op, [vspec, ('markersSpec', 'markers', 'atoms')]),
         'cover': (cover_op, [vspec, ('atomBoxSpec', 'atomBox', 'atoms')]),
-        'falloff': (falloff_op, [vspec]),
         'flatten': (flatten_op, [vspec]),
         'flip': (flip_op, [vspec]),
         'fourier': (fourier_op, [vspec]),
-        'gaussian': (gaussian_op, [vspec]),
         'laplacian': (laplacian_op, [vspec]),
         'localCorrelation': (local_correlation_op,
                              [('map1Spec','map1','models'),
                               ('map2Spec','map2','models')]),
-        'maximum': (maximum_op, [vspec, gspec]),
         'median': (median_op, [vspec]),
         'morph': (morph_op, [vspec]),
         'multiply': (multiply_op, [vspec, gspec]),
@@ -85,7 +112,6 @@ def old_vop_command(cmdname, args):
         'subtract': (subtract_op, [('volume1Spec','vol1','models'),
                                    ('volume2Spec','vol2','models'),
                                    gspec]),
-        'threshold': (threshold_op, [vspec]),
         'tile': (tile_op, [vspec]),
         'unbend': (unbend_op, [vspec, ('pathSpec', 'path', 'atoms')]),
         'unroll': (unroll_op, [vspec]),
@@ -118,48 +144,42 @@ def old_vop_command(cmdname, args):
 def add_op(volumes, onGrid = None, boundingGrid = None,
            subregion = 'all', step = 1,
            gridSubregion = 'all', gridStep = 1,
-           inPlace = False, scaleFactors = None, modelId = None):
+           inPlace = False, scaleFactors = None, modelId = None, session = None):
 
     combine_op(volumes, 'add', onGrid, boundingGrid, subregion, step,
-               gridSubregion, gridStep, inPlace, scaleFactors, modelId)
+               gridSubregion, gridStep, inPlace, scaleFactors, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
 def maximum_op(volumes, onGrid = None, boundingGrid = None,
                subregion = 'all', step = 1,
                gridSubregion = 'all', gridStep = 1,
-               inPlace = False, scaleFactors = None, modelId = None):
+               inPlace = False, scaleFactors = None, modelId = None, session = None):
 
     combine_op(volumes, 'maximum', onGrid, boundingGrid, subregion, step,
-               gridSubregion, gridStep, inPlace, scaleFactors, modelId)
+               gridSubregion, gridStep, inPlace, scaleFactors, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
 def multiply_op(volumes, onGrid = None, boundingGrid = None,
                 subregion = 'all', step = 1,
                 gridSubregion = 'all', gridStep = 1,
-                inPlace = False, scaleFactors = None, modelId = None):
+                inPlace = False, scaleFactors = None, modelId = None, session = None):
 
     combine_op(volumes, 'multiply', onGrid, boundingGrid, subregion, step,
-               gridSubregion, gridStep, inPlace, scaleFactors, modelId)
+               gridSubregion, gridStep, inPlace, scaleFactors, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
 def combine_op(volumes, operation = 'add', onGrid = None, boundingGrid = None,
                subregion = 'all', step = 1,
                gridSubregion = 'all', gridStep = 1,
-               inPlace = False, scaleFactors = None, modelId = None):
+               inPlace = False, scaleFactors = None, modelId = None, session = None):
 
-    volumes = filter_volumes(volumes)
     if boundingGrid is None and not inPlace:
         boundingGrid = (onGrid is None)
     if onGrid is None:
         onGrid = volumes[:1]
-    onGrid = filter_volumes(onGrid, 'onGrid')
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    gridSubregion = parse_subregion(gridSubregion, 'gridSubregion')
-    gridStep = parse_step(gridStep, 'gridStep')
     if inPlace:
         if boundingGrid or gridStep != 1 or gridSubregion != 'all':
             raise CommandError("Can't use inPlace option with boundingGrid or gridStep or gridSubregion options")
@@ -168,19 +188,18 @@ def combine_op(volumes, operation = 'add', onGrid = None, boundingGrid = None,
                 raise CommandError("Can't modify volume in place: %s" % gv.name)
             if not gv in volumes:
                 raise CommandError("Can't change grid in place")
-    if isinstance(scaleFactors, basestring):
-        scaleFactors = parse_floats(scaleFactors, 'scaleFactors', len(volumes))
-    modelId = parse_model_id(modelId)
+    if not scaleFactors is None and len(scaleFactors) != len(volumes):
+        raise CommandError('Number of scale factors does not match number of volumes')
     for gv in onGrid:
         combine_operation(volumes, operation, subregion, step,
                           gv, gridSubregion, gridStep,
-                          boundingGrid, inPlace, scaleFactors, modelId)
+                          boundingGrid, inPlace, scaleFactors, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
 def combine_operation(volumes, operation, subregion, step,
                       gv, gridSubregion, gridStep,
-                      boundingGrid, inPlace, scale, modelId):
+                      boundingGrid, inPlace, scale, modelId, session):
 
     if scale is None:
         scale = [1]*len(volumes)
@@ -215,10 +234,10 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume maximum'
         else:
             rg.name = 'volume sum'
-        from VolumeViewer import volume_from_grid_data
-        rv = volume_from_grid_data(rg, model_id = modelId,
+        from .. import volume_from_grid_data
+        rv = volume_from_grid_data(rg, session, model_id = modelId,
                                    show_data = False, show_dialog = False)
-        rv.openState.xform = gv.openState.xform
+        rv.position = gv.position
         for i,v in enumerate(volumes):
             op = 'add' if i == 0 else operation
             rv.combine_interpolated_values(v, op, subregion = subregion, step = step,
@@ -238,7 +257,7 @@ def combine_operation(volumes, operation, subregion, step,
 #
 def same_grids(volumes, subregion, step, gv, gr):
 
-    from VolumeViewer.volume import same_grid
+    from ..volume import same_grid
     for v in volumes:
         if not same_grid(v, v.subregion(step, subregion), gv, gr):
             return False
@@ -248,12 +267,12 @@ def same_grids(volumes, subregion, step, gv, gr):
 #
 def volume_corners(volumes, subregion, step, xform):
 
-    from VolumeData import box_corners
+    from ..data import box_corners
     corners = []
     for v in volumes:
         xyz_min, xyz_max = v.xyz_bounds(step = step, subregion = subregion)
         vc = box_corners(xyz_min, xyz_max)
-        from VolumeViewer.volume import transformed_points
+        from ..volume import transformed_points
         xf = xform.inverse()
         xf.multiply(v.model_transform())
         c = transformed_points(vc, xf)
@@ -283,7 +302,7 @@ def boxes_op(volumes, markers, size = 0, useMarkerSize = False,
     if not modelId is None:
         modelId = parse_model_id(modelId)
 
-    from boxes import boxes
+    from .boxes import boxes
     for v in volumes:
         boxes(v, markers, size, useMarkerSize, step, subregion, modelId)
 
@@ -315,8 +334,8 @@ def cover_op(volumes, atomBox = None, pad = 5.0,
     step = parse_step(step, require_3_tuple = True)
     modelId = parse_model_id(modelId)
 
-    from VolumeViewer import volume, volume_from_grid_data
-    from cover import cover_box_bounds, map_covering_box
+    from .. import volume_from_grid_data
+    from .cover import cover_box_bounds, map_covering_box
     for v in volumes:
         ijk_min, ijk_max = cover_box_bounds(v, step,
                                             atomBox, pad, box, fBox, iBox)
@@ -325,7 +344,7 @@ def cover_op(volumes, atomBox = None, pad = 5.0,
         syms = v.data.symmetries if useSymmetry else ()
         cg = map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, syms, step)
                               
-        cv = volume_from_grid_data(cg, model_id = modelId)
+        cv = volume_from_grid_data(cg, session, model_id = modelId)
         cv.copy_settings_from(v, copy_region = False, copy_colors = False,
                               copy_zone = False)
         cv.show()
@@ -348,11 +367,7 @@ def parse_box(box, x, y, z, bname, xname, yname, zname):
 # -----------------------------------------------------------------------------
 #
 def falloff_op(volumes, iterations = 10, inPlace = False,
-               subregion = 'all', step = 1, modelId = None):
-
-    volumes = filter_volumes(volumes)
-    subregion = parse_subregion(subregion)
-    modelId = parse_model_id(modelId)
+               subregion = 'all', step = 1, modelId = None, session = None):
 
     if inPlace:
         ro = [v for v in volumes if not v.data.writable]
@@ -364,9 +379,9 @@ def falloff_op(volumes, iterations = 10, inPlace = False,
         if subregion != 'all':
             raise CommandError('Require subregion "all" to modify data in place')
 
-    from falloff import falloff
+    from .falloff import falloff
     for v in volumes:
-        falloff(v, iterations, inPlace, step, subregion, modelId)
+        falloff(v, iterations, inPlace, step, subregion, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
@@ -385,7 +400,7 @@ def flatten_op(volumes, method = 'multiply linear',
     step = parse_step(step)
     modelId = parse_model_id(modelId)
 
-    from flatten import flatten
+    from .flatten import flatten
     for v in volumes:
         flatten(v, method, step, subregion, fitregion, modelId)
 
@@ -399,7 +414,7 @@ def fourier_op(volumes, subregion = 'all', step = 1, modelId = None,
     step = parse_step(step)
     modelId = parse_model_id(modelId)
 
-    from fourier import fourier_transform
+    from .fourier import fourier_transform
     for v in volumes:
         fourier_transform(v, step, subregion, modelId, phase)
 
@@ -421,7 +436,7 @@ def laplacian_op(volumes, subregion = 'all', step = 1, modelId = None):
     step = parse_step(step)
     modelId = parse_model_id(modelId)
     
-    from laplace import laplacian
+    from .laplace import laplacian
     for v in volumes:
         laplacian(v, step, subregion, modelId)
 
@@ -443,7 +458,7 @@ def local_correlation_op(map1, map2, windowSize = 5, subtractMean = False, model
                            'smaller than map size')
     modelId = parse_model_id(modelId)
 
-    from localcorr import local_correlation
+    from .localcorr import local_correlation
     mapc = local_correlation(v1, v2, windowSize, subtractMean, modelId)
     return mapc
 
@@ -462,7 +477,7 @@ def median_op(volumes, binSize = 3, iterations = 1,
     step = parse_step(step)
     modelId = parse_model_id(modelId)
 
-    from median import median_filter
+    from .median import median_filter
     for v in volumes:
         median_filter(v, binSize, iterations, step, subregion, modelId)
 
@@ -567,7 +582,7 @@ def permute_axes_op(volumes, axisOrder = 'xyz',
     step = parse_step(step)
     modelId = parse_model_id(modelId)
 
-    from permute import permute_axes
+    from .permute import permute_axes
     for v in volumes:
         permute_axes(v, ao[axisOrder], step, subregion, modelId)
 
@@ -576,7 +591,7 @@ def permute_axes_op(volumes, axisOrder = 'xyz',
 def resample_op(volumes, onGrid = None, boundingGrid = False,
                 subregion = 'all', step = 1,
                 gridSubregion = 'all', gridStep = 1,
-                modelId = None):
+                modelId = None, session = None):
 
     volumes = filter_volumes(volumes)
     if onGrid is None:
@@ -591,7 +606,7 @@ def resample_op(volumes, onGrid = None, boundingGrid = False,
         for gv in onGrid:
             combine_operation([v], 'add', subregion, step,
                               gv, gridSubregion, gridStep,
-                              boundingGrid, False, None, modelId)
+                              boundingGrid, False, None, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
@@ -603,7 +618,7 @@ def ridges_op(volumes, level = None, subregion = 'all', step = 1, modelId = None
     step = parse_step(step)
     modelId = parse_model_id(modelId)
 
-    from ridges import ridges
+    from .ridges import ridges
     for v in volumes:
         ridges(v, level, step, subregion, modelId)
 
@@ -625,7 +640,7 @@ def scale_op(volumes, shift = 0, factor = 1, sd = None, rms = None,
     step = parse_step(step)
     modelId = parse_model_id(modelId)
 
-    from scale import scaled_volume
+    from .scale import scaled_volume
     for v in volumes:
         scaled_volume(v, factor, sd, rms, shift, value_type, step, subregion, modelId)
 
@@ -635,7 +650,7 @@ def subtract_op(vol1, vol2, onGrid = None, boundingGrid = False,
                 subregion = 'all', step = 1,
                 gridSubregion = 'all', gridStep = 1,
                 inPlace = False, scaleFactors = None, minRMS = False,
-                modelId = None):
+                modelId = None, session = None):
 
     vol1 = filter_volumes(vol1)
     vol2 = filter_volumes(vol2)
@@ -646,23 +661,18 @@ def subtract_op(vol1, vol2, onGrid = None, boundingGrid = False,
     mult = (1,'minrms') if minRMS else scaleFactors
 
     combine_op(vol1+vol2, 'subtract', onGrid, boundingGrid, subregion, step,
-           gridSubregion, gridStep, inPlace, mult, modelId)
+               gridSubregion, gridStep, inPlace, mult, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
 def threshold_op(volumes, minimum = None, set = None,
                  maximum = None, setMaximum = None,
-                 subregion = 'all', step = 1, modelId = None):
+                 subregion = 'all', step = 1, modelId = None, session = None):
 
-    volumes = filter_volumes(volumes)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
-
-    from threshold import threshold
+    from .threshold import threshold
     for v in volumes:
         threshold(v, minimum, set, maximum, setMaximum,
-                  step, subregion, modelId)
+                  step, subregion, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
@@ -690,7 +700,7 @@ def tile_op(volumes, axis = 'z', pstep = 1, trim = 0,
     step = parse_step(step)
     modelId = parse_model_id(modelId)
 
-    from tile import tile_planes
+    from .tile import tile_planes
     for v in volumes:
         t = tile_planes(v, axis, pstep, trim, rows, columns, fillOrder,
                         step, subregion, modelId)
@@ -712,7 +722,7 @@ def unbend_op(volumes, path, yaxis, xsize, ysize, gridSpacing = None,
         raise CommandError('vop unbend xsize/ysize must be float values')
     modelId = parse_model_id(modelId)
 
-    import unbend
+    from . import unbend
     p = unbend.atom_path(path)
     for v in volumes:
         gs = min(v.data.step) if gridSpacing is None else gridSpacing
@@ -741,7 +751,7 @@ def unroll_op(volumes, innerRadius = None, outerRadius = None, length = None,
         r0, r1, h = parse_cylinder_size(innerRadius, outerRadius, length,
                                         c, a, v, subregion, step)
         gsp = parse_grid_spacing(gridSpacing, v, step)
-        import unroll
+        from . import unroll
         unroll.unroll_operation(v, r0, r1, h, c, a, gsp,
                                 subregion, step, modelId)
     
@@ -770,7 +780,7 @@ def parse_cylinder_size(innerRadius, outerRadius, length, center, axis,
     else:
         raise CommandError('length must be a number')
     if innerRadius is None or outerRadius is None:
-        import unroll
+        from . import unroll
         rmin, rmax = unroll.cylinder_radii(v, center, axis)
         pad = 0.10
         r0 = rmin * (1 - pad) if innerRadius is None else innerRadius
@@ -818,17 +828,16 @@ def flip_op(volumes, axis = 'z', subregion = 'all', step = 1,
 def flip_operation(v, axes, subregion, step, in_place, model_id):
 
     g = v.grid_data(subregion = subregion, step = step, mask_zone = False)
+    from . import flip
     if in_place:
         m = g.full_matrix()
-        import flip
         flip.flip_in_place(m, axes)
         v.data.values_changed()
         v.show()
     else:
-        import flip
         fg = flip.Flip_Grid(g, axes)
-        import VolumeViewer
-        fv = VolumeViewer.volume_from_grid_data(fg, model_id = model_id)
+        from .. import volume_from_grid_data
+        fv = volume_from_grid_data(fg, session, model_id = model_id)
         fv.copy_settings_from(v, copy_region = False)
         fv.show()
         v.unshow()
@@ -876,7 +885,7 @@ def zone_operation(v, atoms, radius, bond_point_spacing = None,
                    minimal_bounds = False, invert = False,
                    subregion = 'all', step = 1, model_id = None):
 
-    import Molecule as M
+    from ... import molecule as M
     bonds = M.interatom_bonds(atoms) if bond_point_spacing else []
 
     import SurfaceZone as SZ
@@ -894,14 +903,14 @@ def zone_volume(volume, points, radius,
                 subregion = 'all', step = 1, model_id = None):
 
     region = volume.subregion(step, subregion)
-    import VolumeData as VD
-    sg = VD.Grid_Subregion(volume.data, *region)
+    from .. import data
+    sg = data.Grid_Subregion(volume.data, *region)
 
-    mg = VD.zone_masked_grid_data(sg, points, radius, invert, minimal_bounds)
+    mg = data.zone_masked_grid_data(sg, points, radius, invert, minimal_bounds)
     mg.name = volume.name + ' zone'
 
-    import VolumeViewer as VV
-    vz = VV.volume_from_grid_data(mg, model_id = model_id, show_data = False)
+    from .. import volume_from_grid_data
+    vz = volume_from_grid_data(mg, session, model_id = model_id, show_data = False)
     vz.copy_settings_from(volume, copy_colors = False, copy_zone = False)
     vz.show()
     volume.unshow()

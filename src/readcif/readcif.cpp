@@ -53,6 +53,7 @@
 # include <unistd.h>
 # include <sys/mman.h>
 # include <sys/stat.h>
+# include <errno.h>
 #endif
 
 #if UCHAR_MAX > 255
@@ -320,12 +321,14 @@ CIFFile::parse_file(const char* filename)
 #else
 	int fd = open(filename, O_RDONLY);
 	if (fd == -1) {
-		err << "Unable to open " << filename << " for reading.";
+		int err_num = errno;
+		err << "open: " << strerror(err_num);
 		throw std::runtime_error(err.str());
 	}
 	struct stat sb;
 	if (fstat(fd, &sb) == -1) {
-		err << "Unable to stat " << filename;
+		int err_num = errno;
+		err << "stat: " << strerror(err_num);
 		throw std::runtime_error(err.str());
 	}
 
@@ -337,7 +340,8 @@ CIFFile::parse_file(const char* filename)
 		void *buf = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE,
 				fd, 0);
 		if (buf == MAP_FAILED) {
-			err << "Unable to mmap " << filename;
+			int err_num = errno;
+			err << "mmap: " << strerror(err_num);
 			throw std::runtime_error(err.str());
 		}
 		buffer = reinterpret_cast<char*>(buf);
@@ -345,21 +349,32 @@ CIFFile::parse_file(const char* filename)
 	} else {
 		buffer = new char [sb.st_size + 1];
 		if (read(fd, buffer, sb.st_size) == -1) {
-			err << "Unable to read " << filename;
+			int err_num = errno;
+			err << "read: " << strerror(err_num);
 			throw std::runtime_error(err.str());
 		}
 		buffer[sb.st_size] = '\0';
 	}
-	parse(reinterpret_cast<const char*>(buffer));
+	try {
+		parse(reinterpret_cast<const char*>(buffer));
+	} catch (...) {
+		(void) close(fd);
+		if (used_mmap)
+			(void) munmap(buffer, sb.st_size + 1);
+		else
+			delete [] buffer;
+		throw;
+	}
+	(void) close(fd);
 	if (used_mmap) {
 		if (munmap(buffer, sb.st_size + 1) == -1) {
-			err << "Unable to munmap " << filename;
+			int err_num = errno;
+			err << "munmap: " << strerror(err_num);
 			throw std::runtime_error(err.str());
 		}
 	} else {
 		delete [] buffer;
 	}
-	(void) close(fd);
 #endif
 }
 
@@ -417,10 +432,9 @@ CIFFile::internal_parse(bool one_table)
 			if (stash.size() > 0)
 				process_stash();
 			seen.clear();
-			set_PDBx_stylized(false);
 			current_data_block = current_value();
 			data_block(current_data_block);
-			if (stylized_)
+			if (stylized)
 				stylized_next_keyword(true);
 			else
 				next_token();
@@ -491,6 +505,7 @@ CIFFile::internal_parse(bool one_table)
 				ParseCategory& pf = cii->second.func;
 				pf(true);
 				first_row = false;
+				fixed_columns = false;
 				current_category.clear();
 				current_tags.clear();
 				values.clear();
@@ -499,7 +514,7 @@ CIFFile::internal_parse(bool one_table)
 			if (one_table)
 				return;
 			// eat remaining values
-			if (stylized_) {
+			if (stylized) {
 				// if seen all tables, skip to next keyword
 				bool tags_okay = seen.size() < categories.size();
 				if (!current_is_keyword()
@@ -576,6 +591,7 @@ CIFFile::internal_parse(bool one_table)
 						ParseCategory& pf = cii->second.func;
 						pf(false);
 						first_row = false;
+						fixed_columns = false;
 						//current_category.clear();
 						current_tags.clear();
 						values.clear();
@@ -625,6 +641,7 @@ CIFFile::internal_parse(bool one_table)
 				ParseCategory& pf = cii->second.func;
 				pf(false);
 				first_row = false;
+				fixed_columns = false;
 				current_category.clear();
 				current_tags.clear();
 				values.clear();
@@ -655,7 +672,8 @@ CIFFile::internal_reset_parse()
 	// parsing state
 	version_.clear();
 	parsing = false;
-	stylized_ = false;
+	stylized = false;
+	fixed_columns = false;
 	current_data_block.clear();
 	current_category.clear();
 	current_tags.clear();
@@ -1045,7 +1063,7 @@ CIFFile::parse_row(ParseValues& pv)
 			[](const ParseColumn& a, const ParseColumn& b) -> bool {
 				return a.column < b.column;
 			});
-		if (stylized_ && values.empty())
+		if (fixed_columns && stylized && values.empty())
 			columns = find_column_offsets();
 	}
 	auto pvi = pv.begin(), pve = pv.end();

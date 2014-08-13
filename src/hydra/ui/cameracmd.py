@@ -57,7 +57,6 @@ def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = Non
                'position %.5g %.5g %.5g\n' % tuple(c.position()) +
                'view direction %.6f %.6f %.6f\n' % tuple(c.view_direction()) +
                'field of view %.5g degrees\n' % c.field_of_view +
-               'window size %d %d\n' % tuple(c.window_size) +
                'mode %s\n' % c.mode +
                'eye separation pixels %.5g, scene %.5g' % (c.eye_separation_pixels, c.eye_separation_scene))
         session.show_info(msg)

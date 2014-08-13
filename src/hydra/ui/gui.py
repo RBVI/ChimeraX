@@ -145,11 +145,25 @@ class MainWindow(QtWidgets.QMainWindow):
 #        toolbar.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         self.addToolBar(QtCore.Qt.TopToolBarArea, self.toolbar)
 
+        modes = QtWidgets.QActionGroup(toolbar)
+        modes.setExclusive(True)
+        a = self.add_shortcut_icon('move.png', 'Movement mouse mode', 'mv')
+        a.setCheckable(True)
+        a.setChecked(True)
+        modes.addAction(a)
+        self.left_toolbar_action = a
         a = self.add_shortcut_icon('move_h2o.png', 'Move selected mouse mode', 'mo')
         a.setCheckable(True)
-        self.left_toolbar_action = a
-        self.add_shortcut_icon('contour.png', 'Adjust contour level mouse mode', 'ct')
-        self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'Mp')
+        modes.addAction(a)
+        a = self.add_shortcut_icon('contour.png', 'Adjust contour level mouse mode', 'ct')
+        a.setCheckable(True)
+        modes.addAction(a)
+        a = self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'Mp')
+        a.setCheckable(True)
+        modes.addAction(a)
+        a = self.add_shortcut_icon('vseries.png', 'Volume series mouse mode', 'vs')
+        a.setCheckable(True)
+        modes.addAction(a)
         toolbar.addSeparator()
 
         self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
@@ -323,6 +337,8 @@ class Hydra_App(QtWidgets.QApplication):
         fix_qt_plugin_path()
         QtWidgets.QApplication.__init__(self, argv)
         self.session = session
+        from os.path import join
+        session.bin_dir = join(self.applicationDirPath(), '..', 'Resources', 'bin')
         self.setWindowIcon(icon('reo.png'))
         set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
         self.main_window = MainWindow(self, session)

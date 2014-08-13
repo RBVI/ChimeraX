@@ -18,5 +18,6 @@ from .arrays import interpolate_volume_data, interpolate_volume_gradient
 from .arrays import Matrix_Value_Statistics, invert_matrix
 from .arrays import grid_indices, zone_masked_grid_data
 from .arrays import zone_mask, masked_grid_data
+from .arrays import surface_level_enclosing_volume
 
 from .regions import points_ijk_bounds, bounding_box, clamp_region, box_corners

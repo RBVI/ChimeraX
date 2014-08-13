@@ -309,7 +309,8 @@ class PyAUIFrame(wx.Frame):
         self._mgr.AddPane(self.CreateTextCtrl(), wx.aui.AuiPaneInfo().Name("text_content").
                           CenterPane().Hide())
 
-        self._mgr.AddPane(self.CreateHTMLCtrl(), wx.aui.AuiPaneInfo().Name("html_content").
+        #self._mgr.AddPane(self.CreateHTMLCtrl(), wx.aui.AuiPaneInfo().Name("html_content").
+        self._mgr.AddPane(self.CreateOpenGL(), wx.aui.AuiPaneInfo().Name("html_content").
                           CenterPane())
 
         # add the toolbars to the manager
@@ -802,6 +803,16 @@ class PyAUIFrame(wx.Frame):
         ctrl = wx.html2.WebView.New(self)
         ctrl.SetPage(self.GetIntroText(), "")
         return ctrl
+
+
+    def CreateOpenGL(self):
+        panel = wx.Panel(self)
+        from GLCanvas import CubeCanvas
+        canvas = CubeCanvas(panel)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(canvas, 1, wx.EXPAND)
+        panel.SetSizerAndFit(sizer)
+        return panel
 
 
     def CreateLog(self):

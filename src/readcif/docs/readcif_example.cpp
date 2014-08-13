@@ -31,7 +31,7 @@ struct Atom
 	float x, y, z;
 };
 
-struct ExtractCIF: public CIFFile {
+struct ExtractCIF: CIFFile {
 	ExtractCIF();
 	void parse_audit_conform(bool in_loop);
 	void parse_atom_site(bool in_loop);
@@ -42,9 +42,8 @@ ExtractCIF::ExtractCIF()
 {
 #if 0
 	using std::placeholder;
-	if (stylized)
-		register_category("audit_conform", 
-			std::bind(&ExtractCIF::audit_conform, this, _1));
+	register_category("audit_conform", 
+		std::bind(&ExtractCIF::audit_conform, this, _1));
 	register_category("atom_site", 
 		std::bind(&ExtractCIF::parse_atom_site, this, _1));
 #else
@@ -52,12 +51,12 @@ ExtractCIF::ExtractCIF()
 	// The lambda functions are needed because parse_XXXX
 	// are member functions.
 	register_category("audit_conform", 
-		[this] (bool in) {
-			parse_audit_conform(in/*_loop*/);
+		[this] (bool in_loop) {
+			parse_audit_conform(in_loop);
 		});
 	register_category("atom_site", 
-		[this] (bool in) {
-			parse_atom_site(in/*_loop*/);
+		[this] (bool in_loop) {
+			parse_atom_site(in_loop);
 		});
 #endif
 }
@@ -83,12 +82,14 @@ ExtractCIF::parse_audit_conform(bool in_loop)
 		});
 	parse_row(pv);
 	if (dict_name == "mmcif_pdbx.dic" && dict_version > 4)
-		set_PDBx_stylized(true);
+		set_PDB_style(true);
 }
 
 void
 ExtractCIF::parse_atom_site(bool in_loop)
 {
+	if (PDB_style())
+		set_PDB_fixed_columns(true);
 	CIFFile::ParseValues pv;
 	pv.reserve(10);
 	Atom atom;

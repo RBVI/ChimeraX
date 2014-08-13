@@ -28,6 +28,8 @@ def register_commands(commands):
     add('fitmap', fitcmd.fitmap_command)
     from ..map.filter import vopcommand
     add('vop', vopcommand.vop_command)
+    from ..map import series
+    add('vseries', series.vseries_command)
     from ..molecule import align, mcommand
     add('align', align.align_command)
     add('show', mcommand.show_command)
@@ -55,6 +57,11 @@ def register_commands(commands):
     add('ambient', ambient.ambient_occlusion_command)
     from .cyclecmd import cycle_command
     add('cycle', cycle_command)
+    from . import silhouettecmd
+    add('silhouette', silhouettecmd.silhouette_command)
+    from ..movie import movie_command, wait_command
+    add('movie', movie_command)
+    add('wait', wait_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -78,12 +85,16 @@ class Commands:
         Invoke a command.  The command and arguments are a string that will be
         parsed by a registered command function.
         '''
+        self.history.add_to_command_history(text)
+        for c in text.split(';'):
+            self.run_single_command(c)
+
+    def run_single_command(self, text):
         ses = self.session
         ses.show_info('> %s' % text, color = '#008000')
         fields = text.split(maxsplit = 1)
         if len(fields) == 0:
             return
-        self.history.add_to_command_history(text)
         cmd = fields[0]
         cab = self.cmdabbrev
         if cab is None:
@@ -1162,14 +1173,18 @@ def parse_specifier(spec, session):
 
     parts = specifier_parts(spec)
     mids = cids = rrange = rname = aname = None
+    subids = []
     invert = False
     for p in parts:
         if p.startswith('#'):
             mids = integer_set(p[1:])
             if len(mids) == 0:
-                mids = set(m.id for m in session.model_list())
+                mids = set(m.id for m in session.top_level_models())
         elif p.startswith('.'):
-            cids = p[1:].split(',')
+            try:
+                subids.append(integer_set(p[1:]))
+            except ValueError:
+                cids = p[1:].split(',')
         elif p.startswith(':'):
             rrange = integer_range(p[1:])
             if rrange is None:
@@ -1179,18 +1194,16 @@ def parse_specifier(spec, session):
         elif p.startswith('!'):
             invert = True
     
-    if mids is None:
-        if cids is None and rrange is None and rname is None and aname is None:
-            if spec == 'all':
-                mlist = session.model_list()
-            else:
-                mlist = []
-        else:
-            mlist = session.molecules()
+    if spec == 'all':
+        mlist = session.model_list()
+    elif mids or subids or (rrange is None and rname is None and aname is None):
+        mlist = models_matching_ids([mids] + subids, session)
+        print('parse', len(mlist), mids, subids, mlist)
     else:
-        mlist = [m for m in session.model_list() if m.id in mids]
+        mlist = session.molecules()
     if len(mlist) == 0:
         raise CommandError('No models specified by "%s"' % spec)
+    # TODO: Need also to consider that last subids are numeric chain ids.
 
     s = Selection()
     from ..molecule import Molecule
@@ -1254,6 +1267,16 @@ def integer_set(rstring):
 
 # -----------------------------------------------------------------------------
 #
+def models_matching_ids(ids, session):
+    mm = []
+    mc = session.top_level_models()
+    for sid in ids:
+        mm = [m for m in mc if m.id in sid]
+        mc = sum(tuple(m.child_drawings() for m in mm), [])
+    return mm
+
+# -----------------------------------------------------------------------------
+#
 class Selection:
     def __init__(self):
         self._models = []              # Non-molecule models
@@ -1263,12 +1286,14 @@ class Selection:
         from ..molecule import Molecule
         mols = [m for m in models if isinstance(m, Molecule)]
         self.aset.add_molecules(mols)
-        other = [m for m in models if not isinstance(m, Molecule)]
+        from ..models import Model
+        other = [m for m in models if isinstance(m, Model) and not isinstance(m, Molecule)]
         self._models.extend(other)
     def add_atoms(self, atoms):
         self.aset.add_atoms(atoms)
-    def models(self):
-        return self._models + list(self.molecules())
+    def models(self, include_submodels = True):
+        mlist = sum([m.all_models() for m in self._models],[]) if include_submodels else self._models
+        return mlist + list(self.molecules())
     def molecules(self):
         return self.aset.molecules()
     def chains(self):
@@ -1292,6 +1317,10 @@ class Selection:
         from ..map import Volume
         mlist = [m for m in self.models() if isinstance(m,Volume)]
         return mlist
+    def surfaces(self):
+        from ..molecule import Molecule
+        from ..map import Volume
+        return [m for m in self.models() if not isinstance(m,(Molecule,Volume))]
 
 # -----------------------------------------------------------------------------
 #

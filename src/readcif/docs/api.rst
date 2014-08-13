@@ -104,7 +104,7 @@ Stylized PDBx/mmCIF files
 
 If a CIF file is known to use PDBx/mmCIF stylized formatting,
 then parsing can be up to 4 times faster.
-:cpp:func:`set_PDBx_stylized` turns on and off stylized parsing,
+:cpp:func:`set_PDB_style` turns on and off stylized parsing,
 and is reset every time :cpp:func:`CIFFile::parse` is called.
 Stylized PDBx/mmCIF file parsing may be switched on and off at
 any time, *e.g.*, within a particular category callback function.
@@ -228,21 +228,45 @@ C++ API
             since data tables may appear in any order in a file.
             Stylized parsing is reset each time :cpp:func:`parse` is called.
 
-        .. cpp:function:: void set_PDBx_stylized(bool stylized)
+        .. cpp:function:: void set_PDB_style(bool stylized)
 
             Turn on and off PDBx/mmCIF stylized parsing
 
             :param stylized: true to use PDBx/mmCIF stylized parsing
 
-            Indiate that CIF file follows the PDBx/mmCIF style guide
+            Indicate that CIF file follows the PDBx/mmCIF style guide
             and that the style can be followed to speed up lexical
             analysis of the CIF file.
-            This can be set and unset for an individual category.
+            Specifically, that keywords are in lowercase,
+            and that all keywords and tags are at the beginning of a line.
 
-        .. cpp:function:: bool PDBx_stylized() const
+        .. cpp:function:: bool PDB_style() const
 
-            Return if the PDBx_stylized flag is set.
-            See :cpp:func:`set_PDBx_stylized`.
+            Return if the PDB_style flag is set.
+            See :cpp:func:`set_PDB_style`.
+
+        .. cpp:function:: void set_PDB_fixed_columns(bool fc)
+
+            Turn on and off PDBx/mmCIF fixed column width parsing
+
+            :param stylized: true to use PDBx/mmCIF stylized parsing
+
+            Indicate that CIF file follows the PDBx/mmCIF style guide
+            and that the style can be followed to speed up lexical
+            analysis of the CIF file.
+            Specifically, the category's data layout has each record of data
+            on a single line and the columns of data are left-justified,
+            and are of are fixed width.
+            This option must be set in each category callback that is needed.
+            This option is ignored if :cpp:`PDB_style` is false.
+            This is not a global option because there is no reliable way
+            to detect if the preconditions are met for each record without
+            losing all of the speed advantages.
+
+        .. cpp:function:: bool PDB_fixed_columns() const
+
+            Return if the PDB_fixed_columns flag is set.
+            See :cpp:func:`set_PDB_fixed_columns`.
 
         .. cpp:function:: int get_column(const char \*tag, bool required=false)
             
@@ -357,6 +381,7 @@ C++ API
 
             **reset_parse** is a virtual function that is called whenever
             the parse function is called.
+            For example, PDB stylized parsing can be turned on here.
 
         .. cpp:function:: void finished_parse()
 

@@ -70,6 +70,9 @@ def standard_shortcuts(session):
         ('dq', depth_cue, 'Toggle depth cue', gcat, viewarg, smenu),
         ('bl', motion_blur, 'Toggle motion blur', gcat, viewarg, smenu, sep),
 
+        ('sh', toggle_shadows, 'Toggle shadows', gcat, viewarg, smenu),
+        ('se', toggle_silhouettes, 'Toggle silhouette edges', gcat, viewarg, smenu),
+
         ('Mo', mono_mode, 'Set mono camera mode', gcat, viewarg, smenu),
         ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
@@ -136,9 +139,11 @@ def standard_shortcuts(session):
         ('cl', command_line, 'Enter command', gcat, sesarg),
 
         # Mouse
+        ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, viewarg, msmenu),
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, viewarg, msmenu),
         ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, viewarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, viewarg, msmenu),
+        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
         ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
         # Devices
@@ -392,9 +397,19 @@ def enable_contour_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
   m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
 
+def enable_map_series_mouse_mode(s, button = 'right'):
+  from ..map import series
+  series.enable_map_series_mouse_mode(s, button)
+
 def enable_move_selected_mouse_mode(viewer, button = 'right'):
   m = viewer.mouse_modes
-  m.move_selected = not m.move_selected
+  m.bind_standard_mouse_modes()
+  m.move_selected = True
+
+def enable_move_mouse_mode(viewer, button = 'right'):
+  m = viewer.mouse_modes
+  m.bind_standard_mouse_modes()
+  m.move_selected = False
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()
@@ -496,6 +511,13 @@ def set_background_gray(viewer):
 def set_background_white(viewer):
     set_background_color(viewer, (1,1,1,1))
 
+def toggle_shadows(viewer):
+    viewer.shadows = not viewer.shadows
+
+def toggle_silhouettes(viewer):
+    viewer.silhouettes = not viewer.silhouettes
+    viewer.redraw_needed = True
+
 def depth_cue(viewer):
     r = viewer.render
     c = r.default_capabilities
@@ -510,9 +532,7 @@ def selection_mouse_mode(session):
     v.mouse_modes.bind_mouse_mode('right', v.mouse_modes.mouse_select)
 
 def command_line(session):
-    session.main_window.focus_on_command_line()
-#  from .qt import QtCore
-#  QtCore.QTimer.singleShot(1000, main_window.focus_on_command_line)
+    session.main_window.enable_shortcuts(False)
 
 def display_selected_models(session):
   session.display_models(session.selected_models())
@@ -736,7 +756,7 @@ def quit(session):
     sys.exit(0)
 
 def undisplay_half(session):
-    for m in session.models:
+    for m in session.models_list():
         undisplay_half_model(m)
 
 def undisplay_half_model(m):
@@ -756,7 +776,7 @@ def undisplay_half_model(m):
         undisplay_half_model(c)
 
 def display_all_positions(session):
-    for m in session.models:
+    for m in session.model_list():
         for c in m.all_drawings():
             if c.display:
                 c.display_positions = None

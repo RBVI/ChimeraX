@@ -3,8 +3,8 @@
 # Holds surface and solid thresholds, color, and transparency and brightness
 # factors.
 #
-from ..graphics import Drawing
-class Volume(Drawing):
+from ..models import Model
+class Volume(Model):
   '''
   A Volume is a rendering of a 3-d image Grid_Data object.  It includes
   color, display styles including surface, mesh and grayscale, contouring levels,
@@ -15,7 +15,7 @@ class Volume(Drawing):
   def __init__(self, data, session, region = None, rendering_options = None,
                model_id = None, open_model = True, message_cb = None):
 
-    Drawing.__init__(self, data.name)
+    Model.__init__(self, data.name)
 
     self.session = session
     if not model_id is None:
@@ -293,6 +293,14 @@ class Volume(Drawing):
 
   # ---------------------------------------------------------------------------
   #
+  def set_color(self, rgba):
+    self.surface_colors = [rgba]*len(self.surface_levels)
+    self.solid_colors = [rgba]*len(self.solid_levels)
+    if self.shown():
+      self.show()
+
+  # ---------------------------------------------------------------------------
+  #
   def new_region(self, ijk_min = None, ijk_max = None, ijk_step = None,
                  show = True, adjust_step = True, save_in_region_queue = True):
     '''
@@ -507,6 +515,8 @@ class Volume(Drawing):
       self.hide_surface()
       self.show_solid(show, self.rendering_options)
 
+    self.display = show
+
     if show:
       self.call_change_callbacks('displayed')
       
@@ -661,9 +671,9 @@ class Volume(Drawing):
                                        cap_faces = ro.cap_faces,
                                        calculate_normals = True)
     except MemoryError:
-      from chimera.replyobj import warning
-      warning('Ran out of memory contouring at level %.3g.\n' % level +
-              'Try a higher contour level.')
+      ses = self.session
+      ses.show_warning('Ran out of memory contouring at level %.3g.\n' % level +
+                       'Try a higher contour level.')
       return False
 
     for a in plane_axis:
@@ -718,6 +728,35 @@ class Volume(Drawing):
     self.message('')
 
     return True
+    
+  # ---------------------------------------------------------------------------
+  # Rank method ignores tolerance and uses a histogram of data values to
+  # estimate the level that will contain the fraction of grid points corresponding
+  # to the requested volume.
+  #
+  def surface_level_for_enclosed_volume(self, volume, tolerance = 1e-3,
+                                        max_bisections = 30, rank_method = False):
+
+    sx,sy,sz = self.data.step
+    cell_volume = float(sx)*sy*sz
+
+    if rank_method:
+      ms = self.matrix_value_statistics()
+      nx, ny, nz = self.data.size
+      box_volume = cell_volume * nx * ny * nz
+      r = 1.0 - (volume / box_volume)
+      level = ms.rank_data_value(r)
+      return level
+
+    gvolume = volume / cell_volume
+    matrix = self.full_matrix()
+    from . import data
+    try:
+      level = data.surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
+    except MemoryError as e:
+      self.session.show_warning(str(e))
+      level = None
+    return level
     
   # ---------------------------------------------------------------------------
   #
@@ -933,13 +972,13 @@ class Volume(Drawing):
   def writable_copy(self, require_copy = False,
                     show = True, unshow_original = True, model_id = None,
                     subregion = None, step = (1,1,1), name = None,
-                    copy_colors = True):
+                    copy_colors = True, value_type = None):
 
     r = self.subregion(step, subregion)
     if not require_copy and self.data.writable and self.is_full_region(r):
       return self
 
-    g = self.region_grid(r)
+    g = self.region_grid(r, value_type)
     g.array[:,:,:] = self.region_matrix(r)
 
     if name:
@@ -982,6 +1021,7 @@ class Volume(Drawing):
   #
   def bounds(self, positions = True):
 
+    from ..graphics import Drawing
     b = Drawing.bounds(self, positions)
     if b is None:
       # TODO: Should this be only displayed bounds?
@@ -1017,9 +1057,15 @@ class Volume(Drawing):
           return None, None
         from ..geometry.vector import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-        return f, None
+        return f, Picked_Map(self)
 
-    return Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    from ..graphics import Drawing
+    f, p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    if p:
+      d = p.drawing()
+      detail = '%s triangles %d' % (d.name, len(d.triangles))
+      p = Picked_Map(self, detail)
+    return f,p
 
   # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
@@ -1366,8 +1412,17 @@ class Volume(Drawing):
   # of this volume.  The subregion and step arguments allow interpolating
   # not using the full map v.
   #
-  def add_interpolated_values(self, v, subregion = 'all', step = (1,1,1),
-                              scale = 1):
+  def add_interpolated_values(self, v, subregion = 'all', step = (1,1,1), scale = 1):
+
+    self.combine_interpolated_values(v, 'add', subregion, step, scale)
+
+  # ---------------------------------------------------------------------------
+  # Combine values from another volume interpolated at grid positions
+  # of this volume by adding, subtracting, taking maximum, multiplying....
+  # The subregion and step arguments allow interpolating not using the full map v.
+  #
+  def combine_interpolated_values(self, v, operation = 'add',
+                                  subregion = 'all', step = (1,1,1), scale = 1):
 
     if scale == 0:
       return
@@ -1379,21 +1434,27 @@ class Volume(Drawing):
     m = d.full_matrix()
     if scale == 'minrms':
       level = min(v.surface_levels) if v.surface_levels else 0
-      scale = minimum_rms_scale(values, m, level)
-      from chimera.replyobj import info
-      info('Minimum RMS scale factor for "%s" above level %.5g\n'
-           '  subtracted from "%s" is %.5g\n'
-           % (v.name_with_id(), level, self.name_with_id(), -scale))
-    if scale == 1:
-      m[:,:,:] += values
-    elif scale == -1:
-      m[:,:,:] -= values
-    else:
-      # Avoid copying array unless needed for scaling.
+      scale = -minimum_rms_scale(values, m, level)
+      ses = self.session
+      ses.show_info('Minimum RMS scale factor for "%s" above level %.5g\n'
+                    '  subtracted from "%s" is %.5g\n'
+                    % (v.name_with_id(), level, self.name_with_id(), scale))
+    if scale != 1:
+      # Copy array only if scaling.
       if const_values:
         values = values.copy()
       values *= scale
+    if values.dtype != m.dtype:
+      values = values.astype(m.dtype, copy=False)
+    if operation == 'add':
       m[:,:,:] += values
+    elif operation == 'subtract':
+      m[:,:,:] -= values
+    elif operation == 'maximum':
+      from numpy import maximum
+      maximum(m, values, m)
+    elif operation == 'multiply':
+      m[:,:,:] *= values
     d.values_changed()
 
   # ---------------------------------------------------------------------------
@@ -1719,7 +1780,7 @@ class Volume(Drawing):
 
     s = self.solid
     if s:
-      s.close_model()
+      s.close_model(self)
       self.solid = None
       
   # ---------------------------------------------------------------------------
@@ -1746,7 +1807,22 @@ class Volume(Drawing):
       from chimera import triggers
       triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
       self.surface_piece_change_handler = None
-
+    
+# -----------------------------------------------------------------------------
+#
+from ..graphics import Pick
+class Picked_Map(Pick):
+  def __init__(self, v, detail = ''):
+    self.map = v
+    self.detail = detail
+  def description(self):
+    return '%s %s %s' % (self.id_string(), self.map.name, self.detail)
+  def drawing(self):
+    return self.map
+  def select(self, toggle = False):
+    m = self.map
+    m.selected = not m.selected if toggle else True
+    
 # -----------------------------------------------------------------------------
 #
 class Outline_Box:
