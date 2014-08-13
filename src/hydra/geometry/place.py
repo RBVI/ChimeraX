@@ -248,7 +248,13 @@ class Places:
     def place_list(self):
         pl = self._place_list
         if pl is None:
-            self._place_list = pl = tuple(Place(m) for m in self._place_array)
+            if not self._place_array is None:
+                pl = tuple(Place(m) for m in self._place_array)
+            elif not self._shift_and_scale is None:
+                pl = tuple(Place(((s[3],0,0,s[0]),(0,s[3],0,s[1]),(0,0,s[3],s[2]))) for s in self._shift_and_scale)
+            else:
+                pl = []
+            self._place_list = pl
         return pl
 
     def array(self):
