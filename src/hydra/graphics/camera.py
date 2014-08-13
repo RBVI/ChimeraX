@@ -268,8 +268,8 @@ def frustum(left, right, bottom, top, zNear, zFar, xshift = 0, yshift = 0):
     Return a 4 by 4 perspective projection matrix.  It includes a shift along x used
     to superpose offset left and right eye views in sequential stereo mode.
     '''
-    A = (right + left) / (right - left) - xshift
-    B = (top + bottom) / (top - bottom) - yshift
+    A = (right + left) / (right - left) - 2*xshift
+    B = (top + bottom) / (top - bottom) - 2*yshift
     C = - (zFar + zNear) / (zFar - zNear)
     D = - (2 * zFar * zNear) / (zFar - zNear)
     E = 2 * zNear / (right - left)
