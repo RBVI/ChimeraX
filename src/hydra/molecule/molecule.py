@@ -480,11 +480,14 @@ class Molecule(Model):
   def residue_ids(self):
     rids = self.rids
     if rids is None:
-      a = self._atoms
-      satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
       from .. import molecule_cpp
-      self.rids = rids = molecule_cpp.residue_ids(satoms)
+      self.rids = rids = molecule_cpp.residue_ids(self.atoms_string())
     return rids
+
+  def atoms_string(self):
+    a = self._atoms
+    satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
+    return satoms
 
   def chain_atom_range(self, chain_id):
     cr = self.chain_ranges
@@ -727,11 +730,11 @@ class Molecule(Model):
     return na * nc
 
   def bounds(self, positions = True):
-    # TODO: bounds should only include displayed atoms.
-    xyz = self.xyz
-    if len(xyz) == 0:
+    # TODO: Cache bounds
+    from .. import molecule_cpp
+    b = molecule_cpp.atom_bounds(self.atoms_string())
+    if b is None:
       return None
-    b = (xyz.min(axis = 0), xyz.max(axis = 0))
     if positions:
       from ..geometry import bounds
       b = bounds.copies_bounding_box(b, self.positions)
