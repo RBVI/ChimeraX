@@ -392,19 +392,19 @@ class Render:
             from numpy import empty, uint32
             rgba = empty((h,w),uint32)
             GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, rgba)
-            return rgba
+            i = rgba[::-1,:].copy()     # Flip y axis.
+            return i
         elif format == self.IMAGE_FORMAT_RGB32:
             rgba = self.frame_buffer_image(w, h, self.IMAGE_FORMAT_RGBA32)
             rgba >>= 8
-            rgb = rgba[::-1,:].copy()
-            return rgb
+            return rgba
         elif format == self.IMAGE_FORMAT_RGBA8:
             rgba = self.frame_buffer_image(w, h, self.IMAGE_FORMAT_RGBA32)
             from numpy import little_endian, uint8
             if little_endian:
                 rgba.byteswap(True) # in place
-                rgba8 = rgba.view(uint8).reshape((h,w,4))
-                return rgba8
+            rgba8 = rgba.view(uint8).reshape((h,w,4))
+            return rgba8
 
     def set_stereo_buffer(self, eye_num):
         '''Set the draw and read buffers for the left eye (0) or right eye (1).'''
