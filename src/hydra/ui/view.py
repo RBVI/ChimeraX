@@ -291,7 +291,8 @@ class View(QtGui.QWindow):
         c = camera if camera else self.camera
         if supersample is None:
             self.draw_scene(c, models)
-            rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
+#            rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
+            rgba = r.frame_buffer_image(w, h)
         else:
             from numpy import zeros, float32, uint32, empty
             srgba = zeros((h,w,4), float32)
@@ -311,8 +312,12 @@ class View(QtGui.QWindow):
         r.pop_framebuffer()
         fb.delete()
 
-        qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
-        return qi
+        from PIL import Image
+        pi = Image.fromarray(rgba[:,:,:3])
+        return pi
+
+#        qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
+#        return qi
 
     def window_size_matching_aspect(self, width, height):
         w,h = width, height
@@ -551,7 +556,7 @@ class View(QtGui.QWindow):
         vd = camera.view_direction(view_num)
         center, size = self.session.bounds_center_and_width()
         if center is None:
-            return 0,1  # Nothing shown
+            return 0.001,1  # Nothing shown
         d = sum((center-cp)*vd)         # camera to center of models
         near, far = (d - size, d + size)
 

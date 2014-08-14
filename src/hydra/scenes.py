@@ -137,34 +137,30 @@ class Scene:
         self.image = string_to_image(s['image'])
         self.state = s['state']
 
-def image_as_string(qimage, iformat = 'JPG'):
+def image_as_string(image, iformat = 'JPEG'):
 
-    i = image_as_bytes(qimage, iformat)
+    i = encode_image(image, iformat)
     import base64
     s = base64.b64encode(i)
     return s
 
-def image_as_bytes(qimage, iformat = 'JPG'):
+def encode_image(image, iformat = 'JPEG'):
 
-    from .ui.qt import QtCore
-    ba = QtCore.QByteArray()
-    buf = QtCore.QBuffer(ba)
-    buf.open(QtCore.QIODevice.WriteOnly)
-    qimage.save(buf, iformat)
-    i = ba.data()
-    return i
+    import io
+    f = io.BytesIO()
+    image.save(f, iformat)
+    s = f.getvalue()
+    return s
 
-def string_to_image(s, iformat = 'JPG'):
+def string_to_image(s, iformat = 'JPEG'):
 
     import base64
     i = base64.b64decode(s)
-    from .ui.qt import QtCore, QtGui
-    ba = QtCore.QByteArray(i)
-    buf = QtCore.QBuffer(ba)
-    buf.open(QtCore.QIODevice.ReadOnly)
-    qi = QtGui.QImage()
-    qi.load(buf, iformat)
-    return qi
+    import io
+    s = io.BytesIO(i)
+    from PIL import Image
+    i = Image.open(s)
+    return i
 
 def scene_from_state(scene_state, session):
     st = scene_state

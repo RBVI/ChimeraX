@@ -375,7 +375,8 @@ class Log:
         self.main_window = main_window
         self.html_text = ''
         self.thumbnail_size = 128       # Pixels
-        self.keep_images = []
+        self.image_count = 0
+
     def show(self, toggle = True):
         mw = self.main_window
         if mw.showing_text() and mw.text_id == 'log' and toggle:
@@ -397,13 +398,12 @@ class Log:
         mw = self.main_window
         v = mw.view
         s = self.thumbnail_size
-        qi = v.image(s,s)
-        # If we don't keep a reference to images, then displaying them causes a crash.
-        self.keep_images.append(qi)
-        n = len(self.keep_images)
+        i = v.image(s,s)
         d = mw.text.document()
-        uri = "file://image%d" % (n,)
-        d.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), qi)
+        self.image_count += 1
+        uri = "file://image%d" % (self.image_count,)
+        from . import qt
+        qt.register_html_image_identifier(d, uri, i)
         htext = '<br><img src="%s"><br>\n' % (uri,)
         self.html_text += htext
 

@@ -50,9 +50,11 @@ class Model_Panel:
         mlist.sort(key = lambda m: m.id)
         from os.path import splitext
         for m in mlist:
-            qi = self.model_image(m)
+            i = self.model_image(m)
             uri = "file://image%d" % m.id
-            d.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), qi)
+            from . import qt
+            qt.register_html_image_identifier(d, uri, i)
+
             n = splitext(m.name)[0]
             lines.extend(['',
                           '<a href="%d">' % m.id,
@@ -79,9 +81,9 @@ class Model_Panel:
         w,h = self.image_size
         from .. import graphics
         c = graphics.camera_framing_models([model])
-        qi = v.image(w, h, camera = c, models = [model])
-        model.thumbnail_image = qi
-        return qi
+        i = v.image(w, h, camera = c, models = [model])
+        model.thumbnail_image = i
+        return i
 
     def shown(self):
         return self.dock_widget.isVisible()

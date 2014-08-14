@@ -16,7 +16,7 @@ class File_History:
     self.changed = False
     self.files = {}             # Path to (access_time, image_name)
     self.thumbnail_size = 256
-    self.image_format = 'JPG'
+    self.image_format = 'JPEG'
 
     session.at_quit(self.write_history)
 

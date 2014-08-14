@@ -79,7 +79,7 @@ def scene_thumbnails_html(scenes, qdoc):
            ]
   for s in scenes:
       i = s.image
-      w,h = i.width(), i.height()
+      w,h = i.size
       lines.append('<td width=%d valign=bottom><a href="%d"><img src="%s" width=%d height=%d></a>'
                    % (w+10, s.id, image_uri(s, qdoc), w, h))
 
@@ -106,5 +106,7 @@ def image_uri(scene, qdoc):
         return None
 
     scene.uri = uri = "file://image%d" % scene.id
-    qdoc.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), scene.image)
+    from . import qt
+    qt.register_html_image_identifier(qdoc, uri, scene.image)
+
     return uri

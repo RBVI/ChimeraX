@@ -196,6 +196,8 @@ def save_image(path, session, width = None, height = None, format = None, supers
         if not format in ('PNG', 'JPG', 'PPM', 'BMP'):
             from ..ui import commands
             raise commands.CommandError('Unrecognized image file suffix "%s"' % format)
+        if format == 'JPG':
+            format = 'JPEG'
 
     i = view.image(width, height, supersample = supersample)
     i.save(path, format)

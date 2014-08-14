@@ -924,7 +924,7 @@ def rgba_drawing(rgba, pos, size, drawing):
   from numpy import array, float32, uint32
   vlist = array(((x,y,0),(x+sx,y,0),(x+sx,y+sy,0),(x,y+sy,0)), float32)
   tlist = array(((0,1,2),(0,2,3)), uint32)
-  tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
+  tc = array(((0,1),(1,1),(1,0),(0,0)), float32)
   d.geometry = vlist, tlist
   d.color = (255,255,255,255)         # Modulates texture values
   d.use_lighting = False

@@ -9,7 +9,7 @@ def set_file_icon(path, session, size = 512, models = None):
     v = session.view
     from .. import graphics
     c = graphics.camera_framing_models(models) if models else v.camera
-    qi = v.image(size, size, camera = c, models = models)
+    i = v.image(size, size, camera = c, models = models)
     from .. import scenes
-    image = scenes.image_as_bytes(qi)
-    return mac_os_cpp.set_file_icon(path, image)
+    s = scenes.encode_image(i)      # Convert to jpeg image as a string
+    return mac_os_cpp.set_file_icon(path, s)
