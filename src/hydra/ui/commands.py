@@ -1053,11 +1053,12 @@ def parse_color(color, session):
     elif isinstance(color, str):
         fields = color.split(',')
         if len(fields) == 1:
-            from .qt import QtGui
-            qc = QtGui.QColor(color)
-            if qc.isValid():
-                rgba = (qc.redF(), qc.greenF(), qc.blueF(), qc.alphaF())
-                return rgba
+            from webcolors import name_to_rgb
+            try:
+                rgb = name_to_rgb(color)
+            except ValueError:
+                raise CommandError('Unknown color: "%s"' % repr(color))
+            return (rgb[0],rgb[1],rgb[2],1)
         else:
             try:
                 rgba = tuple(float(c) for c in fields)
