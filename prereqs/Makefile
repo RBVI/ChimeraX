@@ -50,7 +50,7 @@ SUBDIRS	+= cython docutils expat ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow pycollada \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python python-dateutil PyQt qt \
-	   setuptools sip sphinx wrappy3 wx zlib
+	   setuptools sip sphinx webcolors wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
