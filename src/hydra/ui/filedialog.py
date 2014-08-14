@@ -1,3 +1,5 @@
+from .qt import QtWidgets
+
 # -----------------------------------------------------------------------------
 #
 def show_open_file_dialog(session):
@@ -13,7 +15,6 @@ def show_open_file_dialog(session):
     if dir is None:
         dir = '.'
     v = session.main_window.view
-    from .qt import QtWidgets
     qpaths = QtWidgets.QFileDialog.getOpenFileNames(v.widget, 'Open File', dir, filters)
     paths = qpaths[0]    # Return value is a 2-tuple holding list of paths and filter string.
     mlist = open_files(paths, session)
@@ -28,7 +29,6 @@ def locate_file_dialog(path):
 
     pdir = existing_directory(path)
     caption = 'Locate %s' % path
-    from .qt import QtWidgets
     fd = QtWidgets.QFileDialog(None, caption, pdir)
     # Cannot add widgets to native dialog.
     fd.setOptions(QtWidgets.QFileDialog.DontUseNativeDialog)
@@ -69,7 +69,6 @@ def save_session_dialog(session):
         dir = session.file_history.most_recent_directory()
     filters = 'Session (*.hy)'
     parent = session.main_window.view.widget
-    from .qt import QtWidgets
     path = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Session',
                                                  dir, filters)
     if isinstance(path, tuple):
@@ -86,7 +85,6 @@ def save_session_dialog(session):
 #
 def image_save_dialog(session):
     filters = 'Image (*.jpg *.png *.ppm *.bmp)'
-    from .qt import QtWidgets
     pf = QtWidgets.QFileDialog.getSaveFileName(session.view.widget, 'Save Image', '.', filters)
     # Returns path and filter name.
     if pf is None:

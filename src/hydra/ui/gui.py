@@ -234,7 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 t.setPlainText(text)
         elif not url is None:
-            from .qt import QtCore
             t.setSource(QtCore.QUrl(url))
 
         self.text_id = id
@@ -295,7 +294,6 @@ class Command_Line(QtWidgets.QLineEdit):
         ctrlk = b'\x0b'.decode('utf-8')
         ctrlb = b'\x02'.decode('utf-8')
         ctrlf = b'\x06'.decode('utf-8')
-        from .qt import Qt
         if t in (ctrlp, ctrln):
             s = self.session
             s.main_window.enable_shortcuts(False)

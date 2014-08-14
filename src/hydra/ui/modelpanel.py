@@ -1,3 +1,5 @@
+from .qt import QtWidgets, QtCore, QtGui
+
 class Model_Panel:
 
     def __init__(self, session):
@@ -5,7 +7,6 @@ class Model_Panel:
         self.session = session
         self.image_size = (128,128)
 
-        from .qt import QtWidgets, QtCore
         self.dock_widget = dw = QtWidgets.QDockWidget('Scenes', session.main_window)
         dw.setTitleBarWidget(QtWidgets.QWidget(dw))   # No title bar
         dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
@@ -38,7 +39,6 @@ class Model_Panel:
         session.close_model_callbacks.append(self.models_changed)
 
     def show(self):
-        from .qt import QtGui, QtCore
         d = self.text.document()
         lines = ['<html>', '<head>', '<style>',
                  'body { background-color: black; }',
@@ -66,7 +66,6 @@ class Model_Panel:
         self.html = html = '\n'.join(lines)
         self.text.setHtml(html)
 
-        from .qt import QtCore
         dw = self.dock_widget
         mw = self.session.main_window
         mw.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)

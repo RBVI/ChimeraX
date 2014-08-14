@@ -1,3 +1,5 @@
+from .qt import QtCore, QtGui
+
 class Mouse_Modes:
 
     def __init__(self, view):
@@ -69,7 +71,6 @@ class Mouse_Modes:
 
         # button() gives press/release button, buttons() gives move buttons
         b = event.button() | event.buttons()
-        from .qt import QtCore
         if b & QtCore.Qt.LeftButton:
             m = event.modifiers()
             if m == QtCore.Qt.AltModifier:
@@ -123,7 +124,6 @@ class Mouse_Modes:
 
     def mouse_pause_tracking(self):
         v = self.view
-        from .qt import QtGui
         cp = v.mapFromGlobal(QtGui.QCursor.pos())
         w,h = v.window_size
         x,y = cp.x(), cp.y()
@@ -246,7 +246,6 @@ class Mouse_Modes:
         v = self.view
         p, pick = v.first_intercept(x,y)
         ses = v.session
-        from .qt import QtCore
         toggle = bool(event.modifiers() & QtCore.Qt.ShiftModifier)
         if pick is None:
             if not toggle:
@@ -292,7 +291,6 @@ class Mouse_Modes:
     # The Qt 5.0.2 source code qcocoawindow.mm does not include the environment variable patch.
     def touch_event(self, event):
 
-        from .qt import QtCore
         t = event.type()
         if t == QtCore.QEvent.TouchUpdate:
             # On Mac touch events get backlogged in queue when the events cause 
@@ -367,7 +365,6 @@ class Mouse_Modes:
         p = self.last_mouse_position
         if p is None:
             v = self.view
-            from .qt import QtGui
             cp = v.mapFromGlobal(QtGui.QCursor.pos())
             x,y = cp.x(),cp.y()
         else:
@@ -380,7 +377,6 @@ class Mouse_Modes:
             def y(self):
                 return self._y
             def pos(self):
-                from .qt import QtCore
                 return QtCore.QPoint(self._x,self._y)
         e = Trackpad_Event(x,y)
         return e
