@@ -11,3 +11,5 @@ def show_info(msg, append = False):
 def set_show_info(show_info_func):
     global show_info
     show_status = show_info_func
+
+from .qt import user_settings_directory

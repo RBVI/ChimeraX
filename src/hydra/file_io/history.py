@@ -249,8 +249,8 @@ def unique_file_name(name, directory):
   return uname
 
 def user_settings_path(filename = None, directory = False):
-  from ..ui.qt import QtCore
-  data_dir = QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.GenericDataLocation)
+  from .. import ui
+  data_dir = ui.user_settings_directory()
   from os.path import isdir, join
   if not isdir(data_dir):
     return None

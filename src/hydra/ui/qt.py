@@ -55,3 +55,6 @@ def _qt_image(pil_image):
 # The following gives skewed image as if line padding is done.
 #  qi = QtGui.QImage(rgb.reshape((w*h*3,)), w, h, QtGui.QImage.Format_RGB888)
   return qi
+
+def user_settings_directory():
+  return QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.GenericDataLocation)
