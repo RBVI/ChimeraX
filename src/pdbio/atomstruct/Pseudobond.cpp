@@ -21,6 +21,26 @@ Owned_PBGroup_Base::_check_ownership(Atom* a1, Atom* a2)
             " atomic structure associated with group");
 }
 
+Proxy_PBGroup*
+AS_PBManager::get_group(const std::string& name, int create) const
+{
+    Proxy_PBGroup* grp;
+    auto gmi = this->_groups.find(name);
+    if (gmi != this->_groups.end()) {
+        grp = (*gmi).second;
+        if (create != GRP_NONE && grp->group_type() != create) {
+            throw std::invalid_argument("Group type mismatch");
+        }
+        return grp;
+    }
+
+    if (create == GRP_NONE)
+        return nullptr;
+
+    grp = new Proxy_PBGroup(name, _owner, create);
+    _groups[name] = grp;
+    return grp;
+}
 
 PBond*
 CS_PBGroup::newPseudoBond(Atom* a1, Atom* a2)
@@ -46,6 +66,11 @@ const std::set<PBond*>&
 CS_PBGroup::pseudobonds() const
 {
     return pseudobonds(_owner->active_coord_set());
+}
+
+void
+AS_PBManager::remove_cs(const CoordSet* cs) {
+    for (auto pbg_info: _groups) pbg_info.second->remove_cs(cs);
 }
 
 }  // namespace atomstruct

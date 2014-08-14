@@ -5,6 +5,7 @@
 #include "Element.h"
 #include "AtomicStructure.h"
 #include "Residue.h"
+#include "Pseudobond.h"
 
 #include <algorithm>  // for std::find, std::sort
 #include <stdexcept>
@@ -13,12 +14,12 @@
 
 namespace atomstruct {
 
+const char*  AtomicStructure::PBG_METAL_COORDINATION = "coordination complexes";
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 
 AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
     asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
-    _cs_pb_mgr(this), lower_case_chains(false), _pb_mgr(this), pdb_version(0),
-    is_traj(false)
+    lower_case_chains(false), _pb_mgr(this), pdb_version(0), is_traj(false)
 {
 }
 
@@ -331,7 +332,7 @@ AtomicStructure::polymers() const
     }
 
     // go through missing-structure pseudobonds
-    auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, false);
+    auto pbg = (Owned_PBGroup*) _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
     if (pbg != nullptr) {
         for (auto& pb: pbg->pseudobonds()) {
             Residue *r1 = pb->atoms()[0]->residue();

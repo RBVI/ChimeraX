@@ -21,7 +21,7 @@ CoordSet::CoordSet(AtomicStructure* as, int cs_id, int size):
 CoordSet::~CoordSet()
 {
     if (!_structure->being_destroyed())
-        _structure->cs_pb_mgr().remove_cs(this);
+        _structure->pb_mgr().remove_cs(this);
 }
 
 float

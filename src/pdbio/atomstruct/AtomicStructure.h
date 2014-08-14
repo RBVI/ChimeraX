@@ -29,6 +29,7 @@ public:
     typedef Edges  Bonds;
     typedef std::vector<std::unique_ptr<Chain>> Chains;
     typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
+    static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
 private:
@@ -36,7 +37,6 @@ private:
     bool  _being_destroyed;
     mutable Chains *  _chains;
     CoordSets  _coord_sets;
-    AS_CS_PBManager  _cs_pb_mgr;
     AS_PBManager  _pb_mgr;
     Residues  _residues;
 public:
@@ -50,7 +50,6 @@ public:
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
-    AS_CS_PBManager&  cs_pb_mgr() { return _cs_pb_mgr; }
     void  delete_atom(Atom* a) {
         for (auto b: a->bonds()) delete_bond(b);
         delete_vertex(a);
