@@ -14,7 +14,7 @@
 
 namespace atomstruct {
 
-const char*  AtomicStructure::PBG_METAL_COORDINATION = "coordination complexes";
+const char*  AtomicStructure::PBG_METAL_COORDINATION = "metal coordination bonds";
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 
 AtomicStructure::AtomicStructure(): _active_coord_set(NULL),

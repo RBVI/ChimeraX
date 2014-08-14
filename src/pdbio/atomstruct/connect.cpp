@@ -304,6 +304,30 @@ hookup(Atom* a, Residue* res, bool definitely_connect=true)
     }
     return made_connection;
 }
+static std::vector<Bond*>
+metal_coordination_bonds(AtomicStructure* as)
+{
+    std::vector<Bond*> mc_bonds;
+    std::vector<Atom*> metals;
+    for (auto& a: as->atoms())
+        if (a->element().is_metal())
+            metals.push_back(a.get());
+
+    for (auto metal: metals) {
+        // skip large inorganic residues (that typically
+        // don't distinguish metals by name)
+        if (metal->residue()->atoms_map().count(metal->name()) > 1)
+            continue;
+        
+        // bond -> pseudobond if:
+        // 1) cross residue
+        // 2) > 4 bonds
+        // 3) neighbor is bonded to non-metal in same res
+        //    unless metal has only one bond and neighbor has
+        //    no lone pairs (e.g. residue EMC in 1cjx)
+    }
+    return mc_bonds;
+}
 
 // connect_structure:
 //    Connect atoms in structure by template if one is found, or by distance.
@@ -461,6 +485,19 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             for (auto lb: long_bonds) {
                 pbg->newPseudoBond(lb->atoms());
                 as->delete_bond(lb);
+            }
+        }
+    }
+
+    // make metal-coordination complexes
+    auto mc_bonds = metal_coordination_bonds(as);
+    if (mc_bonds.size() > 0) {
+        auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
+            AS_PBManager::GRP_PER_CS);
+        for (auto mc: mc_bonds) {
+            for (auto& cs: as->coord_sets()) {
+                pbg->newPseudoBond(mc->atoms(), cs.get());
+                as->delete_bond(mc);
             }
         }
     }
