@@ -4,8 +4,8 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra/ui
 
 PYSRCS = __init__.py c2leap.py cameracmd.py commands.py crossfade.py cyclecmd.py device.py filedialog.py gui.py \
-	lightcmd.py materialcmd.py modelpanel.py motion.py mousemodes.py qt.py shortcuts.py silhouettecmd.py \
-	turncmd.py view.py
+	lightcmd.py materialcmd.py modelpanel.py motion.py mousemodes.py qt.py \
+	scenegui.py shortcuts.py silhouettecmd.py turncmd.py view.py
 
 ICONS = icons
 
