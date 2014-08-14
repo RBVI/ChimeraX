@@ -157,8 +157,8 @@ class File_Locator:
           rp = join(repl[d], basename(p))
           if isfile(rp):
             return rp
-        from . import opensave
-        rp = opensave.locate_file_dialog(path)	# Ask for replacement file with a dialog.
+        from ..ui import filedialog
+        rp = filedialog.locate_file_dialog(path)	# Ask for replacement file with a dialog.
         if rp:
           repl[p] = rp
           repl[d] = dirname(rp)

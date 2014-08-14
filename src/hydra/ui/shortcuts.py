@@ -41,13 +41,14 @@ def standard_shortcuts(session):
 
     sep = True  # Add menu separator after entry.
     from ..file_io import opensave
+    from . import filedialog
     from .modelpanel import show_model_panel
     shortcuts = [
         # Sessions
-        ('op', opensave.show_open_file_dialog, 'Open file', ocat, sesarg, fmenu),
+        ('op', filedialog.show_open_file_dialog, 'Open file', ocat, sesarg, fmenu),
         ('rf', show_file_history, 'Show recent files', ocat, sesarg, fmenu),
         ('Sv', opensave.save_session, 'Save session', ocat, sesarg, fmenu),
-        ('sv', opensave.save_session_as, 'Save session as...', ocat, sesarg, fmenu),
+        ('sv', filedialog.save_session_dialog, 'Save session as...', ocat, sesarg, fmenu),
         ('si', lambda s: opensave.save_image(None,s), 'Save image', ocat, sesarg, fmenu),
         ('Ca', close_all_models, 'Close all models', ocat, sesarg, fmenu),
         ('Qt', quit, 'Quit', ocat, sesarg, fmenu),
