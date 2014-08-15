@@ -106,7 +106,7 @@ def open_files(paths, session, set_camera = None):
 def finished_opening(opened, set_camera, session):
     s = session
     if opened and set_camera:
-        view = s.main_window.view
+        view = s.view
         view.remove_overlays()
         view.initial_camera_view()
 

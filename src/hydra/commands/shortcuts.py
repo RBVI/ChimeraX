@@ -222,7 +222,7 @@ class Shortcut:
             for m in shortcut_surfaces(s):
                 f(m)
         elif self.view_arg:
-            v = s.main_window.view
+            v = s.view
             f(v)
         elif self.session_arg:
             f(s)

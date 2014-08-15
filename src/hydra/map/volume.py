@@ -2342,7 +2342,7 @@ class cycle_through_planes:
     self.depth = pdepth
 
     self.handler = self.next_plane_cb
-    session.main_window.view.add_new_frame_callback(self.handler)
+    session.view.add_new_frame_callback(self.handler)
 
   def next_plane_cb(self):
     
@@ -2352,7 +2352,7 @@ class cycle_through_planes:
       show_planes(self.volume, self.axis, p, self.depth,
                   save_in_region_queue = False)
     else:
-      self.session.main_window.view.remove_new_frame_callback(self.handler)
+      self.session.view.remove_new_frame_callback(self.handler)
       self.handler = None
 
 # -----------------------------------------------------------------------------

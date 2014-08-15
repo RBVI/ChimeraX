@@ -46,7 +46,7 @@ def session_state(session, attributes_only = False):
   to a Python file as a session.  It contains only basic Python types:
   numbers, strings, booleans, tuples, lists, dictionaries.
   '''
-  viewer = session.main_window.view
+  viewer = session.view
   s = {'version': 2,
        'view': view_state(viewer),
        'camera': camera_state(viewer.camera),

@@ -14,7 +14,7 @@ def show_open_file_dialog(session):
     dir = session.file_history.most_recent_directory()
     if dir is None:
         dir = '.'
-    v = session.main_window.view
+    v = session.view
     qpaths = QtWidgets.QFileDialog.getOpenFileNames(v.widget, 'Open File', dir, filters)
     paths = qpaths[0]    # Return value is a 2-tuple holding list of paths and filter string.
     mlist = open_files(paths, session)
@@ -68,7 +68,7 @@ def save_session_dialog(session):
     if dir is None:
         dir = session.file_history.most_recent_directory()
     filters = 'Session (*.hy)'
-    parent = session.main_window.view.widget
+    parent = session.view.widget
     path = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Session',
                                                  dir, filters)
     if isinstance(path, tuple):
