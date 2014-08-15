@@ -185,8 +185,7 @@ def file_writer(path, format = None):
 #
 def save_map_command(cmdname, args, session):
 
-    from ...ui.commands import path_arg, volumes_arg
-    from ...ui.commands import parse_arguments
+    from ...commands.parse import path_arg, volumes_arg, parse_arguments
     req_args = (('path', path_arg),
                 ('maps', volumes_arg),
                 )

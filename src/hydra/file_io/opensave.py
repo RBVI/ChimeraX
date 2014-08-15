@@ -206,7 +206,7 @@ def save_image(path, session, width = None, height = None, format = None, supers
 
 def save_image_command(cmdname, args, session):
 
-    from ..ui.commands import string_arg, int_arg, parse_arguments
+    from ..commands.parse import string_arg, int_arg, parse_arguments
     req_args = (('path', string_arg),)
     opt_args = ()
     kw_args = (('width', int_arg),
@@ -220,8 +220,7 @@ def save_image_command(cmdname, args, session):
 
 def open_command(cmdname, args, session):
 
-    from ..ui.commands import string_arg
-    from ..ui.commands import parse_arguments
+    from ..commands.parse import string_arg, parse_arguments
     req_args = (('path', string_arg),)
     opt_args = ()
     kw_args = (('fromDatabase', string_arg),)
@@ -283,7 +282,7 @@ def open_from_database(ids, session, from_database, set_camera = None):
 
 def close_command(cmdname, args, session):
 
-    from ..ui.commands import models_arg, parse_arguments
+    from ..commands.parse import models_arg, parse_arguments
     req_args = ()
     opt_args = (('models', models_arg),)
     kw_args = ()

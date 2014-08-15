@@ -3,15 +3,15 @@
 #
 #   Syntax: vseries <operation> <mapSpec>
 #
-from ...ui.commands import CommandError
+from ...commands.parse import CommandError
 
 players = set()         # Active players.
 
 def vseries_command(cmd_name, args, session):
 
-    from ...ui.commands import bool_arg, float_arg, enum_arg, int_arg, string_arg
-    from ...ui.commands import floats_arg, parse_subregion, value_type_arg, volume_arg
-    from ...ui.commands import perform_operation
+    from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg
+    from ...commands.parse import floats_arg, parse_subregion, value_type_arg, volume_arg
+    from ...commands.parse import perform_operation
     ops = {
         'align': (align_op,
                   (('series', series_arg),),

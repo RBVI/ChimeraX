@@ -21,9 +21,9 @@ class Session(Models):
         self.view = None
         'Main window view, a :py:class:`~.ui.view.View`'
 
-        from .ui import commands, shortcuts
+        from .commands import commands, shortcuts
         self.commands = commands.Commands(self)
-        'Available commands, a :py:class:`~.ui.commands.Commands`'
+        'Available commands, a :py:class:`~.commands.commands.Commands`'
 
         self.keyboard_shortcuts = shortcuts.Keyboard_Shortcuts(self) 
         'Available keyboard shortcuts, a :py:class:`~.ui.shortcuts.Keyboard_Shortcuts`'
@@ -59,22 +59,23 @@ class Session(Models):
         'Dialog listing map fits, a :py:class:`~.map.fit.fitlist.Fit_List`'
 
         self.space_navigator = None
-        'Space Navigator device handler, a :py:class:`~.ui.spacenavigator.snav.Space_Navigator`'
+        'Space Navigator device handler, a :py:class:`~.devices.spacenavigator.snav.Space_Navigator`'
 
         self.oculus = None
-        'Oculus Rift head tracking device handler, a :py:class:`~.ui.oculus.track.Oculus_Head_Tracking`'
+        'Oculus Rift head tracking device handler, a :py:class:`~.devices.oculus.track.Oculus_Head_Tracking`'
 
         self.bin_dir = None
         'Location of third party executables used by Hydra.'
 
     def start(self):
 
-        from .ui import gui, commands, shortcuts
+        from .ui import gui
         import sys
         self.application = app = gui.Hydra_App(sys.argv, self)
         self.main_window = mw = app.main_window
         self.view = mw.view
         self.log = log = gui.Log(mw)
+        from .commands import commands, shortcuts
         commands.register_commands(self.commands)
         shortcuts.register_shortcuts(self.keyboard_shortcuts)
         self.file_history.show_thumbnails()

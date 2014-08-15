@@ -294,7 +294,7 @@ class View(QtGui.QWindow):
 #            rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
             rgba = r.frame_buffer_image(w, h)
         else:
-            from numpy import zeros, float32, uint32, empty
+            from numpy import zeros, float32, uint8
             srgba = zeros((h,w,4), float32)
             n = supersample
             s = 1.0/n
@@ -306,9 +306,9 @@ class View(QtGui.QWindow):
                     srgba += r.frame_buffer_image(w,h)
             c.pixel_shift = (0,0)
             srgba /= n*n
-            rgba8 = srgba.astype(uint32)            # third index 0,1,2,3 is r,g,b,a
-            rgb = empty((h,w), uint32)
-            rgb[:,:] = (rgba8[:,:,0]<<16) + (rgba8[:,:,1]<<8) + rgba8[:,:,2]
+            rgba = srgba.astype(uint8)            # third index 0,1,2,3 is r,g,b,a
+#            rgb = empty((h,w), uint32)
+#            rgb[:,:] = (rgba8[:,:,0]<<16) + (rgba8[:,:,1]<<8) + rgba8[:,:,2]
         r.pop_framebuffer()
         fb.delete()
 

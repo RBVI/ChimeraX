@@ -90,7 +90,7 @@ def show_surface(name, va, na, ta, session, color = (.7,.7,.7,1), place = None):
 
 def surface_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, float_arg, no_arg, parse_arguments
+    from ..commands.parse import atoms_arg, float_arg, no_arg, parse_arguments
     req_args = (('atoms', atoms_arg),)
     opt_args = ()
     kw_args = (('probeRadius', float_arg),

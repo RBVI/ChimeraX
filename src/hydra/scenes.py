@@ -10,7 +10,7 @@
 #
 def scene_command(cmdname, args, session):
 
-    from .ui.commands import string_arg, int_arg, perform_operation
+    from .commands.parse import string_arg, int_arg, perform_operation
     ops = {
         'add': (session.scenes.add_scene,
                 (),
@@ -57,7 +57,7 @@ class Scenes:
             try:
                 ids = set(int(i) for i in id.split(','))
             except:
-                from .ui.commands import CommandError
+                from .commands.parse import CommandError
                 raise CommandError('Scene ids must be integers, got "%s"' % id)
             self.scenes = [s for s in self.scenes if not s.id in ids]
         else:

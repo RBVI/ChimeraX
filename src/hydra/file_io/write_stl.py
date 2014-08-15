@@ -23,8 +23,7 @@ def write_surfaces_as_stl(path, surfaces, session, displayed_only = True):
 #
 def write_stl_command(cmdname, args, session):
 
-    from ..ui.commands import path_arg, surfaces_arg, bool_arg
-    from ..ui.commands import parse_arguments
+    from ..commands.parse import path_arg, surfaces_arg, bool_arg, parse_arguments
     req_args = (('path', path_arg),
                 ('surfaces', surfaces_arg),
                 )

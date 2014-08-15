@@ -1,4 +1,4 @@
-from ..ui.commands import CommandError
+from ..commands.parse import CommandError
 
 def movie_command(cmdname, args, session):
 
@@ -8,8 +8,8 @@ def movie_command(cmdname, args, session):
             session.show_status('Ignoring command: %s %s' % (cmdname, args))
             return
 
-    from ..ui.commands import perform_operation, string_arg, int_arg, ints_arg
-    from ..ui.commands import bool_arg, float_arg, enum_arg
+    from ..commands.parse import perform_operation, string_arg, int_arg, ints_arg
+    from ..commands.parse import bool_arg, float_arg, enum_arg
     from .movie import RESET_CLEAR, RESET_KEEP, RESET_NONE
     reset_modes = (RESET_CLEAR, RESET_KEEP, RESET_NONE)
     ops = {
@@ -230,7 +230,7 @@ def command_keywords():
 
 def wait_command(cmd_name, args, session):
 
-    from ..ui.commands import int_arg, parse_arguments
+    from ..commands.parse import int_arg, parse_arguments
     req_args = ()
     opt_args = (('frames', int_arg),)
     kw_args = ()

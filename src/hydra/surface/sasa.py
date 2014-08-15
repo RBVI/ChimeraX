@@ -626,7 +626,7 @@ def test_pdb_models(id_codes, npoints, session):
 
 def area_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, float_arg, parse_arguments
+    from ..commands.parse import atoms_arg, float_arg, parse_arguments
     req_args = (('atoms', atoms_arg),)
     opt_args = ()
     kw_args = (('probeRadius', float_arg),)

@@ -5,8 +5,8 @@
 #
 def molmap_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, float_arg, string_arg, openstate_arg
-    from ..ui.commands import model_id_arg, bool_arg, parse_arguments
+    from ..commands.parse import atoms_arg, float_arg, string_arg, openstate_arg
+    from ..commands.parse import model_id_arg, bool_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('resolution', float_arg))
     opt_args = ()
@@ -47,7 +47,7 @@ def molecule_map(atoms, resolution, session,
 		 showDialog = True
                  ):
 
-    from ..ui.commands import CommandError
+    from ..commands.parse import CommandError
     if atoms.count() == 0:
         raise CommandError('No atoms specified')
 
@@ -71,7 +71,7 @@ def molecule_map(atoms, resolution, session,
     if symmetry is None:
         transforms = []
     else:
-        from ..ui.commands import openstate_arg
+        from ..commands.parse import openstate_arg
         if coordinateSystem:
             csys = openstate_arg(coordinateSystem)
         from .SymmetryCopies.symcmd import parse_symmetry
@@ -79,7 +79,7 @@ def molecule_map(atoms, resolution, session,
                                           atoms[0].molecule, 'molmap')
 
     if not modelId is None:
-        from ..ui.commands import parse_model_id
+        from ..commands.parse import parse_model_id
         modelId = parse_model_id(modelId)
 
     v = make_molecule_map(atoms, resolution, step, pad,

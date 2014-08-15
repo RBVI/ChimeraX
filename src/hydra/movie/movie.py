@@ -10,7 +10,7 @@ RESET_CLEAR = 'clear'
 RESET_KEEP = 'keep'
 RESET_NONE = 'none'
 
-from ..ui.commands import CommandError
+from ..commands.parse import CommandError
 MovieError = CommandError
 
 class Movie:

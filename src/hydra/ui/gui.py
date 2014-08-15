@@ -112,7 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
 #        self.menuBar = mb = QtWidgets.QMenuBar()
         mb = self.menuBar()
 
-        from .shortcuts import standard_shortcuts
+        from ..commands.shortcuts import standard_shortcuts
         scuts = standard_shortcuts(self.session)[0]
         mnames = []
         for sc in scuts:
@@ -443,7 +443,7 @@ class Log:
 
 def window_size_command(cmdname, args, session):
 
-    from .commands import int_arg, parse_arguments
+    from ..commands.parse import int_arg, parse_arguments
     req_args = ()
     opt_args = ((('width', int_arg),
                  ('height', int_arg),))

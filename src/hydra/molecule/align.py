@@ -49,7 +49,7 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, sequence = No
         patoms, pref_atoms = atoms, ref_atoms
 
     if patoms.count() != pref_atoms.count():
-        from ..ui.commands import CommandError
+        from ..commands.parse import CommandError
         raise CommandError('Must align equal numbers of atoms, got %d and %d'
                            % (patoms.count(), pref_atoms.count()))
 
@@ -277,7 +277,7 @@ def test_align_points(n = 100):
 
 def align_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, string_arg, bool_arg, float_arg, int_arg, parse_arguments
+    from ..commands.parse import atoms_arg, string_arg, bool_arg, float_arg, int_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('ref_atoms', atoms_arg))
     opt_args = ()
