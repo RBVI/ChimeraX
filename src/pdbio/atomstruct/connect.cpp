@@ -456,7 +456,8 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                 long_bonds.push_back(b.get());
         }
         if (long_bonds.size() > 0) {
-            auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE, true);
+            auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
+                AS_PBManager::GRP_NORMAL);
             for (auto lb: long_bonds) {
                 pbg->newPseudoBond(lb->atoms());
                 as->delete_bond(lb);

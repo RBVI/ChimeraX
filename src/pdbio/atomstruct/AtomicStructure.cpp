@@ -5,6 +5,7 @@
 #include "Element.h"
 #include "AtomicStructure.h"
 #include "Residue.h"
+#include "Pseudobond.h"
 
 #include <algorithm>  // for std::find, std::sort
 #include <stdexcept>
@@ -13,12 +14,12 @@
 
 namespace atomstruct {
 
+const char*  AtomicStructure::PBG_METAL_COORDINATION = "coordination complexes";
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 
 AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
     asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
-    _cs_pb_mgr(this), lower_case_chains(false), _pb_mgr(this), pdb_version(0),
-    is_traj(false)
+    lower_case_chains(false), _pb_mgr(this), pdb_version(0), is_traj(false)
 {
 }
 
@@ -331,10 +332,8 @@ AtomicStructure::polymers() const
     }
 
     // go through missing-structure pseudobonds
-    auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, false);
+    auto pbg = (Owned_PBGroup*) _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
     if (pbg != nullptr) {
-std::cerr << pbg->pseudobonds().size() << " missing structure pseudobonds\n";
-int pbnum = 0;
         for (auto& pb: pbg->pseudobonds()) {
             Residue *r1 = pb->atoms()[0]->residue();
             Residue *r2 = pb->atoms()[1]->residue();
@@ -345,7 +344,6 @@ int pbnum = 0;
                 } else {
                     connected[r2] = true;
                 }
-std::cerr << ++pbnum << " " << r1->str() << " " << r2->str() << "\n";
             }
         }
     }
@@ -359,24 +357,20 @@ std::cerr << ++pbnum << " " << r1->str() << " " << r2->str() << "\n";
         auto connection = connected.find(r);
         if (connection == connected.end()) {
             if (in_chain) {
-std::cerr << " through " << r->str() << "\n";
                 chain.push_back(r);
                 polys.push_back(chain);
                 chain.clear();
                 in_chain = false;
             }
         } else {
-if (!in_chain) std::cerr << "chain " << r->str();
             chain.push_back(r);
             in_chain = true;
         }
     }
     if (in_chain) {
-std::cerr << " through end\n";
         polys.push_back(chain);
     }
 
-std::cerr << polys.size() << " polymers\n";
     return polys;
 }
 
