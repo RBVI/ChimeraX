@@ -199,8 +199,8 @@ def volume(volumes = '',                # Specifier
         from .volume import volume_list
         vlist = volume_list(session)
     else:
-        from ..ui import commands
-        vlist = commands.volumes_from_specifier(volumes, session)
+        from ..commands import parse
+        vlist = parse.volumes_from_specifier(volumes, session)
 
     # Adjust global settings.
     loc = locals()

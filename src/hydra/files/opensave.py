@@ -187,15 +187,15 @@ def save_image(path, session, width = None, height = None, format = None, supers
     path = os.path.expanduser(path)         # Tilde expansion
     dir = os.path.dirname(path)
     if not os.path.exists(dir):
-        from ..ui import commands
-        raise commands.CommandError('Directory "%s" does not exist' % dir)
+        from ..commands import parse
+        raise parse.CommandError('Directory "%s" does not exist' % dir)
 
     if format is None:
         from os.path import splitext
         format = splitext(path)[1][1:].upper()
         if not format in ('PNG', 'JPG', 'PPM', 'BMP'):
-            from ..ui import commands
-            raise commands.CommandError('Unrecognized image file suffix "%s"' % format)
+            from ..commands import parse
+            raise parse.CommandError('Unrecognized image file suffix "%s"' % format)
         if format == 'JPG':
             format = 'JPEG'
 

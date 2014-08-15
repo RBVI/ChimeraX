@@ -254,8 +254,8 @@ def processed_volume(v, subregion = None, value_type = None, threshold = None,
 #
 def series_arg(s, session):
 
-  from ...ui import commands
-  mlist = commands.models_arg(s, session)
+  from ...commands import parse
+  mlist = parse.models_arg(s, session)
   from . import Map_Series
   series = [m for m in mlist if isinstance(m, Map_Series)]
   if len(series) == 0:
