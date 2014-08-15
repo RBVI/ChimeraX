@@ -291,7 +291,6 @@ class View(QtGui.QWindow):
         c = camera if camera else self.camera
         if supersample is None:
             self.draw_scene(c, models)
-#            rgb = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGB32)
             rgba = r.frame_buffer_image(w, h)
         else:
             from numpy import zeros, float32, uint8
@@ -307,17 +306,12 @@ class View(QtGui.QWindow):
             c.pixel_shift = (0,0)
             srgba /= n*n
             rgba = srgba.astype(uint8)            # third index 0,1,2,3 is r,g,b,a
-#            rgb = empty((h,w), uint32)
-#            rgb[:,:] = (rgba8[:,:,0]<<16) + (rgba8[:,:,1]<<8) + rgba8[:,:,2]
         r.pop_framebuffer()
         fb.delete()
 
         from PIL import Image
         pi = Image.fromarray(rgba[:,:,:3])
         return pi
-
-#        qi = QtGui.QImage(rgb, w, h, QtGui.QImage.Format_RGB32)
-#        return qi
 
     def window_size_matching_aspect(self, width, height):
         w,h = width, height
