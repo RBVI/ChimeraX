@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/ui
 
-PYSRCS = __init__.py crossfade.py filedialog.py gui.py modelpanel.py mousemodes.py qt.py scenegui.py view.py
+PYSRCS = __init__.py filedialog.py graphicswindow.py gui.py modelpanel.py mousemodes.py qt.py scenegui.py
 
 ICONS = icons
 

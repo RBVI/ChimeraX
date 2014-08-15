@@ -23,9 +23,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 return QtCore.QSize(800,800)
 
         self.stack = st = GraphicsArea(self)
-        from .view import View
-        self.view = v = View(session, st)
-        st.addWidget(v.widget)
+        from .graphicswindow import Graphics_Window
+        g = Graphics_Window(session, st)
+        self.view = g   # View is a base class of Graphics_Window
+        st.addWidget(g.widget)
 
         class TextArea(QtWidgets.QTextBrowser):
             def keyPressEvent(self, event):
@@ -56,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
 #        p.setColor(p.Base, QtGui.QColor(0,0,0))
 #        e.setPalette(p)
         st.addWidget(e)
-        st.setCurrentWidget(v.widget)
+        st.setCurrentWidget(g.widget)
         self.setCentralWidget(st)
 
         self.create_menus()
@@ -64,7 +65,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.shortcuts_enabled = False
         self.command_line = cl = self.create_command_line()
-        v.widget.setFocusProxy(cl)
+        g.widget.setFocusProxy(cl)
 
         # Work around bug where initial window size limited to 2/3 of screen width and height
         # by qt adjustSize() routine.

@@ -1,46 +1,23 @@
-from .qt import QtCore, QtGui, QtOpenGL, QtWidgets
-
-class View(QtGui.QWindow):
+class View:
     '''
     A View is the graphics windows that shows 3-dimensional models.
     It manages the camera and draws the models when needed.
     '''
-    def __init__(self, session, parent=None):
+    def __init__(self, session, window_size):
         self.session = session
-        QtGui.QWindow.__init__(self)
-        self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
-        self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
-#        w.setFocusPolicy(QtCore.Qt.ClickFocus)
-        w.setFocusPolicy(QtCore.Qt.NoFocus)
 
-# TODO: Qt 5.1 has touch events disabled on Mac
-#        w.setAttribute(QtCore.Qt.WA_AcceptTouchEvents)
-
-        # Qt 5.2 has touch events disabled because it slows down scrolling.  Reenable them.
-        import sys
-        if sys.platform == 'darwin':
-            from .. import mac_os_cpp
-            mac_os_cpp.accept_touch_events(int(self.winId()))
-
-        self.window_size = (w.width(), w.height())		# pixels
+        self.window_size = window_size		# pixels
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
-
-        # Determine stereo eye spacing parameter
-        s = self.screen()
-        eye_spacing = 61.0                      # millimeters
-        ssize = s.physicalSize().width()        # millimeters
-        psize = s.size().width()                # pixels
-        eye_separation_pixels = psize * (eye_spacing / ssize)
 
         # Create camera
         from ..graphics import Camera
-        self.camera = Camera('mono', eye_separation_pixels)
+        self.camera = Camera()
         '''The camera controlling the vantage shown in the graphics window.'''
 
         self.opengl_context = None
 
-        from .. import graphics
-        self.render = graphics.Render()
+        from . import Render
+        self.render = Render()
         self._shadows = False
         self.shadowMapSize = 2048
         self.silhouettes = False
@@ -49,9 +26,6 @@ class View(QtGui.QWindow):
         self.silhouette_depth_jump = 0.01       # fraction of scene depth
 
         self.frame_number = 1
-        self.timer = None			# Redraw timer
-        self.redraw_interval = 16               # milliseconds
-        # TODO: Maybe redraw interval should be 10 msec to reduce frame drops at 60 frames/sec
         self.redraw_needed = False
         self.update_lighting = False
         self.block_redraw_count = 0
@@ -65,118 +39,6 @@ class View(QtGui.QWindow):
         from numpy import array, float32
         self.center_of_rotation = array((0,0,0), float32)
         self.update_center = True
-
-        from . import mousemodes
-        self.mouse_modes = mousemodes.Mouse_Modes(self)
-
-    # QWindow method
-    def resizeEvent(self, e):
-        s = e.size()
-        w, h = s.width(), s.height()
-#
-# TODO: On Mac retina display event window size is half of opengl window size.
-#    Can scale width/height here, but also need mouse event positions to be scaled by 2x.
-#    Not sure how to detect when app moves between non-retina and retina displays.
-#    QWindow has a screenChanged signal but I did not get it in tests with Qt 5.2.
-#    Also did not get moveEvent().  May need to get these on top level window?
-#
-#        r = self.devicePixelRatio()    # 2 on retina display, 1 on non-retina
-#        w,h = int(r*w), int(r*h)
-#
-        self.window_size = w, h
-        if not self.opengl_context is None:
-            from .. import graphics
-            fb = graphics.default_framebuffer()
-            fb.width, fb.height = w,h
-            fb.viewport = (0,0,w,h)
-#            self.render.set_viewport(0,0,w,h)
-
-    # QWindow method
-    def exposeEvent(self, event):
-        if self.isExposed():
-            self.draw_graphics()
-
-    def keyPressEvent(self, event):
-
-        # TODO: This window should never get key events since we set widget.setFocusPolicy(NoFocus)
-        # but it gets them anyways on Mac in Qt 5.2 if the graphics window is clicked.
-        # So we pass them back to the main window.
-        self.session.main_window.event(event)
-
-    def create_opengl_context(self):
-
-        f = self.pixel_format(stereo = True)
-        self.setFormat(f)
-        self.create()
-
-        c = QtGui.QOpenGLContext(self)
-        c.setFormat(f)
-        if not c.create():
-            raise SystemError('Failed creating QOpenGLContext')
-        c.makeCurrent(self)
-
-        return c
-
-    def pixel_format(self, stereo = False):
-
-        f = QtGui.QSurfaceFormat()
-        f.setMajorVersion(3)
-        f.setMinorVersion(2)
-        f.setDepthBufferSize(24);
-        f.setProfile(QtGui.QSurfaceFormat.CoreProfile)
-        f.setStereo(stereo)
-        return f
-
-    def enable_opengl_stereo(self, enable):
-
-        supported = self.opengl_context.format().stereo()
-        if not enable or supported:
-            return True
-
-        msg = 'Stereo mode is not supported by OpenGL driver'
-        s = self.session
-        s.show_status(msg)
-        s.show_info(msg)
-        return False
-
-        # TODO: Current strategy for handling stereo is to request a stereo OpenGL context
-        # when graphics window created.  Use it for both stereo and mono display without
-        # switching contexts. There are several obstacles to switching contexts.  First,
-        # we need to share context state.  When tested with Qt 5.1 this caused crashes in
-        # the QCocoaCreateOpenGLContext() routine, probably because the pixel format was null
-        # perhaps because sharing was not supported.  A second problem is that we need to
-        # switch the format of the QWindow.  It is not clear from the Qt documentation if this
-        # is possible.  My tests failed.  The QWindow.setFormat() docs say "calling that function
-        # after create() has been called will not re-resolve the surface format of the native surface."
-        # Maybe calling destroy on the QWindow, then setFormat() and create() would work.  Did not try.
-        # It may be necessary to simply destroy the old QWindow and QWidget container and make a new
-        # one. A third difficulty is that OpenGL does not allow sharing VAOs between contexts.
-        # Drawings use VAOs, so those would have to be destroyed and recreated.  Sharing does
-        # handle VBOs, textures and shaders.
-        #
-        # Test code follows.
-        #
-        f = self.pixel_format(enable)
-        c = QtGui.QOpenGLContext(self)
-        c.setFormat(f)
-        c.setShareContext(self.opengl_context)  # Share shaders, vbos and textures, but not VAOs.
-        if not c.create() or (enable and not c.format().stereo()):
-            if enable:
-                msg = 'Stereo mode is not supported by OpenGL driver'
-            else:
-                msg = 'Failed changing graphics mode'
-            s = self.session
-            s.show_status(msg)
-            s.show_info(msg)
-            return False
-        self.opengl_context = c
-        c.makeCurrent(self)
-
-        self.setFormat(f)
-        if not self.create():
-            raise SystemError('Failed to create QWindow with new format')
-
-        return True
 
     def initialize_opengl(self):
 
@@ -198,6 +60,9 @@ class View(QtGui.QWindow):
 
         if self.timer is None:
             self.start_update_timer()
+
+    def start_update_timer(self):
+        pass    # Derived class sets up timer.
 
     def use_opengl(self):
         if self.opengl_context is None:
@@ -324,24 +189,21 @@ class View(QtGui.QWindow):
             return ((vw*h)//vh, h)     # Choose width to match window aspect ratio.
         return (vw,vh)
 
-    def start_update_timer(self):
-
-        self.timer = t = QtCore.QTimer(self)
-        t.timeout.connect(self.redraw)
-        t.start(self.redraw_interval)
-
     def renderer(self):
         return self.render
 
     def redraw(self):
 
-        if self.block_redraw_count == 0:
-            # Avoid redrawing during callbacks of the current redraw.
-            self.block_redraw()
-            try:
-                self.redraw_graphics()
-            finally:
-                self.unblock_redraw()
+        if self.block_redraw_count > 0:
+            return False
+
+        
+        self.block_redraw()	# Avoid redrawing during callbacks of the current redraw.
+        try:
+            return self.redraw_graphics()
+        finally:
+            self.unblock_redraw()
+            return False
 
     def redraw_graphics(self):
         for cb in self.new_frame_callbacks:
@@ -350,15 +212,17 @@ class View(QtGui.QWindow):
         c = self.camera
         s = self.session
         draw = self.redraw_needed or c.redraw_needed or s.redraw_needed
-        if draw:
-            self.redraw_needed = False
-            c.redraw_needed = False
-            s.redraw_needed = False
-            self.draw_graphics()
-            for cb in self.rendered_callbacks:
-                cb()
-        else:
-            self.mouse_modes.mouse_pause_tracking()
+        if not draw:
+            return False
+
+        self.redraw_needed = False
+        c.redraw_needed = False
+        s.redraw_needed = False
+        self.draw_graphics()
+        for cb in self.rendered_callbacks:
+            cb()
+
+        return True
 
     def block_redraw(self):
         self.block_redraw_count += 1
