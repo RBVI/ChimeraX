@@ -106,7 +106,7 @@ def write_grid_data(h5file, grid_data, g, settings, progress):
 
     g._v_attrs.chimera_map_version = 1
 
-    from ....version import release
+    from .... import release
     g._v_attrs.chimera_version = release        # string
 
     if grid_data.name:

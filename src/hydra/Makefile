@@ -7,7 +7,7 @@ SUBDIRS	= arrays commands devices docs example_sessions files geometry graphics 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
 
-PYSRCS = __init__.py models.py scenes.py session.py version.py
+PYSRCS = __init__.py models.py scenes.py session.py
 
 INSTALL_DIRS = $(PKG_DIR)
 ifeq ($(OS),Darwin)
