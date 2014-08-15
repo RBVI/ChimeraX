@@ -99,7 +99,7 @@ class Scene:
             w, h = self.thumbnail_size
             self.image = i = session.view.image(w,h)         # QImage
 
-            from .file_io import session_file
+            from .files import session_file
             self.state = session_file.scene_state(session)
 
     def show(self):
@@ -112,7 +112,7 @@ class Scene:
         for m in s.model_list():
             m.display = False
 
-        from .file_io import session_file
+        from .files import session_file
         session_file.restore_scene(self.state, s)
         
         msg = 'Showing scene "%s"' % self.description if self.description else 'Showing scene %d' % self.id

@@ -1,7 +1,7 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/file_io/SessionUtil
+PKG_DIR = $(PYSITEDIR)/hydra/files/SessionUtil
 
 PYSRCS = __init__.py objecttree.py stateclasses.py
 

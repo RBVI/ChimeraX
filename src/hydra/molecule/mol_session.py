@@ -21,14 +21,14 @@ def molecule_state(m):
 def restore_molecules(mstate, session, file_paths, attributes_only = False):
     if attributes_only:
         mids = dict((m.id, m) for m in session.molecules())
-    from ..file_io.opensave import open_files
+    from ..files.opensave import open_files
     for ms in mstate:
         if attributes_only:
             m = mids.get(ms['id'])
         else:
             if 'database_fetch' in ms:
                 db_id, db_name = ms['database_fetch']
-                from ..file_io import fetch
+                from ..files import fetch
                 mlist = fetch.fetch_from_database(db_id, db_name, session)
                 if len(mlist) != 1:
                     session.show_info('Database fetch %s from %s unexpectedly contained %d models'

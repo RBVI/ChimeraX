@@ -32,14 +32,14 @@ class Session(Models):
         'Command, error, info log, :py:class:`~.ui.gui.Log`'
 
         self.file_readers = None
-        'Table of file types that can be read, used by :py:func:`~.file_io.opensave.file_readers`'
+        'Table of file types that can be read, used by :py:func:`~.files.opensave.file_readers`'
 
         self.databases = {}
-        'For fetching pdb and map models from the web, used by :py:func:`~.file_io.fetch.register_fetch_database`'
+        'For fetching pdb and map models from the web, used by :py:func:`~.files.fetch.register_fetch_database`'
 
-        from .file_io import history
+        from .files import history
         self.file_history = history.File_History(self)
-        'Recently opened files, a :py:class:`.file_io.history.File_History`'
+        'Recently opened files, a :py:class:`.files.history.File_History`'
 
         self.last_session_path = None
         'File path for last opened session.'

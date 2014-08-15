@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= arrays commands devices docs example_sessions file_io geometry graphics mac_os_cpp \
+SUBDIRS	= arrays commands devices docs example_sessions files geometry graphics mac_os_cpp \
 	  map map_cpp molecule molecule_cpp movie surface ui
 
 PKG_DIR = $(PYSITEDIR)/hydra

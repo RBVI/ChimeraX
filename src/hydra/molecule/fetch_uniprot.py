@@ -13,7 +13,7 @@ def fetch_uniprot(id, session, ignore_cache = False):
     save_name = '%s.fasta' % (idu,)
     min_file_size = None
     
-    from ..file_io.fetch import fetch_file
+    from ..files.fetch import fetch_file
     try:
         path, headers = fetch_file(url, id, session, min_file_size,
                                    save_dir, save_name, ignore_cache = ignore_cache)

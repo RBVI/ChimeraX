@@ -201,7 +201,7 @@ def save_map_command(cmdname, args, session):
     save_grid_data(**kw)
 
     # Set file icon image on Mac
-    from ...file_io import fileicon
+    from ...files import fileicon
     fileicon.set_file_icon(kw['path'], session, models = vlist)
 
     session.file_history.add_entry(kw['path'], models = vlist)

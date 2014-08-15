@@ -348,7 +348,7 @@ class Hydra_App(QtWidgets.QApplication):
     def event(self, e):
         if e.type() == QtCore.QEvent.FileOpen:
             path = e.file()
-            from ..file_io.opensave import open_files
+            from ..files.opensave import open_files
             open_files([path], self.session)
             self.session.main_window.show_graphics()
             return True

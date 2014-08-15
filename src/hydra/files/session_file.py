@@ -9,7 +9,7 @@ def save_session(path, session):
   s = session_state(session)
   s['session path'] = path
   f = open(p, 'w')
-  from ..file_io.SessionUtil import objecttree
+  from ..files.SessionUtil import objecttree
   objecttree.write_basic_tree(s, f)
   f.close()
 

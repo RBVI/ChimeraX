@@ -5,11 +5,11 @@ def register_commands(commands):
     Registers the standard commands.
     '''
     add = commands.add_command
-    from ..file_io.opensave import open_command, save_command, close_command
+    from ..files.opensave import open_command, save_command, close_command
     add('open', open_command)
     add('save', save_command)
     add('close', close_command)
-    from ..file_io import fetch_emdb, fetch_eds
+    from ..files import fetch_emdb, fetch_eds
     from ..molecule import fetch_pdb
     s = commands.session
     fetch_pdb.register_pdb_fetch(s)
@@ -131,7 +131,7 @@ class Command_History:
         self.command_list().append(text)
 
     def read_command_history(self, filename = 'commands'):
-        from ..file_io import history
+        from ..files import history
         path = history.user_settings_path(filename)
         import os.path
         if os.path.exists(path):
@@ -149,7 +149,7 @@ class Command_History:
             return
         if len(h) == self.file_lines:
             return      # No new commands
-        from ..file_io import history
+        from ..files import history
         path = history.user_settings_path(filename)
         f = open(path, 'a')
         for cmd in h[self.file_lines:]:

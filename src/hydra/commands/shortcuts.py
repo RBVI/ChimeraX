@@ -40,7 +40,7 @@ def standard_shortcuts(session):
     s = session
 
     sep = True  # Add menu separator after entry.
-    from ..file_io import opensave
+    from ..files import opensave
     from ..ui import filedialog
     from ..ui.modelpanel import show_model_panel
     shortcuts = [

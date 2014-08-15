@@ -242,7 +242,7 @@ class Match:
     if cache and id in cache:
       m = cache[id]
     else:
-      from ..file_io import fetch
+      from ..files import fetch
       m = fetch.fetch_from_database(id, 'PDBmmCIF', session)[0]
       if not cache is None:
         cache[id] = m

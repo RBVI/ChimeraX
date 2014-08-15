@@ -6,7 +6,7 @@ def show_open_file_dialog(session):
     '''
     Display the Open file dialog for opening data files.
     '''
-    from ..file_io.opensave import file_readers, open_files
+    from ..files.opensave import file_readers, open_files
     filter_lines = ['%s (%s)' % (r.name, ' '.join('*.%s' % s for s in r.suffixes))
                     for r in file_readers(session)]
     filter_lines.insert(0, 'All (*.*)')
@@ -77,7 +77,7 @@ def save_session_dialog(session):
         return
 
     path = str(path)        # Convert from QString
-    from ..file_io import session_file
+    from ..files import session_file
     session_file.save_session(path, session)
     session.show_info('Saved %s' % path, color = '#000080')
 
