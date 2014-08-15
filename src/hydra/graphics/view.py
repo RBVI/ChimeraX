@@ -14,10 +14,9 @@ class View:
         self.camera = Camera()
         '''The camera controlling the vantage shown in the graphics window.'''
 
-        self.opengl_context = None
-
         from . import Render
         self.render = Render()
+        self.opengl_initialized = False
         self._shadows = False
         self.shadowMapSize = 2048
         self.silhouettes = False
@@ -42,6 +41,10 @@ class View:
 
     def initialize_opengl(self):
 
+        if self.opengl_initialized:
+            return
+        self.opengl_initialized = True
+
         r = self.render
         r.set_background_color(self.background_rgba)
         r.enable_depth_test(True)
@@ -49,38 +52,23 @@ class View:
         w,h = self.window_size
         r.initialize_opengl(w,h)
 
-        s = self.session
-        f = self.opengl_context.format()
-        stereo = 'stereo' if f.stereo() else 'no stereo'
-        s.show_info('OpenGL version %s, %s' % (r.opengl_version(), stereo))
-
         from ..graphics import llgrutil as gr
         if gr.use_llgr:
             gr.initialize_llgr()
 
-        if self.timer is None:
-            self.start_update_timer()
-
-    def start_update_timer(self):
-        pass    # Derived class sets up timer.
+    def make_opengl_context_current(self):
+        pass    # Defined by derived class
+    def swap_opengl_buffers(self):
+        pass    # Defined by derived class
 
     def use_opengl(self):
-        if self.opengl_context is None:
-            self.opengl_context = self.create_opengl_context()
-            self.initialize_opengl()
-
-        c = self.opengl_context
-        c.makeCurrent(self)
-        return c
+        self.make_opengl_context_current()
+        self.initialize_opengl()
 
     def draw_graphics(self):
-
-        if not self.isExposed():
-            return
-
-        c = self.use_opengl()
+        self.use_opengl()
         self.draw_scene()
-        c.swapBuffers(self)
+        self.swap_opengl_buffers()
         self.frame_number += 1
 
     def get_background_color(self):

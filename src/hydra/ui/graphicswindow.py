@@ -20,6 +20,8 @@ class Graphics_Window(View, QtGui.QWindow):
 
         self.set_stereo_eye_separation()
 
+        self.opengl_context = None
+
         self.timer = None			# Redraw timer
         self.redraw_interval = 16               # milliseconds
         # TODO: Maybe redraw interval should be 10 msec to reduce frame drops at 60 frames/sec
@@ -84,11 +86,18 @@ class Graphics_Window(View, QtGui.QWindow):
         self.setFormat(f)
         self.create()
 
-        c = QtGui.QOpenGLContext(self)
+        self.opengl_context = c = QtGui.QOpenGLContext(self)
         c.setFormat(f)
         if not c.create():
             raise SystemError('Failed creating QOpenGLContext')
         c.makeCurrent(self)
+
+        # Write a log message indicating OpenGL version
+        s = self.session
+        r = self.render
+        f = c.format()
+        stereo = 'stereo' if f.stereo() else 'no stereo'
+        s.show_info('OpenGL version %s, %s' % (r.opengl_version(), stereo))
 
         return c
 
@@ -114,51 +123,23 @@ class Graphics_Window(View, QtGui.QWindow):
         s.show_info(msg)
         return False
 
-        # TODO: Current strategy for handling stereo is to request a stereo OpenGL context
-        # when graphics window created.  Use it for both stereo and mono display without
-        # switching contexts. There are several obstacles to switching contexts.  First,
-        # we need to share context state.  When tested with Qt 5.1 this caused crashes in
-        # the QCocoaCreateOpenGLContext() routine, probably because the pixel format was null
-        # perhaps because sharing was not supported.  A second problem is that we need to
-        # switch the format of the QWindow.  It is not clear from the Qt documentation if this
-        # is possible.  My tests failed.  The QWindow.setFormat() docs say "calling that function
-        # after create() has been called will not re-resolve the surface format of the native surface."
-        # Maybe calling destroy on the QWindow, then setFormat() and create() would work.  Did not try.
-        # It may be necessary to simply destroy the old QWindow and QWidget container and make a new
-        # one. A third difficulty is that OpenGL does not allow sharing VAOs between contexts.
-        # Drawings use VAOs, so those would have to be destroyed and recreated.  Sharing does
-        # handle VBOs, textures and shaders.
-        #
-        # Test code follows.
-        #
-        f = self.pixel_format(enable)
-        c = QtGui.QOpenGLContext(self)
-        c.setFormat(f)
-        c.setShareContext(self.opengl_context)  # Share shaders, vbos and textures, but not VAOs.
-        if not c.create() or (enable and not c.format().stereo()):
-            if enable:
-                msg = 'Stereo mode is not supported by OpenGL driver'
-            else:
-                msg = 'Failed changing graphics mode'
-            s = self.session
-            s.show_status(msg)
-            s.show_info(msg)
-            return False
-        self.opengl_context = c
+    def make_opengl_context_current(self):
+        c = self.opengl_context
+        if c is None:
+            self.opengl_context = c = self.create_opengl_context()
+            self.start_update_timer()
         c.makeCurrent(self)
 
-        self.setFormat(f)
-        if not self.create():
-            raise SystemError('Failed to create QWindow with new format')
-
-        return True
+    def swap_opengl_buffers(self):
+        self.opengl_context.swapBuffers(self)
 
     def start_update_timer(self):
-
-        self.timer = t = QtCore.QTimer(self)
-        t.timeout.connect(self.redraw_timer_callback)
-        t.start(self.redraw_interval)
+        if self.timer is None:
+            self.timer = t = QtCore.QTimer(self)
+            t.timeout.connect(self.redraw_timer_callback)
+            t.start(self.redraw_interval)
 
     def redraw_timer_callback(self):
-        if not self.redraw():
-            self.mouse_modes.mouse_pause_tracking()
+        if self.isExposed():
+            if not self.redraw():
+                self.mouse_modes.mouse_pause_tracking()
