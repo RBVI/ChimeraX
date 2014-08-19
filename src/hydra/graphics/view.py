@@ -279,13 +279,14 @@ class View:
         from numpy import zeros, empty, uint8, uint32
         srgba = zeros((h,w,4), uint32)
         rgba = empty((h,w,4), uint8)
+        from ..map_cpp import accumulate_images
         for d in directions:
             l.key_light_direction = d
             if r.current_shader_program:
                 r.set_shader_lighting_parameters()
             self.draw_scene2(c, models)
             r.frame_buffer_image(w,h,rgba)
-            srgba += rgba       # TODO: This is a slow operation
+            accumulate_images(rgba, srgba)
         n = len(directions)
         srgba /= n
 #        bf = 255/srgba[:,:,:3].max()

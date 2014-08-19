@@ -11,6 +11,7 @@ extern "C"
 
 // void blur_blend_images(float f, PyObject *rgba1, PyObject *rgba2, PyObject *bgcolor, float alpha, PyObject *rgba);
 PyObject *blur_blend_images(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *accumulate_images(PyObject *s, PyObject *args, PyObject *keywds);
 
 }
 
