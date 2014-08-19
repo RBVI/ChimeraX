@@ -378,33 +378,21 @@ class Render:
     IMAGE_FORMAT_RGBA8 = 'rgba8'
     IMAGE_FORMAT_RGB32 = 'rgb32'
 
-    def frame_buffer_image(self, w, h, format = IMAGE_FORMAT_RGBA8):
+    def frame_buffer_image(self, w, h, rgba = None):
         '''
-        Return the current frame buffer image as a numpy array of size (h,w) for 32-bit
-        formats or (h,w,4) for 8-bit formats where w and h are the framebuffer width and height.
-        Array index 0,0 is at the bottom left corner of the OpenGL viewport for RGB32 format
-        and at the upper left corner for the other formats.  For 32-bit formats the array values
-        are uint32 and contain 8-bit red, green, and blue values is the low 24 bits for RGB32,
-        and 8-bit red, green, blue and alpha for RGBA32.  The RGBA8 format has uint8 values.
+        Return the current frame buffer image as a numpy uint8 array of size (h,w,4) where
+        w and h are the framebuffer width and height.  The four components are red, green, blue, alpha.
+        Array index 0,0 is at the bottom left corner of the OpenGL viewport.
         '''
-
-        if format == self.IMAGE_FORMAT_RGBA32:
-            from numpy import empty, uint32
-            rgba = empty((h,w),uint32)
-            GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_INT_8_8_8_8, rgba)
-            i = rgba[::-1,:].copy()     # Flip y axis.
-            return i
-        elif format == self.IMAGE_FORMAT_RGB32:
-            rgba = self.frame_buffer_image(w, h, self.IMAGE_FORMAT_RGBA32)
-            rgba >>= 8
-            return rgba
-        elif format == self.IMAGE_FORMAT_RGBA8:
-            rgba = self.frame_buffer_image(w, h, self.IMAGE_FORMAT_RGBA32)
-            from numpy import little_endian, uint8
-            if little_endian:
-                rgba.byteswap(True) # in place
-            rgba8 = rgba.view(uint8).reshape((h,w,4))
-            return rgba8
+        if rgba is None:
+            from numpy import empty, uint8
+            rgba = empty((h,w,4),uint8)
+        GL.glReadPixels(0,0,w,h,GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, rgba)
+# TODO: Test code for assessing glReadPixels() effect on rendering speed.
+#        from random import randint
+#        x0,y0 = randint(0,w-1), randint(0,h-1)
+#        rgba[y0:y0+50,x0:x0+50,:3] = 0
+        return rgba
 
     def set_stereo_buffer(self, eye_num):
         '''Set the draw and read buffers for the left eye (0) or right eye (1).'''
