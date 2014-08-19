@@ -11,6 +11,9 @@ class call_for_n_frames:
         session.motion_in_progress.add(self)
     def call(self):
         f = self.frame
+        if f == 0:
+            from time import time
+            self.tstart = time()
         if f >= self.n:
             self.done()
         else:
@@ -20,6 +23,9 @@ class call_for_n_frames:
         s = self.session
         s.view.remove_new_frame_callback(self.call)
         s.motion_in_progress.remove(self)
+        from time import time
+        t = time() - self.tstart
+        print('call for %d frames, time %.2f, frame rate %.2f' % (self.n, t, self.n/t))
 
 def freeze_command(cmdname, args, session):
 
