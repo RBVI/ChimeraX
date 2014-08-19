@@ -914,17 +914,17 @@ class Picked_Drawing(Pick):
     pmask[c] = not pmask[c] if toggle else 1
     d.selected_positions = pmask
 
-def rgba_drawing(rgba, pos, size, drawing):
+def rgba_drawing(rgba, pos = (-1,-1), size = (2,2), drawing = None):
   '''
   Make a new surface piece and texture map an RGBA color array onto it.
   '''
-  d = drawing.new_drawing()
+  d = drawing.new_drawing() if drawing else Drawing('rgba')
   x,y = pos
   sx,sy = size
   from numpy import array, float32, uint32
   vlist = array(((x,y,0),(x+sx,y,0),(x+sx,y+sy,0),(x,y+sy,0)), float32)
   tlist = array(((0,1,2),(0,2,3)), uint32)
-  tc = array(((0,1),(1,1),(1,0),(0,0)), float32)
+  tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
   d.geometry = vlist, tlist
   d.color = (255,255,255,255)         # Modulates texture values
   d.use_lighting = False

@@ -22,7 +22,7 @@ class Cross_Fade(Drawing):
         v = self.viewer
         w,h = v.window_size
         r = v.render
-        self.rgba = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGBA8)
+        self.rgba = r.frame_buffer_image(w, h)
 
         # TODO: Use a childless drawing.
         # Make textured square surface piece
@@ -75,7 +75,7 @@ class Motion_Blur(Drawing):
         v = self.viewer
         w,h = v.window_size
         r = v.render
-        rgba = r.frame_buffer_image(w, h, r.IMAGE_FORMAT_RGBA8)
+        rgba = r.frame_buffer_image(w, h)
 
         if self.rgba is None:
             self.rgba = rgba
@@ -90,10 +90,6 @@ class Motion_Blur(Drawing):
             self.piece = graphics.rgba_drawing(rgba, (-1,-1), (2,2), self)
             self.rgba = rgba
         else:
-            # Numpy is bottleneck for rendering at 60 frames/sec
-            # self.rgba[:,:,:3] = rgba where rgb != bgcolor
-            #                   = 0.9*(self.rgba-bg)+bg where rgb == bgcolor
-            # self.rgba[:,:,3] = 128
             from numpy import array
             bgcolor = array([255*c for c in v.background_color[:3]], rgba.dtype)
             alpha = 255*self.attenuate
