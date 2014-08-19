@@ -19,6 +19,8 @@ class View:
         self.opengl_initialized = False
         self._shadows = False
         self.shadowMapSize = 2048
+        self.multishadow = 0                    # Number of shadows
+        self.multishadow_framebuffer = None
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0,0,0,1)       # black
@@ -162,8 +164,9 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
+        # Flip y-axis since PIL image has row 0 at top, opengl has row 0 at bottom.
         from PIL import Image
-        pi = Image.fromarray(rgba[:,:,:3])
+        pi = Image.fromarray(rgba[::-1,:,:3])
         return pi
 
     def window_size_matching_aspect(self, width, height):
@@ -232,6 +235,73 @@ class View:
         self.rendered_callbacks.remove(cb)
 
     def draw_scene(self, camera = None, models = None):
+
+        if self.multishadow == 0:
+            self.draw_scene2(camera, models)
+            return
+
+        # Render single shadow images off-screen then average them.
+        r = self.render
+        w, h = r.render_size()
+        fb = self.multishadow_framebuffer
+        if fb is None or w != fb.width or h != fb.height:
+            from .. import graphics
+            fb = graphics.Framebuffer(w,h)
+            if not fb.valid():
+                raise SystemError('draw_scene_ambient() window size exceeds framebuffer limits')
+            self.multishadow_framebuffer = fb
+        r.push_framebuffer(fb)
+
+        # Set diffuse only lighting with no fill light (for black shadows).
+        l = r.lighting
+        l.fill_light_color = (0,0,0)
+        l.ambient_light_color = (0,0,0)
+        m = r.material
+        m.specular_reflectivity = 0
+        m.diffuse_reflectivity = 1
+
+#        m = 3
+#        dir = [(x,y,-m) for x in range(-m,m+1) for y in range(-m,m+1)]
+        from ..surface import shapes
+        v = self.multishadow    # requested number of directions
+        t = 2*(v-2)
+        # Icosahedral subdivision will only give certain vertex counts 10*(4**e)+2 (12, 42, 162, 642, 2562, ...)
+        dir = shapes.sphere_geometry(t)[0]
+#        print ('number of lighting directions', len(dir))
+#        dir = [d for d in dir if .128*d[0]+.731*d[1]+.593*d[2] > 0]     # Omit opposite directions.
+        from numpy import array, float32
+        directions = array(dir, float32)
+        from ..geometry import vector
+        vector.normalize_vectors(directions)
+#        print('dsa', directions)
+
+        c = camera if camera else self.camera
+        from numpy import zeros, empty, uint8, uint32
+        srgba = zeros((h,w,4), uint32)
+        rgba = empty((h,w,4), uint8)
+        for d in directions:
+            l.key_light_direction = d
+            if r.current_shader_program:
+                r.set_shader_lighting_parameters()
+            self.draw_scene2(c, models)
+            r.frame_buffer_image(w,h,rgba)
+            srgba += rgba       # TODO: This is a slow operation
+        n = len(directions)
+        srgba /= n
+#        bf = 255/srgba[:,:,:3].max()
+        bf = 4
+        srgba[:,:,:3] *= bf     # brighten
+        rgba = srgba.astype(uint8)            # third index 0,1,2,3 is r,g,b,a
+
+        r.pop_framebuffer()
+#        fb.delete()
+
+#        r.copy_from_framebuffer(fb, depth = False)
+        from . import rgba_drawing, draw_overlays
+        d = rgba_drawing(rgba)
+        draw_overlays([d], r)
+
+    def draw_scene2(self, camera = None, models = None):
 
         if camera is None:
             camera = self.camera

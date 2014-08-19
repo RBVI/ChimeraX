@@ -1,6 +1,6 @@
 def lighting_command(cmdname, args, session):
 
-    from .parse import float3_arg, color_arg, bool_arg, enum_arg, parse_arguments
+    from .parse import float3_arg, color_arg, bool_arg, enum_arg, int_arg, parse_arguments
     req_args = ()
     opt_args = ()
     kw_args = (('direction', float3_arg),
@@ -11,6 +11,7 @@ def lighting_command(cmdname, args, session):
                ('fixed', bool_arg),
                ('shadows', bool_arg),
                ('qualityOfShadows', enum_arg, {'values':('normal', 'fine', 'finer', 'coarse')}),
+               ('multiShadow', int_arg),
            )
 
     kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
@@ -18,7 +19,7 @@ def lighting_command(cmdname, args, session):
 
 def lighting(session, direction = None, color = None, specularColor = None, exponent = None, 
              fillDirection = None, fillColor = None, ambientColor = None, fixed = None,
-             qualityOfShadows = None, shadows = None):
+             qualityOfShadows = None, shadows = None, multiShadow = None):
 
     v = session.view
     lp = v.render.lighting
@@ -42,6 +43,9 @@ def lighting(session, direction = None, color = None, specularColor = None, expo
     if not qualityOfShadows is None:
         size = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}[qualityOfShadows]
         v.shadowMapSize = size
+    if not multiShadow is None:
+        v.multishadow = multiShadow
+        v.shadows = (multiShadow > 0)
 
     v.update_lighting = True
     v.redraw_needed = True
