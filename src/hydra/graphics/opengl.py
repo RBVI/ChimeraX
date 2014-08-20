@@ -417,11 +417,11 @@ class Render:
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
 
-    def start_rendering_shadowmap(self, center, radius, light_direction, size = 1024, depth_bias = 0.005):
+    def start_rendering_shadowmap(self, center, radius, light_direction, size = 1024):
 
         # Set projection matrix to be orthographic and span all models.
-        from ..geometry.place import translation, scale, orthonormal_frame
-        pm = scale((1/radius,1/radius,-1/radius))*translation((0,0,radius))       # orthographic projection along z
+        from ..geometry.place import scale, translation
+        pm = scale((1/radius,1/radius,-1/radius))*translation((0,0,radius)) # orthographic projection along z
         self.set_projection_matrix(pm.opengl_matrix())
 
         # Make a framebuffer for depth texture rendering
@@ -436,15 +436,6 @@ class Render:
                 return           # Requested size exceeds framebuffer limits
             self.shadow_map_framebuffer = fb
 
-        # Compute the view matrix looking along the light direction.
-        ld = light_direction
-        lv = translation(center - radius*ld) * orthonormal_frame(-ld)   # Light view frame
-        lvinv = lv.inverse()	# Scene to light view coordinates
-
-        # Set the transform mapping camera to depth texture coordinates.
-        ntf = translation((0.5,0.5,0.5-depth_bias))*scale(0.5)    # (-1,1) normalized device coords to (0,1) texture coords.
-        stf = ntf * pm * lvinv                       # Scene to shadowmap coordinates
-
         # Make sure depth texture is not bound from previous drawing so that it is not
         # used for rendering shadows while the depth texture is being written.
         # TODO: The depth rendering should not render colors or shadows.
@@ -453,7 +444,21 @@ class Render:
 
         # Draw the models recording depth in light direction, i.e. calculate the shadow map.
         self.push_framebuffer(fb)
-        self.draw_background()             # Clear depth buffer
+
+    def shadow_transforms(self, light_direction, center, radius, depth_bias = 0.005):
+
+        # Projection matrix, orthographic along z
+        from ..geometry.place import translation, scale, orthonormal_frame
+        pm = scale((1/radius,1/radius,-1/radius))*translation((0,0,radius))
+
+        # Compute the view matrix looking along the light direction.
+        ld = light_direction
+        lv = translation(center - radius*ld) * orthonormal_frame(-ld)   # Light view frame
+        lvinv = lv.inverse()	# Scene to light view coordinates
+
+        # Convert (-1,1) normalized device coords to (0,1) texture coords.
+        ntf = translation((0.5,0.5,0.5-depth_bias))*scale(0.5)
+        stf = ntf * pm * lvinv                       # Scene to shadowmap coordinates
 
         return lvinv, stf
 

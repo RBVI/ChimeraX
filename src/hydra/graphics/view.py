@@ -373,10 +373,13 @@ class View:
 
         # Compute shadow map depth texture
         r = self.render
-        lvinv, stf = r.start_rendering_shadowmap(center, radius, light_direction, size = self.shadowMapSize)
+        r.start_rendering_shadowmap(center, radius, light_direction, size = self.shadowMapSize)
+        r.draw_background()             # Clear shadow depth buffer
+        # Compute light view and scene to shadow map transforms
+        lvinv, stf = r.shadow_transforms(light_direction, center, radius)
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
-        shadow_map = r.finish_rendering_shadowmap()
+        shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
         # Bind shadow map for subsequent rendering of shadows.
         shadow_map.bind_texture(r.shadow_texture_unit)
