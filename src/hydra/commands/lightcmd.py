@@ -1,6 +1,6 @@
 def lighting_command(cmdname, args, session):
 
-    from .parse import float3_arg, color_arg, bool_arg, enum_arg, int_arg, parse_arguments
+    from .parse import float3_arg, color_arg, bool_arg, int_arg, string_arg, parse_arguments
     req_args = ()
     opt_args = ()
     kw_args = (('direction', float3_arg),
@@ -10,7 +10,7 @@ def lighting_command(cmdname, args, session):
                ('ambientColor', color_arg),
                ('fixed', bool_arg),
                ('shadows', bool_arg),
-               ('qualityOfShadows', enum_arg, {'values':('normal', 'fine', 'finer', 'coarse')}),
+               ('qualityOfShadows', string_arg),
                ('multiShadow', int_arg),
            )
 
@@ -41,7 +41,12 @@ def lighting(session, direction = None, color = None, specularColor = None, expo
     if not shadows is None:
         v.shadows = shadows
     if not qualityOfShadows is None:
-        size = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}[qualityOfShadows]
+        sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
+        if qualityOfShadows in sizes:
+            size = sizes[qualityOfShadows]
+        else:
+            from .parse import int_arg
+            size = int_arg(qualityOfShadows, session)
         v.shadowMapSize = size
     if not multiShadow is None:
         v.multishadow = multiShadow
