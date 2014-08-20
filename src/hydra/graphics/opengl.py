@@ -355,6 +355,11 @@ class Render:
         else:
             GL.glDisable(GL.GL_BLEND)
 
+    def blend_add(self, f):
+        GL.glBlendColor(f,f,f,f)
+        GL.glBlendFunc(GL.GL_CONSTANT_COLOR, GL.GL_ONE)
+        GL.glEnable(GL.GL_BLEND)
+
     def draw_transparent(self, draw_depth, draw):
         '''
         Render using single-layer transparency. This is a two-pass drawing.
@@ -1312,7 +1317,7 @@ class Texture_Window:
         vb.update_buffer_data(array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32))
         vao.bind_shader_variable(vb)
         self.tex_coord_buf = tcb = Buffer(TEXTURE_COORDS_2D_BUFFER)
-        tcb.update_buffer_data(array(((0,0,0),(1,0,0),(1,1,0),(0,1,0)), float32))
+        tcb.update_buffer_data(array(((0,0),(1,0),(1,1),(0,1)), float32))
         vao.bind_shader_variable(tcb)
         self.element_buf = eb = Buffer(ELEMENT_BUFFER)
         eb.update_buffer_data(array(((0,1,2),(0,2,3)), int32))
@@ -1327,7 +1332,7 @@ class Texture_Window:
         xs, ys = xshift, yshift
         tcb = self.tex_coord_buf
         from numpy import array, float32
-        tcb.update_buffer_data(array(((xs,ys,0),(1+xs,ys,0),(1+xs,1+ys,0),(xs,1+ys,0)), float32))
+        tcb.update_buffer_data(array(((xs,ys),(1+xs,ys),(1+xs,1+ys),(xs,1+ys)), float32))
         GL.glDepthMask(False)   # Don't overwrite depth buffer
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
