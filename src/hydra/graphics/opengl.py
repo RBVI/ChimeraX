@@ -417,7 +417,7 @@ class Render:
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
 
-    def start_rendering_shadowmap(self, center, radius, camera_view, size = 1024, depth_bias = 0.005):
+    def start_rendering_shadowmap(self, center, radius, light_direction, size = 1024, depth_bias = 0.005):
 
         # Set projection matrix to be orthographic and span all models.
         from ..geometry.place import translation, scale, orthonormal_frame
@@ -437,8 +437,7 @@ class Render:
             self.shadow_map_framebuffer = fb
 
         # Compute the view matrix looking along the light direction.
-        kl = self.lighting.key_light_direction
-        ld = camera_view.apply_without_translation(kl) # Light direction in scene coords.
+        ld = light_direction
         lv = translation(center - radius*ld) * orthonormal_frame(-ld)   # Light view frame
         lvinv = lv.inverse()	# Scene to light view coordinates
 

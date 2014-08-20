@@ -371,7 +371,9 @@ class View:
 
         # Compute shadow map depth texture
         r = self.render
-        lvinv, stf = r.start_rendering_shadowmap(center, radius, camera.view(), size = self.shadowMapSize)
+        kl = r.lighting.key_light_direction                     # Light direction in camera coords
+        lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
+        lvinv, stf = r.start_rendering_shadowmap(center, radius, lightdir, size = self.shadowMapSize)
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
         shadow_map = r.finish_rendering_shadowmap()
