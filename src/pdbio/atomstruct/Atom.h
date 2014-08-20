@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef atomic_Atom
-#define atomic_Atom
+#ifndef atomstruct_Atom
+#define atomstruct_Atom
 
 #include <vector>
 #include <string>
@@ -86,4 +86,4 @@ public:
 
 }  // namespace atomstruct
 
-#endif  // atomic_Atom
+#endif  // atomstruct_Atom

@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef atomic_chain
-#define atomic_chain
+#ifndef atomstruct_chain
+#define atomstruct_chain
 
 #include "Sequence.h"
 #include <string>
@@ -30,4 +30,4 @@ public:
 
 }  // namespace atomstruct
 
-#endif  // atomic_chain
+#endif  // atomstruct_chain

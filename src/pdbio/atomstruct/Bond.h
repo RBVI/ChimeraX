@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef atomic_Bond
-#define atomic_Bond
+#ifndef atomstruct_Bond
+#define atomstruct_Bond
 
 #include "basegeom/Connection.h"
 #include "imex.h"
@@ -30,4 +30,4 @@ public:
 
 }  // namespace atomstruct
 
-#endif  // atomic_Bond
+#endif  // atomstruct_Bond

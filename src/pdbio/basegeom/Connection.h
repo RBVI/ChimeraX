@@ -23,8 +23,11 @@ private:
 public:
     Connection(End *e1, End *e2);
     virtual  ~Connection() {}
+    bool  contains(End* e) const {
+        return e == _end_points[0] || e == _end_points[1];
+    }
     const End_points &  end_points() const { return _end_points; }
-    End *  other_end(End *e) const;
+    End *  other_end(End* e) const;
     Real  sqlength() const {
         return _end_points[0]->coord().sqdistance(_end_points[1]->coord());
     }
