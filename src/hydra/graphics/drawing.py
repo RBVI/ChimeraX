@@ -692,6 +692,7 @@ def draw_overlays(drawings, renderer):
   draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
   r.enable_blending(True)
   draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
+  r.enable_blending(False)
   r.enable_depth_test(True)
 
 def draw_outline(renderer, cvinv, drawings):
@@ -916,7 +917,16 @@ class Picked_Drawing(Pick):
 
 def rgba_drawing(rgba, pos = (-1,-1), size = (2,2), drawing = None):
   '''
-  Make a new surface piece and texture map an RGBA color array onto it.
+  Make a drawing rectangle and use a texture to show an rgba image on it.
+  '''
+  from . import opengl
+  t = opengl.Texture(rgba)
+  d = texture_drawing(t, pos, size, drawing)
+  return d
+
+def texture_drawing(texture, pos = (-1,-1), size = (2,2), drawing = None):
+  '''
+  Make a new drawing and texture map it.
   '''
   d = drawing.new_drawing() if drawing else Drawing('rgba')
   x,y = pos
@@ -929,6 +939,26 @@ def rgba_drawing(rgba, pos = (-1,-1), size = (2,2), drawing = None):
   d.color = (255,255,255,255)         # Modulates texture values
   d.use_lighting = False
   d.texture_coordinates = tc
-  from . import opengl
-  d.texture = opengl.Texture(rgba)
+  d.texture = texture
   return d
+
+def draw_texture(texture, renderer):
+  d = texture_drawing(texture)
+  d.opaque_texture = True
+  draw_overlays([d], renderer)
+  return
+
+  r = renderer
+  r.set_override_capabilities({r.SHADER_LIGHTING:False, r.SHADER_SHADOWS:False})
+  from . import opengl
+  tw = opengl.Texture_Window(renderer, renderer.SHADER_TEXTURE_2D)
+  texture.bind_texture()
+  r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
+  from ..geometry import place
+  p0 = place.identity()
+  r.set_view_matrix(p0)
+  r.set_model_matrix(p0)
+  r.enable_depth_test(False)
+  tw.draw()
+  r.set_override_capabilities({})
+  r.enable_depth_test(True)
