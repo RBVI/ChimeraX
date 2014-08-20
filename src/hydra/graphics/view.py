@@ -308,10 +308,12 @@ class View:
         s = self.session
         mdraw = [m for m in s.top_level_models() if m.display] if models is None else models
 
-        if self.shadows:
-            stf = self.use_shadow_map(camera, models)
-
         r = self.render
+        if self.shadows:
+            kl = r.lighting.key_light_direction                     # Light direction in camera coords
+            lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
+            stf = self.use_shadow_map(lightdir, models)
+
         r.set_background_color(self.background_rgba)
 
         if self.update_lighting:
@@ -356,7 +358,7 @@ class View:
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
 
-    def use_shadow_map(self, camera, models):
+    def use_shadow_map(self, light_direction, models):
         # Compute model bounds so shadow map can cover all models.
         if models is None:
             s = self.session
@@ -371,9 +373,7 @@ class View:
 
         # Compute shadow map depth texture
         r = self.render
-        kl = r.lighting.key_light_direction                     # Light direction in camera coords
-        lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
-        lvinv, stf = r.start_rendering_shadowmap(center, radius, lightdir, size = self.shadowMapSize)
+        lvinv, stf = r.start_rendering_shadowmap(center, radius, light_direction, size = self.shadowMapSize)
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
         shadow_map = r.finish_rendering_shadowmap()
