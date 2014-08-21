@@ -243,7 +243,7 @@ def wait(frames = None, session = None):
 
     v = session.view
     if frames is None:
-        from ..ui.motion import motion_in_progress
+        from ..commands.motion import motion_in_progress
         while motion_in_progress(session):
             v.redraw_needed = True  # Trigger frame rendered callbacks to cause image capture.
             v.redraw_graphics()
