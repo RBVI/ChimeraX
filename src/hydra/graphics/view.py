@@ -21,7 +21,9 @@ class View:
         self.shadowMapSize = 2048
         self.multishadow = 0                    # Number of shadows
         self.multishadow_framebuffer = None
-        self.multishadow_directions = None
+        self._multishadow_directions = None
+        self._multishadow_transforms = []
+        self._multishadow_depth = None
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0,0,0,1)       # black
@@ -99,6 +101,21 @@ class View:
         self.redraw_needed = True
     shadows = property(get_shadows, set_shadows)
 
+    def set_multishadow(self, n):
+        self.multishadow = n
+        r = self.render
+        dc = r.default_capabilities
+        if n > 0:
+            dc.add(r.SHADER_MULTISHADOW)
+            dc.discard(r.SHADER_SHADOWS)
+        else:
+            dc.discard(r.SHADER_MULTISHADOW)
+            if self._shadows:
+                dc.add(r.SHADER_SHADOWS)
+        for d in self.session.all_drawings():
+            d.clear_cached_shader()
+        self.redraw_needed = True
+        
     def set_camera_mode(self, mode):
         '''
         Camera mode can be 'mono', 'stereo' for sequential stereo, or
@@ -237,7 +254,7 @@ class View:
 
     def draw_scene(self, camera = None, models = None):
 
-        if self.multishadow == 0:
+        if self.multishadow == 0 or True:
             self.draw_scene2(camera, models)
             return
 
@@ -268,18 +285,7 @@ class View:
         m.specular_reflectivity = 0
         m.diffuse_reflectivity = 1
 
-        directions = self.multishadow_directions
-        if directions is None or len(directions) != self.multishadow:
-            from ..surface import shapes
-            v = self.multishadow    # requested number of directions
-            t = 2*(v-2)
-            # Icosahedral subdivision will only give certain vertex counts 10*(4**e)+2 (12, 42, 162, 642, 2562, ...)
-            dir = shapes.sphere_geometry(t)[0]
-            from numpy import array, float32
-            directions = array(dir, float32)
-            from ..geometry import vector
-            vector.normalize_vectors(directions)
-            self.multishadow_directions = directions
+        directions = self.multishadow_directions()
         n = len(directions)
 
         c = camera if camera else self.camera
@@ -300,6 +306,22 @@ class View:
 
         r.pop_framebuffer()
 
+    def multishadow_directions(self):
+
+        directions = self._multishadow_directions
+        if directions is None or len(directions) != self.multishadow:
+            from ..surface import shapes
+            v = self.multishadow    # requested number of directions
+            t = 2*(v-2)
+            # Icosahedral subdivision will only give certain vertex counts 10*(4**e)+2 (12, 42, 162, 642, 2562, ...)
+            dir = shapes.sphere_geometry(t)[0]
+            from numpy import array, float32
+            directions = array(dir, float32)
+            from ..geometry import vector
+            vector.normalize_vectors(directions)
+            self._multishadow_directions = directions
+        return directions
+
     def draw_scene2(self, camera = None, models = None):
 
         if camera is None:
@@ -309,10 +331,12 @@ class View:
         mdraw = [m for m in s.top_level_models() if m.display] if models is None else models
 
         r = self.render
-        if self.shadows:
+        if self.multishadow > 0:
+            stf, sdepth = self.use_shadow_map(self.multishadow_directions(), models)
+        elif self.shadows:
             kl = r.lighting.key_light_direction                     # Light direction in camera coords
             lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
-            stf = self.use_shadow_map(lightdir, models)
+            stf, sdepth = self.use_shadow_map([lightdir], models)
 
         r.set_background_color(self.background_rgba)
 
@@ -335,9 +359,9 @@ class View:
             r.draw_background()
             if mdraw:
                 perspective_near_far_ratio = self.update_projection(vnum, camera = camera)
-                if self.shadows:
+                if self.shadows or self.multishadow > 0:
                     # Shadow transform is from camera to shadow map texture coords.
-                    r.set_shadow_transform(stf * camera.view())
+                    r.set_shadow_transforms(stf, camera.view(), sdepth)
                 cvinv = camera.view_inverse(vnum)
                 graphics.draw_drawings(r, cvinv, mdraw)
                 if selected:
@@ -358,7 +382,14 @@ class View:
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
 
-    def use_shadow_map(self, light_direction, models):
+    def use_shadow_map(self, light_directions, models):
+
+        r = self.render
+        if self.multishadow > 0 and len(self._multishadow_transforms) == len(light_directions):
+            # Bind shadow map for subsequent rendering of shadows.
+            r.shadow_map_framebuffer.depth_texture.bind_texture(r.shadow_texture_unit)
+            return self._multishadow_transforms, self._multishadow_depth
+
         # Compute model bounds so shadow map can cover all models.
         if models is None:
             s = self.session
@@ -369,22 +400,43 @@ class View:
             b = bounds.union_bounds(m.bounds() for m in models)
             center, radius = bounds.bounds_center_and_radius(b)
         if center is None:
-            return
+            return None, None
 
         # Compute shadow map depth texture
-        r = self.render
-        r.start_rendering_shadowmap(center, radius, light_direction, size = self.shadowMapSize)
+        size = self.shadowMapSize
+        r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
-        # Compute light view and scene to shadow map transforms
-        lvinv, stf = r.shadow_transforms(light_direction, center, radius)
-        from .. import graphics
-        graphics.draw_drawings(r, lvinv, models)
+
+        # TODO: Don't run multishadow fragment shader when computing shadow map -- very expensive.
+        stf = []
+        nl = len(light_directions)
+        if nl == 1:
+            # Compute light view and scene to shadow map transforms
+            lvinv, tf = r.shadow_transforms(light_directions[0], center, radius)
+            stf.append(tf)
+            from .. import graphics
+            graphics.draw_drawings(r, lvinv, models)
+        else:
+            from math import ceil, sqrt
+            d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
+            s = size//d                 # Subtexture size.
+            for l in range(nl):
+                x, y = (l%d), (l//d)
+                r.set_viewport(x*s, y*s, s, s)
+                lvinv, tf = r.shadow_transforms(light_directions[l], center, radius)
+                stf.append(tf)
+                from .. import graphics
+                graphics.draw_drawings(r, lvinv, models)
+
         shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
         # Bind shadow map for subsequent rendering of shadows.
         shadow_map.bind_texture(r.shadow_texture_unit)
 
-        return stf      # Scene to shadow map texture coordinates
+        # TODO: Clear shadow cache whenever scene changes
+        self._multishadow_transforms = stf
+        self._multishadow_depth = sd = 2*radius
+        return stf, sd      # Scene to shadow map texture coordinates
 
     def update_level_of_detail(self):
         # Level of detail updating.

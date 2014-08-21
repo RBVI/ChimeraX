@@ -48,7 +48,9 @@ class Render:
         self.ambient_texture_transform = None
 
         # Maps camera coordinates to shadow map texture coordinates.
-        self.shadow_transform = None
+        self._shadow_transform = None
+        self._shadow_transforms = None
+        self._shadow_depth = None       # near to far clip depth for shadow map.
 
         self.single_color = (1,1,1,1)
 
@@ -63,6 +65,7 @@ class Render:
     SHADER_TEXTURE_2D = 'USE_TEXTURE_2D'
     SHADER_TEXTURE_3D_AMBIENT = 'USE_TEXTURE_3D_AMBIENT'
     SHADER_SHADOWS = 'USE_SHADOWS'
+    SHADER_MULTISHADOW = 'USE_MULTISHADOW'
     SHADER_RADIAL_WARP = 'USE_RADIAL_WARP'
     SHADER_SHIFT_AND_SCALE = 'USE_INSTANCING_SS'
     SHADER_INSTANCING = 'USE_INSTANCING_44'
@@ -79,7 +82,7 @@ class Render:
         The capabilities are specified as keyword options with boolean values.
         The available option names are given by the values of SHADER_LIGHTING,
         SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
-        SHADER_SHADOWS, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
+        SHADER_SHADOWS, SHADER_MULTISHADOW, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
         SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS
         '''
         capabilities = self.default_capabilities.copy()
@@ -119,10 +122,17 @@ class Render:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
         if self.SHADER_TEXTURE_3D_AMBIENT in c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
-        if self.SHADER_SHADOWS in c:
+        if self.SHADER_MULTISHADOW in c:
             GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
-            if not self.shadow_transform is None:
-                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self.shadow_transform)
+            if not self._shadow_transforms is None:
+                m = self._shadow_transforms
+                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"), len(m), False, m)
+                GL.glUniform1i(shader.uniform_id("shadow_count"), len(m))
+                GL.glUniform1f(shader.uniform_id("shadow_depth"), self._shadow_depth)
+        elif self.SHADER_SHADOWS in c:
+            GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
+            if not self._shadow_transform is None:
+                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self._shadow_transform)
         if self.SHADER_RADIAL_WARP in c:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS in c:
@@ -291,11 +301,21 @@ class Render:
         m = tf.opengl_matrix()
         GL.glUniformMatrix4fv(p.uniform_id("ambient_tex3d_transform"), 1, False, m)
 
-    def set_shadow_transform(self, tf):
+    def set_shadow_transforms(self, stf, ctf, shadow_depth):
         # Transform from camera coordinates to shadow map texture coordinates.
-        self.shadow_transform = m = tf.opengl_matrix()
+        if len(stf) == 1:
+            tf = stf[0]*ctf
+            self._shadow_transform = m = tf.opengl_matrix()
+        else:
+            from numpy import array, float32
+            self._shadow_transforms = m = array([(tf*ctf).opengl_matrix() for tf in stf], float32)
+        self._shadow_depth = shadow_depth
         p = self.current_shader_program
-        if self.SHADER_SHADOWS in p.capabilities:
+        if self.SHADER_MULTISHADOW in p.capabilities:
+            GL.glUniformMatrix4fv(p.uniform_id("shadow_transforms"), len(m), False, m)
+            GL.glUniform1i(p.uniform_id("shadow_count"), len(m))
+            GL.glUniform1f(p.uniform_id("shadow_depth"), self._shadow_depth)
+        elif self.SHADER_SHADOWS in p.capabilities:
             GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, m)
 
     def opengl_version(self):
@@ -417,7 +437,7 @@ class Render:
         GL.glDrawBuffer(b)
         GL.glReadBuffer(b)
 
-    def start_rendering_shadowmap(self, center, radius, light_direction, size = 1024):
+    def start_rendering_shadowmap(self, center, radius, size = 1024):
 
         # Set projection matrix to be orthographic and span all models.
         from ..geometry.place import scale, translation
@@ -460,6 +480,14 @@ class Render:
         ntf = translation((0.5,0.5,0.5-depth_bias))*scale(0.5)
         stf = ntf * pm * lvinv                       # Scene to shadowmap coordinates
 
+        fb = self.current_framebuffer()
+        w,h = fb.width, fb.height
+        if self.current_viewport != (0,0,w,h):
+            # Using a subregion of shadow map to handle multiple shadows in one texture.
+            # Map scene coordinates to subtexture.
+            x,y,vw,vh = self.current_viewport
+            stf = translation((x/w,y/w,0))*scale((vw/w, vh/h, 1))*stf
+
         return lvinv, stf
 
     def finish_rendering_shadowmap(self):
@@ -484,6 +512,7 @@ class Render:
                                         self.SHADER_TEXTURE_2D:False,
                                         self.SHADER_TEXTURE_3D_AMBIENT:False,
                                         self.SHADER_SHADOWS:False,
+                                        self.SHADER_MULTISHADOW:False,
                                         })
         self.set_depth_range(0,0.99999)      # Depth test GL_LEQUAL results in z-fighting
         self.copy_from_framebuffer(fb, color = False)      # Copy depth to outline framebuffer

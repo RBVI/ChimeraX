@@ -49,8 +49,7 @@ def lighting(session, direction = None, color = None, specularColor = None, expo
             size = int_arg(qualityOfShadows, session)
         v.shadowMapSize = size
     if not multiShadow is None:
-        v.multishadow = multiShadow
-        v.shadows = (multiShadow > 0)
+        v.set_multishadow(multiShadow)
 
     v.update_lighting = True
     v.redraw_needed = True
