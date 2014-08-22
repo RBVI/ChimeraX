@@ -72,8 +72,8 @@ class Scenes:
     def show_thumbnails(self, toggle = False):
         st = self.scene_thumbs
         if st is None:
-            from .ui import scenegui
-            self.scene_thumbs = st = scenegui.Scene_Thumbnails(self.session)
+            from . import ui
+            self.scene_thumbs = st = ui.Scene_Thumbnails(self.session)
         if toggle and st.shown():
             st.hide()
         else:

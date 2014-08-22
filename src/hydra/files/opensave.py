@@ -157,8 +157,8 @@ def save_session(session):
     get the save path.
     '''
     if session.last_session_path is None:
-        from ..ui import filedialog
-        filedialog.save_session_dialog(session)
+        from .. import ui
+        ui.save_session_dialog(session)
     else:
         from . import session_file
         session_file.save_session(session.last_session_path, session)
@@ -180,8 +180,8 @@ def save_image(path, session, width = None, height = None, format = None, supers
     '''
     view = session.view
     if path is None:
-        from ..ui.filedialog import image_save_dialog
-        path = image_save_dialog(session)
+        from .. import ui
+        path = ui.image_save_dialog(session)
 
     import os.path
     path = os.path.expanduser(path)         # Tilde expansion

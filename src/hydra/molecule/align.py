@@ -41,8 +41,8 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, sequence = No
         patoms, pref_atoms = paired_atoms(atoms, ref_atoms)
         da, dra = atoms.count() - patoms.count(), ref_atoms.count() - pref_atoms.count()
         if da > 0 or dra > 0:
-            from ..ui.gui import log_message
-            log_message('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
+            from .. import ui
+            ui.show_info('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
     elif not sequence is None:
         patoms, pref_atoms = sequence_pairing(atoms, ref_atoms, sequence)
     else:
@@ -235,8 +235,8 @@ def write_matrix(tf, atoms, ref_atoms):
     mp = m.position
     mtf = mp.inverse() * tf * mp
     msg = ('Alignment matrix in molecule %s coordinates\n%s' % (m.name, mtf.description()))
-    from ..ui.gui import log_message
-    log_message(msg)
+    from .. import ui
+    ui.show_info(msg)
 
 def move_atoms(atoms, ref_atoms, tf, move):
 

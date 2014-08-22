@@ -44,8 +44,8 @@ def register_commands(commands):
     add('lighting', lightcmd.lighting_command)
     from . import materialcmd
     add('material', materialcmd.material_command)
-    from ..ui import gui
-    add('windowsize', gui.window_size_command)
+    from .. import ui
+    add('windowsize', ui.window_size_command)
     from ..molecule import blastpdb
     add('blast', blastpdb.blast_command)
     from ..molecule import ambient

@@ -41,14 +41,13 @@ def standard_shortcuts(session):
 
     sep = True  # Add menu separator after entry.
     from ..files import opensave
-    from ..ui import filedialog
-    from ..ui.modelpanel import show_model_panel
+    from .. import ui
     shortcuts = [
         # Sessions
-        ('op', filedialog.show_open_file_dialog, 'Open file', ocat, sesarg, fmenu),
+        ('op', ui.show_open_file_dialog, 'Open file', ocat, sesarg, fmenu),
         ('rf', show_file_history, 'Show recent files', ocat, sesarg, fmenu),
         ('Sv', opensave.save_session, 'Save session', ocat, sesarg, fmenu),
-        ('sv', filedialog.save_session_dialog, 'Save session as...', ocat, sesarg, fmenu),
+        ('sv', ui.save_session_dialog, 'Save session as...', ocat, sesarg, fmenu),
         ('si', lambda s: opensave.save_image(None,s), 'Save image', ocat, sesarg, fmenu),
         ('Ca', close_all_models, 'Close all models', ocat, sesarg, fmenu),
         ('Qt', quit, 'Quit', ocat, sesarg, fmenu),
@@ -131,7 +130,7 @@ def standard_shortcuts(session):
         ('t0', show_surface_opaque, 'Make surface opaque', surfcat, sesarg, sfmenu),
 
         # Pane
-        ('mp', show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
+        ('mp', ui.show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
         ('lg', show_log, 'Show command log', gcat, sesarg, pmenu),
         ('gr', show_graphics_window, 'Show graphics window', gcat, sesarg, pmenu),
         ('sc', show_scenes, 'Show scene thumbnails', gcat, sesarg, pmenu),
