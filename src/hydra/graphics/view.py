@@ -20,7 +20,6 @@ class View:
         self._shadows = False
         self.shadowMapSize = 2048
         self.multishadow = 0                    # Number of shadows
-        self.multishadow_framebuffer = None
         self._multishadow_directions = None
         self._multishadow_transforms = []
         self._multishadow_depth = None
