@@ -252,60 +252,6 @@ class View:
         '''Add a callback that was added with add_rendered_frame_callback().'''
         self.rendered_callbacks.remove(cb)
 
-    def draw_scene(self, camera = None, models = None):
-
-        if self.multishadow == 0 or True:
-            self.draw_scene2(camera, models)
-            return
-
-        # Render single shadow images off-screen then average them.
-        r = self.render
-        w, h = r.render_size()
-        fb = self.multishadow_framebuffer
-        if fb is None or w != fb.width or h != fb.height:
-            from .. import graphics
-            t = graphics.Texture()
-            t.initialize_rgba((w,h))
-            fb = graphics.Framebuffer(w,h, color_texture = t)
-            if not fb.valid():
-                raise SystemError('draw_scene_ambient() window size exceeds framebuffer limits')
-            self.multishadow_framebuffer = fb
-            from . import drawing
-            self.multishadow_drawing = vd = drawing.texture_drawing(fb.color_texture)
-            vd.opaque_texture = True
-
-        r.draw_background()
-        r.push_framebuffer(fb)
-
-        # Set diffuse only lighting with no fill light (for black shadows).
-        l = r.lighting
-        l.fill_light_color = (0,0,0)
-        l.ambient_light_color = (0,0,0)
-        m = r.material
-        m.specular_reflectivity = 0
-        m.diffuse_reflectivity = 1
-
-        directions = self.multishadow_directions()
-        n = len(directions)
-
-        c = camera if camera else self.camera
-        from . import drawing
-        vd = self.multishadow_drawing
-        for dn,d in enumerate(directions):
-            l.key_light_direction = d
-            if r.current_shader_program:
-                r.set_shader_lighting_parameters()
-            self.draw_scene2(c, models)
-            if dn >= 0:
-                r.pop_framebuffer()
-                r.blend_add(4/n)
-#                drawing.draw_texture(fb.color_texture, r)
-                drawing.draw_overlays([vd], r)
-                r.enable_blending(False)
-                r.push_framebuffer(fb)
-
-        r.pop_framebuffer()
-
     def multishadow_directions(self):
 
         directions = self._multishadow_directions
@@ -322,7 +268,7 @@ class View:
             self._multishadow_directions = directions
         return directions
 
-    def draw_scene2(self, camera = None, models = None):
+    def draw_scene(self, camera = None, models = None):
 
         if camera is None:
             camera = self.camera
