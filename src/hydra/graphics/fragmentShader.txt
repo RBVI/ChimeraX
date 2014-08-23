@@ -76,7 +76,7 @@ uniform sampler2DShadow shadow_map;
 #endif
 
 #ifdef USE_MULTISHADOW
-uniform sampler2DShadow shadow_map;
+uniform sampler2DShadow multishadow_map;
 uniform mat4 shadow_transforms[42];
 uniform	int shadow_count;
 uniform float shadow_depth;
@@ -129,23 +129,6 @@ void main (void)
   float shadow = 1;
 #endif
 
-#ifdef USE_MULTISHADOW
-
-  shadow = 0;
-  for (int i = 0 ; i < shadow_count ; ++i)
-    {
-      mat4 stf = shadow_transforms[i];
-      vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
-      vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
-      float diffuse = max(-dot(N1,light_direction),0.0);
-      shadow += diffuse * texture(shadow_map, shadow_tex_coord);
-    }
-    //  shadow /= 0.5*shadow_count;
-  shadow /= 0.25*shadow_count;
-  vec3 Ifrag = fcolor.rgb * shadow;
-
-#else
-
   // diffuse color, radiated equally in all directions,
   //   strength based on incoming light direction and surface normal.
   vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * max(-dot(N1,key_light_direction),0.0) * shadow
@@ -155,13 +138,29 @@ void main (void)
   vec3 R = normalize(reflect(key_light_direction,N1)); 
   vec3 Ispec = key_light_specular_color * pow(max(-dot(R,v1),0.0), key_light_specular_exponent) * shadow;
 
+#ifdef USE_MULTISHADOW
+
+  float mshadow = 0;
+  for (int i = 0 ; i < shadow_count ; ++i)
+    {
+      mat4 stf = shadow_transforms[i];
+      vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+      vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+      float diffuse = max(-dot(N1,light_direction),0.0);
+      mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
+    }
+  mshadow /= 0.25*shadow_count;
+  vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
+
+#else
+
   // ambient color, uniform intensity light from all surfaces.
   vec3 Iamb = fcolor.rgb * ambient_color;
 
+#endif
+
   // total color
   vec3 Ifrag = Iamb + Idiff + Ispec;
-
-#endif
 
 
 #ifdef USE_DEPTH_CUE

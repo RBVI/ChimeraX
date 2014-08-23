@@ -36,7 +36,6 @@ class Render:
         self.framebuffer_stack = [default_framebuffer()]
         self.mask_framebuffer = None
         self.outline_framebuffer = None
-        self.shadow_map_framebuffer = None
         self._silhouette_framebuffer = None
 
         # Texture warp parameters
@@ -47,10 +46,14 @@ class Render:
         # 3D ambient texture transform from model coordinates to texture coordinates.
         self.ambient_texture_transform = None
 
-        # Maps camera coordinates to shadow map texture coordinates.
-        self._shadow_transform = None
-        self._shadow_transforms = None
-        self._shadow_depth = None       # near to far clip depth for shadow map.
+        # Shadows
+        self.shadow_map_framebuffer = None
+        self.shadow_texture_unit = 1
+        self._shadow_transform = None	     # Maps camera coordinates to shadow map texture coordinates.
+        self.multishadow_map_framebuffer = None
+        self.multishadow_texture_unit = 2
+        self._multishadow_transforms = None
+        self._multishadow_depth = None       # near to far clip depth for shadow map.
 
         self.single_color = (1,1,1,1)
 
@@ -123,13 +126,13 @@ class Render:
         if self.SHADER_TEXTURE_3D_AMBIENT in c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
         if self.SHADER_MULTISHADOW in c:
-            GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
-            if not self._shadow_transforms is None:
-                m = self._shadow_transforms
+            GL.glUniform1i(shader.uniform_id("multishadow_map"), self.multishadow_texture_unit)
+            if not self._multishadow_transforms is None:
+                m = self._multishadow_transforms
                 GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"), len(m), False, m)
                 GL.glUniform1i(shader.uniform_id("shadow_count"), len(m))
-                GL.glUniform1f(shader.uniform_id("shadow_depth"), self._shadow_depth)
-        elif self.SHADER_SHADOWS in c:
+                GL.glUniform1f(shader.uniform_id("shadow_depth"), self._multishadow_depth)
+        if self.SHADER_SHADOWS in c:
             GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
             if not self._shadow_transform is None:
                 GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self._shadow_transform)
@@ -137,8 +140,6 @@ class Render:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS in c:
             self.set_single_color()
-
-    shadow_texture_unit = 1
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -301,22 +302,23 @@ class Render:
         m = tf.opengl_matrix()
         GL.glUniformMatrix4fv(p.uniform_id("ambient_tex3d_transform"), 1, False, m)
 
-    def set_shadow_transforms(self, stf, ctf, shadow_depth):
+    def set_shadow_transform(self, stf):
         # Transform from camera coordinates to shadow map texture coordinates.
-        if len(stf) == 1:
-            tf = stf[0]*ctf
-            self._shadow_transform = m = tf.opengl_matrix()
-        else:
-            from numpy import array, float32
-            self._shadow_transforms = m = array([(tf*ctf).opengl_matrix() for tf in stf], float32)
-        self._shadow_depth = shadow_depth
+        self._shadow_transform = m = stf.opengl_matrix()
+        p = self.current_shader_program
+        if self.SHADER_SHADOWS in p.capabilities:
+            GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, m)
+
+    def set_multishadow_transforms(self, stf, ctf, shadow_depth):
+        # Transform from camera coordinates to shadow map texture coordinates.
+        from numpy import array, float32
+        self._multishadow_transforms = m = array([(tf*ctf).opengl_matrix() for tf in stf], float32)
+        self._multishadow_depth = msd = shadow_depth
         p = self.current_shader_program
         if self.SHADER_MULTISHADOW in p.capabilities:
             GL.glUniformMatrix4fv(p.uniform_id("shadow_transforms"), len(m), False, m)
             GL.glUniform1i(p.uniform_id("shadow_count"), len(m))
-            GL.glUniform1f(p.uniform_id("shadow_depth"), self._shadow_depth)
-        elif self.SHADER_SHADOWS in p.capabilities:
-            GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, m)
+            GL.glUniform1f(p.uniform_id("shadow_depth"), msd)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -439,13 +441,24 @@ class Render:
 
     def start_rendering_shadowmap(self, center, radius, size = 1024):
 
+        fb = self.shadowmap_start(self.shadow_map_framebuffer, self.shadow_texture_unit, center, radius, size)
+        self.shadow_map_framebuffer = fb
+
+    def start_rendering_multishadowmap(self, center, radius, size = 1024):
+
+        fb = self.shadowmap_start(self.multishadow_map_framebuffer, self.multishadow_texture_unit,
+                                  center, radius, size)
+        self.multishadow_map_framebuffer = fb
+
+    def shadowmap_start(self, framebuffer, texture_unit, center, radius, size):
+
         # Set projection matrix to be orthographic and span all models.
         from ..geometry.place import scale, translation
         pm = scale((1/radius,1/radius,-1/radius))*translation((0,0,radius)) # orthographic projection along z
         self.set_projection_matrix(pm.opengl_matrix())
 
         # Make a framebuffer for depth texture rendering
-        fb = self.shadow_map_framebuffer
+        fb = framebuffer
         if fb is None or fb.width != size:
             if fb:
                 fb.delete()
@@ -454,16 +467,26 @@ class Render:
             fb = Framebuffer(depth_texture = dt)
             if not fb.valid():
                 return           # Requested size exceeds framebuffer limits
-            self.shadow_map_framebuffer = fb
 
         # Make sure depth texture is not bound from previous drawing so that it is not
         # used for rendering shadows while the depth texture is being written.
         # TODO: The depth rendering should not render colors or shadows.
         dt = fb.depth_texture
-        dt.unbind_texture(self.shadow_texture_unit)
+        dt.unbind_texture(texture_unit)
 
         # Draw the models recording depth in light direction, i.e. calculate the shadow map.
         self.push_framebuffer(fb)
+
+        return fb
+
+    def finish_rendering_shadowmap(self):
+
+        fb = self.pop_framebuffer()
+        return fb.depth_texture
+
+    def finish_rendering_multishadowmap(self):
+
+        return self.finish_rendering_shadowmap()
 
     def shadow_transforms(self, light_direction, center, radius, depth_bias = 0.005):
 
@@ -489,15 +512,6 @@ class Render:
             stf = translation((x/w,y/w,0))*scale((vw/w, vh/h, 1))*stf
 
         return lvinv, stf
-
-    def finish_rendering_shadowmap(self):
-
-        self.pop_framebuffer()
-
-        # Bind the depth texture for computing shadows.
-        # TODO: Use different texture unit to avoid conflict with texture coloring.
-        fb = self.shadow_map_framebuffer
-        return fb.depth_texture
 
     def start_rendering_outline(self):
 
