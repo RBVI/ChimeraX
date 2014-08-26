@@ -17,7 +17,7 @@ def choose_window_toolkit():
     if argv and argv[-1] == 'wx':
         from .. import wx_ui as api
     else:
-        from . import public_ui as api
+        from . import qt as api
     g = globals()
     for name in dir(api):
         if not name.startswith('_'):

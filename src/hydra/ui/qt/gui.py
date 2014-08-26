@@ -113,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
 #        self.menuBar = mb = QtWidgets.QMenuBar()
         mb = self.menuBar()
 
-        from ..commands.shortcuts import standard_shortcuts
+        from ...commands.shortcuts import standard_shortcuts
         scuts = standard_shortcuts(self.session)[0]
         mnames = []
         for sc in scuts:
@@ -321,8 +321,8 @@ class Command_Line(QtWidgets.QLineEdit):
         event.accept()
 
 def icon(filename):
-    from os.path import dirname, join
-    dir = dirname(__file__)
+    from os.path import dirname, join, split
+    dir = split(dirname(__file__))[0]
     path = join(dir, 'icons', filename)
     i = QtGui.QIcon(path)
     return i
@@ -349,7 +349,7 @@ class Hydra_App(QtWidgets.QApplication):
     def event(self, e):
         if e.type() == QtCore.QEvent.FileOpen:
             path = e.file()
-            from ..files.opensave import open_files
+            from ...files.opensave import open_files
             open_files([path], self.session)
             self.session.main_window.show_graphics()
             return True
@@ -444,7 +444,7 @@ class Log:
 
 def window_size_command(cmdname, args, session):
 
-    from ..commands.parse import int_arg, parse_arguments
+    from ...commands.parse import int_arg, parse_arguments
     req_args = ()
     opt_args = ((('width', int_arg),
                  ('height', int_arg),))

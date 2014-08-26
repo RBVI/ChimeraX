@@ -7,6 +7,9 @@ SUBDIRS = qt
 
 PYSRCS = __init__.py
 
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
+
 ICONS = icons
 
 all: $(PYOBJS)
