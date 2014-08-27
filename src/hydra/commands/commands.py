@@ -207,9 +207,7 @@ class Command_History:
             self.session.commands.run_command(cmd)
 
     def show_command(self, cmd):
-        cline = self.session.main_window.command_line
-        cline.clear()
-        cline.insert(cmd)
+        self.session.main_window.set_command_line_text(cmd)
 
     def show_previous_command(self, step = -1):
         cl = self.command_list()
