@@ -43,7 +43,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ct.clicked.connect(lambda e: self.show_graphics())
 
         e.setReadOnly(True)
-        e.anchorClicked.connect(self.anchor_callback)          # Handle clicks on anchors
+        e.anchorClicked.connect(self._anchor_callback)          # Handle clicks on anchors
         self.anchor_cb = None
         self.back_action = ba = QtWidgets.QAction(icon('back.png'), 'Go back in web browser', self)
         ba.triggered.connect(e.backward)
@@ -60,11 +60,11 @@ class MainWindow(QtWidgets.QMainWindow):
         st.setCurrentWidget(g.widget)
         self.setCentralWidget(st)
 
-        self.create_menus()
-        self.create_toolbar()
+        self._create_menus()
+        self._create_toolbar()
 
         self.shortcuts_enabled = False
-        self.command_line = cl = self.create_command_line()
+        self.command_line = cl = self._create_command_line()
         g.widget.setFocusProxy(cl)
 
         # Work around bug where initial window size limited to 2/3 of screen width and height
@@ -72,12 +72,99 @@ class MainWindow(QtWidgets.QMainWindow):
 #        lo = self.layout()
 #        lo.setSizeConstraint(lo.SetFixedSize)
 
+    # QMainWindow virtual function called when user resizes window.
     def resizeEvent(self, e):
         s = e.size()
         ct = self.close_text
         ct.move(s.width()-ct.width()-5,5)
 
-    def create_command_line(self):
+    # Virtual QMainWindow method used to receive key stroke events.
+    def keyPressEvent(self, event):
+
+        k = event.key()
+        if k == Qt.Key_Escape:
+            self.enable_shortcuts(not self.shortcuts_enabled)
+            return
+
+        if self.shortcuts_enabled and (k == Qt.Key_Return or k == Qt.Key_Enter):
+            self.enable_shortcuts(False)
+            return
+
+        self.command_line.event(event)
+
+    def show_command_line(self, show):
+        f = self.command_line_frame
+        if show:
+            f.show()
+        else:
+            f.hide()
+
+    def enable_shortcuts(self, enable):
+        '''Interpret key strokes as shortcuts.  The command-line changes color to light green when in shortcut mode.'''
+        color = 'rgb(230,255,230)' if enable else 'white'
+        cl = self.command_line
+        cl.setStyleSheet('QLineEdit {background: %s;}' % color)
+        self.shortcuts_enabled = enable
+        cl.setText('')
+
+    def showing_graphics(self):
+        return self.stack.currentWidget() == self.view.widget
+    def show_graphics(self):
+        self.stack.setCurrentWidget(self.view.widget)
+        self.show_back_forward_buttons(False)
+
+    def showing_text(self):
+        return self.stack.currentWidget() == self.text
+    def show_text(self, text = None, url = None, html = False, id = None, anchor_callback = None,
+                  open_links = False, scroll_to_end = False):
+        '''Show specified HTML in the main panel of the main window.  This html panel covers the graphics.'''
+        t = self.text
+        if not text is None:
+            if html:
+                t.setHtml(text)
+            else:
+                t.setPlainText(text)
+        elif not url is None:
+            t.setSource(QtCore.QUrl(url))
+
+        self.text_id = id
+        self.stack.setCurrentWidget(t)
+        self.anchor_cb = anchor_callback
+        t.setOpenLinks(open_links)
+        self.show_back_forward_buttons(open_links)
+        if scroll_to_end:
+            sb = t.verticalScrollBar()
+            sb.setValue(sb.maximum())
+    def show_back_forward_buttons(self, show):
+        '''Display toolbar arrow buttons for going back or forward when users follows links in html panel.'''
+        tb = self.toolbar
+        if show:
+            tb.insertAction(self.left_toolbar_action, self.back_action)
+            tb.insertAction(self.left_toolbar_action, self.forward_action)
+        else:
+            tb.removeAction(self.back_action)
+            tb.removeAction(self.forward_action)
+
+    def show_status(self, msg, append = False):
+        '''Write a message on the status line.'''
+        sb = self.statusBar()
+        if append:
+            msg = str(sb.currentMessage()) + msg
+        sb.showMessage(sb.tr(msg))
+#        sb.repaint()        # Does not draw.  Redraw in case long wait before return to event loop
+
+        # Repaint status line by entering event loop
+        from time import time
+        t = time()
+        if t > self.last_status_update + self.status_update_interval:
+            self.last_status_update = t
+            self.view.block_redraw()        # Avoid graphics redraw
+            try:
+                self.app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+            finally:
+                self.view.unblock_redraw()
+
+    def _create_command_line(self):
 
         d = QtWidgets.QDockWidget('Command line', self)
         self.command_line_frame = w = QtWidgets.QWidget(d)
@@ -93,22 +180,11 @@ class MainWindow(QtWidgets.QMainWindow):
         d.setTitleBarWidget(QtWidgets.QWidget(d))   # No title bar
         d.setFeatures(d.NoDockWidgetFeatures)   # No close button
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, d)
-        cline.returnPressed.connect(self.command_entered)
-        cline.textEdited.connect(self.command_text_changed)
+        cline.returnPressed.connect(self._command_entered)
+        cline.textEdited.connect(self._command_text_changed)
         return cline
 
-    def show_command_line(self, show):
-        f = self.command_line_frame
-        if show:
-            f.show()
-        else:
-            f.hide()
-
-    def focus_on_command_line(self):
-        cline = self.command_line
-        cline.setFocus(QtCore.Qt.OtherFocusReason)
-
-    def create_menus(self):
+    def _create_menus(self):
 
 #        self.menuBar = mb = QtWidgets.QMenuBar()
         mb = self.menuBar()
@@ -136,7 +212,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 #            a.setCheckable(True)
         
-    def create_toolbar(self):
+    def _create_toolbar(self):
 
 # TODO: tooltips take too long to show and don't hide when mouse moves off button on Mac.
 #   Tests show toolbar no longer gets mouse move events once tool tip is shown. QTBUG-26669
@@ -148,42 +224,42 @@ class MainWindow(QtWidgets.QMainWindow):
 
         modes = QtWidgets.QActionGroup(toolbar)
         modes.setExclusive(True)
-        a = self.add_shortcut_icon('move.png', 'Movement mouse mode', 'mv')
+        a = self._add_shortcut_icon('move.png', 'Movement mouse mode', 'mv')
         a.setCheckable(True)
         a.setChecked(True)
         modes.addAction(a)
         self.left_toolbar_action = a
-        a = self.add_shortcut_icon('move_h2o.png', 'Move selected mouse mode', 'mo')
+        a = self._add_shortcut_icon('move_h2o.png', 'Move selected mouse mode', 'mo')
         a.setCheckable(True)
         modes.addAction(a)
-        a = self.add_shortcut_icon('contour.png', 'Adjust contour level mouse mode', 'ct')
+        a = self._add_shortcut_icon('contour.png', 'Adjust contour level mouse mode', 'ct')
         a.setCheckable(True)
         modes.addAction(a)
-        a = self.add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'Mp')
+        a = self._add_shortcut_icon('cubearrow.png', 'Resize map mouse mode', 'Mp')
         a.setCheckable(True)
         modes.addAction(a)
-        a = self.add_shortcut_icon('vseries.png', 'Volume series mouse mode', 'vs')
+        a = self._add_shortcut_icon('vseries.png', 'Volume series mouse mode', 'vs')
         a.setCheckable(True)
         modes.addAction(a)
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
-        self.add_shortcut_icon('cube-outline.png', 'Show map outline box', 'ob')
-        self.add_shortcut_icon('icecube.png', 'Make map transparent', 'tt')
+        self._add_shortcut_icon('rabbithat.png', 'Show/hide models', 'mp')
+        self._add_shortcut_icon('cube-outline.png', 'Show map outline box', 'ob')
+        self._add_shortcut_icon('icecube.png', 'Make map transparent', 'tt')
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('graphics.png', 'Show graphics window', 'gr')
-        self.add_shortcut_icon('scenes.png', 'Show scenes', 'sc')
-        self.add_shortcut_icon('log.png', 'Show command log', 'lg')
-        self.add_shortcut_icon('commands.png', 'Show command history', 'ch')
-        self.add_shortcut_icon('shortcut.png', 'List keyboard shortcuts', 'ks')
-        self.add_shortcut_icon('book.png', 'Show manual', 'mn')
+        self._add_shortcut_icon('graphics.png', 'Show graphics window', 'gr')
+        self._add_shortcut_icon('scenes.png', 'Show scenes', 'sc')
+        self._add_shortcut_icon('log.png', 'Show command log', 'lg')
+        self._add_shortcut_icon('commands.png', 'Show command history', 'ch')
+        self._add_shortcut_icon('shortcut.png', 'List keyboard shortcuts', 'ks')
+        self._add_shortcut_icon('book.png', 'Show manual', 'mn')
         toolbar.addSeparator()
 
-        self.add_shortcut_icon('grid.png', 'Show recent files', 'rf')
-        self.add_shortcut_icon('savesession.png', 'Save session', 'sv')
+        self._add_shortcut_icon('grid.png', 'Show recent files', 'rf')
+        self._add_shortcut_icon('savesession.png', 'Save session', 'sv')
 
-    def add_shortcut_icon(self, icon_file, descrip, shortcut):
+    def _add_shortcut_icon(self, icon_file, descrip, shortcut):
 
         a = QtWidgets.QAction(icon(icon_file), descrip + ' (%s)' % shortcut, self)
         ks = self.session.keyboard_shortcuts
@@ -191,95 +267,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar.addAction(a)
         return a
 
-    def enable_shortcuts(self, enable):
-        color = 'rgb(230,255,230)' if enable else 'white'
-        cl = self.command_line
-        cl.setStyleSheet('QLineEdit {background: %s;}' % color)
-        self.shortcuts_enabled = enable
-        cl.setText('')
-
-    def keyPressEvent(self, event):
-
-        k = event.key()
-        if k == Qt.Key_Escape:
-            self.enable_shortcuts(not self.shortcuts_enabled)
-            return
-
-        if self.shortcuts_enabled and (k == Qt.Key_Return or k == Qt.Key_Enter):
-            self.enable_shortcuts(False)
-            return
-
-        self.command_line.event(event)
-
-    def command_text_changed(self, text):
+    def _command_text_changed(self, text):
 
         if self.shortcuts_enabled:
             ks = self.session.keyboard_shortcuts
             if ks.try_shortcut(text):
                 self.command_line.setText('')
 
-    def command_entered(self):
+    def _command_entered(self):
         cline = self.command_line
         text = cline.text()
         cline.selectAll()
         self.session.commands.run_command(text)
 
-    def showing_text(self):
-        return self.stack.currentWidget() == self.text
-    def show_text(self, text = None, url = None, html = False, id = None, anchor_callback = None,
-                  open_links = False, scroll_to_end = False):
-        t = self.text
-        if not text is None:
-            if html:
-                t.setHtml(text)
-            else:
-                t.setPlainText(text)
-        elif not url is None:
-            t.setSource(QtCore.QUrl(url))
-
-        self.text_id = id
-        self.stack.setCurrentWidget(t)
-        self.anchor_cb = anchor_callback
-        t.setOpenLinks(open_links)
-        self.show_back_forward_buttons(open_links)
-        if scroll_to_end:
-            sb = t.verticalScrollBar()
-            sb.setValue(sb.maximum())
-
-    def anchor_callback(self, url):
+    def _anchor_callback(self, url):
         if self.anchor_cb:
             self.anchor_cb(url)
-    def show_back_forward_buttons(self, show):
-        tb = self.toolbar
-        if show:
-            tb.insertAction(self.left_toolbar_action, self.back_action)
-            tb.insertAction(self.left_toolbar_action, self.forward_action)
-        else:
-            tb.removeAction(self.back_action)
-            tb.removeAction(self.forward_action)
-    def showing_graphics(self):
-        return self.stack.currentWidget() == self.view.widget
-    def show_graphics(self):
-        self.stack.setCurrentWidget(self.view.widget)
-        self.show_back_forward_buttons(False)
-
-    def show_status(self, msg, append = False):
-        sb = self.statusBar()
-        if append:
-            msg = str(sb.currentMessage()) + msg
-        sb.showMessage(sb.tr(msg))
-#        sb.repaint()        # Does not draw.  Redraw in case long wait before return to event loop
-
-        # Repaint status line by entering event loop
-        from time import time
-        t = time()
-        if t > self.last_status_update + self.status_update_interval:
-            self.last_status_update = t
-            self.view.block_redraw()        # Avoid graphics redraw
-            try:
-                self.app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
-            finally:
-                self.view.unblock_redraw()
 
 class Command_Line(QtWidgets.QLineEdit):
 
@@ -346,6 +349,8 @@ class Hydra_App(QtWidgets.QApplication):
         set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
         self.main_window = MainWindow(self, session)
 
+    # This is a virtual method of QApplication being used here to detect file open
+    # requests such as dragging a file onto the application window.
     def event(self, e):
         if e.type() == QtCore.QEvent.FileOpen:
             path = e.file()
