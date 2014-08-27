@@ -59,7 +59,7 @@ class Main_Window(QtWidgets.QMainWindow):
                 else:
                     QtWidgets.QTextBrowser.keyPressEvent(self, event)
 
-        self.text = e = TextArea(st)
+        self._text = e = TextArea(st)
 
         # Create close button for text widget.
         self._close_text = ct = QtWidgets.QPushButton('X', e)
@@ -146,11 +146,11 @@ class Main_Window(QtWidgets.QMainWindow):
         self.show_back_forward_buttons(False)
 
     def showing_text(self):
-        return self._stack.currentWidget() == self.text
+        return self._stack.currentWidget() == self._text
     def show_text(self, text = None, url = None, html = False, id = None, anchor_callback = None,
                   open_links = False, scroll_to_end = False):
         '''Show specified HTML in the main panel of the main window.  This html panel covers the graphics.'''
-        t = self.text
+        t = self._text
         if not text is None:
             if html:
                 t.setHtml(text)
@@ -167,6 +167,10 @@ class Main_Window(QtWidgets.QMainWindow):
         if scroll_to_end:
             sb = t.verticalScrollBar()
             sb.setValue(sb.maximum())
+    def register_html_image_identifier(self, uri, qimage):
+        d = self._text.document()
+        from . import qt
+        qt.register_html_image_identifier(d, uri, qimage)
     def show_back_forward_buttons(self, show):
         '''Display toolbar arrow buttons for going back or forward when users follows links in html panel.'''
         tb = self.toolbar
@@ -413,11 +417,9 @@ class Log:
         v = mw.view
         s = self.thumbnail_size
         i = v.image(s,s)
-        d = mw.text.document()
         self._image_count += 1
         uri = "file://image%d" % (self._image_count,)
-        from . import qt
-        qt.register_html_image_identifier(d, uri, i)
+        mw.register_html_image_identifier(uri, i)
         htext = '<br><img src="%s"><br>\n' % (uri,)
         self._html_text += htext
 
