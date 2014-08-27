@@ -6,7 +6,7 @@ class MainWindow(QtWidgets.QMainWindow):
     and scrolled text log.
     '''
     def __init__(self, app, session, parent=None):
-        self.app = app
+        self._qapp = app        	# Needed for redrawing status line.
         self.session = session
 
         QtWidgets.QMainWindow.__init__(self, parent)
@@ -16,13 +16,13 @@ class MainWindow(QtWidgets.QMainWindow):
         sb = QtWidgets.QStatusBar(self)
         self.setStatusBar(sb)
         self.status_update_interval = 0.2       # seconds
-        self.last_status_update = 0
+        self._last_status_update = 0
 
         class GraphicsArea(QtWidgets.QStackedWidget):
             def sizeHint(self):
                 return QtCore.QSize(800,800)
 
-        self.stack = st = GraphicsArea(self)
+        self._stack = st = GraphicsArea(self)
         from .graphicswindow import Graphics_Window
         g = Graphics_Window(session, st)
         self.view = g   # View is a base class of Graphics_Window
@@ -38,17 +38,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.text = e = TextArea(st)
 
         # Create close button for text widget.
-        self.close_text = ct = QtWidgets.QPushButton('X', e)
+        self._close_text = ct = QtWidgets.QPushButton('X', e)
         ct.setStyleSheet("padding: 1px; min-width: 1em")
         ct.clicked.connect(lambda e: self.show_graphics())
 
         e.setReadOnly(True)
         e.anchorClicked.connect(self._anchor_callback)          # Handle clicks on anchors
-        self.anchor_cb = None
-        self.back_action = ba = QtWidgets.QAction(icon('back.png'), 'Go back in web browser', self)
+        self._anchor_cb = None
+        self._back_action = ba = QtWidgets.QAction(icon('back.png'), 'Go back in web browser', self)
         ba.triggered.connect(e.backward)
-        self.forward_action = fa = QtWidgets.QAction(icon('forward.png'), 'Go forward in web browser', self)
-        fa.triggered.connect(self.text.forward)
+        self._forward_action = fa = QtWidgets.QAction(icon('forward.png'), 'Go forward in web browser', self)
+        fa.triggered.connect(e.forward)
 
 #        e.setAlignment(QtCore.Qt.AlignHCenter)
         # Use black background for text
@@ -63,8 +63,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._create_menus()
         self._create_toolbar()
 
-        self.shortcuts_enabled = False
-        self.command_line = cl = self._create_command_line()
+        self._shortcuts_enabled = False
+        self._command_line = cl = self._create_command_line()
         g.widget.setFocusProxy(cl)
 
         # Work around bug where initial window size limited to 2/3 of screen width and height
@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # QMainWindow virtual function called when user resizes window.
     def resizeEvent(self, e):
         s = e.size()
-        ct = self.close_text
+        ct = self._close_text
         ct.move(s.width()-ct.width()-5,5)
 
     # Virtual QMainWindow method used to receive key stroke events.
@@ -83,38 +83,46 @@ class MainWindow(QtWidgets.QMainWindow):
 
         k = event.key()
         if k == Qt.Key_Escape:
-            self.enable_shortcuts(not self.shortcuts_enabled)
+            self.enable_shortcuts(not self._shortcuts_enabled)
             return
 
-        if self.shortcuts_enabled and (k == Qt.Key_Return or k == Qt.Key_Enter):
+        if self._shortcuts_enabled and (k == Qt.Key_Return or k == Qt.Key_Enter):
             self.enable_shortcuts(False)
             return
 
-        self.command_line.event(event)
+        self._command_line.event(event)
+
+    def graphics_size(self):
+        st = self._stack
+        return (st.width(), st.height())
 
     def show_command_line(self, show):
-        f = self.command_line_frame
+        f = self._command_line_frame
         if show:
             f.show()
         else:
             f.hide()
+    def set_command_line_text(self, cmd):
+        cline = self._command_line
+        cline.clear()
+        cline.insert(cmd)
 
     def enable_shortcuts(self, enable):
         '''Interpret key strokes as shortcuts.  The command-line changes color to light green when in shortcut mode.'''
         color = 'rgb(230,255,230)' if enable else 'white'
-        cl = self.command_line
+        cl = self._command_line
         cl.setStyleSheet('QLineEdit {background: %s;}' % color)
-        self.shortcuts_enabled = enable
+        self._shortcuts_enabled = enable
         cl.setText('')
 
     def showing_graphics(self):
-        return self.stack.currentWidget() == self.view.widget
+        return self._stack.currentWidget() == self.view.widget
     def show_graphics(self):
-        self.stack.setCurrentWidget(self.view.widget)
+        self._stack.setCurrentWidget(self.view.widget)
         self.show_back_forward_buttons(False)
 
     def showing_text(self):
-        return self.stack.currentWidget() == self.text
+        return self._stack.currentWidget() == self.text
     def show_text(self, text = None, url = None, html = False, id = None, anchor_callback = None,
                   open_links = False, scroll_to_end = False):
         '''Show specified HTML in the main panel of the main window.  This html panel covers the graphics.'''
@@ -128,8 +136,8 @@ class MainWindow(QtWidgets.QMainWindow):
             t.setSource(QtCore.QUrl(url))
 
         self.text_id = id
-        self.stack.setCurrentWidget(t)
-        self.anchor_cb = anchor_callback
+        self._stack.setCurrentWidget(t)
+        self._anchor_cb = anchor_callback
         t.setOpenLinks(open_links)
         self.show_back_forward_buttons(open_links)
         if scroll_to_end:
@@ -139,11 +147,11 @@ class MainWindow(QtWidgets.QMainWindow):
         '''Display toolbar arrow buttons for going back or forward when users follows links in html panel.'''
         tb = self.toolbar
         if show:
-            tb.insertAction(self.left_toolbar_action, self.back_action)
-            tb.insertAction(self.left_toolbar_action, self.forward_action)
+            tb.insertAction(self.left_toolbar_action, self._back_action)
+            tb.insertAction(self.left_toolbar_action, self._forward_action)
         else:
-            tb.removeAction(self.back_action)
-            tb.removeAction(self.forward_action)
+            tb.removeAction(self._back_action)
+            tb.removeAction(self._forward_action)
 
     def show_status(self, msg, append = False):
         '''Write a message on the status line.'''
@@ -156,18 +164,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # Repaint status line by entering event loop
         from time import time
         t = time()
-        if t > self.last_status_update + self.status_update_interval:
-            self.last_status_update = t
+        if t > self._last_status_update + self.status_update_interval:
+            self._last_status_update = t
             self.view.block_redraw()        # Avoid graphics redraw
             try:
-                self.app.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+                self._qapp.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
             finally:
                 self.view.unblock_redraw()
 
     def _create_command_line(self):
 
         d = QtWidgets.QDockWidget('Command line', self)
-        self.command_line_frame = w = QtWidgets.QWidget(d)
+        self._command_line_frame = w = QtWidgets.QWidget(d)
         hbox = QtWidgets.QHBoxLayout(w)
         hbox.setContentsMargins(0,0,0,0)
         t = QtWidgets.QLabel(' Command', w)
@@ -269,20 +277,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _command_text_changed(self, text):
 
-        if self.shortcuts_enabled:
+        if self._shortcuts_enabled:
             ks = self.session.keyboard_shortcuts
             if ks.try_shortcut(text):
-                self.command_line.setText('')
+                self._command_line.setText('')
 
     def _command_entered(self):
-        cline = self.command_line
+        cline = self._command_line
         text = cline.text()
         cline.selectAll()
         self.session.commands.run_command(text)
 
     def _anchor_callback(self, url):
-        if self.anchor_cb:
-            self.anchor_cb(url)
+        if self._anchor_cb:
+            self._anchor_cb(url)
 
 class Command_Line(QtWidgets.QLineEdit):
 
@@ -461,13 +469,13 @@ def window_size_command(cmdname, args, session):
 def set_window_size(session, width = None, height = None):
 
     mw = session.main_window
-    g = mw.stack
+    gw,gh = mw.graphics_size()
     if width is None and height is None:
         from . import show_status, show_info
-        msg = 'Graphics size %d, %d' % (g.width(), g.height())
+        msg = 'Graphics size %d, %d' % (gw, gh)
         show_status(msg)
         show_info(msg)
     else:
         # Have to resize main window.  Main window will not resize for central graphics window.
-        wpad, hpad = mw.width()-g.width(), mw.height()-g.height()
+        wpad, hpad = mw.width()-gw, mw.height()-gh
         mw.resize(width + wpad, height + hpad)
