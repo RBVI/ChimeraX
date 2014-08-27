@@ -415,9 +415,9 @@ class Log:
 
     def exceptions_to_log(self):
         import sys
-        sys.excepthook = self.log_exception
+        sys.excepthook = self._log_exception
 
-    def log_exception(self, type, value, traceback):
+    def _log_exception(self, type, value, traceback):
         from traceback import format_exception
         lines = format_exception(type, value, traceback)
         import cgi
@@ -429,9 +429,9 @@ class Log:
     def stdout_to_log(self):
         import sys
         sys.stdout_orig = sys.stdout
-        sys.stdout = self.output_stream()
+        sys.stdout = self._output_stream()
 
-    def output_stream(self):
+    def _output_stream(self):
         class Log_Output_Stream:
             def __init__(self, log):
                 self.log = log
