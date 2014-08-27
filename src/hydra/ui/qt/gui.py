@@ -473,7 +473,7 @@ def set_window_size(session, width = None, height = None):
     mw = session.main_window
     gw,gh = mw.graphics_size()
     if width is None and height is None:
-        from . import show_status, show_info
+        from .. import show_status, show_info
         msg = 'Graphics size %d, %d' % (gw, gh)
         show_status(msg)
         show_info(msg)
