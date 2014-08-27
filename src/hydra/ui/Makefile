@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/ui
 
-SUBDIRS = qt
+SUBDIRS = qt wx
 
 PYSRCS = __init__.py
 

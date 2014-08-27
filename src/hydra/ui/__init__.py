@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 def show_status(msg, append = False):
     print(msg)
 
@@ -15,7 +17,7 @@ def set_show_info(show_info_func):
 def choose_window_toolkit():
     from sys import argv
     if argv and argv[-1] == 'wx':
-        from .. import wx_ui as api
+        from . import wx as api
     else:
         from . import qt as api
     g = globals()

@@ -41,6 +41,8 @@ ifeq ($(OS),Darwin)
   HDF_VERSION = 5.8
   SIX_VERSION = 1.6.1
   SIX_EGG = six-$(SIX_VERSION)-py$(PYTHON_VERSION).egg
+  APPDIRS_VERSION = 1.4.0
+  APPDIRS_EGG = appdirs-$(APPDIRS_VERSION)-py$(PYTHON_VERSION).egg
 endif
 
 # All needed subdirectories must be set by now.
@@ -76,9 +78,9 @@ $(APP) update_prereqs:
 
 # Copy only the Python packages needed for distribution.
 	cd $(libdir)/python$(PYTHON_VERSION)/site-packages ; \
-	  $(RSYNC) $(DATEUTIL_EGG)/dateutil LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
+	  $(RSYNC) $(APPDIRS_EGG) $(DATEUTIL_EGG)/dateutil easy-install.pth LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
 	           $(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL PyQt5 sip.so $(SIX_EGG)/six.py \
-		   tables webcolors.py $(APP_PY_SITE)
+		   tables webcolors.py wx $(APP_PY_SITE)
 
 # Copy Qt frameworks into PyQt5 python module
 	-mkdir $(APP_PYQT)/frameworks

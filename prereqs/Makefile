@@ -46,7 +46,7 @@ else
 Mesa.install:
 endif
 
-SUBDIRS	+= cython docutils expat ffmpeg fonts \
+SUBDIRS	+= appdirs cython docutils expat ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow pycollada \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python python-dateutil PyQt qt \
@@ -103,6 +103,7 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+appdirs.install: Python.install
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
