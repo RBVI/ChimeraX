@@ -1,5 +1,29 @@
 from .qt import QtCore, QtGui, QtOpenGL, QtWidgets, Qt
 
+class Hydra_App(QtWidgets.QApplication):
+
+    def __init__(self, argv, session):
+        fix_qt_plugin_path()
+        QtWidgets.QApplication.__init__(self, argv)
+        self.session = session
+        from os.path import join
+        session.bin_dir = join(self.applicationDirPath(), '..', 'Resources', 'bin')
+        self.setWindowIcon(icon('reo.png'))
+        set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
+        self.main_window = Main_Window(self, session)
+
+    # This is a virtual method of QApplication being used here to detect file open
+    # requests such as dragging a file onto the application window.
+    def event(self, e):
+        if e.type() == QtCore.QEvent.FileOpen:
+            path = e.file()
+            from ...files.opensave import open_files
+            open_files([path], self.session)
+            self.session.main_window.show_graphics()
+            return True
+        else:
+            return QtWidgets.QApplication.event(self, e)
+
 class Main_Window(QtWidgets.QMainWindow):
     '''
     Main application window including graphics, toolbar, command line, status line,
@@ -345,30 +369,6 @@ def set_default_context(major_version, minor_version, profile):
 #    f.setStereo(True)
     QtOpenGL.QGLFormat.setDefaultFormat(f)
 
-class Hydra_App(QtWidgets.QApplication):
-
-    def __init__(self, argv, session):
-        fix_qt_plugin_path()
-        QtWidgets.QApplication.__init__(self, argv)
-        self.session = session
-        from os.path import join
-        session.bin_dir = join(self.applicationDirPath(), '..', 'Resources', 'bin')
-        self.setWindowIcon(icon('reo.png'))
-        set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
-        self.main_window = Main_Window(self, session)
-
-    # This is a virtual method of QApplication being used here to detect file open
-    # requests such as dragging a file onto the application window.
-    def event(self, e):
-        if e.type() == QtCore.QEvent.FileOpen:
-            path = e.file()
-            from ...files.opensave import open_files
-            open_files([path], self.session)
-            self.session.main_window.show_graphics()
-            return True
-        else:
-            return QtWidgets.QApplication.event(self, e)
-
 def fix_qt_plugin_path():
     # Remove plugin location set in QtCore library (qt_plugpath in binary) which points to build location
     # instead of install location.  Messes up application menu on Mac when run on build machine if build
@@ -386,18 +386,18 @@ class Log:
     Log window for command output.
     '''
     def __init__(self, main_window):
-        self.main_window = main_window
-        self.html_text = ''
+        self._main_window = main_window
+        self._html_text = ''
         self.thumbnail_size = 128       # Pixels
-        self.image_count = 0
+        self._image_count = 0
 
     def show(self, toggle = True):
-        mw = self.main_window
+        mw = self._main_window
         if mw.showing_text() and mw.text_id == 'log' and toggle:
             mw.show_graphics()
         else:
-#            mw.show_text(self.html_text, html = True, id = "log", open_links = True)
-            mw.show_text(self.html_text, html = True, id = "log", scroll_to_end = True)
+#            mw.show_text(self._html_text, html = True, id = "log", open_links = True)
+            mw.show_text(self._html_text, html = True, id = "log", scroll_to_end = True)
     def log_message(self, text, color = None, html = False):
         if html:
             htext = text
@@ -406,20 +406,20 @@ class Log:
             import cgi
             etext = cgi.escape(text)
             htext = '<pre%s>%s</pre>\n' % (style,etext)
-        self.html_text += htext
+        self._html_text += htext
 
     def insert_graphics_image(self, format = 'JPG'):
-        mw = self.main_window
+        mw = self._main_window
         v = mw.view
         s = self.thumbnail_size
         i = v.image(s,s)
         d = mw.text.document()
-        self.image_count += 1
-        uri = "file://image%d" % (self.image_count,)
+        self._image_count += 1
+        uri = "file://image%d" % (self._image_count,)
         from . import qt
         qt.register_html_image_identifier(d, uri, i)
         htext = '<br><img src="%s"><br>\n' % (uri,)
-        self.html_text += htext
+        self._html_text += htext
 
     def exceptions_to_log(self):
         import sys
