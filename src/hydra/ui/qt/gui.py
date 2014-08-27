@@ -1,6 +1,6 @@
 from .qt import QtCore, QtGui, QtOpenGL, QtWidgets, Qt
 
-class MainWindow(QtWidgets.QMainWindow):
+class Main_Window(QtWidgets.QMainWindow):
     '''
     Main application window including graphics, toolbar, command line, status line,
     and scrolled text log.
@@ -321,7 +321,7 @@ class Command_Line(QtWidgets.QLineEdit):
             elif t == ctrlf:
                 self.cursorForward(False)
         elif k == Qt.Key_Escape:
-            event.ignore()      # Handled by MainWindow.keyPressEvent()
+            event.ignore()      # Handled by Main_Window.keyPressEvent()
             return
         elif k == Qt.Key_Up:
             self.session.promote_selection()
@@ -355,7 +355,7 @@ class Hydra_App(QtWidgets.QApplication):
         session.bin_dir = join(self.applicationDirPath(), '..', 'Resources', 'bin')
         self.setWindowIcon(icon('reo.png'))
         set_default_context(3, 2, QtOpenGL.QGLFormat.CoreProfile)
-        self.main_window = MainWindow(self, session)
+        self.main_window = Main_Window(self, session)
 
     # This is a virtual method of QApplication being used here to detect file open
     # requests such as dragging a file onto the application window.
