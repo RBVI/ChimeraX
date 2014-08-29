@@ -23,7 +23,7 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(ENV) INCLUDE=$(JPEG_INC) LIB=$(JPEG_LIB) python3 setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(ENV) INCLUDE=$(JPEG_INC) LIB=$(JPEG_LIB) python3 setup.py $(SETUP_BUILD) build_ext --disable-tk install
 # Unzip egg so PIL source code is readily available.
 	cd $(PYSITEDIR) ; unzip $(PILLOW_EGG) -x "EGG-INFO/*"
 
