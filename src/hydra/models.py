@@ -29,6 +29,7 @@ class Models:
         self.next_id = 1
         self._selected_models = None
         self.redraw_needed = False
+        self.shape_changed = True
         self.xyz_bounds = None
         self.bounds_changed = True
         self.add_model_callbacks = []
@@ -48,9 +49,11 @@ class Models:
     def all_drawings(self):
         return self._root_model.all_drawings()
 
-    def model_redraw_needed(self):
+    def model_redraw_needed(self, shape_changed = False):
         self.redraw_needed = True
-        self.bounds_changed = True
+        if shape_changed:
+            self.shape_changed = True
+            self.bounds_changed = True
 
     def add_model(self, model, callbacks = True):
         '''
@@ -62,6 +65,7 @@ class Models:
         if model.display:
             self.redraw_needed = True
             self.bounds_changed = True
+            self.shape_changed = True
 
         model.set_redraw_callback(self.model_redraw_needed)
 
@@ -98,6 +102,7 @@ class Models:
         self._selected_models = None
         self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
         self.bounds_changed = True
+        self.shape_changed = True
 
         for cb in self.close_model_callbacks:
             cb(models)
@@ -160,12 +165,10 @@ class Models:
     def display_models(self, mlist):
         for m in mlist:
             m.display = True
-            m.redraw_needed()
 
     def hide_models(self, mlist):
         for m in mlist:
             m.display = False
-            m.redraw_needed()
 
     def maps(self):
         '''Return a list of the Volume models in the scene.'''

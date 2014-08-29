@@ -222,9 +222,14 @@ class View:
         if not draw:
             return False
 
+        if s.redraw_needed and s.shape_changed and self.multishadow > 0:
+            # Force recomputation of ambient shadows since shape changed.
+            self._multishadow_transforms = []
+
         self.redraw_needed = False
         c.redraw_needed = False
         s.redraw_needed = False
+        s.shape_changed = False
         self.draw_graphics()
         for cb in self.rendered_callbacks:
             cb()

@@ -78,7 +78,8 @@ class Drawing:
       self.redraw_needed()
     if key in self.effects_buffers:
       self.need_buffer_update = True
-      self.redraw_needed()
+      sc = key in ('vertices', '_displayed_positions', '_positions')
+      self.redraw_needed(shape_changed = sc)
     super(Drawing,self).__setattr__(key, value)
 
   # Display styles
@@ -109,13 +110,13 @@ class Drawing:
     cd = self._child_drawings
     cd.append(d)
     d.parent = self
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def remove_drawing(self, d):
     '''Delete a specified child drawing.'''
     self._child_drawings.remove(d)
     d.delete()
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def remove_drawings(self, drawings):
     '''Delete specified child drawings.'''
@@ -123,7 +124,7 @@ class Drawing:
     self._child_drawings = [d for d in self._child_drawings if not d in dset]
     for d in drawings:
       d.delete()
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def remove_all_drawings(self):
     '''Delete all child drawings.'''
@@ -143,7 +144,7 @@ class Drawing:
       self._displayed_positions = dp = empty((len(self._positions),),bool)
     dp[:] = display
     self._any_displayed_positions = display
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
@@ -152,7 +153,7 @@ class Drawing:
   def set_display_positions(self, position_mask):
     self._displayed_positions = position_mask
     self._any_displayed_positions = (position_mask.sum() > 0)
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   display_positions = property(get_display_positions, set_display_positions)
   '''Mask specifying which copies are displayed.'''
 
@@ -263,7 +264,7 @@ class Drawing:
   def set_position(self, pos):
     from ..geometry.place import Places
     self._positions = Places([pos])
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   position = property(get_position, set_position)
   '''Position and orientation of the surface in space.'''
 
@@ -273,7 +274,7 @@ class Drawing:
     self._positions = positions
     self._displayed_positions = None
     self._selected_positions = None
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   positions = property(get_positions, set_positions)
   '''
   Copies of the surface piece are placed using a 3 by 4 matrix with the first 3 columns
@@ -318,7 +319,7 @@ class Drawing:
   def set_geometry(self, g):
     self.vertices, self.triangles = g
     self.edge_mask = None
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   geometry = property(get_geometry, set_geometry)
   '''Geometry is the array of vertices and array of triangles.'''
 
@@ -632,7 +633,7 @@ class Drawing:
     return self.edge_mask
   def set_triangle_and_edge_mask(self, temask):
     self.edge_mask = temask
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   triangle_and_edge_mask = property(get_triangle_and_edge_mask,
                                     set_triangle_and_edge_mask)
   '''
@@ -657,7 +658,7 @@ class Drawing:
         em = (em & self.TRIANGLE_DISPLAY_MASK) | (em & emask)
       self.edge_mask = em
 
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
 def draw_drawings(renderer, cvinv, drawings):
   r = renderer
@@ -714,7 +715,7 @@ def element_type(display_style):
     t = Buffer.points
   return t
 
-def redraw_no_op():
+def redraw_no_op(shape_changed = False):
   pass
 
 class Draw_Shape:
