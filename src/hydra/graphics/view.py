@@ -107,6 +107,8 @@ class View:
         if n > 0:
             dc.add(r.SHADER_MULTISHADOW)
         else:
+            # TODO: free multishadow framebuffer.
+            self._multishadow_transforms = []
             dc.discard(r.SHADER_MULTISHADOW)
         for d in self.session.all_drawings():
             d.clear_cached_shader()
