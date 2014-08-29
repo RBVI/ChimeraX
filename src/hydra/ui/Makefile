@@ -5,7 +5,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/ui
 
 SUBDIRS = qt wx
 
-PYSRCS = __init__.py
+PYSRCS = __init__.py log.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

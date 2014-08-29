@@ -24,3 +24,5 @@ def choose_window_toolkit():
     for name in dir(api):
         if not name.startswith('_'):
             g[name] = getattr(api,name)
+    from .log import Log
+    g['Log'] = Log
