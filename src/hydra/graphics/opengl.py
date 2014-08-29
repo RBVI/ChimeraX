@@ -240,13 +240,13 @@ class Render:
         kld = tuple(move.apply_without_translation(lp.key_light_direction)) if move else lp.key_light_direction
         GL.glUniform3f(key_light_dir, *kld)
         key_diffuse = GL.glGetUniformLocation(p, b"key_light_diffuse_color")
-        ds = mp.diffuse_reflectivity
+        ds = mp.diffuse_reflectivity * lp.key_light_intensity
         kdc = tuple(ds*c for c in lp.key_light_color)
         GL.glUniform3f(key_diffuse, *kdc)
 
         # Key light specular
         key_specular = GL.glGetUniformLocation(p, b"key_light_specular_color")
-        ss = mp.specular_reflectivity
+        ss = mp.specular_reflectivity * lp.key_light_intensity
         ksc = tuple(ss*c for c in lp.key_light_color)
         GL.glUniform3f(key_specular, *ksc)
         key_shininess = GL.glGetUniformLocation(p, b"key_light_specular_exponent")
@@ -257,12 +257,13 @@ class Render:
         fld = tuple(move.apply_without_translation(lp.fill_light_direction)) if move else lp.fill_light_direction 
         GL.glUniform3f(fill_light_dir, *fld)
         fill_diffuse = GL.glGetUniformLocation(p, b"fill_light_diffuse_color")
+        ds = mp.diffuse_reflectivity * lp.fill_light_intensity
         fdc = tuple(ds*c for c in lp.fill_light_color)
         GL.glUniform3f(fill_diffuse, *fdc)
 
         # Ambient light
         ambient = GL.glGetUniformLocation(p, b"ambient_color")
-        ams = mp.ambient_reflectivity
+        ams = mp.ambient_reflectivity * lp.ambient_light_intensity
         ac = tuple(ams*c for c in lp.ambient_light_color)
         GL.glUniform3f(ambient, *ac)
 
@@ -818,6 +819,10 @@ class Lighting:
 
     def __init__(self):
 
+        self.set_default_parameters()
+
+    def set_default_parameters(self):
+
         from numpy import array, float32
         self.key_light_direction = array((.577,-.577,-.577), float32)    # Should have unit length
         '''Direction key light shines in.'''
@@ -825,14 +830,23 @@ class Lighting:
         self.key_light_color = (1,1,1)
         '''Key light color.'''
 
+        self.key_light_intensity = 1
+        '''Key light brightness.'''
+
         self.fill_light_direction = array((-.2,-.2,-.959), float32)        # Should have unit length
         '''Direction fill light shines in.'''
 
-        self.fill_light_color = (.5,.5,.5)
+        self.fill_light_color = (1,1,1)
         '''Fill light color.'''
+
+        self.fill_light_intensity = 0.5
+        '''Fill light brightness.'''
 
         self.ambient_light_color = (1,1,1)
         '''Ambient light color.'''
+
+        self.ambient_light_intensity = 0.4
+        '''Ambient light brightness.'''
 
         self.depth_cue_distance = 15.0  # Distance where dimming begins (Angstroms)
         self.depth_cue_darkest = 0.2    # Smallest dimming factor
@@ -846,7 +860,7 @@ class Material:
     '''
     def __init__(self):
         
-        self.ambient_reflectivity = 0.3
+        self.ambient_reflectivity = 0.8
         '''Fraction of ambient light reflected.  Ambient light comes from all directions
         and the amount reflected does not depend on the surface orientation of view direction.'''
 

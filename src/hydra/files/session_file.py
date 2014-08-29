@@ -47,7 +47,7 @@ def session_state(session, attributes_only = False):
   numbers, strings, booleans, tuples, lists, dictionaries.
   '''
   viewer = session.view
-  s = {'version': 2,
+  s = {'version': 3,
        'view': view_state(viewer),
        'camera': camera_state(viewer.camera),
        'lighting': lighting_state(viewer.render.lighting),
@@ -90,10 +90,10 @@ def set_session_state(s, session, file_paths, attributes_only = False):
     restore_camera(s['camera'], v.camera)
 
   if 'lighting' in s:
-    restore_lighting(s['lighting'], v.render.lighting)
+    restore_lighting(s['lighting'], s['version'], v.render.lighting)
 
   if 'material' in s:
-    restore_material(s['material'], v.render.material)
+    restore_material(s['material'], s['version'], v.render.material)
 
   if 'volumes' in s:
     from ..map import session as map_session
@@ -256,9 +256,12 @@ def restore_camera(cs, camera):
 #
 light_parameters = (
   'key_light_direction',
+  'key_light_intensity',
   'key_light_color',
   'fill_light_direction',
+  'fill_light_intensity',
   'fill_light_color',
+  'ambient_light_intensity',
   'ambient_light_color',
   'depth_cue_distance',
   'depth_cue_darkest',
@@ -273,10 +276,13 @@ def lighting_state(light_params):
 
 # -----------------------------------------------------------------------------
 #
-def restore_lighting(ls, light_params):
+def restore_lighting(ls, version, light_params):
   for name in light_parameters:
     if name in ls:
       setattr(light_params, name, ls[name])
+  if version <= 2 and 'fill_light_color' in ls:
+    # Correct for introduction of light intensity parameters
+    self.fill_light_color = tuple(2*c for c in self.fill_light_color)
 
 # -----------------------------------------------------------------------------
 #
@@ -295,7 +301,10 @@ def material_state(material):
 
 # -----------------------------------------------------------------------------
 #
-def restore_material(ms, material):
+def restore_material(ms, version, material):
   for name in material_parameters:
     if name in ms:
       setattr(material, name, ms[name])
+  if version <= 2 and 'ambient_reflectivity' in ms:
+    # Correct for change in default ambient reflectivity
+    self.ambient_reflectivity = (0.8/0.3)*self.ambient_reflectivity
