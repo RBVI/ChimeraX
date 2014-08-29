@@ -72,6 +72,7 @@ def lighting(session, direction = None, intensity = None, color = None,
     if not full is None:
         v.shadows = True
         v.set_multishadow(42)
+        lp.key_light_intensity = 1
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1
     if not soft is None:
