@@ -282,7 +282,7 @@ def restore_lighting(ls, version, light_params):
       setattr(light_params, name, ls[name])
   if version <= 2 and 'fill_light_color' in ls:
     # Correct for introduction of light intensity parameters
-    self.fill_light_color = tuple(2*c for c in self.fill_light_color)
+    light_params.fill_light_color = tuple(2*c for c in light_params.fill_light_color)
 
 # -----------------------------------------------------------------------------
 #
@@ -307,4 +307,4 @@ def restore_material(ms, version, material):
       setattr(material, name, ms[name])
   if version <= 2 and 'ambient_reflectivity' in ms:
     # Correct for change in default ambient reflectivity
-    self.ambient_reflectivity = (0.8/0.3)*self.ambient_reflectivity
+    material.ambient_reflectivity = (0.8/0.3)*material.ambient_reflectivity
