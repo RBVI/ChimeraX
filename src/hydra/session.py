@@ -19,7 +19,7 @@ class Session(Models):
         'Qt application object, a QApplication.'
 
         self.main_window = None
-        'Main user interface window, a :py:class:`~.ui.gui.MainWindow.`'
+        'Main user interface window, a :py:class:`~.ui.qt.gui.Main_Window.`'
 
         self.view = None
         'Main window view, a :py:class:`~.graphics.view.View`'
@@ -32,7 +32,7 @@ class Session(Models):
         'Available keyboard shortcuts, a :py:class:`~.command.shortcuts.Keyboard_Shortcuts`'
 
         self.log = None
-        'Command, error, info log, :py:class:`~.ui.gui.Log`'
+        'Command, error, info log, :py:class:`~.ui.qt.gui.Log`'
 
         self.file_readers = None
         'Table of file types that can be read, used by :py:func:`~.files.opensave.file_readers`'
