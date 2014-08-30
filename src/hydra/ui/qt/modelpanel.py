@@ -79,7 +79,7 @@ class Model_Panel:
             return model.thumbnail_image
         v = self.session.view
         w,h = self.image_size
-        from .. import graphics
+        from ... import graphics
         c = graphics.camera_framing_models([model])
         i = v.image(w, h, camera = c, models = [model])
         model.thumbnail_image = i
