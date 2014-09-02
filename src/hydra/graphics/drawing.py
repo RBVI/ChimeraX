@@ -417,22 +417,22 @@ class Drawing:
   def shader_options(self):
     sopt = self._shader_options
     if sopt is None:
-      sopt = {}
+      sopt = 0
       from .opengl import Render as r
-      if not self.use_lighting:
-        sopt[r.SHADER_LIGHTING] = False
-      if self.vertex_colors is None and len(self._colors) == 1:
-        sopt[r.SHADER_VERTEX_COLORS] = False
+      if self.use_lighting:
+        sopt |= r.SHADER_LIGHTING
+      if (not self.vertex_colors is None) or len(self._colors) > 1:
+        sopt |= r.SHADER_VERTEX_COLORS
       if not self.texture is None:
-        sopt[r.SHADER_TEXTURE_2D] = True
+        sopt |= r.SHADER_TEXTURE_2D
         if self.use_radial_warp:
-          sopt[r.SHADER_RADIAL_WARP] = True
+          sopt |= r.SHADER_RADIAL_WARP
       if not self.ambient_texture is None:
-        sopt[r.SHADER_TEXTURE_3D_AMBIENT] = True
+        sopt |= r.SHADER_TEXTURE_3D_AMBIENT
       if not self.positions.shift_and_scale_array() is None:
-        sopt[r.SHADER_SHIFT_AND_SCALE] = True
+        sopt |= r.SHADER_SHIFT_AND_SCALE
       elif len(self.positions) > 1:
-        sopt[r.SHADER_INSTANCING] = True
+        sopt |= r.SHADER_INSTANCING
       self._shader_options = sopt
     return sopt
 
@@ -461,12 +461,6 @@ class Drawing:
 
     if bchange:
       ds.reset_bindings = dss.reset_bindings = True
-
-  def clear_cached_shader(self):
-    # Used when global shader option like shadows changed.
-    for d in self.all_drawings():
-      d._shader_options = None
-    self.redraw_needed()
 
   def position_mask(self, selected_only = False):
     dp = self._displayed_positions        # bool array
@@ -733,8 +727,6 @@ class Draw_Shape:
 
     # OpenGL rendering                                    
     self.bindings = None                    # Holds the buffer pointers and shader variable bindings
-    self.shader = None
-    self._shader_options = None             # Options for current shader
     self.vertex_buffers = vertex_buffers
     self.element_buffer = None
     self.instance_buffers = []
@@ -841,12 +833,9 @@ class Draw_Shape:
     return ta
 
   def activate_shader_and_bindings(self, renderer, sopt):
-    self.activate_bindings()      # Need OpenGL VAO bound to compile shader
-    if not sopt is self._shader_options:
-      shader = renderer.shader(sopt)
-      self._shader_options = sopt
-      self.activate_bindings(shader)      # Create new bindings if shader changed
-    renderer.use_shader(self.bindings.shader)
+    self.activate_bindings()	      # Need OpenGL VAO bound to compile shader
+    shader = renderer.shader(sopt)
+    renderer.use_shader(shader)
     self.update_bindings()
 
   def update_bindings(self):
@@ -854,12 +843,10 @@ class Draw_Shape:
       self.bind_buffers(self.vertex_buffers + [self.element_buffer] + self.instance_buffers)
       self.reset_bindings = False
 
-  def activate_bindings(self, shader = None):
-    new_bindings = (self.bindings is None or
-                    (shader != self.bindings.shader and not shader is None))
-    if new_bindings:
+  def activate_bindings(self):
+    if self.bindings is None:
       from . import opengl
-      self.bindings = opengl.Bindings(shader)
+      self.bindings = opengl.Bindings()
       self.reset_bindings = True
     self.bindings.activate()
 
@@ -950,7 +937,7 @@ def draw_texture(texture, renderer):
   return
 
   r = renderer
-  r.set_override_capabilities({r.SHADER_LIGHTING:False, r.SHADER_SHADOWS:False})
+  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_SHADOWS)
   from . import opengl
   tw = opengl.Texture_Window(renderer, renderer.SHADER_TEXTURE_2D)
   texture.bind_texture()
@@ -961,5 +948,5 @@ def draw_texture(texture, renderer):
   r.set_model_matrix(p0)
   r.enable_depth_test(False)
   tw.draw()
-  r.set_override_capabilities({})
+  r.disable_shader_capabilities(0)
   r.enable_depth_test(True)

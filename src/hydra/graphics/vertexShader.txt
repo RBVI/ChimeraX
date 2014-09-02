@@ -2,8 +2,8 @@
 
 #if defined(USE_TEXTURE_MASK) || defined(USE_DEPTH_OUTLINE)
 
-in vec3 position;
-in vec2 tex_coord_2d;
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec2 tex_coord_2d;
 out vec2 tex_coord;
 void main(void)
 {
@@ -16,30 +16,30 @@ void main(void)
 uniform mat4 model_view_matrix;
 uniform mat4 projection_matrix;
 
-in vec3 position;
+layout(location = 0) in vec3 position;
 
 #ifdef USE_LIGHTING
-in vec3 normal;
+layout(location = 2) in vec3 normal;
 out vec3 N;
 out vec3 v;
 #endif
 
 #ifdef USE_VERTEX_COLORS
-in vec4 vcolor;
+layout(location = 3) in vec4 vcolor;
 out vec4 color;
 #endif
 
 #ifdef USE_TEXTURE_2D
-in vec2 tex_coord_2d;
+layout(location = 1) in vec2 tex_coord_2d;
 out vec2 tex_coord;
 #endif
 
-#ifdef USE_INSTANCING_SS
-in vec4 instanceShiftAndScale;
+#ifdef USE_SHIFT_AND_SCALE
+layout(location = 4) in vec4 instance_shift_and_scale;
 #endif
 
-#ifdef USE_INSTANCING_44
-in mat4 instancePlacement;
+#ifdef USE_INSTANCING
+layout(location = 5) in mat4 instance_placement;
 #endif
 
 #ifdef USE_TEXTURE_3D_AMBIENT
@@ -54,12 +54,12 @@ out vec3 shadow_tex_coord;
 
 void main(void)
 {
-#ifdef USE_INSTANCING_SS
-  vec4 vi = vec4(instanceShiftAndScale.w * position + instanceShiftAndScale.xyz, 1);
+#ifdef USE_SHIFT_AND_SCALE
+  vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
   vec4 vEye = model_view_matrix * vi;
 #else
-  #ifdef USE_INSTANCING_44
-    vec4 vi = instancePlacement * vec4(position, 1);
+  #ifdef USE_INSTANCING
+    vec4 vi = instance_placement * vec4(position, 1);
     vec4 vEye = model_view_matrix * vi;
   #else
     vec4 vi = vec4(position,1);
@@ -69,8 +69,8 @@ void main(void)
 
 #ifdef USE_LIGHTING
   v = vEye.xyz;
-  #ifdef USE_INSTANCING_44
-    vec3 ni = vec3(instancePlacement * vec4(normal,0));
+  #ifdef USE_INSTANCING
+    vec3 ni = vec3(instance_placement * vec4(normal,0));
     N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #else
     N = normalize((model_view_matrix * vec4(normal,0)).xyz);

@@ -21,8 +21,8 @@ class Render:
         self.shader_programs = {}
         self.current_shader_program = None
 
-        self.default_capabilities = set((self.SHADER_LIGHTING,self.SHADER_VERTEX_COLORS))
-        self.override_capabilities = {}
+        self.enable_capabilities = 0    # Bit field of SHADER_* capabilities
+        self.disable_capabilities = 0
 
         self.current_viewport = None
         self.current_projection_matrix = None   # Used when switching shaders
@@ -62,44 +62,20 @@ class Render:
         x,y,w,h = fb.viewport
         return (w,h)
 
-    # use_shader() option names
-    SHADER_LIGHTING = 'USE_LIGHTING'
-    SHADER_DEPTH_CUE = 'USE_DEPTH_CUE'
-    SHADER_TEXTURE_2D = 'USE_TEXTURE_2D'
-    SHADER_TEXTURE_3D_AMBIENT = 'USE_TEXTURE_3D_AMBIENT'
-    SHADER_SHADOWS = 'USE_SHADOWS'
-    SHADER_MULTISHADOW = 'USE_MULTISHADOW'
-    SHADER_RADIAL_WARP = 'USE_RADIAL_WARP'
-    SHADER_SHIFT_AND_SCALE = 'USE_INSTANCING_SS'
-    SHADER_INSTANCING = 'USE_INSTANCING_44'
-    SHADER_TEXTURE_MASK = 'USE_TEXTURE_MASK'
-    SHADER_DEPTH_OUTLINE = 'USE_DEPTH_OUTLINE'
-    SHADER_VERTEX_COLORS = 'USE_VERTEX_COLORS'
-
-    def set_override_capabilities(self, ocap):
-        self.override_capabilities = ocap
+    def disable_shader_capabilities(self, ocap):
+        self.disable_capabilities = ocap
 
     def shader(self, options):
         '''
         Return a shader that supports the specified capabilities.
-        The capabilities are specified as keyword options with boolean values.
-        The available option names are given by the values of SHADER_LIGHTING,
-        SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
+        The capabilities are specified as at bit field of values from
+        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
         SHADER_SHADOWS, SHADER_MULTISHADOW, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
         SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS
         '''
-        capabilities = self.default_capabilities.copy()
-        ocap = self.override_capabilities
-        if ocap:
-            options = options.copy()
-            options.update(ocap)
-        for opt,onoff in options.items():
-            if onoff:
-                capabilities.add(opt)
-            else:
-                capabilities.discard(opt)
-
-        p = self.opengl_shader(capabilities)
+        options |= self.enable_capabilities
+        options &= ~self.disable_capabilities
+        p = self.opengl_shader(options)
         return p
 
     def use_shader(self, shader):
@@ -109,36 +85,34 @@ class Render:
         if shader == self.current_shader_program:
             return
 
-#        print ('changed shader',
-#               self.current_shader_program.capabilities if self.current_shader_program else None,
-#               shader.capabilities)
+        #print ('changed shader', ','.join(o for i,o in enumerate(shader_options) if shader.capabilities & (1 << i)))
         self.current_shader_program = shader
         c = shader.capabilities
         GL.glUseProgram(shader.program_id)
-        if self.SHADER_LIGHTING in c:
+        if self.SHADER_LIGHTING & c:
             self.set_shader_lighting_parameters()
-        if self.SHADER_DEPTH_CUE in c:
+        if self.SHADER_DEPTH_CUE & c:
             self.set_depth_cue_parameters()
         self.set_projection_matrix()
         self.set_model_matrix()
-        if self.SHADER_TEXTURE_2D in c or self.SHADER_TEXTURE_MASK in c or self.SHADER_DEPTH_OUTLINE in c:
+        if self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c or self.SHADER_DEPTH_OUTLINE & c:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
-        if self.SHADER_TEXTURE_3D_AMBIENT in c:
+        if self.SHADER_TEXTURE_3D_AMBIENT & c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
-        if self.SHADER_MULTISHADOW in c:
+        if self.SHADER_MULTISHADOW & c:
             GL.glUniform1i(shader.uniform_id("multishadow_map"), self.multishadow_texture_unit)
             if not self._multishadow_transforms is None:
                 m = self._multishadow_transforms
                 GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"), len(m), False, m)
                 GL.glUniform1i(shader.uniform_id("shadow_count"), len(m))
                 GL.glUniform1f(shader.uniform_id("shadow_depth"), self._multishadow_depth)
-        if self.SHADER_SHADOWS in c:
+        if self.SHADER_SHADOWS & c:
             GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
             if not self._shadow_transform is None:
                 GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self._shadow_transform)
-        if self.SHADER_RADIAL_WARP in c:
+        if self.SHADER_RADIAL_WARP & c:
             self.set_radial_warp_parameters()
-        if not self.SHADER_VERTEX_COLORS in c:
+        if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
 
     def push_framebuffer(self, fb):
@@ -162,16 +136,15 @@ class Render:
     def rendering_to_screen(self):
         return len(self.framebuffer_stack) == 0
 
-    def opengl_shader(self, capabilities = (SHADER_LIGHTING,)):
+    def opengl_shader(self, capabilities):
         'Private.  OpenGL shader program id.'
 
-        ckey = tuple(sorted(capabilities))
-        p = self.shader_programs.get(ckey)
-        if not p is None:
-            return p
-
-        p = Shader(capabilities)
-        self.shader_programs[ckey] = p
+        sp = self.shader_programs
+        if capabilities in sp:
+            p = sp[capabilities]
+        else:
+            p = Shader(capabilities)
+            sp[capabilities] = p
 
         return p
         
@@ -307,7 +280,7 @@ class Render:
         # Transform from camera coordinates to shadow map texture coordinates.
         self._shadow_transform = m = stf.opengl_matrix()
         p = self.current_shader_program
-        if self.SHADER_SHADOWS in p.capabilities:
+        if self.SHADER_SHADOWS & p.capabilities:
             GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False, m)
 
     def set_multishadow_transforms(self, stf, ctf, shadow_depth):
@@ -316,7 +289,7 @@ class Render:
         self._multishadow_transforms = m = array([(tf*ctf).opengl_matrix() for tf in stf], float32)
         self._multishadow_depth = msd = shadow_depth
         p = self.current_shader_program
-        if self.SHADER_MULTISHADOW in p.capabilities:
+        if self.SHADER_MULTISHADOW & p.capabilities:
             GL.glUniformMatrix4fv(p.uniform_id("shadow_transforms"), len(m), False, m)
             GL.glUniform1i(p.uniform_id("shadow_count"), len(m))
             GL.glUniform1f(p.uniform_id("shadow_depth"), msd)
@@ -522,20 +495,19 @@ class Render:
         self.set_background_color((0,0,0,0))
         self.draw_background()
         # Use flat single color rendering.
-        self.set_override_capabilities({self.SHADER_VERTEX_COLORS:False,
-                                        self.SHADER_LIGHTING:False,
-                                        self.SHADER_TEXTURE_2D:False,
-                                        self.SHADER_TEXTURE_3D_AMBIENT:False,
-                                        self.SHADER_SHADOWS:False,
-                                        self.SHADER_MULTISHADOW:False,
-                                        })
+        self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS|
+                                         self.SHADER_LIGHTING|
+                                         self.SHADER_TEXTURE_2D|
+                                         self.SHADER_TEXTURE_3D_AMBIENT|
+                                         self.SHADER_SHADOWS|
+                                         self.SHADER_MULTISHADOW)
         self.set_depth_range(0,0.99999)      # Depth test GL_LEQUAL results in z-fighting
         self.copy_from_framebuffer(fb, color = False)      # Copy depth to outline framebuffer
 
     def finish_rendering_outline(self):
 
         self.pop_framebuffer()
-        self.set_override_capabilities({})
+        self.disable_shader_capabilities(0)
         self.set_depth_range(0,1)
         t = self.mask_framebuffer.color_texture
         self.draw_texture_mask_outline(t)
@@ -693,6 +665,24 @@ def disk_grid(radius, exclude_origin = True):
             if i*i+j*j <= r2 and (not exclude_origin or i != 0 or j != 0):
                 ij.append((i,j))
     return ij
+
+# Options used with Render.shader()
+shader_options = (
+    'SHADER_LIGHTING',
+    'SHADER_DEPTH_CUE',
+    'SHADER_TEXTURE_2D',
+    'SHADER_TEXTURE_3D_AMBIENT',
+    'SHADER_SHADOWS',
+    'SHADER_MULTISHADOW',
+    'SHADER_RADIAL_WARP',
+    'SHADER_SHIFT_AND_SCALE',
+    'SHADER_INSTANCING',
+    'SHADER_TEXTURE_MASK',
+    'SHADER_DEPTH_OUTLINE',
+    'SHADER_VERTEX_COLORS',
+)
+for i,sopt in enumerate(shader_options):
+    setattr(Render, sopt, 1 << i)
 
 class Framebuffer:
 
@@ -882,8 +872,9 @@ class Bindings:
     Use an OpenGL vertex array object to save buffer bindings.
     The bindings are for a specific shader program since they use the shader variable ids.
     '''
-    def __init__(self, shader = None):
-        self.shader = shader
+    attribute_id = {'position':0, 'tex_coord_2d':1, 'normal':2, 'vcolor':3,
+                    'instance_shift_and_scale':4, 'instance_placement':5}
+    def __init__(self):
         self.vao_id = GL.glGenVertexArrays(1)
         self.bound_attr_ids = {}        # Maps buffer to list of ids
 
@@ -919,14 +910,7 @@ class Bindings:
                 GL.glBindBuffer(btype, buf_id)
             return
 
-        shader = self.shader
-        if not buffer.shader_has_required_capabilities(shader):
-            return
-
-        attr_id = shader.attribute_id(vname)
-        if attr_id == -1:
-            raise NameError('Failed to find shader attribute %s\n in shader with capabilites = %s'
-                            % (vname, str(shader.capabilities)))
+        attr_id = self.attribute_id[vname]
         nattr = buffer.attribute_count()
         ncomp = buffer.component_count()
         from numpy import float32, uint8
@@ -955,6 +939,7 @@ class Bindings:
             self.bound_attr_ids[buffer] = [attr_id+a for a in range(nattr)]
         GL.glBindBuffer(btype, 0)
 
+        #print('bound shader variable', vname, attr_id, nattr, ncomp)
         return attr_id
 
 from numpy import uint8, uint32, float32
@@ -972,16 +957,16 @@ class Buffer_Type:
 
 # Buffer types with associated shader variable names
 VERTEX_BUFFER = Buffer_Type('position')
-NORMAL_BUFFER = Buffer_Type('normal', requires_capabilities = (Render.SHADER_LIGHTING,))
+NORMAL_BUFFER = Buffer_Type('normal', requires_capabilities = Render.SHADER_LIGHTING)
 VERTEX_COLOR_BUFFER = Buffer_Type('vcolor', value_type = uint8, normalize = True,
-                                  requires_capabilities = (Render.SHADER_VERTEX_COLORS,))
-INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type('instanceShiftAndScale', instance_buffer = True)
-INSTANCE_MATRIX_BUFFER = Buffer_Type('instancePlacement', instance_buffer = True)
+                                  requires_capabilities = Render.SHADER_VERTEX_COLORS)
+INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type('instance_shift_and_scale', instance_buffer = True)
+INSTANCE_MATRIX_BUFFER = Buffer_Type('instance_placement', instance_buffer = True)
 INSTANCE_COLOR_BUFFER = Buffer_Type('vcolor', instance_buffer = True, value_type = uint8, normalize = True,
-                                    requires_capabilities = (Render.SHADER_VERTEX_COLORS,))
-TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d', requires_capabilities = (Render.SHADER_TEXTURE_2D,
-                                                                                Render.SHADER_TEXTURE_MASK,
-                                                                                Render.SHADER_DEPTH_OUTLINE))
+                                    requires_capabilities = Render.SHADER_VERTEX_COLORS)
+TEXTURE_COORDS_2D_BUFFER = Buffer_Type('tex_coord_2d', requires_capabilities = Render.SHADER_TEXTURE_2D|
+                                                                                Render.SHADER_TEXTURE_MASK|
+                                                                                Render.SHADER_DEPTH_OUTLINE)
 ELEMENT_BUFFER = Buffer_Type(None, buffer_type = GL.GL_ELEMENT_ARRAY_BUFFER, value_type = uint32)
 
 class Buffer:
@@ -1094,10 +1079,7 @@ class Buffer:
         if not self.requires_capabilities:
             return True
         # Require at least one capability of list
-        for cap in self.requires_capabilities:
-            if cap in shader.capabilities:
-                return True
-        return False
+        return self.requires_capabilities|shader.capabilities
 
 def glDrawElementsInstanced(mode, count, etype, indices, ninst):
     'Private. Handle old or defective OpenGL instanced drawing.'
@@ -1127,7 +1109,6 @@ class Shader:
         self.capabilities = capabilities
         self.program_id = self.compile_shader(capabilities)
         self.uniform_ids = {}
-        self.attribute_ids = {}
         
     def uniform_id(self, name):
         uids = self.uniform_ids
@@ -1137,16 +1118,6 @@ class Shader:
             p = self.program_id
             uids[name] = uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
         return uid
-
-    def attribute_id(self, name):
-        aids = self.attribute_ids
-        if name in aids:
-            aid = aids[name]
-        else:
-            p = self.program_id
-            aids[name] = aid = GL.glGetAttribLocation(p, name.encode('utf-8'))
-#            print('attrib id for %s is %d, shader %d, cap %s' % (name, aid, p, self.capabilities))
-        return aid
 
     def compile_shader(self, capabilities):
 
@@ -1168,14 +1139,18 @@ class Shader:
 
         # msg = (('Compiled shader %d,\n'
         #        ' capbilities %s,\n'
+        #        ' vertex shader code\n'
+        #        ' %s\n'
         #        ' vertex shader compile info log\n'
+        #        ' %s\n'
+        #        ' fragment shader code\n'
         #        ' %s\n'
         #        ' fragment shader compile info log\n'
         #        ' %s\n'
         #        ' program link info log\n'
         #        ' %s')
-        #        % (prog_id, capabilities,
-        #           GL.glGetShaderInfoLog(vs), GL.glGetShaderInfoLog(fs), GL.glGetProgramInfoLog(prog_id)))
+        #        % (prog_id, capabilities, vshader, GL.glGetShaderInfoLog(vs),
+        #           fshader, GL.glGetShaderInfoLog(fs), GL.glGetProgramInfoLog(prog_id)))
         # print(msg)
 
         return prog_id
@@ -1183,7 +1158,8 @@ class Shader:
 # Add #define lines after #version line of shader
 def insert_define_macros(shader, capabilities):
     'Private. Puts "#define" statements in shader program templates to specify shader capabilities.'
-    defs = '\n'.join('#define %s 1' % c for c in capabilities)
+    defs = '\n'.join('#define %s 1' % sopt.replace('SHADER_','USE_')
+                     for i,sopt in enumerate(shader_options) if capabilities&(1<<i))
     v = shader.find('#version')
     eol = shader[v:].find('\n')+1
     s = shader[:eol] + defs + '\n' + shader[eol:]
@@ -1363,13 +1339,13 @@ class Texture:
 
 class Texture_Window:
     '''Draw a texture on a full window rectangle.'''
-    def __init__(self, render, shader_mode):
+    def __init__(self, render, shader_options):
 
         # Must have vao bound before compiling shader.
-        self.vao = vao = Bindings(None)
+        self.vao = vao = Bindings()
         vao.activate()
 
-        p = render.shader({shader_mode:True})
+        p = render.shader(shader_options)
         render.use_shader(p)
         vao.shader = p
 
