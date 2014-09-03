@@ -316,13 +316,31 @@ class View:
 			llgr.set_uniform_matrix(0, 'NormalMatrix', False,
 				llgr.Mat3x3, modelview.getWebGLRotationMatrix())
 
-		from . import open_models
-		models = open_models.list()
-		groups = [model.graphics.group_id for model in models if model.graphics]
+		if groups is None:
+			from . import open_models
+			models = open_models.list()
+			groups = [model.graphics.group_id for model in models if model.graphics]
 		if as_data:
 			return llgr.render(groups, as_data)
 		else:
 			llgr.render(groups)
+
+	def pick(self, x, y, width, height, groups=None, skip_camera_matrices=False):
+
+		import llgr
+		if self._camera and not skip_camera_matrices:
+			projection, modelview = self._camera.matrices()
+			llgr.set_uniform_matrix(0, 'ProjectionMatrix', False,
+				llgr.Mat4x4, projection.getWebGLMatrix())
+			llgr.set_uniform_matrix(0, 'ModelViewMatrix', False,
+				llgr.Mat4x4, modelview.getWebGLMatrix())
+
+		if groups is None:
+			from . import open_models
+			models = open_models.list()
+			groups = [model.graphics.group_id for model in models if model.graphics]
+
+		return llgr.pick(groups, x, y, width, height)
 
 def reset():
 	"""reinitialze scene
