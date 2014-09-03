@@ -39,7 +39,7 @@ designer:
 	$(bindir)/designer main.ui
 
 gdb:
-	gdb $(bindir)/python3 core
+	env PYTHONPATH=$(libdir)/python3.4 gdb $(bindir)/python3 core
 
 clean:
 	rm -rf __pycache__
