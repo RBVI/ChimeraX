@@ -2,7 +2,7 @@
 
 class Log:
     '''
-    Log window for command output.
+    Log command output.
     '''
     def __init__(self, main_window):
         self._main_window = main_window
