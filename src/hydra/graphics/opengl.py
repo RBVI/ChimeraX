@@ -65,6 +65,13 @@ class Render:
     def disable_shader_capabilities(self, ocap):
         self.disable_capabilities = ocap
 
+    def draw_depth_only(self, depth_only = True):
+        # Enable only shader geometry, no colors or lighting.
+        d = ~(self.SHADER_INSTANCING|self.SHADER_SHIFT_AND_SCALE) if depth_only else 0
+        self.disable_capabilities = d
+        c = GL.GL_FALSE if depth_only else GL.GL_TRUE
+        GL.glColorMask(c,c,c,c)
+
     def shader(self, options):
         '''
         Return a shader that supports the specified capabilities.
@@ -438,7 +445,7 @@ class Render:
                 fb.delete()
             dt = Texture()
             dt.initialize_depth((size,size))
-            fb = Framebuffer(depth_texture = dt)
+            fb = Framebuffer(depth_texture = dt, color = False)
             if not fb.valid():
                 return           # Requested size exceeds framebuffer limits
 
@@ -451,10 +458,13 @@ class Render:
         # Draw the models recording depth in light direction, i.e. calculate the shadow map.
         self.push_framebuffer(fb)
 
+        self.draw_depth_only()
+
         return fb
 
     def finish_rendering_shadowmap(self):
 
+        self.draw_depth_only(False)
         fb = self.pop_framebuffer()
         return fb.depth_texture
 
@@ -754,7 +764,7 @@ class Framebuffer:
             level = 0
             GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
                                       GL.GL_TEXTURE_2D, color_buf.id, level)
-        else:
+        elif not color_buf is None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
                                          GL.GL_RENDERBUFFER, color_buf)
 
