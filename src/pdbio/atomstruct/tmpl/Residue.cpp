@@ -120,6 +120,14 @@ Residue::find_atom(const std::string &index) const
     return i->second;
 }
 
+void
+Residue::add_link_atom(Atom *element)
+{
+    if (_link_atoms.empty())
+        _link_atoms.reserve(2);
+    _link_atoms.push_back(element);
+}
+
 Residue::Residue(Molecule *, const char *n): _name(n), _chief(0), _link(0) 
 {
 }
