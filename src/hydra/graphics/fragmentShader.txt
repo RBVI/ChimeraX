@@ -77,7 +77,10 @@ uniform sampler2DShadow shadow_map;
 
 #ifdef USE_MULTISHADOW
 uniform sampler2DShadow multishadow_map;
-uniform mat4 shadow_transforms[42];
+uniform shadow_matrix_block 
+{
+  mat4 shadow_transforms[256];
+};
 uniform	int shadow_count;
 uniform float shadow_depth;
 #endif

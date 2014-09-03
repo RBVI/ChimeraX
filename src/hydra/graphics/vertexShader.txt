@@ -56,16 +56,15 @@ void main(void)
 {
 #ifdef USE_SHIFT_AND_SCALE
   vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
-  vec4 vEye = model_view_matrix * vi;
 #else
   #ifdef USE_INSTANCING
     vec4 vi = instance_placement * vec4(position, 1);
-    vec4 vEye = model_view_matrix * vi;
   #else
     vec4 vi = vec4(position,1);
-    vec4 vEye = model_view_matrix * vi;
   #endif
 #endif
+
+  vec4 vEye = model_view_matrix * vi;
 
 #ifdef USE_LIGHTING
   v = vEye.xyz;

@@ -52,8 +52,12 @@ class Render:
         self._shadow_transform = None	     # Maps camera coordinates to shadow map texture coordinates.
         self.multishadow_map_framebuffer = None
         self.multishadow_texture_unit = 2
+        self.max_multishadows = 256
         self._multishadow_transforms = None
-        self._multishadow_depth = None       # near to far clip depth for shadow map.
+        self._multishadow_depth = None          # near to far clip depth for shadow map.
+        self._multishadow_matrix_buffer = None  # Uniform buffer object for shadow matrices
+        self._multishadow_uniform_block = 0     # Uniform block number
+
 
         self.single_color = (1,1,1,1)
 
@@ -107,12 +111,7 @@ class Render:
         if self.SHADER_TEXTURE_3D_AMBIENT & c:
             GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
         if self.SHADER_MULTISHADOW & c:
-            GL.glUniform1i(shader.uniform_id("multishadow_map"), self.multishadow_texture_unit)
-            if not self._multishadow_transforms is None:
-                m = self._multishadow_transforms
-                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"), len(m), False, m)
-                GL.glUniform1i(shader.uniform_id("shadow_count"), len(m))
-                GL.glUniform1f(shader.uniform_id("shadow_depth"), self._multishadow_depth)
+            self.set_shadow_shader_variables(shader)
         if self.SHADER_SHADOWS & c:
             GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
             if not self._shadow_transform is None:
@@ -297,9 +296,29 @@ class Render:
         self._multishadow_depth = msd = shadow_depth
         p = self.current_shader_program
         if self.SHADER_MULTISHADOW & p.capabilities:
-            GL.glUniformMatrix4fv(p.uniform_id("shadow_transforms"), len(m), False, m)
-            GL.glUniform1i(p.uniform_id("shadow_count"), len(m))
-            GL.glUniform1f(p.uniform_id("shadow_depth"), msd)
+            self.set_shadow_shader_variables(p)
+
+    def set_shadow_shader_variables(self, shader):
+        GL.glUniform1i(shader.uniform_id("multishadow_map"), self.multishadow_texture_unit)
+        m = self._multishadow_transforms
+        if m is None:
+            return
+
+        # Setup uniform buffer object for shadow matrices.
+        # It can have larger size than an array of uniforms.
+        b = self._multishadow_matrix_buffer
+        if b is None:
+            self._multishadow_matrix_buffer = b = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
+            GL.glBufferData(GL.GL_UNIFORM_BUFFER, self.max_multishadows*64, pyopengl_null(), GL.GL_DYNAMIC_DRAW)
+            bi = GL.glGetUniformBlockIndex(shader.program_id, b'shadow_matrix_block')
+            GL.glUniformBlockBinding(shader.program_id, bi, self._multishadow_uniform_block)
+        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._multishadow_uniform_block, b)
+        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(m)*64, m)
+
+#                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"), len(m), False, m)
+        GL.glUniform1i(shader.uniform_id("shadow_count"), len(m))
+        GL.glUniform1f(shader.uniform_id("shadow_depth"), self._multishadow_depth)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -1234,8 +1253,7 @@ class Texture:
         GL.glBindTexture(gl_target, t)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
         if data is None:
-            import ctypes
-            data = ctypes.c_void_p(0)
+            data = pyopengl_null()
         dim = self.dimension
         if dim == 1:
             GL.glTexImage1D(gl_target, 0, iformat, size[0], 0, format, tdtype, data)
@@ -1384,3 +1402,7 @@ class Texture_Window:
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
         GL.glDepthMask(True)
+
+def pyopengl_null():
+    import ctypes
+    return ctypes.c_void_p(0)
