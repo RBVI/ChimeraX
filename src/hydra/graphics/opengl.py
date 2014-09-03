@@ -202,6 +202,9 @@ class Render:
             # Note: Getting about 5000 glUniformMatrix4fv() calls per second on 2013 Mac hardware.
             # This can be a rendering bottleneck for large numbers of models or instances.
             GL.glUniformMatrix4fv(var_id, 1, False, mv4)
+#            if p.capabilities & self.SHADER_MULTISHADOW:
+#                m4 = self.current_model_matrix.opengl_matrix()
+#                GL.glUniformMatrix4fv(p.uniform_id('model_matrix'), 1, False, m4)
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
 
@@ -293,6 +296,7 @@ class Render:
         # Transform from camera coordinates to shadow map texture coordinates.
         from numpy import array, float32
         self._multishadow_transforms = m = array([(tf*ctf).opengl_matrix() for tf in stf], float32)
+#        self._multishadow_transforms = m = array([tf.opengl_matrix() for tf in stf], float32)
         self._multishadow_depth = msd = shadow_depth
         p = self.current_shader_program
         if self.SHADER_MULTISHADOW & p.capabilities:

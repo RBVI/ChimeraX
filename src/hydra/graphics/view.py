@@ -393,6 +393,7 @@ class View:
         # TODO: Clear shadow cache whenever scene changes
         self._multishadow_transforms = mstf
         self._multishadow_depth = msd = 2*radius
+#        r.set_multishadow_transforms(mstf, None, msd)
         return mstf, msd      # Scene to shadow map texture coordinates
 
     def update_level_of_detail(self):
