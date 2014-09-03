@@ -11,6 +11,7 @@
 #include "tmpl/Atom.h"
 #include "tmpl/residues.h"
 #include "MolResId.h"
+#include "connect.h"
 
 namespace atomstruct {
 
@@ -149,7 +150,7 @@ connect_atom_by_distance(Atom* a, const Residue::Atoms& atoms,
 //    Connect atoms in residue by distance.  This is an n-squared algorithm.
 //    Takes into account alternate atom locations.  'conect_atoms' are
 //    atoms whose connectivity is already known.
-static void
+void
 connect_residue_by_distance(Residue* r, std::set<Atom *>* conect_atoms)
 {
     // connect up atoms in residue by distance
