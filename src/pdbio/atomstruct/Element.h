@@ -67,6 +67,12 @@ public:
     bool    operator<=(const Element &a) const { return as <= a.as; }
     bool    operator>(const Element &a) const { return as > a.as; }
     bool    operator>=(const Element &a) const { return as >= a.as; }
+    bool    operator==(AS sym) const { return as == sym; }
+    bool    operator!=(AS sym) const { return as != sym; }
+    bool    operator<(AS sym) const { return as < sym; }
+    bool    operator<=(AS sym) const { return as <= sym; }
+    bool    operator>(AS sym) const { return as > sym; }
+    bool    operator>=(AS sym) const { return as >= sym; }
 };
 
 inline std::ostream &

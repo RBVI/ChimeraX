@@ -185,11 +185,11 @@ AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info) const
     if (ci == nullptr) {
         auto polys = polymers();
         // gather chain IDs and, if not unique, use numbers instead
-        std::vector<const std::string> ids;
+        std::vector<std::string> ids;
         for (auto pi = polys.begin(); pi != polys.end(); ++pi) {
             ids.push_back((*(*pi).begin())->chain_id());
         }
-        std::set<const std::string> unique_ids(ids.begin(), ids.end());
+        std::set<std::string> unique_ids(ids.begin(), ids.end());
         if (ids.size() != unique_ids.size()) {
             ids.clear();
             for (int i = 1; i <= polys.size(); ++i) {
