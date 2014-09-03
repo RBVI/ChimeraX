@@ -15,7 +15,7 @@ install: all dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 dir:
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
 $(SUBDIR_INSTALL): dir
 
