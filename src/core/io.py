@@ -34,7 +34,6 @@ __all__ = [
 	'dangerous',
 	'category',
 	'format_names',
-	'fetch_format',
 	'categorized_formats',
 	'deduce_format',
 	'compression_suffixes',
@@ -318,11 +317,6 @@ def categorized_formats(open=True, save=False):
 		names = result.setdefault(info.category, [])
 		names.append(name)
 	return result
-
-def initialize_formats():
-	# TODO: have set of directories to look for formats in?
-	from . import formats
-	formats.initialize()
 
 def deduce_format(filename, default_name=None, prefixable=True):
 	"""Figure out named format associated with filename

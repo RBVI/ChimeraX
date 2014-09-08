@@ -1,3 +1,3 @@
-.. automodule:: chimera2.io
+.. automodule:: chimera.core.cli
     :members:
     :show-inheritance:

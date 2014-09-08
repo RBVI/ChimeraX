@@ -2,74 +2,56 @@
 Developer's Manual
 ******************
 
-Overview
-========
+This manual covers the :ref:`core`, the associated tools and libraries,
+and the internals of application(s) built upon them.
+The actual applications are documented in the
+the :doc:`User Manual </user/index>`.
 
-There are three major components of Chimera 2:
-the :doc:`user interface </user/index>`,
-the :doc:`data interface <data_interface>`,
-and the :doc:`tool interface <tool_interface>`.
-The user interface provides access to the tools that manipulate the data
-and is documented in the User's Manual.
-This manual documents the data interface, the tool interface,
-and various other useful Python modules.
+This code is free for non-commerical use, see the
+:ref:`license <../../license>` for details.
 
 The various interfaces are implemented in `Python <http://www.python.org/>`_
 with occasional help from C or C++ code.
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   data_interface.rst
+    conventions.rst
 
-   tool_interface.rst
+.. _core:
 
-   webapp.rst
+Chimera Core
+============
 
-   conventions.rst
+There are three major components of the Chimera core:
+the :doc:`user interface <user_interface>` modules,
+the :doc:`data interface <data_interface>` modules,
+and the :doc:`tool interface <tool_interface>` modules.
+The user interface modules support the GUI and the command line interfaces,
+the data interface modules support the native data types,
+and the tool interface modules support common functionality
+and tool registration.
 
+In additons to the core functionality,
+there are the :doc:`tools` that use the core,
+and the :doc:`applications` that bundle the functionality.
 
-Hydra Modules
-=============
+.. note::
 
-.. toctree::
-   :maxdepth: 2
+    The following modules are in the process of being reorganzied.
 
-   file_io.rst
-
-   geometry.rst
-
-   graphics.rst
-
-   map.rst
-
-   molecule.rst
-
-   session.rst
-
-   surface.rst
-
-   ui.rst
-
-
-Miscellaneous Modules
-=====================
-
-.. toctree::
-   :maxdepth: 2
-
-   math3d.rst
-
-   triggerset.rst
-
-   pdbio.rst
-
-   structaccess.rst
-
-C++ APIs
+Contents
 ========
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   connectivity.rst
+    user_interface.rst
+
+    data_interface.rst
+
+    tool_interface.rst
+
+    tools.rst
+
+    applications.rst

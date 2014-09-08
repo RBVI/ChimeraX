@@ -76,8 +76,13 @@ uniform sampler2DShadow shadow_map;
 #endif
 
 #ifdef USE_MULTISHADOW
+// in vec3 vscene;
+// in vec3 nscene;
 uniform sampler2DShadow multishadow_map;
-uniform mat4 shadow_transforms[42];
+uniform shadow_matrix_block 
+{
+  mat4 shadow_transforms[256];
+};
 uniform	int shadow_count;
 uniform float shadow_depth;
 #endif
@@ -145,8 +150,10 @@ void main (void)
     {
       mat4 stf = shadow_transforms[i];
       vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+//      vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
       vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
       float diffuse = max(-dot(N1,light_direction),0.0);
+//      float diffuse = max(-dot(nscene,light_direction),0.0);
       mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
     }
   mshadow /= 0.25*shadow_count;

@@ -90,26 +90,22 @@ class View:
             return
         self._shadows = onoff
         r = self.render
-        dc = r.default_capabilities
         if onoff:
-            dc.add(r.SHADER_SHADOWS)
+            r.enable_capabilities |= r.SHADER_SHADOWS
         else:
-            dc.remove(r.SHADER_SHADOWS)
-        for d in self.session.all_drawings():
-            d.clear_cached_shader()
+            r.enable_capabilities &= ~r.SHADER_SHADOWS
         self.redraw_needed = True
     shadows = property(get_shadows, set_shadows)
 
     def set_multishadow(self, n):
         self.multishadow = n
         r = self.render
-        dc = r.default_capabilities
         if n > 0:
-            dc.add(r.SHADER_MULTISHADOW)
+            r.enable_capabilities |= r.SHADER_MULTISHADOW
         else:
-            dc.discard(r.SHADER_MULTISHADOW)
-        for d in self.session.all_drawings():
-            d.clear_cached_shader()
+            # TODO: free multishadow framebuffer.
+            self._multishadow_transforms = []
+            r.enable_capabilities &= ~r.SHADER_MULTISHADOW
         self.redraw_needed = True
         
     def set_camera_mode(self, mode):
@@ -220,9 +216,14 @@ class View:
         if not draw:
             return False
 
+        if s.redraw_needed and s.shape_changed and self.multishadow > 0:
+            # Force recomputation of ambient shadows since shape changed.
+            self._multishadow_transforms = []
+
         self.redraw_needed = False
         c.redraw_needed = False
         s.redraw_needed = False
+        s.shape_changed = False
         self.draw_graphics()
         for cb in self.rendered_callbacks:
             cb()
@@ -392,6 +393,7 @@ class View:
         # TODO: Clear shadow cache whenever scene changes
         self._multishadow_transforms = mstf
         self._multishadow_depth = msd = 2*radius
+#        r.set_multishadow_transforms(mstf, None, msd)
         return mstf, msd      # Scene to shadow map texture coordinates
 
     def update_level_of_detail(self):
