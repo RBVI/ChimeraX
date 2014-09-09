@@ -3,7 +3,12 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/ui
 
-PYSRCS = __init__.py filedialog.py graphicswindow.py gui.py modelpanel.py mousemodes.py qt.py scenegui.py
+SUBDIRS = qt wx
+
+PYSRCS = __init__.py log.py tool_api.py window_size.py
+
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
 ICONS = icons
 

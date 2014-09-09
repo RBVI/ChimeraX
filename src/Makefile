@@ -6,11 +6,12 @@ NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= chimera2 hydra llgr readcif pdbio wsgi
+SUBDIRS	+= core tools apps
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-qt-app.install: llgr.install chimera2.install
-hydra.install: pdbio.install
-pdbio.install: readcif.install
+all:
+
+tools.install: core.install
+apps.install: tools.install

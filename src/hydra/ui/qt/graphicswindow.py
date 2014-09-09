@@ -1,5 +1,5 @@
 from .qt import QtCore, QtGui, QtOpenGL, QtWidgets
-from ..graphics import View
+from ...graphics import View
 
 class Graphics_Window(View, QtGui.QWindow):
     '''
@@ -43,7 +43,7 @@ class Graphics_Window(View, QtGui.QWindow):
         # Qt 5.2 has touch events disabled because it slows down scrolling.  Reenable them.
         import sys
         if sys.platform == 'darwin':
-            from .. import mac_os_cpp
+            from ... import mac_os_cpp
             mac_os_cpp.accept_touch_events(int(self.winId()))
 
     # QWindow method
@@ -62,7 +62,7 @@ class Graphics_Window(View, QtGui.QWindow):
 #
         self.window_size = w, h
         if not self.opengl_context is None:
-            from .. import graphics
+            from ... import graphics
             fb = graphics.default_framebuffer()
             fb.width, fb.height = w,h
             fb.viewport = (0,0,w,h)

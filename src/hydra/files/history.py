@@ -1,3 +1,4 @@
+# vim: set expandtab ts=2 sw=2:
 # Keep list of recently accessed files and thumbnail images.
 class File_History:
 
@@ -250,11 +251,14 @@ def unique_file_name(name, directory):
 
 def user_settings_path(filename = None, directory = False):
   from .. import ui
-  data_dir = ui.user_settings_directory()
   from os.path import isdir, join
-  if not isdir(data_dir):
-    return None
-  c2_dir = join(data_dir, 'Hydra')
+  if hasattr(ui, 'user_settings_path'):
+    c2_dir = ui.user_settings_path()
+  else:
+    data_dir = ui.user_settings_directory()
+    if not isdir(data_dir):
+      return None
+    c2_dir = join(data_dir, 'Hydra')
   if not isdir(c2_dir):
     import os
     os.mkdir(c2_dir)

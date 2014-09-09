@@ -1,4 +1,4 @@
-/*sp;
+/*
  * Copyright (c) 2013 The Regents of the University of California.
  * All rights reserved.
  *
@@ -382,7 +382,8 @@ GroupInfo.prototype.optimize = function ()
 		oi.vao = vao_ext.createVertexArrayOES();
 		vao_ext.bindVertexArrayOES(oi.vao);
 
-		_.each(proto.ais, function (ai) { if (!ai._is_array || oi.incomplete)
+		_.each(proto.ais, function (ai) {
+			if (!ai._is_array || oi.incomplete)
 				return;
 			var sv = sp.attributes[ai.name];
 			bi = all_buffers[ai.data_id];
@@ -461,62 +462,64 @@ GroupInfo.prototype.optimize = function ()
 				}
 			}
 		}
-		if (!oi.incomplete)
-			this_gi.ois.push(oi);
+		this_gi.ois.push(oi);
 
-		if (pick_sp) {
-			// initialize pick_vao
-			vao_ext.bindVertexArrayOES(oi.pick_vao);
-			// create array of pick_ids per instance
-			var pick_ids = new Uint32Array(ois.length);
-			for (var i = 0; i < ois.length; ++i) {
-				pick_ids[i] = ois[i].object_id;
-			}
-			var pick_buffer = gl.createBuffer();
-			this_gi.buffers.push(pick_buffer);
-			gl.bindBuffer(gl.ARRAY_BUFFER, pick_buffer);
-			gl.bufferData(gl.ARRAY_BUFFER, pick_ids, gl.STATIC_DRAW);
-			// setup pickId array
-			var pick_bi = new BufferInfo(pick_buffer, llgr.ARRAY);
-			ai = new llgr.AttributeInfo(null, null, 0, 0,
-					4, llgr.UByte, true);
-			setup_array_attribute(pick_bi, ai, pick_sv.location, 1);
-			inst_ext.vertexAttribDivisorANGLE(pick_sv.location, 1);
+		if (pick_sp === null)
+			return;
 
-			_.each(proto.ais, function (ai) {
-				if (!ai._is_array || oi.incomplete)
-					return;
-				var sv = pick_sp.attributes[ai.name];
-				if (sv === undefined)
-					return;
-				bi = all_buffers[ai.data_id];
-				var num_locations = sv.location_info()[0];
-				setup_array_attribute(bi, ai, sv.location,
+		// initialize pick_vao
+		vao_ext.bindVertexArrayOES(oi.pick_vao);
+		// create array of pick_ids per instance
+		var pick_ids = new Uint32Array(ois.length);
+		for (var i = 0; i < ois.length; ++i) {
+			pick_ids[i] = ois[i].object_id;
+		}
+		var pick_buffer = gl.createBuffer();
+		this_gi.buffers.push(pick_buffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, pick_buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, pick_ids, gl.STATIC_DRAW);
+		// setup pickId array
+		var pick_bi = new BufferInfo(pick_buffer, llgr.ARRAY);
+		ai = new llgr.AttributeInfo(null, null, 0, 0,
+				4, llgr.UByte, true);
+		setup_array_attribute(pick_bi, ai, pick_sv.location, 1);
+		inst_ext.vertexAttribDivisorANGLE(pick_sv.location, 1);
+
+		_.each(proto.ais, function (ai) {
+			if (!ai._is_array || oi.incomplete)
+				return;
+			var sv = pick_sp.attributes[ai.name];
+			if (sv === undefined)
+				return;
+			bi = all_buffers[ai.data_id];
+			var num_locations = sv.location_info()[0];
+			setup_array_attribute(bi, ai, sv.location,
 								num_locations);
-			});
-			if (proto.index_buffer_id) {
-				ibi = all_buffers[proto.index_buffer_id];
-				if (ibi !== undefined) {
-					gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibi.buffer);
-				}
+		});
+		if (proto.index_buffer_id) {
+			ibi = all_buffers[proto.index_buffer_id];
+			if (ibi !== undefined) {
+				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,
+					      			ibi.buffer);
 			}
-			offset = 0;
-			for (i = 0; i < sizes.length; ++i) {
-				size = sizes[i];
-				si = proto.singleton_cache[i];
-				if (!si.pick_location) {
-					offset += size;
-					continue;
-				}
-				ai = new llgr.AttributeInfo(null, null, offset, stride,
-					si.num_elements, si.data_type,
-					si.normalized);
+		}
+		offset = 0;
+		for (i = 0; i < sizes.length; ++i) {
+			size = sizes[i];
+			si = proto.singleton_cache[i];
+			if (!si.pick_location) {
 				offset += size;
-				setup_array_attribute(si_bi, ai,
-					si.pick_location, si.num_locations);
-				for (j = 0; j != si.num_locations; ++j) {
-					inst_ext.vertexAttribDivisorANGLE(si.base_location + j, 1);
-				}
+				continue;
+			}
+			ai = new llgr.AttributeInfo(null, null, offset, stride,
+				si.num_elements, si.data_type,
+				si.normalized);
+			offset += size;
+			setup_array_attribute(si_bi, ai,
+				si.pick_location, si.num_locations);
+			for (j = 0; j != si.num_locations; ++j) {
+				inst_ext.vertexAttribDivisorANGLE(
+						  si.base_location + j, 1);
 			}
 		}
 	});
@@ -727,6 +730,11 @@ function ObjectInfo(object_id, program_id, matrix_id, attrinfo, primitive, first
 
 ObjectInfo.prototype.close = function ()
 {
+	_.each(oi.groups, function (gi) {
+		if (gi.optimized)
+			gi.reset_optimization();
+	});
+	oi.groups.clear()
 	if (this.vao) {
 		vao_ext.deleteVertexArrayOES(this.vao);
 		this.vao = null;
@@ -798,6 +806,10 @@ function check_attributes(obj_id, oi)
 			oi.incomplete = true;
 			return;
 		}
+		if (bi.data === null) {
+			ai._is_array = true;
+			continue;
+		}
 		var sv = sp.attributes[name];
 		var info = sv.location_info();
 		var pick_sv = undefined;
@@ -806,10 +818,6 @@ function check_attributes(obj_id, oi)
 		var pick_location = undefined;
 		if (pick_sv)
 			pick_location = pick_sv.location;
-		if (bi.data === null) {
-			ai._is_array = true;
-			continue;
-		}
 		if (sv.location === 0) {
 			console.log("warning: vertices must be in an array in object " + obj_id);
 			oi.incomplete = true;
@@ -1751,10 +1759,6 @@ llgr = {
 		var oi = all_objects[obj_id];
 		if (oi === undefined)
 			return;
-		_.each(oi.groups, function (gi) {
-			if (gi.optimized)
-				gi.reset_optimization();
-		});
 		oi.close();
 		delete all_objects[obj_id];
 	},

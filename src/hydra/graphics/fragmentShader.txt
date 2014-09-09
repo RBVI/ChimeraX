@@ -75,6 +75,18 @@ in vec3 shadow_tex_coord;
 uniform sampler2DShadow shadow_map;
 #endif
 
+#ifdef USE_MULTISHADOW
+// in vec3 vscene;
+// in vec3 nscene;
+uniform sampler2DShadow multishadow_map;
+uniform shadow_matrix_block 
+{
+  mat4 shadow_transforms[256];
+};
+uniform	int shadow_count;
+uniform float shadow_depth;
+#endif
+
 #ifdef USE_RADIAL_WARP
 uniform vec2 warp_center;
 uniform vec4 radial_warp;
@@ -113,6 +125,9 @@ void main (void)
   // Unit normal, with two-sided lighting.
   vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
 
+  // Unit vector from camera to surface point.
+  vec3 v1 = normalize(v);
+
 #ifdef USE_SHADOWS
   float shadow = texture(shadow_map, shadow_tex_coord);
 #else
@@ -125,15 +140,35 @@ void main (void)
                              + fill_light_diffuse_color * max(-dot(N1,fill_light_direction),0.0));
 
   // specular color, reflection of incoming light towards the camera.
-  vec3 v1 = normalize(v);			        // Unit vector from camera to surface point
   vec3 R = normalize(reflect(key_light_direction,N1)); 
   vec3 Ispec = key_light_specular_color * pow(max(-dot(R,v1),0.0), key_light_specular_exponent) * shadow;
+
+#ifdef USE_MULTISHADOW
+
+  float mshadow = 0;
+  for (int i = 0 ; i < shadow_count ; ++i)
+    {
+      mat4 stf = shadow_transforms[i];
+      vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+//      vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
+      vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+      float diffuse = max(-dot(N1,light_direction),0.0);
+//      float diffuse = max(-dot(nscene,light_direction),0.0);
+      mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
+    }
+  mshadow /= 0.25*shadow_count;
+  vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
+
+#else
 
   // ambient color, uniform intensity light from all surfaces.
   vec3 Iamb = fcolor.rgb * ambient_color;
 
+#endif
+
   // total color
   vec3 Ifrag = Iamb + Idiff + Ispec;
+
 
 #ifdef USE_DEPTH_CUE
   float dim = max(depth_cue_darkest, 1.0 / max(1.0, dot(v1,v)/depth_cue_distance));

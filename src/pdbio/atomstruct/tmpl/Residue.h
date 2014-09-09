@@ -15,18 +15,12 @@ class Molecule;
 class ATOMSTRUCT_IMEX Residue {
     friend class Molecule;
     void    operator=(const Residue &);    // disable
-        Residue(const Residue &);    // disable
-        ~Residue();
+    Residue(const Residue &);    // disable
+    ~Residue();
 public:
     void    add_atom(Atom *element);
-    typedef std::map<std::string, Atom *> AtomsMap;
     Atom    *find_atom(const std::string &) const;
-public:
-    inline const std::string    name() const { return _name; }
-private:
-    std::string    _name;
-    AtomsMap    _atoms;
-public:
+
     // return atoms that received assignments from the template
     std::vector<Atom *>    template_assign(
                   void (*assign_func)(Atom *, const char *),
@@ -45,18 +39,29 @@ public:
                   const char *template_dir,
                   const char *extension
                 ) const;
-private:
-    Atom    *_chief, *_link;
-    std::string    _description;
-public:
+
+    const std::string    name() const { return _name; }
     Atom    *chief() const { return _chief; }
     void    chief(Atom *a) { _chief = a; }
     Atom    *link() const { return _link; }
     void    link(Atom *a) { _link = a; }
     std::string    description() const { return _description; }
-    void        description(const std::string &d) { _description = d; }
+    void    description(const std::string &d) { _description = d; }
+
+    // alternative to chief/link for mmCIF templates
+    typedef std::vector<Atom *> AtomList;
+    void    add_link_atom(Atom *);
+    const AtomList link_atoms() const { return _link_atoms; }
+
+    typedef std::map<std::string, Atom *> AtomsMap;
+    const AtomsMap &atoms_map() { return _atoms; }
 private:
     Residue(Molecule *, const char *t);
+    std::string _name;
+    AtomsMap    _atoms;
+    Atom        *_chief, *_link;
+    std::string _description;
+    AtomList    _link_atoms;
 };
 
 }  // namespace tmpl

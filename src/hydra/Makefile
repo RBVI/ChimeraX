@@ -30,10 +30,13 @@ ifeq ($(OS),Darwin)
   QT_PLUGINS = plugins/platforms/libqcocoa.dylib \
 		plugins/imageformats/libqjpeg.dylib \
 		plugins/accessible/libqtaccessiblewidgets.dylib
-  PYOPENGL_VERSION = 3.1.0a1
+  MAC_DEPLOY = macosx-$(MACOSX_DEPLOYMENT_TARGET)-x86_64
+#  PYOPENGL_VERSION = 3.1.0a1
+  PYOPENGL_VERSION = 3.1.0
   PYOPENGL_EGG = PyOpenGL-$(PYOPENGL_VERSION)-py$(PYTHON_VERSION).egg
+  PYOPENGL_ACCELERATE_EGG = PyOpenGL_accelerate-$(PYOPENGL_VERSION)-py$(PYTHON_VERSION)-$(MAC_DEPLOY).egg
   NUMEXPR_VERSION = 2.3.1
-  NUMEXPR_EGG = numexpr-$(NUMEXPR_VERSION)-py$(PYTHON_VERSION)-macosx-$(MACOSX_DEPLOYMENT_TARGET)-x86_64.egg
+  NUMEXPR_EGG = numexpr-$(NUMEXPR_VERSION)-py$(PYTHON_VERSION)-$(MAC_DEPLOY).egg
   PYCOLLADA_VERSION = 0.4
   PYCOLLADA_EGG = pycollada-$(PYCOLLADA_VERSION)-py$(PYTHON_VERSION).egg
   DATEUTIL_VERSION = 2.2
@@ -41,6 +44,8 @@ ifeq ($(OS),Darwin)
   HDF_VERSION = 5.8
   SIX_VERSION = 1.6.1
   SIX_EGG = six-$(SIX_VERSION)-py$(PYTHON_VERSION).egg
+  APPDIRS_VERSION = 1.4.0
+  APPDIRS_EGG = appdirs-$(APPDIRS_VERSION)-py$(PYTHON_VERSION).egg
 endif
 
 # All needed subdirectories must be set by now.
@@ -76,9 +81,9 @@ $(APP) update_prereqs:
 
 # Copy only the Python packages needed for distribution.
 	cd $(libdir)/python$(PYTHON_VERSION)/site-packages ; \
-	  $(RSYNC) $(DATEUTIL_EGG)/dateutil LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
-	           $(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL PyQt5 sip.so $(SIX_EGG)/six.py \
-		   tables webcolors.py $(APP_PY_SITE)
+	$(RSYNC) $(APPDIRS_EGG) $(DATEUTIL_EGG)/dateutil easy-install.pth LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
+		$(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL $(PYOPENGL_ACCELERATE_EGG)/OpenGL_accelerate \
+		PyQt5 sip.so $(SIX_EGG)/six.py tables webcolors.py wx $(APP_PY_SITE)
 
 # Copy Qt frameworks into PyQt5 python module
 	-mkdir $(APP_PYQT)/frameworks

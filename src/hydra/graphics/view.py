@@ -20,8 +20,9 @@ class View:
         self._shadows = False
         self.shadowMapSize = 2048
         self.multishadow = 0                    # Number of shadows
-        self.multishadow_framebuffer = None
-        self.multishadow_directions = None
+        self._multishadow_directions = None
+        self._multishadow_transforms = []
+        self._multishadow_depth = None
         self.silhouettes = False
         self.silhouette_thickness = 1           # pixels
         self.silhouette_color = (0,0,0,1)       # black
@@ -89,16 +90,24 @@ class View:
             return
         self._shadows = onoff
         r = self.render
-        dc = r.default_capabilities
         if onoff:
-            dc.add(r.SHADER_SHADOWS)
+            r.enable_capabilities |= r.SHADER_SHADOWS
         else:
-            dc.remove(r.SHADER_SHADOWS)
-        for d in self.session.all_drawings():
-            d.clear_cached_shader()
+            r.enable_capabilities &= ~r.SHADER_SHADOWS
         self.redraw_needed = True
     shadows = property(get_shadows, set_shadows)
 
+    def set_multishadow(self, n):
+        self.multishadow = n
+        r = self.render
+        if n > 0:
+            r.enable_capabilities |= r.SHADER_MULTISHADOW
+        else:
+            # TODO: free multishadow framebuffer.
+            self._multishadow_transforms = []
+            r.enable_capabilities &= ~r.SHADER_MULTISHADOW
+        self.redraw_needed = True
+        
     def set_camera_mode(self, mode):
         '''
         Camera mode can be 'mono', 'stereo' for sequential stereo, or
@@ -207,9 +216,14 @@ class View:
         if not draw:
             return False
 
+        if s.redraw_needed and s.shape_changed and self.multishadow > 0:
+            # Force recomputation of ambient shadows since shape changed.
+            self._multishadow_transforms = []
+
         self.redraw_needed = False
         c.redraw_needed = False
         s.redraw_needed = False
+        s.shape_changed = False
         self.draw_graphics()
         for cb in self.rendered_callbacks:
             cb()
@@ -235,40 +249,9 @@ class View:
         '''Add a callback that was added with add_rendered_frame_callback().'''
         self.rendered_callbacks.remove(cb)
 
-    def draw_scene(self, camera = None, models = None):
+    def multishadow_directions(self):
 
-        if self.multishadow == 0:
-            self.draw_scene2(camera, models)
-            return
-
-        # Render single shadow images off-screen then average them.
-        r = self.render
-        w, h = r.render_size()
-        fb = self.multishadow_framebuffer
-        if fb is None or w != fb.width or h != fb.height:
-            from .. import graphics
-            t = graphics.Texture()
-            t.initialize_rgba((w,h))
-            fb = graphics.Framebuffer(w,h, color_texture = t)
-            if not fb.valid():
-                raise SystemError('draw_scene_ambient() window size exceeds framebuffer limits')
-            self.multishadow_framebuffer = fb
-            from . import drawing
-            self.multishadow_drawing = vd = drawing.texture_drawing(fb.color_texture)
-            vd.opaque_texture = True
-
-        r.draw_background()
-        r.push_framebuffer(fb)
-
-        # Set diffuse only lighting with no fill light (for black shadows).
-        l = r.lighting
-        l.fill_light_color = (0,0,0)
-        l.ambient_light_color = (0,0,0)
-        m = r.material
-        m.specular_reflectivity = 0
-        m.diffuse_reflectivity = 1
-
-        directions = self.multishadow_directions
+        directions = self._multishadow_directions
         if directions is None or len(directions) != self.multishadow:
             from ..surface import shapes
             v = self.multishadow    # requested number of directions
@@ -279,28 +262,10 @@ class View:
             directions = array(dir, float32)
             from ..geometry import vector
             vector.normalize_vectors(directions)
-            self.multishadow_directions = directions
-        n = len(directions)
+            self._multishadow_directions = directions
+        return directions
 
-        c = camera if camera else self.camera
-        from . import drawing
-        vd = self.multishadow_drawing
-        for dn,d in enumerate(directions):
-            l.key_light_direction = d
-            if r.current_shader_program:
-                r.set_shader_lighting_parameters()
-            self.draw_scene2(c, models)
-            if dn >= 0:
-                r.pop_framebuffer()
-                r.blend_add(4/n)
-#                drawing.draw_texture(fb.color_texture, r)
-                drawing.draw_overlays([vd], r)
-                r.enable_blending(False)
-                r.push_framebuffer(fb)
-
-        r.pop_framebuffer()
-
-    def draw_scene2(self, camera = None, models = None):
+    def draw_scene(self, camera = None, models = None):
 
         if camera is None:
             camera = self.camera
@@ -308,10 +273,14 @@ class View:
         s = self.session
         mdraw = [m for m in s.top_level_models() if m.display] if models is None else models
 
-        if self.shadows:
-            stf = self.use_shadow_map(camera, models)
-
         r = self.render
+        if self.shadows:
+            kl = r.lighting.key_light_direction                     # Light direction in camera coords
+            lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
+            stf = self.use_shadow_map(lightdir, models)
+        if self.multishadow > 0:
+            mstf, msdepth = self.use_multishadow_map(self.multishadow_directions(), models)
+
         r.set_background_color(self.background_rgba)
 
         if self.update_lighting:
@@ -334,8 +303,9 @@ class View:
             if mdraw:
                 perspective_near_far_ratio = self.update_projection(vnum, camera = camera)
                 if self.shadows:
-                    # Shadow transform is from camera to shadow map texture coords.
-                    r.set_shadow_transform(stf * camera.view())
+                    r.set_shadow_transform(stf*camera.view())
+                if self.multishadow > 0:
+                    r.set_multishadow_transforms(mstf, camera.view(), msdepth)
                 cvinv = camera.view_inverse(vnum)
                 graphics.draw_drawings(r, cvinv, mdraw)
                 if selected:
@@ -356,30 +326,75 @@ class View:
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
 
-    def use_shadow_map(self, camera, models):
+    def use_shadow_map(self, light_direction, models):
+
+        r = self.render
+
         # Compute model bounds so shadow map can cover all models.
-        if models is None:
-            s = self.session
-            center, radius = s.bounds_center_and_width()
-            models = [m for m in s.top_level_models() if m.display]
-        else:
-            from ..geometry import bounds
-            b = bounds.union_bounds(m.bounds() for m in models)
-            center, radius = bounds.bounds_center_and_radius(b)
+        center, radius, models = model_bounds(models, self.session)
         if center is None:
-            return
+            return None
 
         # Compute shadow map depth texture
-        r = self.render
-        lvinv, stf = r.start_rendering_shadowmap(center, radius, camera.view(), size = self.shadowMapSize)
+        size = self.shadowMapSize
+        r.start_rendering_shadowmap(center, radius, size)
+        r.draw_background()             # Clear shadow depth buffer
+
+        # Compute light view and scene to shadow map transforms
+        lvinv, stf = r.shadow_transforms(light_direction, center, radius)
         from .. import graphics
         graphics.draw_drawings(r, lvinv, models)
-        shadow_map = r.finish_rendering_shadowmap()
+
+        shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
         # Bind shadow map for subsequent rendering of shadows.
         shadow_map.bind_texture(r.shadow_texture_unit)
 
         return stf      # Scene to shadow map texture coordinates
+
+    def use_multishadow_map(self, light_directions, models):
+
+        r = self.render
+        if len(self._multishadow_transforms) == len(light_directions):
+            # Bind shadow map for subsequent rendering of shadows.
+            dt = r.multishadow_map_framebuffer.depth_texture
+            dt.bind_texture(r.multishadow_texture_unit)
+            return self._multishadow_transforms, self._multishadow_depth
+
+        # Compute model bounds so shadow map can cover all models.
+        center, radius, models = model_bounds(models, self.session)
+        if center is None:
+            return None, None
+
+        # Compute shadow map depth texture
+        size = self.shadowMapSize
+        r.start_rendering_multishadowmap(center, radius, size)
+        r.draw_background()             # Clear shadow depth buffer
+
+        # TODO: Don't run multishadow fragment shader when computing shadow map -- very expensive.
+        mstf = []
+        nl = len(light_directions)
+        from ..graphics import draw_drawings
+        from math import ceil, sqrt
+        d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
+        s = size//d                 # Subtexture size.
+        for l in range(nl):
+            x, y = (l%d), (l//d)
+            r.set_viewport(x*s, y*s, s, s)
+            lvinv, tf = r.shadow_transforms(light_directions[l], center, radius)
+            mstf.append(tf)
+            draw_drawings(r, lvinv, models)
+
+        shadow_map = r.finish_rendering_multishadowmap()     # Depth texture
+
+        # Bind shadow map for subsequent rendering of shadows.
+        shadow_map.bind_texture(r.multishadow_texture_unit)
+
+        # TODO: Clear shadow cache whenever scene changes
+        self._multishadow_transforms = mstf
+        self._multishadow_depth = msd = 2*radius
+#        r.set_multishadow_transforms(mstf, None, msd)
+        return mstf, msd      # Scene to shadow map texture coordinates
 
     def update_level_of_detail(self):
         # Level of detail updating.
@@ -531,3 +546,14 @@ class View:
         if p is None:
             p = self.center_of_rotation
         return self.camera.pixel_size(p, self.window_size)
+
+def model_bounds(models, session):
+    if models is None:
+        s = session
+        center, radius = s.bounds_center_and_width()
+        models = [m for m in s.top_level_models() if m.display]
+    else:
+        from ..geometry import bounds
+        b = bounds.union_bounds(m.bounds() for m in models)
+        center, radius = bounds.bounds_center_and_radius(b)
+    return center, radius, models

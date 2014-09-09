@@ -10,26 +10,29 @@ class Session(Models):
 
         Models.__init__(self)		# Manages list of open models
 
+        from . import ui
+        ui.choose_window_toolkit()
+
         self.quit_callbacks = []        # Callbacks to run before quitting
 
         self.application = None
         'Qt application object, a QApplication.'
 
         self.main_window = None
-        'Main user interface window, a :py:class:`~.ui.gui.MainWindow.`'
+        'Main user interface window, a :py:class:`~.ui.qt.gui.Main_Window.`'
 
         self.view = None
-        'Main window view, a :py:class:`~.ui.view.View`'
+        'Main window view, a :py:class:`~.graphics.view.View`'
 
         from .commands import commands, shortcuts
         self.commands = commands.Commands(self)
         'Available commands, a :py:class:`~.commands.commands.Commands`'
 
         self.keyboard_shortcuts = shortcuts.Keyboard_Shortcuts(self) 
-        'Available keyboard shortcuts, a :py:class:`~.ui.shortcuts.Keyboard_Shortcuts`'
+        'Available keyboard shortcuts, a :py:class:`~.command.shortcuts.Keyboard_Shortcuts`'
 
         self.log = None
-        'Command, error, info log, :py:class:`~.ui.gui.Log`'
+        'Command, error, info log, :py:class:`~.ui.qt.gui.Log`'
 
         self.file_readers = None
         'Table of file types that can be read, used by :py:func:`~.files.opensave.file_readers`'
@@ -69,12 +72,12 @@ class Session(Models):
 
     def start(self):
 
-        from .ui import gui
+        from . import ui
         import sys
-        self.application = app = gui.Hydra_App(sys.argv, self)
+        self.application = app = ui.Hydra_App(sys.argv, self)
         self.main_window = mw = app.main_window
         self.view = mw.view
-        self.log = log = gui.Log(mw)
+        self.log = log = ui.Log(mw)
         from .commands import commands, shortcuts
         commands.register_commands(self.commands)
         shortcuts.register_shortcuts(self.keyboard_shortcuts)
@@ -93,7 +96,7 @@ class Session(Models):
 
         mw.show()
 
-        status = gui.start_event_loop(app)
+        status = ui.start_event_loop(app)
 
         for cb in self.quit_callbacks:
             cb()

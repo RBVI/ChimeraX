@@ -331,6 +331,13 @@ C++ API
 
            Only valid within a :cpp:type:`ParseCategory` callback.
 
+        .. cpp:function:: const std::string& block_code()
+
+           :return: the data block code that is currently being parsed
+
+           Only valid within a :cpp:type:`ParseCategory` callback
+           and :cpp:func:`finished_parse`.
+
         .. cpp:function:: const StringVector& tags()
 
            :return: the set of column tags for the current category

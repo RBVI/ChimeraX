@@ -37,6 +37,7 @@ public:
     Residue    *find_residue(const std::string &) const;
     void        set_active_coord_set(CoordSet *cs);
     CoordSet    *active_coord_set() const { return _active_cs; }
+    const Residues &residues_map() { return _residues; }
 private:
     CoordSet    *_active_cs;
 public:

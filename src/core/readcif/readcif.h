@@ -146,7 +146,7 @@ public:
 	// Indicate that CIF file follows the PDBx/mmCIF style guide
 	// with lowercase keywords and tags at beginning of lines
 	bool PDB_style() const { return stylized; }
-	void set_PDB_style(bool stylized) { stylized = stylized; }
+	void set_PDB_style(bool stylized) { this->stylized = stylized; }
 
 	// Indicate that the next CIF table uses PDBx/mmCIF style
 	// fixed column widths
@@ -177,6 +177,9 @@ public:
 
 	// Return current category.
 	const std::string& category();
+
+	// Return current block code
+	const std::string& block_code();
 
 	// Return current category column tags.
 	const StringVector& tags();
@@ -277,6 +280,12 @@ inline const std::string&
 CIFFile::category()
 {
 	return current_category;
+}
+
+inline const std::string&
+CIFFile::block_code()
+{
+	return current_data_block;
 }
 
 inline const StringVector&

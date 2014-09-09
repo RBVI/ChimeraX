@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.20.1
+VERSION = 0.20.2
 DISTRIBUTION = Cython-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/Cython-$(VERSION)
 

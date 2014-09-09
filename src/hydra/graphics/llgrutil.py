@@ -145,17 +145,17 @@ def update_llgr_graphics(surface):
 def update_llgr_surface_piece(p):
     if p.triangles is None or hasattr(p, 'llgr_surface'):
       return
-    from ..ui import gui
+    from .. import ui
     if p.shift_and_scale is None:
       s = llgr_surface(p.vertices, p.normals, p.triangles, p.color_rgba, p.vertex_colors)
-      gui.show_info('Created llgr surface, %d triangles' % len(p.triangles))
+      ui.show_info('Created llgr surface, %d triangles' % len(p.triangles))
     else:
       # Assume geometry is a sphere
       xyz = p.shift_and_scale[:,:3]
       radii = p.shift_and_scale[:,3]
       rgba = p.instance_colors
       s = llgr_molecule(xyz, radii, rgba)
-      gui.show_info('created llgr molecule, %d atoms' % (len(xyz),))
+      ui.show_info('created llgr molecule, %d atoms' % (len(xyz),))
     p.llgr_surface = s
 
     # Make deleting surface piece delete llgr surface
@@ -182,5 +182,5 @@ def render(viewer):
                 m.update_graphics(v)
             update_llgr_graphics(m)
     llgr.render()
-#    from ..ui import gui
-#    gui.show_info('rendered %d models' % len(models))
+#    from .. import ui
+#    ui.show_info('rendered %d models' % len(models))

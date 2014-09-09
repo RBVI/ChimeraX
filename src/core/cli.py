@@ -1141,11 +1141,21 @@ if __name__ == '__main__':
 			('always', bool_arg),
 			('target', string_arg),
 			('names', List_of(string_arg)),
-			]
+		],
 	)
 	@register('test8', test8_info)
 	def test8(always=True, target="all", names=[None]):
 		print('test8 always, target, names:', always, target, names)
+	test9_info = CmdInfo(
+		optional=(
+			("target", string_arg),
+			("names", List_of(string_arg))
+		),
+		keyword=(("full", bool_arg),)
+	)
+	@register('test9', test9_info)
+	def test9(target="all", names=[None], full=False):
+		print('test9 full, target, names:', full, target, names)
 
 	tests = [
 		(True,	'test1 color red 12 3.5'),
@@ -1187,6 +1197,8 @@ if __name__ == '__main__':
 		(True,  'test8 always true tool'),
 		(True,  'test8 always tool'),
 		(True,  'test8 TRUE tool xyzzy, plugh '),
+		(True,  'test9 full true'),
+		(True,  'test9 names a,b,c d'),
 	]
 	cmd = Command()
 	for t in tests:

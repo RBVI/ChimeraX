@@ -1,4 +1,4 @@
 #!/bin/sh
 
 APP=`dirname "$0"`/../..
-exec $APP/Contents/MacOS/python -c "import hydra; hydra.Session().start()"
+exec $APP/Contents/MacOS/python -c "import hydra; hydra.Session().start()" $1
