@@ -78,7 +78,8 @@ class Drawing:
       self.redraw_needed()
     if key in self.effects_buffers:
       self.need_buffer_update = True
-      self.redraw_needed()
+      sc = key in ('vertices', '_displayed_positions', '_positions')
+      self.redraw_needed(shape_changed = sc)
     super(Drawing,self).__setattr__(key, value)
 
   # Display styles
@@ -109,13 +110,13 @@ class Drawing:
     cd = self._child_drawings
     cd.append(d)
     d.parent = self
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def remove_drawing(self, d):
     '''Delete a specified child drawing.'''
     self._child_drawings.remove(d)
     d.delete()
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def remove_drawings(self, drawings):
     '''Delete specified child drawings.'''
@@ -123,7 +124,7 @@ class Drawing:
     self._child_drawings = [d for d in self._child_drawings if not d in dset]
     for d in drawings:
       d.delete()
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def remove_all_drawings(self):
     '''Delete all child drawings.'''
@@ -143,7 +144,7 @@ class Drawing:
       self._displayed_positions = dp = empty((len(self._positions),),bool)
     dp[:] = display
     self._any_displayed_positions = display
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   display = property(get_display, set_display)
   '''Whether or not the surface is drawn.'''
 
@@ -152,7 +153,7 @@ class Drawing:
   def set_display_positions(self, position_mask):
     self._displayed_positions = position_mask
     self._any_displayed_positions = (position_mask.sum() > 0)
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   display_positions = property(get_display_positions, set_display_positions)
   '''Mask specifying which copies are displayed.'''
 
@@ -263,7 +264,7 @@ class Drawing:
   def set_position(self, pos):
     from ..geometry.place import Places
     self._positions = Places([pos])
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   position = property(get_position, set_position)
   '''Position and orientation of the surface in space.'''
 
@@ -273,7 +274,7 @@ class Drawing:
     self._positions = positions
     self._displayed_positions = None
     self._selected_positions = None
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   positions = property(get_positions, set_positions)
   '''
   Copies of the surface piece are placed using a 3 by 4 matrix with the first 3 columns
@@ -318,7 +319,7 @@ class Drawing:
   def set_geometry(self, g):
     self.vertices, self.triangles = g
     self.edge_mask = None
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   geometry = property(get_geometry, set_geometry)
   '''Geometry is the array of vertices and array of triangles.'''
 
@@ -352,7 +353,7 @@ class Drawing:
     if selected_only and not self.selected:
       return
 
-    if len(self.positions) == 1:
+    if len(self.positions) == 1 and self.positions.shift_and_scale_array() is None:
       p = self.position
       pp = place if p.is_identity() else place*p
     else:
@@ -416,22 +417,22 @@ class Drawing:
   def shader_options(self):
     sopt = self._shader_options
     if sopt is None:
-      sopt = {}
+      sopt = 0
       from .opengl import Render as r
-      if not self.use_lighting:
-        sopt[r.SHADER_LIGHTING] = False
-      if self.vertex_colors is None and len(self._colors) == 1:
-        sopt[r.SHADER_VERTEX_COLORS] = False
+      if self.use_lighting:
+        sopt |= r.SHADER_LIGHTING
+      if (not self.vertex_colors is None) or len(self._colors) > 1:
+        sopt |= r.SHADER_VERTEX_COLORS
       if not self.texture is None:
-        sopt[r.SHADER_TEXTURE_2D] = True
+        sopt |= r.SHADER_TEXTURE_2D
         if self.use_radial_warp:
-          sopt[r.SHADER_RADIAL_WARP] = True
+          sopt |= r.SHADER_RADIAL_WARP
       if not self.ambient_texture is None:
-        sopt[r.SHADER_TEXTURE_3D_AMBIENT] = True
+        sopt |= r.SHADER_TEXTURE_3D_AMBIENT
       if not self.positions.shift_and_scale_array() is None:
-        sopt[r.SHADER_SHIFT_AND_SCALE] = True
+        sopt |= r.SHADER_SHIFT_AND_SCALE
       elif len(self.positions) > 1:
-        sopt[r.SHADER_INSTANCING] = True
+        sopt |= r.SHADER_INSTANCING
       self._shader_options = sopt
     return sopt
 
@@ -460,12 +461,6 @@ class Drawing:
 
     if bchange:
       ds.reset_bindings = dss.reset_bindings = True
-
-  def clear_cached_shader(self):
-    # Used when global shader option like shadows changed.
-    for d in self.all_drawings():
-      d._shader_options = None
-    self.redraw_needed()
 
   def position_mask(self, selected_only = False):
     dp = self._displayed_positions        # bool array
@@ -632,7 +627,7 @@ class Drawing:
     return self.edge_mask
   def set_triangle_and_edge_mask(self, temask):
     self.edge_mask = temask
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
   triangle_and_edge_mask = property(get_triangle_and_edge_mask,
                                     set_triangle_and_edge_mask)
   '''
@@ -657,7 +652,7 @@ class Drawing:
         em = (em & self.TRIANGLE_DISPLAY_MASK) | (em & emask)
       self.edge_mask = em
 
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
 def draw_drawings(renderer, cvinv, drawings):
   r = renderer
@@ -692,6 +687,7 @@ def draw_overlays(drawings, renderer):
   draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
   r.enable_blending(True)
   draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
+  r.enable_blending(False)
   r.enable_depth_test(True)
 
 def draw_outline(renderer, cvinv, drawings):
@@ -713,7 +709,7 @@ def element_type(display_style):
     t = Buffer.points
   return t
 
-def redraw_no_op():
+def redraw_no_op(shape_changed = False):
   pass
 
 class Draw_Shape:
@@ -731,8 +727,6 @@ class Draw_Shape:
 
     # OpenGL rendering                                    
     self.bindings = None                    # Holds the buffer pointers and shader variable bindings
-    self.shader = None
-    self._shader_options = None             # Options for current shader
     self.vertex_buffers = vertex_buffers
     self.element_buffer = None
     self.instance_buffers = []
@@ -839,12 +833,9 @@ class Draw_Shape:
     return ta
 
   def activate_shader_and_bindings(self, renderer, sopt):
-    self.activate_bindings()      # Need OpenGL VAO bound to compile shader
-    if not sopt is self._shader_options:
-      shader = renderer.shader(sopt)
-      self._shader_options = sopt
-      self.activate_bindings(shader)      # Create new bindings if shader changed
-    renderer.use_shader(self.bindings.shader)
+    self.activate_bindings()	      # Need OpenGL VAO bound to compile shader
+    shader = renderer.shader(sopt)
+    renderer.use_shader(shader)
     self.update_bindings()
 
   def update_bindings(self):
@@ -852,12 +843,10 @@ class Draw_Shape:
       self.bind_buffers(self.vertex_buffers + [self.element_buffer] + self.instance_buffers)
       self.reset_bindings = False
 
-  def activate_bindings(self, shader = None):
-    new_bindings = (self.bindings is None or
-                    (shader != self.bindings.shader and not shader is None))
-    if new_bindings:
+  def activate_bindings(self):
+    if self.bindings is None:
       from . import opengl
-      self.bindings = opengl.Bindings(shader)
+      self.bindings = opengl.Bindings()
       self.reset_bindings = True
     self.bindings.activate()
 
@@ -914,20 +903,20 @@ class Picked_Drawing(Pick):
     pmask[c] = not pmask[c] if toggle else 1
     d.selected_positions = pmask
 
-def image_drawing(qi, pos, size, drawing = None):
+def rgba_drawing(rgba, pos = (-1,-1), size = (2,2), drawing = None):
   '''
-  Make a new surface piece and texture map a QImage onto it.
+  Make a drawing rectangle and use a texture to show an rgba image on it.
   '''
-  rgba = image_rgba_array(qi)
-  if drawing is None:
-    drawing = Drawing('Image')
-  return rgba_drawing(rgba, pos, size, drawing)
+  from . import opengl
+  t = opengl.Texture(rgba)
+  d = texture_drawing(t, pos, size, drawing)
+  return d
 
-def rgba_drawing(rgba, pos, size, drawing):
+def texture_drawing(texture, pos = (-1,-1), size = (2,2), drawing = None):
   '''
-  Make a new surface piece and texture map an RGBA color array onto it.
+  Make a new drawing and texture map it.
   '''
-  d = drawing.new_drawing()
+  d = drawing.new_drawing() if drawing else Drawing('rgba')
   x,y = pos
   sx,sy = size
   from numpy import array, float32, uint32
@@ -938,33 +927,26 @@ def rgba_drawing(rgba, pos, size, drawing):
   d.color = (255,255,255,255)         # Modulates texture values
   d.use_lighting = False
   d.texture_coordinates = tc
-  from . import opengl
-  d.texture = opengl.Texture(rgba)
+  d.texture = texture
   return d
 
-# Extract rgba values from a QImage.
-def image_rgba_array(i):
-    s = i.size()
-    w,h = s.width(), s.height()
-    from ..ui.qt import QtGui
-    i = i.convertToFormat(QtGui.QImage.Format_RGB32)    #0ffRRGGBB
-    b = i.bits()        # sip.voidptr
-    n = i.byteCount()
-    import ctypes
-    si = ctypes.string_at(int(b), n)
-    # si = b.asstring(n)  # Uses METH_OLDARGS in SIP 4.10, unsupported in Python 3
+def draw_texture(texture, renderer):
+  d = texture_drawing(texture)
+  d.opaque_texture = True
+  draw_overlays([d], renderer)
+  return
 
-    # TODO: Handle big-endian machine correctly.
-    # Bytes are B,G,R,A on little-endian machine.
-    from numpy import ndarray, uint8
-    rgba = ndarray(shape = (h,w,4), dtype = uint8, buffer = si)
-
-    # Flip vertical axis.
-    rgba = rgba[::-1,:,:].copy()
-
-    # Swap red and blue to get R,G,B,A
-    t = rgba[:,:,0].copy()
-    rgba[:,:,0] = rgba[:,:,2]
-    rgba[:,:,2] = t
-
-    return rgba
+  r = renderer
+  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_SHADOWS)
+  from . import opengl
+  tw = opengl.Texture_Window(renderer, renderer.SHADER_TEXTURE_2D)
+  texture.bind_texture()
+  r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
+  from ..geometry import place
+  p0 = place.identity()
+  r.set_view_matrix(p0)
+  r.set_model_matrix(p0)
+  r.enable_depth_test(False)
+  tw.draw()
+  r.disable_shader_capabilities(0)
+  r.enable_depth_test(True)

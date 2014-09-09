@@ -62,7 +62,7 @@ formats['avi'] = {'label': 'AVI MSMPEG-4v2',
 			'size_restriction': None,
 			}
 formats['mp4'] = {'label': 'MPEG-4',
-			'suffix': 'mp4',
+			'suffix': 'mpeg4',
 			'ffmpeg_name': 'mp4',
 			'ffmpeg_codec': None,
 			'ffmpeg_quality': mpeg_quality,

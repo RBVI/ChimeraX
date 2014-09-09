@@ -179,7 +179,7 @@ def ambient_occlusion_color_map(v, bin_size = 7, light = 0.5, dark = 0.1):
 
 def ambient_occlusion_command(cmdname, args, session):
 
-  from ..ui.commands import specifier_arg, float_arg, int_arg, bool_arg, parse_arguments
+  from ..commands.parse import specifier_arg, float_arg, int_arg, bool_arg, parse_arguments
   req_args = (('model', specifier_arg),)
   opt_args = ()
   kw_args = (('fineness', float_arg),

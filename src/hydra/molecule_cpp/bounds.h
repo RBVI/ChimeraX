@@ -10,6 +10,7 @@ extern "C"
 {
 
 PyObject *point_bounds(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *atom_bounds(PyObject *s, PyObject *args, PyObject *keywds);
 
 }
 

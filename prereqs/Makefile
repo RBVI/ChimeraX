@@ -46,11 +46,11 @@ else
 Mesa.install:
 endif
 
-SUBDIRS	+= cython docutils expat ffmpeg fonts \
-	   glew hdf5 imex jinja2 line_profiler numexpr numpy openssl \
+SUBDIRS	+= appdirs cython docutils expat ffmpeg fonts \
+	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow pycollada \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python python-dateutil PyQt qt \
-	   setuptools sip sphinx wrappy3 wx zlib
+	   setuptools sip sphinx webcolors wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -103,6 +103,7 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+appdirs.install: Python.install
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
@@ -115,7 +116,7 @@ line_profiler.install: Python.install cython.install
 numexpr.install: numpy.install
 numpy.install: Python.install
 pcre.install: zlib.install
-pillow.install: Python.install setuptools.install zlib.install
+pillow.install: Python.install setuptools.install zlib.install jpeg.install
 # pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
 pycollada.install: Python.install python-dateutil.install
 pyflakes.install: Python.install

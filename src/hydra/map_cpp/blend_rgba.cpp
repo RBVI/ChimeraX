@@ -89,3 +89,40 @@ extern "C" PyObject *blur_blend_images(PyObject *s, PyObject *args, PyObject *ke
   PyObject *count_py = PyLong_FromLong(count);
   return count_py;
 }
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *accumulate_images(PyObject *s, PyObject *args, PyObject *keywds)
+{
+  Reference_Counted_Array::Numeric_Array rgba8, rgba32;
+  const char *kwlist[] = {"rgba8", "rgba32", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&O&"), (char **)kwlist,
+				   parse_3d_array, &rgba8, parse_3d_array, &rgba32))
+    return NULL;
+
+  if (!rgba8.is_contiguous() || !rgba32.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError, "accumulate_images: arrays must be contiguous");
+      return NULL;
+    }
+  if (rgba8.value_type() != Reference_Counted_Array::Numeric_Array::Unsigned_Char ||
+      rgba32.value_type() !=  Reference_Counted_Array::Numeric_Array::Unsigned_Int)
+    {
+      PyErr_SetString(PyExc_TypeError, "accumulate_images: arrays must have value type uint8 and uint32");
+      return NULL;
+    }
+  if (rgba8.size() != rgba32.size())
+    {
+      PyErr_SetString(PyExc_TypeError, "accumulate_images: arrays must have same size");
+      return NULL;
+    }
+
+  unsigned char *v8 = static_cast<unsigned char *>(rgba8.values());
+  unsigned int *v32 = static_cast<unsigned int *>(rgba32.values());
+  long n = rgba8.size();
+  for (long i = 0 ; i < n ; ++i)
+    v32[i] += v8[i];
+
+  return python_none();
+}

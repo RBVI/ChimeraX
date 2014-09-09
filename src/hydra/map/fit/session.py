@@ -6,7 +6,7 @@ def save_fit_list_state(fit_list, file):
   s = Fit_List_State()
   s.state_from_fit_list(fit_list)
   
-  from ...file_io.SessionUtil import objecttree
+  from ...files.SessionUtil import objecttree
   t = objecttree.instance_tree_to_basic_tree(s)
 
   file.write('\n')
@@ -35,7 +35,7 @@ def restore_fit_list_state(fit_list_state, session):
   for c in classes:
     name_to_class[c.__name__] = c
 
-  from ...file_io.SessionUtil import objecttree
+  from ...files.SessionUtil import objecttree
   s = objecttree.basic_tree_to_instance_tree(fit_list_state, name_to_class)
   import fitlist
   d = fitlist.show_fit_list_dialog(session)

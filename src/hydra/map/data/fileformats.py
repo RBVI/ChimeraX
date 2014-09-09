@@ -185,8 +185,7 @@ def file_writer(path, format = None):
 #
 def save_map_command(cmdname, args, session):
 
-    from ...ui.commands import path_arg, volumes_arg
-    from ...ui.commands import parse_arguments
+    from ...commands.parse import path_arg, volumes_arg, parse_arguments
     req_args = (('path', path_arg),
                 ('maps', volumes_arg),
                 )
@@ -202,7 +201,7 @@ def save_map_command(cmdname, args, session):
     save_grid_data(**kw)
 
     # Set file icon image on Mac
-    from ...file_io import fileicon
+    from ...files import fileicon
     fileicon.set_file_icon(kw['path'], session, models = vlist)
 
     session.file_history.add_entry(kw['path'], models = vlist)

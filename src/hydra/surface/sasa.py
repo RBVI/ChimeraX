@@ -554,7 +554,7 @@ def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
 
     from os import listdir
     from os.path import join
-    from ..file_io import opensave
+    from ..files import opensave
     from ..molecule_cpp import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
@@ -593,7 +593,7 @@ pdbs = ('3znu','2hq3','3zqy','2vb1','2yab','3ze1','3ze2','4baj','3ztp','1jxw','1
 
 def test_pdb_models(id_codes, npoints, session):
 
-    from ..file_io import opensave
+    from ..files import opensave
     from ..molecule_cpp import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
@@ -626,7 +626,7 @@ def test_pdb_models(id_codes, npoints, session):
 
 def area_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, float_arg, parse_arguments
+    from ..commands.parse import atoms_arg, float_arg, parse_arguments
     req_args = (('atoms', atoms_arg),)
     opt_args = ()
     kw_args = (('probeRadius', float_arg),)

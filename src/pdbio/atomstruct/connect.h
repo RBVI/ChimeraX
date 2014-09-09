@@ -10,6 +10,7 @@
 #include "Residue.h"
 #include "Atom.h"
 #include "MolResId.h"
+#include "tmpl/Residue.h"
 
 namespace atomstruct {
 
@@ -21,6 +22,8 @@ ATOMSTRUCT_IMEX void  connect_structure(AtomicStructure* as,
         std::vector<Residue *>* chain_starters,
         std::vector<Residue *>* chain_enders,
         std::set<Atom *>* conect_atoms, std::set<MolResId>* mod_res);
+ATOMSTRUCT_IMEX void connect_residue_by_distance(Residue* r,
+        std::set<Atom *>* conect_atoms = NULL);
 
 }  // namespace atomstruct
 

@@ -3,11 +3,9 @@
 #
 def volume_command(cmdname, args, session):
 
-    from ..ui.commands import parse_arguments
-    from ..ui.commands import string_arg, bool_arg, bool3_arg, enum_arg
-    from ..ui.commands import float_arg, floats_arg, float3_arg
-    from ..ui.commands import int_arg, ints_arg, int3_arg, color_arg
-    from ..ui.commands import volume_region_arg, openstate_arg
+    from ..commands.parse import parse_arguments, string_arg, bool_arg, bool3_arg, enum_arg
+    from ..commands.parse import float_arg, floats_arg, float3_arg, int_arg, ints_arg, int3_arg, color_arg
+    from ..commands.parse import volume_region_arg, openstate_arg
 
     from .data.fileformats import file_writers
     stypes = [fw[1] for fw in file_writers]
@@ -194,15 +192,15 @@ def volume(volumes = '',                # Specifier
            session = None,
            ):
 
-    from ..ui.commands import CommandError
+    from ..commands.parse import CommandError
 
     # Find volume arguments.
     if volumes == 'all':
         from .volume import volume_list
         vlist = volume_list(session)
     else:
-        from ..ui import commands
-        vlist = commands.volumes_from_specifier(volumes, session)
+        from ..commands import parse
+        vlist = parse.volumes_from_specifier(volumes, session)
 
     # Adjust global settings.
     loc = locals()
@@ -316,7 +314,7 @@ def apply_volume_options(v, doptions, roptions, session):
     if 'voxelSize' in doptions:
         vsize = doptions['voxelSize']
         if min(vsize) <= 0:
-            from ..ui.commands import CommandError
+            from ..commands.parse import CommandError
             raise CommandError('Voxel size must positive, got %g,%g,%g'
                                % tuple(vsize))
         # Preserve index origin.
@@ -405,7 +403,7 @@ def level_and_color_settings(v, options):
 
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
     # number of levels.
-    from ..ui.commands import CommandError
+    from ..commands.parse import CommandError
     if len(colors) > 1 and len(colors) != len(levels):
         raise CommandError('Number of colors (%d) does not match number of levels (%d)' % (len(colors), len(levels)))
 
@@ -455,7 +453,7 @@ def level_and_color_settings(v, options):
 def planes_arg(planes, session):
 
     axis, param = (planes.split(',',1) + [''])[:2]
-    from ..ui.commands import enum_arg, floats_arg, CommandError
+    from ..commands.parse import enum_arg, floats_arg, CommandError
     p = [enum_arg(axis, session, ('x','y','z'))] + floats_arg(param, session)
     if len(p) < 2 or len(p) > 5:
         raise CommandError('planes argument must have 2 to 5 comma-separated values: axis,pstart[[[,pend],pstep],pdepth.], got "%s"' % planes)

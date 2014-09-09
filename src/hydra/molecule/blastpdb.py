@@ -242,7 +242,7 @@ class Match:
     if cache and id in cache:
       m = cache[id]
     else:
-      from ..file_io import fetch
+      from ..files import fetch
       m = fetch.fetch_from_database(id, 'PDBmmCIF', session)[0]
       if not cache is None:
         cache[id] = m
@@ -956,7 +956,7 @@ def fasta_sequence(path):
 
 def blast_command(cmdname, args, session):
 
-  from ..ui.commands import chain_arg, string_arg, float_arg, int_arg, parse_arguments
+  from ..commands.parse import chain_arg, string_arg, float_arg, int_arg, parse_arguments
   req_args = ()
   opt_args = (('chain', chain_arg),)
   kw_args = (('sequence', string_arg),
@@ -980,7 +980,7 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
     molecule, chain_id = chain
     cid = chain_id.decode('utf-8')
     if not molecule.path.endswith('.cif'):
-      from ..ui.commands import CommandError
+      from ..commands.parse import CommandError
       raise CommandError('blast: Can only handle sequences from mmCIF files.')
     from . import mmcif
     s = mmcif.mmcif_sequences(molecule.path)
@@ -1006,7 +1006,7 @@ def blast(chain = None, session = None, sequence = None, uniprot = None,
     blast_output = temporary_file_path(prefix = uniprot, suffix = '.xml')
     molecule = chain_id = None
   else:
-    from ..ui.commands import CommandError
+    from ..commands.parse import CommandError
     raise CommandError('blast: Must specify an open chain or sequence or uniprot id argument')
 
   # Run blastp standalone program and parse results

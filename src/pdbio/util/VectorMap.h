@@ -45,9 +45,9 @@ public:
     iterator  end() { return _map.end(); }
     const_iterator  end() const { return _map.cend(); }
     // equal_range unimplemented
-    iterator  erase(const_iterator pos) { return _map.erase(pos); }
+    iterator  erase(iterator pos) { return _map.erase(pos); }
     size_type  erase(const key_type& k);
-    iterator  erase(const_iterator first, const_iterator last) {
+    iterator  erase(iterator first, iterator last) {
         iterator ret;
         for (auto ii = first; ii != last; ++ii) ret = erase(ii);
         return ret;

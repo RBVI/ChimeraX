@@ -232,7 +232,7 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
       gdcache[(data.path, data.grid_id)] = data
   else:
     dbid, dbn = dbfetch
-    from ..file_io import fetch
+    from ..files import fetch
     mlist = fetch.fetch_from_database(dbid, dbn, session)
     grids = [m.data for m in mlist]
     for m in mlist:

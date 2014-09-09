@@ -1,6 +1,6 @@
 def show_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, no_arg, parse_arguments
+    from ..commands.parse import atoms_arg, no_arg, parse_arguments
     req_args = ()
     opt_args = (('what', atoms_arg),)
     kw_args = (('atoms', no_arg),
@@ -26,7 +26,7 @@ def show(what = None, atoms = False, ribbons = False, only = False, session = No
 
 def hide_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, no_arg, parse_arguments
+    from ..commands.parse import atoms_arg, no_arg, parse_arguments
     req_args = ()
     opt_args = (('what', atoms_arg),)
     kw_args = (('atoms', no_arg),
@@ -52,7 +52,7 @@ def hide(what = None, atoms = False, ribbons = False, session = None):
 
 def color_command(cmdname, args, session):
 
-    from ..ui.commands import specifier_arg, color_arg, no_arg, parse_arguments
+    from ..commands.parse import specifier_arg, color_arg, no_arg, parse_arguments
     req_args = (('what', specifier_arg),
                 ('color', color_arg))
     opt_args = ()
@@ -98,7 +98,7 @@ def color_molecule (atoms, color = (1,1,1,1), color_atoms = False, color_ribbons
 
 def style_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, enum_arg, parse_arguments
+    from ..commands.parse import atoms_arg, enum_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('style', enum_arg, {'values':('sphere', 'stick', 'ballstick'), 'abbrev':True}),)
     opt_args = ()

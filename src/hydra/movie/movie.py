@@ -10,7 +10,7 @@ RESET_CLEAR = 'clear'
 RESET_KEEP = 'keep'
 RESET_NONE = 'none'
 
-from ..ui.commands import CommandError
+from ..commands.parse import CommandError
 MovieError = CommandError
 
 class Movie:
@@ -154,8 +154,8 @@ class Movie:
         width, height = (None,None) if self.size is None else self.size
 
         v = self.session.view
-        from ..file_io.opensave import save_image
-        save_image(save_path, self.session, width, height, self.img_fmt)
+        from ..files.opensave import save_image
+        save_image(save_path, self.session, width, height, self.img_fmt, log_info = False)
 
         if self.postprocess_frames > 0:
             if self.postprocess_action == 'crossfade':

@@ -32,9 +32,9 @@
 #
 def vop_command(cmd_name, args, session):
 
-    from ...ui.commands import volumes_arg, volume_arg, int1or3_arg, int_arg
-    from ...ui.commands import volume_region_arg, model_id_arg, perform_operation
-    from ...ui.commands import float1or3_arg, floats_arg, float_arg, value_type_arg, bool_arg
+    from ...commands.parse import volumes_arg, volume_arg, int1or3_arg, int_arg
+    from ...commands.parse import volume_region_arg, model_id_arg, perform_operation
+    from ...commands.parse import float1or3_arg, floats_arg, float_arg, value_type_arg, bool_arg
     ops = {
         'bin': (bin_op,
                 (('volumes', volumes_arg),),

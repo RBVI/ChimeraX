@@ -10,36 +10,39 @@ class Session(Models):
 
         Models.__init__(self)		# Manages list of open models
 
+        from . import ui
+        ui.choose_window_toolkit()
+
         self.quit_callbacks = []        # Callbacks to run before quitting
 
         self.application = None
         'Qt application object, a QApplication.'
 
         self.main_window = None
-        'Main user interface window, a :py:class:`~.ui.gui.MainWindow.`'
+        'Main user interface window, a :py:class:`~.ui.qt.gui.Main_Window.`'
 
         self.view = None
-        'Main window view, a :py:class:`~.ui.view.View`'
+        'Main window view, a :py:class:`~.graphics.view.View`'
 
-        from .ui import commands, shortcuts
+        from .commands import commands, shortcuts
         self.commands = commands.Commands(self)
-        'Available commands, a :py:class:`~.ui.commands.Commands`'
+        'Available commands, a :py:class:`~.commands.commands.Commands`'
 
         self.keyboard_shortcuts = shortcuts.Keyboard_Shortcuts(self) 
-        'Available keyboard shortcuts, a :py:class:`~.ui.shortcuts.Keyboard_Shortcuts`'
+        'Available keyboard shortcuts, a :py:class:`~.command.shortcuts.Keyboard_Shortcuts`'
 
         self.log = None
-        'Command, error, info log, :py:class:`~.ui.gui.Log`'
+        'Command, error, info log, :py:class:`~.ui.qt.gui.Log`'
 
         self.file_readers = None
-        'Table of file types that can be read, used by :py:func:`~.file_io.opensave.file_readers`'
+        'Table of file types that can be read, used by :py:func:`~.files.opensave.file_readers`'
 
         self.databases = {}
-        'For fetching pdb and map models from the web, used by :py:func:`~.file_io.fetch.register_fetch_database`'
+        'For fetching pdb and map models from the web, used by :py:func:`~.files.fetch.register_fetch_database`'
 
-        from .file_io import history
+        from .files import history
         self.file_history = history.File_History(self)
-        'Recently opened files, a :py:class:`.file_io.history.File_History`'
+        'Recently opened files, a :py:class:`.files.history.File_History`'
 
         self.last_session_path = None
         'File path for last opened session.'
@@ -59,22 +62,23 @@ class Session(Models):
         'Dialog listing map fits, a :py:class:`~.map.fit.fitlist.Fit_List`'
 
         self.space_navigator = None
-        'Space Navigator device handler, a :py:class:`~.ui.spacenavigator.snav.Space_Navigator`'
+        'Space Navigator device handler, a :py:class:`~.devices.spacenavigator.snav.Space_Navigator`'
 
         self.oculus = None
-        'Oculus Rift head tracking device handler, a :py:class:`~.ui.oculus.track.Oculus_Head_Tracking`'
+        'Oculus Rift head tracking device handler, a :py:class:`~.devices.oculus.track.Oculus_Head_Tracking`'
 
         self.bin_dir = None
         'Location of third party executables used by Hydra.'
 
     def start(self):
 
-        from .ui import gui, commands, shortcuts
+        from . import ui
         import sys
-        self.application = app = gui.Hydra_App(sys.argv, self)
+        self.application = app = ui.Hydra_App(sys.argv, self)
         self.main_window = mw = app.main_window
         self.view = mw.view
-        self.log = log = gui.Log(mw)
+        self.log = log = ui.Log(mw)
+        from .commands import commands, shortcuts
         commands.register_commands(self.commands)
         shortcuts.register_shortcuts(self.keyboard_shortcuts)
         self.file_history.show_thumbnails()
@@ -92,7 +96,7 @@ class Session(Models):
 
         mw.show()
 
-        status = gui.start_event_loop(app)
+        status = ui.start_event_loop(app)
 
         for cb in self.quit_callbacks:
             cb()

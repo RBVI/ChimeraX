@@ -26,9 +26,9 @@ class Camera:
         self.eye_separation_scene = 1.0           # Scene distance units
         self.eye_separation_pixels = eye_separation_pixels        # Screen pixel units
 
-        self.warp_window_size = None	          # Used for scaling in oculus mode
+        self.pixel_shift = 0,0                   # x and y shift for supersampling
 
-        self.perspective_near_far_ratio = None
+        self.warp_window_size = None	          # Used for scaling in oculus mode
 
         self.redraw_needed = False
 
@@ -133,23 +133,17 @@ class Camera:
         from math import pi, tan
         fov = self.field_of_view*pi/180
         near,far = near_far_clip
-        near_min = 0.001*(far - near) if far > near else 1
-        near = max(near, near_min)
-        if far <= near:
-            far = 2*near
-        self.perspective_near_far_ratio = near/far
         w = 2*near*tan(0.5*fov)
         ww,wh = window_size
         aspect = wh/ww
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
+        xps,yps = self.pixel_shift
+        xshift,yshift = xps/ww, yps/wh
         if self.mode == 'stereo' and not view_num is None:
             s = -1 if view_num == 0 else 1
-            esp = 0.5*self.eye_separation_pixels
-            xwshift = s*float(esp)/(0.5*ww)
-        else:
-            xwshift = 0
-        pm = frustum(left, right, bot, top, near, far, xwshift)
+            xshift += s*0.5*self.eye_separation_pixels/ww
+        pm = frustum(left, right, bot, top, near, far, xshift, yshift)
         return pm
 
     def clip_plane_points(self, window_x, window_y, window_size, z_distances, render):
@@ -269,13 +263,13 @@ class Camera:
         return s
 
 # glFrustum() matrix
-def frustum(left, right, bottom, top, zNear, zFar, xwshift = 0):
+def frustum(left, right, bottom, top, zNear, zFar, xshift = 0, yshift = 0):
     '''
     Return a 4 by 4 perspective projection matrix.  It includes a shift along x used
     to superpose offset left and right eye views in sequential stereo mode.
     '''
-    A = (right + left) / (right - left) - xwshift
-    B = (top + bottom) / (top - bottom)
+    A = (right + left) / (right - left) - 2*xshift
+    B = (top + bottom) / (top - bottom) - 2*yshift
     C = - (zFar + zNear) / (zFar - zNear)
     D = - (2 * zFar * zNear) / (zFar - zNear)
     E = 2 * zNear / (right - left)

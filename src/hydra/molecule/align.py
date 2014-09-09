@@ -41,15 +41,15 @@ def align(atoms, ref_atoms, move = None, each = None, same = None, sequence = No
         patoms, pref_atoms = paired_atoms(atoms, ref_atoms)
         da, dra = atoms.count() - patoms.count(), ref_atoms.count() - pref_atoms.count()
         if da > 0 or dra > 0:
-            from ..ui.gui import log_message
-            log_message('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
+            from .. import ui
+            ui.show_info('Pairing dropped %d atoms and %d reference atoms' % (da, dra))
     elif not sequence is None:
         patoms, pref_atoms = sequence_pairing(atoms, ref_atoms, sequence)
     else:
         patoms, pref_atoms = atoms, ref_atoms
 
     if patoms.count() != pref_atoms.count():
-        from ..ui.commands import CommandError
+        from ..commands.parse import CommandError
         raise CommandError('Must align equal numbers of atoms, got %d and %d'
                            % (patoms.count(), pref_atoms.count()))
 
@@ -235,15 +235,14 @@ def write_matrix(tf, atoms, ref_atoms):
     mp = m.position
     mtf = mp.inverse() * tf * mp
     msg = ('Alignment matrix in molecule %s coordinates\n%s' % (m.name, mtf.description()))
-    from ..ui.gui import log_message
-    log_message(msg)
+    from .. import ui
+    ui.show_info(msg)
 
 def move_atoms(atoms, ref_atoms, tf, move):
 
     if move == 'molecules' or move is True:
         for m in atoms.molecules():
             m.position = tf * m.position
-            m.redraw_needed()
     else:
         if move == 'atoms':
             matoms = atoms
@@ -277,7 +276,7 @@ def test_align_points(n = 100):
 
 def align_command(cmdname, args, session):
 
-    from ..ui.commands import atoms_arg, string_arg, bool_arg, float_arg, int_arg, parse_arguments
+    from ..commands.parse import atoms_arg, string_arg, bool_arg, float_arg, int_arg, parse_arguments
     req_args = (('atoms', atoms_arg),
                 ('ref_atoms', atoms_arg))
     opt_args = ()

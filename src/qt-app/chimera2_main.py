@@ -102,7 +102,7 @@ class ChimeraGraphics(qtutils.OpenGLWidget):
 		self.makeCurrent()
 		import llgr
 		y = int(self.height()) - y
-		print(llgr.pick(x, y))
+		print(app.main_view.pick(x, y, self.width(), self.height()))
 
 class BaseApplication:
 
@@ -421,6 +421,7 @@ def main():
 			llgr.set_output('opengl')
 		else:
 			import OpenGL
+			OpenGL.ERROR_CHECKING = True
 			OpenGL.ERROR_LOGGING = True
 			OpenGL.ERROR_ON_COPY = True
 			OpenGL.FORWARD_COMPATIBLE_ONLY = True

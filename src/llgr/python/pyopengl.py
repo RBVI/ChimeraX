@@ -179,6 +179,84 @@ class ShaderType(Enum):
 		'Mat4x2', 'Mat3x4', 'Mat4x3')
 ShaderType.class_init()
 
+class Framebuffer:
+	
+	def __init__(self, width, height):
+		use_texture = True	# simple RGBA8 attachment not support in WebGL 1.0
+		use_texture = False
+		self.texture = None
+		self.width = width
+		self.height = height
+		self.framebuffer = GL.glGenFramebuffers(1)
+		self.color = GL.glGenRenderbuffers(1)
+		self.depth_stencil = GL.glGenRenderbuffers(1)
+		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.framebuffer)
+		GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.color)
+		if not use_texture:
+			GL.glRenderbufferStorage(GL.GL_RENDERBUFFER,
+						GL.GL_RGBA8, width, height)
+			GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
+				GL.GL_COLOR_ATTACHMENT0, GL.GL_RENDERBUFFER,
+				self.color)
+		else:
+			self.texture = GL.glGenTextures(1)
+			GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture)
+			GL.glTexParameteri(GL.GL_TEXTURE_2D,
+				GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+			GL.glTexParameteri(GL.GL_TEXTURE_2D,
+				GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+			GL.glTexParameteri(GL.GL_TEXTURE_2D,
+				GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+			GL.glTexParameteri(GL.GL_TEXTURE_2D,
+				GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+			GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, width,
+				height, 0, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, 0)
+			GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
+				GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
+				self.texture, 0)
+			GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+		GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.depth_stencil)
+		GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
+				GL.GL_DEPTH_STENCIL_ATTACHMENT,
+				GL.GL_RENDERBUFFER, self.depth_stencil)
+		GL.glRenderbufferStorage(GL.GL_RENDERBUFFER,
+				GL.GL_DEPTH_STENCIL, width, height)
+		status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
+		GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+		if status == GL.GL_FRAMEBUFFER_COMPLETE:
+			return
+		if status == GL.GL_FRAMEBUFFER_UNSUPPORTED:
+			raise RuntimeError("unsupported framebuffer")
+		if status == GL.GL_FRAMEBUFFER_INCOMPLETE_ATTACHEMENT:
+			raise RuntimeError("incomplete attachement")
+		if status == GL.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+			raise RuntimeError("inconsisten dimensions")
+		if status == GL.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			raise RuntimeError("incomplete missing attachement")
+		raise RuntimeError("unable to create framebufer: " + status)
+
+	def close(self):
+		if self.depth_stencil:
+			GL.glDeleteRenderbuffers(1,
+					numpy.array([self.depth_stencil],
+						dtype=numpy.uint32))
+			self.color = None
+		if self.color:
+			GL.glDeleteRenderbuffers(1,
+					numpy.array([self.color],
+						dtype=numpy.uint32))
+			self.color = None
+		if self.texture:
+			GL.glDeleteTextures(1,
+					numpy.array([self.texture],
+						dtype=numpy.uint32))
+			self.texture = None
+		if self.framebuffer:
+			GL.glDeleteFramebuffers(1,
+					numpy.array([self.framebuffer],
+						dtype=numpy.uint32))
+			self.framebuffer = None
+
 #
 # Program support
 #
@@ -186,8 +264,8 @@ ShaderType.class_init()
 _pick_fragment_shader = """
 #version 150
 
-in vec3 f_pickId;
-out vec3 frag_color;
+in vec4 f_pickId;
+out vec4 frag_color;
 
 void main (void)
 {
@@ -483,7 +561,10 @@ class _GroupInfo:
 		self.objects.difference_update(objects)
 
 	def reset_optimization(self):
+		if not self.optimized:
+			return
 		self.optimized = False
+		self.ois.clear()
 		# free instancing buffers
 		if self.buffers:
 			GL.glDeleteBuffers(len(self.buffers),
@@ -493,7 +574,6 @@ class _GroupInfo:
 	def optimize(self):
 		# scan through objects looking for possible instancing
 		self.optimized = True
-		self.ois.clear()
 
 		# first pass: group objects by program id, tranparency,
 		# primitive type, if indexing, and array buffers
@@ -543,21 +623,31 @@ class _GroupInfo:
 		# then keep it as a singleton
 		import struct
 		sp = None
+		pick_sp = None
+		pick_sv = None		# for pickId attribute location
 		current_program_id = None
 		for ois in instancing.values():
 			# aggregate singletons
 			proto = ois[0]
-			oi = _ObjectInfo(proto.program_id, 0, [], proto.ptype,
-				proto.first, proto.count,
+			oi = _ObjectInfo(None, proto.program_id, 0, [],
+				proto.ptype, proto.first, proto.count,
 				proto.index_buffer_id, proto.index_buffer_type)
 			oi.instance_count = len(ois)
 			if oi.program_id != current_program_id:
 				sp = _all_programs.get(oi.program_id, None)
+				pick_sp = _pick_programs.get(oi.program_id, None)
 				if sp is None:
 					current_program_id = None
 					oi.incomplete = True
 					continue
 				current_program_id = oi.program_id
+			if pick_sp is None:
+				oi.pick_vao = None
+			else:
+				oi.pick_vao = GL.glGenVertexArrays(1)
+				pick_sv = pick_sp.attributes.get("pickId", None)
+				if pick_sv is None:
+					pick_sp = None
 			oi.vao = GL.glGenVertexArrays(1)
 			GL.glBindVertexArray(oi.vao)
 
@@ -574,10 +664,15 @@ class _GroupInfo:
 					break
 				_setup_array_attribute(bi, ai, sv.location,
 								num_locations)
+			if oi.incomplete:
+				oi.close()
+				continue
 			if proto.index_buffer_id:
 				ibi = _all_buffers.get(proto.index_buffer_id, None)
 				if ibi is not None:
 					GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, ibi.buffer)
+			else:
+				ibi = None
 			# interleave singleton data
 			# TODO: reorder singletons so smaller values pack
 			fmt = '@'
@@ -590,46 +685,102 @@ class _GroupInfo:
 				sizes.append(stride - cur_size)
 				cur_size = stride
 			fmt += '0f'
-			if stride == 0:
-				self.ois.append(oi)
-				continue
+			si_bi = None
 			# TODO: assert(stride < glGetInteger(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET))
-			from llgr._llgr import memory_map
-			buffer = GL.glGenBuffers(1)
-			buflen = len(ois) * stride
-			self.buffers.append(buffer)
-			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
-			GL.glBufferData(GL.GL_ARRAY_BUFFER, buflen, None,
-							GL.GL_STATIC_DRAW)
-			data = memory_map(GL.glMapBuffer(GL.GL_ARRAY_BUFFER,
-						GL.GL_WRITE_ONLY), buflen)
+			if stride > 0:
+				from llgr._llgr import memory_map
+				buffer = GL.glGenBuffers(1)
+				buflen = len(ois) * stride
+				self.buffers.append(buffer)
+				GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
+				GL.glBufferData(GL.GL_ARRAY_BUFFER, buflen,
+						None, GL.GL_STATIC_DRAW)
+				data = memory_map(GL.glMapBuffer(
+					GL.GL_ARRAY_BUFFER, GL.GL_WRITE_ONLY),
+					buflen)
 
-			pos = 0
-			for oi2 in ois:
-				for size, si in zip(sizes, oi2.singleton_cache):
-					data.copyfrom(pos, si.data)
-					pos += size
-			if pos != buflen:
-				print("tried to fill %d byte buffer with %d bytes" % (buflen, pos))
-			if not GL.glUnmapBuffer(GL.GL_ARRAY_BUFFER):
-				# TODO: redo above loop
-				pass
-			bi = _BufferInfo(buffer, ARRAY)
+				pos = 0
+				for oi2 in ois:
+					for size, si in zip(sizes, oi2.singleton_cache):
+						data.copyfrom(pos, si.data)
+						pos += size
+				if pos != buflen:
+					print("tried to fill %d byte buffer with %d bytes" % (buflen, pos))
+				if not GL.glUnmapBuffer(GL.GL_ARRAY_BUFFER):
+					# TODO: redo above loop
+					pass
+				si_bi = _BufferInfo(buffer, ARRAY)
+				offset = 0
+				for size, si in zip(sizes, proto.singleton_cache):
+					ai = AttributeInfo(None, None, offset,
+						stride, si.num_elements,
+						si.data_type, si.normalized)
+					offset += size
+					_setup_array_attribute(si_bi, ai,
+						si.base_location,
+							si.num_locations)
+					for i in range(si.num_locations):
+						_glVertexAttribDivisor(
+							si.base_location + i, 1)
+			self.ois.append(oi)
+			
+			if not pick_sp:
+				continue
+
+			import sys
+			print("creating pick vao", pick_sv.location, file=sys.stderr)
+			# initialize pick_vao
+			GL.glBindVertexArray(oi.pick_vao)
+			# create array of pick_ids per instance
+			pick_ids = numpy.empty(len(ois), dtype=numpy.uint32)
+			for i in range(len(ois)):
+				pick_ids[i] = ois[i].object_id
+			pick_buffer = GL.glGenBuffers(1)
+			self.buffers.append(pick_buffer)
+			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, pick_buffer)
+			mv = memoryview(pick_ids)
+			print("pick_ids", pick_ids, mv.nbytes)
+			GL.glBufferData(GL.GL_ARRAY_BUFFER, mv.nbytes, pick_ids, GL.GL_STATIC_DRAW)
+			# setup pickId array
+			pick_bi = _BufferInfo(pick_buffer, ARRAY)
+			ai = AttributeInfo(None, None, 0, 0, 4, UByte, True)
+			_setup_array_attribute(pick_bi, ai, pick_sv.location, 1)
+			GL.glVertexAttribDivisor(pick_sv.location, 1)
+
+			for ai in proto.ais:
+				if not ai._is_array or oi.incomplete:
+					continue
+				sv = pick_sp.attributes.get(ai.name, None)
+				if sv is None:
+					continue
+				bi = _all_buffers[ai.data_id]
+				num_locations = sv.location_info()[0]
+				_setup_array_attribute(bi, ai, sv.location,
+								num_locations)
+			if proto.index_buffer_id:
+				ibi = _all_buffers.get(proto.index_buffer_id, None)
+				if ibi is not None:
+					GL.glBindBuffer(
+						GL.GL_ELEMENT_ARRAY_BUFFER,
+						ibi.buffer)
 			offset = 0
-			for size, si in zip(sizes, proto.singleton_cache):
+			for i in range(len(sizes)):
+				size = sizes[i]
+				si = proto.singleton_cache[i]
+				if si.pick_location == 0:
+					offset += size
+					continue
 				ai = AttributeInfo(None, None, offset, stride,
 					si.num_elements, si.data_type,
 					si.normalized)
 				offset += size
-				_setup_array_attribute(bi, ai, si.base_location,
-							si.num_locations)
-				for i in range(si.num_locations):
-					_glVertexAttribDivisor(
-						si.base_location + i, 1)
-			GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+				_setup_array_attribute(si_bi, ai,
+					si.pick_location, si.num_locations)
+				for j in range(si.num_locations):
+					GL.glVertexAttribDivisor(
+						  si.base_location + j, 1)
 
-			if not oi.incomplete:
-				self.ois.append(oi)
+		GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
 		# third pass: look at left over groupings
 		# TODO: If different first and count, try to group
@@ -677,7 +828,7 @@ class _GroupInfo:
 		if not self.optimized:
 			self.optimize()
 
-		sp = None
+		sp = None	# shader program
 		current_program_id = 0
 		for oi in self.ois:
 			if oi.hide or oi.incomplete:
@@ -732,12 +883,71 @@ class _GroupInfo:
 			sp.cleanup()
 
 	def pick(self):
-		# TODO
-		pass
+		if not self.optimized:
+			self.optimize()
+
+		sp = None		# shader program
+		current_program_id = 0
+		for oi in self.ois:
+			if not oi.pick_vao or oi._hide or oi.incomplete:
+				return
+			# setup program
+			if oi.program_id != current_program_id:
+				new_sp = _pick_programs.get(oi.program_id, None)
+				if new_sp is None:
+					continue
+				new_sp.setup()
+				sp = new_sp
+				current_program_id = oi.program_id
+			import sys
+			if sp is None:
+				continue
+			GL.glBindVertexArray(oi.pick_vao)
+			# TODO:
+			#for si in oi.pick_singleton_cache:
+			#	setup_singleton_attribute(si.data,
+			#		si.data_type, si.normalized,
+			#		si.base_location, si.num_locations,
+			#		si.num_elements)
+			#
+			# finally draw pick object
+			if oi.instance_count == 0:
+				# TODO: convert oi.object_id to floating point
+				# and set appropiate vertex atttribute
+				if oi.index_buffer_id == 0:
+					GL.glDrawArrays(oi.ptype, oi.first, oi.count)
+				else:
+					import ctypes
+					if oi.first == 0:
+						offset = ctypes.c_void_p(0)
+					else:
+						offset = ctypes.c_void_p(oi.first * _data_size(oi.index_buffer_type))
+					GL.glDrawElements(oi.ptype.value,
+						oi.count,
+						_cvt_data_type(oi.index_buffer_type),
+						offset)
+			elif oi.index_buffer_id == 0:
+				GL.glDrawArraysInstanced(oi.ptype.value,
+					oi.first, oi.count, oi.instance_count)
+			else:
+				import ctypes
+				if oi.first == 0:
+					offset = ctypes.c_void_p(0)
+				else:
+					offset = ctypes.c_void_p(oi.first
+					    * _data_size(oi.index_buffer_type))
+				GL.glDrawElementsInstanced(oi.ptype.value,
+					oi.count,
+					_cvt_data_type(oi.index_buffer_type),
+					offset, oi.instance_count)
+		GL.glBindVertexArray(0)
+		if sp:
+			sp.cleanup()
 
 class _ObjectInfo:
 
-	def __init__(self, program_id, matrix_id, attribute_infos, primitive_type, first, count, index_buffer_id=0, index_buffer_type=UByte):
+	def __init__(self, object_id, program_id, matrix_id, attribute_infos, primitive_type, first, count, index_buffer_id=0, index_buffer_type=UByte):
+		self.object_id = object_id
 		self.program_id = program_id
 		self.matrix_id = matrix_id
 		self.ais = list(attribute_infos)
@@ -751,9 +961,24 @@ class _ObjectInfo:
 		self.selected = False
 		self.singleton_cache = []
 		self.vao = None
+		self.pick_vao = None
 		self.groups = set()
 		self.incomplete = False
 		self.instance_count = 0
+
+	def close(self):
+		for gi in self.groups:
+			if gi.optimized:
+				gi.reset_optimization()
+		self.groups.clear()
+		if self.vao:
+			GL.glDeleteVertexArrays(1,
+				numpy.array([self.vao], dtype=numpy.uint32))
+			self.vao = None
+		if self.pick_vao:
+			GL.glDeleteVertexArrays(1,
+				numpy.array([self.pick_vao], dtype=numpy.uint32))
+			self.pick_vao = None
 
 	@property
 	def hide(self):
@@ -819,11 +1044,12 @@ class AttributeInfo:
 
 class _SingletonInfo:
 
-	def __init__(self, data_type, normalized, data, location, num_locations, num_elements):
+	def __init__(self, data_type, normalized, data, location, pick_location, num_locations, num_elements):
 		self.data_type = data_type
 		self.normalized = normalized
 		self.data = data
 		self.base_location = location
+		self.pick_location = pick_location
 		self.num_locations = num_locations
 		self.num_elements = num_elements
 
@@ -841,20 +1067,26 @@ def _check_attributes(obj_id, oi):
 	if sp is None:
 		print("missing program for object", obj_id, file=sys.stderr)
 		return
+	pick_sp = _pick_programs.get(oi.program_id, None)
 	oi.singleton_cache.clear()
-	for sv in sp.attributes:
+	for name, sv in sp.attributes.items():
 		for ai in oi.ais:
-			if ai.name == sv.name:
+			if ai.name == name:
 				break
 		else:
 			ai._is_array = None
-			print("missing attribute", sv.name, "in object", obj_id, file=sys.stderr)
+			print("missing attribute", name, "in object", obj_id, file=sys.stderr)
 			oi.incomplete = True
 			break
 		bi = _all_buffers.get(ai.data_id, None)
 		if bi is None:
 			ai._is_array = None
 			continue
+		pick_location = 0
+		if pick_sp:
+			pick_sv = pick_sp.attributes.get(name, None)
+			if pick_sv:
+				pick_location = pick_sv.location
 		num_locations, num_elements = sv.location_info()
 		if bi.data is not None:
 			if sv.location == 0:
@@ -864,7 +1096,7 @@ def _check_attributes(obj_id, oi):
 			ai._is_array = False
 			oi.singleton_cache.append(_SingletonInfo(ai.data_type,
 				ai.normalized, bi.data, sv.location,
-				num_locations, num_elements))
+				pick_location, num_locations, num_elements))
 		else:
 			ai._is_array = True
 
@@ -893,7 +1125,7 @@ def create_object(obj_id: Id, program_id: Id, matrix_id: Id,
 		mi = _all_matrices.get(matrix_id, None)
 	if mi is not None:
 		ais.append(AttributeInfo("instanceTransform", mi.data_id, 0, 0, 16, Float))
-	oi = _ObjectInfo(program_id, matrix_id, ais,
+	oi = _ObjectInfo(obj_id, program_id, matrix_id, ais,
 			primitive_type, first, count,
 			index_data_id, index_buffer_type)
 	delete_object(obj_id)
@@ -907,11 +1139,7 @@ def delete_object(obj_id: Id):
 	if obj_id not in _all_objects:
 		return
 	oi = _all_objects[obj_id]
-	for gi in oi.groups:
-		if gi.optimized:
-			gi.reset_optimization()
-	if oi.vao:
-		GL.glDeleteVertexArrays(1, numpy.array([oi.vao], dtype=numpy.uint32))
+	oi.close()
 	del _all_objects[obj_id]
 
 def clear_objects():
@@ -1349,6 +1577,8 @@ def _setup_singleton_attribute(data, data_type, normalized, loc, num_locations, 
 _darwin_vao = None
 
 def render(groups: sequence_of(Id)):
+	global _pick_fb_valid
+	_pick_fb_valid = False
 	import sys
 	global _darwin_vao
 	if sys.platform == 'darwin' and _darwin_vao is None:
@@ -1378,6 +1608,9 @@ def render(groups: sequence_of(Id)):
 	for gi in gis:
 		gi.render()
 
+_pick_fb = None
+_pick_fb_valid = False
+
 class _PickId(bytearray):
 
 	def __init__(self):
@@ -1388,14 +1621,27 @@ class _PickId(bytearray):
 		self[1] = (i // 256) % 256
 		self[2] = (i // 65536) % 256
 
-def pick(x: int, y: int):
+def pick(groups: sequence_of(Id), x: int, y: int, width:int, height:int):
+	import sys
+#	global _pick_fb, _pick_fb_valid
+#	if _pick_fb and (_pick_fb.width != width or _pick_fb.height != height):
+#		_pick_fb.close()
+#		_pick_fb = None
+#	if _pick_fb is None:
+#		_pick_fb = Framebuffer(width, height)
+#		_pick_fb_valid = False
+#	if _pick_fb_valid:
+#		pass	# TODO: skip to readPixels
+#	if _pick_fb is None:
+#		print("missing pick framebuffer", file=sys.stderr)
+#		return 0
+
 	# Just like rendering except the color is monotonically increasing
 	# and varies by object, not within an object.
 	# Assume WebGL defaults of 8-bits each for red, green, and blue,
 	# for a maximum of 16,777,215 (2^24 - 1) objects and that object ids
 	# are also less than 16,777,215.
 
-	import sys
 	global _darwin_vao
 	if sys.platform == 'darwin' and _darwin_vao is None:
 		# using glVertexAttribPointer fails unless a VAO is bound
@@ -1403,81 +1649,38 @@ def pick(x: int, y: int):
 		_darwin_vao = GL.glGenVertexArrays(1)
 		GL.glBindVertexArray(_darwin_vao)
 
-	# render 5x5 pixels around hot spot
-	GL.glScissor(x - 2, y - 2, 5, 5)
-	GL.glEnable(GL.GL_SCISSOR_TEST)
-
-	GL.glClearColor(0, 0, 0, 0)
+#	GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, _pick_fb.framebuffer);
+#	GL.glClearColor(0, 0, 0, 0)
 	GL.glClear(GL.GL_COLOR_BUFFER_BIT|GL.GL_DEPTH_BUFFER_BIT|GL.GL_STENCIL_BUFFER_BIT)
+	GL.glClearColor(*_clear_color)
 	GL.glEnable(GL.GL_DEPTH_TEST)
 	GL.glDisable(GL.GL_DITHER)
-	GL.glClearColor(*_clear_color)
-
-	if not _all_objects:
-		return 0
-
-	sp = None
-	current_program_id = 0
-
-	# pick id (pi_) singleton info
-	pi_type = UByte
-	pi_data = _PickId()
-	pi_loc = 0
-	pi_locations, pi_elements = ShaderVariable.type_location_info(ShaderVariable.Vec3)
-
-	# TODO: only for opaque objects
+	GL.glDisable(GL.GL_SCISSOR_TEST)
 	GL.glEnable(GL.GL_CULL_FACE)
 	GL.glDisable(GL.GL_BLEND)
-	for oi in _all_objects.values():
-		if oi.hide or not oi.program_id:
-			continue
-		# setup program
-		if oi.program_id != current_program_id:
-			new_sp = _all_programs.get(oi.program_id, None)
-			if new_sp is None:
-				continue
-			new_sp.setup()
-			sp = new_sp
-			current_program_id = oi.program_id
-		if sp is None:
-			continue
-		GL.glBindVertexArray(oi.vao)
 
-		for si in oi.singleton_cache:
-			_setup_singleton_attribute(si.data, si.data_type,
-				si.normalized, si.base_location,
-				si.num_locations, si.num_elements)
-		# finally draw object
-		if oi.instance_count == 0:
-			if oi.index_buffer_id == 0:
-				GL.glDrawArrays(oi.ptype.value, oi.first, oi.count)
-			else:
-				import ctypes
-				if oi.first == 0:
-					offset = ctypes.c_void_p(0)
-				else:
-					offset = ctypes.c_void_p(oi.first
-					    * _data_size(oi.index_buffer_type))
-				GL.glDrawElements(oi.ptype.value, oi.count,
-					_cvt_data_type(oi.index_buffer_type),
-					offset)
-		elif oi.index_buffer == 0:
-			GL.glDrawArraysInstanced(oi.ptype.value, oi.first,
-					oi.count, oi.instance_count)
-		else:
-			import ctypes
-			if oi.first == 0:
-				offset = ctypes.c_void_p(0)
-			else:
-				offset = ctypes.c_void_p(oi.first
-					* _data_size(oi.index_buffer_type))
-			GL.glDrawElementsInstanced(oi.ptype.value, oi.count,
-				_cvt_data_type(oi.index_buffer_type), offset,
-				oi.instance_count)
-	GL.glBindVertexArray(0)
-	if sp:
-		sp.cleanup()
+	gis = []
+	for group_id in groups:
+		gi = _all_groups.get(group_id, None)
+		if gi is None or len(gi.objects) == 0:
+			continue
+		gis.append(gi)
 
+	# TODO: multipass to minimize shader programs changes
+	# and support transparency
+	for gi in gis:
+		gi.pick()
+
+	data = numpy.ones(5 * 5 * 4, dtype=numpy.uint8)
+	GL.glReadPixels(x - 2, y - 2, 5, 5, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE,
+			data)
+#	GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+	_pick_fb_valid = True
+	pixels = data.view(numpy.uint32)
+	import sys
+	print('data', data, file=sys.stderr)
+	print('pixels', pixels, file=sys.stderr)
+	return pixels[13] & 0xffffff
 
 #
 # vsphere

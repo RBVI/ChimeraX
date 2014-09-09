@@ -13,6 +13,7 @@ namespace tmpl {
 class Molecule;
 class Residue;
 class Bond;
+using atomstruct::Element;
 
 class ATOMSTRUCT_IMEX Atom {
     friend class Molecule;
@@ -29,9 +30,10 @@ public:
     Molecule    *molecule() const { return _molecule; }
     Residue    *residue() const { return _residue; }
     std::string        name() const { return _name; }
+    Element  element() const { return _element; }
 private:
-    std::string    _name;
-    atomstruct::Element    _element;
+    std::string _name;
+    Element     _element;
     BondsMap    _bonds;
 public:
     static const unsigned int COORD_UNASSIGNED = ~0u;

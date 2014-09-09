@@ -370,7 +370,7 @@ class Molecule(Model):
       sa[i] |= (((cid[i], rnum[i]) not in cr) and rname[i] != b'HOH')
     self.atom_shown_count = sa.sum()
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def set_ribbon_radius(self, r):
 
@@ -378,19 +378,19 @@ class Molecule(Model):
       self.ribbon_radius = r
       self.update_ribbons = True
       self.need_graphics_update = True
-      self.redraw_needed()
+      self.redraw_needed(shape_changed = True)
 
   def show_solvent(self):
     self.atom_shown |= (self.residue_names == b'HOH')
     self.atom_shown_count = self.atom_shown.sum()
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def hide_solvent(self):
     self.atom_shown &= (self.residue_names != b'HOH')
     self.atom_shown_count = self.atom_shown.sum()
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
     
   def all_atom_indices(self):
 
@@ -480,11 +480,14 @@ class Molecule(Model):
   def residue_ids(self):
     rids = self.rids
     if rids is None:
-      a = self._atoms
-      satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
       from .. import molecule_cpp
-      self.rids = rids = molecule_cpp.residue_ids(satoms)
+      self.rids = rids = molecule_cpp.residue_ids(self.atoms_string())
     return rids
+
+  def atoms_string(self):
+    a = self._atoms
+    satoms = a.view('S%d' % a.itemsize)     # Need string array for C++ routine.
+    return satoms
 
   def chain_atom_range(self, chain_id):
     cr = self.chain_ranges
@@ -521,7 +524,7 @@ class Molecule(Model):
       a[atom_indices] = True
     self.atom_shown_count = a.sum()
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def hide_index_atoms(self, atom_indices):
     if len(atom_indices) == 0:
@@ -530,7 +533,7 @@ class Molecule(Model):
     a[atom_indices] = False
     self.atom_shown_count = a.sum()
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def color_index_atoms(self, atom_indices, color):
     if len(atom_indices) == 0:
@@ -616,7 +619,7 @@ class Molecule(Model):
     self.ribbon_shown[:] = (1 if display else 0)
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def show_ribbon_for_index_atoms(self, atom_indices, only_these = False):
     rs = self.ribbon_shown
@@ -626,7 +629,7 @@ class Molecule(Model):
       rs[atom_indices] = True
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def hide_ribbon_for_index_atoms(self, atom_indices):
     if len(atom_indices) == 0:
@@ -635,7 +638,7 @@ class Molecule(Model):
     rs[atom_indices] = False
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(shape_changed = True)
 
   def color_ribbon_for_index_atoms(self, atom_indices, color):
     if len(atom_indices) == 0:
@@ -664,14 +667,14 @@ class Molecule(Model):
       self.atom_shown[:] = True
       self.atom_shown_count = n
       self.need_graphics_update = True
-      self.redraw_needed()
+      self.redraw_needed(shape_changed = True)
 
   def hide_all_atoms(self):
     if self.atom_shown_count > 0:
       self.atom_shown[:] = False
       self.atom_shown_count = 0
       self.need_graphics_update = True
-      self.redraw_needed()
+      self.redraw_needed(shape_changed = True)
 
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
@@ -727,11 +730,11 @@ class Molecule(Model):
     return na * nc
 
   def bounds(self, positions = True):
-    # TODO: bounds should only include displayed atoms.
-    xyz = self.xyz
-    if len(xyz) == 0:
+    # TODO: Cache bounds
+    from .. import molecule_cpp
+    b = molecule_cpp.atom_bounds(self.atoms_string())
+    if b is None:
       return None
-    b = (xyz.min(axis = 0), xyz.max(axis = 0))
     if positions:
       from ..geometry import bounds
       b = bounds.copies_bounding_box(b, self.positions)
@@ -961,7 +964,7 @@ class Atoms:
     for m, ai in self.molatoms:
       m.atom_style[ai] = style
       m.need_graphics_update = True
-      m.redraw_needed()
+      m.redraw_needed(shape_changed = True)
 
   def show_ribbon(self, only_these = False):
     '''Show ribbons for residues containing the specified atoms.'''
@@ -986,7 +989,7 @@ class Atoms:
       atf.move(axyz)
       m.xyz[a] = axyz
       m.need_graphics_update = True
-      m.redraw_needed()
+      m.redraw_needed(shape_changed = True)
 
   def element_numbers(self):
     '''Return a numpy array of atom element numbers (e.g. 6 = carbon, 8 = oxygen).'''

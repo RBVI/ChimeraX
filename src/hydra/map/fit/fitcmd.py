@@ -1,12 +1,10 @@
-from ...ui.commands import CommandError
+from ...commands.parse import CommandError
 
 # -----------------------------------------------------------------------------
 #
 def fitmap_command(cmdname, args, session):
 
-    from ...ui.commands import parse_arguments
-    from ...ui.commands import specifier_arg, volume_arg, int_arg, float_arg, bool_arg
-    from ...ui.commands import string_arg
+    from ...commands.parse import parse_arguments, specifier_arg, volume_arg, int_arg, float_arg, bool_arg, string_arg
 
     req_args = (('atomsOrMap', specifier_arg),
                 ('volume', volume_arg),

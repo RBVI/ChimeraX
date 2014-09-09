@@ -29,6 +29,8 @@ static struct PyMethodDef map_cpp_methods[] =
   /* blend_rgba.h */
   {const_cast<char*>("blur_blend_images"), (PyCFunction)blur_blend_images,
    METH_VARARGS|METH_KEYWORDS},
+  {const_cast<char*>("accumulate_images"), (PyCFunction)accumulate_images,
+   METH_VARARGS|METH_KEYWORDS},
 
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,

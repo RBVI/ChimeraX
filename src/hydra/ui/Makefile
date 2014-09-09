@@ -3,15 +3,14 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/ui
 
-PYSRCS = __init__.py c2leap.py cameracmd.py commands.py crossfade.py cyclecmd.py device.py gui.py \
-	lightcmd.py materialcmd.py modelpanel.py mousemodes.py qt.py shortcuts.py silhouettecmd.py view.py
+SUBDIRS = qt wx
+
+PYSRCS = __init__.py log.py tool_api.py window_size.py
+
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
 ICONS = icons
-
-ifeq ($(OS),Darwin)
-	SUBDIRS	= spacenavigator oculus
-	include $(TOP)/mk/subdir.make
-endif
 
 all: $(PYOBJS)
 

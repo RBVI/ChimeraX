@@ -10,7 +10,7 @@
 #
 def scene_command(cmdname, args, session):
 
-    from .ui.commands import string_arg, int_arg, perform_operation
+    from .commands.parse import string_arg, int_arg, perform_operation
     ops = {
         'add': (session.scenes.add_scene,
                 (),
@@ -57,7 +57,7 @@ class Scenes:
             try:
                 ids = set(int(i) for i in id.split(','))
             except:
-                from .ui.commands import CommandError
+                from .commands.parse import CommandError
                 raise CommandError('Scene ids must be integers, got "%s"' % id)
             self.scenes = [s for s in self.scenes if not s.id in ids]
         else:
@@ -72,7 +72,8 @@ class Scenes:
     def show_thumbnails(self, toggle = False):
         st = self.scene_thumbs
         if st is None:
-            self.scene_thumbs = st = Scene_Thumbnails(self.session)
+            from . import ui
+            self.scene_thumbs = st = ui.Scene_Thumbnails(self.session)
         if toggle and st.shown():
             st.hide()
         else:
@@ -90,7 +91,6 @@ class Scene:
         self.session = session
         self.cross_fade_frames = 30
         self.thumbnail_size = (128,128)
-        self.uri = None         # HTML reference to image.
 
         if session is None:
             self.image = None
@@ -99,32 +99,24 @@ class Scene:
             w, h = self.thumbnail_size
             self.image = i = session.view.image(w,h)         # QImage
 
-            from .file_io import session_file
+            from .files import session_file
             self.state = session_file.scene_state(session)
 
     def show(self):
         s = self.session
         if self.cross_fade_frames:
-            from .ui.crossfade import Cross_Fade
+            from .graphics.crossfade import Cross_Fade
             Cross_Fade(s.view, self.cross_fade_frames)
 
         # Hide all models so models that did not exist in scene are hidden.
         for m in s.model_list():
             m.display = False
 
-        from .file_io import session_file
+        from .files import session_file
         session_file.restore_scene(self.state, s)
         
         msg = 'Showing scene "%s"' % self.description if self.description else 'Showing scene %d' % self.id
         s.show_status(msg)
-
-    def image_uri(self, qdoc):
-
-        if self.uri is None and not self.image is None:
-            self.uri = uri = "file://image%d" % self.id
-            from .ui.qt import QtGui, QtCore
-            qdoc.addResource(QtGui.QTextDocument.ImageResource, QtCore.QUrl(uri), self.image)
-        return self.uri
 
     def scene_state(self):
 
@@ -145,139 +137,36 @@ class Scene:
         self.image = string_to_image(s['image'])
         self.state = s['state']
 
-def image_as_string(qimage, iformat = 'JPG'):
+def image_as_string(image, iformat = 'JPEG'):
 
-    i = image_as_bytes(qimage, iformat)
+    i = encode_image(image, iformat)
     import base64
     s = base64.b64encode(i)
     return s
 
-def image_as_bytes(qimage, iformat = 'JPG'):
+def encode_image(image, iformat = 'JPEG'):
 
-    from .ui.qt import QtCore
-    ba = QtCore.QByteArray()
-    buf = QtCore.QBuffer(ba)
-    buf.open(QtCore.QIODevice.WriteOnly)
-    qimage.save(buf, iformat)
-    i = ba.data()
-    return i
+    import io
+    f = io.BytesIO()
+    image.save(f, iformat)
+    s = f.getvalue()
+    return s
 
-def string_to_image(s, iformat = 'JPG'):
+def string_to_image(s, iformat = 'JPEG'):
 
     import base64
     i = base64.b64decode(s)
-    from .ui.qt import QtCore, QtGui
-    ba = QtCore.QByteArray(i)
-    buf = QtCore.QBuffer(ba)
-    buf.open(QtCore.QIODevice.ReadOnly)
-    qi = QtGui.QImage()
-    qi.load(buf, iformat)
-    return qi
+    import io
+    s = io.BytesIO(i)
+    from PIL import Image
+    i = Image.open(s)
+    return i
 
 def scene_from_state(scene_state, session):
     st = scene_state
     s = Scene(st['id'], st['description'])
     s.set_state(st, session)
     return s
-
-class Scene_Thumbnails:
-
-    def __init__(self, session):
-
-        self.session = session
-
-        from .ui.qt import QtWidgets, QtCore
-        self.dock_widget = dw = QtWidgets.QDockWidget('Scenes', session.main_window)
-        dw.setTitleBarWidget(QtWidgets.QWidget(dw))   # No title bar
-        dw.setFeatures(dw.NoDockWidgetFeatures)       # No close button
-
-        class Thumbnail_Viewer(QtWidgets.QTextBrowser):
-            height = 140
-            close_button = None
-            def sizeHint(self):
-                return QtCore.QSize(600,self.height)
-            def resizeEvent(self, e):
-                QtWidgets.QTextBrowser.resizeEvent(self, e)
-                c = self.close_button
-                if c:
-                    c.move(e.size().width()-c.width()-5,5)
-
-        self.text = e = Thumbnail_Viewer(dw)
-        e.setOpenLinks(False)
-
-        e.close_button = ct = QtWidgets.QPushButton('X', e)
-        ct.setStyleSheet("padding: 1px; min-width: 1em")
-        ct.adjustSize()
-        ct.clicked.connect(lambda e: self.hide())
-
-        dw.setWidget(e)
-        dw.setVisible(False)
-
-        e.setReadOnly(True)
-        e.anchorClicked.connect(self.anchor_callback)          # Handle clicks on anchors
-
-    def show(self, scenes):
-        self.set_height(scenes = scenes)
-        self.html = html = scene_thumbnails_html(scenes, self.text.document())
-        self.text.setHtml(html)
-
-        from .ui.qt import QtCore
-        dw = self.dock_widget
-        mw = self.session.main_window
-        mw.addDockWidget(QtCore.Qt.TopDockWidgetArea, dw)
-        dw.setVisible(True)
-
-    def shown(self):
-        return self.dock_widget.isVisible()
-
-    def hide(self):
-        mw = self.session.main_window
-        mw.removeDockWidget(self.dock_widget)
-
-    def anchor_callback(self, qurl):
-        url = qurl.toString()
-        id = int(url)
-        self.session.scenes.show_scene(id)
-
-    def set_height(self, h = None, scenes = []):
-        if h is None:
-            h = 220 if [s for s in scenes if s.description] else 140
-        self.text.height = h
-#        self.text.adjustSize()
-#        self.dock_widget.adjustSize()
-
-def scene_thumbnails_html(scenes, qdoc):
-
-  from os.path import basename, splitext
-  lines = ['<html>', '<head>', '<style>',
-           'body { background-color: black; }',
-           'a { text-decoration: none; }',      # No underlining of links
-           'a:link { color: #FFFFFF; }',        # Link text color white.
-           'table { float:left; }',             # Multiple image/caption tables per row.
-           'td { font-size:large; }',
-#           'td { text-align:center; }',        # Does not work in Qt 5.0.2
-           '</style>', '</head>', '<body>',
-           '<table style="float:left;">', '<tr>',
-           ]
-  for s in scenes:
-      i = s.image
-      w,h = i.width(), i.height()
-      lines.append('<td width=%d valign=bottom><a href="%d"><img src="%s" width=%d height=%d></a>'
-                   % (w+10, s.id, s.image_uri(qdoc), w, h))
-
-  lines.append('<tr>')
-  for s in scenes:
-      lines.append('<td><a href="%d"><center>%d</center></a>' % (s.id, s.id))
-
-  if [s for s in scenes if s.description]:
-      lines.append('<tr>')
-      import cgi
-      for s in scenes:
-          line = ('<td><a href="%d">%s</a>' % (s.id, cgi.escape(s.description))) if s.description else '<td>'
-          lines.append(line)
-  lines.extend(['</table>', '</body>', '</html>'])
-  html = '\n'.join(lines)
-  return html
 
 def scene_state(session):
 
