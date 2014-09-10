@@ -1,7 +1,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS =
+SUBDIRS	+= ioutil pdb basegeom util pseudobond atomstruct blob pdbio \
+	structaccess
 
 include $(TOP)/mk/subdir.make
 
@@ -24,3 +25,6 @@ lint:
 
 clean:
 	rm -rf __pycache__
+
+structaccess.install: atomstruct.install blob.install
+pdbio.install: atomstruct.install pdb.install blob.install
