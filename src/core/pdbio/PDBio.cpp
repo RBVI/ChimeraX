@@ -1183,56 +1183,10 @@ read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
     return mols;
 }
 
-static const char*
-docstr_parse_mmCIF_file = 
-"parse_mmCIF_file(whole_file, log=None, explode=True)\n" \
-"\n" \
-"whole_file\n" \
-"  A buffer containing the whole mmCIF file\n" \
-"log\n" \
-"  A file-like object open for writing that warnings/errors and other\n" \
-"  information will be written to\n" \
-"explode\n" \
-"  Controls whether NMR ensembles will be handled as separate models (True)\n" \
-"  or as one model with multiple coordinate sets (False)\n" \
-"\n" \
-"Returns a structaccess.StructBlob.";
-
-extern "C" PyObject *
-parse_mmCIF_file(PyObject *, PyObject *args, PyObject *keywords)
-{
-    Py_buffer whole_file;
-    PyObject *mols;
-    PyObject *log_file = Py_None;
-    bool explode = true;
-    static const char *kw_list[] = { "whole_file", "log", "explode", NULL };
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "y*|$Op", (char **) kw_list,
-        &whole_file, &log_file, &explode))
-            return NULL;
-#if 0
-    if (log_file != Py_None) {
-        is_inst = PyObject_IsInstance(log_file, io_base);
-        if (is_inst == 0)
-            PyErr_SetString(PyExc_TypeError, "log file is not an instance of IOBase class");
-        if (is_inst <= 0) {
-            Py_DECREF(io_mod);
-            Py_DECREF(io_base);
-            return NULL;
-        }
-    }
-#endif
-    mols = parse_mmCIF(reinterpret_cast<const char*>(whole_file.buf), log_file,
-                                                                    explode);
-    PyBuffer_Release(&whole_file);
-    return mols;
-}
-
 static struct PyMethodDef pdbio_functions[] =
 {
     { "read_pdb_file", (PyCFunction)read_pdb_file, METH_VARARGS|METH_KEYWORDS,
         docstr_read_pdb_file },
-    { "parse_mmCIF_file", (PyCFunction)parse_mmCIF_file, METH_VARARGS|METH_KEYWORDS,
-        docstr_parse_mmCIF_file },
     { NULL, NULL, 0, NULL }
 };
 
