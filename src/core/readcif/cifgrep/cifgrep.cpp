@@ -79,9 +79,14 @@ save_parse_info(bool in_loop)
 				cat_info[x.first] = string(start, end - start);
 			}); }
 
-	auto len = cat.size();
-	for (auto& x: tags) {
-		x = x.substr(len + 1);
+	static bool shorten_tags = true;
+	if (shorten_tags) {
+		// modify tags to be just the column ids
+		auto len = cat.size();
+		for (auto& x: tags) {
+			x = x.substr(len + 1);
+		}
+		shorten_tags = false;
 	}
 	while (extract.parse_row(pv)) {
 		if (show_data_block) {
