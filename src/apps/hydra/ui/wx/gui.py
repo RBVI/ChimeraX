@@ -50,6 +50,10 @@ class MainWindow(wx.Frame):
         self._text = WebView.New(self._text_window.ui_area)
         self._text_window.shown = False
 
+        self._shortcuts_enabled = False
+        from .cmd_line import CmdLine
+        self._command_line = CmdLine(session)
+
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.SetDropTarget(_FileDrop(session))

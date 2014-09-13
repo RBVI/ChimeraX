@@ -1,14 +1,15 @@
 # vim: set expandtab ts=4 sw=4:
 
 class CmdLine:
-    
+
     SIZE = (500, 25)
 
-    def __init__(self):
+    def __init__(self, session):
+        self.session = session
         import wx
-        from .tool_api import ToolWindow
-        self.tool_window = ToolWindow("Command Line", "General",
-            size=self.SIZE, placement=wx.BOTTOM)
+        from ..tool_api import ToolWindow
+        self.tool_window = ToolWindow("Command Line", "General", session,
+            size=self.SIZE, placement="bottom")
         parent = self.tool_window.ui_area
         self.text = wx.TextCtrl(parent, size=self.SIZE,
             style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
@@ -20,3 +21,4 @@ class CmdLine:
     def OnEnter(self, event):
         cmd = self.text.GetLineText(0)
         self.text.SelectAll()
+        self.session.commands.run_command(cmd)
