@@ -114,6 +114,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     bool        is_babel = false; // have we seen Babel-style atom names?
     bool        recent_TER = false;
     bool        break_hets = false;
+    bool        redo_elements = false;
     unsigned char  let;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
@@ -491,6 +492,8 @@ start_t = end_t;
                         a->register_field(pdb_charge, atoi(record.atom.charge));
                 }
             }
+            if (e->number() == 0 && aname != "LP" && aname != "lp")
+                redo_elements = true;
             delete e;
             if (in_model == 0 && asn.find(record.atom.serial) != asn.end())
                 LOG_PY_ERROR_NULL("warning:  duplicate atom serial number found: "
@@ -624,6 +627,27 @@ start_t = clock();
     }
     as->pdb_version = record.pdb_input_version();
 
+    if (redo_elements) {
+        char test_name[3];
+        test_name[2] = '\0';
+        for (auto& a: as->atoms()) {
+            if (a->name().empty())
+                continue;
+            test_name[0] = a->name()[0];
+            test_name[1] = '\0';
+            Element e1(test_name);
+            if (e1.number() != 0) {
+                a->_switch_initial_element(e1);
+                continue;
+            }
+            if (a->name().size() < 2)
+                continue;
+            test_name[1] = a->name()[1];
+            Element e2(test_name);
+            if (e2.number() != 0)
+                a->_switch_initial_element(e2);
+        }
+    }
 #ifdef CLOCK_PROFILING
 cum_postloop_t += clock() - start_t;
 #endif

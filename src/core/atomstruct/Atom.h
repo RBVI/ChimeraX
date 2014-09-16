@@ -52,6 +52,10 @@ private:
     void  _coordset_set_coord(const Point &);
     void  _coordset_set_coord(const Point &, CoordSet *cs);
     unsigned int  _new_coord(const Point &);
+public:
+    // so that I/O routines can cheaply "change their minds" about element
+    // types during early structure creation
+    void  _switch_initial_element(Element e) { _element = e; }
 
 public:
     void  add_bond(Bond *b) { add_connection(b); }
