@@ -70,10 +70,8 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList = [
             glcanvas.WX_GL_RGBA,
             glcanvas.WX_GL_DOUBLEBUFFER,
-            glcanvas.WX_GL_STEREO,
-            #glcanvas.WX_GL_CORE_PROFILE
-            glcanvas.WX_GL_MAJOR_VERSION, 3,
-            glcanvas.WX_GL_MINOR_VERSION, 3
+            glcanvas.WX_GL_DEPTH_SIZE, 24,
+            glcanvas.WX_GL_OPENGL_PROFILE, glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE,
         ])
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
