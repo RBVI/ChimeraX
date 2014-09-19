@@ -13,6 +13,7 @@ class GraphicsWindow(View, wx.Panel):
     """
 
     def __init__(self, session, parent=None, req_size=(800,800)):
+        self.session = session
         wx.Panel.__init__(self, parent)
         if req_size:
             self.SetClientSize(*req_size)
@@ -65,14 +66,28 @@ class OpenGLCanvas(glcanvas.GLCanvas):
 
     def __init__(self, parent):
         self.graphics_window = parent
-        import sys
-        print(dir(glcanvas), file=sys.stderr)
-        glcanvas.GLCanvas.__init__(self, parent, -1, attribList = [
-            glcanvas.WX_GL_RGBA,
-            glcanvas.WX_GL_DOUBLEBUFFER,
-            glcanvas.WX_GL_DEPTH_SIZE, 24,
-            glcanvas.WX_GL_OPENGL_PROFILE, glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE,
-        ])
+        attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER,
+            glcanvas.WX_GL_OPENGL_PROFILE, glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+            ]
+        gl_supported = glcanvas.GLCanvas.IsDisplaySupported
+        if not gl_supported(attribs):
+            raise AssertionError("Required OpenGL capabilities RGBA and/or"
+                " double buffering and/or OpenGL 3 not supported")
+        for depth in range(32, 0, -8):
+            test_attribs = attribs + [glcanvas.WX_GL_DEPTH_SIZE, depth]
+            if gl_supported(test_attribs):
+                attribs = test_attribs
+                print("Using {}-bit OpenGL depth buffer".format(depth))
+                break
+        else:
+            raise AssertionError("Required OpenGL depth buffer capability"
+                " not supported")
+        test_attribs = attribs + [glcanvas.WX_GL_STEREO]
+        if gl_supported(test_attribs):
+            attribs = test_attribs
+        else:
+            print("Stereo mode is not supported by OpenGL driver")
+        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 

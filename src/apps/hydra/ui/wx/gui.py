@@ -61,6 +61,7 @@ class MainWindow(wx.Frame):
     def OnClose(self, event):
         self.aui_mgr.UnInit()
         del self.aui_mgr
+        self.view.timer = None
         self.Destroy()
 
     def show(self):
