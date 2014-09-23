@@ -29,6 +29,11 @@ class GraphicsWindow(View, wx.Panel):
 
         self.timer = None
         self.redraw_interval = 16  #milliseconds
+        #TODO: maybe redraw interval should be 10 msec to reduce
+        # frame drops at 60 frames/sec
+
+        from . import mousemodes
+        self.mouse_modes = mousemodes.Mouse_Modes(self)
 
     def create_opengl_context(self):
         from wx.glcanvas import GLContext
@@ -93,9 +98,6 @@ class OpenGLCanvas(glcanvas.GLCanvas):
 
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
-        self.Bind(wx.EVT_LEFT_UP, self.OnMouseUp)
-        self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
 
     def OnPaint(self, evt):
         #dc = wx.PaintDC(self)
@@ -113,16 +115,3 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             fb = graphics.default_framebuffer()
             fb.width, fb.height = w, h
             fb.viewport = (0, 0, w, h)
-
-    def OnMouseDown(self, evt):
-        self.CaptureMouse()
-        self.x, self.y, = self.last_x, self.last_y = evt.GetPosition()
-
-    def OnMouseUp(self, evt):
-        self.ReleaseMouse()
-
-    def OnMouseMotion(self, evt):
-        if evt.Dragging() and evt.LeftIsDown():
-            self.last_x, self.last_y = self.x, self.y
-            self.x, self.y = evt.GetPosition()
-            # mousemodes...
