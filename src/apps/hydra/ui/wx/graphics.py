@@ -12,11 +12,9 @@ class GraphicsWindow(View, wx.Panel):
     are in the View base class.
     """
 
-    def __init__(self, session, parent=None, req_size=(800,800)):
+    def __init__(self, session, parent=None):
         self.session = session
         wx.Panel.__init__(self, parent)
-        if req_size:
-            self.SetClientSize(*req_size)
         self.opengl_context = None
         self.opengl_canvas = OpenGLCanvas(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)

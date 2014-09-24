@@ -31,7 +31,7 @@ class _FileDrop(wx.FileDropTarget):
 class MainWindow(wx.Frame):
 
     def __init__(self, session):
-        wx.Frame.__init__(self, None, title="Chimera 2")
+        wx.Frame.__init__(self, None, title="Chimera 2", size=(1000,700))
 
         from wx.lib.agw.aui import AuiManager, AuiPaneInfo
         self.aui_mgr = AuiManager(self)
