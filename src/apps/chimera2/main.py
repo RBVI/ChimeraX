@@ -13,7 +13,7 @@ debug = False
 gui = True
 module = None
 line_profile = False
-tools = True
+load_tools = True
 status = True
 version = False
 
@@ -84,7 +84,7 @@ def parse_arguments():
         else opt == "--nostatus":
             status = False
         else opt == "--notools":
-            tools = False
+            load_tools = False
         else opt == "--version":
             version = True
         else opt == "-m":
@@ -104,15 +104,15 @@ def init():
     import envguard
     envguard.init("chimera")
 
+    # install line_profile decorator
     import builtins
     if not line_profile:
-        builtins.__dict__['lineprofile'] = lambda x: x
+        builtins.__dict__['line_profile'] = lambda x: x
     else:
-        # install lineprofile decorator
-        # and write results on exit
+        # write profile results on exit
         import line_profiler, atexit
         prof = line_profiler.LineProfiler()
-        builtins.__dict__['lineprofile'] = prof
+        builtins.__dict__['line_profile'] = prof
         atexit.register(prof.dump_stats, "chimera.lprof")
 
     from chimera.core import session
@@ -143,19 +143,20 @@ def init():
     from chimera.core import preferences
     preferences.init(sess.app_dirs)
 
+    # common core initialization
     from chimera.core import setup
-    setup.init()
+    setup.init(sess)
 
     from chimera.core import toolshed
-    tool_info = toolshed.init(sess.app_dirs, not tools)
+    sess.tools = toolshed.init(sess.app_dirs, load_tools=load_tools)
 
-    ui.build(tool_info)
+    ui.build(sess.tools.tool_info())
 
-    # TODO: initialize startup tools
+    for tool in sess.tools.startup_tools():
+        tool.start()
 
-    from chimera.core import io
     for arg in args:
-        io.open(arg)
+        sess.models.open(arg)
 
     try:
         ui.event_loop()
