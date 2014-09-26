@@ -297,9 +297,9 @@ hookup(Atom* a, Residue* res, bool definitely_connect=true)
 {
     bool made_connection = false;
     Atom *b = find_closest(a, res, NULL, true);
-    if (!definitely_connect && b->coord().sqdistance(a->coord()) > 9.0)
-        return false;
     if (b != NULL) {
+        if (!definitely_connect && b->coord().sqdistance(a->coord()) > 9.0)
+            return false;
         add_bond(a, b);
         made_connection = true;
     }
