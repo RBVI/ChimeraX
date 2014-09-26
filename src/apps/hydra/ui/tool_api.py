@@ -13,12 +13,19 @@ class ToolWindow:
         except ImportError:
             # browser version
             raise NotImplementedError("Browser tool API not implemented")
-        self.shown = self.__toolkit.shown
         self.ui_area = self.__toolkit.ui_area
 
     def destroy(self):
         self.__toolkit.destroy()
         self.__toolkit = None
+
+    def getShown(self):
+        return self.__toolkit.shown
+
+    def setShown(self, shown):
+        self.__toolkit.shown = shown
+
+    shown = property(getShown, setShown)
 
 class _Wx:
 
@@ -27,7 +34,7 @@ class _Wx:
         self.tool_window = tool_window
         self.destroy_hides = destroy_hides
         import wx
-        mw = session.main_window
+        self.main_window = mw = session.main_window
         if not mw:
             raise RuntimeError("No main window or main window dead")
         if size is None:
@@ -58,7 +65,7 @@ class _Wx:
         mw.aui_mgr.Update()
         if prefer_detached:
            mw.aui_mgr.GetPane(self.ui_area).Float()
-        self.shown = self.ui_area.Shown
+        self._pane_info = None
 
     def destroy(self):
         if self.tool_window.ui_panel:
@@ -67,3 +74,21 @@ class _Wx:
                 return
             self.ui_area.Destroy()
         self.tool_window = None
+
+    def getShown(self):
+        return self.ui_area.Shown
+
+    def setShown(self, shown):
+        aui_mgr = self.main_window.aui_mgr
+        if shown:
+            if self._pane_info:
+                # has been hidden at least once
+                aui_mgr.AddPane(self.ui_area, self._pane_info)
+                self._pane_info = None
+        else:
+            self._pane_info = aui_mgr.GetPane(self.ui_area)
+            aui_mgr.DetachPane(self.ui_area)
+
+        self.ui_area.Shown = shown
+
+    shown = property(getShown, setShown)

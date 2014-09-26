@@ -1,4 +1,4 @@
-TOP = ../..
+TOP = ../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	= arrays commands devices docs example_sessions files geometry graphics mac_os_cpp \

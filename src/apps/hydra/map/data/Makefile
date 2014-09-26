@@ -1,4 +1,4 @@
-TOP = ../../../..
+TOP = ../../../../..
 include $(TOP)/mk/config.make
 
 #SUBDIRS	= amira apbs ccp4 cmap delphi dock dsn6 emanhdf gaussian \

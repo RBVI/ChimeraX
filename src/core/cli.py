@@ -51,13 +51,22 @@ Command registration can be partially delayed to avoid importing
 the command description and function until needed.
 See :py:func:`register` and :py:func:`defer_registration` for details.
 
-The description is either an instance of the Command Information class,
-:py:class:`CmdInfo`, or a tuple with the arguments to the initializer.
-The CmdInfo initializer takes tuples describing the required, optional,
+The description is either an instance of the Command Description class,
+:py:class:`CmdDesc`, or a tuple with the arguments to the initializer.
+The CmdDesc initializer takes tuples describing the required, optional,
 and keyword arguments.
-Each tuple, contains tuples with the argument name and a type annotation
+Each tuple contains tuples with the argument name and a type annotation
 (see below).
 Postconditions (see below) can be given too.
+
+Command Functions
+-----------------
+
+The command function arguments are expected to start with a ``session``
+argument.  The rest of the arguments are assembled as keyword arguments,
+as built from the command line and the command description.
+The initial ``session`` argument to a command function
+is not part of the command description.
 
 Type Annotations
 ----------------
@@ -88,8 +97,7 @@ as much as possible:
 +-------------------------------+---------------------------------------+
 
 .. molecule_arg(s):
-.. molecules_arg(s, min = 0):
-.. atoms_arg(s):
+.. molecules_arg(s, min = 0): .. atoms_arg(s):
 .. model_arg(s):
 .. models_arg(s):
 .. model_id_arg(s):
@@ -142,14 +150,14 @@ Example
 Here is a simple example::
 
 	import cli
-	@register("echo", cli.CmdInfo(optional=(('text', cli.rest_of_line))))
+	@register("echo", cli.CmdDesc(optional=(('text', cli.rest_of_line))))
 	def echo(text=''):
 		print(text)
 	...
 	command = cli.Command()
 	command.parse_text(text, final=True)
 	try:
-		status = command.execute()
+		status = command.execute(session)
 		if status:
 			print(status)
 	except cli.UserError as err:
@@ -157,17 +165,18 @@ Here is a simple example::
 
 .. todo::
 
-    Build data structure with introspected information and allow it to
-    be supplemented separately for command functions with \*\*kw arguments.
-    That way a command that is expanded at runtime could pick up new arguments
-    (*e.g.*, the open command).
+	Build data structure with introspected information and allow it to
+	be supplemented separately for command functions with \*\*kw arguments.
+	That way a command that is expanded at runtime could pick up new arguments
+	(*e.g.*, the open command).
 
 .. todo::
 
-    Issues: autocompletion, minimum 2 letters? extensions?
-    help URL? affect graphics flag?
+	Issues: autocompletion, minimum 2 letters? extensions?
+	help URL? affect graphics flag?
 
 """
+
 
 class UserError(ValueError):
 	"""An exception provoked by the user's input.
@@ -180,6 +189,7 @@ class UserError(ValueError):
 
 import sys
 from collections import OrderedDict
+
 
 class Annotation:
 	# TODO: Annotation is an ABC
@@ -222,6 +232,7 @@ class Annotation:
 		"""
 		raise NotImplemented
 
+
 class Aggregate(Annotation):
 	"""Common class for collections of values.
 
@@ -230,15 +241,16 @@ class Aggregate(Annotation):
 	:param annotation: annotation for values in the collection.
 	:param constructor: function/type to create an empty collection.
 	:param add_to: function to add an element to the collection,
-	    typically an unbound method.  For immutable collections,
-	    return a new collection.
+		typically an unbound method.  For immutable collections,
+		return a new collection.
 	:param min_size: minimum size of collection, default `None`.
 	:param max_size: maximum size of collection, default `None`.
 	"""
 	min_size = 0
 	max_size = sys.maxsize
 
-	def __init__(self, annotation, constructor, add_to, min_size=None, max_size=None, name=None):
+	def __init__(self, annotation, constructor, add_to, min_size=None,
+						max_size=None, name=None):
 		self.annotation = annotation
 		self.constructor = constructor
 		self.add_to = add_to
@@ -261,12 +273,14 @@ class Aggregate(Annotation):
 	def completions(self, text):
 		return self.annotation.completions(text)
 
+
 def List_of(annotation, min_size=None, max_size=None):
 	"""Annotation for lists of a single type
 
 	List_of(annotation, min_size=None, max_size=None) -> annotation
 	"""
 	return Aggregate(annotation, list, list.append, min_size, max_size)
+
 
 def Set_of(annotation, min_size=None, max_size=None):
 	"""Annotation for sets of a single type
@@ -275,8 +289,10 @@ def Set_of(annotation, min_size=None, max_size=None):
 	"""
 	return Aggregate(annotation, set, set.add, min_size, max_size)
 
+
 def _tuple_append(t, value):
 	return t + (value,)
+
 
 def Tuple_of(annotation, size):
 	"""Annotation for tuples of a single type
@@ -284,6 +300,7 @@ def Tuple_of(annotation, size):
 	Tuple_of(annotation, size) -> annotation
 	"""
 	return Aggregate(annotation, tuple, _tuple_append, size, size)
+
 
 class bool_arg(Annotation):
 	"""Annotation for boolean literals"""
@@ -308,6 +325,7 @@ class bool_arg(Annotation):
 			result.append("true")
 		return result
 
+
 class int_arg(Annotation):
 	"""Annotation for integer literals"""
 	name = "a whole number"
@@ -326,6 +344,7 @@ class int_arg(Annotation):
 			return [x for x in int_chars]
 		return []
 
+
 class float_arg(Annotation):
 	"""Annotation for floating point literals"""
 	name = "a floating point number"
@@ -342,6 +361,7 @@ class float_arg(Annotation):
 		if not text:
 			return [x for x in "+-0123456789"]
 
+
 class string_arg(Annotation):
 	"""Annotation for string literals"""
 	name = "a text string"
@@ -353,6 +373,7 @@ class string_arg(Annotation):
 	@staticmethod
 	def completions(text):
 		return []
+
 
 class Bounded(Annotation):
 	"""Support bounded numerical values
@@ -390,6 +411,7 @@ class Bounded(Annotation):
 
 	def completions(self, text):
 		return self.anno.completions(text)
+
 
 class Enum_of(Annotation):
 	"""Support enumerated types
@@ -433,6 +455,7 @@ class Enum_of(Annotation):
 		text = text.casefold()
 		return [x for x in self.ids if x.casefold().startswith(text)]
 
+
 class Or(Annotation):
 	"""Support two or more alternative annotations
 
@@ -471,6 +494,7 @@ class Or(Annotation):
 			completions += anno.completions(text)
 		return completions
 
+
 class rest_of_line(Annotation):
 	name = "the rest of line"
 
@@ -491,6 +515,7 @@ float3_arg = Tuple_of(float_arg, 3)
 positive_int_arg = Bounded(int_arg, min=1, name="natural number")
 model_id_arg = positive_int_arg
 
+
 class Postcondition:
 	"""Base class for postconditions"""
 	# TODO: Postcondition is an ABC
@@ -502,6 +527,7 @@ class Postcondition:
 	def error_message(self):
 		"""Appropriate error message if check fails."""
 		raise NotImplemented
+
 
 class SameSize(Postcondition):
 	"""Postcondition check for same size arguments
@@ -538,14 +564,16 @@ class SameSize(Postcondition):
 # registered command with that prefix is used.
 _commands = OrderedDict()
 
+
 def _check_autocomplete(word, mapping, name):
 	# this is a debugging aid for developers
 	for key in mapping:
 		if key.startswith(word) and key != word:
 			raise ValueError("'%s' is a prefix of an existing command" % name)
 
-class CmdInfo:
-	"""Hold information about commands.
+
+class CmdDesc:
+	"""Describe command arguments.
 
 	:param required: required positional arguments tuple
 	:param optional: optional positional arguments tuple
@@ -576,11 +604,14 @@ class CmdInfo:
 		have default values, are 'required'.
 		"""
 		if self.function:
-			raise ValueError("Can not reuse CmdInfo instances")
+			raise ValueError("Can not reuse CmdDesc instances")
 		import inspect
 		EMPTY = inspect.Parameter.empty
 		signature = inspect.signature(function)
-		for p in signature.parameters.values():
+		params = list(signature.parameters.values())
+		if len(params) < 1 or params[0].name != "session":
+			raise ValueError("Missing initial 'session' argument")
+		for p in params[1:]:
 			if p.default != EMPTY or p.name in self.required:
 				continue
 			raise ValueError("Wrong function or '%s' argument must be required or have a default value" % p.name)
@@ -594,6 +625,7 @@ class CmdInfo:
 		ci.function = None
 		return ci
 
+
 class _Defer:
 	# Enable function introspection to be deferred until needed
 	#
@@ -606,16 +638,17 @@ class _Defer:
 	# followed by returning a function in the imported module.  In the
 	# latter case, multiple subcommands are registered, and nothing is
 	# returned.
-	__slots__ = [ 'proxy', 'cmd_info' ]
+	__slots__ = ['proxy', 'cmd_info']
 
 	def __init__(self, proxy_function, cmd_info):
 		self.proxy = proxy_function
 		if isinstance(cmd_info, tuple):
-			cmd_info = CmdInfo(*cmd_info)
+			cmd_info = CmdDesc(*cmd_info)
 		self.cmd_info = cmd_info
 
 	def call(self):
 		return self.proxy()
+
 
 def delay_registration(name, proxy_function, cmd_info=None):
 	"""delay registering a named command until needed
@@ -627,13 +660,14 @@ def delay_registration(name, proxy_function, cmd_info=None):
 	"""
 	register(name, None, _Defer(proxy_function, cmd_info))
 
+
 def register(name, cmd_info, function=None):
 	"""register function that implements command
 
 	:param name: the name of the command and may include spaces.
 	:param cmd_info: information about the command, either an
-	    instance of :py:class:`CmdInfo`, or the tuple with CmdInfo
-	    parameters.
+		instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
+		parameters.
 	:param function: the callback function.
 
 	If the function is None, then it assumed that :py:func:`register`
@@ -654,7 +688,7 @@ def register(name, cmd_info, function=None):
 		return wrapper
 
 	if isinstance(cmd_info, tuple):
-		cmd_info = CmdInfo(*cmd_info)
+		cmd_info = CmdDesc(*cmd_info)
 
 	words = name.split()
 	cmd_map = _commands
@@ -686,6 +720,7 @@ def register(name, cmd_info, function=None):
 	cmd_map[word] = cmd_info
 	return function		# needed when used as a decorator
 
+
 def _lazy_introspect(cmd_map, word):
 	deferred = cmd_map[word]
 	function = deferred.call()
@@ -698,9 +733,10 @@ def _lazy_introspect(cmd_map, word):
 		return cmd_info
 	# deferred function might have registered subcommands
 	cmd_info = cmd_map[word]
-	if isinstance(cmd_info, (dict, CmdInfo)):
+	if isinstance(cmd_info, (dict, CmdDesc)):
 		return cmd_info
 	raise RuntimeError("delayed registration didn't register the command")
+
 
 def add_keyword_arguments(name, kw_info):
 	"""Make known additional keyword argument(s) for a command
@@ -735,11 +771,29 @@ single = re.compile(r"'([^']|\')*'")
 double = re.compile(r'"([^"]|\")*"')
 whitespace = re.compile("\s+")
 
+
 class Command:
 	"""Keep track of partially typed command with possible completions
 
 	:param text: the command text
 	:param final: true if text is the complete command line (final version).
+
+	.. data: current_text
+
+		The expanded version of the command.
+
+	.. data: amount_parsed
+
+		Amount of current text that has been successfully parsed.
+
+	.. data: completions
+
+		Possible command completions.  The first one will be used
+		if the command is executed.
+
+	.. data: completion_prefix
+
+		Partial word used for command completions.
 	"""
 	def __init__(self, text='', final=False):
 		self._reset()
@@ -770,13 +824,13 @@ class Command:
 				raise UserError(cond.message())
 		self._error_checked = True
 
-	def execute(self):
-		"""If command is valid, execute it."""
+	def execute(self, session):
+		"""If command is valid, execute it with given session."""
 
 		if not self._error_checked:
 			self.error_check()
 		try:
-			return self._ci.function(**self._kwargs)
+			return self._ci.function(session, **self._kwargs)
 		except ValueError as err:
 			# convert function's ValueErrors to UserErrors,
 			# but not those of functions it calls
@@ -971,11 +1025,12 @@ class Command:
 			if isinstance(what, dict):
 				# word is part of multiword command name
 				word_map = what
-				self._error = "Incomplete command: %s" % self.current_text[0:self.amount_parsed]
+				self._error = ("Incomplete command: %s"
+				    % self.current_text[0:self.amount_parsed])
 				continue
-			assert(isinstance(what, CmdInfo))
+			assert(isinstance(what, CmdDesc))
 			self._ci = what
-			self.command_name =  self.current_text[:self.amount_parsed]
+			self.command_name = self.current_text[:self.amount_parsed]
 			break
 		word_map = self._ci.keyword
 
@@ -1074,23 +1129,25 @@ if __name__ == '__main__':
 			names = [n for n in Color_arg.Builtin_Colors if n.startswith(text)]
 			return names
 
-	test1_info = CmdInfo(
+	test1_info = CmdDesc(
 		required=[('a', int_arg), ('b', float_arg)],
 		keyword=[('color', Color_arg)]
 	)
+
 	@register('test1', test1_info)
-	def test1(a: int, b: float, color=None):
+	def test1(session, a: int, b: float, color=None):
 		print('test1 a: %s %s' % (type(a), a))
 		print('test1 b: %s %s' % (type(b), b))
 		print('test1 color: %s %s' % (type(color), color))
 
-	test2_info = CmdInfo(
+	test2_info = CmdDesc(
 		#required=[('a', string_arg)],
 		#optional=[('text', rest_of_line)],
 		keyword=[('color', Color_arg), ('radius', float_arg)]
 	)
+
 	@register('test2', test2_info)
-	def test2(a: str='', text='', color=None, radius: float=0):
+	def test2(session, a: str='', text='', color=None, radius: float=0):
 		#print('test2 a: %s %s' % (type(a), a))
 		#print('test2 text: %s %s' % (type(text), text))
 		print('test2 color: %s %s' % (type(color), color))
@@ -1099,106 +1156,113 @@ if __name__ == '__main__':
 	register('mw test1', test1_info.copy(), test1)
 	register('mw test2', test2_info.copy(), test2)
 
-	test3_info = CmdInfo(
+	test3_info = CmdDesc(
 		required=[('name', string_arg)],
 		optional=[('value', float_arg)]
 	)
+
 	@register('test3', test3_info)
-	def test3(name: str, value=None):
+	def test3(session, name: str, value=None):
 		print('test3 name: %s %s' % (type(name), name))
 		print('test3 value: %s %s' % (type(value), value))
 
-	test4_info = CmdInfo(
+	test4_info = CmdDesc(
 		optional=[('draw', float_arg)]
 	)
+
 	@register('test4', test4_info)
-	def test4(draw: bool=None):
+	def test4(session, draw: bool=None):
 		print('test4 draw: %s %s' % (type(draw), draw))
 
-	test5_info = CmdInfo(
+	test5_info = CmdDesc(
 		optional=[('ints', floats_arg)]
 	)
+
 	@register('test5', test5_info)
-	def test5(ints=None):
+	def test5(session, ints=None):
 		print('test5 ints: %s %s' % (type(ints), ints))
 
-	test6_info = CmdInfo(
+	test6_info = CmdDesc(
 		required=[('center', float3_arg)]
 	)
+
 	@register('test6', test6_info)
-	def test6(center):
+	def test6(session, center):
 		print('test6 center:', center)
 
-	test7_info = CmdInfo(
+	test7_info = CmdDesc(
 		optional=[('center', float3_arg)]
 	)
+
 	@register('test7', test7_info)
-	def test7(center=None):
+	def test7(session, center=None):
 		print('test7 center:', center)
 
-	test8_info = CmdInfo(
+	test8_info = CmdDesc(
 		optional=[
 			('always', bool_arg),
 			('target', string_arg),
 			('names', List_of(string_arg)),
 		],
 	)
+
 	@register('test8', test8_info)
-	def test8(always=True, target="all", names=[None]):
+	def test8(session, always=True, target="all", names=[None]):
 		print('test8 always, target, names:', always, target, names)
-	test9_info = CmdInfo(
+	test9_info = CmdDesc(
 		optional=(
 			("target", string_arg),
 			("names", List_of(string_arg))
 		),
 		keyword=(("full", bool_arg),)
 	)
+
 	@register('test9', test9_info)
-	def test9(target="all", names=[None], full=False):
+	def test9(session, target="all", names=[None], full=False):
 		print('test9 full, target, names:', full, target, names)
 
 	tests = [
-		(True,	'test1 color red 12 3.5'),
-		(True,	'test1 12 color red 3.5'),
-		(True,	'test1 12 3.5 color red'),
-		(True,	'test1 12 3.5 color'),
-		(True,	'te'),
-		(True,	'test2 color red radius 3.5 foo'),
-		(True,	'test2 color red radius 3.5'),
-		(True,	'test2 color red radius xyzzy'),
-		(True,	'test2 color red radius'),
-		(True,	'test2 color "light gray"'),
-		(True,	'test2 color light gray'),
-		(True,	'test2 color li gr'),
-		(True,	'test2 co li gr rad 11'),
-		(True,	'test2 c'),
-		(True,	'test3 radius'),
-		(True,	'test3 radius 12.3'),
-		(True,	'test4'),
-		(True,	'test4 draw'),
-		(True,	'test5'),
-		(True,	'test5 ints 5'),
-		(True,	'test5 ints 5 ints 6'),
-		(True,	'test5 ints 5, 6, 7, 8, 9'),
-		(True,	'mw test1 color red 12 3.5'),
-		(True,	'mw test1 color red 12 3.5'),
-		(True,	'mw test2 color red radius 3.5 foo'),
-		(False,	'mw te'),
-		(True,	'mw '),
-		(False,	'mw'),
-		(True,	'te 12 3.5 co red'),
-		(True,	'm te 12 3.5 col red'),
-		(True,	'test6 3.4, 5.6, 7.8'),
-		(True,	'test6 3.4 abc 7.8'),
-		(True,	'test7 center 3.4, 5.6, 7.8'),
-		(True,	'test7 center 3.4, 5.6'),
-		(True,  'test8 always false'),
-		(True,  'test8 always true target tool'),
-		(True,  'test8 always true tool'),
-		(True,  'test8 always tool'),
-		(True,  'test8 TRUE tool xyzzy, plugh '),
-		(True,  'test9 full true'),
-		(True,  'test9 names a,b,c d'),
+		(True, 'test1 color red 12 3.5'),
+		(True, 'test1 12 color red 3.5'),
+		(True, 'test1 12 3.5 color red'),
+		(True, 'test1 12 3.5 color'),
+		(True, 'te'),
+		(True, 'test2 color red radius 3.5 foo'),
+		(True, 'test2 color red radius 3.5'),
+		(True, 'test2 color red radius xyzzy'),
+		(True, 'test2 color red radius'),
+		(True, 'test2 color "light gray"'),
+		(True, 'test2 color light gray'),
+		(True, 'test2 color li gr'),
+		(True, 'test2 co li gr rad 11'),
+		(True, 'test2 c'),
+		(True, 'test3 radius'),
+		(True, 'test3 radius 12.3'),
+		(True, 'test4'),
+		(True, 'test4 draw'),
+		(True, 'test5'),
+		(True, 'test5 ints 5'),
+		(True, 'test5 ints 5 ints 6'),
+		(True, 'test5 ints 5, 6, 7, 8, 9'),
+		(True, 'mw test1 color red 12 3.5'),
+		(True, 'mw test1 color red 12 3.5'),
+		(True, 'mw test2 color red radius 3.5 foo'),
+		(False, 'mw te'),
+		(True, 'mw '),
+		(False, 'mw'),
+		(True, 'te 12 3.5 co red'),
+		(True, 'm te 12 3.5 col red'),
+		(True, 'test6 3.4, 5.6, 7.8'),
+		(True, 'test6 3.4 abc 7.8'),
+		(True, 'test7 center 3.4, 5.6, 7.8'),
+		(True, 'test7 center 3.4, 5.6'),
+		(True, 'test8 always false'),
+		(True, 'test8 always true target tool'),
+		(True, 'test8 always true tool'),
+		(True, 'test8 always tool'),
+		(True, 'test8 TRUE tool xyzzy, plugh '),
+		(True, 'test9 full true'),
+		(True, 'test9 names a,b,c d'),
 	]
 	cmd = Command()
 	for t in tests:
@@ -1208,7 +1272,7 @@ if __name__ == '__main__':
 			cmd.parse_text(text, final=final)
 			print(cmd.current_text)
 			#print(cmd.current_text, cmd._kwargs)
-			cmd.execute()
+			cmd.execute(None)
 			print('SUCCESS')
 		except UserError as err:
 			rest = cmd.current_text[cmd.amount_parsed:]
