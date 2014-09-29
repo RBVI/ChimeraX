@@ -6,17 +6,19 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <set>
 
 // can't use forward declarations for classes that we will
 // use unique pointers for, since template expansion checks
 // that they have default delete functions
 #include "Atom.h"
 #include "Bond.h"
+#include "Chain.h"
 #include "CoordSet.h"
+#include "imex.h"
 #include "Pseudobond.h"
 #include "Residue.h"
-#include "Chain.h"
-#include "imex.h"
+#include "Ring.h"
 #include "basegeom/Graph.h"
 
 namespace atomstruct {
@@ -32,6 +34,7 @@ public:
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
+    typedef std::set<Ring>  Rings;
 private:
     CoordSet *  _active_coord_set;
     bool  _being_destroyed;
