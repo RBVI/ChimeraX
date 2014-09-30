@@ -1,0 +1,19 @@
+*** collada/primitive.py.orig	Thu Mar 20 18:30:01 2014
+--- collada/primitive.py	Tue Sep 30 16:39:22 2014
+***************
+*** 173,179 ****
+      def getInputList(self):
+          """Gets a :class:`collada.source.InputList` representing the inputs from a primitive"""
+          inpl = InputList()
+!         for (key, tupes) in self.sources.iteritems():
+              for (offset, semantic, source, set, srcobj) in tupes:
+                  inpl.addInput(offset, semantic, source, set)
+          return inpl
+--- 173,179 ----
+      def getInputList(self):
+          """Gets a :class:`collada.source.InputList` representing the inputs from a primitive"""
+          inpl = InputList()
+!         for (key, tupes) in self.sources.items():
+              for (offset, semantic, source, set, srcobj) in tupes:
+                  inpl.addInput(offset, semantic, source, set)
+          return inpl
