@@ -174,7 +174,7 @@ class PyAUIFrame(wx.Frame):
         tb2_bmp1 = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_OTHER, wx.Size(16, 16))
         for fn in ["back.png", "book.png", "gauge.png", "grid.png",
                 "select.png", "icecube.png", "rotmol.png"]:
-            image = wx.Image("../hydra/ui/icons/" + fn)
+            image = wx.Image("../../../apps/hydra/ui/icons/" + fn)
             w, h = image.GetWidth(), image.GetHeight()
             scaling = 32.0 / max(w, h)
             image.Rescale(int(w * scaling + 0.5), int(h * scaling + 0.5),
@@ -1244,12 +1244,12 @@ log = """\
 <body>
 <p style="font-size:12px">Thu Apr 7 17:48 PDT 2014<p>
 <ol style="font-size:12px;margin-left:5px;padding-left:10px">
-<li><img src="file://localhost/Users/pett/src/chimera2/src/ui-proto/image1.png"></img>
+<li><img src="file://localhost/Users/pett/src/chimera2/src/core/ui/proto/image1.png"></img>
 Opened <a href=none.html">emd_1862.map</a> (#0), size 255<sup>3</sup>,
 grid spacing 1.27&Aring;, contour level -363, minimum -17270,
 maximum 14818, mean -6649.5, sd 3176.6, rms 7369.3, 16-bit integer
-<img src="file://localhost/Users/pett/src/chimera2/src/ui-proto/image2.png" width="87" height="15"></img>
-<li><img src="file://localhost/Users/pett/src/chimera2/src/ui-proto/image3.png"></img>
+<img src="file://localhost/Users/pett/src/chimera2/src/core/ui/proto/image2.png" width="87" height="15"></img>
+<li><img src="file://localhost/Users/pett/src/chimera2/src/core/ui/proto/image3.png"></img>
 Opened <a href=none.html">1em9.pdb</a> (#1), 2 chains A B,
 2257 atoms, rous sarcoma virus capsid protein: n-terminal domain,
 weight 30.04 KDa, x-ray 2.05 &Aring;

@@ -3,7 +3,8 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/ui/wx
 
-PYSRCS = __init__.py cmd_line.py file_dialog.py graphics.py gui.py paths.py
+PYSRCS = __init__.py cmd_line.py file_dialog.py graphics.py gui.py \
+	mousemodes.py paths.py
 
 all: $(PYOBJS)
 

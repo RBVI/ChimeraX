@@ -31,7 +31,7 @@ class _FileDrop(wx.FileDropTarget):
 class MainWindow(wx.Frame):
 
     def __init__(self, session):
-        wx.Frame.__init__(self, None, title="Chimera 2")
+        wx.Frame.__init__(self, None, title="Chimera 2", size=(1000,700))
 
         from wx.lib.agw.aui import AuiManager, AuiPaneInfo
         self.aui_mgr = AuiManager(self)
@@ -50,6 +50,13 @@ class MainWindow(wx.Frame):
         self._text = WebView.New(self._text_window.ui_area)
         self._text_window.shown = False
 
+        self.status_bar = self.CreateStatusBar(3, wx.STB_SIZEGRIP|
+            wx.STB_SHOW_TIPS|wx.STB_ELLIPSIZE_MIDDLE|wx.FULL_REPAINT_ON_RESIZE)
+        self.status_bar.SetStatusWidths([-24, -30, -2])
+        self.status_bar.SetStatusText("Status", 0)
+        self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
+        self.status_bar.SetStatusText("", 2)
+
         self._shortcuts_enabled = False
         from .cmd_line import CmdLine
         self._command_line = CmdLine(session)
@@ -61,6 +68,7 @@ class MainWindow(wx.Frame):
     def OnClose(self, event):
         self.aui_mgr.UnInit()
         del self.aui_mgr
+        self.view.timer = None
         self.Destroy()
 
     def show(self):
@@ -68,6 +76,11 @@ class MainWindow(wx.Frame):
 
     def show_graphics(self):
         pass # always showing
+
+    def show_status(self, text, append=False):
+        if append:
+            text = self.status_bar.GetStatusText(1) + text
+        self.status_bar.SetStatusText(text, 1)
 
     def showing_graphics(self):
         return True
