@@ -1,8 +1,8 @@
 def read_collada_surfaces(path, session, color = (178,178,178,255)):
 
     from os.path import basename
-    from ..graphics import Drawing
-    s = Drawing(basename(path))
+    from ..models import Model
+    s = Model(basename(path))
 
     from collada import Collada
     c = Collada(path)
