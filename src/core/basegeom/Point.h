@@ -2,6 +2,7 @@
 #ifndef basegeom_Point
 #define basegeom_Point
 
+#include <cmath>
 #include <string>
 #include "imex.h"
 #include "Real.h"
@@ -21,10 +22,11 @@ public:
         _xyz[0] = _xyz[1] = _xyz[2] = 0.0;
     }
     virtual  ~Point() {}
-    Real  sqdistance(const Point &pt) const;
+    Real  distance(const Point& pt) const { return std::sqrt(sqdistance(pt)); }
     void  set_xyz(Real x, Real y, Real z) {
         _xyz[0] = x; _xyz[1] = y; _xyz[2] = z;
     }
+    Real  sqdistance(const Point  &pt) const;
     Real&  operator[](int index) { return _xyz[index]; }
     const Real&  operator[](int index) const { return _xyz[index]; }
     std::string  str() const;
