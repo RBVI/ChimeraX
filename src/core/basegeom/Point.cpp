@@ -5,7 +5,7 @@
 namespace basegeom {
     
 Real
-Point::sqdistance(const Point &pt) const {
+Point::sqdistance(const Point& pt) const {
     Real q1 = _xyz[0] - pt._xyz[0];
     Real q2 = _xyz[1] - pt._xyz[1];
     Real q3 = _xyz[2] - pt._xyz[2];
