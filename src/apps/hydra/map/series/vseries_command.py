@@ -276,8 +276,7 @@ def measure_op(series, output = None, centroids = True,
             s.show_time(t)
             v = s.maps[t]
             level = min(v.surface_levels)
-            ci = measure.volume_center_of_mass(v, level)
-            c = v.data.ijk_to_xyz(ci)
+            c = measure.volume_center_of_mass(v, level)
             vol, area, holes = surface_volume_and_area(v)
             meas.append((level, c, vol, area))
             if not shown:
