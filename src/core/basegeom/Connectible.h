@@ -34,6 +34,7 @@ public:
         return _connections.find(c) != _connections.end();
     }
     virtual const Coord &  coord() const = 0;
+    std::vector<FinalConnectible*>  neighbors() const;
     virtual void  set_coord(const Point & coord) = 0;
 };
 
@@ -46,6 +47,18 @@ Connectible<FinalConnection, FinalConnectible>::connections() const
     for (typename ConnectionsMap::const_iterator cmi = _connections.begin();
             cmi != _connections.end(); ++cmi) {
         result.push_back(cmi->second);
+    }
+    return result;
+}
+
+template <class FinalConnection, class FinalConnectible>
+std::vector<FinalConnectible*>
+Connectible<FinalConnection, FinalConnectible>::neighbors() const
+{
+    std::vector<FinalConnectible*> result;
+    result.reserve(_connections.size());
+    for (auto vertex_edge: _connections) {
+        result.push_back(vertex_edge.first);
     }
     return result;
 }
