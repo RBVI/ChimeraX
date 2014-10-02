@@ -71,6 +71,7 @@ public:
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
     const std::string  name() const { return _name; }
+    // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
     void  register_field(std::string name, int value) {}

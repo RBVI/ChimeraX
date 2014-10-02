@@ -146,7 +146,7 @@ def volume(volumes = '',                # Specifier
            coordinateSystem = None,
 # File saving options.
            save = None,
-           saveFormat = 'mrc',
+           saveFormat = None,
            saveRegion = None,
            saveStep = None,
            maskZone = True,
@@ -359,6 +359,9 @@ def save_volumes(vlist, doptions, session):
     
     path = doptions['save']
     format = doptions.get('saveFormat', None)
+    from .data import fileformats
+    if fileformats.file_writer(path, format) is None: 
+        format = 'mrc' 
     options = {}
     if 'chunkShapes' in doptions:
         options['chunk_shapes'] = doptions['chunkShapes']

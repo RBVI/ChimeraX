@@ -48,7 +48,7 @@ class Volume(Model):
     self.solid = None
     self.keep_displayed_data = None
 
-    self.display = True        # Display surface
+    self.display = False        # Display surface
 
     self.initialized_thresholds = False
 

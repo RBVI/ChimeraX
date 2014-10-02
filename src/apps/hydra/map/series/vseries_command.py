@@ -10,7 +10,7 @@ players = set()         # Active players.
 def vseries_command(cmd_name, args, session):
 
     from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg, color_arg
-    from ...commands.parse import floats_arg, parse_subregion, value_type_arg, volume_arg
+    from ...commands.parse import floats_arg, parse_subregion, value_type_arg, volume_arg, molecule_arg
     from ...commands.parse import perform_operation
     ops = {
         'align': (align_op,
@@ -52,7 +52,7 @@ def vseries_command(cmd_name, args, session):
                    {'values':('forward', 'backward', 'oscillate')}),
                   ('normalize', bool_arg),
                   ('maxFrameRate', float_arg),
-                  ('showMarkers', bool_arg),
+                  ('markers', molecule_arg),
                   ('precedingMarkerFrames', int_arg),
                   ('followingMarkerFrames', int_arg),
                   ('colorRange', float_arg),
@@ -70,7 +70,7 @@ def vseries_command(cmd_name, args, session):
 # -----------------------------------------------------------------------------
 #
 def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
-            jumpTo = None, normalize = False, showMarkers = False,
+            jumpTo = None, normalize = False, markers = None,
             precedingMarkerFrames = 0, followingMarkerFrames = 0,
             colorRange = None, cacheFrames = 1, session = None):
 
@@ -82,7 +82,7 @@ def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
                          loop = loop,
                          max_frame_rate = maxFrameRate,
                          normalize_thresholds = normalize,
-                         show_markers = showMarkers,
+                         markers = markers,
                          preceding_marker_frames = precedingMarkerFrames,
                          following_marker_frames = followingMarkerFrames,
                          color_range = colorRange,
@@ -276,8 +276,7 @@ def measure_op(series, output = None, centroids = True,
             s.show_time(t)
             v = s.maps[t]
             level = min(v.surface_levels)
-            ci = measure.volume_center_of_mass(v, level)
-            c = v.data.ijk_to_xyz(ci)
+            c = measure.volume_center_of_mass(v, level)
             vol, area, holes = surface_volume_and_area(v)
             meas.append((level, c, vol, area))
             if not shown:
