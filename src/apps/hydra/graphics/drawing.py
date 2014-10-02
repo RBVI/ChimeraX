@@ -40,7 +40,8 @@ class Drawing:
     self.name = name
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
-    self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
+    from numpy import array, uint8
+    self._colors = array(((178,178,178,255),),uint8)  # Colors for each position, N by 4 uint8 numpy array
     self._displayed_positions = None    # bool numpy array, show only some positions
     self._any_displayed_positions = True
     self._selected_positions = None     # bool numpy array, selected positions
@@ -295,7 +296,9 @@ class Drawing:
   def get_colors(self):
     return self._colors
   def set_colors(self, rgba):
-    self._colors = rgba
+    from numpy import ndarray, array, uint8
+    c = rgba if isinstance(rgba, ndarray) else array(rgba,uint8)
+    self._colors = c
     self.redraw_needed()
   colors = property(get_colors, set_colors)
   '''Color for each position used when per-vertex coloring is not specified.'''
