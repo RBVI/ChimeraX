@@ -77,6 +77,8 @@ public:
     CoordSet *  new_coord_set(int index, int size);
     Residue *  new_residue(const std::string &name, const std::string &chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
+    int  num_atoms() const { return atoms().size(); }
+    int  num_bonds() const { return bonds().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::unordered_map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
