@@ -1106,10 +1106,7 @@ start_t = end_t;
                 // atom's connectivity unless it is
                 // the only atom in the residue
                 Atom *fa = asns[from_serial];
-                const Atom::BondsMap &bonds_map = fa->bonds_map();
-                for (Atom::BondsMap::const_iterator bi = bonds_map.begin();
-                bi != bonds_map.end(); ++bi) {
-                    Atom *ta = (*bi).first;
+                for (auto ta: fa->neighbors()) {
                     if (ta->residue() == fa->residue()) {
                         has_covalent = true;
                         break;

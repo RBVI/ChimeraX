@@ -87,9 +87,7 @@ AtomicStructure::best_alt_locs() const
                     bfactors[alt_loc] += info.bfactor;
                 }
                 if (check_neighbors) {
-                    const Atom::BondsMap &bm = a->bonds_map();
-                    for (auto bi = bm.begin(); bi != bm.end(); ++bi) {
-                        Atom *nb = (*bi).first;
+                    for (auto nb: a->neighbors()) {
                         Residue *nr = nb->residue();
                         if (nr != cr && nb->has_alt_loc(*alt_loc_set.begin())
                         && seen.find(nr) == seen.end()) {
