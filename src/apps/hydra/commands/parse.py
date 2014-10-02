@@ -822,7 +822,7 @@ def parse_color(color, session):
                 rgb = name_to_rgb(color)
             except ValueError:
                 raise CommandError('Unknown color: "%s"' % repr(color))
-            return (rgb[0],rgb[1],rgb[2],1)
+            return (rgb[0]/255.0,rgb[1]/255.0,rgb[2]/255.0,1)
         else:
             try:
                 rgba = tuple(float(c) for c in fields)
