@@ -26,7 +26,6 @@ class ATOMSTRUCT_IMEX Atom: public basegeom::BaseSphere<Bond, Atom> {
     friend class AtomicStructure;
     friend class Residue;
 public:
-    typedef ConnectionsMap BondsMap;
     typedef Connections Bonds;
 
 private:
@@ -62,8 +61,7 @@ public:
     char  alt_loc() const { return _alt_loc; }
     std::set<char>  alt_locs() const;
     float  bfactor() const;
-    Bonds  bonds() const { return connections(); }
-    const BondsMap &    bonds_map() const { return connections_map(); }
+    const Bonds&  bonds() const { return connections(); }
     // connects_to() just simply inherited from Connectible (via BaseSphere)
     unsigned int  coord_index() const { return _coord_index; }
     virtual const basegeom::Coord &coord() const;
@@ -71,6 +69,7 @@ public:
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
     const std::string  name() const { return _name; }
+    // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
     void  register_field(std::string name, int value) {}
