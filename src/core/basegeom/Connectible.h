@@ -2,10 +2,11 @@
 #ifndef basegeom_Connectible
 #define basegeom_Connectible
 
-#include "Coord.h"
+#include <algorithm>
 #include <vector>
+
+#include "Coord.h"
 #include "Connection.h"
-#include "util/VectorMap.h"
 
 namespace basegeom {
     
@@ -13,55 +14,35 @@ template <class FinalConnection, class FinalConnectible>
 class Connectible {
     friend class UniqueConnection<FinalConnectible, FinalConnection>;
 protected:
-    typedef util::VectorMap<FinalConnectible *, FinalConnection *> ConnectionsMap;
-    typedef std::vector<FinalConnection *> Connections;
+    typedef std::vector<FinalConnection*> Connections;
+    typedef std::vector<FinalConnectible*> Neighbors;
 
 private:
-    ConnectionsMap  _connections;
+    Connections  _connections; // _connections/_neighbors in same order
+    Neighbors  _neighbors; // _connections/_neighbors in same order
 
 protected:
     void  add_connection(FinalConnection *c) {
-        _connections[c->other_end(static_cast<FinalConnectible *>(this))] = c;
+        _connections.push_back(c);
+        _neighbors.push_back(
+            c->other_end(static_cast<FinalConnectible *>(this)));
     }
     virtual  ~Connectible() {}
-    Connections  connections() const;
-    const ConnectionsMap &  connections_map() const { return _connections; }
+    const Connections&  connections() const { return _connections; }
     void  remove_connection(FinalConnection *c) {
-        _connections.erase(c->other_end(static_cast<FinalConnectible *>(this)));
+        auto cnti = std::find(_connections.begin(), _connections.end(), c);
+        _neighbors.erase(_neighbors.begin() + (cnti - _connections.begin()));
+        _connections.erase(cnti);
     }
 public:
     bool  connects_to(FinalConnectible *c) const {
-        return _connections.find(c) != _connections.end();
+        return std::find(_neighbors.begin(), _neighbors.end(), c)
+            != _neighbors.end();
     }
     virtual const Coord &  coord() const = 0;
-    std::vector<FinalConnectible*>  neighbors() const;
+    const Neighbors&  neighbors() const { return _neighbors; }
     virtual void  set_coord(const Point & coord) = 0;
 };
-
-template <class FinalConnection, class FinalConnectible>
-typename Connectible<FinalConnection, FinalConnectible>::Connections
-Connectible<FinalConnection, FinalConnectible>::connections() const
-{
-    std::vector<FinalConnection *> result;
-    result.reserve(_connections.size());
-    for (typename ConnectionsMap::const_iterator cmi = _connections.begin();
-            cmi != _connections.end(); ++cmi) {
-        result.push_back(cmi->second);
-    }
-    return result;
-}
-
-template <class FinalConnection, class FinalConnectible>
-std::vector<FinalConnectible*>
-Connectible<FinalConnection, FinalConnectible>::neighbors() const
-{
-    std::vector<FinalConnectible*> result;
-    result.reserve(_connections.size());
-    for (auto vertex_edge: _connections) {
-        result.push_back(vertex_edge.first);
-    }
-    return result;
-}
 
 } //  namespace basegeom
 

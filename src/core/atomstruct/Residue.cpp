@@ -91,9 +91,7 @@ Residue::set_alt_loc(char alt_loc)
         if (a->has_alt_loc(alt_loc)) {
             a->set_alt_loc(alt_loc, false, true);
             have_alt_loc = true;
-            const Atom::BondsMap &bm = a->bonds_map();
-            for (auto bi = bm.begin(); bi != bm.end(); ++bi) {
-                Atom *nb = (*bi).first;
+            for (auto nb: a->neighbors()) {
                 if (nb->residue() != this && nb->has_alt_loc(alt_loc))
                     nb_res.insert(nb->residue());
             }
