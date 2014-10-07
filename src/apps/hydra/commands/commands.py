@@ -61,6 +61,8 @@ def register_commands(commands):
     add('turn', turn_command)
     from .motion import freeze_command
     add('freeze', freeze_command)
+    from ..measure import measure_command
+    add('measure', measure_command)
 
 # -----------------------------------------------------------------------------
 #
