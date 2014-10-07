@@ -134,7 +134,7 @@ Commands
 
 <table>
 <tr><td>
-<tr><td><b>open</b> <i>filename,...</i>|<i>database-id,...</i> [fromDatabase PDB|EMDB|EDS] - open files
+<tr><td><b>open</b> <i>filename,...</i>|<i>database-id,...</i> [fromDatabase PDB|EMDB|EDS] - open files, formats PDB (.pdb), mmCIF (.cif), MRC (.mrc), Chimera map (.cmap), Image stack (.png,.tiff), AutoPack (.apr), Neuron trace (.swc), Hydra session (.hy), STL surface (.stl), Collada surface (.dae), Python code (.py)
 <tr><td><b>save</b> <i>filename.[jpg|png|ppm|bmp]</i> [width <i>w</i>] [height <i>h</i>] [supersample <i>s</i>] - save an image
 <tr><td><b>save</b> <i>filename.hy</i> - save a session file
 <tr><td><b>save</b> <i>filename.mrc</i> - save a density map file
@@ -150,6 +150,13 @@ Commands
 <tr><td><b>vop threshold</b> <i>map-ids</i> [minimum <i>v</i>] [set <i>min</i>] [maximum <i>v</i>] [setMaximum <i>max</i>]  [subregion <i>i0,j0,k0,i1,j1,k1</i>] [step <i>s</i>|<i>si,sj,sk</i>] [modelId <i>id</i>] - replace map values below or above specified values with new values.
 <tr><td><a href="fitmap.html">fitmap</a> - Fit molecules in maps.
 <tr><td><a href="molmap.html">molmap</a> - Calculated simulated density maps from molecules.
+<tr><td><b>vseries</b> align|save|measure|play|stop <i>map-series</i> - Operate on series of density maps.
+<tr><td><b>vseries align</b> <i>series-id</i> [encloseVolume <i>v</i>] [fastEncloseVolume <i>v</i>] - Align each frame with previous one.
+<tr><td><b>vseries save</b> <i>series-id</i> <i>output-path</i> [subregion <i>i0,j0,k0,i1,j1,k1</i>] [valueType float32|uint8|...] [threshold <i>t</i>] [zeroMean true|false] [scaleFactor <i>f</i>] [encloseVolume <i>v</i>] [fastEncloseVolume <i>v</i>] [normalizeLevel <i>level</i>] [align true|false] [onGrid <i>map-id</i>] [mask <i>map-id</i>] [finalValueType float32|uint8|...] [compress true|false] - Process and save a map series.
+<tr><td><b>vseries measure</b> <i>series-id</i> [output <i>path</i>] [centroids true|false] [color <i>c</i>] [radius <i>r</i>] - Compute series per-frame measurement such as centroid position.
+<tr><td><b>vseries play</b> <i>series-id</i>  [loop true|false] [direction forward|backward|oscillate] [normalize true|false] [maxFrameRate <i>r</i>] [markers <i>mol-id</i>] [precedingMarkerFrames <i>n</i>] [followingMarkerFrames <i>n</i>] [colorRange <i>r</i>] [cacheFrame <i>n</i>] [jumpTo <i>n</i>] - Show volume series frames one after another.
+<tr><td><b>vseries stop</b> <i>series-id</i> - Stop playback of volume series.
+
 <tr><td>
 <tr><td><b>show</b> <i>atom-spec</i> [atoms] [ribbon] [only] - display specific atoms or ribbons.
 <tr><td><b>hide</b> <i>atom-spec</i> [atoms] [ribbon] [only] - hide specific atoms or ribbons.
@@ -160,6 +167,7 @@ Commands
 <tr><td><b>align</b> <i>atom-spec</i> <i>ref-atoms</i> [move molecules|chains|residues|atoms|false] [each molecule|chain] [same n] [report_matrix true|false] - align molecules to minimize RMSD.
 <tr><td><b>surface</b> <i>atom-spec</i> [probeRadius <i>r</i>] [gridSpacing <i>s</i>] [waters] - Show a solvent excluded molecular surface.
 <tr><td><b>area</b> <i>atom-spec</i> [probeRadius <i>r</i>] - Report solvent accessible surface area.
+<tr><td><b>measure inertia</b> <i>atom-spec|surf-spec|map-spec</i> [showEllipsoid true|false] [color <i>c</i>] - Calculate moment of inertia.
 <tr><td><b>blast</b> <i>chain-spec</i> [sequence <i>seq</i>] [uniprot <i>id</i>] [dropSimilarChains <i>rmsd</i>] [dropShortChains <i>nlen</i>] [blastProgram <i>path</i>] [blastDatabase <i>path</i>] - Find pdb entries with matching a sequence, load and align them.
 <tr><td>
 <tr><td><b>windowsize</b> [<i>width</i> <i>height</i>] - Set or report graphics window size in pixels.
