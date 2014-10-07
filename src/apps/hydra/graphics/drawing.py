@@ -335,6 +335,13 @@ class Drawing:
   geometry = property(get_geometry, set_geometry)
   '''Geometry is the array of vertices and array of triangles.'''
 
+  def all_geometries(self):
+    va, ta = self.geometry
+    g = [] if va is None else [(va, ta, self.positions)]
+    for d in self.child_drawings():
+      g.extend([(va,ta,self.positions*dpositions) for va, ta, dpositions in d.all_geometries()])
+    return g
+        
   def empty_drawing(self):
     return self.vertices is None
 
