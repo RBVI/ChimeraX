@@ -2,32 +2,33 @@
 session: application session support
 ====================================
 
-A session instance provides access to most of the application's state.
-self._scenes.clear()
-and the environment, etc.;
-and Python state -- e.g., the exception hook, module globals, etc.
+A session provides access to most of the application's state.
+At a minimum, it does not include the operating system state,
+like the current directory, nor the environment,
+nor any Python interpreter state
+-- e.g., the exception hook, module globals, etc.
 
-To preemptively detect problems where different tools want to use the same
-session attribute, session attributes may only be assigned to once,
-and may not be deleted.
-Consequently, each attribute is an instance that supports a Chimera API.
+Code should be designed to support mutiple sessions per process
+since it is easier to start with that assumption rather than add it later.
+Possible uses of multiple sessions include:
+be one session per tabbed graphics window,
+or for comparing two sessions.
 
-Data that is archived, either for sessions or scenes, uses the State API.
-Session attributes, that should be archived, need to be registered.
+Session data, ie., data that is archived, uses the :py:class:`State` API.
 """
 
 import abc
 import weakref
+from .serialize import serialize, deserialize
 
 class State(metaclass=abc.ABCMeta):
-    """Session state API for classes that support saving session and/or scene state
+    """Session state API for classes that support saving session state
 
     Session state consists only of "simple" types, i.e.,
-    lists, dictionaries, strings, integers,
-    floating point numbers, booleans, and None.
-    Tuples are treated like lists.
-    enum.Enum subclasses are converted to integers.
-    TODO: things that would break JSON compatibility: sets, datetime, bytes
+    those that are supported by the :py:mod:`.serialize` module.
+
+    Since scenes are snapshots of the current session state,
+    the State API is reused for scenes.
 
     References to objects should use the session's unique identifier
     for the object.
@@ -47,7 +48,8 @@ class State(metaclass=abc.ABCMeta):
     def take_snapshot(self, session, flags=ALL):
         """Return snapshot of current state, [version, data], of instance.
         
-        Return None if should be skipped."""
+        The semantics of the data is unknown to the caller.
+        Returns None if should be skipped."""
         version = 0
         data = {}
         return [version, data]
@@ -58,17 +60,24 @@ class State(metaclass=abc.ABCMeta):
         
         Restoration is done in two phases: PHASE1 and PHASE2.  The
         first phase should restore all of the data.  The
-        second phase should restore references to other objects (version
-        and data are None).
+        second phase should restore references to other objects (data is None).
         The session instance is used to convert unique ids into instances.
         """
         if len(data) != 2 or data[0] != 0 or data[1]:
             raise RuntimeError("Unexpected version or data")
 
-    #abc.abstractmethod
+    @abc.abstractmethod
     def reset(self):
         """Reset state to data-less state"""
         pass
+
+    # possible animation API
+    # include here to emphasize that state maintainers need to support animation
+    #def restore_frame(self, phase, frame, timeline, transition):
+    #    # timeline would be sequence of (frame, scene)
+    #    # transition would be method to get to given frame that might need
+    #    #   look at several scenes
+    #    pass
 
 class Scenes(State):
     """Manage scenes within a session"""
@@ -84,7 +93,7 @@ class Scenes(State):
         The state consists of the registered attributes that support
         the State API.  The metadata should be a dictionary of
         metadata about the scene.  For example, a thumbnail image.
-	metadata contents must be serializable like State data.
+        metadata contents must be serializable like State data.
         """
         session = self._session # resolve back reference
         scene = []
@@ -105,15 +114,16 @@ class Scenes(State):
         session = self._session # resolve back reference
         attrs = []
         for attr_name, version, data in scene:
-            if attr_name is not in session._session_attrs:
+            if attr_name not in session._session_attrs:
                 continue
             attr = getattr(session, attr_name)
             attr.restore_snapshot(State.PHASE1, session, version, data)
-            attrs.append(attr)
-        for attr in attrs:
-            attr.restore_snapshot(State.PHASE2, session, None, None)
+            attrs.append((attr, version))
+        for attr, version in attrs:
+            attr.restore_snapshot(State.PHASE2, session, version, None)
 
     def delete(self, name):
+        """Delete named scene"""
         if name not in self._scenes:
             raise ValueError("Unknown scene")
         del self._scenes[name]
@@ -127,12 +137,14 @@ class Scenes(State):
         return list(self._scenes.keys())
 
     def take_snapshot(self, session, flags):
+        # documentation from base class
         if (flags & State.SESSION) == 0:
             # don't save scene in scenes
             return None
         return [self.VERSION, self._scenes]
 
     def restore_snapshot(self, phase, session, version, data):
+        # documentation from base class
         if phase != State.PHASE1:
             return
         if version > self.VERSION:
@@ -140,6 +152,7 @@ class Scenes(State):
         self._scenes = data
 
     def reset(self):
+        # documentation from base class
         self._scenes.clear()
 
 class Session:
@@ -147,6 +160,15 @@ class Session:
 
     The metadata attribute should be a dictionary with information about
     the session, eg., a thumbnail, a description, the author, etc.
+
+    To preemptively detect problems where different tools want to use the same
+    session attribute, session attributes may only be assigned to once,
+    and may not be deleted.
+    Attributes that support the State API are included 
+    Consequently, each attribute is an instance that supports the State API.
+
+    Each session attribute, that should be archived,
+    must implement the State API, and is then automatically archived.
     """
     VERSION = 1
 
@@ -223,11 +245,11 @@ class Session:
                 continue
             version, data = snapshot
             serialize(stream, [attr_name, version, data])
-        serialize(stream, [None, None, None])
+        serialize(stream, [None, 0, None])
 
     def restore(self, stream, version=None):
         """Deserialize session from stream."""
-	self.reset()
+        self.reset()
         skip_over_metadata = version is not None
         if not skip_over_metadata:
             version = deserialize(stream)
@@ -241,13 +263,13 @@ class Session:
             attr_name, version, data = deserialize(stream)
             if attr_name is None:
                 break
-            if attr_name is not in self._session_attrs:
+            if attr_name not in self._session_attrs:
                 continue
             attr = getattr(self, attr_name)
-            attr.restore_snapshot(State.PHASE1, session, version, data)
-            attrs.append(attr)
-        for attr in attrs:
-            attr.restore_snapshot(State.PHASE2, session, None, None)
+            attr.restore_snapshot(State.PHASE1, self, version, data)
+            attrs.append((attr, version))
+        for attr, version in attrs:
+            attr.restore_snapshot(State.PHASE2, self, version, None)
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
@@ -255,12 +277,6 @@ class Session:
             version = deserialize(stream)
         metadata = deserialize(stream)
         return version, metadata
-
-    def reset(self):
-        """Reset session state."""
-        for attr_name in self._state_attrs:
-            attr = getattr(self, attr_name)
-            attr.reset()
 
 def common_startup(sess):
     """Initialize session with common data managers"""
