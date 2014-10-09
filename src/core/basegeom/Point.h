@@ -22,7 +22,14 @@ public:
         _xyz[0] = _xyz[1] = _xyz[2] = 0.0;
     }
     virtual  ~Point() {}
+    Real  angle(const Point& pt1, const Point& pt3) const;
+    static Real  angle(const Point& pt1, const Point& pt2, const Point& pt3) {
+        return pt2.angle(pt1, pt3);
+    }
     Real  distance(const Point& pt) const { return std::sqrt(sqdistance(pt)); }
+    static Real  distance(const Point& pt1, const Point& pt2) {
+            return pt1.distance(pt2);
+    }
     void  set_xyz(Real x, Real y, Real z) {
         _xyz[0] = x; _xyz[1] = y; _xyz[2] = z;
     }

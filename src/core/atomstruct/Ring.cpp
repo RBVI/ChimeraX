@@ -67,13 +67,12 @@ Ring::planarity(double ABCD[4], double* avg_err, double* max_err) const
 
 	Atom *cur_atom = cur_bond->atoms()[1];
 	while (remaining.size() > 1) { // don't care about ring-closing bond
-        for (auto ab: cur_atom->bonds_map()) {
-            Bond* b = ab.second;
+        for (auto b: cur_atom->bonds()) {
 			if (remaining.find(b) == remaining.end())
 				continue;
 			remaining.erase(b);
 			cur_bond = b;
-			cur_atom = ab.first;
+			cur_atom = b->other_atom(cur_atom);
 			coords[cur_xyz++] = cur_atom->coord();
 			break;
 		}

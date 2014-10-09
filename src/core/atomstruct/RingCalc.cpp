@@ -3,13 +3,12 @@
 #include <list>
 #include <set>
 
-#include "RingCalc.h"
+#include "AtomicStructure.h"
 
 namespace atomstruct {
 
-typedef std::set<Ring> Rings;
-
-static Ring::Bonds::iterator contains_exactly_one(const Ring &ring, Ring::Bonds *bond_set);
+static Ring::Bonds::iterator contains_exactly_one(
+        const Ring &ring, Ring::Bonds *bond_set);
 
 
 // find all rings
@@ -18,9 +17,9 @@ static Ring::Bonds::iterator contains_exactly_one(const Ring &ring, Ring::Bonds 
 //	if 'all_size_threshold' is non-zero, in addition to minimal rings return
 //		_all_ rings of at least the given size [ and no rings
 //		greater than that size, even if minimal ]
-void calculate_rings(const AtomicStructure& as, bool cross_residue,
-    unsigned int all_size_threshold, AtomicStructure::Rings& calculated_rings,
-    std::set<const Residue *>* ignore)
+void
+AtomicStructure::_calculate_rings(bool cross_residue,
+    unsigned int all_size_threshold, std::set<const Residue *>* ignore) const
 {
 	// this routine largely based on the algorithm found in:
 	//	"An Algorithm for Machine Perception of Synthetically
@@ -46,7 +45,7 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 	// look for an atom not yet in the spanning tree;
 	// keep a list of fundamental rings per spanning tree to
 	// optimize the ring summing step to follow
-    for (auto& uat: as.atoms()) {
+    for (auto& uat: atoms()) {
         Atom* at = uat.get();
 		if (visited.find(at) != visited.end())
 			continue;
@@ -66,13 +65,15 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 			leaves.pop_front();
 			visited[node] = true;
 
-            for (auto end_b: node->bonds_map()) {
-                Bond* b = end_b.second;
+            auto bi = node->bonds().begin();
+            auto ni = node->neighbors().begin();
+            for (; bi != node->bonds().end(); ++bi, ++ni) {
+                Bond* b = *bi;
 				if (traversed[b])
 					continue;
 				traversed[b] = true;
 
-				Atom *next = end_b.first;
+				Atom *next = *ni;
 				if (!cross_residue && node->residue() != next->residue())
 					continue;
 
@@ -141,7 +142,7 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 		}
 	}
 	if (basis.size() == 0) {
-		calculated_rings.clear();
+		_rings.clear();
 		return;
 	}
 
@@ -183,9 +184,11 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 			std::map<Atom *, std::set<Bond *> > new_above;
 
             for (auto leaf: leaves) {
-                for (auto end_b: leaf->bonds_map()) {
-					Atom *end = end_b.first;
-					Bond *b = end_b.second;
+                auto ei = leaf->neighbors().begin();
+                auto bi = leaf->bonds().begin();
+                for (; ei != leaf->neighbors().end(); ++ei, ++bi) {
+					Atom *end = *ei;
+					Bond *b = *bi;
 
 					if (above[leaf].find(b) != above[leaf].end())
 						continue;
@@ -362,7 +365,7 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 			msr.insert(r);
 		}
 	}
-	msr.swap(calculated_rings);
+	msr.swap(_rings);
 
 	if (all_size_threshold > 0) {
 		// return _all_ at least the given size
@@ -372,9 +375,9 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 
 		std::map<Residue *, Rings> ring_lists;
 		if (cross_residue) {
-			ring_lists[as.residues()[0].get()] = calculated_rings;
+			ring_lists[residues()[0].get()] = _rings;
 		} else {
-            for (auto& r: calculated_rings) {
+            for (auto& r: _rings) {
 				ring_lists[(*r.bonds().begin())->atoms()[0]
 						->residue()].insert(r);
 			}
@@ -453,8 +456,8 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 						while (cur_atom != start_atom) {
 							Ring::Bonds intersection;
 							std::set<Bond *> atom_bonds;
-                            for (auto a_b: cur_atom->bonds_map()) {
-								atom_bonds.insert(a_b.second);
+                            for (auto b: cur_atom->bonds()) {
+								atom_bonds.insert(b);
 							}
 							std::set_intersection(atom_bonds.begin(),
 							  atom_bonds.end(), sum.begin(), sum.end(),
@@ -484,7 +487,7 @@ void calculate_rings(const AtomicStructure& as, bool cross_residue,
 
 			}
             for (auto aa: all_additional) {
-				calculated_rings.insert(aa);
+				_rings.insert(aa);
 			}
 			new_added.swap(all_additional);
 		}
