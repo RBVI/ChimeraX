@@ -19,7 +19,8 @@ Session data, ie., data that is archived, uses the :py:class:`State` API.
 
 import abc
 import weakref
-from .serialize import serialize, deserialize
+from . import serialize
+
 
 class State(metaclass=abc.ABCMeta):
     """Session state API for classes that support saving session state
@@ -42,12 +43,13 @@ class State(metaclass=abc.ABCMeta):
     PHASE1 = 'create objects'
     PHASE2 = 'resolve object references'
 
-    NEED_NEWER = RuntimeError("Need newer version of application to restore session")
+    NEED_NEWER = RuntimeError(
+        "Need newer version of application to restore session")
 
     @abc.abstractmethod
     def take_snapshot(self, session, flags=ALL):
         """Return snapshot of current state, [version, data], of instance.
-        
+
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
         version = 0
@@ -57,7 +59,7 @@ class State(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def restore_snapshot(self, phase, session, version, data):
         """Restore data snapshot into instance.
-        
+
         Restoration is done in two phases: PHASE1 and PHASE2.  The
         first phase should restore all of the data.  The
         second phase should restore references to other objects (data is None).
@@ -72,12 +74,14 @@ class State(metaclass=abc.ABCMeta):
         pass
 
     # possible animation API
-    # include here to emphasize that state maintainers need to support animation
+    # include here to emphasize that state aware code
+    # needs to support animation
     #def restore_frame(self, phase, frame, timeline, transition):
     #    # timeline would be sequence of (frame, scene)
     #    # transition would be method to get to given frame that might need
     #    #   look at several scenes
     #    pass
+
 
 class Scenes(State):
     """Manage scenes within a session"""
@@ -95,7 +99,7 @@ class Scenes(State):
         metadata about the scene.  For example, a thumbnail image.
         metadata contents must be serializable like State data.
         """
-        session = self._session # resolve back reference
+        session = self._session  # resolve back reference
         scene = []
         for attr_name in session._state_attrs:
             attr = getattr(session, attr_name)
@@ -111,7 +115,7 @@ class Scenes(State):
         if name not in self._scenes:
             raise ValueError("Unknown scene")
         scene = self._scenes[name]
-        session = self._session # resolve back reference
+        session = self._session  # resolve back reference
         attrs = []
         for attr_name, version, data in scene:
             if attr_name not in session._session_attrs:
@@ -155,6 +159,7 @@ class Scenes(State):
         # documentation from base class
         self._scenes.clear()
 
+
 class Session:
     """Session management
 
@@ -164,13 +169,12 @@ class Session:
     To preemptively detect problems where different tools want to use the same
     session attribute, session attributes may only be assigned to once,
     and may not be deleted.
-    Attributes that support the State API are included 
+    Attributes that support the State API are included
     Consequently, each attribute is an instance that supports the State API.
 
     Each session attribute, that should be archived,
     must implement the State API, and is then automatically archived.
     """
-    VERSION = 1
 
     def __init__(self):
         # manage
@@ -235,32 +239,34 @@ class Session:
 
     def save(self, stream):
         """Serialize session to stream."""
-        serialize(stream, self.VERSION)
-        serialize(stream, self.metadata)
-        serialize(stream, self._cls_ordinals)
+        serialize.serialize(stream, serialize.VERSION)
+        serialize.serialize(stream, self.metadata)
+        serialize.serialize(stream, self._cls_ordinals)
         for attr_name in self._state_attrs:
             attr = getattr(self, attr_name)
             snapshot = attr.take_snapshot(self, State.SESSION)
             if snapshot is None:
                 continue
             version, data = snapshot
-            serialize(stream, [attr_name, version, data])
-        serialize(stream, [None, 0, None])
+            serialize.serialize(stream, [attr_name, version, data])
+        serialize.serialize(stream, [None, 0, None])
 
     def restore(self, stream, version=None):
         """Deserialize session from stream."""
         self.reset()
         skip_over_metadata = version is not None
         if not skip_over_metadata:
-            version = deserialize(stream)
-        if version > self.VERSION:
+            version = serialize.deserialize(stream)
+        if version > serialize.VERSION:
             raise State.NEED_NEWER
         if not skip_over_metadata:
             self.metadata.update(self.read_metadata(stream, skip_version=True))
-        self._cls_ordinals = deserialize(stream)   # TODO: typecheck?
+        self._cls_ordinals = serialize.deserialize(stream)
+        # TODO: how much typechecking?
+        assert(type(self._cls_ordinals) is dict)
         attrs = []
         while True:
-            attr_name, version, data = deserialize(stream)
+            attr_name, version, data = serialize.deserialize(stream)
             if attr_name is None:
                 break
             if attr_name not in self._session_attrs:
@@ -274,9 +280,10 @@ class Session:
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
         if not skip_version:
-            version = deserialize(stream)
-        metadata = deserialize(stream)
+            version = serialize.deserialize(stream)
+        metadata = serialize.deserialize(stream)
         return version, metadata
+
 
 def common_startup(sess):
     """Initialize session with common data managers"""
