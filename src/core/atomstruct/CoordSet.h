@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef atomic_CoordSet
-#define atomic_CoordSet
+#ifndef atomstruct_CoordSet
+#define atomstruct_CoordSet
 
 #include "basegeom/Coord.h"
 #include "imex.h"
@@ -41,4 +41,4 @@ public:
 
 }  // namespace atomstruct
 
-#endif  // atomic_CoordSet
+#endif  // atomstruct_CoordSet

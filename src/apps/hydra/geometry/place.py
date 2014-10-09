@@ -84,6 +84,15 @@ class Place:
         '''Apply transform to an array of points, modifying the points in place.'''
         m34.transform_points(xyz, self.matrix)
 
+    def moved(self, xyz):
+        '''Returned transformed array of points. Makes a copy of points if place is not identity.'''
+        if self.is_identity():
+            return xyz
+        else:
+            cxyz = xyz.copy()
+            m34.transform_points(cxyz, self.matrix)
+            return cxyz
+
     def inverse(self):
         '''Return the inverse transform.'''
         return Place(m34.invert_matrix(self.matrix))
@@ -252,6 +261,8 @@ class Places:
                 pl = tuple(Place(m) for m in self._place_array)
             elif not self._shift_and_scale is None:
                 pl = tuple(Place(((s[3],0,0,s[0]),(0,s[3],0,s[1]),(0,0,s[3],s[2]))) for s in self._shift_and_scale)
+            elif not self._opengl_array is None:
+                pl = tuple(Place(m.transpose()[:3,:]) for m in self._opengl_array)
             else:
                 pl = []
             self._place_list = pl
@@ -263,6 +274,11 @@ class Places:
             from numpy import array, float32
             self._place_array = pa = array(tuple(p.matrix for p in self._place_list), float32)
         return pa
+
+    def masked(self, mask):
+        if mask is None:
+            return self
+        return Places(place_array = self.array()[mask])
 
     def shift_and_scale_array(self):
         return self._shift_and_scale

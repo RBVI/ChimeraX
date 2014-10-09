@@ -5,7 +5,8 @@ PKG_DIR = $(PYSITEDIR)/hydra/map
 
 SUBDIRS	= data filter fit series
 
-PYSRCS = __init__.py defaultsettings.py grayscale.py molmap.py moveplanes.py \
+PYSRCS = __init__.py defaultsettings.py fetch_eds.py fetch_emdb.py \
+	grayscale.py measure.py molmap.py moveplanes.py \
 	session.py slice.py solid.py subsample.py volume.py volumecommand.py
 
 # All needed subdirectories must be set by now.

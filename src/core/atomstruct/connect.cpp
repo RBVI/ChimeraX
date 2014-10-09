@@ -193,9 +193,8 @@ connect_residue_by_template(Residue* r, const tmpl::Residue* tr,
         // avoid rechecking known atoms though...
         known_connectivity.insert(a);
 
-        for (tmpl::Atom::BondsMap::const_iterator bi = ta->bonds_map().begin();
-        bi != ta->bonds_map().end(); ++bi) {
-            Atom *b = r->find_atom(bi->first->name());
+        for(auto tmpl_nb: ta->neighbors()) {
+            Atom *b = r->find_atom(tmpl_nb->name());
             if (b == NULL)
                 continue;
             if (!a->connects_to(b))

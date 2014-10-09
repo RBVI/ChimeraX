@@ -3,6 +3,8 @@ def fetch_pdb(id, session, ignore_cache = False, file_format = 'pdb'):
     Fetch molecular models from the Protein Data Bank, www.rcsb.org
     '''
 
+    if len(id) != 4:
+        raise ValueError('PDB id code must be 4 characters, got "%s"' %id)
     site = 'www.rcsb.org'
     url_pattern = 'pdb/files/%s.%s.gz'
     idu = id.upper()

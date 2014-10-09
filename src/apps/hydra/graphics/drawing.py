@@ -40,7 +40,8 @@ class Drawing:
     self.name = name
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
-    self._colors = [(178,178,178,255)]  # Colors for each position, N by 4 uint8 numpy array
+    from numpy import array, uint8
+    self._colors = array(((178,178,178,255),),uint8)  # Colors for each position, N by 4 uint8 numpy array
     self._displayed_positions = None    # bool numpy array, show only some positions
     self._any_displayed_positions = True
     self._selected_positions = None     # bool numpy array, selected positions
@@ -268,7 +269,9 @@ class Drawing:
   position = property(get_position, set_position)
   '''Position and orientation of the surface in space.'''
 
-  def get_positions(self):
+  def get_positions(self, displayed_only = False):
+    if displayed_only:
+      return self._positions.masked(self.display_positions)
     return self._positions
   def set_positions(self, positions):
     self._positions = positions
@@ -280,6 +283,13 @@ class Drawing:
   Copies of the surface piece are placed using a 3 by 4 matrix with the first 3 columns
   giving a linear transformation, and the last column specifying a shift.
   '''
+
+  def number_of_positions(self, displayed_only = False):
+    if displayed_only and not self.display:
+      return 0
+    dp = self.display_positions
+    np = len(self.positions) if dp is None else dp.sum()
+    return np
 
   def get_color(self):
     return self._colors[0]
@@ -295,7 +305,9 @@ class Drawing:
   def get_colors(self):
     return self._colors
   def set_colors(self, rgba):
-    self._colors = rgba
+    from numpy import ndarray, array, uint8
+    c = rgba if isinstance(rgba, ndarray) else array(rgba,uint8)
+    self._colors = c
     self.redraw_needed()
   colors = property(get_colors, set_colors)
   '''Color for each position used when per-vertex coloring is not specified.'''
@@ -323,8 +335,25 @@ class Drawing:
   geometry = property(get_geometry, set_geometry)
   '''Geometry is the array of vertices and array of triangles.'''
 
+  def all_geometries(self):
+    va, ta = self.geometry
+    g = [] if va is None else [(va, ta, self.positions)]
+    for d in self.child_drawings():
+      g.extend([(va,ta,self.positions*dpositions) for va, ta, dpositions in d.all_geometries()])
+    return g
+        
   def empty_drawing(self):
     return self.vertices is None
+
+  def number_of_triangles(self, displayed_only = False):
+    np = self.number_of_positions(displayed_only)
+    if np == 0:
+      return 0
+    t = self.triangles
+    tc = 0 if t is None else np*len(t)
+    for d in self.child_drawings():
+      tc += np*d.number_of_triangles(displayed_only)
+    return tc
 
   OPAQUE_DRAW_PASS = 'opaque'
   TRANSPARENT_DRAW_PASS = 'transparent'

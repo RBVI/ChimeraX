@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef atomic_Pseudobond
-#define atomic_Pseudobond
+#ifndef atomstruct_Pseudobond
+#define atomstruct_Pseudobond
 
 #include <set>
 #include <unordered_map>
@@ -181,4 +181,4 @@ public:
 
 }  // namespace atomstruct
 
-#endif  // atomic_Pseudobond
+#endif  // atomstruct_Pseudobond

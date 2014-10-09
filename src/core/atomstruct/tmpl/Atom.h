@@ -2,39 +2,45 @@
 #ifndef templates_Atom
 #define    templates_Atom
 
-#include <map>
 #include <vector>
 #include "CoordSet.h"
 #include "../Element.h"
 #include "../imex.h"
+#include "Bond.h"
 
 namespace tmpl {
 
 class Molecule;
 class Residue;
-class Bond;
 using atomstruct::Element;
 
 class ATOMSTRUCT_IMEX Atom {
+public:
+    typedef std::vector<Bond*> Bonds;
+    typedef std::vector<Atom*> Neighbors;
+private:
     friend class Molecule;
     friend class Residue;
     void    operator=(const Atom &);    // disable
         Atom(const Atom &);    // disable
         ~Atom();
-    Molecule    *_molecule;
-    Residue    *_residue;
+    Bonds         _bonds;
+    Element       _element;
+    Molecule*     _molecule;
+    std::string   _name;
+    Neighbors     _neighbors;
+    Residue*      _residue;
 public:
-    void    add_bond(Bond *b);
-    typedef std::map<Atom*, Bond *> BondsMap;
-    const BondsMap    &bonds_map() const { return _bonds; }
-    Molecule    *molecule() const { return _molecule; }
-    Residue    *residue() const { return _residue; }
-    std::string        name() const { return _name; }
-    Element  element() const { return _element; }
-private:
-    std::string _name;
-    Element     _element;
-    BondsMap    _bonds;
+    void          add_bond(Bond *b) {
+        _bonds.push_back(b);
+        _neighbors.push_back(b->other_atom(this));
+    }
+    const Bonds&  bonds() const { return _bonds; }
+    Element       element() const { return _element; }
+    Molecule*     molecule() const { return _molecule; }
+    Residue*      residue() const { return _residue; }
+    std::string   name() const { return _name; }
+    const Neighbors&    neighbors() const { return _neighbors; }
 public:
     static const unsigned int COORD_UNASSIGNED = ~0u;
     void        set_coord(const Coord &c);

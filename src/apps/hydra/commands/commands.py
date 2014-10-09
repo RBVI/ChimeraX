@@ -9,7 +9,7 @@ def register_commands(commands):
     add('open', open_command)
     add('save', save_command)
     add('close', close_command)
-    from ..files import fetch_emdb, fetch_eds
+    from ..map import fetch_emdb, fetch_eds
     from ..molecule import fetch_pdb
     s = commands.session
     fetch_pdb.register_pdb_fetch(s)
@@ -61,6 +61,8 @@ def register_commands(commands):
     add('turn', turn_command)
     from .motion import freeze_command
     add('freeze', freeze_command)
+    from ..measure import measure_command
+    add('measure', measure_command)
 
 # -----------------------------------------------------------------------------
 #

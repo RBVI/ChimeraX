@@ -1,8 +1,10 @@
 // vim: set expandtab ts=4 sw=4:
 #include "Atom.h"
+#include "AtomicStructure.h"
 #include "Bond.h"
 #include "CoordSet.h"
-#include "AtomicStructure.h"
+#include "Residue.h"
+
 #include <utility>  // for std::pair
 #include <stdexcept>
 #include <sstream>
@@ -105,6 +107,53 @@ Atom::coord() const
     return cs->coords()[_coord_index];
 }
 
+Atom::IdatmInfoMap _idatm_map = {
+	{ "Car", { Atom::Planar, 3, "aromatic carbon" } },
+	{ "C3", { Atom::Tetrahedral, 4, "sp3-hybridized carbon" } },
+	{ "C2", { Atom::Planar, 3, "sp2-hybridized carbon" } },
+	{ "C1", { Atom::Linear, 2, "sp-hybridized carbon bonded to 2 other atoms" } },
+	{ "C1-", { Atom::Linear, 1, "sp-hybridized carbon bonded to 1 other atom" } },
+	{ "Cac", { Atom::Planar, 3, "carboxylate carbon" } },
+	{ "N3+", { Atom::Tetrahedral, 4, "sp3-hybridized nitrogen, formal positive charge" } },
+	{ "N3", { Atom::Tetrahedral, 3, "sp3-hybridized nitrogen, neutral" } },
+	{ "Npl", { Atom::Planar, 3, "sp2-hybridized nitrogen, not double bonded" } },
+	{ "N2+", { Atom::Planar, 3, "sp2-hybridized nitrogen, double bonded, formal positive charge" } },
+	{ "N2", { Atom::Planar, 2, "sp2-hybridized nitrogen, double bonded" } },
+	{ "N1+", { Atom::Linear, 2, "sp-hybridized nitrogen bonded to 2 other atoms" } },
+	{ "N1", { Atom::Linear, 1, "sp-hybridized nitrogen bonded to 1 other atom" } },
+	{ "Ntr", { Atom::Planar, 3, "nitro nitrogen" } },
+	{ "Ng+", { Atom::Planar, 3, "guanidinium/amidinium nitrogen, partial positive charge" } },
+	{ "O3", { Atom::Tetrahedral, 2, "sp3-hybridized oxygen" } },
+	{ "O3-", { Atom::Tetrahedral, 1, "phosphate or sulfate oxygen sharing formal negative charge" } },
+	{ "Oar", { Atom::Planar, 2, "aromatic oxygen" } },
+	{ "Oar+", { Atom::Planar, 2, "aromatic oxygen, formal positive charge" } },
+	{ "O2", { Atom::Planar, 1, "sp2-hybridized oxygen" } },
+	{ "O2-", { Atom::Planar, 1, "carboxylate oxygen sharing formal negative charge; nitro group oxygen" } },
+	{ "O1", { Atom::Linear, 1, "sp-hybridized oxygen" } },
+	{ "O1+", { Atom::Linear, 1, "sp-hybridized oxygen, formal positive charge" } },
+	{ "S3+", { Atom::Tetrahedral, 3, "sp3-hybridized sulfur, formal positive charge" } },
+	{ "S3", { Atom::Tetrahedral, 2, "sp3-hybridized sulfur, neutral" } },
+	{ "S3-", { Atom::Tetrahedral, 1, "thiophosphate sulfur, sharing formal negative charge" } },
+	{ "S2", { Atom::Planar, 1, "sp2-hybridized sulfur" } },
+	{ "Sar", { Atom::Planar, 2, "aromatic sulfur" } },
+	{ "Sac", { Atom::Tetrahedral, 4, "sulfate, sulfonate, or sulfamate sulfur" } },
+	{ "Son", { Atom::Tetrahedral, 4, "sulfone sulfur" } },
+	{ "Sxd", { Atom::Tetrahedral, 3, "sulfoxide sulfur" } },
+	{ "Pac", { Atom::Tetrahedral, 4, "phosphate phosphorus" } },
+	{ "Pox", { Atom::Tetrahedral, 4, "P-oxide phosphorus" } },
+	{ "P3+", { Atom::Tetrahedral, 4, "sp3-hybridized phosphorus, formal positive charge" } },
+	{ "HC", { Atom::Single, 1, "hydrogen bonded to carbon" } },
+	{ "H", { Atom::Single, 1, "other hydrogen" } },
+	{ "DC", { Atom::Single, 1, "deuterium bonded to carbon" } },
+	{ "D", { Atom::Single, 1, "other deuterium" } }
+};
+
+const Atom::IdatmInfoMap&
+Atom::get_idatm_info_map()
+{
+    return _idatm_map;
+}
+
 float
 Atom::occupancy() const
 {
@@ -113,6 +162,14 @@ Atom::occupancy() const
         return (*i).second.occupancy;
     }
     return structure()->active_coord_set()->get_occupancy(this);
+}
+
+const Atom::Rings&
+Atom::rings(bool cross_residues, int all_size_threshold,
+        std::set<const Residue*>* ignore) const
+{
+    structure()->rings(cross_residues, all_size_threshold, ignore);
+    return _rings;
 }
 
 void

@@ -9,8 +9,8 @@ players = set()         # Active players.
 
 def vseries_command(cmd_name, args, session):
 
-    from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg
-    from ...commands.parse import floats_arg, parse_subregion, value_type_arg, volume_arg
+    from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg, color_arg
+    from ...commands.parse import floats_arg, parse_subregion, value_type_arg, volume_arg, molecule_arg
     from ...commands.parse import perform_operation
     ops = {
         'align': (align_op,
@@ -36,6 +36,14 @@ def vseries_command(cmd_name, args, session):
                   ('finalValueType', value_type_arg),
                   ('compress', bool_arg)),
                  ),
+        'measure': (measure_op,
+                    (('series', series_arg),),
+                    (),
+                    (('output', string_arg),
+                     ('centroids', bool_arg),
+                     ('color', color_arg),
+                     ('radius', float_arg),
+                    )),
         'play': (play_op,
                  (('series', series_arg),),
                  (),
@@ -44,7 +52,7 @@ def vseries_command(cmd_name, args, session):
                    {'values':('forward', 'backward', 'oscillate')}),
                   ('normalize', bool_arg),
                   ('maxFrameRate', float_arg),
-                  ('showMarkers', bool_arg),
+                  ('markers', molecule_arg),
                   ('precedingMarkerFrames', int_arg),
                   ('followingMarkerFrames', int_arg),
                   ('colorRange', float_arg),
@@ -62,7 +70,7 @@ def vseries_command(cmd_name, args, session):
 # -----------------------------------------------------------------------------
 #
 def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
-            jumpTo = None, normalize = False, showMarkers = False,
+            jumpTo = None, normalize = False, markers = None,
             precedingMarkerFrames = 0, followingMarkerFrames = 0,
             colorRange = None, cacheFrames = 1, session = None):
 
@@ -74,7 +82,7 @@ def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
                          loop = loop,
                          max_frame_rate = maxFrameRate,
                          normalize_thresholds = normalize,
-                         show_markers = showMarkers,
+                         markers = markers,
                          preceding_marker_frames = precedingMarkerFrames,
                          following_marker_frames = followingMarkerFrames,
                          color_range = colorRange,
@@ -249,6 +257,85 @@ def processed_volume(v, subregion = None, value_type = None, threshold = None,
     d = Array_Grid_Data(m, d.origin, d.step, d.cell_angles, d.rotation)
 
     return d
+
+# -----------------------------------------------------------------------------
+#
+def measure_op(series, output = None, centroids = True,
+               color = (.7,.7,.7,1), radius = None,
+               session = None):
+
+    from ...surface import surface_volume_and_area
+    from ...measure import inertia
+    meas = []
+    for s in series:
+        n = s.number_of_times()
+        for t in range(n):
+            if t > 0:
+                s.copy_display_parameters(0, t)
+            shown = s.time_shown(t)
+            s.show_time(t)
+            v = s.maps[t]
+            level = min(v.surface_levels)
+            vol, area, holes = surface_volume_and_area(v)
+            axes, d2, c = inertia.map_inertia([v])
+            elen = inertia.inertia_ellipsoid_size(d2)
+            meas.append((level, c, vol, area, elen))
+            if not shown:
+                s.unshow_time(t, cache_rendering = False)
+
+        if centroids:
+            if radius is None:
+                radius = min(v.data.step)
+            mol = create_centroid_path(tuple(m[1] for m in meas), radius, color)
+            session.add_model(mol)
+
+        # Make text output
+        lines = ['# Volume series measurements: %s\n' % s.name,
+                 '#   n        level         x            y           z           step       distance       volume        area         inertia ellipsoid size  \n']
+        d = 0
+        cprev = None
+        step = 0
+        from ...geometry.vector import distance
+        for n, (level, c, vol, area, elen) in enumerate(meas):
+            if not cprev is None:
+                step = distance(cprev, c)
+                d += step
+            cprev = c
+            lines.append('%5d %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g\n' %
+                         (n, level, c[0], c[1], c[2], step, d, vol, area, elen[0], elen[1], elen[2]))
+        text = ''.join(lines)
+        if output:
+            from os import path
+            path = path.expanduser(output)
+            f = open(path, 'w')
+            f.write(text)
+            f.close()
+        else:
+            session.show_info(text)
+  
+# -----------------------------------------------------------------------------
+#
+def create_centroid_path(xyz, radius, color):
+
+    n = len(xyz)
+    from numpy import zeros, array, float32, arange, empty
+    from ...molecule import atom_dtype, Molecule
+    atoms = zeros((n,), atom_dtype)
+    atoms['atom_name'] = b's'
+    atoms['element_number'] = 1
+    atoms['xyz'] = array(xyz, float32)
+    r = empty((n,), float32)
+    r[:] = radius
+    atoms['radius'] = r
+    atoms['residue_name'] = b'S'
+    atoms['residue_number'] = arange(0,n)
+    atoms['chain_id'] = b'A'
+    atoms['atom_color'] = tuple(int(255*c) for c in color)
+    atoms['ribbon_color'] = (255,255,255,255)
+    atoms['atom_shown'] = 1
+    atoms['ribbon_shown'] = 0
+    m = Molecule('centroids', atoms)
+    return m
   
 # -----------------------------------------------------------------------------
 #

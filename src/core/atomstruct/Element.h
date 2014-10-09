@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef atomic_Element
-# define atomic_Element
+#ifndef atomstruct_Element
+#define atomstruct_Element
 
 // Copyright (c) 1996-2009 The Regents of the University of California.
 // All rights reserved.
@@ -84,4 +84,4 @@ operator<<(std::ostream &os, const Element &a)
 
 }  // namespace atomstruct
 
-#endif  // atomic_Element
+#endif  // atomstruct_Element

@@ -5,7 +5,7 @@ class Play_Series:
 
   def __init__(self, series = [], session = None, start_time = None, time_step_cb = None,
                play_direction = 'forward', loop = False, max_frame_rate = None,
-               show_markers = False,
+               markers = None,
                preceding_marker_frames = 0, following_marker_frames = 0,
                color_range = None,
                normalize_thresholds = False,
@@ -23,7 +23,7 @@ class Play_Series:
     self.max_frame_rate = max_frame_rate
     self.last_rendering_walltime = None
 
-    self.show_markers = show_markers
+    self.markers = markers      # Marker molecule
     self.preceding_marker_frames = preceding_marker_frames
     self.following_marker_frames = following_marker_frames
 
@@ -224,23 +224,19 @@ class Play_Series:
 
   # ---------------------------------------------------------------------------
   #
-  def update_marker_display(self, mset = None):
+  def update_marker_display(self):
 
-    if mset is None:
-      mset = self.marker_set()
-      if mset is None:
-        return
+    m = self.markers
+    if m is None:
+      return
 
     fmin, fmax = self.marker_frame_range()
     if fmin is None or fmax is None:
       return
 
-    mset.show_model(True)
-    for m in mset.markers():
-      if self.show_markers:
-        m.show(label_value_in_range(m.note_text, fmin, fmax))
-      else:
-        m.show(False)
+    m.display = True
+    a = m.atom_subset(residue_range = (fmin, fmax))
+    a.show_atoms(only_these = True)
         
   # ---------------------------------------------------------------------------
   #
@@ -268,7 +264,6 @@ class Play_Series:
     t = self.current_time
     if t is None:
       return None, None
-    from CGLtk.Hybrid import integer_variable_value
     fmin = t - self.preceding_marker_frames
     fmax = t + self.following_marker_frames
     return fmin, fmax

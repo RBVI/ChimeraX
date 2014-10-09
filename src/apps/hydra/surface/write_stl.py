@@ -3,29 +3,22 @@
 #
 def write_surfaces_as_stl(path, surfaces, session, displayed_only = True):
 
-    if displayed_only:
-        surfs = [s for s in surfaces if s.display]
-        # TODO: Write full hierarchy, not just child drawings.
-        plist = sum(([p for p in s.child_drawings() if p.display] for s in surfs), [])
-    else:
-        surfs = surfaces
-        plist = sum((s.child_drawings() for s in surfaces), [])
     f = open(path, 'wb')
-    write_surface_pieces(plist, f)
+    write_drawings(surfaces, f, displayed_only)
     f.close()
 
-    from . import fileicon
-    fileicon.set_file_icon(path, session, models = surfs)
+    from ..files import fileicon
+    fileicon.set_file_icon(path, session, models = surfaces)
 
-    session.file_history.add_entry(path, models = surfs)
+    session.file_history.add_entry(path, models = surfaces)
 
 # -----------------------------------------------------------------------------
 #
 def write_stl_command(cmdname, args, session):
 
-    from ..commands.parse import path_arg, surfaces_arg, bool_arg, parse_arguments
+    from ..commands.parse import path_arg, models_arg, bool_arg, parse_arguments
     req_args = (('path', path_arg),
-                ('surfaces', surfaces_arg),
+                ('surfaces', models_arg),
                 )
     opt_args = ()
     kw_args = (('displayed_only', bool_arg),)
@@ -36,7 +29,7 @@ def write_stl_command(cmdname, args, session):
 
 # -----------------------------------------------------------------------------
 #
-def write_surface_pieces(plist, file):
+def write_drawings(surfaces, file, displayed_only):
 
     # Write 80 character comment.
     from .. import version
@@ -45,21 +38,25 @@ def write_surface_pieces(plist, file):
     file.write(comment.encode('utf-8'))
 
     # Write number of triangles
-    tc = 0
-    for p in plist:
-        varray,tarray = p.geometry
-        tc += len(tarray)
+    tc = sum(s.number_of_triangles(displayed_only) for s in surfaces)
     from numpy import uint32
     file.write(binary_bytes(tc, uint32))
 
     # Write triangles.
-    # TODO: handle surface instances
-    for p in plist:
-        varray,tarray = p.geometry
-        tf = p.surface.positions[0]
-        if not tf.is_identity():
-            tf.move(varray)
-        file.write(stl_triangle_geometry(varray, tarray))
+    for s in surfaces:
+        write_drawing(s, file, displayed_only)
+
+# -----------------------------------------------------------------------------
+#
+def write_drawing(surf, file, displayed_only, place = None):
+
+    varray,tarray = surf.geometry
+    for p in surf.get_positions(displayed_only):
+        pl = place*p if place else p
+        if not varray is None:
+            file.write(stl_triangle_geometry(pl.moved(varray), tarray))
+        for d in surf.child_drawings():
+            write_drawing(d, file, displayed_only, pl)
 
 # -----------------------------------------------------------------------------
 #

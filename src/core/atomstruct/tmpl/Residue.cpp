@@ -58,12 +58,8 @@ Residue::template_assign(tmpl_assigner assign,
                     if (opai == _atoms.end())
                         continue;
                     Atom *opa = opai->second;
-                    const Atom::BondsMap &bm = opa->bonds_map();
-                    for (Atom::BondsMap::const_iterator abi =
-                      bm.begin(); abi != bm.end(); ++abi) {
-                        const Atom *bonded = abi->first;
-                        if (bonded->residue()
-                        != opa->residue()) {
+                    for (auto bonded: opa->neighbors()) {
+                        if (bonded->residue() != opa->residue()) {
                             is_terminal = false;
                             break;
                         }

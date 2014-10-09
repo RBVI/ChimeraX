@@ -59,12 +59,6 @@ Atom::set_coord(const Coord &c, CoordSet *cs)
     }
 }
 
-void
-Atom::add_bond(Bond *b)
-{
-    _bonds[b->other_atom(this)] = b;
-}
-
 Atom::Atom(Molecule *_owner_, std::string &n, Element e): _molecule(_owner_), _residue(0), _name(n), _element(e), _index(COORD_UNASSIGNED)
 
 {
