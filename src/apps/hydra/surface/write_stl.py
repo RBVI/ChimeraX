@@ -7,7 +7,7 @@ def write_surfaces_as_stl(path, surfaces, session, displayed_only = True):
     write_drawings(surfaces, f, displayed_only)
     f.close()
 
-    from . import fileicon
+    from ..files import fileicon
     fileicon.set_file_icon(path, session, models = surfaces)
 
     session.file_history.add_entry(path, models = surfaces)

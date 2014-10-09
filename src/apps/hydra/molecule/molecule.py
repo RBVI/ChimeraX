@@ -864,6 +864,8 @@ class Atoms:
   '''
   def __init__(self):
     self.molatoms = []      # Pairs (molecule, atom index array)
+  def __len__(self):
+    return sum(len(a) for m,a in self.molatoms)
   def add_molecules(self, molecules):
     '''Add all atoms of the specified molecules to the set.'''
     for m in molecules:
@@ -934,6 +936,20 @@ class Atoms:
     '''Undisplay the atoms.'''
     for m, ai in self.molatoms:
       m.hide_index_atoms(ai)
+
+  def colors(self):
+    '''Return a numpy array of atom colors (RGBA).'''
+    clist = []
+    for m,a in self.molatoms:
+        clist.append(m.atom_colors[a])
+    import numpy
+    if len(clist) == 0:
+        c = numpy.zeros((0,4), numpy.uint8)
+    elif len(clist) == 1:
+        c = clist[0]
+    else:
+        c = numpy.concatenate(clist)
+    return c
 
   def color_atoms(self, color):
     '''Color atoms.'''

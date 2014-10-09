@@ -807,7 +807,7 @@ def parse_value_color(vc):
 
 # -----------------------------------------------------------------------------
 #
-def parse_color(color, session):
+def color_arg(color, session):
 
     if isinstance(color, (tuple, list)):
         if len(color) == 4:
@@ -835,7 +835,15 @@ def parse_color(color, session):
                 
     raise CommandError('Unrecognized color: "%s"' % repr(color))
 
-color_arg = parse_color
+parse_color = color_arg
+
+# -----------------------------------------------------------------------------
+#
+def color_256_arg(color, session):
+    rgba = color_arg(color, session)
+    from numpy import array, uint8
+    ca = array([int(c*255) for c in rgba], uint8)
+    return ca
 
 # -----------------------------------------------------------------------------
 #

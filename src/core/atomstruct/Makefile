@@ -7,7 +7,7 @@ SUBDIRS= tmpl
 include $(TOP)/mk/subdir.make
 
 LIBNAME = atomstruct
-CXXFLAGS += -I..
+CXXFLAGS += -I.. -Wno-logical-op-parentheses
 LIBS += -L$(shlibdir) -ltmpl ../basegeom/libbasegeom.a
 DIRNAME = $(shell basename `pwd`)
 

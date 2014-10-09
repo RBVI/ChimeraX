@@ -264,8 +264,8 @@ def measure_op(series, output = None, centroids = True,
                color = (.7,.7,.7,1), radius = None,
                session = None):
 
-    from .. import measure
     from ...surface import surface_volume_and_area
+    from ...measure import inertia
     meas = []
     for s in series:
         n = s.number_of_times()
@@ -276,9 +276,10 @@ def measure_op(series, output = None, centroids = True,
             s.show_time(t)
             v = s.maps[t]
             level = min(v.surface_levels)
-            c = measure.volume_center_of_mass(v, level)
             vol, area, holes = surface_volume_and_area(v)
-            meas.append((level, c, vol, area))
+            axes, d2, c = inertia.map_inertia([v])
+            elen = inertia.inertia_ellipsoid_size(d2)
+            meas.append((level, c, vol, area, elen))
             if not shown:
                 s.unshow_time(t, cache_rendering = False)
 
@@ -290,18 +291,18 @@ def measure_op(series, output = None, centroids = True,
 
         # Make text output
         lines = ['# Volume series measurements: %s\n' % s.name,
-                 '#   n        level         x            y           z           step       distance       volume        area\n']
+                 '#   n        level         x            y           z           step       distance       volume        area         inertia ellipsoid size  \n']
         d = 0
         cprev = None
         step = 0
         from ...geometry.vector import distance
-        for n, (level, c, vol, area) in enumerate(meas):
+        for n, (level, c, vol, area, elen) in enumerate(meas):
             if not cprev is None:
                 step = distance(cprev, c)
                 d += step
             cprev = c
-            lines.append('%5d %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g\n' %
-                         (n, level, c[0], c[1], c[2], step, d, vol, area))
+            lines.append('%5d %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g %12.5g\n' %
+                         (n, level, c[0], c[1], c[2], step, d, vol, area, elen[0], elen[1], elen[2]))
         text = ''.join(lines)
         if output:
             from os import path

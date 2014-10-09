@@ -19,7 +19,8 @@ const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 
 AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
     asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
-    lower_case_chains(false), _pb_mgr(this), pdb_version(0), is_traj(false)
+    _idatm_valid(false), lower_case_chains(false), _pb_mgr(this),
+    _recompute_rings(true), pdb_version(0), is_traj(false)
 {
 }
 
@@ -370,6 +371,42 @@ AtomicStructure::polymers() const
     }
 
     return polys;
+}
+
+const AtomicStructure::Rings&
+AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
+    std::set<const Residue *>* ignore) const
+{
+    if (!_recompute_rings && cross_residues == _rings_last_cross_residues
+    && all_size_threshold == _rings_last_all_size_threshold
+    && ignore == _rings_last_ignore)
+        return _rings;
+
+    _recompute_rings = false;
+    _rings_last_cross_residues = cross_residues;
+    _rings_last_all_size_threshold = all_size_threshold;
+    _rings_last_ignore = ignore;
+
+    _calculate_rings(cross_residues, all_size_threshold, ignore);
+
+    // clear out ring lists in individual atoms and bonds
+    for (auto& a: atoms()) {
+        a->_rings.clear();
+    }
+    for (auto& b: bonds()) {
+        b->_rings.clear();
+    }
+
+    // set individual atom/bond ring lists
+    for (auto &r: _rings) {
+        for (auto a: r.atoms()) {
+            a->_rings.push_back(&r);
+        }
+        for (auto b: r.bonds()) {
+            b->_rings.push_back(&r);
+        }
+    }
+    return _rings;
 }
 
 void

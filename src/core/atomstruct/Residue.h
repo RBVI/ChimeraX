@@ -1,6 +1,6 @@
 // vim: set expandtab ts=4 sw=4:
-#ifndef atomic_Residue
-#define atomic_Residue
+#ifndef atomstruct_Residue
+#define atomstruct_Residue
 
 #include <vector>
 #include <unordered_map>
@@ -53,4 +53,4 @@ public:
 
 }  // namespace atomstruct
 
-#endif  // atomic_Residue
+#endif  // atomstruct_Residue
