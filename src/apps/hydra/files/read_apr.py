@@ -99,7 +99,7 @@ def create_surface_copies(path_prefix, tflist, session):
     path = path_prefix + '.stl'
     from os.path import exists
     if exists(path):
-        from .read_stl import read_stl
+        from ..surface.read_stl import read_stl
         surf = read_stl(path, session)
         p = surf.child_drawings()[0]
         p.color = random_color(surf.name)
@@ -117,7 +117,7 @@ def create_surface_copies(path_prefix, tflist, session):
 
 def read_collada_surface(path, session):
 
-    from . import collada
+    from ..surface import collada
     surf = collada.read_collada_surfaces(path, session)
     if hasattr(surf, 'collada_unit_name') and surf.collada_unit_name in ('meter', None):
         # TODO: If unit meter tag omitted in file PyCollada sets unit name to None.

@@ -64,7 +64,7 @@ def session_state(session, attributes_only = False):
     from ..molecule import mol_session
     s['molecules'] = tuple(mol_session.molecule_state(m) for m in mlist)
 
-  from .read_stl import STL_Surface
+  from ..surface.read_stl import STL_Surface
   slist = tuple(m.session_state() for m in session.model_list()
                 if isinstance(m, STL_Surface))
   if slist:
@@ -104,7 +104,7 @@ def set_session_state(s, session, file_paths, attributes_only = False):
     mol_session.restore_molecules(s['molecules'], session, file_paths, attributes_only)
 
   if 'stl surfaces' in s:
-    from . import read_stl
+    from ..surface import read_stl
     read_stl.restore_stl_surfaces(s['stl surfaces'], session, file_paths, attributes_only)
 
   if not attributes_only:
