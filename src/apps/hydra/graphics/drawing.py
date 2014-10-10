@@ -584,8 +584,10 @@ class Drawing:
     f = None
     p = None    # Position number
     if self.empty_drawing():
-      return f
+      return f,p
     va,ta = self.geometry
+    if ta.shape[1] != 3:
+      return f,p  # TODO: Intercept only for triangles, not lines or points.
     from .. import map_cpp
     if self.positions.is_identity():
       fmin, tmin = map_cpp.closest_geometry_intercept(va, ta, mxyz1, mxyz2)

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.8.2
+VERSION = 1.9.0
 DISTRIBUTION = numpy-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numpy-$(VERSION)
 

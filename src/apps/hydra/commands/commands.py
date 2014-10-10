@@ -63,6 +63,8 @@ def register_commands(commands):
     add('freeze', freeze_command)
     from ..measure import measure_command
     add('measure', measure_command)
+    from ..map.series import cactus
+    add('cactus', cactus.cactus_command)
 
 # -----------------------------------------------------------------------------
 #
