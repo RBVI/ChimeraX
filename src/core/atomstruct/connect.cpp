@@ -17,68 +17,30 @@ namespace atomstruct {
 
 using basegeom::Coord;
 
-// standard_residues contains the names of residues that should have PDB ATOM records.
-static std::set<std::string, std::less<std::string> >    standard_residues;
-
-static void
-init_standard_residues()
-{
-    standard_residues.insert("A");
-    standard_residues.insert("ALA");
-    standard_residues.insert("ARG");
-    standard_residues.insert("ASN");
-    standard_residues.insert("ASP");
-    standard_residues.insert("ASX");
-    standard_residues.insert("C");
-    standard_residues.insert("CYS");
-    standard_residues.insert("DA");
-    standard_residues.insert("DC");
-    standard_residues.insert("DG");
-    standard_residues.insert("DT");
-    standard_residues.insert("G");
-    standard_residues.insert("GLN");
-    standard_residues.insert("GLU");
-    standard_residues.insert("GLX");
-    standard_residues.insert("GLY");
-    standard_residues.insert("HIS");
-    standard_residues.insert("I");
-    standard_residues.insert("ILE");
-    standard_residues.insert("LEU");
-    standard_residues.insert("LYS");
-    standard_residues.insert("MET");
-    standard_residues.insert("PHE");
-    standard_residues.insert("PRO");
-    standard_residues.insert("SER");
-    standard_residues.insert("T");
-    standard_residues.insert("THR");
-    standard_residues.insert("TRP");
-    standard_residues.insert("TYR");
-    standard_residues.insert("U");
-    standard_residues.insert("VAL");
-}
+// standard_residues contains the names of residues that should use
+// PDB ATOM records.
+static std::set<std::string> standard_residues = {
+    "A", "ALA", "ARG", "ASN", "ASP", "ASX", "C", "CYS", "DA", "DC", "DG", "DT",
+    "G", "GLN", "GLU", "GLX", "GLY", "HIS", "I", "ILE", "LEU", "LYS", "MET",
+    "PHE", "PRO", "SER", "T", "THR", "TRP", "TYR", "U", "VAL"
+};
 
 //TODO: these 3 funcs need to be wrapped also
 bool
 standard_residue(const std::string& name)
 {
-    if (standard_residues.empty())
-        init_standard_residues();
     return standard_residues.find(name) != standard_residues.end();
 }
 
 void
 add_standard_residue(const std::string& name)
 {
-    if (standard_residues.empty())
-        init_standard_residues();
     standard_residues.insert(name);
 }
 
 void
 remove_standard_residue(const std::string& name)
 {
-    if (standard_residues.empty())
-        init_standard_residues();
     standard_residues.erase(name);
 }
 
