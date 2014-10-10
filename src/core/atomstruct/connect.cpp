@@ -304,6 +304,71 @@ hookup(Atom* a, Residue* res, bool definitely_connect=true)
     }
     return made_connection;
 }
+static std::vector<Bond*>
+metal_coordination_bonds(AtomicStructure* as)
+{
+    std::vector<Bond*> mc_bonds;
+    std::set<Atom*> metals;
+    for (auto& a: as->atoms())
+        if (a->element().is_metal())
+            metals.insert(a.get());
+
+    for (auto metal: metals) {
+        // skip large inorganic residues (that typically
+        // don't distinguish metals by name)
+        if (metal->residue()->atoms_map().count(metal->name()) > 1)
+            continue;
+        
+        // bond -> pseudobond if:
+        // 1) cross residue
+        // 2) > 4 bonds
+        // 3) neighbor is bonded to non-metal in same res
+        //    unless metal has only one bond and neighbor has
+        //    no lone pairs (e.g. residue EMC in 1cjx)
+        std::set<Bond*> del_bonds;
+        auto metal_bonds = metal->bonds();
+        auto bi = metal_bonds.begin();
+        for (auto nb: metal->neighbors()) {
+            if (nb->residue() != metal->residue())
+                del_bonds.insert(*bi);
+            ++bi;
+        }
+        // eliminate cross-residue bond first to preserve FEO in 1av8
+        if (metal->bonds().size() - del_bonds.size() > 4) {
+            del_bonds.insert(metal_bonds.begin(), metal_bonds.end());
+        } else {
+            bi = metal_bonds.begin();
+            for (auto nb: metal->neighbors()) {
+                // metals with just one bond may be a legitimate compound
+                if (metal_bonds.size() - del_bonds.size() == 1) {
+                    // avoid expensive atom-type computation by skipping
+                    // common elements we know cannot have lone pairs...
+                    if (nb->element().number() == Element::C
+                    || nb->element().number() == Element::H)
+                        continue;
+                    auto idatm_type = nb->idatm_type();
+                    auto idatm_info_map = Atom::get_idatm_info_map();
+                    auto info = idatm_info_map.find(idatm_type);
+                    if (info != idatm_info_map.end()
+                    && (info->second).substituents == (info->second).geometry
+                    && idatm_type != "Npl" && idatm_type != "N2+") {
+                        // nitrogen exclusions for HEME C in 1og5
+                        continue;
+                    }
+                }
+                for (auto gnb: nb->neighbors()) {
+                    if (metals.find(gnb) == metals.end()
+                    && gnb->residue() == nb->residue())
+                        del_bonds.insert(*bi);
+                }
+                ++bi;
+            }
+        }
+        if (del_bonds.size() > 0)
+            mc_bonds.insert(mc_bonds.end(), del_bonds.begin(), del_bonds.end());
+    }
+    return mc_bonds;
+}
 
 // connect_structure:
 //    Connect atoms in structure by template if one is found, or by distance.
@@ -461,6 +526,19 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             for (auto lb: long_bonds) {
                 pbg->newPseudoBond(lb->atoms());
                 as->delete_bond(lb);
+            }
+        }
+    }
+
+    // make metal-coordination complexes
+    auto mc_bonds = metal_coordination_bonds(as);
+    if (mc_bonds.size() > 0) {
+        auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
+            AS_PBManager::GRP_PER_CS);
+        for (auto mc: mc_bonds) {
+            for (auto& cs: as->coord_sets()) {
+                pbg->newPseudoBond(mc->atoms(), cs.get());
+                as->delete_bond(mc);
             }
         }
     }
