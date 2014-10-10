@@ -524,7 +524,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                 AS_PBManager::GRP_NORMAL);
             for (auto lb: long_bonds) {
-                pbg->newPseudoBond(lb->atoms());
+                pbg->new_pseudobond(lb->atoms());
                 as->delete_bond(lb);
             }
         }
@@ -537,7 +537,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             AS_PBManager::GRP_PER_CS);
         for (auto mc: mc_bonds) {
             for (auto& cs: as->coord_sets()) {
-                pbg->newPseudoBond(mc->atoms(), cs.get());
+                pbg->new_pseudobond(mc->atoms(), cs.get());
                 as->delete_bond(mc);
             }
         }
