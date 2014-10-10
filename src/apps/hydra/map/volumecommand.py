@@ -342,8 +342,9 @@ def apply_volume_options(v, doptions, roptions, session):
         v.unshow()
     elif v.shown():
         v.show()
-    else:
-        v.update_display()
+# TODO: If it has a surface but it is undisplayed, do I need to recalculate it?
+#    else:
+#        v.update_display()
 
 # TODO:
 #  Allow quoted color names.
