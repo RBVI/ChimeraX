@@ -91,7 +91,7 @@ def parse_arguments(argv):
         raise SystemExit(os.EX_USAGE)
     return args
 
-def init(argv, app_name="Chimera"):
+def init(argv, app_name="Chimera", event_loop=True):
     args = parse_arguments(argv)
     if args.version:
         print(__version__)  # TODO
@@ -116,6 +116,7 @@ def init(argv, app_name="Chimera"):
     sess.app_name = app_name
     sess.debug = args.debug
 
+    # figure out the user/system directories for application
     if sys.platform.startswith('linux'):
         executable = os.path.abspath(sys.argv[0])
         bindir = os.path.dirname(executable)
@@ -125,18 +126,23 @@ def init(argv, app_name="Chimera"):
             configdir = bindir
         os.environ['XDG_CONFIG_DIRS'] = configdir
     import appdirs
-    sess.app_dirs = appdirs.AppDirs(app_name, author="UCSF")    # leave out version
+    # intentionally leaving out application version
+    # so application directories are not versioned
+    sess.app_dirs = appdirs.AppDirs(app_name, author="UCSF")
 
+    # initialize the user interface
     if args.gui:
         from chimera.core import gui
-        ui = gui.UI(sess)
+        ui_class = gui.UI
     else:
         from chimera.core import nogui
-        ui = nogui.UI(sess)
-    sess.ui = ui
-    ui.init(sess)   # sets up logging, splash screen if gui
+        ui_class = nogui.UI
+    # sets up logging, splash screen if gui
+    # calls "sess.save_in_session(self)"
+    sess.ui = ui_class(sess)
 
     from chimera.core import preferences
+    # Only pass part of session needed in function call
     preferences.init(sess.app_dirs)
 
     # common core initialization
@@ -148,22 +154,29 @@ def init(argv, app_name="Chimera"):
     # etc.
 
     from chimera.core import toolshed
-    sess.tools = toolshed.init(sess.app_dirs, load_tools=args.load_tools)
+    sess.tools = toolshed.init(sess.app_dirs)
 
-    ui.build(sess, sess.tools.tool_info())
+    # build out the UI, populate menus, create graphics, etc.
+    ui.build()
 
-    if args.tools:
-        for tool in sess.tools.startup_tools():
+    # unless disabled, startup tools
+    if args.load_tools:
+	# This needs sess argument because tool shed is session-independent
+        for tool in sess.tools.startup_tools(sess):
             tool.start(sess)
 
+    # the rest of the arguments are data files
     for arg in args:
-        sess.models.open(sess, arg)
+        sess.models.open(arg)
 
-    try:
-        ui.event_loop(sess)
-    except SystemExit:
-        raise
-    raise SystemExit(os.EX_OK)
+    # Allow the event_loop to be disabled, so we can be embedded in
+    # another application
+    if event_loop:
+        try:
+            ui.event_loop()
+        except SystemExit:
+            raise
+        raise SystemExit(os.EX_OK)
 
 if __name__ == '__main__':
     raise SystemExit(init(sys.argv))
