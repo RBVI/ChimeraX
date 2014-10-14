@@ -199,11 +199,10 @@ class Command_History:
         html = '\n'.join(hlines)
         return html
 
-    def insert_clicked_command(self, url, shown_commands):
-        surl = url.toString(url.PreferLocalFile)
+    def insert_clicked_command(self, href, shown_commands):
         # Work around Qt bug where it prepends a directory path to the anchor
         # even when QtTextBrowser search path and source are cleared.
-        cnum = surl.split('/')[-1]
+        cnum = href.split('/')[-1]
         c = int(cnum)         # command number
         if c < len(shown_commands):
             cmd = shown_commands[c]

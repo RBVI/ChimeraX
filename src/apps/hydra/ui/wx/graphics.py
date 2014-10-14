@@ -33,6 +33,16 @@ class GraphicsWindow(View, wx.Panel):
         from . import mousemodes
         self.mouse_modes = mousemodes.Mouse_Modes(self)
 
+        self.Bind(wx.EVT_CHAR, self.OnChar)
+
+    def OnChar(self, event):
+        from sys import stderr
+        print("key", file=stderr)
+        log = self.session.log
+        log.log_message("key event: {}".format(str(event)))
+        log.show()
+        event.Skip()
+
     def create_opengl_context(self):
         from wx.glcanvas import GLContext
         return GLContext(self.opengl_canvas)
