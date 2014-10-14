@@ -281,6 +281,8 @@ intersphinx_mapping = {
 
 extlinks = {
 	'jquery': ('http://api.jquery.com/jQuery.%s/', "jQuery API's "),
+	'pillow': ('https://pillow.readthedocs.org/reference/Image.html#%s',
+		''),
 }
 
 # Skip objects with doc strings that start with 'Private'.
