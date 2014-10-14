@@ -5,15 +5,20 @@
 # attached to all copies, including partial copies, of the
 # software or any revisions or derivations thereof.
 
-__version__ = "0.0.1"
+__version__ = "0.1.0a0"
+__app_name__ = "Chimera"
+__app_author__ = "UCSF"
 
 import sys
 import os
 
+
 def parse_arguments(argv):
     """Initialize Chimera application."""
     import getopt
-    class Args: pass
+
+    class Args:
+        pass
     args = Args()
     args.debug = False
     args.gui = True
@@ -91,10 +96,17 @@ def parse_arguments(argv):
         raise SystemExit(os.EX_USAGE)
     return args
 
-def init(argv, app_name="Chimera", event_loop=True):
+
+def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
+    if app_name is None:
+        app_name = __app_name__
+    if app_author is None:
+        app_author = __app_author__
+    if version is None:
+        version = __version__
     args = parse_arguments(argv)
     if args.version:
-        print(__version__)  # TODO
+        print(version)
         raise SystemExit(os.EX_OK)
 
     import envguard
@@ -106,7 +118,8 @@ def init(argv, app_name="Chimera", event_loop=True):
         builtins.__dict__['line_profile'] = lambda x: x
     else:
         # write profile results on exit
-        import line_profiler, atexit
+        import atexit
+        import line_profiler
         prof = line_profiler.LineProfiler()
         builtins.__dict__['line_profile'] = prof
         atexit.register(prof.dump_stats, "%s.lprof" % app_name)
@@ -126,9 +139,9 @@ def init(argv, app_name="Chimera", event_loop=True):
             configdir = bindir
         os.environ['XDG_CONFIG_DIRS'] = configdir
     import appdirs
-    # intentionally leaving out application version
-    # so application directories are not versioned
-    sess.app_dirs = appdirs.AppDirs(app_name, author="UCSF")
+    partial_version = '%s.%s' % tuple(version.split('.')[0:2])
+    sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
+                                    version=partial_version)
 
     # initialize the user interface
     if args.gui:
@@ -161,7 +174,7 @@ def init(argv, app_name="Chimera", event_loop=True):
 
     # unless disabled, startup tools
     if args.load_tools:
-	# This needs sess argument because tool shed is session-independent
+        # This needs sess argument because tool shed is session-independent
         for tool in sess.tools.startup_tools(sess):
             tool.start(sess)
 
