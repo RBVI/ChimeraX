@@ -177,11 +177,24 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::
 
 void
 AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info) const
-// if null, fall back to chains derived from the structure directly
 {
+    // if chain_info null, try to match up to SEQRES records, and if there
+    // are none then fall back to chains derived from the structure directly
     ChainInfo* ci = (ChainInfo*)chain_info;
 
+    // reorganize the below to integrate SEQRES and direct structure
+    // code:  use SEQRES for chains that have them and direct structure
+    // otherwise
     if (ci == nullptr) {
+        // match against SEQRES records if any
+        auto seqres_search = pdb_headers.find("SEQRES");
+        if (seqres_search != pdb_headers.end()) {
+            
+        }
+    }
+
+    if (ci == nullptr) {
+        // match against structure directly
         auto polys = polymers();
         // gather chain IDs and, if not unique, use numbers instead
         std::vector<std::string> ids;
