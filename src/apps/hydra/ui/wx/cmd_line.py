@@ -9,7 +9,7 @@ class CmdLine:
         import wx
         from ..tool_api import ToolWindow
         self.tool_window = ToolWindow("Command Line", "General", session,
-            size=self.SIZE, placement="bottom")
+            size=self.SIZE)
         parent = self.tool_window.ui_area
         self.text = wx.TextCtrl(parent, size=self.SIZE,
             style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
@@ -17,6 +17,7 @@ class CmdLine:
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
+        self.tool_window.manage(placement="bottom")
 
     def OnEnter(self, event):
         cmd = self.text.GetLineText(0)

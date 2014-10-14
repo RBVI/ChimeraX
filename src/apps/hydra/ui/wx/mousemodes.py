@@ -237,7 +237,8 @@ class Mouse_Modes:
         v = self.view
         psize = v.pixel_size()
         c,r = v.session.bounds_center_and_width()
-        psize = max(psize, r*min_scene_frac)
+        if r is not None:
+            psize = max(psize, r*min_scene_frac)
         return psize
 
     def mouse_select(self, event):
