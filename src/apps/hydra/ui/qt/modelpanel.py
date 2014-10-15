@@ -51,6 +51,8 @@ class Model_Panel:
         from os.path import splitext
         for m in mlist:
             i = self.model_image(m)
+            if i is None:
+                continue
             uri = "file://image%d" % m.id
             from . import qt
             qt.register_html_image_identifier(d, uri, i)
@@ -81,6 +83,8 @@ class Model_Panel:
         w,h = self.image_size
         from ... import graphics
         c = graphics.camera_framing_models([model])
+        if c is None:
+            return None         # Model is empty
         i = v.image(w, h, camera = c, models = [model])
         model.thumbnail_image = i
         return i
