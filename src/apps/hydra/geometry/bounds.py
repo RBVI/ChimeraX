@@ -27,7 +27,7 @@ def point_bounds(xyz, placements = []):
 def union_bounds(blist):
   xyz_min, xyz_max = None, None
   for b in blist:
-    if b is None or b == (None, None):
+    if b is None or b[0] is None or b[1] is None:
       continue
     pmin, pmax = b
     if xyz_min is None:
@@ -54,7 +54,7 @@ def point_axis_bounds(points, axis):
   return pa.min()/a2, pa.max()/a2
 
 def bounds_center_and_radius(bounds):
-  if bounds is None or bounds == (None, None):
+  if bounds is None or bounds[0] is None or bounds[1] is None:
     return None, None
   (xmin,ymin,zmin), (xmax,ymax,zmax) = bounds
   w = max(xmax-xmin, ymax-ymin, zmax-zmin)
