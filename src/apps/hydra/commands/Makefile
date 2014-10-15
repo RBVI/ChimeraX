@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra/commands
 
 PYSRCS = cameracmd.py commands.py cyclecmd.py lightcmd.py materialcmd.py motion.py parse.py \
-	shortcuts.py silhouettecmd.py turncmd.py
+	 perframe.py shortcuts.py silhouettecmd.py turncmd.py
 
 all: $(PYOBJS)
 

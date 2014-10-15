@@ -182,6 +182,7 @@ Commands
 <tr><td><b>movie record</b> [directory <i>path</i>] [pattern <i>filepat</i>] [format ppm|png|jpg] [size <i>w,h</i>] [supersample <i>n</i>] [limit <i>frames</i>] - start capturing images for a movie.
 <tr><td><b>movie encode</b> [<i>output-path</i>] [format h264|mov|avi|mp4|mp2|mpeg|wmv] [quality good|low|fair|medium|high|higher|highest] [qscale <i>n</i>] [bitrate <i>kbits-per-sec</i>] [framerate <i>r</i>] [resetMode clear|keep] [roundTrip false|true] - save captured images as a video.
 <tr><td><b>wait</b> [<i>frames</i>] - wait a specified number of frames or if no frames specified until motion stops before going to next command.
+<tr><td><b>perframe</b> <i>command</i> [frames <i>f</i>] [interval <i>i</i>] [range <i>start,end[,step]</i>]... [zeroPadWidth <i>w</i>] [showCommands] - execute a command each frame.
 </table>
 
 </body>

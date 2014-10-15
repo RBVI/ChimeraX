@@ -65,6 +65,8 @@ def register_commands(commands):
     add('measure', measure_command)
     from ..map.series import cactus
     add('cactus', cactus.cactus_command)
+    from . import perframe
+    add('perframe', perframe.perframe_command)
 
 # -----------------------------------------------------------------------------
 #
@@ -83,18 +85,20 @@ class Commands:
         self.commands[name] = function
         self.cmdabbrev = None
 
-    def run_command(self, text):
+    def run_command(self, text, report = True):
         '''
         Invoke a command.  The command and arguments are a string that will be
         parsed by a registered command function.
         '''
-        self.history.add_to_command_history(text)
+        if report:
+            self.history.add_to_command_history(text)
         for c in text.split(';'):
-            self.run_single_command(c)
+            self.run_single_command(c, report)
 
-    def run_single_command(self, text):
+    def run_single_command(self, text, report = True):
         ses = self.session
-        ses.show_info('> %s' % text, color = '#008000')
+        if report:
+            ses.show_info('> %s' % text, color = '#008000')
         fields = text.split(maxsplit = 1)
         if len(fields) == 0:
             return
@@ -114,7 +118,7 @@ class Commands:
             except CommandError as e:
                 ses.show_status(str(e))
                 failed = True
-            if not failed:
+            if report and not failed:
                 ses.log.insert_graphics_image()
         else:
             ses.show_status('Unknown command %s' % cmd)
