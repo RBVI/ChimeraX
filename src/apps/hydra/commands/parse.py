@@ -376,7 +376,21 @@ def models_arg(s, session):
 #
 def model_id_arg(s, session):
 
-    return parse_model_id(s)
+    if len(s) == 0 or s[0] != '#':
+        raise CommandError('model id argument must start with "#", got "%s"' % s)
+    try:
+        mid = tuple(int(i) for i in s[1:].split('.'))
+    except ValueError:
+        raise CommandError('model id argument be integers separated by ".", got "%s"' % s)
+    return mid
+
+# -----------------------------------------------------------------------------
+#
+def model_id_int_arg(s, session):
+    mid = model_id_arg(s, session)
+    if len(mid) != 1:
+        raise CommandError('Require single integer model id, got "%s"' % s)
+    return mid[0]
 
 # -----------------------------------------------------------------------------
 #
@@ -525,31 +539,6 @@ def abbreviation_table(names, lowercase = True):
         if n in a:
             a[n] = shortest
     return a
-
-# -----------------------------------------------------------------------------
-#
-def parse_model_id(modelId):
-
-    from chimera import openModels as om
-    if modelId is None:
-        return (om.Default, om.Default)
-    mid = None
-    if isinstance(modelId, str):
-        if modelId and modelId[0] == '#':
-            modelId = modelId[1:]
-        try:
-            mid = tuple([int(i) for i in modelId.split('.')])
-        except ValueError:
-            mid = None
-        if len(mid) == 1:
-            mid = (mid[0], om.Default)
-        elif len(mid) != 2:
-            mid = None
-    elif isinstance(modelId, int):
-        mid = (modelId, om.Default)
-    if mid is None:
-        raise CommandError('modelId must be integer, got "%s"' % str(modelId))
-    return mid
 
 # -----------------------------------------------------------------------------
 #
