@@ -208,7 +208,14 @@ class View:
 
     def redraw_graphics(self):
         for cb in self.new_frame_callbacks:
-            cb()
+            try:
+                cb()
+            except:
+                import traceback
+                self.session.show_warning('new frame callback rasied error\n'
+                                          + traceback.format_exc())
+                self.remove_new_frame_callback(cb)
+                
 
         c = self.camera
         s = self.session
@@ -226,7 +233,13 @@ class View:
         s.shape_changed = False
         self.draw_graphics()
         for cb in self.rendered_callbacks:
-            cb()
+            try:
+                cb()
+            except:
+                import traceback
+                self.session.show_warning('rendered callback rasied error\n'
+                                          + traceback.format_exc())
+                self.remove_new_frame_callback(cb)
 
         return True
 
