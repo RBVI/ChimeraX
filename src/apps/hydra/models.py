@@ -85,6 +85,7 @@ class Models:
 
     def set_model_id(self, model):
         if not model.id is None:
+            self.next_id = max(self.next_id, model.id+1)
             return
         model.id = self.next_id
         self.next_id += 1
