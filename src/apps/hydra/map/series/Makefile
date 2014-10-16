@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/map/series
 
-PYSRCS = __init__.py align.py cactus.py play.py series.py vseries_command.py
+PYSRCS = __init__.py align.py play.py series.py vseries_command.py
 
 all: $(PYOBJS)
 

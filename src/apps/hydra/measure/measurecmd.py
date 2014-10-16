@@ -18,7 +18,8 @@
 #
 def measure_command(cmd_name, args, session):
 
-    from ..commands.parse import specifier_arg, bool_arg, color_256_arg, model_id_int_arg, perform_operation
+    from ..commands.parse import specifier_arg, bool_arg, color_256_arg, model_id_int_arg
+    from ..commands.parse import surfaces_arg, float_arg, volume_arg, no_arg, perform_operation
     ops = {
         'inertia': (inertia,
                 (('objects', specifier_arg),),
@@ -28,6 +29,15 @@ def measure_command(cmd_name, args, session):
                  ('perChain', bool_arg),
                  ('modelId', model_id_int_arg),
                  ('replace', bool_arg),)),
+        'motion': (motion_lines,
+                   (('surfaces', surfaces_arg),),
+                   (),
+                   (('length', float_arg),
+                    ('color', color_256_arg),
+                    ('toward', volume_arg),
+                    ('scale', float_arg),
+                    ('modelId', model_id_int_arg),
+                    ('replace', bool_arg),)),
     }
     perform_operation(cmd_name, args, ops, session)
 
@@ -532,6 +542,18 @@ def surface_model(name, place, model_id, replace, session):
     s.position = place
     session.add_model(s)
     return s
+
+# -----------------------------------------------------------------------------
+#
+def motion_lines(surfaces, length = 1, color = (255,255,255,255), toward = None,
+                 scale = 1, modelId = None, replace = True, session = None):
+    from . import cactus
+    for s in surfaces:
+        surf = surface_model('motion ' + s.name, s.position, modelId, replace, session)
+        if toward is None:
+            cactus.show_prickles(s, scale*length, color, surf)     # Just show surface normals
+        else:
+            cactus.show_motion_lines(s, toward, scale, color, surf)
 
 # -----------------------------------------------------------------------------
 #
