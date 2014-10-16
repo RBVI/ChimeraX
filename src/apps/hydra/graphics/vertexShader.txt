@@ -22,7 +22,24 @@ layout(location = 0) in vec3 position;
 layout(location = 2) in vec3 normal;
 out vec3 N;
 out vec3 v;
+
+#ifdef USE_SHADOWS
+uniform mat4 shadow_transform;
+out vec3 shadow_tex_coord;
 #endif
+
+#ifdef USE_MULTISHADOW
+//uniform mat4 model_matrix;
+//out vec3 vscene;
+//out vec3 nscene;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+uniform mat4 ambient_tex3d_transform;
+out vec3 ambient_tex_coord;
+#endif
+
+#endif	// end USE_LIGHTING
 
 #ifdef USE_VERTEX_COLORS
 layout(location = 3) in vec4 vcolor;
@@ -40,22 +57,6 @@ layout(location = 4) in vec4 instance_shift_and_scale;
 
 #ifdef USE_INSTANCING
 layout(location = 5) in mat4 instance_placement;
-#endif
-
-#ifdef USE_TEXTURE_3D_AMBIENT
-uniform mat4 ambient_tex3d_transform;
-out vec3 ambient_tex_coord;
-#endif
-
-#ifdef USE_SHADOWS
-uniform mat4 shadow_transform;
-out vec3 shadow_tex_coord;
-#endif
-
-#ifdef USE_MULTISHADOW
-//uniform mat4 model_matrix;
-//out vec3 vscene;
-//out vec3 nscene;
 #endif
 
 void main(void)
