@@ -39,7 +39,7 @@ private:
     std::set<PBond*>  _pbonds;
 public:
     void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
-    PBond*  newPseudoBond(Atom* a1, Atom* a2) {
+    PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         PBond* pb = new PBond(a1, a2);
         _pbonds.insert(pb);
         return pb;
@@ -67,7 +67,7 @@ private:
     std::set<PBond*>  _pbonds;
 public:
     void  clear() { for (auto pb : _pbonds) delete pb; _pbonds.clear(); }
-    PBond*  newPseudoBond(Atom* a1, Atom* a2) {
+    PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         _check_ownership(a1, a2);
         PBond* pb = new PBond(a1, a2);
         _pbonds.insert(pb); return pb;
@@ -93,8 +93,8 @@ public:
     }
     CS_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) {}
-    PBond*  newPseudoBond(Atom* a1, Atom* a2);
-    PBond*  newPseudoBond(Atom* a1, Atom* a2, CoordSet* cs);
+    PBond*  new_pseudobond(Atom* a1, Atom* a2);
+    PBond*  new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs);
     const std::set<PBond*>&  pseudobonds() const;
     const std::set<PBond*>&  pseudobonds(const CoordSet* cs) const {
         return _pbonds[cs];
@@ -143,24 +143,24 @@ public:
             static_cast<CS_PBGroup*>(_proxied)->clear();
     }
     int  group_type() const { return _group_type; }
-    PBond*  newPseudoBond(Atom* a1, Atom* a2) {
+    PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            return static_cast<Owned_PBGroup*>(_proxied)->newPseudoBond(a1, a2);
+            return static_cast<Owned_PBGroup*>(_proxied)->new_pseudobond(a1, a2);
         else
-            return static_cast<CS_PBGroup*>(_proxied)->newPseudoBond(a1, a2);
+            return static_cast<CS_PBGroup*>(_proxied)->new_pseudobond(a1, a2);
     }
-    PBond*  newPseudoBond(Atom* const ends[2]) {
+    PBond*  new_pseudobond(Atom* const ends[2]) {
         // should be in base class, but C++ won't look in base
         // classes for overloads!
-        return newPseudoBond(ends[0], ends[1]);
+        return new_pseudobond(ends[0], ends[1]);
     }
-    PBond*  newPseudoBond(Atom* a1, Atom* a2, CoordSet* cs) {
+    PBond*  new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             throw std::invalid_argument("Not a per-coordset pseudobond group");
-        return static_cast<CS_PBGroup*>(_proxied)->newPseudoBond(a1, a2, cs);
+        return static_cast<CS_PBGroup*>(_proxied)->new_pseudobond(a1, a2, cs);
     }
-    PBond*  newPseudoBond(Atom* const ends[2], CoordSet* cs) {
-        return newPseudoBond(ends[0], ends[1], cs);
+    PBond*  new_pseudobond(Atom* const ends[2], CoordSet* cs) {
+        return new_pseudobond(ends[0], ends[1], cs);
     }
     Proxy_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) { init(AS_PBManager::GRP_NORMAL); }

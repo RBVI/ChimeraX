@@ -318,7 +318,7 @@ class Main_Window(QtWidgets.QMainWindow):
 
     def _anchor_callback(self, url):
         if self._anchor_cb:
-            self._anchor_cb(url)
+            self._anchor_cb(url.toString(url.PreferLocalFile))
 
 class Command_Line(QtWidgets.QLineEdit):
 

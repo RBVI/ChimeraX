@@ -24,7 +24,11 @@ Modules
 .. toctree::
     :maxdepth: 2
 
-    core_io.rst
+    core/session.rst
+
+    core/serialize.rst
+
+    core/io.rst
 
     structaccess.rst
 

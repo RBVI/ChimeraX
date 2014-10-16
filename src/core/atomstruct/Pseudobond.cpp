@@ -43,13 +43,13 @@ AS_PBManager::get_group(const std::string& name, int create) const
 }
 
 PBond*
-CS_PBGroup::newPseudoBond(Atom* a1, Atom* a2)
+CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2)
 {
-    return newPseudoBond(a1, a2, a1->structure()->active_coord_set());
+    return new_pseudobond(a1, a2, a1->structure()->active_coord_set());
 }
 
 PBond*
-CS_PBGroup::newPseudoBond(Atom* a1, Atom* a2, CoordSet* cs)
+CS_PBGroup::new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs)
 {
     _check_ownership(a1, a2);
     PBond* pb = new PBond(a1, a2);
