@@ -529,11 +529,8 @@ class Render:
         self.draw_background()
         # Use flat single color rendering.
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS|
-                                         self.SHADER_LIGHTING|
                                          self.SHADER_TEXTURE_2D|
-                                         self.SHADER_TEXTURE_3D_AMBIENT|
-                                         self.SHADER_SHADOWS|
-                                         self.SHADER_MULTISHADOW)
+                                         self.SHADER_LIGHTING)
         self.set_depth_range(0,0.99999)      # Depth test GL_LEQUAL results in z-fighting
         self.copy_from_framebuffer(fb, color = False)      # Copy depth to outline framebuffer
 
