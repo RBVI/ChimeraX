@@ -81,26 +81,24 @@ void main(void)
     vec3 ni = normal;
   #endif
   N = normalize((model_view_matrix * vec4(ni,0)).xyz);
+  #ifdef USE_SHADOWS
+    shadow_tex_coord = (shadow_transform * vEye).stp;
+  #endif
   #ifdef USE_MULTISHADOW
 //    vscene = (model_matrix * vi).xyz;
 //    nscene = (model_matrix * vec4(ni,0)).xyz;
   #endif
+  #ifdef USE_TEXTURE_3D_AMBIENT
+    ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
+  #endif
+#endif	// end USE_LIGHTING
+
+#ifdef USE_VERTEX_COLORS
+  color = vcolor;
 #endif
 
 #ifdef USE_TEXTURE_2D
   tex_coord = tex_coord_2d;
-#endif
-
-#ifdef USE_TEXTURE_3D_AMBIENT
-  ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
-#endif
-
-#ifdef USE_SHADOWS
-  shadow_tex_coord = (shadow_transform * vEye).stp;
-#endif
-
-#ifdef USE_VERTEX_COLORS
-  color = vcolor;
 #endif
 
   gl_Position = projection_matrix * vEye;
