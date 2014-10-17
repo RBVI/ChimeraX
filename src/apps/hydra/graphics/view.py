@@ -317,10 +317,15 @@ class View:
                 perspective_near_far_ratio = self.update_projection(vnum, camera = camera)
                 if self.shadows:
                     r.set_shadow_transform(stf*camera.view())
+                cvinv = camera.view_inverse(vnum)
                 if self.multishadow > 0:
                     r.set_multishadow_transforms(mstf, camera.view(), msdepth)
-                cvinv = camera.view_inverse(vnum)
+                    # Initial depth pass optimization to avoid lighting calculation on hidden geometry
+                    graphics.draw_depth(r, cvinv, mdraw)
+                    r.allow_equal_depth(True)
                 graphics.draw_drawings(r, cvinv, mdraw)
+                if self.multishadow > 0:
+                    r.allow_equal_depth(False)
                 if selected:
                     graphics.draw_outline(r, cvinv, selected)
             if self.silhouettes:

@@ -102,20 +102,20 @@ class Render:
         GL.glUseProgram(shader.program_id)
         if self.SHADER_LIGHTING & c:
             self.set_shader_lighting_parameters()
-        if self.SHADER_DEPTH_CUE & c:
-            self.set_depth_cue_parameters()
+            if self.SHADER_TEXTURE_3D_AMBIENT & c:
+                GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
+            if self.SHADER_MULTISHADOW & c:
+                self.set_shadow_shader_variables(shader)
+            if self.SHADER_SHADOWS & c:
+                GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
+                if not self._shadow_transform is None:
+                    GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self._shadow_transform)
+            if self.SHADER_DEPTH_CUE & c:
+                self.set_depth_cue_parameters()
         self.set_projection_matrix()
         self.set_model_matrix()
         if self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c or self.SHADER_DEPTH_OUTLINE & c:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
-        if self.SHADER_TEXTURE_3D_AMBIENT & c:
-            GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
-        if self.SHADER_MULTISHADOW & c:
-            self.set_shadow_shader_variables(shader)
-        if self.SHADER_SHADOWS & c:
-            GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
-            if not self._shadow_transform is None:
-                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self._shadow_transform)
         if self.SHADER_RADIAL_WARP & c:
             self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS & c:
@@ -608,6 +608,9 @@ class Render:
         p = self.current_shader_program.program_id
         mc = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(mc, 1, color)
+
+    def allow_equal_depth(self, equal):
+        GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
 
     def set_depth_range(self, min, max):
 #        GL.glDepthFunc(GL.GL_LEQUAL)   # Get z-fighting with screen depth copied to framebuffer object on Mac/Nvidia

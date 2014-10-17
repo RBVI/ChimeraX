@@ -706,6 +706,12 @@ def any_transparent_drawings(drawings):
       return True
   return False
 
+def draw_depth(renderer, cvinv, drawings):
+  r = renderer
+  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_VERTEX_COLORS|r.SHADER_TEXTURE_2D)
+  draw_drawings(r, cvinv, drawings)
+  r.disable_shader_capabilities(0)
+
 def draw_overlays(drawings, renderer):
 
   r = renderer
