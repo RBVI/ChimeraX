@@ -267,15 +267,9 @@ class View:
         directions = self._multishadow_directions
         if directions is None or len(directions) != self.multishadow:
             from ..surface import shapes
-            v = self.multishadow    # requested number of directions
-            t = 2*(v-2)
-            # Icosahedral subdivision will only give certain vertex counts 10*(4**e)+2 (12, 42, 162, 642, 2562, ...)
-            dir = shapes.sphere_geometry(t)[0]
-            from numpy import array, float32
-            directions = array(dir, float32)
-            from ..geometry import vector
-            vector.normalize_vectors(directions)
-            self._multishadow_directions = directions
+            n = self.multishadow    # requested number of directions
+            from ..geometry import sphere
+            self._multishadow_directions = directions = sphere.sphere_points(n)
         return directions
 
     def draw_scene(self, camera = None, models = None):

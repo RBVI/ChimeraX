@@ -318,10 +318,12 @@ class Render:
             bi = GL.glGetUniformBlockIndex(shader.program_id, b'shadow_matrix_block')
             GL.glUniformBlockBinding(shader.program_id, bi, self._multishadow_uniform_block)
         GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._multishadow_uniform_block, b)
-        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(m)*64, m)
+        # TODO: Issue warning if maximum number of shadows exceeded.
+        mm = m[:self.max_multishadows,:,:]
+        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(mm)*64, mm)
 
 #                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"), len(m), False, m)
-        GL.glUniform1i(shader.uniform_id("shadow_count"), len(m))
+        GL.glUniform1i(shader.uniform_id("shadow_count"), len(mm))
         GL.glUniform1f(shader.uniform_id("shadow_depth"), self._multishadow_depth)
 
     def opengl_version(self):
