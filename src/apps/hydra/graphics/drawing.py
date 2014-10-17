@@ -968,7 +968,7 @@ def draw_texture(texture, renderer):
   return
 
   r = renderer
-  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_SHADOWS)
+  r.disable_shader_capabilities(r.SHADER_LIGHTING)
   from . import opengl
   tw = opengl.Texture_Window(renderer, renderer.SHADER_TEXTURE_2D)
   texture.bind_texture()
