@@ -9,9 +9,10 @@ def sphere_points(n):
     from numpy import empty, float32
     p = empty((n,3), float32)
     from math import acos, sqrt, cos, sin, pi
+    snp = sqrt(n*pi)
     for i in range(n):
         phi = acos(-1.0 + float(2*i+1)/n)
-        theta = sqrt(n*pi) * phi
+        theta = snp * phi
         s = sin(phi)
         p[i,:] = (s*cos(theta), s*sin(theta), cos(phi))
     return p
