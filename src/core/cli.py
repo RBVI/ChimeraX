@@ -258,7 +258,10 @@ class Aggregate(Annotation):
 
     def __init__(self, annotation, constructor, add_to, min_size=None,
                  max_size=None, name=None):
+        if not issubclass(annotation, Annotation):
+            raise ValueError("need an annotation, not %s" % annotation)
         self.annotation = annotation
+        self.multiword = annotation.multiword
         self.constructor = constructor
         self.add_to = add_to
         if min_size is not None:
@@ -278,7 +281,7 @@ class Aggregate(Annotation):
         return self.annotation.parse(text, session)
 
     def completions(self, text, session):
-        return self.annotation.completions(text)
+        return self.annotation.completions(text, session)
 
 
 # ListOf function acts like Annotation subclass
@@ -531,7 +534,11 @@ class Postcondition(metaclass=abc.ABCMeta):
     """Base class for postconditions"""
 
     def check(self, kw_args):
-        """Return true if function arguments are consistent"""
+        """Return true if function arguments are consistent
+
+        :param kw_args: dictionary of arguments that will be passed
+            to command callback function.
+        """
         raise NotImplemented
 
     def error_message(self):
@@ -641,7 +648,7 @@ class CmdDesc:
 class _Defer:
     # Enable function introspection to be deferred until needed
     #
-    # _Defer(proxy_function, cmd_info) -> instance
+    # _Defer(proxy_function, cmd_desc) -> instance
     #
     # There are two uses: (1) the proxy function returns the actual
     # function that implements the command, or (2) the proxy function
@@ -650,34 +657,39 @@ class _Defer:
     # followed by returning a function in the imported module.  In the
     # latter case, multiple subcommands are registered, and nothing is
     # returned.
-    __slots__ = ['proxy', 'cmd_info']
+    __slots__ = ['proxy', 'cmd_desc']
 
-    def __init__(self, proxy_function, cmd_info):
+    def __init__(self, proxy_function, cmd_desc):
         self.proxy = proxy_function
-        if isinstance(cmd_info, tuple):
-            cmd_info = CmdDesc(*cmd_info)
-        self.cmd_info = cmd_info
+        if isinstance(cmd_desc, tuple):
+            cmd_desc = CmdDesc(*cmd_desc)
+        self.cmd_desc = cmd_desc
 
     def call(self):
         return self.proxy()
 
 
-def delay_registration(name, proxy_function, cmd_info=None):
+def delay_registration(name, proxy_function, cmd_desc=None):
     """delay registering a named command until needed
 
-    If the command information is given, then the proxy function
+    :param proxy_function: the function to call if command is used
+    :param cmd_desc: optional information about the command, either an
+        instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
+        parameters.
+
+    If the command description is given, then the proxy function
     should return the actual function used to implement the command.
-    Otherwise, the function should explicitly register commands.
-    The proxy function may register subcommands.
+    Otherwise, the proxy function should explicitly register (sub)commands
+    and return nothing.
     """
-    register(name, None, _Defer(proxy_function, cmd_info))
+    register(name, None, _Defer(proxy_function, cmd_desc))
 
 
-def register(name, cmd_info, function=None):
+def register(name, cmd_desc, function=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
-    :param cmd_info: information about the command, either an
+    :param cmd_desc: information about the command, either an
         instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
         parameters.
     :param function: the callback function.
@@ -695,12 +707,12 @@ def register(name, cmd_info, function=None):
     """
     if function is None:
         # act as a decorator
-        def wrapper(function, name=name, cmd_info=cmd_info):
-            return register(name, cmd_info, function)
+        def wrapper(function, name=name, cmd_desc=cmd_desc):
+            return register(name, cmd_desc, function)
         return wrapper
 
-    if isinstance(cmd_info, tuple):
-        cmd_info = CmdDesc(*cmd_info)
+    if isinstance(cmd_desc, tuple):
+        cmd_desc = CmdDesc(*cmd_desc)
 
     words = name.split()
     cmd_map = _commands
@@ -725,11 +737,11 @@ def register(name, cmd_info, function=None):
     _check_autocomplete(word, cmd_map, name)
     if isinstance(function, _Defer):
         # delay introspecting function
-        cmd_info = function
+        cmd_desc = function
     else:
         # introspect immediately to give errors
-        cmd_info.set_function(function)
-    cmd_map[word] = cmd_info
+        cmd_desc.set_function(function)
+    cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
 
@@ -737,17 +749,17 @@ def _lazy_introspect(cmd_map, word):
     deferred = cmd_map[word]
     function = deferred.call()
     if function is not None:
-        cmd_info = deferred.cmd_info
-        if cmd_info is None:
+        cmd_desc = deferred.cmd_desc
+        if cmd_desc is None:
             raise RuntimeError("delayed registration "
                                "forgot command information")
-        cmd_info.set_function(function)
-        cmd_map[word] = cmd_info
-        return cmd_info
+        cmd_desc.set_function(function)
+        cmd_map[word] = cmd_desc
+        return cmd_desc
     # deferred function might have registered subcommands
-    cmd_info = cmd_map[word]
-    if isinstance(cmd_info, (dict, CmdDesc)):
-        return cmd_info
+    cmd_desc = cmd_map[word]
+    if isinstance(cmd_desc, (dict, CmdDesc)):
+        return cmd_desc
     raise RuntimeError("delayed registration didn't register the command")
 
 
@@ -810,7 +822,7 @@ class Command:
     """
     def __init__(self, session, text='', final=False):
         import weakref
-        self._session = weakref.proxy(session)
+        self._session = None if session is None else weakref.proxy(session)
         self._reset()
         if text:
             self.parse_text(text, final)
@@ -835,8 +847,8 @@ class Command:
         if self._error:
             raise UserError(self._error)
         for cond in self._ci.postconditions:
-            if not cond():
-                raise UserError(cond.message())
+            if not cond.check(self._kwargs):
+                raise UserError(cond.error_message())
         self._error_checked = True
 
     def execute(self):
@@ -925,8 +937,10 @@ class Command:
         while 1:
             count += 1
             if count > 100:
+                # 100 is greater than the number of words
+                # in a multiword argument
                 raise RuntimeError("Invalid completions given by %s"
-                                   % annotation)
+                                   % annotation.name)
             word, chars = self._next_token(text, commas)
             if not word:
                 raise ValueError("Expected %s" % annotation.name)
@@ -938,7 +952,7 @@ class Command:
                 value = annotation.parse(word, session)
                 break
             except ValueError as err:
-                completions = annotation.completions(word)
+                completions = annotation.completions(word, session)
                 if (final or len(text) > len(chars)) and completions:
                         c = completions[0][len(word):]
                         if multiword:
@@ -1000,7 +1014,7 @@ class Command:
             if x is not None:
                 values = x
 
-    def parse_text(self, text, session, final=False):
+    def parse_text(self, text, final=False):
         """Parse text into function and arguments
 
         :param text: The text to be parsed.
@@ -1240,6 +1254,18 @@ if __name__ == '__main__':
     def test9(session, target="all", names=[None], full=False):
         print('test9 full, target, names:', full, target, names)
 
+    test10_info = CmdDesc(
+        required=(
+            ("colors", ListOf(ColorArg)),
+            ("offsets", ListOf(FloatArg)),
+        ),
+        postconditions=(SameSize('colors', 'offsets'),)
+    )
+
+    @register('test10', test10_info)
+    def test10(session, colors=[], offsets=[]):
+        print('test10 colors, offsets:', colors, offsets)
+
     tests = [
         (True, 'test1 color red 12 3.5'),
         (True, 'test1 12 color red 3.5'),
@@ -1282,7 +1308,14 @@ if __name__ == '__main__':
         (True, 'test8 TRUE tool xyzzy, plugh '),
         (True, 'test9 full true'),
         (True, 'test9 names a,b,c d'),
+        (True, 'test10'),
+        (False, 'test10 red'),
+        (True, 'test10 red 0.5'),
+        (False, 'test10 red, light gray'),
+        (True, 'test10 red, light gray 0.33, 0.67'),
+        (False, 'test10 li gr, red'),
     ]
+    # TODO: delay registration tests
     cmd = Command(None)
     for t in tests:
         final, text = t
