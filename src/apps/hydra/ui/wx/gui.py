@@ -80,23 +80,18 @@ class MainWindow(wx.Frame):
 
     def OnWebViewNavigating(self, event):
         url = event.GetURL()
-        from urllib.parse import unquote
-        url = unquote(url)
-        import html
-        url = html.unescape(url)
-        if url.startswith("file:"):
-            import os.path
-            url = os.path.normpath(url[5:])
-        if self._anchor_cb:
-            self._anchor_cb(url)
-        if len(url) > 1:
+        fn = wx.FileSystem.URLToFileName(url)
+        if len(fn) > 1:
             event.Veto()
+            if self._anchor_cb:
+                self._anchor_cb(fn)
 
     def show(self):
         self.Show()
 
     def show_graphics(self):
-        pass # always showing
+        """implicitly also means "hide log" """
+        self._text_window.shown = False
 
     def show_status(self, text, append=False):
         if append:
