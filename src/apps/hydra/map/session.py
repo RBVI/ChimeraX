@@ -103,14 +103,14 @@ def find_volume_by_session_id(id, session):
 # -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
 #
-def absolute_path(path, file_paths):
+def absolute_path(path, file_paths, ask = False):
 
   from os.path import abspath
   if isinstance(path, (tuple, list)):
-    apath = tuple(file_paths.find(p) for p in path)
+    apath = tuple(file_paths.find(p,ask) for p in path)
     apath = tuple(abspath(p) for p in apath if p)
   else:
-    apath = file_paths.find(path)
+    apath = file_paths.find(path,ask)
     if not apath is None:
       apath = abspath(apath)
   return apath
@@ -153,13 +153,13 @@ def state_from_grid_data(data):
 #
 def grid_data_from_state(s, gdcache, session, file_paths):
 
-  path = absolute_path(s['path'], file_paths)
-  if path is None:
+  dbfetch = s.get('database_fetch')
+  path = absolute_path(s['path'], file_paths, ask = (dbfetch is None))
+  if path is None and dbfetch is None:
     return None
 
   gid = s.get('grid_id','')
   file_type = s['file_type']
-  dbfetch = s.get('database_fetch')
   dlist = open_data(path, gid, file_type, dbfetch, gdcache, session)
 
   for data in dlist:
