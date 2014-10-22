@@ -1,0 +1,21 @@
+#include <stdexcept>
+
+#include "AppDirs.h"
+
+namespace cpp_appdirs {
+
+AppDirs*  AppDirs::_app_dirs = nullptr;
+	
+void
+AppDirs::init_app_dirs(std::string user_data_dir,
+	std::string user_config_dir, std::string user_cache_dir,
+	std::string site_data_dir, std::string site_config_dir,
+	std::string user_log_dir)
+{
+	if (_app_dirs != nullptr)
+		throw std::logic_error("C++ appdirs already initialized!");
+	_app_dirs = new AppDirs(user_data_dir, user_config_dir, user_cache_dir,
+		site_data_dir, site_config_dir, user_log_dir);
+}
+
+}; // namespace cpp_appdirs
