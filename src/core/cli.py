@@ -376,6 +376,7 @@ class FloatArg(Annotation):
         int_chars = "-+0123456789"
         if not text:
             return [x for x in int_chars]
+        # TODO: be more elaborate
         return []
 
 
@@ -389,6 +390,7 @@ class StringArg(Annotation):
 
     @staticmethod
     def completions(text, session):
+        # strings can be extended arbitrarily, so don't make suggestions
         return []
 
 
@@ -427,7 +429,7 @@ class Bounded(Annotation):
         return value
 
     def completions(self, text, session):
-        return self.anno.completions(text)
+        return self.anno.completions(text, session)
 
 
 class EnumOf(Annotation):
@@ -509,7 +511,7 @@ class Or(Annotation):
         """completions are the union of alternative annotation completions"""
         completions = []
         for anno in self.annotations:
-            completions += anno.completions(text)
+            completions += anno.completions(text, session)
         return completions
 
 
@@ -961,25 +963,29 @@ class Command:
                 break
             except ValueError as err:
                 completions = annotation.completions(word, session)
-                if (final or len(text) > len(chars)) and completions:
-                        c = completions[0][len(word):]
-                        if multiword:
-                            if c[0].isspace():
-                                text = text[len(chars):]
-                                continue
-                            c = c.split(None, 1)[0]
-                        text = self._complete(chars, c)
-                        del all_words[-1]
-                        del all_chars[-1]
-                        chars = ''.join(all_chars)
-                        text = text[len(chars):]
-                        continue
+                if completions and (final or len(text) > len(chars)):
+                    c = completions[0]
+                    if not c.startswith(word) or len(c) <= len(word):
+                        raise RuntimeError("Invalid completions given by %s"
+                                           % annotation.name)
+                    c = c[len(word):]
+                    if multiword:
+                        if c[0].isspace():
+                            text = text[len(chars):]
+                            continue
+                        c = c.split(None, 1)[0]
+                    text = self._complete(chars, c)
+                    del all_words[-1]
+                    del all_chars[-1]
+                    chars = ''.join(all_chars)
+                    text = text[len(chars):]
+                    continue
                 self._error = err
                 if multiword and not completions:
                     # try shorter version
                     del all_words[-1]
                     word = ' '.join(all_words)
-                    completions = annotation.completions(word)
+                    completions = annotation.completions(word, session)
                 self.completion_prefix = word
                 self.completions = completions
                 raise
