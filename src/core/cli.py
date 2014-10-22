@@ -49,7 +49,7 @@ a description of the arguments it takes,
 and the function to call that implements the command.
 Command registration can be partially delayed to avoid importing
 the command description and function until needed.
-See :py:func:`register` and :py:func:`defer_registration` for details.
+See :py:func:`register` and :py:func:`delay_registration` for details.
 
 The description is either an instance of the Command Description class,
 :py:class:`CmdDesc`, or a tuple with the arguments to the initializer.
@@ -163,12 +163,6 @@ Here is a simple example::
     except cli.UserError as err:
         print(err, file=sys.stderr)
 
-.. todo::
-
-    Build data structure with introspected information and allow it to
-    be supplemented separately for command functions with \*\*kw arguments.
-    That way a command that is expanded at runtime could pick up new arguments
-    (*e.g.*, the open command).
 
 .. todo::
 
@@ -214,6 +208,7 @@ class Annotation(metaclass=abc.ABCMeta):
         """Return text converted to appropriate type.
 
         :param text: command line text to parse
+        :param session: for session-dependent data types
 
         Abbreviations should be not accepted, instead they
         should be discovered via the possible completions.
@@ -225,6 +220,7 @@ class Annotation(metaclass=abc.ABCMeta):
         """Return list of possible completions of the given text.
 
         :param text: Text to check for possible completions
+        :param session: for session-dependent data types
 
         Note that if invalid completions are given, then parsing
         can go into an infinite loop when trying to automatically
@@ -246,6 +242,7 @@ class Aggregate(Annotation):
         return a new collection.
     :param min_size: minimum size of collection, default `None`.
     :param max_size: maximum size of collection, default `None`.
+    :param name: optionally override name in error messages.
 
     This class is typically used via :py:func:`ListOf`, :py:func:`SetOf`,
     or :py:func:`TupleOf`.
@@ -352,9 +349,14 @@ class IntArg(Annotation):
 
     @staticmethod
     def completions(text, session):
-        int_chars = "+-0123456789"
+        int_chars = "-+0123456789"
         if not text:
             return [x for x in int_chars]
+        if text[-1] in int_chars:
+            tmp = [x for x in int_chars[2:]]
+            if text[-1] in int_chars[2:]:
+                return [''] + tmp
+            return tmp
         return []
 
 
@@ -371,8 +373,10 @@ class FloatArg(Annotation):
 
     @staticmethod
     def completions(text, session):
+        int_chars = "-+0123456789"
         if not text:
-            return [x for x in "+-0123456789"]
+            return [x for x in int_chars]
+        return []
 
 
 class StringArg(Annotation):
@@ -790,8 +794,7 @@ def add_keyword_arguments(name, kw_info):
     # TODO: save appropriate kw_info, if reregistered?
 
 import re
-normal = re.compile(r"\S*")
-normal_wo_comma = re.compile(r"[^,\s]*")
+normal_token = re.compile(r"[^,;\s]*")
 single = re.compile(r"'([^']|\')*'")
 double = re.compile(r'"([^"]|\")*"')
 whitespace = re.compile("\s+")
@@ -869,7 +872,7 @@ class Command:
                 raise
             raise UserError(err)
 
-    def _next_token(self, text, commas=False):
+    def _next_token(self, text):
         # Return tuple of first argument in text and actual text used
         #
         # Arguments may be quoted, in which case the text between
@@ -900,14 +903,18 @@ class Command:
                 self._error = "incomplete quoted text"
             # convert \N{unicode name} to unicode, etc.
             token = token.encode('utf-8').decode('unicode-escape')
-        elif commas:
-            if text[start] == ',':
-                return ',', text[0:start + 1]
-            m = normal_wo_comma.match(text, start)
-            end = m.end()
-            token = text[start:end]
+        elif text[start] in '-+^,;#:@./|&?':
+            return text[start], text[0:start + 1]
+        elif text[start] in '!><=':
+            # could be a two letter token
+            if len(text) == start + 1:
+                return text[start], text[0:start + 1]
+            if (text[start:start + 1] == '!~' or
+                    text[start] in '!<>=' and text[start + 1] == '='):
+                return text[start:start + 1], text[0: start + 2]
+            return text[start], text[0:start + 1]
         else:
-            m = normal.match(text, start)
+            m = normal_token.match(text, start)
             end = m.end()
             token = text[start:end]
         return token, text[0:end]
@@ -925,7 +932,7 @@ class Command:
         self.current_text = t[0:j] + completion + t[i + j:]
         return self.current_text[j:]
 
-    def _parse_arg(self, annotation, text, final, commas=False):
+    def _parse_arg(self, annotation, text, final):
         if annotation is RestOfLine:
             return text, ""
 
@@ -936,12 +943,13 @@ class Command:
         count = 0
         while 1:
             count += 1
-            if count > 100:
-                # 100 is greater than the number of words
-                # in a multiword argument
+            if count > 1024:
+                # TODO: change test to see if still consuming characters
+                # 1024 is greater than the number of words
+                # in a multiword argument (think atomspecs)
                 raise RuntimeError("Invalid completions given by %s"
                                    % annotation.name)
-            word, chars = self._next_token(text, commas)
+            word, chars = self._next_token(text)
             if not word:
                 raise ValueError("Expected %s" % annotation.name)
             all_words.append(word)
@@ -985,12 +993,12 @@ class Command:
         self.completion_prefix = ""
         self.completions = []
         values = anno.constructor()
-        value, text = self._parse_arg(anno, text, final, True)
+        value, text = self._parse_arg(anno, text, final)
         x = anno.add_to(values, value)
         if x is not None:
             values = x
         while 1:
-            word, chars = self._next_token(text, True)
+            word, chars = self._next_token(text)
             if word != ',':
                 if len(values) < anno.min_size:
                     if anno.min_size == anno.max_size:
@@ -1009,7 +1017,7 @@ class Command:
                 return values, text
             self.amount_parsed += len(chars)
             text = text[len(chars):]
-            value, text = self._parse_arg(anno, text, final, True)
+            value, text = self._parse_arg(anno, text, final)
             x = anno.add_to(values, value)
             if x is not None:
                 values = x
@@ -1161,76 +1169,76 @@ if __name__ == '__main__':
             names = [n for n in ColorArg.Builtin_Colors if n.startswith(text)]
             return names
 
-    test1_info = CmdDesc(
+    test1_desc = CmdDesc(
         required=[('a', IntArg), ('b', FloatArg)],
         keyword=[('color', ColorArg)]
     )
 
-    @register('test1', test1_info)
+    @register('test1', test1_desc)
     def test1(session, a, b, color=None):
         print('test1 a: %s %s' % (type(a), a))
         print('test1 b: %s %s' % (type(b), b))
         print('test1 color: %s %s' % (type(color), color))
 
-    test2_info = CmdDesc(
+    test2_desc = CmdDesc(
         #required=[('a', StringArg)],
         #optional=[('text', RestOfLine)],
         keyword=[('color', ColorArg), ('radius', FloatArg)]
     )
 
-    @register('test2', test2_info)
+    @register('test2', test2_desc)
     def test2(session, a='a', text='', color=None, radius=0):
         #print('test2 a: %s %s' % (type(a), a))
         #print('test2 text: %s %s' % (type(text), text))
         print('test2 color: %s %s' % (type(color), color))
         print('test2 radius: %s %s' % (type(radius), radius))
 
-    register('mw test1', test1_info.copy(), test1)
-    register('mw test2', test2_info.copy(), test2)
+    register('mw test1', test1_desc.copy(), test1)
+    register('mw test2', test2_desc.copy(), test2)
 
-    test3_info = CmdDesc(
+    test3_desc = CmdDesc(
         required=[('name', StringArg)],
         optional=[('value', FloatArg)]
     )
 
-    @register('test3', test3_info)
+    @register('test3', test3_desc)
     def test3(session, name, value=None):
         print('test3 name: %s %s' % (type(name), name))
         print('test3 value: %s %s' % (type(value), value))
 
-    test4_info = CmdDesc(
+    test4_desc = CmdDesc(
         optional=[('draw', FloatArg)]
     )
 
-    @register('test4', test4_info)
+    @register('test4', test4_desc)
     def test4(session, draw=None):
         print('test4 draw: %s %s' % (type(draw), draw))
 
-    test5_info = CmdDesc(
+    test5_desc = CmdDesc(
         optional=[('ints', IntsArg)]
     )
 
-    @register('test5', test5_info)
+    @register('test5', test5_desc)
     def test5(session, ints=None):
         print('test5 ints: %s %s' % (type(ints), ints))
 
-    test6_info = CmdDesc(
+    test6_desc = CmdDesc(
         required=[('center', Float3Arg)]
     )
 
-    @register('test6', test6_info)
+    @register('test6', test6_desc)
     def test6(session, center):
         print('test6 center:', center)
 
-    test7_info = CmdDesc(
+    test7_desc = CmdDesc(
         optional=[('center', Float3Arg)]
     )
 
-    @register('test7', test7_info)
+    @register('test7', test7_desc)
     def test7(session, center=None):
         print('test7 center:', center)
 
-    test8_info = CmdDesc(
+    test8_desc = CmdDesc(
         optional=[
             ('always', BoolArg),
             ('target', StringArg),
@@ -1238,11 +1246,11 @@ if __name__ == '__main__':
         ],
     )
 
-    @register('test8', test8_info)
+    @register('test8', test8_desc)
     def test8(session, always=True, target="all", names=[None]):
         print('test8 always, target, names:', always, target, names)
 
-    test9_info = CmdDesc(
+    test9_desc = CmdDesc(
         optional=(
             ("target", StringArg),
             ("names", ListOf(StringArg))
@@ -1250,11 +1258,11 @@ if __name__ == '__main__':
         keyword=(("full", BoolArg),)
     )
 
-    @register('test9', test9_info)
+    @register('test9', test9_desc)
     def test9(session, target="all", names=[None], full=False):
         print('test9 full, target, names:', full, target, names)
 
-    test10_info = CmdDesc(
+    test10_desc = CmdDesc(
         required=(
             ("colors", ListOf(ColorArg)),
             ("offsets", ListOf(FloatArg)),
@@ -1262,77 +1270,85 @@ if __name__ == '__main__':
         postconditions=(SameSize('colors', 'offsets'),)
     )
 
-    @register('test10', test10_info)
+    @register('test10', test10_desc)
     def test10(session, colors=[], offsets=[]):
         print('test10 colors, offsets:', colors, offsets)
 
-    tests = [
-        (True, 'test1 color red 12 3.5'),
-        (True, 'test1 12 color red 3.5'),
-        (True, 'test1 12 3.5 color red'),
-        (True, 'test1 12 3.5 color'),
-        (True, 'te'),
-        (True, 'test2 color red radius 3.5 foo'),
-        (True, 'test2 color red radius 3.5'),
-        (True, 'test2 color red radius xyzzy'),
-        (True, 'test2 color red radius'),
-        (True, 'test2 color "light gray"'),
-        (True, 'test2 color light gray'),
-        (True, 'test2 color li gr'),
-        (True, 'test2 co li gr rad 11'),
-        (True, 'test2 c'),
-        (True, 'test3 radius'),
-        (True, 'test3 radius 12.3'),
-        (True, 'test4'),
-        (True, 'test4 draw'),
-        (True, 'test5'),
-        (True, 'test5 ints 5'),
-        (True, 'test5 ints 5 ints 6'),
-        (True, 'test5 ints 5, 6, 7, 8, 9'),
-        (True, 'mw test1 color red 12 3.5'),
-        (True, 'mw test1 color red 12 3.5'),
-        (True, 'mw test2 color red radius 3.5 foo'),
-        (False, 'mw te'),
-        (True, 'mw '),
-        (False, 'mw'),
-        (True, 'te 12 3.5 co red'),
-        (True, 'm te 12 3.5 col red'),
-        (True, 'test6 3.4, 5.6, 7.8'),
-        (True, 'test6 3.4 abc 7.8'),
-        (True, 'test7 center 3.4, 5.6, 7.8'),
-        (True, 'test7 center 3.4, 5.6'),
-        (True, 'test8 always false'),
-        (True, 'test8 always true target tool'),
-        (True, 'test8 always true tool'),
-        (True, 'test8 always tool'),
-        (True, 'test8 TRUE tool xyzzy, plugh '),
-        (True, 'test9 full true'),
-        (True, 'test9 names a,b,c d'),
-        (True, 'test10'),
-        (False, 'test10 red'),
-        (True, 'test10 red 0.5'),
-        (False, 'test10 red, light gray'),
-        (True, 'test10 red, light gray 0.33, 0.67'),
-        (False, 'test10 li gr, red'),
+    tests = [   # (fail, final, command)
+        (True, True, 'test1 color red 12 3.5'),
+        (True, True, 'test1 12 color red 3.5'),
+        (False, True, 'test1 12 3.5 color red'),
+        (True, True, 'test1 12 3.5 color'),
+        (True, True, 'te'),
+        (True, True, 'test2 color red radius 3.5 foo'),
+        (False, True, 'test2 color red radius 3.5'),
+        (True, True, 'test2 color red radius xyzzy'),
+        (True, True, 'test2 color red radius'),
+        (False, True, 'test2 color "light gray"'),
+        (False, True, 'test2 color light gray'),
+        (False, True, 'test2 color li gr'),
+        (False, True, 'test2 co li gr rad 11'),
+        (True, True, 'test2 c'),
+        (False, True, 'test3 radius'),
+        (False, True, 'test3 radius 12.3'),
+        (False, True, 'test4'),
+        (True, True, 'test4 draw'),
+        (False, True, 'test4 draw 3'),
+        (False, True, 'test5'),
+        (False, True, 'test5 ints 5'),
+        (False, True, 'test5 ints 5 ints 6'),
+        (False, True, 'test5 ints 5, 6, 7, 8, 9'),
+        (True, True, 'mw test1 color red 12 3.5'),
+        (True, True, 'mw test1 color red 12 3.5'),
+        (True, True, 'mw test2 color red radius 3.5 foo'),
+        (True, False, 'mw te'),
+        (True, True, 'mw '),
+        (True, False, 'mw'),
+        (False, True, 'te 12 3.5 co red'),
+        (False, True, 'm te 12 3.5 col red'),
+        (False, True, 'test6 3.4, 5.6, 7.8'),
+        (True, True, 'test6 3.4 abc 7.8'),
+        (False, True, 'test7 center 3.4, 5.6, 7.8'),
+        (True, True, 'test7 center 3.4, 5.6'),
+        (False, True, 'test8 always false'),
+        (False, True, 'test8 always true target tool'),
+        (True, True, 'test8 always true tool'),
+        (True, True, 'test8 always tool'),
+        (False, True, 'test8 TRUE tool xyzzy, plugh '),
+        (False, True, 'test9 full true'),
+        (True, True, 'test9 names a,b,c d'),
+        (True, True, 'test10'),
+        (True, False, 'test10 red'),
+        (False, True, 'test10 red 0.5'),
+        (True, False, 'test10 red, light gray'),
+        (False, True, 'test10 red, light gray 0.33, 0.67'),
+        (False, False, 'test10 li gr, red'),
     ]
     # TODO: delay registration tests
     cmd = Command(None)
     for t in tests:
-        final, text = t
+        fail, final, text = t
         try:
             print("\nTEST: '%s'" % text)
             cmd.parse_text(text, final=final)
             print(cmd.current_text)
             #print(cmd.current_text, cmd._kwargs)
             cmd.execute()
-            print('SUCCESS')
+            if fail:
+                # expected failure and it didn't
+                print('FAIL')
+            else:
+                print('SUCCESS')
         except UserError as err:
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
             #parsed = cmd.current_text[:cmd.amount_parsed]
             print("%s^" % ('.' * error_at))
-            print('FAIL:', err)
+            if fail:
+                print('SUCCESS:', err)
+            else:
+                print('FAIL:', err)
             p = cmd.completions
             if p:
                 print('completions:', p)
