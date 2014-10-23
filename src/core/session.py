@@ -184,7 +184,8 @@ class Session:
         # manage
         self._obj_ids = weakref.WeakValueDictionary()
         self._cls_ordinals = {}
-        self._state_managers = {}   # objects that support State API
+        from collections import OrderedDict
+        self._state_managers = OrderedDict()   # objects that support State API
         self.metadata = {}          #: session metadata
 
     def reset(self):
