@@ -72,7 +72,8 @@ class View:
     def draw_graphics(self):
         self.use_opengl()
         self.draw_scene()
-        self.swap_opengl_buffers()
+        if self.camera.mode != 'oculus':
+            self.swap_opengl_buffers()
         self.frame_number += 1
 
     def get_background_color(self):
@@ -325,15 +326,12 @@ class View:
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
-            s = camera.warp_image(vnum, r)
-            if s:
-                graphics.draw_overlays([s], r)
+        camera.draw_warped(r, self.session)
 
 #        from OpenGL import GL
 #        GL.glFinish()
         t1 = time()
         self.last_draw_duration = t1-t0
-
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
