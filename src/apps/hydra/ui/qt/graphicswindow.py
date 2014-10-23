@@ -23,8 +23,8 @@ class Graphics_Window(View, QtGui.QWindow):
         self.opengl_context = None
 
         self.timer = None			# Redraw timer
-        self.redraw_interval = 16               # milliseconds
-        # TODO: Maybe redraw interval should be 10 msec to reduce frame drops at 60 frames/sec
+        self.redraw_interval = 10               # milliseconds
+        # TODO: Redraw interval is set fast enough for 75 Hz oculus rift.
 
         from . import mousemodes
         self.mouse_modes = mousemodes.Mouse_Modes(self)
@@ -80,9 +80,9 @@ class Graphics_Window(View, QtGui.QWindow):
         # So we pass them back to the main window.
         self.session.main_window.event(event)
 
-    def create_opengl_context(self):
+    def create_opengl_context(self, stereo = False):
 
-        f = self.pixel_format(stereo = True)
+        f = self.pixel_format(stereo)
         self.setFormat(f)
         self.create()
 
