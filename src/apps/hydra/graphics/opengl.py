@@ -38,11 +38,6 @@ class Render:
         self.outline_framebuffer = None
         self._silhouette_framebuffer = None
 
-        # Texture warp parameters
-        self.warp_center = (0.5, 0.5)
-        self.radial_warp_coefficients = (1,0,0,0)
-        self.chromatic_warp_coefficients = (1,0,1,0)
-
         # 3D ambient texture transform from model coordinates to texture coordinates.
         self.ambient_texture_transform = None
 
@@ -81,7 +76,7 @@ class Render:
         Return a shader that supports the specified capabilities.
         The capabilities are specified as at bit field of values from
         SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
-        SHADER_SHADOWS, SHADER_MULTISHADOW, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
+        SHADER_SHADOWS, SHADER_MULTISHADOW, SHADER_SHIFT_AND_SCALE,
         SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS
         '''
         options |= self.enable_capabilities
@@ -116,8 +111,6 @@ class Render:
         self.set_model_matrix()
         if self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c or self.SHADER_DEPTH_OUTLINE & c:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
-        if self.SHADER_RADIAL_WARP & c:
-            self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
 
@@ -269,15 +262,6 @@ class Render:
         p = self.current_shader_program.program_id
         c = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(c, 1, self.single_color)
-
-    def set_radial_warp_parameters(self):
-        p = self.current_shader_program.program_id
-        wcenter = GL.glGetUniformLocation(p, b"warp_center")
-        GL.glUniform2fv(wcenter, 1, self.warp_center)
-        rcoef = GL.glGetUniformLocation(p, b"radial_warp")
-        GL.glUniform4fv(rcoef, 1, self.radial_warp_coefficients)
-        ccoef = GL.glGetUniformLocation(p, b"chromatic_warp")
-        GL.glUniform4fv(ccoef, 1, self.chromatic_warp_coefficients)
 
     def set_ambient_texture_transform(self, tf):
         # Transform from model coordinates to ambient texture coordinates.
@@ -709,7 +693,6 @@ shader_options = (
     'SHADER_TEXTURE_3D_AMBIENT',
     'SHADER_SHADOWS',
     'SHADER_MULTISHADOW',
-    'SHADER_RADIAL_WARP',
     'SHADER_SHIFT_AND_SCALE',
     'SHADER_INSTANCING',
     'SHADER_TEXTURE_MASK',
@@ -976,6 +959,9 @@ class Bindings:
 
         #print('bound shader variable', vname, attr_id, nattr, ncomp)
         return attr_id
+
+def deactivate_bindings():
+    GL.glBindVertexArray(0)
 
 from numpy import uint8, uint32, float32
 
