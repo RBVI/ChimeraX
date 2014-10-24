@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 .. automodule:: llgr
     :members:
     :show-inheritance:
@@ -30,11 +32,11 @@ Example
         obj_id = llgr.next_object_id()
         AI = llgr.AttributeInfo
         mai = [
-                AI("color", color_id, 0, 0, 4, llgr.Float),
-                AI("position", vn_id, 0, 0, 3, llgr.Float),
-                AI("normal", vn_id, va.nbytes, 0, 3, llgr.Float),
-                AI("instanceScale", uniform_scale_id, 0, 0, 3, llgr.Float),
+            AI("color", color_id, 0, 0, 4, llgr.Float),
+            AI("position", vn_id, 0, 0, 3, llgr.Float),
+            AI("normal", vn_id, va.nbytes, 0, 3, llgr.Float),
+            AI("instanceScale", uniform_scale_id, 0, 0, 3, llgr.Float),
         ]
 
         llgr.create_object(obj_id, scene._program_id, 0, mai, llgr.Triangles,
-                0, ta.size, tri_id, llgr.UShort)
+            0, ta.size, tri_id, llgr.UShort)
