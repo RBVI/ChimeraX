@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # Copyright © 2014 Regents of the University of California.
 # All Rights Reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
