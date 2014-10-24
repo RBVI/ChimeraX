@@ -62,7 +62,6 @@ class Drawing:
     self.ambient_texture_transform = None       # Drawing to texture coordinates.
     self.opaque_texture = False
     self.use_lighting = True
-    self.use_radial_warp = False
 
     # OpenGL drawing
     self.draw_shape = None
@@ -454,8 +453,6 @@ class Drawing:
         sopt |= r.SHADER_VERTEX_COLORS
       if not self.texture is None:
         sopt |= r.SHADER_TEXTURE_2D
-        if self.use_radial_warp:
-          sopt |= r.SHADER_RADIAL_WARP
       if not self.ambient_texture is None:
         sopt |= r.SHADER_TEXTURE_3D_AMBIENT
       if not self.positions.shift_and_scale_array() is None:
@@ -466,7 +463,7 @@ class Drawing:
     return sopt
 
   effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'ambient_texture',
-                        'use_radial_warp', '_positions'))
+                        '_positions'))
 
   # Update the contents of vertex, element and instance buffers if associated arrays have changed.
   def update_buffers(self):
@@ -705,6 +702,12 @@ def any_transparent_drawings(drawings):
     if d.showing_transparent():
       return True
   return False
+
+def draw_depth(renderer, cvinv, drawings):
+  r = renderer
+  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_VERTEX_COLORS|r.SHADER_TEXTURE_2D)
+  draw_drawings(r, cvinv, drawings)
+  r.disable_shader_capabilities(0)
 
 def draw_overlays(drawings, renderer):
 
@@ -968,7 +971,7 @@ def draw_texture(texture, renderer):
   return
 
   r = renderer
-  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_SHADOWS)
+  r.disable_shader_capabilities(r.SHADER_LIGHTING)
   from . import opengl
   tw = opengl.Texture_Window(renderer, renderer.SHADER_TEXTURE_2D)
   texture.bind_texture()

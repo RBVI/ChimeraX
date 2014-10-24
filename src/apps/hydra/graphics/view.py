@@ -72,7 +72,8 @@ class View:
     def draw_graphics(self):
         self.use_opengl()
         self.draw_scene()
-        self.swap_opengl_buffers()
+        if self.camera.mode != 'oculus':
+            self.swap_opengl_buffers()
         self.frame_number += 1
 
     def get_background_color(self):
@@ -208,7 +209,14 @@ class View:
 
     def redraw_graphics(self):
         for cb in self.new_frame_callbacks:
-            cb()
+            try:
+                cb()
+            except:
+                import traceback
+                self.session.show_warning('new frame callback rasied error\n'
+                                          + traceback.format_exc())
+                self.remove_new_frame_callback(cb)
+                
 
         c = self.camera
         s = self.session
@@ -226,7 +234,13 @@ class View:
         s.shape_changed = False
         self.draw_graphics()
         for cb in self.rendered_callbacks:
-            cb()
+            try:
+                cb()
+            except:
+                import traceback
+                self.session.show_warning('rendered callback rasied error\n'
+                                          + traceback.format_exc())
+                self.remove_new_frame_callback(cb)
 
         return True
 
@@ -254,15 +268,9 @@ class View:
         directions = self._multishadow_directions
         if directions is None or len(directions) != self.multishadow:
             from ..surface import shapes
-            v = self.multishadow    # requested number of directions
-            t = 2*(v-2)
-            # Icosahedral subdivision will only give certain vertex counts 10*(4**e)+2 (12, 42, 162, 642, 2562, ...)
-            dir = shapes.sphere_geometry(t)[0]
-            from numpy import array, float32
-            directions = array(dir, float32)
-            from ..geometry import vector
-            vector.normalize_vectors(directions)
-            self._multishadow_directions = directions
+            n = self.multishadow    # requested number of directions
+            from ..geometry import sphere
+            self._multishadow_directions = directions = sphere.sphere_points(n)
         return directions
 
     def draw_scene(self, camera = None, models = None):
@@ -304,24 +312,26 @@ class View:
                 perspective_near_far_ratio = self.update_projection(vnum, camera = camera)
                 if self.shadows:
                     r.set_shadow_transform(stf*camera.view())
+                cvinv = camera.view_inverse(vnum)
                 if self.multishadow > 0:
                     r.set_multishadow_transforms(mstf, camera.view(), msdepth)
-                cvinv = camera.view_inverse(vnum)
+                    # Initial depth pass optimization to avoid lighting calculation on hidden geometry
+                    graphics.draw_depth(r, cvinv, mdraw)
+                    r.allow_equal_depth(True)
                 graphics.draw_drawings(r, cvinv, mdraw)
+                if self.multishadow > 0:
+                    r.allow_equal_depth(False)
                 if selected:
                     graphics.draw_outline(r, cvinv, selected)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
-            s = camera.warp_image(vnum, r)
-            if s:
-                graphics.draw_overlays([s], r)
+        camera.draw_warped(r, self.session)
 
 #        from OpenGL import GL
 #        GL.glFinish()
         t1 = time()
         self.last_draw_duration = t1-t0
-
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)

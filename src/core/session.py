@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 session: application session support
 ====================================
@@ -11,7 +12,7 @@ nor any Python interpreter state
 Code should be designed to support mutiple sessions per process
 since it is easier to start with that assumption rather than add it later.
 Possible uses of multiple sessions include:
-be one session per tabbed graphics window,
+one session per tabbed graphics window,
 or for comparing two sessions.
 
 Session data, ie., data that is archived, uses the :py:class:`State` API.
@@ -34,15 +35,18 @@ class State(metaclass=abc.ABCMeta):
     References to objects should use the session's unique identifier
     for the object.
     """
-    # state types
+    #: state type
     SCENE = 0x1
+    #: state type
     SESSION = 0x2
     ALL = SCENE | SESSION
 
-    # state restoration phases
+    #: state restoration phase
     PHASE1 = 'create objects'
+    #: state restoration phase
     PHASE2 = 'resolve object references'
 
+    #: common exception for needing a newer version of the application
     NEED_NEWER = RuntimeError(
         "Need newer version of application to restore session")
 
@@ -77,7 +81,8 @@ class State(metaclass=abc.ABCMeta):
     # include here to emphasize that state aware code
     # needs to support animation
     #def restore_frame(self, phase, frame, timeline, transition):
-    #    # timeline would be sequence of (frame, scene)
+    #    # frame would be the frame number
+    #    # timeline would be sequence of (start frame, scene)
     #    # transition would be method to get to given frame that might need
     #    #   look at several scenes
     #    pass
@@ -101,13 +106,13 @@ class Scenes(State):
         """
         session = self._session  # resolve back reference
         scene = []
-        for attr_name in session._state_attrs:
-            attr = getattr(session, attr_name)
-            snapshot = attr.take_snapshot(scene, State.SCENE)
+        for tag in session._state_managers:
+            manager = session._state_managers[tag]
+            snapshot = manager.take_snapshot(scene, State.SCENE)
             if snapshot is None:
                 continue
             version, data = snapshot
-            scene.append([attr_name, version, data])
+            scene.append([tag, version, data])
         self._scenes[name] = [metadata, scene]
 
     def restore(self, name):
@@ -116,15 +121,15 @@ class Scenes(State):
             raise ValueError("Unknown scene")
         scene = self._scenes[name]
         session = self._session  # resolve back reference
-        attrs = []
-        for attr_name, version, data in scene:
-            if attr_name not in session._session_attrs:
+        managers = []
+        for tag, version, data in scene:
+            if tag not in session._state_managers:
                 continue
-            attr = getattr(session, attr_name)
-            attr.restore_snapshot(State.PHASE1, session, version, data)
-            attrs.append((attr, version))
-        for attr, version in attrs:
-            attr.restore_snapshot(State.PHASE2, session, version, None)
+            manager = session._state_managers[tag]
+            manager.restore_snapshot(State.PHASE1, session, version, data)
+            managers.append((manager, version))
+        for manager, version in managers:
+            manager.restore_snapshot(State.PHASE2, session, version, None)
 
     def delete(self, name):
         """Delete named scene"""
@@ -164,7 +169,7 @@ class Session:
     """Session management
 
     The metadata attribute should be a dictionary with information about
-    the session, eg., a thumbnail, a description, the author, etc.
+    the session, e.g., a thumbnail, a description, the author, etc.
 
     To preemptively detect problems where different tools want to use the same
     session attribute, session attributes may only be assigned to once,
@@ -180,32 +185,47 @@ class Session:
         # manage
         self._obj_ids = weakref.WeakValueDictionary()
         self._cls_ordinals = {}
-        self._state_attrs = []   # which attributes support State API
-        self.metadata = {}
+        from collections import OrderedDict
+        self._state_managers = OrderedDict()   # objects that support State API
+        self.metadata = {}          #: session metadata
 
     def reset(self):
         """Reset session to data-less state"""
         self.metadata.clear()
         self._cls_ordinals.clear()
-        for attr_name in self._state_attrs:
-            attr = getattr(self, attr_name)
-            attr.reset()
+        for tag in self._state_managers:
+            manager = self._state_managers[tag]
+            manager.reset()
 
     def __setattr__(self, name, value):
         if hasattr(self, name):
             # preemptive debugging for third party packages
             raise AttributeError("attribute already set")
-        if isinstance(value, State):
-            self._state_attrs.append(name)
         object.__setattr__(self, name, value)
 
     def __delattr__(self, name):
         # preemptive debugging for third party packages
         raise AttributeError("can not remove attributes")
 
+    def add_state_manager(self, tag, manager):
+        if not isinstance(manager, State):
+            raise ValueError('manager needs to implement State API')
+        if tag in self._state_managers:
+            raise ValueError('already have manager for %s' % tag)
+        self._state_managers[tag] = manager
+
+    def replace_state_manager(self, tag, manager):
+        """Explictly replace state manager with alternate implementation"""
+        if not isinstance(manager, State):
+            raise ValueError('manager needs to implement State API')
+        if tag not in self._state_managers:
+            raise ValueError('missing manager for %s' % tag)
+        self._state_managers[tag] = manager
+
     def replace_attribute(self, name, value):
-        if isinstance(getattr(self, name), State) != isinstance(value, State):
-            raise ValueError("Use of State API changed")
+        """Explictly replace attribute with alternate implementation"""
+        #if isinstance(getattr(self, name), State) != isinstance(value, State):
+        #    raise ValueError("Use of State API changed")
         object.__setattr__(self, name, value)
 
     def unique_id(self, obj):
@@ -242,13 +262,13 @@ class Session:
         serialize.serialize(stream, serialize.VERSION)
         serialize.serialize(stream, self.metadata)
         serialize.serialize(stream, self._cls_ordinals)
-        for attr_name in self._state_attrs:
-            attr = getattr(self, attr_name)
-            snapshot = attr.take_snapshot(self, State.SESSION)
+        for tag in self._state_managers:
+            manager = self._state_managers[tag]
+            snapshot = manager.take_snapshot(self, State.SESSION)
             if snapshot is None:
                 continue
             version, data = snapshot
-            serialize.serialize(stream, [attr_name, version, data])
+            serialize.serialize(stream, [tag, version, data])
         serialize.serialize(stream, [None, 0, None])
 
     def restore(self, stream, version=None):
@@ -264,18 +284,18 @@ class Session:
         self._cls_ordinals = serialize.deserialize(stream)
         # TODO: how much typechecking?
         assert(type(self._cls_ordinals) is dict)
-        attrs = []
+        managers = []
         while True:
-            attr_name, version, data = serialize.deserialize(stream)
-            if attr_name is None:
+            tag, version, data = serialize.deserialize(stream)
+            if tag is None:
                 break
-            if attr_name not in self._session_attrs:
+            if tag not in self._state_managers:
                 continue
-            attr = getattr(self, attr_name)
-            attr.restore_snapshot(State.PHASE1, self, version, data)
-            attrs.append((attr, version))
-        for attr, version in attrs:
-            attr.restore_snapshot(State.PHASE2, self, version, None)
+            manager = self._state_managers[tag]
+            manager.restore_snapshot(State.PHASE1, self, version, data)
+            managers.append((manager, version))
+        for manager, version in managers:
+            manager.restore_snapshot(State.PHASE2, self, version, None)
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""

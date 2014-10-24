@@ -38,11 +38,6 @@ class Render:
         self.outline_framebuffer = None
         self._silhouette_framebuffer = None
 
-        # Texture warp parameters
-        self.warp_center = (0.5, 0.5)
-        self.radial_warp_coefficients = (1,0,0,0)
-        self.chromatic_warp_coefficients = (1,0,1,0)
-
         # 3D ambient texture transform from model coordinates to texture coordinates.
         self.ambient_texture_transform = None
 
@@ -81,7 +76,7 @@ class Render:
         Return a shader that supports the specified capabilities.
         The capabilities are specified as at bit field of values from
         SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D_AMBIENT,
-        SHADER_SHADOWS, SHADER_MULTISHADOW, SHADER_RADIAL_WARP, SHADER_SHIFT_AND_SCALE,
+        SHADER_SHADOWS, SHADER_MULTISHADOW, SHADER_SHIFT_AND_SCALE,
         SHADER_INSTANCING, SHADER_TEXTURE_MASK, SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS
         '''
         options |= self.enable_capabilities
@@ -102,22 +97,20 @@ class Render:
         GL.glUseProgram(shader.program_id)
         if self.SHADER_LIGHTING & c:
             self.set_shader_lighting_parameters()
-        if self.SHADER_DEPTH_CUE & c:
-            self.set_depth_cue_parameters()
+            if self.SHADER_TEXTURE_3D_AMBIENT & c:
+                GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
+            if self.SHADER_MULTISHADOW & c:
+                self.set_shadow_shader_variables(shader)
+            if self.SHADER_SHADOWS & c:
+                GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
+                if not self._shadow_transform is None:
+                    GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self._shadow_transform)
+            if self.SHADER_DEPTH_CUE & c:
+                self.set_depth_cue_parameters()
         self.set_projection_matrix()
         self.set_model_matrix()
         if self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c or self.SHADER_DEPTH_OUTLINE & c:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
-        if self.SHADER_TEXTURE_3D_AMBIENT & c:
-            GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Texture unit 0.
-        if self.SHADER_MULTISHADOW & c:
-            self.set_shadow_shader_variables(shader)
-        if self.SHADER_SHADOWS & c:
-            GL.glUniform1i(shader.uniform_id("shadow_map"), self.shadow_texture_unit)
-            if not self._shadow_transform is None:
-                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transform"), 1, False, self._shadow_transform)
-        if self.SHADER_RADIAL_WARP & c:
-            self.set_radial_warp_parameters()
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
 
@@ -270,15 +263,6 @@ class Render:
         c = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(c, 1, self.single_color)
 
-    def set_radial_warp_parameters(self):
-        p = self.current_shader_program.program_id
-        wcenter = GL.glGetUniformLocation(p, b"warp_center")
-        GL.glUniform2fv(wcenter, 1, self.warp_center)
-        rcoef = GL.glGetUniformLocation(p, b"radial_warp")
-        GL.glUniform4fv(rcoef, 1, self.radial_warp_coefficients)
-        ccoef = GL.glGetUniformLocation(p, b"chromatic_warp")
-        GL.glUniform4fv(ccoef, 1, self.chromatic_warp_coefficients)
-
     def set_ambient_texture_transform(self, tf):
         # Transform from model coordinates to ambient texture coordinates.
         p = self.current_shader_program
@@ -318,10 +302,12 @@ class Render:
             bi = GL.glGetUniformBlockIndex(shader.program_id, b'shadow_matrix_block')
             GL.glUniformBlockBinding(shader.program_id, bi, self._multishadow_uniform_block)
         GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._multishadow_uniform_block, b)
-        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(m)*64, m)
+        # TODO: Issue warning if maximum number of shadows exceeded.
+        mm = m[:self.max_multishadows,:,:]
+        GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(mm)*64, mm)
 
 #                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"), len(m), False, m)
-        GL.glUniform1i(shader.uniform_id("shadow_count"), len(m))
+        GL.glUniform1i(shader.uniform_id("shadow_count"), len(mm))
         GL.glUniform1f(shader.uniform_id("shadow_depth"), self._multishadow_depth)
 
     def opengl_version(self):
@@ -529,11 +515,8 @@ class Render:
         self.draw_background()
         # Use flat single color rendering.
         self.disable_shader_capabilities(self.SHADER_VERTEX_COLORS|
-                                         self.SHADER_LIGHTING|
                                          self.SHADER_TEXTURE_2D|
-                                         self.SHADER_TEXTURE_3D_AMBIENT|
-                                         self.SHADER_SHADOWS|
-                                         self.SHADER_MULTISHADOW)
+                                         self.SHADER_LIGHTING)
         self.set_depth_range(0,0.99999)      # Depth test GL_LEQUAL results in z-fighting
         self.copy_from_framebuffer(fb, color = False)      # Copy depth to outline framebuffer
 
@@ -611,6 +594,9 @@ class Render:
         p = self.current_shader_program.program_id
         mc = GL.glGetUniformLocation(p, b"color")
         GL.glUniform4fv(mc, 1, color)
+
+    def allow_equal_depth(self, equal):
+        GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
 
     def set_depth_range(self, min, max):
 #        GL.glDepthFunc(GL.GL_LEQUAL)   # Get z-fighting with screen depth copied to framebuffer object on Mac/Nvidia
@@ -707,7 +693,6 @@ shader_options = (
     'SHADER_TEXTURE_3D_AMBIENT',
     'SHADER_SHADOWS',
     'SHADER_MULTISHADOW',
-    'SHADER_RADIAL_WARP',
     'SHADER_SHIFT_AND_SCALE',
     'SHADER_INSTANCING',
     'SHADER_TEXTURE_MASK',
@@ -974,6 +959,9 @@ class Bindings:
 
         #print('bound shader variable', vname, attr_id, nattr, ncomp)
         return attr_id
+
+def deactivate_bindings():
+    GL.glBindVertexArray(0)
 
 from numpy import uint8, uint32, float32
 

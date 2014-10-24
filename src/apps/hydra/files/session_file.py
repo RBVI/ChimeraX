@@ -127,7 +127,7 @@ class File_Locator:
     self.old_path = old_path
     self.replaced = {}
 
-  def find(self, path):
+  def find(self, path, ask = True):
     from os.path import isfile
     if self.new_path == self.old_path or self.old_path is None:
       p = path
@@ -157,12 +157,13 @@ class File_Locator:
           rp = join(repl[d], basename(p))
           if isfile(rp):
             return rp
-        from .. import ui
-        rp = ui.locate_file_dialog(path)	# Ask for replacement file with a dialog.
-        if rp:
-          repl[p] = rp
-          repl[d] = dirname(rp)
-          return rp
+        if ask:
+          from .. import ui
+          rp = ui.locate_file_dialog(path)	# Ask for replacement file with a dialog.
+          if rp:
+            repl[p] = rp
+            repl[d] = dirname(rp)
+            return rp
 
     return None
 

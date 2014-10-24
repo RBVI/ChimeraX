@@ -40,6 +40,9 @@ def map_inertia(maps):
 def map_points_and_weights(v, level = None, step = None, subregion = None):
 
   if level is None:
+    if len(v.surface_levels) == 0:
+      from numpy import empty, float32
+      return empty((0,3),float32), empty((0,),float32)
     # Use lowest displayed contour level.
     level = min(v.surface_levels)
 
@@ -48,7 +51,7 @@ def map_points_and_weights(v, level = None, step = None, subregion = None):
 
   from .. import map_cpp
   points_int = map_cpp.high_indices(m, level)
-  from numpy import single as float32
+  from numpy import float32
   points = points_int.astype(float32)
   tf = v.matrix_indices_to_xyz_transform(step, subregion)
   tf.move(points)
@@ -245,9 +248,11 @@ def transform_ellipsoid(axes, center, tf):
 def density_map_inertia_ellipsoid(maps, color = None, surface = None):
 
   if len(maps) == 0:
-    return
+    return None
 
   axes, d2, center = map_inertia(maps)
+  if axes is None:
+    return None
   elen = inertia_ellipsoid_size(d2)
 
   tf = maps[0].position        # Axes reported relative to first map

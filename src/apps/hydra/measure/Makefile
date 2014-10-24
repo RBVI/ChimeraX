@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/measure
 
-PYSRCS = __init__.py inertia.py measurecmd.py
+PYSRCS = __init__.py cactus.py inertia.py measurecmd.py
 
 all: $(PYOBJS)
 

@@ -1,1 +1,0 @@
-../../src/core/io.rst

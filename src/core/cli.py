@@ -17,7 +17,7 @@ Text Commands
 
 Synopsis::
 
-	command_name rv1 rv2 [ov1 [ov2]] [kn1 kv1] [kn2 kv2]
+    command_name rv1 rv2 [ov1 [ov2]] [kn1 kv1] [kn2 kv2]
 
 Text commands are composed of a command name, which can be multiple words,
 followed by required positional arguments, *rvX*,
@@ -49,7 +49,7 @@ a description of the arguments it takes,
 and the function to call that implements the command.
 Command registration can be partially delayed to avoid importing
 the command description and function until needed.
-See :py:func:`register` and :py:func:`defer_registration` for details.
+See :py:func:`register` and :py:func:`delay_registration` for details.
 
 The description is either an instance of the Command Description class,
 :py:class:`CmdDesc`, or a tuple with the arguments to the initializer.
@@ -75,63 +75,63 @@ There are many standard type notations and they should be reused
 as much as possible:
 
 +-------------------------------+---------------------------------------+
-|  Type				|  Annotation				|
+|  Type                         |  Annotation                           |
 +===============================+=======================================+
-+ :py:class:`bool`		| ``bool_arg``				|
++ :py:class:`bool`              | ``BoolArg``                           |
 +-------------------------------+---------------------------------------+
-+ :py:class:`float`		| ``float_arg``				|
++ :py:class:`float`             | ``FloatArg``                          |
 +-------------------------------+---------------------------------------+
-+ :py:class:`int`		| ``int_arg``				|
++ :py:class:`int`               | ``IntArg``                            |
 +-------------------------------+---------------------------------------+
-+ :py:class:`str`		| ``string_arg``			|
++ :py:class:`str`               | ``StringArg``                         |
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`bool`	| ``bool3_arg``				|
++ tuple of 3 :py:class:`bool`   | ``Bool3Arg``                          |
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`float`	| ``float3_arg``			|
++ tuple of 3 :py:class:`float`  | ``Float3Arg``                         |
 +-------------------------------+---------------------------------------+
-+ tuple of 3 :py:class:`int`	| ``int3_arg``				|
++ tuple of 3 :py:class:`int`    | ``Int3Arg``                           |
 +-------------------------------+---------------------------------------+
-+ list of :py:class:`float`	| ``floats_arg``			|
++ list of :py:class:`float`     | ``FloatsArg``                         |
 +-------------------------------+---------------------------------------+
-+ list of :py:class:`int`	| ``ints_arg``				|
++ list of :py:class:`int`       | ``IntsArg``                           |
 +-------------------------------+---------------------------------------+
 
-.. molecule_arg(s):
-.. molecules_arg(s, min = 0): .. atoms_arg(s):
-.. model_arg(s):
-.. models_arg(s):
-.. model_id_arg(s):
-.. specifier_arg(s):
-.. openstate_arg(s):
-.. volume_arg(v):
-.. volumes_arg(v):
-.. surfaces_arg(s):
-.. surface_pieces_arg(spec):
-.. multiscale_surface_pieces_arg(spec):
-.. points_arg(a):
+.. MoleculeArg(s):
+.. MoleculesArg(s, min = 0):
+.. AtomsArg(s):
+.. ModelArg(s):
+.. ModelsArg(s):
+.. SpecifierArg(s):
+.. OpenstateArg(s):
+.. VolumeArg(v):
+.. VolumesArg(v):
+.. SurfacesArg(s):
+.. SurfacePiecesArg(spec):
+.. MultiscaleSurfacePiecesArg(spec):
+.. PointsArg(a):
 
-There is one special annotation: :py:obj:`rest_of_line` that consumes
+There is one special annotation: :py:obj:`RestOfLine` that consumes
 the rest of the command line as a string.
 
 Annotations are used to parse text and to support automatic completion.
 Annotations can be extended with various specializers:
 
 +-----------------------+-----------------------------------------------+
-|  Specializer		|  Example					|
+|  Specializer          |  Example                                      |
 +=======================+===============================================+
-+ :py:class:`Bounded`	| ``Bounded(float_arg, 0.0, 100.0)``		|
++ :py:class:`Bounded`   | ``Bounded(FloatArg, 0.0, 100.0)``             |
 +-----------------------+-----------------------------------------------+
-+ :py:class:`List_of`	| ``List_of(float_arg)``			|
-+			| *a.k.a.*, ``floats_arg``			|
++ :py:class:`ListOf`    | ``ListOf(FloatArg)``                          |
++                       | *a.k.a.*, ``FloatsArg``                       |
 +-----------------------+-----------------------------------------------+
-+ :py:class:`Set_of`	| ``Set_of(int_arg)``				|
++ :py:class:`SetOf`     | ``SetOf(IntArg)``                             |
 +-----------------------+-----------------------------------------------+
-+ :py:class:`Tuple_of`	| ``Tuple_of(float_arg, 3)``			|
-+			| *a.k.a.*, ``float3_arg``			|
++ :py:class:`TupleOf`   | ``TupleOf(FloatArg, 3)``                      |
++                       | *a.k.a.*, ``Float3Arg``                       |
 +-----------------------+-----------------------------------------------+
-+ :py:class:`Or`	| ``Or(float_arg, string_arg)``	*discouraged*	|
++ :py:class:`Or`        | ``Or(FloatArg, StringArg)``   *discouraged*   |
 +-----------------------+-----------------------------------------------+
-+ :py:class:`Enum_of`	| enumerated values				|
++ :py:class:`EnumOf`    | enumerated values                             |
 +-----------------------+-----------------------------------------------+
 
 Creating Your Own Type Annotation
@@ -149,413 +149,437 @@ Example
 
 Here is a simple example::
 
-	import cli
-	@register("echo", cli.CmdDesc(optional=(('text', cli.rest_of_line))))
-	def echo(text=''):
-		print(text)
-	...
-	command = cli.Command()
-	command.parse_text(text, final=True)
-	try:
-		status = command.execute(session)
-		if status:
-			print(status)
-	except cli.UserError as err:
-		print(err, file=sys.stderr)
+    import cli
+    @register("echo", cli.CmdDesc(optional=(('text', cli.RestOfLine))))
+    def echo(session, text=''):
+        print(text)
+    ...
+    command = cli.Command(session)
+    command.parse_text(text, final=True)
+    try:
+        status = command.execute()
+        if status:
+            print(status)
+    except cli.UserError as err:
+        print(err, file=sys.stderr)
+
 
 .. todo::
 
-	Build data structure with introspected information and allow it to
-	be supplemented separately for command functions with \*\*kw arguments.
-	That way a command that is expanded at runtime could pick up new arguments
-	(*e.g.*, the open command).
-
-.. todo::
-
-	Issues: autocompletion, minimum 2 letters? extensions?
-	help URL? affect graphics flag?
+    Issues: autocompletion, minimum 2 letters? extensions?
+    help URL? affect graphics flag?
 
 """
 
 
 class UserError(ValueError):
-	"""An exception provoked by the user's input.
+    """An exception provoked by the user's input.
 
-	UserError(object) -> a UserError object
+    UserError(object) -> a UserError object
 
-	This is in contrast to a error is a bug in the program.
-	"""
-	pass
+    This is in contrast to a error is a bug in the program.
+    """
+    pass
 
 import sys
 from collections import OrderedDict
+import abc
 
 
-class Annotation:
-	# TODO: Annotation is an ABC
-	"""Base class for all annotations
+class Annotation(metaclass=abc.ABCMeta):
+    """Base class for all annotations
 
-	Each annotation should have the following attributes:
+    Each annotation should have the following attributes:
 
-	.. py:attribute:: name
+    .. py:attribute:: name
 
-		Set to textual description of the annotation, including
-		the leading article, *e.g.*, `"a truth value"`.
+        Set to textual description of the annotation, including
+        the leading article, *e.g.*, `"a truth value"`.
 
-	.. py:attribute:: multiword
+    .. py:attribute:: multiword
 
-		Set to true if textual representation can have a space in it.
-	"""
-	multiword = False
-	name = "** article name, e.g., _a_ _truth value_ **"
+        Set to true if textual representation can have a space in it.
+    """
+    multiword = False
+    name = "** article name, e.g., _a_ _truth value_ **"
 
-	@staticmethod
-	def parse(text):
-		"""Return text converted to appropriate type.
+    @staticmethod
+    def parse(text, session):
+        """Return text converted to appropriate type.
 
-		:param text: command line text to parse
+        :param text: command line text to parse
+        :param session: for session-dependent data types
 
-		Abbreviations should be not accepted, instead they
-		should be discovered via the possible completions.
-		"""
-		raise NotImplemented
+        Abbreviations should be not accepted, instead they
+        should be discovered via the possible completions.
+        """
+        raise NotImplemented
 
-	@staticmethod
-	def completions(text):
-		"""Return list of possible completions of the given text.
+    @staticmethod
+    def completions(text, session):
+        """Return list of possible completions of the given text.
 
-		:param text: Text to check for possible completions
+        :param text: Text to check for possible completions
+        :param session: for session-dependent data types
 
-		Note that if invalid completions are given, then parsing
-		can go into an infinite loop when trying to automatically
-		complete text.
-		"""
-		raise NotImplemented
+        Note that if invalid completions are given, then parsing
+        can go into an infinite loop when trying to automatically
+        complete text.
+        """
+        raise NotImplemented
 
 
 class Aggregate(Annotation):
-	"""Common class for collections of values.
+    """Common class for collections of values.
 
-	Aggregate(annotation, constructor, add_to, min_size=None, max_size=None, name=None) -> annotation
+    Aggregate(annotation, constructor, add_to, min_size=None, max_size=None,
+            name=None) -> annotation
 
-	:param annotation: annotation for values in the collection.
-	:param constructor: function/type to create an empty collection.
-	:param add_to: function to add an element to the collection,
-		typically an unbound method.  For immutable collections,
-		return a new collection.
-	:param min_size: minimum size of collection, default `None`.
-	:param max_size: maximum size of collection, default `None`.
-	"""
-	min_size = 0
-	max_size = sys.maxsize
+    :param annotation: annotation for values in the collection.
+    :param constructor: function/type to create an empty collection.
+    :param add_to: function to add an element to the collection,
+        typically an unbound method.  For immutable collections,
+        return a new collection.
+    :param min_size: minimum size of collection, default `None`.
+    :param max_size: maximum size of collection, default `None`.
+    :param name: optionally override name in error messages.
 
-	def __init__(self, annotation, constructor, add_to, min_size=None,
-						max_size=None, name=None):
-		self.annotation = annotation
-		self.constructor = constructor
-		self.add_to = add_to
-		if min_size is not None:
-			self.min_size = min_size
-		if max_size is not None:
-			self.max_size = max_size
-		if name is None:
-			if ',' in annotation.name:
-				name = "collection of %s" % annotation.name
-			else:
-				# discard article
-				name = annotation.name.split(None, 1)[1]
-				name = "%s(s)" % name
-		self.name = name
+    This class is typically used via :py:func:`ListOf`, :py:func:`SetOf`,
+    or :py:func:`TupleOf`.
+    The comma separator for aggregate values is handled by the
+    :py:class:`Command` class, so parsing and completions are
+    delegated to the underlying annotation.
+    """
+    min_size = 0
+    max_size = sys.maxsize
 
-	def parse(self, text):
-		return self.annotation.parse(text)
+    def __init__(self, annotation, constructor, add_to, min_size=None,
+                 max_size=None, name=None):
+        if not issubclass(annotation, Annotation):
+            raise ValueError("need an annotation, not %s" % annotation)
+        self.annotation = annotation
+        self.multiword = annotation.multiword
+        self.constructor = constructor
+        self.add_to = add_to
+        if min_size is not None:
+            self.min_size = min_size
+        if max_size is not None:
+            self.max_size = max_size
+        if name is None:
+            if ',' in annotation.name:
+                name = "collection of %s" % annotation.name
+            else:
+                # discard article
+                name = annotation.name.split(None, 1)[1]
+                name = "%s(s)" % name
+        self.name = name
 
-	def completions(self, text):
-		return self.annotation.completions(text)
+    def parse(self, text, session):
+        return self.annotation.parse(text, session)
+
+    def completions(self, text, session):
+        return self.annotation.completions(text, session)
 
 
-def List_of(annotation, min_size=None, max_size=None):
-	"""Annotation for lists of a single type
+# ListOf function acts like Annotation subclass
+def ListOf(annotation, min_size=None, max_size=None):  # noqa
+    """Annotation for lists of a single type
 
-	List_of(annotation, min_size=None, max_size=None) -> annotation
-	"""
-	return Aggregate(annotation, list, list.append, min_size, max_size)
+    ListOf(annotation, min_size=None, max_size=None) -> annotation
+    """
+    return Aggregate(annotation, list, list.append, min_size, max_size)
 
 
-def Set_of(annotation, min_size=None, max_size=None):
-	"""Annotation for sets of a single type
+# SetOf function acts like Annotation subclass
+def SetOf(annotation, min_size=None, max_size=None):  # noqa
+    """Annotation for sets of a single type
 
-	Set_of(annotation, min_size=None, max_size=None) -> annotation
-	"""
-	return Aggregate(annotation, set, set.add, min_size, max_size)
+    SetOf(annotation, min_size=None, max_size=None) -> annotation
+    """
+    return Aggregate(annotation, set, set.add, min_size, max_size)
 
 
 def _tuple_append(t, value):
-	return t + (value,)
+    return t + (value,)
 
 
-def Tuple_of(annotation, size):
-	"""Annotation for tuples of a single type
+# TupleOf function acts like Annotation subclass
+def TupleOf(annotation, size):  # noqa
+    """Annotation for tuples of a single type
 
-	Tuple_of(annotation, size) -> annotation
-	"""
-	return Aggregate(annotation, tuple, _tuple_append, size, size)
-
-
-class bool_arg(Annotation):
-	"""Annotation for boolean literals"""
-	name = "a truth value"
-
-	@staticmethod
-	def parse(text):
-		text = text.casefold()
-		if text == "0" or text == "false":
-			return False
-		if text == "1" or text == "true":
-			return True
-		raise ValueError("Expected true or false (or 1 or 0)")
-
-	@staticmethod
-	def completions(text):
-		result = []
-		text = text.casefold()
-		if "false".startswith(text):
-			result.append("false")
-		if "true".startswith(text):
-			result.append("true")
-		return result
+    TupleOf(annotation, size) -> annotation
+    """
+    return Aggregate(annotation, tuple, _tuple_append, size, size)
 
 
-class int_arg(Annotation):
-	"""Annotation for integer literals"""
-	name = "a whole number"
+class BoolArg(Annotation):
+    """Annotation for boolean literals"""
+    name = "a truth value"
 
-	@staticmethod
-	def parse(text):
-		try:
-			return int(text)
-		except ValueError:
-			raise ValueError("Expected %s" % int_arg.name)
+    @staticmethod
+    def parse(text, session):
+        text = text.casefold()
+        if text == "0" or text == "false":
+            return False
+        if text == "1" or text == "true":
+            return True
+        raise ValueError("Expected true or false (or 1 or 0)")
 
-	@staticmethod
-	def completions(text):
-		int_chars = "+-0123456789"
-		if not text:
-			return [x for x in int_chars]
-		return []
-
-
-class float_arg(Annotation):
-	"""Annotation for floating point literals"""
-	name = "a floating point number"
-
-	@staticmethod
-	def parse(text):
-		try:
-			return float(text)
-		except ValueError:
-			raise ValueError("Expected %s" % float_arg.name)
-
-	@staticmethod
-	def completions(text):
-		if not text:
-			return [x for x in "+-0123456789"]
+    @staticmethod
+    def completions(text, session):
+        result = []
+        text = text.casefold()
+        if "false".startswith(text):
+            result.append("false")
+        if "true".startswith(text):
+            result.append("true")
+        return result
 
 
-class string_arg(Annotation):
-	"""Annotation for string literals"""
-	name = "a text string"
+class IntArg(Annotation):
+    """Annotation for integer literals"""
+    name = "a whole number"
 
-	@staticmethod
-	def parse(text):
-		return text
+    @staticmethod
+    def parse(text, session):
+        try:
+            return int(text)
+        except ValueError:
+            raise ValueError("Expected %s" % IntArg.name)
 
-	@staticmethod
-	def completions(text):
-		return []
+    @staticmethod
+    def completions(text, session):
+        int_chars = "-+0123456789"
+        if not text:
+            return [x for x in int_chars]
+        if text[-1] in int_chars:
+            tmp = [x for x in int_chars[2:]]
+            if text[-1] in int_chars[2:]:
+                return [''] + tmp
+            return tmp
+        return []
+
+
+class FloatArg(Annotation):
+    """Annotation for floating point literals"""
+    name = "a floating point number"
+
+    @staticmethod
+    def parse(text, session):
+        try:
+            return float(text)
+        except ValueError:
+            raise ValueError("Expected %s" % FloatArg.name)
+
+    @staticmethod
+    def completions(text, session):
+        int_chars = "-+0123456789"
+        if not text:
+            return [x for x in int_chars]
+        # TODO: be more elaborate
+        return []
+
+
+class StringArg(Annotation):
+    """Annotation for string literals"""
+    name = "a text string"
+
+    @staticmethod
+    def parse(text, session):
+        return text
+
+    @staticmethod
+    def completions(text, session):
+        # strings can be extended arbitrarily, so don't make suggestions
+        return []
 
 
 class Bounded(Annotation):
-	"""Support bounded numerical values
+    """Support bounded numerical values
 
-	Bounded(annotation, min=None, max=None, name=None) -> a Bounded object
+    Bounded(annotation, min=None, max=None, name=None) -> a Bounded object
 
-	:param annotation: numerical annotation
-	:param min: optional lower bound
-	:param max: optional upper bound
-	:param name: optional explicit name for annotation
-	"""
+    :param annotation: numerical annotation
+    :param min: optional lower bound
+    :param max: optional upper bound
+    :param name: optional explicit name for annotation
+    """
 
-	def __init__(self, annotation, min=None, max=None, name=None):
-		self.anno = annotation
-		self.min = min
-		self.max = max
-		if name is None:
-			if min and max:
-				name = "%s <= %s <= %s" % (min, annotation.name, max)
-			elif min:
-				name = "%s >= %s" % (annotation.name, min)
-			elif max:
-				name = "%s <= %s" % (annotation.name, max)
-			else:
-				name = annotation.name
-		self.name = name
+    def __init__(self, annotation, min=None, max=None, name=None):
+        self.anno = annotation
+        self.min = min
+        self.max = max
+        if name is None:
+            if min and max:
+                name = "%s <= %s <= %s" % (min, annotation.name, max)
+            elif min:
+                name = "%s >= %s" % (annotation.name, min)
+            elif max:
+                name = "%s <= %s" % (annotation.name, max)
+            else:
+                name = annotation.name
+        self.name = name
 
-	def parse(self, text):
-		value = self.anno.parse(text)
-		if self.min is not None and value < self.min:
-			raise ValueError("Must be greater than or equal to %s" % self.min)
-		if self.max is not None and value > self.max:
-			raise ValueError("Must be less than or equal to %s" % self.max)
-		return value
+    def parse(self, text, session):
+        value = self.anno.parse(text, session)
+        if self.min is not None and value < self.min:
+            raise ValueError("Must be greater than or equal to %s" % self.min)
+        if self.max is not None and value > self.max:
+            raise ValueError("Must be less than or equal to %s" % self.max)
+        return value
 
-	def completions(self, text):
-		return self.anno.completions(text)
+    def completions(self, text, session):
+        return self.anno.completions(text, session)
 
 
-class Enum_of(Annotation):
-	"""Support enumerated types
+class EnumOf(Annotation):
+    """Support enumerated types
 
-	Enum(values, ids=None, name=None) -> an Enum object
+    Enum(values, ids=None, name=None) -> an Enum object
 
-	:param values: sequence of values
-	:param ids: optional sequence of identifiers
-	:param name: optional explicit name for annotation
+    :param values: sequence of values
+    :param ids: optional sequence of identifiers
+    :param name: optional explicit name for annotation
 
-	If the *ids* are given, then there must be one for each
-	and every value, otherwise the values are used as the identifiers.
-	The identifiers must all be strings.
-	"""
-	def __init__(self, values, ids=None, name=None):
-		if ids is not None:
-			if len(values) != len(ids):
-				raise ValueError("Must have an identifier for each and every value")
-		self.values = values
-		if ids is not None:
-			assert(all([isinstance(x, str) for x in ids]))
-			self.ids = ids
-		else:
-			assert(all([isinstance(x, str) for x in values]))
-			self.ids = values
-		self.values = values
-		self.multiple = any([(' ' in i) for i in self.ids])
-		if name is None:
-			name = "one of '%s', or '%s'" % (
-				"', '".join(self.ids[0:-1]), self.ids[-1])
-		self.name = name
+    If the *ids* are given, then there must be one for each
+    and every value, otherwise the values are used as the identifiers.
+    The identifiers must all be strings.
+    """
+    def __init__(self, values, ids=None, name=None):
+        if ids is not None:
+            if len(values) != len(ids):
+                raise ValueError("Must have an identifier for "
+                                 "each and every value")
+        self.values = values
+        if ids is not None:
+            assert(all([isinstance(x, str) for x in ids]))
+            self.ids = ids
+        else:
+            assert(all([isinstance(x, str) for x in values]))
+            self.ids = values
+        self.values = values
+        self.multiple = any([(' ' in i) for i in self.ids])
+        if name is None:
+            name = "one of '%s', or '%s'" % ("', '".join(self.ids[0:-1]),
+                                             self.ids[-1])
+        self.name = name
 
-	def parse(self, text):
-		text = text.casefold()
-		for i, x in enumerate(self.ids):
-			if x.casefold() == text:
-				return self.values[i]
-		raise ValueError("Invalid %s" % self.name)
+    def parse(self, text, session):
+        text = text.casefold()
+        for i, x in enumerate(self.ids):
+            if x.casefold() == text:
+                return self.values[i]
+        raise ValueError("Invalid %s" % self.name)
 
-	def completions(self, text):
-		text = text.casefold()
-		return [x for x in self.ids if x.casefold().startswith(text)]
+    def completions(self, text, session):
+        text = text.casefold()
+        return [x for x in self.ids if x.casefold().startswith(text)]
 
 
 class Or(Annotation):
-	"""Support two or more alternative annotations
+    """Support two or more alternative annotations
 
-	Or(annotation, annotation [, annotation]*, name=None) -> annotation
+    Or(annotation, annotation [, annotation]*, name=None) -> annotation
 
-	:param name: optional explicit name for annotation
-	"""
+    :param name: optional explicit name for annotation
+    """
 
-	def __init__(self, *annotations, name=None):
-		if len(annotations) < 2:
-			raise ValueError("Need at two alternative annotations")
-		self.annotations = annotations
-		self.multiple = any([a.multiple for a in annotations])
-		if name is None:
-			name = "%s, or %s" % (
-				", ".join(annotations[0:-1]), annotations[-1])
-		self.name = name
+    def __init__(self, *annotations, name=None):
+        if len(annotations) < 2:
+            raise ValueError("Need at two alternative annotations")
+        self.annotations = annotations
+        self.multiple = any([a.multiple for a in annotations])
+        if name is None:
+            name = "%s, or %s" % (", ".join(annotations[0:-1]),
+                                  annotations[-1])
+        self.name = name
 
-	def parse(self, text):
-		for anno in self.annotations:
-			try:
-				return anno.parse(text)
-			except ValueError:
-				pass
-		names = [a.__name__ for a in self.annotations]
-		msg = ', '.join(names[:-1])
-		if len(names) > 2:
-			msg += ', '
-		msg += 'or ' + names[-1]
-		raise ValueError("Excepted %s" % msg)
+    def parse(self, text, session):
+        for anno in self.annotations:
+            try:
+                return anno.parse(text, session)
+            except ValueError:
+                pass
+        names = [a.__name__ for a in self.annotations]
+        msg = ', '.join(names[:-1])
+        if len(names) > 2:
+            msg += ', '
+        msg += 'or ' + names[-1]
+        raise ValueError("Excepted %s" % msg)
 
-	def completions(self, text):
-		"""completions are the union of alternative annotation completions"""
-		completions = []
-		for anno in self.annotations:
-			completions += anno.completions(text)
-		return completions
-
-
-class rest_of_line(Annotation):
-	name = "the rest of line"
-
-	@staticmethod
-	def parse(text):
-		# convert \N{unicode name} to unicode, etc.
-		return text.encode('utf-8').decode('unicode-escape')
-
-	@staticmethod
-	def completions(text):
-		return []
-
-bool3_arg = Tuple_of(bool_arg, 3)
-ints_arg = List_of(int_arg)
-int3_arg = Tuple_of(int_arg, 3)
-floats_arg = List_of(float_arg)
-float3_arg = Tuple_of(float_arg, 3)
-positive_int_arg = Bounded(int_arg, min=1, name="natural number")
-model_id_arg = positive_int_arg
+    def completions(self, text, session):
+        """completions are the union of alternative annotation completions"""
+        completions = []
+        for anno in self.annotations:
+            completions += anno.completions(text, session)
+        return completions
 
 
-class Postcondition:
-	"""Base class for postconditions"""
-	# TODO: Postcondition is an ABC
+class RestOfLine(Annotation):
+    name = "the rest of line"
 
-	def check(self, kw_args):
-		"""Return true if function arguments are consistent"""
-		raise NotImplemented
+    @staticmethod
+    def parse(text, session):
+        # convert \N{unicode name} to unicode, etc.
+        return text.encode('utf-8').decode('unicode-escape')
 
-	def error_message(self):
-		"""Appropriate error message if check fails."""
-		raise NotImplemented
+    @staticmethod
+    def completions(text, session):
+        return []
+
+Bool3Arg = TupleOf(BoolArg, 3)
+IntsArg = ListOf(IntArg)
+Int3Arg = TupleOf(IntArg, 3)
+FloatsArg = ListOf(FloatArg)
+Float3Arg = TupleOf(FloatArg, 3)
+PositiveIntArg = Bounded(IntArg, min=1, name="natural number")
+ModelIdArg = PositiveIntArg
+
+
+class Postcondition(metaclass=abc.ABCMeta):
+    """Base class for postconditions"""
+
+    def check(self, kw_args):
+        """Return true if function arguments are consistent
+
+        :param kw_args: dictionary of arguments that will be passed
+            to command callback function.
+        """
+        raise NotImplemented
+
+    def error_message(self):
+        """Appropriate error message if check fails."""
+        raise NotImplemented
 
 
 class SameSize(Postcondition):
-	"""Postcondition check for same size arguments
+    """Postcondition check for same size arguments
 
-	SameSize(name1, name2) -> a SameSize object
+    SameSize(name1, name2) -> a SameSize object
 
-	:param name1: name of first argument to check
-	:param name2: name of second argument to check
-	"""
+    :param name1: name of first argument to check
+    :param name2: name of second argument to check
+    """
 
-	__slots__ = ['name1', 'name2']
+    __slots__ = ['name1', 'name2']
 
-	def __init__(self, name1, name2):
-		self.name1 = name1
-		self.name2 = name2
+    def __init__(self, name1, name2):
+        self.name1 = name1
+        self.name2 = name2
 
-	def check(self, kw_args):
-		args1 = kw_args.get(self.name1, None)
-		args2 = kw_args.get(self.name2, None)
-		if args1 is None and args2 is None:
-			return True
-		try:
-			return len(args1) == len(args2)
-		except TypeError:
-			return False
+    def check(self, kw_args):
+        args1 = kw_args.get(self.name1, None)
+        args2 = kw_args.get(self.name2, None)
+        if args1 is None and args2 is None:
+            return True
+        try:
+            return len(args1) == len(args2)
+        except TypeError:
+            return False
 
-	def error_message(self):
-		return "%s argument should be the same size as %s argument" % (self.name1, self.name2)
+    def error_message(self):
+        return "%s argument should be the same size as %s argument" % (
+            self.name1, self.name2)
 
 # _commands is a map of command name to command information.  Except when
 # it is a multiword command name, then the preliminary words map to
@@ -566,721 +590,771 @@ _commands = OrderedDict()
 
 
 def _check_autocomplete(word, mapping, name):
-	# this is a debugging aid for developers
-	for key in mapping:
-		if key.startswith(word) and key != word:
-			raise ValueError("'%s' is a prefix of an existing command" % name)
+    # this is a debugging aid for developers
+    for key in mapping:
+        if key.startswith(word) and key != word:
+            raise ValueError("'%s' is a prefix of an existing command" % name)
 
 
 class CmdDesc:
-	"""Describe command arguments.
+    """Describe command arguments.
 
-	:param required: required positional arguments tuple
-	:param optional: optional positional arguments tuple
-	:param keyword: keyword arguments tuple
+    :param required: required positional arguments tuple
+    :param optional: optional positional arguments tuple
+    :param keyword: keyword arguments tuple
 
-	Each tuple contains tuples with the argument name and a type annotation.
-	The command line parser uses the *optional* argument names to as
-	keyword arguments.
-	"""
-	__slots__ = [
-		'required', 'optional', 'keyword',
-		'postconditions', 'function',
-	]
+    Each tuple contains tuples with the argument name and a type annotation.
+    The command line parser uses the *optional* argument names to as
+    keyword arguments.
+    """
+    __slots__ = [
+        'required', 'optional', 'keyword',
+        'postconditions', 'function',
+    ]
 
-	def __init__(self, required=(), optional=(), keyword=(),
-			postconditions=()):
-		self.required = OrderedDict(required)
-		self.optional = OrderedDict(optional)
-		self.keyword = dict(keyword)
-		self.keyword.update(self.optional)
-		self.postconditions = postconditions
-		self.function = None
+    def __init__(self, required=(), optional=(), keyword=(),
+                 postconditions=()):
+        self.required = OrderedDict(required)
+        self.optional = OrderedDict(optional)
+        self.keyword = dict(keyword)
+        self.keyword.update(self.optional)
+        self.postconditions = postconditions
+        self.function = None
 
-	def set_function(self, function):
-		"""Set the function to call when the command matches.
+    def set_function(self, function):
+        """Set the function to call when the command matches.
 
-		Double check that all function arguments, that do not
-		have default values, are 'required'.
-		"""
-		if self.function:
-			raise ValueError("Can not reuse CmdDesc instances")
-		import inspect
-		EMPTY = inspect.Parameter.empty
-		signature = inspect.signature(function)
-		params = list(signature.parameters.values())
-		if len(params) < 1 or params[0].name != "session":
-			raise ValueError("Missing initial 'session' argument")
-		for p in params[1:]:
-			if p.default != EMPTY or p.name in self.required:
-				continue
-			raise ValueError("Wrong function or '%s' argument must be required or have a default value" % p.name)
+        Double check that all function arguments, that do not
+        have default values, are 'required'.
+        """
+        if self.function:
+            raise ValueError("Can not reuse CmdDesc instances")
+        import inspect
+        empty = inspect.Parameter.empty
+        signature = inspect.signature(function)
+        params = list(signature.parameters.values())
+        if len(params) < 1 or params[0].name != "session":
+            raise ValueError("Missing initial 'session' argument")
+        for p in params[1:]:
+            if p.default != empty or p.name in self.required:
+                continue
+            raise ValueError("Wrong function or '%s' argument must be "
+                             "required or have a default value" % p.name)
 
-		self.function = function
+        self.function = function
 
-	def copy(self):
-		"""Return a copy suitable for use with another function."""
-		import copy
-		ci = copy.copy(self)
-		ci.function = None
-		return ci
+    def copy(self):
+        """Return a copy suitable for use with another function."""
+        import copy
+        ci = copy.copy(self)
+        ci.function = None
+        return ci
 
 
 class _Defer:
-	# Enable function introspection to be deferred until needed
-	#
-	# _Defer(proxy_function, cmd_info) -> instance
-	#
-	# There are two uses: (1) the proxy function returns the actual
-	# function that implements the command, or (2) the proxy function
-	# register subcommands and returns None.  In the former case,
-	# the proxy function will typically consist of an import statement,
-	# followed by returning a function in the imported module.  In the
-	# latter case, multiple subcommands are registered, and nothing is
-	# returned.
-	__slots__ = ['proxy', 'cmd_info']
+    # Enable function introspection to be deferred until needed
+    #
+    # _Defer(proxy_function, cmd_desc) -> instance
+    #
+    # There are two uses: (1) the proxy function returns the actual
+    # function that implements the command, or (2) the proxy function
+    # register subcommands and returns None.  In the former case,
+    # the proxy function will typically consist of an import statement,
+    # followed by returning a function in the imported module.  In the
+    # latter case, multiple subcommands are registered, and nothing is
+    # returned.
+    __slots__ = ['proxy', 'cmd_desc']
 
-	def __init__(self, proxy_function, cmd_info):
-		self.proxy = proxy_function
-		if isinstance(cmd_info, tuple):
-			cmd_info = CmdDesc(*cmd_info)
-		self.cmd_info = cmd_info
+    def __init__(self, proxy_function, cmd_desc):
+        self.proxy = proxy_function
+        if isinstance(cmd_desc, tuple):
+            cmd_desc = CmdDesc(*cmd_desc)
+        self.cmd_desc = cmd_desc
 
-	def call(self):
-		return self.proxy()
-
-
-def delay_registration(name, proxy_function, cmd_info=None):
-	"""delay registering a named command until needed
-
-	If the command information is given, then the proxy function
-	should return the actual function used to implement the command.
-	Otherwise, the function should explicitly register commands.
-	The proxy function may register subcommands.
-	"""
-	register(name, None, _Defer(proxy_function, cmd_info))
+    def call(self):
+        return self.proxy()
 
 
-def register(name, cmd_info, function=None):
-	"""register function that implements command
+def delay_registration(name, proxy_function, cmd_desc=None):
+    """delay registering a named command until needed
 
-	:param name: the name of the command and may include spaces.
-	:param cmd_info: information about the command, either an
-		instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
-		parameters.
-	:param function: the callback function.
+    :param proxy_function: the function to call if command is used
+    :param cmd_desc: optional information about the command, either an
+        instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
+        parameters.
 
-	If the function is None, then it assumed that :py:func:`register`
-	is being used as a decorator.
+    If the command description is given, then the proxy function
+    should return the actual function used to implement the command.
+    Otherwise, the proxy function should explicitly register (sub)commands
+    and return nothing.
+    """
+    register(name, None, _Defer(proxy_function, cmd_desc))
 
-	To delay introspecting the function until it is actually used,
-	register using the :py:func:`delay_registration` function.
 
-	For autocompletion, the first command registered with a
-	given prefix wins.  Registering a command that is a prefix
-	of an existing command is an error since it breaks backwards
-	compatibility.
-	"""
-	if function is None:
-		# act as a decorator
-		def wrapper(function, name=name, cmd_info=cmd_info):
-			return register(name, cmd_info, function)
-		return wrapper
+def register(name, cmd_desc, function=None):
+    """register function that implements command
 
-	if isinstance(cmd_info, tuple):
-		cmd_info = CmdDesc(*cmd_info)
+    :param name: the name of the command and may include spaces.
+    :param cmd_desc: information about the command, either an
+        instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
+        parameters.
+    :param function: the callback function.
 
-	words = name.split()
-	cmd_map = _commands
-	for word in words[:-1]:
-		what = cmd_map.get(word, None)
-		if isinstance(what, dict):
-			cmd_map = what
-			continue
-		deferred = isinstance(what, _Defer)
-		if what is not None and not deferred:
-			raise ValueError("Can't mix subcommands with no subcommands")
-		if not deferred:
-			_check_autocomplete(word, cmd_map, name)
-		d = cmd_map[word] = OrderedDict()
-		cmd_map = d
-	word = words[-1]
-	what = cmd_map.get(word, None)
-	if isinstance(what, dict):
-		raise ValueError("Command is part of multiword command")
-	#if what is not None:
-	#	pass # TODO: replacing, preserve extra keywords?
-	_check_autocomplete(word, cmd_map, name)
-	if isinstance(function, _Defer):
-		# delay introspecting function
-		cmd_info = function
-	else:
-		# introspect immediately to give errors
-		cmd_info.set_function(function)
-	cmd_map[word] = cmd_info
-	return function		# needed when used as a decorator
+    If the function is None, then it assumed that :py:func:`register`
+    is being used as a decorator.
+
+    To delay introspecting the function until it is actually used,
+    register using the :py:func:`delay_registration` function.
+
+    For autocompletion, the first command registered with a
+    given prefix wins.  Registering a command that is a prefix
+    of an existing command is an error since it breaks backwards
+    compatibility.
+    """
+    if function is None:
+        # act as a decorator
+        def wrapper(function, name=name, cmd_desc=cmd_desc):
+            return register(name, cmd_desc, function)
+        return wrapper
+
+    if isinstance(cmd_desc, tuple):
+        cmd_desc = CmdDesc(*cmd_desc)
+
+    words = name.split()
+    cmd_map = _commands
+    for word in words[:-1]:
+        what = cmd_map.get(word, None)
+        if isinstance(what, dict):
+            cmd_map = what
+            continue
+        deferred = isinstance(what, _Defer)
+        if what is not None and not deferred:
+            raise ValueError("Can't mix subcommands with no subcommands")
+        if not deferred:
+            _check_autocomplete(word, cmd_map, name)
+        d = cmd_map[word] = OrderedDict()
+        cmd_map = d
+    word = words[-1]
+    what = cmd_map.get(word, None)
+    if isinstance(what, dict):
+        raise ValueError("Command is part of multiword command")
+    #if what is not None:
+    #    pass # TODO: replacing, preserve extra keywords?
+    _check_autocomplete(word, cmd_map, name)
+    if isinstance(function, _Defer):
+        # delay introspecting function
+        cmd_desc = function
+    else:
+        # introspect immediately to give errors
+        cmd_desc.set_function(function)
+    cmd_map[word] = cmd_desc
+    return function     # needed when used as a decorator
 
 
 def _lazy_introspect(cmd_map, word):
-	deferred = cmd_map[word]
-	function = deferred.call()
-	if function is not None:
-		cmd_info = deferred.cmd_info
-		if cmd_info is None:
-			raise RuntimeError("delayed registration forgot command information")
-		cmd_info.set_function(function)
-		cmd_map[word] = cmd_info
-		return cmd_info
-	# deferred function might have registered subcommands
-	cmd_info = cmd_map[word]
-	if isinstance(cmd_info, (dict, CmdDesc)):
-		return cmd_info
-	raise RuntimeError("delayed registration didn't register the command")
+    deferred = cmd_map[word]
+    function = deferred.call()
+    if function is not None:
+        cmd_desc = deferred.cmd_desc
+        if cmd_desc is None:
+            raise RuntimeError("delayed registration "
+                               "forgot command information")
+        cmd_desc.set_function(function)
+        cmd_map[word] = cmd_desc
+        return cmd_desc
+    # deferred function might have registered subcommands
+    cmd_desc = cmd_map[word]
+    if isinstance(cmd_desc, (dict, CmdDesc)):
+        return cmd_desc
+    raise RuntimeError("delayed registration didn't register the command")
 
 
 def add_keyword_arguments(name, kw_info):
-	"""Make known additional keyword argument(s) for a command
+    """Make known additional keyword argument(s) for a command
 
-	:param name: the name of the command
-	:param kw_info: { keyword: annotation }
-	"""
-	words = name.split()
-	cmd_map = _commands
-	for word in words[:-1]:
-		what = cmd_map.get(word, None)
-		if isinstance(what, dict):
-			cmd_map = what
-			continue
-		raise ValueError("'%s' is not a command" % name)
-	word = words[-1]
-	ci = cmd_map.get(word, None)
-	if ci is None:
-		raise ValueError("'%s' is not a command" % name)
-	if isinstance(ci, _Defer):
-		ci = _lazy_introspect(cmd_map, word)
-	if isinstance(ci, dict):
-		raise ValueError("'%s' is not the full command" % name)
-	# TODO: fail if there are conflicts with existing keywords?
-	ci.keyword.update(kw_info)
-	# TODO: save appropriate kw_info, if reregistered?
+    :param name: the name of the command
+    :param kw_info: { keyword: annotation }
+    """
+    words = name.split()
+    cmd_map = _commands
+    for word in words[:-1]:
+        what = cmd_map.get(word, None)
+        if isinstance(what, dict):
+            cmd_map = what
+            continue
+        raise ValueError("'%s' is not a command" % name)
+    word = words[-1]
+    ci = cmd_map.get(word, None)
+    if ci is None:
+        raise ValueError("'%s' is not a command" % name)
+    if isinstance(ci, _Defer):
+        ci = _lazy_introspect(cmd_map, word)
+    if isinstance(ci, dict):
+        raise ValueError("'%s' is not the full command" % name)
+    # TODO: fail if there are conflicts with existing keywords?
+    ci.keyword.update(kw_info)
+    # TODO: save appropriate kw_info, if reregistered?
 
 import re
-normal = re.compile(r"\S*")
-normal_wo_comma = re.compile(r"[^,\s]*")
+normal_token = re.compile(r"[^,;\s]*")
 single = re.compile(r"'([^']|\')*'")
 double = re.compile(r'"([^"]|\")*"')
 whitespace = re.compile("\s+")
 
 
 class Command:
-	"""Keep track of partially typed command with possible completions
+    """Keep track of partially typed command with possible completions
 
-	:param text: the command text
-	:param final: true if text is the complete command line (final version).
+    :param text: the command text
+    :param final: true if text is the complete command line (final version).
 
-	.. data: current_text
+    .. data: current_text
 
-		The expanded version of the command.
+        The expanded version of the command.
 
-	.. data: amount_parsed
+    .. data: amount_parsed
 
-		Amount of current text that has been successfully parsed.
+        Amount of current text that has been successfully parsed.
 
-	.. data: completions
+    .. data: completions
 
-		Possible command completions.  The first one will be used
-		if the command is executed.
+        Possible command completions.  The first one will be used
+        if the command is executed.
 
-	.. data: completion_prefix
+    .. data: completion_prefix
 
-		Partial word used for command completions.
-	"""
-	def __init__(self, text='', final=False):
-		self._reset()
-		if text:
-			self.parse_text(text, final)
+        Partial word used for command completions.
+    """
+    def __init__(self, session, text='', final=False):
+        import weakref
+        self._session = None if session is None else weakref.proxy(session)
+        self._reset()
+        if text:
+            self.parse_text(text, final)
 
-	def _reset(self):
-		self.current_text = ""
-		self.amount_parsed = 0
-		self.completion_prefix = ""
-		self.completions = []
-		self._error = "Missing command"
-		self._ci = None
-		self.command_name = None
-		self._kwargs = {}
-		self._error_checked = False
+    def _reset(self):
+        self.current_text = ""
+        self.amount_parsed = 0
+        self.completion_prefix = ""
+        self.completions = []
+        self._error = "Missing command"
+        self._ci = None
+        self.command_name = None
+        self._kwargs = {}
+        self._error_checked = False
 
-	def error_check(self):
-		"""Error check results of calling parse_text
+    def error_check(self):
+        """Error check results of calling parse_text
 
-		Separate error checking logic from execute() so
-		it may be done separately
-		"""
-		if self._error:
-			raise UserError(self._error)
-		for cond in self._ci.postconditions:
-			if not cond():
-				raise UserError(cond.message())
-		self._error_checked = True
+        Separate error checking logic from execute() so
+        it may be done separately
+        """
+        if self._error:
+            raise UserError(self._error)
+        for cond in self._ci.postconditions:
+            if not cond.check(self._kwargs):
+                raise UserError(cond.error_message())
+        self._error_checked = True
 
-	def execute(self, session):
-		"""If command is valid, execute it with given session."""
+    def execute(self):
+        """If command is valid, execute it with given session."""
 
-		if not self._error_checked:
-			self.error_check()
-		try:
-			return self._ci.function(session, **self._kwargs)
-		except ValueError as err:
-			# convert function's ValueErrors to UserErrors,
-			# but not those of functions it calls
-			import sys, traceback
-			_, _, exc_traceback = sys.exc_info()
-			if len(traceback.extract_tb(exc_traceback)) > 2:
-				raise
-			raise UserError(err)
+        session = self._session  # resolve back reference
+        if not self._error_checked:
+            self.error_check()
+        try:
+            return self._ci.function(session, **self._kwargs)
+        except ValueError as err:
+            # convert function's ValueErrors to UserErrors,
+            # but not those of functions it calls
+            import sys
+            import traceback
+            _, _, exc_traceback = sys.exc_info()
+            if len(traceback.extract_tb(exc_traceback)) > 2:
+                raise
+            raise UserError(err)
 
-	def _next_token(self, text, commas=False):
-		# Return tuple of first argument in text and actual text used
-		#
-		# Arguments may be quoted, in which case the text between
-		# the quotes is returned.  If there is no closing quote,
-		# return rest of line for automatic completion purposes,
-		# but set an error.
-		m = whitespace.match(text)
-		start = m.end() if m else 0
-		if start == len(text):
-			return '', text
-		if text[start] == '"':
-			m = double.match(text, start)
-			if m:
-				end = m.end()
-				token = text[start + 1:end - 1]
-			else:
-				end = len(text)
-				token = text[start + 1:end]
-				self._error = "incomplete quoted text"
-		elif text[start] == "'":
-			m = single.match(text, start)
-			if m:
-				end = m.end()
-				token = text[start + 1:end - 1]
-			else:
-				end = len(text)
-				token = text[start + 1:end]
-				self._error = "incomplete quoted text"
-			# convert \N{unicode name} to unicode, etc.
-			token = token.encode('utf-8').decode('unicode-escape')
-		elif commas:
-			if text[start] == ',':
-				return ',', text[0:start + 1]
-			m = normal_wo_comma.match(text, start)
-			end = m.end()
-			token = text[start:end]
-		else:
-			m = normal.match(text, start)
-			end = m.end()
-			token = text[start:end]
-		return token, text[0:end]
+    def _next_token(self, text):
+        # Return tuple of first argument in text and actual text used
+        #
+        # Arguments may be quoted, in which case the text between
+        # the quotes is returned.  If there is no closing quote,
+        # return rest of line for automatic completion purposes,
+        # but set an error.
+        m = whitespace.match(text)
+        start = m.end() if m else 0
+        if start == len(text):
+            return '', text
+        if text[start] == '"':
+            m = double.match(text, start)
+            if m:
+                end = m.end()
+                token = text[start + 1:end - 1]
+            else:
+                end = len(text)
+                token = text[start + 1:end]
+                self._error = "incomplete quoted text"
+        elif text[start] == "'":
+            m = single.match(text, start)
+            if m:
+                end = m.end()
+                token = text[start + 1:end - 1]
+            else:
+                end = len(text)
+                token = text[start + 1:end]
+                self._error = "incomplete quoted text"
+            # convert \N{unicode name} to unicode, etc.
+            token = token.encode('utf-8').decode('unicode-escape')
+        elif text[start] in '-+^,;#:@./|&?':
+            return text[start], text[0:start + 1]
+        elif text[start] in '!><=':
+            # could be a two letter token
+            if len(text) == start + 1:
+                return text[start], text[0:start + 1]
+            if (text[start:start + 1] == '!~' or
+                    text[start] in '!<>=' and text[start + 1] == '='):
+                return text[start:start + 1], text[0: start + 2]
+            return text[start], text[0:start + 1]
+        else:
+            m = normal_token.match(text, start)
+            end = m.end()
+            token = text[start:end]
+        return token, text[0:end]
 
-	def _complete(self, chars, suffix):
-		# insert completion taking into account quotes
-		i = len(chars)
-		c = chars[0]
-		if c != '"' or chars[-1] != c:
-			completion = chars + suffix
-		else:
-			completion = chars[:-1] + suffix + chars[-1]
-		j = self.amount_parsed
-		t = self.current_text
-		self.current_text = t[0:j] + completion + t[i + j:]
-		return self.current_text[j:]
+    def _complete(self, chars, suffix):
+        # insert completion taking into account quotes
+        i = len(chars)
+        c = chars[0]
+        if c != '"' or chars[-1] != c:
+            completion = chars + suffix
+        else:
+            completion = chars[:-1] + suffix + chars[-1]
+        j = self.amount_parsed
+        t = self.current_text
+        self.current_text = t[0:j] + completion + t[i + j:]
+        return self.current_text[j:]
 
-	def _parse_arg(self, annotation, text, final, commas=False):
-		if annotation is rest_of_line:
-			return text, ""
+    def _parse_arg(self, annotation, text, final):
+        if annotation is RestOfLine:
+            return text, ""
 
-		multiword = annotation.multiword
-		all_words = []
-		all_chars = []
-		count = 0
-		while 1:
-			count += 1
-			if count > 100:
-				raise RuntimeError("Invalid completions given by %s" % annotation)
-			word, chars = self._next_token(text, commas)
-			if not word:
-				raise ValueError("Expected %s" % annotation.name)
-			all_words.append(word)
-			word = ' '.join(all_words)
-			all_chars.append(chars)
-			chars = ''.join(all_chars)
-			try:
-				value = annotation.parse(word)
-				break
-			except ValueError as err:
-				completions = annotation.completions(word)
-				if (final or len(text) > len(chars)) \
-				and completions:
-					c = completions[0][len(word):]
-					if multiword:
-						if c[0].isspace():
-							text = text[len(chars):]
-							continue
-						c = c.split(None, 1)[0]
-					text = self._complete(chars, c)
-					del all_words[-1]
-					del all_chars[-1]
-					chars = ''.join(all_chars)
-					text = text[len(chars):]
-					continue
-				self._error = err
-				if multiword and not completions:
-					# try shorter version
-					del all_words[-1]
-					word = ' '.join(all_words)
-					completions = annotation.completions(word)
-				self.completion_prefix = word
-				self.completions = completions
-				raise
-		self.amount_parsed += len(chars)
-		text = self.current_text[self.amount_parsed:]
-		return value, text
+        session = self._session  # resolve back reference
+        multiword = annotation.multiword
+        all_words = []
+        all_chars = []
+        count = 0
+        while 1:
+            count += 1
+            if count > 1024:
+                # TODO: change test to see if still consuming characters
+                # 1024 is greater than the number of words
+                # in a multiword argument (think atomspecs)
+                raise RuntimeError("Invalid completions given by %s"
+                                   % annotation.name)
+            word, chars = self._next_token(text)
+            if not word:
+                raise ValueError("Expected %s" % annotation.name)
+            all_words.append(word)
+            word = ' '.join(all_words)
+            all_chars.append(chars)
+            chars = ''.join(all_chars)
+            try:
+                value = annotation.parse(word, session)
+                break
+            except ValueError as err:
+                completions = annotation.completions(word, session)
+                if completions and (final or len(text) > len(chars)):
+                    c = completions[0]
+                    if not c.startswith(word) or len(c) <= len(word):
+                        raise RuntimeError("Invalid completions given by %s"
+                                           % annotation.name)
+                    c = c[len(word):]
+                    if multiword:
+                        if c[0].isspace():
+                            text = text[len(chars):]
+                            continue
+                        c = c.split(None, 1)[0]
+                    text = self._complete(chars, c)
+                    del all_words[-1]
+                    del all_chars[-1]
+                    chars = ''.join(all_chars)
+                    text = text[len(chars):]
+                    continue
+                self._error = err
+                if multiword and not completions:
+                    # try shorter version
+                    del all_words[-1]
+                    word = ' '.join(all_words)
+                    completions = annotation.completions(word, session)
+                self.completion_prefix = word
+                self.completions = completions
+                raise
+        self.amount_parsed += len(chars)
+        text = self.current_text[self.amount_parsed:]
+        return value, text
 
-	def _parse_aggregate(self, anno, text, final):
-		# expect VALUE [, VALUE]*
-		self._error = ""
-		self.completion_prefix = ""
-		self.completions = []
-		values = anno.constructor()
-		value, text = self._parse_arg(anno, text, final, True)
-		x = anno.add_to(values, value)
-		if x is not None:
-			values = x
-		while 1:
-			word, chars = self._next_token(text, True)
-			if word != ',':
-				if len(values) < anno.min_size:
-					if anno.min_size == anno.max_size:
-						qual = "exactly"
-					else:
-						qual = "at least"
-					raise ValueError("Need %s %d %s" % (qual, anno.min_size, anno.name))
-				if len(values) > anno.max_size:
-					if anno.min_size == anno.max_size:
-						qual = "exactly"
-					else:
-						qual = "at most"
-					raise ValueError("Need %s %d %s" % (qual, anno.max_size), anno.name)
-				return values, text
-			self.amount_parsed += len(chars)
-			text = text[len(chars):]
-			value, text = self._parse_arg(anno, text, final, True)
-			x = anno.add_to(values, value)
-			if x is not None:
-				values = x
+    def _parse_aggregate(self, anno, text, final):
+        # expect VALUE [, VALUE]*
+        self._error = ""
+        self.completion_prefix = ""
+        self.completions = []
+        values = anno.constructor()
+        value, text = self._parse_arg(anno, text, final)
+        x = anno.add_to(values, value)
+        if x is not None:
+            values = x
+        while 1:
+            word, chars = self._next_token(text)
+            if word != ',':
+                if len(values) < anno.min_size:
+                    if anno.min_size == anno.max_size:
+                        qual = "exactly"
+                    else:
+                        qual = "at least"
+                    raise ValueError("Need %s %d %s" % (qual, anno.min_size,
+                                                        anno.name))
+                if len(values) > anno.max_size:
+                    if anno.min_size == anno.max_size:
+                        qual = "exactly"
+                    else:
+                        qual = "at most"
+                    raise ValueError("Need %s %d %s" % (qual, anno.max_size,
+                                     anno.name))
+                return values, text
+            self.amount_parsed += len(chars)
+            text = text[len(chars):]
+            value, text = self._parse_arg(anno, text, final)
+            x = anno.add_to(values, value)
+            if x is not None:
+                values = x
 
-	def parse_text(self, text, final=False):
-		"""Parse text into function and arguments
+    def parse_text(self, text, final=False):
+        """Parse text into function and arguments
 
-		:param text: The text to be parsed.
-		:param final: True if last version of command text
+        :param text: The text to be parsed.
+        :param final: True if last version of command text
 
-		May be called multiple times.  There are a couple side effects:
+        May be called multiple times.  There are a couple side effects:
 
-		* The automatically completed text is put in self.current_text.
-		* Possible completions are in self.completions.
-		* The prefix of the completions is in self.completion_prefix.
-		"""
-		self._reset()	 # don't be smart, just start over
+        * The automatically completed text is put in self.current_text.
+        * Possible completions are in self.completions.
+        * The prefix of the completions is in self.completion_prefix.
+        """
+        self._reset()   # don't be smart, just start over
 
-		# TODO: alias expansion
+        # TODO: alias expansion
 
-		# find command name
-		self.current_text = text
-		text = text[self.amount_parsed:]
-		word_map = _commands
-		while 1:
-			word, chars = self._next_token(text)
-			what = word_map.get(word, None)
-			if what is None:
-				self.completion_prefix = word
-				self.completions = [
-					x for x in word_map if x.startswith(word)]
-				if word and (final or len(text) > len(chars)) \
-				and self.completions:
-					# If final version of text, or if there
-					# is following text, make best guess,
-					# and retry
-					c = self.completions[0]
-					text = self._complete(chars, c[len(word):])
-					continue
-				if word:
-					self._error = "Unknown command"
-				return
-			self.amount_parsed += len(chars)
-			text = text[len(chars):]
-			if isinstance(what, _Defer):
-				what = _lazy_introspect(word_map, word)
-			if isinstance(what, dict):
-				# word is part of multiword command name
-				word_map = what
-				self._error = ("Incomplete command: %s"
-				    % self.current_text[0:self.amount_parsed])
-				continue
-			assert(isinstance(what, CmdDesc))
-			self._ci = what
-			self.command_name = self.current_text[:self.amount_parsed]
-			break
-		word_map = self._ci.keyword
+        # find command name
+        self.current_text = text
+        text = text[self.amount_parsed:]
+        word_map = _commands
+        while 1:
+            word, chars = self._next_token(text)
+            what = word_map.get(word, None)
+            if what is None:
+                self.completion_prefix = word
+                self.completions = [
+                    x for x in word_map if x.startswith(word)]
+                if word and (final or len(text) > len(chars)) \
+                        and self.completions:
+                    # If final version of text, or if there
+                    # is following text, make best guess,
+                    # and retry
+                    c = self.completions[0]
+                    text = self._complete(chars, c[len(word):])
+                    continue
+                if word:
+                    self._error = "Unknown command"
+                return
+            self.amount_parsed += len(chars)
+            text = text[len(chars):]
+            if isinstance(what, _Defer):
+                what = _lazy_introspect(word_map, word)
+            if isinstance(what, dict):
+                # word is part of multiword command name
+                word_map = what
+                self._error = ("Incomplete command: %s"
+                               % self.current_text[0:self.amount_parsed])
+                continue
+            assert(isinstance(what, CmdDesc))
+            self._ci = what
+            self.command_name = self.current_text[:self.amount_parsed]
+            break
+        word_map = self._ci.keyword
 
-		# process positional arguments
-		positional = self._ci.required.copy()
-		positional.update(self._ci.optional)
-		self.completion_prefix = ''
-		self.completions = []
-		for name, anno in positional.items():
-			if name in self._ci.optional:
-				self._error = ""
-				tmp = text.split(None, 1)
-				if not tmp:
-					break
-				if tmp[0] in word_map:
-					# matches keyword,
-					# so switch to keyword processing
-					break
-			else:
-				self._error = "Missing required argument %s" % name
-			try:
-				if isinstance(anno, Aggregate):
-					value, text = self._parse_aggregate(anno, text, final)
-				else:
-					value, text = self._parse_arg(anno, text, final)
-				self._kwargs[name] = value
-			except ValueError as err:
-				if name in self._ci.required:
-					self._error = "Invalid '%s' argument: %s" % (name, err)
-					return
-				# optional and wrong type, try as keyword
-				break
-		self._error = ""
+        # process positional arguments
+        positional = self._ci.required.copy()
+        positional.update(self._ci.optional)
+        self.completion_prefix = ''
+        self.completions = []
+        for name, anno in positional.items():
+            if name in self._ci.optional:
+                self._error = ""
+                tmp = text.split(None, 1)
+                if not tmp:
+                    break
+                if tmp[0] in word_map:
+                    # matches keyword,
+                    # so switch to keyword processing
+                    break
+            else:
+                self._error = "Missing required argument %s" % name
+            try:
+                if isinstance(anno, Aggregate):
+                    value, text = self._parse_aggregate(anno, text, final)
+                else:
+                    value, text = self._parse_arg(anno, text, final)
+                self._kwargs[name] = value
+            except ValueError as err:
+                if name in self._ci.required:
+                    self._error = "Invalid '%s' argument: %s" % (name, err)
+                    return
+                # optional and wrong type, try as keyword
+                break
+        self._error = ""
 
-		# process keyword arguments
-		while 1:
-			word, chars = self._next_token(text)
-			if not word:
-				# count extra whitespace as parsed
-				self.amount_parsed += len(chars)
-				break
+        # process keyword arguments
+        while 1:
+            word, chars = self._next_token(text)
+            if not word:
+                # count extra whitespace as parsed
+                self.amount_parsed += len(chars)
+                break
 
-			if word not in self._ci.keyword:
-				self.completion_prefix = word
-				self.completions = [
-					x for x in word_map if x.startswith(word)]
-				if (final or len(text) > len(chars)) \
-				and self.completions:
-					# If final version of text, or if there
-					# is following text, make best guess,
-					# and retry
-					c = self.completions[0]
-					text = self._complete(chars, c[len(word):])
-					self.completions = []
-					continue
-				self._error = "Expected keyword, got '%s'" % word
-				return
-			self.amount_parsed += len(chars)
-			text = text[len(chars):]
+            if word not in self._ci.keyword:
+                self.completion_prefix = word
+                self.completions = [x for x in word_map if x.startswith(word)]
+                if (final or len(text) > len(chars)) and self.completions:
+                    # If final version of text, or if there
+                    # is following text, make best guess,
+                    # and retry
+                    c = self.completions[0]
+                    text = self._complete(chars, c[len(word):])
+                    self.completions = []
+                    continue
+                self._error = "Expected keyword, got '%s'" % word
+                return
+            self.amount_parsed += len(chars)
+            text = text[len(chars):]
 
-			name = word
-			anno = self._ci.keyword[name]
-			try:
-				if isinstance(anno, Aggregate):
-					value, text = self._parse_aggregate(anno, text, final)
-				else:
-					value, text = self._parse_arg(anno, text, final)
-				self._kwargs[name] = value
-			except ValueError as err:
-				self._error = "Invalid '%s' argument: %s" % (name, err)
-				return
+            name = word
+            anno = self._ci.keyword[name]
+            try:
+                if isinstance(anno, Aggregate):
+                    value, text = self._parse_aggregate(anno, text, final)
+                else:
+                    value, text = self._parse_arg(anno, text, final)
+                self._kwargs[name] = value
+            except ValueError as err:
+                self._error = "Invalid '%s' argument: %s" % (name, err)
+                return
 
 if __name__ == '__main__':
 
-	class Color_arg(Annotation):
-		multiword = True
-		name = 'a color'
+    class ColorArg(Annotation):
+        multiword = True
+        name = 'a color'
 
-		Builtin_Colors = {
-			"light gray": (211, 211, 211),
-			"red": (255, 0, 0)
-		}
+        Builtin_Colors = {
+            "light gray": (211, 211, 211),
+            "red": (255, 0, 0)
+        }
 
-		@staticmethod
-		def parse(text):
-			text = text.casefold()
-			try:
-				color = Color_arg.Builtin_Colors[text]
-			except KeyError:
-				raise ValueError("Invalid color name")
-			return ([x / 255.0 for x in color])
+        @staticmethod
+        def parse(text, session):
+            text = text.casefold()
+            try:
+                color = ColorArg.Builtin_Colors[text]
+            except KeyError:
+                raise ValueError("Invalid color name")
+            return ([x / 255.0 for x in color])
 
-		@staticmethod
-		def completions(text):
-			text = text.casefold()
-			names = [n for n in Color_arg.Builtin_Colors if n.startswith(text)]
-			return names
+        @staticmethod
+        def completions(text, session):
+            text = text.casefold()
+            names = [n for n in ColorArg.Builtin_Colors if n.startswith(text)]
+            return names
 
-	test1_info = CmdDesc(
-		required=[('a', int_arg), ('b', float_arg)],
-		keyword=[('color', Color_arg)]
-	)
+    test1_desc = CmdDesc(
+        required=[('a', IntArg), ('b', FloatArg)],
+        keyword=[('color', ColorArg)]
+    )
 
-	@register('test1', test1_info)
-	def test1(session, a: int, b: float, color=None):
-		print('test1 a: %s %s' % (type(a), a))
-		print('test1 b: %s %s' % (type(b), b))
-		print('test1 color: %s %s' % (type(color), color))
+    @register('test1', test1_desc)
+    def test1(session, a, b, color=None):
+        print('test1 a: %s %s' % (type(a), a))
+        print('test1 b: %s %s' % (type(b), b))
+        print('test1 color: %s %s' % (type(color), color))
 
-	test2_info = CmdDesc(
-		#required=[('a', string_arg)],
-		#optional=[('text', rest_of_line)],
-		keyword=[('color', Color_arg), ('radius', float_arg)]
-	)
+    test2_desc = CmdDesc(
+        #required=[('a', StringArg)],
+        #optional=[('text', RestOfLine)],
+        keyword=[('color', ColorArg), ('radius', FloatArg)]
+    )
 
-	@register('test2', test2_info)
-	def test2(session, a: str='', text='', color=None, radius: float=0):
-		#print('test2 a: %s %s' % (type(a), a))
-		#print('test2 text: %s %s' % (type(text), text))
-		print('test2 color: %s %s' % (type(color), color))
-		print('test2 radius: %s %s' % (type(radius), radius))
+    @register('test2', test2_desc)
+    def test2(session, a='a', text='', color=None, radius=0):
+        #print('test2 a: %s %s' % (type(a), a))
+        #print('test2 text: %s %s' % (type(text), text))
+        print('test2 color: %s %s' % (type(color), color))
+        print('test2 radius: %s %s' % (type(radius), radius))
 
-	register('mw test1', test1_info.copy(), test1)
-	register('mw test2', test2_info.copy(), test2)
+    register('mw test1', test1_desc.copy(), test1)
+    register('mw test2', test2_desc.copy(), test2)
 
-	test3_info = CmdDesc(
-		required=[('name', string_arg)],
-		optional=[('value', float_arg)]
-	)
+    test3_desc = CmdDesc(
+        required=[('name', StringArg)],
+        optional=[('value', FloatArg)]
+    )
 
-	@register('test3', test3_info)
-	def test3(session, name: str, value=None):
-		print('test3 name: %s %s' % (type(name), name))
-		print('test3 value: %s %s' % (type(value), value))
+    @register('test3', test3_desc)
+    def test3(session, name, value=None):
+        print('test3 name: %s %s' % (type(name), name))
+        print('test3 value: %s %s' % (type(value), value))
 
-	test4_info = CmdDesc(
-		optional=[('draw', float_arg)]
-	)
+    test4_desc = CmdDesc(
+        optional=[('draw', FloatArg)]
+    )
 
-	@register('test4', test4_info)
-	def test4(session, draw: bool=None):
-		print('test4 draw: %s %s' % (type(draw), draw))
+    @register('test4', test4_desc)
+    def test4(session, draw=None):
+        print('test4 draw: %s %s' % (type(draw), draw))
 
-	test5_info = CmdDesc(
-		optional=[('ints', floats_arg)]
-	)
+    test5_desc = CmdDesc(
+        optional=[('ints', IntsArg)]
+    )
 
-	@register('test5', test5_info)
-	def test5(session, ints=None):
-		print('test5 ints: %s %s' % (type(ints), ints))
+    @register('test5', test5_desc)
+    def test5(session, ints=None):
+        print('test5 ints: %s %s' % (type(ints), ints))
 
-	test6_info = CmdDesc(
-		required=[('center', float3_arg)]
-	)
+    test6_desc = CmdDesc(
+        required=[('center', Float3Arg)]
+    )
 
-	@register('test6', test6_info)
-	def test6(session, center):
-		print('test6 center:', center)
+    @register('test6', test6_desc)
+    def test6(session, center):
+        print('test6 center:', center)
 
-	test7_info = CmdDesc(
-		optional=[('center', float3_arg)]
-	)
+    test7_desc = CmdDesc(
+        optional=[('center', Float3Arg)]
+    )
 
-	@register('test7', test7_info)
-	def test7(session, center=None):
-		print('test7 center:', center)
+    @register('test7', test7_desc)
+    def test7(session, center=None):
+        print('test7 center:', center)
 
-	test8_info = CmdDesc(
-		optional=[
-			('always', bool_arg),
-			('target', string_arg),
-			('names', List_of(string_arg)),
-		],
-	)
+    test8_desc = CmdDesc(
+        optional=[
+            ('always', BoolArg),
+            ('target', StringArg),
+            ('names', ListOf(StringArg)),
+        ],
+    )
 
-	@register('test8', test8_info)
-	def test8(session, always=True, target="all", names=[None]):
-		print('test8 always, target, names:', always, target, names)
-	test9_info = CmdDesc(
-		optional=(
-			("target", string_arg),
-			("names", List_of(string_arg))
-		),
-		keyword=(("full", bool_arg),)
-	)
+    @register('test8', test8_desc)
+    def test8(session, always=True, target="all", names=[None]):
+        print('test8 always, target, names:', always, target, names)
 
-	@register('test9', test9_info)
-	def test9(session, target="all", names=[None], full=False):
-		print('test9 full, target, names:', full, target, names)
+    test9_desc = CmdDesc(
+        optional=(
+            ("target", StringArg),
+            ("names", ListOf(StringArg))
+        ),
+        keyword=(("full", BoolArg),)
+    )
 
-	tests = [
-		(True, 'test1 color red 12 3.5'),
-		(True, 'test1 12 color red 3.5'),
-		(True, 'test1 12 3.5 color red'),
-		(True, 'test1 12 3.5 color'),
-		(True, 'te'),
-		(True, 'test2 color red radius 3.5 foo'),
-		(True, 'test2 color red radius 3.5'),
-		(True, 'test2 color red radius xyzzy'),
-		(True, 'test2 color red radius'),
-		(True, 'test2 color "light gray"'),
-		(True, 'test2 color light gray'),
-		(True, 'test2 color li gr'),
-		(True, 'test2 co li gr rad 11'),
-		(True, 'test2 c'),
-		(True, 'test3 radius'),
-		(True, 'test3 radius 12.3'),
-		(True, 'test4'),
-		(True, 'test4 draw'),
-		(True, 'test5'),
-		(True, 'test5 ints 5'),
-		(True, 'test5 ints 5 ints 6'),
-		(True, 'test5 ints 5, 6, 7, 8, 9'),
-		(True, 'mw test1 color red 12 3.5'),
-		(True, 'mw test1 color red 12 3.5'),
-		(True, 'mw test2 color red radius 3.5 foo'),
-		(False, 'mw te'),
-		(True, 'mw '),
-		(False, 'mw'),
-		(True, 'te 12 3.5 co red'),
-		(True, 'm te 12 3.5 col red'),
-		(True, 'test6 3.4, 5.6, 7.8'),
-		(True, 'test6 3.4 abc 7.8'),
-		(True, 'test7 center 3.4, 5.6, 7.8'),
-		(True, 'test7 center 3.4, 5.6'),
-		(True, 'test8 always false'),
-		(True, 'test8 always true target tool'),
-		(True, 'test8 always true tool'),
-		(True, 'test8 always tool'),
-		(True, 'test8 TRUE tool xyzzy, plugh '),
-		(True, 'test9 full true'),
-		(True, 'test9 names a,b,c d'),
-	]
-	cmd = Command()
-	for t in tests:
-		final, text = t
-		try:
-			print("\nTEST: '%s'" % text)
-			cmd.parse_text(text, final=final)
-			print(cmd.current_text)
-			#print(cmd.current_text, cmd._kwargs)
-			cmd.execute(None)
-			print('SUCCESS')
-		except UserError as err:
-			rest = cmd.current_text[cmd.amount_parsed:]
-			spaces = len(rest) - len(rest.lstrip())
-			error_at = cmd.amount_parsed + spaces
-			#parsed = cmd.current_text[:cmd.amount_parsed]
-			print("%s^" % ('.' * error_at))
-			print('FAIL:', err)
-			p = cmd.completions
-			if p:
-				print('completions:', p)
+    @register('test9', test9_desc)
+    def test9(session, target="all", names=[None], full=False):
+        print('test9 full, target, names:', full, target, names)
+
+    test10_desc = CmdDesc(
+        required=(
+            ("colors", ListOf(ColorArg)),
+            ("offsets", ListOf(FloatArg)),
+        ),
+        postconditions=(SameSize('colors', 'offsets'),)
+    )
+
+    @register('test10', test10_desc)
+    def test10(session, colors=[], offsets=[]):
+        print('test10 colors, offsets:', colors, offsets)
+
+    tests = [   # (fail, final, command)
+        (True, True, 'test1 color red 12 3.5'),
+        (True, True, 'test1 12 color red 3.5'),
+        (False, True, 'test1 12 3.5 color red'),
+        (True, True, 'test1 12 3.5 color'),
+        (True, True, 'te'),
+        (True, True, 'test2 color red radius 3.5 foo'),
+        (False, True, 'test2 color red radius 3.5'),
+        (True, True, 'test2 color red radius xyzzy'),
+        (True, True, 'test2 color red radius'),
+        (False, True, 'test2 color "light gray"'),
+        (False, True, 'test2 color light gray'),
+        (False, True, 'test2 color li gr'),
+        (False, True, 'test2 co li gr rad 11'),
+        (True, True, 'test2 c'),
+        (False, True, 'test3 radius'),
+        (False, True, 'test3 radius 12.3'),
+        (False, True, 'test4'),
+        (True, True, 'test4 draw'),
+        (False, True, 'test4 draw 3'),
+        (False, True, 'test5'),
+        (False, True, 'test5 ints 5'),
+        (False, True, 'test5 ints 5 ints 6'),
+        (False, True, 'test5 ints 5, 6, 7, 8, 9'),
+        (True, True, 'mw test1 color red 12 3.5'),
+        (True, True, 'mw test1 color red 12 3.5'),
+        (True, True, 'mw test2 color red radius 3.5 foo'),
+        (True, False, 'mw te'),
+        (True, True, 'mw '),
+        (True, False, 'mw'),
+        (False, True, 'te 12 3.5 co red'),
+        (False, True, 'm te 12 3.5 col red'),
+        (False, True, 'test6 3.4, 5.6, 7.8'),
+        (True, True, 'test6 3.4 abc 7.8'),
+        (False, True, 'test7 center 3.4, 5.6, 7.8'),
+        (True, True, 'test7 center 3.4, 5.6'),
+        (False, True, 'test8 always false'),
+        (False, True, 'test8 always true target tool'),
+        (True, True, 'test8 always true tool'),
+        (True, True, 'test8 always tool'),
+        (False, True, 'test8 TRUE tool xyzzy, plugh '),
+        (False, True, 'test9 full true'),
+        (True, True, 'test9 names a,b,c d'),
+        (True, True, 'test10'),
+        (True, False, 'test10 red'),
+        (False, True, 'test10 red 0.5'),
+        (True, False, 'test10 red, light gray'),
+        (False, True, 'test10 red, light gray 0.33, 0.67'),
+        (False, False, 'test10 li gr, red'),
+    ]
+    # TODO: delay registration tests
+    cmd = Command(None)
+    for t in tests:
+        fail, final, text = t
+        try:
+            print("\nTEST: '%s'" % text)
+            cmd.parse_text(text, final=final)
+            print(cmd.current_text)
+            #print(cmd.current_text, cmd._kwargs)
+            cmd.execute()
+            if fail:
+                # expected failure and it didn't
+                print('FAIL')
+            else:
+                print('SUCCESS')
+        except UserError as err:
+            rest = cmd.current_text[cmd.amount_parsed:]
+            spaces = len(rest) - len(rest.lstrip())
+            error_at = cmd.amount_parsed + spaces
+            #parsed = cmd.current_text[:cmd.amount_parsed]
+            print("%s^" % ('.' * error_at))
+            if fail:
+                print('SUCCESS:', err)
+            else:
+                print('FAIL:', err)
+            p = cmd.completions
+            if p:
+                print('completions:', p)

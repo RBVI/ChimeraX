@@ -18,14 +18,26 @@
 #
 def measure_command(cmd_name, args, session):
 
-    from ..commands.parse import specifier_arg, bool_arg, color_256_arg, perform_operation
+    from ..commands.parse import specifier_arg, bool_arg, color_256_arg, model_id_int_arg
+    from ..commands.parse import surfaces_arg, float_arg, volume_arg, no_arg, perform_operation
     ops = {
         'inertia': (inertia,
                 (('objects', specifier_arg),),
                 (),
                 (('showEllipsoid', bool_arg),
                  ('color', color_256_arg),
-                 ('perChain', bool_arg),)),
+                 ('perChain', bool_arg),
+                 ('modelId', model_id_int_arg),
+                 ('replace', bool_arg),)),
+        'motion': (motion_lines,
+                   (('surfaces', surfaces_arg),),
+                   (),
+                   (('length', float_arg),
+                    ('color', color_256_arg),
+                    ('toward', volume_arg),
+                    ('scale', float_arg),
+                    ('modelId', model_id_int_arg),
+                    ('replace', bool_arg),)),
     }
     perform_operation(cmd_name, args, ops, session)
 
@@ -476,7 +488,8 @@ def parse_object_specifier(spec, name = 'object'):
 
 # -----------------------------------------------------------------------------
 #
-def inertia(objects, showEllipsoid = True, color = None, perChain = False, session = None):
+def inertia(objects, showEllipsoid = True, color = None, perChain = False,
+            modelId = None, replace = True, session = None):
 
     from . import inertia
 
@@ -485,7 +498,7 @@ def inertia(objects, showEllipsoid = True, color = None, perChain = False, sessi
         mols = atoms.molecules()
         mname = molecules_name(mols)
         sname = ('ellipsoids ' if perChain else 'ellipsoid ') + mname
-        surf = surface_model(sname, mols[0].position, session) if showEllipsoid else None
+        surf = surface_model(sname, mols[0].position, modelId, replace, session) if showEllipsoid else None
         if perChain:
             catoms = atoms.separate_chains()
             for cat in catoms:
@@ -500,26 +513,47 @@ def inertia(objects, showEllipsoid = True, color = None, perChain = False, sessi
     surfs = objects.surfaces()
     if surfs:
         sname = surfs[0].name if len(surfs) == 1 else ('%d surfaces' % len(surfs))
-        surf = surface_model(sname, surfs[0].position, session) if showEllipsoid else None
+        surf = surface_model(sname, surfs[0].position, modelId, replace, session) if showEllipsoid else None
         info = inertia.surface_inertia_ellipsoid(surfs, color, surf)
         session.show_info('Inertia axes for %s\n%s' % (sname, info))
 
     maps = objects.maps()
     if maps:
-        mname = maps[0].name if len(maps) == 1 else ('%d maps' % len(maps))
-        surf = surface_model(mname, maps[0].position, session) if showEllipsoid else None
+        mname = 'ellipsoid ' + (maps[0].name if len(maps) == 1 else ('%d maps' % len(maps)))
+        surf = surface_model(mname, maps[0].position, modelId, replace, session) if showEllipsoid else None
         info = inertia.density_map_inertia_ellipsoid(maps, color, surf)
         session.show_info('Inertia axes for %s\n%s' % (mname, info))
 
 # -----------------------------------------------------------------------------
 #
-def surface_model(name, place, session):
+def surface_model(name, place, model_id, replace, session):
+
+    if not model_id is None:
+        s = session.find_model_by_id(model_id)
+        if s:
+            if replace:
+                session.close_models([s])
+            else:
+                return s
 
     from ..models import Model
     s = Model(name)
+    s.id = model_id
     s.position = place
     session.add_model(s)
     return s
+
+# -----------------------------------------------------------------------------
+#
+def motion_lines(surfaces, length = 1, color = (255,255,255,255), toward = None,
+                 scale = 1, modelId = None, replace = True, session = None):
+    from . import cactus
+    for s in surfaces:
+        surf = surface_model('motion ' + s.name, s.position, modelId, replace, session)
+        if toward is None:
+            cactus.show_prickles(s, scale*length, color, surf)     # Just show surface normals
+        else:
+            cactus.show_motion_lines(s, toward, scale, color, surf)
 
 # -----------------------------------------------------------------------------
 #

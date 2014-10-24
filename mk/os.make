@@ -58,7 +58,7 @@ ifeq ($(OS),Darwin)
 	LIB_LINK = ar crs $(LIBRARY) $(OBJS)
 	RANLIB = ranlib
 	SHLIB_EXT = dylib
-	SHLIB_LINK = $(LOADER) $(LDFLAGS) -dynamiclib -headerpad_max_install_names -install_name @executable_path/../lib/$(SHLIB) -o $(SHLIB) $(OBJS) $(LIBS)
+	SHLIB_LINK = $(LOADER) $(LDFLAGS) -dynamiclib -headerpad_max_install_names -install_name @executable_path/../../../../../../../../../lib/$(SHLIB) -o $(SHLIB) $(OBJS) $(LIBS)
 	PROG_EXT =
 	PROG_LINK = $(LOADER) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
 

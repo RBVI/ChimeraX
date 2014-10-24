@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 Data Interface
 ==============
 
@@ -24,11 +26,17 @@ Modules
 .. toctree::
     :maxdepth: 2
 
-    core_io.rst
+    core/session.rst
+
+    core/serialize.rst
+
+    core/io.rst
 
     structaccess.rst
 
     connectivity.rst
+
+    core/cpp_appdirs/cpp_appdirs.rst
 
 .. seealso::
 

@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 Front-/Back-end Split for HTML5 3D Graphics
 ===========================================
 

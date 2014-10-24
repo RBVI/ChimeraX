@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 Low-Level Graphics Library
 ==========================
 
@@ -40,18 +42,18 @@ A reasonable scenario would be to:
     #. Instantiate the shader programs with :cpp:func:`create_program`
 
     #. Instantiate the vertex coordinate (and vertex index) buffers
-           with :cpp:func:`create_buffer`
+       with :cpp:func:`create_buffer`
 
     #. Instantiate other vertex attributes, such as color,
-           as buffers with :cpp:func:`create_buffer`
-           or singletons with :cpp:func:`create_singleton`
+       as buffers with :cpp:func:`create_buffer`
+       or singletons with :cpp:func:`create_singleton`
 
     #. For each object create a std::vector describing its attributes
-           with :cpp:class:`AttributeInfo`
-           and instantiate it with :cpp:func:`create_object`
+       with :cpp:class:`AttributeInfo`
+       and instantiate it with :cpp:func:`create_object`
 
     #. Set shader program uniforms with :cpp:func:`set_uniform`
-           and :cpp:func:`set_uniform_matrix`
+       and :cpp:func:`set_uniform_matrix`
 
     #. :cpp:func:`render`
 
@@ -322,9 +324,9 @@ Objects
     depending on the shader program.
 
 .. cpp:function:: void create_object(Id obj_id, Id program_id, Id matrix_id, \
-	const AttributeInfos\& ais, PrimitiveType pt, \
-	uint32_t first, uint32_t count, \
-	Id index_data_id = 0, DataType index_data_type = Byte)
+        const AttributeInfos\& ais, PrimitiveType pt, \
+        uint32_t first, uint32_t count, \
+        Id index_data_id = 0, DataType index_data_type = Byte)
 
     :param obj_id: provided object identifier
     :param program_id: provided program identifier
@@ -383,7 +385,7 @@ LOD primitives
 Level-of-detail primitives. *TODO: implement LOD*
 
 .. cpp:function:: void add_sphere(Id obj_id, float radius, \
-	Id program_id, Id matrix_id, const AttributeInfos& ais)
+        Id program_id, Id matrix_id, const AttributeInfos& ais)
 
     Add sphere.
 
@@ -397,7 +399,7 @@ Level-of-detail primitives. *TODO: implement LOD*
     See :cpp:func:`set_attribute_alias` to change them.
 
 .. cpp:function:: void add_cylinder(Id obj_id, float radius, float length, \
-	Id program_id, Id matrix_id, const AttributeInfos& ais)
+        Id program_id, Id matrix_id, const AttributeInfos& ais)
 
     Add cylinder.
 
