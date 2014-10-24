@@ -10,6 +10,7 @@ extern "C" {
 static PyObject*
 init_paths(PyObject* self, PyObject* args)
 {
+    const char* path_sep;
     const char* user_data_dir;
     const char* user_config_dir;
     const char* user_cache_dir;
@@ -17,12 +18,14 @@ init_paths(PyObject* self, PyObject* args)
     const char* site_config_dir;
     const char* user_log_dir;
 
-    if (!PyArg_ParseTuple(args, "ssssss", &user_data_dir, &user_config_dir,
-            &user_cache_dir, &site_data_dir, &site_config_dir, &user_log_dir))
+    if (!PyArg_ParseTuple(args, "sssssss", &path_sep, &user_data_dir,
+                &user_config_dir, &user_cache_dir, &site_data_dir,
+                &site_config_dir, &user_log_dir))
         return NULL;
     try {
-        cpp_appdirs::AppDirs::init_app_dirs(user_data_dir, user_config_dir,
-            user_cache_dir, site_data_dir, site_config_dir, user_log_dir);
+        cpp_appdirs::AppDirs::init_app_dirs(path_sep, user_data_dir,
+                user_config_dir, user_cache_dir, site_data_dir,
+                site_config_dir, user_log_dir);
     } catch (std::logic_error &e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
         return NULL;
@@ -32,8 +35,9 @@ init_paths(PyObject* self, PyObject* args)
 
 
 static const char* init_paths_doc =
-"Initialize C++ app paths.  The six arguments are strings that correspond"
-" to the following appdir module variables (in order):\n\n"
+"Initialize C++ app paths.  The seven arguments are strings.  The first string"
+" is the character used to separate path name components and the other six"
+" correspond to the following appdir module variables (in order):\n\n"
 
 "user_data_dir\n"
 "user_config_dir\n"

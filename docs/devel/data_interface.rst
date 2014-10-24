@@ -34,6 +34,8 @@ Modules
 
     connectivity.rst
 
+    core/cpp_appdirs/cpp_appdirs.rst
+
 .. seealso::
 
     :doc:`Readcif <readcif>`
