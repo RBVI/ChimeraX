@@ -5,6 +5,21 @@
 namespace cpp_appdirs {
 
 AppDirs*  AppDirs::_app_dirs = nullptr;
+
+std::string
+AppDirs::form_path(std::initializer_list<std::string> path_components) const
+{
+	std::string path;
+	for (auto comp: path_components) {
+		if (path.empty()) {
+			path = comp;
+		} else {
+			path += _path_sep;
+			path += comp;
+		}
+	}
+	return path;
+}
 	
 void
 AppDirs::init_app_dirs(std::string path_sep,

@@ -2,6 +2,7 @@
 #ifndef cpp_appdirs_AppDirs
 #define cpp_appdirs_AppDirs
 
+#include <initializer_list>
 #include <stdexcept>
 #include <string>
 
@@ -22,6 +23,8 @@ private:
     const std::string  _path_sep;
 
 public:
+    std::string  form_path(
+            std::initializer_list<std::string> path_components) const;
     static const AppDirs&  get() {
         if (_app_dirs == nullptr) throw std::logic_error("C++ appdirs not"
             " initialized");
