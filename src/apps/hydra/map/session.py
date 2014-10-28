@@ -333,8 +333,9 @@ def set_map_state(s, volume, notify = True):
 
   v.rendering_options = rendering_options_from_state(s['rendering_options'])
 
-  if 'displayed' in s:
-    s['display'] = s['displayed']     # Fix old session files
+  if not 'display' in s:
+     # Fix old session files
+    s['display'] = s['displayed'] if 'displayed' in s else True
 
   for attr in basic_map_attributes:
     if attr in s:
