@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 Data Interface
 ==============
 
@@ -33,6 +35,8 @@ Modules
     structaccess.rst
 
     connectivity.rst
+
+    core/cpp_appdirs/cpp_appdirs.rst
 
 .. seealso::
 

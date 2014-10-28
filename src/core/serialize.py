@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 serialize: support serialization of "simple" types
 ==================================================
