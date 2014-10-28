@@ -202,7 +202,7 @@ class File_History:
 
     from os.path import basename, splitext, join
     lines = ['<html>', '<head>', '<style>',
-             'body { background-color: black; }',
+             'body { background-color: black; color: white; }',
              'a { text-decoration: none; }',      # No underlining of links
              'a:link { color: #FFFFFF; }',        # Link text color white.
              'table { float:left; }',             # Multiple image/caption tables per row.

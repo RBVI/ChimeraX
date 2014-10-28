@@ -86,6 +86,9 @@ class MainWindow(wx.Frame):
             if self._anchor_cb:
                 self._anchor_cb(fn)
 
+    def register_html_image_identifier(self, uri, qimage):
+        pass # used by unimplemented Hydra model panel
+
     def show(self):
         self.Show()
 
