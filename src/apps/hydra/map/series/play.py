@@ -15,7 +15,7 @@ class Play_Series:
     self.session = session
     self.current_time = None
     self.time_range = r = (0, len(series[0].maps)-1, 1) if range is None else range
-    self.start_time = r[0] if play_direction == 'forward' else r[1]
+    self.start_time = (r[0] if play_direction == 'forward' else r[1]) if start_time is None else start_time
     self.time_step_cb = time_step_cb
 
     self.play_handler = None
