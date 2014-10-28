@@ -25,6 +25,8 @@ class Graphics_Window(View, QtGui.QWindow):
         self.timer = None			# Redraw timer
         self.redraw_interval = 10               # milliseconds
         # TODO: Redraw interval is set fast enough for 75 Hz oculus rift.
+        self.minimum_event_processing_time = 2  # milliseconds per frame
+        self.last_redraw_finish_time = None
 
         from . import mousemodes
         self.mouse_modes = mousemodes.Mouse_Modes(self)
@@ -73,13 +75,14 @@ class Graphics_Window(View, QtGui.QWindow):
         if self.isExposed():
             self.draw_graphics()
 
+    # QWindow method
     def keyPressEvent(self, event):
 
         # TODO: This window should never get key events since we set widget.setFocusPolicy(NoFocus)
         # but it gets them anyways on Mac in Qt 5.2 if the graphics window is clicked.
         # So we pass them back to the main window.
         self.session.main_window.event(event)
-
+        
     def create_opengl_context(self, stereo = False):
 
         f = self.pixel_format(stereo)
@@ -140,6 +143,15 @@ class Graphics_Window(View, QtGui.QWindow):
             t.start(self.redraw_interval)
 
     def redraw_timer_callback(self):
+        t = QtCore.QTime.currentTime()
+        lt = self.last_redraw_finish_time
+        if lt is None or lt.msecsTo(t) >= self.minimum_event_processing_time:
+            # Redraw only if enough time has elapsed since last frame to process some events.
+            # This keeps the user interface responsive even during slow rendering.
+            self.redraw()
+
+    def update_graphics(self):
         if self.isExposed():
             if not self.redraw():
                 self.mouse_modes.mouse_pause_tracking()
+        self.last_redraw_finish_time = QtCore.QTime.currentTime()
