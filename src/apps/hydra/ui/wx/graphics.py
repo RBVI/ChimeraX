@@ -14,7 +14,8 @@ class GraphicsWindow(View, wx.Panel):
 
     def __init__(self, session, parent=None):
         self.session = session
-        wx.Panel.__init__(self, parent)
+        wx.Panel.__init__(self, parent,
+            style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
         self.opengl_context = None
         self.opengl_canvas = OpenGLCanvas(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -32,16 +33,6 @@ class GraphicsWindow(View, wx.Panel):
 
         from . import mousemodes
         self.mouse_modes = mousemodes.Mouse_Modes(self)
-
-        self.Bind(wx.EVT_CHAR, self.OnChar)
-
-    def OnChar(self, event):
-        from sys import stderr
-        print("key", file=stderr)
-        log = self.session.log
-        log.log_message("key event: {}".format(str(event)))
-        log.show()
-        event.Skip()
 
     def create_opengl_context(self):
         from wx.glcanvas import GLContext
@@ -100,12 +91,22 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             attribs = test_attribs
         else:
             print("Stereo mode is not supported by OpenGL driver")
-        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
+        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
+            style=wx.WANTS_CHARS)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_CHAR, self.OnChar)
+
+    def OnChar(self, event):
+        cmd_line = self.graphics_window.session.main_window._command_line
+        if event.KeyCode == 13:
+            cmd_line.OnEnter(event)
+        else:
+            cmd_line.text.EmulateKeyPress(event)
+        event.Skip()
 
     def OnPaint(self, evt):
         #dc = wx.PaintDC(self)
