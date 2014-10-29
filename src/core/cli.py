@@ -13,6 +13,9 @@ a command line, and optionally execute the command.
 Incomplete command lines are supported,
 so possible completions can be suggested.
 
+In addition to registering command functions,
+there is a separate mechanism to support textual :ref:`Command Aliases`.
+
 Text Commands
 -------------
 
@@ -165,12 +168,30 @@ Here is a simple example::
         print(err, file=sys.stderr)
 
 
+Command Aliases
+---------------
+
+    Normally, command aliases are made with the alias command, but
+    they can also be explicitly register with :py:func:`alias`and
+    removed with :py:func:`unalias`.
+
+    An alias definition uses **$n** to refer to passed in arguments.
+    $1 may appear more than once.  $$ is $.
+
+    To register a multiword alias, quote the command name.
+
+
 .. todo::
 
     Issues: autocompletion, minimum 2 letters? extensions?
     help URL? affect graphics flag?
 
 """
+
+import abc
+import re
+import sys
+from collections import OrderedDict
 
 
 class UserError(ValueError):
@@ -181,10 +202,6 @@ class UserError(ValueError):
     This is in contrast to a error is a bug in the program.
     """
     pass
-
-import sys
-from collections import OrderedDict
-import abc
 
 
 class Annotation(metaclass=abc.ABCMeta):
@@ -679,13 +696,15 @@ class CmdDesc:
         if self.function:
             raise ValueError("Can not reuse CmdDesc instances")
         import inspect
-        empty = inspect.Parameter.empty
+        Empty = inspect.Parameter.empty
+        Positional = inspect.Parameter.VAR_POSITIONAL
         signature = inspect.signature(function)
         params = list(signature.parameters.values())
         if len(params) < 1 or params[0].name != "session":
             raise ValueError("Missing initial 'session' argument")
         for p in params[1:]:
-            if p.default != empty or p.name in self.required:
+            if (p.default != Empty or p.name in self.required
+                    or p.kind == Positional):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
                              "required or have a default value" % p.name)
@@ -736,11 +755,22 @@ def delay_registration(name, proxy_function, cmd_desc=None):
     should return the actual function used to implement the command.
     Otherwise, the proxy function should explicitly register (sub)commands
     and return nothing.
+
+    Example::
+
+        from chimera.core import cli
+
+        def lazy_reg():
+            import module
+            cli.register('cmd subcmd1', module.subcmd1_desc, module.subcmd1)
+            cli.register('cmd subcmd2', module.subcmd2_desc, module.subcmd2)
+
+        cli.delay_registration('cmd', lazy_reg)
     """
     register(name, None, _Defer(proxy_function, cmd_desc))
 
 
-def register(name, cmd_desc, function=None):
+def register(name, cmd_desc=(), function=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -800,6 +830,25 @@ def register(name, cmd_desc, function=None):
     return function     # needed when used as a decorator
 
 
+def _unregister(name):
+    # used internally by unalias
+    # none of the exceptions below should happen
+    words = name.split()
+    cmd_map = _commands
+    for word in words[:-1]:
+        what = cmd_map.get(word, None)
+        if isinstance(what, dict):
+            cmd_map = what
+            continue
+        raise RuntimeError("unregistering unknown multiword command")
+    word = words[-1]
+    what = cmd_map.get(word, None)
+    if what is None:
+        raise RuntimeError("unregistering unknown command")
+    if isinstance(what, dict):
+        raise RuntimeError("unregistering beginning of multiword command")
+    del cmd_map[word]
+
 def _lazy_introspect(cmd_map, word):
     deferred = cmd_map[word]
     function = deferred.call()
@@ -844,7 +893,6 @@ def add_keyword_arguments(name, kw_info):
     ci.keyword.update(kw_info)
     # TODO: save appropriate kw_info, if reregistered?
 
-import re
 normal_token = re.compile(r"[^,;\s]*")
 single = re.compile(r"'([^']|\')*'")
 double = re.compile(r'"([^"]|\")*"')
@@ -1088,8 +1136,6 @@ class Command:
         """
         self._reset()   # don't be smart, just start over
 
-        # TODO: alias expansion
-
         # find command name
         self.current_text = text
         text = text[self.amount_parsed:]
@@ -1128,6 +1174,8 @@ class Command:
             self.command_name = self.current_text[:self.amount_parsed]
             break
         word_map = self._ci.keyword
+
+        # TODO: option alias expansion
 
         # process positional arguments
         positional = self._ci.required.copy()
@@ -1196,6 +1244,91 @@ class Command:
             except ValueError as err:
                 self._error = "Invalid '%s' argument: %s" % (name, err)
                 return
+
+_cmd_aliases = OrderedDict()
+
+
+class _Alias:
+
+    def __init__(self, text):
+        self.original_text = text
+        self.num_args = 0
+        self.parts = []  # list of strings and integer argument numbers
+        self.cmd = None
+
+        not_dollar = re.compile(r"[^$]*")
+        number = re.compile(r"\d*")
+
+        start = 0
+        while True:
+            m = not_dollar.match(text, start)
+            end = m.end()
+            if end > start:
+                self.parts.append(text[start:end])
+                start = end
+            if start == len(text):
+                break
+            start += 1  # skip over $
+            if start < len(text) and text[start] == '$':
+                parts.append('$')   # $$
+                start += 1
+                continue
+            m = number.match(text, start)
+            end = m.end()
+            if end == start:
+                # not followed by a number
+                parts.append('$')
+                continue
+            i = int(text[start:end])
+            if i > self.num_args:
+                self.num_args = i
+            parts.append(i - 1)     # convert to a 0-based index
+            start = end
+
+    def __call__(self, session, *args):
+        assert(len(args) >= self.num_args)
+        # substitute args for positional arguments
+        text = ''
+        for part in self.parts:
+            if isinstance(part, int):
+                text += args[part]
+            else:
+                text += part
+        self.cmd = Command(session)
+        self.cmd.parse_text(text, final=True)
+        self.cmd.execute()
+
+
+@register('alias', CmdDesc(optional=[('name', StringArg),
+                                     ('text', RestOfLine)]))
+def alias(session, name='', text=''):
+    if not name:
+        # list aliases
+        names = ', '.join(list(_cmd_aliases.keys()))
+        if names:
+            return 'Aliases: %s' % names
+        return 'No aliases.'
+    if not text:
+        if name not in _cmd_aliases:
+            return 'No alias named "%s" found.' % name
+        return 'Aliased "%s" to "%s"' % (name, _cmd_aliases[name].original_text)
+    # extract command name
+    cmd = _Alias(text)
+    desc = CmdDesc(required=[(str(i), StringArg) for i in range(cmd.num_args)])
+    try:
+        register(name, desc, cmd)
+    except:
+        raise
+
+
+@register('~alias', CmdDesc(required=[('name', StringArg)]))
+def unalias(session, name):
+    # remove command alias
+    try:
+        del _cmd_aliases[name]
+    except KeyError:
+        raise UserError('No alias named "%s" exists' % name)
+    _unregister(name)
 
 if __name__ == '__main__':
 
@@ -1336,6 +1469,28 @@ if __name__ == '__main__':
     @register('test10', test10_desc)
     def test10(session, colors=[], offsets=[]):
         print('test10 colors, offsets:', colors, offsets)
+
+    import sys
+    if len(sys.argv) > 1:
+        @register('exit')
+        def exit(session):
+            raise SystemExit(0)
+        prompt = 'cmd> '
+        cmd = Command(None)
+        while True:
+            text = input(prompt)
+            try:
+                cmd.parse_text(text, final=True)
+                print(cmd.current_text)
+                result = cmd.execute()
+                if result is not None:
+                    print(result)
+            except UserError as err:
+                rest = cmd.current_text[cmd.amount_parsed:]
+                spaces = len(rest) - len(rest.lstrip())
+                error_at = cmd.amount_parsed + spaces
+                print("%s^" % ('.' * error_at))
+                print(err)
 
     tests = [   # (fail, final, command)
         (True, True, 'test1 color red 12 3.5'),
