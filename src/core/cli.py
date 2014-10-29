@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 cli: application command line support
 =====================================
@@ -328,11 +329,11 @@ class BoolArg(Annotation):
     @staticmethod
     def completions(text, session):
         result = []
-        text = text.casefold()
-        if "false".startswith(text):
-            result.append("false")
-        if "true".startswith(text):
-            result.append("true")
+        folded = text.casefold()
+        if "false".startswith(folded):
+            result.append(text + "false"[len(text):])
+        if "true".startswith(folded):
+            result.append(text + "true"[len(text):])
         return result
 
 
@@ -349,13 +350,13 @@ class IntArg(Annotation):
 
     @staticmethod
     def completions(text, session):
-        int_chars = "-+0123456789"
+        chars = "-+0123456789"
         if not text:
-            return [x for x in int_chars]
-        if text[-1] in int_chars:
-            tmp = [x for x in int_chars[2:]]
-            if text[-1] in int_chars[2:]:
-                return [''] + tmp
+            return [x for x in chars]
+        if text[-1] in chars:
+            tmp = [text + x for x in chars[2:]]
+            if text[-1] in chars[2:]:
+                return [text] + tmp
             return tmp
         return []
 
@@ -373,9 +374,9 @@ class FloatArg(Annotation):
 
     @staticmethod
     def completions(text, session):
-        int_chars = "-+0123456789"
+        chars = "-+0123456789."
         if not text:
-            return [x for x in int_chars]
+            return [x for x in chars]
         # TODO: be more elaborate
         return []
 
@@ -397,7 +398,7 @@ class StringArg(Annotation):
 class Bounded(Annotation):
     """Support bounded numerical values
 
-    Bounded(annotation, min=None, max=None, name=None) -> a Bounded object
+    Bounded(annotation, min=None, max=None, name=None) -> an Annotation
 
     :param annotation: numerical annotation
     :param min: optional lower bound
@@ -429,13 +430,17 @@ class Bounded(Annotation):
         return value
 
     def completions(self, text, session):
-        return self.anno.completions(text, session)
+        #if not text:
+            return self.anno.completions(text, session)
+        # better to return that there are no completions,
+        # rather than return completions that are out of bounds
+        #return []
 
 
 class EnumOf(Annotation):
     """Support enumerated types
 
-    Enum(values, ids=None, name=None) -> an Enum object
+    EnumOf(values, ids=None, name=None) -> an Annotation
 
     :param values: sequence of values
     :param ids: optional sequence of identifiers
@@ -465,21 +470,22 @@ class EnumOf(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        text = text.casefold()
+        folded = text.casefold()
         for i, x in enumerate(self.ids):
-            if x.casefold() == text:
+            if x.casefold() == folded:
                 return self.values[i]
         raise ValueError("Invalid %s" % self.name)
 
     def completions(self, text, session):
-        text = text.casefold()
-        return [x for x in self.ids if x.casefold().startswith(text)]
+        folded = text.casefold()
+        return [text + x[len(text):] for x in self.ids
+                if x.casefold().startswith(folded)]
 
 
 class Or(Annotation):
     """Support two or more alternative annotations
 
-    Or(annotation, annotation [, annotation]*, name=None) -> annotation
+    Or(annotation, annotation [, annotation]*, name=None) -> an Annotation
 
     :param name: optional explicit name for annotation
     """
@@ -551,6 +557,49 @@ class Postcondition(metaclass=abc.ABCMeta):
         """Appropriate error message if check fails."""
         raise NotImplemented
 
+
+class Limited(Postcondition):
+    """Bounded numerical values postcondition
+
+    Limited(name, min=None, max=None) -> Postcondition
+
+    :param name: name of argument to check
+    :param min: optional inclusive lower bound
+    :param max: optional inclusive upper bound
+
+    If possible, use the Bounded annotation because the location of
+    the error is the beginning of the argument, not the end of the line.
+    """
+
+    __slots__ = ['name', 'min', 'max']
+
+    def __init__(self, name, min=None, max=None):
+        self.name = name
+        self.min = min
+        self.max = max
+
+    def check(self, kw_args):
+        arg = kw_args.get(self.name, None)
+        if arg is None:
+            # argument not present, must be optional
+            return True
+        if self.min and self.max:
+            return self.min <= arg <= self.max
+        elif self.min:
+            return arg >= self.min
+        elif self.max:
+            return arg <= self.max
+        else:
+            return True
+
+    def error_message(self):
+        message = "Invalid '%s' argument: " % self.name
+        if self.min and self.max:
+            return message + "Must be greater than or equal to %s and less than or equal to %s" % (self.min, self.max)
+        elif self.min:
+            return message + "Must be greater than or equal to %s" % self.min
+        elif self.max:
+            return message + "Must be less than or equal to %s" % self.max
 
 class SameSize(Postcondition):
     """Postcondition check for same size arguments
@@ -905,15 +954,7 @@ class Command:
                 self._error = "incomplete quoted text"
             # convert \N{unicode name} to unicode, etc.
             token = token.encode('utf-8').decode('unicode-escape')
-        elif text[start] in '-+^,;#:@./|&?':
-            return text[start], text[0:start + 1]
-        elif text[start] in '!><=':
-            # could be a two letter token
-            if len(text) == start + 1:
-                return text[start], text[0:start + 1]
-            if (text[start:start + 1] == '!~' or
-                    text[start] in '!<>=' and text[start + 1] == '='):
-                return text[start:start + 1], text[0: start + 2]
+        elif text[start] in ',;':
             return text[start], text[0:start + 1]
         else:
             m = normal_token.match(text, start)
@@ -936,6 +977,7 @@ class Command:
 
     def _parse_arg(self, annotation, text, final):
         if annotation is RestOfLine:
+            # TODO: stop at ;
             return text, ""
 
         session = self._session  # resolve back reference
@@ -952,12 +994,13 @@ class Command:
                 raise RuntimeError("Invalid completions given by %s"
                                    % annotation.name)
             word, chars = self._next_token(text)
+            #print('arg _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
             if not word:
                 raise ValueError("Expected %s" % annotation.name)
             all_words.append(word)
             word = ' '.join(all_words)
             all_chars.append(chars)
-            chars = ''.join(all_chars)
+            #chars = ''.join(all_chars) need short version in exception
             try:
                 value = annotation.parse(word, session)
                 break
@@ -974,6 +1017,7 @@ class Command:
                             text = text[len(chars):]
                             continue
                         c = c.split(None, 1)[0]
+                    chars = ''.join(all_chars)
                     text = self._complete(chars, c)
                     del all_words[-1]
                     del all_chars[-1]
@@ -989,6 +1033,7 @@ class Command:
                 self.completion_prefix = word
                 self.completions = completions
                 raise
+        chars = ''.join(all_chars)
         self.amount_parsed += len(chars)
         text = self.current_text[self.amount_parsed:]
         return value, text
@@ -1005,6 +1050,7 @@ class Command:
             values = x
         while 1:
             word, chars = self._next_token(text)
+            #print('agg _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
             if word != ',':
                 if len(values) < anno.min_size:
                     if anno.min_size == anno.max_size:
@@ -1050,6 +1096,7 @@ class Command:
         word_map = _commands
         while 1:
             word, chars = self._next_token(text)
+            #print('cmd _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1116,6 +1163,7 @@ class Command:
         # process keyword arguments
         while 1:
             word, chars = self._next_token(text)
+            #print('key _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
             if not word:
                 # count extra whitespace as parsed
                 self.amount_parsed += len(chars)
@@ -1213,12 +1261,21 @@ if __name__ == '__main__':
         print('test3 value: %s %s' % (type(value), value))
 
     test4_desc = CmdDesc(
-        optional=[('draw', FloatArg)]
+        optional=[('draw', PositiveIntArg)]
     )
 
     @register('test4', test4_desc)
     def test4(session, draw=None):
         print('test4 draw: %s %s' % (type(draw), draw))
+
+    test4b_desc = CmdDesc(
+        optional=[('draw', IntArg)],
+        postconditions=[Limited('draw', min=1)]
+    )
+
+    @register('test4b', test4b_desc)
+    def test4b(session, draw=None):
+        print('test4b draw: %s %s' % (type(draw), draw))
 
     test5_desc = CmdDesc(
         optional=[('ints', IntsArg)]
@@ -1300,10 +1357,12 @@ if __name__ == '__main__':
         (False, True, 'test4'),
         (True, True, 'test4 draw'),
         (False, True, 'test4 draw 3'),
+        (True, False, 'test4 draw -34'),
+        (True, False, 'test4b draw -34'),
         (False, True, 'test5'),
-        (False, True, 'test5 ints 5'),
+        (False, True, 'test5 ints 55'),
         (False, True, 'test5 ints 5 ints 6'),
-        (False, True, 'test5 ints 5, 6, 7, 8, 9'),
+        (False, True, 'test5 ints 5, 6, -7, 8, 9'),
         (True, True, 'mw test1 color red 12 3.5'),
         (True, True, 'mw test1 color red 12 3.5'),
         (True, True, 'mw test2 color red radius 3.5 foo'),
@@ -1317,7 +1376,7 @@ if __name__ == '__main__':
         (False, True, 'test7 center 3.4, 5.6, 7.8'),
         (True, True, 'test7 center 3.4, 5.6'),
         (False, True, 'test8 always false'),
-        (False, True, 'test8 always true target tool'),
+        (False, True, 'test8 always  Tr target tool'),
         (True, True, 'test8 always true tool'),
         (True, True, 'test8 always tool'),
         (False, True, 'test8 TRUE tool xyzzy, plugh '),
@@ -1327,10 +1386,13 @@ if __name__ == '__main__':
         (True, False, 'test10 red'),
         (False, True, 'test10 red 0.5'),
         (True, False, 'test10 red, light gray'),
-        (False, True, 'test10 red, light gray 0.33, 0.67'),
-        (False, False, 'test10 li gr, red'),
+        (False, False, 'test10 light  gray, red 0.33, 0.67'),
+        (True, False, 'test10 light  gray, red 0.33'),
+        (True, False, 'test10 li  gr, red'),
     ]
-    # TODO: delay registration tests
+    # TODO: delayed registration tests
+    successes = 0
+    failures = 0
     cmd = Command(None)
     for t in tests:
         fail, final, text = t
@@ -1342,8 +1404,10 @@ if __name__ == '__main__':
             cmd.execute()
             if fail:
                 # expected failure and it didn't
+                failures += 1
                 print('FAIL')
             else:
+                successes += 1
                 print('SUCCESS')
         except UserError as err:
             rest = cmd.current_text[cmd.amount_parsed:]
@@ -1352,9 +1416,15 @@ if __name__ == '__main__':
             #parsed = cmd.current_text[:cmd.amount_parsed]
             print("%s^" % ('.' * error_at))
             if fail:
+                successes += 1
                 print('SUCCESS:', err)
             else:
+                failures += 1
                 print('FAIL:', err)
             p = cmd.completions
             if p:
                 print('completions:', p)
+    print(successes, 'success(es),', failures, 'failure(s)')
+    if failures:
+        raise SystemExit(1)
+    raise SystemExit(0)
