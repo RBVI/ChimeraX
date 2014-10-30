@@ -37,7 +37,7 @@ and the commas may be followed by whitespace.
 Depending on the type of an argument, *e.g.*, a color name,
 whitespace can also appear within an argument value.
 Argument values may be quoted with double quotes.
-And in quoted strings, Python's string escape sequences are recognized,
+And in quoted text, Python's textual escape sequences are recognized,
 *e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
 \N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
@@ -115,7 +115,7 @@ as much as possible:
 .. PointsArg(a):
 
 There is one special annotation: :py:obj:`RestOfLine` that consumes
-the rest of the command line as a string.
+the rest of the command line as text.
 
 Annotations are used to parse text and to support automatic completion.
 Annotations can be extended with various specializers:
@@ -192,6 +192,12 @@ import abc
 import re
 import sys
 from collections import OrderedDict
+
+_debugging = False
+_normal_token = re.compile(r"[^,;\s]*")
+_single = re.compile(r"'([^']|\')*'")
+_double = re.compile(r'"([^"]|\")*"')
+_whitespace = re.compile("\s+")
 
 
 class UserError(ValueError):
@@ -399,7 +405,7 @@ class FloatArg(Annotation):
 
 
 class StringArg(Annotation):
-    """Annotation for string literals"""
+    """Annotation for text (a word or quoted)"""
     name = "a text string"
 
     @staticmethod
@@ -610,7 +616,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid '%s' argument: " % self.name
+        message = "Invalid argument %r: " % self.name
         if self.min and self.max:
             return message + "Must be greater than or equal to %s and less than or equal to %s" % (self.min, self.max)
         elif self.min:
@@ -893,11 +899,6 @@ def add_keyword_arguments(name, kw_info):
     ci.keyword.update(kw_info)
     # TODO: save appropriate kw_info, if reregistered?
 
-normal_token = re.compile(r"[^,;\s]*")
-single = re.compile(r"'([^']|\')*'")
-double = re.compile(r'"([^"]|\")*"')
-whitespace = re.compile("\s+")
-
 
 class Command:
     """Keep track of partially typed command with possible completions
@@ -960,16 +961,34 @@ class Command:
         if not self._error_checked:
             self.error_check()
         try:
-            return self._ci.function(session, **self._kwargs)
+            if not isinstance(self._ci.function, _Alias):
+                return self._ci.function(session, **self._kwargs)
+            arg_names = list(self._kwargs.keys())
+            arg_names.sort()
+            args = [self._kwargs[k] for k in arg_names]
+            return self._ci.function(session, *args)
         except ValueError as err:
+            if isinstance(self._ci.function, _Alias):
+                # propagate expanded alias
+                cmd = self._ci.function.cmd
+                self.current_text = cmd.current_text
+                self.amount_parsed = cmd.amount_parsed
+                self._error = cmd._error
             # convert function's ValueErrors to UserErrors,
             # but not those of functions it calls
-            import sys
             import traceback
             _, _, exc_traceback = sys.exc_info()
             if len(traceback.extract_tb(exc_traceback)) > 2:
                 raise
             raise UserError(err)
+        except UserError as err:
+            if isinstance(self._ci.function, _Alias):
+                # propagate expanded alias
+                cmd = self._ci.function.cmd
+                self.current_text = cmd.current_text
+                self.amount_parsed = cmd.amount_parsed
+                self._error = cmd._error
+            raise
 
     def _next_token(self, text):
         # Return tuple of first argument in text and actual text used
@@ -978,12 +997,12 @@ class Command:
         # the quotes is returned.  If there is no closing quote,
         # return rest of line for automatic completion purposes,
         # but set an error.
-        m = whitespace.match(text)
+        m = _whitespace.match(text)
         start = m.end() if m else 0
         if start == len(text):
             return '', text
         if text[start] == '"':
-            m = double.match(text, start)
+            m = _double.match(text, start)
             if m:
                 end = m.end()
                 token = text[start + 1:end - 1]
@@ -992,7 +1011,7 @@ class Command:
                 token = text[start + 1:end]
                 self._error = "incomplete quoted text"
         elif text[start] == "'":
-            m = single.match(text, start)
+            m = _single.match(text, start)
             if m:
                 end = m.end()
                 token = text[start + 1:end - 1]
@@ -1005,7 +1024,7 @@ class Command:
         elif text[start] in ',;':
             return text[start], text[0:start + 1]
         else:
-            m = normal_token.match(text, start)
+            m = _normal_token.match(text, start)
             end = m.end()
             token = text[start:end]
         return token, text[0:end]
@@ -1042,7 +1061,8 @@ class Command:
                 raise RuntimeError("Invalid completions given by %s"
                                    % annotation.name)
             word, chars = self._next_token(text)
-            #print('arg _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
+            if _debugging:
+                print('arg _next_token(%r) -> %r %r' % (text, word, chars))
             if not word:
                 raise ValueError("Expected %s" % annotation.name)
             all_words.append(word)
@@ -1098,7 +1118,8 @@ class Command:
             values = x
         while 1:
             word, chars = self._next_token(text)
-            #print('agg _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
+            if _debugging:
+                print('agg _next_token(%r) -> %r %r' % (text, word, chars))
             if word != ',':
                 if len(values) < anno.min_size:
                     if anno.min_size == anno.max_size:
@@ -1142,7 +1163,8 @@ class Command:
         word_map = _commands
         while 1:
             word, chars = self._next_token(text)
-            #print('cmd _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
+            if _debugging:
+                print('cmd _next_token(%r) -> %r %r' % (text, word, chars))
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1202,7 +1224,7 @@ class Command:
                 self._kwargs[name] = value
             except ValueError as err:
                 if name in self._ci.required:
-                    self._error = "Invalid '%s' argument: %s" % (name, err)
+                    self._error = "Invalid argument %r: %s" % (name, err)
                     return
                 # optional and wrong type, try as keyword
                 break
@@ -1211,7 +1233,8 @@ class Command:
         # process keyword arguments
         while 1:
             word, chars = self._next_token(text)
-            #print('key _next_token(%r) -> %r %r' % (text, word, chars)) #DEBUG
+            if _debugging:
+                print('key _next_token(%r) -> %r %r' % (text, word, chars))
             if not word:
                 # count extra whitespace as parsed
                 self.amount_parsed += len(chars)
@@ -1228,7 +1251,10 @@ class Command:
                     text = self._complete(chars, c[len(word):])
                     self.completions = []
                     continue
-                self._error = "Expected keyword, got '%s'" % word
+                if len(self._ci.keyword) > 0:
+                    self._error = "Expected keyword, got '%s'" % word
+                else:
+                    self._error = "Too many arguments"
                 return
             self.amount_parsed += len(chars)
             text = text[len(chars):]
@@ -1242,7 +1268,7 @@ class Command:
                     value, text = self._parse_arg(anno, text, final)
                 self._kwargs[name] = value
             except ValueError as err:
-                self._error = "Invalid '%s' argument: %s" % (name, err)
+                self._error = "Invalid  argument %r: %s" % (name, err)
                 return
 
 _cmd_aliases = OrderedDict()
@@ -1251,6 +1277,7 @@ _cmd_aliases = OrderedDict()
 class _Alias:
 
     def __init__(self, text):
+        text = text.lstrip()
         self.original_text = text
         self.num_args = 0
         self.parts = []  # list of strings and integer argument numbers
@@ -1270,19 +1297,19 @@ class _Alias:
                 break
             start += 1  # skip over $
             if start < len(text) and text[start] == '$':
-                parts.append('$')   # $$
+                self.parts.append('$')   # $$
                 start += 1
                 continue
             m = number.match(text, start)
             end = m.end()
             if end == start:
                 # not followed by a number
-                parts.append('$')
+                self.parts.append('$')
                 continue
             i = int(text[start:end])
             if i > self.num_args:
                 self.num_args = i
-            parts.append(i - 1)     # convert to a 0-based index
+            self.parts.append(i - 1)     # convert to a 0-based index
             start = end
 
     def __call__(self, session, *args):
@@ -1310,11 +1337,13 @@ def alias(session, name='', text=''):
         return 'No aliases.'
     if not text:
         if name not in _cmd_aliases:
-            return 'No alias named "%s" found.' % name
-        return 'Aliased "%s" to "%s"' % (name, _cmd_aliases[name].original_text)
+            return 'No alias named %r found.' % name
+        return 'Aliased %r to %r' % (name, _cmd_aliases[name].original_text)
     # extract command name
     cmd = _Alias(text)
-    desc = CmdDesc(required=[(str(i), StringArg) for i in range(cmd.num_args)])
+    if cmd.num_args > 99:
+        raise UserError('Aliases can have a maximum of 99 arguments')
+    desc = CmdDesc(required=[((i + 1), StringArg) for i in range(cmd.num_args)])
     try:
         register(name, desc, cmd)
     except:
@@ -1327,7 +1356,7 @@ def unalias(session, name):
     try:
         del _cmd_aliases[name]
     except KeyError:
-        raise UserError('No alias named "%s" exists' % name)
+        raise UserError('No alias named %r exists' % name)
     _unregister(name)
 
 if __name__ == '__main__':
@@ -1470,22 +1499,24 @@ if __name__ == '__main__':
     def test10(session, colors=[], offsets=[]):
         print('test10 colors, offsets:', colors, offsets)
 
-    import sys
     if len(sys.argv) > 1:
+        _debugging = 'd' in sys.argv[1]
         @register('exit')
         def exit(session):
             raise SystemExit(0)
         prompt = 'cmd> '
         cmd = Command(None)
         while True:
-            text = input(prompt)
             try:
+                text = input(prompt)
                 cmd.parse_text(text, final=True)
-                print(cmd.current_text)
                 result = cmd.execute()
                 if result is not None:
                     print(result)
+            except EOFError:
+                raise SystemExit(0)
             except UserError as err:
+                print(cmd.current_text)
                 rest = cmd.current_text[cmd.amount_parsed:]
                 spaces = len(rest) - len(rest.lstrip())
                 error_at = cmd.amount_parsed + spaces
@@ -1556,7 +1587,9 @@ if __name__ == '__main__':
             cmd.parse_text(text, final=final)
             print(cmd.current_text)
             #print(cmd.current_text, cmd._kwargs)
-            cmd.execute()
+            result = cmd.execute()
+            if result:
+                print(result)
             if fail:
                 # expected failure and it didn't
                 failures += 1
