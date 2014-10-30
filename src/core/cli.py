@@ -886,18 +886,51 @@ def add_keyword_arguments(name, kw_info):
         if isinstance(what, dict):
             cmd_map = what
             continue
+        if isinstance(what, _Defer):
+            what = _lazy_introspect(cmd_map, word)
+        if isinstance(what, dict):
+            cmd_map = what
+            continue
         raise ValueError("'%s' is not a command" % name)
     word = words[-1]
-    ci = cmd_map.get(word, None)
-    if ci is None:
+    what = cmd_map.get(word, None)
+    if what is None:
         raise ValueError("'%s' is not a command" % name)
-    if isinstance(ci, _Defer):
-        ci = _lazy_introspect(cmd_map, word)
-    if isinstance(ci, dict):
+    if isinstance(what, _Defer):
+        what = _lazy_introspect(cmd_map, word)
+    if isinstance(what, dict):
         raise ValueError("'%s' is not the full command" % name)
     # TODO: fail if there are conflicts with existing keywords?
-    ci.keyword.update(kw_info)
+    what.keyword.update(kw_info)
     # TODO: save appropriate kw_info, if reregistered?
+
+
+def command_function(name):
+    """Return callable for given command name
+
+    :param name: the name of the command
+    """
+    words = name.split()
+    cmd_map = _commands
+    for word in words[:-1]:
+        what = cmd_map.get(word, None)
+        if what is None:
+            return None
+        if isinstance(what, _Defer):
+            what = _lazy_introspect(cmd_map, word)
+        if isinstance(what, dict):
+            cmd_map = what
+            continue
+        return None
+    word = words[-1]
+    what = cmd_map.get(word, None)
+    if what is None:
+        return None
+    if isinstance(what, _Defer):
+        what = _lazy_introspect(cmd_map, word)
+    if isinstance(what, dict):
+        raise None
+    return what.function
 
 
 class Command:
