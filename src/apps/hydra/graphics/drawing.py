@@ -48,6 +48,7 @@ class Drawing:
     self._selected_triangles_mask = None # bool numpy array
     self._child_drawings = []
     self.reverse_order_children = False     # Used by grayscale rendering for depth ordering
+    self._cached_bounds = None
 
     # Geometry and colors
     self.vertices = None
@@ -78,8 +79,12 @@ class Drawing:
       self.redraw_needed()
     if key in self.effects_buffers:
       self.need_buffer_update = True
-      sc = key in ('vertices', '_displayed_positions', '_positions')
+      gc = key in ('vertices', 'triangles')
+      if gc:
+        self._cached_bounds = None
+      sc = (gc or (key in ('_displayed_positions', '_positions')))
       self.redraw_needed(shape_changed = sc)
+
     super(Drawing,self).__setattr__(key, value)
 
   # Display styles
@@ -499,24 +504,25 @@ class Drawing:
 
   def bounds(self, positions = True):
     '''
-    The bounds of drawing and children including undisplayed and all positions.
+    The bounds of drawing and displayed children and displayed positions.
     '''
-    # TODO: Should this only include displayed drawings?
-
-    dbounds = [d.bounds() for d in self.child_drawings()]
+    dbounds = [d.bounds() for d in self.child_drawings() if d.display]
     if not self.empty_drawing():
       dbounds.append(self.geometry_bounds())
     from ..geometry import bounds
     b = bounds.union_bounds(dbounds)
     if positions:
-      b = bounds.copies_bounding_box(b, self.positions)
+      b = bounds.copies_bounding_box(b, self.get_positions(displayed_only = True))
     return b
 
   def geometry_bounds(self):
     '''
     Return the bounds of the drawing not including positions nor children.
     '''
-    # TODO: cache bounds
+    cb = self._cached_bounds
+    if not cb is None:
+      return cb
+
     va = self.vertices
     if va is None or len(va) == 0:
       return None
@@ -529,6 +535,7 @@ class Drawing:
       xyz_max += xyz.max(axis = 0)
       # TODO: use scale factors
     b = (xyz_min, xyz_max)
+    self._cached_bounds = b
     return b
 
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
