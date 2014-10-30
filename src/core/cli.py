@@ -154,7 +154,7 @@ Example
 Here is a simple example::
 
     import cli
-    @register("echo", cli.CmdDesc(optional=(('text', cli.RestOfLine))))
+    @register("echo", cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
     def echo(session, text=''):
         print(text)
     ...
@@ -996,10 +996,14 @@ class Command:
         try:
             if not isinstance(self._ci.function, _Alias):
                 return self._ci.function(session, **self._kwargs)
-            arg_names = list(self._kwargs.keys())
+            arg_names = [k for k in self._kwargs.keys() if isinstance(k, int)]
             arg_names.sort()
             args = [self._kwargs[k] for k in arg_names]
-            return self._ci.function(session, *args)
+            if 'optional' in self._kwargs:
+                optional = self._kwargs['optional']
+            else:
+                optional = ''
+            return self._ci.function(session, *args, optional=optional)
         except ValueError as err:
             if isinstance(self._ci.function, _Alias):
                 # propagate expanded alias
@@ -1078,7 +1082,7 @@ class Command:
     def _parse_arg(self, annotation, text, final):
         if annotation is RestOfLine:
             # TODO: stop at ;
-            return text, ""
+            return text.lstrip(), ""
 
         session = self._session  # resolve back reference
         multiword = annotation.multiword
@@ -1308,6 +1312,7 @@ _cmd_aliases = OrderedDict()
 
 
 class _Alias:
+    """Internal alias command implementation"""
 
     def __init__(self, text):
         text = text.lstrip()
@@ -1315,6 +1320,7 @@ class _Alias:
         self.num_args = 0
         self.parts = []  # list of strings and integer argument numbers
         self.cmd = None
+        self.optional_rest_of_line = False
 
         not_dollar = re.compile(r"[^$]*")
         number = re.compile(r"\d*")
@@ -1333,6 +1339,11 @@ class _Alias:
                 self.parts.append('$')   # $$
                 start += 1
                 continue
+            if start < len(text) and text[start] == '*':
+                self.optional_rest_of_line = True
+                self.parts.append(-1)
+                start += 1
+                continue
             m = number.match(text, start)
             end = m.end()
             if end == start:
@@ -1345,18 +1356,28 @@ class _Alias:
             self.parts.append(i - 1)     # convert to a 0-based index
             start = end
 
-    def __call__(self, session, *args):
+    def desc(self):
+        required = [((i + 1), StringArg) for i in range(self.num_args)]
+        if not self.optional_rest_of_line:
+            return CmdDesc(required=required)
+        return CmdDesc(required=required, optional=[('optional', RestOfLine)])
+
+    def __call__(self, session, *args, optional=''):
         assert(len(args) >= self.num_args)
         # substitute args for positional arguments
         text = ''
         for part in self.parts:
-            if isinstance(part, int):
-                text += args[part]
-            else:
+            if isinstance(part, str):
                 text += part
+                continue
+            # part is an argument index
+            if part < 0:
+                text += optional
+            else:
+                text += args[part]
         self.cmd = Command(session)
         self.cmd.parse_text(text, final=True)
-        self.cmd.execute()
+        return self.cmd.execute()
 
 
 @register('alias', CmdDesc(optional=[('name', StringArg),
@@ -1374,11 +1395,8 @@ def alias(session, name='', text=''):
         return 'Aliased %r to %r' % (name, _cmd_aliases[name].original_text)
     # extract command name
     cmd = _Alias(text)
-    if cmd.num_args > 99:
-        raise UserError('Aliases can have a maximum of 99 arguments')
-    desc = CmdDesc(required=[((i + 1), StringArg) for i in range(cmd.num_args)])
     try:
-        register(name, desc, cmd)
+        register(name, cmd.desc(), cmd)
     except:
         raise
 
@@ -1537,6 +1555,9 @@ if __name__ == '__main__':
         @register('exit')
         def exit(session):
             raise SystemExit(0)
+        @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
+        def echo(session, text=''):
+            return text
         prompt = 'cmd> '
         cmd = Command(None)
         while True:
