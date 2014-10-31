@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra
 
 PYMOD_NAME = mac_os_cpp
-SRCS	= module.cpp setfileicon.cpp touchevents.cpp
+SRCS	= memory.cpp module.cpp setfileicon.cpp touchevents.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)
