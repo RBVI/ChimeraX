@@ -2,6 +2,7 @@
 #include <Python.h>			// use PyObject
 
 #include "memory.h"			// use memory_size
+#include "repaint.h"			// use repaint_window
 #include "setfileicon.h"		// use set_file_icon
 #include "touchevents.h"		// use accept_touch_events
 
@@ -14,6 +15,9 @@ static struct PyMethodDef mac_os_cpp_methods[] =
 {
   /* memory.h */
   {const_cast<char*>("memory_size"), (PyCFunction)memory_size, METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* repaint.h */
+  {const_cast<char*>("repaint_window"), (PyCFunction)repaint_window, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* setfileicon.h */
   {const_cast<char*>("can_set_file_icon"), (PyCFunction)can_set_file_icon, METH_VARARGS|METH_KEYWORDS, NULL},
