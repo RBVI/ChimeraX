@@ -187,22 +187,25 @@ class Main_Window(QtWidgets.QMainWindow):
         if append:
             msg = str(sb.currentMessage()) + msg
         sb.showMessage(sb.tr(msg))
-#        self._qapp.sendPostedEvents(sb)        # Does not draw.
-#        sb.repaint()        # Does not draw.  Redraw in case long wait before return to event loop
 
         # Repaint status line by entering event loop
         from time import time
         t = time()
         if t > self._last_status_update + self.status_update_interval:
             self._last_status_update = t
+#            sb.repaint()        # Does not draw.  Redraw in case long wait before return to event loop
+#            self._qapp.sendPostedEvents(sb)        # Does not draw.
+#            sb.paintEvent(QtGui.QPaintEvent(sb.visibleRegion()))       # Crashes
+#            return
+
             self.view.block_redraw()        # Avoid graphics redraw
             try:
                 # TODO: exclude user input events drops key strokes and mouse events that will never
                 #   get processed, Qt 5.2.  Documentation claims these events are not dropped.
-                #  self._qapp.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+                self._qapp.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
                 # TODO: Processing all events is unacceptable since data can be changed or deleted whenever
                 #       a status message is shown. Need a way to repaint without processing events.
-                self._qapp.processEvents(QtCore.QEventLoop.AllEvents)
+                # self._qapp.processEvents(QtCore.QEventLoop.AllEvents)
             finally:
                 self.view.unblock_redraw()
 
