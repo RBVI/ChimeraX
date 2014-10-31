@@ -148,7 +148,7 @@ class Graphics_Window(View, QtGui.QWindow):
         if lt is None or lt.msecsTo(t) >= self.minimum_event_processing_time:
             # Redraw only if enough time has elapsed since last frame to process some events.
             # This keeps the user interface responsive even during slow rendering.
-            self.redraw()
+            self.update_graphics()
 
     def update_graphics(self):
         if self.isExposed():
