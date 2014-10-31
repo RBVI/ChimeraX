@@ -25,8 +25,8 @@ class Graphics_Window(View, QtGui.QWindow):
         self.timer = None			# Redraw timer
         self.redraw_interval = 10               # milliseconds
         # TODO: Redraw interval is set fast enough for 75 Hz oculus rift.
-        self.minimum_event_processing_ratio = 0.1   # Event processing time as a fraction of graphics draw time
-        self.last_redraw_duration = 0
+        self.minimum_event_processing_ratio = 0.1   # Event processing time as a fraction of time since start of last drawing
+        self.last_redraw_start_time = 0
         self.last_redraw_finish_time = 0
 
         from . import mousemodes
@@ -145,20 +145,16 @@ class Graphics_Window(View, QtGui.QWindow):
 
     def redraw_timer_callback(self):
         import time
-        t = time.process_time()
-        lt = self.last_redraw_finish_time
-        if t-lt >= self.minimum_event_processing_ratio * self.last_redraw_duration:
+        t = time.perf_counter()
+        dur = t - self.last_redraw_start_time
+        if t >= self.last_redraw_finish_time + self.minimum_event_processing_ratio * dur:
             # Redraw only if enough time has elapsed since last frame to process some events.
             # This keeps the user interface responsive even during slow rendering.
+            self.last_redraw_start_time = t
             self.update_graphics()
+            self.last_redraw_finish_time = time.perf_counter()
 
     def update_graphics(self):
-        import time
         if self.isExposed():
-            tstart = time.process_time()
-            if self.redraw():
-                tend = time.process_time()
-                self.last_redraw_duration = tend-tstart
-            else:
+            if not self.redraw():
                 self.mouse_modes.mouse_pause_tracking()
-        self.last_redraw_finish_time = time.process_time()
