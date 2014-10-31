@@ -40,15 +40,11 @@ class Volume_Series_Slider:
 
         hbox.addWidget(s)
         
-        play = QtWidgets.QToolButton(w)
+        self.playing = False
+        self.play_button = play = QtWidgets.QToolButton(w)
         play.setIcon(w.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
         play.clicked.connect(self.play_cb)
         hbox.addWidget(play)
-
-        stop = QtWidgets.QToolButton(w)
-        stop.setIcon(w.style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
-        stop.clicked.connect(self.stop_cb)
-        hbox.addWidget(stop)
 
         dw.setWidget(w)
 
@@ -76,19 +72,35 @@ class Volume_Series_Slider:
             s.show_time(t)
 
     def play_cb(self):
+        if self.playing:
+            self.stop()
+        else:
+            self.play()
+
+    def play(self):
         s0 = self.series[0]
         t = s0.last_shown_time
         if t >= s0.number_of_times()-1:
             t = 0
         from .vseries_command import play_op
-        p = play_op(self.series, session = self.session, start = t)
+        p = play_op(self.series, session = self.session, start = t, loop = True)
         def update_slider(t, self=self):
             self.slider.setValue(t)
         p.time_step_cb = update_slider
+        self.playing = True
+        self.set_play_button_icon(play = False)
 
-    def stop_cb(self):
+    def stop(self):
         from .vseries_command import stop_op
         stop_op(self.series)
+        self.playing = False
+        self.set_play_button_icon(play = True)
+
+    def set_play_button_icon(self, play):
+        pb = self.play_button
+        from ...ui.qt.qt import QtWidgets
+        icon = QtWidgets.QStyle.SP_MediaPlay if play else QtWidgets.QStyle.SP_MediaPause
+        pb.setIcon(pb.style().standardIcon(icon))
 
 def show_slider_on_open(session):
     # Register callback to show slider when a map series is opened
