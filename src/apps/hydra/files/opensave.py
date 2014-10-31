@@ -93,14 +93,13 @@ def open_files(paths, session, set_camera = None):
             if not isinstance(mlist, (list, tuple)):
                 mlist = [mlist]
             models.extend(mlist)
-            for m in mlist:
-                session.add_model(m)
             opened.append(path)
             if set_camera and r.reader == open_session:
                 set_camera = False
         else:
             session.show_status('Unknown file suffix "%s"' % ext)
             # TODO issue warning.
+    session.add_models(models)
     finished_opening(opened, set_camera, session)
     return models
 
@@ -138,7 +137,10 @@ def open_map(map_path, session):
         from os.path import basename
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from ..map.series import Map_Series
-        return [Map_Series(name, maps)]
+        ms = Map_Series(name, maps)
+        from ..map.series import slider
+        slider.show_slider_on_open(session)
+        return [ms]
     return maps
 
 def open_session(path, session):
