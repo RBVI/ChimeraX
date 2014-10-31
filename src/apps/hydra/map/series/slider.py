@@ -76,7 +76,10 @@ class Volume_Series_Slider:
             s.show_time(t)
 
     def play_cb(self):
-        t = self.series[0].last_shown_time
+        s0 = self.series[0]
+        t = s0.last_shown_time
+        if t >= s0.number_of_times()-1:
+            t = 0
         from .vseries_command import play_op
         p = play_op(self.series, session = self.session, start = t)
         def update_slider(t, self=self):
@@ -86,3 +89,16 @@ class Volume_Series_Slider:
     def stop_cb(self):
         from .vseries_command import stop_op
         stop_op(self.series)
+
+def show_slider_on_open(session):
+    # Register callback to show slider when a map series is opened
+    if not hasattr(session, '_registered_map_series_slider'):
+        session._registered_map_series_slider = True
+        session.add_model_callbacks.append(lambda m,s=session: models_added_cb(m,s))
+
+def models_added_cb(models, session):
+    # Show slider when a map series is opened.
+    from .series import Map_Series
+    ms = [m for m in models if isinstance(m, Map_Series)]
+    if ms:
+        Volume_Series_Slider(ms, session).show()
