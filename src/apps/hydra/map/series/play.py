@@ -36,8 +36,6 @@ class Play_Series:
     self.rendered_times = []       # For limiting cached renderings
     self.rendered_times_table = {}
 
-    self.timer_id = {}             # For delaying update of volume dialog
-
   # ---------------------------------------------------------------------------
   #
   def set_play_direction(self, direction):
