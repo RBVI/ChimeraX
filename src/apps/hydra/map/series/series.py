@@ -11,7 +11,7 @@ class Map_Series(Model):
     for m in maps:
       self.add_model(m)
 
-    self.shown_times = set()
+    self.shown_times = set(i for i,m in enumerate(maps) if m.display)
     self.last_shown_time = 0
 
     self.surface_level_ranks = []  # Cached for normalization calculation
@@ -49,9 +49,9 @@ class Map_Series(Model):
     if v is None:
       return
 
+    self.shown_times.add(time)
     v.show()
 
-    self.shown_times.add(time)
     self.last_shown_time = time
 
   # ---------------------------------------------------------------------------
@@ -61,6 +61,8 @@ class Map_Series(Model):
     v = self.maps[time]
     if v is None:
       return
+
+    self.shown_times.discard(time)
 
     if v.representation == 'solid' and cache_rendering:
       vs = v.solid_model()
@@ -72,8 +74,6 @@ class Map_Series(Model):
     if not cache_rendering:
       v.remove_surfaces()
       v.close_solid()
-
-    self.shown_times.discard(time)
 
   # ---------------------------------------------------------------------------
   #
