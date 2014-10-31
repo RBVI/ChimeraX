@@ -193,21 +193,25 @@ class Main_Window(QtWidgets.QMainWindow):
         t = time()
         if t > self._last_status_update + self.status_update_interval:
             self._last_status_update = t
-#            sb.repaint()        # Does not draw.  Redraw in case long wait before return to event loop
-#            self._qapp.sendPostedEvents(sb)        # Does not draw.
-#            sb.paintEvent(QtGui.QPaintEvent(sb.visibleRegion()))       # Crashes
-#            return
+            sb.repaint()        # Redraw in case long wait before return to event loop
+            # Work around QTBUG-4453, on mac repaint does not cause redraw.
+            from ... import mac_os_cpp
+            mac_os_cpp.repaint_window(int(sb.winId()))
 
-            self.view.block_redraw()        # Avoid graphics redraw
-            try:
-                # TODO: exclude user input events drops key strokes and mouse events that will never
-                #   get processed, Qt 5.2.  Documentation claims these events are not dropped.
-                self._qapp.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
-                # TODO: Processing all events is unacceptable since data can be changed or deleted whenever
-                #       a status message is shown. Need a way to repaint without processing events.
-                # self._qapp.processEvents(QtCore.QEventLoop.AllEvents)
-            finally:
-                self.view.unblock_redraw()
+            # self._qapp.sendPostedEvents(sb)        # Does not draw.
+            # sb.paintEvent(QtGui.QPaintEvent(sb.visibleRegion()))       # Crashes
+            # return
+
+            # self.view.block_redraw()        # Avoid graphics redraw
+            # try:
+            #     # TODO: exclude user input events drops key strokes and mouse events that will never
+            #     #   get processed, Qt 5.2.  Documentation claims these events are not dropped.
+            #     self._qapp.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+            #     # TODO: Processing all events is unacceptable since data can be changed or deleted whenever
+            #     #       a status message is shown. Need a way to repaint without processing events.
+            #     # self._qapp.processEvents(QtCore.QEventLoop.AllEvents)
+            # finally:
+            #     self.view.unblock_redraw()
 
     def _create_command_line(self):
 
