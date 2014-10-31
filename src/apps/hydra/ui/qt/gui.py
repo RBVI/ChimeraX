@@ -38,6 +38,7 @@ class Main_Window(QtWidgets.QMainWindow):
         self.setWindowTitle(self.tr("Hydra"))
         
         sb = QtWidgets.QStatusBar(self)
+        self.status_bar_window_id = int(sb.winId())
         self.setStatusBar(sb)
         self.status_update_interval = 0.2       # seconds
         self._last_status_update = 0
@@ -196,7 +197,7 @@ class Main_Window(QtWidgets.QMainWindow):
             sb.repaint()        # Redraw in case long wait before return to event loop
             # Work around QTBUG-4453, on mac repaint does not cause redraw.
             from ... import mac_os_cpp
-            mac_os_cpp.repaint_window(int(sb.winId()))
+            mac_os_cpp.repaint_window(self.status_bar_window_id)
 
             # self._qapp.sendPostedEvents(sb)        # Does not draw.
             # sb.paintEvent(QtGui.QPaintEvent(sb.visibleRegion()))       # Crashes
