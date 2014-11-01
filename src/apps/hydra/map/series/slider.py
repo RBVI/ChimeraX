@@ -80,10 +80,11 @@ class Volume_Series_Slider:
     def play(self):
         s0 = self.series[0]
         t = s0.last_shown_time
-        if t >= s0.number_of_times()-1:
+        n = s0.number_of_times()
+        if t >= n-1:
             t = 0
         from .vseries_command import play_op
-        p = play_op(self.series, session = self.session, start = t, loop = True)
+        p = play_op(self.series, session = self.session, start = t, loop = True, cacheFrames = n)
         def update_slider(t, self=self):
             self.slider.setValue(t)
         p.time_step_cb = update_slider
