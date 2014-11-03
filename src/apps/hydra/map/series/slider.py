@@ -48,6 +48,8 @@ class Volume_Series_Slider:
 
         dw.setWidget(w)
 
+        session.close_model_callbacks.append(self.closed_series_cb)
+
     def show(self):
         from ...ui.qt.qt import QtCore
         dw = self.dock_widget
@@ -102,6 +104,13 @@ class Volume_Series_Slider:
         from ...ui.qt.qt import QtWidgets
         icon = QtWidgets.QStyle.SP_MediaPlay if play else QtWidgets.QStyle.SP_MediaPause
         pb.setIcon(pb.style().standardIcon(icon))
+
+    def closed_series_cb(self, models):
+        closed = [s for s in self.series if s in models]
+        if closed:
+            self.series = [s for s in self.series if not s in closed]
+            if len(self.series) == 0:
+                self.dock_widget.close()
 
 def show_slider_on_open(session):
     # Register callback to show slider when a map series is opened
