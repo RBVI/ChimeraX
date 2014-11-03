@@ -45,6 +45,14 @@ class Volume_Series_Slider:
         play.setIcon(w.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
         play.clicked.connect(self.play_cb)
         hbox.addWidget(play)
+        
+        self.subsample_button = samp = QtWidgets.QToolButton(w)
+        from ...ui.qt.gui import icon
+        samp.setContentsMargins(0,0,0,0)
+        samp.setIcon(icon('x2.png'))
+        samp.setCheckable(True)
+        samp.clicked.connect(self.subsample_cb)
+        hbox.addWidget(samp)
 
         dw.setWidget(w)
 
@@ -104,6 +112,14 @@ class Volume_Series_Slider:
         from ...ui.qt.qt import QtWidgets
         icon = QtWidgets.QStyle.SP_MediaPlay if play else QtWidgets.QStyle.SP_MediaPause
         pb.setIcon(pb.style().standardIcon(icon))
+
+    def subsample_cb(self):
+        subsamp = self.subsample_button.isChecked()
+        step = (2,2,2) if subsamp else (1,1,1)
+        for s in self.series:
+            lt = s.last_shown_time
+            if not lt is None:
+                s.maps[lt].new_region(ijk_step = step, adjust_step = False)
 
     def closed_series_cb(self, models):
         closed = [s for s in self.series if s in models]
