@@ -66,7 +66,7 @@ class Grid_Data:
     self.step = tuple(step)
     self.original_step = self.step
     self.cell_angles = tuple(cell_angles)
-    self.rotation = tuple(map(tuple, rotation))
+    self.rotation = tuple(tuple(row) for row in rotation)
     self.symmetries = symmetries
     self.ijk_to_xyz_transform = None
     self.xyz_to_ijk_transform = None
@@ -134,7 +134,7 @@ class Grid_Data:
   #
   def set_rotation(self, rotation):
 
-    r = tuple(map(tuple, rotation))
+    r = tuple(tuple(row) for row in rotation)
     if r != self.rotation:
       self.rotation = r
       self.update_transform()
@@ -182,7 +182,7 @@ class Grid_Data:
   #
   def plane_spacings(self):
 
-    spacings = map(lambda u: 1.0/norm(u[:3]), self.xyz_to_ijk_transform)
+    spacings = [1.0/norm(u[:3]) for u in self.xyz_to_ijk_transform]
     return spacings
     
   # ---------------------------------------------------------------------------
@@ -230,7 +230,7 @@ class Grid_Data:
   def matrix_slice(self, matrix, ijk_origin, ijk_size, ijk_step):
 
     i1, j1, k1 = ijk_origin
-    i2, j2, k2 = map(lambda i, s: i+s, ijk_origin, ijk_size)
+    i2, j2, k2 = [i+s for i,s in zip(ijk_origin, ijk_size)]
     istep, jstep, kstep = ijk_step
     m = matrix[k1:k2:kstep, j1:j2:jstep, i1:i2:istep]
     return m
@@ -412,11 +412,11 @@ class Grid_Subregion(Grid_Data):
 
     self.full_data = grid_data
 
-    ijk_min = map(lambda a,s: ((a+s-1)/s)*s, ijk_min, ijk_step)
+    ijk_min = [((a+s-1)//s)*s for a,s in zip(ijk_min, ijk_step)]
     self.ijk_offset = ijk_min
     self.ijk_step = ijk_step
 
-    size = map(lambda a,b,s: max(0,(b-a+s)/s), ijk_min, ijk_max, ijk_step)
+    size = [max(0,(b-a+s)//s) for a,b,s in zip(ijk_min, ijk_max, ijk_step)]
     origin = grid_data.ijk_to_xyz(ijk_min)
     step = [ijk_step[a]*grid_data.step[a] for a in range(3)]
 
@@ -447,9 +447,9 @@ class Grid_Subregion(Grid_Data):
   #
   def full_region(self, ijk_origin, ijk_size, ijk_step):
 
-    origin = map(lambda i,s,o: i*s+o,ijk_origin, self.ijk_step, self.ijk_offset)
-    size = map(lambda a,b: a*b, ijk_size, self.ijk_step)
-    step = map(lambda a,b: a*b, ijk_step, self.ijk_step)
+    origin = [i*s+o for i,s,o in zip(ijk_origin, self.ijk_step, self.ijk_offset)]
+    size = [a*b for a,b in zip(ijk_size, self.ijk_step)]
+    step = [a*b for a,b in zip(ijk_step, self.ijk_step)]
     return origin, step, size
 
   # ---------------------------------------------------------------------------
