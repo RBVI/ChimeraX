@@ -10,7 +10,7 @@ players = set()         # Active players.
 def vseries_command(cmd_name, args, session):
 
     from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg, color_arg, range_arg
-    from ...commands.parse import floats_arg, parse_subregion, value_type_arg, volume_arg, molecule_arg
+    from ...commands.parse import floats_arg, parse_subregion, parse_step, value_type_arg, volume_arg, molecule_arg
     from ...commands.parse import perform_operation
     ops = {
         'align': (align_op,
@@ -23,6 +23,7 @@ def vseries_command(cmd_name, args, session):
                   ('path', string_arg)),
                  (),
                  (('subregion', parse_subregion),
+                  ('step', parse_step),
                   ('valueType', value_type_arg),
                   ('threshold', float_arg),
                   ('zeroMean', bool_arg),
@@ -157,7 +158,7 @@ def align(v, vprev):
 
 # -----------------------------------------------------------------------------
 #
-def save_op(series, path, subregion = None, valueType = None,
+def save_op(series, path, subregion = None, step = None, valueType = None,
             threshold = None, zeroMean = False, scaleFactor = None,
             encloseVolume = None, fastEncloseVolume = None, normalizeLevel = None,
             align = False, onGrid = None, mask = None, finalValueType = None, compress = False,
@@ -184,7 +185,7 @@ def save_op(series, path, subregion = None, valueType = None,
     for i,v in enumerate(maps):
         session.show_status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
         align_to = maps[i-1] if align and i > 0 else None
-        d = processed_volume(v, subregion, valueType, threshold, zeroMean, scaleFactor,
+        d = processed_volume(v, subregion, step, valueType, threshold, zeroMean, scaleFactor,
                              encloseVolume, fastEncloseVolume, normalizeLevel,
                              align_to, on_grid, mask, finalValueType)
         d.name = '%04d' % i
@@ -197,15 +198,17 @@ def save_op(series, path, subregion = None, valueType = None,
 
 # -----------------------------------------------------------------------------
 #
-def processed_volume(v, subregion = None, value_type = None, threshold = None,
+def processed_volume(v, subregion = None, step = None, value_type = None, threshold = None,
                      zeroMean = False, scaleFactor = None,
                      encloseVolume = None, fastEncloseVolume = None, normalizeLevel = None,
                      align_to = None, on_grid = None, mask = None, final_value_type = None):
     d = v.data
-    if not subregion is None:
-        ijk_min, ijk_max = subregion
+    if not subregion is None or not step is None:
+        from ..volume import full_region
+        ijk_min, ijk_max = full_region(d.size)[:2] if subregion is None else subregion
+        ijk_step = (1,1,1) if step is None else step
         from ..data import Grid_Subregion
-        d = Grid_Subregion(d, ijk_min, ijk_max)
+        d = Grid_Subregion(d, ijk_min, ijk_max, ijk_step)
 
     if (value_type is None and threshold is None and not zeroMean and
         scaleFactor is None and align_to is None and mask is None and
