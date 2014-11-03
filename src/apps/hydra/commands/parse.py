@@ -542,7 +542,7 @@ def abbreviation_table(names, lowercase = True):
 
 # -----------------------------------------------------------------------------
 #
-def parse_step(value, name = 'step', require_3_tuple = False):
+def parse_step(value, name = 'step', require_3_tuple = True):
 
     if isinstance(value, int):
         step = value
