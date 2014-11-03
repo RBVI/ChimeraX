@@ -72,7 +72,7 @@ class Place:
         if isinstance(p, (ndarray, tuple, list)):
             return m34.apply_matrix(self.matrix, p)
 
-        raise TypeError('Cannot multiply Place times "%s" %s' % str(p))
+        raise TypeError('Cannot multiply Place times "%s"' % str(p))
 
     def apply_without_translation(self, v):
         '''Transform a vector.  This applies the linear part of the transform without the shift.
