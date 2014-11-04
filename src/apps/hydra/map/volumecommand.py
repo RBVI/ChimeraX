@@ -252,8 +252,9 @@ def volume(volumes = '',                # Specifier
 def apply_global_settings(gsettings):
 
     gopt = dict((camel_case_to_underscores(k),v) for k,v in gsettings.items())
-    from .volume import default_settings
-    default_settings.update(gopt)
+# TODO: Unused settings part of gui in Chimera 1.
+#    from .volume import default_settings
+#    default_settings.update(gopt)
     if 'dataCacheSize' in gsettings:
         from .data import data_cache
         data_cache.resize(gsettings['dataCacheSize'] * (2**20))
