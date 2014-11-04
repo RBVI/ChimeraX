@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 ******************
 Developer's Manual
 ******************
@@ -8,7 +10,7 @@ The actual applications are documented in the
 the :doc:`User Manual </user/index>`.
 
 This code is free for non-commerical use, see the
-:ref:`license <../../license>` for details.
+:doc:`license <../license>` for details.
 
 The various interfaces are implemented in `Python <http://www.python.org/>`_
 with occasional help from C or C++ code.

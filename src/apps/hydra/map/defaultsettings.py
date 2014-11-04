@@ -88,6 +88,13 @@ class Volume_Default_Settings:
         'orthoplanes_shown': (False, False, False),
         'orthoplane_positions': (0,0,0),
     }
+
+    from .. import mac_os_cpp
+    msize = mac_os_cpp.memory_size()
+    csize = msize//2
+    csize_mb = csize/(2**20)
+    defaults['data_cache_size'] = csize_mb
+
     return defaults
 
   # ---------------------------------------------------------------------------

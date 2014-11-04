@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 ======================================================
 UCSF Chimera Non-Commercial Software License Agreement
 ======================================================

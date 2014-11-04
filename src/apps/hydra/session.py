@@ -114,6 +114,7 @@ class Session(Models):
     def show_warning(self, msg):
         '''Write warning such as command output to the log window.'''
         self.show_status(msg)
+        self.show_info(msg, color = 'red')
 
     def executable_directory(self):
          return self.bin_dir

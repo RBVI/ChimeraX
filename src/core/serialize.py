@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 serialize: support serialization of "simple" types
 ==================================================
@@ -11,13 +12,28 @@ loop.  Arbitrary Python objects are not allowed.
 Internally use pickle, with safeguards on what is written (so the author of
 the code is more likely to find the bug before a user of the software does),
 and on what is read.  The reading is more restrictive because the C-version
-of the pickler will pickle objects we don't want, like functions.  The
+of the pickler will pickle objects, like arbtrary functions.  The
 deserializer catches those mistakes, but later when the session is opened.
+
+Version 1 of the protocol supports instances of the following types:
+
+    :py:class:`bool`; :py:class:`int`; :py:class:`float`; :py:class:`complex`;
+    numpy :py:class:`~numpy.ndarray`;
+    :py:class:`str`; :py:class:`bytes`; :py:class:`bytearray`;
+    type(:py:data:`None`);
+    :py:class:`set`; :py:class:`frozenset`;
+    :py:class:`dict`;
+    :py:mod:`collections`' :py:class:`~collections.OrderedDict`,
+    :py:class:`~collections.deque`, and :py:class:`~collections.Counter`;
+    :py:mod:`datetime`'s :py:class:`~datetime.date`,
+    :py:class:`~datetime.time`, and :py:class:`~datetime.timedelta`;
+    and :pillow:`PIL.Image.Image`.
+
 """
 import pickle
 import types
 
-# VERSION number should change supported data types change
+#: VERSION number changes if supported data types change
 VERSION = 1
 
 _PICKLE_PROTOCOL = 4
@@ -46,7 +62,7 @@ class _RestrictTable(dict):
 
 
 def serialize(stream, obj):
-    """Put object in binary stream"""
+    """Put object in to a binary stream"""
     pickler = pickle.Pickler(stream, protocol=_PICKLE_PROTOCOL)
     pickler.fast = True     # no recursive lists/dicts/sets
     pickler.dispatch_table = _RestrictTable()
@@ -73,7 +89,7 @@ class _RestrictedUnpickler(pickle.Unpickler):
 
 
 def deserialize(stream):
-    """Recover object from binary stream"""
+    """Recover object from a binary stream"""
     unpickler = _RestrictedUnpickler(stream)
     return unpickler.load()
 

@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # Copyright © 2014 Regents of the University of California.
 # All Rights Reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
@@ -5,23 +6,28 @@
 # attached to all copies, including partial copies, of the
 # software or any revisions or derivations thereof.
 
-__version__ = "0.0.1"
+__version__ = "0.1.0a0"
+__app_name__ = "Chimera"
+__app_author__ = "UCSF"
 
 import sys
 import os
 
+
 def parse_arguments(argv):
     """Initialize Chimera application."""
     import getopt
-    class Args: pass
-    args = Args()
-    args.debug = False
-    args.gui = True
-    args.module = None
-    args.line_profile = False
-    args.load_tools = True
-    args.status = True
-    args.version = False
+
+    class Opts:
+        pass
+    opts = Opts()
+    opts.debug = False
+    opts.gui = True
+    opts.module = None
+    opts.line_profile = False
+    opts.load_tools = True
+    opts.status = True
+    opts.version = False
 
     # Will build usage string from list of arguments
     ARGS = [
@@ -58,43 +64,50 @@ def parse_arguments(argv):
                     shortopts += a[1]
                 else:
                     shortopts += a[1] + ':'
-        opts, args = getopt.getopt(argv[1:], shortopts, longopts)
+        options, args = getopt.getopt(argv[1:], shortopts, longopts)
     except getopt.error as message:
         print("%s: %s" % (argv[0], message), file=sys.stderr)
         print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
 
     help = False
-    for opt, optarg in opts:
+    for opt, optarg in options:
         if opt == "--debug":
-            args.debug = True
+            opts.debug = True
         elif opt == "--help":
             help = True
         elif opt == "--gui":
-            args.gui = True
+            opts.gui = True
         elif opt == "--nogui":
-            args.gui = False
+            opts.gui = False
         elif opt == "--lineprofile":
-            args.line_profile = True
+            opts.line_profile = True
         elif opt == "--status":
-            args.status = True
+            opts.status = True
         elif opt == "--nostatus":
-            args.status = False
+            opts.status = False
         elif opt == "--notools":
-            args.load_tools = False
+            opts.load_tools = False
         elif opt == "--version":
-            args.version = True
+            opts.version = True
         elif opt == "-m":
-            args.module = optarg
+            opts.module = optarg
     if help:
         print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
-    return args
+    return opts, args
 
-def init(argv, app_name="Chimera", event_loop=True):
-    args = parse_arguments(argv)
-    if args.version:
-        print(__version__)  # TODO
+
+def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
+    if app_name is None:
+        app_name = __app_name__
+    if app_author is None:
+        app_author = __app_author__
+    if version is None:
+        version = __version__
+    opts, args = parse_arguments(argv)
+    if opts.version:
+        print(version)
         raise SystemExit(os.EX_OK)
 
     import envguard
@@ -102,11 +115,12 @@ def init(argv, app_name="Chimera", event_loop=True):
 
     # install line_profile decorator
     import builtins
-    if not args.line_profile:
+    if not opts.line_profile:
         builtins.__dict__['line_profile'] = lambda x: x
     else:
         # write profile results on exit
-        import line_profiler, atexit
+        import atexit
+        import line_profiler
         prof = line_profiler.LineProfiler()
         builtins.__dict__['line_profile'] = prof
         atexit.register(prof.dump_stats, "%s.lprof" % app_name)
@@ -114,7 +128,7 @@ def init(argv, app_name="Chimera", event_loop=True):
     from chimera.core import session
     sess = session.Session()
     sess.app_name = app_name
-    sess.debug = args.debug
+    sess.debug = opts.debug
 
     # figure out the user/system directories for application
     if sys.platform.startswith('linux'):
@@ -126,12 +140,16 @@ def init(argv, app_name="Chimera", event_loop=True):
             configdir = bindir
         os.environ['XDG_CONFIG_DIRS'] = configdir
     import appdirs
-    # intentionally leaving out application version
-    # so application directories are not versioned
-    sess.app_dirs = appdirs.AppDirs(app_name, author="UCSF")
+    partial_version = '%s.%s' % tuple(version.split('.')[0:2])
+    ad = sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
+                                    version=partial_version)
+    # inform the C++ layer of the appdirs paths
+    import cpp_appdirs
+    cpp_appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
+        ad.user_cache_dir, ad.site_data_dir, ad.site_config_dir, ad.user_log_dir)
 
     # initialize the user interface
-    if args.gui:
+    if opts.gui:
         from chimera.core import gui
         ui_class = gui.UI
     else:
@@ -140,12 +158,20 @@ def init(argv, app_name="Chimera", event_loop=True):
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
+    # splash step "0" will happen in the above initialization
+    num_splash_steps = 4
+    import itertools
+    splash_step = itertools.count()
 
+    sess.ui.splash_info("Getting preferences",
+        next(splash_step), num_splash_steps)
     from chimera.core import preferences
     # Only pass part of session needed in function call
     preferences.init(sess.app_dirs)
 
     # common core initialization
+    sess.ui.splash_info("Initializing core",
+        next(splash_step), num_splash_steps)
     session.common_startup(sess)
     # or:
     #   sess.scenes = session.Scenes(sess)
@@ -153,15 +179,19 @@ def init(argv, app_name="Chimera", event_loop=True):
     #   sess.models = models.Models(sess)
     # etc.
 
+    sess.ui.splash_info("Initializing tools",
+        next(splash_step), num_splash_steps)
     from chimera.core import toolshed
     sess.tools = toolshed.init(sess.app_dirs)
 
     # build out the UI, populate menus, create graphics, etc.
-    ui.build()
+    sess.ui.splash_info("Starting main interface",
+        next(splash_step), num_splash_steps)
+    sess.ui.build()
 
     # unless disabled, startup tools
-    if args.load_tools:
-	# This needs sess argument because tool shed is session-independent
+    if opts.load_tools:
+        # This needs sess argument because tool shed is session-independent
         for tool in sess.tools.startup_tools(sess):
             tool.start(sess)
 
@@ -173,7 +203,7 @@ def init(argv, app_name="Chimera", event_loop=True):
     # another application
     if event_loop:
         try:
-            ui.event_loop()
+            sess.ui.event_loop()
         except SystemExit:
             raise
         raise SystemExit(os.EX_OK)

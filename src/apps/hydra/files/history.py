@@ -163,9 +163,9 @@ class File_History:
     mw.show_text(self.html(), html=True, id = 'recent sessions',
                  anchor_callback = self.open_clicked_session)
 
-  def open_clicked_session(self, url):
+  def open_clicked_session(self, href):
 
-    href = url.toString(url.PreferLocalFile)         # session file path
+    # href is session file path
     path, db = href.split('@') if '@' in href else (href, None)
 
     p0 = path.split(',')[0]
@@ -202,7 +202,7 @@ class File_History:
 
     from os.path import basename, splitext, join
     lines = ['<html>', '<head>', '<style>',
-             'body { background-color: black; }',
+             'body { background-color: black; color: white; }',
              'a { text-decoration: none; }',      # No underlining of links
              'a:link { color: #FFFFFF; }',        # Link text color white.
              'table { float:left; }',             # Multiple image/caption tables per row.

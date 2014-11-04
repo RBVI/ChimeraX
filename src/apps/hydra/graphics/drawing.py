@@ -48,6 +48,7 @@ class Drawing:
     self._selected_triangles_mask = None # bool numpy array
     self._child_drawings = []
     self.reverse_order_children = False     # Used by grayscale rendering for depth ordering
+    self._cached_bounds = None
 
     # Geometry and colors
     self.vertices = None
@@ -62,7 +63,6 @@ class Drawing:
     self.ambient_texture_transform = None       # Drawing to texture coordinates.
     self.opaque_texture = False
     self.use_lighting = True
-    self.use_radial_warp = False
 
     # OpenGL drawing
     self.draw_shape = None
@@ -79,8 +79,12 @@ class Drawing:
       self.redraw_needed()
     if key in self.effects_buffers:
       self.need_buffer_update = True
-      sc = key in ('vertices', '_displayed_positions', '_positions')
+      gc = key in ('vertices', 'triangles')
+      if gc:
+        self._cached_bounds = None
+      sc = (gc or (key in ('_displayed_positions', '_positions')))
       self.redraw_needed(shape_changed = sc)
+
     super(Drawing,self).__setattr__(key, value)
 
   # Display styles
@@ -454,8 +458,6 @@ class Drawing:
         sopt |= r.SHADER_VERTEX_COLORS
       if not self.texture is None:
         sopt |= r.SHADER_TEXTURE_2D
-        if self.use_radial_warp:
-          sopt |= r.SHADER_RADIAL_WARP
       if not self.ambient_texture is None:
         sopt |= r.SHADER_TEXTURE_3D_AMBIENT
       if not self.positions.shift_and_scale_array() is None:
@@ -466,7 +468,7 @@ class Drawing:
     return sopt
 
   effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'ambient_texture',
-                        'use_radial_warp', '_positions'))
+                        '_positions'))
 
   # Update the contents of vertex, element and instance buffers if associated arrays have changed.
   def update_buffers(self):
@@ -502,24 +504,25 @@ class Drawing:
 
   def bounds(self, positions = True):
     '''
-    The bounds of drawing and children including undisplayed and all positions.
+    The bounds of drawing and displayed children and displayed positions.
     '''
-    # TODO: Should this only include displayed drawings?
-
-    dbounds = [d.bounds() for d in self.child_drawings()]
+    dbounds = [d.bounds() for d in self.child_drawings() if d.display]
     if not self.empty_drawing():
       dbounds.append(self.geometry_bounds())
     from ..geometry import bounds
     b = bounds.union_bounds(dbounds)
     if positions:
-      b = bounds.copies_bounding_box(b, self.positions)
+      b = bounds.copies_bounding_box(b, self.get_positions(displayed_only = True))
     return b
 
   def geometry_bounds(self):
     '''
     Return the bounds of the drawing not including positions nor children.
     '''
-    # TODO: cache bounds
+    cb = self._cached_bounds
+    if not cb is None:
+      return cb
+
     va = self.vertices
     if va is None or len(va) == 0:
       return None
@@ -532,6 +535,7 @@ class Drawing:
       xyz_max += xyz.max(axis = 0)
       # TODO: use scale factors
     b = (xyz_min, xyz_max)
+    self._cached_bounds = b
     return b
 
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
@@ -705,6 +709,12 @@ def any_transparent_drawings(drawings):
     if d.showing_transparent():
       return True
   return False
+
+def draw_depth(renderer, cvinv, drawings):
+  r = renderer
+  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_VERTEX_COLORS|r.SHADER_TEXTURE_2D)
+  draw_drawings(r, cvinv, drawings)
+  r.disable_shader_capabilities(0)
 
 def draw_overlays(drawings, renderer):
 
@@ -968,7 +978,7 @@ def draw_texture(texture, renderer):
   return
 
   r = renderer
-  r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_SHADOWS)
+  r.disable_shader_capabilities(r.SHADER_LIGHTING)
   from . import opengl
   tw = opengl.Texture_Window(renderer, renderer.SHADER_TEXTURE_2D)
   texture.bind_texture()

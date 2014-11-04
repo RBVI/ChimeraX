@@ -4,13 +4,12 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra
 
 PYMOD_NAME = mac_os_cpp
-SRCS	= module.cpp setfileicon.cpp touchevents.cpp
+SRCS	= memory.cpp module.cpp repaint.cpp setfileicon.cpp touchevents.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)
-OBJS += setfileicon_mac.o
+OBJS += repaint_mac.o setfileicon_mac.o touchevents_mac.o
 LIBS += -framework AppKit
-OBJS += touchevents_mac.o
 PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 endif
 

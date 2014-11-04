@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 ========================================================
 webapp_client: Client side for Chimera 2 web application
 ========================================================

@@ -151,7 +151,6 @@ def standard_shortcuts(session):
         ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat, sesarg),
 
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
-        ('ow', oculus_warp, 'Toggle Oculus Rift lens correction', gcat, sesarg, dmenu, sep),
         ('Oc', oculus_mode, 'Set Oculus Rift stereo mode', gcat, viewarg),
 
         ('lp', toggle_leap, 'Toggle leap motion input device', gcat, sesarg, dmenu),
@@ -723,9 +722,6 @@ def start_oculus(session):
         oculus.stop_oculus(session)
     else:
         oculus.start_oculus(session)
-def oculus_warp(session):
-    from ..devices import oculus
-    oculus.toggle_warping(session)
 
 def toggle_space_navigator(session):
     from ..devices import spacenavigator

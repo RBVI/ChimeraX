@@ -45,10 +45,17 @@ class MainWindow(wx.Frame):
         session.main_window = self # needed for ToolWindow init
         from ..tool_api import ToolWindow
         self._text_window = ToolWindow("Messages", "General", session,
-            placement="bottom", destroy_hides=True)
-        from wx.html2 import WebView
-        self._text = WebView.New(self._text_window.ui_area)
+            destroy_hides=True)
+        from wx.html2 import WebView, EVT_WEBVIEW_NAVIGATING
+        self._text = WebView.New(self._text_window.ui_area, size=(250,500))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self._text, 1, wx.EXPAND)
+        self._text_window.ui_area.SetSizerAndFit(sizer)
+        self.text_id = None
+        self._text_window.manage("right")
         self._text_window.shown = False
+        self.Bind(EVT_WEBVIEW_NAVIGATING, self.OnWebViewNavigating, self._text)
+        self._anchor_cb = None
 
         self.status_bar = self.CreateStatusBar(3, wx.STB_SIZEGRIP|
             wx.STB_SHOW_TIPS|wx.STB_ELLIPSIZE_MIDDLE|wx.FULL_REPAINT_ON_RESIZE)
@@ -71,11 +78,23 @@ class MainWindow(wx.Frame):
         self.view.timer = None
         self.Destroy()
 
+    def OnWebViewNavigating(self, event):
+        url = event.GetURL()
+        fn = wx.FileSystem.URLToFileName(url)
+        if len(fn) > 1:
+            event.Veto()
+            if self._anchor_cb:
+                self._anchor_cb(fn)
+
+    def register_html_image_identifier(self, uri, qimage):
+        pass # used by unimplemented Hydra model panel
+
     def show(self):
         self.Show()
 
     def show_graphics(self):
-        pass # always showing
+        """implicitly also means "hide log" """
+        self._text_window.shown = False
 
     def show_status(self, text, append=False):
         if append:
@@ -95,9 +114,10 @@ class MainWindow(wx.Frame):
             t.SetPage(text, "")
         elif url is not None:
             t.LoadPage(url)
+        self._anchor_cb = anchor_callback
 
         self.text_id = id
-        t.shown = True
+        self._text_window.shown = True
         if scroll_to_end:
             while t.ScrollPages(1):
                 pass

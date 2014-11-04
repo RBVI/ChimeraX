@@ -9,7 +9,7 @@ players = set()         # Active players.
 
 def vseries_command(cmd_name, args, session):
 
-    from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg, color_arg
+    from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg, color_arg, range_arg
     from ...commands.parse import floats_arg, parse_subregion, value_type_arg, volume_arg, molecule_arg
     from ...commands.parse import perform_operation
     ops = {
@@ -58,11 +58,17 @@ def vseries_command(cmd_name, args, session):
                   ('colorRange', float_arg),
                   ('cacheFrames', int_arg),
                   ('jumpTo', int_arg),
+                  ('range', range_arg),
+                  ('startTime', int_arg),
                   )),
         'stop': (stop_op,
                  (('series', series_arg),),
                  (),
                  ()),
+        'slider': (slider_op,
+                  (('series', series_arg),),
+                  (),
+                  ()),
         }
 
     perform_operation(cmd_name, args, ops, session)
@@ -70,14 +76,12 @@ def vseries_command(cmd_name, args, session):
 # -----------------------------------------------------------------------------
 #
 def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
-            jumpTo = None, normalize = False, markers = None,
+            jumpTo = None, range = None, start = None, normalize = False, markers = None,
             precedingMarkerFrames = 0, followingMarkerFrames = 0,
             colorRange = None, cacheFrames = 1, session = None):
 
-    tstart = len(series[0].maps)-1 if direction == 'backward' else 0
     from . import play
-    p = play.Play_Series(series, session,
-                         start_time = tstart,
+    p = play.Play_Series(series, session, range = range, start_time = start,
                          play_direction = direction,
                          loop = loop,
                          max_frame_rate = maxFrameRate,
@@ -94,6 +98,7 @@ def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
         players.add(p)
         p.play()
     release_stopped_players()
+    return p
 
 # -----------------------------------------------------------------------------
 #
@@ -354,3 +359,11 @@ def series_arg(s, session):
 def release_stopped_players():
 
   players.difference_update([p for p in players if p.play_handler is None])
+
+# -----------------------------------------------------------------------------
+#
+def slider_op(series, session):
+
+    from . import slider
+    vss = slider.Volume_Series_Slider(series, session)
+    vss.show()

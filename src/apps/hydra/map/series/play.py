@@ -3,7 +3,7 @@
 #
 class Play_Series:
 
-  def __init__(self, series = [], session = None, start_time = None, time_step_cb = None,
+  def __init__(self, series = [], session = None, range = None, start_time = None, time_step_cb = None,
                play_direction = 'forward', loop = False, max_frame_rate = None,
                markers = None,
                preceding_marker_frames = 0, following_marker_frames = 0,
@@ -14,7 +14,8 @@ class Play_Series:
     self.series = series
     self.session = session
     self.current_time = None
-    self.start_time = start_time
+    self.time_range = r = (0, len(series[0].maps)-1, 1) if range is None else range
+    self.start_time = (r[0] if play_direction == 'forward' else r[1]) if start_time is None else start_time
     self.time_step_cb = time_step_cb
 
     self.play_handler = None
@@ -34,8 +35,6 @@ class Play_Series:
     self.rendering_cache_size = rendering_cache_size
     self.rendered_times = []       # For limiting cached renderings
     self.rendered_times_table = {}
-
-    self.timer_id = {}             # For delaying update of volume dialog
 
   # ---------------------------------------------------------------------------
   #
@@ -79,21 +78,20 @@ class Play_Series:
     tslist = self.series
     if len(tslist) == 0:
       return
-    nt = tslist[0].number_of_times()
-    if nt == 0:
-      return
 
+    ts, te = self.time_range[:2]
+    nt = te-ts+1
     if self.play_direction == 'oscillate':
       if self.step > 0:
-        if t == nt - 1:
+        if t == te:
           self.step = -1
-      elif t == 0:
+      elif t == ts:
         self.step = 1
 
     tn = t + self.step
     if self.loop:
-      tn = tn % nt
-    elif tn % nt != tn:
+      tn = ts + (tn-ts)%nt
+    elif (tn-ts) % nt != (tn-ts):
       self.stop()       # Reached the end or the beginning
       return
 

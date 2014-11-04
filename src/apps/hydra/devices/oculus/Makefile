@@ -13,8 +13,8 @@ OCINC = -I$(OCSDK)/LibOVR/Include
 INCS += $(PYTHON_INCLUDE_DIRS) $(OCINC)
 
 #LIBS	+= $(PYTHON_LIB) $(OCSDK)/LibOVR/Lib/MacOS/Release/libovr.a
-LIBS	+= $(PYTHON_LIB) $(OCSDK)/LibOVR/Lib/MacOS/Debug/libovr.a
-LIBS	+= -framework Carbon -framework IOKit
+LIBS	+= $(PYTHON_LIB) $(OCSDK)/LibOVR/Lib/Mac/Debug/libovr.a
+LIBS	+= -framework Carbon -framework IOKit -framework OpenGL
 
 PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 

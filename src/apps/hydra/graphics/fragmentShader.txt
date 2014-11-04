@@ -87,36 +87,12 @@ uniform	int shadow_count;
 uniform float shadow_depth;
 #endif
 
-#ifdef USE_RADIAL_WARP
-uniform vec2 warp_center;
-uniform vec4 radial_warp;
-uniform vec4 chromatic_warp;
-#endif
-
 out vec4 frag_color;
 
 void main (void)
 {
 #ifdef USE_TEXTURE_2D
-#ifdef USE_RADIAL_WARP
-  // Correction of spherical and chromatic aberration for Oculus Rift goggles
-  float aspect = 1.25;
-  float ds = tex_coord.s - warp_center.s;
-  float dt = tex_coord.t - warp_center.t;
-  float dx = 2*ds;		// Range -1,1
-  float dy = 2*dt*aspect;	// Range -aspect,aspect
-  float r2 = dx*dx + dy*dy;
-  float f = radial_warp[0] + r2*(radial_warp[1] + r2*(radial_warp[2] + r2*radial_warp[3]));
-  // Warp red, green and blue channels different to correct chromatic aberration.
-  float fred = f*(chromatic_warp[0] + r2*chromatic_warp[1]);
-  float fblue = f*(chromatic_warp[2] + r2*chromatic_warp[3]);
-  vec4 cr = texture(tex2d, vec2(0.5+fred*ds,0.5+fred*dt));
-  vec4 cg = texture(tex2d, vec2(0.5+f*ds,0.5+f*dt));
-  vec4 cb = texture(tex2d, vec2(0.5+fblue*ds,0.5+fblue*dt));
-  vec4 fcolor = vec4(cr.r, cg.g, cb.b, cg.a) * color;
-#else
   vec4 fcolor = texture(tex2d, tex_coord) * color;
-#endif
 #else
   vec4 fcolor = color;
 #endif

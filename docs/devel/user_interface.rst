@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 User Interface
 ==============
 
@@ -14,4 +16,4 @@ Modules
 .. toctree::
     :maxdepth: 2
 
-    core_cli.rst
+    core/cli.rst

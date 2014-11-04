@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 readcif -- a C++11 CIF and mmCIF parser
 =======================================
 

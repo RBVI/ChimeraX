@@ -38,6 +38,7 @@ class Main_Window(QtWidgets.QMainWindow):
         self.setWindowTitle(self.tr("Hydra"))
         
         sb = QtWidgets.QStatusBar(self)
+        self.status_bar_window_id = int(sb.winId())
         self.setStatusBar(sb)
         self.status_update_interval = 0.2       # seconds
         self._last_status_update = 0
@@ -187,18 +188,31 @@ class Main_Window(QtWidgets.QMainWindow):
         if append:
             msg = str(sb.currentMessage()) + msg
         sb.showMessage(sb.tr(msg))
-#        sb.repaint()        # Does not draw.  Redraw in case long wait before return to event loop
 
         # Repaint status line by entering event loop
         from time import time
         t = time()
         if t > self._last_status_update + self.status_update_interval:
             self._last_status_update = t
-            self.view.block_redraw()        # Avoid graphics redraw
-            try:
-                self._qapp.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
-            finally:
-                self.view.unblock_redraw()
+            sb.repaint()        # Redraw in case long wait before return to event loop
+            # Work around QTBUG-4453, on mac repaint does not cause redraw.
+            from ... import mac_os_cpp
+            mac_os_cpp.repaint_window(self.status_bar_window_id)
+
+            # self._qapp.sendPostedEvents(sb)        # Does not draw.
+            # sb.paintEvent(QtGui.QPaintEvent(sb.visibleRegion()))       # Crashes
+            # return
+
+            # self.view.block_redraw()        # Avoid graphics redraw
+            # try:
+            #     # TODO: exclude user input events drops key strokes and mouse events that will never
+            #     #   get processed, Qt 5.2.  Documentation claims these events are not dropped.
+            #     self._qapp.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+            #     # TODO: Processing all events is unacceptable since data can be changed or deleted whenever
+            #     #       a status message is shown. Need a way to repaint without processing events.
+            #     # self._qapp.processEvents(QtCore.QEventLoop.AllEvents)
+            # finally:
+            #     self.view.unblock_redraw()
 
     def _create_command_line(self):
 
@@ -318,7 +332,7 @@ class Main_Window(QtWidgets.QMainWindow):
 
     def _anchor_callback(self, url):
         if self._anchor_cb:
-            self._anchor_cb(url)
+            self._anchor_cb(url.toString(url.PreferLocalFile))
 
 class Command_Line(QtWidgets.QLineEdit):
 

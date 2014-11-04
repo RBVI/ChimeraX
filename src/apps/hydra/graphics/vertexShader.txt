@@ -22,7 +22,24 @@ layout(location = 0) in vec3 position;
 layout(location = 2) in vec3 normal;
 out vec3 N;
 out vec3 v;
+
+#ifdef USE_SHADOWS
+uniform mat4 shadow_transform;
+out vec3 shadow_tex_coord;
 #endif
+
+#ifdef USE_MULTISHADOW
+//uniform mat4 model_matrix;
+//out vec3 vscene;
+//out vec3 nscene;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+uniform mat4 ambient_tex3d_transform;
+out vec3 ambient_tex_coord;
+#endif
+
+#endif	// end USE_LIGHTING
 
 #ifdef USE_VERTEX_COLORS
 layout(location = 3) in vec4 vcolor;
@@ -40,22 +57,6 @@ layout(location = 4) in vec4 instance_shift_and_scale;
 
 #ifdef USE_INSTANCING
 layout(location = 5) in mat4 instance_placement;
-#endif
-
-#ifdef USE_TEXTURE_3D_AMBIENT
-uniform mat4 ambient_tex3d_transform;
-out vec3 ambient_tex_coord;
-#endif
-
-#ifdef USE_SHADOWS
-uniform mat4 shadow_transform;
-out vec3 shadow_tex_coord;
-#endif
-
-#ifdef USE_MULTISHADOW
-//uniform mat4 model_matrix;
-//out vec3 vscene;
-//out vec3 nscene;
 #endif
 
 void main(void)
@@ -80,26 +81,24 @@ void main(void)
     vec3 ni = normal;
   #endif
   N = normalize((model_view_matrix * vec4(ni,0)).xyz);
+  #ifdef USE_SHADOWS
+    shadow_tex_coord = (shadow_transform * vEye).stp;
+  #endif
   #ifdef USE_MULTISHADOW
 //    vscene = (model_matrix * vi).xyz;
 //    nscene = (model_matrix * vec4(ni,0)).xyz;
   #endif
+  #ifdef USE_TEXTURE_3D_AMBIENT
+    ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
+  #endif
+#endif	// end USE_LIGHTING
+
+#ifdef USE_VERTEX_COLORS
+  color = vcolor;
 #endif
 
 #ifdef USE_TEXTURE_2D
   tex_coord = tex_coord_2d;
-#endif
-
-#ifdef USE_TEXTURE_3D_AMBIENT
-  ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
-#endif
-
-#ifdef USE_SHADOWS
-  shadow_tex_coord = (shadow_transform * vEye).stp;
-#endif
-
-#ifdef USE_VERTEX_COLORS
-  color = vcolor;
 #endif
 
   gl_Position = projection_matrix * vEye;

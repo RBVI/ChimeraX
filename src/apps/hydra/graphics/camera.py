@@ -25,10 +25,12 @@ class Camera:
         self.mode = mode                          # 'mono', 'stereo', 'oculus'
         self.eye_separation_scene = 1.0           # Scene distance units
         self.eye_separation_pixels = eye_separation_pixels        # Screen pixel units
+        self.oculus_centering_shift = 0,0               # pixels, left eye
 
         self.pixel_shift = 0,0                   # x and y shift for supersampling
 
-        self.warp_window_size = None	          # Used for scaling in oculus mode
+        self.warp_framebuffers = [None, None]   # Off-screen rendering each eye for Oculus Rift
+        self.warp_window_size = None
 
         self.redraw_needed = False
 
@@ -143,6 +145,12 @@ class Camera:
         if self.mode == 'stereo' and not view_num is None:
             s = -1 if view_num == 0 else 1
             xshift += s*0.5*self.eye_separation_pixels/ww
+        if self.mode == 'oculus' and not view_num is None:
+            s = 1 if view_num == 0 else -1
+            sx,sy = self.oculus_centering_shift # For left eye
+            xshift += s*sx/ww
+            yshift += s*sy/wh
+
         pm = frustum(left, right, bot, top, near, far, xshift, yshift)
         return pm
 
@@ -167,27 +175,10 @@ class Camera:
         return spts
 
     def unwarped_render_position(self, window_x, window_y, window_size, render):
-        # Returns fractional position in warp framebuffer with origin at center.
-        wp,hp = window_size
-        hw = wp//2
-        coffset = 0.5*self.eye_separation_pixels
-        if window_x < hw:
-            view_num = 0
-            cx = (0.25*wp - coffset)
-        else:
-            view_num = 1
-            cx = (0.75*wp + coffset)
-        cy = 0.5*hp
-        wx, wy = window_x - cx, cy - window_y
-        # Apply radial warp
-        fx, fy = wx/(0.5*hw), wy/(0.5*hw)
-        r2 = fx*fx + fy*fy
-        rc0,rc1,rc2,rc3 = render.radial_warp_coefficients
-        f = rc0 + r2*(rc1 + r2*(rc2 + r2*rc3))
-        wr,hr = render.render_size()
-        wx *= f/wr
-        wy *= f/wr
-        return wx, wy, view_num
+        # TODO: This would be very hard using the Oculus SDK distortion rendering.
+        #       Used to do this when my code applied distortion.  This is needed for mouse selection.
+        wx,wy,view_num = 0,0,0
+        return wx,wy,view_num
 
     def number_of_views(self):
         '''Number of view points for this camera.  Stereo modes have 2 views for left and right eyes.'''
@@ -208,58 +199,82 @@ class Camera:
         elif m == 'stereo':
             render.set_stereo_buffer(view_num)
         elif m == 'oculus':
-            render.push_framebuffer(self.warping_framebuffer())
+            if view_num > 0:
+                render.pop_framebuffer()
+            render.push_framebuffer(self.warping_framebuffer(view_num))
         else:
             raise ValueError('Unknown camera mode %s' % m)
 
-    def warp_image(self, view_num, render):
-        m = self.mode
-        if m == 'oculus':
-            render.pop_framebuffer()
-            fb = render.current_framebuffer()
-            w,h = fb.width//2, fb.height
-            if view_num == 0:
-                render.draw_background()
-                render.set_viewport(0,0,w,h)
-            elif view_num == 1:
-                render.set_viewport(w,0,w,h)
-            coffset = 0.5*self.eye_separation_pixels/w
-            if view_num == 0:
-                coffset = -coffset
-            render.warp_center = (0.5 + coffset, 0.5)
-            return self.warping_surface(render)
-        return None
-
-    def warping_framebuffer(self):
+    def warping_framebuffer(self, view_num):
 
         tw,th = self.warp_window_size
-        fb = getattr(self, 'warp_framebuffer', None)
+        
+        fb = self.warp_framebuffers[view_num]
         if fb is None or fb.width != tw or fb.height != th:
             from . import opengl
             t = opengl.Texture()
             t.initialize_rgba((tw,th))
-            self.warp_framebuffer = fb = opengl.Framebuffer(color_texture = t)
+            self.warp_framebuffers[view_num] = fb = opengl.Framebuffer(color_texture = t)
+            print ('created warp texture', t.size[0], t.size[1])
         return fb
+
+    def draw_warped(self, render, session):
+        '''Combine left and right eye images from separate textures with warping.'''
+
+        m = self.mode
+        if m != 'oculus':
+            return
+
+        render.pop_framebuffer()
+        fb = render.current_framebuffer()
+        render.draw_background()
+
+        from . import opengl
+        b = opengl.deactivate_bindings()  # Prevent oculus_render() from screwing up my last vertex array object.
+        t0,t1 = [rb.color_texture for rb in self.warp_framebuffers]
+        from ..devices import oculus
+        oculus.oculus_render(t0.size[0], t0.size[1], t0.id, t1.id, session)
+
+#        self.draw_unwarped(render)
+
+    def draw_unwarped(self, render):
+
+        # Unwarped rendering, for testing purposes.
+        render.draw_background()
+
+        # Draw left eye
+        fb = render.current_framebuffer()
+        w,h = fb.width//2, fb.height
+        render.set_viewport(0,0,w,h)
+
+        s = self.warping_surface(render)
+        s.texture = self.warp_framebuffers[0].color_texture
+        from . import drawing
+        drawing.draw_overlays([s], render)
+
+        # Draw right eye
+        render.set_viewport(w,0,w,h)
+        s.texture = self.warp_framebuffers[1].color_texture
+        drawing.draw_overlays([s], render)
+
+        session.view.swap_opengl_buffers()
 
     def warping_surface(self, render):
 
-        if not hasattr(self, 'warp_surface'):
-            from ..graphics import Drawing
-            self.warp_surface = s = Drawing('warp plane')
-            # TODO: Use a childless drawing.
-            from numpy import array, float32, int32
-            va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
-            ta = array(((0,1,2),(0,2,3)), int32)
-            tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
-            s.geometry = va, ta
-            s.color = (255,255,255,255)
-            s.use_lighting = False
-            s.texture_coordinates = tc
-            s.use_radial_warp = True
+        if hasattr(self, 'warp_surface'):
+            return self.warp_surface
 
-        s = self.warp_surface
-        s.texture = self.warp_framebuffer.color_texture
-
+        from . import Drawing
+        self.warp_surface = s = Drawing('warp plane')
+        # TODO: Use a childless drawing.
+        from numpy import array, float32, int32
+        va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
+        ta = array(((0,1,2),(0,2,3)), int32)
+        tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
+        s.geometry = va, ta
+        s.color = (255,255,255,255)
+        s.use_lighting = False
+        s.texture_coordinates = tc
         return s
 
 # glFrustum() matrix
@@ -286,5 +301,7 @@ def camera_framing_models(models):
     from ..geometry import bounds
     b = bounds.union_bounds(m.bounds() for m in models)
     center, size = bounds.bounds_center_and_radius(b)
+    if center is None:
+        return None
     c.initialize_view(center, size)
     return c

@@ -85,10 +85,18 @@ class Models:
 
     def set_model_id(self, model):
         if not model.id is None:
+            self.next_id = max(self.next_id, model.id+1)
             return
         model.id = self.next_id
         self.next_id += 1
-        
+
+    def find_model_by_id(self, id):
+        # TODO: handle case where id is a tuple of integers
+        for m in self.top_level_models():
+            if m.id == id:
+                return m
+        return None
+
     def close_models(self, models):
         '''
         Remove a list of models from the scene.

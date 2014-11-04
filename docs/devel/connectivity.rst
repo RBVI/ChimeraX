@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 .. default-domain:: cpp
 
 Generate structure connectivity
