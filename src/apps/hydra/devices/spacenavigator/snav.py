@@ -11,6 +11,8 @@ class Space_Navigator:
         self.device = None
         self.processing_events = False
         self.collision_map = None        # Volume data mask where camera cannot go
+        self.button_1_action = 'view all'
+        self.button_2_action = 'toggle dominant mode'
 
     def start_event_processing(self, session):
 
@@ -87,10 +89,19 @@ class Space_Navigator:
                 self.apply_transform(ttf)
 
         if 'N1' in buttons or 31 in buttons:
-            self.view_all()
+            self.button_pressed(self.button_1_action)
 
         if 'N2' in buttons:
+            self.button_pressed(self.button_2_action)
+
+    def button_pressed(self, action):
+
+        if action == 'view all':
+            self.view_all()
+        elif action == 'toggle dominant mode':
             self.toggle_dominant_mode()
+        elif action == 'toggle fly mode':
+            self.toggle_fly_mode()
 
     # Transform is in camera coordinates, with rotation about 0.
     def apply_transform(self, tf):
@@ -130,7 +141,6 @@ class Space_Navigator:
     def toggle_fly_mode(self):
 
         self.fly_mode = not self.fly_mode
-        self.session.show_status('fly through mode: %s' % self.fly_mode)
 
     def view_all(self):
 
@@ -176,7 +186,8 @@ def toggle_space_navigator(session):
 #
 def toggle_fly_mode(session):
     sn = space_navigator(session)
-    sn.fly_mode = not sn.fly_mode
+    sn.toggle_fly_mode()
+    sn.button_2_action = 'toggle fly mode' if sn.fly_mode else 'toggle dominant mode'
     if not sn.processing_events:
         toggle_space_navigator(session)
 
