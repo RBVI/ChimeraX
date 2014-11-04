@@ -49,6 +49,9 @@ public:
     void  set_is_sheet(bool is) { _is_sheet = is; }
     void  set_ss_id(int ssid) { _ss_id = ssid; }
     std::string  str() const;
+    std::vector<Atom*>  template_assign(
+        void (Atom::*assign_func)(const std::string&), const char* app,
+        const char* template_dir, const char* extension) const;
 };
 
 }  // namespace atomstruct

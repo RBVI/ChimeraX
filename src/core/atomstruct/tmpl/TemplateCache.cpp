@@ -2,15 +2,15 @@
 #include "TAexcept.h"
 #include "TemplateCache.h"
 #include <string>
-#include <util/PathFinder.h>        // use InputFile, PathFactory, cmp_nocase
+#include <util/IOFile.h>        // use InputFile, path_exists
 #include <ioutil/direntry.h>    // use ioutil::opendir(), readdir(), DIR
 #include <ioutil/tokenize.h>    // use ioutil::tokenize()
 #include <util/cmp_nocase.h>
+#include <cpp_appdirs/AppDirs.h>
 #include <iostream>
 #include <sstream>
 #include <string.h>
 #include <sys/stat.h>
-#include <stdlib.h>        // use getenv()
 
 namespace tmpl {
 
@@ -61,21 +61,16 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
 {
     ResMap res_map;
     cache[key] = res_map;
-    const char *root = getenv("CHIMERA");
-    if (root == NULL)
-        return;
+    auto ap = cpp_appdirs::AppDirs::get();
 
-    char pathsep = util::PathFactory::path_separator();
-
-    std::string t_dir = (std::string(root) + pathsep + "share" +
-                pathsep + app + pathsep + template_dir);
+    std::string t_dir = ap.form_path({ ap.site_data_dir, app, template_dir });
     DIR *tmpls = opendir(t_dir.c_str());
     if (tmpls == NULL)
         return;
 
     struct dirent *entry;
     while ((entry = readdir(tmpls)) != NULL) {
-        std::string full_path = t_dir + pathsep + entry->d_name;
+        std::string full_path = ap.form_path({ t_dir, entry->d_name });
         struct stat s;
         if (stat(full_path.c_str(), &s) != 0)
             // couldn't stat

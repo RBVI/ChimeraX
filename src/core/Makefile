@@ -1,8 +1,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= ioutil pdb basegeom util pseudobond atomstruct blob pdbio \
-	structaccess cpp_appdirs ui
+SUBDIRS	+= ioutil pdb basegeom util cpp_appdirs pseudobond atomstruct blob pdbio \
+	structaccess ui
 
 include $(TOP)/mk/subdir.make
 
