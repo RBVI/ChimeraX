@@ -1,6 +1,7 @@
 // vim: set expandtab ts=4 sw=4:
-#include "Residue.h"
 #include "Atom.h"
+#include "Residue.h"
+#include "tmpl/TemplateCache.h"
 #include <utility>  // for pair
 #include <sstream>
 #include <set>
@@ -124,6 +125,20 @@ Residue::str() const
         ret += _chain_id;
     }
     return ret;
+}
+
+std::vector<Atom*>
+Residue::template_assign(void (Atom::*assign_func)(const std::string&),
+    const char* app, const char* template_dir, const char* extension) const
+{
+    // Returns atoms that received assignments.  Can throw these exceptions:
+    //   TA_TemplateSyntax:  template syntax error
+    //   TA_NoTemplate:  no template found
+    //   std::logic_error:  internal logic error
+    using tmpl::TemplateCache;
+    TemplateCache* tc = TemplateCache::template_cache();
+    TemplateCache::AtomMap* am = tc->res_template(name(),
+            app, template_dir, extension);
 }
 
 }  // namespace atomstruct

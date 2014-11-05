@@ -533,19 +533,17 @@ AtomicStructure::_compute_atom_types()
 	// "pass 1.5": use templates for "infallible" typing of standard
 	// residue types
 	std::map<const Atom*, bool> mapped;
-#ifdef TEMPLATE_ASSIGNMENT_IMPLEMENTED
     for (auto& r: residues()) {
 		try {
             for (auto a: r->template_assign(&Atom::set_computed_idatm_type,
             "idatm", "templates", "idatmres"))
-				mapped[a.get()] = true;
+				mapped[a] = true;
 		} catch (tmpl::TA_NoTemplate) {
 			// don't care
 		} catch (...) {
 			throw;
 		}
 	}
-#endif
 
 	if (h_assigned + mapped.size() == num_atoms)
 		return;		// All atoms assigned.

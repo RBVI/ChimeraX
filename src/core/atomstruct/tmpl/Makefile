@@ -5,7 +5,7 @@ SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 LIBNAME = tmpl
 CXXFLAGS += -I../..
-LIBS += ../../ioutil/libioutil.a ../../util/libutil.a
+LIBS += -L$(shlibdir) ../../ioutil/libioutil.a ../../util/libutil.a -lcpp_appdirs
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)

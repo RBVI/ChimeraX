@@ -1125,8 +1125,6 @@ start_t = end_t;
             connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs]);
             prune_short_bonds(fs);
             fs->use_best_alt_locs();
-            // need to handle SEQRES records
-            fs->make_chains();
         }
 #ifdef CLOCK_PROFILING
 end_t = clock();
