@@ -1339,7 +1339,7 @@ class Command:
                 break
         self._error = ""
 
-    def _process_keyword_arguments(self):
+    def _process_keyword_arguments(self, final):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
@@ -1411,7 +1411,7 @@ class Command:
             self._process_positional_arguments()
             if self._error:
                 return
-            self._process_keyword_arguments()
+            self._process_keyword_arguments(final)
             if self._error:
                 return
             if self.amount_parsed == len(self.current_text):
@@ -1426,7 +1426,7 @@ def command_function(name):
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
-        raise ValueError("'%s' is not a command" % name)
+        raise ValueError("'%s' is not a (single) command" % name)
     return cmd._ci.function
 
 
@@ -1437,7 +1437,7 @@ def command_help(name):
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
-        raise ValueError("'%s' is not a command" % name)
+        raise ValueError("'%s' is not a (single) command" % name)
     return cmd._ci.help
 
 
@@ -1448,7 +1448,7 @@ def command_usage(name):
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
-        raise ValueError("'%s' is not a command" % name)
+        raise ValueError("'%s' is not a (single) command" % name)
     usage = cmd.command_name
     ci = cmd._ci
     for arg in ci._required:
@@ -1471,7 +1471,7 @@ def command_html_usage(name):
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
-        raise ValueError("'%s' is not a command" % name)
+        raise ValueError("'%s' is not a (single) command" % name)
     from html import escape
     usage = '<b>%s</b>' % escape(cmd.command_name)
     ci = cmd._ci
