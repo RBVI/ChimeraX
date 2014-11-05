@@ -1,9 +1,10 @@
 # -----------------------------------------------------------------------------
 #
-class Oculus_Head_Tracking:
+class Oculus_Rift:
 
-    def __init__(self):
+    def __init__(self, session):
 
+        self.session = session
         self.connected = False
         self.view = None
 
@@ -11,6 +12,29 @@ class Oculus_Head_Tracking:
         self.last_rotation = None
         self.panning_speed = 5
         self.frame_cb = None
+
+        # Create separate graphics window for rendering to Oculus Rift.
+        from ...ui.qt import graphicswindow as gw
+        self.window = gw.Secondary_Graphics_Window('Oculus Rift View', session)
+
+        success = self.start_event_processing(session.view)
+        msg = 'started oculus head tracking ' if success else 'failed to start oculus head tracking'
+        session.show_status(msg)
+        session.show_info(msg)
+
+        if success:
+            self.oculus_full_screen()
+            self.set_camera_mode(session.view)
+
+    def close(self):
+
+        self.stop_event_processing()
+        self.window.close()
+        self.window = None
+
+        v = self.session.view
+        v.set_camera_mode('mono')
+        v.camera.field_of_view = 30.0
 
     def start_event_processing(self, view):
 
@@ -40,6 +64,7 @@ class Oculus_Head_Tracking:
         return True
 
     def stop_event_processing(self):
+
         if self.frame_cb:
             self.view.remove_new_frame_callback(self.frame_cb)
             self.frame_cb = None
@@ -59,6 +84,23 @@ class Oculus_Head_Tracking:
         p = self.parameters
         w, h = p['texture width'], p['texture height']  # (1182,1461) for DK2
         return w,h
+
+    # Move window to oculus screen and switch to full screen mode.
+    def oculus_full_screen(self):
+
+        if not self.connected:
+            return
+
+        w,h = self.display_size()
+        self.window.full_screen(w,h)
+
+    def render(self, tex_width, tex_height, tex_left, tex_right):
+
+        if self.connected and self.frame_cb:
+            self.window.make_opengl_context_current()
+            from . import _oculus
+            _oculus.render(tex_width, tex_height, tex_left, tex_right)
+            self.session.view.make_opengl_context_current()
 
     def field_of_view_degrees(self):
 
@@ -155,82 +197,16 @@ class Oculus_Head_Tracking:
 
 def start_oculus(session):
 
-    oht = session.oculus
-    if oht is None:
-        session.oculus = oht = Oculus_Head_Tracking()
-
-    success = oht.start_event_processing(session.view)
-    msg = 'started oculus head tracking ' if success else 'failed to start oculus head tracking'
-    session.show_status(msg)
-    session.show_info(msg)
-    if oht.connected:
-        oculus_full_screen(True, session)
-        oht.set_camera_mode(session.view)
-
-def oculus_on(session):
-
-    oht = session.oculus
-    return oht and oht.connected and oht.frame_cb
-
-def oculus_render(tex_width, tex_height, tex_left, tex_right, session):
-
-    oht = session.oculus
-    if oht and oht.connected and oht.frame_cb:
-        from . import _oculus
-        _oculus.render(tex_width, tex_height, tex_left, tex_right)
+    oc = session.oculus
+    if oc is None:
+        session.oculus = oc = Oculus_Rift(session)
 
 def stop_oculus(session):
 
-    oht = session.oculus
-    if oht is None:
-        return
-    oht.stop_event_processing()
-
-    oculus_full_screen(False, session)
-
-    v = session.view
-    v.set_camera_mode('mono')
-    v.camera.field_of_view = 30.0
-
-# Go full screen on oculus display
-def oculus_full_screen(full, session):
-    d = session.application.desktop()
-    mw = session.main_window
-    if full and mw.toolbar.isVisible():
-        mw.toolbar.hide()
-        mw.show_command_line(False)
-        mw.statusBar().hide()
-        if session.oculus.connected:
-            w,h = session.oculus.display_size()
-            move_window_to_oculus(session, w, h)
-    else:
-        move_window_to_primary_screen(session)
-        mw.toolbar.show()
-        mw.show_command_line(True)
-        mw.statusBar().show()
-
-def move_window_to_oculus(session, w, h):
-    d = session.application.desktop()
-    mw = session.main_window
-    for s in range(d.screenCount()):
-        g = d.screenGeometry(s)
-        if g.width() == w and g.height() == h:
-            mw.move(g.left(), g.top())
-            break
-    mw.resize(w,h)
-
-# TODO: Unfortunately a full screen app on a second display blanks the primary display in Mac OS 10.8.
-# I believe this is fixed in Mac OS 10.9.
-#    mw.showFullScreen()
-
-def move_window_to_primary_screen(session):
-    d = session.application.desktop()
-    s = d.primaryScreen()
-    g = d.screenGeometry(s)
-    mw = session.main_window
-    x,y = (g.width() - mw.width())//2, (g.height() - mw.height())//2
-    mw.move(x, 0)       # Work around bug where y-placement is wrong.
-    mw.move(x, y)
+    oc = session.oculus
+    if oc:
+        oc.close()
+        session.oculus = None
 
 def oculus_command(enable = None, panSpeed = None, session = None):
 
@@ -241,6 +217,6 @@ def oculus_command(enable = None, panSpeed = None, session = None):
             stop_oculus(session)
 
     if not panSpeed is None:
-        oht = session.oculus
-        if oht:
-            oht.panning_speed = panSpeed
+        oc = session.oculus
+        if oc:
+            oc.panning_speed = panSpeed
