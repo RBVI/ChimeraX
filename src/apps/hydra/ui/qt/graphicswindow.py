@@ -109,7 +109,7 @@ class Graphics_Window(View, QtGui.QWindow):
 
         f = QtGui.QSurfaceFormat()
         f.setMajorVersion(3)
-        f.setMinorVersion(2)
+        f.setMinorVersion(3)
         f.setDepthBufferSize(24);
         f.setProfile(QtGui.QSurfaceFormat.CoreProfile)
         f.setStereo(stereo)
@@ -158,3 +158,87 @@ class Graphics_Window(View, QtGui.QWindow):
         if self.isExposed():
             if not self.redraw():
                 self.mouse_modes.mouse_pause_tracking()
+
+class Secondary_Graphics_Window(QtGui.QWindow):
+    '''
+    A top level graphics window separate for the main window for example to render to Oculus Rift headset.
+    It has its own opengl context that shares state with the main graphics window context.
+    '''
+    def __init__(self, title, session):
+
+        self.session = session
+        QtGui.QWindow.__init__(self)
+        # Use main window as a parent so this window is closed if main window gets closed.
+        parent = session.main_window
+        self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent, QtCore.Qt.Window)
+        self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
+        w.setWindowTitle(title)
+        w.show()
+
+        shared_context = session.view.opengl_context
+        self.opengl_context = self.create_opengl_context(shared_context)
+
+    def close(self):
+        self.opengl_context.deleteLater()
+        self.opengl_context = None
+        self.widget.close()
+        self.widget = None
+        
+    def create_opengl_context(self, shared_context):
+
+        f = self.pixel_format()
+        self.setFormat(f)
+        self.create()
+
+        c = QtGui.QOpenGLContext(self)
+        if not shared_context is None:
+            c.setShareContext(shared_context)
+        c.setFormat(f)
+        if not c.create():
+            raise SystemError('Failed creating QOpenGLContext')
+        c.makeCurrent(self)
+        return c
+
+    def pixel_format(self, stereo = False):
+
+        f = QtGui.QSurfaceFormat()
+        f.setMajorVersion(3)
+        f.setMinorVersion(3)
+        f.setDepthBufferSize(24);
+        f.setProfile(QtGui.QSurfaceFormat.CoreProfile)
+        f.setStereo(stereo)
+        return f
+
+    def make_opengl_context_current(self):
+        c = self.opengl_context
+        if c is None:
+            self.opengl_context = c = self.create_opengl_context()
+        c.makeCurrent(self)
+
+    def swap_opengl_buffers(self):
+        self.opengl_context.swapBuffers(self)
+
+    def full_screen(self, width, height):
+        d = self.session.application.desktop()
+        ow = self.widget
+        for s in range(d.screenCount()):
+            g = d.screenGeometry(s)
+            if g.width() == width and g.height() == height:
+                ow.move(g.left(), g.top())
+                break
+        ow.resize(width,height)
+        ow.showFullScreen()
+
+    def move_window_to_primary_screen(self):
+        d = self.session.application.desktop()
+        s = d.primaryScreen()
+        g = d.screenGeometry(s)
+        ow = self.widget
+        ow.showNormal()     # Exit full screen mode.  
+        x,y = (g.width() - ow.width())//2, (g.height() - ow.height())//2
+        def move_window(ow=ow, x=x, y=y):
+            ow.move(x, y)
+        # TODO: On Mac OS 10.9 going out of full-screen takes a second during which
+        #   moving the window to the primary display does nothing.
+        from ...ui.qt.qt import QtCore
+        QtCore.QTimer.singleShot(1500, move_window)
