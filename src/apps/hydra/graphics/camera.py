@@ -229,11 +229,9 @@ class Camera:
         fb = render.current_framebuffer()
         render.draw_background()
 
-        from . import opengl
-        b = opengl.deactivate_bindings()  # Prevent oculus_render() from screwing up my last vertex array object.
         t0,t1 = [rb.color_texture for rb in self.warp_framebuffers]
-        from ..devices import oculus
-        oculus.oculus_render(t0.size[0], t0.size[1], t0.id, t1.id, session)
+        if session.oculus:
+            session.oculus.render(t0.size[0], t0.size[1], t0.id, t1.id)
 
 #        self.draw_unwarped(render)
 
