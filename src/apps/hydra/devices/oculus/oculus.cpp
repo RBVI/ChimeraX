@@ -9,12 +9,21 @@
 #include "OVR.h"
 #include "../Src/OVR_CAPI_GL.h"
 
+static void oculus_shutdown();
+
+static bool oculus_sdk_initialized = false;
+
 class Oculus {
 public:
   Oculus()
   {
     this->in_frame = false;
-    ovr_Initialize();
+    if (!oculus_sdk_initialized)
+      {
+	oculus_sdk_initialized = true;
+	ovr_Initialize();
+	atexit(oculus_shutdown);
+      }
 
     this->error = NULL;
     this->hmd = ovrHmd_Create(0);	// First available head mounted device.
@@ -71,7 +80,6 @@ public:
   {
     if (hmd)
       ovrHmd_Destroy(hmd);
-    ovr_Shutdown();
   }     
   bool pose(float xyz[3], int *xyz_valid, float quat[4], int *quat_valid)
   {
@@ -327,6 +335,14 @@ static void close_device()
 
 // ----------------------------------------------------------------------------
 //
+static void oculus_shutdown()
+{
+  close_device();
+  ovr_Shutdown();
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" PyObject *oculus_connect(PyObject *, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, const_cast<char *>("")))
@@ -343,8 +359,6 @@ extern "C" PyObject *oculus_connect(PyObject *, PyObject *args)
       ovrs = NULL;
       return NULL;
     }
-
-  atexit(close_device);
 
   Py_INCREF(Py_None);
   return Py_None;
