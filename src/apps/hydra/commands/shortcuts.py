@@ -152,6 +152,7 @@ def standard_shortcuts(session):
 
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
         ('Oc', oculus_mode, 'Set Oculus Rift stereo mode', gcat, viewarg),
+        ('om', oculus_move, 'Move Oculus window to primary display', gcat, sesarg, dmenu),
 
         ('lp', toggle_leap, 'Toggle leap motion input device', gcat, sesarg, dmenu),
         ('lP', leap_position_mode, 'Enable leap motion position mode', gcat, sesarg),
@@ -722,6 +723,15 @@ def start_oculus(session):
         oculus.stop_oculus(session)
     else:
         oculus.start_oculus(session)
+def oculus_move(session):
+    oc = session.oculus
+    if oc:
+        if hasattr(oc, 'on_primary') and oc.on_primary:
+            oc.oculus_full_screen()
+            oc.on_primary = False
+        else:
+            oc.window.move_window_to_primary_screen()
+            oc.on_primary = True
 
 def toggle_space_navigator(session):
     from ..devices import spacenavigator
