@@ -26,10 +26,9 @@ class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
 public:
     typedef Vertices  Atoms;
     typedef Edges  Bonds;
-    typedef std::pair<Chain::Residues, Sequence::Contents*>  CI_Chain_Pairing;
-    typedef std::map<std::string, CI_Chain_Pairing>  ChainInfo;
     typedef std::vector<std::unique_ptr<Chain>>  Chains;
     typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
+    typedef std::map<std::string, std::vector<std::string>>  InputSeqInfo;
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
@@ -44,6 +43,7 @@ private:
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
     bool  _idatm_valid;
+    InputSeqInfo  _input_seq_info;
     AS_PBManager  _pb_mgr;
     mutable bool  _recompute_rings;
     Residues  _residues;
@@ -64,13 +64,17 @@ public:
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_atom(Atom* a);
     void  delete_bond(Bond* b);
+    void  extend_input_seq_info(std::string& chain_id, std::string& res_name) {
+        _input_seq_info[chain_id].push_back(res_name);
+    }
     CoordSet *  find_coord_set(int) const;
     Residue *  find_residue(std::string &chain_id, int pos, char insert) const;
     Residue *  find_residue(std::string &chain_id, int pos, char insert,
         std::string &name) const;
+    const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     bool  is_traj;
     bool  lower_case_chains;
-    void  make_chains(const ChainInfo *ci = nullptr) const;
+    void  make_chains() const;
     Atom *  new_atom(const std::string &name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
@@ -89,6 +93,7 @@ public:
         unsigned int all_size_threshold = 0,
         std::set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
+    void  set_input_seq_info(std::string& chain_id, std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  use_best_alt_locs();
 };
 

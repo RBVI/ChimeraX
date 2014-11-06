@@ -570,6 +570,14 @@ start_t = end_t;
                 (void) ap0->structure()->new_bond(ap0, ap1);
             break;
         }
+
+        case PDB::SEQRES: {
+            std::string chain_id(1, record.seqres.chain_id);
+            for (int i = 0; i < record.seqres.num_res; ++i) {
+                std::string res_name(record.seqres.res_name[i]);
+                as->extend_input_seq_info(chain_id, res_name);
+            }
+        }
         }
 #ifdef CLOCK_PROFILING
 end_t = clock();
