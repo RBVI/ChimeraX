@@ -30,11 +30,11 @@ class View:
 
         self.frame_number = 1
         self.redraw_needed = False
+        self.time_graphics = False
         self.update_lighting = False
         self.block_redraw_count = 0
         self.new_frame_callbacks = []
         self.rendered_callbacks = []
-        self.last_draw_duration = 0             # seconds
 
         self.overlays = []
         self.atoms_shown = 0
@@ -249,6 +249,40 @@ class View:
     def unblock_redraw(self):
         self.block_redraw_count -= 1
 
+    def report_framerate(self, time = None, monitor_period = 1.0):
+        if time is None:
+            from time import time
+            self.time_graphics = time() + monitor_period
+            self.minimum_render_time = None
+            self.render_start_time = None
+            self.redraw_needed = True
+        else:
+            self.time_graphics = 0
+            msg = '%.1f frames/sec' % (1.0/time,)
+            s = self.session
+            s.show_status(msg)
+            s.show_info(msg)
+
+    def start_timing(self):
+        if self.time_graphics:
+            self.render.finish_rendering()
+            from time import time
+            self.render_start_time = time()
+
+    def finish_timing(self):
+        if self.time_graphics:
+            self.render.finish_rendering()
+            from time import time
+            t = time()
+            rt = t - self.render_start_time
+            mint = self.minimum_render_time
+            if mint is None or rt < mint:
+                self.minimum_render_time = mint = rt
+            if t > self.time_graphics:
+                self.report_framerate(mint)
+            else:
+                self.redraw_needed = True
+
     def add_new_frame_callback(self, cb):
         '''Add a function to be called before each redraw.  The function takes no arguments.'''
         self.new_frame_callbacks.append(cb)
@@ -299,8 +333,7 @@ class View:
 
         selected = [m for m in s.selected_models() if m.display]
 
-        from time import time
-        t0 = time()
+        r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
         from .. import graphics
         for vnum in range(camera.number_of_views()):
@@ -318,7 +351,9 @@ class View:
                     # Initial depth pass optimization to avoid lighting calculation on hidden geometry
                     graphics.draw_depth(r, cvinv, mdraw)
                     r.allow_equal_depth(True)
+                self.start_timing()
                 graphics.draw_drawings(r, cvinv, mdraw)
+                self.finish_timing()
                 if self.multishadow > 0:
                     r.allow_equal_depth(False)
                 if selected:
@@ -326,12 +361,8 @@ class View:
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
-        camera.draw_warped(r, self.session)
 
-#        from OpenGL import GL
-#        GL.glFinish()
-        t1 = time()
-        self.last_draw_duration = t1-t0
+        camera.draw_warped(r, self.session)
         
         if self.overlays:
             graphics.draw_overlays(self.overlays, r)
