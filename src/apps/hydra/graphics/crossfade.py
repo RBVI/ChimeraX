@@ -1,6 +1,6 @@
 # Allow fading from one scene to another
 
-from ..graphics import Drawing
+from .drawing import Drawing
 class Cross_Fade(Drawing):
     
     def __init__(self, viewer, frames):
@@ -26,8 +26,8 @@ class Cross_Fade(Drawing):
 
         # TODO: Use a childless drawing.
         # Make textured square surface piece
-        from .. import graphics
-        self.piece = graphics.rgba_drawing(self.rgba, (-1,-1), (2,2), self)
+        from .drawing import rgba_drawing
+        self.piece = rgba_drawing(self.rgba, (-1,-1), (2,2), self)
 
         v.add_overlay(self)
         v.add_new_frame_callback(self.next_frame)
@@ -80,14 +80,14 @@ class Motion_Blur(Drawing):
         if self.rgba is None:
             self.rgba = rgba
             # Make textured square surface piece
-            from .. import graphics
-            self.piece = graphics.rgba_drawing(rgba, (-1,-1), (2,2), self)
+            from .drawing import rgba_drawing
+            self.piece = rgba_drawing(rgba, (-1,-1), (2,2), self)
             v.add_overlay(self)
         elif self.rgba.shape != (h,w,4):
             # Resize texture and motion blur image
             self.remove_drawing(self.piece)
-            from .. import graphics
-            self.piece = graphics.rgba_drawing(rgba, (-1,-1), (2,2), self)
+            from .drawing import rgba_drawing
+            self.piece = rgba_drawing(rgba, (-1,-1), (2,2), self)
             self.rgba = rgba
         else:
             from numpy import array

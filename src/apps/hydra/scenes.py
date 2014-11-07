@@ -105,7 +105,7 @@ class Scene:
     def show(self):
         s = self.session
         if self.cross_fade_frames:
-            from .graphics.crossfade import Cross_Fade
+            from .graphics import Cross_Fade
             Cross_Fade(s.view, self.cross_fade_frames)
 
         # Hide all models so models that did not exist in scene are hidden.

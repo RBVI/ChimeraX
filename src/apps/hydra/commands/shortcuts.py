@@ -708,7 +708,7 @@ def leap_quit(session):
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
-    from ..graphics.crossfade import Motion_Blur
+    from ..graphics import Motion_Blur
     mb = [o for o in viewer.overlays if isinstance(o, Motion_Blur)]
     if mb:
         viewer.remove_overlays(mb)
