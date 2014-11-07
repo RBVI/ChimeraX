@@ -20,12 +20,12 @@ namespace tmpl {
 
 using namespace ioutil;
 
-TemplateCache *TemplateCache::_instance = NULL;
+TemplateCache *TemplateCache::_instance = nullptr;
 
 TemplateCache *
 TemplateCache::template_cache()
 {
-    if (_instance == NULL) {
+    if (_instance == nullptr) {
         _instance = new TemplateCache;
     }
     return _instance;
@@ -156,7 +156,7 @@ TemplateCache::parse_template_file(std::ifstream &template_file, std::string &pa
         }
         std::string at_name(fields[0]);
         std::string normal_at_type(fields[1]);
-        ConditionalTemplate *ct = NULL;
+        ConditionalTemplate *ct = nullptr;
         if (num_fields > 2) {
             ct = new ConditionalTemplate;
             for (int field_num = 2; field_num < num_fields;
