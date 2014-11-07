@@ -41,8 +41,8 @@ class Oculus_Rift:
         from . import _oculus
 
         if not self.connected:
-            from ...graphics import opengl
-            b = opengl.deactivate_bindings() # Make sure oculus doesn't change current VAO.
+            # Make sure initializing Oculus distortion correct doesn't change current OpenGL VAO bindings.
+            self.window.make_opengl_context_current()
             try:
                 _oculus.connect()
                 self.connected = True
