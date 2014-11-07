@@ -76,7 +76,8 @@ def standard_shortcuts(session):
         ('So', stereo_mode, 'Set sequential stereo mode', gcat, viewarg, smenu, sep),
 
         ('uh', undisplay_half, 'Undisplay z > 0', gcat, sesarg, smenu),
-        ('rt', show_stats, 'Show model statistics', gcat, sesarg, smenu),
+        ('rt', show_framerate, 'Show framerate', gcat, sesarg, smenu),
+        ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
@@ -664,12 +665,15 @@ def show_command_history(session):
 def show_scenes(session):
     session.scenes.show_thumbnails(toggle = True)
 
-def show_stats(session):
+def show_framerate(session):
+    session.view.report_framerate()
+
+def show_triangle_count(session):
     v = session.view
     na = v.atoms_shown
-    r = 1.0/v.last_draw_duration
+    nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in session.molecules()) if na > 0 else 0
     n = session.model_count()
-    msg = '%d models, %d atoms, %.1f frames/sec' % (n, na, r)
+    msg = '%d models, %d atoms, %d atom triangles' % (n, na, nt)
     session.show_status(msg)
     session.show_info(msg)
 
