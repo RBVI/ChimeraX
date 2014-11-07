@@ -353,6 +353,8 @@ def label_value_in_range(text, imin, imax):
 def enable_map_series_mouse_mode(session, button = 'right'):
   from . import Map_Series
   series = [m for m in session.model_list() if isinstance(m, Map_Series)]
-  p = Play_Series(series, session, rendering_cache_size = 10)
-  mm = session.view.mouse_modes
-  mm.bind_mouse_mode(button, mm.mouse_down, p.mouse_drag, mm.mouse_up)
+  if series:
+    p = Play_Series(series, session, rendering_cache_size = 10)
+    mm = session.view.mouse_modes
+    mm.bind_mouse_mode(button, mm.mouse_down, p.mouse_drag, mm.mouse_up)
+    # TODO: If no series opened it should still work after one does get opened.
