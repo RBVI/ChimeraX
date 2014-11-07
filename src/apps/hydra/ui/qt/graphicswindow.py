@@ -65,11 +65,7 @@ class Graphics_Window(View, QtGui.QWindow):
 #
         self.window_size = w, h
         if not self.opengl_context is None:
-            from ... import graphics
-            fb = graphics.default_framebuffer()
-            fb.width, fb.height = w,h
-            fb.viewport = (0,0,w,h)
-#            self.render.set_viewport(0,0,w,h)
+            self.resize(w,h)
 
     # QWindow method
     def exposeEvent(self, event):

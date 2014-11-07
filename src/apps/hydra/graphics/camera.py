@@ -262,7 +262,7 @@ class Camera:
         if hasattr(self, 'warp_surface'):
             return self.warp_surface
 
-        from . import Drawing
+        from .drawing import Drawing
         self.warp_surface = s = Drawing('warp plane')
         # TODO: Use a childless drawing.
         from numpy import array, float32, int32

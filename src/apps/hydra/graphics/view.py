@@ -10,11 +10,11 @@ class View:
         self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
         # Create camera
-        from ..graphics import Camera
+        from .camera import Camera
         self.camera = Camera()
         '''The camera controlling the vantage shown in the graphics window.'''
 
-        from . import Render
+        from .opengl import Render
         self.render = Render()
         self.opengl_initialized = False
         self._shadows = False
@@ -55,10 +55,6 @@ class View:
 
         w,h = self.window_size
         r.initialize_opengl(w,h)
-
-        from ..graphics import llgrutil as gr
-        if gr.use_llgr:
-            gr.initialize_llgr()
 
     def make_opengl_context_current(self):
         pass    # Defined by derived class
@@ -147,14 +143,25 @@ class View:
 
         w,h = self.window_size_matching_aspect(width, height)
 
-        from .. import graphics
-        fb = graphics.Framebuffer(w,h)
+        from .opengl import Framebuffer
+        fb = Framebuffer(w,h)
         if not fb.valid():
             return None         # Image size exceeds framebuffer limits
 
         r = self.render
         r.push_framebuffer(fb)
-        c = camera if camera else self.camera
+
+        if camera is None:
+            if models:
+                from .camera import camera_framing_models
+                c = camera_framing_models(models)
+                if c is None:
+                    return None         # Models not showing anything
+            else:
+                c = self.camera
+        else:
+            c = camera
+
         if supersample is None:
             self.draw_scene(c, models)
             rgba = r.frame_buffer_image(w, h)
@@ -179,6 +186,12 @@ class View:
         from PIL import Image
         pi = Image.fromarray(rgba[::-1,:,:3])
         return pi
+
+    def resize(self, width, height):
+        from .opengl import default_framebuffer
+        fb = default_framebuffer()
+        fb.width, fb.height = width,height
+        fb.viewport = (0,0,width,height)
 
     def window_size_matching_aspect(self, width, height):
         w,h = width, height
@@ -335,7 +348,7 @@ class View:
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
-        from .. import graphics
+        from .drawing import draw_depth, draw_drawings, draw_outline, draw_overlays
         for vnum in range(camera.number_of_views()):
             camera.set_framebuffer(vnum, r)
             if self.silhouettes:
@@ -349,15 +362,15 @@ class View:
                 if self.multishadow > 0:
                     r.set_multishadow_transforms(mstf, camera.view(), msdepth)
                     # Initial depth pass optimization to avoid lighting calculation on hidden geometry
-                    graphics.draw_depth(r, cvinv, mdraw)
+                    draw_depth(r, cvinv, mdraw)
                     r.allow_equal_depth(True)
                 self.start_timing()
-                graphics.draw_drawings(r, cvinv, mdraw)
+                draw_drawings(r, cvinv, mdraw)
                 self.finish_timing()
                 if self.multishadow > 0:
                     r.allow_equal_depth(False)
                 if selected:
-                    graphics.draw_outline(r, cvinv, selected)
+                    draw_outline(r, cvinv, selected)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
@@ -365,7 +378,7 @@ class View:
         camera.draw_warped(r, self.session)
         
         if self.overlays:
-            graphics.draw_overlays(self.overlays, r)
+            draw_overlays(self.overlays, r)
 
     def use_shadow_map(self, light_direction, models):
 
@@ -383,8 +396,8 @@ class View:
 
         # Compute light view and scene to shadow map transforms
         lvinv, stf = r.shadow_transforms(light_direction, center, radius)
-        from .. import graphics
-        graphics.draw_drawings(r, lvinv, models)
+        from .drawing import draw_drawings
+        draw_drawings(r, lvinv, models)
 
         shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
@@ -415,7 +428,7 @@ class View:
         # TODO: Don't run multishadow fragment shader when computing shadow map -- very expensive.
         mstf = []
         nl = len(light_directions)
-        from ..graphics import draw_drawings
+        from .drawing import draw_drawings
         from math import ceil, sqrt
         d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
         s = size//d                 # Subtexture size.

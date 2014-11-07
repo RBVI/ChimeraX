@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/graphics
 
-PYSRCS = __init__.py camera.py crossfade.py drawing.py llgrutil.py opengl.py pyopengl_draw_instanced.py view.py
+PYSRCS = __init__.py camera.py crossfade.py drawing.py opengl.py pyopengl_draw_instanced.py view.py
 
 OPENGL_SHADERS = fragmentShader.txt vertexShader.txt
 

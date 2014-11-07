@@ -120,7 +120,4 @@ class OpenGLCanvas(glcanvas.GLCanvas):
     def set_viewport(self):
         self.graphics_window.window_size = w, h = self.GetClientSize()
         if self.graphics_window.opengl_context is not None:
-            from ... import graphics
-            fb = graphics.default_framebuffer()
-            fb.width, fb.height = w, h
-            fb.viewport = (0, 0, w, h)
+            self.graphics_window.resize(w,h)

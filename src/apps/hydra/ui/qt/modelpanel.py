@@ -81,12 +81,9 @@ class Model_Panel:
             return model.thumbnail_image
         v = self.session.view
         w,h = self.image_size
-        from ... import graphics
-        c = graphics.camera_framing_models([model])
-        if c is None:
-            return None         # Model is empty
-        i = v.image(w, h, camera = c, models = [model])
-        model.thumbnail_image = i
+        i = v.image(w, h, models = [model])
+        if not i is None:
+            model.thumbnail_image = i
         return i
 
     def shown(self):
