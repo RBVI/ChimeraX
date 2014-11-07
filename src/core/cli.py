@@ -544,13 +544,100 @@ class Or(Annotation):
         return completions
 
 
+_escape_table = {
+    "'": "'",
+    '"': '"',
+    'a': '\a',
+    'b': '\b',
+    'f': '\f',
+    'n': '\n',
+    'r': '\r',
+    't': '\t',
+    'v': '\v',
+}
+
+def unescape(text):
+    """Replace backslash escape sequences with actual character
+    
+    Follows Python's :ref:`string literal <python:stringescapeseq>` syntax."""
+    # standard Python backslashes including \N{unicode name}
+    start = 0
+    while start < len(text):
+        index = text.find('\\', start)
+        if index == -1:
+            break
+        if index == len(text) - 1:
+            break
+        escaped = text[index + 1]
+        if escaped in _escape_table:
+            text = text[:index] + _escape_table[escaped] + text[index + 2:]
+            start = index + 1
+        elif escaped == 'o':
+            try:
+                char = chr(int(text[index + 2: index + 5], 8))
+                text = text[:index] + char + text[index + 5:]
+            except ValueError:
+                pass
+            start = index + 1
+        elif escaped == 'x':
+            try:
+                char = chr(int(text[index + 2: index + 4], 16))
+                text = text[:index] + char + text[index + 4:]
+            except ValueError:
+                pass
+            start = index + 1
+        elif escaped == 'u':
+            try:
+                char = chr(int(text[index + 2: index + 6], 16))
+                text = text[:index] + char + text[index + 6:]
+            except ValueError:
+                pass
+            start = index + 1
+        elif escaped == 'U':
+            try:
+                char = chr(int(text[index + 2: index + 10], 16))
+                text = text[:index] + char + text[index + 10:]
+            except ValueError:
+                pass
+            start = index + 1
+        elif escaped == 'N':
+            if len(text) < index + 2 or text[index + 2] != '{':
+                start = index + 1
+                continue
+            end = text.find('}', index + 3)
+            if end > 0:
+                import unicodedata
+                name = text[index + 3:end]
+                print('name', name)
+                try:
+                    char = unicodedata.lookup(name)
+                    text = text[:index] + char + text[end + 1:]
+                except KeyError:
+                    pass
+            start = index + 1
+        else:
+            # leave backslash in text like Python
+            start = index + 1
+    return text
+
+
 class RestOfLine(Annotation):
     name = "the rest of line"
 
     @staticmethod
     def parse(text, session):
-        # convert \N{unicode name} to unicode, etc.
-        return text.encode('utf-8').decode('unicode-escape')
+        return unescape(text)
+
+    @staticmethod
+    def completions(text, session):
+        return []
+
+class WholeRestOfLine(Annotation):
+    name = "the rest of line"
+
+    @staticmethod
+    def parse(text, session):
+        return unescape(text)
 
     @staticmethod
     def completions(text, session):
@@ -674,32 +761,40 @@ class CmdDesc:
     :param required: required positional arguments tuple
     :param optional: optional positional arguments tuple
     :param keyword: keyword arguments tuple
+    :param help: placeholder for help information (e.g., URL)
 
     Each tuple contains tuples with the argument name and a type annotation.
     The command line parser uses the *optional* argument names to as
     keyword arguments.
     """
     __slots__ = [
-        'required', 'optional', 'keyword',
-        'postconditions', 'function',
+        '_required', '_optional', '_keyword',
+        '_postconditions', '_function',
+        'help',
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
-                 postconditions=()):
-        self.required = OrderedDict(required)
-        self.optional = OrderedDict(optional)
-        self.keyword = dict(keyword)
-        self.keyword.update(self.optional)
-        self.postconditions = postconditions
-        self.function = None
+                 postconditions=(), help=None):
+        self._required = OrderedDict(required)
+        self._optional = OrderedDict(optional)
+        self._keyword = OrderedDict(keyword)
+        self._keyword.update(self._optional)
+        self._postconditions = postconditions
+        self.help = help
+        self._function = None
 
-    def set_function(self, function):
+    @property
+    def function(self):
+        return self._function
+
+    @function.setter
+    def function(self, function):
         """Set the function to call when the command matches.
 
         Double check that all function arguments, that do not
         have default values, are 'required'.
         """
-        if self.function:
+        if self._function:
             raise ValueError("Can not reuse CmdDesc instances")
         import inspect
         Empty = inspect.Parameter.empty
@@ -709,58 +804,40 @@ class CmdDesc:
         if len(params) < 1 or params[0].name != "session":
             raise ValueError("Missing initial 'session' argument")
         for p in params[1:]:
-            if (p.default != Empty or p.name in self.required
+            if (p.default != Empty or p.name in self._required
                     or p.kind == Positional):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
                              "required or have a default value" % p.name)
 
-        self.function = function
+        self._function = function
 
     def copy(self):
         """Return a copy suitable for use with another function."""
         import copy
         ci = copy.copy(self)
-        ci.function = None
+        ci._function = None
         return ci
 
 
 class _Defer:
     # Enable function introspection to be deferred until needed
-    #
-    # _Defer(proxy_function, cmd_desc) -> instance
-    #
-    # There are two uses: (1) the proxy function returns the actual
-    # function that implements the command, or (2) the proxy function
-    # register subcommands and returns None.  In the former case,
-    # the proxy function will typically consist of an import statement,
-    # followed by returning a function in the imported module.  In the
-    # latter case, multiple subcommands are registered, and nothing is
-    # returned.
-    __slots__ = ['proxy', 'cmd_desc']
+    __slots__ = ['proxy']
 
     def __init__(self, proxy_function, cmd_desc):
         self.proxy = proxy_function
-        if isinstance(cmd_desc, tuple):
-            cmd_desc = CmdDesc(*cmd_desc)
-        self.cmd_desc = cmd_desc
 
     def call(self):
         return self.proxy()
 
 
-def delay_registration(name, proxy_function, cmd_desc=None):
+def delay_registration(name, proxy_function):
     """delay registering a named command until needed
 
     :param proxy_function: the function to call if command is used
-    :param cmd_desc: optional information about the command, either an
-        instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
-        parameters.
 
-    If the command description is given, then the proxy function
-    should return the actual function used to implement the command.
-    Otherwise, the proxy function should explicitly register (sub)commands
-    and return nothing.
+    The proxy function should explicitly reregister the command or
+    register subcommands and return nothing.
 
     Example::
 
@@ -773,7 +850,7 @@ def delay_registration(name, proxy_function, cmd_desc=None):
 
         cli.delay_registration('cmd', lazy_reg)
     """
-    register(name, None, _Defer(proxy_function, cmd_desc))
+    register(name, None, _Defer(proxy_function))
 
 
 def register(name, cmd_desc=(), function=None):
@@ -831,7 +908,7 @@ def register(name, cmd_desc=(), function=None):
         cmd_desc = function
     else:
         # introspect immediately to give errors
-        cmd_desc.set_function(function)
+        cmd_desc.function = function
     cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -855,17 +932,12 @@ def _unregister(name):
         raise RuntimeError("unregistering beginning of multiword command")
     del cmd_map[word]
 
-def _lazy_introspect(cmd_map, word):
+def _lazy_register(cmd_map, word):
     deferred = cmd_map[word]
-    function = deferred.call()
-    if function is not None:
-        cmd_desc = deferred.cmd_desc
-        if cmd_desc is None:
-            raise RuntimeError("delayed registration "
-                               "forgot command information")
-        cmd_desc.set_function(function)
-        cmd_map[word] = cmd_desc
-        return cmd_desc
+    try:
+        deferred.call()
+    except:
+        raise RuntimeError("delayed registration failed")
     # deferred function might have registered subcommands
     cmd_desc = cmd_map[word]
     if isinstance(cmd_desc, (dict, CmdDesc)):
@@ -879,58 +951,12 @@ def add_keyword_arguments(name, kw_info):
     :param name: the name of the command
     :param kw_info: { keyword: annotation }
     """
-    words = name.split()
-    cmd_map = _commands
-    for word in words[:-1]:
-        what = cmd_map.get(word, None)
-        if isinstance(what, dict):
-            cmd_map = what
-            continue
-        if isinstance(what, _Defer):
-            what = _lazy_introspect(cmd_map, word)
-        if isinstance(what, dict):
-            cmd_map = what
-            continue
+    cmd = Command(None, name, final=True)
+    if cmd.multiple or not cmd._ci:
         raise ValueError("'%s' is not a command" % name)
-    word = words[-1]
-    what = cmd_map.get(word, None)
-    if what is None:
-        raise ValueError("'%s' is not a command" % name)
-    if isinstance(what, _Defer):
-        what = _lazy_introspect(cmd_map, word)
-    if isinstance(what, dict):
-        raise ValueError("'%s' is not the full command" % name)
     # TODO: fail if there are conflicts with existing keywords?
-    what.keyword.update(kw_info)
+    cmd._ci._keyword.update(kw_info)
     # TODO: save appropriate kw_info, if reregistered?
-
-
-def command_function(name):
-    """Return callable for given command name
-
-    :param name: the name of the command
-    """
-    words = name.split()
-    cmd_map = _commands
-    for word in words[:-1]:
-        what = cmd_map.get(word, None)
-        if what is None:
-            return None
-        if isinstance(what, _Defer):
-            what = _lazy_introspect(cmd_map, word)
-        if isinstance(what, dict):
-            cmd_map = what
-            continue
-        return None
-    word = words[-1]
-    what = cmd_map.get(word, None)
-    if what is None:
-        return None
-    if isinstance(what, _Defer):
-        what = _lazy_introspect(cmd_map, word)
-    if isinstance(what, dict):
-        raise None
-    return what.function
 
 
 class Command:
@@ -955,6 +981,10 @@ class Command:
     .. data: completion_prefix
 
         Partial word used for command completions.
+
+    .. data: multiple
+
+        True if command is multiple commands (semicolon separated)
     """
     def __init__(self, session, text='', final=False):
         import weakref
@@ -968,6 +998,7 @@ class Command:
         self.amount_parsed = 0
         self.completion_prefix = ""
         self.completions = []
+        self.multiple = False
         self._error = "Missing command"
         self._ci = None
         self.command_name = None
@@ -982,7 +1013,7 @@ class Command:
         """
         if self._error:
             raise UserError(self._error)
-        for cond in self._ci.postconditions:
+        for cond in self._ci._postconditions:
             if not cond.check(self._kwargs):
                 raise UserError(cond.error_message())
         self._error_checked = True
@@ -1043,21 +1074,27 @@ class Command:
             if m:
                 end = m.end()
                 token = text[start + 1:end - 1]
+                if len(text) > end and not text[end].isspace():
+                    self._error = "quoted text must end with whitespace"
+                    raise UserError(self._error)
             else:
                 end = len(text)
                 token = text[start + 1:end]
                 self._error = "incomplete quoted text"
+            token = unescape(token)
         elif text[start] == "'":
             m = _single.match(text, start)
             if m:
                 end = m.end()
                 token = text[start + 1:end - 1]
+                if len(text) > end and not text[end].isspace():
+                    self._error = "quoted text must end with whitespace"
+                    raise UserError(self._error)
             else:
                 end = len(text)
                 token = text[start + 1:end]
                 self._error = "incomplete quoted text"
-            # convert \N{unicode name} to unicode, etc.
-            token = token.encode('utf-8').decode('unicode-escape')
+            token = unescape(token)
         elif text[start] in ',;':
             return text[start], text[0:start + 1]
         else:
@@ -1065,6 +1102,41 @@ class Command:
             end = m.end()
             token = text[start:end]
         return token, text[0:end]
+
+    def _upto_semicolon(self, text):
+        # return text up to next semicolon, taking into account tokens
+        start = 0
+        size = len(text)
+        while start < size:
+            m = _whitespace.match(text, start)
+            if m:
+                start = m.end()
+                if start == size:
+                    break
+            if text[start] == '"':
+                m = _double.match(text, start)
+                if m:
+                    start = m.end()
+                else:
+                    start = size
+                    self._error = "incomplete quoted text"
+                    break
+            elif text[start] == "'":
+                m = _single.match(text, start)
+                if m:
+                    start = m.end()
+                else:
+                    start = size
+                    self._error = "incomplete quoted text"
+                    break
+            elif text[start] == ',':
+                start += 1
+            elif text[start] == ';':
+                break
+            else:
+                m = _normal_token.match(text, start)
+                start = m.end()
+        return text[:start], text[start:]
 
     def _complete(self, chars, suffix):
         # insert completion taking into account quotes
@@ -1080,9 +1152,14 @@ class Command:
         return self.current_text[j:]
 
     def _parse_arg(self, annotation, text, final):
-        if annotation is RestOfLine:
-            # TODO: stop at ;
+        if annotation is WholeRestOfLine:
+            self.amount_parsed += len(text)
             return text.lstrip(), ""
+
+        if annotation is RestOfLine:
+            text, rest = self._upto_semicolon(text)
+            self.amount_parsed += len(text)
+            return text.lstrip(), rest
 
         session = self._session  # resolve back reference
         multiword = annotation.multiword
@@ -1180,23 +1257,16 @@ class Command:
             if x is not None:
                 values = x
 
-    def parse_text(self, text, final=False):
-        """Parse text into function and arguments
-
-        :param text: The text to be parsed.
-        :param final: True if last version of command text
-
-        May be called multiple times.  There are a couple side effects:
-
-        * The automatically completed text is put in self.current_text.
-        * Possible completions are in self.completions.
-        * The prefix of the completions is in self.completion_prefix.
-        """
-        self._reset()   # don't be smart, just start over
-
-        # find command name
-        self.current_text = text
-        text = text[self.amount_parsed:]
+    def _find_command_name(self, final):
+        # side effects:
+        #   updates amount_parsed
+        #   updates possible completions
+        #   if successful, sets self._ci
+        start = self.amount_parsed
+        text = self.current_text[start:]
+        m = _whitespace.match(text, start)
+        if m:
+            start = m.end()
         word_map = _commands
         while 1:
             word, chars = self._next_token(text)
@@ -1221,33 +1291,35 @@ class Command:
             self.amount_parsed += len(chars)
             text = text[len(chars):]
             if isinstance(what, _Defer):
-                what = _lazy_introspect(word_map, word)
+                what = _lazy_register(word_map, word)
             if isinstance(what, dict):
                 # word is part of multiword command name
                 word_map = what
                 self._error = ("Incomplete command: %s"
-                               % self.current_text[0:self.amount_parsed])
+                               % self.current_text[start:self.amount_parsed])
                 continue
             assert(isinstance(what, CmdDesc))
             self._ci = what
-            self.command_name = self.current_text[:self.amount_parsed]
-            break
-        word_map = self._ci.keyword
+            self.command_name = self.current_text[start:self.amount_parsed]
+            return
 
-        # TODO: option alias expansion
-
-        # process positional arguments
-        positional = self._ci.required.copy()
-        positional.update(self._ci.optional)
+    def _process_positional_arguments(self):
+        # side effects:
+        #   updates amount_parsed
+        #   updates possible completions
+        #   if successful, updates self._kwargs
+        text = self.current_text[self.amount_parsed:]
+        positional = self._ci._required.copy()
+        positional.update(self._ci._optional)
         self.completion_prefix = ''
         self.completions = []
         for name, anno in positional.items():
-            if name in self._ci.optional:
+            if name in self._ci._optional:
                 self._error = ""
                 tmp = text.split(None, 1)
                 if not tmp:
                     break
-                if tmp[0] in word_map:
+                if tmp[0] in self._ci._keyword:
                     # matches keyword,
                     # so switch to keyword processing
                     break
@@ -1255,19 +1327,24 @@ class Command:
                 self._error = "Missing required argument %s" % name
             try:
                 if isinstance(anno, Aggregate):
-                    value, text = self._parse_aggregate(anno, text, final)
+                    value, text = self._parse_aggregate(anno, text, False)
                 else:
-                    value, text = self._parse_arg(anno, text, final)
+                    value, text = self._parse_arg(anno, text, False)
                 self._kwargs[name] = value
             except ValueError as err:
-                if name in self._ci.required:
+                if name in self._ci._required:
                     self._error = "Invalid argument %r: %s" % (name, err)
                     return
                 # optional and wrong type, try as keyword
                 break
         self._error = ""
 
-        # process keyword arguments
+    def _process_keyword_arguments(self, final):
+        # side effects:
+        #   updates amount_parsed
+        #   updates possible completions
+        #   if successful, updates self._kwargs
+        text = self.current_text[self.amount_parsed:]
         while 1:
             word, chars = self._next_token(text)
             if _debugging:
@@ -1277,9 +1354,10 @@ class Command:
                 self.amount_parsed += len(chars)
                 break
 
-            if word not in self._ci.keyword:
+            if word not in self._ci._keyword:
                 self.completion_prefix = word
-                self.completions = [x for x in word_map if x.startswith(word)]
+                self.completions = [x for x in self._ci._keyword
+                                    if x.startswith(word)]
                 if (final or len(text) > len(chars)) and self.completions:
                     # If final version of text, or if there
                     # is following text, make best guess,
@@ -1288,7 +1366,7 @@ class Command:
                     text = self._complete(chars, c[len(word):])
                     self.completions = []
                     continue
-                if len(self._ci.keyword) > 0:
+                if len(self._ci._keyword) > 0:
                     self._error = "Expected keyword, got '%s'" % word
                 else:
                     self._error = "Too many arguments"
@@ -1297,7 +1375,7 @@ class Command:
             text = text[len(chars):]
 
             name = word
-            anno = self._ci.keyword[name]
+            anno = self._ci._keyword[name]
             try:
                 if isinstance(anno, Aggregate):
                     value, text = self._parse_aggregate(anno, text, final)
@@ -1307,6 +1385,112 @@ class Command:
             except ValueError as err:
                 self._error = "Invalid  argument %r: %s" % (name, err)
                 return
+
+    def parse_text(self, text, final=False):
+        """Parse text into function and arguments
+
+        :param text: The text to be parsed.
+        :param final: True if last version of command text
+
+        May be called multiple times.  There are a couple side effects:
+
+        * The automatically completed text is put in self.current_text.
+        * Possible completions are in self.completions.
+        * The prefix of the completions is in self.completion_prefix.
+        """
+        self._reset()   # don't be smart, just start over
+
+        # find command name
+        self.current_text = text
+
+        #while 1:
+        if 1:
+            self._find_command_name(final)
+            if not self._ci:
+                return
+            self._process_positional_arguments()
+            if self._error:
+                return
+            self._process_keyword_arguments(final)
+            if self._error:
+                return
+            if self.amount_parsed == len(self.current_text):
+                return
+            #self.multiple = 1
+
+
+def command_function(name):
+    """Return callable for given command name
+
+    :param name: the name of the command
+    """
+    cmd = Command(None, name, final=True)
+    if cmd.multiple or not cmd._ci:
+        raise ValueError("'%s' is not a (single) command" % name)
+    return cmd._ci.function
+
+
+def command_help(name):
+    """Return help for given command name
+
+    :param name: the name of the command
+    """
+    cmd = Command(None, name, final=True)
+    if cmd.multiple or not cmd._ci:
+        raise ValueError("'%s' is not a (single) command" % name)
+    return cmd._ci.help
+
+
+def command_usage(name):
+    """Return usage string for given command name
+
+    :param name: the name of the command
+    """
+    cmd = Command(None, name, final=True)
+    if cmd.multiple or not cmd._ci:
+        raise ValueError("'%s' is not a (single) command" % name)
+    usage = cmd.command_name
+    ci = cmd._ci
+    for arg in ci._required:
+        usage += ' %s' % arg
+    num_opt = 0
+    for arg in ci._optional:
+        usage += ' [%s' % arg
+        num_opt += 1
+    usage += ']' * num_opt
+    for arg in ci._keyword:
+        type = ci._keyword[arg].name
+        usage += ' [%s _%s_]' % (arg, type)
+    return usage
+
+
+def command_html_usage(name):
+    """Return usage string in HTML for given command name
+
+    :param name: the name of the command
+    """
+    cmd = Command(None, name, final=True)
+    if cmd.multiple or not cmd._ci:
+        raise ValueError("'%s' is not a (single) command" % name)
+    from html import escape
+    usage = '<b>%s</b>' % escape(cmd.command_name)
+    ci = cmd._ci
+    for arg in ci._required:
+        type = ci._required[arg].name
+        usage += ' <span title="%s"><i>%s</i></span>' % (escape(type),
+                                                         escape(arg))
+    num_opt = 0
+    for arg in ci._optional:
+        num_opt += 1
+        type = ci._optional[arg].name
+        usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type),
+                                                          escape(arg))
+    usage += ']' * num_opt
+    for arg in ci._keyword:
+        type = ci._keyword[arg].name
+        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg), escape(type))
+    return usage
+
 
 _cmd_aliases = OrderedDict()
 
@@ -1375,13 +1559,12 @@ class _Alias:
                 text += optional
             else:
                 text += args[part]
-        self.cmd = Command(session)
-        self.cmd.parse_text(text, final=True)
+        self.cmd = Command(session, text, final=True)
         return self.cmd.execute()
 
 
 @register('alias', CmdDesc(optional=[('name', StringArg),
-                                     ('text', RestOfLine)]))
+                                     ('text', WholeRestOfLine)]))
 def alias(session, name='', text=''):
     if not name:
         # list aliases
@@ -1536,7 +1719,7 @@ if __name__ == '__main__':
 
     @register('test9', test9_desc)
     def test9(session, target="all", names=[None], full=False):
-        print('test9 full, target, names:', full, target, names)
+        print('test9 full, target, names: %r, %r, %r' % (full, target, names))
 
     test10_desc = CmdDesc(
         required=(
@@ -1558,6 +1741,12 @@ if __name__ == '__main__':
         @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
         def echo(session, text=''):
             return text
+        @register('usage', CmdDesc(required=[('name', RestOfLine)]))
+        def usage(session, name):
+            print(command_usage(name))
+        @register('html_usage', CmdDesc(required=[('name', RestOfLine)]))
+        def html_usage(session, name):
+            print(command_html_usage(name))
         prompt = 'cmd> '
         cmd = Command(None)
         while True:
@@ -1629,6 +1818,7 @@ if __name__ == '__main__':
         (False, False, 'test10 light  gray, red 0.33, 0.67'),
         (True, False, 'test10 light  gray, red 0.33'),
         (True, False, 'test10 li  gr, red'),
+        (True, False, 'test10 "red"10.3'),
     ]
     # TODO: delayed registration tests
     successes = 0

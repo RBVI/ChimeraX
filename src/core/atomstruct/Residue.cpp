@@ -66,7 +66,7 @@ Residue::find_atom(const std::string &name) const
         if (a->name() == name)
             return a;
     }
-    return NULL;
+    return nullptr;
 }
 
 Atom *
@@ -78,7 +78,7 @@ Residue::find_atom(const char *name) const
         if (a->name() == name)
             return a;
     }
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -139,6 +139,65 @@ Residue::template_assign(void (Atom::*assign_func)(const std::string&),
     TemplateCache* tc = TemplateCache::template_cache();
     TemplateCache::AtomMap* am = tc->res_template(name(),
             app, template_dir, extension);
+
+    std::vector<Atom*> assigned;
+    for (auto a: _atoms) {
+        auto ami = am->find(a->name());
+        if (ami == am->end())
+            continue;
+
+        auto& norm_type = ami->second.first;
+        auto ct = ami->second.second;
+        if (ct != nullptr) {
+            // assign conditional type if applicable
+            bool cond_assigned = false;
+            for (auto& ci: ct->conditions) {
+                if (ci.op == ".") {
+                    // is the given atom terminal?
+                    bool is_terminal = true;
+                    auto opa = find_atom(ci.operand);
+                    if (opa == nullptr)
+                        continue;
+                    for (auto bonded: opa->neighbors()) {
+                        if (bonded->residue() != this) {
+                            is_terminal = false;
+                            break;
+                        }
+                    }
+                    if (is_terminal) {
+                        cond_assigned = true;
+                        if (ci.result != "-") {
+                            (a->*assign_func)(ci.result);
+                            assigned.push_back(a);
+                        }
+                    }
+                } else if (ci.op == "?") {
+                    // does the given atom exist in the residue?
+                    if (find_atom(ci.operand) != nullptr) {
+                        cond_assigned = true;
+                        if (ci.result != "-") {
+                            (a->*assign_func)(ci.result);
+                            assigned.push_back(a);
+                        }
+                    }
+                } else {
+                    throw std::logic_error("Legal template condition"
+                        " not implemented");
+                }
+                if (cond_assigned)
+                    break;
+            }
+            if (cond_assigned)
+                continue;
+        }
+
+        // assign normal type
+        if (norm_type != "-") {
+            (a->*assign_func)(norm_type);
+            assigned.push_back(a);
+        }
+    }
+    return assigned;
 }
 
 }  // namespace atomstruct
