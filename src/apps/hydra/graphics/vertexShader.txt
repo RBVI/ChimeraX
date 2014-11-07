@@ -59,10 +59,22 @@ layout(location = 4) in vec4 instance_shift_and_scale;
 layout(location = 5) in mat4 instance_placement;
 #endif
 
+#ifdef USE_FRAME_NUMBER
+uniform float frame_number;
+#endif
+
 void main(void)
 {
 #ifdef USE_SHIFT_AND_SCALE
-  vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
+  #ifdef USE_FRAME_NUMBER
+//    float freq1 = (3+3*fract(instance_shift_and_scale.x))*.01;
+    float freq2 = .4*fract(123.45678*position.x+813.12515*position.y+521.121588*position.z + gl_InstanceID*138.12545);
+//    vec4 vi = vec4((1+.1*sin(freq1*frame_number+) + .1*sin(freq2*frame_number))*instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
+    vec4 vi = vec4((1+ .1*sin(freq2*frame_number))*instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
+//    vec4 vi = vec4((1+.2*sin(freq1*frame_number+gl_InstanceID)*sin(.1*frame_number/30))*instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
+  #else
+    vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
+  #endif
 #else
   #ifdef USE_INSTANCING
     vec4 vi = instance_placement * vec4(position, 1);
@@ -79,6 +91,9 @@ void main(void)
     vec3 ni = vec3(instance_placement * vec4(normal,0));
   #else
     vec3 ni = normal;
+  #endif
+  #ifdef USE_FRAME_NUMBER
+//    ni *= vec3(1+.3*sin(.01*fract(vi.x)*frame_number),1+.3*sin(.01*fract(vi.y)*frame_number),1+.3*sin(.01*fract(vi.z)*frame_number));
   #endif
   N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #ifdef USE_SHADOWS
