@@ -53,8 +53,8 @@ class Render:
         self._multishadow_matrix_buffer = None  # Uniform buffer object for shadow matrices
         self._multishadow_uniform_block = 0     # Uniform block number
 
-
         self.single_color = (1,1,1,1)
+        self.frame_number = 0
 
     def render_size(self):
         fb = self.current_framebuffer()
@@ -113,6 +113,8 @@ class Render:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
+        if self.SHADER_FRAME_NUMBER & c:
+            self.set_frame_number()
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -200,6 +202,15 @@ class Render:
 #                GL.glUniformMatrix4fv(p.uniform_id('model_matrix'), 1, False, m4)
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
+
+    def set_frame_number(self, f = None):
+        if f is None:
+            f = self.frame_number
+        else:
+            self.frame_number = f
+        p = self.current_shader_program
+        if not p is None and self.SHADER_FRAME_NUMBER & p.capabilities:
+            GL.glUniform1f(p.uniform_id('frame_number'), f)
 
     def set_shader_lighting_parameters(self):
         'Private. Sets shader lighting variables using the lighting parameters object given in the contructor.'
@@ -698,6 +709,7 @@ shader_options = (
     'SHADER_TEXTURE_MASK',
     'SHADER_DEPTH_OUTLINE',
     'SHADER_VERTEX_COLORS',
+    'SHADER_FRAME_NUMBER',
 )
 for i,sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
@@ -1238,7 +1250,6 @@ class Texture:
 
     def initialize_texture(self, size, format, iformat, tdtype, ncomp, data = None, depth_compare_mode = False):
 
-        from OpenGL import GL
         self.id = t = GL.glGenTextures(1)
         self.size = size
         gl_target = self.gl_target
@@ -1313,7 +1324,6 @@ class Texture:
         dim = self.dimension
         size = data.shape[dim-1::-1]
         format, iformat, tdtype, ncomp = self.texture_format(data)
-        from OpenGL import GL
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, self.id)
         if dim == 1:
@@ -1331,7 +1341,6 @@ class Texture:
         a numpy array of colors.
         '''
         dim = self.dimension
-        from OpenGL import GL
         if dim == 2 and len(data.shape) == dim and data.itemsize == 4:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
