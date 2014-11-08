@@ -952,7 +952,7 @@ class Bindings:
         if nattr == 1:
             GL.glVertexAttribPointer(attr_id, ncomp, gtype, normalize, 0, None)
             GL.glEnableVertexAttribArray(attr_id)
-            glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
+            GL.glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
             self.bound_attr_ids[buffer] = [attr_id]
         else:
             # Matrices use multiple vector attributes
@@ -965,7 +965,7 @@ class Bindings:
                 p = ctypes.c_void_p(a*abytes)
                 GL.glVertexAttribPointer(attr_id+a, ncomp, gtype, normalize, stride, p)
                 GL.glEnableVertexAttribArray(attr_id+a)
-                glVertexAttribDivisor(attr_id+a, 1 if buffer.instance_buffer else 0)
+                GL.glVertexAttribDivisor(attr_id+a, 1 if buffer.instance_buffer else 0)
             self.bound_attr_ids[buffer] = [attr_id+a for a in range(nattr)]
         GL.glBindBuffer(btype, 0)
 
@@ -1106,33 +1106,13 @@ class Buffer:
         if ninst is None:
             GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, None)
         else:
-            glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
+            GL.glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
 
     def shader_has_required_capabilities(self, shader):
         if not self.requires_capabilities:
             return True
         # Require at least one capability of list
         return self.requires_capabilities|shader.capabilities
-
-def glDrawElementsInstanced(mode, count, etype, indices, ninst):
-    'Private. Handle old or defective OpenGL instanced drawing.'
-    if bool(GL.glDrawElementsInstanced):
-        # OpenGL 3.1 required for this call.
-        GL.glDrawElementsInstanced(mode, count, etype, indices, ninst)
-    else:
-        from OpenGL.GL.ARB.draw_instanced import glDrawElementsInstancedARB
-        if not bool(glDrawElementsInstancedARB):
-            # Mac 10.6 does not list draw_instanced as an extension using OpenGL 3.2
-            from .pyopengl_draw_instanced import glDrawElementsInstancedARB
-            glDrawElementsInstancedARB(mode, count, etype, indices, ninst)
-
-def glVertexAttribDivisor(attr_id, d):
-    'Private. Handle old or defective OpenGL attribute divisor.'
-    if bool(GL.glVertexAttribDivisor):
-        GL.glVertexAttribDivisor(attr_id, d)  # OpenGL 3.3
-    else:
-        from OpenGL.GL.ARB.instanced_arrays import glVertexAttribDivisorARB
-        glVertexAttribDivisorARB(attr_id, d)
 
 class Shader:
     '''Private. OpenGL shader program with specified capabilities.'''
