@@ -667,9 +667,9 @@ def show_framerate(session):
     session.view.report_framerate()
 
 def show_triangle_count(session):
-    v = session.view
-    na = v.atoms_shown
-    nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in session.molecules()) if na > 0 else 0
+    mols = session.molecules()
+    na = sum(m.shown_atom_count() for m in mols) if mols else 0
+    nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in mols) if mols else 0
     n = session.model_count()
     msg = '%d models, %d atoms, %d atom triangles' % (n, na, nt)
     session.show_status(msg)
@@ -707,7 +707,7 @@ def leap_quit(session):
 
 def motion_blur(viewer):
     from ..graphics import Motion_Blur
-    mb = [o for o in viewer.overlays if isinstance(o, Motion_Blur)]
+    mb = [o for o in viewer.overlays() if isinstance(o, Motion_Blur)]
     if mb:
         viewer.remove_overlays(mb)
     else:

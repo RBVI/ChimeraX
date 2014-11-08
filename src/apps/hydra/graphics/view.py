@@ -7,7 +7,7 @@ class View:
         self.session = session
 
         self.window_size = window_size		# pixels
-        self.background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
+        self._background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
         # Create camera
         from .camera import Camera
@@ -16,9 +16,9 @@ class View:
 
         from .opengl import Render
         self._render = Render()
-        self.opengl_initialized = False
+        self._opengl_initialized = False
         self._shadows = False
-        self.shadowMapSize = 2048
+        self.shadow_map_size = 2048
         self.multishadow = 0                    # Number of shadows
         self._multishadow_directions = None
         self._multishadow_transforms = []
@@ -30,27 +30,27 @@ class View:
 
         self.frame_number = 1
         self.redraw_needed = False
-        self.time_graphics = False
+        self._time_graphics = False
         self.update_lighting = False
-        self.block_redraw_count = 0
-        self.new_frame_callbacks = []
-        self.rendered_callbacks = []
+        self._block_redraw_count = 0
+        self._new_frame_callbacks = []
+        self._rendered_callbacks = []
 
-        self.overlays = []
+        self._overlays = []
         self.atoms_shown = 0
 
         from numpy import array, float32
         self.center_of_rotation = array((0,0,0), float32)
-        self.update_center = True
+        self._update_center = True
 
     def initialize_opengl(self):
 
-        if self.opengl_initialized:
+        if self._opengl_initialized:
             return
-        self.opengl_initialized = True
+        self._opengl_initialized = True
 
         r = self._render
-        r.set_background_color(self.background_rgba)
+        r.set_background_color(self.background_color)
         r.enable_depth_test(True)
 
         w,h = self.window_size
@@ -76,9 +76,9 @@ class View:
         self.frame_number += 1
 
     def get_background_color(self):
-        return self.background_rgba
+        return self._background_rgba
     def set_background_color(self, rgba):
-        self.background_rgba = tuple(rgba)
+        self._background_rgba = tuple(rgba)
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)
 
@@ -90,9 +90,9 @@ class View:
     def enable_depth_cue(self, enable):
         r = self._render
         if enable:
-            r.enable_capablities |= r.SHADER_DEPTH_CUE
+            r.enable_capabilities |= r.SHADER_DEPTH_CUE
         else:
-            r.enable_capablities &= ~r.SHADER_DEPTH_CUE
+            r.enable_capabilities &= ~r.SHADER_DEPTH_CUE
         self.redraw_needed = True
     def depth_cue_enabled(self):
         r = self._render
@@ -144,16 +144,19 @@ class View:
 
     def add_overlay(self, overlay):
         overlay.redraw_needed = self.session.model_redraw_needed
-        self.overlays.append(overlay)
+        self._overlays.append(overlay)
         self.redraw_needed = True
+
+    def overlays(self):
+        return self._overlays
 
     def remove_overlays(self, models = None):
         if models is None:
-            models = self.overlays
+            models = self._overlays
         for o in models:
             o.delete()
         oset = set(models)
-        self.overlays = [o for o in self.overlays if not o in oset]
+        self._overlays = [o for o in self._overlays if not o in oset]
         self.redraw_needed = True
 
     def image(self, width = None, height = None, supersample = None, camera = None, models = None):
@@ -230,7 +233,7 @@ class View:
 
     def redraw(self):
 
-        if self.block_redraw_count > 0:
+        if self._block_redraw_count > 0:
             return False
         
         self.block_redraw()	# Avoid redrawing during callbacks of the current redraw.
@@ -241,7 +244,7 @@ class View:
             return False
 
     def redraw_graphics(self):
-        for cb in self.new_frame_callbacks:
+        for cb in self._new_frame_callbacks:
             try:
                 cb()
             except:
@@ -266,7 +269,7 @@ class View:
         s.redraw_needed = False
         s.shape_changed = False
         self.draw_graphics()
-        for cb in self.rendered_callbacks:
+        for cb in self._rendered_callbacks:
             try:
                 cb()
             except:
@@ -278,32 +281,32 @@ class View:
         return True
 
     def block_redraw(self):
-        self.block_redraw_count += 1
+        self._block_redraw_count += 1
     def unblock_redraw(self):
-        self.block_redraw_count -= 1
+        self._block_redraw_count -= 1
 
     def report_framerate(self, time = None, monitor_period = 1.0):
         if time is None:
             from time import time
-            self.time_graphics = time() + monitor_period
+            self._time_graphics = time() + monitor_period
             self.minimum_render_time = None
             self.render_start_time = None
             self.redraw_needed = True
         else:
-            self.time_graphics = 0
+            self._time_graphics = 0
             msg = '%.1f frames/sec' % (1.0/time,)
             s = self.session
             s.show_status(msg)
             s.show_info(msg)
 
     def start_timing(self):
-        if self.time_graphics:
+        if self._time_graphics:
             self.finish_rendering()
             from time import time
             self.render_start_time = time()
 
     def finish_timing(self):
-        if self.time_graphics:
+        if self._time_graphics:
             self.finish_rendering()
             from time import time
             t = time()
@@ -311,7 +314,7 @@ class View:
             mint = self.minimum_render_time
             if mint is None or rt < mint:
                 self.minimum_render_time = mint = rt
-            if t > self.time_graphics:
+            if t > self._time_graphics:
                 self.report_framerate(mint)
             else:
                 self.redraw_needed = True
@@ -321,17 +324,17 @@ class View:
 
     def add_new_frame_callback(self, cb):
         '''Add a function to be called before each redraw.  The function takes no arguments.'''
-        self.new_frame_callbacks.append(cb)
+        self._new_frame_callbacks.append(cb)
     def remove_new_frame_callback(self, cb):
         '''Add a callback that was added with add_new_frame_callback().'''
-        self.new_frame_callbacks.remove(cb)
+        self._new_frame_callbacks.remove(cb)
 
     def add_rendered_frame_callback(self, cb):
         '''Add a function to be called after each redraw.  The function takes no arguments.'''
-        self.rendered_callbacks.append(cb)
+        self._rendered_callbacks.append(cb)
     def remove_rendered_frame_callback(self, cb):
         '''Add a callback that was added with add_rendered_frame_callback().'''
-        self.rendered_callbacks.remove(cb)
+        self._rendered_callbacks.remove(cb)
 
     def multishadow_directions(self):
 
@@ -359,7 +362,7 @@ class View:
         if self.multishadow > 0:
             mstf, msdepth = self.use_multishadow_map(self.multishadow_directions(), models)
 
-        r.set_background_color(self.background_rgba)
+        r.set_background_color(self.background_color)
 
         if self.update_lighting:
             self.update_lighting = False
@@ -400,8 +403,8 @@ class View:
 
         camera.draw_warped(r, self.session)
         
-        if self.overlays:
-            draw_overlays(self.overlays, r)
+        if self._overlays:
+            draw_overlays(self._overlays, r)
 
     def use_shadow_map(self, light_direction, models):
 
@@ -413,7 +416,7 @@ class View:
             return None
 
         # Compute shadow map depth texture
-        size = self.shadowMapSize
+        size = self.shadow_map_size
         r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
@@ -444,7 +447,7 @@ class View:
             return None, None
 
         # Compute shadow map depth texture
-        size = self.shadowMapSize
+        size = self.shadow_map_size
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
@@ -502,12 +505,12 @@ class View:
         self.translate(-shift)
 
     def center_of_rotation_needs_update(self):
-        self.update_center = True
+        self._update_center = True
 
     def update_center_of_rotation(self):
-        if not self.update_center:
+        if not self._update_center:
             return
-        self.update_center = False
+        self._update_center = False
         center, s = self.session.bounds_center_and_width()
         if center is None:
             return
