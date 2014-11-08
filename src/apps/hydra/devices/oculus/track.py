@@ -127,7 +127,7 @@ class Oculus_Rift:
 
         v = self.view
         c = v.camera
-        v.render.finish_rendering()     # Reduce latency by finishing current graphics draw.
+        v.finish_rendering()     # Reduce latency by finishing current graphics draw.
 
         from . import _oculus
         x,y,z,qw,qx,qy,qz = _oculus.state()
@@ -190,7 +190,6 @@ class Oculus_Rift:
         c.oculus_centering_shift = (sx,sy)
         print ('oculus camera shift pixels', sx, sy)
         view.set_camera_mode('oculus')
-        r = view.render
         c.warp_window_size = wsize
 
         view.redraw_needed = True

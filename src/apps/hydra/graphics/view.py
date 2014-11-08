@@ -15,7 +15,7 @@ class View:
         '''The camera controlling the vantage shown in the graphics window.'''
 
         from .opengl import Render
-        self.render = Render()
+        self._render = Render()
         self.opengl_initialized = False
         self._shadows = False
         self.shadowMapSize = 2048
@@ -49,12 +49,15 @@ class View:
             return
         self.opengl_initialized = True
 
-        r = self.render
+        r = self._render
         r.set_background_color(self.background_rgba)
         r.enable_depth_test(True)
 
         w,h = self.window_size
         r.initialize_opengl(w,h)
+
+    def opengl_version(self):
+        return self._render.opengl_version()
 
     def make_opengl_context_current(self):
         pass    # Defined by derived class
@@ -79,6 +82,22 @@ class View:
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)
 
+    def lighting(self):
+        return self._render.lighting
+    def material(self):
+        return self._render.material
+
+    def enable_depth_cue(self, enable):
+        r = self._render
+        if enable:
+            r.enable_capablities |= r.SHADER_DEPTH_CUE
+        else:
+            r.enable_capablities &= ~r.SHADER_DEPTH_CUE
+        self.redraw_needed = True
+    def depth_cue_enabled(self):
+        r = self._render
+        return bool(r.enable_capabilities | r.SHADER_DEPTH_CUE)
+
     def get_shadows(self):
         return self._shadows
     def set_shadows(self, onoff):
@@ -86,7 +105,7 @@ class View:
         if onoff == self._shadows:
             return
         self._shadows = onoff
-        r = self.render
+        r = self._render
         if onoff:
             r.enable_capabilities |= r.SHADER_SHADOWS
         else:
@@ -96,7 +115,7 @@ class View:
 
     def set_multishadow(self, n):
         self.multishadow = n
-        r = self.render
+        r = self._render
         if n > 0:
             r.enable_capabilities |= r.SHADER_MULTISHADOW
         else:
@@ -148,7 +167,7 @@ class View:
         if not fb.valid():
             return None         # Image size exceeds framebuffer limits
 
-        r = self.render
+        r = self._render
         r.push_framebuffer(fb)
 
         if camera is None:
@@ -187,6 +206,11 @@ class View:
         pi = Image.fromarray(rgba[::-1,:,:3])
         return pi
 
+    def frame_buffer_rgba(self):
+        w,h = self.window_size
+        rgba = self._render.frame_buffer_image(w, h)
+        return rgba
+
     def resize(self, width, height):
         from .opengl import default_framebuffer
         fb = default_framebuffer()
@@ -204,14 +228,10 @@ class View:
             return ((vw*h)//vh, h)     # Choose width to match window aspect ratio.
         return (vw,vh)
 
-    def renderer(self):
-        return self.render
-
     def redraw(self):
 
         if self.block_redraw_count > 0:
             return False
-
         
         self.block_redraw()	# Avoid redrawing during callbacks of the current redraw.
         try:
@@ -278,13 +298,13 @@ class View:
 
     def start_timing(self):
         if self.time_graphics:
-            self.render.finish_rendering()
+            self.finish_rendering()
             from time import time
             self.render_start_time = time()
 
     def finish_timing(self):
         if self.time_graphics:
-            self.render.finish_rendering()
+            self.finish_rendering()
             from time import time
             t = time()
             rt = t - self.render_start_time
@@ -295,6 +315,9 @@ class View:
                 self.report_framerate(mint)
             else:
                 self.redraw_needed = True
+
+    def finish_rendering(self):
+        self._render.finish_rendering()
 
     def add_new_frame_callback(self, cb):
         '''Add a function to be called before each redraw.  The function takes no arguments.'''
@@ -328,7 +351,7 @@ class View:
         s = self.session
         mdraw = [m for m in s.top_level_models() if m.display] if models is None else models
 
-        r = self.render
+        r = self._render
         if self.shadows:
             kl = r.lighting.key_light_direction                     # Light direction in camera coords
             lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
@@ -382,7 +405,7 @@ class View:
 
     def use_shadow_map(self, light_direction, models):
 
-        r = self.render
+        r = self._render
 
         # Compute model bounds so shadow map can cover all models.
         center, radius, models = model_bounds(models, self.session)
@@ -408,7 +431,7 @@ class View:
 
     def use_multishadow_map(self, light_directions, models):
 
-        r = self.render
+        r = self._render
         if len(self._multishadow_transforms) == len(light_directions):
             # Bind shadow map for subsequent rendering of shadows.
             dt = r.multishadow_map_framebuffer.depth_texture
@@ -522,7 +545,7 @@ class View:
 
     def update_projection(self, view_num = None, camera = None):
         
-        r = self.render
+        r = self._render
         ww,wh = r.render_size()
         if ww == 0 or wh == 0:
             return
@@ -559,7 +582,7 @@ class View:
         '''
         c = camera if camera else self.camera
         nf = self.near_far_clip(c, view_num)
-        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf, self.render)
+        scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf, self._render)
         return scene_pts
 
     def rotate(self, axis, angle, models = None):

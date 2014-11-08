@@ -519,9 +519,7 @@ def toggle_silhouettes(viewer):
     viewer.redraw_needed = True
 
 def depth_cue(viewer):
-    r = viewer.render
-    r.enable_capablities ^= r.SHADER_DEPTH_CUE
-    viewer.redraw_needed = True
+    viewer.enable_depth_cue(not viewer.depth_cue_enabled())
     
 def selection_mouse_mode(session):
     v = session.view

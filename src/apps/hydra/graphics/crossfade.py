@@ -20,9 +20,7 @@ class Cross_Fade(Drawing):
 
         # Capture current image
         v = self.viewer
-        w,h = v.window_size
-        r = v.render
-        self.rgba = r.frame_buffer_image(w, h)
+        self.rgba = v.frame_buffer_rgba()
 
         # TODO: Use a childless drawing.
         # Make textured square surface piece
@@ -74,8 +72,7 @@ class Motion_Blur(Drawing):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        r = v.render
-        rgba = r.frame_buffer_image(w, h)
+        rgba = v.frame_buffer_rgba()
 
         if self.rgba is None:
             self.rgba = rgba

@@ -94,10 +94,9 @@ class Graphics_Window(View, QtGui.QWindow):
 
         # Write a log message indicating OpenGL version
         s = self.session
-        r = self.render
         f = c.format()
         stereo = 'stereo' if f.stereo() else 'no stereo'
-        s.show_info('OpenGL version %s, %s' % (r.opengl_version(), stereo))
+        s.show_info('OpenGL version %s, %s' % (self.opengl_version(), stereo))
 
         return c
 

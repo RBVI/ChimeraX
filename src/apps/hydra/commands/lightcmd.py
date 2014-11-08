@@ -31,7 +31,7 @@ def lighting(session, direction = None, intensity = None, color = None,
              default = None, full = None, soft = None, simple = None):
 
     v = session.view
-    lp = v.render.lighting
+    lp = v.lighting()
 
     from ..geometry.vector import normalize_vector as normalize
     from numpy import array, float32
