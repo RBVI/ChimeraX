@@ -1846,7 +1846,8 @@ class Outline_Box:
 
     if not corners is None and rgb:
       from numpy import any
-      changed = (any(corners != self.corners) or
+      changed = (self.corners is None or
+                 any(corners != self.corners) or
                  rgb != self.rgb or
                  linewidth != self.linewidth or
                  any(center != self.center) or
