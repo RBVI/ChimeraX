@@ -340,7 +340,6 @@ class View:
 
         directions = self._multishadow_directions
         if directions is None or len(directions) != self.multishadow:
-            from ..surface import shapes
             n = self.multishadow    # requested number of directions
             from ..geometry import sphere
             self._multishadow_directions = directions = sphere.sphere_points(n)
