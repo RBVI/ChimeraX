@@ -4,9 +4,11 @@ import wx
 
 class Mouse_Modes:
 
-    def __init__(self, view):
+    def __init__(self, graphics_window):
 
-        self.view = view
+        gw = graphics_window
+        self.graphics_window = gw
+        self.view = gw.view
         self.mouse_modes = {}
         self.mouse_down_position = None
         self.last_mouse_position = None
@@ -19,25 +21,25 @@ class Mouse_Modes:
 
         self.move_selected = False
 
-        view.opengl_canvas.Bind(wx.EVT_LEFT_DOWN,
+        gw.opengl_canvas.Bind(wx.EVT_LEFT_DOWN,
             lambda e: self.dispatch_mouse_event(e, "left", 0))
-        view.opengl_canvas.Bind(wx.EVT_MIDDLE_DOWN,
+        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_DOWN,
             lambda e: self.dispatch_mouse_event(e, "middle", 0))
-        view.opengl_canvas.Bind(wx.EVT_RIGHT_DOWN,
+        gw.opengl_canvas.Bind(wx.EVT_RIGHT_DOWN,
             lambda e: self.dispatch_mouse_event(e, "right", 0))
-        view.opengl_canvas.Bind(wx.EVT_MOTION,
+        gw.opengl_canvas.Bind(wx.EVT_MOTION,
             lambda e: self.dispatch_mouse_event(e, None, 1))
-        view.opengl_canvas.Bind(wx.EVT_LEFT_UP,
+        gw.opengl_canvas.Bind(wx.EVT_LEFT_UP,
             lambda e: self.dispatch_mouse_event(e, "left", 2))
-        view.opengl_canvas.Bind(wx.EVT_MIDDLE_UP,
+        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_UP,
             lambda e: self.dispatch_mouse_event(e, "middle", 2))
-        view.opengl_canvas.Bind(wx.EVT_RIGHT_UP,
+        gw.opengl_canvas.Bind(wx.EVT_RIGHT_UP,
             lambda e: self.dispatch_mouse_event(e, "right", 2))
-        view.opengl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.wheel_event)
-        view.touchEvent = self.touch_event
+        gw.opengl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.wheel_event)
+        gw.touchEvent = self.touch_event
 
         self.trackpad_speed = 4         # Trackpad position scaling to match mouse position sensitivity
-        view.add_new_frame_callback(self.collapse_touch_events)
+        self.view.add_new_frame_callback(self.collapse_touch_events)
         self.recent_touch_points = None
 
     def bind_standard_mouse_modes(self,
@@ -56,12 +58,12 @@ class Mouse_Modes:
     def dispatch_mouse_event(self, event, button, fnum):
         if fnum == 0:
             # remember button for later drag events
-            self.view.opengl_canvas.CaptureMouse()
+            self.graphics_window.opengl_canvas.CaptureMouse()
         elif fnum == 1:
             if not event.Dragging():
                 return
         elif fnum == 2:
-            self.view.opengl_canvas.ReleaseMouse()
+            self.graphics_window.opengl_canvas.ReleaseMouse()
         if button is None:
             if event.LeftIsDown():
                 button = "left"
@@ -71,7 +73,7 @@ class Mouse_Modes:
                 button = "right"
             else:
                 return
-            if not self.view.opengl_canvas.HasCapture():
+            if not self.graphics_window.opengl_canvas.HasCapture():
                 # a Windows thing; can lose mouse capture w/o mouse up
                 return
         f = self.mouse_modes.get(button)
@@ -128,9 +130,8 @@ class Mouse_Modes:
     """
 
     def mouse_pause_tracking(self):
-        v = self.view
-        cp = v.ScreenToClient(wx.GetMousePosition())
-        w,h = v.window_size
+        cp = self.graphics_window.ScreenToClient(wx.GetMousePosition())
+        w,h = self.view.window_size
         x,y = cp
         if x < 0 or y < 0 or x >= w or y >= h:
             return      # Cursor outside of graphics window
@@ -364,8 +365,7 @@ class Mouse_Modes:
     def trackpad_event(self, dx, dy):
         p = self.last_mouse_position
         if p is None:
-            v = self.view
-            x, y = v.ScreenToClient(wx.GetMousePosition())
+            x, y = self.graphics_window.ScreenToClient(wx.GetMousePosition())
         else:
             x,y = p.x()+dx, p.y()+dy
         class Trackpad_Event:

@@ -39,8 +39,9 @@ class MainWindow(wx.Frame):
 
         from .graphics import GraphicsWindow
         # View is a base class of Graphics Window
-        self.view = GraphicsWindow(session, self)
-        self.aui_mgr.AddPane(self.view, AuiPaneInfo().Name("GL").CenterPane())
+        self.graphics_window = g = GraphicsWindow(session, self)
+        self.view = g.view
+        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
 
         session.main_window = self # needed for ToolWindow init
         from ..tool_api import ToolWindow
@@ -75,7 +76,7 @@ class MainWindow(wx.Frame):
     def OnClose(self, event):
         self.aui_mgr.UnInit()
         del self.aui_mgr
-        self.view.timer = None
+        self.graphics_window.timer = None
         self.Destroy()
 
     def OnWebViewNavigating(self, event):

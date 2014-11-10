@@ -2,9 +2,11 @@ from .qt import QtCore, QtGui
 
 class Mouse_Modes:
 
-    def __init__(self, view):
+    def __init__(self, graphics_window):
 
-        self.view = view
+
+        self.graphics_window = graphics_window
+        self.view = graphics_window.view
         self.mouse_modes = {}
         self.mouse_down_position = None
         self.last_mouse_position = None
@@ -17,15 +19,19 @@ class Mouse_Modes:
 
         self.move_selected = False
 
-        view.mousePressEvent = self.mouse_press_event
-        view.mouseMoveEvent = self.mouse_move_event
-        view.mouseReleaseEvent = self.mouse_release_event
-        view.wheelEvent = self.wheel_event
-        view.touchEvent = self.touch_event
+        self.set_mouse_event_handlers(graphics_window)
 
         self.trackpad_speed = 4         # Trackpad position scaling to match mouse position sensitivity
-        view.add_new_frame_callback(self.collapse_touch_events)
+        self.view.add_new_frame_callback(self.collapse_touch_events)
         self.recent_touch_points = None
+
+    def set_mouse_event_handlers(self, graphics_window):
+        gw = graphics_window
+        gw.mousePressEvent = self.mouse_press_event
+        gw.mouseMoveEvent = self.mouse_move_event
+        gw.mouseReleaseEvent = self.mouse_release_event
+        gw.wheelEvent = self.wheel_event
+        gw.touchEvent = self.touch_event
 
     # Button is "left", "middle", or "right"
     def bind_mouse_mode(self, button, mouse_down,
@@ -123,9 +129,8 @@ class Mouse_Modes:
         self.last_mouse_position = event.pos()
 
     def mouse_pause_tracking(self):
-        v = self.view
-        cp = v.mapFromGlobal(QtGui.QCursor.pos())
-        w,h = v.window_size
+        cp = self.graphics_window.mapFromGlobal(QtGui.QCursor.pos())
+        w,h = self.view.window_size
         x,y = cp.x(), cp.y()
         if x < 0 or y < 0 or x >= w or y >= h:
             return      # Cursor outside of graphics window
@@ -364,8 +369,7 @@ class Mouse_Modes:
     def trackpad_event(self, dx, dy):
         p = self.last_mouse_position
         if p is None:
-            v = self.view
-            cp = v.mapFromGlobal(QtGui.QCursor.pos())
+            cp = self.graphics_window.mapFromGlobal(QtGui.QCursor.pos())
             x,y = cp.x(),cp.y()
         else:
             x,y = p.x()+dx, p.y()+dy
