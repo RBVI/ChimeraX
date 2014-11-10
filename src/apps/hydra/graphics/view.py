@@ -3,10 +3,14 @@ class View:
     A View is the graphics windows that shows 3-dimensional models.
     It manages the camera and draws the models when needed.
     '''
-    def __init__(self, session, window_size):
-        self.session = session
+    def __init__(self, session, window_size, make_opengl_context_current, swap_opengl_buffers):
 
+        self.session = session
         self.window_size = window_size		# pixels
+        self._make_opengl_context_current = make_opengl_context_current
+        self._swap_opengl_buffers = swap_opengl_buffers
+        self._have_opengl_context = False
+
         self._background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
         # Create camera
@@ -59,20 +63,16 @@ class View:
     def opengl_version(self):
         return self._render.opengl_version()
 
-    def make_opengl_context_current(self):
-        pass    # Defined by derived class
-    def swap_opengl_buffers(self):
-        pass    # Defined by derived class
-
     def use_opengl(self):
-        self.make_opengl_context_current()
+        self._make_opengl_context_current()
+        self._have_opengl_context = True
         self.initialize_opengl()
 
-    def draw_graphics(self):
+    def draw(self):
         self.use_opengl()
-        self.draw_scene()
+        self._draw_scene()
         if self.camera.mode != 'oculus':
-            self.swap_opengl_buffers()
+            self._swap_opengl_buffers()
         self.frame_number += 1
 
     def get_background_color(self):
@@ -185,7 +185,7 @@ class View:
             c = camera
 
         if supersample is None:
-            self.draw_scene(c, models)
+            self._draw_scene(c, models)
             rgba = r.frame_buffer_image(w, h)
         else:
             from numpy import zeros, float32, uint8
@@ -196,7 +196,7 @@ class View:
             for i in range(n):
                 for j in range(n):
                     c.pixel_shift = (s0 + i*s, s0 + j*s)
-                    self.draw_scene(c, models)
+                    self._draw_scene(c, models)
                     srgba += r.frame_buffer_image(w,h)
             c.pixel_shift = (0,0)
             srgba /= n*n
@@ -215,10 +215,12 @@ class View:
         return rgba
 
     def resize(self, width, height):
-        from .opengl import default_framebuffer
-        fb = default_framebuffer()
-        fb.width, fb.height = width,height
-        fb.viewport = (0,0,width,height)
+        self.window_size = (width, height)
+        if self._have_opengl_context:
+            from .opengl import default_framebuffer
+            fb = default_framebuffer()
+            fb.width, fb.height = width,height
+            fb.viewport = (0,0,width,height)
 
     def window_size_matching_aspect(self, width, height):
         w,h = width, height
@@ -231,19 +233,19 @@ class View:
             return ((vw*h)//vh, h)     # Choose width to match window aspect ratio.
         return (vw,vh)
 
-    def redraw(self):
+    def draw_if_changed(self):
 
         if self._block_redraw_count > 0:
             return False
         
         self.block_redraw()	# Avoid redrawing during callbacks of the current redraw.
         try:
-            return self.redraw_graphics()
+            return self._draw_if_changed()
         finally:
             self.unblock_redraw()
             return False
 
-    def redraw_graphics(self):
+    def _draw_if_changed(self):
         for cb in self._new_frame_callbacks:
             try:
                 cb()
@@ -268,7 +270,7 @@ class View:
         c.redraw_needed = False
         s.redraw_needed = False
         s.shape_changed = False
-        self.draw_graphics()
+        self.draw()
         for cb in self._rendered_callbacks:
             try:
                 cb()
@@ -345,7 +347,7 @@ class View:
             self._multishadow_directions = directions = sphere.sphere_points(n)
         return directions
 
-    def draw_scene(self, camera = None, models = None):
+    def _draw_scene(self, camera = None, models = None):
 
         if camera is None:
             camera = self.camera
