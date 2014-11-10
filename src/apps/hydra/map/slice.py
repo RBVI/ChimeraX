@@ -10,7 +10,7 @@ def box_intercepts(line, box_to_line_transform, box, clip_plane_model = None):
   line_to_box_transform = box_to_line_transform.inverse()
   bline = line_to_box_transform * line
   xyz_in, xyz_out = box_line_intercepts(bline, box)
-  if xyz_in == None or xyz_out == None:
+  if xyz_in is None or xyz_out is None:
     return xyz_in, xyz_out
   
   planes = per_model_clip_planes(clip_plane_model)
