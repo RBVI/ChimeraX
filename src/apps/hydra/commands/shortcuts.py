@@ -25,6 +25,7 @@ def standard_shortcuts(session):
     atomsarg = {'atoms_arg': True}
     surfarg = {'each_surface':True}
     viewarg = {'view_arg':True}
+    mmarg = {'mouse_modes_arg':True}
     noarg = {}
     sesarg = {'session_arg':True}
 
@@ -139,10 +140,10 @@ def standard_shortcuts(session):
         ('cl', command_line, 'Enter command', gcat, sesarg),
 
         # Mouse
-        ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, viewarg, msmenu),
-        ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, viewarg, msmenu),
-        ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, viewarg, msmenu),
-        ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, viewarg, msmenu),
+        ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, mmarg, msmenu),
+        ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
+        ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
+        ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
         ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
         ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
@@ -184,7 +185,8 @@ class Shortcut:
 
     def __init__(self, key_seq, func, session, description = '', key_name = None, category = None,
                  menu = None, menu_separator = False, each_map = False, each_molecule = False,
-                 each_surface = False, atoms_arg = False, view_arg = False, session_arg = False):
+                 each_surface = False, atoms_arg = False, view_arg = False, mouse_modes_arg = False,
+                 session_arg = False):
         '''
         A keyboard shortcut is a key sequence and function to call when
         that key sequence is entered.  Shortcuts are put in categories and have
@@ -205,6 +207,7 @@ class Shortcut:
         self.each_surface = each_surface
         self.atoms_arg = atoms_arg
         self.view_arg = view_arg
+        self.mouse_modes_arg = mouse_modes_arg
         self.session_arg = session_arg
         
     def run(self, session):
@@ -224,6 +227,9 @@ class Shortcut:
         elif self.view_arg:
             v = s.view
             f(v)
+        elif self.mouse_modes_arg:
+            m = s.main_window.graphics_window.mouse_modes
+            f(m)
         elif self.session_arg:
             f(s)
         else:
@@ -385,29 +391,30 @@ def toggle_box_faces(m):
                    orthoplanes_shown = (False, False, False))
   m.show('solid')
 
-def enable_move_planes_mouse_mode(viewer, button = 'right'):
+def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
 
+  m = mouse_modes
   from ..map.moveplanes import planes_mouse_mode as pmm
-  viewer.mouse_modes.bind_mouse_mode(button,
-                         lambda e,v=viewer: pmm.mouse_down(v,e),
-                         lambda e,v=viewer: pmm.mouse_drag(v,e),
-                         lambda e,v=viewer: pmm.mouse_up(v,e))
+  m.bind_mouse_mode(button,
+                    lambda e,v=m.view: pmm.mouse_down(v,e),
+                    lambda e,v=m.view: pmm.mouse_drag(v,e),
+                    lambda e,v=m.view: pmm.mouse_up(v,e))
 
-def enable_contour_mouse_mode(viewer, button = 'right'):
-  m = viewer.mouse_modes
+def enable_contour_mouse_mode(mouse_modes, button = 'right'):
+  m = mouse_modes
   m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
 
 def enable_map_series_mouse_mode(s, button = 'right'):
   from ..map import series
   series.enable_map_series_mouse_mode(s, button)
 
-def enable_move_selected_mouse_mode(viewer, button = 'right'):
-  m = viewer.mouse_modes
+def enable_move_selected_mouse_mode(mouse_modes, button = 'right'):
+  m = mouse_modes
   m.bind_standard_mouse_modes()
   m.move_selected = True
 
-def enable_move_mouse_mode(viewer, button = 'right'):
-  m = viewer.mouse_modes
+def enable_move_mouse_mode(mouse_modes, button = 'right'):
+  m = mouse_modes
   m.bind_standard_mouse_modes()
   m.move_selected = False
 
@@ -522,8 +529,8 @@ def depth_cue(viewer):
     viewer.enable_depth_cue(not viewer.depth_cue_enabled())
     
 def selection_mouse_mode(session):
-    v = session.view
-    v.mouse_modes.bind_mouse_mode('right', v.mouse_modes.mouse_select)
+    mm = session.main_window.graphcs_window.mouse_modes
+    mm.mouse_modes.bind_mouse_mode('right', mm.mouse_select)
 
 def command_line(session):
     session.main_window.enable_shortcuts(False)
