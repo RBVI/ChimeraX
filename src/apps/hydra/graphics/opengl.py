@@ -835,6 +835,16 @@ class Lighting:
     a key (main) light, and a fill light, as well as ambient light color.
     Directions are unit vectors in camera coordinates (x right, y up, z opposite camera view).
     Colors are R,G,B float values in the range 0-1.
+
+    :ivar key_light_direction: (.577,-.577,-.577)
+    :ivar key_light_color: (1,1,1)
+    :ivar key_light_intensity: 1
+    :ivar fill_light_direction: (-.2,-.2,-.959)
+    :ivar fill_light_color: (1,1,1)
+    :ivar fill_light_intensity: 0.5
+    :ivar ambient_light_color: (1,1,1)
+    :ivar ambient_light_intensity: 0.4
+    :ivar move_lights_with_camera: True
     '''
 
     def __init__(self):
@@ -842,7 +852,9 @@ class Lighting:
         self.set_default_parameters()
 
     def set_default_parameters(self):
-
+        '''
+        Reset the lighting parameters to default values.
+        '''
         from numpy import array, float32
         self.key_light_direction = array((.577,-.577,-.577), float32)    # Should have unit length
         '''Direction key light shines in.'''
