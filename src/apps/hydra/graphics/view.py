@@ -24,7 +24,7 @@ class View:
         self._shadows = False
         self.shadow_map_size = 2048
         self.multishadow = 0                    # Number of shadows
-        self._multishadow_directions = None
+        self._multishadow_dir = None
         self._multishadow_transforms = []
         self._multishadow_depth = None
         self.silhouettes = False
@@ -47,7 +47,7 @@ class View:
         self.center_of_rotation = array((0,0,0), float32)
         self._update_center = True
 
-    def initialize_opengl(self):
+    def _initialize_opengl(self):
 
         if self._opengl_initialized:
             return
@@ -61,15 +61,17 @@ class View:
         r.initialize_opengl(w,h)
 
     def opengl_version(self):
+        '''Return the OpenGL version as a string.'''
         return self._render.opengl_version()
 
-    def use_opengl(self):
+    def _use_opengl(self):
         self._make_opengl_context_current()
         self._have_opengl_context = True
-        self.initialize_opengl()
+        self._initialize_opengl()
 
     def draw(self):
-        self.use_opengl()
+        '''Draw the scene.'''
+        self._use_opengl()
         self._draw_scene()
         if self.camera.mode != 'oculus':
             self._swap_opengl_buffers()
@@ -81,13 +83,17 @@ class View:
         self._background_rgba = tuple(rgba)
         self.redraw_needed = True
     background_color = property(get_background_color, set_background_color)
+    '''Background color as R,G,B,A values in 0-1 range.'''
 
     def lighting(self):
+        '''Lighting parameters.'''
         return self._render.lighting
     def material(self):
+        '''Material reflectivity parameters.'''
         return self._render.material
 
     def enable_depth_cue(self, enable):
+        '''Turn on or off dimming with depth.'''
         r = self._render
         if enable:
             r.enable_capabilities |= r.SHADER_DEPTH_CUE
@@ -95,6 +101,7 @@ class View:
             r.enable_capabilities &= ~r.SHADER_DEPTH_CUE
         self.redraw_needed = True
     def depth_cue_enabled(self):
+        '''Is depth cue enabled. Boolean value.'''
         r = self._render
         return bool(r.enable_capabilities | r.SHADER_DEPTH_CUE)
 
@@ -112,8 +119,14 @@ class View:
             r.enable_capabilities &= ~r.SHADER_SHADOWS
         self.redraw_needed = True
     shadows = property(get_shadows, set_shadows)
+    '''Is a shadow cast by the key light enabled? Boolean value.'''
 
     def set_multishadow(self, n):
+        '''
+        Specify the number of shadows to use for ambient shadowing, for example, 64 or 128.
+        To turn off ambient shadows specify 0 shadows.  Shadows are cast from uniformly
+        distributed directions.  This is GPU intensive, each shadow requiring a texture lookup.
+        '''
         self.multishadow = n
         r = self._render
         if n > 0:
@@ -143,14 +156,21 @@ class View:
         self.redraw_needed = True
 
     def add_overlay(self, overlay):
+        '''
+        Overlays are Drawings rendered after the normal scene is shown.
+        They are used for effects such as motion blur or cross fade that
+        blend the current rendered scene with a previous rendered scene.
+        '''
         overlay.redraw_needed = self.session.model_redraw_needed
         self._overlays.append(overlay)
         self.redraw_needed = True
 
     def overlays(self):
+        '''The current list of overlay Drawings.''' 
         return self._overlays
 
     def remove_overlays(self, models = None):
+        '''Remove the specified overlay Drawings.'''
         if models is None:
             models = self._overlays
         for o in models:
@@ -160,10 +180,10 @@ class View:
         self.redraw_needed = True
 
     def image(self, width = None, height = None, supersample = None, camera = None, models = None):
+        '''Capture an image of the current scene. A PIL image is returned.'''
+        self._use_opengl()
 
-        self.use_opengl()
-
-        w,h = self.window_size_matching_aspect(width, height)
+        w,h = self._window_size_matching_aspect(width, height)
 
         from .opengl import Framebuffer
         fb = Framebuffer(w,h)
@@ -210,11 +230,19 @@ class View:
         return pi
 
     def frame_buffer_rgba(self):
+        '''
+        Return a numpy array of R,G,B,A values of the currently rendered scene.
+        This is used for blending effects such as motion blur and cross fades.
+        '''
         w,h = self.window_size
         rgba = self._render.frame_buffer_image(w, h)
         return rgba
 
     def resize(self, width, height):
+        '''
+        This is called when the graphics window was resized by the user and causes
+        the OpenGL rendering to use the specified new window size.
+        '''
         self.window_size = (width, height)
         if self._have_opengl_context:
             from .opengl import default_framebuffer
@@ -222,7 +250,7 @@ class View:
             fb.width, fb.height = width,height
             fb.viewport = (0,0,width,height)
 
-    def window_size_matching_aspect(self, width, height):
+    def _window_size_matching_aspect(self, width, height):
         w,h = width, height
         vw,vh = self.window_size
         if not w is None and not h is None:
@@ -234,15 +262,16 @@ class View:
         return (vw,vh)
 
     def draw_if_changed(self):
+        '''Redraw the scene if any changes have occured.'''
 
         if self._block_redraw_count > 0:
             return False
         
-        self.block_redraw()	# Avoid redrawing during callbacks of the current redraw.
+        self._block_redraw()	# Avoid redrawing during callbacks of the current redraw.
         try:
             return self._draw_if_changed()
         finally:
-            self.unblock_redraw()
+            self._unblock_redraw()
             return False
 
     def _draw_if_changed(self):
@@ -282,12 +311,20 @@ class View:
 
         return True
 
-    def block_redraw(self):
+    def _block_redraw(self):
+        # Avoid redrawing when we are already in the middle of drawing.
         self._block_redraw_count += 1
-    def unblock_redraw(self):
+    def _unblock_redraw(self):
         self._block_redraw_count -= 1
 
     def report_framerate(self, time = None, monitor_period = 1.0):
+        '''
+        Report a status message giving the current rendering rate in frames per second.
+        This is computed without the vertical sync which normally limits the frame rate
+        to typically 60 frames per second.  The minimum drawing time used over a one
+        second interval is used. The message is shown in the status line and log after
+        the one second has elapsed.
+        '''
         if time is None:
             from time import time
             self._time_graphics = time() + monitor_period
@@ -301,13 +338,13 @@ class View:
             s.show_status(msg)
             s.show_info(msg)
 
-    def start_timing(self):
+    def _start_timing(self):
         if self._time_graphics:
             self.finish_rendering()
             from time import time
             self.render_start_time = time()
 
-    def finish_timing(self):
+    def _finish_timing(self):
         if self._time_graphics:
             self.finish_rendering()
             from time import time
@@ -322,6 +359,11 @@ class View:
                 self.redraw_needed = True
 
     def finish_rendering(self):
+        '''
+        Force the graphics pipeline to complete all requested drawing.
+        This can slow down rendering but is used by display devices such as Oculus Rift
+        goggles to reduce latency time between head tracking and graphics update.
+        '''
         self._render.finish_rendering()
 
     def add_new_frame_callback(self, cb):
@@ -338,13 +380,13 @@ class View:
         '''Add a callback that was added with add_rendered_frame_callback().'''
         self._rendered_callbacks.remove(cb)
 
-    def multishadow_directions(self):
+    def _multishadow_directions(self):
 
-        directions = self._multishadow_directions
+        directions = self._multishadow_dir
         if directions is None or len(directions) != self.multishadow:
             n = self.multishadow    # requested number of directions
             from ..geometry import sphere
-            self._multishadow_directions = directions = sphere.sphere_points(n)
+            self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 
     def _draw_scene(self, camera = None, models = None):
@@ -359,9 +401,9 @@ class View:
         if self.shadows:
             kl = r.lighting.key_light_direction                     # Light direction in camera coords
             lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
-            stf = self.use_shadow_map(lightdir, models)
+            stf = self._use_shadow_map(lightdir, models)
         if self.multishadow > 0:
-            mstf, msdepth = self.use_multishadow_map(self.multishadow_directions(), models)
+            mstf, msdepth = self._use_multishadow_map(self._multishadow_directions(), models)
 
         r.set_background_color(self.background_color)
 
@@ -382,7 +424,7 @@ class View:
                 r.start_silhouette_drawing()
             r.draw_background()
             if mdraw:
-                perspective_near_far_ratio = self.update_projection(vnum, camera = camera)
+                perspective_near_far_ratio = self._update_projection(vnum, camera = camera)
                 if self.shadows:
                     r.set_shadow_transform(stf*camera.view())
                 cvinv = camera.view_inverse(vnum)
@@ -391,9 +433,9 @@ class View:
                     # Initial depth pass optimization to avoid lighting calculation on hidden geometry
                     draw_depth(r, cvinv, mdraw)
                     r.allow_equal_depth(True)
-                self.start_timing()
+                self._start_timing()
                 draw_drawings(r, cvinv, mdraw)
-                self.finish_timing()
+                self._finish_timing()
                 if self.multishadow > 0:
                     r.allow_equal_depth(False)
                 if selected:
@@ -407,12 +449,12 @@ class View:
         if self._overlays:
             draw_overlays(self._overlays, r)
 
-    def use_shadow_map(self, light_direction, models):
+    def _use_shadow_map(self, light_direction, models):
 
         r = self._render
 
         # Compute model bounds so shadow map can cover all models.
-        center, radius, models = model_bounds(models, self.session)
+        center, radius, models = _model_bounds(models, self.session)
         if center is None:
             return None
 
@@ -433,7 +475,7 @@ class View:
 
         return stf      # Scene to shadow map texture coordinates
 
-    def use_multishadow_map(self, light_directions, models):
+    def _use_multishadow_map(self, light_directions, models):
 
         r = self._render
         if len(self._multishadow_transforms) == len(light_directions):
@@ -443,7 +485,7 @@ class View:
             return self._multishadow_transforms, self._multishadow_depth
 
         # Compute model bounds so shadow map can cover all models.
-        center, radius, models = model_bounds(models, self.session)
+        center, radius, models = _model_bounds(models, self.session)
         if center is None:
             return None, None
 
@@ -478,6 +520,10 @@ class View:
         return mstf, msd      # Scene to shadow map texture coordinates
 
     def update_level_of_detail(self):
+        '''
+        Update the level of detail used for rendering, for example,
+        the number of triangles used to render spheres.
+        '''
         # Level of detail updating.
         # TODO: Don't recompute atoms shown on every draw, only when changed
         ashow = sum(m.shown_atom_count() for m in self.session.molecules() if m.display)
@@ -487,7 +533,7 @@ class View:
                 m.update_level_of_detail(self)
 
     def initial_camera_view(self):
-
+        '''Set the camera position to show all displayed models, looking down the z axis.'''
         center, s = self.session.bounds_center_and_width()
         if center is None:
             return
@@ -496,9 +542,8 @@ class View:
         self.center_of_rotation = center
 
     def view_all(self):
-        '''Adjust the camera to show all displayed models.'''
+        '''Adjust the camera to show all displayed models using the current view direction.'''
         ses = self.session
-#        ses.bounds_changed = True       # TODO: Model display changes are not setting bounds changed flag.
         center, s = ses.bounds_center_and_width()
         if center is None:
             return
@@ -506,9 +551,14 @@ class View:
         self.translate(-shift)
 
     def center_of_rotation_needs_update(self):
+        '''Cause the center of rotation to be updated.'''
         self._update_center = True
 
     def update_center_of_rotation(self):
+        '''
+        Update the center of rotation to the center of displayed models if zoomed out,
+        or the front center object if zoomed in.
+        '''
         if not self._update_center:
             return
         self._update_center = False
@@ -521,17 +571,22 @@ class View:
             cr = center
         else:
             # Use front center point for zoomed in views
-            cr = self.front_center_point()
+            cr = self._front_center_point()
             if cr is None:
                 return
         self.center_of_rotation = cr
 
-    def front_center_point(self):
+    def _front_center_point(self):
         w, h = self.window_size
         p, s = self.first_intercept(0.5*w, 0.5*h)
         return p
 
     def first_intercept(self, win_x, win_y):
+        '''
+        Return the position of the front-most object below the given screen window position (in pixels)
+        and also return a Pick object describing the object.  This is used when hovering the mouse over
+        an object (e.g. an atom) to get a description of that object.
+        '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         f = None
         s = None
@@ -547,7 +602,7 @@ class View:
         p = (1.0-f)*xyz1 + f*xyz2
         return p, s
 
-    def update_projection(self, view_num = None, camera = None):
+    def _update_projection(self, view_num = None, camera = None):
         
         r = self._render
         ww,wh = r.render_size()
@@ -555,13 +610,14 @@ class View:
             return
 
         c = self.camera if camera is None else camera
-        near,far = self.near_far_clip(c, view_num)
+        near,far = self._near_far_clip(c, view_num)
         pm = c.projection_matrix((near,far), view_num, (ww,wh))
         r.set_projection_matrix(pm)
 
         return near/far
 
-    def near_far_clip(self, camera, view_num):
+    def _near_far_clip(self, camera, view_num):
+        # Return the near and far clip plane distances.
 
         cp = camera.position(view_num)
         vd = camera.view_direction(view_num)
@@ -581,11 +637,11 @@ class View:
 
     def clip_plane_points(self, window_x, window_y, camera = None, view_num = None):
         '''
-        Two scene points at the near and far clip planes at the specified window pixel position.
+        Return two scene points at the near and far clip planes at the specified window pixel position.
         The points are in scene coordinates.
         '''
         c = camera if camera else self.camera
-        nf = self.near_far_clip(c, view_num)
+        nf = self._near_far_clip(c, view_num)
         scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf, self._render)
         return scene_pts
 
@@ -628,7 +684,7 @@ class View:
             p = self.center_of_rotation
         return self.camera.pixel_size(p, self.window_size)
 
-def model_bounds(models, session):
+def _model_bounds(models, session):
     if models is None:
         s = session
         center, radius = s.bounds_center_and_width()
