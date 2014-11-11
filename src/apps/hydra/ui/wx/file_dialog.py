@@ -10,8 +10,9 @@ def save_session_dialog(session):
         dir = session.file_history.most_recent_directory()
     filters = 'Session (*.hy)'
     import wx
-    dlg = wx.FileDialog(session.view, "Save Session", dir, wildcard=filters,
-        style=wx.FDSAVE|wx.FD_OVERWRITE_PROMPT)
+    dlg = wx.FileDialog(session.main_window.graphics_window,
+                        "Save Session", dir, wildcard=filters,
+                        style=wx.FDSAVE|wx.FD_OVERWRITE_PROMPT)
     if dlg.ShowModal() == wx.ID_CANCEL:
         return
     path = dlg.GetPath()
@@ -32,7 +33,8 @@ def show_open_file_dialog(session):
     if dir is None:
         dir = '.'
     import wx
-    dlg = wx.FileDialog(session.view, "Open File", dir, wildcard=filters,
+    dlg = wx.FileDialog(session.main_window.graphics_window,
+        "Open File", dir, wildcard=filters,
         style=wx.FDOPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE|wx.FD_PREVIEW)
 
     if dlg.ShowModal() == wx.ID_CANCEL:
