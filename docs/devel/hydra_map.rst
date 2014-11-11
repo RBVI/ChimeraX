@@ -9,3 +9,9 @@ map: Density maps
 
 .. automodule:: hydra.map.fit.fitmap
     :members:
+
+.. automodule:: hydra.map.fetch_eds
+    :members:
+
+.. automodule:: hydra.map.fetch_emdb
+    :members:

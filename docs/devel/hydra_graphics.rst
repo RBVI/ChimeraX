@@ -1,9 +1,12 @@
-graphics: Drawings, Camera and OpenGL
-=====================================
-.. automodule:: hydra.graphics.drawing
+graphics: View, Camera, Drawings and OpenGL
+===========================================
+.. automodule:: hydra.graphics.view
     :members:
 
 .. automodule:: hydra.graphics.camera
+    :members:
+
+.. automodule:: hydra.graphics.drawing
     :members:
 
 .. automodule:: hydra.graphics.opengl

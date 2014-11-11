@@ -8,7 +8,9 @@ Hydra Modules
 .. toctree::
    :maxdepth: 2
 
-   hydra_file_io.rst
+   hydra_command.rst
+
+   hydra_files.rst
 
    hydra_geometry.rst
 
