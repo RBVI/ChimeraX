@@ -36,8 +36,11 @@ class Drawing:
   def __init__(self, name):
 
     self.redraw_needed = redraw_no_op
+    "Function called when the drawing has been changed to indicate that the graphics needs to be redrawn."
 
     self.name = name
+    "Name of this drawing."
+
     from ..geometry.place import Places
     self._positions = Places()          # Copies of drawing are placed at these positions
     from numpy import array, uint8
@@ -48,37 +51,81 @@ class Drawing:
     self._selected_triangles_mask = None # bool numpy array
     self._child_drawings = []
     self.reverse_order_children = False     # Used by grayscale rendering for depth ordering
+    "Whether to render the children in reverse order for properly handling transparency."
     self._cached_bounds = None
 
     # Geometry and colors
     self.vertices = None
+    "Vertices of the rendered geometry, a numpy N by 3 array of float32 values."
+
     self.triangles = None
+    '''
+    Vertex indices for the corners of each triangle making up the rendered geometry,
+    a numpy M by 3 array of int32 values.
+    '''
+
     self.normals = None
-    self.vertex_colors = None           # N by 4 uint8 values
+    "Normal vectors of the rendered geometry, a numpy N by 3 array of float32 values."
+
+    self.vertex_colors = None
+    '''
+    R,G,B,A color and transparency for each vertex, a numpy N by 4 array of uint8 values,
+    can be None in which case a single color (attribute color) is used for the object.
+    '''
+
     self.edge_mask = None
+    '''
+    A mask that allows hiding some triangles and edges, a numpy array of length M (# of triangles)
+    of type int32, where bits 0, 1, and 2 are whether to display each edge of the triangle, and bit 3
+    is whether to display the triangle.  This is used for square mesh density map display and for
+    showing partial surfaces.
+    '''
+
     self.display_style = self.Solid
+    '''
+    Display style can be Drawing.Solid, Drowing.Mesh or Drawing.Dot.
+    Only one style can be used for a single Drawing instance.
+    '''
+
     self.texture = None
+    '''
+    Texture to use in coloring the surface, a graphics.Texture object.
+    Only 2-dimensional textures are supported.  Can be None.
+    '''
+
     self.texture_coordinates = None
+    "Texture coordinates, an N by 2 numpy array of float32 values in range 0-1"
+
     self.ambient_texture = None         	# 3d texture that modulates colors.
+    '''
+    A 3-dimensional texture that modulates the brightness of surface vertex colors.
+    Used for fast rendering of ambient occlusion lighting.
+    '''
     self.ambient_texture_transform = None       # Drawing to texture coordinates.
+    "Transformation mapping vertex coordinates to ambient_texture coordinates, a geometry.Place object."
+
     self.opaque_texture = False
+    "Whether the texture for surface coloring is opaque or transparent."
+
     self.use_lighting = True
+    "Whether to use lighting when rendering.  If false then a flat unshaded color will be shown."
 
     # OpenGL drawing
-    self.draw_shape = None
-    self.draw_selection = None
+    self._draw_shape = None
+    self._draw_selection = None
     self._shader_options = None
-    self.vertex_buffers = []
-    self.need_buffer_update = True
+    self._vertex_buffers = []
+    self._need_buffer_update = True
 
     self.was_deleted = False
+    "Indicates whether this Drawing has been deleted."
 
   def __setattr__(self, key, value):
     if key in self.effects_shader:
       self._shader_options = None       # Cause shader update
       self.redraw_needed()
     if key in self.effects_buffers:
-      self.need_buffer_update = True
+      self._need_buffer_update = True
       gc = key in ('vertices', 'triangles')
       if gc:
         self._cached_bounds = None
@@ -89,8 +136,11 @@ class Drawing:
 
   # Display styles
   Solid = 'solid'
+  "Display style showing filled triangles."
   Mesh = 'mesh'
+  "Display style showing only edges of triangles."
   Dot = 'dot'
+  "Display style showing only dots at triangle vertices."
 
   def child_drawings(self):
     '''Return the list of surface pieces.'''
@@ -415,18 +465,18 @@ class Drawing:
     if self.vertices is None:
       return
 
-    if len(self.vertex_buffers) == 0:
+    if len(self._vertex_buffers) == 0:
       self.create_vertex_buffers()
 
-    ds = self.draw_selection if selected_only else self.draw_shape
+    ds = self._draw_selection if selected_only else self._draw_shape
     ds.activate_shader_and_bindings(renderer, self.shader_options())
 
-    if self.need_buffer_update:
+    if self._need_buffer_update:
       # Updating buffers has to be done after activating bindings to avoid changing
       # the element buffer binding for the previously active bindings.
       self.update_buffers()
       ds.update_bindings()
-      self.need_buffer_update = False
+      self._need_buffer_update = False
 
     # Set color
     if self.vertex_colors is None and len(self._colors) == 1:
@@ -480,12 +530,12 @@ class Drawing:
     em = self.edge_mask if self.display_style == self.Mesh else None
     tm = None
     tmsel = self._selected_triangles_mask
-    ds, dss = self.draw_shape, self.draw_selection
+    ds, dss = self._draw_shape, self._draw_selection
     ds.update_buffers(p, c, pm, ta, tm, em)
     dss.update_buffers(p, c, pmsel, ta, tmsel, em)
 
     bchange = False
-    for b in self.vertex_buffers:
+    for b in self._vertex_buffers:
       data = getattr(self, b.buffer_attribute_name)
       if b.update_buffer_data(data):
         bchange = True
@@ -629,7 +679,7 @@ class Drawing:
     self.texture = None
     self.texture_coordinates = None
 
-    for b in self.vertex_buffers:
+    for b in self._vertex_buffers:
       b.delete_buffer()
 
     self.was_deleted = True
@@ -642,14 +692,14 @@ class Drawing:
              ('texture_coordinates', opengl.TEXTURE_COORDS_2D_BUFFER),
             )
 
-    self.vertex_buffers = vb = []
+    self._vertex_buffers = vb = []
     for a,v in vbufs:
       b = opengl.Buffer(v)
       b.buffer_attribute_name = a
       vb.append(b)
 
-    self.draw_shape = Draw_Shape(vb)
-    self.draw_selection = Draw_Shape(vb)
+    self._draw_shape = Draw_Shape(vb)
+    self._draw_selection = Draw_Shape(vb)
 
   effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
                          '_displayed_positions', '_colors', '_positions'))
