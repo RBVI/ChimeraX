@@ -35,7 +35,7 @@ class Drawing:
 
   def __init__(self, name):
 
-    self.redraw_needed = redraw_no_op
+    self.redraw_needed = _redraw_no_op
     "Function called when the drawing has been changed to indicate that the graphics needs to be redrawn."
 
     self.name = name
@@ -113,7 +113,7 @@ class Drawing:
     # OpenGL drawing
     self._draw_shape = None
     self._draw_selection = None
-    self._shader_options = None
+    self._shader_opt = None             # Cached shader options
     self._vertex_buffers = []
     self._need_buffer_update = True
 
@@ -121,10 +121,10 @@ class Drawing:
     "Indicates whether this Drawing has been deleted."
 
   def __setattr__(self, key, value):
-    if key in self.effects_shader:
-      self._shader_options = None       # Cause shader update
+    if key in self._effects_shader:
+      self._shader_opt = None       # Cause shader update
       self.redraw_needed()
-    if key in self.effects_buffers:
+    if key in self._effects_buffers:
       self._need_buffer_update = True
       gc = key in ('vertices', 'triangles')
       if gc:
@@ -248,6 +248,7 @@ class Drawing:
   '''Mask specifying which triangles are selected.'''
 
   def any_part_selected(self):
+    '''Is any part of this Drawing or its children selected.'''
     if self.selected:
       return True
     for d in self.child_drawings():
@@ -256,6 +257,7 @@ class Drawing:
     return False
 
   def fully_selected(self):
+    '''Is the entire Drawing including children selected.'''
     sp = self._selected_positions
     ns = sp.sum()
     if not sp is None and ns == len(sp):
@@ -266,11 +268,14 @@ class Drawing:
     return True
 
   def clear_selection(self):
+    '''Unselect this drawing. Child drawings may remain selected.'''
     self.selected = False
 
   def promote_selection(self):
-
-    pd = self.deepest_promotable_drawings()
+    '''
+    Select the next larger containing group.  If one child is selected, then all become selected.
+    '''
+    pd = self._deepest_promotable_drawings()
     if len(pd) == 0:
       return
 
@@ -286,7 +291,7 @@ class Drawing:
 
   # A drawing is promotable if some children are fully selected and others are unselected,
   # or if some copies are selected and other copies are unselected.
-  def deepest_promotable_drawings(self, level = 0):
+  def _deepest_promotable_drawings(self, level = 0):
 
     sp = self._selected_positions
     ns = sp.sum()
@@ -305,12 +310,17 @@ class Drawing:
     return []
 
   def demote_selection(self):
+    '''If the selection has previously been promoted, this returns it to the previous smaller selection.'''
     pt = getattr(self, 'promotion_tower', None)
     if pt:
       for d,sp in pt.pop():
         d.selected_positions = sp
 
   def clear_selection_promotion_history(self):
+    '''
+    Forget the selection history promotion history.
+    This is used when the selection is changed manually.
+    '''
     if hasattr(self, 'promotion_tower'):
       delattr(self, 'promotion_tower')
 
@@ -339,6 +349,7 @@ class Drawing:
   '''
 
   def number_of_positions(self, displayed_only = False):
+    '''Number of positions the Drawing is placed at.'''
     if displayed_only and not self.display:
       return 0
     dp = self.display_positions
@@ -366,14 +377,14 @@ class Drawing:
   colors = property(get_colors, set_colors)
   '''Color for each position used when per-vertex coloring is not specified.'''
 
-  def opaque(self):
+  def _opaque(self):
     # TODO: Should render transparency for each copy separately
     return self._colors[0][3] == 255 and (self.texture is None or self.opaque_texture)
 
   def showing_transparent(self):
     '''Are any transparent objects being displayed. Includes all children.'''
     if self.display:
-      if not self.empty_drawing() and not self.opaque():
+      if not self.empty_drawing() and not self._opaque():
         return True
       for d in self.child_drawings():
         if d.showing_transparent():
@@ -390,6 +401,11 @@ class Drawing:
   '''Geometry is the array of vertices and array of triangles.'''
 
   def all_geometries(self):
+    '''
+    Return geometry of this drawing and all its chidren as a list of 3-tuples,
+    each containing the vertices, triangles, and a Places object that contains
+    all the scene locations of those vertices and triangles.
+    '''
     va, ta = self.geometry
     g = [] if va is None else [(va, ta, self.positions)]
     for d in self.child_drawings():
@@ -397,9 +413,11 @@ class Drawing:
     return g
         
   def empty_drawing(self):
+    '''Does this drawing have no geometry? Does not consider child drawings.'''
     return self.vertices is None
 
   def number_of_triangles(self, displayed_only = False):
+    '''Return the number of triangles including all child drawings and all positions.'''
     np = self.number_of_positions(displayed_only)
     if np == 0:
       return 0
@@ -410,9 +428,13 @@ class Drawing:
     return tc
 
   OPAQUE_DRAW_PASS = 'opaque'
+  "Draw pass to render only opaque drawings."
   TRANSPARENT_DRAW_PASS = 'transparent'
+  "Draw pass to render only transparent drawings."
   TRANSPARENT_DEPTH_DRAW_PASS = 'transparent depth'
+  "Draw pass to render only the depth of transparent drawings."
   SELECTION_DRAW_PASS = 'selection'
+  "Draw pass to render only the selected parts of drawings."
 
   def draw(self, renderer, place, draw_pass, selected_only = False):
     '''Draw this drawing and children using the given draw pass.'''
@@ -428,7 +450,7 @@ class Drawing:
       for i,p in enumerate(self.positions):
         so = selected_only and (sp is None or not sp[i])
         pp = place if p.is_identity() else place*p
-        self.draw_children(renderer, pp, draw_pass, so)
+        self._draw_children(renderer, pp, draw_pass, so)
 
   def draw_self(self, renderer, place, draw_pass, selected_only = False):
     '''Draw this drawing without children using the given draw pass.'''
@@ -444,37 +466,37 @@ class Drawing:
     renderer.set_model_matrix(pp)
 
     if draw_pass == self.OPAQUE_DRAW_PASS:
-      if self.opaque():
-          self.draw_geometry(renderer, selected_only)
+      if self._opaque():
+          self._draw_geometry(renderer, selected_only)
     elif draw_pass in (self.TRANSPARENT_DRAW_PASS, self.TRANSPARENT_DEPTH_DRAW_PASS):
-      if not self.opaque():
-        self.draw_geometry(renderer, selected_only)
+      if not self._opaque():
+        self._draw_geometry(renderer, selected_only)
     elif draw_pass == self.SELECTION_DRAW_PASS:
-      self.draw_geometry(renderer, selected_only)
+      self._draw_geometry(renderer, selected_only)
 
-  def draw_children(self, renderer, place, draw_pass, selected_only = False):
+  def _draw_children(self, renderer, place, draw_pass, selected_only = False):
     dlist = self.child_drawings()
     if self.reverse_order_children:
       dlist = dlist[::-1]
     for d in dlist:
       d.draw(renderer, place, draw_pass, selected_only)
 
-  def draw_geometry(self, renderer, selected_only = False):
+  def _draw_geometry(self, renderer, selected_only = False):
     ''' Draw the geometry.'''
 
     if self.vertices is None:
       return
 
     if len(self._vertex_buffers) == 0:
-      self.create_vertex_buffers()
+      self._create_vertex_buffers()
 
     ds = self._draw_selection if selected_only else self._draw_shape
-    ds.activate_shader_and_bindings(renderer, self.shader_options())
+    ds.activate_shader_and_bindings(renderer, self._shader_options())
 
     if self._need_buffer_update:
       # Updating buffers has to be done after activating bindings to avoid changing
       # the element buffer binding for the previously active bindings.
-      self.update_buffers()
+      self._update_buffers()
       ds.update_bindings()
       self._need_buffer_update = False
 
@@ -497,8 +519,8 @@ class Drawing:
     if not self.texture is None:
       self.texture.unbind_texture()
 
-  def shader_options(self):
-    sopt = self._shader_options
+  def _shader_options(self):
+    sopt = self._shader_opt
     if sopt is None:
       sopt = 0
       from .opengl import Render as r
@@ -514,18 +536,18 @@ class Drawing:
         sopt |= r.SHADER_SHIFT_AND_SCALE
       elif len(self.positions) > 1:
         sopt |= r.SHADER_INSTANCING
-      self._shader_options = sopt
+      self._shader_opt = sopt
     return sopt
 
-  effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'ambient_texture',
-                        '_positions'))
+  _effects_shader = set(('use_lighting', 'vertex_colors', '_colors', 'texture', 'ambient_texture',
+                         '_positions'))
 
   # Update the contents of vertex, element and instance buffers if associated arrays have changed.
-  def update_buffers(self):
+  def _update_buffers(self):
 
     p,c = self.positions, self.colors
-    pm = self.position_mask()
-    pmsel = self.position_mask(True)
+    pm = self._position_mask()
+    pmsel = self._position_mask(True)
     ta = self.triangles
     em = self.edge_mask if self.display_style == self.Mesh else None
     tm = None
@@ -543,7 +565,7 @@ class Drawing:
     if bchange:
       ds.reset_bindings = dss.reset_bindings = True
 
-  def position_mask(self, selected_only = False):
+  def _position_mask(self, selected_only = False):
     dp = self._displayed_positions        # bool array
     if selected_only:
       sp = self._selected_positions
@@ -558,14 +580,14 @@ class Drawing:
     '''
     dbounds = [d.bounds() for d in self.child_drawings() if d.display]
     if not self.empty_drawing():
-      dbounds.append(self.geometry_bounds())
+      dbounds.append(self._geometry_bounds())
     from ..geometry import bounds
     b = bounds.union_bounds(dbounds)
     if positions:
       b = bounds.copies_bounding_box(b, self.get_positions(displayed_only = True))
     return b
 
-  def geometry_bounds(self):
+  def _geometry_bounds(self):
     '''
     Return the bounds of the drawing not including positions nor children.
     '''
@@ -592,16 +614,16 @@ class Drawing:
     '''
     Find the first intercept of a line segment with the drawing and its children.
     Return the fraction of the distance along the segment where the intersection occurs
-    and a Picked_Drawing object for the intercepted piece.  For no intersection
+    and a Pick object for the intercepted piece.  For no intersection
     two None values are returned.  This routine is used for selecting objects, for
     identifying objects during mouse-over, and to determine the front-most point
     in the center of view to be used as the interactive center of rotation.
     '''
-    f, dpchain = self.first_drawing_intercept(mxyz1, mxyz2, exclude)
-    s = Picked_Drawing(dpchain) if dpchain else None
+    f, dpchain = self._first_drawing_intercept(mxyz1, mxyz2, exclude)
+    s = _Picked_Drawing(dpchain) if dpchain else None
     return f, s
 
-  def first_drawing_intercept(self, mxyz1, mxyz2, exclude = None):
+  def _first_drawing_intercept(self, mxyz1, mxyz2, exclude = None):
     '''
     Find the first intercept of a line segment with the drawing or its descendants and
     return the fraction of the distance along the segment where the intersection occurs
@@ -611,7 +633,7 @@ class Drawing:
     f = dpchain = None
     if self.display and (exclude is None or not hasattr(self,exclude)):
       if not self.empty_drawing():
-        fmin,p = self.first_intercept_excluding_children(mxyz1, mxyz2)
+        fmin,p = self._first_intercept_excluding_children(mxyz1, mxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
           dpchain = [(self,p)]
@@ -621,13 +643,13 @@ class Drawing:
         for d in cd:
           if d.display and (exclude is None or not hasattr(d,exclude)):
             for cp, (cxyz1,cxyz2) in enumerate(pos):
-              fmin,dc = d.first_drawing_intercept(cxyz1, cxyz2, exclude)
+              fmin,dc = d._first_drawing_intercept(cxyz1, cxyz2, exclude)
               if not fmin is None and (f is None or fmin < f):
                 f = fmin
                 dpchain = [(self,cp)] + dc
     return f, dpchain
 
-  def first_intercept_excluding_children(self, mxyz1, mxyz2):
+  def _first_intercept_excluding_children(self, mxyz1, mxyz2):
     '''
     Find the first intercept of a line segment with the drawing and
     return the fraction of the distance along the segment where the intersection occurs
@@ -664,10 +686,10 @@ class Drawing:
     '''
     Delete drawing and all child drawings.
     '''
-    self.delete_geometry()
+    self._delete_geometry()
     self.remove_all_drawings()
   
-  def delete_geometry(self):
+  def _delete_geometry(self):
     '''Release all the arrays and graphics memory associated with the surface piece.'''
     self._positions = None
     self._colors = None
@@ -684,7 +706,7 @@ class Drawing:
 
     self.was_deleted = True
 
-  def create_vertex_buffers(self):
+  def _create_vertex_buffers(self):
     from . import opengl
     vbufs = (('vertices', opengl.VERTEX_BUFFER),
              ('normals', opengl.NORMAL_BUFFER),
@@ -698,15 +720,17 @@ class Drawing:
       b.buffer_attribute_name = a
       vb.append(b)
 
-    self._draw_shape = Draw_Shape(vb)
-    self._draw_selection = Draw_Shape(vb)
+    self._draw_shape = _Draw_Shape(vb)
+    self._draw_selection = _Draw_Shape(vb)
 
-  effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
-                         '_displayed_positions', '_colors', '_positions'))
+  _effects_buffers = set(('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
+                          '_displayed_positions', '_colors', '_positions'))
 
   TRIANGLE_DISPLAY_MASK = 8
+  '''Edge mask for displaying a triangle (bit 3).'''
   EDGE0_DISPLAY_MASK = 1
   ALL_EDGES_DISPLAY_MASK = 7
+  '''Edge mask for displaying all three triangle edges (bits 0,1,2).'''
 
   def get_triangle_and_edge_mask(self):
     return self.edge_mask
@@ -722,7 +746,7 @@ class Drawing:
   '''
     
   def set_edge_mask(self, emask):
-
+    '''Set the edge mask leaving the current triangle mask unchanged.'''
     em = self.edge_mask
     if em is None:
       if emask is None:
@@ -740,34 +764,39 @@ class Drawing:
     self.redraw_needed(shape_changed = True)
 
 def draw_drawings(renderer, cvinv, drawings):
+  '''
+  Render opaque and transparent draw passes for a given set of drawings,
+  and given camera view (inverse camera transform).
+  '''
   r = renderer
   r.set_view_matrix(cvinv)
   from ..geometry.place import Place
   p = Place()
-  draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
-  if any_transparent_drawings(drawings):
-    r.draw_transparent(lambda: draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
-                       lambda: draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
+  _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
+  if _any_transparent_drawings(drawings):
+    r.draw_transparent(lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
+                       lambda: _draw_multiple(drawings, r, p, Drawing.TRANSPARENT_DRAW_PASS))
 
-def draw_multiple(drawings, r, place, draw_pass):
+def _draw_multiple(drawings, r, place, draw_pass):
   selected_only = (draw_pass == Drawing.SELECTION_DRAW_PASS)
   for d in drawings:
     d.draw(r, place, draw_pass, selected_only)
 
-def any_transparent_drawings(drawings):
+def _any_transparent_drawings(drawings):
   for d in drawings:
     if d.showing_transparent():
       return True
   return False
 
 def draw_depth(renderer, cvinv, drawings):
+  '''Render only the depth buffer (not colors).'''
   r = renderer
   r.disable_shader_capabilities(r.SHADER_LIGHTING|r.SHADER_VERTEX_COLORS|r.SHADER_TEXTURE_2D)
   draw_drawings(r, cvinv, drawings)
   r.disable_shader_capabilities(0)
 
 def draw_overlays(drawings, renderer):
-
+  '''Render drawings using an identity projection matrix with no depth test.'''
   r = renderer
   r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
   from ..geometry import place
@@ -775,22 +804,23 @@ def draw_overlays(drawings, renderer):
   r.set_view_matrix(p0)
   r.set_model_matrix(p0)
   r.enable_depth_test(False)
-  draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
+  _draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
   r.enable_blending(True)
-  draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
+  _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
   r.enable_blending(False)
   r.enable_depth_test(True)
 
 def draw_outline(renderer, cvinv, drawings):
+  '''Draw the outlines of selected parts of the specified drawings.'''
   r = renderer
   r.set_view_matrix(cvinv)
   r.start_rendering_outline()
   from ..geometry.place import Place
   p = Place()
-  draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
+  _draw_multiple(drawings, r, p, Drawing.SELECTION_DRAW_PASS)
   r.finish_rendering_outline()
 
-def element_type(display_style):
+def _element_type(display_style):
   from .opengl import Buffer
   if display_style == Drawing.Solid:
     t = Buffer.triangles
@@ -800,10 +830,10 @@ def element_type(display_style):
     t = Buffer.points
   return t
 
-def redraw_no_op(shape_changed = False):
+def _redraw_no_op(shape_changed = False):
   pass
 
-class Draw_Shape:
+class _Draw_Shape:
 
   def __init__(self, vertex_buffers):
 
@@ -838,7 +868,7 @@ class Draw_Shape:
   def draw(self, display_style):
 
     eb = self.element_buffer
-    etype = element_type(display_style)
+    etype = _element_type(display_style)
     ni = self.instance_count()
     if ni > 0:
       eb.draw_elements(etype, ni)
@@ -951,12 +981,21 @@ class Pick:
   A picked object returned by first_intercept() method of the Drawing class.
   '''
   def description(self):
+    '''Text description of the picked object.'''
     return None
   def drawing(self):
+    '''The drawing immediately containing the picked object.'''
     return None
   def select(self, toggle = False):
+    '''Cause this picked object to be marked as selected.'''
     pass
   def id_string(self):
+    '''
+    A text identifer that can be used in commands to specified the picked Model.
+    This is a concatenation of integer id numbers for the chain of drawings.
+    The id number is not a standard attribute of Drawing, only of Model which is
+    a subclass of Drawing.
+    '''
     d = self.drawing()
     id_chain = []
     while d:
@@ -966,7 +1005,7 @@ class Pick:
     s = '#' + '.'.join(('%d' % id) for id in id_chain[1::-1])
     return s
 
-class Picked_Drawing(Pick):
+class _Picked_Drawing(Pick):
   '''
   Represent a drawing chosen with the mouse as a generic selection object.
   '''
@@ -996,16 +1035,16 @@ class Picked_Drawing(Pick):
 
 def rgba_drawing(rgba, pos = (-1,-1), size = (2,2), drawing = None):
   '''
-  Make a drawing rectangle and use a texture to show an rgba image on it.
+  Make a drawing that is a single rectangle with a texture to show an rgba image on it.
   '''
   from . import opengl
   t = opengl.Texture(rgba)
-  d = texture_drawing(t, pos, size, drawing)
+  d = _texture_drawing(t, pos, size, drawing)
   return d
 
-def texture_drawing(texture, pos = (-1,-1), size = (2,2), drawing = None):
+def _texture_drawing(texture, pos = (-1,-1), size = (2,2), drawing = None):
   '''
-  Make a new drawing and texture map it.
+  Make a drawing that is a single rectangle colored with a texture.
   '''
   d = drawing.new_drawing() if drawing else Drawing('rgba')
   x,y = pos
@@ -1021,23 +1060,7 @@ def texture_drawing(texture, pos = (-1,-1), size = (2,2), drawing = None):
   d.texture = texture
   return d
 
-def draw_texture(texture, renderer):
-  d = texture_drawing(texture)
+def _draw_texture(texture, renderer):
+  d = _texture_drawing(texture)
   d.opaque_texture = True
   draw_overlays([d], renderer)
-  return
-
-  r = renderer
-  r.disable_shader_capabilities(r.SHADER_LIGHTING)
-  from . import opengl
-  tw = opengl.Texture_Window(renderer, renderer.SHADER_TEXTURE_2D)
-  texture.bind_texture()
-  r.set_projection_matrix(((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1)))
-  from ..geometry import place
-  p0 = place.identity()
-  r.set_view_matrix(p0)
-  r.set_model_matrix(p0)
-  r.enable_depth_test(False)
-  tw.draw()
-  r.disable_shader_capabilities(0)
-  r.enable_depth_test(True)
