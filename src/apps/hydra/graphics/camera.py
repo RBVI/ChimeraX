@@ -8,8 +8,8 @@ class Camera:
     A Camera has a position in the scene and viewing direction given by a Place object.
     The -z axis of the coordinate frame given by the Place object is the view direction.
     The x and y axes are the horizontal and vertical axes of the camera frame.
-    A camera has an angular field of view measured in degrees.  It manages near and far
-    clip planes.  In stereo modes it uses two additional parameters, the eye spacing
+    A camera has an angular field of view measured in degrees. In stereo modes it uses
+    two additional parameters, the eye spacing
     in scene units, and also the eye spacing in pixels in the window.  The two eyes
     are considered 2 views that belong to one camera.
     '''
@@ -20,19 +20,43 @@ class Camera:
         # First 3 columns are x,y,z axes, 4th column is camara location.
         from ..geometry.place import Place
         self.place = self.place_inverse = Place()
-        self.field_of_view = 45                   # degrees, width
+        "Coordinate frame for camera in scene coordinates with camera pointed along -z."
 
-        self.mode = mode                          # 'mono', 'stereo', 'oculus'
-        self.eye_separation_scene = 1.0           # Scene distance units
-        self.eye_separation_pixels = eye_separation_pixels        # Screen pixel units
-        self.oculus_centering_shift = 0,0               # pixels, left eye
+        self.field_of_view = 45
+        "Horizontal field of view in degrees."
 
-        self.pixel_shift = 0,0                   # x and y shift for supersampling
+        self.mode = mode
+        "Camera mode, 'mono', 'stereo', or 'oculus'."
 
-        self.warp_framebuffers = [None, None]   # Off-screen rendering each eye for Oculus Rift
+        self.eye_separation_scene = 1.0
+        "Stereo eye separation in scene units."
+
+        self.eye_separation_pixels = eye_separation_pixels
+        "Separation of the user's eyes in screen pixels used for stereo rendering."
+
+        self.oculus_centering_shift = 0,0
+        '''
+        For the oculus rift the camera is not centered in the window.
+        This parameter gives the x and y pixel shifts from the geometric center for the left eye.
+        This should be removed from Camera and handled by a generic method the sets the render target.
+        '''
+
+        self.pixel_shift = 0,0
+        '''
+        Shift the camera by this number of pixels in x and y from the geometric center of the window.
+        This is used for supersampling where fractional pixel shifts are used and the resulting images
+        are blended.
+        '''
+
+        self._warp_framebuffers = [None, None]   # Off-screen rendering each eye for Oculus Rift
         self.warp_window_size = None
+        '''
+        Texture render size for each eye when using Oculus Rift.
+        This should be removed from Camera and handled by a generic method the sets the render target.
+        '''
 
         self.redraw_needed = False
+        "Indicates whether a camera change has been made which requires the graphics to be redrawn."
 
     def initialize_view(self, center, size):
         '''
@@ -49,7 +73,7 @@ class Camera:
     def view_all(self, center, size):
         '''
         Return the shift that makes the camera completely show models having specified center and radius.
-        The camera is not moved.
+        The camera view direction is not changed.
         '''
         from math import pi, tan
         fov = self.field_of_view*pi/180
@@ -162,7 +186,7 @@ class Camera:
         fov = self.field_of_view*pi/180
         t = tan(0.5*fov)
         if self.mode == 'oculus':
-            wx,wy,view_num = self.unwarped_render_position(window_x, window_y, window_size, render)
+            wx,wy,view_num = self._unwarped_render_position(window_x, window_y, window_size, render)
         else:
             wp,hp = window_size     # Screen size in pixels
             wx,wy,view_num = (window_x - 0.5*wp)/wp, (0.5*hp - window_y)/wp, 0
@@ -174,7 +198,7 @@ class Camera:
         spts = self.view(view_num) * cpts       # Convert camera to scene coordinates
         return spts
 
-    def unwarped_render_position(self, window_x, window_y, window_size, render):
+    def _unwarped_render_position(self, window_x, window_y, window_size, render):
         # TODO: This would be very hard using the Oculus SDK distortion rendering.
         #       Used to do this when my code applied distortion.  This is needed for mouse selection.
         wx,wy,view_num = 0,0,0
@@ -201,25 +225,25 @@ class Camera:
         elif m == 'oculus':
             if view_num > 0:
                 render.pop_framebuffer()
-            render.push_framebuffer(self.warping_framebuffer(view_num))
+            render.push_framebuffer(self._warping_framebuffer(view_num))
         else:
             raise ValueError('Unknown camera mode %s' % m)
 
-    def warping_framebuffer(self, view_num):
+    def _warping_framebuffer(self, view_num):
 
         tw,th = self.warp_window_size
         
-        fb = self.warp_framebuffers[view_num]
+        fb = self._warp_framebuffers[view_num]
         if fb is None or fb.width != tw or fb.height != th:
             from . import opengl
             t = opengl.Texture()
             t.initialize_rgba((tw,th))
-            self.warp_framebuffers[view_num] = fb = opengl.Framebuffer(color_texture = t)
+            self._warp_framebuffers[view_num] = fb = opengl.Framebuffer(color_texture = t)
             print ('created warp texture', t.size[0], t.size[1])
         return fb
 
-    def draw_warped(self, render, session):
-        '''Combine left and right eye images from separate textures with warping.'''
+    def combine_rendered_camera_views(self, render, session):
+        '''Combine left and right eye images from separate textures with warping for Oculus Rift.'''
 
         m = self.mode
         if m != 'oculus':
@@ -229,13 +253,13 @@ class Camera:
         fb = render.current_framebuffer()
         render.draw_background()
 
-        t0,t1 = [rb.color_texture for rb in self.warp_framebuffers]
+        t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
         if session.oculus:
             session.oculus.render(t0.size[0], t0.size[1], t0.id, t1.id)
 
-#        self.draw_unwarped(render)
+#        self._draw_unwarped(render)
 
-    def draw_unwarped(self, render):
+    def _draw_unwarped(self, render):
 
         # Unwarped rendering, for testing purposes.
         render.draw_background()
@@ -245,25 +269,25 @@ class Camera:
         w,h = fb.width//2, fb.height
         render.set_viewport(0,0,w,h)
 
-        s = self.warping_surface(render)
-        s.texture = self.warp_framebuffers[0].color_texture
+        s = self._warping_surface(render)
+        s.texture = self._warp_framebuffers[0].color_texture
         from . import drawing
         drawing.draw_overlays([s], render)
 
         # Draw right eye
         render.set_viewport(w,0,w,h)
-        s.texture = self.warp_framebuffers[1].color_texture
+        s.texture = self._warp_framebuffers[1].color_texture
         drawing.draw_overlays([s], render)
 
         session.view.swap_opengl_buffers()
 
-    def warping_surface(self, render):
+    def _warping_surface(self, render):
 
-        if hasattr(self, 'warp_surface'):
-            return self.warp_surface
+        if hasattr(self, '_warp_surface'):
+            return self._warp_surface
 
         from .drawing import Drawing
-        self.warp_surface = s = Drawing('warp plane')
+        self._warp_surface = s = Drawing('warp plane')
         # TODO: Use a childless drawing.
         from numpy import array, float32, int32
         va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
@@ -294,7 +318,10 @@ def frustum(left, right, bottom, top, zNear, zFar, xshift = 0, yshift = 0):
     return m
 
 def camera_framing_models(models):
-
+    '''
+    Create a Camera object for viewing the specified models.
+    This is used for capturing thumbnail images.
+    '''
     c = Camera()
     from ..geometry import bounds
     b = bounds.union_bounds(m.bounds() for m in models)

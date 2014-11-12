@@ -449,7 +449,7 @@ class View:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
 
-        camera.draw_warped(r, self.session)
+        camera.combine_rendered_camera_views(r, self.session)
         
         if self._overlays:
             draw_overlays(self._overlays, r)
