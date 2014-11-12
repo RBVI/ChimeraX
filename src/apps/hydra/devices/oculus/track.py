@@ -100,7 +100,7 @@ class Oculus_Rift:
             self.window.make_opengl_context_current()
             from . import _oculus
             _oculus.render(tex_width, tex_height, tex_left, tex_right)
-            self.session.view.make_opengl_context_current()
+            self.session.main_window.graphics_window.make_opengl_context_current()
 
     def field_of_view_degrees(self):
 
