@@ -14,7 +14,7 @@ Incomplete command lines are supported,
 so possible completions can be suggested.
 
 In addition to registering command functions,
-there is a separate mechanism to support textual :ref:`Command Aliases`.
+there is a separate mechanism to support textual `Command Aliases`_.
 
 Text Commands
 -------------
@@ -172,7 +172,7 @@ Command Aliases
 ---------------
 
     Normally, command aliases are made with the alias command, but
-    they can also be explicitly register with :py:func:`alias`and
+    they can also be explicitly register with :py:func:`alias` and
     removed with :py:func:`unalias`.
 
     An alias definition uses **$n** to refer to passed in arguments.
@@ -245,9 +245,11 @@ class Annotation(metaclass=abc.ABCMeta):
 
         :param text: Text to check for possible completions
         :param session: for session-dependent data types
+        :returns: list of possible completions
 
-        Note that if invalid completions are given, then parsing
-        can go into an infinite loop when trying to automatically
+        It is better to return an empty list (i.e., no known possible
+        completions), because if invalid completions are given, then
+        parsing can go into an infinite loop when trying to automatically
         complete text.
         """
         raise NotImplemented
@@ -260,10 +262,6 @@ class Aggregate(Annotation):
             name=None) -> annotation
 
     :param annotation: annotation for values in the collection.
-    :param constructor: function/type to create an empty collection.
-    :param add_to: function to add an element to the collection,
-        typically an unbound method.  For immutable collections,
-        return a new collection.
     :param min_size: minimum size of collection, default `None`.
     :param max_size: maximum size of collection, default `None`.
     :param name: optionally override name in error messages.
@@ -273,18 +271,20 @@ class Aggregate(Annotation):
     The comma separator for aggregate values is handled by the
     :py:class:`Command` class, so parsing and completions are
     delegated to the underlying annotation.
+
+    Subclasses need to set the constructor attribute and replace
+    the add_to method.
     """
     min_size = 0
     max_size = sys.maxsize
+    constructor = None
 
-    def __init__(self, annotation, constructor, add_to, min_size=None,
+    def __init__(self, annotation, min_size=None,
                  max_size=None, name=None):
         if not issubclass(annotation, Annotation):
             raise ValueError("need an annotation, not %s" % annotation)
         self.annotation = annotation
         self.multiword = annotation.multiword
-        self.constructor = constructor
-        self.add_to = add_to
         if min_size is not None:
             self.min_size = min_size
         if max_size is not None:
@@ -298,6 +298,16 @@ class Aggregate(Annotation):
                 name = "%s(s)" % name
         self.name = name
 
+    def add_to(self, container, element):
+        """Add to add an element to the container
+
+        :param container: the container to add elements to
+        :param element: the element to add to the container
+        :returns: None for mutable containers, or a new
+            container if immutable.
+        """
+        raise NotImplemented
+
     def parse(self, text, session):
         return self.annotation.parse(text, session)
 
@@ -305,35 +315,41 @@ class Aggregate(Annotation):
         return self.annotation.completions(text, session)
 
 
-# ListOf function acts like Annotation subclass
-def ListOf(annotation, min_size=None, max_size=None):  # noqa
+class ListOf(Aggregate):
     """Annotation for lists of a single type
 
     ListOf(annotation, min_size=None, max_size=None) -> annotation
     """
-    return Aggregate(annotation, list, list.append, min_size, max_size)
+    constructor = list
+
+    def add_to(self, container, value):
+        container.append(value)
 
 
-# SetOf function acts like Annotation subclass
-def SetOf(annotation, min_size=None, max_size=None):  # noqa
+class SetOf(Aggregate):
     """Annotation for sets of a single type
 
     SetOf(annotation, min_size=None, max_size=None) -> annotation
     """
-    return Aggregate(annotation, set, set.add, min_size, max_size)
+    constructor = set
 
-
-def _tuple_append(t, value):
-    return t + (value,)
+    def add_to(self, container, value):
+        container.add(value)
 
 
 # TupleOf function acts like Annotation subclass
-def TupleOf(annotation, size):  # noqa
+class TupleOf(Aggregate):
     """Annotation for tuples of a single type
 
     TupleOf(annotation, size) -> annotation
     """
-    return Aggregate(annotation, tuple, _tuple_append, size, size)
+    constructor = tuple
+
+    def __init__(self, annotation, size, name=None):
+        return Aggregate.__init__(self, annotation, size, size, name=name)
+
+    def add_to(self, container, value):
+        return container + (value,)
 
 
 class BoolArg(Annotation):
@@ -559,6 +575,9 @@ _escape_table = {
 def unescape(text):
     """Replace backslash escape sequences with actual character
     
+    :param text: the input text
+    :returns: the processed text
+
     Follows Python's :ref:`string literal <python:stringescapeseq>` syntax."""
     # standard Python backslashes including \N{unicode name}
     start = 0
@@ -656,15 +675,19 @@ class Postcondition(metaclass=abc.ABCMeta):
     """Base class for postconditions"""
 
     def check(self, kw_args):
-        """Return true if function arguments are consistent
+        """Assert arguments match postcondition
 
         :param kw_args: dictionary of arguments that will be passed
             to command callback function.
+        :returns: True if arguments are consistent
         """
         raise NotImplemented
 
     def error_message(self):
-        """Appropriate error message if check fails."""
+        """Appropriate error message if check fails.
+        
+        :returns: error message
+        """
         raise NotImplemented
 
 
@@ -762,6 +785,10 @@ class CmdDesc:
     :param optional: optional positional arguments tuple
     :param keyword: keyword arguments tuple
     :param help: placeholder for help information (e.g., URL)
+
+    .. data: function
+
+        function that implements command
 
     Each tuple contains tuples with the argument name and a type annotation.
     The command line parser uses the *optional* argument names to as
@@ -909,6 +936,11 @@ def register(name, cmd_desc=(), function=None):
     else:
         # introspect immediately to give errors
         cmd_desc.function = function
+    #if word in cmd_map:
+    #    print(word, type(function), type(cmd_map[word].function))
+    #if (isinstance(function, _Alias) and word in cmd_map
+    #        and isinstance(cmd_map[word].function, _Alias)):
+    #    raise UserError("Can not alias existing command")
     cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1007,6 +1039,8 @@ class Command:
 
     def error_check(self):
         """Error check results of calling parse_text
+
+        :raises UserError: if parsing error is found
 
         Separate error checking logic from execute() so
         it may be done separately
@@ -1423,6 +1457,7 @@ def command_function(name):
     """Return callable for given command name
 
     :param name: the name of the command
+    :returns: the callable that implements the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1434,6 +1469,7 @@ def command_help(name):
     """Return help for given command name
 
     :param name: the name of the command
+    :returns: the help object registered with the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1445,6 +1481,7 @@ def command_usage(name):
     """Return usage string for given command name
 
     :param name: the name of the command
+    :returns: a usage string for the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1468,6 +1505,7 @@ def command_html_usage(name):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
+    :returns: a HTML usage string for the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1566,6 +1604,15 @@ class _Alias:
 @register('alias', CmdDesc(optional=[('name', StringArg),
                                      ('text', WholeRestOfLine)]))
 def alias(session, name='', text=''):
+    """Create command alias
+
+    :param name: optional name of the alias
+    :param text: optional text of the alias
+
+    If the alias name is not given, then a text list of all the aliases is
+    returned.  If alias text is not given, the the text of the named alias
+    is returned.  If both arguments are given, then a new alias is made.
+    """
     if not name:
         # list aliases
         names = ', '.join(list(_cmd_aliases.keys()))
@@ -1576,7 +1623,6 @@ def alias(session, name='', text=''):
         if name not in _cmd_aliases:
             return 'No alias named %r found.' % name
         return 'Aliased %r to %r' % (name, _cmd_aliases[name].original_text)
-    # extract command name
     cmd = _Alias(text)
     try:
         register(name, cmd.desc(), cmd)
@@ -1586,6 +1632,10 @@ def alias(session, name='', text=''):
 
 @register('~alias', CmdDesc(required=[('name', StringArg)]))
 def unalias(session, name):
+    """Remove command alias
+
+    :param name: name of the alias
+    """
     # remove command alias
     try:
         del _cmd_aliases[name]
