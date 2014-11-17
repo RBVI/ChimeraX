@@ -1,6 +1,6 @@
 '''
-Drawing scene graph
-===================
+Drawing
+=======
 '''
 
 class Drawing:
