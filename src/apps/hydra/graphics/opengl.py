@@ -715,7 +715,9 @@ for i,sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
 
 class Framebuffer:
-
+    '''
+    OpenGL framebuffer for off-screen rendering.  Allows rendering colors and/or depth to a texture.
+    '''
     def __init__(self, width = None, height = None,
                  color = True, color_texture = None,
                  depth = True, depth_texture = None):
@@ -990,6 +992,10 @@ def deactivate_bindings():
 from numpy import uint8, uint32, float32
 
 class Buffer_Type:
+    '''
+    Describes a shader variable and the vertex buffer object value type required
+    and what rendering capabilities are required to use this shader variable.
+    '''
     def __init__(self, shader_variable_name,
                  buffer_type = GL.GL_ARRAY_BUFFER, value_type = float32,
                  normalize = False, instance_buffer = False, requires_capabilities = ()):
@@ -1127,7 +1133,7 @@ class Buffer:
         return self.requires_capabilities|shader.capabilities
 
 class Shader:
-    '''Private. OpenGL shader program with specified capabilities.'''
+    '''OpenGL shader program with specified capabilities.'''
 
     def __init__(self, capabilities):
 
