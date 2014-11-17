@@ -26,3 +26,11 @@ Hydra Modules
 
    hydra_ui.rst
 
+
+Private Hydra Modules
+=====================
+
+.. toctree::
+   :maxdepth: 1
+
+   hydra_opengl.rst
