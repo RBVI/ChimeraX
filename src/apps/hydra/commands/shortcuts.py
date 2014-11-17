@@ -713,12 +713,12 @@ def leap_quit(session):
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
-    from ..graphics import Motion_Blur
-    mb = [o for o in viewer.overlays() if isinstance(o, Motion_Blur)]
+    from ..graphics import MotionBlur
+    mb = [o for o in viewer.overlays() if isinstance(o, MotionBlur)]
     if mb:
         viewer.remove_overlays(mb)
     else:
-        Motion_Blur(viewer)
+        MotionBlur(viewer)
 
 def mono_mode(viewer):
     viewer.set_camera_mode('mono')

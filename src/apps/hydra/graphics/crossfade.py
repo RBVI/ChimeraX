@@ -1,8 +1,13 @@
 # Allow fading from one scene to another
 
 from .drawing import Drawing
-class Cross_Fade(Drawing):
-    
+class CrossFade(Drawing):
+    '''
+    Fade between one rendered scene and the next scene.
+    This is a Drawing overlay that is added to the View to cause the cross-fade to be rendered.
+    It is automatically added to the View when constructed and removes itself from the View
+    when the fade is complete.
+    '''
     def __init__(self, viewer, frames):
 
         Drawing.__init__(self, 'cross fade')
@@ -47,15 +52,25 @@ class Cross_Fade(Drawing):
         self.piece.texture.reload_texture(self.rgba)
         self.redraw_needed()
 
-class Motion_Blur(Drawing):
-    
+class MotionBlur(Drawing):
+    '''
+    Leave faint images of previous rendered frames as the camera is moved through a scene.
+    This is a Drawing overlay that is added to the View to render the motion blur.
+    It is added to the View by the constructor and it can be removed from the View to
+    stop the motion blur effect.
+    '''
     def __init__(self, viewer):
 
         Drawing.__init__(self, 'motion blur')
         self.viewer = viewer
         self.rgba = None
         self.decay_factor = 0.9
+        '''
+        The Nth previous rendered frame is dimmed by the decay factor to the Nth power.
+        The dimming is achieved by fading to the current background color.
+        '''
         self.attenuate = 0.5
+        "All preceding frames are additionally dimmed by this factor."
         self.changed = True
         self.capture_image()
 
