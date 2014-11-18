@@ -3,7 +3,7 @@
 import wx
 from ...graphics import View
 
-class GraphicsWindow(View, wx.Panel):
+class GraphicsWindow(wx.Panel):
     """
     The graphics window that displays the three-dimensional models.
 
@@ -16,13 +16,18 @@ class GraphicsWindow(View, wx.Panel):
         self.session = session
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
+
+        models = session
+        log = session
+        self.view = View(models, self.GetClientSize(),
+                         self.make_opengl_context_current,
+                         self.swap_opengl_buffers, log)
+
         self.opengl_context = None
         self.opengl_canvas = OpenGLCanvas(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
-
-        View.__init__(self, session, self.GetClientSize())
 
         self.set_stereo_eye_separation()
 
@@ -32,7 +37,7 @@ class GraphicsWindow(View, wx.Panel):
         # frame drops at 60 frames/sec
 
         from . import mousemodes
-        self.mouse_modes = mousemodes.Mouse_Modes(self)
+        self.mouse_modes = mousemodes.WxMouseModes(self)
 
     def create_opengl_context(self):
         from wx.glcanvas import GLContext
@@ -46,14 +51,14 @@ class GraphicsWindow(View, wx.Panel):
 
     def redraw_timer_callback(self, evt):
         if True:
-            if not self.redraw():
+            if not self.view.draw_if_changed():
                 self.mouse_modes.mouse_pause_tracking()
 
     def set_stereo_eye_separation(self, eye_spacing_millimeters=61.0):
         screen = wx.ScreenDC()
         ssize = screen.GetSizeMM()[0]
         psize = screen.GetSize()[0]
-        self.camera.eye_separation_pixels = psize * eye_spacing_millimeters \
+        self.view.camera.eye_separation_pixels = psize * eye_spacing_millimeters \
             / ssize
 
     def start_update_timer(self):
@@ -111,16 +116,12 @@ class OpenGLCanvas(glcanvas.GLCanvas):
     def OnPaint(self, evt):
         #dc = wx.PaintDC(self)
         #self.OnDraw()
-        self.graphics_window.draw_graphics()
+        self.graphics_window.view.draw()
 
     def OnSize(self, evt):
         wx.CallAfter(self.set_viewport)
         evt.Skip()
 
     def set_viewport(self):
-        self.graphics_window.window_size = w, h = self.GetClientSize()
-        if self.graphics_window.opengl_context is not None:
-            from ... import graphics
-            fb = graphics.default_framebuffer()
-            fb.width, fb.height = w, h
-            fb.viewport = (0, 0, w, h)
+        w, h = self.GetClientSize()
+        self.graphics_window.view.resize(w,h)

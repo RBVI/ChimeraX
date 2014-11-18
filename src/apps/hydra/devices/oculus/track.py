@@ -41,8 +41,8 @@ class Oculus_Rift:
         from . import _oculus
 
         if not self.connected:
-            from ...graphics import opengl
-            b = opengl.deactivate_bindings() # Make sure oculus doesn't change current VAO.
+            # Make sure initializing Oculus distortion correct doesn't change current OpenGL VAO bindings.
+            self.window.make_opengl_context_current()
             try:
                 _oculus.connect()
                 self.connected = True
@@ -100,7 +100,7 @@ class Oculus_Rift:
             self.window.make_opengl_context_current()
             from . import _oculus
             _oculus.render(tex_width, tex_height, tex_left, tex_right)
-            self.session.view.make_opengl_context_current()
+            self.session.main_window.graphics_window.make_opengl_context_current()
 
     def field_of_view_degrees(self):
 
@@ -127,7 +127,7 @@ class Oculus_Rift:
 
         v = self.view
         c = v.camera
-        v.render.finish_rendering()     # Reduce latency by finishing current graphics draw.
+        v.finish_rendering()     # Reduce latency by finishing current graphics draw.
 
         from . import _oculus
         x,y,z,qw,qx,qy,qz = _oculus.state()
@@ -190,7 +190,6 @@ class Oculus_Rift:
         c.oculus_centering_shift = (sx,sy)
         print ('oculus camera shift pixels', sx, sy)
         view.set_camera_mode('oculus')
-        r = view.render
         c.warp_window_size = wsize
 
         view.redraw_needed = True

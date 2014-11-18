@@ -53,8 +53,8 @@ class Render:
         self._multishadow_matrix_buffer = None  # Uniform buffer object for shadow matrices
         self._multishadow_uniform_block = 0     # Uniform block number
 
-
         self.single_color = (1,1,1,1)
+        self.frame_number = 0
 
     def render_size(self):
         fb = self.current_framebuffer()
@@ -113,6 +113,8 @@ class Render:
             GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
+        if self.SHADER_FRAME_NUMBER & c:
+            self.set_frame_number()
 
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
@@ -200,6 +202,15 @@ class Render:
 #                GL.glUniformMatrix4fv(p.uniform_id('model_matrix'), 1, False, m4)
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
+
+    def set_frame_number(self, f = None):
+        if f is None:
+            f = self.frame_number
+        else:
+            self.frame_number = f
+        p = self.current_shader_program
+        if not p is None and self.SHADER_FRAME_NUMBER & p.capabilities:
+            GL.glUniform1f(p.uniform_id('frame_number'), f)
 
     def set_shader_lighting_parameters(self):
         'Private. Sets shader lighting variables using the lighting parameters object given in the contructor.'
@@ -698,12 +709,15 @@ shader_options = (
     'SHADER_TEXTURE_MASK',
     'SHADER_DEPTH_OUTLINE',
     'SHADER_VERTEX_COLORS',
+    'SHADER_FRAME_NUMBER',
 )
 for i,sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
 
 class Framebuffer:
-
+    '''
+    OpenGL framebuffer for off-screen rendering.  Allows rendering colors and/or depth to a texture.
+    '''
     def __init__(self, width = None, height = None,
                  color = True, color_texture = None,
                  depth = True, depth_texture = None):
@@ -823,6 +837,16 @@ class Lighting:
     a key (main) light, and a fill light, as well as ambient light color.
     Directions are unit vectors in camera coordinates (x right, y up, z opposite camera view).
     Colors are R,G,B float values in the range 0-1.
+
+    :ivar key_light_direction: (.577,-.577,-.577)
+    :ivar key_light_color: (1,1,1)
+    :ivar key_light_intensity: 1
+    :ivar fill_light_direction: (-.2,-.2,-.959)
+    :ivar fill_light_color: (1,1,1)
+    :ivar fill_light_intensity: 0.5
+    :ivar ambient_light_color: (1,1,1)
+    :ivar ambient_light_intensity: 0.4
+    :ivar move_lights_with_camera: True
     '''
 
     def __init__(self):
@@ -830,7 +854,9 @@ class Lighting:
         self.set_default_parameters()
 
     def set_default_parameters(self):
-
+        '''
+        Reset the lighting parameters to default values.
+        '''
         from numpy import array, float32
         self.key_light_direction = array((.577,-.577,-.577), float32)    # Should have unit length
         '''Direction key light shines in.'''
@@ -940,7 +966,7 @@ class Bindings:
         if nattr == 1:
             GL.glVertexAttribPointer(attr_id, ncomp, gtype, normalize, 0, None)
             GL.glEnableVertexAttribArray(attr_id)
-            glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
+            GL.glVertexAttribDivisor(attr_id, 1 if buffer.instance_buffer else 0)
             self.bound_attr_ids[buffer] = [attr_id]
         else:
             # Matrices use multiple vector attributes
@@ -953,7 +979,7 @@ class Bindings:
                 p = ctypes.c_void_p(a*abytes)
                 GL.glVertexAttribPointer(attr_id+a, ncomp, gtype, normalize, stride, p)
                 GL.glEnableVertexAttribArray(attr_id+a)
-                glVertexAttribDivisor(attr_id+a, 1 if buffer.instance_buffer else 0)
+                GL.glVertexAttribDivisor(attr_id+a, 1 if buffer.instance_buffer else 0)
             self.bound_attr_ids[buffer] = [attr_id+a for a in range(nattr)]
         GL.glBindBuffer(btype, 0)
 
@@ -966,6 +992,10 @@ def deactivate_bindings():
 from numpy import uint8, uint32, float32
 
 class Buffer_Type:
+    '''
+    Describes a shader variable and the vertex buffer object value type required
+    and what rendering capabilities are required to use this shader variable.
+    '''
     def __init__(self, shader_variable_name,
                  buffer_type = GL.GL_ARRAY_BUFFER, value_type = float32,
                  normalize = False, instance_buffer = False, requires_capabilities = ()):
@@ -1094,7 +1124,7 @@ class Buffer:
         if ninst is None:
             GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, None)
         else:
-            glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
+            GL.glDrawElementsInstanced(element_type, ne, GL.GL_UNSIGNED_INT, None, ninst)
 
     def shader_has_required_capabilities(self, shader):
         if not self.requires_capabilities:
@@ -1102,28 +1132,8 @@ class Buffer:
         # Require at least one capability of list
         return self.requires_capabilities|shader.capabilities
 
-def glDrawElementsInstanced(mode, count, etype, indices, ninst):
-    'Private. Handle old or defective OpenGL instanced drawing.'
-    if bool(GL.glDrawElementsInstanced):
-        # OpenGL 3.1 required for this call.
-        GL.glDrawElementsInstanced(mode, count, etype, indices, ninst)
-    else:
-        from OpenGL.GL.ARB.draw_instanced import glDrawElementsInstancedARB
-        if not bool(glDrawElementsInstancedARB):
-            # Mac 10.6 does not list draw_instanced as an extension using OpenGL 3.2
-            from .pyopengl_draw_instanced import glDrawElementsInstancedARB
-            glDrawElementsInstancedARB(mode, count, etype, indices, ninst)
-
-def glVertexAttribDivisor(attr_id, d):
-    'Private. Handle old or defective OpenGL attribute divisor.'
-    if bool(GL.glVertexAttribDivisor):
-        GL.glVertexAttribDivisor(attr_id, d)  # OpenGL 3.3
-    else:
-        from OpenGL.GL.ARB.instanced_arrays import glVertexAttribDivisorARB
-        glVertexAttribDivisorARB(attr_id, d)
-
 class Shader:
-    '''Private. OpenGL shader program with specified capabilities.'''
+    '''OpenGL shader program with specified capabilities.'''
 
     def __init__(self, capabilities):
 
@@ -1238,7 +1248,6 @@ class Texture:
 
     def initialize_texture(self, size, format, iformat, tdtype, ncomp, data = None, depth_compare_mode = False):
 
-        from OpenGL import GL
         self.id = t = GL.glGenTextures(1)
         self.size = size
         gl_target = self.gl_target
@@ -1313,7 +1322,6 @@ class Texture:
         dim = self.dimension
         size = data.shape[dim-1::-1]
         format, iformat, tdtype, ncomp = self.texture_format(data)
-        from OpenGL import GL
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, self.id)
         if dim == 1:
@@ -1331,7 +1339,6 @@ class Texture:
         a numpy array of colors.
         '''
         dim = self.dimension
-        from OpenGL import GL
         if dim == 2 and len(data.shape) == dim and data.itemsize == 4:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8

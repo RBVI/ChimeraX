@@ -49,8 +49,9 @@ class Main_Window(QtWidgets.QMainWindow):
 
         self._stack = st = GraphicsArea(self)
         from .graphicswindow import Graphics_Window
-        g = Graphics_Window(session, st)
-        self.view = g   # View is a base class of Graphics_Window
+        self.graphics_window = g = Graphics_Window(session, st)
+        
+        self.view = g.view
         st.addWidget(g.widget)
 
         class TextArea(QtWidgets.QTextBrowser):
@@ -141,9 +142,9 @@ class Main_Window(QtWidgets.QMainWindow):
         cl.setText('')
 
     def showing_graphics(self):
-        return self._stack.currentWidget() == self.view.widget
+        return self._stack.currentWidget() == self.graphics_window.widget
     def show_graphics(self):
-        self._stack.setCurrentWidget(self.view.widget)
+        self._stack.setCurrentWidget(self.graphics_window.widget)
         self.show_back_forward_buttons(False)
 
     def showing_text(self):

@@ -31,7 +31,7 @@ def lighting(session, direction = None, intensity = None, color = None,
              default = None, full = None, soft = None, simple = None):
 
     v = session.view
-    lp = v.render.lighting
+    lp = v.lighting()
 
     from ..geometry.vector import normalize_vector as normalize
     from numpy import array, float32
@@ -62,7 +62,7 @@ def lighting(session, direction = None, intensity = None, color = None,
         else:
             from .parse import int_arg
             size = int_arg(qualityOfShadows, session)
-        v.shadowMapSize = size
+        v.shadow_map_size = size
     if not multiShadow is None:
         v.set_multishadow(multiShadow)
     if not default is None:

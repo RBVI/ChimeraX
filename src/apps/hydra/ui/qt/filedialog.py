@@ -14,8 +14,8 @@ def show_open_file_dialog(session):
     dir = session.file_history.most_recent_directory()
     if dir is None:
         dir = '.'
-    v = session.view
-    qpaths = QtWidgets.QFileDialog.getOpenFileNames(v.widget, 'Open File', dir, filters)
+    parent = session.main_window.graphics_window.widget
+    qpaths = QtWidgets.QFileDialog.getOpenFileNames(parent, 'Open File', dir, filters)
     paths = qpaths[0]    # Return value is a 2-tuple holding list of paths and filter string.
     mlist = open_files(paths, session)
     if mlist:
@@ -68,7 +68,7 @@ def save_session_dialog(session):
     if dir is None:
         dir = session.file_history.most_recent_directory()
     filters = 'Session (*.hy)'
-    parent = session.view.widget
+    parent = session.main_window.graphics_window.widget
     path = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Session',
                                                  dir, filters)
     if isinstance(path, tuple):
@@ -85,7 +85,8 @@ def save_session_dialog(session):
 #
 def image_save_dialog(session):
     filters = 'Image (*.jpg *.png *.ppm *.bmp)'
-    pf = QtWidgets.QFileDialog.getSaveFileName(session.view.widget, 'Save Image', '.', filters)
+    parent = session.main_window.graphics_window.widget
+    pf = QtWidgets.QFileDialog.getSaveFileName(parent, 'Save Image', '.', filters)
     # Returns path and filter name.
     if pf is None:
         return None

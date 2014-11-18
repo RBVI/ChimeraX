@@ -16,7 +16,7 @@ def material(session, ambientReflectivity = None, diffuseReflectivity = None,
              specularReflectivity = None, exponent = None):
 
     v = session.view
-    mp = v.render.material
+    mp = v.material()
 
     if not ambientReflectivity is None:
         mp.ambient_reflectivity = ambientReflectivity

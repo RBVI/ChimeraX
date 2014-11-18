@@ -1,13 +1,15 @@
 from .qt import QtCore, QtGui, QtOpenGL, QtWidgets
 from ...graphics import View
 
-class Graphics_Window(View, QtGui.QWindow):
+class Graphics_Window(QtGui.QWindow):
     '''
     A graphics window displays the 3-dimensional models.
     Routines that involve the window toolkit or event processing are handled by this class
     while routines that depend only on OpenGL are in the View base class.
     '''
     def __init__(self, session, parent=None):
+
+        self.session = session
 
         QtGui.QWindow.__init__(self)
         self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent)
@@ -16,7 +18,9 @@ class Graphics_Window(View, QtGui.QWindow):
         w.setFocusPolicy(QtCore.Qt.NoFocus)
 
         window_size = (w.width(), w.height())		# pixels
-        View.__init__(self, session, window_size)
+        models = session
+        log = session
+        self.view = View(models, window_size, self.make_opengl_context_current, self.swap_opengl_buffers, log)
 
         self.set_stereo_eye_separation()
 
@@ -30,7 +34,7 @@ class Graphics_Window(View, QtGui.QWindow):
         self.last_redraw_finish_time = 0
 
         from . import mousemodes
-        self.mouse_modes = mousemodes.Mouse_Modes(self)
+        self.mouse_modes = mousemodes.QtMouseModes(self)
         self.enable_trackpad_events()
 
     def set_stereo_eye_separation(self, eye_spacing_millimeters = 61.0):
@@ -38,7 +42,8 @@ class Graphics_Window(View, QtGui.QWindow):
         s = self.screen()
         ssize = s.physicalSize().width()        # millimeters
         psize = s.size().width()                # pixels
-        self.camera.eye_separation_pixels = psize * (eye_spacing_millimeters / ssize)
+        c = self.view.camera
+        c.eye_separation_pixels = psize * (eye_spacing_millimeters / ssize)
 
     def enable_trackpad_events(self):
         # TODO: Qt 5.1 has touch events disabled on Mac
@@ -53,6 +58,7 @@ class Graphics_Window(View, QtGui.QWindow):
     def resizeEvent(self, e):
         s = e.size()
         w, h = s.width(), s.height()
+        self.view.resize(w,h)
 #
 # TODO: On Mac retina display event window size is half of opengl window size.
 #    Can scale width/height here, but also need mouse event positions to be scaled by 2x.
@@ -63,18 +69,11 @@ class Graphics_Window(View, QtGui.QWindow):
 #        r = self.devicePixelRatio()    # 2 on retina display, 1 on non-retina
 #        w,h = int(r*w), int(r*h)
 #
-        self.window_size = w, h
-        if not self.opengl_context is None:
-            from ... import graphics
-            fb = graphics.default_framebuffer()
-            fb.width, fb.height = w,h
-            fb.viewport = (0,0,w,h)
-#            self.render.set_viewport(0,0,w,h)
 
     # QWindow method
     def exposeEvent(self, event):
         if self.isExposed():
-            self.draw_graphics()
+            self.view.draw()
 
     # QWindow method
     def keyPressEvent(self, event):
@@ -98,10 +97,9 @@ class Graphics_Window(View, QtGui.QWindow):
 
         # Write a log message indicating OpenGL version
         s = self.session
-        r = self.render
         f = c.format()
         stereo = 'stereo' if f.stereo() else 'no stereo'
-        s.show_info('OpenGL version %s, %s' % (r.opengl_version(), stereo))
+        s.show_info('OpenGL version %s, %s' % (self.view.opengl_version(), stereo))
 
         return c
 
@@ -156,7 +154,7 @@ class Graphics_Window(View, QtGui.QWindow):
 
     def update_graphics(self):
         if self.isExposed():
-            if not self.redraw():
+            if not self.view.draw_if_changed():
                 self.mouse_modes.mouse_pause_tracking()
 
 class Secondary_Graphics_Window(QtGui.QWindow):
@@ -175,7 +173,7 @@ class Secondary_Graphics_Window(QtGui.QWindow):
         w.setWindowTitle(title)
         w.show()
 
-        shared_context = session.view.opengl_context
+        shared_context = session.main_window.graphics_window.opengl_context
         self.opengl_context = self.create_opengl_context(shared_context)
 
     def close(self):

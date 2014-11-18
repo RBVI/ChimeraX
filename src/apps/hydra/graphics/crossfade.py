@@ -1,8 +1,13 @@
 # Allow fading from one scene to another
 
-from ..graphics import Drawing
-class Cross_Fade(Drawing):
-    
+from .drawing import Drawing
+class CrossFade(Drawing):
+    '''
+    Fade between one rendered scene and the next scene.
+    This is a Drawing overlay that is added to the View to cause the cross-fade to be rendered.
+    It is automatically added to the View when constructed and removes itself from the View
+    when the fade is complete.
+    '''
     def __init__(self, viewer, frames):
 
         Drawing.__init__(self, 'cross fade')
@@ -20,14 +25,12 @@ class Cross_Fade(Drawing):
 
         # Capture current image
         v = self.viewer
-        w,h = v.window_size
-        r = v.render
-        self.rgba = r.frame_buffer_image(w, h)
+        self.rgba = v.frame_buffer_rgba()
 
         # TODO: Use a childless drawing.
         # Make textured square surface piece
-        from .. import graphics
-        self.piece = graphics.rgba_drawing(self.rgba, (-1,-1), (2,2), self)
+        from .drawing import rgba_drawing
+        self.piece = rgba_drawing(self.rgba, (-1,-1), (2,2), self)
 
         v.add_overlay(self)
         v.add_new_frame_callback(self.next_frame)
@@ -49,15 +52,25 @@ class Cross_Fade(Drawing):
         self.piece.texture.reload_texture(self.rgba)
         self.redraw_needed()
 
-class Motion_Blur(Drawing):
-    
+class MotionBlur(Drawing):
+    '''
+    Leave faint images of previous rendered frames as the camera is moved through a scene.
+    This is a Drawing overlay that is added to the View to render the motion blur.
+    It is added to the View by the constructor and it can be removed from the View to
+    stop the motion blur effect.
+    '''
     def __init__(self, viewer):
 
         Drawing.__init__(self, 'motion blur')
         self.viewer = viewer
         self.rgba = None
         self.decay_factor = 0.9
+        '''
+        The Nth previous rendered frame is dimmed by the decay factor to the Nth power.
+        The dimming is achieved by fading to the current background color.
+        '''
         self.attenuate = 0.5
+        "All preceding frames are additionally dimmed by this factor."
         self.changed = True
         self.capture_image()
 
@@ -74,20 +87,19 @@ class Motion_Blur(Drawing):
         # Capture current image
         v = self.viewer
         w,h = v.window_size
-        r = v.render
-        rgba = r.frame_buffer_image(w, h)
+        rgba = v.frame_buffer_rgba()
 
         if self.rgba is None:
             self.rgba = rgba
             # Make textured square surface piece
-            from .. import graphics
-            self.piece = graphics.rgba_drawing(rgba, (-1,-1), (2,2), self)
+            from .drawing import rgba_drawing
+            self.piece = rgba_drawing(rgba, (-1,-1), (2,2), self)
             v.add_overlay(self)
         elif self.rgba.shape != (h,w,4):
             # Resize texture and motion blur image
             self.remove_drawing(self.piece)
-            from .. import graphics
-            self.piece = graphics.rgba_drawing(rgba, (-1,-1), (2,2), self)
+            from .drawing import rgba_drawing
+            self.piece = rgba_drawing(rgba, (-1,-1), (2,2), self)
             self.rgba = rgba
         else:
             from numpy import array

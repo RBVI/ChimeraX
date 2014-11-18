@@ -6,3 +6,6 @@ surface: Surfaces
 
 .. automodule:: hydra.surface.sasa
     :members:
+
+.. automodule:: hydra.files.read_stl
+    :members:

@@ -10,7 +10,7 @@ def box_intercepts(line, box_to_line_transform, box, clip_plane_model = None):
   line_to_box_transform = box_to_line_transform.inverse()
   bline = line_to_box_transform * line
   xyz_in, xyz_out = box_line_intercepts(bline, box)
-  if xyz_in == None or xyz_out == None:
+  if xyz_in is None or xyz_out is None:
     return xyz_in, xyz_out
   
   planes = per_model_clip_planes(clip_plane_model)
@@ -151,13 +151,12 @@ def inner_product(u, v):
 
 # -----------------------------------------------------------------------------
 #
-def nearest_volume_face(line, session):
+def nearest_volume_face(line, volumes):
 
     xyz1, xyz2 = line
     zmin = None
     hit = (None, None, None, None)
-    from . import volume_list
-    for v in volume_list(session):
+    for v in volumes:
         if v.shown():
           ijk, axis, side = face_intercept(v, line)
           if not ijk is None:

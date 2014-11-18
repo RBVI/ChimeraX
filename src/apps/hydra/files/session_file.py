@@ -50,8 +50,8 @@ def session_state(session, attributes_only = False):
   s = {'version': 3,
        'view': view_state(viewer),
        'camera': camera_state(viewer.camera),
-       'lighting': lighting_state(viewer.render.lighting),
-       'material': material_state(viewer.render.material),
+       'lighting': lighting_state(viewer.lighting()),
+       'material': material_state(viewer.material()),
   }
 
   from ..map import session as session_file
@@ -90,10 +90,10 @@ def set_session_state(s, session, file_paths, attributes_only = False):
     restore_camera(s['camera'], v.camera)
 
   if 'lighting' in s:
-    restore_lighting(s['lighting'], s['version'], v.render.lighting)
+    restore_lighting(s['lighting'], s['version'], v.lighting())
 
   if 'material' in s:
-    restore_material(s['material'], s['version'], v.render.material)
+    restore_material(s['material'], s['version'], v.material())
 
   if 'volumes' in s:
     from ..map import session as map_session

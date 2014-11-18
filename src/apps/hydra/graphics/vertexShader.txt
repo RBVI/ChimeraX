@@ -59,6 +59,10 @@ layout(location = 4) in vec4 instance_shift_and_scale;
 layout(location = 5) in mat4 instance_placement;
 #endif
 
+#ifdef USE_FRAME_NUMBER
+uniform float frame_number;
+#endif
+
 void main(void)
 {
 #ifdef USE_SHIFT_AND_SCALE
