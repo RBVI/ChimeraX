@@ -11,10 +11,10 @@ and with a function that implements the command.
 Later, a :py:class:`Command` instance is used to parse
 a command line, and optionally execute the command.
 Incomplete command lines are supported,
-so possible completions can be suggested.
+so possible commands can be suggested.
 
 In addition to registering command functions,
-there is a separate mechanism to support textual :ref:`Command Aliases`.
+there is a separate mechanism to support textual `Command Aliases`_.
 
 Text Commands
 -------------
@@ -41,7 +41,7 @@ And in quoted text, Python's textual escape sequences are recognized,
 *e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
 \N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
-Words in the command text may be abbreviated
+Words in the command name may be abbreviated
 and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
@@ -117,7 +117,7 @@ as much as possible:
 There is one special annotation: :py:obj:`RestOfLine` that consumes
 the rest of the command line as text.
 
-Annotations are used to parse text and to support automatic completion.
+Annotations are used to parse text and convert it to the appropriate type.
 Annotations can be extended with various specializers:
 
 +-----------------------+-----------------------------------------------+
@@ -143,8 +143,7 @@ Creating Your Own Type Annotation
 
 Annotations perform several functions:
 (1) to convert text to a value of the appropriate type,
-(2) to give reasonable error messages,
-and (3) to provide possible completions for incomplete text.
+and (2) to give reasonable error messages.
 
 See the :py:class:`Annotation` documentation for details.
 
@@ -172,20 +171,13 @@ Command Aliases
 ---------------
 
     Normally, command aliases are made with the alias command, but
-    they can also be explicitly register with :py:func:`alias`and
+    they can also be explicitly register with :py:func:`alias` and
     removed with :py:func:`unalias`.
 
     An alias definition uses **$n** to refer to passed in arguments.
     $1 may appear more than once.  $$ is $.
 
     To register a multiword alias, quote the command name.
-
-
-.. todo::
-
-    Issues: autocompletion, minimum 2 letters? extensions?
-    help URL? affect graphics flag?
-
 """
 
 import abc
@@ -194,10 +186,10 @@ import sys
 from collections import OrderedDict
 
 _debugging = False
-_normal_token = re.compile(r"[^,;\s]*")
-_single = re.compile(r"'([^']|\')*'")
-_double = re.compile(r'"([^"]|\")*"')
-_whitespace = re.compile("\s+")
+_normal_token = re.compile(r"[^;\s]*")
+_single_quote = re.compile(r"'(.|\')*?'(\s|$)")
+_double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+_whitespace = re.compile("\s*")
 
 
 class UserError(ValueError):
@@ -219,36 +211,21 @@ class Annotation(metaclass=abc.ABCMeta):
 
         Set to textual description of the annotation, including
         the leading article, *e.g.*, `"a truth value"`.
-
-    .. py:attribute:: multiword
-
-        Set to true if textual representation can have a space in it.
     """
-    multiword = False
     name = "** article name, e.g., _a_ _truth value_ **"
 
     @staticmethod
     def parse(text, session):
-        """Return text converted to appropriate type.
+        """Convert text to appropriate type.
 
         :param text: command line text to parse
         :param session: for session-dependent data types
+        :returns: 3-tuple with the converted value, consumed text
+        (possibly altered with expanded abbreviations), and the
+        remaining unconsumed text
 
-        Abbreviations should be not accepted, instead they
-        should be discovered via the possible completions.
-        """
-        raise NotImplemented
-
-    @staticmethod
-    def completions(text, session):
-        """Return list of possible completions of the given text.
-
-        :param text: Text to check for possible completions
-        :param session: for session-dependent data types
-
-        Note that if invalid completions are given, then parsing
-        can go into an infinite loop when trying to automatically
-        complete text.
+        The leading space in text must already be removed.
+        It is up to the particular annotation to support abbreviations.
         """
         raise NotImplemented
 
@@ -260,31 +237,28 @@ class Aggregate(Annotation):
             name=None) -> annotation
 
     :param annotation: annotation for values in the collection.
-    :param constructor: function/type to create an empty collection.
-    :param add_to: function to add an element to the collection,
-        typically an unbound method.  For immutable collections,
-        return a new collection.
     :param min_size: minimum size of collection, default `None`.
     :param max_size: maximum size of collection, default `None`.
     :param name: optionally override name in error messages.
 
-    This class is typically used via :py:func:`ListOf`, :py:func:`SetOf`,
-    or :py:func:`TupleOf`.
+    This class is typically used via :py:class:`ListOf`, :py:class:`SetOf`,
+    or :py:class:`TupleOf`.
     The comma separator for aggregate values is handled by the
-    :py:class:`Command` class, so parsing and completions are
-    delegated to the underlying annotation.
+    :py:class:`Command` class, so parsing is delegated to the
+    underlying annotation.
+
+    Subclasses need to set the constructor attribute and replace
+    the add_to method.
     """
     min_size = 0
     max_size = sys.maxsize
+    constructor = None
 
-    def __init__(self, annotation, constructor, add_to, min_size=None,
+    def __init__(self, annotation, min_size=None,
                  max_size=None, name=None):
         if not issubclass(annotation, Annotation):
             raise ValueError("need an annotation, not %s" % annotation)
         self.annotation = annotation
-        self.multiword = annotation.multiword
-        self.constructor = constructor
-        self.add_to = add_to
         if min_size is not None:
             self.min_size = min_size
         if max_size is not None:
@@ -298,42 +272,105 @@ class Aggregate(Annotation):
                 name = "%s(s)" % name
         self.name = name
 
+    def add_to(self, container, element):
+        """Add to add an element to the container
+
+        :param container: the container to add elements to
+        :param element: the element to add to the container
+        :returns: None for mutable containers, or a new
+            container if immutable.
+        """
+        raise NotImplemented
+
     def parse(self, text, session):
-        return self.annotation.parse(text, session)
+        result = self.constructor()
+        used = ''
+        while 1:
+            i = text.find(',')
+            if i == -1:
+                # no comma found
+                value, consumed, rest = self.annotation.parse(text, session)
+                tmp = self.add_to(result, value)
+                if tmp:
+                    result = tmp
+                used += consumed
+                break
+            examine = text[:i]
+            value, consumed, rest = self.annotation.parse(examine, session)
+            tmp = self.add_to(result, value)
+            if tmp:
+                result = tmp
+            used += consumed
+            if len(rest) > 0:
+                # later comma found, but didn't consume all of the text,
+                # so probably a different argument, unless the rest is
+                # all whitespace
+                m = _whitespace.match(rest)
+                if m.end() == len(rest):
+                    used += rest
+                    rest = ''
+                if len(rest) > 0:
+                    rest += text[i:]
+                    break
+            used += ','
+            text = text[i + 1:]
+            m = _whitespace.match(text)
+            i = m.end()
+            if i:
+                used += text[:i]
+                text = text[i:]
+        if len(result) < self.min_size:
+            if self.min_size == self.max_size:
+                qual = "exactly"
+            else:
+                qual = "at least"
+            raise ValueError("Need %s %d %s" % (qual, self.min_size,
+                                                self.name))
+        if len(result) > self.max_size:
+            if self.min_size == self.max_size:
+                qual = "exactly"
+            else:
+                qual = "at most"
+            raise ValueError("Need %s %d %s" % (qual, self.max_size,
+                             self.name))
+        return result, used, rest
 
-    def completions(self, text, session):
-        return self.annotation.completions(text, session)
 
-
-# ListOf function acts like Annotation subclass
-def ListOf(annotation, min_size=None, max_size=None):  # noqa
+class ListOf(Aggregate):
     """Annotation for lists of a single type
 
     ListOf(annotation, min_size=None, max_size=None) -> annotation
     """
-    return Aggregate(annotation, list, list.append, min_size, max_size)
+    constructor = list
+
+    def add_to(self, container, value):
+        container.append(value)
 
 
-# SetOf function acts like Annotation subclass
-def SetOf(annotation, min_size=None, max_size=None):  # noqa
+class SetOf(Aggregate):
     """Annotation for sets of a single type
 
     SetOf(annotation, min_size=None, max_size=None) -> annotation
     """
-    return Aggregate(annotation, set, set.add, min_size, max_size)
+    constructor = set
 
-
-def _tuple_append(t, value):
-    return t + (value,)
+    def add_to(self, container, value):
+        container.add(value)
 
 
 # TupleOf function acts like Annotation subclass
-def TupleOf(annotation, size):  # noqa
+class TupleOf(Aggregate):
     """Annotation for tuples of a single type
 
     TupleOf(annotation, size) -> annotation
     """
-    return Aggregate(annotation, tuple, _tuple_append, size, size)
+    constructor = tuple
+
+    def __init__(self, annotation, size, name=None):
+        return Aggregate.__init__(self, annotation, size, size, name=name)
+
+    def add_to(self, container, value):
+        return container + (value,)
 
 
 class BoolArg(Annotation):
@@ -342,22 +379,13 @@ class BoolArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        text = text.casefold()
-        if text == "0" or text == "false":
-            return False
-        if text == "1" or text == "true":
-            return True
+        token, text, rest = _next_token(text)
+        token = token.casefold()
+        if token == "0" or "false".startswith(token):
+            return False, "false", rest
+        if token == "1" or "true".startswith(token):
+            return True, "true", rest
         raise ValueError("Expected true or false (or 1 or 0)")
-
-    @staticmethod
-    def completions(text, session):
-        result = []
-        folded = text.casefold()
-        if "false".startswith(folded):
-            result.append(text + "false"[len(text):])
-        if "true".startswith(folded):
-            result.append(text + "true"[len(text):])
-        return result
 
 
 class IntArg(Annotation):
@@ -366,22 +394,11 @@ class IntArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        token, text, rest = _next_token(text)
         try:
-            return int(text)
+            return int(token), text, rest
         except ValueError:
             raise ValueError("Expected %s" % IntArg.name)
-
-    @staticmethod
-    def completions(text, session):
-        chars = "-+0123456789"
-        if not text:
-            return [x for x in chars]
-        if text[-1] in chars:
-            tmp = [text + x for x in chars[2:]]
-            if text[-1] in chars[2:]:
-                return [text] + tmp
-            return tmp
-        return []
 
 
 class FloatArg(Annotation):
@@ -390,18 +407,11 @@ class FloatArg(Annotation):
 
     @staticmethod
     def parse(text, session):
+        token, text, rest = _next_token(text)
         try:
-            return float(text)
+            return float(token), text, rest
         except ValueError:
             raise ValueError("Expected %s" % FloatArg.name)
-
-    @staticmethod
-    def completions(text, session):
-        chars = "-+0123456789."
-        if not text:
-            return [x for x in chars]
-        # TODO: be more elaborate
-        return []
 
 
 class StringArg(Annotation):
@@ -410,12 +420,8 @@ class StringArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        return text
-
-    @staticmethod
-    def completions(text, session):
-        # strings can be extended arbitrarily, so don't make suggestions
-        return []
+        token, text, rest = _next_token(text)
+        return token, text, rest
 
 
 class Bounded(Annotation):
@@ -445,19 +451,12 @@ class Bounded(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        value = self.anno.parse(text, session)
+        value, text, rest = self.anno.parse(text, session)
         if self.min is not None and value < self.min:
             raise ValueError("Must be greater than or equal to %s" % self.min)
         if self.max is not None and value > self.max:
             raise ValueError("Must be less than or equal to %s" % self.max)
-        return value
-
-    def completions(self, text, session):
-        #if not text:
-            return self.anno.completions(text, session)
-        # better to return that there are no completions,
-        # rather than return completions that are out of bounds
-        #return []
+        return value, text, rest
 
 
 class EnumOf(Annotation):
@@ -473,6 +472,9 @@ class EnumOf(Annotation):
     and every value, otherwise the values are used as the identifiers.
     The identifiers must all be strings.
     """
+
+    allow_abbreviations = True
+
     def __init__(self, values, ids=None, name=None):
         if ids is not None:
             if len(values) != len(ids):
@@ -493,16 +495,16 @@ class EnumOf(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        folded = text.casefold()
-        for i, x in enumerate(self.ids):
-            if x.casefold() == folded:
-                return self.values[i]
+        token, text, rest = _next_token(text)
+        folded = token.casefold()
+        for i, ident in enumerate(self.ids):
+            if self.allow_abbreviations:
+                if ident.casefold().startswith(folded):
+                    return self.values[i], ident, rest
+            else:
+                if ident.casefold() == folded:
+                    return self.values[i], ident, rest
         raise ValueError("Invalid %s" % self.name)
-
-    def completions(self, text, session):
-        folded = text.casefold()
-        return [text + x[len(text):] for x in self.ids
-                if x.casefold().startswith(folded)]
 
 
 class Or(Annotation):
@@ -536,13 +538,6 @@ class Or(Annotation):
         msg += 'or ' + names[-1]
         raise ValueError("Excepted %s" % msg)
 
-    def completions(self, text, session):
-        """completions are the union of alternative annotation completions"""
-        completions = []
-        for anno in self.annotations:
-            completions += anno.completions(text, session)
-        return completions
-
 
 _escape_table = {
     "'": "'",
@@ -556,9 +551,13 @@ _escape_table = {
     'v': '\v',
 }
 
+
 def unescape(text):
     """Replace backslash escape sequences with actual character
-    
+
+    :param text: the input text
+    :returns: the processed text
+
     Follows Python's :ref:`string literal <python:stringescapeseq>` syntax."""
     # standard Python backslashes including \N{unicode name}
     start = 0
@@ -608,7 +607,6 @@ def unescape(text):
             if end > 0:
                 import unicodedata
                 name = text[index + 3:end]
-                print('name', name)
                 try:
                     char = unicodedata.lookup(name)
                     text = text[:index] + char + text[end + 1:]
@@ -621,27 +619,103 @@ def unescape(text):
     return text
 
 
+def _next_token(text):
+    # Return a 3-tuple of first argument in text, the actual text used,
+    # and the rest of the text.
+    #
+    # Arguments may be quoted, in which case the text between
+    # the quotes is returned.
+    assert(text and not text[0].isspace())
+    # m = _whitespace.match(text)
+    # start = m.end()
+    # if start == len(text):
+    #     return '', text, ''
+    start = 0
+    if text[start] == '"':
+        m = _double_quote.match(text, start)
+        if m:
+            end = m.end()
+            if text[end - 1].isspace():
+                end -= 1
+            token = text[start + 1:end - 1]
+        else:
+            end = len(text)
+            token = text[start + 1:end]
+            raise ValueError("incomplete quoted text")
+        token = unescape(token)
+    # elif text[start] == "'":
+    #     m = _single_quote.match(text, start)
+    #     if m:
+    #         end = m.end()
+    #         if text[end - 1].isspace():
+    #             end -= 1
+    #         token = text[start + 1:end - 1]
+    #     else:
+    #         end = len(text)
+    #         token = text[start + 1:end]
+    #         raise ValueError("incomplete quoted text")
+        token = unescape(token)
+    elif text[start] == ';':
+        return ';', ';', text[start + 1:]
+    else:
+        m = _normal_token.match(text, start)
+        end = m.end()
+        token = text[start:end]
+    print("next_token -> %r %r %r" % (token, text[:end], text[end:]))
+    return token, text[:end], text[end:]
+
+
+def _upto_semicolon(text):
+    # return text up to next semicolon, taking into account tokens
+    start = 0
+    size = len(text)
+    while start < size:
+        m = _whitespace.match(text, start)
+        start = m.end()
+        if start == size:
+            break
+        if text[start] == '"':
+            m = _double_quote.match(text, start)
+            if m:
+                start = m.end()
+            else:
+                start = size
+                raise ValueError("incomplete quoted text")
+                break
+        # elif text[start] == "'":
+        #     m = _single_quote.match(text, start)
+        #     if m:
+        #         start = m.end()
+        #     else:
+        #         start = size
+        #         raise ValueError("incomplete quoted text")
+        #         break
+        elif text[start] == ';':
+            break
+        else:
+            m = _normal_token.match(text, start)
+            start = m.end()
+    return text[:start], text[start:]
+
+
 class RestOfLine(Annotation):
     name = "the rest of line"
 
     @staticmethod
     def parse(text, session):
-        return unescape(text)
+        m = _whitespace.match(text)
+        start = m.end()
+        leading = text[:start]
+        text, rest = _upto_semicolon(text[start:])
+        return unescape(text), leading + text, rest
 
-    @staticmethod
-    def completions(text, session):
-        return []
 
 class WholeRestOfLine(Annotation):
     name = "the rest of line"
 
     @staticmethod
     def parse(text, session):
-        return unescape(text)
-
-    @staticmethod
-    def completions(text, session):
-        return []
+        return unescape(text), text, ''
 
 Bool3Arg = TupleOf(BoolArg, 3)
 IntsArg = ListOf(IntArg)
@@ -656,15 +730,19 @@ class Postcondition(metaclass=abc.ABCMeta):
     """Base class for postconditions"""
 
     def check(self, kw_args):
-        """Return true if function arguments are consistent
+        """Assert arguments match postcondition
 
         :param kw_args: dictionary of arguments that will be passed
             to command callback function.
+        :returns: True if arguments are consistent
         """
         raise NotImplemented
 
     def error_message(self):
-        """Appropriate error message if check fails."""
+        """Appropriate error message if check fails.
+
+        :returns: error message
+        """
         raise NotImplemented
 
 
@@ -705,11 +783,13 @@ class Limited(Postcondition):
     def error_message(self):
         message = "Invalid argument %r: " % self.name
         if self.min and self.max:
-            return message + "Must be greater than or equal to %s and less than or equal to %s" % (self.min, self.max)
+            return message + ("Must be greater than or equal to %s and less"
+                              " than or equal to %s" % (self.min, self.max))
         elif self.min:
             return message + "Must be greater than or equal to %s" % self.min
         elif self.max:
             return message + "Must be less than or equal to %s" % self.max
+
 
 class SameSize(Postcondition):
     """Postcondition check for same size arguments
@@ -763,6 +843,10 @@ class CmdDesc:
     :param keyword: keyword arguments tuple
     :param help: placeholder for help information (e.g., URL)
 
+    .. data: function
+
+        function that implements command
+
     Each tuple contains tuples with the argument name and a type annotation.
     The command line parser uses the *optional* argument names to as
     keyword arguments.
@@ -797,15 +881,15 @@ class CmdDesc:
         if self._function:
             raise ValueError("Can not reuse CmdDesc instances")
         import inspect
-        Empty = inspect.Parameter.empty
-        Positional = inspect.Parameter.VAR_POSITIONAL
+        empty = inspect.Parameter.empty
+        positional = inspect.Parameter.VAR_POSITIONAL
         signature = inspect.signature(function)
         params = list(signature.parameters.values())
         if len(params) < 1 or params[0].name != "session":
             raise ValueError("Missing initial 'session' argument")
         for p in params[1:]:
-            if (p.default != Empty or p.name in self._required
-                    or p.kind == Positional):
+            if (p.default != empty or p.name in self._required
+                    or p.kind == positional):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
                              "required or have a default value" % p.name)
@@ -900,7 +984,7 @@ def register(name, cmd_desc=(), function=None):
     what = cmd_map.get(word, None)
     if isinstance(what, dict):
         raise ValueError("Command is part of multiword command")
-    #if what is not None:
+    # if what is not None:
     #    pass # TODO: replacing, preserve extra keywords?
     _check_autocomplete(word, cmd_map, name)
     if isinstance(function, _Defer):
@@ -909,6 +993,11 @@ def register(name, cmd_desc=(), function=None):
     else:
         # introspect immediately to give errors
         cmd_desc.function = function
+    #if word in cmd_map:
+    #    print(word, type(function), type(cmd_map[word].function))
+    #if (isinstance(function, _Alias) and word in cmd_map:
+    #        and isinstance(cmd_map[word].function, _Alias)):
+    #    raise UserError("Can not alias existing command")
     cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -931,6 +1020,7 @@ def _unregister(name):
     if isinstance(what, dict):
         raise RuntimeError("unregistering beginning of multiword command")
     del cmd_map[word]
+
 
 def _lazy_register(cmd_map, word):
     deferred = cmd_map[word]
@@ -960,7 +1050,7 @@ def add_keyword_arguments(name, kw_info):
 
 
 class Command:
-    """Keep track of partially typed command with possible completions
+    """Keep track of (partially) typed command with possible completions
 
     :param text: the command text
     :param final: true if text is the complete command line (final version).
@@ -975,8 +1065,8 @@ class Command:
 
     .. data: completions
 
-        Possible command completions.  The first one will be used
-        if the command is executed.
+        Possible command or keyword completions if given an incomplete command.
+        The first one will be used if the command is executed.
 
     .. data: completion_prefix
 
@@ -998,8 +1088,8 @@ class Command:
         self.amount_parsed = 0
         self.completion_prefix = ""
         self.completions = []
-        self.multiple = False
-        self._error = "Missing command"
+        self.multiple = []
+        self._error = ""
         self._ci = None
         self.command_name = None
         self._kwargs = {}
@@ -1007,6 +1097,8 @@ class Command:
 
     def error_check(self):
         """Error check results of calling parse_text
+
+        :raises UserError: if parsing error is found
 
         Separate error checking logic from execute() so
         it may be done separately
@@ -1024,254 +1116,92 @@ class Command:
         session = self._session  # resolve back reference
         if not self._error_checked:
             self.error_check()
-        try:
-            if not isinstance(self._ci.function, _Alias):
-                return self._ci.function(session, **self._kwargs)
-            arg_names = [k for k in self._kwargs.keys() if isinstance(k, int)]
-            arg_names.sort()
-            args = [self._kwargs[k] for k in arg_names]
-            if 'optional' in self._kwargs:
-                optional = self._kwargs['optional']
-            else:
-                optional = ''
-            return self._ci.function(session, *args, optional=optional)
-        except ValueError as err:
-            if isinstance(self._ci.function, _Alias):
-                # propagate expanded alias
-                cmd = self._ci.function.cmd
-                self.current_text = cmd.current_text
-                self.amount_parsed = cmd.amount_parsed
-                self._error = cmd._error
-            # convert function's ValueErrors to UserErrors,
-            # but not those of functions it calls
-            import traceback
-            _, _, exc_traceback = sys.exc_info()
-            if len(traceback.extract_tb(exc_traceback)) > 2:
+        print('execute %d commands' % len(self.multiple))
+        results = []
+        for (ci, kwargs) in self.multiple:
+            try:
+                if not isinstance(ci.function, _Alias):
+                    results.append(ci.function(session, **kwargs))
+                    continue
+                arg_names = [k for k in kwargs.keys() if isinstance(k, int)]
+                arg_names.sort()
+                args = [kwargs[k] for k in arg_names]
+                if 'optional' in kwargs:
+                    optional = kwargs['optional']
+                else:
+                    optional = ''
+                results.append(ci.function(session, *args, optional=optional))
+                continue
+            except ValueError as err:
+                if isinstance(ci.function, _Alias):
+                    # propagate expanded alias
+                    cmd = ci.function.cmd
+                    self.current_text = cmd.current_text
+                    self.amount_parsed = cmd.amount_parsed
+                    self._error = cmd._error
+                # convert function's ValueErrors to UserErrors,
+                # but not those of functions it calls
+                import traceback
+                _, _, exc_traceback = sys.exc_info()
+                if len(traceback.extract_tb(exc_traceback)) > 2:
+                    raise
+                raise UserError(err)
+            except UserError as err:
+                if isinstance(ci.function, _Alias):
+                    # propagate expanded alias
+                    cmd = ci.function.cmd
+                    self.current_text = cmd.current_text
+                    self.amount_parsed = cmd.amount_parsed
+                    self._error = cmd._error
                 raise
-            raise UserError(err)
-        except UserError as err:
-            if isinstance(self._ci.function, _Alias):
-                # propagate expanded alias
-                cmd = self._ci.function.cmd
-                self.current_text = cmd.current_text
-                self.amount_parsed = cmd.amount_parsed
-                self._error = cmd._error
-            raise
+        return results
 
-    def _next_token(self, text):
-        # Return tuple of first argument in text and actual text used
-        #
-        # Arguments may be quoted, in which case the text between
-        # the quotes is returned.  If there is no closing quote,
-        # return rest of line for automatic completion purposes,
-        # but set an error.
-        m = _whitespace.match(text)
-        start = m.end() if m else 0
-        if start == len(text):
-            return '', text
-        if text[start] == '"':
-            m = _double.match(text, start)
-            if m:
-                end = m.end()
-                token = text[start + 1:end - 1]
-                if len(text) > end and not text[end].isspace():
-                    self._error = "quoted text must end with whitespace"
-                    raise UserError(self._error)
-            else:
-                end = len(text)
-                token = text[start + 1:end]
-                self._error = "incomplete quoted text"
-            token = unescape(token)
-        elif text[start] == "'":
-            m = _single.match(text, start)
-            if m:
-                end = m.end()
-                token = text[start + 1:end - 1]
-                if len(text) > end and not text[end].isspace():
-                    self._error = "quoted text must end with whitespace"
-                    raise UserError(self._error)
-            else:
-                end = len(text)
-                token = text[start + 1:end]
-                self._error = "incomplete quoted text"
-            token = unescape(token)
-        elif text[start] in ',;':
-            return text[start], text[0:start + 1]
-        else:
-            m = _normal_token.match(text, start)
-            end = m.end()
-            token = text[start:end]
-        return token, text[0:end]
-
-    def _upto_semicolon(self, text):
-        # return text up to next semicolon, taking into account tokens
-        start = 0
-        size = len(text)
-        while start < size:
-            m = _whitespace.match(text, start)
-            if m:
-                start = m.end()
-                if start == size:
-                    break
-            if text[start] == '"':
-                m = _double.match(text, start)
-                if m:
-                    start = m.end()
-                else:
-                    start = size
-                    self._error = "incomplete quoted text"
-                    break
-            elif text[start] == "'":
-                m = _single.match(text, start)
-                if m:
-                    start = m.end()
-                else:
-                    start = size
-                    self._error = "incomplete quoted text"
-                    break
-            elif text[start] == ',':
-                start += 1
-            elif text[start] == ';':
-                break
-            else:
-                m = _normal_token.match(text, start)
-                start = m.end()
-        return text[:start], text[start:]
-
-    def _complete(self, chars, suffix):
-        # insert completion taking into account quotes
+    def _replace(self, chars, replacement):
+        print('_replace(%r, %r)' % (chars, replacement)) #DEBUG
+        # insert replacement taking into account quotes
         i = len(chars)
         c = chars[0]
         if c != '"' or chars[-1] != c:
-            completion = chars + suffix
+            completion = replacement
         else:
-            completion = chars[:-1] + suffix + chars[-1]
+            completion = c + replacement + c
         j = self.amount_parsed
         t = self.current_text
+        print('  %r, %r, %r' % (t[0:j], completion, t[i + j:])) #DEBUG
         self.current_text = t[0:j] + completion + t[i + j:]
-        return self.current_text[j:]
+        return len(completion)
 
-    def _parse_arg(self, annotation, text, final):
-        if annotation is WholeRestOfLine:
-            self.amount_parsed += len(text)
-            return text.lstrip(), ""
-
-        if annotation is RestOfLine:
-            text, rest = self._upto_semicolon(text)
-            self.amount_parsed += len(text)
-            return text.lstrip(), rest
-
-        session = self._session  # resolve back reference
-        multiword = annotation.multiword
-        all_words = []
-        all_chars = []
-        count = 0
-        while 1:
-            count += 1
-            if count > 1024:
-                # TODO: change test to see if still consuming characters
-                # 1024 is greater than the number of words
-                # in a multiword argument (think atomspecs)
-                raise RuntimeError("Invalid completions given by %s"
-                                   % annotation.name)
-            word, chars = self._next_token(text)
-            if _debugging:
-                print('arg _next_token(%r) -> %r %r' % (text, word, chars))
-            if not word:
-                raise ValueError("Expected %s" % annotation.name)
-            all_words.append(word)
-            word = ' '.join(all_words)
-            all_chars.append(chars)
-            #chars = ''.join(all_chars) need short version in exception
-            try:
-                value = annotation.parse(word, session)
-                break
-            except ValueError as err:
-                completions = annotation.completions(word, session)
-                if completions and (final or len(text) > len(chars)):
-                    c = completions[0]
-                    if not c.startswith(word) or len(c) <= len(word):
-                        raise RuntimeError("Invalid completions given by %s"
-                                           % annotation.name)
-                    c = c[len(word):]
-                    if multiword:
-                        if c[0].isspace():
-                            text = text[len(chars):]
-                            continue
-                        c = c.split(None, 1)[0]
-                    chars = ''.join(all_chars)
-                    text = self._complete(chars, c)
-                    del all_words[-1]
-                    del all_chars[-1]
-                    chars = ''.join(all_chars)
-                    text = text[len(chars):]
-                    continue
-                self._error = err
-                if multiword and not completions:
-                    # try shorter version
-                    del all_words[-1]
-                    word = ' '.join(all_words)
-                    completions = annotation.completions(word, session)
-                self.completion_prefix = word
-                self.completions = completions
-                raise
-        chars = ''.join(all_chars)
-        self.amount_parsed += len(chars)
-        text = self.current_text[self.amount_parsed:]
-        return value, text
-
-    def _parse_aggregate(self, anno, text, final):
-        # expect VALUE [, VALUE]*
-        self._error = ""
-        self.completion_prefix = ""
-        self.completions = []
-        values = anno.constructor()
-        value, text = self._parse_arg(anno, text, final)
-        x = anno.add_to(values, value)
-        if x is not None:
-            values = x
-        while 1:
-            word, chars = self._next_token(text)
-            if _debugging:
-                print('agg _next_token(%r) -> %r %r' % (text, word, chars))
-            if word != ',':
-                if len(values) < anno.min_size:
-                    if anno.min_size == anno.max_size:
-                        qual = "exactly"
-                    else:
-                        qual = "at least"
-                    raise ValueError("Need %s %d %s" % (qual, anno.min_size,
-                                                        anno.name))
-                if len(values) > anno.max_size:
-                    if anno.min_size == anno.max_size:
-                        qual = "exactly"
-                    else:
-                        qual = "at most"
-                    raise ValueError("Need %s %d %s" % (qual, anno.max_size,
-                                     anno.name))
-                return values, text
-            self.amount_parsed += len(chars)
-            text = text[len(chars):]
-            value, text = self._parse_arg(anno, text, final)
-            x = anno.add_to(values, value)
-            if x is not None:
-                values = x
+    def _parse_arg(self, annotation, text, session, final):
+        m = _whitespace.match(text)
+        start = m.end()
+        leading, text = text[:start], text[start:]
+        self.amount_parsed += start
+        self.current_text += leading
+        value, replacement, rest = annotation.parse(text, session)
+        if len(rest) > 0:
+            text = text[:-len(rest)]
+        self.amount_parsed += self._replace(text, replacement)
+        return value, rest
 
     def _find_command_name(self, final):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, sets self._ci
-        start = self.amount_parsed
-        text = self.current_text[start:]
-        m = _whitespace.match(text, start)
-        if m:
-            start = m.end()
+        self._error = "Missing command"
         word_map = _commands
+        start = self.amount_parsed
         while 1:
-            word, chars = self._next_token(text)
+            m = _whitespace.match(self.current_text, self.amount_parsed)
+            self.amount_parsed = m.end()
+            text = self.current_text[self.amount_parsed:]
+            print('find_command: %r' % text)
+            if not text:
+                return
+            word, chars, text = _next_token(text)
             if _debugging:
-                print('cmd _next_token(%r) -> %r %r' % (text, word, chars))
+                print('cmd _next_token(%r) -> %r %r %r' % (text, word, chars,
+                                                           text))
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1283,13 +1213,13 @@ class Command:
                     # is following text, make best guess,
                     # and retry
                     c = self.completions[0]
-                    text = self._complete(chars, c[len(word):])
+                    self._replace(chars, c)
+                    text = self.current_text[self.amount_parsed:]
                     continue
                 if word:
                     self._error = "Unknown command"
                 return
             self.amount_parsed += len(chars)
-            text = text[len(chars):]
             if isinstance(what, _Defer):
                 what = _lazy_register(word_map, word)
             if isinstance(what, dict):
@@ -1301,6 +1231,7 @@ class Command:
             assert(isinstance(what, CmdDesc))
             self._ci = what
             self.command_name = self.current_text[start:self.amount_parsed]
+            self._error = ''
             return
 
     def _process_positional_arguments(self):
@@ -1308,6 +1239,7 @@ class Command:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, updates self._kwargs
+        session = self._session  # resolve back reference
         text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
         positional.update(self._ci._optional)
@@ -1320,38 +1252,46 @@ class Command:
                 if not tmp:
                     break
                 if tmp[0] in self._ci._keyword:
-                    # matches keyword,
-                    # so switch to keyword processing
+                    # matches keyword, so done with positional arguments
                     break
             else:
                 self._error = "Missing required argument %s" % name
+            m = _whitespace.match(text)
+            start = m.end()
+            if start:
+                self.amount_parsed += start
+                text = text[start:]
+            if not text:
+                break
+            if text[0] == ';':
+                break
             try:
-                if isinstance(anno, Aggregate):
-                    value, text = self._parse_aggregate(anno, text, False)
-                else:
-                    value, text = self._parse_arg(anno, text, False)
+                value, text = self._parse_arg(anno, text, session, False)
                 self._kwargs[name] = value
+                self._error = ""
             except ValueError as err:
                 if name in self._ci._required:
                     self._error = "Invalid argument %r: %s" % (name, err)
                     return
                 # optional and wrong type, try as keyword
                 break
-        self._error = ""
 
     def _process_keyword_arguments(self, final):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, updates self._kwargs
+        session = self._session  # resolve back reference
+        m = _whitespace.match(self.current_text, self.amount_parsed)
+        self.amount_parsed = m.end()
         text = self.current_text[self.amount_parsed:]
+        if not text:
+            return
         while 1:
-            word, chars = self._next_token(text)
+            word, chars, text = _next_token(text)
             if _debugging:
                 print('key _next_token(%r) -> %r %r' % (text, word, chars))
-            if not word:
-                # count extra whitespace as parsed
-                self.amount_parsed += len(chars)
+            if not word or word == ';':
                 break
 
             if word not in self._ci._keyword:
@@ -1363,7 +1303,8 @@ class Command:
                     # is following text, make best guess,
                     # and retry
                     c = self.completions[0]
-                    text = self._complete(chars, c[len(word):])
+                    self._replace(chars, c)
+                    text = self.current_text[self.amount_parsed:]
                     self.completions = []
                     continue
                 if len(self._ci._keyword) > 0:
@@ -1371,20 +1312,35 @@ class Command:
                 else:
                     self._error = "Too many arguments"
                 return
+            arg_name = word
+            #print("working on keyword: %r" % arg_name)
             self.amount_parsed += len(chars)
-            text = text[len(chars):]
+            m = _whitespace.match(text)
+            start = m.end()
+            if start:
+                self.amount_parsed += start
+                text = text[start:]
+            if not text:
+                self._error = "Missing argument %r" % arg_name
+                break
+            #print("  -> %r %r" % (self.current_text[:self.amount_parsed], text))
 
-            name = word
-            anno = self._ci._keyword[name]
+            anno = self._ci._keyword[arg_name]
             try:
-                if isinstance(anno, Aggregate):
-                    value, text = self._parse_aggregate(anno, text, final)
-                else:
-                    value, text = self._parse_arg(anno, text, final)
-                self._kwargs[name] = value
+                value, text = self._parse_arg(anno, text, session, final)
+                self._kwargs[arg_name] = value
             except ValueError as err:
-                self._error = "Invalid  argument %r: %s" % (name, err)
+                self._error = "Invalid argument %r: %s" % (arg_name, err)
                 return
+            print('kw text: %r' % text)
+            print('kw cur text: %r' % self.current_text[self.amount_parsed:])
+            m = _whitespace.match(text)
+            start = m.end()
+            if start:
+                self.amount_parsed += start
+                text = text[start:]
+            if not text:
+                break
 
     def parse_text(self, text, final=False):
         """Parse text into function and arguments
@@ -1403,8 +1359,7 @@ class Command:
         # find command name
         self.current_text = text
 
-        #while 1:
-        if 1:
+        while 1:
             self._find_command_name(final)
             if not self._ci:
                 return
@@ -1414,15 +1369,21 @@ class Command:
             self._process_keyword_arguments(final)
             if self._error:
                 return
+            self.multiple.append((self._ci, self._kwargs))
+            m = _whitespace.match(self.current_text, self.amount_parsed)
+            self.amount_parsed = m.end() 
             if self.amount_parsed == len(self.current_text):
                 return
-            #self.multiple = 1
+            self.amount_parsed += 1 # skip semicolon
+            self._ci = None
+            self._kwargs = {}
 
 
 def command_function(name):
     """Return callable for given command name
 
     :param name: the name of the command
+    :returns: the callable that implements the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1434,6 +1395,7 @@ def command_help(name):
     """Return help for given command name
 
     :param name: the name of the command
+    :returns: the help object registered with the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1445,6 +1407,7 @@ def command_usage(name):
     """Return usage string for given command name
 
     :param name: the name of the command
+    :returns: a usage string for the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1468,6 +1431,7 @@ def command_html_usage(name):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
+    :returns: a HTML usage string for the command
     """
     cmd = Command(None, name, final=True)
     if cmd.multiple or not cmd._ci:
@@ -1566,6 +1530,15 @@ class _Alias:
 @register('alias', CmdDesc(optional=[('name', StringArg),
                                      ('text', WholeRestOfLine)]))
 def alias(session, name='', text=''):
+    """Create command alias
+
+    :param name: optional name of the alias
+    :param text: optional text of the alias
+
+    If the alias name is not given, then a text list of all the aliases is
+    returned.  If alias text is not given, the the text of the named alias
+    is returned.  If both arguments are given, then a new alias is made.
+    """
     if not name:
         # list aliases
         names = ', '.join(list(_cmd_aliases.keys()))
@@ -1576,7 +1549,6 @@ def alias(session, name='', text=''):
         if name not in _cmd_aliases:
             return 'No alias named %r found.' % name
         return 'Aliased %r to %r' % (name, _cmd_aliases[name].original_text)
-    # extract command name
     cmd = _Alias(text)
     try:
         register(name, cmd.desc(), cmd)
@@ -1586,6 +1558,10 @@ def alias(session, name='', text=''):
 
 @register('~alias', CmdDesc(required=[('name', StringArg)]))
 def unalias(session, name):
+    """Remove command alias
+
+    :param name: name of the alias
+    """
     # remove command alias
     try:
         del _cmd_aliases[name]
@@ -1596,7 +1572,6 @@ def unalias(session, name):
 if __name__ == '__main__':
 
     class ColorArg(Annotation):
-        multiword = True
         name = 'a color'
 
         Builtin_Colors = {
@@ -1606,18 +1581,38 @@ if __name__ == '__main__':
 
         @staticmethod
         def parse(text, session):
-            text = text.casefold()
-            try:
-                color = ColorArg.Builtin_Colors[text]
-            except KeyError:
-                raise ValueError("Invalid color name")
-            return ([x / 255.0 for x in color])
+            # Allow for color names to be abbreviated
+            # and to be composed of multiple words.
+            # Might want to accept non-prefix abbreviations,
+            # eg., "lt" for "light".
+            token, chars, rest = _next_token(text)
+            token = token.casefold()
+            color_name = token
+            while 1:
+                try:
+                    color = ColorArg.Builtin_Colors[color_name]
+                    return ([x / 255.0 for x in color]), color_name, rest
+                except KeyError:
+                    pass
+                # check if color_name is a prefix
+                names = [n for n in ColorArg.Builtin_Colors
+                         if n.startswith(color_name)]
+                if len(names) == 0:
+                    raise ValueError("Invalid color name: %r" % color_name)
+                suffix = names[0][len(color_name):]
+                if ' ' not in suffix:
+                    color_name = names[0]
+                    continue
+                if not suffix[0].isspace():
+                    color_name += suffix.split(None, 1)[0]
 
-        @staticmethod
-        def completions(text, session):
-            text = text.casefold()
-            names = [n for n in ColorArg.Builtin_Colors if n.startswith(text)]
-            return names
+                m = _whitespace.match(rest)
+                rest = rest[m.end():]
+                color_name += ' '
+
+                token, chars, rest = _next_token(rest)
+                token = token.casefold()
+                color_name += token
 
     test1_desc = CmdDesc(
         required=[('a', IntArg), ('b', FloatArg)],
@@ -1631,15 +1626,11 @@ if __name__ == '__main__':
         print('test1 color: %s %s' % (type(color), color))
 
     test2_desc = CmdDesc(
-        #required=[('a', StringArg)],
-        #optional=[('text', RestOfLine)],
         keyword=[('color', ColorArg), ('radius', FloatArg)]
     )
 
     @register('test2', test2_desc)
-    def test2(session, a='a', text='', color=None, radius=0):
-        #print('test2 a: %s %s' % (type(a), a))
-        #print('test2 text: %s %s' % (type(text), text))
+    def test2(session, color=None, radius=0):
         print('test2 color: %s %s' % (type(color), color))
         print('test2 radius: %s %s' % (type(radius), radius))
 
@@ -1735,15 +1726,19 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 1:
         _debugging = 'd' in sys.argv[1]
+
         @register('exit')
         def exit(session):
             raise SystemExit(0)
+
         @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
         def echo(session, text=''):
             return text
+
         @register('usage', CmdDesc(required=[('name', RestOfLine)]))
         def usage(session, name):
             print(command_usage(name))
+
         @register('html_usage', CmdDesc(required=[('name', RestOfLine)]))
         def html_usage(session, name):
             print(command_html_usage(name))
@@ -1813,14 +1808,17 @@ if __name__ == '__main__':
         (True, True, 'test9 names a,b,c d'),
         (True, True, 'test10'),
         (True, False, 'test10 red'),
-        (False, True, 'test10 red 0.5'),
+        (False, True, 'test10 re 0.5'),
         (True, False, 'test10 red, light gray'),
         (False, False, 'test10 light  gray, red 0.33, 0.67'),
         (True, False, 'test10 light  gray, red 0.33'),
         (True, False, 'test10 li  gr, red'),
         (True, False, 'test10 "red"10.3'),
+        (False, False, 'test4 2; test4 3'),
+        (False, False, 'test10 red 2; test10 li gr 3'),
     ]
     # TODO: delayed registration tests
+    sys.stdout = sys.stderr
     successes = 0
     failures = 0
     cmd = Command(None)
@@ -1830,10 +1828,11 @@ if __name__ == '__main__':
             print("\nTEST: '%s'" % text)
             cmd.parse_text(text, final=final)
             print(cmd.current_text)
-            #print(cmd.current_text, cmd._kwargs)
-            result = cmd.execute()
-            if result:
-                print(result)
+            results = cmd.execute()
+            if results:
+                for result in results:
+                    if result is not None:
+                        print(result)
             if fail:
                 # expected failure and it didn't
                 failures += 1
@@ -1845,7 +1844,6 @@ if __name__ == '__main__':
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
-            #parsed = cmd.current_text[:cmd.amount_parsed]
             print("%s^" % ('.' * error_at))
             if fail:
                 successes += 1
