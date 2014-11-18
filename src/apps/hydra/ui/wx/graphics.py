@@ -17,9 +17,11 @@ class GraphicsWindow(wx.Panel):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
 
-        self.view = View(session, self.GetClientSize(),
+        models = session
+        log = session
+        self.view = View(models, self.GetClientSize(),
                          self.make_opengl_context_current,
-                         self.swap_opengl_buffers)
+                         self.swap_opengl_buffers, log)
 
         self.opengl_context = None
         self.opengl_canvas = OpenGLCanvas(self)
@@ -35,7 +37,7 @@ class GraphicsWindow(wx.Panel):
         # frame drops at 60 frames/sec
 
         from . import mousemodes
-        self.mouse_modes = mousemodes.Mouse_Modes(self)
+        self.mouse_modes = mousemodes.WxMouseModes(self)
 
     def create_opengl_context(self):
         from wx.glcanvas import GLContext

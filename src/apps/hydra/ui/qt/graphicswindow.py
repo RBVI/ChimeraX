@@ -18,7 +18,9 @@ class Graphics_Window(QtGui.QWindow):
         w.setFocusPolicy(QtCore.Qt.NoFocus)
 
         window_size = (w.width(), w.height())		# pixels
-        self.view = View(session, window_size, self.make_opengl_context_current, self.swap_opengl_buffers)
+        models = session
+        log = session
+        self.view = View(models, window_size, self.make_opengl_context_current, self.swap_opengl_buffers, log)
 
         self.set_stereo_eye_separation()
 
@@ -32,7 +34,7 @@ class Graphics_Window(QtGui.QWindow):
         self.last_redraw_finish_time = 0
 
         from . import mousemodes
-        self.mouse_modes = mousemodes.Mouse_Modes(self)
+        self.mouse_modes = mousemodes.QtMouseModes(self)
         self.enable_trackpad_events()
 
     def set_stereo_eye_separation(self, eye_spacing_millimeters = 61.0):

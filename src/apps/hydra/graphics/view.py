@@ -8,9 +8,10 @@ class View:
     A View is the graphics windows that shows 3-dimensional models.
     It manages the camera and draws the models when needed.
     '''
-    def __init__(self, session, window_size, make_opengl_context_current, swap_opengl_buffers):
+    def __init__(self, models, window_size, make_opengl_context_current, swap_opengl_buffers, log):
 
-        self.session = session
+        self.models = models
+        self.log = log
         self.window_size = window_size		# pixels
         self._make_opengl_context_current = make_opengl_context_current
         self._swap_opengl_buffers = swap_opengl_buffers
@@ -166,7 +167,7 @@ class View:
         They are used for effects such as motion blur or cross fade that
         blend the current rendered scene with a previous rendered scene.
         '''
-        overlay.redraw_needed = self.session.model_redraw_needed
+        overlay.redraw_needed = self.models.model_redraw_needed
         self._overlays.append(overlay)
         self.redraw_needed = True
 
@@ -285,33 +286,33 @@ class View:
                 cb()
             except:
                 import traceback
-                self.session.show_warning('new frame callback rasied error\n'
-                                          + traceback.format_exc())
+                self.log.show_warning('new frame callback rasied error\n'
+                                      + traceback.format_exc())
                 self.remove_new_frame_callback(cb)
                 
 
         c = self.camera
-        s = self.session
-        draw = self.redraw_needed or c.redraw_needed or s.redraw_needed
+        m = self.models
+        draw = self.redraw_needed or c.redraw_needed or m.redraw_needed
         if not draw:
             return False
 
-        if s.redraw_needed and s.shape_changed and self.multishadow > 0:
+        if m.redraw_needed and m.shape_changed and self.multishadow > 0:
             # Force recomputation of ambient shadows since shape changed.
             self._multishadow_transforms = []
 
         self.redraw_needed = False
         c.redraw_needed = False
-        s.redraw_needed = False
-        s.shape_changed = False
+        m.redraw_needed = False
+        m.shape_changed = False
         self.draw()
         for cb in self._rendered_callbacks:
             try:
                 cb()
             except:
                 import traceback
-                self.session.show_warning('rendered callback rasied error\n'
-                                          + traceback.format_exc())
+                self.log.show_warning('rendered callback rasied error\n'
+                                      + traceback.format_exc())
                 self.remove_new_frame_callback(cb)
 
         return True
@@ -339,9 +340,9 @@ class View:
         else:
             self._time_graphics = 0
             msg = '%.1f frames/sec' % (1.0/time,)
-            s = self.session
-            s.show_status(msg)
-            s.show_info(msg)
+            l = self.log
+            l.show_status(msg)
+            l.show_info(msg)
 
     def _start_timing(self):
         if self._time_graphics:
@@ -399,8 +400,8 @@ class View:
         if camera is None:
             camera = self.camera
 
-        s = self.session
-        mdraw = [m for m in s.top_level_models() if m.display] if models is None else models
+        mods = self.models
+        mdraw = [m for m in mods.top_level_models() if m.display] if models is None else models
 
         r = self._render
         if self.shadows:
@@ -418,7 +419,7 @@ class View:
 
         self.update_level_of_detail()
 
-        selected = [m for m in s.selected_models() if m.display]
+        selected = [m for m in mods.selected_models() if m.display]
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
@@ -449,7 +450,7 @@ class View:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
 
-        camera.combine_rendered_camera_views(r, self.session)
+        camera.combine_rendered_camera_views(r, self.models)
         
         if self._overlays:
             draw_overlays(self._overlays, r)
@@ -459,7 +460,7 @@ class View:
         r = self._render
 
         # Compute model bounds so shadow map can cover all models.
-        center, radius, models = _model_bounds(models, self.session)
+        center, radius, models = _model_bounds(models, self.models)
         if center is None:
             return None
 
@@ -490,7 +491,7 @@ class View:
             return self._multishadow_transforms, self._multishadow_depth
 
         # Compute model bounds so shadow map can cover all models.
-        center, radius, models = _model_bounds(models, self.session)
+        center, radius, models = _model_bounds(models, self.models)
         if center is None:
             return None, None
 
@@ -531,15 +532,16 @@ class View:
         '''
         # Level of detail updating.
         # TODO: Don't recompute atoms shown on every draw, only when changed
-        ashow = sum(m.shown_atom_count() for m in self.session.molecules() if m.display)
+        mols = self.models.molecules()
+        ashow = sum(m.shown_atom_count() for m in mols if m.display)
         if ashow != self.atoms_shown:
             self.atoms_shown = ashow
-            for m in self.session.molecules():
+            for m in mols:
                 m.update_level_of_detail(self)
 
     def initial_camera_view(self):
         '''Set the camera position to show all displayed models, looking down the z axis.'''
-        center, s = self.session.bounds_center_and_width()
+        center, s = self.models.bounds_center_and_width()
         if center is None:
             return
         from numpy import array, float32
@@ -548,8 +550,7 @@ class View:
 
     def view_all(self):
         '''Adjust the camera to show all displayed models using the current view direction.'''
-        ses = self.session
-        center, s = ses.bounds_center_and_width()
+        center, s = self.models.bounds_center_and_width()
         if center is None:
             return
         shift = self.camera.view_all(center, s)
@@ -567,7 +568,7 @@ class View:
         if not self._update_center:
             return
         self._update_center = False
-        center, s = self.session.bounds_center_and_width()
+        center, s = self.models.bounds_center_and_width()
         if center is None:
             return
         vw = self.camera.view_width(center)
@@ -595,7 +596,7 @@ class View:
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         f = None
         s = None
-        models = self.session.top_level_models()
+        models = self.models.top_level_models()
         for m in models:
             if m.display:
                 fmin, smin = m.first_intercept(xyz1, xyz2, exclude = 'is_outline_box')
@@ -626,7 +627,7 @@ class View:
 
         cp = camera.position(view_num)
         vd = camera.view_direction(view_num)
-        center, size = self.session.bounds_center_and_width()
+        center, size = self.models.bounds_center_and_width()
         if center is None:
             return 0.001,1  # Nothing shown
         d = sum((center-cp)*vd)         # camera to center of models
@@ -656,7 +657,7 @@ class View:
         Axis is in scene coordinates and angle is in degrees.
         '''
         if models:
-            center = self.session.center(models)
+            center = self.models.center(models)
         else:
             self.update_center_of_rotation()
             center = self.center_of_rotation
@@ -689,11 +690,10 @@ class View:
             p = self.center_of_rotation
         return self.camera.pixel_size(p, self.window_size)
 
-def _model_bounds(models, session):
+def _model_bounds(models, open_models):
     if models is None:
-        s = session
-        center, radius = s.bounds_center_and_width()
-        models = [m for m in s.top_level_models() if m.display]
+        center, radius = open_models.bounds_center_and_width()
+        models = [m for m in open_models.top_level_models() if m.display]
     else:
         from ..geometry import bounds
         b = bounds.union_bounds(m.bounds() for m in models)
