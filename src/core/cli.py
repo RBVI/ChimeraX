@@ -41,7 +41,7 @@ And in quoted text, Python's textual escape sequences are recognized,
 *e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
 \N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
-Words in the command name may be abbreviated
+Words in the command name may be truncated
 and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
@@ -221,11 +221,11 @@ class Annotation(metaclass=abc.ABCMeta):
         :param text: command line text to parse
         :param session: for session-dependent data types
         :returns: 3-tuple with the converted value, consumed text
-        (possibly altered with expanded abbreviations), and the
+        (possibly altered with expanded truncations), and the
         remaining unconsumed text
 
         The leading space in text must already be removed.
-        It is up to the particular annotation to support abbreviations.
+        It is up to the particular annotation to support truncatations.
         """
         raise NotImplemented
 
@@ -468,12 +468,16 @@ class EnumOf(Annotation):
     :param ids: optional sequence of identifiers
     :param name: optional explicit name for annotation
 
+    .. data: allow_truncated
+
+        (Defaults to True.)  If true, then recognize truncated ids.
+
     If the *ids* are given, then there must be one for each
     and every value, otherwise the values are used as the identifiers.
     The identifiers must all be strings.
     """
 
-    allow_abbreviations = True
+    allow_truncated = True
 
     def __init__(self, values, ids=None, name=None):
         if ids is not None:
@@ -498,7 +502,7 @@ class EnumOf(Annotation):
         token, text, rest = _next_token(text)
         folded = token.casefold()
         for i, ident in enumerate(self.ids):
-            if self.allow_abbreviations:
+            if self.allow_truncated:
                 if ident.casefold().startswith(folded):
                     return self.values[i], ident, rest
             else:
@@ -661,7 +665,6 @@ def _next_token(text):
         m = _normal_token.match(text, start)
         end = m.end()
         token = text[start:end]
-    print("next_token -> %r %r %r" % (token, text[:end], text[end:]))
     return token, text[:end], text[end:]
 
 
@@ -993,11 +996,10 @@ def register(name, cmd_desc=(), function=None):
     else:
         # introspect immediately to give errors
         cmd_desc.function = function
-    #if word in cmd_map:
-    #    print(word, type(function), type(cmd_map[word].function))
-    #if (isinstance(function, _Alias) and word in cmd_map:
-    #        and isinstance(cmd_map[word].function, _Alias)):
-    #    raise UserError("Can not alias existing command")
+    if (isinstance(function, _Alias) and word in cmd_map
+            and isinstance(cmd_map[word].function, _Alias)):
+        # TODO: relax this
+        raise UserError("Can not alias existing command")
     cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1105,9 +1107,10 @@ class Command:
         """
         if self._error:
             raise UserError(self._error)
-        for cond in self._ci._postconditions:
-            if not cond.check(self._kwargs):
-                raise UserError(cond.error_message())
+        for (ci, kwargs) in self.multiple:
+            for cond in ci._postconditions:
+                if not cond.check(kwargs):
+                    raise UserError(cond.error_message())
         self._error_checked = True
 
     def execute(self):
@@ -1116,7 +1119,6 @@ class Command:
         session = self._session  # resolve back reference
         if not self._error_checked:
             self.error_check()
-        print('execute %d commands' % len(self.multiple))
         results = []
         for (ci, kwargs) in self.multiple:
             try:
@@ -1157,7 +1159,6 @@ class Command:
         return results
 
     def _replace(self, chars, replacement):
-        print('_replace(%r, %r)' % (chars, replacement)) #DEBUG
         # insert replacement taking into account quotes
         i = len(chars)
         c = chars[0]
@@ -1167,7 +1168,6 @@ class Command:
             completion = c + replacement + c
         j = self.amount_parsed
         t = self.current_text
-        print('  %r, %r, %r' % (t[0:j], completion, t[i + j:])) #DEBUG
         self.current_text = t[0:j] + completion + t[i + j:]
         return len(completion)
 
@@ -1195,7 +1195,6 @@ class Command:
             m = _whitespace.match(self.current_text, self.amount_parsed)
             self.amount_parsed = m.end()
             text = self.current_text[self.amount_parsed:]
-            print('find_command: %r' % text)
             if not text:
                 return
             word, chars, text = _next_token(text)
@@ -1313,7 +1312,6 @@ class Command:
                     self._error = "Too many arguments"
                 return
             arg_name = word
-            #print("working on keyword: %r" % arg_name)
             self.amount_parsed += len(chars)
             m = _whitespace.match(text)
             start = m.end()
@@ -1323,17 +1321,16 @@ class Command:
             if not text:
                 self._error = "Missing argument %r" % arg_name
                 break
-            #print("  -> %r %r" % (self.current_text[:self.amount_parsed], text))
 
             anno = self._ci._keyword[arg_name]
+            self.completion_prefix = ''
+            self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
                 self._kwargs[arg_name] = value
             except ValueError as err:
                 self._error = "Invalid argument %r: %s" % (arg_name, err)
                 return
-            print('kw text: %r' % text)
-            print('kw cur text: %r' % self.current_text[self.amount_parsed:])
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -1370,13 +1367,13 @@ class Command:
             if self._error:
                 return
             self.multiple.append((self._ci, self._kwargs))
-            m = _whitespace.match(self.current_text, self.amount_parsed)
-            self.amount_parsed = m.end() 
-            if self.amount_parsed == len(self.current_text):
-                return
-            self.amount_parsed += 1 # skip semicolon
             self._ci = None
             self._kwargs = {}
+            m = _whitespace.match(self.current_text, self.amount_parsed)
+            self.amount_parsed = m.end()
+            if self.amount_parsed == len(self.current_text):
+                return
+            self.amount_parsed += 1  # skip semicolon
 
 
 def command_function(name):
@@ -1385,9 +1382,11 @@ def command_function(name):
     :param name: the name of the command
     :returns: the callable that implements the command
     """
-    cmd = Command(None, name, final=True)
-    if cmd.multiple or not cmd._ci:
-        raise ValueError("'%s' is not a (single) command" % name)
+    cmd = Command(None)
+    cmd.current_text = name
+    cmd._find_command_name(True)
+    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+        raise ValueError("'%s' is not a command name" % name)
     return cmd._ci.function
 
 
@@ -1397,9 +1396,11 @@ def command_help(name):
     :param name: the name of the command
     :returns: the help object registered with the command
     """
-    cmd = Command(None, name, final=True)
-    if cmd.multiple or not cmd._ci:
-        raise ValueError("'%s' is not a (single) command" % name)
+    cmd = Command(None)
+    cmd.current_text = name
+    cmd._find_command_name(True)
+    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+        raise ValueError("'%s' is not a command name" % name)
     return cmd._ci.help
 
 
@@ -1409,9 +1410,12 @@ def command_usage(name):
     :param name: the name of the command
     :returns: a usage string for the command
     """
-    cmd = Command(None, name, final=True)
-    if cmd.multiple or not cmd._ci:
-        raise ValueError("'%s' is not a (single) command" % name)
+    cmd = Command(None)
+    cmd.current_text = name
+    cmd._find_command_name(True)
+    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+        raise ValueError("'%s' is not a command name" % name)
+
     usage = cmd.command_name
     ci = cmd._ci
     for arg in ci._required:
@@ -1581,7 +1585,7 @@ if __name__ == '__main__':
 
         @staticmethod
         def parse(text, session):
-            # Allow for color names to be abbreviated
+            # Allow for color names to be truncated
             # and to be composed of multiple words.
             # Might want to accept non-prefix abbreviations,
             # eg., "lt" for "light".
@@ -1748,9 +1752,10 @@ if __name__ == '__main__':
             try:
                 text = input(prompt)
                 cmd.parse_text(text, final=True)
-                result = cmd.execute()
-                if result is not None:
-                    print(result)
+                results = cmd.execute()
+                for result in results:
+                    if result is not None:
+                        print(result)
             except EOFError:
                 raise SystemExit(0)
             except UserError as err:
@@ -1816,6 +1821,7 @@ if __name__ == '__main__':
         (True, False, 'test10 "red"10.3'),
         (False, False, 'test4 2; test4 3'),
         (False, False, 'test10 red 2; test10 li gr 3'),
+        (True, False, 'test10 red 2; test10 3 red'),
     ]
     # TODO: delayed registration tests
     sys.stdout = sys.stderr
