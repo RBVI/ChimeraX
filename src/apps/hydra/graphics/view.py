@@ -79,7 +79,7 @@ class View:
         '''Draw the scene.'''
         self._use_opengl()
         self._draw_scene()
-        if self.camera.mode != 'oculus':
+        if self.camera.mode.do_swap_buffers():
             self._swap_opengl_buffers()
         self.frame_number += 1
 
@@ -141,24 +141,6 @@ class View:
             # TODO: free multishadow framebuffer.
             self._multishadow_transforms = []
             r.enable_capabilities &= ~r.SHADER_MULTISHADOW
-        self.redraw_needed = True
-        
-    def set_camera_mode(self, mode):
-        '''
-        Camera mode can be 'mono', 'stereo' for sequential stereo, or
-        'oculus' for side-by-side parallel view stereo used by Oculus Rift goggles.
-        '''
-        c = self.camera
-        if mode == c.mode:
-            return True
-
-        if mode == 'stereo' or c.mode == 'stereo':
-            if not self.enable_opengl_stereo(mode == 'stereo'):
-                return False
-        elif not mode in ('mono', 'oculus'):
-            raise ValueError('Unknown camera mode %s' % mode)
-
-        c.mode = mode
         self.redraw_needed = True
 
     def add_overlay(self, overlay):
@@ -406,7 +388,7 @@ class View:
         r = self._render
         if self.shadows:
             kl = r.lighting.key_light_direction                     # Light direction in camera coords
-            lightdir = camera.view().apply_without_translation(kl)  # Light direction in scene coords.
+            lightdir = camera.position.apply_without_translation(kl)  # Light direction in scene coords.
             stf = self._use_shadow_map(lightdir, models)
         if self.multishadow > 0:
             mstf, msdepth = self._use_multishadow_map(self._multishadow_directions(), models)
@@ -425,32 +407,33 @@ class View:
         perspective_near_far_ratio = 2
         from .drawing import draw_depth, draw_drawings, draw_outline, draw_overlays
         for vnum in range(camera.number_of_views()):
-            camera.set_framebuffer(vnum, r)
+            camera.set_render_target(vnum, r)
             if self.silhouettes:
                 r.start_silhouette_drawing()
             r.draw_background()
             if mdraw:
                 perspective_near_far_ratio = self._update_projection(vnum, camera = camera)
+                cp = camera.get_position(vnum)
+                cpinv = cp.inverse()
                 if self.shadows:
-                    r.set_shadow_transform(stf*camera.view())
-                cvinv = camera.view_inverse(vnum)
+                    r.set_shadow_transform(stf*cp)
                 if self.multishadow > 0:
-                    r.set_multishadow_transforms(mstf, camera.view(), msdepth)
+                    r.set_multishadow_transforms(mstf, cp, msdepth)
                     # Initial depth pass optimization to avoid lighting calculation on hidden geometry
-                    draw_depth(r, cvinv, mdraw)
+                    draw_depth(r, cpinv, mdraw)
                     r.allow_equal_depth(True)
                 self._start_timing()
-                draw_drawings(r, cvinv, mdraw)
+                draw_drawings(r, cpinv, mdraw)
                 self._finish_timing()
                 if self.multishadow > 0:
                     r.allow_equal_depth(False)
                 if selected:
-                    draw_outline(r, cvinv, selected)
+                    draw_outline(r, cpinv, selected)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
 
-        camera.combine_rendered_camera_views(r, self.models)
+        camera.combine_rendered_camera_views(r)
         
         if self._overlays:
             draw_overlays(self._overlays, r)
@@ -625,7 +608,7 @@ class View:
     def _near_far_clip(self, camera, view_num):
         # Return the near and far clip plane distances.
 
-        cp = camera.position(view_num)
+        cp = camera.get_position(view_num).origin()
         vd = camera.view_direction(view_num)
         center, size = self.models.bounds_center_and_width()
         if center is None:
@@ -676,8 +659,7 @@ class View:
         '''Move camera to simulate a motion of models.'''
         if models is None:
             c = self.camera
-            cv = c.view()
-            c.set_view(tf.inverse() * cv)
+            c.position  = tf.inverse() * c.position
         else:
             for m in models:
                 m.position = tf * m.position

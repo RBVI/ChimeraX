@@ -16,15 +16,15 @@ def turn(axis, angle, frames = 1, session = None):
 
     v = session.view
     c = v.camera
-    cv = c.view()
+    cv = c.position
     saxis = cv.apply_without_translation(axis)  # Convert axis from camera to scene coordinates
     center = v.center_of_rotation
     from ..geometry.place import rotation
     r = rotation(saxis, -angle, center)
     if frames == 1:
-        c.set_view(r*cv)
+        c.position = r*cv
     else:
         def rotate(r=r,c=c):
-            c.set_view(r*c.view())
+            c.position = r*c.position
         from . import motion
         motion.call_for_n_frames(rotate, frames, session)

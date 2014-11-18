@@ -13,33 +13,19 @@ class Camera:
     in scene units, and also the eye spacing in pixels in the window.  The two eyes
     are considered 2 views that belong to one camera.
     '''
-    def __init__(self, mode = 'mono', eye_separation_pixels = 200):
+    def __init__(self):
 
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x,y,z axes, 4th column is camara location.
         from ..geometry.place import Place
-        self.place = self.place_inverse = Place()
+        self._position = Place()
         "Coordinate frame for camera in scene coordinates with camera pointed along -z."
 
         self.field_of_view = 45
         "Horizontal field of view in degrees."
 
-        self.mode = mode
-        "Camera mode, 'mono', 'stereo', or 'oculus'."
-
-        self.eye_separation_scene = 1.0
-        "Stereo eye separation in scene units."
-
-        self.eye_separation_pixels = eye_separation_pixels
-        "Separation of the user's eyes in screen pixels used for stereo rendering."
-
-        self.oculus_centering_shift = 0,0
-        '''
-        For the oculus rift the camera is not centered in the window.
-        This parameter gives the x and y pixel shifts from the geometric center for the left eye.
-        This should be removed from Camera and handled by a generic method the sets the render target.
-        '''
+        self._mode = mono_camera_mode    # CameraMode for mono, stereo, oculus... rendering
 
         self.pixel_shift = 0,0
         '''
@@ -48,15 +34,25 @@ class Camera:
         are blended.
         '''
 
-        self._warp_framebuffers = [None, None]   # Off-screen rendering each eye for Oculus Rift
-        self.warp_window_size = None
-        '''
-        Texture render size for each eye when using Oculus Rift.
-        This should be removed from Camera and handled by a generic method the sets the render target.
-        '''
-
         self.redraw_needed = False
         "Indicates whether a camera change has been made which requires the graphics to be redrawn."
+
+    def get_mode(self):
+        return self._mode
+    def set_mode(self, mode):
+        self._mode = mode
+        self.redraw_needed = True
+    mode = property(get_mode, set_mode)
+    '''Set the camera mode to a CameraMode object.'''
+
+    def get_position(self, view_num = None):
+        p = self._position if view_num is None else self.mode.view(self._position, view_num)
+        return p
+    def set_position(self, p):
+        self._position = p
+        self.redraw_needed = True
+    position = property(get_position, set_position)
+    '''Location and orientation of the camera in scene coordinates. Camera points along -z axis.'''
 
     def initialize_view(self, center, size):
         '''
@@ -68,7 +64,7 @@ class Camera:
         fov = self.field_of_view*pi/180
         camdist = 0.5*size + 0.5*size/tan(0.5*fov)
         from ..geometry import place
-        self.set_view(place.translation((cx,cy,cz+camdist)))
+        self.position = place.translation((cx,cy,cz+camdist))
 
     def view_all(self, center, size):
         '''
@@ -79,51 +75,14 @@ class Camera:
         fov = self.field_of_view*pi/180
         d = 0.5*size + 0.5*size/tan(0.5*fov)
         vd = self.view_direction()
-        cp = self.position()
+        cp = self.position.origin()
         from numpy import array, float32
         shift = array(tuple((center[a]-d*vd[a])-cp[a] for a in (0,1,2)), float32)
         return shift
 
-    def view(self, view_num = None):
-        '''
-        Return the Place coordinate frame of the camera.
-        As a transform it maps camera coordinates to scene coordinates.
-        '''
-        m = self.mode
-        if view_num is None or m == 'mono':
-            v = self.place
-        elif m == 'stereo' or m == 'oculus':
-            # Stereo eyes view in same direction with position shifted along x.
-            s = -1 if view_num == 0 else 1
-            es = self.eye_separation_scene
-            from ..geometry import place
-            t = place.translation((s*0.5*es,0,0))
-            v = self.place * t
-        else:
-            raise ValueError('Unknown camera mode %s' % m)
-        return v
-
-    def view_inverse(self, view_num = None):
-        '''
-        Return the inverse transform of the Camera view mapping scene coordinates to camera coordinates.
-        '''
-        if view_num is None or self.mode == 'mono':
-            v = self.place_inverse
-        else:
-            v = self.view(view_num).inverse()
-        return v
-                
-    def set_view(self, place):
-        '''
-        Reposition the camera using the specified Place coordinate frame.
-        '''
-        self.place = place
-        self.place_inverse = place.inverse()
-        self.redraw_needed = True
-
     def view_width(self, center):
         '''Return the width of the view at position center which is in scene coordinates.'''
-        cp = self.position()
+        cp = self.position.origin()
         vd = self.view_direction()
         d = sum((center-cp)*vd)         # camera to center of models
         from math import tan, pi
@@ -140,18 +99,14 @@ class Camera:
         from math import pi, tan
         fov = self.field_of_view * pi/180
 
-        c = self.position()
+        c = self.position.origin()
         from ..geometry import vector
         ps = vector.distance(c,center) * 2*tan(0.5*fov) / w
         return ps
 
-    def position(self, view_num = None):
-        '''The position of the camera in scene coordinates.'''
-        return self.view(view_num).translation()
-
     def view_direction(self, view_num = None):
         '''The view direction of the camera in scene coordinates.'''
-        return -self.view(view_num).z_axis()
+        return -self.get_position(view_num).z_axis()
 
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL perspective projection matrix for rendering the scene using this camera view.'''
@@ -165,139 +120,121 @@ class Camera:
         h = w*aspect
         left, right, bot, top = -0.5*w, 0.5*w, -0.5*h, 0.5*h
         xps,yps = self.pixel_shift
-        xshift,yshift = xps/ww, yps/wh
-        if self.mode == 'stereo' and not view_num is None:
-            s = -1 if view_num == 0 else 1
-            xshift += s*0.5*self.eye_separation_pixels/ww
-        if self.mode == 'oculus' and not view_num is None:
-            s = 1 if view_num == 0 else -1
-            sx,sy = self.oculus_centering_shift # For left eye
-            xshift += s*sx/ww
-            yshift += s*sy/wh
-
+        mxs,mys = self.mode.pixel_shift(view_num)
+        xshift,yshift = (xps+mxs)/ww, (yps+mys)/wh
         pm = frustum(left, right, bot, top, near, far, xshift, yshift)
         return pm
 
     def clip_plane_points(self, window_x, window_y, window_size, z_distances, render):
         '''
         Return two scene points at the near and far clip planes at the specified window pixel position.
+        TODO: Only correct for mono camera.
         '''
         from math import pi, tan
         fov = self.field_of_view*pi/180
         t = tan(0.5*fov)
-        if self.mode == 'oculus':
-            wx,wy,view_num = self._unwarped_render_position(window_x, window_y, window_size, render)
-        else:
-            wp,hp = window_size     # Screen size in pixels
-            wx,wy,view_num = (window_x - 0.5*wp)/wp, (0.5*hp - window_y)/wp, 0
+        wp,hp = window_size     # Screen size in pixels
+        wx,wy = (window_x - 0.5*wp)/wp, (0.5*hp - window_y)/wp
         cpts = []
         for z in z_distances:
             w = 2*z*t   # Render width in scene units
             c = (w*wx, w*wy, -z)
             cpts.append(c)
-        spts = self.view(view_num) * cpts       # Convert camera to scene coordinates
+        view_num = 0
+        spts = self.get_position(view_num) * cpts       # Convert camera to scene coordinates
         return spts
-
-    def _unwarped_render_position(self, window_x, window_y, window_size, render):
-        # TODO: This would be very hard using the Oculus SDK distortion rendering.
-        #       Used to do this when my code applied distortion.  This is needed for mouse selection.
-        wx,wy,view_num = 0,0,0
-        return wx,wy,view_num
 
     def number_of_views(self):
         '''Number of view points for this camera.  Stereo modes have 2 views for left and right eyes.'''
-        m = self.mode
-        if m == 'mono':
-            n = 1
-        elif m == 'stereo' or m == 'oculus':
-            n = 2
+        return self.mode.number_of_views()
+
+    def set_render_target(self, view_num, render):
+        '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        self.mode.set_render_target(view_num, render)
+
+    def combine_rendered_camera_views(self, render):
+        '''Combine camera views into a single image.'''
+        self.mode.combine_rendered_camera_views(render)
+
+class CameraMode:
+
+    def name(self):
+        '''Name of camera mode.'''
+        return 'mono'
+
+    def view(self, camera_position, view_num):
+        '''
+        Return the Place coordinate frame of the camera.
+        As a transform it maps camera coordinates to scene coordinates.
+        '''
+        return camera_position
+
+    def number_of_views(self):
+        '''Number of views rendered by camera mode.'''
+        return 1
+
+    def pixel_shift(self, view_num):
+        '''Shift of center away from center of render target.'''
+        return 0,0
+
+    def set_render_target(self, view_num, render):
+        '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        render.set_mono_buffer()
+
+    def combine_rendered_camera_views(self, render):
+        '''Combine camera views into a single image.'''
+        return
+
+    def do_swap_buffers(self):
+        return True
+
+mono_camera_mode = CameraMode()
+
+class StereoCameraMode(CameraMode):
+    '''Sequential stereo camera mode.'''
+
+    def __init__(self, eye_separation_pixels = 200):
+        self.eye_separation_scene = 1.0
+        "Stereo eye separation in scene units."
+
+        self.eye_separation_pixels = eye_separation_pixels
+        "Separation of the user's eyes in screen pixels used for stereo rendering."
+
+    def name(self):
+        return 'stereo'
+
+    def view(self, camera_position, view_num):
+        '''
+        Return the Place coordinate frame of the camera.
+        As a transform it maps camera coordinates to scene coordinates.
+        '''
+        if view_num is None:
+            v = camera_position
         else:
-            raise ValueError('Unknown camera mode %s' % m)
-        return n
+            # Stereo eyes view in same direction with position shifted along x.
+            s = -1 if view_num == 0 else 1
+            es = self.eye_separation_scene
+            from ..geometry import place
+            t = place.translation((s*0.5*es,0,0))
+            v = camera_position * t
+        return v
 
-    def set_framebuffer(self, view_num, render):
-        '''Set the OpenGL drawing buffer and view port to render the scene.'''
-        m = self.mode
-        if m == 'mono':
-            render.set_mono_buffer()
-        elif m == 'stereo':
-            render.set_stereo_buffer(view_num)
-        elif m == 'oculus':
-            if view_num > 0:
-                render.pop_framebuffer()
-            render.push_framebuffer(self._warping_framebuffer(view_num))
-        else:
-            raise ValueError('Unknown camera mode %s' % m)
+    def number_of_views(self):
+        '''Number of views rendered by camera mode.'''
+        return 2
 
-    def _warping_framebuffer(self, view_num):
+    def pixel_shift(self, view_num):
+        '''Shift of center away from center of render target.'''
+        if view_num is None:
+            return 0,0
+        s = -1 if view_num == 0 else 1
+        return (s*0.5*self.eye_separation_pixels, 0)
 
-        tw,th = self.warp_window_size
-        
-        fb = self._warp_framebuffers[view_num]
-        if fb is None or fb.width != tw or fb.height != th:
-            from . import opengl
-            t = opengl.Texture()
-            t.initialize_rgba((tw,th))
-            self._warp_framebuffers[view_num] = fb = opengl.Framebuffer(color_texture = t)
-            print ('created warp texture', t.size[0], t.size[1])
-        return fb
+    def set_render_target(self, view_num, render):
+        '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        render.set_stereo_buffer(view_num)
 
-    def combine_rendered_camera_views(self, render, session):
-        '''Combine left and right eye images from separate textures with warping for Oculus Rift.'''
-
-        m = self.mode
-        if m != 'oculus':
-            return
-
-        render.pop_framebuffer()
-        fb = render.current_framebuffer()
-        render.draw_background()
-
-        t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
-        if session.oculus:
-            session.oculus.render(t0.size[0], t0.size[1], t0.id, t1.id)
-
-#        self._draw_unwarped(render)
-
-    def _draw_unwarped(self, render):
-
-        # Unwarped rendering, for testing purposes.
-        render.draw_background()
-
-        # Draw left eye
-        fb = render.current_framebuffer()
-        w,h = fb.width//2, fb.height
-        render.set_viewport(0,0,w,h)
-
-        s = self._warping_surface(render)
-        s.texture = self._warp_framebuffers[0].color_texture
-        from . import drawing
-        drawing.draw_overlays([s], render)
-
-        # Draw right eye
-        render.set_viewport(w,0,w,h)
-        s.texture = self._warp_framebuffers[1].color_texture
-        drawing.draw_overlays([s], render)
-
-        session.view.swap_opengl_buffers()
-
-    def _warping_surface(self, render):
-
-        if hasattr(self, '_warp_surface'):
-            return self._warp_surface
-
-        from .drawing import Drawing
-        self._warp_surface = s = Drawing('warp plane')
-        # TODO: Use a childless drawing.
-        from numpy import array, float32, int32
-        va = array(((-1,-1,0),(1,-1,0),(1,1,0),(-1,1,0)), float32)
-        ta = array(((0,1,2),(0,2,3)), int32)
-        tc = array(((0,0),(1,0),(1,1),(0,1)), float32)
-        s.geometry = va, ta
-        s.color = (255,255,255,255)
-        s.use_lighting = False
-        s.texture_coordinates = tc
-        return s
+stereo_camera_mode = StereoCameraMode()
 
 # glFrustum() matrix
 def frustum(left, right, bottom, top, zNear, zFar, xshift = 0, yshift = 0):

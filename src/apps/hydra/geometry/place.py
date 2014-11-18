@@ -156,6 +156,10 @@ class Place:
         '''Return the transformation shift vector, or equivalently the coordinate system origin.'''
         return self.matrix[:,3]
 
+    def origin(self):
+        '''Return the transformation shift vector, or equivalently the coordinate system origin.'''
+        return self.matrix[:,3]
+
     def axes(self):
         '''Return the coordinate system axes.'''
         return self.matrix[:,:3].transpose()

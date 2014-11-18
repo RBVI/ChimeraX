@@ -26,9 +26,16 @@ def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = Non
     v = session.view
     c = v.camera
     
-    if mono or stereo or oculus:
-        mode = 'mono' if mono else ('stereo' if stereo else 'oculus')
-        v.set_camera_mode(mode)
+    if mono:
+        from ..graphics import mono_camera_mode
+        c.mode = mono_camera_mode
+    elif stereo:
+        from ..graphics import stereo_camera_mode
+        c.mode = stereo_camera_mode
+    elif oculus:
+        from ..devices.oculus import OculusRiftCameraMode
+        c.mode = OculusRiftCameraMode()
+
     if not fieldOfView is None:
         c.field_of_view = fieldOfView
         c.redraw_needed = True
@@ -57,8 +64,8 @@ def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = Non
                'position %.5g %.5g %.5g\n' % tuple(c.position()) +
                'view direction %.6f %.6f %.6f\n' % tuple(c.view_direction()) +
                'field of view %.5g degrees\n' % c.field_of_view +
-               'mode %s\n' % c.mode +
+               'mode %s\n' % c.mode.name() +
                'eye separation pixels %.5g, scene %.5g' % (c.eye_separation_pixels, c.eye_separation_scene))
         session.show_info(msg)
-        smsg = 'Camera mode %s, field of view %.4g degrees' % (c.mode, c.field_of_view)
+        smsg = 'Camera mode %s, field of view %.4g degrees' % (c.mode.name(), c.field_of_view)
         session.show_status(smsg)

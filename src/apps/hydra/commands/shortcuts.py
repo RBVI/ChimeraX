@@ -721,14 +721,17 @@ def motion_blur(viewer):
         MotionBlur(viewer)
 
 def mono_mode(viewer):
-    viewer.set_camera_mode('mono')
+    from .. import graphics
+    viewer.camera.mode = graphics.mono_camera_mode
 def stereo_mode(viewer):
-    viewer.set_camera_mode('stereo')
+    from .. import graphics
+    viewer.camera.mode = graphics.stereo_camera_mode
 def oculus_mode(viewer):
-    viewer.set_camera_mode('oculus')
+    from ..devices import oculus
+    viewer.camera.mode = oculus.OculusRiftCameraMode()
 def start_oculus(session):
     from ..devices import oculus
-    if session.view.camera.mode == 'oculus':
+    if session.view.camera.mode.name() == 'oculus':
         oculus.stop_oculus(session)
     else:
         oculus.start_oculus(session)

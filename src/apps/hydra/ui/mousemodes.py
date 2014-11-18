@@ -134,7 +134,7 @@ class MouseModes:
     def rotate(self, axis, angle):
         v = self.view
         # Convert axis from camera to scene coordinates
-        saxis = v.camera.view().apply_without_translation(axis)
+        saxis = v.camera.position.apply_without_translation(axis)
         v.rotate(saxis, angle, self.models())
 
     def models(self):
@@ -172,7 +172,7 @@ class MouseModes:
         psize = self.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
         v = self.view
-        step = v.camera.view().apply_without_translation(s)    # Scene coord system
+        step = v.camera.position.apply_without_translation(s)    # Scene coord system
         v.translate(step, self.models())
 
     def mouse_zoom(self, event):        
@@ -180,7 +180,7 @@ class MouseModes:
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
         v = self.view
-        shift = v.camera.view().apply_without_translation((0, 0, 3*psize*dy))
+        shift = v.camera.position.apply_without_translation((0, 0, 3*psize*dy))
         v.translate(shift)
 
     def wheel_zoom(self, event):
@@ -188,7 +188,7 @@ class MouseModes:
         d = self.wheel_value(event)
         psize = self.pixel_size()
         v = self.view
-        shift = v.camera.view().apply_without_translation((0, 0, 100*d*psize))
+        shift = v.camera.position.apply_without_translation((0, 0, 100*d*psize))
         v.translate(shift)
 
     def pixel_size(self, min_scene_frac = 1e-5):

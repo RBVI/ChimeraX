@@ -351,7 +351,7 @@ def box_transform_and_xform(v):
 def box_to_eye_transform(box_transform, model_transform):
 
   # TODO: requires viewer
-  transform = viewer.camera.view_inverse * model_transform * box_transform
+  transform = viewer.camera.position.inverse() * model_transform * box_transform
   return transform
 
 # -----------------------------------------------------------------------------
