@@ -16,6 +16,37 @@ class GraphicsWindow(wx.Panel):
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
 
+        class FakeView:
+            def __init__(self, *args, **kw): pass
+            def draw(self, *args, **kw): pass
+            def draw_if_changed(self, *args, **kw): pass
+            def resize(self, *args, **kw): pass
+        self.view = FakeView()
+        # create a View instance here
+        # self.view = View(models, self.GetClientSize(),
+        #     self.make_opengl_context_current,
+        #     self.swap_opengl_buffers, log)
+
+        self.redraw_interval = 16 # milliseconds
+        # perhaps redraw interval should be 10 to reduce
+        # frame drops at 60 frames/sec
+
+    def make_opengl_context_current(self):
+        # creates context if needed
+        if self.opengl_context is None:
+            from wx.glcanvas import GLContext
+            self.opengl_context = GLContext(self.opengl_canvas)
+            self.timer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self._redraw_timer_callback, self.timer)
+            self.timer.Start(self.redraw_interval)
+        self.opengl_canvas.SetCurrent(self.opengl_context)
+
+    def swap_opengl_buffers(self):
+        self.opengl_canvas.SwapBuffers()
+
+    def _redraw_timer_callback(self, event):
+        self.view.draw_if_changed()
+
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):
 
@@ -48,3 +79,15 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
         self.Bind(wx.EVT_CHAR, ui.forward_keystroke)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+
+    def OnPaint(self, event):
+        self.graphics_window.view.draw()
+
+    def OnSize(self, event):
+        wx.CallAfter(self.set_viewport)
+        event.Skip()
+
+    def set_viewport(self):
+        self.graphics_window.view.resize(*self.GetClientSize())
