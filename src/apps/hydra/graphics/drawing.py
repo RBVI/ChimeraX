@@ -606,7 +606,8 @@ class Drawing:
       xyz_min += xyz.min(axis = 0)
       xyz_max += xyz.max(axis = 0)
       # TODO: use scale factors
-    b = (xyz_min, xyz_max)
+    from ..geometry.bounds import Bounds
+    b = Bounds(xyz_min, xyz_max)
     self._cached_bounds = b
     return b
 

@@ -732,9 +732,11 @@ class Molecule(Model):
   def bounds(self, positions = True):
     # TODO: Cache bounds
     from .. import molecule_cpp
-    b = molecule_cpp.atom_bounds(self.atoms_string())
-    if b is None:
+    xyz_min_max = molecule_cpp.atom_bounds(self.atoms_string())
+    if xyz_min_max is None:
       return None
+    from ..geometry.bounds import Bounds
+    b = Bounds(*xyz_min_max)
     if positions:
       from ..geometry import bounds
       b = bounds.copies_bounding_box(b, self.positions)

@@ -30,8 +30,7 @@ class Models:
         self._selected_models = None
         self.redraw_needed = False
         self.shape_changed = True
-        self.xyz_bounds = None
-        self.bounds_changed = True
+        self._cached_bounds = None
         self.add_model_callbacks = []
         self.close_model_callbacks = []
 
@@ -53,7 +52,7 @@ class Models:
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
-            self.bounds_changed = True
+            self._cached_bounds = None
 
     def add_model(self, model, callbacks = True):
         '''
@@ -64,7 +63,7 @@ class Models:
         self.set_model_id(model)
         if model.display:
             self.redraw_needed = True
-            self.bounds_changed = True
+            self._cached_bounds = None
             self.shape_changed = True
 
         model.set_redraw_callback(self.model_redraw_needed)
@@ -109,7 +108,7 @@ class Models:
             m.parent.remove_drawing(m)          # Removes entire drawing tree.
         self._selected_models = None
         self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
-        self.bounds_changed = True
+        self._cached_bounds = None
         self.shape_changed = True
 
         for cb in self.close_model_callbacks:
@@ -195,22 +194,8 @@ class Models:
         return tuple(m for m in self.model_list() if not isinstance(m,(Molecule,Volume)))
 
     def bounds(self):
-        if self.bounds_changed:
+        if self._cached_bounds is None:
             from .geometry import bounds
             b = bounds.union_bounds(m.bounds() for m in self.top_level_models() if m.display)
-            self.xyz_bounds = b
-            self.bounds_changed = False
-        return self.xyz_bounds
-
-    def bounds_center_and_width(self):
-        from .geometry import bounds
-        c,r = bounds.bounds_center_and_radius(self.bounds())
-        return c,r
-
-    def center(self, models = None):
-        if models is None:
-            models = [m for m in self.top_level_models() if m.display]
-        from .geometry import bounds
-        b = bounds.union_bounds(m.bounds() for m in models)
-        c,r = bounds.bounds_center_and_radius(b)
-        return c
+            self._cached_bounds = b
+        return self._cached_bounds

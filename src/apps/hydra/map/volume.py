@@ -1025,7 +1025,9 @@ class Volume(Model):
     b = Drawing.bounds(self, positions)
     if b is None:
       # TODO: Should this be only displayed bounds?
-      b = self.xyz_bounds()
+      xyz_min, xyz_max = self.xyz_bounds()
+      from ..geometry.bounds import Bounds
+      b = Bounds(xyz_min, xyz_max)
     return b
 
   # ---------------------------------------------------------------------------

@@ -83,7 +83,7 @@ class Space_Navigator:
             b = self.session.bounds()
             if not b is None:
                 f = .1 if self.fly_mode else 1
-                view_width = b[1]
+                view_width = b.xyz_max - b.xyz_min
                 shift = axis * 0.15 * self.speed * view_width * f * tmag/512
                 ttf = place.translation(shift)
                 self.apply_transform(ttf)

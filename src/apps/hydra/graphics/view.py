@@ -524,19 +524,18 @@ class View:
 
     def initial_camera_view(self):
         '''Set the camera position to show all displayed models, looking down the z axis.'''
-        center, s = self.models.bounds_center_and_width()
-        if center is None:
+        b = self.models.bounds()
+        if b is None:
             return
-        from numpy import array, float32
-        self.camera.initialize_view(center, s)
-        self.center_of_rotation = center
+        self.camera.initialize_view(b.center(), b.width())
+        self.center_of_rotation = b.center()
 
     def view_all(self):
         '''Adjust the camera to show all displayed models using the current view direction.'''
-        center, s = self.models.bounds_center_and_width()
-        if center is None:
+        b = self.models.bounds()
+        if b is None:
             return
-        shift = self.camera.view_all(center, s)
+        shift = self.camera.view_all(b.center(), b.width())
         self.translate(-shift)
 
     def center_of_rotation_needs_update(self):
@@ -551,13 +550,13 @@ class View:
         if not self._update_center:
             return
         self._update_center = False
-        center, s = self.models.bounds_center_and_width()
-        if center is None:
+        b = self.models.bounds()
+        if b is None:
             return
-        vw = self.camera.view_width(center)
-        if vw >= s:
+        vw = self.camera.view_width(b.center())
+        if vw >= b.width():
             # Use center of models for zoomed out views
-            cr = center
+            cr = b.center()
         else:
             # Use front center point for zoomed in views
             cr = self._front_center_point()
@@ -610,11 +609,12 @@ class View:
 
         cp = camera.get_position(view_num).origin()
         vd = camera.view_direction(view_num)
-        center, size = self.models.bounds_center_and_width()
-        if center is None:
+        b = self.models.bounds()
+        if b is None:
             return 0.001,1  # Nothing shown
-        d = sum((center-cp)*vd)         # camera to center of models
-        near, far = (d - size, d + size)
+        d = sum((b.center()-cp)*vd)         # camera to center of models
+        w = b.width()
+        near, far = (d - w, d + w)
 
         # Clamp near clip > 0.
         near_min = 0.001*(far - near) if far > near else 1
@@ -640,7 +640,11 @@ class View:
         Axis is in scene coordinates and angle is in degrees.
         '''
         if models:
-            center = self.models.center(models)
+            from ..geometry import bounds
+            b = bounds.union_bounds(m.bounds() for m in models)
+            if b is None:
+                return
+            center = b.center()
         else:
             self.update_center_of_rotation()
             center = self.center_of_rotation
@@ -674,10 +678,11 @@ class View:
 
 def _model_bounds(models, open_models):
     if models is None:
-        center, radius = open_models.bounds_center_and_width()
+        b = open_models.bounds()
         models = [m for m in open_models.top_level_models() if m.display]
     else:
         from ..geometry import bounds
         b = bounds.union_bounds(m.bounds() for m in models)
-        center, radius = bounds.bounds_center_and_radius(b)
+    center = None if b is None else b.center()
+    radius = None if b is None else 0.5*b.width()
     return center, radius, models

@@ -262,8 +262,7 @@ def camera_framing_models(models):
     c = Camera()
     from ..geometry import bounds
     b = bounds.union_bounds(m.bounds() for m in models)
-    center, size = bounds.bounds_center_and_radius(b)
-    if center is None:
+    if b is None:
         return None
-    c.initialize_view(center, size)
+    c.initialize_view(b.center(), b.width())
     return c
