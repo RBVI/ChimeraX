@@ -215,8 +215,8 @@ class MouseModes:
             if not toggle:
                 ses.clear_selection()
             pick.select(toggle)
-            ses.selection_changed()
-        
+        ses.clear_selection_hierarchy()
+
     def mouse_contour_level(self, event):
 
         v = self.view

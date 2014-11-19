@@ -609,7 +609,7 @@ class Molecule(Model):
       self.promotion_tower = []
     self.update_ribbons = True
     self.need_graphics_update = True
-    self.redraw_needed()
+    self.redraw_needed(selection_changed = True)
 
   def any_part_selected(self):
     asel = self.atom_selected

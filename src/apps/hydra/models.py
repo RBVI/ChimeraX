@@ -48,11 +48,13 @@ class Models:
     def all_drawings(self):
         return self._root_model.all_drawings()
 
-    def model_redraw_needed(self, shape_changed = False):
+    def model_redraw_needed(self, shape_changed = False, selection_changed = False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
             self._cached_bounds = None
+        if selection_changed:
+            self._selected_models = None
 
     def add_model(self, model, callbacks = True):
         '''
@@ -163,11 +165,9 @@ class Models:
         for m in sm:
             m.demote_selection()
 
-    def selection_changed(self):
-        for m in self._selected_models:
+    def clear_selection_hierarchy(self):
+        for m in self.selected_models():
             m.clear_selection_promotion_history()
-        self._selected_models = None
-        self.redraw_needed = True
 
     def display_models(self, mlist):
         for m in mlist:

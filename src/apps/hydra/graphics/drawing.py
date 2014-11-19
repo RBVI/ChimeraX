@@ -235,7 +235,7 @@ class Drawing:
     return self._selected_positions
   def set_selected_positions(self, spos):
     self._selected_positions = spos
-    self.redraw_needed()
+    self.redraw_needed(selection_changed = True)
   selected_positions = property(get_selected_positions, set_selected_positions)
   '''Mask specifying which drawing positions are selected.'''
 
@@ -243,7 +243,7 @@ class Drawing:
     return self._selected_triangles_mask
   def set_selected_triangles_mask(self, tmask):
     self._selected_triangles_mask = tmask
-    self.redraw_needed()
+    self.redraw_needed(selection_changed = True)
   selected_triangles_mask = property(get_selected_triangles_mask, set_selected_triangles_mask)
   '''Mask specifying which triangles are selected.'''
 
@@ -831,7 +831,7 @@ def _element_type(display_style):
     t = Buffer.points
   return t
 
-def _redraw_no_op(shape_changed = False):
+def _redraw_no_op(shape_changed = False, selection_changed = False):
   pass
 
 class _Draw_Shape:
