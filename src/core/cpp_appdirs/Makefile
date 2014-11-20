@@ -17,12 +17,12 @@ $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
 
 # target so that module.install doesnt have to circularly depend on install
-actual_install:
+actual_install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
 
-module.install: $(SHLIB) actual_install
+module.install: actual_install
 
 clean:
 	/bin/rm -f $(OBJS) $(SHLIB) imex.h
