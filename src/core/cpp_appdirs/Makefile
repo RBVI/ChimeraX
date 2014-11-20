@@ -6,7 +6,7 @@ include $(TOP)/mk/subdir.make
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
-LIBNAME = cpp_appdirs
+LIBNAME = appdirs
 DIRNAME = $(shell basename `pwd`)
 
 ifneq ($(OS),Windows)

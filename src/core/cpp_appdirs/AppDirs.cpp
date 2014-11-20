@@ -2,7 +2,7 @@
 
 #include "AppDirs.h"
 
-namespace cpp_appdirs {
+namespace appdirs {
 
 AppDirs*  AppDirs::_app_dirs = nullptr;
 
