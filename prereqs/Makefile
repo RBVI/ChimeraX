@@ -50,7 +50,7 @@ SUBDIRS	+= appdirs cython docutils expat ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow pycollada \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python python-dateutil PyQt qt \
-	   setuptools sip sphinx webcolors wrappy3 wx zlib
+	   setuptools sip six sphinx webcolors wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -126,13 +126,14 @@ pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.ins
 pytables.install: hdf5.install numexpr.install cython.install Python.install zlib.install
 pythomnic3k.install: Python.install
 Python.install: p7zip.install zlib.install openssl.install expat.install
-python-dateutil.install: Python.install
+ypython-dateutil.install: Python.install six.install
 PyQt.install: Python.install qt.install sip.install
 qt.install: p7zip.install openssl.install zlib.install
 wx.install: Python.install
 # qt.install: png.install jpeg.install
 setuptools.install: Python.install
 sip.install: Python.install
+six.install: Python.install
 sphinx.install: docutils.install jinja2.install pygments.install setuptools.install
 sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
 webcolors.install: Python.install
