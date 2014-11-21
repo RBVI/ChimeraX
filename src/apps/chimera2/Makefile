@@ -39,4 +39,4 @@ __main__.py: $(PY_MAIN)
 
 frozen.c M___main__.c: __main__.py
 	python3 mkfrozen.py $(PY_SOURCE) $<
-	patch < frozen.patch
+	patch -b < frozen.patch
