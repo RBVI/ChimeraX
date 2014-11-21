@@ -34,4 +34,4 @@ with open(sys.argv[1], 'rU') as f:
             raise SystemExit(1)
         print(line[len(indent):], end='', file=main)
 
-print('close:', main.close())
+main.close()

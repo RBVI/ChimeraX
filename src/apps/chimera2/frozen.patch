@@ -8,11 +8,17 @@
      {0, 0, 0} /* sentinel */
  };
  
-@@ -13,6 +14,7 @@
+@@ -13,6 +14,13 @@
  {
          extern int Py_FrozenMain(int, char **);
  
-+	_PyImport_FrozenModules[1] = PyImport_FrozenModules[0];
++        _PyImport_FrozenModules[1] = PyImport_FrozenModules[0];
++        Py_IsolatedFlag++;
++        Py_NoUserSiteDirectory++;
++        Py_IgnoreEnvironmentFlag++;
++        Py_BytesWarningFlag++;
          PyImport_FrozenModules = _PyImport_FrozenModules;
++        Py_HashRandomizationFlag = 1;
++        _PyRandom_Init();
          return Py_FrozenMain(argc, argv);
  }
