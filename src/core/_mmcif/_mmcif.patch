@@ -1,0 +1,11 @@
+--- _mmcif.cpp.orig	2014-07-17 18:02:34.157328312 -0700
++++ _mmcif.cpp	2014-07-17 18:03:08.529329192 -0700
+@@ -160,6 +162,8 @@
+ {
+ 	if (!PyInit_libwrappy3())
+ 		return NULL;
++	if (!mmcif::init_structaccess())
++		return NULL;
+ 	PyObject* module = PyModule_Create(&moduledef);
+ 	if (module == NULL)
+ 		return NULL;
