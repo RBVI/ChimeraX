@@ -991,7 +991,7 @@ clock_t start_t, end_t;
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
-        AtomicStructure *as = new AtomicStructure;
+        AtomicStructure *as = new AtomicStructure(py_logger);
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
           &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof);
