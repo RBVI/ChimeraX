@@ -8,7 +8,7 @@ include $(TOP)/mk/subdir.make
 
 LIBNAME = atomstruct
 CXXFLAGS += -I.. -Wno-logical-op-parentheses
-LIBS += -L$(shlibdir) -ltmpl ../basegeom/libbasegeom.a
+LIBS += -L$(shlibdir) -ltmpl -llogger ../basegeom/libbasegeom.a
 DIRNAME = $(shell basename `pwd`)
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
