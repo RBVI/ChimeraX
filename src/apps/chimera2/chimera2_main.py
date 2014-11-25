@@ -110,9 +110,6 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         print(version)
         raise SystemExit(os.EX_OK)
 
-    import envguard
-    envguard.init(app_name)
-
     # install line_profile decorator
     import builtins
     if not opts.line_profile:

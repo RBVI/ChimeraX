@@ -5,6 +5,7 @@
 #include <set>
 
 #include "basegeom/Coord.h"
+#include "cpp_logger/logger.h"
 #include "tmpl/TAexcept.h"
 #include "AtomTypes.h"
 #include "Residue.h"
@@ -1259,9 +1260,9 @@ AtomicStructure::_compute_atom_types()
 		}
 		if (assignments.size() == 0) {
             auto a = *atoms.begin();
-			std::cerr << "Cannot find consistent set of bond orders for ring"
-                " system containing atom " << a->name() << " in residue "
-                << a->residue()->str() << "\n";
+            logger::warning(_logger, "Cannot find consistent set of bond"
+                " orders for ring system containing atom ", a->name(),
+                " in residue ", a->residue()->str());
 			continue;
 		}
 
@@ -1926,7 +1927,8 @@ invert_uncertains(std::vector<Atom*> &uncertain,
 		else if (a->idatm_type() == "N2")
 			a->set_computed_idatm_type("Npl");
 		else
-			std::cerr << "Unknown invert atom type: " << a->idatm_type() << "\n";
+            logger::error(a->structure()->logger(),
+                "Unknown invert atom type: ", a->idatm_type());
 	}
 }
 

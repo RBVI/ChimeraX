@@ -23,7 +23,7 @@ init_paths(PyObject* self, PyObject* args)
                 &site_config_dir, &user_log_dir))
         return NULL;
     try {
-        cpp_appdirs::AppDirs::init_app_dirs(path_sep, user_data_dir,
+        appdirs::AppDirs::init_app_dirs(path_sep, user_data_dir,
                 user_config_dir, user_cache_dir, site_data_dir,
                 site_config_dir, user_log_dir);
     } catch (std::logic_error &e) {

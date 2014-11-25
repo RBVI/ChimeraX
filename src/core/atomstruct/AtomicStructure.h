@@ -13,6 +13,14 @@
 #include "Ring.h"
 #include "basegeom/Graph.h"
 
+// "forward declare" PyObject, which is a typedef of a struct,
+// as per the python mailing list:
+// http://mail.python.org/pipermail/python-dev/2003-August/037601.html
+#ifndef PyObject_HEAD
+struct _object;
+typedef _object PyObject;
+#endif
+    
 namespace atomstruct {
 
 class Atom;
@@ -44,6 +52,7 @@ private:
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
     bool  _idatm_valid;
+    PyObject*  _logger;
     AS_PBManager  _pb_mgr;
     mutable bool  _recompute_rings;
     Residues  _residues;
@@ -52,7 +61,7 @@ private:
     mutable bool  _rings_last_cross_residues;
     mutable std::set<const Residue *>*  _rings_last_ignore;
 public:
-    AtomicStructure();
+    AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure() { _being_destroyed = true; }
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
@@ -69,6 +78,7 @@ public:
     Residue *  find_residue(std::string &chain_id, int pos, char insert,
         std::string &name) const;
     bool  is_traj;
+    PyObject*  logger() const { return _logger; }
     bool  lower_case_chains;
     void  make_chains(const ChainInfo *ci = nullptr) const;
     Atom *  new_atom(const std::string &name, Element e);

@@ -3,15 +3,12 @@ OBJS= $(SRCS:.cpp=.o)
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS= tmpl
-include $(TOP)/mk/subdir.make
-
-LIBNAME = atomstruct
-CXXFLAGS += -I.. -Wno-logical-op-parentheses
-LIBS += -L$(shlibdir) -ltmpl -llogger ../basegeom/libbasegeom.a
+LIBNAME = logger
+CXXFLAGS += -I.. -Wno-logical-op-parentheses $(PYTHON_INCLUDE_DIRS)
+LIBS += $(PYTHON_LIB)
 DIRNAME = $(shell basename `pwd`)
 
-$(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
+$(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)

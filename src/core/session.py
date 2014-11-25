@@ -93,7 +93,7 @@ class Scenes(State):
     VERSION = 1
 
     def __init__(self, session):
-        self._session = weakref.proxy(session)
+        self._session = weakref.ref(session)
         self._scenes = {}
 
     def save(self, name, metadata=None):
@@ -104,7 +104,7 @@ class Scenes(State):
         metadata about the scene.  For example, a thumbnail image.
         metadata contents must be serializable like State data.
         """
-        session = self._session  # resolve back reference
+        session = self._session()  # resolve back reference
         scene = []
         for tag in session._state_managers:
             manager = session._state_managers[tag]
@@ -120,7 +120,7 @@ class Scenes(State):
         if name not in self._scenes:
             raise ValueError("Unknown scene")
         scene = self._scenes[name]
-        session = self._session  # resolve back reference
+        session = self._session()  # resolve back reference
         managers = []
         for tag, version, data in scene:
             if tag not in session._state_managers:
@@ -308,5 +308,6 @@ class Session:
 def common_startup(sess):
     """Initialize session with common data managers"""
     sess.scenes = Scenes(sess)
-    from . import models
-    sess.models = models.Models(sess)
+    # TODO:
+    # from . import models
+    # sess.models = models.Models(sess)
