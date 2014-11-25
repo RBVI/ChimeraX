@@ -254,14 +254,14 @@ def frustum(left, right, bottom, top, zNear, zFar, xshift = 0, yshift = 0):
          (0, 0, D, 0))
     return m
 
-def camera_framing_models(models):
+def camera_framing_drawings(drawings):
     '''
     Create a Camera object for viewing the specified models.
     This is used for capturing thumbnail images.
     '''
     c = Camera()
     from ..geometry import bounds
-    b = bounds.union_bounds(m.bounds() for m in models)
+    b = bounds.union_bounds(d.bounds() for d in drawings)
     if b is None:
         return None
     c.initialize_view(b.center(), b.width())

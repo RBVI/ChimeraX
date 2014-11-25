@@ -6,7 +6,7 @@ def set_file_icon(path, session, size = 512, models = None):
     from .. import mac_os_cpp
     if not mac_os_cpp.can_set_file_icon():
         return False
-    i = session.view.image(size, size, models = models)
+    i = session.view.image(size, size, drawings = models)
     if i is None:
         return False
     from .. import scenes

@@ -5,12 +5,12 @@ View
 
 class View:
     '''
-    A View is the graphics windows that shows 3-dimensional models.
-    It manages the camera and draws the models when needed.
+    A View is the graphics windows that shows 3-dimensional drawings.
+    It manages the camera and renders the drawing when needed.
     '''
-    def __init__(self, models, window_size, make_opengl_context_current, swap_opengl_buffers, log):
+    def __init__(self, drawing, window_size, make_opengl_context_current, swap_opengl_buffers, log):
 
-        self.models = models
+        self.drawing = drawing
         self.log = log
         self.window_size = window_size		# pixels
         self._make_opengl_context_current = make_opengl_context_current
@@ -45,13 +45,16 @@ class View:
         self._block_redraw_count = 0
         self._new_frame_callbacks = []
         self._rendered_callbacks = []
+        self._shape_changed_callbacks = []
 
         self._overlays = []
-        self.atoms_shown = 0
 
         from numpy import array, float32
         self.center_of_rotation = array((0,0,0), float32)
         self._update_center = True
+
+        self._drawing_manager = dm = _Redraw_Needed()
+        drawing.set_redraw_callback(dm)
 
     def _initialize_opengl(self):
 
@@ -149,7 +152,7 @@ class View:
         They are used for effects such as motion blur or cross fade that
         blend the current rendered scene with a previous rendered scene.
         '''
-        overlay.redraw_needed = self.models.model_redraw_needed
+        overlay.set_redraw_callback(self._drawing_manager)
         self._overlays.append(overlay)
         self.redraw_needed = True
 
@@ -157,17 +160,17 @@ class View:
         '''The current list of overlay Drawings.''' 
         return self._overlays
 
-    def remove_overlays(self, models = None):
+    def remove_overlays(self, overlays = None):
         '''Remove the specified overlay Drawings.'''
-        if models is None:
-            models = self._overlays
-        for o in models:
+        if overlays is None:
+            overlays = self._overlays
+        for o in overlays:
             o.delete()
-        oset = set(models)
+        oset = set(overlays)
         self._overlays = [o for o in self._overlays if not o in oset]
         self.redraw_needed = True
 
-    def image(self, width = None, height = None, supersample = None, camera = None, models = None):
+    def image(self, width = None, height = None, supersample = None, camera = None, drawings = None):
         '''Capture an image of the current scene. A PIL image is returned.'''
         self._use_opengl()
 
@@ -182,18 +185,18 @@ class View:
         r.push_framebuffer(fb)
 
         if camera is None:
-            if models:
-                from .camera import camera_framing_models
-                c = camera_framing_models(models)
+            if drawings:
+                from .camera import camera_framing_drawings
+                c = camera_framing_drawings(drawings)
                 if c is None:
-                    return None         # Models not showing anything
+                    return None         # Drawings not showing anything
             else:
                 c = self.camera
         else:
             c = camera
 
         if supersample is None:
-            self._draw_scene(c, models)
+            self._draw_scene(c, drawings)
             rgba = r.frame_buffer_image(w, h)
         else:
             from numpy import zeros, float32, uint8
@@ -204,7 +207,7 @@ class View:
             for i in range(n):
                 for j in range(n):
                     c.pixel_shift = (s0 + i*s, s0 + j*s)
-                    self._draw_scene(c, models)
+                    self._draw_scene(c, drawings)
                     srgba += r.frame_buffer_image(w,h)
             c.pixel_shift = (0,0)
             srgba /= n*n
@@ -274,19 +277,29 @@ class View:
                 
 
         c = self.camera
-        m = self.models
-        draw = self.redraw_needed or c.redraw_needed or m.redraw_needed
+        dm = self._drawing_manager
+        draw = self.redraw_needed or c.redraw_needed or dm.redraw_needed
         if not draw:
             return False
 
-        if m.redraw_needed and m.shape_changed and self.multishadow > 0:
+        if dm.shape_changed:
+            for cb in tuple(self._shape_changed_callbacks):
+                try:
+                    cb()
+                except:
+                    import traceback
+                    self.log.show_warning('shape changed callback rasied error\n'
+                                      + traceback.format_exc())
+                    self.remove_shape_changed_callback(cb)
+                
+        if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
             # Force recomputation of ambient shadows since shape changed.
             self._multishadow_transforms = []
 
         self.redraw_needed = False
         c.redraw_needed = False
-        m.redraw_needed = False
-        m.shape_changed = False
+        dm.redraw_needed = False
+        dm.shape_changed = False
         self.draw()
         for cb in self._rendered_callbacks:
             try:
@@ -358,15 +371,25 @@ class View:
         '''Add a function to be called before each redraw.  The function takes no arguments.'''
         self._new_frame_callbacks.append(cb)
     def remove_new_frame_callback(self, cb):
-        '''Add a callback that was added with add_new_frame_callback().'''
+        '''Remove a callback that was added with add_new_frame_callback().'''
         self._new_frame_callbacks.remove(cb)
 
     def add_rendered_frame_callback(self, cb):
         '''Add a function to be called after each redraw.  The function takes no arguments.'''
         self._rendered_callbacks.append(cb)
     def remove_rendered_frame_callback(self, cb):
-        '''Add a callback that was added with add_rendered_frame_callback().'''
+        '''Remove a callback that was added with add_rendered_frame_callback().'''
         self._rendered_callbacks.remove(cb)
+
+    def add_shape_changed_callback(self, cb):
+        '''
+        Add a function to be called before each redraw when drawing shape has changed.
+        The function takes no arguments.
+        '''
+        self._shape_changed_callbacks.append(cb)
+    def remove_shape_changed_callback(self, cb):
+        '''Remove a callback that was added with add_shape_changed_callback().'''
+        self._shape_changed_callbacks.remove(cb)
 
     def _multishadow_directions(self):
 
@@ -377,21 +400,20 @@ class View:
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 
-    def _draw_scene(self, camera = None, models = None):
+    def _draw_scene(self, camera = None, drawings = None):
 
         if camera is None:
             camera = self.camera
 
-        mods = self.models
-        mdraw = [m for m in mods.top_level_models() if m.display] if models is None else models
+        mdraw = [self.drawing] if drawings is None else drawings
 
         r = self._render
         if self.shadows:
             kl = r.lighting.key_light_direction                     # Light direction in camera coords
             lightdir = camera.position.apply_without_translation(kl)  # Light direction in scene coords.
-            stf = self._use_shadow_map(lightdir, models)
+            stf = self._use_shadow_map(lightdir, drawings)
         if self.multishadow > 0:
-            mstf, msdepth = self._use_multishadow_map(self._multishadow_directions(), models)
+            mstf, msdepth = self._use_multishadow_map(self._multishadow_directions(), drawings)
 
         r.set_background_color(self.background_color)
 
@@ -399,9 +421,7 @@ class View:
             self.update_lighting = False
             r.set_shader_lighting_parameters()
 
-        self.update_level_of_detail()
-
-        selected = [m for m in mods.selected_models() if m.display]
+        any_selected = self.any_drawing_selected() if drawings is None else True
 
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
@@ -427,8 +447,8 @@ class View:
                 self._finish_timing()
                 if self.multishadow > 0:
                     r.allow_equal_depth(False)
-                if selected:
-                    draw_outline(r, cpinv, selected)
+                if any_selected:
+                    draw_outline(r, cpinv, mdraw)
             if self.silhouettes:
                 r.finish_silhouette_drawing(self.silhouette_thickness, self.silhouette_color,
                                             self.silhouette_depth_jump, perspective_near_far_ratio)
@@ -438,12 +458,12 @@ class View:
         if self._overlays:
             draw_overlays(self._overlays, r)
 
-    def _use_shadow_map(self, light_direction, models):
+    def _use_shadow_map(self, light_direction, drawings):
 
         r = self._render
 
-        # Compute model bounds so shadow map can cover all models.
-        center, radius, models = _model_bounds(models, self.models)
+        # Compute drawing bounds so shadow map can cover all drawings.
+        center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
         if center is None:
             return None
 
@@ -455,7 +475,7 @@ class View:
         # Compute light view and scene to shadow map transforms
         lvinv, stf = r.shadow_transforms(light_direction, center, radius)
         from .drawing import draw_drawings
-        draw_drawings(r, lvinv, models)
+        draw_drawings(r, lvinv, bdrawings)
 
         shadow_map = r.finish_rendering_shadowmap()     # Depth texture
 
@@ -464,7 +484,7 @@ class View:
 
         return stf      # Scene to shadow map texture coordinates
 
-    def _use_multishadow_map(self, light_directions, models):
+    def _use_multishadow_map(self, light_directions, drawings):
 
         r = self._render
         if len(self._multishadow_transforms) == len(light_directions):
@@ -473,8 +493,8 @@ class View:
             dt.bind_texture(r.multishadow_texture_unit)
             return self._multishadow_transforms, self._multishadow_depth
 
-        # Compute model bounds so shadow map can cover all models.
-        center, radius, models = _model_bounds(models, self.models)
+        # Compute drawing bounds so shadow map can cover all drawings.
+        center, radius, bdrawings = _drawing_bounds(drawings, self.drawing)
         if center is None:
             return None, None
 
@@ -495,7 +515,7 @@ class View:
             r.set_viewport(x*s, y*s, s, s)
             lvinv, tf = r.shadow_transforms(light_directions[l], center, radius)
             mstf.append(tf)
-            draw_drawings(r, lvinv, models)
+            draw_drawings(r, lvinv, bdrawings)
 
         shadow_map = r.finish_rendering_multishadowmap()     # Depth texture
 
@@ -508,31 +528,33 @@ class View:
 #        r.set_multishadow_transforms(mstf, None, msd)
         return mstf, msd      # Scene to shadow map texture coordinates
 
-    def update_level_of_detail(self):
-        '''
-        Update the level of detail used for rendering, for example,
-        the number of triangles used to render spheres.
-        '''
-        # Level of detail updating.
-        # TODO: Don't recompute atoms shown on every draw, only when changed
-        mols = self.models.molecules()
-        ashow = sum(m.shown_atom_count() for m in mols if m.display)
-        if ashow != self.atoms_shown:
-            self.atoms_shown = ashow
-            for m in mols:
-                m.update_level_of_detail(self)
+    def drawing_bounds(self):
+        '''Return bounds of drawing, displayed part only.'''
+        dm = self._drawing_manager
+        b = dm.cached_drawing_bounds
+        if b is None:
+            dm.cached_drawing_bounds = b = self.drawing.bounds()
+        return b
+
+    def any_drawing_selected(self):
+        '''Is anything selected.'''
+        dm = self._drawing_manager
+        s = dm.cached_any_part_selected
+        if s is None:
+            dm.cached_any_part_selected = s = self.drawing.any_part_selected()
+        return s
 
     def initial_camera_view(self):
-        '''Set the camera position to show all displayed models, looking down the z axis.'''
-        b = self.models.bounds()
+        '''Set the camera position to show all displayed drawings, looking down the z axis.'''
+        b = self.drawing_bounds()
         if b is None:
             return
         self.camera.initialize_view(b.center(), b.width())
         self.center_of_rotation = b.center()
 
     def view_all(self):
-        '''Adjust the camera to show all displayed models using the current view direction.'''
-        b = self.models.bounds()
+        '''Adjust the camera to show all displayed drawings using the current view direction.'''
+        b = self.drawing_bounds()
         if b is None:
             return
         shift = self.camera.view_all(b.center(), b.width())
@@ -544,18 +566,18 @@ class View:
 
     def update_center_of_rotation(self):
         '''
-        Update the center of rotation to the center of displayed models if zoomed out,
+        Update the center of rotation to the center of displayed drawings if zoomed out,
         or the front center object if zoomed in.
         '''
         if not self._update_center:
             return
         self._update_center = False
-        b = self.models.bounds()
+        b = self.drawing_bounds()
         if b is None:
             return
         vw = self.camera.view_width(b.center())
         if vw >= b.width():
-            # Use center of models for zoomed out views
+            # Use center of drawings for zoomed out views
             cr = b.center()
         else:
             # Use front center point for zoomed in views
@@ -578,13 +600,14 @@ class View:
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         f = None
         s = None
-        models = self.models.top_level_models()
-        for m in models:
-            if m.display:
-                fmin, smin = m.first_intercept(xyz1, xyz2, exclude = 'is_outline_box')
+        drawings = self.drawing.child_drawings()
+        for d in drawings:
+            if d.display:
+                fmin, smin = d.first_intercept(xyz1, xyz2, exclude = 'is_outline_box')
                 if not fmin is None and (f is None or fmin < f):
                     f = fmin
                     s = smin
+#        f, s = self.drawing.first_intercept(xyz1, xyz2, exclude = 'is_outline_box')
         if f is None:
             return None, None
         p = (1.0-f)*xyz1 + f*xyz2
@@ -609,10 +632,10 @@ class View:
 
         cp = camera.get_position(view_num).origin()
         vd = camera.view_direction(view_num)
-        b = self.models.bounds()
+        b = self.drawing_bounds()
         if b is None:
             return 0.001,1  # Nothing shown
-        d = sum((b.center()-cp)*vd)         # camera to center of models
+        d = sum((b.center()-cp)*vd)         # camera to center of drawings
         w = b.width()
         near, far = (d - w, d + w)
 
@@ -634,14 +657,14 @@ class View:
         scene_pts = c.clip_plane_points(window_x, window_y, self.window_size, nf, self._render)
         return scene_pts
 
-    def rotate(self, axis, angle, models = None):
+    def rotate(self, axis, angle, drawings = None):
         '''
-        Move camera to simulate a rotation of models about current rotation center.
+        Move camera to simulate a rotation of drawings about current rotation center.
         Axis is in scene coordinates and angle is in degrees.
         '''
-        if models:
+        if drawings:
             from ..geometry import bounds
-            b = bounds.union_bounds(m.bounds() for m in models)
+            b = bounds.union_bounds(d.bounds() for d in drawings)
             if b is None:
                 return
             center = b.center()
@@ -650,23 +673,23 @@ class View:
             center = self.center_of_rotation
         from ..geometry import place
         r = place.rotation(axis, angle, center)
-        self.move(r, models)
+        self.move(r, drawings)
 
-    def translate(self, shift, models = None):
-        '''Move camera to simulate a translation of models.  Translation is in scene coordinates.'''
+    def translate(self, shift, drawings = None):
+        '''Move camera to simulate a translation of drawings.  Translation is in scene coordinates.'''
         self.center_of_rotation_needs_update()
         from ..geometry import place
         t = place.translation(shift)
-        self.move(t, models)
+        self.move(t, drawings)
 
-    def move(self, tf, models = None):
-        '''Move camera to simulate a motion of models.'''
-        if models is None:
+    def move(self, tf, drawings = None):
+        '''Move camera to simulate a motion of drawings.'''
+        if drawings is None:
             c = self.camera
             c.position  = tf.inverse() * c.position
         else:
-            for m in models:
-                m.position = tf * m.position
+            for d in drawings:
+                d.position = tf * d.position
 
         self.redraw_needed = True
 
@@ -676,13 +699,28 @@ class View:
             p = self.center_of_rotation
         return self.camera.pixel_size(p, self.window_size)
 
-def _model_bounds(models, open_models):
-    if models is None:
-        b = open_models.bounds()
-        models = [m for m in open_models.top_level_models() if m.display]
+class _Redraw_Needed:
+  def __init__(self):
+    self.redraw_needed = False
+    self.shape_changed = True
+    self.cached_drawing_bounds = None
+    self.cached_any_part_selected = None
+  def __call__(self, shape_changed = False, selection_changed = False):
+    self.redraw_needed = True
+    if shape_changed:
+      self.shape_changed = True
+      self.cached_drawing_bounds = None
+    if selection_changed:
+      self.cached_any_part_selected = None
+
+def _drawing_bounds(drawings, open_drawing):
+    if drawings is None:
+        b = open_drawing.bounds()
+        bdrawings = [open_drawing]
     else:
         from ..geometry import bounds
-        b = bounds.union_bounds(m.bounds() for m in models)
+        b = bounds.union_bounds(d.bounds() for d in drawings)
+        bdrawings = drawings
     center = None if b is None else b.center()
     radius = None if b is None else 0.5*b.width()
-    return center, radius, models
+    return center, radius, bdrawings

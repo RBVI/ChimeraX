@@ -18,9 +18,9 @@ class Graphics_Window(QtGui.QWindow):
         w.setFocusPolicy(QtCore.Qt.NoFocus)
 
         window_size = (w.width(), w.height())		# pixels
-        models = session
         log = session
-        self.view = View(models, window_size, self.make_opengl_context_current, self.swap_opengl_buffers, log)
+        drawing = session.drawing()
+        self.view = View(drawing, window_size, self.make_opengl_context_current, self.swap_opengl_buffers, log)
 
         self.set_stereo_eye_separation()
 

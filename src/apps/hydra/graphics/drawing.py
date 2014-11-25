@@ -35,8 +35,7 @@ class Drawing:
 
   def __init__(self, name):
 
-    self.redraw_needed = _redraw_no_op
-    "Function called when the drawing has been changed to indicate that the graphics needs to be redrawn."
+    self._redraw_needed = None
 
     self.name = name
     "Name of this drawing."
@@ -120,6 +119,12 @@ class Drawing:
     self.was_deleted = False
     "Indicates whether this Drawing has been deleted."
 
+  def redraw_needed(self, **kw):
+    "Function called when the drawing has been changed to indicate that the graphics needs to be redrawn."
+    rn = self._redraw_needed
+    if not rn is None:
+      rn(**kw)
+
   def __setattr__(self, key, value):
     if key in self._effects_shader:
       self._shader_opt = None       # Cause shader update
@@ -161,17 +166,18 @@ class Drawing:
 
   def add_drawing(self, d):
     '''Add a child drawing.'''
-    d.redraw_needed = self.redraw_needed
+    d.set_redraw_callback(self._redraw_needed)
     cd = self._child_drawings
     cd.append(d)
     d.parent = self
-    self.redraw_needed(shape_changed = True)
+    if self.display:
+      self.redraw_needed(shape_changed = True)
 
   def remove_drawing(self, d):
     '''Delete a specified child drawing.'''
     self._child_drawings.remove(d)
     d.delete()
-    self.redraw_needed(shape_changed = True)
+    self.redraw_needed(shape_changed = True, selection_changed = True)
 
   def remove_drawings(self, drawings):
     '''Delete specified child drawings.'''
@@ -179,14 +185,14 @@ class Drawing:
     self._child_drawings = [d for d in self._child_drawings if not d in dset]
     for d in drawings:
       d.delete()
-    self.redraw_needed(shape_changed = True)
+    self.redraw_needed(shape_changed = True, selection_changed = True)
 
   def remove_all_drawings(self):
     '''Delete all child drawings.'''
     self.remove_drawings(self.child_drawings())
 
   def set_redraw_callback(self, redraw_needed):
-    self.redraw_needed = redraw_needed
+    self._redraw_needed = redraw_needed
     for d in self.child_drawings():
       d.set_redraw_callback(redraw_needed)
 
@@ -270,6 +276,7 @@ class Drawing:
   def clear_selection(self):
     '''Unselect this drawing. Child drawings may remain selected.'''
     self.selected = False
+    self.redraw_needed(selection_changed = True)
 
   def promote_selection(self):
     '''
@@ -830,9 +837,6 @@ def _element_type(display_style):
   elif display_style == Drawing.Dot:
     t = Buffer.points
   return t
-
-def _redraw_no_op(shape_changed = False, selection_changed = False):
-  pass
 
 class _Draw_Shape:
 
