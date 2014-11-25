@@ -103,7 +103,7 @@ class Graphics_Window(QtGui.QWindow):
 
     def update_graphics(self):
         if self.isExposed():
-            if not self.view.draw_if_changed():
+            if not self.view.draw(only_if_changed = True):
                 self.mouse_modes.mouse_pause_tracking()
 
 from ...graphics import OpenGLContext

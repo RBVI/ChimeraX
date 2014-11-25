@@ -75,8 +75,20 @@ class View:
         self._opengl_context.make_current()
         self._initialize_opengl()
 
-    def draw(self):
-        '''Draw the scene.'''
+    def draw(self, only_if_changed = False):
+        '''
+        Draw the scene. If only_if_changed is True then redraw the scene only if
+        the drawing or camera or rendering options have changed.
+        '''
+        if only_if_changed:
+            if self._block_redraw_count == 0:
+                self._block_redraw()	# Avoid redrawing during callbacks of the current redraw.
+                try:
+                    return self._draw_if_changed()
+                finally:
+                    self._unblock_redraw()
+            return False
+
         self._use_opengl()
         self._draw_scene()
         if self.camera.mode.do_swap_buffers():
@@ -248,21 +260,6 @@ class View:
         elif not height is None:
             return ((vw*h)//vh, h)     # Choose width to match window aspect ratio.
         return (vw,vh)
-
-    def draw_if_changed(self):
-        '''Redraw the scene if any changes have occured.'''
-
-        if self._block_redraw_count > 0:
-            return False
-        
-        self._block_redraw()	# Avoid redrawing during callbacks of the current redraw.
-        try:
-            return self._draw_if_changed()
-        finally:
-            self._unblock_redraw()
-
-        print('draw if changed')
-        return False
 
     def _draw_if_changed(self):
         for cb in self._new_frame_callbacks:

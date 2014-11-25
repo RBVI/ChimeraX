@@ -40,7 +40,7 @@ class GraphicsWindow(wx.Panel):
 
     def redraw_timer_callback(self, evt):
         if True:
-            if not self.view.draw_if_changed():
+            if not self.view.draw(only_if_changed = True):
                 self.mouse_modes.mouse_pause_tracking()
 
     def set_stereo_eye_separation(self, eye_spacing_millimeters=61.0):
