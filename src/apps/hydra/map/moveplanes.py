@@ -16,14 +16,14 @@ class Planes_Mouse_Mode:
         self.frac_istep = 0
         self.frame_number = None
         
-    def mouse_down(self, viewer, event):
+    def mouse_down(self, session, event):
         self.xy_last = (x,y) = (event.x(), event.y())
-        line = viewer.clip_plane_points(x,y)    # scene coordinates
+        line = session.view.clip_plane_points(x,y)    # scene coordinates
         from .slice import nearest_volume_face
-        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, viewer.models.maps())
+        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, session.maps())
         self.drag = False
 
-    def mouse_drag(self, viewer, event):
+    def mouse_drag(self, session, event):
         v = self.map
         if v is None or self.xy_last is None:
             return
@@ -40,7 +40,7 @@ class Planes_Mouse_Mode:
 #        shift = (event.modifiers() & QtCore.Qt.ShiftModifier)
         shift = False
         speed = 0.1 if shift else 1
-        step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, viewer)
+        step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, session.view)
         sa = v.data.step[self.axis]
         istep = step / sa      # grid units
         istep += self.frac_istep
@@ -52,7 +52,7 @@ class Planes_Mouse_Mode:
             move_plane(v, self.axis, self.side, int(istep))
 #            self.frame_number = _frameNumber
 
-    def mouse_up(self, viewer, event):
+    def mouse_up(self, session, event):
         self.map = None
         self.ijk = None
         self.drag = False
