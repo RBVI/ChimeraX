@@ -505,12 +505,7 @@ class Molecule(Model):
     cmask = (cids == cid)
     return cmask
 
-  def update_level_of_detail(self, viewer):
-
-    # TODO: adjust ribbon level of detail
-    n = viewer.atoms_shown
-    ntmax = 10000000
-    ntri = 320 if 320*n <= ntmax else 80 if 80*n <= ntmax else 20
+  def set_triangles_per_atom_sphere(self, ntri):
     if ntri != self.triangles_per_sphere:
       self.triangles_per_sphere = ntri
       if self.atom_shown_count > 0:
@@ -1223,3 +1218,27 @@ def squeeze_bonds(bonds, atom_mask):
   b[:,0] = amap[b[:,0]]
   b[:,1] = amap[b[:,1]]
   return b
+
+# -----------------------------------------------------------------------------
+#
+class MoleculeLevelOfDetail:
+  def __init__(self, models):
+    self.models = models
+    self._ntmax = 10000000       # Max number of total shown atom triangles.
+    self._atoms_shown = 0
+  def update_level_of_detail(self):
+    '''
+    Update the level of detail used for rendering, for example,
+    the number of triangles used to render spheres.
+    '''
+    molecules = self.models.molecules()
+    # TODO: Don't recompute atoms shown on every draw, only when changed
+    ashow = sum(m.shown_atom_count() for m in molecules if m.display)
+    if ashow != self._atoms_shown:
+      self._atoms_shown = ashow
+      ntmax = self._ntmax
+      ntri = 320 if 320*ashow <= ntmax else 80 if 80*ashow <= ntmax else 20
+      for m in molecules:
+        m.set_triangles_per_atom_sphere(ntri)
+
+    # TODO: adjust ribbon level of detail
