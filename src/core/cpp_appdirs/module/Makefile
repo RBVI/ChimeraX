@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 PYMOD_NAME = cpp_appdirs
-LIBS+= -L$(shlibdir) -lcpp_appdirs
+LIBS+= -L$(shlibdir) -lappdirs
 
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
 ifneq ($(OS),Windows)

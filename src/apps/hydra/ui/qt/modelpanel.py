@@ -81,7 +81,7 @@ class Model_Panel:
             return model.thumbnail_image
         v = self.session.view
         w,h = self.image_size
-        i = v.image(w, h, models = [model])
+        i = v.image(w, h, drawings = [model])
         if not i is None:
             model.thumbnail_image = i
         return i

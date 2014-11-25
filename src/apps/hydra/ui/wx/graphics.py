@@ -17,9 +17,8 @@ class GraphicsWindow(wx.Panel):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
 
-        models = session
         log = session
-        self.view = View(models, self.GetClientSize(),
+        self.view = View(session.drawing(), self.GetClientSize(),
                          self.make_opengl_context_current,
                          self.swap_opengl_buffers, log)
 

@@ -92,7 +92,7 @@ class LeapListener(Leap.Listener):
 
         v = self.viewer
         s = max(v.window_size)*v.pixel_size()
-        tf = v.camera.view()
+        tf = v.camera.position
         if zmag == mmax:
             # Zoom
             f = dsep/sep
@@ -154,7 +154,7 @@ class LeapListener(Leap.Listener):
 
         v = self.viewer
         s = max(v.window_size)*v.pixel_size()
-        tf = v.camera.view()
+        tf = v.camera.position
         if tmag == mmax:
             # Translate (coordinates in millimeters)
             f = s*self.translation_speed
@@ -203,7 +203,7 @@ class LeapListener(Leap.Listener):
 
         v = self.viewer
         s = max(v.window_size)*v.pixel_size()
-        tf = v.camera.view()
+        tf = v.camera.position
         if tmag == mmax:
             # Translate (coordinates in millimeters)
             if tmag >= self.min_translation:
@@ -246,7 +246,7 @@ def chopstick_motion(lp, p):
 def keep_within_frustum(t, v):
 
     c = v.center_of_rotation
-    cvi = v.camera.view_inverse()
+    cvi = v.camera.position.inverse()
     p1 = cvi * c
     p2 = add(p1, t)
     from math import pi, sin, cos

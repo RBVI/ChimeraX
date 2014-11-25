@@ -1,4 +1,14 @@
 # Bounding box computations
+class Bounds:
+
+  def __init__(self, xyz_min, xyz_max):
+    from numpy import ndarray, array, float32
+    self.xyz_min = xyz_min if isinstance(xyz_min, ndarray) else array(xyz_min, float32)
+    self.xyz_max = xyz_max if isinstance(xyz_max, ndarray) else array(xyz_max, float32)
+  def center(self):
+    return 0.5*(self.xyz_min + self.xyz_max)
+  def width(self):
+    return (self.xyz_max - self.xyz_min).max()
 
 def point_bounds(xyz, placements = []):
 
@@ -22,25 +32,27 @@ def point_bounds(xyz, placements = []):
   else:
     xyz_min, xyz_max = xyz.min(axis=0), xyz.max(axis=0)
 
-  return xyz_min, xyz_max
+  b = Bounds(xyz_min, xyz_max)
+  return b
 
 def union_bounds(blist):
   xyz_min, xyz_max = None, None
   for b in blist:
-    if b is None or b[0] is None or b[1] is None:
+    if b is None:
       continue
-    pmin, pmax = b
+    pmin, pmax = b.xyz_min, b.xyz_max
     if xyz_min is None:
       xyz_min, xyz_max = pmin, pmax
     else:
       xyz_min = tuple(min(x,px) for x,px in zip(xyz_min, pmin))
       xyz_max = tuple(max(x,px) for x,px in zip(xyz_max, pmax))
-  return None if xyz_min is None else (xyz_min, xyz_max)
+  b = None if xyz_min is None else Bounds(xyz_min, xyz_max)
+  return b
 
 def copies_bounding_box(bounds, positions):
   if bounds is None:
     return None
-  (x0,y0,z0),(x1,y1,z1) = bounds
+  (x0,y0,z0),(x1,y1,z1) = bounds.xyz_min, bounds.xyz_max
   corners = ((x0,y0,z0),(x1,y0,z0),(x0,y1,z0),(x1,y1,z0),
              (x0,y0,z1),(x1,y0,z1),(x0,y1,z1),(x1,y1,z1))
   b = union_bounds(point_bounds(p * corners) for p in positions)
@@ -51,13 +63,5 @@ def point_axis_bounds(points, axis):
   from numpy import dot
   pa = dot(points, axis)
   a2 = dot(axis, axis)
-  return pa.min()/a2, pa.max()/a2
-
-def bounds_center_and_radius(bounds):
-  if bounds is None or bounds[0] is None or bounds[1] is None:
-    return None, None
-  (xmin,ymin,zmin), (xmax,ymax,zmax) = bounds
-  w = max(xmax-xmin, ymax-ymin, zmax-zmin)
-  cx,cy,cz = 0.5*(xmin+xmax),0.5*(ymin+ymax),0.5*(zmin+zmax)
-  from numpy import array
-  return array((cx,cy,cz)), w
+  b = Bounds(pa.min()/a2, pa.max()/a2)
+  return b

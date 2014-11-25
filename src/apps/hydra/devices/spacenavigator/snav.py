@@ -83,7 +83,7 @@ class Space_Navigator:
             b = self.session.bounds()
             if not b is None:
                 f = .1 if self.fly_mode else 1
-                view_width = b[1]
+                view_width = b.xyz_max - b.xyz_min
                 shift = axis * 0.15 * self.speed * view_width * f * tmag/512
                 ttf = place.translation(shift)
                 self.apply_transform(ttf)
@@ -108,20 +108,20 @@ class Space_Navigator:
 
         v = self.session.view
         cam = v.camera
-        cv = cam.view()
-        cvinv = cam.view_inverse()
+        cp = cam.position
+        cpinv = cp.inverse()
         if self.fly_mode:
-            cr = cvinv * cam.position()
+            cr = cpinv * cam.position.origin()
             tf = tf.inverse()
         else:
             if tf.rotation_angle() > 1e-5:
                 v.update_center_of_rotation()           # Rotation
             else:
                 v.center_of_rotation_needs_update()     # Translation
-            cr = cvinv * v.center_of_rotation
+            cr = cpinv * v.center_of_rotation
         from ...geometry.place import translation
-        stf = cv * translation(cr) * tf * translation(-cr) * cvinv
-        if self.collision(stf.inverse() * cam.position()):
+        stf = cp * translation(cr) * tf * translation(-cr) * cpinv
+        if self.collision(stf.inverse() * cam.position.origin()):
             return
         v.move(stf)
 

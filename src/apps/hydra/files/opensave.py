@@ -50,7 +50,7 @@ def file_reader_table(session):
 
 def file_writers(session):
     from . import session_file
-    from ..surface import write_stl
+    from ..surface import write_stl, write_json
     from ..map.data import fileformats
     w = {'.png': save_image_command,
          '.jpg': save_image_command,
@@ -59,6 +59,7 @@ def file_writers(session):
          '.hy': lambda cmdname,path,session: session_file.save_session(path, session),
          '.mrc': fileformats.save_map_command,
          '.stl': write_stl.write_stl_command,
+         '.json': write_json.write_json_command,
          }
     return w
 

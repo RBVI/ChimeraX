@@ -396,9 +396,9 @@ def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
   m = mouse_modes
   from ..map.moveplanes import planes_mouse_mode as pmm
   m.bind_mouse_mode(button,
-                    lambda e,v=m.view: pmm.mouse_down(v,e),
-                    lambda e,v=m.view: pmm.mouse_drag(v,e),
-                    lambda e,v=m.view: pmm.mouse_up(v,e))
+                    lambda e,s=m.session: pmm.mouse_down(s,e),
+                    lambda e,s=m.session: pmm.mouse_drag(s,e),
+                    lambda e,s=m.session: pmm.mouse_up(s,e))
 
 def enable_contour_mouse_mode(mouse_modes, button = 'right'):
   m = mouse_modes
@@ -443,14 +443,12 @@ def show_biological_unit(m, session):
         print (m.path, 'biomt', len(places))
         if places:
             m.positions = places
-            m.update_level_of_detail(session.view)
 
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
         from ..geometry.place import Places
         m.positions = Places([m.positions[0]])
-        m.update_level_of_detail(session.view)
 
 def display_surface(session):
     for m in shortcut_surfaces(session):
@@ -721,14 +719,17 @@ def motion_blur(viewer):
         MotionBlur(viewer)
 
 def mono_mode(viewer):
-    viewer.set_camera_mode('mono')
+    from .. import graphics
+    viewer.camera.mode = graphics.mono_camera_mode
 def stereo_mode(viewer):
-    viewer.set_camera_mode('stereo')
+    from .. import graphics
+    viewer.camera.mode = graphics.stereo_camera_mode
 def oculus_mode(viewer):
-    viewer.set_camera_mode('oculus')
+    from ..devices import oculus
+    viewer.camera.mode = oculus.OculusRiftCameraMode()
 def start_oculus(session):
     from ..devices import oculus
-    if session.view.camera.mode == 'oculus':
+    if session.view.camera.mode.name() == 'oculus':
         oculus.stop_oculus(session)
     else:
         oculus.start_oculus(session)

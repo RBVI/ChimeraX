@@ -219,7 +219,7 @@ def restore_view(vs, viewer):
     # Old session files had camera parameters saved with viewer state
     from ..geometry.place import Place
     c = viewer.camera
-    c.set_view(Place(vs['camera_view']))
+    c.position = Place(vs['camera_view'])
     c.field_of_view = vs['field_of_view']
 
   return True
@@ -251,7 +251,7 @@ def restore_camera(cs, camera):
     if name in cs and not name in exclude:
       setattr(camera, name, cs[name])
   from ..geometry.place import Place
-  camera.set_view(Place(cs['place']))
+  camera.position = Place(cs['place'])
 
 # -----------------------------------------------------------------------------
 #

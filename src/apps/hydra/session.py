@@ -76,7 +76,7 @@ class Session(Models):
         import sys
         self.application = app = ui.Hydra_App(sys.argv, self)
         self.main_window = mw = app.main_window
-        self.view = mw.view
+        self.view = v = mw.view
         self.log = log = ui.Log(mw)
         from .commands import commands, shortcuts
         commands.register_commands(self.commands)
@@ -93,6 +93,11 @@ class Session(Models):
         # Set default volume data cache size.
         from .map.data import data_cache
         data_cache.resize(self.volume_defaults['data_cache_size'] * (2**20))
+
+        # Handle molecule level of detail updates
+        from . import molecule
+        mlod = molecule.MoleculeLevelOfDetail(self)
+        v.add_shape_changed_callback(mlod.update_level_of_detail)
 
         mw.show()
 

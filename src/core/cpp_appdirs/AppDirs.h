@@ -8,9 +8,9 @@
 
 #include "imex.h"
 
-namespace cpp_appdirs {
+namespace appdirs {
     
-class CPP_APPDIRS_IMEX AppDirs {
+class APPDIRS_IMEX AppDirs {
 private:
     static AppDirs*  _app_dirs;
     AppDirs(std::string& path_sep, std::string& user_data_dir,
@@ -42,6 +42,6 @@ public:
     const std::string  user_log_dir;
 };
 
-}  // namespace cpp_appdirs
+}  // namespace appdirs
 
 #endif  // cpp_appdirs_AppDirs

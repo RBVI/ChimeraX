@@ -13,10 +13,12 @@ def apply_matrix(tf, points):
 #
 def apply_matrix_without_translation(tf, v):
 
-  from numpy import array, transpose, add
+  from numpy import array, transpose, add, ndarray
   from numpy import dot as matrix_multiply
   tf = array(tf)
   r = matrix_multiply(v, transpose(tf[:,:3]))
+  if isinstance(v, ndarray):
+    r = r.astype(v.dtype)
   return r
   
 # -----------------------------------------------------------------------------

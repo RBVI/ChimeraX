@@ -57,6 +57,7 @@ class Place:
         '''3 by 4 numpy array, first 3 columns are axes, last column is origin.'''
 
         self._is_identity = (matrix is None and axes is None and origin is None)
+        self._inverse = None    # Cached inverse.
 
     def __eq__(self, p):
         return (p.matrix == self.matrix).all()
@@ -95,7 +96,9 @@ class Place:
 
     def inverse(self):
         '''Return the inverse transform.'''
-        return Place(m34.invert_matrix(self.matrix))
+        if self._inverse is None:
+            self._inverse = Place(m34.invert_matrix(self.matrix))
+        return self._inverse
 
     def transpose(self):
         '''Return a copy of the transform with the linear part transposed.'''
@@ -153,6 +156,10 @@ class Place:
         return m34.axis_center_angle_shift(self.matrix)
 
     def translation(self):
+        '''Return the transformation shift vector, or equivalently the coordinate system origin.'''
+        return self.matrix[:,3]
+
+    def origin(self):
         '''Return the transformation shift vector, or equivalently the coordinate system origin.'''
         return self.matrix[:,3]
 

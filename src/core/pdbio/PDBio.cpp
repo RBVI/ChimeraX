@@ -11,10 +11,11 @@
 #include "atomstruct/Residue.h"
 #include "atomstruct/Bond.h"
 #include "atomstruct/Atom.h"
+#include "atomstruct/connect.h"
 #include "atomstruct/CoordSet.h"
 #include "atomstruct/Sequence.h"
 #include "blob/StructBlob.h"
-#include "atomstruct/connect.h"
+#include "cpp_logger/logger.h"
 
 namespace pdb {
 
@@ -28,25 +29,6 @@ using atomstruct::MolResId;
 using atomstruct::Sequence;
 using basegeom::Coord;
 	
-#define LOG_PY_ERROR_NULL(arg) \
-                if (log_file != Py_None) { \
-                    std::stringstream msg; \
-                    msg << arg; \
-                    if (PyFile_WriteString(msg.str().c_str(), log_file) == -1) { \
-                        PyErr_Clear(); \
-                        return NULL; \
-                    } \
-                }
-#define LOG_PY_ERROR_VOID(arg) \
-                if (log_file != Py_None) { \
-                    std::stringstream msg; \
-                    msg << arg; \
-                    if (PyFile_WriteString(msg.str().c_str(), log_file) == -1) { \
-                        PyErr_Clear(); \
-                        return; \
-                    } \
-                }
-
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
 std::string pqr_charge("charge");
@@ -100,7 +82,7 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     std::vector<PDB::Conect_> *conect_records,
     std::vector<PDB::Link_> *link_records,
     std::set<MolResId> *mod_res, bool *reached_end,
-    PyObject *log_file, bool explode, bool *eof)
+    PyObject *py_logger, bool explode, bool *eof)
 {
     bool        start_connect = true;
     int            in_model = 0;
@@ -158,12 +140,12 @@ start_t = end_t;
 
         case PDB::UNKNOWN:
             if (record.unknown.junk[0] & 0200) {
-                LOG_PY_ERROR_NULL("Non-ASCII character on line " << *line_num
-                    << " of PDB file\n");
+                logger::error(py_logger, "Non-ASCII character on line ",
+                    *line_num, " of PDB file");
                 return NULL;
             }
-            LOG_PY_ERROR_NULL("warning:  Ignored bad PDB record found on line "
-                    << *line_num << '\n' << is.str() << "\n");
+            logger::warning(py_logger, "Ignored bad PDB record found on line ",
+                *line_num, '\n', is.str());
             break;
 
         case PDB::HEADER:
@@ -311,8 +293,8 @@ start_t = end_t;
                 }
                 if (cur_residue == NULL || MolResId(cur_residue) != rid 
                 || cur_residue->name() != rname) {
-                    LOG_PY_ERROR_NULL("Residue " << rid << " not in first model"
-                        << " on line " << *line_num << " of PDB file\n");
+                    logger::error(py_logger, "Residue ", rid, " not in first"
+                        " model on line ", *line_num, " of PDB file");
                     goto finished;
                 }
             } else if (cur_residue == NULL || cur_rid != rid
@@ -382,8 +364,8 @@ start_t = end_t;
             if (in_model > 1) {
                 Atom *a = cur_residue->find_atom(aname);
                 if (a == NULL) {
-                    LOG_PY_ERROR_NULL("Atom " << aname << " not in first model on line "
-                        << *line_num << " of PDB file\n");
+                    logger::error(py_logger, "Atom ", aname, " not in first"
+                        " model on line ", *line_num, " of PDB file");
                     goto finished;
                 }
                 // ensure that the name uniquely identifies the atom;
@@ -496,8 +478,8 @@ start_t = end_t;
                 redo_elements = true;
             delete e;
             if (in_model == 0 && asn.find(record.atom.serial) != asn.end())
-                LOG_PY_ERROR_NULL("warning:  duplicate atom serial number found: "
-                    << record.atom.serial << '\n');
+                logger::warning(py_logger, "Duplicate atom serial number"
+                    " found: ", record.atom.serial);
             asn[record.atom.serial] = a;
             break;
         }
@@ -506,8 +488,8 @@ start_t = end_t;
             int serial = record.anisou.serial;
             std::unordered_map<int, Atom *>::const_iterator si = asn.find(serial);
             if (si == asn.end()) {
-                LOG_PY_ERROR_NULL("Unknown atom serial number (" << serial
-                    << ") in ANISOU record\n");
+                logger::error(py_logger, "Unknown atom serial number (",
+                    serial, ") in ANISOU record");
                 break;
             }
             int *u = record.anisou.u;
@@ -538,14 +520,14 @@ start_t = end_t;
             if (ssres == NULL)
                 break;
             if (ssres->name() != record.ssbond.res[0].name) {
-                LOG_PY_ERROR_NULL("warning: first res name in SSBOND record ("
-                    << record.ssbond.res[0].name << ") does not match actual residue ("
-                    << ssres->name() << "); skipping.\n");
+                logger::warning(py_logger, "First res name in SSBOND record (",
+                    record.ssbond.res[0].name, ") does not match actual"
+                    " residue (", ssres->name(), "); skipping.");
                 break;
             }
             Atom *ap0 = ssres->find_atom("SG");
             if (ap0 == NULL) {
-                LOG_PY_ERROR_NULL("warning: Atom SG not found in " << ssres << "\n");
+                logger::warning(py_logger, "Atom SG not found in ", ssres);
                 break;
             }
 
@@ -556,14 +538,14 @@ start_t = end_t;
             if (ssres == NULL)
                 break;
             if (ssres->name() != record.ssbond.res[1].name) {
-                LOG_PY_ERROR_NULL("warning: second res name in SSBOND record ("
-                    << record.ssbond.res[1].name << ") does not match actual residue ("
-                    << ssres->name() << "); skipping.\n");
+                logger::warning(py_logger, "Second res name in SSBOND record (",
+                    record.ssbond.res[1].name, ") does not match actual"
+                    " residue (", ssres->name(), "); skipping.");
                 break;
             }
             Atom *ap1 = ssres->find_atom("SG");
             if (ap1 == NULL) {
-                LOG_PY_ERROR_NULL("warning: Atom SG not found in " << ssres << "\n");
+                logger::warning(py_logger, "Atom SG not found in ", ssres);
                 break;
             }
             if (!ap0->connects_to(ap1))
@@ -675,18 +657,18 @@ add_bond(Atom *a1, Atom *a2)
 //    Add a bond to structure given two atom serial numbers.
 //    (atom_serial_nums argument should be const, but operator[] isn't const)
 static void
-add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, PyObject *log_file)
+add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, PyObject *py_logger)
 {
     if (to <= 0 || from <= 0)
         return;
     if (to == from) {
-        LOG_PY_ERROR_VOID("warning: CONECT record from atom to itself: " << from << "\n");
+        logger::warning(py_logger, "CONECT record from atom to itself: ", from);
         return;
     }
     // serial "from" check happens before this routine is called
     if (atom_serial_nums.find(to) == atom_serial_nums.end()) {
-        LOG_PY_ERROR_VOID("warning:  CONECT record to nonexistent atom: ("
-                << from << ", " << to << ")\n");
+        logger::warning(py_logger, "CONECT record to nonexistent atom: (",
+            from, ", ", to, ")");
         return;
     }
     add_bond(atom_serial_nums[from], atom_serial_nums[to]);
@@ -696,7 +678,7 @@ add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, Py
 //    Assign secondary structure state to residues using PDB
 //    HELIX and SHEET records
 void
-assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyObject *log_file)
+assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyObject *py_logger)
 {
     std::vector<std::pair<AtomicStructure::Residues::const_iterator,
         AtomicStructure::Residues::const_iterator> > strand_ranges;
@@ -724,8 +706,8 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         Residue *init_res = as->find_residue(string_chain_id, init->seq_num,
             init->i_code, string_name);
         if (init_res == NULL) {
-            LOG_PY_ERROR_VOID("Start residue of secondary structure not found: "
-                << r.c_str() << '\n');
+            logger::error(py_logger, "Start residue of secondary structure"
+                " not found: ", r.c_str());
             continue;
         }
         string_chain_id = "";
@@ -734,8 +716,8 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         Residue *end_res = as->find_residue(string_chain_id, end->seq_num,
             end->i_code, string_name);
         if (end_res == NULL) {
-            LOG_PY_ERROR_VOID("End residue of secondary structure not found: "
-                << r.c_str() << '\n');
+            logger::error(py_logger, "End residue of secondary structure"
+                " not found: ", r.c_str());
             continue;
         }
         AtomicStructure::Residues::const_iterator first = as->residues().end();
@@ -752,8 +734,8 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         }
         if (first == as->residues().end()
         || last == as->residues().end()) {
-            LOG_PY_ERROR_VOID("Bad residue range for secondary structure: "
-                << r.c_str() << '\n');
+            logger::error(py_logger, "Bad residue range for secondary"
+                " structure: ", r.c_str());
             continue;
         }
         if (r.type() == PDB::SHEET)
@@ -868,7 +850,7 @@ void prune_short_bonds(AtomicStructure *as)
 
 static void
 link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
-                        PyObject *log_file)
+                        PyObject *py_logger)
 {
     if (link.sym[0] != link.sym[1]) {
         // don't use LINKs to symmetry copies;
@@ -884,8 +866,8 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
     canonicalize_res_name(&rname);
     Residue *res1 = as->find_residue(cid, res.seq_num, res.i_code, rname);
     if (!res1) {
-        LOG_PY_ERROR_VOID("warning: cannot find LINK residue " << res.name << " ("
-            << res.seq_num << res.i_code << ")\n");
+        logger::warning(py_logger, "Cannot find LINK residue ", res.name,
+            " (", res.seq_num, res.i_code, ")");
         return;
     }
     res = link.res[1];
@@ -895,22 +877,24 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
     canonicalize_res_name(&rname);
     Residue *res2 = as->find_residue(cid, res.seq_num, res.i_code, rname);
     if (!res2) {
-        LOG_PY_ERROR_VOID("warning: cannot find LINK residue " << res.name << " ("
-            << res.seq_num << res.i_code << ")\n");
+        logger::warning(py_logger, "Cannot find LINK residue ", res.name,
+            " (", res.seq_num, res.i_code, ")");
         return;
     }
     aname = link.name[0];
     canonicalize_atom_name(&aname, &as->asterisks_translated);
     Atom *a1 = res1->find_atom(aname);
     if (a1 == NULL) {
-        LOG_PY_ERROR_VOID("error: cannot find LINK atom " << aname << " in residue " << res1->str() << "\n");
+        logger::error(py_logger, "Cannot find LINK atom ", aname,
+            " in residue ", res1->str());
         return;
     }
     aname = link.name[1];
     canonicalize_atom_name(&aname, &as->asterisks_translated);
     Atom *a2 = res2->find_atom(aname);
     if (a2 == NULL) {
-        LOG_PY_ERROR_VOID("error: cannot find LINK atom " << aname << " in residue " << res2->str() << "\n");
+        logger::error(py_logger, "Cannot find LINK atom ", aname,
+            " in residue ", res2->str());
         return;
     }
     if (!a1->connects_to(a2)) {
@@ -943,7 +927,7 @@ read_fileno(void *f)
 }
 
 PyObject *
-read_pdb(PyObject *pdb_file, PyObject *log_file, bool explode)
+read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
 {
     std::vector<AtomicStructure *> file_structs;
     bool reached_end;
@@ -1015,10 +999,10 @@ clock_t start_t, end_t;
 #ifdef CLOCK_PROFILING
 start_t = clock();
 #endif
-        AtomicStructure *as = new AtomicStructure;
+        AtomicStructure *as = new AtomicStructure(py_logger);
         void *ret = read_one_structure(read_func, input, as, &line_num, asn_map[as],
           &start_res_map[as], &end_res_map[as], &ss_map[as], &conect_map[as],
-          &link_map[as], &mod_res_map[as], &reached_end, log_file, explode, &eof);
+          &link_map[as], &mod_res_map[as], &reached_end, py_logger, explode, &eof);
         if (ret == NULL) {
             for (std::vector<AtomicStructure *>::iterator si = structs->begin();
             si != structs->end(); ++si) {
@@ -1057,8 +1041,8 @@ start_t = end_t;
                             }
                         }
                         if (!matched) {
-                            LOG_PY_ERROR_NULL("warning: CONECT record for nonexistent atom: "
-                                << serial << '\n');
+                            logger::warning(py_logger, "CONECT record for"
+                                " nonexistent atom: ", serial);
                         }
                     }
                 }
@@ -1101,13 +1085,13 @@ start_t = end_t;
                 PDB::Conect_ &conect = *ci;
                 int from_serial = conect.serial[0];
                 if (asns.find(from_serial) == asns.end()) {
-                    LOG_PY_ERROR_NULL("warning:  CONECT record for nonexistent atom: "
-                        << conect.serial[0] << '\n');
+                    logger::warning(py_logger, "CONECT record for nonexistent"
+                        " atom: ", conect.serial[0]);
                     break;
                 }
                 bool has_covalent = false;
                 for (int i = 1; i < 5; i += 1) {
-                    add_bond(asns, from_serial, conect.serial[i], log_file);
+                    add_bond(asns, from_serial, conect.serial[i], py_logger);
                 }
                 // purely cross-residue bonds are not
                 // considered to completely specify an
@@ -1125,11 +1109,11 @@ start_t = end_t;
                 }
             }
 
-            assign_secondary_structure(fs, ss_map[fs], log_file);
+            assign_secondary_structure(fs, ss_map[fs], py_logger);
 
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
-                link_up(*li, fs, &conect_atoms, log_file);
+                link_up(*li, fs, &conect_atoms, py_logger);
             connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs]);
             prune_short_bonds(fs);
             fs->use_best_alt_locs();
@@ -1188,25 +1172,13 @@ extern "C" PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)
 {
     PyObject *pdb_file, *mols;
-    PyObject *log_file = Py_None;
+    PyObject *py_logger = Py_None;
     bool explode = true;
     static const char *kw_list[] = {"file", "log", "explode", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, keywords, "O|$Op", (char **) kw_list,
-        &pdb_file, &log_file, &explode))
+        &pdb_file, &py_logger, &explode))
             return NULL;
-#if 0
-    if (log_file != Py_None) {
-        is_inst = PyObject_IsInstance(log_file, io_base);
-        if (is_inst == 0)
-            PyErr_SetString(PyExc_TypeError, "log file is not an instance of IOBase class");
-        if (is_inst <= 0) {
-            Py_DECREF(io_mod);
-            Py_DECREF(io_base);
-            return NULL;
-        }
-    }
-#endif
-    mols = read_pdb(pdb_file, log_file, explode);
+    mols = read_pdb(pdb_file, py_logger, explode);
     return mols;
 }
 

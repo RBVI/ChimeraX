@@ -17,10 +17,10 @@ namespace atomstruct {
 const char*  AtomicStructure::PBG_METAL_COORDINATION = "metal coordination bonds";
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 
-AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
+AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
     asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
-    _idatm_valid(false), lower_case_chains(false), _pb_mgr(this),
-    _recompute_rings(true), pdb_version(0), is_traj(false)
+    _idatm_valid(false), _logger(logger), lower_case_chains(false),
+    _pb_mgr(this), _recompute_rings(true), pdb_version(0), is_traj(false)
 {
 }
 
