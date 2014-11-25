@@ -108,6 +108,7 @@ blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
 docutils.install: Python.install pillow.install pygments.install
+flake8.install: Python.install
 funcparserlib.install: Python.install
 hdf5.install: zlib.install
 jinja2.install: Python.install setuptools.install
