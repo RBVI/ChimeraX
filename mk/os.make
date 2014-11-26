@@ -39,13 +39,6 @@ endif
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -lGL
-
-	ifdef LD_LIBRARY_PATH
-		LD_LIBRARY_PATH := $(libdir):$(LD_LIBRARY_PATH)
-	else
-		LD_LIBRARY_PATH = $(libdir)
-	endif
-	export LD_LIBRARY_PATH
 endif
 
 #### Darwin, a.k.a., Apple Mac OS X
