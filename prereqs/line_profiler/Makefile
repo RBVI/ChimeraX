@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.0b3
+VERSION = 1.0
 DISTRIBUTION = line_profiler-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/line_profiler-$(VERSION)
 

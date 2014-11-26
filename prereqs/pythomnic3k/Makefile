@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.3
+VERSION = 1.4.1
 DISTRIBUTION = pythomnic3k-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/pythomnic3k
 

@@ -8,8 +8,6 @@ SOURCE = $(tmpdir)/p7zip_$(VERSION)
 
 PATCHES	= $(wildcard p7zip-$(VERSION)-*.patch)
 
-#CONFIG_ENV = env LDFLAGS='-L$(libdir)'
-
 ifeq ($(OSARCH),Linux)
 	MACHINE = linux_any_cpu
 else ifeq ($(OSARCH),Linux64)
