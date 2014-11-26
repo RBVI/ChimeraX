@@ -18,7 +18,7 @@ def open_pdb_file_with_molecule_cpp(path, session):
   text = f.read()
   f.close()
   ft1 = time()
-  from .. import molecule_cpp
+  from . import molecule_cpp
   matoms = molecule_cpp.parse_pdb_file(text, sort_residues = True)
   t1 = time()
   mols = []
@@ -49,7 +49,7 @@ def atom_array(a):
 def sort_atoms(atoms, bonds = None):
   '''Sort numpy structured array of atoms by chain id and residue number. Update bonds to use new order.'''
   satoms = atoms.view('S%d'%atoms.itemsize)     # Need string array for C++ sort routine.
-  from .. import molecule_cpp
+  from . import molecule_cpp
   order = molecule_cpp.atom_sort_order(satoms)
   satoms[:] = satoms[order]
   if not bonds is None:
@@ -61,7 +61,7 @@ def sort_atoms(atoms, bonds = None):
     bonds[:,1] = amap[bonds[:,1]]
 
 def set_atom_radii(atoms):
-  from .. import molecule_cpp
+  from . import molecule_cpp
   atoms['radius'][:] = molecule_cpp.element_radii(atoms['element_number'])
 
 def open_pdb_file_with_pdbio(path):

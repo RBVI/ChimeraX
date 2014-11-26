@@ -5,7 +5,7 @@ def interpolate_volume_data(vertices, vertex_transform, array,
                             method = 'linear'):
 
 #  from _interpolate import interpolate_volume_data
-  from ...map_cpp import interpolate_volume_data
+  from ..map_cpp import interpolate_volume_data
   values, outside = interpolate_volume_data(vertices, vertex_transform.matrix,
                                             array, method)
   return values, outside
@@ -17,7 +17,7 @@ def interpolate_volume_gradient(vertices, v2m_transform, array,
                                 method = 'linear'):
 
 #  from _interpolate import interpolate_volume_gradient
-  from ...map_cpp import interpolate_volume_gradient
+  from ..map_cpp import interpolate_volume_gradient
   gradients, outside = interpolate_volume_gradient(vertices, v2m_transform.matrix,
                                                    array, method)
   return gradients, outside
@@ -32,7 +32,7 @@ class Matrix_Value_Statistics:
     matrices = matrix if isinstance(matrix, (list, tuple)) else [matrix]
       
     # Determine minimum and maximum data values.
-    from ... import map_cpp
+    from .. import map_cpp
     mm = [map_cpp.minimum_and_maximum(m) for m in matrices]
     self.minimum = min(mn for mn,mx in mm)
     self.maximum = max(mx for mn,mx in mm)
@@ -335,7 +335,7 @@ def invert_matrix(m):
 #
 def surface_level_enclosing_volume(matrix, volume, tolerance = 1e-3,
                                    max_bisections = 30, session = None):
-  from ... import map_cpp
+  from .. import map_cpp
   l0, l1 = map_cpp.minimum_and_maximum(matrix)
   for s in range(max_bisections):
     level = 0.5*(l0 + l1)

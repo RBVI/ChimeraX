@@ -287,7 +287,7 @@ def correlation_gradient_direction(points, point_weights, data_array,
     values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
                                  syminv)
-    from ... import map_cpp
+    from .. import map_cpp
     g = map_cpp.correlation_gradient(point_weights, values, gradients, about_mean)
     return g
 
@@ -316,7 +316,7 @@ def sum_product_torque_axis(points, point_weights, center, data_array,
                             xyz_to_ijk_transform):
 
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
-    from ... import map_cpp
+    from .. import map_cpp
     tor = map_cpp.torque(points, point_weights, gradients, center)
     return tor
 
@@ -336,7 +336,7 @@ def correlation_torque_axis(points, point_weights, center, data_array,
 
     # TODO: Exclude points outside data.  Currently treated as zero values.
     values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
-    from ... import map_cpp
+    from .. import map_cpp
     if len(syminv) == 0:
         gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
         tor = map_cpp.correlation_torque(points, point_weights, values, gradients,
@@ -400,7 +400,7 @@ def volume_gradients(points, xyz_to_ijk_transform, data_array, syminv = []):
 def volume_torques(points, center, xyz_to_ijk_transform, data_array,
                    syminv = []):
 
-    from ... import map_cpp
+    from .. import map_cpp
     from .. import data as VD
     if len(syminv) == 0:
         gradients, outside = VD.interpolate_volume_gradient(
@@ -454,7 +454,7 @@ def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
     from ...geometry.place import cross_product, translation
     tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
 
-    from ... import map_cpp
+    from .. import map_cpp
     av = map_cpp.maximum_norm(points, tf.matrix)
     
     if av > 0:
@@ -472,7 +472,7 @@ def maximum_ijk_motion(points, xyz_to_ijk_transform, move_tf):
 
     diff_tf = ijk_moved_tf.matrix - xyz_to_ijk_transform.matrix
 
-    from ... import map_cpp
+    from .. import map_cpp
     d = map_cpp.maximum_norm(points, diff_tf)
     
     return d
@@ -535,7 +535,7 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
     if above_threshold:
         # Keep only points where density is above lowest displayed threshold
         threshold = min(v.surface_levels)
-        from ... import map_cpp
+        from .. import map_cpp
         points_int = map_cpp.high_indices(m, threshold)
         from numpy import single as floatc
         points = points_int.astype(floatc)

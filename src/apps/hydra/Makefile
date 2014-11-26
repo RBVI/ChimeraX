@@ -1,8 +1,8 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= arrays commands devices docs example_sessions files geometry graphics mac_os_cpp \
-	  map map_cpp measure molecule molecule_cpp movie surface ui
+SUBDIRS	= arrays_cpp commands devices docs example_sessions files geometry graphics \
+	  mac_os_cpp map measure molecule movie surface ui
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
@@ -158,5 +158,5 @@ $(PKG_DIR):
 clean:
 	rm -rf __pycache__
 
-map_cpp.all: arrays.install
-molecule_cpp.all: arrays.install
+map.all: arrays_cpp.install
+molecule.all: arrays_cpp.install

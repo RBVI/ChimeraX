@@ -4,7 +4,7 @@ def sphere_geometry(ntri):
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32, sqrt
   ta = ta.astype(int32)
-  from .. import map_cpp
+  from ..map import map_cpp
   while 4*len(ta) <= ntri:
     va, ta = map_cpp.subdivide_triangles(va, ta)
   vn = sqrt((va*va).sum(axis = 1))

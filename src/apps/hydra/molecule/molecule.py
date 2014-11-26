@@ -282,11 +282,11 @@ class Molecule(Model):
       # For each contiguous set of residues compute a spline and then
       # draw shown segments.
       plist = []
-      from ..molecule_cpp import contiguous_intervals, mask_intervals
+      from .molecule_cpp import contiguous_intervals, mask_intervals
       rnums = self.residue_nums[s]
       cint = contiguous_intervals(rnums)
       sd, cd = self.ribbon_subdivisions
-      from ..molecule_cpp import natural_cubic_spline, duplicate_midpoints
+      from .molecule_cpp import natural_cubic_spline, duplicate_midpoints
       from ..surface import tube
       for i1,i2 in cint:
         if rshow[i1:i2+1].sum() == 0:
@@ -480,7 +480,7 @@ class Molecule(Model):
   def residue_ids(self):
     rids = self.rids
     if rids is None:
-      from .. import molecule_cpp
+      from . import molecule_cpp
       self.rids = rids = molecule_cpp.residue_ids(self.atoms_string())
     return rids
 
@@ -493,7 +493,7 @@ class Molecule(Model):
     cr = self.chain_ranges
     if cr is None:
       cids = self.chain_ids
-      from ..molecule_cpp import value_ranges
+      from .molecule_cpp import value_ranges
       self.chain_ranges = cr = dict((cids[s],(s,e)) for s,e in value_ranges(cids))
     cid = chain_id.encode('utf-8') if isinstance(chain_id, str) else chain_id
     s,e = cr[cid] if cid in cr else (0,0)
@@ -678,7 +678,7 @@ class Molecule(Model):
     r = self.shown_atom_array_values(self.drawing_radii())
     rsp = self.ribbon_drawing
     f = fa = ft = None
-    from .. import map_cpp
+    from ..map import map_cpp
     for tf in self.positions:
       cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
       # Check for atom sphere intercept
@@ -726,7 +726,7 @@ class Molecule(Model):
 
   def bounds(self, positions = True):
     # TODO: Cache bounds
-    from .. import molecule_cpp
+    from . import molecule_cpp
     xyz_min_max = molecule_cpp.atom_bounds(self.atoms_string())
     if xyz_min_max is None:
       return None

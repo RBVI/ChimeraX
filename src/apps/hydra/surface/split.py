@@ -38,7 +38,7 @@ def split_surfaces(plist, session, in_place = False):
 def split_surface_piece(p, into_surf):
 
   varray, tarray = p.geometry
-  from ..map_cpp import connected_pieces
+  from ..map.map_cpp import connected_pieces
   cplist = connected_pieces(tarray)
   if len(cplist) <= 1 and p.surface == into_surf:
     return []

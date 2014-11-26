@@ -214,7 +214,7 @@ class Solid:
     m = self.matrix_plane(axis, plane)
 
     colors = self.color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
-    from .. import map_cpp
+    from . import map_cpp
     if axis is None:
       for z in range(m.shape[0]):
         map_cpp.data_to_colors(m[z:z+1,:,:], dmin, dmax, cmap, self.clamp,
@@ -280,7 +280,7 @@ class Solid:
     from numpy import zeros, float32, array
     tfcmap = zeros((size,4), float32)
     tfa = array(tf, float32)
-    from ..map_cpp import transfer_function_colormap
+    from .map_cpp import transfer_function_colormap
     transfer_function_colormap(tfa, dmin, dmax, tfcmap)
 
     # Adjust brightness of RGB components.
@@ -305,7 +305,7 @@ class Solid:
     # Convert from float to uint8 or uint16.
     from numpy import empty
     icmap = empty(cmap.shape, ctype)
-    from .. import map_cpp
+    from . import map_cpp
     map_cpp.colors_float_to_uint(cmap, icmap)
 
     return icmap, drange
