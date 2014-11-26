@@ -35,8 +35,6 @@ static struct PyMethodDef map_cpp_methods[] =
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
    METH_VARARGS|METH_KEYWORDS},
-  {const_cast<char*>("inner_product_64"), (PyCFunction)inner_product_64,
-   METH_VARARGS|METH_KEYWORDS},
 
   /* connected.h */
   {const_cast<char*>("connected_triangles"), (PyCFunction)connected_triangles,
@@ -49,12 +47,6 @@ static struct PyMethodDef map_cpp_methods[] =
   /* contourpy.h */
   {const_cast<char*>("surface"), (PyCFunction)surface_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("scale_and_shift_vertices"), scale_and_shift_vertices,
-   METH_VARARGS, NULL},
-  {const_cast<char*>("scale_vertices"), scale_vertices, METH_VARARGS, NULL},
-  {const_cast<char*>("shift_vertices"), shift_vertices, METH_VARARGS, NULL},
-  {const_cast<char*>("affine_transform_vertices"), affine_transform_vertices,
-   METH_VARARGS, NULL},
   {const_cast<char*>("reverse_triangle_vertex_order"),
    reverse_triangle_vertex_order, METH_VARARGS, NULL},
 

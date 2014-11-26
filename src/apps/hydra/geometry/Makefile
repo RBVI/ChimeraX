@@ -3,7 +3,12 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/geometry
 
+SUBDIRS	= geometry_cpp
+
 PYSRCS = bins.py bounds.py icosahedron.py matrix.py place.py sphere.py spline.py vector.py
+
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
 all: $(PYOBJS)
 
