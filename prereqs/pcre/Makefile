@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 8.34
+VERSION = 8.36
 DISTRIBUTION = pcre-$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/pcre-$(VERSION)
 
@@ -60,6 +60,9 @@ ifeq ($(OS),Windows)
 	$(RSYNC) $(SOURCE)/build/pcre{,cpparg,_stringpiece}.h $(includedir)
 else
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) && $(MAKE) $(MAKE_ARGS) install
+ifeq ($(OS),Linux)
+	cd $(bindir); chrpath -r '$$ORIGIN/../lib' pcregrep pcretest
+endif
 endif
 
 $(SOURCE):

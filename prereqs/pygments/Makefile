@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.6
+VERSION = 2.0.1
 DISTRIBUTION = Pygments-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/Pygments-$(VERSION)
 

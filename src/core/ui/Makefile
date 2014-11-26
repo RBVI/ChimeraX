@@ -14,7 +14,7 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
 lint:
-	pyflakes $(PYSRCS)
+	python3 -m flake8 $(PYSRCS)
 
 clean:
 	rm -rf __pycache__

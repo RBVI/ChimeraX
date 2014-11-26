@@ -2,14 +2,14 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.4.1
-DISTRIBUTION = pythomnic3k-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/pythomnic3k
+VERSION = 2.2.5
+DISTRIBUTION = flake8-$(VERSION).tar.gz
+SOURCE = $(tmpdir)/flake8-$(VERSION)
 
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) && cp -p lib/typecheck.py $(PYSITEDIR)
+	cd $(SOURCE) &&	python3 setup.py install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

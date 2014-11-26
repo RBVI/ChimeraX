@@ -29,7 +29,7 @@ clean:
 	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py
 
 run:
-	$(bindir)/python3 main.py
+	$(bindir)/python3 chimera2_main.py
 
 $(PROG): $(OBJS)
 	$(PROG_LINK)

@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.0.1i
+VERSION = 1.0.1j
 DISTRIBUTION = openssl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/openssl-$(VERSION)
 
@@ -58,6 +58,9 @@ else
 	$(RSYNC) $(SOURCE)/out32dll/libeay32.dll $(shlibdir)
 	$(RSYNC) $(SOURCE)/out32dll/libeay32.lib $(libdir)/libcrypto.lib
 	$(RSYNC) --copy-links $(SOURCE)/inc32/openssl $(includedir)
+endif
+ifeq ($(OS),Linux)
+	chrpath -r '$$ORIGIN/../lib' $(bindir)/openssl
 endif
 ifeq ($(OS),Darwin)
 	cd $(shlibdir) && \
