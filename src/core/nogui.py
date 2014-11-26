@@ -41,6 +41,7 @@ class UI:
 
         # register a few commands for debugging
         from . import cli
+
         @cli.register('exit')
         def exit(session):
             raise SystemExit(0)
