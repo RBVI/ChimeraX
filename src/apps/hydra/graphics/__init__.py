@@ -6,4 +6,4 @@ from .crossfade import CrossFade, MotionBlur
 
 from .opengl import Texture, Lighting, Material
 
-from .view import View
+from .view import View, OpenGLContext
