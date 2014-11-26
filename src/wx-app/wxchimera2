@@ -1,8 +1,0 @@
-#!/bin/sh
-ISWIN=`uname -s | sed s/CYGWIN.*//`
-if [ "$ISWIN" = "" ]
-then
-	exec c:/Python33/python3 wxchimera2.py $@
-else
-	exec python3 wxchimera2.py $*
-fi
