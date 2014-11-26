@@ -53,6 +53,7 @@ private:
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
+    std::string  _name;
     AS_PBManager  _pb_mgr;
     mutable bool  _recompute_rings;
     Residues  _residues;
@@ -81,10 +82,12 @@ public:
     Residue *  find_residue(std::string &chain_id, int pos, char insert,
         std::string &name) const;
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
+    std::string  input_seq_source;
     bool  is_traj;
     PyObject*  logger() const { return _logger; }
     bool  lower_case_chains;
     void  make_chains() const;
+    const std::string&  name() { return _name; }
     Atom *  new_atom(const std::string &name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
@@ -104,6 +107,7 @@ public:
         std::set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
     void  set_input_seq_info(std::string& chain_id, std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
+    void  set_name(std::string& name) { _name = name; }
     void  use_best_alt_locs();
 };
 

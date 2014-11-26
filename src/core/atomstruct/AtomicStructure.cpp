@@ -2,6 +2,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
+#include "cpp_logger/logger.h"
 #include "Element.h"
 #include "AtomicStructure.h"
 #include "Residue.h"
@@ -20,7 +21,8 @@ const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
     asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
     _idatm_valid(false), _logger(logger), lower_case_chains(false),
-    _pb_mgr(this), _recompute_rings(true), pdb_version(0), is_traj(false)
+    _name("unknown AtomicStructure"), _pb_mgr(this), _recompute_rings(true),
+    pdb_version(0), is_traj(false)
 {
 }
 
@@ -203,15 +205,43 @@ AtomicStructure::make_chains() const
         auto chain = new Chain(chain_id);
         _chains->emplace_back(chain);
 
+        // first, create chain directly from structure
+        chain->bulk_set(polymer, nullptr);
+
         auto three_let_i = _input_seq_info.find(chain_id);
         if (three_let_i != _input_seq_info.end()
         && unique_chain_id[chain_id]) {
-            // try to make chain based on SEQRES and if successful,
-            // go on to next polymer
-        }
+            // try to adjust chain based on SEQRES
+            auto& three_let_seq = three_let_i->second;
+            auto seqres_size = three_let_seq.size();
+            auto chain_size = chain->size();
+            if (seqres_size == chain_size) {
+                // presumably no adjustment necessary
+                chain->set_from_seqres(true);
+                continue;
+            }
 
-        // create chain directly from structure
-        chain->bulk_set(polymer, nullptr);
+            if (seqres_size < chain_size) {
+                logger::warning(_logger, input_seq_source, " for chain ",
+                    chain_id, " of ", _name, " is incomplete.\n"
+                    "Ignoring input sequence records as basis for sequence.");
+                continue;
+            }
+
+            // skip if standard residues have been removed but the
+            // sequence records haven't been...
+            Sequence sr_seq(three_let_seq);
+            if (std::count(chain->begin(), chain->end(), 'X') == chain_size
+            && std::search(sr_seq.begin(), sr_seq.end(),
+            chain->begin(), chain->end()) == sr_seq.end()) {
+                logger::warning(_logger, "Residues corresponding to ",
+                    input_seq_source, " for chain ", chain_id, " of ", _name,
+                    " are missing.\nIgnoring record as basis for sequence.");
+                continue;
+            }
+
+            // okay, seriously try to match up with SEQRES
+        }
     }
 }
 
