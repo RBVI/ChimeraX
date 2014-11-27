@@ -1,7 +1,7 @@
 TOP	= ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra
+PKG_DIR = $(PYSITEDIR)/hydra/molecule
 
 PYMOD_NAME = molecule_cpp
 SRCS	= arrayops.cpp bounds.cpp module.cpp \
@@ -33,7 +33,7 @@ endif
 all: $(PYMOD)
 
 install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)/molecule
+	$(RSYNC) $(PYMOD) $(PKG_DIR)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
