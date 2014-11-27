@@ -1,6 +1,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "distancespy.h"		// use py_distances_from_origin, ...
 #include "transform.h"			// use affine_transform_vertices, ...
 #include "vector_ops.h"			// use inner_product_64
 
@@ -11,6 +12,13 @@ namespace Geometry_Cpp
 //
 static struct PyMethodDef geometry_cpp_methods[] =
 {
+
+  /* distancepy.h */
+  {const_cast<char*>("distances_from_origin"), py_distances_from_origin,	METH_VARARGS, NULL},
+  {const_cast<char*>("distances_perpendicular_to_axis"), py_distances_perpendicular_to_axis,	METH_VARARGS, NULL},
+  {const_cast<char*>("distances_parallel_to_axis"), py_distances_parallel_to_axis,	METH_VARARGS, NULL},
+  {const_cast<char*>("maximum_norm"), (PyCFunction)py_maximum_norm, METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* transform.h */
   {const_cast<char*>("scale_and_shift_vertices"), scale_and_shift_vertices, METH_VARARGS, NULL},
   {const_cast<char*>("scale_vertices"), scale_vertices, METH_VARARGS, NULL},

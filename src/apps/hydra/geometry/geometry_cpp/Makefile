@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra/geometry
 
 PYMOD_NAME = geometry_cpp
-SRCS	= geometry.cpp transform.cpp vector_ops.cpp
+SRCS	= distances.cpp distancespy.cpp geometry.cpp transform.cpp vector_ops.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)

@@ -454,8 +454,8 @@ def angle_step(axis, points, center, xyz_to_ijk_transform, ijk_step_size):
     from ...geometry.place import cross_product, translation
     tf = xyz_to_ijk_transform.zero_translation() * cross_product(axis) * translation(-center)
 
-    from .. import map_cpp
-    av = map_cpp.maximum_norm(points, tf.matrix)
+    from ...geometry.geometry_cpp import maximum_norm
+    av = maximum_norm(points, tf.matrix)
     
     if av > 0:
         from math import pi
@@ -472,8 +472,8 @@ def maximum_ijk_motion(points, xyz_to_ijk_transform, move_tf):
 
     diff_tf = ijk_moved_tf.matrix - xyz_to_ijk_transform.matrix
 
-    from .. import map_cpp
-    d = map_cpp.maximum_norm(points, diff_tf)
+    from ...geometry.geometry_cpp import maximum_norm
+    d = maximum_norm(points, diff_tf)
     
     return d
 

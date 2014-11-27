@@ -3,7 +3,7 @@
 
 #include "combine.h"			// use linear_combination
 #include "contourpy.h"			// use surface_py, ...
-#include "distancespy.h"		// use py_distances_from_origin, ...
+#include "fittingpy.h"			// use py_correlation_gradient, ...
 #include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
@@ -29,20 +29,16 @@ static struct PyMethodDef map_cpp_methods[] =
   {const_cast<char*>("reverse_triangle_vertex_order"),
    reverse_triangle_vertex_order, METH_VARARGS, NULL},
 
-  /* distancespy.h */
-  {const_cast<char*>("distances_from_origin"), py_distances_from_origin,	METH_VARARGS, NULL},
-  {const_cast<char*>("distances_perpendicular_to_axis"), py_distances_perpendicular_to_axis,	METH_VARARGS, NULL},
-  {const_cast<char*>("distances_parallel_to_axis"), py_distances_parallel_to_axis,	METH_VARARGS, NULL},
-  {const_cast<char*>("maximum_norm"), (PyCFunction)py_maximum_norm, METH_VARARGS|METH_KEYWORDS, NULL},
+  /* distgrid.h */
+  {const_cast<char*>("sphere_surface_distance"), (PyCFunction)py_sphere_surface_distance,
+   METH_VARARGS|METH_KEYWORDS},
+
+  /* fittingpy.h */
   {const_cast<char*>("correlation_gradient"), (PyCFunction)py_correlation_gradient, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("torque"), (PyCFunction)py_torque, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("torques"), (PyCFunction)py_torques, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("correlation_torque"), (PyCFunction)py_correlation_torque, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("correlation_torque2"), (PyCFunction)py_correlation_torque2, METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* distgrid.h */
-  {const_cast<char*>("sphere_surface_distance"), (PyCFunction)py_sphere_surface_distance,
-   METH_VARARGS|METH_KEYWORDS},
 
   /* gaussian.h */
   {const_cast<char*>("sum_of_gaussians"), (PyCFunction)py_sum_of_gaussians,
