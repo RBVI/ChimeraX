@@ -312,7 +312,7 @@ def sphere_points_and_weights(npoints):
     from .shapes import sphere_geometry
     va, na, ta = sphere_geometry(2*npoints)
     # Weight vertices by area since distribution is not uniform.
-    from ..map.map_cpp import vertex_areas
+    from .surface_cpp import vertex_areas
     weights = vertex_areas(va, ta)
     return va, weights
 

@@ -9,8 +9,8 @@ def read_stl(path, session, color = (178,178,178,255)):
     stl_data = f.read()
 #    comment, va, na, ta = parse_stl(file)
     f.close()
-    from ..map import map_cpp
-    comment, va, na, ta = map_cpp.parse_stl(stl_data)
+    from .surface_cpp import parse_stl
+    comment, va, na, ta = parse_stl(stl_data)
 
     s = STL_Surface(path)
     s.geometry = va, ta

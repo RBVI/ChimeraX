@@ -2,18 +2,14 @@
 #include <Python.h>			// use PyObject
 
 #include "combine.h"			// use linear_combination
-#include "connected.h"			// use connected_triangles, ...
 #include "contourpy.h"			// use surface_py, ...
 #include "distancespy.h"		// use py_distances_from_origin, ...
 #include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
 #include "interpolatepy.h"		// use interpolate_volume_data, ...
-#include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "occupancy.h"			// use fill_occupancy_map
-#include "parse_stl.h"			// use parse_stl
 #include "squaremesh.h"			// use principle_plane_edges
-#include "subdivide.h"			// use subdivide_triangles
 #include "transfer.h"			// use data_to_rgba,...
 
 namespace Map_Cpp
@@ -25,14 +21,6 @@ static struct PyMethodDef map_cpp_methods[] =
 {
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
-   METH_VARARGS|METH_KEYWORDS},
-
-  /* connected.h */
-  {const_cast<char*>("connected_triangles"), (PyCFunction)connected_triangles,
-   METH_VARARGS|METH_KEYWORDS},
-  {const_cast<char*>("triangle_vertices"), (PyCFunction)triangle_vertices,
-   METH_VARARGS|METH_KEYWORDS},
-  {const_cast<char*>("connected_pieces"), (PyCFunction)connected_pieces,
    METH_VARARGS|METH_KEYWORDS},
 
   /* contourpy.h */
@@ -78,34 +66,12 @@ static struct PyMethodDef map_cpp_methods[] =
   {const_cast<char*>("interpolate_colormap"), interpolate_colormap, METH_VARARGS, NULL},
   {const_cast<char*>("set_outside_volume_colors"), set_outside_volume_colors, METH_VARARGS, NULL},
 
-  /* measure.h */
-  {const_cast<char*>("enclosed_volume"), (PyCFunction)enclosed_volume,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("surface_area"), (PyCFunction)surface_area,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("vertex_areas"), (PyCFunction)vertex_areas,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("boundary_edges"), (PyCFunction)boundary_edges,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("boundary_loops"), (PyCFunction)boundary_loops,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
   /* occupancy.h */
   {const_cast<char*>("fill_occupancy_map"), (PyCFunction)fill_occupancy_map,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
-  /* parse_stl.h */
-  {const_cast<char*>("parse_stl"), (PyCFunction)parse_stl,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
   /* squaremesh.h */
   {const_cast<char*>("principle_plane_edges"), (PyCFunction)principle_plane_edges,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* subdivide.h */
-  {const_cast<char*>("subdivide_triangles"), (PyCFunction)subdivide_triangles,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("subdivide_mesh"), (PyCFunction)subdivide_mesh,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* transfer.h */
