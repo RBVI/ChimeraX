@@ -672,9 +672,9 @@ class Drawing:
     va,ta = self.geometry
     if ta.shape[1] != 3:
       return f,p  # TODO: Intercept only for triangles, not lines or points.
-    from ..map import map_cpp
+    from .graphics_cpp import closest_geometry_intercept
     if self.positions.is_identity():
-      fmin, tmin = map_cpp.closest_geometry_intercept(va, ta, mxyz1, mxyz2)
+      fmin, tmin = closest_geometry_intercept(va, ta, mxyz1, mxyz2)
       if not fmin is None and (f is None or fmin < f):
         f = fmin
         p = 0
@@ -684,7 +684,7 @@ class Drawing:
       for c,tf in enumerate(self.positions):
         if dp is None or dp[c]:
           cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-          fmin, tmin = map_cpp.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+          fmin, tmin = closest_geometry_intercept(va, ta, cxyz1, cxyz2)
           if not fmin is None and (f is None or fmin < f):
             f = fmin
             p = c
@@ -952,7 +952,7 @@ class _Draw_Shape:
       me = self.masked_edges
       if me is None or not edge_mask is self._edge_mask or not tmask is self._tri_mask:
         em = edge_mask if tmask is None else edge_mask[tmask]
-        from ..map.map_cpp import masked_edges
+        from .graphics_cpp import masked_edges
         self.masked_edges = me = masked_edges(ta) if em is None else masked_edges(ta, em)
         self._edge_mask, self._tri_mask = edge_mask, tmask
       ta = me

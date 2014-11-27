@@ -3,9 +3,14 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/graphics
 
+SUBDIRS	= graphics_cpp
+
 PYSRCS = __init__.py camera.py crossfade.py drawing.py opengl.py view.py
 
 OPENGL_SHADERS = fragmentShader.txt vertexShader.txt
+
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
 all: $(PYOBJS)
 

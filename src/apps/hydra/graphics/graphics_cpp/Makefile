@@ -1,16 +1,10 @@
 TOP	= ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra
+PKG_DIR = $(PYSITEDIR)/hydra/graphics
 
-PYMOD_NAME = map_cpp
-SRCS	= combine.cpp \
-	  connected.cpp contourdata.cpp contourpy.cpp \
-	  distgrid.cpp distances.cpp distancespy.cpp  \
-	  gaussian.cpp  histogram.cpp \
-	  interpolate.cpp interpolatepy.cpp \
-	  measure.cpp module.cpp occupancy.cpp parse_stl.cpp \
-	  squaremesh.cpp subdivide.cpp transfer.cpp
+PYMOD_NAME = graphics_cpp
+SRCS	= blend_rgba.cpp graphics.cpp intercept.cpp mesh_edges.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)
@@ -20,13 +14,12 @@ endif
 INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 LIBS = $(libdir)/libarrays.$(SHLIB_EXT)
 
-#OPT = -g -Wall
 OPT = -O3
 
 all: $(PYMOD)
 
 install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)/map
+	$(RSYNC) $(PYMOD) $(PKG_DIR)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

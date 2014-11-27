@@ -1,7 +1,6 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
-#include "blend_rgba.h"			// use blur_blend_images
 #include "combine.h"			// use linear_combination
 #include "connected.h"			// use connected_triangles, ...
 #include "contourpy.h"			// use surface_py, ...
@@ -9,10 +8,8 @@
 #include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
 #include "histogram.h"			// use bin_counts_py, ...
-#include "intercept.h"			// use closest_geometry_intercept
 #include "interpolatepy.h"		// use interpolate_volume_data, ...
 #include "measure.h"			// use enclosed_volume, surface_area, ...
-#include "mesh_edges.h"			// use masked_edges
 #include "occupancy.h"			// use fill_occupancy_map
 #include "parse_stl.h"			// use parse_stl
 #include "squaremesh.h"			// use principle_plane_edges
@@ -26,12 +23,6 @@ namespace Map_Cpp
 //
 static struct PyMethodDef map_cpp_methods[] =
 {
-  /* blend_rgba.h */
-  {const_cast<char*>("blur_blend_images"), (PyCFunction)blur_blend_images,
-   METH_VARARGS|METH_KEYWORDS},
-  {const_cast<char*>("accumulate_images"), (PyCFunction)accumulate_images,
-   METH_VARARGS|METH_KEYWORDS},
-
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
    METH_VARARGS|METH_KEYWORDS},
@@ -81,12 +72,6 @@ static struct PyMethodDef map_cpp_methods[] =
   {const_cast<char*>("high_indices"), (PyCFunction)high_indices_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
-  /* intercept.h */
-  {const_cast<char*>("closest_geometry_intercept"), (PyCFunction)closest_geometry_intercept,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("closest_sphere_intercept"), (PyCFunction)closest_sphere_intercept,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
   /* interpolatepy.h */
   {const_cast<char*>("interpolate_volume_data"), interpolate_volume_data, METH_VARARGS, NULL},
   {const_cast<char*>("interpolate_volume_gradient"), interpolate_volume_gradient, METH_VARARGS, NULL},
@@ -103,10 +88,6 @@ static struct PyMethodDef map_cpp_methods[] =
   {const_cast<char*>("boundary_edges"), (PyCFunction)boundary_edges,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("boundary_loops"), (PyCFunction)boundary_loops,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* mesh_edges.h */
-  {const_cast<char*>("masked_edges"), (PyCFunction)masked_edges,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* occupancy.h */

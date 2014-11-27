@@ -105,9 +105,9 @@ class MotionBlur(Drawing):
             from numpy import array
             bgcolor = array([255*c for c in v.background_color[:3]], rgba.dtype)
             alpha = 255*self.attenuate
-            from ..map import map_cpp
-            c = map_cpp.blur_blend_images(self.decay_factor, rgba, self.rgba,
-                                          bgcolor, alpha, self.rgba)
+            from .graphics_cpp import blur_blend_images
+            c = blur_blend_images(self.decay_factor, rgba, self.rgba,
+                                  bgcolor, alpha, self.rgba)
             if c == 0:
                 return False    # No change
             self.piece.texture.reload_texture(self.rgba)
