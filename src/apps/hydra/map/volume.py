@@ -665,11 +665,11 @@ class Volume(Model):
 
     ro = rendering_options
 
-    from .map_cpp import surface
+    from .map_cpp import contour_surface
     try:
-      varray, tarray, narray = surface(matrix, level,
-                                       cap_faces = ro.cap_faces,
-                                       calculate_normals = True)
+      varray, tarray, narray = contour_surface(matrix, level,
+                                               cap_faces = ro.cap_faces,
+                                               calculate_normals = True)
     except MemoryError:
       ses = self.session
       ses.show_warning('Ran out of memory contouring at level %.3g.\n' % level +

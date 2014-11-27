@@ -24,7 +24,7 @@ static struct PyMethodDef map_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS},
 
   /* contourpy.h */
-  {const_cast<char*>("surface"), (PyCFunction)surface_py,
+  {const_cast<char*>("contour_surface"), (PyCFunction)surface_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("reverse_triangle_vertex_order"),
    reverse_triangle_vertex_order, METH_VARARGS, NULL},

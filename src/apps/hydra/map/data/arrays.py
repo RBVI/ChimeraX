@@ -340,8 +340,8 @@ def surface_level_enclosing_volume(matrix, volume, tolerance = 1e-3,
   for s in range(max_bisections):
     level = 0.5*(l0 + l1)
     try:
-      varray, tarray = map_cpp.surface(matrix, level, cap_faces = True,
-                                       calculate_normals = False)
+      varray, tarray = map_cpp.contour_surface(matrix, level, cap_faces = True,
+                                               calculate_normals = False)
     except MemoryError:
       raise MemoryError('Ran out of memory contouring at level %.3g.\n' % level)
 
