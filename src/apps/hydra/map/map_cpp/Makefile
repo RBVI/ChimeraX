@@ -1,7 +1,7 @@
 TOP	= ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra
+PKG_DIR = $(PYSITEDIR)/hydra/map
 
 PYMOD_NAME = map_cpp
 SRCS	= combine.cpp contourdata.cpp contourpy.cpp \
@@ -23,7 +23,7 @@ OPT = -O3
 all: $(PYMOD)
 
 install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)/map
+	$(RSYNC) $(PYMOD) $(PKG_DIR)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
