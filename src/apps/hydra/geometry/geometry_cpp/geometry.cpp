@@ -43,7 +43,7 @@ static int geometry_cpp_clear(PyObject *m) {
 
 static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
-        "map_cpp",
+        "geometry_cpp",
         NULL,
         sizeof(struct module_state),
         geometry_cpp_methods,
