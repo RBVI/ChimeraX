@@ -20,11 +20,10 @@ class Graphics_Window(QtGui.QWindow):
         window_size = (w.width(), w.height())		# pixels
         log = session
         drawing = session.drawing()
-        self.view = View(drawing, window_size, self.make_opengl_context_current, self.swap_opengl_buffers, log)
+        self.opengl_context = QtOpenGLContext(self)
+        self.view = View(drawing, window_size, self.opengl_context, log)
 
         self.set_stereo_eye_separation()
-
-        self.opengl_context = None
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 10               # milliseconds
@@ -73,6 +72,8 @@ class Graphics_Window(QtGui.QWindow):
     # QWindow method
     def exposeEvent(self, event):
         if self.isExposed():
+            if self.timer is None:
+                self.start_update_timer()
             self.view.draw()
 
     # QWindow method
@@ -82,58 +83,6 @@ class Graphics_Window(QtGui.QWindow):
         # but it gets them anyways on Mac in Qt 5.2 if the graphics window is clicked.
         # So we pass them back to the main window.
         self.session.main_window.event(event)
-        
-    def create_opengl_context(self, stereo = False):
-
-        f = self.pixel_format(stereo)
-        self.setFormat(f)
-        self.create()
-
-        self.opengl_context = c = QtGui.QOpenGLContext(self)
-        c.setFormat(f)
-        if not c.create():
-            raise SystemError('Failed creating QOpenGLContext')
-        c.makeCurrent(self)
-
-        # Write a log message indicating OpenGL version
-        s = self.session
-        f = c.format()
-        stereo = 'stereo' if f.stereo() else 'no stereo'
-        s.show_info('OpenGL version %s, %s' % (self.view.opengl_version(), stereo))
-
-        return c
-
-    def pixel_format(self, stereo = False):
-
-        f = QtGui.QSurfaceFormat()
-        f.setMajorVersion(3)
-        f.setMinorVersion(3)
-        f.setDepthBufferSize(24);
-        f.setProfile(QtGui.QSurfaceFormat.CoreProfile)
-        f.setStereo(stereo)
-        return f
-
-    def enable_opengl_stereo(self, enable):
-
-        supported = self.opengl_context.format().stereo()
-        if not enable or supported:
-            return True
-
-        msg = 'Stereo mode is not supported by OpenGL driver'
-        s = self.session
-        s.show_status(msg)
-        s.show_info(msg)
-        return False
-
-    def make_opengl_context_current(self):
-        c = self.opengl_context
-        if c is None:
-            self.opengl_context = c = self.create_opengl_context()
-            self.start_update_timer()
-        c.makeCurrent(self)
-
-    def swap_opengl_buffers(self):
-        self.opengl_context.swapBuffers(self)
 
     def start_update_timer(self):
         if self.timer is None:
@@ -154,8 +103,74 @@ class Graphics_Window(QtGui.QWindow):
 
     def update_graphics(self):
         if self.isExposed():
-            if not self.view.draw_if_changed():
+            if not self.view.draw(only_if_changed = True):
                 self.mouse_modes.mouse_pause_tracking()
+
+from ...graphics import OpenGLContext
+class QtOpenGLContext(OpenGLContext):
+
+    def __init__(self, graphics_window, shared_context = None):
+        self._graphics_window = graphics_window
+        self._opengl_context = None
+        self._shared_context = shared_context
+
+    def __del__(self):
+        self._opengl_context.deleteLater()
+        self._opengl_context = None
+
+    def make_current(self):
+        c = self._opengl_context
+        if c is None:
+            self._opengl_context = c = self._create_opengl_context()
+        c.makeCurrent(self._graphics_window)
+
+    def swap_buffers(self):
+        self._opengl_context.swapBuffers(self._graphics_window)
+        
+    def _create_opengl_context(self, stereo = False):
+
+        f = self._pixel_format(stereo)
+        gw = self._graphics_window
+        gw.setFormat(f)
+        gw.create()
+
+        c = QtGui.QOpenGLContext(self._graphics_window)
+        if not self._shared_context is None:
+            c.setShareContext(self._shared_context._opengl_context)
+        c.setFormat(f)
+        if not c.create():
+            raise SystemError('Failed creating QOpenGLContext')
+        c.makeCurrent(gw)
+
+        # Write a log message indicating OpenGL version
+        s = gw.session
+        f = c.format()
+        stereo = 'stereo' if f.stereo() else 'no stereo'
+        s.show_info('OpenGL version %s, %s' % (s.view.opengl_version(), stereo))
+
+        return c
+
+    def _pixel_format(self, stereo = False):
+
+        f = QtGui.QSurfaceFormat()
+        f.setMajorVersion(3)
+        f.setMinorVersion(3)
+        f.setDepthBufferSize(24);
+        f.setProfile(QtGui.QSurfaceFormat.CoreProfile)
+        f.setStereo(stereo)
+        return f
+
+    def _enable_opengl_stereo(self, enable):
+
+        supported = self._opengl_context.format().stereo()
+        if not enable or supported:
+            return True
+
+        msg = 'Stereo mode is not supported by OpenGL driver'
+        s = self.graphics_window.session
+        s.show_status(msg)
+        s.show_info(msg)
+        return False
 
 class Secondary_Graphics_Window(QtGui.QWindow):
     '''
@@ -174,47 +189,12 @@ class Secondary_Graphics_Window(QtGui.QWindow):
         w.show()
 
         shared_context = session.main_window.graphics_window.opengl_context
-        self.opengl_context = self.create_opengl_context(shared_context)
+        self.opengl_context = QtOpenGLContext(self, shared_context)
 
     def close(self):
-        self.opengl_context.deleteLater()
         self.opengl_context = None
         self.widget.close()
         self.widget = None
-        
-    def create_opengl_context(self, shared_context):
-
-        f = self.pixel_format()
-        self.setFormat(f)
-        self.create()
-
-        c = QtGui.QOpenGLContext(self)
-        if not shared_context is None:
-            c.setShareContext(shared_context)
-        c.setFormat(f)
-        if not c.create():
-            raise SystemError('Failed creating QOpenGLContext')
-        c.makeCurrent(self)
-        return c
-
-    def pixel_format(self, stereo = False):
-
-        f = QtGui.QSurfaceFormat()
-        f.setMajorVersion(3)
-        f.setMinorVersion(3)
-        f.setDepthBufferSize(24);
-        f.setProfile(QtGui.QSurfaceFormat.CoreProfile)
-        f.setStereo(stereo)
-        return f
-
-    def make_opengl_context_current(self):
-        c = self.opengl_context
-        if c is None:
-            self.opengl_context = c = self.create_opengl_context()
-        c.makeCurrent(self)
-
-    def swap_opengl_buffers(self):
-        self.opengl_context.swapBuffers(self)
 
     def full_screen(self, width, height):
         d = self.session.application.desktop()

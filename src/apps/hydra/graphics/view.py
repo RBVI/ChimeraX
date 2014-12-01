@@ -8,14 +8,12 @@ class View:
     A View is the graphics windows that shows 3-dimensional drawings.
     It manages the camera and renders the drawing when needed.
     '''
-    def __init__(self, drawing, window_size, make_opengl_context_current, swap_opengl_buffers, log):
+    def __init__(self, drawing, window_size, opengl_context, log):
 
         self.drawing = drawing
         self.log = log
         self.window_size = window_size		# pixels
-        self._make_opengl_context_current = make_opengl_context_current
-        self._swap_opengl_buffers = swap_opengl_buffers
-        self._have_opengl_context = False
+        self._opengl_context = opengl_context
 
         self._background_rgba = (0,0,0,1)        # Red, green, blue, opacity, 0-1 range.
 
@@ -74,16 +72,27 @@ class View:
         return self._render.opengl_version()
 
     def _use_opengl(self):
-        self._make_opengl_context_current()
-        self._have_opengl_context = True
+        self._opengl_context.make_current()
         self._initialize_opengl()
 
-    def draw(self):
-        '''Draw the scene.'''
+    def draw(self, only_if_changed = False):
+        '''
+        Draw the scene. If only_if_changed is True then redraw the scene only if
+        the drawing or camera or rendering options have changed.
+        '''
+        if only_if_changed:
+            if self._block_redraw_count == 0:
+                self._block_redraw()	# Avoid redrawing during callbacks of the current redraw.
+                try:
+                    return self._draw_if_changed()
+                finally:
+                    self._unblock_redraw()
+            return False
+
         self._use_opengl()
         self._draw_scene()
         if self.camera.mode.do_swap_buffers():
-            self._swap_opengl_buffers()
+            self._opengl_context.swap_buffers()
         self.frame_number += 1
 
     def get_background_color(self):
@@ -235,7 +244,7 @@ class View:
         the OpenGL rendering to use the specified new window size.
         '''
         self.window_size = (width, height)
-        if self._have_opengl_context:
+        if self._opengl_initialized:
             from .opengl import default_framebuffer
             fb = default_framebuffer()
             fb.width, fb.height = width,height
@@ -251,19 +260,6 @@ class View:
         elif not height is None:
             return ((vw*h)//vh, h)     # Choose width to match window aspect ratio.
         return (vw,vh)
-
-    def draw_if_changed(self):
-        '''Redraw the scene if any changes have occured.'''
-
-        if self._block_redraw_count > 0:
-            return False
-        
-        self._block_redraw()	# Avoid redrawing during callbacks of the current redraw.
-        try:
-            return self._draw_if_changed()
-        finally:
-            self._unblock_redraw()
-            return False
 
     def _draw_if_changed(self):
         for cb in self._new_frame_callbacks:
@@ -698,6 +694,18 @@ class View:
         if p is None:
             p = self.center_of_rotation
         return self.camera.pixel_size(p, self.window_size)
+
+class OpenGLContext:
+    '''
+    OpenGL context used by View for drawing.
+    This should be subclassed to provide window system specific opengl context methods.
+    '''
+    def make_current(self):
+        '''Make the OpenGL context active.'''
+        pass
+    def swap_buffers(self):
+        '''Swap back and front OpenGL buffers.'''
+        pass
 
 class _Redraw_Needed:
   def __init__(self):

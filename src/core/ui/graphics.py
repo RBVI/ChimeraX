@@ -10,8 +10,12 @@ class GraphicsWindow(wx.Panel):
     def __init__(self, parent, ui):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
-        self.opengl_context = None
+        self.timer = None
         self.opengl_canvas = OpenGLCanvas(self, ui)
+        from wx.glcanvas import GLContext
+        oc = self.opengl_context = GLContext(self.opengl_canvas)
+        oc.make_current = self.make_context_current
+        oc.swap_buffers = self.swap_buffers
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
@@ -19,33 +23,29 @@ class GraphicsWindow(wx.Panel):
         class FakeView:
             def __init__(self, *args, **kw): pass
             def draw(self, *args, **kw): pass
-            def draw_if_changed(self, *args, **kw): pass
             def resize(self, *args, **kw): pass
         self.view = FakeView()
         # create a View instance here
-        # self.view = View(models, self.GetClientSize(),
-        #     self.make_opengl_context_current,
-        #     self.swap_opengl_buffers, log)
+        # self.view = View(drawings, self.GetClientSize(),
+        #     self.opengl_context)
 
         self.redraw_interval = 16 # milliseconds
         # perhaps redraw interval should be 10 to reduce
         # frame drops at 60 frames/sec
 
-    def make_opengl_context_current(self):
+    def make_context_current(self):
         # creates context if needed
-        if self.opengl_context is None:
-            from wx.glcanvas import GLContext
-            self.opengl_context = GLContext(self.opengl_canvas)
+        if self.timer is None:
             self.timer = wx.Timer(self)
             self.Bind(wx.EVT_TIMER, self._redraw_timer_callback, self.timer)
             self.timer.Start(self.redraw_interval)
         self.opengl_canvas.SetCurrent(self.opengl_context)
 
-    def swap_opengl_buffers(self):
+    def swap_buffers(self):
         self.opengl_canvas.SwapBuffers()
 
     def _redraw_timer_callback(self, event):
-        self.view.draw_if_changed()
+        self.view.draw(only_if_changed=True)
 
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):
