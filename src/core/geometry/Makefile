@@ -1,7 +1,7 @@
-TOP = ../../../..
+TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/geometry
+PKG_DIR = $(PYSITEDIR)/chimera/core/geometry
 
 SUBDIRS	= geometry_cpp
 

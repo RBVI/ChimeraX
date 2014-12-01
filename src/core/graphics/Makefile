@@ -1,7 +1,7 @@
-TOP = ../../../..
+TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/graphics
+PKG_DIR = $(PYSITEDIR)/chimera/core/graphics
 
 SUBDIRS	= graphics_cpp
 

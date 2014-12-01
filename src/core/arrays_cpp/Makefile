@@ -1,7 +1,7 @@
-TOP	= ../../../..
+TOP	= ../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra
+PKG_DIR = $(PYSITEDIR)/chimera/core
 
 LIBNAME = arrays
 SRCS	= pythonarray.cpp rcarray.cpp refcount.cpp
@@ -22,8 +22,6 @@ all: $(SHLIB)
 
 install: all
 	$(RSYNC) $(SHLIB) $(libdir)
-	-mkdir -p $(PKG_DIR)/lib
-	$(RSYNC) $(SHLIB) $(PKG_DIR)/lib
 	$(RSYNC) $(HDRS) $(includedir)
 
 $(SHLIB): $(OBJS)

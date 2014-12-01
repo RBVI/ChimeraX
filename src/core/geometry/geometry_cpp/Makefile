@@ -1,10 +1,10 @@
-TOP	= ../../../../..
+TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/graphics
+PKG_DIR = $(PYSITEDIR)/hydra/geometry
 
-PYMOD_NAME = graphics_cpp
-SRCS	= blend_rgba.cpp graphics.cpp intercept.cpp mesh_edges.cpp
+PYMOD_NAME = geometry_cpp
+SRCS	= distances.cpp distancespy.cpp geometry.cpp transform.cpp vector_ops.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)
