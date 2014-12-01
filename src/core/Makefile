@@ -26,6 +26,9 @@ lint:
 clean:
 	rm -rf __pycache__
 
-atomstruct.install: cpp_logger.install
-structaccess.install: atomstruct.install blob.install
-pdbio.install: atomstruct.install pdb.install blob.install
+atomstruct.install: basegeom.install cpp_logger.install
+blob.install: atomstruct.install
+pdbio.install: atomstruct.install cpp_logger.install pdb.install blob.install \
+	basegeom.install
+pseudobond.install: basegeom.install
+structaccess.install: atomstruct.install basegeom.install blob.install
