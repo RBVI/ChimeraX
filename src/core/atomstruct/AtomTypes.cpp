@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 #include "basegeom/Coord.h"
-#include "cpp_logger/logger.h"
+#include "logger_cpp/logger.h"
 #include "tmpl/TAexcept.h"
 #include "AtomTypes.h"
 #include "Residue.h"

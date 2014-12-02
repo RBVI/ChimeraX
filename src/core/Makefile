@@ -1,8 +1,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= arrays_cpp atomstruct basegeom blob cpp_appdirs cpp_logger \
-	geometry graphics ioutil pdb pdbio  pseudobond structaccess ui util
+SUBDIRS	+= appdirs_cpp arrays_cpp atomstruct basegeom blob \
+	geometry graphics ioutil logger_cpp pdb pdbio  pseudobond structaccess ui util
 
 include $(TOP)/mk/subdir.make
 
@@ -26,11 +26,11 @@ lint:
 clean:
 	rm -rf __pycache__
 
-atomstruct.install: basegeom.install cpp_logger.install
+atomstruct.install: basegeom.install logger_cpp.install util.install
 blob.install: atomstruct.install
 geometry.all: arrays_cpp.all
 graphics.all: arrays_cpp.all
-pdbio.install: atomstruct.install cpp_logger.install pdb.install blob.install \
+pdbio.install: atomstruct.install logger_cpp.install pdb.install blob.install \
 	basegeom.install
 pseudobond.install: basegeom.install
 structaccess.install: atomstruct.install basegeom.install blob.install

@@ -2,7 +2,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
-#include "cpp_logger/logger.h"
+#include "logger_cpp/logger.h"
 #include "Element.h"
 #include "AtomicStructure.h"
 #include "Residue.h"
