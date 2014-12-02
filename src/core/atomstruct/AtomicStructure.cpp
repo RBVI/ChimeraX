@@ -399,7 +399,7 @@ AtomicStructure::polymers() const
 
 const AtomicStructure::Rings&
 AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
-    std::set<const Residue *>* ignore) const
+    std::unordered_set<const Residue *>* ignore) const
 {
     if (!_recompute_rings && cross_residues == _rings_last_cross_residues
     && all_size_threshold == _rings_last_all_size_threshold

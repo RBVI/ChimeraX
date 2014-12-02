@@ -4,9 +4,9 @@
 
 #include <vector>
 #include <string>
-#include <unordered_map>
 #include <memory>
-#include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Chain.h"
 #include "Pseudobond.h"
@@ -40,16 +40,19 @@ public:
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
-    typedef std::set<Ring> Rings;
+    typedef std::unordered_set<Ring> Rings;
 private:
     CoordSet *  _active_coord_set;
     bool  _being_destroyed;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
-            std::set<const Residue *>* ignore) const;
+            std::unordered_set<const Residue *>* ignore) const;
     mutable Chains *  _chains;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
+    bool  _fast_calculate_rings(bool cross_residue,
+            unsigned int all_size_threshold,
+            std::unordered_set<const Residue *>* ignore) const;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
@@ -60,7 +63,7 @@ private:
     mutable Rings  _rings;
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
-    mutable std::set<const Residue *>*  _rings_last_ignore;
+    mutable std::unordered_set<const Residue *>*  _rings_last_ignore;
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure() { _being_destroyed = true; }
@@ -104,7 +107,7 @@ public:
     const Residues &  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
-        std::set<const Residue *>* ignore = nullptr) const;
+        std::unordered_set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
     void  set_input_seq_info(std::string& chain_id, std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(std::string& name) { _name = name; }

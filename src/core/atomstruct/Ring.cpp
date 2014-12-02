@@ -197,13 +197,12 @@ Ring::aromatic() const {
 }
 
 
-long
+std::size_t
 Ring::hash() const
 {
-	// Python compatible hash function
-	long value = 0;
+	std::size_t value = 0;
     for (auto b: bonds()) {
-		long v = reinterpret_cast<long>(b);
+		std::size_t v = reinterpret_cast<std::size_t>(b);
 		value ^= v;
 	}
 	if (value == -1)

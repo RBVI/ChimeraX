@@ -2,6 +2,7 @@
 #ifndef atomstruct_Ring
 #define atomstruct_Ring
 
+#include <cstddef>
 #include <set>
 
 namespace atomstruct {
@@ -36,7 +37,7 @@ public:
 
 	bool  operator<(const Ring&) const;
 	bool  operator==(const Ring&) const;
-	long  hash() const;
+	std::size_t  hash() const;
 
 	// determine plane equation Ax+By+Cz+D=0 using algorithm in
 	// Foley and van Damm 2nd edition, pp. 476-477
@@ -47,5 +48,17 @@ public:
 };
 
 } // namespace atomstruct
+
+// unordered sets/maps need a specialization of std::hash
+namespace std {
+    template <>
+    struct hash<atomstruct::Ring>
+    {
+        std::size_t operator()(const atomstruct::Ring& r) const
+        {
+            return r.hash();
+        }
+    };
+}
 
 #endif  // atomstruct_Ring
