@@ -35,8 +35,8 @@ $(PROG): $(OBJS)
 	$(PROG_LINK)
 
 __main__.py: $(PY_MAIN)
-	python3 mk__main__.py $<
+	$(bindir)/python3 mk__main__.py $<
 
 frozen.c M___main__.c: __main__.py
-	python3 mkfrozen.py $(PY_SOURCE) $<
+	$(bindir)/python3 mkfrozen.py $(PY_SOURCE) $<
 	patch -b < frozen.patch

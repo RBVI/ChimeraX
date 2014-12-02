@@ -154,6 +154,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         ui_class = nogui.UI
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
+    sess.logger = None # temporary, to allow other code to work
     sess.ui = ui_class(sess)
     # splash step "0" will happen in the above initialization
     num_splash_steps = 4
