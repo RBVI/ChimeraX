@@ -15,7 +15,7 @@
 #include "atomstruct/CoordSet.h"
 #include "atomstruct/Sequence.h"
 #include "blob/StructBlob.h"
-#include "cpp_logger/logger.h"
+#include "logger_cpp/logger.h"
 
 namespace pdb {
 

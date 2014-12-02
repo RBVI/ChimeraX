@@ -6,7 +6,7 @@
 #include <ioutil/direntry.h>    // use ioutil::opendir(), readdir(), DIR
 #include <ioutil/tokenize.h>    // use ioutil::tokenize()
 #include <util/cmp_nocase.h>
-#include <cpp_appdirs/AppDirs.h>
+#include <appdirs_cpp/AppDirs.h>
 #include <iostream>
 #include <sstream>
 #include <string.h>

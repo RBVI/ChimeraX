@@ -33,4 +33,4 @@ AppDirs::init_app_dirs(std::string path_sep,
 		user_cache_dir, site_data_dir, site_config_dir, user_log_dir);
 }
 
-}; // namespace cpp_appdirs
+}; // namespace appdirs
