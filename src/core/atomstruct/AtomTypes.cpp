@@ -933,18 +933,25 @@ AtomicStructure::_compute_atom_types()
 		if (a_tf.second)
 			mapped_residues.insert(a_tf.first->residue());
 	}
-	int ring_limit = 3;
-	Rings rs = rings(false, ring_limit, &mapped_residues);
-	if (rs.size() < 20) {
-		// not something crazy like an averaged structure...
-		ring_limit = 6;
-		rs = rings(false, ring_limit, &mapped_residues);
-		if (rs.size() < 20) {
-			// not something crazy like a nanotube...
-			ring_limit = 0;
-			rs = rings(false, ring_limit, &mapped_residues);
-		}
-	}
+	int ring_limit = 0;
+    Rings rs;
+    if (_rings_cached(false, ring_limit, &mapped_residues)
+    || _fast_ring_calc_available(false, ring_limit, &mapped_residues)) {
+        rs = rings(false, ring_limit, &mapped_residues);
+    } else {
+        ring_limit = 3;
+        rs = rings(false, ring_limit, &mapped_residues);
+        if (rs.size() < 20) {
+            // not something crazy like an averaged structure...
+            ring_limit = 6;
+            rs = rings(false, ring_limit, &mapped_residues);
+            if (rs.size() < 20) {
+                // not something crazy like a nanotube...
+                ring_limit = 0;
+                rs = rings(false, ring_limit, &mapped_residues);
+            }
+        }
+    }
 	// screen out rings with definite non-planar types
     std::set<const Ring*> planar_rings;
     for (auto& r: rs) {

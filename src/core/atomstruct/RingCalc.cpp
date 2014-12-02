@@ -30,8 +30,10 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 	//	pp. 460-465
 
     // perhaps use alternative algorithm under certain conditions...
-    if (_fast_calculate_rings(cross_residue, all_size_threshold, ignore))
+    if (_fast_ring_calc_available(cross_residue, all_size_threshold, ignore)) {
+        _fast_calculate_rings(ignore);
         return;
+    }
 
 	typedef std::unordered_set<Bond*> SpanningBonds;
 	typedef std::unordered_map<Atom*, SpanningBonds > Atom2SpanningBonds;
@@ -551,20 +553,10 @@ prune_dead_end_bonds(std::unordered_set<Atom*>& atoms,
     }
 }
 
-bool
-AtomicStructure::_fast_calculate_rings(bool cross_residue,
-    unsigned int all_size_threshold, std::unordered_set<const Residue *>* ignore) const
+void
+AtomicStructure::_fast_calculate_rings(
+    std::unordered_set<const Residue *>* ignore) const
 {
-    if (cross_residue || all_size_threshold != 0)
-        return false;
-    for (auto& r: residues()) {
-        if (r->atoms().size() > 100) {
-            if (ignore == nullptr || ignore->find(r.get()) == ignore->end()) {
-                return false;
-            }
-        }
-    }
-
     // collect atoms/bonds into per-residue "pots"
     std::unordered_map<Residue*, std::unordered_set<Atom*>> res_atoms;
     std::unordered_map<Residue*, std::unordered_set<Bond*>> res_bonds;
@@ -597,7 +589,24 @@ AtomicStructure::_fast_calculate_rings(bool cross_residue,
         
         prune_dead_end_bonds(atoms, bonds, atom_bonds);
     }
+    //TODO: remainder of algoithm
+}
+
+bool
+AtomicStructure::_fast_ring_calc_available(bool cross_residue,
+            unsigned int all_size_threshold,
+            std::unordered_set<const Residue *>* ignore) const;
+    if (cross_residue || all_size_threshold != 0)
+        return false;
+    for (auto& r: residues()) {
+        if (r->atoms().size() > 100) {
+            if (ignore == nullptr || ignore->find(r.get()) == ignore->end()) {
+                return false;
+            }
+        }
+    }
     return true;
 }
+
 
 } // namespace atomstruct

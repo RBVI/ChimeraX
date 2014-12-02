@@ -50,7 +50,9 @@ private:
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
-    bool  _fast_calculate_rings(bool cross_residue,
+    void  _fast_calculate_rings(
+            std::unordered_set<const Residue *>* ignore) const;
+    bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
             std::unordered_set<const Residue *>* ignore) const;
     bool  _idatm_valid;
@@ -61,6 +63,8 @@ private:
     mutable bool  _recompute_rings;
     Residues  _residues;
     mutable Rings  _rings;
+    bool  _rings_cached (bool cross_residues, unsigned int all_size_threshold,
+        std::unordered_set<const Residue *>* ignore = nullptr) const;
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
     mutable std::unordered_set<const Residue *>*  _rings_last_ignore;
