@@ -46,6 +46,9 @@ else
 Mesa.install:
 endif
 
+# Python egg installation has a race condition updating easy-install.pth
+.NOTPARALLEL:
+
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= appdirs cython docutils expat flake8 ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
