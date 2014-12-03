@@ -27,6 +27,9 @@ all: $(FFMPEG_EXE)
 install: $(FFMPEG_EXE)
 	cp $(FFMPEG_EXE) $(bindir)
 
+clean:
+	rm -rf $(FFMPEG_SOURCE) $(YASM_SOURCE) $(LIBX264_SOURCE)
+
 $(FFMPEG_EXE): $(FFMPEG_SOURCE) video_codecs
 	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; make
 
