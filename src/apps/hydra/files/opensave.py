@@ -302,7 +302,7 @@ def read_python(path, session):
     code = f.read()
     f.close()
     ccode = compile(code, path, 'exec')
-    globals = locals = {}
+    globals = locals = {'session':session}
     exec(ccode, globals, locals)
     return []
 
