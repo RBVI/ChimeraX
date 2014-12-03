@@ -665,11 +665,11 @@ class Volume(Model):
 
     ro = rendering_options
 
-    from ..map_cpp import surface
+    from .map_cpp import contour_surface
     try:
-      varray, tarray, narray = surface(matrix, level,
-                                       cap_faces = ro.cap_faces,
-                                       calculate_normals = True)
+      varray, tarray, narray = contour_surface(matrix, level,
+                                               cap_faces = ro.cap_faces,
+                                               calculate_normals = True)
     except MemoryError:
       ses = self.session
       ses.show_warning('Ran out of memory contouring at level %.3g.\n' % level +
@@ -686,18 +686,18 @@ class Volume(Model):
     # Preserve triangle vertex traversal direction about normal.
     transform = self.matrix_indices_to_xyz_transform()
     if transform.determinant() < 0:
-      from ..map_cpp import reverse_triangle_vertex_order
+      from .map_cpp import reverse_triangle_vertex_order
       reverse_triangle_vertex_order(tarray)
 
     if ro.subdivide_surface:
-      from _surface import subdivide_triangles
+      from ..surface.surface_cpp import subdivide_triangles
       for level in range(ro.subdivision_levels):
         varray, tarray, narray = subdivide_triangles(varray, tarray, narray)
 
     if ro.square_mesh:
       from numpy import empty, int32
       hidden_edges = empty((len(tarray),), int32)
-      from .. import map_cpp
+      from . import map_cpp
       map_cpp.principle_plane_edges(varray, tarray, hidden_edges)
 
     if ro.surface_smoothing:

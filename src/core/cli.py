@@ -1060,8 +1060,10 @@ def add_keyword_arguments(name, kw_info):
     :param kw_info: { keyword: annotation }
     """
     cmd = Command(None, name, final=True)
-    if cmd._multiple or not cmd._ci:
-        raise ValueError("'%s' is not a command" % name)
+    cmd.current_text = name
+    cmd._find_command_name(True)
+    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+        raise ValueError("'%s' is not a command name" % name)
     # TODO: fail if there are conflicts with existing keywords?
     cmd._ci._keyword.update(kw_info)
     # TODO: save appropriate kw_info, if reregistered?
@@ -1092,7 +1094,10 @@ class Command:
     """
     def __init__(self, session, text='', final=False, _used_aliases=None):
         import weakref
-        self._session = None if session is None else weakref.proxy(session)
+        if session is None:
+            class FakeSession: pass
+            session = FakeSession()
+        self._session = weakref.ref(session)
         self._reset()
         if text:
             self.parse_text(text, final, _used_aliases)
@@ -1128,7 +1133,7 @@ class Command:
     def execute(self, _used_aliases=None):
         """If command is valid, execute it with given session."""
 
-        session = self._session  # resolve back reference
+        session = self._session()  # resolve back reference
         if not self._error_checked:
             self.error_check()
         results = []
@@ -1258,7 +1263,7 @@ class Command:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, updates self._kwargs
-        session = self._session  # resolve back reference
+        session = self._session()  # resolve back reference
         text = self.current_text[self.amount_parsed:]
         positional = self._ci._required.copy()
         positional.update(self._ci._optional)
@@ -1300,7 +1305,7 @@ class Command:
         #   updates amount_parsed
         #   updates possible completions
         #   if successful, updates self._kwargs
-        session = self._session  # resolve back reference
+        session = self._session()  # resolve back reference
         m = _whitespace.match(self.current_text, self.amount_parsed)
         self.amount_parsed = m.end()
         text = self.current_text[self.amount_parsed:]
@@ -1602,6 +1607,23 @@ def unalias(session, name):
 
 if __name__ == '__main__':
 
+    # from Mike C. Fletcher's BasicTypes library
+    # via http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
+    def flattened(l, ltypes=(list, tuple, set)):
+        ltype = type(l)
+        l = list(l)
+        i = 0
+        while i < len(l):
+            while isinstance(l[i], ltypes):
+                if not l[i]:
+                    l.pop(i)
+                    i -= 1
+                    break
+                else:
+                    l[i:i + 1] = l[i]
+            i += 1
+        return ltype(l)
+
     class ColorArg(Annotation):
         name = 'a color'
 
@@ -1780,7 +1802,7 @@ if __name__ == '__main__':
                 text = input(prompt)
                 cmd.parse_text(text, final=True)
                 results = cmd.execute()
-                for result in results:
+                for result in flattened(results):
                     if result is not None:
                         print(result)
             except EOFError:
@@ -1863,7 +1885,7 @@ if __name__ == '__main__':
             print(cmd.current_text)
             results = cmd.execute()
             if results:
-                for result in results:
+                for result in flattened(results):
                     if result is not None:
                         print(result)
             if fail:

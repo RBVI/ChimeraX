@@ -1,44 +1,44 @@
 graphics
 ========
-.. automodule:: hydra.graphics.view
+.. automodule:: chimera.core.graphics.view
     :members:
     :member-order: bysource
 
-.. automodule:: hydra.graphics.camera
+.. automodule:: chimera.core.graphics.camera
     :members:
     :member-order: bysource
 
-.. automodule:: hydra.graphics.drawing
+.. automodule:: chimera.core.graphics.drawing
     :members:
     :member-order: bysource
     :exclude-members: Pick
 
 Pick
 ----
-.. autoclass:: hydra.graphics.drawing.Pick
+.. autoclass:: chimera.core.graphics.drawing.Pick
     :members:
 
 Lighting
 --------
-.. autoclass:: hydra.graphics.opengl.Lighting
+.. autoclass:: chimera.core.graphics.opengl.Lighting
     :members:
 
 Material
 --------
-.. autoclass:: hydra.graphics.opengl.Material
+.. autoclass:: chimera.core.graphics.opengl.Material
     :members:
 
 Texture
 --------
-.. autoclass:: hydra.graphics.opengl.Texture
+.. autoclass:: chimera.core.graphics.opengl.Texture
     :members:
 
 CrossFade
 -----------
-.. autoclass:: hydra.graphics.crossfade.CrossFade
+.. autoclass:: chimera.core.graphics.crossfade.CrossFade
     :members:
 
 MotionBlur
 -----------
-.. autoclass:: hydra.graphics.crossfade.MotionBlur
+.. autoclass:: chimera.core.graphics.crossfade.MotionBlur
     :members:

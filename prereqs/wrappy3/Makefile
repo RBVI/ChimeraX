@@ -25,6 +25,12 @@ ifeq ($(WIN32),msvc)
 LIBS	= /LINK LIBPATH:$(libdir) -lpcreposix -lpcre
 else
 LIBS	= -L$(libdir) -lpcreposix -lpcre -lm
+ifeq ($(OS),Linux)
+LDFLAGS += -Wl,-rpath,'$$ORIGIN/../lib'
+endif
+ifeq ($(OS),Darwin)
+LDFLAGS += -Wl,-rpath,'@loader_path/../lib'
+endif
 endif
 DOCS	= minidoc.txt
 INCS	+= -I$(includedir)

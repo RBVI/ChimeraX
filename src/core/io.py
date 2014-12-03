@@ -41,8 +41,11 @@ __all__ = [
 ]
 
 _compression = {}
+
+
 def register_compression(suffix, stream_type):
     _compression[suffix] = stream_type
+
 
 def _init_compression():
     try:
@@ -62,11 +65,13 @@ def _init_compression():
         pass
 _init_compression()
 
+
 def compression_suffixes():
-	return _compression.keys()
+    return _compression.keys()
 
 # some well known file format categories
 SCRIPT = "Command script"
+
 
 class _FileFormatInfo:
     """Keep tract of information about various data sources
@@ -76,48 +81,50 @@ class _FileFormatInfo:
         Type of data (STRUCTURE, SEQUENCE, etc.)
 
     ..attribute:: extensions
-    
+
             Sequence of filename extensions in lowercase
             starting with period (or empty)
 
     ..attribute:: prefixes
-    
+
             sequence of URL-style prefixes (or empty)
 
     ..attribute:: mime_types
-    
+
             sequence of associated MIME types (or empty)
 
     ..attribute:: reference
-    
+
             URL reference to specification
 
     ..attribute:: dangerous
-    
+
             True if can execute arbitrary code (e.g., scripts)
 
     ..attribute:: open_func
-    
+
             function that opens files: func(stream, identify_as=None)
 
     ..attribute:: requires_seeking
-    
+
             True if open function needs seekable files
 
     ..attribute:: fetch_func
-    
-            function that opens internet files: func(prefixed_name, identify_as=None)
+
+            function that opens internet files:
+                func(prefixed_name, identify_as=None)
 
     ..attribute:: save_func
-    
+
             function that saves files: func(stream)
 
     ..attribute:: save_notes
-    
+
             additional information to show in save dialogs
     """
 
-    def __init__(self, category, extensions, prefixes, mime, reference, dangerous):
+    def __init__(self, category, extensions, prefixes, mime, reference,
+                 dangerous):
         self.category = category
         self.extensions = extensions
         self.prefixes = prefixes
@@ -137,7 +144,9 @@ from chimera2 import triggers as _triggers
 NEW_FILE_FORMAT = "new file format"
 _triggers.add_trigger(NEW_FILE_FORMAT)
 
-def register_format(name, category, extensions, prefixes=(), mime=(), reference=None, dangerous=None, **kw):
+
+def register_format(name, category, extensions, prefixes=(), mime=(),
+                    reference=None, dangerous=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param name: format's name
@@ -148,7 +157,7 @@ def register_format(name, category, extensions, prefixes=(), mime=(), reference=
     :param prefixes: is a sequence of filename prefixes (no ':'),
        possibily empty.
     :param mime: is a sequence of mime types, possibly empty.
-    :param reference: a URL link to the specification. 
+    :param reference: a URL link to the specification.
     :param dangerous: should be True for formats that can write/delete
        a users's files.  False by default except for the SCRIPT category.
 
@@ -166,16 +175,18 @@ def register_format(name, category, extensions, prefixes=(), mime=(), reference=
         prefixes = ()
     if prefixes and not fetch_function:
         import sys
-        print("missing fetch function for format with prefix support:", name, file=sys.stderr)
+        print("missing fetch function for format with prefix support:",
+              name, file=sys.stderr)
     if mime is None:
         mime = ()
     ff = _file_formats[name] = _FileFormatInfo(category, exts, prefixes,
-                mime, reference, dangerous)
+                                               mime, reference, dangerous)
     for attr in ['open_func', 'requires_seeking', 'fetch_func',
-                'save_func', 'save_notes']:
+                 'save_func', 'save_notes']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
     _triggers.activate_trigger(NEW_FILE_FORMAT, name)
+
 
 def prefixes(name):
     """Return filename prefixes for named format.
@@ -186,6 +197,7 @@ def prefixes(name):
         return _file_formats[name].prefixes
     except KeyError:
         return ()
+
 
 def register_open(name, open_function, requires_seeking=False):
     """register a function that reads data from a stream
@@ -200,6 +212,7 @@ def register_open(name, open_function, requires_seeking=False):
     fi.open_func = open_function
     fi.requires_seeking = requires_seeking
 
+
 def register_fetch(name, fetch_function):
     """register a function that fetches data from the Internet
 
@@ -212,6 +225,7 @@ def register_fetch(name, fetch_function):
         raise ValueError("Unknown data type")
     fi.fetch_func = fetch_function
 
+
 def register_save(name, save_function, save_notes=''):
     try:
         fi = _file_formats[name]
@@ -219,6 +233,7 @@ def register_save(name, save_function, save_notes=''):
         raise ValueError("Unknown data type")
     fi.save_func = save_function
     fi.save_notes = save_notes
+
 
 def extensions(name):
     """Return filename extensions for named format.
@@ -231,6 +246,7 @@ def extensions(name):
         return ()
     return exts
 
+
 def open_function(name):
     """Return open callback for named format.
 
@@ -240,6 +256,7 @@ def open_function(name):
         return _file_formats[name].open_func
     except KeyError:
         return None
+
 
 def fetch_function(name):
     """Return fetch callback for named format.
@@ -251,6 +268,7 @@ def fetch_function(name):
     except KeyError:
         return None
 
+
 def save_function(name):
     """Return save callback for named format.
 
@@ -261,12 +279,14 @@ def save_function(name):
     except KeyError:
         return None
 
+
 def mime_types(name):
     """Return mime types for named format."""
     try:
         return _file_formats[name].mime_types
     except KeyError:
         return None
+
 
 def requires_seeking(name):
     """Return whether named format can needs a seekable file"""
@@ -275,6 +295,7 @@ def requires_seeking(name):
     except KeyError:
         return False
 
+
 def dangerous(name):
     """Return whether named format can write to files"""
     try:
@@ -282,12 +303,14 @@ def dangerous(name):
     except KeyError:
         return False
 
+
 def category(name):
     """Return category of named format"""
     try:
         return _file_formats[name].category
     except KeyError:
         return "Unknown"
+
 
 def format_names(open=True, save=False, source_is_file=False):
     """Return known format names.
@@ -304,6 +327,7 @@ def format_names(open=True, save=False, source_is_file=False):
             names.append(t)
     return names
 
+
 def categorized_formats(open=True, save=False):
     """Return known formats by category
 
@@ -319,9 +343,10 @@ def categorized_formats(open=True, save=False):
         names.append(name)
     return result
 
+
 def deduce_format(filename, default_name=None, prefixable=True):
     """Figure out named format associated with filename
-    
+
     Return tuple of deduced format namea, whether it was a prefix
     reference, the unmangled filename, and the compression format
     (if present).  If it is a prefix reference, then it needs to
@@ -343,7 +368,7 @@ def deduce_format(filename, default_name=None, prefixable=True):
                     filename = fname
                     prefixed = True
                     break
-    if name == None:
+    if name is None:
         import os
         for compression in compression_suffixes():
             if filename.endswith(compression):
@@ -358,9 +383,10 @@ def deduce_format(filename, default_name=None, prefixable=True):
             if ext in info.extensions:
                 name = t
                 break
-        if name == None:
+        if name is None:
             name = default_name
     return name, prefixed, filename, compression
+
 
 def qt_save_file_filter(category=None, all=False):
     """Return file name filter suitable for Save File dialog"""
@@ -378,6 +404,7 @@ def qt_save_file_filter(category=None, all=False):
     result.sort(key=str.casefold)
     return ';;'.join(result)
 
+
 def qt_open_file_filter(all=False):
     """Return file name filter suitable for Open File dialog"""
 
@@ -387,7 +414,9 @@ def qt_open_file_filter(all=False):
             continue
         exts = combine.setdefault(info.category, [])
         exts.extend(info.extensions)
-    result = ["%s files (%s)" % (k, ' '.join('*%s' % ext for ext in combine[k])) for k in combine]
+    result = ["%s files (%s)" %
+              (k, ' '.join('*%s' % ext for ext in combine[k]))
+              for k in combine]
     if _compression:
         result.append("Compressed files (%s)" % ' '.join(_compression.keys()))
     if all:
@@ -396,9 +425,11 @@ def qt_open_file_filter(all=False):
     return ';;'.join(result)
 
 _builtin_open = open
+
+
 def open(filespec, identify_as=None, **kw):
     """open a (compressed) file
-    
+
     :param filespec: '''prefix:id''' or a (compressed) filename
     :param identify_as: name used to identify data source; default to filespec
 
@@ -459,9 +490,11 @@ def open(filespec, identify_as=None, **kw):
         track.release()
     return status
 
+
 def save(filename, **kw):
     from chimera2.cli import UserError
-    name, prefix, filename, compression = deduce_format(filename, prefixable=False)
+    name, prefix, filename, compression = deduce_format(filename,
+                                                        prefixable=False)
     if name is None:
         raise UserError("Missing or unknown file type")
     func = save_function(name)

@@ -36,7 +36,7 @@ class Bond_Templates:
     def molecule_bonds(self, molecule):
 
 #        return self.molecule_bonds_orig(molecule)
-        from .. import molecule_cpp
+        from . import molecule_cpp
         if self.cc_index is None:
             self.read_templates_file()
             molecule_cpp.initialize_bond_templates(self.cc_index, self.all_bonds, cc_chars)

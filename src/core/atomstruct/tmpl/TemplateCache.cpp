@@ -6,7 +6,7 @@
 #include <ioutil/direntry.h>    // use ioutil::opendir(), readdir(), DIR
 #include <ioutil/tokenize.h>    // use ioutil::tokenize()
 #include <util/cmp_nocase.h>
-#include <cpp_appdirs/AppDirs.h>
+#include <appdirs_cpp/AppDirs.h>
 #include <iostream>
 #include <sstream>
 #include <string.h>
@@ -61,7 +61,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
 {
     ResMap res_map;
     cache[key] = res_map;
-    auto ap = cpp_appdirs::AppDirs::get();
+    auto ap = appdirs::AppDirs::get();
 
     std::string t_dir = ap.form_path({ ap.site_data_dir, app, template_dir });
     DIR *tmpls = opendir(t_dir.c_str());

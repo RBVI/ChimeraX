@@ -20,7 +20,7 @@ def open_mmcif_file_with_molecule_cpp(path, session):
   text = f.read()
   f.close()
   ft1 = time()
-  from .. import molecule_cpp
+  from . import molecule_cpp
   t0 = time()
   matoms = molecule_cpp.parse_mmcif_file(text, sort_residues = True)
   t1 = time()

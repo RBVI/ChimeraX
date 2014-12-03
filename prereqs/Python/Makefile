@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).0
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -30,12 +30,12 @@ ifdef DEBUG
 PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
 endif
 
-LIBREPLACE = $(wildcard Python-$(PYTHON_PATCH_LEVEL)-*.py)
-
 ifeq ($(OS),Linux)
 # On linux have to disable IPV6 socket support or _socket doesn't compile.
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
+
+LDFLAGS += -Wl,-rpath,"$(libdir)"
 
 ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
@@ -98,6 +98,9 @@ ifeq ($(OS),Windows)
 	  $(bindir)
 else ifndef USE_MAC_FRAMEWORKS
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
+ifeq ($(OS),Linux)
+	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
+endif
 else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
@@ -119,12 +122,6 @@ ifneq ($(OS),Windows)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
-	done
-endif
-ifneq (,$(LIBREPLACE))
-	for p in $(LIBREPLACE); do \
-		name=`echo $$p | sed 's/.*-//'`; \
-		cp -f $$p $(SOURCE)/Lib/$$name ; \
 	done
 endif
 	cd $(SOURCE) && $(ENV_CONFIGURE) \

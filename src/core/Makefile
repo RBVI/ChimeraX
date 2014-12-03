@@ -1,8 +1,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= ioutil pdb basegeom util cpp_appdirs pseudobond atomstruct blob pdbio \
-	structaccess ui
+SUBDIRS	+= appdirs_cpp arrays_cpp atomstruct basegeom blob \
+	geometry graphics ioutil logger_cpp pdb pdbio  pseudobond structaccess ui util
 
 include $(TOP)/mk/subdir.make
 
@@ -21,10 +21,16 @@ dir:
 $(SUBDIR_INSTALL): dir
 
 lint:
-	pyflakes $(PYSRCS)
+	python3 -m flake8 $(PYSRCS)
 
 clean:
 	rm -rf __pycache__
 
-structaccess.install: atomstruct.install blob.install
-pdbio.install: atomstruct.install pdb.install blob.install
+atomstruct.install: basegeom.install logger_cpp.install util.install
+blob.install: atomstruct.install
+geometry.all: arrays_cpp.all
+graphics.all: arrays_cpp.all
+pdbio.install: atomstruct.install logger_cpp.install pdb.install blob.install \
+	basegeom.install
+pseudobond.install: basegeom.install
+structaccess.install: atomstruct.install basegeom.install blob.install

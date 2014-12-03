@@ -38,6 +38,10 @@ Modules
 
     core/cpp_appdirs/cpp_appdirs.rst
 
+    hydra_geometry.rst
+
+    hydra_graphics.rst
+
 .. seealso::
 
     :doc:`Readcif <readcif>`

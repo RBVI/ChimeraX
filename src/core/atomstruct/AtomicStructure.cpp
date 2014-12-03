@@ -2,6 +2,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "CoordSet.h"
+#include "logger_cpp/logger.h"
 #include "Element.h"
 #include "AtomicStructure.h"
 #include "Residue.h"
@@ -17,10 +18,11 @@ namespace atomstruct {
 const char*  AtomicStructure::PBG_METAL_COORDINATION = "metal coordination bonds";
 const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 
-AtomicStructure::AtomicStructure(): _active_coord_set(NULL),
+AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
     asterisks_translated(false), _being_destroyed(false), _chains(nullptr),
-    _idatm_valid(false), lower_case_chains(false), _pb_mgr(this),
-    _recompute_rings(true), pdb_version(0), is_traj(false)
+    _idatm_valid(false), _logger(logger), lower_case_chains(false),
+    _name("unknown AtomicStructure"), _pb_mgr(this), _recompute_rings(true),
+    pdb_version(0), is_traj(false)
 {
 }
 
@@ -176,62 +178,71 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::
 }
 
 void
-AtomicStructure::make_chains(const AtomicStructure::ChainInfo* chain_info) const
+AtomicStructure::make_chains() const
 {
-    // if chain_info null, try to match up to SEQRES records, and if there
-    // are none then fall back to chains derived from the structure directly
-    ChainInfo* ci = (ChainInfo*)chain_info;
-
-    // reorganize the below to integrate SEQRES and direct structure
-    // code:  use SEQRES for chains that have them and direct structure
-    // otherwise
-    if (ci == nullptr) {
-        // match against SEQRES records if any
-        auto seqres_search = pdb_headers.find("SEQRES");
-        if (seqres_search != pdb_headers.end()) {
-            
-        }
-    }
-
-    if (ci == nullptr) {
-        // match against structure directly
-        auto polys = polymers();
-        // gather chain IDs and, if not unique, use numbers instead
-        std::vector<std::string> ids;
-        for (auto pi = polys.begin(); pi != polys.end(); ++pi) {
-            ids.push_back((*(*pi).begin())->chain_id());
-        }
-        std::set<std::string> unique_ids(ids.begin(), ids.end());
-        if (ids.size() != unique_ids.size()) {
-            ids.clear();
-            for (int i = 1; i <= polys.size(); ++i) {
-                ids.push_back(std::to_string(i));
-            }
-        }
-        ci = new ChainInfo();
-        auto idi = ids.begin();
-        for (auto pi = polys.begin(); pi != polys.end(); ++pi, ++idi) {
-            ci->insert(ChainInfo::value_type(
-                *idi, CI_Chain_Pairing(*pi, nullptr)));
-        }
-    }
-
     if (_chains != nullptr)
         delete _chains;
 
     _chains = new Chains();
-    for (auto cii = ci->begin(); cii != ci->end(); ++cii) {
-       const std::string& chain_id = (*cii).first;
-       CI_Chain_Pairing chain_pairing = (*cii).second;
-       Chain::Residues& residues = chain_pairing.first;
-       Sequence::Contents* chars = chain_pairing.second;
-       auto chain = new Chain(chain_id);
-       _chains->emplace_back(chain);
-       chain->bulk_set(residues, chars);
-    }
+    auto polys = polymers();
 
-    if (chain_info == nullptr)
-        delete ci;
+    // for chain IDs associated with a single polymer, we can try to
+    // form a Chain using SEQRES record.  Otherwise, form a Chain based
+    // on structure only
+    std::map<std::string, bool> unique_chain_id;
+    if (!_input_seq_info.empty()) {
+        for (auto polymer: polys) {
+            auto chain_id = polymer[0]->chain_id();
+            if (unique_chain_id.find(chain_id) == unique_chain_id.end()) {
+                unique_chain_id[chain_id] = true;
+            } else {
+                unique_chain_id[chain_id] = false;
+            }
+        }
+    }
+    for (auto polymer: polys) {
+        const std::string& chain_id = polymer[0]->chain_id();
+        auto chain = new Chain(chain_id);
+        _chains->emplace_back(chain);
+
+        // first, create chain directly from structure
+        chain->bulk_set(polymer, nullptr);
+
+        auto three_let_i = _input_seq_info.find(chain_id);
+        if (three_let_i != _input_seq_info.end()
+        && unique_chain_id[chain_id]) {
+            // try to adjust chain based on SEQRES
+            auto& three_let_seq = three_let_i->second;
+            auto seqres_size = three_let_seq.size();
+            auto chain_size = chain->size();
+            if (seqres_size == chain_size) {
+                // presumably no adjustment necessary
+                chain->set_from_seqres(true);
+                continue;
+            }
+
+            if (seqres_size < chain_size) {
+                logger::warning(_logger, input_seq_source, " for chain ",
+                    chain_id, " of ", _name, " is incomplete.\n"
+                    "Ignoring input sequence records as basis for sequence.");
+                continue;
+            }
+
+            // skip if standard residues have been removed but the
+            // sequence records haven't been...
+            Sequence sr_seq(three_let_seq);
+            if (std::count(chain->begin(), chain->end(), 'X') == chain_size
+            && std::search(sr_seq.begin(), sr_seq.end(),
+            chain->begin(), chain->end()) == sr_seq.end()) {
+                logger::warning(_logger, "Residues corresponding to ",
+                    input_seq_source, " for chain ", chain_id, " of ", _name,
+                    " are missing.\nIgnoring record as basis for sequence.");
+                continue;
+            }
+
+            // okay, seriously try to match up with SEQRES
+        }
+    }
 }
 
 Atom *

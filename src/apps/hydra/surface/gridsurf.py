@@ -33,14 +33,14 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     ri /= s
 
     # Compute distance map from surface of spheres, positive outside.
-    from ..map_cpp import sphere_surface_distance
+    from ..map.map_cpp import sphere_surface_distance
     sphere_surface_distance(ijk, ri, max_index_range, matrix)
 
     # Get the SAS surface as a contour surface of the distance map
-    from ..map_cpp import surface
+    from ..map.map_cpp import contour_surface
     level = 0
-    sas_va, sas_ta, sas_na = surface(matrix, level, cap_faces = False,
-                                     calculate_normals = True)
+    sas_va, sas_ta, sas_na = contour_surface(matrix, level, cap_faces = False,
+                                             calculate_normals = True)
     if sas:
         xyz_to_ijk_tf.inverse().move(sas_va)
         return sas_va, sas_na, sas_ta
@@ -51,8 +51,8 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     rp = empty((len(sas_va),), float32)
     rp[:] = float(probe_radius)/s
     sphere_surface_distance(sas_va, rp, max_index_range, matrix)
-    ses_va, ses_ta, ses_na = surface(matrix, level, cap_faces = False,
-                                     calculate_normals = True)
+    ses_va, ses_ta, ses_na = contour_surface(matrix, level, cap_faces = False,
+                                             calculate_normals = True)
 
     # Transform surface from grid index coordinates to atom coordinates
     xyz_to_ijk_tf.inverse().move(ses_va)
@@ -60,7 +60,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     # Delete connected components more than 1.5 probe radius from atom spheres.
     kvi = []
     kti = []
-    from ..map_cpp import connected_pieces
+    from .surface_cpp import connected_pieces
     vtilist = connected_pieces(ses_ta)
     for vi,ti in vtilist:
         v0 = ses_va[vi[0],:]

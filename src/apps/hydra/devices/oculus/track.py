@@ -44,7 +44,7 @@ class Oculus_Rift:
 
         if not self.connected:
             # Make sure initializing Oculus distortion correct doesn't change current OpenGL VAO bindings.
-            self.window.make_opengl_context_current()
+            self.window.opengl_context.make_current()
             try:
                 _oculus.connect()
                 self.connected = True
@@ -99,10 +99,10 @@ class Oculus_Rift:
     def render(self, tex_width, tex_height, tex_left, tex_right):
 
         if self.connected and self.frame_cb:
-            self.window.make_opengl_context_current()
+            self.window.opengl_context.make_current()
             from . import _oculus
             _oculus.render(tex_width, tex_height, tex_left, tex_right)
-            self.session.main_window.graphics_window.make_opengl_context_current()
+            self.session.main_window.graphics_window.opengl_context.make_current()
 
     def field_of_view_degrees(self):
 
@@ -307,7 +307,7 @@ class OculusRiftCameraMode(CameraMode):
         s.texture = self._warp_framebuffers[1].color_texture
         draw_overlays([s], render)
 
-        session.view.swap_opengl_buffers()
+        session.graphics_window.opengl_context.swap_buffers()
 
     def _warping_surface(self, render):
 

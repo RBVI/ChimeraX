@@ -1,8 +1,10 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= arrays commands devices docs example_sessions files geometry graphics mac_os_cpp \
-	  map map_cpp measure molecule molecule_cpp movie surface ui
+SUBDIRS	= commands devices docs example_sessions files \
+	  mac_os_cpp map measure molecule movie surface ui
+
+COREDIRS = arrays_cpp geometry graphics
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
@@ -42,7 +44,7 @@ ifeq ($(OS),Darwin)
   DATEUTIL_VERSION = 2.2
   DATEUTIL_EGG = python_dateutil-$(DATEUTIL_VERSION)-py$(PYTHON_VERSION).egg
   HDF_VERSION = 5.8
-  SIX_VERSION = 1.6.1
+  SIX_VERSION = 1.8.0
   SIX_EGG = six-$(SIX_VERSION)-py$(PYTHON_VERSION).egg
   APPDIRS_VERSION = 1.4.0
   APPDIRS_EGG = appdirs-$(APPDIRS_VERSION)-py$(PYTHON_VERSION).egg
@@ -55,13 +57,22 @@ all: $(PYOBJS)
 
 install: all $(PKG_DIR) install_app_prereqs
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+# Install core packages in Hydra app.
+	$(RSYNC) $(PYSITEDIR)/chimera/core/geometry $(PYSITEDIR)/chimera/core/graphics $(PKG_DIR)
+	-mkdir -p $(PKG_DIR)/lib
+	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(PKG_DIR)/lib
 ifeq ($(OS),Darwin)
-	$(RSYNC) $(PYSITEDIR)/hydra $(APP_PY_SITE)
+	$(RSYNC) $(PKG_DIR) $(APP_PY_SITE)
 endif
 
 ifeq ($(OS),Darwin)
 
 install_app_prereqs: $(APP)
+
+install_core:
+	for cdir in $(COREDIRS) ; do \
+		cd $(TOP)/src/core/$$cdir ; make install ; \
+	done
 
 $(APP) update_prereqs:
 
@@ -157,6 +168,3 @@ $(PKG_DIR):
 
 clean:
 	rm -rf __pycache__
-
-map_cpp.all: arrays.install
-molecule_cpp.all: arrays.install

@@ -17,17 +17,14 @@ class GraphicsWindow(wx.Panel):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
 
-        models = session
-        log = session
-        self.view = View(models, self.GetClientSize(),
-                         self.make_opengl_context_current,
-                         self.swap_opengl_buffers, log)
-
-        self.opengl_context = None
         self.opengl_canvas = OpenGLCanvas(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
+
+        log = session
+        self.view = View(session.drawing(), self.GetClientSize(),
+                         WxOpenGLContext(self.opengl_canvas), log)
 
         self.set_stereo_eye_separation()
 
@@ -39,19 +36,11 @@ class GraphicsWindow(wx.Panel):
         from . import mousemodes
         self.mouse_modes = mousemodes.WxMouseModes(self)
 
-    def create_opengl_context(self):
-        from wx.glcanvas import GLContext
-        return GLContext(self.opengl_canvas)
-
-    def make_opengl_context_current(self):
-        if self.opengl_context is None:
-            self.opengl_context = self.create_opengl_context()
-            self.start_update_timer()
-        self.opengl_canvas.SetCurrent(self.opengl_context)
+        self.start_update_timer()
 
     def redraw_timer_callback(self, evt):
         if True:
-            if not self.view.draw_if_changed():
+            if not self.view.draw(only_if_changed = True):
                 self.mouse_modes.mouse_pause_tracking()
 
     def set_stereo_eye_separation(self, eye_spacing_millimeters=61.0):
@@ -67,8 +56,23 @@ class GraphicsWindow(wx.Panel):
             self.Bind(wx.EVT_TIMER, self.redraw_timer_callback, self.timer)
             self.timer.Start(self.redraw_interval)
 
-    def swap_opengl_buffers(self):
-        self.opengl_canvas.SwapBuffers()
+from ...graphics import OpenGLContext
+class WxOpenGLContext(OpenGLContext):
+    def __init__(self, opengl_canvas):
+        self._opengl_canvas = opengl_canvas
+        self._opengl_context = None
+
+    def _create_context(self):
+        from wx.glcanvas import GLContext
+        return GLContext(self._opengl_canvas)
+
+    def make_current(self):
+        if self._opengl_context is None:
+            self._opengl_context = self._create_context()
+        self._opengl_canvas.SetCurrent(self._opengl_context)
+
+    def swap_buffers(self):
+        self._opengl_canvas.SwapBuffers()
 
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):

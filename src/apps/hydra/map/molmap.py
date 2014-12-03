@@ -179,7 +179,7 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
                            (0, 0, 1.0/step, -origin[2]/step)))
     if len(transforms) == 0:
         transforms = [identity()]
-    from ..map_cpp import sum_of_gaussians
+    from .map_cpp import sum_of_gaussians
     ijk = empty(xyz.shape, float32)
     for tf in transforms:
         ijk[:] = xyz
@@ -213,7 +213,7 @@ def balls_grid_data(xyz, radii, resolution, step, pad,
                            (0, 0, 1.0/step, -origin[2]/step)))
     if len(transforms) == 0:
         transforms = [identity()]
-    from ..map_cpp import sum_of_balls
+    from .map_cpp import sum_of_balls
     ijk = empty(xyz.shape, float32)
     r = (radii / step) - sdev
     for tf in transforms:

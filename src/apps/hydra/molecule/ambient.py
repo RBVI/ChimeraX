@@ -86,7 +86,7 @@ def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1, gauss
             fineness /= sqrt(len(points)/70000)
 
     # Compute density map for atoms
-    from .. import molecule_cpp
+    from . import molecule_cpp
     xyz_min, xyz_max = molecule_cpp.point_bounds(points)
     size3 = xyz_max - xyz_min
     size = size3.max()
@@ -115,7 +115,7 @@ def ambient_atom_density(points, fineness = None, light = 0.8, dark = 0.1, gauss
         from numpy import ceil, zeros, float32
         xsz,ysz,zsz = [int(i) for i in ceil((size3 + (2*pad,2*pad,2*pad))/step)]
         m = zeros((zsz,ysz,xsz), float32)
-        from .. import map_cpp
+        from ..map import map_cpp
         map_cpp.fill_occupancy_map(points, origin, step3, m)
         from ..geometry import place
         tf = place.Place(((1/step, 0, 0, -origin[0]/step),
