@@ -1,7 +1,7 @@
 TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/geometry
+PKG_DIR = $(PYSITEDIR)/chimera/core/geometry
 
 PYMOD_NAME = geometry_cpp
 SRCS	= distances.cpp distancespy.cpp geometry.cpp transform.cpp vector_ops.cpp

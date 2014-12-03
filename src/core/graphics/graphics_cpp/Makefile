@@ -1,7 +1,7 @@
 TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/graphics
+PKG_DIR = $(PYSITEDIR)/chimera/core/graphics
 
 PYMOD_NAME = graphics_cpp
 SRCS	= blend_rgba.cpp graphics.cpp intercept.cpp mesh_edges.cpp
