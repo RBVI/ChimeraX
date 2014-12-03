@@ -86,12 +86,14 @@ prebuilt: p7zip.install
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za a -mx9 -x!./tmp $$prebuilt .
 
 install.prebuilt:
+	@echo 'Started prereq install at' `date` on `hostname`
 	if [ -e $(PREBUILT) ]; then \
 		$(MAKE) build-dirs ; \
 		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za x $$prebuilt ; \
 	else \
 		$(MAKE) install ; \
 	fi
+	@echo 'Finished prereq install at' `date`
 
 # Whole platform dependencies
 ifdef WIN32
@@ -121,7 +123,7 @@ numpy.install: Python.install
 pcre.install: zlib.install
 # pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
 pillow.install: Python.install setuptools.install zlib.install jpeg.install
-pycollada.install: Python.install python-dateutil.install
+pycollada.install: Python.install python-dateutil.install numpy.install
 pyflakes.install: Python.install
 pygments.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
