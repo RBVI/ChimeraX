@@ -46,10 +46,12 @@ else
 Mesa.install:
 endif
 
+# keep in alphabetical order, dependencies go below
 SUBDIRS	+= appdirs cython docutils expat flake8 ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow pycollada \
-	   pygments pyflakes PyOpenGL pytables pythomnic3k Python py-dateutil \
+	   pygments pyflakes PyOpenGL pytables pythomnic3k Python \
+	   python-dateutil \
 	   setuptools six sphinx webcolors wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
@@ -117,28 +119,27 @@ line_profiler.install: Python.install cython.install
 numexpr.install: numpy.install
 numpy.install: Python.install
 pcre.install: zlib.install
-pillow.install: Python.install setuptools.install zlib.install jpeg.install
 # pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
-py-dateutil.install: Python.install
-pycollada.install: Python.install py-dateutil.install
+pillow.install: Python.install setuptools.install zlib.install jpeg.install
+pycollada.install: Python.install python-dateutil.install
 pyflakes.install: Python.install
 pygments.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
+PyQt.install: Python.install qt.install sip.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
 pytables.install: hdf5.install numexpr.install cython.install Python.install zlib.install
 pythomnic3k.install: Python.install
+python-dateutil.install: Python.install six.install
 Python.install: p7zip.install zlib.install openssl.install expat.install
-ypython-dateutil.install: Python.install six.install
-PyQt.install: Python.install qt.install sip.install
 qt.install: p7zip.install openssl.install zlib.install
-wx.install: Python.install
 # qt.install: png.install jpeg.install
 setuptools.install: Python.install
 sip.install: Python.install
 six.install: Python.install
-sphinx.install: docutils.install jinja2.install pygments.install setuptools.install
 sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
+sphinx.install: docutils.install jinja2.install pygments.install setuptools.install
 webcolors.install: Python.install
 wrappy3.install: pcre.install Python.install
+wx.install: Python.install
 xml2.install: Python.install zlib.install
 xslt.install: xml2.install
