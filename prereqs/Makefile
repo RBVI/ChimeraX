@@ -7,7 +7,6 @@ unexport CDPATH
 
 TOP	= ..
 NO_SUBDIR_ALL = 1
-NO_SUBDIR_DISTCLEAN = 1
 
 include $(TOP)/mk/config.make
 
@@ -70,8 +69,6 @@ ifdef USE_MAC_FRAMEWORKS
 	-$(RSYNC) /System/Library/Frameworks/OpenGL.framework/Headers/* \
 	  $(includedir)/GL
 endif
-
-distclean: clean
 
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)

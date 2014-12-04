@@ -2,12 +2,7 @@
 # before including this file.  The convolutions below
 # enable parallel makes across subdirectories.
 #
-# The targets are the same as common.make:
-# all, install, clean, and distclean.
-
-ifeq ($(MAKECMDGOALS),distclean)
-NO_SUBDIR_CLEAN = true
-endif
+# The targets are all, install, and clean.
 
 ifdef NO_SUBDIR_ALL
 all:
@@ -41,14 +36,4 @@ SUBDIR_CLEAN = $(SUBDIRS:=.clean)
 clean: $(SUBDIR_CLEAN)
 $(SUBDIR_CLEAN):
 	$(MAKE) -C $(subst .clean,,$@) clean
-endif
-
-ifdef NO_SUBDIR_DISTCLEAN
-distclean:
-else
-SUBDIR_DISTCLEAN = $(SUBDIRS:=.distclean)
-.PHONY: $(SUBDIR_DISTCLEAN)
-distclean: $(SUBDIR_DISTCLEAN)
-$(SUBDIR_DISTCLEAN):
-	$(MAKE) -C $(subst .distclean,,$@) distclean
 endif

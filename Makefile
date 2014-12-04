@@ -2,7 +2,6 @@ TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
-NO_SUBDIR_DISTCLEAN=1
 SUBDIRS = prereqs src
 
 include $(TOP)/mk/config.make
@@ -40,4 +39,4 @@ ifdef USE_MAC_FRAMEWORKS
 endif
 
 distclean: clean
-#	rm -rf $(build_prefix)
+	rm -rf $(build_prefix) $(app_prefix)
