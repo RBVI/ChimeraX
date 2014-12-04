@@ -36,7 +36,7 @@ Modules
 
     connectivity.rst
 
-    core/cpp_appdirs/cpp_appdirs.rst
+    core/appdirs_cpp/appdirs_cpp.rst
 
     hydra_geometry.rst
 
