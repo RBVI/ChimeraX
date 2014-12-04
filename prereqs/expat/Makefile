@@ -32,7 +32,7 @@ endif
 	cd $(SOURCE) && $(MAKE) installlib
 ifeq ($(OS),Darwin)
 	install_name_tool -id \
-	  @executable_path/../lib/libexpat.$(SHLIBVER).$(SHLIB_EXT) \
+	  @rpath/libexpat.$(SHLIB_VER).$(SHLIB_EXT) \
 	  $(libdir)/libexpat.$(SHLIB_EXT)
 endif
 

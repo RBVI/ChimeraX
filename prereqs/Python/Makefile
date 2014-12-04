@@ -103,6 +103,7 @@ ifeq ($(OS),Linux)
 	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 else
+	rm -rf $(frameworkdir)/Python.framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
 	cp $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)/pyconfig.h $(frameworkdir)/Python.framework/Headers/
