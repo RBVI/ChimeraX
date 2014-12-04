@@ -10,6 +10,8 @@ INSTALL_OPTS =
 
 PATCHES = $(wildcard wxPython_Phoenix-$(VERSION)_$(OS)_*.patch) \
 	$(wildcard wxPython_Phoenix-$(VERSION)-*.patch)
+PATCHINES = $(wildcard wxPython_Phoenix-$(VERSION)_$(OS)_*.patch.in) \
+	$(wildcard wxPython_Phoenix-$(VERSION)-*.patch.in)
 WAF = $(wildcard waf-1.7.15)
 
 ifdef UNIX
@@ -50,6 +52,12 @@ $(SOURCE):
 ifneq (,$(PATCHES))
 	for f in $(PATCHES) ; do \
 		( cd $(SOURCE) && patch -p1 ) < $$f ; \
+	done
+endif
+ifneq (,$(PATCHINES))
+	for f in $(PATCHINES) ; do \
+		sed 's,SDK_PATH,"$(SYSROOT)",' $$f \
+			| ( cd $(SOURCE) && patch -p1 ) ; \
 	done
 endif
 ifneq (,$(WAF))
