@@ -123,6 +123,7 @@ else ifdef USE_MAC_FRAMEWORKS
 		$(frameworkdir)/Python.framework $(app_frameworkdir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
+		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 endif
 
