@@ -434,7 +434,7 @@ AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
 bool
 AtomicStructure::_rings_cached(bool cross_residues,
     unsigned int all_size_threshold,
-    std::unordered_set<const Residue *>* ignore = nullptr) const
+    std::unordered_set<const Residue *>* ignore) const
 {
     return !_recompute_rings && cross_residues == _rings_last_cross_residues
         && all_size_threshold == _rings_last_all_size_threshold

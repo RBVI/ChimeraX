@@ -1,9 +1,13 @@
 // vim: set expandtab ts=4 sw=4:
 
+#include <algorithm> // sort
 #include <list>
+#include <queue>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>  // pair
+#include <vector>
 
 #include "AtomicStructure.h"
 
@@ -305,12 +309,11 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 
 		// form the set of rings that are linear combinations of the
 		// these checkrcb-containing msr rings
-		Rings linear = have_check_bond;
-		for (Rings::const_iterator li = have_check_bond.begin();
+		auto linear = have_check_bond;
+		for (auto li = have_check_bond.begin();
 		li != have_check_bond.end(); ++li) {
 			const Ring &lr = *li;
-			for (Rings::const_iterator nli = li;
-			nli != have_check_bond.end(); ++nli) {
+			for (auto nli = li; nli != have_check_bond.end(); ++nli) {
 				if (li == nli)
 					continue;
 				const Ring &nlr = *nli;
@@ -427,27 +430,18 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 					for (; r2i != end; ++r2i) {
 						const Ring &r2 = *r2i;
 						Residue *r2res =
-						  (*r2.bonds().begin())->
-						  atoms()[0]->residue();
-						if (!cross_residue
-						  && r1res != r2res)
+						  (*r2.bonds().begin())->atoms()[0]->residue();
+						if (!cross_residue && r1res != r2res)
 							continue;
 
 						Ring::Bonds sum;
 						std::set_symmetric_difference(
-						  r1.bonds().begin(),
-						  r1.bonds().end(),
-						  r2.bonds().begin(),
-						  r2.bonds().end(),
-						  std::insert_iterator<
-						  Ring::Bonds>(
-						  sum, sum.begin()));
+						  r1.bonds().begin(), r1.bonds().end(),
+						  r2.bonds().begin(), r2.bonds().end(),
+						  std::insert_iterator<Ring::Bonds>(sum, sum.begin()));
 						
-						if (sum.size() == 0 ||
-						  sum.size() > all_size_threshold
-						  || sum.size() ==
-						  r1.bonds().size()
-						  + r2.bonds().size())
+						if (sum.size() == 0 || sum.size() > all_size_threshold
+						|| sum.size() == r1.bonds().size() + r2.bonds().size())
 							continue;
 						
 						Ring candidate(sum);
@@ -536,7 +530,8 @@ prune_dead_end_bonds(std::unordered_set<Atom*>& atoms,
     while (pruned_some) {
         pruned_some = false;
         for (auto a: atoms) {
-            if (atom_bonds[a].size() == 1) {
+            auto num_bonds = atom_bonds[a].size();
+            if (num_bonds == 1) {
                 atoms.erase(a);
                 auto b = *atom_bonds[a].begin();
                 bonds.erase(b);
@@ -548,9 +543,21 @@ prune_dead_end_bonds(std::unordered_set<Atom*>& atoms,
                 }
                 pruned_some = true;
                 break;
+            } else if (num_bonds == 0) {
+                atoms.erase(a);
+                pruned_some = true;
+                break;
             }
         }
     }
+}
+
+// since only strict weak ordering is needed, use this simpler comparison
+// (rather than Ring.operator<) which avoids extra computation when the
+// rings are equal size
+static bool
+simple_ring_sort(Ring& a, Ring& b) {
+    return a.bonds().size() < b.bonds().size();
 }
 
 void
@@ -581,6 +588,8 @@ AtomicStructure::_fast_calculate_rings(
         }
     }
 
+    _rings.clear();
+
     // for each residue...
     for (auto r_a: res_atoms) {
         Residue* r = r_a.first;
@@ -588,14 +597,96 @@ AtomicStructure::_fast_calculate_rings(
         auto bonds = res_bonds[r];
         
         prune_dead_end_bonds(atoms, bonds, atom_bonds);
+
+        // Pick a bond and do a breadth-first search out from one end
+        // looking for the other end.  If no paths are found, prune
+        // the bond and any resulting dead ends.  Otherwise, the
+        // paths form a "group".  Find bonds that are attached to
+        // the group but aren't in the group, prune them and any
+        // resulting dead ends.  If any bonds remain, pick another
+        // bond...
+        while (bonds.size() > 0) {
+            Bond* bond = *bonds.begin();
+            Atom* base = bond->atoms()[0];
+            Atom* target = bond->atoms()[1];
+            std::vector<Ring> group;
+            std::queue<std::pair<Atom*, std::set<Bond*>>> paths;
+            paths.emplace(base, std::set<Bond*>({bond}));
+            // breadth-first search
+            while (paths.size() > 0) {
+                auto info = paths.front();
+                paths.pop();
+                Atom* a = info.first;
+                auto& cur_path = info.second;
+                for (auto b: a->bonds()) {
+                    if (cur_path.find(b) != cur_path.end())
+                        continue;
+                    Atom* other = b->other_atom(a);
+                    auto new_path = cur_path;
+                    new_path.insert(b);
+                    if (other == target) {
+                        group.push_back(new_path);
+                    } else {
+                        paths.emplace(other, new_path);
+                    }
+                }
+            }
+            if (group.size() == 0) {
+                // none found, prune original bond
+                bonds.erase(bond);
+            } else {
+                // prune the group bonds
+                std::set<Bond*> prunes;
+                for (auto ring: group) {
+                    for (auto b: ring.bonds()) {
+                        prunes.insert(b);
+                    }
+                }
+                for (auto b: prunes)
+                    bonds.erase(b);
+            }
+            prune_dead_end_bonds(atoms, bonds, atom_bonds);
+
+            // process group:
+            // all smallest paths are "in".
+            // for larger paths (in size order): xor with each "in" path
+            // individually,  if the result is smaller, then throw out.
+            std::sort(group.begin(), group.end(), simple_ring_sort);
+            auto small_size = (*group.begin()).size();
+            std::vector<Ring> in;
+            for (auto ring: group) {
+                if (ring.size() == small_size) {
+                    in.push_back(ring);
+                    continue;
+                }
+                bool none_shorter = true;
+                for (auto in_ring: in) {
+                    std::vector<Bond*> diff;
+                    std::set_symmetric_difference(
+                        ring.bonds().begin(), ring.bonds().end(),
+                        in_ring.bonds().begin(), in_ring.bonds().end(),
+                        diff.begin());
+                    if (diff.size() < ring.size()) {
+                        none_shorter = false;
+                        break;
+                    }
+                }
+                if (none_shorter) {
+                    in.push_back(ring);
+                }
+            }
+
+            // add the "in" rings to the output
+            _rings.insert(in.begin(), in.end());
+        }
     }
-    //TODO: remainder of algoithm
 }
 
 bool
 AtomicStructure::_fast_ring_calc_available(bool cross_residue,
-            unsigned int all_size_threshold,
-            std::unordered_set<const Residue *>* ignore) const;
+    unsigned int all_size_threshold,
+    std::unordered_set<const Residue *>* ignore) const
+{
     if (cross_residue || all_size_threshold != 0)
         return false;
     for (auto& r: residues()) {

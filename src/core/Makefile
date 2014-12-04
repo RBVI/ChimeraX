@@ -26,7 +26,8 @@ lint:
 clean:
 	rm -rf __pycache__
 
-atomstruct.install: basegeom.install logger_cpp.install util.install
+atomstruct.install: basegeom.install logger_cpp.install util.install \
+	ioutil.install
 blob.install: atomstruct.install
 geometry.all: arrays_cpp.all
 graphics.all: arrays_cpp.all
