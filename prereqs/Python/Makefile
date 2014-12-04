@@ -112,6 +112,20 @@ endif
 	# double check that pyexpat was successfully made
 	test -f $(DYNLOAD_DIR)/pyexpat.*
 
+app-install:
+ifeq ($(OS),Windows)
+	$(RSYNC) --exclude='site-packages/*'  --exclude='test/*'\
+	  $(bindir)/DLLs \
+	  $(bindir)/Lib \
+	  $(app_bindir)
+else ifdef USE_MAC_FRAMEWORKS
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
+		$(frameworkdir)/Python.framework $(app_frameworkdir)
+else
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
+		$(PYTHON_LIBRARY_DIR) $(app_libdir)
+endif
+
 $(SOURCE):
 ifneq ($(OS),Windows)
 	7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)

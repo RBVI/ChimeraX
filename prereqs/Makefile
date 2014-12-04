@@ -70,6 +70,9 @@ ifdef USE_MAC_FRAMEWORKS
 	  $(includedir)/GL
 endif
 
+build-app-dirs:
+	make -C $(TOP) build-app-dirs
+
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
 PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).7z
@@ -85,7 +88,7 @@ prebuilt: p7zip.install
 	#(cd $(build_prefix) && tar -cj --exclude ./tmp .) > $(PREBUILT)
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && $(bindir)/7za a -mx=9 -x!./tmp $$prebuilt .
 
-install.prebuilt: p7zip.install
+install-prebuilt: p7zip.install
 	@echo 'Started prereq install at' `date` on `hostname`
 	if [ -e $(PREBUILT) ]; then \
 		$(MAKE) build-dirs ; \
@@ -94,6 +97,17 @@ install.prebuilt: p7zip.install
 		$(MAKE) install ; \
 	fi
 	@echo 'Finished prereq install at' `date`
+
+SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
+.PHONY: $(SUBDIR_APP_INSTALL)
+app-install: $(SUBDIR_APP_INSTALL)
+	# TODO: recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
+$(SUBDIR_APP_INSTALL):
+	$(MAKE) -C $(subst .app-install,,$@) app-install
+$(SUBDIR_APP_INSTALL): build-app-dirs
+# do Python first
+$(subst Python.app-install,,$(SUBDIR_APP_INSTALL)): Python.app-install
+
 
 # Whole platform dependencies
 ifdef WIN32

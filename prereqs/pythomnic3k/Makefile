@@ -11,6 +11,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && cp -p lib/typecheck.py $(PYSITEDIR)
 
+app-install:;
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 

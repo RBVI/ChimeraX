@@ -123,6 +123,7 @@ endif
 
 ifeq ($(OS),Windows)
 	shlibdir = $(bindir)
+	app_shlibdir = $(app_bindir)
 
 	OBJ_EXT = obj
 	LIB_EXT = lib

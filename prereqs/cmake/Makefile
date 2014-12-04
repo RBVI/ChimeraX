@@ -25,6 +25,8 @@ else
 		 $(MAKE) install
 endif
 
+app-install:;
+
 $(SOURCE): $(DISTRIBUTION)
 ifdef WIN32
 	unzip -d $(tmpdir) -q $(DISTRIBUTION)

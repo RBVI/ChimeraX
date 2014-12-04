@@ -27,6 +27,9 @@ all: $(FFMPEG_EXE)
 install: $(FFMPEG_EXE)
 	cp $(FFMPEG_EXE) $(bindir)
 
+app-install:
+	$(RSYNC) $(bindir)/ffmpeg$(PROG_EXT) $(app_bindir)
+
 clean:
 	rm -rf $(FFMPEG_SOURCE) $(YASM_SOURCE) $(LIBX264_SOURCE)
 

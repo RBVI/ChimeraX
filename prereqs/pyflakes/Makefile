@@ -22,6 +22,8 @@ ifdef USE_MAC_FRAMEWORKS
 	cp -p $(PYTHON_FRAMEWORK)/bin/pyflakes $(bindir)
 endif
 
+app-install:;
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 

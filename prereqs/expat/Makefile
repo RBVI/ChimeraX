@@ -36,6 +36,9 @@ ifeq ($(OS),Darwin)
 	  $(libdir)/libexpat.$(SHLIB_EXT)
 endif
 
+app-install:;
+	$(RSYNC) $(shlibdir)/libexpat.$(SHLIB_EXT)* $(app_shlibdir)
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))

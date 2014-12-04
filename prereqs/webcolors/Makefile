@@ -19,6 +19,10 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
 
+app-install:;
+	$(RSYNC) $(PYSITEDIR)/webcolors-$(VERSION)-py$(PYTHON_VERSION).egg-info \
+		$(PYSITEDIR)/webcolors.py $(APP_PYSITEDIR)
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 

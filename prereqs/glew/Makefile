@@ -15,6 +15,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) install
 
+app-install:;
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifeq ($(OS),Windows)

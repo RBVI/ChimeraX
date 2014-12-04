@@ -3,8 +3,8 @@ build_prefix = $(shell (cd "$(TOP)"; pwd))/build
 bindir = $(build_prefix)/bin
 includedir = $(build_prefix)/include
 libdir = $(build_prefix)/lib
-datadir = $(build_prefix)/share
 shlibdir = $(libdir)
+datadir = $(build_prefix)/share
 tmpdir = $(build_prefix)/tmp
 webdir = $(build_prefix)/webapp
 
@@ -29,6 +29,7 @@ app_prefix = $(shell (cd "$(TOP)"; pwd))/build.app
 endif
 app_bindir = $(app_prefix)/bin
 app_libdir = $(app_prefix)/lib
+app_shlibdir = $(app_libdir)
 app_datadir = $(app_prefix)/share
 
 ifndef WIN32
@@ -40,15 +41,20 @@ endif
 ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
+APP_PYTHON_LIBRARY_DIR = $(app_bindir)/Lib
 PYTHON_EXE = $(bindir)/python.exe
 else ifdef USE_MAC_FRAMEWORKS
 PYTHON_INCLUDE_DIRS = $(shell $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)-config --includes)
 PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
+APP_PYTHON_FRAMEWORK = $(app_frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 PYTHON_LIBRARY_DIR = $(PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION)
+APP_PYTHON_LIBRARY_DIR = $(APP_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION)
 PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
 else
 PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
+APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
 PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
 endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
+APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages

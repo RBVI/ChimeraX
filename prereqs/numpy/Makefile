@@ -29,6 +29,10 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
 
+app-install:;
+	$(RSYNC) $(PYSITEDIR)/numpy-$(VERSION)-py$(PYTHON_VERSION).egg-info \
+		$(PYSITEDIR)/numpy $(APP_PYSITEDIR)
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq ($(PATCHES),)

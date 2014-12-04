@@ -83,6 +83,11 @@ ifeq ($(OS),Darwin)
 	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT)
 endif
 
+app-install:
+	$(RSYNC) $(shlibdir)/libcrypto.$(SHLIB_EXT)* \
+		$(shlibdir)/libssl.$(SHLIB_EXT)* $(app_shlibdir)
+	# do we need $(shlibdir)/engines/?
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))

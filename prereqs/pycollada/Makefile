@@ -12,6 +12,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
 
+app-install:;
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))

@@ -11,6 +11,10 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
 
+app-install:
+	$(RSYNC) $(PYSITEDIR)/python_dateutil-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
+
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 

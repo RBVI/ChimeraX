@@ -41,6 +41,10 @@ else
 		$(PYTHON_EXE) build.py install $(INSTALL_OPTS)
 endif
 
+app-install:
+	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(VERSION)-py$(PYTHON_VERSION).egg-info \
+		$(PYSITEDIR)/wx $(APP_PYSITEDIR)
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))

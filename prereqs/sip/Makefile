@@ -11,6 +11,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && $(PYTHON_EXE) configure.py && $(MAKE) && $(MAKE) install
 
+app-install:;
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 

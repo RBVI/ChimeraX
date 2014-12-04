@@ -23,6 +23,9 @@ else
 		$(RSYNC) zconf.h zlib.h $(includedir)
 endif
 
+app-install:
+	$(RSYNC) $(shlibdir)/libz.$(SHLIB_EXT)* $(app_shlibdir)
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifndef WIN32
