@@ -1157,6 +1157,7 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
     StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
     for (auto si = structs->begin(); si != structs->end(); ++si) {
         sb->_items->emplace_back(*si);
+        (void)((*si)->rings());
     }
     delete structs;
     return sb;

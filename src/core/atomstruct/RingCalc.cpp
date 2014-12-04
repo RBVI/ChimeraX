@@ -1,6 +1,7 @@
 // vim: set expandtab ts=4 sw=4:
 
 #include <algorithm> // sort
+#include <iterator> // back_inserter
 #include <list>
 #include <queue>
 #include <set>
@@ -17,6 +18,10 @@ static Ring::Bonds::iterator contains_exactly_one(
         const Ring &ring, Ring::Bonds *bond_set);
 
 
+#define DEBUG_AND_TIME  1
+#ifdef DEBUG_AND_TIME
+#include <ctime>
+#endif
 // find all rings
 //	if 'cross_residues', look for rings that cross residue boundaries
 //		in addition to intraresidue rings
@@ -33,10 +38,26 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 	//	E.J. Corey and George A. Petersson, JACS, 94:2, Jan. 26, 1972
 	//	pp. 460-465
 
+#ifdef DEBUG_AND_TIME
+clock_t start_t = clock();
+#endif
     // perhaps use alternative algorithm under certain conditions...
     if (_fast_ring_calc_available(cross_residue, all_size_threshold, ignore)) {
         _fast_calculate_rings(ignore);
+#ifdef DEBUG_AND_TIME
+std::cerr << "fast ring calculation found " << _rings.size() << " rings and took " << ((float) (clock() - start_t)) / CLOCKS_PER_SEC << "\n";
+std::cerr << "Rings:\n";
+for (auto ring: _rings) {
+    std::cerr << (*ring.atoms().begin())->residue()->str();
+    for (auto a: ring.atoms()) {
+        std::cerr << " " << a->name();
+    }
+    std::cerr << "\n";
+}
+start_t = clock();
+#else
         return;
+#endif
     }
 
 	typedef std::unordered_set<Bond*> SpanningBonds;
@@ -494,6 +515,17 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 			new_added.swap(all_additional);
 		}
 	}
+#ifdef DEBUG_AND_TIME
+std::cerr << "slow ring calculation found " << _rings.size() << " rings and took " << ((float) (clock() - start_t)) / CLOCKS_PER_SEC << "\n";
+std::cerr << "Rings:\n";
+for (auto ring: _rings) {
+    std::cerr << (*ring.atoms().begin())->residue()->str();
+    for (auto a: ring.atoms()) {
+        std::cerr << " " << a->name();
+    }
+    std::cerr << "\n";
+}
+#endif
 }
 
 static Ring::Bonds::iterator
@@ -665,7 +697,7 @@ AtomicStructure::_fast_calculate_rings(
                     std::set_symmetric_difference(
                         ring.bonds().begin(), ring.bonds().end(),
                         in_ring.bonds().begin(), in_ring.bonds().end(),
-                        diff.begin());
+                        std::back_inserter(diff));
                     if (diff.size() < ring.size()) {
                         none_shorter = false;
                         break;

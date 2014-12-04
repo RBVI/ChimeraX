@@ -23,6 +23,8 @@ $(SUBDIR_INSTALL): dir
 lint:
 	python3 -m flake8 $(PYSRCS)
 
+test:
+	$(bindir)/python3
 clean:
 	rm -rf __pycache__
 
