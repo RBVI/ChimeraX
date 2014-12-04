@@ -23,7 +23,7 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(ENV) INCLUDE=$(JPEG_INC) LIB=$(JPEG_LIB) python3 setup.py $(SETUP_BUILD) build_ext --disable-tk install
+	cd $(SOURCE) && $(ENV) INCLUDE=$(JPEG_INC) LIB=$(JPEG_LIB) $(PYTHON_EXE) setup.py $(SETUP_BUILD) build_ext --disable-tk install
 # Unzip egg so PIL source code is available for Mac app install.
 ifneq (,$(PILLOW_EGG))
 	cd $(PYSITEDIR) ; unzip $(PILLOW_EGG) -x "EGG-INFO/*"

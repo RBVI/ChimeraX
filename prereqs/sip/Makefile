@@ -9,7 +9,7 @@ SOURCE = $(tmpdir)/sip-$(VERSION)
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) && python3 configure.py && $(MAKE) && $(MAKE) install
+	cd $(SOURCE) && $(PYTHON_EXE) configure.py && $(MAKE) && $(MAKE) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

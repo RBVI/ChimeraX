@@ -27,7 +27,7 @@ endif
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) && python3 setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

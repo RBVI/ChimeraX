@@ -21,8 +21,15 @@ PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
 include $(TOP)/mk/os.make
 
 ifdef USE_MAC_FRAMEWORKS
-frameworkdir = $(build_prefix)/Library/Frameworks
+frameworkdir = $(build_prefix)/Frameworks
+app_prefix = $(shell (cd "$(TOP)"; pwd))/build.app/Contents
+app_frameworkdir =  $(app_prefix)/Frameworks
+else
+app_prefix = $(shell (cd "$(TOP)"; pwd))/build.app
 endif
+app_bindir = $(app_prefix)/bin
+app_libdir = $(app_prefix)/lib
+app_datadir = $(app_prefix)/share
 
 ifndef WIN32
 RSYNC = rsync -rltWv --executability
@@ -33,12 +40,15 @@ endif
 ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
 PYTHON_LIBRARY_DIR = $(bindir)/Lib
+PYTHON_EXE = $(bindir)/python.exe
 else ifdef USE_MAC_FRAMEWORKS
 PYTHON_INCLUDE_DIRS = $(shell $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)-config --includes)
 PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 PYTHON_LIBRARY_DIR = $(PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION)
+PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
 else
 PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
+PYTHON_EXE = $(bindir)/python$(PYTHON_VERSION)
 endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages

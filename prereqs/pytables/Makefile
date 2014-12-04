@@ -10,7 +10,7 @@ HDF_CONFIG = --hdf5='$(build_prefix)'
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	python3 setup.py $(HDF_CONFIG) install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py $(HDF_CONFIG) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

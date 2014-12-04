@@ -37,8 +37,8 @@ ifeq ($(OS),Windows)
 else
 	rm -f $(libdir)/python$(PYTHON_VERSION)/site-packages/wx/libwx_*
 	cd $(SOURCE)/Phoenix && \
-		python3 build.py build $(BUILD_OPTS) && \
-		python3 build.py install $(INSTALL_OPTS)
+		$(PYTHON_EXE) build.py build $(BUILD_OPTS) && \
+		$(PYTHON_EXE) build.py install $(INSTALL_OPTS)
 endif
 
 $(SOURCE):
@@ -56,10 +56,10 @@ ifeq ($(OS),Darwin)
 	# OpenGL profile, so we need to rerun sip to get our
 	# new constants into Python
 	cd $(SOURCE)/Phoenix && \
-		python3 build.py build dox && \
-		python3 build.py touch && \
-		python3 build.py etg --nodoc && \
-		python3 build.py sip
+		$(PYTHON_EXE) build.py build dox && \
+		$(PYTHON_EXE) build.py touch && \
+		$(PYTHON_EXE) build.py etg --nodoc && \
+		$(PYTHON_EXE) build.py sip
 endif
 
 clean:

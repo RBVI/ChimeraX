@@ -29,7 +29,14 @@ ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif
 ifdef USE_MAC_FRAMEWORKS
-	-mkdir -p $(frameworkdir)
+	-mkdir $(frameworkdir) $(build_prefix)/Library
+	-cd $(build_prefix)/Library && ln -fs ../Frameworks .
+endif
+
+build-app-dirs:
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir)
+ifdef USE_MAC_FRAMEWORKS
+	-mkdir -p $(app_frameworkdir)
 endif
 
 distclean: clean

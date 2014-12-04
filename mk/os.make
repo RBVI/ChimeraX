@@ -117,22 +117,6 @@ endif
 	PYMOD_LINK = $(LOADER) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -framework OpenGL
-
-ifdef USE_MAC_FRAMEWORKS
-	ifdef DYLD_FRAMEWORK_PATH
-		DYLD_FRAMEWORK_PATH := $(frameworkdir):$(DYLD_FRAMEWORK_PATH)
-	else
-		DYLD_FRAMEWORK_PATH = $(frameworkdir)
-	endif
-endif
-	export DYLD_FRAMEWORK_PATH
-
-	ifdef DYLD_FALLBACK_LIBRARY_PATH
-		DYLD_FALLBACK_LIBRARY_PATH := $(libdir):$(DYLD_FALLBACK_LIBRARY_PATH)
-	else
-		DYLD_FALLBACK_LIBRARY_PATH = $(libdir)
-	endif
-	export DYLD_FALLBACK_LIBRARY_PATH
 endif
 
 # Microsoft Windows
@@ -172,9 +156,6 @@ endif
 .c.obj:
 	$(CC) $(CFLAGS) /c $<
 endif
-
-PATH := $(bindir):$(PATH)
-export PATH
 
 CFLAGS = $(OPT) $(INCS) $(DEFS)
 CXXFLAGS = $(OPT) $(INCS) $(DEFS)

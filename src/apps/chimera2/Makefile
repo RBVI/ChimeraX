@@ -29,14 +29,14 @@ clean:
 	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py
 
 run:
-	$(bindir)/python3 chimera2_main.py
+	$(PYTHON_EXE) chimera2_main.py
 
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 
 __main__.py: $(PY_MAIN)
-	$(bindir)/python3 mk__main__.py $<
+	$(PYTHON_EXE) mk__main__.py $<
 
 frozen.c M___main__.c: __main__.py
-	$(bindir)/python3 mkfrozen.py $(PY_SOURCE) $<
+	$(PYTHON_EXE) mkfrozen.py $(PY_SOURCE) $<
 	patch -b < frozen.patch

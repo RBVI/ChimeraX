@@ -93,8 +93,8 @@ ifeq ($(OS),Windows)
 	  $(PYDIR)/Lib \
 	  $(PYDIR)/include \
 	  $(PYDIR)/libs \
-	  $(PYDIR)/python3.exe \
-	  $(PYDIR)/python3w.exe \
+	  $(PYDIR)/python.exe \
+	  $(PYDIR)/pythonw.exe \
 	  $(bindir)
 else ifndef USE_MAC_FRAMEWORKS
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install

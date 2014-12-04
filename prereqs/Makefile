@@ -86,13 +86,13 @@ endif
 
 prebuilt: p7zip.install
 	#(cd $(build_prefix) && tar -cj --exclude ./tmp .) > $(PREBUILT)
-	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za a -mx9 -x!./tmp $$prebuilt .
+	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && $(bindir)/7za a -mx=9 -x!./tmp $$prebuilt .
 
-install.prebuilt:
+install.prebuilt: p7zip.install
 	@echo 'Started prereq install at' `date` on `hostname`
 	if [ -e $(PREBUILT) ]; then \
 		$(MAKE) build-dirs ; \
-		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za x $$prebuilt ; \
+		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && $(bindir)/7za x -y $$prebuilt ; \
 	else \
 		$(MAKE) install ; \
 	fi
