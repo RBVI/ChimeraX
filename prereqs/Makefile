@@ -125,7 +125,7 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
-appdirs.install: Python.install
+appdirs.install: Python.install setuptools.install
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
