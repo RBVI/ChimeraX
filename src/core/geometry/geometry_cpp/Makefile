@@ -2,6 +2,7 @@ TOP	= ../../../..
 include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimera/core/geometry
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/geometry
 
 PYMOD_NAME = geometry_cpp
 SRCS	= distances.cpp distancespy.cpp geometry.cpp transform.cpp vector_ops.cpp
@@ -20,6 +21,7 @@ all: $(PYMOD)
 
 install: all
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
+	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

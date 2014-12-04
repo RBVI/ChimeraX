@@ -11,10 +11,10 @@
 
 import sys, os, string
 if not sys.argv[2:]:
-	print('usage:', sys.argv[0], 'Python-src-dir file.py ...')
+	print('usage:', sys.argv[0], 'Python-freeze-src-dir file.py ...')
 	raise SystemExit(2)
 
-freezesrc = sys.argv[1] + '/Tools/freeze'
+freezesrc = sys.argv[1]
 sys.path.insert(0, freezesrc)
 
 import makefreeze

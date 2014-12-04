@@ -12,6 +12,7 @@ $(SHLIB): $(OBJS)
 
 install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
+	if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:
 	/bin/rm -f $(OBJS) $(SHLIB)

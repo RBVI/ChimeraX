@@ -84,6 +84,7 @@ CONFIG_OPTIONS += --with-cxx-main
 all:
 
 install: $(SOURCE)
+	$(RSYNC) $(SOURCE)/Tools/freeze $(datadir)
 ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl

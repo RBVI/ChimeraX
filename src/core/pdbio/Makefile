@@ -13,6 +13,7 @@ $(PYMOD): $(OBJS)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PYSITEDIR)
+	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PYSITEDIR); fi
 
 clean:
 	/bin/rm -f $(OBJS) $(PYMOD)

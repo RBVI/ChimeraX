@@ -103,9 +103,9 @@ SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
 app-install: $(SUBDIR_APP_INSTALL)
 	# recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
 	cd $(APP_PYSITEDIR); \
-		(echo 'import sys; sys.__plen = len(sys.path)'; \
+		(echo "import sys; sys.__plen = len(sys.path)"; \
 		ls -d ./*egg; \
-		echo 'import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)') > easy-install.pth
+		echo "import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)") > easy-install.pth
 $(SUBDIR_APP_INSTALL):
 	$(MAKE) -C $(subst .app-install,,$@) app-install
 $(SUBDIR_APP_INSTALL): build-app-dirs
