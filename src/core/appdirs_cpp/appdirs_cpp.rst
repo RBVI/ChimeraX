@@ -2,11 +2,11 @@
 C++ appdirs Interface
 =====================
 
-The cpp_addirs library provides an interface at the C++ level to the
+The appdirs_cpp library provides an interface at the C++ level to the
 values in Chimera's Python appdirs_ object.  You link against the library
-with ``-L$(shlibdir) -lcpp_appdirs`` in your Makefile.  You use the library
-by including ``cpp_appdirs/AppDirs.h`` in your code and calling
-``cpp_appdirs::AppDirs::get()`` to get a const AppDirs instance.
+with ``-L$(shlibdir) -lappdirs_cpp`` in your Makefile.  You use the library
+by including ``appdirs_cpp/AppDirs.h`` in your code and calling
+``appdirs_cpp::AppDirs::get()`` to get a const AppDirs instance.
 That instance has six const string attributes that correspond to the
 appdirs_ directory attributes and have the exact same names
 (*e.g.* ``user_data_dir``).

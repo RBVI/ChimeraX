@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
-PYMOD_NAME = cpp_appdirs
+PYMOD_NAME = appdirs_cpp
 LIBS+= -L$(shlibdir) -lappdirs
 
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)

@@ -46,32 +46,32 @@ static const char* init_paths_doc =
 "site_config_dir\n"
 "user_log_dir\n";
 
-static struct PyMethodDef cpp_appdirs_functions[] =
+static struct PyMethodDef appdirs_cpp_functions[] =
 {
     {"init_paths", init_paths, METH_VARARGS, init_paths_doc },
     { NULL, NULL, 0, NULL }
 };
 
 static const char* mod_doc =
-"The cpp_addirs module is used to inform the C++ layer about the file system"
+"The appdirs_cpp module is used to inform the C++ layer about the file system"
 " paths contained in the Python layer appdirs module object.";
 
-static struct PyModuleDef cpp_appdirs_module =
+static struct PyModuleDef appdirs_cpp_module =
 {
     PyModuleDef_HEAD_INIT,
-    "cpp_appdirs",
+    "appdirs_cpp",
     mod_doc,
     -1,
-    cpp_appdirs_functions,
+    appdirs_cpp_functions,
     NULL,
     NULL,
     NULL,
     NULL
 };
 
-PyMODINIT_FUNC PyInit_cpp_appdirs()
+PyMODINIT_FUNC PyInit_appdirs_cpp()
 {
-    return PyModule_Create(&cpp_appdirs_module);
+    return PyModule_Create(&appdirs_cpp_module);
 }
 
 }  // extern "C"
