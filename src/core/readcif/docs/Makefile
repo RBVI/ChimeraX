@@ -160,5 +160,4 @@ doctest: conf.py
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 llgr:
-	which python3
-	python3 $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html
+	$(PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html

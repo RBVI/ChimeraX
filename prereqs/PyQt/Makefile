@@ -11,7 +11,9 @@ CONFIG_ARGS = --confirm-license --verbose --sip $(PYTHON_FRAMEWORK)/bin/sip
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) && python3 configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+	cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+
+app-install:;
 
 $(SOURCE): $(DISTRIBUTION)
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

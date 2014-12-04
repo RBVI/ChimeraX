@@ -9,6 +9,9 @@ SOURCE = $(tmpdir)/jpeg-$(VERSION)
 install: $(SOURCE)
 	cd $(SOURCE) ; ./configure --prefix=$(build_prefix) --disable-static && make install-libLTLIBRARIES
 
+app-install:;
+	$(RSYNC) $(shlibdir)/libjpeg.$(SHLIB_EXT)* $(app_shlibdir)
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 

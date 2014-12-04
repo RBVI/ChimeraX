@@ -65,6 +65,8 @@ ifeq ($(OS),Linux)
 endif
 endif
 
+app-install:;
+
 $(SOURCE):
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
 ifdef UNIX

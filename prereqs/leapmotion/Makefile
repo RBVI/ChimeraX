@@ -17,6 +17,8 @@ ifeq ($(OS),Darwin)
 	install_name_tool -change $(build_prefix)/Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python $(PY_LIB) @executable_path/../Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python $(PYSITEDIR)/LeapMotion/LeapPython.so
 endif
 
+app-install:;
+
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 

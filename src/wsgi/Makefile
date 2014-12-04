@@ -8,7 +8,7 @@ install:
 clean:
 
 lint:
-	python3 -m flake8 *.py
+	$(PYTHON_EXE) -m flake8 *.py
 	#for i in webapp_client/js/*.js webapp_client/js/c2/*.js; do
 	for i in webapp_client/js/c2/*.js; do \
 		echo $$i ; \

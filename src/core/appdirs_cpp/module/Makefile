@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
-PYMOD_NAME = cpp_appdirs
+PYMOD_NAME = appdirs_cpp
 LIBS+= -L$(shlibdir) -lappdirs
 
 CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS)
@@ -16,6 +16,7 @@ $(PYMOD): $(OBJS)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PYSITEDIR)
+	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PYSITEDIR); fi
 
 clean:
 	/bin/rm -f $(OBJS) $(PYMOD)

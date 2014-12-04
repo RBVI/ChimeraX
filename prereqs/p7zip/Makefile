@@ -28,6 +28,8 @@ install: $(SOURCE)
 	# allow rm -r to work on build tree
 	chmod -R u+w $(datadir)/doc/p7zip/DOCS
 
+app-install:;
+
 $(SOURCE):
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))

@@ -2,7 +2,6 @@ TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
-NO_SUBDIR_DISTCLEAN=1
 SUBDIRS = prereqs src
 
 include $(TOP)/mk/config.make
@@ -14,7 +13,7 @@ all:
 install:
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
-	$(MAKE) -C prereqs install.prebuilt
+	$(MAKE) -C prereqs install-prebuilt
 	$(MAKE) -C src install
 	$(MAKE) -C docs html
 	@echo 'Finished install at' `date`
@@ -29,8 +28,15 @@ ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif
 ifdef USE_MAC_FRAMEWORKS
-	-mkdir -p $(frameworkdir)
+	-mkdir $(frameworkdir) $(build_prefix)/Library
+	-cd $(build_prefix)/Library && ln -fs ../Frameworks .
+endif
+
+build-app-dirs:
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir)
+ifdef USE_MAC_FRAMEWORKS
+	-mkdir -p $(app_frameworkdir)
 endif
 
 distclean: clean
-#	rm -rf $(build_prefix)
+	rm -rf $(build_prefix) $(app_prefix)

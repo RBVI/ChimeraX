@@ -26,8 +26,12 @@ PATCHES = $(wildcard PyOpenGL-$(VERSION)-*.patch) \
 all:
 
 install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
-	cd $(PYOPENGL_SOURCE) && python3 setup.py $(SETUP_BUILD) install
-	cd $(ACCELERATE_SOURCE) && python3 setup.py $(SETUP_BUILD) install
+	cd $(PYOPENGL_SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+	cd $(ACCELERATE_SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+
+app-install:
+	$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
+	$(RSYNC) $(PYSITEDIR)/PyOpenGL_accelerate-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
 
 $(PYOPENGL_SOURCE):
 	tar zxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)

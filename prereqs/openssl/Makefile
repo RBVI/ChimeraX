@@ -69,19 +69,24 @@ ifeq ($(OS),Darwin)
 	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
 	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT) && \
 	install_name_tool -id \
-	    @executable_path/../lib/libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
+	    @rpath/libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
 	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) && \
 	install_name_tool -id \
-	    @executable_path/../lib/libssl.$$SHLIB_VERSION.$(SHLIB_EXT) \
+	    @rpath/libssl.$$SHLIB_VERSION.$(SHLIB_EXT) \
 	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT) && \
 	install_name_tool -change \
 	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
-	    @executable_path/../lib/libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
+	    @rpath/libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
 	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT) && \
 	chmod 444 \
 	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
 	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT)
 endif
+
+app-install:
+	$(RSYNC) $(shlibdir)/libcrypto.$(SHLIB_EXT)* \
+		$(shlibdir)/libssl.$(SHLIB_EXT)* $(app_shlibdir)
+	# do we need $(shlibdir)/engines/?
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

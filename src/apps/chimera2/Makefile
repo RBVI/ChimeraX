@@ -3,7 +3,8 @@
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-PY_SOURCE = $(wildcard $(tmpdir)/Python-$(PYTHON_VERSION)*)
+# Freeze source was copied from tmp/Python-*/Tools/freeze
+FREEZE_SOURCE = $(datadir)/freeze
 
 LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
 
@@ -22,21 +23,25 @@ LIBS	+= $(PYTHON_LIB)
 all: $(PROG)
 
 install: $(PROG)
-	cp $(PROG) $(bindir)
-	cp $(PY_MAIN) $(PYSITEDIR)
+	$(RSYNC) $(PROG) $(bindir)
+	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
+	if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) $(PROG) $(app_bindir); \
+		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
+	fi
 
 clean:
 	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py
 
 run:
-	$(bindir)/python3 chimera2_main.py
+	$(PYTHON_EXE) chimera2_main.py
 
 $(PROG): $(OBJS)
 	$(PROG_LINK)
 
 __main__.py: $(PY_MAIN)
-	python3 mk__main__.py $<
+	$(PYTHON_EXE) mk__main__.py $<
 
 frozen.c M___main__.c: __main__.py
-	python3 mkfrozen.py $(PY_SOURCE) $<
+	$(PYTHON_EXE) mkfrozen.py $(FREEZE_SOURCE) $<
 	patch -b < frozen.patch

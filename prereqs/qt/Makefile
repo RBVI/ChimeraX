@@ -50,6 +50,8 @@ endif
 ifdef USE_MAC_FRAMEWORKS
 	$(MAKE) include
 
+app-install:;
+
 include:
 	cd $(libdir) && for i in *.framework; do \
 		f=`basename $$i .framework`; \

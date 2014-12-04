@@ -26,6 +26,7 @@ install: all
 	cp readcif.h $(includedir)
 	cp $(LIBRARY) $(libdir)
 	#cp $(SHLIB) $(shlibdir)
+	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 $(LIBRARY): $(OBJS)
 	$(LIB_LINK)

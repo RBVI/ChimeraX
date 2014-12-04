@@ -48,6 +48,8 @@ $(PROG): $(OBJS)
 install: $(PROG)
 	cp -fp $(PROG) $(bindir)/
 
+app-install:;
+
 docinstall:
 	-mkdir $(DOCDIR)
 	cp -fp $(DOCS) $(DOCDIR)
