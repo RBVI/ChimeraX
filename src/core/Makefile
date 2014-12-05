@@ -13,7 +13,7 @@ PYSRCS = $(wildcard *.py)
 
 all: $(PYOBJS)
 
-install: all dir
+install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
 
@@ -31,8 +31,8 @@ clean:
 
 atomstruct.install: basegeom.install logger_cpp.install util.install
 blob.install: atomstruct.install
-geometry.all: arrays_cpp.all
-graphics.all: arrays_cpp.all
+geometry.install: arrays_cpp.install
+graphics.install: arrays_cpp.install
 pdbio.install: atomstruct.install logger_cpp.install pdb.install blob.install \
 	basegeom.install
 pseudobond.install: basegeom.install
