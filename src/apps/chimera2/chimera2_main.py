@@ -141,8 +141,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     ad = sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
                                     version=partial_version)
     # inform the C++ layer of the appdirs paths
-    import cpp_appdirs
-    cpp_appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
+    import appdirs_cpp
+    appdirs_cpp.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
         ad.user_cache_dir, ad.site_data_dir, ad.site_config_dir, ad.user_log_dir)
 
     # initialize the user interface
