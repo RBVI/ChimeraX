@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 VERSION = 1.0.1j
-SHLIB_VERSION=$(shell awk '$$2 == "SHLIB_VERSION_NUMBER" { print $$3 }' $(includedir)/openssl/opensslv.h | sed s/\"//g)
+SHLIB_VERSION=$(shell awk '$$2 == "SHLIB_VERSION_NUMBER" { print $$3 }' $(SOURCE)/include/openssl/opensslv.h | sed s/\"//g)
 DISTRIBUTION = openssl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/openssl-$(VERSION)
 
@@ -81,6 +81,12 @@ ifeq ($(OS),Darwin)
 	chmod 444 \
 	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
 	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT)
+	cd $(libdir)/engines; chmod 644 *.dylib; for f in *.dylib; do \
+		install_name_tool -change \
+			$(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+			@rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+			$$f; \
+	done; chmod 444 *.dylib
 endif
 
 app-install:

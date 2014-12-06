@@ -25,12 +25,6 @@ install: all
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
-ifeq ($(OS),Darwin)
-# Use relative path to Python framework library.
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PYMOD)
-# Use relative path to arrays library
-	install_name_tool -change @loader_path/lib/libarrays.dylib @loader_path/../lib/libarrays.dylib $(PYMOD)
-endif
 
 clean:
 	rm -f $(PYMOD) $(OBJS)

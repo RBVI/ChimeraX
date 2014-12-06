@@ -12,7 +12,9 @@ PYSRCS = $(wildcard *.py)
 all: $(PYOBJS)
 
 install: all dir
+ifneq (,$(PYSRCS))
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+endif
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
@@ -20,7 +22,9 @@ dir:
 $(SUBDIR_INSTALL): dir
 
 lint:
+ifneq (,$(PYSRCS))
 	$(PYTHON_EXE) -m flake8 $(PYSRCS)
+endif
 
 clean:
 	rm -rf __pycache__

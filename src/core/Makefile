@@ -17,6 +17,8 @@ install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
 
+$(SUBDIR_INSTALL): dir
+
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
@@ -29,7 +31,7 @@ lint:
 clean:
 	rm -rf __pycache__
 
-atomstruct.install: basegeom.install logger_cpp.install util.install
+atomstruct.install: basegeom.install logger_cpp.install util.install ioutil.install
 blob.install: atomstruct.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install

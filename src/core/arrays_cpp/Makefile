@@ -28,12 +28,6 @@ install: all
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
-ifeq ($(OS),Darwin)
-# Make libraries that link to libarrays use relative path to find it.
-	install_name_tool -id @rpath/$(SHLIB) $(SHLIB)
-# Use relative path to Python framework library.
-	install_name_tool -change $(PY_LIB) @loader_path/$(REL_PY_LIB) $(SHLIB)
-endif
 
 clean:
 	rm -f $(SHLIB) $(OBJS)

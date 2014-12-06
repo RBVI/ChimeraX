@@ -1,6 +1,9 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
+PKG_DIR = $(PYSITEDIR)/chimera/core
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
+
 PATCHES = $(wildcard *.patch)
 WRAPPY = $(bindir)/wrappy3
 ifeq (64,$(patsubst %64,64,$(OSARCH)))
@@ -27,8 +30,8 @@ $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 
 install: $(PYMOD)
-	$(RSYNC) $(PYMOD) $(PYSITEDIR)
-	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PYSITEDIR); fi
+	$(RSYNC) $(PYMOD) $(PKG_DIR)
+	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
 
 clean:
 	/bin/rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej

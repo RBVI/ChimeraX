@@ -6,7 +6,12 @@ include $(TOP)/mk/config.make
 # Freeze source was copied from tmp/Python-*/Tools/freeze
 FREEZE_SOURCE = $(datadir)/freeze
 
+ifeq ($(OS),Linux)
 LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
+endif
+ifeq ($(OS),Darwin)
+LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
+endif
 
 PROG	= chimera2
 STRIP	=
@@ -44,4 +49,4 @@ __main__.py: $(PY_MAIN)
 
 frozen.c M___main__.c: __main__.py
 	$(PYTHON_EXE) mkfrozen.py $(FREEZE_SOURCE) $<
-	patch -b < frozen.patch
+	patch -b -V simple < frozen.patch
