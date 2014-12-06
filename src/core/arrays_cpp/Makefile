@@ -10,6 +10,7 @@ HDRS 	= pythonarray.h rcarray.h refcount.h
 
 ifeq ($(OS),Darwin)
 PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
+REL_PY_LIB = $(shell python -c 'import os; print(os.path.relpath("$(PY_LIB)", "$(shlibdir)"))')
 LIBS = $(PY_LIB)
 endif
 
@@ -29,9 +30,9 @@ $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
 ifeq ($(OS),Darwin)
 # Make libraries that link to libarrays use relative path to find it.
-	install_name_tool -id @loader_path/lib/$(SHLIB) $(SHLIB)
+	install_name_tool -id @rpath/$(SHLIB) $(SHLIB)
 # Use relative path to Python framework library.
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(SHLIB)
+	install_name_tool -change $(PY_LIB) @loader_path/$(REL_PY_LIB) $(SHLIB)
 endif
 
 clean:

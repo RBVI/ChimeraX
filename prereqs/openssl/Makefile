@@ -3,6 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 VERSION = 1.0.1j
+SHLIB_VERSION=$(shell awk '$$2 == "SHLIB_VERSION_NUMBER" { print $$3 }' $(includedir)/openssl/opensslv.h | sed s/\"//g)
 DISTRIBUTION = openssl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/openssl-$(VERSION)
 
@@ -64,23 +65,22 @@ ifeq ($(OS),Linux)
 endif
 ifeq ($(OS),Darwin)
 	cd $(shlibdir) && \
-	SHLIB_VERSION=`awk '$$2 == "SHLIB_VERSION_NUMBER" { print $$3 }' $(includedir)/openssl/opensslv.h | sed s/\"//g` && \
 	chmod 644 \
-	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
-	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT) && \
+	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
 	install_name_tool -id \
-	    @rpath/libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
-	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) && \
+	    @rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
 	install_name_tool -id \
-	    @rpath/libssl.$$SHLIB_VERSION.$(SHLIB_EXT) \
-	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT) && \
+	    @rpath/libssl.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
 	install_name_tool -change \
-	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
-	    @rpath/libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
-	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT) && \
+	    $(shlibdir)/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    @rpath/libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT) ; \
 	chmod 444 \
-	    libcrypto.$$SHLIB_VERSION.$(SHLIB_EXT) \
-	    libssl.$$SHLIB_VERSION.$(SHLIB_EXT)
+	    libcrypto.$(SHLIB_VERSION).$(SHLIB_EXT) \
+	    libssl.$(SHLIB_VERSION).$(SHLIB_EXT)
 endif
 
 app-install:

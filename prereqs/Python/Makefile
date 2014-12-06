@@ -97,19 +97,31 @@ ifeq ($(OS),Windows)
 	  $(PYDIR)/python.exe \
 	  $(PYDIR)/pythonw.exe \
 	  $(bindir)
-else ifndef USE_MAC_FRAMEWORKS
-	cd $(SOURCE) && $(MAKE) && $(MAKE) install
-ifeq ($(OS),Linux)
-	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
-endif
-else
+else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
 	cp $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)/pyconfig.h $(frameworkdir)/Python.framework/Headers/
+	$(PYTHON_EXE) fixsymlinks.py $(PYTHON_FRAMEWORK)/lib/* \
+		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
+	chmod 644 $(PYTHON_FRAMEWORK)/Python
+	install_name_tool -id \
+		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		$(PYTHON_FRAMEWORK)/Python
+	chmod 444 $(PYTHON_FRAMEWORK)/Python
 # In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
+	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
 # This causes the Hydra app menu name to be Python. So we install the non-framework python executable also.
 	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)noapp
+else
+	# Linux or Mac OS X without framework
+	cd $(SOURCE) && $(MAKE) && $(MAKE) install
+ifeq ($(OS),Linux)
+	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
+endif
+ifeq ($(OS),Darwin)
+	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+endif
 endif
 	# double check that pyexpat was successfully made
 	test -f $(DYNLOAD_DIR)/pyexpat.*

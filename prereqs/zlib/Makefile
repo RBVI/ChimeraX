@@ -3,6 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 VERSION = 1.2.8
+LIBZ_VER = 1
 DISTRIBUTION = zlib-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/zlib-$(VERSION)
 
@@ -15,6 +16,10 @@ all:
 install: $(SOURCE)
 ifndef WIN32
 	cd $(SOURCE) && $(MAKE) install
+ifeq ($(OS),Darwin)
+	libz=libz.$(LIBZ_VER).dylib; \
+	install_name_tool -id "@rpath/$$libz" $(shlibdir)/$$libz
+endif
 else
 	cd $(SOURCE) && env MAKEFLAGS= MFLAGS= nmake /nologo /f win32/Makefile.msc
 	cd $(SOURCE) && \

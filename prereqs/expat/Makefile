@@ -3,9 +3,9 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 VERSION = 2.1.0
+LIBEXPAT_VER = 1
 DISTRIBUTION = expat-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/expat-$(VERSION)
-SHLIB_VER = 1
 
 PATCHES = $(wildcard expat-$(VER)*.patch)
 
@@ -32,8 +32,8 @@ endif
 	cd $(SOURCE) && $(MAKE) installlib
 ifeq ($(OS),Darwin)
 	install_name_tool -id \
-	  @rpath/libexpat.$(SHLIB_VER).$(SHLIB_EXT) \
-	  $(libdir)/libexpat.$(SHLIB_EXT)
+	  @rpath/libexpat.$(LIBEXPAT_VER).$(SHLIB_EXT) \
+	  $(shlibdir)/libexpat.$(SHLIB_EXT)
 endif
 
 app-install:;
