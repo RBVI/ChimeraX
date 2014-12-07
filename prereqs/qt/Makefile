@@ -55,7 +55,7 @@ app-install:;
 include:
 	cd $(libdir) && for i in *.framework; do \
 		f=`basename $$i .framework`; \
-		(cd ../include && ln -fs ../lib/$$i/Headers $$f); \
+		(cd ../include && ln -nfs ../lib/$$i/Headers $$f); \
 	done
 endif
 

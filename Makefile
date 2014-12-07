@@ -23,17 +23,17 @@ docs.install:
 
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) $(webdir)
-	-cd $(build_prefix) && ln -fs lib lib64
+	-cd $(build_prefix) && ln -nfs lib lib64
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif
 ifdef USE_MAC_FRAMEWORKS
 	-mkdir $(frameworkdir) $(build_prefix)/Library
-	-cd $(build_prefix)/Library && ln -fs ../Frameworks .
+	-cd $(build_prefix)/Library && ln -nfs ../Frameworks .
 endif
 
 build-app-dirs:
-	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir)
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) $(APP_PYSITEDIR)
 ifdef USE_MAC_FRAMEWORKS
 	-mkdir -p $(app_frameworkdir)
 endif
