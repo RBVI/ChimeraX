@@ -8,6 +8,10 @@ DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
 BUILD_OPTS =
 INSTALL_OPTS =
+ifdef DEBUG
+BUILD_OPTS += --debug
+INSTALL_OPTS += --debug
+endif
 
 PATCHES = $(wildcard wxPython_Phoenix-$(VERSION)_$(OS)_*.patch) \
 	$(wildcard wxPython_Phoenix-$(VERSION)-*.patch)
@@ -16,23 +20,6 @@ PATCHINES = $(wildcard wxPython_Phoenix-$(VERSION)_$(OS)_*.patch.in) \
 WAF = $(wildcard waf-1.7.15)
 
 RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(PYSITEDIR)", "$(bindir)"))')
-
-ifdef UNIX
-QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
-QUOTE_CXX := $(subst ','\'',$(CXX) $(TARGET_ARCH))
-
-# use our compiler options
-ENV_CONFIGURE = env CC='$(QUOTE_CC)' CXX='$(QUOTE_CXX)'
-CONF_ARGS = --prefix=$(build_prefix) --enable-utf --enable-unicode-properties --disable-static
-
-ifdef DEBUG
-MAKE_ARGS = CFLAGS="$(OPT)" CXXFLAGS="$(OPT)"
-ifeq ($(OS),Linux)
-CONF_ARGS += --enable-valgrind
-endif
-endif
-
-endif # UNIX
 
 all:
 
@@ -49,6 +36,9 @@ ifeq ($(OS),Darwin)
 		install_name_tool -id \
 			@executable_path/$(RELPATH)/$$f $$f; \
 	done
+endif
+ifeq ($(OS),Linux)
+	cd $(PYSITEDIR)/wx; mv -f libwx_* $(libdir)/
 endif
 endif
 
