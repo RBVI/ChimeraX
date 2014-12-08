@@ -48,8 +48,12 @@ class OpenGLCanvas(glcanvas.GLCanvas):
 
     def __init__(self, parent, ui):
         self.graphics_window = parent
-        attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER,
-            glcanvas.WX_GL_OPENGL_PROFILE, glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+        attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER ]
+        import sys
+        if sys.platform.startswith('darwin'):
+            attributes += [
+                glcanvas.WX_GL_OPENGL_PROFILE,
+                glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
             ]
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs):
