@@ -18,6 +18,20 @@ def parse_arguments(argv):
     """Initialize Chimera application."""
     import getopt
 
+    if sys.platform.startswith('darwin'):
+        # skip extra -psn_ argument on Mac OS X 10.8 and earlier
+        import platform
+        release = platform.mac_ver()[0]
+        if release:
+            release = [int(x) for x in release.split('.')]
+            if release < (10, 9):
+                for i, arg in enumerate(sys.argv):
+                    if i == 0:
+                        continue
+                    if arg.startswith('-psn_'):
+                        del sys.argv[i]
+                        break
+
     class Opts:
         pass
     opts = Opts()
@@ -139,11 +153,12 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     import appdirs
     partial_version = '%s.%s' % tuple(version.split('.')[0:2])
     ad = sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
-                                    version=partial_version)
+                                         version=partial_version)
     # inform the C++ layer of the appdirs paths
     from chimera.core import appdirs_cpp
     appdirs_cpp.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
-        ad.user_cache_dir, ad.site_data_dir, ad.site_config_dir, ad.user_log_dir)
+                           ad.user_cache_dir, ad.site_data_dir,
+                           ad.site_config_dir, ad.user_log_dir)
 
     # initialize the user interface
     if opts.gui:
@@ -154,7 +169,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         ui_class = nogui.UI
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
-    sess.logger = None # temporary, to allow other code to work
+    sess.logger = None  # temporary, to allow other code to work
     sess.ui = ui_class(sess)
     # splash step "0" will happen in the above initialization
     num_splash_steps = 4
@@ -162,14 +177,14 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     splash_step = itertools.count()
 
     sess.ui.splash_info("Getting preferences",
-        next(splash_step), num_splash_steps)
+                        next(splash_step), num_splash_steps)
     from chimera.core import preferences
     # Only pass part of session needed in function call
     preferences.init(sess.app_dirs)
 
     # common core initialization
     sess.ui.splash_info("Initializing core",
-        next(splash_step), num_splash_steps)
+                        next(splash_step), num_splash_steps)
     session.common_startup(sess)
     # or:
     #   sess.scenes = session.Scenes(sess)
@@ -178,13 +193,13 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # etc.
 
     sess.ui.splash_info("Initializing tools",
-        next(splash_step), num_splash_steps)
+                        next(splash_step), num_splash_steps)
     from chimera.core import toolshed
     sess.tools = toolshed.init(sess.app_dirs)
 
     # build out the UI, populate menus, create graphics, etc.
     sess.ui.splash_info("Starting main interface",
-        next(splash_step), num_splash_steps)
+                        next(splash_step), num_splash_steps)
     sess.ui.build()
 
     # unless disabled, startup tools
