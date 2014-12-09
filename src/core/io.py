@@ -82,45 +82,45 @@ class _FileFormatInfo:
 
     ..attribute:: extensions
 
-            Sequence of filename extensions in lowercase
-            starting with period (or empty)
+        Sequence of filename extensions in lowercase
+        starting with period (or empty)
 
     ..attribute:: prefixes
 
-            sequence of URL-style prefixes (or empty)
+        sequence of URL-style prefixes (or empty)
 
     ..attribute:: mime_types
 
-            sequence of associated MIME types (or empty)
+        sequence of associated MIME types (or empty)
 
     ..attribute:: reference
 
-            URL reference to specification
+        URL reference to specification
 
     ..attribute:: dangerous
 
-            True if can execute arbitrary code (e.g., scripts)
+        True if can execute arbitrary code (e.g., scripts)
 
     ..attribute:: open_func
 
-            function that opens files: func(stream, identify_as=None)
+        function that opens files: func(stream, identify_as=None)
 
     ..attribute:: requires_seeking
 
-            True if open function needs seekable files
+        True if open function needs seekable files
 
     ..attribute:: fetch_func
 
-            function that opens internet files:
-                func(prefixed_name, identify_as=None)
+        function that opens internet files:
+            func(prefixed_name, identify_as=None)
 
     ..attribute:: save_func
 
-            function that saves files: func(stream)
+        function that saves files: func(stream)
 
     ..attribute:: save_notes
 
-            additional information to show in save dialogs
+        additional information to show in save dialogs
     """
 
     def __init__(self, category, extensions, prefixes, mime, reference,
@@ -140,9 +140,9 @@ class _FileFormatInfo:
 
 _file_formats = {}
 
-from chimera2 import triggers as _triggers
+from chimera.core import triggers
 NEW_FILE_FORMAT = "new file format"
-_triggers.add_trigger(NEW_FILE_FORMAT)
+triggers.add_trigger(NEW_FILE_FORMAT)
 
 
 def register_format(name, category, extensions, prefixes=(), mime=(),
@@ -185,7 +185,7 @@ def register_format(name, category, extensions, prefixes=(), mime=(),
                  'save_func', 'save_notes']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
-    _triggers.activate_trigger(NEW_FILE_FORMAT, name)
+    triggers.activate_trigger(NEW_FILE_FORMAT, name)
 
 
 def prefixes(name):
@@ -437,7 +437,7 @@ def open(filespec, identify_as=None, **kw):
     uncompressed into a temporary file before calling the open function.
     """
 
-    from chimera2.cli import UserError
+    from chimera.core.cli import UserError
     name, prefix, filename, compression = deduce_format(filespec)
     if name is None:
         raise UserError("Missing or unknown file type")
@@ -478,13 +478,13 @@ def open(filespec, identify_as=None, **kw):
                     tf.write(data)
                 tf.seek(0)
                 stream = tf
-    from chimera2.trackchanges import track
+    from chimera.core.trackchanges import track
     try:
         track.block()
         models, status = open_func(stream, **kw)
         for m in models:
             m.name = identify_as
-        from chimera2 import open_models
+        from chimera.core import open_models
         open_models.add(models)
     finally:
         track.release()
@@ -492,7 +492,7 @@ def open(filespec, identify_as=None, **kw):
 
 
 def save(filename, **kw):
-    from chimera2.cli import UserError
+    from chimera.core.cli import UserError
     name, prefix, filename, compression = deduce_format(filename,
                                                         prefixable=False)
     if name is None:
