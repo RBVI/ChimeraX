@@ -51,7 +51,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER ]
         import sys
         if sys.platform.startswith('darwin'):
-            attributes += [
+            attribs += [
                 glcanvas.WX_GL_OPENGL_PROFILE,
                 glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
             ]
