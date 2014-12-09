@@ -13,7 +13,7 @@ module_name = filename[0:-3]
 main = open('__main__.py', 'w')
 print('from %s import *\n' % module_name, file=main)
 
-with open(sys.argv[1], 'rU') as f:
+with open(sys.argv[1], 'rU', encoding='utf-8') as f:
     in_main = False
     first_main = True
     indent = ''

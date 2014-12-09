@@ -24,12 +24,12 @@ def parse_arguments(argv):
         release = platform.mac_ver()[0]
         if release:
             release = [int(x) for x in release.split('.')]
-            if release < (10, 9):
-                for i, arg in enumerate(sys.argv):
+            if release < [10, 9]:
+                for i, arg in enumerate(argv):
                     if i == 0:
                         continue
                     if arg.startswith('-psn_'):
-                        del sys.argv[i]
+                        del argv[i]
                         break
 
     class Opts:
@@ -40,6 +40,7 @@ def parse_arguments(argv):
     opts.module = None
     opts.line_profile = False
     opts.load_tools = True
+    opts.silent = False
     opts.status = True
     opts.version = False
 
@@ -49,19 +50,30 @@ def parse_arguments(argv):
         "--nogui",
         "--help",
         "--lineprofile",
+        "--silent",
         "--nostatus",
         "--notools",
         "--version",
-        "-m module",    # like Python, but doesn't end argument processing
     ]
     if sys.platform.startswith("win"):
         ARGS.extend(["--console", "--noconsole"])
     USAGE = '[' + "] [".join(ARGS) + ']'
+    USAGE += " or -m module_name [args]"
     # add in default argument values
     ARGS += [
+        "--nodebug",
         "--gui",
+        "--nolineprofile",
+        "--nosilent",
         "--status",
+        "--tools",
     ]
+    if len(sys.argv) > 2 and sys.argv[1] == '-m':
+        # treat like Python's -m argument
+        opts.gui = False
+        opts.silent = True
+        opts.module = sys.argv[2]
+        return opts, sys.argv[2:]
     try:
         shortopts = ""
         longopts = []
@@ -86,26 +98,22 @@ def parse_arguments(argv):
 
     help = False
     for opt, optarg in options:
-        if opt == "--debug":
-            opts.debug = True
+        if opt in ("--debug", "--nodebug"):
+            opts.debug = opt[2] == 'd'
         elif opt == "--help":
             help = True
-        elif opt == "--gui":
-            opts.gui = True
-        elif opt == "--nogui":
-            opts.gui = False
-        elif opt == "--lineprofile":
-            opts.line_profile = True
-        elif opt == "--status":
-            opts.status = True
-        elif opt == "--nostatus":
-            opts.status = False
-        elif opt == "--notools":
-            opts.load_tools = False
+        elif opt in ("--gui", "--nogui"):
+            opts.gui = opt[2] == 'g'
+        elif opt in ("--lineprofile", "--nolineprofile"):
+            opts.line_profile = opt[2] == 'l'
+        elif opt in ("--silent", "--nosilent"):
+            opts.silent = opt[2] == 's'
+        elif opt in ("--status", "--nostatus"):
+            opts.status = opt[2] == 's'
+        elif opt in ("--tools", "--notools"):
+            opts.load_tools = opt[2] == 't'
         elif opt == "--version":
             opts.version = True
-        elif opt == "-m":
-            opts.module = optarg
     if help:
         print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
@@ -113,6 +121,8 @@ def parse_arguments(argv):
 
 
 def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
+    print('hello', flush=True)
+    print('there', file=sys.stderr)
     if app_name is None:
         app_name = __app_name__
     if app_author is None:
@@ -122,7 +132,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     opts, args = parse_arguments(argv)
     if opts.version:
         print(version)
-        raise SystemExit(os.EX_OK)
+        return os.EX_OK
 
     # install line_profile decorator
     import builtins
@@ -176,15 +186,17 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     import itertools
     splash_step = itertools.count()
 
-    sess.ui.splash_info("Getting preferences",
-                        next(splash_step), num_splash_steps)
+    if not opts.silent:
+        sess.ui.splash_info("Getting preferences",
+                            next(splash_step), num_splash_steps)
     from chimera.core import preferences
     # Only pass part of session needed in function call
     preferences.init(sess.app_dirs)
 
     # common core initialization
-    sess.ui.splash_info("Initializing core",
-                        next(splash_step), num_splash_steps)
+    if not opts.silent:
+        sess.ui.splash_info("Initializing core",
+                            next(splash_step), num_splash_steps)
     session.common_startup(sess)
     # or:
     #   sess.scenes = session.Scenes(sess)
@@ -192,21 +204,33 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     #   sess.models = models.Models(sess)
     # etc.
 
-    sess.ui.splash_info("Initializing tools",
-                        next(splash_step), num_splash_steps)
+    if not opts.silent:
+        sess.ui.splash_info("Initializing tools",
+                            next(splash_step), num_splash_steps)
     from chimera.core import toolshed
     sess.tools = toolshed.init(sess.app_dirs)
 
-    # build out the UI, populate menus, create graphics, etc.
-    sess.ui.splash_info("Starting main interface",
-                        next(splash_step), num_splash_steps)
-    sess.ui.build()
+    if opts.gui:
+        # build out the UI, populate menus, create graphics, etc.
+        if not opts.silent:
+            sess.ui.splash_info("Starting main interface",
+                                next(splash_step), num_splash_steps)
+        sess.ui.build()
 
     # unless disabled, startup tools
     if opts.load_tools:
         # This needs sess argument because tool shed is session-independent
         for tool in sess.tools.startup_tools(sess):
             tool.start(sess)
+
+    if opts.module:
+        import runpy
+        import warnings
+        sys.argv[:] = [opts.module] + args  # argv[0] is now module name
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=BytesWarning)
+            runpy._run_module_as_main(opts.module, True)
+        return os.EX_OK
 
     # the rest of the arguments are data files
     for arg in args:
@@ -217,9 +241,9 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     if event_loop:
         try:
             sess.ui.event_loop()
-        except SystemExit:
-            raise
-        raise SystemExit(os.EX_OK)
+        except SystemExit as e:
+            return e.code
+        raise os.EX_OK
 
 if __name__ == '__main__':
     raise SystemExit(init(sys.argv))
