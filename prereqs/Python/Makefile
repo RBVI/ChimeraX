@@ -127,6 +127,7 @@ endif
 	test -f $(DYNLOAD_DIR)/pyexpat.*
 
 app-install:
+	$(RSYNC) $(PYTHON_EXE) $(app_bindir)
 ifeq ($(OS),Windows)
 	$(RSYNC) --exclude='site-packages/*'  --exclude='test/*'\
 	  $(bindir)/DLLs \
