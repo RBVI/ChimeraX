@@ -13,7 +13,7 @@ ifeq ($(OS),Darwin)
 LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
 endif
 
-PROG	= chimera2
+PROG	= $(APP_NAME)
 STRIP	=
 BINMODE	= 755
 
@@ -30,16 +30,14 @@ all: $(PROG)
 install: $(PROG)
 	$(RSYNC) $(PROG) $(bindir)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
-	-if [ -d "$(app_prefix)" ]; then \
+	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
-		mkdir $(app_prefix)/MacOS; \
-		ln -nfs ../bin/$(PROG) $(app_prefix)/MacOS/build; \
+		ln -nfs ../bin/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
 		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 	fi
 ifeq ($(OS),Darwin)
 	-if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
-		mkdir $(app_prefix)/Resources; \
 	fi
 endif
 
@@ -50,10 +48,13 @@ ifeq ($(OS),Darwin)
 endif
 
 lint:
-	$(PYTHON_EXE) -m flake8 *.py
+	$(PYLINT) *.py
 
 run:
 	$(PYTHON_EXE) chimera2_main.py
+
+run-nogui:
+	$(PYTHON_EXE) chimera2_main.py --nogui
 
 $(PROG): $(OBJS)
 	$(PROG_LINK)
@@ -69,7 +70,7 @@ ifeq ($(OS),Darwin)
 install: Info.plist
 
 Info.plist: mkinfo.py
-#	$(bindir)/$(PROG) --nogui mkinfo.py build || rm Info.plist
-	$(PYTHON_EXE) mkinfo.py build || rm Info.plist
+#	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || rm Info.plist
+	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || rm Info.plist
 
 endif

@@ -23,7 +23,7 @@ $(SUBDIR_INSTALL): dir
 
 lint:
 ifneq (,$(PYSRCS))
-	$(PYTHON_EXE) -m flake8 $(PYSRCS)
+	$(PYLINT) $(PYSRCS)
 endif
 
 clean:

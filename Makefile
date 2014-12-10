@@ -22,7 +22,8 @@ docs.install:
 	$(MAKE) -C docs html
 
 build-dirs:
-	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) $(webdir)
+	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
+		$(webdir)
 	-cd $(build_prefix) && ln -nfs lib lib64
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
@@ -33,9 +34,11 @@ ifdef USE_MAC_FRAMEWORKS
 endif
 
 build-app-dirs:
-	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) $(APP_PYSITEDIR)
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
+		$(APP_PYSITEDIR)
 ifdef USE_MAC_FRAMEWORKS
-	-mkdir -p $(app_frameworkdir)
+	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
+		$(app_frameworkdir)
 endif
 
 distclean: clean

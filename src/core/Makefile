@@ -26,7 +26,7 @@ dir:
 $(SUBDIR_INSTALL): dir
 
 lint:
-	$(PYTHON_EXE) -m flake8 $(PYSRCS)
+	$(PYLINT) $(PYSRCS)
 
 clean:
 	rm -rf __pycache__

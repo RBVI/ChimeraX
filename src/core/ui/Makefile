@@ -17,7 +17,7 @@ dir:
 	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 lint:
-	$(PYTHON_EXE) -m flake8 $(PYSRCS)
+	$(PYLINT) $(PYSRCS)
 
 clean:
 	rm -rf __pycache__
