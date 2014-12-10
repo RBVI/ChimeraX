@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 #
 # For each filename given on the command line
-#    if it is a symbolic link to an abolute location,
+#    if it is a symbolic link to an absolute location,
 #    then replace it with a relative one.
 from __future__ import print_function
 

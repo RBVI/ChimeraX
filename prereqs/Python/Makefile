@@ -111,6 +111,9 @@ else ifdef USE_MAC_FRAMEWORKS
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
 # In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
 	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
+		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS"))') \
+		$(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS/Python
 # This causes the Hydra app menu name to be Python. So we install the non-framework python executable also.
 	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)noapp
 else
