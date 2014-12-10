@@ -1,16 +1,18 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 import sys
 
 if len(sys.argv) != 2:
     print("usage: %s python-file" % sys.argv[0], file=sys.stderr)
     raise SystemExit(2)
 
-filename = sys.argv[1] 
+filename = sys.argv[1]
 if not filename.endswith('.py'):
     print('only works with Python source files', file=sys.stderr)
     raise SystemExit(1)
 
 module_name = filename[0:-3]
-main = open('__main__.py', 'w')
+main = open('__main__.py', 'w', encoding='utf-8')
 print('from %s import *\n' % module_name, file=main)
 
 with open(sys.argv[1], 'rU', encoding='utf-8') as f:
@@ -32,6 +34,7 @@ with open(sys.argv[1], 'rU', encoding='utf-8') as f:
             print('inconsistent indenting on line %d' % line_num,
                   file=sys.stderr)
             raise SystemExit(1)
+
         print(line[len(indent):], end='', file=main)
 
 main.close()

@@ -50,7 +50,7 @@ ifeq ($(OS),Darwin)
 endif
 
 lint:
-	$(PYTHON_EXE) -m flake8 $(PY_MAIN) mkinfo.py
+	$(PYTHON_EXE) -m flake8 *.py
 
 run:
 	$(PYTHON_EXE) chimera2_main.py

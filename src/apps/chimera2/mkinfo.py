@@ -1,4 +1,6 @@
+#!/bin/env python
 # vim: set expandtab shiftwidth=4 softtabstop=4:
+#
 # Copyright © 2014 Regents of the University of California.
 # All Rights Reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
@@ -79,7 +81,7 @@ def typeName(t):
 
 def dumpType(t):
     """output Apple Universal Type information for chimera type"""
-    return None # TODO: remove this
+    return None  # TODO: remove this
     id = utid(t)
     if id is None:
         print >> sys.stderr, "skipping", t
@@ -99,17 +101,17 @@ def dumpType(t):
             d2["public.mime-type"] = mimeTypes[0]
     return d
 
-## TODO:
-#from chimera.core import io
-#fi = io.fileInfo
-#chimeraTypes = [t for t in fi.types() if t.startswith('Chimera')]
+# # TODO:
+# from chimera.core import io
+# fi = io.fileInfo
+# chimeraTypes = [t for t in fi.types() if t.startswith('Chimera')]
 chimeraTypes = []
 
 # create Info.plist
 # TODO:
-#from chimera.core.version import version, releaseNum
-#year = version.split()[5].split('/')[0]
-#release = releaseNum[:]
+# from chimera.core.version import version, releaseNum
+# year = version.split()[5].split('/')[0]
+# release = releaseNum[:]
 year = 2014
 release = [2, 0]
 if len(release) < 4:
@@ -122,7 +124,7 @@ pl = {
     "NSHumanReadableCopyright": "Copyright \u00A9 %s" % year +
                                 " Regents of the University of California."
                                 "  All Rights Reserved.",
-    #"CFBundleIconFile": "chimera-icon.icns",
+    # TODO: "CFBundleIconFile": "chimera-icon.icns",
     "CFBundleIdentifier": "edu.ucsf.cgl.%s" % app_name,
     "CFBundleInfoDictionaryVersion": "6.0",
     "CFBundleName": "UCSF Chimera2",
