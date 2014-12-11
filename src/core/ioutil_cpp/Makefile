@@ -1,21 +1,25 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-LIBNAME = appdirs
+LIBNAME = ioutil
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.o)
 
-$(SHLIB): imex.h $(OBJS)
-	$(SHLIB_LINK)
+ifdef WIN32
+CSRCS	= win32_dirent.c
+OBJS	+= $(CSRCS:.c=.o)
+endif
 
-install: $(SHLIB)
-	$(RSYNC) $(SHLIB) $(shlibdir)
+$(LIBRARY): imex.h $(OBJS)
+	$(LIB_LINK)
+
+install: $(LIBRARY)
+	$(RSYNC) $(LIBRARY) $(libdir)
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
-	if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:
-	/bin/rm -f $(OBJS) $(SHLIB) imex.h
+	/bin/rm -f $(OBJS) $(LIBRARY) imex.h

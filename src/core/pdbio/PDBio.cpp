@@ -6,16 +6,16 @@
 #include <unordered_map>
 
 #include "PDBio.h"
-#include "pdb/PDB.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Bond.h"
-#include "atomstruct/Atom.h"
-#include "atomstruct/connect.h"
-#include "atomstruct/CoordSet.h"
-#include "atomstruct/Sequence.h"
-#include "blob/StructBlob.h"
-#include "logger_cpp/logger.h"
+#include <pdb/PDB.h>
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Bond.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/connect.h>
+#include <atomstruct/CoordSet.h>
+#include <atomstruct/Sequence.h>
+#include <blob/StructBlob.h>
+#include <logger/logger.h>
 
 namespace pdb {
 

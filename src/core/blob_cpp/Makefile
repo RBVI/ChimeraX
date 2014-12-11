@@ -1,17 +1,14 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-LIBNAME = logger
+LIBNAME = blob
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
-SRCS	= $(wildcard *.cpp)
-OBJS	= $(SRCS:.cpp=.o)
-INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-ifneq ($(OS),Windows)
-CXX	+= -Wno-logical-op-parentheses
-endif
-LIBS	+= $(PYTHON_LIB)
+SRCS= $(wildcard *.cpp)
+OBJS= $(SRCS:.cpp=.o)
+INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(includedir)
+LIBS += -L$(libdir) -latomstruct $(PYTHON_LIB)
 
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
@@ -23,4 +20,4 @@ install: $(SHLIB)
 	if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:
-	/bin/rm -f $(OBJS) $(SHLIB) imex.h
+	/bin/rm -f $(SHLIB) $(OBJS) imex.h

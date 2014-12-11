@@ -1,5 +1,6 @@
 # need absolute directory for build_prefix
-build_prefix = $(shell (cd "$(TOP)"; pwd))/build
+TOP := $(shell (cd "$(TOP)"; pwd))
+build_prefix = $(TOP)/build
 bindir = $(build_prefix)/bin
 includedir = $(build_prefix)/include
 libdir = $(build_prefix)/lib

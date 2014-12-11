@@ -42,7 +42,7 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py
+	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py gensrcs
 ifeq ($(OS),Darwin)
 	rm -f Info.plist
 endif
@@ -62,9 +62,12 @@ $(PROG): $(OBJS)
 __main__.py: $(PY_MAIN)
 	$(PYTHON_EXE) mk__main__.py $<
 
-frozen.c M___main__.c: __main__.py
+frozen.c M___main__.c: gensrcs
+
+gensrcs: __main__.py
 	$(PYTHON_EXE) mkfrozen.py $(FREEZE_SOURCE) $<
 	patch -b -V simple < frozen.patch
+	touch gensrcs
 
 ifeq ($(OS),Darwin)
 install: Info.plist

@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimera/core/graphics
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
-SUBDIRS	= graphics_cpp
+SUBDIRS	= _graphics
 
 PYSRCS = __init__.py camera.py crossfade.py drawing.py opengl.py view.py
 

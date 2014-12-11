@@ -1,12 +1,12 @@
 // vim: set expandtab ts=4 sw=4:
 #include "mmcif.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Bond.h"
-#include "atomstruct/Atom.h"
-#include "atomstruct/CoordSet.h"
-#include "blob/StructBlob.h"
-#include "atomstruct/connect.h"
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Bond.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/CoordSet.h>
+#include <blob/StructBlob.h>
+#include <atomstruct/connect.h>
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
