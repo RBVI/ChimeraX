@@ -35,14 +35,13 @@ ifeq ($(OS),Linux)
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
 
-LDFLAGS += -Wl,-rpath,"$(libdir)"
-
 ifndef USE_MAC_FRAMEWORKS
+LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 else
+LDFLAGS += -Wl,-rpath,"@executable_path/../lib"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --exec_prefix=$(build_prefix)
-PYTHON_FW = $(frameworkdir)/Python.framework
 endif
 
 ifeq ($(OS),Windows)
@@ -110,7 +109,7 @@ else ifdef USE_MAC_FRAMEWORKS
 		$(PYTHON_FRAMEWORK)/Python
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
 # In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+	#install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_EXE)
@@ -140,8 +139,9 @@ ifeq ($(OS),Windows)
 	  $(bindir)/Lib \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
+	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
-		$(frameworkdir)/Python.framework $(app_frameworkdir)
+		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
