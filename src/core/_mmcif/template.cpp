@@ -252,7 +252,7 @@ ExtractTemplate::parse_chem_comp_bond(bool in_loop)
 }
 
 void
-load_mmCIF_templates(const char* filename)
+load_mmCIF_templates(const char* filename, const char* /*category*/)
 {
     if (templates == NULL)
         templates = new tmpl::Molecule();
