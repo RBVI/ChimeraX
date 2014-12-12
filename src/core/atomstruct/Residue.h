@@ -11,6 +11,7 @@ namespace atomstruct {
 
 class Atom;
 class AtomicStructure;
+class Bond;
 
 class ATOMSTRUCT_IMEX Residue {
     friend class AtomicStructure;
@@ -34,6 +35,8 @@ public:
     void  add_atom(Atom *);
     const Atoms &  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
+    std::vector<Bond*>  bonds_between(const Residue* other_res,
+        bool just_first=false) const;
     const std::string &  chain_id() const { return _chain_id; }
     int  count_atom(const std::string &) const;
     int  count_atom(const char *) const;
@@ -49,6 +52,7 @@ public:
     void  set_is_sheet(bool is) { _is_sheet = is; }
     void  set_ss_id(int ssid) { _ss_id = ssid; }
     std::string  str() const;
+    AtomicStructure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(
         void (Atom::*assign_func)(const std::string&), const char* app,
         const char* template_dir, const char* extension) const;
