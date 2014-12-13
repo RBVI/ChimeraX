@@ -3,6 +3,6 @@
 structaccess: batch access to molecular data
 ============================================
 
-.. automodule:: structaccess
+.. automodule:: chimera.core.structaccess
     :members:
     :show-inheritance:

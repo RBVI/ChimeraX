@@ -30,6 +30,10 @@ Modules
 
     core/serialize.rst
 
+    core/triggerset.rst
+
+    core/data_events.rst
+
     core/io.rst
 
     structaccess.rst
@@ -44,7 +48,7 @@ Modules
 
 .. seealso::
 
-    :doc:`Readcif <readcif>`
+    :doc:`Readcif <core/readcif_cpp/docs/api>`
         C++ library for reading mmCIF files.
 
 Builtin Data formats

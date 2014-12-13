@@ -1,6 +1,6 @@
 """
-chimera2: package of chimera version 2 files
-============================================
+chimera.core: collection of base chimera functionality
+======================================================
 
 """
 
