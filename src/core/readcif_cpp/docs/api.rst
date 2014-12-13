@@ -260,7 +260,7 @@ C++ API
             on a single line and the columns of data are left-justified,
             and are of are fixed width.
             This option must be set in each category callback that is needed.
-            This option is ignored if :cpp:`PDB_style` is false.
+            This option is ignored if :cpp:func:`PDB_style` is false.
             This is not a global option because there is no reliable way
             to detect if the preconditions are met for each record without
             losing all of the speed advantages.

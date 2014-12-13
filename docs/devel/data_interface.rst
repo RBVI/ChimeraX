@@ -36,15 +36,35 @@ Modules
 
     core/io.rst
 
+Structure-related Modules
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 2
+
+    pdbio.rst
+
     structaccess.rst
 
     connectivity.rst
 
-    core/appdirs_cpp/appdirs_cpp.rst
+Graphics-related Modules
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 2
 
     hydra_geometry.rst
 
     hydra_graphics.rst
+
+C++ helper Modules
+~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 2
+
+    core/appdirs_cpp/appdirs_cpp.rst
 
 .. seealso::
 
