@@ -74,7 +74,7 @@ ExtractTemplate::ExtractTemplate(): residue(NULL)
 }
 
 void
-ExtractTemplate::data_block(const string& name)
+ExtractTemplate::data_block(const string& /*name*/)
 {
     if (residue != NULL)
         finished_parse();
@@ -125,7 +125,7 @@ ExtractTemplate::finished_parse()
 }
 
 void
-ExtractTemplate::parse_chem_comp(bool in_loop)
+ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
 {
     string  name;
     string  modres;
@@ -174,7 +174,7 @@ ExtractTemplate::parse_chem_comp(bool in_loop)
 }
 
 void
-ExtractTemplate::parse_chem_comp_atom(bool in_loop)
+ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
 {
     string  name;
     char    symbol[3];
@@ -228,7 +228,7 @@ ExtractTemplate::parse_chem_comp_atom(bool in_loop)
 }
 
 void
-ExtractTemplate::parse_chem_comp_bond(bool in_loop)
+ExtractTemplate::parse_chem_comp_bond(bool /*in_loop*/)
 {
     string name1, name2;
 
