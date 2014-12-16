@@ -128,8 +128,10 @@ ifeq ($(OS),Darwin)
 	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
 endif
 endif
+	# double check that _ssl was successfully made
+	test -f $(DYNLOAD_DIR)/_ssl*.$(PYMOD_EXT)
 	# double check that pyexpat was successfully made
-	test -f $(DYNLOAD_DIR)/pyexpat.*
+	test -f $(DYNLOAD_DIR)/pyexpat*.$(PYMOD_EXT)
 
 app-install:
 	$(RSYNC) $(PYTHON_EXE) $(app_bindir)
