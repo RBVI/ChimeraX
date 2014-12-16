@@ -12,7 +12,7 @@ SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.o)
 INCS	+= -I$(includedir)
 ifneq ($(OS),Windows)
-CXX	+= -Wno-logical-op-parentheses
+CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= -L$(libdir) -ltmpl -llogger -lbasegeom
 

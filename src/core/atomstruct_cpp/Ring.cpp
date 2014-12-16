@@ -188,7 +188,6 @@ Ring::ordered_bonds() const
 
 bool
 Ring::aromatic() const {
-	AtomicStructure *as = (*atoms().begin())->structure();
     for (auto a: atoms()) {
 		if (a->element() == Element::C && a->idatm_type() != "Car")
 			return false;

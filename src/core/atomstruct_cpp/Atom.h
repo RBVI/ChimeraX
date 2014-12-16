@@ -53,19 +53,19 @@ private:
     } _Alt_loc_info;
     typedef std::unordered_map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
+    std::vector<float> *  _aniso_u;
     mutable std::string  _computed_idatm_type;
     unsigned int  _coord_index;
-    Element  _element;
-    std::string  _explicit_idatm_type;
-    AtomicStructure *  _structure;
-    std::string  _name;
-    Residue *  _residue;
-    std::vector<float> *  _aniso_u;
-    mutable Rings  _rings;
-    int  _serial_number;
     void  _coordset_set_coord(const Point &);
     void  _coordset_set_coord(const Point &, CoordSet *cs);
+    Element  _element;
+    std::string  _explicit_idatm_type;
+    std::string  _name;
     unsigned int  _new_coord(const Point &);
+    Residue *  _residue;
+    mutable Rings  _rings;
+    int  _serial_number;
+    AtomicStructure *  _structure;
 public:
     // so that I/O routines can cheaply "change their minds" about element
     // types during early structure creation
