@@ -23,8 +23,8 @@ GENHDRS += $(GENSRCS:.cpp=.h)
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT)) $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
-CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS) -I$(includedir)
-LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob ../basegeom/libbasegeom.a -lreadcif -lwrappy3
+CXXFLAGS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
+LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob -lbasegeom -lreadcif -lwrappy3
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

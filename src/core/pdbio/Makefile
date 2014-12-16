@@ -8,8 +8,8 @@ SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 LIBNAME = pdbio
 PYMOD= $(LIBNAME).so
-CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS) -I$(includedir)
-LIBS += -L$(shlibdir) -latomstruct -ltmpl -llogger -lblob ../pdb/libpdb.a ../basegeom/libbasegeom.a
+INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
+LIBS += -L$(libdir) -latomstruct -ltmpl -llogger -lblob -lpdb -lbasegeom $(PYTHON_LIB)
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

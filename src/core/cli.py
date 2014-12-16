@@ -221,8 +221,8 @@ class Annotation(metaclass=abc.ABCMeta):
         :param text: command line text to parse
         :param session: for session-dependent data types
         :returns: 3-tuple with the converted value, consumed text
-        (possibly altered with expanded truncations), and the
-        remaining unconsumed text
+            (possibly altered with expanded truncations), and the
+            remaining unconsumed text
 
         The leading space in text must already be removed.
         It is up to the particular annotation to support truncatations.

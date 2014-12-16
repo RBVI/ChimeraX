@@ -1,14 +1,14 @@
 // vim: set expandtab ts=4 sw=4:
 #include "mmcif.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Bond.h"
-#include "atomstruct/Atom.h"
-#include "atomstruct/CoordSet.h"
-#include "atomstruct/Sequence.h"
-#include "blob/StructBlob.h"
-#include "atomstruct/connect.h"
-#include "atomstruct/tmpl/restmpl.h"
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Bond.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/CoordSet.h>
+#include <atomstruct/Sequence.h>
+#include <blob/StructBlob.h>
+#include <atomstruct/connect.h>
+#include <atomstruct/tmpl/restmpl.h>
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -252,7 +252,7 @@ ExtractTemplate::parse_chem_comp_bond(bool in_loop)
 }
 
 void
-load_mmCIF_templates(const char* filename)
+load_mmCIF_templates(const char* filename, const char* /*category*/)
 {
     if (templates == NULL)
         templates = new tmpl::Molecule();
