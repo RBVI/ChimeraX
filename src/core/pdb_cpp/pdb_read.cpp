@@ -626,8 +626,6 @@ atomqr:
 			goto unknown;
 		break;
 
-user:
-		r_type = USER;
 	case USER:
 		if (0 > sscanf(buf, "%4 %2s%74s", user.subtype, user.text))
 			goto unknown;
