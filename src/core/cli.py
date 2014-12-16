@@ -555,12 +555,13 @@ _escape_table = {
 
 
 def unescape(text):
-    """Replace backslash escape sequences with actual character
+    """Replace backslash escape sequences with actual character.
 
     :param text: the input text
     :returns: the processed text
 
-    Follows Python's :ref:`string literal <python:stringescapeseq>` syntax."""
+    Follows Python's :ref:`string literal <python:literals>` syntax
+    for escape sequences."""
     # standard Python backslashes including \N{unicode name}
     start = 0
     while start < len(text):
