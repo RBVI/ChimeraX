@@ -90,9 +90,9 @@ public:
     // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
-    void  register_field(std::string name, int value) {}
-    void  register_field(std::string name, double value) {}
-    void  register_field(std::string name, const std::string value) {}
+    void  register_field(std::string /*name*/, int /*value*/) {}
+    void  register_field(std::string /*name*/, double /*value*/) {}
+    void  register_field(std::string /*name*/, const std::string &/*value*/) {}
     void  remove_bond(Bond *b) { remove_connection(b); }
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
