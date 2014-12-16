@@ -26,10 +26,14 @@ private:
         ~Atom();
     Bonds         _bonds;
     Element       _element;
+    std::string     _idatm_type;
+    mutable unsigned int _index;
     Molecule*     _molecule;
     std::string   _name;
     Neighbors     _neighbors;
     Residue*      _residue;
+private:
+    int    new_coord(const Coord &c) const;
 public:
     void          add_bond(Bond *b) {
         _bonds.push_back(b);
@@ -45,11 +49,6 @@ public:
     static const unsigned int COORD_UNASSIGNED = ~0u;
     void        set_coord(const Coord &c);
     void        set_coord(const Coord &c, CoordSet *cs);
-private:
-    mutable unsigned int _index;
-    int    new_coord(const Coord &c) const;
-private:
-    std::string     _idatm_type;
 public:
     std::string  idatm_type() const { return _idatm_type; }
     void    set_idatm_type(const char *i) { _idatm_type = i; }
