@@ -15,7 +15,7 @@ ifeq ($(OS),Linux)
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
-	OPT = -O3
+	OPT = -O3 -Wall -Wextra
 endif
 	GCC_VER	= $(shell $(CC) -dumpversion)
 	CC = gcc -pipe -fPIC -std=gnu99
@@ -87,7 +87,7 @@ endif
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
-	OPT = -O3
+	OPT = -O3 -Wall -Wextra
 endif
 	CC = clang --sysroot $(SYSROOT)
 	CXX = clang++ --sysroot $(SYSROOT) -std=c++11 -stdlib=libc++
