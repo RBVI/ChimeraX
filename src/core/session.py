@@ -308,6 +308,7 @@ class Session:
 def common_startup(sess):
     """Initialize session with common data managers"""
     sess.scenes = Scenes(sess)
-    # TODO:
-    # from . import models
-    # sess.models = models.Models(sess)
+    from . import models
+    sess.models = models.Models(sess)
+    from . import commands
+    commands.register(sess)

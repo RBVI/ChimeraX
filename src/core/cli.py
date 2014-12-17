@@ -1096,7 +1096,8 @@ class Command:
     def __init__(self, session, text='', final=False, _used_aliases=None):
         import weakref
         if session is None:
-            class FakeSession: pass
+            class FakeSession:
+                pass
             session = FakeSession()
         self._session = weakref.ref(session)
         self._reset()
