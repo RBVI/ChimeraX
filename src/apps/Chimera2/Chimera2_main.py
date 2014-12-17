@@ -148,6 +148,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     sess = session.Session()
     sess.app_name = app_name
     sess.debug = opts.debug
+    from chimera.core.logger import Logger
+    sess.logger = Logger()
 
     # figure out the user/system directories for application
     if sys.platform.startswith('linux'):
@@ -177,7 +179,6 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         ui_class = nogui.UI
     # sets up logging, splash screen if gui
     # calls "sess.save_in_session(self)"
-    sess.logger = None  # temporary, to allow other code to work
     sess.ui = ui_class(sess)
     # splash step "0" will happen in the above initialization
     num_splash_steps = 4
