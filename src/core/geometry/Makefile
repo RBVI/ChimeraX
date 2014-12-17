@@ -13,11 +13,11 @@ include $(TOP)/mk/subdir.make
 
 all: $(PYOBJS)
 
-install: all $(PKG_DIR)
+install: all dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
 
-$(PKG_DIR):
+dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
 	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
