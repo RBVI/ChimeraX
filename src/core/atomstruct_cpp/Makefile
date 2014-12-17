@@ -16,7 +16,7 @@ CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= -L$(libdir) -ltmpl -llogger -lbasegeom
 
-$(SHLIB): imex.h $(OBJS)
+$(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)
