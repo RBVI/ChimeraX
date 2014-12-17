@@ -37,7 +37,7 @@ ifeq ($(OS),Darwin)
 endif
 
 app-install:;
-	$(RSYNC) $(shlibdir)/libexpat.$(SHLIB_EXT)* $(app_shlibdir)
+	$(RSYNC) $(shlibdir)/libexpat.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

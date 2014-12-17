@@ -90,8 +90,8 @@ ifeq ($(OS),Darwin)
 endif
 
 app-install:
-	$(RSYNC) $(shlibdir)/libcrypto.$(SHLIB_EXT)* \
-		$(shlibdir)/libssl.$(SHLIB_EXT)* $(app_shlibdir)
+	$(RSYNC) $(shlibdir)/libcrypto.*$(SHLIB_EXT)* \
+		$(shlibdir)/libssl.*$(SHLIB_EXT)* $(app_shlibdir)
 	# do we need $(shlibdir)/engines/?
 
 $(SOURCE):

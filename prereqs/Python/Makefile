@@ -105,6 +105,8 @@ else ifdef USE_MAC_FRAMEWORKS
 	$(PYTHON_EXE) fixsymlinks.py $(PYTHON_FRAMEWORK)/lib/* \
 		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
 	chmod 644 $(PYTHON_FRAMEWORK)/Python
+	# replace python executable with version that doesn't invoke Python.app
+	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)
 	install_name_tool -id \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_FRAMEWORK)/Python

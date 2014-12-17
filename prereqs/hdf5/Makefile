@@ -34,7 +34,7 @@ ifeq ($(OS),Darwin)
 endif
 
 app-install:;
-	$(RSYNC) $(shlibdir)/libhdf5.$(SHLIB_EXT)* $(app_shlibdir)
+	$(RSYNC) $(shlibdir)/libhdf5.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
