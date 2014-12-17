@@ -86,10 +86,8 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         self.graphics_window.view.draw()
 
     def OnSize(self, event):
-        print("OnSize")
         wx.CallAfter(self.set_viewport)
         event.Skip()
 
     def set_viewport(self):
-        print("set_viewport:  resize to: {}".format(self.GetClientSize()))
         self.graphics_window.view.resize(*self.GetClientSize())

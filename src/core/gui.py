@@ -89,7 +89,8 @@ class MainWindow(wx.Frame):
         self.aui_mgr.SetManagedWindow(self)
 
         from .ui.graphics import GraphicsWindow
-        GraphicsWindow(self, ui)
+        self.graphics_window = g = GraphicsWindow(self, ui)
+        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
 
         self.status_bar = self.CreateStatusBar(3, wx.STB_SIZEGRIP|
             wx.STB_SHOW_TIPS|wx.STB_ELLIPSIZE_MIDDLE|wx.FULL_REPAINT_ON_RESIZE)
@@ -97,3 +98,11 @@ class MainWindow(wx.Frame):
         self.status_bar.SetStatusText("Status", 0)
         self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
         self.status_bar.SetStatusText("", 2)
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def OnClose(self, event):
+        self.aui_mgr.UnInit()
+        del self.aui_mgr
+        self.graphics_window.timer = None
+        self.Destroy()
