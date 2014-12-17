@@ -28,7 +28,6 @@ class ToolWindow:
             if 'placement' is None, the tool will be detached from the main
             window.
         """
-        print("tool window: manage: {}".format(placement))
         self.__toolkit.manage(placement)
 
     def getShown(self):
@@ -88,9 +87,7 @@ class _Wx:
                 side = dict(zip(placements, [wx.RIGHT, wx.LEFT,
                     wx.TOP, wx.BOTTOM]))[placement]
         mw = self.main_window
-        print("add pane")
         mw.aui_mgr.AddPane(self.ui_area, side, self.tool_name)
-        print("update")
         mw.aui_mgr.Update()
         if placement is None:
            mw.aui_mgr.GetPane(self.ui_area).Float()

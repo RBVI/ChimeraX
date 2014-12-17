@@ -45,9 +45,7 @@ class UI(wx.App):
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
         from .ui.cmd_line import CmdLine
-        print("Starting command line")
         self.cmd_line = CmdLine(self.session)
-        print("Command line shown: {}".format(self.cmd_line.tool_window.shown))
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.

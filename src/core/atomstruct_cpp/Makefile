@@ -28,6 +28,4 @@ install: $(SHLIB)
 clean:
 	/bin/rm -f $(OBJS) $(SHLIB) imex.h
 
-$(OBJS): $(SUBDIR_INSTALL)
-
 $(SUBDIR_INSTALL): imex.h

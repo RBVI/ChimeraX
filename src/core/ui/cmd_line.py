@@ -5,11 +5,9 @@ class CmdLine:
     SIZE = (500, 25)
 
     def __init__(self, session):
-        print("command line: init")
         self.session = session
         import wx
         from .tool_api import ToolWindow
-        print("command line: make tool window")
         self.tool_window = ToolWindow("Command Line", "General", session,
             size=self.SIZE)
         parent = self.tool_window.ui_area
@@ -19,7 +17,6 @@ class CmdLine:
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
-        print("Command line: place tool window")
         self.tool_window.manage(placement="bottom")
 
     def OnEnter(self, event):
