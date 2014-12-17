@@ -89,7 +89,7 @@ ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
 	test -n '$(PYDIR)'
-	$(RSYNC) --include=*.exe --exclude='site-packages/*' \
+	$(RSYNC) --include=*.exe --exclude='site-packages/*' --exclude=__pycache__ \
 	  $(PYDIR)/DLLs \
 	  $(PYDIR)/Lib \
 	  $(PYDIR)/include \
@@ -140,16 +140,17 @@ endif
 app-install:
 	$(RSYNC) $(PYTHON_EXE) $(app_bindir)
 ifeq ($(OS),Windows)
-	$(RSYNC) --exclude='site-packages/*'  --exclude='test/*'\
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 	  $(bindir)/DLLs \
 	  $(bindir)/Lib \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
-	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
+	$(RSYNC) --exclude Resources/Python.app \
+		$(frameworkdir)/Python.framework $(app_frameworkdir)
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 else
-	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 endif
