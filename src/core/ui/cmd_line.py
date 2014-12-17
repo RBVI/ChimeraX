@@ -23,10 +23,13 @@ class CmdLine:
         text = self.text.GetLineText(0)
         self.text.SelectAll()
         from chimera.core import cli
+        import sys
         try:
-             cmd = cli.Command(self.session, text, final=True)
+            cmd = cli.Command(self.session, text, final=True)
+            cmd.execute()
         except SystemExit as e:
-            pass  # TODO: somehow quit application
+            # TODO: somehow quit application
+            raise
         except cli.UserError:
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
@@ -35,3 +38,8 @@ class CmdLine:
             print(cmd.current_text)
             print("%s^" % ('.' * error_at))
             print(err)
+            # TODO: repeat error in status line
+        except:
+            # TODO: bug report dialog
+            import traceback
+            traceback.print_exc(file=sys.stderr)

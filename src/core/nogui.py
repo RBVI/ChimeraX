@@ -39,6 +39,10 @@ class UI:
     def build(self):
         pass  # nothing to build
 
+    def quit(self):
+        import sys
+        sys.exit(sys.EX_OK)
+
     def event_loop(self):
         session = self._session()  # resolve back reference
         prompt = 'cmd> '

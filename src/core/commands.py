@@ -12,7 +12,7 @@ from . import cli
 
 
 def exit(session):
-    raise SystemExit(0)
+    session.ui.quit()
 _exit_desc = cli.CmdDesc()
 
 

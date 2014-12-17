@@ -1205,7 +1205,7 @@ class Command:
         self.amount_parsed += self._replace(text, replacement)
         return value, rest
 
-    def _find_command_name(self, final, used_aliases):
+    def _find_command_name(self, final, used_aliases=None):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions
