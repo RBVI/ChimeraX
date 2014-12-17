@@ -23,3 +23,6 @@ dir:
 
 clean:
 	rm -rf __pycache__
+
+lint:
+	$(PYLINT) $(PYSRCS)
