@@ -156,6 +156,7 @@ else
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 endif
+	$(RSYNC) $(PYSITEDIR)/pip $(PYSITEDIR)/pip-*-info $(APP_PYSITEDIR)
 
 $(SOURCE):
 ifneq ($(OS),Windows)

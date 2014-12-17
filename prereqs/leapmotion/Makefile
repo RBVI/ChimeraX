@@ -22,7 +22,12 @@ ifeq ($(OS),Darwin)
 	install_name_tool -change $(LEAP_PYTHON) @executable_path/$(REL_PY_LIB) $(INSTALL_DIR)/LeapPython.so
 endif
 
-app-install:;
+app-install:
+ifeq ($(OS),Darwin)
+	$(RSYNC) $(PYSITEDIR)/LeapMotion $(APP_PYSITEDIR)
+else
+	;
+endif
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
