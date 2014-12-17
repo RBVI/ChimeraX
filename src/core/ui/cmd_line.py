@@ -20,6 +20,18 @@ class CmdLine:
         self.tool_window.manage(placement="bottom")
 
     def OnEnter(self, event):
-        cmd = self.text.GetLineText(0)
+        text = self.text.GetLineText(0)
         self.text.SelectAll()
-        self.session.commands.run_command(cmd)
+        from chimera.core import cli
+        try:
+             cmd = cli.Command(self.session, text, final=True)
+        except SystemExit as e:
+            pass  # TODO: somehow quit application
+        except cli.UserError:
+            rest = cmd.current_text[cmd.amount_parsed:]
+            spaces = len(rest) - len(rest.lstrip())
+            error_at = cmd.amount_parsed + spaces
+            # TODO: send the following to the reply log?
+            print(cmd.current_text)
+            print("%s^" % ('.' * error_at))
+            print(err)
