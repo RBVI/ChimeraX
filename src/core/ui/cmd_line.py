@@ -18,6 +18,13 @@ class CmdLine:
         parent.SetSizerAndFit(sizer)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
         self.tool_window.manage(placement="bottom")
+        session.ui.register_for_keystrokes(self)
+
+    def forwarded_keystroke(self, event):
+        if event.KeyCode == 13:
+            self.OnEnter(event)
+        else:
+            self.text.EmulateKeyPress(event)
 
     def OnEnter(self, event):
         text = self.text.GetLineText(0)
