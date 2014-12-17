@@ -25,7 +25,7 @@ ResBlob_dealloc(PyObject* obj)
 static const char ResBlob_doc[] = "ResBlob documentation";
 
 static PyObject*
-rb_chain_ids(PyObject* self, void* null)
+rb_chain_ids(PyObject* self, void*)
 {
     ResBlob* rb = static_cast<ResBlob*>(self);
     PyObject *list = PyList_New(rb->_items->size());
@@ -38,7 +38,7 @@ rb_chain_ids(PyObject* self, void* null)
 }
 
 static PyObject*
-rb_names(PyObject* self, void* null)
+rb_names(PyObject* self, void*)
 {
     ResBlob* rb = static_cast<ResBlob*>(self);
     PyObject *list = PyList_New(rb->_items->size());
@@ -50,7 +50,7 @@ rb_names(PyObject* self, void* null)
 }
 
 static PyObject*
-rb_numbers(PyObject* self, void* null)
+rb_numbers(PyObject* self, void*)
 {
     ResBlob* rb = static_cast<ResBlob*>(self);
     initialize_numpy();

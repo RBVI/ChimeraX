@@ -25,7 +25,7 @@ AtomBlob_dealloc(PyObject* obj)
 static const char AtomBlob_doc[] = "AtomBlob documentation";
 
 static PyObject*
-ab_coords(PyObject* self, void* null)
+ab_coords(PyObject* self, void*)
 {
     AtomBlob* ab = static_cast<AtomBlob*>(self);
     initialize_numpy();
@@ -44,7 +44,7 @@ ab_coords(PyObject* self, void* null)
 }
 
 static PyObject*
-ab_element_names(PyObject* self, void* null)
+ab_element_names(PyObject* self, void*)
 {
     AtomBlob* ab = static_cast<AtomBlob*>(self);
     PyObject *list = PyList_New(ab->_items->size());
@@ -57,7 +57,7 @@ ab_element_names(PyObject* self, void* null)
 }
 
 static PyObject*
-ab_element_numbers(PyObject* self, void* null)
+ab_element_numbers(PyObject* self, void*)
 {
     AtomBlob* ab = static_cast<AtomBlob*>(self);
     initialize_numpy();
@@ -74,7 +74,7 @@ ab_element_numbers(PyObject* self, void* null)
 }
 
 static PyObject*
-ab_names(PyObject* self, void* null)
+ab_names(PyObject* self, void*)
 {
     AtomBlob* ab = static_cast<AtomBlob*>(self);
     PyObject *list = PyList_New(ab->_items->size());
@@ -86,7 +86,7 @@ ab_names(PyObject* self, void* null)
 }
 
 static PyObject*
-ab_residues(PyObject* self, void* null)
+ab_residues(PyObject* self, void*)
 {
     PyObject* py_rb = newBlob<ResBlob>(&ResBlob_type);
     ResBlob* rb = static_cast<ResBlob*>(py_rb);

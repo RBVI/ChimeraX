@@ -5,7 +5,7 @@ install:
 	$(RSYNC) webapp_server.py $(PYSITEDIR)
 	./install-wsgi
 
-clean:
+clean:;
 
 lint:
 	$(PYLINT) *.py

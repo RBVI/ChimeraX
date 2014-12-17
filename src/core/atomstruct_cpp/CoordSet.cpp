@@ -8,12 +8,12 @@
 namespace atomstruct {
 
 CoordSet::CoordSet(AtomicStructure* as, int cs_id):
-    _structure(as), _cs_id(cs_id)
+    _cs_id(cs_id), _structure(as)
 {
 }
 
 CoordSet::CoordSet(AtomicStructure* as, int cs_id, int size):
-    _structure(as), _cs_id(cs_id)
+    _cs_id(cs_id), _structure(as)
 {
     _coords.reserve(size);
 }

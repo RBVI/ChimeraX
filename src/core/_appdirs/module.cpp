@@ -8,7 +8,7 @@
 extern "C" {
 
 static PyObject*
-init_paths(PyObject* self, PyObject* args)
+init_paths(PyObject* /*self*/, PyObject* args)
 {
     const char* path_sep;
     const char* user_data_dir;

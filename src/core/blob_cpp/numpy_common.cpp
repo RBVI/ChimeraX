@@ -52,7 +52,7 @@ PyObject *
 allocate_python_array(unsigned int dim, unsigned int *size, int type)
 {
     npy_intp *sn = new npy_intp[dim];
-    for (int i = 0; i < dim; ++i)
+    for (unsigned int i = 0; i < dim; ++i)
         sn[i] = (npy_intp)size[i];
     
     // array not initialized to zero
@@ -61,7 +61,7 @@ allocate_python_array(unsigned int dim, unsigned int *size, int type)
     if (array == NULL) {
         std::ostringstream msg;
         msg << numpy_type_name(type) << " array allocation of size (";
-        for (int i = 0; i < dim; ++i) {
+        for (unsigned int i = 0; i < dim; ++i) {
             msg << size[i] << (i < dim-1 ? ", " : "");
         }
         msg << ") failed " << std::endl;
@@ -74,7 +74,7 @@ PyObject *
 allocate_python_array(unsigned int dim, unsigned int *size, PyArray_Descr *dtype)
 {
     npy_intp *sn = new npy_intp[dim];
-    for (int i = 0; i < dim; ++i)
+    for (unsigned int i = 0; i < dim; ++i)
         sn[i] = (npy_intp)size[i];
     
     // array not initialized to zero
@@ -83,7 +83,7 @@ allocate_python_array(unsigned int dim, unsigned int *size, PyArray_Descr *dtype
     if (array == NULL) {
         std::ostringstream msg;
         msg << "Array allocation of size (";
-        for (int i = 0; i < dim; ++i) {
+        for (unsigned int i = 0; i < dim; ++i) {
             msg << size[i] << (i < dim-1 ? ", " : "");
         }
         msg << ") failed " << std::endl;

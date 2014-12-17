@@ -8,6 +8,9 @@ DIRNAME := $(DIRNAME:_cpp=)
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(includedir)
+ifneq ($(OS),Windows)
+CXXFLAGS += -Wno-missing-field-initializers -Wno-missing-braces -Wno-invalid-offsetof -Wno-deprecated-writable-strings
+endif
 LIBS += -L$(libdir) -latomstruct $(PYTHON_LIB)
 
 $(SHLIB): imex.h $(OBJS)

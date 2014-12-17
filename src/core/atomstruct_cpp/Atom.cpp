@@ -12,9 +12,9 @@
 namespace atomstruct {
 
 Atom::Atom(AtomicStructure *as, const std::string &name, Element e):
-    _name(name), _structure(as), _residue(NULL), _element(e),
-    _coord_index(COORD_UNASSIGNED), _alt_loc(' '), _serial_number(-1),
-    _aniso_u(NULL), BaseSphere<Bond, Atom>()
+    BaseSphere<Bond, Atom>(),
+    _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(e),
+    _name(name), _residue(NULL), _serial_number(-1), _structure(as)
 {
 }
 
