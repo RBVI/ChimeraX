@@ -85,7 +85,6 @@ PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
 endif
 
 prebuilt:
-	#(cd $(build_prefix) && tar -cj --exclude ./tmp .) > $(PREBUILT)
 	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
 
 install-prebuilt:
@@ -94,7 +93,7 @@ install-prebuilt:
 		$(MAKE) build-dirs ; \
 		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar xjf $$prebuilt ; \
 	else \
-		$(MAKE) install ; \
+		$(MAKE) install && $(MAKE) prebuilt; \
 	fi
 	@echo 'Finished prereq install at' `date`
 
