@@ -12,11 +12,11 @@ SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.o)
 INCS	+= -I$(includedir)
 ifneq ($(OS),Windows)
-CXX	+= -Wno-logical-op-parentheses
+CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= -L$(libdir) -ltmpl -llogger -lbasegeom
 
-$(SHLIB): imex.h $(OBJS)
+$(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)
 	$(SHLIB_LINK)
 
 install: $(SHLIB)
@@ -27,7 +27,5 @@ install: $(SHLIB)
 
 clean:
 	/bin/rm -f $(OBJS) $(SHLIB) imex.h
-
-$(OBJS): $(SUBDIR_INSTALL)
 
 $(SUBDIR_INSTALL): imex.h

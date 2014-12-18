@@ -27,10 +27,10 @@ private:
     bool  _is_helix;
     bool  _is_het;
     bool  _is_sheet;
-    AtomicStructure *  _structure;
     std::string  _name;
     int  _position;
     int  _ss_id;
+    AtomicStructure *  _structure;
 public:
     void  add_atom(Atom *);
     const Atoms &  atoms() const { return _atoms; }

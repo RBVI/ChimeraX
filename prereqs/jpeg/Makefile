@@ -15,7 +15,7 @@ ifeq ($(OS),Darwin)
 endif
 
 app-install:;
-	$(RSYNC) $(shlibdir)/libjpeg.$(SHLIB_EXT)* $(app_shlibdir)
+	$(RSYNC) $(shlibdir)/libjpeg.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

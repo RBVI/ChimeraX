@@ -29,7 +29,7 @@ else
 endif
 
 app-install:
-	$(RSYNC) $(shlibdir)/libz.$(SHLIB_EXT)* $(app_shlibdir)
+	$(RSYNC) $(shlibdir)/libz.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

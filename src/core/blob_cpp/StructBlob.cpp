@@ -30,7 +30,7 @@ StructBlob_dealloc(PyObject* obj)
 static const char StructBlob_doc[] = "StructBlob documentation";
 
 static PyObject*
-sb_atoms(PyObject* self, void* null)
+sb_atoms(PyObject* self, void*)
 {
     PyObject* py_ab = newBlob<AtomBlob>(&AtomBlob_type);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
@@ -42,7 +42,7 @@ sb_atoms(PyObject* self, void* null)
 }
 
 static PyObject*
-sb_atoms_bonds(PyObject* self, void* null)
+sb_atoms_bonds(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
     PyObject* py_ab = sb_atoms(self, nullptr);
@@ -99,7 +99,7 @@ sb_atoms_bonds(PyObject* self, void* null)
 }
 
 static PyObject*
-sb_structures(PyObject* self, void* null)
+sb_structures(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
     PyObject *struct_list = PyList_New(sb->_items->size());
@@ -115,7 +115,7 @@ sb_structures(PyObject* self, void* null)
 }
 
 static PyObject*
-sb_residues(PyObject* self, void* null)
+sb_residues(PyObject* self, void*)
 {
     PyObject* py_rb = newBlob<ResBlob>(&ResBlob_type);
     ResBlob* rb = static_cast<ResBlob*>(py_rb);

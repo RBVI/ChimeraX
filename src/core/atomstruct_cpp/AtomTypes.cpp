@@ -484,7 +484,7 @@ AtomicStructure::_compute_atom_types()
 	// if molecule is diamond/nanotube, skip atom typing since the
 	// ring finding will take forever
 	int num_bonds = this->num_bonds();
-	int num_atoms = this->num_atoms();
+	size_t num_atoms = this->num_atoms();
 	if (num_bonds - num_atoms > 100 && num_bonds / (float) num_atoms > 1.25)
 		return;
 

@@ -44,6 +44,8 @@ class UI(wx.App):
         self.main_window = MainWindow(self)
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
+        from .ui.cmd_line import CmdLine
+        self.cmd_line = CmdLine(self.session)
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -78,6 +80,9 @@ class UI(wx.App):
         self.splash.SetText(msg)
         wx.SafeYield()
 
+    def quit(self, confirm=True):
+        self.main_window.close()
+
 class MainWindow(wx.Frame):
     def __init__(self, ui):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
@@ -87,7 +92,8 @@ class MainWindow(wx.Frame):
         self.aui_mgr.SetManagedWindow(self)
 
         from .ui.graphics import GraphicsWindow
-        GraphicsWindow(self, ui)
+        self.graphics_window = g = GraphicsWindow(self, ui)
+        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
 
         self.status_bar = self.CreateStatusBar(3, wx.STB_SIZEGRIP|
             wx.STB_SHOW_TIPS|wx.STB_ELLIPSIZE_MIDDLE|wx.FULL_REPAINT_ON_RESIZE)
@@ -95,3 +101,14 @@ class MainWindow(wx.Frame):
         self.status_bar.SetStatusText("Status", 0)
         self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
         self.status_bar.SetStatusText("", 2)
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+    def close(self):
+        self.aui_mgr.UnInit()
+        del self.aui_mgr
+        self.graphics_window.timer = None
+        self.Destroy()
+
+    def OnClose(self, event):
+        self.close()

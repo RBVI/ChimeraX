@@ -38,7 +38,23 @@ __all__ = [
     'categorized_formats',
     'deduce_format',
     'compression_suffixes',
+    'DYNAMICS',
+    'GENERIC3D',
+    'SCRIPT',
+    'SEQUENCE',
+    'STRUCTURE',
+    'SURFACE',
+    'VOLUME',
 ]
+
+# Known I/O format catagories
+DYNAMICS = "Molecular trajectory"
+GENERIC3D = "Generic 3D objects"
+SCRIPT = "Command script"
+SEQUENCE = "Sequence alignment"
+STRUCTURE = "Molecular structure"
+SURFACE = "Molecular surface"
+VOLUME = "Volume data"
 
 _compression = {}
 
@@ -140,16 +156,12 @@ class _FileFormatInfo:
 
 _file_formats = {}
 
-from chimera.core import triggers
-NEW_FILE_FORMAT = "new file format"
-triggers.add_trigger(NEW_FILE_FORMAT)
 
-
-def register_format(name, category, extensions, prefixes=(), mime=(),
+def register_format(format_name, category, extensions, prefixes=(), mime=(),
                     reference=None, dangerous=None, **kw):
     """Register file format's I/O functions and meta-data
 
-    :param name: format's name
+    :param format_name: format's name
     :param category: says what kind of data the should be classified as.
     :param extensions: is a sequence of filename suffixes starting
        with a period.  If the format doesn't open from a filename
@@ -176,138 +188,139 @@ def register_format(name, category, extensions, prefixes=(), mime=(),
     if prefixes and not fetch_function:
         import sys
         print("missing fetch function for format with prefix support:",
-              name, file=sys.stderr)
+              format_name, file=sys.stderr)
     if mime is None:
         mime = ()
-    ff = _file_formats[name] = _FileFormatInfo(category, exts, prefixes,
-                                               mime, reference, dangerous)
+    ff = _file_formats[format_name] = _FileFormatInfo(category, exts, prefixes,
+                                                      mime, reference,
+                                                      dangerous)
     for attr in ['open_func', 'requires_seeking', 'fetch_func',
                  'save_func', 'save_notes']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
-    triggers.activate_trigger(NEW_FILE_FORMAT, name)
 
 
-def prefixes(name):
+def prefixes(format_name):
     """Return filename prefixes for named format.
 
-    prefixes(name) -> [filename-prefix(es)]
+    prefixes(format_name) -> [filename-prefix(es)]
     """
     try:
-        return _file_formats[name].prefixes
+        return _file_formats[format_name].prefixes
     except KeyError:
         return ()
 
 
-def register_open(name, open_function, requires_seeking=False):
+def register_open(format_name, open_function, requires_seeking=False):
     """register a function that reads data from a stream
 
-    :param open_function: function taking an I/O stream
+    :param open_function: function taking an I/O stream and
+        returns a 2-tuple with a list of models and a status message
     :param requires_seeking: True if stream must be seekable
     """
     try:
-        fi = _file_formats[name]
+        fi = _file_formats[format_name]
     except KeyError:
         raise ValueError("Unknown data type")
     fi.open_func = open_function
     fi.requires_seeking = requires_seeking
 
 
-def register_fetch(name, fetch_function):
+def register_fetch(format_name, fetch_function):
     """register a function that fetches data from the Internet
 
     :param fetch_fuction: function that takes an identifier,
         and returns an I/O stream for reading data.
     """
     try:
-        fi = _file_formats[name]
+        fi = _file_formats[format_name]
     except KeyError:
         raise ValueError("Unknown data type")
     fi.fetch_func = fetch_function
 
 
-def register_save(name, save_function, save_notes=''):
+def register_save(format_name, save_function, save_notes=''):
     try:
-        fi = _file_formats[name]
+        fi = _file_formats[format_name]
     except KeyError:
         raise ValueError("Unknown data type")
     fi.save_func = save_function
     fi.save_notes = save_notes
 
 
-def extensions(name):
+def extensions(format_name):
     """Return filename extensions for named format.
 
-    extensions(name) -> [filename-extension(s)]
+    extensions(format_name) -> [filename-extension(s)]
     """
     try:
-        exts = _file_formats[name].extensions
+        exts = _file_formats[format_name].extensions
     except KeyError:
         return ()
     return exts
 
 
-def open_function(name):
+def open_function(format_name):
     """Return open callback for named format.
 
-    open_function(name) -> function
+    open_function(format_name) -> function
     """
     try:
-        return _file_formats[name].open_func
+        return _file_formats[format_name].open_func
     except KeyError:
         return None
 
 
-def fetch_function(name):
+def fetch_function(format_name):
     """Return fetch callback for named format.
 
-    fetch_function(name) -> function
+    fetch_function(format_name) -> function
     """
     try:
-        return _file_formats[name].fetch_func
+        return _file_formats[format_name].fetch_func
     except KeyError:
         return None
 
 
-def save_function(name):
+def save_function(format_name):
     """Return save callback for named format.
 
-    save_function(name) -> function
+    save_function(format_name) -> function
     """
     try:
-        return _file_formats[name].save_func
+        return _file_formats[format_name].save_func
     except KeyError:
         return None
 
 
-def mime_types(name):
+def mime_types(format_name):
     """Return mime types for named format."""
     try:
-        return _file_formats[name].mime_types
+        return _file_formats[format_name].mime_types
     except KeyError:
         return None
 
 
-def requires_seeking(name):
+def requires_seeking(format_name):
     """Return whether named format can needs a seekable file"""
     try:
-        return _file_formats[name].requires_seeking
+        return _file_formats[format_name].requires_seeking
     except KeyError:
         return False
 
 
-def dangerous(name):
+def dangerous(format_name):
     """Return whether named format can write to files"""
     try:
-        return _file_formats[name].dangerous
+        return _file_formats[format_name].dangerous
     except KeyError:
         return False
 
 
-def category(name):
+def category(format_name):
     """Return category of named format"""
     try:
-        return _file_formats[name].category
+        return _file_formats[format_name].category
     except KeyError:
         return "Unknown"
 
@@ -334,25 +347,26 @@ def categorized_formats(open=True, save=False):
     categorized_formats() -> { category: formats() }
     """
     result = {}
-    for name, info in _file_formats.items():
+    for format_name, info in _file_formats.items():
         if open and not info.open_func:
             continue
         if save and not info.save_func:
             continue
         names = result.setdefault(info.category, [])
-        names.append(name)
+        names.append(format_name)
     return result
 
 
-def deduce_format(filename, default_name=None, prefixable=True):
+def deduce_format(filename, has_format=None, default_format=None,
+                  prefixable=True):
     """Figure out named format associated with filename
 
-    Return tuple of deduced format namea, whether it was a prefix
+    Return tuple of deduced format name, whether it was a prefix
     reference, the unmangled filename, and the compression format
     (if present).  If it is a prefix reference, then it needs to
     be fetched.
     """
-    name = None
+    format_name = None
     prefixed = False
     compression = None
     if prefixable:
@@ -364,11 +378,18 @@ def deduce_format(filename, default_name=None, prefixable=True):
         else:
             for t, info in _file_formats.items():
                 if prefix in info.prefixes:
-                    name = t
+                    format_name = t
                     filename = fname
                     prefixed = True
                     break
-    if name is None:
+            if format_name is None:
+                raise ValueError("'%s' is not a not prefix" % prefix)
+            if has_format and has_format != format_name:
+                raise ValueError("prefix does not match requested format")
+    if has_format:
+        format_name = has_format
+        # TODO: check for compression
+    if format_name is None:
         import os
         for compression in compression_suffixes():
             if filename.endswith(compression):
@@ -381,11 +402,11 @@ def deduce_format(filename, default_name=None, prefixable=True):
         ext = ext.lower()
         for t, info in _file_formats.items():
             if ext in info.extensions:
-                name = t
+                format_name = t
                 break
-        if name is None:
-            name = default_name
-    return name, prefixed, filename, compression
+        if format_name is None:
+            format_name = default_format
+    return format_name, prefixed, filename, compression
 
 
 def qt_save_file_filter(category=None, all=False):
@@ -427,10 +448,11 @@ def qt_open_file_filter(all=False):
 _builtin_open = open
 
 
-def open(filespec, identify_as=None, **kw):
+def open(session, filespec, format=None, identify_as=None, **kw):
     """open a (compressed) file
 
     :param filespec: '''prefix:id''' or a (compressed) filename
+    :param format: file has given format
     :param identify_as: name used to identify data source; default to filespec
 
     If a file format needs a seekable file, then compressed files are
@@ -438,18 +460,19 @@ def open(filespec, identify_as=None, **kw):
     """
 
     from chimera.core.cli import UserError
-    name, prefix, filename, compression = deduce_format(filespec)
-    if name is None:
+    format_name, prefix, filename, compression = deduce_format(
+        filespec, has_format=format)
+    if format_name is None:
         raise UserError("Missing or unknown file type")
-    if not identify_as:
+    if identify_as is None:
         identify_as = filename
-    open_func = open_function(name)
+    open_func = open_function(format_name)
     if open_func is None:
-        raise UserError("unable to open %s files" % name)
+        raise UserError("unable to open %s files" % format_name)
     if prefix:
-        fetch = fetch_function(name)
+        fetch = fetch_function(format_name)
         if fetch is None:
-            raise UserError("unable to fetch %s files" % name)
+            raise UserError("unable to fetch %s files" % format_name)
         stream = fetch(filename)
     else:
         if not compression:
@@ -460,15 +483,15 @@ def open(filespec, identify_as=None, **kw):
             except OSError as e:
                 raise UserError(e)
         else:
-            stream_type = _compression[name]
+            stream_type = _compression[format_name]
             try:
                 stream = stream_type(filename)
             except OSError as e:
                 raise UserError(e)
-            if requires_seeking(name):
+            if requires_seeking(format_name):
                 # copy compressed file to real file
                 import tempfile
-                exts = extensions(name)
+                exts = extensions(format_name)
                 suffix = exts[0] if exts else ''
                 tf = tempfile.NamedTemporaryFile(prefix='chtmp', suffix=suffix)
                 while 1:
@@ -478,29 +501,22 @@ def open(filespec, identify_as=None, **kw):
                     tf.write(data)
                 tf.seek(0)
                 stream = tf
-    from chimera.core.trackchanges import track
-    try:
-        track.block()
-        models, status = open_func(stream, **kw)
-        for m in models:
-            m.name = identify_as
-        from chimera.core import open_models
-        open_models.add(models)
-    finally:
-        track.release()
-    return status
+    models, status = open_func(session, stream, **kw)
+    for m in models:
+        m.name = identify_as
+    return models, status
 
 
 def save(filename, **kw):
     from chimera.core.cli import UserError
-    name, prefix, filename, compression = deduce_format(filename,
-                                                        prefixable=False)
-    if name is None:
+    format_name, prefix, filename, compression = deduce_format(
+        filename, prefixable=False)
+    if format_name is None:
         raise UserError("Missing or unknown file type")
-    func = save_function(name)
+    func = save_function(format_name)
     if not compression:
         stream = open(filename, 'wb')
     else:
-        stream_type = _compression[name]
+        stream_type = _compression[format_name]
         stream = stream_type(filename)
     return func(stream, **kw)
