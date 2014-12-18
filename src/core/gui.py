@@ -80,6 +80,9 @@ class UI(wx.App):
         self.splash.SetText(msg)
         wx.SafeYield()
 
+    def quit(self, confirm=True):
+        self.main_window.close()
+
 class MainWindow(wx.Frame):
     def __init__(self, ui):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
@@ -101,8 +104,11 @@ class MainWindow(wx.Frame):
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
-    def OnClose(self, event):
+    def close(self):
         self.aui_mgr.UnInit()
         del self.aui_mgr
         self.graphics_window.timer = None
         self.Destroy()
+
+    def OnClose(self, event):
+        self.close()
