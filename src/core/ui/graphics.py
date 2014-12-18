@@ -22,8 +22,11 @@ class GraphicsWindow(wx.Panel):
 
         from ..graphics.view import View
         from ..graphics.drawing import Drawing
-        self.view = View(Drawing("root"), self.GetClientSize(), oc,
+        drawing = Drawing("root")
+        self.view = View(drawing, self.GetClientSize(), oc,
             ui.session.logger)
+        ui.session.replace_attribute('main_drawing', drawing)
+        ui.session.replace_attribute('main_view', self.view)
 
         self.redraw_interval = 16 # milliseconds
         # perhaps redraw interval should be 10 to reduce

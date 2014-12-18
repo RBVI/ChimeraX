@@ -2,6 +2,7 @@
 
 import wx
 
+
 class UI(wx.App):
 
     def __init__(self, session):
@@ -11,9 +12,10 @@ class UI(wx.App):
         # splash screen
         import os.path
         splash_pic_path = os.path.join(os.path.dirname(__file__),
-            "ui", "splash.jpg")
+                                       "ui", "splash.jpg")
         import wx.lib.agw.advancedsplash as AS
         bitmap = wx.Bitmap(splash_pic_path, type=wx.BITMAP_TYPE_JPEG)
+
         class DebugSplash(AS.AdvancedSplash):
             def __init__(self, *args, **kw):
                 def DebugPaint(*_args, **_kw):
@@ -23,7 +25,7 @@ class UI(wx.App):
                 self.OnPaint = DebugPaint
                 AS.AdvancedSplash.__init__(self, *args, **kw)
         self.splash = DebugSplash(None, bitmap=bitmap,
-            agwStyle=AS.AS_CENTER_ON_SCREEN)
+                                  agwStyle=AS.AS_CENTER_ON_SCREEN)
         splash_font = wx.Font(1, wx.SWISS, wx.NORMAL, wx.BOLD, False)
         splash_font.SetPointSize(40.0)
         self.splash.SetTextFont(splash_font)
@@ -57,7 +59,7 @@ class UI(wx.App):
                 raise
         else:
             self._keystroke_sinks = self._keystroke_sinks[:i] + \
-                self._keystroke_sinks[i+1:]
+                self._keystroke_sinks[i + 1:]
 
     def event_loop(self):
         self.MainLoop()
@@ -83,7 +85,9 @@ class UI(wx.App):
     def quit(self, confirm=True):
         self.main_window.close()
 
+
 class MainWindow(wx.Frame):
+
     def __init__(self, ui):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
 
@@ -95,8 +99,9 @@ class MainWindow(wx.Frame):
         self.graphics_window = g = GraphicsWindow(self, ui)
         self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
 
-        self.status_bar = self.CreateStatusBar(3, wx.STB_SIZEGRIP|
-            wx.STB_SHOW_TIPS|wx.STB_ELLIPSIZE_MIDDLE|wx.FULL_REPAINT_ON_RESIZE)
+        self.status_bar = self.CreateStatusBar(
+            3, wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
+            | wx.FULL_REPAINT_ON_RESIZE)
         self.status_bar.SetStatusWidths([-24, -30, -2])
         self.status_bar.SetStatusText("Status", 0)
         self.status_bar.SetStatusText("Welcome to Chimera 2", 1)

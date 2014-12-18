@@ -37,7 +37,7 @@ class CmdLine:
         except SystemExit as e:
             # TODO: somehow quit application
             raise
-        except cli.UserError:
+        except cli.UserError as err:
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
