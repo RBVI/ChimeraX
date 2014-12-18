@@ -40,8 +40,9 @@ class UI:
         pass  # nothing to build
 
     def quit(self):
+        import os
         import sys
-        sys.exit(sys.EX_OK)
+        sys.exit(os.EX_OK)
 
     def event_loop(self):
         session = self._session()  # resolve back reference

@@ -26,15 +26,13 @@ def echo(session, text=''):
 _echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
 
 
-def open(session, filename):
+def open(session, filename, id=None):
     try:
-        from . import io
-        models = io.open(filename)
-        if models:
-            session.models.add(models)
+        return session.models.open(filename, id=id)
     except OSError as e:
         raise cli.UserError(e)
-_open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
+_open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
+                         keyword=[('id', cli.ModelIdArg)])
 
 
 def close(session, model_id):
