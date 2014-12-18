@@ -37,6 +37,8 @@ lint:
 clean:
 	rm -rf __pycache__
 
+test:
+	$(PYTHON_EXE)
 _appdirs.install: appdirs_cpp.install
 atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install util_cpp.install ioutil_cpp.install \
 	pseudobond_cpp.install
