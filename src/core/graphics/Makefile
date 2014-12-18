@@ -17,7 +17,7 @@ all: $(PYOBJS)
 
 install: all dir
 	$(RSYNC) $(PYSRCS) $(OPENGL_SHADERS) $(PKG_DIR)
-	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
+	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(OPENGL_SHADERS) $(APP_PKG_DIR); fi
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi

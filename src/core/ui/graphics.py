@@ -22,8 +22,11 @@ class GraphicsWindow(wx.Panel):
 
         from ..graphics.view import View
         from ..graphics.drawing import Drawing
-        self.view = View(Drawing("root"), self.GetClientSize(), oc,
+        drawing = Drawing("root")
+        self.view = View(drawing, self.GetClientSize(), oc,
             ui.session.logger)
+        ui.session.replace_attribute('main_drawing', drawing)
+        ui.session.replace_attribute('main_view', self.view)
 
         self.redraw_interval = 16 # milliseconds
         # perhaps redraw interval should be 10 to reduce
@@ -69,10 +72,12 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             raise AssertionError("Required OpenGL depth buffer capability"
                 " not supported")
         test_attribs = attribs + [glcanvas.WX_GL_STEREO]
-        if gl_supported(test_attribs):
-            attribs = test_attribs
-        else:
-            print("Stereo mode is not supported by OpenGL driver")
+        # if gl_supported(test_attribs):
+        #     # TODO: keep track of fact that 3D stereo is available, but
+        #     # don't use it
+        #     pass
+        # else:
+        #     print("Stereo mode is not supported by OpenGL driver")
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
             style=wx.WANTS_CHARS)
 
