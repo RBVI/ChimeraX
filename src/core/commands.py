@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """
 commands -- Default set of commands
 ===================================
@@ -9,6 +10,11 @@ must be called to get the commands recognized by the command line interface
 """
 
 from . import cli
+
+def pwd(session):
+    import os
+    print('current working directory:', os.getcwd())
+_pwd_desc = cli.CmdDesc()
 
 
 def exit(session):
@@ -64,6 +70,7 @@ def register(session):
     cli.alias(session, "quit", "exit $*")
     cli.register('stop', _stop_desc, stop)
     cli.register('echo', _echo_desc, echo)
+    cli.register('pwd', _pwd_desc, pwd)
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
     #     cmd.register()
