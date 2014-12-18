@@ -119,7 +119,7 @@ class _TriggerHandler:
 class _Trigger:
     """Keep track of handlers to invoke when activated"""
 
-    def __init__(self, name, usage_cb, default_one_shot):
+    def __init__(self, name, usage_cb, default_one_time):
         self._name = name
         self._handlers = set()
         self._pending_add = set()
@@ -129,7 +129,7 @@ class _Trigger:
         self._need_activate = set()
         self._need_activate_data = []
         self._usage_cb = usage_cb
-        self._default_one_shot = default_one_shot
+        self._default_one_time = default_one_time
 
     def add(self, handler):
         if self._locked:
@@ -164,7 +164,7 @@ class _Trigger:
         for handler in self._handlers:
             if handler in self._pending_del:
                 continue
-            if self._default_one_shot:
+            if self._default_one_time:
                 self._pending_del.append(handler)
             try:
                 ret = handler.invoke(data)
@@ -219,7 +219,7 @@ class TriggerSet:
         self._blocked = 0
 
     def add_trigger(self, name, usage_cb=None, after=None,
-                    default_one_shot=False):
+                    default_one_time=False):
         """Add a trigger with the given name.
 
         triggerset.add_trigger(name) => None
@@ -233,7 +233,7 @@ class TriggerSet:
         The callback function will be given the trigger name and 1
         or 0 (respectively) as arguments.
 
-        The optional argument 'default_one_shot' (default False)
+        The optional argument 'default_one_time' (default False)
         may be used to designate triggers whose registered handlers
         should only be called once.  For example, an "exit trigger"
         may only want its handler run once and then discarded
@@ -246,7 +246,7 @@ class TriggerSet:
         """
         if name in self._triggers:
             raise KeyError("Trigger '%s' already exists" % name)
-        self._triggers[name] = _Trigger(name, usage_cb, default_one_shot)
+        self._triggers[name] = _Trigger(name, usage_cb, default_one_time)
         self._roots.add(name)
         if after:
             self.add_dependency(name, after)

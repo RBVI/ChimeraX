@@ -80,7 +80,7 @@ class State(metaclass=abc.ABCMeta):
     # possible animation API
     # include here to emphasize that state aware code
     # needs to support animation
-    #def restore_frame(self, phase, frame, timeline, transition):
+    # def restore_frame(self, phase, frame, timeline, transition):
     #    # frame would be the frame number
     #    # timeline would be sequence of (start frame, scene)
     #    # transition would be method to get to given frame that might need
@@ -224,8 +224,6 @@ class Session:
 
     def replace_attribute(self, name, value):
         """Explictly replace attribute with alternate implementation"""
-        #if isinstance(getattr(self, name), State) != isinstance(value, State):
-        #    raise ValueError("Use of State API changed")
         object.__setattr__(self, name, value)
 
     def unique_id(self, obj):
@@ -307,8 +305,12 @@ class Session:
 
 def common_startup(sess):
     """Initialize session with common data managers"""
+    from . import triggerset
+    sess.triggers = triggerset.TriggerSet()
     sess.scenes = Scenes(sess)
     from . import models
     sess.models = models.Models(sess)
     from . import commands
     commands.register(sess)
+    from . import stl
+    stl.register()
