@@ -59,6 +59,11 @@ class Models:
 
     def add(self, models):
         session = self._session()  # resolve back reference
+        for model in models:
+            model.id = next(self._id_counter)
+            self._models[model.id] = model
+            if session.main_drawing:
+                model.make_graphics(session.main_drawing)
         session.triggers.activate_trigger(ADD_MODELS, models)
 
     def remove(self, models):
@@ -78,13 +83,9 @@ class Models:
             session.logger.status(status)
         if models:
             start_count = len(self._models)
-            for model in models:
-                model.id = next(self._id_counter)
-                if session.main_drawing:
-                    model.make_graphics(session.main_drawing)
             self.add(models)
             if start_count == 0 and len(self._models) > 0:
-                session.view.inital_camera_view()
+                session.main_view.initial_camera_view()
 
     def close(self, model_id):
         if model_id in self._models:
