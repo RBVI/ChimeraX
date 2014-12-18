@@ -7,7 +7,6 @@ unexport CDPATH
 
 TOP	= ..
 NO_SUBDIR_ALL = 1
-NO_SUBDIR_DISTCLEAN = 1
 
 include $(TOP)/mk/config.make
 
@@ -46,11 +45,16 @@ else
 Mesa.install:
 endif
 
-SUBDIRS	+= cython docutils expat fonts \
-	   glew hdf5 imex jinja2 line_profiler numexpr numpy openssl \
+# Python egg installation has a race condition updating easy-install.pth
+.NOTPARALLEL:
+
+# keep in alphabetical order, dependencies go below
+SUBDIRS	+= appdirs cython docutils expat flake8 ffmpeg fonts \
+	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
 	   p7zip pcre pillow pycollada \
-	   pygments pyflakes PyOpenGL pytables pythomnic3k Python python-dateutil PyQt qt \
-	   setuptools sip sphinx wrappy3 wx zlib
+	   pygments pyflakes PyOpenGL pytables pythomnic3k Python \
+	   python-dateutil \
+	   setuptools six sphinx webcolors wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -66,30 +70,47 @@ ifdef USE_MAC_FRAMEWORKS
 	  $(includedir)/GL
 endif
 
-distclean: clean
+build-app-dirs:
+	make -C $(TOP) build-app-dirs
 
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
-PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).7z
+PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).tar.bz2
 else ifeq ($(OS),Darwin)
-PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).7z
+PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).tar.bz2
 else ifeq ($(OS),Windows)
-PREBUILT = prebuilt-$(OSARCH).7z
+PREBUILT = prebuilt-$(OSARCH).tar.bz2
 else
-PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).7z
+PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
 endif
 
 prebuilt:
-	#(cd $(build_prefix) && tar -cj --exclude ./tmp .) > $(PREBUILT)
-	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za a -mx9 -x!./tmp $$prebuilt .
+	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
 
-install.prebuilt:
+install-prebuilt:
+	@echo 'Started prereq install at' `date` on `hostname`
 	if [ -e $(PREBUILT) ]; then \
 		$(MAKE) build-dirs ; \
-		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && 7za x $$prebuilt ; \
+		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar xjf $$prebuilt ; \
 	else \
-		$(MAKE) install ; \
+		$(MAKE) install && $(MAKE) prebuilt; \
 	fi
+	@echo 'Finished prereq install at' `date`
+
+SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
+.PHONY: $(SUBDIR_APP_INSTALL)
+app-install: $(SUBDIR_APP_INSTALL)
+	# recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
+	cd $(APP_PYSITEDIR); \
+		(echo "import sys; sys.__plen = len(sys.path)"; \
+		ls -d ./*egg; \
+		echo "import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)") > easy-install.pth
+$(SUBDIR_APP_INSTALL):
+	$(MAKE) -C $(subst .app-install,,$@) app-install
+$(SUBDIR_APP_INSTALL): build-app-dirs
+# do Python first
+$(subst Python.app-install,,$(SUBDIR_APP_INSTALL)): Python.app-install
+
 
 # Whole platform dependencies
 ifdef WIN32
@@ -103,10 +124,12 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
+appdirs.install: Python.install setuptools.install
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
 docutils.install: Python.install pillow.install pygments.install
+flake8.install: Python.install
 funcparserlib.install: Python.install
 hdf5.install: zlib.install
 jinja2.install: Python.install setuptools.install
@@ -115,26 +138,27 @@ line_profiler.install: Python.install cython.install
 numexpr.install: numpy.install
 numpy.install: Python.install
 pcre.install: zlib.install
-pillow.install: Python.install setuptools.install zlib.install
 # pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
-pycollada.install: Python.install python-dateutil.install
+pillow.install: Python.install setuptools.install zlib.install jpeg.install
+pycollada.install: Python.install python-dateutil.install numpy.install
 pyflakes.install: Python.install
 pygments.install: Python.install
 PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
+PyQt.install: Python.install qt.install sip.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
 pytables.install: hdf5.install numexpr.install cython.install Python.install zlib.install
 pythomnic3k.install: Python.install
+python-dateutil.install: Python.install six.install
 Python.install: p7zip.install zlib.install openssl.install expat.install
-python-dateutil.install: Python.install
-PyQt.install: Python.install qt.install sip.install
 qt.install: p7zip.install openssl.install zlib.install
-wx.install: Python.install
 # qt.install: png.install jpeg.install
 setuptools.install: Python.install
 sip.install: Python.install
-sphinx.install: docutils.install jinja2.install pygments.install setuptools.install
+six.install: Python.install
 sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
+sphinx.install: docutils.install jinja2.install pygments.install setuptools.install
 webcolors.install: Python.install
 wrappy3.install: pcre.install Python.install
+wx.install: Python.install
 xml2.install: Python.install zlib.install
 xslt.install: xml2.install

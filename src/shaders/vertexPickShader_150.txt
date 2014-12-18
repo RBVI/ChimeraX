@@ -3,10 +3,10 @@
 uniform mat4 ProjectionMatrix;
 uniform mat4 ModelViewMatrix;
 
-out vec3 f_pickId;
+out vec4 f_pickId;
 
 in vec4 position;
-in vec3 pickId;
+in vec4 pickId;
 in mat4 instanceTransform;
 in vec3 instanceScale;
 

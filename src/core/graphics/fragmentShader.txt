@@ -1,0 +1,172 @@
+#version 330 core
+
+#ifdef USE_TEXTURE_MASK
+
+in vec2 tex_coord;
+uniform sampler2D tex2d;
+uniform vec4 color;
+out vec4 frag_color;
+void main (void)
+{
+  float f = ceil(texture(tex2d, tex_coord).r);
+  frag_color = color * f;
+}
+
+#elif defined(USE_DEPTH_OUTLINE)
+
+in vec2 tex_coord;
+uniform sampler2D tex2d;
+uniform vec4 color;
+uniform vec4 depth_shift_and_jump;
+out vec4 frag_color;
+
+void main (void)
+{
+  float d0 = texture(tex2d, tex_coord).r;
+  float ds = texture(tex2d, vec2(tex_coord.s+depth_shift_and_jump.s, tex_coord.t+depth_shift_and_jump.t)).r;
+  float nf = depth_shift_and_jump.q;	// Correct depth compression based on perspective near/far ratio.
+  float nf1 = 1-nf;
+  if (nf*(ds-d0) < depth_shift_and_jump.p * (1-nf1*ds) * (1-nf1*d0))
+     discard;
+  frag_color = color;
+}
+
+#else
+
+#ifdef USE_LIGHTING
+uniform vec3 key_light_direction;
+uniform vec3 key_light_diffuse_color;
+uniform vec3 key_light_specular_color;
+uniform float key_light_specular_exponent;
+
+uniform vec3 fill_light_direction;
+uniform vec3 fill_light_diffuse_color;
+
+uniform vec3 ambient_color;
+
+in vec3 N;
+in vec3 v;
+
+#ifdef USE_DEPTH_CUE
+uniform float depth_cue_distance;
+uniform float depth_cue_darkest;
+#endif
+
+#endif
+
+#ifdef USE_VERTEX_COLORS
+in vec4 color;
+#else
+uniform vec4 color;
+#endif
+
+#ifdef USE_TEXTURE_2D
+in vec2 tex_coord;
+uniform sampler2D tex2d;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+in vec3 ambient_tex_coord;
+uniform sampler3D tex3d;
+#endif
+
+#ifdef USE_SHADOWS
+in vec3 shadow_tex_coord;
+uniform sampler2DShadow shadow_map;
+#endif
+
+#ifdef USE_MULTISHADOW
+// in vec3 vscene;
+// in vec3 nscene;
+uniform sampler2DShadow multishadow_map;
+uniform shadow_matrix_block 
+{
+  mat4 shadow_transforms[256];
+};
+uniform	int shadow_count;
+uniform float shadow_depth;
+#endif
+
+out vec4 frag_color;
+
+void main (void)
+{
+#ifdef USE_TEXTURE_2D
+  vec4 fcolor = texture(tex2d, tex_coord) * color;
+#else
+  vec4 fcolor = color;
+#endif
+
+#ifdef USE_LIGHTING
+  // Unit normal, with two-sided lighting.
+  vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
+
+  // Unit vector from camera to surface point.
+  vec3 v1 = normalize(v);
+
+#ifdef USE_SHADOWS
+  float shadow = texture(shadow_map, shadow_tex_coord);
+#else
+  float shadow = 1;
+#endif
+
+  // diffuse color, radiated equally in all directions,
+  //   strength based on incoming light direction and surface normal.
+  vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * max(-dot(N1,key_light_direction),0.0) * shadow
+                             + fill_light_diffuse_color * max(-dot(N1,fill_light_direction),0.0));
+
+  // specular color, reflection of incoming light towards the camera.
+  vec3 R = normalize(reflect(key_light_direction,N1)); 
+  vec3 Ispec = key_light_specular_color * pow(max(-dot(R,v1),0.0), key_light_specular_exponent) * shadow;
+
+#ifdef USE_MULTISHADOW
+
+  float mshadow = 0;
+  for (int i = 0 ; i < shadow_count ; ++i)
+    {
+      mat4 stf = shadow_transforms[i];
+      vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+//      vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
+      vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+      float diffuse = max(-dot(N1,light_direction),0.0);
+//      float diffuse = max(-dot(nscene,light_direction),0.0);
+      mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
+    }
+  mshadow /= 0.25*shadow_count;
+  vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
+
+#else
+
+  // ambient color, uniform intensity light from all surfaces.
+  vec3 Iamb = fcolor.rgb * ambient_color;
+
+#endif
+
+  // total color
+  vec3 Ifrag = Iamb + Idiff + Ispec;
+
+
+#ifdef USE_DEPTH_CUE
+  float dim = max(depth_cue_darkest, 1.0 / max(1.0, dot(v1,v)/depth_cue_distance));
+  Ifrag *= dim;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+  Ifrag *= texture(tex3d, ambient_tex_coord).r;
+#endif
+
+#else
+  vec3 Ifrag = fcolor.rgb;
+#endif
+
+  // transparency
+  float a = fcolor.a;
+#ifdef USE_LIGHTING
+  a = 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01));
+#endif
+
+  // final color
+  frag_color = vec4(Ifrag, a);
+}
+
+#endif	// USE_IMAGE_BLEND

@@ -2,7 +2,10 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 8.34
+VERSION = 8.36
+LIBPCRE_VER = 1
+LIBPCRECPP_VER = 0
+LIBPCREPOSIX_VER = 0
 DISTRIBUTION = pcre-$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/pcre-$(VERSION)
 
@@ -60,7 +63,28 @@ ifeq ($(OS),Windows)
 	$(RSYNC) $(SOURCE)/build/pcre{,cpparg,_stringpiece}.h $(includedir)
 else
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) && $(MAKE) $(MAKE_ARGS) install
+ifeq ($(OS),Linux)
+	cd $(bindir); chrpath -r '$$ORIGIN/../lib' pcregrep pcretest
 endif
+ifeq ($(OS),Darwin)
+	cd $(shlibdir); \
+	libpcre=libpcre.$(LIBPCRE_VER).dylib; \
+	libpcrecpp=libpcrecpp.$(LIBPCRECPP_VER).dylib; \
+	libpcreposix=libpcreposix.$(LIBPCREPOSIX_VER).dylib; \
+	install_name_tool -id "@rpath/$$libpcre" $$libpcre; \
+	install_name_tool -id "@rpath/$$libpcrecpp" $$libpcrecpp; \
+	install_name_tool -id "@rpath/$$libpcreposix" $$libpcreposix; \
+	install_name_tool -change $(shlibdir)/$$libpcre "@rpath/$$libpcre" $$libpcrecpp ; \
+	install_name_tool -change $(shlibdir)/$$libpcre "@rpath/$$libpcre" $$libpcreposix ; \
+	cd $(bindir); for f in pcregrep pcretest; do \
+		install_name_tool -add_rpath '@executable_path/../lib' $$f ; \
+		install_name_tool -change $(shlibdir)/$$libpcre "@rpath/$$libpcre" $$f ; \
+		install_name_tool -change $(shlibdir)/$$libpcreposix "@rpath/$$libpcreposix" $$f ; \
+	done
+endif
+endif
+
+app-install:;
 
 $(SOURCE):
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)

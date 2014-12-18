@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.3.2
+VERSION = 1.4.7
 DISTRIBUTION = blockdiag-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/blockdiag-$(VERSION)
 
@@ -17,7 +17,9 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && python3 setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+
+app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

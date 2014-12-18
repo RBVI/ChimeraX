@@ -2,14 +2,16 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.3.1
+VERSION = 2.4
 DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)
 
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	python3 setup.py install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
+
+app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

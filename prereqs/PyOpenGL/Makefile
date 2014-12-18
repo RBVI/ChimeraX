@@ -7,14 +7,12 @@ include $(TOP)/mk/config.make
 #     bzr export PyOpenGL-20130502.tar.bz2 lp:pyopengl
 #
 
-VERSION = 20130502
-PYOPENGL_DISTRIBUTION = PyOpenGL-$(VERSION).tar.bz2
+VERSION = 3.1.0
+PYOPENGL_DISTRIBUTION = PyOpenGL-$(VERSION).tar.gz
 PYOPENGL_SOURCE = $(tmpdir)/PyOpenGL-$(VERSION)
-#ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(VERSION).tar.gz
-#ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(VERSION)
-ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-$(VERSION)/OpenGL_accelerate
+ACCELERATE_DISTRIBUTION = PyOpenGL-accelerate-$(VERSION).tar.gz
+ACCELERATE_SOURCE = $(tmpdir)/PyOpenGL-accelerate-$(VERSION)
 
-SETUP_BUILD = build_clib build_ext --force
 ifdef DEBUG
 ifndef WIN32
 SETUP_BUILD += --debug
@@ -28,11 +26,15 @@ PATCHES = $(wildcard PyOpenGL-$(VERSION)-*.patch) \
 all:
 
 install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
-	cd $(PYOPENGL_SOURCE) && python3 setup.py $(SETUP_BUILD) install
-	cd $(ACCELERATE_SOURCE) && python3 setup.py $(SETUP_BUILD) install
+	cd $(PYOPENGL_SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+	cd $(ACCELERATE_SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+
+app-install:
+	$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
+	$(RSYNC) $(PYSITEDIR)/PyOpenGL_accelerate-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
 
 $(PYOPENGL_SOURCE):
-	tar jxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)
+	tar zxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)
 
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
@@ -40,9 +42,8 @@ ifneq (,$(PATCHES))
 	done
 endif
 
-#$(ACCELERATE_SOURCE):
-#	tar zxf $(ACCELERATE_DISTRIBUTION) -C $(tmpdir)
-$(ACCELERATE_SOURCE): $(PYOPENGL_SOURCE)
+$(ACCELERATE_SOURCE):
+	tar zxf $(ACCELERATE_DISTRIBUTION) -C $(tmpdir)
 
 clean:
 	rm -rf $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)

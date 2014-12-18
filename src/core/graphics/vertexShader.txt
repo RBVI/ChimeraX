@@ -1,0 +1,111 @@
+#version 330 core
+
+#if defined(USE_TEXTURE_MASK) || defined(USE_DEPTH_OUTLINE)
+
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec2 tex_coord_2d;
+out vec2 tex_coord;
+void main(void)
+{
+  tex_coord = tex_coord_2d;
+  gl_Position = vec4(position,1);
+}
+
+#else
+
+uniform mat4 model_view_matrix;
+uniform mat4 projection_matrix;
+
+layout(location = 0) in vec3 position;
+
+#ifdef USE_LIGHTING
+layout(location = 2) in vec3 normal;
+out vec3 N;
+out vec3 v;
+
+#ifdef USE_SHADOWS
+uniform mat4 shadow_transform;
+out vec3 shadow_tex_coord;
+#endif
+
+#ifdef USE_MULTISHADOW
+//uniform mat4 model_matrix;
+//out vec3 vscene;
+//out vec3 nscene;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+uniform mat4 ambient_tex3d_transform;
+out vec3 ambient_tex_coord;
+#endif
+
+#endif	// end USE_LIGHTING
+
+#ifdef USE_VERTEX_COLORS
+layout(location = 3) in vec4 vcolor;
+out vec4 color;
+#endif
+
+#ifdef USE_TEXTURE_2D
+layout(location = 1) in vec2 tex_coord_2d;
+out vec2 tex_coord;
+#endif
+
+#ifdef USE_SHIFT_AND_SCALE
+layout(location = 4) in vec4 instance_shift_and_scale;
+#endif
+
+#ifdef USE_INSTANCING
+layout(location = 5) in mat4 instance_placement;
+#endif
+
+#ifdef USE_FRAME_NUMBER
+uniform float frame_number;
+#endif
+
+void main(void)
+{
+#ifdef USE_SHIFT_AND_SCALE
+  vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
+#else
+  #ifdef USE_INSTANCING
+    vec4 vi = instance_placement * vec4(position, 1);
+  #else
+    vec4 vi = vec4(position,1);
+  #endif
+#endif
+
+  vec4 vEye = model_view_matrix * vi;
+
+#ifdef USE_LIGHTING
+  v = vEye.xyz;
+  #ifdef USE_INSTANCING
+    vec3 ni = vec3(instance_placement * vec4(normal,0));
+  #else
+    vec3 ni = normal;
+  #endif
+  N = normalize((model_view_matrix * vec4(ni,0)).xyz);
+  #ifdef USE_SHADOWS
+    shadow_tex_coord = (shadow_transform * vEye).stp;
+  #endif
+  #ifdef USE_MULTISHADOW
+//    vscene = (model_matrix * vi).xyz;
+//    nscene = (model_matrix * vec4(ni,0)).xyz;
+  #endif
+  #ifdef USE_TEXTURE_3D_AMBIENT
+    ambient_tex_coord = (ambient_tex3d_transform * vi).xyz;
+  #endif
+#endif	// end USE_LIGHTING
+
+#ifdef USE_VERTEX_COLORS
+  color = vcolor;
+#endif
+
+#ifdef USE_TEXTURE_2D
+  tex_coord = tex_coord_2d;
+#endif
+
+  gl_Position = projection_matrix * vEye;
+}
+
+#endif	// USE_IMAGE_BLEND

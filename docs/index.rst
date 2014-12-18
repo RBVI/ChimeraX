@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 #######################
 Chimera 2 documentation
 #######################
@@ -9,7 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   user/index.rst
+   users/index.rst
 
    devel/index.rst
 

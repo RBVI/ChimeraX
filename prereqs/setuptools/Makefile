@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.3
+VERSION = 7.0
 DISTRIBUTION = setuptools-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/setuptools-$(VERSION)
 
@@ -17,7 +17,13 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && python3 setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+
+app-install:
+	cd $(PYSITEDIR); $(RSYNC) \
+		setuptools-$(VERSION)-py$(PYTHON_VERSION).egg \
+		easy_install.py pkg_resources.py _markerlib \
+		$(APP_PYSITEDIR)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

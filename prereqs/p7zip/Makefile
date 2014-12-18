@@ -8,8 +8,6 @@ SOURCE = $(tmpdir)/p7zip_$(VERSION)
 
 PATCHES	= $(wildcard p7zip-$(VERSION)-*.patch)
 
-#CONFIG_ENV = env LDFLAGS='-L$(libdir)'
-
 ifeq ($(OSARCH),Linux)
 	MACHINE = linux_any_cpu
 else ifeq ($(OSARCH),Linux64)
@@ -29,6 +27,8 @@ install: $(SOURCE)
 	cd $(SOURCE) && $(MAKE) all && $(MAKE) DEST_HOME=$(build_prefix) install
 	# allow rm -r to work on build tree
 	chmod -R u+w $(datadir)/doc/p7zip/DOCS
+
+app-install:;
 
 $(SOURCE):
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)

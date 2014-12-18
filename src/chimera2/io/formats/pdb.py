@@ -54,34 +54,16 @@ def open_mmCIF(stream, *args, **kw):
 		# it's really a filename
 		filename = stream
 
-	import pdbio
-	import os, mmap
-	fd = os.open(filename, os.O_RDONLY)
-	st = os.stat(fd)
-	# need a zero byte terminated buffer for parse_mmCIF_file
-	if os.name == 'posix' and (st.st_size % mmap.PAGESIZE) == 0:
-		# mmap with files that are a multiple of the pagesize
-		# cause a bus error on POSIX systems
-		buf = os.read(fd, st.st_size)
-		mol_blob = pdbio.parse_mmCIF_file(buf)
-	try:
-		if os.name == 'posix':
-			# not a multiple of pagesize, rest of page
-			# is zero filled
-			size = st.st_size
-		else:
-			# Windows, ask for an extra byte to guarantee
-			# termination with zero byte
-			size = st.st_size + 1
-		with mmap.mmap(fd, size, access=mmap.ACCESS_READ) as buf:
-			mol_blob = pdbio.parse_mmCIF_file(buf)
-	finally:
-		os.close(fd)
+	import _mmcif
+	import sys
+	print("mmcif filename:", filename, file=sys.stderr)
+	mol_blob = _mmcif.parse_mmCIF_file(filename)
 	model = molecule.Molecule()
 	model.mol_blob = mol_blob
 	model.make_graphics()
 
-	return [model], "Model %d: PDB data containing %d atoms and %d bonds" % (model.id, model.num_atoms, model.num_bonds)
+	return [model], ("Model %d: PDB data containing %d atoms and %d bonds"
+				% (model.id, model.num_atoms, model.num_bonds))
 
 def register():
 	from chimera2 import io
@@ -90,11 +72,11 @@ def register():
 		mime=("chemical/x-pdb", "chemical/x-spdbv"),
 		reference="http://wwpdb.org/docs.html#format",
 		open_func=open_pdb, fetch_func=fetch_pdb)
-        # mmCIF uses same file suffix as CIF
-	#io.register_format("CIF", molecule.CATEGORY, (".cif",), ("cif", "cifID"),
+	# mmCIF uses same file suffix as CIF
+	#io.register_format("CIF", molecule.CATEGORY, (), ("cif", "cifID"),
 	#	mime=("chemical/x-cif"),
 	#	reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
 	io.register_format("mmCIF", molecule.CATEGORY, (".cif",), ("mmcif", "cif"),
-		mime=("chemical/x-cif", "chemical/x-mmcif"),
-		reference="http://mmcif.rcsb.org/",
+		mime=("chemical/x-mmcif",),
+		reference="http://mmcif.wwpdb.org/",
 		requires_seeking=True, open_func=open_mmCIF)

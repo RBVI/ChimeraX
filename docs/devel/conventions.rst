@@ -1,3 +1,5 @@
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
+
 Code Conventions
 ================
 
@@ -9,13 +11,13 @@ Chimera2 uses `git <http://git-scm.com/>`_ for source code management.
 Here are a minimal set of commands to get started using git:
 
     #. Git associates a user name and email address with all check-ins.
-           The defaults are based on your :envvar:`USERNAME` and your computer's
-           hostname.
-           The email address is usually wrong.
-           To explicitly set those values::
+       The defaults are based on your :envvar:`USERNAME` and your computer's
+       hostname.
+       The email address is usually wrong.
+       To explicitly set those values::
 
-                git config --global user.name "Your Name"
-                git config --global user.email you@example.com
+            git config --global user.name "Your Name"
+            git config --global user.email you@example.com
 
     #. Make local copy of repository::
 
@@ -67,7 +69,7 @@ Editor defaults
 From <http://wiki.python.org/moin/Vim>:
 All python files should have the following modeline at the top:
 
-    # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+    # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4:
 
 But modelines are a security risk, so put:
 

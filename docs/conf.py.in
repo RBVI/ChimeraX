@@ -11,7 +11,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import os
+import sys
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -107,7 +108,7 @@ html_theme = 'default'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-	'collapsiblesidebar': True,
+    'collapsiblesidebar': True,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -190,8 +191,8 @@ htmlhelp_basename = 'Chimera2doc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Chimera2.tex', u'Chimera 2 Documentation',
-   u'UCSF RBVI', 'manual'),
+    ('index', 'Chimera2.tex', u'Chimera 2 Documentation',
+     u'UCSF RBVI', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -271,26 +272,28 @@ todo_include_todos = True
 
 # intersphinx configuration:
 intersphinx_mapping = {
-	'matplotlib': ('http://matplotlib.sourceforge.net', None),
-	'numpy': ('http://docs.scipy.org/doc/numpy', None),
-	'python': ('http://docs.python.org/PYTHON_VERSION', None),
-	'sphinx': ('http://sphinx.pocoo.org', None),
+    'matplotlib': ('http://matplotlib.sourceforge.net', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy', None),
+    'python': ('http://docs.python.org/PYTHON_VERSION', None),
+    'sphinx': ('http://sphinx.pocoo.org', None),
 }
 
 # -- Options for extlinks --------------------------------------------
 
 extlinks = {
-	'jquery': ('http://api.jquery.com/jQuery.%s/', "jQuery API's "),
+    'jquery': ('http://api.jquery.com/jQuery.%s/', "jQuery API's "),
+    'pillow': ('https://pillow.readthedocs.org/reference/Image.html#%s', ''),
 }
+
 
 # Skip objects with doc strings that start with 'Private'.
 def skip_private(app, what, name, obj, skip, options):
-    if (not skip and
-        hasattr(obj, '__doc__') and
-        isinstance(obj.__doc__,str) and
-        obj.__doc__.lstrip().startswith('Private')):
+    if (not skip and hasattr(obj, '__doc__')
+            and isinstance(obj.__doc__, str)
+            and obj.__doc__.lstrip().startswith('Private')):
         return True
     return skip
+
 
 def setup(app):
     app.connect('autodoc-skip-member', skip_private)

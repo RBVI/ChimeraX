@@ -2,14 +2,16 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.20.1
+VERSION = 0.21.1
 DISTRIBUTION = Cython-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/Cython-$(VERSION)
 
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	python3 setup.py install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
+
+app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

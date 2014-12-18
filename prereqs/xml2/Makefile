@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.9.1
+VERSION = 2.9.2
 DISTRIBUTION = libxml2-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/libxml2-$(VERSION)
 
@@ -15,6 +15,8 @@ all:
 
 install: $(SOURCE)
 	cd $(SOURCE) && $(CONFIG_ENV) ./configure $(CONFIG_OPTS) && $(MAKE) install
+
+app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
