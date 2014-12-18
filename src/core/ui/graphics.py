@@ -60,12 +60,13 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             ]
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs):
-            raise AssertionError("Required OpenGL capabilities RGBA and/or"
-                " double buffering and/or OpenGL 3 not supported")
+            raise AssertionError("Required OpenGL capabilities, RGBA and/or"
+                " double buffering and/or OpenGL 3, not supported")
         for depth in range(32, 0, -8):
             test_attribs = attribs + [glcanvas.WX_GL_DEPTH_SIZE, depth]
             if gl_supported(test_attribs):
                 attribs = test_attribs
+                # TODO: log this
                 print("Using {}-bit OpenGL depth buffer".format(depth))
                 break
         else:

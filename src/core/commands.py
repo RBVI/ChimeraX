@@ -11,9 +11,10 @@ must be called to get the commands recognized by the command line interface
 
 from . import cli
 
+
 def pwd(session):
     import os
-    print('current working directory:', os.getcwd())
+    session.logger.info('current working directory: %s' % os.getcwd())
 _pwd_desc = cli.CmdDesc()
 
 
@@ -28,7 +29,7 @@ _stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)])
 
 
 def echo(session, text=''):
-    print(text)
+    session.logger.info(text)
 _echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
 
 
@@ -57,7 +58,7 @@ def list(session):
     if len(models) > 1:
         info += ", ".join(str(m.id) for m in models[:-1]) + " and"
     info += " %s" % models[-1].id
-    print(info)
+    session.logger.info(info)
 _list_desc = cli.CmdDesc()
 
 
