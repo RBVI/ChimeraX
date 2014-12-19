@@ -116,7 +116,7 @@ static PyGetSetDef AtomBlob_getset[] = {
 } // extern "C"
 
 PyTypeObject AtomBlob_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "structaccess.AtomBlob", // tp_name
     sizeof (AtomBlob), // tp_basicsize
     0, // tp_itemsize
@@ -140,7 +140,7 @@ PyTypeObject AtomBlob_type = {
     0, // tp_traverse
     0, // tp_clear
     0, // tp_richcompare
-    offsetof(Blob, _weaklist), // tp_weaklist
+    offsetof(Blob, _weaklist), // tp_weaklistoffset
     0, // tp_iter
     0, // tp_iternext
     AtomBlob_methods, // tp_methods
@@ -152,9 +152,9 @@ PyTypeObject AtomBlob_type = {
     0, // tp_descr_set
     0, // tp_dict_offset
     0, // tp_init,
-    0, // tp_alloc
+    PyType_GenericAlloc, // tp_alloc
     0, // tp_new
-    0, // tp_free
+    PyObject_Free, // tp_free
     0, // tp_is_gc
     0, // tp_bases
     0, // tp_mro

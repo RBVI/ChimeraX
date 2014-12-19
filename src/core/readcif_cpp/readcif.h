@@ -81,12 +81,12 @@ inline float str_to_float(const char* s)
 			saw_digit = true;
 			if (fa) {
 				v += fa * (c - '0');
-				fa *= 0.1;
+				fa *= 0.1f;
 			} else
 				v = 10 * v + (c - '0');
 		}
 		else if (c == '.')
-			fa = 0.1;
+			fa = 0.1f;
 		else if (c == '-')
 			neg = true;
 		else

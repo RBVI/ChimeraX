@@ -13,6 +13,8 @@ OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 ifdef WIN32
 INCS = -I'$(shell cygpath -m '$(includedir)')'
 else
+# TODO: remove this when everywhere
+CXX += -fvisibility-ms-compat
 INCS = -I$(includedir)
 endif
 
