@@ -1,11 +1,12 @@
 # vim: set expandtab ts=4 sw=4:
+import weakref
 
 class CmdLine:
 
     SIZE = (500, 25)
 
     def __init__(self, session):
-        self.session = session
+        self._session = weakref.ref(session)
         import wx
         from .tool_api import ToolWindow
         self.tool_window = ToolWindow("Command Line", "General", session,
@@ -27,12 +28,13 @@ class CmdLine:
             self.text.EmulateKeyPress(event)
 
     def OnEnter(self, event):
+        session = self._session()  # resolve back reference
         text = self.text.GetLineText(0)
         self.text.SelectAll()
         from chimera.core import cli
         import sys
         try:
-            cmd = cli.Command(self.session, text, final=True)
+            cmd = cli.Command(session, text, final=True)
             cmd.execute()
         except SystemExit as e:
             # TODO: somehow quit application
@@ -41,12 +43,10 @@ class CmdLine:
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
-            # TODO: send the following to the reply log?
-            print(cmd.current_text)
-            print("%s^" % ('.' * error_at))
-            print(err)
-            # TODO: repeat error in status line
+            session.logger.info(cmd.current_text)
+            session.logger.info("%s^" % ('.' * error_at))
+            session.logger.info(str(err))
+            session.logger.status(str(err))
         except:
-            # TODO: bug report dialog
             import traceback
-            traceback.print_exc(file=sys.stderr)
+            session.logger.error(traceback.format_exc())
