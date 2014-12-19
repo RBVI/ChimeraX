@@ -43,6 +43,7 @@ class GraphicsWindow(wx.Panel):
         self.opengl_canvas.Bind(wx.EVT_LEFT_UP, self.mouse_up_select)
         self.opengl_canvas.Bind(wx.EVT_MIDDLE_UP, self.mouse_up)
         self.opengl_canvas.Bind(wx.EVT_RIGHT_UP, self.mouse_up)
+        self.opengl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.wheel_event)
 
     def make_context_current(self):
         # creates context if needed
@@ -155,6 +156,14 @@ class GraphicsWindow(wx.Panel):
         s = tuple(delta*psize for delta in shift)
         step = v.camera.position.apply_without_translation(s) # scene coord sys
         v.translate(step)
+
+    def wheel_event(self, event):
+        # Usually one wheel click is delta of 120
+        d = event.GetWheelRotation()/120.0
+        v = self.view
+        psize = v.pixel_size()
+        shift = v.camera.position.apply_without_translation((0, 0, 100*d*psize))
+        v.translate(shift)
 
     def _redraw_timer_callback(self, event):
         self.view.draw(only_if_changed=True)
