@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Residue.h>

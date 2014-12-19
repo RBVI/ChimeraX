@@ -1,3 +1,4 @@
+// vi: set expandtab ts=4 sw=4:
 // ----------------------------------------------------------------------------
 // Multi-dimensional reference counted arrays.
 //
@@ -27,8 +28,8 @@
 #ifndef RCARRAY_HEADER_INCLUDED
 #define RCARRAY_HEADER_INCLUDED
 
-#include "refcount.h"		// use Reference_Count
-#include <stdexcept>		// for std::invalid_argument in rcarrayt.cpp
+#include "refcount.h"       // use Reference_Count
+#include <stdexcept>        // for std::invalid_argument in rcarrayt.cpp
 
 namespace Reference_Counted_Array
 {
@@ -63,16 +64,16 @@ public:
   Untyped_Array();
   Untyped_Array(int element_size, int dim, const int *size);
   Untyped_Array(int element_size, int dim, const int *size,
-		const void *values);  // Copies values
+        const void *values);  // Copies values
   // The release object is destroyed when data values are no longer needed.
   Untyped_Array(int element_size, int dim, const int *size, void *values,
-		Release_Data *release);
+        Release_Data *release);
   Untyped_Array(int element_size, int dim, const int *sizes,
-		const long *strides, void *data, Release_Data *release);
+        const long *strides, void *data, Release_Data *release);
   Untyped_Array(const Untyped_Array &);
   virtual ~Untyped_Array();
   const Untyped_Array &operator=(const Untyped_Array &array);
-  //  Untyped_Array copy() const;	// Copies values, not implemented
+  //  Untyped_Array copy() const;   // Copies values, not implemented
 
   int element_size() const;
   int dimension() const;
@@ -119,7 +120,7 @@ class Array : public Untyped_Array
 public:
   Array();
   Array(int dim, const int *size);
-  Array(int dim, const int *size, const T *values);	// copies values
+  Array(int dim, const int *size, const T *values); // copies values
   // The release object is destroyed when data values are no longer needed.
   Array(int dim, const int *size, T *values, Release_Data *release);
   Array(const Untyped_Array &);
@@ -130,7 +131,7 @@ public:
 
   T value(const int *index) const;
   T *values() const;
-  T *copy_of_values() const;			// allocated with new []
+  T *copy_of_values() const;            // allocated with new []
   void get_values(T *v) const;
   void set(const int *index, T value);
   void set(T value);
@@ -153,15 +154,15 @@ class Numeric_Array : public Untyped_Array
 {
  public:
   enum Value_Type { Char, Signed_Char, Unsigned_Char,
-		    Short_Int, Unsigned_Short_Int, Int, Unsigned_Int,
-		    Long_Int, Unsigned_Long_Int, Float, Double };
+            Short_Int, Unsigned_Short_Int, Int, Unsigned_Int,
+            Long_Int, Unsigned_Long_Int, Float, Double };
   static int size_of_type(Value_Type t);
   static const char *value_type_name(Value_Type type);
 
   Numeric_Array();
   Numeric_Array(Value_Type type, int dim, const int *sizes);
   Numeric_Array(Value_Type type, int dim, const int *sizes, const long *strides,
-		void *data, Release_Data *release);
+        void *data, Release_Data *release);
   Numeric_Array(const Numeric_Array &);
   Numeric_Array(Value_Type type, const Untyped_Array &);
   Numeric_Array &operator=(const Numeric_Array &);
@@ -312,7 +313,7 @@ void Array<T>::get_values(T *v) const
       T *d = values();
       long length = size();
       for (long i = 0 ; i < length ; ++i)
-	v[i] = d[i];
+    v[i] = d[i];
       return;
     }
 
@@ -326,7 +327,7 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	v[k++] = d[j0];
+    v[k++] = d[j0];
       return;
     }
 
@@ -334,8 +335,8 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  v[k++] = d[j1];
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      v[k++] = d[j1];
       return;
     }
 
@@ -343,9 +344,9 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-	    v[k++] = d[j2];
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+        v[k++] = d[j2];
       return;
     }
 
@@ -353,10 +354,10 @@ void Array<T>::get_values(T *v) const
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-	    for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
-	      v[k++] = d[j3];
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+        for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
+          v[k++] = d[j3];
       return;
     }
 
@@ -389,7 +390,7 @@ void Array<T>::set(T value)
       T *d = values();
       long length = size();
       for (int i = 0 ; i < length ; ++i)
-	d[i] = value;
+    d[i] = value;
       return;
     }
 
@@ -402,7 +403,7 @@ void Array<T>::set(T value)
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	d[j0] = value;
+    d[j0] = value;
       return;
     }
 
@@ -410,8 +411,8 @@ void Array<T>::set(T value)
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  d[j1] = value;
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      d[j1] = value;
       return;
     }
 
@@ -419,9 +420,9 @@ void Array<T>::set(T value)
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-	    d[j2] = value;
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+        d[j2] = value;
       return;
     }
 
@@ -429,10 +430,10 @@ void Array<T>::set(T value)
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-	    for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
-	      d[j3] = value;
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+        for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
+          d[j3] = value;
       return;
     }
 
@@ -461,7 +462,7 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 1)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-	d[j0] = static_cast<T>(ad[k0]);
+    d[j0] = static_cast<T>(ad[k0]);
       return;
     }
 
@@ -471,8 +472,8 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 2)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-	for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
-	  d[j1] = static_cast<T>(ad[k1]);
+    for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
+      d[j1] = static_cast<T>(ad[k1]);
       return;
     }
 
@@ -481,9 +482,9 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 3)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-	for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
-	  for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
-	    d[j2] = static_cast<T>(ad[k2]);
+    for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
+      for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
+        d[j2] = static_cast<T>(ad[k2]);
       return;
     }
 
@@ -492,10 +493,10 @@ void Array<T>::set(const Array<S> &a)
   if (dimension() == 4)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
-	for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
-	  for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
-	    for (i3=0, j3=j2, k3=k2 ; i3<s3 ; ++i3, j3+=js3, k3+=ks3)
-	      d[j3] = static_cast<T>(ad[k3]);
+    for (i1=0, j1=j0, k1=k0 ; i1<s1 ; ++i1, j1+=js1, k1+=ks1)
+      for (i2=0, j2=j1, k2=k1 ; i2<s2 ; ++i2, j2+=js2, k2+=ks2)
+        for (i3=0, j3=j2, k3=k2 ; i3<s3 ; ++i3, j3+=js3, k3+=ks3)
+          d[j3] = static_cast<T>(ad[k3]);
       return;
     }
 
@@ -518,7 +519,7 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	d[j0] = op(d[j0]);
+    d[j0] = op(d[j0]);
       return;
     }
 
@@ -526,8 +527,8 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  d[j1] = op(d[j1]);
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      d[j1] = op(d[j1]);
       return;
     }
 
@@ -535,9 +536,9 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-	    d[j2] = op(d[j2]);
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+        d[j2] = op(d[j2]);
       return;
     }
 
@@ -545,10 +546,10 @@ void Array<T>::apply(Array_Operator<T> &op)
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
-	for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
-	  for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
-	    for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
-	      d[j3] = op(d[j3]);
+    for (i1=0, j1=j0 ; i1<s1 ; ++i1, j1+=js1)
+      for (i2=0, j2=j1 ; i2<s2 ; ++i2, j2+=js2)
+        for (i3=0, j3=j2 ; i3<s3 ; ++i3, j3+=js3)
+          d[j3] = op(d[j3]);
       return;
     }
 

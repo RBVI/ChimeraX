@@ -1,6 +1,7 @@
+// vi: set expandtab ts=4 sw=4:
 /*
  * Copyright (c) 1987, 1993, 1994
- *	The Regents of the University of California.  All rights reserved.
+ *  The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,8 +13,8 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
+ *  This product includes software developed by the University of
+ *  California, Berkeley and its contributors.
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -32,7 +33,7 @@
  */
 
 #if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)getopt.c	8.2 (Berkeley) 4/2/94";
+static char sccsid[] = "@(#)getopt.c    8.2 (Berkeley) 4/2/94";
 #endif /* LIBC_SCCS and not lint */
 
 #include <iostream>
@@ -48,118 +49,118 @@ namespace ioutil {
 # define NULL 0
 #endif
 
-static int const	EOF = -1;
-static int const	BADCH = (int)'?';
-static int const	BADARG = (int)':';
-static char const	*EMSG = "";
+static int const    EOF = -1;
+static int const    BADCH = (int)'?';
+static int const    BADARG = (int)':';
+static char const   *EMSG = "";
 
 GetOpt::GetOpt(int argc, char * const *argv, char const *opts, bool err):
-	opterr(err), optind(1), optopt(0), optreset(false), optarg(0),
-	nargc(argc), nargv(argv), ostr(opts), place(EMSG)
+    opterr(err), optind(1), optopt(0), optreset(false), optarg(0),
+    nargc(argc), nargv(argv), ostr(opts), place(EMSG)
 {
 }
 
 int
 GetOpt::index() const
 {
-	return optind;
+    return optind;
 }
 
 char const *
 GetOpt::arg() const
 {
-	return optarg;
+    return optarg;
 }
 
 int
 GetOpt::option() const
 {
-	return optopt;
+    return optopt;
 }
 
 void
 GetOpt::reset()
 {
-	optreset = true;
-	optind = 1;
+    optreset = true;
+    optind = 1;
 }
 
 void
 GetOpt::skip(int count)
 {
-	optind += count;
-	if (optind < 1)
-		optind = 1;
-	else if (optind > nargc)
-		optind = nargc;
+    optind += count;
+    if (optind < 1)
+        optind = 1;
+    else if (optind > nargc)
+        optind = nargc;
 }
 
 void
 GetOpt::printErrors(bool b)
 {
-	opterr = b;
+    opterr = b;
 }
 
 /*
  * getopt --
- *	Parse argc/argv argument vector.
+ *  Parse argc/argv argument vector.
  */
 int
 GetOpt::operator()()
 {
-	const char *oli;			/* option letter list index */
+    const char *oli;            /* option letter list index */
 
-	if (optreset || !*place) {		/* update scanning pointer */
-		optreset = false;
-		if (optind >= nargc || *(place = nargv[optind]) != '-') {
-			place = EMSG;
-			return (EOF);
-		}
-		if (place[1] && *++place == '-') {	/* found "--" */
-			++optind;
-			place = EMSG;
-			return (EOF);
-		}
-	}					/* option letter okay? */
-	if ((optopt = (int)*place++) == (int)':' ||
-	    !(oli = ::strchr(ostr, optopt))) {
-		/*
-		 * if the user didn't specify '-' as an option,
-		 * assume it means EOF.
-		 */
-		if (optopt == (int)'-')
-			return (EOF);
-		if (!*place)
-			++optind;
-		if (opterr && *ostr != ':')
-			std::cerr << nargv[0] << ": illegal option -- "
-						<< char(optopt) << std::endl;
-		return (BADCH);
-	}
-	if (*++oli != ':') {			/* don't need argument */
-		optarg = NULL;
-		if (!*place)
-			++optind;
-	}
-	else {					/* need an argument */
-		if (*place)			/* no white space */
-			optarg = place;
-		else if (nargc <= ++optind) {	/* no arg */
-			place = EMSG;
-			if (*ostr == ':')
-				return (BADARG);
-			if (opterr)
-				std::cerr << nargv[0]
-					<< ": option requires an argument -- "
-					<< char(optopt) << std::endl;
-			return (BADCH);
-		}
-	 	else				/* white space */
-			optarg = nargv[optind];
-		place = EMSG;
-		++optind;
-	}
-	return (optopt);			/* dump back option letter */
+    if (optreset || !*place) {      /* update scanning pointer */
+        optreset = false;
+        if (optind >= nargc || *(place = nargv[optind]) != '-') {
+            place = EMSG;
+            return (EOF);
+        }
+        if (place[1] && *++place == '-') {  /* found "--" */
+            ++optind;
+            place = EMSG;
+            return (EOF);
+        }
+    }                   /* option letter okay? */
+    if ((optopt = (int)*place++) == (int)':' ||
+        !(oli = ::strchr(ostr, optopt))) {
+        /*
+         * if the user didn't specify '-' as an option,
+         * assume it means EOF.
+         */
+        if (optopt == (int)'-')
+            return (EOF);
+        if (!*place)
+            ++optind;
+        if (opterr && *ostr != ':')
+            std::cerr << nargv[0] << ": illegal option -- "
+                        << char(optopt) << std::endl;
+        return (BADCH);
+    }
+    if (*++oli != ':') {            /* don't need argument */
+        optarg = NULL;
+        if (!*place)
+            ++optind;
+    }
+    else {                  /* need an argument */
+        if (*place)         /* no white space */
+            optarg = place;
+        else if (nargc <= ++optind) {   /* no arg */
+            place = EMSG;
+            if (*ostr == ':')
+                return (BADARG);
+            if (opterr)
+                std::cerr << nargv[0]
+                    << ": option requires an argument -- "
+                    << char(optopt) << std::endl;
+            return (BADCH);
+        }
+        else                /* white space */
+            optarg = nargv[optind];
+        place = EMSG;
+        ++optind;
+    }
+    return (optopt);            /* dump back option letter */
 }
 
 } // namespace ioutil

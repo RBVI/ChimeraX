@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 // Copyright (c) 1996-2009 The Regents of the University of California.
 // All rights reserved.
 // 
