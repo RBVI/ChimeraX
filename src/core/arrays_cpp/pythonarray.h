@@ -1,3 +1,4 @@
+// vi: set expandtab ts=4 sw=4:
 // ----------------------------------------------------------------------------
 // Convert multi-dimensional arrays between Python and C++.
 //
@@ -5,9 +6,9 @@
 #define PYTHONARRAY_HEADER_INCLUDED
 
 #include <Python.h>
-#include <vector>		// use std::vector<>
+#include <vector>       // use std::vector<>
 
-#include "rcarray.h"		// use Numeric_Array
+#include "rcarray.h"        // use Numeric_Array
 
 using Reference_Counted_Array::Numeric_Array;
 using Reference_Counted_Array::Untyped_Array;
@@ -16,16 +17,16 @@ using Reference_Counted_Array::Untyped_Array;
 // Return false if python object is not an array of specified dimension.
 //
 bool array_from_python(PyObject *array, int dim, Numeric_Array *na,
-		       bool allow_data_copy = true);
+               bool allow_data_copy = true);
 
 //
 // Return false if python object is not an array of specified
 // dimension or does not have the specified value type.
 //
 bool array_from_python(PyObject *array, int dim,
-		       Numeric_Array::Value_Type required_type,
-		       Numeric_Array *na,
-		       bool allow_data_copy = true);
+               Numeric_Array::Value_Type required_type,
+               Numeric_Array *na,
+               bool allow_data_copy = true);
 
 //
 // Recover numpy Python array used to create a C++ array.
