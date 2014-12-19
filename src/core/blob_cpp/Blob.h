@@ -9,7 +9,7 @@
 
 namespace blob {
     
-class Blob: public PyObject {
+struct Blob: public PyObject {
 public:
     PyObject* _weaklist;
 };
