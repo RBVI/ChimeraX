@@ -15,9 +15,9 @@ class Chimera(wx.Frame):
 
 	def __init__(self, app, title="wxChimera"):
 		"""Create Chimera application instance.
-		
+
 		"app" is the main wx.App instance."""
-		
+
 		self.title = title
 		wx.Frame.__init__(self, None, title=title, size=wx.Size(300,300))
 		self.app = app
@@ -244,14 +244,21 @@ from wx import glcanvas
 class ChimeraGLCanvas(glcanvas.GLCanvas):
 
 	_DEFAULT_ATTRIB_LIST = [
+		glcanvas.WX_GL_RGBA,
 		glcanvas.WX_GL_DOUBLEBUFFER,
-		glcanvas.WX_GL_MIN_RED, 8,
+		glcanvas.WX_GL_MIN_RED, 1,
+		glcanvas.WX_GL_MIN_GREEN, 1,
+		glcanvas.WX_GL_MIN_BLUE, 1,
 		glcanvas.WX_GL_MIN_ALPHA, 0,
-		glcanvas.WX_GL_DEPTH_SIZE, 8,
-		glcanvas.WX_GL_OPENGL_PROFILE,
-			glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE,
+		glcanvas.WX_GL_DEPTH_SIZE, 1,
 		0
 	]
+	import sys
+	if sys.platform.startswith('darwin'):
+		_DEFAULT_ATTRIB_LIST[-1:-1] = [
+			glcanvas.WX_GL_OPENGL_PROFILE,
+				glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE,
+		]
 
 	def __init__(self, chimera, parent, attr_list=None):
 		if attr_list is None:
@@ -260,17 +267,18 @@ class ChimeraGLCanvas(glcanvas.GLCanvas):
 
 		self.chimera = chimera
 		self.context = glcanvas.GLContext(self)
-		import llgr
-		llgr.set_output("pyopengl")
 
 		import OpenGL
 		OpenGL.ERROR_LOGGING = True
 		OpenGL.ERROR_ON_COPY = True
 		OpenGL.FORWARD_COMPATIBILITY_ONLY = True
 		import logging
-		#logging.basicConfig(level=logging.ERROR)
-		OpenGL.FULL_LOGGING = True
-		logging.basicConfig(level=logging.DEBUG)
+		logging.basicConfig(level=logging.ERROR)
+		#OpenGL.FULL_LOGGING = True
+		#logging.basicConfig(level=logging.DEBUG)
+
+		import llgr
+		llgr.set_output("pyopengl")
 
 		self.cursor_rotate = wx.Cursor(wx.CURSOR_BULLSEYE)
 		self.cursor_translate = wx.Cursor(wx.CURSOR_HAND)
@@ -300,7 +308,9 @@ class ChimeraGLCanvas(glcanvas.GLCanvas):
 
 	def _size_cb(self, evt):
 		if not self.IsShownOnScreen() or self._initGL:
+			print("!!!! not on screen")
 			return
+		print("!!!! on screen")
 		self.SetCurrent(self.context)
 		width, height = self.GetClientSize()
 		from OpenGL import GL

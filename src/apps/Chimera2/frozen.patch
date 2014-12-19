@@ -1,0 +1,24 @@
+--- frozen.c.orig	2014-11-20 12:53:29.465313885 -0800
++++ frozen.c	2014-11-20 12:54:20.734851519 -0800
+@@ -5,6 +5,7 @@
+ static struct _frozen _PyImport_FrozenModules[] = {
+ 	{"__main__", M___main__, -166},
+ 
++    {0, 0, 0}, /* placeholder for _frozen_importlib */
+     {0, 0, 0} /* sentinel */
+ };
+ 
+@@ -13,6 +14,13 @@
+ {
+         extern int Py_FrozenMain(int, char **);
+ 
++        _PyImport_FrozenModules[1] = PyImport_FrozenModules[0];
++        Py_IsolatedFlag++;
++        Py_NoUserSiteDirectory++;
++        Py_IgnoreEnvironmentFlag++;
++        Py_BytesWarningFlag++;
+         PyImport_FrozenModules = _PyImport_FrozenModules;
++        Py_HashRandomizationFlag = 1;
++        _PyRandom_Init();
+         return Py_FrozenMain(argc, argv);
+ }

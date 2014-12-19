@@ -2,17 +2,26 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2014-3-20
+VERSION = 0.4.1
 DISTRIBUTION = pycollada-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/pycollada-$(VERSION)
+PATCHES	= $(wildcard pycollada-$(VERSION)-*.patch)
 
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	python3 setup.py install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
+
+app-install:
+	$(RSYNC) $(PYSITEDIR)/pycollada-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+ifneq (,$(PATCHES))
+	for p in $(PATCHES); do \
+		(cd $(SOURCE) && patch -f -p0) < $$p ; \
+	done
+endif
 
 clean:
 	rm -rf $(SOURCE)

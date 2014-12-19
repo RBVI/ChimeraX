@@ -3,6 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 VERSION = 1.10.0
+LIBGLEW_VER = 1.10.0
 DISTRIBUTION = glew-$(VERSION).tgz
 SOURCE = $(tmpdir)/glew-$(VERSION)
 
@@ -14,6 +15,12 @@ all:
 
 install: $(SOURCE)
 	cd $(SOURCE) && $(MAKE) $(MAKE_ARGS) install
+ifeq ($(OS),Darwin)
+	libglew=libGLEW.$(LIBGLEW_VER).dylib; \
+	install_name_tool -id "@rpath/$$libglew" $(shlibdir)/$$libglew
+endif
+
+app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

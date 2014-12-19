@@ -235,8 +235,8 @@ class ShaderProgram:
 		if self.program == 0:
 			check_GLerror("Unable to create program")
 			return
-		self.uniforms = []
-		self.attributes = []
+		self.uniforms = {}
+		self.attributes = {}
 
 		self.vs = shaders.glCreateShader(GL.GL_VERTEX_SHADER)
 		shaders.glShaderSource(self.vs, vertex_shader)
@@ -268,7 +268,7 @@ class ShaderProgram:
 		shaders.glLinkProgram(self.program)
 		status = shaders.glGetProgramiv(self.program, GL.GL_LINK_STATUS)
 		if not status:
-			log = shaders.gletProgramInfoLog(self.program)
+			log = shaders.glGetProgramInfoLog(self.program)
 			print("unable to link program:\n%s" % log, file=sys.stderr)
 
 		# introspect program uniforms
@@ -280,7 +280,8 @@ class ShaderProgram:
 			loc = shaders.glGetUniformLocation(self.program, name)
 			if loc == -1:
 				continue
-			self.uniforms.append(ShaderVariable(self, name.decode('utf-8'), cvt_type(type), loc))
+			name = name.decode('utf-8')
+			self.uniforms[name] = ShaderVariable(self, name, cvt_type(type), loc)
 
 		# introspect vertex attributes
 		num_attributes = shaders.glGetProgramiv(self.program, GL.GL_ACTIVE_ATTRIBUTES)
@@ -291,7 +292,8 @@ class ShaderProgram:
 			loc = shaders.glGetAttribLocation(self.program, name)
 			if loc == -1:
 				continue
-			self.attributes.append(ShaderVariable(self, name.decode('utf-8'), cvt_type(type), loc))
+			name = name.decode('utf-8')
+			self.attributes[name] = ShaderVariable(self, name, cvt_type(type), loc)
 		return
 		print('uniforms:', self.uniforms)
 		print('attributes:', self.attributes)
@@ -305,17 +307,15 @@ class ShaderProgram:
 			shaders.glDeleteShader(self.fs)
 
 	def uniform(self, name, exceptions=False):
-		for u in self.uniforms:
-			if u.name == name:
-				return u
+		if name in self.uniforms:
+			return self.uniforms[name]
 		if exceptions:
 			raise ValueError("uniform not found: %s" % name)
 		return None
 
 	def attribute(self, name, exceptions=False):
-		for a in self.attributes:
-			if a.name == name:
-				return a
+		if name in self.attributes:
+			return self.attributes[name]
 		if exceptions:
 			raise ValueError("attribute not found: %s" % name)
 		return None
@@ -327,7 +327,7 @@ class ShaderProgram:
 		shaders.glUseProgram(self.program)
 		global _current_program
 		_current_program = self.program
-		for u in self.uniforms:
+		for u in self.uniforms.values():
 			u.draw_uniform()
 
 	def cleanup(self):

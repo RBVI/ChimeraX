@@ -1,6 +1,8 @@
-pdbio: PDB input/output
-==================
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. automodule:: pdbio
+pdbio: PDB input/output
+=======================
+
+.. automodule:: chimera.core.pdbio
     :members:
     :show-inheritance:

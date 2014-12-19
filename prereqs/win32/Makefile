@@ -7,4 +7,6 @@ install:
 	cp rsync.convert $(bindir)
 	$(RSYNC) include/* $(includedir)
 
+app-install:;
+
 clean:

@@ -1,6 +1,8 @@
-structaccess: batch access to molecular data
-=========================================
+..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. automodule:: structaccess
+structaccess: batch access to molecular data
+============================================
+
+.. automodule:: chimera.core.structaccess
     :members:
     :show-inheritance:

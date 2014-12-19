@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.8
+VERSION = 0.8.1
 DISTRIBUTION = pyflakes-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/pyflakes-$(VERSION)
 
@@ -17,10 +17,12 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && python3 setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
 ifdef USE_MAC_FRAMEWORKS
 	cp -p $(PYTHON_FRAMEWORK)/bin/pyflakes $(bindir)
 endif
+
+app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
