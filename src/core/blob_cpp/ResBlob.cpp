@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #include "Blob.h"
 #include "ResBlob.h"
 #include <atomstruct/Residue.h>
@@ -79,7 +79,7 @@ static PyGetSetDef ResBlob_getset[] = {
 } // extern "C"
 
 PyTypeObject ResBlob_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "structaccess.ResBlob", // tp_name
     sizeof (ResBlob), // tp_basicsize
     0, // tp_itemsize
@@ -103,7 +103,7 @@ PyTypeObject ResBlob_type = {
     0, // tp_traverse
     0, // tp_clear
     0, // tp_richcompare
-    offsetof(ResBlob, _weaklist), // tp_weaklist
+    offsetof(Blob, _weaklist), // tp_weaklistoffset
     0, // tp_iter
     0, // tp_iternext
     ResBlob_methods, // tp_methods
@@ -115,9 +115,9 @@ PyTypeObject ResBlob_type = {
     0, // tp_descr_set
     0, // tp_dict_offset
     0, // tp_init,
-    0, // tp_alloc
+    PyType_GenericAlloc, // tp_alloc
     0, // tp_new
-    0, // tp_free
+    PyObject_Free, // tp_free
     0, // tp_is_gc
     0, // tp_bases
     0, // tp_mro

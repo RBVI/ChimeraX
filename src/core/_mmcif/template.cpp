@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Residue.h>
@@ -45,7 +45,7 @@ struct ExtractTemplate: public readcif::CIFFile
     // so don't support the alternate names for now.
     ExtractTemplate();
     virtual void data_block(const string& name);
-	virtual void finished_parse();
+    virtual void finished_parse();
     void parse_chem_comp(bool in_loop);
     void parse_chem_comp_atom(bool in_loop);
     void parse_chem_comp_bond(bool in_loop);

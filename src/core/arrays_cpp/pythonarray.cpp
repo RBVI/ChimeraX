@@ -1,13 +1,14 @@
+// vi: set expandtab ts=4 sw=4:
 // ----------------------------------------------------------------------------
 //
-// #include <iostream>			// use std::cerr for debugging
-#include <Python.h>			// use Py_DECREF()
+// #include <iostream>          // use std::cerr for debugging
+#include <Python.h>         // use Py_DECREF()
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>		// use PyArray_*(), NPY_*
+#include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
 
 #include "pythonarray.h"
-#include "rcarray.h"			// use Numeric_Array, Release_Data
+#include "rcarray.h"            // use Numeric_Array, Release_Data
 
 using Reference_Counted_Array::Numeric_Array;
 using Reference_Counted_Array::Release_Data;
@@ -58,7 +59,7 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
     }
 
   if (dim == 0)
-    dim = PyArray_NDIM(a);	// Accept any dimension.
+    dim = PyArray_NDIM(a);  // Accept any dimension.
   else if (PyArray_NDIM(a) != dim)
     {
       Py_DECREF((PyObject *) a);
@@ -70,21 +71,21 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
   int type = PyArray_TYPE(a);
   switch ((NPY_TYPES) type)
     {
-    case NPY_CHAR:	dtype = Numeric_Array::Char;		break;
-    case NPY_BOOL:	dtype = Numeric_Array::Unsigned_Char;	break;
-    case NPY_UBYTE:	dtype = Numeric_Array::Unsigned_Char;	break;
-    case NPY_BYTE:	dtype = Numeric_Array::Signed_Char;	break;
-    case NPY_SHORT:	dtype = Numeric_Array::Short_Int;	break;
-    case NPY_USHORT:	dtype = Numeric_Array::Unsigned_Short_Int;	break;
-    case NPY_INT:	dtype = Numeric_Array::Int;		break;
-    case NPY_UINT:	dtype = Numeric_Array::Unsigned_Int;	break;
+    case NPY_CHAR:  dtype = Numeric_Array::Char;        break;
+    case NPY_BOOL:  dtype = Numeric_Array::Unsigned_Char;   break;
+    case NPY_UBYTE: dtype = Numeric_Array::Unsigned_Char;   break;
+    case NPY_BYTE:  dtype = Numeric_Array::Signed_Char; break;
+    case NPY_SHORT: dtype = Numeric_Array::Short_Int;   break;
+    case NPY_USHORT:    dtype = Numeric_Array::Unsigned_Short_Int;  break;
+    case NPY_INT:   dtype = Numeric_Array::Int;     break;
+    case NPY_UINT:  dtype = Numeric_Array::Unsigned_Int;    break;
     case NPY_LONG:
       // Make 32-bit integers always be int instead of long on 32-bit machines.
-      dtype = (sizeof(int) == sizeof(long) ? Numeric_Array::Int : Numeric_Array::Long_Int);	break;
+      dtype = (sizeof(int) == sizeof(long) ? Numeric_Array::Int : Numeric_Array::Long_Int); break;
     case NPY_ULONG:
-      dtype = (sizeof(int) == sizeof(long) ? Numeric_Array::Unsigned_Int : Numeric_Array::Unsigned_Long_Int);	break;
-    case NPY_FLOAT:	dtype = Numeric_Array::Float;		break;
-    case NPY_DOUBLE:	dtype = Numeric_Array::Double;		break;
+      dtype = (sizeof(int) == sizeof(long) ? Numeric_Array::Unsigned_Int : Numeric_Array::Unsigned_Long_Int);   break;
+    case NPY_FLOAT: dtype = Numeric_Array::Float;       break;
+    case NPY_DOUBLE:    dtype = Numeric_Array::Double;      break;
     default:
       PyErr_SetString(PyExc_TypeError, "Array argument has non-numeric values");
       return false;
@@ -132,8 +133,8 @@ PyObject *array_python_source(const Untyped_Array &a)
 // ----------------------------------------------------------------------------
 //
 bool array_from_python(PyObject *array, int dim,
-		       Numeric_Array::Value_Type required_type, Numeric_Array *na,
-		       bool allow_data_copy)
+               Numeric_Array::Value_Type required_type, Numeric_Array *na,
+               bool allow_data_copy)
 {
   Numeric_Array a;
   if (!array_from_python(array, dim, &a, allow_data_copy))
@@ -148,9 +149,9 @@ bool array_from_python(PyObject *array, int dim,
   if (!allow_data_copy)
     {
       PyErr_Format(PyExc_TypeError, "Require array value type %s, got %s",
-		   Numeric_Array::value_type_name(required_type),
-		   Numeric_Array::value_type_name(a.value_type()));
-	return false;
+           Numeric_Array::value_type_name(required_type),
+           Numeric_Array::value_type_name(a.value_type()));
+    return false;
     }
 
   *na = a.as_type(required_type);
@@ -171,7 +172,7 @@ bool python_array_to_c(PyObject *a, double *values, int size)
   if (PySequence_Size(a) != size)
     {
       PyErr_Format(PyExc_TypeError, "Incorrect array size, got %d, should be %d",
-		   PySequence_Size(a), size);
+           PySequence_Size(a), size);
       return false;
     }
 
@@ -179,18 +180,18 @@ bool python_array_to_c(PyObject *a, double *values, int size)
     {
       PyObject *e = PySequence_GetItem(a, k);
       if (!PyNumber_Check(e))
-	{
-	  Py_DECREF(e);
-	  PyErr_SetString(PyExc_TypeError, "Array element is not a number");
-	  return false;
-	}
+    {
+      Py_DECREF(e);
+      PyErr_SetString(PyExc_TypeError, "Array element is not a number");
+      return false;
+    }
       PyObject *f = PyNumber_Float(e);
       Py_DECREF(e);
       if (f == (PyObject *) 0)
-	{
-	  PyErr_SetString(PyExc_TypeError, "Array element is not a float");
-	  return false;
-	}
+    {
+      PyErr_SetString(PyExc_TypeError, "Array element is not a float");
+      return false;
+    }
       values[k] = PyFloat_AsDouble(f);
       Py_DECREF(f);
     }
@@ -210,7 +211,7 @@ bool python_array_to_c(PyObject *a, float *values, int size)
   if (PySequence_Size(a) != size)
     {
       PyErr_Format(PyExc_TypeError, "Incorrect array size, got %d, should be %d",
-		   PySequence_Size(a), size);
+           PySequence_Size(a), size);
       return false;
     }
 
@@ -218,18 +219,18 @@ bool python_array_to_c(PyObject *a, float *values, int size)
     {
       PyObject *e = PySequence_GetItem(a, k);
       if (!PyNumber_Check(e))
-	{
-	  Py_DECREF(e);
-	  PyErr_SetString(PyExc_TypeError, "Array element is not a number");
-	  return false;
-	}
+    {
+      Py_DECREF(e);
+      PyErr_SetString(PyExc_TypeError, "Array element is not a number");
+      return false;
+    }
       PyObject *f = PyNumber_Float(e);
       Py_DECREF(e);
       if (f == (PyObject *) 0)
-	{
-	  PyErr_SetString(PyExc_TypeError, "Array element is not a float");
-	  return false;
-	}
+    {
+      PyErr_SetString(PyExc_TypeError, "Array element is not a float");
+      return false;
+    }
       double v = PyFloat_AsDouble(f);
       values[k] = static_cast<float>(v);
       Py_DECREF(f);
@@ -241,7 +242,7 @@ bool python_array_to_c(PyObject *a, float *values, int size)
 //
 bool python_array_to_c(PyObject *a, float *values, int size0, int size1)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_DOUBLE, 2, 2);
   if (na == NULL)
@@ -254,7 +255,7 @@ bool python_array_to_c(PyObject *a, float *values, int size0, int size1)
   if (PyArray_DIM(ao,0) != size0 || PyArray_DIM(ao,1) != size1)
     {
       PyErr_Format(PyExc_TypeError, "Incorrect 2-D array size, got (%d,%d), expected (%d,%d)",
-		   PyArray_DIM(ao,0), PyArray_DIM(ao,1), size0, size1);
+           PyArray_DIM(ao,0), PyArray_DIM(ao,1), size0, size1);
       return false;
     }
 
@@ -271,7 +272,7 @@ bool python_array_to_c(PyObject *a, float *values, int size0, int size1)
 //
 bool python_array_to_c(PyObject *a, double *values, int size0, int size1)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_DOUBLE, 2, 2);
   if (na == NULL)
@@ -284,7 +285,7 @@ bool python_array_to_c(PyObject *a, double *values, int size0, int size1)
   if (PyArray_DIM(ao,0) != size0 || PyArray_DIM(ao,1) != size1)
     {
       PyErr_Format(PyExc_TypeError, "Incorrect 2-D array size, got (%d,%d), expected (%d,%d)",
-		   PyArray_DIM(ao,0), PyArray_DIM(ao,1), size0, size1);
+           PyArray_DIM(ao,0), PyArray_DIM(ao,1), size0, size1);
       return false;
     }
 
@@ -301,7 +302,7 @@ bool python_array_to_c(PyObject *a, double *values, int size0, int size1)
 //
 bool python_array_to_c(PyObject *a, int *values, int size)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   PyObject *na = PyArray_ContiguousFromObject(a, NPY_INT, 1, 1);
   if (na == NULL)
@@ -314,7 +315,7 @@ bool python_array_to_c(PyObject *a, int *values, int size)
   if (PyArray_DIM(ao,0) != size)
     {
       PyErr_Format(PyExc_TypeError, "Incorrect 2-D array size, got %d, expected %d",
-		   PyArray_DIM(ao,0), size);
+           PyArray_DIM(ao,0), size);
       return false;
     }
 
@@ -330,7 +331,7 @@ bool python_array_to_c(PyObject *a, int *values, int size)
 //
 bool float_2d_array_values(PyObject *farray, int n2, float **f, int *size)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   if (!PyArray_Check(farray))
     {
@@ -419,9 +420,9 @@ static PyObject *allocate_python_array(int dim, int *size, int type)
     {
       long s = 1;
       for (int a = 0 ; a < dim ; ++a)
-	s *= size[a];
+    s *= size[a];
       PyErr_Format(PyExc_MemoryError,  "%s array allocation of size %ld, dimension %d, value type %d failed",
-		   numpy_type_name(type), s, dim, type);
+           numpy_type_name(type), s, dim, type);
       return NULL;
     }
   return a;
@@ -442,9 +443,9 @@ static PyObject *allocate_python_array(int dim, int *size, PyArray_Descr *dtype)
     {
       long s = 1;
       for (int a = 0 ; a < dim ; ++a)
-	s *= size[a];
+    s *= size[a];
       PyErr_Format(PyExc_MemoryError,  "array allocation of size %ld, dimension %d, value type %c failed",
-		   s, dim, dtype->type);
+           s, dim, dtype->type);
       return NULL;
     }
   return a;
@@ -454,7 +455,7 @@ static PyObject *allocate_python_array(int dim, int *size, PyArray_Descr *dtype)
 //
 PyObject *c_array_to_python(const int *data, int size)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int shape[1] = {size};
   PyObject *a = allocate_python_array(1, shape, NPY_INT);
@@ -469,7 +470,7 @@ PyObject *c_array_to_python(const int *data, int size)
 //
 PyObject *c_array_to_python(const std::vector<int> &i)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int sz = i.size();
   int dimensions[1] = {sz};
@@ -484,7 +485,7 @@ PyObject *c_array_to_python(const std::vector<int> &i)
 //
 PyObject *c_array_to_python(const float *values, int size)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int shape[1] = {size};
   PyObject *a = allocate_python_array(1, shape, NPY_FLOAT);
@@ -500,7 +501,7 @@ PyObject *c_array_to_python(const float *values, int size)
 //
 PyObject *c_array_to_python(const double *values, int size)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int shape[1] = {size};
   PyObject *a = allocate_python_array(1, shape, NPY_DOUBLE);
@@ -515,7 +516,7 @@ PyObject *c_array_to_python(const double *values, int size)
 //
 PyObject *c_array_to_python(const float *data, int size0, int size1)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int shape[2] = {size0, size1};
   PyObject *a = allocate_python_array(2, shape, NPY_FLOAT);
@@ -531,7 +532,7 @@ PyObject *c_array_to_python(const float *data, int size0, int size1)
 //
 PyObject *c_array_to_python(const double *data, int size0, int size1)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int shape[2] = {size0, size1};
   PyObject *a = allocate_python_array(2, shape, NPY_DOUBLE);
@@ -547,7 +548,7 @@ PyObject *c_array_to_python(const double *data, int size0, int size1)
 //
 PyObject *c_array_to_python(const int *data, int size0, int size1)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int shape[2] = {size0, size1};
   PyObject *a = allocate_python_array(2, shape, NPY_INT);
@@ -563,7 +564,7 @@ PyObject *c_array_to_python(const int *data, int size0, int size1)
 //
 PyObject *python_uint8_array(int size, unsigned char **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[1] = {size};
   PyObject *a = allocate_python_array(1, dimensions, NPY_UINT8);
@@ -577,7 +578,7 @@ PyObject *python_uint8_array(int size, unsigned char **data)
 //
 PyObject *python_uint8_array(int size1, int size2, unsigned char **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[2] = {size1, size2};
   PyObject *a = allocate_python_array(2, dimensions, NPY_UINT8);
@@ -591,7 +592,7 @@ PyObject *python_uint8_array(int size1, int size2, unsigned char **data)
 //
 PyObject *python_char_array(int size1, int size2, char **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[2] = {size1, size2};
   PyObject *a = allocate_python_array(2, dimensions, NPY_CHAR);
@@ -605,7 +606,7 @@ PyObject *python_char_array(int size1, int size2, char **data)
 //
 PyObject *python_string_array(int size, int string_length, char **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   PyArray_Descr *d = PyArray_DescrNewFromType(NPY_CHAR);
   d->elsize = string_length;
@@ -621,7 +622,7 @@ PyObject *python_string_array(int size, int string_length, char **data)
 //
 PyObject *python_int_array(int size, int **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[1] = {size};
   PyObject *a = allocate_python_array(1, dimensions, NPY_INT);
@@ -635,7 +636,7 @@ PyObject *python_int_array(int size, int **data)
 //
 PyObject *python_int_array(int size1, int size2, int **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[2] = {size1, size2};
   PyObject *a = allocate_python_array(2, dimensions, NPY_INT);
@@ -649,7 +650,7 @@ PyObject *python_int_array(int size1, int size2, int **data)
 //
 PyObject *python_unsigned_int_array(int size1, int size2, int size3, unsigned int **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[3] = {size1, size2, size3};
   PyObject *a = allocate_python_array(3, dimensions, NPY_UINT);
@@ -663,7 +664,7 @@ PyObject *python_unsigned_int_array(int size1, int size2, int size3, unsigned in
 //
 PyObject *python_float_array(int size, float **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[1] = {size};
   PyObject *a = allocate_python_array(1, dimensions, NPY_FLOAT);
@@ -677,7 +678,7 @@ PyObject *python_float_array(int size, float **data)
 //
 PyObject *python_float_array(int size1, int size2, float **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[2] = {size1, size2};
   PyObject *a = allocate_python_array(2, dimensions, NPY_FLOAT);
@@ -691,7 +692,7 @@ PyObject *python_float_array(int size1, int size2, float **data)
 //
 PyObject *python_float_array(int size1, int size2, int size3, float **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[3] = {size1, size2, size3};
   PyObject *a = allocate_python_array(3, dimensions, NPY_FLOAT);
@@ -705,7 +706,7 @@ PyObject *python_float_array(int size1, int size2, int size3, float **data)
 //
 PyObject *python_double_array(int size, double **data)
 {
-  initialize_numpy();		// required before using NumPy.
+  initialize_numpy();       // required before using NumPy.
 
   int dimensions[1] = {size};
   PyObject *a = allocate_python_array(1, dimensions, NPY_DOUBLE);
@@ -791,7 +792,7 @@ extern "C" int parse_bool(PyObject *arg, void *b)
   if (!PyBool_Check(arg))
     {
       PyErr_SetString(PyExc_TypeError,
-		      "boolean argument must be True or False");
+              "boolean argument must be True or False");
       return 0;
     }
   *(bool *)b = (arg == Py_True);
@@ -869,7 +870,7 @@ extern "C" int parse_double_3x4_array(PyObject *arg, void *d34)
 // ----------------------------------------------------------------------------
 //
 static int parse_nm_array(PyObject *arg, Numeric_Array::Value_Type vtype, int m, bool allow_copy,
-			  Numeric_Array &v)
+              Numeric_Array &v)
 {
   if (!array_from_python(arg, 0, vtype, &v, allow_copy))
     return 0;
@@ -902,9 +903,9 @@ static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, b
   if (s)
     {
       if (f64)
-	*static_cast<DArray*>(farray) = static_cast<DArray>(v);
+    *static_cast<DArray*>(farray) = static_cast<DArray>(v);
       else
-	*static_cast<FArray*>(farray) = static_cast<FArray>(v);
+    *static_cast<FArray*>(farray) = static_cast<FArray>(v);
     }
   return s;
 }
@@ -986,7 +987,7 @@ static int parse_int_nm(PyObject *arg, int m, void *iarray, bool allow_copy)
   if (v.value_type() != Numeric_Array::Int)
     {
       PyErr_Format(PyExc_TypeError, "array type must be int or long int, got %s",
-		   Numeric_Array::value_type_name(v.value_type()));
+           Numeric_Array::value_type_name(v.value_type()));
       return 0;
     }
   if (v.size(1) != m)

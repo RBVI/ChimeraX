@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #include <algorithm>  // for std::sort
 #include <set>
 #include <sstream>
@@ -28,7 +28,7 @@ using atomstruct::Element;
 using atomstruct::MolResId;
 using atomstruct::Sequence;
 using basegeom::Coord;
-	
+
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
 std::string pqr_charge("charge");

@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #ifndef util_cmp_nocase
 # define util_cmp_nocase
 

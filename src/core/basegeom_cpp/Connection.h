@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #ifndef basegeom_Connection
 #define basegeom_Connection
 
@@ -18,7 +18,7 @@ protected:
     virtual const char*  err_msg_not_end() const
         { return "Endpoint arg of other_end() not in Connection"; }
 private:
-	End_points  _end_points;
+    End_points  _end_points;
 
 public:
     Connection(End *e1, End *e2);

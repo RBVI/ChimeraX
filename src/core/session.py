@@ -314,3 +314,5 @@ def common_startup(sess):
     commands.register(sess)
     from . import stl
     stl.register()
+    sess.main_drawing = None
+    sess.main_view = None

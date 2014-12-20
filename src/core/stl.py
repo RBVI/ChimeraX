@@ -27,7 +27,7 @@ class STLModel(generic3d.Generic3DModel):
         # parse input:
 
         # First read 80 byte comment line
-        comment = input.read(80)  # noqa
+        comment = input.read(80)
 
         # Next read uint32 triangle count.
         from numpy import fromstring, uint32, empty, float32
@@ -44,12 +44,20 @@ class STLModel(generic3d.Generic3DModel):
         if input != filename:
             input.close()
 
-        self.data = stl_geometry(nv)    # vertices, normals, triangles
+        va, na, ta = stl_geometry(nv)    # vertices, normals, triangles
+        self.data = comment, va, na, ta
 
-    def make_graphics(self):
+    def make_graphics(self, parent_drawing):
         cur_color = [0.7, 0.7, 0.7, 1.0]
-        va, na, ta = self.data
-        self.graphics.add_triangles(va, na, cur_color, ta)
+        from numpy import array, uint8
+        cur_color = (array(cur_color) * 255).astype(uint8)
+        if not self.graphics:
+            self.graphics = parent_drawing.new_drawing(self.name)
+        comment, va, na, ta = self.data
+        self.graphics.vertices = va
+        self.graphics.normals = na
+        self.graphics.triangles = ta
+        self.graphics.color = cur_color
 
 
 def open(session, filename, *args, **kw):
@@ -61,7 +69,7 @@ def open(session, filename, *args, **kw):
     """
 
     model = STLModel(filename)
-    va, na, ta = model.data
+    comment, va, na, ta = model.data
     return [model], "Opened STL file containing %d triangles" % len(ta)
 
 

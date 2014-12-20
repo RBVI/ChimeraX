@@ -1,3 +1,4 @@
+// vi: set expandtab ts=4 sw=4:
 /*
  * Copyright (c) 2014 The Regents of the University of California.
  * All rights reserved.
@@ -147,7 +148,7 @@ is_not_eol(char c)
 #define ICASEEQN_P1(name, buf, len) STRNEQ_P1(name, buf, len)
 #else
 // icaseeqn: 
-// 	compare name in a case independent way to buf
+//	compare name in a case independent way to buf
 bool
 icaseeqn(const char* name, const char* buf, size_t len)
 {
@@ -464,7 +465,7 @@ CIFFile::internal_parse(bool one_table)
 						// if already seen, then
 						// category is a prefix
 						if (seen.find(current_category)
-							    != seen.end())
+								!= seen.end())
 							cii = categories.end();
 						break;
 					}
@@ -477,7 +478,7 @@ CIFFile::internal_parse(bool one_table)
 						continue;
 					save_values = false;
 					stash.emplace(current_category,
-					      StashInfo(loop_pos, lineno));
+						  StashInfo(loop_pos, lineno));
 					break;
 				}
 			}
@@ -571,11 +572,11 @@ CIFFile::internal_parse(bool one_table)
 							break;
 						category.resize(sep);
 						if (categories.find(category)
-							    != categories.end()) {
+								!= categories.end()) {
 							// if already seen, then
 							// category is a prefix
 							if (seen.find(current_category)
-								    != seen.end())
+									!= seen.end())
 								cii = categories.end();
 							break;
 						}
@@ -611,7 +612,7 @@ CIFFile::internal_parse(bool one_table)
 								continue;
 							save_values = false;
 							stash.emplace(current_category,
-							      StashInfo(first_tag_pos, lineno));
+								  StashInfo(first_tag_pos, lineno));
 							break;
 						}
 					}
@@ -923,7 +924,7 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 			}
 			continue;
 		case '_': {
-			if (not tag_okay)
+			if (!tag_okay)
 				continue;
 			const char* e;
 			for (e = pos + 1; is_not_whitespace(*e); ++e)
@@ -940,8 +941,8 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 				current_token = T_DATA;
 				current_value_start = pos + 5;
 				for (current_value_end = current_value_start;
-				     is_not_whitespace(*current_value_end);
-				     ++current_value_end)
+					 is_not_whitespace(*current_value_end);
+					 ++current_value_end)
 					continue;
 				pos = current_value_end;
 				return;
@@ -967,8 +968,8 @@ CIFFile::stylized_next_keyword(bool tag_okay)
 				current_token = T_SAVE;
 				current_value_start = pos + 5;
 				for (current_value_end = current_value_start;
-				     is_not_whitespace(*current_value_end);
-				     ++current_value_end)
+					 is_not_whitespace(*current_value_end);
+					 ++current_value_end)
 					continue;
 				pos = current_value_end;
 				return;

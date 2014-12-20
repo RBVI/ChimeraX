@@ -1,11 +1,11 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include "Pseudobond.h"
 
 namespace pseudobond {
-	
+
 template <>
 atomstruct::PBManager Global_Manager<atomstruct::PBGroup>::_manager = Global_Manager<atomstruct::PBGroup>();
 

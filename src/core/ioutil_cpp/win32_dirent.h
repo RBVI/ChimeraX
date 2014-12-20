@@ -1,3 +1,4 @@
+// vi: set expandtab ts=4 sw=4:
 #ifndef ioutil_win32_dirent_h
 #define ioutil_win32_dirent_h
 
@@ -34,7 +35,7 @@ extern "C" {
 # endif
 
 struct dirent {
-	char d_name[MAX_PATH];
+    char d_name[MAX_PATH];
 };
 
 typedef struct _dir DIR;

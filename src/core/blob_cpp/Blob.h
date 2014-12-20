@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #ifndef blob_blob
 #define blob_blob
 
@@ -9,7 +9,7 @@
 
 namespace blob {
     
-class Blob: public PyObject {
+struct Blob: public PyObject {
 public:
     PyObject* _weaklist;
 };
