@@ -17,7 +17,10 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && python3 setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+
+app-install:
+	$(RSYNC) $(PYSITEDIR)/appdirs-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

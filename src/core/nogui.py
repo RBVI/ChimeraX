@@ -37,18 +37,12 @@ class UI:
                                    message), file=sys.stderr)
 
     def build(self):
-        # nothing to build
+        pass  # nothing to build
 
-        # register a few commands for debugging
-        from . import cli
-
-        @cli.register('exit')
-        def exit(session):
-            raise SystemExit(0)
-
-        @cli.register('echo', cli.CmdDesc(optional=[('text', cli.RestOfLine)]))
-        def echo(session, text=''):
-            return text
+    def quit(self):
+        import os
+        import sys
+        sys.exit(os.EX_OK)
 
     def event_loop(self):
         session = self._session()  # resolve back reference

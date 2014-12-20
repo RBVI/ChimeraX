@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS =
+SUBDIRS = $(APP_NAME)
 
 include $(TOP)/mk/subdir.make
 

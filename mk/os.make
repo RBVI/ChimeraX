@@ -15,7 +15,7 @@ ifeq ($(OS),Linux)
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
-	OPT = -O3
+	OPT = -O3 -Wall -Wextra
 endif
 	GCC_VER	= $(shell $(CC) -dumpversion)
 	CC = gcc -pipe -fPIC -std=gnu99
@@ -51,42 +51,35 @@ ifeq ($(OS),Darwin)
 	LIB_LINK = ar crs $(LIBRARY) $(OBJS)
 	RANLIB = ranlib
 	SHLIB_EXT = dylib
-	SHLIB_LINK = $(LOADER) $(LDFLAGS) -dynamiclib -headerpad_max_install_names -install_name @executable_path/../../../../../../../../../lib/$(SHLIB) -o $(SHLIB) $(OBJS) $(LIBS)
+	SHLIB_LINK = $(LOADER) $(LDFLAGS) -dynamiclib -headerpad_max_install_names -install_name @rpath/$(SHLIB) -o $(SHLIB) $(OBJS) $(LIBS)
 	PROG_EXT =
 	PROG_LINK = $(LOADER) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
 
 	# SDK is one of the sdk arguments listed in `xcodebuild -showsdks`
 	# SYSROOT is the path the the SDKs
-	XCODE3_SDKS = /Developer/SDKs
-	XCODE4_SDKS = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+	XCODE_SDKS = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
 ifneq (,$(MACOSX_DEPLOYMENT_TARGET))
 	SDK = macosx$(MACOSX_DEPLOYMENT_TARGET)
-	ifneq (,$(wildcard $(XCODE4_SDKS)))
-		USE_XCODE4=1
-		SYSROOT = $(XCODE4_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
-	else ifneq (,$(wildcard $(XCODE3_SDKS)))
-		SYSROOT = $(XCODE3_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
+	ifneq (,$(wildcard $(XCODE_SDKS)))
+		SYSROOT = $(XCODE_SDKS)/MacOSX$(MACOSX_DEPLOYMENT_TARGET).sdk
 	else
 		$(error unable to find SYSROOT for $(MACOSX_DEPLOYMENT_TARGET))
 	endif
-else ifneq (,$(wildcard $(XCODE4_SDKS)/MacOSX10.8.sdk))
-	USE_XCODE4=1
+else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.9.sdk))
+	export MACOSX_DEPLOYMENT_TARGET=10.9
+	SYSROOT = $(XCODE_SDKS)/MacOSX10.9.sdk
+	SDK = macosx10.9
+else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.8.sdk))
 	export MACOSX_DEPLOYMENT_TARGET=10.8
-	SYSROOT = $(XCODE4_SDKS)/MacOSX10.8.sdk
+	SYSROOT = $(XCODE_SDKS)/MacOSX10.8.sdk
 	SDK = macosx10.8
-else ifneq (,$(wildcard $(XCODE4_SDKS)/MacOSX10.7.sdk))
-	USE_XCODE4=1
+else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.7.sdk))
 	export MACOSX_DEPLOYMENT_TARGET=10.7
-	SYSROOT = $(XCODE4_SDKS)/MacOSX10.7.sdk
+	SYSROOT = $(XCODE_SDKS)/MacOSX10.7.sdk
 	SDK = macosx10.7
-else ifneq (,$(wildcard $(XCODE4_SDKS)/MacOSX10.6.sdk))
-	USE_XCODE4=1
+else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.6.sdk))
 	export MACOSX_DEPLOYMENT_TARGET=10.6
-	SYSROOT = $(XCODE4_SDKS)/MacOSX10.6.sdk
-	SDK = macosx10.6
-else ifneq (,$(wildcard $(XCODE3_SDKS)/MacOSX10.6.sdk))
-	export MACOSX_DEPLOYMENT_TARGET=10.6
-	SYSROOT = $(XCODE3_SDKS)/MacOSX10.6.sdk
+	SYSROOT = $(XCODE_SDKS)/MacOSX10.6.sdk
 	SDK = macosx10.6
 else
 	$(error Unable to find Xcode sysroot)
@@ -94,15 +87,10 @@ endif
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
-	OPT = -O4
+	OPT = -O3 -Wall -Wextra
 endif
-ifdef USE_XCODE4
 	CC = clang --sysroot $(SYSROOT)
 	CXX = clang++ --sysroot $(SYSROOT) -std=c++11 -stdlib=libc++
-else
-	CC = gcc -pipe -isysroot $(SYSROOT)
-	CXX = g++ -pipe -isysroot $(SYSROOT) -std=c++11
-endif
 	EXTRA_CFLAGS = -fPIC
 	EXTRA_CXXFLAGS = -fPIC -fvisibility-ms-compat
 
@@ -117,28 +105,13 @@ endif
 	PYMOD_LINK = $(LOADER) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -framework OpenGL
-
-ifdef USE_MAC_FRAMEWORKS
-	ifdef DYLD_FRAMEWORK_PATH
-		DYLD_FRAMEWORK_PATH := $(frameworkdir):$(DYLD_FRAMEWORK_PATH)
-	else
-		DYLD_FRAMEWORK_PATH = $(frameworkdir)
-	endif
-endif
-	export DYLD_FRAMEWORK_PATH
-
-	ifdef DYLD_FALLBACK_LIBRARY_PATH
-		DYLD_FALLBACK_LIBRARY_PATH := $(libdir):$(DYLD_FALLBACK_LIBRARY_PATH)
-	else
-		DYLD_FALLBACK_LIBRARY_PATH = $(libdir)
-	endif
-	export DYLD_FALLBACK_LIBRARY_PATH
 endif
 
 # Microsoft Windows
 
 ifeq ($(OS),Windows)
 	shlibdir = $(bindir)
+	app_shlibdir = $(app_bindir)
 
 	OBJ_EXT = obj
 	LIB_EXT = lib
@@ -172,9 +145,6 @@ endif
 .c.obj:
 	$(CC) $(CFLAGS) /c $<
 endif
-
-PATH := $(bindir):$(PATH)
-export PATH
 
 CFLAGS = $(OPT) $(INCS) $(DEFS)
 CXXFLAGS = $(OPT) $(INCS) $(DEFS)

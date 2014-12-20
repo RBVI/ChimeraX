@@ -1,27 +1,38 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= appdirs_cpp arrays_cpp atomstruct basegeom blob \
-	geometry graphics ioutil logger_cpp pdb pdbio  pseudobond structaccess ui util
+SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
+	   basegeom_cpp blob_cpp \
+	   geometry graphics \
+	   _mmcif \
+	   ioutil_cpp logger_cpp \
+	   pdb_cpp pdbio pseudobond_cpp \
+	   readcif_cpp \
+	   structaccess ui util_cpp
 
 include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimera/core
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
 PYSRCS = $(wildcard *.py)
 
 all: $(PYOBJS)
 
-install: all dir
+install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
+
+$(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
+	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 $(SUBDIR_INSTALL): dir
 
 lint:
-	python3 -m flake8 $(PYSRCS)
+	$(PYLINT) $(PYSRCS)
 
 test:
 	$(bindir)/python3

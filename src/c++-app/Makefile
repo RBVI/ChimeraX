@@ -18,7 +18,7 @@ $(PROG)$(PROG_EXT): $(OBJS)
 	$(PROG_LINK)
 
 data.cpp: webgl2c++.py one_webgl.json
-	python3 webgl2c++.py one_webgl.json data.cpp
+	$(PYTHON_EXE) webgl2c++.py one_webgl.json data.cpp
 
 clean:
 	rm -f $(PROG)$(PROG_EXT) $(OBJS) data.cpp

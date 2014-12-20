@@ -1,13 +1,13 @@
-// vim: set expandtab ts=4 sw=4:
-#include "blob/StructBlob.h"
-#include "blob/ResBlob.h"
-#include "blob/AtomBlob.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Atom.h"
-#include "atomstruct/Bond.h"
-#include "basegeom/Coord.h"
-#include "atomstruct/Element.h"
+// vi: set expandtab ts=4 sw=4:
+#include <blob/StructBlob.h>
+#include <blob/ResBlob.h>
+#include <blob/AtomBlob.h>
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/Bond.h>
+#include <basegeom/Coord.h>
+#include <atomstruct/Element.h>
 #include <vector>
 #include <stdexcept>
 #include <sstream>  // std::ostringstream
@@ -34,9 +34,9 @@ static struct PyModuleDef structaccess_module =
 
 PyMODINIT_FUNC PyInit_structaccess()
 {
-	using blob::StructBlob_type;
-	using blob::ResBlob_type;
-	using blob::AtomBlob_type;
+    using blob::StructBlob_type;
+    using blob::ResBlob_type;
+    using blob::AtomBlob_type;
     StructBlob_type.tp_new = PyType_GenericNew;
     ResBlob_type.tp_new = PyType_GenericNew;
     AtomBlob_type.tp_new = PyType_GenericNew;

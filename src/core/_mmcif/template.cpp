@@ -1,14 +1,14 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #include "mmcif.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Bond.h"
-#include "atomstruct/Atom.h"
-#include "atomstruct/CoordSet.h"
-#include "atomstruct/Sequence.h"
-#include "blob/StructBlob.h"
-#include "atomstruct/connect.h"
-#include "atomstruct/tmpl/restmpl.h"
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Bond.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/CoordSet.h>
+#include <atomstruct/Sequence.h>
+#include <blob/StructBlob.h>
+#include <atomstruct/connect.h>
+#include <atomstruct/tmpl/restmpl.h>
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -45,7 +45,7 @@ struct ExtractTemplate: public readcif::CIFFile
     // so don't support the alternate names for now.
     ExtractTemplate();
     virtual void data_block(const string& name);
-	virtual void finished_parse();
+    virtual void finished_parse();
     void parse_chem_comp(bool in_loop);
     void parse_chem_comp_atom(bool in_loop);
     void parse_chem_comp_bond(bool in_loop);
@@ -74,7 +74,7 @@ ExtractTemplate::ExtractTemplate(): residue(NULL)
 }
 
 void
-ExtractTemplate::data_block(const string& name)
+ExtractTemplate::data_block(const string& /*name*/)
 {
     if (residue != NULL)
         finished_parse();
@@ -125,7 +125,7 @@ ExtractTemplate::finished_parse()
 }
 
 void
-ExtractTemplate::parse_chem_comp(bool in_loop)
+ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
 {
     string  name;
     string  modres;
@@ -174,7 +174,7 @@ ExtractTemplate::parse_chem_comp(bool in_loop)
 }
 
 void
-ExtractTemplate::parse_chem_comp_atom(bool in_loop)
+ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
 {
     string  name;
     char    symbol[3];
@@ -228,7 +228,7 @@ ExtractTemplate::parse_chem_comp_atom(bool in_loop)
 }
 
 void
-ExtractTemplate::parse_chem_comp_bond(bool in_loop)
+ExtractTemplate::parse_chem_comp_bond(bool /*in_loop*/)
 {
     string name1, name2;
 
@@ -252,7 +252,7 @@ ExtractTemplate::parse_chem_comp_bond(bool in_loop)
 }
 
 void
-load_mmCIF_templates(const char* filename)
+load_mmCIF_templates(const char* filename, const char* /*category*/)
 {
     if (templates == NULL)
         templates = new tmpl::Molecule();

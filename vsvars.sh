@@ -3,7 +3,22 @@
 B64=""
 AMD64=""
 X64=""
-if [ -e "/cygdrive/c/Program Files/Microsoft Visual Studio 10.0" ]
+if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0" ]
+then
+	echo Setting environment for using Microsoft Visual Studio 2013 x86 tools.
+	platform=2013
+	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 12.0"
+	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 12.0/VC/bin/x86_amd64" ]
+	then
+		B64="64"
+		AMD64="x86_amd64"
+		X64="\\x64"
+	fi
+	VCINSTALLDIR="$VSINSTALLDIR\\VC"
+	FrameworkVersion=v4.0.30319
+	Framework35Version=v3.5
+
+elif [ -e "/cygdrive/c/Program Files/Microsoft Visual Studio 10.0" ]
 then
 	echo Setting environment for using Microsoft Visual Studio 2010 x86 tools.
 	platform=2010
@@ -13,7 +28,7 @@ then
 		if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64" ]
 		then
 			B64="64"
-			AMD64="\\amd64"
+			AMD64="amd64"
 			X64="\\x64"
 		fi
 	else
@@ -33,7 +48,7 @@ then
 		if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin/amd64" ]
 		then
 			B64="64"
-			AMD64="\\amd64"
+			AMD64="amd64"
 			X64="\\x64"
 		fi
 	else
@@ -119,11 +134,11 @@ FD=`cygpath -u "$FrameworkDir"`
 
 export PATH="$VCD/VCPackages:$DED:$VCD/bin:$VSD/Common7/Tools:$VSD/Common7/Tools/bin:$FD/v3.5:$FD/$FrameworkVersion:$PATH"
 export INCLUDE="$VCINSTALLDIR\\atlmfc\\include;$VCINSTALLDIR\\include;$INCLUDE"
-export LIB="$VCINSTALLDIR\\atlmfc\\lib$AMD64;$VCINSTALLDIR\\lib$AMD64;$LIB"
-export LIBPATH="$FrameworkDir\\v3.5;$FrameworkDir\\$FrameworkVersion;$VCINSTALLDIR\\atlmfc\\lib$AMD64;$VCINSTALLDIR\\lib$AMD64;$LIBPATH"
+export LIB="$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$VCINSTALLDIR\\lib\\$AMD64;$LIB"
+export LIBPATH="$FrameworkDir\\v3.5;$FrameworkDir\\$FrameworkVersion;$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;$VCINSTALLDIR\\lib\\$AMD64;$LIBPATH"
 if [ "$B64" ]
 then
-	export PATH="$VCD/bin/amd64:$PATH"
+	export PATH="$VCD/bin/$AMD64:$PATH"
 fi
 
 unset DED VSD VCD FD

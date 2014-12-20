@@ -43,7 +43,9 @@ all:
 
 install: shiboken.install pyside.install
 
-.NOTPARALLEL: shiboken.install pyside.install
+app-install:;
+
+.NOTPARALLEL:
 	
 shiboken.install: $(SHIBOKEN_SOURCE)
 	cd $(SHIBOKEN_SOURCE)/build && $(MAKE) install

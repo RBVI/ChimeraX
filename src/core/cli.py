@@ -221,8 +221,8 @@ class Annotation(metaclass=abc.ABCMeta):
         :param text: command line text to parse
         :param session: for session-dependent data types
         :returns: 3-tuple with the converted value, consumed text
-        (possibly altered with expanded truncations), and the
-        remaining unconsumed text
+            (possibly altered with expanded truncations), and the
+            remaining unconsumed text
 
         The leading space in text must already be removed.
         It is up to the particular annotation to support truncatations.
@@ -555,12 +555,13 @@ _escape_table = {
 
 
 def unescape(text):
-    """Replace backslash escape sequences with actual character
+    """Replace backslash escape sequences with actual character.
 
     :param text: the input text
     :returns: the processed text
 
-    Follows Python's :ref:`string literal <python:stringescapeseq>` syntax."""
+    Follows Python's :ref:`string literal <python:literals>` syntax
+    for escape sequences."""
     # standard Python backslashes including \N{unicode name}
     start = 0
     while start < len(text):
@@ -1095,7 +1096,8 @@ class Command:
     def __init__(self, session, text='', final=False, _used_aliases=None):
         import weakref
         if session is None:
-            class FakeSession: pass
+            class FakeSession:
+                pass
             session = FakeSession()
         self._session = weakref.ref(session)
         self._reset()
@@ -1203,7 +1205,7 @@ class Command:
         self.amount_parsed += self._replace(text, replacement)
         return value, rest
 
-    def _find_command_name(self, final, used_aliases):
+    def _find_command_name(self, final, used_aliases=None):
         # side effects:
         #   updates amount_parsed
         #   updates possible completions

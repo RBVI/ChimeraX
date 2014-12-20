@@ -8,9 +8,12 @@ SOURCE = $(tmpdir)/freefont-$(VERSION)
 all:
 
 install: $(SOURCE)
-	-mkdir $(datadir)/fonts
-	-mkdir $(datadir)/fonts/freefont
+	-mkdir -p $(datadir)/fonts/freefont
 	$(RSYNC) $(SOURCE)/* $(datadir)/fonts/freefont
+
+app-install:
+	-mkdir -p $(app_datadir)/fonts/freefont
+	$(RSYNC) $(datadir)/fonts/freefont $(app_datadir)/fonts
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

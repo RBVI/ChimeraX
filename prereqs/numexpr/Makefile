@@ -9,7 +9,9 @@ SOURCE = $(tmpdir)/numexpr-$(VERSION)
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	python3 setup.py install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
+
+app-install:;
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

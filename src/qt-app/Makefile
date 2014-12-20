@@ -21,15 +21,15 @@ profile:
 	./chimera2 --profile
 
 profile-results:
-	python3 -m line_profiler chimera2.lprof
+	$(PYTHON_EXE) -m line_profiler chimera2.lprof
 
 run-python:
 	# by running within make, the right environment variables are setup
-	$(bindir)/python3
+	$(PYTHON_EXE)
 
 run-valgrind:
 	@echo "==== Edit suppressions file to suppress more Python errors ===="
-	$(VALGRIND) $(bindir)/python3 chimera2_main.py
+	$(VALGRIND) $(PYTHON_EXE) chimera2_main.py
 
 nogui:
 	# by running within make, the right environment variables are setup
@@ -39,7 +39,7 @@ designer:
 	$(bindir)/designer main.ui
 
 gdb:
-	env PYTHONPATH=$(libdir)/python3.4 gdb $(bindir)/python3 core
+	env PYTHONPATH=$(libdir)/python$(PYTHON_VERSION) gdb $(PYTHON_EXE) core
 
 clean:
 	rm -rf __pycache__

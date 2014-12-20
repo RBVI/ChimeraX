@@ -1,8 +1,9 @@
+// vi: set expandtab ts=4 sw=4:
 // ----------------------------------------------------------------------------
 //
-#include <string.h>		// use memcpy()
+#include <string.h>     // use memcpy()
 
-#include "rcarray.h"		// use Untyped_Array, Numeric_Array
+#include "rcarray.h"        // use Untyped_Array, Numeric_Array
 
 namespace Reference_Counted_Array
 {
@@ -24,13 +25,13 @@ Untyped_Array::Untyped_Array(int element_size, int dim, const int *size)
 // ----------------------------------------------------------------------------
 //
 void Untyped_Array::initialize(int element_size, int dim, const int *size,
-			       bool allocate)
+                   bool allocate)
 {
   if (allocate && dim > 0)
     {
       long length = 1;
       for (int a = 0 ; a < dim ; ++a)
-	length *= size[a];
+    length *= size[a];
       char *d = new char[length * element_size];
       this->data = (void *) d;
       this->release_data = new Delete_Data<char>(d);
@@ -58,7 +59,7 @@ void Untyped_Array::initialize(int element_size, int dim, const int *size,
 // ----------------------------------------------------------------------------
 //
 Untyped_Array::Untyped_Array(int element_size, int dim, const int *size,
-			     const void *values)
+                 const void *values)
 {
   initialize(element_size, dim, size, true);
 
@@ -69,7 +70,7 @@ Untyped_Array::Untyped_Array(int element_size, int dim, const int *size,
 // ----------------------------------------------------------------------------
 //
 Untyped_Array::Untyped_Array(int element_size, int dim, const int *size,
-			     void *values, Release_Data *release)
+                 void *values, Release_Data *release)
 {
   initialize(element_size, dim, size, false);
 
@@ -80,8 +81,8 @@ Untyped_Array::Untyped_Array(int element_size, int dim, const int *size,
 // ----------------------------------------------------------------------------
 //
 Untyped_Array::Untyped_Array(int element_size, int dim,
-			     const int *sizes, const long *strides,
-			     void *data, Release_Data *release)
+                 const int *sizes, const long *strides,
+                 void *data, Release_Data *release)
 {
   initialize(element_size, dim, sizes, false);
 
@@ -105,7 +106,7 @@ Untyped_Array::Untyped_Array(const Untyped_Array &a)
 const Untyped_Array &Untyped_Array::operator=(const Untyped_Array &array)
 {
   if (&array == this)
-    return *this;	// Avoid deleting data on self assignment.
+    return *this;   // Avoid deleting data on self assignment.
   
   if (data_reference_count.reference_count() == 1)
     delete release_data;
@@ -259,17 +260,17 @@ int Numeric_Array::size_of_type(Value_Type t)
 {
   switch (t)
     {
-    case Char:			return sizeof(char);
-    case Unsigned_Char:		return sizeof(unsigned char);
-    case Signed_Char:		return sizeof(signed char);
-    case Short_Int:		return sizeof(short int);
-    case Unsigned_Short_Int:	return sizeof(unsigned short int);
-    case Int:			return sizeof(int);
-    case Unsigned_Int:		return sizeof(unsigned int);
-    case Long_Int:		return sizeof(long int);
-    case Unsigned_Long_Int:	return sizeof(unsigned long int);
-    case Float:			return sizeof(float);
-    case Double:		return sizeof(double);
+    case Char:          return sizeof(char);
+    case Unsigned_Char:     return sizeof(unsigned char);
+    case Signed_Char:       return sizeof(signed char);
+    case Short_Int:     return sizeof(short int);
+    case Unsigned_Short_Int:    return sizeof(unsigned short int);
+    case Int:           return sizeof(int);
+    case Unsigned_Int:      return sizeof(unsigned int);
+    case Long_Int:      return sizeof(long int);
+    case Unsigned_Long_Int: return sizeof(unsigned long int);
+    case Float:         return sizeof(float);
+    case Double:        return sizeof(double);
     };
 
   return 0;
@@ -293,8 +294,8 @@ Numeric_Array::Numeric_Array(Value_Type type, int dim, const int *sizes) :
 // ----------------------------------------------------------------------------
 //
 Numeric_Array::Numeric_Array(Value_Type type, int dim,
-			     const int *sizes, const long *strides,
-			     void *data, Release_Data *release) :
+                 const int *sizes, const long *strides,
+                 void *data, Release_Data *release) :
   Untyped_Array(size_of_type(type), dim, sizes, strides, data, release)
 {
   this->type = type;
@@ -363,7 +364,7 @@ Numeric_Array Numeric_Array::slice(int axis, int index) const
 //
 template <class T>
 static void make_copy(const Array<T> &a, Numeric_Array::Value_Type vtype,
-			    Numeric_Array *c)
+                Numeric_Array *c)
 {
   *c = Numeric_Array(vtype, a.copy());
 }
@@ -381,7 +382,7 @@ Numeric_Array Numeric_Array::copy() const
 //
 template <class T>
 static void make_contiguous(const Array<T> &a, Numeric_Array::Value_Type vtype,
-			    Numeric_Array *c)
+                Numeric_Array *c)
 {
   *c = Numeric_Array(vtype, a.contiguous_array());
 }
@@ -392,7 +393,7 @@ Numeric_Array Numeric_Array::contiguous_array() const
 {
   Numeric_Array c;
   call_template_function(make_contiguous, value_type(),
-			 (*this, value_type(), &c));
+             (*this, value_type(), &c));
   return c;
 }
 

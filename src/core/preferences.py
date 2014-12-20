@@ -6,5 +6,6 @@ preferences: manage preferences
 TODO
 """
 
+
 def init(app_dirs):
     pass

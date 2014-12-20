@@ -1,12 +1,17 @@
-SRCS= $(wildcard *.cpp)
-OBJS= $(SRCS:.cpp=.o)
 TOP= ../../..
 include $(TOP)/mk/config.make
 
 LIBNAME = logger
-CXXFLAGS += -I.. -Wno-logical-op-parentheses $(PYTHON_INCLUDE_DIRS)
-LIBS += $(PYTHON_LIB)
 DIRNAME = $(shell basename `pwd`)
+DIRNAME := $(DIRNAME:_cpp=)
+
+SRCS	= $(wildcard *.cpp)
+OBJS	= $(SRCS:.cpp=.o)
+INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS)
+ifneq ($(OS),Windows)
+CXX	+= -Wno-logical-op-parentheses
+endif
+LIBS	+= $(PYTHON_LIB)
 
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
@@ -14,7 +19,8 @@ $(SHLIB): imex.h $(OBJS)
 install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
 	-mkdir $(includedir)/$(DIRNAME)
-	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)
+	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
+	if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:
 	/bin/rm -f $(OBJS) $(SHLIB) imex.h

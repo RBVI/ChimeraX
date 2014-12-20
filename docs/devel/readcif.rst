@@ -1,1 +1,0 @@
-../../src/core/readcif/docs/api.rst
