@@ -15,7 +15,7 @@ find_gaps(Chain& chain)
     ap.est_len = 0;
     auto ri = chain.residues().begin();
     auto ci = chain.sequence().begin();
-    for (int i = 0; i < chain.size(); ++i, ++ri, ++ci) {
+    for (unsigned int i = 0; i < chain.size(); ++i, ++ri, ++ci) {
         ap.est_len += 1;
         auto res = *ri;
         if (res == nullptr) {
@@ -27,7 +27,7 @@ find_gaps(Chain& chain)
             return ap;
         }
         auto c = *ci;
-        unsigned int gap = 0;
+        int gap = 0;
         if (prev_res != nullptr) {
             auto connects = prev_res->bonds_between(res, true);
             // since unlike Chimera 1, Chimera 2 does not make
