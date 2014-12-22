@@ -1,12 +1,12 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #include "mmcif.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Bond.h"
-#include "atomstruct/Atom.h"
-#include "atomstruct/CoordSet.h"
-#include "blob/StructBlob.h"
-#include "atomstruct/connect.h"
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Bond.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/CoordSet.h>
+#include <blob/StructBlob.h>
+#include <atomstruct/connect.h>
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -50,7 +50,7 @@ operator<<(std::ostream& os, const vector<t>& v)
 }
 
 const tmpl::Residue*
-find_template_residue(const string& name)
+find_template_residue(const string& /*name*/)
 {
     return nullptr;
 }
@@ -161,14 +161,14 @@ ExtractMolecule::finished_parse()
 }
 
 void
-ExtractMolecule::data_block(const string& name)
+ExtractMolecule::data_block(const string& /*name*/)
 {
     if (!molecules.empty())
         finished_parse();
 }
 
 void
-ExtractMolecule::parse_audit_conform(bool in_loop)
+ExtractMolecule::parse_audit_conform(bool /*in_loop*/)
 {
     // Looking for a way to tell if the mmCIF file was written
     // in the PDBx/mmCIF stylized format.  The following technique
@@ -192,7 +192,7 @@ ExtractMolecule::parse_audit_conform(bool in_loop)
 }
 
 void
-ExtractMolecule::parse_atom_site(bool in_loop)
+ExtractMolecule::parse_atom_site(bool /*in_loop*/)
 {
     //const unsigned label_entity_id = get_column(atom_site_names, "label_entity_id");
     // x, y, z are not required by mmCIF, but are by us
@@ -217,7 +217,7 @@ ExtractMolecule::parse_atom_site(bool in_loop)
     int model_num = 1;          // pdbx_PDB_model_num
 
     pv.emplace_back(get_column("id", false), false,
-        [&] (const char* start, const char* end) {
+        [&] (const char* start, const char*) {
             serial_num = readcif::str_to_int(start);
         });
 
@@ -388,7 +388,7 @@ ExtractMolecule::parse_atom_site(bool in_loop)
 }
 
 void
-ExtractMolecule::parse_struct_conn(bool in_loop)
+ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
 {
     if (molecules.empty())
         return;
@@ -530,7 +530,7 @@ connect_residue_to_residue(Residue* r0, Residue* r1)
 }
 
 void
-connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
+connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool /*gap*/)
 {
     // TODO: if gap, chain is discontinious
     for (auto r0: a) {
@@ -541,7 +541,7 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 }
 
 void
-ExtractMolecule::parse_entity_poly_seq(bool in_loop)
+ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
 {
     string entity_id;
     long num = 0;
@@ -565,7 +565,7 @@ ExtractMolecule::parse_entity_poly_seq(bool in_loop)
         });
     pv.emplace_back(get_column("hetero"), false,
         [&] (const char* start, const char*) {
-            hetero == *start == 'Y' || *start == 'y';
+            hetero = *start == 'Y' || *start == 'y';
         });
 
     string last_entity_id = "";

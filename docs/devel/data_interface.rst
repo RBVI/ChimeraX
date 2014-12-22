@@ -30,21 +30,45 @@ Modules
 
     core/serialize.rst
 
+    core/triggerset.rst
+
+    core/data_events.rst
+
     core/io.rst
+
+Structure-related Modules
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 2
+
+    pdbio.rst
 
     structaccess.rst
 
     connectivity.rst
 
-    core/appdirs_cpp/appdirs_cpp.rst
+Graphics-related Modules
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 2
 
     hydra_geometry.rst
 
     hydra_graphics.rst
 
+C++ helper Modules
+~~~~~~~~~~~~~~~~~~
+
+.. toctree::
+    :maxdepth: 2
+
+    core/appdirs_cpp/appdirs_cpp.rst
+
 .. seealso::
 
-    :doc:`Readcif <readcif>`
+    :doc:`Readcif <core/readcif_cpp/docs/api>`
         C++ library for reading mmCIF files.
 
 Builtin Data formats

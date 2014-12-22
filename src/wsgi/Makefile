@@ -5,10 +5,10 @@ install:
 	$(RSYNC) webapp_server.py $(PYSITEDIR)
 	./install-wsgi
 
-clean:
+clean:;
 
 lint:
-	$(PYTHON_EXE) -m flake8 *.py
+	$(PYLINT) *.py
 	#for i in webapp_client/js/*.js webapp_client/js/c2/*.js; do
 	for i in webapp_client/js/c2/*.js; do \
 		echo $$i ; \

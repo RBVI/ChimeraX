@@ -1,8 +1,14 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= appdirs_cpp arrays_cpp atomstruct basegeom blob \
-	geometry graphics ioutil logger_cpp pdb pdbio  pseudobond structaccess ui util
+SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
+	   basegeom_cpp blob_cpp \
+	   geometry graphics \
+	   _mmcif \
+	   ioutil_cpp logger_cpp \
+	   pdb_cpp pdbio pseudobond_cpp \
+	   readcif_cpp \
+	   structaccess ui util_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -13,9 +19,11 @@ PYSRCS = $(wildcard *.py)
 
 all: $(PYOBJS)
 
-install: all dir
+install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
+
+$(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
@@ -24,16 +32,21 @@ dir:
 $(SUBDIR_INSTALL): dir
 
 lint:
-	$(PYTHON_EXE) -m flake8 $(PYSRCS)
+	$(PYLINT) $(PYSRCS)
 
 clean:
 	rm -rf __pycache__
 
-atomstruct.install: basegeom.install logger_cpp.install util.install
-blob.install: atomstruct.install
-geometry.all: arrays_cpp.all
-graphics.all: arrays_cpp.all
-pdbio.install: atomstruct.install logger_cpp.install pdb.install blob.install \
-	basegeom.install
-pseudobond.install: basegeom.install
-structaccess.install: atomstruct.install basegeom.install blob.install
+test:
+	$(PYTHON_EXE)
+_appdirs.install: appdirs_cpp.install
+atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install util_cpp.install ioutil_cpp.install \
+	pseudobond_cpp.install
+blob_cpp.install: atomstruct_cpp.install
+geometry.install: arrays_cpp.install
+graphics.install: arrays_cpp.install
+_mmcif.install: readcif_cpp.install blob_cpp.install
+pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install blob_cpp.install \
+	basegeom_cpp.install
+pseudobond_cpp.install: basegeom_cpp.install
+structaccess.install: atomstruct_cpp.install basegeom_cpp.install blob_cpp.install

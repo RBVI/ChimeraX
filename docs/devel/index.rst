@@ -7,7 +7,7 @@ Developer's Manual
 This manual covers the :ref:`core`, the associated tools and libraries,
 and the internals of application(s) built upon them.
 The actual applications are documented in the
-the :doc:`User Manual </user/index>`.
+the :doc:`User's Manual </users/index>`.
 
 This code is free for non-commerical use, see the
 :doc:`license <../license>` for details.

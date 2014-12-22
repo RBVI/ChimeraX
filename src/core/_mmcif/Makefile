@@ -1,6 +1,9 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
+PKG_DIR = $(PYSITEDIR)/chimera/core
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
+
 PATCHES = $(wildcard *.patch)
 WRAPPY = $(bindir)/wrappy3
 ifeq (64,$(patsubst %64,64,$(OSARCH)))
@@ -20,15 +23,15 @@ GENHDRS += $(GENSRCS:.cpp=.h)
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT)) $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
-CXXFLAGS += -I.. $(PYTHON_INCLUDE_DIRS) -I$(includedir)
-LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob ../basegeom/libbasegeom.a -lreadcif -lwrappy3
+CXXFLAGS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
+LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob -lbasegeom -lreadcif -lwrappy3
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
 
 install: $(PYMOD)
-	$(RSYNC) $(PYMOD) $(PYSITEDIR)
-	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PYSITEDIR); fi
+	$(RSYNC) $(PYMOD) $(PKG_DIR)
+	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
 
 clean:
 	/bin/rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej

@@ -1,4 +1,4 @@
-// vim: set expandtab ts=4 sw=4:
+// vi: set expandtab ts=4 sw=4:
 #include <algorithm>  // for std::sort
 #include <set>
 #include <sstream>
@@ -6,16 +6,16 @@
 #include <unordered_map>
 
 #include "PDBio.h"
-#include "pdb/PDB.h"
-#include "atomstruct/AtomicStructure.h"
-#include "atomstruct/Residue.h"
-#include "atomstruct/Bond.h"
-#include "atomstruct/Atom.h"
-#include "atomstruct/connect.h"
-#include "atomstruct/CoordSet.h"
-#include "atomstruct/Sequence.h"
-#include "blob/StructBlob.h"
-#include "logger_cpp/logger.h"
+#include <pdb/PDB.h>
+#include <atomstruct/AtomicStructure.h>
+#include <atomstruct/Residue.h>
+#include <atomstruct/Bond.h>
+#include <atomstruct/Atom.h>
+#include <atomstruct/connect.h>
+#include <atomstruct/CoordSet.h>
+#include <atomstruct/Sequence.h>
+#include <blob/StructBlob.h>
+#include <logger/logger.h>
 
 namespace pdb {
 
@@ -28,7 +28,7 @@ using atomstruct::Element;
 using atomstruct::MolResId;
 using atomstruct::Sequence;
 using basegeom::Coord;
-	
+
 std::string pdb_segment("pdb_segment");
 std::string pdb_charge("formal_charge");
 std::string pqr_charge("charge");
@@ -789,46 +789,6 @@ bonded_dist(Atom *a, Atom *b)
     if (dist_sq > max_bond_len_sq)
         return 0.0;
     return dist_sq;
-}
-
-// connect_atom_by_distance:
-//    Connect an atom to a residue by distance criteria.  Don't connect a
-// hydrogen or lone pair more than once, nor connect to one that's already
-// bonded.
-static void
-connect_atom_by_distance(Atom *a, const Residue::Atoms &atoms,
-    Residue::Atoms::const_iterator &a_it, std::set<Atom *> *conect_atoms)
-{
-    float short_dist = 0.0;
-    Atom *close_atom = NULL;
-
-    bool H_or_LP = a->element() <= Element::H;
-    if (H_or_LP && !a->bonds().empty())
-        return;
-    Residue::Atoms::const_iterator end = atoms.end();
-    for (Residue::Atoms::const_iterator ai = atoms.begin(); ai != end; ++ai)
-    {
-        Atom *oa = *ai;
-        if (a == oa || a->connects_to(oa)
-        || (oa->element() <= Element::H && (H_or_LP || !oa->bonds().empty())))
-            continue;
-        if (ai < a_it && conect_atoms && conect_atoms->find(oa) == conect_atoms->end())
-            // already checked
-            continue;
-        float dist = bonded_dist(a, oa);
-        if (dist == 0.0)
-            continue;
-        if (H_or_LP) {
-            if (short_dist != 0.0 && dist > short_dist)
-                continue;
-            short_dist = dist;
-            close_atom = oa;
-        } else
-            (void) a->structure()->new_bond(a, oa);
-    }
-    if (H_or_LP && short_dist != 0) {
-        (void) a->structure()->new_bond(a, close_atom);
-    }
 }
 
 void prune_short_bonds(AtomicStructure *as)

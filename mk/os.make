@@ -15,7 +15,7 @@ ifeq ($(OS),Linux)
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
-	OPT = -O3
+	OPT = -O3 -Wall -Wextra
 endif
 	GCC_VER	= $(shell $(CC) -dumpversion)
 	CC = gcc -pipe -fPIC -std=gnu99
@@ -51,7 +51,7 @@ ifeq ($(OS),Darwin)
 	LIB_LINK = ar crs $(LIBRARY) $(OBJS)
 	RANLIB = ranlib
 	SHLIB_EXT = dylib
-	SHLIB_LINK = $(LOADER) $(LDFLAGS) -dynamiclib -headerpad_max_install_names -install_name @executable_path/../../../../../../../../../lib/$(SHLIB) -o $(SHLIB) $(OBJS) $(LIBS)
+	SHLIB_LINK = $(LOADER) $(LDFLAGS) -dynamiclib -headerpad_max_install_names -install_name @rpath/$(SHLIB) -o $(SHLIB) $(OBJS) $(LIBS)
 	PROG_EXT =
 	PROG_LINK = $(LOADER) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
 
@@ -87,7 +87,7 @@ endif
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
-	OPT = -O4
+	OPT = -O3 -Wall -Wextra
 endif
 	CC = clang --sysroot $(SYSROOT)
 	CXX = clang++ --sysroot $(SYSROOT) -std=c++11 -stdlib=libc++

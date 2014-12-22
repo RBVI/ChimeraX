@@ -35,14 +35,14 @@ ifeq ($(OS),Linux)
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
 
-LDFLAGS += -Wl,-rpath,"$(libdir)"
-
 ifndef USE_MAC_FRAMEWORKS
+LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 else
+LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
 CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --exec_prefix=$(build_prefix)
-PYTHON_FW = $(frameworkdir)/Python.framework
+pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
 endif
 
 ifeq ($(OS),Windows)
@@ -89,7 +89,7 @@ ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
 	test -n '$(PYDIR)'
-	$(RSYNC) --include=*.exe --exclude='site-packages/*' \
+	$(RSYNC) --include=*.exe --exclude='site-packages/*' --exclude=__pycache__ \
 	  $(PYDIR)/DLLs \
 	  $(PYDIR)/Lib \
 	  $(PYDIR)/include \
@@ -97,37 +97,66 @@ ifeq ($(OS),Windows)
 	  $(PYDIR)/python.exe \
 	  $(PYDIR)/pythonw.exe \
 	  $(bindir)
-else ifndef USE_MAC_FRAMEWORKS
-	cd $(SOURCE) && $(MAKE) && $(MAKE) install
-ifeq ($(OS),Linux)
-	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
-endif
-else
+else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
 	cp $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)/pyconfig.h $(frameworkdir)/Python.framework/Headers/
+	$(PYTHON_EXE) fixsymlinks.py $(PYTHON_FRAMEWORK)/lib/* \
+		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
+	chmod 644 $(PYTHON_FRAMEWORK)/Python
+	# replace python executable with version that doesn't invoke Python.app
+	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)
+	install_name_tool -id \
+		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		$(PYTHON_FRAMEWORK)/Python
+	chmod 444 $(PYTHON_FRAMEWORK)/Python
 # In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-# This causes the Hydra app menu name to be Python. So we install the non-framework python executable also.
-	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)noapp
+	install_name_tool -rpath $(libdir) \
+		'@executable_path/../lib' \
+		$(bindir)/python$(PYTHON_VERSION)
+	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
+		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		$(bindir)/python$(PYTHON_VERSION)
+	install_name_tool -rpath $(libdir)  \
+		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
+		$(pyappdir)/Python
+	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
+		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
+		$(pyappdir)/Python
+else
+	# Linux or Mac OS X without framework
+	cd $(SOURCE) && $(MAKE) && $(MAKE) install
+ifeq ($(OS),Linux)
+	chrpath -r '$$ORIGIN/../lib' $(bindir)/python$(PYTHON_VERSION) $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
+ifeq ($(OS),Darwin)
+	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+endif
+endif
+	# double check that _ssl was successfully made
+	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)
 	# double check that pyexpat was successfully made
-	test -f $(DYNLOAD_DIR)/pyexpat.*
+	test -f $(DYNLOAD_DIR)/pyexpat.*$(PYMOD_EXT)
 
 app-install:
+	$(RSYNC) $(PYTHON_EXE) $(app_bindir)
 ifeq ($(OS),Windows)
-	$(RSYNC) --exclude='site-packages/*'  --exclude='test/*'\
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 	  $(bindir)/DLLs \
 	  $(bindir)/Lib \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
+	$(RSYNC) --exclude Resources/Python.app \
 		$(frameworkdir)/Python.framework $(app_frameworkdir)
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
+		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 else
-	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' \
+	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 endif
+	$(RSYNC) $(PYSITEDIR)/pip $(PYSITEDIR)/pip-*-info $(APP_PYSITEDIR)
 
 $(SOURCE):
 ifneq ($(OS),Windows)

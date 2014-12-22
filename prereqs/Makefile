@@ -75,26 +75,25 @@ build-app-dirs:
 
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
-PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).7z
+PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).tar.bz2
 else ifeq ($(OS),Darwin)
-PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).7z
+PREBUILT = prebuilt-$(OSARCH)-$(MACOSX_DEPLOYMENT_TARGET).tar.bz2
 else ifeq ($(OS),Windows)
-PREBUILT = prebuilt-$(OSARCH).7z
+PREBUILT = prebuilt-$(OSARCH).tar.bz2
 else
-PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).7z
+PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
 endif
 
-prebuilt: p7zip.install
-	#(cd $(build_prefix) && tar -cj --exclude ./tmp .) > $(PREBUILT)
-	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && $(bindir)/7za a -mx=9 -x!./tmp $$prebuilt .
+prebuilt:
+	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
 
-install-prebuilt: p7zip.install
+install-prebuilt:
 	@echo 'Started prereq install at' `date` on `hostname`
 	if [ -e $(PREBUILT) ]; then \
 		$(MAKE) build-dirs ; \
-		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && $(bindir)/7za x -y $$prebuilt ; \
+		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar xjf $$prebuilt ; \
 	else \
-		$(MAKE) install ; \
+		$(MAKE) install && $(MAKE) prebuilt; \
 	fi
 	@echo 'Finished prereq install at' `date`
 
