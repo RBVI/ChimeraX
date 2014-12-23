@@ -8,17 +8,21 @@ TODO: Stubs for now.
 """
 
 import weakref
+from .graphics.drawing import Drawing
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
-
-
 # TODO: register Model as data event type
-class Model:
 
-    def __init__(self):
+
+class Model(Drawing):
+    """All models are drawings.  That means that regardless of whether or not
+    there is a GUI, each model maintains its geometry.
+    """
+
+    def __init__(self, name):
+        Drawing.__init__(self, name)
         self.id = None
-        self.name = "unknown"
-        self.graphics = None
+        # self.name = "unknown"
         # TODO: track.created(Model, [self])
 
     # def save(self):
@@ -30,15 +34,10 @@ class Model:
     # def export(self):
     #    raise NotImplemented
 
-    def make_graphics(self, parent_drawing):
-        raise NotImplemented
-
     def destroy(self):
         if self.id is not None:
             raise ValueError("model is still open")
-        if self.graphics:
-            self.graphics.delete()
-            self.graphics = None
+        self.delete()
         # TODO: track.deleted(Model, [self])
 
 
@@ -49,6 +48,8 @@ class Models:
         session.triggers.add_trigger(ADD_MODELS)
         session.triggers.add_trigger(REMOVE_MODELS)
         self._models = {}
+        from .graphics.drawing import Drawing
+        self.drawing = Drawing("root")
 
         # TODO: malloc-ish management of model ids, so they may be reused
         from itertools import count as _count
@@ -62,8 +63,8 @@ class Models:
         for model in models:
             model.id = next(self._id_counter)
             self._models[model.id] = model
-            if session.main_drawing:
-                model.make_graphics(session.main_drawing)
+            parent = self.drawing   # TODO: figure out based on id
+            parent.add_drawing(model)
         session.triggers.activate_trigger(ADD_MODELS, models)
 
     def remove(self, models):
@@ -77,6 +78,7 @@ class Models:
 
     def open(self, filename, id=None):
         from . import io
+        print('id:', id)
         session = self._session()  # resolve back reference
         models, status = io.open(session, filename)
         if status:

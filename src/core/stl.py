@@ -15,7 +15,7 @@ from . import generic3d
 class STLModel(generic3d.Generic3DModel):
 
     def __init__(self, filename):
-        generic3d.Generic3DModel.__init__(self)
+        generic3d.Generic3DModel.__init__(self, filename)
         self.data = None
 
         if hasattr(filename, 'read'):
@@ -28,9 +28,10 @@ class STLModel(generic3d.Generic3DModel):
 
         # First read 80 byte comment line
         comment = input.read(80)
+        del comment
 
         # Next read uint32 triangle count.
-        from numpy import fromstring, uint32, empty, float32
+        from numpy import fromstring, uint32, empty, float32, array, uint8
         tc = fromstring(input.read(4), uint32)        # triangle count
 
         # Next read 50 bytes per triangle containing float32 normal vector
@@ -45,19 +46,12 @@ class STLModel(generic3d.Generic3DModel):
             input.close()
 
         va, na, ta = stl_geometry(nv)    # vertices, normals, triangles
-        self.data = comment, va, na, ta
-
-    def make_graphics(self, parent_drawing):
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
         cur_color = [0.7, 0.7, 0.7, 1.0]
-        from numpy import array, uint8
         cur_color = (array(cur_color) * 255).astype(uint8)
-        if not self.graphics:
-            self.graphics = parent_drawing.new_drawing(self.name)
-        comment, va, na, ta = self.data
-        self.graphics.vertices = va
-        self.graphics.normals = na
-        self.graphics.triangles = ta
-        self.graphics.color = cur_color
+        self.color = cur_color
 
 
 def open(session, filename, *args, **kw):
@@ -69,8 +63,8 @@ def open(session, filename, *args, **kw):
     """
 
     model = STLModel(filename)
-    comment, va, na, ta = model.data
-    return [model], "Opened STL file containing %d triangles" % len(ta)
+    return [model], ("Opened STL file containing %d triangles"
+                     % len(model.triangles))
 
 
 def stl_geometry(nv):

@@ -305,6 +305,11 @@ class Session:
 
 def common_startup(sess):
     """Initialize session with common data managers"""
+    sess.ui = None
+    sess.tools = None
+    sess.main_view = None
+    from . import logger
+    sess.logger = logger.Logger()
     from . import triggerset
     sess.triggers = triggerset.TriggerSet()
     sess.scenes = Scenes(sess)
@@ -314,5 +319,3 @@ def common_startup(sess):
     commands.register(sess)
     from . import stl
     stl.register()
-    sess.main_drawing = None
-    sess.main_view = None

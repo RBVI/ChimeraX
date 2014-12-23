@@ -21,11 +21,8 @@ class GraphicsWindow(wx.Panel):
         self.SetSizerAndFit(sizer)
 
         from ..graphics.view import View
-        from ..graphics.drawing import Drawing
-        drawing = Drawing("root")
-        self.view = View(drawing, self.GetClientSize(), oc,
+        self.view = View(ui.session.models.drawing, self.GetClientSize(), oc,
             ui.session.logger)
-        ui.session.replace_attribute('main_drawing', drawing)
         ui.session.replace_attribute('main_view', self.view)
 
         self.redraw_interval = 16 # milliseconds
