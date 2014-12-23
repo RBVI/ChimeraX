@@ -253,10 +253,12 @@ class Aggregate(Annotation):
     min_size = 0
     max_size = sys.maxsize
     constructor = None
+    separator = ','
 
     def __init__(self, annotation, min_size=None,
                  max_size=None, name=None):
-        if not issubclass(annotation, Annotation):
+        if (not issubclass(annotation, Annotation)
+                and not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
         self.annotation = annotation
         if min_size is not None:
@@ -286,9 +288,9 @@ class Aggregate(Annotation):
         result = self.constructor()
         used = ''
         while 1:
-            i = text.find(',')
+            i = text.find(self.separator)
             if i == -1:
-                # no comma found
+                # no separator found
                 value, consumed, rest = self.annotation.parse(text, session)
                 tmp = self.add_to(result, value)
                 if tmp:
@@ -302,7 +304,7 @@ class Aggregate(Annotation):
                 result = tmp
             used += consumed
             if len(rest) > 0:
-                # later comma found, but didn't consume all of the text,
+                # later separator found, but didn't consume all of the text,
                 # so probably a different argument, unless the rest is
                 # all whitespace
                 m = _whitespace.match(rest)
@@ -312,7 +314,7 @@ class Aggregate(Annotation):
                 if len(rest) > 0:
                     rest += text[i:]
                     break
-            used += ','
+            used += self.separator
             text = text[i + 1:]
             m = _whitespace.match(text)
             i = m.end()
@@ -368,6 +370,18 @@ class TupleOf(Aggregate):
 
     def __init__(self, annotation, size, name=None):
         return Aggregate.__init__(self, annotation, size, size, name=name)
+
+    def add_to(self, container, value):
+        return container + (value,)
+
+
+class DottedTupleOf(Aggregate):
+    """Annotation for dot-separated lists of a single type
+
+    DottedListOf(annotation, min_size=None, max_size=None) -> annotation
+    """
+    separator = '.'
+    constructor = tuple
 
     def add_to(self, container, value):
         return container + (value,)
@@ -725,7 +739,7 @@ Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
 Float3Arg = TupleOf(FloatArg, 3)
 PositiveIntArg = Bounded(IntArg, min=1, name="natural number")
-ModelIdArg = PositiveIntArg
+ModelIdArg = DottedTupleOf(PositiveIntArg)
 
 
 class Postcondition(metaclass=abc.ABCMeta):
