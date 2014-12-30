@@ -39,12 +39,12 @@ test:
 clean:
 	rm -rf __pycache__
 
-atomstruct.install: basegeom.install logger_cpp.install util.install \
-	ioutil.install
-blob.install: atomstruct.install
+atomstruct.install: basegeom_cpp.install logger_cpp.install util_cpp.install \
+	ioutil_cpp.install
+blob_cpp.install: atomstruct.install
 geometry.all: arrays_cpp.all
 graphics.all: arrays_cpp.all
-pdbio.install: atomstruct.install logger_cpp.install pdb.install blob.install \
-	basegeom.install
-pseudobond.install: basegeom.install
-structaccess.install: atomstruct.install basegeom.install blob.install
+pdbio.install: atomstruct.install logger_cpp.install pdb_cpp.install \
+	blob_cpp.install basegeom_cpp.install
+pseudobond.install: basegeom_cpp.install
+structaccess.install: atomstruct.install basegeom_cpp.install blob_cpp.install
