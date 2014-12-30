@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <unordered_set>
 
 #include <basegeom/Coord.h>
 #include <logger/logger.h>
@@ -927,7 +928,7 @@ AtomicStructure::_compute_atom_types()
     //  2) Check that all the atoms of the ring are planar types
     //  3) Check bond lengths around the ring; see if they are
     //      consistent with aromatic bond lengths
-    std::set<const Residue*> mapped_residues;
+    std::unordered_set<const Residue*> mapped_residues;
     for (auto a_tf: mapped) {
         if (a_tf.second)
             mapped_residues.insert(a_tf.first->residue());

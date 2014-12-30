@@ -2,6 +2,8 @@
 
 #include <list>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "AtomicStructure.h"
 
@@ -19,7 +21,8 @@ static Ring::Bonds::iterator contains_exactly_one(
 //      greater than that size, even if minimal ]
 void
 AtomicStructure::_calculate_rings(bool cross_residue,
-    unsigned int all_size_threshold, std::set<const Residue *>* ignore) const
+    unsigned int all_size_threshold,
+    std::unordered_set<const Residue *>* ignore) const
 {
     // this routine largely based on the algorithm found in:
     //  "An Algorithm for Machine Perception of Synthetically
@@ -27,12 +30,12 @@ AtomicStructure::_calculate_rings(bool cross_residue,
     //  E.J. Corey and George A. Petersson, JACS, 94:2, Jan. 26, 1972
     //  pp. 460-465
 
-    typedef std::set<Bond*> SpanningBonds;
-    typedef std::map<Atom*, SpanningBonds > Atom2SpanningBonds;
-    std::map<Bond*, bool> traversed;
-    std::map<Atom*, bool> visited;
+    typedef std::unordered_set<Bond*> SpanningBonds;
+    typedef std::unordered_map<Atom*, SpanningBonds > Atom2SpanningBonds;
+    std::unordered_map<Bond*, bool> traversed;
+    std::unordered_map<Atom*, bool> visited;
     // rcb2fr:  ring closure bond to fundamental ring map
-    std::map<Bond *, Ring> rcb2fr;
+    std::unordered_map<Bond *, Ring> rcb2fr;
     std::vector<Rings> fundamentals;
     if (ignore != nullptr)
         for (auto r: *ignore) {
@@ -104,7 +107,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
                 (void)ring_bonds.insert(b);
                 Ring r(ring_bonds);
                 (void)fundamental.insert(r);
-                (void)rcb2fr.insert(std::map<Bond *, Ring>::value_type(b,r));
+                (void)rcb2fr.insert(std::unordered_map<Bond *, Ring>::value_type(b,r));
             }
         }
         fundamentals.push_back(fundamental);
@@ -166,8 +169,8 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         // grow trees from each end of the rcb;  when leaves on
         // opposite trees match, a ring is indicated.  Track
         // the bonds "above" each leaf to avoid backtracking
-        std::map<Atom *, std::set<Bond *> > above_bonds[2];
-        std::set<Atom *> leaf_atoms[2];
+        std::unordered_map<Atom *, std::unordered_set<Bond *> > above_bonds[2];
+        std::unordered_set<Atom *> leaf_atoms[2];
         above_bonds[0][rcb->atoms()[0]].insert(rcb);
         above_bonds[1][rcb->atoms()[1]].insert(rcb);
         leaf_atoms[0].insert(rcb->atoms()[0]);
@@ -176,12 +179,12 @@ AtomicStructure::_calculate_rings(bool cross_residue,
             int side = size % 2;
             int opp_side = (side + 1) % 2;
 
-            std::map<Atom *, std::set<Bond *> >& above = above_bonds[side];
-            std::set<Atom *>& leaves = leaf_atoms[side];
-            std::set<Atom *>& opp_leaves = leaf_atoms[opp_side];
+            std::unordered_map<Atom *, std::unordered_set<Bond *> >& above = above_bonds[side];
+            std::unordered_set<Atom *>& leaves = leaf_atoms[side];
+            std::unordered_set<Atom *>& opp_leaves = leaf_atoms[opp_side];
 
-            std::set<Atom *> new_leaves;
-            std::map<Atom *, std::set<Bond *> > new_above;
+            std::unordered_set<Atom *> new_leaves;
+            std::unordered_map<Atom *, std::unordered_set<Bond *> > new_above;
 
             for (auto leaf: leaves) {
                 auto ei = leaf->neighbors().begin();
@@ -224,12 +227,12 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         }
     }
 
-    std::set<Bond *> basis_union;
+    std::unordered_set<Bond *> basis_union;
     for (auto& r: basis)
         basis_union.insert(r.bonds().begin(), r.bonds().end());
 
     Rings msr; // msr == Minimum Spanning Rings
-    std::set<Bond *> msr_union;
+    std::unordered_set<Bond *> msr_union;
     auto basis_iter = basis.begin();
     while (msr_union.size() < basis_union.size()) {
         Ring::Bonds::size_type ring_size = (*basis_iter).bonds().size();
@@ -252,7 +255,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 
     // construct the set of ring-closure bonds whose fundamental ring
     // in not in msr
-    std::set<Bond *> check_rcbs;
+    Ring::Bonds check_rcbs;
     for (auto rcb_fr: rcb2fr) {
         Bond *rcb = rcb_fr.first;
         const Ring &fr = rcb_fr.second;
@@ -373,7 +376,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         // to optimize the cross_residue==false case, sort
         // rings by residue...
 
-        std::map<Residue *, Rings> ring_lists;
+        std::unordered_map<Residue *, Rings> ring_lists;
         if (cross_residue) {
             ring_lists[residues()[0].get()] = _rings;
         } else {
@@ -455,7 +458,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
                         Atom *cur_atom = cur_bond->atoms()[1];
                         while (cur_atom != start_atom) {
                             Ring::Bonds intersection;
-                            std::set<Bond *> atom_bonds;
+                            std::unordered_set<Bond *> atom_bonds;
                             for (auto b: cur_atom->bonds()) {
                                 atom_bonds.insert(b);
                             }
