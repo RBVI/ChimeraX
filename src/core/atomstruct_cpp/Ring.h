@@ -48,4 +48,13 @@ public:
 
 } // namespace atomstruct
 
+namespace std {
+
+template <> struct hash<atomstruct::Ring>
+{
+    size_t operator()(const atomstruct::Ring& r) const { return r.hash(); }
+};
+
+} // namespace std
+
 #endif  // atomstruct_Ring

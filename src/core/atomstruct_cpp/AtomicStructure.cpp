@@ -402,11 +402,9 @@ AtomicStructure::polymers() const
 
 const AtomicStructure::Rings&
 AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
-    std::set<const Residue *>* ignore) const
+    std::unordered_set<const Residue *>* ignore) const
 {
-    if (!_recompute_rings && cross_residues == _rings_last_cross_residues
-    && all_size_threshold == _rings_last_all_size_threshold
-    && ignore == _rings_last_ignore)
+    if (_rings_cached(cross_residues, all_size_threshold, ignore))
         return _rings;
 
     _recompute_rings = false;
@@ -434,6 +432,16 @@ AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
         }
     }
     return _rings;
+}
+
+bool
+AtomicStructure::_rings_cached(bool cross_residues,
+    unsigned int all_size_threshold,
+    std::unordered_set<const Residue *>* ignore) const
+{
+    return !_recompute_rings && cross_residues == _rings_last_cross_residues
+        && all_size_threshold == _rings_last_all_size_threshold
+        && ignore == _rings_last_ignore;
 }
 
 void
