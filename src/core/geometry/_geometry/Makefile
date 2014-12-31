@@ -14,7 +14,7 @@ all: $(PYMOD)
 
 install: all
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

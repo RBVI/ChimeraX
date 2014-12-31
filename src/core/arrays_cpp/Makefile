@@ -16,7 +16,7 @@ all: $(SHLIB)
 install: all
 	$(RSYNC) $(SHLIB) $(shlibdir)
 	$(RSYNC) $(HDRS) $(includedir)
-	if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
+	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
