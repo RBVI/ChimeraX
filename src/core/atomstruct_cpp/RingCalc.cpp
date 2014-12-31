@@ -30,7 +30,9 @@ AtomicStructure::_calculate_rings(bool cross_residue,
     //  E.J. Corey and George A. Petersson, JACS, 94:2, Jan. 26, 1972
     //  pp. 460-465
 
-    typedef std::unordered_set<Bond*> SpanningBonds;
+    // set_symmetric_difference only works on sorted ranges, so use
+    // std::set instead of std::unordered_set
+    typedef std::set<Bond*> SpanningBonds;
     typedef std::unordered_map<Atom*, SpanningBonds > Atom2SpanningBonds;
     std::unordered_map<Bond*, bool> traversed;
     std::unordered_map<Atom*, bool> visited;
@@ -169,7 +171,10 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         // grow trees from each end of the rcb;  when leaves on
         // opposite trees match, a ring is indicated.  Track
         // the bonds "above" each leaf to avoid backtracking
-        std::unordered_map<Atom *, std::unordered_set<Bond *> > above_bonds[2];
+        //
+        // also, set_symmetric_difference only works on ordered
+        // ranges, so use std::set instead of std::unordered_set
+        std::unordered_map<Atom *, std::set<Bond *> > above_bonds[2];
         std::unordered_set<Atom *> leaf_atoms[2];
         above_bonds[0][rcb->atoms()[0]].insert(rcb);
         above_bonds[1][rcb->atoms()[1]].insert(rcb);
@@ -179,12 +184,12 @@ AtomicStructure::_calculate_rings(bool cross_residue,
             int side = size % 2;
             int opp_side = (side + 1) % 2;
 
-            std::unordered_map<Atom *, std::unordered_set<Bond *> >& above = above_bonds[side];
+            std::unordered_map<Atom *, std::set<Bond *> >& above = above_bonds[side];
             std::unordered_set<Atom *>& leaves = leaf_atoms[side];
             std::unordered_set<Atom *>& opp_leaves = leaf_atoms[opp_side];
 
             std::unordered_set<Atom *> new_leaves;
-            std::unordered_map<Atom *, std::unordered_set<Bond *> > new_above;
+            std::unordered_map<Atom *, std::set<Bond *> > new_above;
 
             for (auto leaf: leaves) {
                 auto ei = leaf->neighbors().begin();
