@@ -5,8 +5,9 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Element.h"
 #include <basegeom/Point.h>
@@ -96,7 +97,7 @@ public:
     void  remove_bond(Bond *b) { remove_connection(b); }
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
-            std::set<const Residue*>* ignore = nullptr) const;
+            std::unordered_set<const Residue*>* ignore = nullptr) const;
     void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);

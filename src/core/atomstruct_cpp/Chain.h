@@ -9,6 +9,7 @@
 
 namespace atomstruct {
 
+class AtomicStructure;
 class Residue;
 
 class ATOMSTRUCT_IMEX Chain: public Sequence {
@@ -29,10 +30,15 @@ public:
     Residue*  get(unsigned i) const { return _residues[i]; }
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
+    AtomicStructure*  structure() const;
     void  bulk_set(Residues& residues,
             Sequence::Contents* chars = nullptr);
 };
 
 }  // namespace atomstruct
+
+#include "Residue.h"
+inline atomstruct::AtomicStructure*
+atomstruct::Chain::structure() const { return _residues.front()->structure(); }
 
 #endif  // atomstruct_chain
