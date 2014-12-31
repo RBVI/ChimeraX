@@ -207,7 +207,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         sess.ui.splash_info("Initializing tools",
                             next(splash_step), num_splash_steps)
     from chimera.core import toolshed
-    sess.tools = toolshed.init(sess.app_dirs)
+    sess.tools = toolshed.init(sess.logger, sess.app_dirs)
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.

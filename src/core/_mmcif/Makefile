@@ -31,7 +31,7 @@ $(PYMOD): $(OBJS)
 
 install: $(PYMOD)
 	$(RSYNC) $(PYMOD) $(PKG_DIR)
-	if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
+	#if [ -d "$(APP_PYSITEDIR)" ]; then $(RSYNC) $(PYMOD) $(APP_PKG_DIR); fi
 
 clean:
 	/bin/rm -f $(PYMOD) $(OBJS) $(GENSRCS) $(GENHDRS) wrappy *.orig *.rej
