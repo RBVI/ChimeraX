@@ -305,7 +305,9 @@ class Session:
 
 def common_startup(sess):
     """Initialize session with common data managers"""
-    sess.ui = None
+    assert(hasattr(sess, 'app_name'))
+    assert(hasattr(sess, 'debug'))
+    assert(hasattr(sess, 'ui'))
     sess.tools = None
     sess.main_view = None
     from . import logger

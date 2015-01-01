@@ -148,8 +148,6 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     sess = session.Session()
     sess.app_name = app_name
     sess.debug = opts.debug
-    from chimera.core.logger import Logger
-    sess.logger = Logger()
 
     # figure out the user/system directories for application
     if sys.platform.startswith('linux'):
@@ -221,6 +219,10 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         # This needs sess argument because tool shed is session-independent
         for tool in sess.tools.startup_tools(sess):
             tool.start(sess)
+
+    if not opts.silent:
+        sess.ui.splash_info("Finished initialization",
+                            next(splash_step), num_splash_steps)
 
     if opts.module:
         import runpy
