@@ -54,12 +54,14 @@ test:
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 
-atomstruct.install: basegeom_cpp.install logger_cpp.install util_cpp.install \
-	ioutil_cpp.install
-blob_cpp.install: atomstruct.install
-geometry.all: arrays_cpp.all
-graphics.all: arrays_cpp.all
-pdbio.install: atomstruct.install logger_cpp.install pdb_cpp.install \
+_appdirs.install: appdirs_cpp.install
+atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
+	util_cpp.install ioutil_cpp.install pseudobond_cpp.install
+blob_cpp.install: atomstruct_cpp.install
+geometry.install: arrays_cpp.install
+graphics.install: arrays_cpp.install
+_mmcif.install: readcif_cpp.install atomstruct_cpp.install blob_cpp.install
+pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install \
 	blob_cpp.install basegeom_cpp.install
-pseudobond.install: basegeom_cpp.install
-structaccess.install: atomstruct.install basegeom_cpp.install blob_cpp.install
+pseudobond_cpp.install: basegeom_cpp.install
+structaccess.install: atomstruct_cpp.install basegeom_cpp.install blob_cpp.install
