@@ -30,12 +30,12 @@ setup(name="chimera.core",
 	},
 	data_files=[
 		( "lib", [
-			os.path.join(lib_dir, "libappdirs.dylib"),
-			os.path.join(lib_dir, "libarrays.dylib"),
-			os.path.join(lib_dir, "liblogger.dylib"),
-			os.path.join(lib_dir, "libtmpl.dylib"),
-			os.path.join(lib_dir, "libatomstruct.dylib"),
-			os.path.join(lib_dir, "libblob.dylib"),
+			os.path.join(lib_dir, "libappdirs.SHLIB_EXT"),
+			os.path.join(lib_dir, "libarrays.SHLIB_EXT"),
+			os.path.join(lib_dir, "liblogger.SHLIB_EXT"),
+			os.path.join(lib_dir, "libtmpl.SHLIB_EXT"),
+			os.path.join(lib_dir, "libatomstruct.SHLIB_EXT"),
+			os.path.join(lib_dir, "libblob.SHLIB_EXT"),
 		] ),
 	],
 	classifiers=[

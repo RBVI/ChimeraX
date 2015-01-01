@@ -38,6 +38,8 @@ wheel: setup.py
 setup.py: setup.py.in
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
+		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		< setup.py.in > setup.py
 
 $(SUBDIR_INSTALL): dir
