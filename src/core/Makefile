@@ -23,13 +23,15 @@ all: $(PYOBJS)
 
 install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
-	$(MAKE) app_install
+	if [ -d "$(app_prefix)" ]; then \
+		$(MAKE) app_install ;\
+	fi
 
 app_install: wheel
 	$(APP_PYTHON_EXE) -m pip install wheel distlib
 	$(APP_PYTHON_EXE) -m pip install --ignore-installed $(WHEEL)
 
-wheel:
+wheel: setup.py
 	$(PYTHON_EXE) -m pip install wheel
 	$(PYTHON_EXE) setup.py bdist_wheel
 
