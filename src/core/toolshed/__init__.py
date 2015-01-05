@@ -96,22 +96,25 @@ class ToolShed:
 
 		# Compute base directories
 		import os.path
-		self._cache_dir = os.path.join(appdirs.user_cache_dir,
-								_ToolShed)
-		self._data_dir = os.path.join(appdirs.user_data_dir,
-								_ToolShed)
+		self._cache_dir = os.path.join(appdirs.user_cache_dir, _ToolShed)
+		logger.info("toolshed cache dir: %s" % self._cache_dir)
+		self._data_dir = os.path.join(appdirs.user_data_dir, _ToolShed)
+		logger.info("toolshed data dir: %s" % self._cache_dir)
 
 		# Add directories to sys.path
 		import os.path
 		self._site_dir = os.path.join(self._data_dir, "site-packages")
+		logger.info("toolshed site dir: %s" % self._cache_dir)
 		import os
 		os.makedirs(self._site_dir, exist_ok=True)
 		import site
 		site.addsitedir(self._site_dir)
 
 		# Reload the tool info list
+		logger.info("toolshed loading tools")
 		self.reload(logger, check_remote=check_remote,
 					rebuild_cache=rebuild_cache)
+		logger.info("toolshed finished loading tools")
 
 	def check_remote(self, logger):
 		"""Check remote shed for updated tool info.

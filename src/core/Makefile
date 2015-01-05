@@ -31,7 +31,7 @@ app_install: wheel
 	$(APP_PYTHON_EXE) -m pip install wheel distlib
 	$(APP_PYTHON_EXE) -m pip install --ignore-installed $(WHEEL)
 
-wheel: setup.py
+wheel: setup.py always
 	$(PYTHON_EXE) -m pip install wheel
 	$(PYTHON_EXE) setup.py bdist_wheel
 
@@ -41,6 +41,8 @@ setup.py: setup.py.in
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		< setup.py.in > setup.py
+
+always:
 
 $(SUBDIR_INSTALL): dir
 
