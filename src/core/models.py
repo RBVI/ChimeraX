@@ -9,12 +9,13 @@ TODO: Stubs for now.
 
 import weakref
 from .graphics.drawing import Drawing
+from . import session
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
 
 
-class Model(Drawing):
+class Model(session.State, Drawing):
     """All models are drawings.  That means that regardless of whether or not
     there is a GUI, each model maintains its geometry.
     """
@@ -25,15 +26,6 @@ class Model(Drawing):
         # self.name = "unknown"
         # TODO: track.created(Model, [self])
 
-    # def save(self):
-    #    raise NotImplemented
-
-    # def restore(self):
-    #    raise NotImplemented
-
-    # def export(self):
-    #    raise NotImplemented
-
     def destroy(self):
         if self.id is not None:
             raise ValueError("model is still open")
@@ -41,7 +33,7 @@ class Model(Drawing):
         # TODO: track.deleted(Model, [self])
 
 
-class Models:
+class Models(session.State):
 
     def __init__(self, session):
         self._session = weakref.ref(session)
@@ -54,6 +46,18 @@ class Models:
         # TODO: malloc-ish management of model ids, so they may be reused
         from itertools import count as _count
         self._id_counter = _count(1)
+
+    def take_snapshot(self, session, flags=session.State.ALL):
+        version = 0
+        data = {}
+        return [version, data]
+
+    def restore_snapshot(self, phase, session, version, data):
+        if len(data) != 2 or data[0] != 0 or data[1]:
+            raise RuntimeError("Unexpected version or data")
+
+    def reset_state(self):
+        pass
 
     def list(self):
         return self._models

@@ -20,7 +20,11 @@ Session data, ie., data that is archived, uses the :py:class:`State` API.
 
 import abc
 import weakref
+from . import cli
 from . import serialize
+
+_builtin_open = open
+SUFFIX = ".chimera2"
 
 
 class State(metaclass=abc.ABCMeta):
@@ -73,7 +77,7 @@ class State(metaclass=abc.ABCMeta):
             raise RuntimeError("Unexpected version or data")
 
     @abc.abstractmethod
-    def reset(self):
+    def reset_state(self):
         """Reset state to data-less state"""
         pass
 
@@ -160,7 +164,7 @@ class Scenes(State):
             raise State.NEED_NEWER
         self._scenes = data
 
-    def reset(self):
+    def reset_state(self):
         # documentation from base class
         self._scenes.clear()
 
@@ -195,7 +199,7 @@ class Session:
         self._cls_ordinals.clear()
         for tag in self._state_managers:
             manager = self._state_managers[tag]
-            manager.reset()
+            manager.reset_state()
 
     def __setattr__(self, name, value):
         if hasattr(self, name):
@@ -303,20 +307,51 @@ class Session:
         return version, metadata
 
 
+@cli.register('save', cli.CmdDesc(required=[('filename', cli.StringArg)]))
+def save(session, filename):
+    """command line version of saving a session"""
+    if not filename.endswith(SUFFIX):
+        filename += SUFFIX
+    with _builtin_open(filename, 'wb') as output:
+        session.save(output)
+
+
+def open(session, stream, *args, **kw):
+    if hasattr(stream, 'read'):
+        input = stream
+    else:
+        # it's really a filename
+        input = _builtin_open(stream, 'rb')
+    # TODO: active trigger to allow user to stop overwritting
+    # current session
+    session.restore(input)
+    return [], "opened chimera session"
+
+
+def register():
+    from . import io
+    io.register_format(
+        "session", io.SESSION, SUFFIX,
+        prefixes="session",
+        mime="application/x-chimera2-session",
+        reference="http://www.rbvi.ucsf.edu/chimera/",
+        open_func=open, save_func=save)
+
+
 def common_startup(sess):
     """Initialize session with common data managers"""
     assert(hasattr(sess, 'app_name'))
     assert(hasattr(sess, 'debug'))
-    assert(hasattr(sess, 'ui'))
-    sess.tools = None
     sess.main_view = None
     from . import logger
     sess.logger = logger.Logger()
     from . import triggerset
     sess.triggers = triggerset.TriggerSet()
     sess.scenes = Scenes(sess)
+    sess.add_state_manager('scenes', sess.scenes)
     from . import models
     sess.models = models.Models(sess)
+    sess.add_state_manager('models', sess.models)
     from . import commands
     commands.register(sess)
     from . import stl

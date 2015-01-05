@@ -46,7 +46,7 @@ def utid(t):
     """convert chimera type to its Apple Universal Type Identifier"""
     # look for a domain the fetch data
     from chimera.core import io
-    for fetchInfo in fetch._fetchInfo:
+    for fetchInfo in io.fetch._fetchInfo:
         dbname = fetchInfo[0]
         homepage = fetchInfo[4]
         if t == dbname:
