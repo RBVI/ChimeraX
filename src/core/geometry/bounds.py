@@ -7,7 +7,7 @@ class Bounds:
     def __init__(self, xyz_min, xyz_max):
         from numpy import ndarray, array, float32
         if isinstance(xyz_min, ndarray):
-            self.xyz_min = xyz_max
+            self.xyz_min = xyz_min
         else:
             self.xyz_min = array(xyz_min, float32)
         if isinstance(xyz_max, ndarray):
