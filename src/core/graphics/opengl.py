@@ -271,7 +271,6 @@ class Render:
 
         # Fill light
         fill_light_dir = GL.glGetUniformLocation(p, b"fill_light_direction")
-        fld = tuple(move.apply_without_translation(lp.fill_light_direction))
         if move:
             fld = tuple(move.apply_without_translation(
                         lp.fill_light_direction))
@@ -468,8 +467,8 @@ class Render:
         GL.glReadPixels(0, 0, w, h, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, rgba)
 # TODO: Test code for assessing glReadPixels() effect on rendering speed.
 #        from random import randint
-#        x0, y0 = randint(0, w-1), randint(0, h-1)
-#        rgba[y0:y0+50, x0:x0+50, :3] = 0
+#        x0, y0 = randint(0, w - 1), randint(0, h - 1)
+#        rgba[y0:y0 + 50, x0:x0 + 50, :3] = 0
         return rgba
 
     def set_stereo_buffer(self, eye_num):
