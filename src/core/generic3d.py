@@ -12,7 +12,7 @@ class Generic3DModel(models.Model):
 
     def take_snapshot(self, session, flags):
         State.take_snapshot(self, session, flags)
-       
+
     def restore_snapshot(self, phase, session, version, data):
         State.restore_snapshot(self, phase, session, version, data)
 
