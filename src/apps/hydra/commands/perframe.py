@@ -9,7 +9,7 @@ def perframe_command(cmdname, args, session):
     from .parse import string_arg, int_arg, float_arg, no_arg, range_arg, parse_arguments
     req_args = (('command', string_arg),)
     opt_args = ()
-    kw_args = (('range', range_arg, 'multiple'),
+    kw_args = (('range', range_arg, {'default_step':None}, 'multiple'),
                ('frames', int_arg),
                ('interval', int_arg),
                ('zeroPadWidth', int_arg),
@@ -83,7 +83,7 @@ def _perframe_args(frame_num, frames, ranges, zero_pad_width):
         fmt = '%%0%dg' % zero_pad_width if zero_pad_width else '%g'
         for vr in ranges:
             r0, r1 = vr[:2]
-            explicit_rstep = (len(vr) == 3)
+            explicit_rstep = not vr[2] is None
             if frames is None or explicit_rstep:
                 rstep = (vr[2] if explicit_rstep
                          else (1 if r1 >= r0 else -1))

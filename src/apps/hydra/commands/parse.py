@@ -278,16 +278,16 @@ def ints_arg(s, session, allowed_counts = None):
 # -----------------------------------------------------------------------------
 # Parse 2 or 3 integers, start, end, step.
 #
-def range_arg(s, session):
+def range_arg(s, session, default_step = 1):
     try:
         il = [int(x) for x in s.split(',')]
     except ValueError:
         il = []
     n = len(il)
     if n < 2 or n > 3:
-        CommandError('Range argument must be 2 or 3 comma-separateed integer values, got %s' % s)
+        raise CommandError('Range argument must be 2 or 3 comma-separateed integer values, got %s' % s)
     i0,i1 = il[:2]
-    step = il[2] if n >= 3 else 1
+    step = il[2] if n >= 3 else default_step
     return i0,i1,step
 
 # -----------------------------------------------------------------------------
