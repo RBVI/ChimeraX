@@ -24,6 +24,7 @@ __all__ = [
     'register_save',
     'register_compression',
     'SCRIPT',
+    'formats',
     'open',
     'prefixes',
     'extensions',
@@ -146,7 +147,7 @@ class _FileFormatInfo:
         self.category = category
         self.extensions = extensions
         self.prefixes = prefixes
-        self.mime = mime
+        self.mime_types = mime
         self.reference = reference
         self.dangerous = dangerous
 
@@ -206,6 +207,11 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
                  'save_func', 'save_notes']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
+
+
+def formats():
+    """Return all known format names"""
+    return list(_file_formats.keys())
 
 
 def prefixes(format_name):
