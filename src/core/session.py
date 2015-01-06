@@ -328,14 +328,15 @@ def open(session, stream, *args, **kw):
     return [], "opened chimera session"
 
 
-def register():
+def _register():
     from . import io
     io.register_format(
-        "session", io.SESSION, SUFFIX,
+        "Chimera session", io.SESSION, SUFFIX,
         prefixes="session",
         mime="application/x-chimera2-session",
         reference="http://www.rbvi.ucsf.edu/chimera/",
         open_func=open, save_func=save)
+_register()
 
 
 def common_startup(sess):
