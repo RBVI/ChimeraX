@@ -28,6 +28,19 @@ Modules referenced in distribution metadata must define:
 	``session`` is a core.Session instance.
 	``ti`` is a toolshed.ToolInfo instance.
 """
+def _hack_distlib(f):
+	def hacked_f(*args, **kw):
+		# distlib and wheel packages disagree on what the name for
+		# the metadata file in wheels.  (wheel uses PEP345 while
+		# distlib uses PEP427.)  distlib is backwards compatible,
+		# so we hack the file name when we get distributions.
+		from distlib import metadata
+		save = metadata.METADATA_FILENAME
+		metadata.METADATA_FILENAME = "metadata.json"
+		f(*args, **kw)
+		# Restore hacked name
+		metadata.METADATA_FILENAME = save
+	return hacked_f
 
 # Default URL of remote tool shed
 _RemoteURL = "http://localhost:8080"
@@ -35,10 +48,11 @@ _RemoteURL = "http://localhost:8080"
 _ToolShed = "toolshed"
 
 # Defaults names for installed chimera tools
-_ChimeraCore = "chimera2.core"
-_ChimeraTools = "chimera2.tools"
-_ChimeraToolboxes = "chimera2.toolboxes"
-_ChimeraToolboxPrefix = "chimera2.toolbox"
+_ChimeraBasePackage = "chimera"
+_ChimeraCore = _ChimeraBasePackage + ".core"
+_ChimeraTools = _ChimeraBasePackage + ".tools"
+_ChimeraToolboxes = _ChimeraBasePackage + ".toolboxes"
+_ChimeraToolboxPrefix = _ChimeraBasePackage + ".toolbox"
 
 # Exceptions raised by ToolShed class
 class ToolShedError(Exception):
@@ -84,6 +98,8 @@ class ToolShed:
 		  URL is be used."""
 
 		# Initialize with defaults
+		_debug("__init__", appdirs, rebuild_cache,
+						check_remote, remote_url)
 		if remote_url is None:
 			self.remote_url = _RemoteURL
 		else:
@@ -97,24 +113,24 @@ class ToolShed:
 		# Compute base directories
 		import os.path
 		self._cache_dir = os.path.join(appdirs.user_cache_dir, _ToolShed)
-		logger.info("toolshed cache dir: %s" % self._cache_dir)
+		_debug("cache dir: %s" % self._cache_dir)
 		self._data_dir = os.path.join(appdirs.user_data_dir, _ToolShed)
-		logger.info("toolshed data dir: %s" % self._cache_dir)
+		_debug("data dir: %s" % self._data_dir)
 
 		# Add directories to sys.path
 		import os.path
 		self._site_dir = os.path.join(self._data_dir, "site-packages")
-		logger.info("toolshed site dir: %s" % self._cache_dir)
+		_debug("site dir: %s" % self._site_dir)
 		import os
 		os.makedirs(self._site_dir, exist_ok=True)
 		import site
 		site.addsitedir(self._site_dir)
 
 		# Reload the tool info list
-		logger.info("toolshed loading tools")
+		_debug("loading tools")
 		self.reload(logger, check_remote=check_remote,
 					rebuild_cache=rebuild_cache)
-		logger.info("toolshed finished loading tools")
+		_debug("finished loading tools")
 
 	def check_remote(self, logger):
 		"""Check remote shed for updated tool info.
@@ -122,6 +138,7 @@ class ToolShed:
 		- ``logger`` is a logging object where warning and
 		  error messages are sent."""
 
+		_debug("check_remote")
 		if self._repo_locator is None:
 			from .chimera_locator import ChimeraLocator
 			self._repo_locator = ChimeraLocator(self._remote_url)
@@ -133,8 +150,9 @@ class ToolShed:
 			try:
 				tool_info.extend(_make_tool_info(logger,
 								d, False))
+				_debug("added remote distribution:", d)
 			except _NotToolError:
-				pass
+				_debug("skipped remote distribution:", d)
 		return tool_info
 
 	def reload(self, logger, rebuild_cache=False, check_remote=False):
@@ -143,6 +161,7 @@ class ToolShed:
 		- ``logger``, ``check_remote`` and ``rebuild_cache``
 		  have the same meaning as in the constructor."""
 
+		_debug("reload", rebuild_cache, check_remote)
 		self._tool_info = []
 		self._dist_ti_map = {}
 		inst_ti_list = self._load_tool_info(logger,
@@ -162,6 +181,7 @@ class ToolShed:
 		- ``available`` is a boolean indicating whether available
 		  but uninstalled tools should be included."""
 
+		_debug("tool_info", installed, available)
 		if installed and available:
 			return self._tool_info
 		elif installed:
@@ -180,6 +200,7 @@ class ToolShed:
 		  i.e., not an instance returned by '''tool_info'''.
 		A 'TOOLSHED_TOOL_INFO_ADDED' trigger is fired
 		after the addition."""
+		_debug("add_tool_info", tool_info)
 		self._tool_info.append(tool_info)
 		if tool_info._distribution is not None:
 			self._dist_ti_map[tool_info._distribution] = tool_info
@@ -198,6 +219,7 @@ class ToolShed:
 		  error messages are sent.
 		A '''TOOLSHED_TOOL_INSTALLED''' trigger is fired
 		after installation."""
+		_debug("install_tool", tool_info)
 		if tool_info.installed:
 			raise ToolShedInstalledError(
 						"tool \"%s\" already installed"
@@ -217,11 +239,13 @@ class ToolShed:
 		  error messages are sent.
 		A '''TOOLSHED_TOOL_UNINSTALLED''' trigger is fired
 		after package removal."""
+		_debug("uninstall_tool", tool_info)
 		self._uninstall_tool(tool_info, logger)
 		# TODO: fire trigger
 
 	def startup_tools(self, sess):
 		# TODO: implement
+		_debug("startup_tools")
 		return []
 
 	#
@@ -234,6 +258,7 @@ class ToolShed:
 		# it from a cache file.  If we cannot use the cache,
 		# read the information from the data directory and
 		# try to create the cache file.
+		_debug("_load_tool_info", rebuild_cache)
 		if not rebuild_cache:
 			tool_info = self._read_cache()
 			if tool_info is not None:
@@ -243,22 +268,28 @@ class ToolShed:
 		for d in self._inst_tools:
 			tool_info.extend(_make_tool_info(d, True))
 		# NOTE: need to do something with toolboxes
-		self._write_cache(logger, tool_info)
+		self._write_cache(tool_info, logger)
 		return tool_info
 
+	@_hack_distlib
 	def _scan_installed(self, logger):
 		# Scan installed packages for Chimera tools
 
 		# Initialize distlib paths and locators
+		_debug("_scan_installed")
 		if self._inst_locator is None:
 			from distlib.database import DistributionPath
 			self._inst_path = DistributionPath()
 			from distlib.locators import DistPathLocator
 			self._inst_locator = DistPathLocator(self._inst_path)
+		_debug("_inst_path", self._inst_path)
+		_debug("_inst_locator", self._inst_locator)
 
 		# Keep only wheels
+
 		all_distributions = []
 		for d in self._inst_path.get_distributions():
+			_debug("_scan_installed distribution", d)
 			try:
 				d.run_requires
 			except:
@@ -307,6 +338,7 @@ class ToolShed:
 
 	def _tool_cache(self, must_exist):
 		"""Return path to tool cache file."""
+		_debug("_tool_cache", must_exist)
 		if must_exist:
 			import os
 			os.makedirs(self._cache_dir, exist_ok=True)
@@ -317,6 +349,7 @@ class ToolShed:
 		"""Read installed tool information from cache file.
 		
 		Returns boolean on whether cache file was read."""
+		_debug("_read_cache")
 		cache_file = self._tool_cache(False)
 		# TODO: figure out whether cache is current
 		# If not, return None
@@ -334,8 +367,9 @@ class ToolShed:
 			s.close()
 		return tool_info
 
-	def _write_cache(self, logger, tool_info):
+	def _write_cache(self, tool_info, logger):
 		"""Write current tool information to cache file."""
+		_debug("_write_cache", tool_info)
 		cache_file = self._tool_cache(True)
 		import shelve
 		try:
@@ -358,6 +392,7 @@ class ToolShed:
 		#  - making sure things will be compatible if installed
 		#  - installing all the distributions
 		#  - updating any tool installation status
+		_debug("_install_tool")
 		want_update = []
 		need_update = []
 		self._install_dist_tool(tool_info, want_update, logger)
@@ -375,6 +410,7 @@ class ToolShed:
 
 	def _install_dist_core(self, want, logger):
 		# Add Chimera core distribution to update list
+		_debug("_install_dist_core")
 		d = _install_distribution(_ChimeraCore, logger)
 		if d:
 			want.append(d)
@@ -382,6 +418,7 @@ class ToolShed:
 	def _install_dist_tool(self, tool_info, want, logger):
 		# Add the distribution that provides the
 		# given tool to update list
+		_debug("_install_dist_tool", tool_info)
 		if tool_info._distribution_name is None:
 			raise ToolShedUnavailableError(
 						"no distribution information "
@@ -395,6 +432,7 @@ class ToolShed:
 		# Return either a distribution that needs to be
 		# installed/updated or None if it is already
 		# installed and up-to-date
+		_debug("_install_distribution", name)
 		repo_dist = self._repo_locator.locate(name)
 		if repo_dist is None:
 			raise ToolShedUnavailableError(
@@ -419,6 +457,7 @@ class ToolShed:
 	def _install_cascade(self, want, need, logger):
 		# Find all distributions that need to be installed
 		# in order for distributions on the ``want`` list to work
+		_debug("_install_cascade", want)
 		seen = set()
 		check = set(want)
 		while check:
@@ -431,6 +470,7 @@ class ToolShed:
 					check.add(nd)
 
 	def _get_all_installed_distributions(self, logger):
+		_debug("_get_all_installed_distributions")
 		if self._all_installed_distributions is None:
 			self._scan_installed(logger)
 		return self._all_installed_distributions
@@ -438,6 +478,7 @@ class ToolShed:
 	def _install_check_incompatible(self, need, logger):
 		# Make sure everything is compatible (no missing or
 		# conflicting distribution requirements)
+		_debug("_install_check_incompatible", need)
 		all = dict(self._get_all_installed_distributions().items())
 		all.update([ (d.name, d) for d in need ])
 		from distlib.database import make_graph
@@ -458,6 +499,7 @@ class ToolShed:
 
 	def _install_wheels(self, need, system, logger):
 		# Find all packages that should be deleted
+		_debug("_install_wheels", need, system)
 		all = self._get_all_installed_distributions()
 		from distlib.database import make_graph
 		import itertools
@@ -578,6 +620,7 @@ class ToolShed:
 	def _install_make_paths(self, system, sitepackages=None):
 		# Create path associated with either only-this-user
 		# or system distributions
+		_debug("_install_make_paths", system)
 		import site, sys, os.path
 		if system:
 			base = sys.prefix
@@ -608,6 +651,7 @@ class ToolShed:
 		return False
 
 	def _remove_distribution(self, d, logger):
+		_debug("_remove_distribution", d)
 		from distlib.database import InstalledDistribution
 		if not isinstance(d, InstalledDistribution):
 			raise ToolShedUninstalledError("trying to remove "
@@ -814,5 +858,20 @@ def _make_tool_info(logger, d, installed):
 		tools.append(ToolInfo(name, installed, **kw))
 	return tools
 
-def init(*args, **kw):
+def init(*args, debug=False, **kw):
+	"""Initialize toolshed.
+
+	This function accepts all the arguments for the ``Toolshed``
+	initializer.  In addition:
+
+	- ``debug`` is a boolean value.  If true, debugging messages
+	  are sent to standard output.  Default value is false."""
+	global _debug
+	if debug:
+		def _debug(*args, **kw):
+			import sys
+			print("Toolshed:", *args, file=sys.stderr, **kw)
+	else:
+		def _debug(*args, **kw):
+			return
 	return ToolShed(*args, **kw)
