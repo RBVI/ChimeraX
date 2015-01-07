@@ -14,7 +14,7 @@ find_gaps(Chain& chain)
     assoc_params ap;
     ap.est_len = 0;
     auto ri = chain.residues().begin();
-    auto ci = chain.sequence().begin();
+    auto ci = chain.begin();
     for (unsigned int i = 0; i < chain.size(); ++i, ++ri, ++ci) {
         ap.est_len += 1;
         auto res = *ri;
@@ -22,7 +22,7 @@ find_gaps(Chain& chain)
             // explicit gapping
             ap.est_len = chain.size();
             ap.segments.clear();
-            ap.segments.push_back(chain.sequence());
+            ap.segments.push_back(chain);
             ap.gaps.clear();
             return ap;
         }

@@ -9,11 +9,11 @@
 namespace atomstruct {
 
 void
-Chain::bulk_set(Chain::Residues& residues, Sequence::Contents* chars)
+Chain::bulk_set(Chain::Residues& residues, std::vector<unsigned char>* chars)
 {
     bool del_chars = chars == nullptr;
     if (del_chars) {
-        chars = new Sequence::Contents(residues.size());
+        chars = new std::vector<unsigned char>(residues.size());
         auto chars_ptr = chars->begin();
         for (auto ri = residues.begin(); ri != residues.end();
         ++ri, ++chars_ptr) {
@@ -21,7 +21,7 @@ Chain::bulk_set(Chain::Residues& residues, Sequence::Contents* chars)
         }
     }
     _residues = residues;
-    this->_sequence = *chars;
+    this->assign(chars->begin(), chars->end());
 
     if (del_chars)
         delete chars;
@@ -38,10 +38,10 @@ Chain::set(unsigned i, Residue *r, char character)
     }
     if (i == _residues.size()) {
         _residues.push_back(r);
-        this->_sequence.push_back(c);
+        this->push_back(c);
     } else {
         _residues.at(i) = r;
-        this->_sequence.at(i) = c;
+        this->at(i) = c;
     }
 }
 
@@ -57,9 +57,9 @@ Chain::set_from_seqres(bool fs)
         != _residues.end()) {
             // there actually are seqres portions
             Chain::Residues new_residues;
-            Sequence::Contents new_contents;
+            std::vector<unsigned char> new_contents;
             auto ri = _residues.begin();
-            for (auto si = _sequence.begin(); si != _sequence.end();
+            for (auto si = this->begin(); si != this->end();
             ++si, ++ri) {
                 if (*ri == nullptr)
                     continue;
@@ -67,7 +67,7 @@ Chain::set_from_seqres(bool fs)
                 new_contents.push_back(*si);
             }
             _residues.swap(new_residues);
-            _sequence.swap(new_contents);
+            this->swap(new_contents);
         }
     }
     _from_seqres = fs;

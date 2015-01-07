@@ -21,7 +21,7 @@ private:
     Residues  _residues;
 
 public:
-    Chain(const std::string& chain_id):
+    Chain(const std::string& chain_id): Sequence(),
         _chain_id(chain_id), _from_seqres(false) {}
     const std::string&  chain_id() const { return _chain_id; }
     // is character sequence derived from SEQRES records (or equivalent)?
@@ -32,7 +32,7 @@ public:
     void  set_from_seqres(bool fs);
     AtomicStructure*  structure() const;
     void  bulk_set(Residues& residues,
-            Sequence::Contents* chars = nullptr);
+            std::vector<unsigned char>* chars = nullptr);
 };
 
 }  // namespace atomstruct

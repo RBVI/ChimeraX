@@ -74,7 +74,7 @@ Sequence::_init_rname_map()
 Sequence::Sequence(const std::vector<std::string>& res_names) // 3-letter codes
 {
     for (auto rn: res_names) {
-        _sequence.push_back(rname3to1(rn));
+        this->push_back(rname3to1(rn));
     }
 }
 
