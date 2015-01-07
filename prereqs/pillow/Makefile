@@ -26,8 +26,8 @@ all:
 install: $(SOURCE)
 	cd $(SOURCE) && $(SETUP_ENV) $(PYTHON_EXE) setup.py $(SETUP_BUILD) \
 		build_ext --disable-tk install
-# Unzip egg so PIL source code is available for Mac app install.
 ifeq ($(OS),Darwin)
+# Unzip egg so PIL source code is available for Mac app install.
 	cd $(PYSITEDIR) ; unzip $(PILLOW_EGG) -x "EGG-INFO/*"
 endif
 
