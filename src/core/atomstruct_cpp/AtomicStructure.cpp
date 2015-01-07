@@ -252,8 +252,8 @@ AtomicStructure::make_chains() const
             // missing structure
 
             // leading Xs...
-            int additional_Xs = 0;
-            int existing_Xs = 0;
+            unsigned int additional_Xs = 0;
+            unsigned int existing_Xs = 0;
             auto gi = ap.gaps.begin();
             for (auto si = ap.segments.begin(); si != ap.segments.end()
             && si+1 != ap.segments.end(); ++si, ++gi) {
@@ -267,9 +267,50 @@ AtomicStructure::make_chains() const
                     break;
                 }
             }
-            //if (existing_Xs && 
+            if (existing_Xs && sr_seq.size() >= existing_Xs
+            && std::count(sr_seq.begin(), sr_seq.begin() + existing_Xs, 'X')
+            == existing_Xs)
+                sr_seq.insert(sr_seq.begin(), additional_Xs, 'X');
 
-            //TODO
+            // trailing Xs...
+            additional_Xs = 0;
+            existing_Xs = 0;
+            auto rgi = ap.gaps.rbegin();
+            for (auto rsi = ap.segments.rbegin(); rsi != ap.segments.rend()
+            && rsi+1 != ap.segments.rend(); ++rsi, ++rgi) {
+                auto seg = *rsi;
+                if (std::find_if_not(seg.begin(), seg.end(),
+                [](char c){return c == 'X';}) == seg.end()) {
+                    // all 'X'
+                    existing_Xs += seg.size();
+                    additional_Xs += *rgi;
+                } else {
+                    break;
+                }
+            }
+            if (existing_Xs && sr_seq.size() >= existing_Xs
+            && std::count(sr_seq.rbegin(), sr_seq.rbegin() + existing_Xs, 'X')
+            == existing_Xs)
+                sr_seq.insert(sr_seq.end(), additional_Xs, 'X');
+
+            // if a jump in numbering is in an unresolved part of the structure,
+            // the estimated length can be too long...
+            if ((Sequence::size_type)ap.est_len < sr_seq.size())
+                ap.est_len = sr_seq.size();
+
+            // since gapping a structure sequence is considered an "error",
+            // need to allow a lot more errors than normal.  However, allowing
+            // a _lot_ of errors can make it take a very long time to find the
+            // answer, so limit the maximum...
+            // (1vqn, chain 0 is > 2700 residues)
+            unsigned int seq_len = chain->size();
+            unsigned int gap_sum = 0;
+            for (auto gap: ap.gaps) {
+                gap_sum += gap;
+            }
+            unsigned int max_errs = std::min(seq_len/2,
+                std::max(seq_len/10, gap_sum));
+            //TODO: try_assoc
         }
     }
 }

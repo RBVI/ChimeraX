@@ -2,6 +2,7 @@
 #ifndef atomstruct_seq_assoc
 #define atomstruct_seq_assoc
 
+#include <valarray>
 #include <vector>
 
 namespace atomstruct {
