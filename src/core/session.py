@@ -55,7 +55,7 @@ class State(metaclass=abc.ABCMeta):
         "Need newer version of application to restore session")
 
     @abc.abstractmethod
-    def take_snapshot(self, session, flags=ALL):
+    def take_snapshot(self, session, flags):
         """Return snapshot of current state, [version, data], of instance.
 
         The semantics of the data is unknown to the caller.
@@ -73,7 +73,7 @@ class State(metaclass=abc.ABCMeta):
         second phase should restore references to other objects (data is None).
         The session instance is used to convert unique ids into instances.
         """
-        if len(data) != 2 or data[0] != 0 or data[1]:
+        if version != 0 or len(data) > 0:
             raise RuntimeError("Unexpected version or data")
 
     @abc.abstractmethod
@@ -90,6 +90,46 @@ class State(metaclass=abc.ABCMeta):
     #    # transition would be method to get to given frame that might need
     #    #   look at several scenes
     #    pass
+
+
+class ParentState(State):
+    """Mixin for classes that manage other state instances.
+
+    This class makes the assumptions that the state instances
+    are kept as values in a dictionary, and that all of the instances
+    are known.
+    """
+
+    VERSION = 0
+    _child_attr_name = None  # replace in subclass
+
+    def take_snapshot(self, session, flags):
+        """Return snapshot of current state"""
+        child_dict = getattr(self, self._child_attr_name)
+        data = {}
+        for name, child in child_dict.items():
+            data[name] = child.take_snapshot(session, flags)
+        return [self.VERSION, data]
+
+    def restore_snapshot(self, phase, session, version, data):
+        """Restore data snapshot into instance"""
+        # TODO: handle previous versions
+        if version != self.VERSION or not data:
+            raise RuntimeError("Unexpected version or data")
+        child_dict = getattr(self, self._child_attr_name)
+        for name, [child_version, child_data] in data.items():
+            if name not in child_dict:
+                # TODO: warn about missing child
+                #       or create missing child to fill in
+                continue
+            child = child_dict[name]
+            child.restore_snapshot(phase, session, child_version, child_data)
+
+    def reset_state(self):
+        """Reset state to data-less state"""
+        child_dict = getattr(self, self._child_attr_name)
+        for child in child_dict.values():
+            child.reset_state()
 
 
 class Scenes(State):

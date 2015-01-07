@@ -11,10 +11,13 @@ class Generic3DModel(models.Model):
     # TODO: just save/restore drawing state
 
     def take_snapshot(self, session, flags):
+        # TODO: replace
         State.take_snapshot(self, session, flags)
 
     def restore_snapshot(self, phase, session, version, data):
+        # TODO: replace
         State.restore_snapshot(self, phase, session, version, data)
 
     def reset_state(self):
+        # TODO: replace
         State.reset_state(self)

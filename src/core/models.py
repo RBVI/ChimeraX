@@ -9,31 +9,48 @@ TODO: Stubs for now.
 
 import weakref
 from .graphics.drawing import Drawing
-from . import session
+from .session import State
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
+_model_name_to_class = {}
+_model_class_to_name = {}
 
 
-class Model(session.State, Drawing):
-    """All models are drawings.  That means that regardless of whether or not
-    there is a GUI, each model maintains its geometry.
+def register(name, cls):
+    """Register model subclass for session files
+
+    The name should be understandable to a user.
+    """
+    _model_name_to_class[name] = cls
+    _model_class_to_name[cls] = name
+
+
+class Model(State, Drawing):
+    """All models are drawings.
+
+    That means that regardless of whether or not there is a GUI,
+    each model maintains its geometry.
+
+    Every model subclass that can be in a session file, needs to be
+    registered.
     """
 
     def __init__(self, name):
         Drawing.__init__(self, name)
         self.id = None
-        # self.name = "unknown"
         # TODO: track.created(Model, [self])
 
-    def destroy(self):
+    def delete(self):
         if self.id is not None:
             raise ValueError("model is still open")
-        self.delete()
+        Drawing.delete(self)
         # TODO: track.deleted(Model, [self])
 
 
-class Models(session.State):
+class Models(State):
+
+    VERSION = 1     # snapshot version
 
     def __init__(self, session):
         self._session = weakref.ref(session)
@@ -47,25 +64,55 @@ class Models(session.State):
         from itertools import count as _count
         self._id_counter = _count(1)
 
-    def take_snapshot(self, session, flags=session.State.ALL):
-        version = 0
+    def take_snapshot(self, session, flags):
         data = {}
-        return [version, data]
+        for id, model in self._models.items():
+            try:
+                name = _model_class_to_name[model.__class__]
+            except KeyError:
+                session.warning('Unable to save "%s" model data'
+                                % model.__class__.__name__)
+                continue
+            data[id] = [session.unique_id(model), name,
+                        model.take_snapshot(session, flags)]
+        return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        if len(data) != 2 or data[0] != 0 or data[1]:
+        if version != self.VERSION or not data:
             raise RuntimeError("Unexpected version or data")
 
+        for id, [unid, name, [model_version, model_data]] in data.items():
+            try:
+                cls = _model_name_to_class[name]
+            except KeyError:
+                session.log.warning('Unable to restore %s model' % name)
+                continue
+            if phase == State.PHASE1:
+                obj = cls("unknown until restored")
+                self._models[id] = obj
+                session.restore_unique_id(obj, unid)
+            else:
+                obj = session.unique_id(unid)
+            obj.restore_snapshot(phase, session, model_version, model_data)
+
     def reset_state(self):
-        pass
+        models = self._models.values()
+        self._models.clear()
+        for model in models:
+            model.delete()
 
     def list(self):
         return self._models
 
-    def add(self, models):
+    def add(self, models, id=None):
         session = self._session()  # resolve back reference
         for model in models:
-            model.id = next(self._id_counter)
+            # TODO:
+            # if id is not None:
+            #     model.id = id
+            # else:
+            if 1:
+                model.id = next(self._id_counter)
             self._models[model.id] = model
             parent = self.drawing   # TODO: figure out based on id
             parent.add_drawing(model)
@@ -80,16 +127,15 @@ class Models(session.State):
                 model.id = None
                 del self._models[model_id]
 
-    def open(self, filename, id=None):
+    def open(self, filename, id=None, **kw):
         from . import io
-        print('id:', id)
         session = self._session()  # resolve back reference
-        models, status = io.open(session, filename)
+        models, status = io.open(session, filename, **kw)
         if status:
             session.logger.status(status)
         if models:
             start_count = len(self._models)
-            self.add(models)
+            self.add(models, id=id)
             if start_count == 0 and len(self._models) > 0:
                 session.main_view.initial_camera_view()
 
@@ -97,4 +143,4 @@ class Models(session.State):
         if model_id in self._models:
             model = self._models[model_id]
             self.remove(model)
-            model.destroy()
+            model.delete()
