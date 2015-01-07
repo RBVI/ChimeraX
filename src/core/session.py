@@ -343,7 +343,6 @@ def common_startup(sess):
     """Initialize session with common data managers"""
     assert(hasattr(sess, 'app_name'))
     assert(hasattr(sess, 'debug'))
-    sess.main_view = None
     from . import logger
     sess.logger = logger.Logger()
     from . import triggerset
@@ -353,6 +352,8 @@ def common_startup(sess):
     from . import models
     sess.models = models.Models(sess)
     sess.add_state_manager('models', sess.models)
+    from .graphics.view import View
+    sess.main_view = View(sess.models.drawing, (256, 256), None, sess.logger)
     from . import commands
     commands.register(sess)
     from . import stl
