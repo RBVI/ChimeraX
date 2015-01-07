@@ -71,7 +71,7 @@ find_gaps(Chain& chain)
     }
     int front_pos = chain.residues().front()->position();
     if (ap.est_len > 0 && front_pos > 1)
-        ap.est_len += front_pos;
+        ap.est_len += front_pos - 1;
     return ap;
 }
 

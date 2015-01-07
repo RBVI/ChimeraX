@@ -243,6 +243,32 @@ AtomicStructure::make_chains() const
 
             // okay, seriously try to match up with SEQRES
             auto ap = estimate_assoc_params(*chain);
+
+            // UNK residues may be jammed up against the regular sequnce
+            // in SEQRES records (3dh4, 4gns) despite missing intervening
+            // residues; compensate...
+            //
+            // can't just test against est_len since there can be other
+            // missing structure
+
+            // leading Xs...
+            int additional_Xs = 0;
+            int existing_Xs = 0;
+            auto gi = ap.gaps.begin();
+            for (auto si = ap.segments.begin(); si != ap.segments.end()
+            && si+1 != ap.segments.end(); ++si, ++gi) {
+                auto seg = *si;
+                if (std::find_if_not(seg.begin(), seg.end(),
+                [](char c){return c == 'X';}) == seg.end()) {
+                    // all 'X'
+                    existing_Xs += seg.size();
+                    additional_Xs += *gi;
+                } else {
+                    break;
+                }
+            }
+            //if (existing_Xs && 
+
             //TODO
         }
     }
