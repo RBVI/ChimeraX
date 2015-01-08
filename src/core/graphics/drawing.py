@@ -2,9 +2,10 @@
 Drawing
 =======
 '''
+from ..session import State
 
 
-class Drawing:
+class Drawing(State):
     '''
     A Drawing represents a tree of objects each consisting of a set of
     triangles in 3 dimensional space.  Drawings are used to draw molecules,
@@ -855,6 +856,76 @@ class Drawing:
             self.edge_mask = em
 
         self.redraw_needed(shape_changed=True)
+
+    DRAWING_VERSION = 1
+
+    def take_snapshot(self, session, flags):
+        # all drawing objects should have the same version
+        data = {
+            'children': [c.take_snapshot(session, flags)[1]
+                         for c in self.child_drawings()],
+            'name': self.name,
+            'vertices': self.vertices,
+            'triangles': self.triangles,
+            'normals': self.normals,
+            'vertex_colors': self.vertex_colors,
+            'edge_mask': self.edge_mask,
+            'display_style': self.display_style,
+            'texture': self.texture,
+            'ambient_texture ': self.ambient_texture ,
+            'ambient_texture_transform': self.ambient_texture_transform,
+            'use_lighting': self.use_lighting,
+
+            'display': self.display,
+            'display_positions': self.display_positions,
+            'selected': self.selected,
+            'selected_positions': self.selected_positions,
+            'position': self.position,
+            'positions': self.positions,
+            'selected_triangles_mask': self.selected_triangles_mask,
+            'color': self.color,
+            'colors': self.colors,
+            'geometry': self.geometry,
+            'triangle_and_edge_mask': self.triangle_and_edge_mask,
+        }
+        return self.DRAWING_VERSION, data
+
+    def restore_snapshot(self, phase, session, version, data):
+        from ..session import State
+        if phase != State.PHASE1:
+            return
+        if version != self.DRAWING_VERSION:
+            raise RuntimeError("Unexpected version or data")
+        for child_data in data['children']:
+            child = self.new_drawing()
+            child.restore_snapshot(phase, session, version, child_data)
+        self.name = data['name']
+        self.vertices = data['vertices']
+        self.triangles = data['triangles']
+        self.normals = data['normals']
+        self.vertex_colors = data['vertex_colors']
+        self.edge_mask = data['edge_mask']
+        self.display_style = data['display_style']
+        self.texture = data['texture']
+        self.ambient_texture  = data['ambient_texture ']
+        self.ambient_texture_transform = data['ambient_texture_transform']
+        self.use_lighting = data['use_lighting']
+
+        self.display = data['display']
+        self.display_positions = data['display_positions']
+        self.selected = data['selected']
+        self.selected_positions = data['selected_positions']
+        self.position = data['position']
+        self.positions = data['positions']
+        self.selected_triangles_mask = data['selected_triangles_mask']
+        self.color = data['color']
+        self.colors = data['colors']
+        self.geometry = data['geometry']
+        self.triangle_and_edge_mask = data['triangle_and_edge_mask']
+
+    def reset_state(self):
+        # delay implementing until needed
+        raise NotImplemented()
 
 
 def draw_drawings(renderer, cvinv, drawings):

@@ -15,7 +15,7 @@ REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
 
 
-class Model(State, Drawing):
+class Model(Drawing):
     """All models are drawings.
 
     That means that regardless of whether or not there is a GUI,
@@ -70,18 +70,18 @@ class Models(State):
         if version != self.VERSION or not data:
             raise RuntimeError("Unexpected version or data")
 
-        for id, [unid, name, [model_version, model_data]] in data.items():
+        for id, [uid, name, [model_version, model_data]] in data.items():
             try:
                 cls = unique_class_from_name(name)
             except KeyError:
                 session.log.warning('Unable to restore %s model' % name)
                 continue
             if phase == State.PHASE1:
-                obj = cls("unknown until restored")
+                obj = cls("unknown name until restored")
                 self._models[id] = obj
-                session.restore_unique_id(obj, unid)
+                session.restore_unique_id(obj, uid)
             else:
-                obj = session.unique_id(unid)
+                obj = session.unique_id(uid)
             obj.restore_snapshot(phase, session, model_version, model_data)
 
     def reset_state(self):
