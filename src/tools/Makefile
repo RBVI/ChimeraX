@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS =
+SUBDIRS = cmd_line
 
 include $(TOP)/mk/subdir.make
 
