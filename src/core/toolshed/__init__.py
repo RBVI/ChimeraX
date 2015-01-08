@@ -30,16 +30,17 @@ Modules referenced in distribution metadata must define:
 """
 def _hack_distlib(f):
 	def hacked_f(*args, **kw):
-		# distlib and wheel packages disagree on what the name for
+		# distlib and wheel packages disagree on the name for
 		# the metadata file in wheels.  (wheel uses PEP345 while
 		# distlib uses PEP427.)  distlib is backwards compatible,
 		# so we hack the file name when we get distributions.
 		from distlib import metadata
 		save = metadata.METADATA_FILENAME
 		metadata.METADATA_FILENAME = "metadata.json"
-		f(*args, **kw)
+		v = f(*args, **kw)
 		# Restore hacked name
 		metadata.METADATA_FILENAME = save
+		return v
 	return hacked_f
 
 # Default URL of remote tool shed
@@ -50,8 +51,6 @@ _ToolShed = "toolshed"
 # Defaults names for installed chimera tools
 _ChimeraBasePackage = "chimera"
 _ChimeraCore = _ChimeraBasePackage + ".core"
-_ChimeraTools = _ChimeraBasePackage + ".tools"
-_ChimeraToolboxes = _ChimeraBasePackage + ".toolboxes"
 _ChimeraToolboxPrefix = _ChimeraBasePackage + ".toolbox"
 
 # Exceptions raised by ToolShed class
@@ -167,7 +166,7 @@ class ToolShed:
 		inst_ti_list = self._load_tool_info(logger,
 						rebuild_cache=rebuild_cache)
 		for ti in inst_ti_list:
-			self._add_tool_info(ti)
+			self.add_tool_info(ti)
 		if check_remote:
 			remote_ti_list = self.check_remote(logger)
 			for ti in remote_ti_list:
@@ -202,8 +201,8 @@ class ToolShed:
 		after the addition."""
 		_debug("add_tool_info", tool_info)
 		self._tool_info.append(tool_info)
-		if tool_info._distribution is not None:
-			self._dist_ti_map[tool_info._distribution] = tool_info
+		if tool_info._distribution_name is not None:
+			self._dist_ti_map[tool_info._distribution_name] = tool_info
 		# TODO: fire trigger
 
 	def install_tool(self, tool_info, logger, system=False):
@@ -244,9 +243,9 @@ class ToolShed:
 		# TODO: fire trigger
 
 	def startup_tools(self, sess):
-		# TODO: implement
 		_debug("startup_tools")
-		return []
+		# TODO: implement
+		return self.tool_info()
 
 	#
 	# End public API
@@ -266,7 +265,7 @@ class ToolShed:
 		self._scan_installed(logger)
 		tool_info = []
 		for d in self._inst_tools:
-			tool_info.extend(_make_tool_info(d, True))
+			tool_info.extend(_make_tool_info(logger, d, True))
 		# NOTE: need to do something with toolboxes
 		self._write_cache(tool_info, logger)
 		return tool_info
@@ -289,9 +288,9 @@ class ToolShed:
 
 		all_distributions = []
 		for d in self._inst_path.get_distributions():
-			_debug("_scan_installed distribution", d)
 			try:
 				d.run_requires
+				_debug("_scan_installed distribution", d)
 			except:
 				continue
 			else:
@@ -320,16 +319,15 @@ class ToolShed:
 			self._inst_core.add(d)
 			self._all_installed_distributions[d.name] = d
 		check_list = [ core ]
-		skip_list = [ _ChimeraTools, _ChimeraToolboxes ]
 		while check_list:
-			for d in dg.reverse_list[check_list.pop()]:
+			dist = check_list.pop()
+			_debug("checking", dist)
+			for d in dg.reverse_list[dist]:
 				if d in known_dists:
 					continue
 				known_dists.add(d)
 				check_list.append(d)
 				name = d.name
-				if name in skip_list:
-					continue
 				if name.startswith(_ChimeraToolboxPrefix):
 					self._inst_toolboxes.add(d)
 				else:
@@ -702,16 +700,20 @@ class ToolInfo:
 				distribution_name=None,
 				display_name=None,
 				module_name=None,
-				menu_categories=None,
-				command_names=None):
+				menu_categories=(),
+				command_names=()):
 		"""Initialize tool info named 'name'.
 
 		Supported keywords include:
-		- ``categories``: list of categories (strings)
-		  in which tool belongs
-		- ``command_name``: list of names of command (strings) in CLI
+		- ``distribution_name``: name of distribution that
+		  provided this tool (string)
+		- ``display_name``: name to display in user interface
+		  for this tool (string)
 		- ``module_name``: Name of module implementing the tool.
 		  Must be a dotted Python name.  (See module doc string.)
+		- ``menu_categories``: list of categories (strings)
+		  in which tool belongs
+		- ``command_names``: list of names of command (strings) in CLI
 		"""
 
 		# Public attributes
@@ -721,13 +723,13 @@ class ToolInfo:
 		self.menu_categories = menu_categories
 
 		# Private attributes
-		self.distribution_name = distribution
+		self._distribution_name = distribution_name
 		self._module_name = module_name
 		self._command_names = command_names
 
-		from chimera2 import cli
-		for name in command_names:
-			def cb(s=self, n=name):
+		from chimera.core import cli
+		for command_name in command_names:
+			def cb(s=self, n=command_name):
 				s._register_cmd(n)
 			cli.delay_registration(command_name, cb)
 
@@ -736,10 +738,10 @@ class ToolInfo:
 		# to recreate with ToolInfo(*args, **kw)
 		args = (self.name, self.installed)
 		kw = {
-			"distribution_name": self.distribution_name,
 			"display_name": self.display_name,
-			"module_name": self._module_name,
 			"menu_categories": self.menu_categories,
+			"distribution_name": self._distribution_name,
+			"module_name": self._module_name,
 			"command_names": self._command_names,
 		}
 		return args, kw
@@ -754,9 +756,12 @@ class ToolInfo:
 			raise ToolShedError("no module specified for "
 						"tool \"%s\""
 						% self.name)
-		return import_module(self._module_name)
+		import importlib
+		m = importlib.import_module(self._module_name)
+		_debug("_get_module", self._module_name, m)
+		return m
 
-	def start_tool(self, session, *args, **kw):
+	def start(self, session, *args, **kw):
 		"""Create and return an tool instance.
 
 		``session`` is a Session instance in which the tool will run.
@@ -772,7 +777,7 @@ class ToolInfo:
 							"not installed"
 							% self.name)
 		try:
-			return self._get_module().start_tool(session, ti,
+			return self._get_module().start_tool(session, self,
 								*args, **kw)
 		except (ImportError, AttributeError, TypeError):
 			raise ToolShedError("bad start callable specified "
@@ -805,57 +810,52 @@ class _NotToolError(Exception):
 def _make_tool_info(logger, d, installed):
 	name = d.name
 	version = d.version
-	kw = { "distribution": d }
 	md = d.metadata
 
-	# NOTE: We may want to check for the presence of a particular
-	# metadata tag to make sure distribution is a Chimera tool
-
-	def listify(v):
-		if isinstance(v, str):
-			return [ v ]
-		else:
-			return v
-
-	try:
-		tool_names = listify(md["Chimera-Tools"])
-	except KeyError:
-		return []
-
 	tools = []
-	for tool in tool_names:
-		kw = { "distribution_name": d.name }
-		# Name of module implementing tool
+	for classifier in md.dictionary["classifiers"]:
+		parts = [ v.strip() for v in classifier.split("::") ]
+		if parts[0] != "Chimera-Tool":
+			continue
+		kw = { "distribution_name": name }
 		try:
-			kw["module_name"] = md["%s-Module" % tool]
-		except KeyError:
-			logger.error("no module specified for tool \"%s\""
-								% tool)
+			# Name of tool
+			tool_name = parts[1]
+		except IndexError:
+			logger.error("no name specified for Chimera tool")
 			# No module means there is no way to start
 			# this tool, so we do not even treat it as a tool
 			continue
-		# Display name of tool
 		try:
-			mc = md["%s-DisplayName" % tool]
-		except KeyError:
-			pass
-		else:
-			kw["display_name"] = mc
-		# Menu categories in which tool should appear
+			# Name of module implementing tool
+			kw["module_name"] = parts[2]
+		except IndexError:
+			logger.error("no module specified for \"%s\"" % tool_name)
+			# No module means there is no way to start
+			# this tool, so we do not even treat it as a tool
+			continue
 		try:
-			mc = md["%s-MenuCategories" % tool]
-		except KeyError:
+			# Display name of tool
+			kw["display_name"] = parts[3]
+		except IndexError:
 			pass
-		else:
-			kw["menu_categories"] = listify(mc)
-		# CLI command names (just the first word)
 		try:
-			cl_data = md["%s-Commands" % tool]
-		except KeyError:
+			# CLI command names (just the first word)
+			commands = parts[4]
+			if commands:
+				kw["command_names"] = [ v.strip()
+						for v in commands.split(',') ]
+		except IndexError:
 			pass
-		else:
-			kw["command_names"] = listify(mc)
-		tools.append(ToolInfo(name, installed, **kw))
+		try:
+			# Menu categories in which tool should appear
+			categories = parts[5]
+			if categories:
+				kw["menu_categories"] = [ v.strip()
+						for v in categories.split(',') ]
+		except IndexError:
+			pass
+		tools.append(ToolInfo(tool_name, installed, **kw))
 	return tools
 
 def init(*args, debug=False, **kw):
