@@ -43,6 +43,15 @@ _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                                   ('name', cli.StringArg)])
 
 
+def export(session, filename, **kw):
+    try:
+        from . import io
+        return io.export(session, filename, **kw)
+    except OSError as e:
+        raise cli.UserError(e)
+_export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
+
+
 def close(session, model_id):
     try:
         return session.models.close(model_id)
@@ -67,6 +76,7 @@ def register(session):
     """Register common cli commands"""
     cli.register('open', _open_desc, open)
     cli.register('close', _close_desc, close)
+    cli.register('export', _export_desc, export)
     cli.register('list', _list_desc, list)
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
