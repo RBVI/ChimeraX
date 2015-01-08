@@ -79,12 +79,12 @@ _list_desc = cli.CmdDesc()
 
 def register(session):
     """Register common cli commands"""
+    cli.register('exit', _exit_desc, exit)
+    cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)
     cli.register('close', _close_desc, close)
     cli.register('export', _export_desc, export)
     cli.register('list', _list_desc, list)
-    cli.register('exit', _exit_desc, exit)
-    cli.alias(session, "quit", "exit $*")
     cli.register('stop', _stop_desc, stop)
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
