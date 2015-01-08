@@ -15,7 +15,7 @@ PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 endif
 
 INCS += -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
-LIBS = $(libdir)/libarrays.$(SHLIB_EXT)
+LIBS = -L$(libdir) -larrays
 
 #OPT = -g -Wall
 OPT = -O3
@@ -27,12 +27,6 @@ install: all
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
-ifeq ($(OS),Darwin)
-# Use relative path to Python framework library.
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(PYMOD)
-# Use relative path to arrays library
-	install_name_tool -change @loader_path/lib/libarrays.dylib @loader_path/../lib/libarrays.dylib $(PYMOD)
-endif
 
 clean:
 	rm -f $(PYMOD) $(OBJS)
