@@ -42,10 +42,8 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py gensrcs
-ifeq ($(OS),Darwin)
-	rm -f Info.plist
-endif
+	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py gensrcs \
+		Info.plist
 
 lint:
 	$(PYLINT) *.py
@@ -71,9 +69,8 @@ gensrcs: __main__.py
 
 ifeq ($(OS),Darwin)
 install: Info.plist
+endif
 
 Info.plist: mkinfo.py
 #	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || rm Info.plist
 	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || rm Info.plist
-
-endif

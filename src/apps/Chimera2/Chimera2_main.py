@@ -148,8 +148,12 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     sess = session.Session()
     sess.app_name = app_name
     sess.debug = opts.debug
-    from chimera.core.logger import Logger
-    sess.logger = Logger()
+    session.common_startup(sess)
+    # or:
+    #   sess.add_state_manager('scenes', session.Scenes(sess))
+    #   from chimera.core import models
+    #   sess.add_state_manager('models', models.Models(sess))
+    # etc.
 
     # figure out the user/system directories for application
     if sys.platform.startswith('linux'):
@@ -181,7 +185,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
     # splash step "0" will happen in the above initialization
-    num_splash_steps = 4
+    num_splash_steps = 4 if opts.gui else 3
     import itertools
     splash_step = itertools.count()
 
@@ -196,18 +200,13 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     if not opts.silent:
         sess.ui.splash_info("Initializing core",
                             next(splash_step), num_splash_steps)
-    session.common_startup(sess)
-    # or:
-    #   sess.scenes = session.Scenes(sess)
-    #   from chimera.core import models
-    #   sess.models = models.Models(sess)
-    # etc.
 
     if not opts.silent:
         sess.ui.splash_info("Initializing tools",
                             next(splash_step), num_splash_steps)
     from chimera.core import toolshed
-    sess.tools = toolshed.init(sess.app_dirs)
+    sess.tools = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
+    # TODO: sess.add_state_manager('tools', sess.tools)
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
@@ -221,6 +220,10 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         # This needs sess argument because tool shed is session-independent
         for tool in sess.tools.startup_tools(sess):
             tool.start(sess)
+
+    if not opts.silent:
+        sess.ui.splash_info("Finished initialization",
+                            next(splash_step), num_splash_steps)
 
     if opts.module:
         import runpy

@@ -8,7 +8,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
 	   ioutil_cpp logger_cpp \
 	   pdb_cpp pdbio pseudobond_cpp \
 	   readcif_cpp \
-	   structaccess ui util_cpp
+	   structaccess toolshed ui util_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -16,37 +16,58 @@ PKG_DIR = $(PYSITEDIR)/chimera/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
 PYSRCS = $(wildcard *.py)
+CORE_VERSION = 2.0
+WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
 install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
-	if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
+	if [ -d "$(app_prefix)" ]; then \
+		$(MAKE) app_install ;\
+	fi
+
+app_install: wheel
+	$(APP_PYTHON_EXE) -m pip install wheel distlib
+	$(APP_PYTHON_EXE) -m pip install --ignore-installed $(WHEEL)
+
+wheel: setup.py always
+	$(PYTHON_EXE) -m pip install wheel
+	$(PYTHON_EXE) setup.py bdist_wheel
+
+setup.py: setup.py.in
+	sed -e 's,PKG_DIR,$(PKG_DIR),' \
+		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
+		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		< setup.py.in > setup.py
+
+always:
 
 $(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
+	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 $(SUBDIR_INSTALL): dir
 
 lint:
 	$(PYLINT) $(PYSRCS)
 
-clean:
-	rm -rf __pycache__
-
 test:
-	$(PYTHON_EXE)
+	$(bindir)/python3
+clean:
+	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
+
 _appdirs.install: appdirs_cpp.install
-atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install util_cpp.install ioutil_cpp.install \
-	pseudobond_cpp.install
+atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
+	util_cpp.install ioutil_cpp.install pseudobond_cpp.install
 blob_cpp.install: atomstruct_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
-_mmcif.install: readcif_cpp.install blob_cpp.install
-pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install blob_cpp.install \
-	basegeom_cpp.install
+_mmcif.install: readcif_cpp.install atomstruct_cpp.install blob_cpp.install
+pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install \
+	blob_cpp.install basegeom_cpp.install
 pseudobond_cpp.install: basegeom_cpp.install
 structaccess.install: atomstruct_cpp.install basegeom_cpp.install blob_cpp.install

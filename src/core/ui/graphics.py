@@ -20,13 +20,8 @@ class GraphicsWindow(wx.Panel):
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
 
-        from ..graphics.view import View
-        from ..graphics.drawing import Drawing
-        drawing = Drawing("root")
-        self.view = View(drawing, self.GetClientSize(), oc,
-            ui.session.logger)
-        ui.session.replace_attribute('main_drawing', drawing)
-        ui.session.replace_attribute('main_view', self.view)
+        self.view = ui.session.main_view
+        self.view.initialize_context(oc)
 
         self.redraw_interval = 16 # milliseconds
         # perhaps redraw interval should be 10 to reduce

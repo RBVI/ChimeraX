@@ -24,6 +24,7 @@ __all__ = [
     'register_save',
     'register_compression',
     'SCRIPT',
+    'formats',
     'open',
     'prefixes',
     'extensions',
@@ -42,6 +43,7 @@ __all__ = [
     'GENERIC3D',
     'SCRIPT',
     'SEQUENCE',
+    'SESSION',
     'STRUCTURE',
     'SURFACE',
     'VOLUME',
@@ -52,6 +54,7 @@ DYNAMICS = "Molecular trajectory"
 GENERIC3D = "Generic 3D objects"
 SCRIPT = "Command script"
 SEQUENCE = "Sequence alignment"
+SESSION = "Session data"
 STRUCTURE = "Molecular structure"
 SURFACE = "Molecular surface"
 VOLUME = "Volume data"
@@ -144,7 +147,7 @@ class _FileFormatInfo:
         self.category = category
         self.extensions = extensions
         self.prefixes = prefixes
-        self.mime = mime
+        self.mime_types = mime
         self.reference = reference
         self.dangerous = dangerous
 
@@ -180,17 +183,23 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
         # scripts are inherently dangerous
         dangerous = category == SCRIPT
     if extensions is not None:
+        if isinstance(extensions, str):
+            extensions = [extensions]
         exts = [s.lower() for s in extensions]
     else:
         exts = ()
     if prefixes is None:
         prefixes = ()
+    elif isinstance(prefixes, str):
+        prefixes = [prefixes]
     if prefixes and not fetch_function:
         import sys
         print("missing fetch function for format with prefix support:",
               format_name, file=sys.stderr)
     if mime is None:
         mime = ()
+    elif isinstance(mime, str):
+        mime = [mime]
     ff = _file_formats[format_name] = _FileFormatInfo(category, exts, prefixes,
                                                       mime, reference,
                                                       dangerous)
@@ -198,6 +207,11 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
                  'save_func', 'save_notes']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
+
+
+def formats():
+    """Return all known format names"""
+    return list(_file_formats.keys())
 
 
 def prefixes(format_name):

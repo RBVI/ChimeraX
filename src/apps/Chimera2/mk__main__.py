@@ -13,7 +13,7 @@ if not filename.endswith('.py'):
 
 module_name = filename[0:-3]
 main = open('__main__.py', 'w', encoding='utf-8')
-print('from %s import *\n' % module_name, file=main)
+print('from %s import *  # noqa\n' % module_name, file=main)
 
 with open(sys.argv[1], 'rU', encoding='utf-8') as f:
     in_main = False
