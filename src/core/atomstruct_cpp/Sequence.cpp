@@ -124,4 +124,15 @@ Sequence::rname3to1(const std::string& rn)
     return (*l1i).second;
 }
 
+Sequence
+Sequence::ungapped() const
+{
+    Sequence::Contents gapless = _contents;
+    gapless.clear();
+    for (auto c: _contents) {
+        // TODO: also implement _clear_cache()
+    }
+
+}
+
 }  // namespace atomstruct

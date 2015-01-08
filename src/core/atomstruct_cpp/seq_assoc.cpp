@@ -22,7 +22,7 @@ find_gaps(Chain& chain)
             // explicit gapping
             ap.est_len = chain.size();
             ap.segments.clear();
-            ap.segments.push_back(chain);
+            ap.segments.emplace_back(chain.begin(), chain.end());
             ap.gaps.clear();
             return ap;
         }
@@ -88,6 +88,12 @@ estimate_assoc_params(Chain& chain)
         ap.est_len = (*ii).second.size();
     }
     return ap;
+}
+
+assoc_retvals
+try_assoc(const Sequence& align_seq, const Chain& mseq,
+    const assoc_params &ap, unsigned int max_errors)
+{
 }
 
 }  // namespace atomstruct

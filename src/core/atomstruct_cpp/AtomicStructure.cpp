@@ -295,7 +295,7 @@ AtomicStructure::make_chains() const
 
             // if a jump in numbering is in an unresolved part of the structure,
             // the estimated length can be too long...
-            if ((Sequence::size_type)ap.est_len < sr_seq.size())
+            if (ap.est_len < sr_seq.size())
                 ap.est_len = sr_seq.size();
 
             // since gapping a structure sequence is considered an "error",

@@ -21,7 +21,7 @@ Chain::bulk_set(Chain::Residues& residues, std::vector<unsigned char>* chars)
         }
     }
     _residues = residues;
-    this->assign(chars->begin(), chars->end());
+    assign(chars->begin(), chars->end());
 
     if (del_chars)
         delete chars;
@@ -38,10 +38,10 @@ Chain::set(unsigned i, Residue *r, char character)
     }
     if (i == _residues.size()) {
         _residues.push_back(r);
-        this->push_back(c);
+        push_back(c);
     } else {
         _residues.at(i) = r;
-        this->at(i) = c;
+        at(i) = c;
     }
 }
 
@@ -57,17 +57,16 @@ Chain::set_from_seqres(bool fs)
         != _residues.end()) {
             // there actually are seqres portions
             Chain::Residues new_residues;
-            std::vector<unsigned char> new_contents;
+            Sequence::Contents new_contents;
             auto ri = _residues.begin();
-            for (auto si = this->begin(); si != this->end();
-            ++si, ++ri) {
+            for (auto si = begin(); si != end(); ++si, ++ri) {
                 if (*ri == nullptr)
                     continue;
                 new_residues.push_back(*ri);
                 new_contents.push_back(*si);
             }
             _residues.swap(new_residues);
-            this->swap(new_contents);
+            swap(new_contents);
         }
     }
     _from_seqres = fs;
