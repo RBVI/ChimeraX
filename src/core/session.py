@@ -373,12 +373,34 @@ class Session:
 
 
 @cli.register('save', cli.CmdDesc(required=[('filename', cli.StringArg)]))
-def save(session, filename):
+def save(session, filename, **kw):
     """command line version of saving a session"""
-    if not filename.endswith(SUFFIX):
-        filename += SUFFIX
-    with _builtin_open(filename, 'wb') as output:
+    my_open = None
+    if hasattr(filename, 'write'):
+        # called via export, it's really a stream
+        output = filename
+    else:
+        if not filename.endswith(SUFFIX):
+            filename += SUFFIX
+        my_open = _builtin_open
+        try:
+            # default to saving compressed files
+            import gzip
+            filename += ".gz"
+            my_open = gzip.GzipFile
+        except ImportError:
+            pass
+        try:
+            output = my_open(filename, 'wb')
+        except IOError:
+            session.logger.error()
+            return
+
+    try:
         session.save(output)
+    finally:
+        if my_open is not None:
+            output.close()
 
 
 @cli.register('dump', cli.CmdDesc(required=[('filename', cli.StringArg)],
@@ -387,11 +409,27 @@ def dump(session, filename, output=None):
     """dump contents of session for debugging"""
     if not filename.endswith(SUFFIX):
         filename += SUFFIX
+    input = None
     try:
         input = _builtin_open(filename, 'rb')
-    except IOError as e:
-        session.logger.error(str(e))
-        return
+    except IOError:
+        filename2 = filename + '.gz'
+        try:
+            import gzip
+            input = gzip.GzipFile(filename2, 'rb')
+        except ImportError:
+            import os
+            if os.exists(filename2):
+                session.logger.error("Unable to open compressed files: %s"
+                                     % filename2)
+                return
+        except IOError:
+            pass
+        if input is None:
+            session.logger.error(
+                "Unable to find compressed nor uncompressed file: %s"
+                % filename)
+            return
     if output is not None:
         output = _builtin_open(output, 'w')
     from pprint import pprint
@@ -432,7 +470,7 @@ def _initialize():
         prefixes="session",
         mime="application/x-chimera2-session",
         reference="http://www.rbvi.ucsf.edu/chimera/",
-        open_func=open, save_func=save)
+        open_func=open, export_func=save)
 _initialize()
 
 
