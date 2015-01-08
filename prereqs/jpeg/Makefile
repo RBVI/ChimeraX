@@ -8,7 +8,7 @@ DISTRIBUTION = jpegsrc.v$(VERSION).tar.gz
 SOURCE = $(tmpdir)/jpeg-$(VERSION)
 
 install: $(SOURCE)
-	cd $(SOURCE) ; ./configure --prefix=$(build_prefix) --disable-static && make install-libLTLIBRARIES
+	cd $(SOURCE) ; ./configure --prefix=$(build_prefix) --disable-static && make install-libLTLIBRARIES install-includeHEADERS install-data-local
 ifeq ($(OS),Darwin)
 	libjpeg=libjpeg.$(LIBJPEG_VER).dylib; \
 	install_name_tool -id "@rpath/$$libjpeg" $(shlibdir)/$$libjpeg
