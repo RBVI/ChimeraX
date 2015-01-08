@@ -109,5 +109,5 @@ def register():
         "StereoLithography", generic3d.CATEGORY, (".stl",),
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
         open_func=open)
-    from . import models
-    models.register('STL', STLModel)
+    from . import session
+    session.register_unique_class(STLModel, 'STL')

@@ -37,7 +37,8 @@ class State(metaclass=abc.ABCMeta):
     the State API is reused for scenes.
 
     References to objects should use the session's unique identifier
-    for the object.
+    for the object.  The object's class needs to be registered with
+    :py:func:`register_unique_class`.
     """
     #: state type
     SCENE = 0x1
@@ -209,6 +210,31 @@ class Scenes(State):
         self._scenes.clear()
 
 
+_name_to_class = {}
+_class_to_name = {}
+
+
+def register_unique_class(cls, name=None):
+    """Register unique class for session files
+
+    The name should be understandable to a user.
+    """
+    if name is None:
+        name = '%s.%s' % (cls.__module__, cls.__name__)
+    _name_to_class[name] = cls
+    _class_to_name[cls] = name
+
+
+def unique_class_name(cls):
+    """Return registered unique name for class"""
+    return _class_to_name[cls]
+
+
+def unique_class_from_name(name):
+    """Return registered class with name"""
+    return _name_to_class[name]
+
+
 class Session:
     """Session management
 
@@ -277,8 +303,7 @@ class Session:
             ident = obj._cache_uid
             if ident in self._obj_ids:
                 return ident
-        cls = obj.__class__
-        key = '%s.%s' % (cls.__module__, cls.__name__)
+        key = unique_class_name(obj.__class__)
         ordinal = self._cls_ordinals.get(key, 0)
         ordinal += 1
         self._cls_ordinals[key] = ordinal
@@ -303,7 +328,6 @@ class Session:
         """Serialize session to stream."""
         serialize.serialize(stream, serialize.VERSION)
         serialize.serialize(stream, self.metadata)
-        serialize.serialize(stream, self._cls_ordinals)
         for tag in self._state_managers:
             manager = self._state_managers[tag]
             snapshot = manager.take_snapshot(self, State.SESSION)
@@ -312,6 +336,7 @@ class Session:
             version, data = snapshot
             serialize.serialize(stream, [tag, version, data])
         serialize.serialize(stream, [None, 0, None])
+        serialize.serialize(stream, self._cls_ordinals)
 
     def restore(self, stream, version=None):
         """Deserialize session from stream."""
@@ -323,7 +348,6 @@ class Session:
             raise State.NEED_NEWER
         if not skip_over_metadata:
             self.metadata.update(self.read_metadata(stream, skip_version=True))
-        self._cls_ordinals = serialize.deserialize(stream)
         # TODO: how much typechecking?
         assert(type(self._cls_ordinals) is dict)
         managers = []
@@ -336,6 +360,7 @@ class Session:
             manager = self._state_managers[tag]
             manager.restore_snapshot(State.PHASE1, self, version, data)
             managers.append((manager, version))
+        self._cls_ordinals = serialize.deserialize(stream)
         for manager, version in managers:
             manager.restore_snapshot(State.PHASE2, self, version, None)
 
@@ -356,6 +381,38 @@ def save(session, filename):
         session.save(output)
 
 
+@cli.register('dump', cli.CmdDesc(required=[('filename', cli.StringArg)],
+                                  optional=[('output', cli.StringArg)]))
+def dump(session, filename, output=None):
+    """dump contents of session for debugging"""
+    if not filename.endswith(SUFFIX):
+        filename += SUFFIX
+    try:
+        input = _builtin_open(filename, 'rb')
+    except IOError as e:
+        session.logger.error(str(e))
+        return
+    if output is not None:
+        output = _builtin_open(output, 'w')
+    from pprint import pprint
+    with input:
+        print("session version:", file=output)
+        version = serialize.deserialize(input)
+        pprint(version, stream=output)
+        print("session metadata:", file=output)
+        metadata = serialize.deserialize(input)
+        pprint(metadata, stream=output)
+        while True:
+            tag, version, data = serialize.deserialize(input)
+            if tag is None:
+                break
+            print(tag, 'version:', version, file=output)
+            pprint(data, stream=output)
+        print("unique id counts:", file=output)
+        cls_ordinals = serialize.deserialize(input)
+        pprint(cls_ordinals, stream=output)
+
+
 def open(session, stream, *args, **kw):
     if hasattr(stream, 'read'):
         input = stream
@@ -368,7 +425,7 @@ def open(session, stream, *args, **kw):
     return [], "opened chimera session"
 
 
-def _register():
+def _initialize():
     from . import io
     io.register_format(
         "Chimera session", io.SESSION, SUFFIX,
@@ -376,7 +433,7 @@ def _register():
         mime="application/x-chimera2-session",
         reference="http://www.rbvi.ucsf.edu/chimera/",
         open_func=open, save_func=save)
-_register()
+_initialize()
 
 
 def common_startup(sess):

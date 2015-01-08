@@ -9,21 +9,10 @@ TODO: Stubs for now.
 
 import weakref
 from .graphics.drawing import Drawing
-from .session import State
+from .session import State, unique_class_name, unique_class_from_name
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
-_model_name_to_class = {}
-_model_class_to_name = {}
-
-
-def register(name, cls):
-    """Register model subclass for session files
-
-    The name should be understandable to a user.
-    """
-    _model_name_to_class[name] = cls
-    _model_class_to_name[cls] = name
 
 
 class Model(State, Drawing):
@@ -68,7 +57,7 @@ class Models(State):
         data = {}
         for id, model in self._models.items():
             try:
-                name = _model_class_to_name[model.__class__]
+                name = unique_class_name(model.__class__)
             except KeyError:
                 session.warning('Unable to save "%s" model data'
                                 % model.__class__.__name__)
@@ -83,7 +72,7 @@ class Models(State):
 
         for id, [unid, name, [model_version, model_data]] in data.items():
             try:
-                cls = _model_name_to_class[name]
+                cls = unique_class_from_name(name)
             except KeyError:
                 session.log.warning('Unable to restore %s model' % name)
                 continue
