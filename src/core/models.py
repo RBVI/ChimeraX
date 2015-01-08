@@ -80,6 +80,8 @@ class Models(State):
                 model = cls("unknown name until restored")
                 model.id = id
                 self._models[id] = model
+                parent = self.drawing   # TODO: figure out based on id
+                parent.add_drawing(model)
                 session.restore_unique_id(model, uid)
             else:
                 model = session.unique_obj(uid)
