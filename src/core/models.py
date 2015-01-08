@@ -77,12 +77,13 @@ class Models(State):
                 session.log.warning('Unable to restore %s model' % name)
                 continue
             if phase == State.PHASE1:
-                obj = cls("unknown name until restored")
-                self._models[id] = obj
-                session.restore_unique_id(obj, uid)
+                model = cls("unknown name until restored")
+                model.id = id
+                self._models[id] = model
+                session.restore_unique_id(model, uid)
             else:
-                obj = session.unique_id(uid)
-            obj.restore_snapshot(phase, session, model_version, model_data)
+                model = session.unique_obj(uid)
+            model.restore_snapshot(phase, session, model_version, model_data)
 
     def reset_state(self):
         models = self._models.values()
@@ -91,7 +92,7 @@ class Models(State):
             model.delete()
 
     def list(self):
-        return self._models
+        return list(self._models.values())
 
     def add(self, models, id=None):
         session = self._session()  # resolve back reference

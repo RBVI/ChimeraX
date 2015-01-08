@@ -315,9 +315,7 @@ class Session:
     def unique_obj(self, ident):
         """Return the object that corresponds to the unique identifier"""
         ref = self._obj_ids.get(ident, None)
-        if ref is None:
-            return None
-        return ref()
+        return ref
 
     def restore_unique_id(self, obj, uid):
         """Restore unique identifier for an object"""
@@ -359,16 +357,18 @@ class Session:
                 continue
             manager = self._state_managers[tag]
             manager.restore_snapshot(State.PHASE1, self, version, data)
-            managers.append((manager, version))
-        self._cls_ordinals = serialize.deserialize(stream)
-        for manager, version in managers:
-            manager.restore_snapshot(State.PHASE2, self, version, None)
+            managers.append((manager, version, data))
+        self.replace_attribute('_cls_ordinals', serialize.deserialize(stream))
+        for manager, version, data in managers:
+            manager.restore_snapshot(State.PHASE2, self, version, data)
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
         if not skip_version:
             version = serialize.deserialize(stream)
         metadata = serialize.deserialize(stream)
+        if skip_version:
+            return metadata
         return version, metadata
 
 

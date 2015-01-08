@@ -64,10 +64,15 @@ def list(session):
     models = session.models.list()
     if len(models) == 0:
         return "No open models."
+
+    def id_str(id):
+        if isinstance(id, int):
+            return str(id)
+        return '.'.join(str(x) for x in id)
     info = "Open models:"
     if len(models) > 1:
-        info += ", ".join(str(m.id) for m in models[:-1]) + " and"
-    info += " %s" % models[-1].id
+        info += ", ".join(id_str(m.id) for m in models[:-1]) + " and"
+    info += " %s" % id_str(models[-1].id)
     session.logger.info(info)
 _list_desc = cli.CmdDesc()
 

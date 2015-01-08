@@ -245,6 +245,8 @@ class Drawing(State):
         return self._displayed_positions
 
     def set_display_positions(self, position_mask):
+        if position_mask == self._displayed_positions:
+            return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)
         self.redraw_needed(shape_changed=True)
@@ -912,9 +914,7 @@ class Drawing(State):
         self.use_lighting = data['use_lighting']
 
         self.display = data['display']
-        self.display_positions = data['display_positions']
         self.selected = data['selected']
-        self.selected_positions = data['selected_positions']
         self.position = data['position']
         self.positions = data['positions']
         self.selected_triangles_mask = data['selected_triangles_mask']
@@ -922,6 +922,8 @@ class Drawing(State):
         self.colors = data['colors']
         self.geometry = data['geometry']
         self.triangle_and_edge_mask = data['triangle_and_edge_mask']
+        self.display_positions = data['display_positions']
+        self.selected_positions = data['selected_positions']
 
     def reset_state(self):
         # delay implementing until needed
