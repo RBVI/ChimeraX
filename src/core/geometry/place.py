@@ -68,6 +68,14 @@ class Place:
                              and origin is None)
         self._inverse = None    # Cached inverse.
 
+    def __getstate__(self):
+        return self.matrix
+
+    def __setstate__(self, state):
+        self.matrix = state
+        self._is_identity = False
+        self._inverse = None
+
     def __eq__(self, p):
         return (p.matrix == self.matrix).all()
 
@@ -306,6 +314,14 @@ class Places:
         self._place_array = place_array
         self._opengl_array = opengl_array
         self._shift_and_scale = shift_and_scale
+
+    def __getstate__(self):
+        return [self._place_list, self._place_array, self._shift_and_scale,
+                self._opengl_array]
+
+    def __setstate__(self, state):
+        (self._place_list, self._place_array, self._shift_and_scale,
+         self._opengl_array) = state
 
     def place_list(self):
         pl = self._place_list
