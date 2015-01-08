@@ -8,7 +8,7 @@ class CmdLine:
     def __init__(self, session):
         self._session = weakref.ref(session)
         import wx
-        from .tool_api import ToolWindow
+        from chimera.core.ui.tool_api import ToolWindow
         self.tool_window = ToolWindow("Command Line", "General", session,
             size=self.SIZE)
         parent = self.tool_window.ui_area
@@ -50,3 +50,24 @@ class CmdLine:
         except:
             import traceback
             session.logger.error(traceback.format_exc())
+
+#
+# 'register_command' is called by the toolshed on start up
+# 'start_tool' is called to start an instance of the tool
+#
+def start_tool(session, ti):
+    # This function is simple because we "know" we only provide
+    # a single tool in the entire package, so we do not need to
+    # look at the name in 'ti.name'
+    # For GUI, we create the graphical representation if it does
+    # not already exist.
+    # For all other types of UI, we do nothing.
+    from chimera.core import gui
+    if isinstance(session.ui, gui.UI):
+        if not hasattr(session.ui, "cmd_line"):
+            session.ui.cmd_line = CmdLine(session)
+
+def register_command(command_name):
+    # TODO: implement
+    import sys
+    print("cmd_line.register_command not implemented yet", file=sys.stderr)

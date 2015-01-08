@@ -27,7 +27,6 @@ class Graphics_Window(QtGui.QWindow):
 
         self.timer = None			# Redraw timer
         self.redraw_interval = 10               # milliseconds
-        # TODO: Redraw interval is set fast enough for 75 Hz oculus rift.
         self.minimum_event_processing_ratio = 0.1   # Event processing time as a fraction of time since start of last drawing
         self.last_redraw_start_time = 0
         self.last_redraw_finish_time = 0
@@ -84,9 +83,16 @@ class Graphics_Window(QtGui.QWindow):
         # So we pass them back to the main window.
         self.session.main_window.event(event)
 
+    def set_redraw_interval(self, milliseconds):
+        self.redraw_interval = milliseconds
+        t = self.timer
+        if not t is None:
+            t.setInterval(milliseconds)
+
     def start_update_timer(self):
         if self.timer is None:
             self.timer = t = QtCore.QTimer(self)
+            t.timerType = QtCore.Qt.PreciseTimer
             t.timeout.connect(self.redraw_timer_callback)
             t.start(self.redraw_interval)
 

@@ -28,6 +28,9 @@ from .matrix import cross_product
 from .matrix import norm
 from .matrix import vector_angle_radians as vector_angle
 
+from ._geometry import distances_perpendicular_to_axis
+from ._geometry import maximum_norm
+
 '''Inner product of two vectors accumulated as a 64-bit float result.'''
 from .matrix import inner_product_64
 

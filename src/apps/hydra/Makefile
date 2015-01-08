@@ -17,6 +17,7 @@ ifeq ($(OS),Darwin)
   APP = $(APPS_DIR)/$(APP_NAME)
   APP_PY_EXE = $(APP)/Contents/MacOS/python
   APP_FW_DIR = $(APP)/Contents/Frameworks
+  APP_LIB_DIR = $(APP)/Contents/lib
   APP_BIN_DIR = $(APP)/Contents/Resources/bin
   APP_PY_DIR = $(APP_FW_DIR)/Python.framework/Versions/$(PYTHON_VERSION)
   APP_PY_SITE = $(APP_PY_DIR)/lib/python$(PYTHON_VERSION)/site-packages
@@ -33,17 +34,14 @@ ifeq ($(OS),Darwin)
 		plugins/imageformats/libqjpeg.dylib \
 		plugins/accessible/libqtaccessiblewidgets.dylib
   MAC_DEPLOY = macosx-$(MACOSX_DEPLOYMENT_TARGET)-x86_64
-#  PYOPENGL_VERSION = 3.1.0a1
   PYOPENGL_VERSION = 3.1.0
   PYOPENGL_EGG = PyOpenGL-$(PYOPENGL_VERSION)-py$(PYTHON_VERSION).egg
   PYOPENGL_ACCELERATE_EGG = PyOpenGL_accelerate-$(PYOPENGL_VERSION)-py$(PYTHON_VERSION)-$(MAC_DEPLOY).egg
-  NUMEXPR_VERSION = 2.3.1
+  NUMEXPR_VERSION = 2.4
   NUMEXPR_EGG = numexpr-$(NUMEXPR_VERSION)-py$(PYTHON_VERSION)-$(MAC_DEPLOY).egg
-  PYCOLLADA_VERSION = 0.4
+  PYCOLLADA_VERSION = 0.4.1
   PYCOLLADA_EGG = pycollada-$(PYCOLLADA_VERSION)-py$(PYTHON_VERSION).egg
-  DATEUTIL_VERSION = 2.2
-  DATEUTIL_EGG = python_dateutil-$(DATEUTIL_VERSION)-py$(PYTHON_VERSION).egg
-  HDF_VERSION = 5.8
+  HDF_VERSION = 5.9
   SIX_VERSION = 1.8.0
   SIX_EGG = six-$(SIX_VERSION)-py$(PYTHON_VERSION).egg
   APPDIRS_VERSION = 1.4.0
@@ -60,7 +58,8 @@ install: all $(PKG_DIR) install_app_prereqs
 # Install core packages in Hydra app.
 	$(RSYNC) $(PYSITEDIR)/chimera/core/geometry $(PYSITEDIR)/chimera/core/graphics $(PKG_DIR)
 	-mkdir -p $(PKG_DIR)/lib
-	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(PKG_DIR)/lib
+#	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(PKG_DIR)/lib
+	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(APP_LIB_DIR)
 ifeq ($(OS),Darwin)
 	$(RSYNC) $(PKG_DIR) $(APP_PY_SITE)
 endif
@@ -77,22 +76,21 @@ install_core:
 $(APP) update_prereqs:
 
 # Make directories
-	-mkdir -p $(APPS_DIR) $(APP_FW_DIR)
+	-mkdir -p $(APPS_DIR) $(APP_FW_DIR) $(APP_LIB_DIR)
 
 # Build application directory hierarchy
 	$(RSYNC) $(APP_NAME) $(APPS_DIR)
 
 # Copy Python
-	$(RSYNC) $(bindir)/python$(PYTHON_VERSION)noapp $(APP_PY_EXE)
-	install_name_tool -change $(PY_LIB) @executable_path/../Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/Python $(APP_PY_EXE)
+	$(RSYNC) $(bindir)/python$(PYTHON_VERSION) $(APP_PY_EXE)
+
 # Python 3.4 framework has symbolic link to the non-framework lib/python3.4.
 # To copy that we use rsync option -copy-unsafe-links to copy links outside the tree.
 	$(RSYNC) --copy-unsafe-links --exclude site-packages $(frameworkdir)/Python.framework $(APP_FW_DIR)
-	install_name_tool -change $(PY_LIB) @executable_path/../../../../Python $(APP_PY_DIR)/Resources/Python.app/Contents/MacOS/Python
 
 # Copy only the Python packages needed for distribution.
 	cd $(libdir)/python$(PYTHON_VERSION)/site-packages ; \
-	$(RSYNC) $(APPDIRS_EGG) $(DATEUTIL_EGG)/dateutil easy-install.pth LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
+	$(RSYNC) $(APPDIRS_EGG) dateutil easy-install.pth LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
 		$(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL $(PYOPENGL_ACCELERATE_EGG)/OpenGL_accelerate \
 		PyQt5 sip.so $(SIX_EGG)/six.py tables webcolors.py wx $(APP_PY_SITE)
 
@@ -127,31 +125,21 @@ $(APP) update_prereqs:
 	done
 
 # Make PyTables link to libhdf.dylib
-	$(RSYNC) $(libdir)/libhdf$(HDF_VERSION).dylib $(APP_PY_SITE)/tables
-	for tableslib in $(APP_PY_SITE)/tables/*.so ; do \
-		install_name_tool -change $(libdir)/libhdf$(HDF_VERSION).dylib @loader_path/libhdf$(HDF_VERSION).dylib $$tableslib ; \
-	done
+	$(RSYNC) $(libdir)/libhdf$(HDF_VERSION).dylib $(APP_LIB_DIR)/tables
 
-# Install pdbio and fix paths to libraries
-	-mkdir -p $(APP_HYDRA)/lib
-	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(APP_HYDRA)/lib
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../../Python $(APP_HYDRA)/lib/libblob.dylib
-	install_name_tool -change @executable_path/../lib/libatomstruct.dylib $(APP_HYDRA)/lib/libatomstruct.dylib $(APP_HYDRA)/lib/libblob.dylib
-	install_name_tool -change @executable_path/../lib/libtmpl.dylib $(APP_HYDRA)/lib/libtmpl.dylib $(APP_HYDRA)/lib/libatomstruct.dylib
-	$(RSYNC) $(PYSITEDIR)/pdbio.so $(PYSITEDIR)/structaccess.so $(APP_HYDRA)
+# Install pdbio
+	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(APP_LIB_DIR)
+	$(RSYNC) $(PYSITEDIR)/chimera/core/pdbio.so $(PYSITEDIR)/chimera/core/structaccess.so $(APP_HYDRA)
+
 	# Work around pdbio.parse_mmCIF_file() importing structaccess globally.
 	echo "from hydra.structaccess import *" >  $(APP_PY_SITE)/structaccess.py
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(APP_HYDRA)/structaccess.so 
-	install_name_tool -change $(PY_LIB) @loader_path/../../../../Python $(APP_HYDRA)/pdbio.so
-	for pymod in structaccess.so pdbio.so ; do \
-		for lib in libatomstruct.dylib libblob.dylib libtmpl.dylib libconnectivity.dylib ; do \
-			install_name_tool -change @executable_path/../lib/$$lib @loader_path/lib/$$lib $(APP_HYDRA)/$$pymod ; \
-		done ; \
-	done
 
 # Copy ffmpeg
 	-mkdir -p $(APP_BIN_DIR)
 	$(RSYNC) $(bindir)/ffmpeg $(APP_BIN_DIR)
+
+# Copy jpeg library used by PIL
+	$(RSYNC) $(libdir)/libjpeg.9.dylib $(APP_LIB_DIR)
 
 dmg:
 	cd $(APPS_DIR) ; \

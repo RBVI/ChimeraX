@@ -898,14 +898,15 @@ class CmdDesc:
             raise ValueError("Can not reuse CmdDesc instances")
         import inspect
         empty = inspect.Parameter.empty
-        positional = inspect.Parameter.VAR_POSITIONAL
+        var_positional = inspect.Parameter.VAR_POSITIONAL
+        var_keyword = inspect.Parameter.VAR_KEYWORD
         signature = inspect.signature(function)
         params = list(signature.parameters.values())
         if len(params) < 1 or params[0].name != "session":
             raise ValueError("Missing initial 'session' argument")
         for p in params[1:]:
             if (p.default != empty or p.name in self._required
-                    or p.kind == positional):
+                    or p.kind in (var_positional, var_keyword)):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
                              "required or have a default value" % p.name)

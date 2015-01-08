@@ -155,6 +155,8 @@ else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
+	-mkdir $(app_prefix)/include
+	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_prefix)/include
 endif
 	$(RSYNC) $(PYSITEDIR)/pip $(PYSITEDIR)/pip-*-info $(APP_PYSITEDIR)
 

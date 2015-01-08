@@ -25,8 +25,11 @@ class View:
         self.camera = Camera()
         '''The camera controlling the vantage shown in the graphics window.'''
 
-        from .opengl import Render
-        self._render = Render()
+        if opengl_context is None:
+            self._render = None
+        else:
+            from .opengl import Render
+            self._render = Render()
         self._opengl_initialized = False
         self._shadows = False
         self.shadow_map_size = 2048
@@ -57,6 +60,14 @@ class View:
         self._drawing_manager = dm = _Redraw_Needed()
         drawing.set_redraw_callback(dm)
 
+    def initialize_context(self, oc):
+        """"""
+        if self._opengl_context is not None:
+            raise ValueError("OpenGL context is alread set")
+        self._opengl_context = oc
+        from .opengl import Render
+        self._render = Render()
+
     def _initialize_opengl(self):
 
         if self._opengl_initialized:
@@ -72,9 +83,12 @@ class View:
 
     def opengl_version(self):
         '''Return the OpenGL version as a string.'''
+        self._use_opengl()
         return self._render.opengl_version()
 
     def _use_opengl(self):
+        if self._opengl_context is None:
+            raise RuntimeError("running without graphics")
         self._opengl_context.make_current()
         self._initialize_opengl()
 

@@ -90,7 +90,7 @@ class Commands:
         '''
         if report:
             self.history.add_to_command_history(text)
-        for c in text.split(';'):
+        for c in split_unquoted(text, ';'):
             self.run_single_command(c, report)
 
     def run_single_command(self, text, report = True):
@@ -120,6 +120,11 @@ class Commands:
                 ses.log.insert_graphics_image()
         else:
             ses.show_status('Unknown command %s' % cmd)
+
+def split_unquoted(text, separator):
+    import re
+    pattern = re.compile(r'''((?:[^;"']|"[^"]*"|'[^']*')+)''')
+    return pattern.split(text)[1::2]
 
 class Command_History:
     def __init__(self, session):

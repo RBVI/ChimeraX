@@ -26,6 +26,11 @@ class Oculus_Rift:
         if success:
             self.oculus_full_screen()
             self.set_camera_mode(session.view.camera)
+            # Set redraw timer for 1 msec to minimize dropped frames.
+            # In Qt 5.2 interval of 5 or 10 mseconds caused dropped frames on 2 million triangle surface,
+            # but 1 or 2 msec produced no dropped frames.
+            gw = session.main_window.graphics_window
+            gw.set_redraw_interval(1)
 
     def close(self):
 
@@ -33,10 +38,13 @@ class Oculus_Rift:
         self.window.close()
         self.window = None
 
-        c = self.session.view.camera
+        s = self.session
+        c = s.view.camera
         from ...graphics import mono_camera_mode
         c.mode = mono_camera_mode
         c.field_of_view = 30.0
+        gw = s.main_window.graphics_window
+        gw.set_redraw_interval(10)
 
     def start_event_processing(self, view):
 

@@ -45,6 +45,9 @@ endif
 app-install:
 	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(VERSION)-py$(PYTHON_VERSION).egg-info \
 		$(PYSITEDIR)/wx $(APP_PYSITEDIR)
+ifndef USE_MAC_FRAMEWORKS
+	$(RSYNC) $(shlibdir)/libwx_*$(SHLIB_EXT)* $(app_shlibdir)
+endif
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

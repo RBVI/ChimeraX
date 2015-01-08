@@ -239,7 +239,7 @@ camera_parameters = (
 def camera_state(camera):
 
   v = dict((name,getattr(camera,name)) for name in camera_parameters if hasattr(camera,name))
-  v['place'] = camera.place.matrix
+  v['place'] = camera.position.matrix
   return v
 
 # -----------------------------------------------------------------------------

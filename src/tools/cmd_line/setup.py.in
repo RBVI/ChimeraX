@@ -1,42 +1,28 @@
 #import distutils.core
 #distutils.core.DEBUG = True
+from distlib import metadata
+print(metadata.METADATA_FILENAME)
+metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup
 
 lib_dir = "LIB_DIR"
 pkg_dir = "PKG_DIR"
 import os.path
 
-setup(name="chimera.core",
-	version="CORE_VERSION",
-	description="Chimera Core Package",
+setup(name="chimera.cmd_line",
+	version="TOOL_VERSION",
+	description="Command Line",
 	author="UCSF RBVI",
 	author_email="chimera2@cgl.ucsf.edu",
 	url="https://www.rbvi.ucsf.edu/chimera2/",
 	package_dir = {
-		"chimera.core": pkg_dir,
+		"chimera.cmd_line": pkg_dir,
 	},
 	packages=[
-		"chimera.core",
-		"chimera.core.ui",
-		"chimera.core.geometry",
-		"chimera.core.graphics",
-		"chimera.core.toolshed",
+		"chimera.cmd_line",
 	],
-	package_data={
-		"chimera.core": [ "*.so" ],
-		"chimera.core.ui": [ "*.jpg" ],
-		"chimera.core.geometry": [ "*.so" ],
-		"chimera.core.graphics": [ "*.txt", "*.so" ],
-	},
-	data_files=[
-		( "lib", [
-			os.path.join(lib_dir, "libappdirs.SHLIB_EXT"),
-			os.path.join(lib_dir, "libarrays.SHLIB_EXT"),
-			os.path.join(lib_dir, "liblogger.SHLIB_EXT"),
-			os.path.join(lib_dir, "libtmpl.SHLIB_EXT"),
-			os.path.join(lib_dir, "libatomstruct.SHLIB_EXT"),
-			os.path.join(lib_dir, "libblob.SHLIB_EXT"),
-		] ),
+	install_requires=[
+		"chimera.core",
 	],
 	classifiers=[
 		"Development Status :: 2 - Pre-Alpha",
@@ -52,6 +38,12 @@ setup(name="chimera.core",
 		"Topic :: Scientific/Engineering :: Visualization",
 		"Topic :: Scientific/Engineering :: Chemistry",
 		"Topic :: Scientific/Engineering :: Vio-Informatics",
-		"Chimera-Tools :: ChimeraCore",
+		# Each tool should have a single line with up to six fields:
+		# 'Chimera-Tool' :: tool_name :: module_name
+		# :: display_name :: commands :: categories
+		# 'tool_name', 'module_name' and 'display_name' are strings.
+		# 'commands' and 'categories' are comma separated strings.
+		"Chimera-Tool :: CommandLine :: chimera.cmd_line "
+		":: Command Line Interface :: :: Utilities",
 	],
 )
