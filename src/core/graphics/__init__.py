@@ -7,3 +7,5 @@ from .crossfade import CrossFade, MotionBlur
 from .opengl import Texture, Lighting, Material
 
 from .view import View, OpenGLContext
+
+from ._graphics import closest_sphere_intercept, closest_geometry_intercept
