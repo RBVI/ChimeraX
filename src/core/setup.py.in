@@ -30,6 +30,7 @@ setup(
         "chimera.core.graphics": ["*.txt", "*.PYMOD_EXT"],
     },
     data_files=[
+	("", [ "timestamp" ]),
         ("lib", [
             os.path.join(lib_dir, "libappdirs.SHLIB_EXT"),
             os.path.join(lib_dir, "libarrays.SHLIB_EXT"),

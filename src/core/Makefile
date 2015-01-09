@@ -31,7 +31,7 @@ app_install: wheel
 	$(APP_PYTHON_EXE) -m pip install wheel distlib
 	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
 
-wheel: setup.py always
+wheel: setup.py timestamp always
 	$(PYTHON_EXE) -m pip install wheel distlib
 	$(PYTHON_EXE) setup.py bdist_wheel
 
@@ -42,6 +42,9 @@ setup.py: setup.py.in
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,CORE_VERSION,$(CORE_VERSION),' \
 		< setup.py.in > setup.py
+
+timestamp:
+	echo "chimera.core" > timestamp
 
 always:
 

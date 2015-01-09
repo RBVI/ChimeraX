@@ -67,7 +67,10 @@ def start_tool(session, ti):
         if not hasattr(session.ui, "cmd_line"):
             session.ui.cmd_line = CmdLine(session)
 
+from chimera.core import cli
+def _hide(session):
+    session.ui.cmd_line.tool_window.shown = False
+_hide_desc = cli.CmdDesc()
+
 def register_command(command_name):
-    # TODO: implement
-    import sys
-    print("cmd_line.register_command not implemented yet", file=sys.stderr)
+    cli.register(command_name + " hide", _hide_desc, _hide)

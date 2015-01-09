@@ -19,7 +19,7 @@ install: dir
 app_install: wheel
 	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
 
-wheel: setup.py always
+wheel: setup.py timestamp always
 	$(PYTHON_EXE) setup.py bdist_wheel
 
 setup.py: setup.py.in
@@ -29,6 +29,9 @@ setup.py: setup.py.in
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,TOOL_VERSION,$(TOOL_VERSION),' \
 		< setup.py.in > setup.py
+
+timestamp:
+	echo "chimera.cmd_line" >  timestamp
 
 always:
 

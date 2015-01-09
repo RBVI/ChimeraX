@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 #import distutils.core
 #distutils.core.DEBUG = True
 from distlib import metadata
@@ -10,40 +12,43 @@ pkg_dir = "PKG_DIR"
 import os.path
 
 setup(name="chimera.cmd_line",
-	version="TOOL_VERSION",
-	description="Command Line",
-	author="UCSF RBVI",
-	author_email="chimera2@cgl.ucsf.edu",
-	url="https://www.rbvi.ucsf.edu/chimera2/",
-	package_dir = {
-		"chimera.cmd_line": pkg_dir,
-	},
-	packages=[
-		"chimera.cmd_line",
-	],
-	install_requires=[
-		"chimera.core",
-	],
-	classifiers=[
-		"Development Status :: 2 - Pre-Alpha",
-		"Environment :: MacOS X :: Aqua",
-		"Environment :: Win32 (MS Windows)",
-		"Environment :: X11 Applications",
-		"Intended Audience :: Science/Research",
-		"License :: Free for non-commercial use",
-		"Operating System :: MacOS :: MacOS X",
-		"Operating System :: Microsoft :: Windows 7",
-		"Operating System :: POSIX :: Linux",
-		"Programming Language :: Python :: 3",
-		"Topic :: Scientific/Engineering :: Visualization",
-		"Topic :: Scientific/Engineering :: Chemistry",
-		"Topic :: Scientific/Engineering :: Vio-Informatics",
-		# Each tool should have a single line with up to six fields:
-		# 'Chimera-Tool' :: tool_name :: module_name
-		# :: display_name :: commands :: categories
-		# 'tool_name', 'module_name' and 'display_name' are strings.
-		# 'commands' and 'categories' are comma separated strings.
-		"Chimera-Tool :: CommandLine :: chimera.cmd_line "
-		":: Command Line Interface :: :: Utilities",
-	],
+    version="TOOL_VERSION",
+    description="Command Line",
+    author="UCSF RBVI",
+    author_email="chimera2@cgl.ucsf.edu",
+    url="https://www.rbvi.ucsf.edu/chimera2/",
+    package_dir = {
+        "chimera.cmd_line": pkg_dir,
+    },
+    packages=[
+        "chimera.cmd_line",
+    ],
+    data_files=[
+        ("", [ "timestamp" ]),
+    ],
+    install_requires=[
+        "chimera.core",
+    ],
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Environment :: MacOS X :: Aqua",
+        "Environment :: Win32 (MS Windows)",
+        "Environment :: X11 Applications",
+        "Intended Audience :: Science/Research",
+        "License :: Free for non-commercial use",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows 7",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Vio-Informatics",
+        # Each tool should have a single line with up to six fields:
+        # 'Chimera-Tool' :: tool_name :: module_name
+        # :: display_name :: commands :: categories
+        # 'tool_name', 'module_name' and 'display_name' are strings.
+        # 'commands' and 'categories' are comma separated strings.
+        "Chimera-Tool :: CommandLine :: chimera.cmd_line "
+        ":: Command Line Interface :: command_line :: Utilities",
+    ],
 )
