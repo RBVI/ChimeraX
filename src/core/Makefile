@@ -21,8 +21,9 @@ WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
-install: dir
+install: dir wheel
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(WHEEL) $(wheelhouse)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app_install ;\
 	fi
@@ -52,7 +53,7 @@ $(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
+	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
 $(SUBDIR_INSTALL): dir
 

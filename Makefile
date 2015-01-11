@@ -23,7 +23,7 @@ docs.install:
 
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(webdir)
+		$(webdir) $(wheelhouse)
 	-cd $(build_prefix) && ln -nfs lib lib64
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
