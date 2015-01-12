@@ -746,6 +746,7 @@ class ToolInfo:
         self._command_names = command_names
 
         from chimera.core import cli
+        _debug("command_names", command_names)
         for command_name in command_names:
             def cb(s=self, n=command_name):
                 s._register_cmd(n)
