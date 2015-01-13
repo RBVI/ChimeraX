@@ -8,6 +8,7 @@ shlibdir = $(libdir)
 datadir = $(build_prefix)/share
 tmpdir = $(build_prefix)/tmp
 webdir = $(build_prefix)/webapp
+wheelhouse = $(build_prefix)/wheelhouse
 
 # by default, don't do anything
 all:

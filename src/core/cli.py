@@ -925,7 +925,7 @@ class _Defer:
     # Enable function introspection to be deferred until needed
     __slots__ = ['proxy']
 
-    def __init__(self, proxy_function, cmd_desc):
+    def __init__(self, proxy_function):
         self.proxy = proxy_function
 
     def call(self):
@@ -1058,6 +1058,7 @@ def _unregister(name):
 
 def _lazy_register(cmd_map, word):
     deferred = cmd_map[word]
+    del cmd_map[word]   # prevent recursion
     try:
         deferred.call()
     except:
@@ -1794,6 +1795,14 @@ if __name__ == '__main__':
     def test10(session, colors=[], offsets=[]):
         print('test10 colors, offsets:', colors, offsets)
 
+    def lazy_reg():
+        test11_desc = CmdDesc()
+
+        def test11(session):
+            print('delayed')
+        register('xyzzy subcmd', test11_desc, test11)
+    delay_registration('xyzzy', lazy_reg)
+
     if len(sys.argv) > 1:
         _debugging = 'd' in sys.argv[1]
 
@@ -1833,6 +1842,8 @@ if __name__ == '__main__':
                 print(err)
 
     tests = [   # (fail, final, command)
+        (True, True, 'xyzzy'),
+        (False, True, 'xyzzy subcmd'),
         (True, True, 'test1 color red 12 3.5'),
         (True, True, 'test1 12 color red 3.5'),
         (False, True, 'test1 12 3.5 color red'),
