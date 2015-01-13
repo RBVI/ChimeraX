@@ -43,7 +43,7 @@ class UI(wx.App):
 
     def build(self):
         self.splash.Close()
-        self.main_window = MainWindow(self)
+        self.main_window = MainWindow(self, self.session.toolshed)
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
         #from .ui.cmd_line import CmdLine
@@ -88,24 +88,16 @@ class UI(wx.App):
 
 class MainWindow(wx.Frame):
 
-    def __init__(self, ui):
+    def __init__(self, ui, toolshed):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
 
         from wx.lib.agw.aui import AuiManager, AuiPaneInfo
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
 
-        from .ui.graphics import GraphicsWindow
-        self.graphics_window = g = GraphicsWindow(self, ui)
-        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
-
-        self.status_bar = self.CreateStatusBar(
-            3, wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
-            | wx.FULL_REPAINT_ON_RESIZE)
-        self.status_bar.SetStatusWidths([-24, -30, -2])
-        self.status_bar.SetStatusText("Status", 0)
-        self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
-        self.status_bar.SetStatusText("", 2)
+        self._build_graphics(ui)
+        self._build_status()
+        self._build_menus(toolshed)
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -117,3 +109,36 @@ class MainWindow(wx.Frame):
 
     def OnClose(self, event):
         self.close()
+
+    def _build_graphics(self, ui):
+        from .ui.graphics import GraphicsWindow
+        self.graphics_window = g = GraphicsWindow(self, ui)
+        from wx.lib.agw.aui import AuiPaneInfo
+        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
+
+    def _build_menus(self, toolshed):
+        menu_bar = wx.MenuBar()
+        self._populate_menus(menu_bar)
+        self.SetMenuBar(menu_bar)
+        """
+        import sys
+        if sys.platform == "darwin":
+            self._populate_menus(wx.MenuBar.MacGetCommonMenuBar())
+        """
+
+    def _build_status(self):
+        self.status_bar = self.CreateStatusBar(
+            3, wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
+            | wx.FULL_REPAINT_ON_RESIZE)
+        self.status_bar.SetStatusWidths([-24, -30, -2])
+        self.status_bar.SetStatusText("Status", 0)
+        self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
+        self.status_bar.SetStatusText("", 2)
+
+    def _populate_menus(self, menu_bar):
+        """
+        file_menu = wx.Menu()
+        item = file_menu.Append(wx.ID_EXIT, "Quit Chimera 2",
+            "Quit application")
+        menu_bar.Append(file_menu, "&File")
+        """
