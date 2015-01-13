@@ -932,10 +932,11 @@ class _Defer:
         return self.proxy()
 
 
-def delay_registration(name, proxy_function):
+def delay_registration(name, proxy_function, logger=None):
     """delay registering a named command until needed
 
     :param proxy_function: the function to call if command is used
+    :param logger: optional logger
 
     The proxy function should explicitly reregister the command or
     register subcommands and return nothing.
@@ -951,14 +952,14 @@ def delay_registration(name, proxy_function):
 
         cli.delay_registration('cmd', lazy_reg)
     """
-    register(name, None, _Defer(proxy_function))
+    register(name, None, _Defer(proxy_function), logger=logger)
 
 
 # keep track of commands that have been overridden by an alias
 _aliased_commands = {}
 
 
-def register(name, cmd_desc=(), function=None):
+def register(name, cmd_desc=(), function=None, logger=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -966,6 +967,7 @@ def register(name, cmd_desc=(), function=None):
         instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
         parameters.
     :param function: the callback function.
+    :param logger: optional logger
 
     If the function is None, then it assumed that :py:func:`register`
     is being used as a decorator.
@@ -981,7 +983,7 @@ def register(name, cmd_desc=(), function=None):
     if function is None:
         # act as a decorator
         def wrapper(function, name=name, cmd_desc=cmd_desc):
-            return register(name, cmd_desc, function)
+            return register(name, cmd_desc, function, logger=logger)
         return wrapper
 
     if isinstance(cmd_desc, tuple):
@@ -1011,7 +1013,8 @@ def register(name, cmd_desc=(), function=None):
     except ValueError:
         if not isinstance(function, _Alias):
             raise
-        pass    # TODO: warn that alias interferes with existing command
+        if logger is not None:
+            logger.warn("alias %r hides existing command" % name)
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1020,18 +1023,21 @@ def register(name, cmd_desc=(), function=None):
         # command already registered
         if isinstance(function, _Alias):
             if not isinstance(cmd_map[word].function, _Alias):
+                # only save nonaliased version of command
                 _aliased_commands[name] = cmd_map[word]
-        else:
-            if isinstance(cmd_map[word].function, _Alias):
-                # replacing alias with command
-                # TODO: warn
-                del _aliased_commands[name]
+        elif isinstance(cmd_map[word].function, _Alias):
+            # replacing alias with command
+            if logger is not None:
+                logger.warn("command %r is replacing existing alias" % name)
+            del _aliased_commands[name]
     cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
 
-def _unregister(name):
-    # used internally by unalias
+def deregister(name):
+    """Remove existing command
+
+    If the command was an alias, the previous version is restored"""
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
@@ -1046,8 +1052,6 @@ def _unregister(name):
     what = cmd_map.get(word, None)
     if what is None:
         raise RuntimeError("unregistering unknown command")
-    if isinstance(what, dict):
-        raise RuntimeError("unregistering beginning of multiword command")
     previous_cmd = _aliased_commands.get(name, None)
     if previous_cmd:
         del _aliased_commands[name]
@@ -1604,7 +1608,7 @@ def alias(session, name='', text=''):
     name = ' '.join(name.split())   # canonicalize
     cmd = _Alias(text)
     try:
-        register(name, cmd.desc(), cmd)
+        register(name, cmd.desc(), cmd, logger=session.logger)
     except:
         raise
 
@@ -1621,7 +1625,7 @@ def unalias(session, name):
         del _cmd_aliases[name]
     except KeyError:
         raise UserError('No alias named %r exists' % name)
-    _unregister(name)
+    deregister(name)
 
 if __name__ == '__main__':
 
