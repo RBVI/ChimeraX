@@ -21,16 +21,16 @@ WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
-install: dir wheel
+install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
-	$(RSYNC) $(WHEEL) $(wheelhouse)
 	if [ -d "$(app_prefix)" ]; then \
-		$(MAKE) app_install ;\
+		$(MAKE) app-install ;\
 	fi
 
-app_install: wheel
+app-install: wheel
 	$(APP_PYTHON_EXE) -m pip install wheel distlib
 	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
+	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp always
 	$(PYTHON_EXE) -m pip install wheel distlib

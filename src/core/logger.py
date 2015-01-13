@@ -2,6 +2,7 @@
 
 from abc import ABCMeta, abstractmethod
 
+
 class Log:
     """Base class for the "real" log classes: HtmlLog and PlainTextLog.
     """
@@ -32,6 +33,7 @@ class Log:
         """
         pass
 
+
 class HtmlLog(Log, metaclass=ABCMeta):
     """Base class for logs that support HTML output"""
 
@@ -53,6 +55,7 @@ class HtmlLog(Log, metaclass=ABCMeta):
         """
         pass
 
+
 class PlainTextLog(Log, metaclass=ABCMeta):
     """Base class for logs that support only plain text output"""
 
@@ -69,6 +72,7 @@ class PlainTextLog(Log, metaclass=ABCMeta):
         """
         pass
 
+
 class Logger:
     """Log/status message dispatcher
 
@@ -78,7 +82,7 @@ class Logger:
     :meth:`info`/
     :meth:`status` methods
     to send messages to the currently active log.
-    
+
     Message consumers must inherit from :class:`HtmlLog' or
     :class:`PlainTextLog` and register themselves with the Logger's
     :meth:`add_log` method, which will put them at the top of the log
@@ -98,7 +102,7 @@ class Logger:
     def add_log(self, log):
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
-                " HtmlLog or PlainTextLog")
+                             " HtmlLog or PlainTextLog")
         if log in self.logs:
             # move to top
             self.logs.discard(log)
@@ -122,7 +126,7 @@ class Logger:
         """
         import sys
         self._log(Log.LEVEL_ERROR, msg, add_newline, image, is_html,
-            last_resort=sys.stderr)
+                  last_resort=sys.stderr)
 
     def info(self, msg, add_newline=True, image=None, is_html=False):
         """Log an info message
@@ -131,7 +135,7 @@ class Logger:
         """
         import sys
         self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
-            last_resort=sys.stdout)
+                  last_resort=sys.stdout)
 
     def remove_log(self, log):
         self.logs.discard(log)
@@ -146,7 +150,7 @@ class Logger:
         """
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
-            last_resort=sys.stderr)
+                  last_resort=sys.stderr)
 
     def _html_to_plain(self, msg, image, is_html):
         if image:
@@ -164,11 +168,10 @@ class Logger:
     def _log(self, level, msg, add_newline, image, is_html, last_resort=None):
         prev_newline = self._prev_newline
         self._prev_newline = add_newline
-        test_attr = "log_" + level
         if self.logs:
             log = self.logs[0]
         elif getattr(self.session, 'ui', None) \
-        and isinstance(self.session.ui, (HtmlLog, PlainTextLog)):
+                and isinstance(self.session.ui, (HtmlLog, PlainTextLog)):
             log = self.session.ui
         else:
             if last_resort:
@@ -187,6 +190,7 @@ class Logger:
             log.log(level, msg, image, is_html)
         else:
             log.log(level, msg)
+
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""

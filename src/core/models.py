@@ -70,8 +70,9 @@ class Models(State):
                 try:
                     cls = session.class_from_uid(uid, Model)
                 except KeyError:
-                    session.log.warning('Unable to restore model %s (%s)'
-                            % (id, session.class_name_of_unique_id(uid)))
+                    session.log.warning(
+                        'Unable to restore model %s (%s)'
+                        % (id, session.class_name_of_unique_id(uid)))
                     continue
                 model = cls("unknown name until restored")
                 model.id = id
