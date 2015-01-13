@@ -21,3 +21,4 @@ def register_command(command_name):
     from . import cmd
     from chimera.core import cli
     cli.register(command_name + " hide", cmd.hide_desc, cmd.hide)
+    cli.register(command_name + " show", cmd.show_desc, cmd.show)
