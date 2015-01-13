@@ -845,7 +845,9 @@ _commands = OrderedDict()
 
 
 def _check_autocomplete(word, mapping, name):
-    # this is a debugging aid for developers
+    # This is a primary debugging aid for developers,
+    # but it prevents existing abbreviated commands from changing
+    # what command they correspond to.
     for key in mapping:
         if key.startswith(word) and key != word:
             raise ValueError("'%s' is a prefix of an existing command" % name)
@@ -1030,6 +1032,9 @@ def register(name, cmd_desc=(), function=None, logger=None):
             if logger is not None:
                 logger.warn("command %r is replacing existing alias" % name)
             del _aliased_commands[name]
+        else:
+            if logger is not None:
+                logger.warn("command %r is replacing existing command" % name)
     cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
