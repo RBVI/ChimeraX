@@ -110,4 +110,3 @@ def register():
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
         open_func=open)
     from . import session
-    session.register_unique_class(STLModel, 'STL')
