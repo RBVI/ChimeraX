@@ -205,7 +205,9 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         sess.ui.splash_info("Initializing tools",
                             next(splash_step), num_splash_steps)
     from chimera.core import toolshed
-    sess.tools = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
+    # toolshed.init returns a singleton so it's safe to call multiple times
+    sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
+    # TODO: sess.tools = toolshed.Tools(sess)
     # TODO: sess.add_state_manager('tools', sess.tools)
 
     if opts.gui:
@@ -218,7 +220,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # unless disabled, startup tools
     if opts.load_tools:
         # This needs sess argument because tool shed is session-independent
-        for tool in sess.tools.startup_tools(sess):
+        for tool in sess.toolshed.startup_tools(sess):
             tool.start(sess)
 
     if not opts.silent:
