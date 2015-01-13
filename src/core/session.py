@@ -479,7 +479,7 @@ def common_startup(sess):
     assert(hasattr(sess, 'app_name'))
     assert(hasattr(sess, 'debug'))
     from . import logger
-    sess.logger = logger.Logger()
+    sess.logger = logger.Logger(sess)
     from . import triggerset
     sess.triggers = triggerset.TriggerSet()
     sess.scenes = Scenes(sess)

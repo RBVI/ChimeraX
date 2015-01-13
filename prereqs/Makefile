@@ -49,9 +49,9 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= appdirs cython docutils expat flake8 ffmpeg fonts \
-	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy openssl \
-	   p7zip pcre pillow pycollada \
+SUBDIRS	+= appdirs beautifulsoup cython docutils expat flake8 ffmpeg fonts \
+	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy numpydoc \
+	   openssl ordered_set p7zip pcre pillow pycollada \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python \
 	   python-dateutil \
 	   setuptools six sphinx webcolors wrappy3 wx zlib
@@ -125,6 +125,7 @@ endif
 # target of the other packages.
 
 appdirs.install: Python.install setuptools.install
+beautifulsoup.install: Python.install setuptools.install
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
@@ -137,6 +138,8 @@ leapmotion.install: Python.install
 line_profiler.install: Python.install cython.install
 numexpr.install: numpy.install
 numpy.install: Python.install
+numpydoc.install: Python.install setuptools.install
+ordered_set.install: Python.install setuptools.install
 pcre.install: zlib.install
 # pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
 pillow.install: Python.install setuptools.install zlib.install jpeg.install
@@ -156,7 +159,7 @@ setuptools.install: Python.install
 sip.install: Python.install
 six.install: Python.install
 sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
-sphinx.install: docutils.install jinja2.install pygments.install setuptools.install
+sphinx.install: docutils.install jinja2.install numpydoc.install pygments.install setuptools.install
 webcolors.install: Python.install
 wrappy3.install: pcre.install Python.install
 wx.install: Python.install
