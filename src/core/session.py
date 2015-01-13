@@ -273,7 +273,7 @@ class Session:
 
     def unique_id(self, obj):
         """Return a unique identifier for an object in session
-        
+
         Consequently, the identifier is composed of simple data types."""
 
         cls = obj.__class__
