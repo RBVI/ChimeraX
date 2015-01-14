@@ -136,9 +136,9 @@ class MainWindow(wx.Frame):
         self.status_bar.SetStatusText("", 2)
 
     def _populate_menus(self, menu_bar):
-        """
-        file_menu = wx.Menu()
-        item = file_menu.Append(wx.ID_EXIT, "Quit Chimera 2",
-            "Quit application")
-        menu_bar.Append(file_menu, "&File")
-        """
+        import sys
+        if sys.platform != "darwin":
+            file_menu = wx.Menu()
+            item = file_menu.Append(wx.ID_EXIT, "Quit Chimera 2",
+                "Quit application")
+            menu_bar.Append(file_menu, "&File")
