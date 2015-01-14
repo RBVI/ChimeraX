@@ -15,7 +15,7 @@ REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
 
 
-class Model(Drawing):
+class Model(State, Drawing):
     """All models are drawings.
 
     That means that regardless of whether or not there is a GUI,

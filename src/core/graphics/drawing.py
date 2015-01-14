@@ -2,10 +2,9 @@
 Drawing
 =======
 '''
-from ..session import State
 
 
-class Drawing(State):
+class Drawing:
     '''
     A Drawing represents a tree of objects each consisting of a set of
     triangles in 3 dimensional space.  Drawings are used to draw molecules,
