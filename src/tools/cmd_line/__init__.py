@@ -13,9 +13,14 @@ def start_tool(session, ti):
     # For all other types of UI, we do nothing.
     from chimera.core import gui
     if isinstance(session.ui, gui.UI):
+    # TODO: Ask session if cmd_line is already running
+    # if not session.tools.is_running("cmd_line"):
         if not hasattr(session.ui, "cmd_line"):
             from .gui import CmdLine
-            session.ui.cmd_line = CmdLine(session)
+            cmd_line = CmdLine(session)
+        # TODO: Tell session there is a new running tool
+        # session.tools.add_tool_instance(cmd_line)
+        session.ui.cmd_line = cmd_line
 
 def register_command(command_name):
     from . import cmd

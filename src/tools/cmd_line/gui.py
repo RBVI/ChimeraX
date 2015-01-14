@@ -4,13 +4,13 @@ class CmdLine:
 
     SIZE = (500, 25)
 
-    def __init__(self, session):
+    def __init__(self, session, **kw):
         import weakref
         self._session = weakref.ref(session)
         import wx
         from chimera.core.ui.tool_api import ToolWindow
         self.tool_window = ToolWindow("Command Line", "General", session,
-            size=self.SIZE)
+                                        size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         self.text = wx.TextCtrl(parent, size=self.SIZE,
             style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
