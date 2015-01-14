@@ -1068,6 +1068,8 @@ def deregister(name):
         if isinstance(d, CmdDesc):
             d._function = None
             return
+        if not isinstance(d, dict):
+            return
         for v in d.values():
             clear_cmd_desc(d)
     clear_cmd_desc(what)
