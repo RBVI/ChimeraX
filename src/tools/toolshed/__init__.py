@@ -14,10 +14,11 @@ def start_tool(session, ti):
             setattr(session.ui, ti.name, ToolshedUI(session))
 
 def register_command(command_name):
-    import sys
-    print("toolshed.register_command:", command_name, file=sys.stderr)
     from . import cmd
     from chimera.core import cli
+    if command_name == "ts":
+        cli.alias(None, "ts", "toolshed $*")
+        return
     cli.register(command_name + " list", cmd.ts_list_desc, cmd.ts_list)
     cli.register(command_name + " refresh", cmd.ts_refresh_desc, cmd.ts_refresh)
     cli.register(command_name + " install", cmd.ts_install_desc, cmd.ts_install)

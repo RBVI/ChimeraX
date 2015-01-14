@@ -7,9 +7,10 @@ PKG_DESCRIPTION = Chimera 2 Tool UI and Commands
 
 TOOL_NAME = toolshed
 TOOL_PKG_NAME = chimera.toolshed
-TOOL_DISPLAY_NAME = Tool Shed
+TOOL_DISPLAY_NAME = Toolshed
 TOOL_CATEGORY = General
-COMMAND_NAME = toolshed, ts
+TOOL_SYNOPSIS = Tool for installing, upgrading and removing tools
+COMMAND_NAME = toolshed,ts
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)

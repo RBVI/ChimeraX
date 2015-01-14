@@ -17,6 +17,7 @@ TOOL_NAME = Replace with internal name
 TOOL_PKG_NAME = Replace with tool Python package name
 TOOL_DISPLAY_NAME = Replace with tool name to display to user
 TOOL_CATEGORY = Replace with tool menu category name
+TOOL_SYNOPSIS = Replace with synopsis for tool
 COMMAND_NAME = Replace with one-word command name
 # Example:
 # TOOL_NAME = cmd_line

@@ -107,7 +107,8 @@ class ToolShed:
             self.remote_url = remote_url
         self._repo_locator = None
         self._inst_locator = None
-        self._tool_info = []
+        self._installed_tool_info = []
+        self._available_tool_info = []
         self._all_installed_distributions = None
 
         # Compute base directories
@@ -159,15 +160,15 @@ class ToolShed:
           have the same meaning as in the constructor."""
 
         _debug("reload", rebuild_cache, check_remote)
-        for ti in self._tool_info:
-            if ti.installed:
-                ti.deregister_commands()
-        self._tool_info = []
+        for ti in self._installed_tool_info:
+            ti.deregister_commands()
+        self._installed_tool_info = []
         inst_ti_list = self._load_tool_info(logger, rebuild_cache=rebuild_cache)
         for ti in inst_ti_list:
             self.add_tool_info(ti)
             ti.register_commands()
         if check_remote:
+            self._available_tool_info = []
             remote_ti_list = self.check_remote(logger)
             for ti in remote_ti_list:
                 self.add_tool_info(ti)
@@ -182,13 +183,11 @@ class ToolShed:
 
         _debug("tool_info", installed, available)
         if installed and available:
-            return self._tool_info
+            return self._installed_tool_info + self._available_tool_info
         elif installed:
-            return [ ti for ti in self._tool_info
-                            if ti.installed ]
+            return self._installed_tool_info
         elif available:
-            return [ ti for ti in self._tool_info
-                            if not ti.installed ]
+            return self._available_tool_info
         else:
             return []
 
@@ -200,7 +199,11 @@ class ToolShed:
         A 'TOOLSHED_TOOL_INFO_ADDED' trigger is fired
         after the addition."""
         _debug("add_tool_info", tool_info)
-        self._tool_info.append(tool_info)
+        if tool_info.installed:
+            container = self._installed_tool_info
+        else:
+            container = self._available_tool_info
+        container.append(tool_info)
         # TODO: fire trigger
 
     def install_tool(self, tool_info, logger, system=False):
@@ -240,14 +243,19 @@ class ToolShed:
         self._uninstall_tool(tool_info, logger)
         # TODO: fire trigger
 
-    def find_tool(self, name):
+    def find_tool(self, name, installed=True, version=None):
         """Return a tool with the given name.
 
         - ``name`` is a string of the name (internal or
         display name) of the tool of interest."""
         _debug("find_tool", name)
-        for ti in self._tool_info:
-            if ti.name == name or ti.display_name == name:
+        if installed:
+            container = self._installed_tool_info
+        else:
+            container = self._available_tool_info
+        for ti in container:
+            if ((ti.name == name or ti.display_name == name)
+            and (version == None or version == ti._distribution_version)):
                 return ti
         return None
 
@@ -421,10 +429,17 @@ class ToolShed:
             return
         self._install_wheels(need_update, system, logger)
         # update tool installation status
-        for dist_name in need_update:
-            for ti in self._tool_info:
-                if ti._distribution_name == dist_name:
-                    ti.installed = True
+        updated = set([ d.name for d in need_update ])
+        keep = [ ti for ti in self._installed_tool_info
+                        if ti._distribution_name not in updated ]
+        self._installed_tool_info = keep
+        updated = set([ (d.name, d.version) for d in need_update ])
+        import copy
+        newly_installed = [ copy.copy(ti) for ti in self._available_tool_info
+                                if ti.distribution() in updated ]
+        for ti in newly_installed:
+            ti.installed = True
+            self.add_tool_info(ti)
 
     def _install_dist_core(self, want, logger):
         # Add Chimera core distribution to update list
@@ -708,6 +723,20 @@ class ToolShed:
                 pass
         return basedir
 
+    def _uninstall_tool(self, tool_info, logger):
+        dv = tool_info.distribution()
+        name, version = dv
+        all = self._get_all_installed_distributions()
+        for d in all[name]:
+            if d.version == version:
+                break
+        else:
+            raise KeyError("tool_info not found")
+        self._remove_distribution(d, logger)
+        keep = [ ti for ti in self._installed_tool_info
+                            if ti.distribution() != dv ]
+        self._installed_tool_info = keep
+
     # End methods for installing and removing distributions
 
 class ToolInfo:
@@ -721,6 +750,7 @@ class ToolInfo:
                 distribution_version=None,
                 display_name=None,
                 module_name=None,
+                synopsis=None,
                 menu_categories=(),
                 command_names=()):
         """Initialize tool info named 'name'.
@@ -743,6 +773,7 @@ class ToolInfo:
         self.display_name = display_name or name
         self.menu_categories = menu_categories
         self.command_names = command_names
+        self.synopsis = synopsis
 
         # Private attributes
         self._distribution_name = distribution_name
@@ -773,6 +804,7 @@ class ToolInfo:
             "display_name": self.display_name,
             "menu_categories": self.menu_categories,
             "command_names": self.command_names,
+            "synopsis": self.synopsis,
             "distribution_name": self._distribution_name,
             "distribution_version": self._distribution_version,
             "module_name": self._module_name,
@@ -785,8 +817,7 @@ class ToolInfo:
 
     def synopsis(self):
         """Return short description of tool."""
-        # TODO: get it from some place
-        return "No description available yet."
+        return self.synopsis or "no synopsis available"
 
     def register_commands(self):
         """Register commands with cli."""
@@ -876,44 +907,29 @@ def _make_tool_info(logger, d, installed):
         parts = [ v.strip() for v in classifier.split("::") ]
         if parts[0] != "Chimera-Tool":
             continue
+        if len(parts) != 7:
+            logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+            logger.warning("Expected 7 fields and got %d." % len(parts))
+            continue
         kw = { "distribution_name": name, "distribution_version": version }
-        try:
-            # Name of tool
-            tool_name = parts[1]
-        except IndexError:
-            logger.error("no name specified for Chimera tool")
-            # No module means there is no way to start
-            # this tool, so we do not even treat it as a tool
-            continue
-        try:
-            # Name of module implementing tool
-            kw["module_name"] = parts[2]
-        except IndexError:
-            logger.error("no module specified for \"%s\"" % tool_name)
-            # No module means there is no way to start
-            # this tool, so we do not even treat it as a tool
-            continue
-        try:
-            # Display name of tool
-            kw["display_name"] = parts[3]
-        except IndexError:
-            pass
-        try:
-            # CLI command names (just the first word)
-            commands = parts[4]
-            if commands:
-                kw["command_names"] = [ v.strip()
-                        for v in commands.split(',') ]
-        except IndexError:
-            pass
-        try:
-            # Menu categories in which tool should appear
-            categories = parts[5]
-            if categories:
-                kw["menu_categories"] = [ v.strip()
-                        for v in categories.split(',') ]
-        except IndexError:
-            pass
+        # Name of tool
+        tool_name = parts[1]
+        # Name of module implementing tool
+        kw["module_name"] = parts[2]
+        # Display name of tool
+        kw["display_name"] = parts[3]
+        # CLI command names (just the first word)
+        commands = parts[4]
+        if commands:
+            kw["command_names"] = [ v.strip()
+                    for v in commands.split(',') ]
+        # Menu categories in which tool should appear
+        categories = parts[5]
+        if categories:
+            kw["menu_categories"] = [ v.strip()
+                    for v in categories.split(',') ]
+        # Synopsis of tool
+        kw["synopsis"] = parts[6]
         tools.append(ToolInfo(tool_name, installed, **kw))
     return tools
 
