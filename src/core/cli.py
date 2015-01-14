@@ -1071,7 +1071,7 @@ def deregister(name):
         if not isinstance(d, dict):
             return
         for v in d.values():
-            clear_cmd_desc(d)
+            clear_cmd_desc(v)
     clear_cmd_desc(what)
 
 
