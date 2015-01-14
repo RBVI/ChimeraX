@@ -28,12 +28,10 @@ install: dir
 	fi
 
 app-install: wheel
-	$(APP_PYTHON_EXE) -m pip install wheel distlib
 	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp always
-	$(PYTHON_EXE) -m pip install wheel distlib
 	$(PYTHON_EXE) setup.py bdist_wheel
 
 setup.py: setup.py.in
