@@ -1064,6 +1064,14 @@ def deregister(name):
     else:
         del cmd_map[word]
 
+    def clear_cmd_desc(d):
+        if isinstance(d, CmdDesc):
+            d._function = None
+            return
+        for v in d.values():
+            clear_cmd_desc(d)
+    clear_cmd_desc(what)
+
 
 def _lazy_register(cmd_map, word):
     deferred = cmd_map[word]
@@ -1633,23 +1641,7 @@ def unalias(session, name):
     deregister(name)
 
 if __name__ == '__main__':
-
-    # from Mike C. Fletcher's BasicTypes library
-    # via http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
-    def flattened(l, ltypes=(list, tuple, set)):
-        ltype = type(l)
-        l = list(l)
-        i = 0
-        while i < len(l):
-            while isinstance(l[i], ltypes):
-                if not l[i]:
-                    l.pop(i)
-                    i -= 1
-                    break
-                else:
-                    l[i:i + 1] = l[i]
-            i += 1
-        return ltype(l)
+    from .utils import flattened
 
     class ColorArg(Annotation):
         name = 'a color'
