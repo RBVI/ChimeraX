@@ -1622,8 +1622,9 @@ def alias(session, name='', text=''):
         return 'Aliased %r to %r' % (name, _cmd_aliases[name].original_text)
     name = ' '.join(name.split())   # canonicalize
     cmd = _Alias(text)
+    logger = session.logger if session else None
     try:
-        register(name, cmd.desc(), cmd, logger=session.logger)
+        register(name, cmd.desc(), cmd, logger=logger)
     except:
         raise
 
