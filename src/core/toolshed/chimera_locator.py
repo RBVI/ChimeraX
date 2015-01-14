@@ -26,13 +26,14 @@ class ChimeraLocator(Locator):
         distributions = []
         cache = self._get_cache()
         for project in cache.values():
-            distributions.extend(project)
+            distributions.extend(project.values())
         return distributions
 
     def _get_cache(self):
         if self.__dist_cache:
             return self.__dist_cache
         distributions = get_distributions(url=self.__url)
+        import sys
         self.__dist_cache = {}
         for d in distributions:
             name = d.name

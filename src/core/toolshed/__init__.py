@@ -78,11 +78,11 @@ class ToolShed:
             check_remote=False,
             remote_url=None):
         """Initialize shed using data from 'appdirs'.
-        
+
         - ``logger`` is a logging object where warning and
           error messages are sent.
         - ``appdirs`` is an instance of '''appdirs.AppDirs'''
-          containing location information about Chimera data 
+          containing location information about Chimera data
           and code directories.
         - ``rebuild_cache`` is a boolean indicating whether
           to ignore the local cache of installed tool
@@ -108,7 +108,6 @@ class ToolShed:
         self._repo_locator = None
         self._inst_locator = None
         self._tool_info = []
-        self._dist_ti_map = {}
         self._all_installed_distributions = None
 
         # Compute base directories
@@ -142,15 +141,12 @@ class ToolShed:
         _debug("check_remote")
         if self._repo_locator is None:
             from .chimera_locator import ChimeraLocator
-            self._repo_locator = ChimeraLocator(self._remote_url)
+            self._repo_locator = ChimeraLocator(self.remote_url)
         distributions = self._repo_locator.get_distributions()
-        # Replace old remote distribution information with current
-        # Do not change self._tool_info unless there are no errors
-        tool_info = [ ti for ti in self._tool_info if ti.installed ]
+        tool_info = []
         for d in distributions:
             try:
-                tool_info.extend(_make_tool_info(logger,
-                                d, False))
+                tool_info.extend(_make_tool_info(logger, d, False))
                 _debug("added remote distribution:", d)
             except _NotToolError:
                 _debug("skipped remote distribution:", d)
@@ -158,21 +154,23 @@ class ToolShed:
 
     def reload(self, logger, rebuild_cache=False, check_remote=False):
         """Discard and reread tool info.
-        
+
         - ``logger``, ``check_remote`` and ``rebuild_cache``
           have the same meaning as in the constructor."""
 
         _debug("reload", rebuild_cache, check_remote)
+        for ti in self._tool_info:
+            if ti.installed:
+                ti.deregister_commands()
         self._tool_info = []
-        self._dist_ti_map = {}
-        inst_ti_list = self._load_tool_info(logger,
-                        rebuild_cache=rebuild_cache)
+        inst_ti_list = self._load_tool_info(logger, rebuild_cache=rebuild_cache)
         for ti in inst_ti_list:
             self.add_tool_info(ti)
+            ti.register_commands()
         if check_remote:
             remote_ti_list = self.check_remote(logger)
             for ti in remote_ti_list:
-                self._add_tool_info(ti)
+                self.add_tool_info(ti)
 
     def tool_info(self, installed=True, available=False):
         """Return list of tool info.
@@ -198,13 +196,11 @@ class ToolShed:
         """Add information for one tool.
 
         - ``tool_info`` is a constructed instance of '''ToolInfo''',
-          i.e., not an instance returned by '''tool_info'''.
+          i.e., not an existing instance returned by '''tool_info'''.
         A 'TOOLSHED_TOOL_INFO_ADDED' trigger is fired
         after the addition."""
         _debug("add_tool_info", tool_info)
         self._tool_info.append(tool_info)
-        if tool_info._distribution_name is not None:
-            self._dist_ti_map[tool_info._distribution_name] = tool_info
         # TODO: fire trigger
 
     def install_tool(self, tool_info, logger, system=False):
@@ -245,9 +241,23 @@ class ToolShed:
         # TODO: fire trigger
 
     def startup_tools(self, sess):
+        """Return list of tools that should auto-start.
+
+        - ``sess`` is a Session instance."""
         _debug("startup_tools")
         # TODO: implement
         return self.tool_info()
+
+    def find_tool(self, name):
+        """Return a tool with the given name.
+
+        - ``name`` is a string of the name (internal or
+        display name) of the tool of interest."""
+        _debug("find_tool", name)
+        for ti in self._tool_info:
+            if ti.name == name or ti.display_name == name:
+                return ti
+        return None
 
     #
     # End public API
@@ -347,7 +357,7 @@ class ToolShed:
 
     def _read_cache(self):
         """Read installed tool information from cache file.
-        
+
         Returns boolean on whether cache file was read."""
         _debug("_read_cache")
         cache_file = self._tool_cache(False)
@@ -398,7 +408,7 @@ class ToolShed:
         with open(timestamp_file, "w") as f:
             import time
             print(time.ctime(), file=f)
-    
+
     # Following methods are used for installing and removing
     # distributions
 
@@ -714,8 +724,15 @@ class ToolInfo:
     An ToolInfo knows about the properties about a class
     of tools and can create an tool instance."""
 
+    @staticmethod
+    def is_same(ti, other):
+        return (ti.name == other.name
+                    and ti._distribution_name == other._distribution_name
+                    and ti._distribution_version == other._distribution_version)
+
     def __init__(self, name, installed,
                 distribution_name=None,
+                distribution_version=None,
                 display_name=None,
                 module_name=None,
                 menu_categories=(),
@@ -739,18 +756,28 @@ class ToolInfo:
         self.installed = installed
         self.display_name = display_name
         self.menu_categories = menu_categories
+        self.command_names = command_names
 
         # Private attributes
         self._distribution_name = distribution_name
+        self._distribution_version = distribution_version
         self._module_name = module_name
-        self._command_names = command_names
 
-        from chimera.core import cli
-        _debug("command_names", command_names)
-        for command_name in command_names:
-            def cb(s=self, n=command_name):
-                s._register_cmd(n)
-            cli.delay_registration(command_name, cb)
+    def __repr__(self):
+        s = self.display_name
+        if self.installed:
+            s += " (installed)"
+        else:
+            s += " (available)"
+        s += " [name: %s]" % self.name
+        s += " [distribution: %s %s]" % (self._distribution_name,
+                                            self._distribution_version)
+        s += " [module: %s]" % self._module_name
+        if self.menu_categories:
+            s += " [category: %s]" % ','.join(self.menu_categories)
+        if self.command_names:
+            s += " [command line: %s]" % ','.join(self.command_names)
+        return s
 
     def cache_data(self):
         # Return two tuple of (args, kw) that can be used
@@ -759,15 +786,36 @@ class ToolInfo:
         kw = {
             "display_name": self.display_name,
             "menu_categories": self.menu_categories,
+            "command_names": self.command_names,
             "distribution_name": self._distribution_name,
+            "distribution_version": self._distribution_version,
             "module_name": self._module_name,
-            "command_names": self._command_names,
         }
         return args, kw
+
+    def distribution(self):
+        """Return distribution information as (name, version) tuple."""
+        return self._distribution_name, self._distribution_version
+
+    def register_commands(self):
+        """Register commands with cli."""
+        from chimera.core import cli
+        for command_name in self.command_names:
+            def cb(s=self, n=command_name):
+                s._register_cmd(n)
+            _debug("delay_registration", command_name)
+            cli.delay_registration(command_name, cb)
 
     def _register_cmd(self, command_name):
         """Called when commands need to be really registered."""
         self._get_module().register_command(command_name)
+
+    def deregister_commands(self):
+        """Deregister commands with cli."""
+        from chimera.core import cli
+        for command_name in self.command_names:
+            _debug("deregister_command", command_name)
+            cli.deregister(command_name)
 
     def _get_module(self):
         """Return module for this tool."""
@@ -786,7 +834,7 @@ class ToolInfo:
         ``session`` is a Session instance in which the tool will run.
         ``args`` and 'kw' are passed as positional and keyword
         arguments to the ToolInstance constructor.
-        
+
         If the tool is not installed,
         '''ToolShedUninstalledError''' is raised.
         If the tool cannot be started,
@@ -804,7 +852,7 @@ class ToolInfo:
 
 from .. import session
 class ToolInstance(session.State):
-    """ToolInstance is the abstract base class for 
+    """ToolInstance is the abstract base class for
     tool instance classes that implement actual functionality,
     in particular the '''session.State''' API.
 
@@ -836,7 +884,7 @@ def _make_tool_info(logger, d, installed):
         parts = [ v.strip() for v in classifier.split("::") ]
         if parts[0] != "Chimera-Tool":
             continue
-        kw = { "distribution_name": name }
+        kw = { "distribution_name": name, "distribution_version": version }
         try:
             # Name of tool
             tool_name = parts[1]
@@ -877,8 +925,12 @@ def _make_tool_info(logger, d, installed):
         tools.append(ToolInfo(tool_name, installed, **kw))
     return tools
 
+_toolshed = None
 def init(*args, debug=False, **kw):
-    """Initialize toolshed.
+    """Initialize toolshed.  The toolshed is a singleton, so
+    the first call creates the instance and all subsequent
+    calls return the same instance.  The toolshed debugging
+    state is updated at each call.
 
     This function accepts all the arguments for the ``Toolshed``
     initializer.  In addition:
@@ -893,4 +945,7 @@ def init(*args, debug=False, **kw):
     else:
         def _debug(*args, **kw):
             return
-    return ToolShed(*args, **kw)
+    global _toolshed
+    if _toolshed is None:
+        _toolshed = ToolShed(*args, **kw)
+    return _toolshed
