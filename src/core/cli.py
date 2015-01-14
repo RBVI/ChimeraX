@@ -1610,19 +1610,28 @@ def alias(session, name='', text=''):
     returned.  If alias text is not given, the the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
+    logger = session.logger if session else None
     if not name:
         # list aliases
         names = ', '.join(list(_cmd_aliases.keys()))
         if names:
-            return 'Aliases: %s' % names
-        return 'No aliases.'
+            if logger is not None:
+                logger.info('Aliases: %s' % names)
+        else:
+            if logger is not None:
+                logger.status('No aliases.')
+        return
     if not text:
         if name not in _cmd_aliases:
-            return 'No alias named %r found.' % name
-        return 'Aliased %r to %r' % (name, _cmd_aliases[name].original_text)
+            if logger is not None:
+                logger.status('No alias named %r found.' % name)
+        else:
+            if logger is not None:
+                logger.info('Aliased %r to %r'
+                            % (name, _cmd_aliases[name].original_text))
+        return
     name = ' '.join(name.split())   # canonicalize
     cmd = _Alias(text)
-    logger = session.logger if session else None
     try:
         register(name, cmd.desc(), cmd, logger=logger)
     except:

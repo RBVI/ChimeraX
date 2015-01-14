@@ -63,7 +63,8 @@ _close_desc = cli.CmdDesc(required=[('model_id', cli.ModelIdArg)])
 def list(session):
     models = session.models.list()
     if len(models) == 0:
-        return "No open models."
+        session.logger.status("No open models.")
+        return
 
     def id_str(id):
         if isinstance(id, int):
