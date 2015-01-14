@@ -305,25 +305,32 @@ class Session:
         if ordinal > current_ordinal:
             self._cls_ordinals[class_name] = ordinal
 
-    def class_name_of_unqiue_id(uid):
+    def class_name_of_unique_id(self, uid):
         """Extract class name associated with unique id"""
         return uid[0]
 
-    def class_of_unqiue_id(uid, base_class):
+    def class_of_unique_id(self, uid, base_class):
         """Return class associated with unique id"""
         from importlib import import_module
         full_class_name, ordinal = uid
         module_name, class_name = full_class_name.rsplit('.', 1)
         module = import_module(module_name)
         cls = getattr(module, class_name)
-        assert(isinstance(cls, base_class))
+        assert(issubclass(cls, base_class))
         return cls
 
     def save(self, stream):
         """Serialize session to stream."""
         serialize.serialize(stream, serialize.VERSION)
         serialize.serialize(stream, self.metadata)
-        for tag in self._state_managers:
+        # guarantee that tools are serialized first, so on restoration,
+        # all of the related code will be loaded before the rest of the
+        # session is restored
+        managers = list(self._state_managers)
+        if 'tools' in self._state_managers:
+            managers.remove('tools')
+            managers.insert(0, 'tools')
+        for tag in managers:
             manager = self._state_managers[tag]
             snapshot = manager.take_snapshot(self, State.SESSION)
             if snapshot is None:
@@ -465,11 +472,14 @@ def _initialize():
         open_func=open, export_func=save)
 _initialize()
 
+_monkey_patch = True
+
 
 def common_startup(sess):
     """Initialize session with common data managers"""
     assert(hasattr(sess, 'app_name'))
     assert(hasattr(sess, 'debug'))
+    global _monkey_patch
     from . import logger
     sess.logger = logger.Logger(sess)
     from . import triggerset
@@ -480,8 +490,12 @@ def common_startup(sess):
     sess.models = models.Models(sess)
     sess.add_state_manager('models', sess.models)
     from .graphics.view import View
+    if _monkey_patch:
+        State.register(View)
     sess.main_view = View(sess.models.drawing, (256, 256), None, sess.logger)
+    sess.add_state_manager('main_view', sess.main_view)
     from . import commands
     commands.register(sess)
     from . import stl
     stl.register()
+    _monkey_patch = False

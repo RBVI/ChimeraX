@@ -64,14 +64,21 @@ class View:
 
     def take_snapshot(self, session, flags):
         data = [self.center_of_rotation, self.window_size,
-                self.background_color]
+                self.background_color,
+                self.camera.take_snapshot(session, flags)]
         return [self.VIEW_STATE_VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
+        from ..session import State
         if version != self.VIEW_STATE_VERSION or len(data) == 0:
             raise RuntimeError("Unexpected version or data")
+        if phase != State.PHASE1:
+            return
         (self.center_of_rotation, self.window_size,
-         self.background_color) = data
+         self.background_color) = data[:3]
+        from .camera import Camera
+        self.camera = Camera()
+        self.camera.restore_snapshot(phase, session, data[3][0], data[3][1])
 
     def reset_state(self):
         """Reset state to data-less state"""

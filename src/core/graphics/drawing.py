@@ -858,7 +858,7 @@ class Drawing:
 
         self.redraw_needed(shape_changed=True)
 
-    DRAWING_VERSION = 1
+    DRAWING_STATE_VERSION = 1
 
     def take_snapshot(self, session, flags):
         # all drawing objects should have the same version
@@ -889,14 +889,14 @@ class Drawing:
             'geometry': self.geometry,
             'triangle_and_edge_mask': self.triangle_and_edge_mask,
         }
-        return self.DRAWING_VERSION, data
+        return self.DRAWING_STATE_VERSION, data
 
     def restore_snapshot(self, phase, session, version, data):
         from ..session import State
+        if version != self.DRAWING_STATE_VERSION:
+            raise RuntimeError("Unexpected version or data")
         if phase != State.PHASE1:
             return
-        if version != self.DRAWING_VERSION:
-            raise RuntimeError("Unexpected version or data")
         for child_data in data['children']:
             child = self.new_drawing()
             child.restore_snapshot(phase, session, version, child_data)

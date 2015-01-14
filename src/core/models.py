@@ -68,7 +68,7 @@ class Models(State):
         for id, [uid, [model_version, model_data]] in data.items():
             if phase == State.PHASE1:
                 try:
-                    cls = session.class_from_uid(uid, Model)
+                    cls = session.class_of_unique_id(uid, Model)
                 except KeyError:
                     session.log.warning(
                         'Unable to restore model %s (%s)'
