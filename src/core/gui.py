@@ -110,6 +110,9 @@ class MainWindow(wx.Frame):
     def OnClose(self, event):
         self.close()
 
+    def OnQuit(self, event):
+        self.close()
+
     def _build_graphics(self, ui):
         from .ui.graphics import GraphicsWindow
         self.graphics_window = g = GraphicsWindow(self, ui)
@@ -136,9 +139,9 @@ class MainWindow(wx.Frame):
         self.status_bar.SetStatusText("", 2)
 
     def _populate_menus(self, menu_bar):
-        """
-        file_menu = wx.Menu()
-        item = file_menu.Append(wx.ID_EXIT, "Quit Chimera 2",
-            "Quit application")
-        menu_bar.Append(file_menu, "&File")
-        """
+        import sys
+        if sys.platform != "darwin":
+            file_menu = wx.Menu()
+            item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
+            menu_bar.Append(file_menu, "&File")
+            self.Bind(wx.EVT_MENU, self.OnQuit, item)
