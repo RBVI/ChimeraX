@@ -110,6 +110,9 @@ class MainWindow(wx.Frame):
     def OnClose(self, event):
         self.close()
 
+    def OnQuit(self, event):
+        self.close()
+
     def _build_graphics(self, ui):
         from .ui.graphics import GraphicsWindow
         self.graphics_window = g = GraphicsWindow(self, ui)
@@ -142,3 +145,4 @@ class MainWindow(wx.Frame):
             item = file_menu.Append(wx.ID_EXIT, "Quit Chimera 2",
                 "Quit application")
             menu_bar.Append(file_menu, "&File")
+            self.Bind(wx.EVT_MENU, self.OnQuit, item)
