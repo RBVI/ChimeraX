@@ -240,14 +240,6 @@ class ToolShed:
         self._uninstall_tool(tool_info, logger)
         # TODO: fire trigger
 
-    def startup_tools(self, sess):
-        """Return list of tools that should auto-start.
-
-        - ``sess`` is a Session instance."""
-        _debug("startup_tools")
-        # TODO: implement
-        return self.tool_info()
-
     def find_tool(self, name):
         """Return a tool with the given name.
 
@@ -724,12 +716,6 @@ class ToolInfo:
     An ToolInfo knows about the properties about a class
     of tools and can create an tool instance."""
 
-    @staticmethod
-    def is_same(ti, other):
-        return (ti.name == other.name
-                    and ti._distribution_name == other._distribution_name
-                    and ti._distribution_version == other._distribution_version)
-
     def __init__(self, name, installed,
                 distribution_name=None,
                 distribution_version=None,
@@ -754,7 +740,7 @@ class ToolInfo:
         # Public attributes
         self.name = name
         self.installed = installed
-        self.display_name = display_name
+        self.display_name = display_name or name
         self.menu_categories = menu_categories
         self.command_names = command_names
 
@@ -796,6 +782,11 @@ class ToolInfo:
     def distribution(self):
         """Return distribution information as (name, version) tuple."""
         return self._distribution_name, self._distribution_version
+
+    def synopsis(self):
+        """Return short description of tool."""
+        # TODO: get it from some place
+        return "No description available yet."
 
     def register_commands(self):
         """Register commands with cli."""
@@ -844,11 +835,12 @@ class ToolInfo:
                             "not installed"
                             % self.name)
         try:
-            return self._get_module().start_tool(session, self,
-                                *args, **kw)
+            f = self._get_module().start_tool
         except (ImportError, AttributeError, TypeError):
             raise ToolShedError("bad start callable specified "
                         "for tool \"%s\"" % self.name)
+        else:
+            f(session, self, *args, **kw)
 
 from .. import session
 class ToolInstance(session.State):
