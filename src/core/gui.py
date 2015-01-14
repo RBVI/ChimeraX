@@ -144,4 +144,4 @@ class MainWindow(wx.Frame):
             file_menu = wx.Menu()
             item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
             menu_bar.Append(file_menu, "&File")
-        self.Bind(wx.EVT_MENU, self.OnQuit, item)
+            self.Bind(wx.EVT_MENU, self.OnQuit, item)
