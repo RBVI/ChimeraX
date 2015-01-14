@@ -215,13 +215,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         if not opts.silent:
             sess.ui.splash_info("Starting main interface",
                                 next(splash_step), num_splash_steps)
-        sess.ui.build()
-
-    # unless disabled, startup tools
-    if opts.load_tools:
-        # This needs sess argument because tool shed is session-independent
-        for tool in sess.toolshed.startup_tools(sess):
-            tool.start(sess)
+        sess.ui.build(opts.load_tools)
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
