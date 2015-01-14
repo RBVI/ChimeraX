@@ -51,7 +51,7 @@ endif
 # keep in alphabetical order, dependencies go below
 SUBDIRS	+= appdirs beautifulsoup cython docutils expat flake8 ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy numpydoc \
-	   openssl ordered_set p7zip pcre pillow pycollada \
+	   openssl ordered_set p7zip pcre pillow pips pycollada \
 	   pygments pyflakes PyOpenGL pytables pythomnic3k Python \
 	   python-dateutil \
 	   setuptools six sphinx webcolors wrappy3 wx zlib
@@ -143,6 +143,8 @@ ordered_set.install: Python.install setuptools.install
 pcre.install: zlib.install
 # pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
 pillow.install: Python.install setuptools.install zlib.install jpeg.install
+pips.install: Python.install setuptools.install
+pips.app-install: setuptools.app-install
 pycollada.install: Python.install python-dateutil.install numpy.install
 pyflakes.install: Python.install
 pygments.install: Python.install
