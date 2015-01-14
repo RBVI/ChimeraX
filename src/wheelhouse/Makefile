@@ -6,7 +6,6 @@ PYSRCS = update_metadata.py
 all: $(PYOBJS)
 
 install: dir
-	$(PYTHON_EXE) -m pip install pypiserver
 	$(RSYNC) $(PYSRCS) $(wheelhouse)
 	$(RSYNC) Makefile.wheelhouse $(wheelhouse)/Makefile
 
