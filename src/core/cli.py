@@ -1021,21 +1021,22 @@ def register(name, cmd_desc=(), function=None, logger=None):
         cmd_desc = function
     else:
         cmd_desc.function = function
-    if what is not None:
+    if what is None:
+        cmd_map[word] = cmd_desc
+    else:
         # command already registered
         if isinstance(function, _Alias):
             if not isinstance(cmd_map[word].function, _Alias):
                 # only save nonaliased version of command
                 _aliased_commands[name] = cmd_map[word]
-        elif isinstance(cmd_map[word].function, _Alias):
-            # replacing alias with command
-            if logger is not None:
-                logger.warn("command %r is replacing existing alias" % name)
-            del _aliased_commands[name]
+            cmd_map[word] = cmd_desc
+        elif isinstance(what.function, _Alias):
+            # command is aliased, but new one isn't, so replaced saved version
+            _aliased_commands[name] = cmd_desc
         else:
             if logger is not None:
                 logger.warn("command %r is replacing existing command" % name)
-    cmd_map[word] = cmd_desc
+            cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
 
@@ -1057,17 +1058,17 @@ def deregister(name):
     what = cmd_map.get(word, None)
     if what is None:
         raise RuntimeError("unregistering unknown command")
-    previous_cmd = _aliased_commands.get(name, None)
-    if previous_cmd:
+    hidden_cmd = _aliased_commands.get(name, None)
+    if hidden_cmd:
+        what = _aliased_commands[name]
         del _aliased_commands[name]
-        cmd_map[word] = previous_cmd
-        return
-    del cmd_map[word]
+    else:
+        del cmd_map[word]
 
     # remove any subcommand aliases
     size = len(name)
     aliases = [a for a in _cmd_aliases
-               if a.startswith(name) and a[size] == ' ']
+               if a.startswith(name) and len(name) > size and a[size] == ' ']
     for a in aliases:
         del _cmd_aliases[a]
         if a in _aliased_commands:
@@ -1656,12 +1657,30 @@ def unalias(session, name):
     :param name: name of the alias
     """
     # remove command alias
-    name = ' '.join(name.split())   # canonicalize
+    words = name.split()
+    name = ' '.join(words)  # canonicalize
     try:
         _cmd_aliases.remove(name)
     except KeyError:
         raise UserError('No alias named %r exists' % name)
-    deregister(name)
+
+    cmd_map = _commands
+    for word in words[:-1]:
+        what = cmd_map.get(word, None)
+        if isinstance(what, dict):
+            cmd_map = what
+            continue
+        raise RuntimeError("internal error")
+    word = words[-1]
+    what = cmd_map.get(word, None)
+    if what is None:
+        raise RuntimeError("internal error")
+    previous_cmd = _aliased_commands.get(name, None)
+    if previous_cmd:
+        del _aliased_commands[name]
+        cmd_map[word] = previous_cmd
+        return
+    del cmd_map[word]
 
 if __name__ == '__main__':
     from .utils import flattened
