@@ -120,10 +120,8 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
 
-        cmd = "; ".join(["open {}".format(p) for p in dlg.GetPaths()])
-        from chimera.core import cli
-        session.logger.info("Command: {}".format(cmd))
-        cli.Command(session, cmd, final=True).execute()
+        for p in dlg.GetPaths():
+            session.models.open(p)
 
     def OnPaneClose(self, event):
         pane_info = event.GetPane()
