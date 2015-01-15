@@ -18,8 +18,8 @@ class ToolWindow:
             raise NotImplementedError("Browser tool API not implemented")
         self.ui_area = self.__toolkit.ui_area
 
-    def destroy(self):
-        self.__toolkit.destroy()
+    def destroy(self, **kw):
+        self.__toolkit.destroy(**kw)
         self.__toolkit = None
 
     def manage(self, placement):
@@ -30,13 +30,18 @@ class ToolWindow:
         """
         self.__toolkit.manage(placement)
 
-    def getShown(self):
+    def get_destroy_hides(self):
+        return self.__toolkit.destroy_hides
+
+    destroy_hides = property(get_destroy_hides)
+
+    def get_shown(self):
         return self.__toolkit.shown
 
-    def setShown(self, shown):
+    def set_shown(self, shown):
         self.__toolkit.shown = shown
 
-    shown = property(getShown, setShown)
+    shown = property(get_shown, set_shown)
 
 class _Wx:
 
@@ -45,7 +50,8 @@ class _Wx:
         import wx
         self.tool_window = tool_window
         self.tool_name = tool_name
-        self.destroy_hides = destroy_hides
+        #self.destroy_hides = destroy_hides
+        self.destroy_hides = False
         self.main_window = mw = session.ui.main_window
         if not mw:
             raise RuntimeError("No main window or main window dead")
@@ -55,24 +61,22 @@ class _Wx:
             def __init__(self, parent, destroy_hides=destroy_hides, **kw):
                 self._destroy_hides = destroy_hides
                 wx.Panel.__init__(self, parent, **kw)
-                self.Bind(wx.EVT_CLOSE, self.OnClose)
-
-            def OnClose(self, event):
-                if self.destroy_hides and event.CanVeto():
-                    self.Shown = False
-                else:
-                    self.Destroy()
 
         self.ui_area = WxToolPanel(mw, name=tool_name, size=size)
+        mw.pane_to_tool_window[self.ui_area] = tool_window
         self._pane_info = None
 
-    def destroy(self):
-        if self.tool_window.ui_panel:
-            self.shown = False
-            if self.destroy_hides:
-                return
+    def destroy(self, from_destructor=False):
+        if not self.tool_window:
+            # already destroyed
+            return
+        del self.main_window.pane_to_tool_window[self.ui_area]
+        if not from_destructor:
             self.ui_area.Destroy()
+        # free up references
         self.tool_window = None
+        self.main_window = None
+        self._pane_info = None
 
     def manage(self, placement):
         import wx
@@ -91,6 +95,9 @@ class _Wx:
         mw.aui_mgr.Update()
         if placement is None:
            mw.aui_mgr.GetPane(self.ui_area).Float()
+
+        if not self.destroy_hides:
+            mw.aui_mgr.GetPane(self.ui_area).DestroyOnClose()
 
     def getShown(self):
         return self.ui_area.Shown

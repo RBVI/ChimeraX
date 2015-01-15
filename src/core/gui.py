@@ -92,15 +92,18 @@ class MainWindow(wx.Frame):
     def __init__(self, ui, session):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
 
-        from wx.lib.agw.aui import AuiManager, AuiPaneInfo
+        from wx.lib.agw.aui import AuiManager, AuiPaneInfo, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
+
+        self.pane_to_tool_window = {}
 
         self._build_graphics(ui)
         self._build_status()
         self._build_menus(session)
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.Bind(EVT_AUI_PANE_CLOSE, self.OnPaneClose)
 
     def close(self):
         self.aui_mgr.UnInit()
@@ -110,6 +113,15 @@ class MainWindow(wx.Frame):
 
     def OnClose(self, event):
         self.close()
+
+    def OnPaneClose(self, event):
+        pane_info = event.GetPane()
+        tool_window = self.pane_to_tool_window[pane_info.window]
+        if tool_window.destroy_hides:
+            tool_window.shown = False
+            event.Veto()
+        else:
+            tool_window.destroy(from_destructor=True)
 
     def OnQuit(self, event):
         self.close()
@@ -148,11 +160,11 @@ class MainWindow(wx.Frame):
                 categories.setdefault(cat, {})[ti.display_name] = ti
         for cat in sorted(categories.keys()):
             cat_menu = wx.Menu()
-            tools_menu.AppendMenu(wx.ID_ANY, cat, cat_menu)
+            tools_menu.Append(wx.ID_ANY, cat, cat_menu)
             cat_info = categories[cat]
             for tool_name in sorted(cat_info.keys()):
                 ti = cat_info[tool_name]
                 item = cat_menu.Append(wx.ID_ANY, tool_name)
-                cb = lambda ses=session, ti=ti: ti.start(ses)
+                cb = lambda evt, ses=session, ti=ti: ti.start(ses)
                 self.Bind(wx.EVT_MENU, cb, item)
         menu_bar.Append(tools_menu, "&Tools")

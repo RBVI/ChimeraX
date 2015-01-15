@@ -3,9 +3,13 @@
 from chimera.core import cli
 
 def hide(session):
-    session.ui.cmd_line.tool_window.shown = False
+    from . import _instances
+    if session in _instances:
+        _instances[session].tool_window.shown = False
 hide_desc = cli.CmdDesc()
 
 def show(session):
-    session.ui.cmd_line.tool_window.shown = True
+    from . import _instances
+    if session in _instances:
+        _instances[session].tool_window.shown = True
 show_desc = cli.CmdDesc()
