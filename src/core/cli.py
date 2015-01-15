@@ -1061,9 +1061,19 @@ def deregister(name):
     if previous_cmd:
         del _aliased_commands[name]
         cmd_map[word] = previous_cmd
-    else:
-        del cmd_map[word]
+        return
+    del cmd_map[word]
 
+    # remove any subcommand aliases
+    size = len(name)
+    aliases = [a for a in _cmd_aliases
+               if a.startswith(name) and a[size] == ' ']
+    for a in aliases:
+        del _cmd_aliases[a]
+        if a in _aliased_commands:
+            del _aliased_commands[a]
+
+    # allow commands to be reregistered with same description
     def clear_cmd_desc(d):
         if isinstance(d, CmdDesc):
             d._function = None
@@ -1526,9 +1536,6 @@ def command_html_usage(name):
     return usage
 
 
-_cmd_aliases = OrderedDict()
-
-
 class _Alias:
     """Internal alias command implementation"""
 
@@ -1598,6 +1605,9 @@ class _Alias:
         return self.cmd.execute(_used_aliases=used_aliases)
 
 
+_cmd_aliases = set()
+
+
 @register('alias', CmdDesc(optional=[('name', StringArg),
                                      ('text', WholeRestOfLine)]))
 def alias(session, name='', text=''):
@@ -1613,7 +1623,7 @@ def alias(session, name='', text=''):
     logger = session.logger if session else None
     if not name:
         # list aliases
-        names = ', '.join(list(_cmd_aliases.keys()))
+        names = ', '.join(_cmd_aliases)
         if names:
             if logger is not None:
                 logger.info('Aliases: %s' % names)
@@ -1634,6 +1644,7 @@ def alias(session, name='', text=''):
     cmd = _Alias(text)
     try:
         register(name, cmd.desc(), cmd, logger=logger)
+        _cmd_aliases.add(name)
     except:
         raise
 
@@ -1647,7 +1658,7 @@ def unalias(session, name):
     # remove command alias
     name = ' '.join(name.split())   # canonicalize
     try:
-        del _cmd_aliases[name]
+        _cmd_aliases.remove(name)
     except KeyError:
         raise UserError('No alias named %r exists' % name)
     deregister(name)
