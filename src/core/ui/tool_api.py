@@ -50,8 +50,7 @@ class _Wx:
         import wx
         self.tool_window = tool_window
         self.tool_name = tool_name
-        #self.destroy_hides = destroy_hides
-        self.destroy_hides = False
+        self.destroy_hides = destroy_hides
         self.main_window = mw = session.ui.main_window
         if not mw:
             raise RuntimeError("No main window or main window dead")
