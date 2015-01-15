@@ -32,11 +32,11 @@ install: $(PROG)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
-		ln -nfs ../bin/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
 		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 	fi
 ifeq ($(OS),Darwin)
 	-if [ -d "$(app_prefix)" ]; then \
+		ln -nfs ../bin/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 	fi
 endif
