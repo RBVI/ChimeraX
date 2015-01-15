@@ -114,6 +114,17 @@ class MainWindow(wx.Frame):
     def OnClose(self, event):
         self.close()
 
+    def OnOpen(self, event, session):
+        dlg = wx.FileDialog(self, "Open file",
+            style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+
+        cmd = "; ".join(["open {}".format(p) for p in dlg.GetPaths()])
+        from chimera.core import cli
+        session.logger.info("Command: {}".format(cmd))
+        cli.Command(session, cmd, final=True).execute()
+
     def OnPaneClose(self, event):
         pane_info = event.GetPane()
         tool_window = self.pane_to_tool_window[pane_info.window]
@@ -148,10 +159,13 @@ class MainWindow(wx.Frame):
 
     def _populate_menus(self, menu_bar, session):
         import sys
+        file_menu = wx.Menu()
+        menu_bar.Append(file_menu, "&File")
+        item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnOpen(evt, ses),
+            item)
         if sys.platform != "darwin":
-            file_menu = wx.Menu()
             item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
-            menu_bar.Append(file_menu, "&File")
             self.Bind(wx.EVT_MENU, self.OnQuit, item)
         tools_menu = wx.Menu()
         categories = {}
