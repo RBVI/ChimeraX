@@ -1,5 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
+_instances = {}
+
 #
 # 'register_command' is called by the toolshed on start up
 # 'start_tool' is called to start an instance of the tool
@@ -8,19 +10,12 @@ def start_tool(session, ti):
     # This function is simple because we "know" we only provide
     # a single tool in the entire package, so we do not need to
     # look at the name in 'ti.name'
-    # For GUI, we create the graphical representation if it does
-    # not already exist.
-    # For all other types of UI, we do nothing.
-    from chimera.core import gui
-    if isinstance(session.ui, gui.UI):
-    # TODO: Ask session if cmd_line is already running
-    # if not session.tools.is_running("cmd_line"):
-        if not hasattr(session.ui, "cmd_line"):
-            from .gui import CmdLine
-            cmd_line = CmdLine(session)
-        # TODO: Tell session there is a new running tool
-        # session.tools.add_tool_instance(cmd_line)
-        session.ui.cmd_line = cmd_line
+
+    if session in _instances:
+        _instances[session].tool_window.shown = True
+    else:
+        from .gui import CmdLine
+        _instances[session] = CmdLine(session)
 
 def register_command(command_name):
     from . import cmd
