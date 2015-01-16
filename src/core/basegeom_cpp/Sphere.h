@@ -11,11 +11,17 @@ template <class FinalConnection, class FinalConnectible>
 class BaseSphere: public Connectible<FinalConnection, FinalConnectible> {
 private:
     float  _radius;
+
+    int  _draw_mode;
 public:
     BaseSphere(): _radius(0.0) {}
     virtual  ~BaseSphere() {}
     void  set_radius(float r) { _radius = r; }
     float  radius() const { return _radius; }
+
+    // graphics related
+    int  get_draw_mode() const { return _draw_mode; }
+    void  set_draw_mode(int dm) { _draw_mode = dm; }
 };
 
 template <class FinalConnection, class FinalConnectible>
