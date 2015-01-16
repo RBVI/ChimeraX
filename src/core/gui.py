@@ -115,7 +115,9 @@ class MainWindow(wx.Frame):
         self.close()
 
     def OnOpen(self, event, session):
+        from . import io
         dlg = wx.FileDialog(self, "Open file",
+            wildcard=io.wx_open_file_filter(all=True),
             style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
         if dlg.ShowModal() == wx.ID_CANCEL:
             return

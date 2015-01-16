@@ -423,8 +423,8 @@ def deduce_format(filename, has_format=None, default_format=None,
     return format_name, prefixed, filename, compression
 
 
-def qt_export_file_filter(category=None, all=False):
-    """Return file name filter suitable for Save File dialog"""
+def wx_export_file_filter(category=None, all=False):
+    """Return file name filter suitable for Export File dialog for WX"""
 
     result = []
     for t, info in _file_formats.items():
@@ -432,16 +432,17 @@ def qt_export_file_filter(category=None, all=False):
             continue
         if category and info.category != category:
             continue
-        exts = ' '.join('*%s' % ext for ext in info.extensions)
-        result.append("%s files (%s)" % (t, exts))
+        exts = ', '.join(info.extensions)
+        fmts = ';'.join('*%s' % ext for ext in info.extensions)
+        result.append("%s files (%s)|%s" % (t, exts, fmts))
     if all:
-        result.append("All files (*)")
+        result.append("All files (*.*)|*.*")
     result.sort(key=str.casefold)
-    return ';;'.join(result)
+    return '|'.join(result)
 
 
-def qt_open_file_filter(all=False):
-    """Return file name filter suitable for Open File dialog"""
+def wx_open_file_filter(all=False):
+    """Return file name filter suitable for Open File dialog for WX"""
 
     combine = {}
     for t, info in _file_formats.items():
@@ -449,15 +450,22 @@ def qt_open_file_filter(all=False):
             continue
         exts = combine.setdefault(info.category, [])
         exts.extend(info.extensions)
-    result = ["%s files (%s)" %
-              (k, ' '.join('*%s' % ext for ext in combine[k]))
-              for k in combine]
-    if _compression:
-        result.append("Compressed files (%s)" % ' '.join(_compression.keys()))
-    if all:
-        result.append("All files (*)")
+    result = []
+    for k in combine:
+        exts = ', '.join(combine[k])
+        fmts = ';'.join('*%s' % ext for ext in combine[k])
+        if _compression:
+            for ext in combine[k]:
+                fmts += ';' + ';'.join('*%s%s' % (ext, c)
+                                       for c in _compression.keys())
+        result.append("%s files (%s)|%s" % (k, exts, fmts))
     result.sort(key=str.casefold)
-    return ';;'.join(result)
+    if all:
+        result.insert(0, "All files (*.*)|*.*")
+    import sys
+    print('filter:', '|'.join(result))
+    return '|'.join(result)
+
 
 _builtin_open = open
 
