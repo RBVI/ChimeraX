@@ -462,8 +462,6 @@ def wx_open_file_filter(all=False):
     result.sort(key=str.casefold)
     if all:
         result.insert(0, "All files (*.*)|*.*")
-    import sys
-    print('filter:', '|'.join(result))
     return '|'.join(result)
 
 
