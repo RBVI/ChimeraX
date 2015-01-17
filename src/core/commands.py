@@ -70,7 +70,7 @@ def list(session):
         if isinstance(id, int):
             return str(id)
         return '.'.join(str(x) for x in id)
-    info = "Open models:"
+    info = "Open models: "
     if len(models) > 1:
         info += ", ".join(id_str(m.id) for m in models[:-1]) + " and"
     info += " %s" % id_str(models[-1].id)
