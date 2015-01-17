@@ -112,9 +112,12 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, models)
         for model in models:
             model_id = model.id
-            if model_id is not None:
-                model.id = None
-                del self._models[model_id]
+            if model_id is None:
+                continue
+            model.id = None
+            del self._models[model_id]
+            parent = self.drawing   # TODO: figure out based on id
+            parent.remove_drawing(model)
 
     def open(self, filename, id=None, **kw):
         from . import io
