@@ -1,8 +1,9 @@
 # vim: set expandtab ts=4 sw=4:
 
 from __future__ import print_function
-
 from distlib.locators import Locator
+
+
 class ChimeraLocator(Locator):
 
     def __init__(self, url, **kw):
@@ -14,9 +15,10 @@ class ChimeraLocator(Locator):
     def url(self):
         return self.__url
 
-    def get_project(self, name):
+    def get_distribution(self, name):
         cache = self._get_cache()
         return cache.get(name, {})
+    _get_project = get_distribution
 
     def get_distribution_names(self):
         cache = self._get_cache()
@@ -33,7 +35,6 @@ class ChimeraLocator(Locator):
         if self.__dist_cache:
             return self.__dist_cache
         distributions = get_distributions(url=self.__url)
-        import sys
         self.__dist_cache = {}
         for d in distributions:
             name = d.name
@@ -44,6 +45,7 @@ class ChimeraLocator(Locator):
                 self.__dist_cache[name] = project
             project[d.version] = d
         return self.__dist_cache
+
 
 def get_distributions(url):
     full_url = url + "/packages/METADATA.json"
@@ -59,6 +61,7 @@ def get_distributions(url):
     f.close()
     data = json.loads(data.decode(encoding="UTF-8"))
     return _make_distributions(data, url)
+
 
 def _make_distributions(metadata_list, locator_url):
     from distlib.database import Distribution
@@ -92,7 +95,6 @@ if __name__ == "__main__":
     if True:
         # Test using ChimeraLocator
         locator = ChimeraLocator("http://localhost:8080")
-        #p = locator.get_project("ChimeraCore")
         p = locator.locate("ChimeraCore")
         from pprint import pprint
         pprint(p)

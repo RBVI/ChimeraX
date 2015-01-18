@@ -47,8 +47,13 @@ class UI(wx.App):
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
         if load_tools:
+            from .toolshed import ToolShedError
             for ti in self.session.toolshed.tool_info():
-                ti.start(self.session)
+                try:
+                    ti.start(self.session)
+                except ToolShedError as e:
+                    self.session.logger.info("Tool \"%s\" failed to start"
+                                             % ti.name)
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.

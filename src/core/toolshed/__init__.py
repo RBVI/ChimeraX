@@ -30,6 +30,8 @@ Modules referenced in distribution metadata must define:
     ``session`` is a core.Session instance.
     ``ti`` is a toolshed.ToolInfo instance.
 """
+
+
 def _hack_distlib(f):
     def hacked_f(*args, **kw):
         # distlib and wheel packages disagree on the name for
@@ -45,6 +47,10 @@ def _hack_distlib(f):
         return v
     return hacked_f
 
+
+def _debug(*args, **kw):
+    return
+
 # Default URL of remote tool shed
 _RemoteURL = "http://localhost:8080"
 # Default name for toolshed cache and data directories
@@ -56,14 +62,23 @@ _ChimeraCore = _ChimeraBasePackage + ".core"
 _ChimeraToolboxPrefix = _ChimeraBasePackage + ".toolbox"
 
 # Exceptions raised by ToolShed class
+
+
 class ToolShedError(Exception):
     """Generic ToolShed error."""
+
+
 class ToolShedUninstalledError(ToolShedError):
     """Uninstalled-tool error."""
+
+
 class ToolShedInstalledError(ToolShedError):
     """Tool-already-installed error."""
-class ToolShedUnavailbleError(ToolShedError):
+
+
+class ToolShedUnavailableError(ToolShedError):
     """Tool-not-found error."""
+
 
 class ToolShed:
     """ToolShed keeps track of the list of tool info.
@@ -74,9 +89,7 @@ class ToolShed:
     installed."""
 
     def __init__(self, logger, appdirs,
-            rebuild_cache=False,
-            check_remote=False,
-            remote_url=None):
+                 rebuild_cache=False, check_remote=False, remote_url=None):
         """Initialize shed using data from 'appdirs'.
 
         - ``logger`` is a logging object where warning and
@@ -99,8 +112,7 @@ class ToolShed:
           URL is be used."""
 
         # Initialize with defaults
-        _debug("__init__", appdirs, rebuild_cache,
-                        check_remote, remote_url)
+        _debug("__init__", appdirs, rebuild_cache, check_remote, remote_url)
         if remote_url is None:
             self.remote_url = _RemoteURL
         else:
@@ -172,6 +184,8 @@ class ToolShed:
             remote_ti_list = self.check_remote(logger)
             for ti in remote_ti_list:
                 self.add_tool_info(ti)
+                # XXX: do we want to register commands so that we can
+                # ask user whether to install tool when invoked?
 
     def tool_info(self, installed=True, available=False):
         """Return list of tool info.
@@ -221,10 +235,10 @@ class ToolShed:
         after installation."""
         _debug("install_tool", tool_info)
         if tool_info.installed:
-            raise ToolShedInstalledError(
-                        "tool \"%s\" already installed"
-                        % tool_info.name)
+            raise ToolShedInstalledError("tool \"%s\" already installed"
+                                         % tool_info.name)
         self._install_tool(tool_info, system, logger)
+        self._write_cache(self._installed_tool_info, logger)
         # TODO: implement self._install_tool
         # TODO: fire trigger
 
@@ -241,6 +255,7 @@ class ToolShed:
         after package removal."""
         _debug("uninstall_tool", tool_info)
         self._uninstall_tool(tool_info, logger)
+        self._write_cache(self._installed_tool_info, logger)
         # TODO: fire trigger
 
     def find_tool(self, name, installed=True, version=None):
@@ -248,14 +263,15 @@ class ToolShed:
 
         - ``name`` is a string of the name (internal or
         display name) of the tool of interest."""
-        _debug("find_tool", name)
+        _debug("find_tool", name, installed, version)
         if installed:
             container = self._installed_tool_info
         else:
             container = self._available_tool_info
         for ti in container:
+            _debug("  find_tool check", ti.name, ti.display_name, ti.version)
             if ((ti.name == name or ti.display_name == name)
-            and (version == None or version == ti._distribution_version)):
+               and (version is None or version == ti.version)):
                 return ti
         return None
 
@@ -276,7 +292,7 @@ class ToolShed:
                 return tool_info
         self._scan_installed(logger)
         tool_info = []
-        for d in self._inst_tools:
+        for d in self._inst_tool_dists:
             tool_info.extend(_make_tool_info(logger, d, True))
         # NOTE: need to do something with toolboxes
         self._write_cache(tool_info, logger)
@@ -312,25 +328,22 @@ class ToolShed:
         core = self._inst_locator.locate(_ChimeraCore)
         if core is None:
             self._inst_core = set()
-            self._inst_tools = set()
-            self._inst_toolboxes = set()
-            logger.warning("\"%s\" distribution not found"
-                            % _ChimeraCore)
+            self._inst_tool_dists = set()
+            logger.warning("\"%s\" distribution not found" % _ChimeraCore)
             return
 
         # Partition packages into core, tools and toolboxes
         from distlib.database import make_graph
         dg = make_graph(all_distributions)
-        known_dists = set([ core ])
+        known_dists = set([core])
         self._inst_chimera_core = core
         self._inst_core = set([core])
-        self._inst_tools = set()
-        self._inst_toolboxes = set()
-        self._all_installed_distributions = {}
+        self._inst_tool_dists = set()
+        self._all_installed_distributions = {_ChimeraCore: core}
         for d, label in dg.adjacency_list[core]:
             self._inst_core.add(d)
             self._all_installed_distributions[d.name] = d
-        check_list = [ core ]
+        check_list = [core]
         while check_list:
             dist = check_list.pop()
             _debug("checking", dist)
@@ -340,10 +353,7 @@ class ToolShed:
                 known_dists.add(d)
                 check_list.append(d)
                 name = d.name
-                if name.startswith(_ChimeraToolboxPrefix):
-                    self._inst_toolboxes.add(d)
-                else:
-                    self._inst_tools.add(d)
+                self._inst_tool_dists.add(d)
                 self._all_installed_distributions[d.name] = d
 
     def _tool_cache(self, must_exist):
@@ -363,14 +373,14 @@ class ToolShed:
         cache_file = self._tool_cache(False)
         if not self._is_cache_current(cache_file):
             return None
-        import shelve, dbm
+        import shelve
+        import dbm
         try:
             s = shelve.open(cache_file, "r")
         except dbm.error:
             return None
         try:
-            tool_info = [ ToolInfo(*args, **kw)
-                    for args, kw in s["tool_info"] ]
+            tool_info = [ToolInfo(*args, **kw) for args, kw in s["tool_info"]]
         except:
             return None
         finally:
@@ -380,7 +390,8 @@ class ToolShed:
     def _is_cache_current(self, cache_file):
         """Check if cache is up to date."""
         _debug("_is_cache_current")
-        import sys, os.path
+        import sys
+        import os.path
         try:
             sys_timestamp = os.path.getmtime(os.path.join(sys.prefix, "timestamp"))
             cache_timestamp = os.path.getmtime(cache_file + ".timestamp")
@@ -400,8 +411,7 @@ class ToolShed:
             logger.error("\"%s\": %s" % (cache_file, str(e)))
         else:
             try:
-                s["tool_info"] = [ ti.cache_data()
-                            for ti in tool_info ]
+                s["tool_info"] = [ti.cache_data() for ti in tool_info]
             finally:
                 s.close()
         timestamp_file = cache_file + ".timestamp"
@@ -423,28 +433,28 @@ class ToolShed:
         need_update = []
         self._install_dist_tool(tool_info, want_update, logger)
         self._install_cascade(want_update, need_update, logger)
-        incompatible = self._install_check_incompatible(need_update,
-                                logger)
-        if incompatible and not always:
+        incompatible = self._install_check_incompatible(need_update, logger)
+        if incompatible:
             return
         self._install_wheels(need_update, system, logger)
         # update tool installation status
-        updated = set([ d.name for d in need_update ])
-        keep = [ ti for ti in self._installed_tool_info
-                        if ti._distribution_name not in updated ]
+        updated = set([d.name for d in need_update])
+        keep = [ti for ti in self._installed_tool_info
+                if ti._distribution_name not in updated]
         self._installed_tool_info = keep
-        updated = set([ (d.name, d.version) for d in need_update ])
+        updated = set([(d.name, d.version) for d in need_update])
         import copy
-        newly_installed = [ copy.copy(ti) for ti in self._available_tool_info
-                                if ti.distribution() in updated ]
+        newly_installed = [copy.copy(ti) for ti in self._available_tool_info
+                           if ti.distribution() in updated]
         for ti in newly_installed:
             ti.installed = True
             self.add_tool_info(ti)
+            ti.register_commands()
 
     def _install_dist_core(self, want, logger):
         # Add Chimera core distribution to update list
         _debug("_install_dist_core")
-        d = _install_distribution(_ChimeraCore, logger)
+        d = self._install_distribution(_ChimeraCore, None, logger)
         if d:
             want.append(d)
 
@@ -453,38 +463,44 @@ class ToolShed:
         # given tool to update list
         _debug("_install_dist_tool", tool_info)
         if tool_info._distribution_name is None:
-            raise ToolShedUnavailableError(
-                        "no distribution information "
-                        "available for tool \"%s\""
-                        % tool_info.name)
-        d = _install_distribution(tool_info._distribution_name, logger)
+            raise ToolShedUnavailableError("no distribution information "
+                                           "available for tool \"%s\""
+                                           % tool_info.name)
+        d = self._install_distribution(tool_info._distribution_name,
+                                       tool_info._distribution_version, logger)
         if d:
             want.append(d)
 
-    def _install_distribution(self, name, logger):
+    def _install_distribution(self, name, version, logger):
         # Return either a distribution that needs to be
         # installed/updated or None if it is already
         # installed and up-to-date
         _debug("_install_distribution", name)
-        repo_dist = self._repo_locator.locate(name)
+        req = name
+        if version:
+            req += " (== %s)" % version
+        repo_dist = self._repo_locator.locate(req)
         if repo_dist is None:
-            raise ToolShedUnavailableError(
-                        "cannot find new distribution "
-                        "named \"%s\"" % name)
+            raise ToolShedUnavailableError("cannot find new distribution "
+                                           "named \"%s\"" % name)
+        if self._inst_locator is None:
+            self._scan_installed(logger)
         inst_dist = self._inst_locator.locate(name)
         if inst_dist is None:
             return repo_dist
         else:
             from distlib.version import NormalizedVersion as Version
-            repo_version = Version(repo_dist.version)
             inst_version = Version(inst_dist.version)
+            # Check if installed version is the same as requested version
+            if version is not None:
+                if inst_version != Version(version):
+                    return repo_dist
+            repo_version = Version(repo_dist.version)
             if inst_version < repo_version:
                 return repo_dist
             elif inst_version > repo_version:
-                logger.warning("installed \"%s\" is "
-                        "newer than latest: %s > %s"
-                        % (name, inst_dist.version,
-                        repo_dist.version))
+                logger.warning("installed \"%s\" is newer than latest: %s > %s"
+                               % (name, inst_dist.version, repo_dist.version))
         return None
 
     def _install_cascade(self, want, need, logger):
@@ -498,7 +514,7 @@ class ToolShed:
             seen.add(d)
             need.append(d)
             for req in d.run_requires:
-                nd = _install_distribution(req, logger)
+                nd = self._install_distribution(req, None, logger)
                 if nd and nd not in seen:
                     check.add(nd)
 
@@ -512,19 +528,19 @@ class ToolShed:
         # Make sure everything is compatible (no missing or
         # conflicting distribution requirements)
         _debug("_install_check_incompatible", need)
-        all = dict(self._get_all_installed_distributions().items())
-        all.update([ (d.name, d) for d in need ])
+        all = dict(self._get_all_installed_distributions(logger).items())
+        _debug("all", all)
+        all.update([(d.name, d) for d in need])
         from distlib.database import make_graph
         graph = make_graph(all.values())
         if graph.missing:
-            for d, req_list in graph.missing:
+            _debug("graph.missing", graph.missing)
+            for d, req_list in graph.missing.items():
                 if len(req_list) == 1:
                     s = repr(req_list[0])
                 else:
-                    s = " and ".join(", ".
-                        join([ repr(r)
-                        for r in req_list[:-1] ]),
-                        repr(req_list[-1]))
+                    s = " and ".join(", ".join([repr(r) for r in req_list[:-1]]),
+                                     repr(req_list[-1]))
                 logger.warning("\"%s\" needs %s" % (d.name, s))
             return True
         else:
@@ -533,7 +549,7 @@ class ToolShed:
     def _install_wheels(self, need, system, logger):
         # Find all packages that should be deleted
         _debug("_install_wheels", need, system)
-        all = self._get_all_installed_distributions()
+        all = self._get_all_installed_distributions(logger)
         from distlib.database import make_graph
         import itertools
         graph = make_graph(itertools.chain(all.values(), need))
@@ -548,7 +564,7 @@ class ToolShed:
                     try:
                         dep = depend[(d, d2)]
                     except KeyError:
-                        dep = _depends_on(graph, d, d2)
+                        dep = self._depends_on(graph, d, d2)
                         depend[(d, d2)] = dep
                     if dep:
                         break
@@ -577,7 +593,7 @@ class ToolShed:
                 remove_list.append(rd)
                 al = graph.adjacency_list[rd]
                 if al:
-                    check.update([ sd for sd, l in al ])
+                    check.update([sd for sd, sl in al])
         # Repeatedly go through the list of distributions to
         # see whether they can be removed.  It must be iterative.
         # Suppose A and B need to be removed; C depends on A;
@@ -597,8 +613,7 @@ class ToolShed:
                     any_deletion = True
                     remove_list.append(d)
                     for sd, l in graph.adjacency_list[d]:
-                        if (sd not in remove_list
-                        and sd not in check):
+                        if (sd not in remove_list and sd not in check):
                             new_check.add(sd)
             if not any_deletion:
                 break
@@ -609,14 +624,16 @@ class ToolShed:
         # need to keep track.
         old_location = {}
         for d in remove_list:
-            old_location[d.name] = _remove_distribution(d, logger)
+            old_location[d.name] = self._remove_distribution(d, logger)
 
         # Now we (re)install the needed distributions
-        dl = download_location()
-        default_paths = _install_make_paths(system)
+        import os.path
+        wheel_cache = os.path.join(self._cache_dir, "wheels.cache")
+        import os
+        os.makedirs(wheel_cache, exist_ok=True)
+        default_paths = self._install_make_paths(system)
         from distlib.scripts import ScriptMaker
         maker = ScriptMaker(None, None)
-        import os.path
         try:
             from urllib.request import urlretrieve, URLError
         except ImportError:
@@ -629,32 +646,33 @@ class ToolShed:
             except KeyError:
                 paths = default_paths
             else:
-                paths = _install_make_paths(system, old_site)
+                paths = self._install_make_paths(system, old_site)
             url = d.source_url
             filename = url.split('/')[-1]
-            dloc = os.path.join(dl, filename)
+            dloc = os.path.join(wheel_cache, filename)
             if not os.path.isfile(dloc):
                 try:
                     fn, headers = urlretrieve(url, dloc)
                 except URLError as e:
-                    logger.warning("cannot fetch %s: %s"
-                            % (url, str(e)))
+                    logger.warning("cannot fetch %s: %s" % (url, str(e)))
                     continue
             w = Wheel(dloc)
             try:
                 w.verify()
-            except DistlibExecption as e:
-                logger.warning("cannot verify %s: %s"
-                        % (d.name, str(e)))
+            except DistlibException as e:
+                logger.warning("cannot verify %s: %s" % (d.name, str(e)))
                 continue
             logger.info("installing %s (%s)" % (w.name, w.version))
+            _debug("paths", paths)
             w.install(paths, maker)
 
     def _install_make_paths(self, system, sitepackages=None):
         # Create path associated with either only-this-user
         # or system distributions
         _debug("_install_make_paths", system)
-        import site, sys, os.path
+        import site
+        import sys
+        import os.path
         if system:
             base = sys.prefix
         else:
@@ -679,7 +697,7 @@ class ToolShed:
         # "graph" is a distlib.depgraph.DependencyGraph instance
         # Do depth-first search
         for depa, label in graph.adjacency_list[da]:
-            if depa is db or _depends_on(graph, depa, db):
+            if depa is db or self._depends_on(graph, depa, db):
                 return True
         return False
 
@@ -687,9 +705,9 @@ class ToolShed:
         _debug("_remove_distribution", d)
         from distlib.database import InstalledDistribution
         if not isinstance(d, InstalledDistribution):
-            raise ToolShedUninstalledError("trying to remove "
-                    "uninstalled distribution: %s (%s)"
-                    % (d.name, d.version))
+            raise ToolShedUninstalledError("trying to remove uninstalled "
+                                           "distribution: %s (%s)"
+                                           % (d.name, d.version))
         # HACK ALERT: since there is no API for uninstalling
         # a distribution (as of distlib 0.1.9), here's my hack:
         #   assume that d.list_installed_files() returns paths
@@ -724,20 +742,20 @@ class ToolShed:
         return basedir
 
     def _uninstall_tool(self, tool_info, logger):
+        _debug("_uninstall", tool_info)
         dv = tool_info.distribution()
         name, version = dv
-        all = self._get_all_installed_distributions()
-        for d in all[name]:
-            if d.version == version:
-                break
-        else:
-            raise KeyError("tool_info not found")
-        self._remove_distribution(d, logger)
-        keep = [ ti for ti in self._installed_tool_info
-                            if ti.distribution() != dv ]
+        all = self._get_all_installed_distributions(logger)
+        d = all[name]
+        if d.version != version:
+            raise KeyError("distribution \"%s %s\" does not match tool version "
+                           "\"%s\"" % (name, version, d.version))
+        keep = [ti for ti in self._installed_tool_info if ti.distribution() != dv]
         self._installed_tool_info = keep
+        self._remove_distribution(d, logger)
 
     # End methods for installing and removing distributions
+
 
 class ToolInfo:
     """ToolInfo manages how to create an ToolInstance.
@@ -746,13 +764,13 @@ class ToolInfo:
     of tools and can create an tool instance."""
 
     def __init__(self, name, installed,
-                distribution_name=None,
-                distribution_version=None,
-                display_name=None,
-                module_name=None,
-                synopsis=None,
-                menu_categories=(),
-                command_names=()):
+                 distribution_name=None,
+                 distribution_version=None,
+                 display_name=None,
+                 module_name=None,
+                 synopsis=None,
+                 menu_categories=(),
+                 command_names=()):
         """Initialize tool info named 'name'.
 
         Supported keywords include:
@@ -780,6 +798,14 @@ class ToolInfo:
         self._distribution_version = distribution_version
         self._module_name = module_name
 
+    @property
+    def version(self):
+        """Tool version number.
+
+        This is the same as the tool distribution version number and
+        is available as a read-only property."""
+        return self._distribution_version
+
     def __repr__(self):
         s = self.display_name
         if self.installed:
@@ -788,7 +814,7 @@ class ToolInfo:
             s += " (available)"
         s += " [name: %s]" % self.name
         s += " [distribution: %s %s]" % (self._distribution_name,
-                                            self._distribution_version)
+                                         self._distribution_version)
         s += " [module: %s]" % self._module_name
         if self.menu_categories:
             s += " [category: %s]" % ','.join(self.menu_categories)
@@ -797,8 +823,8 @@ class ToolInfo:
         return s
 
     def cache_data(self):
-        # Return two tuple of (args, kw) that can be used
-        # to recreate with ToolInfo(*args, **kw)
+        """Return 2-tuple of (args, kw) that can be used
+        to recreate with ToolInfo(*args, **kw)."""
         args = (self.name, self.installed)
         kw = {
             "display_name": self.display_name,
@@ -842,9 +868,7 @@ class ToolInfo:
     def _get_module(self):
         """Return module for this tool."""
         if not self._module_name:
-            raise ToolShedError("no module specified for "
-                        "tool \"%s\""
-                        % self.name)
+            raise ToolShedError("no module specified for tool \"%s\"" % self.name)
         import importlib
         m = importlib.import_module(self._module_name)
         _debug("_get_module", self._module_name, m)
@@ -862,14 +886,13 @@ class ToolInfo:
         If the tool cannot be started,
         '''ToolShedError''' is raised."""
         if not self.installed:
-            raise ToolShedUninstalledError("tool \"%s\" is "
-                            "not installed"
-                            % self.name)
+            raise ToolShedUninstalledError("tool \"%s\" is not installed"
+                                           % self.name)
         try:
             f = self._get_module().start_tool
         except (ImportError, AttributeError, TypeError):
-            raise ToolShedError("bad start callable specified "
-                        "for tool \"%s\"" % self.name)
+            raise ToolShedError("bad start callable specified for tool \"%s\""
+                                % self.name)
         else:
             f(session, self, *args, **kw)
 
@@ -894,8 +917,10 @@ class ToolInstance(session.State):
 # Code in remainder of file are for internal use only
 #
 
+
 class _NotToolError(Exception):
     pass
+
 
 def _make_tool_info(logger, d, installed):
     name = d.name
@@ -904,14 +929,14 @@ def _make_tool_info(logger, d, installed):
 
     tools = []
     for classifier in md.dictionary["classifiers"]:
-        parts = [ v.strip() for v in classifier.split("::") ]
+        parts = [v.strip() for v in classifier.split("::")]
         if parts[0] != "Chimera-Tool":
             continue
         if len(parts) != 7:
             logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
             logger.warning("Expected 7 fields and got %d." % len(parts))
             continue
-        kw = { "distribution_name": name, "distribution_version": version }
+        kw = {"distribution_name": name, "distribution_version": version}
         # Name of tool
         tool_name = parts[1]
         # Name of module implementing tool
@@ -921,17 +946,18 @@ def _make_tool_info(logger, d, installed):
         # CLI command names (just the first word)
         commands = parts[4]
         if commands:
-            kw["command_names"] = [ v.strip()
-                    for v in commands.split(',') ]
+            kw["command_names"] = [v.strip()
+                                   for v in commands.split(',')]
         # Menu categories in which tool should appear
         categories = parts[5]
         if categories:
-            kw["menu_categories"] = [ v.strip()
-                    for v in categories.split(',') ]
+            kw["menu_categories"] = [v.strip()
+                                     for v in categories.split(',')]
         # Synopsis of tool
         kw["synopsis"] = parts[6]
         tools.append(ToolInfo(tool_name, installed, **kw))
     return tools
+
 
 _toolshed = None
 def init(*args, debug=False, **kw):

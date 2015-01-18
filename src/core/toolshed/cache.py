@@ -20,8 +20,8 @@ This modules uses the '''shed''' module for finding the per-user
 directory for storing cached data.
 """
 
-#NAMESPACE_PACKAGE = "chimera2"
-NAMESPACE_PACKAGE = "shedtest"    # For testing purposes
+NAMESPACE_PACKAGE = "chimera2"
+# NAMESPACE_PACKAGE = "shedtest"    # For testing purposes
 CACHE_FILENAME = "toolcache.json"
 TOOLINFO_FILENAME = "toolinfo.json"
 HELP_DIRNAME = "helpdir"
@@ -31,15 +31,18 @@ _tool_cache = None
 _help_cache = None
 _empty = {}
 
+
 def get_tool_info(tool_name):
     if _tool_cache is None:
         init()
     return _tool_cache.get(tool_name, _empty)
 
+
 def get_help_dir(tool_name):
     if _help_cache is None:
         init()
     return _help_cache.get(tool_name, None)
+
 
 def init():
     """Initialize cache.  If the cache file is missing,
@@ -65,9 +68,12 @@ def init():
         # Treat same as missing file
         remake()
 
+
 def _cache_filename():
-    import shed, os.path
+    import shed
+    import os.path
     return os.path.join(shed.get_chimera_user_base(), CACHE_FILENAME)
+
 
 def remake():
     global _tool_cache, _help_cache
@@ -84,6 +90,7 @@ def remake():
         import json
         json.dump(cache, f)
 
+
 def _fill_caches(pkg_name):
     import importlib
     pkg = importlib.import_module(pkg_name)
@@ -93,12 +100,15 @@ def _fill_caches(pkg_name):
         _scan(p, tool_info, help_info)
     return tool_info, help_info
 
+
 def _scan(top, tool_info, help_info):
-    import os, os.path, json
+    import os
+    import os.path
+    import json
     for dirpath, dirnames, filenames in os.walk(top):
         # convert path into package reference
         tool_name = (NAMESPACE_PACKAGE
-                + dirpath.replace(top, "").replace(os.sep, '.'))
+                     + dirpath.replace(top, "").replace(os.sep, '.'))
         if TOOLINFO_FILENAME in filenames:
             ti_name = os.path.join(dirpath, TOOLINFO_FILENAME)
             with open(ti_name) as f:

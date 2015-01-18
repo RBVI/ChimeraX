@@ -22,7 +22,7 @@ setup(name="PKG_NAME",
     },
     packages=[
         "PKG_NAME",
-    # Add subpackage names here
+	# Add subpackage names here
     ],
     data_files=[
         ("", [ "timestamp" ]),
@@ -45,15 +45,22 @@ setup(name="PKG_NAME",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Vio-Informatics",
         # Each tool should have a single line with up to seven fields:
+        #
         # 'Chimera-Tool' :: tool_name :: module_name
         # :: display_name :: commands :: categories
         # :: synopsis
+        #
         # 'tool_name', 'module_name' and 'display_name' are strings.
         # 'commands' and 'categories' are comma separated strings.
         # Note that TOOL_PKG_NAME does not need to match the install
         # package name; in particular, it may be a subpackage.
         # TOOL_DISPLAY_NAME is distinct from PKG_DESCRIPTION because
         # a single package may provide multiple tools.
+        # 'synopsis' is a short description of the tool.  It is here
+        # because it needs to be part of the metadata available for
+        # uninstalled tools, so that users can get more than just a
+        # name for deciding whether they want the tool or not.
+        #
         # Example:
         # "Chimera-Tool :: cmd_line :: chimera.cmd_line "
         # ":: Command Line Interface :: command_line :: General"
