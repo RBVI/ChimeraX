@@ -48,7 +48,8 @@ $(PROG): $(OBJS)
 install: $(PROG)
 	cp -fp $(PROG) $(bindir)/
 
-app-install:;
+app-install: lib.install
+	$(RSYNC) $(shlibdir)/lib$(PROG).*$(SHLIB_EXT)* $(app_shlibdir)
 
 docinstall:
 	-mkdir $(DOCDIR)
