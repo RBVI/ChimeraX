@@ -214,8 +214,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     from chimera.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
-    # TODO: sess.tools = toolshed.Tools(sess)
-    # TODO: sess.add_state_manager('tools', sess.tools)
+    sess.tools = toolshed.Tools(sess)
+    sess.add_state_manager('tools', sess.tools)
 
     if opts.list_file_types:
         from chimera.core import io

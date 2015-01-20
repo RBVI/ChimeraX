@@ -53,13 +53,6 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
-$(SUBDIR_INSTALL): dir
-
-lint:
-	$(PYLINT) $(PYSRCS)
-
-test:
-	$(bindir)/python3
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 

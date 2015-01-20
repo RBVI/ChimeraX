@@ -51,15 +51,19 @@ def _hack_distlib(f):
 def _debug(*args, **kw):
     return
 
+
+# Package constants
+
+
 # Default URL of remote tool shed
 _RemoteURL = "http://localhost:8080"
 # Default name for toolshed cache and data directories
 _ToolShed = "toolshed"
-
 # Defaults names for installed chimera tools
 _ChimeraBasePackage = "chimera"
 _ChimeraCore = _ChimeraBasePackage + ".core"
 _ChimeraToolboxPrefix = _ChimeraBasePackage + ".toolbox"
+
 
 # Exceptions raised by ToolShed class
 
@@ -78,6 +82,9 @@ class ToolShedInstalledError(ToolShedError):
 
 class ToolShedUnavailableError(ToolShedError):
     """Tool-not-found error."""
+
+
+# ToolShed and ToolInfo are session-independent
 
 
 class ToolShed:
@@ -156,14 +163,11 @@ class ToolShed:
             from .chimera_locator import ChimeraLocator
             self._repo_locator = ChimeraLocator(self.remote_url)
         distributions = self._repo_locator.get_distributions()
-        tool_info = []
+        ti_list = []
         for d in distributions:
-            try:
-                tool_info.extend(_make_tool_info(logger, d, False))
-                _debug("added remote distribution:", d)
-            except _NotToolError:
-                _debug("skipped remote distribution:", d)
-        return tool_info
+            ti_list.extend(_make_tool_info(logger, d, False))
+            _debug("added remote distribution:", d)
+        return ti_list
 
     def reload(self, logger, rebuild_cache=False, check_remote=False):
         """Discard and reread tool info.
@@ -352,7 +356,6 @@ class ToolShed:
                     continue
                 known_dists.add(d)
                 check_list.append(d)
-                name = d.name
                 self._inst_tool_dists.add(d)
                 self._all_installed_distributions[d.name] = d
 
@@ -896,8 +899,14 @@ class ToolInfo:
         else:
             f(session, self, *args, **kw)
 
-from .. import session
-class ToolInstance(session.State):
+
+# Tools and ToolInstance are session-specific
+from ..session import State
+ADD_TOOL_INSTANCE = 'add tool instance'
+REMOVE_TOOL_INSTANCE = 'remove tool instance'
+
+
+class ToolInstance(State):
     """ToolInstance is the abstract base class for
     tool instance classes that implement actual functionality,
     in particular the '''session.State''' API.
@@ -912,14 +921,102 @@ class ToolInstance(session.State):
         - ``session_data``: data read from session file; if present,
           this data overrides information from all other arguments
         """
+        self.id = None
+        # TODO: track.created(ToolInstance, [self])
+
+    def delete(self):
+        if self.id is not None:
+            raise ValueError("tool instance is still in use")
+        # TODO: track.deleted(ToolInstance, [self])
+
+
+class Tools(State):
+    """Tools is a session state manager for running tools."""
+    # Most of this code is modeled after models.Models
+
+    VERSION = 1     # snapshot version
+
+    def __init__(self, session):
+        """Initialize session state manager for ToolInstance instances."""
+        import weakref
+        self._session = weakref.ref(session)
+        session.triggers.add_trigger(ADD_TOOL_INSTANCE)
+        session.triggers.add_trigger(REMOVE_TOOL_INSTANCE)
+        self._tool_instances = {}
+        import itertools
+        self._id_counter = itertools.count(1)
+
+    def take_snapshot(self, session, flags):
+        """Override State default method."""
+        from ..session import unique_id
+        data = {}
+        for tid, ti in self._tool_instances.items():
+            assert(isinstance(ti, ToolInstance))
+            data[tid] = [unique_id(ti), ti.take_snapshot(session, flags)]
+        return [self.VERSION, data]
+
+    def restore_snapshot(self, phase, session, version, data):
+        """Override State default method."""
+        if version != self.VERSION or not data:
+            raise RuntimeError("Unexpected version or data")
+
+        for tid, [uid, [ti_version, ti_data]] in data.items():
+            if phase == State.PHASE1:
+                try:
+                    cls = session.class_of_unique_id(uid, ToolInstance)
+                except KeyError:
+                    class_name = session.class_name_of_unique_id(uid)
+                    session.log.warning("Unable to restore tool instance %s (%s)"
+                                        % (id, class_name))
+                    continue
+                ti = cls("unnamed restored tool instance")
+                ti.id = tid
+                self.tool_instances[tid] = ti
+                session.restore_unique_id(ti, uid)
+            else:
+                ti = session.unique_obj(uid)
+            ti.restore_snapshot(phase, session, ti_version, ti_data)
+
+    def reset_state(self):
+        """Override State default method."""
+        ti_list = self._tool_instances.values()
+        self._tool_instances.clear()
+        for ti in ti_list:
+            ti.delete()
+
+    def list(self):
+        """Return list of running tools."""
+        return list(self._tool_instances.values())
+
+    def add(self, ti_list, id=None):
+        """Add running tools to session."""
+        session = self._session()   # resolve back reference
+        for ti in ti_list:
+            # TODO:
+            # if id is not None
+            #   ti.id = id
+            # else:
+            if True:
+                ti.id = next(self._id_counter)
+            self._tool_instances[ti.id] = ti
+        session.triggers.activate_trigger(ADD_TOOL_INSTANCE, ti_list)
+
+    def remove(self, ti_list):
+        """Remove running tools from session."""
+        session = self._session()   # resolve back reference
+        session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
+        for ti in ti_list:
+            tid = ti.id
+            if tid is None:
+                # Not registered in a session
+                continue
+            ti.id = None
+            del self._tool_instance[tid]
+
 
 #
 # Code in remainder of file are for internal use only
 #
-
-
-class _NotToolError(Exception):
-    pass
 
 
 def _make_tool_info(logger, d, installed):
@@ -959,7 +1056,10 @@ def _make_tool_info(logger, d, installed):
     return tools
 
 
+# Toolshed is a singleton.  Multiple calls to init returns the same instance.
 _toolshed = None
+
+
 def init(*args, debug=False, **kw):
     """Initialize toolshed.  The toolshed is a singleton, so
     the first call creates the instance and all subsequent
