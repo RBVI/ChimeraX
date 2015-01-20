@@ -13,6 +13,7 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 </body>
 </html>"""
 
+
 class ToolshedUI:
 
     SIZE = (800, 50)
@@ -26,8 +27,9 @@ class ToolshedUI:
         from wx import html2
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
-        self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING, self.OnNavigating,
-                                                    id=self.webview.GetId())
+        self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
+                          self.OnNavigating,
+                          id=self.webview.GetId())
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)

@@ -2,12 +2,14 @@
 
 from chimera.core import cli
 
-_tool_types = cli.EnumOf([ "all", "installed", "available" ])
+_tool_types = cli.EnumOf(["all", "installed", "available"])
+
 
 def _display_tools(ti_list, logger):
     for ti in ti_list:
         logger.info(" %s (%s %s): %s" % (ti.display_name, ti.name,
-                                            ti.version, ti.synopsis))
+                                         ti.version, ti.synopsis))
+
 
 def ts_list(session, tool_type="installed"):
     ts = session.toolshed
@@ -28,6 +30,7 @@ def ts_list(session, tool_type="installed"):
             logger.info("No available tools found.")
 ts_list_desc = cli.CmdDesc(optional=[("tool_type", _tool_types)])
 
+
 def ts_refresh(session, tool_type="installed"):
     ts = session.toolshed
     logger = session.logger
@@ -38,6 +41,7 @@ def ts_refresh(session, tool_type="installed"):
     elif tool_type == "all":
         ts.reload(logger, rebuild_cache=True, check_remote=True)
 ts_refresh_desc = cli.CmdDesc(optional=[("tool_type", _tool_types)])
+
 
 def ts_install(session, tool_name, user_only=True, version=None):
     ts = session.toolshed
@@ -56,8 +60,9 @@ def ts_install(session, tool_name, user_only=True, version=None):
         return
     ts.install_tool(ti, logger, not user_only)
 ts_install_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)],
-                                optional=[("user_only", cli.BoolArg),
-                                            ("version", cli.StringArg)])
+                              optional=[("user_only", cli.BoolArg),
+                                        ("version", cli.StringArg)])
+
 
 def ts_remove(session, tool_name):
     ts = session.toolshed

@@ -4,8 +4,11 @@
 # 'register_command' is called by the toolshed on start up
 # 'start_tool' is called to start an instance of the tool
 #
+
+
 def start_tool(session, ti):
     return
+
 
 def register_command(command_name):
     from . import cmd

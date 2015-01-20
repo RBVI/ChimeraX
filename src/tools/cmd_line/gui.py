@@ -1,5 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 
+
 class CmdLine:
 
     SIZE = (500, 25)
@@ -10,10 +11,10 @@ class CmdLine:
         import wx
         from chimera.core.ui.tool_api import ToolWindow
         self.tool_window = ToolWindow("Command Line", "General", session,
-                                        size=self.SIZE, destroy_hides=True)
+                                      size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         self.text = wx.TextCtrl(parent, size=self.SIZE,
-            style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
+                                style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
@@ -32,11 +33,10 @@ class CmdLine:
         text = self.text.GetLineText(0)
         self.text.SelectAll()
         from chimera.core import cli
-        import sys
         try:
             cmd = cli.Command(session, text, final=True)
             cmd.execute()
-        except SystemExit as e:
+        except SystemExit:
             # TODO: somehow quit application
             raise
         except cli.UserError as err:

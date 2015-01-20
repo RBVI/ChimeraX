@@ -2,8 +2,8 @@
 
 _instances = {}
 
+
 #
-# 'register_command' is called by the toolshed on start up
 # 'start_tool' is called to start an instance of the tool
 #
 def start_tool(session, ti):
@@ -17,6 +17,10 @@ def start_tool(session, ti):
         from .gui import CmdLine
         _instances[session] = CmdLine(session)
 
+
+#
+# 'register_command' is called by the toolshed on start up
+#
 def register_command(command_name):
     from . import cmd
     from chimera.core import cli
