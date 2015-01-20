@@ -35,7 +35,7 @@ endif
 
 	PYDEF = -fvisibility-ms-compat -DPyMODINIT_FUNC='extern "C" __attribute__((__visibility__("default"))) PyObject*'
 	PYMOD_EXT = so
-	PYMOD_LINK = $(LOADER) -shared -o $(PYMOD) $(OBJS) $(LIBS)
+	PYMOD_LINK = $(LOADER) $(LDFLAGS) -shared -o $(PYMOD) $(OBJS) $(LIBS)
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -lGL
@@ -101,8 +101,8 @@ else
 	PYTHON_LIB = -L$(libdir) -lpython$(PYTHON_VERSION)$(PYTHON_ABI)
 endif
 	PYMOD_EXT = so
-	#PYMOD_LINK = $(LOADER) -bundle -bundle_loader `which python3` -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
-	PYMOD_LINK = $(LOADER) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OPT) $(OBJS) $(LIBS) $(PYTHON_LIB)
+	#PYMOD_LINK = $(LOADER) $(LDFLAGS) -bundle -bundle_loader `which python3` -o $(PYMOD) $(OBJS) $(LIBS) $(PYTHON_LIB)
+	PYMOD_LINK = $(LOADER) $(LDFLAGS) -bundle -bundle_loader $(bindir)/python3 -o $(PYMOD) $(OBJS) $(LIBS) $(PYTHON_LIB)
 
 	OPENGL_LIBS = -L$(libdir) -lGLEW -framework OpenGL
 endif
