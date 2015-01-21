@@ -62,8 +62,8 @@ class Models(State):
         return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
+        if version != self.VERSION:
+            raise RuntimeError("Unexpected version")
 
         for id, [uid, [model_version, model_data]] in data.items():
             if phase == State.PHASE1:

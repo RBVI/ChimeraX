@@ -914,14 +914,14 @@ class ToolInstance(State):
     All session-related data are stored in ToolInstance instances,
     not in any ToolShed or ToolInfo instances."""
 
-    def __init__(self, session, *args, **kw):
+    def __init__(self, session, *args, id=None, **kw):
         """Initialize an ToolInstance.
 
         Supported keyword include:
         - ``session_data``: data read from session file; if present,
           this data overrides information from all other arguments
         """
-        self.id = None
+        self.id = id
         # TODO: track.created(ToolInstance, [self])
 
     def delete(self):
@@ -948,11 +948,10 @@ class Tools(State):
 
     def take_snapshot(self, session, flags):
         """Override State default method."""
-        from ..session import unique_id
         data = {}
         for tid, ti in self._tool_instances.items():
             assert(isinstance(ti, ToolInstance))
-            data[tid] = [unique_id(ti), ti.take_snapshot(session, flags)]
+            data[tid] = [session.unique_id(ti), ti.take_snapshot(session, flags)]
         return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
@@ -960,6 +959,7 @@ class Tools(State):
         if version != self.VERSION or not data:
             raise RuntimeError("Unexpected version or data")
 
+        session = self._session()   # resolve back reference
         for tid, [uid, [ti_version, ti_data]] in data.items():
             if phase == State.PHASE1:
                 try:
@@ -967,11 +967,10 @@ class Tools(State):
                 except KeyError:
                     class_name = session.class_name_of_unique_id(uid)
                     session.log.warning("Unable to restore tool instance %s (%s)"
-                                        % (id, class_name))
+                                        % (tid, class_name))
                     continue
-                ti = cls("unnamed restored tool instance")
-                ti.id = tid
-                self.tool_instances[tid] = ti
+                ti = cls(session, id=tid)
+                self._tool_instances[tid] = ti
                 session.restore_unique_id(ti, uid)
             else:
                 ti = session.unique_obj(uid)
@@ -979,10 +978,10 @@ class Tools(State):
 
     def reset_state(self):
         """Override State default method."""
-        ti_list = self._tool_instances.values()
-        self._tool_instances.clear()
+        ti_list = list(self._tool_instances.values())
         for ti in ti_list:
             ti.delete()
+        self._tool_instances.clear()
 
     def list(self):
         """Return list of running tools."""
@@ -1011,7 +1010,13 @@ class Tools(State):
                 # Not registered in a session
                 continue
             ti.id = None
-            del self._tool_instance[tid]
+            del self._tool_instances[tid]
+
+    def find_by_class(self, cls):
+        """Return a list of tools of the given class."""
+        for ti in self._tool_instances.values():
+            print("ti", ti, ti.__class__, cls, isinstance(ti, cls))
+        return [ti for ti in self._tool_instances.values() if isinstance(ti, cls)]
 
 
 #

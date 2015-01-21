@@ -1,7 +1,5 @@
 # vim: set expandtab ts=4 sw=4:
 
-_instances = {}
-
 
 #
 # 'start_tool' is called to start an instance of the tool
@@ -10,12 +8,9 @@ def start_tool(session, ti):
     # This function is simple because we "know" we only provide
     # a single tool in the entire package, so we do not need to
     # look at the name in 'ti.name'
-
-    if session in _instances:
-        _instances[session].tool_window.shown = True
-    else:
-        from .gui import CmdLine
-        _instances[session] = CmdLine(session)
+    from chimera.core import cli
+    cmd = cli.Command(session, "command_line show", final=True)
+    cmd.execute()
 
 
 #
