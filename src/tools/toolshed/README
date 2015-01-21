@@ -1,0 +1,28 @@
+How To Use The Tool Template
+----------------------------
+
+1. Copy the entire template directory as a new tool directory.
+2a. If you are providing a single tool and a single command (the
+    most common case), do the following:
+        - Edit Makefile and looking for the word "Replace".  Replace
+	  the short sentence with information matching your tool.
+	- Edit __init__.py and look for the same all-caps constants
+	  you just changed in Makefile.  Fix them.
+	- Edit gui.py and cmd.py so that the function and variable
+	  names match those used in __init__.py.
+2b. If you are providing a single tool and multiple commands:
+	- Do the same steps as 2a, but use a comma-separated list
+	  for the "COMMAND_NAME" variable.
+	- When fixing __init__.py, you will need to make the
+	  "register_command" function handle multiple command names.
+2c. If you are providing multiple tools:
+        - Edit Makefile.  You only need to replace the "PKG_*" variables.
+	  Get rid of the "TOOL_*" and "COMMAND_*" variables since you
+	  will be adding tools manually.
+	- Edit setup.py.in and look for "TOOL_NAME".  You will need to
+	  create one line for each tool you provide.  Read the documentation
+	  in setup.py.in for information about the fields on the line.
+	- Edit __init__.py and make "register_command" and "start_tool"
+	  handle multiple command names and tools, respectively.
+	- Edit gui.py and cmd.py to match __init__.py.
+3. "make install".  Good luck.

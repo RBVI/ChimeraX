@@ -1,13 +1,13 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 """
-io: manage file formats that can be opened and saved
-====================================================
+io: manage file formats that can be opened and exported
+=======================================================
 
-The io module keeps track of the functions that can open, fetch, and save
+The io module keeps track of the functions that can open, fetch, and export
 data in various formats.
 
 I/O sources and destinations are specified as filenames, and the appropriate
-open or save function is found by deducing the format from the suffix of the
+open or export function is found by deducing the format from the suffix of the
 filename.  An additional compression suffix, i.e., .gz, indicates that the
 file is or should be compressed.  In addition to reading data from files,
 data can be fetched from the Internet.  In that case, instead of a filename,
@@ -21,7 +21,7 @@ __all__ = [
     'register_format',
     'register_open',
     'register_fetch',
-    'register_save',
+    'register_export',
     'register_compression',
     'SCRIPT',
     'formats',
@@ -30,7 +30,7 @@ __all__ = [
     'extensions',
     'open_function',
     'fetch_function',
-    'save_function',
+    'export_function',
     'mime_types',
     'requires_seeking',
     'dangerous',
@@ -133,13 +133,13 @@ class _FileFormatInfo:
         function that opens internet files:
             func(prefixed_name, identify_as=None)
 
-    ..attribute:: save_func
+    ..attribute:: export_func
 
-        function that saves files: func(stream)
+        function that exports files: func(stream)
 
-    ..attribute:: save_notes
+    ..attribute:: export_notes
 
-        additional information to show in save dialogs
+        additional information to show in export dialogs
     """
 
     def __init__(self, category, extensions, prefixes, mime, reference,
@@ -154,8 +154,8 @@ class _FileFormatInfo:
         self.open_func = None
         self.requires_seeking = False
         self.fetch_func = None
-        self.save_func = None
-        self.save_notes = None
+        self.export_func = None
+        self.export_notes = None
 
 _file_formats = {}
 
@@ -204,7 +204,7 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
                                                       mime, reference,
                                                       dangerous)
     for attr in ['open_func', 'requires_seeking', 'fetch_func',
-                 'save_func', 'save_notes']:
+                 'export_func', 'export_notes']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
 
@@ -253,13 +253,13 @@ def register_fetch(format_name, fetch_function):
     fi.fetch_func = fetch_function
 
 
-def register_save(format_name, save_function, save_notes=''):
+def register_export(format_name, export_function, export_notes=''):
     try:
         fi = _file_formats[format_name]
     except KeyError:
         raise ValueError("Unknown data type")
-    fi.save_func = save_function
-    fi.save_notes = save_notes
+    fi.export_func = export_function
+    fi.export_notes = export_notes
 
 
 def extensions(format_name):
@@ -296,13 +296,13 @@ def fetch_function(format_name):
         return None
 
 
-def save_function(format_name):
-    """Return save callback for named format.
+def export_function(format_name):
+    """Return export callback for named format.
 
-    save_function(format_name) -> function
+    export_function(format_name) -> function
     """
     try:
-        return _file_formats[format_name].save_func
+        return _file_formats[format_name].export_func
     except KeyError:
         return None
 
@@ -339,7 +339,7 @@ def category(format_name):
         return "Unknown"
 
 
-def format_names(open=True, save=False, source_is_file=False):
+def format_names(open=True, export=False, source_is_file=False):
     """Return known format names.
 
     formats() -> [format-name(s)]
@@ -348,14 +348,14 @@ def format_names(open=True, save=False, source_is_file=False):
     for t, info in _file_formats.items():
         if open and not info.open_func:
             continue
-        if save and not info.save_func:
+        if export and not info.export_func:
             continue
         if not source_is_file or info.extensions:
             names.append(t)
     return names
 
 
-def categorized_formats(open=True, save=False):
+def categorized_formats(open=True, export=False):
     """Return known formats by category
 
     categorized_formats() -> { category: formats() }
@@ -364,7 +364,7 @@ def categorized_formats(open=True, save=False):
     for format_name, info in _file_formats.items():
         if open and not info.open_func:
             continue
-        if save and not info.save_func:
+        if export and not info.export_func:
             continue
         names = result.setdefault(info.category, [])
         names.append(format_name)
@@ -423,25 +423,57 @@ def deduce_format(filename, has_format=None, default_format=None,
     return format_name, prefixed, filename, compression
 
 
-def qt_save_file_filter(category=None, all=False):
-    """Return file name filter suitable for Save File dialog"""
+def print_file_types():
+    """Return file name filter suitable for Open File dialog for WX"""
+
+    combine = {}
+    for format_name, info in _file_formats.items():
+        names = combine.setdefault(info.category, [])
+        names.append(format_name)
+    categories = list(combine)
+    categories.sort(key=str.casefold)
+    print('Supported file types:')
+    for k in categories:
+        print("\n%s:" % k)
+        names = combine[k]
+        names.sort(key=str.casefold)
+        for format_name in names:
+            info = _file_formats[format_name]
+            o = 'o' if info.open_func else ' '
+            e = 'e' if info.export_func else ' '
+            if info.extensions:
+                exts = ': ' + ', '.join(info.extensions)
+            else:
+                exts = ''
+            print('%c%c  %s%s' % (o, e, format_name, exts))
+    print('\n  o = open, e = export')
+
+    # if _compression:
+    #    for ext in combine[k]:
+    #        fmts += ';' + ';'.join('*%s%s' % (ext, c)
+    #                               for c in _compression.keys())
+
+
+def wx_export_file_filter(category=None, all=False):
+    """Return file name filter suitable for Export File dialog for WX"""
 
     result = []
     for t, info in _file_formats.items():
-        if not info.save_func:
+        if not info.export_func:
             continue
         if category and info.category != category:
             continue
-        exts = ' '.join('*%s' % ext for ext in info.extensions)
-        result.append("%s files (%s)" % (t, exts))
+        exts = ', '.join(info.extensions)
+        fmts = ';'.join('*%s' % ext for ext in info.extensions)
+        result.append("%s files (%s)|%s" % (t, exts, fmts))
     if all:
-        result.append("All files (*)")
+        result.append("All files (*.*)|*.*")
     result.sort(key=str.casefold)
-    return ';;'.join(result)
+    return '|'.join(result)
 
 
-def qt_open_file_filter(all=False):
-    """Return file name filter suitable for Open File dialog"""
+def wx_open_file_filter(all=False):
+    """Return file name filter suitable for Open File dialog for WX"""
 
     combine = {}
     for t, info in _file_formats.items():
@@ -449,15 +481,20 @@ def qt_open_file_filter(all=False):
             continue
         exts = combine.setdefault(info.category, [])
         exts.extend(info.extensions)
-    result = ["%s files (%s)" %
-              (k, ' '.join('*%s' % ext for ext in combine[k]))
-              for k in combine]
-    if _compression:
-        result.append("Compressed files (%s)" % ' '.join(_compression.keys()))
-    if all:
-        result.append("All files (*)")
+    result = []
+    for k in combine:
+        exts = ', '.join(combine[k])
+        fmts = ';'.join('*%s' % ext for ext in combine[k])
+        if _compression:
+            for ext in combine[k]:
+                fmts += ';' + ';'.join('*%s%s' % (ext, c)
+                                       for c in _compression.keys())
+        result.append("%s files (%s)|%s" % (k, exts, fmts))
     result.sort(key=str.casefold)
-    return ';;'.join(result)
+    if all:
+        result.insert(0, "All files (*.*)|*.*")
+    return '|'.join(result)
+
 
 _builtin_open = open
 
@@ -484,10 +521,11 @@ def open(session, filespec, format=None, identify_as=None, **kw):
     if open_func is None:
         raise UserError("unable to open %s files" % format_name)
     if prefix:
-        fetch = fetch_function(format_name)
-        if fetch is None:
+        fetch_func = fetch_function(format_name)
+        if fetch_func is None:
             raise UserError("unable to fetch %s files" % format_name)
-        stream = fetch(filename)
+        stream = fetch_func(session, filename)
+        filename = None
     else:
         if not compression:
             import os
@@ -497,40 +535,43 @@ def open(session, filespec, format=None, identify_as=None, **kw):
             except OSError as e:
                 raise UserError(e)
         else:
-            stream_type = _compression[format_name]
+            stream_type = _compression[compression]
             try:
                 stream = stream_type(filename)
+                filename = None
             except OSError as e:
                 raise UserError(e)
-            if requires_seeking(format_name):
-                # copy compressed file to real file
-                import tempfile
-                exts = extensions(format_name)
-                suffix = exts[0] if exts else ''
-                tf = tempfile.NamedTemporaryFile(prefix='chtmp', suffix=suffix)
-                while 1:
-                    data = stream.read()
-                    if not data:
-                        break
-                    tf.write(data)
-                tf.seek(0)
-                stream = tf
+    if requires_seeking(format_name) and not filename:
+        # copy compressed file to real file
+        import tempfile
+        exts = extensions(format_name)
+        suffix = exts[0] if exts else ''
+        tf = tempfile.NamedTemporaryFile(prefix='chtmp', suffix=suffix)
+        while 1:
+            data = stream.read()
+            if not data:
+                break
+            tf.write(data)
+        tf.seek(0)
+        stream = tf
+        # TODO: Windows might need tf to be closed before reading with
+        # a different file descriptor
     models, status = open_func(session, stream, **kw)
     for m in models:
         m.name = identify_as
     return models, status
 
 
-def save(filename, **kw):
+def export(session, filename, **kw):
     from chimera.core.cli import UserError
     format_name, prefix, filename, compression = deduce_format(
         filename, prefixable=False)
     if format_name is None:
         raise UserError("Missing or unknown file type")
-    func = save_function(format_name)
+    func = export_function(format_name)
     if not compression:
         stream = open(filename, 'wb')
     else:
-        stream_type = _compression[format_name]
-        stream = stream_type(filename)
-    return func(stream, **kw)
+        stream_type = _compression[compression]
+        stream = stream_type(filename, 'wb')
+    return func(session, stream, **kw)

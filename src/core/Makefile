@@ -24,15 +24,14 @@ all: $(PYOBJS)
 install: dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
-		$(MAKE) app_install ;\
+		$(MAKE) app-install ;\
 	fi
 
-app_install: wheel
-	$(APP_PYTHON_EXE) -m pip install wheel distlib
-	$(APP_PYTHON_EXE) -m pip install --ignore-installed $(WHEEL)
+app-install: wheel
+	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
+	$(RSYNC) $(WHEEL) $(wheelhouse)
 
-wheel: setup.py always
-	$(PYTHON_EXE) -m pip install wheel
+wheel: setup.py timestamp always
 	$(PYTHON_EXE) setup.py bdist_wheel
 
 setup.py: setup.py.in
@@ -40,7 +39,11 @@ setup.py: setup.py.in
 		-e 's,LIB_DIR,$(libdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,CORE_VERSION,$(CORE_VERSION),' \
 		< setup.py.in > setup.py
+
+timestamp:
+	echo "chimera.core" > timestamp
 
 always:
 
@@ -48,15 +51,8 @@ $(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
+	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
-$(SUBDIR_INSTALL): dir
-
-lint:
-	$(PYLINT) $(PYSRCS)
-
-test:
-	$(bindir)/python3
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 

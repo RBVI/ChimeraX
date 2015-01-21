@@ -44,6 +44,24 @@ class Camera:
         """Indicates whether a camera change has been made which requires
         the graphics to be redrawn."""
 
+    CAMERA_STATE_VERSION = 1
+
+    def take_snapshot(self, session, flags):
+        data = [self.position, self.field_of_view]
+        return [self.CAMERA_STATE_VERSION, data]
+
+    def restore_snapshot(self, phase, session, version, data):
+        from ..session import State
+        if version != self.CAMERA_STATE_VERSION or len(data) == 0:
+            raise RuntimeError("Unexpected version or data")
+        if phase != State.PHASE1:
+            return
+        (self.position, self.field_of_view) = data
+
+    def reset_state(self):
+        # delay implementing until needed
+        raise NotImplemented()
+
     def get_mode(self):
         return self._mode
 

@@ -1,6 +1,6 @@
 from . import io
 from . import models
-from .session import State
+from .graphics.drawing import Drawing
 
 CATEGORY = io.GENERIC3D
 
@@ -8,16 +8,11 @@ CATEGORY = io.GENERIC3D
 class Generic3DModel(models.Model):
     """Commom base class for generic 3D data"""
 
-    # TODO: just save/restore drawing state
-
     def take_snapshot(self, session, flags):
-        # TODO: replace
-        State.take_snapshot(self, session, flags)
+        return Drawing.take_snapshot(self, session, flags)
 
     def restore_snapshot(self, phase, session, version, data):
-        # TODO: replace
-        State.restore_snapshot(self, phase, session, version, data)
+        return Drawing.restore_snapshot(self, phase, session, version, data)
 
     def reset_state(self):
-        # TODO: replace
-        State.reset_state(self)
+        pass

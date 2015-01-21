@@ -22,7 +22,7 @@ install: $(SOURCE)
 app-install:
 	cd $(PYSITEDIR); $(RSYNC) \
 		setuptools-$(VERSION)-py$(PYTHON_VERSION).egg \
-		easy_install.py pkg_resources.py _markerlib \
+		easy-install.pth easy_install.py pkg_resources.py _markerlib \
 		$(APP_PYSITEDIR)
 
 $(SOURCE):

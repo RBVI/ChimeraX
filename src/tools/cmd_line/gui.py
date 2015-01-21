@@ -1,25 +1,35 @@
 # vim: set expandtab ts=4 sw=4:
-import weakref
 
-class CmdLine:
+from chimera.core.toolshed import ToolInstance
+
+
+class CmdLine(ToolInstance):
 
     SIZE = (500, 25)
+    VERSION = 1
 
-    def __init__(self, session):
+    def __init__(self, session, **kw):
+        super().__init__(session, **kw)
+        import weakref
         self._session = weakref.ref(session)
         import wx
-        from .tool_api import ToolWindow
+        from chimera.core.ui.tool_api import ToolWindow
         self.tool_window = ToolWindow("Command Line", "General", session,
-            size=self.SIZE)
+                                      size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         self.text = wx.TextCtrl(parent, size=self.SIZE,
-            style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
+                                style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
         self.tool_window.manage(placement="bottom")
         session.ui.register_for_keystrokes(self)
+        session.tools.add([self])
+
+    def display(self, b):
+        """Show or hide command line user interface."""
+        self.tool_window.shown = b
 
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
@@ -32,11 +42,10 @@ class CmdLine:
         text = self.text.GetLineText(0)
         self.text.SelectAll()
         from chimera.core import cli
-        import sys
         try:
             cmd = cli.Command(session, text, final=True)
             cmd.execute()
-        except SystemExit as e:
+        except SystemExit:
             # TODO: somehow quit application
             raise
         except cli.UserError as err:
@@ -50,3 +59,34 @@ class CmdLine:
         except:
             import traceback
             session.logger.error(traceback.format_exc())
+
+    #
+    # Implement session.State methods if deriving from ToolInstance
+    #
+    def take_snapshot(self, session, flags):
+        version = self.VERSION
+        data = {"shown": self.tool_window.shown}
+        return [version, data]
+
+    def restore_snapshot(self, phase, session, version, data):
+        from chimera.core.session import State
+        if phase == State.PHASE1:
+            # All the action is in phase 2 because we do not
+            # want to restore until all objects have been resolved
+            pass
+        else:
+            self.display(data["shown"])
+
+    def reset_state(self):
+        self.tool_window.shown = True
+
+    #
+    # Override ToolInstance delete method to clean up
+    #
+    def delete(self):
+        session = self._session()  # resolve back reference
+        session.ui.deregister_for_keystrokes(self)
+        self.tool_window.shown = False
+        self.tool_window.destroy()
+        session.tools.remove([self])
+        super().delete()

@@ -127,7 +127,7 @@ class QtOpenGLContext(OpenGLContext):
     def make_current(self):
         c = self._opengl_context
         if c is None:
-            self._opengl_context = c = self._create_opengl_context()
+            c = self._create_opengl_context()
         c.makeCurrent(self._graphics_window)
 
     def swap_buffers(self):
@@ -141,6 +141,7 @@ class QtOpenGLContext(OpenGLContext):
         gw.create()
 
         c = QtGui.QOpenGLContext(self._graphics_window)
+        self._opengl_context = c
         if not self._shared_context is None:
             c.setShareContext(self._shared_context._opengl_context)
         c.setFormat(f)

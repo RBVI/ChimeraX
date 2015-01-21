@@ -43,6 +43,15 @@ _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                                   ('name', cli.StringArg)])
 
 
+def export(session, filename, **kw):
+    try:
+        from . import io
+        return io.export(session, filename, **kw)
+    except OSError as e:
+        raise cli.UserError(e)
+_export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
+
+
 def close(session, model_id):
     try:
         return session.models.close(model_id)
@@ -54,22 +63,29 @@ _close_desc = cli.CmdDesc(required=[('model_id', cli.ModelIdArg)])
 def list(session):
     models = session.models.list()
     if len(models) == 0:
-        return "No open models."
-    info = "Open models:"
+        session.logger.status("No open models.")
+        return
+
+    def id_str(id):
+        if isinstance(id, int):
+            return str(id)
+        return '.'.join(str(x) for x in id)
+    info = "Open models: "
     if len(models) > 1:
-        info += ", ".join(str(m.id) for m in models[:-1]) + " and"
-    info += " %s" % models[-1].id
+        info += ", ".join(id_str(m.id) for m in models[:-1]) + " and"
+    info += " %s" % id_str(models[-1].id)
     session.logger.info(info)
 _list_desc = cli.CmdDesc()
 
 
 def register(session):
     """Register common cli commands"""
-    cli.register('open', _open_desc, open)
-    cli.register('close', _close_desc, close)
-    cli.register('list', _list_desc, list)
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
+    cli.register('open', _open_desc, open)
+    cli.register('close', _close_desc, close)
+    cli.register('export', _export_desc, export)
+    cli.register('list', _list_desc, list)
     cli.register('stop', _stop_desc, stop)
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
