@@ -47,6 +47,9 @@ timestamp:
 
 always:
 
+lint:
+	$(PYLINT) $(PYSRCS)
+
 $(SUBDIR_INSTALL): dir
 
 dir:
