@@ -500,4 +500,6 @@ def common_startup(sess):
     stl.register()
     from . import pdb
     pdb.register()
+    from . import mmcif
+    mmcif.register()
     _monkey_patch = False

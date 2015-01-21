@@ -142,7 +142,7 @@ ExtractMolecule::finished_parse()
     if (molecules.empty())
         return;
     // connect residues in first molecule,
-    auto mol = molecules[0];
+    auto mol = molecules.begin()->second;
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
@@ -620,7 +620,7 @@ bool
 init_structaccess()
 {
     // ensure structaccess module objects are initialized
-    PyObject* structaccess_mod = PyImport_ImportModule("structaccess");
+    PyObject* structaccess_mod = PyImport_ImportModule("chimera.core.structaccess");
     return structaccess_mod != nullptr;
 }
 
