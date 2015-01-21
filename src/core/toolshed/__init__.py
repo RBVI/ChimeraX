@@ -914,7 +914,7 @@ class ToolInstance(State):
     All session-related data are stored in ToolInstance instances,
     not in any ToolShed or ToolInfo instances."""
 
-    def __init__(self, session, *args, id=None, **kw):
+    def __init__(self, session, id=None, **kw):
         """Initialize an ToolInstance.
 
         Supported keyword include:
@@ -970,7 +970,6 @@ class Tools(State):
                                         % (tid, class_name))
                     continue
                 ti = cls(session, id=tid)
-                self._tool_instances[tid] = ti
                 session.restore_unique_id(ti, uid)
             else:
                 ti = session.unique_obj(uid)
@@ -987,15 +986,11 @@ class Tools(State):
         """Return list of running tools."""
         return list(self._tool_instances.values())
 
-    def add(self, ti_list, id=None):
+    def add(self, ti_list):
         """Add running tools to session."""
         session = self._session()   # resolve back reference
         for ti in ti_list:
-            # TODO:
-            # if id is not None
-            #   ti.id = id
-            # else:
-            if True:
+            if ti.id is None:
                 ti.id = next(self._id_counter)
             self._tool_instances[ti.id] = ti
         session.triggers.activate_trigger(ADD_TOOL_INSTANCE, ti_list)
@@ -1014,8 +1009,6 @@ class Tools(State):
 
     def find_by_class(self, cls):
         """Return a list of tools of the given class."""
-        for ti in self._tool_instances.values():
-            print("ti", ti, ti.__class__, cls, isinstance(ti, cls))
         return [ti for ti in self._tool_instances.values() if isinstance(ti, cls)]
 
 
