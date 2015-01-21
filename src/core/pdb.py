@@ -30,16 +30,15 @@ def open_pdb(session, filename, *args, **kw):
 
     model = structure.StructureModel(name)
     model.mol_blob = mol_blob
-    # model.make_graphics()
+    model.make_drawing()
 
+    # TODO: is this a lightweight operation?
     atom_blob, bond_list = model.mol_blob.atoms_bonds
-    coords = atom_blob.coords
-    element_numbers = atom_blob.element_numbers
-    model.num_atoms = len(coords)
-    model.num_bonds = len(bond_list)
+    num_atoms = len(atom_blob.coords)
+    num_bonds = len(bond_list)
 
     return [model], ("Opened PDB data containing %d atoms and %d bonds"
-                     % (model.num_atoms, model.num_bonds))
+                     % (num_atoms, num_bonds))
 
 
 def fetch_pdb(session, pdb_id):

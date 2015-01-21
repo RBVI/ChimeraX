@@ -20,3 +20,10 @@ class StructureModel(models.Model):
 
     def reset_state(self):
         pass
+
+    def make_drawing(self):
+        atom_blob, bond_list = self.mol_blob.atoms_bonds
+        coords = atom_blob.coords
+        element_numbers = atom_blob.element_numbers
+
+        # TODO: fill in drawing
