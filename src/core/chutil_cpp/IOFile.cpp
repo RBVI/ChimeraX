@@ -20,7 +20,7 @@
 # define S_ISDIR(x) (((x) & S_IFMT) == S_IFDIR)
 #endif
 
-namespace util {
+namespace chutil {
 
 bool
 path_exists(const std::string &path, bool asFile)
@@ -100,4 +100,4 @@ std::ofstream &OutputFile::ofstream() const
     return *ofs_;
 }
 
-}  // namespace util
+}  // namespace chutil

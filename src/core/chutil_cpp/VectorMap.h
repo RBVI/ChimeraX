@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace util {
+namespace chutil {
 
 // VectorMap designed for maps where # of entries will always be small
 // and memory use is a concern
@@ -151,6 +151,6 @@ VectorMap<K, V, P>::operator[](const VectorMap<K, V, P>::key_type& k)
     return mi->second;
 }
 
-}  // namespace util
+}  // namespace chutil
 
 #endif  // util_VectorMap

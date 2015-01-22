@@ -5,10 +5,10 @@
 # include <string>
 # include "imex.h"
 
-namespace util {
+namespace chutil {
 
-UTIL_IMEX extern int cmp_nocase(const std::string &s, const std::string &s2);
+CHUTIL_IMEX extern int cmp_nocase(const std::string &s, const std::string &s2);
 
-}  // namespace util
+}  // namespace chutil
 
 #endif  // util_cmp_nocase
