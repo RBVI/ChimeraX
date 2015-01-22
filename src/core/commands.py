@@ -78,6 +78,11 @@ def list(session):
 _list_desc = cli.CmdDesc()
 
 
+def window(session):
+    session.main_view.view_all()
+_window_desc = cli.CmdDesc()
+
+
 def register(session):
     """Register common cli commands"""
     cli.register('exit', _exit_desc, exit)
@@ -89,6 +94,7 @@ def register(session):
     cli.register('stop', _stop_desc, stop)
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
+    cli.register('window', _window_desc, window)
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
     #     cmd.register()
