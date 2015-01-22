@@ -1,13 +1,15 @@
 # vim: set expandtab ts=4 sw=4:
 
-# Tools should inherit from ToolInstance if they will be
-# registered with the tool state manager.  Since
-# ToolInstance derives from core.session.State, which
-# is an abstract base class, tool classes will need to
-# implement
-# "take_snapshot" - return current state for saving
-# "restore_snapshot" - restore from given state
-# "reset_state" - reset to data-less state
+# ToolUI should inherit from ToolInstance if they will be
+# registered with the tool state manager.
+# Since ToolInstance derives from core.session.State, which
+# is an abstract base class, ToolUI classes must implement
+#   "take_snapshot" - return current state for saving
+#   "restore_snapshot" - restore from given state
+#   "reset_state" - reset to data-less state
+# ToolUI classes may also override
+#   "delete" - called to clean up before instance is deleted
+#
 from chimera.core.toolshed import ToolInstance
 
 

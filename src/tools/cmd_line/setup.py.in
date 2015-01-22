@@ -50,6 +50,6 @@ setup(name="TOOL",
         # 'commands' and 'categories' are comma separated strings.
         "Chimera-Tool :: cmd_line :: TOOL "
         ":: Command Line Interface :: command_line :: Utilities "
-        ":: Command-line interface for typists.",
+        ":: Command-line interface for typists",
     ],
 )
