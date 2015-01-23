@@ -142,7 +142,7 @@ ExtractMolecule::finished_parse()
     if (molecules.empty())
         return;
     // connect residues in first molecule,
-    auto mol = molecules[0];
+    auto mol = molecules.begin()->second;
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {

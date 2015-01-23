@@ -1,7 +1,7 @@
 TOP= ../../..
 include $(TOP)/mk/config.make
 
-LIBNAME = util
+LIBNAME = chutil
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 

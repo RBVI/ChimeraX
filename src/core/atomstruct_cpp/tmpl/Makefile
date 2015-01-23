@@ -8,7 +8,7 @@ DIRNAME := atomstruct/$(DIRNAME:_cpp=)
 SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 INCS += -I$(includedir)
-LIBS += -L$(libdir) -lioutil -lutil -lappdirs
+LIBS += -L$(libdir) -lioutil -lchutil -lappdirs
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)

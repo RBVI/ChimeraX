@@ -1,16 +1,16 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.toolshed
-PKG_VERSION = 1.0
-PKG_DESCRIPTION = Chimera 2 Tool UI and Commands
+PKG_NAME = chimera.bogus
+PKG_VERSION = 0.1
+PKG_DESCRIPTION = Bogus Toolshed Demo Example
 
-TOOL_NAME = toolshed
-TOOL_PKG_NAME = chimera.toolshed
-TOOL_DISPLAY_NAME = Toolshed
+TOOL_NAME = bogus
+TOOL_PKG_NAME = $(PKG_NAME)
+TOOL_DISPLAY_NAME = Bogus Toolshed-demo Tool
 TOOL_CATEGORY = General
-TOOL_SYNOPSIS = Tool for installing, upgrading and removing tools
-COMMAND_NAME = toolshed,ts
+TOOL_SYNOPSIS = Bogus tool for demonstrating toolshed functionality
+COMMAND_NAME = bogus
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
@@ -28,7 +28,8 @@ install: dir
 	fi
 
 app-install: wheel
-	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
+# Do not put in app so we can install using toolshed
+#	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp
@@ -44,7 +45,6 @@ setup.py: setup.py.in Makefile
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
 		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
-		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
 		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
 		-e 's,PKG_VERSION,$(PKG_VERSION),' \

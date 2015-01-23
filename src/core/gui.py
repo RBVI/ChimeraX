@@ -47,8 +47,13 @@ class UI(wx.App):
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
         if load_tools:
+            from .toolshed import ToolShedError
             for ti in self.session.toolshed.tool_info():
-                ti.start(self.session)
+                try:
+                    ti.start(self.session)
+                except ToolShedError as e:
+                    self.session.logger.info("Tool \"%s\" failed to start"
+                                             % ti.name)
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -115,7 +120,9 @@ class MainWindow(wx.Frame):
         self.close()
 
     def OnOpen(self, event, session):
+        from . import io
         dlg = wx.FileDialog(self, "Open file",
+            wildcard=io.wx_open_file_filter(all=True),
             style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
         if dlg.ShowModal() == wx.ID_CANCEL:
             return

@@ -6,11 +6,11 @@
 # include <fstream>
 # include "imex.h"
 
-namespace util {
+namespace chutil {
 
 bool path_exists(const std::string &path, bool asFile);
 
-class UTIL_IMEX InputFile {
+class CHUTIL_IMEX InputFile {
     InputFile(const InputFile&);        // disable
     InputFile& operator=(const InputFile&); // disable
 public:
@@ -25,7 +25,7 @@ private:
     std::ifstream *ifs_;
 };
 
-class UTIL_IMEX OutputFile {
+class CHUTIL_IMEX OutputFile {
     OutputFile(const OutputFile&);          // disable
     OutputFile& operator=(const OutputFile&);   // disable
 public:
@@ -40,6 +40,6 @@ private:
     std::ofstream *ofs_;
 };
 
-}  // namespace util
+}  // namespace chutil
 
 #endif  // util_IOFile

@@ -32,11 +32,14 @@ ErrorURL = "http://chimera2.rbvi.ucsf.edu/chimera2/error.html"
 HostPrefix = "http://www.rbvi.ucsf.edu"
 HelpPrefix = "/chimera2/help/"
 
+
 def noprint(*args, **kw):
     return
 
-import wx, sys
+import wx
+import sys
 from wx import html2
+
 
 class MyApp(wx.App):
 
@@ -45,25 +48,24 @@ class MyApp(wx.App):
         fr.Show(True)
         return True
 
+
 class HelpFrame(wx.Frame):
 
     def __init__(self, title):
-        wx.Frame.__init__(self, None, wx.ID_ANY, title,
-                        size=wx.Size(600,600))
+        wx.Frame.__init__(self, None, wx.ID_ANY, title, size=wx.Size(600, 600))
         self.menubar = self._make_menu()
         self.toolbar = self._make_toolbar()
         self.webview = self._make_webview()
         self.statusbar = self._make_statusbar()
-        #self.webview.SetPage(InitialPage, InitialURL)
-        #self.webview.LoadURL(self.home)
+        # self.webview.SetPage(InitialPage, InitialURL)
+        # self.webview.LoadURL(self.home)
 
     def _make_menu(self):
         history_menu = wx.Menu()
         item = history_menu.Append(wx.ID_ANY, "&Report History",
-                    "Report history status")
+                                   "Report history status")
         self.Bind(wx.EVT_MENU, self._history_report, id=item.GetId())
-        item = history_menu.Append(wx.ID_ANY, "&Clear History",
-                    "Clear history")
+        item = history_menu.Append(wx.ID_ANY, "&Clear History", "Clear history")
         self.Bind(wx.EVT_MENU, self._history_clear, id=item.GetId())
         history_menu.AppendSeparator()
         history_menu.Append(wx.ID_EXIT)
@@ -82,35 +84,30 @@ class HelpFrame(wx.Frame):
     def _make_toolbar(self):
         tb = self.CreateToolBar(wx.TB_HORIZONTAL)
         from wx import ArtProvider
-        tsize = (24,24)
+        tsize = (24, 24)
         tb.SetToolBitmapSize(tsize)
-        back = ArtProvider.GetBitmap(wx.ART_GO_BACK,
-                        wx.ART_TOOLBAR, tsize)
+        back = ArtProvider.GetBitmap(wx.ART_GO_BACK, wx.ART_TOOLBAR, tsize)
         self.back_button = tb.AddTool(wx.ID_ANY, "Back", back,
-                    wx.NullBitmap, wx.ITEM_NORMAL,
-                    "Back", "Go to previous page", None)
-        self.Bind(wx.EVT_TOOL, self._go_back,
-                    id=self.back_button.GetId())
-        forward = ArtProvider.GetBitmap(wx.ART_GO_FORWARD,
-                        wx.ART_TOOLBAR, tsize)
+                                      wx.NullBitmap, wx.ITEM_NORMAL,
+                                      "Back", "Go to previous page", None)
+        self.Bind(wx.EVT_TOOL, self._go_back, id=self.back_button.GetId())
+        forward = ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_TOOLBAR, tsize)
         self.forward_button = tb.AddTool(wx.ID_ANY, "Forward", forward,
-                    wx.NullBitmap, wx.ITEM_NORMAL,
-                    "Forward", "Go to next page", None)
-        self.Bind(wx.EVT_TOOL, self._go_forward,
-                    id=self.forward_button.GetId())
-        home = ArtProvider.GetBitmap(wx.ART_GO_HOME,
-                        wx.ART_TOOLBAR, tsize)
+                                         wx.NullBitmap, wx.ITEM_NORMAL,
+                                         "Forward", "Go to next page", None)
+        self.Bind(wx.EVT_TOOL, self._go_forward, id=self.forward_button.GetId())
+        home = ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_TOOLBAR, tsize)
         home_button = tb.AddTool(wx.ID_ANY, "Home", home,
-                    wx.NullBitmap, wx.ITEM_NORMAL,
-                    "Home", "Go to home page", None)
-        self.Bind(wx.EVT_TOOL, self._go_home,
-                    id=home_button.GetId())
+                                 wx.NullBitmap, wx.ITEM_NORMAL,
+                                 "Home", "Go to home page", None)
+        self.Bind(wx.EVT_TOOL, self._go_home, id=home_button.GetId())
 
         tb.Realize()
         return tb
 
     def _make_webview(self):
-        import os, os.path
+        import os
+        import os.path
         home_page = os.path.join(os.getcwd(), "helpdir", "index.html")
         from urllib.request import pathname2url
         self.home = "file:%s" % pathname2url(home_page)
@@ -118,14 +115,10 @@ class HelpFrame(wx.Frame):
         wv = html2.WebView.New(self, url=self.home)
         wv.EnableContextMenu(False)
         wv_id = wv.GetId()
-        self.Bind(html2.EVT_WEBVIEW_NAVIGATING, self._on_navigating,
-                            id=wv_id)
-        self.Bind(html2.EVT_WEBVIEW_NAVIGATED, self._on_navigated,
-                            id=wv_id)
-        self.Bind(html2.EVT_WEBVIEW_ERROR, self._on_document_error,
-                            id=wv_id)
-        self.Bind(html2.EVT_WEBVIEW_LOADED, self._on_loaded,
-                            id=wv_id)
+        self.Bind(html2.EVT_WEBVIEW_NAVIGATING, self._on_navigating, id=wv_id)
+        self.Bind(html2.EVT_WEBVIEW_NAVIGATED, self._on_navigated, id=wv_id)
+        self.Bind(html2.EVT_WEBVIEW_ERROR, self._on_document_error, id=wv_id)
+        self.Bind(html2.EVT_WEBVIEW_LOADED, self._on_loaded, id=wv_id)
         self.Bind(wx.EVT_UPDATE_UI, self._update_ui, id=wv_id)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(wv, 10, wx.EXPAND, 0)
@@ -155,7 +148,7 @@ class HelpFrame(wx.Frame):
 
     def _history_report(self, evt=None):
         noprint("_history_report", self.webview.CanGoBack(),
-            self.webview.CanGoForward(), file=sys.stderr)
+                self.webview.CanGoForward(), file=sys.stderr)
         for item in self.webview.GetBackwardHistory():
             print(" -", item.GetUrl(), file=sys.stderr)
         print(" *", self.webview.GetCurrentURL(), file=sys.stderr)
@@ -165,13 +158,13 @@ class HelpFrame(wx.Frame):
 
     def _history_clear(self, evt=None):
         self.webview.ClearHistory()
-        #self._update_ui()
+        # self._update_ui()
 
     def _update_ui(self, evt=None):
         self.toolbar.EnableTool(self.back_button.GetId(),
-                        self.webview.CanGoBack())
+                                self.webview.CanGoBack())
         self.toolbar.EnableTool(self.forward_button.GetId(),
-                        self.webview.CanGoForward())
+                                self.webview.CanGoForward())
         sys.stderr.flush()
 
     def _exit(self, evt):
@@ -179,12 +172,11 @@ class HelpFrame(wx.Frame):
 
     def _about(self, evt):
         wx.MessageBox("Help Viewer", "Chimera 2 Help Viewer",
-                    wx.OK | wx.ICON_INFORMATION)
+                      wx.OK | wx.ICON_INFORMATION)
 
     def _on_navigating(self, evt):
         noprint("OnNavigating:", repr(evt.GetTarget()),
-                    repr(evt.GetURL()),
-                    file=sys.stderr)
+                repr(evt.GetURL()), file=sys.stderr)
         from urllib.parse import urlparse
         url = urlparse(evt.GetURL())
         if url.scheme == "chimera2":
@@ -196,8 +188,7 @@ class HelpFrame(wx.Frame):
                 self.error_args = None
 
     def _on_navigated(self, evt):
-        noprint("OnNavigated:", evt.GetTarget(), evt.GetURL(),
-                            file=sys.stderr)
+        noprint("OnNavigated:", evt.GetTarget(), evt.GetURL(), file=sys.stderr)
         if self.usingIE:
             if not self.handling_error and self.document_missing:
                 self.handling_error = True
@@ -207,12 +198,11 @@ class HelpFrame(wx.Frame):
 
     def _on_loaded(self, evt):
         self._history_report()
-        #self._update_ui()
+        # self._update_ui()
 
     def _on_document_error(self, evt):
         noprint("OnDocumentError:", repr(evt.GetTarget()),
-                        repr(evt.GetURL()),
-                        file=sys.stderr)
+                repr(evt.GetURL()), file=sys.stderr)
         if evt.GetInt() == html2.WEBVIEW_NAV_ERR_NOT_FOUND:
             # When a "not found" error is encountered,
             # WebViewBackendWebKit only sends the error event

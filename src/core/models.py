@@ -27,7 +27,7 @@ class Model(State, Drawing):
 
     def __init__(self, name):
         Drawing.__init__(self, name)
-        self.id = None
+        self.id = None  # tuple: e.g., 1.2.1 is (1, 2, 1)
         # TODO: track.created(Model, [self])
 
     def delete(self):
@@ -62,8 +62,8 @@ class Models(State):
         return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
+        if version != self.VERSION:
+            raise RuntimeError("Unexpected version")
 
         for id, [uid, [model_version, model_data]] in data.items():
             if phase == State.PHASE1:
@@ -101,7 +101,7 @@ class Models(State):
             #     model.id = id
             # else:
             if 1:
-                model.id = next(self._id_counter)
+                model.id = (next(self._id_counter),)    # model id's are tuples
             self._models[model.id] = model
             parent = self.drawing   # TODO: figure out based on id
             parent.add_drawing(model)
@@ -112,9 +112,12 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, models)
         for model in models:
             model_id = model.id
-            if model_id is not None:
-                model.id = None
-                del self._models[model_id]
+            if model_id is None:
+                continue
+            model.id = None
+            del self._models[model_id]
+            parent = self.drawing   # TODO: figure out based on id
+            parent.remove_drawing(model)
 
     def open(self, filename, id=None, **kw):
         from . import io
@@ -131,5 +134,5 @@ class Models(State):
     def close(self, model_id):
         if model_id in self._models:
             model = self._models[model_id]
-            self.remove(model)
+            self.remove([model])
             model.delete()

@@ -8,7 +8,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
 	   ioutil_cpp logger_cpp \
 	   pdb_cpp pdbio pseudobond_cpp \
 	   readcif_cpp \
-	   structaccess toolshed ui util_cpp
+	   structaccess toolshed ui chutil_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -47,25 +47,24 @@ timestamp:
 
 always:
 
+lint:
+	$(PYLINT) $(PYSRCS)
+
 $(SUBDIR_INSTALL): dir
 
 dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
-$(SUBDIR_INSTALL): dir
-
-lint:
-	$(PYLINT) $(PYSRCS)
-
 test:
 	$(APP_PYTHON_EXE)
+
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 
 _appdirs.install: appdirs_cpp.install
 atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
-	util_cpp.install ioutil_cpp.install pseudobond_cpp.install
+	chutil_cpp.install ioutil_cpp.install pseudobond_cpp.install
 blob_cpp.install: atomstruct_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install

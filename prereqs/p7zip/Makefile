@@ -39,4 +39,7 @@ ifneq (,$(PATCHES))
 endif
 
 clean:
-	rm -rf $(SOURCE)
+	if [ -d $(SOURCE) ] ; then \
+		chmod -R +wX $(SOURCE) ; \
+		rm -rf $(SOURCE) ; \
+	fi

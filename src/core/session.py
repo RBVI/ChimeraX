@@ -498,4 +498,8 @@ def common_startup(sess):
     commands.register(sess)
     from . import stl
     stl.register()
+    from . import pdb
+    pdb.register()
+    from . import mmcif
+    mmcif.register()
     _monkey_patch = False

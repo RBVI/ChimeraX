@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include "cmp_nocase.h"
 
-namespace util {
+namespace chutil {
 
 int
 cmp_nocase(const std::string &s, const std::string &s2)
@@ -21,4 +21,4 @@ cmp_nocase(const std::string &s, const std::string &s2)
     return s2.size() - s.size();
 }
 
-}  // namespace util
+}  // namespace chutil

@@ -2,6 +2,7 @@
 
 from chimera.core import cli
 
+
 def subcommand_function(session, positional_arguments, keyword_arguments):
     pass
 subcommand_desc = cli.CmdDesc()

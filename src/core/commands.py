@@ -70,12 +70,17 @@ def list(session):
         if isinstance(id, int):
             return str(id)
         return '.'.join(str(x) for x in id)
-    info = "Open models:"
+    info = "Open models: "
     if len(models) > 1:
         info += ", ".join(id_str(m.id) for m in models[:-1]) + " and"
     info += " %s" % id_str(models[-1].id)
     session.logger.info(info)
 _list_desc = cli.CmdDesc()
+
+
+def window(session):
+    session.main_view.view_all()
+_window_desc = cli.CmdDesc()
 
 
 def register(session):
@@ -89,6 +94,7 @@ def register(session):
     cli.register('stop', _stop_desc, stop)
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
+    cli.register('window', _window_desc, window)
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
     #     cmd.register()
