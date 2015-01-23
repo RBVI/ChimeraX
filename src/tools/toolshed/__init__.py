@@ -28,3 +28,5 @@ def register_command(command_name):
     cli.register(command_name + " install", cmd.ts_install_desc, cmd.ts_install)
     cli.register(command_name + " remove", cmd.ts_remove_desc, cmd.ts_remove)
     # cli.register(command_name + " update", cmd.ts_update_desc, cmd.ts_update)
+    cli.register(command_name + " hide", cmd.ts_hide_desc, cmd.ts_hide)
+    cli.register(command_name + " show", cmd.ts_show_desc, cmd.ts_show)

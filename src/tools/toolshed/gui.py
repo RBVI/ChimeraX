@@ -6,30 +6,36 @@ _PageTemplate = """<html>
 <script>
 function button_test() { window.location.href = "toolshed:button_test:arg"; }
 </script>
+<style>
+.refresh { color: blue; font-size: 80%; font-family: monospace; }
+.install { color: green; font-family: monospace; }
+.remove { color: red; font-family: monospace; }
+</style>
 </head>
 <body>
 <h2>Chimera Toolshed</h2>
 <!-- button onclick="button_test();">Button Test</button> -->
 <h2>Installed Tools
-    (<a href="toolshed:refresh_installed" class="refresh">refresh</a>)</h2>
+    <a href="toolshed:refresh_installed" class="refresh">refresh</a></h2>
 INSTALLED_TOOLS
 <h2>Available Tools
-    (<a href="toolshed:refresh_available" class="refresh">refresh</a>)</h2>
+    <a href="toolshed:refresh_available" class="refresh">refresh</a></h2>
 AVAILABLE_TOOLS
 </body>
 </html>"""
 _REMOVE_LINK = '<a href="toolshed:_remove_tool:%s" class="remove">remove</a>'
 _INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install">install</a>'
 
+from chimera.core.toolshed import ToolInstance
 
-class ToolshedUI:
+
+class ToolshedUI(ToolInstance):
 
     SIZE = (800, 50)
     VERSION = 1
 
-    def __init__(self, session):
-        import weakref
-        self._session = weakref.ref(session)
+    def __init__(self, session, **kw):
+        super().__init__(session, **kw)
         from chimera.core.ui.tool_api import ToolWindow
         self.tool_window = ToolWindow("Toolshed", "General", session)
         parent = self.tool_window.ui_area
@@ -44,9 +50,10 @@ class ToolshedUI:
         parent.SetSizerAndFit(sizer)
         self._make_page()
         self.tool_window.manage(placement="right")
+        session.tools.add([self])
 
     def _OnNavigating(self, event):
-        session = self._session()  # resolve back reference
+        session = self.session
         # Handle event
         url = event.GetURL()
         if url.startswith("toolshed:"):
@@ -57,7 +64,7 @@ class ToolshedUI:
             method(session, *args)
 
     def _make_page(self):
-        session = self._session()  # resolve back reference
+        session = self.session
         ts = session.toolshed
         from io import StringIO
 
@@ -70,7 +77,7 @@ class ToolshedUI:
         else:
             for ti in ti_list:
                 link = _REMOVE_LINK % ti.name
-                print("<li>%s - %s. (%s)</li>"
+                print("<li>%s - %s. %s</li>"
                       % (ti.display_name, ti.synopsis, link), file=s)
         print("</ul>", file=s)
         page = _PageTemplate.replace("INSTALLED_TOOLS", s.getvalue())
@@ -87,7 +94,7 @@ class ToolshedUI:
         else:
             for ti in ti_list:
                 link = _INSTALL_LINK % ti.name
-                print("<li>%s - %s. (%s)</li>"
+                print("<li>%s - %s. %s</li>"
                       % (ti.display_name, ti.synopsis, link), file=s)
         print("</ul>", file=s)
         page = page.replace("AVAILABLE_TOOLS", s.getvalue())
@@ -126,11 +133,11 @@ class ToolshedUI:
     #
     def take_snapshot(self, session, flags):
         version = self.VERSION
-        data = {}
+        data = {"shown": self.tool_window.shown}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        if version != self.VERSION or len(data) > 0:
+        if version != self.VERSION:
             raise RuntimeError("unexpected version or data")
         from chimera.core.session import State
         if phase == State.PHASE1:
@@ -138,17 +145,20 @@ class ToolshedUI:
             pass
         else:
             # Resolve references to objects
-            pass
+            self.display(data["shown"])
 
     def reset_state(self):
         pass
 
     #
-    # Override ToolInstance delete method to clean up
+    # Override ToolInstance methods
     #
     def delete(self):
-        session = self._session()  # resolve back reference
+        session = self.session
         self.tool_window.shown = False
         self.tool_window.destroy()
         session.tools.remove([self])
         super().delete()
+
+    def display(self, b):
+        self.tool_window.shown = b

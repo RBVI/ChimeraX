@@ -928,12 +928,27 @@ class ToolInstance(State):
           this data overrides information from all other arguments
         """
         self.id = id
+        import weakref
+        self._session = weakref.ref(session)
         # TODO: track.created(ToolInstance, [self])
 
+    @property
+    def session(self):
+        return self._session()
+
     def delete(self):
+        """Delete this tool instance.
+
+        Subclasses should override this method to clean up data structures."""
         if self.id is not None:
             raise ValueError("tool instance is still in use")
         # TODO: track.deleted(ToolInstance, [self])
+
+    def display(self, b):
+        """Show or hide this tool instance.
+
+        - ``b`` is a boolean value for whether the tool should be displayed."""
+        pass
 
 
 class Tools(State):

@@ -74,4 +74,32 @@ def ts_remove(session, tool_name):
     ts.uninstall_tool(ti, logger)
 ts_remove_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)])
 
-# TODO: Add more subcommands here
+#
+# Commands that deal with GUI (singleton)
+
+def _get_gui(session, create=False):
+    from .gui import ToolshedUI
+    running = session.tools.find_by_class(ToolshedUI)
+    if len(running) > 1:
+        raise RuntimeError("too many toolshed instances running")
+    if not running:
+        if create:
+            return ToolshedUI(session)
+        else:
+            return None
+    else:
+        return running[0]
+
+
+def ts_hide(session):
+    ts = _get_gui(session)
+    if ts is not None:
+        ts.display(False)
+ts_hide_desc = cli.CmdDesc()
+
+
+def ts_show(session):
+    ts = _get_gui(session, create=True)
+    if ts is not None:
+        ts.display(True)
+ts_show_desc = cli.CmdDesc()
