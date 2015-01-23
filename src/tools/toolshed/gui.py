@@ -10,11 +10,17 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 .refresh { color: blue; font-size: 80%; font-family: monospace; }
 .install { color: green; font-family: monospace; }
 .remove { color: red; font-family: monospace; }
+.show { color: green; font-family: monospace; }
+.hide { color: blue; font-family: monospace; }
+.kill { color: red; font-family: monospace; }
 </style>
 </head>
 <body>
-<h2>Chimera Toolshed</h2>
+<h2>Chimera Toolshed
+    <a href="toolshed:_make_page" class="refresh">refresh</a></h2>
 <!-- button onclick="button_test();">Button Test</button> -->
+<h2>Running Tools</h2>
+RUNNING_TOOLS
 <h2>Installed Tools
     <a href="toolshed:refresh_installed" class="refresh">refresh</a></h2>
 INSTALLED_TOOLS
@@ -25,6 +31,9 @@ AVAILABLE_TOOLS
 </html>"""
 _REMOVE_LINK = '<a href="toolshed:_remove_tool:%s" class="remove">remove</a>'
 _INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install">install</a>'
+_SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show">show</a>'
+_HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide">hide</a>'
+_KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill">kill</a>'
 
 from chimera.core.toolshed import ToolInstance
 
@@ -48,8 +57,12 @@ class ToolshedUI(ToolInstance):
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
-        self._make_page()
         self.tool_window.manage(placement="right")
+        from chimera.core.toolshed import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
+        self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE,
+                                                       self._make_page),
+                          session.triggers.add_handler(ADD_TOOL_INSTANCE,
+                                                       self._make_page)]
         session.tools.add([self])
 
     def _OnNavigating(self, event):
@@ -63,10 +76,32 @@ class ToolshedUI(ToolInstance):
             args = parts[2:]
             method(session, *args)
 
-    def _make_page(self):
+    def _make_page(self, *args):
         session = self.session
         ts = session.toolshed
+        tools = session.tools
         from io import StringIO
+        page = _PageTemplate
+
+        # TODO: handle multiple versions of available tools
+        # TODO: add "update" link for installed tools
+
+        # running
+        s = StringIO()
+        print("<ul>", file=s)
+        tool_list = tools.list()
+        if not tool_list:
+            print("<li>No running tools found.</li>", file=s)
+        else:
+            for t in tool_list:
+                show_link = _SHOW_LINK % t.id
+                hide_link = _HIDE_LINK % t.id
+                kill_link = _KILL_LINK % t.id
+                print("<li>%s. %s %s %s</li>"
+                      % (t.display_name(), show_link,
+                         hide_link, kill_link), file=s)
+        print("</ul>", file=s)
+        page = page.replace("RUNNING_TOOLS", s.getvalue())
 
         # installed
         s = StringIO()
@@ -80,9 +115,7 @@ class ToolshedUI(ToolInstance):
                 print("<li>%s - %s. %s</li>"
                       % (ti.display_name, ti.synopsis, link), file=s)
         print("</ul>", file=s)
-        page = _PageTemplate.replace("INSTALLED_TOOLS", s.getvalue())
-
-        # TODO: handle multiple versions of same tool
+        page = page.replace("INSTALLED_TOOLS", s.getvalue())
 
         # available
         s = StringIO()
@@ -125,6 +158,24 @@ class ToolshedUI(ToolInstance):
         cmd.ts_install(session, tool_name)
         self._make_page()
 
+    def _find_tool(self, session, tool_id):
+        t = session.tools.find_by_id(int(tool_id))
+        if t is None:
+            raise RuntimeError("cannot find tool with id \"%s\"" % tool_id)
+        return t
+
+    def _show_tool(self, session, tool_id):
+        t = self._find_tool(session, tool_id).display(True)
+        self._make_page()
+
+    def _hide_tool(self, session, tool_id):
+        t = self._find_tool(session, tool_id).display(False)
+        self._make_page()
+
+    def _kill_tool(self, session, tool_id):
+        t = self._find_tool(session, tool_id).delete()
+        self._make_page()
+
     def button_test(self, session, *args):
         session.logger.info("ToolshedUI.button_test: %s" % str(args))
 
@@ -155,8 +206,12 @@ class ToolshedUI(ToolInstance):
     #
     def delete(self):
         session = self.session
+        for h in self._handlers:
+            session.triggers.remove_handler(h)
+        self._handlers = []
         self.tool_window.shown = False
         self.tool_window.destroy()
+        self.tool_window = None
         session.tools.remove([self])
         super().delete()
 
