@@ -12,7 +12,7 @@ class BaseSphere: public Connectible<FinalConnection, FinalConnectible> {
 private:
     float  _radius;
 
-    int  _draw_mode;
+    int  _draw_mode = 0;
 public:
     BaseSphere(): _radius(0.0) {}
     virtual  ~BaseSphere() {}
@@ -20,7 +20,7 @@ public:
     float  radius() const { return _radius; }
 
     // graphics related
-    int  get_draw_mode() const { return _draw_mode; }
+    int  draw_mode() const { return _draw_mode; }
     void  set_draw_mode(int dm) { _draw_mode = dm; }
 };
 

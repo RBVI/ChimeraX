@@ -47,8 +47,8 @@ public:
     virtual void  set_coord(const Point & coord) = 0;
 
     // graphics related
-    const Rgba&  get_color() const { return _rgba; }
-    bool  get_display() const { return _display; }
+    const Rgba&  color() const { return _rgba; }
+    bool  display() const { return _display; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a) { _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba) { _rgba = rgba; }

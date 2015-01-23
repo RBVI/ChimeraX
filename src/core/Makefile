@@ -59,7 +59,7 @@ lint:
 	$(PYLINT) $(PYSRCS)
 
 test:
-	$(bindir)/python3
+	$(APP_PYTHON_EXE)
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 

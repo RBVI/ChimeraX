@@ -3,20 +3,9 @@
 #include <sstream>  // std::ostringstream
 #include "numpy_common.h"
 
+#include <iostream>
 namespace blob {
     
-// Need to call NumPy import_array() before using NumPy routines
-void *
-initialize_numpy()
-{
-    static bool first_call = true;
-    if (first_call) {
-        first_call = false;
-        import_array();
-    }
-    return NULL;
-}
-
 static const char *
 numpy_type_name(int type)
 {
@@ -51,6 +40,8 @@ numpy_type_name(int type)
 PyObject *
 allocate_python_array(unsigned int dim, unsigned int *size, int type)
 {
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
     npy_intp *sn = new npy_intp[dim];
     for (unsigned int i = 0; i < dim; ++i)
         sn[i] = (npy_intp)size[i];
@@ -73,6 +64,8 @@ allocate_python_array(unsigned int dim, unsigned int *size, int type)
 PyObject *
 allocate_python_array(unsigned int dim, unsigned int *size, PyArray_Descr *dtype)
 {
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
     npy_intp *sn = new npy_intp[dim];
     for (unsigned int i = 0; i < dim; ++i)
         sn[i] = (npy_intp)size[i];
@@ -98,7 +91,8 @@ allocate_python_array(unsigned int dim, unsigned int *size, PyArray_Descr *dtype
 static PyObject *
 python_string_array(unsigned int size, int string_length, char **data)
 {
-    initialize_numpy();  // required before using NumPy
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
 
     PyArray_Descr *d = PyArray_DescrNewFromType(NPY_CHAR);
     d->elsize = string_length;

@@ -30,7 +30,7 @@ public:
 private:
     bool  _display = true;
 public:
-    bool  get_display() const { return _display; }
+    bool  display() const { return _display; }
     void  set_display(bool d) { _display = d; }
 };
 

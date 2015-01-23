@@ -42,16 +42,16 @@ public:
     }
 
     // graphics related
-    bool  get_display() const { return _display; }
-    bool  get_halfbond() const { return _halfbond; }
-    float  get_radius() const { return _radius; }
-    Rgba&  get_color() const { return _rgba; }
+    const Rgba&  color() const { return _rgba; }
+    bool  display() const { return _display; }
+    bool  halfbond() const { return _halfbond; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a) { _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba) { _rgba = rgba; }
     void  set_display(bool d) { _display = d; }
     void  set_halfbond(bool hb) { _halfbond = hb; }
     void  set_radius(float r) { _radius = r; }
+    float  radius() const { return _radius; }
 };
 
 template <class End, class FinalConnection>

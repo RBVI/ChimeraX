@@ -620,7 +620,7 @@ bool
 init_structaccess()
 {
     // ensure structaccess module objects are initialized
-    PyObject* structaccess_mod = PyImport_ImportModule("structaccess");
+    PyObject* structaccess_mod = PyImport_ImportModule("chimera.core.structaccess");
     return structaccess_mod != nullptr;
 }
 
