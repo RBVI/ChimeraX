@@ -56,6 +56,9 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	if [ ! -d "$(wheelhouse)" ]; then mkdir -p $(wheelhouse); fi
 
+test:
+	$(APP_PYTHON_EXE)
+
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 
