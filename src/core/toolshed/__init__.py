@@ -38,12 +38,18 @@ def _hack_distlib(f):
         # the metadata file in wheels.  (wheel uses PEP345 while
         # distlib uses PEP427.)  distlib is backwards compatible,
         # so we hack the file name when we get distributions.
-        from distlib import metadata
+        from distlib import metadata, database, wheel
         save = metadata.METADATA_FILENAME
         metadata.METADATA_FILENAME = "metadata.json"
+        database.METADATA_FILENAME = metadata.METADATA_FILENAME
+        wheel.METADATA_FILENAME = metadata.METADATA_FILENAME
+        _debug("changing METADATA_FILENAME", metadata.METADATA_FILENAME)
         v = f(*args, **kw)
         # Restore hacked name
         metadata.METADATA_FILENAME = save
+        database.METADATA_FILENAME = save
+        wheel.METADATA_FILENAME = save
+        _debug("changing back METADATA_FILENAME", metadata.METADATA_FILENAME)
         return v
     return hacked_f
 
@@ -311,10 +317,10 @@ class ToolShed:
         if self._inst_locator is None:
             from distlib.database import DistributionPath
             self._inst_path = DistributionPath()
+            _debug("_inst_path", self._inst_path)
             from distlib.locators import DistPathLocator
             self._inst_locator = DistPathLocator(self._inst_path)
-        _debug("_inst_path", self._inst_path)
-        _debug("_inst_locator", self._inst_locator)
+            _debug("_inst_locator", self._inst_locator)
 
         # Keep only wheels
 
@@ -532,8 +538,8 @@ class ToolShed:
         # conflicting distribution requirements)
         _debug("_install_check_incompatible", need)
         all = dict(self._get_all_installed_distributions(logger).items())
-        _debug("all", all)
         all.update([(d.name, d) for d in need])
+        _debug("all", all)
         from distlib.database import make_graph
         graph = make_graph(all.values())
         if graph.missing:
