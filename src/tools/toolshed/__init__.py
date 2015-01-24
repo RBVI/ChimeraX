@@ -7,11 +7,9 @@
 def start_tool(session, ti):
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
-    from chimera.core import gui
-    if isinstance(session.ui, gui.UI):
-        if not hasattr(session.ui, ti.name):
-            from .gui import ToolshedUI
-            setattr(session.ui, ti.name, ToolshedUI(session))
+    from chimera.core import cli
+    cmd = cli.Command(session, "toolshed show", final=True)
+    cmd.execute()
 
 
 #

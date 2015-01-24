@@ -76,6 +76,8 @@ ts_remove_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)])
 
 #
 # Commands that deal with GUI (singleton)
+#
+
 
 def _get_gui(session, create=False):
     from .gui import ToolshedUI

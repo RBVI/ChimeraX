@@ -502,4 +502,6 @@ def common_startup(sess):
     pdb.register()
     from . import mmcif
     mmcif.register()
+    from . import python
+    python.register()
     _monkey_patch = False
