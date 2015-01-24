@@ -10,13 +10,11 @@ class CmdLine(ToolInstance):
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        import weakref
-        self._session = weakref.ref(session)
-        import wx
         from chimera.core.ui.tool_api import ToolWindow
         self.tool_window = ToolWindow("Command Line", "General", session,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
+        import wx
         self.text = wx.TextCtrl(parent, size=self.SIZE,
                                 style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -27,10 +25,6 @@ class CmdLine(ToolInstance):
         session.ui.register_for_keystrokes(self)
         session.tools.add([self])
 
-    def display(self, b):
-        """Show or hide command line user interface."""
-        self.tool_window.shown = b
-
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
             self.OnEnter(event)
@@ -38,7 +32,7 @@ class CmdLine(ToolInstance):
             self.text.EmulateKeyPress(event)
 
     def OnEnter(self, event):
-        session = self._session()  # resolve back reference
+        session = self.session
         text = self.text.GetLineText(0)
         self.text.SelectAll()
         from chimera.core import cli
@@ -52,10 +46,11 @@ class CmdLine(ToolInstance):
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
-            session.logger.info(cmd.current_text)
-            session.logger.info("%s^" % ('.' * error_at))
-            session.logger.info(str(err))
-            session.logger.status(str(err))
+            logger = session.logger
+            logger.info(cmd.current_text)
+            logger.info("%s^" % ('.' * error_at))
+            logger.info(str(err))
+            logger.status(str(err))
         except:
             import traceback
             session.logger.error(traceback.format_exc())
@@ -81,12 +76,16 @@ class CmdLine(ToolInstance):
         self.tool_window.shown = True
 
     #
-    # Override ToolInstance delete method to clean up
+    # Override ToolInstance methods
     #
     def delete(self):
-        session = self._session()  # resolve back reference
+        session = self.session
         session.ui.deregister_for_keystrokes(self)
         self.tool_window.shown = False
         self.tool_window.destroy()
         session.tools.remove([self])
         super().delete()
+
+    def display(self, b):
+        """Show or hide command line user interface."""
+        self.tool_window.shown = b

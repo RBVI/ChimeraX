@@ -924,16 +924,35 @@ class ToolInstance(State):
         """Initialize an ToolInstance.
 
         Supported keyword include:
-        - ``session_data``: data read from session file; if present,
-          this data overrides information from all other arguments
+        - ``session``: session containing this instance
         """
         self.id = id
+        import weakref
+        self._session = weakref.ref(session)
         # TODO: track.created(ToolInstance, [self])
 
+    @property
+    def session(self):
+        """Property for session that contains this ToolInstance."""
+        return self._session()
+
+    def display_name(self):
+        """Return name to display to user for this ToolInstance."""
+        return self.__class__.__name__
+
     def delete(self):
+        """Delete this tool instance.
+
+        Subclasses should override this method to clean up data structures."""
         if self.id is not None:
             raise ValueError("tool instance is still in use")
         # TODO: track.deleted(ToolInstance, [self])
+
+    def display(self, b):
+        """Show or hide this tool instance.
+
+        - ``b`` is a boolean value for whether the tool should be displayed."""
+        pass
 
 
 class Tools(State):
@@ -1012,6 +1031,10 @@ class Tools(State):
                 continue
             ti.id = None
             del self._tool_instances[tid]
+
+    def find_by_id(self, tid):
+        """Return a tool with the matching identifier."""
+        return self._tool_instances.get(tid, None)
 
     def find_by_class(self, cls):
         """Return a list of tools of the given class."""

@@ -28,7 +28,7 @@ def flattened(input, return_types=(list, tuple, set)):
 def html_user_agent(app_dirs):
     """"Return HTML User-Agent header according to RFC 2068"""
     # The name, author, and version must be "tokens"
-    # 
+    #
     #   token          = 1*<any CHAR except CTLs or tspecials>
     #   CTLs           = <any US-ASCII control character
     #                     (octets 0 - 31) and DEL (127)>
@@ -42,12 +42,13 @@ def html_user_agent(app_dirs):
     #                     but including LWS>
     #   LWS            = [CRLF] 1*( SP | HT )
 
-    ctls = ''.join(char(x) for x in range(32)) + chr(127)
+    ctls = ''.join(chr(x) for x in range(32)) + chr(127)
     tspecials = '()<>@,;:\"/[]?={} \t'
     bad = ctls + tspecials
 
     def token(text):
         return ''.join([c for c in text if c not in bad])
+
     def comment(text):
         # TODO: check for matched parenthesis
         # TODO: strip appropriate CTLs
@@ -68,5 +69,3 @@ def html_user_agent(app_dirs):
     if system:
         user_agent += " (%s)" % comment(system)
     return user_agent
-
-

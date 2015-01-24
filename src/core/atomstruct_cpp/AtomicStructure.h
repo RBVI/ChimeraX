@@ -59,6 +59,7 @@ private:
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
     std::string  _name;
+    int  _num_hyds = 0;
     AS_PBManager  _pb_mgr;
     mutable bool  _recompute_rings;
     Residues  _residues;
@@ -104,6 +105,7 @@ public:
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
     int  num_atoms() const { return atoms().size(); }
     int  num_bonds() const { return bonds().size(); }
+    int  num_hyds() const { return _num_hyds; }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::unordered_map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
@@ -125,6 +127,8 @@ inline void
 atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
     for (auto b: a->bonds()) delete_bond(b);
     delete_vertex(a);
+    if (a->element().number() == 1)
+        --_num_hyds;
 }
 
 #include "Bond.h"

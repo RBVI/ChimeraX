@@ -158,6 +158,28 @@ ab_names(PyObject* self, void*)
 }
 
 static PyObject*
+ab_radii(PyObject* self, void*)
+{
+    AtomBlob* ab = static_cast<AtomBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)ab->_items->size()};
+    PyObject* radii = allocate_python_array(1, shape, NPY_FLOAT);
+    float* data = (float*) PyArray_DATA((PyArrayObject*)radii);
+    for (auto a: *(ab->_items)) {
+        *data++ = a->radius();
+    }
+    return radii;
+}
+
+static int
+ab_set_radii(PyObject* self, PyObject* value, void*)
+{
+    return set_blob<AtomBlob>(self, value, &atomstruct::Atom::set_radius);
+}
+
+static PyObject*
 ab_residues(PyObject* self, void*)
 {
     PyObject* py_rb = newBlob<ResBlob>(&ResBlob_type);
@@ -187,6 +209,8 @@ static PyGetSetDef AtomBlob_getset[] = {
     { (char*)"element_numbers", ab_element_numbers, NULL,
         (char*)"numpy array of element numbers", NULL},
     { (char*)"names", ab_names, NULL, (char*)"list of atom names", NULL},
+    { (char*)"radii", ab_radii, ab_set_radii,
+        (char*)"numpy array of (float) atomic radii", NULL},
     { (char*)"residues", ab_residues, NULL, (char*)"ResBlob", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };

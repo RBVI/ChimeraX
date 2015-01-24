@@ -66,3 +66,6 @@ class ToolUI(ToolInstance):
         self.tool_window.destroy()
         session.tools.remove([self])
         super().delete()
+
+    def display(self, b):
+        self.tool_window.shown = b
