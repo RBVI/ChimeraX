@@ -18,6 +18,8 @@ def open_pdb(session, filename, *args, **kw):
     if hasattr(filename, 'read'):
         # it's really a fetched stream
         input = filename
+        if name is None:
+            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
         if name is None:
@@ -32,9 +34,9 @@ def open_pdb(session, filename, *args, **kw):
     model.mol_blob = mol_blob
     model.make_drawing()
 
-    # TODO: is this a lightweight operation?
-    atom_blob, bond_list = model.mol_blob.atoms_bonds
-    num_atoms = len(atom_blob.coords)
+    coords = model.mol_blob.atoms.coords
+    bond_list = mol_blob.bond_indices
+    num_atoms = len(coords)
     num_bonds = len(bond_list)
 
     return [model], ("Opened PDB data containing %d atoms and %d bonds"

@@ -28,6 +28,8 @@ def open(session, filename, *args, **kw):
     if hasattr(filename, 'read'):
         # it's really a file-like object
         input = filename
+        if name is None:
+            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
         if name is None:
