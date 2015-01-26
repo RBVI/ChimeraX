@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <unordered_map>
+#include <WrapPy3.h>
 
 using std::string;
 using std::vector;
@@ -37,6 +38,25 @@ using basegeom::Coord;
 namespace mmcif {
 
 tmpl::Molecule* templates;
+LocateFunc  locate_func;
+
+const tmpl::Residue*
+find_template_residue(const string& name)
+{
+    if (templates == nullptr)
+        templates = new tmpl::Molecule();
+
+    tmpl::Residue* tr = templates->find_residue(name);
+    if (tr)
+        return tr;
+    if (locate_func == nullptr)
+        return nullptr;
+    string filename = locate_func(name);
+    if (filename.empty())
+        return nullptr;
+    load_mmCIF_templates(filename.c_str());
+    return templates->find_residue(name);
+}
 
 struct ExtractTemplate: public readcif::CIFFile
 {
@@ -115,9 +135,11 @@ ExtractTemplate::finished_parse()
         bool is_nucleotide = type.find("DNA") != string::npos
                                     || type.find("RNA") != string::npos;
         if (is_peptide) {
+            residue->description("peptide");
             residue->chief(residue->find_atom("N"));
             residue->link(residue->find_atom("C"));
         } else if (is_nucleotide) {
+            residue->description("nucleotide");
             residue->chief(residue->find_atom("P"));
             residue->link(residue->find_atom("O3'"));
         }
@@ -252,7 +274,7 @@ ExtractTemplate::parse_chem_comp_bond(bool /*in_loop*/)
 }
 
 void
-load_mmCIF_templates(const char* filename, const char* /*category*/)
+load_mmCIF_templates(const char* filename)
 {
     if (templates == NULL)
         templates = new tmpl::Molecule();
@@ -283,6 +305,45 @@ load_mmCIF_templates(const char* filename, const char* /*category*/)
         }
     }
 #endif
+}
+
+void
+set_locate_template_function(LocateFunc function)
+{
+    locate_func = function;
+}
+
+void
+set_Python_locate_function(PyObject* function)
+{
+    static PyObject* save_reference_to_function = NULL;
+
+    if (function == NULL) {
+        locate_func = nullptr;
+        return;
+    }
+    if (!PyCallable_Check(function))
+        throw std::logic_error("function must be a callable object");
+
+    if (locate_func != nullptr)
+        Py_DECREF(save_reference_to_function);
+    Py_INCREF(function);
+    save_reference_to_function = function;
+
+    locate_func = [function] (const string& name) -> std::string {
+        PyObject* name_arg = wrappy::pyObject(name);
+        PyObject* result = PyObject_CallFunction(function, "O", name_arg);
+        Py_XDECREF(name_arg);
+        if (result == NULL)
+            throw wrappy::PythonError();
+        if (!PyUnicode_Check(result)) {
+            Py_DECREF(result);
+            throw std::logic_error("locate function should return a string");
+        }
+        string cpp_result = wrappy::PythonUnicode_AsCppString(result);
+        Py_DECREF(result);
+        return cpp_result;
+    };
 }
 
 } // namespace mmcif

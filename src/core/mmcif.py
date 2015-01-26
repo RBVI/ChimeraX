@@ -10,6 +10,7 @@ from . import structure
 from .cli import UserError
 
 _builtin_open = open
+_initialized = False
 
 
 def open_mmCIF(session, filename, *args, **kw):
@@ -22,14 +23,17 @@ def open_mmCIF(session, filename, *args, **kw):
         name = filename
 
     from . import _mmcif
+    _mmcif.set_Python_locate_function(
+        lambda x: _get_template(x, session.app_dirs))
     mol_blob = _mmcif.parse_mmCIF_file(filename)
 
     model = structure.StructureModel(name)
     model.mol_blob = mol_blob
     model.make_drawing()
 
-    atom_blob, bond_list = model.mol_blob.atoms_bonds
-    num_atoms = len(atom_blob.coords)
+    coords = model.mol_blob.atoms.coords
+    bond_list = mol_blob.bond_indices
+    num_atoms = len(coords)
     num_bonds = len(bond_list)
 
     return [model], ("Opened mmCIF data containing %d atoms and %d bonds"
@@ -52,10 +56,11 @@ def fetch_mmcif(session, pdb_id):
     filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, lower)
     if os.path.exists(filename):
         return _builtin_open(filename, 'rb')
+
     from urllib.request import URLError, Request, urlopen
+    from . import utils
     url = "http://www.rcsb.org/pdb/files/%s.cif" % pdb_id.upper()
     # TODO: save in local cache
-    from . import utils
     request = Request(url, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
@@ -65,7 +70,41 @@ def fetch_mmcif(session, pdb_id):
         raise UserError(str(e))
 
 
+def _get_template(name, app_dirs):
+    """Get Chemical Component Dictionary (CCD) entry"""
+    import os
+    # check in local cache
+    filename = "~/Downloads/Chimera/CCD/%s.cif" % name.upper()
+    filename = os.path.expanduser(filename)
+    if os.path.exists(filename):
+        return filename
+
+    from urllib.request import URLError, Request, urlopen
+    from . import utils
+    url = "http://www.rbvi.ucsf.edu/ccdcache/%s" % name
+    request = Request(url, headers={
+        "User-Agent": utils.html_user_agent(app_dirs),
+    })
+    try:
+        data = urlopen(request).read()
+    except URLError as e:
+        raise UserError("Unable to fetch template for '%s'" % name)
+
+    dirname = os.path.dirname(filename)
+    try:
+        os.mkdir(dirname)
+    except FileExistsError:
+        pass
+    with _builtin_open(filename, 'wb') as output:
+        output.write(data)
+    return filename
+
+
 def register():
+    global _initialized
+    if _initialized:
+        return
+
     from . import io
     # mmCIF uses same file suffix as CIF
     # io.register_format(
