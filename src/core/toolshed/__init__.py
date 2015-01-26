@@ -344,6 +344,7 @@ class ToolShed:
 
         # Partition packages into core, tools and toolboxes
         from distlib.database import make_graph
+        print("all_distributions", all_distributions)
         dg = make_graph(all_distributions)
         known_dists = set([core])
         self._inst_chimera_core = core
@@ -452,6 +453,10 @@ class ToolShed:
                 if ti._distribution_name not in updated]
         self._installed_tool_info = keep
         updated = set([(d.name, d.version) for d in need_update])
+        if self._all_installed_distributions is not None:
+            self._inst_path = None
+            self._inst_locator = None
+            self._all_installed_distributions = None
         import copy
         newly_installed = [copy.copy(ti) for ti in self._available_tool_info
                            if ti.distribution() in updated]
@@ -759,7 +764,12 @@ class ToolShed:
         if d.version != version:
             raise KeyError("distribution \"%s %s\" does not match tool version "
                            "\"%s\"" % (name, version, d.version))
-        keep = [ti for ti in self._installed_tool_info if ti.distribution() != dv]
+        keep = []
+        for ti in self._installed_tool_info:
+            if ti.distribution() != dv:
+                keep.append(ti)
+            else:
+                ti.deregister_commands()
         self._installed_tool_info = keep
         self._remove_distribution(d, logger)
 

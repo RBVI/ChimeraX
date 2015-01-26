@@ -69,3 +69,6 @@ class ToolUI(ToolInstance):
 
     def display(self, b):
         self.tool_window.shown = b
+
+    def display_name(self):
+        return "custom name for running tool"

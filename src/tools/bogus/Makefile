@@ -45,6 +45,7 @@ setup.py: setup.py.in Makefile
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \
 		-e 's/TOOL_CATEGORY/$(TOOL_CATEGORY)/' \
+		-e 's/TOOL_SYNOPSIS/$(TOOL_SYNOPSIS)/' \
 		-e 's/COMMAND_NAME/$(COMMAND_NAME)/' \
 		-e 's,PKG_NAME,$(PKG_NAME),' \
 		-e 's,PKG_VERSION,$(PKG_VERSION),' \
