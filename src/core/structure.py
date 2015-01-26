@@ -21,7 +21,7 @@ class StructureModel(models.Model):
         pass
 
     def make_drawing(self):
-        atom_blob, bond_list = self.mol_blob.atoms_bonds
+        atom_blob = self.mol_blob.atoms
         coords = atom_blob.coords
         element_numbers = atom_blob.element_numbers
 
