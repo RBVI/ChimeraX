@@ -40,7 +40,7 @@ def open_mmCIF(session, filename, *args, **kw):
                      % (num_atoms, num_bonds))
 
 
-def fetch_mmcif(session, pdb_id):
+def fetch_mmCIF(session, pdb_id):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
@@ -88,6 +88,8 @@ def _get_template(name, app_dirs, logger):
         "User-Agent": utils.html_user_agent(app_dirs),
     })
     try:
+        if logger:
+            logger.status('fetching %s template' % name)
         data = urlopen(request).read()
     except URLError:
         if logger:
@@ -121,4 +123,4 @@ def register():
         "mmCIF", structure.CATEGORY, (".cif",), ("mmcif", "cif"),
         mime=("chemical/x-mmcif", "chemical/x-cif"),
         reference="http://mmcif.wwpdb.org/",
-        requires_seeking=True, open_func=open_mmCIF)
+        requires_seeking=True, open_func=open_mmCIF, fetch_func=fetch_mmCIF)
