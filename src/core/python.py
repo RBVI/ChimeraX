@@ -6,6 +6,8 @@ py: Python file support
 Read and execute Python scripts
 """
 
+_builtin_open = open
+
 
 def open_py(session, filename, *args, **kw):
     name = kw['name'] if 'name' in kw else None
@@ -23,7 +25,7 @@ def open_py(session, filename, *args, **kw):
         data = input.read()
         code = compile(data, name, 'exec')
         global_dict = {
-            '__name__': '%s_sandbox' % sesssion.app_dirs.appname,
+            '__name__': '%s_sandbox' % session.app_dirs.appname,
             '%s_session' % session.app_dirs.appname: session
         }
         exec(code, global_dict)
