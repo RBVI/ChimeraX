@@ -680,12 +680,6 @@ class Drawing:
             return None
         xyz_min = va.min(axis=0)
         xyz_max = va.max(axis=0)
-        sas = self.positions.shift_and_scale_array()
-        if sas is not None and len(sas) > 0:
-            xyz = sas[:, :3]
-            xyz_min += xyz.min(axis=0)
-            xyz_max += xyz.max(axis=0)
-            # TODO: use scale factors
         from ..geometry.bounds import Bounds
         b = Bounds(xyz_min, xyz_max)
         self._cached_bounds = b
