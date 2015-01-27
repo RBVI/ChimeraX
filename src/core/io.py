@@ -433,6 +433,7 @@ def print_file_types():
     categories = list(combine)
     categories.sort(key=str.casefold)
     print('Supported file types:')
+    print('  o = open, e = export')
     for k in categories:
         print("\n%s:" % k)
         names = combine[k]
@@ -446,7 +447,6 @@ def print_file_types():
             else:
                 exts = ''
             print('%c%c  %s%s' % (o, e, format_name, exts))
-    print('\n  o = open, e = export')
 
     # if _compression:
     #    for ext in combine[k]:
