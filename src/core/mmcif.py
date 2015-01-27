@@ -24,7 +24,7 @@ def open_mmCIF(session, filename, *args, **kw):
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
-        lambda x: _get_template(x, session.app_dirs))
+        lambda x: _get_template(x, session.app_dirs, session.logger))
     mol_blob = _mmcif.parse_mmCIF_file(filename)
 
     model = structure.StructureModel(name)
@@ -70,7 +70,7 @@ def fetch_mmcif(session, pdb_id):
         raise UserError(str(e))
 
 
-def _get_template(name, app_dirs):
+def _get_template(name, app_dirs, logger):
     """Get Chemical Component Dictionary (CCD) entry"""
     import os
     # check in local cache
@@ -82,13 +82,18 @@ def _get_template(name, app_dirs):
     from urllib.request import URLError, Request, urlopen
     from . import utils
     url = "http://www.rbvi.ucsf.edu/ccdcache/%s" % name
+    url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
+                                                                name)
     request = Request(url, headers={
         "User-Agent": utils.html_user_agent(app_dirs),
     })
     try:
         data = urlopen(request).read()
-    except URLError as e:
-        raise UserError("Unable to fetch template for '%s'" % name)
+    except URLError:
+        if logger:
+            logger.warning(
+                "Unable to fetch template for '%s': might be missing bonds"
+                % name)
 
     dirname = os.path.dirname(filename)
     try:
@@ -107,11 +112,13 @@ def register():
 
     from . import io
     # mmCIF uses same file suffix as CIF
+    # PDB uses chemical/x-cif when serving CCD files
     # io.register_format(
     #     "CIF", structure.CATEGORY, (), ("cif", "cifID"),
     #     mime=("chemical/x-cif"),
     #    reference="http://www.iucr.org/__data/iucr/cif/standard/cifstd1.html")
     io.register_format(
         "mmCIF", structure.CATEGORY, (".cif",), ("mmcif", "cif"),
-        mime=("chemical/x-mmcif",), reference="http://mmcif.wwpdb.org/",
+        mime=("chemical/x-mmcif", "chemical/x-cif"),
+        reference="http://mmcif.wwpdb.org/",
         requires_seeking=True, open_func=open_mmCIF)
