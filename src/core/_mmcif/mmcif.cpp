@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_map>
 
 using std::hash;
 using std::map;
@@ -106,7 +107,17 @@ struct ExtractMolecule: public readcif::CIFFile
                 ^ hash<string>()(k.mon_id);
         }
     };
-    unordered_map<ResidueKey, Residue*, hash_ResidueKey> residue_map;
+    typedef unordered_map<ResidueKey, Residue*, hash_ResidueKey> ResidueMap;
+    unordered_map<string, ResidueMap> all_residues;
+    struct PolySeq {
+        string entity_id;
+        long seq_id;
+        string mon_id;
+        bool hetero;
+        PolySeq(const string& e, long s, const string& m, bool h):
+            entity_id(e), seq_id(s), mon_id(m), hetero(h) {}
+    };
+    vector<PolySeq> poly_seq;
 };
 
 ExtractMolecule::ExtractMolecule()
@@ -126,7 +137,7 @@ ExtractMolecule::ExtractMolecule()
     register_category("entity_poly_seq",
         [this] (bool in_loop) {
             parse_entity_poly_seq(in_loop);
-        }, { "atom_site", "struct_conn" });
+        });
 }
 
 void
@@ -135,7 +146,32 @@ ExtractMolecule::reset_parse()
     all_molecules.clear();
     molecules.clear();
     atom_map.clear();
-    residue_map.clear();
+    all_residues.clear();
+}
+
+void
+connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool /*gap*/)
+{
+    // TODO: if gap, chain is discontinious
+    for (auto&& r0: a) {
+        auto tr0 = find_template_residue(r0->name());
+        if (tr0 == nullptr)
+            continue;
+        Atom *a0 = r0->find_atom(tr0->link()->name());
+        if (a0 == nullptr)
+            continue;
+        for (auto&& r1: b) {
+            auto tr1 = find_template_residue(r1->name());
+            // only connect residues of the same type
+            if (tr1 == nullptr || tr1->description() != tr0->description())
+                continue;
+            Atom *a1 = r1->find_atom(tr1->chief()->name());
+            if (a1 == nullptr)
+                continue;
+            if (!a0->connects_to(a1))
+                (void) a0->structure()->new_bond(a0, a1);
+        }
+    }
 }
 
 void
@@ -153,13 +189,62 @@ ExtractMolecule::finished_parse()
             connect_residue_by_template(r.get(), tr);
         }
     }
+    // connect residues in entity_poly_seq
+    for (auto&& chain: all_residues) {
+        const ResidueMap& residue_map = chain.second;
+        PolySeq *last = NULL;
+        bool gap = false;
+        vector<Residue*> previous, current;
+        for (auto& p: poly_seq) {
+            if (last && p.entity_id != last->entity_id) {
+                if (!previous.empty()) {
+                    connect_residue_pairs(previous, current, gap);
+                    gap = false;
+                }
+                previous.clear();
+                current.clear();
+                last = NULL;
+                gap = false;
+            }
+            auto ri = residue_map.find(ResidueKey(p.entity_id, p.seq_id, p.mon_id));
+            if (ri == residue_map.end()) {
+                gap = true;
+                continue;
+            }
+            Residue* r = ri->second;
+            if (p.hetero) {
+                if (last == NULL || last->hetero) {
+                    current.push_back(r);
+                } else {
+                    if (!previous.empty()) {
+                        connect_residue_pairs(previous, current, gap);
+                        gap = false;
+                    }
+                    previous = std::move(current);
+                    current.clear();
+                    current.push_back(r);
+                }
+            } else {
+                if (!previous.empty()) {
+                    connect_residue_pairs(previous, current, gap);
+                        gap = false;
+                    }
+                previous = std::move(current);
+                current.clear();
+                current.push_back(r);
+            }
+            last = &p;
+        }
+        if (!previous.empty())
+            connect_residue_pairs(previous, current, gap);
+    }
     // TODO: next copy connectivity to other molecules
     for (auto& im: molecules) {
         all_molecules.push_back(im.second);
     }
     molecules.clear();
     atom_map.clear();
-    residue_map.clear();
+    all_residues.clear();
 }
 
 void
@@ -365,7 +450,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         || cur_comp_id != residue_name) {
             cur_residue = mol->new_residue(residue_name, chain_id,
                                                         position, ins_code);
-            residue_map[ResidueKey(entity_id, position, residue_name)]
+            all_residues[chain_id][ResidueKey(entity_id, position, residue_name)]
                 = cur_residue;
             cur_entity_id = entity_id;
             cur_seq_id = position;
@@ -539,38 +624,14 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
 }
 
 void
-connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool /*gap*/)
-{
-    // TODO: if gap, chain is discontinious
-    for (auto&& r0: a) {
-        auto tr0 = find_template_residue(r0->name());
-        if (tr0 == nullptr)
-            continue;
-        Atom *a0 = r0->find_atom(tr0->link()->name());
-        if (a0 == nullptr)
-            continue;
-        for (auto&& r1: b) {
-            auto tr1 = find_template_residue(r1->name());
-            // only connect residues of the same type
-            if (tr1 == nullptr || tr1->description() != tr0->description())
-                continue;
-            Atom *a1 = r1->find_atom(tr1->chief()->name());
-            if (a1 == nullptr)
-                continue;
-            if (!a0->connects_to(a1))
-                (void) a0->structure()->new_bond(a0, a1);
-        }
-    }
-}
-
-void
 ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
 {
+    // have to save all of entity_poly_seq because the same entity
+    // can appear in more than one chain
     string entity_id;
     long seq_id = 0;
     string mon_id;
     bool hetero = false;
-    vector<Residue*> previous, current;
 
     CIFFile::ParseValues pv;
     pv.reserve(4);
@@ -591,53 +652,8 @@ ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
             hetero = *start == 'Y' || *start == 'y';
         });
 
-    string last_entity_id = "";
-    bool last_hetero = false;
-    bool gap = false;
-    while (parse_row(pv)) {
-        if (entity_id != last_entity_id) {
-            if (!previous.empty()) {
-                connect_residue_pairs(previous, current, gap);
-                gap = false;
-            }
-            previous.clear();
-            current.clear();
-            last_entity_id = entity_id;
-            last_hetero = false;
-            gap = false;
-        }
-        auto ri = residue_map.find(ResidueKey(entity_id, seq_id, mon_id));
-        if (ri == residue_map.end()) {
-            gap = true;
-            continue;
-        }
-        Residue* r = ri->second;
-        if (hetero) {
-            if (last_hetero) {
-                current.push_back(r);
-            } else {
-                if (!previous.empty()) {
-                    connect_residue_pairs(previous, current, gap);
-                    gap = false;
-                }
-                previous = std::move(current);
-                current.clear();
-                current.push_back(r);
-            }
-        } else {
-            if (!previous.empty()) {
-                connect_residue_pairs(previous, current, gap);
-                    gap = false;
-                }
-            previous = std::move(current);
-            current.clear();
-            current.push_back(r);
-        }
-
-        last_hetero = hetero;
-    }
-    if (!previous.empty())
-        connect_residue_pairs(previous, current, gap);
+    while (parse_row(pv))
+        poly_seq.push_back(PolySeq(entity_id, seq_id, mon_id, hetero));
 }
 
 bool
