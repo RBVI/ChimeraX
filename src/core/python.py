@@ -22,7 +22,10 @@ def open_py(session, filename, *args, **kw):
     try:
         data = input.read()
         code = compile(data, name, 'exec')
-        global_dict = { '%s_session' % session.app_dirs.appname: session }
+        global_dict = {
+            '__name__': '%s_sandbox' % sesssion.app_dirs.appname,
+            '%s_session' % session.app_dirs.appname: session
+        }
         exec(code, global_dict)
     finally:
         if input != filename:
