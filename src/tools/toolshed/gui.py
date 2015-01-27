@@ -35,7 +35,7 @@ _SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show">show</a>'
 _HIDE_LINK = '<a href="toolshed:_hide_tool:%s" class="hide">hide</a>'
 _KILL_LINK = '<a href="toolshed:_kill_tool:%s" class="kill">kill</a>'
 
-from chimera.core.toolshed import ToolInstance
+from chimera.core.tools import ToolInstance
 
 
 class ToolshedUI(ToolInstance):
@@ -58,7 +58,7 @@ class ToolshedUI(ToolInstance):
         sizer.Add(self.webview, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.tool_window.manage(placement="right")
-        from chimera.core.toolshed import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
+        from chimera.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE,
                                                        self._make_page),
                           session.triggers.add_handler(ADD_TOOL_INSTANCE,

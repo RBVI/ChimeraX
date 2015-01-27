@@ -1,6 +1,6 @@
 # vim: set expandtab ts=4 sw=4:
 
-from chimera.core.toolshed import ToolInstance
+from chimera.core.tools import ToolInstance
 
 
 class CmdLine(ToolInstance):

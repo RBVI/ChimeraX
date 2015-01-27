@@ -10,7 +10,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from chimera.core.toolshed import ToolInstance
+from chimera.core.tools import ToolInstance
 
 
 class ToolUI(ToolInstance):

@@ -171,7 +171,7 @@ class ToolShed:
         distributions = self._repo_locator.get_distributions()
         ti_list = []
         for d in distributions:
-            ti_list.extend(_make_tool_info(logger, d, False))
+            ti_list.extend(self._make_tool_info(d, False, logger))
             _debug("added remote distribution:", d)
         return ti_list
 
@@ -303,7 +303,7 @@ class ToolShed:
         self._scan_installed(logger)
         tool_info = []
         for d in self._inst_tool_dists:
-            tool_info.extend(_make_tool_info(logger, d, True))
+            tool_info.extend(self._make_tool_info(d, True, logger))
         # NOTE: need to do something with toolboxes
         self._write_cache(tool_info, logger)
         return tool_info
@@ -427,6 +427,43 @@ class ToolShed:
         with open(timestamp_file, "w") as f:
             import time
             print(time.ctime(), file=f)
+
+    def _make_tool_info(self, d, installed, logger):
+        """Convert distribution into a list of ToolInfo instances."""
+        name = d.name
+        version = d.version
+        md = d.metadata
+
+        tools = []
+        for classifier in md.dictionary["classifiers"]:
+            parts = [v.strip() for v in classifier.split("::")]
+            if parts[0] != "Chimera-Tool":
+                continue
+            if len(parts) != 7:
+                logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
+                logger.warning("Expected 7 fields and got %d." % len(parts))
+                continue
+            kw = {"distribution_name": name, "distribution_version": version}
+            # Name of tool
+            tool_name = parts[1]
+            # Name of module implementing tool
+            kw["module_name"] = parts[2]
+            # Display name of tool
+            kw["display_name"] = parts[3]
+            # CLI command names (just the first word)
+            commands = parts[4]
+            if commands:
+                kw["command_names"] = [v.strip()
+                                       for v in commands.split(',')]
+            # Menu categories in which tool should appear
+            categories = parts[5]
+            if categories:
+                kw["menu_categories"] = [v.strip()
+                                         for v in categories.split(',')]
+            # Synopsis of tool
+            kw["synopsis"] = parts[6]
+            tools.append(ToolInfo(tool_name, installed, **kw))
+        return tools
 
     # Following methods are used for installing and removing
     # distributions
@@ -913,183 +950,6 @@ class ToolInfo:
                                 % self.name)
         else:
             f(session, self, *args, **kw)
-
-
-# Tools and ToolInstance are session-specific
-from ..session import State
-ADD_TOOL_INSTANCE = 'add tool instance'
-REMOVE_TOOL_INSTANCE = 'remove tool instance'
-
-
-class ToolInstance(State):
-    """ToolInstance is the abstract base class for
-    tool instance classes that implement actual functionality,
-    in particular the '''session.State''' API.
-
-    All session-related data are stored in ToolInstance instances,
-    not in any ToolShed or ToolInfo instances."""
-
-    def __init__(self, session, id=None, **kw):
-        """Initialize an ToolInstance.
-
-        Supported keyword include:
-        - ``session``: session containing this instance
-        """
-        self.id = id
-        import weakref
-        self._session = weakref.ref(session)
-        # TODO: track.created(ToolInstance, [self])
-
-    @property
-    def session(self):
-        """Property for session that contains this ToolInstance."""
-        return self._session()
-
-    def display_name(self):
-        """Return name to display to user for this ToolInstance."""
-        return self.__class__.__name__
-
-    def delete(self):
-        """Delete this tool instance.
-
-        Subclasses should override this method to clean up data structures."""
-        if self.id is not None:
-            raise ValueError("tool instance is still in use")
-        # TODO: track.deleted(ToolInstance, [self])
-
-    def display(self, b):
-        """Show or hide this tool instance.
-
-        - ``b`` is a boolean value for whether the tool should be displayed."""
-        pass
-
-
-class Tools(State):
-    """Tools is a session state manager for running tools."""
-    # Most of this code is modeled after models.Models
-
-    VERSION = 1     # snapshot version
-
-    def __init__(self, session):
-        """Initialize session state manager for ToolInstance instances."""
-        import weakref
-        self._session = weakref.ref(session)
-        session.triggers.add_trigger(ADD_TOOL_INSTANCE)
-        session.triggers.add_trigger(REMOVE_TOOL_INSTANCE)
-        self._tool_instances = {}
-        import itertools
-        self._id_counter = itertools.count(1)
-
-    def take_snapshot(self, session, flags):
-        """Override State default method."""
-        data = {}
-        for tid, ti in self._tool_instances.items():
-            assert(isinstance(ti, ToolInstance))
-            data[tid] = [session.unique_id(ti), ti.take_snapshot(session, flags)]
-        return [self.VERSION, data]
-
-    def restore_snapshot(self, phase, session, version, data):
-        """Override State default method."""
-        if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
-
-        session = self._session()   # resolve back reference
-        for tid, [uid, [ti_version, ti_data]] in data.items():
-            if phase == State.PHASE1:
-                try:
-                    cls = session.class_of_unique_id(uid, ToolInstance)
-                except KeyError:
-                    class_name = session.class_name_of_unique_id(uid)
-                    session.log.warning("Unable to restore tool instance %s (%s)"
-                                        % (tid, class_name))
-                    continue
-                ti = cls(session, id=tid)
-                session.restore_unique_id(ti, uid)
-            else:
-                ti = session.unique_obj(uid)
-            ti.restore_snapshot(phase, session, ti_version, ti_data)
-
-    def reset_state(self):
-        """Override State default method."""
-        ti_list = list(self._tool_instances.values())
-        for ti in ti_list:
-            ti.delete()
-        self._tool_instances.clear()
-
-    def list(self):
-        """Return list of running tools."""
-        return list(self._tool_instances.values())
-
-    def add(self, ti_list):
-        """Add running tools to session."""
-        session = self._session()   # resolve back reference
-        for ti in ti_list:
-            if ti.id is None:
-                ti.id = next(self._id_counter)
-            self._tool_instances[ti.id] = ti
-        session.triggers.activate_trigger(ADD_TOOL_INSTANCE, ti_list)
-
-    def remove(self, ti_list):
-        """Remove running tools from session."""
-        session = self._session()   # resolve back reference
-        session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
-        for ti in ti_list:
-            tid = ti.id
-            if tid is None:
-                # Not registered in a session
-                continue
-            ti.id = None
-            del self._tool_instances[tid]
-
-    def find_by_id(self, tid):
-        """Return a tool with the matching identifier."""
-        return self._tool_instances.get(tid, None)
-
-    def find_by_class(self, cls):
-        """Return a list of tools of the given class."""
-        return [ti for ti in self._tool_instances.values() if isinstance(ti, cls)]
-
-
-#
-# Code in remainder of file are for internal use only
-#
-
-
-def _make_tool_info(logger, d, installed):
-    name = d.name
-    version = d.version
-    md = d.metadata
-
-    tools = []
-    for classifier in md.dictionary["classifiers"]:
-        parts = [v.strip() for v in classifier.split("::")]
-        if parts[0] != "Chimera-Tool":
-            continue
-        if len(parts) != 7:
-            logger.warning("Malformed Chimera-Tool line in %s skipped." % name)
-            logger.warning("Expected 7 fields and got %d." % len(parts))
-            continue
-        kw = {"distribution_name": name, "distribution_version": version}
-        # Name of tool
-        tool_name = parts[1]
-        # Name of module implementing tool
-        kw["module_name"] = parts[2]
-        # Display name of tool
-        kw["display_name"] = parts[3]
-        # CLI command names (just the first word)
-        commands = parts[4]
-        if commands:
-            kw["command_names"] = [v.strip()
-                                   for v in commands.split(',')]
-        # Menu categories in which tool should appear
-        categories = parts[5]
-        if categories:
-            kw["menu_categories"] = [v.strip()
-                                     for v in categories.split(',')]
-        # Synopsis of tool
-        kw["synopsis"] = parts[6]
-        tools.append(ToolInfo(tool_name, installed, **kw))
-    return tools
 
 
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
