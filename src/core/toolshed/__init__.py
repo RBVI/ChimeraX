@@ -344,7 +344,6 @@ class ToolShed:
 
         # Partition packages into core, tools and toolboxes
         from distlib.database import make_graph
-        print("all_distributions", all_distributions)
         dg = make_graph(all_distributions)
         known_dists = set([core])
         self._inst_chimera_core = core
