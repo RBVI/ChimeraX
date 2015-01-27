@@ -23,12 +23,14 @@ class StructureModel(models.Model):
     def make_drawing(self):
         atom_blob = self.mol_blob.atoms
         coords = atom_blob.coords
-        element_numbers = atom_blob.element_numbers
+        radii = atom_blob.radii
+        atom_blob.colors = element_colors(atom_blob.element_numbers)
+        colors = atom_blob.colors
 
         # TODO: fill in drawing
-        self.create_atom_spheres(coords, element_numbers)
+        self.create_atom_spheres(coords, radii, colors)
 
-    def create_atom_spheres(self, coords, element_numbers, radius=1.5):
+    def create_atom_spheres(self, coords, radii, colors):
         if not hasattr(self, '_atoms_drawing'):
             self._atoms_drawing = self.new_drawing('atoms')
         p = self._atoms_drawing
@@ -45,16 +47,14 @@ class StructureModel(models.Model):
         from numpy import empty, float32
         xyzr = empty((n, 4), float32)
         xyzr[:, :3] = coords
-        xyzr[:, 3] = radius
+        xyzr[:, 3] = radii
         from .geometry import place
         p.positions = place.Places(shift_and_scale=xyzr)
 
         # Set atom colors
-        p.colors = element_colors(element_numbers)
+        p.colors = colors
 
 element_rgba_256 = None
-
-
 def element_colors(element_numbers):
     global element_rgba_256
     if element_rgba_256 is None:
