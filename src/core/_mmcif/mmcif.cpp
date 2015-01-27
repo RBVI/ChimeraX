@@ -318,7 +318,8 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             chain_id = string(start, end - start);
         });
-    pv.emplace_back(get_column("auth_asym_id"), true,
+    int auth_asym_column = get_column("auth_asym_id");
+    pv.emplace_back(auth_asym_column, true,
         [&] (const char* start, const char* end) {
             auth_chain_id = string(start, end - start);
             if (auth_chain_id == "." || auth_chain_id == "?")
@@ -337,7 +338,8 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char*) {
             position = readcif::str_to_int(start);
         });
-    pv.emplace_back(get_column("auth_seq_id"), false,
+    int auth_seq_column = get_column("auth_seq_id");
+    pv.emplace_back(auth_seq_column, false,
         [&] (const char* start, const char*) {
             if (*start == '.' || *start == '?')
                 auth_position = INT_MAX;
@@ -378,7 +380,8 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             residue_name = string(start, end - start);
         });
-    pv.emplace_back(get_column("auth_comp_id"), true,
+    int auth_comp_column = get_column("auth_comp_id");
+    pv.emplace_back(auth_comp_column, true,
         [&] (const char* start, const char* end) {
             auth_residue_name = string(start, end - start);
             if (auth_residue_name == "." || auth_residue_name == "?")
@@ -448,10 +451,23 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         || cur_entity_id != entity_id
         || cur_seq_id != position
         || cur_comp_id != residue_name) {
-            cur_residue = mol->new_residue(residue_name, chain_id,
-                                                        position, ins_code);
-            all_residues[chain_id][ResidueKey(entity_id, position, residue_name)]
-                = cur_residue;
+            string rname, cid;
+            long pos;
+            if (auth_comp_column != -1 && !auth_residue_name.empty())
+                rname = auth_residue_name;
+            else
+                rname = residue_name;
+            if (auth_asym_column != -1 && !auth_chain_id.empty())
+                cid = auth_chain_id;
+            else
+                cid = chain_id;
+            if (auth_seq_column != -1 && auth_position != INT_MAX)
+                pos = auth_position;
+            else
+                pos = position;
+            cur_residue = mol->new_residue(rname, cid, pos, ins_code);
+            all_residues[chain_id]
+                [ResidueKey(entity_id, position, residue_name)] = cur_residue;
             cur_entity_id = entity_id;
             cur_seq_id = position;
             cur_comp_id = residue_name;
