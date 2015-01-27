@@ -4,7 +4,10 @@
 #include "connected.h"			// use connected_triangles, ...
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "parse_stl.h"			// use parse_stl
+#include "sasa.h"			// use surface_area_of_spheres
+#include "spline.h"			// use natural_cubic_spline
 #include "subdivide.h"			// use subdivide_triangles
+#include "tube.h"			// use tube_geometry
 
 namespace Surface_Cpp
 {
@@ -37,10 +40,28 @@ static struct PyMethodDef surface_cpp_methods[] =
   {const_cast<char*>("parse_stl"), (PyCFunction)parse_stl,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
+  /* sasa.h */
+  {const_cast<char*>("surface_area_of_spheres"), (PyCFunction)surface_area_of_spheres,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("estimate_surface_area_of_spheres"), (PyCFunction)estimate_surface_area_of_spheres,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* spline.h */
+  {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* subdivide.h */
   {const_cast<char*>("subdivide_triangles"), (PyCFunction)subdivide_triangles,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("subdivide_mesh"), (PyCFunction)subdivide_mesh,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* tube.h */
+  {const_cast<char*>("tube_geometry"), (PyCFunction)tube_geometry,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("tube_geometry_colors"), (PyCFunction)tube_geometry_colors,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("tube_triangle_mask"), (PyCFunction)tube_triangle_mask,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}

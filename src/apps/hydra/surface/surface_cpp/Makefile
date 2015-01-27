@@ -4,7 +4,8 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/hydra/surface
 
 PYMOD_NAME = surface_cpp
-SRCS	= connected.cpp measure.cpp parse_stl.cpp subdivide.cpp surface.cpp
+SRCS	= connected.cpp measure.cpp parse_stl.cpp sasa.cpp spline.cpp subdivide.cpp surface.cpp tube.cpp
+
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)
