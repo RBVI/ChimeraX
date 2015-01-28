@@ -1,6 +1,6 @@
 # Only produces 20, 80, 320, ... (multiples of 4) triangle count.
 def sphere_geometry(ntri):
-  from ..geometry import icosahedron
+  from . import icosahedron
   va, ta = icosahedron.icosahedron_geometry()
   from numpy import int32, sqrt
   ta = ta.astype(int32)

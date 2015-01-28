@@ -36,7 +36,7 @@ class StructureModel(models.Model):
         p = self._atoms_drawing
 
         # Set instanced sphere triangulation
-        from .geometry import icosahedron
+        from .surface import icosahedron
         va, ta = icosahedron.icosahedron_geometry()
         from numpy import int32
         p.geometry = va, ta.astype(int32)
