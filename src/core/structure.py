@@ -30,17 +30,16 @@ class StructureModel(models.Model):
         # TODO: fill in drawing
         self.create_atom_spheres(coords, radii, colors)
 
-    def create_atom_spheres(self, coords, radii, colors):
+    def create_atom_spheres(self, coords, radii, colors, triangles_per_sphere = 320):
         if not hasattr(self, '_atoms_drawing'):
             self._atoms_drawing = self.new_drawing('atoms')
         p = self._atoms_drawing
 
         # Set instanced sphere triangulation
-        from .surface import icosahedron
-        va, ta = icosahedron.icosahedron_geometry()
-        from numpy import int32
-        p.geometry = va, ta.astype(int32)
-        p.normals = va
+        from . import surface
+        va, na, ta = surface.sphere_geometry(triangles_per_sphere)
+        p.geometry = va, ta
+        p.normals = na
 
         # Set instanced sphere center position and radius
         n = len(coords)
