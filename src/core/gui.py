@@ -47,11 +47,11 @@ class UI(wx.App):
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
         if load_tools:
-            from .toolshed import ToolShedError
+            from .toolshed import ToolshedError
             for ti in self.session.toolshed.tool_info():
                 try:
                     ti.start(self.session)
-                except ToolShedError as e:
+                except ToolshedError as e:
                     self.session.logger.info("Tool \"%s\" failed to start"
                                              % ti.name)
 
