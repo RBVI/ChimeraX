@@ -64,6 +64,18 @@ rb_numbers(PyObject* self, void*)
     return residue_numbers;
 }
 
+static PyObject*
+rb_strs(PyObject* self, void*)
+{
+    ResBlob* rb = static_cast<ResBlob*>(self);
+    PyObject *list = PyList_New(rb->_items->size());
+    int i = 0;
+    for (auto ri = rb->_items->begin(); ri != rb->_items->end(); ++ri, ++i){
+        PyList_SetItem(list, i, PyUnicode_FromString((*ri)->str().c_str()));
+    }
+    return list;
+}
+
 static PyMethodDef ResBlob_methods[] = {
     { NULL, NULL, 0, NULL }
 };
@@ -73,6 +85,8 @@ static PyGetSetDef ResBlob_getset[] = {
     { "names", rb_names, NULL, "list of residue names", NULL},
     { "numbers", rb_numbers, NULL,
         "numpy array of residue sequence numbers", NULL},
+    { "strs", rb_strs, NULL,
+        "list of human-friendly residue identifiers", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
 
