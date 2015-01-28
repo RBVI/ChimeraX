@@ -89,7 +89,7 @@ static void stitch_strip(Indices &e1, Indices &e2, Geometry &g);
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-subdivide_triangles(PyObject *s, PyObject *args, PyObject *keywds)
+subdivide_triangles(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray varray, narray;
   IArray tarray;
@@ -241,7 +241,7 @@ static void normalize_normals(float *na, int nv)
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-subdivide_mesh(PyObject *s, PyObject *args, PyObject *keywds)
+subdivide_mesh(PyObject *, PyObject *args, PyObject *keywds)
 {
   float elength;
   FArray varray, narray;

@@ -94,7 +94,7 @@ def test_all_pdb_models(pdb_dirs, pdb_suffix = '.pdb',
     from os import listdir
     from os.path import join
     from ..files import opensave
-    from ..surface.surface_cpp import surface_area_of_spheres, estimate_surface_area_of_spheres
+    from ..surface import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
 
@@ -133,7 +133,7 @@ pdbs = ('3znu','2hq3','3zqy','2vb1','2yab','3ze1','3ze2','4baj','3ztp','1jxw','1
 def test_pdb_models(id_codes, npoints, session):
 
     from ..files import opensave
-    from ..surface.surface_cpp import surface_area_of_spheres, estimate_surface_area_of_spheres
+    from ..surface import surface_area_of_spheres, estimate_surface_area_of_spheres
 
     points, weights = sphere_points_and_weights(npoints)
 

@@ -5,7 +5,7 @@ def tube_through_points(path, tangents, radius = 1.0, circle_subdivisions = 15):
 
     circle = circle_points(circle_subdivisions, radius)
     circle_normals = circle_points(circle_subdivisions, 1.0)
-    from .surface_cpp import tube_geometry
+    from ._surface import tube_geometry
     return tube_geometry(path, tangents, circle, circle_normals)
 
 # -----------------------------------------------------------------------------
@@ -24,9 +24,9 @@ def tube_spline(path, radius = 1.0, segment_subdivisions = 10, circle_subdivisio
 def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
                          start_divisions, end_divisions):
 
-    from . import surface_cpp
-    return surface_cpp.tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
-                                             start_divisions, end_divisions)
+    from . import _surface
+    return _surface.tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
+                                         start_divisions, end_divisions)
 
 # -----------------------------------------------------------------------------
 # Return triangle mask corresponding to tube segment mask.
@@ -34,9 +34,9 @@ def tube_geometry_colors(colors, segment_subdivisions, circle_subdivisions,
 def tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
                        start_divisions, end_divisions):
 
-    from . import surface_cpp
-    tmask = surface_cpp.tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
-                                           start_divisions, end_divisions)
+    from . import _surface
+    tmask = _surface.tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
+                                        start_divisions, end_divisions)
     from numpy import bool
     return tmask.view(bool)
 

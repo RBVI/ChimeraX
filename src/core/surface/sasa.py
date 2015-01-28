@@ -312,7 +312,7 @@ def sphere_points_and_weights(npoints):
     from .shapes import sphere_geometry
     va, na, ta = sphere_geometry(2*npoints)
     # Weight vertices by area since distribution is not uniform.
-    from .surface_cpp import vertex_areas
+    from ._surface import vertex_areas
     weights = vertex_areas(va, ta)
     return va, weights
 
@@ -468,13 +468,13 @@ def spheres_surface_area(centers, radii, npoints = 1000):
     results compared with the maximum and average discrepancy printed for debugging.
     This code is not needed except for debugging.
     '''
-    from . import surface_cpp
-    areas = surface_cpp.surface_area_of_spheres(centers, radii)
+    from . import _surface
+    areas = _surface.surface_area_of_spheres(centers, radii)
     return areas
 
 def report_sphere_area_errors(areas, centers, radii, npoints = 1000, max_err = 0.02):
     points, weights = sphere_points_and_weights(npoints)
-    from .surface_cpp import estimate_surface_area_of_spheres
+    from ._surface import estimate_surface_area_of_spheres
     eareas = estimate_surface_area_of_spheres(centers, radii, points, weights)
     nf = (areas == -1).sum()
     if nf > 0:

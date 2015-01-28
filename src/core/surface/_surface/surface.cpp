@@ -18,11 +18,11 @@ static struct PyMethodDef surface_cpp_methods[] =
 {
   /* connected.h */
   {const_cast<char*>("connected_triangles"), (PyCFunction)connected_triangles,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("triangle_vertices"), (PyCFunction)triangle_vertices,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("connected_pieces"), (PyCFunction)connected_pieces,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* measure.h */
   {const_cast<char*>("enclosed_volume"), (PyCFunction)enclosed_volume,
@@ -100,7 +100,7 @@ static struct PyModuleDef moduledef = {
 // Initialization routine called by python when module is dynamically loaded.
 //
 extern "C" PyObject *
-PyInit_surface_cpp(void)
+PyInit__surface(void)
 {
     PyObject *module = PyModule_Create(&moduledef);
     

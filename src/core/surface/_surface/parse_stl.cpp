@@ -19,7 +19,7 @@ public:
 // Read in an STL file and return vertices, normals and triangles.
 // 
 extern "C"
-PyObject *parse_stl(PyObject *s, PyObject *args, PyObject *keywds)
+PyObject *parse_stl(PyObject *, PyObject *args, PyObject *keywds)
 {
   Py_buffer stl_buf;
   const char *kwlist[] = {"stl_data", NULL};

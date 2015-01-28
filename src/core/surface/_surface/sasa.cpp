@@ -760,7 +760,7 @@ static double estimate_buried_sphere_area(int i, const Index_List &iclose, doubl
 }
 
 // Python wrapper for analytic solvent accessible area calculation.
-extern "C" PyObject *surface_area_of_spheres(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *surface_area_of_spheres(PyObject *, PyObject *args, PyObject *keywds)
 {
   DArray centers, radii, areas;
   const char *kwlist[] = {"centers", "radii", "areas", NULL};
@@ -799,7 +799,7 @@ extern "C" PyObject *surface_area_of_spheres(PyObject *s, PyObject *args, PyObje
 }
 
 // Python wrapper for numerical estimate of solvent accessible area calculation.
-extern "C" PyObject *estimate_surface_area_of_spheres(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *estimate_surface_area_of_spheres(PyObject *, PyObject *args, PyObject *keywds)
 {
   DArray centers, radii, points, weights, areas;
   const char *kwlist[] = {"centers", "radii", "sphere_points", "point_weights", "areas", NULL};

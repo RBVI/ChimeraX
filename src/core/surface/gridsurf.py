@@ -60,7 +60,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     # Delete connected components more than 1.5 probe radius from atom spheres.
     kvi = []
     kti = []
-    from .surface_cpp import connected_pieces
+    from ._surface import connected_pieces
     vtilist = connected_pieces(ses_ta)
     for vi,ti in vtilist:
         v0 = ses_va[vi[0],:]

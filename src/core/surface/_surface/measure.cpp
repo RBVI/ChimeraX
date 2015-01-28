@@ -32,7 +32,7 @@ static float triangle_area(float v0[3], float v1[3], float v2[3]);
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *enclosed_volume(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *enclosed_volume(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray varray;
   IArray tarray;
@@ -200,7 +200,7 @@ static void loop_center(float *v, const Vertex_Loop &vloop, float center[3])
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *surface_area(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *surface_area(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray varray;
   IArray tarray;
@@ -218,7 +218,7 @@ extern "C" PyObject *surface_area(PyObject *s, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *vertex_areas(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *vertex_areas(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray varray, areas;
   IArray tarray;
@@ -307,7 +307,7 @@ static float triangle_area(float v0[3], float v1[3], float v2[3])
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *boundary_edges(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *boundary_edges(PyObject *, PyObject *args, PyObject *keywds)
 {
   IArray tarray;
   const char *kwlist[] = {"triangle_array", NULL};
@@ -331,7 +331,7 @@ extern "C" PyObject *boundary_edges(PyObject *s, PyObject *args, PyObject *keywd
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *boundary_loops(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *boundary_loops(PyObject *, PyObject *args, PyObject *keywds)
 {
   IArray tarray;
   const char *kwlist[] = {"triangle_array", NULL};

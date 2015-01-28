@@ -91,7 +91,7 @@ static void solve_tridiagonal(double *y, int n, double *temp)
 // -----------------------------------------------------------------------------
 //
 extern "C"
-PyObject *natural_cubic_spline(PyObject *s, PyObject *args, PyObject *keywds)
+PyObject *natural_cubic_spline(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray path;
   int segment_subdivisions;
