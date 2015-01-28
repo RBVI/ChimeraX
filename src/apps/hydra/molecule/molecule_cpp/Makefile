@@ -5,8 +5,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/molecule
 
 PYMOD_NAME = molecule_cpp
 SRCS	= arrayops.cpp bounds.cpp module.cpp \
-	  parsecif.cpp parsepdb.cpp pdb_bonds.cpp \
-	  sasa.cpp spline.cpp tube.cpp
+	  parsecif.cpp parsepdb.cpp pdb_bonds.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 
 ifeq ($(OS),Darwin)

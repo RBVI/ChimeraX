@@ -286,8 +286,9 @@ class Molecule(Model):
       rnums = self.residue_nums[s]
       cint = contiguous_intervals(rnums)
       sd, cd = self.ribbon_subdivisions
-      from .molecule_cpp import natural_cubic_spline, duplicate_midpoints
+      from .molecule_cpp import duplicate_midpoints
       from ..surface import tube
+      from ..geometry import natural_cubic_spline
       for i1,i2 in cint:
         if rshow[i1:i2+1].sum() == 0:
           continue      # Segment not shown

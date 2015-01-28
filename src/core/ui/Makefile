@@ -16,9 +16,6 @@ dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
-lint:
-	$(PYLINT) $(PYSRCS)
-
 clean:
 	rm -rf __pycache__
 

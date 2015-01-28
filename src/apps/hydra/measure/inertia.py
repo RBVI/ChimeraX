@@ -5,7 +5,7 @@
 def surface_inertia(drawings):
 
   vw = []
-  from ..surface.surface_cpp import vertex_areas
+  from ..surface import vertex_areas
   for d in drawings:
     for va, ta, positions in d.all_geometries():
       weights = vertex_areas(va, ta)
@@ -162,7 +162,7 @@ def ellipsoid_shell_size_from_moments(d2):
   varray, narray, tarray = ellipsoid_geometry(center = (0,0,0),
                                               axes = ((1,0,0),(0,1,0),(0,0,1)),
                                               axis_lengths = elen)
-  from ..surface.surface_cpp import vertex_areas
+  from ..surface import vertex_areas
   for k in range(10):
     weights = vertex_areas(varray, tarray)
     axes, d2e, center = moments_of_inertia([(varray, weights)])

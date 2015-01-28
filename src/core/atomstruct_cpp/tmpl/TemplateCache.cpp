@@ -2,10 +2,10 @@
 #include "TAexcept.h"
 #include "TemplateCache.h"
 #include <string>
-#include <util/IOFile.h>        // use InputFile, path_exists
+#include <chutil/IOFile.h>        // use InputFile, path_exists
 #include <ioutil/direntry.h>    // use ioutil::opendir(), readdir(), DIR
 #include <ioutil/tokenize.h>    // use ioutil::tokenize()
-#include <util/cmp_nocase.h>
+#include <chutil/cmp_nocase.h>
 #include <appdirs/AppDirs.h>
 #include <iostream>
 #include <sstream>
@@ -91,7 +91,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
             if (dot == NULL)
                 // none found
                 continue;
-            if (util::cmp_nocase(dot + 1, extension) != 0)
+            if (chutil::cmp_nocase(dot + 1, extension) != 0)
                 continue;
         }
         
@@ -103,7 +103,7 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
             // ignore this one
               continue;
 
-        util::InputFile tf(full_path);
+        chutil::InputFile tf(full_path);
         std::ifstream &template_file(tf.ifstream());
         if (!template_file) {
             std::cerr << "Could not read"

@@ -16,10 +16,10 @@ def file_readers(session):
     if ftypes is None:
         from ..molecule.pdb import open_pdb_file
         from ..molecule.mmcif import open_mmcif_file
-        from ..surface.read_stl import read_stl
+        from .read_stl import read_stl
         from .read_apr import open_autopack_results, read_ingredient_file, read_sphere_file
         from .read_swc import read_swc
-        from ..surface.collada import read_collada_surfaces
+        from .collada import read_collada_surfaces
 
         r = File_Reader
         ftypes = [
@@ -50,7 +50,8 @@ def file_reader_table(session):
 
 def file_writers(session):
     from . import session_file
-    from ..surface import write_stl, write_json
+    from .write_stl import write_stl_command
+    from .write_json import write_json_command
     from ..map.data import fileformats
     w = {'.png': save_image_command,
          '.jpg': save_image_command,
@@ -58,8 +59,8 @@ def file_writers(session):
          '.bmp': save_image_command,
          '.hy': lambda cmdname,path,session: session_file.save_session(path, session),
          '.mrc': fileformats.save_map_command,
-         '.stl': write_stl.write_stl_command,
-         '.json': write_json.write_json_command,
+         '.stl': write_stl_command,
+         '.json': write_json_command,
          }
     return w
 

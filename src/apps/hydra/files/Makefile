@@ -3,8 +3,8 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/files
 
-PYSRCS = fetch.py fileicon.py history.py opensave.py \
-	read_apr.py read_swc.py session_file.py
+PYSRCS = collada.py fetch.py fileicon.py history.py opensave.py \
+	read_apr.py read_stl.py read_swc.py session_file.py write_json.py write_stl.py
 
 SUBDIRS	= SessionUtil
 include $(TOP)/mk/subdir.make

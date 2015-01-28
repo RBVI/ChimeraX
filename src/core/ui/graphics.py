@@ -111,6 +111,8 @@ class GraphicsWindow(wx.Panel):
         v = self.view
         p, pick = v.first_intercept(x,y)
         toggle = event.ShiftDown()
+        # TODO: notify session of selection change
+        return
         if pick is None:
             if not toggle:
                 self.session.clear_selection()
@@ -118,7 +120,7 @@ class GraphicsWindow(wx.Panel):
             if not toggle:
                 self.session.clear_selection()
             pick.select(toggle)
-        self.session.clear_seletion_hieracrchy()
+        self.session.clear_selection_hierarchy()
 
     def mouse_translate(self, event):
         dx, dy = self.mouse_motion(event)
@@ -175,6 +177,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
                 glcanvas.WX_GL_OPENGL_PROFILE,
                 glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
             ]
+        attribs.append(0)   # terminate attribute list
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs):
             raise AssertionError("Required OpenGL capabilities, RGBA and/or"

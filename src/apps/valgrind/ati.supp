@@ -1,0 +1,68 @@
+# ATI
+{
+   ATI error/ioctl
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}
+
+{
+   ATI error/memcpy invalid write of size 8
+   Memcheck:Addr8
+   fun:memcpy
+   obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}
+
+{
+   ATI error/invalid write of size 8
+   Memcheck:Addr8
+   obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}
+
+{
+   ATI error/memset invalid write of size 4
+   Memcheck:Addr4
+   fun:memset
+   obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}
+
+{
+   ATI error/invalid write of size 4
+   Memcheck:Addr4
+   obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}
+
+{
+    ATI error/invalid write of size 2
+    Memcheck:Addr2
+    fun:memcpy
+    obj:*/fglrx_dri.so
+}
+
+{
+    ATI error/invalid write of size 1
+    Memcheck:Addr1
+    fun:memcpy
+    obj:*/fglrx_dri.so
+}
+
+{
+    ATI error/unitialized conditional
+    Memcheck:Cond
+    obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}
+
+{
+    ATI error/strcpy overlap
+    Memcheck:Overlap
+    fun:memcpy
+    obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}
+
+{
+    ATI error/strcpy overlap
+    Memcheck:Overlap
+    fun:strcpy
+    obj:/usr/lib/fglrx/dri/fglrx_dri.so
+}

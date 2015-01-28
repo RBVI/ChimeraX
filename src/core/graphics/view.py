@@ -10,6 +10,8 @@ class View:
     A View is the graphics windows that shows 3-dimensional drawings.
     It manages the camera and renders the drawing when needed.
     '''
+    VIEW_STATE_VERSION = 1
+
     def __init__(self, drawing, window_size, opengl_context, log):
 
         self.drawing = drawing
@@ -59,6 +61,31 @@ class View:
 
         self._drawing_manager = dm = _Redraw_Needed()
         drawing.set_redraw_callback(dm)
+
+    def take_snapshot(self, session, flags):
+        data = [self.center_of_rotation, self.window_size,
+                self.background_color,
+                self.camera.take_snapshot(session, flags)]
+        return [self.VIEW_STATE_VERSION, data]
+
+    def restore_snapshot(self, phase, session, version, data):
+        from ..session import State
+        if version != self.VIEW_STATE_VERSION or len(data) == 0:
+            raise RuntimeError("Unexpected version or data")
+        if phase != State.PHASE1:
+            return
+        (self.center_of_rotation, self.window_size,
+         self.background_color) = data[:3]
+        from .camera import Camera
+        self.camera = Camera()
+        self.camera.restore_snapshot(phase, session, data[3][0], data[3][1])
+
+    def reset_state(self):
+        """Reset state to data-less state"""
+        from numpy import array, float32
+        self.center_of_rotation = array((0, 0, 0), float32)
+        # self.window_size = ?
+        self.background_color = (0, 0, 0, 1)
 
     def initialize_context(self, oc):
         """"""

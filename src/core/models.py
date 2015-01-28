@@ -9,13 +9,13 @@ TODO: Stubs for now.
 
 import weakref
 from .graphics.drawing import Drawing
-from .session import State, unique_class_name, unique_class_from_name
+from .session import State
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
 
 
-class Model(Drawing):
+class Model(State, Drawing):
     """All models are drawings.
 
     That means that regardless of whether or not there is a GUI,
@@ -27,7 +27,7 @@ class Model(Drawing):
 
     def __init__(self, name):
         Drawing.__init__(self, name)
-        self.id = None
+        self.id = None  # tuple: e.g., 1.2.1 is (1, 2, 1)
         # TODO: track.created(Model, [self])
 
     def delete(self):
@@ -56,30 +56,29 @@ class Models(State):
     def take_snapshot(self, session, flags):
         data = {}
         for id, model in self._models.items():
-            try:
-                name = unique_class_name(model.__class__)
-            except KeyError:
-                session.warning('Unable to save "%s" model data'
-                                % model.__class__.__name__)
-                continue
-            data[id] = [session.unique_id(model), name,
+            assert(isinstance(model, Model))
+            data[id] = [session.unique_id(model),
                         model.take_snapshot(session, flags)]
         return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
+        if version != self.VERSION:
+            raise RuntimeError("Unexpected version")
 
-        for id, [uid, name, [model_version, model_data]] in data.items():
-            try:
-                cls = unique_class_from_name(name)
-            except KeyError:
-                session.log.warning('Unable to restore %s model' % name)
-                continue
+        for id, [uid, [model_version, model_data]] in data.items():
             if phase == State.PHASE1:
+                try:
+                    cls = session.class_of_unique_id(uid, Model)
+                except KeyError:
+                    session.log.warning(
+                        'Unable to restore model %s (%s)'
+                        % (id, session.class_name_of_unique_id(uid)))
+                    continue
                 model = cls("unknown name until restored")
                 model.id = id
                 self._models[id] = model
+                parent = self.drawing   # TODO: figure out based on id
+                parent.add_drawing(model)
                 session.restore_unique_id(model, uid)
             else:
                 model = session.unique_obj(uid)
@@ -102,7 +101,7 @@ class Models(State):
             #     model.id = id
             # else:
             if 1:
-                model.id = next(self._id_counter)
+                model.id = (next(self._id_counter),)    # model id's are tuples
             self._models[model.id] = model
             parent = self.drawing   # TODO: figure out based on id
             parent.add_drawing(model)
@@ -113,9 +112,12 @@ class Models(State):
         session.triggers.activate_trigger(REMOVE_MODELS, models)
         for model in models:
             model_id = model.id
-            if model_id is not None:
-                model.id = None
-                del self._models[model_id]
+            if model_id is None:
+                continue
+            model.id = None
+            del self._models[model_id]
+            parent = self.drawing   # TODO: figure out based on id
+            parent.remove_drawing(model)
 
     def open(self, filename, id=None, **kw):
         from . import io
@@ -132,5 +134,5 @@ class Models(State):
     def close(self, model_id):
         if model_id in self._models:
             model = self._models[model_id]
-            self.remove(model)
+            self.remove([model])
             model.delete()

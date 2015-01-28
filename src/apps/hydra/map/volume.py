@@ -690,7 +690,7 @@ class Volume(Model):
       reverse_triangle_vertex_order(tarray)
 
     if ro.subdivide_surface:
-      from ..surface.surface_cpp import subdivide_triangles
+      from ..surface import subdivide_triangles
       for level in range(ro.subdivision_levels):
         varray, tarray, narray = subdivide_triangles(varray, tarray, narray)
 

@@ -549,7 +549,7 @@ def show_molecular_surface(m, session, res = 3.0, grid = 0.5):
   if hasattr(m, 'molsurf') and m.molsurf in session.model_list():
     m.molsurf.display = True
   else:
-    from ..surface.gridsurf import surface
+    from ..molecule.surface import surface
     m.molsurf = surface(m.atoms(), session)
 
 def color_by_element(m):
@@ -596,8 +596,8 @@ def molecule_bonds(m, session):
         if missing:
             session.show_info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
 def accessible_surface_area(m, session):
-    from .. import surface
-    a = surface.accessible_surface_area(m)
+    from .. import molecule
+    a = molecule.accessible_surface_area(m)
     msg = 'Accessible surface area of %s = %.5g' % (m.name, a.sum())
     session.show_status(msg)
     session.show_info(msg)

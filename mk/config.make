@@ -8,6 +8,7 @@ shlibdir = $(libdir)
 datadir = $(build_prefix)/share
 tmpdir = $(build_prefix)/tmp
 webdir = $(build_prefix)/webapp
+wheelhouse = $(build_prefix)/wheelhouse
 
 # by default, don't do anything
 all:
@@ -65,4 +66,4 @@ endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
 
-PYLINT = $(PYTHON_EXE) -m flake8
+PYLINT = $(PYTHON_EXE) -I -m flake8

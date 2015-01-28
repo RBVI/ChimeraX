@@ -28,6 +28,8 @@ def open(session, filename, *args, **kw):
     if hasattr(filename, 'read'):
         # it's really a file-like object
         input = filename
+        if name is None:
+            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
         if name is None:
@@ -109,5 +111,3 @@ def register():
         "StereoLithography", generic3d.CATEGORY, (".stl",),
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
         open_func=open)
-    from . import session
-    session.register_unique_class(STLModel, 'STL')

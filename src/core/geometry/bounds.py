@@ -66,10 +66,18 @@ def union_bounds(blist):
 def copies_bounding_box(bounds, positions):
     if bounds is None:
         return None
-    (x0, y0, z0), (x1, y1, z1) = bounds.xyz_min, bounds.xyz_max
-    corners = ((x0, y0, z0), (x1, y0, z0), (x0, y1, z0), (x1, y1, z0),
-               (x0, y0, z1), (x1, y0, z1), (x0, y1, z1), (x1, y1, z1))
-    b = union_bounds(point_bounds(p * corners) for p in positions)
+    sas = positions.shift_and_scale_array()
+    if sas is not None and len(sas) > 0:
+        # Optimize shift and scale positions.
+        xyz, s = sas[:, :3], sas[:,3]
+        from numpy import outer
+        b = Bounds((xyz + outer(s, bounds.xyz_min)).min(axis=0),
+                   (xyz + outer(s, bounds.xyz_max)).max(axis=0))
+    else:
+        (x0, y0, z0), (x1, y1, z1) = bounds.xyz_min, bounds.xyz_max
+        corners = ((x0, y0, z0), (x1, y0, z0), (x0, y1, z0), (x1, y1, z0),
+                   (x0, y0, z1), (x1, y0, z1), (x0, y1, z1), (x1, y1, z1))
+        b = union_bounds(point_bounds(p * corners) for p in positions)
     return b
 
 

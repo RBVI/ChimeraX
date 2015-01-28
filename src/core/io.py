@@ -423,8 +423,39 @@ def deduce_format(filename, has_format=None, default_format=None,
     return format_name, prefixed, filename, compression
 
 
-def qt_export_file_filter(category=None, all=False):
-    """Return file name filter suitable for Save File dialog"""
+def print_file_types():
+    """Return file name filter suitable for Open File dialog for WX"""
+
+    combine = {}
+    for format_name, info in _file_formats.items():
+        names = combine.setdefault(info.category, [])
+        names.append(format_name)
+    categories = list(combine)
+    categories.sort(key=str.casefold)
+    print('Supported file types:')
+    print('  o = open, e = export')
+    for k in categories:
+        print("\n%s:" % k)
+        names = combine[k]
+        names.sort(key=str.casefold)
+        for format_name in names:
+            info = _file_formats[format_name]
+            o = 'o' if info.open_func else ' '
+            e = 'e' if info.export_func else ' '
+            if info.extensions:
+                exts = ': ' + ', '.join(info.extensions)
+            else:
+                exts = ''
+            print('%c%c  %s%s' % (o, e, format_name, exts))
+
+    # if _compression:
+    #    for ext in combine[k]:
+    #        fmts += ';' + ';'.join('*%s%s' % (ext, c)
+    #                               for c in _compression.keys())
+
+
+def wx_export_file_filter(category=None, all=False):
+    """Return file name filter suitable for Export File dialog for WX"""
 
     result = []
     for t, info in _file_formats.items():
@@ -432,16 +463,17 @@ def qt_export_file_filter(category=None, all=False):
             continue
         if category and info.category != category:
             continue
-        exts = ' '.join('*%s' % ext for ext in info.extensions)
-        result.append("%s files (%s)" % (t, exts))
+        exts = ', '.join(info.extensions)
+        fmts = ';'.join('*%s' % ext for ext in info.extensions)
+        result.append("%s files (%s)|%s" % (t, exts, fmts))
     if all:
-        result.append("All files (*)")
+        result.append("All files (*.*)|*.*")
     result.sort(key=str.casefold)
-    return ';;'.join(result)
+    return '|'.join(result)
 
 
-def qt_open_file_filter(all=False):
-    """Return file name filter suitable for Open File dialog"""
+def wx_open_file_filter(all=False):
+    """Return file name filter suitable for Open File dialog for WX"""
 
     combine = {}
     for t, info in _file_formats.items():
@@ -449,15 +481,20 @@ def qt_open_file_filter(all=False):
             continue
         exts = combine.setdefault(info.category, [])
         exts.extend(info.extensions)
-    result = ["%s files (%s)" %
-              (k, ' '.join('*%s' % ext for ext in combine[k]))
-              for k in combine]
-    if _compression:
-        result.append("Compressed files (%s)" % ' '.join(_compression.keys()))
-    if all:
-        result.append("All files (*)")
+    result = []
+    for k in combine:
+        exts = ', '.join(combine[k])
+        fmts = ';'.join('*%s' % ext for ext in combine[k])
+        if _compression:
+            for ext in combine[k]:
+                fmts += ';' + ';'.join('*%s%s' % (ext, c)
+                                       for c in _compression.keys())
+        result.append("%s files (%s)|%s" % (k, exts, fmts))
     result.sort(key=str.casefold)
-    return ';;'.join(result)
+    if all:
+        result.insert(0, "All files (*.*)|*.*")
+    return '|'.join(result)
+
 
 _builtin_open = open
 
@@ -484,10 +521,11 @@ def open(session, filespec, format=None, identify_as=None, **kw):
     if open_func is None:
         raise UserError("unable to open %s files" % format_name)
     if prefix:
-        fetch = fetch_function(format_name)
-        if fetch is None:
+        fetch_func = fetch_function(format_name)
+        if fetch_func is None:
             raise UserError("unable to fetch %s files" % format_name)
-        stream = fetch(filename)
+        stream = fetch_func(session, filename)
+        filename = None
     else:
         if not compression:
             import os
@@ -500,21 +538,24 @@ def open(session, filespec, format=None, identify_as=None, **kw):
             stream_type = _compression[compression]
             try:
                 stream = stream_type(filename)
+                filename = None
             except OSError as e:
                 raise UserError(e)
-            if requires_seeking(format_name):
-                # copy compressed file to real file
-                import tempfile
-                exts = extensions(format_name)
-                suffix = exts[0] if exts else ''
-                tf = tempfile.NamedTemporaryFile(prefix='chtmp', suffix=suffix)
-                while 1:
-                    data = stream.read()
-                    if not data:
-                        break
-                    tf.write(data)
-                tf.seek(0)
-                stream = tf
+    if requires_seeking(format_name) and not filename:
+        # copy compressed file to real file
+        import tempfile
+        exts = extensions(format_name)
+        suffix = exts[0] if exts else ''
+        tf = tempfile.NamedTemporaryFile(prefix='chtmp', suffix=suffix)
+        while 1:
+            data = stream.read()
+            if not data:
+                break
+            tf.write(data)
+        tf.seek(0)
+        stream = tf
+        # TODO: Windows might need tf to be closed before reading with
+        # a different file descriptor
     models, status = open_func(session, stream, **kw)
     for m in models:
         m.name = identify_as

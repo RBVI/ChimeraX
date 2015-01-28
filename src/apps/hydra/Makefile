@@ -2,9 +2,10 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	= commands devices docs example_sessions files \
-	  mac_os_cpp map measure molecule movie surface ui
+	  mac_os_cpp map measure molecule movie ui
 
-COREDIRS = arrays_cpp geometry graphics
+COREPY = geometry graphics surface
+CORECPP = arrays_cpp
 
 PKG_DIR = $(PYSITEDIR)/hydra
 APP_NAME = Hydra.app
@@ -56,9 +57,9 @@ all: $(PYOBJS)
 install: all $(PKG_DIR) install_app_prereqs
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 # Install core packages in Hydra app.
-	$(RSYNC) $(PYSITEDIR)/chimera/core/geometry $(PYSITEDIR)/chimera/core/graphics $(PKG_DIR)
-	-mkdir -p $(PKG_DIR)/lib
-#	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(PKG_DIR)/lib
+	for cpy in $(COREPY) ; do \
+		$(RSYNC) $(PYSITEDIR)/chimera/core/$$cpy $(PKG_DIR) ; \
+	done
 	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(APP_LIB_DIR)
 ifeq ($(OS),Darwin)
 	$(RSYNC) $(PKG_DIR) $(APP_PY_SITE)
@@ -69,7 +70,7 @@ ifeq ($(OS),Darwin)
 install_app_prereqs: $(APP)
 
 install_core:
-	for cdir in $(COREDIRS) ; do \
+	for cdir in $(CORECPP) $(COREPY) ; do \
 		cd $(TOP)/src/core/$$cdir ; make install ; \
 	done
 

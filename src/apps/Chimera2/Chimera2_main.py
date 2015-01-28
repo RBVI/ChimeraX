@@ -7,7 +7,7 @@
 # software or any revisions or derivations thereof.
 
 __version__ = "0.1.0a0"
-__app_name__ = "Chimera"
+__app_name__ = "Chimera2"
 __app_author__ = "UCSF"
 
 import sys
@@ -39,6 +39,7 @@ def parse_arguments(argv):
     opts.gui = True
     opts.module = None
     opts.line_profile = False
+    opts.list_file_types = False
     opts.load_tools = True
     opts.silent = False
     opts.status = True
@@ -50,6 +51,7 @@ def parse_arguments(argv):
         "--nogui",
         "--help",
         "--lineprofile",
+        "--listfiletypes",
         "--silent",
         "--nostatus",
         "--notools",
@@ -106,6 +108,8 @@ def parse_arguments(argv):
             opts.gui = opt[2] == 'g'
         elif opt in ("--lineprofile", "--nolineprofile"):
             opts.line_profile = opt[2] == 'l'
+        elif opt == "--listfiletypes":
+            opts.list_file_types = True
         elif opt in ("--silent", "--nosilent"):
             opts.silent = opt[2] == 's'
         elif opt in ("--status", "--nostatus"):
@@ -117,6 +121,9 @@ def parse_arguments(argv):
     if help:
         print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
+    if opts.list_file_types:
+        opts.gui = False
+        opts.silent = True
     return opts, args
 
 
@@ -205,21 +212,23 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         sess.ui.splash_info("Initializing tools",
                             next(splash_step), num_splash_steps)
     from chimera.core import toolshed
-    sess.tools = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
-    # TODO: sess.add_state_manager('tools', sess.tools)
+    # toolshed.init returns a singleton so it's safe to call multiple times
+    sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
+    from chimera.core import tools
+    sess.tools = tools.Tools(sess)
+    sess.add_state_manager('tools', sess.tools)
+
+    if opts.list_file_types:
+        from chimera.core import io
+        io.print_file_types()
+        raise SystemExit(0)
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
         if not opts.silent:
             sess.ui.splash_info("Starting main interface",
                                 next(splash_step), num_splash_steps)
-        sess.ui.build()
-
-    # unless disabled, startup tools
-    if opts.load_tools:
-        # This needs sess argument because tool shed is session-independent
-        for tool in sess.tools.startup_tools(sess):
-            tool.start(sess)
+        sess.ui.build(opts.load_tools)
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",

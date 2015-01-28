@@ -320,6 +320,8 @@ AtomicStructure::new_atom(const std::string &name, Element e)
 {
     Atom *a = new Atom(this, name, e);
     add_vertex(a);
+    if (e.number() == 1)
+        ++_num_hyds;
     return a;
 }
 
