@@ -4,7 +4,6 @@
 toolshed: manage installed and available tools
 ==============================================
 
-.. toctree::
-    :maxdepth: 2
-
-    core/toolshed.rst
+.. automodule:: chimera.core.toolshed
+    :members:
+    :show-inheritance:

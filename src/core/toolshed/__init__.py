@@ -1,34 +1,57 @@
 # vim: set expandtab ts=4 sw=4:
 
-"""shed - Chimera 2 Tool Shed
+"""
+The Toolshed provides an interface for finding installed
+tool distributions as well as distributions available for
+installation from a remote server.
+The Toolshed can handle updating, installing and uninstalling
+distributions while taking care of inter-distribution dependencies.
 
-The Tool Shed provides an interface for querying available and
-out-of-date packages, and for updating, installing and uninstalling
-packages while handling inter-package dependencies.
+The Toolshed interface uses `distlib` heavily.
+For example, `Distribution` instances from `distlib`
+are tracked for both available and installed tools;
+the `distlib` `Locator` class is used for finding
+installed `Distribution`s.
 
-The '''shed''' interface uses '''distlib''' heavily.
-For example, '''Distribution''' instances from '''distlib'''
-are tracked for both available and installed packages; the
-'''distlib''' '''Locator''' class is used for finding
-'''Distribution'''s.
+Each Python distribution (Chimera uses `wheels`) may contain
+multiple tools.
+Metadata blocks in each distribution contain descriptions for tools.
+Each tool is described by a 'Chimera-Tool' entry that consists of
+seven fields separated by double colons (' :: ').
 
-Distribution metadata blocks contain descriptions for tools:
-  '''Chimera-Tools''' is a list of name of tools (preferably single words)
-      Example: '''Chimera-Tools: MAVOpen MAV'''
-  ``Tool-DisplayName`` is the name of a tool for display to user
-      Example: '''MAVOpen-Name: 'Open MultAlign Viewer''''
-  ``Tool-MenuCategories`` is a list of categories where tool is applicable
-      Example: '''MAVOpen-MenuCategories: Sequence'''
-  ``Tool-Commands`` is a list of CLI command names provided
-      Example: '''MAVOpen-Commands: mav'''
+1. 'Chimera-Tools' : str constant
+    Field identifying entry as tool metadata.
+2. name : str
+    Internal name of tool.  This must be unique across all tools.
+3. module_name : str
+    Name of module or package that implements the tool.
+4. display_name : str
+    Name of tool to display to users.
+5. commands : str
+    Comma-separated list of cli commands that the tool provides.
+6. menu_categories :: str
+    Comma-separated list of menu categories in which the tool belong.
+7. synopsis :: str
+    A short description of the tool.
 
 Modules referenced in distribution metadata must define:
-  '''register_command(command_name)'''
-      Called when delayed command line registration occurs.
-  '''start_tool(session, ti, *args, **kw) '''
-      Called to create a tool instance.
-    ``session`` is a core.Session instance.
-    ``ti`` is a toolshed.ToolInfo instance.
+
+  `register_command(command_name)`
+    Called when delayed command line registration occurs.
+    `command_name` is a string of the command to be registered.
+
+  `start_tool(session, ti, *args, **kw)`
+    Called to create a tool instance.
+    `session` is a `chimera.core.Session` instance for the current session.
+    `ti` is a `chimera.core.toolshed.ToolInfo` instance for the tool to be started.
+
+Note
+----
+The term 'installed' refers to tools whose corresponding Python
+module or package is installed on the local machine.  The term
+'available' refers to tools that are listed on a remote server
+but have not yet been installed on the local machine.
+
 """
 
 
@@ -64,66 +87,74 @@ def _debug(*args, **kw):
 # Default URL of remote tool shed
 _RemoteURL = "http://localhost:8080"
 # Default name for toolshed cache and data directories
-_ToolShed = "toolshed"
+_Toolshed = "toolshed"
 # Defaults names for installed chimera tools
 _ChimeraBasePackage = "chimera"
 _ChimeraCore = _ChimeraBasePackage + ".core"
 _ChimeraToolboxPrefix = _ChimeraBasePackage + ".toolbox"
 
 
-# Exceptions raised by ToolShed class
+# Exceptions raised by Toolshed class
 
 
-class ToolShedError(Exception):
-    """Generic ToolShed error."""
+class ToolshedError(Exception):
+    """Generic Toolshed error."""
 
 
-class ToolShedUninstalledError(ToolShedError):
-    """Uninstalled-tool error."""
+class ToolshedUninstalledError(ToolshedError):
+    """Uninstalled-tool error.
+    
+    This exception derives from `ToolshedError` and is usually
+    raised when trying to uninstall a tool that has not been installed."""
 
 
-class ToolShedInstalledError(ToolShedError):
-    """Tool-already-installed error."""
+class ToolshedInstalledError(ToolshedError):
+    """Tool-already-installed error.
+    
+    This exception derives from `ToolshedError` and is usually
+    raised when trying to install a tool that is already installed."""
 
 
-class ToolShedUnavailableError(ToolShedError):
-    """Tool-not-found error."""
+class ToolshedUnavailableError(ToolshedError):
+    """Tool-not-found error.
+    
+    This exception derives from ToolshedError and is usually
+    raised when no Python distribution can be found for a tool."""
 
 
-# ToolShed and ToolInfo are session-independent
+# Toolshed and ToolInfo are session-independent
 
 
-class ToolShed:
-    """ToolShed keeps track of the list of tool info.
+class Toolshed:
+    """Toolshed keeps track of the list of tool metadata, aka `ToolInfo`.
 
-    Tool info may be "installed", where their code
-    is already downloaded from the remote shed and installed
-    locally, or "available", where their code is not locally
+    Tool metadata may be for "installed" tools, where their code
+    is already downloaded from the remote server and installed
+    locally, or "available" tools, where their code is not locally
     installed."""
 
     def __init__(self, logger, appdirs,
                  rebuild_cache=False, check_remote=False, remote_url=None):
-        """Initialize shed using data from 'appdirs'.
+        """Initialize Toolshed instance.
 
-        - ``logger`` is a logging object where warning and
-          error messages are sent.
-        - ``appdirs`` is an instance of '''appdirs.AppDirs'''
-          containing location information about Chimera data
-          and code directories.
-        - ``rebuild_cache`` is a boolean indicating whether
-          to ignore the local cache of installed tool
-          information and rebuild it by scanning Python
-          packages.
-        - ``check_remote`` is a boolean indicating whether
-          to check remote repository for updated information.
-          If '''True''', the remote shed is queried;
-          if '''False''', the check is not done;
-          if '''None''', the check is done according to
-          setting in '''preferences'''.
-        - ``remote_url`` is a string with the URL of
-          the remote toolshed.  If '''None''', a default
-          URL is be used."""
-
+        Parameters
+        ----------
+        logger : chimera.core.logger.Logger instance
+            A logging object where warning and error messages are sent.
+        appdirs : chimera.core.appdirs.AppDirs instance
+            Location information about Chimera data and code directories.
+        rebuild_cache : boolean
+            True to ignore local cache of installed tool information and
+            rebuild it by scanning Python directories; False otherwise.
+        check_remote : boolean
+            True to check remote server for updated information;
+            False to ignore remote server;
+            None to use setting from user preferences.
+        remote_url : str
+            URL of the remote toolshed server.
+            If set to None, a default URL is used.
+          
+        """
         # Initialize with defaults
         _debug("__init__", appdirs, rebuild_cache, check_remote, remote_url)
         if remote_url is None:
@@ -138,9 +169,9 @@ class ToolShed:
 
         # Compute base directories
         import os.path
-        self._cache_dir = os.path.join(appdirs.user_cache_dir, _ToolShed)
+        self._cache_dir = os.path.join(appdirs.user_cache_dir, _Toolshed)
         _debug("cache dir: %s" % self._cache_dir)
-        self._data_dir = os.path.join(appdirs.user_data_dir, _ToolShed)
+        self._data_dir = os.path.join(appdirs.user_data_dir, _Toolshed)
         _debug("data dir: %s" % self._data_dir)
 
         # Add directories to sys.path
@@ -161,8 +192,17 @@ class ToolShed:
     def check_remote(self, logger):
         """Check remote shed for updated tool info.
 
-        - ``logger`` is a logging object where warning and
-          error messages are sent."""
+        Parameters
+        ----------
+        logger : chimera.core.logger.Logger instance
+            Logging object where warning and error messages are sent.
+            
+        Returns
+        -------
+        list of ToolInfo instances
+            List of tool metadata from remote server.
+        
+        """
 
         _debug("check_remote")
         if self._repo_locator is None:
@@ -178,8 +218,19 @@ class ToolShed:
     def reload(self, logger, rebuild_cache=False, check_remote=False):
         """Discard and reread tool info.
 
-        - ``logger``, ``check_remote`` and ``rebuild_cache``
-          have the same meaning as in the constructor."""
+        Parameters
+        ----------
+        logger : chimera.core.logger.Logger instance
+            A logging object where warning and error messages are sent.
+        rebuild_cache : boolean
+            True to ignore local cache of installed tool information and
+            rebuild it by scanning Python directories; False otherwise.
+        check_remote : boolean
+            True to check remote server for updated information;
+            False to ignore remote server;
+            None to use setting from user preferences.
+
+        """
 
         _debug("reload", rebuild_cache, check_remote)
         for ti in self._installed_tool_info:
@@ -200,10 +251,20 @@ class ToolShed:
     def tool_info(self, installed=True, available=False):
         """Return list of tool info.
 
-        - ``installed`` is a boolean indicating whether installed
-          tools should be included in the returned list.
-        - ``available`` is a boolean indicating whether available
-          but uninstalled tools should be included."""
+        Parameters
+        ----------
+        installed : boolean
+            True to include installed tool metadata in return value;
+            False otherwise
+        available : boolean
+            True to include available tool metadata in return value;
+            False otherwise
+
+        Returns
+        -------
+        list of ToolInfo instances
+            Combined list of all selected types of tool metadata.
+        """
 
         _debug("tool_info", installed, available)
         if installed and available:
@@ -215,71 +276,106 @@ class ToolShed:
         else:
             return []
 
-    def add_tool_info(self, tool_info):
-        """Add information for one tool.
+    def add_tool_info(self, ti):
+        """Add metadata for a tool.
 
-        - ``tool_info`` is a constructed instance of '''ToolInfo''',
-          i.e., not an existing instance returned by '''tool_info'''.
-        A 'TOOLSHED_TOOL_INFO_ADDED' trigger is fired
-        after the addition."""
-        _debug("add_tool_info", tool_info)
-        if tool_info.installed:
+        Parameters
+        ----------
+        ti : ToolInfo instance
+            Must be a constructed instance, i.e., not an existing instance
+            returned by `tool_info`.
+
+        Note
+        ----
+        A `TOOLSHED_TOOL_INFO_ADDED` trigger is fired after the addition.
+        
+        """
+        _debug("add_tool_info", ti)
+        if ti.installed:
             container = self._installed_tool_info
         else:
             container = self._available_tool_info
-        container.append(tool_info)
+        container.append(ti)
         # TODO: fire trigger
 
-    def install_tool(self, tool_info, logger, system=False):
+    def install_tool(self, ti, logger, system=False):
         """Install the tool by retrieving it from the remote shed.
 
-        - ``tool_info`` should be from the available tool list.
-          If the tool is already installed, a '''ToolShedError'''
-          exception is raised.
-        - ``system`` is a boolean that is False if the tool
-          is installed for the current user (default), or
-          True if installed for everyone.
-        - ``logger`` is a logging object where warning and
-          error messages are sent.
-        A '''TOOLSHED_TOOL_INSTALLED''' trigger is fired
-        after installation."""
-        _debug("install_tool", tool_info)
-        if tool_info.installed:
-            raise ToolShedInstalledError("tool \"%s\" already installed"
-                                         % tool_info.name)
-        self._install_tool(tool_info, system, logger)
+        Parameters
+        ----------
+        ti : ToolInfo instance
+            Should be from the available tool list.
+        system : boolean
+            False to install tool only for the current user (default);
+            True to install for everyone.
+        logger : chimera.core.logger.Logger instance
+            Logging object where warning and error messages are sent.
+
+        Raises
+        ------
+        ToolshedInstalledError
+            Raised if the tool is already installed.
+
+        Note
+        ----
+        A `TOOLSHED_TOOL_INSTALLED` trigger is fired after installation.
+        
+        """
+        _debug("install_tool", ti)
+        if ti.installed:
+            raise ToolshedInstalledError("tool \"%s\" already installed"
+                                         % ti.name)
+        self._install_tool(ti, system, logger)
         self._write_cache(self._installed_tool_info, logger)
         # TODO: implement self._install_tool
         # TODO: fire trigger
 
-    def uninstall_tool(self, tool_info, logger):
-        """Uninstall the tool by removing the corresponding
-        Python package.
+    def uninstall_tool(self, ti, logger):
+        """Uninstall tool by removing the corresponding Python distribution.
 
-        - ``tool_info`` should be from the installed list.
-          If the tool is not installed, a '''ValueError'''
-          exception is raised.
-        - ``logger`` is a logging object where warning and
-          error messages are sent.
-        A '''TOOLSHED_TOOL_UNINSTALLED''' trigger is fired
-        after package removal."""
-        _debug("uninstall_tool", tool_info)
-        self._uninstall_tool(tool_info, logger)
+        Parameters
+        ----------
+        ti : ToolInfo instance
+            Should be from the installed tool list.
+        logger : chimera.core.logger.Logger instance
+            Logging object where warning and error messages are sent.
+
+        Raises
+        ------
+        ToolshedInstalledError
+            Raised if the tool is not installed.
+
+        Note
+        ----
+        A `TOOLSHED_TOOL_UNINSTALLED` trigger is fired after package removal.
+        
+        """
+        _debug("uninstall_tool", ti)
+        self._uninstall_tool(ti, logger)
         self._write_cache(self._installed_tool_info, logger)
         # TODO: fire trigger
 
     def find_tool(self, name, installed=True, version=None):
         """Return a tool with the given name.
 
-        - ``name`` is a string of the name (internal or
-        display name) of the tool of interest."""
+        Parameters
+        ----------
+        name : str
+            Name (internal or display name) of the tool of interest.
+        installed : boolean
+            True to check only for installed tools; False otherwise.
+        version : str
+            None to find any version; specific string to check for
+            one particular version.
+            
+        """
         _debug("find_tool", name, installed, version)
         if installed:
             container = self._installed_tool_info
         else:
             container = self._available_tool_info
+        # TODO: if version is None, should return newest version
         for ti in container:
-            _debug("  find_tool check", ti.name, ti.display_name, ti.version)
             if ((ti.name == name or ti.display_name == name)
                and (version is None or version == ti.version)):
                 return ti
@@ -513,7 +609,7 @@ class ToolShed:
         # given tool to update list
         _debug("_install_dist_tool", tool_info)
         if tool_info._distribution_name is None:
-            raise ToolShedUnavailableError("no distribution information "
+            raise ToolshedUnavailableError("no distribution information "
                                            "available for tool \"%s\""
                                            % tool_info.name)
         d = self._install_distribution(tool_info._distribution_name,
@@ -531,7 +627,7 @@ class ToolShed:
             req += " (== %s)" % version
         repo_dist = self._repo_locator.locate(req)
         if repo_dist is None:
-            raise ToolShedUnavailableError("cannot find new distribution "
+            raise ToolshedUnavailableError("cannot find new distribution "
                                            "named \"%s\"" % name)
         if self._inst_locator is None:
             self._scan_installed(logger)
@@ -755,7 +851,7 @@ class ToolShed:
         _debug("_remove_distribution", d)
         from distlib.database import InstalledDistribution
         if not isinstance(d, InstalledDistribution):
-            raise ToolShedUninstalledError("trying to remove uninstalled "
+            raise ToolshedUninstalledError("trying to remove uninstalled "
                                            "distribution: %s (%s)"
                                            % (d.name, d.version))
         # HACK ALERT: since there is no API for uninstalling
@@ -813,10 +909,30 @@ class ToolShed:
 
 
 class ToolInfo:
-    """ToolInfo manages how to create an ToolInstance.
+    """Metadata about a tool, whether installed or available.
 
-    An ToolInfo knows about the properties about a class
-    of tools and can create an tool instance."""
+    A ToolInfo instance stores the properties about a tool and
+    can create a tool instance.
+
+    Attributes
+    ----------
+    command_names : list of str
+        List of cli command name registered for this tool.
+    display_name : str
+        The tool name to display in user interfaces.
+    installed : boolean
+        True if this tool is installed locally; False otherwise.
+    menu_categories : list of str
+        List of categories in which this tool belong.
+    name : str
+        The internal name of the tool.
+    synopsis : readonly str
+        Short description of this tool.
+    version : readonly str
+        Tool version (which is actually the same as the distribution version,
+        so all tools from the same distribution share the same version).
+    
+    """
 
     def __init__(self, name, installed,
                  distribution_name=None,
@@ -826,40 +942,48 @@ class ToolInfo:
                  synopsis=None,
                  menu_categories=(),
                  command_names=()):
-        """Initialize tool info named 'name'.
+        """Initialize instance.
 
-        Supported keywords include:
-        - ``distribution_name``: name of distribution that
-          provided this tool (string)
-        - ``display_name``: name to display in user interface
-          for this tool (string)
-        - ``module_name``: Name of module implementing the tool.
-          Must be a dotted Python name.  (See module doc string.)
-        - ``menu_categories``: list of categories (strings)
-          in which tool belongs
-        - ``command_names``: list of names of command (strings) in CLI
+        Parameters
+        ----------
+        name : str
+            Internal name for tool.
+        installed : boolean
+            Whether this tool is locally installed.
+        display_name : str
+            Tool nname to display in user interface.
+        distribution_name : str
+            Name of Python distribution that provided this tool.
+        distribution_version : str
+            Version of Python distribution that provided this tool.
+        module_name : str
+            Name of module implementing this tool.  Must be a dotted Python name.
+        menu_categories : list of str
+            List of menu categories in which this tool belong.
+        command_names : list of str
+            List of names of cli commands to register for this tool.
+
         """
-
         # Public attributes
         self.name = name
         self.installed = installed
         self.display_name = display_name or name
         self.menu_categories = menu_categories
         self.command_names = command_names
-        self.synopsis = synopsis
 
         # Private attributes
         self._distribution_name = distribution_name
         self._distribution_version = distribution_version
         self._module_name = module_name
+        self._synopsis = synopsis
 
     @property
     def version(self):
-        """Tool version number.
-
-        This is the same as the tool distribution version number and
-        is available as a read-only property."""
         return self._distribution_version
+
+    @property
+    def synopsis(self):
+        return self._synopsis or "no synopsis available"
 
     def __repr__(self):
         s = self.display_name
@@ -878,14 +1002,20 @@ class ToolInfo:
         return s
 
     def cache_data(self):
-        """Return 2-tuple of (args, kw) that can be used
-        to recreate with ToolInfo(*args, **kw)."""
+        """Return state data that can be used to recreate the instance.
+
+        Returns
+        -------
+        2-tuple of (list, dict)
+            List and dictionary suitable for passing to ToolInfo(*args, **kw).
+        
+        """
         args = (self.name, self.installed)
         kw = {
             "display_name": self.display_name,
             "menu_categories": self.menu_categories,
             "command_names": self.command_names,
-            "synopsis": self.synopsis,
+            "synopsis": self._synopsis,
             "distribution_name": self._distribution_name,
             "distribution_version": self._distribution_version,
             "module_name": self._module_name,
@@ -893,12 +1023,15 @@ class ToolInfo:
         return args, kw
 
     def distribution(self):
-        """Return distribution information as (name, version) tuple."""
-        return self._distribution_name, self._distribution_version
+        """Return distribution information.
+        
+        Returns
+        -------
+        2-tuple of (str, str).
+            Distribution name and version.
 
-    def synopsis(self):
-        """Return short description of tool."""
-        return self.synopsis or "no synopsis available"
+        """
+        return self._distribution_name, self._distribution_version
 
     def register_commands(self):
         """Register commands with cli."""
@@ -923,30 +1056,44 @@ class ToolInfo:
     def _get_module(self):
         """Return module for this tool."""
         if not self._module_name:
-            raise ToolShedError("no module specified for tool \"%s\"" % self.name)
+            raise ToolshedError("no module specified for tool \"%s\"" % self.name)
         import importlib
         m = importlib.import_module(self._module_name)
         _debug("_get_module", self._module_name, m)
         return m
 
     def start(self, session, *args, **kw):
-        """Create and return an tool instance.
+        """Create and return a tool instance.
 
-        ``session`` is a Session instance in which the tool will run.
-        ``args`` and 'kw' are passed as positional and keyword
-        arguments to the ToolInstance constructor.
+        Parameters
+        ----------
+        session : chimera.core.session.Session instance
+            The session in which the tool will run.
+        args : any
+            Positional arguments to pass to tool instance initializer.
+        kw : any
+            Keyword arguments to pass to tool instance initializer.
 
-        If the tool is not installed,
-        '''ToolShedUninstalledError''' is raised.
-        If the tool cannot be started,
-        '''ToolShedError''' is raised."""
+        Returns
+        -------
+        chimera.core.tools.ToolInstance instance
+            The registered running tool instance.
+
+        Raises
+        ------
+        ToolshedUninstalledError
+            If the tool is not installed.
+        ToolshedError
+            If the tool cannot be started,
+
+        """
         if not self.installed:
-            raise ToolShedUninstalledError("tool \"%s\" is not installed"
+            raise ToolshedUninstalledError("tool \"%s\" is not installed"
                                            % self.name)
         try:
             f = self._get_module().start_tool
         except (ImportError, AttributeError, TypeError):
-            raise ToolShedError("bad start callable specified for tool \"%s\""
+            raise ToolshedError("bad start callable specified for tool \"%s\""
                                 % self.name)
         else:
             f(session, self, *args, **kw)
@@ -957,16 +1104,27 @@ _toolshed = None
 
 
 def init(*args, debug=False, **kw):
-    """Initialize toolshed.  The toolshed is a singleton, so
-    the first call creates the instance and all subsequent
+    """Initialize toolshed.
+    
+    The toolshed instance is a singleton across all sessions.
+    The first call creates the instance and all subsequent
     calls return the same instance.  The toolshed debugging
     state is updated at each call.
 
-    This function accepts all the arguments for the ``Toolshed``
-    initializer.  In addition:
+    Parameter
+    ---------
+    debug : boolean
+        If true, debugging messages are sent to standard output.
+        Default value is false.
+    other arguments : any
+        All other arguments are passed to the `Toolshed` initializer.
 
-    - ``debug`` is a boolean value.  If true, debugging messages
-      are sent to standard output.  Default value is false."""
+    Returns
+    -------
+    chimera.core.toolshed.Toolshed instance
+        The toolshed singleton.
+        
+    """
     global _debug
     if debug:
         def _debug(*args, **kw):
@@ -977,5 +1135,5 @@ def init(*args, debug=False, **kw):
             return
     global _toolshed
     if _toolshed is None:
-        _toolshed = ToolShed(*args, **kw)
+        _toolshed = Toolshed(*args, **kw)
     return _toolshed
