@@ -177,6 +177,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
                 glcanvas.WX_GL_OPENGL_PROFILE,
                 glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
             ]
+        attribs.append(0)   # terminate attribute list
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
         if not gl_supported(attribs):
             raise AssertionError("Required OpenGL capabilities, RGBA and/or"
