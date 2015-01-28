@@ -25,15 +25,14 @@ def register_commands(commands):
     add('vop', vopcommand.vop_command)
     from ..map import series
     add('vseries', series.vseries_command)
-    from ..molecule import align, mcommand
+    from ..molecule import align, mcommand, area, surface
     add('align', align.align_command)
     add('show', mcommand.show_command)
     add('hide', mcommand.hide_command)
     add('color', mcommand.color_command)
     add('style', mcommand.style_command)
-    from ..surface import gridsurf, sasa
-    add('surface', gridsurf.surface_command)
-    add('area', sasa.area_command)
+    add('area', area.area_command)
+    add('surface', surface.surface_command)
     from .. import scenes
     add('scene', scenes.scene_command)
     from . import cameracmd

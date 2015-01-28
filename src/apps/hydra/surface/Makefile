@@ -5,8 +5,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/surface
 
 SUBDIRS	= surface_cpp
 
-PYSRCS = __init__.py area.py collada.py gridsurf.py read_stl.py \
-	 sasa.py shapes.py split.py tube.py write_json.py write_stl.py
+PYSRCS = __init__.py area.py gridsurf.py sasa.py shapes.py split.py tube.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

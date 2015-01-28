@@ -99,7 +99,7 @@ def create_surface_copies(path_prefix, tflist, session):
     path = path_prefix + '.stl'
     from os.path import exists
     if exists(path):
-        from ..surface.read_stl import read_stl
+        from .read_stl import read_stl
         surf = read_stl(path, session)
         p = surf.child_drawings()[0]
         p.color = random_color(surf.name)

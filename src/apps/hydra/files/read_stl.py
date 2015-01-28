@@ -9,7 +9,7 @@ def read_stl(path, session, color = (178,178,178,255)):
     stl_data = f.read()
 #    comment, va, na, ta = parse_stl(file)
     f.close()
-    from .surface_cpp import parse_stl
+    from ..surface.surface_cpp import parse_stl
     comment, va, na, ta = parse_stl(stl_data)
 
     s = STL_Surface(path)
@@ -129,6 +129,6 @@ def restore_stl_surfaces(surfs, session, file_paths, attributes_only = False):
         if 'color' in st:
             s.color = tuple(int(255*c) for c in st['color'])
         if 'colors' in st:
-            s.colors = colors
+            s.colors = st['colors']
         if not attributes_only:
             session.add_model(s)
