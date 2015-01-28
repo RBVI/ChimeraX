@@ -5,7 +5,7 @@ PKG_DIR = $(PYSITEDIR)/chimera/core/geometry
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/geometry
 
 PYMOD_NAME = _geometry
-SRCS	= distances.cpp distancespy.cpp geometry.cpp transform.cpp vector_ops.cpp
+SRCS	= distances.cpp distancespy.cpp geometry.cpp spline.cpp transform.cpp vector_ops.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 INCS	+= -I$(includedir) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
 LIBS	= -L$(libdir) -larrays $(PYTHON_LIB)

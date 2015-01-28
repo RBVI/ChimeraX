@@ -5,7 +5,6 @@
 #include "measure.h"			// use enclosed_volume, surface_area, ...
 #include "parse_stl.h"			// use parse_stl
 #include "sasa.h"			// use surface_area_of_spheres
-#include "spline.h"			// use natural_cubic_spline
 #include "subdivide.h"			// use subdivide_triangles
 #include "tube.h"			// use tube_geometry
 
@@ -44,10 +43,6 @@ static struct PyMethodDef surface_cpp_methods[] =
   {const_cast<char*>("surface_area_of_spheres"), (PyCFunction)surface_area_of_spheres,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("estimate_surface_area_of_spheres"), (PyCFunction)estimate_surface_area_of_spheres,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* spline.h */
-  {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* subdivide.h */

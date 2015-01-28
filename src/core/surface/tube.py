@@ -14,7 +14,7 @@ def tube_through_points(path, tangents, radius = 1.0, circle_subdivisions = 15):
 #
 def tube_spline(path, radius = 1.0, segment_subdivisions = 10, circle_subdivisions = 15):
 
-    from . import natural_cubic_spline
+    from ..geometry import natural_cubic_spline
     spath, stan = natural_cubic_spline(path, segment_subdivisions)
     return tube_through_points(spath, stan, radius, circle_subdivisions)
 
@@ -139,7 +139,7 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
     if len(xyz_path) <= 1:
         return None             # No path
 
-    from . import natural_cubic_spline
+    from ..geometry import natural_cubic_spline
     spath, stan = natural_cubic_spline(xyz_path, segment_subdivisions)
 
     pcolors = band_colors(spath, point_colors, segment_colors,
