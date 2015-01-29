@@ -16,7 +16,7 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimera/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
-PYSRCS = $(wildcard *.py) _atomspec.py
+PYSRCS = $(wildcard *.py)
 CORE_VERSION = 2.0
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
