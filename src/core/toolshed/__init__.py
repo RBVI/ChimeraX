@@ -45,6 +45,18 @@ Modules referenced in distribution metadata must define:
     `session` is a `chimera.core.Session` instance for the current session.
     `ti` is a `chimera.core.toolshed.ToolInfo` instance for the tool to be started.
 
+Attributes
+----------
+TOOLSHED_TOOL_INFO_ADDED : str
+    Name of trigger fired when new tool metadata is registered.
+    The trigger data is a ToolInfo instance.
+TOOLSHED_TOOL_INSTALLED : str
+    Name of trigger fired when a new tool is installed.
+    The trigger data is a ToolInfo instance.
+TOOLSHED_TOOL_UNINSTALLED : str
+    Name of trigger fired when an installed tool is removed.
+    The trigger data is a ToolInfo instance.
+
 Note
 ----
 The term 'installed' refers to tools whose corresponding Python
@@ -53,6 +65,11 @@ module or package is installed on the local machine.  The term
 but have not yet been installed on the local machine.
 
 """
+
+# Toolshed trigger names
+TOOLSHED_TOOL_INFO_ADDED = "tool info added"
+TOOLSHED_TOOL_INSTALLED = "tool installed"
+TOOLSHED_TOOL_UNINSTALLED = "tool uninstalled"
 
 
 def _hack_distlib(f):
@@ -131,7 +148,14 @@ class Toolshed:
     Tool metadata may be for "installed" tools, where their code
     is already downloaded from the remote server and installed
     locally, or "available" tools, where their code is not locally
-    installed."""
+    installed.
+    
+    Attributes
+    ----------
+    triggers : chimera.core.triggerset.TriggerSet instance
+        Where to register handlers for toolshed triggers
+    
+    """
 
     def __init__(self, logger, appdirs,
                  rebuild_cache=False, check_remote=False, remote_url=None):
@@ -182,6 +206,13 @@ class Toolshed:
         os.makedirs(self._site_dir, exist_ok=True)
         import site
         site.addsitedir(self._site_dir)
+
+        # Create triggers
+        from .. import triggerset
+        self.triggers = triggerset.TriggerSet()
+        self.triggers.add_trigger(TOOLSHED_TOOL_INFO_ADDED)
+        self.triggers.add_trigger(TOOLSHED_TOOL_INSTALLED)
+        self.triggers.add_trigger(TOOLSHED_TOOL_UNINSTALLED)
 
         # Reload the tool info list
         _debug("loading tools")
@@ -296,7 +327,7 @@ class Toolshed:
         else:
             container = self._available_tool_info
         container.append(ti)
-        # TODO: fire trigger
+        self.triggers.activate_trigger(TOOLSHED_TOOL_INFO_ADDED, ti)
 
     def install_tool(self, ti, logger, system=False):
         """Install the tool by retrieving it from the remote shed.
@@ -327,8 +358,7 @@ class Toolshed:
                                          % ti.name)
         self._install_tool(ti, system, logger)
         self._write_cache(self._installed_tool_info, logger)
-        # TODO: implement self._install_tool
-        # TODO: fire trigger
+        self.triggers.activate_trigger(TOOLSHED_TOOL_INSTALLED, ti)
 
     def uninstall_tool(self, ti, logger):
         """Uninstall tool by removing the corresponding Python distribution.
@@ -353,7 +383,7 @@ class Toolshed:
         _debug("uninstall_tool", ti)
         self._uninstall_tool(ti, logger)
         self._write_cache(self._installed_tool_info, logger)
-        # TODO: fire trigger
+        self.triggers.activate_trigger(TOOLSHED_TOOL_UNINSTALLED, ti)
 
     def find_tool(self, name, installed=True, version=None):
         """Return a tool with the given name.

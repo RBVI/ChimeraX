@@ -6,7 +6,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.3.dev78356
+VERSION = 3.0.3.dev78406
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
@@ -29,7 +29,7 @@ all:
 
 install:	$(SOURCE)
 ifeq ($(OS),Windows)
-	echo wxPython on Windows not supported yet
+	echo "wxPython on Windows not supported yet" && exit 1
 else
 	rm -f $(PYSITEDIR)/wx/libwx_*
 	cd $(SOURCE)/Phoenix && \
