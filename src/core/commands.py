@@ -95,6 +95,8 @@ def register(session):
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
     cli.register('window', _window_desc, window)
+    from . import molsurf
+    molsurf.register_surface_command()
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
     #     cmd.register()
