@@ -33,11 +33,11 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     ri /= s
 
     # Compute distance map from surface of spheres, positive outside.
-    from ..map.map_cpp import sphere_surface_distance
+    from ..map import sphere_surface_distance
     sphere_surface_distance(ijk, ri, max_index_range, matrix)
 
     # Get the SAS surface as a contour surface of the distance map
-    from ..map.map_cpp import contour_surface
+    from ..map import contour_surface
     level = 0
     sas_va, sas_ta, sas_na = contour_surface(matrix, level, cap_faces = False,
                                              calculate_normals = True)

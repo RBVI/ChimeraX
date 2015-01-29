@@ -23,7 +23,7 @@ static void lin_combine(float f1, const Reference_Counted_Array::Array<T> &m1,
 // ----------------------------------------------------------------------------
 // Return linear combination of 3-d arrays.
 //
-extern "C" PyObject *linear_combination(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *linear_combination(PyObject *, PyObject *args, PyObject *keywds)
 {
   Reference_Counted_Array::Numeric_Array m1, m2, m;
   float f1, f2;

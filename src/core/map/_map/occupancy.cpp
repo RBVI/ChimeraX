@@ -50,7 +50,7 @@ static void fill_occupancy_map(const FArray &xyz_list,
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *fill_occupancy_map(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *fill_occupancy_map(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray points, map;
   float origin[3], step[3];

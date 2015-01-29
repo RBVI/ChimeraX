@@ -19,7 +19,7 @@ static void principle_plane_edges(const FArray &varray, const IArray &tarray,
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-principle_plane_edges(PyObject *s, PyObject *args, PyObject *keywds)
+principle_plane_edges(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray varray;
   IArray tarray, barray;

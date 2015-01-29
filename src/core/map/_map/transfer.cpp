@@ -120,7 +120,7 @@ static void data_to_rgba(const Reference_Counted_Array::Array<T> &data,
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *data_to_rgba(PyObject *s, PyObject *args, PyObject *keywds)
+extern "C" PyObject *data_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array data, nrgba;
   Transfer_Function transfer_func;
@@ -205,7 +205,7 @@ static bool colormap_value(float d, float bcf, float bcl,
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-data_to_colormap_colors(PyObject *s, PyObject *args, PyObject *keywds)
+data_to_colormap_colors(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array data;
   Color_Float_Array cmap, colors;
@@ -400,7 +400,7 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-data_to_colors(PyObject *s, PyObject *args, PyObject *keywds)
+data_to_colors(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array data;
   Color_Array cmap;
@@ -441,7 +441,7 @@ data_to_colors(PyObject *s, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-colors_float_to_uint(PyObject *s, PyObject *args, PyObject *keywds)
+colors_float_to_uint(PyObject *, PyObject *args, PyObject *keywds)
 {
   Color_Float_Array colors_float;
   Color_Array colors_uint;
@@ -571,7 +571,7 @@ static void index_colors(I *indices, int n, void *colormap, int nc,
 // Colormap and colors arrays must be contiguous.
 //
 extern "C" PyObject *
-indices_to_colors(PyObject *s, PyObject *args, PyObject *keywds)
+indices_to_colors(PyObject *, PyObject *args, PyObject *keywds)
 {
   Index_Array indices;
   Color_Array cmap, colors;
@@ -740,7 +740,7 @@ static void data_to_bin_index(const Reference_Counted_Array::Array<T> &data,
 // Index values array must be a contiguous Numeric Python array.
 //
 extern "C" PyObject *
-data_to_bin_index(PyObject *s, PyObject *args, PyObject *keywds)
+data_to_bin_index(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array data;
   Index_Array index_values;
@@ -791,7 +791,7 @@ data_to_bin_index(PyObject *s, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-transfer_function_colormap(PyObject *s, PyObject *args, PyObject *keywds)
+transfer_function_colormap(PyObject *, PyObject *args, PyObject *keywds)
 {
   Transfer_Function transfer_func;
   PyObject *py_colormap;
@@ -940,7 +940,7 @@ static void transfer_function_colors(const Transfer_Function &transfer_func,
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-resample_colormap(PyObject *s, PyObject *args, PyObject *keywds)
+resample_colormap(PyObject *, PyObject *args, PyObject *keywds)
 {
   Color_Float_Array cmap1;
   float bcf1, bcl1, bcf2, bcl2;

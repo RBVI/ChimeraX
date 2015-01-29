@@ -55,7 +55,7 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
 // Return minimum and maximum values of Numeric array elements.
 //
 extern "C" PyObject *
-minimum_and_maximum(PyObject *s, PyObject *args, PyObject *keywds)
+minimum_and_maximum(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array seq;
   const char *kwlist[] = {"array", NULL};
@@ -122,7 +122,7 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
 // in a series of bins.
 //
 extern "C" PyObject *
-bin_counts_py(PyObject *s, PyObject *args, PyObject *keywds)
+bin_counts_py(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array seq;
   IArray counts;
@@ -178,7 +178,7 @@ static void high_count(const Reference_Counted_Array::Array<T> &d,
 // specified level.
 //
 extern "C" PyObject *
-high_count_py(PyObject *s, PyObject *args, PyObject *keywds)
+high_count_py(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array d;
   float level;
@@ -216,7 +216,7 @@ static void high_indices(const Reference_Counted_Array::Array<T> &d,
 // specified level.
 //
 extern "C" PyObject *
-high_indices_py(PyObject *s, PyObject *args, PyObject *keywds)
+high_indices_py(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array d;
   float level;

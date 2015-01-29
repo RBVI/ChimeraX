@@ -60,6 +60,7 @@ install: all $(PKG_DIR) install_app_prereqs
 	for cpy in $(COREPY) ; do \
 		$(RSYNC) $(PYSITEDIR)/chimera/core/$$cpy $(PKG_DIR) ; \
 	done
+	$(RSYNC) $(PYSITEDIR)/chimera/core/map/_map.$(PYMOD_EXT) $(PKG_DIR)/map
 	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(APP_LIB_DIR)
 ifeq ($(OS),Darwin)
 	$(RSYNC) $(PKG_DIR) $(APP_PY_SITE)

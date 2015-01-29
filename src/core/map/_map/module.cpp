@@ -21,7 +21,7 @@ static struct PyMethodDef map_cpp_methods[] =
 {
   /* combine.h */
   {const_cast<char*>("linear_combination"), (PyCFunction)linear_combination,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* contourpy.h */
   {const_cast<char*>("contour_surface"), (PyCFunction)surface_py,
@@ -31,7 +31,7 @@ static struct PyMethodDef map_cpp_methods[] =
 
   /* distgrid.h */
   {const_cast<char*>("sphere_surface_distance"), (PyCFunction)py_sphere_surface_distance,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* fittingpy.h */
   {const_cast<char*>("correlation_gradient"), (PyCFunction)py_correlation_gradient, METH_VARARGS|METH_KEYWORDS, NULL},
@@ -42,9 +42,9 @@ static struct PyMethodDef map_cpp_methods[] =
 
   /* gaussian.h */
   {const_cast<char*>("sum_of_gaussians"), (PyCFunction)py_sum_of_gaussians,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("sum_of_balls"), (PyCFunction)py_sum_of_balls,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* histogram.h */
   {const_cast<char*>("minimum_and_maximum"), (PyCFunction)minimum_and_maximum,
@@ -124,7 +124,7 @@ static struct PyModuleDef moduledef = {
 // Initialization routine called by python when module is dynamically loaded.
 //
 extern "C" PyObject *
-PyInit_map_cpp(void)
+PyInit__map(void)
 {
     PyObject *module = PyModule_Create(&moduledef);
     
