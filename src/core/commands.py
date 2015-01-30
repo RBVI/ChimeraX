@@ -97,6 +97,9 @@ def register(session):
     cli.register('window', _window_desc, window)
     from . import molsurf
     molsurf.register_surface_command()
+    from . import structure
+    structure.register_molecule_commands()
+
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
     #     cmd.register()
