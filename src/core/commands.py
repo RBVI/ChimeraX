@@ -99,6 +99,8 @@ def register(session):
     molsurf.register_surface_command()
     from . import structure
     structure.register_molecule_commands()
+    from . import lightcmd
+    lightcmd.register_lighting_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

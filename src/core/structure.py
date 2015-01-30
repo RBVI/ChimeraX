@@ -37,7 +37,7 @@ class StructureModel(models.Model):
         m = self.mol_blob
         a = m.atoms
         a.draw_modes[:] = self.BALL_STYLE
-        a.colors = element_colors(a.element_numbers)
+        self.color_by_element()
         b = m.bonds
         b.radii = self.bond_radius
 
@@ -73,7 +73,18 @@ class StructureModel(models.Model):
 
         self.update_atom_graphics(coords, radii, colors)
 
+    def update_graphics(self):
+        m = self.mol_blob
+        a = m.atoms
+        b, bi = m.bonds, m.bond_indices
+        self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors)
+        self.update_bond_graphics(bi, a.coords, b.radii, b.colors, a.colors, b.halfbonds)
+
     def update_atom_graphics(self, coords, radii, colors):
+        p = self._atoms_drawing
+        if p is None:
+            return
+
         # Set instanced sphere center position and radius
         n = len(coords)
         from numpy import empty, float32, multiply
@@ -81,7 +92,6 @@ class StructureModel(models.Model):
         xyzr[:, :3] = coords
         xyzr[:, 3] = radii
 
-        p = self._atoms_drawing
         from .geometry import place
         p.positions = place.Places(shift_and_scale=xyzr)
 
@@ -98,12 +108,18 @@ class StructureModel(models.Model):
         return r
 
     def set_atom_style(self, style):
-        m = self.mol_blob
-        a = m.atoms
-        a.draw_modes = style
-        b, bi = m.bonds, m.bond_indices
-        self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors)
-        self.update_bond_graphics(bi, a.coords, b.radii, b.colors, a.colors, b.halfbonds)
+        self.mol_blob.atoms.draw_modes = style
+        self.update_graphics()
+
+    def color_by_element(self):
+        a = self.mol_blob.atoms
+        a.colors = element_colors(a.element_numbers)
+        self.update_graphics()
+
+    def color_by_chain(self):
+        a = self.mol_blob.atoms
+        a.colors = chain_colors(a.residues.chain_ids)
+        self.update_graphics()
 
     def create_bond_cylinders(self, bonds, atom_coords, radii,
                               bond_colors, atom_colors, half_bond_coloring):
@@ -121,6 +137,8 @@ class StructureModel(models.Model):
 
     def update_bond_graphics(self, bonds, atom_coords, radii, bond_colors, atom_colors, half_bond_coloring):
         p = self._bonds_drawing
+        if p is None:
+            return
         p.positions = bond_cylinder_placements(bonds, atom_coords, radii, half_bond_coloring)
         self.set_bond_colors(bonds, bond_colors, atom_colors, half_bond_coloring)
 
@@ -205,6 +223,68 @@ def element_colors(element_numbers):
 
 # -----------------------------------------------------------------------------
 #
+rgba_256 = None
+def chain_colors(cids):
+
+    global rgba_256
+    if rgba_256 is None:
+        rgba_256 = {
+          'a':(123,104,238,255),
+          'b':(240,128,128,255),
+          'c':(143,188,143,255),
+          'd':(222,184,135,255),
+          'e':(255,127,80,255),
+          'f':(128,128,128,255),
+          'g':(107,142,35,255),
+          'h':(100,100,100,255),
+          'i':(255,255,0,255),
+          'j':(55,19,112,255),
+          'k':(255,255,150,255),
+          'l':(202,62,94,255),
+          'm':(205,145,63,255),
+          'n':(12,75,100,255),
+          'o':(255,0,0,255),
+          'p':(175,155,50,255),
+          'q':(0,0,0,255),
+          'r':(37,70,25,255),
+          's':(121,33,135,255),
+          't':(83,140,208,255),
+          'u':(0,154,37,255),
+          'v':(178,220,205,255),
+          'w':(255,152,213,255),
+          'x':(0,0,74,255),
+          'y':(175,200,74,255),
+          'z':(63,25,12,255),
+          '1': (87, 87, 87,255),
+          '2': (173, 35, 35,255),
+          '3': (42, 75, 215,255),
+          '4': (29, 105, 20,255),
+          '5': (129, 74, 25,255),
+          '6': (129, 38, 192,255),
+          '7': (160, 160, 160,255),
+          '8': (129, 197, 122,255),
+          '9': (157, 175, 255,255),
+          '0': (41, 208, 208,255),
+        }
+    default_color = (180,180,180,255)
+    from numpy import array, uint8
+    c = array(tuple(rgba_256.get(cid[:1].lower(), default_color) for cid in cids), uint8)
+    return c
+
+# -----------------------------------------------------------------------------
+#
+from . import cli
+_color_desc = cli.CmdDesc(required = [('preset', cli.EnumOf(('element', 'chain')))])
+def color_command(session, preset):
+    for m in session.models.list():
+        if isinstance(m, StructureModel):
+            if preset == 'element':
+                m.color_by_element()
+            elif preset == 'chain':
+                m.color_by_chain()
+
+# -----------------------------------------------------------------------------
+#
 from . import cli
 _style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))])
 def style_command(session, atom_style):
@@ -221,3 +301,4 @@ def style_command(session, atom_style):
 def register_molecule_commands():
     from . import cli
     cli.register('style', _style_desc, style_command)
+    cli.register('color', _color_desc, color_command)
