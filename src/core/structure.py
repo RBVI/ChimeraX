@@ -206,7 +206,7 @@ def element_colors(element_numbers):
 # -----------------------------------------------------------------------------
 #
 from . import cli
-_style_desc = cli.CmdDesc(required = [('atom_style', cli.StringArg)])
+_style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))])
 def style_command(session, atom_style):
     s = {'sphere':StructureModel.SPHERE_STYLE,
          'ball':StructureModel.BALL_STYLE,
