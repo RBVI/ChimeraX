@@ -16,13 +16,13 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimera/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
-PYSRCS = $(wildcard *.py)
+PYSRCS = $(wildcard *.py) _atomspec.py
 CORE_VERSION = 2.0
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
-install: dir
+install: dir _atomspec.py
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\

@@ -672,7 +672,7 @@ def _next_token(text):
     #         end = len(text)
     #         token = text[start + 1:end]
     #         raise ValueError("incomplete quoted text")
-        token = unescape(token)
+    #     token = unescape(token)
     elif text[start] == ';':
         return ';', ';', text[start + 1:]
     else:

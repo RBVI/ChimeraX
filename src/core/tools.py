@@ -33,7 +33,7 @@ REMOVE_TOOL_INSTANCE = 'remove tool instance'
 
 class ToolInstance(State):
     """Base class for instances of running tools.
-    
+
     Classes for running tools should inherit from 'ToolInstance'
     and override methods to implement tool-specific functionality.
     In particularly, methods from `session.State` should be defined
@@ -68,10 +68,10 @@ class ToolInstance(State):
 
     def display_name(self):
         """Name to display to user for this ToolInstance.
-        
+
         This method should be overridden, particularly
         for multi-instance tools.
-        
+
         """
         return self.__class__.__name__
 
@@ -81,7 +81,7 @@ class ToolInstance(State):
         This method should be overridden to clean up
         tool data structures.  This base method should be
         called as the last step of tool deletion.
-        
+
         """
         if self.id is not None:
             raise ValueError("tool instance is still in use")
@@ -94,14 +94,14 @@ class ToolInstance(State):
         ----------
         b : boolean
             Boolean value for whether the tool should be shown or hidden.
-            
+
         """
         pass
 
 
 class Tools(State):
     """A per-session state manager for running tools.
-    
+
     'Tools' instances are per-session singletons that track
     running tool instances in the session, as well as managing
     saving and restoring tool states for scenes and sessions.
@@ -117,7 +117,7 @@ class Tools(State):
         ----------
         session : instance of chimera.session.Session
             Session for which this state manager was created.
-        
+
         """
         import weakref
         self._session = weakref.ref(session)
@@ -129,7 +129,7 @@ class Tools(State):
 
     def take_snapshot(self, session, flags):
         """Save state of running tools.
-        
+
         Overrides chimera.session.State default method to save
         state of all registered running tool instances.
 
@@ -142,7 +142,7 @@ class Tools(State):
             Flags indicating whether snapshot is being taken to
             save scene or session.  See `chimera.session`_ for
             more details.
-        
+
         """
         data = {}
         for tid, ti in self._tool_instances.items():
@@ -204,7 +204,7 @@ class Tools(State):
 
     def list(self):
         """Return list of running tools.
-        
+
         Returns
         -------
         list
@@ -215,12 +215,12 @@ class Tools(State):
 
     def add(self, ti_list):
         """Register running tools with state manager.
-        
+
         Parameters
         ----------
         ti_list : list of ToolInstance instances
             List of newly created running tool instances.
-        
+
         """
         session = self._session()   # resolve back reference
         for ti in ti_list:
@@ -231,12 +231,12 @@ class Tools(State):
 
     def remove(self, ti_list):
         """Deregister running tools with state manager.
-        
+
         Parameters
         ----------
         ti_list : list of ToolInstance instances
             List of registered running tool instances.
-        
+
         """
         session = self._session()   # resolve back reference
         session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
@@ -250,12 +250,12 @@ class Tools(State):
 
     def find_by_id(self, tid):
         """Return a tool instance with the matching identifier.
-        
+
         Parameters
         ----------
         tid : int
             Unique per-session identifier for a registered tool.
-        
+
         """
         return self._tool_instances.get(tid, None)
 
@@ -264,7 +264,7 @@ class Tools(State):
 
         All tool instances that match `cls` as defined by `isinstance`
         are returned.
-        
+
         Parameters
         ----------
         cls : class object

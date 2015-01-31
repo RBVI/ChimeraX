@@ -12,5 +12,11 @@ def start_tool(session, ti):
 
 def register_command(command_name):
     from . import cmd
-    from chimera.core import cli
-    cli.register(command_name, cmd.bogus_desc, cmd.bogus_function)
+    try:
+        func = getattr(cmd, command_name)
+        desc = getattr(cmd, command_name + "_desc")
+    except AttributeError:
+        print("unable to register command \"%s\"" % command_name)
+    else:
+        from chimera.core import cli
+        cli.register(command_name, desc, func)
