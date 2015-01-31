@@ -1,4 +1,4 @@
-TOP = ../../../../..
+TOP = ../../../..
 include $(TOP)/mk/config.make
 
 #SUBDIRS	= amira apbs ccp4 cmap delphi dock dsn6 emanhdf gaussian \
@@ -9,7 +9,8 @@ include $(TOP)/mk/config.make
 
 SUBDIRS	= ccp4 cmap dsn6 imagestack mrc
 
-PKG_DIR = $(PYSITEDIR)/hydra/map/data
+PKG_DIR = $(PYSITEDIR)/chimera/core/map/data
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/map/data
 
 PYSRCS = __init__.py arraygrid.py arrays.py datacache.py fileformats.py \
 	griddata.py memoryuse.py opendialog.py progress.py readarray.py \
@@ -20,11 +21,12 @@ include $(TOP)/mk/subdir.make
 
 all: $(PYOBJS)
 
-install: all $(PKG_DIR)
+install: all dir
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
-$(PKG_DIR):
+dir:
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 clean:
 	rm -rf __pycache__

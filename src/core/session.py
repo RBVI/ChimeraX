@@ -504,4 +504,6 @@ def common_startup(sess):
     mmcif.register()
     from . import python
     python.register()
+    from . import map
+    map.register_map_file_readers()
     _monkey_patch = False

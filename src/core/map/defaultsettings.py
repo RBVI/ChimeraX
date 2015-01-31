@@ -89,8 +89,11 @@ class Volume_Default_Settings:
         'orthoplane_positions': (0,0,0),
     }
 
-    from .. import mac_os_cpp
-    msize = mac_os_cpp.memory_size()
+    try:
+      from .. import mac_os_cpp
+      msize = mac_os_cpp.memory_size()
+    except:
+      msize = 2**32
     csize = msize//2
     csize_mb = csize/(2**20)
     defaults['data_cache_size'] = csize_mb

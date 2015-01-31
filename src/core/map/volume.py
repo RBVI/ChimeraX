@@ -1809,6 +1809,15 @@ class Volume(Model):
       from chimera import triggers
       triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
       self.surface_piece_change_handler = None
+
+
+  # State save/restore in Chimera 2
+  def take_snapshot(self, session, flags):
+    pass
+  def restore_snapshot(self, phase, session, version, data):
+    pass
+  def reset_state(self):
+    pass
     
 # -----------------------------------------------------------------------------
 #
@@ -2614,6 +2623,14 @@ def open_volume_file(path, session, format = None, name = None, representation =
   return vlist
 
 # -----------------------------------------------------------------------------
+#
+def default_settings(session):
+  if not hasattr(session, 'volume_defaults'):
+    from . import defaultsettings
+    session.volume_defaults = defaultsettings.Volume_Default_Settings()
+  return session.volume_defaults
+  
+# -----------------------------------------------------------------------------
 # Open and display a map using Volume Viewer.
 #
 def volume_from_grid_data(grid_data, session, representation = None,
@@ -2632,7 +2649,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
     # Show single plane data in solid style.
     single_plane = [s for s in grid_data.size if s == 1]
     representation = 'solid' if single_plane else 'surface'
-  ds = session.volume_defaults
+  ds = default_settings(session)
   one_plane = show_one_plane(grid_data.size, ds['show_plane'],
                              ds['voxel_limit_for_plane'])
   if one_plane:
@@ -2716,7 +2733,7 @@ def show_one_plane(size, show_plane, min_voxels):
 #
 def set_initial_volume_color(v, session):
 
-  ds = session.volume_defaults
+  ds = default_settings(session)
   if ds['use_initial_colors']:
     vlist = volume_list(session)
     n = len(vlist)
@@ -2742,4 +2759,46 @@ def data_already_opened(path, grid_id, session):
 # -----------------------------------------------------------------------------
 #
 def volume_list(session):
-  return session.maps()
+  if hasattr(session, 'maps'):
+    return session.maps()       # Hydra
+  else:
+    return [m for m in session.models.list() if isinstance(m, Volume)]
+
+# -----------------------------------------------------------------------------
+#
+def open_map(session, stream, *args, **kw):
+    '''
+    Open a density map file having any of the known density map formats.
+    '''
+    map_path = stream.name
+    stream.close()
+
+    maps = []
+    from . import data
+    grids = data.open_file(map_path)
+    for i,d in enumerate(grids):
+        show = (i == 0)
+        v = volume_from_grid_data(d, session, open_model = False, show_data = show)
+        v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
+        maps.append(v)
+    # if len(maps) > 1:
+    #     from os.path import basename
+    #     name = basename(map_path if isinstance(map_path, str) else map_path[0])
+    #     from ..map.series import Map_Series
+    #     ms = Map_Series(name, maps)
+    #     from ..map.series import slider
+    #     slider.show_slider_on_open(session)
+    #     return [ms]
+    m0 = maps[0]
+    msg = 'Opened %s, grid size (%d,%d,%d)' % ((m0.name,) + m0.data.size)
+    return maps, msg
+
+# -----------------------------------------------------------------------------
+#
+def register_map_file_readers():
+    from .. import io
+    category = 'VOLUME'
+    from .data.fileformats import file_types
+    for d,t,prefixes,suffixes,batch in file_types:
+      suf = tuple('.' + s for s in suffixes)
+      io.register_format(d, category, suf, open_func=open_map)

@@ -3,11 +3,10 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/hydra/map
 
-SUBDIRS	= data filter fit series
+SUBDIRS	= filter fit series
 
-PYSRCS = __init__.py defaultsettings.py fetch_eds.py fetch_emdb.py \
-	grayscale.py measure.py molmap.py moveplanes.py \
-	session.py slice.py solid.py subsample.py volume.py volumecommand.py
+PYSRCS = __init__.py fetch_eds.py fetch_emdb.py measure.py molmap.py \
+	moveplanes.py session.py subsample.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

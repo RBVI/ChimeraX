@@ -11,8 +11,11 @@ class Progress_Reporter:
 
     if message is None:
       def status(msg):
-        from ... import ui
-        ui.show_status(msg)
+        try:
+          from ... import ui
+          ui.show_status(msg)   # Hydra only
+        except:
+          pass
       message = status
     self.message = message
 

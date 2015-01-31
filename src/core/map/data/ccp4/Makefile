@@ -1,9 +1,9 @@
-TOP = ../../../../../..
+TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/map/data/dsn6
+PKG_DIR = $(PYSITEDIR)/chimera/core/map/data/ccp4
 
-PYSRCS = __init__.py dsn6_format.py dsn6_grid.py writebrix.py
+PYSRCS = __init__.py ccp4_grid.py
 
 all: $(PYOBJS)
 

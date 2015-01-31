@@ -1,9 +1,9 @@
-TOP = ../../../../../..
+TOP = ../../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/hydra/map/data/mrc
+PKG_DIR = $(PYSITEDIR)/chimera/core/map/data/cmap
 
-PYSRCS = __init__.py mrc_format.py mrc_grid.py writemrc.py
+PYSRCS = __init__.py cmap_format.py cmap_grid.py write_cmap.py
 
 all: $(PYOBJS)
 
