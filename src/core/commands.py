@@ -101,6 +101,8 @@ def register(session):
     structure.register_molecule_commands()
     from . import lightcmd
     lightcmd.register_lighting_command()
+    from . import map
+    map.register_volume_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

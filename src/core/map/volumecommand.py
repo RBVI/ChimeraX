@@ -192,8 +192,6 @@ def volume(volumes = '',                # Specifier
            session = None,
            ):
 
-    from ..commands.parse import CommandError
-
     # Find volume arguments.
     if volumes == 'all':
         from .volume import volume_list
@@ -211,6 +209,7 @@ def volume(volumes = '',                # Specifier
         apply_global_settings(gsettings)
 
     if len(gsettings) == 0 and len(vlist) == 0:
+        from ..commands.parse import CommandError
         raise CommandError('No volumes specified%s' %
                            (' by "%s"' % volumes if volumes else ''))
 
@@ -408,8 +407,8 @@ def level_and_color_settings(v, options):
 
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
     # number of levels.
-    from ..commands.parse import CommandError
     if len(colors) > 1 and len(colors) != len(levels):
+        from ..commands.parse import CommandError
         raise CommandError('Number of colors (%d) does not match number of levels (%d)' % (len(colors), len(levels)))
 
     style = options.get('style', v.representation)
@@ -418,11 +417,14 @@ def level_and_color_settings(v, options):
 
     if style == 'solid':
         if [l for l in levels if len(l) != 2]:
+            from ..commands.parse import CommandError
             raise CommandError('Solid level must be <data-value,brightness-level>')
         if levels and len(levels) < 2:
+            from ..commands.parse import CommandError
             raise CommandError('Must specify 2 or more levels for solid style')
     elif style == 'surface':
         if [l for l in levels if len(l) != 1]:
+            from ..commands.parse import CommandError
             raise CommandError('Surface level must be a single data value')
         levels = [lvl[0] for lvl in levels]
 
@@ -471,3 +473,35 @@ def camel_case_to_underscores(s):
     from string import ascii_uppercase
     su = ''.join([('_' + c.lower() if c in ascii_uppercase else c) for c in s])
     return su
+
+# -----------------------------------------------------------------------------
+# Chimera 2 wrapper for volume command.
+#
+def volume_cmd(session, show = None, hide = None, style = None, level = None, step = None,
+               color = None, transparency = None, showOutlineBox = None):
+
+    if not level is None:
+        level = [[level]]
+    if not color is None:
+        color = [color]
+    volume('all', show = show, hide = hide, style = style, level = level, step = step,
+           color = color, transparency = transparency, showOutlineBox = showOutlineBox,
+           session = session)
+
+# -----------------------------------------------------------------------------
+# Register the volume command for Chimera 2.
+#
+def register_volume_command():
+    from ..cli import CmdDesc, BoolArg, FloatArg, IntArg, Float3Arg, EnumOf, register
+    _volume_desc = CmdDesc(
+        keyword = [
+            ('show', BoolArg),
+            ('hide', BoolArg),
+            ('level', FloatArg),
+            ('step', IntArg),
+            ('color', Float3Arg),
+            ('transparency', FloatArg),
+            ('showOutlineBox', BoolArg),
+            ('style', EnumOf(('surface', 'mesh', 'solid'))),
+        ])
+    register('volume', _volume_desc, volume_cmd)
