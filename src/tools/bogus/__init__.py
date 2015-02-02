@@ -12,11 +12,16 @@ def start_tool(session, ti):
 
 def register_command(command_name):
     from . import cmd
-    try:
-        func = getattr(cmd, command_name)
-        desc = getattr(cmd, command_name + "_desc")
-    except AttributeError:
-        print("unable to register command \"%s\"" % command_name)
-    else:
-        from chimera.core import cli
-        cli.register(command_name, desc, func)
+    from chimera.core import cli
+    desc_suffix = "_desc"
+    for attr_name in dir(cmd):
+        if not attr_name.endswith(desc_suffix):
+            continue
+        subcommand_name = attr_name[:-len(desc_suffix)]
+        try:
+            func = getattr(cmd, subcommand_name)
+        except AttributeError:
+            print("no function for \"%s\"" % subcommand_name)
+            continue
+        desc = getattr(cmd, attr_name)
+        cli.register(command_name + ' ' + subcommand_name, desc, func)

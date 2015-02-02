@@ -10,7 +10,7 @@ TOOL_PKG_NAME = $(PKG_NAME)
 TOOL_DISPLAY_NAME = Bogus Toolshed-demo Tool
 TOOL_CATEGORY = General
 TOOL_SYNOPSIS = Bogus tool for demonstrating toolshed functionality
-COMMAND_NAME = bogus, hidewater
+COMMAND_NAME = bogus
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
