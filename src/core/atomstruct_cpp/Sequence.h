@@ -19,7 +19,11 @@ protected:
     static _1Letter_Map  _protein3to1;
     static _1Letter_Map  _rname3to1;
 
-    void  _clear_cache() { /*TODO*/ }
+    mutable std::unordered_map<unsigned int, unsigned int>  _cache_g2ug;
+    mutable std::unordered_map<unsigned int, unsigned int>  _cache_ug2g;
+    mutable Contents  _cache_ungapped;
+    void  _clear_cache() const
+        { _cache_ungapped.clear();  _cache_g2ug.clear(); _cache_ug2g.clear(); }
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
 public:
@@ -36,6 +40,7 @@ public:
     Contents::const_iterator  begin() const { return _contents.begin(); }
     void  clear() { _clear_cache(); _contents.clear(); }
     Contents::const_iterator  end() const { return _contents.end(); }
+    unsigned int  gapped_to_ungapped(unsigned int index) const;
     Contents::iterator  insert(Contents::const_iterator pos,
         Contents::size_type n, Contents::value_type val)
         { _clear_cache(); return _contents.insert(pos, n, val); }
@@ -48,7 +53,8 @@ public:
     virtual  ~Sequence() {}
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }
-    Sequence  ungapped() const;
+    const Contents&  ungapped() const;
+    unsigned int  ungapped_to_gapped(unsigned int index) const;
 };
 
 }  // namespace atomstruct

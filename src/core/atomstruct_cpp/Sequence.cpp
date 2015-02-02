@@ -1,4 +1,5 @@
 // vi: set expandtab ts=4 sw=4:
+#include <cctype>
 #include "Sequence.h"
 
 namespace atomstruct {
@@ -91,6 +92,15 @@ Sequence::assign_rname3to1(const std::string& rname, unsigned char let,
     _rname3to1[rname] = let;
 }
 
+unsigned int
+Sequence::gapped_to_ungapped(unsigned int index) const
+{
+    if (_cache_ungapped.empty()) {
+        (void) ungapped();
+    }
+    return _cache_g2ug[index];
+}
+
 unsigned char
 Sequence::nucleic3to1(const std::string& rn)
 {
@@ -127,12 +137,29 @@ Sequence::rname3to1(const std::string& rn)
 Sequence
 Sequence::ungapped() const
 {
-    Sequence::Contents gapless = _contents;
-    gapless.clear();
-    for (auto c: _contents) {
-        // TODO: also implement _clear_cache()
+    if (_cache_ungapped.empty()) {
+        unsigned int ug_index = 0;
+        auto gi = begin();
+        for (unsigned int i = 0; gi != end(); ++gi, ++i) {
+            auto c = *gi;
+            if (std::isalpha(c) || c == '?') {
+                _cache_ungapped.push_back(c);
+                _cache_g2ug[i] = ug_index;
+                _cache_ug2g[ug_index] = i;
+                ug_index++;
+            }
+        }
     }
+    return _cache_ungapped;
+}
 
+unsigned int
+Sequence::ungapped_to_gapped(unsigned int index) const
+{
+    if (_cache_ungapped.empty()) {
+        (void) ungapped();
+    }
+    return _cache_ug2g[index];
 }
 
 }  // namespace atomstruct
