@@ -43,7 +43,7 @@ install: dir
 
 app-install: wheel
 	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
-	$(RSYNC) $(WHEEL) $(wheelhouse)
+	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
