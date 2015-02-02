@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 '''
 vector: Point and vector operations
 ===================================
@@ -8,6 +9,18 @@ are allowed, not just 3-dimensional, except where noted.  Coordinate values
 can be 32 or 64-bit floating point numbers.
 '''
 
+__all__ = [
+    'vector_sum',
+    'normalize_vectors',
+    'normalize_vector',
+    'cross_product',
+    'norm',
+    'vector_angle',
+    'inner_product_64',
+    'inner_product',
+    'distance',
+]
+
 from .matrix import vector_sum
 from .matrix import normalize_vectors
 from .matrix import normalize_vector
@@ -15,15 +28,20 @@ from .matrix import cross_product
 from .matrix import norm
 from .matrix import vector_angle_radians as vector_angle
 
+from ._geometry import distances_perpendicular_to_axis
+from ._geometry import maximum_norm
+
 '''Inner product of two vectors accumulated as a 64-bit float result.'''
 from .matrix import inner_product_64
 
-def inner_product(u,v):
+
+def inner_product(u, v):
     '''Return the inner product of two vectors.'''
-    return (u*v).sum()
+    return (u * v).sum()
+
 
 def distance(p, q):
     '''Return the distance between two points.'''
-    d = p-q
+    d = p - q
     from math import sqrt
-    return sqrt((d*d).sum())
+    return sqrt((d * d).sum())

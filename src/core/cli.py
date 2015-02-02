@@ -223,6 +223,7 @@ class Annotation(metaclass=abc.ABCMeta):
         :returns: 3-tuple with the converted value, consumed text
             (possibly altered with expanded truncations), and the
             remaining unconsumed text
+        :raises ValueError: if unable to convert text
 
         The leading space in text must already be removed.
         It is up to the particular annotation to support truncatations.
@@ -253,10 +254,12 @@ class Aggregate(Annotation):
     min_size = 0
     max_size = sys.maxsize
     constructor = None
+    separator = ','
 
     def __init__(self, annotation, min_size=None,
                  max_size=None, name=None):
-        if not issubclass(annotation, Annotation):
+        if (not issubclass(annotation, Annotation)
+                and not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
         self.annotation = annotation
         if min_size is not None:
@@ -286,9 +289,9 @@ class Aggregate(Annotation):
         result = self.constructor()
         used = ''
         while 1:
-            i = text.find(',')
+            i = text.find(self.separator)
             if i == -1:
-                # no comma found
+                # no separator found
                 value, consumed, rest = self.annotation.parse(text, session)
                 tmp = self.add_to(result, value)
                 if tmp:
@@ -302,7 +305,7 @@ class Aggregate(Annotation):
                 result = tmp
             used += consumed
             if len(rest) > 0:
-                # later comma found, but didn't consume all of the text,
+                # later separator found, but didn't consume all of the text,
                 # so probably a different argument, unless the rest is
                 # all whitespace
                 m = _whitespace.match(rest)
@@ -312,7 +315,7 @@ class Aggregate(Annotation):
                 if len(rest) > 0:
                     rest += text[i:]
                     break
-            used += ','
+            used += self.separator
             text = text[i + 1:]
             m = _whitespace.match(text)
             i = m.end()
@@ -368,6 +371,18 @@ class TupleOf(Aggregate):
 
     def __init__(self, annotation, size, name=None):
         return Aggregate.__init__(self, annotation, size, size, name=name)
+
+    def add_to(self, container, value):
+        return container + (value,)
+
+
+class DottedTupleOf(Aggregate):
+    """Annotation for dot-separated lists of a single type
+
+    DottedListOf(annotation, min_size=None, max_size=None) -> annotation
+    """
+    separator = '.'
+    constructor = tuple
 
     def add_to(self, container, value):
         return container + (value,)
@@ -657,7 +672,7 @@ def _next_token(text):
     #         end = len(text)
     #         token = text[start + 1:end]
     #         raise ValueError("incomplete quoted text")
-        token = unescape(token)
+    #     token = unescape(token)
     elif text[start] == ';':
         return ';', ';', text[start + 1:]
     else:
@@ -725,7 +740,7 @@ Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
 Float3Arg = TupleOf(FloatArg, 3)
 PositiveIntArg = Bounded(IntArg, min=1, name="natural number")
-ModelIdArg = PositiveIntArg
+ModelIdArg = DottedTupleOf(PositiveIntArg)
 
 
 class Postcondition(metaclass=abc.ABCMeta):
@@ -831,7 +846,9 @@ _commands = OrderedDict()
 
 
 def _check_autocomplete(word, mapping, name):
-    # this is a debugging aid for developers
+    # This is a primary debugging aid for developers,
+    # but it prevents existing abbreviated commands from changing
+    # what command they correspond to.
     for key in mapping:
         if key.startswith(word) and key != word:
             raise ValueError("'%s' is a prefix of an existing command" % name)
@@ -884,14 +901,15 @@ class CmdDesc:
             raise ValueError("Can not reuse CmdDesc instances")
         import inspect
         empty = inspect.Parameter.empty
-        positional = inspect.Parameter.VAR_POSITIONAL
+        var_positional = inspect.Parameter.VAR_POSITIONAL
+        var_keyword = inspect.Parameter.VAR_KEYWORD
         signature = inspect.signature(function)
         params = list(signature.parameters.values())
         if len(params) < 1 or params[0].name != "session":
             raise ValueError("Missing initial 'session' argument")
         for p in params[1:]:
             if (p.default != empty or p.name in self._required
-                    or p.kind == positional):
+                    or p.kind in (var_positional, var_keyword)):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
                              "required or have a default value" % p.name)
@@ -910,17 +928,18 @@ class _Defer:
     # Enable function introspection to be deferred until needed
     __slots__ = ['proxy']
 
-    def __init__(self, proxy_function, cmd_desc):
+    def __init__(self, proxy_function):
         self.proxy = proxy_function
 
     def call(self):
         return self.proxy()
 
 
-def delay_registration(name, proxy_function):
+def delay_registration(name, proxy_function, logger=None):
     """delay registering a named command until needed
 
     :param proxy_function: the function to call if command is used
+    :param logger: optional logger
 
     The proxy function should explicitly reregister the command or
     register subcommands and return nothing.
@@ -936,14 +955,14 @@ def delay_registration(name, proxy_function):
 
         cli.delay_registration('cmd', lazy_reg)
     """
-    register(name, None, _Defer(proxy_function))
+    register(name, None, _Defer(proxy_function), logger=logger)
 
 
 # keep track of commands that have been overridden by an alias
 _aliased_commands = {}
 
 
-def register(name, cmd_desc=(), function=None):
+def register(name, cmd_desc=(), function=None, logger=None):
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -951,6 +970,7 @@ def register(name, cmd_desc=(), function=None):
         instance of :py:class:`CmdDesc`, or the tuple with CmdDesc
         parameters.
     :param function: the callback function.
+    :param logger: optional logger
 
     If the function is None, then it assumed that :py:func:`register`
     is being used as a decorator.
@@ -966,7 +986,7 @@ def register(name, cmd_desc=(), function=None):
     if function is None:
         # act as a decorator
         def wrapper(function, name=name, cmd_desc=cmd_desc):
-            return register(name, cmd_desc, function)
+            return register(name, cmd_desc, function, logger=logger)
         return wrapper
 
     if isinstance(cmd_desc, tuple):
@@ -996,27 +1016,35 @@ def register(name, cmd_desc=(), function=None):
     except ValueError:
         if not isinstance(function, _Alias):
             raise
-        pass    # TODO: warn that alias interferes with existing command
+        if logger is not None:
+            logger.warn("alias %r hides existing command" % name)
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
         cmd_desc.function = function
-    if what is not None:
+    if what is None:
+        cmd_map[word] = cmd_desc
+    else:
         # command already registered
         if isinstance(function, _Alias):
             if not isinstance(cmd_map[word].function, _Alias):
+                # only save nonaliased version of command
                 _aliased_commands[name] = cmd_map[word]
+            cmd_map[word] = cmd_desc
+        elif isinstance(what.function, _Alias):
+            # command is aliased, but new one isn't, so replaced saved version
+            _aliased_commands[name] = cmd_desc
         else:
-            if isinstance(cmd_map[word].function, _Alias):
-                # replacing alias with command
-                # TODO: warn
-                del _aliased_commands[name]
-    cmd_map[word] = cmd_desc
+            if logger is not None:
+                logger.warn("command %r is replacing existing command" % name)
+            cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
 
-def _unregister(name):
-    # used internally by unalias
+def deregister(name):
+    """Remove existing command
+
+    If the command was an alias, the previous version is restored"""
     # none of the exceptions below should happen
     words = name.split()
     name = ' '.join(words)  # canonicalize
@@ -1031,18 +1059,37 @@ def _unregister(name):
     what = cmd_map.get(word, None)
     if what is None:
         raise RuntimeError("unregistering unknown command")
-    if isinstance(what, dict):
-        raise RuntimeError("unregistering beginning of multiword command")
-    previous_cmd = _aliased_commands.get(name, None)
-    if previous_cmd:
+    hidden_cmd = _aliased_commands.get(name, None)
+    if hidden_cmd:
+        what = _aliased_commands[name]
         del _aliased_commands[name]
-        cmd_map[word] = previous_cmd
     else:
         del cmd_map[word]
+
+    # remove any subcommand aliases
+    size = len(name)
+    aliases = [a for a in _cmd_aliases
+               if a.startswith(name) and len(name) > size and a[size] == ' ']
+    for a in aliases:
+        del _cmd_aliases[a]
+        if a in _aliased_commands:
+            del _aliased_commands[a]
+
+    # allow commands to be reregistered with same description
+    def clear_cmd_desc(d):
+        if isinstance(d, CmdDesc):
+            d._function = None
+            return
+        if not isinstance(d, dict):
+            return
+        for v in d.values():
+            clear_cmd_desc(v)
+    clear_cmd_desc(what)
 
 
 def _lazy_register(cmd_map, word):
     deferred = cmd_map[word]
+    del cmd_map[word]   # prevent recursion
     try:
         deferred.call()
     except:
@@ -1491,9 +1538,6 @@ def command_html_usage(name):
     return usage
 
 
-_cmd_aliases = OrderedDict()
-
-
 class _Alias:
     """Internal alias command implementation"""
 
@@ -1563,6 +1607,9 @@ class _Alias:
         return self.cmd.execute(_used_aliases=used_aliases)
 
 
+_cmd_aliases = set()
+
+
 @register('alias', CmdDesc(optional=[('name', StringArg),
                                      ('text', WholeRestOfLine)]))
 def alias(session, name='', text=''):
@@ -1575,20 +1622,31 @@ def alias(session, name='', text=''):
     returned.  If alias text is not given, the the text of the named alias
     is returned.  If both arguments are given, then a new alias is made.
     """
+    logger = session.logger if session else None
     if not name:
         # list aliases
-        names = ', '.join(list(_cmd_aliases.keys()))
+        names = ', '.join(_cmd_aliases)
         if names:
-            return 'Aliases: %s' % names
-        return 'No aliases.'
+            if logger is not None:
+                logger.info('Aliases: %s' % names)
+        else:
+            if logger is not None:
+                logger.status('No aliases.')
+        return
     if not text:
         if name not in _cmd_aliases:
-            return 'No alias named %r found.' % name
-        return 'Aliased %r to %r' % (name, _cmd_aliases[name].original_text)
+            if logger is not None:
+                logger.status('No alias named %r found.' % name)
+        else:
+            if logger is not None:
+                logger.info('Aliased %r to %r'
+                            % (name, _cmd_aliases[name].original_text))
+        return
     name = ' '.join(name.split())   # canonicalize
     cmd = _Alias(text)
     try:
-        register(name, cmd.desc(), cmd)
+        register(name, cmd.desc(), cmd, logger=logger)
+        _cmd_aliases.add(name)
     except:
         raise
 
@@ -1600,31 +1658,33 @@ def unalias(session, name):
     :param name: name of the alias
     """
     # remove command alias
-    name = ' '.join(name.split())   # canonicalize
+    words = name.split()
+    name = ' '.join(words)  # canonicalize
     try:
-        del _cmd_aliases[name]
+        _cmd_aliases.remove(name)
     except KeyError:
         raise UserError('No alias named %r exists' % name)
-    _unregister(name)
+
+    cmd_map = _commands
+    for word in words[:-1]:
+        what = cmd_map.get(word, None)
+        if isinstance(what, dict):
+            cmd_map = what
+            continue
+        raise RuntimeError("internal error")
+    word = words[-1]
+    what = cmd_map.get(word, None)
+    if what is None:
+        raise RuntimeError("internal error")
+    previous_cmd = _aliased_commands.get(name, None)
+    if previous_cmd:
+        del _aliased_commands[name]
+        cmd_map[word] = previous_cmd
+        return
+    del cmd_map[word]
 
 if __name__ == '__main__':
-
-    # from Mike C. Fletcher's BasicTypes library
-    # via http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
-    def flattened(l, ltypes=(list, tuple, set)):
-        ltype = type(l)
-        l = list(l)
-        i = 0
-        while i < len(l):
-            while isinstance(l[i], ltypes):
-                if not l[i]:
-                    l.pop(i)
-                    i -= 1
-                    break
-                else:
-                    l[i:i + 1] = l[i]
-            i += 1
-        return ltype(l)
+    from .utils import flattened
 
     class ColorArg(Annotation):
         name = 'a color'
@@ -1779,6 +1839,14 @@ if __name__ == '__main__':
     def test10(session, colors=[], offsets=[]):
         print('test10 colors, offsets:', colors, offsets)
 
+    def lazy_reg():
+        test11_desc = CmdDesc()
+
+        def test11(session):
+            print('delayed')
+        register('xyzzy subcmd', test11_desc, test11)
+    delay_registration('xyzzy', lazy_reg)
+
     if len(sys.argv) > 1:
         _debugging = 'd' in sys.argv[1]
 
@@ -1818,6 +1886,8 @@ if __name__ == '__main__':
                 print(err)
 
     tests = [   # (fail, final, command)
+        (True, True, 'xyzzy'),
+        (False, True, 'xyzzy subcmd'),
         (True, True, 'test1 color red 12 3.5'),
         (True, True, 'test1 12 color red 3.5'),
         (False, True, 'test1 12 3.5 color red'),

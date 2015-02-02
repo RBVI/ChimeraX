@@ -8,6 +8,7 @@ shlibdir = $(libdir)
 datadir = $(build_prefix)/share
 tmpdir = $(build_prefix)/tmp
 webdir = $(build_prefix)/webapp
+wheelhouse = $(build_prefix)/wheelhouse
 
 # by default, don't do anything
 all:
@@ -15,7 +16,11 @@ all:
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.4
+ifdef DEBUG
+PYTHON_ABI = dm
+else
 PYTHON_ABI = m
+endif
 # Windows uses python22.dll instead of libpython2.2.so
 PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
 
@@ -65,4 +70,4 @@ endif
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
 
-PYLINT = $(PYTHON_EXE) -m flake8
+PYLINT = $(PYTHON_EXE) -I -m flake8

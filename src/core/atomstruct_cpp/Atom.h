@@ -5,8 +5,9 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Element.h"
 #include <basegeom/Point.h>
@@ -34,7 +35,7 @@ public:
     };
     struct IdatmInfo {
         IdatmGeometry  geometry;
-        int  substituents;
+        unsigned int  substituents;
         std::string  description;
     };
     typedef std::unordered_map<std::string, IdatmInfo> IdatmInfoMap;
@@ -62,6 +63,7 @@ private:
     std::string  _explicit_idatm_type;
     std::string  _name;
     unsigned int  _new_coord(const Point &);
+    float  _radius = -1.0; // indicates not explicitly set
     Residue *  _residue;
     mutable Rings  _rings;
     int  _serial_number;
@@ -79,7 +81,9 @@ public:
     const Bonds&  bonds() const { return connections(); }
     // connects_to() just simply inherited from Connectible (via BaseSphere)
     unsigned int  coord_index() const { return _coord_index; }
+    int  coordination(int value_if_unknown) const;
     virtual const basegeom::Coord &coord() const;
+    float  default_radius() const;
     Element  element() const { return _element; }
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
@@ -90,13 +94,14 @@ public:
     // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
+    float  radius() const;
     void  register_field(std::string /*name*/, int /*value*/) {}
     void  register_field(std::string /*name*/, double /*value*/) {}
     void  register_field(std::string /*name*/, const std::string &/*value*/) {}
     void  remove_bond(Bond *b) { remove_connection(b); }
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
-            std::set<const Residue*>* ignore = nullptr) const;
+            std::unordered_set<const Residue*>* ignore = nullptr) const;
     void  set_alt_loc(char alt_loc, bool create=false, bool from_residue=false);
     void  set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u33);
     void  set_bfactor(float);
@@ -107,6 +112,7 @@ public:
     }
     void  set_idatm_type(const std::string& it) { _explicit_idatm_type = it; }
     void  set_occupancy(float);
+    void  set_radius(float);
     void  set_serial_number(int);
     AtomicStructure *  structure() const { return _structure; }
 };

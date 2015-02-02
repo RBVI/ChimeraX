@@ -141,7 +141,7 @@ class File_History:
     ipath = join(self.thumbnail_directory, iname)
     s = self.thumbnail_size
     v = self.session.view
-    i = v.image(s, s, models = models)
+    i = v.image(s, s, drawings = models)
     if not i is None:
       i.save(ipath, self.image_format)
 

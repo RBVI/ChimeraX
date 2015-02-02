@@ -124,6 +124,7 @@ else ifdef USE_MAC_FRAMEWORKS
 	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
 		$(pyappdir)/Python
+	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 else
 	# Linux or Mac OS X without framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
@@ -133,6 +134,7 @@ endif
 ifeq ($(OS),Darwin)
 	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
 endif
+	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 endif
 	# double check that _ssl was successfully made
 	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)
@@ -151,10 +153,14 @@ else ifdef USE_MAC_FRAMEWORKS
 		$(frameworkdir)/Python.framework $(app_frameworkdir)
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
+	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
+	-mkdir $(app_prefix)/include
+	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_prefix)/include
+	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 endif
 	$(RSYNC) $(PYSITEDIR)/pip $(PYSITEDIR)/pip-*-info $(APP_PYSITEDIR)
 

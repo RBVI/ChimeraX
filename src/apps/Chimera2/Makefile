@@ -32,20 +32,18 @@ install: $(PROG)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
-		ln -nfs ../bin/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
 		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 	fi
 ifeq ($(OS),Darwin)
 	-if [ -d "$(app_prefix)" ]; then \
+		ln -nfs ../bin/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 	fi
 endif
 
 clean:
-	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py gensrcs
-ifeq ($(OS),Darwin)
-	rm -f Info.plist
-endif
+	rm -f $(PROG) $(GEN_SRCS) $(OBJS) frozen.c.orig __main__.py gensrcs \
+		Info.plist
 
 lint:
 	$(PYLINT) *.py
@@ -71,9 +69,8 @@ gensrcs: __main__.py
 
 ifeq ($(OS),Darwin)
 install: Info.plist
+endif
 
 Info.plist: mkinfo.py
 #	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || rm Info.plist
 	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || rm Info.plist
-
-endif

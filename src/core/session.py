@@ -20,7 +20,11 @@ Session data, ie., data that is archived, uses the :py:class:`State` API.
 
 import abc
 import weakref
+from . import cli
 from . import serialize
+
+_builtin_open = open
+SUFFIX = ".chimera2"
 
 
 class State(metaclass=abc.ABCMeta):
@@ -33,7 +37,8 @@ class State(metaclass=abc.ABCMeta):
     the State API is reused for scenes.
 
     References to objects should use the session's unique identifier
-    for the object.
+    for the object.  The object's class needs to be registered with
+    :py:func:`register_unique_class`.
     """
     #: state type
     SCENE = 0x1
@@ -51,7 +56,7 @@ class State(metaclass=abc.ABCMeta):
         "Need newer version of application to restore session")
 
     @abc.abstractmethod
-    def take_snapshot(self, session, flags=ALL):
+    def take_snapshot(self, session, flags):
         """Return snapshot of current state, [version, data], of instance.
 
         The semantics of the data is unknown to the caller.
@@ -69,11 +74,11 @@ class State(metaclass=abc.ABCMeta):
         second phase should restore references to other objects (data is None).
         The session instance is used to convert unique ids into instances.
         """
-        if len(data) != 2 or data[0] != 0 or data[1]:
+        if version != 0 or len(data) > 0:
             raise RuntimeError("Unexpected version or data")
 
     @abc.abstractmethod
-    def reset(self):
+    def reset_state(self):
         """Reset state to data-less state"""
         pass
 
@@ -86,6 +91,46 @@ class State(metaclass=abc.ABCMeta):
     #    # transition would be method to get to given frame that might need
     #    #   look at several scenes
     #    pass
+
+
+class ParentState(State):
+    """Mixin for classes that manage other state instances.
+
+    This class makes the assumptions that the state instances
+    are kept as values in a dictionary, and that all of the instances
+    are known.
+    """
+
+    VERSION = 0
+    _child_attr_name = None  # replace in subclass
+
+    def take_snapshot(self, session, flags):
+        """Return snapshot of current state"""
+        child_dict = getattr(self, self._child_attr_name)
+        data = {}
+        for name, child in child_dict.items():
+            data[name] = child.take_snapshot(session, flags)
+        return [self.VERSION, data]
+
+    def restore_snapshot(self, phase, session, version, data):
+        """Restore data snapshot into instance"""
+        # TODO: handle previous versions
+        if version != self.VERSION or not data:
+            raise RuntimeError("Unexpected version or data")
+        child_dict = getattr(self, self._child_attr_name)
+        for name, [child_version, child_data] in data.items():
+            if name not in child_dict:
+                # TODO: warn about missing child
+                #       or create missing child to fill in
+                continue
+            child = child_dict[name]
+            child.restore_snapshot(phase, session, child_version, child_data)
+
+    def reset_state(self):
+        """Reset state to data-less state"""
+        child_dict = getattr(self, self._child_attr_name)
+        for child in child_dict.values():
+            child.reset_state()
 
 
 class Scenes(State):
@@ -160,7 +205,7 @@ class Scenes(State):
             raise State.NEED_NEWER
         self._scenes = data
 
-    def reset(self):
+    def reset_state(self):
         # documentation from base class
         self._scenes.clear()
 
@@ -183,7 +228,7 @@ class Session:
 
     def __init__(self):
         # manage
-        self._obj_ids = weakref.WeakValueDictionary()
+        self._obj_uids = weakref.WeakValueDictionary()
         self._cls_ordinals = {}
         from collections import OrderedDict
         self._state_managers = OrderedDict()   # objects that support State API
@@ -195,7 +240,7 @@ class Session:
         self._cls_ordinals.clear()
         for tag in self._state_managers:
             manager = self._state_managers[tag]
-            manager.reset()
+            manager.reset_state()
 
     def __setattr__(self, name, value):
         if hasattr(self, name):
@@ -227,40 +272,65 @@ class Session:
         object.__setattr__(self, name, value)
 
     def unique_id(self, obj):
-        """Return a unique identifier for an object in session"""
+        """Return a unique identifier for an object in session
 
-        if hasattr(obj, "_cache_uid"):
-            ident = obj._cache_uid
-            if ident in self._obj_ids:
-                return ident
+        Consequently, the identifier is composed of simple data types."""
+
         cls = obj.__class__
-        key = '%s.%s' % (cls.__module__, cls.__name__)
-        ordinal = self._cls_ordinals.get(key, 0)
+        class_name = '%s.%s' % (cls.__module__, cls.__name__)
+        if hasattr(obj, "_cache_uid"):
+            ordinal = obj._cache_uid
+            uid = (class_name, ordinal)
+            if uid in self._obj_uids:
+                return uid
+        ordinal = self._cls_ordinals.get(class_name, 0)
         ordinal += 1
-        self._cls_ordinals[key] = ordinal
-        ident = "%s_%d" % (key, ordinal)
-        self._obj_ids[ident] = obj
-        obj._cache_uid = ident
-        return ident
+        uid = (class_name, ordinal)
+        self._cls_ordinals[class_name] = ordinal
+        self._obj_uids[uid] = obj
+        obj._cache_uid = ordinal
+        return uid
 
-    def unique_obj(self, ident):
+    def unique_obj(self, uid):
         """Return the object that corresponds to the unique identifier"""
-        ref = self._obj_ids.get(ident, None)
-        if ref is None:
-            return None
-        return ref()
+        ref = self._obj_uids.get(uid, None)
+        return ref
 
     def restore_unique_id(self, obj, uid):
         """Restore unique identifier for an object"""
-        obj._cache_uid = uid
-        self._obj_ids[uid] = obj
+        class_name, ordinal = uid
+        obj._cache_uid = ordinal
+        self._obj_uids[uid] = obj
+        current_ordinal = self._cls_ordinals.get(class_name, 0)
+        if ordinal > current_ordinal:
+            self._cls_ordinals[class_name] = ordinal
+
+    def class_name_of_unique_id(self, uid):
+        """Extract class name associated with unique id"""
+        return uid[0]
+
+    def class_of_unique_id(self, uid, base_class):
+        """Return class associated with unique id"""
+        from importlib import import_module
+        full_class_name, ordinal = uid
+        module_name, class_name = full_class_name.rsplit('.', 1)
+        module = import_module(module_name)
+        cls = getattr(module, class_name)
+        assert(issubclass(cls, base_class))
+        return cls
 
     def save(self, stream):
         """Serialize session to stream."""
         serialize.serialize(stream, serialize.VERSION)
         serialize.serialize(stream, self.metadata)
-        serialize.serialize(stream, self._cls_ordinals)
-        for tag in self._state_managers:
+        # guarantee that tools are serialized first, so on restoration,
+        # all of the related code will be loaded before the rest of the
+        # session is restored
+        managers = list(self._state_managers)
+        if 'tools' in self._state_managers:
+            managers.remove('tools')
+            managers.insert(0, 'tools')
+        for tag in managers:
             manager = self._state_managers[tag]
             snapshot = manager.take_snapshot(self, State.SESSION)
             if snapshot is None:
@@ -279,7 +349,6 @@ class Session:
             raise State.NEED_NEWER
         if not skip_over_metadata:
             self.metadata.update(self.read_metadata(stream, skip_version=True))
-        self._cls_ordinals = serialize.deserialize(stream)
         # TODO: how much typechecking?
         assert(type(self._cls_ordinals) is dict)
         managers = []
@@ -291,28 +360,150 @@ class Session:
                 continue
             manager = self._state_managers[tag]
             manager.restore_snapshot(State.PHASE1, self, version, data)
-            managers.append((manager, version))
-        for manager, version in managers:
-            manager.restore_snapshot(State.PHASE2, self, version, None)
+            managers.append((manager, version, data))
+        for manager, version, data in managers:
+            manager.restore_snapshot(State.PHASE2, self, version, data)
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
         if not skip_version:
             version = serialize.deserialize(stream)
         metadata = serialize.deserialize(stream)
+        if skip_version:
+            return metadata
         return version, metadata
+
+
+@cli.register('save', cli.CmdDesc(required=[('filename', cli.StringArg)]))
+def save(session, filename, **kw):
+    """command line version of saving a session"""
+    my_open = None
+    if hasattr(filename, 'write'):
+        # called via export, it's really a stream
+        output = filename
+    else:
+        if not filename.endswith(SUFFIX):
+            filename += SUFFIX
+        my_open = _builtin_open
+        try:
+            # default to saving compressed files
+            import gzip
+            filename += ".gz"
+            my_open = gzip.GzipFile
+        except ImportError:
+            pass
+        try:
+            output = my_open(filename, 'wb')
+        except IOError:
+            session.logger.error()
+            return
+
+    try:
+        session.save(output)
+    finally:
+        if my_open is not None:
+            output.close()
+
+
+@cli.register('dump', cli.CmdDesc(required=[('filename', cli.StringArg)],
+                                  optional=[('output', cli.StringArg)]))
+def dump(session, filename, output=None):
+    """dump contents of session for debugging"""
+    if not filename.endswith(SUFFIX):
+        filename += SUFFIX
+    input = None
+    try:
+        input = _builtin_open(filename, 'rb')
+    except IOError:
+        filename2 = filename + '.gz'
+        try:
+            import gzip
+            input = gzip.GzipFile(filename2, 'rb')
+        except ImportError:
+            import os
+            if os.exists(filename2):
+                session.logger.error("Unable to open compressed files: %s"
+                                     % filename2)
+                return
+        except IOError:
+            pass
+        if input is None:
+            session.logger.error(
+                "Unable to find compressed nor uncompressed file: %s"
+                % filename)
+            return
+    if output is not None:
+        output = _builtin_open(output, 'w')
+    from pprint import pprint
+    with input:
+        print("session version:", file=output)
+        version = serialize.deserialize(input)
+        pprint(version, stream=output)
+        print("session metadata:", file=output)
+        metadata = serialize.deserialize(input)
+        pprint(metadata, stream=output)
+        while True:
+            tag, version, data = serialize.deserialize(input)
+            if tag is None:
+                break
+            print(tag, 'version:', version, file=output)
+            pprint(data, stream=output)
+
+
+def open(session, stream, *args, **kw):
+    if hasattr(stream, 'read'):
+        input = stream
+    else:
+        # it's really a filename
+        input = _builtin_open(stream, 'rb')
+    # TODO: active trigger to allow user to stop overwritting
+    # current session
+    session.restore(input)
+    return [], "opened chimera session"
+
+
+def _initialize():
+    from . import io
+    io.register_format(
+        "Chimera session", io.SESSION, SUFFIX,
+        prefixes="session",
+        mime="application/x-chimera2-session",
+        reference="http://www.rbvi.ucsf.edu/chimera/",
+        open_func=open, export_func=save)
+_initialize()
+
+_monkey_patch = True
 
 
 def common_startup(sess):
     """Initialize session with common data managers"""
+    assert(hasattr(sess, 'app_name'))
+    assert(hasattr(sess, 'debug'))
+    global _monkey_patch
+    from . import logger
+    sess.logger = logger.Logger(sess)
     from . import triggerset
     sess.triggers = triggerset.TriggerSet()
     sess.scenes = Scenes(sess)
+    sess.add_state_manager('scenes', sess.scenes)
     from . import models
     sess.models = models.Models(sess)
+    sess.add_state_manager('models', sess.models)
+    from .graphics.view import View
+    if _monkey_patch:
+        State.register(View)
+    sess.main_view = View(sess.models.drawing, (256, 256), None, sess.logger)
+    sess.add_state_manager('main_view', sess.main_view)
     from . import commands
     commands.register(sess)
     from . import stl
     stl.register()
-    sess.main_drawing = None
-    sess.main_view = None
+    from . import pdb
+    pdb.register()
+    from . import mmcif
+    mmcif.register()
+    from . import python
+    python.register()
+    from . import map
+    map.register_map_file_readers()
+    _monkey_patch = False

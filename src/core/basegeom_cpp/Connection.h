@@ -2,8 +2,10 @@
 #ifndef basegeom_Connection
 #define basegeom_Connection
 
-#include "Real.h"
 #include <stdexcept>
+
+#include "Real.h"
+#include "Rgba.h"
 
 namespace basegeom {
     
@@ -20,6 +22,10 @@ protected:
 private:
     End_points  _end_points;
 
+    bool  _display = true;
+    bool  _halfbond = true;
+    float  _radius = 1.0;
+    Rgba  _rgba;
 public:
     Connection(End *e1, End *e2);
     virtual  ~Connection() {}
@@ -34,6 +40,18 @@ public:
     Real  sqlength() const {
         return _end_points[0]->coord().sqdistance(_end_points[1]->coord());
     }
+
+    // graphics related
+    const Rgba&  color() const { return _rgba; }
+    bool  display() const { return _display; }
+    bool  halfbond() const { return _halfbond; }
+    void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
+        Rgba::Channel a) { _rgba = {r, g, b, a}; }
+    void  set_color(const Rgba& rgba) { _rgba = rgba; }
+    void  set_display(bool d) { _display = d; }
+    void  set_halfbond(bool hb) { _halfbond = hb; }
+    void  set_radius(float r) { _radius = r; }
+    float  radius() const { return _radius; }
 };
 
 template <class End, class FinalConnection>

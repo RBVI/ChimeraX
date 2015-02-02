@@ -64,7 +64,7 @@ def session_state(session, attributes_only = False):
     from ..molecule import mol_session
     s['molecules'] = tuple(mol_session.molecule_state(m) for m in mlist)
 
-  from ..surface.read_stl import STL_Surface
+  from .read_stl import STL_Surface
   slist = tuple(m.session_state() for m in session.model_list()
                 if isinstance(m, STL_Surface))
   if slist:
@@ -104,7 +104,7 @@ def set_session_state(s, session, file_paths, attributes_only = False):
     mol_session.restore_molecules(s['molecules'], session, file_paths, attributes_only)
 
   if 'stl surfaces' in s:
-    from ..surface import read_stl
+    from . import read_stl
     read_stl.restore_stl_surfaces(s['stl surfaces'], session, file_paths, attributes_only)
 
   if not attributes_only:
@@ -239,7 +239,7 @@ camera_parameters = (
 def camera_state(camera):
 
   v = dict((name,getattr(camera,name)) for name in camera_parameters if hasattr(camera,name))
-  v['place'] = camera.place.matrix
+  v['place'] = camera.position.matrix
   return v
 
 # -----------------------------------------------------------------------------

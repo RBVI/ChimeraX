@@ -25,6 +25,13 @@ protected:
     const Vertices &  vertices() const { return _vertices; }
 public:
     virtual  ~Graph() {}
+
+    // temporary until a Model class exists
+private:
+    bool  _display = true;
+public:
+    bool  display() const { return _display; }
+    void  set_display(bool d) { _display = d; }
 };
 
 template <class Vertex, class Edge>

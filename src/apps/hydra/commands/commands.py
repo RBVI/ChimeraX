@@ -25,15 +25,14 @@ def register_commands(commands):
     add('vop', vopcommand.vop_command)
     from ..map import series
     add('vseries', series.vseries_command)
-    from ..molecule import align, mcommand
+    from ..molecule import align, mcommand, area, surface
     add('align', align.align_command)
     add('show', mcommand.show_command)
     add('hide', mcommand.hide_command)
     add('color', mcommand.color_command)
     add('style', mcommand.style_command)
-    from ..surface import gridsurf, sasa
-    add('surface', gridsurf.surface_command)
-    add('area', sasa.area_command)
+    add('area', area.area_command)
+    add('surface', surface.surface_command)
     from .. import scenes
     add('scene', scenes.scene_command)
     from . import cameracmd
@@ -90,7 +89,7 @@ class Commands:
         '''
         if report:
             self.history.add_to_command_history(text)
-        for c in text.split(';'):
+        for c in split_unquoted(text, ';'):
             self.run_single_command(c, report)
 
     def run_single_command(self, text, report = True):
@@ -120,6 +119,11 @@ class Commands:
                 ses.log.insert_graphics_image()
         else:
             ses.show_status('Unknown command %s' % cmd)
+
+def split_unquoted(text, separator):
+    import re
+    pattern = re.compile(r'''((?:[^;"']|"[^"]*"|'[^']*')+)''')
+    return pattern.split(text)[1::2]
 
 class Command_History:
     def __init__(self, session):

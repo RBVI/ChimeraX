@@ -13,6 +13,11 @@ CXXFLAGS += -Wno-invalid-offsetof -Wno-deprecated-writable-strings
 endif
 LIBS += -L$(libdir) -latomstruct $(PYTHON_LIB)
 
+AtomBlob.o: AtomBlob.cpp AtomBlob.h $(includedir)/atomstruct/Atom.h
+BondBlob.o: BondBlob.cpp BondBlob.h $(includedir)/atomstruct/Bond.h
+ResBlob.o: ResBlob.cpp ResBlob.h $(includedir)/atomstruct/Residue.h
+StructBlob.o: StructBlob.cpp StructBlob.h $(includedir)/atomstruct/AtomicStructure.h
+
 $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
 
@@ -20,7 +25,7 @@ install: $(SHLIB)
 	$(RSYNC) $(SHLIB) $(shlibdir)
 	-mkdir $(includedir)/$(DIRNAME)
 	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)
-	if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
+	#if [ -d "$(app_shlibdir)" ]; then $(RSYNC) $(SHLIB) $(app_shlibdir); fi
 
 clean:
 	/bin/rm -f $(SHLIB) $(OBJS) imex.h

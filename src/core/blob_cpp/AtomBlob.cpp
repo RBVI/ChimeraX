@@ -3,6 +3,7 @@
 #include "AtomBlob.h"
 #include "ResBlob.h"
 #include "numpy_common.h"
+#include "set_blob.h"
 #include <stddef.h>
 
 namespace blob {
@@ -25,22 +26,93 @@ AtomBlob_dealloc(PyObject* obj)
 static const char AtomBlob_doc[] = "AtomBlob documentation";
 
 static PyObject*
+ab_colors(PyObject* self, void*)
+{
+    AtomBlob* ab = static_cast<AtomBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[2] = {(unsigned int)ab->_items->size(), 4};
+    PyObject* colors = allocate_python_array(2, shape, NPY_UINT8);
+    unsigned char* color_data = (unsigned char*) PyArray_DATA((
+        PyArrayObject*)colors);
+    for (auto a: *(ab->_items)) {
+        auto rgba = a->color();
+        *color_data++ = rgba.r;
+        *color_data++ = rgba.g;
+        *color_data++ = rgba.b;
+        *color_data++ = rgba.a;
+    }
+    return colors;
+}
+
+static int
+ab_set_colors(PyObject* self, PyObject* value, void*)
+{
+    return set_blob<AtomBlob>(self, value, &atomstruct::Atom::set_color);
+}
+
+static PyObject*
 ab_coords(PyObject* self, void*)
 {
     AtomBlob* ab = static_cast<AtomBlob*>(self);
-    initialize_numpy();
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
     static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
     unsigned int shape[2] = {(unsigned int)ab->_items->size(), 3};
     PyObject* coords = allocate_python_array(2, shape, NPY_DOUBLE);
     double* crd_data = (double*) PyArray_DATA((PyArrayObject*)coords);
-    auto& atoms = ab->_items;
-    for (auto ai = atoms->begin(); ai != atoms->end(); ++ai) {
-        auto& crd = (*ai)->coord();
+    for (auto a: *(ab->_items)) {
+        auto& crd = a->coord();
         *crd_data++ = crd[0];
         *crd_data++ = crd[1];
         *crd_data++ = crd[2];
     }
     return coords;
+}
+
+static PyObject*
+ab_displays(PyObject* self, void*)
+{
+    AtomBlob* ab = static_cast<AtomBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)ab->_items->size()};
+    PyObject* displays = allocate_python_array(1, shape, NPY_BOOL);
+    unsigned char* data = (unsigned char*) PyArray_DATA((PyArrayObject*)displays);
+    for (auto a: *(ab->_items)) {
+        *data++ = a->display();
+    }
+    return displays;
+}
+
+static int
+ab_set_displays(PyObject* self, PyObject* value, void*)
+{
+    return set_blob<AtomBlob>(self, value, &atomstruct::Atom::set_display);
+}
+
+static PyObject*
+ab_draw_modes(PyObject* self, void*)
+{
+    AtomBlob* ab = static_cast<AtomBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)ab->_items->size()};
+    PyObject* draw_modes = allocate_python_array(1, shape, NPY_INT8);
+    signed char* data = (signed char*) PyArray_DATA((PyArrayObject*)draw_modes);
+    for (auto a: *(ab->_items)) {
+        *data++ = a->draw_mode();
+    }
+    return draw_modes;
+}
+
+static int
+ab_set_draw_modes(PyObject* self, PyObject* value, void*)
+{
+    return set_blob<AtomBlob>(self, value, &atomstruct::Atom::set_draw_mode);
 }
 
 static PyObject*
@@ -60,15 +132,15 @@ static PyObject*
 ab_element_numbers(PyObject* self, void*)
 {
     AtomBlob* ab = static_cast<AtomBlob*>(self);
-    initialize_numpy();
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
     static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
     unsigned int shape[1] = {(unsigned int)ab->_items->size()};
     PyObject* element_numbers = allocate_python_array(1, shape, NPY_UBYTE);
     unsigned char* data = (unsigned char*) PyArray_DATA(
         (PyArrayObject*)element_numbers);
-    auto& atoms = ab->_items;
-    for (auto ai = atoms->begin(); ai != atoms->end(); ++ai) {
-        *data++ = (*ai)->element().number();
+    for (auto a: *(ab->_items)) {
+        *data++ = a->element().number();
     }
     return element_numbers;
 }
@@ -86,13 +158,35 @@ ab_names(PyObject* self, void*)
 }
 
 static PyObject*
+ab_radii(PyObject* self, void*)
+{
+    AtomBlob* ab = static_cast<AtomBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)ab->_items->size()};
+    PyObject* radii = allocate_python_array(1, shape, NPY_FLOAT);
+    float* data = (float*) PyArray_DATA((PyArrayObject*)radii);
+    for (auto a: *(ab->_items)) {
+        *data++ = a->radius();
+    }
+    return radii;
+}
+
+static int
+ab_set_radii(PyObject* self, PyObject* value, void*)
+{
+    return set_blob<AtomBlob>(self, value, &atomstruct::Atom::set_radius);
+}
+
+static PyObject*
 ab_residues(PyObject* self, void*)
 {
     PyObject* py_rb = newBlob<ResBlob>(&ResBlob_type);
     ResBlob* rb = static_cast<ResBlob*>(py_rb);
     AtomBlob* ab = static_cast<AtomBlob*>(self);
-    for (auto ai = ab->_items->begin(); ai != ab->_items->end(); ++ai) {
-        rb->_items->emplace_back((*ai)->residue());
+    for (auto a: *(ab->_items)) {
+        rb->_items->emplace_back(a->residue());
     }
     return py_rb;
 }
@@ -102,13 +196,21 @@ static PyMethodDef AtomBlob_methods[] = {
 };
 
 static PyGetSetDef AtomBlob_getset[] = {
+    { (char*)"colors", ab_colors, ab_set_colors,
+        (char*)"numpy Nx4 array of (unsigned char) RGBA values", NULL},
     { (char*)"coords", ab_coords, NULL,
         (char*)"numpy Nx3 array of atom coordinates", NULL},
+    { (char*)"displays", ab_displays, ab_set_displays,
+        (char*)"numpy array of (bool) displays", NULL},
+    { (char*)"draw_modes", ab_draw_modes, ab_set_draw_modes,
+        (char*)"numpy array of (int) draw modes", NULL},
     { (char*)"element_names", ab_element_names, NULL,
         (char*)"list of element names", NULL},
     { (char*)"element_numbers", ab_element_numbers, NULL,
         (char*)"numpy array of element numbers", NULL},
     { (char*)"names", ab_names, NULL, (char*)"list of atom names", NULL},
+    { (char*)"radii", ab_radii, ab_set_radii,
+        (char*)"numpy array of (float) atomic radii", NULL},
     { (char*)"residues", ab_residues, NULL, (char*)"ResBlob", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
@@ -140,7 +242,7 @@ PyTypeObject AtomBlob_type = {
     0, // tp_traverse
     0, // tp_clear
     0, // tp_richcompare
-    offsetof(Blob, _weaklist), // tp_weaklistoffset
+    offsetof(AtomBlob, _weaklist), // tp_weaklistoffset
     0, // tp_iter
     0, // tp_iternext
     AtomBlob_methods, // tp_methods

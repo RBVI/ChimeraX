@@ -6,10 +6,17 @@ VERSION = 2.4
 DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)
 
+SETUP_BUILD =
+ifdef DEBUG
+ifndef WIN32
+SETUP_BUILD += --debug
+endif
+endif
+
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:;
 

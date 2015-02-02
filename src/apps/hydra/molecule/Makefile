@@ -5,9 +5,9 @@ PKG_DIR = $(PYSITEDIR)/hydra/molecule
 
 SUBDIRS	= molecule_cpp
 
-PYSRCS = __init__.py align.py ambient.py biomt.py blastpdb.py colors.py connect.py \
+PYSRCS = __init__.py align.py ambient.py area.py biomt.py blastpdb.py colors.py connect.py \
 	fetch_pdb.py fetch_uniprot.py mass.py mcommand.py mmcif.py mol_session.py molecule.py pdb.py \
-	residue_codes.py
+	residue_codes.py surface.py
 
 DATA = bond_templates
 
