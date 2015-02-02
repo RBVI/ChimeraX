@@ -85,7 +85,7 @@ set_blob(PyObject* py_blob, PyObject* py_val,
             (item.get()->*member_func)(val);
         
     } else if (PyArray_Check(py_val)
-    && PyArray_ISINTEGER((PyArrayObject*)py_val)) {
+    && PyArray_ISBOOL((PyArrayObject*)py_val)) {
         PyArrayObject* array = PyArray_GETCONTIGUOUS((PyArrayObject*)py_val);
         if (PyArray_NDIM(array) != 1) {
             PyErr_SetString(PyExc_ValueError,
