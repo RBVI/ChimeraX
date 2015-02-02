@@ -1,5 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 #include "Atom.h"
+#include "Bond.h"
 #include "Residue.h"
 #include "tmpl/TemplateCache.h"
 #include <utility>  // for pair
@@ -32,6 +33,22 @@ Residue::atoms_map() const
         map.insert(AtomsMap::value_type(a->name(), a));
     }
     return map;
+}
+
+std::vector<Bond*>
+Residue::bonds_between(const Residue* other_res, bool just_first) const
+{
+    std::vector<Bond*> tweeners;
+    for (auto a: _atoms) {
+        for (auto b: a->bonds()) {
+            if (b->other_atom(a)->residue() == other_res) {
+                tweeners.push_back(b);
+                if (just_first)
+                    return tweeners;
+            }
+        }
+    }
+    return tweeners;
 }
 
 int

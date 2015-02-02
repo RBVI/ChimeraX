@@ -28,14 +28,14 @@ Chimera Core
 There are three major components of the Chimera core:
 the :doc:`user interface <user_interface>` modules,
 the :doc:`data interface <data_interface>` modules,
-and the :doc:`tool interface <tool_interface>` modules.
+and the :doc:`tool interface <core/tools>` modules.
 The user interface modules support the GUI and the command line interfaces,
 the data interface modules support the native data types,
 and the tool interface modules support common functionality
 and tool registration.
 
 In additons to the core functionality,
-there are the :doc:`tools` that use the core,
+there are the :doc:`toolshed <core/toolshed>` that use the core,
 and the :doc:`applications` that bundle the functionality.
 
 .. note::
@@ -52,8 +52,8 @@ Contents
 
     data_interface.rst
 
-    tool_interface.rst
+    core/tools.rst
 
-    tools.rst
+    core/toolshed.rst
 
     applications.rst

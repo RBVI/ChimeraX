@@ -22,6 +22,11 @@ from .volume import volume_from_grid_data
 from .volume import Volume
 
 # -----------------------------------------------------------------------------
+# Map contouring and distance maps.
+#
+from ._map import contour_surface, sphere_surface_distance
+
+# -----------------------------------------------------------------------------
 # The active volume is the one highlighted in the volume dialog.  If the
 # dialog has not been created (for example running Chimera with no graphical
 # user interface) then there is no active volume.

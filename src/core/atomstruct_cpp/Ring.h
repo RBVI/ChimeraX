@@ -13,7 +13,7 @@ public:
     typedef std::set<Atom*>  Atoms;
     typedef std::set<Bond*>  Bonds;
 private:
-    std::set<Bond*>  _bonds;
+    Bonds  _bonds;
     mutable Atoms  _atoms;
 public:
     Ring(std::set<Bond*>& ring_bonds);
@@ -22,6 +22,7 @@ public:
     void  add_bond(Bond* element);
     void  remove_bond(Bond* element);
     const Bonds&  bonds() const { return _bonds; }
+    Bonds::size_type  size() { return _bonds.size(); }
 
     // Only bonds, not atoms, are stored "naturally" in the ring.
     // Nonetheless, it is convenient to get the atoms easily...
@@ -47,5 +48,14 @@ public:
 };
 
 } // namespace atomstruct
+
+namespace std {
+
+template <> struct hash<atomstruct::Ring>
+{
+    size_t operator()(const atomstruct::Ring& r) const { return r.hash(); }
+};
+
+} // namespace std
 
 #endif  // atomstruct_Ring

@@ -4,9 +4,9 @@
 
 #include <vector>
 #include <string>
-#include <unordered_map>
 #include <memory>
-#include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Chain.h"
 #include "Pseudobond.h"
@@ -40,27 +40,35 @@ public:
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
-    typedef std::set<Ring> Rings;
+    typedef std::unordered_set<Ring> Rings;
 private:
     CoordSet *  _active_coord_set;
     bool  _being_destroyed;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
-            std::set<const Residue *>* ignore) const;
+            std::unordered_set<const Residue *>* ignore) const;
     mutable Chains *  _chains;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
+    void  _fast_calculate_rings(
+            std::unordered_set<const Residue *>* ignore) const;
+    bool  _fast_ring_calc_available(bool cross_residue,
+            unsigned int all_size_threshold,
+            std::unordered_set<const Residue *>* ignore) const;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
     std::string  _name;
+    int  _num_hyds = 0;
     AS_PBManager  _pb_mgr;
     mutable bool  _recompute_rings;
     Residues  _residues;
     mutable Rings  _rings;
+    bool  _rings_cached (bool cross_residues, unsigned int all_size_threshold,
+        std::unordered_set<const Residue *>* ignore = nullptr) const;
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
-    mutable std::set<const Residue *>*  _rings_last_ignore;
+    mutable std::unordered_set<const Residue *>*  _rings_last_ignore;
 public:
     AtomicStructure(PyObject* logger = nullptr);
     virtual  ~AtomicStructure() { _being_destroyed = true; }
@@ -97,6 +105,7 @@ public:
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
     int  num_atoms() const { return atoms().size(); }
     int  num_bonds() const { return bonds().size(); }
+    int  num_hyds() const { return _num_hyds; }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::unordered_map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
@@ -104,7 +113,7 @@ public:
     const Residues &  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
-        std::set<const Residue *>* ignore = nullptr) const;
+        std::unordered_set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
     void  set_input_seq_info(std::string& chain_id, std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(std::string& name) { _name = name; }
@@ -118,6 +127,8 @@ inline void
 atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
     for (auto b: a->bonds()) delete_bond(b);
     delete_vertex(a);
+    if (a->element().number() == 1)
+        --_num_hyds;
 }
 
 #include "Bond.h"

@@ -5,7 +5,7 @@
 def surface_inertia(drawings):
 
   vw = []
-  from ..surface.surface_cpp import vertex_areas
+  from ..surface import vertex_areas
   for d in drawings:
     for va, ta, positions in d.all_geometries():
       weights = vertex_areas(va, ta)
@@ -49,8 +49,8 @@ def map_points_and_weights(v, level = None, step = None, subregion = None):
   # Get 3-d array of map values.
   m = v.matrix(step = step, subregion = subregion)
 
-  from ..map import map_cpp
-  points_int = map_cpp.high_indices(m, level)
+  from ..map import _map
+  points_int = _map.high_indices(m, level)
   from numpy import float32
   points = points_int.astype(float32)
   tf = v.matrix_indices_to_xyz_transform(step, subregion)
@@ -162,7 +162,7 @@ def ellipsoid_shell_size_from_moments(d2):
   varray, narray, tarray = ellipsoid_geometry(center = (0,0,0),
                                               axes = ((1,0,0),(0,1,0),(0,0,1)),
                                               axis_lengths = elen)
-  from ..surface.surface_cpp import vertex_areas
+  from ..surface import vertex_areas
   for k in range(10):
     weights = vertex_areas(varray, tarray)
     axes, d2e, center = moments_of_inertia([(varray, weights)])

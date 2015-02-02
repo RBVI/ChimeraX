@@ -7,10 +7,18 @@ DISTRIBUTION = tables-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/tables-$(VERSION)
 HDF_CONFIG = --hdf5='$(build_prefix)'
 
+SETUP_BUILD =
+ifdef DEBUG
+ifndef WIN32
+SETUP_BUILD += --debug
+endif
+endif
+
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py $(HDF_CONFIG) install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py \
+		$(HDF_CONFIG) build $(SETUP_BUILD) install
 
 app-install:
 	$(RSYNC) $(PYSITEDIR)/tables-$(VERSION)-py$(PYTHON_VERSION).egg-info \

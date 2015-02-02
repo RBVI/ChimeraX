@@ -7,10 +7,17 @@ DISTRIBUTION = pycollada-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/pycollada-$(VERSION)
 PATCHES	= $(wildcard pycollada-$(VERSION)-*.patch)
 
+SETUP_BUILD =
+ifdef DEBUG
+ifndef WIN32
+SETUP_BUILD += --debug
+endif
+endif
+
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py install
+	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:
 	$(RSYNC) $(PYSITEDIR)/pycollada-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)

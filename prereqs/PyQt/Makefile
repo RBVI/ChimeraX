@@ -6,7 +6,7 @@ VERSION = 5.2.1
 DISTRIBUTION = PyQt-gpl-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/PyQt-gpl-$(VERSION)
 
-CONFIG_ARGS = --confirm-license --verbose --sip $(PYTHON_FRAMEWORK)/bin/sip
+CONFIG_ARGS = --confirm-license --verbose --sip $(PYTHON_FRAMEWORK)/bin/sip --qmake $(bindir)/qmake
 
 all:
 

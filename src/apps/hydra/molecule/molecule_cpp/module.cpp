@@ -6,9 +6,6 @@
 #include "parsecif.h"			// use parse_mmcif_file
 #include "parsepdb.h"			// use parse_pdb_file
 #include "pdb_bonds.h"			// use molecule_bonds
-#include "sasa.h"			// use surface_area_of_spheres
-#include "spline.h"			// use natural_cubic_spline
-#include "tube.h"			// use tube_geometry
 
 namespace Molecule_Cpp
 {
@@ -51,24 +48,6 @@ static struct PyMethodDef molecule_cpp_methods[] =
   {const_cast<char*>("molecule_bonds"), (PyCFunction)molecule_bonds,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("initialize_bond_templates"), (PyCFunction)initialize_bond_templates,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* sasa.h */
-  {const_cast<char*>("surface_area_of_spheres"), (PyCFunction)surface_area_of_spheres,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("estimate_surface_area_of_spheres"), (PyCFunction)estimate_surface_area_of_spheres,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* spline.h */
-  {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* tube.h */
-  {const_cast<char*>("tube_geometry"), (PyCFunction)tube_geometry,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("tube_geometry_colors"), (PyCFunction)tube_geometry_colors,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("tube_triangle_mask"), (PyCFunction)tube_triangle_mask,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}

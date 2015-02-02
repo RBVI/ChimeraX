@@ -41,13 +41,19 @@ class UI(wx.App):
 
         self._keystroke_sinks = []
 
-    def build(self):
+    def build(self, load_tools):
         self.splash.Close()
-        self.main_window = MainWindow(self)
+        self.main_window = MainWindow(self, self.session)
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
-        from .ui.cmd_line import CmdLine
-        self.cmd_line = CmdLine(self.session)
+        if load_tools:
+            from .toolshed import ToolshedError
+            for ti in self.session.toolshed.tool_info():
+                try:
+                    ti.start(self.session)
+                except ToolshedError as e:
+                    self.session.logger.info("Tool \"%s\" failed to start"
+                                             % ti.name)
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -88,26 +94,21 @@ class UI(wx.App):
 
 class MainWindow(wx.Frame):
 
-    def __init__(self, ui):
+    def __init__(self, ui, session):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
 
-        from wx.lib.agw.aui import AuiManager, AuiPaneInfo
+        from wx.lib.agw.aui import AuiManager, AuiPaneInfo, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
 
-        from .ui.graphics import GraphicsWindow
-        self.graphics_window = g = GraphicsWindow(self, ui)
-        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
+        self.pane_to_tool_window = {}
 
-        self.status_bar = self.CreateStatusBar(
-            3, wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
-            | wx.FULL_REPAINT_ON_RESIZE)
-        self.status_bar.SetStatusWidths([-24, -30, -2])
-        self.status_bar.SetStatusText("Status", 0)
-        self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
-        self.status_bar.SetStatusText("", 2)
+        self._build_graphics(ui)
+        self._build_status()
+        self._build_menus(session)
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.Bind(EVT_AUI_PANE_CLOSE, self.OnPaneClose)
 
     def close(self):
         self.aui_mgr.UnInit()
@@ -117,3 +118,72 @@ class MainWindow(wx.Frame):
 
     def OnClose(self, event):
         self.close()
+
+    def OnOpen(self, event, session):
+        from . import io
+        dlg = wx.FileDialog(self, "Open file",
+            wildcard=io.wx_open_file_filter(all=True),
+            style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_MULTIPLE)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+
+        for p in dlg.GetPaths():
+            session.models.open(p)
+
+    def OnPaneClose(self, event):
+        pane_info = event.GetPane()
+        tool_window = self.pane_to_tool_window[pane_info.window]
+        if tool_window.destroy_hides:
+            tool_window.shown = False
+            event.Veto()
+        else:
+            tool_window.destroy(from_destructor=True)
+
+    def OnQuit(self, event):
+        self.close()
+
+    def _build_graphics(self, ui):
+        from .ui.graphics import GraphicsWindow
+        self.graphics_window = g = GraphicsWindow(self, ui)
+        from wx.lib.agw.aui import AuiPaneInfo
+        self.aui_mgr.AddPane(g, AuiPaneInfo().Name("GL").CenterPane())
+
+    def _build_menus(self, session):
+        menu_bar = wx.MenuBar()
+        self._populate_menus(menu_bar, session)
+        self.SetMenuBar(menu_bar)
+
+    def _build_status(self):
+        self.status_bar = self.CreateStatusBar(
+            3, wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
+            | wx.FULL_REPAINT_ON_RESIZE)
+        self.status_bar.SetStatusWidths([-24, -30, -2])
+        self.status_bar.SetStatusText("Status", 0)
+        self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
+        self.status_bar.SetStatusText("", 2)
+
+    def _populate_menus(self, menu_bar, session):
+        import sys
+        file_menu = wx.Menu()
+        menu_bar.Append(file_menu, "&File")
+        item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnOpen(evt, ses),
+            item)
+        if sys.platform != "darwin":
+            item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
+            self.Bind(wx.EVT_MENU, self.OnQuit, item)
+        tools_menu = wx.Menu()
+        categories = {}
+        for ti in session.toolshed.tool_info():
+            for cat in ti.menu_categories:
+                categories.setdefault(cat, {})[ti.display_name] = ti
+        for cat in sorted(categories.keys()):
+            cat_menu = wx.Menu()
+            tools_menu.Append(wx.ID_ANY, cat, cat_menu)
+            cat_info = categories[cat]
+            for tool_name in sorted(cat_info.keys()):
+                ti = cat_info[tool_name]
+                item = cat_menu.Append(wx.ID_ANY, tool_name)
+                cb = lambda evt, ses=session, ti=ti: ti.start(ses)
+                self.Bind(wx.EVT_MENU, cb, item)
+        menu_bar.Append(tools_menu, "&Tools")

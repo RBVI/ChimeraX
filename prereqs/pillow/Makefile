@@ -5,7 +5,7 @@ include $(TOP)/mk/config.make
 VERSION = 2.6.1
 DISTRIBUTION = Pillow-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/Pillow-$(VERSION)
-PILLOW_EGG = $(wildcard Pillow-$(VERSION)-py$(PYTHON_VERSION)-*.egg)
+PILLOW_EGG = Pillow-$(VERSION)-py$(PYTHON_VERSION)-macosx-$(MACOSX_DEPLOYMENT_TARGET)-x86_64.egg
 JPEG_INC = $(build_prefix)/include
 JPEG_LIB = $(build_prefix)/lib
 
@@ -24,10 +24,10 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(SETUP_ENV) $(PYTHON_EXE) setup.py $(SETUP_BUILD) \
-		build_ext --disable-tk install
+	cd $(SOURCE) && $(SETUP_ENV) $(PYTHON_EXE) setup.py \
+		build $(SETUP_BUILD) build_ext --disable-tk install
+ifeq ($(OS),Darwin)
 # Unzip egg so PIL source code is available for Mac app install.
-ifneq (,$(PILLOW_EGG))
 	cd $(PYSITEDIR) ; unzip $(PILLOW_EGG) -x "EGG-INFO/*"
 endif
 

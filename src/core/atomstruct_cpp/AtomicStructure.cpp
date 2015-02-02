@@ -1,12 +1,13 @@
 // vi: set expandtab ts=4 sw=4:
 #include "Atom.h"
+#include "AtomicStructure.h"
 #include "Bond.h"
 #include "CoordSet.h"
 #include <logger/logger.h>
 #include "Element.h"
-#include "AtomicStructure.h"
 #include "Residue.h"
 #include "Pseudobond.h"
+#include "seq_assoc.h"
 
 #include <algorithm>  // for std::find, std::sort
 #include <stdexcept>
@@ -223,7 +224,7 @@ AtomicStructure::make_chains() const
 
             if (seqres_size < chain_size) {
                 logger::warning(_logger, input_seq_source, " for chain ",
-                    chain_id, " of ", _name, " is incomplete.\n"
+                    chain_id, " of ", _name, " is incomplete.  "
                     "Ignoring input sequence records as basis for sequence.");
                 continue;
             }
@@ -236,11 +237,13 @@ AtomicStructure::make_chains() const
             chain->begin(), chain->end()) == sr_seq.end()) {
                 logger::warning(_logger, "Residues corresponding to ",
                     input_seq_source, " for chain ", chain_id, " of ", _name,
-                    " are missing.\nIgnoring record as basis for sequence.");
+                    " are missing.  Ignoring record as basis for sequence.");
                 continue;
             }
 
             // okay, seriously try to match up with SEQRES
+            auto ap = estimate_assoc_params(*chain);
+            //TODO
         }
     }
 }
@@ -250,6 +253,8 @@ AtomicStructure::new_atom(const std::string &name, Element e)
 {
     Atom *a = new Atom(this, name, e);
     add_vertex(a);
+    if (e.number() == 1)
+        ++_num_hyds;
     return a;
 }
 
@@ -399,11 +404,9 @@ AtomicStructure::polymers() const
 
 const AtomicStructure::Rings&
 AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
-    std::set<const Residue *>* ignore) const
+    std::unordered_set<const Residue *>* ignore) const
 {
-    if (!_recompute_rings && cross_residues == _rings_last_cross_residues
-    && all_size_threshold == _rings_last_all_size_threshold
-    && ignore == _rings_last_ignore)
+    if (_rings_cached(cross_residues, all_size_threshold, ignore))
         return _rings;
 
     _recompute_rings = false;
@@ -431,6 +434,16 @@ AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
         }
     }
     return _rings;
+}
+
+bool
+AtomicStructure::_rings_cached(bool cross_residues,
+    unsigned int all_size_threshold,
+    std::unordered_set<const Residue *>* ignore) const
+{
+    return !_recompute_rings && cross_residues == _rings_last_cross_residues
+        && all_size_threshold == _rings_last_all_size_threshold
+        && ignore == _rings_last_ignore;
 }
 
 void

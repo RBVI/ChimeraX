@@ -9,8 +9,10 @@
 
 namespace blob {
     
+template <class MolItem>
 struct Blob: public PyObject {
 public:
+    typedef MolItem  MolType;
     PyObject* _weaklist;
 };
 
@@ -24,14 +26,14 @@ public:
 };
 
 template <class MolItem>
-class SharedBlob: public Blob {
+class SharedBlob: public Blob<MolItem> {
 public:
     typedef std::vector<std::shared_ptr<MolItem>>  ItemsType;
     ItemsType*  _items;
 };
 
 template <class MolItem>
-class RawBlob: public Blob {
+class RawBlob: public Blob<MolItem> {
 public:
     typedef std::vector<SharedAPIPointer<MolItem>>  ItemsType;
     ItemsType*  _items;

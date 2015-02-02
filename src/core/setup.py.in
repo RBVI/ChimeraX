@@ -1,0 +1,70 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+# import distutils.core
+# distutils.core.DEBUG = True
+from setuptools import setup
+
+lib_dir = "LIB_DIR"
+pkg_dir = "PKG_DIR"
+import os.path
+
+setup(
+    name="chimera.core",
+    version="CORE_VERSION",
+    description="Chimera Core Package",
+    author="UCSF RBVI",
+    author_email="chimera2@cgl.ucsf.edu",
+    url="https://www.rbvi.ucsf.edu/chimera2/",
+    package_dir={
+        "chimera.core": pkg_dir,
+    },
+    packages=[
+        "chimera.core",
+        "chimera.core.ui",
+        "chimera.core.geometry",
+        "chimera.core.graphics",
+        "chimera.core.map",
+        "chimera.core.map.data",
+        "chimera.core.map.data.ccp4",
+        "chimera.core.map.data.cmap",
+        "chimera.core.map.data.dsn6",
+        "chimera.core.map.data.imagestack",
+        "chimera.core.map.data.mrc",
+        "chimera.core.surface",
+        "chimera.core.toolshed",
+    ],
+    package_data={
+        "chimera.core": ["*.PYMOD_EXT"],
+        "chimera.core.ui": ["*.jpg"],
+        "chimera.core.geometry": ["*.PYMOD_EXT"],
+        "chimera.core.graphics": ["*.txt", "*.PYMOD_EXT"],
+        "chimera.core.map": ["*.PYMOD_EXT"],
+        "chimera.core.surface": ["*.PYMOD_EXT"],
+    },
+    data_files=[
+        ("", ["timestamp"]),
+        ("lib", [
+            os.path.join(lib_dir, "libappdirs.SHLIB_EXT"),
+            os.path.join(lib_dir, "libarrays.SHLIB_EXT"),
+            os.path.join(lib_dir, "liblogger.SHLIB_EXT"),
+            os.path.join(lib_dir, "libtmpl.SHLIB_EXT"),
+            os.path.join(lib_dir, "libatomstruct.SHLIB_EXT"),
+            os.path.join(lib_dir, "libblob.SHLIB_EXT"),
+        ]),
+    ],
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Environment :: MacOS X :: Aqua",
+        "Environment :: Win32 (MS Windows)",
+        "Environment :: X11 Applications",
+        "Intended Audience :: Science/Research",
+        "License :: Free for non-commercial use",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows 7",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Vio-Informatics",
+        "Chimera-Tools :: ChimeraCore",
+    ],
+)

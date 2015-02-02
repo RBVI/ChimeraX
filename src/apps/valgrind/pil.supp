@@ -1,0 +1,6 @@
+# PIL
+{
+    ImagingZipEncode
+    Memcheck:Cond
+    fun:ImagingZipEncode
+}

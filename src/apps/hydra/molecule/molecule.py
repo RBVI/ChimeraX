@@ -195,7 +195,8 @@ class Molecule(Model):
       self.bonds_drawing = p = self.new_drawing('bonds')
 
     from .. import surface
-    va, na, ta = surface.cylinder_geometry(caps = False)
+    # Use 3 z-sections so cylinder ends match in half-bond mode.
+    va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
     p.geometry = va, ta
     p.normals = na
 
@@ -286,8 +287,9 @@ class Molecule(Model):
       rnums = self.residue_nums[s]
       cint = contiguous_intervals(rnums)
       sd, cd = self.ribbon_subdivisions
-      from .molecule_cpp import natural_cubic_spline, duplicate_midpoints
+      from .molecule_cpp import duplicate_midpoints
       from ..surface import tube
+      from ..geometry import natural_cubic_spline
       for i1,i2 in cint:
         if rshow[i1:i2+1].sum() == 0:
           continue      # Segment not shown
@@ -678,18 +680,18 @@ class Molecule(Model):
     r = self.shown_atom_array_values(self.drawing_radii())
     rsp = self.ribbon_drawing
     f = fa = ft = None
-    from ..graphics import graphics_cpp
+    from .. import graphics
     for tf in self.positions:
       cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
       # Check for atom sphere intercept
-      fmin, anum = graphics_cpp.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+      fmin, anum = graphics.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
       if not fmin is None and (f is None or fmin < f):
         f = fmin
         fa,ft = anum, None
       # Check for ribbon intercept
       if rsp:
         va, ta = rsp.geometry
-        fmin, t = graphics_cpp.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+        fmin, t = graphics.closest_geometry_intercept(va, ta, cxyz1, cxyz2)
         if not fmin is None and (f is None or fmin < f):
           f = fmin
           fa,ft = None, t

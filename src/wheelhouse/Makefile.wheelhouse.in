@@ -1,0 +1,7 @@
+WHEELS = $(wildcard *.whl)
+
+all:	METADATA.json
+	PYPI_SERVER --disable-fallback `pwd`
+
+METADATA.json:	update_metadata.py $(WHEELS)
+	../bin/python3 update_metadata.py

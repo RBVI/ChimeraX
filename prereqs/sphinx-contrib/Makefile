@@ -17,8 +17,10 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE)/blockdiag && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
-	cd $(SOURCE)/traclinks && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+	cd $(SOURCE)/blockdiag && $(PYTHON_EXE) setup.py \
+		build $(SETUP_BUILD) install
+	cd $(SOURCE)/traclinks && $(PYTHON_EXE) setup.py \
+		build $(SETUP_BUILD) install
 
 app-install:;
 

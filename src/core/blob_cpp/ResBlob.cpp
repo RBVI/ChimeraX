@@ -53,7 +53,8 @@ static PyObject*
 rb_numbers(PyObject* self, void*)
 {
     ResBlob* rb = static_cast<ResBlob*>(self);
-    initialize_numpy();
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
     static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
     unsigned int shape[1] = {(unsigned int)rb->_items->size()};
     PyObject* residue_numbers = allocate_python_array(1, shape, NPY_INT);
@@ -117,7 +118,7 @@ PyTypeObject ResBlob_type = {
     0, // tp_traverse
     0, // tp_clear
     0, // tp_richcompare
-    offsetof(Blob, _weaklist), // tp_weaklistoffset
+    offsetof(ResBlob, _weaklist), // tp_weaklistoffset
     0, // tp_iter
     0, // tp_iternext
     ResBlob_methods, // tp_methods

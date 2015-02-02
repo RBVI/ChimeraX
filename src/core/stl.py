@@ -13,51 +13,7 @@ from . import generic3d
 
 
 class STLModel(generic3d.Generic3DModel):
-
-    def __init__(self, filename):
-        generic3d.Generic3DModel.__init__(self)
-        self.data = None
-
-        if hasattr(filename, 'read'):
-            # it's really a file-like object
-            input = filename
-        else:
-            input = _builtin_open(filename, 'rb')
-
-        # parse input:
-
-        # First read 80 byte comment line
-        comment = input.read(80)
-
-        # Next read uint32 triangle count.
-        from numpy import fromstring, uint32, empty, float32
-        tc = fromstring(input.read(4), uint32)        # triangle count
-
-        # Next read 50 bytes per triangle containing float32 normal vector
-        # followed three float32 vertices, followed by two "attribute bytes"
-        # sometimes used to hold color information, but ignored by this reader.
-        nv = empty((tc, 12), float32)
-        for t in range(tc):
-            nt = input.read(12 * 4 + 2)
-            nv[t, :] = fromstring(nt[:48], float32)
-
-        if input != filename:
-            input.close()
-
-        va, na, ta = stl_geometry(nv)    # vertices, normals, triangles
-        self.data = comment, va, na, ta
-
-    def make_graphics(self, parent_drawing):
-        cur_color = [0.7, 0.7, 0.7, 1.0]
-        from numpy import array, uint8
-        cur_color = (array(cur_color) * 255).astype(uint8)
-        if not self.graphics:
-            self.graphics = parent_drawing.new_drawing(self.name)
-        comment, va, na, ta = self.data
-        self.graphics.vertices = va
-        self.graphics.normals = na
-        self.graphics.triangles = ta
-        self.graphics.color = cur_color
+    pass
 
 
 def open(session, filename, *args, **kw):
@@ -68,9 +24,49 @@ def open(session, filename, *args, **kw):
     Extra arguments are ignored.
     """
 
-    model = STLModel(filename)
-    comment, va, na, ta = model.data
-    return [model], "Opened STL file containing %d triangles" % len(ta)
+    name = kw['name'] if 'name' in kw else None
+    if hasattr(filename, 'read'):
+        # it's really a file-like object
+        input = filename
+        if name is None:
+            name = filename.name
+    else:
+        input = _builtin_open(filename, 'rb')
+        if name is None:
+            name = filename
+
+    model = STLModel(name)
+
+    # parse input:
+
+    # First read 80 byte comment line
+    comment = input.read(80)
+    del comment
+
+    # Next read uint32 triangle count.
+    from numpy import fromstring, uint32, empty, float32, array, uint8
+    tc = fromstring(input.read(4), uint32)        # triangle count
+
+    # Next read 50 bytes per triangle containing float32 normal vector
+    # followed three float32 vertices, followed by two "attribute bytes"
+    # sometimes used to hold color information, but ignored by this reader.
+    nv = empty((tc, 12), float32)
+    for t in range(tc):
+        nt = input.read(12 * 4 + 2)
+        nv[t, :] = fromstring(nt[:48], float32)
+
+    if input != filename:
+        input.close()
+
+    va, na, ta = stl_geometry(nv)    # vertices, normals, triangles
+    model.vertices = va
+    model.normals = na
+    model.triangles = ta
+    cur_color = [0.7, 0.7, 0.7, 1.0]
+    cur_color = (array(cur_color) * 255).astype(uint8)
+    model.color = cur_color
+    return [model], ("Opened STL file containing %d triangles"
+                     % len(model.triangles))
 
 
 def stl_geometry(nv):
@@ -112,6 +108,6 @@ def stl_geometry(nv):
 def register():
     from . import io
     io.register_format(
-        "STL", generic3d.CATEGORY, (".stl",),
+        "StereoLithography", generic3d.CATEGORY, (".stl",),
         reference="http://en.wikipedia.org/wiki/STL_%28file_format%29",
         open_func=open)

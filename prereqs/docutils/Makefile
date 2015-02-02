@@ -17,7 +17,7 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:;
 

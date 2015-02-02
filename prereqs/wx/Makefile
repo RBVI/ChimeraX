@@ -1,8 +1,12 @@
+#
+# source fetched from http://wxpython.org/Phoenix/snapshot-builds/
+#
+
 FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.2.dev78088
+VERSION = 3.0.3.dev78406
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
@@ -25,7 +29,7 @@ all:
 
 install:	$(SOURCE)
 ifeq ($(OS),Windows)
-	echo wxPython on Windows not supported yet
+	echo "wxPython on Windows not supported yet" && exit 1
 else
 	rm -f $(PYSITEDIR)/wx/libwx_*
 	cd $(SOURCE)/Phoenix && \
@@ -45,6 +49,9 @@ endif
 app-install:
 	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(VERSION)-py$(PYTHON_VERSION).egg-info \
 		$(PYSITEDIR)/wx $(APP_PYSITEDIR)
+ifndef USE_MAC_FRAMEWORKS
+	$(RSYNC) $(shlibdir)/libwx_*$(SHLIB_EXT)* $(app_shlibdir)
+endif
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
