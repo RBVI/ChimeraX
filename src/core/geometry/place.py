@@ -357,7 +357,11 @@ class Places:
         if not sas is None:
             p = Places(shift_and_scale = sas[mask])
         else:
-            p = Places(place_array=self.array()[mask])
+            oa = self._opengl_array
+            if oa is None:
+                p = Places(place_array=self.array()[mask])
+            else:
+                p = Places(opengl_array = oa)
         return p
 
     def shift_and_scale_array(self):
