@@ -1567,6 +1567,11 @@ def html_usage(name):
     return usage
 
 
+def registered_commands():
+    """Return a list of the currently registered commands"""
+    return list(_commands.keys())
+
+
 class _Alias:
     """Internal alias command implementation"""
 

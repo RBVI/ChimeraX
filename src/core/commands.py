@@ -78,13 +78,25 @@ def list(session):
 _list_desc = cli.CmdDesc()
 
 
-def help(session, command_name):
+def help(session, command_name=None):
     from . import cli
-    usage = cli.usage(command_name)
-    session.logger.status(usage)
-    usage = cli.html_usage(command_name)
-    session.logger.info(usage)
-_help_desc = cli.CmdDesc(required=[('command_name', cli.StringArg)])
+    status = session.logger.status
+    info = session.logger.info
+    if command_name is None:
+        info("Use 'help <command>' to learn more about a command.")
+        cmds = cli.registered_commands()
+        cmds.sort()
+        if len(cmds) == 0:
+            pass
+        elif len(cmds) == 1:
+            info("The following command is available: %s" % cmds[0])
+        else:
+            info("The following commands are available: %s, and %s"
+                 % ( ', '.join(cmds[:-1]), cmds[-1]))
+        return
+    status(cli.usage(command_name))
+    info(cli.html_usage(command_name))
+_help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)])
 
 
 def window(session):
