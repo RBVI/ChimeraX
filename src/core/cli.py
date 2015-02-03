@@ -213,6 +213,7 @@ class Annotation(metaclass=abc.ABCMeta):
         the leading article, *e.g.*, `"a truth value"`.
     """
     name = "** article name, e.g., _a_ _truth value_ **"
+    help = None  #: placeholder for help information (e.g., URL)
 
     @staticmethod
     def parse(text, session):
@@ -383,6 +384,18 @@ class DottedTupleOf(Aggregate):
     """
     separator = '.'
     constructor = tuple
+
+    def __init__(self, annotation, min_size=None,
+                 max_size=None, name=None):
+        Aggregate.__init__(self, annotation, min_size, max_size, name)
+        if name is None:
+            if ',' in annotation.name:
+                name = "dotted list of %s" % annotation.name
+            else:
+                # discard article
+                name = annotation.name.split(None, 1)[1]
+                name = "dotted %s(s)" % name
+            self.name = name
 
     def add_to(self, container, value):
         return container + (value,)
@@ -739,8 +752,8 @@ IntsArg = ListOf(IntArg)
 Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
 Float3Arg = TupleOf(FloatArg, 3)
-PositiveIntArg = Bounded(IntArg, min=1, name="natural number")
-ModelIdArg = DottedTupleOf(PositiveIntArg)
+PositiveIntArg = Bounded(IntArg, min=1, name="a natural number")
+ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id")
 
 
 class Postcondition(metaclass=abc.ABCMeta):
@@ -1479,7 +1492,7 @@ def command_help(name):
     return cmd._ci.help
 
 
-def command_usage(name):
+def usage(name):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -1493,20 +1506,20 @@ def command_usage(name):
 
     usage = cmd.command_name
     ci = cmd._ci
-    for arg in ci._required:
-        usage += ' %s' % arg
+    for arg_name in ci._required:
+        usage += ' %s' % arg_name
     num_opt = 0
-    for arg in ci._optional:
-        usage += ' [%s' % arg
+    for arg_name in ci._optional:
+        usage += ' [%s' % arg_name
         num_opt += 1
     usage += ']' * num_opt
-    for arg in ci._keyword:
-        type = ci._keyword[arg].name
-        usage += ' [%s _%s_]' % (arg, type)
+    for arg_name in ci._keyword:
+        type = ci._keyword[arg_name].name
+        usage += ' [%s _%s_]' % (arg_name, type.replace(' ', '_'))
     return usage
 
 
-def command_html_usage(name):
+def html_usage(name):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -1519,22 +1532,38 @@ def command_html_usage(name):
         raise ValueError("'%s' is not a command name" % name)
 
     from html import escape
-    usage = '<b>%s</b>' % escape(cmd.command_name)
+    if cmd._ci.help is None:
+        usage = '<b>%s</b>' % escape(cmd.command_name)
+    else:
+        usage = '<b><a href="%s">%s</a></b>' % (
+            cmd._ci.help, escape(cmd.command_name))
     ci = cmd._ci
-    for arg in ci._required:
-        type = ci._required[arg].name
-        usage += ' <span title="%s"><i>%s</i></span>' % (escape(type),
-                                                         escape(arg))
+    for arg_name in ci._required:
+        arg = ci._required[arg_name]
+        type = arg.name
+        if arg.help is None:
+            name = escape(arg_name)
+        else:
+            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+        usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
-    for arg in ci._optional:
+    for arg_name in ci._optional:
         num_opt += 1
-        type = ci._optional[arg].name
-        usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type),
-                                                          escape(arg))
+        arg = ci._optional[arg_name]
+        type = arg.name
+        if arg.help is None:
+            name = escape(arg_name)
+        else:
+            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+        usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
-    for arg in ci._keyword:
-        type = ci._keyword[arg].name
-        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg), escape(type))
+    for arg_name in ci._keyword:
+        arg = ci._keyword[arg_name]
+        if arg.help is None:
+            type = escape(arg.name)
+        else:
+            type = '<a href="%s">%s</a>' % (arg.help, escape(arg.name))
+        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
     return usage
 
 
@@ -1548,7 +1577,6 @@ class _Alias:
         self.parts = []  # list of strings and integer argument numbers
         self.cmd = None
         self.optional_rest_of_line = False
-
         not_dollar = re.compile(r"[^$]*")
         number = re.compile(r"\d*")
 
@@ -1858,13 +1886,10 @@ if __name__ == '__main__':
         def echo(session, text=''):
             return text
 
-        @register('usage', CmdDesc(required=[('name', RestOfLine)]))
-        def usage(session, name):
-            print(command_usage(name))
+        register('usage', CmdDesc(required=[('name', RestOfLine)]), usage)
 
-        @register('html_usage', CmdDesc(required=[('name', RestOfLine)]))
-        def html_usage(session, name):
-            print(command_html_usage(name))
+        register('html_usage', CmdDesc(required=[('name', RestOfLine)]),
+                 html_usage)
         prompt = 'cmd> '
         cmd = Command(None)
         while True:

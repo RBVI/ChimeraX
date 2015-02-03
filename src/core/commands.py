@@ -78,6 +78,15 @@ def list(session):
 _list_desc = cli.CmdDesc()
 
 
+def help(session, command_name):
+    from . import cli
+    usage = cli.usage(command_name)
+    session.logger.status(usage)
+    usage = cli.html_usage(command_name)
+    session.logger.info(usage)
+_help_desc = cli.CmdDesc(required=[('command_name', cli.StringArg)])
+
+
 def window(session):
     session.main_view.view_all()
 _window_desc = cli.CmdDesc()
@@ -95,6 +104,7 @@ def register(session):
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
     cli.register('window', _window_desc, window)
+    cli.register('help', _help_desc, help)
     from . import molsurf
     molsurf.register_surface_command()
     from . import structure
