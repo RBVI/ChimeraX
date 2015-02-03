@@ -9,11 +9,9 @@ echo_desc = cli.CmdDesc(optional=[("args", cli.RestOfLine)])
 
 
 def hidewater(session, modelspec=None):
-    all_models = session.models.list()
-    wanted_models = set()
-    modelspec.evaluate(all_models, wanted_models)
+    spec = modelspec.evaluate(session)
     import numpy
-    for m in wanted_models:
+    for m in spec.models:
         atom_res_types = numpy.array(m.mol_blob.atoms.residues.names)
         indices = numpy.where(atom_res_types == "HOH")
         if True:
@@ -30,15 +28,13 @@ hidewater_desc = cli.CmdDesc(optional=[("modelspec", atomspec.AtomSpecArg)])
 
 
 def move(session, by, modelspec=None):
-    all_models = session.models.list()
-    wanted_models = set()
-    modelspec.evaluate(all_models, wanted_models)
+    spec = modelspec.evaluate(session)
     import numpy
     by_vector = numpy.array(by)
     from chimera.core.geometry import place
     translation = place.translation(by_vector)
-    for m in wanted_models:
-        m.position = m.position * translation
+    for m in spec.models:
+        m.position = translation * m.position
         m.update_graphics()
 move_desc = cli.CmdDesc(required=[("by", cli.Float3Arg)],
                         optional=[("modelspec", atomspec.AtomSpecArg)])

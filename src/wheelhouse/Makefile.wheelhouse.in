@@ -5,3 +5,5 @@ all:	METADATA.json
 
 update METADATA.json:	update_metadata.py $(WHEELS)
 	../bin/python3 update_metadata.py
+
+update:	METADATA.json
