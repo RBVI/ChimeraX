@@ -98,6 +98,8 @@ read_one_structure(std::pair<char *, PyObject *> (*read_func)(void *),
     bool        break_hets = false;
     bool        redo_elements = false;
     unsigned char  let;
+    std::string seqres_cur_chain;
+    int         seqres_cur_count;
 #ifdef CLOCK_PROFILING
 clock_t     start_t, end_t;
 start_t = clock();
@@ -555,7 +557,14 @@ start_t = end_t;
 
         case PDB::SEQRES: {
             std::string chain_id(1, record.seqres.chain_id);
-            for (int i = 0; i < record.seqres.num_res; ++i) {
+            if (chain_id != seqres_cur_chain) {
+                seqres_cur_chain = chain_id;
+                seqres_cur_count = 0;
+            }
+            int rem = record.seqres.num_res - seqres_cur_count;
+            int num_to_read = rem < 13 ? rem : 13;
+            seqres_cur_count += num_to_read;
+            for (int i = 0; i < num_to_read; ++i) {
                 std::string res_name(record.seqres.res_name[i]);
                 as->extend_input_seq_info(chain_id, res_name);
             }
