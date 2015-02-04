@@ -56,19 +56,25 @@ def fetch_pdb(session, pdb_id):
     # check on local system -- TODO: configure location
     lower = pdb_id.lower()
     subdir = lower[1:3]
-    filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
-    if os.path.exists(filename):
-        return _builtin_open(filename, 'rb')
+    sys_filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
+    if os.path.exists(sys_filename):
+        return _builtin_open(sys_filename, 'rb')
     from urllib.request import URLError, Request, urlopen
-    url = "http://www.rcsb.org/pdb/files/%s.pdb" % pdb_id.upper()
-    # TODO: save in local cache
+    import gzip
+    import shutil
     from . import utils
-    request = Request(url, headers={
+    url = "http://www.pdb.org/pdb/files/%s.pdb.gz" % pdb_id.upper()
+    request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
     try:
-        return urlopen(request)
+        with _builtin_open(filename, 'wb') as f:
+            with urlopen(request) as response:
+                with gzip.GzipFile(fileobj=response) as uncompressed:
+                    shutil.copyfileobj(uncompressed, f)
+        return filename
     except URLError as e:
+        os.remove(filename)
         raise UserError(str(e))
 
 
