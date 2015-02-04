@@ -60,7 +60,7 @@ class StructureModel(models.Model):
 
         # Create graphics
         self.create_atom_spheres(coords, radii, colors, display)
-        self.create_bond_cylinders(bonds, coords, display, draw_modes, bradii, bcolors, colors, halfbond)
+        self.update_bond_graphics(bonds, coords, display, draw_modes, bradii, bcolors, colors, halfbond)
 
     def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -127,26 +127,19 @@ class StructureModel(models.Model):
         a.colors = chain_colors(a.residues.chain_ids)
         self.update_graphics()
 
-    def create_bond_cylinders(self, bonds, atom_coords, atom_display, draw_mode, radii,
-                              bond_colors, atom_colors, half_bond_coloring):
-        p = self._bonds_drawing
-        if p is None:
-            self._bonds_drawing = p = self.new_drawing('bonds')
-
-        from . import surface
-        # Use 3 z-sections so cylinder ends match in half-bond mode.
-        va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
-        p.geometry = va, ta
-        p.normals = na
-
-        self.update_bond_graphics(bonds, atom_coords, atom_display, draw_mode, radii,
-                                  bond_colors, atom_colors, half_bond_coloring)
-
     def update_bond_graphics(self, bonds, atom_coords, atom_display, draw_mode, radii,
                              bond_colors, atom_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
-            return
+            if (draw_mode == self.SPHERE_STYLE).all():
+                return
+            self._bonds_drawing = p = self.new_drawing('bonds')
+            from . import surface
+            # Use 3 z-sections so cylinder ends match in half-bond mode.
+            va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
+            p.geometry = va, ta
+            p.normals = na
+
         p.positions = bond_cylinder_placements(bonds, atom_coords, radii, half_bond_coloring)
         p.display_positions = self.shown_bond_cylinders(bonds, atom_display, draw_mode, half_bond_coloring)
         self.set_bond_colors(bonds, bond_colors, atom_colors, half_bond_coloring)
