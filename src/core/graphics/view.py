@@ -507,9 +507,9 @@ class View:
                     = self._update_projection(vnum, camera=camera)
                 cp = camera.get_position(vnum)
                 cpinv = cp.inverse()
-                if self.shadows:
+                if self.shadows and not stf is None:
                     r.set_shadow_transform(stf * cp)
-                if self.multishadow > 0:
+                if self.multishadow > 0 and not mstf is None:
                     r.set_multishadow_transforms(mstf, cp, msdepth)
                     # Initial depth pass optimization to avoid lighting
                     # calculation on hidden geometry
