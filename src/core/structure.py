@@ -36,7 +36,7 @@ class StructureModel(models.Model):
     def initialize_graphical_attributes(self):
         m = self.mol_blob
         a = m.atoms
-        a.draw_modes[:] = self.BALL_STYLE
+        a.draw_modes = self.SPHERE_STYLE
         self.color_by_element()
         b = m.bonds
         b.radii = self.bond_radius
@@ -51,6 +51,7 @@ class StructureModel(models.Model):
         radii = self.atom_display_radii()
         colors = a.colors
         display = a.displays
+        draw_modes = a.draw_modes
         b = m.bonds
         bradii = b.radii
         halfbond = b.halfbonds
@@ -59,7 +60,7 @@ class StructureModel(models.Model):
 
         # Create graphics
         self.create_atom_spheres(coords, radii, colors, display)
-        self.create_bond_cylinders(bonds, coords, display, bradii, bcolors, colors, halfbond)
+        self.create_bond_cylinders(bonds, coords, display, draw_modes, bradii, bcolors, colors, halfbond)
 
     def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -82,7 +83,7 @@ class StructureModel(models.Model):
         a = m.atoms
         b, bi = m.bonds, m.bond_indices
         self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
-        self.update_bond_graphics(bi, a.coords, a.displays, b.radii, b.colors, a.colors, b.halfbonds)
+        self.update_bond_graphics(bi, a.coords, a.displays, a.draw_modes, b.radii, b.colors, a.colors, b.halfbonds)
 
     def update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -126,7 +127,7 @@ class StructureModel(models.Model):
         a.colors = chain_colors(a.residues.chain_ids)
         self.update_graphics()
 
-    def create_bond_cylinders(self, bonds, atom_coords, atom_display, radii,
+    def create_bond_cylinders(self, bonds, atom_coords, atom_display, draw_mode, radii,
                               bond_colors, atom_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
@@ -138,16 +139,16 @@ class StructureModel(models.Model):
         p.geometry = va, ta
         p.normals = na
 
-        self.update_bond_graphics(bonds, atom_coords, atom_display, radii,
+        self.update_bond_graphics(bonds, atom_coords, atom_display, draw_mode, radii,
                                   bond_colors, atom_colors, half_bond_coloring)
 
-    def update_bond_graphics(self, bonds, atom_coords, atom_display, radii,
+    def update_bond_graphics(self, bonds, atom_coords, atom_display, draw_mode, radii,
                              bond_colors, atom_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
             return
         p.positions = bond_cylinder_placements(bonds, atom_coords, radii, half_bond_coloring)
-        p.display_positions = self.shown_bond_cylinders(bonds, atom_display, half_bond_coloring)
+        p.display_positions = self.shown_bond_cylinders(bonds, atom_display, draw_mode, half_bond_coloring)
         self.set_bond_colors(bonds, bond_colors, atom_colors, half_bond_coloring)
 
     def set_bond_colors(self, bonds, bond_colors, atom_colors, half_bond_coloring):
@@ -162,11 +163,14 @@ class StructureModel(models.Model):
         else:
             p.colors = bond_colors
 
-    def shown_bond_cylinders(self, bonds, atom_display, half_bond_coloring):
-        sb = atom_display[bonds[:,0]] & atom_display[bonds[:,1]]        # Show bond if both atoms shown
+    def shown_bond_cylinders(self, bonds, atom_display, draw_mode, half_bond_coloring):
+        sb = atom_display[bonds[:,0]] & atom_display[bonds[:,1]]  # Show bond if both atoms shown
+        ns = ((draw_mode[bonds[:,0]] != self.SPHERE_STYLE) |
+              (draw_mode[bonds[:,1]] != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
+        import numpy
+        numpy.logical_and(sb,ns,sb)
         if half_bond_coloring.any():
-            from numpy import concatenate
-            sb2 = concatenate((sb,sb))
+            sb2 = numpy.concatenate((sb,sb))
             return sb2
         return sb
 
