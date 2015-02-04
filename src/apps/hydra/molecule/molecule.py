@@ -675,7 +675,6 @@ class Molecule(Model):
 
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
-    # TODO using wrong radius for atoms in stick and ball and stick
     xyz = self.shown_atom_array_values(self.xyz)
     r = self.shown_atom_array_values(self.drawing_radii())
     rsp = self.ribbon_drawing
