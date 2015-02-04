@@ -24,7 +24,7 @@ def open_mmCIF(session, filename, *args, **kw):
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
-        lambda x: _get_template(x, session.app_dirs, session.logger))
+        lambda name: _get_template(name, session.app_dirs, session.logger))
     mol_blob = _mmcif.parse_mmCIF_file(filename)
 
     model = structure.StructureModel(name)
@@ -53,20 +53,26 @@ def fetch_mmCIF(session, pdb_id):
     # check on local system -- TODO: configure location
     lower = pdb_id.lower()
     subdir = lower[1:3]
-    filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, lower)
-    if os.path.exists(filename):
-        return _builtin_open(filename, 'rb')
+    sys_filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, lower)
+    if os.path.exists(sys_filename):
+        return _builtin_open(sys_filename, 'rb')
 
     from urllib.request import URLError, Request, urlopen
+    import gzip
+    import shutil
     from . import utils
-    url = "http://www.rcsb.org/pdb/files/%s.cif" % pdb_id.upper()
-    # TODO: save in local cache
-    request = Request(url, headers={
+    url = "http://www.pdb.org/pdb/files/%s.cif.gz" % pdb_id.upper()
+    request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
     try:
-        return urlopen(request)
+        with _builtin_open(filename, 'wb') as f:
+            with urlopen(request) as response:
+                with gzip.GzipFile(fileobj=response) as uncompressed:
+                    shutil.copyfileobj(uncompressed, f)
+        return filename
     except URLError as e:
+        os.remove(filename)
         raise UserError(str(e))
 
 
@@ -81,7 +87,6 @@ def _get_template(name, app_dirs, logger):
 
     from urllib.request import URLError, Request, urlopen
     from . import utils
-    url = "http://www.rbvi.ucsf.edu/ccdcache/%s" % name
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     request = Request(url, headers={
@@ -96,6 +101,7 @@ def _get_template(name, app_dirs, logger):
             logger.warning(
                 "Unable to fetch template for '%s': might be missing bonds"
                 % name)
+        return
 
     dirname = os.path.dirname(filename)
     try:

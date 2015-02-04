@@ -45,4 +45,5 @@ distclean: clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
 
 build-from-scratch:
-	$(MAKE) distclean install
+	$(MAKE) distclean
+	$(MAKE) install

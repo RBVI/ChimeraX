@@ -9,19 +9,25 @@ The 'atomspec' module provides three classes:
 - AtomSpec : atom specifier class.
 - AtomSpecResults : atom specifier evaluation results class.
 
-AtomSpecArg is a cli type annotation and is used to
-describe an argument of a function that is registered
-with the cli module.
-When the registered function is called, the argument
-corresponding to the AtomSpecArg is an instance of
-AtomSpec, which contains a parsed version of the
-input atom specifier.
-The model elements (atoms, bonds, models, etc)
-that match an AtomSpec may be found by calling
-the 'evaluate' method which returns an instance of
-AtomSpecResults.
-Each type of model elements may be accessed as an
-attribute of the AtomSpecResults instance.
+AtomSpecArg is a cli type annotation and is used to describe an
+argument of a function that is registered with the cli module.  When
+the registered function is called, the argument corresponding to
+the AtomSpecArg is an instance of AtomSpec, which contains a parsed
+version of the input atom specifier.  The model elements (atoms,
+bonds, models, etc) that match an AtomSpec may be found by calling
+the 'evaluate' method which returns an instance of AtomSpecResults.
+Each type of model elements may be accessed as an attribute of the
+AtomSpecResults instance.
+
+Selectors
+---------
+
+A (name, function) pair may be registered as a 'selector' in an
+atom specifier.  The selectors may either be global (e.g., chemical
+groups) or session-specific (e.g., active site).  The selector
+name may appear wherever a model, residue or atom string does.
+The selector function is called when the atom specifier is
+evaluated and is expected to fill in an AtomSpecResults instance.
 
 Example
 -------
@@ -55,18 +61,22 @@ from .cli import Annotation
 
 
 class AtomSpecArg(Annotation):
-    """Annotation for atom specifiers"""
+    """Command line type annotation for atom specifiers.
+
+    See cli documentation for details on type annotations.
+
+    """
     name = "an atom specifier"
-    _parser = None
-    _semantics = None
 
     @staticmethod
     def parse(text, session):
         token, text, rest = _next_atomspec(text)
-        parser, helper = AtomSpecArg._get_parser()
+        from ._atomspec import _atomspecParser
+        parser = _atomspecParser(parseinfo=True)
+        semantics = _AtomSpecSemantics(session)
         from grako.exceptions import FailedParse
         try:
-            ast = parser.parse(token, "atom_specifier", semantics=helper)
+            ast = parser.parse(token, "atom_specifier", semantics=semantics)
         except FailedParse as e:
             raise ValueError(str(e))
         if ast.parseinfo.endpos != len(token):
@@ -74,20 +84,11 @@ class AtomSpecArg(Annotation):
             raise ValueError("mangled atom specifier")
         return ast, text, rest
 
-    @classmethod
-    def _get_parser(cls):
-        if cls._parser is None:
-            from ._atomspec import _atomspecParser
-            cls._parser = _atomspecParser(parseinfo=True)
-            cls._semantics = _AtomSpecParserSemantics()
-        return cls._parser, cls._semantics
-
 
 #
 # Lexical analysis functions
 #
 import re
-
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _operator = re.compile(r'\s+[&~|]+\s+')
 
@@ -175,8 +176,11 @@ def _find_intervening_space(text, start, end):
 #
 
 
-class _AtomSpecParserSemantics:
+class _AtomSpecSemantics:
     """Semantics class to convert basic ASTs into AtomSpec instances."""
+    def __init__(self, session):
+        self._session = session
+
     def atom_specifier(self, ast):
         atom_spec = AtomSpec(ast.operator, ast.left, ast.right)
         try:
@@ -235,6 +239,10 @@ class _AtomSpecParserSemantics:
             return None
 
     def selector_name(self, ast):
+        if (get_selector(self._session, ast.name) is None
+            and get_selector(None, ast.name) is None):
+                # TODO: generate better error message in cli
+                raise ValueError("\"%s\" is not a selector name" % ast.name)
         return _SelectorName(ast.name)
 
 
@@ -253,7 +261,7 @@ class _ModelList(list):
         for m in model_list:
             for h in self:
                 if h.matches(session, m):
-                    results._add_model(m)
+                    results.add_model(m)
                     break
 
 
@@ -326,10 +334,9 @@ class _SelectorName:
         self.name = name
 
     def find_matches(self, session, models, results):
-        results = AtomSpecResults()
-        # TODO: implement
-        print("_SelectorName.match", self.name)
-        return results
+        f = get_selector(session, self.name) or get_selector(None, self.name)
+        if f:
+            f(session, models, results)
 
 
 class _Term:
@@ -373,7 +380,7 @@ class AtomSpec:
         Returns
         -------
         AtomSpecResults instance
-            Instance containing data (atoms, bonds, etc) that match 
+            Instance containing data (atoms, bonds, etc) that match
             this atom specifier.
         """
         if models is None:
@@ -392,6 +399,7 @@ class AtomSpec:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         return results
 
+
 class AtomSpecResults:
     """AtomSpecResults store evaluation results from AtomSpec.
 
@@ -407,7 +415,7 @@ class AtomSpecResults:
     def __init__(self):
         self._models = set()
 
-    def _add_model(self, m):
+    def add_model(self, m):
         self._models.add(m)
 
     @property
@@ -425,3 +433,98 @@ class AtomSpecResults:
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models & right._models
         return atom_spec
+
+#
+# Selector registration and use
+#
+# TODO: Registered session-specific selectors should go into a
+# state manager class, but I have not figured out how to save
+# callable objects in states.
+#
+from .session import State
+_selectors = {}
+
+
+def _get_selector_map(session):
+    if session is None:
+        return _selectors
+    else:
+        try:
+            return session.atomspec_selectors
+        except AttributeError:
+            d = {}
+            session.atomspec_selectors = d
+            return d
+
+
+def register_selector(session, name, func):
+    """Register a (name, func) pair as an atom specifier selector.
+
+    Parameters
+    ----------
+    session : instance of chimera.core.session.Session
+        Session in which the name may be used.  If None, name is global.
+    name : str
+        Selector name, preferably without whitespace.
+    func : callable object
+        Selector evaluation function, called as 'func(session, models, results)'
+        where 'models' are chimera.core.models.Model instances and
+        'results' is an AtomSpecResults instance.
+
+    """
+    _get_selector_map(session)[name] = func
+
+
+def deregister_selector(session, name):
+    """Deregister a name as an atom specifier selector.
+
+    Parameters
+    ----------
+    session : instance of chimera.core.session.Session
+        Session in which the name may be used.  If None, name is global.
+    name : str
+        Previously registered selector name.
+
+    Raises
+    ------
+    KeyError
+        If name is not registered.
+
+    """
+    del _get_selector_map(session)[name]
+
+
+def list_selectors(session):
+    """Return a list of all registered selector names.
+
+    Parameters
+    ----------
+    session : instance of chimera.core.session.Session
+        Session in which the name may be used.  If None, name is global.
+
+    Returns
+    -------
+    iterator yielding str
+        Iterator that yields registered selector names.
+
+    """
+    return _get_selector_map(session).keys()
+
+
+def get_selector(session, name):
+    """Return function associated with registered selector name.
+
+    Parameters
+    ----------
+    session : instance of chimera.core.session.Session
+        Session in which the name may be used.  If None, name is global.
+    name : str
+        Previously registered selector name.
+
+    Returns
+    -------
+    Callable object or None.
+        Callable object if name was registered; None, if not.
+
+    """
+    return _get_selector_map(session).get(name, None)
