@@ -214,6 +214,19 @@ class StructureModel(models.Model):
 
         return f, s
 
+    def bounds(self, positions = True):
+        # TODO: Cache bounds
+        a = self.mol_blob.atoms
+        xyz = a.coords[a.displays]
+        if len(xyz) == 0:
+            return None
+        xyz_min, xyz_max = xyz.min(axis = 0), xyz.max(axis = 0)
+        from .geometry import bounds
+        b = bounds.Bounds(xyz_min, xyz_max)
+        if positions:
+            b = bounds.copies_bounding_box(b, self.positions)
+        return b
+
     def atom_index_description(self, a):
         a = self.mol_blob.atoms
         r = a.residues
