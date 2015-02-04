@@ -189,6 +189,55 @@ class StructureModel(models.Model):
             logical_not(d,d)
         return d
 
+    def first_intercept(self, mxyz1, mxyz2, exclude = None):
+        # TODO check intercept of bounding box as optimization
+        p = self._atoms_drawing
+        if p is None:
+            return None, None
+        xyzr = p.positions.shift_and_scale_array()
+        xyz = xyzr[:,:3]
+        r = xyzr[:,3]
+
+        f = fa = None
+        from . import graphics
+        for tf in self.positions:
+            cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+            # Check for atom sphere intercept
+            fmin, anum = graphics.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+            if not fmin is None and (f is None or fmin < f):
+                f, fa = fmin, anum
+
+        # Create selection object
+        if fa is None:
+            s = None
+        else:
+            ai = self.mol_blob.atoms.displays.nonzero()[0]
+            fa = ai[fa]
+            s = Picked_Atom(self, fa)
+
+        return f, s
+
+    def atom_index_description(self, a):
+        a = self.mol_blob.atoms
+        r = a.residues
+        d = '%s %d.%s %s %d %s' % (self.name, self.id, r.chain_ids[a], r.names[a], r.numbers[a], a.names[a])
+        return d
+
+
+# -----------------------------------------------------------------------------
+#
+from .graphics import Pick
+class Picked_Atom(Pick):
+  def __init__(self, mol, a):
+    self.molecule = mol
+    self.atom = a
+  def description(self):
+    m, a = self.molecule, self.atom
+    if a is None:
+      return m.name
+    return '%s %s' % (self.id_string(), m.atom_index_description(a))
+  def drawing(self):
+    return self.molecule
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
