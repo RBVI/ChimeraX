@@ -61,10 +61,13 @@ class StructureModel(models.Model):
         self.create_atom_spheres(coords, radii, colors, display)
         self.create_bond_cylinders(bonds, coords, display, bradii, bcolors, colors, halfbond)
 
-    def create_atom_spheres(self, coords, radii, colors, display, triangles_per_sphere = 320):
+    def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
         if p is None:
             self._atoms_drawing = p = self.new_drawing('atoms')
+
+        n = len(coords)
+        triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
 
         # Set instanced sphere triangulation
         from . import surface
