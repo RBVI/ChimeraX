@@ -241,7 +241,11 @@ class Render:
         '''Private. Sets shader lighting variables using the lighting
         parameters object given in the contructor.'''
 
-        p = self.current_shader_program.program_id
+        sp = self.current_shader_program
+        if sp is None:
+            return
+
+        p = sp.program_id
         lp = self.lighting
         mp = self.material
 
