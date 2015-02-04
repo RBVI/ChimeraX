@@ -25,3 +25,11 @@ def register_command(command_name):
             continue
         desc = getattr(cmd, attr_name)
         cli.register(command_name + ' ' + subcommand_name, desc, func)
+
+    from chimera.core import atomspec
+    atomspec.register_selector(None, "odd", _odd_models)
+
+def _odd_models(session, models, results):
+    for m in models:
+        if m.id[0] % 2:
+            results.add_model(m)
