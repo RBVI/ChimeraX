@@ -70,10 +70,12 @@ def copies_bounding_box(bounds, positions):
     if sas is not None and len(sas) > 0:
         # Optimize shift and scale positions.
         xyz, s = sas[:, :3], sas[:,3]
+        # TODO: Optimize this with a C++ routine to avoid array copies.
         from numpy import outer
         b = Bounds((xyz + outer(s, bounds.xyz_min)).min(axis=0),
                    (xyz + outer(s, bounds.xyz_max)).max(axis=0))
     else:
+        # TODO: Optimize instance matrix copies such as bond cylinders using C++.
         (x0, y0, z0), (x1, y1, z1) = bounds.xyz_min, bounds.xyz_max
         corners = ((x0, y0, z0), (x1, y0, z0), (x0, y1, z0), (x1, y1, z0),
                    (x0, y0, z1), (x1, y0, z1), (x0, y1, z1), (x1, y1, z1))
