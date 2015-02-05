@@ -69,3 +69,69 @@ def html_user_agent(app_dirs):
     if system:
         user_agent += " (%s)" % comment(system)
     return user_agent
+
+
+def _convert_to_timestamp(date):
+    # covert HTTP date to POSIX timestamp
+    from email.utils import parsedate_to_datetime
+    try:
+        return parsedate_to_datetime(date).timestamp()
+    except TypeError:
+        return None
+
+
+def retrieve_cached_url(request, filename, logger=None):
+    """Return requested URL in (cached) filename
+
+    :param request: a :py:class:`urlib.request.Request`
+    :param filename: where to cache the URL
+    :returns: the filename if successful
+    :raises urllib.request.URLError: if unsuccessful
+
+
+    If the filename already exists, fetch the HTTP headers for the
+    URL and check the last modified date to see if there is a newer
+    version or not.  If there isn't a newer version, return the filename.
+    If there is a newer version, or if the filename does not exist,
+    save the URL in the filename, and set the file's modified date to
+    the HTTP last modified date, and return the filename.
+    """
+    # Last-Modified: Mon, 19 Sep 2011 22:46:21 GMT
+    import os
+    from urllib.request import urlopen
+    last_modified = None
+    if os.path.exists(filename):
+        if logger:
+            logger.status('check for newer version of %s' % filename)
+        info = os.stat(filename)
+        request.method = 'HEAD'
+        with urlopen(request) as response:
+            d = response.headers['Last-modified']
+            last_modified = _convert_to_timestamp(d)
+        if last_modified is None and logger:
+            logger.warning('Invalid date "%s" for %s' % (d, request.full_url))
+        if last_modified is None or last_modified <= info.st_mtime:
+            return filename
+        request.method = 'GET'
+    try:
+        if logger:
+            logger.status('fetching %s' % filename)
+        request.headers['Accept-encoding'] = 'gzip, identity'
+        with urlopen(request) as response:
+            compressed = response.headers['Content-Encoding'] == 'gzip'
+            d = response.headers['Last-modified']
+            last_modified = _convert_to_timestamp(d)
+            import shutil
+            with open(filename, 'wb') as f:
+                if compressed:
+                    import gzip
+                    with gzip.GzipFile(fileobj=response) as uncompressed:
+                        shutil.copyfileobj(uncompressed, f)
+                else:
+                        shutil.copyfileobj(response, f)
+        if last_modified is not None:
+            os.utime(filename, (last_modified, last_modified))
+        return filename
+    except:
+        os.remove(filename)
+        raise
