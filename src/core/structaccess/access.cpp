@@ -35,19 +35,6 @@ static struct PyModuleDef structaccess_module =
 
 PyMODINIT_FUNC PyInit_structaccess()
 {
-std::cerr << "sizeof Atom: " << sizeof(atomstruct::Atom) << "\n";
-std::cerr << "sizeof BaseSphere: " << sizeof(basegeom::BaseSphere<atomstruct::Bond, atomstruct::Atom>) << "\n";
-std::cerr << "sizeof Connectible: " << sizeof(basegeom::Connectible<atomstruct::Bond, atomstruct::Atom>) << "\n";
-typedef basegeom::Connectible<atomstruct::Bond, atomstruct::Atom> Conn;
-std::cerr << "sizeof Rgba: " << sizeof(basegeom::Rgba) << "\n";
-std::cerr << "sizeof bool: " << sizeof(bool) << "\n";
-std::cerr << "sizeof vector: " << sizeof(std::vector<void*>) << "\n";
-std::cerr << "sizeof string: " << sizeof(std::string) << "\n";
-std::cerr << "sizeof Element: " << sizeof(atomstruct::Element) << "\n";
-std::cerr << "sizeof map: " << sizeof(std::map<int, int>) << "\n";
-std::cerr << "sizeof unordered_map: " << sizeof(std::unordered_map<int, int>) << "\n";
-std::cerr << "sizeof Bond: " << sizeof(atomstruct::Bond) << "\n";
-std::cerr << "sizeof CString<5>: " << sizeof(chutil::CString<5>) << "\n";
     using blob::StructBlob_type;
     using blob::ResBlob_type;
     using blob::AtomBlob_type;
