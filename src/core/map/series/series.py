@@ -19,6 +19,17 @@ class Map_Series(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def add_model(self, m):
+    if hasattr(Model, 'add_model'):
+      Model.add_model(self, m)          # Hydra
+    else:
+      # Chimera 2
+      self.add_drawing(m)
+      if m.id is None:
+        m.id = len(self.child_drawings())
+
+  # ---------------------------------------------------------------------------
+  #
   def number_of_times(self):
 
     return len(self.maps)
@@ -131,6 +142,14 @@ class Map_Series(Model):
         if not f is None and (fmin is None or f < fmin):
           fmin,pmin = f,p
     return fmin,pmin
+
+  # State save/restore in Chimera 2
+  def take_snapshot(self, session, flags):
+    pass
+  def restore_snapshot(self, phase, session, version, data):
+    pass
+  def reset_state(self):
+    pass
 
 # -----------------------------------------------------------------------------
 # Avoid creep due to rank -> value and value -> rank not being strict inverses

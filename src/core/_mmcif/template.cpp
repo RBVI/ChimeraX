@@ -37,6 +37,8 @@ using basegeom::Coord;
 
 namespace mmcif {
 
+using atomstruct::AtomName;
+
 tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
@@ -198,7 +200,7 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
 void
 ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
 {
-    string  name;
+    AtomName  name;
     char    symbol[3];
     float   x, y, z;
     bool    leaving = false;
@@ -207,7 +209,7 @@ ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
     pv.reserve(8);
     pv.emplace_back(get_column("atom_id", true), true,
         [&] (const char* start, const char* end) {
-            name = string(start, end - start);
+            name = AtomName(start, end - start);
         });
     //pv.emplace_back(get_column("alt_atom_id", true), true,
     //    [&] (const char* start, const char* end) {
@@ -252,17 +254,17 @@ ExtractTemplate::parse_chem_comp_atom(bool /*in_loop*/)
 void
 ExtractTemplate::parse_chem_comp_bond(bool /*in_loop*/)
 {
-    string name1, name2;
+    AtomName name1, name2;
 
     CIFFile::ParseValues pv;
     pv.reserve(2);
     pv.emplace_back(get_column("atom_id_1", true), true,
         [&] (const char* start, const char* end) {
-            name1 = string(start, end - start);
+            name1 = AtomName(start, end - start);
         });
     pv.emplace_back(get_column("atom_id_2", true), true,
         [&] (const char* start, const char* end) {
-            name2 = string(start, end - start);
+            name2 = AtomName(start, end - start);
         });
     while (parse_row(pv)) {
         tmpl::Atom* a1 = residue->find_atom(name1);
@@ -336,6 +338,10 @@ set_Python_locate_function(PyObject* function)
         Py_XDECREF(name_arg);
         if (result == NULL)
             throw wrappy::PythonError();
+        if (result == Py_None) {
+            Py_DECREF(result);
+            return std::string();
+        }
         if (!PyUnicode_Check(result)) {
             Py_DECREF(result);
             throw std::logic_error("locate function should return a string");

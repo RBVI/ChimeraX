@@ -1136,7 +1136,7 @@ class ToolInfo:
                                            % self.name)
         try:
             f = self._get_module().start_tool
-        except (ImportError, AttributeError, TypeError):
+        except (ImportError, AttributeError, TypeError, SyntaxError):
             raise ToolshedError("bad start callable specified for tool \"%s\""
                                 % self.name)
         else:

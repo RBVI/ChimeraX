@@ -525,7 +525,11 @@ def open(session, filespec, format=None, identify_as=None, **kw):
         if fetch_func is None:
             raise UserError("unable to fetch %s files" % format_name)
         stream = fetch_func(session, filename)
-        filename = None
+        if hasattr(filename, 'read'):
+            filename = None
+        else:
+            filename = stream
+            stream = _builtin_open(filename, 'rb')
     else:
         if not compression:
             import os

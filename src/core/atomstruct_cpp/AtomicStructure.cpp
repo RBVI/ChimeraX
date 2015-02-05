@@ -249,7 +249,7 @@ AtomicStructure::make_chains() const
 }
 
 Atom *
-AtomicStructure::new_atom(const std::string &name, Element e)
+AtomicStructure::new_atom(const char* name, Element e)
 {
     Atom *a = new Atom(this, name, e);
     add_vertex(a);

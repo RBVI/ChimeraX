@@ -36,8 +36,8 @@ class StructureModel(models.Model):
     def initialize_graphical_attributes(self):
         m = self.mol_blob
         a = m.atoms
-        a.draw_modes[:] = self.BALL_STYLE
-        self.color_by_element()
+        a.draw_modes = self.SPHERE_STYLE
+        a.colors = element_colors(a.element_numbers)
         b = m.bonds
         b.radii = self.bond_radius
 
@@ -50,6 +50,8 @@ class StructureModel(models.Model):
         coords = a.coords
         radii = self.atom_display_radii()
         colors = a.colors
+        display = a.displays
+        draw_modes = a.draw_modes
         b = m.bonds
         bradii = b.radii
         halfbond = b.halfbonds
@@ -57,13 +59,16 @@ class StructureModel(models.Model):
         bonds = m.bond_indices
 
         # Create graphics
-        self.create_atom_spheres(coords, radii, colors)
-        self.create_bond_cylinders(bonds, coords, bradii, bcolors, colors, halfbond)
+        self.create_atom_spheres(coords, radii, colors, display)
+        self.update_bond_graphics(bonds, coords, display, draw_modes, bradii, bcolors, colors, halfbond)
 
-    def create_atom_spheres(self, coords, radii, colors, triangles_per_sphere = 320):
+    def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
         if p is None:
             self._atoms_drawing = p = self.new_drawing('atoms')
+
+        n = len(coords)
+        triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
 
         # Set instanced sphere triangulation
         from . import surface
@@ -71,16 +76,16 @@ class StructureModel(models.Model):
         p.geometry = va, ta
         p.normals = na
 
-        self.update_atom_graphics(coords, radii, colors)
+        self.update_atom_graphics(coords, radii, colors, display)
 
     def update_graphics(self):
         m = self.mol_blob
         a = m.atoms
         b, bi = m.bonds, m.bond_indices
-        self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors)
-        self.update_bond_graphics(bi, a.coords, b.radii, b.colors, a.colors, b.halfbonds)
+        self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
+        self.update_bond_graphics(bi, a.coords, a.displays, a.draw_modes, b.radii, b.colors, a.colors, b.halfbonds)
 
-    def update_atom_graphics(self, coords, radii, colors):
+    def update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
         if p is None:
             return
@@ -94,6 +99,7 @@ class StructureModel(models.Model):
 
         from .geometry import place
         p.positions = place.Places(shift_and_scale=xyzr)
+        p.display_positions = display
 
         # Set atom colors
         p.colors = colors
@@ -121,25 +127,21 @@ class StructureModel(models.Model):
         a.colors = chain_colors(a.residues.chain_ids)
         self.update_graphics()
 
-    def create_bond_cylinders(self, bonds, atom_coords, radii,
-                              bond_colors, atom_colors, half_bond_coloring):
+    def update_bond_graphics(self, bonds, atom_coords, atom_display, draw_mode, radii,
+                             bond_colors, atom_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
+            if (draw_mode == self.SPHERE_STYLE).all():
+                return
             self._bonds_drawing = p = self.new_drawing('bonds')
+            from . import surface
+            # Use 3 z-sections so cylinder ends match in half-bond mode.
+            va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
+            p.geometry = va, ta
+            p.normals = na
 
-        from . import surface
-        # Use 3 z-sections so cylinder ends match in half-bond mode.
-        va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
-        p.geometry = va, ta
-        p.normals = na
-
-        self.update_bond_graphics(bonds, atom_coords, radii, bond_colors, atom_colors, half_bond_coloring)
-
-    def update_bond_graphics(self, bonds, atom_coords, radii, bond_colors, atom_colors, half_bond_coloring):
-        p = self._bonds_drawing
-        if p is None:
-            return
         p.positions = bond_cylinder_placements(bonds, atom_coords, radii, half_bond_coloring)
+        p.display_positions = self.shown_bond_cylinders(bonds, atom_display, draw_mode, half_bond_coloring)
         self.set_bond_colors(bonds, bond_colors, atom_colors, half_bond_coloring)
 
     def set_bond_colors(self, bonds, bond_colors, atom_colors, half_bond_coloring):
@@ -153,6 +155,99 @@ class StructureModel(models.Model):
             p.colors = concatenate((bc0,bc1))
         else:
             p.colors = bond_colors
+
+    def shown_bond_cylinders(self, bonds, atom_display, draw_mode, half_bond_coloring):
+        sb = atom_display[bonds[:,0]] & atom_display[bonds[:,1]]  # Show bond if both atoms shown
+        ns = ((draw_mode[bonds[:,0]] != self.SPHERE_STYLE) |
+              (draw_mode[bonds[:,1]] != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
+        import numpy
+        numpy.logical_and(sb,ns,sb)
+        if half_bond_coloring.any():
+            sb2 = numpy.concatenate((sb,sb))
+            return sb2
+        return sb
+
+    def hide_chain(self, cid):
+        a = self.mol_blob.atoms
+        a.displays &= self.chain_atom_mask(cid, invert = True)
+        self.update_graphics()
+
+    def show_chain(self, cid):
+        a = self.mol_blob.atoms
+        a.displays |= self.chain_atom_mask(cid)
+        self.update_graphics()
+
+    def chain_atom_mask(self, cid, invert = False):
+        a = self.mol_blob.atoms
+        cids = a.residues.chain_ids
+        from numpy import array, bool, logical_not
+        d = array(tuple((cid != c) for c in cids), bool)
+        if invert:
+            logical_not(d,d)
+        return d
+
+    def first_intercept(self, mxyz1, mxyz2, exclude = None):
+        # TODO check intercept of bounding box as optimization
+        p = self._atoms_drawing
+        if p is None:
+            return None, None
+        xyzr = p.positions.shift_and_scale_array()
+        xyz = xyzr[:,:3]
+        r = xyzr[:,3]
+
+        f = fa = None
+        from . import graphics
+        for tf in self.positions:
+            cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+            # Check for atom sphere intercept
+            fmin, anum = graphics.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+            if not fmin is None and (f is None or fmin < f):
+                f, fa = fmin, anum
+
+        # Create selection object
+        if fa is None:
+            s = None
+        else:
+            ai = self.mol_blob.atoms.displays.nonzero()[0]
+            fa = ai[fa]
+            s = Picked_Atom(self, fa)
+
+        return f, s
+
+    def bounds(self, positions = True):
+        # TODO: Cache bounds
+        a = self.mol_blob.atoms
+        xyz = a.coords[a.displays]
+        if len(xyz) == 0:
+            return None
+        xyz_min, xyz_max = xyz.min(axis = 0), xyz.max(axis = 0)
+        from .geometry import bounds
+        b = bounds.Bounds(xyz_min, xyz_max)
+        if positions:
+            b = bounds.copies_bounding_box(b, self.positions)
+        return b
+
+    def atom_index_description(self, a):
+        a = self.mol_blob.atoms
+        r = a.residues
+        d = '%s %d.%s %s %d %s' % (self.name, self.id, r.chain_ids[a], r.names[a], r.numbers[a], a.names[a])
+        return d
+
+
+# -----------------------------------------------------------------------------
+#
+from .graphics import Pick
+class Picked_Atom(Pick):
+  def __init__(self, mol, a):
+    self.molecule = mol
+    self.atom = a
+  def description(self):
+    m, a = self.molecule, self.atom
+    if a is None:
+      return m.name
+    return '%s %s' % (self.id_string(), m.atom_index_description(a))
+  def drawing(self):
+    return self.molecule
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
@@ -298,7 +393,31 @@ def style_command(session, atom_style):
 
 # -----------------------------------------------------------------------------
 #
+from . import cli
+_hide_desc = cli.CmdDesc(required = [('chain', cli.StringArg)])
+def hide_command(session, chain):
+    cids = chain.split(',')
+    for m in session.models.list():
+        if isinstance(m, StructureModel):
+            for c in cids:
+                m.hide_chain(chain)
+
+# -----------------------------------------------------------------------------
+#
+from . import cli
+_show_desc = cli.CmdDesc(required = [('chain', cli.StringArg)])
+def show_command(session, chain):
+    cids = chain.split(',')
+    for m in session.models.list():
+        if isinstance(m, StructureModel):
+            for c in cids:
+                m.show_chain(c)
+
+# -----------------------------------------------------------------------------
+#
 def register_molecule_commands():
     from . import cli
     cli.register('style', _style_desc, style_command)
     cli.register('color', _color_desc, color_command)
+    cli.register('hide', _hide_desc, hide_command)
+    cli.register('show', _show_desc, show_command)
