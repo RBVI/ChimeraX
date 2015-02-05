@@ -338,6 +338,10 @@ set_Python_locate_function(PyObject* function)
         Py_XDECREF(name_arg);
         if (result == NULL)
             throw wrappy::PythonError();
+        if (result == Py_None) {
+            Py_DECREF(result);
+            return std::string();
+        }
         if (!PyUnicode_Check(result)) {
             Py_DECREF(result);
             throw std::logic_error("locate function should return a string");
