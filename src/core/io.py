@@ -525,7 +525,7 @@ def open(session, filespec, format=None, identify_as=None, **kw):
         if fetch_func is None:
             raise UserError("unable to fetch %s files" % format_name)
         stream = fetch_func(session, filename)
-        if hasattr(filename, 'read') or True:
+        if hasattr(filename, 'read'):
             filename = None
         else:
             filename = stream
