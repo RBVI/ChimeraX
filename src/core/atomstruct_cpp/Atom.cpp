@@ -11,7 +11,7 @@
 
 namespace atomstruct {
 
-Atom::Atom(AtomicStructure *as, const std::string &name, Element e):
+Atom::Atom(AtomicStructure *as, const char* name, Element e):
     BaseSphere<Bond, Atom>(),
     _alt_loc(' '), _aniso_u(NULL), _coord_index(COORD_UNASSIGNED), _element(e),
     _name(name), _residue(NULL), _serial_number(-1), _structure(as)
@@ -148,9 +148,9 @@ Atom::default_radius() const
     // double the bond radius found in Allen et al,
     // Acta Cryst. Sect. B 35, 2331 (1979)
 
-    static std::string Car("Car");
-    static std::string C2("C2");
-    static std::string O3("O3");
+    static char Car[] = "Car";
+    static char C2[] = "C2";
+    static char O3[] = "O3";
 
     // for explicit hydrogens, use Bondi values
     if (structure()->num_hyds() > 0) {

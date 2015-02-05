@@ -18,7 +18,7 @@ namespace tmpl {
 class ATOMSTRUCT_IMEX Molecule {
 public:
         ~Molecule();
-    Atom    *new_atom(std::string n, atomstruct::Element e);
+    Atom    *new_atom(const AtomName& n, atomstruct::Element e);
     typedef std::set<Atom *> Atoms;
     typedef std::set<Bond *> Bonds;
     typedef std::vector<CoordSet *> CoordSets;

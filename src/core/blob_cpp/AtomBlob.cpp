@@ -152,7 +152,7 @@ ab_names(PyObject* self, void*)
     PyObject *list = PyList_New(ab->_items->size());
     int i = 0;
     for (auto ai = ab->_items->begin(); ai != ab->_items->end(); ++ai, ++i){
-        PyList_SetItem(list, i, PyUnicode_FromString((*ai)->name().c_str()));
+        PyList_SetItem(list, i, PyUnicode_FromString((*ai)->name()));
     }
     return list;
 }

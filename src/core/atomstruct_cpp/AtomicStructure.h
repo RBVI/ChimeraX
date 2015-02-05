@@ -96,7 +96,7 @@ public:
     bool  lower_case_chains;
     void  make_chains() const;
     const std::string&  name() { return _name; }
-    Atom *  new_atom(const std::string &name, Element e);
+    Atom *  new_atom(const char* name, Element e);
     Bond *  new_bond(Atom *, Atom *);
     CoordSet *  new_coord_set();
     CoordSet *  new_coord_set(int index);
