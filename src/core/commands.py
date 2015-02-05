@@ -125,6 +125,8 @@ def register(session):
     lightcmd.register_lighting_command()
     from . import map
     map.register_volume_command()
+    from .map import series
+    series.register_vseries_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

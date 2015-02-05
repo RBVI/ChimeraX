@@ -3,8 +3,6 @@
 #
 #   Syntax: vseries <operation> <mapSpec>
 #
-from ...commands.parse import CommandError
-
 players = set()         # Active players.
 
 def vseries_command(cmd_name, args, session):
@@ -165,6 +163,7 @@ def save_op(series, path, subregion = None, step = None, valueType = None,
             session = None):
 
     if len(series) > 1:
+        from ...commands.parse import CommandError
         raise CommandError('vseries save: Can only save one series in a file, got %d'
                            % len(series))
     s = series[0]
@@ -236,6 +235,7 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
 
     if not normalizeLevel is None:
         if len(v.surface_levels) == 0:
+            from ...commands.parse import CommandError
             raise CommandError('vseries save: normalizeLevel used but no level set for volume %s' % v.name)
         level = max(v.surface_levels)
         if zeroMean:
@@ -354,6 +354,7 @@ def series_arg(s, session):
   from . import Map_Series
   series = [m for m in mlist if isinstance(m, Map_Series)]
   if len(series) == 0:
+    from ...commands.parse import CommandError
     raise CommandError('"%s" does not specify a volume series' % s)
   return series
 
@@ -370,3 +371,41 @@ def slider_op(series, session):
     from . import slider
     vss = slider.Volume_Series_Slider(series, session)
     vss.show()
+
+# -----------------------------------------------------------------------------
+# Chimera 2 wrapper for vseries command.
+#
+def vseries_cmd(session, operation, series = None):
+
+    if series is None:
+        from .series import Map_Series
+        series = [m for m in session.models.list() if isinstance(m, Map_Series)]
+    if operation == 'play':
+        play_op(series, session = session)
+
+# -----------------------------------------------------------------------------
+#
+try:
+    from ..cli import Annotation
+except:
+    # For Hydra
+    class Annotation:
+        pass
+class SeriesArg(Annotation):
+    @staticmethod
+    def parse(text, session):
+        from ...atomspec import AtomSpecArg
+        value, used, rest = AtomSpecArg.parse(text, session)
+        models = value.evaluate(session).models
+        from .series import Map_Series
+        ms = [m for m in models if isinstance(m, Map_Series)]
+        return ms, used, rest
+
+# -----------------------------------------------------------------------------
+# Register the vseries command for Chimera 2.
+#
+def register_vseries_command():
+    from ...cli import CmdDesc, EnumOf, register
+    _vseries_desc = CmdDesc(required = [('operation', EnumOf(('play',)))],
+                            optional = [('series', SeriesArg)])
+    register('vseries', _vseries_desc, vseries_cmd)
