@@ -44,12 +44,6 @@ def fetch_mmCIF(session, pdb_id):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
-    # TODO: use our own cache
-    # check in local cache
-    filename = "~/Downloads/Chimera/PDB/%s.cif" % pdb_id.upper()
-    filename = os.path.expanduser(filename)
-    if os.path.exists(filename):
-        return _builtin_open(filename, 'rb')
     # check on local system -- TODO: configure location
     lower = pdb_id.lower()
     subdir = lower[1:3]
@@ -57,22 +51,21 @@ def fetch_mmCIF(session, pdb_id):
     if os.path.exists(sys_filename):
         return _builtin_open(sys_filename, 'rb')
 
-    from urllib.request import URLError, Request, urlopen
-    import gzip
-    import shutil
+    filename = "~/Downloads/Chimera/PDB/%s.cif" % pdb_id.upper()
+    filename = os.path.expanduser(filename)
+
+    dirname = os.path.dirname(filename)
+    os.makedirs(dirname, exist_ok=True)
+
+    from urllib.request import URLError, Request
     from . import utils
-    url = "http://www.pdb.org/pdb/files/%s.cif.gz" % pdb_id.upper()
+    url = "http://www.pdb.org/pdb/files/%s.cif" % pdb_id.upper()
     request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
     try:
-        with _builtin_open(filename, 'wb') as f:
-            with urlopen(request) as response:
-                with gzip.GzipFile(fileobj=response) as uncompressed:
-                    shutil.copyfileobj(uncompressed, f)
-        return filename
+        return utils.retrieve_cached_url(request, filename, session.logger)
     except URLError as e:
-        os.remove(filename)
         raise UserError(str(e))
 
 
@@ -80,37 +73,26 @@ def _get_template(name, app_dirs, logger):
     """Get Chemical Component Dictionary (CCD) entry"""
     import os
     # check in local cache
-    filename = "~/Downloads/Chimera/CCD/%s.cif" % name.upper()
+    filename = "~/Downloads/Chimera/CCD/%s.cif" % name
     filename = os.path.expanduser(filename)
-    if os.path.exists(filename):
-        return filename
 
-    from urllib.request import URLError, Request, urlopen
+    dirname = os.path.dirname(filename)
+    os.makedirs(dirname, exist_ok=True)
+
+    from urllib.request import URLError, Request
     from . import utils
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
-    request = Request(url, headers={
+    request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(app_dirs),
     })
     try:
-        if logger:
-            logger.status('fetching %s template' % name)
-        data = urlopen(request).read()
+        return utils.retrieve_cached_url(request, filename, logger)
     except URLError:
         if logger:
             logger.warning(
                 "Unable to fetch template for '%s': might be missing bonds"
                 % name)
-        return
-
-    dirname = os.path.dirname(filename)
-    try:
-        os.mkdir(dirname)
-    except FileExistsError:
-        pass
-    with _builtin_open(filename, 'wb') as output:
-        output.write(data)
-    return filename
 
 
 def register():
