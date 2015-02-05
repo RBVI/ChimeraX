@@ -199,6 +199,10 @@ class UserError(ValueError):
 
     This is in contrast to a error is a bug in the program.
     """
+    pass
+
+class AnnotationError(UserError):
+    """Error, with optional offset, in annotation"""
 
     def __init__(self, message, offset=None):
         ValueError.__init__(self, message)
@@ -298,7 +302,7 @@ class Aggregate(Annotation):
                 # no separator found
                 try:
                     value, consumed, rest = self.annotation.parse(text, session)
-                except UserError as err:
+                except AnnotationError as err:
                     if err.offset is None:
                         err.offset = len(used)
                     else:
@@ -312,7 +316,7 @@ class Aggregate(Annotation):
             examine = text[:i]
             try:
                 value, consumed, rest = self.annotation.parse(examine, session)
-            except UserError as err:
+            except AnnotationError as err:
                 if err.offset is None:
                     err.offset = len(used)
                 else:
@@ -345,15 +349,15 @@ class Aggregate(Annotation):
                 qual = "exactly"
             else:
                 qual = "at least"
-            raise UserError("Need %s %d %s" % (qual, self.min_size,
-                                                self.name))
+            raise AnnotationError("Need %s %d %s" % (qual, self.min_size,
+                                                self.name), len(used))
         if len(result) > self.max_size:
             if self.min_size == self.max_size:
                 qual = "exactly"
             else:
                 qual = "at most"
-            raise UserError("Need %s %d %s" % (qual, self.max_size,
-                             self.name))
+            raise AnnotationError("Need %s %d %s" % (qual, self.max_size,
+                             self.name), len(used))
         return result, used, rest
 
 
@@ -430,7 +434,7 @@ class BoolArg(Annotation):
             return False, "false", rest
         if token == "1" or "true".startswith(token):
             return True, "true", rest
-        raise UserError("Expected true or false (or 1 or 0)")
+        raise AnnotationError("Expected true or false (or 1 or 0)")
 
 
 class IntArg(Annotation):
@@ -443,7 +447,7 @@ class IntArg(Annotation):
         try:
             return int(token), text, rest
         except ValueError:
-            raise UserError("Expected %s" % IntArg.name)
+            raise AnnotationError("Expected %s" % IntArg.name)
 
 
 class FloatArg(Annotation):
@@ -456,7 +460,7 @@ class FloatArg(Annotation):
         try:
             return float(token), text, rest
         except ValueError:
-            raise UserError("Expected %s" % FloatArg.name)
+            raise AnnotationError("Expected %s" % FloatArg.name)
 
 
 class StringArg(Annotation):
@@ -496,12 +500,14 @@ class Bounded(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        value, text, rest = self.anno.parse(text, session)
+        value, new_text, rest = self.anno.parse(text, session)
         if self.min is not None and value < self.min:
-            raise UserError("Must be greater than or equal to %s" % self.min)
+            raise AnnotationError("Must be greater than or equal to %s"
+                                   % self.min, len(text) - len(rest))
         if self.max is not None and value > self.max:
-            raise UserError("Must be less than or equal to %s" % self.max)
-        return value, text, rest
+            raise AnnotationError("Must be less than or equal to %s"
+                                  % self.max, len(text) - len(rest))
+        return value, new_text, rest
 
 
 class EnumOf(Annotation):
@@ -552,7 +558,7 @@ class EnumOf(Annotation):
             else:
                 if ident.casefold() == folded:
                     return self.values[i], ident, rest
-        raise UserError("Invalid %s" % self.name)
+        raise AnnotationError("Invalid %s" % self.name)
 
 
 class Or(Annotation):
@@ -583,7 +589,7 @@ class Or(Annotation):
         if len(names) > 2:
             msg += ', '
         msg += 'or ' + names[-1]
-        raise UserError("Excepted %s" % msg)
+        raise AnnotationError("Excepted %s" % msg)
 
 
 _escape_table = {
@@ -689,7 +695,7 @@ def _next_token(text):
         else:
             end = len(text)
             token = text[start + 1:end]
-            raise UserError("incomplete quoted text")
+            raise AnnotationError("incomplete quoted text")
         token = unescape(token)
     # elif text[start] == "'":
     #     m = _single_quote.match(text, start)
@@ -701,7 +707,7 @@ def _next_token(text):
     #     else:
     #         end = len(text)
     #         token = text[start + 1:end]
-    #         raise UserError("incomplete quoted text")
+    #         raise AnnotationError("incomplete quoted text")
     #     token = unescape(token)
     elif text[start] == ';':
         return ';', ';', text[start + 1:]
@@ -727,7 +733,7 @@ def _upto_semicolon(text):
                 start = m.end()
             else:
                 start = size
-                raise UserError("incomplete quoted text")
+                raise AnnotationError("incomplete quoted text")
                 break
         # elif text[start] == "'":
         #     m = _single_quote.match(text, start)
@@ -735,7 +741,7 @@ def _upto_semicolon(text):
         #         start = m.end()
         #     else:
         #         start = size
-        #         raise UserError("incomplete quoted text")
+        #         raise AnnotationError("incomplete quoted text")
         #         break
         elif text[start] == ';':
             break
@@ -1233,6 +1239,14 @@ class Command:
                 results.append(ci.function(session, *args, optional=optional,
                                used_aliases=_used_aliases))
                 continue
+            except UserError as err:
+                if isinstance(ci.function, _Alias):
+                    # propagate expanded alias
+                    cmd = ci.function.cmd
+                    self.current_text = cmd.current_text
+                    self.amount_parsed = cmd.amount_parsed
+                    self._error = cmd._error
+                raise
             except ValueError as err:
                 if isinstance(ci.function, _Alias):
                     # propagate expanded alias
@@ -1247,14 +1261,6 @@ class Command:
                 if len(traceback.extract_tb(exc_traceback)) > 2:
                     raise
                 raise UserError(err)
-            except UserError as err:
-                if isinstance(ci.function, _Alias):
-                    # propagate expanded alias
-                    cmd = ci.function.cmd
-                    self.current_text = cmd.current_text
-                    self.amount_parsed = cmd.amount_parsed
-                    self._error = cmd._error
-                raise
         return results
 
     def _replace(self, chars, replacement):
@@ -1373,7 +1379,7 @@ class Command:
                 self._kwargs[name] = value
                 self._error = ""
             except ValueError as err:
-                if isinstance(err, UserError) and err.offset is not None:
+                if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
                 if name in self._ci._required:
                     self._error = "Invalid argument %r: %s" % (name, err)
@@ -1435,7 +1441,7 @@ class Command:
                 value, text = self._parse_arg(anno, text, session, final)
                 self._kwargs[arg_name] = value
             except ValueError as err:
-                if isinstance(err, UserError) and err.offset is not None:
+                if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
                 self._error = "Invalid argument %r: %s" % (arg_name, err)
                 return
@@ -1995,6 +2001,7 @@ if __name__ == '__main__':
         (False, False, 'test4 2; test4 3'),
         (False, False, 'test10 red 2; test10 li gr 3'),
         (True, False, 'test10 red 2; test10 3 red'),
+        (True, False, 'test10 red 2; test6 123, red'),
     ]
     # TODO: delayed registration tests
     sys.stdout = sys.stderr
