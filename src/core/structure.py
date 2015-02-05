@@ -37,7 +37,7 @@ class StructureModel(models.Model):
         m = self.mol_blob
         a = m.atoms
         a.draw_modes = self.SPHERE_STYLE
-        self.color_by_element()
+        a.colors = element_colors(a.element_numbers)
         b = m.bonds
         b.radii = self.bond_radius
 
