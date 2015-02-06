@@ -3,16 +3,20 @@
 #define    templates_Atom
 
 #include <vector>
+#include "Bond.h"
 #include "CoordSet.h"
 #include "../Element.h"
 #include "../imex.h"
-#include "Bond.h"
+#include "../string_types.h"
 
 namespace tmpl {
 
+using atomstruct::AtomName;
+using atomstruct::AtomType;
+using atomstruct::Element;
+
 class Molecule;
 class Residue;
-using atomstruct::Element;
 
 class ATOMSTRUCT_IMEX Atom {
 public:
@@ -26,10 +30,10 @@ private:
         ~Atom();
     Bonds         _bonds;
     Element       _element;
-    std::string     _idatm_type;
+    AtomType      _idatm_type;
     mutable unsigned int _index;
     Molecule*     _molecule;
-    std::string   _name;
+    AtomName      _name;
     Neighbors     _neighbors;
     Residue*      _residue;
 private:
@@ -43,17 +47,17 @@ public:
     Element       element() const { return _element; }
     Molecule*     molecule() const { return _molecule; }
     Residue*      residue() const { return _residue; }
-    std::string   name() const { return _name; }
+    const AtomName&     name() const { return _name; }
     const Neighbors&    neighbors() const { return _neighbors; }
 public:
     static const unsigned int COORD_UNASSIGNED = ~0u;
     void        set_coord(const Coord &c);
     void        set_coord(const Coord &c, CoordSet *cs);
 public:
-    std::string  idatm_type() const { return _idatm_type; }
-    void    set_idatm_type(const char *i) { _idatm_type = i; }
+    const AtomType&  idatm_type() const { return _idatm_type; }
+    void    set_idatm_type(const AtomType& i) { _idatm_type = i; }
 private:
-    Atom(Molecule *, std::string &n, atomstruct::Element e);
+    Atom(Molecule *, const AtomName& n, atomstruct::Element e);
 };
 
 }  // namespace tmpl

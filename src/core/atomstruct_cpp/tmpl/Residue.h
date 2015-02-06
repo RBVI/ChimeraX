@@ -4,10 +4,13 @@
 
 #include <map>
 #include <vector>
-#include "Residue_template.h"
 #include "../imex.h"
+#include "../string_types.h"
 
 namespace tmpl {
+
+using atomstruct::AtomName;
+using atomstruct::AtomType;
 
 class Atom;
 class Molecule;
@@ -19,22 +22,11 @@ class ATOMSTRUCT_IMEX Residue {
     ~Residue();
 public:
     void    add_atom(Atom *element);
-    Atom    *find_atom(const std::string &) const;
+    Atom    *find_atom(const AtomName&) const;
 
     // return atoms that received assignments from the template
     std::vector<Atom *>    template_assign(
-                  void (*assign_func)(Atom *, const char *),
-                  const char *app,
-                  const char *template_dir,
-                  const char *extension
-                ) const;
-    std::vector<Atom *>    template_assign(
-                  void (Atom::*assign_func)(const char *),
-                  const char *app,
-                  const char *template_dir,
-                  const char *extension
-                ) const;
-    std::vector<Atom *>    template_assign(tmpl_assigner, 
+                  void (Atom::*assign_func)(const AtomType&),
                   const char *app,
                   const char *template_dir,
                   const char *extension
@@ -53,7 +45,7 @@ public:
     void    add_link_atom(Atom *);
     const AtomList link_atoms() const { return _link_atoms; }
 
-    typedef std::map<std::string, Atom *> AtomsMap;
+    typedef std::map<AtomName, Atom *> AtomsMap;
     const AtomsMap &atoms_map() { return _atoms; }
 private:
     Residue(Molecule *, const char *t);
