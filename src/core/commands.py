@@ -52,12 +52,13 @@ def export(session, filename, **kw):
 _export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
 
 
-def close(session, model_id):
+def close(session, model_ids):
     try:
-        return session.models.close(model_id)
+        for model_id in model_ids:
+            session.models.close(model_id)
     except ValueError as e:
         raise cli.UserError(e)
-_close_desc = cli.CmdDesc(required=[('model_id', cli.ModelIdArg)])
+_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))])
 
 
 def list(session):

@@ -144,7 +144,7 @@ class Models(State):
             if len(model_id) == 1:
                 parent = self.drawing
             else:
-                parent = self._models(model_id[:-1])
+                parent = self._models[model_id[:-1]]
             parent.remove_drawing(model)
 
     def open(self, filename, id=None, **kw):
