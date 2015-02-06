@@ -30,17 +30,23 @@ def open_pdb(session, filename, *args, **kw):
     if input != filename:
         input.close()
 
-    model = structure.StructureModel(name)
-    model.mol_blob = mol_blob
-    model.make_drawing()
+    structures = mol_blob.structures
+    models = []
+    num_atoms = 0
+    num_bonds = 0
+    for structure_blob in structures:
+        model = structure.StructureModel(name)
+        models.append(model)
+        model.mol_blob = structure_blob
+        model.make_drawing()
 
-    coords = model.mol_blob.atoms.coords
-    bond_list = mol_blob.bond_indices
-    num_atoms = len(coords)
-    num_bonds = len(bond_list)
+        coords = model.mol_blob.atoms.coords
+        bond_list = model.mol_blob.bond_indices
+        num_atoms += len(coords)
+        num_bonds += len(bond_list)
 
-    return [model], ("Opened PDB data containing %d atoms and %d bonds"
-                     % (num_atoms, num_bonds))
+    return models, ("Opened PDB data containing %d atoms and %d bonds"
+                    % (num_atoms, num_bonds))
 
 
 def fetch_pdb(session, pdb_id):

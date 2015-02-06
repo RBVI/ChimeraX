@@ -3,8 +3,6 @@
 models: model support
 =====================
 
-TODO: Stubs for now.
-
 """
 
 import weakref
@@ -25,6 +23,8 @@ class Model(State, Drawing):
     registered.
     """
 
+    MODEL_STATE_VERSION = 1
+
     def __init__(self, name):
         Drawing.__init__(self, name)
         self.id = None  # tuple: e.g., 1.2.1 is (1, 2, 1)
@@ -35,6 +35,17 @@ class Model(State, Drawing):
             raise ValueError("model is still open")
         Drawing.delete(self)
         # TODO: track.deleted(Model, [self])
+
+    def take_snapshot(self, session, flags):
+        return [self.MODEL_STATE_VERSION, self.name]
+
+    def restore_snapshot(self, phase, session, version, data):
+        if version != self.MODEL_STATE_VERSION:
+            raise RuntimeError("Unexpected version or data")
+        self.name = data
+
+    def reset_state(self):
+        pass
 
 
 class Models(State):
@@ -77,11 +88,14 @@ class Models(State):
                 model = cls("unknown name until restored")
                 model.id = id
                 self._models[id] = model
-                parent = self.drawing   # TODO: figure out based on id
-                parent.add_drawing(model)
                 session.restore_unique_id(model, uid)
             else:
                 model = session.unique_obj(uid)
+                if len(model.id) == 1:
+                    parent = self.drawing
+                else:
+                    parent = self._models[model.id[:-1]]
+                parent.add_drawing(model)
             model.restore_snapshot(phase, session, model_version, model_data)
 
     def reset_state(self):
@@ -95,15 +109,26 @@ class Models(State):
 
     def add(self, models, id=None):
         session = self._session()  # resolve back reference
+        if id is not None:
+            base_model_id = id
+        else:
+            base_model_id = (next(self._id_counter), )  # model id's are tuples
+        multi_model = len(models) > 1
+        if not multi_model:
+            parent = self.drawing
+        else:
+            parent = Model('container')  # TODO: replace with appropriate name
+            parent.id = base_model_id
+            self._models[parent.id] = parent
+            self.drawing.add_drawing(parent)
+            from itertools import count as count
+            counter = count(1)
         for model in models:
-            # TODO:
-            # if id is not None:
-            #     model.id = id
-            # else:
-            if 1:
-                model.id = (next(self._id_counter),)    # model id's are tuples
+            if not multi_model:
+                model.id = base_model_id
+            else:
+                model.id = base_model_id + (next(counter),)
             self._models[model.id] = model
-            parent = self.drawing   # TODO: figure out based on id
             parent.add_drawing(model)
         session.triggers.activate_trigger(ADD_MODELS, models)
 
@@ -116,7 +141,10 @@ class Models(State):
                 continue
             model.id = None
             del self._models[model_id]
-            parent = self.drawing   # TODO: figure out based on id
+            if len(model_id) == 1:
+                parent = self.drawing
+            else:
+                parent = self._models(model_id[:-1])
             parent.remove_drawing(model)
 
     def open(self, filename, id=None, **kw):
