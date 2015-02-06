@@ -11,8 +11,12 @@
 #include <sstream>
 #include <string.h>
 #include <sys/stat.h>
+#include "../string_types.h"
 
 namespace tmpl {
+
+using atomstruct::AtomName;
+using atomstruct::AtomType;
 
 #ifndef S_ISDIR
 # define S_ISDIR(x)    (((x) & S_IFMT) == S_IFDIR)
@@ -154,8 +158,8 @@ TemplateCache::parse_template_file(std::ifstream &template_file, std::string &pa
                         " at line number " << line_num;
             throw TA_TemplateSyntax(os.str());
         }
-        std::string at_name(fields[0]);
-        std::string normal_at_type(fields[1]);
+        AtomName at_name(fields[0]);
+        AtomType normal_at_type(fields[1]);
         ConditionalTemplate *ct = nullptr;
         if (num_fields > 2) {
             ct = new ConditionalTemplate;
@@ -193,7 +197,7 @@ TemplateCache::~TemplateCache()
 }
 
 void
-ConditionalTemplate::add_condition(const char *cond, const char *type)
+ConditionalTemplate::add_condition(const char* cond, const AtomType& type)
 {
     int operator_pos = ::strlen(cond) - 1;
     if (operator_pos < 1) {
@@ -205,7 +209,7 @@ ConditionalTemplate::add_condition(const char *cond, const char *type)
       case '.':
       case '?':
           conditions.push_back(CondInfo(std::string(cond + operator_pos),
-          cond_atom, std::string(type)));
+              cond_atom, type));
         break;
       default:
           throw TA_TemplateSyntax(
