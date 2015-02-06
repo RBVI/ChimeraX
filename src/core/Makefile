@@ -63,7 +63,9 @@ test:
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 
-_atomspec.py:	_atomspec.peg
+.SUFFIXES: .peg
+
+.peg.py:
 	$(PYTHON_EXE) -m grako -o $@ $^
 
 _appdirs.install: appdirs_cpp.install
