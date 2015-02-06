@@ -62,7 +62,7 @@ def fetch_pdb(session, pdb_id):
 
     from urllib.request import URLError, Request
     from . import utils
-    url = "http://www.pdb.org/pdb/files/%s.pdb.gz" % pdb_id.upper()
+    url = "http://www.pdb.org/pdb/files/%s.pdb" % pdb_id.upper()
     request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
