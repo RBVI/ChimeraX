@@ -14,10 +14,6 @@ class UI:
     def __init__(self, session):
         import weakref
         self._session = weakref.ref(session)
-        from . import cli
-        self._cmd = cli.Command(session)
-        from threading import Semaphore
-        self._input_sem = Semaphore()
         from queue import Queue
         self._queue = Queue()
 
@@ -36,7 +32,7 @@ class UI:
 
     def event_loop(self):
         session = self._session()  # resolve back reference
-        input = Input(session, self._input_sem)
+        input = _Input(session)
         input.start()
         from .tasks import FINISHED, TERMINATED
         while input.state not in [FINISHED, TERMINATED]:
@@ -46,7 +42,41 @@ class UI:
     def thread_safe(self, func, *args, **kw):
         self._queue.put((func, args, kw))
 
+
+class _Input(Task):
+
+    def __init__(self, session):
+        # Initializer, runs in UI thread
+        super().__init__(session)
+        from . import cli
+        self._cmd = cli.Command(session)
+        from threading import Semaphore
+        self._sem = Semaphore()
+
+    def run(self):
+        # Actual event loop, runs in our own thread
+        # Schedules calls to self.execute in UI thread
+        prompt = 'cmd> '
+        ui = self.session.ui
+        while True:
+            try:
+                self._sem.acquire()
+                text = input(prompt)
+                ui.thread_safe(self.run_command, text)
+            except EOFError:
+                # Need to get UI thread to do something
+                # in order to detect termination of input thread
+                ui.thread_safe(print, "EOF")
+                break
+
+    def run_command(self, text):
+        # Run command from input queue, runs in UI thread
+        # Separate from "execute" to handle input synchronization
+        self.execute(text)
+        self._sem.release()
+
     def execute(self, text):
+        # Command execution, runs in UI thread
         from . import cli
         try:
             self._cmd.parse_text(text, final=True)
@@ -61,26 +91,10 @@ class UI:
             error_at = cmd.amount_parsed + spaces
             print("%s^" % ('.' * error_at))
             print(err)
-        self._input_sem.release()
 
-
-class Input(Task):
-
-    def __init__(self, session, sem):
-        super().__init__(session)
-        self._sem = sem
-
-    def run(self):
-        prompt = 'cmd> '
-        ui = self.session.ui
-        while True:
-            try:
-                self._sem.acquire()
-                text = input(prompt)
-                ui.thread_safe(ui.execute, text)
-            except EOFError:
-                ui.thread_safe(ui.quit)
-
+    #
+    # Required State methods, do nothing
+    #
     def reset_state(self):
         pass
 
