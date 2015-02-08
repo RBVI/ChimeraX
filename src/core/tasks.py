@@ -1,5 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
-
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 """This module defines classes for tasks and their state manager.
 
 Tasks are threads of execution that continue independently from
@@ -34,12 +33,13 @@ are registered and deregistered.  To add and remove
 and `session.trigger.delete_handler`.
 """
 
-
+import abc
 from .session import State
 
 ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
 UPDATE_TASK = 'update task'
+END_TASK = 'end task'
 
 # Possible task state
 PENDING = "pending"         # Initialized but not running
@@ -55,7 +55,8 @@ class Task(State):
     Classes for tasks should inherit from 'Task' and override methods
     to implement task-specific functionality.  In particularly, methods
     from `session.State` should be defined so that saving and restoring
-    of scenes and sessions work properly.
+    of scenes and sessions work properly, and the 'run' method should
+    be overriden to provide actual functionality.
 
     Attributes
     ----------
@@ -121,6 +122,12 @@ class Task(State):
             return False
         return self._terminate.isSet()
 
+    def terminated(self):
+        """Return whether task has finished.
+
+        """
+        return self.state in [TERMINATED, FINISHED]
+
     def start(self, *args, **kw):
         """Start task running.
 
@@ -155,6 +162,7 @@ class Task(State):
             else:
                 self._update_state(FINISHED)
 
+    @abc.abstractmethod
     def run(self, *args, **kw):
         """Run the task.
 
@@ -163,7 +171,80 @@ class Task(State):
         user has requested termination.
 
         """
-        raise RuntimeError("base class \"start\" method called.")
+        raise RuntimeError("base class \"run\" method called.")
+
+
+class Job(Task):
+    """
+    'Job' is a long-running task.
+
+    A 'Job' instance is a Chimera task that invokes
+    and monitors a long-running process.  Job execution
+    is modeled as process launch followed by multiple checks
+    for process termination.
+
+    'Job' is implemented by overriding the 'run' method to
+    launch and monitor the background process.  Subclasses
+    should override the 'launch' and 'monitor' methods to
+    implement actual functionality.
+
+    Note
+    ----
+    'start' is still the main entry point for callers
+    to 'Job' instances, not 'run'.
+
+    """
+    CHECK_INTERVALS = [ 5, 5, 10, 15, 25, 40, 65, 105, 170, 275 ]
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self._timing_step = 0
+
+    def run(self, *args, **kw):
+        """Launch and monitor a background process.
+
+        This method is run in the task thread (not the UI
+        thread.  'run' calls the abstract methods 'launch'
+        and 'monitor' to initiate and check status of the
+        background process.  Timing of the checks are handled
+        by the 'next_check' method, which may be overridden
+        to provide custom timing.
+
+        """
+        import time
+        self.launch(*args, **kw)
+        while not self.terminated():
+            if self.terminating():
+                break
+            time.sleep(self.next_check())
+            self.monitor()
+
+    def next_check(self):
+        t = self._timing_step
+        self._timing_step += 1
+        try:
+            # Some predetermined intervals
+            return self.CHECK_INTERVALS[t]
+        except IndexError:
+            # Or five minutes
+            return 300
+
+    @abc.abstractmethod
+    def launch(self, *args, **kw):
+        """Launch the background process.
+
+        """
+        raise RuntimeError("base class \"launch\" method called.")
+
+    @abc.abstractmethod
+    def monitor(self):
+        """Check the status of the background process.
+
+        The task should be marked as terminated in the background
+        process is done
+
+        """
+        raise RuntimeError("base class \"monitor\" method called.")
 
 
 class Tasks(State):
@@ -332,10 +413,12 @@ class Tasks(State):
 
         """
         task.state = new_state
-        if new_state in [TERMINATED, FINISHED]:
-            task._cleanup()
         session = self._session()   # resolve back reference
-        session.triggers.activate_trigger(UPDATE_TASK, task)
+        if task.terminated():
+            task._cleanup()
+            session.triggers.activate_trigger(END_TASK, task)
+        else:
+            session.triggers.activate_trigger(UPDATE_TASK, task)
 
     def find_by_id(self, tid):
         """Return a Task instance with the matching identifier.
