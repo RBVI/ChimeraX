@@ -249,7 +249,7 @@ class _AtomSpecSemantics:
 class _ModelList(list):
     """Stores list of model hierarchies."""
     def __init__(self, h):
-        super().__init__(self)
+        super().__init__()
         self.append(h)
 
     def __repr__(self):
@@ -268,7 +268,7 @@ class _ModelList(list):
 class _ModelHierarchy(list):
     """Stores list of model ranges in hierarchy order."""
     def __init__(self, mrl):
-        super().__init__(self)
+        super().__init__()
         self.append(mrl)
 
     def __repr__(self):
@@ -290,7 +290,7 @@ class _ModelHierarchy(list):
 class _ModelRangeList(list):
     """Stores a list of model ranges."""
     def __init__(self, mr):
-        super().__init__(self)
+        super().__init__()
         self.append(mr)
 
     def __repr__(self):
