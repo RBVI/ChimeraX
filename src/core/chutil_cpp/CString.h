@@ -5,6 +5,7 @@
 #include <cstring>  // strcmp
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 namespace chutil {
 
