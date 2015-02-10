@@ -3,12 +3,13 @@
 #include "AtomBlob.h"
 #include "ResBlob.h"
 #include "numpy_common.h"
+#include "filter_blob.h"
 #include "set_blob.h"
 #include <stddef.h>
 
 namespace blob {
     
-template PyObject* newBlob<AtomBlob>(PyTypeObject*);
+template PyObject* new_blob<AtomBlob>(PyTypeObject*);
 
 extern "C" {
     
@@ -182,7 +183,7 @@ ab_set_radii(PyObject* self, PyObject* value, void*)
 static PyObject*
 ab_residues(PyObject* self, void*)
 {
-    PyObject* py_rb = newBlob<ResBlob>(&ResBlob_type);
+    PyObject* py_rb = new_blob<ResBlob>(&ResBlob_type);
     ResBlob* rb = static_cast<ResBlob*>(py_rb);
     AtomBlob* ab = static_cast<AtomBlob*>(self);
     for (auto a: *(ab->_items)) {
@@ -192,6 +193,8 @@ ab_residues(PyObject* self, void*)
 }
 
 static PyMethodDef AtomBlob_methods[] = {
+    { (char*)"filter", blob_filter<AtomBlob>, METH_O,
+        (char*)"filter atom blob based on array/list of booleans" },
     { NULL, NULL, 0, NULL }
 };
 
