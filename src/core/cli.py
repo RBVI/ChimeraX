@@ -428,7 +428,7 @@ class BoolArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         token = token.casefold()
         if token == "0" or "false".startswith(token):
             return False, "false", rest
@@ -443,7 +443,7 @@ class IntArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         try:
             return int(token), text, rest
         except ValueError:
@@ -456,7 +456,7 @@ class FloatArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         try:
             return float(token), text, rest
         except ValueError:
@@ -469,7 +469,7 @@ class StringArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         return token, text, rest
 
 
@@ -549,7 +549,7 @@ class EnumOf(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         folded = token.casefold()
         for i, ident in enumerate(self.ids):
             if self.allow_truncated:
@@ -673,12 +673,18 @@ def unescape(text):
     return text
 
 
-def _next_token(text):
-    # Return a 3-tuple of first argument in text, the actual text used,
-    # and the rest of the text.
-    #
-    # Arguments may be quoted, in which case the text between
-    # the quotes is returned.
+def next_token(text):
+    """
+    Extract next token from given text.
+
+    :param text: text to parse without leading whitespace
+    :returns: a 3-tuple of first argument in text, the actual text used,
+              and the rest of the text.
+
+
+    Tokens may be quoted, in which case the text between
+    the quotes is returned.
+    """
     assert(text and not text[0].isspace())
     # m = _whitespace.match(text)
     # start = m.end()
@@ -716,6 +722,7 @@ def _next_token(text):
         end = m.end()
         token = text[start:end]
     return token, text[:end], text[end:]
+_next_token = next_token  # backward compatibility
 
 
 def _upto_semicolon(text):
@@ -1302,9 +1309,9 @@ class Command:
             text = self.current_text[self.amount_parsed:]
             if not text:
                 return
-            word, chars, text = _next_token(text)
+            word, chars, text = next_token(text)
             if _debugging:
-                print('cmd _next_token(%r) -> %r %r %r' % (text, word, chars,
+                print('cmd next_token(%r) -> %r %r %r' % (text, word, chars,
                                                            text))
             what = word_map.get(word, None)
             if what is None:
@@ -1399,9 +1406,9 @@ class Command:
         if not text:
             return
         while 1:
-            word, chars, text = _next_token(text)
+            word, chars, text = next_token(text)
             if _debugging:
-                print('key _next_token(%r) -> %r %r' % (text, word, chars))
+                print('key next_token(%r) -> %r %r' % (text, word, chars))
             if not word or word == ';':
                 break
 
@@ -1760,7 +1767,7 @@ if __name__ == '__main__':
             # and to be composed of multiple words.
             # Might want to accept non-prefix abbreviations,
             # eg., "lt" for "light".
-            token, chars, rest = _next_token(text)
+            token, chars, rest = next_token(text)
             token = token.casefold()
             color_name = token
             while 1:
@@ -1785,7 +1792,7 @@ if __name__ == '__main__':
                 rest = rest[m.end():]
                 color_name += ' '
 
-                token, chars, rest = _next_token(rest)
+                token, chars, rest = next_token(rest)
                 token = token.casefold()
                 color_name += token
 
