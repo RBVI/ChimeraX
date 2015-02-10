@@ -695,7 +695,7 @@ clock_t start_t, end_t;
     extract.parse_file(filename);
 
     using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
+    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;
@@ -715,7 +715,7 @@ clock_t start_t, end_t;
     extract.parse(reinterpret_cast<const char *>(whole_file));
 
     using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
+    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;

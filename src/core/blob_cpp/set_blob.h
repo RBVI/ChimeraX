@@ -34,7 +34,7 @@ set_blob(PyObject* py_blob, PyObject* py_val,
                 "Numpy array of values must be one-dimensional");
             return -1;
         }
-        if (PyArray_DIMS(array)[0] != blob->_items->size()) {
+        if ((std::size_t)PyArray_DIMS(array)[0] != blob->_items->size()) {
             PyErr_SetString(PyExc_ValueError,
                 "Size of numpy array does not match number of items to assign");
             return -1;
@@ -92,7 +92,7 @@ set_blob(PyObject* py_blob, PyObject* py_val,
                 "Numpy array of values must be one-dimensional");
             return -1;
         }
-        if (PyArray_DIMS(array)[0] != blob->_items->size()) {
+        if ((std::size_t)PyArray_DIMS(array)[0] != blob->_items->size()) {
             PyErr_SetString(PyExc_ValueError,
                 "Size of numpy array does not match number of items to assign");
             return -1;
@@ -143,7 +143,7 @@ set_blob(PyObject* py_blob, PyObject* py_val,
     if (PyArray_Check(py_val)) {
         PyArrayObject* array = PyArray_GETCONTIGUOUS((PyArrayObject*)py_val);
         if (!PyArray_ISINTEGER(array) || PyArray_NDIM(array) != 2
-        || PyArray_DIMS(array)[0] != blob->_items->size()
+        || (std::size_t)PyArray_DIMS(array)[0] != blob->_items->size()
         || PyArray_DIMS(array)[1] != 4) {
             PyErr_SetString(PyExc_TypeError,
                 "Value must be sequence of 4 ints or numpy Nx4 array of ints");
@@ -234,7 +234,7 @@ set_blob(PyObject* py_blob, PyObject* py_val,
                 "Numpy array of values must be one-dimensional");
             return -1;
         }
-        if (PyArray_DIMS(array)[0] != blob->_items->size()) {
+        if ((std::size_t)PyArray_DIMS(array)[0] != blob->_items->size()) {
             PyErr_SetString(PyExc_ValueError,
                 "Size of numpy array does not match number of items to assign");
             return -1;

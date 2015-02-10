@@ -9,9 +9,10 @@ namespace blob {
     
 extern PyTypeObject StructBlob_type;
 
-typedef SharedBlob<atomstruct::AtomicStructure> StructBlob;
+using atomstruct::AtomicStructure;
+typedef Blob<AtomicStructure, std::shared_ptr<AtomicStructure>> StructBlob;
 
-extern template BLOB_IMEX PyObject* newBlob<StructBlob>(PyTypeObject*);
+extern template BLOB_IMEX PyObject* new_blob<StructBlob>(PyTypeObject*);
 
 }  // namespace blob
 

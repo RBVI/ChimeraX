@@ -3,11 +3,12 @@
 #include "ResBlob.h"
 #include <atomstruct/Residue.h>
 #include "numpy_common.h"
+#include "filter_blob.h"
 #include <stddef.h>
 
 namespace blob {
 
-template PyObject* newBlob<ResBlob>(PyTypeObject*);
+template PyObject* new_blob<ResBlob>(PyTypeObject*);
 
 extern "C" {
     
@@ -78,6 +79,8 @@ rb_strs(PyObject* self, void*)
 }
 
 static PyMethodDef ResBlob_methods[] = {
+    { (char*)"filter", blob_filter<ResBlob>, METH_O,
+        (char*)"filter residue blob based on array/list of booleans" },
     { NULL, NULL, 0, NULL }
 };
 

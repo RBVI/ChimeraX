@@ -27,17 +27,23 @@ def open_mmCIF(session, filename, *args, **kw):
         lambda name: _get_template(name, session.app_dirs, session.logger))
     mol_blob = _mmcif.parse_mmCIF_file(filename)
 
-    model = structure.StructureModel(name)
-    model.mol_blob = mol_blob
-    model.make_drawing()
+    structures = mol_blob.structures
+    models = []
+    num_atoms = 0
+    num_bonds = 0
+    for structure_blob in structures:
+        model = structure.StructureModel(name)
+        models.append(model)
+        model.mol_blob = structure_blob
+        model.make_drawing()
 
-    coords = model.mol_blob.atoms.coords
-    bond_list = mol_blob.bond_indices
-    num_atoms = len(coords)
-    num_bonds = len(bond_list)
+        coords = model.mol_blob.atoms.coords
+        bond_list = model.mol_blob.bond_indices
+        num_atoms += len(coords)
+        num_bonds += len(bond_list)
 
-    return [model], ("Opened mmCIF data containing %d atoms and %d bonds"
-                     % (num_atoms, num_bonds))
+    return models, ("Opened mmCIF data containing %d atoms and %d bonds"
+                    % (num_atoms, num_bonds))
 
 
 def fetch_mmCIF(session, pdb_id):
