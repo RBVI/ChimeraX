@@ -201,6 +201,7 @@ class UserError(ValueError):
     """
     pass
 
+
 class AnnotationError(UserError):
     """Error, with optional offset, in annotation"""
 
@@ -301,7 +302,8 @@ class Aggregate(Annotation):
             if i == -1:
                 # no separator found
                 try:
-                    value, consumed, rest = self.annotation.parse(text, session)
+                    value, consumed, rest = self.annotation.parse(text,
+                                                                  session)
                 except AnnotationError as err:
                     if err.offset is None:
                         err.offset = len(used)
@@ -350,14 +352,14 @@ class Aggregate(Annotation):
             else:
                 qual = "at least"
             raise AnnotationError("Need %s %d %s" % (qual, self.min_size,
-                                                self.name), len(used))
+                                                     self.name), len(used))
         if len(result) > self.max_size:
             if self.min_size == self.max_size:
                 qual = "exactly"
             else:
                 qual = "at most"
             raise AnnotationError("Need %s %d %s" % (qual, self.max_size,
-                             self.name), len(used))
+                                                     self.name), len(used))
         return result, used, rest
 
 
@@ -503,7 +505,7 @@ class Bounded(Annotation):
         value, new_text, rest = self.anno.parse(text, session)
         if self.min is not None and value < self.min:
             raise AnnotationError("Must be greater than or equal to %s"
-                                   % self.min, len(text) - len(rest))
+                                  % self.min, len(text) - len(rest))
         if self.max is not None and value > self.max:
             raise AnnotationError("Must be less than or equal to %s"
                                   % self.max, len(text) - len(rest))
@@ -1312,7 +1314,7 @@ class Command:
             word, chars, text = next_token(text)
             if _debugging:
                 print('cmd next_token(%r) -> %r %r %r' % (text, word, chars,
-                                                           text))
+                                                          text))
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1387,7 +1389,12 @@ class Command:
                 self._error = ""
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
+                    # We got an error with an offset, that means that an
+                    # argument was partially matched, so assume that is the
+                    # error the user wants to see.
                     self.amount_parsed += err.offset
+                    self._error = "Invalid argument %r: %s" % (name, err)
+                    return
                 if name in self._ci._required:
                     self._error = "Invalid argument %r: %s" % (name, err)
                     return
