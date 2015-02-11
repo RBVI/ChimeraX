@@ -2787,8 +2787,8 @@ def open_map(session, stream, *args, **kw):
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
         ms = Map_Series(name, maps)
-#        from ..map.series import slider
-#        slider.show_slider_on_open(session)
+        from ..map.series import slider
+        slider.show_slider_on_open2(session)
         return [ms], 'Opened map series %s' % name
     else:
       m0 = maps[0]
