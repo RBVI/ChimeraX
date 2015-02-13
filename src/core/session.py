@@ -479,7 +479,6 @@ def common_startup(sess):
     """Initialize session with common data managers"""
     assert(hasattr(sess, 'app_name'))
     assert(hasattr(sess, 'debug'))
-    global _monkey_patch
     from . import logger
     sess.logger = logger.Logger(sess)
     from . import triggerset
@@ -489,13 +488,21 @@ def common_startup(sess):
     from . import models
     sess.models = models.Models(sess)
     sess.add_state_manager('models', sess.models)
+    from . import color
+    sess.user_colors = color.UserColors()
+    sess.add_state_manager('user_colors', sess.user_colors)
     from .graphics.view import View
+    global _monkey_patch
     if _monkey_patch:
         State.register(View)
+    _monkey_patch = False
     sess.main_view = View(sess.models.drawing, (256, 256), None, sess.logger)
     sess.add_state_manager('main_view', sess.main_view)
+
     from . import commands
     commands.register(sess)
+
+    # file formats
     from . import stl
     stl.register()
     from . import pdb
@@ -506,4 +513,3 @@ def common_startup(sess):
     python.register()
     from . import map
     map.register_map_file_readers()
-    _monkey_patch = False

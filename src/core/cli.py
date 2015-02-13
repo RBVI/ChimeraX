@@ -30,6 +30,8 @@ and keyword arguments with a value, *knX kvX*.
 Each argument has an associated Python argument name
 (for keyword arguments it is the keyword, *knX*).
 *rvX*, *ovX*, and *kvX* are the type-checked values.
+If the argument name is the same as a Python keyword,
+then an underscore appended to it to form the Python argument name.
 The names of the optional arguments are used to
 let them be given as keyword arguments as well.
 Multiple value arguments are separated by commas
@@ -181,6 +183,7 @@ Command Aliases
 """
 
 import abc
+from keyword import iskeyword
 import re
 import sys
 from collections import OrderedDict
@@ -200,6 +203,7 @@ class UserError(ValueError):
     This is in contrast to a error is a bug in the program.
     """
     pass
+
 
 class AnnotationError(UserError):
     """Error, with optional offset, in annotation"""
@@ -301,7 +305,8 @@ class Aggregate(Annotation):
             if i == -1:
                 # no separator found
                 try:
-                    value, consumed, rest = self.annotation.parse(text, session)
+                    value, consumed, rest = self.annotation.parse(text,
+                                                                  session)
                 except AnnotationError as err:
                     if err.offset is None:
                         err.offset = len(used)
@@ -350,14 +355,14 @@ class Aggregate(Annotation):
             else:
                 qual = "at least"
             raise AnnotationError("Need %s %d %s" % (qual, self.min_size,
-                                                self.name), len(used))
+                                                     self.name), len(used))
         if len(result) > self.max_size:
             if self.min_size == self.max_size:
                 qual = "exactly"
             else:
                 qual = "at most"
             raise AnnotationError("Need %s %d %s" % (qual, self.max_size,
-                             self.name), len(used))
+                                                     self.name), len(used))
         return result, used, rest
 
 
@@ -428,7 +433,7 @@ class BoolArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         token = token.casefold()
         if token == "0" or "false".startswith(token):
             return False, "false", rest
@@ -443,7 +448,7 @@ class IntArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         try:
             return int(token), text, rest
         except ValueError:
@@ -456,7 +461,7 @@ class FloatArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         try:
             return float(token), text, rest
         except ValueError:
@@ -469,7 +474,7 @@ class StringArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         return token, text, rest
 
 
@@ -503,7 +508,7 @@ class Bounded(Annotation):
         value, new_text, rest = self.anno.parse(text, session)
         if self.min is not None and value < self.min:
             raise AnnotationError("Must be greater than or equal to %s"
-                                   % self.min, len(text) - len(rest))
+                                  % self.min, len(text) - len(rest))
         if self.max is not None and value > self.max:
             raise AnnotationError("Must be less than or equal to %s"
                                   % self.max, len(text) - len(rest))
@@ -549,7 +554,7 @@ class EnumOf(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         folded = token.casefold()
         for i, ident in enumerate(self.ids):
             if self.allow_truncated:
@@ -673,12 +678,18 @@ def unescape(text):
     return text
 
 
-def _next_token(text):
-    # Return a 3-tuple of first argument in text, the actual text used,
-    # and the rest of the text.
-    #
-    # Arguments may be quoted, in which case the text between
-    # the quotes is returned.
+def next_token(text):
+    """
+    Extract next token from given text.
+
+    :param text: text to parse without leading whitespace
+    :returns: a 3-tuple of first argument in text, the actual text used,
+              and the rest of the text.
+
+
+    Tokens may be quoted, in which case the text between
+    the quotes is returned.
+    """
     assert(text and not text[0].isspace())
     # m = _whitespace.match(text)
     # start = m.end()
@@ -716,6 +727,7 @@ def _next_token(text):
         end = m.end()
         token = text[start:end]
     return token, text[:end], text[end:]
+_next_token = next_token  # backward compatibility
 
 
 def _upto_semicolon(text):
@@ -1302,10 +1314,10 @@ class Command:
             text = self.current_text[self.amount_parsed:]
             if not text:
                 return
-            word, chars, text = _next_token(text)
+            word, chars, text = next_token(text)
             if _debugging:
-                print('cmd _next_token(%r) -> %r %r %r' % (text, word, chars,
-                                                           text))
+                print('cmd next_token(%r) -> %r %r %r' % (text, word, chars,
+                                                          text))
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1376,11 +1388,19 @@ class Command:
                 break
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                self._kwargs[name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % name] = value
+                else:
+                    self._kwargs[name] = value
                 self._error = ""
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
+                    # We got an error with an offset, that means that an
+                    # argument was partially matched, so assume that is the
+                    # error the user wants to see.
                     self.amount_parsed += err.offset
+                    self._error = "Invalid argument %r: %s" % (name, err)
+                    return
                 if name in self._ci._required:
                     self._error = "Invalid argument %r: %s" % (name, err)
                     return
@@ -1399,9 +1419,9 @@ class Command:
         if not text:
             return
         while 1:
-            word, chars, text = _next_token(text)
+            word, chars, text = next_token(text)
             if _debugging:
-                print('key _next_token(%r) -> %r %r' % (text, word, chars))
+                print('key next_token(%r) -> %r %r' % (text, word, chars))
             if not word or word == ';':
                 break
 
@@ -1439,7 +1459,10 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                self._kwargs[arg_name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % arg_name] = value
+                else:
+                    self._kwargs[arg_name] = value
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
@@ -1760,7 +1783,7 @@ if __name__ == '__main__':
             # and to be composed of multiple words.
             # Might want to accept non-prefix abbreviations,
             # eg., "lt" for "light".
-            token, chars, rest = _next_token(text)
+            token, chars, rest = next_token(text)
             token = token.casefold()
             color_name = token
             while 1:
@@ -1785,7 +1808,7 @@ if __name__ == '__main__':
                 rest = rest[m.end():]
                 color_name += ' '
 
-                token, chars, rest = _next_token(rest)
+                token, chars, rest = next_token(rest)
                 token = token.casefold()
                 color_name += token
 

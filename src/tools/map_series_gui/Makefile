@@ -1,34 +1,42 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.bogus
-PKG_VERSION = 0.1
-PKG_DESCRIPTION = Bogus Toolshed Demo Example
+PKG_NAME = chimera.map_series_gui
+PKG_VERSION = 1.0
+PKG_DESCRIPTION = User interface for density map series
+# Example:
+# PKG_NAME = chimera.cmd_line
+# PKG_VERSION = 1.0
+# PKG_DESCRIPTION = Chimera 2 command line interface
 
-TOOL_NAME = bogus
-TOOL_PKG_NAME = $(PKG_NAME)
-TOOL_DISPLAY_NAME = Bogus Toolshed-demo Tool
+# For many cases, only a single tool and a single command
+# is provided by a package.  Variables below are designed
+# for this case.  If you have multiple tools or commands,
+# you need manually edit all the files.
+TOOL_NAME = map_series_gui
+TOOL_PKG_NAME = chimera.map_series_gui
+TOOL_DISPLAY_NAME = Map Series
 TOOL_CATEGORY = General
-TOOL_SYNOPSIS = Bogus tool for demonstrating toolshed functionality
-COMMAND_NAME = bogus
+TOOL_SYNOPSIS = Play through density map time series
+COMMAND_NAME = 
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 
 PYSRCS = $(wildcard *.py)
+DATAFILES = half.png play.png pause.png
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
 install: dir
-	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
 
 app-install: wheel
-# Do not put in app so we can install using toolshed
 	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 

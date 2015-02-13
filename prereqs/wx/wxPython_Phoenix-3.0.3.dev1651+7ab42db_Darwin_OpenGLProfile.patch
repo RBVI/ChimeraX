@@ -1,6 +1,6 @@
-diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/include/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/include/wx/glcanvas.h
---- wxPython_Phoenix-3.0.1.dev75822/wxWidgets/include/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
-+++ wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/include/wx/glcanvas.h	2014-02-21 09:25:01.000000000 -0800
+diff -ru wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/include/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/include/wx/glcanvas.h
+--- wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/include/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
++++ wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/include/wx/glcanvas.h	2014-02-21 09:25:01.000000000 -0800
 @@ -48,7 +48,13 @@
      WX_GL_MIN_ACCUM_BLUE,  // use blue buffer with most bits (> MIN_ACCUM_BLUE bits)
      WX_GL_MIN_ACCUM_ALPHA, // use alpha buffer with most bits (> MIN_ACCUM_ALPHA bits)
@@ -16,9 +16,9 @@ diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/include/wx/glcanvas.h wxPytho
  };
  
  #define wxGLCanvasName wxT("GLCanvas")
-diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/interface/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/interface/wx/glcanvas.h
---- wxPython_Phoenix-3.0.1.dev75822/wxWidgets/interface/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
-+++ wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/interface/wx/glcanvas.h	2014-02-21 09:25:10.000000000 -0800
+diff -ru wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/interface/wx/glcanvas.h wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/interface/wx/glcanvas.h
+--- wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/interface/wx/glcanvas.h	2013-07-26 09:02:46.000000000 -0700
++++ wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/interface/wx/glcanvas.h	2014-02-21 09:25:10.000000000 -0800
 @@ -137,8 +137,18 @@
      WX_GL_SAMPLE_BUFFERS,
  
@@ -39,9 +39,9 @@ diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/interface/wx/glcanvas.h wxPyt
  };
  
  /**
-diff -ru wxPython_Phoenix-3.0.1.dev75822/wxWidgets/src/osx/cocoa/glcanvas.mm wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/src/osx/cocoa/glcanvas.mm
---- wxPython_Phoenix-3.0.1.dev75822/wxWidgets/src/osx/cocoa/glcanvas.mm	2013-09-25 23:31:20.000000000 -0700
-+++ wxPython_Phoenix-3.0.1.dev75822.unchanged/wxWidgets/src/osx/cocoa/glcanvas.mm	2014-02-21 09:25:30.000000000 -0800
+diff -ru wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/src/osx/cocoa/glcanvas.mm wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/src/osx/cocoa/glcanvas.mm
+--- wxPython_Phoenix-3.0.1.dev75822/ext/wxWidgets/src/osx/cocoa/glcanvas.mm	2013-09-25 23:31:20.000000000 -0700
++++ wxPython_Phoenix-3.0.1.dev75822.unchanged/ext/wxWidgets/src/osx/cocoa/glcanvas.mm	2014-02-21 09:25:30.000000000 -0800
 @@ -213,6 +213,19 @@
                      data[p++] = NSOpenGLPFASamples;
                      data[p++] = (NSOpenGLPixelFormatAttribute) attribList[arg++];

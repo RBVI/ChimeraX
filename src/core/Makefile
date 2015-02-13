@@ -9,7 +9,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
 	   pdb_cpp pdbio pseudobond_cpp \
 	   readcif_cpp \
 	   structaccess surface toolshed ui chutil_cpp \
-	   map
+	   map webservices
 
 include $(TOP)/mk/subdir.make
 
