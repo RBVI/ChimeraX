@@ -2797,8 +2797,7 @@ def open_map(session, stream, *args, **kw):
 #
 def register_map_file_readers():
     from .. import io
-    category = 'VOLUME'
     from .data.fileformats import file_types
     for d,t,prefixes,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, category, suf, open_func=open_map)
+      io.register_format(d, io.VOLUME, suf, open_func=open_map)
