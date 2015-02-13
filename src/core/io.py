@@ -515,8 +515,6 @@ def open(session, filespec, format=None, identify_as=None, **kw):
         filespec, has_format=format)
     if format_name is None:
         raise UserError("Missing or unknown file type")
-    if identify_as is None:
-        identify_as = filename
     open_func = open_function(format_name)
     if open_func is None:
         raise UserError("unable to open %s files" % format_name)
@@ -561,8 +559,9 @@ def open(session, filespec, format=None, identify_as=None, **kw):
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
     models, status = open_func(session, stream, **kw)
-    for m in models:
-        m.name = identify_as
+    if identify_as:
+        for m in models:
+            m.name = identify_as
     return models, status
 
 
