@@ -23,8 +23,7 @@ class ToolUI(ToolInstance):
         import weakref
         self._session = weakref.ref(session)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("TOOL_NAME", "TOOL_CATEGORY",
-                                      session, size=self.SIZE)
+        self.tool_window = ToolWindow("TOOL_NAME", session, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         self.tool_window.manage(placement="bottom")
