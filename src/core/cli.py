@@ -30,6 +30,8 @@ and keyword arguments with a value, *knX kvX*.
 Each argument has an associated Python argument name
 (for keyword arguments it is the keyword, *knX*).
 *rvX*, *ovX*, and *kvX* are the type-checked values.
+If the argument name is the same as a Python keyword,
+then an underscore appended to it to form the Python argument name.
 The names of the optional arguments are used to
 let them be given as keyword arguments as well.
 Multiple value arguments are separated by commas
