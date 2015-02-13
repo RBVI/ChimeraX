@@ -217,6 +217,9 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     from chimera.core import tools
     sess.tools = tools.Tools(sess)
     sess.add_state_manager('tools', sess.tools)
+    from chimera.core import tasks
+    sess.tasks = tasks.Tasks(sess)
+    sess.add_state_manager('tasks', sess.tasks)
 
     if opts.list_file_types:
         from chimera.core import io

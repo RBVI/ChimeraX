@@ -30,6 +30,8 @@ and keyword arguments with a value, *knX kvX*.
 Each argument has an associated Python argument name
 (for keyword arguments it is the keyword, *knX*).
 *rvX*, *ovX*, and *kvX* are the type-checked values.
+If the argument name is the same as a Python keyword,
+then an underscore appended to it to form the Python argument name.
 The names of the optional arguments are used to
 let them be given as keyword arguments as well.
 Multiple value arguments are separated by commas
@@ -181,6 +183,7 @@ Command Aliases
 """
 
 import abc
+from keyword import iskeyword
 import re
 import sys
 from collections import OrderedDict
@@ -1385,7 +1388,10 @@ class Command:
                 break
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                self._kwargs[name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % name] = value
+                else:
+                    self._kwargs[name] = value
                 self._error = ""
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
@@ -1453,7 +1459,10 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                self._kwargs[arg_name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % arg_name] = value
+                else:
+                    self._kwargs[arg_name] = value
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
