@@ -19,7 +19,8 @@ class MapSeries(ToolInstance):
         sname = ', '.join('#%d' % ser.id for ser in series) + (' length %d' % n)
 
         from ..core.ui.tool_api import ToolWindow
-        tw = ToolWindow("Volume Series", "General", session,
+        title = "Map series %s" % ', '.join(s.name for s in series)
+        tw = ToolWindow(title, "General", session,
                         size=self.SIZE, destroy_hides=True)
         self.tool_window = tw
         parent = tw.ui_area
@@ -30,14 +31,18 @@ class MapSeries(ToolInstance):
         tt.Bind(wx.EVT_SPINCTRL, self.time_changed_cb)
         self.slider = sl = wx.Slider(parent, value = 0, minValue = 0, maxValue = n-1)
         sl.Bind(wx.EVT_SLIDER, self.slider_moved_cb)
-        self.play_button = pb = wx.ToggleButton(parent, label = "Play", style=wx.BU_EXACTFIT)
+        self.play_button = pb = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
+        self.set_play_button_icon(play = True)
         pb.Bind(wx.EVT_TOGGLEBUTTON, self.play_cb)
-        self.subsample_button = x2 = wx.ToggleButton(parent, label = "x2", style=wx.BU_EXACTFIT)
+        self.subsample_button = x2 = wx.ToggleButton(parent, style=wx.BU_EXACTFIT)
+        from os.path import dirname, join
+        hbm = wx.Bitmap(join(dirname(__file__), 'half.png'))
+        x2.SetBitmap(hbm)
         x2.Bind(wx.EVT_TOGGLEBUTTON, self.subsample_cb)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(label, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
-        sizer.Add(tt, 0, wx.FIXED_MINSIZE)
+        sizer.Add(tt, 0, wx.FIXED_MINSIZE | wx.ALIGN_CENTER)
         sizer.Add(sl, 1, wx.EXPAND)
         sizer.Add(pb, 0, wx.FIXED_MINSIZE)
         sizer.Add(x2, 0, wx.FIXED_MINSIZE)
@@ -102,9 +107,11 @@ class MapSeries(ToolInstance):
 
     def set_play_button_icon(self, play):
         pb = self.play_button
-        text = 'Play' if play else 'Stop'
-        self.play_button.SetLabel(text)
-        # Use bitmaps instead.
+        from os.path import dirname, join
+        bitmap_path = join(dirname(__file__), 'play.png' if play else 'pause.png')
+        import wx
+        pbm = wx.Bitmap(bitmap_path)
+        self.play_button.SetBitmap(pbm)
 
     def subsample_cb(self, event):
         subsamp = self.subsample_button.GetValue()
