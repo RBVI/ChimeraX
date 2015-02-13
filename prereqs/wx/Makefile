@@ -74,7 +74,7 @@ ifeq ($(OS),Darwin)
 	# On Darwin, we patch to add support for selecting
 	# OpenGL profile, so we need to rerun sip to get our
 	# new constants into Python
-	cd $(SOURCE)/Phoenix && \
+	cd $(SOURCE) && \
 		$(PYTHON_EXE) build.py build dox && \
 		$(PYTHON_EXE) build.py touch && \
 		$(PYTHON_EXE) build.py etg --nodoc && \
