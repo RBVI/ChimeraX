@@ -181,6 +181,7 @@ Command Aliases
 """
 
 import abc
+from keyword import iskeyword
 import re
 import sys
 from collections import OrderedDict
@@ -1385,7 +1386,10 @@ class Command:
                 break
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                self._kwargs[name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % name] = value
+                else:
+                    self._kwargs[name] = value
                 self._error = ""
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
@@ -1453,7 +1457,10 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                self._kwargs[arg_name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % arg_name] = value
+                else:
+                    self._kwargs[arg_name] = value
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
