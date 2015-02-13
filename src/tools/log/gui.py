@@ -40,9 +40,10 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
+        import wx
         image, image_break = image_info
         if image:
-            import wx, io
+            import io
             mem_name = "image_{}.png".format(next(self._image_count))
             img_io = io.BytesIO()
             image.save(img_io, format='PNG')
@@ -51,13 +52,12 @@ class Log(ToolInstance, HtmlLog):
             wx.MemoryFSHandler.AddFile(mem_name, bitmap.ConvertToImage(),
                 wx.BITMAP_TYPE_PNG)
             w, h = image.size
-            self.page_source += '<img src="memory:{}"' \
-                ' width={} height={}>'.format(mem_name, w, h)
+            self.page_source += '<img src="memory:{}" width={} height={}' \
+                ' style="vertical-align:middle">'.format(mem_name, w, h)
             if image_break:
                 self.page_source += "<br>"
         else:
             if level in (self.LEVEL_ERROR, self.LEVEL_WARNING):
-                import wx
                 if level == self.LEVEL_ERROR:
                     caption = "Chimera 2 Error"
                     icon = wx.ICON_ERROR
@@ -87,6 +87,8 @@ class Log(ToolInstance, HtmlLog):
 
             self.page_source += msg
         self.log_window.SetPage(self.page_source)
+        r = self.log_window.GetScrollRange(wx.VERTICAL)
+        self.log_window.Scroll(0, r)
         return True
 
     #

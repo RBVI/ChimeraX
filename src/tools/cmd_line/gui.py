@@ -54,6 +54,12 @@ class CmdLine(ToolInstance):
         except:
             import traceback
             session.logger.error(traceback.format_exc())
+        else:
+            thumb = session.main_view.image(
+                    width=100, height=100, supersample=3)
+            session.logger.info(text, add_newline=False)
+            session.logger.info("&nbsp;", is_html=True, add_newline=False)
+            session.logger.info("graphics image", image=thumb)
 
     #
     # Implement session.State methods if deriving from ToolInstance
