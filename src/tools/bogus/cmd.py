@@ -1,6 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
 from chimera.core import cli, atomspec
+from chimera.core.webservices.opal_job import OpalJob
 
 
 def echo(session, args="no arguments"):
@@ -38,3 +39,18 @@ def move(session, by, modelspec=None):
         m.update_graphics()
 move_desc = cli.CmdDesc(required=[("by", cli.Float3Arg)],
                         optional=[("modelspec", atomspec.AtomSpecArg)])
+
+
+class CCD(OpalJob):
+    def __init__(self, session, name):
+        super().__init__(session)
+        self.start("CCDService", name)
+
+    def on_finish(self):
+        print("Standard output:")
+        print(self.get_file("stdout.txt").decode(encoding="UTF-8"))
+
+
+def opal(session, name):
+    CCD(session, name)
+opal_desc = cli.CmdDesc(required=[("name", cli.StringArg)])

@@ -91,6 +91,11 @@ class UI(wx.App):
     def quit(self, confirm=True):
         self.main_window.close()
 
+    def thread_safe(self, func, *args, **kw):
+        """Call function 'func' in a thread-safe manner
+        """
+        wx.CallAfter(func, *args, **kw)
+
 
 class MainWindow(wx.Frame):
 
