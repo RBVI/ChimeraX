@@ -85,10 +85,10 @@ class _Input(Task):
                 if result is not None:
                     print(result)
         except cli.UserError as err:
-            print(cmd.current_text)
-            rest = cmd.current_text[cmd.amount_parsed:]
+            print(self._cmd.current_text)
+            rest = self._cmd.current_text[self._cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
-            error_at = cmd.amount_parsed + spaces
+            error_at = self._cmd.amount_parsed + spaces
             print("%s^" % ('.' * error_at))
             print(err)
 

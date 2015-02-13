@@ -42,9 +42,9 @@ UPDATE_TASK = 'update task'
 END_TASK = 'end task'
 
 # Possible task state
-PENDING = "pending"         # Initialized but not running
-RUNNING = "running"         # Running
-TERMINATING = "terminating" # Termination requested
+PENDING = "pending"           # Initialized but not running
+RUNNING = "running"           # Running
+TERMINATING = "terminating"   # Termination requested
 TERMINATED = "terminated"   # Termination requested
 FINISHED = "finished"       # Finished
 
@@ -137,9 +137,10 @@ class Task(State):
         if self.state != PENDING:
             raise RuntimeError("starting task multiple times")
         import threading
+        print("start", args, kw)
         self._terminate = threading.Event()
         self._thread = threading.Thread(target=self._run_thread,
-                                        daemon=True, *args, **kw)
+                                        daemon=True, args=args, kwargs=kw)
         self._thread.start()
         self._update_state(RUNNING)
 
@@ -161,6 +162,7 @@ class Task(State):
                 self._update_state(TERMINATED)
             else:
                 self._update_state(FINISHED)
+        self.session.ui.thread_safe(self.on_finish)
 
     @abc.abstractmethod
     def run(self, *args, **kw):
@@ -172,6 +174,15 @@ class Task(State):
 
         """
         raise RuntimeError("base class \"run\" method called.")
+
+    def on_finish(self):
+        """Callback method executed after task thread terminates.
+
+        This callback is executed in the UI thread after the
+        'run' method returns.  By default, it does nothing.
+
+        """
+        pass
 
 
 class Job(Task):
@@ -188,13 +199,19 @@ class Job(Task):
     should override the 'launch' and 'monitor' methods to
     implement actual functionality.
 
+    Classes deriving from 'Job' indirectly inherits from
+    'Task' and should override methods to implement
+    task-specific functionality.  In particularly, methods
+    from `session.State` should be defined so that saving
+    and restoring of scenes and sessions work properly.
+
     Note
     ----
     'start' is still the main entry point for callers
     to 'Job' instances, not 'run'.
 
     """
-    CHECK_INTERVALS = [ 5, 5, 10, 15, 25, 40, 65, 105, 170, 275 ]
+    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275]
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -205,15 +222,15 @@ class Job(Task):
 
         This method is run in the task thread (not the UI
         thread.  'run' calls the abstract methods 'launch'
-        and 'monitor' to initiate and check status of the
-        background process.  Timing of the checks are handled
-        by the 'next_check' method, which may be overridden
-        to provide custom timing.
+        'running' and 'monitor' to initiate and check status
+        of the background process.  Timing of the checks
+        are handled by the 'next_check' method, which may
+        be overridden to provide custom timing.
 
         """
         import time
         self.launch(*args, **kw)
-        while not self.terminated():
+        while self.running():
             if self.terminating():
                 break
             time.sleep(self.next_check())
@@ -237,14 +254,48 @@ class Job(Task):
         raise RuntimeError("base class \"launch\" method called.")
 
     @abc.abstractmethod
+    def running(self):
+        """Check if job is running.
+
+        """
+        raise RuntimeError("base class \"running\" method called.")
+
+    @abc.abstractmethod
     def monitor(self):
         """Check the status of the background process.
 
-        The task should be marked as terminated in the background
-        process is done
+        The task should be marked as terminated (using
+        'update_state') when the background process is done
 
         """
         raise RuntimeError("base class \"monitor\" method called.")
+
+    @abc.abstractmethod
+    def exited_normally(self):
+        """Return whether job terminated normally.
+
+        Returns
+        -------
+        status : bool
+            True if normal termination, False otherwise.
+
+        """
+        raise RuntimeError("base class \"exited_normally\" method called.")
+
+
+class JobError(RuntimeError):
+    """Generic job error."""
+    pass
+
+
+class JobLaunchError(JobError):
+    """Exception thrown when job launch fails."""
+    pass
+
+
+class JobMonitorError(JobError):
+    """Exception thrown when job status check fails."""
+    pass
 
 
 class Tasks(State):
@@ -268,8 +319,9 @@ class Tasks(State):
         import weakref
         self._session = weakref.ref(session)
         session.triggers.add_trigger(ADD_TASK)
-        session.triggers.add_trigger(UPDATE_TASK)
         session.triggers.add_trigger(REMOVE_TASK)
+        session.triggers.add_trigger(UPDATE_TASK)
+        session.triggers.add_trigger(END_TASK)
         self._tasks = {}
         import itertools
         self._id_counter = itertools.count(1)

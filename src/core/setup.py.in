@@ -32,6 +32,7 @@ setup(
         "chimera.core.map.series",
         "chimera.core.surface",
         "chimera.core.toolshed",
+        "chimera.core.webservices",
     ],
     package_data={
         "chimera.core": ["*.PYMOD_EXT"],
