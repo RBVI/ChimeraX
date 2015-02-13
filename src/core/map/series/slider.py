@@ -157,7 +157,7 @@ class Volume_Series_WX_GUI:
         sname = ', '.join('#%d' % ser.id for ser in series) + (' length %d' % n)
 
         from ...ui.tool_api import ToolWindow
-        tw = ToolWindow("Volume Series", "General", session,
+        tw = ToolWindow("Volume Series", session,
                         size=self.SIZE, destroy_hides=True)
         self.tool_window = tw
         parent = tw.ui_area

@@ -54,6 +54,7 @@ class UI(wx.App):
                 except ToolshedError as e:
                     self.session.logger.info("Tool \"%s\" failed to start"
                                              % ti.name)
+                    print("{}".format(e))
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.

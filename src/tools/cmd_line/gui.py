@@ -11,7 +11,7 @@ class CmdLine(ToolInstance):
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Command Line", "General", session,
+        self.tool_window = ToolWindow("Command Line", session,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx
