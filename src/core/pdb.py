@@ -12,18 +12,13 @@ from .cli import UserError
 _builtin_open = open
 
 
-def open_pdb(session, filename, *args, **kw):
+def open_pdb(session, filename, name, *args, **kw):
 
-    name = kw['name'] if 'name' in kw else None
     if hasattr(filename, 'read'):
         # it's really a fetched stream
         input = filename
-        if name is None:
-            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
-        if name is None:
-            name = filename
 
     from . import pdbio
     mol_blob = pdbio.read_pdb_file(input)
@@ -73,7 +68,7 @@ def fetch_pdb(session, pdb_id):
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
     try:
-        return utils.retrieve_cached_url(request, filename, session.logger)
+        return utils.retrieve_cached_url(request, filename, session.logger), pdb_id
     except URLError as e:
         raise UserError(str(e))
 

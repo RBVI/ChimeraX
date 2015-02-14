@@ -13,14 +13,11 @@ _builtin_open = open
 _initialized = False
 
 
-def open_mmCIF(session, filename, *args, **kw):
+def open_mmCIF(session, filename, name, *args, **kw):
     # mmCIF parsing requires an uncompressed file
-    name = kw['name'] if 'name' in kw else None
     if hasattr(filename, 'name'):
         # it's really a fetched stream
         filename = filename.name
-    if name is None:
-        name = filename
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
@@ -70,9 +67,10 @@ def fetch_mmCIF(session, pdb_id):
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
     try:
-        return utils.retrieve_cached_url(request, filename, session.logger)
+        utils.retrieve_cached_url(request, filename, session.logger)
     except URLError as e:
         raise UserError(str(e))
+    return filename, pdb_id
 
 
 def _get_template(name, app_dirs, logger):
@@ -117,4 +115,4 @@ def register():
         "mmCIF", structure.CATEGORY, (".cif",), ("mmcif", "cif"),
         mime=("chemical/x-mmcif", "chemical/x-cif"),
         reference="http://mmcif.wwpdb.org/",
-        requires_seeking=True, open_func=open_mmCIF, fetch_func=fetch_mmCIF)
+        requires_filename=True, open_func=open_mmCIF, fetch_func=fetch_mmCIF)
