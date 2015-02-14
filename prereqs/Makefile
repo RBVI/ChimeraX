@@ -49,7 +49,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= appdirs beautifulsoup docutils expat ffmpeg fonts \
+SUBDIRS	+= appdirs docutils expat ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy numpydoc \
 	   openssl ordered_set p7zip pcre pillow pips pycollada \
 	   PyOpenGL pytables pythomnic3k Python \
@@ -124,7 +124,6 @@ endif
 # target of the other packages.
 
 appdirs.install: Python.install setuptools.install
-beautifulsoup.install: Python.install setuptools.install
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
