@@ -33,14 +33,14 @@ def echo(session, text=''):
 _echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
 
 
-def open(session, filename, id=None, name=None):
+def open(session, filename, id=None, as_=None):
     try:
         return session.models.open(filename, id=id, name=name)
     except OSError as e:
         raise cli.UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                          keyword=[('id', cli.ModelIdArg),
-                                  ('name', cli.StringArg)])
+                                  ('as', cli.StringArg)])
 
 
 def export(session, filename, **kw):
@@ -98,7 +98,7 @@ def help(session, command_name=None):
                  % ( ', '.join(cmds[:-1]), cmds[-1]))
         return
     status(cli.usage(command_name))
-    info(cli.html_usage(command_name))
+    info(cli.html_usage(command_name), is_html=True)
 _help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)])
 
 
