@@ -19,7 +19,7 @@ class ToolUI(ToolInstance):
     VERSION = 1
 
     def __init__(self, session):
-        super().__init__()
+        super().__init__(session)
         import weakref
         self._session = weakref.ref(session)
         from chimera.core.ui.tool_api import ToolWindow
