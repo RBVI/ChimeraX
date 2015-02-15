@@ -35,7 +35,7 @@ _echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
 
 def open(session, filename, id=None, as_=None):
     try:
-        return session.models.open(filename, id=id, name=name)
+        return session.models.open(filename, id=id, as_=as_)
     except OSError as e:
         raise cli.UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
