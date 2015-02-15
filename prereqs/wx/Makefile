@@ -7,7 +7,6 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 VERSION = 3.0.3.dev1651+7ab42db
-EGG_VERSION = $(shell echo '$(VERSION)' | sed 's/[^A-Za-z0-9_.][^A-Za-z0-9_.]*/_/g')
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
@@ -48,7 +47,7 @@ endif
 endif
 
 app-install:
-	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(EGG_VERSION)-py$(PYTHON_VERSION).egg-info \
+	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(VERSION)-py$(PYTHON_VERSION).egg-info \
 		$(PYSITEDIR)/wx $(APP_PYSITEDIR)
 ifndef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(shlibdir)/libwx_*$(SHLIB_EXT)* $(app_shlibdir)
