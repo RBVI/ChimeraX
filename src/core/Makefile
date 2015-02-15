@@ -29,7 +29,7 @@ install: dir _atomspec.py
 	fi
 
 app-install: wheel
-	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
+	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp always
