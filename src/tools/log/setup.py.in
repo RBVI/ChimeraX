@@ -9,22 +9,23 @@ from setuptools import setup
 
 lib_dir = "LIB_DIR"
 pkg_dir = "PKG_DIR"
-import os.path
 
-setup(name="TOOL",
-    version="TOOL_VERSION",
-    description="Command Line",
+setup(
+    name="PKG_NAME",
+    version="PKG_VERSION",
+    description="PKG_DESCRIPTION",
     author="UCSF RBVI",
     author_email="chimera2@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimera2/",
-    package_dir = {
-        "TOOL": pkg_dir,
+    package_dir={
+        "PKG_NAME": pkg_dir,
     },
     packages=[
-        "TOOL",
+        "PKG_NAME",
+        # Add subpackage names here
     ],
     data_files=[
-        ("", [ "timestamp" ]),
+        ("", ["timestamp"]),
     ],
     install_requires=[
         "chimera.core",
@@ -43,13 +44,28 @@ setup(name="TOOL",
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Vio-Informatics",
-        # Each tool should have a single line with up to six fields:
+        # Each tool should have a single line with up to seven fields:
+        #
         # 'Chimera-Tool' :: tool_name :: module_name
         # :: display_name :: commands :: categories
+        # :: synopsis
+        #
         # 'tool_name', 'module_name' and 'display_name' are strings.
         # 'commands' and 'categories' are comma separated strings.
-        "Chimera-Tool :: log :: TOOL "
-        ":: Log :: log :: Utilities "
-        ":: Log of information and output",
+        # Note that TOOL_PKG_NAME does not need to match the install
+        # package name; in particular, it may be a subpackage.
+        # TOOL_DISPLAY_NAME is distinct from PKG_DESCRIPTION because
+        # a single package may provide multiple tools.
+        # 'synopsis' is a short description of the tool.  It is here
+        # because it needs to be part of the metadata available for
+        # uninstalled tools, so that users can get more than just a
+        # name for deciding whether they want the tool or not.
+        #
+        # Example:
+        # "Chimera-Tool :: cmd_line :: chimera.cmd_line "
+        # ":: Command Line Interface :: command_line :: General"
+        "Chimera-Tool :: TOOL_NAME :: TOOL_PKG_NAME "
+        ":: TOOL_DISPLAY_NAME :: COMMAND_NAME :: TOOL_CATEGORY "
+        ":: TOOL_SYNOPSIS",
     ],
 )

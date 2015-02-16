@@ -13,7 +13,7 @@
 from chimera.core.tools import ToolInstance
 
 
-class ToolUI(ToolInstance):
+class bogusUI(ToolInstance):
 
     SIZE = (500, 25)
     VERSION = 1
@@ -23,7 +23,7 @@ class ToolUI(ToolInstance):
         import weakref
         self._session = weakref.ref(session)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("TOOL_NAME", session, size=self.SIZE)
+        self.tool_window = ToolWindow("Open Models", session, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         self.tool_window.manage(placement="bottom")
@@ -70,4 +70,4 @@ class ToolUI(ToolInstance):
         self.tool_window.shown = b
 
     def display_name(self):
-        return "custom name for running tool"
+        return "Select open model(s)"
