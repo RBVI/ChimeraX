@@ -20,8 +20,6 @@ class ToolUI(ToolInstance):
 
     def __init__(self, session):
         super().__init__(session)
-        import weakref
-        self._session = weakref.ref(session)
         from chimera.core.ui.tool_api import ToolWindow
         self.tool_window = ToolWindow("TOOL_NAME", session, size=self.SIZE)
         parent = self.tool_window.ui_area
@@ -29,10 +27,6 @@ class ToolUI(ToolInstance):
         self.tool_window.manage(placement="bottom")
         # Add to running tool list for session (not required)
         session.tools.add([self])
-
-    def OnEnter(self, event):
-        session = self._session()  # resolve back reference
-        # Handle event
 
     #
     # Implement session.State methods if deriving from ToolInstance
@@ -60,10 +54,9 @@ class ToolUI(ToolInstance):
     # Override ToolInstance delete method to clean up
     #
     def delete(self):
-        session = self._session()  # resolve back reference
         self.tool_window.shown = False
         self.tool_window.destroy()
-        session.tools.remove([self])
+        self.session.tools.remove([self])
         super().delete()
 
     def display(self, b):
