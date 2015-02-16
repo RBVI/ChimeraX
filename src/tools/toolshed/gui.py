@@ -61,7 +61,7 @@ class ToolshedUI(ToolInstance):
         from chimera.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE,
                                                        self._make_page),
-                          session.triggers.add_handler(ADD_TOOL_INSTANCE,
+                          session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
                                                        self._make_page)]
         session.tools.add([self])
 
