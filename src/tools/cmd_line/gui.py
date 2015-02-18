@@ -47,9 +47,9 @@ class CmdLine(ToolInstance):
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
             logger = session.logger
-            logger.info(cmd.current_text)
-            logger.info("%s^" % ('.' * error_at))
-            logger.info(str(err))
+            text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
+                cmd.current_text, '.' * error_at, str(err))
+            logger.info(text, is_html=True)
             logger.status(str(err))
         except:
             import traceback
