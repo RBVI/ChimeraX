@@ -1,7 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
-#import distutils.core
-#distutils.core.DEBUG = True
+# import distutils.core
+# distutils.core.DEBUG = True
 from distlib import metadata
 print(metadata.METADATA_FILENAME)
 metadata.METADATA_FILENAME = "metadata.json"
@@ -10,14 +10,13 @@ from setuptools import setup
 lib_dir = "LIB_DIR"
 pkg_dir = "PKG_DIR"
 
-setup(
-    name="PKG_NAME",
+setup(name="PKG_NAME",
     version="PKG_VERSION",
     description="PKG_DESCRIPTION",
     author="UCSF RBVI",
     author_email="chimera2@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimera2/",
-    package_dir={
+    package_dir = {
         "PKG_NAME": pkg_dir,
     },
     packages=[

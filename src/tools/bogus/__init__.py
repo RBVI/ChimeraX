@@ -1,13 +1,16 @@
-# vim: set expandtab ts=4 sw=4:
-
-#
-# 'register_command' is called by the toolshed on start up
-# 'start_tool' is called to start an instance of the tool
-#
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
 def start_tool(session, ti):
-    return
+    # If providing more than one tool in package,
+    # look at the name in 'ti.name' to see which is being started.
+    from . import gui
+    try:
+        ui = getattr(gui, ti.name + "UI")
+    except AttributeError:
+        raise RuntimeError("cannot find UI for tool \"%s\"" % ti.name)
+    else:
+        ui(session)
 
 
 def register_command(command_name):
@@ -28,6 +31,7 @@ def register_command(command_name):
 
     from chimera.core import atomspec
     atomspec.register_selector(None, "odd", _odd_models)
+
 
 def _odd_models(session, models, results):
     for m in models:
