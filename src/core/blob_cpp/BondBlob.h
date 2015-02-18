@@ -9,9 +9,10 @@ namespace blob {
     
 extern PyTypeObject BondBlob_type;
 
-typedef RawBlob<atomstruct::Bond> BondBlob;
+using atomstruct::Bond;
+typedef Blob<Bond, SharedAPIPointer<Bond>> BondBlob;
 
-extern template BLOB_IMEX PyObject* newBlob<BondBlob>(PyTypeObject*);
+extern template BLOB_IMEX PyObject* new_blob<BondBlob>(PyTypeObject*);
 
 }  // namespace blob
 

@@ -168,7 +168,7 @@ class GraphicsWindow(wx.Panel):
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):
 
-    def __init__(self, parent, ui):
+    def __init__(self, parent, ui=None):
         self.graphics_window = parent
         attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER ]
         import sys
@@ -203,7 +203,8 @@ class OpenGLCanvas(glcanvas.GLCanvas):
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
-        self.Bind(wx.EVT_CHAR, ui.forward_keystroke)
+        if ui:
+            self.Bind(wx.EVT_CHAR, ui.forward_keystroke)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 

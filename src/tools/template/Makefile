@@ -47,6 +47,7 @@ app-install: wheel
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
+	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
@@ -66,7 +67,7 @@ setup.py: setup.py.in Makefile
 		< setup.py.in > setup.py
 
 timestamp: always
-	echo "$(TOOL) $(TOOL_VERSION)" >  timestamp
+	echo "$(TOOL_NAME) $(PKG_VERSION)" >  timestamp
 
 always:
 

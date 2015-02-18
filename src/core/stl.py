@@ -16,7 +16,7 @@ class STLModel(generic3d.Generic3DModel):
     pass
 
 
-def open(session, filename, *args, **kw):
+def open(session, filename, name, *args, **kw):
     """Populate the scene with the geometry from a STL file
 
     :param filename: either the name of a file or a file-like object
@@ -24,16 +24,11 @@ def open(session, filename, *args, **kw):
     Extra arguments are ignored.
     """
 
-    name = kw['name'] if 'name' in kw else None
     if hasattr(filename, 'read'):
         # it's really a file-like object
         input = filename
-        if name is None:
-            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
-        if name is None:
-            name = filename
 
     model = STLModel(name)
 

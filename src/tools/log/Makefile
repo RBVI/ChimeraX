@@ -1,37 +1,28 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-PKG_NAME = chimera.map_series_gui
+PKG_NAME = chimera.log
 PKG_VERSION = 1.0
-PKG_DESCRIPTION = User interface for density map series
-# Example:
-# PKG_NAME = chimera.cmd_line
-# PKG_VERSION = 1.0
-# PKG_DESCRIPTION = Chimera 2 command line interface
+PKG_DESCRIPTION = Chimera Logger User Interface
 
-# For many cases, only a single tool and a single command
-# is provided by a package.  Variables below are designed
-# for this case.  If you have multiple tools or commands,
-# you need manually edit all the files.
-TOOL_NAME = map_series_gui
-TOOL_PKG_NAME = chimera.map_series_gui
-TOOL_DISPLAY_NAME = Map Series
+TOOL_NAME = log
+TOOL_PKG_NAME = chimera.log
+TOOL_DISPLAY_NAME = Log
 TOOL_CATEGORY = General
-TOOL_SYNOPSIS = Play through density map time series
-COMMAND_NAME = 
+TOOL_SYNOPSIS = Log of information and output
+COMMAND_NAME = log
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 APP_PKG_DIR = $(APP_PYSITEDIR)/$(PKG_PATH)
 
 PYSRCS = $(wildcard *.py)
-DATAFILES = half.png play.png pause.png
 WHEEL = dist/$(PKG_NAME)-$(PKG_VERSION)-py3-none-any.whl
 
 all: $(PYOBJS)
 
 install: dir
-	$(RSYNC) $(PYSRCS) $(DATAFILES) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
@@ -42,7 +33,7 @@ app-install: wheel
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
-	rm -rf $(TOOL_NAME).egg-info
+	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first

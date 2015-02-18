@@ -20,7 +20,7 @@ class MapSeries(ToolInstance):
 
         from ..core.ui.tool_api import ToolWindow
         title = "Map series %s" % ', '.join(s.name for s in series)
-        tw = ToolWindow(title, "General", session,
+        tw = ToolWindow(title, session,
                         size=self.SIZE, destroy_hides=True)
         self.tool_window = tw
         parent = tw.ui_area
