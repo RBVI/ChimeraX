@@ -13,5 +13,6 @@ include $(TOP)/mk/subdir.make
 
 all:
 
+core.install: wheelhouse.install
 tools.install: core.install
 apps.install: tools.install

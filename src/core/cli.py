@@ -30,6 +30,8 @@ and keyword arguments with a value, *knX kvX*.
 Each argument has an associated Python argument name
 (for keyword arguments it is the keyword, *knX*).
 *rvX*, *ovX*, and *kvX* are the type-checked values.
+If the argument name is the same as a Python keyword,
+then an underscore appended to it to form the Python argument name.
 The names of the optional arguments are used to
 let them be given as keyword arguments as well.
 Multiple value arguments are separated by commas
@@ -181,6 +183,7 @@ Command Aliases
 """
 
 import abc
+from keyword import iskeyword
 import re
 import sys
 from collections import OrderedDict
@@ -202,6 +205,14 @@ class UserError(ValueError):
     pass
 
 
+class AnnotationError(UserError):
+    """Error, with optional offset, in annotation"""
+
+    def __init__(self, message, offset=None):
+        ValueError.__init__(self, message)
+        self.offset = offset
+
+
 class Annotation(metaclass=abc.ABCMeta):
     """Base class for all annotations
 
@@ -213,6 +224,7 @@ class Annotation(metaclass=abc.ABCMeta):
         the leading article, *e.g.*, `"a truth value"`.
     """
     name = "** article name, e.g., _a_ _truth value_ **"
+    help = None  #: placeholder for help information (e.g., URL)
 
     @staticmethod
     def parse(text, session):
@@ -292,14 +304,29 @@ class Aggregate(Annotation):
             i = text.find(self.separator)
             if i == -1:
                 # no separator found
-                value, consumed, rest = self.annotation.parse(text, session)
+                try:
+                    value, consumed, rest = self.annotation.parse(text,
+                                                                  session)
+                except AnnotationError as err:
+                    if err.offset is None:
+                        err.offset = len(used)
+                    else:
+                        err.offset += len(used)
+                    raise
                 tmp = self.add_to(result, value)
                 if tmp:
                     result = tmp
                 used += consumed
                 break
             examine = text[:i]
-            value, consumed, rest = self.annotation.parse(examine, session)
+            try:
+                value, consumed, rest = self.annotation.parse(examine, session)
+            except AnnotationError as err:
+                if err.offset is None:
+                    err.offset = len(used)
+                else:
+                    err.offset += len(used)
+                raise
             tmp = self.add_to(result, value)
             if tmp:
                 result = tmp
@@ -327,15 +354,15 @@ class Aggregate(Annotation):
                 qual = "exactly"
             else:
                 qual = "at least"
-            raise ValueError("Need %s %d %s" % (qual, self.min_size,
-                                                self.name))
+            raise AnnotationError("Need %s %d %s" % (qual, self.min_size,
+                                                     self.name), len(used))
         if len(result) > self.max_size:
             if self.min_size == self.max_size:
                 qual = "exactly"
             else:
                 qual = "at most"
-            raise ValueError("Need %s %d %s" % (qual, self.max_size,
-                             self.name))
+            raise AnnotationError("Need %s %d %s" % (qual, self.max_size,
+                                                     self.name), len(used))
         return result, used, rest
 
 
@@ -384,6 +411,18 @@ class DottedTupleOf(Aggregate):
     separator = '.'
     constructor = tuple
 
+    def __init__(self, annotation, min_size=None,
+                 max_size=None, name=None):
+        Aggregate.__init__(self, annotation, min_size, max_size, name)
+        if name is None:
+            if ',' in annotation.name:
+                name = "dotted list of %s" % annotation.name
+            else:
+                # discard article
+                name = annotation.name.split(None, 1)[1]
+                name = "dotted %s(s)" % name
+            self.name = name
+
     def add_to(self, container, value):
         return container + (value,)
 
@@ -394,13 +433,13 @@ class BoolArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         token = token.casefold()
         if token == "0" or "false".startswith(token):
             return False, "false", rest
         if token == "1" or "true".startswith(token):
             return True, "true", rest
-        raise ValueError("Expected true or false (or 1 or 0)")
+        raise AnnotationError("Expected true or false (or 1 or 0)")
 
 
 class IntArg(Annotation):
@@ -409,11 +448,11 @@ class IntArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         try:
             return int(token), text, rest
         except ValueError:
-            raise ValueError("Expected %s" % IntArg.name)
+            raise AnnotationError("Expected %s" % IntArg.name)
 
 
 class FloatArg(Annotation):
@@ -422,11 +461,11 @@ class FloatArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         try:
             return float(token), text, rest
         except ValueError:
-            raise ValueError("Expected %s" % FloatArg.name)
+            raise AnnotationError("Expected %s" % FloatArg.name)
 
 
 class StringArg(Annotation):
@@ -435,7 +474,7 @@ class StringArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         return token, text, rest
 
 
@@ -466,12 +505,14 @@ class Bounded(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        value, text, rest = self.anno.parse(text, session)
+        value, new_text, rest = self.anno.parse(text, session)
         if self.min is not None and value < self.min:
-            raise ValueError("Must be greater than or equal to %s" % self.min)
+            raise AnnotationError("Must be greater than or equal to %s"
+                                  % self.min, len(text) - len(rest))
         if self.max is not None and value > self.max:
-            raise ValueError("Must be less than or equal to %s" % self.max)
-        return value, text, rest
+            raise AnnotationError("Must be less than or equal to %s"
+                                  % self.max, len(text) - len(rest))
+        return value, new_text, rest
 
 
 class EnumOf(Annotation):
@@ -513,7 +554,7 @@ class EnumOf(Annotation):
         self.name = name
 
     def parse(self, text, session):
-        token, text, rest = _next_token(text)
+        token, text, rest = next_token(text)
         folded = token.casefold()
         for i, ident in enumerate(self.ids):
             if self.allow_truncated:
@@ -522,7 +563,7 @@ class EnumOf(Annotation):
             else:
                 if ident.casefold() == folded:
                     return self.values[i], ident, rest
-        raise ValueError("Invalid %s" % self.name)
+        raise AnnotationError("Invalid %s" % self.name)
 
 
 class Or(Annotation):
@@ -553,7 +594,7 @@ class Or(Annotation):
         if len(names) > 2:
             msg += ', '
         msg += 'or ' + names[-1]
-        raise ValueError("Excepted %s" % msg)
+        raise AnnotationError("Excepted %s" % msg)
 
 
 _escape_table = {
@@ -637,12 +678,18 @@ def unescape(text):
     return text
 
 
-def _next_token(text):
-    # Return a 3-tuple of first argument in text, the actual text used,
-    # and the rest of the text.
-    #
-    # Arguments may be quoted, in which case the text between
-    # the quotes is returned.
+def next_token(text):
+    """
+    Extract next token from given text.
+
+    :param text: text to parse without leading whitespace
+    :returns: a 3-tuple of first argument in text, the actual text used,
+              and the rest of the text.
+
+
+    Tokens may be quoted, in which case the text between
+    the quotes is returned.
+    """
     assert(text and not text[0].isspace())
     # m = _whitespace.match(text)
     # start = m.end()
@@ -659,7 +706,7 @@ def _next_token(text):
         else:
             end = len(text)
             token = text[start + 1:end]
-            raise ValueError("incomplete quoted text")
+            raise AnnotationError("incomplete quoted text")
         token = unescape(token)
     # elif text[start] == "'":
     #     m = _single_quote.match(text, start)
@@ -671,7 +718,7 @@ def _next_token(text):
     #     else:
     #         end = len(text)
     #         token = text[start + 1:end]
-    #         raise ValueError("incomplete quoted text")
+    #         raise AnnotationError("incomplete quoted text")
     #     token = unescape(token)
     elif text[start] == ';':
         return ';', ';', text[start + 1:]
@@ -680,6 +727,7 @@ def _next_token(text):
         end = m.end()
         token = text[start:end]
     return token, text[:end], text[end:]
+_next_token = next_token  # backward compatibility
 
 
 def _upto_semicolon(text):
@@ -697,7 +745,7 @@ def _upto_semicolon(text):
                 start = m.end()
             else:
                 start = size
-                raise ValueError("incomplete quoted text")
+                raise AnnotationError("incomplete quoted text")
                 break
         # elif text[start] == "'":
         #     m = _single_quote.match(text, start)
@@ -705,7 +753,7 @@ def _upto_semicolon(text):
         #         start = m.end()
         #     else:
         #         start = size
-        #         raise ValueError("incomplete quoted text")
+        #         raise AnnotationError("incomplete quoted text")
         #         break
         elif text[start] == ';':
             break
@@ -739,8 +787,8 @@ IntsArg = ListOf(IntArg)
 Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
 Float3Arg = TupleOf(FloatArg, 3)
-PositiveIntArg = Bounded(IntArg, min=1, name="natural number")
-ModelIdArg = DottedTupleOf(PositiveIntArg)
+PositiveIntArg = Bounded(IntArg, min=1, name="a natural number")
+ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id")
 
 
 class Postcondition(metaclass=abc.ABCMeta):
@@ -1203,6 +1251,14 @@ class Command:
                 results.append(ci.function(session, *args, optional=optional,
                                used_aliases=_used_aliases))
                 continue
+            except UserError as err:
+                if isinstance(ci.function, _Alias):
+                    # propagate expanded alias
+                    cmd = ci.function.cmd
+                    self.current_text = cmd.current_text
+                    self.amount_parsed = cmd.amount_parsed
+                    self._error = cmd._error
+                raise
             except ValueError as err:
                 if isinstance(ci.function, _Alias):
                     # propagate expanded alias
@@ -1217,14 +1273,6 @@ class Command:
                 if len(traceback.extract_tb(exc_traceback)) > 2:
                     raise
                 raise UserError(err)
-            except UserError as err:
-                if isinstance(ci.function, _Alias):
-                    # propagate expanded alias
-                    cmd = ci.function.cmd
-                    self.current_text = cmd.current_text
-                    self.amount_parsed = cmd.amount_parsed
-                    self._error = cmd._error
-                raise
         return results
 
     def _replace(self, chars, replacement):
@@ -1266,10 +1314,10 @@ class Command:
             text = self.current_text[self.amount_parsed:]
             if not text:
                 return
-            word, chars, text = _next_token(text)
+            word, chars, text = next_token(text)
             if _debugging:
-                print('cmd _next_token(%r) -> %r %r %r' % (text, word, chars,
-                                                           text))
+                print('cmd next_token(%r) -> %r %r %r' % (text, word, chars,
+                                                          text))
             what = word_map.get(word, None)
             if what is None:
                 self.completion_prefix = word
@@ -1340,9 +1388,19 @@ class Command:
                 break
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                self._kwargs[name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % name] = value
+                else:
+                    self._kwargs[name] = value
                 self._error = ""
             except ValueError as err:
+                if isinstance(err, AnnotationError) and err.offset is not None:
+                    # We got an error with an offset, that means that an
+                    # argument was partially matched, so assume that is the
+                    # error the user wants to see.
+                    self.amount_parsed += err.offset
+                    self._error = "Invalid argument %r: %s" % (name, err)
+                    return
                 if name in self._ci._required:
                     self._error = "Invalid argument %r: %s" % (name, err)
                     return
@@ -1361,9 +1419,9 @@ class Command:
         if not text:
             return
         while 1:
-            word, chars, text = _next_token(text)
+            word, chars, text = next_token(text)
             if _debugging:
-                print('key _next_token(%r) -> %r %r' % (text, word, chars))
+                print('key next_token(%r) -> %r %r' % (text, word, chars))
             if not word or word == ';':
                 break
 
@@ -1401,8 +1459,13 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                self._kwargs[arg_name] = value
+                if iskeyword(name):
+                    self._kwargs['%s_' % arg_name] = value
+                else:
+                    self._kwargs[arg_name] = value
             except ValueError as err:
+                if isinstance(err, AnnotationError) and err.offset is not None:
+                    self.amount_parsed += err.offset
                 self._error = "Invalid argument %r: %s" % (arg_name, err)
                 return
             m = _whitespace.match(text)
@@ -1479,7 +1542,7 @@ def command_help(name):
     return cmd._ci.help
 
 
-def command_usage(name):
+def usage(name):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -1493,20 +1556,20 @@ def command_usage(name):
 
     usage = cmd.command_name
     ci = cmd._ci
-    for arg in ci._required:
-        usage += ' %s' % arg
+    for arg_name in ci._required:
+        usage += ' %s' % arg_name
     num_opt = 0
-    for arg in ci._optional:
-        usage += ' [%s' % arg
+    for arg_name in ci._optional:
+        usage += ' [%s' % arg_name
         num_opt += 1
     usage += ']' * num_opt
-    for arg in ci._keyword:
-        type = ci._keyword[arg].name
-        usage += ' [%s _%s_]' % (arg, type)
+    for arg_name in ci._keyword:
+        type = ci._keyword[arg_name].name
+        usage += ' [%s _%s_]' % (arg_name, type.replace(' ', '_'))
     return usage
 
 
-def command_html_usage(name):
+def html_usage(name):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -1519,23 +1582,44 @@ def command_html_usage(name):
         raise ValueError("'%s' is not a command name" % name)
 
     from html import escape
-    usage = '<b>%s</b>' % escape(cmd.command_name)
+    if cmd._ci.help is None:
+        usage = '<b>%s</b>' % escape(cmd.command_name)
+    else:
+        usage = '<b><a href="%s">%s</a></b>' % (
+            cmd._ci.help, escape(cmd.command_name))
     ci = cmd._ci
-    for arg in ci._required:
-        type = ci._required[arg].name
-        usage += ' <span title="%s"><i>%s</i></span>' % (escape(type),
-                                                         escape(arg))
+    for arg_name in ci._required:
+        arg = ci._required[arg_name]
+        type = arg.name
+        if arg.help is None:
+            name = escape(arg_name)
+        else:
+            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+        usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
-    for arg in ci._optional:
+    for arg_name in ci._optional:
         num_opt += 1
-        type = ci._optional[arg].name
-        usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type),
-                                                          escape(arg))
+        arg = ci._optional[arg_name]
+        type = arg.name
+        if arg.help is None:
+            name = escape(arg_name)
+        else:
+            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+        usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
-    for arg in ci._keyword:
-        type = ci._keyword[arg].name
-        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg), escape(type))
+    for arg_name in ci._keyword:
+        arg = ci._keyword[arg_name]
+        if arg.help is None:
+            type = escape(arg.name)
+        else:
+            type = '<a href="%s">%s</a>' % (arg.help, escape(arg.name))
+        usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
     return usage
+
+
+def registered_commands():
+    """Return a list of the currently registered commands"""
+    return list(_commands.keys())
 
 
 class _Alias:
@@ -1548,7 +1632,6 @@ class _Alias:
         self.parts = []  # list of strings and integer argument numbers
         self.cmd = None
         self.optional_rest_of_line = False
-
         not_dollar = re.compile(r"[^$]*")
         number = re.compile(r"\d*")
 
@@ -1684,7 +1767,7 @@ def unalias(session, name):
     del cmd_map[word]
 
 if __name__ == '__main__':
-    from .utils import flattened
+    from utils import flattened
 
     class ColorArg(Annotation):
         name = 'a color'
@@ -1700,7 +1783,7 @@ if __name__ == '__main__':
             # and to be composed of multiple words.
             # Might want to accept non-prefix abbreviations,
             # eg., "lt" for "light".
-            token, chars, rest = _next_token(text)
+            token, chars, rest = next_token(text)
             token = token.casefold()
             color_name = token
             while 1:
@@ -1725,7 +1808,7 @@ if __name__ == '__main__':
                 rest = rest[m.end():]
                 color_name += ' '
 
-                token, chars, rest = _next_token(rest)
+                token, chars, rest = next_token(rest)
                 token = token.casefold()
                 color_name += token
 
@@ -1858,13 +1941,10 @@ if __name__ == '__main__':
         def echo(session, text=''):
             return text
 
-        @register('usage', CmdDesc(required=[('name', RestOfLine)]))
-        def usage(session, name):
-            print(command_usage(name))
+        register('usage', CmdDesc(required=[('name', RestOfLine)]), usage)
 
-        @register('html_usage', CmdDesc(required=[('name', RestOfLine)]))
-        def html_usage(session, name):
-            print(command_html_usage(name))
+        register('html_usage', CmdDesc(required=[('name', RestOfLine)]),
+                 html_usage)
         prompt = 'cmd> '
         cmd = Command(None)
         while True:
@@ -1923,6 +2003,7 @@ if __name__ == '__main__':
         (False, True, 'm te 12 3.5 col red'),
         (False, True, 'test6 3.4, 5.6, 7.8'),
         (True, True, 'test6 3.4 abc 7.8'),
+        (True, True, 'test6 3.4, abc, 7.8'),
         (False, True, 'test7 center 3.4, 5.6, 7.8'),
         (True, True, 'test7 center 3.4, 5.6'),
         (False, True, 'test8 always false'),
@@ -1943,6 +2024,7 @@ if __name__ == '__main__':
         (False, False, 'test4 2; test4 3'),
         (False, False, 'test10 red 2; test10 li gr 3'),
         (True, False, 'test10 red 2; test10 3 red'),
+        (True, False, 'test10 red 2; test6 123, red'),
     ]
     # TODO: delayed registration tests
     sys.stdout = sys.stderr

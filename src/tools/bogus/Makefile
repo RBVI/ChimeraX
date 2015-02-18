@@ -10,7 +10,7 @@ TOOL_PKG_NAME = $(PKG_NAME)
 TOOL_DISPLAY_NAME = Bogus Toolshed-demo Tool
 TOOL_CATEGORY = General
 TOOL_SYNOPSIS = Bogus tool for demonstrating toolshed functionality
-COMMAND_NAME = bogus, hidewater
+COMMAND_NAME = bogus
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,/,.,')
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
@@ -29,11 +29,12 @@ install: dir
 
 app-install: wheel
 # Do not put in app so we can install using toolshed
-#	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
-	$(RSYNC) $(WHEEL) $(wheelhouse)
+	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
+	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
+	rm -rf $(PKG_NAME).egg-info
 
 setup.py: setup.py.in Makefile
 	# "TOOL_PKG_NAME" includes "PKG_NAME" so must be replaced first
@@ -53,7 +54,7 @@ setup.py: setup.py.in Makefile
 		< setup.py.in > setup.py
 
 timestamp: always
-	echo "$(TOOL) $(TOOL_VERSION)" >  timestamp
+	echo "$(TOOL_NAME) $(PKG_VERSION)" >  timestamp
 
 always:
 

@@ -2,18 +2,20 @@
 #ifndef atomstruct_Atom
 #define atomstruct_Atom
 
-#include <vector>
-#include <string>
+#include <cstring>
 #include <map>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "Element.h"
 #include <basegeom/Point.h>
 #include <basegeom/Coord.h>
 #include <basegeom/Sphere.h>
 #include "imex.h"
+#include "string_types.h"
 
 namespace atomstruct {
 
@@ -38,12 +40,12 @@ public:
         unsigned int  substituents;
         std::string  description;
     };
-    typedef std::unordered_map<std::string, IdatmInfo> IdatmInfoMap;
+    typedef std::map<AtomType, IdatmInfo> IdatmInfoMap;
     typedef std::vector<const Ring*>  Rings;
 
 private:
     static const unsigned int  COORD_UNASSIGNED = ~0u;
-    Atom(AtomicStructure *as, const std::string &name, Element e);
+    Atom(AtomicStructure *as, const char* name, Element e);
     char  _alt_loc;
     typedef struct {
         std::vector<float> *  aniso_u;
@@ -52,16 +54,16 @@ private:
         float  occupancy;
         int  serial_number;
     } _Alt_loc_info;
-    typedef std::unordered_map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
+    typedef std::map<unsigned char, _Alt_loc_info>  _Alt_loc_map;
     _Alt_loc_map  _alt_loc_map;
     std::vector<float> *  _aniso_u;
-    mutable std::string  _computed_idatm_type;
+    mutable AtomType  _computed_idatm_type;
     unsigned int  _coord_index;
     void  _coordset_set_coord(const Point &);
     void  _coordset_set_coord(const Point &, CoordSet *cs);
     Element  _element;
-    std::string  _explicit_idatm_type;
-    std::string  _name;
+    AtomType  _explicit_idatm_type;
+    AtomName  _name;
     unsigned int  _new_coord(const Point &);
     float  _radius = -1.0; // indicates not explicitly set
     Residue *  _residue;
@@ -88,9 +90,9 @@ public:
     static const IdatmInfoMap&  get_idatm_info_map();
     bool  has_alt_loc(char al) const
       { return _alt_loc_map.find(al) != _alt_loc_map.end(); }
-    bool  idatm_is_explicit() const { return !_explicit_idatm_type.empty(); }
-    const std::string&  idatm_type() const;
-    const std::string  name() const { return _name; }
+    bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
+    const AtomType&  idatm_type() const;
+    const AtomName&  name() const { return _name; }
     // neighbors() just simply inherited from Connectible (via BaseSphere)
     float  occupancy() const;
     int  serial_number() const { return _serial_number; }
@@ -107,10 +109,9 @@ public:
     void  set_bfactor(float);
     virtual void  set_coord(const Point & coord) { set_coord(coord, NULL); }
     void  set_coord(const Point & coord, CoordSet * cs);
-    void  set_computed_idatm_type(const std::string& it) {
-        _computed_idatm_type = it;
-    }
-    void  set_idatm_type(const std::string& it) { _explicit_idatm_type = it; }
+    void  set_computed_idatm_type(const char* it) { _computed_idatm_type =  it; }
+    void  set_idatm_type(const char* it) { _explicit_idatm_type = it; }
+    void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
@@ -120,7 +121,7 @@ public:
 }  // namespace atomstruct
 
 #include "AtomicStructure.h"
-inline const std::string&
+inline const atomstruct::AtomType&
 atomstruct::Atom::idatm_type() const {
     if (idatm_is_explicit()) return _explicit_idatm_type;
     if (!_structure->_idatm_valid) _structure->_compute_idatm_types();

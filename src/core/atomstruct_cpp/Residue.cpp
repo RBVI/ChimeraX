@@ -52,19 +52,7 @@ Residue::bonds_between(const Residue* other_res, bool just_first) const
 }
 
 int
-Residue::count_atom(const std::string &name) const
-{
-    int count = 0;
-    for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
-        Atom *a = *ai;
-        if (a->name() == name)
-            ++count;
-    }
-    return count;
-}
-
-int
-Residue::count_atom(const char *name) const
+Residue::count_atom(const AtomName& name) const
 {
     int count = 0;
     for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
@@ -76,18 +64,7 @@ Residue::count_atom(const char *name) const
 }
 
 Atom *
-Residue::find_atom(const std::string &name) const
-{
-    for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
-        Atom *a = *ai;
-        if (a->name() == name)
-            return a;
-    }
-    return nullptr;
-}
-
-Atom *
-Residue::find_atom(const char *name) const
+Residue::find_atom(const AtomName& name) const
 {
     
     for (Atoms::const_iterator ai=_atoms.begin(); ai != _atoms.end(); ++ai) {
@@ -145,7 +122,7 @@ Residue::str() const
 }
 
 std::vector<Atom*>
-Residue::template_assign(void (Atom::*assign_func)(const std::string&),
+Residue::template_assign(void (Atom::*assign_func)(const char*),
     const char* app, const char* template_dir, const char* extension) const
 {
     // Returns atoms that received assignments.  Can throw these exceptions:
@@ -172,7 +149,7 @@ Residue::template_assign(void (Atom::*assign_func)(const std::string&),
                 if (ci.op == ".") {
                     // is the given atom terminal?
                     bool is_terminal = true;
-                    auto opa = find_atom(ci.operand);
+                    auto opa = find_atom(ci.operand.c_str());
                     if (opa == nullptr)
                         continue;
                     for (auto bonded: opa->neighbors()) {
@@ -190,7 +167,7 @@ Residue::template_assign(void (Atom::*assign_func)(const std::string&),
                     }
                 } else if (ci.op == "?") {
                     // does the given atom exist in the residue?
-                    if (find_atom(ci.operand) != nullptr) {
+                    if (find_atom(ci.operand.c_str()) != nullptr) {
                         cond_assigned = true;
                         if (ci.result != "-") {
                             (a->*assign_func)(ci.result);

@@ -353,7 +353,16 @@ class Places:
     def masked(self, mask):
         if mask is None:
             return self
-        return Places(place_array=self.array()[mask])
+        sas = self._shift_and_scale
+        if not sas is None:
+            p = Places(shift_and_scale = sas[mask])
+        else:
+            oa = self._opengl_array
+            if oa is None:
+                p = Places(place_array=self.array()[mask])
+            else:
+                p = Places(opengl_array = oa)
+        return p
 
     def shift_and_scale_array(self):
         return self._shift_and_scale

@@ -46,7 +46,7 @@ class ToolshedUI(ToolInstance):
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Toolshed", "General", session)
+        self.tool_window = ToolWindow("Toolshed", session)
         parent = self.tool_window.ui_area
         from wx import html2
         import wx
@@ -61,7 +61,7 @@ class ToolshedUI(ToolInstance):
         from chimera.core.tools import ADD_TOOL_INSTANCE, REMOVE_TOOL_INSTANCE
         self._handlers = [session.triggers.add_handler(ADD_TOOL_INSTANCE,
                                                        self._make_page),
-                          session.triggers.add_handler(ADD_TOOL_INSTANCE,
+                          session.triggers.add_handler(REMOVE_TOOL_INSTANCE,
                                                        self._make_page)]
         session.tools.add([self])
 

@@ -38,6 +38,16 @@ class Play_Series:
 
   # ---------------------------------------------------------------------------
   #
+  def view(self):
+    s = self.session
+    if hasattr(s, 'main_view'):
+      v = s.main_view        # Chimera 2
+    else:
+      v = s.view	     # Hydra
+    return v
+
+  # ---------------------------------------------------------------------------
+  #
   def set_play_direction(self, direction):
 
     self.play_direction = direction
@@ -49,8 +59,7 @@ class Play_Series:
 
     if self.play_handler is None:
       self.play_handler = h = self.next_time_cb
-      v = self.session.view
-      v.add_new_frame_callback(h)
+      self.view().add_new_frame_callback(h)
   
   # ---------------------------------------------------------------------------
   #
@@ -58,8 +67,7 @@ class Play_Series:
 
     h = self.play_handler
     if h:
-      v = self.session.view
-      v.remove_new_frame_callback(h)
+      self.view().remove_new_frame_callback(h)
       self.play_handler = None
 
   # ---------------------------------------------------------------------------

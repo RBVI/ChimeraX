@@ -273,6 +273,7 @@ class Toolshed:
             ti.register_commands()
         if check_remote:
             self._available_tool_info = []
+            self._repo_locator = None
             remote_ti_list = self.check_remote(logger)
             for ti in remote_ti_list:
                 self.add_tool_info(ti)
@@ -827,11 +828,24 @@ class Toolshed:
             filename = url.split('/')[-1]
             dloc = os.path.join(wheel_cache, filename)
             if not os.path.isfile(dloc):
+                need_fetch = True
+            else:
+                t = d.metadata.dictionary["modified"]
+                import time, calendar
+                d_mtime = calendar.timegm(time.strptime(t, "%Y-%m-%d %H:%M:%S"))
+                c_mtime = os.path.getmtime(dloc)
+                print("distribution", time.ctime(d_mtime))
+                print("cache", time.ctime(c_mtime))
+                need_fetch = (d_mtime > c_mtime)
+            if need_fetch:
+                print("fetching wheel")
                 try:
                     fn, headers = urlretrieve(url, dloc)
                 except URLError as e:
                     logger.warning("cannot fetch %s: %s" % (url, str(e)))
                     continue
+            else:
+                print("using cached wheel")
             w = Wheel(dloc)
             try:
                 w.verify()
@@ -1122,7 +1136,7 @@ class ToolInfo:
                                            % self.name)
         try:
             f = self._get_module().start_tool
-        except (ImportError, AttributeError, TypeError):
+        except (ImportError, AttributeError, TypeError, SyntaxError):
             raise ToolshedError("bad start callable specified for tool \"%s\""
                                 % self.name)
         else:

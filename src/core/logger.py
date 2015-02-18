@@ -28,17 +28,23 @@ class Log:
             either drop the status or combine it with the last known
             primary status message.
 
+        Returns
+        -------
+        True if the routine displayed/handled the status, False otherwise.
+
         This method is not abstract because a log is free to totally
         ignore/drop status messages.
         """
-        pass
+        return False
 
 
-class HtmlLog(Log, metaclass=ABCMeta):
+# note: HtmlLog and PlainTextLog were originally abstract classes, but
+# multiply inheriting from C++ wrapped classes (like Wx) is _very_
+# problematic with metaclasses
+class HtmlLog(Log):
     """Base class for logs that support HTML output"""
 
-    @abstractmethod
-    def log(self, level, msg, image, is_html):
+    def log(self, level, msg, image_info, is_html):
         """Log a message.
 
         Parameters
@@ -47,19 +53,24 @@ class HtmlLog(Log, metaclass=ABCMeta):
             How important the message is (e.g. error, warning, info)
         msg : text, possibly HTML
             Message to log
-        image : a PIL image, or None
-            An image to log, in which case the msg param is alt text
-            to use
+        image_info : a (image, boolean) 2-tuple
+            *image* is either a PIL image or None (if there is no image
+            to log).  The boolean indicates whether there should be a
+            line break after the image.  When there is an image to log,
+            *msg* param is alt text to use
         is_html : boolean
             Is the message text HTML or not
+
+        Returns
+        -------
+        True if the routine displayed/handled the log message, False otherwise.
         """
-        pass
+        return False
 
 
-class PlainTextLog(Log, metaclass=ABCMeta):
+class PlainTextLog(Log):
     """Base class for logs that support only plain text output"""
 
-    @abstractmethod
     def log(self, level, msg):
         """Log a message.
 
@@ -69,8 +80,12 @@ class PlainTextLog(Log, metaclass=ABCMeta):
             How important the message is (e.g. error, warning, info)
         msg : text
             Message to log
+
+        Returns
+        -------
+        True if the routine displayed/handled the log message, False otherwise.
         """
-        pass
+        return False
 
 
 class Logger:
@@ -81,7 +96,9 @@ class Logger:
     :meth:`warning`/
     :meth:`info`/
     :meth:`status` methods
-    to send messages to the currently active log.
+    to send messages to a log.  The message will be sent to the log at the
+    top of the log stack and then each other log in order until one of
+    the logs' log() methods returns True (i.e. message consumed).
 
     Message consumers must inherit from :class:`HtmlLog' or
     :class:`PlainTextLog` and register themselves with the Logger's
@@ -117,6 +134,7 @@ class Logger:
             Message to log, either plain text or HTML
         add_newline : boolean
             Whether to add a newline to the message before logging it
+            (also whether there is a line break after an image)
         image : PIL image or None
             If not None, an image to log.  If an image is provided, then
             the :param:msg parameter is alt text to show for logs than
@@ -140,8 +158,14 @@ class Logger:
     def remove_log(self, log):
         self.logs.discard(log)
 
-    def status(self, msg, **kw):
-        print('status:', msg)
+    def status(self, msg, color="black", log=False, secondary=False, **kw):
+        if log:
+            self.info(msg)
+
+        for log in self.logs:
+            if log.status(msg, color, secondary):
+                # message consumed
+                break
 
     def warning(self, msg, add_newline=True, image=None, is_html=False):
         """Log a warning message
@@ -168,28 +192,29 @@ class Logger:
     def _log(self, level, msg, add_newline, image, is_html, last_resort=None):
         prev_newline = self._prev_newline
         self._prev_newline = add_newline
-        if self.logs:
-            log = self.logs[0]
-        elif getattr(self.session, 'ui', None) \
-                and isinstance(self.session.ui, (HtmlLog, PlainTextLog)):
-            log = self.session.ui
+
+        if add_newline:
+            if is_html:
+                msg += "<br>"
+            else:
+                msg += "\n"
+        for log in self.logs:
+            if isinstance(log, HtmlLog):
+                args = (level, msg, (image, add_newline), is_html)
+            else:
+                args = (level, msg)
+            if log.log(*args):
+                # message consumed
+                break
         else:
             if last_resort:
                 msg = self._html_to_plain(msg, image, is_html)
-                end = "\n" if add_newline else ""
                 if prev_newline:
                     output = "{}: {}".format(level.upper(), msg)
                 else:
                     output = msg
-                print(output, end=end, file=last_resort)
+                print(output, end="", file=last_resort)
             return
-
-        if add_newline:
-            msg += "\n"
-        if isinstance(log, HtmlLog):
-            log.log(level, msg, image, is_html)
-        else:
-            log.log(level, msg)
 
 
 def html_to_plain(html):

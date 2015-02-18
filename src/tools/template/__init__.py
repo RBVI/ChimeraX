@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
 #
@@ -10,11 +10,8 @@ def start_tool(session, ti):
 
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
-    from chimera.core import gui
-    if isinstance(session.ui, gui.UI):
-        if not hasattr(session.ui, ti.name):
-            from .gui import ToolUI
-            setattr(session.ui, ti.name, ToolUI(session))
+    from .gui import ToolUI
+    ToolUI(session)     # UI should register itself with tool state manager
 
 
 #

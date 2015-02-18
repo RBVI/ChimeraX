@@ -16,7 +16,7 @@ class STLModel(generic3d.Generic3DModel):
     pass
 
 
-def open(session, filename, *args, **kw):
+def open(session, filename, name, *args, **kw):
     """Populate the scene with the geometry from a STL file
 
     :param filename: either the name of a file or a file-like object
@@ -24,16 +24,11 @@ def open(session, filename, *args, **kw):
     Extra arguments are ignored.
     """
 
-    name = kw['name'] if 'name' in kw else None
     if hasattr(filename, 'read'):
         # it's really a file-like object
         input = filename
-        if name is None:
-            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
-        if name is None:
-            name = filename
 
     model = STLModel(name)
 
@@ -74,15 +69,9 @@ def stl_geometry(nv):
 
     # Assign numbers to vertices.
     from numpy import (
-        empty, uint8, uint16, uint32, float32, zeros, sqrt, newaxis
+        empty, int32, float32, zeros, sqrt, newaxis
     )
-    if tc >= pow(2, 16):
-        index_type = uint32
-    elif tc >= pow(2, 8):
-        index_type = uint16
-    else:
-        index_type = uint8
-    tri = empty((tc, 3), index_type)
+    tri = empty((tc, 3), int32)
     vnum = {}
     for t in range(tc):
         v0, v1, v2 = nv[t, 3:6], nv[t, 6:9], nv[t, 9:12]

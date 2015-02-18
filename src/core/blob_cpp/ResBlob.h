@@ -9,10 +9,10 @@ namespace blob {
     
 extern PyTypeObject ResBlob_type;
 
-class Residue;
-typedef RawBlob<atomstruct::Residue> ResBlob;
+using atomstruct::Residue;
+typedef Blob<Residue, SharedAPIPointer<Residue>> ResBlob;
 
-extern template BLOB_IMEX PyObject* newBlob<ResBlob>(PyTypeObject*);
+extern template BLOB_IMEX PyObject* new_blob<ResBlob>(PyTypeObject*);
 
 }  // namespace blob
 
