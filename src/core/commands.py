@@ -97,7 +97,12 @@ def help(session, command_name=None):
             info("The following commands are available: %s, and %s"
                  % ( ', '.join(cmds[:-1]), cmds[-1]))
         return
-    status(cli.usage(command_name))
+    try:
+        usage = cli.usage(command_name)
+    except ValueError as e:
+        status(str(e))
+        return
+    status(usage)
     info(cli.html_usage(command_name), is_html=True)
 _help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)])
 
