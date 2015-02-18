@@ -2781,24 +2781,23 @@ def open_map(session, stream, *args, **kw):
         v = volume_from_grid_data(d, session, open_model = False, show_data = show)
         v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)
-    # if len(maps) > 1:
-    #     from os.path import basename
-    #     name = basename(map_path if isinstance(map_path, str) else map_path[0])
-    #     from ..map.series import Map_Series
-    #     ms = Map_Series(name, maps)
-    #     from ..map.series import slider
-    #     slider.show_slider_on_open(session)
-    #     return [ms]
-    m0 = maps[0]
-    msg = 'Opened %s, grid size (%d,%d,%d)' % ((m0.name,) + m0.data.size)
-    return maps, msg
+
+    if len(maps) > 1:
+        from os.path import basename
+        name = basename(map_path if isinstance(map_path, str) else map_path[0])
+        from .series import Map_Series
+        ms = Map_Series(name, maps)
+        return [ms], 'Opened map series %s' % name
+    else:
+      m0 = maps[0]
+      msg = 'Opened %s, grid size (%d,%d,%d)' % ((m0.name,) + m0.data.size)
+      return maps, msg
 
 # -----------------------------------------------------------------------------
 #
 def register_map_file_readers():
     from .. import io
-    category = 'VOLUME'
     from .data.fileformats import file_types
     for d,t,prefixes,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, category, suf, open_func=open_map)
+      io.register_format(d, io.VOLUME, suf, open_func=open_map)

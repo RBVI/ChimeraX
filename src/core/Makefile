@@ -9,7 +9,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
 	   pdb_cpp pdbio pseudobond_cpp \
 	   readcif_cpp \
 	   structaccess surface toolshed ui chutil_cpp \
-	   map
+	   map webservices
 
 include $(TOP)/mk/subdir.make
 
@@ -29,7 +29,7 @@ install: dir _atomspec.py
 	fi
 
 app-install: wheel
-	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
+	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
 wheel: setup.py timestamp always
@@ -63,7 +63,9 @@ test:
 clean:
 	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
 
-_atomspec.py:	_atomspec.peg
+.SUFFIXES: .peg
+
+.peg.py:
 	$(PYTHON_EXE) -m grako -o $@ $^
 
 _appdirs.install: appdirs_cpp.install

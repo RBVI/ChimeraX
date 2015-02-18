@@ -20,6 +20,7 @@
 namespace pdb {
 
 using atomstruct::AtomicStructure;
+using atomstruct::AtomName;
 using atomstruct::Residue;
 using atomstruct::Bond;
 using atomstruct::Atom;
@@ -35,18 +36,22 @@ std::string pqr_charge("charge");
 std::string pqr_radius("radius");
 
 static void
-canonicalize_atom_name(std::string *aname, bool *asterisks_translated)
+canonicalize_atom_name(AtomName& aname, bool *asterisks_translated)
 {
-    for (int i = aname->length(); i > 0; ) {
+    for (int i = aname.length(); i > 0; ) {
         --i;
         // strip embedded blanks
-        if ((*aname)[i] == ' ') {
-            aname->replace(i, 1, "");
+        if (aname[i] == ' ') {
+            int j = i;
+            do {
+                aname[j] = aname[j+1];
+                ++j;
+            } while (aname[j-1] != '\0');
             continue;
         }
         // use prime instead of asterisk
-        if ((*aname)[i] == '*') {
-            (*aname)[i] = '\'';
+        if (aname[i] == '*') {
+            aname[i] = '\'';
             *asterisks_translated = true;
         }
     }
@@ -247,7 +252,8 @@ start_t = end_t;
         case PDB::ATOMQR: {
             actual_structure = true;
 
-            std::string aname, rname;
+            AtomName aname;
+            std::string rname;
             char cid = record.atom.res.chain_id;
             if (islower(cid))
                 as->lower_case_chains = true;
@@ -361,7 +367,7 @@ start_t = end_t;
                 start_connect = false;
             }
             aname = record.atom.name;
-            canonicalize_atom_name(&aname, &as->asterisks_translated);
+            canonicalize_atom_name(aname, &as->asterisks_translated);
             Coord c(record.atom.xyz);
             if (in_model > 1) {
                 Atom *a = cur_residue->find_atom(aname);
@@ -829,7 +835,8 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
         // (FYI, 1555 is identity transform)
         return;
     }
-    std::string aname, rname;
+    AtomName aname;
+    std::string rname;
     PDB::Residue res = link.res[0];
     std::string cid;
     cid += res.chain_id;
@@ -853,7 +860,7 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
         return;
     }
     aname = link.name[0];
-    canonicalize_atom_name(&aname, &as->asterisks_translated);
+    canonicalize_atom_name(aname, &as->asterisks_translated);
     Atom *a1 = res1->find_atom(aname);
     if (a1 == NULL) {
         logger::error(py_logger, "Cannot find LINK atom ", aname,
@@ -861,7 +868,7 @@ link_up(PDB::Link_ &link, AtomicStructure *as, std::set<Atom *> *conect_atoms,
         return;
     }
     aname = link.name[1];
-    canonicalize_atom_name(&aname, &as->asterisks_translated);
+    canonicalize_atom_name(aname, &as->asterisks_translated);
     Atom *a2 = res2->find_atom(aname);
     if (a2 == NULL) {
         logger::error(py_logger, "Cannot find LINK atom ", aname,
@@ -1124,7 +1131,7 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
         return NULL;
     }
     using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
+    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
     for (auto si = structs->begin(); si != structs->end(); ++si) {
         sb->_items->emplace_back(*si);
     }

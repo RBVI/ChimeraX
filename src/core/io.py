@@ -32,7 +32,7 @@ __all__ = [
     'fetch_function',
     'export_function',
     'mime_types',
-    'requires_seeking',
+    'requires_filename',
     'dangerous',
     'category',
     'format_names',
@@ -122,16 +122,16 @@ class _FileFormatInfo:
 
     ..attribute:: open_func
 
-        function that opens files: func(stream, identify_as=None)
+        function that opens files: func(session, stream/filename, name=None)
 
-    ..attribute:: requires_seeking
+    ..attribute:: requires_filename
 
-        True if open function needs seekable files
+        True if open function a filename
 
     ..attribute:: fetch_func
 
         function that opens internet files:
-            func(prefixed_name, identify_as=None)
+            func(prefixed_name, identifier=None)
 
     ..attribute:: export_func
 
@@ -152,7 +152,7 @@ class _FileFormatInfo:
         self.dangerous = dangerous
 
         self.open_func = None
-        self.requires_seeking = False
+        self.requires_filename = False
         self.fetch_func = None
         self.export_func = None
         self.export_notes = None
@@ -203,7 +203,7 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
     ff = _file_formats[format_name] = _FileFormatInfo(category, exts, prefixes,
                                                       mime, reference,
                                                       dangerous)
-    for attr in ['open_func', 'requires_seeking', 'fetch_func',
+    for attr in ['open_func', 'requires_filename', 'fetch_func',
                  'export_func', 'export_notes']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
@@ -225,26 +225,27 @@ def prefixes(format_name):
         return ()
 
 
-def register_open(format_name, open_function, requires_seeking=False):
+def register_open(format_name, open_function, requires_filename=False):
     """register a function that reads data from a stream
 
-    :param open_function: function taking an I/O stream and
+    :param open_function: function taking an I/O stream or filename and
         returns a 2-tuple with a list of models and a status message
-    :param requires_seeking: True if stream must be seekable
+    :param requires_filename: True if first argument must be a filename
     """
     try:
         fi = _file_formats[format_name]
     except KeyError:
         raise ValueError("Unknown data type")
     fi.open_func = open_function
-    fi.requires_seeking = requires_seeking
+    fi.requires_filename = requires_filename
 
 
 def register_fetch(format_name, fetch_function):
     """register a function that fetches data from the Internet
 
     :param fetch_fuction: function that takes an identifier,
-        and returns an I/O stream for reading data.
+        and returns an I/O stream for reading data, and identifying name.
+        Usually the name is the same as the identifier.
     """
     try:
         fi = _file_formats[format_name]
@@ -315,10 +316,10 @@ def mime_types(format_name):
         return None
 
 
-def requires_seeking(format_name):
+def requires_filename(format_name):
     """Return whether named format can needs a seekable file"""
     try:
-        return _file_formats[format_name].requires_seeking
+        return _file_formats[format_name].requires_filename
     except KeyError:
         return False
 
@@ -402,7 +403,7 @@ def deduce_format(filename, has_format=None, default_format=None,
                 raise ValueError("prefix does not match requested format")
     if has_format:
         format_name = has_format
-        # TODO: check for compression
+        # TODO? check for compression
     if format_name is None:
         import os
         for compression in compression_suffixes():
@@ -499,14 +500,14 @@ def wx_open_file_filter(all=False):
 _builtin_open = open
 
 
-def open(session, filespec, format=None, identify_as=None, **kw):
+def open(session, filespec, format=None, as_=None, **kw):
     """open a (compressed) file
 
     :param filespec: '''prefix:id''' or a (compressed) filename
     :param format: file has given format
-    :param identify_as: name used to identify data source; default to filespec
+    :param as_: optional name used to identify data source as
 
-    If a file format needs a seekable file, then compressed files are
+    If a file format requires a filename, then compressed files are
     uncompressed into a temporary file before calling the open function.
     """
 
@@ -515,8 +516,6 @@ def open(session, filespec, format=None, identify_as=None, **kw):
         filespec, has_format=format)
     if format_name is None:
         raise UserError("Missing or unknown file type")
-    if identify_as is None:
-        identify_as = filename
     open_func = open_function(format_name)
     if open_func is None:
         raise UserError("unable to open %s files" % format_name)
@@ -524,8 +523,12 @@ def open(session, filespec, format=None, identify_as=None, **kw):
         fetch_func = fetch_function(format_name)
         if fetch_func is None:
             raise UserError("unable to fetch %s files" % format_name)
-        stream = fetch_func(session, filename)
-        filename = None
+        stream, name = fetch_func(session, filename)
+        if hasattr(filename, 'read'):
+            filename = None
+        else:
+            filename = stream
+            stream = _builtin_open(filename, 'rb')
     else:
         if not compression:
             import os
@@ -534,6 +537,7 @@ def open(session, filespec, format=None, identify_as=None, **kw):
                 stream = _builtin_open(filename, 'rb')
             except OSError as e:
                 raise UserError(e)
+            name = os.path.basename(filename)
         else:
             stream_type = _compression[compression]
             try:
@@ -541,7 +545,8 @@ def open(session, filespec, format=None, identify_as=None, **kw):
                 filename = None
             except OSError as e:
                 raise UserError(e)
-    if requires_seeking(format_name) and not filename:
+            name = os.path.basename(os.path.splitext(filename)[0])
+    if requires_filename(format_name) and not filename:
         # copy compressed file to real file
         import tempfile
         exts = extensions(format_name)
@@ -556,9 +561,10 @@ def open(session, filespec, format=None, identify_as=None, **kw):
         stream = tf
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
-    models, status = open_func(session, stream, **kw)
-    for m in models:
-        m.name = identify_as
+    models, status = open_func(session, stream, name, **kw)
+    if as_ is not None:
+        for m in models:
+            m.name = as_
     return models, status
 
 

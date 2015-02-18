@@ -196,9 +196,11 @@ def volume(volumes = '',                # Specifier
     if volumes == 'all':
         from .volume import volume_list
         vlist = volume_list(session)
-    else:
+    elif isinstance(volumes, str):
         from ..commands import parse
         vlist = parse.volumes_from_specifier(volumes, session)
+    else:
+        vlist = volumes
 
     # Adjust global settings.
     loc = locals()
@@ -477,16 +479,47 @@ def camel_case_to_underscores(s):
 # -----------------------------------------------------------------------------
 # Chimera 2 wrapper for volume command.
 #
-def volume_cmd(session, show = None, hide = None, style = None, level = None, step = None,
+def volume_cmd(session, maps = 'all', show = None, hide = None, style = None, level = None, step = None,
                color = None, transparency = None, showOutlineBox = None):
 
     if not level is None:
         level = [[level]]
     if not color is None:
         color = [color]
-    volume('all', show = show, hide = hide, style = style, level = level, step = step,
+    volume(maps, show = show, hide = hide, style = style, level = level, step = step,
            color = color, transparency = transparency, showOutlineBox = showOutlineBox,
            session = session)
+
+# -----------------------------------------------------------------------------
+#
+try:
+    from ..cli import Annotation
+except:
+    # For Hydra
+    class Annotation:
+        pass
+class MapsArg(Annotation):
+    @staticmethod
+    def parse(text, session):
+        from ..atomspec import AtomSpecArg
+        value, used, rest = AtomSpecArg.parse(text, session)
+        models = value.evaluate(session).models
+        maps = all_maps(models)
+        return maps, used, rest
+
+# -----------------------------------------------------------------------------
+# Find maps among models and all descendants.
+#
+def all_maps(models):
+    maps = []
+    from .volume import Volume
+    from ..models import Model
+    for m in models:
+        if isinstance(m, Volume):
+            maps.append(m)
+        if isinstance(m, Model):
+            maps.extend(all_maps(m.child_drawings()))
+    return maps
 
 # -----------------------------------------------------------------------------
 # Register the volume command for Chimera 2.
@@ -494,6 +527,7 @@ def volume_cmd(session, show = None, hide = None, style = None, level = None, st
 def register_volume_command():
     from ..cli import CmdDesc, BoolArg, FloatArg, IntArg, Float3Arg, EnumOf, register
     _volume_desc = CmdDesc(
+        optional = [('maps', MapsArg)],
         keyword = [
             ('show', BoolArg),
             ('hide', BoolArg),

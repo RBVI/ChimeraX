@@ -33,14 +33,14 @@ def echo(session, text=''):
 _echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
 
 
-def open(session, filename, id=None, name=None):
+def open(session, filename, id=None, as_=None):
     try:
-        return session.models.open(filename, id=id, name=name)
+        return session.models.open(filename, id=id, as_=as_)
     except OSError as e:
         raise cli.UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                          keyword=[('id', cli.ModelIdArg),
-                                  ('name', cli.StringArg)])
+                                  ('as', cli.StringArg)])
 
 
 def export(session, filename, **kw):
@@ -52,12 +52,13 @@ def export(session, filename, **kw):
 _export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
 
 
-def close(session, model_id):
+def close(session, model_ids):
     try:
-        return session.models.close(model_id)
+        for model_id in model_ids:
+            session.models.close(model_id)
     except ValueError as e:
         raise cli.UserError(e)
-_close_desc = cli.CmdDesc(required=[('model_id', cli.ModelIdArg)])
+_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))])
 
 
 def list(session):
@@ -70,12 +71,40 @@ def list(session):
         if isinstance(id, int):
             return str(id)
         return '.'.join(str(x) for x in id)
+    ids = [m.id for m in models]
+    ids.sort()
     info = "Open models: "
     if len(models) > 1:
-        info += ", ".join(id_str(m.id) for m in models[:-1]) + " and"
-    info += " %s" % id_str(models[-1].id)
+        info += ", ".join(id_str(id) for id in ids[:-1]) + " and"
+    info += " %s" % id_str(ids[-1])
     session.logger.info(info)
 _list_desc = cli.CmdDesc()
+
+
+def help(session, command_name=None):
+    from . import cli
+    status = session.logger.status
+    info = session.logger.info
+    if command_name is None:
+        info("Use 'help <command>' to learn more about a command.")
+        cmds = cli.registered_commands()
+        cmds.sort()
+        if len(cmds) == 0:
+            pass
+        elif len(cmds) == 1:
+            info("The following command is available: %s" % cmds[0])
+        else:
+            info("The following commands are available: %s, and %s"
+                 % ( ', '.join(cmds[:-1]), cmds[-1]))
+        return
+    try:
+        usage = cli.usage(command_name)
+    except ValueError as e:
+        status(str(e))
+        return
+    status(usage)
+    info(cli.html_usage(command_name), is_html=True)
+_help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)])
 
 
 def window(session):
@@ -95,6 +124,7 @@ def register(session):
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
     cli.register('window', _window_desc, window)
+    cli.register('help', _help_desc, help)
     from . import molsurf
     molsurf.register_surface_command()
     from . import structure
@@ -103,6 +133,10 @@ def register(session):
     lightcmd.register_lighting_command()
     from . import map
     map.register_volume_command()
+    from .map import series
+    series.register_vseries_command()
+    from . import color
+    color.register_commands()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

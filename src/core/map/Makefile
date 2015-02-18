@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimera/core/map
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/map
 
-SUBDIRS	= _map data
+SUBDIRS	= _map data series
 
 PYSRCS = __init__.py defaultsettings.py grayscale.py slice.py solid.py volume.py volumecommand.py
 

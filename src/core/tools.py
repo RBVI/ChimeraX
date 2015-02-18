@@ -5,11 +5,11 @@
 Attributes
 ----------
 ADD_TOOL_INSTANCE : str
-    Name of trigger that is fired when a new running tool
+    Name of trigger that is fired when a new tool
     registers with the state manager.
 
 REMOVE_TOOL_INSTANCE : str
-    Name of trigger that is fired when a new running tool
+    Name of trigger that is fired when a running tool
     deregisters with the state manager.
 
 Notes
@@ -239,7 +239,6 @@ class Tools(State):
 
         """
         session = self._session()   # resolve back reference
-        session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
         for ti in ti_list:
             tid = ti.id
             if tid is None:
@@ -247,6 +246,7 @@ class Tools(State):
                 continue
             ti.id = None
             del self._tool_instances[tid]
+        session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
 
     def find_by_id(self, tid):
         """Return a tool instance with the matching identifier.

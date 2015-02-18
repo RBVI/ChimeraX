@@ -11,7 +11,7 @@ class CmdLine(ToolInstance):
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Command Line", "General", session,
+        self.tool_window = ToolWindow("Command Line", session,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx
@@ -47,13 +47,19 @@ class CmdLine(ToolInstance):
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
             logger = session.logger
-            logger.info(cmd.current_text)
-            logger.info("%s^" % ('.' * error_at))
-            logger.info(str(err))
+            text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
+                cmd.current_text, '.' * error_at, str(err))
+            logger.info(text, is_html=True)
             logger.status(str(err))
         except:
             import traceback
             session.logger.error(traceback.format_exc())
+        else:
+            thumb = session.main_view.image(
+                    width=100, height=100, supersample=3)
+            session.logger.info(text, add_newline=False)
+            session.logger.info("&nbsp;", is_html=True, add_newline=False)
+            session.logger.info("graphics image", image=thumb)
 
     #
     # Implement session.State methods if deriving from ToolInstance

@@ -6,7 +6,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.3.dev78406
+VERSION = 3.0.3.dev1651+7ab42db
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
@@ -32,7 +32,7 @@ ifeq ($(OS),Windows)
 	echo "wxPython on Windows not supported yet" && exit 1
 else
 	rm -f $(PYSITEDIR)/wx/libwx_*
-	cd $(SOURCE)/Phoenix && \
+	cd $(SOURCE) && \
 		$(PYTHON_EXE) build.py build $(BUILD_OPTS) && \
 		$(PYTHON_EXE) build.py install $(INSTALL_OPTS)
 ifeq ($(OS),Darwin)
@@ -67,13 +67,13 @@ ifneq (,$(PATCHINES))
 	done
 endif
 ifneq (,$(WAF))
-	cp $(WAF) $(SOURCE)/Phoenix/bin
+	cp $(WAF) $(SOURCE)/bin
 endif
 ifeq ($(OS),Darwin)
 	# On Darwin, we patch to add support for selecting
 	# OpenGL profile, so we need to rerun sip to get our
 	# new constants into Python
-	cd $(SOURCE)/Phoenix && \
+	cd $(SOURCE) && \
 		$(PYTHON_EXE) build.py build dox && \
 		$(PYTHON_EXE) build.py touch && \
 		$(PYTHON_EXE) build.py etg --nodoc && \

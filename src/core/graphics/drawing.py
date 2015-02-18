@@ -244,7 +244,10 @@ class Drawing:
         return self._displayed_positions
 
     def set_display_positions(self, position_mask):
-        if position_mask == self._displayed_positions:
+        from numpy import array_equal
+        dp = self._displayed_positions
+        if ((position_mask is None and dp is None) or
+            (not position_mask is None and not dp is None and array_equal(position_mask, dp))):
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)

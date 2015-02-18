@@ -1,8 +1,18 @@
+atom_specifier   = left:atom_specifier operator:'&' right:as_term
+                 | left:atom_specifier operator:'|' right:as_term
+		 | left:as_term
+		 ;
+
+as_term          = '(' term:as_term  ')'
+                 | models:model_list
+                 | selector:selector_name
+		 ;
+
 model_list       = model:model model_list:model_list
                  | model:model
                  ;
 
-model            = '#' model_hierarchy
+model            = '#' hierarchy:model_hierarchy
                  ;
 
 model_hierarchy  = range_list:model_range_list '.' hierarchy:model_hierarchy
@@ -19,4 +29,7 @@ model_range      = start:model_spec '-' end:model_spec
 
 model_spec       = number:/[0-9]+/
                  | star:'*'
+                 ;
+
+selector_name    = name:/[a-zA-Z_][a-zA-Z0-9_]*/
                  ;

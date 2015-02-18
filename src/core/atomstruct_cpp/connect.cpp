@@ -12,6 +12,7 @@
 #include "tmpl/residues.h"
 #include "MolResId.h"
 #include "connect.h"
+#include "string_types.h"
 
 namespace atomstruct {
 
@@ -344,7 +345,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     // connect the atoms within the residue
     Residue *link_res = NULL, *prev_res = NULL, *first_res = NULL;
     Atom *link_atom;
-    std::string link_atom_name("");
+    AtomName link_atom_name;
     for (AtomicStructure::Residues::const_iterator ri = as->residues().begin();
     ri != as->residues().end(); ++ri) {
         Residue *r = (*ri).get();
