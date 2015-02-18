@@ -38,10 +38,12 @@ class Log:
         return False
 
 
-class HtmlLog(Log, metaclass=ABCMeta):
+# note: HtmlLog and PlainTextLog were originally abstract classes, but
+# multiply inheriting from C++ wrapped classes (like Wx) is _very_
+# problematic with metaclasses
+class HtmlLog(Log):
     """Base class for logs that support HTML output"""
 
-    @abstractmethod
     def log(self, level, msg, image_info, is_html):
         """Log a message.
 
@@ -66,10 +68,9 @@ class HtmlLog(Log, metaclass=ABCMeta):
         return False
 
 
-class PlainTextLog(Log, metaclass=ABCMeta):
+class PlainTextLog(Log):
     """Base class for logs that support only plain text output"""
 
-    @abstractmethod
     def log(self, level, msg):
         """Log a message.
 
@@ -157,8 +158,14 @@ class Logger:
     def remove_log(self, log):
         self.logs.discard(log)
 
-    def status(self, msg, **kw):
-        print('status:', msg)
+    def status(self, msg, color="black", log=False, secondary=False, **kw):
+        if log:
+            self.info(msg)
+
+        for log in self.logs:
+            if log.status(msg, color, secondary):
+                # message consumed
+                break
 
     def warning(self, msg, add_newline=True, image=None, is_html=False):
         """Log a warning message
@@ -185,20 +192,13 @@ class Logger:
     def _log(self, level, msg, add_newline, image, is_html, last_resort=None):
         prev_newline = self._prev_newline
         self._prev_newline = add_newline
-        if self.logs:
-            logs = self.logs
-        elif getattr(self.session, 'ui', None) \
-                and isinstance(self.session.ui, (HtmlLog, PlainTextLog)):
-            logs = [self.session.ui]
-        else:
-            logs = []
 
         if add_newline:
             if is_html:
                 msg += "<br>"
             else:
                 msg += "\n"
-        for log in logs:
+        for log in self.logs:
             if isinstance(log, HtmlLog):
                 args = (level, msg, (image, add_newline), is_html)
             else:
