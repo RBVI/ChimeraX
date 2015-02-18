@@ -35,4 +35,5 @@ def test(session):
     session.logger.info("axes",
         image=Image.open("/Users/pett/Documents/axes.png"))
     session.logger.info("Text after the image\nSecond line")
+    session.logger.info("<pre>open xyzzy\n..........^\nMissing or unknown file type</pre>", is_html=True)
 test_desc = cli.CmdDesc()
