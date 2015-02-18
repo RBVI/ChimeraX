@@ -28,7 +28,7 @@ install: dir
 	fi
 
 app-install: wheel
-	$(APP_PYTHON_EXE) -m pip install --no-deps $(WHEEL)
+	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse) && cd $(wheelhouse) && make update
 
 wheel: setup.py timestamp
