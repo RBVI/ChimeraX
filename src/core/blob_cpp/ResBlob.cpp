@@ -3,7 +3,7 @@
 #include "ResBlob.h"
 #include <atomstruct/Residue.h>
 #include "numpy_common.h"
-#include "filter_blob.h"
+#include "blob_op.h"
 #include <stddef.h>
 
 namespace blob {
@@ -81,6 +81,8 @@ rb_strs(PyObject* self, void*)
 static PyMethodDef ResBlob_methods[] = {
     { (char*)"filter", blob_filter<ResBlob>, METH_O,
         (char*)"filter residue blob based on array/list of booleans" },
+    { (char*)"merge", blob_merge<ResBlob>, METH_O,
+        (char*)"merge residue blobs" },
     { NULL, NULL, 0, NULL }
 };
 

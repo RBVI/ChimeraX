@@ -5,7 +5,7 @@
 #include "ResBlob.h"
 #include <atomstruct/Bond.h>
 #include "numpy_common.h"
-#include "filter_blob.h"
+#include "blob_op.h"
 #include "set_blob.h"
 #include <unordered_map>
 #include <stddef.h>
@@ -148,6 +148,8 @@ sb_residues(PyObject* self, void*)
 static PyMethodDef StructBlob_methods[] = {
     { (char*)"filter", blob_filter<StructBlob>, METH_O,
         (char*)"filter structure blob based on array/list of booleans" },
+    { (char*)"merge", blob_merge<StructBlob>, METH_O,
+        (char*)"merge structure blobs" },
     { NULL, NULL, 0, NULL }
 };
 
