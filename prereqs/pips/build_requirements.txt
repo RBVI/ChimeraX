@@ -4,7 +4,8 @@ distlib==0.2.0
 flake8==2.3.0
 grako==3.4.3
 line_profiler==1.0
-pep8==1.6.1
+pep8==1.6.2
+pep8-naming==0.2.2
 pip==6.0.8
 pyflakes==0.8.1
 Pygments==2.0.2
