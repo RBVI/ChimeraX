@@ -11,8 +11,8 @@ class Map_Series(Model):
     for m in maps:
       self.add_model(m)
 
-    self.shown_times = set(i for i,m in enumerate(maps) if m.display)
-    self.last_shown_time = 0
+    self.shown_times = t = set(i for i,m in enumerate(maps) if m.display)
+    self.last_shown_time = tuple(t)[0] if len(t) > 0 else 0
 
     self.surface_level_ranks = []  # Cached for normalization calculation
     self.solid_level_ranks = []  # Cached for normalization calculation
