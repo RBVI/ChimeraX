@@ -38,10 +38,12 @@ class Log:
         return False
 
 
-class HtmlLog(Log, metaclass=ABCMeta):
+# note: HtmlLog and PlainTextLog were originally abstract classes, but
+# multiply inheriting from C++ wrapped classes (like Wx) is _very_
+# problematic with metaclasses
+class HtmlLog(Log):
     """Base class for logs that support HTML output"""
 
-    @abstractmethod
     def log(self, level, msg, image_info, is_html):
         """Log a message.
 
@@ -66,10 +68,9 @@ class HtmlLog(Log, metaclass=ABCMeta):
         return False
 
 
-class PlainTextLog(Log, metaclass=ABCMeta):
+class PlainTextLog(Log):
     """Base class for logs that support only plain text output"""
 
-    @abstractmethod
     def log(self, level, msg):
         """Log a message.
 
@@ -96,8 +97,7 @@ class Logger:
     :meth:`info`/
     :meth:`status` methods
     to send messages to a log.  The message will be sent to the log at the
-    top of the log stack and then each other log in order until one of
-    the logs' log() methods returns True (i.e. message consumed).
+    top of the log stack and then each other log in order.
 
     Message consumers must inherit from :class:`HtmlLog' or
     :class:`PlainTextLog` and register themselves with the Logger's
@@ -114,6 +114,7 @@ class Logger:
         self.logs = OrderedSet()
         self.session = session
         self._prev_newline = True
+        self._status_timer = None
 
     def add_log(self, log):
         if not isinstance(log, (HtmlLog, PlainTextLog)):
@@ -157,8 +158,20 @@ class Logger:
     def remove_log(self, log):
         self.logs.discard(log)
 
-    def status(self, msg, **kw):
-        print('status:', msg)
+    def status(self, msg, color="black", log=False, secondary=False, **kw):
+        if log:
+            self.info(msg)
+
+        for log in self.logs:
+            log.status(msg, color, secondary)
+        if not secondary:
+            if self._status_timer:
+                self._status_timer.cancel()
+                self._status_timer = None
+            if msg:
+                from threading import Timer
+                self._status_timer = Timer(15.0, self._status_timeout)
+                self._status_timer.start()
 
     def warning(self, msg, add_newline=True, image=None, is_html=False):
         """Log a warning message
@@ -185,28 +198,24 @@ class Logger:
     def _log(self, level, msg, add_newline, image, is_html, last_resort=None):
         prev_newline = self._prev_newline
         self._prev_newline = add_newline
-        if self.logs:
-            logs = self.logs
-        elif getattr(self.session, 'ui', None) \
-                and isinstance(self.session.ui, (HtmlLog, PlainTextLog)):
-            logs = [self.session.ui]
-        else:
-            logs = []
 
         if add_newline:
             if is_html:
                 msg += "<br>"
             else:
                 msg += "\n"
-        for log in logs:
+
+        msg_handled = False
+        for log in self.logs:
             if isinstance(log, HtmlLog):
                 args = (level, msg, (image, add_newline), is_html)
             else:
-                args = (level, msg)
+                args = (level, self._html_to_plain(msg, image, is_html))
             if log.log(*args):
-                # message consumed
-                break
-        else:
+                # message displayed
+                msg_handled = True
+
+        if not msg_handled:
             if last_resort:
                 msg = self._html_to_plain(msg, image, is_html)
                 if prev_newline:
@@ -214,8 +223,10 @@ class Logger:
                 else:
                     output = msg
                 print(output, end="", file=last_resort)
-            return
 
+    def _status_timeout(self):
+        self._status_timer = None
+        self.status("")
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""

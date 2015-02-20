@@ -39,6 +39,13 @@ new_blob(PyTypeObject* type)
     return static_cast<PyObject*>(self);
 }
 
+template <class BlobType>
+PyObject*
+PyType_NewBlob(PyTypeObject* type, PyObject*, PyObject*)
+{
+    return new_blob<BlobType>(type);
+}
+
 }  // namespace blob
 
 #endif  // blob_blob

@@ -108,6 +108,9 @@ class View:
         w, h = self.window_size
         r.initialize_opengl(w, h)
 
+    def opengl_context(self):
+        return self._opengl_context
+
     def opengl_version(self):
         '''Return the OpenGL version as a string.'''
         self._use_opengl()
@@ -298,7 +301,10 @@ class View:
         user and causes the OpenGL rendering to use the specified new
         window size.
         '''
-        self.window_size = (width, height)
+        new_size = (width, height)
+        if self.window_size == new_size and self._opengl_initialized:
+            return
+        self.window_size = new_size
         if self._opengl_initialized:
             from .opengl import default_framebuffer
             fb = default_framebuffer()
@@ -324,7 +330,7 @@ class View:
                 cb()
             except:
                 import traceback
-                self.log.show_warning('new frame callback rasied error\n'
+                self.log.show_warning('new frame callback raised error\n'
                                       + traceback.format_exc())
                 self.remove_new_frame_callback(cb)
 
@@ -341,7 +347,7 @@ class View:
                 except:
                     import traceback
                     self.log.show_warning(
-                        'shape changed callback rasied error\n'
+                        'shape changed callback raised error\n'
                         + traceback.format_exc())
                     self.remove_shape_changed_callback(cb)
 
@@ -359,7 +365,7 @@ class View:
                 cb()
             except:
                 import traceback
-                self.log.show_warning('rendered callback rasied error\n'
+                self.log.show_warning('rendered callback raised error\n'
                                       + traceback.format_exc())
                 self.remove_new_frame_callback(cb)
 
