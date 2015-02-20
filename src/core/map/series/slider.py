@@ -11,8 +11,10 @@ class Volume_Series_Slider:
         n = max(ser.number_of_times() for ser in series)
         sname = ', '.join('#%d' % ser.id for ser in series) + (' length %d' % n)
 
-        from ...ui.qt.qt import QtWidgets, Qt
+        from ...ui.qt.qt import QtWidgets, Qt, QtCore
         self.dock_widget = dw = QtWidgets.QDockWidget('Image Series %s' % sname, session.main_window)
+        dw.destroyed.connect(self.widget_destroyed_cb)
+        dw.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
         w = QtWidgets.QWidget(dw)               # Frame
         hbox = QtWidgets.QHBoxLayout(w)
@@ -58,6 +60,10 @@ class Volume_Series_Slider:
 
         session.close_model_callbacks.append(self.closed_series_cb)
 
+        if not hasattr(session, '_volume_series_sliders'):
+            session._volume_series_sliders = []
+        session._volume_series_sliders.append(self)
+
     def show(self):
         from ...ui.qt.qt import QtCore
         dw = self.dock_widget
@@ -94,7 +100,8 @@ class Volume_Series_Slider:
         if t >= n-1:
             t = 0
         from .vseries_command import play_op
-        p = play_op(self.series, session = self.session, start = t, loop = True, cacheFrames = n)
+        p = play_op(self.series, session = self.session, start = t, loop = True,
+                    cacheFrames = n * len(self.series))
         def update_slider(t, self=self):
             self.slider.setValue(t)
         p.time_step_cb = update_slider
@@ -128,6 +135,13 @@ class Volume_Series_Slider:
             if len(self.series) == 0:
                 self.dock_widget.close()
 
+    def widget_destroyed_cb(self):
+        print('destroyed dock widget')
+        self.dock_widget = None
+
+    def closed(self):
+        return self.dock_widget is None
+        
 def show_slider_on_open(session):
     # Register callback to show slider when a map series is opened
     if not hasattr(session, '_registered_map_series_slider'):
@@ -140,3 +154,9 @@ def models_added_cb(models, session):
     ms = [m for m in models if isinstance(m, Map_Series)]
     if ms:
         Volume_Series_Slider(ms, session).show()
+
+def sliders(session):
+    s = getattr(session, '_volume_series_sliders', [])
+    if s:
+        s = [sl for sl in s if not sl.closed()] # Remove closed sliders
+    return tuple(s)
