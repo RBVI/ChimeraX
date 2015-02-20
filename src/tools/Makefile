@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = cmd_line toolshed
+SUBDIRS = cmd_line log toolshed sideview
 
 include $(TOP)/mk/subdir.make
 

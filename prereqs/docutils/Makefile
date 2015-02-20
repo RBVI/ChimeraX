@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 0.11
+VERSION = 0.12
 DISTRIBUTION = docutils-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/docutils-$(VERSION)
 
@@ -17,7 +17,7 @@ all:
 
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) setup.py $(SETUP_BUILD) install
+	cd $(SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:;
 

@@ -153,14 +153,14 @@ else ifdef USE_MAC_FRAMEWORKS
 		$(frameworkdir)/Python.framework $(app_frameworkdir)
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
-	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(app_datadir)
+	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 	-mkdir $(app_prefix)/include
 	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_prefix)/include
-	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(app_datadir)
+	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 endif
 	$(RSYNC) $(PYSITEDIR)/pip $(PYSITEDIR)/pip-*-info $(APP_PYSITEDIR)
 

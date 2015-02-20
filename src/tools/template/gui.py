@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
@@ -19,21 +19,14 @@ class ToolUI(ToolInstance):
     VERSION = 1
 
     def __init__(self, session):
-        super().__init__()
-        import weakref
-        self._session = weakref.ref(session)
+        super().__init__(session)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("TOOL_NAME", "TOOL_CATEGORY",
-                                      session, size=self.SIZE)
+        self.tool_window = ToolWindow("TOOL_NAME", session, size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         self.tool_window.manage(placement="bottom")
         # Add to running tool list for session (not required)
         session.tools.add([self])
-
-    def OnEnter(self, event):
-        session = self._session()  # resolve back reference
-        # Handle event
 
     #
     # Implement session.State methods if deriving from ToolInstance
@@ -61,10 +54,9 @@ class ToolUI(ToolInstance):
     # Override ToolInstance delete method to clean up
     #
     def delete(self):
-        session = self._session()  # resolve back reference
         self.tool_window.shown = False
         self.tool_window.destroy()
-        session.tools.remove([self])
+        self.session.tools.remove([self])
         super().delete()
 
     def display(self, b):

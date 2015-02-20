@@ -6,27 +6,32 @@
 #include <map>
 #include <string>
 #include "../imex.h"
+#include "../string_types.h"
 
 namespace tmpl {
+
+using atomstruct::AtomName;
+using atomstruct::AtomType;
     
 class CondInfo {
 public:
-    std::string op, operand, result;
-    CondInfo(std::string o1, std::string o2, std::string res) :
+    std::string op, operand;
+    AtomType result;
+    CondInfo(std::string o1, std::string o2, AtomType res) :
                     op(o1), operand(o2), result(res) {}
 };
 
 class ConditionalTemplate {
 public:
     std::vector<CondInfo> conditions;
-    void add_condition(const char *cond, const char *type);
+    void add_condition(const char *cond, const AtomType& type);
 };
 
 class ATOMSTRUCT_IMEX TemplateCache {
 public:
-    typedef std::pair<std::string, ConditionalTemplate *> AtomMappings;
+    typedef std::pair<AtomType, ConditionalTemplate *> AtomMappings;
         // <normal IDATM type, conditional IDATM types>
-    typedef std::map<std::string, AtomMappings> AtomMap;
+    typedef std::map<AtomName, AtomMappings> AtomMap;
         // atom name -> AtomMappings
     typedef std::map<std::string, AtomMap> ResMap;
         // res name -> AtomMap

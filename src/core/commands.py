@@ -10,6 +10,7 @@ must be called to get the commands recognized by the command line interface
 """
 
 from . import cli
+# from graphics.cameramode import CameraModeArg
 
 
 def pwd(session):
@@ -33,14 +34,14 @@ def echo(session, text=''):
 _echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
 
 
-def open(session, filename, id=None, name=None):
+def open(session, filename, id=None, as_=None):
     try:
-        return session.models.open(filename, id=id, name=name)
+        return session.models.open(filename, id=id, as_=as_)
     except OSError as e:
         raise cli.UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                          keyword=[('id', cli.ModelIdArg),
-                                  ('name', cli.StringArg)])
+                                  ('as', cli.StringArg)])
 
 
 def export(session, filename, **kw):
@@ -52,12 +53,13 @@ def export(session, filename, **kw):
 _export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
 
 
-def close(session, model_id):
+def close(session, model_ids):
     try:
-        return session.models.close(model_id)
+        for model_id in model_ids:
+            session.models.close(model_id)
     except ValueError as e:
         raise cli.UserError(e)
-_close_desc = cli.CmdDesc(required=[('model_id', cli.ModelIdArg)])
+_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))])
 
 
 def list(session):
@@ -70,17 +72,104 @@ def list(session):
         if isinstance(id, int):
             return str(id)
         return '.'.join(str(x) for x in id)
+    ids = [m.id for m in models]
+    ids.sort()
     info = "Open models: "
     if len(models) > 1:
-        info += ", ".join(id_str(m.id) for m in models[:-1]) + " and"
-    info += " %s" % id_str(models[-1].id)
+        info += ", ".join(id_str(id) for id in ids[:-1]) + " and"
+    info += " %s" % id_str(ids[-1])
     session.logger.info(info)
 _list_desc = cli.CmdDesc()
+
+
+def help(session, command_name=None):
+    from . import cli
+    status = session.logger.status
+    info = session.logger.info
+    if command_name is None:
+        info("Use 'help <command>' to learn more about a command.")
+        cmds = cli.registered_commands()
+        cmds.sort()
+        if len(cmds) == 0:
+            pass
+        elif len(cmds) == 1:
+            info("The following command is available: %s" % cmds[0])
+        else:
+            info("The following commands are available: %s, and %s"
+                 % (', '.join(cmds[:-1]), cmds[-1]))
+        return
+    try:
+        usage = cli.usage(command_name)
+    except ValueError as e:
+        status(str(e))
+        return
+    status(usage)
+    info(cli.html_usage(command_name), is_html=True)
+_help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)])
 
 
 def window(session):
     session.main_view.view_all()
 _window_desc = cli.CmdDesc()
+
+
+ProjectionArg = cli.EnumOf(['perspective', 'orthographic'])
+
+
+def camera(session, mode=None, field_of_view=None, eye_separation=None,
+           screen_width=None, depth_scale=None, projection=None):
+    view = session.main_view
+    cam = session.main_view.camera
+    has_arg = False
+    if mode is not None:
+        has_arg = True
+        # TODO
+    if projection is not None:
+        has_arg = True
+        cam.ortho = projection == 'orthographic'
+        cam.redraw_needed = True
+    if field_of_view is not None:
+        has_arg = True
+        cam.field_of_view = field_of_view
+        cam.redraw_needed = True
+    if eye_separation is not None or screen_width is not None:
+        has_arg = True
+        if eye_separation is None or screen_width is None:
+            raise cli.UserError("Must specifiy both eye-separation and"
+                                " screen-width -- only ratio is used")
+        cam.eye_separation_pixels = (eye_separation / screen_width) * \
+            view.screen().size().width()
+        cam.redraw_needed = True
+    if depth_scale is not None:
+        has_arg = True
+        cam.eye_separation_pixels *= depth_scale
+        cam.eye_separation_scene *= depth_scale
+        cam.redraw_needed = True
+    if not has_arg:
+        msg = (
+            'Camera parameters:\n' +
+            '    position: %.5g %.5g %.5g\n' % tuple(cam.position.origin()) +
+            '    view direction: %.6f %.6f %.6f\n' %
+            tuple(cam.view_direction()) +
+            '    field of view: %.5g degrees\n' % cam.field_of_view +
+            '    projection: %s' %
+            ('orthographic' if cam.ortho else 'perspective') +
+            '    mode: %s\n' % cam.mode.name()
+        )
+        session.logger.info(msg)
+        msg = (cam.mode.name() +
+            ', ' + ('orthographic' if cam.ortho else 'perspective') +
+            ', %.5g degree field of view' % cam.field_of_view)
+        session.logger.status(msg)
+
+_camera_desc = cli.CmdDesc(optional=[
+    # ('mode', CameraModeArg),
+    ('field_of_view', cli.FloatArg),
+    ('eye_separation', cli.FloatArg),
+    ('screen_width', cli.FloatArg),
+    ('depth_scale', cli.FloatArg),
+    ('projection', ProjectionArg),
+])
 
 
 def register(session):
@@ -95,6 +184,21 @@ def register(session):
     cli.register('echo', _echo_desc, echo)
     cli.register('pwd', _pwd_desc, pwd)
     cli.register('window', _window_desc, window)
+    cli.register('help', _help_desc, help)
+    cli.register('camera', _camera_desc, camera)
+    from . import molsurf
+    molsurf.register_surface_command()
+    from . import structure
+    structure.register_molecule_commands()
+    from . import lightcmd
+    lightcmd.register_lighting_command()
+    from . import map
+    map.register_volume_command()
+    from .map import series
+    series.register_vseries_command()
+    from . import color
+    color.register_commands()
+
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
     #     cmd.register()

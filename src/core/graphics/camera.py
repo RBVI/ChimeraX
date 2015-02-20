@@ -44,6 +44,9 @@ class Camera:
         """Indicates whether a camera change has been made which requires
         the graphics to be redrawn."""
 
+        self.ortho = False
+        """Indicates if camera should use an orthographic projection."""
+
     CAMERA_STATE_VERSION = 1
 
     def take_snapshot(self, session, flags):
@@ -159,7 +162,10 @@ class Camera:
         xps, yps = self.pixel_shift
         mxs, mys = self.mode.pixel_shift(view_num)
         xshift, yshift = (xps + mxs) / ww, (yps + mys) / wh
-        pm = frustum(left, right, bot, top, near, far, xshift, yshift)
+        if self.ortho:
+            pm = ortho(left, right, bot, top, near, far, xshift, yshift)
+        else:
+            pm = frustum(left, right, bot, top, near, far, xshift, yshift)
         return pm
 
     def clip_plane_points(self, window_x, window_y, window_size, z_distances,
@@ -282,22 +288,42 @@ stereo_camera_mode = StereoCameraMode()
 
 
 # glFrustum() matrix
-def frustum(left, right, bottom, top, zNear, zFar, xshift=0, yshift=0):
+def frustum(left, right, bottom, top, z_near, z_far, xshift=0, yshift=0):
     '''
     Return a 4 by 4 perspective projection matrix.  It includes a
     shift along x used to superpose offset left and right eye views in
     sequential stereo mode.
     '''
-    A = (right + left) / (right - left) - 2 * xshift
-    B = (top + bottom) / (top - bottom) - 2 * yshift
-    C = - (zFar + zNear) / (zFar - zNear)
-    D = - (2 * zFar * zNear) / (zFar - zNear)
-    E = 2 * zNear / (right - left)
-    F = 2 * zNear / (top - bottom)
-    m = ((E, 0, 0, 0),
-         (0, F, 0, 0),
-         (A, B, C, -1),
-         (0, 0, D, 0))
+    a = (right + left) / (right - left) - 2 * xshift
+    b = (top + bottom) / (top - bottom) - 2 * yshift
+    c = - (z_far + z_near) / (z_far - z_near)
+    d = - (2 * z_far * z_near) / (z_far - z_near)
+    e = 2 * z_near / (right - left)
+    f = 2 * z_near / (top - bottom)
+    m = ((e, 0, 0, 0),
+         (0, f, 0, 0),
+         (a, b, c, -1),
+         (0, 0, d, 0))
+    return m
+
+
+# glOrtho() matrix
+def ortho(left, right, bottom, top, z_near, z_far, xshift=0, yshift=0):
+    '''
+    Return a 4 by 4 orthographic projection matrix.  It includes a
+    shift along x used to superpose offset left and right eye views in
+    sequential stereo mode.
+    '''
+    a = 1 / (right - left)
+    b = left + right
+    c = 1 / (top - bottom)
+    d = bottom + top
+    e = 1 / (z_far - z_near)
+    f = z_near + z_far
+    m = ((2 * a, 0, 0, 0),
+         (0, 2 * c, 0, 0),
+         (0, 0, -2 * e, 0),
+         (- b * a + xshift, - d * c + yshift, - f * e, 1))
     return m
 
 

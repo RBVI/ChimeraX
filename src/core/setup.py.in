@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # import distutils.core
 # distutils.core.DEBUG = True
 from setuptools import setup
@@ -21,18 +22,28 @@ setup(
         "chimera.core.ui",
         "chimera.core.geometry",
         "chimera.core.graphics",
+        "chimera.core.map",
+        "chimera.core.map.data",
+        "chimera.core.map.data.ccp4",
+        "chimera.core.map.data.cmap",
+        "chimera.core.map.data.dsn6",
+        "chimera.core.map.data.imagestack",
+        "chimera.core.map.data.mrc",
+        "chimera.core.map.series",
         "chimera.core.surface",
         "chimera.core.toolshed",
+        "chimera.core.webservices",
     ],
     package_data={
         "chimera.core": ["*.PYMOD_EXT"],
         "chimera.core.ui": ["*.jpg"],
         "chimera.core.geometry": ["*.PYMOD_EXT"],
         "chimera.core.graphics": ["*.txt", "*.PYMOD_EXT"],
+        "chimera.core.map": ["*.PYMOD_EXT"],
         "chimera.core.surface": ["*.PYMOD_EXT"],
     },
     data_files=[
-	("", [ "timestamp" ]),
+        ("", ["timestamp"]),
         ("lib", [
             os.path.join(lib_dir, "libappdirs.SHLIB_EXT"),
             os.path.join(lib_dir, "libarrays.SHLIB_EXT"),

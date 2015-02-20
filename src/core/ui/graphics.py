@@ -11,17 +11,16 @@ class GraphicsWindow(wx.Panel):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
         self.timer = None
-        self.opengl_canvas = OpenGLCanvas(self, ui)
+        self.view = ui.session.main_view
+        self.opengl_canvas = OpenGLCanvas(self, self.view, ui)
         from wx.glcanvas import GLContext
         oc = self.opengl_context = GLContext(self.opengl_canvas)
         oc.make_current = self.make_context_current
         oc.swap_buffers = self.swap_buffers
+        self.view.initialize_context(oc)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
-
-        self.view = ui.session.main_view
-        self.view.initialize_context(oc)
 
         self.redraw_interval = 16 # milliseconds
         # perhaps redraw interval should be 10 to reduce
@@ -168,8 +167,8 @@ class GraphicsWindow(wx.Panel):
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):
 
-    def __init__(self, parent, ui):
-        self.graphics_window = parent
+    def __init__(self, parent, view, ui=None):
+        self.view = view
         attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER ]
         import sys
         if sys.platform.startswith('darwin'):
@@ -177,14 +176,13 @@ class OpenGLCanvas(glcanvas.GLCanvas):
                 glcanvas.WX_GL_OPENGL_PROFILE,
                 glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
             ]
-        attribs.append(0)   # terminate attribute list
         gl_supported = glcanvas.GLCanvas.IsDisplaySupported
-        if not gl_supported(attribs):
+        if not gl_supported(attribs + [0]):
             raise AssertionError("Required OpenGL capabilities, RGBA and/or"
                 " double buffering and/or OpenGL 3, not supported")
         for depth in range(32, 0, -8):
             test_attribs = attribs + [glcanvas.WX_GL_DEPTH_SIZE, depth]
-            if gl_supported(test_attribs):
+            if gl_supported(test_attribs + [0]):
                 attribs = test_attribs
                 # TODO: log this
                 print("Using {}-bit OpenGL depth buffer".format(depth))
@@ -193,27 +191,29 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             raise AssertionError("Required OpenGL depth buffer capability"
                 " not supported")
         test_attribs = attribs + [glcanvas.WX_GL_STEREO]
-        # if gl_supported(test_attribs):
-        #     # TODO: keep track of fact that 3D stereo is available, but
-        #     # don't use it
-        #     pass
-        # else:
-        #     print("Stereo mode is not supported by OpenGL driver")
-        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
+        if gl_supported(test_attribs + [0]):
+            # TODO: keep track of fact that 3D stereo is available, but
+            # don't use it
+            pass
+        else:
+            print("Stereo mode is not supported by OpenGL driver")
+        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs + [0],
             style=wx.WANTS_CHARS)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
-        self.Bind(wx.EVT_CHAR, ui.forward_keystroke)
+        if ui:
+            self.Bind(wx.EVT_CHAR, ui.forward_keystroke)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
     def OnPaint(self, event):
-        self.graphics_window.view.draw()
+        #self.SetCurrent(view.opengl_context())
+        self.view.draw()
 
     def OnSize(self, event):
         wx.CallAfter(self.set_viewport)
         event.Skip()
 
     def set_viewport(self):
-        self.graphics_window.view.resize(*self.GetClientSize())
+        self.view.resize(*self.GetClientSize())

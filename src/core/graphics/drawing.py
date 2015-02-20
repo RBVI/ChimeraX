@@ -196,28 +196,33 @@ class Drawing:
         d.set_redraw_callback(self._redraw_needed)
         cd = self._child_drawings
         cd.append(d)
+        if hasattr(d, 'parent') and not d.parent is None:
+            # Reparent drawing.
+            d.parent.remove_drawing(d, delete = False)
         d.parent = self
         if self.display:
             self.redraw_needed(shape_changed=True)
 
-    def remove_drawing(self, d):
-        '''Delete a specified child drawing.'''
+    def remove_drawing(self, d, delete = True):
+        '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
-        d.delete()
-        self.redraw_needed(shape_changed=True, selection_changed=True)
-
-    def remove_drawings(self, drawings):
-        '''Delete specified child drawings.'''
-        dset = set(drawings)
-        self._child_drawings = [d for d in self._child_drawings
-                                if d not in dset]
-        for d in drawings:
+        if delete:
             d.delete()
         self.redraw_needed(shape_changed=True, selection_changed=True)
 
-    def remove_all_drawings(self):
-        '''Delete all child drawings.'''
-        self.remove_drawings(self.child_drawings())
+    def remove_drawings(self, drawings, delete = True):
+        '''Remove specified child drawings.'''
+        dset = set(drawings)
+        self._child_drawings = [d for d in self._child_drawings
+                                if d not in dset]
+        if delete:
+            for d in drawings:
+                d.delete()
+        self.redraw_needed(shape_changed=True, selection_changed=True)
+
+    def remove_all_drawings(self, delete = True):
+        '''Remove all child drawings.'''
+        self.remove_drawings(self.child_drawings(), delete)
 
     def set_redraw_callback(self, redraw_needed):
         self._redraw_needed = redraw_needed
@@ -244,7 +249,10 @@ class Drawing:
         return self._displayed_positions
 
     def set_display_positions(self, position_mask):
-        if position_mask == self._displayed_positions:
+        from numpy import array_equal
+        dp = self._displayed_positions
+        if ((position_mask is None and dp is None) or
+            (not position_mask is None and not dp is None and array_equal(position_mask, dp))):
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)

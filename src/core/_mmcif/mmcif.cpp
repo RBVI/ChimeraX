@@ -37,6 +37,8 @@ using basegeom::Coord;
 
 namespace mmcif {
 
+using atomstruct::AtomName;
+
 typedef vector<string> StringVector;
 typedef vector<unsigned> UIntVector;
 
@@ -72,9 +74,9 @@ struct ExtractMolecule: public readcif::CIFFile
         long position;
         char ins_code;
         char alt_id;
-        string atom_name;
+        AtomName atom_name;
         string residue_name;
-        AtomKey(const string& c, long p, char i, char a, const string& n, const string& r):
+        AtomKey(const string& c, long p, char i, char a, const AtomName& n, const string& r):
             chain_id(c), position(p), ins_code(i), alt_id(a), atom_name(n), residue_name(r) {}
         bool operator==(const AtomKey& k) const {
             return position == k.position && ins_code == k.ins_code
@@ -86,7 +88,8 @@ struct ExtractMolecule: public readcif::CIFFile
         size_t operator()(const AtomKey& k) const {
             return hash<string>()(k.chain_id) ^ hash<long>()(k.position)
                 ^ hash<char>()(k.ins_code) ^ hash<char>()(k.alt_id)
-                ^ hash<string>()(k.atom_name) ^ hash<string>()(k.residue_name);
+                ^ hash<const char*>()(k.atom_name)
+                ^ hash<string>()(k.residue_name);
         }
     };
     unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
@@ -282,6 +285,7 @@ void
 ExtractMolecule::parse_atom_site(bool /*in_loop*/)
 {
     // x, y, z are not required by mmCIF, but are by us
+
     readcif::CIFFile::ParseValues pv;
     pv.reserve(20);
 
@@ -292,8 +296,8 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
     long auth_position = INT_MAX; // auth_seq_id
     char ins_code = ' ';          // pdbx_PDB_ins_code
     char alt_id = '\0';           // label_alt_id
-    string atom_name;             // label_atom_id
-    string auth_atom_name;        // auth_atom_id
+    AtomName atom_name;           // label_atom_id
+    AtomName auth_atom_name;      // auth_atom_id
     string residue_name;          // label_comp_id
     string auth_residue_name;     // auth_comp_id
     char symbol[3];               // type_symbol
@@ -368,11 +372,11 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         });
     pv.emplace_back(get_column("label_atom_id", true), true,
         [&] (const char* start, const char* end) {
-            atom_name = string(start, end - start);
+            atom_name = AtomName(start, end - start);
         });
     pv.emplace_back(get_column("auth_atom_id"), true,
         [&] (const char* start, const char* end) {
-            auth_atom_name = string(start, end - start);
+            auth_atom_name = AtomName(start, end - start);
             if (auth_atom_name == "." || auth_atom_name == "?")
                 auth_atom_name.clear();
         });
@@ -526,7 +530,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
     long position1, position2;              // ptrn[12]_label_seq_id
     char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptrn[12]_PDB_ins_code
     char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptrn[12]_label_alt_id
-    string atom_name1, atom_name2;          // ptrn[12]_label_atom_id
+    AtomName atom_name1, atom_name2;          // ptrn[12]_label_atom_id
     string residue_name1, residue_name2;    // ptrn[12]_label_comp_id
     string conn_type;                       // conn_type_id
 
@@ -566,7 +570,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         });
     pv.emplace_back(get_column(P1 ATOM_ID, true), true,
         [&] (const char* start, const char* end) {
-            atom_name1 = string(start, end - start);
+            atom_name1 = AtomName(start, end - start);
         });
     pv.emplace_back(get_column(P1 COMP_ID, true), true,
         [&] (const char* start, const char* end) {
@@ -602,7 +606,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         });
     pv.emplace_back(get_column(P2 ATOM_ID, true), true,
         [&] (const char* start, const char* end) {
-            atom_name2 = string(start, end - start);
+            atom_name2 = AtomName(start, end - start);
         });
     pv.emplace_back(get_column(P2 COMP_ID, true), true,
         [&] (const char* start, const char* end) {
@@ -691,7 +695,7 @@ clock_t start_t, end_t;
     extract.parse_file(filename);
 
     using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
+    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;
@@ -711,7 +715,7 @@ clock_t start_t, end_t;
     extract.parse(reinterpret_cast<const char *>(whole_file));
 
     using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::newBlob<StructBlob>(&blob::StructBlob_type));
+    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;

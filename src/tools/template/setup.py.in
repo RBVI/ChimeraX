@@ -9,23 +9,23 @@ from setuptools import setup
 
 lib_dir = "LIB_DIR"
 pkg_dir = "PKG_DIR"
-import os.path
 
-setup(name="PKG_NAME",
+setup(
+    name="PKG_NAME",
     version="PKG_VERSION",
     description="PKG_DESCRIPTION",
     author="UCSF RBVI",
     author_email="chimera2@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimera2/",
-    package_dir = {
+    package_dir={
         "PKG_NAME": pkg_dir,
     },
     packages=[
         "PKG_NAME",
-    # Add subpackage names here
+        # Add subpackage names here
     ],
     data_files=[
-        ("", [ "timestamp" ]),
+        ("", ["timestamp"]),
     ],
     install_requires=[
         "chimera.core",

@@ -12,62 +12,63 @@ from .cli import UserError
 _builtin_open = open
 
 
-def open_pdb(session, filename, *args, **kw):
+def open_pdb(session, filename, name, *args, **kw):
 
-    name = kw['name'] if 'name' in kw else None
     if hasattr(filename, 'read'):
         # it's really a fetched stream
         input = filename
-        if name is None:
-            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
-        if name is None:
-            name = filename
 
     from . import pdbio
     mol_blob = pdbio.read_pdb_file(input)
     if input != filename:
         input.close()
 
-    model = structure.StructureModel(name)
-    model.mol_blob = mol_blob
-    model.make_drawing()
+    structures = mol_blob.structures
+    models = []
+    num_atoms = 0
+    num_bonds = 0
+    for structure_blob in structures:
+        model = structure.StructureModel(name)
+        models.append(model)
+        model.mol_blob = structure_blob
+        model.make_drawing()
 
-    coords = model.mol_blob.atoms.coords
-    bond_list = mol_blob.bond_indices
-    num_atoms = len(coords)
-    num_bonds = len(bond_list)
+        coords = model.mol_blob.atoms.coords
+        bond_list = model.mol_blob.bond_indices
+        num_atoms += len(coords)
+        num_bonds += len(bond_list)
 
-    return [model], ("Opened PDB data containing %d atoms and %d bonds"
-                     % (num_atoms, num_bonds))
+    return models, ("Opened PDB data containing %d atoms and %d bonds"
+                    % (num_atoms, num_bonds))
 
 
 def fetch_pdb(session, pdb_id):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
-    # TODO: use our own cache
-    # check in local cache
-    filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
-    filename = os.path.expanduser(filename)
-    if os.path.exists(filename):
-        return _builtin_open(filename, 'rb')
     # check on local system -- TODO: configure location
     lower = pdb_id.lower()
     subdir = lower[1:3]
-    filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
-    if os.path.exists(filename):
-        return _builtin_open(filename, 'rb')
-    from urllib.request import URLError, Request, urlopen
-    url = "http://www.rcsb.org/pdb/files/%s.pdb" % pdb_id.upper()
-    # TODO: save in local cache
+    sys_filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
+    if os.path.exists(sys_filename):
+        return _builtin_open(sys_filename, 'rb')
+
+    filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
+    filename = os.path.expanduser(filename)
+
+    dirname = os.path.dirname(filename)
+    os.makedirs(dirname, exist_ok=True)
+
+    from urllib.request import URLError, Request
     from . import utils
-    request = Request(url, headers={
+    url = "http://www.pdb.org/pdb/files/%s.pdb" % pdb_id.upper()
+    request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
     try:
-        return urlopen(request)
+        return utils.retrieve_cached_url(request, filename, session.logger), pdb_id
     except URLError as e:
         raise UserError(str(e))
 

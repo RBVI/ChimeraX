@@ -16,7 +16,11 @@ all:
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.4
+ifdef DEBUG
+PYTHON_ABI = dm
+else
 PYTHON_ABI = m
+endif
 # Windows uses python22.dll instead of libpython2.2.so
 PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
 

@@ -1,0 +1,14 @@
+--- wxPython_Phoenix-3.0.1.dev78088/ext/wxWidgets/build/tools/build-wxwidgets.py	2014-11-18 11:11:41.000000000 -0800
++++ wxPython_Phoenix-3.0.1.dev78088/ext/wxWidgets/build/tools/build-wxwidgets.py.new	2014-11-18 11:12:37.000000000 -0800
+@@ -290,10 +290,7 @@
+         if sys.platform.startswith("darwin"):
+             for xcodePath in getXcodePaths():
+                 sdks = [
+-                    xcodePath+"/SDKs/MacOSX10.5.sdk",
+-                    xcodePath+"/SDKs/MacOSX10.6.sdk",
+-                    xcodePath+"/SDKs/MacOSX10.7.sdk",
+-                    xcodePath+"/SDKs/MacOSX10.8.sdk",
++                    SDK_PATH,
+                     ]
+             
+                 # use the lowest available sdk

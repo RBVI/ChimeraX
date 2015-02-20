@@ -9,6 +9,19 @@ class StructureModel(models.Model):
 
     STRUCTURE_STATE_VERSION = 0
 
+    # Atom display styles, Atom.draw_modes
+    SPHERE_STYLE = 1
+    BALL_STYLE = 2
+    STICK_STYLE = 3
+
+    def __init__(self, name):
+
+        models.Model.__init__(self, name)
+        self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
+        self.bond_radius = 0.2
+        self._atoms_drawing = None
+        self._bonds_drawing = None
+
     def take_snapshot(self, session, flags):
         data = {}
         return [self.STRUCTURE_STATE_VERSION, data]
@@ -20,29 +33,42 @@ class StructureModel(models.Model):
     def reset_state(self):
         pass
 
+    def initialize_graphical_attributes(self):
+        m = self.mol_blob
+        a = m.atoms
+        a.draw_modes = self.SPHERE_STYLE
+        a.colors = element_colors(a.element_numbers)
+        b = m.bonds
+        b.radii = self.bond_radius
+
     def make_drawing(self):
+
+        self.initialize_graphical_attributes()
+
         m = self.mol_blob
         a = m.atoms
         coords = a.coords
-        radii = a.radii
-        scale = 0.3     # Ball and stick
-        a.colors = colors = element_colors(a.element_numbers)
+        radii = self.atom_display_radii()
+        colors = a.colors
+        display = a.displays
+        draw_modes = a.draw_modes
         b = m.bonds
         bradii = b.radii
-#        halfbond = b.halfbonds
-# TODO: Support per-bond half bond mode.
-        halfbond = True
+        halfbond = b.halfbonds
         bcolors = b.colors
         bonds = m.bond_indices
 
         # Create graphics
-        self.create_atom_spheres(coords, radii, scale, colors)
-        self.create_bond_cylinders(bonds, coords, bradii, scale, bcolors, colors, halfbond)
+        self.create_atom_spheres(coords, radii, colors, display)
+        self.update_bond_graphics(bonds, coords, display, draw_modes, bradii, bcolors, colors, halfbond)
 
-    def create_atom_spheres(self, coords, radii, scale, colors, triangles_per_sphere = 320):
-        if not hasattr(self, '_atoms_drawing'):
-            self._atoms_drawing = self.new_drawing('atoms')
+    def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
+        if p is None:
+            self._atoms_drawing = p = self.new_drawing('atoms')
+
+        n = len(coords)
+        triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
 
         # Set instanced sphere triangulation
         from . import surface
@@ -50,31 +76,72 @@ class StructureModel(models.Model):
         p.geometry = va, ta
         p.normals = na
 
+        self.update_atom_graphics(coords, radii, colors, display)
+
+    def update_graphics(self):
+        m = self.mol_blob
+        a = m.atoms
+        b, bi = m.bonds, m.bond_indices
+        self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
+        self.update_bond_graphics(bi, a.coords, a.displays, a.draw_modes, b.radii, b.colors, a.colors, b.halfbonds)
+
+    def update_atom_graphics(self, coords, radii, colors, display):
+        p = self._atoms_drawing
+        if p is None:
+            return
+
         # Set instanced sphere center position and radius
         n = len(coords)
         from numpy import empty, float32, multiply
         xyzr = empty((n, 4), float32)
         xyzr[:, :3] = coords
-        multiply(radii, scale, xyzr[:, 3])
+        xyzr[:, 3] = radii
+
         from .geometry import place
         p.positions = place.Places(shift_and_scale=xyzr)
+        p.display_positions = display
 
         # Set atom colors
         p.colors = colors
 
-    def create_bond_cylinders(self, bonds, atom_coords, radii, scale,
-                              bond_colors, atom_colors, half_bond_coloring):
-        if not hasattr(self, '_bonds_drawing'):
-            self._bonds_drawing = self.new_drawing('bonds')
+    def atom_display_radii(self):
+        m = self.mol_blob
+        a = m.atoms
+        r = a.radii.copy()
+        dm = a.draw_modes
+        r[dm == self.BALL_STYLE] *= self.ball_scale
+        r[dm == self.STICK_STYLE] = self.bond_radius
+        return r
+
+    def set_atom_style(self, style):
+        self.mol_blob.atoms.draw_modes = style
+        self.update_graphics()
+
+    def color_by_element(self):
+        a = self.mol_blob.atoms
+        a.colors = element_colors(a.element_numbers)
+        self.update_graphics()
+
+    def color_by_chain(self):
+        a = self.mol_blob.atoms
+        a.colors = chain_colors(a.residues.chain_ids)
+        self.update_graphics()
+
+    def update_bond_graphics(self, bonds, atom_coords, atom_display, draw_mode, radii,
+                             bond_colors, atom_colors, half_bond_coloring):
         p = self._bonds_drawing
+        if p is None:
+            if (draw_mode == self.SPHERE_STYLE).all():
+                return
+            self._bonds_drawing = p = self.new_drawing('bonds')
+            from . import surface
+            # Use 3 z-sections so cylinder ends match in half-bond mode.
+            va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
+            p.geometry = va, ta
+            p.normals = na
 
-        from . import surface
-        va, na, ta = surface.cylinder_geometry(caps = False)
-        p.geometry = va, ta
-        p.normals = na
-
-        p.positions = bond_cylinder_placements(bonds, atom_coords, radii*scale, half_bond_coloring)
-
+        p.positions = bond_cylinder_placements(bonds, atom_coords, radii, half_bond_coloring)
+        p.display_positions = self.shown_bond_cylinders(bonds, atom_display, draw_mode, half_bond_coloring)
         self.set_bond_colors(bonds, bond_colors, atom_colors, half_bond_coloring)
 
     def set_bond_colors(self, bonds, bond_colors, atom_colors, half_bond_coloring):
@@ -82,17 +149,113 @@ class StructureModel(models.Model):
         if p is None:
             return
 
-        if half_bond_coloring:
+        if half_bond_coloring.any():
             bc0,bc1 = atom_colors[bonds[:,0],:], atom_colors[bonds[:,1],:]
             from numpy import concatenate
             p.colors = concatenate((bc0,bc1))
         else:
             p.colors = bond_colors
 
+    def shown_bond_cylinders(self, bonds, atom_display, draw_mode, half_bond_coloring):
+        sb = atom_display[bonds[:,0]] & atom_display[bonds[:,1]]  # Show bond if both atoms shown
+        ns = ((draw_mode[bonds[:,0]] != self.SPHERE_STYLE) |
+              (draw_mode[bonds[:,1]] != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
+        import numpy
+        numpy.logical_and(sb,ns,sb)
+        if half_bond_coloring.any():
+            sb2 = numpy.concatenate((sb,sb))
+            return sb2
+        return sb
+
+    def hide_chain(self, cid):
+        a = self.mol_blob.atoms
+        a.displays &= self.chain_atom_mask(cid, invert = True)
+        self.update_graphics()
+
+    def show_chain(self, cid):
+        a = self.mol_blob.atoms
+        a.displays |= self.chain_atom_mask(cid)
+        self.update_graphics()
+
+    def chain_atom_mask(self, cid, invert = False):
+        a = self.mol_blob.atoms
+        cids = a.residues.chain_ids
+        from numpy import array, bool, logical_not
+        d = array(tuple((cid != c) for c in cids), bool)
+        if invert:
+            logical_not(d,d)
+        return d
+
+    def first_intercept(self, mxyz1, mxyz2, exclude = None):
+        # TODO check intercept of bounding box as optimization
+        p = self._atoms_drawing
+        if p is None:
+            return None, None
+        xyzr = p.positions.shift_and_scale_array()
+        xyz = xyzr[:,:3]
+        r = xyzr[:,3]
+
+        f = fa = None
+        from . import graphics
+        for tf in self.positions:
+            cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
+            # Check for atom sphere intercept
+            fmin, anum = graphics.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
+            if not fmin is None and (f is None or fmin < f):
+                f, fa = fmin, anum
+
+        # Create selection object
+        if fa is None:
+            s = None
+        else:
+            ai = self.mol_blob.atoms.displays.nonzero()[0]
+            fa = ai[fa]
+            s = Picked_Atom(self, fa)
+
+        return f, s
+
+    def bounds(self, positions = True):
+        # TODO: Cache bounds
+        a = self.mol_blob.atoms
+        xyz = a.coords[a.displays]
+        if len(xyz) == 0:
+            return None
+        xyz_min, xyz_max = xyz.min(axis = 0), xyz.max(axis = 0)
+        from .geometry import bounds
+        b = bounds.Bounds(xyz_min, xyz_max)
+        if positions:
+            b = bounds.copies_bounding_box(b, self.positions)
+        return b
+
+    def atom_index_description(self, a):
+        a = self.mol_blob.atoms
+        r = a.residues
+        d = '%s %d.%s %s %d %s' % (self.name, self.id, r.chain_ids[a], r.names[a], r.numbers[a], a.names[a])
+        return d
+
+
+# -----------------------------------------------------------------------------
+#
+from .graphics import Pick
+class Picked_Atom(Pick):
+  def __init__(self, mol, a):
+    self.molecule = mol
+    self.atom = a
+  def description(self):
+    m, a = self.molecule, self.atom
+    if a is None:
+      return m.name
+    return '%s %s' % (self.id_string(), m.atom_index_description(a))
+  def drawing(self):
+    return self.molecule
+
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
 #
 def bond_cylinder_placements(bonds, xyz, radius, half_bond):
+
+  # TODO: Allow per-bound variation in half-bond mode.
+  half_bond = half_bond.any()
 
   n = len(bonds)
   from numpy import empty, float32, transpose, sqrt, array
@@ -134,6 +297,8 @@ def bond_cylinder_placements(bonds, xyz, radius, half_bond):
   pl = place.Places(opengl_array = pt)
   return pl
 
+# -----------------------------------------------------------------------------
+#
 element_rgba_256 = None
 def element_colors(element_numbers):
     global element_rgba_256
@@ -150,3 +315,109 @@ def element_colors(element_numbers):
         ec[16, :] = (255, 255, 48, 255)     # S
     colors = element_rgba_256[element_numbers]
     return colors
+
+# -----------------------------------------------------------------------------
+#
+rgba_256 = None
+def chain_colors(cids):
+
+    global rgba_256
+    if rgba_256 is None:
+        rgba_256 = {
+          'a':(123,104,238,255),
+          'b':(240,128,128,255),
+          'c':(143,188,143,255),
+          'd':(222,184,135,255),
+          'e':(255,127,80,255),
+          'f':(128,128,128,255),
+          'g':(107,142,35,255),
+          'h':(100,100,100,255),
+          'i':(255,255,0,255),
+          'j':(55,19,112,255),
+          'k':(255,255,150,255),
+          'l':(202,62,94,255),
+          'm':(205,145,63,255),
+          'n':(12,75,100,255),
+          'o':(255,0,0,255),
+          'p':(175,155,50,255),
+          'q':(0,0,0,255),
+          'r':(37,70,25,255),
+          's':(121,33,135,255),
+          't':(83,140,208,255),
+          'u':(0,154,37,255),
+          'v':(178,220,205,255),
+          'w':(255,152,213,255),
+          'x':(0,0,74,255),
+          'y':(175,200,74,255),
+          'z':(63,25,12,255),
+          '1': (87, 87, 87,255),
+          '2': (173, 35, 35,255),
+          '3': (42, 75, 215,255),
+          '4': (29, 105, 20,255),
+          '5': (129, 74, 25,255),
+          '6': (129, 38, 192,255),
+          '7': (160, 160, 160,255),
+          '8': (129, 197, 122,255),
+          '9': (157, 175, 255,255),
+          '0': (41, 208, 208,255),
+        }
+    default_color = (180,180,180,255)
+    from numpy import array, uint8
+    c = array(tuple(rgba_256.get(cid[:1].lower(), default_color) for cid in cids), uint8)
+    return c
+
+# -----------------------------------------------------------------------------
+#
+from . import cli
+_color_desc = cli.CmdDesc(required = [('preset', cli.EnumOf(('element', 'chain')))])
+def color_command(session, preset):
+    for m in session.models.list():
+        if isinstance(m, StructureModel):
+            if preset == 'element':
+                m.color_by_element()
+            elif preset == 'chain':
+                m.color_by_chain()
+
+# -----------------------------------------------------------------------------
+#
+from . import cli
+_style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))])
+def style_command(session, atom_style):
+    s = {'sphere':StructureModel.SPHERE_STYLE,
+         'ball':StructureModel.BALL_STYLE,
+         'stick':StructureModel.STICK_STYLE,
+         }[atom_style.lower()]
+    for m in session.models.list():
+        if isinstance(m, StructureModel):
+            m.set_atom_style(s)
+
+# -----------------------------------------------------------------------------
+#
+from . import cli
+_hide_desc = cli.CmdDesc(required = [('chain', cli.StringArg)])
+def hide_command(session, chain):
+    cids = chain.split(',')
+    for m in session.models.list():
+        if isinstance(m, StructureModel):
+            for c in cids:
+                m.hide_chain(chain)
+
+# -----------------------------------------------------------------------------
+#
+from . import cli
+_show_desc = cli.CmdDesc(required = [('chain', cli.StringArg)])
+def show_command(session, chain):
+    cids = chain.split(',')
+    for m in session.models.list():
+        if isinstance(m, StructureModel):
+            for c in cids:
+                m.show_chain(c)
+
+# -----------------------------------------------------------------------------
+#
+def register_molecule_commands():
+    from . import cli
+    cli.register('style', _style_desc, style_command)
+    cli.register('color', _color_desc, color_command)
+    cli.register('hide', _hide_desc, hide_command)
+    cli.register('show', _show_desc, show_command)

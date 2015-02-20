@@ -54,6 +54,7 @@ class UI(wx.App):
                 except ToolshedError as e:
                     self.session.logger.info("Tool \"%s\" failed to start"
                                              % ti.name)
+                    print("{}".format(e))
 
     def deregister_for_keystrokes(self, sink, notfound_okay=False):
         """'undo' of register_for_keystrokes().  Use the same argument.
@@ -91,8 +92,14 @@ class UI(wx.App):
     def quit(self, confirm=True):
         self.main_window.close()
 
+    def thread_safe(self, func, *args, **kw):
+        """Call function 'func' in a thread-safe manner
+        """
+        wx.CallAfter(func, *args, **kw)
 
-class MainWindow(wx.Frame):
+
+from .logger import PlainTextLog
+class MainWindow(wx.Frame, PlainTextLog):
 
     def __init__(self, ui, session):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
@@ -107,6 +114,7 @@ class MainWindow(wx.Frame):
         self._build_status()
         self._build_menus(session)
 
+        session.logger.add_log(self)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(EVT_AUI_PANE_CLOSE, self.OnPaneClose)
 
@@ -115,6 +123,9 @@ class MainWindow(wx.Frame):
         del self.aui_mgr
         self.graphics_window.timer = None
         self.Destroy()
+
+    def log(self, *args, **kw):
+        return False
 
     def OnClose(self, event):
         self.close()
@@ -142,6 +153,29 @@ class MainWindow(wx.Frame):
     def OnQuit(self, event):
         self.close()
 
+    def status(self, msg, color, secondary):
+        if self._initial_status_kludge == True:
+            self._initial_status_kludge = False
+            self.status_bar.SetStatusText("", 1)
+
+        if secondary:
+            secondary_text = msg
+        else:
+            secondary_text = self.status_bar.GetStatusText(1)
+        secondary_size = wx.Window.GetTextExtent(self, secondary_text)
+        self.status_bar.SetStatusWidths([-1, secondary_size.width, 0])
+
+        color_db = wx.ColourDatabase()
+        wx_color = color_db.Find(color)
+        if not wx_color.IsOk:
+            wx_color = wx_color.Find("black")
+        self.status_bar.SetForegroundColour(wx_color)
+
+        if secondary:
+            self.status_bar.SetStatusText(msg, 1)
+        else:
+            self.status_bar.SetStatusText(msg, 0)
+
     def _build_graphics(self, ui):
         from .ui.graphics import GraphicsWindow
         self.graphics_window = g = GraphicsWindow(self, ui)
@@ -154,13 +188,18 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menu_bar)
 
     def _build_status(self):
-        self.status_bar = self.CreateStatusBar(
-            3, wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
+        # as a kludge, use 3 fields so that I can center the initial
+        # "Welcome" text
+        self.status_bar = self.CreateStatusBar(3,
+            wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
             | wx.FULL_REPAINT_ON_RESIZE)
-        self.status_bar.SetStatusWidths([-24, -30, -2])
-        self.status_bar.SetStatusText("Status", 0)
-        self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
+        greeting = "Welcome to Chimera 2"
+        greeting_size = wx.Window.GetTextExtent(self, greeting)
+        self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
+        self.status_bar.SetStatusText("", 0)
+        self.status_bar.SetStatusText(greeting, 1)
         self.status_bar.SetStatusText("", 2)
+        self._initial_status_kludge = True
 
     def _populate_menus(self, menu_bar, session):
         import sys

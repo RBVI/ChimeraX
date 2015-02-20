@@ -9,11 +9,13 @@
 
 namespace blob {
     
-template <class MolItem>
+template <class MolItem, class PtrClass>
 struct Blob: public PyObject {
 public:
     typedef MolItem  MolType;
     PyObject* _weaklist;
+    typedef std::vector<PtrClass>  ItemsType;
+    ItemsType*  _items;
 };
 
 template <class MolItem>
@@ -25,23 +27,9 @@ public:
     MolItem* get() const { return _ptr; }
 };
 
-template <class MolItem>
-class SharedBlob: public Blob<MolItem> {
-public:
-    typedef std::vector<std::shared_ptr<MolItem>>  ItemsType;
-    ItemsType*  _items;
-};
-
-template <class MolItem>
-class RawBlob: public Blob<MolItem> {
-public:
-    typedef std::vector<SharedAPIPointer<MolItem>>  ItemsType;
-    ItemsType*  _items;
-};
-
 template <class BlobType>
 PyObject*
-newBlob(PyTypeObject* type)
+new_blob(PyTypeObject* type)
 {
     BlobType* self;
     self = static_cast<BlobType*>(type->tp_alloc(type, 0));
@@ -49,6 +37,13 @@ newBlob(PyTypeObject* type)
         self->_items = new typename BlobType::ItemsType;
     }
     return static_cast<PyObject*>(self);
+}
+
+template <class BlobType>
+PyObject*
+PyType_NewBlob(PyTypeObject* type, PyObject*, PyObject*)
+{
+    return new_blob<BlobType>(type);
 }
 
 }  // namespace blob

@@ -49,8 +49,8 @@ def map_points_and_weights(v, level = None, step = None, subregion = None):
   # Get 3-d array of map values.
   m = v.matrix(step = step, subregion = subregion)
 
-  from ..map import map_cpp
-  points_int = map_cpp.high_indices(m, level)
+  from ..map import _map
+  points_int = _map.high_indices(m, level)
   from numpy import float32
   points = points_int.astype(float32)
   tf = v.matrix_indices_to_xyz_transform(step, subregion)

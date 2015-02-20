@@ -500,9 +500,9 @@ AtomicStructure::_compute_atom_types()
         if (element.number() == 1) {
             // sort out if it's a hydrogen or deuterium
             bool is_hyd = true;
-            for (const char *c = a->name().c_str(); *c != '\0'; ++c) {
-                if (isalpha(*c)) {
-                    if (*c == 'd' || *c == 'D') {
+            for (auto c: a->name()) {
+                if (isalpha(c)) {
+                    if (c == 'd' || c == 'D') {
                         is_hyd = false;
                     }
                     break;
@@ -728,7 +728,7 @@ AtomicStructure::_compute_atom_types()
         
         Atom *bondee = *(neighbors.begin());
         Real sqlen = bondee->coord().sqdistance(a->coord());
-        std::string bondee_type = bondee->idatm_type();
+        auto bondee_type = bondee->idatm_type();
 
         
         if (a->idatm_type() == "C") {
@@ -960,7 +960,7 @@ AtomicStructure::_compute_atom_types()
         bool all_planar = true;
         int num_oxygens = 0;
         for (auto a: r.atoms()) {
-            std::string idatm_type = a->idatm_type();
+            auto idatm_type = a->idatm_type();
             if (a->element() == Element::O)
                 num_oxygens++;
 
@@ -1510,7 +1510,7 @@ AtomicStructure::_compute_atom_types()
         bool c2_possible = false;
         std::vector<Atom *> nb_valence1;
         for (auto bondee: a->neighbors()) {
-            std::string bondee_type = bondee->idatm_type();
+            auto bondee_type = bondee->idatm_type();
 
             Atom::IdatmInfoMap::const_iterator i = info_map.find(bondee_type);
             if (i == info_map.end())
@@ -1690,7 +1690,7 @@ AtomicStructure::_compute_atom_types()
             for (auto grand_bondee: bondee->neighbors()) {
                 if (grand_bondee == a.get())
                     continue;
-                std::string gb_type = grand_bondee->idatm_type();
+                auto gb_type = grand_bondee->idatm_type();
 
                 Atom::IdatmInfoMap::const_iterator i = info_map.find(gb_type);
                 if (i == info_map.end())
@@ -1732,7 +1732,7 @@ AtomicStructure::_compute_atom_types()
         if (ring_assigned_Ns.find(a.get()) != ring_assigned_Ns.end())
             continue;
         
-        std::string idatm_type = a->idatm_type();
+        auto idatm_type = a->idatm_type();
         if (idatm_type != "Npl" && idatm_type != "N2" && idatm_type!="N3")
             continue;
         
@@ -1752,7 +1752,7 @@ AtomicStructure::_compute_atom_types()
 
         std::vector<Atom *> bsp2list;
         for (auto bondee: a->neighbors()) {
-            std::string idatm_type = bondee->idatm_type();
+            auto idatm_type = bondee->idatm_type();
 
             aro_ring = false;
             for (auto ring: bondee->rings(false, ring_limit, &mapped_residues)){
@@ -1837,7 +1837,7 @@ AtomicStructure::_compute_atom_types()
         if (mapped[a.get()])
             continue;
 
-        std::string idatm_type = a->idatm_type();
+        auto idatm_type = a->idatm_type();
         if (idatm_type != "O3")
             continue;
         
@@ -1846,7 +1846,7 @@ AtomicStructure::_compute_atom_types()
 
         // any sp2?
         Atom *bondee = a->neighbors()[0];
-        std::string bondee_type = bondee->idatm_type();
+        auto bondee_type = bondee->idatm_type();
 
         bool aro_ring = false;
         for (auto b_ring: bondee->rings(false, ring_limit, &mapped_residues)) {

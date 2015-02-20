@@ -195,7 +195,8 @@ class Molecule(Model):
       self.bonds_drawing = p = self.new_drawing('bonds')
 
     from .. import surface
-    va, na, ta = surface.cylinder_geometry(caps = False)
+    # Use 3 z-sections so cylinder ends match in half-bond mode.
+    va, na, ta = surface.cylinder_geometry(nz = 3, caps = False)
     p.geometry = va, ta
     p.normals = na
 
@@ -674,7 +675,6 @@ class Molecule(Model):
 
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
     # TODO check intercept of bounding box as optimization
-    # TODO using wrong radius for atoms in stick and ball and stick
     xyz = self.shown_atom_array_values(self.xyz)
     r = self.shown_atom_array_values(self.drawing_radii())
     rsp = self.ribbon_drawing

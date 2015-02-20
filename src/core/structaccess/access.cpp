@@ -39,9 +39,10 @@ PyMODINIT_FUNC PyInit_structaccess()
     using blob::ResBlob_type;
     using blob::AtomBlob_type;
     using blob::BondBlob_type;
-    StructBlob_type.tp_new = PyType_GenericNew;
-    ResBlob_type.tp_new = PyType_GenericNew;
-    AtomBlob_type.tp_new = PyType_GenericNew;
+    StructBlob_type.tp_new = blob::PyType_NewBlob<blob::StructBlob>;
+    ResBlob_type.tp_new = blob::PyType_NewBlob<blob::ResBlob>;
+    AtomBlob_type.tp_new = blob::PyType_NewBlob<blob::AtomBlob>;
+    BondBlob_type.tp_new = blob::PyType_NewBlob<blob::BondBlob>;
     if (PyType_Ready(&StructBlob_type) < 0)
         return NULL;
     if (PyType_Ready(&ResBlob_type) < 0)

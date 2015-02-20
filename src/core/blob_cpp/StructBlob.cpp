@@ -5,6 +5,7 @@
 #include "ResBlob.h"
 #include <atomstruct/Bond.h>
 #include "numpy_common.h"
+#include "blob_op.h"
 #include "set_blob.h"
 #include <unordered_map>
 #include <stddef.h>
@@ -15,7 +16,7 @@ using atomstruct::AtomicStructure;
 using atomstruct::Atom;
 using atomstruct::Bond;
     
-template PyObject* newBlob<StructBlob>(PyTypeObject*);
+template PyObject* new_blob<StructBlob>(PyTypeObject*);
 
 extern "C" {
     
@@ -34,7 +35,7 @@ static const char StructBlob_doc[] = "StructBlob documentation";
 static PyObject*
 sb_atoms(PyObject* self, void*)
 {
-    PyObject* py_ab = newBlob<AtomBlob>(&AtomBlob_type);
+    PyObject* py_ab = new_blob<AtomBlob>(&AtomBlob_type);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
     StructBlob* sb = static_cast<StructBlob*>(self);
     for (auto& as: *sb->_items)
@@ -46,7 +47,7 @@ sb_atoms(PyObject* self, void*)
 static PyObject*
 sb_bonds(PyObject* self, void*)
 {
-    PyObject* py_bb = newBlob<BondBlob>(&BondBlob_type);
+    PyObject* py_bb = new_blob<BondBlob>(&BondBlob_type);
     BondBlob* bb = static_cast<BondBlob*>(py_bb);
     StructBlob* sb = static_cast<StructBlob*>(self);
     for (auto& as: *sb->_items)
@@ -121,7 +122,7 @@ sb_structures(PyObject* self, void*)
     PyObject *struct_list = PyList_New(sb->_items->size());
     StructBlob::ItemsType::size_type i = 0;
     for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
-        PyObject* py_single_sb = newBlob<StructBlob>(&StructBlob_type);
+        PyObject* py_single_sb = new_blob<StructBlob>(&StructBlob_type);
         PyList_SET_ITEM(struct_list, i++, py_single_sb);
         StructBlob* single_sb = static_cast<StructBlob*>(py_single_sb);
         // since it's a shared_ptr, push_back, not emplace_back...
@@ -133,7 +134,7 @@ sb_structures(PyObject* self, void*)
 static PyObject*
 sb_residues(PyObject* self, void*)
 {
-    PyObject* py_rb = newBlob<ResBlob>(&ResBlob_type);
+    PyObject* py_rb = new_blob<ResBlob>(&ResBlob_type);
     ResBlob* rb = static_cast<ResBlob*>(py_rb);
     StructBlob* sb = static_cast<StructBlob*>(self);
     for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
@@ -145,6 +146,10 @@ sb_residues(PyObject* self, void*)
 }
 
 static PyMethodDef StructBlob_methods[] = {
+    { (char*)"filter", blob_filter<StructBlob>, METH_O,
+        (char*)"filter structure blob based on array/list of booleans" },
+    { (char*)"merge", blob_merge<StructBlob>, METH_O,
+        (char*)"merge structure blobs" },
     { NULL, NULL, 0, NULL }
 };
 

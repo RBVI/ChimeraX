@@ -49,12 +49,11 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= appdirs beautifulsoup cython docutils expat flake8 ffmpeg fonts \
+SUBDIRS	+= appdirs docutils expat ffmpeg fonts \
 	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy numpydoc \
 	   openssl ordered_set p7zip pcre pillow pips pycollada \
-	   pygments pyflakes PyOpenGL pytables pythomnic3k Python \
-	   python-dateutil \
-	   setuptools six sphinx webcolors wrappy3 wx zlib
+	   PyOpenGL pytables pythomnic3k Python \
+	   setuptools sphinx webcolors wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -125,17 +124,15 @@ endif
 # target of the other packages.
 
 appdirs.install: Python.install setuptools.install
-beautifulsoup.install: Python.install setuptools.install
 blockdiag.install: Python.install funcparserlib.install webcolors.install
 cython.install: Python.install
 distribute.install: Python.install setuptools.install
-docutils.install: Python.install pillow.install pygments.install
-flake8.install: Python.install
+docutils.install: Python.install pillow.install pips.install
 funcparserlib.install: Python.install
 hdf5.install: zlib.install
 jinja2.install: Python.install setuptools.install
 leapmotion.install: Python.install
-line_profiler.install: Python.install cython.install
+line_profiler.install: Python.install pips.install
 numexpr.install: numpy.install
 numpy.install: Python.install
 numpydoc.install: Python.install setuptools.install
@@ -145,23 +142,19 @@ pcre.install: zlib.install
 pillow.install: Python.install setuptools.install zlib.install jpeg.install
 pips.install: Python.install setuptools.install
 pips.app-install: setuptools.app-install
-pycollada.install: Python.install python-dateutil.install numpy.install
-pyflakes.install: Python.install
-pygments.install: Python.install
+pycollada.install: Python.install numpy.install pips.install
 PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
 PyQt.install: Python.install qt.install sip.install
 pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
-pytables.install: hdf5.install numexpr.install cython.install Python.install zlib.install
+pytables.install: hdf5.install numexpr.install pips.install Python.install zlib.install
 pythomnic3k.install: Python.install
-python-dateutil.install: Python.install six.install
 Python.install: p7zip.install zlib.install openssl.install expat.install
 qt.install: p7zip.install openssl.install zlib.install
 # qt.install: png.install jpeg.install
 setuptools.install: Python.install
 sip.install: Python.install
-six.install: Python.install
 sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
-sphinx.install: docutils.install jinja2.install numpydoc.install pygments.install setuptools.install
+sphinx.install: docutils.install jinja2.install numpydoc.install pips.install setuptools.install
 webcolors.install: Python.install
 wrappy3.install: pcre.install Python.install
 wx.install: Python.install
