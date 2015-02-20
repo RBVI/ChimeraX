@@ -311,6 +311,10 @@ def state_from_map(volume):
   s['region_list'] = state_from_region_list(v.region_list)
   s['session_volume_id'] = session_volume_id(v)
   s['version'] = 1
+  if hasattr(v, 'parent'):
+    from .series import Map_Series
+    if isinstance(v.parent, Map_Series):
+      s['in_map_series'] = True
   return s
 
 # ---------------------------------------------------------------------------
@@ -331,7 +335,9 @@ def create_map_from_state(s, data, session):
   if d:
     v.show()
   else:
-#    v.show()      # Compute surface even if not displayed. Why? Don't want to read all files for map series.
+    if not s.get('in_map_series',False):
+      v.show()      # Compute surface even if not displayed so that turning on display
+                    # for example with model panel that only sets display to true shows surface.
     v.display = False
 
   return v
