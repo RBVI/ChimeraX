@@ -95,10 +95,20 @@ def session_volume_id(v):
 #
 def find_volume_by_session_id(id, session):
 
+  if not hasattr(session, '_map_session_ids'):
+    session._map_session_ids = {}
+
+  ids = session._map_session_ids
+  if id in ids:
+    return ids[id]
+
   for v in session.maps():
-    if hasattr(v, 'session_volume_id') and v.session_volume_id == id:
-      return v
-  return None
+    if hasattr(v, 'session_volume_id'):
+      vid = v.session_volume_id
+      ids[vid] = v
+
+  v = ids.get(id,None)
+  return v
 
 # -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
@@ -318,8 +328,10 @@ def create_map_from_state(s, data, session):
   set_map_state(s, v, notify = False)
 
   d = v.display
-  v.show()      # Compute surface even if not displayed
-  if not d:
+  if d:
+    v.show()
+  else:
+#    v.show()      # Compute surface even if not displayed. Why? Don't want to read all files for map series.
     v.display = False
 
   return v
