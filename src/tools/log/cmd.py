@@ -29,11 +29,13 @@ show_desc = cli.CmdDesc()
 
 def test(session):
     session.logger.info("Something in <i>italics</i>!", is_html=True)
-    session.logger.error("HTML <i>error</i> message", is_html=True)
-    session.logger.warning("Plain text warning")
+    #session.logger.error("HTML <i>error</i> message", is_html=True)
+    #session.logger.warning("Plain text warning")
     from PIL import Image
     session.logger.info("axes",
         image=Image.open("/Users/pett/Documents/axes.png"))
     session.logger.info("Text after the image\nSecond line")
     session.logger.info("<pre>open xyzzy\n..........^\nMissing or unknown file type</pre>", is_html=True)
+    session.logger.status("Status test", follow_with="follow text", follow_time=5)
+    session.logger.status("Secondary text", blank_after=20, secondary=True)
 test_desc = cli.CmdDesc()
