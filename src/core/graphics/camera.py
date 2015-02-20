@@ -319,10 +319,11 @@ def ortho(left, right, bottom, top, z_near, z_far, xshift=0, yshift=0):
     c = 1 / (top - bottom)
     d = bottom + top
     e = 1 / (z_far - z_near)
+    f = z_near + z_far
     m = ((2 * a, 0, 0, 0),
          (0, 2 * c, 0, 0),
          (0, 0, -2 * e, 0),
-         (- b * a + xshift, - d * c + yshift, - e * d, 1))
+         (- b * a + xshift, - d * c + yshift, - f * e, 1))
     return m
 
 

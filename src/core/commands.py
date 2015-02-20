@@ -127,6 +127,7 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
     if projection is not None:
         has_arg = True
         cam.ortho = projection == 'orthographic'
+        cam.redraw_needed = True
     if field_of_view is not None:
         has_arg = True
         cam.field_of_view = field_of_view
