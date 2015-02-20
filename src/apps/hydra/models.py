@@ -25,14 +25,13 @@ class Models:
     def __init__(self):
 
         self._root_model = Model('root')        # Root of drawing tree
-        self._models = []                       # All models in drawing tree
         self.next_id = 1
         self.add_model_callbacks = []
         self.close_model_callbacks = []
 
     def model_list(self):
-        '''List of open models.'''
-        return self._models
+        '''List of all models in drawing tree.'''
+        return self._root_model.all_models()[1:]
 
     def drawing(self):
         return self._root_model
@@ -52,7 +51,6 @@ class Models:
         Add a model to the scene.  A model is a Drawing object.
         '''
         self._root_model.add_model(model)
-        self._models.extend(model.all_models())
         self.set_model_id(model)
 
         if callbacks:
@@ -87,11 +85,10 @@ class Models:
         '''
         Remove a list of models from the scene, delete them, and call close callbacks.
         '''
-        cset = sum([m.all_models() for m in models],[])
-        self._models = olist = [m for m in self.model_list() if not m in cset]
         for m in models:
             m.parent.remove_drawing(m)          # Removes entire drawing tree.
-        self.next_id = 1 if len(olist) == 0 else max(m.id for m in olist) + 1
+        mlist = self.model_list()
+        self.next_id = (max(m.id for m in mlist) + 1) if mlist else 1
 
         for cb in self.close_model_callbacks:
             cb(models)
