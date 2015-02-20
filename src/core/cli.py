@@ -1463,7 +1463,7 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                if iskeyword(value):
+                if iskeyword(arg_name):
                     self._kwargs['%s_' % arg_name] = value
                 else:
                     self._kwargs[arg_name] = value
