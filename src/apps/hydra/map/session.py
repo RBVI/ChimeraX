@@ -95,20 +95,20 @@ def session_volume_id(v):
 #
 def find_volume_by_session_id(id, session):
 
-  if not hasattr(session, '_map_session_ids'):
-    session._map_session_ids = {}
-
-  ids = session._map_session_ids
-  if id in ids:
-    return ids[id]
-
   for v in session.maps():
-    if hasattr(v, 'session_volume_id'):
-      vid = v.session_volume_id
-      ids[vid] = v
+    if hasattr(v, 'session_volume_id') and v.session_volume_id == id:
+      return v
+  return None
 
-  v = ids.get(id,None)
-  return v
+# -----------------------------------------------------------------------------
+#
+def find_volumes_by_session_id(ids, session):
+
+  idv = dict((id,None) for id in ids)
+  for v in session.maps():
+    if hasattr(v, 'session_volume_id') and v.session_volume_id in idv:
+      idv[v.session_volume_id] = v
+  return [idv[id] for id in ids]
 
 # -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
