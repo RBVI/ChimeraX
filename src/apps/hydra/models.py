@@ -85,7 +85,7 @@ class Models:
 
     def close_models(self, models):
         '''
-        Remove a list of models from the scene.
+        Remove a list of models from the scene, delete them, and call close callbacks.
         '''
         cset = sum([m.all_models() for m in models],[])
         self._models = olist = [m for m in self.model_list() if not m in cset]
