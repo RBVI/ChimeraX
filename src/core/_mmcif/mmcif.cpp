@@ -676,14 +676,6 @@ ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
         poly_seq.push_back(PolySeq(entity_id, seq_id, mon_id, hetero));
 }
 
-bool
-init_structaccess()
-{
-    // ensure structaccess module objects are initialized
-    PyObject* structaccess_mod = PyImport_ImportModule("chimera.core.structaccess");
-    return structaccess_mod != nullptr;
-}
-
 PyObject*
 parse_mmCIF_file(const char *filename)
 {

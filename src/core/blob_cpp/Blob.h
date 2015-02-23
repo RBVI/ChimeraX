@@ -46,6 +46,12 @@ PyType_NewBlob(PyTypeObject* type, PyObject*, PyObject*)
     return new_blob<BlobType>(type);
 }
 
+inline bool
+init_structaccess()
+{
+    return PyImport_ImportModule("chimera.core.structaccess") != nullptr;
+}
+
 }  // namespace blob
 
 #endif  // blob_blob
