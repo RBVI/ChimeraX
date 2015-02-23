@@ -15,13 +15,13 @@ namespace atomstruct {
 class Chain;
 class Residue;
 
-struct assoc_params {
+struct AssocParams {
     Sequence::Contents::size_type  est_len;
     std::vector<Sequence::Contents>  segments;
     std::vector<unsigned int>  gaps;
 };
 
-assoc_params  estimate_assoc_params(Chain&);
+AssocParams  estimate_assoc_params(Chain&);
 
 class ATOMSTRUCT_IMEX MatchMap {
 public:
@@ -37,13 +37,13 @@ public:
     SeqPos&  operator[](Residue* r) { return _res_to_pos[r]; }
 };
 
-struct assoc_retvals {
+struct AssocRetvals {
     MatchMap  match_map;
     unsigned int  num_errors;
 };
 
-assoc_retvals  try_assoc(const Sequence& aseq, const Chain& mseq,
-    const assoc_params &ap, unsigned int max_errors = 6);
+AssocRetvals  try_assoc(const Sequence& aseq, const Chain& mseq,
+    const AssocParams& ap, unsigned int max_errors = 6);
 
 // thrown when seq-structure association fails
 class ATOMSTRUCT_IMEX SA_AssocFailure : public std::runtime_error {
