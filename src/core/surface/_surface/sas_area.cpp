@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // Analytic computation of solvent accessible surface area, ie. the surface area of a union of spheres.
 
 #include <math.h>		// use M_PI, sqrt, cos, atan2, ...

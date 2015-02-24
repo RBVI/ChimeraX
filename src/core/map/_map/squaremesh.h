@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef SQUAREMESH_HEADER_INCLUDED
 #define SQUAREMESH_HEADER_INCLUDED
 

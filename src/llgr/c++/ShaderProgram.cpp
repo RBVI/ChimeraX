@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 //#define GL3_PROTOTYPES
 //#define GL_GLEXT_PROTOTYPES
 #include "ShaderProgram.h"

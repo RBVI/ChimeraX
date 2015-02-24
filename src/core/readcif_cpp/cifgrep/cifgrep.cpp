@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // The idea is to have an expr-like program that searchs mmCIF files
 //
 // cifgrep category.id1,id2 [cif-file]

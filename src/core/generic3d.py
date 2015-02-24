@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 from . import io
 from . import models
 from .graphics.drawing import Drawing

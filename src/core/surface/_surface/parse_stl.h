@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef PARSE_STL_HEADER_INCLUDED
 #define PARSE_STL_HEADER_INCLUDED
 

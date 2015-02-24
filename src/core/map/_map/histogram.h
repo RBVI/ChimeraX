@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef HISTOGRAM_HEADER_INCLUDED
 #define HISTOGRAM_HEADER_INCLUDED
 

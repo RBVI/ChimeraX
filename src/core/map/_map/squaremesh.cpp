@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Return integer array having length equal to length of triangle array
 // with bit values indicating which edges that are parallel to one of the

@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Points are in grid xyz coordinates.
 #

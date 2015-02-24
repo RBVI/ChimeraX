@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 #
 def open_grid_files(paths_and_types, stack_images = True):

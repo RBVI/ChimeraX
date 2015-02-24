@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Manages surface and volume display for a region of a data set.
 # Holds surface and solid thresholds, color, and transparency and brightness

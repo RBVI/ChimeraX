@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # The Grid_Data class defines the data format needed by the Chimera
 # Volume Viewer extension to produce surface, mesh, and solid

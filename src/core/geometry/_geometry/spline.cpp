@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // -----------------------------------------------------------------------------
 // Compute natural cubic spline through points in 3 dimensions.
 //

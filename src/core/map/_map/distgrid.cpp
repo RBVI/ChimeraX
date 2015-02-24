@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Compute signed distance from surface of union of spheres.  This is used
 // for computing solvent accessible and solvent excluded molecular surfaces
