@@ -118,6 +118,7 @@ class Logger:
         self._follow_timer1 = self._follow_timer2 = None
 
     def add_log(self, log):
+        print("adding log {}".format(log))
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
                              " HtmlLog or PlainTextLog")
@@ -157,6 +158,7 @@ class Logger:
                   last_resort=sys.stdout)
 
     def remove_log(self, log):
+        print("removing log {}".format(log))
         self.logs.discard(log)
 
     def status(self, msg, color="black", log=False, secondary=False,
@@ -186,7 +188,6 @@ class Logger:
 
         from threading import Timer
         if follow_with:
-            print("Starting {}-second follow timer".format(follow_time))
             follow_timer = Timer(follow_time, lambda fw=follow_with,
                 clr=color, log=log, sec=secondary, fl=follow_log:
                 self._follow_timeout(fw, clr, log, sec, fl))
@@ -196,7 +197,6 @@ class Logger:
                 blank_after = blank_default
             if blank_after:
                 from threading import Timer
-                print("Starting {}-second blanking timer".format(blank_after))
                 status_timer = Timer(blank_after, lambda sec=secondary:
                     self._status_timeout(sec))
                 status_timer.start()
@@ -218,7 +218,6 @@ class Logger:
                   last_resort=sys.stderr)
 
     def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
-        print("Follow timeout")
         if secondary:
             self._follow_timer2 = None
         else:
@@ -271,7 +270,6 @@ class Logger:
                 print(output, end="", file=last_resort)
 
     def _status_timeout(self, secondary):
-        print("Status timeout")
         if secondary:
             self._status_timer2 = None
         else:
