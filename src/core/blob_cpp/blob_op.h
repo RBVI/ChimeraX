@@ -48,6 +48,32 @@ blob_filter(PyObject* self, PyObject* bools)
 
 template<typename BlobType>
 PyObject*
+blob_intersect(PyObject* self, PyObject* py_other_blob)
+{
+    if (self->ob_type != py_other_blob->ob_type) {
+        PyErr_SetString(PyExc_ValueError,
+            "Intersected blobs must be same type");
+        return NULL;
+    }
+    BlobType* my_blob = static_cast<BlobType*>(self);
+    BlobType* other_blob = static_cast<BlobType*>(py_other_blob);
+    BlobType* intersected = static_cast<BlobType*>(
+        new_blob<BlobType>(self->ob_type));
+
+    std::unordered_set<typename BlobType::MolType*> contents(
+        my_blob->_items->size());
+    for (auto i: *(my_blob->_items)) {
+        contents.insert(i.get());
+    }
+    for (auto i: *(other_blob->_items)) {
+        if (contents.find(i.get()) != contents.end())
+            intersected->_items->emplace_back(i);
+    }
+    return intersected;
+}
+
+template<typename BlobType>
+PyObject*
 blob_merge(PyObject* self, PyObject* py_other_blob)
 {
     if (self->ob_type != py_other_blob->ob_type) {
