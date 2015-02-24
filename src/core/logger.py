@@ -117,6 +117,7 @@ class Logger:
         self._prev_newline = True
 
     def add_log(self, log):
+        print("add log {}".format(log))
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
                              " HtmlLog or PlainTextLog")
@@ -156,6 +157,7 @@ class Logger:
                   last_resort=sys.stdout)
 
     def remove_log(self, log):
+        print("remove log {}".format(log))
         self.logs.discard(log)
 
     def status(self, msg, color="black", log=False, secondary=False, **kw):

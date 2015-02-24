@@ -104,6 +104,8 @@ class MainWindow(wx.Frame, PlainTextLog):
     def __init__(self, ui, session):
         wx.Frame.__init__(self, None, title="Chimera 2", size=(1000, 700))
 
+        self.session = session
+
         from wx.lib.agw.aui import AuiManager, AuiPaneInfo, EVT_AUI_PANE_CLOSE
         self.aui_mgr = AuiManager(self)
         self.aui_mgr.SetManagedWindow(self)
@@ -112,13 +114,15 @@ class MainWindow(wx.Frame, PlainTextLog):
 
         self._build_graphics(ui)
         self._build_status()
-        self._build_menus(session)
+        self._build_menus()
 
         session.logger.add_log(self)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(EVT_AUI_PANE_CLOSE, self.OnPaneClose)
 
     def close(self):
+        self.session.logger.remove_log(self)
+        self.session = None
         self.aui_mgr.UnInit()
         del self.aui_mgr
         self.graphics_window.timer = None
@@ -184,7 +188,7 @@ class MainWindow(wx.Frame, PlainTextLog):
 
     def _build_menus(self, session):
         menu_bar = wx.MenuBar()
-        self._populate_menus(menu_bar, session)
+        self._populate_menus(menu_bar, self.session)
         self.SetMenuBar(menu_bar)
 
     def _build_status(self):
