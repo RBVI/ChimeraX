@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 Dump llgr calls.  Emit when render() is called.
 

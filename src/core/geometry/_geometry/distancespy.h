@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef DISTANCESPY_HEADER_INCLUDED
 #define DISTANCESPY_HEADER_INCLUDED
 

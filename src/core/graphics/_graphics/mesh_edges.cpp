@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #include <set>				// use std::set
 
 #include "pythonarray.h"		// use array_from_python()

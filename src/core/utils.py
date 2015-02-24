@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 utils -- generically useful stuff that doesn't fit elsewhere
 """

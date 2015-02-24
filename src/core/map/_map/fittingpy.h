@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef FITTINGPY_HEADER_INCLUDED
 #define FITTINGPY_HEADER_INCLUDED
 

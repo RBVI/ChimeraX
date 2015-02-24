@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 _version = (2, 0, 0, "")
 
 def get_version_string():

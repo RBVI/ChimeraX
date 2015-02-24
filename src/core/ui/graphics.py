@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 import wx
 
@@ -11,17 +11,16 @@ class GraphicsWindow(wx.Panel):
         wx.Panel.__init__(self, parent,
             style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
         self.timer = None
-        self.opengl_canvas = OpenGLCanvas(self, ui)
+        self.view = ui.session.main_view
+        self.opengl_canvas = OpenGLCanvas(self, self.view, ui)
         from wx.glcanvas import GLContext
         oc = self.opengl_context = GLContext(self.opengl_canvas)
         oc.make_current = self.make_context_current
         oc.swap_buffers = self.swap_buffers
+        self.view.initialize_context(oc)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
-
-        self.view = ui.session.main_view
-        self.view.initialize_context(oc)
 
         self.redraw_interval = 16 # milliseconds
         # perhaps redraw interval should be 10 to reduce
@@ -168,8 +167,8 @@ class GraphicsWindow(wx.Panel):
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):
 
-    def __init__(self, parent, ui=None):
-        self.graphics_window = parent
+    def __init__(self, parent, view, ui=None):
+        self.view = view
         attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER ]
         import sys
         if sys.platform.startswith('darwin'):
@@ -209,11 +208,12 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
     def OnPaint(self, event):
-        self.graphics_window.view.draw()
+        #self.SetCurrent(view.opengl_context())
+        self.view.draw()
 
     def OnSize(self, event):
         wx.CallAfter(self.set_viewport)
         event.Skip()
 
     def set_viewport(self):
-        self.graphics_window.view.resize(*self.GetClientSize())
+        self.view.resize(*self.GetClientSize())

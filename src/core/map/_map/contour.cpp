@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Calculate constant intensity surfaces for volumes.
 // Uses the marching cubes algorithm.

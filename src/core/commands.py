@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 commands -- Default set of commands
 ===================================
@@ -10,6 +10,7 @@ must be called to get the commands recognized by the command line interface
 """
 
 from . import cli
+# from graphics.cameramode import CameraModeArg
 
 
 def pwd(session):
@@ -95,7 +96,7 @@ def help(session, command_name=None):
             info("The following command is available: %s" % cmds[0])
         else:
             info("The following commands are available: %s, and %s"
-                 % ( ', '.join(cmds[:-1]), cmds[-1]))
+                 % (', '.join(cmds[:-1]), cmds[-1]))
         return
     try:
         usage = cli.usage(command_name)
@@ -112,6 +113,65 @@ def window(session):
 _window_desc = cli.CmdDesc()
 
 
+ProjectionArg = cli.EnumOf(['perspective', 'orthographic'])
+
+
+def camera(session, mode=None, field_of_view=None, eye_separation=None,
+           screen_width=None, depth_scale=None, projection=None):
+    view = session.main_view
+    cam = session.main_view.camera
+    has_arg = False
+    if mode is not None:
+        has_arg = True
+        # TODO
+    if projection is not None:
+        has_arg = True
+        cam.ortho = projection == 'orthographic'
+        cam.redraw_needed = True
+    if field_of_view is not None:
+        has_arg = True
+        cam.field_of_view = field_of_view
+        cam.redraw_needed = True
+    if eye_separation is not None or screen_width is not None:
+        has_arg = True
+        if eye_separation is None or screen_width is None:
+            raise cli.UserError("Must specifiy both eye-separation and"
+                                " screen-width -- only ratio is used")
+        cam.eye_separation_pixels = (eye_separation / screen_width) * \
+            view.screen().size().width()
+        cam.redraw_needed = True
+    if depth_scale is not None:
+        has_arg = True
+        cam.eye_separation_pixels *= depth_scale
+        cam.eye_separation_scene *= depth_scale
+        cam.redraw_needed = True
+    if not has_arg:
+        msg = (
+            'Camera parameters:\n' +
+            '    position: %.5g %.5g %.5g\n' % tuple(cam.position.origin()) +
+            '    view direction: %.6f %.6f %.6f\n' %
+            tuple(cam.view_direction()) +
+            '    field of view: %.5g degrees\n' % cam.field_of_view +
+            '    projection: %s' %
+            ('orthographic' if cam.ortho else 'perspective') +
+            '    mode: %s\n' % cam.mode.name()
+        )
+        session.logger.info(msg)
+        msg = (cam.mode.name() +
+            ', ' + ('orthographic' if cam.ortho else 'perspective') +
+            ', %.5g degree field of view' % cam.field_of_view)
+        session.logger.status(msg)
+
+_camera_desc = cli.CmdDesc(optional=[
+    # ('mode', CameraModeArg),
+    ('field_of_view', cli.FloatArg),
+    ('eye_separation', cli.FloatArg),
+    ('screen_width', cli.FloatArg),
+    ('depth_scale', cli.FloatArg),
+    ('projection', ProjectionArg),
+])
+
+
 def register(session):
     """Register common cli commands"""
     cli.register('exit', _exit_desc, exit)
@@ -125,6 +185,7 @@ def register(session):
     cli.register('pwd', _pwd_desc, pwd)
     cli.register('window', _window_desc, window)
     cli.register('help', _help_desc, help)
+    cli.register('camera', _camera_desc, camera)
     from . import molsurf
     molsurf.register_surface_command()
     from . import structure

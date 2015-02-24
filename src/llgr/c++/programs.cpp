@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #include "llgr.h"
 #include "llgr_int.h"
 #include "ShaderProgram.h"

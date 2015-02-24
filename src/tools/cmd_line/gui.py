@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 from chimera.core.tools import ToolInstance
 
@@ -33,8 +33,10 @@ class CmdLine(ToolInstance):
 
     def OnEnter(self, event):
         session = self.session
+        logger = session.logger
         text = self.text.GetLineText(0)
         self.text.SelectAll()
+        logger.status("")
         from chimera.core import cli
         try:
             cmd = cli.Command(session, text, final=True)
@@ -46,7 +48,6 @@ class CmdLine(ToolInstance):
             rest = cmd.current_text[cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = cmd.amount_parsed + spaces
-            logger = session.logger
             text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
                 cmd.current_text, '.' * error_at, str(err))
             logger.info(text, is_html=True)

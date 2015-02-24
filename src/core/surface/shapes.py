@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # Only produces 20, 80, 320, ... (multiples of 4) triangle count.
 def sphere_geometry(ntri):
   from . import icosahedron

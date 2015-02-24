@@ -2,6 +2,7 @@
 #include <Python.h>
 #include <string>
 #include <functional>
+#include <blob/Blob.h>
 
 namespace tmpl {
     class Residue;
@@ -20,7 +21,6 @@ const tmpl::Residue*
 typedef std::function<std::string (const std::string& residue_type)>
             LocateFunc;
 void        set_locate_template_function(LocateFunc func);
-bool        init_structaccess();
 #endif
 
 }  // namespace mmcif

@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """This module defines classes for tasks and their state manager.
 
 Tasks are threads of execution that continue independently from

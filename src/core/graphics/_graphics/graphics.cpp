@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #include <Python.h>			// use PyObject
 
 #include "blend_rgba.h"			// use blur_blend_images

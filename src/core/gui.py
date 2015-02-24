@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 import wx
 
@@ -70,6 +70,7 @@ class UI(wx.App):
 
     def event_loop(self):
         self.MainLoop()
+        self.session.logger.clear()
 
     def forward_keystroke(self, event):
         """forward keystroke from graphics window to most recent
@@ -193,9 +194,11 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.status_bar = self.CreateStatusBar(3,
             wx.STB_SIZEGRIP | wx.STB_SHOW_TIPS | wx.STB_ELLIPSIZE_MIDDLE
             | wx.FULL_REPAINT_ON_RESIZE)
-        self.status_bar.SetStatusWidths([-3, -1, -3])
+        greeting = "Welcome to Chimera 2"
+        greeting_size = wx.Window.GetTextExtent(self, greeting)
+        self.status_bar.SetStatusWidths([-1, greeting_size.width, -1])
         self.status_bar.SetStatusText("", 0)
-        self.status_bar.SetStatusText("Welcome to Chimera 2", 1)
+        self.status_bar.SetStatusText(greeting, 1)
         self.status_bar.SetStatusText("", 2)
         self._initial_status_kludge = True
 

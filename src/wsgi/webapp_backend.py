@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 def _debug_print(s):
 	from time import ctime
 	with open("/tmp/chimera2_debug.log", "a") as f:

@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 from .sasa import spheres_surface_area
 from .split import split_surfaces
 from .shapes import sphere_geometry, cylinder_geometry

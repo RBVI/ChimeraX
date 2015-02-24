@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // #include <iostream>			// use std::cerr for debugging.
 #include <map>				// use std::map
 

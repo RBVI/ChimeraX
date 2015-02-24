@@ -4,7 +4,7 @@
 
 #include "BondBlob.h"
 #include "numpy_common.h"
-#include "filter_blob.h"
+#include "blob_op.h"
 #include "set_blob.h"
 
 namespace blob {
@@ -122,6 +122,8 @@ bb_set_radii(PyObject* self, PyObject* value, void*)
 static PyMethodDef BondBlob_methods[] = {
     { (char*)"filter", blob_filter<BondBlob>, METH_O,
         (char*)"filter bond blob based on array/list of booleans" },
+    { (char*)"merge", blob_merge<BondBlob>, METH_O,
+        (char*)"merge bond blobs" },
     { NULL, NULL, 0, NULL }
 };
 

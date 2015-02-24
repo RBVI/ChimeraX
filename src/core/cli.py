@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 cli: application command line support
 =====================================
@@ -270,8 +270,8 @@ class Aggregate(Annotation):
 
     def __init__(self, annotation, min_size=None,
                  max_size=None, name=None):
-        if (not issubclass(annotation, Annotation)
-                and not isinstance(annotation, Annotation)):
+        if (not issubclass(annotation, Annotation) and
+                not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
         self.annotation = annotation
         if min_size is not None:
@@ -782,10 +782,13 @@ class WholeRestOfLine(Annotation):
     def parse(text, session):
         return unescape(text), text, ''
 
+Bool2Arg = TupleOf(BoolArg, 2)
 Bool3Arg = TupleOf(BoolArg, 3)
 IntsArg = ListOf(IntArg)
+Int2Arg = TupleOf(IntArg, 2)
 Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
+Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
 PositiveIntArg = Bounded(IntArg, min=1, name="a natural number")
 ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id")
@@ -956,8 +959,8 @@ class CmdDesc:
         if len(params) < 1 or params[0].name != "session":
             raise ValueError("Missing initial 'session' argument")
         for p in params[1:]:
-            if (p.default != empty or p.name in self._required
-                    or p.kind in (var_positional, var_keyword)):
+            if (p.default != empty or p.name in self._required or
+                    p.kind in (var_positional, var_keyword)):
                 continue
             raise ValueError("Wrong function or '%s' argument must be "
                              "required or have a default value" % p.name)
@@ -1347,8 +1350,9 @@ class Command:
             assert(isinstance(what, CmdDesc))
             cmd_name = self.current_text[start:self.amount_parsed]
             cmd_name = ' '.join(cmd_name.split())   # canonicalize
-            if (used_aliases is not None and isinstance(what.function, _Alias)
-                    and cmd_name in used_aliases):
+            if (used_aliases is not None and
+                    isinstance(what.function, _Alias) and
+                    cmd_name in used_aliases):
                 what = _aliased_commands[cmd_name]
             self._ci = what
             self.command_name = cmd_name
@@ -1425,10 +1429,11 @@ class Command:
             if not word or word == ';':
                 break
 
-            if word not in self._ci._keyword:
+            arg_name = word.replace('-', '_')
+            if arg_name not in self._ci._keyword:
                 self.completion_prefix = word
                 self.completions = [x for x in self._ci._keyword
-                                    if x.startswith(word)]
+                                    if x.startswith(arg_name)]
                 if (final or len(text) > len(chars)) and self.completions:
                     # If final version of text, or if there
                     # is following text, make best guess,
@@ -1443,7 +1448,6 @@ class Command:
                 else:
                     self._error = "Too many arguments"
                 return
-            arg_name = word
             self.amount_parsed += len(chars)
             m = _whitespace.match(text)
             start = m.end()
@@ -1459,7 +1463,7 @@ class Command:
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                if iskeyword(name):
+                if iskeyword(arg_name):
                     self._kwargs['%s_' % arg_name] = value
                 else:
                     self._kwargs[arg_name] = value
@@ -1557,14 +1561,17 @@ def usage(name):
     usage = cmd.command_name
     ci = cmd._ci
     for arg_name in ci._required:
+        arg_name = arg_name.replace('_', '-')
         usage += ' %s' % arg_name
     num_opt = 0
     for arg_name in ci._optional:
+        arg_name = arg_name.replace('_', '-')
         usage += ' [%s' % arg_name
         num_opt += 1
     usage += ']' * num_opt
     for arg_name in ci._keyword:
         type = ci._keyword[arg_name].name
+        arg_name = arg_name.replace('_', '-')
         usage += ' [%s _%s_]' % (arg_name, type.replace(' ', '_'))
     return usage
 
@@ -1590,6 +1597,7 @@ def html_usage(name):
     ci = cmd._ci
     for arg_name in ci._required:
         arg = ci._required[arg_name]
+        arg_name = arg_name.replace('_', '-')
         type = arg.name
         if arg.help is None:
             name = escape(arg_name)
@@ -1600,6 +1608,7 @@ def html_usage(name):
     for arg_name in ci._optional:
         num_opt += 1
         arg = ci._optional[arg_name]
+        arg_name = arg_name.replace('_', '-')
         type = arg.name
         if arg.help is None:
             name = escape(arg_name)
@@ -1609,6 +1618,7 @@ def html_usage(name):
     usage += ']' * num_opt
     for arg_name in ci._keyword:
         arg = ci._keyword[arg_name]
+        arg_name = arg_name.replace('_', '-')
         if arg.help is None:
             type = escape(arg.name)
         else:

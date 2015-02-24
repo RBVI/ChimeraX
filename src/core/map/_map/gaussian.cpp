@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Add Gaussians of specified center, amplitude and width to a 3-d floating
 // point array.

@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Read part of a matrix from a binary file making at most one copy of array
 # in memory.

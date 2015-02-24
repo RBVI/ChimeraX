@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
@@ -11,7 +11,56 @@
 #   "delete" - called to clean up before instance is deleted
 #
 import wx
+from wx import glcanvas
 from chimera.core.tools import ToolInstance
+
+
+class SideViewCanvas(glcanvas.GLCanvas):
+
+    def __init__(self, parent, view, main_view):
+        import sys
+        attribs = [
+            glcanvas.WX_GL_RGBA,
+            glcanvas.WX_GL_DOUBLEBUFFER,
+            glcanvas.WX_GL_DEPTH_SIZE, 1,
+            0  # terminates list for OpenGL
+        ]
+        if sys.platform.startswith('darwin'):
+            attribs[-1:-1] = [
+                glcanvas.WX_GL_OPENGL_PROFILE,
+                glcanvas.WX_GL_OPENGL_PROFILE_3_2CORE
+            ]
+        if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
+            raise AssertionError(
+                    "Missing required OpenGL capabilities for Side View")
+        self.view = view
+        self.main_view = main_view
+        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+
+    def OnPaint(self, event):  # noqa
+        # TODO: set flag to be drawn
+        print('Sideview::OnPaint')
+        self.SetCurrent(self.view.opengl_context())
+        from OpenGL import GL
+        width, height = self.view.window_size
+        GL.glViewport(0, 0, width, height)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        # TODO: draw
+        self.SwapBuffers()
+        # reset viewport to main_view's
+        width, height = self.main_view.window_size
+        GL.glViewport(0, 0, width, height)
+
+    def OnSize(self, event):  # noqa
+        # poor man's collapsing of OnSize events
+        wx.CallAfter(self.set_viewport)
+        event.Skip()
+
+    def set_viewport(self):
+        self.view.resize(*self.GetClientSize())
 
 
 class ToolUI(ToolInstance):
@@ -29,15 +78,11 @@ class ToolUI(ToolInstance):
         parent = self.tool_window.ui_area
         # UI content code
         from chimera.core.graphics.view import View
-        from chimera.core.ui.graphics import OpenGLCanvas
-        self.opengl_canvas = OpenGLCanvas(parent)
-        from wx.glcanvas import GLContext
-        oc = self.opengl_context = GLContext(self.opengl_canvas)
-        oc.make_current = self.make_context_current
-        oc.swap_buffers = self.swap_buffers
-        # OpenGLCanvas expects 'view' in parent
-        parent.view = View(session.models.drawing, wx.DefaultSize, oc,
-                           session.logger)
+        self.opengl_context = oc = session.main_view.opengl_context()
+        self.view = View(session.models.drawing, wx.DefaultSize, oc,
+                         session.logger)
+        self.opengl_canvas = SideViewCanvas(parent, self.view,
+                                            session.main_view)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
@@ -47,9 +92,10 @@ class ToolUI(ToolInstance):
         # Add to running tool list for session (not required)
         session.tools.add([self])
 
-    def OnEnter(self, event):
-        session = self._session()  # resolve back reference
+    def OnEnter(self, event):  # noqa
+        # session = self._session()  # resolve back reference
         # Handle event
+        pass
 
     def make_context_current(self):
         self.opengl_canvas.SetCurrent(self.opengl_context)
