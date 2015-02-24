@@ -110,6 +110,7 @@ class Oculus_Rift:
             self.window.opengl_context.make_current()
             from . import _oculus
             _oculus.render(tex_width, tex_height, tex_left, tex_right)
+            # Switch back to main window graphics context.
             self.session.main_window.graphics_window.opengl_context.make_current()
 
     def field_of_view_degrees(self):
@@ -298,12 +299,16 @@ class OculusRiftCameraMode(CameraMode):
     def _draw_unwarped(self, render):
 
         # Unwarped rendering, for testing purposes.
+        ocr = self.oculus_rift
+        ocr.window.opengl_context.make_current()
+        render.opengl_context_changed()
+
         render.draw_background()
 
         # Draw left eye
         fb = render.current_framebuffer()
-        w,h = fb.width//2, fb.height
-        render.set_viewport(0,0,w,h)
+        w,h = ocr.display_size()
+        render.set_viewport(0,0,w//2,h)
 
         s = self._warping_surface(render)
         s.texture = self._warp_framebuffers[0].color_texture
@@ -311,11 +316,14 @@ class OculusRiftCameraMode(CameraMode):
         draw_overlays([s], render)
 
         # Draw right eye
-        render.set_viewport(w,0,w,h)
+        render.set_viewport(w//2,0,w//2,h)
         s.texture = self._warp_framebuffers[1].color_texture
         draw_overlays([s], render)
 
-        session.graphics_window.opengl_context.swap_buffers()
+        ocr.window.opengl_context.swap_buffers()
+
+        ocr.session.main_window.graphics_window.opengl_context.make_current()
+        render.opengl_context_changed()
 
     def _warping_surface(self, render):
 
