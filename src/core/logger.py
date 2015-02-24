@@ -110,7 +110,7 @@ class Logger:
     """
 
     def __init__(self, session):
-        from ordered_set import OrderedSet
+        from chimera.core.orderedset import OrderedSet
         self.logs = OrderedSet()
         self.session = session
         self._prev_newline = True
@@ -118,7 +118,6 @@ class Logger:
         self._follow_timer1 = self._follow_timer2 = None
 
     def add_log(self, log):
-        print("adding log {}".format(log))
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
                              " HtmlLog or PlainTextLog")
@@ -126,6 +125,21 @@ class Logger:
             # move to top
             self.logs.discard(log)
         self.logs.add(log)
+
+    def clear(self):
+        self.logs.clear()
+        if self._status_timer1:
+            self._status_timer1.cancel()
+            self._status_timer1 = None
+        if self._status_timer2:
+            self._status_timer2.cancel()
+            self._status_timer2 = None
+        if self._follow_timer1:
+            self._follow_timer1.cancel()
+            self._follow_timer1 = None
+        if self._follow_timer2:
+            self._follow_timer2.cancel()
+            self._follow_timer2 = None
 
     def error(self, msg, add_newline=True, image=None, is_html=False):
         """Log an error message
@@ -158,7 +172,6 @@ class Logger:
                   last_resort=sys.stdout)
 
     def remove_log(self, log):
-        print("removing log {}".format(log))
         self.logs.discard(log)
 
     def status(self, msg, color="black", log=False, secondary=False,
