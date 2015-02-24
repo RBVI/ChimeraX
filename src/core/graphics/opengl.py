@@ -154,7 +154,7 @@ class Render:
         return pfb
 
     def rendering_to_screen(self):
-        return len(self.framebuffer_stack) == 0
+        return len(self.framebuffer_stack) == 1
 
     def opengl_shader(self, capabilities):
         'Private.  OpenGL shader program id.'
