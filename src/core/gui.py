@@ -70,6 +70,7 @@ class UI(wx.App):
 
     def event_loop(self):
         self.MainLoop()
+        self.session.logger.clear()
 
     def forward_keystroke(self, event):
         """forward keystroke from graphics window to most recent
