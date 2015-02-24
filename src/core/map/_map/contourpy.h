@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef PYCONTOUR_HEADER_INCLUDED
 #define  PYCONTOUR_HEADER_INCLUDED
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 
 #----------------------------------------------------------------------------
 # Name:         run.py

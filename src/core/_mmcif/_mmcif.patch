@@ -4,7 +4,7 @@
  {
  	if (!PyInit_libwrappy3())
  		return NULL;
-+	if (!mmcif::init_structaccess())
++	if (!blob::init_structaccess())
 +		return NULL;
  	PyObject* module = PyModule_Create(&moduledef);
  	if (module == NULL)

@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 //
 #ifndef MEASURE_HEADER_INCLUDED

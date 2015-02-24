@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 from abc import ABCMeta, abstractmethod
 
@@ -97,8 +97,7 @@ class Logger:
     :meth:`info`/
     :meth:`status` methods
     to send messages to a log.  The message will be sent to the log at the
-    top of the log stack and then each other log in order until one of
-    the logs' log() methods returns True (i.e. message consumed).
+    top of the log stack and then each other log in order.
 
     Message consumers must inherit from :class:`HtmlLog' or
     :class:`PlainTextLog` and register themselves with the Logger's
@@ -115,9 +114,11 @@ class Logger:
         self.logs = OrderedSet()
         self.session = session
         self._prev_newline = True
+        self._status_timer1 = self._status_timer2 = None
+        self._follow_timer1 = self._follow_timer2 = None
 
     def add_log(self, log):
-        print("add log {}".format(log))
+        print("adding log {}".format(log))
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
                              " HtmlLog or PlainTextLog")
@@ -160,14 +161,52 @@ class Logger:
         print("remove log {}".format(log))
         self.logs.discard(log)
 
-    def status(self, msg, color="black", log=False, secondary=False, **kw):
+    def status(self, msg, color="black", log=False, secondary=False,
+            blank_after=None, follow_with="", follow_time=20, follow_log=None):
         if log:
             self.info(msg)
 
         for log in self.logs:
-            if log.status(msg, color, secondary):
-                # message consumed
-                break
+            log.status(msg, color, secondary)
+        if secondary:
+            status_timer = self._status_timer2
+            follow_timer = self._follow_timer2
+            blank_default = 0
+        else:
+            status_timer = self._status_timer1
+            follow_timer = self._follow_timer1
+            blank_default = 15
+
+        if status_timer:
+            print("Cancelling status timer")
+            status_timer.cancel()
+            status_timer = None
+        if follow_timer:
+            print("Cancelling follow timer")
+            follow_timer.cancel()
+            follow_timer = None
+
+        from threading import Timer
+        if follow_with:
+            follow_timer = Timer(follow_time, lambda fw=follow_with,
+                clr=color, log=log, sec=secondary, fl=follow_log:
+                self._follow_timeout(fw, clr, log, sec, fl))
+            follow_timer.start()
+        elif msg:
+            if blank_after is None:
+                blank_after = blank_default
+            if blank_after:
+                from threading import Timer
+                status_timer = Timer(blank_after, lambda sec=secondary:
+                    self._status_timeout(sec))
+                status_timer.start()
+
+        if secondary:
+            self._status_timer2 = status_timer
+            self._follow_timer2 = follow_timer
+        else:
+            self._status_timer1 = status_timer
+            self._follow_timer1 = follow_timer
 
     def warning(self, msg, add_newline=True, image=None, is_html=False):
         """Log a warning message
@@ -177,6 +216,16 @@ class Logger:
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,
                   last_resort=sys.stderr)
+
+    def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
+        if secondary:
+            self._follow_timer2 = None
+        else:
+            self._follow_timer1 = None
+        if follow_log is None:
+            follow_log = log
+        self.status(follow_with, color=color, log=follow_log,
+            secondary=secondary)
 
     def _html_to_plain(self, msg, image, is_html):
         if image:
@@ -200,15 +249,18 @@ class Logger:
                 msg += "<br>"
             else:
                 msg += "\n"
+
+        msg_handled = False
         for log in self.logs:
             if isinstance(log, HtmlLog):
                 args = (level, msg, (image, add_newline), is_html)
             else:
-                args = (level, msg)
+                args = (level, self._html_to_plain(msg, image, is_html))
             if log.log(*args):
-                # message consumed
-                break
-        else:
+                # message displayed
+                msg_handled = True
+
+        if not msg_handled:
             if last_resort:
                 msg = self._html_to_plain(msg, image, is_html)
                 if prev_newline:
@@ -216,8 +268,13 @@ class Logger:
                 else:
                     output = msg
                 print(output, end="", file=last_resort)
-            return
 
+    def _status_timeout(self, secondary):
+        if secondary:
+            self._status_timer2 = None
+        else:
+            self._status_timer1 = None
+        self.status("", secondary=secondary)
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""

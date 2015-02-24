@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef TRANSFORM_HEADER_INCLUDED
 #define  TRANSFORM_HEADER_INCLUDED
 

@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Transform points with shift, scale and linear operations.
 //

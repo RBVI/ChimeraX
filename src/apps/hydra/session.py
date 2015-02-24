@@ -47,6 +47,10 @@ class Session(Models):
         self.last_session_path = None
         'File path for last opened session.'
 
+        from .files import session_file
+        self.object_ids = session_file.Session_Object_Ids()
+        'Identifiers for objects to refer to other objects in session files.'
+
         from . import scenes
         self.scenes = scenes.Scenes(self)
         'Saved scenes, a :py:class:`~.scenes.Scenes`'

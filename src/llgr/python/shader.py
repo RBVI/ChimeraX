@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 from OpenGL import GL
 from OpenGL.GL import shaders
 import struct

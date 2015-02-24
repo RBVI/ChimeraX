@@ -54,10 +54,20 @@ def session_state(session, attributes_only = False):
        'material': material_state(viewer.material()),
   }
 
-  from ..map import session as session_file
-  vs = session_file.map_states(session)
+  from ..map.session import map_states
+  vs = map_states(session)
   if vs:
     s['volumes'] = vs
+
+  from ..map.series.session import map_series_states
+  mss = map_series_states(session)
+  if mss:
+    s['map series'] = mss
+
+  from ..map.series.session import map_series_slider_states
+  sls = map_series_slider_states(session)
+  if sls:
+    s['map series gui'] = sls
 
   mlist = session.molecules()
   if mlist:
@@ -96,21 +106,29 @@ def set_session_state(s, session, file_paths, attributes_only = False):
     restore_material(s['material'], s['version'], v.material())
 
   if 'volumes' in s:
-    from ..map import session as map_session
-    map_session.restore_maps(s['volumes'], session, file_paths, attributes_only)
+    from ..map.session import restore_maps
+    restore_maps(s['volumes'], session, file_paths, attributes_only)
+
+  if 'map series' in s:
+    from ..map.series.session import restore_map_series
+    restore_map_series(s['map series'], session, file_paths, attributes_only)
+
+  if 'map series gui' in s:
+    from ..map.series.session import restore_map_series_sliders
+    restore_map_series_sliders(s['map series gui'], session, file_paths, attributes_only)
 
   if 'molecules' in s:
-    from ..molecule import mol_session
-    mol_session.restore_molecules(s['molecules'], session, file_paths, attributes_only)
+    from ..molecule.mol_session import restore_molecules
+    restore_molecules(s['molecules'], session, file_paths, attributes_only)
 
   if 'stl surfaces' in s:
-    from . import read_stl
-    read_stl.restore_stl_surfaces(s['stl surfaces'], session, file_paths, attributes_only)
+    from .read_stl import restore_stl_surfaces
+    restore_stl_surfaces(s['stl surfaces'], session, file_paths, attributes_only)
 
   if not attributes_only:
     scene_states = s.get('scenes', [])
-    from .. import scenes
-    scenes.restore_scenes(scene_states, session)
+    from ..scenes import restore_scenes
+    restore_scenes(scene_states, session)
 
   if not attributes_only:
     mlist = session.top_level_models()
@@ -309,3 +327,30 @@ def restore_material(ms, version, material):
   if version <= 2 and 'ambient_reflectivity' in ms:
     # Correct for change in default ambient reflectivity
     material.ambient_reflectivity = (0.8/0.3)*material.ambient_reflectivity
+
+# -----------------------------------------------------------------------------
+#
+class Session_Object_Ids:
+
+  def __init__(self):
+    self.next_object_id = 1
+    self.object_to_id = {}
+    self.id_to_object = {}
+
+  def object_id(self, object):
+    oid = self.object_to_id
+    if not object in oid:
+      id = self.next_object_id
+      oid[object] = id
+      self.id_to_object[id] = object
+      self.next_object_id += 1
+    return oid[object]
+
+  def set_object_id(self, object, id):
+    self.object_to_id[object] = id
+    self.id_to_object[id] = object
+    self.next_object_id = max(id+1, self.next_object_id)
+
+  def object_from_id(self, id):
+    ido = self.id_to_object
+    return ido.get(id,None)

@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 mmcif: mmCIF format support
 ===========================
@@ -13,7 +13,7 @@ _builtin_open = open
 _initialized = False
 
 
-def open_mmCIF(session, filename, name, *args, **kw):
+def open_mmcif(session, filename, name, *args, **kw):
     # mmCIF parsing requires an uncompressed file
     if hasattr(filename, 'name'):
         # it's really a fetched stream
@@ -43,7 +43,7 @@ def open_mmCIF(session, filename, name, *args, **kw):
                     % (num_atoms, num_bonds))
 
 
-def fetch_mmCIF(session, pdb_id):
+def fetch_mmcif(session, pdb_id):
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
@@ -115,4 +115,4 @@ def register():
         "mmCIF", structure.CATEGORY, (".cif",), ("mmcif", "cif"),
         mime=("chemical/x-mmcif", "chemical/x-cif"),
         reference="http://mmcif.wwpdb.org/",
-        requires_filename=True, open_func=open_mmCIF, fetch_func=fetch_mmCIF)
+        requires_filename=True, open_func=open_mmcif, fetch_func=fetch_mmcif)

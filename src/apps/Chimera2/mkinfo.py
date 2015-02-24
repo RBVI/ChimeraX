@@ -1,5 +1,5 @@
 #!/bin/env python
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 #
 # Copyright © 2014-2015 Regents of the University of California.
 # All Rights Reserved.  This software provided pursuant to a

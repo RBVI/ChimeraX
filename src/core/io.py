@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 io: manage file formats that can be opened and exported
 =======================================================

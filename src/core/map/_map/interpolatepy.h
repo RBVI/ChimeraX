@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef PYINTERPOLATE_HEADER_INCLUDED
 #define PYINTERPOLATE_HEADER_INCLUDED
 

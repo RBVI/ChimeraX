@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef Chimera_Shader_h
 # define Chimera_Shader_h
 

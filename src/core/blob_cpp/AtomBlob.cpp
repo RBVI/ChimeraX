@@ -3,7 +3,7 @@
 #include "AtomBlob.h"
 #include "ResBlob.h"
 #include "numpy_common.h"
-#include "filter_blob.h"
+#include "blob_op.h"
 #include "set_blob.h"
 #include <stddef.h>
 
@@ -195,6 +195,8 @@ ab_residues(PyObject* self, void*)
 static PyMethodDef AtomBlob_methods[] = {
     { (char*)"filter", blob_filter<AtomBlob>, METH_O,
         (char*)"filter atom blob based on array/list of booleans" },
+    { (char*)"merge", blob_merge<AtomBlob>, METH_O,
+        (char*)"merge atom blobs" },
     { NULL, NULL, 0, NULL }
 };
 

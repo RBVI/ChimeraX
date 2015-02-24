@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef ioutil_tokenize_h
 # define ioutil_tokenize_h
 

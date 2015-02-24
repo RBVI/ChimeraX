@@ -3,7 +3,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimera/core/map/series
 
-PYSRCS = __init__.py play.py series.py slider.py vseries_command.py
+PYSRCS = __init__.py play.py series.py session.py slider.py vseries_command.py
 
 all: $(PYOBJS)
 

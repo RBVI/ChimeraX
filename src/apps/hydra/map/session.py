@@ -101,6 +101,16 @@ def find_volume_by_session_id(id, session):
   return None
 
 # -----------------------------------------------------------------------------
+#
+def find_volumes_by_session_id(ids, session):
+
+  idv = dict((id,None) for id in ids)
+  for v in session.maps():
+    if hasattr(v, 'session_volume_id') and v.session_volume_id in idv:
+      idv[v.session_volume_id] = v
+  return [idv[id] for id in ids]
+
+# -----------------------------------------------------------------------------
 # Path can be a tuple of paths.
 #
 def absolute_path(path, file_paths, ask = False):
@@ -301,6 +311,10 @@ def state_from_map(volume):
   s['region_list'] = state_from_region_list(v.region_list)
   s['session_volume_id'] = session_volume_id(v)
   s['version'] = 1
+  if hasattr(v, 'parent'):
+    from .series import Map_Series
+    if isinstance(v.parent, Map_Series):
+      s['in_map_series'] = True
   return s
 
 # ---------------------------------------------------------------------------
@@ -318,8 +332,12 @@ def create_map_from_state(s, data, session):
   set_map_state(s, v, notify = False)
 
   d = v.display
-  v.show()      # Compute surface even if not displayed
-  if not d:
+  if d:
+    v.show()
+  else:
+    if not s.get('in_map_series',False):
+      v.show()      # Compute surface even if not displayed so that turning on display
+                    # for example with model panel that only sets display to true shows surface.
     v.display = False
 
   return v

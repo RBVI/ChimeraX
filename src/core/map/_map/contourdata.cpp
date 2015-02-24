@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 //
 #include "contourdata.h"	// use cube_edge_info

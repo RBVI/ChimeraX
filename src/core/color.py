@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 color: color cli annotation and evaluation
 ==========================================

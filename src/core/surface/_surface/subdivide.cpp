@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Compute subdivide surface triangulation where each triangle is divided
 // into 4 triangles by connecting the midpoints of the triangle edges.

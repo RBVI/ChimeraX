@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Routines to calculate distances from arrays of points to lines or an origin.
 //

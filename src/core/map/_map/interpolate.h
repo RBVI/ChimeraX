@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Routines to interpolate volume data using trilinear interpolation,
 // and to interpolate a colormap.  These are for coloring surfaces using

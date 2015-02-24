@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef LLGR_UI_H
 #define LLGR_UI_H
 

@@ -1,8 +1,9 @@
 // vi: set expandtab ts=4 sw=4:
 
 #include <Python.h>
-#include <vector>
 #include <memory>
+#include <unordered_set>
+#include <vector>
 #include "imex.h"
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>  // use PyArray_*(), NPY_*
@@ -43,6 +44,33 @@ blob_filter(PyObject* self, PyObject* bools)
             "Array values must be byte, integer, or long");
         return NULL;
     }
+}
+
+template<typename BlobType>
+PyObject*
+blob_merge(PyObject* self, PyObject* py_other_blob)
+{
+    if (self->ob_type != py_other_blob->ob_type) {
+        PyErr_SetString(PyExc_ValueError, "Merged blobs must be same type");
+        return NULL;
+    }
+    BlobType* my_blob = static_cast<BlobType*>(self);
+    BlobType* other_blob = static_cast<BlobType*>(py_other_blob);
+    BlobType* merged = static_cast<BlobType*>(
+        new_blob<BlobType>(self->ob_type));
+
+    merged->_items->insert(merged->_items->end(),
+        my_blob->_items->begin(), my_blob->_items->end());
+    std::unordered_set<typename BlobType::MolType*>
+        seen(my_blob->_items->size());
+    for (auto i: *(my_blob->_items)) {
+        seen.insert(i.get());
+    }
+    for (auto i: *(other_blob->_items)) {
+        if (seen.find(i.get()) != seen.end())
+            merged->_items->emplace_back(i);
+    }
+    return merged;
 }
 
 }  // namespace blob

@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef GAUSSIAN_HEADER_INCLUCED
 #define GAUSSIAN_HEADER_INCLUCED
 
