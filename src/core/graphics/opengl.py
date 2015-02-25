@@ -381,6 +381,12 @@ class Render:
         'Return if sequential stereo is supported.'
         return GL.glGetBoolean(GL.GL_STEREO)
 
+    def opengl_context_changed(self):
+        'Called after opengl context is switched.'
+        p = self.current_shader_program
+        if not p is None:
+            GL.glUseProgram(p.program_id)
+
     def initialize_opengl(self, width, height):
         'Create an initial vertex array object.'
 
