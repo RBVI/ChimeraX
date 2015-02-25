@@ -38,7 +38,8 @@ class Render:
         self.lighting = Lighting()
         self.material = Material()              # Currently a global material
 
-        self.framebuffer_stack = [default_framebuffer()]
+        self._default_framebuffer = None
+        self.framebuffer_stack = [self.default_framebuffer()]
         self.mask_framebuffer = None
         self.outline_framebuffer = None
         self._silhouette_framebuffer = None
@@ -64,6 +65,11 @@ class Render:
 
         self.single_color = (1, 1, 1, 1)
         self.frame_number = 0
+
+    def default_framebuffer(self):
+        if self._default_framebuffer is None:
+            self._default_framebuffer = Framebuffer(color=False, depth=False)
+        return self._default_framebuffer
 
     def render_size(self):
         fb = self.current_framebuffer()
@@ -390,7 +396,7 @@ class Render:
         vao = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(vao)
 
-        fb = default_framebuffer()
+        fb = self.default_framebuffer()
         fb.width, fb.height = width, height
         self.set_viewport(0, 0, width, height)
 
@@ -914,15 +920,6 @@ class Framebuffer:
             GL.glDeleteRenderbuffers(1, (self.depth_rb,))
         GL.glDeleteFramebuffers(1, (self.fbo,))
         self.color_rb = self.depth_rb = self.fbo = None
-
-_default_framebuffer = None
-
-
-def default_framebuffer():
-    global _default_framebuffer
-    if _default_framebuffer is None:
-        _default_framebuffer = Framebuffer(color=False, depth=False)
-    return _default_framebuffer
 
 
 class Lighting:

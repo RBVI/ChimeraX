@@ -12,7 +12,7 @@ class View:
     '''
     VIEW_STATE_VERSION = 1
 
-    def __init__(self, drawing, window_size, opengl_context, log):
+    def __init__(self, drawing, window_size, opengl_context, log, track=True):
 
         self.drawing = drawing
         self.log = log
@@ -60,7 +60,8 @@ class View:
         self._update_center = True
 
         self._drawing_manager = dm = _Redraw_Needed()
-        drawing.set_redraw_callback(dm)
+        if track:
+            drawing.set_redraw_callback(dm)
 
     def take_snapshot(self, session, flags):
         data = [self.center_of_rotation, self.window_size,
@@ -306,8 +307,7 @@ class View:
             return
         self.window_size = new_size
         if self._opengl_initialized:
-            from .opengl import default_framebuffer
-            fb = default_framebuffer()
+            fb = self._render.default_framebuffer()
             fb.width, fb.height = width, height
             fb.viewport = (0, 0, width, height)
 
