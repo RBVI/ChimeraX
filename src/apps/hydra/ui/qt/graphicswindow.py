@@ -128,7 +128,8 @@ class QtOpenGLContext(OpenGLContext):
         c = self._opengl_context
         if c is None:
             c = self._create_opengl_context()
-        c.makeCurrent(self._graphics_window)
+        if not c.makeCurrent(self._graphics_window):
+            raise RuntimeError('Could not make graphics context current')
 
     def swap_buffers(self):
         self._opengl_context.swapBuffers(self._graphics_window)
@@ -184,7 +185,7 @@ class Secondary_Graphics_Window(QtGui.QWindow):
     A top level graphics window separate for the main window for example to render to Oculus Rift headset.
     It has its own opengl context that shares state with the main graphics window context.
     '''
-    def __init__(self, title, session):
+    def __init__(self, title, session, show = True):
 
         self.session = session
         QtGui.QWindow.__init__(self)
@@ -193,7 +194,8 @@ class Secondary_Graphics_Window(QtGui.QWindow):
         self.widget = w = QtWidgets.QWidget.createWindowContainer(self, parent, QtCore.Qt.Window)
         self.setSurfaceType(QtGui.QSurface.OpenGLSurface)       # QWindow will be rendered with OpenGL
         w.setWindowTitle(title)
-        w.show()
+        if show:
+            w.show()
 
         shared_context = session.main_window.graphics_window.opengl_context
         self.opengl_context = QtOpenGLContext(self, shared_context)
