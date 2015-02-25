@@ -14,6 +14,7 @@ import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
 from chimera.core.graphics.camera import CameraMode
+from chimera.core.geometry.place import Place
 
 
 class SideViewCameraMode(CameraMode):
@@ -48,8 +49,10 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.view = view
         self.main_view = main_view
         self.view.camera.mode = SideViewCameraMode(self.main_view)
+        self.view.camera.ortho = True
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
 
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
@@ -75,6 +78,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
     def draw(self):
         self.view._render.shader_programs = \
             self.main_view._render.shader_programs
+        self.view._render.current_shader_program = None
         opengl_context = self.view.opengl_context()
         save_make_current = opengl_context.make_current
         save_swap_buffers = opengl_context.swap_buffers
@@ -94,17 +98,19 @@ class SideViewCanvas(glcanvas.GLCanvas):
             main_pos = main_camera.get_position(view_num)
             main_axes = main_pos.axes()
             camera = self.view.camera
-            camera_pos = camera.get_position()
+            camera_pos = Place()
             camera_axes = camera_pos.axes()
             camera_axes[0] = -main_axes[2]
             camera_axes[1] = -main_axes[0]
             camera_axes[2] = main_axes[1]
-            center = main_pos.origin() + (far / 2) * main_camera.view_direction()
+            center = main_pos.origin() + (far / 2) * \
+                main_camera.view_direction()
             main_view_width = main_camera.view_width(center)
-            camera_pos.origin()[:] = center + camera_axes[2] * main_view_width * 5
+            camera_pos.origin()[:] = center + camera_axes[2] * \
+                main_view_width * 5
             view_width = 1.2 * far
             camera.set_field_of_view_from_view_width(center, view_width)
-            camera.redraw_needed = True
+            camera.position = camera_pos
             self.view.draw(only_if_changed=False)
             if has_string_marker:
                 text = b"End SideView"
@@ -112,6 +118,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         finally:
             opengl_context.make_current = save_make_current
             opengl_context.swap_buffers = save_swap_buffers
+            self.main_view._render.current_shader_program = None
 
 
 class ToolUI(ToolInstance):
