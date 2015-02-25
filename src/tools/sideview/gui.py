@@ -55,7 +55,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
     def OnPaint(self, event):  # noqa
         # TODO: set flag to be drawn
-        print('Sideview::OnPaint')
+        # print('Sideview::OnPaint') # DEBUG
         self.draw()
 
     def OnSize(self, event):  # noqa
@@ -93,7 +93,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
             near, far = main_view._near_far_clip(main_camera, view_num)
             main_pos = main_camera.get_position(view_num)
             main_axes = main_pos.axes()
-            print('main_axes', main_axes)
             camera = self.view.camera
             camera_pos = camera.get_position()
             camera_axes = camera_pos.axes()
@@ -103,8 +102,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
             center = main_pos.origin() + (far / 2) * main_camera.view_direction()
             main_view_width = main_camera.view_width(center)
             camera_pos.origin()[:] = center + camera_axes[2] * main_view_width * 5
-            print('new axes', camera.position.axes())
-            print('new origin', camera.position.origin())
             view_width = 1.2 * far
             camera.set_field_of_view_from_view_width(center, view_width)
             camera.redraw_needed = True
