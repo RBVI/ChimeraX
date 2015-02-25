@@ -57,6 +57,7 @@ all atoms.
 
 """
 
+import re
 from .cli import Annotation
 
 
@@ -88,7 +89,6 @@ class AtomSpecArg(Annotation):
 #
 # Lexical analysis functions
 #
-import re
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _operator = re.compile(r'\s+[&~|]+\s+')
 
@@ -198,8 +198,8 @@ class _AtomSpecSemantics:
             return _Term(ast.selector)
 
     def selector_name(self, ast):
-        if (get_selector(self._session, ast.name) is None
-            and get_selector(None, ast.name) is None):
+        if (get_selector(self._session, ast.name) is None and
+           get_selector(None, ast.name) is None):
                 # TODO: generate better error message in cli
                 raise ValueError("\"%s\" is not a selector name" % ast.name)
         return _SelectorName(ast.name)
@@ -220,19 +220,19 @@ class _AtomSpecSemantics:
         return m
 
     def model_hierarchy(self, ast):
-        if ast.hierarchy is None:
-            hierarchy = _ModelHierarchy(ast.range_list)
-        else:
-            hierarchy = ast.hierarchy
-            hierarchy.insert(0, ast.range_list)
+        hierarchy = _ModelHierarchy(ast.range_list)
+        if ast.hierarchy:
+            for rl in ast.hierarchy:
+                if rl:
+                    hierarchy.append(rl)
         return hierarchy
 
     def model_range_list(self, ast):
-        if ast.range_list is None:
-            range_list = _ModelRangeList(ast.range)
-        else:
-            range_list = ast.range_list
-            range_list.insert(0, ast.range)
+        range_list = _ModelRangeList(ast.range)
+        if ast.range_list:
+            for rl in ast.range_list:
+                if rl:
+                    range_list.append(rl)
         return range_list
 
     def model_range(self, ast):
@@ -247,44 +247,28 @@ class _AtomSpecSemantics:
             return None
 
     def model_parts(self, ast):
-        if ast.parts is None:
-            if ast.chain is None:
-                return None
-            else:
-                return [ ast.chain ]
-        else:
-            parts = ast.parts
-            if ast.chain is not None:
-                parts.append(ast.chain)
-            return parts
+        return ast.chain
 
     def chain(self, ast):
-        if ast.chain is None and ast.parts is None and ast.residue is None:
+        if ast.parts is None and not ast.residue:
             return None
-        if ast.chain is not None:
-            c = ast.chain
-        else:
-            c = _Chain(ast.parts)
-        if ast.residue is not None:
-            c.add(ast.residue)
+        c = _Chain(ast.parts)
+        if ast.residue:
+            for r in ast.residue:
+                c.add(r)
         return c
 
     def residue(self, ast):
-        if ast.residue is None and ast.parts is None and ast.atom is None:
+        if ast.parts is None and not ast.atom:
             return None
-        if ast.residue is not None:
-            r = ast.residue
-        else:
-            r = _Residue(ast.parts)
-        if ast.atom is not None:
-            r.add(ast.atom)
+        r = _Residue(ast.parts)
+        if ast.atom:
+            for a in ast.atom:
+                r.add(a)
         return r
 
     def atom(self, ast):
-        if ast.parts is None:
-            return None
-        else:
-            return _Atom(ast.parts)
+        return _Atom(ast.parts)
 
     def part_list(self, ast):
         if ast.part is None:
@@ -309,10 +293,9 @@ class _ModelList(list):
 
     def find_matches(self, session, model_list, results):
         for m in model_list:
-            for h in self:
-                if h.matches(session, m):
-                    results.add_model(m)
-                    break
+            for model_spec in self:
+                if model_spec.matches(session, m):
+                    model_spec.find_sub_parts(session, m, results)
 
 
 class _ModelHierarchy(list):
@@ -397,6 +380,8 @@ class _SubPart:
         return r
 
     def add(self, subpart):
+        if subpart is None:
+            return
         if self.sub_parts is None:
             self.sub_parts = [subpart]
         else:
@@ -408,7 +393,12 @@ class _Model(_SubPart):
     Symbol = '#'
 
     def matches(self, session, model):
+        if self.my_parts is None:
+            return True
         return self.my_parts.matches(session, model)
+
+    def find_sub_parts(self, session, model, results):
+        results.add_model(model)
 
 
 class _Chain(_SubPart):
@@ -497,7 +487,7 @@ class AtomSpec:
         if self._operator is None:
             return str(self._left_term)
         else:
-            return "%s %s %s" % (str(self._left_term), self_operator,
+            return "%s %s %s" % (str(self._left_term), self._operator,
                                  str(self._right_term))
 
     def evaluate(self, session, models=None, **kw):
@@ -527,11 +517,11 @@ class AtomSpec:
         elif self._operator == '|':
             left_results = self._left_term.evaluate(session, models)
             right_results = self._right_term.evaluate(session, models)
-            results = AtomSpecResults._Union(left_results, right_results)
+            results = AtomSpecResults._union(left_results, right_results)
         elif self._operator == '&':
             left_results = self._left_term.evaluate(session, models)
             right_results = self._right_term.evaluate(session, models)
-            results = AtomSpecResults._Intersect(left_results, right_results)
+            results = AtomSpecResults._intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         return results
@@ -568,8 +558,12 @@ class AtomSpecResults:
     def models(self):
         return self._models
 
+    @property
+    def atoms(self):
+        return self._atoms
+
     @staticmethod
-    def _Union(left, right):
+    def _union(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models | right._models
         if left._atoms is None:
@@ -577,20 +571,17 @@ class AtomSpecResults:
         elif right._atoms is None:
             atom_spec._atoms = left._atoms
         else:
-            atoms_spec._atoms = right._atoms.merge(left._atoms)
+            atom_spec._atoms = right._atoms.merge(left._atoms)
         return atom_spec
 
     @staticmethod
-    def _Intersect(left, right):
+    def _intersect(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models & right._models
-        if left._atoms is None:
-            atom_spec._atoms = right._atoms
-        elif right._atoms is None:
-            atom_spec._atoms = left._atoms
+        if left._atoms is None or right._atoms is None:
+            atom_spec._atoms = None
         else:
-            # TODO: implement
-            raise RuntimeError("Atom spec intersection not implemented yet")
+            atom_spec._atoms = right._atoms.intersect(left._atoms)
         return atom_spec
 
 #
@@ -600,7 +591,6 @@ class AtomSpecResults:
 # state manager class, but I have not figured out how to save
 # callable objects in states.
 #
-from .session import State
 _selectors = {}
 
 
