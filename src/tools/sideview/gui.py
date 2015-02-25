@@ -13,6 +13,18 @@
 import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
+from chimera.core.graphics.camera import CameraMode
+
+
+class SideViewCameraMode(CameraMode):
+
+    def __init__(self, main_view):
+        self.main_view = main_view
+
+    def combine_rendered_camera_views(self, render):
+        from OpenGL import GL
+        w, h = self.main_view.window_size
+        GL.glViewport(0, 0, w, h)
 
 
 class SideViewCanvas(glcanvas.GLCanvas):
@@ -35,6 +47,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
                     "Missing required OpenGL capabilities for Side View")
         self.view = view
         self.main_view = main_view
+        self.view.camera.mode = SideViewCameraMode(self.main_view)
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -43,16 +56,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
     def OnPaint(self, event):  # noqa
         # TODO: set flag to be drawn
         print('Sideview::OnPaint')
-        self.SetCurrent(self.view.opengl_context())
-        from OpenGL import GL
-        width, height = self.view.window_size
-        GL.glViewport(0, 0, width, height)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        # TODO: draw
-        self.SwapBuffers()
-        # reset viewport to main_view's
-        width, height = self.main_view.window_size
-        GL.glViewport(0, 0, width, height)
+        self.draw()
 
     def OnSize(self, event):  # noqa
         # poor man's collapsing of OnSize events
@@ -61,6 +65,56 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
     def set_viewport(self):
         self.view.resize(*self.GetClientSize())
+
+    def make_current(self):
+        self.SetCurrent(self.view.opengl_context())
+
+    def swap_buffers(self):
+        self.SwapBuffers()
+
+    def draw(self):
+        self.view._render.shader_programs = \
+            self.main_view._render.shader_programs
+        opengl_context = self.view.opengl_context()
+        save_make_current = opengl_context.make_current
+        save_swap_buffers = opengl_context.swap_buffers
+        opengl_context.make_current = self.make_current
+        opengl_context.swap_buffers = self.swap_buffers
+        try:
+            from OpenGL.GL.GREMEDY import string_marker
+            has_string_marker = string_marker.glInitStringMarkerGREMEDY()
+            if has_string_marker:
+                text = b"Start SideView"
+                string_marker. glStringMarkerGREMEDY(len(text), text)
+            main_view = self.main_view
+            main_camera = main_view.camera
+            view_num = None  # TODO: 0, 1 for stereo
+            # TODO: make _near_far_clip public?
+            near, far = main_view._near_far_clip(main_camera, view_num)
+            main_pos = main_camera.get_position(view_num)
+            main_axes = main_pos.axes()
+            print('main_axes', main_axes)
+            camera = self.view.camera
+            camera_pos = camera.get_position()
+            camera_axes = camera_pos.axes()
+            camera_axes[0] = -main_axes[2]
+            camera_axes[1] = -main_axes[0]
+            camera_axes[2] = main_axes[1]
+            center = main_pos.origin() + (far / 2) * main_camera.view_direction()
+            main_view_width = main_camera.view_width(center)
+            camera_pos.origin()[:] = center + camera_axes[2] * main_view_width * 5
+            print('new axes', camera.position.axes())
+            print('new origin', camera.position.origin())
+            view_width = 1.2 * far
+            camera.set_field_of_view_from_view_width(center, view_width)
+            camera.redraw_needed = True
+            self.view.draw(only_if_changed=False)
+            if has_string_marker:
+                text = b"End SideView"
+                string_marker. glStringMarkerGREMEDY(len(text), text)
+        finally:
+            opengl_context.make_current = save_make_current
+            opengl_context.swap_buffers = save_swap_buffers
 
 
 class ToolUI(ToolInstance):
@@ -80,7 +134,7 @@ class ToolUI(ToolInstance):
         from chimera.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
         self.view = View(session.models.drawing, wx.DefaultSize, oc,
-                         session.logger)
+                         session.logger, track=False)
         self.opengl_canvas = SideViewCanvas(parent, self.view,
                                             session.main_view)
 
@@ -96,12 +150,6 @@ class ToolUI(ToolInstance):
         # session = self._session()  # resolve back reference
         # Handle event
         pass
-
-    def make_context_current(self):
-        self.opengl_canvas.SetCurrent(self.opengl_context)
-
-    def swap_buffers(self):
-        self.opengl_canvas.SwapBuffers()
 
     #
     # Implement session.State methods if deriving from ToolInstance
