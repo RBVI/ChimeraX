@@ -1,18 +1,21 @@
 atom_specifier   = left:atom_specifier operator:'&' right:as_term
                  | left:atom_specifier operator:'|' right:as_term
-		 | left:as_term
-		 ;
+                 | left:as_term
+                 ;
 
 as_term          = '(' term:as_term  ')'
                  | models:model_list
                  | selector:selector_name
-		 ;
+                 ;
 
-model_list       = model:model model_list:model_list
+selector_name    = name:/[a-zA-Z_][a-zA-Z0-9_]*/
+                 ;
+
+model_list       = model_list:model_list model:model
                  | model:model
                  ;
 
-model            = '#' hierarchy:model_hierarchy
+model            = '#' hierarchy:model_hierarchy [ parts:model_parts ]
                  ;
 
 model_hierarchy  = range_list:model_range_list '.' hierarchy:model_hierarchy
@@ -21,7 +24,7 @@ model_hierarchy  = range_list:model_range_list '.' hierarchy:model_hierarchy
 
 model_range_list = range:model_range ',' range_list:model_range_list
                  | range:model_range
-		 ;
+                 ;
 
 model_range      = start:model_spec '-' end:model_spec
                  | start:model_spec
@@ -31,5 +34,23 @@ model_spec       = number:/[0-9]+/
                  | star:'*'
                  ;
 
-selector_name    = name:/[a-zA-Z_][a-zA-Z0-9_]*/
+model_parts      = [ parts:model_parts ] chain:chain
+                 ;
+
+chain            = [ '/' parts:part_list ] residue:residue
+                 | chain:chain residue:residue
+                 ;
+
+residue          = [ ':' parts:part_list ] atom:atom
+                 | residue:residue atom:atom
+                 ;
+
+atom             = [ '@' parts:part_list ]
+                 ;
+
+part_list        = part:part_list ',' range:part_range_list
+                 | range:part_range_list 
+                 ;
+
+part_range_list  = start:/[a-zA-Z0-9]+/ [ '-' end:/[a-zA-Z0-9]+/ ]
                  ;

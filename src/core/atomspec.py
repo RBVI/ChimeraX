@@ -197,19 +197,27 @@ class _AtomSpecSemantics:
         else:
             return _Term(ast.selector)
 
+    def selector_name(self, ast):
+        if (get_selector(self._session, ast.name) is None
+            and get_selector(None, ast.name) is None):
+                # TODO: generate better error message in cli
+                raise ValueError("\"%s\" is not a selector name" % ast.name)
+        return _SelectorName(ast.name)
+
     def model_list(self, ast):
         if ast.model_list is None:
             model_list = _ModelList(ast.model)
         else:
             model_list = ast.model_list
-            model_list.insert(0, ast.model)
+            model_list.append(ast.model)
         return model_list
 
     def model(self, ast):
-        if ast.hierarchy is not None:
-            return ast.hierarchy
-        else:
-            return ast.name
+        m = _Model(ast.hierarchy)
+        if ast.parts is not None:
+            for p in ast.parts:
+                m.add(p)
+        return m
 
     def model_hierarchy(self, ast):
         if ast.hierarchy is None:
@@ -238,12 +246,54 @@ class _AtomSpecSemantics:
         else:
             return None
 
-    def selector_name(self, ast):
-        if (get_selector(self._session, ast.name) is None
-            and get_selector(None, ast.name) is None):
-                # TODO: generate better error message in cli
-                raise ValueError("\"%s\" is not a selector name" % ast.name)
-        return _SelectorName(ast.name)
+    def model_parts(self, ast):
+        if ast.parts is None:
+            if ast.chain is None:
+                return None
+            else:
+                return [ ast.chain ]
+        else:
+            parts = ast.parts
+            if ast.chain is not None:
+                parts.append(ast.chain)
+            return parts
+
+    def chain(self, ast):
+        if ast.chain is None and ast.parts is None and ast.residue is None:
+            return None
+        if ast.chain is not None:
+            c = ast.chain
+        else:
+            c = _Chain(ast.parts)
+        if ast.residue is not None:
+            c.add(ast.residue)
+        return c
+
+    def residue(self, ast):
+        if ast.residue is None and ast.parts is None and ast.atom is None:
+            return None
+        if ast.residue is not None:
+            r = ast.residue
+        else:
+            r = _Residue(ast.parts)
+        if ast.atom is not None:
+            r.add(ast.atom)
+        return r
+
+    def atom(self, ast):
+        if ast.parts is None:
+            return None
+        else:
+            return _Atom(ast.parts)
+
+    def part_list(self, ast):
+        if ast.part is None:
+            return _PartList(ast.range)
+        else:
+            return ast.part.add(ast.range)
+
+    def part_range_list(self, ast):
+        return _Part(ast.start, ast.end)
 
 
 class _ModelList(list):
@@ -252,10 +302,10 @@ class _ModelList(list):
         super().__init__()
         self.append(h)
 
-    def __repr__(self):
+    def __str__(self):
         if not self:
             return "[empty]"
-        return "#" + "".join(repr(mr) for mr in self)
+        return "".join(str(mr) for mr in self)
 
     def find_matches(self, session, model_list, results):
         for m in model_list:
@@ -271,10 +321,10 @@ class _ModelHierarchy(list):
         super().__init__()
         self.append(mrl)
 
-    def __repr__(self):
+    def __str__(self):
         if not self:
             return "[empty]"
-        return ".".join(repr(mr) for mr in self)
+        return ".".join(str(mr) for mr in self)
 
     def matches(self, session, model):
         for i, mrl in enumerate(self):
@@ -293,10 +343,10 @@ class _ModelRangeList(list):
         super().__init__()
         self.append(mr)
 
-    def __repr__(self):
+    def __str__(self):
         if not self:
             return "[empty]"
-        return ",".join(repr(mr) for mr in self)
+        return ",".join(str(mr) for mr in self)
 
     def matches(self, mid):
         for mr in self:
@@ -311,7 +361,7 @@ class _ModelRange:
         self.start = start
         self.end = end
 
-    def __repr__(self):
+    def __str__(self):
         if self.end:
             return "%s-%s" % (self.start, self.end)
         else:
@@ -328,10 +378,86 @@ class _ModelRange:
             return self.end == '*' or mid <= self.end
 
 
+class _SubPart:
+    """Stores part list for one item and subparts of the item."""
+    def __init__(self, my_parts):
+        self.my_parts = my_parts
+        self.sub_parts = None
+
+    def __str__(self):
+        if self.sub_parts:
+            sub_repr = "".join([str(r) for r in self.sub_parts])
+        else:
+            sub_repr = ""
+        if self.my_parts is None:
+            r = sub_repr
+        else:
+            r = "%s%s%s" % (self.Symbol, str(self.my_parts), sub_repr)
+        # print("_SubPart.__str__", self.__class__, r)
+        return r
+
+    def add(self, subpart):
+        if self.sub_parts is None:
+            self.sub_parts = [subpart]
+        else:
+            self.sub_parts.append(subpart)
+
+
+class _Model(_SubPart):
+    """Stores model part list and atom spec."""
+    Symbol = '#'
+
+    def matches(self, session, model):
+        return self.my_parts.matches(session, model)
+
+
+class _Chain(_SubPart):
+    """Stores residue part list and atom spec."""
+    Symbol = '/'
+
+
+class _Residue(_SubPart):
+    """Stores residue part list and atom spec."""
+    Symbol = ':'
+
+
+class _Atom(_SubPart):
+    """Stores residue part list and atom spec."""
+    Symbol = '@'
+
+
+class _PartList:
+    """Stores a part list (sub-parts of models)."""
+    def __init__(self, part_range):
+        self.parts = [part_range]
+
+    def __str__(self):
+        return ','.join([str(p) for p in self.parts])
+
+    def add(self, part_range):
+        self.parts.append(part_range)
+
+
+class _Part:
+    """Stores one part of a part range."""
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+    def __str__(self):
+        if self.end is None:
+            return self.start
+        else:
+            return "%s-%s" % (self.start, self.end)
+
+
 class _SelectorName:
     """Stores a single selector name."""
     def __init__(self, name):
         self.name = name
+
+    def __str__(self):
+        return self.name
 
     def find_matches(self, session, models, results):
         f = get_selector(session, self.name) or get_selector(None, self.name)
@@ -343,6 +469,9 @@ class _Term:
     """A term in an atom specifier."""
     def __init__(self, spec):
         self._specifier = spec
+
+    def __str__(self):
+        return str(self._specifier)
 
     def evaluate(self, session, models):
         """Return AtomSpecResults for model elements that match."""
@@ -364,6 +493,13 @@ class AtomSpec:
         self._left_term = left_term
         self._right_term = right_term
 
+    def __str__(self):
+        if self._operator is None:
+            return str(self._left_term)
+        else:
+            return "%s %s %s" % (str(self._left_term), self_operator,
+                                 str(self._right_term))
+
     def evaluate(self, session, models=None, **kw):
         """Return results of evaluating atom specifier for given models.
 
@@ -383,6 +519,7 @@ class AtomSpec:
             Instance containing data (atoms, bonds, etc) that match
             this atom specifier.
         """
+        print("evaluate:", str(self))
         if models is None:
             models = session.models.list(**kw)
         if self._operator is None:
@@ -414,9 +551,18 @@ class AtomSpecResults:
     """
     def __init__(self):
         self._models = set()
+        self._atoms = None
 
     def add_model(self, m):
+        """Add model to atom spec results."""
         self._models.add(m)
+
+    def add_atoms(self, atom_blob):
+        """Add atoms to atom spec results."""
+        if self._atoms is None:
+            self._atoms = atom_blob
+        else:
+            self._atoms.merge(atom_blob)
 
     @property
     def models(self):
@@ -426,12 +572,25 @@ class AtomSpecResults:
     def _Union(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models | right._models
+        if left._atoms is None:
+            atom_spec._atoms = right._atoms
+        elif right._atoms is None:
+            atom_spec._atoms = left._atoms
+        else:
+            atoms_spec._atoms = right._atoms.merge(left._atoms)
         return atom_spec
 
     @staticmethod
     def _Intersect(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models & right._models
+        if left._atoms is None:
+            atom_spec._atoms = right._atoms
+        elif right._atoms is None:
+            atom_spec._atoms = left._atoms
+        else:
+            # TODO: implement
+            raise RuntimeError("Atom spec intersection not implemented yet")
         return atom_spec
 
 #
