@@ -102,7 +102,7 @@ class Drawing:
 
         self.display_style = self.Solid
         '''
-        Display style can be Drawing.Solid, Drowing.Mesh or Drawing.Dot.
+        Display style can be Drawing.Solid, Drawing.Mesh or Drawing.Dot.
         Only one style can be used for a single Drawing instance.
         '''
 
