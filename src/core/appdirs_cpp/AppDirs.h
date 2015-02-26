@@ -16,10 +16,11 @@ private:
     AppDirs(std::string& path_sep, std::string& user_data_dir,
         std::string& user_config_dir, std::string& user_cache_dir,
         std::string& site_data_dir, std::string& site_config_dir,
-        std::string& user_log_dir): _path_sep(path_sep),
-        site_config_dir(site_config_dir), site_data_dir(site_data_dir),
-        user_cache_dir(user_cache_dir), user_config_dir(user_config_dir),
-        user_data_dir(user_data_dir), user_log_dir(user_log_dir) {}
+        std::string& user_log_dir, std::string& app_data_dir):
+        _path_sep(path_sep), site_config_dir(site_config_dir),
+        site_data_dir(site_data_dir), user_cache_dir(user_cache_dir),
+        user_config_dir(user_config_dir), user_data_dir(user_data_dir),
+        user_log_dir(user_log_dir), app_data_dir(app_data_dir) {}
     const std::string  _path_sep;
 
 public:
@@ -33,13 +34,15 @@ public:
     static void  init_app_dirs(std::string path_sep,
         std::string user_data_dir, std::string user_config_dir,
         std::string user_cache_dir, std::string site_data_dir,
-        std::string site_config_dir, std::string user_log_dir);
+        std::string site_config_dir, std::string user_log_dir,
+        std::string app_data_dir);
     const std::string  site_config_dir;
     const std::string  site_data_dir;
     const std::string  user_cache_dir;
     const std::string  user_config_dir;
     const std::string  user_data_dir;
     const std::string  user_log_dir;
+    const std::string  app_data_dir;
 };
 
 }  // namespace appdirs

@@ -38,6 +38,7 @@ wheel: setup.py timestamp always
 setup.py: setup.py.in
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
 		-e 's,CORE_VERSION,$(CORE_VERSION),' \

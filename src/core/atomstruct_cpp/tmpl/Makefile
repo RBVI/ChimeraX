@@ -1,6 +1,9 @@
 TOP= ../../../..
 include $(TOP)/mk/config.make
 
+SUBDIRS	= idatm
+include $(TOP)/mk/subdir.make
+
 LIBNAME = tmpl
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := atomstruct/$(DIRNAME:_cpp=)
