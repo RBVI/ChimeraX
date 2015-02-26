@@ -13,7 +13,8 @@ all:
 install:
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
-	$(MAKE) -C prereqs install-prebuilt app-install
+	$(MAKE) -C prereqs install-prebuilt
+	$(MAKE) -C prereqs app-install
 	$(MAKE) -C src install
 	$(MAKE) -C docs html
 	@echo 'Finished install at' `date`
