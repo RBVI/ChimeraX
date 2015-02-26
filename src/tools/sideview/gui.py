@@ -75,6 +75,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
     def OnPaint(self, event):  # noqa
         # TODO: set flag to be drawn
         # print('Sideview::OnPaint') # DEBUG
+        if self.view.window_size[0] == -1:
+            return
         self.draw()
 
     def OnSize(self, event):  # noqa
@@ -92,9 +94,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.SwapBuffers()
 
     def draw(self):
-        width, height = self.GetClientSize()
-        if width == -1 or height == -1:
-            return
         from math import pi, tan
         from numpy import array, float32, uint8, int32
         self.view._render.shader_programs = \
