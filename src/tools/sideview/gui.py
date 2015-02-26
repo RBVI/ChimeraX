@@ -82,7 +82,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.SwapBuffers()
 
     def draw(self):
-        # from math import pi, tan
+        from math import pi, tan
         from numpy import array, float32, uint8, int32
         self.view._render.shader_programs = \
             self.main_view._render.shader_programs
@@ -104,11 +104,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
             view_num = None  # TODO: 0, 1 for stereo
             # TODO: make _near_far_clip public?
             near, far = main_view._near_far_clip(main_camera, view_num)
-            width, height = self.view.window_size
-            # figure out how big to make applique
-            # eye and lines to far plane must be on screen
-            # half_height = width / 1.2 * tan(0.5
-            #    * main_camera.field_of_view * pi / 180)
 
             main_pos = main_camera.get_position(view_num)
             main_axes = main_pos.axes()
@@ -123,15 +118,37 @@ class SideViewCanvas(glcanvas.GLCanvas):
             main_view_width = main_camera.view_width(center)
             camera_pos.origin()[:] = center + camera_axes[2] * \
                 main_view_width * 5
-            view_width = 1.2 * far
-            camera.set_field_of_view_from_view_width(center, view_width)
             camera.position = camera_pos
+
+            # figure out how big to make applique
+            # eye and lines to far plane must be on screen
+            # half_height = width / 1.2 * tan(0.5
+            #    * main_camera.field_of_view * pi / 180)
+            width, height = self.view.window_size
             loc = self.locations
-            loc.eye = array([.1 / 1.2 * width, height / 2, 0], dtype=float32)
-            loc.far = 1.1 / 1.2 * width
-            loc.near = (.1 + near / far) / 1.2 * width
-            loc.bottom = .1 * height
-            loc.top = .9 * height
+            loc.bottom = .05 * height
+            loc.top = .95 * height
+            aspect = tan(0.5 * main_camera.field_of_view * pi / 180)
+            if height / width >= (1 - (8 * self.EyeSize) / height):
+                view_width = 1.1 * far
+                loc.eye = array([.05 / 1.1 * width, height / 2, 0],
+                                dtype=float32)
+                loc.near = (.05 + near / far) / 1.1 * width
+                loc.far = 1.05 / 1.1 * width
+                loc.far_top = .5 * height + aspect * width / 1.1
+                loc.far_bottom = .5 * height - aspect * width / 1.1
+            else:
+                loc.far_bottom = loc.bottom
+                loc.far_top = loc.top
+                f = .45 * height / aspect
+                n = f * aspect
+                loc.eye = array([.5 * width - f / 2, height / 2, 0],
+                                dtype=float32)
+                loc.near = loc.eye[0] + n
+                loc.far = .5 * width + f / 2
+                view_width = far * 1.1 * width / height
+
+            camera.set_field_of_view_from_view_width(center, view_width)
             self.applique.color = array([255, 0, 0, 255], dtype=uint8)
             es = self.EyeSize
             self.applique.vertices = array([
@@ -143,15 +160,15 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 (0, 0, 0), (0, 0, 0),
             ], dtype=float32)
             if main_camera.ortho:
-                self.applique.vertices[8] = (loc.near, loc.top, 0)
-                self.applique.vertices[9] = (loc.far, loc.top, 0)
-                self.applique.vertices[10] = (loc.near, loc.bottom, 0)
-                self.applique.vertices[11] = (loc.far, loc.bottom, 0)
+                self.applique.vertices[8] = (loc.near, loc.far_top, 0)
+                self.applique.vertices[9] = (loc.far, loc.far_top, 0)
+                self.applique.vertices[10] = (loc.near, loc.far_bottom, 0)
+                self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
             else:
                 self.applique.vertices[8] = loc.eye
-                self.applique.vertices[9] = (loc.far, loc.top, 0)
+                self.applique.vertices[9] = (loc.far, loc.far_top, 0)
                 self.applique.vertices[10] = loc.eye
-                self.applique.vertices[11] = (loc.far, loc.bottom, 0)
+                self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
             self.applique.triangles = array([
                 [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
                 [4, 5],    # near plane
