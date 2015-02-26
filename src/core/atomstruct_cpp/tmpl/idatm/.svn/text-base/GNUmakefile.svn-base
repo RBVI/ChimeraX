@@ -1,0 +1,9 @@
+TOP	= ../../../..
+include $(TOP)/mk/common.make
+
+RESDIR	= $(datadir)/idatm
+
+install:
+	-mkdir $(RESDIR)
+	-mkdir $(RESDIR)/templates
+	cp templates/FORMAT templates/*.idatmres $(RESDIR)/templates

@@ -163,9 +163,9 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # etc.
 
     # figure out the user/system directories for application
+    executable = os.path.abspath(sys.argv[0])
+    bindir = os.path.dirname(executable)
     if sys.platform.startswith('linux'):
-        executable = os.path.abspath(sys.argv[0])
-        bindir = os.path.dirname(executable)
         if os.path.basename(bindir) == "bin":
             configdir = os.path.dirname(bindir)
         else:
@@ -175,11 +175,16 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     partial_version = '%s.%s' % tuple(version.split('.')[0:2])
     ad = sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
                                          version=partial_version)
+    # Find the location of "share" directory so that we can inform
+    # the C++ layer.  Assume it's a sibling of the directory that
+    # the executable is in.
+    share_dir = os.path.join(os.path.dirname(bindir), "share")
+
     # inform the C++ layer of the appdirs paths
     from chimera.core import _appdirs
     _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
                         ad.user_cache_dir, ad.site_data_dir,
-                        ad.site_config_dir, ad.user_log_dir)
+                        ad.site_config_dir, ad.user_log_dir, share_dir)
 
     # initialize the user interface
     if opts.gui:

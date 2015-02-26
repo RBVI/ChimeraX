@@ -26,12 +26,14 @@ void
 AppDirs::init_app_dirs(std::string path_sep,
     std::string user_data_dir, std::string user_config_dir,
     std::string user_cache_dir, std::string site_data_dir,
-    std::string site_config_dir, std::string user_log_dir)
+    std::string site_config_dir, std::string user_log_dir,
+    std::string app_data_dir)
 {
     if (_app_dirs != nullptr)
         throw std::logic_error("C++ appdirs already initialized!");
     _app_dirs = new AppDirs(path_sep, user_data_dir, user_config_dir,
-        user_cache_dir, site_data_dir, site_config_dir, user_log_dir);
+        user_cache_dir, site_data_dir, site_config_dir, user_log_dir,
+        app_data_dir);
 }
 
 }; // namespace appdirs

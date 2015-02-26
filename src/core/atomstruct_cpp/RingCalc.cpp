@@ -381,6 +381,13 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         // to optimize the cross_residue==false case, sort
         // rings by residue...
 
+        Rings meets_size_criteria;
+        for (auto& r: _rings) {
+            if (r.bonds().size() <= all_size_threshold)
+                meets_size_criteria.insert(r);
+        }
+        meets_size_criteria.swap(_rings);
+
         std::unordered_map<Residue *, Rings> ring_lists;
         if (cross_residue) {
             ring_lists[residues()[0].get()] = _rings;

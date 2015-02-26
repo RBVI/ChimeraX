@@ -2,9 +2,11 @@
 # import distutils.core
 # distutils.core.DEBUG = True
 from setuptools import setup
+from glob import glob
 
 lib_dir = "LIB_DIR"
 pkg_dir = "PKG_DIR"
+data_dir = "DATA_DIR"
 import os.path
 
 setup(
@@ -52,6 +54,8 @@ setup(
             os.path.join(lib_dir, "libatomstruct.SHLIB_EXT"),
             os.path.join(lib_dir, "libblob.SHLIB_EXT"),
         ]),
+        (os.path.join("share", "idatm", "templates"),
+			glob(os.path.join(data_dir, "idatm", "templates", "*"))),
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
