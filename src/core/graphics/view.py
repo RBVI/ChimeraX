@@ -54,12 +54,13 @@ class View:
         self._shape_changed_callbacks = []
 
         self._overlays = []
+        self._2d_overlays = []
 
         from numpy import array, float32
         self.center_of_rotation = array((0, 0, 0), float32)
         self._update_center = True
 
-        self._drawing_manager = dm = _Redraw_Needed()
+        self._drawing_manager = dm = _RedrawNeeded()
         if track:
             drawing.set_redraw_callback(dm)
 
@@ -233,6 +234,30 @@ class View:
         self._overlays = [o for o in self._overlays if o not in oset]
         self.redraw_needed = True
 
+    def add_2d_overlay(self, overlay):
+        '''
+        Overlays are Drawings rendered after the normal scene is shown.
+        They are used for effects such as motion blur or cross fade that
+        blend the current rendered scene with a previous rendered scene.
+        '''
+        overlay.set_redraw_callback(self._drawing_manager)
+        self._2d_overlays.append(overlay)
+        self.redraw_needed = True
+
+    def twod_overlays(self):
+        '''The current list of overlay Drawings.'''
+        return self._2d_overlays
+
+    def remove_2d_overlays(self, overlays=None):
+        '''Remove the specified overlay Drawings.'''
+        if overlays is None:
+            overlays = self._2d_overlays
+        for o in overlays:
+            o.delete()
+        oset = set(overlays)
+        self._2d_overlays = [o for o in self._overlays if o not in oset]
+        self.redraw_needed = True
+
     def image(self, width=None, height=None, supersample=None, camera=None,
               drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
@@ -330,8 +355,8 @@ class View:
                 cb()
             except:
                 import traceback
-                self.log.show_warning('new frame callback raised error\n'
-                                      + traceback.format_exc())
+                self.log.show_warning('new frame callback raised error\n' +
+                                      traceback.format_exc())
                 self.remove_new_frame_callback(cb)
 
         c = self.camera
@@ -347,8 +372,8 @@ class View:
                 except:
                     import traceback
                     self.log.show_warning(
-                        'shape changed callback raised error\n'
-                        + traceback.format_exc())
+                        'shape changed callback raised error\n' +
+                        traceback.format_exc())
                     self.remove_shape_changed_callback(cb)
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
@@ -365,8 +390,8 @@ class View:
                 cb()
             except:
                 import traceback
-                self.log.show_warning('rendered callback raised error\n'
-                                      + traceback.format_exc())
+                self.log.show_warning('rendered callback raised error\n' +
+                                      traceback.format_exc())
                 self.remove_new_frame_callback(cb)
 
         return True
@@ -502,7 +527,7 @@ class View:
         r.set_frame_number(self.frame_number)
         perspective_near_far_ratio = 2
         from .drawing import (draw_depth, draw_drawings, draw_outline,
-                              draw_overlays)
+                              draw_overlays, draw_2d_overlays)
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if self.silhouettes:
@@ -513,9 +538,9 @@ class View:
                     = self._update_projection(vnum, camera=camera)
                 cp = camera.get_position(vnum)
                 cpinv = cp.inverse()
-                if self.shadows and not stf is None:
+                if self.shadows and stf is not None:
                     r.set_shadow_transform(stf * cp)
-                if self.multishadow > 0 and not mstf is None:
+                if self.multishadow > 0 and mstf is not None:
                     r.set_multishadow_transforms(mstf, cp, msdepth)
                     # Initial depth pass optimization to avoid lighting
                     # calculation on hidden geometry
@@ -538,6 +563,9 @@ class View:
 
         if self._overlays:
             draw_overlays(self._overlays, r)
+
+        if self._2d_overlays:
+            draw_2d_overlays(self._2d_overlays, r)
 
     def _use_shadow_map(self, light_direction, drawings):
 
@@ -807,7 +835,7 @@ class OpenGLContext:
         pass
 
 
-class _Redraw_Needed:
+class _RedrawNeeded:
 
     def __init__(self):
         self.redraw_needed = False
