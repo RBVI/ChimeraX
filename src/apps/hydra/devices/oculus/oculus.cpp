@@ -27,13 +27,16 @@ public:
 
     this->error = NULL;
     this->hmd = ovrHmd_Create(0);	// First available head mounted device.
+    this->frame_index = 1;
 
     if (hmd)
       {
 	// Output oculus details.
 	std::cerr << "Oculus product name: " << hmd->ProductName
 		  << ", firmware version " << hmd->FirmwareMajor << "." << hmd->FirmwareMinor
-		  << ", resolution " << hmd->Resolution.w << " " << hmd->Resolution.h;
+		  << ", resolution " << hmd->Resolution.w << " " << hmd->Resolution.h
+		  << ", capabilities 0x" << std::hex << hmd->HmdCaps
+		  << ", distortion capabilities 0x" << std::hex << hmd->DistortionCaps;
 	const ovrFovPort *fov = hmd->DefaultEyeFov;
 	std::cerr << ", field of view, up " << fov[0].UpTan << " down " << fov[0].DownTan
 		  << " left " << fov[0].LeftTan << " right " << fov[0].RightTan
@@ -58,14 +61,16 @@ public:
     if (!initialize_distortion_rendering(eyeRenderDesc))
       this->error = "Initializing distortion rendering failed.";
 
-    interpupillary_distance = eyeRenderDesc[0].ViewAdjust.x - eyeRenderDesc[1].ViewAdjust.x;
+    this->eye_offsets[ovrEye_Left] = eyeRenderDesc[ovrEye_Left].HmdToEyeViewOffset;
+    this->eye_offsets[ovrEye_Right] = eyeRenderDesc[ovrEye_Right].HmdToEyeViewOffset;
+    this->interpupillary_distance = eye_offsets[ovrEye_Left].x - eye_offsets[ovrEye_Right].x;
 
     std::cerr << "Eye render info" << std::endl;
     for (int e = 0 ; e < 2 ; ++e)
       {
 	ovrEyeRenderDesc *ed = &eyeRenderDesc[e];
 	ovrRecti *er = &ed->DistortedViewport;
-	ovrVector3f *va = &ed->ViewAdjust;
+	ovrVector3f *va = &ed->HmdToEyeViewOffset;
 	std::cerr << "eye " << e
 		  << " tangent half field of view up " << ed->Fov.UpTan
 		  << " down " << ed->Fov.DownTan << " left " << ed->Fov.LeftTan << " right " << ed->Fov.RightTan
@@ -84,38 +89,27 @@ public:
   bool pose(float xyz[3], int *xyz_valid, float quat[4], int *quat_valid)
   {
     // Query the HMD for the current tracking state.
-    // TODO: use ovrHmd_BeginFrame() or ovrHmd_BeginFrameTiming() for second arg to predict frame display time.
-    double t;
-    if (in_frame)
-      t = ovr_GetTimeInSeconds();
-    else
-      {
-	in_frame = true;
-	ovrFrameTiming ft = ovrHmd_BeginFrame(hmd, 0);
-	t = ft.ScanoutMidpointSeconds;
-	// TODO: must call ovrHmd_EndFrame() after rendering is done to accumulate render times.
-      }
-    ovrTrackingState ts  = ovrHmd_GetTrackingState(hmd, t);
+    if (!in_frame)
+      ovrHmd_BeginFrame(hmd, frame_index);
+    this->in_frame = true;
+
+    ovrTrackingState ts;
+    ovrHmd_GetEyePoses(hmd, frame_index, eye_offsets, render_pose, &ts);
+
     *xyz_valid = (ts.StatusFlags & ovrStatus_PositionTracked);
     *quat_valid = (ts.StatusFlags & ovrStatus_OrientationTracked);
     if (!*xyz_valid && !*quat_valid)
       return false;
 
-    ovrPoseStatef pose = ts.HeadPose;
-    ovrPosef p = pose.ThePose;
+    ovrPosef p = ts.HeadPose.ThePose;
 
-    // TODO: ovrHmd_GetEyePose() must be called between ovrHmd_BeginFrameTiming and ovrHmd_EndFrameTiming.
-    render_pose[0] = ovrHmd_GetEyePose(hmd, ovrEye_Left);
-    render_pose[1] = ovrHmd_GetEyePose(hmd, ovrEye_Right);
-    // TODO: report positions for both eyes.
-
-    ovrQuatf q = p.Orientation;	// struct with float x,y,z,w members.
+    ovrQuatf &q = p.Orientation;	// struct with float x,y,z,w members.
     quat[0] = q.x;
     quat[1] = q.y;
     quat[2] = q.z;
     quat[3] = q.w;
 
-    ovrVector3f pos = p.Position;	// struct with float x,y,z members.
+    ovrVector3f &pos = p.Position;	// struct with float x,y,z members.
     xyz[0] = pos.x;
     xyz[1] = pos.y;
     xyz[2] = pos.z;
@@ -131,7 +125,7 @@ public:
   {
     float pixelsPerDisplayPixel = 1.0;	// Quality scaling.
     ovrSizei size_left = ovrHmd_GetFovTextureSize(hmd, ovrEye_Left, hmd->DefaultEyeFov[0], pixelsPerDisplayPixel);
-    ovrSizei size_right = ovrHmd_GetFovTextureSize(hmd, ovrEye_Right, hmd->DefaultEyeFov[1], pixelsPerDisplayPixel);
+    // ovrSizei size_right = ovrHmd_GetFovTextureSize(hmd, ovrEye_Right, hmd->DefaultEyeFov[1], pixelsPerDisplayPixel);
     *w = size_left.w;
     *h = size_left.h;
   }
@@ -152,7 +146,7 @@ public:
     screen_size.h = hmd->Resolution.h;
     std::cerr << "idr " << hmd->Resolution.w << " " << hmd->Resolution.h << std::endl;
     cfg.OGL.Header.API         = ovrRenderAPI_OpenGL;
-    cfg.OGL.Header.RTSize      = screen_size;
+    cfg.OGL.Header.BackBufferSize      = screen_size;
     cfg.OGL.Header.Multisample = 0;
     unsigned int distortionCaps = ovrDistortionCap_Chromatic;
     ovrBool result = ovrHmd_ConfigureRendering(hmd, &cfg.Config, distortionCaps,
@@ -197,6 +191,7 @@ public:
 	      << std::endl;
     */
     ovrHmd_EndFrame(hmd, render_pose, &eyeTextures[0].Texture);
+    this->frame_index += 1;
     this->in_frame = false;
 
     // Dismiss health warning.
@@ -209,6 +204,8 @@ public:
   const char *error;
 private:
   ovrHmd hmd;	// Head mounted device pointer.
+  unsigned int frame_index;
+  ovrVector3f eye_offsets[2];
   ovrPosef render_pose[2];	// Position and orientation for left and right eyes.
   bool in_frame;
 };

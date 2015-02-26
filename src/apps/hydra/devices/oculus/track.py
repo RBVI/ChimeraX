@@ -15,8 +15,9 @@ class Oculus_Rift:
         self.frame_cb = None
 
         # Create separate graphics window for rendering to Oculus Rift.
+        # Don't show window until after oculus started, otherwise rendering uses wrong viewport.
         from ...ui.qt import graphicswindow as gw
-        self.window = gw.Secondary_Graphics_Window('Oculus Rift View', session)
+        self.window = gw.Secondary_Graphics_Window('Oculus Rift View', session, show = False)
 
         success = self.start_event_processing(session.view)
         msg = 'started oculus head tracking ' if success else 'failed to start oculus head tracking'
@@ -228,6 +229,7 @@ class OculusRiftCameraMode(CameraMode):
         Texture render size for each eye when using Oculus Rift.
         This should be removed from Camera and handled by a generic method the sets the render target.
         '''
+        self.warped = True      # Use warped rendering done by Oculus SDK
 
     def name(self):
         '''Name of camera mode.'''
@@ -271,15 +273,14 @@ class OculusRiftCameraMode(CameraMode):
         '''Combine left and right eye images from separate textures with warping for Oculus Rift.'''
 
         render.pop_framebuffer()
-        fb = render.current_framebuffer()
-        render.draw_background()
 
         o = self.oculus_rift
-        if o is None:
+        if not self.warped:
             self._draw_unwarped(render)
         else:
             t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
             o.render(t0.size[0], t0.size[1], t0.id, t1.id)
+            render.opengl_context_changed()
 
     def do_swap_buffers(self):
         return self.oculus_rift is None
@@ -303,10 +304,7 @@ class OculusRiftCameraMode(CameraMode):
         ocr.window.opengl_context.make_current()
         render.opengl_context_changed()
 
-        render.draw_background()
-
         # Draw left eye
-        fb = render.current_framebuffer()
         w,h = ocr.display_size()
         render.set_viewport(0,0,w//2,h)
 
