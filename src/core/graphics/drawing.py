@@ -197,21 +197,21 @@ class Drawing:
         d.set_redraw_callback(self._redraw_needed)
         cd = self._child_drawings
         cd.append(d)
-        if hasattr(d, 'parent') and not d.parent is None:
+        if hasattr(d, 'parent') and d.parent is not None:
             # Reparent drawing.
-            d.parent.remove_drawing(d, delete = False)
+            d.parent.remove_drawing(d, delete=False)
         d.parent = self
         if self.display:
             self.redraw_needed(shape_changed=True)
 
-    def remove_drawing(self, d, delete = True):
+    def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
         if delete:
             d.delete()
         self.redraw_needed(shape_changed=True, selection_changed=True)
 
-    def remove_drawings(self, drawings, delete = True):
+    def remove_drawings(self, drawings, delete=True):
         '''Remove specified child drawings.'''
         dset = set(drawings)
         self._child_drawings = [d for d in self._child_drawings
@@ -221,7 +221,7 @@ class Drawing:
                 d.delete()
         self.redraw_needed(shape_changed=True, selection_changed=True)
 
-    def remove_all_drawings(self, delete = True):
+    def remove_all_drawings(self, delete=True):
         '''Remove all child drawings.'''
         self.remove_drawings(self.child_drawings(), delete)
 
@@ -253,7 +253,8 @@ class Drawing:
         from numpy import array_equal
         dp = self._displayed_positions
         if ((position_mask is None and dp is None) or
-            (not position_mask is None and not dp is None and array_equal(position_mask, dp))):
+            (position_mask is not None and dp is not None and
+             array_equal(position_mask, dp))):
             return
         self._displayed_positions = position_mask
         self._any_displayed_positions = (position_mask.sum() > 0)
@@ -265,8 +266,8 @@ class Drawing:
     def get_selected(self):
         sp = self._selected_positions
         tmask = self._selected_triangles_mask
-        return (((sp is not None) and sp.sum() > 0)
-                or ((tmask is not None) and tmask.sum() > 0))
+        return (((sp is not None) and sp.sum() > 0) or
+                ((tmask is not None) and tmask.sum() > 0))
 
     def set_selected(self, sel):
         if sel:
@@ -453,8 +454,8 @@ class Drawing:
 
     def _opaque(self):
         # TODO: Should render transparency for each copy separately
-        return self._colors[0][3] == 255 and (self.texture is None
-                                              or self.opaque_texture)
+        return self._colors[0][3] == 255 and (self.texture is None or
+                                              self.opaque_texture)
 
     def showing_transparent(self):
         '''Are any transparent objects being displayed. Includes all
@@ -540,8 +541,8 @@ class Drawing:
         if selected_only and not self.selected:
             return
 
-        if (len(self.positions) == 1
-                and self.positions.shift_and_scale_array() is None):
+        if (len(self.positions) == 1 and
+                self.positions.shift_and_scale_array() is None):
             p = self.position
             pp = place if p.is_identity() else place * p
         else:
@@ -609,19 +610,19 @@ class Drawing:
         sopt = self._shader_opt
         if sopt is None:
             sopt = 0
-            from .opengl import Render as r
+            from .opengl import Render
             if self.use_lighting:
-                sopt |= r.SHADER_LIGHTING
+                sopt |= Render.SHADER_LIGHTING
             if (self.vertex_colors is not None) or len(self._colors) > 1:
-                sopt |= r.SHADER_VERTEX_COLORS
+                sopt |= Render.SHADER_VERTEX_COLORS
             if self.texture is not None:
-                sopt |= r.SHADER_TEXTURE_2D
+                sopt |= Render.SHADER_TEXTURE_2D
             if self.ambient_texture is not None:
-                sopt |= r.SHADER_TEXTURE_3D_AMBIENT
+                sopt |= Render.SHADER_TEXTURE_3D_AMBIENT
             if self.positions.shift_and_scale_array() is not None:
-                sopt |= r.SHADER_SHIFT_AND_SCALE
+                sopt |= Render.SHADER_SHIFT_AND_SCALE
             elif len(self.positions) > 1:
-                sopt |= r.SHADER_INSTANCING
+                sopt |= Render.SHADER_INSTANCING
             self._shader_opt = sopt
         return sopt
 
@@ -705,7 +706,7 @@ class Drawing:
         center of view to be used as the interactive center of rotation.
         '''
         f, dpchain = self._first_drawing_intercept(mxyz1, mxyz2, exclude)
-        s = _Picked_Drawing(dpchain) if dpchain else None
+        s = _PickedDrawing(dpchain) if dpchain else None
         return f, s
 
     def _first_drawing_intercept(self, mxyz1, mxyz2, exclude=None):
@@ -728,8 +729,8 @@ class Drawing:
             if cd:
                 pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
                 for d in cd:
-                    if d.display and (exclude is None
-                                      or not hasattr(d, exclude)):
+                    if d.display and (exclude is None or
+                                      not hasattr(d, exclude)):
                         for cp, (cxyz1, cxyz2) in enumerate(pos):
                             fmin, dc = d._first_drawing_intercept(cxyz1, cxyz2,
                                                                   exclude)
@@ -814,8 +815,8 @@ class Drawing:
             b.buffer_attribute_name = a
             vb.append(b)
 
-        self._draw_shape = _Draw_Shape(vb)
-        self._draw_selection = _Draw_Shape(vb)
+        self._draw_shape = _DrawShape(vb)
+        self._draw_selection = _DrawShape(vb)
 
     _effects_buffers = set(
         ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
@@ -876,7 +877,7 @@ class Drawing:
             'edge_mask': self.edge_mask,
             'display_style': self.display_style,
             'texture': self.texture,
-            'ambient_texture ': self.ambient_texture ,
+            'ambient_texture ': self.ambient_texture,
             'ambient_texture_transform': self.ambient_texture_transform,
             'use_lighting': self.use_lighting,
 
@@ -911,7 +912,7 @@ class Drawing:
         self.edge_mask = data['edge_mask']
         self.display_style = data['display_style']
         self.texture = data['texture']
-        self.ambient_texture  = data['ambient_texture ']
+        self.ambient_texture = data['ambient_texture ']
         self.ambient_texture_transform = data['ambient_texture_transform']
         self.use_lighting = data['use_lighting']
 
@@ -966,8 +967,8 @@ def _any_transparent_drawings(drawings):
 def draw_depth(renderer, cvinv, drawings):
     '''Render only the depth buffer (not colors).'''
     r = renderer
-    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_VERTEX_COLORS
-                                  | r.SHADER_TEXTURE_2D)
+    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_VERTEX_COLORS |
+                                  r.SHADER_TEXTURE_2D)
     draw_drawings(r, cvinv, drawings)
     r.disable_shader_capabilities(0)
 
@@ -978,6 +979,26 @@ def draw_overlays(drawings, renderer):
     r = renderer
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                              (0, 0, 0, 1)))
+    from ..geometry import place
+    p0 = place.identity()
+    r.set_view_matrix(p0)
+    r.set_model_matrix(p0)
+    r.enable_depth_test(False)
+    _draw_multiple(drawings, r, p0, Drawing.OPAQUE_DRAW_PASS)
+    r.enable_blending(True)
+    _draw_multiple(drawings, r, p0, Drawing.TRANSPARENT_DRAW_PASS)
+    r.enable_blending(False)
+    r.enable_depth_test(True)
+
+
+def draw_2d_overlays(drawings, renderer):
+    '''Render drawings using an identity projection matrix with no
+    depth test.'''
+    r = renderer
+    ww, wh = r.render_size()
+    from .camera import ortho
+    projection = ortho(0, ww, 0, wh, -1, 1)
+    r.set_projection_matrix(projection)
     from ..geometry import place
     p0 = place.identity()
     r.set_view_matrix(p0)
@@ -1012,7 +1033,7 @@ def _element_type(display_style):
     return t
 
 
-class _Draw_Shape:
+class _DrawShape:
 
     def __init__(self, vertex_buffers):
 
@@ -1127,8 +1148,8 @@ class _Draw_Shape:
         if edge_mask is not None:
             # TODO: Need to reset masked_edges if edge_mask changed.
             me = self.masked_edges
-            if (me is None or edge_mask is not self._edge_mask
-                    or tmask is not self._tri_mask):
+            if (me is None or edge_mask is not self._edge_mask or
+                    tmask is not self._tri_mask):
                 em = edge_mask if tmask is None else edge_mask[tmask]
                 from ._graphics import masked_edges
                 if em is None:
@@ -1148,8 +1169,8 @@ class _Draw_Shape:
 
     def update_bindings(self):
         if self.reset_bindings and self.element_buffer:
-            self.bind_buffers(self.vertex_buffers + [self.element_buffer]
-                              + self.instance_buffers)
+            self.bind_buffers(self.vertex_buffers + [self.element_buffer] +
+                              self.instance_buffers)
             self.reset_bindings = False
 
     def activate_bindings(self):
@@ -1183,7 +1204,7 @@ class Pick:
 
     def id_string(self):
         '''
-        A text identifer that can be used in commands to specified the
+        A text identifier that can be used in commands to specified the
         picked Model.  This is a concatenation of integer id numbers for
         the chain of drawings.  The id number is not a standard attribute
         of Drawing, only of Model which is a subclass of Drawing.
@@ -1198,7 +1219,7 @@ class Pick:
         return s
 
 
-class _Picked_Drawing(Pick):
+class _PickedDrawing(Pick):
     '''
     Represent a drawing chosen with the mouse as a generic selection object.
     '''
@@ -1233,7 +1254,7 @@ class _Picked_Drawing(Pick):
 def rgba_drawing(rgba, pos=(-1, -1), size=(2, 2), drawing=None):
     '''
     Make a drawing that is a single rectangle with a texture to show an
-    rgba image on it.
+    RGBA image on it.
     '''
     from . import opengl
     t = opengl.Texture(rgba)
