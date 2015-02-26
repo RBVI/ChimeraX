@@ -195,6 +195,8 @@ ab_residues(PyObject* self, void*)
 static PyMethodDef AtomBlob_methods[] = {
     { (char*)"filter", blob_filter<AtomBlob>, METH_O,
         (char*)"filter atom blob based on array/list of booleans" },
+    { (char*)"intersect", blob_intersect<AtomBlob>, METH_O,
+        (char*)"intersect atom blobs" },
     { (char*)"merge", blob_merge<AtomBlob>, METH_O,
         (char*)"merge atom blobs" },
     { NULL, NULL, 0, NULL }

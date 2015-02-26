@@ -13,7 +13,8 @@ all:
 install:
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
-	$(MAKE) -C prereqs install-prebuilt app-install
+	$(MAKE) -C prereqs install-prebuilt
+	$(MAKE) -C prereqs app-install
 	$(MAKE) -C src install
 	$(MAKE) -C docs html
 	@echo 'Finished install at' `date`
@@ -47,3 +48,12 @@ distclean: clean
 build-from-scratch:
 	$(MAKE) distclean
 	$(MAKE) install
+
+# Linux debugging:
+
+gltrace:
+	rm -f $(APP_NAME).trace
+	apitrace trace $(app_bindir)/$(APP_NAME) $(DATA_FILE)
+
+dumptrace:
+	@apitrace dump $(APP_NAME).trace
