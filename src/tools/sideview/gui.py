@@ -13,22 +13,16 @@
 import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
-from chimera.core.graphics.camera import CameraMode
 from chimera.core.geometry.place import Place
 
 
-class SideViewCameraMode(CameraMode):
-
-    def __init__(self, main_view):
-        self.main_view = main_view
-
-    def combine_rendered_camera_views(self, render):
-        from OpenGL import GL
-        w, h = self.main_view.window_size
-        GL.glViewport(0, 0, w, h)
+class _PixelLocations:
+    pass
 
 
 class SideViewCanvas(glcanvas.GLCanvas):
+
+    EyeSize = 4     # half size really
 
     def __init__(self, parent, view, main_view):
         import sys
@@ -48,13 +42,25 @@ class SideViewCanvas(glcanvas.GLCanvas):
                     "Missing required OpenGL capabilities for Side View")
         self.view = view
         self.main_view = main_view
-        self.view.camera.mode = SideViewCameraMode(self.main_view)
         self.view.camera.ortho = True
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
+
+        self.locations = loc = _PixelLocations()
+        loc.eye = 0, 0, 0   # x, y coords of eye
+        loc.near = 0     # X coord of near plane
+        loc.far = 0      # Y coord of near plane
+        loc.botton = 0   # bottom of clipping planes
+        loc.top = 0      # top of clipping planes
+
+        from chimera.core.graphics import Drawing
+        self.applique = Drawing('sideview')
+        self.applique.display_style = Drawing.Mesh
+        self.applique.use_lighting = False
+        self.view.add_2d_overlay(self.applique)
 
     def OnPaint(self, event):  # noqa
         # TODO: set flag to be drawn
@@ -76,9 +82,12 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.SwapBuffers()
 
     def draw(self):
+        # from math import pi, tan
+        from numpy import array, float32, uint8, int32
         self.view._render.shader_programs = \
             self.main_view._render.shader_programs
         self.view._render.current_shader_program = None
+        self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
         opengl_context = self.view.opengl_context()
         save_make_current = opengl_context.make_current
         save_swap_buffers = opengl_context.swap_buffers
@@ -95,6 +104,12 @@ class SideViewCanvas(glcanvas.GLCanvas):
             view_num = None  # TODO: 0, 1 for stereo
             # TODO: make _near_far_clip public?
             near, far = main_view._near_far_clip(main_camera, view_num)
+            width, height = self.view.window_size
+            # figure out how big to make applique
+            # eye and lines to far plane must be on screen
+            # half_height = width / 1.2 * tan(0.5
+            #    * main_camera.field_of_view * pi / 180)
+
             main_pos = main_camera.get_position(view_num)
             main_axes = main_pos.axes()
             camera = self.view.camera
@@ -111,6 +126,39 @@ class SideViewCanvas(glcanvas.GLCanvas):
             view_width = 1.2 * far
             camera.set_field_of_view_from_view_width(center, view_width)
             camera.position = camera_pos
+            loc = self.locations
+            loc.eye = array([.1 / 1.2 * width, height / 2, 0], dtype=float32)
+            loc.far = 1.1 / 1.2 * width
+            loc.near = (.1 + near / far) / 1.2 * width
+            loc.bottom = .1 * height
+            loc.top = .9 * height
+            self.applique.color = array([255, 0, 0, 255], dtype=uint8)
+            es = self.EyeSize
+            self.applique.vertices = array([
+                loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
+                loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
+                (loc.near, loc.bottom, 0), (loc.near, loc.top, 0),
+                (loc.far, loc.bottom, 0), (loc.far, loc.top, 0),
+                (0, 0, 0), (0, 0, 0),
+                (0, 0, 0), (0, 0, 0),
+            ], dtype=float32)
+            if main_camera.ortho:
+                self.applique.vertices[8] = (loc.near, loc.top, 0)
+                self.applique.vertices[9] = (loc.far, loc.top, 0)
+                self.applique.vertices[10] = (loc.near, loc.bottom, 0)
+                self.applique.vertices[11] = (loc.far, loc.bottom, 0)
+            else:
+                self.applique.vertices[8] = loc.eye
+                self.applique.vertices[9] = (loc.far, loc.top, 0)
+                self.applique.vertices[10] = loc.eye
+                self.applique.vertices[11] = (loc.far, loc.bottom, 0)
+            self.applique.triangles = array([
+                [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
+                [4, 5],    # near plane
+                [6, 7],    # far plane
+                [8, 9],    # left plane
+                [10, 11],  # right plane
+            ], dtype=int32)
             self.view.draw(only_if_changed=False)
             if has_string_marker:
                 text = b"End SideView"
@@ -119,6 +167,9 @@ class SideViewCanvas(glcanvas.GLCanvas):
             opengl_context.make_current = save_make_current
             opengl_context.swap_buffers = save_swap_buffers
             self.main_view._render.current_shader_program = None
+            from OpenGL import GL
+            w, h = self.main_view.window_size
+            GL.glViewport(0, 0, w, h)
 
 
 class ToolUI(ToolInstance):
