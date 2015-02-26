@@ -387,6 +387,21 @@ class _SubPart:
         else:
             self.sub_parts.append(subpart)
 
+    def find_selected_parts(self, atoms, num_atoms):
+        # Only filter if a spec for this level is present
+        import numpy
+        if self.my_parts is not None:
+            my_selected = self._filter_parts(atoms, num_atoms)
+        else:
+            my_selected = numpy.ones(num_atoms)
+        if self.sub_parts is None:
+            return my_selected
+        sub_selected = numpy.zeros(num_atoms)
+        for subpart in self.sub_parts:
+            s = subpart.find_selected_parts(atoms, num_atoms)
+            sub_selected = numpy.logical_or(sub_selected, s)
+        return numpy.logical_and(my_selected, sub_selected)
+
 
 class _Model(_SubPart):
     """Stores model part list and atom spec."""
@@ -399,21 +414,83 @@ class _Model(_SubPart):
 
     def find_sub_parts(self, session, model, results):
         results.add_model(model)
+        atoms = model.mol_blob.atoms
+        if not self.sub_parts:
+            # No chain specifier, select all atoms
+            results.add_atoms(atoms)
+        else:
+            import numpy
+            num_atoms = len(atoms.displays)
+            selected = numpy.zeros(num_atoms)
+            for chain_spec in self.sub_parts:
+                s = chain_spec.find_selected_parts(atoms, num_atoms)
+                selected = numpy.logical_or(selected, s)
+            results.add_atoms(atoms.filter(selected))
 
 
 class _Chain(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '/'
 
+    def _filter_parts(self, atoms, num_atoms):
+        chain_ids = atoms.residues.chain_ids
+        import numpy
+        selected = numpy.zeros(num_atoms)
+        for part in self.my_parts.parts:
+            if part.end is None:
+                def choose(chain_id, v=part.start):
+                    return chain_id == v
+            else:
+                def choose(chain_id, s=part.start, e=part.end):
+                    return chain_id >= part.start and chain_id <= part.end
+            s = numpy.vectorize(choose)(chain_ids)
+            selected = numpy.logical_or(selected, s)
+        print("_Chain._filter_parts", selected)
+        return selected
+
 
 class _Residue(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = ':'
 
+    def _filter_parts(self, atoms, num_atoms):
+        import numpy
+        res_names = numpy.array(atoms.residues.names)
+        res_numbers = numpy.array([str(s) for s in atoms.residues.numbers])
+        selected = numpy.zeros(num_atoms)
+        for part in self.my_parts.parts:
+            if part.end is None:
+                def choose(value, v=part.start):
+                    return value == v
+            else:
+                def choose(value, s=part.start, e=part.end):
+                    return value >= part.start and value <= part.end
+            s = numpy.vectorize(choose)(res_names)
+            selected = numpy.logical_or(selected, s)
+            s = numpy.vectorize(choose)(res_numbers)
+            selected = numpy.logical_or(selected, s)
+        return selected
+
 
 class _Atom(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '@'
+
+    def _filter_parts(self, atoms, num_atoms):
+        import numpy
+        names = numpy.array(atoms.names)
+        selected = numpy.zeros(num_atoms)
+        for part in self.my_parts.parts:
+            if part.end is None:
+                def choose(chain_id, v=part.start):
+                    return chain_id == v
+            else:
+                def choose(chain_id, s=part.start, e=part.end):
+                    return chain_id >= part.start and chain_id <= part.end
+            s = numpy.vectorize(choose)(names)
+            selected = numpy.logical_or(selected, s)
+        print("_Atom._filter_parts", selected)
+        return selected
 
 
 class _PartList:
