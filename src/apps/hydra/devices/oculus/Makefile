@@ -8,18 +8,18 @@ SRCS	= oculus.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 PYSRCS = __init__.py track.py
 
-OCSDK = /Users/goddard/Desktop/OculusSDK
+OCSDK = $(libdir)
 OCINC = -I$(OCSDK)/LibOVR/Include
 INCS += $(PYTHON_INCLUDE_DIRS) $(OCINC)
 
-#LIBS	+= $(PYTHON_LIB) $(OCSDK)/LibOVR/Lib/MacOS/Release/libovr.a
+#LIBS	+= $(PYTHON_LIB) $(OCSDK)/LibOVR/Lib/Mac/Release/libovr.a
 LIBS	+= $(PYTHON_LIB) $(OCSDK)/LibOVR/Lib/Mac/Debug/libovr.a
-LIBS	+= -framework Carbon -framework IOKit -framework OpenGL
+LIBS	+= -framework Cocoa -framework IOKit -framework OpenGL
 
 PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 
 # libovr is compiled without rtti and without exceptions
-OPT = -fno-rtti -fno-exceptions -g
+OPT = -fno-rtti -fno-exceptions -g -Wall
 
 ifeq ($(shell test -e $(OCSDK) && echo found),found)
 
