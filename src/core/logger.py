@@ -34,6 +34,11 @@ class Log:
 
         This method is not abstract because a log is free to totally
         ignore/drop status messages.
+
+        Note that this method may be called from a thread (due to the
+        use of timers to get proper time delays) and that therefore
+        special window toolkit handling may be necessary to get your
+        code executed in the main thread (e.g. wx.CallAfter).
         """
         return False
 
@@ -191,11 +196,9 @@ class Logger:
             blank_default = 15
 
         if status_timer:
-            print("Cancelling status timer")
             status_timer.cancel()
             status_timer = None
         if follow_timer:
-            print("Cancelling follow timer")
             follow_timer.cancel()
             follow_timer = None
 
