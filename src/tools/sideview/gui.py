@@ -128,20 +128,20 @@ class SideViewCanvas(glcanvas.GLCanvas):
             loc = self.locations
             loc.bottom = .05 * height
             loc.top = .95 * height
-            aspect = tan(0.5 * main_camera.field_of_view * pi / 180)
+            ratio = tan(0.5 * main_camera.field_of_view * pi / 180)
             if height / width >= (1 - (8 * self.EyeSize) / height):
                 view_width = 1.1 * far
                 loc.eye = array([.05 / 1.1 * width, height / 2, 0],
                                 dtype=float32)
                 loc.near = (.05 + near / far) / 1.1 * width
                 loc.far = 1.05 / 1.1 * width
-                loc.far_top = .5 * height + aspect * width / 1.1
-                loc.far_bottom = .5 * height - aspect * width / 1.1
+                loc.far_top = .5 * height + ratio * width / 1.1
+                loc.far_bottom = .5 * height - ratio * width / 1.1
             else:
                 loc.far_bottom = loc.bottom
                 loc.far_top = loc.top
-                f = .45 * height / aspect
-                n = f * aspect
+                f = .45 * height / ratio
+                n = f * near / far
                 loc.eye = array([.5 * width - f / 2, height / 2, 0],
                                 dtype=float32)
                 loc.near = loc.eye[0] + n
