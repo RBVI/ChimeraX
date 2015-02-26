@@ -9,6 +9,14 @@ def echo(session, args="no arguments"):
 echo_desc = cli.CmdDesc(optional=[("args", cli.RestOfLine)])
 
 
+def undisplay(session, spec=None):
+    r = spec.evaluate(session)
+    r.atoms.displays = False
+    for m in r.models:
+        m.update_graphics()
+undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+
+
 def hidewater(session, modelspec=None):
     spec = modelspec.evaluate(session)
     import numpy

@@ -81,8 +81,8 @@ rb_strs(PyObject* self, void*)
 static PyMethodDef ResBlob_methods[] = {
     { (char*)"filter", blob_filter<ResBlob>, METH_O,
         (char*)"filter residue blob based on array/list of booleans" },
-    { (char*)"merge", blob_merge<ResBlob>, METH_O,
-        (char*)"merge residue blobs" },
+    { (char*)"intersect", blob_intersect<ResBlob>, METH_O,
+        (char*)"intersect residue blobs" },
     { NULL, NULL, 0, NULL }
 };
 

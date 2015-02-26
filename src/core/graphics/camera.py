@@ -127,6 +127,14 @@ class Camera:
         vw = 2 * d * tan(0.5 * self.field_of_view * pi / 180)
         return vw
 
+    def set_field_of_view_from_view_width(self, center, width):
+        '''Set the field of field the match the particular width'''
+        cp = self.position.origin()
+        vd = self.view_direction()
+        d = sum((center - cp) * vd)         # camera to center of models
+        from math import atan, pi
+        self.field_of_view = atan(width / (2 * d)) * 2 / pi * 180
+
     def pixel_size(self, center, window_size):
         '''
         Return the size of a pixel in scene units for a point at position

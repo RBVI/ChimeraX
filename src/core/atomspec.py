@@ -57,6 +57,7 @@ all atoms.
 
 """
 
+import re
 from .cli import Annotation
 
 
@@ -88,7 +89,6 @@ class AtomSpecArg(Annotation):
 #
 # Lexical analysis functions
 #
-import re
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _operator = re.compile(r'\s+[&~|]+\s+')
 
@@ -197,34 +197,42 @@ class _AtomSpecSemantics:
         else:
             return _Term(ast.selector)
 
+    def selector_name(self, ast):
+        if (get_selector(self._session, ast.name) is None and
+           get_selector(None, ast.name) is None):
+                # TODO: generate better error message in cli
+                raise ValueError("\"%s\" is not a selector name" % ast.name)
+        return _SelectorName(ast.name)
+
     def model_list(self, ast):
         if ast.model_list is None:
             model_list = _ModelList(ast.model)
         else:
             model_list = ast.model_list
-            model_list.insert(0, ast.model)
+            model_list.append(ast.model)
         return model_list
 
     def model(self, ast):
-        if ast.hierarchy is not None:
-            return ast.hierarchy
-        else:
-            return ast.name
+        m = _Model(ast.hierarchy)
+        if ast.parts is not None:
+            for p in ast.parts:
+                m.add(p)
+        return m
 
     def model_hierarchy(self, ast):
-        if ast.hierarchy is None:
-            hierarchy = _ModelHierarchy(ast.range_list)
-        else:
-            hierarchy = ast.hierarchy
-            hierarchy.insert(0, ast.range_list)
+        hierarchy = _ModelHierarchy(ast.range_list)
+        if ast.hierarchy:
+            for rl in ast.hierarchy:
+                if rl:
+                    hierarchy.append(rl)
         return hierarchy
 
     def model_range_list(self, ast):
-        if ast.range_list is None:
-            range_list = _ModelRangeList(ast.range)
-        else:
-            range_list = ast.range_list
-            range_list.insert(0, ast.range)
+        range_list = _ModelRangeList(ast.range)
+        if ast.range_list:
+            for rl in ast.range_list:
+                if rl:
+                    range_list.append(rl)
         return range_list
 
     def model_range(self, ast):
@@ -238,12 +246,38 @@ class _AtomSpecSemantics:
         else:
             return None
 
-    def selector_name(self, ast):
-        if (get_selector(self._session, ast.name) is None
-            and get_selector(None, ast.name) is None):
-                # TODO: generate better error message in cli
-                raise ValueError("\"%s\" is not a selector name" % ast.name)
-        return _SelectorName(ast.name)
+    def model_parts(self, ast):
+        return ast.chain
+
+    def chain(self, ast):
+        if ast.parts is None and not ast.residue:
+            return None
+        c = _Chain(ast.parts)
+        if ast.residue:
+            for r in ast.residue:
+                c.add(r)
+        return c
+
+    def residue(self, ast):
+        if ast.parts is None and not ast.atom:
+            return None
+        r = _Residue(ast.parts)
+        if ast.atom:
+            for a in ast.atom:
+                r.add(a)
+        return r
+
+    def atom(self, ast):
+        return _Atom(ast.parts)
+
+    def part_list(self, ast):
+        if ast.part is None:
+            return _PartList(ast.range)
+        else:
+            return ast.part.add(ast.range)
+
+    def part_range_list(self, ast):
+        return _Part(ast.start, ast.end)
 
 
 class _ModelList(list):
@@ -252,17 +286,16 @@ class _ModelList(list):
         super().__init__()
         self.append(h)
 
-    def __repr__(self):
+    def __str__(self):
         if not self:
             return "[empty]"
-        return "#" + "".join(repr(mr) for mr in self)
+        return "".join(str(mr) for mr in self)
 
     def find_matches(self, session, model_list, results):
         for m in model_list:
-            for h in self:
-                if h.matches(session, m):
-                    results.add_model(m)
-                    break
+            for model_spec in self:
+                if model_spec.matches(session, m):
+                    model_spec.find_sub_parts(session, m, results)
 
 
 class _ModelHierarchy(list):
@@ -271,10 +304,10 @@ class _ModelHierarchy(list):
         super().__init__()
         self.append(mrl)
 
-    def __repr__(self):
+    def __str__(self):
         if not self:
             return "[empty]"
-        return ".".join(repr(mr) for mr in self)
+        return ".".join(str(mr) for mr in self)
 
     def matches(self, session, model):
         for i, mrl in enumerate(self):
@@ -293,10 +326,10 @@ class _ModelRangeList(list):
         super().__init__()
         self.append(mr)
 
-    def __repr__(self):
+    def __str__(self):
         if not self:
             return "[empty]"
-        return ",".join(repr(mr) for mr in self)
+        return ",".join(str(mr) for mr in self)
 
     def matches(self, mid):
         for mr in self:
@@ -311,7 +344,7 @@ class _ModelRange:
         self.start = start
         self.end = end
 
-    def __repr__(self):
+    def __str__(self):
         if self.end:
             return "%s-%s" % (self.start, self.end)
         else:
@@ -328,10 +361,170 @@ class _ModelRange:
             return self.end == '*' or mid <= self.end
 
 
+class _SubPart:
+    """Stores part list for one item and subparts of the item."""
+    def __init__(self, my_parts):
+        self.my_parts = my_parts
+        self.sub_parts = None
+
+    def __str__(self):
+        if self.sub_parts:
+            sub_repr = "".join([str(r) for r in self.sub_parts])
+        else:
+            sub_repr = ""
+        if self.my_parts is None:
+            r = sub_repr
+        else:
+            r = "%s%s%s" % (self.Symbol, str(self.my_parts), sub_repr)
+        # print("_SubPart.__str__", self.__class__, r)
+        return r
+
+    def add(self, subpart):
+        if subpart is None:
+            return
+        if self.sub_parts is None:
+            self.sub_parts = [subpart]
+        else:
+            self.sub_parts.append(subpart)
+
+    def find_selected_parts(self, atoms, num_atoms):
+        # Only filter if a spec for this level is present
+        import numpy
+        if self.my_parts is not None:
+            my_selected = self._filter_parts(atoms, num_atoms)
+        else:
+            my_selected = numpy.ones(num_atoms)
+        if self.sub_parts is None:
+            return my_selected
+        sub_selected = numpy.zeros(num_atoms)
+        for subpart in self.sub_parts:
+            s = subpart.find_selected_parts(atoms, num_atoms)
+            sub_selected = numpy.logical_or(sub_selected, s)
+        return numpy.logical_and(my_selected, sub_selected)
+
+
+class _Model(_SubPart):
+    """Stores model part list and atom spec."""
+    Symbol = '#'
+
+    def matches(self, session, model):
+        if self.my_parts is None:
+            return True
+        return self.my_parts.matches(session, model)
+
+    def find_sub_parts(self, session, model, results):
+        results.add_model(model)
+        atoms = model.mol_blob.atoms
+        if not self.sub_parts:
+            # No chain specifier, select all atoms
+            results.add_atoms(atoms)
+        else:
+            import numpy
+            num_atoms = len(atoms.displays)
+            selected = numpy.zeros(num_atoms)
+            for chain_spec in self.sub_parts:
+                s = chain_spec.find_selected_parts(atoms, num_atoms)
+                selected = numpy.logical_or(selected, s)
+            results.add_atoms(atoms.filter(selected))
+
+
+class _Chain(_SubPart):
+    """Stores residue part list and atom spec."""
+    Symbol = '/'
+
+    def _filter_parts(self, atoms, num_atoms):
+        chain_ids = atoms.residues.chain_ids
+        import numpy
+        selected = numpy.zeros(num_atoms)
+        for part in self.my_parts.parts:
+            if part.end is None:
+                def choose(chain_id, v=part.start):
+                    return chain_id == v
+            else:
+                def choose(chain_id, s=part.start, e=part.end):
+                    return chain_id >= part.start and chain_id <= part.end
+            s = numpy.vectorize(choose)(chain_ids)
+            selected = numpy.logical_or(selected, s)
+        print("_Chain._filter_parts", selected)
+        return selected
+
+
+class _Residue(_SubPart):
+    """Stores residue part list and atom spec."""
+    Symbol = ':'
+
+    def _filter_parts(self, atoms, num_atoms):
+        import numpy
+        res_names = numpy.array(atoms.residues.names)
+        res_numbers = numpy.array([str(s) for s in atoms.residues.numbers])
+        selected = numpy.zeros(num_atoms)
+        for part in self.my_parts.parts:
+            if part.end is None:
+                def choose(value, v=part.start):
+                    return value == v
+            else:
+                def choose(value, s=part.start, e=part.end):
+                    return value >= part.start and value <= part.end
+            s = numpy.vectorize(choose)(res_names)
+            selected = numpy.logical_or(selected, s)
+            s = numpy.vectorize(choose)(res_numbers)
+            selected = numpy.logical_or(selected, s)
+        return selected
+
+
+class _Atom(_SubPart):
+    """Stores residue part list and atom spec."""
+    Symbol = '@'
+
+    def _filter_parts(self, atoms, num_atoms):
+        import numpy
+        names = numpy.array(atoms.names)
+        selected = numpy.zeros(num_atoms)
+        for part in self.my_parts.parts:
+            if part.end is None:
+                def choose(chain_id, v=part.start):
+                    return chain_id == v
+            else:
+                def choose(chain_id, s=part.start, e=part.end):
+                    return chain_id >= part.start and chain_id <= part.end
+            s = numpy.vectorize(choose)(names)
+            selected = numpy.logical_or(selected, s)
+        print("_Atom._filter_parts", selected)
+        return selected
+
+
+class _PartList:
+    """Stores a part list (sub-parts of models)."""
+    def __init__(self, part_range):
+        self.parts = [part_range]
+
+    def __str__(self):
+        return ','.join([str(p) for p in self.parts])
+
+    def add(self, part_range):
+        self.parts.append(part_range)
+
+
+class _Part:
+    """Stores one part of a part range."""
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+    def __str__(self):
+        if self.end is None:
+            return self.start
+        else:
+            return "%s-%s" % (self.start, self.end)
+
+
 class _SelectorName:
     """Stores a single selector name."""
     def __init__(self, name):
         self.name = name
+
+    def __str__(self):
+        return self.name
 
     def find_matches(self, session, models, results):
         f = get_selector(session, self.name) or get_selector(None, self.name)
@@ -343,6 +536,9 @@ class _Term:
     """A term in an atom specifier."""
     def __init__(self, spec):
         self._specifier = spec
+
+    def __str__(self):
+        return str(self._specifier)
 
     def evaluate(self, session, models):
         """Return AtomSpecResults for model elements that match."""
@@ -364,6 +560,13 @@ class AtomSpec:
         self._left_term = left_term
         self._right_term = right_term
 
+    def __str__(self):
+        if self._operator is None:
+            return str(self._left_term)
+        else:
+            return "%s %s %s" % (str(self._left_term), self._operator,
+                                 str(self._right_term))
+
     def evaluate(self, session, models=None, **kw):
         """Return results of evaluating atom specifier for given models.
 
@@ -383,6 +586,7 @@ class AtomSpec:
             Instance containing data (atoms, bonds, etc) that match
             this atom specifier.
         """
+        print("evaluate:", str(self))
         if models is None:
             models = session.models.list(**kw)
         if self._operator is None:
@@ -390,11 +594,11 @@ class AtomSpec:
         elif self._operator == '|':
             left_results = self._left_term.evaluate(session, models)
             right_results = self._right_term.evaluate(session, models)
-            results = AtomSpecResults._Union(left_results, right_results)
+            results = AtomSpecResults._union(left_results, right_results)
         elif self._operator == '&':
             left_results = self._left_term.evaluate(session, models)
             right_results = self._right_term.evaluate(session, models)
-            results = AtomSpecResults._Intersect(left_results, right_results)
+            results = AtomSpecResults._intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
         return results
@@ -414,24 +618,47 @@ class AtomSpecResults:
     """
     def __init__(self):
         self._models = set()
+        self._atoms = None
 
     def add_model(self, m):
+        """Add model to atom spec results."""
         self._models.add(m)
+
+    def add_atoms(self, atom_blob):
+        """Add atoms to atom spec results."""
+        if self._atoms is None:
+            self._atoms = atom_blob
+        else:
+            self._atoms.merge(atom_blob)
 
     @property
     def models(self):
         return self._models
 
+    @property
+    def atoms(self):
+        return self._atoms
+
     @staticmethod
-    def _Union(left, right):
+    def _union(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models | right._models
+        if left._atoms is None:
+            atom_spec._atoms = right._atoms
+        elif right._atoms is None:
+            atom_spec._atoms = left._atoms
+        else:
+            atom_spec._atoms = right._atoms.merge(left._atoms)
         return atom_spec
 
     @staticmethod
-    def _Intersect(left, right):
+    def _intersect(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models & right._models
+        if left._atoms is None or right._atoms is None:
+            atom_spec._atoms = None
+        else:
+            atom_spec._atoms = right._atoms.intersect(left._atoms)
         return atom_spec
 
 #
@@ -441,7 +668,6 @@ class AtomSpecResults:
 # state manager class, but I have not figured out how to save
 # callable objects in states.
 #
-from .session import State
 _selectors = {}
 
 
