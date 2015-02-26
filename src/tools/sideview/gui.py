@@ -51,16 +51,26 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
         self.locations = loc = _PixelLocations()
         loc.eye = 0, 0, 0   # x, y coords of eye
-        loc.near = 0     # X coord of near plane
-        loc.far = 0      # Y coord of near plane
-        loc.botton = 0   # bottom of clipping planes
-        loc.top = 0      # top of clipping planes
+        loc.near = 0        # X coord of near plane
+        loc.far = 0         # Y coord of near plane
+        loc.bottom = 0      # bottom of clipping planes
+        loc.top = 0         # top of clipping planes
+        loc.far_bottom = 0  # right clip intersect far
+        loc.far_top = 0     # left clip intersect far
 
         from chimera.core.graphics import Drawing
         self.applique = Drawing('sideview')
         self.applique.display_style = Drawing.Mesh
         self.applique.use_lighting = False
         self.view.add_2d_overlay(self.applique)
+        self.main_view.add_rendered_frame_callback(self._redraw)
+
+    def __del__(self):
+        self.main_view.remove_rendered_frame_callback(self._redraw)
+
+    def _redraw(self):
+        # wx.CallAfter(self.draw)
+        self.draw()
 
     def OnPaint(self, event):  # noqa
         # TODO: set flag to be drawn
@@ -82,12 +92,15 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.SwapBuffers()
 
     def draw(self):
+        width, height = self.GetClientSize()
+        if width == -1 or height == -1:
+            return
         from math import pi, tan
         from numpy import array, float32, uint8, int32
         self.view._render.shader_programs = \
             self.main_view._render.shader_programs
         self.view._render.current_shader_program = None
-        self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
+        # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
         opengl_context = self.view.opengl_context()
         save_make_current = opengl_context.make_current
         save_swap_buffers = opengl_context.swap_buffers
@@ -122,8 +135,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
             # figure out how big to make applique
             # eye and lines to far plane must be on screen
-            # half_height = width / 1.2 * tan(0.5
-            #    * main_camera.field_of_view * pi / 180)
             width, height = self.view.window_size
             loc = self.locations
             loc.bottom = .05 * height
@@ -176,7 +187,9 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 [8, 9],    # left plane
                 [10, 11],  # right plane
             ], dtype=int32)
-            self.view.draw(only_if_changed=False)
+            from OpenGL import GL
+            GL.glViewport(0, 0, width, height)
+            self.view.draw()
             if has_string_marker:
                 text = b"End SideView"
                 string_marker. glStringMarkerGREMEDY(len(text), text)
