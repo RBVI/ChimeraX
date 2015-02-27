@@ -2,11 +2,13 @@
 #
 class Oculus_Rift:
 
-    def __init__(self, session):
+    def __init__(self, view):
 
-        self.session = session
-        self.connected = False
-        self.view = None
+        self.view = view
+
+        self.oculus_opengl_context = window.opengl_context
+        self.render_opengl_context = window.primary_opengl_context
+
         self.camera_mode = OculusRiftCameraMode(self)
 
         self.last_translation = None
@@ -14,46 +16,27 @@ class Oculus_Rift:
         self.panning_speed = 5
         self.frame_cb = None
 
-        # Create separate graphics window for rendering to Oculus Rift.
-        # Don't show window until after oculus started, otherwise rendering uses wrong viewport.
-        from ...ui.qt import graphicswindow as gw
-        self.window = gw.Secondary_Graphics_Window('Oculus Rift View', session, show = False)
+        self.connected = self.start_event_processing()
 
-        success = self.start_event_processing(session.view)
-        msg = 'started oculus head tracking ' if success else 'failed to start oculus head tracking'
-        session.show_status(msg)
-        session.show_info(msg)
-
-        if success:
-            self.oculus_full_screen()
-            self.set_camera_mode(session.view.camera)
-            # Set redraw timer for 1 msec to minimize dropped frames.
-            # In Qt 5.2 interval of 5 or 10 mseconds caused dropped frames on 2 million triangle surface,
-            # but 1 or 2 msec produced no dropped frames.
-            gw = session.main_window.graphics_window
-            gw.set_redraw_interval(1)
+        if self.connected:
+            self.set_camera_mode(view.camera)
 
     def close(self):
 
         self.stop_event_processing()
-        self.window.close()
-        self.window = None
 
-        s = self.session
-        c = s.view.camera
+        c = self.view.camera
         from ...graphics import mono_camera_mode
         c.mode = mono_camera_mode
         c.field_of_view = 30.0
-        gw = s.main_window.graphics_window
-        gw.set_redraw_interval(10)
 
-    def start_event_processing(self, view):
+    def start_event_processing(self):
 
         from . import _oculus
 
         if not self.connected:
             # Make sure initializing Oculus distortion correct doesn't change current OpenGL VAO bindings.
-            self.window.opengl_context.make_current()
+            self.oculus_opengl_context.make_current()
             try:
                 _oculus.connect()
                 self.connected = True
@@ -68,10 +51,9 @@ class Oculus_Rift:
         print('oculus field of view %.1f degrees' % (self.field_of_view_degrees()))
         print('oculus camera centering shift %.1f, %.1f pixels, left eye' % self.camera_centering_shift_pixels())
 
-        self.view = view
         if self.frame_cb is None:
             self.frame_cb = self.use_oculus_orientation
-            view.add_new_frame_callback(self.frame_cb)
+            self.view.add_new_frame_callback(self.frame_cb)
         return True
 
     def stop_event_processing(self):
@@ -96,23 +78,14 @@ class Oculus_Rift:
         w, h = p['texture width'], p['texture height']  # (1182,1461) for DK2
         return w,h
 
-    # Move window to oculus screen and switch to full screen mode.
-    def oculus_full_screen(self):
-
-        if not self.connected:
-            return
-
-        w,h = self.display_size()
-        self.window.full_screen(w,h)
-
     def render(self, tex_width, tex_height, tex_left, tex_right):
 
         if self.connected and self.frame_cb:
-            self.window.opengl_context.make_current()
+            self.oculus_opengl_context.make_current()
             from . import _oculus
             _oculus.render(tex_width, tex_height, tex_left, tex_right)
             # Switch back to main window graphics context.
-            self.session.main_window.graphics_window.opengl_context.make_current()
+            self.render_opengl_context.make_current()
 
     def field_of_view_degrees(self):
 
@@ -282,7 +255,7 @@ class OculusRiftCameraMode(CameraMode):
             fb = render.current_framebuffer()
             self._draw_unwarped(render, fb.width, fb.height)
             # TODO: Make render object should hold opengl context.
-            self.oculus_rift.session.main_window.graphics_window.opengl_context.swap_buffers()
+            self.oculus_rift.render_opengl_context.swap_buffers()
 
         # Draw in oculus window
         o = self.oculus_rift
@@ -312,15 +285,15 @@ class OculusRiftCameraMode(CameraMode):
 
         # Unwarped rendering, for testing purposes.
         ocr = self.oculus_rift
-        ocr.window.opengl_context.make_current()
+        ocr.oculus_opengl_context.make_current()
         render.opengl_context_changed()
         w,h = ocr.display_size()
 
         self._draw_unwarped(render, w, h)
 
-        ocr.window.opengl_context.swap_buffers()
+        ocr.oculus_opengl_context.swap_buffers()
 
-        ocr.session.main_window.graphics_window.opengl_context.make_current()
+        ocr.render_opengl_context.make_current()
         render.opengl_context_changed()
 
     def _draw_unwarped(self, render, w, h):
@@ -355,29 +328,3 @@ class OculusRiftCameraMode(CameraMode):
         s.use_lighting = False
         s.texture_coordinates = tc
         return s
-
-def start_oculus(session):
-
-    oc = session.oculus
-    if oc is None:
-        session.oculus = oc = Oculus_Rift(session)
-
-def stop_oculus(session):
-
-    oc = session.oculus
-    if oc:
-        oc.close()
-        session.oculus = None
-
-def oculus_command(enable = None, panSpeed = None, session = None):
-
-    if not enable is None:
-        if enable:
-            start_oculus(session)
-        else:
-            stop_oculus(session)
-
-    if not panSpeed is None:
-        oc = session.oculus
-        if oc:
-            oc.panning_speed = panSpeed

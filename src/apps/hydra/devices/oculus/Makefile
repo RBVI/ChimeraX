@@ -6,7 +6,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/devices/oculus
 PYMOD_NAME = _oculus
 SRCS	= oculus.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-PYSRCS = __init__.py track.py
+PYSRCS = __init__.py oculuscmd.py track.py
 
 OCSDK = $(libdir)
 OCINC = -I$(OCSDK)/LibOVR/Include
