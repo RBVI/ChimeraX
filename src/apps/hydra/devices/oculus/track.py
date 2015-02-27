@@ -229,7 +229,9 @@ class OculusRiftCameraMode(CameraMode):
         Texture render size for each eye when using Oculus Rift.
         This should be removed from Camera and handled by a generic method the sets the render target.
         '''
-        self.warped = True      # Use warped rendering done by Oculus SDK
+
+        self.debug_oculus = False      # Render unwarped textures instead of having Oculus SDK do it.
+        self.draw_main_window = False  # Used mostly for demoing oculus eye views can be seen on conventional screen
 
     def name(self):
         '''Name of camera mode.'''
@@ -274,9 +276,18 @@ class OculusRiftCameraMode(CameraMode):
 
         render.pop_framebuffer()
 
+        if self.draw_main_window:
+            # Draw in main window.
+            # This causes unpleasant oculus frame drop because vsync on main window is slower than oculus.
+            fb = render.current_framebuffer()
+            self._draw_unwarped(render, fb.width, fb.height)
+            # TODO: Make render object should hold opengl context.
+            self.oculus_rift.session.main_window.graphics_window.opengl_context.swap_buffers()
+
+        # Draw in oculus window
         o = self.oculus_rift
-        if not self.warped:
-            self._draw_unwarped(render)
+        if self.debug_oculus:
+            self._draw_oculus_unwarped(render)
         else:
             t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
             o.render(t0.size[0], t0.size[1], t0.id, t1.id)
@@ -297,15 +308,24 @@ class OculusRiftCameraMode(CameraMode):
             self._warp_framebuffers[view_num] = fb = opengl.Framebuffer(color_texture = t)
         return fb
 
-    def _draw_unwarped(self, render):
+    def _draw_oculus_unwarped(self, render):
 
         # Unwarped rendering, for testing purposes.
         ocr = self.oculus_rift
         ocr.window.opengl_context.make_current()
         render.opengl_context_changed()
+        w,h = ocr.display_size()
+
+        self._draw_unwarped(render, w, h)
+
+        ocr.window.opengl_context.swap_buffers()
+
+        ocr.session.main_window.graphics_window.opengl_context.make_current()
+        render.opengl_context_changed()
+
+    def _draw_unwarped(self, render, w, h):
 
         # Draw left eye
-        w,h = ocr.display_size()
         render.set_viewport(0,0,w//2,h)
 
         s = self._warping_surface(render)
@@ -317,11 +337,6 @@ class OculusRiftCameraMode(CameraMode):
         render.set_viewport(w//2,0,w//2,h)
         s.texture = self._warp_framebuffers[1].color_texture
         draw_overlays([s], render)
-
-        ocr.window.opengl_context.swap_buffers()
-
-        ocr.session.main_window.graphics_window.opengl_context.make_current()
-        render.opengl_context_changed()
 
     def _warping_surface(self, render):
 
