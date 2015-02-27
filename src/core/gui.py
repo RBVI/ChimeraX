@@ -155,27 +155,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.close()
 
     def status(self, msg, color, secondary):
-        if self._initial_status_kludge == True:
-            self._initial_status_kludge = False
-            self.status_bar.SetStatusText("", 1)
-
-        if secondary:
-            secondary_text = msg
-        else:
-            secondary_text = self.status_bar.GetStatusText(1)
-        secondary_size = wx.Window.GetTextExtent(self, secondary_text)
-        self.status_bar.SetStatusWidths([-1, secondary_size.width, 0])
-
-        color_db = wx.ColourDatabase()
-        wx_color = color_db.Find(color)
-        if not wx_color.IsOk:
-            wx_color = wx_color.Find("black")
-        self.status_bar.SetForegroundColour(wx_color)
-
-        if secondary:
-            self.status_bar.SetStatusText(msg, 1)
-        else:
-            self.status_bar.SetStatusText(msg, 0)
+        wx.CallAfter(self._main_thread_status, msg, color, secondary)
 
     def _build_graphics(self, ui):
         from .ui.graphics import GraphicsWindow
@@ -201,6 +181,29 @@ class MainWindow(wx.Frame, PlainTextLog):
         self.status_bar.SetStatusText(greeting, 1)
         self.status_bar.SetStatusText("", 2)
         self._initial_status_kludge = True
+
+    def _main_thread_status(self, msg, color, secondary):
+        if self._initial_status_kludge == True:
+            self._initial_status_kludge = False
+            self.status_bar.SetStatusText("", 1)
+
+        if secondary:
+            secondary_text = msg
+        else:
+            secondary_text = self.status_bar.GetStatusText(1)
+        secondary_size = wx.Window.GetTextExtent(self, secondary_text)
+        self.status_bar.SetStatusWidths([-1, secondary_size.width, 0])
+
+        color_db = wx.ColourDatabase()
+        wx_color = color_db.Find(color)
+        if not wx_color.IsOk:
+            wx_color = wx_color.Find("black")
+        self.status_bar.SetForegroundColour(wx_color)
+
+        if secondary:
+            self.status_bar.SetStatusText(msg, 1)
+        else:
+            self.status_bar.SetStatusText(msg, 0)
 
     def _populate_menus(self, menu_bar, session):
         import sys

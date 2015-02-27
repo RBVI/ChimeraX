@@ -2,6 +2,7 @@
 #ifndef atomstruct_Bond
 #define atomstruct_Bond
 
+#include <unordered_set>
 #include <vector>
 
 #include <basegeom/Connection.h>
@@ -11,6 +12,7 @@ namespace atomstruct {
 
 class Atom;
 class AtomicStructure;
+class Residue;
 class Ring;
 
 class ATOMSTRUCT_IMEX Bond: public basegeom::UniqueConnection<Atom, Bond> {
@@ -28,17 +30,18 @@ private:
     mutable Rings  _rings;
 
 public:
-    const Rings&  all_rings(bool cross_residues=false,
-                                        int size_threshold=0) const;
+    const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
+        std::unordered_set<const Residue*>* ignore = nullptr) const;
     const Atoms&  atoms() const { return end_points(); }
     // length() inherited from UniqueConnection
-    const Rings&  minimum_rings(bool cross_residues = false) const {
-        return rings(cross_residues, 0);
+    const Rings&  minimum_rings(bool cross_residues = false,
+            std::unordered_set<const Residue*>* ignore = nullptr) const {
+        return rings(cross_residues, 0, ignore);
     }
     Atom *  other_atom(Atom *a) const { return other_end(a); }
     Atom *  polymeric_start_atom() const;
-    const Rings&  rings(bool cross_residues = false,
-                        int all_size_threshold = 0) const;
+    const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
+        std::unordered_set<const Residue*>* ignore = nullptr) const;
     // sqlength() inherited from UniqueConnection
 };
 
@@ -46,18 +49,20 @@ public:
 
 #include "AtomicStructure.h"
 inline const atomstruct::Bond::Rings&
-atomstruct::Bond::all_rings(bool cross_residues, int size_threshold) const
+atomstruct::Bond::all_rings(bool cross_residues, int size_threshold,
+    std::unordered_set<const Residue*>* ignore) const
 {
     int max_ring_size = size_threshold;
     if (max_ring_size == 0)
         max_ring_size = atoms()[0]->structure()->num_atoms();
-    return rings(cross_residues, max_ring_size);
+    return rings(cross_residues, max_ring_size, ignore);
 }
 
 inline const atomstruct::Bond::Rings&
-atomstruct::Bond::rings(bool cross_residues, int all_size_threshold) const
+atomstruct::Bond::rings(bool cross_residues, int all_size_threshold,
+    std::unordered_set<const Residue*>* ignore) const
 {
-    atoms()[0]->structure()->rings(cross_residues, all_size_threshold);
+    atoms()[0]->structure()->rings(cross_residues, all_size_threshold, ignore);
     return _rings;
 }
 

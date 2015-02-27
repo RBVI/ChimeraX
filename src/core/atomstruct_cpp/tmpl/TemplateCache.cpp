@@ -67,63 +67,67 @@ TemplateCache::cache_template_type(std::string &key, const char *app,
     cache[key] = res_map;
     auto ap = appdirs::AppDirs::get();
 
-    std::string t_dir = ap.form_path({ ap.site_data_dir, app, template_dir });
-    DIR *tmpls = opendir(t_dir.c_str());
-    if (tmpls == NULL)
-        return;
-
-    struct dirent *entry;
-    while ((entry = readdir(tmpls)) != NULL) {
-        std::string full_path = ap.form_path({ t_dir, entry->d_name });
-        struct stat s;
-        if (stat(full_path.c_str(), &s) != 0)
-            // couldn't stat
-            continue;
-        
-        if (S_ISDIR(s.st_mode))
-            // skip subdirectories
+    std::vector<std::string> search_dirs = { ap.user_data_dir, ap.site_data_dir,
+        ap.app_data_dir };
+    for (auto search_dir: search_dirs) {
+        std::string t_dir = ap.form_path({ search_dir, app, template_dir });
+        DIR *tmpls = opendir(t_dir.c_str());
+        if (tmpls == NULL)
             continue;
 
-        char *dot = ::strrchr(entry->d_name, '.');
-
-        if (dot == entry->d_name)
-            // ignore files that start with '.'
-            continue;
-
-        if (*extension) {
-            // expect a specific extension
-            if (dot == NULL)
-                // none found
+        struct dirent *entry;
+        while ((entry = readdir(tmpls)) != NULL) {
+            std::string full_path = ap.form_path({ t_dir, entry->d_name });
+            struct stat s;
+            if (stat(full_path.c_str(), &s) != 0)
+                // couldn't stat
                 continue;
-            if (chutil::cmp_nocase(dot + 1, extension) != 0)
+            
+            if (S_ISDIR(s.st_mode))
+                // skip subdirectories
                 continue;
-        }
-        
-        std::string res_name(entry->d_name, dot);
-        if (res_map.find(res_name) != res_map.end())
-            // residue already templated;
-            // since earlier search path 
-            // directories have precedence,
-            // ignore this one
-              continue;
 
-        chutil::InputFile tf(full_path);
-        std::ifstream &template_file(tf.ifstream());
-        if (!template_file) {
-            std::cerr << "Could not read"
-            << " template file " << full_path
-            << std::endl;
-            continue;
+            char *dot = ::strrchr(entry->d_name, '.');
+
+            if (dot == entry->d_name)
+                // ignore files that start with '.'
+                continue;
+
+            if (*extension) {
+                // expect a specific extension
+                if (dot == NULL)
+                    // none found
+                    continue;
+                if (chutil::cmp_nocase(dot + 1, extension) != 0)
+                    continue;
+            }
+            
+            std::string res_name(entry->d_name, dot);
+            if (res_map.find(res_name) != res_map.end())
+                // residue already templated;
+                // since earlier search path 
+                // directories have precedence,
+                // ignore this one
+                  continue;
+
+            chutil::InputFile tf(full_path);
+            std::ifstream &template_file(tf.ifstream());
+            if (!template_file) {
+                std::cerr << "Could not read"
+                << " template file " << full_path
+                << std::endl;
+                continue;
+            }
+            try {
+                res_map[res_name] = parse_template_file(
+                        template_file, full_path);
+            } catch (...) {
+                closedir(tmpls);
+                throw;
+            }
         }
-        try {
-            res_map[res_name] = parse_template_file(
-                    template_file, full_path);
-        } catch (...) {
-            closedir(tmpls);
-            throw;
-        }
+        closedir(tmpls);
     }
-    closedir(tmpls);
     cache[key] = res_map;
 }
 

@@ -1029,7 +1029,7 @@ AtomicStructure::_compute_atom_types()
             system_atoms.insert(atoms.begin(), atoms.end());
             system_rings.push_back(qr);
             for (auto b: bonds) {
-                for (auto br: b->minimum_rings()) {
+                for (auto br: b->minimum_rings(false, &mapped_residues)) {
                     if (seen_rings.find(br) != seen_rings.end())
                         continue;
                     if (planar_rings.find(br) == planar_rings.end())
