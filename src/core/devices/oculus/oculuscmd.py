@@ -23,8 +23,8 @@ def start_oculus(session):
             # but 1 or 2 msec produced no dropped frames.
             session.main_window.graphics_window.set_redraw_interval(1)
         msg = 'started oculus head tracking ' if oc.connected else 'failed to start oculus head tracking'
-        session.show_status(msg)
-        session.show_info(msg)
+        session.status(msg)
+        session.info(msg)
 
 def stop_oculus(session):
 

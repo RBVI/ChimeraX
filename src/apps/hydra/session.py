@@ -115,15 +115,18 @@ class Session(Models):
     def show_status(self, msg, append = False):
         '''Show a status message at the bottom of the main window.'''
         self.main_window.show_status(msg, append)
+    status = show_status        # Compatibility with Chimera 2
 
     def show_info(self, msg, color = None):
         '''Write information such as command output to the log window.'''
         self.log.log_message(msg, color)
+    info = show_info		# Compatibility with Chimera 2
 
     def show_warning(self, msg):
         '''Write warning such as command output to the log window.'''
         self.show_status(msg)
         self.show_info(msg, color = 'red')
+    warning = show_warning	# Compatibility with Chimera 2
 
     def executable_directory(self):
          return self.bin_dir

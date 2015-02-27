@@ -355,8 +355,8 @@ class View:
                 cb()
             except:
                 import traceback
-                self.log.show_warning('new frame callback raised error\n' +
-                                      traceback.format_exc())
+                self.log.warning('new frame callback raised error\n' +
+                                 traceback.format_exc())
                 self.remove_new_frame_callback(cb)
 
         c = self.camera
@@ -371,9 +371,8 @@ class View:
                     cb()
                 except:
                     import traceback
-                    self.log.show_warning(
-                        'shape changed callback raised error\n' +
-                        traceback.format_exc())
+                    self.log.warning('shape changed callback raised error\n' +
+                                     traceback.format_exc())
                     self.remove_shape_changed_callback(cb)
 
         if dm.redraw_needed and dm.shape_changed and self.multishadow > 0:
@@ -390,8 +389,8 @@ class View:
                 cb()
             except:
                 import traceback
-                self.log.show_warning('rendered callback raised error\n' +
-                                      traceback.format_exc())
+                self.log.warning('rendered callback raised error\n' +
+                                 traceback.format_exc())
                 self.remove_new_frame_callback(cb)
 
         return True
@@ -422,8 +421,8 @@ class View:
             self._time_graphics = 0
             msg = '%.1f frames/sec' % (1.0 / time,)
             l = self.log
-            l.show_status(msg)
-            l.show_info(msg)
+            l.status(msg)
+            l.info(msg)
 
     def _start_timing(self):
         if self._time_graphics:

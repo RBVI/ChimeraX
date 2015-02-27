@@ -673,8 +673,8 @@ class Volume(Model):
                                                calculate_normals = True)
     except MemoryError:
       ses = self.session
-      ses.show_warning('Ran out of memory contouring at level %.3g.\n' % level +
-                       'Try a higher contour level.')
+      ses.warning('Ran out of memory contouring at level %.3g.\n' % level +
+                  'Try a higher contour level.')
       return False
 
     for a in plane_axis:
@@ -755,7 +755,7 @@ class Volume(Model):
     try:
       level = data.surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
     except MemoryError as e:
-      self.session.show_warning(str(e))
+      self.session.warning(str(e))
       level = None
     return level
     
@@ -1439,9 +1439,9 @@ class Volume(Model):
       level = min(v.surface_levels) if v.surface_levels else 0
       scale = -minimum_rms_scale(values, m, level)
       ses = self.session
-      ses.show_info('Minimum RMS scale factor for "%s" above level %.5g\n'
-                    '  subtracted from "%s" is %.5g\n'
-                    % (v.name_with_id(), level, self.name_with_id(), scale))
+      ses.info('Minimum RMS scale factor for "%s" above level %.5g\n'
+               '  subtracted from "%s" is %.5g\n'
+               % (v.name_with_id(), level, self.name_with_id(), scale))
     if scale != 1:
       # Copy array only if scaling.
       if const_values:
