@@ -24,7 +24,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
     EyeSize = 4     # half size really
 
-    def __init__(self, parent, view, main_view):
+    def __init__(self, parent, view, main_view, size):
         import sys
         attribs = [
             glcanvas.WX_GL_RGBA,
@@ -43,11 +43,13 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.view = view
         self.main_view = main_view
         self.view.camera.ortho = True
-        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
+        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
+                                   size=size)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_SIZE, self.on_size)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
 
         self.locations = loc = _PixelLocations()
         loc.eye = 0, 0, 0   # x, y coords of eye
@@ -65,21 +67,21 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.view.add_2d_overlay(self.applique)
         self.main_view.add_rendered_frame_callback(self._redraw)
 
-    def __del__(self):
+    def on_destroy(self, event):
         self.main_view.remove_rendered_frame_callback(self._redraw)
 
     def _redraw(self):
         # wx.CallAfter(self.draw)
         self.draw()
 
-    def OnPaint(self, event):  # noqa
+    def on_paint(self, event):
         # TODO: set flag to be drawn
         # print('Sideview::OnPaint') # DEBUG
         if self.view.window_size[0] == -1:
             return
         self.draw()
 
-    def OnSize(self, event):  # noqa
+    def on_size(self, event):
         # poor man's collapsing of OnSize events
         wx.CallAfter(self.set_viewport)
         event.Skip()
@@ -208,19 +210,17 @@ class ToolUI(ToolInstance):
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        import weakref
-        self._session = weakref.ref(session)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Side view",
-                                      session, size=self.SIZE)
+        self.tool_window = ToolWindow("Side View", session, size=self.SIZE)
         parent = self.tool_window.ui_area
+
         # UI content code
         from chimera.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
         self.view = View(session.models.drawing, wx.DefaultSize, oc,
                          session.logger, track=False)
         self.opengl_canvas = SideViewCanvas(parent, self.view,
-                                            session.main_view)
+                                            session.main_view, self.SIZE)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
@@ -261,14 +261,13 @@ class ToolUI(ToolInstance):
     # Override ToolInstance delete method to clean up
     #
     def delete(self):
-        session = self._session()  # resolve back reference
         self.tool_window.shown = False
         self.tool_window.destroy()
-        session.tools.remove([self])
+        self.session.tools.remove([self])
         super().delete()
 
     def display(self, b):
         self.tool_window.shown = b
 
     def display_name(self):
-        return "custom name for running tool"
+        return "Side View"
