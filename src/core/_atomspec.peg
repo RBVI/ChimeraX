@@ -4,18 +4,18 @@ atom_specifier   = left:atom_specifier operator:'&' right:as_term
                  ;
 
 as_term          = '(' term:as_term  ')'
-                 | models:model_list
                  | selector:selector_name
+                 | models:model_list
                  ;
 
 selector_name    = name:/[a-zA-Z_][a-zA-Z0-9_]*/
                  ;
 
-model_list       = model_list:model_list model:model
-                 | model:model
+model_list       = { model+:model }*
                  ;
 
-model            = '#' hierarchy:model_hierarchy parts:model_parts
+model            = '#' hierarchy:model_hierarchy [ parts:model_parts ]
+		 | parts:model_parts
                  ;
 
 model_hierarchy  = range_list:model_range_list
@@ -33,13 +33,15 @@ model_spec       = number:/[0-9]+/
                  | star:'*'
                  ;
 
-model_parts      = { chain:chain }*
+model_parts      = { chain+:chain }+
                  ;
 
-chain            = [ '/' parts:part_list ] { residue:residue }*
+chain            = '/' parts:part_list { residue+:residue }*
+		 | { residue+:residue }+
                  ;
 
-residue          = [ ':' parts:part_list ] { atom:atom }*
+residue          = ':' parts:part_list { atom+:atom }*
+		 | { atom+:atom }+
                  ;
 
 atom             = '@' parts:part_list
