@@ -199,6 +199,7 @@ class Secondary_Graphics_Window(QtGui.QWindow):
 
         shared_context = session.main_window.graphics_window.opengl_context
         self.opengl_context = QtOpenGLContext(self, shared_context)
+        self.primary_opengl_context = shared_context
 
     def close(self):
         self.opengl_context = None

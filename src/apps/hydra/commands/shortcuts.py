@@ -153,7 +153,6 @@ def standard_shortcuts(session):
         ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat, sesarg),
 
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
-        ('Oc', oculus_mode, 'Set Oculus Rift stereo mode', gcat, viewarg),
         ('om', oculus_move, 'Move Oculus window to primary display', gcat, sesarg, dmenu),
 
         ('lp', toggle_leap, 'Toggle leap motion input device', gcat, sesarg, dmenu),
@@ -724,9 +723,6 @@ def mono_mode(viewer):
 def stereo_mode(viewer):
     from .. import graphics
     viewer.camera.mode = graphics.stereo_camera_mode
-def oculus_mode(viewer):
-    from ..devices import oculus
-    viewer.camera.mode = oculus.OculusRiftCameraMode()
 def start_oculus(session):
     from ..devices import oculus
     if session.view.camera.mode.name() == 'oculus':

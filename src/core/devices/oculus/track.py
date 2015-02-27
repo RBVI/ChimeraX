@@ -6,20 +6,12 @@ class Oculus_Rift:
 
         self.view = view
 
-        self.oculus_opengl_context = window.opengl_context
-        self.render_opengl_context = window.primary_opengl_context
-
-        self.camera_mode = OculusRiftCameraMode(self)
-
         self.last_translation = None
         self.last_rotation = None
         self.panning_speed = 5
         self.frame_cb = None
 
         self.connected = self.start_event_processing()
-
-        if self.connected:
-            self.set_camera_mode(view.camera)
 
     def close(self):
 
@@ -33,15 +25,11 @@ class Oculus_Rift:
     def start_event_processing(self):
 
         from . import _oculus
-
-        if not self.connected:
-            # Make sure initializing Oculus distortion correct doesn't change current OpenGL VAO bindings.
-            self.oculus_opengl_context.make_current()
-            try:
-                _oculus.connect()
-                self.connected = True
-            except:
-                return False
+        try:
+            _oculus.connect()
+            self.connected = True
+        except:
+            return False
 
         self.parameters = p = _oculus.parameters()
         params = list(p.items())
@@ -81,11 +69,8 @@ class Oculus_Rift:
     def render(self, tex_width, tex_height, tex_left, tex_right):
 
         if self.connected and self.frame_cb:
-            self.oculus_opengl_context.make_current()
             from . import _oculus
             _oculus.render(tex_width, tex_height, tex_left, tex_right)
-            # Switch back to main window graphics context.
-            self.render_opengl_context.make_current()
 
     def field_of_view_degrees(self):
 
@@ -159,32 +144,15 @@ class Oculus_Rift:
             rel = m.inverse()*lm
         return rel
 
-    def set_camera_mode(self, camera):
-        if not self.connected:
-            return
-
-        fov = self.field_of_view_degrees()
-        sx,sy = self.camera_centering_shift_pixels()
-        w,h = self.display_size()
-        wsize = self.eye_render_size()
-
-        c = camera
-        from math import pi
-        c.field_of_view = fov
-        print ('set camera field of view', fov)
-        c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
-        m = self.camera_mode
-        m.oculus_centering_shift = (sx,sy)
-        print ('oculus camera shift pixels', sx, sy)
-        m.warp_window_size = wsize
-        c.mode = m
-
 from ...graphics import CameraMode
-class OculusRiftCameraMode(CameraMode):
+class Oculus_Rift_Camera_Mode(CameraMode):
 
-    def __init__(self, oculus_rift = None):
+    def __init__(self, oculus_rift = None, oculus_opengl_context = None, render_opengl_context = None):
 
         self.oculus_rift = oculus_rift
+
+        self.oculus_opengl_context = oculus_opengl_context
+        self.render_opengl_context = render_opengl_context
 
         self.eye_separation_scene = 1.0
         "Stereo eye separation in scene units."
@@ -204,11 +172,31 @@ class OculusRiftCameraMode(CameraMode):
         '''
 
         self.debug_oculus = False      # Render unwarped textures instead of having Oculus SDK do it.
-        self.draw_main_window = False  # Used mostly for demoing oculus eye views can be seen on conventional screen
+
+        # Used mostly for demoing oculus eye views can be seen on conventional screen
+        self.draw_main_window = (oculus_rift is None)
 
     def name(self):
         '''Name of camera mode.'''
         return 'oculus'
+
+    def set_camera_mode(self, camera, oculus_device):
+        oc = oculus_device
+
+        fov = oc.field_of_view_degrees()
+        sx,sy = oc.camera_centering_shift_pixels()
+        w,h = oc.display_size()
+        wsize = oc.eye_render_size()
+
+        c = camera
+        from math import pi
+        c.field_of_view = fov
+        print ('set camera field of view', fov)
+        c.eye_separation_scene = 0.2        # TODO: This is good value for inside a molecule, not for far from molecule.
+        self.oculus_centering_shift = (sx,sy)
+        print ('oculus camera shift pixels', sx, sy)
+        self.warp_window_size = wsize
+        c.mode = self
 
     def view(self, camera_position, view_num):
         '''
@@ -254,17 +242,19 @@ class OculusRiftCameraMode(CameraMode):
             # This causes unpleasant oculus frame drop because vsync on main window is slower than oculus.
             fb = render.current_framebuffer()
             self._draw_unwarped(render, fb.width, fb.height)
-            # TODO: Make render object should hold opengl context.
-            self.oculus_rift.render_opengl_context.swap_buffers()
 
         # Draw in oculus window
         o = self.oculus_rift
-        if self.debug_oculus:
-            self._draw_oculus_unwarped(render)
-        else:
-            t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
-            o.render(t0.size[0], t0.size[1], t0.id, t1.id)
-            render.opengl_context_changed()
+        if not o is None:
+            if self.debug_oculus:
+                self._draw_oculus_unwarped(render)
+            else:
+                t0,t1 = [rb.color_texture for rb in self._warp_framebuffers]
+                self.oculus_opengl_context.make_current()
+                o.render(t0.size[0], t0.size[1], t0.id, t1.id)
+                # Switch back to main window graphics context.
+                self.render_opengl_context.make_current()
+                render.opengl_context_changed()
 
     def do_swap_buffers(self):
         return self.oculus_rift is None
@@ -284,16 +274,15 @@ class OculusRiftCameraMode(CameraMode):
     def _draw_oculus_unwarped(self, render):
 
         # Unwarped rendering, for testing purposes.
-        ocr = self.oculus_rift
-        ocr.oculus_opengl_context.make_current()
+        self.oculus_opengl_context.make_current()
         render.opengl_context_changed()
-        w,h = ocr.display_size()
 
+        w,h = self.oculus_rift.display_size()
         self._draw_unwarped(render, w, h)
 
-        ocr.oculus_opengl_context.swap_buffers()
+        self.oculus_opengl_context.swap_buffers()
 
-        ocr.render_opengl_context.make_current()
+        self.render_opengl_context.make_current()
         render.opengl_context_changed()
 
     def _draw_unwarped(self, render, w, h):

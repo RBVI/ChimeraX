@@ -6,7 +6,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/devices
 PYSRCS = c2leap.py device.py
 
 ifeq ($(OS),Darwin)
-	SUBDIRS	= spacenavigator oculus
+	SUBDIRS	= spacenavigator
 	include $(TOP)/mk/subdir.make
 endif
 

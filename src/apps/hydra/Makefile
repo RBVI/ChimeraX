@@ -61,6 +61,7 @@ install: all $(PKG_DIR) install_app_prereqs
 		$(RSYNC) $(PYSITEDIR)/chimera/core/$$cpy $(PKG_DIR) ; \
 	done
 	$(RSYNC) --exclude __init__.py $(PYSITEDIR)/chimera/core/map $(PKG_DIR)
+	$(RSYNC) $(PYSITEDIR)/chimera/core/devices $(PKG_DIR)
 	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(APP_LIB_DIR)
 ifeq ($(OS),Darwin)
 	$(RSYNC) $(PKG_DIR) $(APP_PY_SITE)
