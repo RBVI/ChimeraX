@@ -205,11 +205,9 @@ class _AtomSpecSemantics:
         return _SelectorName(ast.name)
 
     def model_list(self, ast):
-        if ast.model_list is None:
-            model_list = _ModelList(ast.model)
-        else:
-            model_list = ast.model_list
-            model_list.append(ast.model)
+        model_list = _ModelList()
+        if ast.model:
+            model_list.extend(ast.model)
         return model_list
 
     def model(self, ast):
@@ -250,8 +248,6 @@ class _AtomSpecSemantics:
         return ast.chain
 
     def chain(self, ast):
-        if ast.parts is None and not ast.residue:
-            return None
         c = _Chain(ast.parts)
         if ast.residue:
             for r in ast.residue:
@@ -259,8 +255,6 @@ class _AtomSpecSemantics:
         return c
 
     def residue(self, ast):
-        if ast.parts is None and not ast.atom:
-            return None
         r = _Residue(ast.parts)
         if ast.atom:
             for a in ast.atom:
@@ -282,18 +276,15 @@ class _AtomSpecSemantics:
 
 class _ModelList(list):
     """Stores list of model hierarchies."""
-    def __init__(self, h):
-        super().__init__()
-        self.append(h)
-
     def __str__(self):
         if not self:
-            return "[empty]"
+            return "<no model specifier>"
         return "".join(str(mr) for mr in self)
 
     def find_matches(self, session, model_list, results):
         for m in model_list:
             for model_spec in self:
+                print("model_spec", repr(model_spec), repr(str(model_spec)))
                 if model_spec.matches(session, m):
                     model_spec.find_sub_parts(session, m, results)
 

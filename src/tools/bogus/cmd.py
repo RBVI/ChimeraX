@@ -17,6 +17,14 @@ def undisplay(session, spec=None):
 undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
 
 
+def display(session, spec=None):
+    r = spec.evaluate(session)
+    r.atoms.displays = True
+    for m in r.models:
+        m.update_graphics()
+display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+
+
 def hidewater(session, modelspec=None):
     spec = modelspec.evaluate(session)
     import numpy
