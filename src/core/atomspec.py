@@ -284,7 +284,6 @@ class _ModelList(list):
     def find_matches(self, session, model_list, results):
         for m in model_list:
             for model_spec in self:
-                print("model_spec", repr(model_spec), repr(str(model_spec)))
                 if model_spec.matches(session, m):
                     model_spec.find_sub_parts(session, m, results)
 
@@ -436,7 +435,7 @@ class _Chain(_SubPart):
                     return chain_id >= part.start and chain_id <= part.end
             s = numpy.vectorize(choose)(chain_ids)
             selected = numpy.logical_or(selected, s)
-        print("_Chain._filter_parts", selected)
+        #print("_Chain._filter_parts", selected)
         return selected
 
 
@@ -460,6 +459,7 @@ class _Residue(_SubPart):
             selected = numpy.logical_or(selected, s)
             s = numpy.vectorize(choose)(res_numbers)
             selected = numpy.logical_or(selected, s)
+        #print("_Residue._filter_parts", selected)
         return selected
 
 
@@ -480,7 +480,7 @@ class _Atom(_SubPart):
                     return chain_id >= part.start and chain_id <= part.end
             s = numpy.vectorize(choose)(names)
             selected = numpy.logical_or(selected, s)
-        print("_Atom._filter_parts", selected)
+        #print("_Atom._filter_parts", selected)
         return selected
 
 
