@@ -180,8 +180,8 @@ class Oculus_Rift_Camera_Mode(CameraMode):
         '''Name of camera mode.'''
         return 'oculus'
 
-    def set_camera_mode(self, camera, oculus_device):
-        oc = oculus_device
+    def set_camera_mode(self, camera):
+        oc = self.oculus_rift
 
         fov = oc.field_of_view_degrees()
         sx,sy = oc.camera_centering_shift_pixels()

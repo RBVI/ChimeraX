@@ -3,6 +3,7 @@ include $(TOP)/mk/config.make
 
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
 	   basegeom_cpp blob_cpp \
+	   devices \
 	   geometry graphics \
 	   _mmcif \
 	   ioutil_cpp logger_cpp \
