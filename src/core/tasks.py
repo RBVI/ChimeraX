@@ -137,7 +137,6 @@ class Task(State):
         if self.state != PENDING:
             raise RuntimeError("starting task multiple times")
         import threading
-        print("start", args, kw)
         self._terminate = threading.Event()
         self._thread = threading.Thread(target=self._run_thread,
                                         daemon=True, args=args, kwargs=kw)
