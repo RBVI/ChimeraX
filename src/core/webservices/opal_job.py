@@ -53,17 +53,21 @@ class OpalJob(Job):
     #
     # Define chimera.core.tasks.Job ABC methods
     #
-    def launch(self, service_name, cmd, opal_url=None, **kw):
+    def launch(self, service_name, cmd, opal_url=None,
+               input_file_map=None, **kw):
         """Launch the background process.
 
         Arguments
         ---------
         service_name : str
             Name of Opal service
-        opal_url : str
-            URL of Opal server.  If None, DEFAULT_OPAL_URL is used.
         cmd : str
             Command line to send to Opal server
+        opal_url : str
+            URL of Opal server.  If None, DEFAULT_OPAL_URL is used.
+        input_file_map : dict
+            Dictionary of file names to file paths.  Files are sent
+            to server as part of the launch request.
         kw : extra arguments
             Arguments passed through to launch request.
 
@@ -92,8 +96,16 @@ class OpalJob(Job):
         md = self._suds.service.getAppMetadata()
         logger.info("Web Service: %s" % md.usage)
 
-        # Launch job
+        # Add job keywords
         job_kw = dict([(k[1:], v) for k, v in kw.items() if k.startswith('_')])
+
+        # Create input file map if necessary
+        if input_file_map is not None:
+            input_files = [self._make_input_file(name, type, value)
+                           for name, type, value in input_file_map]
+            job_kw["inputFile"] = input_files
+
+        # Launch job
         from suds import WebFault
         try:
             r = self._suds.service.launchJob(cmd, **job_kw)
@@ -104,6 +116,7 @@ class OpalJob(Job):
             self.job_id = r.jobID
             logger.info("Opal service URL: %s" % self.service_url)
             logger.info("Opal job id: %s" % self.job_id)
+            logger.info("Opal status URL: %s" % r.status[2])
             import time
             self.start_time = time.time()
             self._save_status(r.status)
@@ -257,3 +270,14 @@ class OpalJob(Job):
         else:
             self._outputs.update([(f.name, f.url) for f in files])
         return self._outputs
+
+    def _make_input_file(self, name, type, value):
+        # if contents is "file", value is a path
+        # otherwise, value is used as is
+        if type == "file":
+            with open(value, "r") as f:
+                value = f.read()
+        # Opal wants base64 encoded content
+        from base64 import b64encode
+        contents = b64encode(value.encode("UTF-8")).decode("UTF-8")
+        return {"name": name, "contents": contents}
