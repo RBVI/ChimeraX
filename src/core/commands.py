@@ -199,10 +199,9 @@ def register(session):
     series.register_vseries_command()
     from . import color
     color.register_commands()
-    if sys.platform.startswith("darwin"):
-        from .devices import oculus, spacenavigator
-        oculus.register_oculus_command()
-        spacenavigator.register_snav_command()
+#    from .devices import oculus, spacenavigator
+#    oculus.register_oculus_command()
+#    spacenavigator.register_snav_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
