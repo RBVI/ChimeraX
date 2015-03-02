@@ -167,12 +167,17 @@ def find_device():
 # -----------------------------------------------------------------------------
 #
 def space_navigator(session):
-    sn = session.space_navigator
-    if sn is None:
-        log = session
-        sn = Space_Navigator(session.view, log)
-        session.space_navigator = sn
-    return sn
+    if not hasattr(session, 'space_navigator') or session.space_navigator is None:
+        if hasattr(session, 'main_view'):
+            # Chimera 2
+            log = session.logger
+            v = session.main_view
+        else:
+            # Hydra
+            log = session
+            v = session.view
+        session.space_navigator = Space_Navigator(v, log)
+    return session.space_navigator
 
 # -----------------------------------------------------------------------------
 #
@@ -207,7 +212,7 @@ def avoid_collisions(session):
 
 # -----------------------------------------------------------------------------
 #
-def snav_command(enable = None, fly = None, session = None):
+def snav_command(session, enable = None, fly = None):
 
     sn = space_navigator(session)
     if not enable is None:
@@ -218,3 +223,12 @@ def snav_command(enable = None, fly = None, session = None):
         
     if not fly is None:
         sn.fly_mode = bool(fly)
+
+# -----------------------------------------------------------------------------
+# Register the snav command for Chimera 2.
+#
+def register_snav_command():
+    from ...cli import CmdDesc, BoolArg, register
+    _snav_desc = CmdDesc(optional = [('enable', BoolArg)],
+                         keyword = [('fly', BoolArg)])
+    register('snav', _snav_desc, snav_command)
