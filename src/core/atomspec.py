@@ -404,7 +404,11 @@ class _Model(_SubPart):
 
     def find_sub_parts(self, session, model, results):
         results.add_model(model)
-        atoms = model.mol_blob.atoms
+        try:
+            atoms = model.mol_blob.atoms
+        except AttributeError:
+            # No atoms, just go home
+            return
         if not self.sub_parts:
             # No chain specifier, select all atoms
             results.add_atoms(atoms)
@@ -432,10 +436,10 @@ class _Chain(_SubPart):
                     return chain_id == v
             else:
                 def choose(chain_id, s=part.start, e=part.end):
-                    return chain_id >= part.start and chain_id <= part.end
+                    return chain_id >= s and chain_id <= e
             s = numpy.vectorize(choose)(chain_ids)
             selected = numpy.logical_or(selected, s)
-        #print("_Chain._filter_parts", selected)
+        # print("_Chain._filter_parts", selected)
         return selected
 
 
@@ -446,21 +450,40 @@ class _Residue(_SubPart):
     def _filter_parts(self, atoms, num_atoms):
         import numpy
         res_names = numpy.array(atoms.residues.names)
-        res_numbers = numpy.array([str(s) for s in atoms.residues.numbers])
+        res_numbers = atoms.residues.numbers
         selected = numpy.zeros(num_atoms)
         for part in self.my_parts.parts:
+            start_number = self._number(part.start)
             if part.end is None:
-                def choose(value, v=part.start):
+                end_number = None
+                def choose_type(value, v=part.start):
                     return value == v
             else:
-                def choose(value, s=part.start, e=part.end):
-                    return value >= part.start and value <= part.end
-            s = numpy.vectorize(choose)(res_names)
+                end_number = self._number(part.end)
+                def choose_type(value, s=part.start, e=part.end):
+                    return value >= s and value <= e
+            if start_number:
+                if end_number is None:
+                    def choose_number(value, v=start_number):
+                        return value == v
+                else:
+                    def choose_number(value, s=start_number, e=end_number):
+                        return value >=s and value <= e
+            else:
+                choose_number = None
+            s = numpy.vectorize(choose_type)(res_names)
             selected = numpy.logical_or(selected, s)
-            s = numpy.vectorize(choose)(res_numbers)
-            selected = numpy.logical_or(selected, s)
-        #print("_Residue._filter_parts", selected)
+            if choose_number:
+                s = numpy.vectorize(choose_number)(res_numbers)
+                selected = numpy.logical_or(selected, s)
+        # print("_Residue._filter_parts", selected)
         return selected
+
+    def _number(self, n):
+        try:
+            return int(n)
+        except ValueError:
+            return None
 
 
 class _Atom(_SubPart):
@@ -473,14 +496,14 @@ class _Atom(_SubPart):
         selected = numpy.zeros(num_atoms)
         for part in self.my_parts.parts:
             if part.end is None:
-                def choose(chain_id, v=part.start):
-                    return chain_id == v
+                def choose(name, v=part.start):
+                    return name == v
             else:
-                def choose(chain_id, s=part.start, e=part.end):
-                    return chain_id >= part.start and chain_id <= part.end
+                def choose(name, s=part.start, e=part.end):
+                    return name >= s and chain_id <= e
             s = numpy.vectorize(choose)(names)
             selected = numpy.logical_or(selected, s)
-        #print("_Atom._filter_parts", selected)
+        # print("_Atom._filter_parts", selected)
         return selected
 
 
@@ -577,7 +600,7 @@ class AtomSpec:
             Instance containing data (atoms, bonds, etc) that match
             this atom specifier.
         """
-        print("evaluate:", str(self))
+        # print("evaluate:", str(self))
         if models is None:
             models = session.models.list(**kw)
         if self._operator is None:
