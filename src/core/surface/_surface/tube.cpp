@@ -161,7 +161,7 @@ static void stitch_cap(int *triangles, int m, int voffset, bool clockwise)
 // -----------------------------------------------------------------------------
 //
 extern "C"
-PyObject *tube_geometry(PyObject *s, PyObject *args, PyObject *keywds)
+PyObject *tube_geometry(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray path, tangents, cross_section, cross_section_normals;
   const char *kwlist[] = {"path", "tangents", "cross_section", "cross_section_normals", NULL};
@@ -256,7 +256,7 @@ static void tube_geometry_colors(unsigned int *colors, int n,
 // -----------------------------------------------------------------------------
 //
 extern "C"
-PyObject *tube_geometry_colors(PyObject *s, PyObject *args, PyObject *keywds)
+PyObject *tube_geometry_colors(PyObject *, PyObject *args, PyObject *keywds)
 {
   CArray colors;
   int ns, nc, ed1, ed2;
@@ -332,7 +332,7 @@ static void tube_triangle_mask(bool *segmask, int n,
 // -----------------------------------------------------------------------------
 //
 extern "C"
-PyObject *tube_triangle_mask(PyObject *s, PyObject *args, PyObject *keywds)
+PyObject *tube_triangle_mask(PyObject *, PyObject *args, PyObject *keywds)
 {
   CArray segmask;
   int ns, nc, ed1, ed2;
