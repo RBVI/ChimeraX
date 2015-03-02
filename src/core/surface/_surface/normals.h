@@ -5,11 +5,6 @@
 
 #include <Python.h>			// use PyObject
 
-#include "rcarray.h"			// use FArray, IArray
-
-FArray calculate_vertex_normals(const FArray &vertices, const IArray &triangles);
-void invert_vertex_normals(const FArray &normals, const IArray &triangles);
-
 extern "C"
 {
 // Args: vertex_array, triangle_array
