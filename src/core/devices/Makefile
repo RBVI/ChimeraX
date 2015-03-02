@@ -5,7 +5,7 @@ PKG_DIR = $(PYSITEDIR)/chimera/core/devices
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/devices
 
 ifeq ($(OS),Darwin)
-	SUBDIRS	= oculus spacenavigator
+#	SUBDIRS	= oculus spacenavigator
 endif
 
 PYSRCS = __init__.py
