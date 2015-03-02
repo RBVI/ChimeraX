@@ -174,6 +174,7 @@ _camera_desc = cli.CmdDesc(optional=[
 
 def register(session):
     """Register common cli commands"""
+    import sys
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)

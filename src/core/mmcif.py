@@ -57,6 +57,9 @@ def fetch_mmcif(session, pdb_id):
     filename = "~/Downloads/Chimera/PDB/%s.cif" % pdb_id.upper()
     filename = os.path.expanduser(filename)
 
+    if os.path.exists(filename):
+        return filename, pdb_id  # TODO: check if cache needs updating
+
     dirname = os.path.dirname(filename)
     os.makedirs(dirname, exist_ok=True)
 
@@ -79,6 +82,9 @@ def _get_template(name, app_dirs, logger):
     # check in local cache
     filename = "~/Downloads/Chimera/CCD/%s.cif" % name
     filename = os.path.expanduser(filename)
+
+    if os.path.exists(filename):
+        return filename  # TODO: check if cache needs updating
 
     dirname = os.path.dirname(filename)
     os.makedirs(dirname, exist_ok=True)

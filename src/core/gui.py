@@ -212,7 +212,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
         self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnOpen(evt, ses),
             item)
-        if sys.platform != "darwin":
+        if not sys.platform.startswith("darwin"):
             item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
             self.Bind(wx.EVT_MENU, self.OnQuit, item)
         tools_menu = wx.Menu()

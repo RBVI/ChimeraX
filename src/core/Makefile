@@ -42,6 +42,8 @@ setup.py: setup.py.in
 		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
 		-e 's,CORE_VERSION,$(CORE_VERSION),' \
 		< setup.py.in > setup.py
 

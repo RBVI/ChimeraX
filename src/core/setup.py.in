@@ -43,8 +43,13 @@ setup(
     package_data={
         "chimera.core": ["*.PYMOD_EXT"],
         "chimera.core.ui": ["*.jpg"],
+<<<<<<< HEAD
 #        "chimera.core.devices.oculus": ["*.PYMOD_EXT"],
 #        "chimera.core.devices.spacenavigator": ["*.PYMOD_EXT"],
+=======
+        #Darwin#"chimera.core.devices.oculus": ["*.PYMOD_EXT"],
+        #Darwin#"chimera.core.devices.spacenavigator": ["*.PYMOD_EXT"],
+>>>>>>> f3d572711dbc289b10ece5b846f9ffdea7b25b5f
         "chimera.core.geometry": ["*.PYMOD_EXT"],
         "chimera.core.graphics": ["*.txt", "*.PYMOD_EXT"],
         "chimera.core.map": ["*.PYMOD_EXT"],

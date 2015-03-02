@@ -65,9 +65,13 @@ class OpalJob(Job):
             Command line to send to Opal server
         opal_url : str
             URL of Opal server.  If None, DEFAULT_OPAL_URL is used.
-        input_file_map : dict
-            Dictionary of file names to file paths.  Files are sent
-            to server as part of the launch request.
+        input_file_map : list of tuples
+            List of file names and contents.  Each tuple consists of
+            the file name, the type of content, and the content.
+            Supported content types include: "text_file", "binary_file"
+            and "bytes".  For "text_file" and "binary_file", the value
+            should be the path to a file; for "bytes", the value should
+            be of type 'bytes'.
         kw : extra arguments
             Arguments passed through to launch request.
 
@@ -101,8 +105,8 @@ class OpalJob(Job):
 
         # Create input file map if necessary
         if input_file_map is not None:
-            input_files = [self._make_input_file(name, type, value)
-                           for name, type, value in input_file_map]
+            input_files = [self._make_input_file(name, value_type, value)
+                           for name, value_type, value in input_file_map]
             job_kw["inputFile"] = input_files
 
         # Launch job
@@ -123,6 +127,7 @@ class OpalJob(Job):
 
     def _save_status(self, status):
         self._status_code = int(status[0])
+        print("_status_code", self._status_code)
         self._status_message = str(status[1])
         self._status_url = str(status[2])
         if self._status_code in [4, 8]:
@@ -156,7 +161,7 @@ class OpalJob(Job):
         """Return whether background process terminated normally.
 
         """
-        return self._status_code == 4
+        return self._status_code in [4, 8]
 
     #
     # Define chimera.core.session.State ABC methods
@@ -271,13 +276,19 @@ class OpalJob(Job):
             self._outputs.update([(f.name, f.url) for f in files])
         return self._outputs
 
-    def _make_input_file(self, name, type, value):
-        # if contents is "file", value is a path
-        # otherwise, value is used as is
-        if type == "file":
+    def _make_input_file(self, name, value_type, value):
+        # text files are opened normally, with contents encoded as UTF-8.
+        # binary files are opened in binary mode and untouched.
+        # bytes are used as is.
+        if value_type == "text_file":
             with open(value, "r") as f:
+                value = f.read().encode("UTF-8")
+        elif value_type == "binary_file":
+            with open(value, "rb") as f:
                 value = f.read()
-        # Opal wants base64 encoded content
+        elif value_type != "bytes":
+            raise ValueError("unsupported content type: \"%s\"" % value_type)
+        # Opal wants base64 encoded content as string
         from base64 import b64encode
-        contents = b64encode(value.encode("UTF-8")).decode("UTF-8")
+        contents = b64encode(value).decode("UTF-8")
         return {"name": name, "contents": contents}
