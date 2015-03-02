@@ -140,7 +140,7 @@ class _apbs_pdb2pqr(OpalJob):
                    "--ff", "amber",
                    self.PDB_NAME, self.PQR_NAME]
         cmd = ' '.join(options)
-        input_file_map = [(self.PDB_NAME, "file", self.PDB_NAME)]
+        input_file_map = [(self.PDB_NAME, "text_file", self.PDB_NAME)]
         self.start(self.OPAL_SERVICE, cmd, opal_url=self.OPAL_URL,
                    input_file_map=input_file_map)
 
@@ -148,20 +148,27 @@ class _apbs_pdb2pqr(OpalJob):
         logger = self.session.logger
         logger.info("PDB2PQR standard output:")
         logger.info(self.get_file("stdout.txt").decode(encoding="UTF-8"))
+        if not self.exited_normally():
+            logger.error("PDB2PQR exited abnormally.")
+            self._show_stderr(logger)
+            return
         try:
             pqr = self.get_file(self.PQR_NAME)
         except KeyError:
-            logger.error("pdb2pqr failed.")
-            logger.error("PDB2PQR standard error:")
-            logger.error(self.get_file("stderr.txt").decode(encoding="UTF-8"))
+            logger.error("cannot fetch PDB2PQR .pqr file \"%s\"." % self.PQR_NAME)
+            self._show_stderr(logger)
         else:
             with open(self.PQR_NAME, "w") as f:
                 f.write(pqr.decode(encoding="UTF-8"))
             m = self.mol()
             if m is None:
-                logger.error("molecule closed between pdb2pqr and apbs.")
+                logger.error("molecule closed between PDB2PQR and APBS.")
             else:
                 _apbs_apbs(self.session, m, self.PQR_NAME, self.DX_NAME)
+
+    def _show_stderr(self, logger):
+        logger.error("PDB2PQR standard error:")
+        logger.error(self.get_file("stderr.txt").decode(encoding="UTF-8"))
 
 
 class _apbs_apbs(OpalJob):
@@ -177,8 +184,8 @@ class _apbs_apbs(OpalJob):
         self.dx_name = dx_name
         cmd = [self.CONFIG]
         self._make_config(m, pqr_name)
-        input_file_map = [(pqr_name, "file", pqr_name),
-                          (self.CONFIG, "file", self.CONFIG)]
+        input_file_map = [(pqr_name, "text_file", pqr_name),
+                          (self.CONFIG, "text_file", self.CONFIG)]
         self.start(self.OPAL_SERVICE, cmd, opal_url=self.OPAL_URL,
                    input_file_map=input_file_map)
 
@@ -224,24 +231,30 @@ class _apbs_apbs(OpalJob):
         logger = self.session.logger
         logger.info("APBS standard output:")
         logger.info(self.get_file("stdout.txt").decode(encoding="UTF-8"))
+        if not self.exited_normally():
+            logger.error("APBS exited abnormally.")
+            self._show_stderr(logger)
+            return
         for dx in self.get_outputs().keys():
             if dx.startswith(self.PREFIX) and dx.endswith(self.SUFFIX):
                 break
         else:
-            logger.error("no .dx file generated.")
-            logger.error("APBS standard error:")
-            logger.error(self.get_file("stderr.txt").decode(encoding="UTF-8"))
+            logger.error("no APBS .dx file generated.")
+            self._show_stderr(logger)
             return
         try:
             dx = self.get_file(dx)
         except KeyError:
-            logger.error("apbs failed.")
-            logger.error("APBS standard error:")
-            logger.error(self.get_file("stderr.txt").decode(encoding="UTF-8"))
+            logger.error("cannot fetch APBS .dx file \"%s\"." % dx)
+            self._show_stderr(logger)
         else:
             with open(self.dx_name, "wb") as f:
                 f.write(dx)
-            # TODO: open self.dx_name
+            self.session.models.open(self.dx_name)
+
+    def _show_stderr(self, logger):
+        logger.error("APBS standard error:")
+        logger.error(self.get_file("stderr.txt").decode(encoding="UTF-8"))
 
 
 #
