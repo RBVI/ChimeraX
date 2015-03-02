@@ -44,12 +44,17 @@ class StructureModel(models.Model):
 
     def make_drawing(self):
 
+        from time import time
+        t0 = time()
         self.initialize_graphical_attributes()
 
+        t1 = time()
         m = self.mol_blob
         a = m.atoms
         coords = a.coords
+        t1_1 = time()
         radii = self.atom_display_radii()
+        t1_2 = time()
         colors = a.colors
         display = a.displays
         draw_modes = a.draw_modes
@@ -60,8 +65,17 @@ class StructureModel(models.Model):
         bonds = m.bond_indices
 
         # Create graphics
+        t2 = time()
         self.create_atom_spheres(coords, radii, colors, display)
+        t3 = time()
         self.update_bond_graphics(bonds, coords, display, draw_modes, bradii, bcolors, colors, halfbond)
+        t4 = time()
+        print("make_drawing:")
+        print("\tinitialize graphical attrs: {}".format(t1 - t0))
+        print("\tnon-radii blobs: {}".format(t1_1 - t1 + t2 - t1_2))
+        print("\tradii blob: {}".format(t1_2 - t1_1))
+        print("\tcreate spheres: {}".format(t3 - t2))
+        print("\tbond graphics: {}".format(t4 - t3))
 
     def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing

@@ -96,6 +96,8 @@ static PyGetSetDef ResBlob_getset[] = {
     { NULL, NULL, NULL, NULL, NULL }
 };
 
+static PyMappingMethods ResBlob_len = { blob_len<ResBlob>, NULL, NULL };
+
 } // extern "C"
 
 PyTypeObject ResBlob_type = {
@@ -111,7 +113,7 @@ PyTypeObject ResBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &ResBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str

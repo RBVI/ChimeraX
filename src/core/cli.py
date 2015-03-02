@@ -1233,6 +1233,8 @@ class Command:
     def execute(self, _used_aliases=None):
         """If command is valid, execute it with given session."""
 
+        from time import time
+        start_t = time()
         session = self._session()  # resolve back reference
         if not self._error_checked:
             self.error_check()
@@ -1240,7 +1242,9 @@ class Command:
         for (cmd_name, ci, kwargs) in self._multiple:
             try:
                 if not isinstance(ci.function, _Alias):
+                    cmd_t = time()
                     results.append(ci.function(session, **kwargs))
+                    print("Actual execution of {} took {}".format(ci.function, time() - cmd_t))
                     continue
                 arg_names = [k for k in kwargs.keys() if isinstance(k, int)]
                 arg_names.sort()
@@ -1276,6 +1280,7 @@ class Command:
                 if len(traceback.extract_tb(exc_traceback)) > 2:
                     raise
                 raise UserError(err)
+        print("Executing command took {}".format(time() - start_t))
         return results
 
     def _replace(self, chars, replacement):

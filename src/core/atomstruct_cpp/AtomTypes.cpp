@@ -423,10 +423,12 @@ aromatic_geometry(const Ring& r)
     return true;
 }
 
+#include <ctime>
 void
 AtomicStructure::_compute_atom_types()
 {
     using basegeom::Real;
+clock_t start_time = clock();
 
     // angle values used to discriminate between hybridization states
     const Real angle23val1 = 115.0;
@@ -492,6 +494,7 @@ AtomicStructure::_compute_atom_types()
     std::map<Atom*, int> heavys; // number of heavy atoms bonded
     size_t h_assigned = 0;
 
+clock_t end_time = clock();
     // "pass 1":  type hydrogens / deuteriums and compute number of
     // heavy atoms connected to each atom
     for (auto& a: atoms()) {
@@ -1909,6 +1912,7 @@ AtomicStructure::_compute_atom_types()
             }
         }
     }
+std::cerr << "computing atom types took " << (clock() - start_time) / (float)CLOCKS_PER_SEC << " seconds\n";
 }
 
 static void

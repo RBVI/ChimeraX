@@ -116,6 +116,28 @@ sb_set_displays(PyObject* self, PyObject* value, void*)
 }
 
 static PyObject*
+sb_num_atoms(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_atoms = 0;
+    for (auto s: *(sb->_items)) {
+        num_atoms += s->atoms().size();
+    }
+    return PyLong_FromLong((long)num_atoms);
+}
+
+static PyObject*
+sb_num_bonds(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_bonds = 0;
+    for (auto s: *(sb->_items)) {
+        num_bonds += s->bonds().size();
+    }
+    return PyLong_FromLong((long)num_bonds);
+}
+
+static PyObject*
 sb_structures(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
@@ -160,11 +182,15 @@ static PyGetSetDef StructBlob_getset[] = {
         "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
     { "displays", sb_displays, sb_set_displays,
         "numpy array of (bool) displays", NULL},
+    { "num_atoms", sb_num_atoms, NULL, "number of atoms", NULL},
+    { "num_bonds", sb_num_bonds, NULL, "number of bonds", NULL},
     { "structures", sb_structures, NULL,
         "list of one-structure-model StructBlobs", NULL},
     { "residues", sb_residues, NULL, "ResBlob", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
+
+static PyMappingMethods StructBlob_len = { blob_len<StructBlob>, NULL, NULL };
 
 } // extern "C"
 
@@ -181,7 +207,7 @@ PyTypeObject StructBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &StructBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str

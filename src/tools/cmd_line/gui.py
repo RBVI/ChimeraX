@@ -32,6 +32,8 @@ class CmdLine(ToolInstance):
             self.text.EmulateKeyPress(event)
 
     def OnEnter(self, event):
+        from time import time
+        start_t = time()
         session = self.session
         logger = session.logger
         text = self.text.GetLineText(0)
@@ -56,11 +58,14 @@ class CmdLine(ToolInstance):
             import traceback
             session.logger.error(traceback.format_exc())
         else:
+            start2 = time()
             thumb = session.main_view.image(
-                    width=100, height=100, supersample=3)
+                    width=100, height=100)
             session.logger.info(text, add_newline=False)
             session.logger.info("&nbsp;", is_html=True, add_newline=False)
             session.logger.info("graphics image", image=thumb)
+            print("Logging thumbnail took {}".format(time() - start2))
+        print("GUI command line: {}".format(time() - start_t))
 
     #
     # Implement session.State methods if deriving from ToolInstance

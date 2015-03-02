@@ -14,6 +14,8 @@ _initialized = False
 
 
 def open_mmcif(session, filename, name, *args, **kw):
+    from time import time
+    t0 = time()
     # mmCIF parsing requires an uncompressed file
     if hasattr(filename, 'name'):
         # it's really a fetched stream
@@ -22,28 +24,43 @@ def open_mmcif(session, filename, name, *args, **kw):
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name: _get_template(name, session.app_dirs, session.logger))
+    t1 = time()
     mol_blob = _mmcif.parse_mmCIF_file(filename)
+    t2 = time()
 
     structures = mol_blob.structures
     models = []
     num_atoms = 0
     num_bonds = 0
+    t3 = time()
     for structure_blob in structures:
         model = structure.StructureModel(name)
+        t4 = time()
         models.append(model)
         model.mol_blob = structure_blob
+        t5 = time()
         model.make_drawing()
+        t6 = time()
 
-        coords = model.mol_blob.atoms.coords
-        bond_list = model.mol_blob.bond_indices
-        num_atoms += len(coords)
-        num_bonds += len(bond_list)
+        num_atoms += model.mol_blob.num_atoms
+        num_bonds += model.mol_blob.num_bonds
+        t7 = time()
 
+    print("open_mmcif:")
+    print("\tsetup: {}".format(t1 - t0))
+    print("\treading mmcif: {}".format(t2 - t1))
+    print("\tindividual blobs: {}".format(t3 - t2))
+    print("\tStructureModel: {}".format(t4 - t3))
+    print("\tappend model: {}".format(t5 - t4))
+    print("\tmake drawing: {}".format(t6 - t5))
+    print("\tcoords: {}".format(t7 - t6))
     return models, ("Opened mmCIF data containing %d atoms and %d bonds"
                     % (num_atoms, num_bonds))
 
 
 def fetch_mmcif(session, pdb_id):
+    from time import time
+    t0 = time()
     if len(pdb_id) != 4:
         raise UserError("PDB identifiers are 4 characters long")
     import os
@@ -66,10 +83,15 @@ def fetch_mmcif(session, pdb_id):
     request = Request(url, unverifiable=True, headers={
         "User-Agent": utils.html_user_agent(session.app_dirs),
     })
+    t1 = time()
     try:
         utils.retrieve_cached_url(request, filename, session.logger)
     except URLError as e:
         raise UserError(str(e))
+    t2 = time()
+    print("fetch mmcif:")
+    print("\tpre-fetch/URL: {}".format(t1 - t0))
+    print("\tfetch/URL: {}".format(t2 - t1))
     return filename, pdb_id
 
 

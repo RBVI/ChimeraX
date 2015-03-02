@@ -511,24 +511,31 @@ def open(session, filespec, format=None, as_=None, **kw):
     uncompressed into a temporary file before calling the open function.
     """
 
+    from time import time
+    t0 = time()
     from chimera.core.cli import UserError
     format_name, prefix, filename, compression = deduce_format(
         filespec, has_format=format)
+    t1 = time()
     if format_name is None:
         raise UserError("Missing or unknown file type")
     open_func = open_function(format_name)
+    t2 = time()
     if open_func is None:
         raise UserError("unable to open %s files" % format_name)
     if prefix:
+        open_t0 = time()
         fetch_func = fetch_function(format_name)
         if fetch_func is None:
             raise UserError("unable to fetch %s files" % format_name)
         stream, name = fetch_func(session, filename)
+        open_t1 = time()
         if hasattr(filename, 'read'):
             filename = None
         else:
             filename = stream
             stream = _builtin_open(filename, 'rb')
+        open_t2 = time()
     else:
         if not compression:
             import os
@@ -546,6 +553,7 @@ def open(session, filespec, format=None, as_=None, **kw):
             except OSError as e:
                 raise UserError(e)
             name = os.path.basename(os.path.splitext(filename)[0])
+    t3 = time()
     if requires_filename(format_name) and not filename:
         # copy compressed file to real file
         import tempfile
@@ -561,10 +569,22 @@ def open(session, filespec, format=None, as_=None, **kw):
         stream = tf
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
+    t4 = time()
     models, status = open_func(session, stream, name, **kw)
+    t5 = time()
     if as_ is not None:
         for m in models:
             m.name = as_
+    t6 = time()
+    print("io:")
+    print("\tdeduce format: {}".format(t1-t0))
+    print("\tget open_func: {}".format(t2-t1))
+    print("\tfile opening: {}".format(t3-t2))
+    print("\t\tfetch: {}".format(open_t1 - open_t0))
+    print("\t\topen: {}".format(open_t2 - open_t1))
+    print("\tpossible temp file: {}".format(t4-t3))
+    print("\topen_func(): {}".format(t5-t4))
+    print("\tmodel naming: {}".format(t6-t5))
     return models, status
 
 
