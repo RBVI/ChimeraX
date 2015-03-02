@@ -131,7 +131,7 @@ def read_float_lines(f, array, line_format, progress = None):
     c = 0
     while c < count:
         line = f.readline()
-        if line == '':
+        if line == b'':
             msg = ('Too few data values in %s, found %d, expecting %d'
                    % (f.name, c, count))
             raise SyntaxError(msg)

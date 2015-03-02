@@ -28,6 +28,7 @@ setup(
         "chimera.core.graphics",
         "chimera.core.map",
         "chimera.core.map.data",
+        "chimera.core.map.data.apbs",
         "chimera.core.map.data.ccp4",
         "chimera.core.map.data.cmap",
         "chimera.core.map.data.dsn6",

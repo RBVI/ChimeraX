@@ -11,7 +11,7 @@ class APBS_Grid(Grid_Data):
 
   def __init__(self, path):
 
-    import apbs_format
+    from . import apbs_format
     ad = apbs_format.APBS_Data(path)
     self.apbs_data = ad
 
