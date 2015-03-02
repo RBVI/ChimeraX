@@ -55,6 +55,8 @@ setup.py: setup.py.in Makefile
 		-e 's,LIB_DIR,$(libdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
 		-e 's,TOOL_NAME,$(TOOL_NAME),' \
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \

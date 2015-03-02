@@ -174,6 +174,7 @@ _camera_desc = cli.CmdDesc(optional=[
 
 def register(session):
     """Register common cli commands"""
+    import sys
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)
@@ -198,9 +199,10 @@ def register(session):
     series.register_vseries_command()
     from . import color
     color.register_commands()
-    from .devices import oculus, spacenavigator
-    oculus.register_oculus_command()
-    spacenavigator.register_snav_command()
+    if sys.platform.startswith("darwin"):
+        from .devices import oculus, spacenavigator
+        oculus.register_oculus_command()
+        spacenavigator.register_snav_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
