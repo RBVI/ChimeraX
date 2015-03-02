@@ -56,9 +56,9 @@ def oculus_command(enable = None, panSpeed = None, session = None):
 # -----------------------------------------------------------------------------
 # Command for Chimera 2.
 #
-def oculus_cmd(session, onoff, panSpeed = None):
+def oculus_cmd(session, enable, panSpeed = None):
 
-    if onoff == 'on':
+    if enable:
         start_oculus2(session)
     else:
         stop_oculus2(session)
@@ -114,7 +114,7 @@ def stop_oculus2(session):
 # Register the oculus command for Chimera 2.
 #
 def register_oculus_command():
-    from ...cli import CmdDesc, EnumOf, FloatArg, register
-    _oculus_desc = CmdDesc(required = [('onoff', EnumOf(('on','off')))],
-                            optional = [('panSpeed', FloatArg)])
+    from ...cli import CmdDesc, BoolArg, FloatArg, register
+    _oculus_desc = CmdDesc(required = [('enable', BoolArg)],
+                           keyword = [('panSpeed', FloatArg)])
     register('oculus', _oculus_desc, oculus_cmd)
