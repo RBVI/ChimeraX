@@ -73,6 +73,14 @@ blob_intersect(PyObject* self, PyObject* py_other_blob)
 }
 
 template<typename BlobType>
+Py_ssize_t
+blob_len(PyObject* self)
+{
+    BlobType* blob = static_cast<BlobType*>(self);
+    return blob->_items->size();
+}
+
+template<typename BlobType>
 PyObject*
 blob_merge(PyObject* self, PyObject* py_other_blob)
 {
