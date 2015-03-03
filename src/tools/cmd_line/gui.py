@@ -59,8 +59,7 @@ class CmdLine(ToolInstance):
             session.logger.error(traceback.format_exc())
         else:
             start2 = time()
-            thumb = session.main_view.image(
-                    width=100, height=100)
+            thumb = session.main_view.image(width=100, height=100)
             session.logger.info(text, add_newline=False)
             session.logger.info("&nbsp;", is_html=True, add_newline=False)
             session.logger.info("graphics image", image=thumb)
