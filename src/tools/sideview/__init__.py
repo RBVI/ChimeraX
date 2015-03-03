@@ -11,7 +11,7 @@ def start_tool(session, ti):
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
     from .gui import ToolUI
-    ToolUI(session)     # UI should register itself with tool state manager
+    ToolUI(session, ti.display_name)
 
 
 # no commands
