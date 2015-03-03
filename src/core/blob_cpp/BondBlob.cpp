@@ -139,6 +139,8 @@ static PyGetSetDef BondBlob_getset[] = {
     { NULL, NULL, NULL, NULL, NULL }
 };
 
+static PyMappingMethods BondBlob_len = { blob_len<BondBlob>, NULL, NULL };
+
 } // extern "C"
 
 PyTypeObject BondBlob_type = {
@@ -154,7 +156,7 @@ PyTypeObject BondBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &BondBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str

@@ -34,10 +34,8 @@ def open_mmcif(session, filename, name, *args, **kw):
         model.mol_blob = structure_blob
         model.make_drawing()
 
-        coords = model.mol_blob.atoms.coords
-        bond_list = model.mol_blob.bond_indices
-        num_atoms += len(coords)
-        num_bonds += len(bond_list)
+        num_atoms += model.mol_blob.num_atoms
+        num_bonds += model.mol_blob.num_bonds
 
     return models, ("Opened mmCIF data containing %d atoms and %d bonds"
                     % (num_atoms, num_bonds))
