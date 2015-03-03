@@ -119,23 +119,20 @@ class Render:
         if self.SHADER_LIGHTING & c:
             self.set_shader_lighting_parameters()
             if self.SHADER_TEXTURE_3D_AMBIENT & c:
-                GL.glUniform1i(shader.uniform_id("tex3d"), 0)    # Tex unit 0.
+                shader.set_integer('tex3d', 0)    # Tex unit 0.
             if self.SHADER_MULTISHADOW & c:
                 self.set_shadow_shader_variables(shader)
             if self.SHADER_SHADOWS & c:
-                GL.glUniform1i(shader.uniform_id("shadow_map"),
-                               self.shadow_texture_unit)
+                shader.set_integer("shadow_map", self.shadow_texture_unit)
                 if self._shadow_transform is not None:
-                    GL.glUniformMatrix4fv(shader.uniform_id(
-                                          "shadow_transform"),
-                                          1, False, self._shadow_transform)
+                    shader.set_matrix("shadow_transform", self._shadow_transform)
             if self.SHADER_DEPTH_CUE & c:
                 self.set_depth_cue_parameters()
         self.set_projection_matrix()
         self.set_model_matrix()
         if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_MASK & c
                 or self.SHADER_DEPTH_OUTLINE & c):
-            GL.glUniform1i(shader.uniform_id("tex2d"), 0)    # Texture unit 0.
+            shader.set_integer("tex2d", 0)    # Texture unit 0.
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_single_color()
         if self.SHADER_FRAME_NUMBER & c:
@@ -187,8 +184,7 @@ class Render:
             self.current_projection_matrix = pm
         p = self.current_shader_program
         if p is not None:
-            GL.glUniformMatrix4fv(p.uniform_id('projection_matrix'), 1, False,
-                                  pm)
+            p.set_matrix('projection_matrix', pm)
 
     def set_view_matrix(self, vm):
         '''Set the camera view matrix, mapping scene to camera coordinates.'''
@@ -222,16 +218,10 @@ class Render:
 
         p = self.current_shader_program
         if p is not None:
-            var_id = p.uniform_id('model_view_matrix')
-            # Note: Getting about 5000 glUniformMatrix4fv() calls per second
-            # on 2013 Mac hardware.
-            # This can be a rendering bottleneck for large numbers of models
-            # or instances.
-            GL.glUniformMatrix4fv(var_id, 1, False, mv4)
+            p.set_matrix('model_view_matrix', mv4)
 #            if p.capabilities & self.SHADER_MULTISHADOW:
 #                m4 = self.current_model_matrix.opengl_matrix()
-#                GL.glUniformMatrix4fv(p.uniform_id('model_matrix'), 1, False,
-#                                      m4)
+#                p.set_matrix('model_matrix', m4)
             if not self.lighting.move_lights_with_camera:
                 self.set_shader_lighting_parameters()
 
@@ -242,78 +232,57 @@ class Render:
             self.frame_number = f
         p = self.current_shader_program
         if p is not None and self.SHADER_FRAME_NUMBER & p.capabilities:
-            GL.glUniform1f(p.uniform_id('frame_number'), f)
+            p.set_float('frame_number', f)
 
     def set_shader_lighting_parameters(self):
         '''Private. Sets shader lighting variables using the lighting
         parameters object given in the contructor.'''
 
-        sp = self.current_shader_program
-        if sp is None:
+        p = self.current_shader_program
+        if p is None:
             return
 
-        p = sp.program_id
         lp = self.lighting
         mp = self.material
 
         move = None if lp.move_lights_with_camera else self.current_view_matrix
 
         # Key light
-        key_light_dir = GL.glGetUniformLocation(p, b"key_light_direction")
-        if move:
-            kld = tuple(move.apply_without_translation(
-                        lp.key_light_direction))
-        else:
-            kld = lp.key_light_direction
-        GL.glUniform3f(key_light_dir, *kld)
-        key_diffuse = GL.glGetUniformLocation(p, b"key_light_diffuse_color")
+        kld = move.apply_without_translation(lp.key_light_direction) if move else lp.key_light_direction
+        p.set_vector("key_light_direction", kld)
         ds = mp.diffuse_reflectivity * lp.key_light_intensity
         kdc = tuple(ds * c for c in lp.key_light_color)
-        GL.glUniform3f(key_diffuse, *kdc)
+        p.set_vector("key_light_diffuse_color", kdc)
 
         # Key light specular
-        key_specular = GL.glGetUniformLocation(p, b"key_light_specular_color")
         ss = mp.specular_reflectivity * lp.key_light_intensity
         ksc = tuple(ss * c for c in lp.key_light_color)
-        GL.glUniform3f(key_specular, *ksc)
-        key_shininess = GL.glGetUniformLocation(p,
-                                                b"key_light_specular_exponent")
-        GL.glUniform1f(key_shininess, mp.specular_exponent)
+        p.set_vector("key_light_specular_color", ksc)
+        p.set_float("key_light_specular_exponent", mp.specular_exponent)
 
         # Fill light
-        fill_light_dir = GL.glGetUniformLocation(p, b"fill_light_direction")
-        if move:
-            fld = tuple(move.apply_without_translation(
-                        lp.fill_light_direction))
-        else:
-            fld = lp.fill_light_direction
-        GL.glUniform3f(fill_light_dir, *fld)
-        fill_diffuse = GL.glGetUniformLocation(p, b"fill_light_diffuse_color")
+        fld = move.apply_without_translation(lp.fill_light_direction) if move else lp.fill_light_direction
+        p.set_vector("fill_light_direction", fld)
         ds = mp.diffuse_reflectivity * lp.fill_light_intensity
         fdc = tuple(ds * c for c in lp.fill_light_color)
-        GL.glUniform3f(fill_diffuse, *fdc)
+        p.set_vector("fill_light_diffuse_color", fdc)
 
         # Ambient light
-        ambient = GL.glGetUniformLocation(p, b"ambient_color")
         ams = mp.ambient_reflectivity * lp.ambient_light_intensity
         ac = tuple(ams * c for c in lp.ambient_light_color)
-        GL.glUniform3f(ambient, *ac)
+        p.set_vector("ambient_color", ac)
 
     def set_depth_cue_parameters(self):
         '''Private. Sets shader depth variables using the lighting
         parameters object given in the contructor.'''
 
-        cp = self.current_shader_program
-        if cp is None:
+        p = self.current_shader_program
+        if p is None:
             return
 
-        p = cp.program_id
         lp = self.lighting
-
-        dc_distance = GL.glGetUniformLocation(p, b"depth_cue_distance")
-        GL.glUniform1f(dc_distance, lp.depth_cue_distance)
-        dc_darkest = GL.glGetUniformLocation(p, b"depth_cue_darkest")
-        GL.glUniform1f(dc_darkest, lp.depth_cue_darkest)
+        p.set_float("depth_cue_distance", lp.depth_cue_distance)
+        p.set_float("depth_cue_darkest", lp.depth_cue_darkest)
 
     def set_single_color(self, color=None):
         '''
@@ -321,26 +290,22 @@ class Render:
         '''
         if color is not None:
             self.single_color = color
-        p = self.current_shader_program.program_id
+        p = self.current_shader_program
         if p is not None:
-            c = GL.glGetUniformLocation(p, b"color")
-            GL.glUniform4fv(c, 1, self.single_color)
+            p.set_rgba("color", self.single_color)
 
     def set_ambient_texture_transform(self, tf):
         # Transform from model coordinates to ambient texture coordinates.
         p = self.current_shader_program
         if p is not None:
-            m = tf.opengl_matrix()
-            GL.glUniformMatrix4fv(p.uniform_id("ambient_tex3d_transform"), 1,
-                                  False, m)
+            p.set_matrix("ambient_tex3d_transform", tf.opengl_matrix())
 
     def set_shadow_transform(self, stf):
         # Transform from camera coordinates to shadow map texture coordinates.
         self._shadow_transform = m = stf.opengl_matrix()
         p = self.current_shader_program
         if p is not None and self.SHADER_SHADOWS & p.capabilities:
-            GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False,
-                                  m)
+            p.set_matrix("shadow_transform", m)
 
     def set_multishadow_transforms(self, stf, ctf, shadow_depth):
         # Transform from camera coordinates to shadow map texture coordinates.
@@ -355,8 +320,7 @@ class Render:
             self.set_shadow_shader_variables(p)
 
     def set_shadow_shader_variables(self, shader):
-        GL.glUniform1i(shader.uniform_id("multishadow_map"),
-                       self.multishadow_texture_unit)
+        shader.set_integer("multishadow_map", self.multishadow_texture_unit)
         m = self._multishadow_transforms
         if m is None:
             return
@@ -369,21 +333,15 @@ class Render:
             GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
             GL.glBufferData(GL.GL_UNIFORM_BUFFER, self.max_multishadows * 64,
                             pyopengl_null(), GL.GL_DYNAMIC_DRAW)
-            bi = GL.glGetUniformBlockIndex(shader.program_id,
-                                           b'shadow_matrix_block')
-            GL.glUniformBlockBinding(shader.program_id, bi,
-                                     self._multishadow_uniform_block)
-        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER,
-                            self._multishadow_uniform_block, b)
+            bi = GL.glGetUniformBlockIndex(shader.program_id, b'shadow_matrix_block')
+            GL.glUniformBlockBinding(shader.program_id, bi, self._multishadow_uniform_block)
+        GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._multishadow_uniform_block, b)
         # TODO: Issue warning if maximum number of shadows exceeded.
         mm = m[:self.max_multishadows, :, :]
         GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(mm) * 64, mm)
-
-#                GL.glUniformMatrix4fv(shader.uniform_id("shadow_transforms"),
-#                                      len(m), False, m)
-        GL.glUniform1i(shader.uniform_id("shadow_count"), len(mm))
-        GL.glUniform1f(shader.uniform_id("shadow_depth"),
-                       self._multishadow_depth)
+#        shader.set_matrices("shadow_transforms", m)
+        shader.set_integer("shadow_count", len(mm))
+        shader.set_float("shadow_depth", self._multishadow_depth)
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -689,10 +647,9 @@ class Render:
 
     def set_texture_mask_color(self, color):
 
-        p = self.current_shader_program.program_id
+        p = self.current_shader_program
         if p is not None:
-            mc = GL.glGetUniformLocation(p, b"color")
-            GL.glUniform4fv(mc, 1, color)
+            p.set_rgba("color", color)
 
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
@@ -754,19 +711,17 @@ class Render:
 
     def set_depth_outline_color(self, color):
 
-        p = self.current_shader_program.program_id
+        p = self.current_shader_program
         if p is not None:
-            mc = GL.glGetUniformLocation(p, b"color")
-            GL.glUniform4fv(mc, 1, color)
+            p.set_rgba("color", color)
 
     def set_depth_outline_shift_and_jump(self, xs, ys, depth_jump,
                                          perspective_near_far_ratio):
 
-        p = self.current_shader_program.program_id
+        p = self.current_shader_program
         if p is not None:
-            mc = GL.glGetUniformLocation(p, b"depth_shift_and_jump")
-            GL.glUniform4fv(mc, 1, (xs, ys, depth_jump,
-                                    perspective_near_far_ratio))
+            v = (xs, ys, depth_jump, perspective_near_far_ratio)
+            p.set_float4("depth_shift_and_jump", v)
 
     def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
         # Copy current framebuffer contents to another framebuffer.  This
@@ -1282,6 +1237,24 @@ class Shader:
         self.capabilities = capabilities
         self.program_id = self.compile_shader(capabilities)
         self.uniform_ids = {}
+
+    def set_integer(self, name, value):
+        GL.glUniform1i(self.uniform_id(name), value)
+
+    def set_float(self, name, value):
+        GL.glUniform1f(self.uniform_id(name), value)
+
+    def set_vector(self, name, vector):
+        GL.glUniform3f(self.uniform_id(name), *tuple(vector))
+
+    def set_rgba(self, name, color):
+        GL.glUniform4fv(self.uniform_id(name), 1, color)
+
+    def set_float4(self, name, v4):
+        GL.glUniform4fv(self.uniform_id(name), 1, v4)
+
+    def set_matrix(self, name, matrix):
+        GL.glUniformMatrix4fv(self.uniform_id(name), 1, False, matrix)
 
     def uniform_id(self, name):
         uids = self.uniform_ids
