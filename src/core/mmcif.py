@@ -75,7 +75,12 @@ def fetch_mmcif(session, pdb_id):
     filename = os.path.expanduser(filename)
 
     if os.path.exists(filename):
+        t1 = time()
+        print("Using builtin open")
+        print("fetch mmcif:")
+        print("\tpre-fetch: {}".format(t1 - t0))
         return filename, pdb_id  # TODO: check if cache needs updating
+    print("Not using builtin open")
 
     dirname = os.path.dirname(filename)
     os.makedirs(dirname, exist_ok=True)
