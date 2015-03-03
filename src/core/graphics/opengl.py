@@ -303,7 +303,11 @@ class Render:
         '''Private. Sets shader depth variables using the lighting
         parameters object given in the contructor.'''
 
-        p = self.current_shader_program.program_id
+        cp = self.current_shader_program
+        if cp is None:
+            return
+
+        p = cp.program_id
         lp = self.lighting
 
         dc_distance = GL.glGetUniformLocation(p, b"depth_cue_distance")
@@ -318,21 +322,23 @@ class Render:
         if color is not None:
             self.single_color = color
         p = self.current_shader_program.program_id
-        c = GL.glGetUniformLocation(p, b"color")
-        GL.glUniform4fv(c, 1, self.single_color)
+        if p is not None:
+            c = GL.glGetUniformLocation(p, b"color")
+            GL.glUniform4fv(c, 1, self.single_color)
 
     def set_ambient_texture_transform(self, tf):
         # Transform from model coordinates to ambient texture coordinates.
         p = self.current_shader_program
-        m = tf.opengl_matrix()
-        GL.glUniformMatrix4fv(p.uniform_id("ambient_tex3d_transform"), 1,
-                              False, m)
+        if p is not None:
+            m = tf.opengl_matrix()
+            GL.glUniformMatrix4fv(p.uniform_id("ambient_tex3d_transform"), 1,
+                                  False, m)
 
     def set_shadow_transform(self, stf):
         # Transform from camera coordinates to shadow map texture coordinates.
         self._shadow_transform = m = stf.opengl_matrix()
         p = self.current_shader_program
-        if self.SHADER_SHADOWS & p.capabilities:
+        if p is not None and self.SHADER_SHADOWS & p.capabilities:
             GL.glUniformMatrix4fv(p.uniform_id("shadow_transform"), 1, False,
                                   m)
 
@@ -345,7 +351,7 @@ class Render:
 #                                                  for tf in stf], float32)
         self._multishadow_depth = shadow_depth
         p = self.current_shader_program
-        if self.SHADER_MULTISHADOW & p.capabilities:
+        if p is not None and self.SHADER_MULTISHADOW & p.capabilities:
             self.set_shadow_shader_variables(p)
 
     def set_shadow_shader_variables(self, shader):
@@ -390,7 +396,7 @@ class Render:
     def opengl_context_changed(self):
         'Called after opengl context is switched.'
         p = self.current_shader_program
-        if not p is None:
+        if p is not None:
             GL.glUseProgram(p.program_id)
 
     def initialize_opengl(self, width, height):
@@ -684,8 +690,9 @@ class Render:
     def set_texture_mask_color(self, color):
 
         p = self.current_shader_program.program_id
-        mc = GL.glGetUniformLocation(p, b"color")
-        GL.glUniform4fv(mc, 1, color)
+        if p is not None:
+            mc = GL.glGetUniformLocation(p, b"color")
+            GL.glUniform4fv(mc, 1, color)
 
     def allow_equal_depth(self, equal):
         GL.glDepthFunc(GL.GL_LEQUAL if equal else GL.GL_LESS)
@@ -748,16 +755,18 @@ class Render:
     def set_depth_outline_color(self, color):
 
         p = self.current_shader_program.program_id
-        mc = GL.glGetUniformLocation(p, b"color")
-        GL.glUniform4fv(mc, 1, color)
+        if p is not None:
+            mc = GL.glGetUniformLocation(p, b"color")
+            GL.glUniform4fv(mc, 1, color)
 
     def set_depth_outline_shift_and_jump(self, xs, ys, depth_jump,
                                          perspective_near_far_ratio):
 
         p = self.current_shader_program.program_id
-        mc = GL.glGetUniformLocation(p, b"depth_shift_and_jump")
-        GL.glUniform4fv(mc, 1, (xs, ys, depth_jump,
-                                perspective_near_far_ratio))
+        if p is not None:
+            mc = GL.glGetUniformLocation(p, b"depth_shift_and_jump")
+            GL.glUniform4fv(mc, 1, (xs, ys, depth_jump,
+                                    perspective_near_far_ratio))
 
     def copy_from_framebuffer(self, framebuffer, color=True, depth=True):
         # Copy current framebuffer contents to another framebuffer.  This
