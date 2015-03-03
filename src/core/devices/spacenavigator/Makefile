@@ -17,8 +17,15 @@ LIBS	+= $(PYTHON_LIB) -F/Library/Frameworks -framework 3DconnexionClient
 PY_LIB = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/Python
 
 ifeq ($(shell test -e $(SNFW) && echo found),found)
+	HAVE_SNAV_SDK = 1
+else
+	PYMOD = 
+	PYOBJS = 
+endif
 
 all: $(PYMOD) $(PYOBJS)
+
+ifdef HAVE_SNAV_SDK
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)
@@ -27,19 +34,13 @@ ifeq ($(OS),Darwin)
 	install_name_tool -change $(PY_LIB) @loader_path/../../../../../../Python $(PYMOD)
 endif
 
+endif
+
 install: all $(PKG_DIR)
-	$(RSYNC) $(PYMOD) $(PYSRCS) $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PYMOD) $(PKG_DIR)
 
 $(PKG_DIR):
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
 clean:
 	rm -rf $(PYMOD) $(OBJS) __pycache__
-
-else
-
-all:
-install:
-clean:
-
-endif

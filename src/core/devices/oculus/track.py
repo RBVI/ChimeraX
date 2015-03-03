@@ -11,7 +11,36 @@ class Oculus_Rift:
         self.panning_speed = 5
         self.frame_cb = None
 
-        self.connected = self.start_event_processing()
+        self.connected = self.connect()
+
+    def connect(self):
+        from . import _oculus
+        try:
+            _oculus.connect()
+            c = True
+        except:
+            c = False
+
+        if c:
+            self.parameters = p = _oculus.parameters()
+            params = list(p.items())
+            params.sort()
+            for k,v in params:
+                print (k,v)
+            print('oculus field of view %.1f degrees' % (self.field_of_view_degrees()))
+            print('oculus camera centering shift %.1f, %.1f pixels, left eye' % self.camera_centering_shift_pixels())
+
+        return c
+
+    def start_event_processing(self):
+
+        if self.frame_cb is None:
+            from . import _oculus
+            _oculus.initialize()
+            self.parameters = _oculus.parameters()      # Interpupillary distance not set until initialize called.
+            self.frame_cb = self.use_oculus_orientation
+            self.view.add_new_frame_callback(self.frame_cb)
+        return True
 
     def close(self):
 
@@ -21,28 +50,6 @@ class Oculus_Rift:
         from ...graphics import mono_camera_mode
         c.mode = mono_camera_mode
         c.field_of_view = 30.0
-
-    def start_event_processing(self):
-
-        from . import _oculus
-        try:
-            _oculus.connect()
-            self.connected = True
-        except:
-            return False
-
-        self.parameters = p = _oculus.parameters()
-        params = list(p.items())
-        params.sort()
-        for k,v in params:
-            print (k,v)
-        print('oculus field of view %.1f degrees' % (self.field_of_view_degrees()))
-        print('oculus camera centering shift %.1f, %.1f pixels, left eye' % self.camera_centering_shift_pixels())
-
-        if self.frame_cb is None:
-            self.frame_cb = self.use_oculus_orientation
-            self.view.add_new_frame_callback(self.frame_cb)
-        return True
 
     def stop_event_processing(self):
 
@@ -115,7 +122,8 @@ class Oculus_Rift:
         if x is None:
             t = None
         else:
-            s = self.panning_speed * c.eye_separation_scene / self.parameters['interpupillary distance']
+            ipd = self.parameters['interpupillary distance']
+            s = self.panning_speed * c.eye_separation_scene / ipd
             t = place.translation((s*x,s*y,s*z))
 
         mdelta = self.relative_motion(t,r)

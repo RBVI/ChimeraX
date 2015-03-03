@@ -222,6 +222,8 @@ static PyGetSetDef AtomBlob_getset[] = {
     { NULL, NULL, NULL, NULL, NULL }
 };
 
+static PyMappingMethods AtomBlob_len = { blob_len<AtomBlob>, NULL, NULL };
+
 } // extern "C"
 
 PyTypeObject AtomBlob_type = {
@@ -237,7 +239,7 @@ PyTypeObject AtomBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &AtomBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str
