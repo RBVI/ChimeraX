@@ -239,7 +239,7 @@ class OculusGraphicsWindow(wx.Frame):
                 pass
             def resize(self, *args):
                 pass
-        self.opengl_canvas = c = OpenGLCanvas(self, View(), size = (1920,1080))
+        self.opengl_canvas = c = OpenGLCanvas(self, View())
 
         from wx.glcanvas import GLContext
         oc = self.opengl_context = GLContext(self.opengl_canvas, view._opengl_context)
@@ -256,8 +256,6 @@ class OculusGraphicsWindow(wx.Frame):
 
     def make_context_current(self):
         self.opengl_canvas.SetCurrent(self.opengl_context)
-        from OpenGL import GL
-        GL.glViewport(0, 0, 1920, 1080)
 
     def swap_buffers(self):
         self.opengl_canvas.SwapBuffers()
@@ -265,7 +263,7 @@ class OculusGraphicsWindow(wx.Frame):
     def close(self):
         self.opengl_context = None
         self.opengl_canvas = None
-        wx.TopLevelWindow.close(self)
+        wx.Frame.Close(self)
 
     def full_screen(self, width, height):
         ndisp = wx.Display.GetCount()
