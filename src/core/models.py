@@ -148,31 +148,16 @@ class Models(State):
             parent.remove_drawing(model)
 
     def open(self, filename, id=None, **kw):
-        from time import time
-        t0 = time()
         from . import io
         session = self._session()  # resolve back reference
-        t1 = time()
         models, status = io.open(session, filename, **kw)
-        t2 = time()
         if status:
             session.logger.status(status)
-        t3 = time()
         if models:
             start_count = len(self._models)
             self.add(models, id=id)
-            t4 = time()
             if start_count == 0 and len(self._models) > 0:
                 session.main_view.initial_camera_view()
-            t5 = time()
-        else:
-            t4 = t5 = t3
-        print("'Open' function:")
-        print("\tsession reference: {}".format(t1 - t0))
-        print("\tio.open: {}".format(t2 - t1))
-        print("\tstatus logging: {}".format(t3 - t2))
-        print("\tadd models: {}".format(t4 - t3))
-        print("\tinitial view: {}".format(t5 - t4))
 
     def close(self, model_id):
         if model_id in self._models:

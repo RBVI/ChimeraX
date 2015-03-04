@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <basegeom/Coord.h>
@@ -362,8 +363,8 @@ find_best_assignment(std::vector<std::map<Bond*, int>>& assignments,
 }
 
 static int
-free_oxygens(std::vector<Atom*>& neighbors, std::map<Atom*, int>& heavys,
-    bool no_hyds)
+free_oxygens(std::vector<Atom*>& neighbors,
+    std::map<Atom*, int>& heavys, bool no_hyds)
 {
     int free_oxygens = 0;
     for (auto bondee: neighbors) {
@@ -423,12 +424,10 @@ aromatic_geometry(const Ring& r)
     return true;
 }
 
-#include <ctime>
 void
 AtomicStructure::_compute_atom_types()
 {
     using basegeom::Real;
-clock_t start_time = clock();
 
     // angle values used to discriminate between hybridization states
     const Real angle23val1 = 115.0;
@@ -491,12 +490,28 @@ clock_t start_time = clock();
     if (num_bonds - num_atoms > 100 && num_bonds / (float) num_atoms > 1.25)
         return;
 
-    std::map<Atom*, int> heavys; // number of heavy atoms bonded
-    size_t h_assigned = 0;
 
-clock_t end_time = clock();
+    // "pass 0.5": use templates for "infallible" typing of standard
+    // residue types
+    std::vector<const Atom*> mapped_queue;
+    for (auto& r: residues()) {
+        try {
+            for (auto a: r->template_assign(&Atom::set_computed_idatm_type,
+            "idatm", "templates", "idatmres"))
+                mapped_queue.push_back(a);
+        } catch (tmpl::TA_NoTemplate) {
+            // don't care
+        } catch (...) {
+            throw;
+        }
+    }
+    if (mapped_queue.size() == num_atoms)
+        return;     // All atoms assigned.
+
     // "pass 1":  type hydrogens / deuteriums and compute number of
     // heavy atoms connected to each atom
+    std::map<Atom*, int> heavys; // number of heavy atoms bonded
+    size_t h_assigned = 0;
     for (auto& a: atoms()) {
         const Element &element = a->element();
 
@@ -535,23 +550,12 @@ clock_t end_time = clock();
         heavys[a.get()] = heavy_count;
     }
 
-    // "pass 1.5": use templates for "infallible" typing of standard
-    // residue types
-    std::map<const Atom*, bool> mapped;
-    for (auto& r: residues()) {
-        try {
-            for (auto a: r->template_assign(&Atom::set_computed_idatm_type,
-            "idatm", "templates", "idatmres"))
-                mapped[a] = true;
-        } catch (tmpl::TA_NoTemplate) {
-            // don't care
-        } catch (...) {
-            throw;
-        }
-    }
-
-    if (h_assigned + mapped.size() == num_atoms)
+    if (h_assigned + mapped_queue.size() == num_atoms)
         return;     // All atoms assigned.
+
+    std::map<const Atom*, bool> mapped;
+    for (auto a: mapped_queue)
+            mapped[a] = true;
 
     // "pass 2": elements that are typed only by element type
     // and valences > 1
@@ -1912,7 +1916,6 @@ clock_t end_time = clock();
             }
         }
     }
-std::cerr << "computing atom types took " << (clock() - start_time) / (float)CLOCKS_PER_SEC << " seconds\n";
 }
 
 static void
