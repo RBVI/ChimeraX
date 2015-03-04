@@ -16,11 +16,13 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <algorithm>
+#include <unordered_map>
 
 using std::hash;
 using std::map;
 using std::set;
 using std::string;
+using std::unordered_map;
 using std::vector;
 
 using atomstruct::AtomicStructure;
@@ -95,7 +97,8 @@ struct ExtractMolecule: public readcif::CIFFile
                 return false;
             if (chain_id < k.chain_id)
                 return true;
-            if (chain_id != k.chain_id) return false;
+            if (chain_id != k.chain_id)
+                return false;
             if (alt_id < k.alt_id)
                 return true;
             if (alt_id != k.alt_id)
@@ -103,7 +106,15 @@ struct ExtractMolecule: public readcif::CIFFile
             return ins_code < k.ins_code;
         }
     };
-    map<AtomKey, Atom*> atom_map;
+    struct hash_AtomKey {
+        size_t operator()(const AtomKey& k) const {
+            return hash<string>()(k.chain_id) ^ hash<long>()(k.position)
+                ^ hash<char>()(k.ins_code) ^ hash<char>()(k.alt_id)
+                ^ hash<const char*>()(k.atom_name)
+                ^ hash<string>()(k.residue_name);
+        }
+    };
+    unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
     struct ResidueKey {
         string entity_id;
         long seq_id;
@@ -126,8 +137,14 @@ struct ExtractMolecule: public readcif::CIFFile
             return mon_id < k.mon_id;
         }
     };
-    typedef map<ResidueKey, Residue*> ResidueMap;
-    map<string, ResidueMap> all_residues;
+    struct hash_ResidueKey {
+        size_t operator()(const ResidueKey& k) const {
+            return hash<string>()(k.entity_id) ^ hash<long>()(k.seq_id)
+                ^ hash<string>()(k.mon_id);
+        }
+    };
+    typedef unordered_map<ResidueKey, Residue*, hash_ResidueKey> ResidueMap;
+    unordered_map<string, ResidueMap> all_residues;
     struct PolySeq {
         string entity_id;
         long seq_id;
