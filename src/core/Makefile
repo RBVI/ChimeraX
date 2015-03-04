@@ -17,7 +17,8 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimera/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
-PYSRCS = $(wildcard *.py) _atomspec.py
+GENSRCS = _atomspec.py
+PYSRCS = $(wildcard *.py) $(GENSRCS)
 CORE_VERSION = 2.0
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
@@ -65,7 +66,7 @@ test:
 	$(APP_PYTHON_EXE)
 
 clean:
-	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
+	rm -rf __pycache__ build dist chimera.core.egg-info setup.py timestamp $(GENSRCS)
 
 .SUFFIXES: .peg
 
