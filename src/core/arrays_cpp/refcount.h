@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 //
 #ifndef REFCOUNT_HEADER_INCLUDED

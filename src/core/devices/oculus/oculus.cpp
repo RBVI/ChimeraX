@@ -27,55 +27,26 @@ public:
 
     this->error = NULL;
     this->hmd = ovrHmd_Create(0);	// First available head mounted device.
+    this->frame_index = 1;
+    this->initialized = false;
 
     if (hmd)
       {
 	// Output oculus details.
 	std::cerr << "Oculus product name: " << hmd->ProductName
 		  << ", firmware version " << hmd->FirmwareMajor << "." << hmd->FirmwareMinor
-		  << ", resolution " << hmd->Resolution.w << " " << hmd->Resolution.h;
+		  << ", resolution " << hmd->Resolution.w << " " << hmd->Resolution.h
+		  << ", capabilities 0x" << std::hex << hmd->HmdCaps
+		  << ", distortion capabilities 0x" << std::hex << hmd->DistortionCaps
+		  << std::dec;
 	const ovrFovPort *fov = hmd->DefaultEyeFov;
 	std::cerr << ", field of view, up " << fov[0].UpTan << " down " << fov[0].DownTan
 		  << " left " << fov[0].LeftTan << " right " << fov[0].RightTan
 		  << std::endl;
       }
     else
-      {
-	this->error = "No Oculus detected.";
-	return;
-      }
-
-    unsigned int supportedTrackingCaps = (ovrTrackingCap_Orientation |
-					  ovrTrackingCap_MagYawCorrection |
-					  ovrTrackingCap_Position);
-
-    unsigned int requiredTrackingCaps = 0;
-    // Start the sensor which provides the Rift’s pose and motion.
-    ovrBool ok = ovrHmd_ConfigureTracking(hmd, supportedTrackingCaps, requiredTrackingCaps);
-    this->error = (ok ? NULL : "HMD lacks required capabilities");
-
-    ovrEyeRenderDesc eyeRenderDesc[2];
-    if (!initialize_distortion_rendering(eyeRenderDesc))
-      this->error = "Initializing distortion rendering failed.";
-
-    interpupillary_distance = eyeRenderDesc[0].ViewAdjust.x - eyeRenderDesc[1].ViewAdjust.x;
-
-    std::cerr << "Eye render info" << std::endl;
-    for (int e = 0 ; e < 2 ; ++e)
-      {
-	ovrEyeRenderDesc *ed = &eyeRenderDesc[e];
-	ovrRecti *er = &ed->DistortedViewport;
-	ovrVector3f *va = &ed->ViewAdjust;
-	std::cerr << "eye " << e
-		  << " tangent half field of view up " << ed->Fov.UpTan
-		  << " down " << ed->Fov.DownTan << " left " << ed->Fov.LeftTan << " right " << ed->Fov.RightTan
-		  << ", viewport " << er->Pos.x << " " << er->Pos.y << " " << er->Size.w << " " << er->Size.h
-		  << " view adjust " << va->x << " " << va->y << " " << va->z
-		  << std::endl;
-      }
-    // TODO: Use field of view and view ports and view matrix translation from eyeRenderDesc.
+      this->error = "No Oculus detected.";
   }
-
   ~Oculus()
   {
     if (hmd)
@@ -84,38 +55,27 @@ public:
   bool pose(float xyz[3], int *xyz_valid, float quat[4], int *quat_valid)
   {
     // Query the HMD for the current tracking state.
-    // TODO: use ovrHmd_BeginFrame() or ovrHmd_BeginFrameTiming() for second arg to predict frame display time.
-    double t;
-    if (in_frame)
-      t = ovr_GetTimeInSeconds();
-    else
-      {
-	in_frame = true;
-	ovrFrameTiming ft = ovrHmd_BeginFrame(hmd, 0);
-	t = ft.ScanoutMidpointSeconds;
-	// TODO: must call ovrHmd_EndFrame() after rendering is done to accumulate render times.
-      }
-    ovrTrackingState ts  = ovrHmd_GetTrackingState(hmd, t);
+    if (!in_frame)
+      ovrHmd_BeginFrame(hmd, frame_index);
+    this->in_frame = true;
+
+    ovrTrackingState ts;
+    ovrHmd_GetEyePoses(hmd, frame_index, eye_offsets, render_pose, &ts);
+
     *xyz_valid = (ts.StatusFlags & ovrStatus_PositionTracked);
     *quat_valid = (ts.StatusFlags & ovrStatus_OrientationTracked);
     if (!*xyz_valid && !*quat_valid)
       return false;
 
-    ovrPoseStatef pose = ts.HeadPose;
-    ovrPosef p = pose.ThePose;
+    ovrPosef p = ts.HeadPose.ThePose;
 
-    // TODO: ovrHmd_GetEyePose() must be called between ovrHmd_BeginFrameTiming and ovrHmd_EndFrameTiming.
-    render_pose[0] = ovrHmd_GetEyePose(hmd, ovrEye_Left);
-    render_pose[1] = ovrHmd_GetEyePose(hmd, ovrEye_Right);
-    // TODO: report positions for both eyes.
-
-    ovrQuatf q = p.Orientation;	// struct with float x,y,z,w members.
+    ovrQuatf &q = p.Orientation;	// struct with float x,y,z,w members.
     quat[0] = q.x;
     quat[1] = q.y;
     quat[2] = q.z;
     quat[3] = q.w;
 
-    ovrVector3f pos = p.Position;	// struct with float x,y,z members.
+    ovrVector3f &pos = p.Position;	// struct with float x,y,z members.
     xyz[0] = pos.x;
     xyz[1] = pos.y;
     xyz[2] = pos.z;
@@ -131,7 +91,7 @@ public:
   {
     float pixelsPerDisplayPixel = 1.0;	// Quality scaling.
     ovrSizei size_left = ovrHmd_GetFovTextureSize(hmd, ovrEye_Left, hmd->DefaultEyeFov[0], pixelsPerDisplayPixel);
-    ovrSizei size_right = ovrHmd_GetFovTextureSize(hmd, ovrEye_Right, hmd->DefaultEyeFov[1], pixelsPerDisplayPixel);
+    // ovrSizei size_right = ovrHmd_GetFovTextureSize(hmd, ovrEye_Right, hmd->DefaultEyeFov[1], pixelsPerDisplayPixel);
     *w = size_left.w;
     *h = size_left.h;
   }
@@ -143,6 +103,55 @@ public:
     *left_tan = fov[0].LeftTan;
     *right_tan = fov[0].RightTan;
   }
+  bool initialize_tracking_and_rendering()
+  {
+    std::cerr << "initializing oculus tracking and rendering\n";
+    if (error)
+      return false;
+
+    unsigned int supportedTrackingCaps = (ovrTrackingCap_Orientation |
+					  ovrTrackingCap_MagYawCorrection |
+					  ovrTrackingCap_Position);
+
+    unsigned int requiredTrackingCaps = 0;
+    // Start the sensor which provides the Rift’s pose and motion.
+    ovrBool ok = ovrHmd_ConfigureTracking(hmd, supportedTrackingCaps, requiredTrackingCaps);
+    if (!ok)
+      {
+	this->error = "HMD lacks required capabilities";
+	return false;
+      }
+    std::cerr << "configured tracking\n";
+
+    ovrEyeRenderDesc eyeRenderDesc[2];
+    if (!initialize_distortion_rendering(eyeRenderDesc))
+      {
+	this->error = "Initializing distortion rendering failed.";
+	return false;
+      }
+    std::cerr << "configured rendering\n";
+
+    this->eye_offsets[ovrEye_Left] = eyeRenderDesc[ovrEye_Left].HmdToEyeViewOffset;
+    this->eye_offsets[ovrEye_Right] = eyeRenderDesc[ovrEye_Right].HmdToEyeViewOffset;
+    this->interpupillary_distance = eye_offsets[ovrEye_Left].x - eye_offsets[ovrEye_Right].x;
+
+    std::cerr << "Eye render info" << std::endl;
+    for (int e = 0 ; e < 2 ; ++e)
+      {
+	ovrEyeRenderDesc *ed = &eyeRenderDesc[e];
+	ovrRecti *er = &ed->DistortedViewport;
+	ovrVector3f *va = &ed->HmdToEyeViewOffset;
+	std::cerr << "eye " << e
+		  << " tangent half field of view up " << ed->Fov.UpTan
+		  << " down " << ed->Fov.DownTan << " left " << ed->Fov.LeftTan << " right " << ed->Fov.RightTan
+		  << ", viewport " << er->Pos.x << " " << er->Pos.y << " " << er->Size.w << " " << er->Size.h
+		  << " view adjust " << va->x << " " << va->y << " " << va->z
+		  << std::endl;
+      }
+    // TODO: Use field of view and view ports and view matrix translation from eyeRenderDesc.
+    initialized = true;
+    return true;
+  }
   bool initialize_distortion_rendering(ovrEyeRenderDesc eyeRenderDesc_out[2])
   {
     // Configure OpenGL.
@@ -152,7 +161,7 @@ public:
     screen_size.h = hmd->Resolution.h;
     std::cerr << "idr " << hmd->Resolution.w << " " << hmd->Resolution.h << std::endl;
     cfg.OGL.Header.API         = ovrRenderAPI_OpenGL;
-    cfg.OGL.Header.RTSize      = screen_size;
+    cfg.OGL.Header.BackBufferSize      = screen_size;
     cfg.OGL.Header.Multisample = 0;
     unsigned int distortionCaps = ovrDistortionCap_Chromatic;
     ovrBool result = ovrHmd_ConfigureRendering(hmd, &cfg.Config, distortionCaps,
@@ -197,6 +206,7 @@ public:
 	      << std::endl;
     */
     ovrHmd_EndFrame(hmd, render_pose, &eyeTextures[0].Texture);
+    this->frame_index += 1;
     this->in_frame = false;
 
     // Dismiss health warning.
@@ -209,8 +219,11 @@ public:
   const char *error;
 private:
   ovrHmd hmd;	// Head mounted device pointer.
+  unsigned int frame_index;
+  ovrVector3f eye_offsets[2];
   ovrPosef render_pose[2];	// Position and orientation for left and right eyes.
   bool in_frame;
+  bool initialized;
 };
 
 static Oculus *ovrs = NULL;
@@ -366,6 +379,32 @@ extern "C" PyObject *oculus_connect(PyObject *, PyObject *args)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" PyObject *oculus_initialize(PyObject *, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, const_cast<char *>("")))
+    return NULL;
+
+  if (!ovrs)
+    {
+      PyErr_SetString(PyExc_TypeError, "Tried to initialize oculus but not connected");
+      return NULL;
+    }
+
+  ovrs->initialize_tracking_and_rendering();
+  if (ovrs->error)
+    {
+      PyErr_SetString(PyExc_TypeError, ovrs->error);
+      delete ovrs;
+      ovrs = NULL;
+      return NULL;
+    }
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" PyObject *oculus_disconnect(PyObject *, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, const_cast<char *>("")))
@@ -382,6 +421,7 @@ extern "C" PyObject *oculus_disconnect(PyObject *, PyObject *args)
 static struct PyMethodDef oculus_methods[] =
 {
   {const_cast<char*>("connect"), (PyCFunction)oculus_connect, METH_VARARGS, NULL},
+  {const_cast<char*>("initialize"), (PyCFunction)oculus_initialize, METH_VARARGS, NULL},
   {const_cast<char*>("disconnect"), (PyCFunction)oculus_disconnect, METH_VARARGS, NULL},
   {const_cast<char*>("parameters"), (PyCFunction)oculus_parameters, METH_VARARGS, NULL},
   {const_cast<char*>("state"), (PyCFunction)oculus_state, METH_VARARGS, NULL},

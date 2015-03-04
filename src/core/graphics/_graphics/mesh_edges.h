@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #ifndef MESH_EDGES_HEADER_INCLUDED
 #define MESH_EDGES_HEADER_INCLUDED
 

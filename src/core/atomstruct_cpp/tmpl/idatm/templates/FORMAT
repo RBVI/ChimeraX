@@ -1,0 +1,26 @@
+A residue template file should be named with the residue's name followed by
+the extension ".idatmres".  The file should contain one line for each atom
+in the residue.  The line should start with that atom's name, followed by
+whitespace, followed by that atom's IDATM type.
+
+If the atom type for that atom differs under some conditions (usually if the
+residue is terminal) then add whitespace followed by the condition when the
+type differs, followed by whitespace, followed by the differing type.  The
+conditions currently supported are:
+	syntax				meaning
+	atom name followed by "?"	If an atom by that name exists in
+					the residue, then use the conditional
+					type.  For example, for peptides the
+					existence of atom OXT in the residue
+					may influence the atom types of other
+					atoms.
+
+	atom name followed by "."	If the named atom is terminal (doesn't
+					connect to another residue) then use
+					the conditional type.  For instance, in
+					peptides whether atom N is terminal
+					determines its type.
+
+If the IDATM type is given as "-" (without quotes), then that atom's type
+will be computed despite the presence of the template.  Comments can be
+inserted in a template file as lines that start with '#'.

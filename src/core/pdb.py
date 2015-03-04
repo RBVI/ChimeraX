@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 pdb: PDB format support
 =======================
@@ -57,6 +57,9 @@ def fetch_pdb(session, pdb_id):
 
     filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
     filename = os.path.expanduser(filename)
+
+    if os.path.exists(filename):
+        return filename, pdb_id  # TODO: check if cache needs updating
 
     dirname = os.path.dirname(filename)
     os.makedirs(dirname, exist_ok=True)

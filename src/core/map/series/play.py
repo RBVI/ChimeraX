@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Show a series of maps.
 #
@@ -344,7 +345,7 @@ class Play_Series:
       tn = 0
     if tn != t:
       self.change_time(tn)
-    self.session.show_status('%s time %d' % (s0.name, tn+1))
+    self.session.status('%s time %d' % (s0.name, tn+1))
 
 # -----------------------------------------------------------------------------
 #

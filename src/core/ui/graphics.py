@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 import wx
 
@@ -38,6 +38,12 @@ class GraphicsWindow(wx.Panel):
         self.opengl_canvas.Bind(wx.EVT_MIDDLE_UP, self.mouse_up)
         self.opengl_canvas.Bind(wx.EVT_RIGHT_UP, self.mouse_up)
         self.opengl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.wheel_event)
+
+    def set_redraw_interval(self, msec):
+        self.redraw_interval = msec # milliseconds
+        t = self.timer
+        if not t is None:
+            t.Start(self.redraw_interval)
 
     def make_context_current(self):
         # creates context if needed
@@ -167,7 +173,7 @@ class GraphicsWindow(wx.Panel):
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):
 
-    def __init__(self, parent, view, ui=None):
+    def __init__(self, parent, view, ui=None, size=None):
         self.view = view
         attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER ]
         import sys
@@ -197,8 +203,9 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             pass
         else:
             print("Stereo mode is not supported by OpenGL driver")
+        ckw = {} if size is None else {'size':size}
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs + [0],
-            style=wx.WANTS_CHARS)
+                                   style=wx.WANTS_CHARS, **ckw)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
@@ -217,3 +224,57 @@ class OpenGLCanvas(glcanvas.GLCanvas):
 
     def set_viewport(self):
         self.view.resize(*self.GetClientSize())
+
+class OculusGraphicsWindow(wx.Frame):
+    """
+    The graphics window for using Oculus Rift goggles.
+    """
+
+    def __init__(self, view):
+
+        wx.Frame.__init__(self, None, title = "Oculus Rift")
+
+        class View:
+            def draw(self):
+                pass
+            def resize(self, *args):
+                pass
+        self.opengl_canvas = c = OpenGLCanvas(self, View())
+
+        from wx.glcanvas import GLContext
+        oc = self.opengl_context = GLContext(self.opengl_canvas, view._opengl_context)
+        oc.make_current = self.make_context_current
+        oc.swap_buffers = self.swap_buffers
+        self.opengl_context = oc
+        self.primary_opengl_context = view._opengl_context
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
+        self.SetSizerAndFit(sizer)
+
+        self.Show(True)
+
+    def make_context_current(self):
+        self.opengl_canvas.SetCurrent(self.opengl_context)
+
+    def swap_buffers(self):
+        self.opengl_canvas.SwapBuffers()
+
+    def close(self):
+        self.opengl_context = None
+        self.opengl_canvas = None
+        wx.Frame.Close(self)
+
+    def full_screen(self, width, height):
+        ndisp = wx.Display.GetCount()
+        for i in range(ndisp):
+            d = wx.Display(i)
+            g = d.GetGeometry()
+            s = g.GetSize()
+            if s.GetWidth() == width and s.GetHeight() == height:
+                self.Move(g.GetX(),g.GetY())
+                self.SetSize(width,height)
+                break
+        # self.EnableFullScreenView(True) # Not available in wxpython
+        # TODO: full screen always shows on primary display.
+#        self.ShowFullScreen(True)

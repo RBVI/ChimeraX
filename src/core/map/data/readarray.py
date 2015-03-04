@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # -----------------------------------------------------------------------------
 # Read part of a matrix from a binary file making at most one copy of array
 # in memory.
@@ -130,7 +131,7 @@ def read_float_lines(f, array, line_format, progress = None):
     c = 0
     while c < count:
         line = f.readline()
-        if line == '':
+        if line == b'':
             msg = ('Too few data values in %s, found %d, expecting %d'
                    % (f.name, c, count))
             raise SyntaxError(msg)

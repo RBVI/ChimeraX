@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #include "MemoryMap.h"
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>

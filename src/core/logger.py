@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 from abc import ABCMeta, abstractmethod
 
@@ -34,6 +34,11 @@ class Log:
 
         This method is not abstract because a log is free to totally
         ignore/drop status messages.
+
+        Note that this method may be called from a thread (due to the
+        use of timers to get proper time delays) and that therefore
+        special window toolkit handling may be necessary to get your
+        code executed in the main thread (e.g. wx.CallAfter).
         """
         return False
 
@@ -110,7 +115,7 @@ class Logger:
     """
 
     def __init__(self, session):
-        from ordered_set import OrderedSet
+        from chimera.core.orderedset import OrderedSet
         self.logs = OrderedSet()
         self.session = session
         self._prev_newline = True
@@ -125,6 +130,21 @@ class Logger:
             # move to top
             self.logs.discard(log)
         self.logs.add(log)
+
+    def clear(self):
+        self.logs.clear()
+        if self._status_timer1:
+            self._status_timer1.cancel()
+            self._status_timer1 = None
+        if self._status_timer2:
+            self._status_timer2.cancel()
+            self._status_timer2 = None
+        if self._follow_timer1:
+            self._follow_timer1.cancel()
+            self._follow_timer1 = None
+        if self._follow_timer2:
+            self._follow_timer2.cancel()
+            self._follow_timer2 = None
 
     def error(self, msg, add_newline=True, image=None, is_html=False):
         """Log an error message
@@ -176,17 +196,14 @@ class Logger:
             blank_default = 15
 
         if status_timer:
-            print("Cancelling status timer")
             status_timer.cancel()
             status_timer = None
         if follow_timer:
-            print("Cancelling follow timer")
             follow_timer.cancel()
             follow_timer = None
 
         from threading import Timer
         if follow_with:
-            print("Starting {}-second follow timer".format(follow_time))
             follow_timer = Timer(follow_time, lambda fw=follow_with,
                 clr=color, log=log, sec=secondary, fl=follow_log:
                 self._follow_timeout(fw, clr, log, sec, fl))
@@ -196,7 +213,6 @@ class Logger:
                 blank_after = blank_default
             if blank_after:
                 from threading import Timer
-                print("Starting {}-second blanking timer".format(blank_after))
                 status_timer = Timer(blank_after, lambda sec=secondary:
                     self._status_timeout(sec))
                 status_timer.start()
@@ -218,7 +234,6 @@ class Logger:
                   last_resort=sys.stderr)
 
     def _follow_timeout(self, follow_with, color, log, secondary, follow_log):
-        print("Follow timeout")
         if secondary:
             self._follow_timer2 = None
         else:
@@ -271,7 +286,6 @@ class Logger:
                 print(output, end="", file=last_resort)
 
     def _status_timeout(self, secondary):
-        print("Status timeout")
         if secondary:
             self._status_timer2 = None
         else:

@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 #include "readcif.h"
 #include <iostream>
 #include <stdio.h>

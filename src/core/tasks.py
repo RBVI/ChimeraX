@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """This module defines classes for tasks and their state manager.
 
 Tasks are threads of execution that continue independently from
@@ -137,7 +137,6 @@ class Task(State):
         if self.state != PENDING:
             raise RuntimeError("starting task multiple times")
         import threading
-        print("start", args, kw)
         self._terminate = threading.Event()
         self._thread = threading.Thread(target=self._run_thread,
                                         daemon=True, args=args, kwargs=kw)

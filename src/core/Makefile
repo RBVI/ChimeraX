@@ -3,6 +3,7 @@ include $(TOP)/mk/config.make
 
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
 	   basegeom_cpp blob_cpp \
+	   devices \
 	   geometry graphics \
 	   _mmcif \
 	   ioutil_cpp logger_cpp \
@@ -16,7 +17,8 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimera/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
-PYSRCS = $(wildcard *.py) _atomspec.py
+GENSRCS = _atomspec.py
+PYSRCS = $(wildcard *.py) $(GENSRCS)
 CORE_VERSION = 2.0
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
@@ -38,8 +40,11 @@ wheel: setup.py timestamp always
 setup.py: setup.py.in
 	sed -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,LIB_DIR,$(libdir),' \
+		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
 		-e 's,CORE_VERSION,$(CORE_VERSION),' \
 		< setup.py.in > setup.py
 
@@ -61,7 +66,7 @@ test:
 	$(APP_PYTHON_EXE)
 
 clean:
-	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
+	rm -rf __pycache__ build dist chimera.core.egg-info setup.py timestamp $(GENSRCS)
 
 .SUFFIXES: .peg
 

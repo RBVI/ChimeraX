@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 # ToolUI should inherit from ToolInstance if they will be
 # registered with the tool state manager.
@@ -13,11 +13,59 @@
 import wx
 from wx import glcanvas
 from chimera.core.tools import ToolInstance
+from chimera.core.geometry.place import Place
+
+
+class _PixelLocations:
+    pass
+
+
+class OrthoCamera:
+    """A limited camera for the Side View without field_of_view"""
+
+    def __init__(self):
+        from chimera.core.geometry.place import Place
+        self.position = Place()
+
+        from chimera.core.graphics.camera import mono_camera_mode
+        self.mode = mono_camera_mode
+
+        self.view_width = 1
+
+    def get_position(self, view_num=None):
+        return self.position
+
+    def view_direction(self, view_num=None):
+        return -self.position.z_axis()
+
+    def number_of_views(self):
+        return self.mode.number_of_views()
+
+    def set_render_target(self, view_num, render):
+        self.mode.set_render_target(view_num, render)
+
+    def combine_rendered_camera_views(self, render):
+        self.mode.combine_rendered_camera_views(render)
+
+    def projection_matrix(self, near_far_clip, view_num, window_size):
+        near, far = near_far_clip
+        ww, wh = window_size
+        aspect = wh / ww
+        w = self.view_width
+        h = w * aspect
+        left, right, bot, top = -0.5 * w, 0.5 * w, -0.5 * h, 0.5 * h
+        from chimera.core.graphics.camera import ortho
+        pm = ortho(left, right, bot, top, near, far)
+        return pm
 
 
 class SideViewCanvas(glcanvas.GLCanvas):
 
-    def __init__(self, parent, view, main_view):
+    EyeSize = 4     # half size really
+    TOP_SIDE = 1
+    RIGHT_SIDE = 2
+
+    def __init__(self, parent, view, main_view, size, side=RIGHT_SIDE):
         import sys
         attribs = [
             glcanvas.WX_GL_RGBA,
@@ -35,26 +83,50 @@ class SideViewCanvas(glcanvas.GLCanvas):
                     "Missing required OpenGL capabilities for Side View")
         self.view = view
         self.main_view = main_view
-        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs)
+        self.side = side
+        # self.side = self.TOP_SIDE  # DEBUG
+        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs,
+                                   size=size)
 
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_SIZE, self.on_size)
+        self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.Bind(wx.EVT_LEFT_UP,  self.on_left_up)
+        self.Bind(wx.EVT_MOTION, self.on_motion)
 
-    def OnPaint(self, event):  # noqa
+        self.locations = loc = _PixelLocations()
+        loc.eye = 0, 0, 0   # x, y coords of eye
+        loc.near = 0        # X coord of near plane
+        loc.far = 0         # Y coord of near plane
+        loc.bottom = 0      # bottom of clipping planes
+        loc.top = 0         # top of clipping planes
+        loc.far_bottom = 0  # right clip intersect far
+        loc.far_top = 0     # left clip intersect far
+
+        from chimera.core.graphics import Drawing
+        self.applique = Drawing('sideview')
+        self.applique.display_style = Drawing.Mesh
+        self.applique.use_lighting = False
+        self.view.add_2d_overlay(self.applique)
+        self.main_view.add_rendered_frame_callback(self._redraw)
+
+    def on_destroy(self, event):
+        self.main_view.remove_rendered_frame_callback(self._redraw)
+
+    def _redraw(self):
+        # wx.CallAfter(self.draw)
+        self.draw()
+
+    def on_paint(self, event):
         # TODO: set flag to be drawn
-        print('Sideview::OnPaint')
-        self.SetCurrent(self.view.opengl_context())
-        from OpenGL import GL
-        width, height = self.view.window_size
-        GL.glViewport(0, 0, width, height)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        # TODO: draw
-        self.SwapBuffers()
-        # reset viewport to main_view's
-        width, height = self.main_view.window_size
-        GL.glViewport(0, 0, width, height)
+        # print('Sideview::OnPaint') # DEBUG
+        if self.view.window_size[0] == -1:
+            return
+        self.draw()
 
-    def OnSize(self, event):  # noqa
+    def on_size(self, event):
         # poor man's collapsing of OnSize events
         wx.CallAfter(self.set_viewport)
         event.Skip()
@@ -62,27 +134,168 @@ class SideViewCanvas(glcanvas.GLCanvas):
     def set_viewport(self):
         self.view.resize(*self.GetClientSize())
 
+    def make_current(self):
+        self.SetCurrent(self.view.opengl_context())
+
+    def swap_buffers(self):
+        self.SwapBuffers()
+
+    def draw(self):
+        from math import tan, atan, radians, degrees
+        from numpy import array, float32, uint8, int32
+        self.view._render.shader_programs = \
+            self.main_view._render.shader_programs
+        self.view._render.current_shader_program = None
+        # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
+        opengl_context = self.view.opengl_context()
+        save_make_current = opengl_context.make_current
+        save_swap_buffers = opengl_context.swap_buffers
+        opengl_context.make_current = self.make_current
+        opengl_context.swap_buffers = self.swap_buffers
+        try:
+            from OpenGL.GL.GREMEDY import string_marker
+            has_string_marker = string_marker.glInitStringMarkerGREMEDY()
+            if has_string_marker:
+                text = b"Start SideView"
+                string_marker. glStringMarkerGREMEDY(len(text), text)
+            main_view = self.main_view
+            main_camera = main_view.camera
+            view_num = None  # TODO: 0, 1 for stereo
+            # TODO: make _near_far_clip public?
+            near, far = main_view._near_far_clip(main_camera, view_num)
+
+            main_pos = main_camera.get_position(view_num)
+            main_axes = main_pos.axes()
+            camera = self.view.camera
+            camera_pos = Place()
+            camera_axes = camera_pos.axes()
+            # fov is sideview's vertical field of view,
+            # unlike a camera, where it is the horizontal field of view
+            if self.side == self.TOP_SIDE:
+                fov = radians(main_camera.field_of_view)
+                camera_axes[0] = -main_axes[2]
+                camera_axes[1] = -main_axes[0]
+                camera_axes[2] = main_axes[1]
+            else:
+                w, h = self.main_view.window_size
+                fov = 2 * atan(h / w *
+                              tan(radians(main_camera.field_of_view / 2)))
+                camera_axes[0] = -main_axes[2]
+                camera_axes[1] = main_axes[1]
+                camera_axes[2] = main_axes[0]
+            center = main_pos.origin() + (.5 * far) * \
+                main_camera.view_direction()
+            main_view_width = main_camera.view_width(center)
+            camera_pos.origin()[:] = center + camera_axes[2] * \
+                main_view_width * 5
+            camera.position = camera_pos
+
+            # figure out how big to make applique
+            # eye and lines to far plane must be on screen
+            width, height = self.view.window_size
+            loc = self.locations
+            loc.bottom = .05 * height
+            loc.top = .95 * height
+            ratio = tan(0.5 * fov)
+            if ratio * width / 1.1 < .45 * height:
+                camera.view_width = 1.1 * far
+                loc.eye = array([.05 / 1.1 * width, height / 2, 0],
+                                dtype=float32)
+                loc.near = (.05 + near / far) / 1.1 * width
+                loc.far = 1.05 / 1.1 * width
+                loc.far_top = .5 * height + ratio * width / 1.1
+                loc.far_bottom = .5 * height - ratio * width / 1.1
+            else:
+                loc.far_bottom = loc.bottom
+                loc.far_top = loc.top
+                f = .45 * height / ratio
+                n = f * near / far
+                loc.eye = array([.5 * width - f / 2, height / 2, 0],
+                                dtype=float32)
+                loc.near = loc.eye[0] + n
+                loc.far = .5 * width + f / 2
+                camera.view_width = far * width / f
+
+            self.applique.color = array([255, 0, 0, 255], dtype=uint8)
+            es = self.EyeSize
+            self.applique.vertices = array([
+                loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
+                loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
+                (loc.near, loc.bottom, 0), (loc.near, loc.top, 0),
+                (loc.far, loc.bottom, 0), (loc.far, loc.top, 0),
+                (0, 0, 0), (0, 0, 0),
+                (0, 0, 0), (0, 0, 0),
+            ], dtype=float32)
+            self.applique.vertices[8] = loc.eye
+            self.applique.vertices[9] = (loc.far, loc.far_top, 0)
+            self.applique.vertices[10] = loc.eye
+            self.applique.vertices[11] = (loc.far, loc.far_bottom, 0)
+            self.applique.triangles = array([
+                [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
+                # TODO [4, 5],    # near plane
+                # TODO [6, 7],    # far plane
+                [8, 9],    # left plane
+                [10, 11],  # right plane
+            ], dtype=int32)
+            from OpenGL import GL
+            GL.glViewport(0, 0, width, height)
+            self.view.draw()
+            if has_string_marker:
+                text = b"End SideView"
+                string_marker. glStringMarkerGREMEDY(len(text), text)
+        finally:
+            opengl_context.make_current = save_make_current
+            opengl_context.swap_buffers = save_swap_buffers
+            self.main_view._render.current_shader_program = None
+            from OpenGL import GL
+            w, h = self.main_view.window_size
+            GL.glViewport(0, 0, w, h)
+
+    def on_left_down(self, event):
+        x, y = event.GetPosition()
+        eye_x, eye_y = self.locations.eye[0:2]
+        es = self.EyeSize
+        if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
+            self.x, self.y = x, y
+            self.CaptureMouse()
+
+    def on_left_up(self, event):
+        if self.HasCapture():
+            self.ReleaseMouse()
+
+    def on_motion(self, event):
+        if not self.HasCapture() or not event.Dragging():
+            return
+        x, y = event.GetPosition()
+        v = self.main_view
+        psize = self.main_view.pixel_size()
+        shift = v.camera.position.apply_without_translation(
+            (0, 0, (x - self.x) * psize))
+        v.translate(shift)
+        self.x, self.y = x, y
+
 
 class ToolUI(ToolInstance):
 
     SIZE = (300, 200)
     VERSION = 1
 
-    def __init__(self, session, **kw):
+    def __init__(self, session, name, **kw):
         super().__init__(session, **kw)
-        import weakref
-        self._session = weakref.ref(session)
         from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Side view",
-                                      session, size=self.SIZE)
+        self.tool_window = ToolWindow(name, session, size=self.SIZE)
         parent = self.tool_window.ui_area
+
         # UI content code
         from chimera.core.graphics.view import View
         self.opengl_context = oc = session.main_view.opengl_context()
         self.view = View(session.models.drawing, wx.DefaultSize, oc,
-                         session.logger)
-        self.opengl_canvas = SideViewCanvas(parent, self.view,
-                                            session.main_view)
+                         session.logger, track=False)
+        self.view.camera = OrthoCamera()
+        self.opengl_canvas = SideViewCanvas(
+            parent, self.view, session.main_view, self.SIZE,
+            side=SideViewCanvas.TOP_SIDE if name.startswith('Top')
+            else SideViewCanvas.RIGHT_SIDE)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
@@ -96,12 +309,6 @@ class ToolUI(ToolInstance):
         # session = self._session()  # resolve back reference
         # Handle event
         pass
-
-    def make_context_current(self):
-        self.opengl_canvas.SetCurrent(self.opengl_context)
-
-    def swap_buffers(self):
-        self.opengl_canvas.SwapBuffers()
 
     #
     # Implement session.State methods if deriving from ToolInstance
@@ -129,14 +336,13 @@ class ToolUI(ToolInstance):
     # Override ToolInstance delete method to clean up
     #
     def delete(self):
-        session = self._session()  # resolve back reference
         self.tool_window.shown = False
         self.tool_window.destroy()
-        session.tools.remove([self])
+        self.session.tools.remove([self])
         super().delete()
 
     def display(self, b):
         self.tool_window.shown = b
 
     def display_name(self):
-        return "custom name for running tool"
+        return "Side View"

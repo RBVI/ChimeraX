@@ -62,7 +62,9 @@ sb_bond_indices(PyObject* self, void*)
     StructBlob* sb = static_cast<StructBlob*>(self);
     PyObject* py_ab = sb_atoms(self, nullptr);
     AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
-    std::unordered_map<Atom *, AtomBlob::ItemsType::size_type> atom_map;
+    // map is faster than unordered map, even if preallocated
+    // (on Apple LLVM version 5.1 (clang-503.0.40))
+    std::map<Atom *, AtomBlob::ItemsType::size_type> atom_map;
     decltype(atom_map)::mapped_type i = 0;
     auto& a_items = ab->_items;
     for (auto ai = a_items->begin(); ai != a_items->end(); ++ai, ++i) {
@@ -116,6 +118,28 @@ sb_set_displays(PyObject* self, PyObject* value, void*)
 }
 
 static PyObject*
+sb_num_atoms(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_atoms = 0;
+    for (auto s: *(sb->_items)) {
+        num_atoms += s->atoms().size();
+    }
+    return PyLong_FromLong((long)num_atoms);
+}
+
+static PyObject*
+sb_num_bonds(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_bonds = 0;
+    for (auto s: *(sb->_items)) {
+        num_bonds += s->bonds().size();
+    }
+    return PyLong_FromLong((long)num_bonds);
+}
+
+static PyObject*
 sb_structures(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
@@ -148,8 +172,8 @@ sb_residues(PyObject* self, void*)
 static PyMethodDef StructBlob_methods[] = {
     { (char*)"filter", blob_filter<StructBlob>, METH_O,
         (char*)"filter structure blob based on array/list of booleans" },
-    { (char*)"merge", blob_merge<StructBlob>, METH_O,
-        (char*)"merge structure blobs" },
+    { (char*)"intersect", blob_intersect<StructBlob>, METH_O,
+        (char*)"intersect structure blobs" },
     { NULL, NULL, 0, NULL }
 };
 
@@ -160,11 +184,15 @@ static PyGetSetDef StructBlob_getset[] = {
         "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
     { "displays", sb_displays, sb_set_displays,
         "numpy array of (bool) displays", NULL},
+    { "num_atoms", sb_num_atoms, NULL, "number of atoms", NULL},
+    { "num_bonds", sb_num_bonds, NULL, "number of bonds", NULL},
     { "structures", sb_structures, NULL,
         "list of one-structure-model StructBlobs", NULL},
     { "residues", sb_residues, NULL, "ResBlob", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
+
+static PyMappingMethods StructBlob_len = { blob_len<StructBlob>, NULL, NULL };
 
 } // extern "C"
 
@@ -181,7 +209,7 @@ PyTypeObject StructBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &StructBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str

@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 
 #
@@ -10,19 +10,8 @@ def start_tool(session, ti):
 
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
-    from chimera.core import gui
-    if isinstance(session.ui, gui.UI):
-        if not hasattr(session.ui, ti.name):
-            from .gui import ToolUI
-            setattr(session.ui, ti.name, ToolUI(session))
+    from .gui import ToolUI
+    ToolUI(session, ti.display_name)
 
 
-#
-# 'register_command' is called by the toolshed on start up
-#
-def register_command(command_name):
-    from . import cmd
-    from chimera.core import cli
-    cli.register(command_name + " SUBCOMMAND_NAME",
-                 cmd.subcommand_desc, cmd.subcommand_function)
-    # TODO: Register more subcommands here
+# no commands

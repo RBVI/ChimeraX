@@ -81,8 +81,8 @@ rb_strs(PyObject* self, void*)
 static PyMethodDef ResBlob_methods[] = {
     { (char*)"filter", blob_filter<ResBlob>, METH_O,
         (char*)"filter residue blob based on array/list of booleans" },
-    { (char*)"merge", blob_merge<ResBlob>, METH_O,
-        (char*)"merge residue blobs" },
+    { (char*)"intersect", blob_intersect<ResBlob>, METH_O,
+        (char*)"intersect residue blobs" },
     { NULL, NULL, 0, NULL }
 };
 
@@ -95,6 +95,8 @@ static PyGetSetDef ResBlob_getset[] = {
         "list of human-friendly residue identifiers", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
+
+static PyMappingMethods ResBlob_len = { blob_len<ResBlob>, NULL, NULL };
 
 } // extern "C"
 
@@ -111,7 +113,7 @@ PyTypeObject ResBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &ResBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str

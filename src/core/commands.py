@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 commands -- Default set of commands
 ===================================
@@ -174,6 +174,7 @@ _camera_desc = cli.CmdDesc(optional=[
 
 def register(session):
     """Register common cli commands"""
+    import sys
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)
@@ -198,6 +199,10 @@ def register(session):
     series.register_vseries_command()
     from . import color
     color.register_commands()
+    from .devices import oculus
+    oculus.register_oculus_command()
+    from .devices import spacenavigator
+    spacenavigator.register_snav_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

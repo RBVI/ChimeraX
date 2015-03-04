@@ -2,9 +2,11 @@
 # import distutils.core
 # distutils.core.DEBUG = True
 from setuptools import setup
+from glob import glob
 
 lib_dir = "LIB_DIR"
 pkg_dir = "PKG_DIR"
+data_dir = "DATA_DIR"
 import os.path
 
 setup(
@@ -20,10 +22,14 @@ setup(
     packages=[
         "chimera.core",
         "chimera.core.ui",
+        "chimera.core.devices",
+        "chimera.core.devices.oculus",
+        "chimera.core.devices.spacenavigator",
         "chimera.core.geometry",
         "chimera.core.graphics",
         "chimera.core.map",
         "chimera.core.map.data",
+        "chimera.core.map.data.apbs",
         "chimera.core.map.data.ccp4",
         "chimera.core.map.data.cmap",
         "chimera.core.map.data.dsn6",
@@ -37,6 +43,8 @@ setup(
     package_data={
         "chimera.core": ["*.PYMOD_EXT"],
         "chimera.core.ui": ["*.jpg"],
+        "chimera.core.devices.oculus": ["*.PYMOD_EXT"],
+        "chimera.core.devices.spacenavigator": ["*.PYMOD_EXT"],
         "chimera.core.geometry": ["*.PYMOD_EXT"],
         "chimera.core.graphics": ["*.txt", "*.PYMOD_EXT"],
         "chimera.core.map": ["*.PYMOD_EXT"],
@@ -52,6 +60,8 @@ setup(
             os.path.join(lib_dir, "libatomstruct.SHLIB_EXT"),
             os.path.join(lib_dir, "libblob.SHLIB_EXT"),
         ]),
+        (os.path.join("share", "idatm", "templates"),
+			glob(os.path.join(data_dir, "idatm", "templates", "*"))),
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

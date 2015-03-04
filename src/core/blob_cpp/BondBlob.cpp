@@ -122,8 +122,8 @@ bb_set_radii(PyObject* self, PyObject* value, void*)
 static PyMethodDef BondBlob_methods[] = {
     { (char*)"filter", blob_filter<BondBlob>, METH_O,
         (char*)"filter bond blob based on array/list of booleans" },
-    { (char*)"merge", blob_merge<BondBlob>, METH_O,
-        (char*)"merge bond blobs" },
+    { (char*)"intersect", blob_intersect<BondBlob>, METH_O,
+        (char*)"intersect bond blobs" },
     { NULL, NULL, 0, NULL }
 };
 
@@ -138,6 +138,8 @@ static PyGetSetDef BondBlob_getset[] = {
         (char*)"numpy array of (float) radii", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
+
+static PyMappingMethods BondBlob_len = { blob_len<BondBlob>, NULL, NULL };
 
 } // extern "C"
 
@@ -154,7 +156,7 @@ PyTypeObject BondBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &BondBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str

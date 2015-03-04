@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 # ----------------------------------------------------------------------------
 # Volume series command.
 #
@@ -122,7 +123,7 @@ def align_series(s, enclose_volume = None, fast_enclose_volume = None, session =
     n = len(s.maps)
     vprev = None
     for i,v in enumerate(s.maps):
-        session.show_status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
+        session.status('Aligning %s (%d of %d maps)' % (v.data.name, i+1, n))
         set_enclosed_volume(v, enclose_volume, fast_enclose_volume)
         if vprev:
             align(v, vprev)
@@ -182,7 +183,7 @@ def save_op(series, path, subregion = None, step = None, valueType = None,
 
     n = len(maps)
     for i,v in enumerate(maps):
-        session.show_status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
+        session.status('Writing %s (%d of %d maps)' % (v.data.name, i+1, n))
         align_to = maps[i-1] if align and i > 0 else None
         d = processed_volume(v, subregion, step, valueType, threshold, zeroMean, scaleFactor,
                              encloseVolume, fastEncloseVolume, normalizeLevel,
@@ -319,7 +320,7 @@ def measure_op(series, output = None, centroids = True,
             f.write(text)
             f.close()
         else:
-            session.show_info(text)
+            session.info(text)
   
 # -----------------------------------------------------------------------------
 #

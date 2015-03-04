@@ -1,3 +1,4 @@
+// vi: set expandtab shiftwidth=4 softtabstop=4:
 // ----------------------------------------------------------------------------
 // Routines to evaluate transfer functions mapping numeric data values to
 // RGBA color and opacity.

@@ -32,7 +32,7 @@ SUBDIRS += win32
 endif
 
 ifeq ($(OS),Darwin)
-SUBDIRS += leapmotion
+SUBDIRS += leapmotion oculus
 endif
 
 #ifdef UNIX

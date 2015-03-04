@@ -195,6 +195,8 @@ ab_residues(PyObject* self, void*)
 static PyMethodDef AtomBlob_methods[] = {
     { (char*)"filter", blob_filter<AtomBlob>, METH_O,
         (char*)"filter atom blob based on array/list of booleans" },
+    { (char*)"intersect", blob_intersect<AtomBlob>, METH_O,
+        (char*)"intersect atom blobs" },
     { (char*)"merge", blob_merge<AtomBlob>, METH_O,
         (char*)"merge atom blobs" },
     { NULL, NULL, 0, NULL }
@@ -220,6 +222,8 @@ static PyGetSetDef AtomBlob_getset[] = {
     { NULL, NULL, NULL, NULL, NULL }
 };
 
+static PyMappingMethods AtomBlob_len = { blob_len<AtomBlob>, NULL, NULL };
+
 } // extern "C"
 
 PyTypeObject AtomBlob_type = {
@@ -235,7 +239,7 @@ PyTypeObject AtomBlob_type = {
     0, // tp_repr
     0, // tp_as_number
     0, // tp_as_sequence
-    0, // tp_as_mapping
+    &AtomBlob_len, // tp_as_mapping
     0, // tp_hash
     0, // tp_call
     0, // tp_str

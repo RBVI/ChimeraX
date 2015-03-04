@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 from .cli import CmdDesc, BoolArg, IntArg, FloatArg, Float3Arg, EnumOf
 _lighting_desc = CmdDesc(
     optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple')))],

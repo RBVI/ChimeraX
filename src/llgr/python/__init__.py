@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 llgr: Provide access to low-level graphics library
 --------------------------------------------------

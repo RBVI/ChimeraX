@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 OpalJob - Run Opal job and monitor status
 =========================================
@@ -53,17 +53,25 @@ class OpalJob(Job):
     #
     # Define chimera.core.tasks.Job ABC methods
     #
-    def launch(self, service_name, cmd, opal_url=None, **kw):
+    def launch(self, service_name, cmd, opal_url=None,
+               input_file_map=None, **kw):
         """Launch the background process.
 
         Arguments
         ---------
         service_name : str
             Name of Opal service
-        opal_url : str
-            URL of Opal server.  If None, DEFAULT_OPAL_URL is used.
         cmd : str
             Command line to send to Opal server
+        opal_url : str
+            URL of Opal server.  If None, DEFAULT_OPAL_URL is used.
+        input_file_map : list of tuples
+            List of file names and contents.  Each tuple consists of
+            the file name, the type of content, and the content.
+            Supported content types include: "text_file", "binary_file"
+            and "bytes".  For "text_file" and "binary_file", the value
+            should be the path to a file; for "bytes", the value should
+            be of type 'bytes'.
         kw : extra arguments
             Arguments passed through to launch request.
 
@@ -92,8 +100,16 @@ class OpalJob(Job):
         md = self._suds.service.getAppMetadata()
         logger.info("Web Service: %s" % md.usage)
 
-        # Launch job
+        # Add job keywords
         job_kw = dict([(k[1:], v) for k, v in kw.items() if k.startswith('_')])
+
+        # Create input file map if necessary
+        if input_file_map is not None:
+            input_files = [self._make_input_file(name, value_type, value)
+                           for name, value_type, value in input_file_map]
+            job_kw["inputFile"] = input_files
+
+        # Launch job
         from suds import WebFault
         try:
             r = self._suds.service.launchJob(cmd, **job_kw)
@@ -104,12 +120,14 @@ class OpalJob(Job):
             self.job_id = r.jobID
             logger.info("Opal service URL: %s" % self.service_url)
             logger.info("Opal job id: %s" % self.job_id)
+            logger.info("Opal status URL: %s" % r.status[2])
             import time
             self.start_time = time.time()
             self._save_status(r.status)
 
     def _save_status(self, status):
         self._status_code = int(status[0])
+        print("_status_code", self._status_code)
         self._status_message = str(status[1])
         self._status_url = str(status[2])
         if self._status_code in [4, 8]:
@@ -143,7 +161,7 @@ class OpalJob(Job):
         """Return whether background process terminated normally.
 
         """
-        return self._status_code == 4
+        return self._status_code in [4, 8]
 
     #
     # Define chimera.core.session.State ABC methods
@@ -257,3 +275,20 @@ class OpalJob(Job):
         else:
             self._outputs.update([(f.name, f.url) for f in files])
         return self._outputs
+
+    def _make_input_file(self, name, value_type, value):
+        # text files are opened normally, with contents encoded as UTF-8.
+        # binary files are opened in binary mode and untouched.
+        # bytes are used as is.
+        if value_type == "text_file":
+            with open(value, "r") as f:
+                value = f.read().encode("UTF-8")
+        elif value_type == "binary_file":
+            with open(value, "rb") as f:
+                value = f.read()
+        elif value_type != "bytes":
+            raise ValueError("unsupported content type: \"%s\"" % value_type)
+        # Opal wants base64 encoded content as string
+        from base64 import b64encode
+        contents = b64encode(value).decode("UTF-8")
+        return {"name": name, "contents": contents}

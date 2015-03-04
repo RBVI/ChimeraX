@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vi: set expandtab ts=4 sw=4:
 
 from chimera.core.tools import ToolInstance
 
@@ -56,8 +56,7 @@ class CmdLine(ToolInstance):
             import traceback
             session.logger.error(traceback.format_exc())
         else:
-            thumb = session.main_view.image(
-                    width=100, height=100, supersample=3)
+            thumb = session.main_view.image(width=100, height=100)
             session.logger.info(text, add_newline=False)
             session.logger.info("&nbsp;", is_html=True, add_newline=False)
             session.logger.info("graphics image", image=thumb)

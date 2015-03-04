@@ -1124,9 +1124,7 @@ std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
     // ensure structaccess module objects are initialized
-    PyObject* structaccess_mod = PyImport_ImportModule(
-            "chimera.core.structaccess");
-    if (structaccess_mod == NULL) {
+    if (!blob::init_structaccess()) {
         delete structs;
         return NULL;
     }
