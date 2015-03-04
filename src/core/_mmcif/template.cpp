@@ -16,12 +16,10 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <algorithm>
-#include <unordered_map>
 #include <WrapPy3.h>
 
 using std::string;
 using std::vector;
-using std::unordered_map;
 using std::hash;
 using std::set;
 

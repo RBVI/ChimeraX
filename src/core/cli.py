@@ -435,9 +435,9 @@ class BoolArg(Annotation):
     def parse(text, session):
         token, text, rest = next_token(text)
         token = token.casefold()
-        if token == "0" or "false".startswith(token):
+        if token == "0" or "false".startswith(token) or token == "off":
             return False, "false", rest
-        if token == "1" or "true".startswith(token):
+        if token == "1" or "true".startswith(token) or token == "on":
             return True, "true", rest
         raise AnnotationError("Expected true or false (or 1 or 0)")
 

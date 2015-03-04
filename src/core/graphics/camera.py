@@ -44,9 +44,6 @@ class Camera:
         """Indicates whether a camera change has been made which requires
         the graphics to be redrawn."""
 
-        self.ortho = False
-        """Indicates if camera should use an orthographic projection."""
-
     CAMERA_STATE_VERSION = 1
 
     def take_snapshot(self, session, flags):
@@ -94,8 +91,8 @@ class Camera:
         and radius looking along the scene -z axis.
         '''
         cx, cy, cz = center
-        from math import pi, tan
-        fov = self.field_of_view * pi / 180
+        from math import radians, tan
+        fov = radians(self.field_of_view)
         camdist = 0.5 * size + 0.5 * size / tan(0.5 * fov)
         from ..geometry import place
         self.position = place.translation((cx, cy, cz + camdist))
@@ -106,8 +103,8 @@ class Camera:
         having specified center and radius.  The camera view direction
         is not changed.
         '''
-        from math import pi, tan
-        fov = self.field_of_view * pi / 180
+        from math import radians, tan
+        fov = radians(self.field_of_view)
         d = 0.5 * size + 0.5 * size / tan(0.5 * fov)
         vd = self.view_direction()
         cp = self.position.origin()
@@ -122,9 +119,9 @@ class Camera:
         cp = self.position.origin()
         vd = self.view_direction()
         d = sum((center - cp) * vd)         # camera to center of models
-        from math import tan, pi
+        from math import radians, tan
         # view width at center
-        vw = 2 * d * tan(0.5 * self.field_of_view * pi / 180)
+        vw = 2 * d * tan(0.5 * radians(self.field_of_view))
         return vw
 
     def set_field_of_view_from_view_width(self, center, width):
@@ -132,8 +129,8 @@ class Camera:
         cp = self.position.origin()
         vd = self.view_direction()
         d = sum((center - cp) * vd)         # camera to center of models
-        from math import atan, pi
-        self.field_of_view = atan(width / (2 * d)) * 2 / pi * 180
+        from math import degrees, atan
+        self.field_of_view = degrees(atan(width / (2 * d))) * 2
 
     def pixel_size(self, center, window_size):
         '''
@@ -143,8 +140,8 @@ class Camera:
         '''
         # Pixel size at center
         w, h = window_size
-        from math import pi, tan
-        fov = self.field_of_view * pi / 180
+        from math import radians, tan
+        fov = radians(self.field_of_view)
 
         c = self.position.origin()
         from ..geometry import vector
@@ -159,8 +156,8 @@ class Camera:
         '''The 4 by 4 OpenGL perspective projection matrix for rendering
         the scene using this camera view.'''
         # Perspective projection to origin with center of view along z axis
-        from math import pi, tan
-        fov = self.field_of_view * pi / 180
+        from math import radians, tan
+        fov = radians(self.field_of_view)
         near, far = near_far_clip
         w = 2 * near * tan(0.5 * fov)
         ww, wh = window_size
@@ -170,10 +167,7 @@ class Camera:
         xps, yps = self.pixel_shift
         mxs, mys = self.mode.pixel_shift(view_num)
         xshift, yshift = (xps + mxs) / ww, (yps + mys) / wh
-        if self.ortho:
-            pm = ortho(left, right, bot, top, near, far, xshift, yshift)
-        else:
-            pm = frustum(left, right, bot, top, near, far, xshift, yshift)
+        pm = frustum(left, right, bot, top, near, far, xshift, yshift)
         return pm
 
     def clip_plane_points(self, window_x, window_y, window_size, z_distances,
@@ -183,8 +177,8 @@ class Camera:
         specified window pixel position.
         TODO: Only correct for mono camera.
         '''
-        from math import pi, tan
-        fov = self.field_of_view * pi / 180
+        from math import radians, tan
+        fov = radians(self.field_of_view)
         t = tan(0.5 * fov)
         wp, hp = window_size     # Screen size in pixels
         wx, wy = (window_x - 0.5 * wp) / wp, (0.5 * hp - window_y) / wp

@@ -16,14 +16,11 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <algorithm>
-#include <unordered_map>
-#include <unordered_map>
 
 using std::hash;
 using std::map;
 using std::set;
 using std::string;
-using std::unordered_map;
 using std::vector;
 
 using atomstruct::AtomicStructure;
@@ -83,16 +80,31 @@ struct ExtractMolecule: public readcif::CIFFile
                 && alt_id == k.alt_id && atom_name == k.atom_name
                 && residue_name == k.residue_name && chain_id == k.chain_id;
         }
-    };
-    struct hash_AtomKey {
-        size_t operator()(const AtomKey& k) const {
-            return hash<string>()(k.chain_id) ^ hash<long>()(k.position)
-                ^ hash<char>()(k.ins_code) ^ hash<char>()(k.alt_id)
-                ^ hash<const char*>()(k.atom_name)
-                ^ hash<string>()(k.residue_name);
+        bool operator<(const AtomKey& k) const {
+            if (position < k.position)
+                return true;
+            if (k.position < position)
+                return false;
+            if (ins_code < k.ins_code)
+                return true;
+            if (k.ins_code < ins_code)
+                return false;
+            if (alt_id < k.alt_id)
+                return true;
+            if (k.alt_id < alt_id)
+                return false;
+            if (atom_name < k.atom_name)
+                return true;
+            if (k.atom_name < atom_name)
+                return false;
+            if (residue_name < k.residue_name)
+                return true;
+            if (k.residue_name < residue_name)
+                return false;
+            return chain_id < k.chain_id;
         }
     };
-    unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
+    map<AtomKey, Atom*> atom_map;
     struct ResidueKey {
         string entity_id;
         long seq_id;
@@ -103,15 +115,20 @@ struct ExtractMolecule: public readcif::CIFFile
             return seq_id == k.seq_id && entity_id == k.entity_id
                 && mon_id == k.mon_id;
         }
-    };
-    struct hash_ResidueKey {
-        size_t operator()(const ResidueKey& k) const {
-            return hash<string>()(k.entity_id) ^ hash<long>()(k.seq_id)
-                ^ hash<string>()(k.mon_id);
+        bool operator<(const ResidueKey& k) const {
+            if (seq_id < k.seq_id)
+                return true;
+            if (k.seq_id < seq_id)
+                return false;
+            if (entity_id < k.entity_id)
+                return true;
+            if (k.entity_id < entity_id)
+                return false;
+            return mon_id < k.mon_id;
         }
     };
-    typedef unordered_map<ResidueKey, Residue*, hash_ResidueKey> ResidueMap;
-    unordered_map<string, ResidueMap> all_residues;
+    typedef map<ResidueKey, Residue*> ResidueMap;
+    map<string, ResidueMap> all_residues;
     struct PolySeq {
         string entity_id;
         long seq_id;

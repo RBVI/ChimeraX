@@ -15,6 +15,7 @@ class Space_Navigator:
         self.collision_map = None        # Volume data mask where camera cannot go
         self.button_1_action = 'view all'
         self.button_2_action = 'toggle dominant mode'
+        self.error = None
 
     def start_event_processing(self):
 
@@ -24,7 +25,8 @@ class Space_Navigator:
         if self.device is None:
             try:
                 self.device = find_device()
-            except:
+            except Exception as e:
+                self.error = e
                 return False     # Connection failed.
 
         if self.device:
@@ -32,6 +34,8 @@ class Space_Navigator:
             self.processing_events = True
             return True
 
+        from sys import platform
+        self.error = 'Chimera does not support Space Navigator on %s' % platform
         return False
 
     def stop_event_processing(self):
@@ -217,7 +221,8 @@ def snav_command(session, enable = None, fly = None):
     sn = space_navigator(session)
     if not enable is None:
         if enable:
-            sn.start_event_processing()
+            if not sn.start_event_processing():
+                session.logger.warning('Could not start space navigator.\n\n%s' % sn.error)
         else:
             sn.stop_event_processing()
         

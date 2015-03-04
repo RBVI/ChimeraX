@@ -28,6 +28,7 @@ public:
     this->error = NULL;
     this->hmd = ovrHmd_Create(0);	// First available head mounted device.
     this->frame_index = 1;
+    this->initialized = false;
 
     if (hmd)
       {
@@ -36,51 +37,16 @@ public:
 		  << ", firmware version " << hmd->FirmwareMajor << "." << hmd->FirmwareMinor
 		  << ", resolution " << hmd->Resolution.w << " " << hmd->Resolution.h
 		  << ", capabilities 0x" << std::hex << hmd->HmdCaps
-		  << ", distortion capabilities 0x" << std::hex << hmd->DistortionCaps;
+		  << ", distortion capabilities 0x" << std::hex << hmd->DistortionCaps
+		  << std::dec;
 	const ovrFovPort *fov = hmd->DefaultEyeFov;
 	std::cerr << ", field of view, up " << fov[0].UpTan << " down " << fov[0].DownTan
 		  << " left " << fov[0].LeftTan << " right " << fov[0].RightTan
 		  << std::endl;
       }
     else
-      {
-	this->error = "No Oculus detected.";
-	return;
-      }
-
-    unsigned int supportedTrackingCaps = (ovrTrackingCap_Orientation |
-					  ovrTrackingCap_MagYawCorrection |
-					  ovrTrackingCap_Position);
-
-    unsigned int requiredTrackingCaps = 0;
-    // Start the sensor which provides the Rift’s pose and motion.
-    ovrBool ok = ovrHmd_ConfigureTracking(hmd, supportedTrackingCaps, requiredTrackingCaps);
-    this->error = (ok ? NULL : "HMD lacks required capabilities");
-
-    ovrEyeRenderDesc eyeRenderDesc[2];
-    if (!initialize_distortion_rendering(eyeRenderDesc))
-      this->error = "Initializing distortion rendering failed.";
-
-    this->eye_offsets[ovrEye_Left] = eyeRenderDesc[ovrEye_Left].HmdToEyeViewOffset;
-    this->eye_offsets[ovrEye_Right] = eyeRenderDesc[ovrEye_Right].HmdToEyeViewOffset;
-    this->interpupillary_distance = eye_offsets[ovrEye_Left].x - eye_offsets[ovrEye_Right].x;
-
-    std::cerr << "Eye render info" << std::endl;
-    for (int e = 0 ; e < 2 ; ++e)
-      {
-	ovrEyeRenderDesc *ed = &eyeRenderDesc[e];
-	ovrRecti *er = &ed->DistortedViewport;
-	ovrVector3f *va = &ed->HmdToEyeViewOffset;
-	std::cerr << "eye " << e
-		  << " tangent half field of view up " << ed->Fov.UpTan
-		  << " down " << ed->Fov.DownTan << " left " << ed->Fov.LeftTan << " right " << ed->Fov.RightTan
-		  << ", viewport " << er->Pos.x << " " << er->Pos.y << " " << er->Size.w << " " << er->Size.h
-		  << " view adjust " << va->x << " " << va->y << " " << va->z
-		  << std::endl;
-      }
-    // TODO: Use field of view and view ports and view matrix translation from eyeRenderDesc.
+      this->error = "No Oculus detected.";
   }
-
   ~Oculus()
   {
     if (hmd)
@@ -136,6 +102,55 @@ public:
     *down_tan = fov[0].DownTan;
     *left_tan = fov[0].LeftTan;
     *right_tan = fov[0].RightTan;
+  }
+  bool initialize_tracking_and_rendering()
+  {
+    std::cerr << "initializing oculus tracking and rendering\n";
+    if (error)
+      return false;
+
+    unsigned int supportedTrackingCaps = (ovrTrackingCap_Orientation |
+					  ovrTrackingCap_MagYawCorrection |
+					  ovrTrackingCap_Position);
+
+    unsigned int requiredTrackingCaps = 0;
+    // Start the sensor which provides the Rift’s pose and motion.
+    ovrBool ok = ovrHmd_ConfigureTracking(hmd, supportedTrackingCaps, requiredTrackingCaps);
+    if (!ok)
+      {
+	this->error = "HMD lacks required capabilities";
+	return false;
+      }
+    std::cerr << "configured tracking\n";
+
+    ovrEyeRenderDesc eyeRenderDesc[2];
+    if (!initialize_distortion_rendering(eyeRenderDesc))
+      {
+	this->error = "Initializing distortion rendering failed.";
+	return false;
+      }
+    std::cerr << "configured rendering\n";
+
+    this->eye_offsets[ovrEye_Left] = eyeRenderDesc[ovrEye_Left].HmdToEyeViewOffset;
+    this->eye_offsets[ovrEye_Right] = eyeRenderDesc[ovrEye_Right].HmdToEyeViewOffset;
+    this->interpupillary_distance = eye_offsets[ovrEye_Left].x - eye_offsets[ovrEye_Right].x;
+
+    std::cerr << "Eye render info" << std::endl;
+    for (int e = 0 ; e < 2 ; ++e)
+      {
+	ovrEyeRenderDesc *ed = &eyeRenderDesc[e];
+	ovrRecti *er = &ed->DistortedViewport;
+	ovrVector3f *va = &ed->HmdToEyeViewOffset;
+	std::cerr << "eye " << e
+		  << " tangent half field of view up " << ed->Fov.UpTan
+		  << " down " << ed->Fov.DownTan << " left " << ed->Fov.LeftTan << " right " << ed->Fov.RightTan
+		  << ", viewport " << er->Pos.x << " " << er->Pos.y << " " << er->Size.w << " " << er->Size.h
+		  << " view adjust " << va->x << " " << va->y << " " << va->z
+		  << std::endl;
+      }
+    // TODO: Use field of view and view ports and view matrix translation from eyeRenderDesc.
+    initialized = true;
+    return true;
   }
   bool initialize_distortion_rendering(ovrEyeRenderDesc eyeRenderDesc_out[2])
   {
@@ -208,6 +223,7 @@ private:
   ovrVector3f eye_offsets[2];
   ovrPosef render_pose[2];	// Position and orientation for left and right eyes.
   bool in_frame;
+  bool initialized;
 };
 
 static Oculus *ovrs = NULL;
@@ -363,6 +379,32 @@ extern "C" PyObject *oculus_connect(PyObject *, PyObject *args)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" PyObject *oculus_initialize(PyObject *, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, const_cast<char *>("")))
+    return NULL;
+
+  if (!ovrs)
+    {
+      PyErr_SetString(PyExc_TypeError, "Tried to initialize oculus but not connected");
+      return NULL;
+    }
+
+  ovrs->initialize_tracking_and_rendering();
+  if (ovrs->error)
+    {
+      PyErr_SetString(PyExc_TypeError, ovrs->error);
+      delete ovrs;
+      ovrs = NULL;
+      return NULL;
+    }
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" PyObject *oculus_disconnect(PyObject *, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, const_cast<char *>("")))
@@ -379,6 +421,7 @@ extern "C" PyObject *oculus_disconnect(PyObject *, PyObject *args)
 static struct PyMethodDef oculus_methods[] =
 {
   {const_cast<char*>("connect"), (PyCFunction)oculus_connect, METH_VARARGS, NULL},
+  {const_cast<char*>("initialize"), (PyCFunction)oculus_initialize, METH_VARARGS, NULL},
   {const_cast<char*>("disconnect"), (PyCFunction)oculus_disconnect, METH_VARARGS, NULL},
   {const_cast<char*>("parameters"), (PyCFunction)oculus_parameters, METH_VARARGS, NULL},
   {const_cast<char*>("state"), (PyCFunction)oculus_state, METH_VARARGS, NULL},
