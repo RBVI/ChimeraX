@@ -67,41 +67,40 @@ struct ExtractMolecule: public readcif::CIFFile
     vector<AtomicStructure*> all_molecules;
     map<int, AtomicStructure*> molecules;
     struct AtomKey {
-        string chain_id;
         long position;
-        char ins_code;
-        char alt_id;
         AtomName atom_name;
         string residue_name;
+        string chain_id;
+        char ins_code;
+        char alt_id;
         AtomKey(const string& c, long p, char i, char a, const AtomName& n, const string& r):
-            chain_id(c), position(p), ins_code(i), alt_id(a), atom_name(n), residue_name(r) {}
+            position(p), atom_name(n), residue_name(r), chain_id(c), ins_code(i), alt_id(a) {}
         bool operator==(const AtomKey& k) const {
-            return position == k.position && ins_code == k.ins_code
-                && alt_id == k.alt_id && atom_name == k.atom_name
-                && residue_name == k.residue_name && chain_id == k.chain_id;
+            return position == k.position && atom_name == k.atom_name
+                && residue_name == k.residue_name && chain_id == k.chain_id
+                && ins_code == k.ins_code && alt_id == k.alt_id;
         }
         bool operator<(const AtomKey& k) const {
             if (position < k.position)
                 return true;
-            if (k.position < position)
-                return false;
-            if (ins_code < k.ins_code)
-                return true;
-            if (k.ins_code < ins_code)
-                return false;
-            if (alt_id < k.alt_id)
-                return true;
-            if (k.alt_id < alt_id)
+            if (position != k.position)
                 return false;
             if (atom_name < k.atom_name)
                 return true;
-            if (k.atom_name < atom_name)
+            if (atom_name != k.atom_name)
                 return false;
             if (residue_name < k.residue_name)
                 return true;
-            if (k.residue_name < residue_name)
+            if (residue_name != k.residue_name)
                 return false;
-            return chain_id < k.chain_id;
+            if (chain_id < k.chain_id)
+                return true;
+            if (chain_id != k.chain_id) return false;
+            if (alt_id < k.alt_id)
+                return true;
+            if (alt_id != k.alt_id)
+                return false;
+            return ins_code < k.ins_code;
         }
     };
     map<AtomKey, Atom*> atom_map;
@@ -118,11 +117,11 @@ struct ExtractMolecule: public readcif::CIFFile
         bool operator<(const ResidueKey& k) const {
             if (seq_id < k.seq_id)
                 return true;
-            if (k.seq_id < seq_id)
+            if (seq_id != k.seq_id)
                 return false;
             if (entity_id < k.entity_id)
                 return true;
-            if (k.entity_id < entity_id)
+            if (entity_id != k.entity_id)
                 return false;
             return mon_id < k.mon_id;
         }
