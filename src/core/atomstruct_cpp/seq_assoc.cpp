@@ -1,6 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 
-#include <algorithm>  // std::find_if_not
+#include <algorithm>  // std::find_if_not, std::min
 #include <cctype>  // std::islower
 #include <stdlib.h>  // std::abs
 
@@ -186,7 +186,85 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     }
     if (min_offset < 0)
         return max_errors+1;
-    //TODO
+
+    // leave gaps to left and right
+    std::vector<int> left_offsets, right_offsets;
+    unsigned int left_errors = 0, right_offsets = 0;
+    AssocParams left_ap(0, segments.begin(), segments.begin()+bsi-1,
+        gaps.begin(), gaps.begin()+bsi);
+    if (bsi > 0) {
+        Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+min_offset-2);
+        left_errors = _constrained(left_aseq, left_ap, left_offsets,
+            max_errors - min_errs);
+    }
+    AssocParams right_ap(0, segments.begin()+bsi+1, segments.end(),
+        gaps.begin()+bsi+1, gaps.end());
+    if (left_errors + min_errs <= max_errors && bsi+1 != segments.size()) {
+        Sequence::Contents right_aseq(aseq.begin() + min_offset + longest + 1,
+            aseq.end());
+        right_errors = _constrained(right_aseq, right_ap, right_offsets,
+            max_errors - min_errs - left_errors);
+    }
+    int tot_errs = min_errs + left_errors + right_errors;
+    struct OffsetInfo {
+        int min;
+        std::vector<int> left, right;
+
+        OffsetInfo(int m, const std::vector<int>&l, const std::vector<int>& r):
+            min(m), left(l), right(r) {}
+    };
+    OffsetInfo offs(min_offset, left_offsets, right_offsets);
+
+    for (int i = 0; i < err_list.size(); ++i) {
+        unsigned int base_errs = err_list[i];
+        if (base_errs >= std::min(tot_errs, max_errors+1))
+            continue;
+
+        int offset = left_space = i;
+        if (offset == min_offset)
+            continue;
+
+        if (bsi > 0) {
+            Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+offset-2);
+            left_errors = _constrained(left_aseq, left_ap, left_offsets,
+                std::min(tot_errs, max_errors) - base_errs);
+        } else {
+            left_offsets.clear();
+            left_errors = 0;
+        }
+
+        if (left_errors + base_errs > max_errors)
+            continue;
+
+        if (bsi+1 < segments.size()) {
+            Sequence::Contents right_aseq(aseq.begin()+offset+longest+1,
+                aseq.end());
+            right_errors = _constrained(right_aseq, right_ap, right_offsets,
+                std::min(tot_errs, max_errors) - base_errs - left_errors);
+        } else {
+            right_offsets.clear();
+            right_errors = 0;
+        }
+
+        int err_sum = base_errs + left_errors + right_errors
+        if (err_sum < tot_errs) {
+            tot_errs = err_sum;
+            offs.min = offset;
+            offs.left = left_offsets;
+            offs.right = right_offsets;
+        }
+    }
+
+    if (tot_errs > max_errors)
+        return max_errors+1;
+
+    offsets.swap(offs.left);
+    offsets.push_back(offs.min);
+    for (auto ro: offs.right) {
+        offsets.push_back(ro + offs.min + longest + 1);
+    }
+
+    return tot_errs;
 }
 
 AssocRetvals
@@ -199,7 +277,99 @@ constrained_match(const Sequence::Contents& aseq, const Chain& mseq,
     cm_ap.gaps.push_back(-1);
     std::vector<int> offsets;
     unsigned int errors = _constrained(aseq, cm_ap, max_errors, offsets);
-    //TODO
+    if (errors > max_errors)
+        throw SA_AssocFailure("bad assoc");
+    if (offsets.size() != ap.segments.size())
+        throw std::logic_error("Internal match problem: #segments != #offsets");
+    AssocRetvals ret;
+    unsigned int res_offset = 0;
+    for (int si = 0; si < ap.segments.size(); ++si) {
+        int offset = offsets[si];
+        Sequence::Contents& segment = ap.segments[si];
+        for (int i = 0; i < segment.size(); ++i) {
+            Residue* r = mseq.residues()[res_offset+i];
+            if (r != nullptr) {
+                ret.match_map[r] = offset+i;
+                ret.match_map[offset+i] = r;
+            }
+        }
+        res_offset += segment.size();
+    }
+    ret.num_errors = errors;
+    return ret;
+}
+
+AssocRetvals
+gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
+    const AssocParams& ap, unsigned int max_errors)
+{
+    Sequence::Contents gapped = ap.segments[0];
+    for (int i = 0; i < ap.segments.size(); ++i) {
+        gapped.insert(gapped.end(), ap.gaps[i], '.');
+        gapped.insert(gapped.end(),
+            ap.segments[i].begin(), ap.segments[i].end());
+    }
+
+    // to avoid matching completely in gaps, need to establish 
+    // a minimum number of matches
+    int min_matches = std::min(aseq.size(), mseq.size()) / 2;
+    int best_score = 0, best_offset;
+    unsigned int tot_errs = max_errors + 1;
+    int o_end = ap.est_len - aseq.size() + 1;
+    for (int offset = gapped.size() - ap.est_len; offset < o_end; ++offset) {
+        int matches = 0;
+        int errors = 0;
+        if (offset + aseq.size() < min_matches)
+            continue;
+        if (gapped.size() - offset < min_matches)
+            continue;
+        for (int i = 0; i < aseq.size(); ++i) {
+            if (offset+i < 0)
+                continue;
+            if (offset+i >= gapped.size())
+                // in ending gap
+                continue;
+            auto gap_char = gapped[offset+i];
+            if (aseq[i] == gap_char) {
+                ++matches;
+                continue;
+            }
+            if (gap_char == '.')
+                continue;
+            if (++errors >= tot_errors)
+                break;
+        }
+        if (errors < tot_errors) {
+            if (matches < min_matches || matches - errors <= best_score)
+                continue;
+            best_score = matches - errors;
+            tot_errs = errors;
+            best_offset = offset;
+        }
+    }
+
+    if (tot_errs > max_errors)
+        throw SA_AssocFailure("bad assoc");
+
+    AssocRetvals ret;
+    ret.num_errors = tot_errs;
+    int mseq_index = 0;
+    for (int i = 0; i < best_offset + aseq.size(); ++i) {
+        if (i >= gapped.size())
+            break;
+        if (gapped[i] == '.')
+            continue;
+        if (i >= best_offset) {
+            auto res = mseq.residues[mseq_index];
+            if (res != nullptr) {
+                int aseq_index = i - best_offset;
+                ret.match_map[res] = aseq_index;
+                ret.match_map[aseq_index] = res;
+            }
+        }
+        ++mseq_index;
+    }
+    return ret;
 }
 
 AssocRetvals
@@ -219,7 +389,6 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
     AssocRetvals retvals;
     try {
         if (aseq.size() >= ap.est_len)
-            // TODO
             retvals = constrained_match(aseq, mseq, ap, max_errors);
         else
             // TODO
