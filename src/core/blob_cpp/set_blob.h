@@ -140,9 +140,9 @@ set_blob(PyObject* py_blob, PyObject* py_val,
         import_array1(-1);  // initialize NumPy
     BlobType* blob = static_cast<BlobType*>(py_blob);
     Rgba rgba;
-    if (PyArray_Check(py_val)) {
+    if (PyArray_Check(py_val) && PyArray_NDIM((PyArrayObject*)py_val) == 2) {
         PyArrayObject* array = PyArray_GETCONTIGUOUS((PyArrayObject*)py_val);
-        if (!PyArray_ISINTEGER(array) || PyArray_NDIM(array) != 2
+        if (!PyArray_ISINTEGER(array)
         || (std::size_t)PyArray_DIMS(array)[0] != blob->_items->size()
         || PyArray_DIMS(array)[1] != 4) {
             PyErr_SetString(PyExc_TypeError,
@@ -150,8 +150,8 @@ set_blob(PyObject* py_blob, PyObject* py_val,
             return -1;
         }
         int item_size = PyArray_ITEMSIZE(array);
-        if (item_size == sizeof(signed char)) {
-            signed char* data = (signed char*) PyArray_DATA(array);
+        if (item_size == sizeof(unsigned char)) {
+            unsigned char* data = (unsigned char*) PyArray_DATA(array);
             for (auto item: *(blob->_items)) {
                 rgba.r = *data++;
                 rgba.g = *data++;
@@ -159,8 +159,8 @@ set_blob(PyObject* py_blob, PyObject* py_val,
                 rgba.a = *data++;
                 (item.get()->*member_func)(rgba);
             }
-        } else if (item_size == sizeof(int)) {
-            int* data = (int*) PyArray_DATA(array);
+        } else if (item_size == sizeof(unsigned int)) {
+            unsigned int* data = (unsigned int*) PyArray_DATA(array);
             for (auto item: *(blob->_items)) {
                 rgba.r = *data++;
                 rgba.g = *data++;
@@ -168,8 +168,8 @@ set_blob(PyObject* py_blob, PyObject* py_val,
                 rgba.a = *data++;
                 (item.get()->*member_func)(rgba);
             }
-        } else if (item_size == sizeof(long)) {
-            long* data = (long*) PyArray_DATA(array);
+        } else if (item_size == sizeof(unsigned long)) {
+            unsigned long* data = (unsigned long*) PyArray_DATA(array);
             for (auto item: *(blob->_items)) {
                 rgba.r = *data++;
                 rgba.g = *data++;
@@ -186,12 +186,14 @@ set_blob(PyObject* py_blob, PyObject* py_val,
         int vals[4];
         for (int i = 0; i < 4; ++i) {
             PyObject* item = PySequence_GetItem(py_val, i);
-            if (!PyLong_Check(item)) {
+            if (!PyNumber_Check(item)) {
                 PyErr_SetString(PyExc_TypeError,
-                    "RGBA sequence items must be ints");
+                    "RGBA sequence items must be numbers");
                 return -1;
             }
-            vals[i] = PyLong_AsLong(item);
+            PyObject* obj = PyNumber_Long(item);
+            vals[i] = PyLong_AsLong(obj);
+            Py_DECREF(obj);
         }
         rgba.r = vals[0];
         rgba.g = vals[1];
