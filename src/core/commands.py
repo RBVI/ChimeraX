@@ -134,21 +134,14 @@ def window(session):
 _window_desc = cli.CmdDesc()
 
 
-ProjectionArg = cli.EnumOf(['perspective', 'orthographic'])
-
-
 def camera(session, mode=None, field_of_view=None, eye_separation=None,
-           screen_width=None, depth_scale=None, projection=None):
+           screen_width=None, depth_scale=None):
     view = session.main_view
     cam = session.main_view.camera
     has_arg = False
     if mode is not None:
         has_arg = True
         # TODO
-    if projection is not None:
-        has_arg = True
-        cam.ortho = projection == 'orthographic'
-        cam.redraw_needed = True
     if field_of_view is not None:
         has_arg = True
         cam.field_of_view = field_of_view
@@ -173,13 +166,10 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
             '    view direction: %.6f %.6f %.6f\n' %
             tuple(cam.view_direction()) +
             '    field of view: %.5g degrees\n' % cam.field_of_view +
-            '    projection: %s' %
-            ('orthographic' if cam.ortho else 'perspective') +
             '    mode: %s\n' % cam.mode.name()
         )
         session.logger.info(msg)
         msg = (cam.mode.name() +
-            ', ' + ('orthographic' if cam.ortho else 'perspective') +
             ', %.5g degree field of view' % cam.field_of_view)
         session.logger.status(msg)
 
@@ -189,7 +179,6 @@ _camera_desc = cli.CmdDesc(optional=[
     ('eye_separation', cli.FloatArg),
     ('screen_width', cli.FloatArg),
     ('depth_scale', cli.FloatArg),
-    ('projection', ProjectionArg),
 ])
 
 
