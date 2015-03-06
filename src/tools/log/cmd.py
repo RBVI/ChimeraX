@@ -35,8 +35,11 @@ def test(session):
     session.logger.info("axes",
         image=Image.open("/Users/pett/Documents/axes.png"))
     session.logger.info("Text after the image\nSecond line")
-    session.logger.info("<pre>open xyzzy\n..........^\nMissing or unknown file type</pre>", is_html=True)
     session.logger.status("Status test", follow_with="follow text", follow_time=5)
     session.logger.status("Secondary text", blank_after=20, secondary=True)
-    session.logger.info("Appdirs site data dir: {}".format(session.app_dirs.site_data_dir))
+    res_types = set()
+    for model in session.models.list():
+        if model.__class__.__name__ == "StructureModel":
+            res_types.update(model.mol_blob.residues.names)
+    session.logger.info("Residue types [{}]: {}".format(len(res_types), res_types))
 test_desc = cli.CmdDesc()

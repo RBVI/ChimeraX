@@ -37,6 +37,8 @@ Here is an example of a function that may be registered with cli:
     from chimera.core import cli, atomspec
 
     def move(session, by, modelspec=None):
+        if modelspec is None:
+            modelspec = atomspec.everything(session)
         spec = modelspec.evaluate(session)
         import numpy
         by_vector = numpy.array(by)
@@ -58,7 +60,7 @@ all atoms.
 """
 
 import re
-from .cli import Annotation
+from .cli import Annotation, UserError
 
 
 class AtomSpecArg(Annotation):
@@ -82,7 +84,7 @@ class AtomSpecArg(Annotation):
             raise ValueError(str(e))
         if ast.parseinfo.endpos != len(token):
             # TODO: better error message on syntax error
-            raise ValueError("mangled atom specifier")
+            raise UserError("mangled atom specifier")
         return ast, text, rest
 
 
@@ -768,3 +770,19 @@ def get_selector(session, name):
 
     """
     return _get_selector_map(session).get(name, None)
+
+
+def everything(session):
+    """Return AtomSpec that matches everything.
+
+    Parameters
+    ----------
+    session : instance of chimera.core.session.Session
+        Session in which the name may be used.  If None, name is global.
+
+    Returns
+    -------
+    AtomSpec instance
+        An AtomSpec instance that matches everything in session.
+    """
+    return AtomSpecArg.parse('#*', session)[0]
