@@ -34,7 +34,7 @@ class View:
             self._render = Render()
         self._opengl_initialized = False
         self._shadows = False
-        self.shadow_map_size = 2048
+        self._shadow_map_size = 2048
         self.multishadow = 0                    # Number of shadows
         self._multishadow_dir = None
         self._multishadow_transforms = []
@@ -209,6 +209,17 @@ class View:
             self._multishadow_transforms = []
             r.enable_capabilities &= ~r.SHADER_MULTISHADOW
         self.redraw_needed = True
+
+    def set_shadow_map_size(self, size):
+        '''
+        Set the size of the 2-d texture for casting shadows.
+        Typical values are 1024, 2048, 4096.
+        Larger sizes give shadows with smoother edges.
+        '''
+        if size != self._shadow_map_size:
+            self._shadow_map_size = size
+            self._multishadow_transforms = []   # Cause shadow recomputation
+            self.redraw_needed = True
 
     def add_overlay(self, overlay):
         '''
@@ -576,7 +587,7 @@ class View:
             return None
 
         # Compute shadow map depth texture
-        size = self.shadow_map_size
+        size = self._shadow_map_size
         r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
@@ -607,7 +618,7 @@ class View:
             return None, None
 
         # Compute shadow map depth texture
-        size = self.shadow_map_size
+        size = self._shadow_map_size
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
