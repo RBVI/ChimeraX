@@ -230,9 +230,9 @@ class OculusGraphicsWindow(wx.Frame):
     The graphics window for using Oculus Rift goggles.
     """
 
-    def __init__(self, view):
+    def __init__(self, view, parent = None):
 
-        wx.Frame.__init__(self, None, title = "Oculus Rift")
+        wx.Frame.__init__(self, parent, title = "Oculus Rift")
 
         class View:
             def draw(self):

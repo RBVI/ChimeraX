@@ -81,7 +81,8 @@ def start_oculus2(session):
     # Don't show window until after oculus started, otherwise rendering uses wrong viewport.
     from ...ui.graphics import OculusGraphicsWindow
     v = session.main_view
-    win = OculusGraphicsWindow(v)
+    parent = session.ui.main_window
+    win = OculusGraphicsWindow(v, parent)
 
     # Activate opengl context before initializing oculus rift device.
     win.opengl_context.make_current()
