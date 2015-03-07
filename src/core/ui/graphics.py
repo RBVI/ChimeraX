@@ -269,12 +269,14 @@ class OculusGraphicsWindow(wx.Frame):
         ndisp = wx.Display.GetCount()
         for i in range(ndisp):
             d = wx.Display(i)
-            g = d.GetGeometry()
-            s = g.GetSize()
-            if s.GetWidth() == width and s.GetHeight() == height:
-                self.Move(g.GetX(),g.GetY())
-                self.SetSize(width,height)
-                break
+            # TODO: Would like to use d.GetName() but it is empty string on Mac.
+            if not d.IsPrimary():
+                g = d.GetGeometry()
+                s = g.GetSize()
+                if s.GetWidth() == width and s.GetHeight() == height:
+                    self.Move(g.GetX(),g.GetY())
+                    self.SetSize(width,height)
+                    break
         # self.EnableFullScreenView(True) # Not available in wxpython
         # TODO: full screen always shows on primary display.
 #        self.ShowFullScreen(True)
