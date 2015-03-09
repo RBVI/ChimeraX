@@ -30,8 +30,9 @@ install: $(SOURCE)
 	cd $(SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:;
-	$(RSYNC) $(PYSITEDIR)/numpy-$(VERSION)-py$(PYTHON_VERSION).egg-info \
-		$(PYSITEDIR)/numpy $(APP_PYSITEDIR)
+	#$(RSYNC) $(PYSITEDIR)/numpy-$(VERSION)-py$(PYTHON_VERSION).egg-info \
+	#	$(PYSITEDIR)/numpy $(APP_PYSITEDIR)
+	cd $(SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
