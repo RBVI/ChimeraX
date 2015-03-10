@@ -260,8 +260,12 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         return os.EX_OK
 
     # the rest of the arguments are data files
+    from chimera.core import cli
     for arg in args:
-        sess.models.open(arg)
+        try:
+            sess.models.open(arg)
+        except (IOError, cli.UserError) as e:
+            sess.logger.error(str(e))
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
