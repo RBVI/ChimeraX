@@ -530,22 +530,22 @@ def open(session, filespec, format=None, as_=None, **kw):
             filename = stream
             stream = _builtin_open(filename, 'rb')
     else:
+        import os.path
         if not compression:
-            import os
             filename = os.path.expanduser(os.path.expandvars(filename))
             try:
                 stream = _builtin_open(filename, 'rb')
+                name = os.path.basename(filename)
             except OSError as e:
                 raise UserError(e)
-            name = os.path.basename(filename)
         else:
             stream_type = _compression[compression]
             try:
                 stream = stream_type(filename)
+                name = os.path.basename(os.path.splitext(filename)[0])
                 filename = None
             except OSError as e:
                 raise UserError(e)
-            name = os.path.basename(os.path.splitext(filename)[0])
     if requires_filename(format_name) and not filename:
         # copy compressed file to real file
         import tempfile

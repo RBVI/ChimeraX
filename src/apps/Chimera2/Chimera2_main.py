@@ -128,6 +128,14 @@ def parse_arguments(argv):
 
 
 def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
+    if sys.platform.startswith('darwin'):
+        paths = os.environ['PATH'].split(':')
+        if '/usr/sbin' not in paths:
+            # numpy, numexpr, and pytables need sysctl in path
+            paths.append('/usr/sbin')
+            os.environ['PATH'] = ':'.join(paths)
+        del paths
+
     if app_name is None:
         app_name = __app_name__
     if app_author is None:

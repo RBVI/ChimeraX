@@ -29,6 +29,7 @@ else
 endif
 
 app-install:
+	$(RSYNC) $(includedir)/zlib.h $(app_includedir)
 	$(RSYNC) $(shlibdir)/libz.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):

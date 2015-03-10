@@ -51,7 +51,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
         if qualityOfShadows in sizes:
             size = sizes[qualityOfShadows]
-        v.shadow_map_size = size
+        v.set_shadow_map_size(size)
     if not multiShadow is None:
         v.set_multishadow(multiShadow)
     if preset == 'default':
@@ -61,8 +61,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     elif preset == 'full':
         v.shadows = True
         v.set_multishadow(64)
-        lp.key_light_intensity = 1
-        lp.fill_light_intensity = 0
+        lp.key_light_intensity = 0.7
+        lp.fill_light_intensity = 0.3
         lp.ambient_light_intensity = 1
     elif preset == 'soft':
         v.shadows = False

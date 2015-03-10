@@ -43,17 +43,18 @@ ifdef NEED_MESA
 SUBDIRS += Mesa
 else
 Mesa.install:
+Mesa.app-install:
 endif
 
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= appdirs docutils expat ffmpeg fonts \
-	   glew hdf5 imex jinja2 jpeg line_profiler numexpr numpy numpydoc \
-	   openssl ordered_set p7zip pcre pillow pips pycollada \
+SUBDIRS	+= expat ffmpeg fonts \
+	   glew hdf5 imex jpeg numexpr numpy \
+	   openssl p7zip pcre pips pycollada \
 	   PyOpenGL pytables pythomnic3k Python \
-	   setuptools sphinx webcolors wrappy3 wx zlib
+	   setuptools wrappy3 wx zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
@@ -63,7 +64,7 @@ $(SUBDIR_INSTALL): build-dirs
 build-dirs:
 	make -C $(TOP) build-dirs
 	-mkdir $(tmpdir)
-ifdef USE_MAC_FRAMEWORKS
+ifeq ($(OS),Darwin)
 	-mkdir $(includedir)/GL
 	-$(RSYNC) /System/Library/Frameworks/OpenGL.framework/Headers/* \
 	  $(includedir)/GL
@@ -99,17 +100,18 @@ install-prebuilt:
 SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
 .PHONY: $(SUBDIR_APP_INSTALL)
 app-install: $(SUBDIR_APP_INSTALL)
-	# recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
-	cd $(APP_PYSITEDIR); \
-		(echo "import sys; sys.__plen = len(sys.path)"; \
-		ls -d ./*egg; \
-		echo "import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)") > easy-install.pth
+#	# recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
+#	cd $(APP_PYSITEDIR); \
+#		(echo "import sys; sys.__plen = len(sys.path)"; \
+#		ls -d ./*egg; \
+#		echo "import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)") > easy-install.pth
+
 $(SUBDIR_APP_INSTALL):
 	$(MAKE) -C $(subst .app-install,,$@) app-install
 $(SUBDIR_APP_INSTALL): build-app-dirs
 # do Python first
-$(subst Python.app-install,,$(SUBDIR_APP_INSTALL)): Python.app-install
-
+#$(subst setuptools.app-install,,$(subst Python.app-install,,$(SUBDIR_APP_INSTALL))): setuptools.app-install
+setuptools.app-install: Python.app-install
 
 # Whole platform dependencies
 ifdef WIN32
@@ -123,40 +125,46 @@ endif
 # All packages that have dependencies should depend on the .install
 # target of the other packages.
 
-appdirs.install: Python.install setuptools.install
-blockdiag.install: Python.install funcparserlib.install webcolors.install
-cython.install: Python.install
-distribute.install: Python.install setuptools.install
-docutils.install: Python.install pillow.install pips.install
-funcparserlib.install: Python.install
 hdf5.install: zlib.install
-jinja2.install: Python.install setuptools.install
-leapmotion.install: Python.install
-line_profiler.install: Python.install pips.install
+hdf5.app-install: zlib.app-install
+leapmotion.install: setuptools.install
+leapmotion.app-install: setuptools.app-install
 numexpr.install: numpy.install
-numpy.install: Python.install
-numpydoc.install: Python.install setuptools.install
-ordered_set.install: Python.install setuptools.install
+numexpr.app-install: numpy.app-install
+numpy.install: setuptools.install
+numpy.app-install: setuptools.app-install
 pcre.install: zlib.install
-# pillow.install: jpeg.install tiff.install freetype.install littlecms.install webp.install
-pillow.install: Python.install setuptools.install zlib.install jpeg.install
-pips.install: Python.install setuptools.install
+pcre.app-install: zlib.app-install
+# For Pillow:
+# pips.install: jpeg.install tiff.install freetype.install littecms.install webp.install webpmux.install
+# pips.app-install: jpeg.app-install tiff.app-install freetype.app-install littecms.app-install webp.app-install webpmux.app-install
+pips.install: setuptools.install
 pips.app-install: setuptools.app-install
-pycollada.install: Python.install numpy.install pips.install
-PyOpenGL.install: Python.install numpy.install Mesa.install setuptools.install
-PyQt.install: Python.install qt.install sip.install
-pyside.install: cmake.install openssl.install xml2.install xslt.install pcre.install qt.install Python.install
-pytables.install: hdf5.install numexpr.install pips.install Python.install zlib.install
-pythomnic3k.install: Python.install
+pycollada.install: setuptools.install numpy.install pips.install
+pycollada.app-install: setuptools.app-install numpy.app-install pips.app-install
+PyOpenGL.install: setuptools.install numpy.install Mesa.install pips.install
+PyOpenGL.app-install: setuptools.app-install numpy.app-install Mesa.app-install pips.app-install
+PyQt.install: setuptools.install qt.install sip.install
+PyQt.app-install: setuptools.app-install qt.app-install sip.app-install
+pytables.install: hdf5.install numexpr.install pips.install setuptools.install zlib.install
+pytables.app-install: hdf5.app-install numexpr.app-install pips.app-install setuptools.app-install zlib.app-install
+pythomnic3k.install: setuptools.install
+pythomnic3k.app-install: setuptools.app-install
 Python.install: p7zip.install zlib.install openssl.install expat.install
+Python.app-install: p7zip.app-install zlib.app-install openssl.app-install expat.app-install
 qt.install: p7zip.install openssl.install zlib.install
+qt.app-install: p7zip.app-install openssl.app-install zlib.app-install
 # qt.install: png.install jpeg.install
+# qt.app-install: png.app-install jpeg.app-install
 setuptools.install: Python.install
-sip.install: Python.install
-sphinx-contrib.install: sphinx.install blockdiag.install setuptools.install
-sphinx.install: docutils.install jinja2.install numpydoc.install pips.install setuptools.install
-webcolors.install: Python.install
-wrappy3.install: pcre.install Python.install
-wx.install: Python.install
-xml2.install: Python.install zlib.install
+setuptools.app-install: Python.app-install
+sip.install: setuptools.install
+sip.app-install: setuptools.app-install
+wrappy3.install: pcre.install setuptools.install
+wrappy3.app-install: pcre.app-install setuptools.app-install
+wx.install: setuptools.install
+wx.app-install: setuptools.app-install
+xml2.install: setuptools.install zlib.install
+xml2.app-install: setuptools.app-install zlib.app-install
 xslt.install: xml2.install
+xslt.app-install: xml2.app-install
