@@ -1,0 +1,11 @@
+--- Lib/site.py.orig	2012-03-19 16:08:58.000000000 -0700
++++ Lib/site.py	2013-01-07 16:38:05.000000000 -0800
+@@ -307,7 +307,7 @@
+         else:
+             sitepackages.append(prefix)
+             sitepackages.append(os.path.join(prefix, "lib", "site-packages"))
+-        if sys.platform == "darwin":
++        if False and sys.platform == "darwin":
+             # for framework builds *only* we add the standard Apple
+             # locations.
+             from sysconfig import get_config_var
