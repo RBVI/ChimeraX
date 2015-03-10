@@ -55,7 +55,9 @@ def standard_shortcuts(session):
 
         # Scene
         ('va', view_all, 'View all', gcat, viewarg, smenu),
-        ('dv', default_view, 'Default orientation', gcat, viewarg, smenu, sep),
+        ('dv', default_view, 'Default orientation', gcat, viewarg, smenu),
+        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
+        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
         ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
         ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
@@ -780,3 +782,12 @@ def display_all_positions(session):
         for c in m.all_drawings():
             if c.display:
                 c.display_positions = None
+
+def save_position(session):
+    c = session.view.camera
+    session._saved_camera_view = c.position
+
+def restore_position(session):
+    if hasattr(session, '_saved_camera_view'):
+        c = session.view.camera
+        c.position = session._saved_camera_view
