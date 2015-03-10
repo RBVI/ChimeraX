@@ -106,13 +106,3 @@
  	fi
  
  pythonw: $(srcdir)/Tools/pythonw.c Makefile
-@@ -1162,7 +1162,8 @@
- 		venv venv/scripts venv/scripts/posix \
- 		curses pydoc_data $(MACHDEPS)
- libinstall:	build_all $(srcdir)/Lib/$(PLATDIR) $(srcdir)/Modules/xxmodule.c
--	@for i in $(SCRIPTDIR) $(LIBDEST); \
-+	if test "$(BINLIBDEST)" != "$(LIBDEST)"; then $(LN) -nfs "$(DESTDIR)$(BINLIBDEST)" "$(DESTDIR)$(LIBDEST)"; fi
-+	@for i in $(SCRIPTDIR) $(BINLIBDEST); \
- 	do \
- 		if test ! -d $(DESTDIR)$$i; then \
- 			echo "Creating directory $$i"; \
