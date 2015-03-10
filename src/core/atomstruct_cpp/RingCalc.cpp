@@ -1,9 +1,12 @@
 // vi: set expandtab ts=4 sw=4:
 
 #include <list>
+#include <map>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#define MAP map
+#define SET set
 
 #include "AtomicStructure.h"
 
@@ -33,18 +36,12 @@ AtomicStructure::_calculate_rings(bool cross_residue,
     // set_symmetric_difference only works on sorted ranges, so use
     // std::set instead of std::unordered_set
     typedef std::set<Bond*> SpanningBonds;
-    typedef std::unordered_map<Atom*, SpanningBonds > Atom2SpanningBonds;
-    std::unordered_map<Bond*, bool> traversed;
-    std::unordered_map<Atom*, bool> visited;
+    typedef std::MAP<Atom*, SpanningBonds > Atom2SpanningBonds;
+    std::MAP<Bond*, bool> traversed;
+    std::MAP<Atom*, bool> visited;
     // rcb2fr:  ring closure bond to fundamental ring map
-    std::unordered_map<Bond *, Ring> rcb2fr;
+    std::MAP<Bond *, Ring> rcb2fr;
     std::vector<Rings> fundamentals;
-    if (ignore != nullptr)
-        for (auto r: *ignore) {
-            for (auto a: r->atoms()) {
-                visited[a] = true;
-            }
-        }
 
     // trace spanning tree and find fundamental rings
     // look for an atom not yet in the spanning tree;
@@ -53,6 +50,8 @@ AtomicStructure::_calculate_rings(bool cross_residue,
     for (auto& uat: atoms()) {
         Atom* at = uat.get();
         if (visited.find(at) != visited.end())
+            continue;
+        if (ignore != nullptr && ignore->find(at->residue()) != ignore->end())
             continue;
         
         // very big residues cause fits; just skip them
@@ -68,6 +67,9 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         while (leaves.size() > 0) {
             Atom *node = leaves.front();
             leaves.pop_front();
+            if (ignore != nullptr
+            && ignore->find(node->residue()) != ignore->end())
+                continue;
             visited[node] = true;
 
             auto bi = node->bonds().begin();
@@ -80,6 +82,9 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 
                 Atom *next = *ni;
                 if (!cross_residue && node->residue() != next->residue())
+                    continue;
+                if (ignore != nullptr
+                && ignore->find(next->residue()) != ignore->end())
                     continue;
 
                 if (!visited[next]) {
@@ -109,7 +114,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
                 (void)ring_bonds.insert(b);
                 Ring r(ring_bonds);
                 (void)fundamental.insert(r);
-                (void)rcb2fr.insert(std::unordered_map<Bond *, Ring>::value_type(b,r));
+                (void)rcb2fr.insert(std::MAP<Bond *, Ring>::value_type(b,r));
             }
         }
         fundamentals.push_back(fundamental);
@@ -174,8 +179,8 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         //
         // also, set_symmetric_difference only works on ordered
         // ranges, so use std::set instead of std::unordered_set
-        std::unordered_map<Atom *, std::set<Bond *> > above_bonds[2];
-        std::unordered_set<Atom *> leaf_atoms[2];
+        std::MAP<Atom *, std::set<Bond *> > above_bonds[2];
+        std::SET<Atom *> leaf_atoms[2];
         above_bonds[0][rcb->atoms()[0]].insert(rcb);
         above_bonds[1][rcb->atoms()[1]].insert(rcb);
         leaf_atoms[0].insert(rcb->atoms()[0]);
@@ -184,12 +189,12 @@ AtomicStructure::_calculate_rings(bool cross_residue,
             int side = size % 2;
             int opp_side = (side + 1) % 2;
 
-            std::unordered_map<Atom *, std::set<Bond *> >& above = above_bonds[side];
-            std::unordered_set<Atom *>& leaves = leaf_atoms[side];
-            std::unordered_set<Atom *>& opp_leaves = leaf_atoms[opp_side];
+            std::MAP<Atom *, std::set<Bond *> >& above = above_bonds[side];
+            std::SET<Atom *>& leaves = leaf_atoms[side];
+            std::SET<Atom *>& opp_leaves = leaf_atoms[opp_side];
 
-            std::unordered_set<Atom *> new_leaves;
-            std::unordered_map<Atom *, std::set<Bond *> > new_above;
+            std::SET<Atom *> new_leaves;
+            std::MAP<Atom *, std::set<Bond *> > new_above;
 
             for (auto leaf: leaves) {
                 auto ei = leaf->neighbors().begin();
@@ -204,6 +209,10 @@ AtomicStructure::_calculate_rings(bool cross_residue,
                     if (!cross_residue && leaf->residue() != end->residue())
                         continue;
                     
+                    if (ignore != nullptr
+                    && ignore->find(end->residue()) != ignore->end())
+                        continue;
+
                     new_above[end] = above[leaf];
                     (void)new_above[end].insert(b);
                     (void)new_leaves.insert(end);
@@ -232,12 +241,12 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         }
     }
 
-    std::unordered_set<Bond *> basis_union;
+    std::SET<Bond *> basis_union;
     for (auto& r: basis)
         basis_union.insert(r.bonds().begin(), r.bonds().end());
 
     Rings msr; // msr == Minimum Spanning Rings
-    std::unordered_set<Bond *> msr_union;
+    std::SET<Bond *> msr_union;
     auto basis_iter = basis.begin();
     while (msr_union.size() < basis_union.size()) {
         Ring::Bonds::size_type ring_size = (*basis_iter).bonds().size();
@@ -388,7 +397,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
         }
         meets_size_criteria.swap(_rings);
 
-        std::unordered_map<Residue *, Rings> ring_lists;
+        std::MAP<Residue *, Rings> ring_lists;
         if (cross_residue) {
             ring_lists[residues()[0].get()] = _rings;
         } else {
@@ -470,7 +479,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
                         Atom *cur_atom = cur_bond->atoms()[1];
                         while (cur_atom != start_atom) {
                             Ring::Bonds intersection;
-                            std::unordered_set<Bond *> atom_bonds;
+                            std::SET<Bond *> atom_bonds;
                             for (auto b: cur_atom->bonds()) {
                                 atom_bonds.insert(b);
                             }
