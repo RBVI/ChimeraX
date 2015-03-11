@@ -38,8 +38,38 @@ def test(session):
     session.logger.status("Status test", follow_with="follow text", follow_time=5)
     session.logger.status("Secondary text", blank_after=20, secondary=True)
     res_types = set()
-    for model in session.models.list():
-        if model.__class__.__name__ == "StructureModel":
-            res_types.update(model.mol_blob.residues.names)
-    session.logger.info("Residue types [{}]: {}".format(len(res_types), res_types))
+    structures = [model for model in session.models.list()
+        if model.__class__.__name__ == "StructureModel"]
+    if len(structures) == 2:
+        f = open("/Users/pett/rm/1jj2_diff.txt", "w")
+        s1_ab = structures[0].mol_blob.atoms
+        s1_id = structures[0].id
+        import io
+        log_string = io.StringIO("")
+        print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=f)
+        print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=log_string)
+        s1_rb = s1_ab.residues
+        s2_ab = structures[1].mol_blob.atoms
+        s2_id = structures[1].id
+        print("# atoms in model {}: {}".format(s2_id, len(s2_ab)), file=f)
+        print("# atoms in model {}: {}".format(s2_id, len(s2_ab)), file=log_string)
+        s2_rb = s2_ab.residues
+        s1_set = set(zip(s1_rb.strs, s1_ab.names))
+        print("# unique IDs in model {}: {}".format(s1_id, len(s1_set)), file=f)
+        print("# unique IDs in model {}: {}".format(s1_id, len(s1_set)), file=log_string)
+        s2_set = set(zip(s2_rb.strs, s2_ab.names))
+        print("# unique IDs in model {}: {}".format(s2_id, len(s2_set)), file=f)
+        print("# unique IDs in model {}: {}".format(s2_id, len(s2_set)), file=log_string)
+        print("In {} model but not {} ({}):".format(s1_id, s2_id, len(s1_set - s2_set)), file=f)
+        print("In {} model but not {} ({}):".format(s1_id, s2_id, len(s1_set - s2_set)), file=log_string)
+        for rstr, aname in  s1_set - s2_set:
+            print("\t" + rstr + " " + aname, file=f)
+            print("\t" + rstr + " " + aname, file=log_string)
+        print("In {} model but not {} ({}):".format(s2_id, s1_id, len(s2_set - s1_set)), file=f)
+        print("In {} model but not {} ({}):".format(s2_id, s1_id, len(s2_set - s1_set)), file=log_string)
+        for rstr, aname in  s2_set - s1_set:
+            print("\t" + rstr + " " + aname, file=f)
+            print("\t" + rstr + " " + aname, file=log_string)
+        f.close()
+        session.logger.info(log_string.getvalue())
 test_desc = cli.CmdDesc()
