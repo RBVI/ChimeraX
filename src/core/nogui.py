@@ -7,6 +7,20 @@ Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
 from .utils import flattened
 from .tasks import Task
+from .logger import PlainTextLog
+
+
+class NoGuiLog(PlainTextLog):
+
+    def log(self, level, msg):
+        print("%s: %s" % (level, msg))
+        return True
+
+    def status(self, msg, color, secondary):
+        if secondary:
+            return False
+        print("status: %s" % msg)
+        return True
 
 
 class UI:
@@ -32,6 +46,7 @@ class UI:
 
     def event_loop(self):
         session = self._session()  # resolve back reference
+        session.logger.add_log(NoGuiLog())
         input = _Input(session)
         input.start()
         from .tasks import FINISHED, TERMINATED
