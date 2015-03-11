@@ -186,7 +186,7 @@ ExtractMolecule::reset_parse()
 }
 
 void
-connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool /*gap*/)
+connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 {
     // TODO: if gap, chain is discontinious
     for (auto&& r0: a) {
@@ -204,7 +204,13 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool /*gap*/)
             Atom *a1 = r1->find_atom(tr1->chief()->name());
             if (a1 == nullptr)
                 continue;
-            if (!a0->connects_to(a1))
+            if (gap) {
+                auto as = r0->structure();
+                auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
+                    atomstruct::AS_PBManager::GRP_NORMAL);
+                pbg->new_pseudobond(a0, a1);
+            }
+            else if (!a0->connects_to(a1))
                 (void) a0->structure()->new_bond(a0, a1);
         }
     }
@@ -225,7 +231,9 @@ ExtractMolecule::finished_parse()
             connect_residue_by_template(r.get(), tr);
         }
     }
-    // connect residues in entity_poly_seq
+    // Connect residues in entity_poly_seq.
+    // Because some positions are heterogeneous, delay connecting
+    // until next group of residues is found.
     for (auto&& chain: all_residues) {
         const ResidueMap& residue_map = chain.second;
         PolySeq *last = NULL;
@@ -233,10 +241,8 @@ ExtractMolecule::finished_parse()
         vector<Residue*> previous, current;
         for (auto& p: poly_seq) {
             if (last && p.entity_id != last->entity_id) {
-                if (!previous.empty()) {
+                if (!previous.empty() && !current.empty())
                     connect_residue_pairs(previous, current, gap);
-                    gap = false;
-                }
                 previous.clear();
                 current.clear();
                 last = NULL;
@@ -244,29 +250,30 @@ ExtractMolecule::finished_parse()
             }
             auto ri = residue_map.find(ResidueKey(p.entity_id, p.seq_id, p.mon_id));
             if (ri == residue_map.end()) {
+                if (current.empty())
+                    continue;
+                if (!previous.empty())
+                    connect_residue_pairs(previous, current, gap);
+                previous = std::move(current);
+                current.clear();
                 gap = true;
                 continue;
             }
             Residue* r = ri->second;
-            if (p.hetero) {
-                if (last == NULL || last->hetero) {
-                    current.push_back(r);
-                } else {
-                    if (!previous.empty()) {
-                        connect_residue_pairs(previous, current, gap);
-                        gap = false;
-                    }
+            if (last && last->seq_id == p.seq_id
+                    && last->entity_id == p.entity_id) {
+                if (!last->hetero)
+                    std::cerr << "Duplicate entity_id/seq_id without hetero\n";
+                current.push_back(r);
+            } else {
+                if (!previous.empty() && !current.empty()) {
+                    connect_residue_pairs(previous, current, gap);
+                    gap = false;
+                }
+                if (!current.empty()) {
                     previous = std::move(current);
                     current.clear();
-                    current.push_back(r);
                 }
-            } else {
-                if (!previous.empty()) {
-                    connect_residue_pairs(previous, current, gap);
-                        gap = false;
-                    }
-                previous = std::move(current);
-                current.clear();
                 current.push_back(r);
             }
             last = &p;
