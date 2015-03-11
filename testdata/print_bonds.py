@@ -24,8 +24,9 @@ for m in Chimera2_session.models.list():
             atoms[a1].append(a0)
 
     for i in range(len(atoms)):
-        bond_names = ' '.join(osl_ident(j, an, arn, arc) for j in atoms[i])
+        bond_names = [osl_ident(j, an, arn, arc) for j in atoms[i]]
+        bond_names.sort()
         if bond_names:
-            print('%s: %s' % (osl_ident(i, an, arn, arc), bond_names))
+            print('%s: %s' % (osl_ident(i, an, arn, arc), ' '.join(bond_names)))
             
 raise SystemExit(0)
