@@ -465,6 +465,7 @@ def undefine_color(session, name):
 
 
 def color(session, color, spec=None):
+    from . import atomspec
     if spec is None:
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
