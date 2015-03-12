@@ -69,7 +69,7 @@ public:
     }
 
     size_t hash() const {
-        // Attributed to Dan Bernstein in comp.lang.c.  Found 6/24/1991 posting.
+        // From Dan Bernstein post in comp.lang.c on 12/5/1990.
         size_t hash = 5381;
         int c;
         const char *str = _data;
