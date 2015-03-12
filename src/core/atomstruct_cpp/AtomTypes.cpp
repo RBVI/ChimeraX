@@ -424,9 +424,16 @@ aromatic_geometry(const Ring& r)
     return true;
 }
 
+#ifdef REPORT_TIME
+#include <ctime>
+#endif
+#define TRACK_UNTYPED 1
 void
 AtomicStructure::_compute_atom_types()
 {
+#ifdef REPORT_TIME
+clock_t start_t = clock();
+#endif
     using basegeom::Real;
 
     // angle values used to discriminate between hybridization states
@@ -493,26 +500,66 @@ AtomicStructure::_compute_atom_types()
 
     // "pass 0.5": use templates for "infallible" typing of standard
     // residue types
+#ifdef TRACK_UNTYPED
+    std::vector<Atom*> untyped_atoms;
+    bool all_unassigned_are_H = true;
+    std::vector<const Residue*> templated_residues;
+#else
     std::vector<const Atom*> mapped_queue;
+#endif
     for (auto& r: residues()) {
         try {
+#ifdef TRACK_UNTYPED
+            auto templated_atoms = r->template_assign(
+                &Atom::set_computed_idatm_type,
+                "idatm", "templates", "idatmres");
+            templated_residues.push_back(r.get());
+            if (templated_atoms.size() == r->atoms().size())
+                continue;
+            std::set<Atom*> rta_set(templated_atoms.begin(),
+                templated_atoms.end());
+            for (auto ra: r->atoms()) {
+                if (rta_set.find(ra) == rta_set.end()) {
+                    untyped_atoms.push_back(ra);
+                    if (ra->element().number() != 1)
+                        all_unassigned_are_H = false;
+                }
+            }
+#else
             for (auto a: r->template_assign(&Atom::set_computed_idatm_type,
             "idatm", "templates", "idatmres"))
                 mapped_queue.push_back(a);
+#endif
         } catch (tmpl::TA_NoTemplate) {
+#ifdef TRACK_UNTYPED
+            for (auto ra: r->atoms()) {
+                untyped_atoms.push_back(ra);
+                if (ra->element().number() != 1)
+                    all_unassigned_are_H = false;
+            }
+#else
             // don't care
+#endif
         } catch (...) {
             throw;
         }
     }
+#ifdef TRACK_UNTYPED
+    if (untyped_atoms.empty())
+#else
     if (mapped_queue.size() == num_atoms)
+#endif
         return;     // All atoms assigned.
 
     // "pass 1":  type hydrogens / deuteriums and compute number of
     // heavy atoms connected to each atom
     std::map<Atom*, int> heavys; // number of heavy atoms bonded
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     size_t h_assigned = 0;
     for (auto& a: atoms()) {
+#endif
         const Element &element = a->element();
 
         if (element.number() == 1) {
@@ -538,7 +585,9 @@ AtomicStructure::_compute_atom_types()
             
             a->set_computed_idatm_type(bonded_to_carbon ? (is_hyd ?
               "HC" : "DC") : (is_hyd ? "H" : "D"));
+#ifndef TRACK_UNTYPED
             h_assigned += 1;
+#endif
         }
 
         int heavy_count = 0;
@@ -547,23 +596,41 @@ AtomicStructure::_compute_atom_types()
                 heavy_count++;
             }
         }
+#ifdef TRACK_UNTYPED
+        heavys[a] = heavy_count;
+#else
         heavys[a.get()] = heavy_count;
+#endif
     }
 
+#ifdef TRACK_UNTYPED
+    if (all_unassigned_are_H)
+        return;
+#else
     if (h_assigned + mapped_queue.size() == num_atoms)
         return;     // All atoms assigned.
+#endif
 
+#ifdef TRACK_UNTYPED
+    std::set<const Atom*>
+        untyped_set(untyped_atoms.begin(), untyped_atoms.end());
+#else
     std::map<const Atom*, bool> mapped;
     for (auto a: mapped_queue)
             mapped[a] = true;
+#endif
 
     // "pass 2": elements that are typed only by element type
     // and valences > 1
     std::map<Atom*, int> redo;
     std::set<Atom*> ambiguous_val2Cs;
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
         if (mapped[a.get()])
             continue;
+#endif
         const Element &element = a->element();
 
         // undifferentiated types
@@ -690,27 +757,51 @@ AtomicStructure::_compute_atom_types()
             if (element == Element::C) {
                 if (ang < angle23val1) {
                     a->set_computed_idatm_type("C3");
+#ifdef TRACK_UNTYPED
+                    redo[a] = 1;
+#else
                     redo[a.get()] = 1;
+#endif
                     if (ang > angle23val1_tmin)
+#ifdef TRACK_UNTYPED
+                        ambiguous_val2Cs.insert(a);
+#else
                         ambiguous_val2Cs.insert(a.get());
+#endif
                 } else if (ang < angle12val) {
                     a->set_computed_idatm_type("C2");
                     if (ang < angle23val2) {
+#ifdef TRACK_UNTYPED
+                        redo[a] = 3;
+#else
                         redo[a.get()] = 3;
+#endif
                     } else {
                         // allow ring bond-order code
                         // to change this assignment
+#ifdef TRACK_UNTYPED
+                        redo[a] = -1;
+#else
                         redo[a.get()] = -1;
+#endif
                     }
                     if (ang < angle23val1_tmax)
+#ifdef TRACK_UNTYPED
+                        ambiguous_val2Cs.insert(a);
+#else
                         ambiguous_val2Cs.insert(a.get());
+#endif
                 } else {
                     a->set_computed_idatm_type("C1");
                 }
             } else if (element == Element::N) {
                 if (ang < angle23val1) {
                     a->set_computed_idatm_type("N3");
+#ifdef TRACK_UNTYPED
+                    redo[a] = 2;
+#else
                     redo[a.get()] = 2;
+#endif
                 } else {
                     a->set_computed_idatm_type(
                       ang < angle12val ?  "Npl" : "N1+");
@@ -727,7 +818,11 @@ AtomicStructure::_compute_atom_types()
     // by element only in previous pass, but can be typed more accurately
     // now that the atoms they are bonded to have been typed.  Bond
     // lengths are used in this pass.  
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
+#endif
 
         auto neighbors = a->neighbors();
         if (neighbors.size() != 1)
@@ -739,8 +834,10 @@ AtomicStructure::_compute_atom_types()
 
         
         if (a->idatm_type() == "C") {
+#ifndef TRACK_UNTYPED
             if (mapped[a.get()])
                 continue;
+#endif
             if (sqlen <= p3c1c1 && bondee_type == "C1") {
                 a->set_computed_idatm_type("C1");
             } else if (sqlen <= p3c2c &&
@@ -757,8 +854,10 @@ AtomicStructure::_compute_atom_types()
                 a->set_computed_idatm_type("C3");
             }
         } else if (a->idatm_type() == "N") {
+#ifndef TRACK_UNTYPED
             if (mapped[a.get()])
                 continue;
+#endif
             if ((sqlen <= p3n1c1 && bondee_type == "C1" ||
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
@@ -778,13 +877,17 @@ AtomicStructure::_compute_atom_types()
         } else if (a->idatm_type() == "O") {
             if (bondee_type == "Cac" || bondee_type == "Ntr" ||
               bondee_type == "N1+") {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("O2-");
             } else if (bondee_type == "Pac" || bondee_type == "Sac"
               || bondee_type == "N3+" || bondee_type == "Pox"
               || bondee_type == "Son" || bondee_type == "Sxd") {
+#ifndef TRACK_UNTYPED
                 if (mapped[a.get()])
                     continue;
+#endif
                 a->set_computed_idatm_type("O3-");
 
                 // pKa of 3rd phosphate oxygen is 7...
@@ -803,7 +906,11 @@ AtomicStructure::_compute_atom_types()
                 Real len = bondee->coord().distance(a->coord());
                 bool longer = true;
                 for (auto bp: bondee->neighbors()) {
+#ifdef TRACK_UNTYPED
+                    if (bp == a || bp->neighbors().size() > 1
+#else
                     if (bp == a.get() || bp->neighbors().size() > 1
+#endif
                     || bp->element() != Element::O)
                         continue;
                     if (len < bondee->coord().distance(bp->coord()) + 0.05) {
@@ -816,55 +923,85 @@ AtomicStructure::_compute_atom_types()
             } else if (sqlen <= p3c1o1 &&
               bondee->element() == Element::C &&
               bondee->neighbors().size() == 1) {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("O1+");
             } else if (sqlen <= p3o2c2 &&
               bondee->element() == Element::C) {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("O2");
+#ifdef TRACK_UNTYPED
+                if (untyped_set.find(bondee) != untyped_set.end())
+#else
                 if (!mapped[bondee])
+#endif
                     bondee->set_computed_idatm_type("C2");
                 redo[bondee] = 0;
             } else if (sqlen <= p3o2as &&
               bondee->element() == Element::As) {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("O2");
             } else if (sqlen <= p3o2o3 &&
               bondee->element() == Element::O &&
               bondee->neighbors().size() == 1) {
                 // distinguish oxygen molecule from
                 // hydrogen peroxide
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("O2");
             } else if (sqlen <= p3n1o1 &&
               bondee->element() == Element::N &&
               bondee->neighbors().size() == 1) {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("O1");
             } else {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("O3");
             }
         } else if (a->idatm_type() == "S") {
             if (bondee->element() == Element::P) {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("S3-");
             } else if (bondee_type == "N1+") {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("S2");
             } else if (sqlen <= p3s2c2 &&
               bondee->element() == Element::C) {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("S2");
+#ifdef TRACK_UNTYPED
+                if (untyped_set.find(bondee) != untyped_set.end())
+#else
                 if (!mapped[bondee])
+#endif
                     bondee->set_computed_idatm_type("C2");
                 redo[bondee] = 0;
             } else if (sqlen <= p3s2as &&
               bondee->element() == Element::As) {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("S2");
             } else {
+#ifndef TRACK_UNTYPED
                 if (!mapped[a.get()])
+#endif
                     a->set_computed_idatm_type("S3");
             }
         }
@@ -872,6 +1009,9 @@ AtomicStructure::_compute_atom_types()
 
     // "pass 4": re-examine all atoms with non-zero 'redo' values and
     //   retype them if necessary
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
 
         if (mapped[a.get()])
@@ -879,13 +1019,18 @@ AtomicStructure::_compute_atom_types()
 
         if (redo[a.get()] == 0)
             continue;
+#endif
         
         bool c3able = false;
         for (auto bondee: a->neighbors()) {
             const Element &bondee_element = bondee->element();
             Real sqlen = bondee->coord().sqdistance(a->coord());
 
+#ifdef TRACK_UNTYPED
+            if (redo[a] == 1) {
+#else
             if (redo[a.get()] == 1) {
+#endif
                 if ((sqlen <= p4c2c && bondee_element == Element::C)
                 || (sqlen <= p4c2n && bondee_element == Element::N)) {
                     a->set_computed_idatm_type("C2");
@@ -896,11 +1041,19 @@ AtomicStructure::_compute_atom_types()
                 || (sqlen > p4c3o && bondee_element == Element::O)) {
                     a->set_computed_idatm_type("C3");
                 }
+#ifdef TRACK_UNTYPED
+            } else if (redo[a] == 2) {
+#else
             } else if (redo[a.get()] == 2) {
+#endif
                 if ((sqlen <= p4n2c && bondee_element == Element::C)
                 || (sqlen <= p4n2n && bondee_element == Element::N)) {
                     // explicit hydrogen(s): N2
+#ifdef TRACK_UNTYPED
+                    if (heavys[a] < 2)
+#else
                     if (heavys[a.get()] < 2)
+#endif
                         a->set_computed_idatm_type("N2");
                     else
                         a->set_computed_idatm_type("Npl");
@@ -935,11 +1088,16 @@ AtomicStructure::_compute_atom_types()
     //  2) Check that all the atoms of the ring are planar types
     //  3) Check bond lengths around the ring; see if they are
     //      consistent with aromatic bond lengths
+#ifdef TRACK_UNTYPED
+    std::unordered_set<const Residue*>
+        mapped_residues(templated_residues.begin(), templated_residues.end());
+#else
     std::unordered_set<const Residue*> mapped_residues;
     for (auto a_tf: mapped) {
         if (a_tf.second)
             mapped_residues.insert(a_tf.first->residue());
     }
+#endif
     int ring_limit = 3;
     Rings rs = rings(false, ring_limit, &mapped_residues);
     if (rs.size() < 20) {
@@ -963,7 +1121,9 @@ AtomicStructure::_compute_atom_types()
             continue;
         }
         bool planar_types = true;
+#ifndef TRACK_UNTYPED
         bool all_mapped = true;
+#endif
         bool all_planar = true;
         int num_oxygens = 0;
         for (auto a: r.atoms()) {
@@ -991,6 +1151,7 @@ AtomicStructure::_compute_atom_types()
                 all_planar = false;
             }
 
+#ifndef TRACK_UNTYPED
             if (mapped[a]) {
                 if (idatm_type == "C3" || idatm_type == "O3"
                 || idatm_type == "S3" || idatm_type == "N3") {
@@ -1000,13 +1161,16 @@ AtomicStructure::_compute_atom_types()
             } else {
                 all_mapped = false;
             }
+#endif
         }
 
         if (!planar_types)
             continue;
         
+#ifndef TRACK_UNTYPED
         if (all_mapped)
             continue;
+#endif
         if (r.atoms().size() == 5 && num_oxygens > 1 && num_oxygens < 5)
             continue;
         if (all_planar || aromatic_geometry(r))
@@ -1069,11 +1233,13 @@ AtomicStructure::_compute_atom_types()
             continue;
         }
 
+#ifndef TRACK_UNTYPED
         // skip mapped rings
         if (mapped[*atoms.begin()])
             // since rings shouldn't span residues,
             // one atom mapped => all mapped
             continue;
+#endif
 
         // find bonds directly connected to rings
         // and try to judge their order
@@ -1506,13 +1672,19 @@ AtomicStructure::_compute_atom_types()
     //   atom other than carboxylate carbon. Also, if the sp2 carbon
     //   is valence 3 and a neighbor is valence 1, then "trust" the sp2
     //   assignment and instead change the neighbor to sp2.
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
+#endif
 
         if (a->idatm_type() != "C2")
             continue;
 
+#ifndef TRACK_UNTYPED
         if (mapped[a.get()])
             continue;
+#endif
         
         bool c2_possible = false;
         std::vector<Atom *> nb_valence1;
@@ -1587,19 +1759,30 @@ AtomicStructure::_compute_atom_types()
     //   2) make carboxyl oxygens negatively charged even if the proton is
     //      present (the pKa of the carboxyl group is probably low enough
     //      that the unprotonated form predominates at physiological pH).
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
+#endif
         
         const Element &element = a->element();
         if (element == Element::N && a->idatm_type() != "N3+") {
+#ifndef TRACK_UNTYPED
             if (mapped[a.get()])
                 continue;
+#endif
             if (is_N3plus_okay(a->neighbors()))
                 a->set_computed_idatm_type("N3+");
             
         } else if (a->idatm_type() == "C2") {
             int num_Npls = 0;
             for (auto bondee: a->neighbors()) {
+#ifdef TRACK_UNTYPED
+                if ((bondee->idatm_type() == "Npl"
+                && untyped_set.find(bondee) != untyped_set.end())
+#else
                 if ((bondee->idatm_type() == "Npl" && !mapped[bondee])
+#endif
                 || bondee->idatm_type() == "Ng+")
                     // Ng+ possible through template
                     // typing
@@ -1611,7 +1794,11 @@ AtomicStructure::_compute_atom_types()
                 for (auto bondee: a->neighbors()) {
                     if (bondee->idatm_type() != "Npl")
                         continue;
+#ifdef TRACK_UNTYPED
+                    if (untyped_set.find(bondee) == untyped_set.end())
+#else
                     if (mapped[bondee])
+#endif
                         continue;
                     
                     if (bondee->rings(false,
@@ -1624,7 +1811,11 @@ AtomicStructure::_compute_atom_types()
             }
             if (noplus) {
                 for (auto bondee: a->neighbors()) {
+#ifdef TRACK_UNTYPED
+                    if (untyped_set.find(bondee) == untyped_set.end())
+#else
                     if (mapped[bondee])
+#endif
                         continue;
                     if (bondee->idatm_type() == "Ng+")
                         bondee->set_computed_idatm_type("Npl");
@@ -1632,7 +1823,11 @@ AtomicStructure::_compute_atom_types()
             }
         } else if (a->idatm_type() == "Cac") {
             for (auto bondee: a->neighbors()) {
+#ifdef TRACK_UNTYPED
+                if (untyped_set.find(bondee) == untyped_set.end())
+#else
                 if (mapped[bondee])
+#endif
                     continue;
                 if (bondee->element() == Element::O && heavys[bondee] == 1) {
                     bondee->set_computed_idatm_type("O2-");
@@ -1646,18 +1841,30 @@ AtomicStructure::_compute_atom_types()
     //  Discrimination criteria is the average bond length of the two 
     //  heavy-atom bonds (shorter implies more double-bond character,
     //  thereby no hydrogen).
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
 
         if (mapped[a.get()])
             continue;
+#endif
 
         if (a->idatm_type() != "Npl")
             continue;
         
+#ifdef TRACK_UNTYPED
+        if (heavys[a] != 2)
+#else
         if (heavys[a.get()] != 2)
+#endif
             continue;
 
+#ifdef TRACK_UNTYPED
+        if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
+#else
         if (ring_assigned_Ns.find(a.get()) != ring_assigned_Ns.end())
+#endif
             continue;
         
         if (a->neighbors().size() > 2)
@@ -1695,7 +1902,11 @@ AtomicStructure::_compute_atom_types()
 
             bool double_okay = true;
             for (auto grand_bondee: bondee->neighbors()) {
+#ifdef TRACK_UNTYPED
+                if (grand_bondee == a)
+#else
                 if (grand_bondee == a.get())
+#endif
                     continue;
                 auto gb_type = grand_bondee->idatm_type();
 
@@ -1731,12 +1942,20 @@ AtomicStructure::_compute_atom_types()
     //  are not in turn bonded to sp2 atoms (implying Npl doubled bonded)
     //  to N2, otherwise to Npl.  
     std::map<Atom *, std::vector<Atom *> > bonded_sp2s;
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
 
         if (mapped[a.get()])
             continue;
+#endif
 
+#ifdef TRACK_UNTYPED
+        if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
+#else
         if (ring_assigned_Ns.find(a.get()) != ring_assigned_Ns.end())
+#endif
             continue;
         
         auto idatm_type = a->idatm_type();
@@ -1769,7 +1988,11 @@ AtomicStructure::_compute_atom_types()
                 }
             }
             if (aro_ring) {
+#ifdef TRACK_UNTYPED
+                if (heavys[a] == 1) { // aniline
+#else
                 if (heavys[a.get()] == 1) { // aniline
+#endif
                     a->set_computed_idatm_type("Npl");
                     break;
                 }
@@ -1782,7 +2005,11 @@ AtomicStructure::_compute_atom_types()
                 continue;
             bsp2list.push_back(bondee);
         }
+#ifdef TRACK_UNTYPED
+        bonded_sp2s[a] = bsp2list;
+#else
         bonded_sp2s[a.get()] = bsp2list;
+#endif
     }
 
     // order typing by easiest-figure-out (1 sp2 bonded) to hardest (3)
@@ -1839,10 +2066,14 @@ AtomicStructure::_compute_atom_types()
     // "pass 9":  another non-IDATM pass and analogous to pass 8:
     //  change O3 bonded only to non-Npl sp2 atom not in turn bonded
     //  to non-Npl sp2 to O2.
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
 
         if (mapped[a.get()])
             continue;
+#endif
 
         auto idatm_type = a->idatm_type();
         if (idatm_type != "O3")
@@ -1872,7 +2103,11 @@ AtomicStructure::_compute_atom_types()
             continue;
         bool remote_sp2 = false;
         for (auto grand_bondee: bondee->neighbors()) {
+#ifdef TRACK_UNTYPED
+            if (grand_bondee == a)
+#else
             if (grand_bondee == a.get())
+#endif
                 continue;
             Atom::IdatmInfoMap::const_iterator gi =
                 info_map.find(grand_bondee->idatm_type());
@@ -1889,10 +2124,14 @@ AtomicStructure::_compute_atom_types()
     }
 
     // "pass 10":  another non-IDATM pass. Ensure nitrate ions are N2/O2-
+#ifdef TRACK_UNTYPED
+    for (auto a: untyped_atoms) {
+#else
     for (auto& a: atoms()) {
 
         if (mapped[a.get()])
             continue;
+#endif
 
         if (a->element() != Element::N)
             continue;
@@ -1916,6 +2155,14 @@ AtomicStructure::_compute_atom_types()
             }
         }
     }
+#ifdef REPORT_TIME
+clock_t end_t = clock();
+std::cerr << "Tracking "
+#ifdef TRACK_UNTYPED
+"non-"
+#endif
+"templated took " << (end_t - start_t) / (float)CLOCKS_PER_SEC << " seconds\n";
+#endif
 }
 
 static void
