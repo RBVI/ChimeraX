@@ -71,6 +71,7 @@ is_not_whitespace(char c)
 
 // non-error checking replacement for the standard library's strtof
 // for non-scientific notation
+// returns NaN if not a floating point number
 inline float str_to_float(const char* s)
 {
     bool saw_digit = false;
@@ -100,6 +101,7 @@ inline float str_to_float(const char* s)
 }
 
 // non-error checking replacement for the standard library's atoi/strtol
+// returns zero if not an integer
 inline int str_to_int(const char* s)
 {
     bool neg = (*s == '-');

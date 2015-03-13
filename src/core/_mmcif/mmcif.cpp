@@ -110,7 +110,7 @@ struct ExtractMolecule: public readcif::CIFFile
         size_t operator()(const AtomKey& k) const {
             return hash<string>()(k.chain_id) ^ hash<long>()(k.position)
                 ^ hash<char>()(k.ins_code) ^ hash<char>()(k.alt_id)
-                ^ hash<const char*>()(k.atom_name)
+                ^ k.atom_name.hash()
                 ^ hash<string>()(k.residue_name);
         }
     };
@@ -156,6 +156,12 @@ struct ExtractMolecule: public readcif::CIFFile
     vector<PolySeq> poly_seq;
 };
 
+std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& ak) {
+    out << ak.chain_id << ':' << ak.residue_name << '.' << ak.position
+        << int(ak.ins_code) << '@' << ak.atom_name << '.' << int(ak.alt_id);
+    return out;
+}
+
 ExtractMolecule::ExtractMolecule()
 {
     register_category("audit_conform",
@@ -193,7 +199,10 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
         auto tr0 = find_template_residue(r0->name());
         if (tr0 == nullptr)
             continue;
-        Atom *a0 = r0->find_atom(tr0->link()->name());
+        auto ta0 = tr0->link();
+        if (ta0 == nullptr)
+            continue;
+        Atom *a0 = r0->find_atom(ta0->name());
         if (a0 == nullptr)
             continue;
         for (auto&& r1: b) {
@@ -201,7 +210,10 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
             // only connect residues of the same type
             if (tr1 == nullptr || tr1->description() != tr0->description())
                 continue;
-            Atom *a1 = r1->find_atom(tr1->chief()->name());
+            auto ta1 = tr1->chief();
+            if (ta1 == nullptr)
+                continue;
+            Atom *a1 = r1->find_atom(ta1->name());
             if (a1 == nullptr)
                 continue;
             if (gap) {
@@ -478,14 +490,6 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
     if (PDB_style())
         set_PDB_fixed_columns(true);
     while (parse_row(pv)) {
-        if (position == 0) {
-            // HETATM residues (waters) might be missing a sequence number
-            if (cur_residue == nullptr || cur_residue->chain_id() != chain_id)
-                position = 1;
-            else
-                ++position;
-        }
-
         if (model_num != cur_model_num) {
             cur_model_num = model_num;
             mol = molecules[cur_model_num] = new AtomicStructure;
@@ -530,7 +534,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             cur_residue->add_atom(a);
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
-            if (position != 0 && model_num == 1) {
+            if (model_num == 1) {
                 AtomKey k(chain_id, position, ins_code, alt_id, atom_name,
                                                             residue_name);
                 atom_map[k] = a;
@@ -656,9 +660,11 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
             residue_name2 = string(start, end - start);
         });
 
+    atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
     auto mol = molecules.begin()->second;
     while (parse_row(pv)) {
-        if (conn_type != "covale" && conn_type != "disulf")
+        bool metal = conn_type == "metalc";
+        if (!metal && conn_type != "covale" && conn_type != "disulf")
             continue;   // skip hydrogen and modres bonds
         AtomKey k1(chain_id1, position1, ins_code1, alt_id1, atom_name1,
                                                         residue_name1);
@@ -670,6 +676,13 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         auto ai2 = atom_map.find(k2);
         if (ai2 == atom_map.end())
             continue;
+        if (metal) {
+            if (metal_pbg == nullptr)
+                metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
+                    atomstruct::AS_PBManager::GRP_PER_CS);
+                metal_pbg->new_pseudobond(ai1->second, ai2->second);
+            continue;
+        }
         try {
             mol->new_bond(ai1->second, ai2->second);
         } catch (std::invalid_argument& e) {
