@@ -379,18 +379,18 @@ class _SubPart:
         else:
             self.sub_parts.append(subpart)
 
-    def find_selected_parts(self, atoms, num_atoms):
+    def find_selected_parts(self, model, atoms, num_atoms):
         # Only filter if a spec for this level is present
         import numpy
         if self.my_parts is not None:
-            my_selected = self._filter_parts(atoms, num_atoms)
+            my_selected = self._filter_parts(model, atoms, num_atoms)
         else:
             my_selected = numpy.ones(num_atoms)
         if self.sub_parts is None:
             return my_selected
         sub_selected = numpy.zeros(num_atoms)
         for subpart in self.sub_parts:
-            s = subpart.find_selected_parts(atoms, num_atoms)
+            s = subpart.find_selected_parts(model, atoms, num_atoms)
             sub_selected = numpy.logical_or(sub_selected, s)
         return numpy.logical_and(my_selected, sub_selected)
 
@@ -419,7 +419,7 @@ class _Model(_SubPart):
             num_atoms = len(atoms.displays)
             selected = numpy.zeros(num_atoms)
             for chain_spec in self.sub_parts:
-                s = chain_spec.find_selected_parts(atoms, num_atoms)
+                s = chain_spec.find_selected_parts(model, atoms, num_atoms)
                 selected = numpy.logical_or(selected, s)
             results.add_atoms(atoms.filter(selected))
 
@@ -428,17 +428,33 @@ class _Chain(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '/'
 
-    def _filter_parts(self, atoms, num_atoms):
+    def _filter_parts(self, model, atoms, num_atoms):
         chain_ids = atoms.residues.chain_ids
+        try:
+            case_insensitive = model._atomspec_chain_ci
+        except AttributeError:
+            any_upper = any([c.isupper() for c in chain_ids])
+            any_lower = any([c.islower() for c in chain_ids])
+            case_insensitive = not any_upper or not any_lower
+            model._atomspec_chain_ci = case_insensitive
         import numpy
         selected = numpy.zeros(num_atoms)
         for part in self.my_parts.parts:
             if part.end is None:
-                def choose(chain_id, v=part.start):
-                    return chain_id == v
+                if case_insensitive:
+                    def choose(chain_id, v=part.start.lower()):
+                        return chain_id.lower() == v
+                else:
+                    def choose(chain_id, v=part.start):
+                        return chain_id == v
             else:
-                def choose(chain_id, s=part.start, e=part.end):
-                    return chain_id >= s and chain_id <= e
+                if case_insensitive:
+                    def choose(chain_id, s=part.start.lower(), e=part.end.lower()):
+                        cid = chain_id.lower()
+                        return cid >= s and cid <= e
+                else:
+                    def choose(chain_id, s=part.start, e=part.end):
+                        return chain_id >= s and chain_id <= e
             s = numpy.vectorize(choose)(chain_ids)
             selected = numpy.logical_or(selected, s)
         # print("_Chain._filter_parts", selected)
@@ -449,7 +465,7 @@ class _Residue(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = ':'
 
-    def _filter_parts(self, atoms, num_atoms):
+    def _filter_parts(self, model, atoms, num_atoms):
         import numpy
         res_names = numpy.array(atoms.residues.names)
         res_numbers = atoms.residues.numbers
@@ -458,12 +474,13 @@ class _Residue(_SubPart):
             start_number = self._number(part.start)
             if part.end is None:
                 end_number = None
-                def choose_type(value, v=part.start):
-                    return value == v
+                def choose_type(value, v=part.start.lower()):
+                    return value.lower() == v
             else:
                 end_number = self._number(part.end)
-                def choose_type(value, s=part.start, e=part.end):
-                    return value >= s and value <= e
+                def choose_type(value, s=part.start.lower(), e=part.end.lower()):
+                    v = value.lower()
+                    return v >= s and v <= e
             if start_number:
                 if end_number is None:
                     def choose_number(value, v=start_number):
@@ -492,17 +509,18 @@ class _Atom(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '@'
 
-    def _filter_parts(self, atoms, num_atoms):
+    def _filter_parts(self, model, atoms, num_atoms):
         import numpy
         names = numpy.array(atoms.names)
         selected = numpy.zeros(num_atoms)
         for part in self.my_parts.parts:
             if part.end is None:
-                def choose(name, v=part.start):
-                    return name == v
+                def choose(name, v=part.start.lower()):
+                    return name.lower() == v
             else:
-                def choose(name, s=part.start, e=part.end):
-                    return name >= s and chain_id <= e
+                def choose(name, s=part.start.lower(), e=part.end.lower()):
+                    n = name.lower()
+                    return n >= s and n <= e
             s = numpy.vectorize(choose)(names)
             selected = numpy.logical_or(selected, s)
         # print("_Atom._filter_parts", selected)

@@ -60,10 +60,10 @@ class GraphicsWindow(wx.Panel):
         self.opengl_canvas.CaptureMouse()
         w,h = self.view.window_size
         x,y = pos = event.GetPosition()
-        cx, cy = x - 0.5*w, y - 0.5*h
+        cx, cy = x - 0.5 * w, y - 0.5 * h
         fperim = 0.9
-        self.mouse_perimeter = (abs(cx) > fperim*0.5*w
-            or abs(cy) > fperim*0.5*h)
+        self.radius = fperim * 0.5 * min(w, h)
+        self.mouse_perimeter = abs(cx) >= self.radius or abs(cy) >= self.radius
         self.mouse_down_position = pos
         self.last_mouse_position = pos
 
@@ -83,8 +83,12 @@ class GraphicsWindow(wx.Panel):
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
         x, y = pos = event.GetPosition()
-        if lmp is None:
+        w, h = self.view.window_size
+        cx, cy = x - 0.5 * w, y - 0.5 * h
+        perimeter = abs(cx) >= self.radius or abs(cy) >= self.radius
+        if lmp is None or self.mouse_perimeter != perimeter:
             dx = dy = 0
+            self.mouse_perimeter = perimeter
         else:
             dx = x - lmp[0]
             dy = y - lmp[1]

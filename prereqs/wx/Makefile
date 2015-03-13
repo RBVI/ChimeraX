@@ -6,7 +6,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 3.0.3.dev1651+7ab42db
+VERSION = 3.0.3.dev1719+62a2221
 SHLIB_VER = 3.0.0.3.0
 DISTRIBUTION = wxPython_Phoenix-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/wxPython_Phoenix-$(VERSION)
@@ -23,7 +23,7 @@ PATCHINES = $(wildcard wxPython_Phoenix-$(VERSION)_$(OS)_*.patch.in) \
 	$(wildcard wxPython_Phoenix-$(VERSION)-*.patch.in)
 WAF = $(wildcard waf-1.7.15)
 
-RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(PYSITEDIR)", "$(bindir)"))')
+RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(PYSITEDIR)/wx", "$(bindir)"))')
 
 all:
 
@@ -50,7 +50,9 @@ app-install:
 	$(RSYNC) $(PYSITEDIR)/wxPython_Phoenix-$(VERSION)-py$(PYTHON_VERSION).egg-info \
 		$(PYSITEDIR)/wx $(APP_PYSITEDIR)
 ifndef USE_MAC_FRAMEWORKS
+ifneq ($(OS),Darwin)
 	$(RSYNC) $(shlibdir)/libwx_*$(SHLIB_EXT)* $(app_shlibdir)
+endif
 endif
 
 $(SOURCE):

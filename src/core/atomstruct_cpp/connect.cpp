@@ -178,10 +178,17 @@ static std::map<Element, unsigned long>  _saturationMap = {
 static bool
 saturated(Atom* a)
 {
+    int target = 4;
     auto info = _saturationMap.find(a->element());
-    if (info == _saturationMap.end())
-        return a->bonds().size() >= 4;
-    return a->bonds().size() >= (*info).second;
+    if (info != _saturationMap.end())
+        target = (*info).second;
+    int num_bonds = a->bonds().size();
+    // metal-coordination pseudobonds not created yet; drop those bonds...
+    for (auto b: a->bonds()) {
+        if (b->other_atom(a)->element().is_metal())
+            --num_bonds;
+    }
+    return num_bonds >= target;
 
 }
 

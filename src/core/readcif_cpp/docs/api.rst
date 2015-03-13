@@ -173,13 +173,14 @@ C++ API
 
     Non-error checking inline function to convert a string to a
     floating point number.  It is similar to the C/C++ standard library's
-    **strtof** function, but does not support scientific notation, and
-    is about twice as fast.
+    **strtof** function, but does not support scientific notation,
+    is about twice as fast, and returns NaN if no digits are found.
 
 .. cpp:function:: int str_to_int(const char* s)
 
     Non-error inline function to convert a string to an integer.
     It is similar to the C/C++ standard library's **atof** function.
+    Returns zero if no digits are found.
 
 .. cpp:class:: CIFFile
 

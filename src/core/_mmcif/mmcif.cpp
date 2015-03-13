@@ -110,7 +110,7 @@ struct ExtractMolecule: public readcif::CIFFile
         size_t operator()(const AtomKey& k) const {
             return hash<string>()(k.chain_id) ^ hash<long>()(k.position)
                 ^ hash<char>()(k.ins_code) ^ hash<char>()(k.alt_id)
-                ^ hash<const char*>()(k.atom_name)
+                ^ k.atom_name.hash()
                 ^ hash<string>()(k.residue_name);
         }
     };
@@ -156,6 +156,12 @@ struct ExtractMolecule: public readcif::CIFFile
     vector<PolySeq> poly_seq;
 };
 
+std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& ak) {
+    out << ak.chain_id << ':' << ak.residue_name << '.' << ak.position
+        << int(ak.ins_code) << '@' << ak.atom_name << '.' << int(ak.alt_id);
+    return out;
+}
+
 ExtractMolecule::ExtractMolecule()
 {
     register_category("audit_conform",
@@ -186,14 +192,17 @@ ExtractMolecule::reset_parse()
 }
 
 void
-connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool /*gap*/)
+connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 {
     // TODO: if gap, chain is discontinious
     for (auto&& r0: a) {
         auto tr0 = find_template_residue(r0->name());
         if (tr0 == nullptr)
             continue;
-        Atom *a0 = r0->find_atom(tr0->link()->name());
+        auto ta0 = tr0->link();
+        if (ta0 == nullptr)
+            continue;
+        Atom *a0 = r0->find_atom(ta0->name());
         if (a0 == nullptr)
             continue;
         for (auto&& r1: b) {
@@ -201,10 +210,19 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool /*gap*/)
             // only connect residues of the same type
             if (tr1 == nullptr || tr1->description() != tr0->description())
                 continue;
-            Atom *a1 = r1->find_atom(tr1->chief()->name());
+            auto ta1 = tr1->chief();
+            if (ta1 == nullptr)
+                continue;
+            Atom *a1 = r1->find_atom(ta1->name());
             if (a1 == nullptr)
                 continue;
-            if (!a0->connects_to(a1))
+            if (gap) {
+                auto as = r0->structure();
+                auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
+                    atomstruct::AS_PBManager::GRP_NORMAL);
+                pbg->new_pseudobond(a0, a1);
+            }
+            else if (!a0->connects_to(a1))
                 (void) a0->structure()->new_bond(a0, a1);
         }
     }
@@ -225,7 +243,9 @@ ExtractMolecule::finished_parse()
             connect_residue_by_template(r.get(), tr);
         }
     }
-    // connect residues in entity_poly_seq
+    // Connect residues in entity_poly_seq.
+    // Because some positions are heterogeneous, delay connecting
+    // until next group of residues is found.
     for (auto&& chain: all_residues) {
         const ResidueMap& residue_map = chain.second;
         PolySeq *last = NULL;
@@ -233,10 +253,8 @@ ExtractMolecule::finished_parse()
         vector<Residue*> previous, current;
         for (auto& p: poly_seq) {
             if (last && p.entity_id != last->entity_id) {
-                if (!previous.empty()) {
+                if (!previous.empty() && !current.empty())
                     connect_residue_pairs(previous, current, gap);
-                    gap = false;
-                }
                 previous.clear();
                 current.clear();
                 last = NULL;
@@ -244,29 +262,30 @@ ExtractMolecule::finished_parse()
             }
             auto ri = residue_map.find(ResidueKey(p.entity_id, p.seq_id, p.mon_id));
             if (ri == residue_map.end()) {
+                if (current.empty())
+                    continue;
+                if (!previous.empty())
+                    connect_residue_pairs(previous, current, gap);
+                previous = std::move(current);
+                current.clear();
                 gap = true;
                 continue;
             }
             Residue* r = ri->second;
-            if (p.hetero) {
-                if (last == NULL || last->hetero) {
-                    current.push_back(r);
-                } else {
-                    if (!previous.empty()) {
-                        connect_residue_pairs(previous, current, gap);
-                        gap = false;
-                    }
+            if (last && last->seq_id == p.seq_id
+                    && last->entity_id == p.entity_id) {
+                if (!last->hetero)
+                    std::cerr << "Duplicate entity_id/seq_id without hetero\n";
+                current.push_back(r);
+            } else {
+                if (!previous.empty() && !current.empty()) {
+                    connect_residue_pairs(previous, current, gap);
+                    gap = false;
+                }
+                if (!current.empty()) {
                     previous = std::move(current);
                     current.clear();
-                    current.push_back(r);
                 }
-            } else {
-                if (!previous.empty()) {
-                    connect_residue_pairs(previous, current, gap);
-                        gap = false;
-                    }
-                previous = std::move(current);
-                current.clear();
                 current.push_back(r);
             }
             last = &p;
@@ -466,18 +485,11 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
     // residues are uniquely identified by (entity_id, seq_id, comp_id)
     string cur_entity_id;
     int cur_seq_id = INT_MAX;
+    string cur_chain_id;
     string cur_comp_id;
     if (PDB_style())
         set_PDB_fixed_columns(true);
     while (parse_row(pv)) {
-        if (position == 0) {
-            // HETATM residues (waters) might be missing a sequence number
-            if (cur_residue == nullptr || cur_residue->chain_id() != chain_id)
-                position = 1;
-            else
-                ++position;
-        }
-
         if (model_num != cur_model_num) {
             cur_model_num = model_num;
             mol = molecules[cur_model_num] = new AtomicStructure;
@@ -487,6 +499,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         if (cur_residue == nullptr
         || cur_entity_id != entity_id
         || cur_seq_id != position
+        || cur_chain_id != chain_id
         || cur_comp_id != residue_name) {
             string rname, cid;
             long pos;
@@ -507,6 +520,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
                 [ResidueKey(entity_id, position, residue_name)] = cur_residue;
             cur_entity_id = entity_id;
             cur_seq_id = position;
+            cur_chain_id = chain_id;
             cur_comp_id = residue_name;
         }
 
@@ -520,7 +534,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             cur_residue->add_atom(a);
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
-            if (position != 0 && model_num == 1) {
+            if (model_num == 1) {
                 AtomKey k(chain_id, position, ins_code, alt_id, atom_name,
                                                             residue_name);
                 atom_map[k] = a;
@@ -646,9 +660,11 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
             residue_name2 = string(start, end - start);
         });
 
+    atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
     auto mol = molecules.begin()->second;
     while (parse_row(pv)) {
-        if (conn_type != "covale" && conn_type != "disulf")
+        bool metal = conn_type == "metalc";
+        if (!metal && conn_type != "covale" && conn_type != "disulf")
             continue;   // skip hydrogen and modres bonds
         AtomKey k1(chain_id1, position1, ins_code1, alt_id1, atom_name1,
                                                         residue_name1);
@@ -660,6 +676,13 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         auto ai2 = atom_map.find(k2);
         if (ai2 == atom_map.end())
             continue;
+        if (metal) {
+            if (metal_pbg == nullptr)
+                metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
+                    atomstruct::AS_PBManager::GRP_PER_CS);
+                metal_pbg->new_pseudobond(ai1->second, ai2->second);
+            continue;
+        }
         try {
             mol->new_bond(ai1->second, ai2->second);
         } catch (std::invalid_argument& e) {

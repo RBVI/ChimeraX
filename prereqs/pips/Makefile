@@ -20,11 +20,11 @@ upgrade:
 	$(PIP) install -U -r build_requirements.txt
 
 app-install:
-	LANG=$(LANG) $(APP_PIP) install -r app_requirements.txt
+	$(APP_PIP) install -r app_requirements.txt
 
 clean:
 	rm -f pip.log
 
 outdated:
-	$(PIP) list --allow-external wxpython-phoenix --outdated
+	$(PIP) list --allow-external wxpython-phoenix --outdated --pre
 
