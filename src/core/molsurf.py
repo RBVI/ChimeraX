@@ -21,21 +21,9 @@ def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
                     color = color.Color((.7,.7,.7,1)), transparency = 0):
     '''
     Compute and display a solvent excluded molecular surface for each molecule.
-    TODO: When atom specs are available, specify atoms to surface.
     '''
-    if atoms is None:
-        from .structure import StructureModel
-        atom_blobs = [(m.name, m.mol_blob.atoms, m.position)
-                      for m in session.models.list()
-                      if isinstance(m, StructureModel)]
-    else:
-        a = atoms.evaluate(session).atoms
-        if a is None or len(a) == 0:
-            raise cli.AnnotationError('No atoms specified by %s' % (str(atoms),))
-        atom_blobs = [(str(atoms), a, None)]
-
     surfs = []
-    for name, a, place in atom_blobs:
+    for name, a, place in atom_blobs(atoms,session):
         xyz = a.coords
         r = a.radii
         from . import surface
@@ -50,6 +38,19 @@ def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
         surfs.append(surf)
     return surfs
 
+def atom_blobs(atom_spec, session):
+    if atom_spec is None:
+        from .structure import StructureModel
+        ab = [(m.name, m.mol_blob.atoms, m.position)
+              for m in session.models.list()
+              if isinstance(m, StructureModel)]
+    else:
+        a = atom_spec.evaluate(session).atoms
+        if a is None or len(a) == 0:
+            raise cli.AnnotationError('No atoms specified by %s' % (str(atoms),))
+        ab = [(str(atom_spec), a, None)]
+    return ab
+
 def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
 
     surf = MolecularSurface(name)
@@ -62,3 +63,69 @@ def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
 
 def register_surface_command():
     cli.register('surface', _surface_desc, surface_command)
+
+_sasa_desc = cli.CmdDesc(
+    optional = [('atoms', atomspec.AtomSpecArg)],
+    keyword = [('probeRadius', cli.FloatArg),])
+
+def sasa_command(session, atoms = None, probeRadius = 1.4):
+    '''
+    Compute solvent accessible surface area.
+    Only the specified atoms are considered.
+    '''
+    log = session.logger
+    for name, a, place in atom_blobs(atoms,session):
+        xyz = a.coords
+        r = a.radii.copy()
+        r += probeRadius
+        from . import surface
+        areas = surface.spheres_surface_area(xyz, r)
+        area = areas.sum()
+        msg = 'Solvent accessible area for %s = %.5g' % (name, area)
+        log.info(msg)
+        log.status(msg)
+
+def register_sasa_command():
+    cli.register('sasa', _sasa_desc, sasa_command)
+
+_buriedarea_desc = cli.CmdDesc(
+    required = [('atoms1', atomspec.AtomSpecArg), ('atoms2', atomspec.AtomSpecArg)],
+    keyword = [('probeRadius', cli.FloatArg),])
+
+def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
+    '''
+    Compute solvent accessible surface area.
+    Only the specified atoms are considered.
+    '''
+    a1 = atoms1.evaluate(session).atoms
+    a2 = atoms2.evaluate(session).atoms
+    ni = len(a1.intersect(a2))
+    if ni > 0:
+        raise cli.AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
+                                  % (ni, str(atoms1), str(atoms2)))
+    a12 = a1.merge(a2)
+# TODO: merge is not working correctly, only gives a1 atoms.  Filed bug #57.
+    print ('a1 a2 a12', len(a1), len(a2), len(a12))
+    a1a = sas_area(a1, probeRadius)
+    a2a = sas_area(a2, probeRadius)
+    a12a = sas_area(a12, probeRadius)
+    ba = 0.5 * (a1a + a2a - a12a)
+
+    msg = 'Buried area between %s and %s = %.5g' % (str(atoms1), str(atoms2), ba)
+    log = session.logger
+    log.status(msg)
+    msg += ('\n  area %s = %.5g, area %s = %.5g, area both = %.5g'
+            % (str(atoms1), a1a, str(atoms2), a2a, a12a))
+    log.info(msg)
+
+def sas_area(atoms, probe_radius = 1.4):
+    xyz = atoms.coords
+    r = atoms.radii.copy()
+    r += probe_radius
+    from . import surface
+    areas = surface.spheres_surface_area(xyz, r)
+    a = areas.sum()
+    return a
+
+def register_buriedarea_command():
+    cli.register('buriedarea', _buriedarea_desc, buriedarea_command)
