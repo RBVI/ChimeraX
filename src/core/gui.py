@@ -91,6 +91,9 @@ class UI(wx.App):
         wx.SafeYield()
 
     def quit(self, confirm=True):
+        # Clear status line timer with blank_after=0, so timer
+        # doesn't hang exiting.
+        self.session.logger.status("Exiting ...", blank_after=0)
         self.main_window.close()
 
     def thread_safe(self, func, *args, **kw):

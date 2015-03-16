@@ -42,6 +42,10 @@ class UI:
     def quit(self):
         import os
         import sys
+        # Clear status line timer with blank_after=0, so timer
+        # doesn't hang exiting.
+        session = self._session()  # resolve back reference
+        session.logger.status("Exiting ...", blank_after=0)
         sys.exit(os.EX_OK)
 
     def event_loop(self):
