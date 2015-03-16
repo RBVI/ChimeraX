@@ -24,6 +24,7 @@ class CmdLine(ToolInstance):
         self.tool_window.manage(placement="bottom")
         session.ui.register_for_keystrokes(self)
         session.tools.add([self])
+        self._last_thumb = None
 
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
@@ -57,9 +58,22 @@ class CmdLine(ToolInstance):
             session.logger.error(traceback.format_exc())
         else:
             thumb = session.main_view.image(width=100, height=100)
-            session.logger.info(text, add_newline=False)
-            session.logger.info("&nbsp;", is_html=True, add_newline=False)
-            session.logger.info("graphics image", image=thumb)
+            log_thumb = False
+            from time import time
+            s_t = time()
+            if thumb.getcolors(1) is None:
+                # image not just a solid background color;
+                # ensure it differs from previous thumbnail
+                thumb_data = thumb.tostring()
+                if thumb_data != self._last_thumb:
+                    self._last_thumb = thumb_data
+                    log_thumb = True
+            else:
+               self._last_thumb = None
+            session.logger.info(text, add_newline=not log_thumb)
+            if log_thumb:
+                session.logger.info("&nbsp;", is_html=True, add_newline=False)
+                session.logger.info("graphics image", image=thumb)
 
     #
     # Implement session.State methods if deriving from ToolInstance
