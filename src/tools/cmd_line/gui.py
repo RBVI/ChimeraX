@@ -70,9 +70,8 @@ class CmdLine(ToolInstance):
                     log_thumb = True
             else:
                self._last_thumb = None
-            session.logger.info(text, add_newline=not log_thumb)
+            session.logger.info(text)
             if log_thumb:
-                session.logger.info("&nbsp;", is_html=True, add_newline=False)
                 session.logger.info("graphics image", image=thumb)
 
     #
