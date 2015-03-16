@@ -132,16 +132,7 @@ def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
         raise cli.AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
                                   % (ni, str(atoms1), str(atoms2)))
 
-    # Calculate areas
-    from .surface import spheres_surface_area
-    xyz1, r1 = atom_spheres(a1, probeRadius)
-    a1a = spheres_surface_area(xyz1, r1).sum()
-    xyz2, r2 = atom_spheres(a2, probeRadius)
-    a2a = spheres_surface_area(xyz2, r2).sum()
-    from numpy import concatenate
-    xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
-    a12a = spheres_surface_area(xyz12, r12).sum()
-    ba = 0.5 * (a1a + a2a - a12a)
+    ba = buried_area(a1, a2, probeRadius)
 
     # Report result
     msg = 'Buried area between %s and %s = %.5g' % (str(atoms1), str(atoms2), ba)
@@ -151,6 +142,17 @@ def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
             % (str(atoms1), a1a, str(atoms2), a2a, a12a))
     log.info(msg)
 
+def buried_area(a1, a2, probe_radius):
+    from .surface import spheres_surface_area
+    xyz1, r1 = atom_spheres(a1, probe_radius)
+    a1a = spheres_surface_area(xyz1, r1).sum()
+    xyz2, r2 = atom_spheres(a2, probe_radius)
+    a2a = spheres_surface_area(xyz2, r2).sum()
+    from numpy import concatenate
+    xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
+    a12a = spheres_surface_area(xyz12, r12).sum()
+    ba = 0.5 * (a1a + a2a - a12a)
+
 def atom_spheres(atoms, probe_radius = 1.4):
     xyz = atoms.coords
     r = atoms.radii.copy()
@@ -159,3 +161,46 @@ def atom_spheres(atoms, probe_radius = 1.4):
 
 def register_buriedarea_command():
     cli.register('buriedarea', _buriedarea_desc, buriedarea_command)
+    cli.register('shake', _shake_desc, shake_command)
+
+_shake_desc = cli.CmdDesc(
+    required = [('atoms', atomspec.AtomSpecArg),],
+    keyword = [('probeRadius', cli.FloatArg),])
+
+def shake_command(session, atoms, probeRadius = 1.4):
+    '''
+    Compute solvent accessible surface area.
+    Only the specified atoms are considered.
+    '''
+    a = atoms.evaluate(session).atoms
+    xyz, r = atom_spheres(a, probeRadius)
+    s = [(cid,xyz[cmask],r[cmask]) for cid, cmask in chain_indices(a)]
+    ba = buried_areas(s)
+
+    # Report result
+    msg = '%d buried areas: ' % len(ba) + ', '.join('%s %s %.0f' % a for a in ba)
+    log = session.logger
+    log.info(msg)
+    log.status(msg)
+
+def buried_areas(s, min_area = 1):
+    areas = []
+    from .surface import spheres_surface_area
+    for name, xyz, r in s:
+        areas.append(spheres_surface_area(xyz, r).sum())
+
+    buried = []
+    n = len(s)
+    for i in range(n):
+        n1, xyz1, r1 = s[i]
+        for j in range(i+1,n):
+            n2, xyz2, r2 = s[j]
+            from numpy import concatenate
+            xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
+            a12 = spheres_surface_area(xyz12, r12).sum()
+            ba = 0.5 * (areas[i] + areas[j] - a12)
+            if ba >= min_area:
+                buried.append((n1, n2, ba))
+    buried.sort(key = lambda a: a[2], reverse = True)
+
+    return buried
