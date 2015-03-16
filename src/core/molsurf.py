@@ -103,14 +103,19 @@ def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
     if ni > 0:
         raise cli.AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
                                   % (ni, str(atoms1), str(atoms2)))
-    a12 = a1.merge(a2)
-# TODO: merge is not working correctly, only gives a1 atoms.  Filed bug #57.
-    print ('a1 a2 a12', len(a1), len(a2), len(a12))
-    a1a = sas_area(a1, probeRadius)
-    a2a = sas_area(a2, probeRadius)
-    a12a = sas_area(a12, probeRadius)
+
+    # Calculate areas
+    from .surface import spheres_surface_area
+    xyz1, r1 = atom_spheres(a1, probeRadius)
+    a1a = spheres_surface_area(xyz1, r1).sum()
+    xyz2, r2 = atom_spheres(a2, probeRadius)
+    a2a = spheres_surface_area(xyz2, r2).sum()
+    from numpy import concatenate
+    xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
+    a12a = spheres_surface_area(xyz12, r12).sum()
     ba = 0.5 * (a1a + a2a - a12a)
 
+    # Report result
     msg = 'Buried area between %s and %s = %.5g' % (str(atoms1), str(atoms2), ba)
     log = session.logger
     log.status(msg)
@@ -118,14 +123,11 @@ def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
             % (str(atoms1), a1a, str(atoms2), a2a, a12a))
     log.info(msg)
 
-def sas_area(atoms, probe_radius = 1.4):
+def atom_spheres(atoms, probe_radius = 1.4):
     xyz = atoms.coords
     r = atoms.radii.copy()
     r += probe_radius
-    from . import surface
-    areas = surface.spheres_surface_area(xyz, r)
-    a = areas.sum()
-    return a
+    return xyz, r
 
 def register_buriedarea_command():
     cli.register('buriedarea', _buriedarea_desc, buriedarea_command)
