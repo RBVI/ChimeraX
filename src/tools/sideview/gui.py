@@ -141,7 +141,10 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.SwapBuffers()
 
     def draw(self):
-        from math import tan, atan, radians, degrees
+        ww, wh = self.main_view.window_size
+        if ww == 0 or wh == 0:
+            return
+        from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
         self.view._render.shader_programs = \
             self.main_view._render.shader_programs
@@ -177,9 +180,8 @@ class SideViewCanvas(glcanvas.GLCanvas):
                 camera_axes[1] = -main_axes[0]
                 camera_axes[2] = main_axes[1]
             else:
-                w, h = self.main_view.window_size
-                fov = 2 * atan(h / w *
-                              tan(radians(main_camera.field_of_view / 2)))
+                fov = 2 * atan(wh / ww *
+                               tan(radians(main_camera.field_of_view / 2)))
                 camera_axes[0] = -main_axes[2]
                 camera_axes[1] = main_axes[1]
                 camera_axes[2] = main_axes[0]
@@ -248,8 +250,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             opengl_context.swap_buffers = save_swap_buffers
             self.main_view._render.current_shader_program = None
             from OpenGL import GL
-            w, h = self.main_view.window_size
-            GL.glViewport(0, 0, w, h)
+            GL.glViewport(0, 0, ww, wh)
 
     def on_left_down(self, event):
         x, y = event.GetPosition()
