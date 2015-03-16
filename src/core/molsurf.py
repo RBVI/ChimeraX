@@ -15,41 +15,71 @@ _surface_desc = cli.CmdDesc(
     keyword = [('probeRadius', cli.FloatArg),
                ('gridSpacing', cli.FloatArg),
                ('color', color.ColorArg),
-               ('transparency', cli.FloatArg),])
+               ('transparency', cli.FloatArg),
+               ('chains', cli.BoolArg)])
 
 def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
-                    color = color.Color((.7,.7,.7,1)), transparency = 0):
+                    color = None, transparency = 0, chains = False):
     '''
     Compute and display a solvent excluded molecular surface for each molecule.
     '''
     surfs = []
-    for name, a, place in atom_blobs(atoms,session):
-        xyz = a.coords
-        r = a.radii
+    for name, xyz, r, place in atom_spec_spheres(atoms,session,chains):
         from . import surface
         va,na,ta = surface.ses_surface_geometry(xyz, r, probeRadius, gridSpacing)
-
         # Create surface model to show surface
         name = '%s SES surface' % name
-        rgba8 = color.uint8x4()
-        rgba8[3] = int(rgba8[3] * (100.0-transparency)/100.0)
-        surf = show_surface(name, va, na, ta, rgba8, place)
+        rgba = surface_rgba(color, transparency, chains, name)
+        surf = show_surface(name, va, na, ta, rgba, place)
         session.models.add([surf])
         surfs.append(surf)
     return surfs
 
-def atom_blobs(atom_spec, session):
+def atom_spec_spheres(atom_spec, session, chains = False):
     if atom_spec is None:
+        s = []
         from .structure import StructureModel
-        ab = [(m.name, m.mol_blob.atoms, m.position)
-              for m in session.models.list()
-              if isinstance(m, StructureModel)]
+        for m in session.models.list():
+            if isinstance(m, StructureModel):
+                a = m.mol_blob.atoms
+                if chains:
+                    for cname, ci in chain_indices(a):
+                        xyz, r = a.coords, a.radii
+                        s.append(('%s/%s'%(m.name,cname), xyz[ci], r[ci], m.position))
+                else:
+                    s.append((m.name, a.coords, a.radii, m.position))
     else:
         a = atom_spec.evaluate(session).atoms
         if a is None or len(a) == 0:
-            raise cli.AnnotationError('No atoms specified by %s' % (str(atoms),))
-        ab = [(str(atom_spec), a, None)]
-    return ab
+            raise cli.AnnotationError('No atoms specified by %s' % (str(atom_spec),))
+        if chains:
+            s = []
+            for cname, ci in chain_indices(a):
+                xyz, r = a.coords, a.radii
+                s.append(('%s/%s'%(str(atom_spec),cname), xyz[ci], r[ci], None))
+        else:
+            s = [(str(atom_spec), a.coords, a.radii, None)]
+        # TODO: Use correct position matrix for atoms
+    return s
+
+def chain_indices(atoms):
+    import numpy
+    atom_cids = numpy.array(atoms.residues.chain_ids)
+    cids = numpy.unique(atom_cids)
+    cid_masks = [(cid,(atom_cids == cid)) for cid in cids]
+    return cid_masks
+
+def surface_rgba(color, transparency, chains, rand_seed):
+    from .color import Color
+    if chains and color is None:
+        from random import uniform, seed
+        seed(rand_seed)
+        color = Color((uniform(.5,1),uniform(.5,1),uniform(.5,1),1))
+    if color is None:
+        color = Color((.7,.7,.7,1))
+    rgba8 = color.uint8x4()
+    rgba8[3] = int(rgba8[3] * (100.0-transparency)/100.0)
+    return rgba8
 
 def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
 
@@ -74,9 +104,7 @@ def sasa_command(session, atoms = None, probeRadius = 1.4):
     Only the specified atoms are considered.
     '''
     log = session.logger
-    for name, a, place in atom_blobs(atoms,session):
-        xyz = a.coords
-        r = a.radii.copy()
+    for name, xyz, r, place in atom_spec_spheres(atoms,session):
         r += probeRadius
         from . import surface
         areas = surface.spheres_surface_area(xyz, r)
