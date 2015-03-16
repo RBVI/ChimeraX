@@ -26,10 +26,10 @@ class NoGuiLog(PlainTextLog):
 class UI:
 
     def __init__(self, session):
+        session.logger.add_log(NoGuiLog())
         import weakref
         self._session = weakref.ref(session)
-        from queue import Queue
-        self._queue = Queue()
+        self._queue = None
 
     def splash_info(self, message, splash_step, num_splash_steps):
         import sys
@@ -45,17 +45,24 @@ class UI:
         sys.exit(os.EX_OK)
 
     def event_loop(self):
+        from queue import Queue
+        self._queue = Queue()
         session = self._session()  # resolve back reference
-        session.logger.add_log(NoGuiLog())
         input = _Input(session)
         input.start()
         from .tasks import FINISHED, TERMINATED
         while input.state not in [FINISHED, TERMINATED]:
             func, args, kw = self._queue.get()
-            func(*args, **kw)
+            try:
+                func(*args, **kw)
+            finally:
+                self._queue.task_done()
 
     def thread_safe(self, func, *args, **kw):
-        self._queue.put((func, args, kw))
+        if self._queue:
+            self._queue.put((func, args, kw))
+        else:
+            func(*args, **kw)
 
 
 class _Input(Task):
