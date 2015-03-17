@@ -485,6 +485,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
     // residues are uniquely identified by (entity_id, seq_id, comp_id)
     string cur_entity_id;
     int cur_seq_id = INT_MAX;
+    int cur_auth_seq_id = INT_MAX;
     string cur_chain_id;
     string cur_comp_id;
     if (PDB_style())
@@ -499,6 +500,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         if (cur_residue == nullptr
         || cur_entity_id != entity_id
         || cur_seq_id != position
+        || cur_auth_seq_id != auth_position
         || cur_chain_id != chain_id
         || cur_comp_id != residue_name) {
             string rname, cid;
@@ -520,6 +522,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
                 [ResidueKey(entity_id, position, residue_name)] = cur_residue;
             cur_entity_id = entity_id;
             cur_seq_id = position;
+            cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
         }

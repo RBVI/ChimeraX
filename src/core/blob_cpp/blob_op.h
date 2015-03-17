@@ -101,7 +101,7 @@ blob_merge(PyObject* self, PyObject* py_other_blob)
         seen.insert(i.get());
     }
     for (auto i: *(other_blob->_items)) {
-        if (seen.find(i.get()) != seen.end())
+        if (seen.find(i.get()) == seen.end())
             merged->_items->emplace_back(i);
     }
     return merged;

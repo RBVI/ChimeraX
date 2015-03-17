@@ -41,6 +41,7 @@ def test(session):
     structures = [model for model in session.models.list()
         if model.__class__.__name__ == "StructureModel"]
     if len(structures) == 2:
+        """
         f = open("/Users/pett/rm/1jj2_diff.txt", "w")
         s1_ab = structures[0].mol_blob.atoms
         s1_id = structures[0].id
@@ -72,4 +73,9 @@ def test(session):
             print("\t" + rstr + " " + aname, file=log_string)
         f.close()
         session.logger.info(log_string.getvalue())
+        """
+        s1_ab = structures[0].mol_blob.atoms
+        s2_ab = structures[1].mol_blob.atoms
+        cmb_ab = s2_ab.merge(s1_ab)
+        session.logger.info("s1: {}, s2: {}, merge: {}".format(len(s1_ab), len(s2_ab), len(cmb_ab)))
 test_desc = cli.CmdDesc()
