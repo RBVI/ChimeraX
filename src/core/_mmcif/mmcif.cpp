@@ -154,6 +154,7 @@ struct ExtractMolecule: public readcif::CIFFile
             entity_id(e), seq_id(s), mon_id(m), hetero(h) {}
     };
     vector<PolySeq> poly_seq;
+    int first_model_num;
 };
 
 std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& ak) {
@@ -162,7 +163,7 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& ak) 
     return out;
 }
 
-ExtractMolecule::ExtractMolecule()
+ExtractMolecule::ExtractMolecule(): first_model_num(INT_MAX)
 {
     register_category("audit_conform",
         [this] (bool in_loop) {
@@ -194,7 +195,6 @@ ExtractMolecule::reset_parse()
 void
 connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 {
-    // TODO: if gap, chain is discontinious
     for (auto&& r0: a) {
         auto tr0 = find_template_residue(r0->name());
         if (tr0 == nullptr)
@@ -229,12 +229,42 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 }
 
 void
+copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
+{
+    // copy bonds, pseudobonds, secondary structure
+    // -- Assumes atoms were added in the exact same order
+    // Bonds:
+    auto& atoms = from->atoms();
+    auto& bonds = from->bonds();
+    auto& to_atoms = to->atoms();
+    for (auto&& b: bonds) {
+        auto bond_atoms = b->atoms();
+        auto a0_index = bond_atoms[0]->coord_index();
+        auto a1_index = bond_atoms[1]->coord_index();
+        to->new_bond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+    }
+    // Pseudobonds: TODO
+    auto metal_pbg = from->pb_mgr().get_group(from->PBG_METAL_COORDINATION);
+    if (metal_pbg != nullptr) {
+        auto to_pbg = to->pb_mgr().get_group(to->PBG_METAL_COORDINATION,
+            atomstruct::AS_PBManager::GRP_PER_CS);
+        for (auto&& b: metal_pbg->pseudobonds()) {
+            auto bond_atoms = b->atoms();
+            auto a0_index = bond_atoms[0]->coord_index();
+            auto a1_index = bond_atoms[1]->coord_index();
+            to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+        }
+    }
+    // Secondary Structure: TODO
+}
+
+void
 ExtractMolecule::finished_parse()
 {
     if (molecules.empty())
         return;
-    // connect residues in first molecule,
-    auto mol = molecules.begin()->second;
+    // connect residues in molecule with all_residues information
+    auto mol = all_residues.begin()->second.begin()->second->structure();
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
@@ -293,13 +323,22 @@ ExtractMolecule::finished_parse()
         if (!previous.empty())
             connect_residue_pairs(previous, current, gap);
     }
-    // TODO: next copy connectivity to other molecules
+    // multiple molecules means there were multiple models,
+    // so copy per-model information
     for (auto& im: molecules) {
-        all_molecules.push_back(im.second);
+        auto m = im.second;
+        all_molecules.push_back(m);
+        if (m != mol) {
+            if (m->num_atoms() == mol->num_atoms())
+                copy_nmr_info(mol, m);
+            else
+                std::cerr << "mismatched number of atoms\n";
+        }
     }
-    molecules.clear();
-    atom_map.clear();
-    all_residues.clear();
+    vector<AtomicStructure*> save_molecules;
+    save_molecules.swap(all_molecules);
+    reset_parse();
+    save_molecules.swap(all_molecules);
 }
 
 void
@@ -357,7 +396,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
     float x, y, z;                // Cartn_[xyz]
     float occupancy = FLT_MAX;    // occupancy
     float b_factor = FLT_MAX;     // B_iso_or_equiv
-    int model_num = 1;            // pdbx_PDB_model_num
+    int model_num = 0;            // pdbx_PDB_model_num
 
 
     pv.emplace_back(get_column("id", false), false,
@@ -472,10 +511,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         });
     pv.emplace_back(get_column("pdbx_PDB_model_num"), false,
         [&] (const char* start, const char*) {
-            if (*start == '.' || *start == '?')
-                model_num = 1;
-            else
-                model_num = readcif::str_to_int(start);
+            model_num = readcif::str_to_int(start);
         });
 
     long atom_serial = 0;
@@ -492,6 +528,8 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         set_PDB_fixed_columns(true);
     while (parse_row(pv)) {
         if (model_num != cur_model_num) {
+            if (first_model_num == INT_MAX)
+                first_model_num = model_num;
             cur_model_num = model_num;
             mol = molecules[cur_model_num] = new AtomicStructure;
             cur_residue = nullptr;
@@ -518,8 +556,10 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             else
                 pos = position;
             cur_residue = mol->new_residue(rname, cid, pos, ins_code);
-            all_residues[chain_id]
-                [ResidueKey(entity_id, position, residue_name)] = cur_residue;
+            if (model_num == first_model_num) {
+                all_residues[chain_id]
+                    [ResidueKey(entity_id, position, residue_name)] = cur_residue;
+            }
             cur_entity_id = entity_id;
             cur_seq_id = position;
             cur_auth_seq_id = auth_position;
@@ -537,9 +577,9 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             cur_residue->add_atom(a);
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
-            if (model_num == 1) {
+            if (model_num == first_model_num) {
                 AtomKey k(chain_id, position, ins_code, alt_id, atom_name,
-                                                            residue_name);
+                                                                residue_name);
                 atom_map[k] = a;
             }
         }
@@ -664,7 +704,8 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         });
 
     atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
-    auto mol = molecules.begin()->second;
+    // connect residues in molecule with all_residues information
+    auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
         bool metal = conn_type == "metalc";
         if (!metal && conn_type != "covale" && conn_type != "disulf")
