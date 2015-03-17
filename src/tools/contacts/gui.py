@@ -12,7 +12,7 @@ class Plot(ToolInstance):
         super().__init__(session)
 
         from ..core.ui.tool_api import ToolWindow
-        tw = ToolWindow(title, session, size=self.SIZE, destroy_hides=True)
+        tw = ToolWindow(title, session, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
 
