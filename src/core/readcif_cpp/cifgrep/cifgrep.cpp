@@ -61,7 +61,7 @@ Extract::finish_parse()
 Extract extract;
 
 void
-save_parse_info(bool in_loop)
+save_parse_info(bool /*in_loop*/)
 {
 	const string& cat = extract.category();
 	auto& cat_info = info[cat];
@@ -155,7 +155,6 @@ int
 main(int argc, char** argv)
 {
 	int opt;
-	const char* filename = NULL;
 
 	while ((opt = getopt(argc, argv, "mdlv")) != -1) {
 		switch (opt) {
