@@ -19,7 +19,8 @@ class NoGuiLog(PlainTextLog):
     def status(self, msg, color, secondary):
         if secondary:
             return False
-        print("status: %s" % msg)
+        if msg:
+            print("status: %s" % msg)
         return True
 
 
@@ -92,6 +93,7 @@ class _Input(Task):
                 # Need to get UI thread to do something
                 # in order to detect termination of input thread
                 ui.thread_safe(print, "EOF")
+                self.session.logger.clear()
                 break
 
     def run_command(self, text):
@@ -103,6 +105,9 @@ class _Input(Task):
     def execute(self, text):
         # Command execution, runs in UI thread
         from . import cli
+        text = text.strip()
+        if not text:
+            return
         try:
             self._cmd.parse_text(text, final=True)
             results = self._cmd.execute()
