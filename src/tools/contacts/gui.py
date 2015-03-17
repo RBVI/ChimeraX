@@ -70,9 +70,9 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
     a = p.axes
 
     # Draw nodes
-    from math import pow
+    from math import sqrt
     w = dict(node_weights)
-    node_sizes = tuple(20*pow(w[n],1/3.0) for n in G)
+    node_sizes = tuple(10*sqrt(w[n]) for n in G)
     from chimera.core.molsurf import chain_rgba
     node_colors = tuple(chain_rgba(n) for n in G)
     nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=node_colors, ax=a)
