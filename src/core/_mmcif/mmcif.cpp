@@ -255,6 +255,17 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
             to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
         }
     }
+    auto hydro_pbg = from->pb_mgr().get_group(from->PBG_HYDROGEN_BONDS);
+    if (hydro_pbg != nullptr) {
+        auto to_pbg = to->pb_mgr().get_group(to->PBG_HYDROGEN_BONDS,
+            atomstruct::AS_PBManager::GRP_PER_CS);
+        for (auto&& b: hydro_pbg->pseudobonds()) {
+            auto bond_atoms = b->atoms();
+            auto a0_index = bond_atoms[0]->coord_index();
+            auto a1_index = bond_atoms[1]->coord_index();
+            to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+        }
+    }
     // Secondary Structure: TODO
 }
 
@@ -704,11 +715,13 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         });
 
     atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
+    atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
     // connect residues in molecule with all_residues information
     auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
         bool metal = conn_type == "metalc";
-        if (!metal && conn_type != "covale" && conn_type != "disulf")
+        bool hydro = conn_type == "hydro";
+        if (!metal && !hydro && conn_type != "covale" && conn_type != "disulf")
             continue;   // skip hydrogen and modres bonds
         AtomKey k1(chain_id1, position1, ins_code1, alt_id1, atom_name1,
                                                         residue_name1);
@@ -725,6 +738,13 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
                 metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                     atomstruct::AS_PBManager::GRP_PER_CS);
                 metal_pbg->new_pseudobond(ai1->second, ai2->second);
+            continue;
+        }
+        if (hydro) {
+            if (hydro_pbg == nullptr)
+                hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
+                    atomstruct::AS_PBManager::GRP_PER_CS);
+                hydro_pbg->new_pseudobond(ai1->second, ai2->second);
             continue;
         }
         try {

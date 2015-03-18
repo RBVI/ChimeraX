@@ -39,6 +39,7 @@ public:
     typedef std::map<std::string, std::vector<std::string>>  InputSeqInfo;
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
+    static const char*  PBG_HYDROGEN_BONDS;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
     typedef std::unordered_set<Ring> Rings;
 private:
