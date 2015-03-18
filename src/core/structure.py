@@ -341,14 +341,14 @@ def chain_colors(cids):
           'n':(12,75,100,255),
           'o':(255,0,0,255),
           'p':(175,155,50,255),
-          'q':(0,0,0,255),
+          'q':(105,205,48,255),
           'r':(37,70,25,255),
           's':(121,33,135,255),
           't':(83,140,208,255),
           'u':(0,154,37,255),
           'v':(178,220,205,255),
           'w':(255,152,213,255),
-          'x':(0,0,74,255),
+          'x':(200,90,174,255),
           'y':(175,200,74,255),
           'z':(63,25,12,255),
           '1': (87, 87, 87,255),
@@ -369,15 +369,59 @@ def chain_colors(cids):
 
 # -----------------------------------------------------------------------------
 #
+def chain_rgba(cid):
+    return tuple(float(c/255.0) for c in chain_colors([cid])[0])
+
+    from random import uniform, seed
+    seed(str(cid))
+    rgba = (uniform(.5,1),uniform(.5,1),uniform(.5,1),1)
+    return rgba
+
+# -----------------------------------------------------------------------------
+#
+def chain_rgba8(cid):
+    return chain_colors([cid])[0]
+
+    rgba = chain_rgba(cid)
+    from numpy import array, uint8
+    rgba8 = array(tuple(int(255.999*c) for c in rgba), uint8)
+    return rgba8
+
+# -----------------------------------------------------------------------------
+#
 from . import cli
-_color_desc = cli.CmdDesc(required = [('preset', cli.EnumOf(('element', 'chain')))])
-def color_command(session, preset):
-    for m in session.models.list():
-        if isinstance(m, StructureModel):
-            if preset == 'element':
-                m.color_by_element()
-            elif preset == 'chain':
+from . import atomspec
+_ccolor_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+def ccolor_command(session, atoms = None):
+    if atoms is None:
+        for m in session.models.list():
+            if isinstance(m, StructureModel):
                 m.color_by_chain()
+    else:
+        asr = atoms.evaluate(session)
+        a = asr.atoms
+        a.colors = chain_colors(a.residues.chain_ids)
+        for m in asr.models:
+            if isinstance(m, StructureModel):
+                m.update_graphics()
+
+# -----------------------------------------------------------------------------
+#
+from . import cli
+from . import atomspec
+_celement_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+def celement_command(session, atoms = None):
+    if atoms is None:
+        for m in session.models.list():
+            if isinstance(m, StructureModel):
+                m.color_by_element()
+    else:
+        asr = atoms.evaluate(session)
+        a = asr.atoms
+        a.colors = element_colors(a.element_numbers)
+        for m in asr.models:
+            if isinstance(m, StructureModel):
+                m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -419,6 +463,7 @@ def show_command(session, chain):
 def register_molecule_commands():
     from . import cli
     cli.register('style', _style_desc, style_command)
-    cli.register('color', _color_desc, color_command)
+    cli.register('ccolor', _ccolor_desc, ccolor_command)
+    cli.register('celement', _celement_desc, celement_command)
     cli.register('hide', _hide_desc, hide_command)
     cli.register('show', _show_desc, show_command)

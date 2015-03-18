@@ -70,20 +70,17 @@ def chain_indices(atoms):
     return cid_masks
 
 def surface_rgba(color, transparency, chains, cid):
-    from .color import Color
-    if chains and color is None:
-        color = Color(chain_rgba(cid))
     if color is None:
-        color = Color((.7,.7,.7,1))
-    rgba8 = color.uint8x4()
-    rgba8[3] = int(rgba8[3] * (100.0-transparency)/100.0)
+        if chains:
+            from . import structure
+            rgba8 = structure.chain_rgba8(cid.split('/',1)[-1])
+        else:
+            from numpy import array, uint8
+            rgba8 = array((180,180,180,255), uint8)
+    else:
+        rgba8 = color.uint8x4()
+        rgba8[3] = int(rgba8[3] * (100.0-transparency)/100.0)
     return rgba8
-
-def chain_rgba(cid):
-    from random import uniform, seed
-    seed(str(cid))
-    rgba = (uniform(.5,1),uniform(.5,1),uniform(.5,1),1)
-    return rgba
 
 def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
 
