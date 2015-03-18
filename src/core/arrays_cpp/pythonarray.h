@@ -39,6 +39,7 @@ PyObject *array_python_source(const Untyped_Array &a);
 //
 extern "C" {
 int parse_bool(PyObject *arg, void *b);
+int parse_float_n2_array(PyObject *arg, void *farray);
 int parse_float_n3_array(PyObject *arg, void *farray);
 int parse_writable_float_n3_array(PyObject *arg, void *farray);
 int parse_double_n3_array(PyObject *arg, void *darray);
@@ -104,7 +105,6 @@ PyObject *c_array_to_python(const double *values, int size0, int size1);
 //
 // Create an uninitialized Numeric array.
 //
-PyObject *python_none();
 PyObject *python_uint8_array(int size, unsigned char **data = NULL);
 PyObject *python_uint8_array(int size1, int size2, unsigned char **data = NULL);
 PyObject *python_char_array(int size1, int size2, char **data = NULL);
@@ -116,6 +116,9 @@ PyObject *python_float_array(int size, float **data = NULL);
 PyObject *python_float_array(int size1, int size2, float **data = NULL);
 PyObject *python_float_array(int size1, int size2, int size3, float **data = NULL);
 PyObject *python_double_array(int size, double **data = NULL);
+
+PyObject *python_none();
+PyObject *python_bool(bool b);
 
 PyObject *python_tuple(PyObject *o1, PyObject *o2);
 PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3);
