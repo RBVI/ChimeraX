@@ -9,17 +9,13 @@ Read and execute Python scripts
 _builtin_open = open
 
 
-def open_py(session, filename, *args, **kw):
-    name = kw['name'] if 'name' in kw else None
+def open_py(session, filename, name, *args, **kw):
+    """Execute Python file in Chimera context"""
     if hasattr(filename, 'read'):
         # it's really a fetched stream
         input = filename
-        if name is None:
-            name = filename.name
     else:
         input = _builtin_open(filename, 'rb')
-        if name is None:
-            name = filename
 
     try:
         data = input.read()
@@ -34,6 +30,25 @@ def open_py(session, filename, *args, **kw):
             input.close()
     return [], "executed %s" % name
 
+def open_ch(session, filename, name, *args, **kw):
+    """Execute Python file in Chimera commands"""
+    if hasattr(filename, 'read'):
+        # it's really a fetched stream
+        input = filename
+    else:
+        input = _builtin_open(filename, 'rb')
+
+    from .cli import Command
+    try:
+        for line in input.readlines():
+            text = line.strip().decode('utf-8', errors='replace')
+            cmd = Command(session, text, final=True)
+            cmd.execute()
+    finally:
+        if input != filename:
+            input.close()
+    return [], "executed %s" % name
+
 
 def register():
     from . import io
@@ -42,3 +57,8 @@ def register():
         mime=('text/x-python', 'application/x-python-code'),
         reference="http://www.python.org/",
         open_func=open_py)
+    io.register_format(
+        "Chimera", io.SCRIPT, (".c2cmd",), ("cmd",),
+        mime=('text/x-chimera2', 'application/x-chimera2-code'),
+        reference="http://www.cgl.ucsf.edu/chimera/",
+        open_func=open_ch)
