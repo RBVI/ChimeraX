@@ -2,6 +2,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "bounds.h"			// use sphere_bounds, ...
 #include "distancespy.h"		// use py_distances_from_origin, ...
 #include "spline.h"			// use natural_cubic_spline
 #include "transform.h"			// use affine_transform_vertices, ...
@@ -15,10 +16,15 @@ namespace Geometry_Cpp
 static struct PyMethodDef geometry_cpp_methods[] =
 {
 
+  /* bounds.h */
+  {const_cast<char*>("sphere_bounds"), (PyCFunction)sphere_bounds, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("spheres_in_bounds"), (PyCFunction)spheres_in_bounds, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("bounds_overlap"), (PyCFunction)bounds_overlap, METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* distancepy.h */
-  {const_cast<char*>("distances_from_origin"), py_distances_from_origin,	METH_VARARGS, NULL},
-  {const_cast<char*>("distances_perpendicular_to_axis"), py_distances_perpendicular_to_axis,	METH_VARARGS, NULL},
-  {const_cast<char*>("distances_parallel_to_axis"), py_distances_parallel_to_axis,	METH_VARARGS, NULL},
+  {const_cast<char*>("distances_from_origin"), py_distances_from_origin, METH_VARARGS, NULL},
+  {const_cast<char*>("distances_perpendicular_to_axis"), py_distances_perpendicular_to_axis, METH_VARARGS, NULL},
+  {const_cast<char*>("distances_parallel_to_axis"), py_distances_parallel_to_axis, METH_VARARGS, NULL},
   {const_cast<char*>("maximum_norm"), (PyCFunction)py_maximum_norm, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
@@ -33,7 +39,7 @@ static struct PyMethodDef geometry_cpp_methods[] =
 
   /* vector_ops.h */
   {const_cast<char*>("inner_product_64"), (PyCFunction)inner_product_64,
-   METH_VARARGS|METH_KEYWORDS},
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}
 };
