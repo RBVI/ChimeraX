@@ -41,17 +41,23 @@ def test(session):
     structures = [model for model in session.models.list()
         if model.__class__.__name__ == "StructureModel"]
     if len(structures) == 2:
-        """
-        f = open("/Users/pett/rm/1jj2_diff.txt", "w")
+        f = open("/Users/pett/rm/3zvf_diff.txt", "w")
         s1_ab = structures[0].mol_blob.atoms
         s1_id = structures[0].id
+        s2_id = structures[1].id
         import io
         log_string = io.StringIO("")
+        print("{} residues in model {} and {} in model {}".format(
+            len(structures[0].mol_blob.residues), s1_id,
+            len(structures[1].mol_blob.residues), s2_id), file=f)
+        print("{} residues in model {} and {} in model {}".format(
+            len(structures[0].mol_blob.residues), s1_id,
+            len(structures[1].mol_blob.residues), s2_id), file=log_string)
+        print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=log_string)
         print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=f)
         print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=log_string)
         s1_rb = s1_ab.residues
         s2_ab = structures[1].mol_blob.atoms
-        s2_id = structures[1].id
         print("# atoms in model {}: {}".format(s2_id, len(s2_ab)), file=f)
         print("# atoms in model {}: {}".format(s2_id, len(s2_ab)), file=log_string)
         s2_rb = s2_ab.residues
@@ -71,11 +77,41 @@ def test(session):
         for rstr, aname in  s2_set - s1_set:
             print("\t" + rstr + " " + aname, file=f)
             print("\t" + rstr + " " + aname, file=log_string)
+
+        s1_bb = structures[0].mol_blob.bonds
+        print("# bonds in model {}: {}".format(s1_id, len(s1_bb)), file=f)
+        print("# bonds in model {}: {}".format(s1_id, len(s1_bb)), file=log_string)
+        s2_bb = structures[1].mol_blob.bonds
+        print("# bonds in model {}: {}".format(s2_id, len(s2_bb)), file=f)
+        print("# bonds in model {}: {}".format(s2_id, len(s2_bb)), file=log_string)
+        s1_atom_info = list(zip(s1_rb.strs, s1_ab.names))
+        s1_bond_set = set()
+        for i1, i2 in structures[0].mol_blob.bond_indices:
+            if s1_atom_info[i1] < s1_atom_info[i2]:
+                b1, b2 = i1, i2
+            else:
+                b1, b2 = i2, i1
+            s1_bond_set.add("{} {}/{} {}".format(s1_atom_info[b1][0],
+                s1_atom_info[b1][1], s1_atom_info[b2][0], s1_atom_info[b2][1]))
+        s2_atom_info = list(zip(s2_rb.strs, s2_ab.names))
+        s2_bond_set = set()
+        for i1, i2 in structures[1].mol_blob.bond_indices:
+            if s2_atom_info[i1] < s2_atom_info[i2]:
+                b1, b2 = i1, i2
+            else:
+                b1, b2 = i2, i1
+            s2_bond_set.add("{} {}/{} {}".format(s2_atom_info[b1][0],
+                s2_atom_info[b1][1], s2_atom_info[b2][0], s2_atom_info[b2][1]))
+        print("Bonds in {} model but not {} ({}):".format(s1_id, s2_id, len(s1_bond_set - s2_bond_set)), file=f)
+        print("Bonds in {} model but not {} ({}):".format(s1_id, s2_id, len(s1_bond_set - s2_bond_set)), file=log_string)
+        for bond_info in  s1_bond_set - s2_bond_set:
+            print("\t" + bond_info, file=f)
+            print("\t" + bond_info, file=log_string)
+        print("Bonds in {} model but not {} ({}):".format(s2_id, s1_id, len(s2_bond_set - s1_bond_set)), file=f)
+        print("Bonds in {} model but not {} ({}):".format(s2_id, s1_id, len(s2_bond_set - s1_bond_set)), file=log_string)
+        for bond_info in  s2_bond_set - s1_bond_set:
+            print("\t" + bond_info, file=f)
+            print("\t" + bond_info, file=log_string)
         f.close()
         session.logger.info(log_string.getvalue())
-        """
-        s1_ab = structures[0].mol_blob.atoms
-        s2_ab = structures[1].mol_blob.atoms
-        cmb_ab = s2_ab.merge(s1_ab)
-        session.logger.info("s1: {}, s2: {}, merge: {}".format(len(s1_ab), len(s2_ab), len(cmb_ab)))
 test_desc = cli.CmdDesc()
