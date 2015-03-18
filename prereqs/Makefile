@@ -46,6 +46,10 @@ Mesa.install:
 Mesa.app-install:
 endif
 
+ifdef HYDRA
+SUBDIRS += qt sip PyQt
+endif
+
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
