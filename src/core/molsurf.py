@@ -136,7 +136,7 @@ def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
         raise cli.AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
                                   % (ni, str(atoms1), str(atoms2)))
 
-    ba = buried_area(a1, a2, probeRadius)
+    ba, a1a, a2a, a12a = buried_area(a1, a2, probeRadius)
 
     # Report result
     msg = 'Buried area between %s and %s = %.5g' % (str(atoms1), str(atoms2), ba)
@@ -156,6 +156,7 @@ def buried_area(a1, a2, probe_radius):
     xyz12, r12 = concatenate((xyz1,xyz2)), concatenate((r1,r2))
     a12a = spheres_surface_area(xyz12, r12).sum()
     ba = 0.5 * (a1a + a2a - a12a)
+    return ba, a1a, a2a, a12a
 
 def atom_spheres(atoms, probe_radius = 1.4):
     xyz = atoms.coords
