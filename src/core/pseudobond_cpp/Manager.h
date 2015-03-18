@@ -24,7 +24,7 @@ public:
     virtual  ~Base_Manager() { for (auto i: _groups) delete i.second; }
     virtual Grp_Class*  get_group(
             const std::string& name, int create = GRP_NONE) const = 0;
-    const GroupMap&  groups() const { return _groups; }
+    const GroupMap&  group_map() const { return _groups; }
 };
 
 template <class Grp_Class>
