@@ -112,6 +112,29 @@ def test(session):
         for bond_info in  s2_bond_set - s1_bond_set:
             print("\t" + bond_info, file=f)
             print("\t" + bond_info, file=log_string)
+        pb_map1 = structures[0].mol_blob.pbg_map
+        pb_map2 = structures[1].mol_blob.pbg_map
+        print("{} groups: {}".format(s1_id, pb_map1.keys()), file=f)
+        print("{} groups: {}".format(s1_id, pb_map1.keys()), file=log_string)
+        print("{} groups: {}".format(s2_id, pb_map2.keys()), file=f)
+        print("{} groups: {}".format(s2_id, pb_map2.keys()), file=log_string)
+        for name, pblob in pb_map1.items():
+            if name in pb_map2:
+                if len(pblob) == len(pb_map2[name]):
+                    continue
+                print("{} has {} bonds in {} model but {} in {}".format(name, len(pblob), s1_id, len(pb_map2[name]), s2_id), file=f)
+                print("{} has {} bonds in {} model but {} in {}".format(name, len(pblob), s1_id, len(pb_map2[name]), s2_id), file=log_string)
+            else:
+                print("{} in {} model but not in {}".format(
+                    name, s1_id, s2_id), file=f)
+                print("{} in {} model but not in {}".format(
+                    name, s1_id, s2_id), file=log_string)
+        for name, pblob in pb_map2.items():
+            if name not in pb_map1:
+                print("{} in {} model but not in {}".format(
+                    name, s2_id, s1_id), file=f)
+                print("{} in {} model but not in {}".format(
+                    name, s2_id, s1_id), file=log_string)
         f.close()
         session.logger.info(log_string.getvalue())
 test_desc = cli.CmdDesc()
