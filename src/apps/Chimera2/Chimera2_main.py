@@ -253,10 +253,14 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     if opts.module:
         import runpy
         import warnings
-        sys.argv[:] = [opts.module] + args  # argv[0] is now module name
+        sys.argv[:] = args  # runpy will insert appropriate argv[0]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
-            runpy._run_module_as_main(opts.module, True)
+            global_dict = {
+                '%s_session' % sess.app_dirs.appname: sess
+            }
+            runpy.run_module(opts.module, init_globals=global_dict,
+                             run_name='__main__', alter_sys=True)
         return os.EX_OK
 
     # the rest of the arguments are data files
