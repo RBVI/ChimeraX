@@ -419,44 +419,58 @@ def celement_command(session, atoms = None):
         asr = atoms.evaluate(session)
         a = asr.atoms
         a.colors = element_colors(a.element_numbers)
-        for m in asr.models:
-            if isinstance(m, StructureModel):
-                m.update_graphics()
+        update_model_graphics(asr.models)
+
+def update_model_graphics(models):
+    for m in models:
+        if isinstance(m, StructureModel):
+            m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
 from . import cli
-_style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))])
-def style_command(session, atom_style):
+_style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))],
+                          optional=[("atoms", atomspec.AtomSpecArg)])
+def style_command(session, atom_style, atoms = None):
     s = {'sphere':StructureModel.SPHERE_STYLE,
          'ball':StructureModel.BALL_STYLE,
          'stick':StructureModel.STICK_STYLE,
          }[atom_style.lower()]
-    for m in session.models.list():
-        if isinstance(m, StructureModel):
-            m.set_atom_style(s)
+    if atoms is None:
+        for m in session.models.list():
+            if isinstance(m, StructureModel):
+                m.set_atom_style(s)
+    else:
+        asr = atoms.evaluate(session)
+        asr.atoms.draw_modes = s
+        update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
 #
 from . import cli
-_hide_desc = cli.CmdDesc(required = [('chain', cli.StringArg)])
-def hide_command(session, chain):
-    cids = chain.split(',')
-    for m in session.models.list():
-        if isinstance(m, StructureModel):
-            for c in cids:
-                m.hide_chain(chain)
+_hide_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+def hide_command(session, atoms = None):
+    show_atoms(False, atoms, session)
 
 # -----------------------------------------------------------------------------
 #
 from . import cli
-_show_desc = cli.CmdDesc(required = [('chain', cli.StringArg)])
-def show_command(session, chain):
-    cids = chain.split(',')
-    for m in session.models.list():
-        if isinstance(m, StructureModel):
-            for c in cids:
-                m.show_chain(c)
+_show_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+def show_command(session, atoms = None):
+    show_atoms(True, atoms, session)
+
+# -----------------------------------------------------------------------------
+#
+def show_atoms(show, atoms, session):
+    if atoms is None:
+        for m in session.models.list():
+            if isinstance(m, StructureModel):
+                m.mol_blob.atoms.displays = show
+                m.update_graphics()
+    else:
+        asr = atoms.evaluate(session)
+        asr.atoms.displays = show
+        update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
 #
