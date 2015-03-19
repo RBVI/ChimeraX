@@ -340,6 +340,23 @@ metal_coordination_bonds(AtomicStructure* as)
     return mc_bonds;
 }
 
+void
+find_and_add_metal_coordination_bonds(AtomicStructure* as)
+{
+    // make metal-coordination complexes
+    auto mc_bonds = metal_coordination_bonds(as);
+    if (mc_bonds.size() > 0) {
+        auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
+            AS_PBManager::GRP_PER_CS);
+        for (auto mc: mc_bonds) {
+            for (auto& cs: as->coord_sets()) {
+                pbg->new_pseudobond(mc->atoms(), cs.get());
+                as->delete_bond(mc);
+            }
+        }
+    }
+}
+
 // connect_structure:
 //    Connect atoms in structure by template if one is found, or by distance.
 //    Adjacent residues are connected if appropriate.
@@ -500,18 +517,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
         }
     }
 
-    // make metal-coordination complexes
-    auto mc_bonds = metal_coordination_bonds(as);
-    if (mc_bonds.size() > 0) {
-        auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
-            AS_PBManager::GRP_PER_CS);
-        for (auto mc: mc_bonds) {
-            for (auto& cs: as->coord_sets()) {
-                pbg->new_pseudobond(mc->atoms(), cs.get());
-                as->delete_bond(mc);
-            }
-        }
-    }
+    find_and_add_metal_coordination_bonds(as);
 }
 
 }  // namespace atomstruct

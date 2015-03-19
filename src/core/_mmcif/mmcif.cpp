@@ -334,6 +334,7 @@ ExtractMolecule::finished_parse()
         if (!previous.empty())
             connect_residue_pairs(previous, current, gap);
     }
+    find_and_add_metal_coordination_bonds(mol);
     // multiple molecules means there were multiple models,
     // so copy per-model information
     for (auto& im: molecules) {
