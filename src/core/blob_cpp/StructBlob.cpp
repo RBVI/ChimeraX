@@ -2,6 +2,7 @@
 #include "StructBlob.h"
 #include "AtomBlob.h"
 #include "BondBlob.h"
+#include "PseudoBlob.h"
 #include "ResBlob.h"
 #include <atomstruct/Bond.h>
 #include "numpy_common.h"
@@ -140,10 +141,43 @@ sb_num_bonds(PyObject* self, void*)
 }
 
 static PyObject*
+sb_pbg_map(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    if (sb->_items->size() > 1) {
+        PyErr_SetString(PyExc_ValueError,
+            "'pbg_map' attr only for single-structure blobs."
+            "  Use 'structures' attr to get single-structure blobs.");
+        return NULL;
+    }
+    PyObject* pbg_map = PyDict_New();
+    if (pbg_map == NULL)
+        return NULL;
+    if (sb->_items->size() == 0)
+        return pbg_map;
+    auto structure = *(sb->_items->begin());
+    for (auto grp_info: structure->pb_mgr().group_map()) {
+        PyObject* name = PyUnicode_FromString(grp_info.first.c_str());
+        if (name == NULL)
+            return NULL;
+        PyObject* py_pblob = new_blob<PseudoBlob>(&PseudoBlob_type);
+        if (py_pblob == NULL)
+            return NULL;
+        for (auto pb: grp_info.second->pseudobonds()) {
+            static_cast<PseudoBlob*>(py_pblob)->_items->emplace_back(pb);
+        }
+        PyDict_SetItem(pbg_map, name, py_pblob);
+    }
+    return pbg_map;
+}
+
+static PyObject*
 sb_structures(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
-    PyObject *struct_list = PyList_New(sb->_items->size());
+    PyObject* struct_list = PyList_New(sb->_items->size());
+    if (struct_list == NULL)
+        return NULL;
     StructBlob::ItemsType::size_type i = 0;
     for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
         PyObject* py_single_sb = new_blob<StructBlob>(&StructBlob_type);
@@ -186,6 +220,8 @@ static PyGetSetDef StructBlob_getset[] = {
         "numpy array of (bool) displays", NULL},
     { "num_atoms", sb_num_atoms, NULL, "number of atoms", NULL},
     { "num_bonds", sb_num_bonds, NULL, "number of bonds", NULL},
+    { "pbg_map", sb_pbg_map, NULL,
+        "dict keyed on pb group name, value = group blob", NULL},
     { "structures", sb_structures, NULL,
         "list of one-structure-model StructBlobs", NULL},
     { "residues", sb_residues, NULL, "ResBlob", NULL},
