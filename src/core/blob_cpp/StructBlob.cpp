@@ -124,9 +124,9 @@ sb_num_atoms(PyObject* self, void*)
     StructBlob* sb = static_cast<StructBlob*>(self);
     size_t num_atoms = 0;
     for (auto s: *(sb->_items)) {
-        num_atoms += s->atoms().size();
+        num_atoms += s->num_atoms();
     }
-    return PyLong_FromLong((long)num_atoms);
+    return PyLong_FromSize_t(num_atoms);
 }
 
 static PyObject*
@@ -135,9 +135,53 @@ sb_num_bonds(PyObject* self, void*)
     StructBlob* sb = static_cast<StructBlob*>(self);
     size_t num_bonds = 0;
     for (auto s: *(sb->_items)) {
-        num_bonds += s->bonds().size();
+        num_bonds += s->num_bonds();
     }
-    return PyLong_FromLong((long)num_bonds);
+    return PyLong_FromSize_t(num_bonds);
+}
+
+static PyObject*
+sb_num_hyds(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_hyds = 0;
+    for (auto s: *(sb->_items)) {
+        num_hyds += s->num_hyds();
+    }
+    return PyLong_FromSize_t(num_hyds);
+}
+
+static PyObject*
+sb_num_residues(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_residues = 0;
+    for (auto s: *(sb->_items)) {
+        num_residues += s->num_residues();
+    }
+    return PyLong_FromSize_t(num_residues);
+}
+
+static PyObject*
+sb_num_chains(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_chains = 0;
+    for (auto s: *(sb->_items)) {
+        num_chains += s->num_chains();
+    }
+    return PyLong_FromSize_t(num_chains);
+}
+
+static PyObject*
+sb_num_coord_sets(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_coord_sets = 0;
+    for (auto s: *(sb->_items)) {
+        num_coord_sets += s->num_coord_sets();
+    }
+    return PyLong_FromSize_t(num_coord_sets);
 }
 
 static PyObject*
@@ -220,6 +264,10 @@ static PyGetSetDef StructBlob_getset[] = {
         "numpy array of (bool) displays", NULL},
     { "num_atoms", sb_num_atoms, NULL, "number of atoms", NULL},
     { "num_bonds", sb_num_bonds, NULL, "number of bonds", NULL},
+    { "num_hyds", sb_num_hyds, NULL, "number of hydrogens", NULL},
+    { "num_residues", sb_num_residues, NULL, "number of residues", NULL},
+    { "num_chains", sb_num_chains, NULL, "number of chains", NULL},
+    { "num_coord_sets", sb_num_coord_sets, NULL, "number of coord sets", NULL},
     { "pbg_map", sb_pbg_map, NULL,
         "dict keyed on pb group name, value = group blob", NULL},
     { "structures", sb_structures, NULL,
