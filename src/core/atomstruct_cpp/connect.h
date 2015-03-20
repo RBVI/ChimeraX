@@ -24,6 +24,7 @@ ATOMSTRUCT_IMEX void  connect_structure(AtomicStructure* as,
         std::set<Atom *>* conect_atoms, std::set<MolResId>* mod_res);
 ATOMSTRUCT_IMEX void connect_residue_by_distance(Residue* r,
         std::set<Atom *>* conect_atoms = NULL);
+ATOMSTRUCT_IMEX void find_and_add_metal_coordination_bonds(AtomicStructure* as);
 
 }  // namespace atomstruct
 

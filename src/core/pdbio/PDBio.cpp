@@ -666,6 +666,8 @@ cum_postloop_t += clock() - start_t;
 inline static void
 add_bond(Atom *a1, Atom *a2)
 {
+if ((a1->residue()->name() == "5CM" && a2->residue()->name() != "5CM")
+|| (a2->residue()->name() == "5CM" && a1->residue()->name() != "5CM")) std::cerr << "[pdbio add bond] " << a1->residue()->name() << "@" << a1->name() << " " << a2->residue()->name() << "@" << a2->name() << "\n";
     if (!a1->connects_to(a2))
         (void) a1->structure()->new_bond(a1, a2);
 }

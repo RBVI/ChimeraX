@@ -104,9 +104,12 @@ public:
     CoordSet *  new_coord_set(int index, int size);
     Residue *  new_residue(const std::string &name, const std::string &chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
-    int  num_atoms() const { return atoms().size(); }
-    int  num_bonds() const { return bonds().size(); }
-    int  num_hyds() const { return _num_hyds; }
+    size_t  num_atoms() const { return atoms().size(); }
+    size_t  num_bonds() const { return bonds().size(); }
+    size_t  num_hyds() const { return _num_hyds; }
+    size_t  num_residues() const { return residues().size(); }
+    size_t  num_chains() const { return chains().size(); }
+    size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::unordered_map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;

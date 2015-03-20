@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# --- UCSF Chimera Copyright ---
+# Copyright (c) 2000-2015 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  This notice must be embedded in or
+# attached to all copies, including partial copies, of the
+# software or any revisions or derivations thereof.
+# --- UCSF Chimera Copyright ---
+#
+
+# set path so we get the versions of command we expect
+originalpath="$PATH"
+PATH=/bin:/usr/bin:"$PATH"
+
+# application name can be hardcoded by altering the next line
+app=`basename "$0"`
+
+# if CDPATH is set, then cd echos the directory as well
+unset CDPATH
+
+# Assume that the true location of $app is in CHIMERA/bin/ and
+# deduce what CHIMERA should be even if there are symbolic links
+bindir=`dirname "$0"`
+if test ! -L "$0"
+then
+	bindir=`cd "$bindir"; pwd -P`
+else
+	if link=`readlink "$0"`
+	then :
+	else
+		# fallback if readlink doesn't exist
+		link=`ls -l "$0" | sed 's/.* -> //'`
+	fi # $app was a (relative?) symbolic link
+	tmp=`dirname "$link"`
+	bindir=`cd "$bindir"; cd "$tmp"; pwd -P`
+fi
+CHIMERA=`dirname "$bindir"`
+
+python="$CHIMERA/bin/APP_NAME"
+if test $# -gt 0
+then
+	exec "$python" -m chimera.$app "$@"
+else
+	exec "$python" -m chimera.$app
+fi
