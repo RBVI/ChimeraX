@@ -353,8 +353,8 @@ find_and_add_metal_coordination_bonds(AtomicStructure* as)
         for (auto mc: mc_bonds) {
             for (auto& cs: as->coord_sets()) {
                 pbg->new_pseudobond(mc->atoms(), cs.get());
-                as->delete_bond(mc);
             }
+            as->delete_bond(mc);
         }
     }
 }
