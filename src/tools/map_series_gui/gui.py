@@ -155,8 +155,8 @@ def show_slider_on_open(session):
     # Register callback to show slider when a map series is opened
     if not hasattr(session, '_registered_map_series_slider'):
         session._registered_map_series_slider = True
-        from ..core.models import ADD_MODELS
-        session.triggers.add_handler(ADD_MODELS, lambda name,m,s=session: models_added_cb(m,s))
+        from ..core.models import ADD_MODEL_GROUP
+        session.triggers.add_handler(ADD_MODEL_GROUP, lambda name,m,s=session: models_added_cb(m,s))
 
 def models_added_cb(models, session):
     # Show slider when a map series is opened.
