@@ -362,9 +362,16 @@ def chain_colors(cids):
           '9': (157, 175, 255,255),
           '0': (41, 208, 208,255),
         }
-    default_color = (180,180,180,255)
+
+    for cid in set(cids):
+        c = str(cid).lower()
+        if not c in rgba_256:
+            from random import randint, seed
+            seed(c)
+            rgba_256[c] = (randint(128,255),randint(128,255),randint(128,255),255)
+
     from numpy import array, uint8
-    c = array(tuple(rgba_256.get(cid[:1].lower(), default_color) for cid in cids), uint8)
+    c = array(tuple(rgba_256[cid.lower()] for cid in cids), uint8)
     return c
 
 # -----------------------------------------------------------------------------
@@ -372,20 +379,10 @@ def chain_colors(cids):
 def chain_rgba(cid):
     return tuple(float(c/255.0) for c in chain_colors([cid])[0])
 
-    from random import uniform, seed
-    seed(str(cid))
-    rgba = (uniform(.5,1),uniform(.5,1),uniform(.5,1),1)
-    return rgba
-
 # -----------------------------------------------------------------------------
 #
 def chain_rgba8(cid):
     return chain_colors([cid])[0]
-
-    rgba = chain_rgba(cid)
-    from numpy import array, uint8
-    rgba8 = array(tuple(int(255.999*c) for c in rgba), uint8)
-    return rgba8
 
 # -----------------------------------------------------------------------------
 #
