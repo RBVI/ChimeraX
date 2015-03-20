@@ -101,8 +101,9 @@ connect_atom_by_distance(Atom* a, const Residue::Atoms& atoms,
                 continue;
             short_dist = dist;
             close_atom = oa;
-        } else
+        } else {
             (void) a->structure()->new_bond(a, oa);
+        }
     }
     if (H_or_LP && short_dist != 0) {
         (void) a->structure()->new_bond(a, close_atom);
@@ -160,8 +161,9 @@ connect_residue_by_template(Residue* r, const tmpl::Residue* tr,
             Atom *b = r->find_atom(tmpl_nb->name());
             if (b == NULL)
                 continue;
-            if (!a->connects_to(b))
+            if (!a->connects_to(b)) {
                 (void) a->structure()->new_bond(a, b);
+            }
         }
     }
     // For each atom that wasn't connected (i.e. not in template),
@@ -376,6 +378,27 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
 
         if (!first_res)
             first_res = r;
+        // Before we add a bunch of bonds, make sure we're not already linked
+        // to preceding residue via CONECT records.
+        // Can't just check conect_atoms because if the previous
+        // residue is HET and this one isn't, only the cross-residue
+        // bond may be in the CONECT records and therefore this
+        // residue's connected atom won't be in conect_atoms (which
+        // is only for atoms whose complete connectivity is
+        // specified by CONECT records)
+        bool prelinked = false;
+        if (link_res != NULL) {
+            for (auto a: r->atoms()) {
+                for (auto b: a->bonds()) {
+                    if (b->other_atom(a)->residue() == link_res) {
+                        prelinked = true;
+                        break;
+                    }
+                }
+                if (prelinked)
+                    break;
+            }
+        }
         const tmpl::Residue *tr;
         if (mod_res->find(MolResId(r)) != mod_res->end())
             // residue in MODRES record;
@@ -394,7 +417,9 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
 
         // connect up previous residue
         if (link_res != NULL) {
-            if (tr == NULL || tr->chief() == NULL) {
+            if (prelinked) {
+                ; // do nothing
+            } else if (tr == NULL || tr->chief() == NULL) {
                 add_bond_nearest_pair(link_res, r);
             } else {
                 bool made_connection = false;
@@ -410,15 +435,17 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                     if (saturated(chief)) {
                         made_connection = true;
                     } if (link_atom != NULL) {
-                        if (!saturated(link_atom))
+                        if (!saturated(link_atom)) {
                             add_bond(link_atom, chief);
+                        }
                         made_connection = true;
                     } else {
                         made_connection = hookup(chief, link_res, definitely_connect);
                     }
                 }
-                if (!made_connection && definitely_connect)
+                if (!made_connection && definitely_connect) {
                     add_bond_nearest_pair(link_res, r);
+                }
             }
         } else if (r->atoms().size() > 1 && prev_res != NULL
                 && prev_res->chain_id() == r->chain_id()
