@@ -51,7 +51,7 @@ def fetch_pdb(session, pdb_id):
     subdir = lower[1:3]
     sys_filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
     if os.path.exists(sys_filename):
-        return _builtin_open(sys_filename, 'rb')
+        return sys_filename, pdb_id
 
     filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
     filename = os.path.expanduser(filename)
