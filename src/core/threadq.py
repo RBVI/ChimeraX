@@ -18,6 +18,7 @@ class WorkThread(threading.Thread):
             self.out_queue.put(r)
             self.in_queue.task_done()
 
+# List of return values does not match args ordering.
 def apply_to_list(func, args, nthread = None):
 
     if nthread is None:

@@ -32,7 +32,7 @@ def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
             for name, xyz, r, place in spheres]
     args.sort(key = lambda a: len(a[1]), reverse = True)        # Largest first
     from . import threadq
-    geom = threadq.apply_to_list(calc_surf, args, nthread)
+    geom = threadq.apply_to_list(calc_surf, args, nthread)	# geom does not match args ordering
 
     # Creates surface models
     for name, place, va, na, ta in geom:
