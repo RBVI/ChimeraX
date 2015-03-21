@@ -276,10 +276,10 @@ hookup(Atom* a, Residue* res, bool definitely_connect=true)
     }
     return made_connection;
 }
-static std::vector<Bond*>
+static std::set<Bond*>
 metal_coordination_bonds(AtomicStructure* as)
 {
-    std::vector<Bond*> mc_bonds;
+    std::set<Bond*> mc_bonds;
     std::set<Atom*> metals;
     for (auto& a: as->atoms())
         if (a->element().is_metal())
@@ -337,7 +337,7 @@ metal_coordination_bonds(AtomicStructure* as)
             }
         }
         if (del_bonds.size() > 0)
-            mc_bonds.insert(mc_bonds.end(), del_bonds.begin(), del_bonds.end());
+            mc_bonds.insert(del_bonds.begin(), del_bonds.end());
     }
     return mc_bonds;
 }
