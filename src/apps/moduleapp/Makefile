@@ -16,10 +16,10 @@ all: $(APP)
 install: all
 	$(RSYNC) $(APP).py $(PKG_DIR)
 	$(RSYNC) $(APP) $(bindir)
-
-app-install: all
-	$(RSYNC) $(APP).py $(APP_PKG_DIR)
-	$(RSYNC) $(APP) $(app_bindir)
+	if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) $(APP).py $(APP_PKG_DIR); \
+		$(RSYNC) $(APP) $(app_bindir); \
+	fi
 
 clean:
 	rm -f $(APP)

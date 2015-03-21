@@ -36,54 +36,58 @@ sys.stdout = FlushFile(sys.stdout)
 def compare(pdb_id, pdb_path, mmcif_path):
     # return True if they differ
     print('Comparing %s' % pdb_id)
-    from chimera.core.pdb import open_pdb
-    from chimera.core.mmcif import open_mmcif
+    from chimera.core import io
     try:
-        pdb_models = open_pdb(Chimera2_session, pdb_path, pdb_id)[0]
+        pdb_models = io.open(Chimera2_session, pdb_path)[0]
     except Exception as e:
         print("error: unable to open pdb file %s: %s" % (pdb_id, e))
         return True
     try:
-        mmcif_models = open_mmcif(Chimera2_session, mmcif_path, pdb_id)[0]
+        mmcif_models = io.open(Chimera2_session, mmcif_path)[0]
     except Exception as e:
         print("error: unable to open mmcif file %s: %s" % (pdb_id, e))
         return
     if len(pdb_models) != len(mmcif_models):
         print("error: %s: pdb version has %d models, mmcif version has %d" %
               (pdb_id, len(pdb_models), len(mmcif_models)))
-        return True
-    for p, m in zip(pdb_models, mmcif_models):
-        diff = p.mol_blob.num_atoms - m.mol_blob.num_atoms
-        if diff != 0:
-            print("error: %s: pdb has %d atoms %s than mmcif" % (
-                pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
-            return True
-        diff = p.mol_blob.num_bonds - m.mol_blob.num_bonds
-        if diff != 0:
-            print("error: %s: pdb has %d bonds %s than mmcif" % (
-                pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
-            return True
-        diff = p.mol_blob.num_residues - m.mol_blob.num_residues
-        if diff != 0:
-            print("error: %s: pdb has %d residues %s than mmcif" % (
-                pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
-            return True
-        diff = p.mol_blob.num_chains - m.mol_blob.num_chains
-        if diff != 0:
-            print("error: %s: pdb has %d chains %s than mmcif" % (
-                pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
-            return True
-        diff = p.mol_blob.num_coord_sets - m.mol_blob.num_coord_sets
-        if diff != 0:
-            print("error: %s: pdb has %d coord_sets %s than mmcif" % (
-                pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
-            return True
-    print('same: %s' % pdb_id)
+        all_same = False
+    else:
+        all_same = True
+        for p, m in zip(pdb_models, mmcif_models):
+            same = True
+            diff = p.mol_blob.num_atoms - m.mol_blob.num_atoms
+            if diff != 0:
+                print("error: %s: pdb has %d atoms %s than mmcif" % (
+                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+                same = False
+            diff = p.mol_blob.num_bonds - m.mol_blob.num_bonds
+            if diff != 0:
+                print("error: %s: pdb has %d bonds %s than mmcif" % (
+                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+                same = False
+            diff = p.mol_blob.num_residues - m.mol_blob.num_residues
+            if diff != 0:
+                print("error: %s: pdb has %d residues %s than mmcif" % (
+                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+                same = False
+            diff = p.mol_blob.num_chains - m.mol_blob.num_chains
+            if diff != 0:
+                print("error: %s: pdb has %d chains %s than mmcif" % (
+                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+                same = False
+            diff = p.mol_blob.num_coord_sets - m.mol_blob.num_coord_sets
+            if diff != 0:
+                print("error: %s: pdb has %d coord_sets %s than mmcif" % (
+                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+                same = False
+            all_same = all_same and same
+    if all_same:
+        print('same: %s' % pdb_id)
     for m in pdb_models:
         m.delete()
     for m in mmcif_models:
         m.delete()
-    return False
+    return all_same
 
 
 def file_gen(dir):
@@ -135,6 +139,7 @@ def compare_all():
     pdb_info = next_info(pdb_files)
     mmcif_info = next_info(mmcif_files)
 
+    all_same = True
     while pdb_info and mmcif_info:
         pdb_dir, pdb_file = pdb_info
         pid = pdb_id(pdb_file)
@@ -155,12 +160,13 @@ def compare_all():
             mmcif_info = next_info(mmcif_files)
             continue
         assert(pid == mid)
-        differ = compare(pid, os.path.join(PDB_DIR, pdb_dir, pdb_file),
+        same = compare(pid, os.path.join(PDB_DIR, pdb_dir, pdb_file),
                 os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
+        all_same = all_same and same
         pdb_info = next_info(pdb_files)
         mmcif_info = next_info(mmcif_files)
     Chimera2_session.logger.clear()
-    raise SystemExit(os.EX_DATAERR if differ else os.EX_OK)
+    raise SystemExit(os.EX_OK if all_same else os.EX_DATAERR)
 
 
 def compare_id(pdb_id):
@@ -168,11 +174,17 @@ def compare_id(pdb_id):
         print('PDB ids should be 4 characters long')
         raise SystemExit(os.EX_DATAERR)
     pdb_id = pdb_id.lower()
-    pdb_path = os.path.join(PDB_DIR, pdb_id[1:3], 'pdb%s.ent' % pdb_id)
-    mmcif_path = os.path.join(MMCIF_DIR, pdb_id[1:3], '%s.cif' % pdb_id)
-    differ = compare(pdb_id, pdb_path, mmcif_path)
+    if os.path.exists(PDB_DIR):
+        pdb_path = os.path.join(PDB_DIR, pdb_id[1:3], 'pdb%s.ent' % pdb_id)
+    else:
+        pdb_path = "pdb:%s" % pdb_id
+    if os.path.exists(MMCIF_DIR):
+        mmcif_path = os.path.join(MMCIF_DIR, pdb_id[1:3], '%s.cif' % pdb_id)
+    else:
+        mmcif_path = "mmcif:%s" % pdb_id
+    same = compare(pdb_id, pdb_path, mmcif_path)
     Chimera2_session.logger.clear()
-    raise SystemExit(os.EX_DATAERR if differ else os.EX_OK)
+    raise SystemExit(os.EX_OK if same else os.EX_DATAERR)
 
 
 def usage():
@@ -208,6 +220,10 @@ def main():
         Chimera2_session.logger.clear()
         raise SystemExit(os.EX_USAGE)
     if all:
+        if not os.path.exists(PDB_DIR) or not os.path.exists(MMCIF_DIR):
+            print("pdb and/or mmCIF databases missing")
+            Chimera2_session.logger.clear()
+            raise SystemExit(os.EX_DATAERR)
         compare_all()
     if pdb_id:
         compare_id(pdb_id)
