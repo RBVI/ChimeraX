@@ -16,17 +16,26 @@ _surface_desc = cli.CmdDesc(
                ('gridSpacing', cli.FloatArg),
                ('color', color.ColorArg),
                ('transparency', cli.FloatArg),
-               ('chains', cli.BoolArg)])
+               ('chains', cli.BoolArg),
+               ('nthread', cli.IntArg)])
 
 def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
-                    color = None, transparency = 0, chains = False):
+                    color = None, transparency = 0, chains = False, nthread = None):
     '''
     Compute and display a solvent excluded molecular surface for each molecule.
     '''
     surfs = []
-    for name, xyz, r, place in atom_spec_spheres(atoms,session,chains):
-        from . import surface
-        va,na,ta = surface.ses_surface_geometry(xyz, r, probeRadius, gridSpacing)
+
+    # Compute surfaces using multiple threads
+    spheres = atom_spec_spheres(atoms,session,chains)
+    args = [(name,xyz,r,place,probeRadius,gridSpacing)
+            for name, xyz, r, place in spheres]
+    args.sort(key = lambda a: len(a[1]), reverse = True)        # Largest first
+    from . import threadq
+    geom = threadq.apply_to_list(calc_surf, args, nthread)
+
+    # Creates surface models
+    for name, place, va, na, ta in geom:
         # Create surface model to show surface
         sname = '%s SES surface' % name
         rgba = surface_rgba(color, transparency, chains, name)
@@ -34,6 +43,11 @@ def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
         session.models.add([surf])
         surfs.append(surf)
     return surfs
+
+def calc_surf(name, xyz, r, place, probe_radius, grid_spacing):
+    from .surface import ses_surface_geometry
+    va, na, ta = ses_surface_geometry(xyz, r, probe_radius, grid_spacing)
+    return (name, place, va, na, ta)
 
 def atom_spec_spheres(atom_spec, session, chains = False):
     if atom_spec is None:
