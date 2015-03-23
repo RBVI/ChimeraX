@@ -344,7 +344,8 @@ ExtractMolecule::finished_parse()
             if (m->num_atoms() == mol->num_atoms())
                 copy_nmr_info(mol, m);
             else
-                std::cerr << "mismatched number of atoms\n";
+                std::cerr << "mismatched number of atoms (" << mol->num_atoms()
+                    << " vs. " << m->num_atoms() << ")\n";
         }
     }
     vector<AtomicStructure*> save_molecules;
