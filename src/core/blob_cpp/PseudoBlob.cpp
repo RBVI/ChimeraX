@@ -159,6 +159,8 @@ static PyMethodDef PseudoBlob_methods[] = {
 };
 
 static PyGetSetDef PseudoBlob_getset[] = {
+    { "bond_indices", pb_bond_indices, NULL,
+        "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
     { (char*)"colors", pb_colors, pb_set_colors,
         (char*)"numpy Nx4 array of (unsigned char) RGBA values", NULL},
     { (char*)"displays", pb_displays, pb_set_displays,
