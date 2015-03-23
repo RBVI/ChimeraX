@@ -263,6 +263,7 @@ Bond *
 AtomicStructure::new_bond(Atom *a1, Atom *a2)
 {
     Bond *b = new Bond(this, a1, a2);
+    b->finish_construction(); // virtual calls work now
     add_edge(b);
     return b;
 }

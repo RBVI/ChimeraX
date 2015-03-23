@@ -19,7 +19,7 @@ protected:
         { return "Can't connect endpoint to itself"; }
     virtual const char*  err_msg_not_end() const
         { return "Endpoint arg of other_end() not in Connection"; }
-private:
+
     End_points  _end_points;
 
     bool  _display = true;
@@ -28,6 +28,7 @@ private:
     Rgba  _rgba;
 public:
     Connection(End *e1, End *e2);
+    void  finish_construction(); // virtual calls now working...
     virtual  ~Connection() {}
     bool  contains(End* e) const {
         return e == _end_points[0] || e == _end_points[1];
@@ -61,22 +62,38 @@ protected:
         { return "Connection already exists between endpoints"; }
 public:
     UniqueConnection(End *e1, End *e2);
+    void  finish_construction(); // virtual calls now working...
     virtual  ~UniqueConnection() {}
 };
 
 template <class End>
 Connection<End>::Connection(End *e1, End *e2)
 {
-    if (e1 == e2)
-        throw std::invalid_argument(err_msg_loop());
     _end_points[0] = e1;
     _end_points[1] = e2;
+}
+
+template <class End>
+void
+Connection<End>::finish_construction()
+{
+    if (_end_points[0] == _end_points[1])
+        throw std::invalid_argument(err_msg_loop());
 }
 
 template <class End, class FinalConnection>
 UniqueConnection<End, FinalConnection>::UniqueConnection(End *e1, End *e2) :
     Connection<End>(e1, e2)
 {
+}
+
+template <class End, class FinalConnection>
+void
+UniqueConnection<End, FinalConnection>::finish_construction()
+{
+    static_cast<Connection<End> *>(this)->finish_construction();
+    End* e1 = this->_end_points[0]; // "this->" necessary because compiler
+    End* e2 = this->_end_points[1]; // doesn't automatically look in parents
     if (e1->connects_to(e2))
         throw std::invalid_argument(err_msg_exists());
     e1->add_connection(static_cast<FinalConnection *>(this));
