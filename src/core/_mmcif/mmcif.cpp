@@ -244,16 +244,22 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 void
 copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
 {
+    if (from->num_atoms() != to->num_atoms())
+        std::cerr << "warning: mismatched number of atoms ("
+            << from->num_atoms() << " vs. " << to->num_atoms() << ")\n";
     // copy bonds, pseudobonds, secondary structure
     // -- Assumes atoms were added in the exact same order
     // Bonds:
     auto& atoms = from->atoms();
     auto& bonds = from->bonds();
     auto& to_atoms = to->atoms();
+    size_t to_size = to_atoms.size();
     for (auto&& b: bonds) {
         auto bond_atoms = b->atoms();
         auto a0_index = bond_atoms[0]->coord_index();
         auto a1_index = bond_atoms[1]->coord_index();
+        if (a0_index >= to_size || a1_index >= to_size)
+            continue;
         to->new_bond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
     }
     // Pseudobonds: TODO
@@ -265,6 +271,8 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
             auto bond_atoms = b->atoms();
             auto a0_index = bond_atoms[0]->coord_index();
             auto a1_index = bond_atoms[1]->coord_index();
+            if (a0_index >= to_size || a1_index >= to_size)
+                continue;
             to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
         }
     }
@@ -276,6 +284,8 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
             auto bond_atoms = b->atoms();
             auto a0_index = bond_atoms[0]->coord_index();
             auto a1_index = bond_atoms[1]->coord_index();
+            if (a0_index >= to_size || a1_index >= to_size)
+                continue;
             to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
         }
     }
@@ -354,11 +364,7 @@ ExtractMolecule::finished_parse()
         auto m = im.second;
         all_molecules.push_back(m);
         if (m != mol) {
-            if (m->num_atoms() == mol->num_atoms())
-                copy_nmr_info(mol, m);
-            else
-                std::cerr << "mismatched number of atoms (" << mol->num_atoms()
-                    << " vs. " << m->num_atoms() << ")\n";
+            copy_nmr_info(mol, m);
         }
     }
     vector<AtomicStructure*> save_molecules;
