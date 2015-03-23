@@ -47,6 +47,7 @@ def compare(pdb_id, pdb_path, mmcif_path):
     except Exception as e:
         print("error: unable to open mmcif file %s: %s" % (pdb_id, e))
         return
+
     if len(pdb_models) != len(mmcif_models):
         print("error: %s: pdb version has %d models, mmcif version has %d" %
               (pdb_id, len(pdb_models), len(mmcif_models)))
@@ -55,31 +56,115 @@ def compare(pdb_id, pdb_path, mmcif_path):
         all_same = True
         for p, m in zip(pdb_models, mmcif_models):
             same = True
-            diff = p.mol_blob.num_atoms - m.mol_blob.num_atoms
-            if diff != 0:
-                print("error: %s: pdb has %d atoms %s than mmcif" % (
-                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+
+            # atoms
+            pdb_atoms = ['%s@%s' % (r, a) for r, a in zip(
+                    p.mol_blob.atoms.residues.strs, p.mol_blob.atoms.names)]
+            mmcif_atoms = ['%s@%s' % (r, a) for r, a in zip(
+                    m.mol_blob.atoms.residues.strs, m.mol_blob.atoms.names)]
+            pdb_tmp = set(pdb_atoms)
+            mmcif_tmp = set(mmcif_atoms)
+            common = pdb_tmp & mmcif_tmp
+            extra = pdb_tmp - common
+            if extra:
+                print('error:', len(extra), 'extra pdb atoms:', extra)
                 same = False
-            diff = p.mol_blob.num_bonds - m.mol_blob.num_bonds
-            if diff != 0:
-                print("error: %s: pdb has %d bonds %s than mmcif" % (
-                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+            extra = mmcif_tmp - common
+            if extra:
+                print('error:', len(extra), 'extra mmcif atoms:', extra)
                 same = False
-            diff = p.mol_blob.num_residues - m.mol_blob.num_residues
-            if diff != 0:
-                print("error: %s: pdb has %d residues %s than mmcif" % (
-                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+
+            # bonds
+            pdb_bonds = set()
+            for i1, i2 in p.mol_blob.bond_indices:
+                if pdb_atoms[i1] < pdb_atoms[i2]:
+                    b1, b2 = i1, i2
+                else:
+                    b1, b2 = i2, i1
+                pdb_bonds.add("%s/%s" % (pdb_atoms[b1], pdb_atoms[b2]))
+            mmcif_bonds = set()
+            for i1, i2 in m.mol_blob.bond_indices:
+                if mmcif_atoms[i1] < mmcif_atoms[i2]:
+                    b1, b2 = i1, i2
+                else:
+                    b1, b2 = i2, i1
+                mmcif_bonds.add("%s/%s" % (mmcif_atoms[b1], mmcif_atoms[b2]))
+            common = pdb_bonds & mmcif_bonds
+            extra = pdb_bonds - common
+            if extra:
+                print('error:', len(extra), 'extra pdb bonds:', extra)
                 same = False
+            extra = mmcif_bonds - common
+            if extra:
+                print('error:', len(extra), 'extra mmcif bonds:', extra)
+                same = False
+
+            # residues
+            pdb_residues = set(p.mol_blob.residues.strs)
+            mmcif_residues = set(m.mol_blob.residues.strs)
+            common = pdb_residues & mmcif_residues
+            extra = pdb_residues - common
+            if extra:
+                print('error:', len(extra), 'extra pdb residues:', extra)
+                same = False
+            extra = mmcif_residues - common
+            if extra:
+                print('error:', len(extra), 'extra mmcif residues:', extra)
+                same = False
+
+            # chains
             diff = p.mol_blob.num_chains - m.mol_blob.num_chains
             if diff != 0:
-                print("error: %s: pdb has %d chains %s than mmcif" % (
+                print("error: %s: pdb has %d chain(s) %s than mmcif" % (
                     pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
                 same = False
+
+            # coord_sets
             diff = p.mol_blob.num_coord_sets - m.mol_blob.num_coord_sets
             if diff != 0:
-                print("error: %s: pdb has %d coord_sets %s than mmcif" % (
+                print("error: %s: pdb has %d coord_set(s) %s than mmcif" % (
                     pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
                 same = False
+
+            # pseudobonds
+            pdb_pbg_map = p.mol_blob.pbg_map
+            pdb_pbgs = set(pdb_pbg_map.keys())
+            mmcif_pbg_map = m.mol_blob.pbg_map
+            mmcif_pbgs = set(mmcif_pbg_map.keys())
+            common_pbgs = pdb_pbgs & mmcif_pbgs
+            extra = pdb_pbgs - common_pbgs
+            if extra:
+                print('error:', len(extra), 'extra pdb pseudobond group(s):', extra)
+                same = False
+            extra = mmcif_pbgs - common_pbgs
+            if extra:
+                print('error:', len(extra), 'extra mmcif pseudobond group(s):', extra)
+                same = False
+            for pbg in common_pbgs:
+                pdb_bonds = set()
+                for i1, i2 in pdb_pbg_map[pbg].bond_indices:
+                    if pdb_atoms[i1] < pdb_atoms[i2]:
+                        b1, b2 = i1, i2
+                    else:
+                        b1, b2 = i2, i1
+                    pdb_bonds.add("%s/%s" % (pdb_atoms[b1], pdb_atoms[b2]))
+                mmcif_bonds = set()
+                for i1, i2 in mmcif_pbg_map[pbg].bond_indices:
+                    if mmcif_atoms[i1] < mmcif_atoms[i2]:
+                        b1, b2 = i1, i2
+                    else:
+                        b1, b2 = i2, i1
+                    mmcif_bonds.add("%s/%s" % (mmcif_atoms[b1], mmcif_atoms[b2]))
+                common = pdb_bonds & mmcif_bonds
+                extra = pdb_bonds - common
+                if extra:
+                    print('error:', len(extra), 'extra pdb', pbg, 'bonds:', extra)
+                    same = False
+                extra = mmcif_bonds - common
+                if extra:
+                    print('error:', len(extra), 'extra mmcif', pbg, 'bonds:', extra)
+                    same = False
+
             all_same = all_same and same
     if all_same:
         print('same: %s' % pdb_id)
