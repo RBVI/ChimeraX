@@ -12,6 +12,8 @@ namespace basegeom {
 template <class End>
 class Connection {
 public:
+    enum class BondDisplay : unsigned char { Never, Smart, Always,
+                                                MAX_VAL = Always };
     typedef End*  End_points[2];
 
 protected:
@@ -22,7 +24,7 @@ protected:
 
     End_points  _end_points;
 
-    bool  _display = true;
+    BondDisplay  _display = BondDisplay::Smart;
     bool  _halfbond = true;
     float  _radius = 1.0;
     Rgba  _rgba;
@@ -44,12 +46,17 @@ public:
 
     // graphics related
     const Rgba&  color() const { return _rgba; }
-    bool  display() const { return _display; }
+    BondDisplay  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a) { _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba) { _rgba = rgba; }
-    void  set_display(bool d) { _display = d; }
+    void  set_display(BondDisplay d) { _display = d; }
+    void  set_display(unsigned char d) { 
+        if (d > static_cast<unsigned char>(BondDisplay::MAX_VAL))
+            throw std::out_of_range("Invalid bond display value.");
+        _display = static_cast<BondDisplay>(d);
+    }
     void  set_halfbond(bool hb) { _halfbond = hb; }
     void  set_radius(float r) { _radius = r; }
     float  radius() const { return _radius; }

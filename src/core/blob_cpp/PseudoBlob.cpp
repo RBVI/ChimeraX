@@ -92,10 +92,10 @@ pb_displays(PyObject* self, void*)
         import_array1(NULL); // initialize NumPy
     static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
     unsigned int shape[1] = {(unsigned int)pb->_items->size()};
-    PyObject* displays = allocate_python_array(1, shape, NPY_BOOL);
+    PyObject* displays = allocate_python_array(1, shape, NPY_UINT8);
     unsigned char* data = (unsigned char*) PyArray_DATA((PyArrayObject*)displays);
     for (auto b: *(pb->_items)) {
-        *data++ = b->display();
+        *data++ = static_cast<unsigned char>(b->display());
     }
     return displays;
 }
@@ -164,7 +164,7 @@ static PyGetSetDef PseudoBlob_getset[] = {
     { (char*)"colors", pb_colors, pb_set_colors,
         (char*)"numpy Nx4 array of (unsigned char) RGBA values", NULL},
     { (char*)"displays", pb_displays, pb_set_displays,
-        (char*)"numpy array of (bool) displays", NULL},
+        (char*)"numpy array of display values (0/1/2 = never/smart/always)", NULL},
     { (char*)"halfbonds", pb_halfbonds, pb_set_halfbonds,
         (char*)"numpy array of (bool) halfbonds", NULL},
     { (char*)"radii", pb_radii, pb_set_radii,

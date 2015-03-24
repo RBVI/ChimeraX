@@ -61,10 +61,10 @@ bb_displays(PyObject* self, void*)
         import_array1(NULL); // initialize NumPy
     static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
     unsigned int shape[1] = {(unsigned int)bb->_items->size()};
-    PyObject* displays = allocate_python_array(1, shape, NPY_BOOL);
-    unsigned char* data = (unsigned char*) PyArray_DATA((PyArrayObject*)displays);
+    PyObject* displays = allocate_python_array(1, shape, NPY_UINT8);
+    char* data = (char*) PyArray_DATA((PyArrayObject*)displays);
     for (auto b: *(bb->_items)) {
-        *data++ = b->display();
+        *data++ = static_cast<unsigned char>(b->display());
     }
     return displays;
 }
@@ -131,7 +131,7 @@ static PyGetSetDef BondBlob_getset[] = {
     { (char*)"colors", bb_colors, bb_set_colors,
         (char*)"numpy Nx4 array of (unsigned char) RGBA values", NULL},
     { (char*)"displays", bb_displays, bb_set_displays,
-        (char*)"numpy array of (bool) displays", NULL},
+        (char*)"numpy array of display values (0/1/2 = never/smart/always)", NULL},
     { (char*)"halfbonds", bb_halfbonds, bb_set_halfbonds,
         (char*)"numpy array of (bool) halfbonds", NULL},
     { (char*)"radii", bb_radii, bb_set_radii,
