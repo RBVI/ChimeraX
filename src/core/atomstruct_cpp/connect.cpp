@@ -513,8 +513,10 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             Bond *b = *bi;
             as->delete_bond(b);
         }
+        find_and_add_metal_coordination_bonds(as);
     } else {
         // turn long inter-residue bonds into "missing structure" pseudobonds
+        find_and_add_metal_coordination_bonds(as);
         std::vector<Bond*> long_bonds;
         for (auto& b: as->bonds()) {
             Atom* a1 = b->atoms()[0];
@@ -543,8 +545,6 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             }
         }
     }
-
-    find_and_add_metal_coordination_bonds(as);
 }
 
 }  // namespace atomstruct
