@@ -46,6 +46,29 @@ sb_atoms(PyObject* self, void*)
 }
 
 static PyObject*
+sb_ball_scales(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)sb->_items->size()};
+    PyObject* ball_scales = allocate_python_array(1, shape, NPY_FLOAT);
+    unsigned char* data = (unsigned char*) PyArray_DATA((PyArrayObject*)ball_scales);
+    for (auto s: *(sb->_items)) {
+        *data++ = s->ball_scale();
+    }
+    return ball_scales;
+}
+
+static int
+sb_set_ball_scales(PyObject* self, PyObject* value, void*)
+{
+    return set_blob<StructBlob>(self, value,
+        &atomstruct::AtomicStructure::set_ball_scale);
+}
+
+static PyObject*
 sb_bonds(PyObject* self, void*)
 {
     PyObject* py_bb = new_blob<BondBlob>(&BondBlob_type);
@@ -257,6 +280,8 @@ static PyMethodDef StructBlob_methods[] = {
 
 static PyGetSetDef StructBlob_getset[] = {
     { "atoms", sb_atoms, NULL, "AtomBlob", NULL},
+    { "ball_scales", sb_ball_scales, sb_set_ball_scales,
+        "numpy array of (float) ball scales", NULL},
     { "bonds", sb_bonds, NULL, "BondBlob", NULL},
     { "bond_indices", sb_bond_indices, NULL,
         "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},

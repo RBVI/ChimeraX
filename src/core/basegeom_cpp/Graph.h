@@ -16,6 +16,9 @@ protected:
 private:
     Vertices  _vertices;
     Edges  _edges;
+
+    float  _ball_scale;
+
 protected:
     void  add_edge(Edge *e) { _edges.emplace_back(e); }
     void  add_vertex(Vertex *v) { _vertices.emplace_back(v); }
@@ -23,8 +26,13 @@ protected:
     void  delete_vertex(Vertex *v);
     const Edges &  edges() const { return _edges; }
     const Vertices &  vertices() const { return _vertices; }
+
 public:
     virtual  ~Graph() {}
+
+    // graphics related
+    float  ball_scale() const { return _ball_scale; }
+    void  set_ball_scale(float bs) { _ball_scale = bs; }
 
     // temporary until a Model class exists
 private:
