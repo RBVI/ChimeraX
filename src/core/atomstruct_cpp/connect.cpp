@@ -380,7 +380,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             first_res = r;
         // Before we add a bunch of bonds, make sure we're not already linked
         // to other residues via CONECT records [*not* just preceding
-        // residue; see entry 209D, residues 5.A and 6.A].
+        // residue; see entry 209D, residues 5.C and 6.C].
         // Can't just check conect_atoms because if the previous
         // residue is HET and this one isn't, only the cross-residue
         // bond may be in the CONECT records and therefore this
