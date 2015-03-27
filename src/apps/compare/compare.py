@@ -54,9 +54,14 @@ def compare(pdb_id, pdb_path, mmcif_path):
         all_same = False
     else:
         all_same = True
+        save_pdb_id = pdb_id
+        i = 0
         for p, m in zip(pdb_models, mmcif_models):
             same = True
 
+            if len(pdb_models) > 1:
+                i += 1
+                pdb_id = "%s#%d" % (save_pdb_id, i)
             # atoms
             pdb_atoms = ['%s@%s' % (r, a) for r, a in zip(
                     p.mol_blob.atoms.residues.strs, p.mol_blob.atoms.names)]
@@ -166,6 +171,7 @@ def compare(pdb_id, pdb_path, mmcif_path):
                     same = False
 
             all_same = all_same and same
+        pdb_id = save_pdb_id
     if all_same:
         print('same: %s' % pdb_id)
     for m in pdb_models:
