@@ -72,10 +72,14 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common = pdb_tmp & mmcif_tmp
             extra = pdb_tmp - common
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra pdb atom(s):', extra)
                 same = False
             extra = mmcif_tmp - common
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra mmcif atom(s):', extra)
                 same = False
 
@@ -97,10 +101,14 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common = pdb_bonds & mmcif_bonds
             extra = pdb_bonds - common
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra pdb bond(s):', extra)
                 same = False
             extra = mmcif_bonds - common
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra mmcif bond(s):', extra)
                 same = False
 
@@ -110,10 +118,14 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common = pdb_residues & mmcif_residues
             extra = pdb_residues - common
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra pdb residue(s):', extra)
                 same = False
             extra = mmcif_residues - common
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra mmcif residue(s):', extra)
                 same = False
 
@@ -139,10 +151,14 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common_pbgs = pdb_pbgs & mmcif_pbgs
             extra = pdb_pbgs - common_pbgs
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra pdb pseudobond group(s):', extra)
                 same = False
             extra = mmcif_pbgs - common_pbgs
             if extra:
+                extra = list(extra)
+                extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra mmcif pseudobond group(s):', extra)
                 same = False
             for pbg in common_pbgs:
@@ -163,10 +179,14 @@ def compare(pdb_id, pdb_path, mmcif_path):
                 common = pdb_bonds & mmcif_bonds
                 extra = pdb_bonds - common
                 if extra:
+                    extra = list(extra)
+                    extra.sort()
                     print('error: %s:' % pdb_id, len(extra), 'extra pdb', pbg, 'bond(s):', extra)
                     same = False
                 extra = mmcif_bonds - common
                 if extra:
+                    extra = list(extra)
+                    extra.sort()
                     print('error: %s:' % pdb_id, len(extra), 'extra mmcif', pbg, 'bond(s):', extra)
                     same = False
 
