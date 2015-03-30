@@ -197,8 +197,8 @@ saturated(Atom* a)
 // find_closest:
 //    Find closest heavy atom to given heavy atom with residue that has
 //    the same alternate location identifier (or none) and optionally return
-static Atom *
-find_closest(Atom* a, Residue* r, float* ret_dist_sq, bool nonSaturated=false)
+Atom *
+find_closest(Atom* a, Residue* r, float* ret_dist_sq, bool nonSaturated)
 {
     if (a == NULL)
         return NULL;
@@ -236,6 +236,22 @@ find_closest(Atom* a, Residue* r, float* ret_dist_sq, bool nonSaturated=false)
 static void
 add_bond_nearest_pair(Residue* from, Residue* to, bool any_length=true)
 {
+    Atom    *fsave, *tsave;
+
+    find_nearest_pair(from, to, &fsave, &tsave);
+    if (fsave != NULL) {
+        if (!any_length && bonded_dist(fsave, tsave) == 0.0)
+            return;
+        add_bond(fsave, tsave);
+    }
+}
+
+// find_nearest_pair:
+//    Find closest atoms between two residues.
+void
+find_nearest_pair(Residue* from, Residue* to, Atom** ret_from_atom,
+        Atom** ret_to_atom, float* ret_dist_sq)
+{
     Atom    *fsave = NULL, *tsave = NULL;
     float    dist_sq = 0.0;
 
@@ -256,11 +272,12 @@ add_bond_nearest_pair(Residue* from, Residue* to, bool any_length=true)
             dist_sq = new_dist_sq;
         }
     }
-    if (fsave != NULL) {
-        if (!any_length && bonded_dist(fsave, tsave) == 0.0)
-            return;
-        add_bond(fsave, tsave);
-    }
+    if (ret_from_atom)
+        *ret_from_atom = fsave;
+    if (ret_to_atom)
+        *ret_to_atom = tsave;
+    if (ret_dist_sq)
+        *ret_dist_sq = dist_sq;
 }
 
 static bool
@@ -391,7 +408,8 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
         if (link_res != NULL) {
             for (auto a: r->atoms()) {
                 for (auto b: a->bonds()) {
-                    if (b->other_atom(a)->residue() != r) {
+                    auto other = b->other_atom(a);
+                    if (other->residue() != r && !other->element().is_metal()) {
                         prelinked = true;
                         break;
                     }
@@ -435,7 +453,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                     // chief-link bond
                     if (saturated(chief)) {
                         made_connection = true;
-                    } if (link_atom != NULL) {
+                    } else if (link_atom != NULL) {
                         if (!saturated(link_atom)) {
                             add_bond(link_atom, chief);
                         }

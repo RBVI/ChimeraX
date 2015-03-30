@@ -119,7 +119,7 @@ public:
         unsigned int all_size_threshold = 0,
         std::unordered_set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
-    void  set_input_seq_info(std::string& chain_id, std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
+    void  set_input_seq_info(const std::string& chain_id, const std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
     void  set_name(std::string& name) { _name = name; }
     void  use_best_alt_locs();
 };

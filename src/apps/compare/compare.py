@@ -40,23 +40,28 @@ def compare(pdb_id, pdb_path, mmcif_path):
     try:
         pdb_models = io.open(Chimera2_session, pdb_path)[0]
     except Exception as e:
-        print("error: unable to open pdb file %s: %s" % (pdb_id, e))
+        print("error: %s: unable to open pdb file: %s" % (pdb_id, e))
         return True
     try:
         mmcif_models = io.open(Chimera2_session, mmcif_path)[0]
     except Exception as e:
-        print("error: unable to open mmcif file %s: %s" % (pdb_id, e))
+        print("error: %s: unable to open mmcif file: %s" % (pdb_id, e))
         return
 
     if len(pdb_models) != len(mmcif_models):
-        print("error: %s: pdb version has %d models, mmcif version has %d" %
+        print("error: %s: pdb version has %d model(s), mmcif version has %d" %
               (pdb_id, len(pdb_models), len(mmcif_models)))
         all_same = False
     else:
         all_same = True
+        save_pdb_id = pdb_id
+        i = 0
         for p, m in zip(pdb_models, mmcif_models):
             same = True
 
+            if len(pdb_models) > 1:
+                i += 1
+                pdb_id = "%s#%d" % (save_pdb_id, i)
             # atoms
             pdb_atoms = ['%s@%s' % (r, a) for r, a in zip(
                     p.mol_blob.atoms.residues.strs, p.mol_blob.atoms.names)]
@@ -67,11 +72,15 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common = pdb_tmp & mmcif_tmp
             extra = pdb_tmp - common
             if extra:
-                print('error:', len(extra), 'extra pdb atoms:', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra pdb atom(s):', extra)
                 same = False
             extra = mmcif_tmp - common
             if extra:
-                print('error:', len(extra), 'extra mmcif atoms:', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra mmcif atom(s):', extra)
                 same = False
 
             # bonds
@@ -92,11 +101,15 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common = pdb_bonds & mmcif_bonds
             extra = pdb_bonds - common
             if extra:
-                print('error:', len(extra), 'extra pdb bonds:', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra pdb bond(s):', extra)
                 same = False
             extra = mmcif_bonds - common
             if extra:
-                print('error:', len(extra), 'extra mmcif bonds:', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra mmcif bond(s):', extra)
                 same = False
 
             # residues
@@ -105,18 +118,22 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common = pdb_residues & mmcif_residues
             extra = pdb_residues - common
             if extra:
-                print('error:', len(extra), 'extra pdb residues:', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra pdb residue(s):', extra)
                 same = False
             extra = mmcif_residues - common
             if extra:
-                print('error:', len(extra), 'extra mmcif residues:', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra mmcif residue(s):', extra)
                 same = False
 
             # chains
             diff = p.mol_blob.num_chains - m.mol_blob.num_chains
             if diff != 0:
-                print("error: %s: pdb has %d chain(s) %s than mmcif" % (
-                    pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
+                print("error: %s: pdb has %d chain(s) vs. %d mmcif chain(s)" % (
+                    pdb_id, p.mol_blob.num_chains, m.mol_blob.num_chains))
                 same = False
 
             # coord_sets
@@ -134,11 +151,15 @@ def compare(pdb_id, pdb_path, mmcif_path):
             common_pbgs = pdb_pbgs & mmcif_pbgs
             extra = pdb_pbgs - common_pbgs
             if extra:
-                print('error:', len(extra), 'extra pdb pseudobond group(s):', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra pdb pseudobond group(s):', extra)
                 same = False
             extra = mmcif_pbgs - common_pbgs
             if extra:
-                print('error:', len(extra), 'extra mmcif pseudobond group(s):', extra)
+                extra = list(extra)
+                extra.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra mmcif pseudobond group(s):', extra)
                 same = False
             for pbg in common_pbgs:
                 pdb_bonds = set()
@@ -158,14 +179,19 @@ def compare(pdb_id, pdb_path, mmcif_path):
                 common = pdb_bonds & mmcif_bonds
                 extra = pdb_bonds - common
                 if extra:
-                    print('error:', len(extra), 'extra pdb', pbg, 'bonds:', extra)
+                    extra = list(extra)
+                    extra.sort()
+                    print('error: %s:' % pdb_id, len(extra), 'extra pdb', pbg, 'bond(s):', extra)
                     same = False
                 extra = mmcif_bonds - common
                 if extra:
-                    print('error:', len(extra), 'extra mmcif', pbg, 'bonds:', extra)
+                    extra = list(extra)
+                    extra.sort()
+                    print('error: %s:' % pdb_id, len(extra), 'extra mmcif', pbg, 'bond(s):', extra)
                     same = False
 
             all_same = all_same and same
+        pdb_id = save_pdb_id
     if all_same:
         print('same: %s' % pdb_id)
     for m in pdb_models:
