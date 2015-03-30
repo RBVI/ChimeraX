@@ -408,7 +408,8 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
         if (link_res != NULL) {
             for (auto a: r->atoms()) {
                 for (auto b: a->bonds()) {
-                    if (b->other_atom(a)->residue() != r) {
+                    auto other = b->other_atom(a);
+                    if (other->residue() != r && !other->element().is_metal()) {
                         prelinked = true;
                         break;
                     }
@@ -452,7 +453,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                     // chief-link bond
                     if (saturated(chief)) {
                         made_connection = true;
-                    } if (link_atom != NULL) {
+                    } else if (link_atom != NULL) {
                         if (!saturated(link_atom)) {
                             add_bond(link_atom, chief);
                         }
