@@ -1147,8 +1147,6 @@ class ToolInfo:
             raise ToolshedUninstalledError("tool \"%s\" is not installed"
                                            % self.name)
         try:
-            print("get_module", self.name, self._get_module())
-            print("start_tool", self.name, self._get_module().start_tool)
             f = self._get_module().start_tool
         except (ImportError, AttributeError, TypeError, SyntaxError):
             raise ToolshedError("bad start callable specified for tool \"%s\""
