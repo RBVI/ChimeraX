@@ -1089,10 +1089,10 @@ clock_t start_t = clock();
     //  3) Check bond lengths around the ring; see if they are
     //      consistent with aromatic bond lengths
 #ifdef TRACK_UNTYPED
-    std::unordered_set<const Residue*>
+    std::set<const Residue*>
         mapped_residues(templated_residues.begin(), templated_residues.end());
 #else
-    std::unordered_set<const Residue*> mapped_residues;
+    std::set<const Residue*> mapped_residues;
     for (auto a_tf: mapped) {
         if (a_tf.second)
             mapped_residues.insert(a_tf.first->residue());

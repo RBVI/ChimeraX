@@ -10,9 +10,9 @@
 #include "seq_assoc.h"
 
 #include <algorithm>  // for std::find, std::sort
+#include <map>
 #include <stdexcept>
 #include <set>
-#include <unordered_map>
 
 namespace atomstruct {
 
@@ -28,7 +28,7 @@ AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
 {
 }
 
-std::unordered_map<Residue *, char>
+std::map<Residue *, char>
 AtomicStructure::best_alt_locs() const
 {
     // check the common case of all blank alt locs first...
@@ -40,7 +40,7 @@ AtomicStructure::best_alt_locs() const
             break;
         }
     }
-    std::unordered_map<Residue *, char> best_locs;
+    std::map<Residue *, char> best_locs;
     if (all_blank) {
         return best_locs;
     }
@@ -71,8 +71,8 @@ AtomicStructure::best_alt_locs() const
         res_group.insert(r);
         std::vector<Residue *> todo;
         todo.push_back(r);
-        std::unordered_map<char, int> occurances;
-        std::unordered_map<char, float> occupancies, bfactors;
+        std::map<char, int> occurances;
+        std::map<char, float> occupancies, bfactors;
         while (!todo.empty()) {
             Residue *cr = todo.back();
             todo.pop_back();
@@ -94,7 +94,7 @@ AtomicStructure::best_alt_locs() const
                 if (check_neighbors) {
                     for (auto nb: a->neighbors()) {
                         Residue *nr = nb->residue();
-                        if (nr != cr && nb->has_alt_loc(*alt_loc_set.begin())
+                        if (nr != cr && nb->alt_locs() == alt_loc_set
                         && seen.find(nr) == seen.end()) {
                             seen.insert(nr);
                             todo.push_back(nr);
@@ -342,7 +342,7 @@ AtomicStructure::polymers() const
     // connected polymeric residues have to be adjacent in the residue list,
     // so make an index map
     int i = 0;
-    std::unordered_map<const Residue*, int> res_lookup;
+    std::map<const Residue*, int> res_lookup;
     for (auto& r: _residues) {
         res_lookup[r.get()] = i++;
     }
@@ -350,7 +350,7 @@ AtomicStructure::polymers() const
     // Find all polymeric connections and make a map
     // keyed on residue with value of whether that residue
     // is connected to the next one
-    std::unordered_map<Residue*, bool> connected;
+    std::map<Residue*, bool> connected;
     for (auto& b: bonds()) {
         Atom* start = b->polymeric_start_atom();
         if (start != nullptr) {
@@ -406,7 +406,7 @@ AtomicStructure::polymers() const
 
 const AtomicStructure::Rings&
 AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
-    std::unordered_set<const Residue *>* ignore) const
+    std::set<const Residue *>* ignore) const
 {
     if (_rings_cached(cross_residues, all_size_threshold, ignore)) {
         return _rings;
@@ -442,7 +442,7 @@ AtomicStructure::rings(bool cross_residues, unsigned int all_size_threshold,
 bool
 AtomicStructure::_rings_cached(bool cross_residues,
     unsigned int all_size_threshold,
-    std::unordered_set<const Residue *>* ignore) const
+    std::set<const Residue *>* ignore) const
 {
     return !_recompute_rings && cross_residues == _rings_last_cross_residues
         && all_size_threshold == _rings_last_all_size_threshold
@@ -470,7 +470,7 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
 void
 AtomicStructure::use_best_alt_locs()
 {
-    std::unordered_map<Residue *, char> alt_loc_map = best_alt_locs();
+    std::map<Residue *, char> alt_loc_map = best_alt_locs();
     for (auto almi = alt_loc_map.begin(); almi != alt_loc_map.end(); ++almi) {
         (*almi).first->set_alt_loc((*almi).second);
     }

@@ -25,7 +25,7 @@ static Ring::Bonds::iterator contains_exactly_one(
 void
 AtomicStructure::_calculate_rings(bool cross_residue,
     unsigned int all_size_threshold,
-    std::unordered_set<const Residue *>* ignore) const
+    std::set<const Residue *>* ignore) const
 {
     // this routine largely based on the algorithm found in:
     //  "An Algorithm for Machine Perception of Synthetically
