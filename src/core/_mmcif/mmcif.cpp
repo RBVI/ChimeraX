@@ -9,6 +9,7 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/Residue.h>
+#include <logger/logger.h>
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -57,7 +58,8 @@ void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
 
 struct ExtractMolecule: public readcif::CIFFile
 {
-    ExtractMolecule();
+    PyObject* _logger;
+    ExtractMolecule(PyObject* logger);
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
@@ -176,7 +178,8 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
     return out;
 }
 
-ExtractMolecule::ExtractMolecule(): first_model_num(INT_MAX)
+ExtractMolecule::ExtractMolecule(PyObject* logger):
+    _logger(logger), first_model_num(INT_MAX)
 {
     register_category("audit_conform",
         [this] (bool in_loop) {
@@ -249,11 +252,11 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 }
 
 void
-copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
+copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
 {
     if (from->num_atoms() != to->num_atoms())
-        std::cerr << "warning: mismatched number of atoms ("
-            << from->num_atoms() << " vs. " << to->num_atoms() << ")\n";
+        logger::warning(_logger, "Mismatched number of atoms (",
+            from->num_atoms(), " vs. ", to->num_atoms(), ")");
     // copy bonds, pseudobonds, secondary structure
     // -- Assumes atoms were added in the exact same order
 
@@ -353,7 +356,8 @@ ExtractMolecule::finished_parse()
                 auth_chain_id = r->chain_id();
             if (lastp && lastp->seq_id == p.seq_id) {
                 if (!lastp->hetero)
-                    std::cerr << "Duplicate entity_id/seq_id without hetero\n";
+                    logger::warning(_logger, "Duplicate entity_id/seq_id ",
+                        p.seq_id, ") without hetero");
                 current.push_back(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
@@ -393,7 +397,7 @@ ExtractMolecule::finished_parse()
         auto m = im.second;
         all_molecules.push_back(m);
         if (m != mol) {
-            copy_nmr_info(mol, m);
+            copy_nmr_info(mol, m, _logger);
         }
     }
     vector<AtomicStructure*> save_molecules;
@@ -877,12 +881,12 @@ ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
 }
 
 PyObject*
-parse_mmCIF_file(const char *filename)
+parse_mmCIF_file(const char *filename, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract;
+    ExtractMolecule extract(logger);
 
     extract.parse_file(filename);
 
@@ -897,12 +901,12 @@ clock_t start_t, end_t;
 }
 
 PyObject*
-parse_mmCIF_buffer(const unsigned char *whole_file)
+parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract;
+    ExtractMolecule extract(logger);
 
     extract.parse(reinterpret_cast<const char *>(whole_file));
 

@@ -10,8 +10,9 @@ namespace tmpl {
 
 namespace mmcif {
 
-PyObject*   parse_mmCIF_file(const char* filename);
-PyObject*   parse_mmCIF_buffer(const unsigned char* buffer);
+PyObject*   parse_mmCIF_file(const char* filename, PyObject* logger=nullptr);
+PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
+                    PyObject* logger=nullptr);
 void        load_mmCIF_templates(const char* filename);
 void        set_Python_locate_function(PyObject* function=NULL);
 
