@@ -120,13 +120,17 @@ def test(session):
             print("\t" + bond_info, file=log_string)
         pb_map1 = structures[0].mol_blob.pbg_map
         pb_map2 = structures[1].mol_blob.pbg_map
-        print("{} groups: {}".format(s1_id, pb_map1.keys()), file=f)
-        print("{} groups: {}".format(s1_id, pb_map1.keys()), file=log_string)
-        print("{} groups: {}".format(s2_id, pb_map2.keys()), file=f)
-        print("{} groups: {}".format(s2_id, pb_map2.keys()), file=log_string)
         for name, pblob in pb_map1.items():
             if name in pb_map2:
                 if len(pblob) == len(pb_map2[name]):
+                    print("{} has {} bonds in both".format(name, len(pblob)), file=f)
+                    print("{} has {} bonds in both".format(name, len(pblob)), file=log_string)
+                    print("In {}:".format(s1_id), file=f)
+                    for i1, i2 in pblob.bond_indices:
+                        print("\t{}@{} <-> {}@{}".format(s1_rb.strs[i1], s1_ab.names[i1], s1_rb.strs[i2], s1_ab.names[i2]), file=f)
+                    print("In {}:".format(s2_id), file=f)
+                    for i1, i2 in pb_map2[name].bond_indices:
+                        print("\t{}@{} <-> {}@{}".format(s2_rb.strs[i1], s2_ab.names[i1], s2_rb.strs[i2], s2_ab.names[i2]), file=f)
                     continue
                 print("{} has {} bonds in {} model but {} in {}".format(name, len(pblob), s1_id, len(pb_map2[name]), s2_id), file=f)
                 print("{} has {} bonds in {} model but {} in {}".format(name, len(pblob), s1_id, len(pb_map2[name]), s2_id), file=log_string)
