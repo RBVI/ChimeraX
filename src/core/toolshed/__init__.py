@@ -405,12 +405,24 @@ class Toolshed:
             container = self._installed_tool_info
         else:
             container = self._available_tool_info
-        # TODO: if version is None, should return newest version
+        from distlib.version import NormalizedVersion as Version
+        best_ti = None
+        best_version = None
         for ti in container:
-            if ((ti.name == name or ti.display_name == name)
-               and (version is None or version == ti.version)):
+            if ti.name != name and ti.display_name != name:
+                continue
+            if version == ti.version:
                 return ti
-        return None
+            if version is None:
+                if best_ti is None:
+                    best_ti = ti
+                    best_version = Version(ti.version)
+                else:
+                    v = Version(ti.version)
+                    if v > best_version:
+                        best_ti = ti
+                        best_version = v
+        return best_ti
 
     #
     # End public API
@@ -1128,19 +1140,38 @@ class ToolInfo:
         ToolshedUninstalledError
             If the tool is not installed.
         ToolshedError
-            If the tool cannot be started,
+            If the tool cannot be started.
 
         """
         if not self.installed:
             raise ToolshedUninstalledError("tool \"%s\" is not installed"
                                            % self.name)
         try:
+            print("get_module", self.name, self._get_module())
+            print("start_tool", self.name, self._get_module().start_tool)
             f = self._get_module().start_tool
         except (ImportError, AttributeError, TypeError, SyntaxError):
             raise ToolshedError("bad start callable specified for tool \"%s\""
                                 % self.name)
         else:
             f(session, self, *args, **kw)
+
+    def newer_than(self, ti):
+        """Return whether this ToolInfo instance is newer than given one
+
+        Parameters
+        ----------
+        ti : ToolInfo instance
+            The instance to compare against
+
+        Returns
+        -------
+        Boolean
+            True if this instance is newer; False if 'ti' is newer.
+
+        """
+        from distlib.version import NormalizedVersion as Version
+        return Version(self.version) > Version(ti.version)
 
 
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
