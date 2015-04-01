@@ -21,7 +21,7 @@ def open_pdb(session, filename, name, *args, **kw):
         input = _builtin_open(filename, 'rb')
 
     from . import pdbio
-    mol_blob = pdbio.read_pdb_file(input)
+    mol_blob = pdbio.read_pdb_file(input, log=session.logger)
     if input != filename:
         input.close()
 

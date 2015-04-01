@@ -22,7 +22,7 @@ def open_mmcif(session, filename, name, *args, **kw):
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name: _get_template(name, session.app_dirs, session.logger))
-    mol_blob = _mmcif.parse_mmCIF_file(filename)
+    mol_blob = _mmcif.parse_mmCIF_file(filename, session.logger)
 
     structures = mol_blob.structures
     models = []
