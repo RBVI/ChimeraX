@@ -897,6 +897,7 @@ clock_t start_t, end_t;
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;
+        m->set_name(filename);
         sb->_items->emplace_back(m);
     }
     return sb;
@@ -917,6 +918,7 @@ clock_t start_t, end_t;
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;
+        m->set_name("unknown mmCIF file");
         sb->_items->emplace_back(m);
     }
     return sb;
