@@ -389,6 +389,8 @@ ExtractMolecule::finished_parse()
             lastp = &p;
         }
         mol->set_input_seq_info(auth_chain_id, seqres);
+        if (mol->input_seq_source.empty())
+            mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
     find_and_add_metal_coordination_bonds(mol);
     // multiple molecules means there were multiple models,
