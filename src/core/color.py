@@ -464,7 +464,24 @@ def undefine_color(session, name):
     del session.user_colors[name]
 
 
+def color(session, color, spec=None):
+    from . import atomspec
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    results.atoms.colors = color.uint8x4()
+    for m in results.models:
+        m.update_graphics()
+
+
 def register_commands():
+    from . import atomspec
+    cli.register(
+        'color',
+        cli.CmdDesc(required=[("color", ColorArg)],
+                    optional=[("spec", atomspec.AtomSpecArg)]),
+        color
+    )
     cli.register(
         'colordef',
         cli.CmdDesc(required=[('name', cli.StringArg)],

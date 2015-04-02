@@ -387,12 +387,13 @@ def vseries_cmd(session, operation, series = None):
 # -----------------------------------------------------------------------------
 #
 try:
-    from ..cli import Annotation
+    from ...cli import Annotation
 except:
     # For Hydra
     class Annotation:
         pass
 class SeriesArg(Annotation):
+    name = 'map series'
     @staticmethod
     def parse(text, session):
         from ...atomspec import AtomSpecArg

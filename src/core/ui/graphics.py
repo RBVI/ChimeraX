@@ -60,10 +60,10 @@ class GraphicsWindow(wx.Panel):
         self.opengl_canvas.CaptureMouse()
         w,h = self.view.window_size
         x,y = pos = event.GetPosition()
-        cx, cy = x - 0.5*w, y - 0.5*h
+        cx, cy = x - 0.5 * w, y - 0.5 * h
         fperim = 0.9
-        self.mouse_perimeter = (abs(cx) > fperim*0.5*w
-            or abs(cy) > fperim*0.5*h)
+        self.radius = fperim * 0.5 * min(w, h)
+        self.mouse_perimeter = abs(cx) >= self.radius or abs(cy) >= self.radius
         self.mouse_down_position = pos
         self.last_mouse_position = pos
 
@@ -83,8 +83,12 @@ class GraphicsWindow(wx.Panel):
     def mouse_motion(self, event):
         lmp = self.last_mouse_position
         x, y = pos = event.GetPosition()
-        if lmp is None:
+        w, h = self.view.window_size
+        cx, cy = x - 0.5 * w, y - 0.5 * h
+        perimeter = abs(cx) >= self.radius or abs(cy) >= self.radius
+        if lmp is None or self.mouse_perimeter != perimeter:
             dx = dy = 0
+            self.mouse_perimeter = perimeter
         else:
             dx = x - lmp[0]
             dy = y - lmp[1]
@@ -230,9 +234,9 @@ class OculusGraphicsWindow(wx.Frame):
     The graphics window for using Oculus Rift goggles.
     """
 
-    def __init__(self, view):
+    def __init__(self, view, parent = None):
 
-        wx.Frame.__init__(self, None, title = "Oculus Rift")
+        wx.Frame.__init__(self, parent, title = "Oculus Rift")
 
         class View:
             def draw(self):
@@ -269,12 +273,14 @@ class OculusGraphicsWindow(wx.Frame):
         ndisp = wx.Display.GetCount()
         for i in range(ndisp):
             d = wx.Display(i)
-            g = d.GetGeometry()
-            s = g.GetSize()
-            if s.GetWidth() == width and s.GetHeight() == height:
-                self.Move(g.GetX(),g.GetY())
-                self.SetSize(width,height)
-                break
+            # TODO: Would like to use d.GetName() but it is empty string on Mac.
+            if not d.IsPrimary():
+                g = d.GetGeometry()
+                s = g.GetSize()
+                if s.GetWidth() == width and s.GetHeight() == height:
+                    self.Move(g.GetX(),g.GetY())
+                    self.SetSize(width,height)
+                    break
         # self.EnableFullScreenView(True) # Not available in wxpython
         # TODO: full screen always shows on primary display.
 #        self.ShowFullScreen(True)

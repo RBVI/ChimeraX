@@ -160,7 +160,14 @@ class Models(State):
                 session.main_view.initial_camera_view()
 
     def close(self, model_id):
-        if model_id in self._models:
-            model = self._models[model_id]
-            self.remove([model])
-            model.delete()
+        if model_id not in self._models:
+            return
+        # find all submodels
+        size = len(model_id)
+        model_ids = [x for x in self._models if x[0:size] == model_id]
+        # sort so submodels are removed before parent models
+        model_ids.sort(key=len, reverse=True)
+        models = [self._models[x] for x in model_ids]
+        self.remove(models)
+        for m in models:
+            m.delete()

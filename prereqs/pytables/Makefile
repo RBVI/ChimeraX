@@ -6,6 +6,7 @@ VERSION = 3.1.1
 DISTRIBUTION = tables-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/tables-$(VERSION)
 HDF_CONFIG = --hdf5='$(build_prefix)'
+APP_HDF_CONFIG = --hdf5='$(app_prefix)'
 
 SETUP_BUILD =
 ifdef DEBUG
@@ -21,8 +22,10 @@ install: $(SOURCE)
 		$(HDF_CONFIG) build $(SETUP_BUILD) install
 
 app-install:
-	$(RSYNC) $(PYSITEDIR)/tables-$(VERSION)-py$(PYTHON_VERSION).egg-info \
-		$(PYSITEDIR)/tables $(APP_PYSITEDIR)
+	#$(RSYNC) $(PYSITEDIR)/tables-$(VERSION)-py$(PYTHON_VERSION).egg-info \
+	#	$(PYSITEDIR)/tables $(APP_PYSITEDIR)
+	cd $(SOURCE) &&	$(APP_PYTHON_EXE) setup.py \
+		$(APP_HDF_CONFIG) build $(SETUP_BUILD) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

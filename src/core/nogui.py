@@ -7,15 +7,30 @@ Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
 from .utils import flattened
 from .tasks import Task
+from .logger import PlainTextLog
+
+
+class NoGuiLog(PlainTextLog):
+
+    def log(self, level, msg):
+        print("%s: %s" % (level, msg))
+        return True
+
+    def status(self, msg, color, secondary):
+        if secondary:
+            return False
+        if msg:
+            print("status: %s" % msg)
+        return True
 
 
 class UI:
 
     def __init__(self, session):
+        session.logger.add_log(NoGuiLog())
         import weakref
         self._session = weakref.ref(session)
-        from queue import Queue
-        self._queue = Queue()
+        self._queue = None
 
     def splash_info(self, message, splash_step, num_splash_steps):
         import sys
@@ -28,19 +43,30 @@ class UI:
     def quit(self):
         import os
         import sys
+        session = self._session()  # resolve back reference
+        session.logger.status("Exiting ...", blank_after=0)
+        session.logger.clear()   # Clear logging timers
         sys.exit(os.EX_OK)
 
     def event_loop(self):
+        from queue import Queue
+        self._queue = Queue()
         session = self._session()  # resolve back reference
         input = _Input(session)
         input.start()
         from .tasks import FINISHED, TERMINATED
         while input.state not in [FINISHED, TERMINATED]:
             func, args, kw = self._queue.get()
-            func(*args, **kw)
+            try:
+                func(*args, **kw)
+            finally:
+                self._queue.task_done()
 
     def thread_safe(self, func, *args, **kw):
-        self._queue.put((func, args, kw))
+        if self._queue:
+            self._queue.put((func, args, kw))
+        else:
+            func(*args, **kw)
 
 
 class _Input(Task):
@@ -67,6 +93,7 @@ class _Input(Task):
                 # Need to get UI thread to do something
                 # in order to detect termination of input thread
                 ui.thread_safe(print, "EOF")
+                self.session.logger.clear()
                 break
 
     def run_command(self, text):
@@ -78,6 +105,9 @@ class _Input(Task):
     def execute(self, text):
         # Command execution, runs in UI thread
         from . import cli
+        text = text.strip()
+        if not text:
+            return
         try:
             self._cmd.parse_text(text, final=True)
             results = self._cmd.execute()

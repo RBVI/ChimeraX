@@ -584,7 +584,7 @@ CIFFile::internal_parse(bool one_table)
 				}
 				if (current_category.empty()
 				|| category != current_category) {
-					const char* first_tag_pos = current_value_start;
+					const char* first_tag_pos = pos - cv.size() - 1;
 					if (save_values) {
 						// flush current category
 						seen.insert(current_category);

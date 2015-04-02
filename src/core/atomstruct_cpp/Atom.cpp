@@ -803,7 +803,7 @@ Atom::radius() const
 
 const Atom::Rings&
 Atom::rings(bool cross_residues, int all_size_threshold,
-        std::unordered_set<const Residue*>* ignore) const
+        std::set<const Residue*>* ignore) const
 {
     structure()->rings(cross_residues, all_size_threshold, ignore);
     return _rings;

@@ -912,6 +912,8 @@ static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, b
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_float_n2_array(PyObject *arg, void *farray)
+  { return parse_float_nm(arg, 2, farray, true, false); }
 extern "C" int parse_float_n3_array(PyObject *arg, void *farray)
   { return parse_float_nm(arg, 3, farray, true, false); }
 extern "C" int parse_writable_float_n3_array(PyObject *arg, void *farray)
@@ -1125,6 +1127,15 @@ PyObject *python_none()
 {
   Py_INCREF(Py_None);
   return Py_None;
+}
+
+// ----------------------------------------------------------------------------
+//
+PyObject *python_bool(bool b)
+{
+  PyObject *bpy = (b ? Py_True : Py_False);
+  Py_INCREF(bpy);
+  return bpy;
 }
 
 // ----------------------------------------------------------------------------

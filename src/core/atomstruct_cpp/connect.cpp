@@ -101,8 +101,9 @@ connect_atom_by_distance(Atom* a, const Residue::Atoms& atoms,
                 continue;
             short_dist = dist;
             close_atom = oa;
-        } else
+        } else {
             (void) a->structure()->new_bond(a, oa);
+        }
     }
     if (H_or_LP && short_dist != 0) {
         (void) a->structure()->new_bond(a, close_atom);
@@ -160,8 +161,9 @@ connect_residue_by_template(Residue* r, const tmpl::Residue* tr,
             Atom *b = r->find_atom(tmpl_nb->name());
             if (b == NULL)
                 continue;
-            if (!a->connects_to(b))
+            if (!a->connects_to(b)) {
                 (void) a->structure()->new_bond(a, b);
+            }
         }
     }
     // For each atom that wasn't connected (i.e. not in template),
@@ -178,18 +180,25 @@ static std::map<Element, unsigned long>  _saturationMap = {
 static bool
 saturated(Atom* a)
 {
+    int target = 4;
     auto info = _saturationMap.find(a->element());
-    if (info == _saturationMap.end())
-        return a->bonds().size() >= 4;
-    return a->bonds().size() >= (*info).second;
+    if (info != _saturationMap.end())
+        target = (*info).second;
+    int num_bonds = a->bonds().size();
+    // metal-coordination pseudobonds not created yet; drop those bonds...
+    for (auto b: a->bonds()) {
+        if (b->other_atom(a)->element().is_metal())
+            --num_bonds;
+    }
+    return num_bonds >= target;
 
 }
 
 // find_closest:
 //    Find closest heavy atom to given heavy atom with residue that has
 //    the same alternate location identifier (or none) and optionally return
-static Atom *
-find_closest(Atom* a, Residue* r, float* ret_dist_sq, bool nonSaturated=false)
+Atom *
+find_closest(Atom* a, Residue* r, float* ret_dist_sq, bool nonSaturated)
 {
     if (a == NULL)
         return NULL;
@@ -227,6 +236,22 @@ find_closest(Atom* a, Residue* r, float* ret_dist_sq, bool nonSaturated=false)
 static void
 add_bond_nearest_pair(Residue* from, Residue* to, bool any_length=true)
 {
+    Atom    *fsave, *tsave;
+
+    find_nearest_pair(from, to, &fsave, &tsave);
+    if (fsave != NULL) {
+        if (!any_length && bonded_dist(fsave, tsave) == 0.0)
+            return;
+        add_bond(fsave, tsave);
+    }
+}
+
+// find_nearest_pair:
+//    Find closest atoms between two residues.
+void
+find_nearest_pair(Residue* from, Residue* to, Atom** ret_from_atom,
+        Atom** ret_to_atom, float* ret_dist_sq)
+{
     Atom    *fsave = NULL, *tsave = NULL;
     float    dist_sq = 0.0;
 
@@ -247,11 +272,12 @@ add_bond_nearest_pair(Residue* from, Residue* to, bool any_length=true)
             dist_sq = new_dist_sq;
         }
     }
-    if (fsave != NULL) {
-        if (!any_length && bonded_dist(fsave, tsave) == 0.0)
-            return;
-        add_bond(fsave, tsave);
-    }
+    if (ret_from_atom)
+        *ret_from_atom = fsave;
+    if (ret_to_atom)
+        *ret_to_atom = tsave;
+    if (ret_dist_sq)
+        *ret_dist_sq = dist_sq;
 }
 
 static bool
@@ -267,10 +293,10 @@ hookup(Atom* a, Residue* res, bool definitely_connect=true)
     }
     return made_connection;
 }
-static std::vector<Bond*>
+static std::set<Bond*>
 metal_coordination_bonds(AtomicStructure* as)
 {
-    std::vector<Bond*> mc_bonds;
+    std::set<Bond*> mc_bonds;
     std::set<Atom*> metals;
     for (auto& a: as->atoms())
         if (a->element().is_metal())
@@ -328,9 +354,26 @@ metal_coordination_bonds(AtomicStructure* as)
             }
         }
         if (del_bonds.size() > 0)
-            mc_bonds.insert(mc_bonds.end(), del_bonds.begin(), del_bonds.end());
+            mc_bonds.insert(del_bonds.begin(), del_bonds.end());
     }
     return mc_bonds;
+}
+
+void
+find_and_add_metal_coordination_bonds(AtomicStructure* as)
+{
+    // make metal-coordination complexes
+    auto mc_bonds = metal_coordination_bonds(as);
+    if (mc_bonds.size() > 0) {
+        auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
+            AS_PBManager::GRP_PER_CS);
+        for (auto mc: mc_bonds) {
+            for (auto& cs: as->coord_sets()) {
+                pbg->new_pseudobond(mc->atoms(), cs.get());
+            }
+            as->delete_bond(mc);
+        }
+    }
 }
 
 // connect_structure:
@@ -352,6 +395,29 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
 
         if (!first_res)
             first_res = r;
+        // Before we add a bunch of bonds, make sure we're not already linked
+        // to other residues via CONECT records [*not* just preceding
+        // residue; see entry 209D, residues 5.C and 6.C].
+        // Can't just check conect_atoms because if the previous
+        // residue is HET and this one isn't, only the cross-residue
+        // bond may be in the CONECT records and therefore this
+        // residue's connected atom won't be in conect_atoms (which
+        // is only for atoms whose complete connectivity is
+        // specified by CONECT records)
+        bool prelinked = false;
+        if (link_res != NULL) {
+            for (auto a: r->atoms()) {
+                for (auto b: a->bonds()) {
+                    auto other = b->other_atom(a);
+                    if (other->residue() != r && !other->element().is_metal()) {
+                        prelinked = true;
+                        break;
+                    }
+                }
+                if (prelinked)
+                    break;
+            }
+        }
         const tmpl::Residue *tr;
         if (mod_res->find(MolResId(r)) != mod_res->end())
             // residue in MODRES record;
@@ -370,7 +436,9 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
 
         // connect up previous residue
         if (link_res != NULL) {
-            if (tr == NULL || tr->chief() == NULL) {
+            if (prelinked) {
+                ; // do nothing
+            } else if (tr == NULL || tr->chief() == NULL) {
                 add_bond_nearest_pair(link_res, r);
             } else {
                 bool made_connection = false;
@@ -385,16 +453,18 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                     // chief-link bond
                     if (saturated(chief)) {
                         made_connection = true;
-                    } if (link_atom != NULL) {
-                        if (!saturated(link_atom))
+                    } else if (link_atom != NULL) {
+                        if (!saturated(link_atom)) {
                             add_bond(link_atom, chief);
+                        }
                         made_connection = true;
                     } else {
                         made_connection = hookup(chief, link_res, definitely_connect);
                     }
                 }
-                if (!made_connection && definitely_connect)
+                if (!made_connection && definitely_connect) {
                     add_bond_nearest_pair(link_res, r);
+                }
             }
         } else if (r->atoms().size() > 1 && prev_res != NULL
                 && prev_res->chain_id() == r->chain_id()
@@ -462,8 +532,10 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             Bond *b = *bi;
             as->delete_bond(b);
         }
+        find_and_add_metal_coordination_bonds(as);
     } else {
         // turn long inter-residue bonds into "missing structure" pseudobonds
+        find_and_add_metal_coordination_bonds(as);
         std::vector<Bond*> long_bonds;
         for (auto& b: as->bonds()) {
             Atom* a1 = b->atoms()[0];
@@ -489,19 +561,6 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             for (auto lb: long_bonds) {
                 pbg->new_pseudobond(lb->atoms());
                 as->delete_bond(lb);
-            }
-        }
-    }
-
-    // make metal-coordination complexes
-    auto mc_bonds = metal_coordination_bonds(as);
-    if (mc_bonds.size() > 0) {
-        auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
-            AS_PBManager::GRP_PER_CS);
-        for (auto mc: mc_bonds) {
-            for (auto& cs: as->coord_sets()) {
-                pbg->new_pseudobond(mc->atoms(), cs.get());
-                as->delete_bond(mc);
             }
         }
     }

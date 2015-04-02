@@ -22,7 +22,6 @@ PY_MAIN = $(PROG)_main.py
 GEN_SRCS= frozen.c M___main__.c
 OBJS	= $(GEN_SRCS:.c=.o)
 INCS	+= $(PYTHON_INCLUDE_DIRS)
-
 LIBS	+= $(PYTHON_LIB)
 
 all: $(PROG)

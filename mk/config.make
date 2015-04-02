@@ -28,14 +28,15 @@ include $(TOP)/mk/os.make
 
 APP_NAME = Chimera2
 
-ifdef USE_MAC_FRAMEWORKS
-frameworkdir = $(build_prefix)/Frameworks
+ifeq ($(OS),Darwin)
+frameworkdir = $(build_prefix)/Library/Frameworks
 app_prefix = $(TOP)/$(APP_NAME).app/Contents
-app_frameworkdir =  $(app_prefix)/Frameworks
+app_frameworkdir =  $(app_prefix)/Library/Frameworks
 else
 app_prefix = $(TOP)/$(APP_NAME).app
 endif
 app_bindir = $(app_prefix)/bin
+app_includedir = $(app_prefix)/include
 app_libdir = $(app_prefix)/lib
 app_shlibdir = $(app_libdir)
 app_datadir = $(app_prefix)/share

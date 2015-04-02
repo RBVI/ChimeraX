@@ -1,10 +1,16 @@
+appdirs==1.4.0
 beautifulsoup4==4.3.2
+Cython==0.22
 distlib==0.2.0
 grako==3.4.3
 line_profiler==1.0
+matplotlib==1.4.3
+networkx==1.9.1
+Pillow==2.7.0
 pip==6.0.8
 python-dateutil==2.4.0
 six==1.9.0
 sortedcontainers==0.9.4
 suds-jurko==0.6
+webcolors==1.4
 wheel==0.24.0

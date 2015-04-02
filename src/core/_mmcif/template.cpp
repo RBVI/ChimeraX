@@ -74,6 +74,8 @@ struct ExtractTemplate: public readcif::CIFFile
     tmpl::Residue* residue;         // current residue
     set<tmpl::Atom*> leaving_atoms; // in current residue
     string type;                    // residue type
+    bool is_peptide;
+    bool is_nucleotide;
 };
 
 ExtractTemplate::ExtractTemplate(): residue(NULL)
@@ -130,10 +132,6 @@ ExtractTemplate::finished_parse()
     }
 #endif
     if (!type.empty()) {
-        bool is_peptide = type.find("peptide") != string::npos
-                                    || type.find("PEPTIDE") != string::npos;
-        bool is_nucleotide = type.find("DNA") != string::npos
-                                    || type.find("RNA") != string::npos;
         if (is_peptide) {
             residue->description("peptide");
             residue->chief(residue->find_atom("N"));
@@ -152,6 +150,7 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
     string  name;
     string  modres;
     char    code = '\0';
+    type.clear();
 
     CIFFile::ParseValues pv;
     pv.reserve(2);
@@ -177,21 +176,33 @@ ExtractTemplate::parse_chem_comp(bool /*in_loop*/)
         });
     (void) parse_row(pv);
 
+    // convert type to lowercase
+    for (auto& c: type) {
+        if (isupper(c))
+            c = tolower(c);
+    }
+    is_peptide = type.find("peptide") != string::npos;
+    is_nucleotide = type.compare(0, 3, "dna") == 0
+        || type.compare(0, 3, "rna") == 0;
     residue = templates->new_residue(name.c_str());
     all_residues.push_back(residue);
-    bool is_peptide = !type.empty() && (type.find("peptide") != string::npos
-                                    || type.find("PEPTIDE") != string::npos);
     if (!modres.empty()) {
-        if (!code)
-            code = is_peptide ? Sequence::protein3to1(modres)
-                                                : Sequence::nucleic3to1(modres);
+        if (!code) {
+            if (is_peptide)
+                code = Sequence::protein3to1(modres);
+            else if (is_nucleotide)
+                code = Sequence::nucleic3to1(modres);
+        }
         if (code && code != 'X')
             Sequence::assign_rname3to1(name, code, is_peptide);
     } else if (code) {
-        char let = is_peptide ? Sequence::protein3to1(name)
-                                                : Sequence::nucleic3to1(name);
-        if (let == 'X')
-            Sequence::assign_rname3to1(name, code, is_peptide);
+        if (is_peptide) {
+            if (Sequence::protein3to1(name) == 'X')
+                Sequence::assign_rname3to1(name, code, true);
+        } else if (is_nucleotide) {
+            if (Sequence::nucleic3to1(name) == 'X')
+                Sequence::assign_rname3to1(name, code, false);
+        }
     }
 }
 

@@ -24,7 +24,7 @@ from . import cli
 from . import serialize
 
 _builtin_open = open
-SUFFIX = ".chimera2"
+SUFFIX = ".c2ses"
 
 
 class State(metaclass=abc.ABCMeta):
@@ -466,7 +466,7 @@ def _initialize():
     from . import io
     io.register_format(
         "Chimera session", io.SESSION, SUFFIX,
-        prefixes="session",
+        prefixes="ses",
         mime="application/x-chimera2-session",
         reference="http://www.rbvi.ucsf.edu/chimera/",
         open_func=open, export_func=save)
@@ -509,7 +509,7 @@ def common_startup(sess):
     pdb.register()
     from . import mmcif
     mmcif.register()
-    from . import python
-    python.register()
+    from . import scripting
+    scripting.register()
     from . import map
     map.register_map_file_readers()

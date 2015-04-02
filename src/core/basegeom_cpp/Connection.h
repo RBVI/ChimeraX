@@ -12,6 +12,8 @@ namespace basegeom {
 template <class End>
 class Connection {
 public:
+    enum class BondDisplay : unsigned char { Never, Smart, Always,
+                                                MAX_VAL = Always };
     typedef End*  End_points[2];
 
 protected:
@@ -19,15 +21,16 @@ protected:
         { return "Can't connect endpoint to itself"; }
     virtual const char*  err_msg_not_end() const
         { return "Endpoint arg of other_end() not in Connection"; }
-private:
+
     End_points  _end_points;
 
-    bool  _display = true;
+    BondDisplay  _display = BondDisplay::Smart;
     bool  _halfbond = true;
     float  _radius = 1.0;
     Rgba  _rgba;
 public:
     Connection(End *e1, End *e2);
+    void  finish_construction(); // virtual calls now working...
     virtual  ~Connection() {}
     bool  contains(End* e) const {
         return e == _end_points[0] || e == _end_points[1];
@@ -43,12 +46,17 @@ public:
 
     // graphics related
     const Rgba&  color() const { return _rgba; }
-    bool  display() const { return _display; }
+    BondDisplay  display() const { return _display; }
     bool  halfbond() const { return _halfbond; }
     void  set_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b,
         Rgba::Channel a) { _rgba = {r, g, b, a}; }
     void  set_color(const Rgba& rgba) { _rgba = rgba; }
-    void  set_display(bool d) { _display = d; }
+    void  set_display(BondDisplay d) { _display = d; }
+    void  set_display(unsigned char d) { 
+        if (d > static_cast<unsigned char>(BondDisplay::MAX_VAL))
+            throw std::out_of_range("Invalid bond display value.");
+        _display = static_cast<BondDisplay>(d);
+    }
     void  set_halfbond(bool hb) { _halfbond = hb; }
     void  set_radius(float r) { _radius = r; }
     float  radius() const { return _radius; }
@@ -61,22 +69,38 @@ protected:
         { return "Connection already exists between endpoints"; }
 public:
     UniqueConnection(End *e1, End *e2);
+    void  finish_construction(); // virtual calls now working...
     virtual  ~UniqueConnection() {}
 };
 
 template <class End>
 Connection<End>::Connection(End *e1, End *e2)
 {
-    if (e1 == e2)
-        throw std::invalid_argument(err_msg_loop());
     _end_points[0] = e1;
     _end_points[1] = e2;
+}
+
+template <class End>
+void
+Connection<End>::finish_construction()
+{
+    if (_end_points[0] == _end_points[1])
+        throw std::invalid_argument(err_msg_loop());
 }
 
 template <class End, class FinalConnection>
 UniqueConnection<End, FinalConnection>::UniqueConnection(End *e1, End *e2) :
     Connection<End>(e1, e2)
 {
+}
+
+template <class End, class FinalConnection>
+void
+UniqueConnection<End, FinalConnection>::finish_construction()
+{
+    static_cast<Connection<End> *>(this)->finish_construction();
+    End* e1 = this->_end_points[0]; // "this->" necessary because compiler
+    End* e2 = this->_end_points[1]; // doesn't automatically look in parents
     if (e1->connects_to(e2))
         throw std::invalid_argument(err_msg_exists());
     e1->add_connection(static_cast<FinalConnection *>(this));
