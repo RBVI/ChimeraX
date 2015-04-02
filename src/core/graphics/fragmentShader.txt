@@ -169,4 +169,4 @@ void main (void)
   frag_color = vec4(Ifrag, a);
 }
 
-#endif	// USE_IMAGE_BLEND
+#endif
