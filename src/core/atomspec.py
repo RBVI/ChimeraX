@@ -217,7 +217,10 @@ class _AtomSpecSemantics:
         if ast.parts is not None:
             for p in ast.parts:
                 m.add(p)
-        return m
+        if ast.zone is None:
+            return m
+        ast.zone.model = m
+        return ast.zone
 
     def model_hierarchy(self, ast):
         hierarchy = _ModelHierarchy(ast.range_list)
@@ -274,6 +277,16 @@ class _AtomSpecSemantics:
 
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
+
+    def zone_selector(self, ast):
+        operator, distance = ast
+        return _ZoneSelector(operator, distance)
+
+    def zone_operator(self, ast):
+        return ast
+
+    def real_number(self, ast):
+        return float(ast)
 
 
 class _ModelList(list):
@@ -566,6 +579,37 @@ class _SelectorName:
             f(session, models, results)
 
 
+class _ZoneSelector:
+    """Stores zone operator and distance information."""
+    def __init__(self, operator, distance):
+        self.distance = distance
+        self.target_type = operator[0]  # '@', ':' or '#'
+        self.operator = operator[1:]    # '<', '<=', '>', '>='
+        self.model = None
+
+    def __str__(self):
+        return "%s%s%.3f" % (self.target_type, self.operator, self.distance)
+
+    def find_matches(self, session, models, results):
+        if self.model is None:
+            # No reference atomspec, so do nothing
+            return
+        return self.model.find_matches(session, models, results)
+
+    def matches(self, session, model):
+        if self.model is None:
+            return False
+        return self.model.matches(session, model)
+
+    def find_sub_parts(self, session, model, results):
+        if self.model is None:
+            return
+        my_results = AtomSpecResults()
+        self.model.find_sub_parts(session, model, my_results)
+        # TODO: expand my_results before combining with results
+        results.combine(my_results)
+
+
 class _Term:
     """A term in an atom specifier."""
     def __init__(self, spec):
@@ -664,6 +708,11 @@ class AtomSpecResults:
             self._atoms = atom_blob
         else:
             self._atoms.merge(atom_blob)
+
+    def combine(self, other):
+        for m in other.models:
+            self.add_model(m)
+        self.add_atoms(other.atoms)
 
     @property
     def models(self):
