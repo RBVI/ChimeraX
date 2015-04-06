@@ -597,7 +597,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             if (first_model_num == INT_MAX)
                 first_model_num = model_num;
             cur_model_num = model_num;
-            mol = molecules[cur_model_num] = new AtomicStructure;
+            mol = molecules[cur_model_num] = new AtomicStructure(_logger);
             cur_residue = nullptr;
         }
 
