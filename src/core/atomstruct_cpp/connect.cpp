@@ -398,6 +398,9 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
         // Before we add a bunch of bonds, make sure we're not already linked
         // to other residues via CONECT records [*not* just preceding
         // residue; see entry 209D, residues 5.C and 6.C].
+        // For HET residues check non-metal non-disulphide linkages to
+        // other residues; for non-HET just look for linkage to previous
+        // residue.
         // Can't just check conect_atoms because if the previous
         // residue is HET and this one isn't, only the cross-residue
         // bond may be in the CONECT records and therefore this
@@ -409,9 +412,25 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             for (auto a: r->atoms()) {
                 for (auto b: a->bonds()) {
                     auto other = b->other_atom(a);
-                    if (other->residue() != r && !other->element().is_metal()) {
-                        prelinked = true;
-                        break;
+                    if (other->residue() != r) {
+                        if (a->residue()->is_het()) {
+                            // not coordination...
+                            if (!(other->element().is_metal()
+                            || a->element().is_metal())
+                            // and not disulphide...
+                            && !(other->element() == Element::S
+                            && a->element() == Element::S)
+                            ) {
+                                prelinked = true;
+                                break;
+                            }
+                        } else {
+                            // non-Het should always link to preceding...
+                            if (other->residue() == link_res) {
+                                prelinked = true;
+                                break;
+                            }
+                        }
                     }
                 }
                 if (prelinked)
