@@ -469,9 +469,32 @@ def color(session, color, spec=None):
     if spec is None:
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
-    results.atoms.colors = color.uint8x4()
+
+    rgba8 = color.uint8x4()
+    atoms = results.atoms
+    if atoms is None:
+        na = 0
+    else:
+        atoms.colors = rgba8
+        na = len(atoms)
+
+    ns = 0
+    from .structure import StructureModel
     for m in results.models:
-        m.update_graphics()
+        if isinstance(m, StructureModel):
+            m.update_graphics()
+        else:
+            m.color = rgba8
+            ns += 1
+
+    what = []
+    if na > 0:
+        what.append('%d atoms' % na)
+    if ns > 0:
+        what.append('%d surfaces' % ns)
+    if na == 0 and ns == 0:
+        what.append('nothing')
+    session.logger.status('Colored %s' % ', '.join(what))
 
 
 def register_commands():
