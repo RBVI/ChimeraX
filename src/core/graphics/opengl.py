@@ -960,6 +960,13 @@ class Material:
     '''
     def __init__(self):
 
+        self.set_default_parameters()
+
+    def set_default_parameters(self):
+        '''
+        Reset the material parameters to default values.
+        '''
+
         self.ambient_reflectivity = 0.8
         '''Fraction of ambient light reflected.  Ambient light comes
         from all directions and the amount reflected does not depend on
