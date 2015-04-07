@@ -232,6 +232,22 @@ def save_image(session, path, format = None, width = None, height = None, supers
     i = view.image(width, height, supersample = supersample)
     i.save(path, format, quality = quality)
 
+def set(session, bgColor = None, silhouette = None):
+    view = session.main_view
+    if not bgColor is None:
+        view.background_color = bgColor.rgba
+        view.redraw_needed = True
+    if not silhouette is None:
+        view.silhouettes = silhouette
+        view.redraw_needed = True
+
+from .color import ColorArg
+_set_desc = cli.CmdDesc(
+    keyword = [('bgColor', ColorArg),
+               ('silhouette', cli.BoolArg),
+           ]
+)
+
 def register(session):
     """Register common cli commands"""
     import sys
@@ -250,6 +266,7 @@ def register(session):
     cli.register('~display', _undisplay_desc, undisplay)
     cli.register('camera', _camera_desc, camera)
     cli.register('save', _save_desc, save)
+    cli.register('set', _set_desc, set)
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
