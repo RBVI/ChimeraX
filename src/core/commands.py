@@ -181,6 +181,56 @@ _camera_desc = cli.CmdDesc(optional=[
     ('depth_scale', cli.FloatArg),
 ])
 
+def save(session, filename, width = None, height = None, format = None, supersample = None):
+    from os.path import splitext
+    e = splitext(filename)[1].lower()
+    from . import session as ses
+    if e[1:] in image_file_suffixes:
+        save_image(session, filename, width, height, format, supersample)
+    elif e == ses.SUFFIX:
+        ses.save(session, filename)
+    else:
+        suffixes = image_file_suffixes + (ses.SUFFIX[1:],)
+        raise cli.UserError('Unrecognized file suffix "%s", require one of %s'
+                            % (e, ','.join(suffixes)))
+
+_save_desc = cli.CmdDesc(
+    required = [('filename', cli.StringArg),],
+    keyword=[('width', cli.IntArg),
+             ('height', cli.IntArg),
+             ('supersample', cli.IntArg),
+             ('quality', cli.IntArg),
+             ('format', cli.StringArg),])
+
+# Table mapping file suffix to Pillow image format.
+image_formats = {
+    'png': 'PNG',
+    'jpg': 'JPEG',
+    'tif': 'TIFF',
+    'gif': 'GIF',
+    'ppm': 'PPM',
+    'bmp': 'BMP',
+}
+image_file_suffixes = tuple(image_formats.keys())
+def save_image(session, path, format = None, width = None, height = None, supersample = None, quality = 95):
+    '''
+    Save an image of the current graphics window contents.
+    '''
+    from os.path import expanduser, dirname, exists, splitext
+    path = expanduser(path)         # Tilde expansion
+    dir = dirname(path)
+    if not exists(dir):
+        raise cli.UserError('Directory "%s" does not exist' % dir)
+
+    if format is None:
+        suffix = splitext(path)[1][1:].lower()
+        if not suffix in image_file_suffixes:
+            raise cli.UserError('Unrecognized image file suffix "%s"' % format)
+        format = image_formats[suffix]
+
+    view = session.main_view
+    i = view.image(width, height, supersample = supersample)
+    i.save(path, format, quality = quality)
 
 def register(session):
     """Register common cli commands"""
@@ -199,6 +249,7 @@ def register(session):
     cli.register('display', _display_desc, display)
     cli.register('~display', _undisplay_desc, undisplay)
     cli.register('camera', _camera_desc, camera)
+    cli.register('save', _save_desc, save)
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
