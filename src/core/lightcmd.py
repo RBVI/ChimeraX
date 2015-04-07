@@ -89,6 +89,7 @@ def register_lighting_command():
     cli.register('lighting', _lighting_desc, lighting)
 
 _material_desc = CmdDesc(
+    optional = [('preset', EnumOf(('default', 'shiny', 'dull')))],
     keyword = [
         ('reflectivity', FloatArg),
         ('specularReflectivity', FloatArg),
@@ -96,11 +97,19 @@ _material_desc = CmdDesc(
         ('ambientReflectivity', FloatArg),
     ])
 
-def material(session, reflectivity = None, specularReflectivity = None,
-             exponent = None, ambientReflectivity = None):
+def material(session, preset = None, reflectivity = None,
+             specularReflectivity = None, exponent = None,
+             ambientReflectivity = None):
 
     v = session.main_view
     m = v.material()
+
+    if preset == 'default':
+        m.set_default_parameters()
+    elif preset == 'shiny':
+        m.specular_reflectivity = 1
+    elif preset == 'dull':
+        m.specular_reflectivity = 0
 
     if not reflectivity is None:
         m.diffuse_reflectivity = reflectivity
