@@ -9,6 +9,7 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/Residue.h>
+#include <logger/logger.h>
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -57,7 +58,8 @@ void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
 
 struct ExtractMolecule: public readcif::CIFFile
 {
-    ExtractMolecule();
+    PyObject* _logger;
+    ExtractMolecule(PyObject* logger);
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
@@ -70,22 +72,30 @@ struct ExtractMolecule: public readcif::CIFFile
     map<int, AtomicStructure*> molecules;
     struct AtomKey {
         long position;
+        long auth_position;   // needed in PDB mmCIF files for uniqueness
         AtomName atom_name;
         string residue_name;
         string chain_id;
         char ins_code;
         char alt_id;
-        AtomKey(const string& c, long p, char i, char a, const AtomName& n, const string& r):
-            position(p), atom_name(n), residue_name(r), chain_id(c), ins_code(i), alt_id(a) {}
+        AtomKey(const string& c, long p, long ap, char i, char a,
+                    const AtomName& n, const string& r):
+            position(p), auth_position(ap), atom_name(n), residue_name(r),
+            chain_id(c), ins_code(i), alt_id(a) {}
         bool operator==(const AtomKey& k) const {
-            return position == k.position && atom_name == k.atom_name
-                && residue_name == k.residue_name && chain_id == k.chain_id
-                && ins_code == k.ins_code && alt_id == k.alt_id;
+            return position == k.position && auth_position == k.auth_position
+                && atom_name == k.atom_name && residue_name == k.residue_name
+                && chain_id == k.chain_id && ins_code == k.ins_code
+                && alt_id == k.alt_id;
         }
         bool operator<(const AtomKey& k) const {
             if (position < k.position)
                 return true;
             if (position != k.position)
+                return false;
+            if (auth_position < k.auth_position)
+                return true;
+            if (auth_position != k.auth_position)
                 return false;
             if (atom_name < k.atom_name)
                 return true;
@@ -108,8 +118,11 @@ struct ExtractMolecule: public readcif::CIFFile
     };
     struct hash_AtomKey {
         size_t operator()(const AtomKey& k) const {
-            return hash<string>()(k.chain_id) ^ hash<long>()(k.position)
-                ^ hash<char>()(k.ins_code) ^ hash<char>()(k.alt_id)
+            return hash<string>()(k.chain_id)
+                ^ hash<long>()(k.position)
+                ^ hash<long>()(k.auth_position)
+                ^ hash<char>()(k.ins_code)
+                ^ hash<char>()(k.alt_id)
                 ^ k.atom_name.hash()
                 ^ hash<string>()(k.residue_name);
         }
@@ -139,31 +152,34 @@ struct ExtractMolecule: public readcif::CIFFile
     };
     struct hash_ResidueKey {
         size_t operator()(const ResidueKey& k) const {
-            return hash<string>()(k.entity_id) ^ hash<long>()(k.seq_id)
+            return hash<string>()(k.entity_id)
+                ^ hash<long>()(k.seq_id)
                 ^ hash<string>()(k.mon_id);
         }
     };
     typedef unordered_map<ResidueKey, Residue*, hash_ResidueKey> ResidueMap;
     unordered_map<string, ResidueMap> all_residues;
     struct PolySeq {
-        string entity_id;
         long seq_id;
         string mon_id;
         bool hetero;
-        PolySeq(const string& e, long s, const string& m, bool h):
-            entity_id(e), seq_id(s), mon_id(m), hetero(h) {}
+        PolySeq(long s, const string& m, bool h):
+            seq_id(s), mon_id(m), hetero(h) {}
     };
-    vector<PolySeq> poly_seq;
+    typedef vector<PolySeq> EntityPolySeq;
+    map<string /* entity_id */, EntityPolySeq> poly_seq;
     int first_model_num;
 };
 
-std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& ak) {
-    out << ak.chain_id << ':' << ak.residue_name << '.' << ak.position
-        << int(ak.ins_code) << '@' << ak.atom_name << '.' << int(ak.alt_id);
+std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
+    out << k.chain_id << ':' << k.residue_name << '.' << k.position
+        << '(' << k.auth_position << ')'
+        << int(k.ins_code) << '@' << k.atom_name << '.' << int(k.alt_id);
     return out;
 }
 
-ExtractMolecule::ExtractMolecule(): first_model_num(INT_MAX)
+ExtractMolecule::ExtractMolecule(PyObject* logger):
+    _logger(logger), first_model_num(INT_MAX)
 {
     register_category("audit_conform",
         [this] (bool in_loop) {
@@ -195,15 +211,14 @@ ExtractMolecule::reset_parse()
 void
 connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
 {
+    // Connect adjacent residues that have the same type
+    // and have link & chief atoms (i.e., peptides and nucleotides)
     for (auto&& r0: a) {
         auto tr0 = find_template_residue(r0->name());
         if (tr0 == nullptr)
             continue;
         auto ta0 = tr0->link();
         if (ta0 == nullptr)
-            continue;
-        Atom *a0 = r0->find_atom(ta0->name());
-        if (a0 == nullptr)
             continue;
         for (auto&& r1: b) {
             auto tr1 = find_template_residue(r1->name());
@@ -213,7 +228,16 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
             auto ta1 = tr1->chief();
             if (ta1 == nullptr)
                 continue;
-            Atom *a1 = r1->find_atom(ta1->name());
+            Atom* a0 = r0->find_atom(ta0->name());
+            Atom* a1 = r1->find_atom(ta1->name());
+            if (a0 == nullptr && a1 != nullptr) {
+                std::swap(a0, a1);
+                std::swap(r0, r1);
+            }
+            if (a0 == nullptr) {
+                find_nearest_pair(r0, r1, &a0, &a1);
+            } else if (a1 == nullptr)
+                a1 = find_closest(a0, r1, nullptr, true);
             if (a1 == nullptr)
                 continue;
             if (gap) {
@@ -221,29 +245,36 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                     atomstruct::AS_PBManager::GRP_NORMAL);
                 pbg->new_pseudobond(a0, a1);
-            }
-            else if (!a0->connects_to(a1))
+            } else if (!a0->connects_to(a1))
                 (void) a0->structure()->new_bond(a0, a1);
         }
     }
 }
 
 void
-copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
+copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
 {
+    if (from->num_atoms() != to->num_atoms())
+        logger::warning(_logger, "Mismatched number of atoms (",
+            from->num_atoms(), " vs. ", to->num_atoms(), ")");
     // copy bonds, pseudobonds, secondary structure
     // -- Assumes atoms were added in the exact same order
+
     // Bonds:
     auto& atoms = from->atoms();
     auto& bonds = from->bonds();
     auto& to_atoms = to->atoms();
+    size_t to_size = to_atoms.size();
     for (auto&& b: bonds) {
         auto bond_atoms = b->atoms();
         auto a0_index = bond_atoms[0]->coord_index();
         auto a1_index = bond_atoms[1]->coord_index();
+        if (a0_index >= to_size || a1_index >= to_size)
+            continue;
         to->new_bond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
     }
-    // Pseudobonds: TODO
+
+    // Pseudobonds:
     auto metal_pbg = from->pb_mgr().get_group(from->PBG_METAL_COORDINATION);
     if (metal_pbg != nullptr) {
         auto to_pbg = to->pb_mgr().get_group(to->PBG_METAL_COORDINATION,
@@ -252,6 +283,8 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
             auto bond_atoms = b->atoms();
             auto a0_index = bond_atoms[0]->coord_index();
             auto a1_index = bond_atoms[1]->coord_index();
+            if (a0_index >= to_size || a1_index >= to_size)
+                continue;
             to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
         }
     }
@@ -263,9 +296,17 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to)
             auto bond_atoms = b->atoms();
             auto a0_index = bond_atoms[0]->coord_index();
             auto a1_index = bond_atoms[1]->coord_index();
+            if (a0_index >= to_size || a1_index >= to_size)
+                continue;
             to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
         }
     }
+
+    // "seqres":
+    auto& info = from->input_seq_info();
+    for (auto& i: info)
+        to->set_input_seq_info(i.first, i.second);
+
     // Secondary Structure: TODO
 }
 
@@ -289,19 +330,17 @@ ExtractMolecule::finished_parse()
     // until next group of residues is found.
     for (auto&& chain: all_residues) {
         const ResidueMap& residue_map = chain.second;
-        PolySeq *last = NULL;
+        auto ri = residue_map.begin();
+        const string& entity_id = ri->first.entity_id;
+        if (poly_seq.find(entity_id) == poly_seq.end())
+            continue;
+        PolySeq* lastp = nullptr;
         bool gap = false;
         vector<Residue*> previous, current;
-        for (auto& p: poly_seq) {
-            if (last && p.entity_id != last->entity_id) {
-                if (!previous.empty() && !current.empty())
-                    connect_residue_pairs(previous, current, gap);
-                previous.clear();
-                current.clear();
-                last = NULL;
-                gap = false;
-            }
-            auto ri = residue_map.find(ResidueKey(p.entity_id, p.seq_id, p.mon_id));
+        string auth_chain_id;
+        auto& entity_poly_seq = poly_seq[entity_id];
+        for (auto& p: entity_poly_seq) {
+            auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
             if (ri == residue_map.end()) {
                 if (current.empty())
                     continue;
@@ -313,10 +352,12 @@ ExtractMolecule::finished_parse()
                 continue;
             }
             Residue* r = ri->second;
-            if (last && last->seq_id == p.seq_id
-                    && last->entity_id == p.entity_id) {
-                if (!last->hetero)
-                    std::cerr << "Duplicate entity_id/seq_id without hetero\n";
+            if (auth_chain_id.empty())
+                auth_chain_id = r->chain_id();
+            if (lastp && lastp->seq_id == p.seq_id) {
+                if (!lastp->hetero)
+                    logger::warning(_logger, "Duplicate entity_id/seq_id ",
+                        p.seq_id, ") without hetero");
                 current.push_back(r);
             } else {
                 if (!previous.empty() && !current.empty()) {
@@ -329,21 +370,36 @@ ExtractMolecule::finished_parse()
                 }
                 current.push_back(r);
             }
-            last = &p;
+            lastp = &p;
         }
         if (!previous.empty())
             connect_residue_pairs(previous, current, gap);
+        if (auth_chain_id.empty())
+            continue;
+        auto& input_seq_info = mol->input_seq_info();
+        if (input_seq_info.find(auth_chain_id) != input_seq_info.end())
+            continue;
+        vector<string> seqres;
+        seqres.reserve(entity_poly_seq.size());
+        lastp = nullptr;
+        for (auto& p: entity_poly_seq) {
+            if (lastp && lastp->seq_id == p.seq_id)
+                continue;  // ignore microheterogeneity
+            seqres.push_back(p.mon_id);
+            lastp = &p;
+        }
+        mol->set_input_seq_info(auth_chain_id, seqres);
+        if (mol->input_seq_source.empty())
+            mol->input_seq_source = "mmCIF entity_poly_seq table";
     }
+    find_and_add_metal_coordination_bonds(mol);
     // multiple molecules means there were multiple models,
     // so copy per-model information
     for (auto& im: molecules) {
         auto m = im.second;
         all_molecules.push_back(m);
         if (m != mol) {
-            if (m->num_atoms() == mol->num_atoms())
-                copy_nmr_info(mol, m);
-            else
-                std::cerr << "mismatched number of atoms\n";
+            copy_nmr_info(mol, m, _logger);
         }
     }
     vector<AtomicStructure*> save_molecules;
@@ -444,8 +500,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char*) {
             position = readcif::str_to_int(start);
         });
-    int auth_seq_column = get_column("auth_seq_id");
-    pv.emplace_back(auth_seq_column, false,
+    pv.emplace_back(get_column("auth_seq_id"), false,
         [&] (const char* start, const char*) {
             if (*start == '.' || *start == '?')
                 auth_position = INT_MAX;
@@ -542,7 +597,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             if (first_model_num == INT_MAX)
                 first_model_num = model_num;
             cur_model_num = model_num;
-            mol = molecules[cur_model_num] = new AtomicStructure;
+            mol = molecules[cur_model_num] = new AtomicStructure(_logger);
             cur_residue = nullptr;
         }
 
@@ -562,7 +617,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
                 cid = auth_chain_id;
             else
                 cid = chain_id;
-            if (auth_seq_column != -1 && auth_position != INT_MAX)
+            if (auth_position != INT_MAX)
                 pos = auth_position;
             else
                 pos = position;
@@ -589,8 +644,8 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
             if (model_num == first_model_num) {
-                AtomKey k(chain_id, position, ins_code, alt_id, atom_name,
-                                                                residue_name);
+                AtomKey k(chain_id, position, auth_position, ins_code, alt_id,
+                        atom_name, residue_name);
                 atom_map[k] = a;
             }
         }
@@ -622,18 +677,23 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
     #define ASYM_ID "_label_asym_id"
     #define COMP_ID "_label_comp_id"
     #define SEQ_ID "_label_seq_id"
+    #define AUTH_SEQ_ID "_auth_seq_id"
     #define ATOM_ID "_label_atom_id"
     #define ALT_ID "_label_alt_id" // pdbx
     #define INS_CODE "_PDB_ins_code" // pdbx
+    #define SYMMETRY "_symmetry"
 
     // bonds from struct_conn records
     string chain_id1, chain_id2;            // ptrn[12]_label_asym_id
     long position1, position2;              // ptrn[12]_label_seq_id
+    long auth_position1 = INT_MAX,
+         auth_position2 = INT_MAX;          // ptrn[12]_auth_seq_id
     char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptrn[12]_PDB_ins_code
     char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptrn[12]_label_alt_id
-    AtomName atom_name1, atom_name2;          // ptrn[12]_label_atom_id
+    AtomName atom_name1, atom_name2;        // ptrn[12]_label_atom_id
     string residue_name1, residue_name2;    // ptrn[12]_label_comp_id
     string conn_type;                       // conn_type_id
+    string symmetry1, symmetry2;            // ptrn[12]_symmetry
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
@@ -659,6 +719,13 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char*) {
             position1 = readcif::str_to_int(start);
         });
+    pv.emplace_back(get_column(P1 AUTH_SEQ_ID), false,
+        [&] (const char* start, const char*) {
+            if (*start == '.' || *start == '?')
+                auth_position1 = INT_MAX;
+            else
+                auth_position1 = readcif::str_to_int(start);
+        });
     pv.emplace_back(get_column("pdbx_" P1 ALT_ID, false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
@@ -676,6 +743,10 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
     pv.emplace_back(get_column(P1 COMP_ID, true), true,
         [&] (const char* start, const char* end) {
             residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(P1 SYMMETRY), true,
+        [&] (const char* start, const char* end) {
+            symmetry1 = string(start, end - start);
         });
 
     pv.emplace_back(get_column(P2 ASYM_ID, true), true,
@@ -695,6 +766,13 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char*) {
             position2 = readcif::str_to_int(start);
         });
+    pv.emplace_back(get_column(P2 AUTH_SEQ_ID), false,
+        [&] (const char* start, const char*) {
+            if (*start == '.' || *start == '?')
+                auth_position2 = INT_MAX;
+            else
+                auth_position2 = readcif::str_to_int(start);
+        });
     pv.emplace_back(get_column("pdbx_" P2 ALT_ID, false), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
@@ -713,23 +791,29 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             residue_name2 = string(start, end - start);
         });
+    pv.emplace_back(get_column(P2 SYMMETRY), true,
+        [&] (const char* start, const char* end) {
+            symmetry2 = string(start, end - start);
+        });
 
     atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
     atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
     // connect residues in molecule with all_residues information
     auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
+        if (symmetry1 != symmetry2)
+            continue;
         bool metal = conn_type == "metalc";
         bool hydro = conn_type == "hydro";
         if (!metal && !hydro && conn_type != "covale" && conn_type != "disulf")
             continue;   // skip hydrogen and modres bonds
-        AtomKey k1(chain_id1, position1, ins_code1, alt_id1, atom_name1,
-                                                        residue_name1);
+        AtomKey k1(chain_id1, position1, auth_position1, ins_code1, alt_id1,
+                atom_name1, residue_name1);
         auto ai1 = atom_map.find(k1);
         if (ai1 == atom_map.end())
             continue;
-        AtomKey k2(chain_id2, position2, ins_code2, alt_id2, atom_name2,
-                                                        residue_name2);
+        AtomKey k2(chain_id2, position2, auth_position2, ins_code2, alt_id2,
+                atom_name2, residue_name2);
         auto ai2 = atom_map.find(k2);
         if (ai2 == atom_map.end())
             continue;
@@ -758,9 +842,11 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
     #undef ASYM_ID
     #undef COMP_ID
     #undef SEQ_ID
+    #undef AUTH_SEQ_ID
     #undef ATOM_ID
     #undef ALT_ID
     #undef INS_CODE
+    #undef SYMMETRY
 }
 
 void
@@ -793,16 +879,16 @@ ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
         });
 
     while (parse_row(pv))
-        poly_seq.push_back(PolySeq(entity_id, seq_id, mon_id, hetero));
+        poly_seq[entity_id].push_back(PolySeq(seq_id, mon_id, hetero));
 }
 
 PyObject*
-parse_mmCIF_file(const char *filename)
+parse_mmCIF_file(const char *filename, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract;
+    ExtractMolecule extract(logger);
 
     extract.parse_file(filename);
 
@@ -811,18 +897,19 @@ clock_t start_t, end_t;
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;
+        m->set_name(filename);
         sb->_items->emplace_back(m);
     }
     return sb;
 }
 
 PyObject*
-parse_mmCIF_buffer(const unsigned char *whole_file)
+parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger)
 {
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
-    ExtractMolecule extract;
+    ExtractMolecule extract(logger);
 
     extract.parse(reinterpret_cast<const char *>(whole_file));
 
@@ -831,6 +918,7 @@ clock_t start_t, end_t;
     for (auto m: extract.all_molecules) {
         if (m->atoms().size() == 0)
             continue;
+        m->set_name("unknown mmCIF file");
         sb->_items->emplace_back(m);
     }
     return sb;

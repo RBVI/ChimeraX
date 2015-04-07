@@ -41,6 +41,7 @@ public:
     void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         PBond* pb = new PBond(a1, a2);
+        pb->finish_construction();
         _pbonds.insert(pb);
         return pb;
     }
@@ -70,6 +71,7 @@ public:
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         _check_ownership(a1, a2);
         PBond* pb = new PBond(a1, a2);
+        pb->finish_construction();
         _pbonds.insert(pb); return pb;
     }
     Owned_PBGroup(const std::string& cat, AtomicStructure* as):

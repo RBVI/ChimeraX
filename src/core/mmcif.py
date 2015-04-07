@@ -22,7 +22,7 @@ def open_mmcif(session, filename, name, *args, **kw):
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name: _get_template(name, session.app_dirs, session.logger))
-    mol_blob = _mmcif.parse_mmCIF_file(filename)
+    mol_blob = _mmcif.parse_mmCIF_file(filename, session.logger)
 
     structures = mol_blob.structures
     models = []
@@ -50,7 +50,7 @@ def fetch_mmcif(session, pdb_id):
     subdir = lower[1:3]
     sys_filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, lower)
     if os.path.exists(sys_filename):
-        return _builtin_open(sys_filename, 'rb')
+        return sys_filename, pdb_id
 
     filename = "~/Downloads/Chimera/PDB/%s.cif" % pdb_id.upper()
     filename = os.path.expanduser(filename)

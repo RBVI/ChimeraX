@@ -9,6 +9,8 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 <style>
 .refresh { color: blue; font-size: 80%; font-family: monospace; }
 .install { color: green; font-family: monospace; }
+.start { color: green; font-family: monospace; }
+.update { color: blue; font-family: monospace; }
 .remove { color: red; font-family: monospace; }
 .show { color: green; font-family: monospace; }
 .hide { color: blue; font-family: monospace; }
@@ -29,6 +31,8 @@ INSTALLED_TOOLS
 AVAILABLE_TOOLS
 </body>
 </html>"""
+_START_LINK = '<a href="toolshed:_start_tool:%s" class="start">start</a>'
+_UPDATE_LINK = '<a href="toolshed:_update_tool:%s" class="update">update</a>'
 _REMOVE_LINK = '<a href="toolshed:_remove_tool:%s" class="remove">remove</a>'
 _INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install">install</a>'
 _SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show">show</a>'
@@ -111,9 +115,12 @@ class ToolshedUI(ToolInstance):
             print("<li>No installed tools found.</li>", file=s)
         else:
             for ti in ti_list:
-                link = _REMOVE_LINK % ti.name
-                print("<li>%s - %s. %s</li>"
-                      % (ti.display_name, ti.synopsis, link), file=s)
+                start_link = _START_LINK % ti.name
+                update_link = _UPDATE_LINK % ti.name
+                remove_link = _REMOVE_LINK % ti.name
+                print("<li>%s - %s. %s %s %s</li>"
+                      % (ti.display_name, ti.synopsis, start_link,
+                         update_link, remove_link), file=s)
         print("</ul>", file=s)
         page = page.replace("INSTALLED_TOOLS", s.getvalue())
 
@@ -144,6 +151,18 @@ class ToolshedUI(ToolInstance):
         # refresh list of available tools
         from . import cmd
         cmd.ts_refresh(session, tool_type="available")
+        self._make_page()
+
+    def _start_tool(self, session, tool_name):
+        # start installed tool
+        from . import cmd
+        cmd.ts_start(session, tool_name)
+        self._make_page()
+
+    def _update_tool(self, session, tool_name):
+        # update installed tool
+        from . import cmd
+        cmd.ts_update(session, tool_name)
         self._make_page()
 
     def _remove_tool(self, session, tool_name):

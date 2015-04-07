@@ -2,6 +2,7 @@
 #include "StructBlob.h"
 #include "AtomBlob.h"
 #include "BondBlob.h"
+#include "PseudoBlob.h"
 #include "ResBlob.h"
 #include <atomstruct/Bond.h>
 #include "numpy_common.h"
@@ -42,6 +43,29 @@ sb_atoms(PyObject* self, void*)
         for (auto& a: as->atoms()) 
             ab->_items->emplace_back(a.get());
     return py_ab;
+}
+
+static PyObject*
+sb_ball_scales(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)sb->_items->size()};
+    PyObject* ball_scales = allocate_python_array(1, shape, NPY_FLOAT);
+    unsigned char* data = (unsigned char*) PyArray_DATA((PyArrayObject*)ball_scales);
+    for (auto s: *(sb->_items)) {
+        *data++ = s->ball_scale();
+    }
+    return ball_scales;
+}
+
+static int
+sb_set_ball_scales(PyObject* self, PyObject* value, void*)
+{
+    return set_blob<StructBlob>(self, value,
+        &atomstruct::AtomicStructure::set_ball_scale);
 }
 
 static PyObject*
@@ -123,9 +147,9 @@ sb_num_atoms(PyObject* self, void*)
     StructBlob* sb = static_cast<StructBlob*>(self);
     size_t num_atoms = 0;
     for (auto s: *(sb->_items)) {
-        num_atoms += s->atoms().size();
+        num_atoms += s->num_atoms();
     }
-    return PyLong_FromLong((long)num_atoms);
+    return PyLong_FromSize_t(num_atoms);
 }
 
 static PyObject*
@@ -134,16 +158,93 @@ sb_num_bonds(PyObject* self, void*)
     StructBlob* sb = static_cast<StructBlob*>(self);
     size_t num_bonds = 0;
     for (auto s: *(sb->_items)) {
-        num_bonds += s->bonds().size();
+        num_bonds += s->num_bonds();
     }
-    return PyLong_FromLong((long)num_bonds);
+    return PyLong_FromSize_t(num_bonds);
+}
+
+static PyObject*
+sb_num_hyds(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_hyds = 0;
+    for (auto s: *(sb->_items)) {
+        num_hyds += s->num_hyds();
+    }
+    return PyLong_FromSize_t(num_hyds);
+}
+
+static PyObject*
+sb_num_residues(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_residues = 0;
+    for (auto s: *(sb->_items)) {
+        num_residues += s->num_residues();
+    }
+    return PyLong_FromSize_t(num_residues);
+}
+
+static PyObject*
+sb_num_chains(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_chains = 0;
+    for (auto s: *(sb->_items)) {
+        num_chains += s->num_chains();
+    }
+    return PyLong_FromSize_t(num_chains);
+}
+
+static PyObject*
+sb_num_coord_sets(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    size_t num_coord_sets = 0;
+    for (auto s: *(sb->_items)) {
+        num_coord_sets += s->num_coord_sets();
+    }
+    return PyLong_FromSize_t(num_coord_sets);
+}
+
+static PyObject*
+sb_pbg_map(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    if (sb->_items->size() > 1) {
+        PyErr_SetString(PyExc_ValueError,
+            "'pbg_map' attr only for single-structure blobs."
+            "  Use 'structures' attr to get single-structure blobs.");
+        return NULL;
+    }
+    PyObject* pbg_map = PyDict_New();
+    if (pbg_map == NULL)
+        return NULL;
+    if (sb->_items->size() == 0)
+        return pbg_map;
+    auto structure = *(sb->_items->begin());
+    for (auto grp_info: structure->pb_mgr().group_map()) {
+        PyObject* name = PyUnicode_FromString(grp_info.first.c_str());
+        if (name == NULL)
+            return NULL;
+        PyObject* py_pblob = new_blob<PseudoBlob>(&PseudoBlob_type);
+        if (py_pblob == NULL)
+            return NULL;
+        for (auto pb: grp_info.second->pseudobonds()) {
+            static_cast<PseudoBlob*>(py_pblob)->_items->emplace_back(pb);
+        }
+        PyDict_SetItem(pbg_map, name, py_pblob);
+    }
+    return pbg_map;
 }
 
 static PyObject*
 sb_structures(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
-    PyObject *struct_list = PyList_New(sb->_items->size());
+    PyObject* struct_list = PyList_New(sb->_items->size());
+    if (struct_list == NULL)
+        return NULL;
     StructBlob::ItemsType::size_type i = 0;
     for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
         PyObject* py_single_sb = new_blob<StructBlob>(&StructBlob_type);
@@ -179,6 +280,8 @@ static PyMethodDef StructBlob_methods[] = {
 
 static PyGetSetDef StructBlob_getset[] = {
     { "atoms", sb_atoms, NULL, "AtomBlob", NULL},
+    { "ball_scales", sb_ball_scales, sb_set_ball_scales,
+        "numpy array of (float) ball scales", NULL},
     { "bonds", sb_bonds, NULL, "BondBlob", NULL},
     { "bond_indices", sb_bond_indices, NULL,
         "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
@@ -186,6 +289,12 @@ static PyGetSetDef StructBlob_getset[] = {
         "numpy array of (bool) displays", NULL},
     { "num_atoms", sb_num_atoms, NULL, "number of atoms", NULL},
     { "num_bonds", sb_num_bonds, NULL, "number of bonds", NULL},
+    { "num_hyds", sb_num_hyds, NULL, "number of hydrogens", NULL},
+    { "num_residues", sb_num_residues, NULL, "number of residues", NULL},
+    { "num_chains", sb_num_chains, NULL, "number of chains", NULL},
+    { "num_coord_sets", sb_num_coord_sets, NULL, "number of coord sets", NULL},
+    { "pbg_map", sb_pbg_map, NULL,
+        "dict keyed on pb group name, value = group blob", NULL},
     { "structures", sb_structures, NULL,
         "list of one-structure-model StructBlobs", NULL},
     { "residues", sb_residues, NULL, "ResBlob", NULL},

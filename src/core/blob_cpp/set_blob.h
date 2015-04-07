@@ -65,6 +65,64 @@ set_blob(PyObject* py_blob, PyObject* py_val,
     return 0;
 }
 
+// set char
+template<typename BlobType>
+int
+set_blob(PyObject* py_blob, PyObject* py_val,
+    void (BlobType::MolType::* member_func)(unsigned char))
+{
+    if (py_val == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete C++ attribute");
+        return -1;
+    }
+
+    if (PyArray_API == NULL)
+        import_array1(-1);  // initialize NumPy
+    BlobType* blob = static_cast<BlobType*>(py_blob);
+    if (PyLong_Check(py_val)) {
+        unsigned char val = (unsigned char)PyLong_AsLong(py_val);
+        for (auto item: *(blob->_items))
+            (item.get()->*member_func)(val);
+        
+    } else if (PyArray_Check(py_val)
+    && PyArray_ISINTEGER((PyArrayObject*)py_val)) {
+        PyArrayObject* array = PyArray_GETCONTIGUOUS((PyArrayObject*)py_val);
+        if (PyArray_NDIM(array) != 1) {
+            PyErr_SetString(PyExc_ValueError,
+                "Numpy array of values must be one-dimensional");
+            return -1;
+        }
+        if ((std::size_t)PyArray_DIMS(array)[0] != blob->_items->size()) {
+            PyErr_SetString(PyExc_ValueError,
+                "Size of numpy array does not match number of items to assign");
+            return -1;
+        }
+        int item_size = PyArray_ITEMSIZE(array);
+        if (item_size == sizeof(unsigned char)) {
+            unsigned char* data = (unsigned char*) PyArray_DATA(array);
+            for (auto item: *(blob->_items))
+                (item.get()->*member_func)(*data++);
+        } else if (item_size == sizeof(int)) {
+            int* data = (int*) PyArray_DATA(array);
+            for (auto item: *(blob->_items))
+                (item.get()->*member_func)(*data++);
+        } else if (item_size == sizeof(long)) {
+            long* data = (long*) PyArray_DATA(array);
+            for (auto item: *(blob->_items))
+                (item.get()->*member_func)(*data++);
+        } else {
+            PyErr_SetString(PyExc_ValueError,
+                "Array values must be byte, integer, or long");
+            return -1;
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError,
+            "Value must be int or numpy array of int");
+        return -1;
+    }
+    return 0;
+}
+
 // set bool
 template<typename BlobType>
 int

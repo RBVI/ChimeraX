@@ -688,7 +688,13 @@ add_bond(std::unordered_map<int, Atom *> &atom_serial_nums, int from, int to, Py
             from, ", ", to, ")");
         return;
     }
-    add_bond(atom_serial_nums[from], atom_serial_nums[to]);
+    Atom *a1 = atom_serial_nums[from];
+    Atom *a2 = atom_serial_nums[to];
+    if (a1 == a2) {
+        logger::warning(py_logger, "CONECT record from alternate atom to itself: ", from);
+        return;
+    }
+    add_bond(a1, a2);
 }
 
 // assign_secondary_structure:
