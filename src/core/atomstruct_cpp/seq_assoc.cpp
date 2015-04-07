@@ -2,7 +2,7 @@
 
 #include <algorithm>  // std::find_if_not, std::min
 #include <cctype>  // std::islower
-#include <stdlib.h>  // std::abs
+#include <cmath>  // std::abs
 
 #include "AtomicStructure.h"
 #include "Chain.h"
@@ -96,7 +96,7 @@ estimate_assoc_params(Chain& chain)
 
 static unsigned int
 _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
-    unsigned int max_errors, std::vector<int>& offsets)
+    std::vector<int>& offsets, unsigned int max_errors)
 {
     // find the biggest segment, (but non-all-X segments win over
     // all-X segments)
@@ -128,7 +128,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
 
     auto bsi_iter = cm_ap.segments.begin() + bsi;
     int left_space = 0;
-    for (auto seg_i = cm_ap.begin(); seg_i != bsi_iter; ++seg_i) {
+    for (auto seg_i = cm_ap.segments.begin(); seg_i != bsi_iter; ++seg_i) {
         left_space += seg_i->size() + 1;
     }
     int right_space = 0;
@@ -143,7 +143,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     int min_offset = -1;
     int min_errs = -1;
     int min_gap_errs = -1;
-    unsigned int target_left_gap, target_right_gap;
+    int target_left_gap, target_right_gap;
     if (bsi == 0) {
         target_left_gap = cm_ap.gaps[0];
     } else {
@@ -170,11 +170,11 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
             err_list.push_back(errors);
             int gap_errs = 0;
             if (target_left_gap >= 0) {
-                gap_errs += std::abs((offset+1) - target_left_gap);
+                gap_errs += std::abs((int)((offset+1) - target_left_gap));
             }
             if (target_right_gap >= 0) {
-                gap_errs += std::abs(1 + (aseq.size() - (offset+longest))
-                    - target_right_gap);
+                gap_errs += std::abs((int)(1 + (aseq.size() - (offset+longest))
+                    - target_right_gap));
             }
             if (min_errs < 0 || errors < min_errs
             || (errors == min_errs && gap_errs < min_gap_errs)) {
@@ -189,23 +189,25 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
 
     // leave gaps to left and right
     std::vector<int> left_offsets, right_offsets;
-    unsigned int left_errors = 0, right_offsets = 0;
-    AssocParams left_ap(0, segments.begin(), segments.begin()+bsi-1,
-        gaps.begin(), gaps.begin()+bsi);
+    unsigned int left_errors = 0, right_errors = 0;
+    AssocParams left_ap(0, cm_ap.segments.cbegin(),
+        cm_ap.segments.cbegin()+bsi-1,
+        cm_ap.gaps.cbegin(), cm_ap.gaps.cbegin()+bsi);
     if (bsi > 0) {
         Sequence::Contents left_aseq(aseq.begin(), aseq.begin()+min_offset-2);
         left_errors = _constrained(left_aseq, left_ap, left_offsets,
             max_errors - min_errs);
     }
-    AssocParams right_ap(0, segments.begin()+bsi+1, segments.end(),
-        gaps.begin()+bsi+1, gaps.end());
-    if (left_errors + min_errs <= max_errors && bsi+1 != segments.size()) {
+    AssocParams right_ap(0, cm_ap.segments.begin()+bsi+1, cm_ap.segments.end(),
+        cm_ap.gaps.begin()+bsi+1, cm_ap.gaps.end());
+    if (left_errors + min_errs <= max_errors
+    && bsi+1 != cm_ap.segments.size()) {
         Sequence::Contents right_aseq(aseq.begin() + min_offset + longest + 1,
             aseq.end());
         right_errors = _constrained(right_aseq, right_ap, right_offsets,
             max_errors - min_errs - left_errors);
     }
-    int tot_errs = min_errs + left_errors + right_errors;
+    unsigned int tot_errs = min_errs + left_errors + right_errors;
     struct OffsetInfo {
         int min;
         std::vector<int> left, right;
@@ -236,7 +238,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
         if (left_errors + base_errs > max_errors)
             continue;
 
-        if (bsi+1 < segments.size()) {
+        if (bsi+1 < cm_ap.segments.size()) {
             Sequence::Contents right_aseq(aseq.begin()+offset+longest+1,
                 aseq.end());
             right_errors = _constrained(right_aseq, right_ap, right_offsets,
@@ -246,7 +248,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
             right_errors = 0;
         }
 
-        int err_sum = base_errs + left_errors + right_errors
+        int err_sum = base_errs + left_errors + right_errors;
         if (err_sum < tot_errs) {
             tot_errs = err_sum;
             offs.min = offset;
@@ -276,7 +278,7 @@ constrained_match(const Sequence::Contents& aseq, const Chain& mseq,
     cm_ap.gaps.insert(cm_ap.gaps.begin(), -1);
     cm_ap.gaps.push_back(-1);
     std::vector<int> offsets;
-    unsigned int errors = _constrained(aseq, cm_ap, max_errors, offsets);
+    unsigned int errors = _constrained(aseq, cm_ap, offsets, max_errors);
     if (errors > max_errors)
         throw SA_AssocFailure("bad assoc");
     if (offsets.size() != ap.segments.size())
@@ -285,7 +287,7 @@ constrained_match(const Sequence::Contents& aseq, const Chain& mseq,
     unsigned int res_offset = 0;
     for (int si = 0; si < ap.segments.size(); ++si) {
         int offset = offsets[si];
-        Sequence::Contents& segment = ap.segments[si];
+        const Sequence::Contents& segment = ap.segments[si];
         for (int i = 0; i < segment.size(); ++i) {
             Residue* r = mseq.residues()[res_offset+i];
             if (r != nullptr) {
@@ -336,10 +338,10 @@ gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
             }
             if (gap_char == '.')
                 continue;
-            if (++errors >= tot_errors)
+            if (++errors >= tot_errs)
                 break;
         }
-        if (errors < tot_errors) {
+        if (errors < tot_errs) {
             if (matches < min_matches || matches - errors <= best_score)
                 continue;
             best_score = matches - errors;
@@ -360,7 +362,7 @@ gapped_match(const Sequence::Contents& aseq, const Chain& mseq,
         if (gapped[i] == '.')
             continue;
         if (i >= best_offset) {
-            auto res = mseq.residues[mseq_index];
+            auto res = mseq.residues()[mseq_index];
             if (res != nullptr) {
                 int aseq_index = i - best_offset;
                 ret.match_map[res] = aseq_index;
@@ -377,7 +379,7 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
     const AssocParams &ap, unsigned int max_errors)
 {
     int lower_to_upper = 'A' - 'a';
-    Sequence:::Contents aseq;
+    Sequence::Contents aseq;
     for (auto c: align_seq.ungapped()) {
         if (std::islower(c))
             aseq.push_back(c + lower_to_upper);
@@ -391,7 +393,6 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
         if (aseq.size() >= ap.est_len)
             retvals = constrained_match(aseq, mseq, ap, max_errors);
         else
-            // TODO
             retvals = gapped_match(aseq, mseq, ap, max_errors);
     } catch (SA_AssocFailure) {
         assoc_failure = true;
@@ -399,7 +400,12 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
 
     if (!assoc_failure && retvals.num_errors == 0)
         return retvals;
+
+#ifdef TODO
+    // prune off 'X' residues and see how that works...
+    if mseq[0] != 'X'
     // TODO
+#endif
 }
 
 }  // namespace atomstruct

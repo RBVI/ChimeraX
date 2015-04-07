@@ -21,11 +21,12 @@ struct AssocParams {
     std::vector<unsigned int>  gaps;
 
     AssocParams(int el,
-        std::vector<Sequence::Contents>::const_iterator& s_begin,
-        std::vector<Sequence::Contents>::const_iterator& s_end,
-        std::vector<unsigned int>::const_iterator& g_begin,
-        std::vector<unsigned int>::const_iterator& g_end):
+        std::vector<Sequence::Contents>::const_iterator s_begin,
+        std::vector<Sequence::Contents>::const_iterator s_end,
+        std::vector<unsigned int>::const_iterator g_begin,
+        std::vector<unsigned int>::const_iterator g_end):
         est_len(el), segments(s_begin, s_end), gaps(g_begin, g_end) {}
+    AssocParams(): est_len(0) {}
 };
 
 AssocParams  estimate_assoc_params(Chain&);

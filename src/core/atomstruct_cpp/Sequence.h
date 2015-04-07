@@ -37,6 +37,8 @@ public:
         InputIterator last) { _clear_cache(); _contents.assign(first, last); }
     Contents::reference  at(Contents::size_type n)
         { _clear_cache(); return _contents.at(n); }
+    Contents::const_reference  at(Contents::size_type n) const
+        { return _contents.at(n); }
     Contents::const_iterator  begin() const { return _contents.begin(); }
     void  clear() { _clear_cache(); _contents.clear(); }
     Contents::const_iterator  end() const { return _contents.end(); }

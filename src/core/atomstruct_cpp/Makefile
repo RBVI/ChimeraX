@@ -14,6 +14,7 @@ INCS	+= -I$(includedir)
 ifneq ($(OS),Windows)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
+seq_assoc.o : CXXFLAGS += -Wno-sign-compare
 LIBS	+= -L$(libdir) -ltmpl -llogger -lbasegeom
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)

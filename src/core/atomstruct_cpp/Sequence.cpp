@@ -134,7 +134,7 @@ Sequence::rname3to1(const std::string& rn)
     return (*l1i).second;
 }
 
-Sequence
+const Sequence::Contents&
 Sequence::ungapped() const
 {
     if (_cache_ungapped.empty()) {

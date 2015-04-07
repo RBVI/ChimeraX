@@ -304,6 +304,7 @@ AtomicStructure::make_chains() const
             // a _lot_ of errors can make it take a very long time to find the
             // answer, so limit the maximum...
             // (1vqn, chain 0 is > 2700 residues)
+#ifdef TODO
             unsigned int seq_len = chain->size();
             unsigned int gap_sum = 0;
             for (auto gap: ap.gaps) {
@@ -312,6 +313,7 @@ AtomicStructure::make_chains() const
             unsigned int max_errs = std::min(seq_len/2,
                 std::max(seq_len/10, gap_sum));
             //TODO: try_assoc
+#endif
         }
     }
 }
