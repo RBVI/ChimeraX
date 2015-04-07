@@ -213,11 +213,14 @@ class _AtomSpecSemantics:
         return model_list
 
     def model(self, ast):
-        m = _Model(ast.hierarchy)
+        m = _Model(ast.hierarchy, ast.attrs)
         if ast.parts is not None:
             for p in ast.parts:
-                m.add(p)
-        return m
+                m.add_part(p)
+        if ast.zone is None:
+            return m
+        ast.zone.model = m
+        return ast.zone
 
     def model_hierarchy(self, ast):
         hierarchy = _ModelHierarchy(ast.range_list)
@@ -250,30 +253,40 @@ class _AtomSpecSemantics:
         return ast.chain
 
     def chain(self, ast):
-        c = _Chain(ast.parts)
+        c = _Chain(ast.parts, ast.attrs)
         if ast.residue:
             for r in ast.residue:
-                c.add(r)
+                c.add_part(r)
         return c
 
     def residue(self, ast):
-        r = _Residue(ast.parts)
+        r = _Residue(ast.parts, ast.attrs)
         if ast.atom:
             for a in ast.atom:
-                r.add(a)
+                r.add_part(a)
         return r
 
     def atom(self, ast):
-        return _Atom(ast.parts)
+        return _Atom(ast.parts, ast.attrs)
 
     def part_list(self, ast):
         if ast.part is None:
             return _PartList(ast.range)
         else:
-            return ast.part.add(ast.range)
+            return ast.part.add_parts(ast.range)
 
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
+
+    def zone_selector(self, ast):
+        operator, distance = ast
+        return _ZoneSelector(operator, distance)
+
+    def zone_operator(self, ast):
+        return ast
+
+    def real_number(self, ast):
+        return float(ast)
 
 
 class _ModelList(list):
@@ -355,8 +368,9 @@ class _ModelRange:
 
 class _SubPart:
     """Stores part list for one item and subparts of the item."""
-    def __init__(self, my_parts):
+    def __init__(self, my_parts, my_attrs):
         self.my_parts = my_parts
+        self.my_attrs = my_attrs
         self.sub_parts = None
 
     def __str__(self):
@@ -371,7 +385,7 @@ class _SubPart:
         # print("_SubPart.__str__", self.__class__, r)
         return r
 
-    def add(self, subpart):
+    def add_part(self, subpart):
         if subpart is None:
             return
         if self.sub_parts is None:
@@ -381,6 +395,7 @@ class _SubPart:
 
     def find_selected_parts(self, model, atoms, num_atoms):
         # Only filter if a spec for this level is present
+        # TODO: account for my_attrs in addition to my_parts
         import numpy
         if self.my_parts is not None:
             my_selected = self._filter_parts(model, atoms, num_atoms)
@@ -439,6 +454,7 @@ class _Chain(_SubPart):
             model._atomspec_chain_ci = case_insensitive
         import numpy
         selected = numpy.zeros(num_atoms)
+        # TODO: account for my_attrs in addition to my_parts
         for part in self.my_parts.parts:
             if part.end is None:
                 if case_insensitive:
@@ -470,6 +486,7 @@ class _Residue(_SubPart):
         res_names = numpy.array(atoms.residues.names)
         res_numbers = atoms.residues.numbers
         selected = numpy.zeros(num_atoms)
+        # TODO: account for my_attrs in addition to my_parts
         for part in self.my_parts.parts:
             start_number = self._number(part.start)
             if part.end is None:
@@ -513,6 +530,7 @@ class _Atom(_SubPart):
         import numpy
         names = numpy.array(atoms.names)
         selected = numpy.zeros(num_atoms)
+        # TODO: account for my_attrs in addition to my_parts
         for part in self.my_parts.parts:
             if part.end is None:
                 def choose(name, v=part.start.lower()):
@@ -535,7 +553,7 @@ class _PartList:
     def __str__(self):
         return ','.join([str(p) for p in self.parts])
 
-    def add(self, part_range):
+    def add_parts(self, part_range):
         self.parts.append(part_range)
 
 
@@ -564,6 +582,37 @@ class _SelectorName:
         f = get_selector(session, self.name) or get_selector(None, self.name)
         if f:
             f(session, models, results)
+
+
+class _ZoneSelector:
+    """Stores zone operator and distance information."""
+    def __init__(self, operator, distance):
+        self.distance = distance
+        self.target_type = operator[0]  # '@', ':' or '#'
+        self.operator = operator[1:]    # '<', '<=', '>', '>='
+        self.model = None
+
+    def __str__(self):
+        return "%s%s%.3f" % (self.target_type, self.operator, self.distance)
+
+    def find_matches(self, session, models, results):
+        if self.model is None:
+            # No reference atomspec, so do nothing
+            return
+        return self.model.find_matches(session, models, results)
+
+    def matches(self, session, model):
+        if self.model is None:
+            return False
+        return self.model.matches(session, model)
+
+    def find_sub_parts(self, session, model, results):
+        if self.model is None:
+            return
+        my_results = AtomSpecResults()
+        self.model.find_sub_parts(session, model, my_results)
+        # TODO: expand my_results before combining with results
+        results.combine(my_results)
 
 
 class _Term:
@@ -664,6 +713,11 @@ class AtomSpecResults:
             self._atoms = atom_blob
         else:
             self._atoms.merge(atom_blob)
+
+    def combine(self, other):
+        for m in other.models:
+            self.add_model(m)
+        self.add_atoms(other.atoms)
 
     @property
     def models(self):

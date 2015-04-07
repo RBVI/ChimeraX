@@ -423,7 +423,12 @@ AtomicStructure::polymers() const
         if (start != nullptr) {
             Residue* sr = start->residue();
             Residue* nr = b->other_atom(start)->residue();
-            if (res_lookup[sr] + 1 == res_lookup[nr])
+            if (res_lookup[sr] + 1 == res_lookup[nr]
+            && sr->chain_id() == nr->chain_id())
+                // if an artificial linker is used to join
+                // otherwise unconnected amino acid chains,
+                // they all can have different chain IDs,
+                // and should be treated as separate chains (2atp)
                 connected[sr] = true;
         }
     }
@@ -435,7 +440,7 @@ AtomicStructure::polymers() const
             Residue *r1 = pb->atoms()[0]->residue();
             Residue *r2 = pb->atoms()[1]->residue();
             int index1 = res_lookup[r1], index2 = res_lookup[r2];
-            if (abs(index1 - index2) == 1) {
+            if (abs(index1 - index2) == 1 && r1->chain_id() == r2->chain_id()) {
                 if (index1 < index2) {
                     connected[r1] = true;
                 } else {

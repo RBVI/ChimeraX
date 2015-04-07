@@ -245,7 +245,7 @@ connect_residue_pairs(vector<Residue*> a, vector<Residue*> b, bool gap)
                 auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
                     atomstruct::AS_PBManager::GRP_NORMAL);
                 pbg->new_pseudobond(a0, a1);
-            } if (!a0->connects_to(a1))
+            } else if (!a0->connects_to(a1))
                 (void) a0->structure()->new_bond(a0, a1);
         }
     }
@@ -597,7 +597,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
             if (first_model_num == INT_MAX)
                 first_model_num = model_num;
             cur_model_num = model_num;
-            mol = molecules[cur_model_num] = new AtomicStructure;
+            mol = molecules[cur_model_num] = new AtomicStructure(_logger);
             cur_residue = nullptr;
         }
 
