@@ -1,16 +1,17 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from .cli import CmdDesc, BoolArg, IntArg, FloatArg, Float3Arg, EnumOf
+from .color import ColorArg
 _lighting_desc = CmdDesc(
-    optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple')))],
+    optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple', 'flat')))],
     keyword = [
         ('direction', Float3Arg),
         ('intensity', FloatArg),
-        ('color', Float3Arg),               # TODO: Color arg
+        ('color', ColorArg),
         ('fillDirection', Float3Arg),
         ('fillIntensity', FloatArg),
-        ('fillColor', Float3Arg),           # TODO: Color arg
+        ('fillColor', ColorArg),
         ('ambientIntensity', FloatArg),
-        ('ambientColor', Float3Arg),	    # TODO: Color arg
+        ('ambientColor', ColorArg),
         ('fixed', BoolArg),
         ('shadows', BoolArg),
         ('qualityOfShadows', EnumOf(('normal', 'fine', 'finer', 'coarse'))),
@@ -27,34 +28,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
 
     from .geometry.vector import normalize_vector as normalize
     from numpy import array, float32
-    if not direction is None:
-        lp.key_light_direction = array(normalize(direction), float32)
-    if not intensity is None:
-        lp.key_light_intensity = intensity
-    if not color is None:
-        lp.key_light_color = color[:3]
-    if not fillDirection is None:
-        lp.fill_light_direction = array(normalize(fillDirection), float32)
-    if not fillIntensity is None:
-        lp.fill_light_intensity = fillIntensity
-    if not fillColor is None:
-        lp.fill_light_color = fillColor[:3]
-    if not ambientIntensity is None:
-        lp.ambient_light_intensity = ambientIntensity
-    if not ambientColor is None:
-        lp.ambient_light_color = ambientColor[:3]
-    if not fixed is None:
-        lp.move_lights_with_camera = not fixed
-    if not shadows is None:
-        v.shadows = shadows
-    if not qualityOfShadows is None:
-        sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
-        if qualityOfShadows in sizes:
-            size = sizes[qualityOfShadows]
-        v.set_shadow_map_size(size)
-    if not multiShadow is None:
-        v.set_multishadow(multiShadow)
-    if preset == 'default':
+
+    if preset == 'default' or preset == 'simple':
         v.shadows = False
         v.set_multishadow(0)
         lp.set_default_parameters()
@@ -70,12 +45,41 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1.5
-    elif preset == 'simple':
+    elif preset == 'flat':
         v.shadows = False
         v.set_multishadow(0)
-        lp.key_light_intensity = 1
-        lp.fill_light_intensity = 0.5
-        lp.ambient_light_intensity = 0.4
+        lp.key_light_intensity = 0
+        lp.fill_light_intensity = 0
+        lp.ambient_light_intensity = 1
+        v.silhouettes = True
+
+    if not direction is None:
+        lp.key_light_direction = array(normalize(direction), float32)
+    if not intensity is None:
+        lp.key_light_intensity = intensity
+    if not color is None:
+        lp.key_light_color = color.rgba[:3]
+    if not fillDirection is None:
+        lp.fill_light_direction = array(normalize(fillDirection), float32)
+    if not fillIntensity is None:
+        lp.fill_light_intensity = fillIntensity
+    if not fillColor is None:
+        lp.fill_light_color = fillColor.rgba[:3]
+    if not ambientIntensity is None:
+        lp.ambient_light_intensity = ambientIntensity
+    if not ambientColor is None:
+        lp.ambient_light_color = ambientColor.rgba[:3]
+    if not fixed is None:
+        lp.move_lights_with_camera = not fixed
+    if not shadows is None:
+        v.shadows = shadows
+    if not qualityOfShadows is None:
+        sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
+        if qualityOfShadows in sizes:
+            size = sizes[qualityOfShadows]
+        v.set_shadow_map_size(size)
+    if not multiShadow is None:
+        v.set_multishadow(multiShadow)
 
     v.update_lighting = True
     v.redraw_needed = True
@@ -83,3 +87,42 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
 def register_lighting_command():
     from . import cli
     cli.register('lighting', _lighting_desc, lighting)
+
+_material_desc = CmdDesc(
+    optional = [('preset', EnumOf(('default', 'shiny', 'dull')))],
+    keyword = [
+        ('reflectivity', FloatArg),
+        ('specularReflectivity', FloatArg),
+        ('exponent', FloatArg),
+        ('ambientReflectivity', FloatArg),
+    ])
+
+def material(session, preset = None, reflectivity = None,
+             specularReflectivity = None, exponent = None,
+             ambientReflectivity = None):
+
+    v = session.main_view
+    m = v.material()
+
+    if preset == 'default':
+        m.set_default_parameters()
+    elif preset == 'shiny':
+        m.specular_reflectivity = 1
+    elif preset == 'dull':
+        m.specular_reflectivity = 0
+
+    if not reflectivity is None:
+        m.diffuse_reflectivity = reflectivity
+    if not specularReflectivity is None:
+        m.specular_reflectivity = specularReflectivity
+    if not exponent is None:
+        m.specular_exponent = exponent
+    if not ambientReflectivity is None:
+        m.ambient_reflectivity = ambientReflectivity
+
+    v.update_lighting = True
+    v.redraw_needed = True
+
+def register_material_command():
+    from . import cli
+    cli.register('material', _material_desc, material)

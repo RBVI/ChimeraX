@@ -9,6 +9,7 @@ import weakref
 from .graphics.drawing import Drawing
 from .session import State
 ADD_MODELS = 'add models'
+ADD_MODEL_GROUP = 'add model group'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
 
@@ -55,6 +56,7 @@ class Models(State):
     def __init__(self, session):
         self._session = weakref.ref(session)
         session.triggers.add_trigger(ADD_MODELS)
+        session.triggers.add_trigger(ADD_MODEL_GROUP)
         session.triggers.add_trigger(REMOVE_MODELS)
         self._models = {}
         from .graphics.drawing import Drawing
@@ -158,6 +160,7 @@ class Models(State):
             self.add(models, id=id)
             if start_count == 0 and len(self._models) > 0:
                 session.main_view.initial_camera_view()
+        return models
 
     def close(self, model_id):
         if model_id not in self._models:

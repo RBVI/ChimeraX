@@ -374,7 +374,6 @@ class Session:
         return version, metadata
 
 
-@cli.register('save', cli.CmdDesc(required=[('filename', cli.StringArg)]))
 def save(session, filename, **kw):
     """command line version of saving a session"""
     my_open = None
@@ -382,6 +381,8 @@ def save(session, filename, **kw):
         # called via export, it's really a stream
         output = filename
     else:
+        from os.path import expanduser
+        filename = expanduser(filename)         # Tilde expansion
         if not filename.endswith(SUFFIX):
             filename += SUFFIX
         my_open = _builtin_open

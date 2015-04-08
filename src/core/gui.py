@@ -142,8 +142,11 @@ class MainWindow(wx.Frame, PlainTextLog):
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
 
+        mlist = []
         for p in dlg.GetPaths():
-            session.models.open(p)
+            mlist.extend(session.models.open(p))
+        from .models import ADD_MODEL_GROUP
+        session.triggers.activate_trigger(ADD_MODEL_GROUP, mlist)
 
     def OnPaneClose(self, event):
         pane_info = event.GetPane()

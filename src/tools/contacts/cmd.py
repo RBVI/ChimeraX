@@ -33,13 +33,15 @@ def short_chain_names(names):
 
 def buried_areas(s, probe_radius, min_area = 1):
     # TODO: Use place matrices
-    s = tuple((name, xyz, r + probe_radius, place) for name, xyz, r, place in s)
-
+    s = [(name, xyz, r + probe_radius, place) for name, xyz, r, place in s]
+    s.sort(key = lambda v: len(v[1]), reverse = True)   # Biggest first for threading.
+    
     # Compute area of each atom set.
-    areas = []
     from chimera.core.surface import spheres_surface_area
-    for name, xyz, r, place in s:
-        areas.append(spheres_surface_area(xyz, r).sum())
+    from chimera.core.threadq import apply_to_list
+    def area(name, xyz, r, place):
+        return (name, spheres_surface_area(xyz,r).sum())
+    areas = apply_to_list(area, s)
 
     # Optimize buried area calculations using bounds of each atom set.
     naxes = 64
@@ -51,26 +53,32 @@ def buried_areas(s, probe_radius, min_area = 1):
     # Compute buried areas between all pairs.
     buried = []
     n = len(s)
+    pairs = []
+    from chimera.core.geometry import bounds_overlap
     for i in range(n):
-        n1, xyz1, r1, p1 = s[i]
         for j in range(i+1,n):
-            n2, xyz2, r2, p2 = s[j]
-            ba = optimized_buried_area(xyz1, r1, areas[i], bounds[i], xyz2, r2, areas[j], bounds[j], axes, probe_radius)
-#            ba = buried_area(xyz1, r1, areas[i], xyz2, r2, areas[j])
-            if ba >= min_area:
-                buried.append((n1, n2, ba))
+            if bounds_overlap(bounds[i], bounds[j], 0):
+                pairs.append((i,j))
+
+    def barea(i, j, s = s, bounds = bounds, axes = axes, probe_radius = probe_radius):
+        n1, xyz1, r1, p1 = s[i]
+        n2, xyz2, r2, p2 = s[j]
+        ba = optimized_buried_area(xyz1, r1, bounds[i], xyz2, r2, bounds[j], axes, probe_radius)
+        return (n1,n2,ba)
+    bareas = apply_to_list(barea, pairs)
+    buried = [(n1,n2,ba) for n1,n2,ba in bareas if ba >= min_area]
     buried.sort(key = lambda a: a[2], reverse = True)
 
-    ca = zip(tuple(name for name,xyz,r,place in s), areas)
-    return ca, buried
+    return areas, buried
 
 # Consider only spheres in each set overlapping bounds of other set.
-def optimized_buried_area(xyz1, r1, a1, b1, xyz2, r2, a2, b2, axes, probe_radius):
+def optimized_buried_area(xyz1, r1, b1, xyz2, r2, b2, axes, probe_radius):
 
-    from chimera.core.geometry import bounds_overlap, spheres_in_bounds
-    if not bounds_overlap(b1, b2, 0):
-        return 0
+#    from chimera.core.geometry import bounds_overlap, spheres_in_bounds
+#    if not bounds_overlap(b1, b2, 0):
+#        return 0
 
+    from chimera.core.geometry import spheres_in_bounds
     i1 = spheres_in_bounds(xyz1, r1, axes, b2, 0)
     i2 = spheres_in_bounds(xyz2, r2, axes, b1, 0)
     if len(i1) == 0 or len(i2) == 0:

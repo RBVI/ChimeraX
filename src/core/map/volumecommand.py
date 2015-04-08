@@ -486,7 +486,7 @@ def volume_cmd(session, maps = 'all', show = None, hide = None, style = None, le
     if not level is None:
         level = [[level]]
     if not color is None:
-        color = [color]
+        color = [color.rgba]
     volume(maps, show = show, hide = hide, style = style, level = level, step = step,
            color = color, transparency = transparency, showOutlineBox = showOutlineBox,
            session = session)
@@ -526,7 +526,8 @@ def all_maps(models):
 # Register the volume command for Chimera 2.
 #
 def register_volume_command():
-    from ..cli import CmdDesc, BoolArg, FloatArg, IntArg, Float3Arg, EnumOf, register
+    from ..cli import CmdDesc, BoolArg, FloatArg, IntArg, EnumOf, register
+    from ..color import ColorArg
     _volume_desc = CmdDesc(
         optional = [('maps', MapsArg)],
         keyword = [
@@ -534,7 +535,7 @@ def register_volume_command():
             ('hide', BoolArg),
             ('level', FloatArg),
             ('step', IntArg),
-            ('color', Float3Arg),
+            ('color', ColorArg),
             ('transparency', FloatArg),
             ('showOutlineBox', BoolArg),
             ('style', EnumOf(('surface', 'mesh', 'solid'))),
