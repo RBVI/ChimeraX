@@ -44,8 +44,8 @@ def test(session):
         f = open("/Users/pett/rm/diff.txt", "w")
         import io
         log_string = io.StringIO("")
-        s1_sb = s1_ab = structures[0].mol_blob
-        s2_sb = s1_ab = structures[1].mol_blob
+        s1_sb = structures[0].mol_blob
+        s2_sb = structures[1].mol_blob
         s1_ab = s1_sb.atoms
         s2_ab = s2_sb.atoms
         s1_id = structures[0].id
@@ -90,24 +90,24 @@ def test(session):
         print("# bonds in model {}: {}".format(s1_id, len(s1_bb)), file=log_string)
         print("# bonds in model {}: {}".format(s2_id, len(s2_bb)), file=f)
         print("# bonds in model {}: {}".format(s2_id, len(s2_bb)), file=log_string)
-        s1_atom_info = list(zip(s1_rb.strs, s1_ab.names))
         s1_bond_set = set()
-        for i1, i2 in structures[0].mol_blob.bond_indices:
-            if s1_atom_info[i1] < s1_atom_info[i2]:
-                b1, b2 = i1, i2
-            else:
-                b1, b2 = i2, i1
-            s1_bond_set.add("{} {}/{} {}".format(s1_atom_info[b1][0],
-                s1_atom_info[b1][1], s1_atom_info[b2][0], s1_atom_info[b2][1]))
-        s2_atom_info = list(zip(s2_rb.strs, s2_ab.names))
+        bond_ab1, bond_ab2 = s1_bb.atoms
+        for  rstr1, aname1, rstr2, aname2 in zip(bond_ab1.residues.strs,
+                bond_ab1.names, bond_ab2.residues.strs, bond_ab2.names):
+            id1 = (rstr1, aname1)
+            id2 = (rstr2, aname2)
+            if id1 > id2:
+                id1, id2 = id2, id1
+            s1_bond_set.add("{} {}/{} {}".format(id1[0], id1[1], id2[0], id2[1]))
         s2_bond_set = set()
-        for i1, i2 in structures[1].mol_blob.bond_indices:
-            if s2_atom_info[i1] < s2_atom_info[i2]:
-                b1, b2 = i1, i2
-            else:
-                b1, b2 = i2, i1
-            s2_bond_set.add("{} {}/{} {}".format(s2_atom_info[b1][0],
-                s2_atom_info[b1][1], s2_atom_info[b2][0], s2_atom_info[b2][1]))
+        bond_ab1, bond_ab2 = s2_bb.atoms
+        for  rstr1, aname1, rstr2, aname2 in zip(bond_ab1.residues.strs,
+                bond_ab1.names, bond_ab2.residues.strs, bond_ab2.names):
+            id1 = (rstr1, aname1)
+            id2 = (rstr2, aname2)
+            if id1 > id2:
+                id1, id2 = id2, id1
+            s2_bond_set.add("{} {}/{} {}".format(id1[0], id1[1], id2[0], id2[1]))
         print("Bonds in {} model but not {} ({}):".format(s1_id, s2_id, len(s1_bond_set - s2_bond_set)), file=f)
         print("Bonds in {} model but not {} ({}):".format(s1_id, s2_id, len(s1_bond_set - s2_bond_set)), file=log_string)
         for bond_info in  s1_bond_set - s2_bond_set:
