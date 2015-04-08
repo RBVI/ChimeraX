@@ -9,7 +9,7 @@ SRCS= $(wildcard *.cpp)
 OBJS= $(SRCS:.cpp=.o)
 INCS += $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(includedir)
 ifneq ($(OS),Windows)
-CXXFLAGS += -Wno-invalid-offsetof -Wno-deprecated-writable-strings
+CXXFLAGS += -Wno-invalid-offsetof -Wno-deprecated-writable-strings -Wno-missing-field-initializers
 endif
 LIBS += -L$(libdir) -latomstruct $(PYTHON_LIB)
 
