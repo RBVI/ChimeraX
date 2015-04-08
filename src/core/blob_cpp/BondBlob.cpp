@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 
+#include "AtomBlob.h"
 #include "BondBlob.h"
 #include "numpy_common.h"
 #include "blob_op.h"
@@ -25,6 +26,27 @@ BondBlob_dealloc(PyObject* obj)
 }
 
 static const char BondBlob_doc[] = "BondBlob documentation";
+
+static PyObject*
+bb_atoms(PyObject* self, void*)
+{
+    BondBlob* bb = static_cast<BondBlob*>(self);
+    PyObject* py_ab1 = new_blob<AtomBlob>(&AtomBlob_type);
+    AtomBlob* ab1 = static_cast<AtomBlob*>(py_ab1);
+    PyObject* py_ab2 = new_blob<AtomBlob>(&AtomBlob_type);
+    AtomBlob* ab2 = static_cast<AtomBlob*>(py_ab2);
+    for (auto& b: *bb->_items) {
+        auto& atoms = b->atoms();
+        ab1->_items->emplace_back(atoms[0]);
+        ab2->_items->emplace_back(atoms[1]);
+    }
+    PyObject* blob_list = PyTuple_New(2);
+    if (blob_list == NULL)
+        return NULL;
+    PyTuple_SET_ITEM(blob_list, 0, py_ab1);
+    PyTuple_SET_ITEM(blob_list, 1, py_ab2);
+    return blob_list;
+}
 
 static PyObject*
 bb_colors(PyObject* self, void*)
@@ -128,6 +150,8 @@ static PyMethodDef BondBlob_methods[] = {
 };
 
 static PyGetSetDef BondBlob_getset[] = {
+    { (char*)"atoms", bb_atoms, NULL,
+        (char*)"2-tuple of atom blobs", NULL},
     { (char*)"colors", bb_colors, bb_set_colors,
         (char*)"numpy Nx4 array of (unsigned char) RGBA values", NULL},
     { (char*)"displays", bb_displays, bb_set_displays,
