@@ -36,44 +36,50 @@ class SafeSaveFile:
     on failure.  Defaults to writing binary files.  If no encoding is given
     for a text file, then the UTF-8 encoding is assumed.
     Locking is not provided.
+
+    TODO: document __init__ parameters
     """
 
-    def __init__(self, filename, mode='wb', encoding=None):
+    def __init__(self, filename, mode='wb', encoding=None, critical=False):
         assert('w' in mode)
         if 'b' not in mode and encoding is None:
             encoding = 'utf-8'
         save_dir = os.path.dirname(filename)
-        if not os.path.isdir(save_dir):
+        if save_dir and not os.path.isdir(save_dir):
             import errno
             raise OSError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), save_dir)
-        self.filename = filename
-        self.tmp_filename = filename + ".tmp"
+        self.name = filename
         self.mode = mode
-        self.f = open(self.tmp_filename, mode, encoding=encoding)
+        self._critical = critical
+        self._tmp_filename = filename + ".tmp"
+        self._f = open(self._tmp_filename, mode, encoding=encoding)
 
     def __enter__(self):
-        return self.f
+        return self._f
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if not self.f.closed:
-            self.f.flush()
-            os.fsync(self.f)
-            self.f.close()
+        if not self._f.closed:
+            if self._critical:
+                self._f.flush()
+                os.fsync(self._f)
+            self._f.close()
 
-        if exc_type is not None:
-            if os.path.exists(self.tmp_filename):
-                os.unlink(self.tmp_filename)
-            self.tmp_filename = None
+        if self._tmp_filename is None:
             return
 
-        if self.tmp_filename is None:
+        if exc_type is not None:
+            if os.path.exists(self._tmp_filename):
+                os.unlink(self._tmp_filename)
+            self._tmp_filename = None
             return
 
         try:
-            os.rename(self.tmp_filename, self.filename)
+            os.rename(self._tmp_filename, self.name)
+        except Exception:
+            os.remove(self._tmp_filename)
+            raise
         finally:
-            os.remove(self.tmp_filename)
-            self.tmp_filename = None
+            self._tmp_filename = None
 
     def close(self, exception=None):
         """Close temporary file and rename it to desired filename"""
@@ -88,8 +94,56 @@ class SafeSaveFile:
 
     def write(self, buf):
         """Forward writing to temporary file"""
-        self.f.write(buf)
+        self._f.write(buf)
 
     def writelines(self, lines):
         """Forward writing to temporary file"""
-        self.f.writelines(lines)
+        self._f.writelines(lines)
+
+if __name__ == '__main__':
+    testfile = 'testfile.test'
+
+    def check_contents(contents):
+        f = open(testfile)
+        data = f.read()
+        assert(data == contents)
+        f.close()
+
+    if os.path.exists(testfile):
+        print('testfile:', testfile, 'already exists')
+        raise SystemExit(1)
+    try:
+        # create testfile with initial contents
+        try:
+            f = open(testfile, 'w')
+            f.write('A')
+            f.close()
+        except Exception as e:
+            print('unable to create testfile:', testfile)
+            raise SystemExit(1)
+        check_contents('A')
+
+        # overwrite the testfile
+        with SafeSaveFile(testfile, 'w') as f:
+            check_contents('A')
+            f.write('B')
+            f.flush()
+            check_contents('A')
+        check_contents('B')
+
+        # try to overwrite the filefile, but fail
+        try:
+            with SafeSaveFile(testfile, 'w') as f:
+                check_contents('B')
+                f.write('A')
+                f.flush()
+                raise RuntimeError("fail")
+        except:
+            pass
+            # print('successfully failed')
+        assert(not os.path.exists(testfile + '.tmp'))
+        check_contents('B')
+
+    finally:
+        if os.path.exists(testfile):
+            os.unlink(testfile)
