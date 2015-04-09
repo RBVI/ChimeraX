@@ -244,6 +244,8 @@ def mmcif_id(mmcif_file):
 
 
 def compare_all():
+    from datetime import datetime, timedelta
+    start_time = datetime.now()
     pdb_files = file_gen(PDB_DIR)
     mmcif_files = file_gen(MMCIF_DIR)
 
@@ -276,6 +278,18 @@ def compare_all():
         all_same = all_same and same
         pdb_info = next_info(pdb_files)
         mmcif_info = next_info(mmcif_files)
+    end_time = datetime.now()
+    delta = end_time - start_time
+    days = delta // timedelta(days=1)
+    delta -= days * timedelta(days=1)
+    hours = delta // timedelta(hours=1)
+    delta -= hours * timedelta(hours=1)
+    minutes = delta // timedelta(minutes=1)
+    delta -= minutes * timedelta(minutes=1)
+    seconds = delta // timedelta(seconds=1)
+    delta -= seconds * timedelta(seconds=1)
+    microseconds = delta // timedelta(microseconds=1)
+    print('Total time:', days, 'days,', hours, 'hours,', minutes, 'minutes,', seconds, 'seconds,', microseconds, 'microseconds')
     Chimera2_session.logger.clear()
     raise SystemExit(os.EX_OK if all_same else os.EX_DATAERR)
 

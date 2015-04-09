@@ -1,3 +1,3 @@
-APP = compare
+APP = structcomp
 
 include ../moduleapp/Makefile

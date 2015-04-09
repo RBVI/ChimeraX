@@ -1,7 +1,7 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = $(APP_NAME)
+SUBDIRS = $(APP_NAME) structcomp
 
 include $(TOP)/mk/subdir.make
 
