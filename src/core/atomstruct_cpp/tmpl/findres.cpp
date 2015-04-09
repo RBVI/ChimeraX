@@ -55,16 +55,6 @@ find_template_residue(const std::string &name, bool start, bool end)
     if (mapped_name == "HIS")
         mapped_name.assign("HID");
 
-    // DNA templates have old names, remap...
-    if (mapped_name == "DA")
-        mapped_name.assign("A");
-    if (mapped_name == "DC")
-        mapped_name.assign("C");
-    if (mapped_name == "DG")
-        mapped_name.assign("G");
-    if (mapped_name == "DT")
-        mapped_name.assign("T");
-
     ResInitMap::iterator i = resmap.find(mapped_name);
     ResInit *ri = (i == resmap.end()) ? NULL : &i->second;
     Residue *r;

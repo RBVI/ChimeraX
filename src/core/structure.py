@@ -52,16 +52,14 @@ class StructureModel(models.Model):
         radii = self.atom_display_radii()
         colors = a.colors
         display = a.displays
-        draw_modes = a.draw_modes
         b = m.bonds
         bradii = b.radii
         halfbond = b.halfbonds
         bcolors = b.colors
-        bonds = m.bond_indices
 
         # Create graphics
         self.create_atom_spheres(coords, radii, colors, display)
-        self.update_bond_graphics(bonds, coords, display, draw_modes, bradii, bcolors, colors, halfbond)
+        self.update_bond_graphics(b.atoms, a.draw_modes, bradii, bcolors, halfbond)
 
     def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -82,9 +80,9 @@ class StructureModel(models.Model):
     def update_graphics(self):
         m = self.mol_blob
         a = m.atoms
-        b, bi = m.bonds, m.bond_indices
+        b = m.bonds
         self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
-        self.update_bond_graphics(bi, a.coords, a.displays, a.draw_modes, b.radii, b.colors, a.colors, b.halfbonds)
+        self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
 
     def update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -128,8 +126,8 @@ class StructureModel(models.Model):
         a.colors = chain_colors(a.residues.chain_ids)
         self.update_graphics()
 
-    def update_bond_graphics(self, bonds, atom_coords, atom_display, draw_mode, radii,
-                             bond_colors, atom_colors, half_bond_coloring):
+    def update_bond_graphics(self, bond_atoms, draw_mode, radii,
+                             bond_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
             if (draw_mode == self.SPHERE_STYLE).all():
@@ -141,26 +139,26 @@ class StructureModel(models.Model):
             p.geometry = va, ta
             p.normals = na
 
-        p.positions = bond_cylinder_placements(bonds, atom_coords, radii, half_bond_coloring)
-        p.display_positions = self.shown_bond_cylinders(bonds, atom_display, draw_mode, half_bond_coloring)
-        self.set_bond_colors(bonds, bond_colors, atom_colors, half_bond_coloring)
+        p.positions = bond_cylinder_placements(bond_atoms, radii, half_bond_coloring)
+        p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
+        self.set_bond_colors(bond_atoms, bond_colors, half_bond_coloring)
 
-    def set_bond_colors(self, bonds, bond_colors, atom_colors, half_bond_coloring):
+    def set_bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
         p = self._bonds_drawing
         if p is None:
             return
 
         if half_bond_coloring.any():
-            bc0,bc1 = atom_colors[bonds[:,0],:], atom_colors[bonds[:,1],:]
+            bc0,bc1 = bond_atoms[0].colors, bond_atoms[1].colors
             from numpy import concatenate
             p.colors = concatenate((bc0,bc1))
         else:
             p.colors = bond_colors
 
-    def shown_bond_cylinders(self, bonds, atom_display, draw_mode, half_bond_coloring):
-        sb = atom_display[bonds[:,0]] & atom_display[bonds[:,1]]  # Show bond if both atoms shown
-        ns = ((draw_mode[bonds[:,0]] != self.SPHERE_STYLE) |
-              (draw_mode[bonds[:,1]] != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
+    def shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
+        sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown
+        ns = ((bond_atoms[0].draw_modes != self.SPHERE_STYLE) |
+              (bond_atoms[1].draw_modes != self.SPHERE_STYLE))       # Don't show if both atoms in sphere style
         import numpy
         numpy.logical_and(sb,ns,sb)
         if half_bond_coloring.any():
@@ -253,18 +251,18 @@ class Picked_Atom(Pick):
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
 #
-def bond_cylinder_placements(bonds, xyz, radius, half_bond):
+def bond_cylinder_placements(bond_atoms, radius, half_bond):
 
   # TODO: Allow per-bound variation in half-bond mode.
   half_bond = half_bond.any()
 
-  n = len(bonds)
+  n = len(bond_atoms[0])
   from numpy import empty, float32, transpose, sqrt, array
   nc = 2*n if half_bond else n
   p = empty((nc,4,4), float32)
   
   p[:,3,:] = (0,0,0,1)
-  axyz0, axyz1 = xyz[bonds[:,0],:], xyz[bonds[:,1],:]
+  axyz0, axyz1 = bond_atoms[0].coords, bond_atoms[1].coords
   if half_bond:
     p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
     p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1

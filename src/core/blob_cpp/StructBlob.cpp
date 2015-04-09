@@ -81,44 +81,6 @@ sb_bonds(PyObject* self, void*)
 }
 
 static PyObject*
-sb_bond_indices(PyObject* self, void*)
-{
-    StructBlob* sb = static_cast<StructBlob*>(self);
-    PyObject* py_ab = sb_atoms(self, nullptr);
-    AtomBlob* ab = static_cast<AtomBlob*>(py_ab);
-    // map is faster than unordered map, even if preallocated
-    // (on Apple LLVM version 5.1 (clang-503.0.40))
-    std::map<Atom *, AtomBlob::ItemsType::size_type> atom_map;
-    decltype(atom_map)::mapped_type i = 0;
-    auto& a_items = ab->_items;
-    for (auto ai = a_items->begin(); ai != a_items->end(); ++ai, ++i) {
-        atom_map[(*ai).get()] = i;
-    }
-    AtomicStructure::Bonds::size_type bonds_size = 0;
-    auto& s_items = sb->_items;
-    for (auto si = s_items->begin(); si != s_items->end(); ++si) {
-        AtomicStructure *s = (*si).get();
-        bonds_size += s->bonds().size();
-    }
-    // since the type of the shape array is unsigned int, don't bother
-    // with sophisticated code to determine the size of indices, just
-    // use NPY_INT, (not unsigned so that the Python code can do tricks
-    // if it likes by using negative indices)
-    if (PyArray_API == NULL)
-        import_array1(NULL); // initialize NumPy
-    unsigned int shape[2] = {(unsigned int)bonds_size, 2};
-    PyObject* bond_list = allocate_python_array(2, shape, NPY_INT);
-    int* index_data = (int*) PyArray_DATA((PyArrayObject*)bond_list);
-    for (auto& as: *s_items) {
-        for (auto& b: as->bonds()) {
-            *index_data++ = atom_map[b->atoms()[0]];
-            *index_data++ = atom_map[b->atoms()[1]];
-        }
-    }
-    return bond_list;
-}
-
-static PyObject*
 sb_displays(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
@@ -283,8 +245,6 @@ static PyGetSetDef StructBlob_getset[] = {
     { "ball_scales", sb_ball_scales, sb_set_ball_scales,
         "numpy array of (float) ball scales", NULL},
     { "bonds", sb_bonds, NULL, "BondBlob", NULL},
-    { "bond_indices", sb_bond_indices, NULL,
-        "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
     { "displays", sb_displays, sb_set_displays,
         "numpy array of (bool) displays", NULL},
     { "num_atoms", sb_num_atoms, NULL, "number of atoms", NULL},
