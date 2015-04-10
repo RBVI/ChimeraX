@@ -712,7 +712,7 @@ class AtomSpecResults:
         if self._atoms is None:
             self._atoms = atom_blob
         else:
-            self._atoms.merge(atom_blob)
+            self._atoms = self._atoms.merge(atom_blob)
 
     def combine(self, other):
         for m in other.models:
