@@ -33,6 +33,17 @@ class FlushFile:
 sys.stdout = FlushFile(sys.stdout)
 
 
+def pseudo_bonds(atom_strs, bond_indices):
+    bonds = set()
+    for i0, i1 in bond_indices:
+        a0 = atom_strs[i0]
+        a1 = atom_strs[i1]
+        if a1 < a0:
+            a0, a1 = a1, a0
+        bonds.add("%s/%s" % (a0, a1))
+    return bonds
+
+
 def compare(pdb_id, pdb_path, mmcif_path):
     # return True if they differ
     print('Comparing %s' % pdb_id)
@@ -85,19 +96,23 @@ def compare(pdb_id, pdb_path, mmcif_path):
 
             # bonds
             pdb_bonds = set()
-            for i1, i2 in p.mol_blob.bond_indices:
-                if pdb_atoms[i1] < pdb_atoms[i2]:
-                    b1, b2 = i1, i2
-                else:
-                    b1, b2 = i2, i1
-                pdb_bonds.add("%s/%s" % (pdb_atoms[b1], pdb_atoms[b2]))
+            a0s, a1s = p.mol_blob.bonds.atoms
+            for  rstr0, aname0, rstr1, aname1 in zip(a0s.residues.strs,
+                    a0s.names, a1s.residues.strs, a1s.names):
+                id0 = (rstr0, aname0)
+                id1 = (rstr1, aname1)
+                if id0 > id1:
+                    id0, id1 = id1, id0
+                pdb_bonds.add("%s@%s/%s@%s" % (id0 + id1))
             mmcif_bonds = set()
-            for i1, i2 in m.mol_blob.bond_indices:
-                if mmcif_atoms[i1] < mmcif_atoms[i2]:
-                    b1, b2 = i1, i2
-                else:
-                    b1, b2 = i2, i1
-                mmcif_bonds.add("%s/%s" % (mmcif_atoms[b1], mmcif_atoms[b2]))
+            a0s, a1s = m.mol_blob.bonds.atoms
+            for  rstr0, aname0, rstr1, aname1 in zip(a0s.residues.strs,
+                    a0s.names, a1s.residues.strs, a1s.names):
+                id0 = (rstr0, aname0)
+                id1 = (rstr1, aname1)
+                if id0 > id1:
+                    id0, id1 = id1, id0
+                mmcif_bonds.add("%s@%s/%s@%s" % (id0 + id1))
             common = pdb_bonds & mmcif_bonds
             extra = pdb_bonds - common
             if extra:
@@ -155,27 +170,29 @@ def compare(pdb_id, pdb_path, mmcif_path):
                 extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra pdb pseudobond group(s):', extra)
                 same = False
+            pbg = 'missing structure'
+            if pbg in extra:
+                bonds = pseudo_bonds(pdb_atoms, pdb_pbg_map[pbg].bond_indices)
+                bonds = list(bonds)
+                bonds.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra pdb', pbg, 'bond(s):', bonds)
             extra = mmcif_pbgs - common_pbgs
             if extra:
                 extra = list(extra)
                 extra.sort()
                 print('error: %s:' % pdb_id, len(extra), 'extra mmcif pseudobond group(s):', extra)
                 same = False
+            pbg = 'missing structure'
+            if pbg in extra:
+                bonds = pseudo_bonds(mmcif_atoms, mmcif_pbg_map[pbg].bond_indices)
+                bonds = list(bonds)
+                bonds.sort()
+                print('error: %s:' % pdb_id, len(extra), 'extra mmcif', pbg, 'bond(s):', bonds)
             for pbg in common_pbgs:
-                pdb_bonds = set()
-                for i1, i2 in pdb_pbg_map[pbg].bond_indices:
-                    if pdb_atoms[i1] < pdb_atoms[i2]:
-                        b1, b2 = i1, i2
-                    else:
-                        b1, b2 = i2, i1
-                    pdb_bonds.add("%s/%s" % (pdb_atoms[b1], pdb_atoms[b2]))
-                mmcif_bonds = set()
-                for i1, i2 in mmcif_pbg_map[pbg].bond_indices:
-                    if mmcif_atoms[i1] < mmcif_atoms[i2]:
-                        b1, b2 = i1, i2
-                    else:
-                        b1, b2 = i2, i1
-                    mmcif_bonds.add("%s/%s" % (mmcif_atoms[b1], mmcif_atoms[b2]))
+                pdb_bonds = pseudo_bonds(pdb_atoms,
+                        pdb_pbg_map[pbg].bond_indices)
+                mmcif_bonds = pseudo_bonds(mmcif_atoms,
+                        mmcif_pbg_map[pbg].bond_indices)
                 common = pdb_bonds & mmcif_bonds
                 extra = pdb_bonds - common
                 if extra:
