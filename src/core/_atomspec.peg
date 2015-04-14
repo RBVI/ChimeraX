@@ -1,11 +1,14 @@
 (* vi: set expandtab shiftwidth=4 softtabstop=4: *)
 
-atom_specifier   = left:atom_specifier operator:'&' right:as_term
-                 | left:atom_specifier operator:'|' right:as_term
+(* Remember to use left recursion when needed, not right *)
+
+atom_specifier   = left:as_term operator:'&' right:atom_specifier
+                 | left:as_term operator:'|' right:atom_specifier
                  | left:as_term
                  ;
 
-as_term          = '(' term:as_term  ')'
+as_term          = '(' atomspec:atom_specifier ')'
+                 | '~' tilde:as_term
                  | selector:selector_name
                  | models:model_list
                  ;
@@ -13,7 +16,7 @@ as_term          = '(' term:as_term  ')'
 selector_name    = name:/[a-zA-Z_][a-zA-Z0-9_]*/
                  ;
 
-model_list       = { model+:model }*
+model_list       = { model+:model }+
                  ;
 
 model            = '##' attrs:attribute_list [ parts:model_parts ] [ zone:zone_selector ]
@@ -52,7 +55,7 @@ atom             = '@@' attrs:attribute_list
                  | '@' parts:part_list
                  ;
 
-part_list        = part:part_list ',' range:part_range_list
+part_list        = range:part_range_list ',' part_list
                  | range:part_range_list 
                  ;
 
