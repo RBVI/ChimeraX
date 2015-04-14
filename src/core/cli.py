@@ -618,8 +618,20 @@ def unescape(text):
 
     Follows Python's :ref:`string literal <python:literals>` syntax
     for escape sequences."""
+    return unescape_with_index_map(text)[0]
+
+
+def unescape_with_index_map(text):
+    """Replace backslash escape sequences with actual character.
+
+    :param text: the input text
+    :returns: the processed text and index map from processed to input text
+
+    Follows Python's :ref:`string literal <python:literals>` syntax
+    for escape sequences."""
     # standard Python backslashes including \N{unicode name}
     start = 0
+    index_map = range(len(text))
     while start < len(text):
         index = text.find('\\', start)
         if index == -1:
@@ -629,11 +641,14 @@ def unescape(text):
         escaped = text[index + 1]
         if escaped in _escape_table:
             text = text[:index] + _escape_table[escaped] + text[index + 2:]
+            # Assumes that replacement is a single character
+            index_map = index_map[:index] + index_map[index + 1:]
             start = index + 1
         elif escaped == 'o':
             try:
                 char = chr(int(text[index + 2: index + 5], 8))
                 text = text[:index] + char + text[index + 5:]
+                index_map = index_map[:index] + index_map[index + 4:]
             except ValueError:
                 pass
             start = index + 1
@@ -641,6 +656,7 @@ def unescape(text):
             try:
                 char = chr(int(text[index + 2: index + 4], 16))
                 text = text[:index] + char + text[index + 4:]
+                index_map = index_map[:index] + index_map[index + 3:]
             except ValueError:
                 pass
             start = index + 1
@@ -648,6 +664,7 @@ def unescape(text):
             try:
                 char = chr(int(text[index + 2: index + 6], 16))
                 text = text[:index] + char + text[index + 6:]
+                index_map = index_map[:index] + index_map[index + 5:]
             except ValueError:
                 pass
             start = index + 1
@@ -655,6 +672,7 @@ def unescape(text):
             try:
                 char = chr(int(text[index + 2: index + 10], 16))
                 text = text[:index] + char + text[index + 10:]
+                index_map = index_map[:index] + index_map[index + 9:]
             except ValueError:
                 pass
             start = index + 1
@@ -669,13 +687,14 @@ def unescape(text):
                 try:
                     char = unicodedata.lookup(name)
                     text = text[:index] + char + text[end + 1:]
+                    index_map = index_map[:index] + index_map[end:]
                 except KeyError:
                     pass
             start = index + 1
         else:
             # leave backslash in text like Python
             start = index + 1
-    return text
+    return text, index_map
 
 
 def next_token(text):
