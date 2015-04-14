@@ -237,27 +237,72 @@ static PyMethodDef StructBlob_methods[] = {
         (char*)"filter structure blob based on array/list of booleans" },
     { (char*)"intersect", blob_intersect<StructBlob>, METH_O,
         (char*)"intersect structure blobs" },
+    { (char*)"merge", blob_merge<StructBlob>, METH_O,
+        (char*)"merge atom blobs" },
+    { (char*)"subtract", blob_subtract<StructBlob>, METH_O,
+        (char*)"subtract atom blobs" },
     { NULL, NULL, 0, NULL }
 };
 
+static PyNumberMethods StructBlob_as_number = {
+    0,                                      // nb_add
+    (binaryfunc)blob_subtract<StructBlob>,  // nb_subtract
+    0,                                      // nb_multiply
+    0,                                      // nb_remainder
+    0,                                      // nb_divmod
+    0,                                      // nb_power
+    0,                                      // nb_negative
+    0,                                      // nb_positive
+    0,                                      // nb_absolute
+    0,                                      // nb_bool
+    0,                                      // nb_invert
+    0,                                      // nb_lshift
+    0,                                      // nb_rshift
+    (binaryfunc)blob_intersect<StructBlob>, // nb_and
+    0,                                      // nb_xor
+    (binaryfunc)blob_merge<StructBlob>,     // nb_or
+    0,                                      // nb_int
+    0,                                      // nb_reserved
+    0,                                      // nb_float
+    0,                                      // nb_inplace_add
+    0,                                      // nb_inplace_subtract
+    0,                                      // nb_inplace_multiply
+    0,                                      // nb_inplace_remainder
+    0,                                      // nb_inplace_power
+    0,                                      // nb_inplace_lshift
+    0,                                      // nb_inplace_rshift
+    0,                                      // nb_inplace_and
+    0,                                      // nb_inplace_xor
+    0,                                      // nb_inplace_or
+};
+
 static PyGetSetDef StructBlob_getset[] = {
-    { "atoms", sb_atoms, NULL, "AtomBlob", NULL},
-    { "ball_scales", sb_ball_scales, sb_set_ball_scales,
-        "numpy array of (float) ball scales", NULL},
-    { "bonds", sb_bonds, NULL, "BondBlob", NULL},
-    { "displays", sb_displays, sb_set_displays,
-        "numpy array of (bool) displays", NULL},
-    { "num_atoms", sb_num_atoms, NULL, "number of atoms", NULL},
-    { "num_bonds", sb_num_bonds, NULL, "number of bonds", NULL},
-    { "num_hyds", sb_num_hyds, NULL, "number of hydrogens", NULL},
-    { "num_residues", sb_num_residues, NULL, "number of residues", NULL},
-    { "num_chains", sb_num_chains, NULL, "number of chains", NULL},
-    { "num_coord_sets", sb_num_coord_sets, NULL, "number of coord sets", NULL},
-    { "pbg_map", sb_pbg_map, NULL,
-        "dict keyed on pb group name, value = group blob", NULL},
-    { "structures", sb_structures, NULL,
-        "list of one-structure-model StructBlobs", NULL},
-    { "residues", sb_residues, NULL, "ResBlob", NULL},
+    { (char*)"atoms", sb_atoms, NULL,
+        (char*)"AtomBlob", NULL},
+    { (char*)"ball_scales", sb_ball_scales, sb_set_ball_scales,
+        (char*)"numpy array of (float) ball scales", NULL},
+    { (char*)"bonds", sb_bonds, NULL,
+        (char*)"BondBlob", NULL},
+    { (char*)"displays", sb_displays, sb_set_displays,
+        (char*)"numpy array of (bool) displays", NULL},
+    { (char*)"num_atoms", sb_num_atoms, NULL,
+        (char*)"number of atoms", NULL},
+    { (char*)"num_bonds", sb_num_bonds, NULL,
+        (char*)"number of bonds", NULL},
+    { (char*)"num_hyds", sb_num_hyds, NULL,
+        (char*)"number of hydrogens", NULL},
+    { (char*)"num_residues", sb_num_residues, NULL,
+        (char*)"number of residues", NULL},
+    { (char*)"num_chains", sb_num_chains, NULL,
+        (char*)"number of chains", NULL},
+    { (char*)"num_coord_sets", sb_num_coord_sets, NULL,
+        (char*)"number of coord sets", NULL},
+    { (char*)"pbg_map", sb_pbg_map, NULL,
+        (char*)"dict keyed on pb group name, value = group blob", NULL},
+    { (char*)"structures", sb_structures, NULL,
+        (char*)"list of one-structure-model StructBlobs", NULL},
+    { (char*)"residues", sb_residues, NULL,
+        (char*)"ResBlob", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -276,7 +321,7 @@ PyTypeObject StructBlob_type = {
     0, // tp_setattr
     0, // tp_reserved
     0, // tp_repr
-    0, // tp_as_number
+    &StructBlob_as_number, // tp_as_number
     0, // tp_as_sequence
     &StructBlob_len, // tp_as_mapping
     0, // tp_hash
