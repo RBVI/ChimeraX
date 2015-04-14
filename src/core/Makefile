@@ -73,6 +73,9 @@ clean:
 .peg.py:
 	$(PYTHON_EXE) -m grako -o $@ $^
 
+test_peg:	_atomspec.py
+	$(PYTHON_EXE) _atomspec.py --trace test.in atom_specifier
+
 _appdirs.install: appdirs_cpp.install
 atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
 	chutil_cpp.install ioutil_cpp.install pseudobond_cpp.install
