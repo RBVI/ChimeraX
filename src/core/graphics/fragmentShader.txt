@@ -81,7 +81,7 @@ uniform sampler2DShadow shadow_map;
 uniform sampler2DShadow multishadow_map;
 uniform shadow_matrix_block 
 {
-  mat4 shadow_transforms[256];
+  mat4 shadow_transforms[MAX_SHADOWS];
 };
 uniform	int shadow_count;
 uniform float shadow_depth;
