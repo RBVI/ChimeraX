@@ -26,6 +26,27 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     v = session.main_view
     lp = v.lighting()
 
+    if len([opt for opt in (preset, direction, intensity, color, fillDirection, fillIntensity, fillColor,
+                    ambientIntensity, ambientColor, fixed, qualityOfShadows, shadows, multiShadow)
+            if not opt is None]) == 0:
+        # Report current settings.
+        lines = (
+            'Intensity: %.5g' % lp.key_light_intensity,
+            'Direction: (%.5g,%.5g,%.5g)' % tuple(lp.key_light_direction),
+            'Color: (%.5g,%.5g,%.5g)' % tuple(lp.key_light_color),
+            'Fill intensity: %.5g' % lp.fill_light_intensity,
+            'Fill direction: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_direction),
+            'Fill color: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_color),
+            'Ambient intensity: %.5g' % lp.ambient_light_intensity,
+            'Ambient color: (%.5g,%.5g,%.5g)' % tuple(lp.ambient_light_color),
+            'Shadow: %s' % v.shadows,
+            'Quality of shadows: %s' % v.shadow_map_size,
+            'Multishadows: %d (max %d)' % (v.multishadow, v.max_multishadow()),
+        )
+        msg = '\n'.join(lines)
+        session.logger.info(msg)
+        return
+
     from .geometry.vector import normalize_vector as normalize
     from numpy import array, float32
 
@@ -77,7 +98,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
         if qualityOfShadows in sizes:
             size = sizes[qualityOfShadows]
-        v.set_shadow_map_size(size)
+        v.shadow_map_size = size
     if not multiShadow is None:
         v.set_multishadow(multiShadow)
 
