@@ -1,5 +1,5 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-from .cli import CmdDesc, BoolArg, IntArg, FloatArg, Float3Arg, EnumOf
+from .cli import CmdDesc, BoolArg, IntArg, FloatArg, Float3Arg, StringArg, EnumOf
 from .color import ColorArg
 _lighting_desc = CmdDesc(
     optional = [('preset', EnumOf(('default', 'full', 'soft', 'simple', 'flat')))],
@@ -14,21 +14,25 @@ _lighting_desc = CmdDesc(
         ('ambientColor', ColorArg),
         ('fixed', BoolArg),
         ('shadows', BoolArg),
-        ('qualityOfShadows', EnumOf(('normal', 'fine', 'finer', 'coarse'))),
-        ('multiShadow', IntArg),
+        ('qualityOfShadows', StringArg),
         ('depthBias', FloatArg),
+        ('multiShadow', IntArg),
+        ('msMapSize', IntArg),
+        ('msDepthBias', FloatArg),
     ])
 
 def lighting(session, preset = None, direction = None, intensity = None, color = None, 
              fillDirection = None, fillIntensity = None, fillColor = None,
              ambientIntensity = None, ambientColor = None, fixed = None,
-             qualityOfShadows = None, shadows = None, multiShadow = None, depthBias = None):
+             shadows = None, qualityOfShadows = None, depthBias = None,
+             multiShadow = None, msMapSize = None, msDepthBias = None):
 
     v = session.main_view
     lp = v.lighting()
 
     if len([opt for opt in (preset, direction, intensity, color, fillDirection, fillIntensity, fillColor,
-                            ambientIntensity, ambientColor, fixed, qualityOfShadows, shadows, multiShadow, depthBias)
+                            ambientIntensity, ambientColor, fixed, shadows, depthBias, qualityOfShadows,
+                            multiShadow, msMapSize, msDepthBias)
             if not opt is None]) == 0:
         # Report current settings.
         lines = (
@@ -40,9 +44,10 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
             'Fill color: (%.5g,%.5g,%.5g)' % tuple(lp.fill_light_color),
             'Ambient intensity: %.5g' % lp.ambient_light_intensity,
             'Ambient color: (%.5g,%.5g,%.5g)' % tuple(lp.ambient_light_color),
-            'Shadow: %s' % v.shadows,
-            'Quality of shadows: %s' % v.shadow_map_size,
-            'Multishadows: %d (max %d)' % (v.multishadow, v.max_multishadow()),
+            'Shadow: %s (depth map size %d, depth bias %.5g)'
+              % (v.shadows, v.shadow_map_size, v.shadow_depth_bias),
+            'Multishadows: %d (max %d, depth map size %d, depth bias %.5g)'
+              % (v.multishadow, v.max_multishadow(), v.multishadow_map_size, v.multishadow_depth_bias),
         )
         msg = '\n'.join(lines)
         session.logger.info(msg)
@@ -53,23 +58,23 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
 
     if preset == 'default' or preset == 'simple':
         v.shadows = False
-        v.set_multishadow(0)
+        v.multishadow = 0
         lp.set_default_parameters()
     elif preset == 'full':
         v.shadows = True
-        v.set_multishadow(64)
+        v.multishadow = 64
         lp.key_light_intensity = 0.7
         lp.fill_light_intensity = 0.3
         lp.ambient_light_intensity = 1
     elif preset == 'soft':
         v.shadows = False
-        v.set_multishadow(64)
+        v.multishadow = 64
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1.5
     elif preset == 'flat':
         v.shadows = False
-        v.set_multishadow(0)
+        v.multishadow = 0
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1
@@ -99,11 +104,22 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         sizes = {'normal':2048, 'fine':4096, 'finer':8192, 'coarse':1024}
         if qualityOfShadows in sizes:
             size = sizes[qualityOfShadows]
+        else:
+            try:
+                size = int(qualityOfShadows)
+            except:
+                from .cli import UserError
+                raise UserError('qualityOfShadows value must be an integer or one of %s'
+                                % ', '.join('%s (%d)' % (nm,s) for nm,s in sizes.items()))
         v.shadow_map_size = size
-    if not multiShadow is None:
-        v.set_multishadow(multiShadow)
     if not depthBias is None:
         v.shadow_depth_bias = depthBias
+    if not multiShadow is None:
+        v.multishadow = multiShadow
+    if not msMapSize is None:
+        v.multishadow_map_size = msMapSize
+    if not msDepthBias is None:
+        v.multishadow_depth_bias = msDepthBias
 
     v.update_lighting = True
     v.redraw_needed = True
