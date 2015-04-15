@@ -74,7 +74,7 @@ class _RestrictedUnpickler(pickle.Unpickler):
     supported = {
         'builtins': {'complex'},
         'collections': {'deque', 'Counter', 'OrderedDict'},
-        'datetime': {'date', 'time', 'timedelta'},
+        'datetime': {'date', 'time', 'timedelta', 'datetime', 'timezone'},
         'numpy': {'ndarray', 'dtype'},
         'numpy.core.multiarray': {'_reconstruct'},
         'PIL.Image': {'Image'},
@@ -178,6 +178,8 @@ if __name__ == '__main__':
     test(t, 'time')
     t = datetime.timedelta()
     test(t, 'timedelta')
+    d = datetime.datetime.now(datetime.timezone.utc)
+    test(d, 'datetime&timezone')
 
     import enum
 
@@ -195,5 +197,5 @@ if __name__ == '__main__':
     d = collections.OrderedDict([(1, 2), (3, 4)])
     test(d, 'ordered dict')
 
-    from PIL.Image import Image
-    test(Image(), 'PIL image', idempotent=False)
+    from PIL import Image
+    test(Image.new("RGB", (32, 32), "white"), 'PIL image', idempotent=False)
