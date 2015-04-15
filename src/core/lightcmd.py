@@ -16,18 +16,19 @@ _lighting_desc = CmdDesc(
         ('shadows', BoolArg),
         ('qualityOfShadows', EnumOf(('normal', 'fine', 'finer', 'coarse'))),
         ('multiShadow', IntArg),
+        ('depthBias', FloatArg),
     ])
 
 def lighting(session, preset = None, direction = None, intensity = None, color = None, 
              fillDirection = None, fillIntensity = None, fillColor = None,
              ambientIntensity = None, ambientColor = None, fixed = None,
-             qualityOfShadows = None, shadows = None, multiShadow = None):
+             qualityOfShadows = None, shadows = None, multiShadow = None, depthBias = None):
 
     v = session.main_view
     lp = v.lighting()
 
     if len([opt for opt in (preset, direction, intensity, color, fillDirection, fillIntensity, fillColor,
-                    ambientIntensity, ambientColor, fixed, qualityOfShadows, shadows, multiShadow)
+                            ambientIntensity, ambientColor, fixed, qualityOfShadows, shadows, multiShadow, depthBias)
             if not opt is None]) == 0:
         # Report current settings.
         lines = (
@@ -101,6 +102,8 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         v.shadow_map_size = size
     if not multiShadow is None:
         v.set_multishadow(multiShadow)
+    if not depthBias is None:
+        v.shadow_depth_bias = depthBias
 
     v.update_lighting = True
     v.redraw_needed = True
