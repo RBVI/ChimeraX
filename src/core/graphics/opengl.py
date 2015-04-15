@@ -55,7 +55,7 @@ class Render:
         self._shadow_transform = None
         self.multishadow_map_framebuffer = None
         self.multishadow_texture_unit = 2
-        self.max_multishadows = 256
+        self._max_multishadows = None
         self._multishadow_transforms = None
         # near to far clip depth for shadow map:
         self._multishadow_depth = None
@@ -166,7 +166,7 @@ class Render:
         if capabilities in sp:
             p = sp[capabilities]
         else:
-            p = Shader(capabilities)
+            p = Shader(capabilities, self.max_multishadows())
             sp[capabilities] = p
 
         return p
@@ -328,20 +328,30 @@ class Render:
         # Setup uniform buffer object for shadow matrices.
         # It can have larger size than an array of uniforms.
         b = self._multishadow_matrix_buffer
+        maxs = self.max_multishadows()
         if b is None:
             self._multishadow_matrix_buffer = b = GL.glGenBuffers(1)
             GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
-            GL.glBufferData(GL.GL_UNIFORM_BUFFER, self.max_multishadows * 64,
+            GL.glBufferData(GL.GL_UNIFORM_BUFFER, maxs * 64,
                             pyopengl_null(), GL.GL_DYNAMIC_DRAW)
             bi = GL.glGetUniformBlockIndex(shader.program_id, b'shadow_matrix_block')
             GL.glUniformBlockBinding(shader.program_id, bi, self._multishadow_uniform_block)
         GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._multishadow_uniform_block, b)
         # TODO: Issue warning if maximum number of shadows exceeded.
-        mm = m[:self.max_multishadows, :, :]
+        mm = m[:maxs, :, :]
         GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(mm) * 64, mm)
 #        shader.set_matrices("shadow_transforms", m)
         shader.set_integer("shadow_count", len(mm))
         shader.set_float("shadow_depth", self._multishadow_depth)
+
+    def max_multishadows(self):
+        'Maximum number of shadows to cast.'
+        m = self._max_multishadows
+        if m is None:
+            m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
+            m = m//64						    # 64 bytes per matrix.
+            self._max_multishadows = m
+        return m
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -1239,10 +1249,10 @@ class Buffer:
 class Shader:
     '''OpenGL shader program with specified capabilities.'''
 
-    def __init__(self, capabilities):
+    def __init__(self, capabilities, max_shadows):
 
         self.capabilities = capabilities
-        self.program_id = self.compile_shader(capabilities)
+        self.program_id = self.compile_shader(capabilities, max_shadows)
         self.uniform_ids = {}
 
     def set_integer(self, name, value):
@@ -1272,16 +1282,16 @@ class Shader:
             uids[name] = uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
         return uid
 
-    def compile_shader(self, capabilities):
+    def compile_shader(self, capabilities, max_shadows):
 
         from os.path import dirname, join
         d = dirname(__file__)
         f = open(join(d, 'vertexShader.txt'), 'r')
-        vshader = insert_define_macros(f.read(), capabilities)
+        vshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
 
         f = open(join(d, 'fragmentShader.txt'), 'r')
-        fshader = insert_define_macros(f.read(), capabilities)
+        fshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
 
         from OpenGL.GL import shaders
@@ -1310,17 +1320,19 @@ class Shader:
         return prog_id
 
 
-# Add #define lines after #version line of shader
-def insert_define_macros(shader, capabilities):
-    '''Private. Puts "#define" statements in shader program templates
-    to specify shader capabilities.'''
-    defs = '\n'.join('#define %s 1' % sopt.replace('SHADER_', 'USE_')
-                     for i, sopt in enumerate(shader_options)
-                     if capabilities & (1 << i))
-    v = shader.find('#version')
-    eol = shader[v:].find('\n') + 1
-    s = shader[:eol] + defs + '\n' + shader[eol:]
-    return s
+    # Add #define lines after #version line of shader
+    def insert_define_macros(self, shader, capabilities, max_shadows):
+        '''Private. Puts "#define" statements in shader program templates
+        to specify shader capabilities.'''
+        deflines = ['#define %s 1' % sopt.replace('SHADER_', 'USE_')
+                    for i, sopt in enumerate(shader_options)
+                    if capabilities & (1 << i)]
+        deflines.append('#define MAX_SHADOWS %d' % max_shadows)
+        defs = '\n'.join(deflines)
+        v = shader.find('#version')
+        eol = shader[v:].find('\n') + 1
+        s = shader[:eol] + defs + '\n' + shader[eol:]
+        return s
 
 
 class Texture:
