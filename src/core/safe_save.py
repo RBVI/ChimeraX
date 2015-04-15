@@ -8,14 +8,14 @@ then the file was not overwritten.
 
 Usage:
 
-    with SafeSaveFile(filename) as f:
+    with SafeTextFile(filename) as f:
         print(..., file=f)
         f.write(...)
 
 or:
 
     try:
-        f = SafeSave(filename)
+        f = SafeTextFile(filename)
         print(..., file=f)
         f.write(...)
         f.close()
@@ -26,7 +26,7 @@ or:
 import os
 
 
-class SafeSaveFile:
+class SafeFile:
     """Provide a file-like object to safely overwrite existing files.
 
     Data is first written to a temporary file, then that file is renamed to
@@ -37,7 +37,21 @@ class SafeSaveFile:
     for a text file, then the UTF-8 encoding is assumed.
     Locking is not provided.
 
-    TODO: document __init__ parameters
+    Parameters
+    ----------
+    filename : str
+        Name of file.
+    mode : string, optional
+        File mode, should be 'w' or 'wb'.
+    encoding : str, optional
+        Text file encoding (default is UTF-8)
+    critical : bool, optional
+        If critical, have operating system flush to disk before closing file.
+
+    Attributes
+    ----------
+    name : str
+        Name of file.
     """
 
     def __init__(self, filename, mode='wb', encoding=None, critical=False):
@@ -99,6 +113,20 @@ class SafeSaveFile:
     def writelines(self, lines):
         """Forward writing to temporary file"""
         self._f.writelines(lines)
+
+
+class SafeBinaryFile(SafeFile):
+    """SafeFile specialized for Binary files"""
+
+    def __init__(self, filename, critical=False):
+        SafeFile.__init__(self, filename, 'wb', critical=critical)
+
+
+class SafeTextFile(SafeFile):
+    """SafeFile specialized for Text files"""
+
+    def __init__(self, filename, encoding=None, critical=False):
+        SafeFile.__init__(self, filename, 'w', encoding, critical)
 
 if __name__ == '__main__':
     testfile = 'testfile.test'
