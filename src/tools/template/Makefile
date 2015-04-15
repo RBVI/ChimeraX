@@ -2,7 +2,7 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 PKG_NAME = Replace with fully qualified Python package name
-PKG_VERSION = Replace with package version number
+PKG_VERSION = Replace with package version number (PEP 440 style)
 PKG_DESCRIPTION = Replace with short description of tool
 # Example:
 # PKG_NAME = chimera.cmd_line
