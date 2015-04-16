@@ -42,6 +42,7 @@ def parse_arguments(argv):
     opts.load_tools = True
     opts.silent = False
     opts.status = True
+    opts.use_defaults = False
     opts.version = False
 
     # Will build usage string from list of arguments
@@ -54,6 +55,7 @@ def parse_arguments(argv):
         "--silent",
         "--nostatus",
         "--notools",
+        "--usedefaults",
         "--version",
     ]
     if sys.platform.startswith("win"):
@@ -66,6 +68,7 @@ def parse_arguments(argv):
         "--gui",
         "--nolineprofile",
         "--nosilent",
+        "--nousedefaults",
         "--status",
         "--tools",
     ]
@@ -115,6 +118,8 @@ def parse_arguments(argv):
             opts.status = opt[2] == 's'
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
+        elif opt in ("--usedefaults", "--nousedefaults"):
+            opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
             opts.version = True
     if help:
@@ -154,6 +159,10 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         prof = line_profiler.LineProfiler()
         builtins.__dict__['line_profile'] = prof
         atexit.register(prof.dump_stats, "%s.lprof" % app_name)
+
+    if opts.use_defaults:
+        from chimera.core import configinfo
+        configinfo.only_use_defaults = True
 
     from chimera.core import session
     sess = session.Session()
