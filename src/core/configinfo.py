@@ -181,8 +181,8 @@ class ConfigInfo:
             # update each section
             for section in self._sections.values():
                 section.save(_skip_save=True)
-        from .safe_save import SafeTextFile
-        with SafeTextFile(self._filename) as f:
+        from .safesave import SaveTextFile
+        with SaveTextFile(self._filename) as f:
             self._config.write(f)
 
     def migrate_from(self, old):

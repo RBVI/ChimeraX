@@ -1,21 +1,21 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-safe_save: safely write files
-=============================
+safesave: safely write files
+============================
 
 This module provides a method to safely overwrite a file.  If it fails,
 then the file was not overwritten.
 
 Usage:
 
-    with SafeTextFile(filename) as f:
+    with SaveTextFile(filename) as f:
         print(..., file=f)
         f.write(...)
 
 or:
 
     try:
-        f = SafeTextFile(filename)
+        f = SaveTextFile(filename)
         print(..., file=f)
         f.write(...)
         f.close()
@@ -26,7 +26,7 @@ or:
 import os
 
 
-class SafeFile:
+class SaveFile:
     """Provide a file-like object to safely overwrite existing files.
 
     Data is first written to a temporary file, then that file is renamed to
@@ -115,18 +115,18 @@ class SafeFile:
         self._f.writelines(lines)
 
 
-class SafeBinaryFile(SafeFile):
-    """SafeFile specialized for Binary files"""
+class SaveBinaryFile(SaveFile):
+    """SaveFile specialized for Binary files"""
 
     def __init__(self, filename, critical=False):
-        SafeFile.__init__(self, filename, 'wb', critical=critical)
+        SaveFile.__init__(self, filename, 'wb', critical=critical)
 
 
-class SafeTextFile(SafeFile):
-    """SafeFile specialized for Text files"""
+class SaveTextFile(SaveFile):
+    """SaveFile specialized for Text files"""
 
     def __init__(self, filename, encoding=None, critical=False):
-        SafeFile.__init__(self, filename, 'w', encoding, critical)
+        SaveFile.__init__(self, filename, 'w', encoding, critical)
 
 if __name__ == '__main__':
     testfile = 'testfile.test'
