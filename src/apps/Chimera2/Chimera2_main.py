@@ -5,13 +5,12 @@
 # duplication and use.  This notice must be embedded in or
 # attached to all copies, including partial copies, of the
 # software or any revisions or derivations thereof.
-
-__version__ = "0.1.0a0"
-__app_name__ = "Chimera2"
-__app_author__ = "UCSF"
-
 import sys
 import os
+
+__version__ = "0.1.0a0"     # PEP 440 compatible
+__app_name__ = "Chimera2"
+__app_author__ = "UCSF"
 
 
 def parse_arguments(argv):
@@ -46,7 +45,7 @@ def parse_arguments(argv):
     opts.version = False
 
     # Will build usage string from list of arguments
-    ARGS = [
+    arguments = [
         "--debug",
         "--nogui",
         "--help",
@@ -58,11 +57,11 @@ def parse_arguments(argv):
         "--version",
     ]
     if sys.platform.startswith("win"):
-        ARGS.extend(["--console", "--noconsole"])
-    USAGE = '[' + "] [".join(ARGS) + ']'
-    USAGE += " or -m module_name [args]"
+        arguments += ["--console", "--noconsole"]
+    usage = '[' + "] [".join(arguments) + ']'
+    usage += " or -m module_name [args]"
     # add in default argument values
-    ARGS += [
+    arguments += [
         "--nodebug",
         "--gui",
         "--nolineprofile",
@@ -79,7 +78,7 @@ def parse_arguments(argv):
     try:
         shortopts = ""
         longopts = []
-        for a in ARGS:
+        for a in arguments:
             if a.startswith("--"):
                 i = a.find(' ')
                 if i == -1:
@@ -95,7 +94,7 @@ def parse_arguments(argv):
         options, args = getopt.getopt(argv[1:], shortopts, longopts)
     except getopt.error as message:
         print("%s: %s" % (argv[0], message), file=sys.stderr)
-        print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
+        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
 
     help = False
@@ -119,9 +118,9 @@ def parse_arguments(argv):
         elif opt == "--version":
             opts.version = True
     if help:
-        print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
+        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
-    if opts.list_file_types:
+    if opts.version or opts.list_file_types:
         opts.gui = False
         opts.silent = True
     return opts, args
@@ -141,11 +140,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     if app_author is None:
         app_author = __app_author__
     if version is None:
-        version = __version__
+        version = __version__       # TODO: use chimera.core's version
     opts, args = parse_arguments(argv)
-    if opts.version:
-        print(version)
-        return os.EX_OK
 
     # install line_profile decorator
     import builtins
@@ -179,20 +175,44 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         else:
             configdir = bindir
         os.environ['XDG_CONFIG_DIRS'] = configdir
+
+    from distlib.version import NormalizedVersion as Version
+    epoch, ver, *_ = Version(version).parse(version)
+    partial_version = '%s.%s' % (ver[0], ver[1])
+
     import appdirs
-    partial_version = '%s.%s' % tuple(version.split('.')[0:2])
     ad = sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
                                          version=partial_version)
+    # make sure app_dirs.user_* directories exist
+    for var, name in (
+            ('user_data_dir', "user's data"),
+            ('user_config_dir', "user's configuration"),
+            ('user_cache_dir', "user's cache")):
+        dir = getattr(ad, var)
+        try:
+            os.makedirs(dir, exist_ok=True)
+        except OSError as e:
+            sess.logger.error("Unable to make %s directory: %s: %s" % (
+                name, e.strerror, e.filename))
+            raise SystemExit(1)
+
+    # app_dirs_unversioned is primarily for caching data files that will
+    # open in any version
+    # app_dirs_unversioned.user_* directories are parents of those in app_dirs
+    adu = sess.app_dirs_unversioned = appdirs.AppDirs(app_name,
+                                                      appauthor=app_author)
+
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    share_dir = os.path.join(os.path.dirname(bindir), "share")
+    sess.app_data_dir = os.path.join(os.path.dirname(bindir), "share")
 
     # inform the C++ layer of the appdirs paths
     from chimera.core import _appdirs
     _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
                         ad.user_cache_dir, ad.site_data_dir,
-                        ad.site_config_dir, ad.user_log_dir, share_dir)
+                        ad.site_config_dir, ad.user_log_dir, sess.app_data_dir,
+                        adu.user_cache_dir)
 
     # initialize the user interface
     if opts.gui:
@@ -233,6 +253,17 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     from chimera.core import tasks
     sess.tasks = tasks.Tasks(sess)
     sess.add_state_manager('tasks', sess.tasks)
+
+    if opts.version:
+        print("%s: %s" % (app_name, version))
+        print("Installed tools:")
+        tool_info = sess.toolshed.tool_info()
+        if tool_info:
+            for t in tool_info:
+                print("    %s: %s" % (t.name, t.version))
+        else:
+            print("    None.")
+        return os.EX_OK
 
     if opts.list_file_types:
         from chimera.core import io
