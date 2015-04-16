@@ -581,3 +581,17 @@ def export(session, filename, **kw):
         stream_type = _compression[compression]
         stream = stream_type(filename, 'wb')
     return func(session, stream, **kw)
+
+
+def gunzip(gzpath, path, remove_gz = True):
+
+    import gzip
+    gzf = gzip.open(gzpath)
+    import builtins
+    f = builtins.open(path, 'wb')
+    f.write(gzf.read())
+    f.close()
+    gzf.close()
+    if remove_gz:
+        import os
+        os.remove(gzpath)
