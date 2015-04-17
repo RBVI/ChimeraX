@@ -29,6 +29,10 @@ class CmdLine(ToolInstance):
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
             self.OnEnter(event)
+        elif event.KeyCode == 315:        # Up arrow
+            self.session.models.promote_selection()
+        elif event.KeyCode == 317:        # Down arrow
+            self.session.models.demote_selection()
         else:
             self.text.EmulateKeyPress(event)
 
