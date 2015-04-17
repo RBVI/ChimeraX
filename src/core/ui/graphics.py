@@ -155,16 +155,17 @@ class GraphicsWindow(wx.Panel):
         v = self.view
         p, pick = v.first_intercept(x,y)
         toggle = event.ShiftDown()
-        # TODO: notify session of selection change
-        return
+        s = self.session
+        sel = s.selection
         if pick is None:
             if not toggle:
-                self.session.clear_selection()
+                sel.clear()
+                s.logger.status('cleared selection')
         else:
             if not toggle:
-                self.session.clear_selection()
+                sel.clear()
             pick.select(toggle)
-        self.session.clear_selection_hierarchy()
+        sel.clear_hierarchy()
 
     def mouse_translate(self, event):
         dx, dy = self.mouse_motion(event)
