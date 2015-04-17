@@ -28,8 +28,13 @@ class GraphicsWindow(wx.Panel):
 
         # temporary mouse bindings
         self.session = ui.session
-        self.mouse_down_position = self.last_mouse_position = None
+        self.mouse_down_position = None
+        self.last_mouse_position = None
+        self.last_mouse_time = None
+        self.mouse_pause_interval = 0.5         # seconds
+        self.mouse_pause_position = None
         self.mouse_perimeter = False
+
         self.opengl_canvas.Bind(wx.EVT_LEFT_DOWN, self.mouse_down)
         self.opengl_canvas.Bind(wx.EVT_MIDDLE_DOWN, self.mouse_down)
         self.opengl_canvas.Bind(wx.EVT_RIGHT_DOWN, self.mouse_down)
@@ -95,6 +100,36 @@ class GraphicsWindow(wx.Panel):
             # dy > 0 is downward motion
         self.last_mouse_position = pos
         return dx, dy
+
+    def mouse_pause_tracking(self):
+        cp = self.opengl_canvas.ScreenToClient(wx.GetMousePosition())   # Cursor position in graphics window
+        w,h = self.view.window_size
+        x,y = cp
+        if x < 0 or y < 0 or x >= w or y >= h:
+            return      # Cursor outside of graphics window
+        from time import time
+        t = time()
+        mp = self.mouse_pause_position
+        if cp == mp:
+            lt = self.last_mouse_time
+            if lt and t >= lt + self.mouse_pause_interval:
+                self.mouse_pause()
+                self.mouse_pause_position = None
+                self.last_mouse_time = None
+            return
+        self.mouse_pause_position = cp
+        if mp:
+            # Require mouse move before setting timer to avoid
+            # repeated mouse pause callbacks at same point.
+            self.last_mouse_time = t
+
+    def mouse_pause(self):
+        lp = self.mouse_pause_position
+        f, p = self.view.first_intercept(*lp)
+        if p:
+            self.session.logger.status('Mouse over %s' % p.description())
+        # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.
+        #      Don't want to clear a different status message, only mouse over message.
 
     def mouse_rotate(self, event):
         axis, angle = self.mouse_rotation(event)
@@ -172,7 +207,9 @@ class GraphicsWindow(wx.Panel):
         v.translate(shift)
 
     def _redraw_timer_callback(self, event):
-        self.view.draw(only_if_changed=True)
+        if not self.view.draw(only_if_changed=True):
+            self.mouse_pause_tracking()
+
 
 from wx import glcanvas
 class OpenGLCanvas(glcanvas.GLCanvas):
