@@ -227,9 +227,10 @@ class StructureModel(models.Model):
         return b
 
     def atom_index_description(self, a):
-        a = self.mol_blob.atoms
-        r = a.residues
-        d = '%s %d.%s %s %d %s' % (self.name, self.id, r.chain_ids[a], r.names[a], r.numbers[a], a.names[a])
+        atoms = self.mol_blob.atoms
+        r = atoms.residues
+        id = '.'.join(str(i) for i in self.id)
+        d = '%s %s.%s %s %d %s' % (self.name, id, r.chain_ids[a], r.names[a], r.numbers[a], atoms.names[a])
         return d
 
 
@@ -244,7 +245,7 @@ class Picked_Atom(Pick):
     m, a = self.molecule, self.atom
     if a is None:
       return m.name
-    return '%s %s' % (self.id_string(), m.atom_index_description(a))
+    return m.atom_index_description(a)
   def drawing(self):
     return self.molecule
 
