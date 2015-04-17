@@ -319,8 +319,7 @@ class Drawing:
     def fully_selected(self):
         '''Is the entire Drawing including children selected.'''
         sp = self._selected_positions
-        ns = sp.sum()
-        if sp is not None and ns == len(sp):
+        if sp is not None and sp.sum() == len(sp):
             return True
         for d in self.child_drawings():
             if not d.fully_selected():
@@ -357,9 +356,10 @@ class Drawing:
     def _deepest_promotable_drawings(self, level=0):
 
         sp = self._selected_positions
-        ns = sp.sum()
-        if sp is not None and ns == len(sp):
-            return []         # Fully selected
+        if sp is not None:
+            ns = sp.sum()
+            if ns == len(sp):
+                return []         # Fully selected
         cd = self.child_drawings()
         if cd:
             nfsel = [d for d in cd if not d.fully_selected()]
