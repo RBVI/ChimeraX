@@ -78,6 +78,30 @@ rb_strs(PyObject* self, void*)
     return list;
 }
 
+static PyObject*
+rb_unique_ids(PyObject* self, void*)
+{
+    ResBlob* rb = static_cast<ResBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)rb->_items->size()};
+    PyObject* unique_ids = allocate_python_array(1, shape, NPY_INT);
+    int* data = (int*) PyArray_DATA((PyArrayObject*)unique_ids);
+    // TODO: Don't assume residue atoms are consecutive.
+    int rid = -1;
+    const atomstruct::Residue *rprev = NULL;
+    for (auto ri = rb->_items->begin(); ri != rb->_items->end(); ++ri){
+        const atomstruct::Residue *r = ri->get();
+	if (rprev == NULL || r->position() != rprev->position() || r->chain_id() != rprev->chain_id()) {
+	    rid += 1;
+	    rprev = r;
+	}
+        *data++ = rid;
+    }
+    return unique_ids;
+}
+
 static PyMethodDef ResBlob_methods[] = {
     { (char*)"filter", blob_filter<ResBlob>, METH_O,
         (char*)"filter residue blob based on array/list of booleans" },
@@ -131,6 +155,8 @@ static PyGetSetDef ResBlob_getset[] = {
         (char*)"numpy array of residue sequence numbers", NULL},
     { (char*)"strs", rb_strs, NULL,
         (char*)"list of human-friendly residue identifiers", NULL},
+    { (char*)"unique_ids", rb_unique_ids, NULL,
+        (char*)"numpy array of integer ids unique for each chain and residue number", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
 
