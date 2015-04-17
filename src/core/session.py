@@ -475,6 +475,14 @@ _initialize()
 
 _monkey_patch = True
 
+class Selection:
+    def __init__(self, models):
+        self.models = models
+    def clear(self):
+        self.models.clear_selection()
+    def clear_hierarchy(self):
+        pass
+
 
 def common_startup(sess):
     """Initialize session with common data managers"""
@@ -489,6 +497,7 @@ def common_startup(sess):
     from . import models
     sess.models = models.Models(sess)
     sess.add_state_manager('models', sess.models)
+    sess.selection = Selection(sess.models)
     from . import color
     sess.user_colors = color.UserColors()
     sess.add_state_manager('user_colors', sess.user_colors)
