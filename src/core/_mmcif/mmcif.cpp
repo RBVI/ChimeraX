@@ -694,6 +694,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
     string residue_name1, residue_name2;    // ptrn[12]_label_comp_id
     string conn_type;                       // conn_type_id
     string symmetry1, symmetry2;            // ptrn[12]_symmetry
+    float distance = 0;                     // pdbx_dist_value
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
@@ -795,9 +796,14 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             symmetry2 = string(start, end - start);
         });
+    pv.emplace_back(get_column("pdbx_dist_value"), false,
+        [&] (const char* start, const char*) {
+            distance = readcif::str_to_float(start);
+        });
 
     atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
     atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
+    atomstruct::Proxy_PBGroup* missing_pbg = nullptr;
     // connect residues in molecule with all_residues information
     auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
@@ -817,22 +823,43 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         auto ai2 = atom_map.find(k2);
         if (ai2 == atom_map.end())
             continue;
+        Atom* a1 = ai1->second;
+        Atom* a2 = ai2->second;
         if (metal) {
             if (metal_pbg == nullptr)
                 metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                metal_pbg->new_pseudobond(ai1->second, ai2->second);
+                metal_pbg->new_pseudobond(a1, a2);
             continue;
         }
         if (hydro) {
             if (hydro_pbg == nullptr)
                 hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
                     atomstruct::AS_PBManager::GRP_PER_CS);
-                hydro_pbg->new_pseudobond(ai1->second, ai2->second);
+                hydro_pbg->new_pseudobond(a1, a2);
+            continue;
+        }
+        float idealBL = Element::bond_length(a1->element(), a2->element());
+        float sqlength;
+        if (distance > 0)
+            sqlength = distance * distance;
+        else {
+            sqlength = a1->coord().sqdistance(a2->coord());
+        }
+        if (sqlength >= 3.0625f * idealBL * idealBL) {
+            // 3.0625 == 1.75 squared
+            // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
+            // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
+            // to not be classified as missing seqments)
+            if (missing_pbg == nullptr)
+                missing_pbg = mol->pb_mgr().get_group(
+                    mol->PBG_MISSING_STRUCTURE,
+                    atomstruct::AS_PBManager::GRP_NORMAL);
+            missing_pbg->new_pseudobond(a1, a2);
             continue;
         }
         try {
-            mol->new_bond(ai1->second, ai2->second);
+            mol->new_bond(a1, a2);
         } catch (std::invalid_argument& e) {
             // already bonded
         }
