@@ -30,9 +30,9 @@ class CmdLine(ToolInstance):
         if event.KeyCode == 13:
             self.OnEnter(event)
         elif event.KeyCode == 315:        # Up arrow
-            self.session.models.promote_selection()
+            self.session.selection.promote()
         elif event.KeyCode == 317:        # Down arrow
-            self.session.models.demote_selection()
+            self.session.selection.demote()
         else:
             self.text.EmulateKeyPress(event)
 

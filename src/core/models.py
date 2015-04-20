@@ -174,19 +174,3 @@ class Models(State):
         self.remove(models)
         for m in models:
             m.delete()
-
-    def clear_selection(self):
-        for m in self.list():
-            m.clear_selection()
-
-    def promote_selection(self):
-        for m in self.list():
-            m.promote_selection()
-
-    def demote_selection(self):
-        for m in self.list():
-            m.demote_selection()
-
-    def clear_selection_hierarchy(self):
-        for m in self.list():
-            m.clear_selection_promotion_history()

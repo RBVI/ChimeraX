@@ -479,10 +479,17 @@ class Selection:
     def __init__(self, models):
         self.models = models
     def clear(self):
-        self.models.clear_selection()
+        for m in self.models.list():
+            m.clear_selection()
     def clear_hierarchy(self):
-        pass
-
+        for m in self.models.list():
+            m.clear_selection_promotion_history()
+    def promote(self):
+        for m in self.models.list():
+            m.promote_selection()
+    def demote(self):
+        for m in self.models.list():
+            m.demote_selection()
 
 def common_startup(sess):
     """Initialize session with common data managers"""
