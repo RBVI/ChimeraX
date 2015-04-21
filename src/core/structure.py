@@ -35,8 +35,12 @@ class StructureModel(models.Model):
     def reset_state(self):
         pass
 
-    def atoms(self):
-        return self.mol_blob.atoms
+    def atoms(self, exclude_water = False):
+        atoms = self.mol_blob.atoms
+        if exclude_water:
+            from numpy import array
+            atoms = atoms.filter(array(atoms.residues.names) != 'HOH')
+        return atoms
 
     def show_atoms(self, atoms = None):
         if atoms is None:
