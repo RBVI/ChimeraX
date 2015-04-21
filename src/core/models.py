@@ -108,8 +108,19 @@ class Models(State):
         for model in models:
             model.delete()
 
-    def list(self):
-        return list(self._models.values())
+    def list(self, model_id = None):
+        if model_id is None:
+            models = list(self._models.values())
+        else:
+            if model_id not in self._models:
+                return []
+            # find all submodels
+            size = len(model_id)
+            model_ids = [x for x in self._models if x[0:size] == model_id]
+            # sort so submodels are removed before parent models
+            model_ids.sort(key=len, reverse=True)
+            models = [self._models[x] for x in model_ids]
+        return models
 
     def add(self, models, id=None):
         session = self._session()  # resolve back reference
@@ -151,6 +162,11 @@ class Models(State):
                 parent = self._models[model_id[:-1]]
             parent.remove_drawing(model)
 
+    def close(self, models):
+        self.remove(models)
+        for m in models:
+            m.delete()
+
     def open(self, filename, id=None, **kw):
         from . import io
         session = self._session()  # resolve back reference
@@ -163,16 +179,3 @@ class Models(State):
             if start_count == 0 and len(self._models) > 0:
                 session.main_view.initial_camera_view()
         return models
-
-    def close(self, model_id):
-        if model_id not in self._models:
-            return
-        # find all submodels
-        size = len(model_id)
-        model_ids = [x for x in self._models if x[0:size] == model_id]
-        # sort so submodels are removed before parent models
-        model_ids.sort(key=len, reverse=True)
-        models = [self._models[x] for x in model_ids]
-        self.remove(models)
-        for m in models:
-            m.delete()
