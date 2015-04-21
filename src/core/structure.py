@@ -42,6 +42,11 @@ class StructureModel(models.Model):
             atoms = atoms.filter(array(atoms.residues.names) != 'HOH')
         return atoms
 
+    def solvent_atoms(self):
+        atoms = self.mol_blob.atoms
+        from numpy import array
+        return atoms.filter(array(atoms.residues.names) == 'HOH')
+
     def show_atoms(self, atoms = None):
         if atoms is None:
             atoms = self.mol_blob.atoms
