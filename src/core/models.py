@@ -48,6 +48,11 @@ class Model(State, Drawing):
     def reset_state(self):
         pass
 
+    def selected_items(self, itype):
+        return ()
+
+    def anything_selected(self):
+        return False
 
 class Models(State):
 
