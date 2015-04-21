@@ -113,8 +113,8 @@ def standard_shortcuts(session):
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
 #        ('la', show_ligands, 'Show ligand atoms', molcat, molarg, mlmenu),
-#        ('sw', show_waters, 'Show water atoms', molcat, molarg, mlmenu),
-#        ('hw', hide_waters, 'Hide water atoms', molcat, molarg, mlmenu, sep),
+        ('sw', show_waters, 'Show water atoms', molcat, atomsarg, mlmenu),
+        ('hw', hide_waters, 'Hide water atoms', molcat, atomsarg, mlmenu, sep),
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('ce', color_by_element, 'Color atoms by element', molcat, atomsarg, mlmenu),
@@ -632,10 +632,12 @@ def thinner_ribbons(m):
     m.set_ribbon_radius(0.5*m.ribbon_radius)
 def show_ligands(m):
     m.show_ligand_atoms()
-def show_waters(m):
-    m.show_solvent()
-def hide_waters(m):
-    m.hide_solvent()
+def show_waters(atoms):
+    for m,a in atoms:
+        m.show_atoms(a.intersect(m.solvent_atoms()))
+def hide_waters(atoms):
+    for m,a in atoms:
+        m.hide_atoms(a.intersect(m.solvent_atoms()))
 def molecule_bonds(m, session):
     if m.bonds is None:
         from ..molecule import connect
