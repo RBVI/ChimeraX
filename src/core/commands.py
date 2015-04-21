@@ -286,6 +286,8 @@ def register(session):
     oculus.register_oculus_command()
     from .devices import spacenavigator
     spacenavigator.register_snav_command()
+    from . import shortcuts
+    shortcuts.register_shortcut_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

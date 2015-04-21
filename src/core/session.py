@@ -478,6 +478,17 @@ _monkey_patch = True
 class Selection:
     def __init__(self, models):
         self.models = models
+    def items(self, itype):
+        si = []
+        for m in self.models.list():
+            s = m.selected_items(itype)
+            si.extend(s)
+        return si
+    def empty(self):
+        for m in self.models.list():
+            if m.anything_selected():
+                return False
+        return True
     def clear(self):
         for m in self.models.list():
             m.clear_selection()
@@ -518,6 +529,10 @@ def common_startup(sess):
 
     from . import commands
     commands.register(sess)
+
+    from . import shortcuts
+    sess.keyboard_shortcuts = ks = shortcuts.Keyboard_Shortcuts(sess)
+    shortcuts.register_shortcuts(ks)
 
     # file formats
     from . import stl
