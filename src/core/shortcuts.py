@@ -131,7 +131,7 @@ def standard_shortcuts(session):
         # Surfaces
         ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
         ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
-#        ('tt', toggle_surface_transparency, 'Toggle surface transparency', surfcat, sesarg, sfmenu),
+        ('tt', toggle_surface_transparency, 'Toggle surface transparency', surfcat, sesarg, sfmenu),
         ('t5', show_surface_transparent, 'Make surface transparent', surfcat, sesarg, sfmenu),
         ('t0', show_surface_opaque, 'Make surface opaque', surfcat, sesarg, sfmenu),
 
