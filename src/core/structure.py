@@ -284,7 +284,7 @@ class StructureModel(models.Model):
                 return [(self,sa)]
         return []
 
-    def anything_selected(self):
+    def any_part_selected(self):
         asel = self._selected_atoms
         return not asel is None and asel.sum() > 0
 

@@ -51,9 +51,6 @@ class Model(State, Drawing):
     def selected_items(self, itype):
         return ()
 
-    def anything_selected(self):
-        return False
-
 class Models(State):
 
     VERSION = 1     # snapshot version
