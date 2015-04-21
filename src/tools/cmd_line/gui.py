@@ -33,6 +33,8 @@ class CmdLine(ToolInstance):
             self.session.selection.promote()
         elif event.KeyCode == 317:        # Down arrow
             self.session.selection.demote()
+        elif event.KeyCode == 27:         # Escape
+            self.session.keyboard_shortcuts.enable_shortcuts()
         else:
             self.text.EmulateKeyPress(event)
 

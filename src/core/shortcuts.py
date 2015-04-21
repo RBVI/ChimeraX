@@ -248,21 +248,29 @@ class Keyboard_Shortcuts:
         self.shortcuts = {}
         self.keys = ''
         self.session = session
+        self._enabled = False
 
     def add_shortcut(self, sc):
         self.shortcuts[sc.key_seq] = sc
 
     def enable_shortcuts(self):
-        self.session.ui.register_for_keystrokes(self)
+        if not self._enabled:
+            self.session.ui.register_for_keystrokes(self)
+            self._enabled = True
 
     def disable_shortcuts(self):
-        self.session.ui.deregister_for_keystrokes(self)
+        if self._enabled:
+            self.session.ui.deregister_for_keystrokes(self)
+            self._enabled = False
 
     def forwarded_keystroke(self, event):
         self.key_pressed(event)
       
     def key_pressed(self, event):
-        if event.KeyCode == 315:        # Up arrow
+        if event.KeyCode == 27:        # Escape
+            self.disable_shortcuts()
+            return
+        elif event.KeyCode == 315:        # Up arrow
             self.session.selection.promote()
         elif event.KeyCode == 317:        # Down arrow
             self.session.selection.demote()
