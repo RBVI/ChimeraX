@@ -35,6 +35,21 @@ class StructureModel(models.Model):
     def reset_state(self):
         pass
 
+    def atoms(self):
+        return self.mol_blob.atoms
+
+    def show_atoms(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.displays = True
+        self.update_graphics()
+
+    def hide_atoms(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.displays = False
+        self.update_graphics()
+
     def initialize_graphical_attributes(self):
         m = self.mol_blob
         a = m.atoms
@@ -117,18 +132,22 @@ class StructureModel(models.Model):
         r[dm == self.STICK_STYLE] = self.bond_radius
         return r
 
-    def set_atom_style(self, style):
-        self.mol_blob.atoms.draw_modes = style
+    def set_atom_style(self, style, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.draw_modes = style
         self.update_graphics()
 
-    def color_by_element(self):
-        a = self.mol_blob.atoms
-        a.colors = element_colors(a.element_numbers)
+    def color_by_element(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.colors = element_colors(atoms.element_numbers)
         self.update_graphics()
 
-    def color_by_chain(self):
-        a = self.mol_blob.atoms
-        a.colors = chain_colors(a.residues.chain_ids)
+    def color_by_chain(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.colors = chain_colors(atoms.residues.chain_ids)
         self.update_graphics()
 
     def update_bond_graphics(self, bond_atoms, draw_mode, radii,
@@ -246,6 +265,19 @@ class StructureModel(models.Model):
             asel = self._selected_atoms = zeros(na, bool)
         asel[a] = (not asel[a]) if toggle else True
         self._selection_changed()
+
+    def selected_items(self, itype):
+        if itype == 'atoms':
+            asel = self._selected_atoms
+            if not asel is None and asel.sum() > 0:
+                atoms = self.mol_blob.atoms
+                sa = atoms.filter(asel)
+                return [(self,sa)]
+        return []
+
+    def anything_selected(self):
+        asel = self._selected_atoms
+        return not asel is None and asel.sum() > 0
 
     def clear_selection(self):
         asel = self._selected_atoms
