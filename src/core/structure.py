@@ -23,6 +23,7 @@ class StructureModel(models.Model):
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
+        self.triangles_per_sphere = None
 
     def take_snapshot(self, session, flags):
         data = {}
@@ -41,6 +42,10 @@ class StructureModel(models.Model):
             from numpy import array
             atoms = atoms.filter(array(atoms.residues.names) != 'HOH')
         return atoms
+
+    def shown_atom_count(self):
+        na = sum(self.atoms().displays) if self.display else 0
+        return na
 
     def solvent_atoms(self):
         atoms = self.mol_blob.atoms
@@ -92,11 +97,11 @@ class StructureModel(models.Model):
             self._atoms_drawing = p = self.new_drawing('atoms')
 
         n = len(coords)
-        triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
+        self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
 
         # Set instanced sphere triangulation
         from . import surface
-        va, na, ta = surface.sphere_geometry(triangles_per_sphere)
+        va, na, ta = surface.sphere_geometry(self.triangles_per_sphere)
         p.geometry = va, ta
         p.normals = na
 
