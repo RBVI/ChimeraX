@@ -129,11 +129,11 @@ def standard_shortcuts(session):
 #        ('mb', lambda m,s=s: molecule_bonds(m,s), 'Compute molecule bonds using templates', molcat, molarg),
 
         # Surfaces
-#        ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
-#        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
+        ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
+        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
 #        ('tt', toggle_surface_transparency, 'Toggle surface transparency', surfcat, sesarg, sfmenu),
-#        ('t5', show_surface_transparent, 'Make surface transparent', surfcat, sesarg, sfmenu),
-#        ('t0', show_surface_opaque, 'Make surface opaque', surfcat, sesarg, sfmenu),
+        ('t5', show_surface_transparent, 'Make surface transparent', surfcat, sesarg, sfmenu),
+        ('t0', show_surface_opaque, 'Make surface opaque', surfcat, sesarg, sfmenu),
 
         # Pane
 #        ('mp', ui.show_model_panel, 'Show model panel', ocat, sesarg, pmenu),
@@ -353,21 +353,21 @@ def shortcut_selection(session):
   return sel
 
 def shortcut_surfaces(session):
-    surfs = session.surfaces()
-    sel = session.selected_models()
-    mlist = [m for m in sel if m in surfs]
-    if len(mlist) == 0:
-        mlist = [m for m in surfs if m.display]
-    return mlist
+    sel = session.selection
+    models = session.models.list() if sel.empty() else sel.models()
+    from .structure import StructureModel
+    from .map import Volume
+    surfs = [m for m in models if not isinstance(m, (StructureModel, Volume))]
+    # TODO: Only include displayed surfaces if nothing selected?
+    return surfs
 
 def shortcut_surfaces_and_maps(session):
-    som = set(session.surfaces())
-    som.update(session.maps())
-    sel = session.selected_models()
-    mlist = [m for m in sel if m in som]
-    if len(mlist) == 0:
-        mlist = [m for m in som if m.display]
-    return mlist
+    sel = session.selection
+    models = session.models.list() if sel.empty() else sel.models()
+    from .structure import StructureModel
+    sm = [m for m in models if not isinstance(m, StructureModel)]
+    # TODO: Only include displayed surfaces if nothing selected?
+    return sm
 
 def close_all_models(session):
     models = session.models
@@ -512,7 +512,7 @@ def hide_surface(session):
 
 def toggle_surface_transparency(session):
     from .map import Volume
-    from ..graphics import Drawing
+    from .graphics import Drawing
     for m in shortcut_surfaces_and_maps(session):
         if isinstance(m, Volume):
             m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
@@ -527,7 +527,7 @@ def toggle_surface_transparency(session):
 
 def show_surface_transparent(session, alpha = 0.5):
     from .map import Volume
-    from ..graphics import Drawing
+    from .graphics import Drawing
     for m in shortcut_surfaces_and_maps(session):
         if isinstance(m, Volume):
             m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
@@ -766,7 +766,7 @@ def leap_quit(session):
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
-    from ..graphics import MotionBlur
+    from .graphics import MotionBlur
     mb = [o for o in viewer.overlays() if isinstance(o, MotionBlur)]
     if mb:
         viewer.remove_overlays(mb)
