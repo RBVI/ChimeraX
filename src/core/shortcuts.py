@@ -120,7 +120,7 @@ def standard_shortcuts(session):
         ('ce', color_by_element, 'Color atoms by element', molcat, atomsarg, mlmenu),
         ('cc', color_by_chain, 'Color chains', molcat, atomsarg, mlmenu, sep),
 
-#        ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, molarg, mlmenu),
+        ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, atomsarg, mlmenu),
 #        ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, molarg, mlmenu, sep),
 
 #        ('bu', lambda m,s=s: show_biological_unit(m,s), 'Show biological unit', molcat, molarg, mlmenu),
@@ -579,12 +579,14 @@ def delete_selected_models(session):
 def show_map_full_resolution(m):
   m.new_region(ijk_step = (1,1,1), adjust_step = False)
 
-def show_molecular_surface(m, session, res = 3.0, grid = 0.5):
-  if hasattr(m, 'molsurf') and m.molsurf in session.model_list():
-    m.molsurf.display = True
-  else:
-    from ..molecule.surface import surface
-    m.molsurf = surface(m.atoms(), session)
+def show_molecular_surface(atoms, session):
+    for m, a in atoms:
+        if hasattr(m, 'molsurf') and m.molsurf in session.models.list():
+            m.molsurf.display = True
+        else:
+            from .molsurf import molecule_surface
+            m.molsurf = s = molecule_surface(m)
+            session.models.add([s])
 
 def color_by_element(atoms):
     for m, a in atoms:
