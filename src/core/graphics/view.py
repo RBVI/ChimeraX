@@ -177,7 +177,7 @@ class View:
     def depth_cue_enabled(self):
         '''Is depth cue enabled. Boolean value.'''
         r = self._render
-        return bool(r.enable_capabilities | r.SHADER_DEPTH_CUE)
+        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
 
     def get_shadows(self):
         return self._shadows
