@@ -145,7 +145,7 @@ def standard_shortcuts(session):
 
         # Mouse
         ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, mmarg, msmenu),
-#        ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
+        ('mS', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
 #        ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
 #        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
@@ -444,9 +444,9 @@ def enable_map_series_mouse_mode(s, button = 'right'):
   series.enable_map_series_mouse_mode(s, button)
 
 def enable_move_selected_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_standard_mouse_modes()
-  m.move_selected = True
+    m = mouse_modes
+    m.bind_standard_mouse_modes()
+    m.move_selected = True
 
 def enable_move_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes

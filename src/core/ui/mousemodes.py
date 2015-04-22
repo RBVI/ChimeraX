@@ -138,7 +138,7 @@ class MouseModes:
 
     def models(self):
         if self.move_selected:
-            m = self.session.selected_models()
+            m = self.session.selection.models()
             if len(m) == 0:
                 m = None
         else:
