@@ -2,8 +2,9 @@
 
 class Planes_Mouse_Mode:
 
-    def __init__(self):
+    def __init__(self, session):
 
+        self.session = session
         self.mode_name = 'move planes'
         self.bound_button = None
         
@@ -16,14 +17,17 @@ class Planes_Mouse_Mode:
         self.frac_istep = 0
         self.frame_number = None
         
-    def mouse_down(self, session, event):
+    def mouse_down(self, event):
         self.xy_last = (x,y) = (event.x(), event.y())
-        line = session.view.clip_plane_points(x,y)    # scene coordinates
+        v = self.session.main_view
+        line = v.clip_plane_points(x,y)    # scene coordinates
+        from .volume import Volume
+        maps = [m for m in self.session.models.list() if isinstance(m, Volume)]
         from .slice import nearest_volume_face
-        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, session.maps())
+        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, maps)
         self.drag = False
 
-    def mouse_drag(self, session, event):
+    def mouse_drag(self, event):
         v = self.map
         if v is None or self.xy_last is None:
             return
@@ -40,7 +44,8 @@ class Planes_Mouse_Mode:
 #        shift = (event.modifiers() & QtCore.Qt.ShiftModifier)
         shift = False
         speed = 0.1 if shift else 1
-        step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, session.view)
+        view = self.session.main_view
+        step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, view)
         sa = v.data.step[self.axis]
         istep = step / sa      # grid units
         istep += self.frac_istep
@@ -52,7 +57,7 @@ class Planes_Mouse_Mode:
             move_plane(v, self.axis, self.side, int(istep))
 #            self.frame_number = _frameNumber
 
-    def mouse_up(self, session, event):
+    def mouse_up(self, event):
         self.map = None
         self.ijk = None
         self.drag = False
@@ -150,5 +155,8 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
 def sign(x):
     return 1 if x >= 0 else -1
 
-planes_mouse_mode = Planes_Mouse_Mode()
-#planes_mouse_mode.register_planes_mouse_mode()
+def planes_mouse_mode(session):
+    if not hasattr(session, '_planes_mouse_mode'):
+        session._planes_mouse_mode = Planes_Mouse_Mode(session)
+    return session._planes_mouse_mode
+
