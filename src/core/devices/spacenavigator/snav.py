@@ -191,7 +191,8 @@ def toggle_space_navigator(session):
         sn.stop_event_processing()
     else:
         success = sn.start_event_processing()
-        session.show_info('started space navigator: %s' % str(bool(success)))
+        log = session.logger if hasattr(session, 'logger') else session # Chimera2 / Hydra compatibility
+        log.info('started space navigator: %s' % str(bool(success)))
 
 # -----------------------------------------------------------------------------
 #
