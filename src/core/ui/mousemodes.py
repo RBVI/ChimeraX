@@ -154,7 +154,8 @@ class MouseModes:
             # z-rotation
             axis = (0,0,1)
             w, h = self.view.window_size
-            ex, ey = event.x()-0.5*w, event.y()-0.5*h
+            x, y = self.event_position(event)
+            ex, ey = x-0.5*w, y-0.5*h
             if -dy*ex+dx*ey < 0:
                 angle = -angle
         else:
