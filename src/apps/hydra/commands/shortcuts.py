@@ -393,13 +393,10 @@ def toggle_box_faces(m):
   m.show('solid')
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
-
   m = mouse_modes
-  from ..map.moveplanes import planes_mouse_mode as pmm
-  m.bind_mouse_mode(button,
-                    lambda e,s=m.session: pmm.mouse_down(s,e),
-                    lambda e,s=m.session: pmm.mouse_drag(s,e),
-                    lambda e,s=m.session: pmm.mouse_up(s,e))
+  from ..map import planes_mouse_mode
+  pmm = planes_mouse_mode(m.session)
+  m.bind_mouse_mode(button, pmm.mouse_down, pmm.mouse_drag, pmm.mouse_up)
 
 def enable_contour_mouse_mode(mouse_modes, button = 'right'):
   m = mouse_modes
