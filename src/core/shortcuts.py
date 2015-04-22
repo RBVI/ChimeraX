@@ -60,17 +60,17 @@ def standard_shortcuts(session):
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-#        ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
-#        ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
-#        ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
-#        ('cs', s.clear_selection, 'Clear selection', gcat, noarg, smenu),
+        ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
+        ('hm', hide_selected_models, 'Hide selected models', ocat, sesarg, smenu),
+        ('Ds', delete_selected_models, 'Delete selected models', ocat, sesarg, smenu, sep),
+        ('cs', s.selection.clear, 'Clear selection', gcat, noarg, smenu),
 
         ('bk', set_background_black, 'Black background', gcat, viewarg, smenu),
         ('wb', set_background_white, 'White background', gcat, viewarg, smenu),
         ('gb', set_background_gray, 'Gray background', gcat, viewarg, smenu, sep),
 
-#        ('dq', depth_cue, 'Toggle depth cue', gcat, viewarg, smenu),
-#        ('bl', motion_blur, 'Toggle motion blur', gcat, viewarg, smenu, sep),
+        ('dq', depth_cue, 'Toggle depth cue', gcat, viewarg, smenu),
+        ('bl', motion_blur, 'Toggle motion blur', gcat, viewarg, smenu, sep),
 
         ('sh', toggle_shadows, 'Toggle shadows', gcat, viewarg, smenu),
         ('se', toggle_silhouettes, 'Toggle silhouette edges', gcat, viewarg, smenu),
@@ -83,7 +83,7 @@ def standard_shortcuts(session):
 
 #        ('uh', undisplay_half, 'Undisplay z > 0', gcat, sesarg, smenu),
         ('rt', show_framerate, 'Show framerate', gcat, sesarg, smenu),
-#        ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
+        ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
 #        ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
@@ -121,7 +121,7 @@ def standard_shortcuts(session):
         ('cc', color_by_chain, 'Color chains', molcat, atomsarg, mlmenu, sep),
 
         ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, atomsarg, mlmenu),
-#        ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, molarg, mlmenu, sep),
+        ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, atomsarg, mlmenu, sep),
 
 #        ('bu', lambda m,s=s: show_biological_unit(m,s), 'Show biological unit', molcat, molarg, mlmenu),
 #        ('au', lambda m,s=s: show_asymmetric_unit(m,s), 'Show asymmetric unit', molcat, molarg, mlmenu),
@@ -152,11 +152,11 @@ def standard_shortcuts(session):
 #        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
         # Devices
-#        ('sn', toggle_space_navigator, 'Toggle use of space navigator', gcat, sesarg, dmenu),
-#        ('nf', toggle_space_navigator_fly_mode, 'Toggle space navigator fly mode', gcat, sesarg, dmenu, sep),
+        ('sn', toggle_space_navigator, 'Toggle use of space navigator', gcat, sesarg, dmenu),
+        ('nf', toggle_space_navigator_fly_mode, 'Toggle space navigator fly mode', gcat, sesarg, dmenu, sep),
 #        ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat, sesarg),
 
-#        ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
+        ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
 #        ('om', oculus_move, 'Move Oculus window to primary display', gcat, sesarg, dmenu),
 
 #        ('lp', toggle_leap, 'Toggle leap motion input device', gcat, sesarg, dmenu),
@@ -317,20 +317,20 @@ class Keyboard_Shortcuts:
         s.logger.info(msg)
         sc.run(s)
 
+def shortcut_models(session):
+    sel = session.selection
+    m = sel.all_models() if sel.empty() else sel.models()
+    return m
+
 def shortcut_maps(session):
-    empty = session.selection.empty()
     from .map import Volume
-    maps = [m for m in session.models.list()
-            if isinstance(m, Volume) and (empty or m.any_part_selected())]
+    maps = [m for m in shortcut_models(session) if isinstance(m, Volume)]
     return maps
 
 def shortcut_molecules(session):
-    mols = session.molecules()
-    sel = session.selected_models()
-    mlist = [m for m in sel if m in mols]
-    if len(mlist) == 0:
-        mlist = [m for m in mols if m.display]
-    return mlist
+    from .structure import StructureModel
+    mols = [m for m in shortcut_models(session) if isinstance(m, StructureModel)]
+    return mols
 
 def shortcut_atoms(session):
     sel = session.selection
@@ -481,7 +481,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        from ..geometry.place import Places
+        from .geometry.place import Places
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
@@ -568,13 +568,15 @@ def command_line(session):
     session.keyboard_shortcuts.disable_shortcuts()
 
 def display_selected_models(session):
-  session.display_models(session.selected_models())
+    for m in shortcut_models(session):
+        m.display = True
 
 def hide_selected_models(session):
-  session.hide_models(session.selected_models())
+    for m in shortcut_models(session):
+        m.display = False
 
 def delete_selected_models(session):
-  session.close_models(session.selected_models())
+    session.models.close(session.selection.models())
 
 def show_map_full_resolution(m):
   m.new_region(ijk_step = (1,1,1), adjust_step = False)
@@ -648,10 +650,19 @@ def molecule_bonds(m, session):
         log.info(msg)
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
-def accessible_surface_area(m, session):
-    from .. import molecule
-    a = molecule.accessible_surface_area(m)
-    msg = 'Accessible surface area of %s = %.5g' % (m.name, a.sum())
+def accessible_surface_area(atoms, session, probe_radius = 1.4):
+    from numpy import concatenate
+    na = sum(len(a) for m,a in atoms)
+    if na > 0:
+        xyz = concatenate([(m.position*a.coords) for m,a in atoms])
+        r = concatenate([a.radii for m,a in atoms]) + probe_radius
+        from . import surface
+        areas = surface.spheres_surface_area(xyz, r)
+        area = areas.sum()
+        name = ','.join(m.name for m,a in atoms) + ' %d atoms' % na
+        msg = 'Accessible surface area of %s = %.5g' % (name, areas.sum())
+    else:
+        msg = 'No atoms selected for accessible surface area'
     log = session.logger
     log.status(msg)
     log.info(msg)
@@ -726,10 +737,12 @@ def show_framerate(session):
     session.main_view.report_framerate()
 
 def show_triangle_count(session):
-    mols = session.molecules()
+    models = session.models.list()
+    from .structure import StructureModel
+    mols = [m for m in models if isinstance(m, StructureModel)]
     na = sum(m.shown_atom_count() for m in mols) if mols else 0
     nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in mols) if mols else 0
-    n = session.model_count()
+    n = len(models)
     msg = '%d models, %d atoms, %d atom triangles' % (n, na, nt)
     log = session.logger
     log.status(msg)
@@ -742,27 +755,27 @@ def view_all(view):
     view.view_all()
 
 def toggle_leap(session):
-    from ..devices import c2leap
+    from .devices import c2leap
     c2leap.toggle_leap(session)
 
 def leap_chopsticks_mode(session):
-    from ..devices import c2leap
+    from .devices import c2leap
     c2leap.leap_mode('chopsticks', session)
 
 def leap_position_mode(session):
-    from ..devices import c2leap
+    from .devices import c2leap
     c2leap.leap_mode('position', session)
 
 def leap_velocity_mode(session):
-    from ..devices import c2leap
+    from .devices import c2leap
     c2leap.leap_mode('velocity', session)
 
 def leap_focus(session):
-    from ..devices import c2leap
+    from .devices import c2leap
     c2leap.report_leap_focus(session)
 
 def leap_quit(session):
-    from ..devices import c2leap
+    from .devices import c2leap
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
@@ -774,17 +787,18 @@ def motion_blur(viewer):
         MotionBlur(viewer)
 
 def mono_mode(viewer):
-    from .. import graphics
+    from . import graphics
     viewer.camera.mode = graphics.mono_camera_mode
 def stereo_mode(viewer):
-    from .. import graphics
+    from . import graphics
     viewer.camera.mode = graphics.stereo_camera_mode
+
 def start_oculus(session):
-    from ..devices import oculus
-    if session.view.camera.mode.name() == 'oculus':
-        oculus.stop_oculus(session)
+    from .devices import oculus
+    if session.main_view.camera.mode.name() == 'oculus':
+        oculus.stop_oculus2(session)
     else:
-        oculus.start_oculus(session)
+        oculus.start_oculus2(session)
 def oculus_move(session):
     oc = session.oculus
     if oc:
@@ -796,15 +810,15 @@ def oculus_move(session):
             oc.on_primary = True
 
 def toggle_space_navigator(session):
-    from ..devices import spacenavigator
+    from .devices import spacenavigator
     spacenavigator.toggle_space_navigator(session)
 
 def toggle_space_navigator_fly_mode(session):
-    from ..devices import spacenavigator
+    from .devices import spacenavigator
     spacenavigator.toggle_fly_mode(session)
 
 def space_navigator_collisions(session):
-    from ..devices import spacenavigator
+    from .devices import spacenavigator
     spacenavigator.avoid_collisions(session)
 
 def quit(session):
