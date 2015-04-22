@@ -144,10 +144,10 @@ def standard_shortcuts(session):
         ('cl', command_line, 'Enter command', gcat, sesarg),
 
         # Mouse
-#        ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, mmarg, msmenu),
+        ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, mmarg, msmenu),
 #        ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
 #        ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
-#        ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
+        ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
 #        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
 #        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
@@ -231,7 +231,7 @@ class Shortcut:
             v = s.main_view
             f(v)
         elif self.mouse_modes_arg:
-            m = s.main_window.graphics_window.mouse_modes
+            m = s.ui.main_window.graphics_window.mouse_modes
             f(m)
         elif self.session_arg:
             f(s)
@@ -435,8 +435,9 @@ def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
                     lambda e,s=m.session: pmm.mouse_up(s,e))
 
 def enable_contour_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
+    from .map.mouse import mouse_contour_level
+    m = mouse_modes
+    m.bind_mouse_mode(button, m.mouse_down, lambda e,m=m: mouse_contour_level(m,e), m.mouse_up)
 
 def enable_map_series_mouse_mode(s, button = 'right'):
   from .map import series
@@ -448,9 +449,9 @@ def enable_move_selected_mouse_mode(mouse_modes, button = 'right'):
   m.move_selected = True
 
 def enable_move_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_standard_mouse_modes()
-  m.move_selected = False
+    m = mouse_modes
+    m.bind_standard_mouse_modes()
+    m.move_selected = False
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()
