@@ -6,7 +6,8 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/map
 
 SUBDIRS	= _map data series
 
-PYSRCS = __init__.py defaultsettings.py emdb_fetch.py grayscale.py slice.py solid.py volume.py volumecommand.py
+PYSRCS = __init__.py defaultsettings.py emdb_fetch.py grayscale.py mouse.py \
+	slice.py solid.py volume.py volumecommand.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
