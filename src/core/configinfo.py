@@ -324,11 +324,13 @@ class Section:
     ----------
     PROPERTY_INFO : { name: (from_str, to_str, default_value) }
 
-    The from_str item can be either a function that takes a string and
-    returns a value of the right type, or cli Annotation.  The to_str
-    is a function that takes a value and returns a string.  The the
-    default_value is the default value when the property has not been
+    name must be a legal Python identifier.  from_str can be either
+    a function that takes a string and returns a value of the right type,
+    or cli Annotation.  to_str is a function that takes a value and returns
+    a string.  The default_value is the value when the property has not been
     set.
+
+    TODO: add documentation string to PROPERTY_INFO
     """
 
     PROPERTY_INFO = {}
