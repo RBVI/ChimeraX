@@ -146,7 +146,7 @@ def standard_shortcuts(session):
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
         ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
-        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
+        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, mmarg, msmenu),
         ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
         # Devices
@@ -393,28 +393,33 @@ def toggle_box_faces(m):
   m.show('solid')
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  from ..map import planes_mouse_mode
-  pmm = planes_mouse_mode(m.session)
-  m.bind_mouse_mode(button, pmm.mouse_down, pmm.mouse_drag, pmm.mouse_up)
+    m = mouse_modes
+    from ..map import PlanesMouseMode
+    m.bind_mouse_mode(button, PlanesMouseMode(m.session))
 
 def enable_contour_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
+    m = mouse_modes
+    from ..map import ContourLevelMouseMode
+    m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
-def enable_map_series_mouse_mode(s, button = 'right'):
-  from ..map import series
-  series.enable_map_series_mouse_mode(s, button)
+def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
+    m = mouse_modes
+    from ..map import series
+    mode = series.map_series_mouse_mode(m.session)
+    if mode:
+        m.bind_mouse_mode(button, mode)
 
 def enable_move_selected_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_standard_mouse_modes()
-  m.move_selected = True
+    from .. import  ui
+    m = mouse_modes
+    m.bind_mouse_mode('left', ui.RotateSelectedMouseMode(m.session))
+    m.bind_mouse_mode('right', ui.TranslateSelectedMouseMode(m.session))
 
 def enable_move_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_standard_mouse_modes()
-  m.move_selected = False
+    from .. import  ui
+    m = mouse_modes
+    m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
+    m.bind_mouse_mode('right', ui.TranslateMouseMode(m.session))
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()
