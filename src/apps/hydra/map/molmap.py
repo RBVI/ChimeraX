@@ -99,7 +99,7 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
                                          transforms, csys)
 
     if replace:
-        from . import volume_list
+        from .volume import volume_list
         vlist = [v for v in volume_list(session)
                  if getattr(v, 'molmap_atoms', None) == atoms]
         session.close_models(vlist)

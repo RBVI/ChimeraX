@@ -756,7 +756,7 @@ def simulated_map(atoms, res, mwm, session):
 def find_simulated_map(atoms, res, mwm, session):
 
     a = array_checksum(atoms.coordinates())
-    from .. import volume_list
+    from ..volume import volume_list
     for v in volume_list(session):
       if hasattr(v, 'fitsim_params') and v.fitsim_params == (a, res, mwm):
         return v

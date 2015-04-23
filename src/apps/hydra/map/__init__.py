@@ -3,11 +3,6 @@
 #
 
 # -----------------------------------------------------------------------------
-# Open volume data file, create a volume object and display it.
-#
-from .volume import open_volume_file, volume_list
-
-# -----------------------------------------------------------------------------
 # Create and show a volume madel from a Grid_Data object as defined by the
 # data module.
 #

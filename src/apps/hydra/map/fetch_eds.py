@@ -29,7 +29,7 @@ def fetch_eds_map(id, session, type = '2fofc', ignore_cache=False):
     
   # Display map.
   s.show_status('Opening map %s...' % map_name)
-  from . import open_volume_file
+  from .volume import open_volume_file
   models = open_volume_file(map_path, session, 'dsn6', map_name, 'mesh',
                             open_models = False)
   for m in models:

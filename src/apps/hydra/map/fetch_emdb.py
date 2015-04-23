@@ -15,7 +15,7 @@ def fetch_emdb_map(id, session, open_fit_pdbs = False, ignore_cache=False):
   map_name = basename(map_path)
   s = session
   s.show_status('Opening map %s...' % map_name)
-  from . import open_volume_file
+  from .volume import open_volume_file
   models = open_volume_file(map_path, session, 'ccp4', map_name, 'surface',
                             open_models = False)
   for m in models:
