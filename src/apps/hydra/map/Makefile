@@ -5,8 +5,7 @@ PKG_DIR = $(PYSITEDIR)/hydra/map
 
 SUBDIRS	= filter fit
 
-PYSRCS = __init__.py fetch_eds.py fetch_emdb.py measure.py molmap.py \
-	session.py subsample.py
+PYSRCS = __init__.py fetch_eds.py fetch_emdb.py measure.py molmap.py session.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
