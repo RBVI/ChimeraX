@@ -22,6 +22,7 @@ class Graphics_Window(QtGui.QWindow):
         drawing = session.drawing()
         self.opengl_context = QtOpenGLContext(self)
         self.view = View(drawing, window_size, self.opengl_context, log)
+        session.view = self.view        # Needed by mouse modes
 
         self.set_stereo_eye_separation()
 

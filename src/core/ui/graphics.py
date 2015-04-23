@@ -26,8 +26,8 @@ class GraphicsWindow(wx.Panel):
         # perhaps redraw interval should be 10 to reduce
         # frame drops at 60 frames/sec
 
-        from . import mousemodes
-        self.mouse_modes = mousemodes.WxMouseModes(self, ui.session)
+        from .mousemodes import MouseModes
+        self.mouse_modes = MouseModes(self, ui.session)
 
     def set_redraw_interval(self, msec):
         self.redraw_interval = msec # milliseconds
