@@ -2,7 +2,7 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	= commands devices docs example_sessions files \
-	  mac_os_cpp map measure molecule movie ui
+	  mac_os_cpp measure molecule movie ui
 
 COREPY = geometry graphics map surface
 CORECPP = arrays_cpp
