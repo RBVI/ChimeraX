@@ -23,13 +23,13 @@ def fetch_eds_map(id, session, type = '2fofc', ignore_cache=False):
   map_url = url_pattern % (site, id[1:3], id, map_name)
   name = 'map %s' % id
   minimum_map_size = 8192       # bytes
-  from ..files.fetch import fetch_file
+  from .fetch import fetch_file
   map_path, headers = fetch_file(map_url, name, session, minimum_map_size,
                                  'EDS', map_name, ignore_cache=ignore_cache)
     
   # Display map.
   s.show_status('Opening map %s...' % map_name)
-  from .volume import open_volume_file
+  from ..map.volume import open_volume_file
   models = open_volume_file(map_path, session, 'dsn6', map_name, 'mesh',
                             open_models = False)
   for m in models:
@@ -42,6 +42,6 @@ def fetch_eds_map(id, session, type = '2fofc', ignore_cache=False):
 #
 def register_eds_fetch(session):
 
-  from ..files.fetch import register_fetch_database as reg
+  from .fetch import register_fetch_database as reg
   reg('EDS', fetch_eds_map, '1A0M', 'eds.bmc.uu.se/eds',
       'http://eds.bmc.uu.se/cgi-bin/eds/uusfs?pdbCode=%s', session)
