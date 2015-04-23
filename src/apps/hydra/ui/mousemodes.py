@@ -18,6 +18,7 @@ class MouseModes:
         self.set_mouse_event_handlers()
 
         self.trackpad_speed = 4         # Trackpad position scaling to match mouse position sensitivity
+        self.trackpad_xy = None
 
     def cursor_position(self):
         import wx
@@ -26,7 +27,7 @@ class MouseModes:
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         modes = (
             ('left', RotateMouseMode),
-            ('middle', ZoomMouseMode),
+            ('middle', TranslateMouseMode),
             ('right', TranslateMouseMode),
             ('wheel', ZoomMouseMode),
             ('pause', ObjectIdMouseMode),
@@ -135,17 +136,21 @@ class MouseModes:
                 if rm:
                     rm[0].rotate(axis, angle)
         elif n == 3:
-            dx = sum(x for id,x,y in moves)
-            dy = sum(y for id,x,y in moves)
+            dx = sum(x for id,x,y in moves)/n
+            dy = sum(y for id,x,y in moves)/n
             # translation
             if dx != 0 or dy != 0:
                 m = self.mouse_modes.get('right')
                 if m:
-                    # TODO: Doesn't get right position unless mouse mode uses MouseMode.mouse_motion().
-                    action = 'mouse_down' if m.last_mouse_position is None else 'mouse_drag'
-                    e = self.trackpad_event(dx,dy,m.last_mouse_position)
-                    f = getattr(m, action)
-                    f(e)
+                    if self.trackpad_xy is None:
+                        self.trackpad_xy = self.cursor_position()
+                        action = 'mouse_down'
+                    else:
+                        x,y = self.trackpad_xy
+                        self.trackpad_xy = (x+dx, y+dy)
+                        action = 'mouse_drag'
+                    e = self.trackpad_event(*self.trackpad_xy)
+                    getattr(m, action)(e)
 
 class MouseMode:
 

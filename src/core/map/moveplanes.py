@@ -19,7 +19,6 @@ class PlanesMouseMode(MouseMode):
         self.frame_number = None
         
     def mouse_down(self, event):
-        MouseMode.mouse_down(self, event)       # Needed for trackpad
         self.xy_last = (x,y) = event.position()
         v = self.session.main_view
         line = v.clip_plane_points(x,y)    # scene coordinates
@@ -32,6 +31,7 @@ class PlanesMouseMode(MouseMode):
     def mouse_drag(self, event):
         v = self.map
         if v is None or self.xy_last is None:
+            self.mouse_down(event)
             return
 #        from chimera.update import _frameNumber
 #        if _frameNumber == self.frame_number:
@@ -39,7 +39,6 @@ class PlanesMouseMode(MouseMode):
             # once between redraw.
 #            return
 
-        self.mouse_motion(event)     # Needed for trackpad
         xl, yl = self.xy_last
         x,y = event.position()
         dx, dy = (x - xl, yl - y)
@@ -60,7 +59,6 @@ class PlanesMouseMode(MouseMode):
 #            self.frame_number = _frameNumber
 
     def mouse_up(self, event):
-        MouseMode.mouse_up(self, event)       # Needed for trackpad
         self.map = None
         self.ijk = None
         self.drag = False

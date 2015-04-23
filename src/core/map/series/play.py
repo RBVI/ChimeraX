@@ -323,16 +323,12 @@ class Play_Series_Mouse_Mode(MouseMode):
 
   def mouse_up(self, event):
     self.last_mouse_x = None
-    MouseMode.mouse_up(self, event)     # Needed for trackpad
 
   def mouse_down(self, event):
     x,y = event.position()
     self.last_mouse_x = x
-    MouseMode.mouse_down(self, event)     # Needed for trackpad
   
   def mouse_drag(self, event):
-
-    self.mouse_motion(event)     # Needed for trackpad
 
     x,y = event.position()
     if self.last_mouse_x is None:
