@@ -30,27 +30,3 @@ from ._map import contour_surface, sphere_surface_distance
 #
 from .moveplanes import PlanesMouseMode
 from .mouselevel import ContourLevelMouseMode
-
-# -----------------------------------------------------------------------------
-# The active volume is the one highlighted in the volume dialog.  If the
-# dialog has not been created (for example running Chimera with no graphical
-# user interface) then there is no active volume.
-#
-#from volumedialog import active_volume, set_active_volume
-
-# -----------------------------------------------------------------------------
-# Display dialog to choose volume files and return volume objects to a
-# callback function.
-#
-#from volumedialog import show_volume_file_browser
-
-# -----------------------------------------------------------------------------
-# Bounds of interactively drawn a outline box for selecting subregions.
-#
-#from volumedialog import subregion_selection_bounds
-
-# -----------------------------------------------------------------------------
-# Tk menu widget that contains an automatically updated list of open volume
-# data sets.
-#
-#from volumemenu import Volume_Menu
