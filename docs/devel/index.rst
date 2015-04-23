@@ -35,7 +35,7 @@ and the tool interface modules support common functionality
 and tool registration.
 
 In additons to the core functionality,
-there are the :doc:`toolshed <core/toolshed>` that use the core,
+there are the :doc:`tools` that use the core,
 and the :doc:`applications` that bundle the functionality.
 
 .. note::
@@ -52,8 +52,6 @@ Contents
 
     data_interface.rst
 
-    core/tools.rst
-
-    core/toolshed.rst
+    infrastructure.rst
 
     applications.rst

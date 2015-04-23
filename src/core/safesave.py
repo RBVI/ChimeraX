@@ -6,13 +6,13 @@ safesave: safely write files
 This module provides a method to safely overwrite a file.  If it fails,
 then the file was not overwritten.
 
-Usage:
+Usage::
 
     with SaveTextFile(filename) as f:
         print(..., file=f)
         f.write(...)
 
-or:
+or::
 
     try:
         f = SaveTextFile(filename)
@@ -96,7 +96,9 @@ class SaveFile:
             self._tmp_filename = None
 
     def close(self, exception=None):
-        """Close temporary file and rename it to desired filename"""
+        """Close temporary file and rename it to desired filename
+        
+        If there is an exception, don't overwrite the file."""
         if exception is None:
             self.__exit__(None, None, None)
         else:
