@@ -161,15 +161,15 @@ def gaussian_grid_data(xyz, weights, resolution, step, pad,
                        cutoff_range, sigma_factor, transforms = []):
 
     from ..geometry import bounds
-    xyz_min, xyz_max = bounds.point_bounds(xyz, transforms)
+    b = bounds.point_bounds(xyz, transforms)
 
-    origin = [x-pad for x in xyz_min]
+    origin = [x-pad for x in b.xyz_min]
     sdev = sigma_factor * resolution / step
     from numpy import zeros, float32, empty
     sdevs = zeros((len(xyz),3), float32)
     sdevs[:] = sdev
     from math import ceil
-    shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / step))
+    shape = [int(ceil((b.xyz_max[a] - b.xyz_min[a] + 2*pad) / step))
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
 
@@ -197,13 +197,13 @@ def balls_grid_data(xyz, radii, resolution, step, pad,
                        cutoff_range, sigma_factor, transforms = []):
 
     from ..geometry import bounds
-    xyz_min, xyz_max = bounds.point_bounds(xyz, transforms)
+    b = bounds.point_bounds(xyz, transforms)
 
-    origin = [x-pad for x in xyz_min]
+    origin = [x-pad for x in b.xyz_min]
     sdev = sigma_factor * resolution / step
     from numpy import zeros, float32, empty
     from math import ceil
-    shape = [int(ceil((xyz_max[a] - xyz_min[a] + 2*pad) / step))
+    shape = [int(ceil((b.xyz_max[a] - b.xyz_min[a] + 2*pad) / step))
              for a in (2,1,0)]
     matrix = zeros(shape, float32)
 
