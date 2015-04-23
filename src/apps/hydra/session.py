@@ -36,6 +36,8 @@ class Session(Models):
         self.log = None
         'Command, error, info log, :py:class:`~.ui.qt.gui.Log`'
 
+        self.logger = self       # For compatibility with Chimera 2 code.
+
         self.file_readers = None
         'Table of file types that can be read, used by :py:func:`~.files.opensave.file_readers`'
 
