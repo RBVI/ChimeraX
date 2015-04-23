@@ -8,10 +8,13 @@ data in various formats.
 
 I/O sources and destinations are specified as filenames, and the appropriate
 open or export function is found by deducing the format from the suffix of the
-filename.  An additional compression suffix, i.e., .gz, indicates that the
-file is or should be compressed.  In addition to reading data from files,
-data can be fetched from the Internet.  In that case, instead of a filename,
-the data source is specified as prefix:identifier, e.g., pdb:1gcn, where
+filename.
+An additional compression suffix, *i.e.*, ``.gz``,
+indicates that the file is or should be compressed.
+In addition to reading data from files,
+data can be fetched from the Internet.
+In that case, instead of a filename,
+the data source is specified as prefix:identifier, *e.g.*, ``pdb:1gcn``, where
 the prefix identifies the data format, and the identifier selects the data.
 
 All data I/O is in binary.
@@ -118,7 +121,7 @@ class _FileFormatInfo:
 
     ..attribute:: dangerous
 
-        True if can execute arbitrary code (e.g., scripts)
+        True if can execute arbitrary code (*e.g.*, scripts)
 
     ..attribute:: open_func
 
@@ -168,7 +171,7 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
     :param category: says what kind of data the should be classified as.
     :param extensions: is a sequence of filename suffixes starting
        with a period.  If the format doesn't open from a filename
-       (e.g., PDB ID code), then extensions should be an empty sequence.
+       (*e.g.*, PDB ID code), then extensions should be an empty sequence.
     :param prefixes: is a sequence of filename prefixes (no ':'),
        possibily empty.
     :param mime: is a sequence of mime types, possibly empty.

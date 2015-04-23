@@ -11,15 +11,15 @@ from .orderedset import OrderedSet
 
 
 def filename(session, tag, unversioned=False):
-    """Return appropriate filename for cache
+    """Return appropriate filename for cache file.
     
     Parameters
     ----------
-    session : Chimera2 session
+    session : :py:class:`~chimera.core.session.Session` instance
     tag : str, a "unique" tag to identify the cache
     unversioned : bool, optional
 
-    If unversioned is True, then cache is for all versions of Chimera2
+        If *unversioned* is True, then cache is for all versions of application.
     """
     if unversioned:
         cache_dir = session.app_dirs_unversioned.user_cache_dir
@@ -29,11 +29,11 @@ def filename(session, tag, unversioned=False):
 
 
 class JSONDiskCache:
-    """Use json to save and restore disk cache
+    """Use json to save and restore disk cache.
 
     Parameters
     ----------
-    session : Chimera2 session
+    session : :py:class:`~chimera.core.session.Session` instance
     tag : str, a "unique" tag to identify the cache
     unversioned : bool, optional, defaults to False
     """
@@ -42,7 +42,7 @@ class JSONDiskCache:
         self.filename = filename(session, tag, unversioned)
 
     def load(self):
-        """Return deserialized object from cache file""" 
+        """Return deserialized object from cache file.""" 
         import json
         import os
         if not os.path.exists(self.filename):
@@ -51,11 +51,12 @@ class JSONDiskCache:
             return json.load(f)
 
     def save(self, obj):
-        """Serialize object into cache file
+        """Serialize object into cache file.
         
         Parameters
         ----------
-        obj: object
+        obj : object
+            The object to save.
         """
         import json
         from .safesave import SaveTextFile
@@ -63,22 +64,26 @@ class JSONDiskCache:
             json.dump(obj, f, ensure_ascii=False)
 
 
-class LRUHistory(OrderedSet):
-    """LRU set with fixed capacity
+class LRUSetCache(OrderedSet):
+    """LRU set with fixed capacity with backing store.
+
+    Saves and restores a set of data from a cache file.
+    Use the :py:meth:`add` method to put items into the set
+    and to update it.
+    The last member of the set is the most recent.
+    ALl of the normal :py:class:`set` methods are supported as well.
 
     Parameters
     ----------
     capacity : int, a limit on the number of items in the history
-    session : Chimera2 session
+    session : :py:class:`~chimera.core.session.Session` instance
     tag : str, a "unique" tag to identify the cache
     unversioned : bool, optional, defaults to False
     auto_save : bool, optional, defaults to False
 
-    If unversioned is true, then cache is for all versions of Chimera2.
-    If auto_save is true, then the history is flushed to disk everyime
-    it is updated.
-
-    Use the add method to put items into the history and to update it.
+        If *unversioned* is true, then cache is for all versions of application.
+        If *auto_save* is true, then the history is flushed to disk everyime
+        it is updated.
     """
 
     def __init__(self, capacity, session, tag, unversioned=False,
@@ -97,10 +102,17 @@ class LRUHistory(OrderedSet):
         OrderedSet.__init__(self, obj)
 
     def save(self):
+        """Save set to cache file."""
         obj = list(self)
         self._disk_cache.save(obj)
 
     def add(self, item):
+        """Add item to set and make it the most recent.
+        
+        Parameters
+        ----------
+        item : simple type suitable for Python's :py:mod:`JSON` module.
+        """
         if item in self:
             self.discard(item)
         OrderedSet.add(self, item)
