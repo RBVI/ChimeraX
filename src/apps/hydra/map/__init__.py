@@ -27,9 +27,10 @@ from .volume import Volume
 from ._map import contour_surface, sphere_surface_distance
 
 # -----------------------------------------------------------------------------
-# Mouse mode for moving planes.
+# Mouse modes for moving planes and changing contour level
 #
-from .moveplanes import planes_mouse_mode
+from .moveplanes import PlanesMouseMode
+from .mouselevel import ContourLevelMouseMode
 
 # -----------------------------------------------------------------------------
 # The active volume is the one highlighted in the volume dialog.  If the
