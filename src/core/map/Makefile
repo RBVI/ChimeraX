@@ -4,10 +4,11 @@ include $(TOP)/mk/config.make
 PKG_DIR = $(PYSITEDIR)/chimera/core/map
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core/map
 
-SUBDIRS	= _map data series
+SUBDIRS	= _map data filter fit series
 
-PYSRCS = __init__.py defaultsettings.py emdb_fetch.py grayscale.py mouselevel.py \
-	moveplanes.py slice.py solid.py volume.py volumecommand.py
+PYSRCS = __init__.py defaultsettings.py emdb_fetch.py grayscale.py \
+	measure.py molmap.py mouselevel.py \
+	moveplanes.py session.py slice.py solid.py volume.py volumecommand.py
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

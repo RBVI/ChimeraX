@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 SUBDIRS	= commands devices docs example_sessions files \
 	  mac_os_cpp measure molecule movie ui
 
-COREPY = geometry graphics map surface
+COREPY = devices geometry graphics map surface
 CORECPP = arrays_cpp
 
 PKG_DIR = $(PYSITEDIR)/hydra
@@ -59,9 +59,6 @@ install: all $(PKG_DIR) install_app_prereqs
 	for cpy in $(COREPY) ; do \
 		$(RSYNC) $(PYSITEDIR)/chimera/core/$$cpy $(PKG_DIR) ; \
 	done
-# Replace map __init__.py file with hydra version
-	$(RSYNC) map/__init__.py $(PKG_DIR)/map
-	$(RSYNC) $(PYSITEDIR)/chimera/core/devices $(PKG_DIR)
 	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(APP_LIB_DIR)
 ifeq ($(OS),Darwin)
 	$(RSYNC) $(PKG_DIR) $(APP_PY_SITE)
