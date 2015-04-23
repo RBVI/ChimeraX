@@ -1,9 +1,9 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-config: application configuration support
-=========================================
+configinfo: application configuration support
+=============================================
 
-The module provides support for accessing persistent
+This module provides support for accessing persistent
 configuratation information.  The information is stored in
 configuration files that are human-readable, *i.e.*, text, but
 not necessarily editable.
@@ -50,7 +50,7 @@ Declaring the Configuration API
 The fact that there are configuration files is hidden by an object
 that implements the tool's configuration API.
 
-Configuration Example::
+Multi-section Configuration Example::
 
     _config = None
 
@@ -86,13 +86,15 @@ Configuration Example::
 
 Note that each property has three items associated with it:
 
-    1. The cli Annotation that can parse the value.  This allows for
-       error checking in the case where a user hand edits the configuration.
+    1. The cli :py:class:~chimera.core.cli.Annotation`
+       that can parse the value.
+       This allows for error checking in the case where a user hand edits
+       the configuration.
     2. A function to convert the value to a string.
     3. A default value.
 
-The Section class is for convenience.  If the tool configuration API changes,
-then the tool can substitute a class with custom code.
+If the tool configuration API changes,
+then the tool can subclass Section with custom code.
 
 Adding a Property
 -----------------
@@ -100,7 +102,7 @@ Adding a Property
 If an additional property is needed, just add it the section's PROPERTY_INFO,
 and document it.
 The minor part of the version number should be increased before
-the tool is released again.  Other tools can use the tool's version number
+the tool is released again.  That way other tools can use the tool's version number
 to tell if the property is available or not.
 
 Single Section Configuration
@@ -128,7 +130,7 @@ Renaming a Property
 
 Since configuration is an API, properties can not be removed without
 changing the major version number.  To prepare for that change, document
-that the old name is deprecated and the new name should be used instead.
+that the old name is deprecated and that the new name should be used instead.
 Then add a Python property to the section class that forwards the
 changes to the old property name.  For example, to rename 'e_exp', in
 the previous example, to 'e_value', extend the LogSection class with::
@@ -152,70 +154,81 @@ the previous example, to 'e_value', extend the LogSection class with::
 Later, when the major version changes,
 the existing ConfigInfo subclass would be renamed with a version suffix
 with the version number hardcoded,
-and a new subclass would be generated with the 'e_exp' replaced with
-'e_value'.  Then in the new ConfigInfo subclass, after it is initialized,
+and a new subclass would be generated with the 'e_exp' replaced with 'e_value'.
+Then in the new ConfigInfo subclass, after it is initialized,
 it would check if its data was on disk or not, and if not, try opening up
-previous configuration versions and migrate the settings.  The 'migrate_from'
-methods may be replaced or it can be made more explicit.
+previous configuration versions and migrate the settings.
+The 'migrate_from' methods may be replaced or it can be made more explicit.
+See see section for an example.
 
 Changing the API - Migrating to a New Configuration
 ---------------------------------------------------
 
-class _Params_V1(configinfo.Section):
+Migrating Example::
 
-    PROPERTY_INFO = {
-        'e_exp': { cli.PositiveIntArg, str, 3 },
-        'matrix': { BlastMatrix, str, 'BLOSUM62' }
-    }
+    class _Params_V1(configinfo.Section):
 
-class _BPConfigInfo_V1(configinfo.ConfigInfo):
+        PROPERTY_INFO = {
+            'e_exp': { cli.PositiveIntArg, str, 3 },
+            'matrix': { BlastMatrix, str, 'BLOSUM62' }
+        }
+        
+        # additional properties removed
 
-    def __init__(self, session):
-        ConfigInfo.__init__(self, "Blast Protein")
-        self.params = _Params_V1(self, 'params')
+    class _BPConfigInfo_V1(configinfo.ConfigInfo):
+
+        def __init__(self, session):
+            ConfigInfo.__init__(self, "Blast Protein")
+            self.params = _Params_V1(self, 'params')
 
 
-class _Params(configinfo.Section):
+    class _Params(configinfo.Section):
 
-    PROPERTY_INFO = {
-        'e_value': { float, str, 1e-3 },
-        'matrix': { BlastMatrix, str, 'BLOSUM62' }
-    }
+        PROPERTY_INFO = {
+            'e_value': { float, str, 1e-3 },
+            'matrix': { BlastMatrix, str, 'BLOSUM62' }
+        }
 
-    def migrate_from(self, old, version):
-        configinfo.Section.migrate_from(self, old, version)
-        self.e_value = 10 ** -old._exp
+        # e_exp is gone
 
-class _BPConfigInfo(configinfo.ConfigInfo):
+        def migrate_from(self, old, version):
+            configinfo.Section.migrate_from(self, old, version)
+            self.e_value = 10 ** -old._exp
 
-    def __init__(self, session):
-        ConfigInfo.__init__(self, "Blast Protein", "2")  # added version
-        self.params = _Params(self, 'params')
-        if not self.on_disk():
-            old = _BPConfigInfo_V1()
-            self.migrate_from(old, "1")
+    class _BPConfigInfo(configinfo.ConfigInfo):
+
+        def __init__(self, session):
+            ConfigInfo.__init__(self, "Blast Protein", "2")  # added version
+            self.params = _Params(self, 'params')
+            if not self.on_disk():
+                old = _BPConfigInfo_V1()
+                self.migrate_from(old, "1")
 
 
 Migrating a Property Without Changing the Version
 -------------------------------------------------
 
-This is similar to renaming a property, with the getter function much
-more sophisticated::
+This is similar to renaming a property, with a more sophisticated getter
+function::
 
     class _Params(configinfo.Section):
 
         PROPERTY_INFO = {
-            'e_value': { float, str, 3 },
+            'e_value': { float, str, 1e-3 },
             'matrix': { BlastMatrix, str, 'BLOSUM62' }
         }
 
         @getter
         def e_value(self):
-            def cvt_e_exp(value):
+            def migrate_e_exp(value):
                 # conversion function
                 return 10 ** -value
             return self.migrate_value('e_value', 'e_exp', cli.PositiveIntArg,
-                                       cvt_e_exp)
+                                       migrate_e_exp)
+
+The migrate_value function looks for the new value, but if it isn't present,
+then it looked for the old value and migrates it.
+If the old value isn't present, then the new default value is used.
 """
 from .cli import UserError
 from . import triggerset
@@ -242,9 +255,9 @@ class ConfigInfo:
 
     Parameters
     ----------
-    session : Chimera2 session (for app_dirs and logger)
+    session : :py:class:`~chimera.core.session.Session` (for app_dirs and logger)
     tool_name : the name of the tool
-    version: configuration file version, optional
+    version : configuration file version, optional
 
     Only the major version part of the version is used.
 
@@ -324,11 +337,12 @@ class Section:
     ----------
     PROPERTY_INFO : { name: (from_str, to_str, default_value) }
 
-    name must be a legal Python identifier.  from_str can be either
-    a function that takes a string and returns a value of the right type,
-    or cli Annotation.  to_str is a function that takes a value and returns
-    a string.  The default_value is the value when the property has not been
-    set.
+        ``name`` must be a legal Python identifier.
+        ``from_str`` can be either a function that takes a string
+        and returns a value of the right type, or a cli
+        :py:class:`~chimera.core.cli.Annotation`.
+        ``to_str`` is a function that takes a value and returns a string.
+        The ``default_value`` is the value when the property has not been set.
 
     TODO: add documentation string to PROPERTY_INFO
     """
@@ -423,8 +437,8 @@ class Section:
     def migrate_from(self, old, version):
         """Migrate identical settings from old section to current section
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         old : instance Section-subclass for old section
         version : old version "number"
         """
@@ -435,12 +449,14 @@ class Section:
     def migrate_value(self, name, old_name, old_from_str, convert):
         """Migrate value within a section
 
+        For migrating property API from ".old_name" to ".name".
+
+        Parameters
+        ----------
         name : current name of property
         old_name : previous name of property
         old_from_str : function to parse prevous version of property
         convert : function to old value to new value
-
-        For migrating API from ".old_name" to ".name".
         """
         if name in self._cache:
             # already figured out
@@ -480,7 +496,8 @@ class SingleSectionConfigInfo(ConfigInfo, Section):
     The parameters are the same as ConfigInfo with the addtion of the
     Section's section_name.
 
-    Restriction: can not use the section_name as a section property name.
+    Restriction: can not use the section_name as one of the section's
+    property names.
     """
 
     def __init__(self, tool_name, section_name, version="1"):

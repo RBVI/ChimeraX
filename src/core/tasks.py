@@ -74,7 +74,7 @@ class Task(State):
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of chimera.core.session.Session
             Session in which this task was created.
 
         """
@@ -204,10 +204,9 @@ class Job(Task):
     from `session.State` should be defined so that saving
     and restoring of scenes and sessions work properly.
 
-    Note
-    ----
-    'start' is still the main entry point for callers
-    to 'Job' instances, not 'run'.
+    .. note::
+        'start' is still the main entry point for callers
+        to 'Job' instances, not 'run'.
 
     """
     CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275]
@@ -311,7 +310,7 @@ class Tasks(State):
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of chimera.core.session.Session
             Session for which this state manager was created.
 
         """
@@ -328,17 +327,17 @@ class Tasks(State):
     def take_snapshot(self, session, flags):
         """Save state of running tasks.
 
-        Overrides chimera.session.State default method to save
+        Overrides chimera.core.session.State default method to save
         state of all registered running tasks.
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of chimera.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
         flags : int
             Flags indicating whether snapshot is being taken to
-            save scene or session.  See `chimera.session`_ for
+            save scene or session.  See `chimera.core.session` for
             more details.
 
         """
@@ -353,14 +352,14 @@ class Tasks(State):
     def restore_snapshot(self, phase, session, version, data):
         """Restore state of running tasks.
 
-        Overrides chimera.session.State default method to restore
+        Overrides chimera.core.session.State default method to restore
         state of all registered running tasks.
 
         Parameters
         ----------
         phase : str
-            Restoration phase.  See `chimera.session`_ for more details.
-        session : instance of chimera.session.Session
+            Restoration phase.  See `chimera.core.session` for more details.
+        session : instance of chimera.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
         version : any
@@ -392,7 +391,7 @@ class Tasks(State):
     def reset_state(self):
         """Reset state manager to default state.
 
-        Overrides chimera.session.State default method to reset
+        Overrides chimera.core.session.State default method to reset
         to default state.  Since the default state has no running
         tasks, all registered tasks are terminated.
 
