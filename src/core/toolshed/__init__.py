@@ -57,11 +57,12 @@ TOOLSHED_TOOL_UNINSTALLED : str
     Name of trigger fired when an installed tool is removed.
     The trigger data is a :py:class:`ToolInfo` instance.
 
-.. note:
-    The term 'installed' refers to tools whose corresponding Python
-    module or package is installed on the local machine.  The term
-    'available' refers to tools that are listed on a remote server
-    but have not yet been installed on the local machine.
+Notes
+-----
+The term 'installed' refers to tools whose corresponding Python
+module or package is installed on the local machine.  The term
+'available' refers to tools that are listed on a remote server
+but have not yet been installed on the local machine.
 
 """
 
@@ -313,11 +314,12 @@ class Toolshed:
         Parameters
         ----------
         ti : :py:class:`ToolInfo` instance
-            Must be a constructed instance, i.e., not an existing instance
+            Must be a constructed instance, *i.e.*, not an existing instance
             returned by :py:func:`tool_info`.
 
-        .. note:
-            A :py:const:`TOOLSHED_TOOL_INFO_ADDED` trigger is fired after the addition.
+        Notes
+        -----
+        A :py:const:`TOOLSHED_TOOL_INFO_ADDED` trigger is fired after the addition.
         
         """
         _debug("add_tool_info", ti)
@@ -346,8 +348,9 @@ class Toolshed:
         ToolshedInstalledError
             Raised if the tool is already installed.
 
-        .. note:
-            A :py:const:`TOOLSHED_TOOL_INSTALLED` trigger is fired after installation.
+        Notes
+        -----
+        A :py:const:`TOOLSHED_TOOL_INSTALLED` trigger is fired after installation.
         
         """
         _debug("install_tool", ti)
@@ -373,8 +376,9 @@ class Toolshed:
         ToolshedInstalledError
             Raised if the tool is not installed.
 
-        .. note:
-            A :py:const:`TOOLSHED_TOOL_UNINSTALLED` trigger is fired after package removal.
+        Notes
+        -----
+        A :py:const:`TOOLSHED_TOOL_UNINSTALLED` trigger is fired after package removal.
         
         """
         _debug("uninstall_tool", ti)

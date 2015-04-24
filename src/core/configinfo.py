@@ -29,7 +29,7 @@ implement backwards compatibility.
 Accessing Configuration Information
 -----------------------------------
 
-Tool Configuration Example::
+Access Tool Configuration::
 
     config = tool.get_config()
     if config.SECTION.PROPERTY == 12:  # access a value
@@ -38,7 +38,7 @@ Tool Configuration Example::
     config.SECTION.save()              # save a section
     config.save()                      # save all sections
 
-Chimera Core Configuration Example::
+Access Chimera Core Configuration::
 
     from chimera.core import get_config
     config = get_config()
@@ -50,29 +50,24 @@ Declaring the Configuration API
 The fact that there are configuration files is hidden by an object
 that implements the tool's configuration API.
 
-Multi-section Configuration Example::
+Most tools will only have one section.  So the :py:class:`ConfigInfo`
+and :py:class:`Section` subclasses (next example) can be combined into one::
 
     _config = None
 
-    BlastMatrix = cli.EnumOf((
+    BlastMatrixArg = cli.EnumOf((
         'BLOSUM45', 'BLOSUM62', 'BLOSUM80', 'PAM30', 'PAM70'
     ))
 
-
-    class _Params(configinfo.Section):
+    class _BPConfigInfo(configinfo.SingleSectionConfigInfo):
 
         PROPERTY_INFO = {
-            'e_exp': { cli.PositiveIntArg, str, 3 },
-            'matrix': { BlastMatrix, str, 'BLOSUM62' }
+            'e_exp': ( cli.PositiveIntArg, str, 3 ),
+            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
 
-
-    class _BPConfigInfo(configinfo.ConfigInfo):
-
         def __init__(self, session):
-            ConfigInfo.__init__(self, "Blast Protein")
-            self.params = _Params(self, 'params')
-
+            SingleSectionConfigInfo.__init__(self, "Blast Protein", "params")
 
     def get_config():
         global _config
@@ -80,13 +75,65 @@ Multi-section Configuration Example::
             _config = _BPConfigInfo()
         return _config
 
-    config = get_config()
+    # reusing Annotations for command line arguments
+    @cli.register("blast",
+        cli.CmdDesc(
+            keyword=[('evalue', cli.PostiveIntArg),
+                     ('matrix', BlastMatrixArg),]
+    ))
+    def blast(session, e_exp=None, matrix=None):
+        c = get_config()
+        if e_exp is None:
+            e_exp = c.e_exp           # can use short form
+        if matrix is None:
+            matrix = c.params.matrix  # or long form
+        # process arguments
 
-    config.log.log_level = 4
+Multi-section Configuration Example::
+
+    _config = None
+
+    BlastMatrixArg = cli.EnumOf((
+        'BLOSUM45', 'BLOSUM62', 'BLOSUM80', 'PAM30', 'PAM70'
+    ))
+
+    class _Params(configinfo.Section):
+
+        PROPERTY_INFO = {
+            'e_exp': ( cli.PositiveIntArg, str, 3 ),
+            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
+        }
+
+    class _Hidden(configinfo.Section):
+
+        PROPERTY_INFO = {
+            'private': ( str, str, 'xyzzy' ),
+        }
+
+    class _BPConfigInfo(configinfo.ConfigInfo):
+
+        def __init__(self, session):
+            ConfigInfo.__init__(self, "Blast Protein")
+            self.params = _Params(self, 'params')
+            self.hidden = _Params(self, 'hidden')
+
+    def get_config():
+        global _config
+        if _config is None:
+            _config = _BPConfigInfo()
+        return _config
+
+    def blast(session, e_exp=None, matrix=None):
+        c = get_config()
+        if e_exp is None:
+            e_exp = c.params.e_exp      # must use long form
+        if matrix is None:
+            matrix = c.params.matrix
+        # process arguments
 
 Note that each property has three items associated with it:
 
-    1. The cli :py:class:~chimera.core.cli.Annotation`
+    1. The cli :py:class:`~chimera.core.cli.Annotation`
        that can parse the value.
        This allows for error checking in the case where a user hand edits
        the configuration.
@@ -94,35 +141,17 @@ Note that each property has three items associated with it:
     3. A default value.
 
 If the tool configuration API changes,
-then the tool can subclass Section with custom code.
+then the tool can subclass :py:class:`Section` with custom code.
 
 Adding a Property
 -----------------
 
-If an additional property is needed, just add it the section's PROPERTY_INFO,
+If an additional property is needed, just add it the section's
+:py:attr:`~Section.PROPERTY_INFO`,
 and document it.
 The minor part of the version number should be increased before
 the tool is released again.  That way other tools can use the tool's version number
 to tell if the property is available or not.
-
-Single Section Configuration
-----------------------------
-
-Most tools will only have one section.  So the ConfigInfo and Section
-subclasses can be combined into one::
-
-
-    class _BPConfigInfo(configinfo.SingleSectionConfigInfo):
-
-        PROPERTY_INFO = {
-            'e_exp': { cli.PositiveIntArg, str, 3 },
-            'matrix': { BlastMatrix, str, 'BLOSUM62' }
-        }
-
-        def __init__(self, session):
-            SingleSectionConfigInfo.__init__(self, "Blast Protein", "params")
-
-    config.matrix or config.params.matrix
 
 
 Renaming a Property
@@ -132,14 +161,14 @@ Since configuration is an API, properties can not be removed without
 changing the major version number.  To prepare for that change, document
 that the old name is deprecated and that the new name should be used instead.
 Then add a Python property to the section class that forwards the
-changes to the old property name.  For example, to rename 'e_exp', in
-the previous example, to 'e_value', extend the LogSection class with::
+changes to the old property name.  For example, to rename ``e_exp``, in
+the previous example, to ``e_value``, extend the LogSection class with::
 
     class _Params(configinfo.Section):
 
         PROPERTY_INFO = {
-            'e_exp': { cli.PositiveIntArg, str, 3 },
-            'matrix': { BlastMatrix, str, 'BLOSUM62' }
+            'e_exp': ( cli.PositiveIntArg, str, 3 ),
+            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
 
         @getter
@@ -152,14 +181,18 @@ the previous example, to 'e_value', extend the LogSection class with::
             self.e_exp = -round(math.log10(value))
 
 Later, when the major version changes,
-the existing ConfigInfo subclass would be renamed with a version suffix
+the existing :py:class:`ConfigInfo` subclass
+would be renamed with a version suffix
 with the version number hardcoded,
-and a new subclass would be generated with the 'e_exp' replaced with 'e_value'.
-Then in the new ConfigInfo subclass, after it is initialized,
+and a new subclass would be generated with the ``e_exp``
+replaced with ``e_value``.
+Then in the new :py:class:`ConfigInfo` subclass, after it is initialized,
 it would check if its data was on disk or not, and if not, try opening up
 previous configuration versions and migrate the settings.
-The 'migrate_from' methods may be replaced or it can be made more explicit.
-See see section for an example.
+The ``migrate_from`` methods,
+:py:meth:`ConfigInfo.migrate_from` and :py:meth:`Section.migrate_from`,
+may be replaced or can be made more explicit.
+See the next section for an example.
 
 Changing the API - Migrating to a New Configuration
 ---------------------------------------------------
@@ -169,8 +202,8 @@ Migrating Example::
     class _Params_V1(configinfo.Section):
 
         PROPERTY_INFO = {
-            'e_exp': { cli.PositiveIntArg, str, 3 },
-            'matrix': { BlastMatrix, str, 'BLOSUM62' }
+            'e_exp': ( cli.PositiveIntArg, str, 3 ),
+            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
         
         # additional properties removed
@@ -185,8 +218,8 @@ Migrating Example::
     class _Params(configinfo.Section):
 
         PROPERTY_INFO = {
-            'e_value': { float, str, 1e-3 },
-            'matrix': { BlastMatrix, str, 'BLOSUM62' }
+            'e_value': ( float, str, 1e-3 ),
+            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
 
         # e_exp is gone
@@ -214,8 +247,8 @@ function::
     class _Params(configinfo.Section):
 
         PROPERTY_INFO = {
-            'e_value': { float, str, 1e-3 },
-            'matrix': { BlastMatrix, str, 'BLOSUM62' }
+            'e_value': ( float, str, 1e-3 ),
+            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
 
         @getter
@@ -226,7 +259,8 @@ function::
             return self.migrate_value('e_value', 'e_exp', cli.PositiveIntArg,
                                        migrate_e_exp)
 
-The migrate_value function looks for the new value, but if it isn't present,
+The :py:meth:`~Section.migrate_value` function looks for the new value,
+but if it isn't present,
 then it looked for the old value and migrates it.
 If the old value isn't present, then the new default value is used.
 """
@@ -239,30 +273,30 @@ triggers = triggerset.TriggerSet()
 
 
 def _quote(s):
-    """Return representation that will unquote"""
+    """Return representation that will unquote."""
     from urllib.parse import quote
     return quote(s)
 
 
 def _unquote(s):
-    """Return original representation"""
+    """Return original representation."""
     from urllib.parse import unquote
     return unquote(s)
 
 
 class ConfigInfo:
-    """In-memory handle to persistent configuration information
+    """In-memory handle to persistent configuration information.
+
+    A trigger with :py:meth:`trigger_name` is created
+    that is activated when a property value is set.
+    The trigger data is (section name, property name, value).
 
     Parameters
     ----------
-    session : :py:class:`~chimera.core.session.Session` (for app_dirs and logger)
+    session : :py:class:`~chimera.core.session.Session` (for ``app_dirs`` and ``logger``)
     tool_name : the name of the tool
     version : configuration file version, optional
-
-    Only the major version part of the version is used.
-
-    Creates trigger that is activated when a property value is set.
-    The trigger data is (section, property, value).
+        Only the major version part of the version is used.
     """
 
     def __init__(self, session, tool_name, version="1"):
@@ -294,17 +328,18 @@ class ConfigInfo:
             self._config.read(self._filename)
 
     def on_disk(self):
-        """Return True the configuration information was stored on disk
+        """Return True the configuration information was stored on disk.
 
-        Only migrate configuration information from on disk data"""
+        This information is useful when deciding whether or not to migrate
+        settings from a previous configuration version."""
         return self._on_disk
 
     def trigger_name(self):
-        """Return trigger name to monitor for value setting."""
+        """Return trigger name to use to monitor for value changes."""
         return self._trigger_name
 
     def save(self, _all=True):
-        """Save configuration information of all sections to disk"""
+        """Save configuration information of all sections to disk."""
         if only_use_defaults:
             raise UserError("Custom configuration is disabled")
         if _all:
@@ -316,7 +351,7 @@ class ConfigInfo:
             self._config.write(f)
 
     def migrate_from(self, old, version):
-        """Migrate identical settings from old configuration"""
+        """Migrate identical settings from old configuration."""
         for name, section in self._sections.items():
             if not old._config.has_section(name):
                 continue
@@ -329,21 +364,30 @@ class ConfigInfo:
 
 
 class Section:
-    """Configuration Sections
+    """A logical group of properties with a configuration file.
 
-    Each section only flushes its changes when its save method is called.
+    Each section only flushes its changes when its :py:meth:`save` method
+    is called.
+
+    Parameters
+    ----------
+    config : :py:class:`ConfigInfo` instance
+    section_name : str
+        The name of the section.
 
     Attributes
     ----------
-    PROPERTY_INFO : { name: (from_str, to_str, default_value) }
-
-        ``name`` must be a legal Python identifier.
+    PROPERTY_INFO : dict
+        property_name: (from_str, to_str, default_value)
+        ``property_name`` must be a legal Python identifier.
         ``from_str`` can be either a function that takes a string
         and returns a value of the right type, or a cli
         :py:class:`~chimera.core.cli.Annotation`.
         ``to_str`` is a function that takes a value and returns a string.
         The ``default_value`` is the value when the property has not been set.
 
+    Notes
+    -----
     TODO: add documentation string to PROPERTY_INFO
     """
 

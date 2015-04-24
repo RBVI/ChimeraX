@@ -16,10 +16,16 @@ Modules
 
     core/toolshed.rst
 
+    core/tasks.rst
+
+    core/logger.rst
+
     core/configinfo.rst
 
-    core/diskcache.rst
+    core/history.rst
 
     core/safesave.rst
 
     core/serialize.rst
+
+    core/orderedset.rst
