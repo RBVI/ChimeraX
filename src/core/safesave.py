@@ -1,21 +1,21 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-safe_save: safely write files
-=============================
+safesave: safely write files
+============================
 
 This module provides a method to safely overwrite a file.  If it fails,
 then the file was not overwritten.
 
-Usage:
+Usage::
 
-    with SafeSaveFile(filename) as f:
+    with SaveTextFile(filename) as f:
         print(..., file=f)
         f.write(...)
 
-or:
+or::
 
     try:
-        f = SafeSave(filename)
+        f = SaveTextFile(filename)
         print(..., file=f)
         f.write(...)
         f.close()
@@ -26,7 +26,7 @@ or:
 import os
 
 
-class SafeSaveFile:
+class SaveFile:
     """Provide a file-like object to safely overwrite existing files.
 
     Data is first written to a temporary file, then that file is renamed to
@@ -37,7 +37,21 @@ class SafeSaveFile:
     for a text file, then the UTF-8 encoding is assumed.
     Locking is not provided.
 
-    TODO: document __init__ parameters
+    Parameters
+    ----------
+    filename : str
+        Name of file.
+    mode : string, optional
+        File mode, should be 'w' or 'wb'.
+    encoding : str, optional
+        Text file encoding (default is UTF-8)
+    critical : bool, optional
+        If critical, have operating system flush to disk before closing file.
+
+    Attributes
+    ----------
+    name : str
+        Name of file.
     """
 
     def __init__(self, filename, mode='wb', encoding=None, critical=False):
@@ -82,7 +96,9 @@ class SafeSaveFile:
             self._tmp_filename = None
 
     def close(self, exception=None):
-        """Close temporary file and rename it to desired filename"""
+        """Close temporary file and rename it to desired filename
+        
+        If there is an exception, don't overwrite the file."""
         if exception is None:
             self.__exit__(None, None, None)
         else:
@@ -99,6 +115,20 @@ class SafeSaveFile:
     def writelines(self, lines):
         """Forward writing to temporary file"""
         self._f.writelines(lines)
+
+
+class SaveBinaryFile(SaveFile):
+    """SaveFile specialized for Binary files"""
+
+    def __init__(self, filename, critical=False):
+        SaveFile.__init__(self, filename, 'wb', critical=critical)
+
+
+class SaveTextFile(SaveFile):
+    """SaveFile specialized for Text files"""
+
+    def __init__(self, filename, encoding=None, critical=False):
+        SaveFile.__init__(self, filename, 'w', encoding, critical)
 
 if __name__ == '__main__':
     testfile = 'testfile.test'

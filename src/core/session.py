@@ -475,6 +475,36 @@ _initialize()
 
 _monkey_patch = True
 
+class Selection:
+    def __init__(self, all_models):
+        self._all_models = all_models
+    def all_models(self):
+        return self._all_models.list()
+    def models(self):
+        return [m for m in self.all_models() if m.any_part_selected()]
+    def items(self, itype):
+        si = []
+        for m in self.models():
+            s = m.selected_items(itype)
+            si.extend(s)
+        return si
+    def empty(self):
+        for m in self.all_models():
+            if m.any_part_selected():
+                return False
+        return True
+    def clear(self):
+        for m in self.models():
+            m.clear_selection()
+    def clear_hierarchy(self):
+        for m in self.models():
+            m.clear_selection_promotion_history()
+    def promote(self):
+        for m in self.models():
+            m.promote_selection()
+    def demote(self):
+        for m in self.models():
+            m.demote_selection()
 
 def common_startup(sess):
     """Initialize session with common data managers"""
@@ -489,6 +519,7 @@ def common_startup(sess):
     from . import models
     sess.models = models.Models(sess)
     sess.add_state_manager('models', sess.models)
+    sess.selection = Selection(sess.models)
     from . import color
     sess.user_colors = color.UserColors()
     sess.add_state_manager('user_colors', sess.user_colors)
@@ -503,6 +534,10 @@ def common_startup(sess):
     from . import commands
     commands.register(sess)
 
+    from . import shortcuts
+    sess.keyboard_shortcuts = ks = shortcuts.Keyboard_Shortcuts(sess)
+    shortcuts.register_shortcuts(ks)
+
     # file formats
     from . import stl
     stl.register()
@@ -514,3 +549,4 @@ def common_startup(sess):
     scripting.register()
     from . import map
     map.register_map_file_readers()
+    map.register_emdb_fetch()

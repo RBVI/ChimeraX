@@ -7,9 +7,13 @@ values in Chimera's Python appdirs_ object.  You link against the library
 with ``-L$(shlibdir) -lappdirs_cpp`` in your Makefile.  You use the library
 by including ``appdirs_cpp/AppDirs.h`` in your code and calling
 ``appdirs_cpp::AppDirs::get()`` to get a const AppDirs instance.
-That instance has six const string attributes that correspond to the
-appdirs_ directory attributes and have the exact same names
-(*e.g.* ``user_data_dir``).
+That instance has eight const string attributes,
+the first six correspond to the appdirs_ directory attributes
+and have the exact same names (*e.g.* ``user_data_dir``).
+In addition, there is the ``app_data_dir`` which is the data directory
+distributed with the application,
+and ``user_cache_dir_unversioned`` which is an unversioned variation
+of ``user_cache_dir``.
 
 .. _appdirs: https://pypi.python.org/pypi/appdirs/
 

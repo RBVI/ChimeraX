@@ -106,6 +106,16 @@ def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
     surf.color = color
     return surf
 
+def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
+    a = mol.atoms(exclude_water = True)
+    xyz, r = a.coords, a.radii
+    from .surface import ses_surface_geometry
+    va, na, ta = ses_surface_geometry(xyz, r, probe_radius, grid_spacing)
+    from numpy import array, uint8
+    color = array((180,180,180,255), uint8)
+    surf = show_surface(mol.name + ' surface', va, na, ta, color, mol.position)
+    return surf
+
 def register_surface_command():
     cli.register('surface', _surface_desc, surface_command)
 

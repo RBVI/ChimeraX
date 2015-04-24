@@ -16,7 +16,7 @@ class FlushFile:
         return ret
 
     def writelines(self, lines):
-        ret = self.writelines(line)
+        ret = self.writelines(lines)
         self.fd.flush()
         return ret
 
@@ -33,17 +33,28 @@ class FlushFile:
 sys.stdout = FlushFile(sys.stdout)
 
 
-def compare(pdb_id, pdb_path, mmcif_path):
+def pseudo_bonds(atom_strs, bond_indices):
+    bonds = set()
+    for i0, i1 in bond_indices:
+        a0 = atom_strs[i0]
+        a1 = atom_strs[i1]
+        if a1 < a0:
+            a0, a1 = a1, a0
+        bonds.add("%s/%s" % (a0, a1))
+    return bonds
+
+
+def compare(session, pdb_id, pdb_path, mmcif_path):
     # return True if they differ
     print('Comparing %s' % pdb_id)
     from chimera.core import io
     try:
-        pdb_models = io.open(Chimera2_session, pdb_path)[0]
+        pdb_models = io.open(session, pdb_path)[0]
     except Exception as e:
         print("error: %s: unable to open pdb file: %s" % (pdb_id, e))
         return True
     try:
-        mmcif_models = io.open(Chimera2_session, mmcif_path)[0]
+        mmcif_models = io.open(session, mmcif_path)[0]
     except Exception as e:
         print("error: %s: unable to open mmcif file: %s" % (pdb_id, e))
         return
@@ -74,42 +85,52 @@ def compare(pdb_id, pdb_path, mmcif_path):
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra pdb atom(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra pdb atom(s):', extra)
                 same = False
             extra = mmcif_tmp - common
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra mmcif atom(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra mmcif atom(s):', extra)
                 same = False
 
             # bonds
             pdb_bonds = set()
-            for i1, i2 in p.mol_blob.bond_indices:
-                if pdb_atoms[i1] < pdb_atoms[i2]:
-                    b1, b2 = i1, i2
-                else:
-                    b1, b2 = i2, i1
-                pdb_bonds.add("%s/%s" % (pdb_atoms[b1], pdb_atoms[b2]))
+            a0s, a1s = p.mol_blob.bonds.atoms
+            for rstr0, aname0, rstr1, aname1 in zip(
+                    a0s.residues.strs, a0s.names, a1s.residues.strs,
+                    a1s.names):
+                id0 = (rstr0, aname0)
+                id1 = (rstr1, aname1)
+                if id0 > id1:
+                    id0, id1 = id1, id0
+                pdb_bonds.add("%s@%s/%s@%s" % (id0 + id1))
             mmcif_bonds = set()
-            for i1, i2 in m.mol_blob.bond_indices:
-                if mmcif_atoms[i1] < mmcif_atoms[i2]:
-                    b1, b2 = i1, i2
-                else:
-                    b1, b2 = i2, i1
-                mmcif_bonds.add("%s/%s" % (mmcif_atoms[b1], mmcif_atoms[b2]))
+            a0s, a1s = m.mol_blob.bonds.atoms
+            for rstr0, aname0, rstr1, aname1 in zip(
+                    a0s.residues.strs, a0s.names, a1s.residues.strs,
+                    a1s.names):
+                id0 = (rstr0, aname0)
+                id1 = (rstr1, aname1)
+                if id0 > id1:
+                    id0, id1 = id1, id0
+                mmcif_bonds.add("%s@%s/%s@%s" % (id0 + id1))
             common = pdb_bonds & mmcif_bonds
             extra = pdb_bonds - common
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra pdb bond(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra pdb bond(s):', extra)
                 same = False
             extra = mmcif_bonds - common
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra mmcif bond(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra mmcif bond(s):', extra)
                 same = False
 
             # residues
@@ -120,20 +141,22 @@ def compare(pdb_id, pdb_path, mmcif_path):
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra pdb residue(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra pdb residue(s):', extra)
                 same = False
             extra = mmcif_residues - common
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra mmcif residue(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra mmcif residue(s):', extra)
                 same = False
 
             # chains
             diff = p.mol_blob.num_chains - m.mol_blob.num_chains
             if diff != 0:
-                print("error: %s: pdb has %d chain(s) vs. %d mmcif chain(s)" % (
-                    pdb_id, p.mol_blob.num_chains, m.mol_blob.num_chains))
+                print("error: %s: pdb has %d chain(s) vs. %d mmcif chain(s)" %
+                      (pdb_id, p.mol_blob.num_chains, m.mol_blob.num_chains))
                 same = False
 
             # coord_sets
@@ -153,41 +176,50 @@ def compare(pdb_id, pdb_path, mmcif_path):
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra pdb pseudobond group(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra pdb pseudobond group(s):', extra)
                 same = False
+            pbg = 'missing structure'
+            if pbg in extra:
+                bonds = pseudo_bonds(pdb_atoms, pdb_pbg_map[pbg].bond_indices)
+                bonds = list(bonds)
+                bonds.sort()
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra pdb', pbg, 'bond(s):', bonds)
             extra = mmcif_pbgs - common_pbgs
             if extra:
                 extra = list(extra)
                 extra.sort()
-                print('error: %s:' % pdb_id, len(extra), 'extra mmcif pseudobond group(s):', extra)
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra mmcif pseudobond group(s):', extra)
                 same = False
+            pbg = 'missing structure'
+            if pbg in extra:
+                bonds = pseudo_bonds(mmcif_atoms,
+                                     mmcif_pbg_map[pbg].bond_indices)
+                bonds = list(bonds)
+                bonds.sort()
+                print('error: %s:' % pdb_id, len(extra),
+                      'extra mmcif', pbg, 'bond(s):', bonds)
             for pbg in common_pbgs:
-                pdb_bonds = set()
-                for i1, i2 in pdb_pbg_map[pbg].bond_indices:
-                    if pdb_atoms[i1] < pdb_atoms[i2]:
-                        b1, b2 = i1, i2
-                    else:
-                        b1, b2 = i2, i1
-                    pdb_bonds.add("%s/%s" % (pdb_atoms[b1], pdb_atoms[b2]))
-                mmcif_bonds = set()
-                for i1, i2 in mmcif_pbg_map[pbg].bond_indices:
-                    if mmcif_atoms[i1] < mmcif_atoms[i2]:
-                        b1, b2 = i1, i2
-                    else:
-                        b1, b2 = i2, i1
-                    mmcif_bonds.add("%s/%s" % (mmcif_atoms[b1], mmcif_atoms[b2]))
+                pdb_bonds = pseudo_bonds(pdb_atoms,
+                                         pdb_pbg_map[pbg].bond_indices)
+                mmcif_bonds = pseudo_bonds(mmcif_atoms,
+                                           mmcif_pbg_map[pbg].bond_indices)
                 common = pdb_bonds & mmcif_bonds
                 extra = pdb_bonds - common
                 if extra:
                     extra = list(extra)
                     extra.sort()
-                    print('error: %s:' % pdb_id, len(extra), 'extra pdb', pbg, 'bond(s):', extra)
+                    print('error: %s:' % pdb_id, len(extra),
+                          'extra pdb', pbg, 'bond(s):', extra)
                     same = False
                 extra = mmcif_bonds - common
                 if extra:
                     extra = list(extra)
                     extra.sort()
-                    print('error: %s:' % pdb_id, len(extra), 'extra mmcif', pbg, 'bond(s):', extra)
+                    print('error: %s:' % pdb_id, len(extra),
+                          'extra mmcif', pbg, 'bond(s):', extra)
                     same = False
 
             all_same = all_same and same
@@ -243,7 +275,7 @@ def mmcif_id(mmcif_file):
     return n
 
 
-def compare_all():
+def compare_all(session):
     from datetime import datetime, timedelta
     start_time = datetime.now()
     pdb_files = file_gen(PDB_DIR)
@@ -273,8 +305,8 @@ def compare_all():
             mmcif_info = next_info(mmcif_files)
             continue
         assert(pid == mid)
-        same = compare(pid, os.path.join(PDB_DIR, pdb_dir, pdb_file),
-                os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
+        same = compare(session, pid, os.path.join(PDB_DIR, pdb_dir, pdb_file),
+                       os.path.join(MMCIF_DIR, mmcif_dir, mmcif_file))
         all_same = all_same and same
         pdb_info = next_info(pdb_files)
         mmcif_info = next_info(mmcif_files)
@@ -289,12 +321,13 @@ def compare_all():
     seconds = delta // timedelta(seconds=1)
     delta -= seconds * timedelta(seconds=1)
     microseconds = delta // timedelta(microseconds=1)
-    print('Total time:', days, 'days,', hours, 'hours,', minutes, 'minutes,', seconds, 'seconds,', microseconds, 'microseconds')
-    Chimera2_session.logger.clear()
+    print('Total time:', days, 'days,', hours, 'hours,', minutes, 'minutes,',
+          seconds, 'seconds,', microseconds, 'microseconds')
+    session.logger.clear()
     raise SystemExit(os.EX_OK if all_same else os.EX_DATAERR)
 
 
-def compare_id(pdb_id):
+def compare_id(session, pdb_id):
     if len(pdb_id) != 4:
         print('PDB ids should be 4 characters long')
         raise SystemExit(os.EX_DATAERR)
@@ -307,51 +340,56 @@ def compare_id(pdb_id):
         mmcif_path = os.path.join(MMCIF_DIR, pdb_id[1:3], '%s.cif' % pdb_id)
     else:
         mmcif_path = "mmcif:%s" % pdb_id
-    same = compare(pdb_id, pdb_path, mmcif_path)
-    Chimera2_session.logger.clear()
-    raise SystemExit(os.EX_OK if same else os.EX_DATAERR)
+    return compare(session, pdb_id, pdb_path, mmcif_path)
 
 
 def usage():
     import sys
-    print('%s: [-a] [-h] [-i pdbid] [--all] [--help] [--id pdb_id]' %
+    print('usage: %s: [-a] [-h] [--all] [--help] [pdb_id(s)]' %
           sys.argv[0])
+    print('Compare the structures produced by the PDB and mmCIF readers.')
+    print('Give one or more pdb identifiers to compare just those structures.')
+    print('Or give --all (-a) option to compare all of the strctures in')
+    print('/databases/mol/{pdb,mmCIF}/.')
 
 
 def main():
     import getopt
     import sys
+    session = Chimera2_session  # noqa
     try:
         opts, args = getopt.getopt(
-            sys.argv[1:], "ahi:", ["all", "help", "id="])
+            sys.argv[1:], "ahi:", ["all", "help"])
     except getopt.GetoptError as err:
         print(err)
         usage()
-        Chimera2_session.logger.clear()
+        session.logger.clear()
         raise SystemExit(os.EX_USAGE)
     all = False
-    pdb_id = None
     for opt, arg in opts:
         if opt in ('-a', '--all'):
             all = True
         elif opt in ('-h', '--help'):
             usage()
-            Chimera2_session.logger.clear()
+            session.logger.clear()
             raise SystemExit(os.EX_OK)
-        elif opt in ('-i', '--id'):
-            pdb_id = arg
-    if not all and not pdb_id:
+    if not all and not args:
         usage()
-        Chimera2_session.logger.clear()
+        session.logger.clear()
         raise SystemExit(os.EX_USAGE)
     if all:
         if not os.path.exists(PDB_DIR) or not os.path.exists(MMCIF_DIR):
             print("pdb and/or mmCIF databases missing")
-            Chimera2_session.logger.clear()
+            session.logger.clear()
             raise SystemExit(os.EX_DATAERR)
-        compare_all()
-    if pdb_id:
-        compare_id(pdb_id)
+        compare_all(session)
+    same = True
+    for pdb_id in args:
+        is_same = compare_id(session, pdb_id)
+        if not is_same:
+            same = False
+    session.logger.clear()
+    raise SystemExit(os.EX_OK if same else os.EX_DATAERR)
 
 
 if __name__ == '__main__':

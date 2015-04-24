@@ -1,10 +1,22 @@
 # vi: set expandtab ts=4 sw=4:
+"""
+logger: application log support
+===============================
+
+This module is very important.
+"""
 
 from abc import ABCMeta, abstractmethod
 
 
 class Log:
-    """Base class for the "real" log classes: HtmlLog and PlainTextLog.
+    """Base class for the "real" log classes: :py:class:`HtmlLog` and :py:class:`PlainTextLog`.
+
+    Attributes
+    ----------
+    LEVEL_ERROR : for error messages
+    LEVEL_INFO : for informational messages
+    LEVEL_WARNING : for warning messages
     """
 
     # log levels
@@ -38,9 +50,24 @@ class Log:
         Note that this method may be called from a thread (due to the
         use of timers to get proper time delays) and that therefore
         special window toolkit handling may be necessary to get your
-        code executed in the main thread (e.g. wx.CallAfter).
+        code executed in the main thread (*e.g.*, wx.CallAfter).
         """
         return False
+
+    def log(self, level, msg):
+        """Log a message.
+
+        Must be overriden by subclass.
+
+        Parameters
+        ----------
+        level : LEVEL_XXX constant from :py:class:`Log` base class
+            How important the message is (*e.g.*, error, warning, info)
+        msg : text, possibly HTML
+            Message to log
+
+        """
+        raise NotImplemented
 
 
 # note: HtmlLog and PlainTextLog were originally abstract classes, but
@@ -54,8 +81,8 @@ class HtmlLog(Log):
 
         Parameters
         ----------
-        level : LEVEL_XXX constant from :class:`.Log' base class
-            How important the message is (e.g. error, warning, info)
+        level : LEVEL_XXX constant from :py:class:`Log` base class
+            How important the message is (*e.g.*, error, warning, info)
         msg : text, possibly HTML
             Message to log
         image_info : a (image, boolean) 2-tuple
@@ -82,7 +109,7 @@ class PlainTextLog(Log):
         Parameters
         ----------
         level : LOG_XXX constant from Log base class
-            How important the message is (e.g. error, warning, info)
+            How important the message is (*e.g.*, error, warning, info)
         msg : text
             Message to log
 
@@ -97,21 +124,22 @@ class Logger:
     """Log/status message dispatcher
 
     Log/status message producers use the
-    :meth:`error`/
-    :meth:`warning`/
-    :meth:`info`/
-    :meth:`status` methods
+    :py:meth:`error`/
+    :py:meth:`warning`/
+    :py:meth:`info`/
+    :py:meth:`status` methods
     to send messages to a log.  The message will be sent to the log at the
     top of the log stack and then each other log in order.
 
-    Message consumers must inherit from :class:`HtmlLog' or
-    :class:`PlainTextLog` and register themselves with the Logger's
-    :meth:`add_log` method, which will put them at the top of the log
+    Message consumers must inherit from :py:class:`HtmlLog` or
+    :py:class:`PlainTextLog` and register themselves with the Logger's
+    :py:meth:`add_log` method, which will put them at the top of the log
     stack.  When quitting or otherwise no longer interested in receiving
     log messages they should deregister themselves with the
-    :meth:`remove_log` method.  Consumers need to implement their log()
-    abstract method, but need not implement the status() method if they are
-    not interested in showing status.
+    :py:meth:`remove_log` method.  Consumers need to override their
+    :py:meth:`Log.log` abstract method,
+    but need not override the :py:meth:`Log.status` method
+    if they are not interested in showing status.
     """
 
     def __init__(self, session):
@@ -123,6 +151,7 @@ class Logger:
         self._follow_timer1 = self._follow_timer2 = None
 
     def add_log(self, log):
+        """Add a logger"""
         if not isinstance(log, (HtmlLog, PlainTextLog)):
             raise ValueError("Cannot add log that is not instance of"
                              " HtmlLog or PlainTextLog")
@@ -132,6 +161,7 @@ class Logger:
         self.logs.add(log)
 
     def clear(self):
+        """clear all loggers"""
         self.logs.clear()
         if self._status_timer1:
             self._status_timer1.cancel()
@@ -170,17 +200,19 @@ class Logger:
     def info(self, msg, add_newline=True, image=None, is_html=False):
         """Log an info message
 
-        The parameters are the same as for the :meth:error method.
+        The parameters are the same as for the :py:meth:`error` method.
         """
         import sys
         self._log(Log.LEVEL_INFO, msg, add_newline, image, is_html,
                   last_resort=sys.stdout)
 
     def remove_log(self, log):
+        """remove a logger"""
         self.logs.discard(log)
 
     def status(self, msg, color="black", log=False, secondary=False,
             blank_after=None, follow_with="", follow_time=20, follow_log=None):
+        """Show status."""
         if log:
             self.info(msg)
 
@@ -227,7 +259,7 @@ class Logger:
     def warning(self, msg, add_newline=True, image=None, is_html=False):
         """Log a warning message
 
-        The parameters are the same as for the :meth:error method.
+        The parameters are the same as for the :py:meth:`error` method.
         """
         import sys
         self._log(Log.LEVEL_WARNING, msg, add_newline, image, is_html,

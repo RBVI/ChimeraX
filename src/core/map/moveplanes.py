@@ -1,8 +1,10 @@
 # Mouse mode to move map planes or move faces of bounding box.
+from ..ui import MouseMode
+class PlanesMouseMode(MouseMode):
 
-class Planes_Mouse_Mode:
+    def __init__(self, session):
 
-    def __init__(self):
+        MouseMode.__init__(self, session)
 
         self.mode_name = 'move planes'
         self.bound_button = None
@@ -16,14 +18,18 @@ class Planes_Mouse_Mode:
         self.frac_istep = 0
         self.frame_number = None
         
-    def mouse_down(self, session, event):
-        self.xy_last = (x,y) = (event.x(), event.y())
-        line = session.view.clip_plane_points(x,y)    # scene coordinates
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)       # Needed for trackpad
+        self.xy_last = (x,y) = event.position()
+        v = self.session.main_view
+        line = v.clip_plane_points(x,y)    # scene coordinates
+        from .volume import Volume
+        maps = [m for m in self.session.models.list() if isinstance(m, Volume)]
         from .slice import nearest_volume_face
-        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, session.maps())
+        self.map, self.axis, self.side, self.ijk = nearest_volume_face(line, maps)
         self.drag = False
 
-    def mouse_drag(self, session, event):
+    def mouse_drag(self, event):
         v = self.map
         if v is None or self.xy_last is None:
             return
@@ -33,52 +39,34 @@ class Planes_Mouse_Mode:
             # once between redraw.
 #            return
 
+        self.mouse_motion(event)     # Needed for trackpad
         xl, yl = self.xy_last
-        dx, dy = (event.x() - xl, yl - event.y())
+        x,y = event.position()
+        dx, dy = (x - xl, yl - y)
         if dx == 0 and dy == 0:
             return
-#        shift = (event.modifiers() & QtCore.Qt.ShiftModifier)
-        shift = False
-        speed = 0.1 if shift else 1
-        step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, session.view)
+        speed = 0.1 if event.shift_down() else 1
+        view = self.session.main_view
+        step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, view)
         sa = v.data.step[self.axis]
         istep = step / sa      # grid units
         istep += self.frac_istep
         if int(istep) != 0:
-            self.xy_last = (event.x(), event.y())
+            self.xy_last = (x,y)
             self.drag = True
             # Remember fractional grid step for next move.
             self.frac_istep = istep - int(istep)
             move_plane(v, self.axis, self.side, int(istep))
 #            self.frame_number = _frameNumber
 
-    def mouse_up(self, session, event):
+    def mouse_up(self, event):
+        MouseMode.mouse_up(self, event)       # Needed for trackpad
         self.map = None
         self.ijk = None
         self.drag = False
         self.xy_last = None
         self.frac_istep = 0
         return
-
-    def register_planes_mouse_mode(self):
-        from chimera.mousemodes import addFunction
-        addFunction(self.mode_name,
-                    (self.mouse_down, self.mouse_drag, self.mouse_up))
-
-    def bind_mouse_button(self, button, modifiers):
-        self.unbind_mouse_button()
-        from chimera import mousemodes
-        mousemodes.setButtonFunction(button, modifiers, self.mode_name)
-        self.bound_button = (button, modifiers)
-
-    def unbind_mouse_button(self):
-        if self.bound_button:
-            button, modifiers = self.bound_button
-            from chimera import mousemodes
-            def_mode = mousemodes.getDefault(button, modifiers)
-            if def_mode:
-                mousemodes.setButtonFunction(button, modifiers, def_mode)
-            self.bound_button = None
 
 def move_plane(v, axis, side, istep):
 
@@ -149,6 +137,3 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
 
 def sign(x):
     return 1 if x >= 0 else -1
-
-planes_mouse_mode = Planes_Mouse_Mode()
-#planes_mouse_mode.register_planes_mouse_mode()

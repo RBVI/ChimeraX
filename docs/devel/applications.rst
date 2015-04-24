@@ -4,13 +4,17 @@
 Applications
 ============
 
-This documentation is application APIs that are not in the :ref:`Chimera Core <core>`
+This documentation is for application APIs
+that are not in the :ref:`Chimera Core <core>`
 nor in the :doc:`tools` layered on the core.
-User documentation is found in :doc:`User's Manual </users/index>`.
+The user interface documentation is found
+in :doc:`User's Manual </users/index>`.
+
+TODO: evaluate if this is needed.
 
 .. toctree::
     :maxdepth: 2
 
-    hydra.rst
+    TODO: Structure comparison
 
     webapp.rst

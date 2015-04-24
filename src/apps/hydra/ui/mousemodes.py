@@ -1,54 +1,51 @@
 class MouseModes:
 
-    def __init__(self, graphics_window):
+    def __init__(self, graphics_window, session):
 
         self.graphics_window = graphics_window
-        self.session = graphics_window.session
+        self.session = session
         self.view = graphics_window.view
-        self.mouse_modes = {}
-        self.mouse_down_position = None
-        self.last_mouse_position = None
+
+        self.mouse_modes = {}           # Maps 'left', 'middle', 'right', 'wheel', 'pause' to MouseMode instance
+
+        # Mouse pause parameters
         self.last_mouse_time = None
         self.mouse_pause_interval = 0.5         # seconds
         self.mouse_pause_position = None
-        self.mouse_perimeter = False
-        self.wheel_function = None
-        self.bind_standard_mouse_modes()
 
-        self.move_selected = False
+        self.bind_standard_mouse_modes()
 
         self.set_mouse_event_handlers()
 
         self.trackpad_speed = 4         # Trackpad position scaling to match mouse position sensitivity
-    
-    def set_mouse_event_handlers(self):
-        pass
-    def event_position(self, event):
-        return (0,0)
 
-    def bind_standard_mouse_modes(self, buttons = ['left', 'middle', 'right', 'wheel']):
+    def cursor_position(self):
+        import wx
+        return self.graphics_window.ScreenToClient(wx.GetMousePosition())
+
+    def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         modes = (
-            ('left', self.mouse_down, self.mouse_rotate, self.mouse_up_select),
-            ('right', self.mouse_down, self.mouse_translate, self.mouse_up),
-            ('middle', self.mouse_down, self.mouse_contour_level, self.mouse_up),
+            ('left', RotateMouseMode),
+            ('middle', ZoomMouseMode),
+            ('right', TranslateMouseMode),
+            ('wheel', ZoomMouseMode),
+            ('pause', ObjectIdMouseMode),
             )
-        for m in modes:
-            if m[0] in buttons:
-                self.bind_mouse_mode(*m)
-        if 'wheel' in buttons:
-            self.wheel_function = self.wheel_zoom
+        s = self.session
+        for button, mode_class in modes:
+            if button in buttons:
+                self.bind_mouse_mode(button, mode_class(s))
 
-    # Button is "left", "middle", or "right"
-    def bind_mouse_mode(self, button, mouse_down,
-                        mouse_drag = None, mouse_up = None):
-        self.mouse_modes[button] = (mouse_down, mouse_drag, mouse_up)
+    # Button is "left", "middle", "right", "wheel", or "pause"
+    def bind_mouse_mode(self, button, mode):
+        self.mouse_modes[button] = mode
 
     def wheel_event(self, event):
         if self.is_trackpad_wheel_event(event):
             return
-        f = self.wheel_function
+        f = self.mouse_modes.get('wheel')
         if f:
-            f(event)
+            f.wheel(self.MouseEvent(event))
 
     def is_trackpad_wheel_event(self, event):
         # Suppress trackpad wheel events when using multitouch
@@ -64,25 +61,6 @@ class MouseModes:
                 # Suppress momentum scrolling for 1 second after trackpad scrolling ends.
                 return True
         return False
-
-    def mouse_down(self, event):
-        w,h = self.view.window_size
-        x,y = pos = self.event_position(event)
-        cx, cy = x-0.5*w, y-0.5*h
-        fperim = 0.9
-        self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
-        self.mouse_down_position = pos
-        self.last_mouse_position = pos
-
-    def mouse_up(self, event):
-        self.mouse_down_position = None
-        self.last_mouse_position = None
-
-    def mouse_up_select(self, event):
-        if self.event_position(event) == self.mouse_down_position:
-            self.mouse_select(event)
-        self.mouse_down_position = None
-        self.last_mouse_position = None
 
     def mouse_pause_tracking(self):
         cp = self.cursor_position()
@@ -107,142 +85,9 @@ class MouseModes:
             self.last_mouse_time = t
 
     def mouse_pause(self):
-        if self.session.main_window.showing_graphics():
-            lp = self.mouse_pause_position
-            f, p = self.view.first_intercept(*lp)
-            if p:
-                self.session.show_status('Mouse over %s' % p.description())
-            # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.
-            #      Don't want to clear a different status message, only mouse over message.
-
-    def mouse_motion(self, event):
-        lmp = self.last_mouse_position
-        x, y = pos = self.event_position(event)
-        if lmp is None:
-            dx = dy = 0
-        else:
-            dx = x - lmp[0]
-            dy = y - lmp[1]
-            # dy > 0 is downward motion.
-        self.last_mouse_position = pos
-        return dx, dy
-
-    def mouse_rotate(self, event):
-        axis, angle = self.mouse_rotation(event)
-        self.rotate(axis, angle)
-
-    def rotate(self, axis, angle):
-        v = self.view
-        # Convert axis from camera to scene coordinates
-        saxis = v.camera.position.apply_without_translation(axis)
-        v.rotate(saxis, angle, self.models())
-
-    def models(self):
-        if self.move_selected:
-            m = self.session.selected_models()
-            if len(m) == 0:
-                m = None
-        else:
-            m = None
-        return m
-
-    def mouse_rotation(self, event):
-
-        dx, dy = self.mouse_motion(event)
-        import math
-        angle = 0.5*math.sqrt(dx*dx+dy*dy)
-        if self.mouse_perimeter:
-            # z-rotation
-            axis = (0,0,1)
-            w, h = self.view.window_size
-            ex, ey = event.x()-0.5*w, event.y()-0.5*h
-            if -dy*ex+dx*ey < 0:
-                angle = -angle
-        else:
-            axis = (dy,dx,0)
-        return axis, angle
-
-    def mouse_translate(self, event):
-
-        dx, dy = self.mouse_motion(event)
-        self.translate((dx, -dy, 0))
-
-    def translate(self, shift):
-
-        psize = self.pixel_size()
-        s = tuple(dx*psize for dx in shift)     # Scene units
-        v = self.view
-        step = v.camera.position.apply_without_translation(s)    # Scene coord system
-        v.translate(step, self.models())
-
-    def mouse_zoom(self, event):        
-
-        dx, dy = self.mouse_motion(event)
-        psize = self.pixel_size()
-        v = self.view
-        shift = v.camera.position.apply_without_translation((0, 0, 3*psize*dy))
-        v.translate(shift)
-
-    def wheel_zoom(self, event):
-        import sys
-        d = self.wheel_value(event)
-        psize = self.pixel_size()
-        v = self.view
-        shift = v.camera.position.apply_without_translation((0, 0, 100*d*psize))
-        v.translate(shift)
-
-    def pixel_size(self, min_scene_frac = 1e-5):
-        v = self.view
-        psize = v.pixel_size()
-        b = self.session.bounds()
-        if not b is None:
-            w = b.width()
-            psize = max(psize, w*min_scene_frac)
-        return psize
-
-    def mouse_select(self, event):
-
-        x,y = self.event_position(event)
-        v = self.view
-        p, pick = v.first_intercept(x,y)
-        ses = self.session
-        toggle = self.shift_down(event)
-        if pick is None:
-            if not toggle:
-                ses.clear_selection()
-                ses.show_status('cleared selection')
-        else:
-            if not toggle:
-                ses.clear_selection()
-            pick.select(toggle)
-        ses.clear_selection_hierarchy()
-
-    def mouse_contour_level(self, event):
-
-        v = self.view
-        if getattr(self, 'last_contour_frame', None) == v.frame_number:
-            return # Handle only one recontour event per frame
-        self.last_contour_frame = v.frame_number
-
-        dx, dy = self.mouse_motion(event)
-        f = -0.001*dy
-        
-        s = self.session
-        mdisp = [m for m in s.maps() if m.display]
-        sel = set(s.selected_models())
-        msel = [m for m in mdisp if m in sel]
-        models = msel if msel else mdisp
-        for m in models:
-            adjust_threshold_level(m, f)
-            m.show()
-        
-    def wheel_contour_level(self, event):
-        d = self.wheel_value(event)
-        f = d/30
-        for m in self.session.maps():
-            if m.display:
-                adjust_threshold_level(m, f)
-                m.show()
+        m = self.mouse_modes.get('pause')
+        if m:
+            m.pause(self.mouse_pause_position)
 
     def process_touches(self, touches):
         min_pinch = 0.1
@@ -266,14 +111,18 @@ class MouseModes:
                 if abs(sd0) > 0.5*sn*l0 and abs(sd1) > 0.5*sn*l1:
                     # pinch to zoom
                     s = 1 if sd1 > 0 else -1
-                    self.translate((0,0,10*s*(l0+l1)))
+                    tm = [m for m in self.mouse_modes.values() if isinstance(m, TranslateMouseMode)]
+                    if tm:
+                        tm[0].translate((0,0,10*s*(l0+l1)))
                     return
                 else:
                     # twist
                     a = (atan2(-sy*dx1+sx*dy1,sn*sn) +
                          atan2(sy*dx0-sx*dy0,sn*sn))*180/pi
                     zaxis = (0,0,1)
-                    self.rotate(zaxis, -3*a)
+                    rm = [m for m in self.mouse_modes.values() if isinstance(m, RotateMouseMode)]
+                    if rm:
+                        rm[0].rotate(zaxis, -3*a)
                     return
             dx = sum(x for id,x,y in moves)
             dy = sum(y for id,x,y in moves)
@@ -282,27 +131,189 @@ class MouseModes:
             angle = 0.3*sqrt(dx*dx + dy*dy)
             if angle != 0:
                 axis = (dy, dx, 0)
-                self.rotate(axis, angle)
+                rm = [m for m in self.mouse_modes.values() if isinstance(m, RotateMouseMode)]
+                if rm:
+                    rm[0].rotate(axis, angle)
         elif n == 3:
             dx = sum(x for id,x,y in moves)
             dy = sum(y for id,x,y in moves)
             # translation
             if dx != 0 or dy != 0:
-                f = self.mouse_modes.get('right')
-                if f:
-                    fnum = 0 if self.last_mouse_position is None else 1 # 0 = down, 1 = drag, 2 = up
-                    e = self.trackpad_event(dx,dy)
-                    f[fnum](e)
-                    self.last_mouse_position = self.event_position(e)
+                m = self.mouse_modes.get('right')
+                if m:
+                    # TODO: Doesn't get right position unless mouse mode uses MouseMode.mouse_motion().
+                    action = 'mouse_down' if m.last_mouse_position is None else 'mouse_drag'
+                    e = self.trackpad_event(dx,dy,m.last_mouse_position)
+                    f = getattr(m, action)
+                    f(e)
 
-def adjust_threshold_level(m, f):
-    ms = m.matrix_value_statistics()
-    step = f * (ms.maximum - ms.minimum)
-    if m.representation == 'solid':
-        new_levels = [(l+step,b) for l,b in m.solid_levels]
-        l,b = new_levels[-1]
-        new_levels[-1] = (max(l,1.01*ms.maximum),b)
-        m.set_parameters(solid_levels = new_levels)
-    else:
-        new_levels = tuple(l+step for l in m.surface_levels)
-        m.set_parameters(surface_levels = new_levels)
+class MouseMode:
+
+    def __init__(self, session):
+        self.session = session
+        self.view = session.view
+
+        self.mouse_down_position = None
+        self.last_mouse_position = None
+
+    def mouse_down(self, event):
+        pos = event.position()
+        self.mouse_down_position = pos
+        self.last_mouse_position = pos
+
+    def mouse_up(self, event):
+        self.mouse_down_position = None
+        self.last_mouse_position = None
+
+    def mouse_motion(self, event):
+        lmp = self.last_mouse_position
+        x, y = pos = event.position()
+        if lmp is None:
+            dx = dy = 0
+        else:
+            dx = x - lmp[0]
+            dy = y - lmp[1]
+            # dy > 0 is downward motion.
+        self.last_mouse_position = pos
+        return dx, dy
+
+    def wheel(self):
+        pass
+
+    def pause(self, position):
+        pass
+
+    def pixel_size(self, min_scene_frac = 1e-5):
+        return pixel_size(self.view, min_scene_frac)
+
+def pixel_size(view, min_scene_frac = 1e-5):
+    psize = view.pixel_size()
+    b = view.drawing_bounds()
+    if not b is None:
+        w = b.width()
+        psize = max(psize, w*min_scene_frac)
+    return psize
+
+class RotateMouseMode(MouseMode):
+
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        self.mouse_perimeter = False
+
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        x,y = event.position()
+        w,h = self.view.window_size
+        cx, cy = x-0.5*w, y-0.5*h
+        fperim = 0.9
+        self.mouse_perimeter = (abs(cx) > fperim*0.5*w or abs(cy) > fperim*0.5*h)
+
+    def mouse_up(self, event):
+        if event.position() == self.mouse_down_position:
+            self.mouse_select(event)
+        MouseMode.mouse_up(self, event)
+
+    def mouse_drag(self, event):
+        axis, angle = self.mouse_rotation(event)
+        self.rotate(axis, angle)
+
+    def rotate(self, axis, angle):
+        v = self.view
+        # Convert axis from camera to scene coordinates
+        saxis = v.camera.position.apply_without_translation(axis)
+        v.rotate(saxis, angle, self.models())
+
+    def mouse_rotation(self, event):
+
+        dx, dy = self.mouse_motion(event)
+        import math
+        angle = 0.5*math.sqrt(dx*dx+dy*dy)
+        if self.mouse_perimeter:
+            # z-rotation
+            axis = (0,0,1)
+            w, h = self.view.window_size
+            x, y = event.position()
+            ex, ey = x-0.5*w, y-0.5*h
+            if -dy*ex+dx*ey < 0:
+                angle = -angle
+        else:
+            axis = (dy,dx,0)
+        return axis, angle
+
+    def models(self):
+        return None
+
+    def mouse_select(self, event):
+
+        x,y = event.position()
+        v = self.view
+        p, pick = v.first_intercept(x,y)
+        ses = self.session
+        toggle = event.shift_down()
+        if pick is None:
+            if not toggle:
+                ses.clear_selection()
+                ses.logger.status('cleared selection')
+        else:
+            if not toggle:
+                ses.clear_selection()
+            pick.select(toggle)
+        ses.clear_selection_hierarchy()
+
+class RotateSelectedMouseMode(RotateMouseMode):
+
+    def models(self):
+        m = self.session.selected_models()
+        return None if len(m) == 0 else m
+
+class TranslateMouseMode(MouseMode):
+
+    def mouse_drag(self, event):
+
+        dx, dy = self.mouse_motion(event)
+        self.translate((dx, -dy, 0))
+
+    def translate(self, shift):
+
+        psize = self.pixel_size()
+        s = tuple(dx*psize for dx in shift)     # Scene units
+        v = self.view
+        step = v.camera.position.apply_without_translation(s)    # Scene coord system
+        v.translate(step, self.models())
+
+    def models(self):
+        return None
+
+class TranslateSelectedMouseMode(TranslateMouseMode):
+
+    def models(self):
+        m = self.session.selected_models()
+        return None if len(m) == 0 else m
+
+class ZoomMouseMode(MouseMode):
+
+    def mouse_drag(self, event):        
+
+        dx, dy = self.mouse_motion(event)
+        psize = self.pixel_size()
+        v = self.view
+        shift = v.camera.position.apply_without_translation((0, 0, 3*psize*dy))
+        v.translate(shift)
+
+    def wheel(self, event):
+        import sys
+        d = event.wheel_value()
+        psize = self.pixel_size()
+        v = self.view
+        shift = v.camera.position.apply_without_translation((0, 0, 100*d*psize))
+        v.translate(shift)
+
+class ObjectIdMouseMode(MouseMode):
+
+    def pause(self, position):
+        x,y = position
+        f, p = self.view.first_intercept(x,y)
+        if p:
+            self.session.logger.status('Mouse over %s' % p.description())
+        # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.
+        #      Don't want to clear a different status message, only mouse over message.

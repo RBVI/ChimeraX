@@ -22,6 +22,8 @@ class StructureModel(models.Model):
         self.bond_radius = 0.2
         self._atoms_drawing = None
         self._bonds_drawing = None
+        self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
+        self.triangles_per_sphere = None
 
     def take_snapshot(self, session, flags):
         data = {}
@@ -33,6 +35,34 @@ class StructureModel(models.Model):
 
     def reset_state(self):
         pass
+
+    def atoms(self, exclude_water = False):
+        atoms = self.mol_blob.atoms
+        if exclude_water:
+            from numpy import array
+            atoms = atoms.filter(array(atoms.residues.names) != 'HOH')
+        return atoms
+
+    def shown_atom_count(self):
+        na = sum(self.atoms().displays) if self.display else 0
+        return na
+
+    def solvent_atoms(self):
+        atoms = self.mol_blob.atoms
+        from numpy import array
+        return atoms.filter(array(atoms.residues.names) == 'HOH')
+
+    def show_atoms(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.displays = True
+        self.update_graphics()
+
+    def hide_atoms(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.displays = False
+        self.update_graphics()
 
     def initialize_graphical_attributes(self):
         m = self.mol_blob
@@ -67,11 +97,11 @@ class StructureModel(models.Model):
             self._atoms_drawing = p = self.new_drawing('atoms')
 
         n = len(coords)
-        triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
+        self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
 
         # Set instanced sphere triangulation
         from . import surface
-        va, na, ta = surface.sphere_geometry(triangles_per_sphere)
+        va, na, ta = surface.sphere_geometry(self.triangles_per_sphere)
         p.geometry = va, ta
         p.normals = na
 
@@ -103,6 +133,10 @@ class StructureModel(models.Model):
         # Set atom colors
         p.colors = colors
 
+        asel = self._selected_atoms
+        if not asel is None:
+            p.selected_positions = asel if asel.sum() > 0 else None
+
     def atom_display_radii(self):
         m = self.mol_blob
         a = m.atoms
@@ -112,18 +146,22 @@ class StructureModel(models.Model):
         r[dm == self.STICK_STYLE] = self.bond_radius
         return r
 
-    def set_atom_style(self, style):
-        self.mol_blob.atoms.draw_modes = style
+    def set_atom_style(self, style, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.draw_modes = style
         self.update_graphics()
 
-    def color_by_element(self):
-        a = self.mol_blob.atoms
-        a.colors = element_colors(a.element_numbers)
+    def color_by_element(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.colors = element_colors(atoms.element_numbers)
         self.update_graphics()
 
-    def color_by_chain(self):
-        a = self.mol_blob.atoms
-        a.colors = chain_colors(a.residues.chain_ids)
+    def color_by_chain(self, atoms = None):
+        if atoms is None:
+            atoms = self.mol_blob.atoms
+        atoms.colors = chain_colors(atoms.residues.chain_ids)
         self.update_graphics()
 
     def update_bond_graphics(self, bond_atoms, draw_mode, radii,
@@ -203,7 +241,7 @@ class StructureModel(models.Model):
             if not fmin is None and (f is None or fmin < f):
                 f, fa = fmin, anum
 
-        # Create selection object
+        # Create pick object
         if fa is None:
             s = None
         else:
@@ -227,11 +265,85 @@ class StructureModel(models.Model):
         return b
 
     def atom_index_description(self, a):
-        a = self.mol_blob.atoms
-        r = a.residues
-        d = '%s %d.%s %s %d %s' % (self.name, self.id, r.chain_ids[a], r.names[a], r.numbers[a], a.names[a])
+        atoms = self.mol_blob.atoms
+        r = atoms.residues
+        id = '.'.join(str(i) for i in self.id)
+        d = '%s %s.%s %s %d %s' % (self.name, id, r.chain_ids[a], r.names[a], r.numbers[a], atoms.names[a])
         return d
 
+    def select_atom(self, a, toggle = False):
+        asel = self._selected_atoms
+        if asel is None:
+            na = self.mol_blob.num_atoms
+            from numpy import zeros, bool
+            asel = self._selected_atoms = zeros(na, bool)
+        asel[a] = (not asel[a]) if toggle else True
+        self._selection_changed()
+
+    def selected_items(self, itype):
+        if itype == 'atoms':
+            asel = self._selected_atoms
+            if not asel is None and asel.sum() > 0:
+                atoms = self.mol_blob.atoms
+                sa = atoms.filter(asel)
+                return [(self,sa)]
+        return []
+
+    def any_part_selected(self):
+        asel = self._selected_atoms
+        return not asel is None and asel.sum() > 0
+
+    def clear_selection(self):
+        asel = self._selected_atoms
+        if not asel is None and asel.sum() > 0:
+            asel[:] = False
+        self._selection_changed()
+
+    def _selection_changed(self, promotion = False):
+        if not promotion:
+            self._selection_promotion_history = []
+        self.update_graphics()
+
+    def promote_selection(self):
+        asel = self._selected_atoms
+        if asel is None:
+            return
+        n = asel.sum()
+        if n == 0 or n == len(asel):
+            return
+        self._selection_promotion_history.append(asel.copy())
+
+        atoms = self.mol_blob.atoms
+        r = atoms.residues
+        rids = r.unique_ids
+        from numpy import unique, in1d
+        sel_rids = unique(rids[asel])
+        ares = in1d(rids, sel_rids)
+        if ares.sum() > n:
+            # Promote to entire residues
+            psel = ares
+        else:
+            from numpy import array
+            cids = array(r.chain_ids)
+            sel_cids = unique(cids[asel])
+            ac = in1d(cids, sel_cids)
+            if ac.sum() > n:
+                # Promote to entire chains
+                psel = ac
+            else:
+                # Promote to entire molecule
+                psel = True
+        asel[:] = psel
+        self._selection_changed(promotion = True)
+
+    def demote_selection(self):
+        pt = self._selection_promotion_history
+        if len(pt) > 0:
+            self._selected_atoms[:] = pt.pop()
+            self._selection_changed(promotion = True)
+
+    def clear_selection_promotion_history(self):
+        self._selection_promotion_history = []
 
 # -----------------------------------------------------------------------------
 #
@@ -244,9 +356,12 @@ class Picked_Atom(Pick):
     m, a = self.molecule, self.atom
     if a is None:
       return m.name
-    return '%s %s' % (self.id_string(), m.atom_index_description(a))
+    return m.atom_index_description(a)
   def drawing(self):
     return self.molecule
+  def select(self, toggle = False):
+    m = self.molecule
+    m.select_atom(self.atom, toggle)
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.

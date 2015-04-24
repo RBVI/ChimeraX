@@ -52,7 +52,7 @@ class ToolInstance(State):
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of chimera.core.session.Session
             Session in which this tool instance was created.
 
         """
@@ -115,7 +115,7 @@ class Tools(State):
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of chimera.core.session.Session
             Session for which this state manager was created.
 
         """
@@ -130,17 +130,17 @@ class Tools(State):
     def take_snapshot(self, session, flags):
         """Save state of running tools.
 
-        Overrides chimera.session.State default method to save
+        Overrides chimera.core.session.State default method to save
         state of all registered running tool instances.
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of chimera.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
         flags : int
             Flags indicating whether snapshot is being taken to
-            save scene or session.  See `chimera.session`_ for
+            save scene or session.  See `chimera.core.session` for
             more details.
 
         """
@@ -153,14 +153,14 @@ class Tools(State):
     def restore_snapshot(self, phase, session, version, data):
         """Restore state of running tools.
 
-        Overrides chimera.session.State default method to restore
+        Overrides chimera.core.session.State default method to restore
         state of all registered running tools.
 
         Parameters
         ----------
         phase : str
-            Restoration phase.  See `chimera.session`_ for more details.
-        session : instance of chimera.session.Session
+            Restoration phase.  See `chimera.core.session` for more details.
+        session : instance of chimera.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
         version : any
@@ -192,7 +192,7 @@ class Tools(State):
     def reset_state(self):
         """Reset state manager to default state.
 
-        Overrides chimera.session.State default method to reset
+        Overrides chimera.core.session.State default method to reset
         to default state.  Since the default state has no running
         tools, all registered tool instances are deleted.
 

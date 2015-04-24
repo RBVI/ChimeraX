@@ -155,12 +155,48 @@ static PyMethodDef PseudoBlob_methods[] = {
         (char*)"filter pseudobond blob based on array/list of booleans" },
     { (char*)"intersect", blob_intersect<PseudoBlob>, METH_O,
         (char*)"intersect pseudobond blobs" },
+    { (char*)"merge", blob_merge<PseudoBlob>, METH_O,
+        (char*)"merge atom blobs" },
+    { (char*)"subtract", blob_subtract<PseudoBlob>, METH_O,
+        (char*)"subtract atom blobs" },
     { NULL, NULL, 0, NULL }
 };
 
+static PyNumberMethods PseudoBlob_as_number = {
+    0,                                      // nb_add
+    (binaryfunc)blob_subtract<PseudoBlob>,  // nb_subtract
+    0,                                      // nb_multiply
+    0,                                      // nb_remainder
+    0,                                      // nb_divmod
+    0,                                      // nb_power
+    0,                                      // nb_negative
+    0,                                      // nb_positive
+    0,                                      // nb_absolute
+    0,                                      // nb_bool
+    0,                                      // nb_invert
+    0,                                      // nb_lshift
+    0,                                      // nb_rshift
+    (binaryfunc)blob_intersect<PseudoBlob>, // nb_and
+    0,                                      // nb_xor
+    (binaryfunc)blob_merge<PseudoBlob>,     // nb_or
+    0,                                      // nb_int
+    0,                                      // nb_reserved
+    0,                                      // nb_float
+    0,                                      // nb_inplace_add
+    0,                                      // nb_inplace_subtract
+    0,                                      // nb_inplace_multiply
+    0,                                      // nb_inplace_remainder
+    0,                                      // nb_inplace_power
+    0,                                      // nb_inplace_lshift
+    0,                                      // nb_inplace_rshift
+    0,                                      // nb_inplace_and
+    0,                                      // nb_inplace_xor
+    0,                                      // nb_inplace_or
+};
+
 static PyGetSetDef PseudoBlob_getset[] = {
-    { "bond_indices", pb_bond_indices, NULL,
-        "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
+    { (char*)"bond_indices", pb_bond_indices, NULL,
+        (char*)"Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
     { (char*)"colors", pb_colors, pb_set_colors,
         (char*)"numpy Nx4 array of (unsigned char) RGBA values", NULL},
     { (char*)"displays", pb_displays, pb_set_displays,
@@ -187,7 +223,7 @@ PyTypeObject PseudoBlob_type = {
     0, // tp_setattr
     0, // tp_reserved
     0, // tp_repr
-    0, // tp_as_number
+    &PseudoBlob_as_number, // tp_as_number
     0, // tp_as_sequence
     &PseudoBlob_len, // tp_as_mapping
     0, // tp_hash

@@ -35,7 +35,10 @@ class View:
         self._opengl_initialized = False
         self._shadows = False
         self._shadow_map_size = 2048
-        self.multishadow = 0                    # Number of shadows
+        self._shadow_depth_bias = 0.005
+        self._multishadow = 0                    # Number of shadows
+        self._multishadow_map_size = 128
+        self._multishadow_depth_bias = 0.05
         self._multishadow_dir = None
         self._multishadow_transforms = []
         self._multishadow_depth = None
@@ -174,7 +177,7 @@ class View:
     def depth_cue_enabled(self):
         '''Is depth cue enabled. Boolean value.'''
         r = self._render
-        return bool(r.enable_capabilities | r.SHADER_DEPTH_CUE)
+        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
 
     def get_shadows(self):
         return self._shadows
@@ -193,6 +196,10 @@ class View:
     shadows = property(get_shadows, set_shadows)
     '''Is a shadow cast by the key light enabled? Boolean value.'''
 
+    def max_multishadow(self):
+        return self._render.max_multishadows()
+    def get_multishadow(self):
+        return self._multishadow
     def set_multishadow(self, n):
         '''
         Specify the number of shadows to use for ambient shadowing,
@@ -200,7 +207,7 @@ class View:
         shadows.  Shadows are cast from uniformly distributed directions.
         This is GPU intensive, each shadow requiring a texture lookup.
         '''
-        self.multishadow = n
+        self._multishadow = n
         r = self._render
         if n > 0:
             r.enable_capabilities |= r.SHADER_MULTISHADOW
@@ -209,7 +216,25 @@ class View:
             self._multishadow_transforms = []
             r.enable_capabilities &= ~r.SHADER_MULTISHADOW
         self.redraw_needed = True
+    multishadow = property(get_multishadow, set_multishadow)
 
+    def get_shadow_depth_bias(self):
+        return self._shadow_depth_bias
+    def set_shadow_depth_bias(self, bias):
+        self._shadow_depth_bias = bias
+        self.redraw_needed = True
+    shadow_depth_bias = property(get_shadow_depth_bias, set_shadow_depth_bias)
+
+    def get_multishadow_depth_bias(self):
+        return self._multishadow_depth_bias
+    def set_multishadow_depth_bias(self, bias):
+        self._multishadow_depth_bias = bias
+        self._multishadow_transforms = []
+        self.redraw_needed = True
+    multishadow_depth_bias = property(get_multishadow_depth_bias, set_multishadow_depth_bias)
+    
+    def get_shadow_map_size(self):
+        return self._shadow_map_size
     def set_shadow_map_size(self, size):
         '''
         Set the size of the 2-d texture for casting shadows.
@@ -218,8 +243,21 @@ class View:
         '''
         if size != self._shadow_map_size:
             self._shadow_map_size = size
+            self.redraw_needed = True
+    shadow_map_size = property(get_shadow_map_size, set_shadow_map_size)
+    
+    def get_multishadow_map_size(self):
+        return self._multishadow_map_size
+    def set_multishadow_map_size(self, size):
+        '''
+        Set the size of the 2-d texture for casting shadows.
+        Small values (128, 256) give nicer smoother appearance.
+        '''
+        if size != self._multishadow_map_size:
+            self._multishadow_map_size = size
             self._multishadow_transforms = []   # Cause shadow recomputation
             self.redraw_needed = True
+    multishadow_map_size = property(get_multishadow_map_size, set_multishadow_map_size)
 
     def add_overlay(self, overlay):
         '''
@@ -587,12 +625,13 @@ class View:
             return None
 
         # Compute shadow map depth texture
-        size = self._shadow_map_size
+        size = self.shadow_map_size
         r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
         # Compute light view and scene to shadow map transforms
-        lvinv, stf = r.shadow_transforms(light_direction, center, radius)
+        bias = self._shadow_depth_bias
+        lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
         from .drawing import draw_drawings
         draw_drawings(r, lvinv, bdrawings)
 
@@ -618,7 +657,7 @@ class View:
             return None, None
 
         # Compute shadow map depth texture
-        size = self._shadow_map_size
+        size = self.multishadow_map_size
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
@@ -630,11 +669,11 @@ class View:
         from math import ceil, sqrt
         d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
         s = size // d               # Subtexture size.
+        bias = self._multishadow_depth_bias
         for l in range(nl):
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
-            lvinv, tf = r.shadow_transforms(light_directions[l], center,
-                                            radius)
+            lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
             mstf.append(tf)
             draw_drawings(r, lvinv, bdrawings)
 
