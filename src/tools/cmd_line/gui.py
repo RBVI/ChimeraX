@@ -21,6 +21,7 @@ class CmdLine(ToolInstance):
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
+        self.text.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.tool_window.manage(placement="bottom")
         session.ui.register_for_keystrokes(self)
         session.tools.add([self])
@@ -42,7 +43,6 @@ class CmdLine(ToolInstance):
         session = self.session
         logger = session.logger
         text = self.text.Value
-        self.text.SelectAll()
         logger.status("")
         from chimera.core import cli
         for cmd_text in text.split("\n"):
@@ -83,6 +83,18 @@ class CmdLine(ToolInstance):
                 session.logger.info(cmd_text)
                 if log_thumb:
                     session.logger.info("graphics image", image=thumb)
+        self.text.SetValue(text)
+        self.text.SelectAll()
+
+    def OnKeyDown(self, event):
+        # intercept up/down arrow
+        if event.KeyCode == 315:  # up arrow
+            self.session.logger.info("Up arrow")
+        elif event.KeyCode == 317:  # down arrow
+            self.session.logger.info("Down arrow")
+        else:
+            # pass through other keys
+            event.Skip()
 
     #
     # Implement session.State methods if deriving from ToolInstance
