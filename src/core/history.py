@@ -1,25 +1,30 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-diskcache: application cache support
+history: application history support
 ====================================
 
 This module provides support for caching information across
 application invocations.  In particular, it is useful for
 command and file history.
+
+History files are kept in an application user's cache directory,
+so there is the assumption that they can be removed and the
+application will still work.
 """
 from .orderedset import OrderedSet
 
 
-def filename(session, tag, unversioned=False):
-    """Return appropriate filename for cache file.
+def filename(session, tag, unversioned=True):
+    """Return appropriate filename for history file.
     
     Parameters
     ----------
     session : :py:class:`~chimera.core.session.Session` instance
-    tag : str, a "unique" tag to identify the cache
+    tag : str, a "unique" tag to identify the history
     unversioned : bool, optional
 
-        If *unversioned* is True, then cache is for all versions of application.
+        If *unversioned* is True, then the history is kept
+        for all versions of the application.
     """
     if unversioned:
         cache_dir = session.app_dirs_unversioned.user_cache_dir
@@ -28,21 +33,21 @@ def filename(session, tag, unversioned=False):
     return os.path.join(cache_dir, tag)
 
 
-class JSONDiskCache:
-    """Use json to save and restore disk cache.
+class JSONHistory:
+    """Use JSON to serialize and deserialize history object.
 
     Parameters
     ----------
     session : :py:class:`~chimera.core.session.Session` instance
-    tag : str, a "unique" tag to identify the cache
+    tag : str, a "unique" tag to identify the history
     unversioned : bool, optional, defaults to False
     """
 
-    def __init__(self, session, tag, unversioned=False):
+    def __init__(self, session, tag, unversioned=True):
         self.filename = filename(session, tag, unversioned)
 
     def load(self):
-        """Return deserialized object from cache file.""" 
+        """Return deserialized object from history file.""" 
         import json
         import os
         if not os.path.exists(self.filename):
@@ -51,7 +56,7 @@ class JSONDiskCache:
             return json.load(f)
 
     def save(self, obj):
-        """Serialize object into cache file.
+        """Serialize object into history file.
         
         Parameters
         ----------
@@ -64,10 +69,10 @@ class JSONDiskCache:
             json.dump(obj, f, ensure_ascii=False)
 
 
-class LRUSetCache(OrderedSet):
+class LRUSetHistory(OrderedSet):
     """LRU set with fixed capacity with backing store.
 
-    Saves and restores a set of data from a cache file.
+    Saves and restores a set of data from a history file.
     Use the :py:meth:`add` method to put items into the set
     and to update it.
     The last member of the set is the most recent.
@@ -77,21 +82,22 @@ class LRUSetCache(OrderedSet):
     ----------
     capacity : int, a limit on the number of items in the history
     session : :py:class:`~chimera.core.session.Session` instance
-    tag : str, a "unique" tag to identify the cache
-    unversioned : bool, optional, defaults to False
-    auto_save : bool, optional, defaults to False
+    tag : str, a "unique" tag to identify the history
+    unversioned : bool, optional, defaults to True
+    auto_save : bool, optional, defaults to True
 
-        If *unversioned* is true, then cache is for all versions of application.
+        If *unversioned* is true, then the history is
+        for all versions of application.
         If *auto_save* is true, then the history is flushed to disk everyime
         it is updated.
     """
 
-    def __init__(self, capacity, session, tag, unversioned=False,
-            auto_save=False):
+    def __init__(self, capacity, session, tag, unversioned=True,
+            auto_save=True):
         self._capacity = capacity
         self._auto_save = auto_save
-        self._disk_cache = JSONDiskCache(session, tag, unversioned)
-        obj = self._disk_cache.load()
+        self._history = JSONHistory(session, tag, unversioned)
+        obj = self._history.load()
         if obj is None:
             obj = []
         if not isinstance(obj, list):
@@ -102,9 +108,9 @@ class LRUSetCache(OrderedSet):
         OrderedSet.__init__(self, obj)
 
     def save(self):
-        """Save set to cache file."""
+        """Save set to history file."""
         obj = list(self)
-        self._disk_cache.save(obj)
+        self._history.save(obj)
 
     def add(self, item):
         """Add item to set and make it the most recent.
@@ -133,8 +139,8 @@ if __name__ == '__main__':
 
     session = Chimera2_session  # noqa
 
-    history = LRUHistory(128, session, 'test_history')
-    testfile = history._disk_cache.filename
+    history = LRUSetHistory(128, session, 'test_history')
+    testfile = filename(session, 'test_history')
 
     if os.path.exists(testfile):
         print('testfile:', testfile, 'already exists')

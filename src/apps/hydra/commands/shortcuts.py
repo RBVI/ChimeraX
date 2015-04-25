@@ -413,13 +413,17 @@ def enable_move_selected_mouse_mode(mouse_modes, button = 'right'):
     from .. import  ui
     m = mouse_modes
     m.bind_mouse_mode('left', ui.RotateSelectedMouseMode(m.session))
-    m.bind_mouse_mode('right', ui.TranslateSelectedMouseMode(m.session))
+    tm = ui.TranslateSelectedMouseMode(m.session)
+    m.bind_mouse_mode('middle', tm)
+    m.bind_mouse_mode('right', tm)
 
 def enable_move_mouse_mode(mouse_modes, button = 'right'):
     from .. import  ui
     m = mouse_modes
     m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
-    m.bind_mouse_mode('right', ui.TranslateMouseMode(m.session))
+    tm = ui.TranslateMouseMode(m.session)
+    m.bind_mouse_mode('middle', tm)
+    m.bind_mouse_mode('right', tm)
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()

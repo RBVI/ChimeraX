@@ -22,7 +22,7 @@ Modules
 
     core/configinfo.rst
 
-    core/diskcache.rst
+    core/history.rst
 
     core/safesave.rst
 

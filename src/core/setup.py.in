@@ -35,6 +35,8 @@ setup(
         "chimera.core.map.data.dsn6",
         "chimera.core.map.data.imagestack",
         "chimera.core.map.data.mrc",
+        "chimera.core.map.filter",
+        "chimera.core.map.fit",
         "chimera.core.map.series",
         "chimera.core.surface",
         "chimera.core.toolshed",

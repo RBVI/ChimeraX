@@ -78,7 +78,8 @@ class QtMouseModes(MouseModes):
             self.recent_touch_points = None
             from ..mousemodes import MouseMode
             for m in self.mouse_modes.values():
-                MouseMode.mouse_up(m, event = None)
+                m.mouse_up(self.trackpad_event(0,0))
+            self.trackpad_xy = None
 
     def collapse_touch_events(self):
         touches = self.recent_touch_points
@@ -87,11 +88,7 @@ class QtMouseModes(MouseModes):
             self.process_touches(txy)
             self.recent_touch_points = None
 
-    def trackpad_event(self, dx, dy, p):
-        if p is None:
-            x,y = cp = self.cursor_position()
-        else:
-            x,y = p[0]+dx, p[1]+dy
+    def trackpad_event(self, x, y):
         class Trackpad_Event:
             def __init__(self,x,y):
                 self._x, self._y = x,y

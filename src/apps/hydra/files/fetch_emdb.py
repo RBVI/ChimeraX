@@ -15,7 +15,7 @@ def fetch_emdb_map(id, session, open_fit_pdbs = False, ignore_cache=False):
   map_name = basename(map_path)
   s = session
   s.show_status('Opening map %s...' % map_name)
-  from . import open_volume_file
+  from ..map.volume import open_volume_file
   models = open_volume_file(map_path, session, 'ccp4', map_name, 'surface',
                             open_models = False)
   for m in models:
@@ -56,7 +56,7 @@ def emdb_map_path(id, session, ignore_cache = False):
   map_url = url_pattern % (site, id, map_gz_name)
   name = 'EMDB %s' % id
   minimum_map_size = 8192       # bytes
-  from ..files.fetch import fetch_file
+  from .fetch import fetch_file
   try:
     map_path, headers = fetch_file(map_url, name, session, minimum_map_size,
                  'EMDB', map_name, uncompress = 'always', ignore_cache=ignore_cache)
@@ -132,6 +132,6 @@ def fit_pdb_ids_from_web_service(id):
 #
 def register_emdb_fetch(session):
 
-  from ..files.fetch import register_fetch_database as reg
+  from .fetch import register_fetch_database as reg
   reg('EMDB', fetch_emdb_map, '1535', 'www.ebi.ac.uk/pdbe/emdb',
       'http://www.ebi.ac.uk/msd-srv/emsearch/atlas/%s_summary.html', session)
