@@ -14,7 +14,7 @@ application will still work.
 from .orderedset import OrderedSet
 
 
-def filename(session, tag, unversioned=False):
+def filename(session, tag, unversioned=True):
     """Return appropriate filename for history file.
     
     Parameters
@@ -43,7 +43,7 @@ class JSONHistory:
     unversioned : bool, optional, defaults to False
     """
 
-    def __init__(self, session, tag, unversioned=False):
+    def __init__(self, session, tag, unversioned=True):
         self.filename = filename(session, tag, unversioned)
 
     def load(self):
@@ -83,8 +83,8 @@ class LRUSetHistory(OrderedSet):
     capacity : int, a limit on the number of items in the history
     session : :py:class:`~chimera.core.session.Session` instance
     tag : str, a "unique" tag to identify the history
-    unversioned : bool, optional, defaults to False
-    auto_save : bool, optional, defaults to False
+    unversioned : bool, optional, defaults to True
+    auto_save : bool, optional, defaults to True
 
         If *unversioned* is true, then the history is
         for all versions of application.
@@ -92,8 +92,8 @@ class LRUSetHistory(OrderedSet):
         it is updated.
     """
 
-    def __init__(self, capacity, session, tag, unversioned=False,
-            auto_save=False):
+    def __init__(self, capacity, session, tag, unversioned=True,
+            auto_save=True):
         self._capacity = capacity
         self._auto_save = auto_save
         self._history = JSONHistory(session, tag, unversioned)
