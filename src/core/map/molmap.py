@@ -3,35 +3,38 @@
 # resolution.  The simulated map is useful for fitting the model into
 # an experimental map using correlation coefficient as a goodness of fit.
 #
-def molmap_command(cmdname, args, session):
+def register_molmap_command():
 
-    from ..commands.parse import atoms_arg, float_arg, string_arg, openstate_arg
-    from ..commands.parse import model_id_arg, bool_arg, parse_arguments
-    req_args = (('atoms', atoms_arg),
-                ('resolution', float_arg))
-    opt_args = ()
-    kw_args = (('gridSpacing', float_arg),
-               ('edgePadding', float_arg),
-               ('cutoffRange', float_arg),
-               ('sigmaFactor', float_arg),
-               ('balls', bool_arg),
-               ('symmetry', string_arg),
-               ('center', string_arg),
-               ('axis', string_arg),
-               ('coordinateSystem', openstate_arg),
-               ('displayThreshold', float_arg),
-               ('modelId', model_id_arg),
-               ('replace', bool_arg),
-               ('showDialog', bool_arg))
-
-    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
-    kw['session'] = session
-    molecule_map(**kw)
+    from .. import cli, atomspec
+    molmap_desc = cli.CmdDesc(
+        required = [
+            ('atoms', atomspec.AtomSpecArg),
+            ('resolution', cli.FloatArg),
+        ],
+        keyword = [
+            ('gridSpacing', cli.FloatArg),
+            ('edgePadding', cli.FloatArg),
+            ('cutoffRange', cli.FloatArg),
+            ('sigmaFactor', cli.FloatArg),
+            ('balls', cli.BoolArg),
+#            ('symmetry', cli.StringArg),
+#            ('center', cli.StringArg),   # Can be a 3 floats or atom spec
+#            ('axis', cli.StringArg),     # Can be a 3 floats or atom spec
+#            ('coordinateSystem', openstate_arg),
+            ('displayThreshold', cli.FloatArg),
+#            ('modelId', model_id_arg),
+            ('replace', cli.BoolArg),
+            ('showDialog', cli.BoolArg),
+        ]
+    )
+    cli.register('molmap', molmap_desc, molecule_map)
 
 # -----------------------------------------------------------------------------
 #
 from math import sqrt, pi
-def molecule_map(atoms, resolution, session,
+def molecule_map(session,
+                 atoms,
+                 resolution,
                  gridSpacing = None,    # default is 1/3 resolution
                  edgePadding = None,    # default is 3 times resolution
                  cutoffRange = 5,       # in standard deviations
@@ -47,15 +50,18 @@ def molecule_map(atoms, resolution, session,
 		 showDialog = True
                  ):
 
-    from ..commands.parse import CommandError
-    if atoms.count() == 0:
-        raise CommandError('No atoms specified')
+    asr = atoms.evaluate(session)
+    a = asr.atoms
 
-    for vname in ('resolution', 'gridSpacing', 'edgePadding',
-                  'cutoffRange', 'sigmaFactor'):
-        value = locals()[vname]
-        if not isinstance(value, (float,int,type(None))):
-            raise CommandError('%s must be number, got "%s"' % (vname,str(value)))
+    molecules = asr.models
+    if len(molecules) > 1:
+        name = 'map %.3g' % (resolution,)
+    else:
+        for m in molecules:
+            name = '%s map %.3g' % (m.name, resolution)
+
+    if len(a) == 0:
+        raise cli.UserError('No atoms specified')
 
     if edgePadding is None:
         pad = 3*resolution
@@ -82,9 +88,9 @@ def molecule_map(atoms, resolution, session,
         from ..commands.parse import parse_model_id
         modelId = parse_model_id(modelId)
 
-    v = make_molecule_map(atoms, resolution, step, pad,
+    v = make_molecule_map(a, resolution, step, pad,
                           cutoffRange, sigmaFactor, balls, transforms, csys,
-                          displayThreshold, modelId, replace, showDialog, session)
+                          displayThreshold, modelId, replace, showDialog, name, session)
     return v
 
 # -----------------------------------------------------------------------------
@@ -92,17 +98,17 @@ def molecule_map(atoms, resolution, session,
 def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
                       sigma_factor, balls, transforms, csys,
                       display_threshold, model_id,
-                      replace, show_dialog, session):
+                      replace, show_dialog, name, session):
 
-    grid, molecules = molecule_grid_data(atoms, resolution, step, pad,
-                                         cutoff_range, sigma_factor, balls,
-                                         transforms, csys)
+    grid = molecule_grid_data(atoms, resolution, step, pad,
+                              cutoff_range, sigma_factor, balls,
+                              transforms, csys, name)
 
     if replace:
         from .volume import volume_list
         vlist = [v for v in volume_list(session)
                  if getattr(v, 'molmap_atoms', None) == atoms]
-        session.close_models(vlist)
+        session.models.close(vlist)
 
     from . import volume_from_grid_data
     v = volume_from_grid_data(grid, session, open_model = False,
@@ -113,16 +119,16 @@ def make_molecule_map(atoms, resolution, step, pad, cutoff_range,
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
     v.molmap_parameters = (resolution, step, pad, cutoff_range, sigma_factor)
 
-    session.add_model(v)
+    session.models.add([v])
     return v
 
 # -----------------------------------------------------------------------------
 #
 def molecule_grid_data(atoms, resolution, step, pad,
                        cutoff_range, sigma_factor, balls = False,
-                       transforms = [], csys = None):
+                       transforms = [], csys = None, name = 'molmap'):
 
-    xyz = atoms.coordinates()
+    xyz = atoms.coords
 
     # Transform coordinates to local coordinates of the molecule containing
     # the first atom.  This handles multiple unaligned molecules.
@@ -135,25 +141,19 @@ def molecule_grid_data(atoms, resolution, step, pad,
 #    tflist = [(tfinv * t * tf) for t in transforms]
     tflist = transforms
 
-    molecules = atoms.molecules()
-    if len(molecules) > 1:
-        name = 'map %.3g' % (resolution,)
-    else:
-        name = '%s map %.3g' % (molecules[0].name, resolution)
-
     if balls:
-        radii = atoms.radii()
+        radii = atoms.radii
         grid = balls_grid_data(xyz, radii, resolution, step, pad,
                                cutoff_range, sigma_factor, tflist)
     else:
         from math import pow, pi
         normalization = pow(2*pi,-1.5)*pow(sigma_factor*resolution,-3)
-        weights = atoms.element_numbers()*normalization
+        weights = atoms.element_numbers*normalization
         grid = gaussian_grid_data(xyz, weights, resolution, step, pad,
                                   cutoff_range, sigma_factor, tflist)
     grid.name = name
 
-    return grid, molecules
+    return grid
 
 # -----------------------------------------------------------------------------
 #
