@@ -6,22 +6,22 @@ preferences: manage preferences
 TODO
 """
 from . import color
-from . import configinfo
+from . import configfile
 _prefs = None
 
 
 class _Graphics:
 
     PROPERTY_INFO = {
-        'bg_color': configinfo.Value(color.Color((0, 0, 0, 0)),
+        'bg_color': configfile.Value(color.Color((0, 0, 0, 0)),
                                      color.ColorArg, color.Color.hex)
     }
 
 
-class _Preferences(configinfo.ConfigInfo):
+class _Preferences(configfile.ConfigFile):
 
     def __init__(self, session):
-        configinfo.ConfigInfo.__init__(self, "chimera.core")
+        configfile.ConfigFile.__init__(self, "chimera.core")
         self.graphics = _Graphics(self, 'graphics')
 
 
