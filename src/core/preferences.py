@@ -13,8 +13,8 @@ _prefs = None
 class _Graphics:
 
     PROPERTY_INFO = {
-        'bg_color': configfile.Value(color.Color((0, 0, 0, 0)),
-                                     color.ColorArg, color.Color.hex)
+        'bg_color': configfile.Value(color.Color('#000'), color.ColorArg,
+                                     color.Color.hex_with_alpha)
     }
 
 
