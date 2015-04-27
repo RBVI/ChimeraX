@@ -151,17 +151,22 @@ class MainWindow(wx.Frame, PlainTextLog):
     def OnSaveSession(self, event, ses):
         from . import io
         try:
-            ses_ext = io.wx_export_file_filter(io.SESSION)
+            ses_filter = io.wx_export_file_filter(io.SESSION)
         except ValueError:
             ses.logger.error("Cannot find file extension for Chimera session ")
             return
-        dlg = wx.FileDialog(self, "Save Session", "", "", ses_ext,
+        dlg = wx.FileDialog(self, "Save Session", "", "", ses_filter,
                             wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
+        ses_file = dlg.GetPath()
+        import os.path
+        ext = os.path.splitext(ses_file)[1]
+        ses_exts = io.extensions("Chimera session")
+        if ses_exts and ext not in ses_exts:
+            ses_file += ses_exts[0]
         # TODO: maybe go through commands module
         from . import commands
-        ses_file = dlg.GetPath()
         commands.export(ses, ses_file)
         ses.logger.info("Session file \"%s\" saved." % ses_file)
 
