@@ -29,3 +29,5 @@ Modules
     core/serialize.rst
 
     core/orderedset.rst
+
+    core/utils.rst
