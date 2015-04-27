@@ -395,9 +395,8 @@ def save(session, filename, **kw):
             pass
         try:
             output = my_open(filename, 'wb')
-        except IOError:
-            session.logger.error()
-            return
+        except IOError as e:
+            raise cli.UserError(e)
 
     try:
         session.save(output)
