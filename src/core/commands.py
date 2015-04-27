@@ -100,6 +100,17 @@ def help(session, command_name=None):
             info("The following commands are available: %s, and %s"
                  % (', '.join(cmds[:-1]), cmds[-1]))
         return
+    elif command_name == 'all':
+        info("Syntax for all commands.")
+        cmds = cli.registered_commands()
+        cmds.sort()
+        for name in cmds:
+            try:
+                info(cli.html_usage(name), is_html=True)
+            except:
+                info('<b>%s</b> no documentation' % name, is_html=True)
+        return
+
     try:
         usage = cli.usage(command_name)
     except ValueError as e:
@@ -279,6 +290,7 @@ def register(session):
     lightcmd.register_material_command()
     from . import map
     map.register_volume_command()
+    map.register_molmap_command()
     from .map import series
     series.register_vseries_command()
     from . import color

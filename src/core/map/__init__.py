@@ -31,3 +31,4 @@ from .mouselevel import ContourLevelMouseMode
 from .volume import register_map_file_readers
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
+from .molmap import register_molmap_command

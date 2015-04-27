@@ -20,7 +20,7 @@ Modules
 
     core/logger.rst
 
-    core/configinfo.rst
+    core/configfile.rst
 
     core/history.rst
 
@@ -29,3 +29,5 @@ Modules
     core/serialize.rst
 
     core/orderedset.rst
+
+    core/utils.rst
