@@ -20,7 +20,7 @@ Modules
 
     core/logger.rst
 
-    core/configinfo.rst
+    core/configfile.rst
 
     core/history.rst
 
