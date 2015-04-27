@@ -579,7 +579,7 @@ def export(session, filename, **kw):
         raise UserError("Missing or unknown file type")
     func = export_function(format_name)
     if not compression:
-        stream = open(filename, 'wb')
+        stream = _builtin_open(filename, 'wb')
     else:
         stream_type = _compression[compression]
         stream = stream_type(filename, 'wb')
