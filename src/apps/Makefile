@@ -1,7 +1,8 @@
 TOP = ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = $(APP_NAME) structcomp
+#SUBDIRS = $(APP_NAME) structcomp
+SUBDIRS = hydra
 
 include $(TOP)/mk/subdir.make
 

@@ -21,7 +21,7 @@ setup(
     },
     packages=[
         "chimera.core",
-        "chimera.core.ui",
+#        "chimera.core.ui",
         "chimera.core.devices",
         "chimera.core.devices.oculus",
         "chimera.core.devices.spacenavigator",
@@ -39,8 +39,8 @@ setup(
         "chimera.core.map.fit",
         "chimera.core.map.series",
         "chimera.core.surface",
-        "chimera.core.toolshed",
-        "chimera.core.webservices",
+#        "chimera.core.toolshed",
+#        "chimera.core.webservices",
     ],
     package_data={
         "chimera.core": ["*.PYMOD_EXT"],

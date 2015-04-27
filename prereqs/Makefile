@@ -54,11 +54,11 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= expat ffmpeg fonts \
-	   glew hdf5 imex jpeg numexpr numpy \
-	   openssl p7zip pcre pips pycollada \
-	   PyOpenGL pytables pythomnic3k Python \
-	   setuptools wrappy3 wx zlib
+SUBDIRS	+= expat ffmpeg \
+	   hdf5 jpeg numexpr numpy \
+	   openssl p7zip pips pycollada \
+	   PyOpenGL pytables pythomnic3k Python PyQt \
+	   qt setuptools sip zlib
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

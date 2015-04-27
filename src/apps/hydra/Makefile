@@ -39,7 +39,7 @@ ifeq ($(OS),Darwin)
   PYOPENGL_VERSION = 3.1.0
   PYOPENGL_EGG = PyOpenGL-$(PYOPENGL_VERSION)-py$(PYTHON_VERSION).egg
   PYOPENGL_ACCELERATE_EGG = PyOpenGL_accelerate-$(PYOPENGL_VERSION)-py$(PYTHON_VERSION)-$(MAC_DEPLOY).egg
-  NUMEXPR_VERSION = 2.4
+  NUMEXPR_VERSION = 2.4.2
   NUMEXPR_EGG = numexpr-$(NUMEXPR_VERSION)-py$(PYTHON_VERSION)-$(MAC_DEPLOY).egg
   PYCOLLADA_VERSION = 0.4.1
   PYCOLLADA_EGG = pycollada-$(PYCOLLADA_VERSION)-py$(PYTHON_VERSION).egg
@@ -93,7 +93,7 @@ $(APP) update_prereqs:
 	cd $(libdir)/python$(PYTHON_VERSION)/site-packages ; \
 	$(RSYNC) $(APPDIRS_MODULE) dateutil easy-install.pth LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
 		$(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL $(PYOPENGL_ACCELERATE_EGG)/OpenGL_accelerate \
-		PyQt5 sip.so $(SIX_MODULE) tables webcolors.py wx $(APP_PY_SITE)
+		PyQt5 sip.so $(SIX_MODULE) tables webcolors.py $(APP_PY_SITE)
 
 # Copy Qt frameworks into PyQt5 python module
 	-mkdir $(APP_PYQT)/frameworks
@@ -129,11 +129,11 @@ $(APP) update_prereqs:
 	$(RSYNC) $(libdir)/libhdf$(HDF_VERSION).dylib $(APP_LIB_DIR)/tables
 
 # Install pdbio
-	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(APP_LIB_DIR)
-	$(RSYNC) $(PYSITEDIR)/chimera/core/pdbio.so $(PYSITEDIR)/chimera/core/structaccess.so $(APP_HYDRA)
+#	$(RSYNC) $(libdir)/libatomstruct.dylib $(libdir)/libtmpl.dylib $(libdir)/libblob.dylib $(APP_LIB_DIR)
+#	$(RSYNC) $(PYSITEDIR)/chimera/core/pdbio.so $(PYSITEDIR)/chimera/core/structaccess.so $(APP_HYDRA)
 
 	# Work around pdbio.parse_mmCIF_file() importing structaccess globally.
-	echo "from hydra.structaccess import *" >  $(APP_PY_SITE)/structaccess.py
+#	echo "from hydra.structaccess import *" >  $(APP_PY_SITE)/structaccess.py
 
 # Copy ffmpeg
 	-mkdir -p $(APP_BIN_DIR)
