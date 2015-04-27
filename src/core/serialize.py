@@ -26,7 +26,8 @@ Version 1 of the protocol supports instances of the following types:
     :py:mod:`collections`' :py:class:`~collections.OrderedDict`,
     :py:class:`~collections.deque`, and :py:class:`~collections.Counter`;
     :py:mod:`datetime`'s :py:class:`~datetime.date`,
-    :py:class:`~datetime.time`, and :py:class:`~datetime.timedelta`;
+    :py:class:`~datetime.time`, :py:class:`~datetime.timedelta`,
+    :py:class:`~datetime.datetime`, and :py:class:`~datetime.timezone`;
     and :pillow:`PIL.Image.Image`.
 
 """
