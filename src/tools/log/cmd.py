@@ -38,5 +38,5 @@ def test(session):
     session.logger.info("<pre>open xyzzy\n..........^\nMissing or unknown file type</pre>", is_html=True)
     session.logger.status("Status test", follow_with="follow text", follow_time=5)
     session.logger.status("Secondary text", blank_after=20, secondary=True)
-    session.logger.info("Appdirs site data dir: {}".format(session.app_dirs.site_data_dir))
+    #session.logger.error("Long error!\n" + "\n".join(["%d" % i for i in range(100)]))
 test_desc = cli.CmdDesc()
