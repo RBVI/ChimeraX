@@ -2687,7 +2687,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
       v.message('%s not shown' % v.name)
 
   if open_model:
-    session.add_model(v)
+    session.models.add([v])
 
   return v
 
