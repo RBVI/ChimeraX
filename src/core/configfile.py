@@ -1,25 +1,25 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-configinfo: application configuration support
-=============================================
+configfile: application preferences support
+===========================================
 
 This module provides support for accessing persistent
-configuratation information.  The information is stored in
-configuration files that are human-readable, *i.e.*, text, but
-not necessarily editable.
+configuratation information, *a.k.a., preferences.
+The information is stored in a file in a human-readable form,
+*i.e.*, text, but is not necessarily editable.
 
 The configuration information is considered to be an API
 and has a semantic version associated with it.
 
-Configuration information is separated into sections, a.k.a., categories,
-with properties and values.
+Configuration information is separated into sections with properties.
+And those properties have names and values.
 This terminology comes from the description of INI files,
 http://en.wikipedia.org/wiki/INI_file.
-On disk, sections are effectively dictionaries where the values are all
-strings.
+Sections are effectively dictionaries
+where the keys and values are all strings.
 
-Each tool has its own configuration information.
-The MAJOR part of the semantic version is embedded in its filename.
+Each tool has its own preferences.
+The *MAJOR* part of the semantic version is embedded in its filename.
 For the chimera core,
 that version does not change during the life of the release,
 so patches may only introduce additional information.
@@ -31,17 +31,17 @@ Accessing Configuration Information
 
 Access Tool Configuration::
 
-    config = tool.get_config()
-    if config.SECTION.PROPERTY == 12:  # access a value
+    prefs = tool.get_preferences()
+    if prefs.SECTION.PROPERTY == 12:  # access a value
         pass
-    config.SECTION.PROPERTY = value    # set a value
-    config.SECTION.save()              # save a section
-    config.save()                      # save all sections
+    prefs.SECTION.PROPERTY = value    # set a value
+    prefs.SECTION.save()              # save a section
+    prefs.save()                      # save all sections
 
 Access Chimera Core Configuration::
 
-    from chimera.core import get_config
-    config = get_config()
+    from chimera.core import preferences
+    prefs = preferences.get()
     # (ibid)
 
 Declaring the Configuration API
@@ -50,7 +50,7 @@ Declaring the Configuration API
 The fact that there are configuration files is hidden by an object
 that implements the tool's configuration API.
 
-Most tools will only have one section.  So the :py:class:`ConfigInfo`
+Most tools will only have one section.  So the :py:class:`ConfigFile`
 and :py:class:`Section` subclasses (next example) can be combined into one::
 
     _config = None
@@ -59,21 +59,22 @@ and :py:class:`Section` subclasses (next example) can be combined into one::
         'BLOSUM45', 'BLOSUM62', 'BLOSUM80', 'PAM30', 'PAM70'
     ))
 
-    class _BPConfigInfo(configinfo.SingleSectionConfigInfo):
+    class _BPPreferences(configfile.SingleSectionPreferences):
 
         PROPERTY_INFO = {
-            'e_exp': ( cli.PositiveIntArg, str, 3 ),
-            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
+            'e_exp': configfile.Value(3, cli.PositiveIntArg, str),
+            'matrix': configfile.Value('BLOSUM62', BlastMatrixArg, str)
+            'passes': 1,
         }
 
         def __init__(self, session):
-            SingleSectionConfigInfo.__init__(self, "Blast Protein", "params")
+            SingleSectionPreferences.__init__(self, "Blast Protein", "params")
 
-    def get_config():
-        global _config
-        if _config is None:
-            _config = _BPConfigInfo()
-        return _config
+    def get_preferences():
+        global _prefs
+        if _prefs is None:
+            _prefs = _BPPreferences()
+        return _prefs
 
     # reusing Annotations for command line arguments
     @cli.register("blast",
@@ -82,11 +83,11 @@ and :py:class:`Section` subclasses (next example) can be combined into one::
                      ('matrix', BlastMatrixArg),]
     ))
     def blast(session, e_exp=None, matrix=None):
-        c = get_config()
+        prefs = get_preferences()
         if e_exp is None:
-            e_exp = c.e_exp           # can use short form
+            e_exp = prefs.e_exp           # can use short form
         if matrix is None:
-            matrix = c.params.matrix  # or long form
+            matrix = prefs.params.matrix  # or long form
         # process arguments
 
 Multi-section Configuration Example::
@@ -97,38 +98,38 @@ Multi-section Configuration Example::
         'BLOSUM45', 'BLOSUM62', 'BLOSUM80', 'PAM30', 'PAM70'
     ))
 
-    class _Params(configinfo.Section):
+    class _Params(configfile.Section):
 
         PROPERTY_INFO = {
-            'e_exp': ( cli.PositiveIntArg, str, 3 ),
-            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
+            'e_exp': configfile.Value(3, cli.PositiveIntArg, str),
+            'matrix': configfile.Value('BLOSUM62', BlastMatrixArg, str)
         }
 
-    class _Hidden(configinfo.Section):
+    class _Hidden(configfile.Section):
 
         PROPERTY_INFO = {
-            'private': ( str, str, 'xyzzy' ),
+            'private': 'xyzzy',
         }
 
-    class _BPConfigInfo(configinfo.ConfigInfo):
+    class _BPPreferences(configfile.ConfigFile):
 
         def __init__(self, session):
-            ConfigInfo.__init__(self, "Blast Protein")
+            ConfigFile.__init__(self, "Blast Protein")
             self.params = _Params(self, 'params')
             self.hidden = _Params(self, 'hidden')
 
-    def get_config():
-        global _config
-        if _config is None:
-            _config = _BPConfigInfo()
+    def get_preferences():
+        global _prefs
+        if _prefs is None:
+            _prefs = _BPPreferences()
         return _config
 
     def blast(session, e_exp=None, matrix=None):
-        c = get_config()
+        prefs = get_preferences()
         if e_exp is None:
-            e_exp = c.params.e_exp      # must use long form
+            e_exp = prefs.params.e_exp      # must use long form
         if matrix is None:
-            matrix = c.params.matrix
+            matrix = prefs.params.matrix
         # process arguments
 
 Note that each property has three items associated with it:
@@ -150,7 +151,8 @@ If an additional property is needed, just add it the section's
 :py:attr:`~Section.PROPERTY_INFO`,
 and document it.
 The minor part of the version number should be increased before
-the tool is released again.  That way other tools can use the tool's version number
+the tool is released again.
+That way other tools can use the tool's version number
 to tell if the property is available or not.
 
 
@@ -162,9 +164,9 @@ changing the major version number.  To prepare for that change, document
 that the old name is deprecated and that the new name should be used instead.
 Then add a Python property to the section class that forwards the
 changes to the old property name.  For example, to rename ``e_exp``, in
-the previous example, to ``e_value``, extend the LogSection class with::
+the previous example, to ``e_value``, extend the _Params class with::
 
-    class _Params(configinfo.Section):
+    class _Params(configfile.Section):
 
         PROPERTY_INFO = {
             'e_exp': ( cli.PositiveIntArg, str, 3 ),
@@ -181,16 +183,16 @@ the previous example, to ``e_value``, extend the LogSection class with::
             self.e_exp = -round(math.log10(value))
 
 Later, when the major version changes,
-the existing :py:class:`ConfigInfo` subclass
+the existing :py:class:`ConfigFile` subclass
 would be renamed with a version suffix
 with the version number hardcoded,
 and a new subclass would be generated with the ``e_exp``
 replaced with ``e_value``.
-Then in the new :py:class:`ConfigInfo` subclass, after it is initialized,
+Then in the new :py:class:`ConfigFile` subclass, after it is initialized,
 it would check if its data was on disk or not, and if not, try opening up
 previous configuration versions and migrate the settings.
 The ``migrate_from`` methods,
-:py:meth:`ConfigInfo.migrate_from` and :py:meth:`Section.migrate_from`,
+:py:meth:`ConfigFile.migrate_from` and :py:meth:`Section.migrate_from`,
 may be replaced or can be made more explicit.
 See the next section for an example.
 
@@ -199,23 +201,23 @@ Changing the API - Migrating to a New Configuration
 
 Migrating Example::
 
-    class _Params_V1(configinfo.Section):
+    class _Params_V1(configfile.Section):
 
         PROPERTY_INFO = {
             'e_exp': ( cli.PositiveIntArg, str, 3 ),
             'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
-        
+
         # additional properties removed
 
-    class _BPConfigInfo_V1(configinfo.ConfigInfo):
+    class _BPPreferences(configfile.ConfigFile):
 
         def __init__(self, session):
-            ConfigInfo.__init__(self, "Blast Protein")
+            ConfigFile.__init__(self, "Blast Protein")
             self.params = _Params_V1(self, 'params')
 
 
-    class _Params(configinfo.Section):
+    class _Params(configfile.Section):
 
         PROPERTY_INFO = {
             'e_value': ( float, str, 1e-3 ),
@@ -225,16 +227,16 @@ Migrating Example::
         # e_exp is gone
 
         def migrate_from(self, old, version):
-            configinfo.Section.migrate_from(self, old, version)
+            configfile.Section.migrate_from(self, old, version)
             self.e_value = 10 ** -old._exp
 
-    class _BPConfigInfo(configinfo.ConfigInfo):
+    class _BPPreferences(configfile.ConfigFile):
 
         def __init__(self, session):
-            ConfigInfo.__init__(self, "Blast Protein", "2")  # added version
+            ConfigFile.__init__(self, "Blast Protein", "2")  # added version
             self.params = _Params(self, 'params')
             if not self.on_disk():
-                old = _BPConfigInfo_V1()
+                old = _BPPreferences()
                 self.migrate_from(old, "1")
 
 
@@ -244,11 +246,11 @@ Migrating a Property Without Changing the Version
 This is similar to renaming a property, with a more sophisticated getter
 function::
 
-    class _Params(configinfo.Section):
+    class _Params(configfile.Section):
 
         PROPERTY_INFO = {
-            'e_value': ( float, str, 1e-3 ),
-            'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
+            'e_value': 1e-3,
+            'matrix': configfile.Value('BLOSUM62', BlastMatrixArg, str)
         }
 
         @getter
@@ -284,7 +286,7 @@ def _unquote(s):
     return unquote(s)
 
 
-class ConfigInfo:
+class ConfigFile:
     """In-memory handle to persistent configuration information.
 
     A trigger with :py:meth:`trigger_name` is created
@@ -293,7 +295,8 @@ class ConfigInfo:
 
     Parameters
     ----------
-    session : :py:class:`~chimera.core.session.Session` (for ``app_dirs`` and ``logger``)
+    session : :py:class:`~chimera.core.session.Session`
+        (for ``app_dirs`` and ``logger``)
     tool_name : the name of the tool
     version : configuration file version, optional
         Only the major version part of the version is used.
@@ -363,6 +366,57 @@ class ConfigInfo:
         section._validate()
 
 
+class Value:
+    """Placeholder for default value and conversion functions
+
+
+    Parameters
+    ----------
+    default : is the value when the property has not been set.
+    from_str : function or Annotation, optional
+        can be either a function that takes a string
+        and returns a value of the right type, or a cli
+        :py:class:`~chimera.core.cli.Annotation`.
+    to_str : function returning a string, optional
+
+    Attributes
+    ----------
+    section : :py:class:`Section` instance
+
+    """
+
+    def __init__(self, *args):
+        if len(args) == 1:
+            import ast
+            self.from_str = ast.literal_eval
+            self.to_str = repr
+            self.default = args[0]
+        elif len(args) == 3:
+            self.default = args[0]
+            self.from_str = args[1]
+            self.to_str = args[2]
+        else:
+            raise ValueError()
+
+    def convert_from_string(self, session, str_value):
+        if hasattr(self.from_str, 'parse'):
+            return self.from_str.parse(str_value, session)
+        else:
+            return self.from_str(str_value)
+
+    def convert_to_string(self, session, value):
+        str_value = self.to_str(value)
+        # confirm that value can be restored from disk,
+        # by converting to a string and back
+        new_value = self._convert_from_string(session, str_value)
+        if new_value != value:
+            raise ValueError('value changed while saving it')
+        return str_value
+
+    def default(self):
+        return self.default
+
+
 class Section:
     """A logical group of properties with a configuration file.
 
@@ -371,20 +425,15 @@ class Section:
 
     Parameters
     ----------
-    config : :py:class:`ConfigInfo` instance
+    config : :py:class:`ConfigFile` instance
     section_name : str
         The name of the section.
 
     Attributes
     ----------
-    PROPERTY_INFO : dict
-        property_name: (from_str, to_str, default_value)
+    PROPERTY_INFO : dict of property_name: value
         ``property_name`` must be a legal Python identifier.
-        ``from_str`` can be either a function that takes a string
-        and returns a value of the right type, or a cli
-        :py:class:`~chimera.core.cli.Annotation`.
-        ``to_str`` is a function that takes a value and returns a string.
-        The ``default_value`` is the value when the property has not been set.
+        ``value`` is a Python literal or an :py:class:`Item`.
 
     Notes
     -----
@@ -398,6 +447,10 @@ class Section:
         self._config = config
         self._name = section_name
         self._cache = {}
+        # convert all property information to Values
+        for name, value in self.PROPERTY_INFO.items():
+            if not isinstance(value, Value):
+                self.PROPERTY_INFO[name] = Value(value)
         if only_use_defaults:
             return
         if not self._config._config.has_section(section_name):
@@ -410,24 +463,17 @@ class Section:
             return self._cache[name]
         if name not in self.PROPERTY_INFO:
             raise AttributeError(name)
-        if name not in self._section:
-            value = self.PROPERTY_INFO[name][2]
-        elif not only_use_defaults:
-            from_str = self.PROPERTY_INFO[name][0]
-            if from_str is None:
-                value = self._section[name]
-            else:
-                try:
-                    if hasattr(from_str, 'parse'):
-                        value = from_str.parse(self._section[name],
-                                               self._config._session)
-                    else:
-                        value = from_str(self._section[name])
-                except ValueError as e:
-                    self._config._session.logger.warning(
-                        "Invalid %s.%s value, using default: %s" %
-                        (self._name, name, e))
-                    value = self.PROPERTY_INFO[name][2]
+        if name not in self._section or only_use_defaults:
+            value = self.PROPERTY_INFO[name].default()
+        else:
+            try:
+                value = self.PROPERTY_INFO[name].convert_from_string(
+                    self._section[name], self._config._session)
+            except ValueError as e:
+                self._config._session.logger.warning(
+                    "Invalid %s.%s value, using default: %s" %
+                    (self._name, name, e))
+                value = self.PROPERTY_INFO[name].default()
         self._cache[name] = value
         return value
 
@@ -437,18 +483,8 @@ class Section:
         if only_use_defaults:
             raise UserError("Custom configuration is disabled")
         try:
-            # confirm that value can be restored from disk,
-            # by converting to a string and back
-            to_str = self.PROPERTY_INFO[name][1]
-            str_value = to_str(value)  # noqa
-            from_str = self.PROPERTY_INFO[name][0]
-            if from_str is not None:
-                if hasattr(from_str, 'parse'):
-                    new_value = from_str.parse(self._section[name],
-                                               self._config._session)
-                else:
-                    new_value = from_str(self._section[name])
-            assert(value == new_value)
+            self.PROPERTY_INFO[name].convert_to_string(
+                value, self._config._session)
         except ValueError:
             raise UserError("Illegal %s.%s value, unchanged" %
                             (self._name, name))
@@ -463,17 +499,14 @@ class Section:
         """
         for name in self._cache:
             value = self._cache[name]
-            default = self.PROPERTY_INFO[name][2]
+            default = self.PROPERTY_INFO[name].default()
             if value == default:
                 if name in self._section:
                     del self._section[name]
                 continue
-            to_str = self.PROPERTY_INFO[name][1]
-            if to_str is not None:
-                value = to_str(value)
-            elif not isinstance(value, str):
-                value = str(value)
-            self._section[name] = value
+            str_value = self.PROPERTY_INFO[name].convert_to_string(
+                value, self._config._session)
+            self._section[name] = str_value
         if _skip_save:
             return
         self._config.save(_all=False)
@@ -499,7 +532,7 @@ class Section:
         ----------
         name : current name of property
         old_name : previous name of property
-        old_from_str : function to parse prevous version of property
+        old_from_str : function to parse previous version of property
         convert : function to old value to new value
         """
         if name in self._cache:
@@ -534,10 +567,10 @@ class Section:
                 getattr(self, name)  # pre-populate cache
 
 
-class SingleSectionConfigInfo(ConfigInfo, Section):
-    """Simple case of ConfigInfo with one Section
+class SingleSectionPreferences(ConfigFile, Section):
+    """Simple case of preferences with one Section
 
-    The parameters are the same as ConfigInfo with the addtion of the
+    The parameters are the same as ConfigFile with the addition of the
     Section's section_name.
 
     Restriction: can not use the section_name as one of the section's
@@ -546,14 +579,14 @@ class SingleSectionConfigInfo(ConfigInfo, Section):
 
     def __init__(self, tool_name, section_name, version="1"):
         assert(section_name not in self.PROPERTY_INFO)
-        ConfigInfo.__init__(self, tool_name, version)
+        ConfigFile.__init__(self, tool_name, version)
         Section.__init__(self, self, section_name)
 
     def save(self, _all=True):
         if _all:
             Section.save(self)
         else:
-            ConfigInfo.save(_all=False)
+            ConfigFile.save(_all=False)
 
     def migrate_from(self, old, version):
         raise NotImplemented
@@ -569,26 +602,26 @@ if __name__ == '__main__':
             'log_level': (cli.Bounded(cli.IntArg, 1, 9), str, 1),
         }
 
-    class _ToolConfigInfo(ConfigInfo):
+    class _ToolPreferences(ConfigFile):
 
         def __init__(self, session):
-            ConfigInfo.__init__(self, session, 'test', '1.2.0')
+            ConfigFile.__init__(self, session, 'test', '1.2.0')
             self.log = LogSection(self, 'log')
-            print('config file:', self._filename, flush=True)
+            print('preferences file:', self._filename, flush=True)
 
-    config = _ToolConfigInfo(Chimera2_session)  # noqa
+    prefs = _ToolPreferences(Chimera2_session)  # noqa
 
-    assert(not config.on_disk())
+    assert(not prefs.on_disk())
 
-    config.log.log_level = 4
-    config.log.save()
+    prefs.log.log_level = 4
+    prefs.log.save()
     # confirm log level is in file
-    assert(0 == os.system("grep -q log_level '%s'" % config._filename))
+    assert(0 == os.system("grep -q log_level '%s'" % prefs._filename))
 
-    config.log.log_level = 1
-    config.log.save()
+    prefs.log.log_level = 1
+    prefs.log.save()
     # confirm log level is not in file
-    assert(0 != os.system("grep -q log_level '%s'" % config._filename))
+    assert(0 != os.system("grep -q log_level '%s'" % prefs._filename))
 
     # finished with configuration file
-    os.remove(config._filename)
+    os.remove(prefs._filename)

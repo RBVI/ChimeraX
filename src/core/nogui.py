@@ -5,7 +5,6 @@ nogui: Text UI
 
 Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
-from .utils import flattened
 from .tasks import Task
 from .logger import PlainTextLog
 
@@ -111,9 +110,6 @@ class _Input(Task):
         try:
             self._cmd.parse_text(text, final=True)
             results = self._cmd.execute()
-            for result in flattened(results):
-                if result is not None:
-                    print(result)
         except cli.UserError as err:
             print(self._cmd.current_text)
             rest = self._cmd.current_text[self._cmd.amount_parsed:]

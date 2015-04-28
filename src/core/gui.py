@@ -148,6 +148,28 @@ class MainWindow(wx.Frame, PlainTextLog):
         from .models import ADD_MODEL_GROUP
         session.triggers.activate_trigger(ADD_MODEL_GROUP, mlist)
 
+    def OnSaveSession(self, event, ses):
+        from . import io
+        try:
+            ses_filter = io.wx_export_file_filter(io.SESSION)
+        except ValueError:
+            ses.logger.error("Cannot find file extension for Chimera session ")
+            return
+        dlg = wx.FileDialog(self, "Save Session", "", "", ses_filter,
+                            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+        ses_file = dlg.GetPath()
+        import os.path
+        ext = os.path.splitext(ses_file)[1]
+        ses_exts = io.extensions("Chimera session")
+        if ses_exts and ext not in ses_exts:
+            ses_file += ses_exts[0]
+        # TODO: maybe go through commands module
+        from . import commands
+        commands.export(ses, ses_file)
+        ses.logger.info("Session file \"%s\" saved." % ses_file)
+
     def OnPaneClose(self, event):
         pane_info = event.GetPane()
         tool_window = self.pane_to_tool_window[pane_info.window]
@@ -217,6 +239,9 @@ class MainWindow(wx.Frame, PlainTextLog):
         menu_bar.Append(file_menu, "&File")
         item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
         self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnOpen(evt, ses),
+            item)
+        item = file_menu.Append(wx.ID_ANY, "Save Session...", "Save session file")
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnSaveSession(evt, ses),
             item)
         if not sys.platform.startswith("darwin"):
             item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")

@@ -72,6 +72,12 @@ class Log(ToolInstance, HtmlLog):
                     dlg_msg = html_to_plain(msg)
                 else:
                     dlg_msg = msg
+                if dlg_msg.count('\n') > 50:
+                    # avoid excessively high error dialogs where
+                    # both the bottom buttons and top controls
+                    # may be off the screen!
+                    lines = msg.split('\n')
+                    dlg_msg = '\n'.join(lines[:20] + ["..."] + lines[-20:])
                 dlg = wx.MessageDialog(graphics, dlg_msg,
                     caption=caption, style=style)
                 dlg.ShowModal()
