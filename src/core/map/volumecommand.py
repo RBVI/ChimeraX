@@ -212,9 +212,9 @@ def volume(volumes = '',                # Specifier
         apply_global_settings(gsettings)
 
     if len(gsettings) == 0 and len(vlist) == 0:
-        from ..commands.parse import CommandError
-        raise CommandError('No volumes specified%s' %
-                           (' by "%s"' % volumes if volumes else ''))
+        from .. import cli
+        raise cli.UserError('No volumes specified%s' %
+                            (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
     dopt = ('style', 'show', 'hide', 'level', 'encloseVolume', 'fastEncloseVolume',
@@ -317,9 +317,9 @@ def apply_volume_options(v, doptions, roptions, session):
     if 'voxelSize' in doptions:
         vsize = doptions['voxelSize']
         if min(vsize) <= 0:
-            from ..commands.parse import CommandError
-            raise CommandError('Voxel size must positive, got %g,%g,%g'
-                               % tuple(vsize))
+            from .. import cli
+            raise cli.UserError('Voxel size must positive, got %g,%g,%g'
+                                % tuple(vsize))
         # Preserve index origin.
         origin = [(a/b)*c for a,b,c in zip(d.origin, d.step, vsize)]
         d.set_origin(origin)
@@ -411,8 +411,9 @@ def level_and_color_settings(v, options):
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
     # number of levels.
     if len(colors) > 1 and len(colors) != len(levels):
-        from ..commands.parse import CommandError
-        raise CommandError('Number of colors (%d) does not match number of levels (%d)' % (len(colors), len(levels)))
+        from .. import cli
+        raise cli.UserError('Number of colors (%d) does not match number of levels (%d)'
+                            % (len(colors), len(levels)))
 
     style = options.get('style', v.representation)
     if style in ('mesh', None):
@@ -420,15 +421,15 @@ def level_and_color_settings(v, options):
 
     if style == 'solid':
         if [l for l in levels if len(l) != 2]:
-            from ..commands.parse import CommandError
-            raise CommandError('Solid level must be <data-value,brightness-level>')
+            from .. import cli
+            raise cli.UserError('Solid level must be <data-value,brightness-level>')
         if levels and len(levels) < 2:
-            from ..commands.parse import CommandError
-            raise CommandError('Must specify 2 or more levels for solid style')
+            from .. import cli
+            raise cli.UserError('Must specify 2 or more levels for solid style')
     elif style == 'surface':
         if [l for l in levels if len(l) != 1]:
-            from ..commands.parse import CommandError
-            raise CommandError('Surface level must be a single data value')
+            from .. import cli
+            raise cli.UserError('Surface level must be a single data value')
         levels = [lvl[0] for lvl in levels]
 
     if levels:
@@ -463,10 +464,11 @@ def level_and_color_settings(v, options):
 def planes_arg(planes, session):
 
     axis, param = (planes.split(',',1) + [''])[:2]
-    from ..commands.parse import enum_arg, floats_arg, CommandError
+    from ..commands.parse import enum_arg, floats_arg
     p = [enum_arg(axis, session, ('x','y','z'))] + floats_arg(param, session)
     if len(p) < 2 or len(p) > 5:
-        raise CommandError('planes argument must have 2 to 5 comma-separated values: axis,pstart[[[,pend],pstep],pdepth.], got "%s"' % planes)
+        from .. import cli
+        raise cli.UserError('planes argument must have 2 to 5 comma-separated values: axis,pstart[[[,pend],pstep],pdepth.], got "%s"' % planes)
     return p
     
 # -----------------------------------------------------------------------------
