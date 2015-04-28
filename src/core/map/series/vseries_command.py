@@ -386,12 +386,7 @@ def vseries_cmd(session, operation, series = None):
 
 # -----------------------------------------------------------------------------
 #
-try:
-    from ...cli import Annotation
-except:
-    # For Hydra
-    class Annotation:
-        pass
+from ...cli import Annotation
 class SeriesArg(Annotation):
     name = 'map series'
     @staticmethod
