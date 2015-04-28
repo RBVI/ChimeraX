@@ -5,10 +5,10 @@
 #
 def register_molmap_command():
 
-    from .. import cli, atomspec
+    from .. import cli, structure
     molmap_desc = cli.CmdDesc(
         required = [
-            ('atoms', atomspec.AtomSpecArg),
+            ('atoms', structure.AtomsArg),
             ('resolution', cli.FloatArg),
         ],
         keyword = [
@@ -50,17 +50,14 @@ def molecule_map(session,
 		 showDialog = True
                  ):
 
-    asr = atoms.evaluate(session)
-    a = asr.atoms
-
-    molecules = asr.models
+    molecules = atoms.molecules
     if len(molecules) > 1:
         name = 'map %.3g' % (resolution,)
     else:
         for m in molecules:
             name = '%s map %.3g' % (m.name, resolution)
 
-    if len(a) == 0:
+    if len(atoms) == 0:
         raise cli.UserError('No atoms specified')
 
     if edgePadding is None:
@@ -88,7 +85,7 @@ def molecule_map(session,
         from ..commands.parse import parse_model_id
         modelId = parse_model_id(modelId)
 
-    v = make_molecule_map(a, resolution, step, pad,
+    v = make_molecule_map(atoms, resolution, step, pad,
                           cutoffRange, sigmaFactor, balls, transforms, csys,
                           displayThreshold, modelId, replace, showDialog, name, session)
     return v
