@@ -31,6 +31,9 @@ class Model(State, Drawing):
         self.id = None  # tuple: e.g., 1.2.1 is (1, 2, 1)
         # TODO: track.created(Model, [self])
 
+    def id_string(self):
+        return '.'.join(str(i) for i in self.id)
+
     def delete(self):
         if self.id is not None:
             raise ValueError("model is still open")
