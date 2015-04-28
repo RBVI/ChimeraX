@@ -291,6 +291,8 @@ def register(session):
     from . import map
     map.register_volume_command()
     map.register_molmap_command()
+    from .map import fit
+    fit.register_fitmap_command()
     from .map import series
     series.register_vseries_command()
     from . import color
