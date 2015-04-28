@@ -269,7 +269,7 @@ class Aggregate(Annotation):
     separator = ','
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None):
+                 max_size=None, name=None, prefix=None):
         if (not issubclass(annotation, Annotation) and
                 not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
@@ -286,6 +286,7 @@ class Aggregate(Annotation):
                 name = annotation.name.split(None, 1)[1]
                 name = "%s(s)" % name
         self.name = name
+        self.prefix = prefix
 
     def add_to(self, container, element):
         """Add to add an element to the container
@@ -300,6 +301,8 @@ class Aggregate(Annotation):
     def parse(self, text, session):
         result = self.constructor()
         used = ''
+        if self.prefix and text.startswith(self.prefix):
+            text = text[len(self.prefix):]
         while 1:
             i = text.find(self.separator)
             if i == -1:
@@ -412,8 +415,8 @@ class DottedTupleOf(Aggregate):
     constructor = tuple
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None):
-        Aggregate.__init__(self, annotation, min_size, max_size, name)
+                 max_size=None, name=None, prefix=None):
+        Aggregate.__init__(self, annotation, min_size, max_size, name, prefix)
         if name is None:
             if ',' in annotation.name:
                 name = "dotted list of %s" % annotation.name
@@ -810,7 +813,7 @@ FloatsArg = ListOf(FloatArg)
 Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
 PositiveIntArg = Bounded(IntArg, min=1, name="a natural number")
-ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id")
+ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix='#')
 
 
 class Postcondition(metaclass=abc.ABCMeta):
