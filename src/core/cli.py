@@ -445,6 +445,15 @@ class BoolArg(Annotation):
         raise AnnotationError("Expected true or false (or 1 or 0)")
 
 
+class NoArg(Annotation):
+    """Annotation for keyword with no value"""
+    name = ""
+
+    @staticmethod
+    def parse(text, session):
+        return True, "", text
+
+
 class IntArg(Annotation):
     """Annotation for integer literals"""
     name = "a whole number"
@@ -1303,8 +1312,8 @@ class Command:
     def _replace(self, chars, replacement):
         # insert replacement taking into account quotes
         i = len(chars)
-        c = chars[0]
-        if c != '"' or chars[-1] != c:
+        c = chars[0] if i > 0 else ''
+        if i < 2 or c != '"' or chars[-1] != c:
             completion = replacement
         else:
             completion = c + replacement + c
@@ -1476,11 +1485,12 @@ class Command:
             if start:
                 self.amount_parsed += start
                 text = text[start:]
-            if not text:
+
+            anno = self._ci._keyword[arg_name]
+            if not text and anno != NoArg:
                 self._error = "Missing argument %r" % arg_name
                 break
 
-            anno = self._ci._keyword[arg_name]
             self.completion_prefix = ''
             self.completions = []
             try:
