@@ -201,7 +201,8 @@ class OpalJob(Job):
             self._status_message = data[5]
             self._status_url = data[6]
             self._outputs = data[7]
-        raise RuntimeError("Unexpected version")
+        from ..session import RestoreError
+        raise RestoreError("Unexpected version")
 
     def reset_state(self):
         """Reset state to data-less state"""

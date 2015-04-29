@@ -27,6 +27,11 @@ _builtin_open = open
 SUFFIX = ".c2ses"
 
 
+class RestoreError(RuntimeError):
+    """Raised when session file has a problem being retored"""
+    pass
+
+
 class State(metaclass=abc.ABCMeta):
     """Session state API for classes that support saving session state
 
@@ -52,7 +57,7 @@ class State(metaclass=abc.ABCMeta):
     PHASE2 = 'resolve object references'
 
     #: common exception for needing a newer version of the application
-    NEED_NEWER = RuntimeError(
+    NeedNewerError = RestoreError(
         "Need newer version of application to restore session")
 
     @abc.abstractmethod
@@ -75,7 +80,7 @@ class State(metaclass=abc.ABCMeta):
         The session instance is used to convert unique ids into instances.
         """
         if version != 0 or len(data) > 0:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version or data")
 
     @abc.abstractmethod
     def reset_state(self):
@@ -116,7 +121,7 @@ class ParentState(State):
         """Restore data snapshot into instance"""
         # TODO: handle previous versions
         if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version or data")
         child_dict = getattr(self, self._child_attr_name)
         for name, [child_version, child_data] in data.items():
             if name not in child_dict:
@@ -202,7 +207,7 @@ class Scenes(State):
         if phase != State.PHASE1:
             return
         if version > self.VERSION:
-            raise State.NEED_NEWER
+            raise State.NeedNewerError
         self._scenes = data
 
     def reset_state(self):
@@ -310,13 +315,26 @@ class Session:
         return uid[0]
 
     def class_of_unique_id(self, uid, base_class):
-        """Return class associated with unique id"""
+        """Return class associated with unique id
+        
+        Parameters
+        ----------
+        uid : unique identifer for class
+        base_class : the expected base class of the class
+
+        Raises
+        ------
+        KeyError
+        """
         from importlib import import_module
         full_class_name, ordinal = uid
         module_name, class_name = full_class_name.rsplit('.', 1)
-        module = import_module(module_name)
-        cls = getattr(module, class_name)
-        assert(issubclass(cls, base_class))
+        try:
+            module = import_module(module_name)
+            cls = getattr(module, class_name)
+            assert(issubclass(cls, base_class))
+        except Exception as e:
+            raise KeyError(str(e))
         return cls
 
     def save(self, stream):
@@ -346,7 +364,7 @@ class Session:
         if not skip_over_metadata:
             version = serialize.deserialize(stream)
         if version > serialize.VERSION:
-            raise State.NEED_NEWER
+            raise State.NeedNewerError
         if not skip_over_metadata:
             self.metadata.update(self.read_metadata(stream, skip_version=True))
         # TODO: how much typechecking?
@@ -467,7 +485,10 @@ def open(session, stream, *args, **kw):
         input = _builtin_open(stream, 'rb')
     # TODO: active trigger to allow user to stop overwritting
     # current session
-    session.restore(input)
+    try:
+        session.restore(input)
+    except RestoreError as e:
+        pass
     return [], "opened chimera session"
 
 

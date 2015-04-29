@@ -41,9 +41,9 @@ class ToolUI(ToolInstance):
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
+        from chimera.core.session import State, RestoreError
         if version != self.VERSION or len(data) > 0:
-            raise RuntimeError("unexpected version or data")
-        from chimera.core.session import State
+            raise RestoreError("unexpected version or data")
         if phase == State.PHASE1:
             # Restore all basic-type attributes
             pass

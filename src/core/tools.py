@@ -26,7 +26,7 @@ and `session.trigger.delete_handler`.
 
 
 # Tools and ToolInstance are session-specific
-from .session import State
+from .session import State, RestoreError
 ADD_TOOL_INSTANCE = 'add tool instance'
 REMOVE_TOOL_INSTANCE = 'remove tool instance'
 
@@ -185,7 +185,7 @@ class Tools(State):
 
         """
         if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version or data")
 
         session = self._session()   # resolve back reference
         for tid, [uid, [ti_version, ti_data]] in data.items():
@@ -194,15 +194,18 @@ class Tools(State):
                     cls = session.class_of_unique_id(uid, ToolInstance)
                 except KeyError:
                     class_name = session.class_name_of_unique_id(uid)
-                    session.logger.warning("Unable to restore tool instance %s (%s)"
-                                        % (tid, class_name))
+                    session.logger.warning(
+                        "Unable to restore tool instance %s (%s)" %
+                        (tid, class_name))
                     continue
                 try:
                     ti = cls(session, id=tid)
                     session.restore_unique_id(ti, uid)
                 except Exception as e:
                     class_name = session.class_name_of_unique_id(uid)
-                    session.logger.error("Code error restoring tool instance: %s (%s): %s" % (tid, class_name, str(e)))
+                    session.logger.error(
+                        "Code error restoring tool instance: %s (%s): %s" %
+                        (tid, class_name, str(e)))
                     raise
             else:
                 ti = session.unique_obj(uid)

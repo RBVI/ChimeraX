@@ -38,7 +38,7 @@ and ``session.trigger.delete_handler``.
 """
 
 import abc
-from .session import State
+from .session import State, RestoreError
 
 ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
@@ -359,13 +359,14 @@ class Tasks(State):
     def restore_snapshot(self, phase, session, version, data):
         """Restore state of running tasks.
 
-        Overrides chimera.core.session.State default method to restore
-        state of all registered running tasks.
+        Overrides :py:class:`~chimera.core.session.State` default method to
+        restore state of all registered running tasks.
 
         Parameters
         ----------
         phase : str
-            Restoration phase.  See :py:mod:`chimera.core.session` for more details.
+            Restoration phase.  See :py:mod:`chimera.core.session` for more
+            details.
         session : instance of :py:class:`~chimera.core.session.Session`
             Session for which state is being saved.
             Should match the ``session`` argument given to ``__init__``.
@@ -376,8 +377,8 @@ class Tasks(State):
             Data saved by state manager during :py:meth:`take_snapshot`.
 
         """
-        if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
+        if version != self.VERSION:
+            raise RestoreError("Unexpected version")
 
         session = self._session()   # resolve back reference
         for tid, [uid, [task_version, task_data]] in data.items():

@@ -7,7 +7,7 @@ models: model support
 
 import weakref
 from .graphics.drawing import Drawing
-from .session import State
+from .session import State, RestoreError
 ADD_MODELS = 'add models'
 ADD_MODEL_GROUP = 'add model group'
 REMOVE_MODELS = 'remove models'
@@ -45,7 +45,7 @@ class Model(State, Drawing):
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.MODEL_STATE_VERSION:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version")
         self.name = data
 
     def reset_state(self):
@@ -81,7 +81,7 @@ class Models(State):
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.VERSION:
-            raise RuntimeError("Unexpected version")
+            raise RestoreError("Unexpected version")
 
         for id, [uid, [model_version, model_data]] in data.items():
             if phase == State.PHASE1:

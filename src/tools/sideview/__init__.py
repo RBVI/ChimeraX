@@ -10,11 +10,8 @@ def start_tool(session, ti):
 
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
-    from .gui import ToolUI
-    class SideView(ToolUI):
-        # tool's default display name derives from class name...
-        pass
-    SideView(session)
+    from .gui import SideViewUI
+    SideViewUI(session)
 
 
 # no commands

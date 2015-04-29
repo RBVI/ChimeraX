@@ -88,7 +88,9 @@ class CommandLine(ToolInstance):
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State
+        from chimera.core.session import State, RestoreError
+        if version != self.VERSION:
+            raise RestoreError("unexpected version")
         if phase == State.PHASE1:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved

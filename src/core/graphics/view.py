@@ -74,9 +74,9 @@ class View:
         return [self.VIEW_STATE_VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from ..session import State
+        from ..session import State, RestoreError
         if version != self.VIEW_STATE_VERSION or len(data) == 0:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version or data")
         if phase != State.PHASE1:
             return
         (self.center_of_rotation, self.window_size,

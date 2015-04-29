@@ -80,7 +80,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             ]
         if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
             raise AssertionError(
-                    "Missing required OpenGL capabilities for Side View")
+                "Missing required OpenGL capabilities for Side View")
         self.view = view
         self.main_view = main_view
         self.side = side
@@ -93,7 +93,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.on_size)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
-        self.Bind(wx.EVT_LEFT_UP,  self.on_left_up)
+        self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
         self.Bind(wx.EVT_MOTION, self.on_motion)
 
         self.locations = loc = _PixelLocations()
@@ -142,7 +142,10 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
     def draw(self):
         ww, wh = self.main_view.window_size
-        if ww == 0 or wh == 0:
+        if ww <= 0 or wh <= 0:
+            return
+        width, height = self.view.window_size
+        if width <= 0 or height <= 0:
             return
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
@@ -194,7 +197,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
             # figure out how big to make applique
             # eye and lines to far plane must be on screen
-            width, height = self.view.window_size
             loc = self.locations
             loc.bottom = .05 * height
             loc.top = .95 * height
@@ -276,15 +278,15 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.x, self.y = x, y
 
 
-class ToolUI(ToolInstance):
+class SideViewUI(ToolInstance):
 
     SIZE = (300, 200)
     VERSION = 1
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        self.tool_window = session.ui.create_main_tool_window(self,
-            size=self.SIZE)
+        self.tool_window = session.ui.create_main_tool_window(
+            self, size=self.SIZE)
         parent = self.tool_window.ui_area
 
         # UI content code
@@ -293,11 +295,12 @@ class ToolUI(ToolInstance):
         self.view = View(session.models.drawing, wx.DefaultSize, oc,
                          session.logger, track=False)
         self.view.camera = OrthoCamera()
+        if self.display_name.startswith('Top'):
+            side = SideViewCanvas.TOP_SIDE
+        else:
+            side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(
-            parent, self.view, session.main_view, self.SIZE,
-            side=SideViewCanvas.TOP_SIDE
-            if self.display_name.startswith('Top')
-            else SideViewCanvas.RIGHT_SIDE)
+            parent, self.view, session.main_view, self.SIZE, side=side)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)

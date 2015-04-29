@@ -15,7 +15,7 @@ from the CSS4 draft and the CSS4 color names.
 import re
 from sortedcontainers import SortedDict
 from . import cli
-from .session import State
+from .session import State, RestoreError
 
 # CSS4 colors
 _BuiltinColors = SortedDict({
@@ -184,7 +184,7 @@ class UserColors(SortedDict, State):
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.USER_COLORS_VERSION:
-            raise RuntimeError("Unexpected UserColors version")
+            raise RestoreError("Unexpected UserColors version")
         self.clear()
         self.update(data)
 

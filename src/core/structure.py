@@ -1,6 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from . import io
 from . import models
+from .session import RestoreError
 
 CATEGORY = io.STRUCTURE
 
@@ -33,7 +34,7 @@ class StructureModel(models.Model):
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version or data")
 
     def reset_state(self):
         pass
