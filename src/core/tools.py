@@ -184,11 +184,16 @@ class Tools(State):
                     cls = session.class_of_unique_id(uid, ToolInstance)
                 except KeyError:
                     class_name = session.class_name_of_unique_id(uid)
-                    session.log.warning("Unable to restore tool instance %s (%s)"
+                    session.logger.warning("Unable to restore tool instance %s (%s)"
                                         % (tid, class_name))
                     continue
-                ti = cls(session, id=tid)
-                session.restore_unique_id(ti, uid)
+                try:
+                    ti = cls(session, id=tid)
+                    session.restore_unique_id(ti, uid)
+                except Exception as e:
+                    class_name = session.class_name_of_unique_id(uid)
+                    session.logger.error("Code error restoring tool instance: %s (%s): %s" % (tid, class_name, str(e)))
+                    raise
             else:
                 ti = session.unique_obj(uid)
             ti.restore_snapshot(phase, session, ti_version, ti_data)
