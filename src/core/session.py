@@ -385,21 +385,30 @@ def save(session, filename, **kw):
         filename = expanduser(filename)         # Tilde expansion
         if not filename.endswith(SUFFIX):
             filename += SUFFIX
-        my_open = _builtin_open
+        from .safesave import SaveBinaryFile, SaveFile
+        my_open = SaveBinaryFile
         try:
             # default to saving compressed files
             import gzip
             filename += ".gz"
-            my_open = gzip.GzipFile
+
+            def my_open(filename):
+                return SaveFile(
+                    filename,
+                    open=lambda filename: gzip.GzipFile(filename, 'wb'))
         except ImportError:
             pass
         try:
-            output = my_open(filename, 'wb')
+            output = my_open(filename)
         except IOError as e:
             raise cli.UserError(e)
 
     try:
         session.save(output)
+    except:
+        if my_open is not None:
+            output.close("exceptional")
+        raise
     finally:
         if my_open is not None:
             output.close()
@@ -474,36 +483,47 @@ _initialize()
 
 _monkey_patch = True
 
+
 class Selection:
+
     def __init__(self, all_models):
         self._all_models = all_models
+
     def all_models(self):
         return self._all_models.list()
+
     def models(self):
         return [m for m in self.all_models() if m.any_part_selected()]
+
     def items(self, itype):
         si = []
         for m in self.models():
             s = m.selected_items(itype)
             si.extend(s)
         return si
+
     def empty(self):
         for m in self.all_models():
             if m.any_part_selected():
                 return False
         return True
+
     def clear(self):
         for m in self.models():
             m.clear_selection()
+
     def clear_hierarchy(self):
         for m in self.models():
             m.clear_selection_promotion_history()
+
     def promote(self):
         for m in self.models():
             m.promote_selection()
+
     def demote(self):
         for m in self.models():
             m.demote_selection()
+
 
 def common_startup(sess):
     """Initialize session with common data managers"""

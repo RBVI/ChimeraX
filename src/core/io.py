@@ -578,18 +578,21 @@ def open(session, filespec, format=None, as_=None, **kw):
 
 
 def export(session, filename, **kw):
-    from chimera.core.cli import UserError
+    from .cli import UserError
+    from .safesave import SaveBinaryFile, SaveFile
     format_name, prefix, filename, compression = deduce_format(
         filename, prefixable=False)
     if format_name is None:
         raise UserError("Missing or unknown file type")
     func = export_function(format_name)
     if not compression:
-        stream = _builtin_open(filename, 'wb')
+        with SaveBinaryFile(filename) as stream:
+            return func(session, stream, **kw)
     else:
         stream_type = _compression[compression]
-        stream = stream_type(filename, 'wb')
-    return func(session, stream, **kw)
+        open_compressed = lambda filename: stream_type(filename, 'wb')
+        with SaveFile(filename, open=open_compressed) as stream:
+            return func(session, stream, **kw)
 
 
 def gunzip(gzpath, path, remove_gz = True):

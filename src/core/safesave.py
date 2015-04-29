@@ -33,18 +33,14 @@ class SaveFile:
     the desired filename when it is closed.  That way, a partial write of
     the replacement file will not overwrite the original complete file.  If
     used in a with statement, then the temporary file will always be removed
-    on failure.  Defaults to writing binary files.  If no encoding is given
-    for a text file, then the UTF-8 encoding is assumed.
+    on failure.  Defaults to writing binary files.
     Locking is not provided.
 
     Parameters
     ----------
     filename : str
         Name of file.
-    mode : string, optional
-        File mode, should be 'w' or 'wb'.
-    encoding : str, optional
-        Text file encoding (default is UTF-8)
+    open : function taking a filename to write
     critical : bool, optional
         If critical, have operating system flush to disk before closing file.
 
@@ -54,19 +50,16 @@ class SaveFile:
         Name of file.
     """
 
-    def __init__(self, filename, mode='wb', encoding=None, critical=False):
-        assert('w' in mode)
-        if 'b' not in mode and encoding is None:
-            encoding = 'utf-8'
+    def __init__(self, filename, open=open, critical=False):
         save_dir = os.path.dirname(filename)
         if save_dir and not os.path.isdir(save_dir):
             import errno
             raise OSError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), save_dir)
         self.name = filename
-        self.mode = mode
         self._critical = critical
         self._tmp_filename = filename + ".tmp"
-        self._f = open(self._tmp_filename, mode, encoding=encoding)
+        self._f = open(self._tmp_filename)
+        assert(self._f.writable())
 
     def __enter__(self):
         return self._f
@@ -97,15 +90,15 @@ class SaveFile:
 
     def close(self, exception=None):
         """Close temporary file and rename it to desired filename
-        
+
         If there is an exception, don't overwrite the file."""
         if exception is None:
             self.__exit__(None, None, None)
         else:
             self.__exit__(type(exception), exception, None)
 
-    def writeable(self):
-        """Only writeable files are supported"""
+    def writable(self):
+        """Only writable files are supported"""
         return True
 
     def write(self, buf):
@@ -118,17 +111,43 @@ class SaveFile:
 
 
 class SaveBinaryFile(SaveFile):
-    """SaveFile specialized for Binary files"""
+    """SaveFile specialized for Binary files
+
+    Parameters
+    ----------
+    filename : str
+        Name of file.
+    critical : bool, optional
+        If critical, have operating system flush to disk before closing file.
+    """
 
     def __init__(self, filename, critical=False):
-        SaveFile.__init__(self, filename, 'wb', critical=critical)
+        def open_binary(filename):
+            return open(filename, 'wb')
+        SaveFile.__init__(self, filename, open=open_binary, critical=critical)
 
 
 class SaveTextFile(SaveFile):
-    """SaveFile specialized for Text files"""
+    """SaveFile specialized for Text files"
 
-    def __init__(self, filename, encoding=None, critical=False):
-        SaveFile.__init__(self, filename, 'w', encoding, critical)
+    Parameters
+    ----------
+    filename : str
+        Name of file.
+    encoding : str, optional
+        Text file encoding (default is UTF-8)
+    newline : :py:func:`open`'s optional newline argument
+    critical : bool, optional
+        If critical, have operating system flush to disk before closing file.
+    """
+
+    def __init__(self, filename, newline=None, encoding=None, critical=False):
+        if encoding is None:
+            encoding = 'utf-8'
+
+        def open_text(filename, newline=newline, encoding=encoding):
+            return open(filename, 'w', newline=newline, encoding=encoding)
+        SaveFile.__init__(self, filename, open=open_text, critical=critical)
 
 if __name__ == '__main__':
     testfile = 'testfile.test'
@@ -154,16 +173,16 @@ if __name__ == '__main__':
         check_contents('A')
 
         # overwrite the testfile
-        with SafeSaveFile(testfile, 'w') as f:
+        with SaveTextFile(testfile, 'w') as f:
             check_contents('A')
             f.write('B')
             f.flush()
             check_contents('A')
         check_contents('B')
 
-        # try to overwrite the filefile, but fail
+        # try to overwrite the file, but fail
         try:
-            with SafeSaveFile(testfile, 'w') as f:
+            with SaveTextFile(testfile, 'w') as f:
                 check_contents('B')
                 f.write('A')
                 f.flush()
