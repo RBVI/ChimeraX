@@ -3,15 +3,14 @@
 from chimera.core.tools import ToolInstance
 
 
-class CmdLine(ToolInstance):
+class CommandLine(ToolInstance):
 
     SIZE = (500, 25)
     VERSION = 1
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Command Line", session,
+        self.tool_window = session.ui.create_main_tool_window(self,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx

@@ -51,7 +51,7 @@ def move_atoms_to_maximum(atoms, volume,
     values at specified atom positions.
     '''
 
-    points = atoms.coordinates()
+    points = atoms.coords
     point_weights = None        # Each atom give equal weight in fit.
 
     metric = 'sum product'
@@ -60,7 +60,7 @@ def move_atoms_to_maximum(atoms, volume,
                                        ijk_step_size_min, ijk_step_size_max,
                                        optimize_translation, optimize_rotation,
                                        metric, symmetries, request_stop_cb)
-    stats['molecules'] = list(atoms.molecules())
+    stats['molecules'] = list(atoms.molecules)
 
     from . import move
     move.move_models_and_atoms(move_tf, [], atoms, move_whole_molecules, volume)
@@ -269,7 +269,6 @@ def sum_product_gradient_direction(points, point_weights, data_array,
         from numpy import float64
         g = gradients.sum(axis=0, dtype = float64)
     else:
-        print ('fitmap spgd', point_weights.dtype, gradients.dtype)
         from ...geometry import vector
         g = vector.vector_sum(point_weights, gradients)
     return g
@@ -672,11 +671,11 @@ def points_outside_contour(points, tf, volume):
 # -----------------------------------------------------------------------------
 #
 def atom_fit_message(molecules, volume, stats):
-    
-    mnames = ['%s (#%d)' % (m.name, m.id) for m in molecules]
+
+    mnames = ['%s (#%s)' % (m.name, m.id_string()) for m in molecules]
     mnames = ', '.join(mnames)
     plural = 's' if len(molecules) > 1 else ''
-    vname = '%s (#%d)' % (volume.name, volume.id)
+    vname = '%s (#%s)' % (volume.name, volume.id_string())
     natom = stats['points']
     aoc = stats.get('atoms outside contour', None)
     clevel = stats.get('contour level', None)
@@ -724,11 +723,11 @@ def map_fit_message(moved_map, fixed_map, stats):
 def transformation_matrix_message(model, map):
     
     m = model
-    mname = '%s (#%d)' % (m.name, m.id)
+    mname = '%s (#%s)' % (m.name, m.id_string())
     mtf = m.position
 
     f = map
-    fname = '%s (#%d)' % (f.name, f.id)
+    fname = '%s (#%s)' % (f.name, f.id_string())
     ftf = f.position
     
     rtf = ftf.inverse() * mtf
@@ -746,16 +745,16 @@ def simulated_map(atoms, res, mwm, session):
       # Need to be able to move map independent of molecule if changing
       #  atom coordinates if not mwm.
       from ..molmap import molecule_map
-      v = molecule_map(atoms, res)
+      v = molecule_map(session, atoms, res)
       v.display = False
-      v.fitsim_params = (array_checksum(atoms.coordinates()), res, mwm)
+      v.fitsim_params = (array_checksum(atoms.coords), res, mwm)
     return v
 
 # -----------------------------------------------------------------------------
 #
 def find_simulated_map(atoms, res, mwm, session):
 
-    a = array_checksum(atoms.coordinates())
+    a = array_checksum(atoms.coords)
     from ..volume import volume_list
     for v in volume_list(session):
       if hasattr(v, 'fitsim_params') and v.fitsim_params == (a, res, mwm):

@@ -39,8 +39,10 @@ ACTION_BUTTONS
 
     def __init__(self, session):
         super().__init__(session)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Open Models", session, size=self.SIZE)
+
+        self.display_name = "Open Models"
+        self.tool_window = session.ui.create_main_tool_window(self,
+            size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         from wx import html2
@@ -141,6 +143,3 @@ ACTION_BUTTONS
 
     def display(self, b):
         self.tool_window.shown = b
-
-    def display_name(self):
-        return "Select open model(s)"

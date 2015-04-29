@@ -1,43 +1,44 @@
-from ...commands.parse import CommandError
+from ... import cli
 
 # -----------------------------------------------------------------------------
 #
-def fitmap_command(cmdname, args, session):
+def register_fitmap_command():
 
-    from ...commands.parse import parse_arguments, specifier_arg, volume_arg, int_arg, float_arg, bool_arg, string_arg
+    from ... import cli, atomspec
 
-    req_args = (('atomsOrMap', specifier_arg),
-                ('volume', volume_arg),
-                )
-    opt_args = ()
-    kw_args = (('metric', string_arg),  # overlap, correlation or cam.
-               ('envelope', bool_arg),
-               ('resolution', float_arg),
-               ('shift', bool_arg),
-               ('rotate', bool_arg),
-               ('symmetric', bool_arg),
-               ('moveWholeMolecules', bool_arg),
-               ('search', int_arg),
-               ('placement', string_arg),
-               ('radius', float_arg),
-               ('clusterAngle', float_arg),
-               ('clusterShift', float_arg),
-               ('asymmetricUnit', bool_arg),
-               ('inside', float_arg),
-               ('sequence', int_arg),
-               ('maxSteps', int_arg),
-               ('gridStepMax', float_arg),
-               ('gridStepMin', float_arg),
-               ('listFits', bool_arg),
-               ('eachModel', bool_arg),
-               )
-    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
-    kw['session'] = session
-    fitmap(**kw)
+    fitmap_desc = cli.CmdDesc(
+        required = [
+            ('atomsOrMap', atomspec.AtomSpecArg),
+        ],
+        keyword = [
+            ('inMap', atomspec.AtomSpecArg),	# Required, need keyword to avoid two consecutive atom specs.
+            ('metric', cli.EnumOf(('overlap', 'correlation', 'cam'))),  # overlap, correlation or cam.
+            ('envelope', cli.BoolArg),
+            ('resolution', cli.FloatArg),
+            ('shift', cli.BoolArg),
+            ('rotate', cli.BoolArg),
+            ('symmetric', cli.BoolArg),
+            ('moveWholeMolecules', cli.BoolArg),
+            ('search', cli.IntArg),
+            ('placement', cli.EnumOf(('sr', 's', 'r'))),
+            ('radius', cli.FloatArg),
+            ('clusterAngle', cli.FloatArg),
+            ('clusterShift', cli.FloatArg),
+            ('asymmetricUnit', cli.BoolArg),
+            ('inside', cli.FloatArg),
+            ('sequence', cli.IntArg),
+            ('maxSteps', cli.IntArg),
+            ('gridStepMax', cli.FloatArg),
+            ('gridStepMin', cli.FloatArg),
+            ('listFits', cli.BoolArg),
+            ('eachModel', cli.BoolArg),
+        ]
+    )
+    cli.register('fitmap', fitmap_desc, fitmap)
 
 # -----------------------------------------------------------------------------
 #
-def fitmap(atomsOrMap, volume, session,
+def fitmap(session, atomsOrMap, inMap = None,
            metric = None, envelope = True, resolution = None,
            shift = True, rotate = True, symmetric = False,
            moveWholeMolecules = True,
@@ -46,6 +47,16 @@ def fitmap(atomsOrMap, volume, session,
            asymmetricUnit = True, inside = 0.1, sequence = 0,
            maxSteps = 2000, gridStepMin = 0.01, gridStepMax = 0.5,
            listFits = None, eachModel = False):
+
+  atomsOrMap = atomsOrMap.evaluate(session)
+
+  if inMap is None:
+      raise cli.UserError('Must specify "in" keyword, e.g. fit #1 in #2')
+  from .. import Volume
+  vlist = [v for v in inMap.evaluate(session).models if isinstance(v, Volume)]
+  if len(vlist) != 1:
+      raise cli.UserError('fitmap second argument must specify one map, got %d' % len(volume))
+  volume = vlist[0]
 
   if listFits is None:
       listFits = (search > 0)
@@ -70,8 +81,9 @@ def fitmap(atomsOrMap, volume, session,
       metric = 'correlation' if symmetric else 'overlap'
 
   if sequence == 0:
-      atoms = atomsOrMap.atom_set()
-      if atoms.count() == 0:
+      from ...structure import Atoms
+      atoms = Atoms(atomsOrMap)
+      if len(atoms) == 0:
           v = map_to_fit(atomsOrMap)
       elif resolution is None:
           v = None
@@ -81,50 +93,51 @@ def fitmap(atomsOrMap, volume, session,
 
   if metric in ('correlation', 'cam') and v is None:
       if symmetric:
-          raise CommandError('Must specify a map resolution for'
-                             ' symmetric fitting of an atomic model')
+          raise cli.UserError('Must specify a map resolution for'
+                              ' symmetric fitting of an atomic model')
       else:
-          raise CommandError('Must specify a map resolution when'
+          raise cli.UserError('Must specify a map resolution when'
                              ' fitting an atomic model using correlation')
 
   if sequence > 0:
       if search > 0:
-          raise CommandError('Cannot use "sequence" and "search" options together.')
+          raise cli.UserError('Cannot use "sequence" and "search" options together.')
       if symmetric:
-          raise CommandError('Cannot use "sequence" and "symmetric" options together.')
+          raise cli.UserError('Cannot use "sequence" and "symmetric" options together.')
       flist = fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                            shift, rotate, moveWholeMolecules, sequence,
                            maxSteps, gridStepMin, gridStepMax)
   elif search == 0:
+      log = session.logger
       if v is None:
           f = fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
-                               maxSteps, gridStepMin, gridStepMax)
+                               maxSteps, gridStepMin, gridStepMax, log)
           flist = [f]
       else:
           if symmetric:
               if not metric in ('correlation', 'cam'):
-                  raise CommandError('Only "correlation" and "cam" metrics are'
+                  raise cli.UserError('Only "correlation" and "cam" metrics are'
                                      ' supported with symmetric fitting')
               if len(volume.data.symmetries) == 0:
-                  raise CommandError('Volume %s has not symmetry assigned'
+                  raise cli.UserError('Volume %s has not symmetry assigned'
                                      % volume.name)
               f = fit_map_in_symmetric_map(v, volume, metric, envelope,
                                            shift, rotate, moveWholeMolecules,
                                            atoms,
-                                           maxSteps, gridStepMin, gridStepMax)
+                                           maxSteps, gridStepMin, gridStepMax, log)
               flist = [f]
           else:
               f = fit_map_in_map(v, volume, metric, envelope,
                                  shift, rotate, moveWholeMolecules, atoms,
-                                 maxSteps, gridStepMin, gridStepMax)
+                                 maxSteps, gridStepMin, gridStepMax, log)
               flist = [f]
   else:
       if symmetric:
-          raise CommandError('Symmetric fitting not available with fit search')
+          raise cli.UserError('Symmetric fitting not available with fit search')
       flist = fit_search(atoms, v, volume, metric, envelope, shift, rotate,
                          moveWholeMolecules, search, placement, radius,
                          clusterAngle, clusterShift, asymmetricUnit, inside,
-                         maxSteps, gridStepMin, gridStepMax)
+                         maxSteps, gridStepMin, gridStepMax, session.logger)
 
   if listFits:
       from . import fitlist
@@ -171,22 +184,21 @@ def remove_atoms_with_volumes(aomlist, res, mwm, session):
 # -----------------------------------------------------------------------------
 #
 def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
-                     maxSteps, gridStepMin, gridStepMax):
+                     maxSteps, gridStepMin, gridStepMax, log = None):
 
     from . import fitmap as F
     stats = F.move_atoms_to_maximum(atoms, volume,
                                     maxSteps, gridStepMin, gridStepMax, 
                                     shift, rotate, moveWholeMolecules,
-                                    request_stop_cb = report_status)
-    mols = atoms.molecules()
-    if stats:
-        from ...ui import show_info, show_status
-        show_info(F.atom_fit_message(atoms.molecules(), volume, stats))
+                                    request_stop_cb = report_status(log))
+    mols = atoms.molecules
+    if log and stats:
+        log.info(F.atom_fit_message(mols, volume, stats))
         if moveWholeMolecules:
             for m in mols:
-                show_info(F.transformation_matrix_message(m, volume))
-        ave = stats['average map value']
-        show_status(', average map value %.4g' % ave, append = True)
+                log.info(F.transformation_matrix_message(m, volume))
+        log.status('%d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
+                   % (stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
 
     from .search import Fit
     fit = Fit(mols, None, volume, stats)
@@ -196,25 +208,27 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
 #
 def fit_map_in_map(v, volume, metric, envelope,
                    shift, rotate, moveWholeMolecules, mapAtoms,
-                   maxSteps, gridStepMin, gridStepMax):
+                   maxSteps, gridStepMin, gridStepMax, log = None):
 
     me = fitting_metric(metric)
     points, point_weights = map_fitting_points(v, envelope)
     symmetries = []
+
     from . import fitmap as F
     move_tf, stats = F.motion_to_maximum(points, point_weights, volume,
                                          maxSteps, gridStepMin, gridStepMax,
                                          shift, rotate, me, symmetries,
-                                         report_status)
+                                         report_status(log))
     from . import move
     move.move_models_and_atoms(move_tf, [v], mapAtoms, moveWholeMolecules,
                                volume)
 
-    from ...ui import show_info, show_status
-    show_info(F.map_fit_message(v, volume, stats))
-    show_info(F.transformation_matrix_message(v, volume))
-    cort = me if me == 'correlation about mean' else 'correlation'
-    show_status(', %s %.4f' % (cort, stats[cort]), append = True)
+    if log:
+        log.info(F.map_fit_message(v, volume, stats))
+        log.info(F.transformation_matrix_message(v, volume))
+        cort = me if me == 'correlation about mean' else 'correlation'
+        log.status('%d steps, shift %.3g, rotation %.3g degrees, %s %.4f'
+                   % (stats['steps'], stats['shift'], stats['angle'], cort, stats[cort]))
 
     from .search import Fit
     fit = Fit([v], None, volume, stats)
@@ -224,7 +238,7 @@ def fit_map_in_map(v, volume, metric, envelope,
 #
 def fit_map_in_symmetric_map(v, volume, metric, envelope,
                              shift, rotate, moveWholeMolecules, mapAtoms,
-                             maxSteps, gridStepMin, gridStepMax):
+                             maxSteps, gridStepMin, gridStepMax, log = None):
 
     from . import fitmap as F
     me = fitting_metric(metric)
@@ -261,11 +275,12 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
     from . import move
     move.move_models_and_atoms(vtf, [v], mapAtoms, moveWholeMolecules, volume)
 
-    from ...ui import show_info, show_status
-    show_info(F.map_fit_message(v, volume, stats))
-    show_info(F.transformation_matrix_message(v, volume))
-    cort = me if me == 'correlation about mean' else 'correlation'
-    show_status(', %s %.4f' % (cort, stats[cort]), append = True)
+    if log:
+        log.info(F.map_fit_message(v, volume, stats))
+        log.info(F.transformation_matrix_message(v, volume))
+        cort = me if me == 'correlation about mean' else 'correlation'
+        log.status('%d steps, shift %.3g, rotation %.3g degrees, %s %.4f'
+                   % (stats['steps'], stats['shift'], stats['angle'], cort, stats[cort]))
 
     from .search import Fit
     fit = Fit([v], None, volume, stats)
@@ -276,7 +291,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
 def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
                moveWholeMolecules, search, placement, radius,
                clusterAngle, clusterShift, asymmetricUnit, inside,
-               maxSteps, gridStepMin, gridStepMax):
+               maxSteps, gridStepMin, gridStepMax, log = None):
     
     # TODO: Handle case where not moving whole molecules.
 
@@ -292,7 +307,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
     from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
-    mlist = atoms.molecules()
+    mlist = list(atoms.molecules)
     if v:
         mlist.append(v)
 
@@ -310,7 +325,8 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 #    finally:
 #        task.finished()
 
-    report_fit_search_results(flist, search, outside, inside)
+    if log:
+        report_fit_search_results(flist, search, outside, inside, log)
     return flist
 
 # -----------------------------------------------------------------------------
@@ -326,13 +342,12 @@ def request_stop_cb(message, task):
 
 # -----------------------------------------------------------------------------
 #
-def report_fit_search_results(flist, search, outside, inside):
+def report_fit_search_results(flist, search, outside, inside, log):
 
-    from ...ui import show_info
-    show_info('Found %d unique fits from %d random placements ' %
-         (len(flist), search) +
-         'having fraction of points inside contour >= %.3f (%d of %d).\n'
-         % (inside, search-outside,  search))
+    log.info('Found %d unique fits from %d random placements ' %
+             (len(flist), search) +
+             'having fraction of points inside contour >= %.3f (%d of %d).\n'
+             % (inside, search-outside,  search))
 
     if len(flist) == 0:
         return
@@ -343,8 +358,8 @@ def report_fit_search_results(flist, search, outside, inside):
     scores = ', '.join(['%.4g (%d)' % (getattr(f,sattr)(),f.hits())
                         for f in flist])
     sname = 'Correlations' if v else 'Average map values'
-    show_info('%s and times found:\n\t%s\n' % (sname, scores))
-    show_info('Best fit found:\n%s' % f0.fit_message())
+    log.info('%s and times found:\n\t%s\n' % (sname, scores))
+    log.info('Best fit found:\n%s' % f0.fit_message())
 
 # -----------------------------------------------------------------------------
 #
@@ -354,20 +369,21 @@ def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
 
     if resolution is None:
         from .. import Volume
-        vlist = [v for v in atomsOrMap.models() if isinstance(v, Volume)]
+        vlist = [v for v in atomsOrMap.models if isinstance(v, Volume)]
         if len(vlist) < 2:
-            if len(atomsOrMap.atoms()) > 0:
-                raise CommandError('Fit sequence requires "resolution"'
+            if len(atomsOrMap.atoms) > 0:
+                raise cli.UserError('Fit sequence requires "resolution"'
                                    ' argument to fit atomic models')
             else:
-                raise CommandError('Fit sequence requires 2 or more maps'
+                raise cli.UserError('Fit sequence requires 2 or more maps'
                                    ' to place')
     else:
-        mlist = atomsOrMap.molecules()
+        from ...structure import StructureModel
+        mlist = [m for m in atomsOrMap.models if isinstance(m, StructureModel)]
         if len(mlist) < 2:
-            raise CommandError('Fit sequence requires 2 or more molecules')
+            raise cli.UserError('Fit sequence requires 2 or more molecules')
         if not moveWholeMolecules:
-            raise CommandError('Fit sequence does not support'
+            raise cli.UserError('Fit sequence does not support'
                                ' moving partial molecules')
             # TODO: Handle case where not moving whole molecules.
         import fitmap as F
@@ -398,9 +414,9 @@ def map_to_fit(selection):
   from .. import Volume
   vlist = [m for m in selection.models() if isinstance(m, Volume)]
   if len(vlist) == 0:
-    raise CommandError('No atoms or maps for %s' % selection.oslStr)
+    raise cli.UserError('No atoms or maps for %s' % selection.oslStr)
   elif len(vlist) > 1:
-    raise CommandError('Multiple maps for %s' % selection.oslStr)
+    raise cli.UserError('Multiple maps for %s' % selection.oslStr)
   v = vlist[0]
   return v
 
@@ -415,7 +431,7 @@ def fitting_metric(metric):
   elif 'cam'.startswith(metric):
     me = 'correlation about mean'
   else:
-    raise CommandError('metric "%s" must be "overlap" or "correlation"' % metric)
+    raise cli.UserError('metric "%s" must be "overlap" or "correlation"' % metric)
   return me
 
 # -----------------------------------------------------------------------------
@@ -430,19 +446,17 @@ def map_fitting_points(v, envelope, local_coords = False):
         points, point_weights = F.map_points_and_weights(v, envelope,
                                                          point_to_scene_transform)
     except (MemoryError, ValueError) as e:
-        raise CommandError('Out of memory, too many points in %s' % v.name)
+        raise cli.UserError('Out of memory, too many points in %s' % v.name)
 
     if len(points) == 0:
         msg = ('No grid points above map threshold.' if envelope
                else 'Map has no non-zero values.')
-        raise CommandError(msg)
+        raise cli.UserError(msg)
 
     return points, point_weights
 
 # -----------------------------------------------------------------------------
 #
-def report_status(message):
+def report_status(log):
+    return None if log is None else lambda message, log=log: log.status(message)
 
-  from ...ui import show_status
-  show_status(message)
-  return False        # Don't halt computation

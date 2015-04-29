@@ -583,6 +583,45 @@ def show_atoms(show, atoms, session):
         update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
+# Wrap an AtomBlob and have a molecules attribute.
+#
+class Atoms:
+    def __init__(self, aspec = None):
+        if aspec is None:
+            from . import structaccess
+            atoms = structaccess.AtomBlob()
+            mols = ()
+        else:
+            atoms = aspec.atoms
+            mols = tuple(m for m in aspec.models if isinstance(m, StructureModel)) 
+        self._atoms = atoms
+        self.molecules = mols
+    def __len__(self):
+        return len(self._atoms)
+    def __getattr__(self, name):
+        return getattr(self._atoms, name)
+#    def __setattr__(self, name, value):
+#        return setattr(self._atoms, name, value)
+    def move_atoms(self, tf):
+        if len(self._atoms) > 0:
+            self._atoms.coords = tf * self._atoms.coords
+
+# -----------------------------------------------------------------------------
+# Wrap an AtomBlob and have a molecules attribute.
+#
+from . import cli
+class AtomsArg(cli.Annotation):
+    """Annotation for atoms"""
+    name = "atoms"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        asr = aspec.evaluate(session)
+        return Atoms(asr), text, rest
+
+# -----------------------------------------------------------------------------
 #
 def register_molecule_commands():
     from . import cli

@@ -44,7 +44,12 @@ class ToolInstance(State):
     id : readonly int
         `id` is a unique identifier among ToolInstance instances
         registered with the session state manager.
-
+    display_name : str
+        Name to display to user for this ToolInstance.  Defaults to
+        class name with spaces inserted before upper case characters that
+        follow lower case characters (so "SideView" would become "Side View").
+        If a different name is desired (e.g. multi-instance tool) make sure
+        to set the attribute before creating the first tool window.
     """
 
     def __init__(self, session, id=None, **kw):
@@ -59,21 +64,20 @@ class ToolInstance(State):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
+        disp_name = ""
+        preceding_lower = False
+        for c in self.__class__.__name__:
+            if preceding_lower and c.isupper():
+                disp_name += " "
+            disp_name += c
+            preceding_lower = c.islower()
+        self.display_name = disp_name
         # TODO: track.created(ToolInstance, [self])
 
     @property
     def session(self):
         """Read-only property for session that contains this tool instance."""
         return self._session()
-
-    def display_name(self):
-        """Name to display to user for this ToolInstance.
-
-        This method should be overridden, particularly
-        for multi-instance tools.
-
-        """
-        return self.__class__.__name__
 
     def delete(self):
         """Delete this tool instance.
