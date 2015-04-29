@@ -126,7 +126,7 @@ pl = {
     "NSHumanReadableCopyright": "Copyright \u00A9 %s" % year +
                                 " Regents of the University of California."
                                 "  All Rights Reserved.",
-    # TODO: "CFBundleIconFile": "chimera-icon.icns",
+    "CFBundleIconFile": "chimera-icon.icns",
     "CFBundleIdentifier": "edu.ucsf.cgl.%s" % app_name,
     "CFBundleInfoDictionaryVersion": "6.0",
     "CFBundleName": "UCSF Chimera2",
