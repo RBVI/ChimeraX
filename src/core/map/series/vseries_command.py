@@ -6,79 +6,72 @@
 #
 players = set()         # Active players.
 
-def vseries_command(cmd_name, args, session):
+def register_vseries_command():
 
-    from ...commands.parse import bool_arg, float_arg, enum_arg, int_arg, string_arg, color_arg, range_arg
-    from ...commands.parse import floats_arg, parse_subregion, parse_step, value_type_arg, volume_arg, molecule_arg
-    from ...commands.parse import perform_operation
-    ops = {
-        'align': (align_op,
-                  (('series', series_arg),),
-                  (),
-                  (('encloseVolume', float_arg),
-                   ('fastEncloseVolume', float_arg))),
-        'save': (save_op,
-                 (('series', series_arg),
-                  ('path', string_arg)),
-                 (),
-                 (('subregion', parse_subregion),
-                  ('step', parse_step),
-                  ('valueType', value_type_arg),
-                  ('threshold', float_arg),
-                  ('zeroMean', bool_arg),
-                  ('scaleFactor', float_arg),
-                  ('encloseVolume', float_arg),
-                  ('fastEncloseVolume', float_arg),
-                  ('normalizeLevel', float_arg),
-                  ('align', bool_arg),
-                  ('onGrid', volume_arg),
-                  ('mask', volume_arg),
-                  ('finalValueType', value_type_arg),
-                  ('compress', bool_arg)),
-                 ),
-        'measure': (measure_op,
-                    (('series', series_arg),),
-                    (),
-                    (('output', string_arg),
-                     ('centroids', bool_arg),
-                     ('color', color_arg),
-                     ('radius', float_arg),
-                    )),
-        'play': (play_op,
-                 (('series', series_arg),),
-                 (),
-                 (('loop', bool_arg),
-                  ('direction', enum_arg,
-                   {'values':('forward', 'backward', 'oscillate')}),
-                  ('normalize', bool_arg),
-                  ('maxFrameRate', float_arg),
-                  ('markers', molecule_arg),
-                  ('precedingMarkerFrames', int_arg),
-                  ('followingMarkerFrames', int_arg),
-                  ('colorRange', float_arg),
-                  ('cacheFrames', int_arg),
-                  ('jumpTo', int_arg),
-                  ('range', range_arg),
-                  ('startTime', int_arg),
-                  )),
-        'stop': (stop_op,
-                 (('series', series_arg),),
-                 (),
-                 ()),
-        'slider': (slider_op,
-                  (('series', series_arg),),
-                  (),
-                  ()),
-        }
+    from ...cli import CmdDesc, register, BoolArg, EnumOf, IntArg, StringArg, FloatArg
+    from ...color import ColorArg
+    from ..mapargs import MapArg, MapStepArg, MapRegionArg, ValueTypeArg, IntRangeArg
+    from ...structure import AtomsArg
 
-    perform_operation(cmd_name, args, ops, session)
+    sarg = [('series', SeriesArg)]
+
+    align_desc = CmdDesc(required = sarg,
+                         keyword = [('encloseVolume', FloatArg),
+                                    ('fastEncloseVolume', FloatArg)])
+    register('vseries align', align_desc, align_op)
+
+    save_desc = CmdDesc(required = sarg + [('path', StringArg)],
+                         keyword = [
+                             ('subregion', MapRegionArg),
+                             ('step', MapStepArg),
+                             ('valueType', ValueTypeArg),
+                             ('threshold', FloatArg),
+                             ('zeroMean', BoolArg),
+                             ('scaleFactor', FloatArg),
+                             ('encloseVolume', FloatArg),
+                             ('fastEncloseVolume', FloatArg),
+                             ('normalizeLevel', FloatArg),
+                             ('align', BoolArg),
+                             ('onGrid', MapArg),
+                             ('mask', MapArg),
+                             ('finalValueType', ValueTypeArg),
+                             ('compress', BoolArg),])
+    register('vseries save', save_desc, save_op)
+
+    measure_desc = CmdDesc(required = sarg,
+                           keyword = [('output', StringArg),
+                                      ('centroids', BoolArg),
+                                      ('color', ColorArg),
+                                      ('radius', FloatArg),])
+    register('vseries measure', measure_desc, measure_op)
+
+    play_desc = CmdDesc(required = sarg,
+                        keyword = [('loop', BoolArg),
+                                   ('direction', EnumOf(('forward', 'backward', 'oscillate'))),
+                                   ('normalize', BoolArg),
+                                   ('maxFrameRate', FloatArg),
+                                   ('markers', AtomsArg),
+                                   ('precedingMarkerFrames', IntArg),
+                                   ('followingMarkerFrames', IntArg),
+                                   ('colorRange', FloatArg),
+                                   ('cacheFrames', IntArg),
+                                   ('jumpTo', IntArg),
+                                   ('range', IntRangeArg),
+                                   ('startTime', IntArg),])
+    register('vseries play', play_desc, play_op)
+
+    stop_desc = CmdDesc(required = sarg)
+    register('vseries stop', stop_desc, stop_op)
+
+    slider_desc = CmdDesc(required = sarg)
+    register('vseries slider', slider_desc, slider_op)
 
 # -----------------------------------------------------------------------------
 #
-def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
+def play_op(session, series, direction = 'forward', loop = False, maxFrameRate = None,
             jumpTo = None, range = None, start = None, normalize = False, markers = None,
             precedingMarkerFrames = 0, followingMarkerFrames = 0,
-            colorRange = None, cacheFrames = 1, session = None):
+            colorRange = None, cacheFrames = 1):
 
     from . import play
     p = play.Play_Series(series, session, range = range, start_time = start,
@@ -102,7 +95,7 @@ def play_op(series, direction = 'forward', loop = False, maxFrameRate = None,
 
 # -----------------------------------------------------------------------------
 #
-def stop_op(series):
+def stop_op(session, series):
 
     for p in players:
         for s in series:
@@ -112,7 +105,7 @@ def stop_op(series):
 
 # -----------------------------------------------------------------------------
 #
-def align_op(series, encloseVolume = None, fastEncloseVolume = None, session = None):
+def align_op(session, series, encloseVolume = None, fastEncloseVolume = None):
     for s in series:
         align_series(s, encloseVolume, fastEncloseVolume, session)
 
@@ -157,11 +150,10 @@ def align(v, vprev):
 
 # -----------------------------------------------------------------------------
 #
-def save_op(series, path, subregion = None, step = None, valueType = None,
+def save_op(session, series, path, subregion = None, step = None, valueType = None,
             threshold = None, zeroMean = False, scaleFactor = None,
             encloseVolume = None, fastEncloseVolume = None, normalizeLevel = None,
-            align = False, onGrid = None, mask = None, finalValueType = None, compress = False,
-            session = None):
+            align = False, onGrid = None, mask = None, finalValueType = None, compress = False):
 
     if len(series) > 1:
         from ...commands.parse import CommandError
@@ -269,9 +261,8 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
 
 # -----------------------------------------------------------------------------
 #
-def measure_op(series, output = None, centroids = True,
-               color = (.7,.7,.7,1), radius = None,
-               session = None):
+def measure_op(session, series, output = None, centroids = True,
+               color = (.7,.7,.7,1), radius = None):
 
     from ...surface import surface_volume_and_area
     from ...measure import inertia
@@ -345,19 +336,6 @@ def create_centroid_path(xyz, radius, color):
     atoms['ribbon_shown'] = 0
     m = Molecule('centroids', atoms)
     return m
-  
-# -----------------------------------------------------------------------------
-#
-def series_arg(s, session):
-
-  from ...commands import parse
-  mlist = parse.models_arg(s, session)
-  from . import Map_Series
-  series = [m for m in mlist if isinstance(m, Map_Series)]
-  if len(series) == 0:
-    from ...commands.parse import CommandError
-    raise CommandError('"%s" does not specify a volume series' % s)
-  return series
 
 # -----------------------------------------------------------------------------
 #
@@ -367,31 +345,15 @@ def release_stopped_players():
 
 # -----------------------------------------------------------------------------
 #
-def slider_op(series, session):
+def slider_op(session, series):
 
     from . import slider
     vss = slider.Volume_Series_Slider(series, session)
     vss.show()
 
 # -----------------------------------------------------------------------------
-# Chimera 2 wrapper for vseries command.
 #
-def vseries_cmd(session, operation, series = None):
-
-    if series is None:
-        from .series import Map_Series
-        series = [m for m in session.models.list() if isinstance(m, Map_Series)]
-    if operation == 'play':
-        play_op(series, session = session)
-
-# -----------------------------------------------------------------------------
-#
-try:
-    from ...cli import Annotation
-except:
-    # For Hydra
-    class Annotation:
-        pass
+from ...cli import Annotation
 class SeriesArg(Annotation):
     name = 'map series'
     @staticmethod
@@ -402,12 +364,3 @@ class SeriesArg(Annotation):
         from .series import Map_Series
         ms = [m for m in models if isinstance(m, Map_Series)]
         return ms, used, rest
-
-# -----------------------------------------------------------------------------
-# Register the vseries command for Chimera 2.
-#
-def register_vseries_command():
-    from ...cli import CmdDesc, EnumOf, register
-    _vseries_desc = CmdDesc(required = [('operation', EnumOf(('play',)))],
-                            optional = [('series', SeriesArg)])
-    register('vseries', _vseries_desc, vseries_cmd)

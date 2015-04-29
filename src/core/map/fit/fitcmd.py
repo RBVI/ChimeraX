@@ -5,13 +5,14 @@ from ... import cli
 def register_fitmap_command():
 
     from ... import cli, atomspec
+    from ..mapargs import MapArg
 
     fitmap_desc = cli.CmdDesc(
         required = [
             ('atomsOrMap', atomspec.AtomSpecArg),
         ],
         keyword = [
-            ('inMap', atomspec.AtomSpecArg),	# Required, need keyword to avoid two consecutive atom specs.
+            ('inMap', MapArg),	# Require keyword to avoid two consecutive atom specs.
             ('metric', cli.EnumOf(('overlap', 'correlation', 'cam'))),  # overlap, correlation or cam.
             ('envelope', cli.BoolArg),
             ('resolution', cli.FloatArg),
@@ -52,11 +53,7 @@ def fitmap(session, atomsOrMap, inMap = None,
 
   if inMap is None:
       raise cli.UserError('Must specify "in" keyword, e.g. fit #1 in #2')
-  from .. import Volume
-  vlist = [v for v in inMap.evaluate(session).models if isinstance(v, Volume)]
-  if len(vlist) != 1:
-      raise cli.UserError('fitmap second argument must specify one map, got %d' % len(volume))
-  volume = vlist[0]
+  volume = inMap
 
   if listFits is None:
       listFits = (search > 0)

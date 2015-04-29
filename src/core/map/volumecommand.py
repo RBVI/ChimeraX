@@ -2,126 +2,96 @@
 # -----------------------------------------------------------------------------
 # Implementation of "volume" command.
 #
-def volume_command(cmdname, args, session):
+def register_volume_command():
 
-    from ..commands.parse import parse_arguments, string_arg, bool_arg, bool3_arg, enum_arg
-    from ..commands.parse import float_arg, floats_arg, float3_arg, int_arg, ints_arg, int3_arg, color_arg
-    from ..commands.parse import volume_region_arg, openstate_arg
+    from ..cli import CmdDesc, register
+    from ..cli import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg
+    from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
+    from ..color import ColorArg
 
     from .data.fileformats import file_writers
     stypes = [fw[1] for fw in file_writers]
     from .volume import Rendering_Options
     ro = Rendering_Options()
-    allow_1_or_3 = {'allowed_counts': (1,3)}
 
-    req_args = ()
-    opt_args = (('volumes', string_arg),)
-    kw_args = (('style', enum_arg, {'values': ('surface', 'mesh', 'solid')}),
-               ('show', ()),
-               ('hide', ()),
-               ('level', floats_arg, {'allowed_counts': (1,2)}, 'multiple'),
-               ('encloseVolume', floats_arg),
-               ('fastEncloseVolume', floats_arg),
-               ('color', color_arg, 'multiple'),
-               ('brightness', float_arg, {'min': 0.0}),
-               ('transparency', float_arg, {'min': 0.0, 'max':1.0}),
-               ('step', ints_arg, allow_1_or_3),
-               ('region', volume_region_arg),
-               ('nameRegion', string_arg),
-               ('expandSinglePlane', bool_arg),
-               ('origin', floats_arg, allow_1_or_3),
-               ('originIndex', ints_arg, allow_1_or_3),
-               ('voxelSize', floats_arg, allow_1_or_3),
-               ('planes', planes_arg),
+    volume_desc = CmdDesc(
+        required = [('volumes', MapsArg)],
+        keyword = [
+               ('style', EnumOf(('surface', 'mesh', 'solid'))),
+               ('show', NoArg),
+               ('hide', NoArg),
+               ('level', FloatsArg),
+               ('encloseVolume', FloatsArg),
+               ('fastEncloseVolume', FloatsArg),
+               ('color', ListOf(ColorArg)),
+               ('brightness', FloatArg),
+               ('transparency', FloatArg),
+               ('step', MapStepArg),
+               ('region', MapRegionArg),
+               ('nameRegion', StringArg),
+               ('expandSinglePlane', BoolArg),
+               ('origin', Float1or3Arg),
+               ('originIndex', Int1or3Arg),
+               ('voxelSize', Float1or3Arg),
+#               ('planes', planes_arg),
 # Symmetry assignment.
-               ('symmetry', string_arg),
-               ('center', string_arg),
-               ('centerIndex', floats_arg),
-               ('axis', string_arg),
-               ('coordinateSystem', openstate_arg),
+               ('symmetry', StringArg),
+               ('center', StringArg),
+               ('centerIndex', Float1or3Arg),
+               ('axis', StringArg),
+#               ('coordinateSystem', openstate_arg),
 # File saving options.
-               ('save', string_arg),
-               ('saveFormat', enum_arg, {'values': stypes}),
-               ('saveRegion', volume_region_arg),
-               ('saveStep', ints_arg, allow_1_or_3),
-               ('maskZone', bool_arg),
-               ('chunkShapes', enum_arg,
-                {'values':('zyx','zxy','yxz','yzx','xzy','xyz'),
-                 'multiple':True}),
-               ('append', bool_arg),
-               ('compress', bool_arg),
-               ('baseIndex', int_arg),
+               ('save', StringArg),
+               ('saveFormat', EnumOf(stypes)),
+               ('saveRegion', MapRegionArg),
+               ('saveStep', Int1or3Arg),
+               ('maskZone', BoolArg),
+               ('chunkShapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
+               ('append', BoolArg),
+               ('compress', BoolArg),
+               ('baseIndex', IntArg),
 # Global options.
-               ('dataCacheSize', float_arg),
-               ('showOnOpen', bool_arg),
-               ('voxelLimitForOpen', float_arg),
-               ('showPlane', bool_arg),
-               ('voxelLimitForPlane', float_arg),
+               ('dataCacheSize', FloatArg),
+               ('showOnOpen', BoolArg),
+               ('voxelLimitForOpen', FloatArg),
+               ('showPlane', BoolArg),
+               ('voxelLimitForPlane', FloatArg),
 # Rendering options.
-               ('showOutlineBox', bool_arg),
-               ('outlineBoxRgb', color_arg),
-               ('outlineBoxLinewidth', float_arg),
-               ('limitVoxelCount', bool_arg),
-               ('voxelLimit', float_arg),
-               ('colorMode', enum_arg, {'values': ro.color_modes}),
-               ('projectionMode', enum_arg, {'values': ro.projection_modes}),
-               ('btCorrection', bool_arg),
-               ('minimalTextureMemory', bool_arg),
-               ('maximumIntensityProjection', bool_arg),
-               ('linearInterpolation', bool_arg),
-               ('dimTransparency', bool_arg),
-               ('dimTransparentVoxels', bool_arg),
-               ('lineThickness', float_arg),
-               ('smoothLines', bool_arg),
-               ('meshLighting', bool_arg),
-               ('twoSidedLighting', bool_arg),
-               ('flipNormals', bool_arg),
-               ('subdivideSurface', bool_arg),
-               ('subdivisionLevels', bool_arg),
-               ('surfaceSmoothing', bool_arg),
-               ('smoothingIterations', int_arg),
-               ('smoothingFactor', float_arg),
-               ('squareMesh', bool_arg),
-               ('capFaces', bool_arg),
-               ('boxFaces', bool_arg),
-               ('orthoplanes', enum_arg,
-                {'values':('xyz', 'xy', 'xz', 'yz', 'off')}),
-               ('positionPlanes', int3_arg),
-               )
-    kw = parse_arguments(cmdname, args, session, req_args, opt_args, kw_args)
-
-    # Extra parsing.
-    for aname in ('step', 'origin', 'originIndex', 'voxelSize', 'centerIndex',
-                  'saveStep'):
-        if aname in kw and len(kw[aname]) == 1:
-            x = kw[aname][0]
-            kw[aname] = (x,x,x)
-    if 'outlineBoxRgb' in kw:
-        kw['outlineBoxRgb'] = kw['outlineBoxRgb'][:3]
-
-    # Special defaults
-    if kw.get('boxFaces', None):
-        defaults = (('style', 'solid'), ('colorMode', 'opaque8'),
-                    ('showOutlineBox', True), ('expandSinglePlane', True),
-                    ('orthoplanes', 'off'))
-    elif kw.get('orthoplanes', 'off') != 'off':
-        defaults = (('style', 'solid'), ('colorMode', 'opaque8'),
-                    ('showOutlineBox', True), ('expandSinglePlane', True))
-    elif 'boxFaces' in kw or 'orthoplanes' in kw:
-        defaults = (('colorMode', 'auto8'),)
-    else:
-        defaults = ()
-    for opt, value in defaults:
-        if not opt in kw:
-            kw[opt] = value
-
-    kw['session'] = session
-
-    volume(**kw)
+               ('showOutlineBox', BoolArg),
+               ('outlineBoxRgb', ColorArg),
+               ('outlineBoxLinewidth', FloatArg),
+               ('limitVoxelCount', BoolArg),
+               ('voxelLimit', FloatArg),
+               ('colorMode', EnumOf(ro.color_modes)),
+               ('projectionMode', EnumOf(ro.projection_modes)),
+               ('btCorrection', BoolArg),
+               ('minimalTextureMemory', BoolArg),
+               ('maximumIntensityProjection', BoolArg),
+               ('linearInterpolation', BoolArg),
+               ('dimTransparency', BoolArg),
+               ('dimTransparentVoxels', BoolArg),
+               ('lineThickness', FloatArg),
+               ('smoothLines', BoolArg),
+               ('meshLighting', BoolArg),
+               ('twoSidedLighting', BoolArg),
+               ('flipNormals', BoolArg),
+               ('subdivideSurface', BoolArg),
+               ('subdivisionLevels', BoolArg),
+               ('surfaceSmoothing', BoolArg),
+               ('smoothingIterations', IntArg),
+               ('smoothingFactor', FloatArg),
+               ('squareMesh', BoolArg),
+               ('capFaces', BoolArg),
+               ('boxFaces', BoolArg),
+               ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
+               ('positionPlanes', Int3Arg),
+        ])
+    register('volume', volume_desc, volume)
     
 # -----------------------------------------------------------------------------
 #
-def volume(volumes = '',                # Specifier
+def volume(session,
+           volumes,
            style = None,
            show = None,
            hide = None,
@@ -190,18 +160,26 @@ def volume(volumes = '',                # Specifier
            boxFaces = None,
            orthoplanes = None,
            positionPlanes = None,
-           session = None,
            ):
 
-    # Find volume arguments.
-    if volumes == 'all':
-        from .volume import volume_list
-        vlist = volume_list(session)
-    elif isinstance(volumes, str):
-        from ..commands import parse
-        vlist = parse.volumes_from_specifier(volumes, session)
+    vlist = volumes
+
+    # Special defaults
+    if not boxFaces is None:
+        defaults = (('style', 'solid'), ('colorMode', 'opaque8'),
+                    ('showOutlineBox', True), ('expandSinglePlane', True),
+                    ('orthoplanes', 'off'))
+    elif not orthoplanes is None and orthoplanes != 'off':
+        defaults = (('style', 'solid'), ('colorMode', 'opaque8'),
+                    ('showOutlineBox', True), ('expandSinglePlane', True))
+    elif not boxFaces is None or not orthoplanes is None:
+        defaults = (('colorMode', 'auto8'),)
     else:
-        vlist = volumes
+        defaults = ()
+    loc = locals()
+    for opt, value in defaults:
+        if loc[opt] is None:
+            loc[opt] = value
 
     # Adjust global settings.
     loc = locals()
@@ -212,9 +190,9 @@ def volume(volumes = '',                # Specifier
         apply_global_settings(gsettings)
 
     if len(gsettings) == 0 and len(vlist) == 0:
-        from ..commands.parse import CommandError
-        raise CommandError('No volumes specified%s' %
-                           (' by "%s"' % volumes if volumes else ''))
+        from .. import cli
+        raise cli.UserError('No volumes specified%s' %
+                            (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
     dopt = ('style', 'show', 'hide', 'level', 'encloseVolume', 'fastEncloseVolume',
@@ -317,9 +295,9 @@ def apply_volume_options(v, doptions, roptions, session):
     if 'voxelSize' in doptions:
         vsize = doptions['voxelSize']
         if min(vsize) <= 0:
-            from ..commands.parse import CommandError
-            raise CommandError('Voxel size must positive, got %g,%g,%g'
-                               % tuple(vsize))
+            from .. import cli
+            raise cli.UserError('Voxel size must positive, got %g,%g,%g'
+                                % tuple(vsize))
         # Preserve index origin.
         origin = [(a/b)*c for a,b,c in zip(d.origin, d.step, vsize)]
         d.set_origin(origin)
@@ -411,40 +389,37 @@ def level_and_color_settings(v, options):
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
     # number of levels.
     if len(colors) > 1 and len(colors) != len(levels):
-        from ..commands.parse import CommandError
-        raise CommandError('Number of colors (%d) does not match number of levels (%d)' % (len(colors), len(levels)))
+        from .. import cli
+        raise cli.UserError('Number of colors (%d) does not match number of levels (%d)'
+                            % (len(colors), len(levels)))
 
     style = options.get('style', v.representation)
     if style in ('mesh', None):
         style = 'surface'
 
     if style == 'solid':
-        if [l for l in levels if len(l) != 2]:
-            from ..commands.parse import CommandError
-            raise CommandError('Solid level must be <data-value,brightness-level>')
-        if levels and len(levels) < 2:
-            from ..commands.parse import CommandError
-            raise CommandError('Must specify 2 or more levels for solid style')
-    elif style == 'surface':
-        if [l for l in levels if len(l) != 1]:
-            from ..commands.parse import CommandError
-            raise CommandError('Surface level must be a single data value')
-        levels = [lvl[0] for lvl in levels]
+        if len(levels) % 2:
+            from .. import cli
+            raise cli.UserError('Solid level must be <data-value,brightness-level>')
+        if levels and len(levels) < 4:
+            from .. import cli
+            raise cli.UserError('Must specify 2 or more levels for solid style')
+        levels = zip(levels[::2], levels[1::2])
 
     if levels:
         kw[style+'_levels'] = levels
 
     if len(colors) == 1:
         if levels:
-            clist = [colors[0]]*len(levels)
+            clist = [colors[0].rgba]*len(levels)
         else:
-            clist = [colors[0]]*len(getattr(v, style + '_levels'))
+            clist = [colors[0].rgba]*len(getattr(v, style + '_levels'))
         kw[style+'_colors'] = clist
     elif len(colors) > 1:
-        kw[style+'_colors'] = colors
+        kw[style+'_colors'] = [c.rgba for c in colors]
 
     if len(levels) == 0 and len(colors) == 1:
-        kw['default_rgba'] = colors[0]
+        kw['default_rgba'] = colors[0].rgba
 
     if 'brightness' in options:
         kw[style+'_brightness_factor'] = options['brightness']
@@ -463,10 +438,11 @@ def level_and_color_settings(v, options):
 def planes_arg(planes, session):
 
     axis, param = (planes.split(',',1) + [''])[:2]
-    from ..commands.parse import enum_arg, floats_arg, CommandError
+    from ..commands.parse import enum_arg, floats_arg
     p = [enum_arg(axis, session, ('x','y','z'))] + floats_arg(param, session)
     if len(p) < 2 or len(p) > 5:
-        raise CommandError('planes argument must have 2 to 5 comma-separated values: axis,pstart[[[,pend],pstep],pdepth.], got "%s"' % planes)
+        from .. import cli
+        raise cli.UserError('planes argument must have 2 to 5 comma-separated values: axis,pstart[[[,pend],pstep],pdepth.], got "%s"' % planes)
     return p
     
 # -----------------------------------------------------------------------------
@@ -476,37 +452,6 @@ def camel_case_to_underscores(s):
     from string import ascii_uppercase
     su = ''.join([('_' + c.lower() if c in ascii_uppercase else c) for c in s])
     return su
-
-# -----------------------------------------------------------------------------
-# Chimera 2 wrapper for volume command.
-#
-def volume_cmd(session, maps = 'all', show = None, hide = None, style = None, level = None, step = None,
-               color = None, transparency = None, showOutlineBox = None):
-
-    if not level is None:
-        level = [[level]]
-    if not color is None:
-        color = [color.rgba]
-    volume(maps, show = show, hide = hide, style = style, level = level, step = step,
-           color = color, transparency = transparency, showOutlineBox = showOutlineBox,
-           session = session)
-
-# -----------------------------------------------------------------------------
-#
-try:
-    from ..cli import Annotation
-except:
-    # For Hydra
-    class Annotation:
-        pass
-class MapsArg(Annotation):
-    @staticmethod
-    def parse(text, session):
-        from ..atomspec import AtomSpecArg
-        value, used, rest = AtomSpecArg.parse(text, session)
-        models = value.evaluate(session).models
-        maps = all_maps(models)
-        return maps, used, rest
 
 # -----------------------------------------------------------------------------
 # Find maps among models and all descendants.
@@ -521,23 +466,3 @@ def all_maps(models):
         if isinstance(m, Model):
             maps.extend(all_maps(m.child_drawings()))
     return maps
-
-# -----------------------------------------------------------------------------
-# Register the volume command for Chimera 2.
-#
-def register_volume_command():
-    from ..cli import CmdDesc, BoolArg, FloatArg, IntArg, EnumOf, register
-    from ..color import ColorArg
-    _volume_desc = CmdDesc(
-        optional = [('maps', MapsArg)],
-        keyword = [
-            ('show', BoolArg),
-            ('hide', BoolArg),
-            ('level', FloatArg),
-            ('step', IntArg),
-            ('color', ColorArg),
-            ('transparency', FloatArg),
-            ('showOutlineBox', BoolArg),
-            ('style', EnumOf(('surface', 'mesh', 'solid'))),
-        ])
-    register('volume', _volume_desc, volume_cmd)
