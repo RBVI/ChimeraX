@@ -75,7 +75,7 @@ class Log(ToolInstance, HtmlLog):
                     # avoid excessively high error dialogs where
                     # both the bottom buttons and top controls
                     # may be off the screen!
-                    lines = msg.split('\n')
+                    lines = dlg_msg.split('\n')
                     dlg_msg = '\n'.join(lines[:20] + ["..."] + lines[-20:])
                 dlg = wx.MessageDialog(graphics, dlg_msg,
                     caption=caption, style=style)
