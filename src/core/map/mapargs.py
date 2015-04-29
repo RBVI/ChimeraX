@@ -113,3 +113,20 @@ class ValueTypeArg(cli.Annotation):
             raise cli.UserError('Unknown data value type "%s", use %s'
                                 % (token, ', '.join(types.keys())))
         return vt, text, rest
+
+class IntRangeArg(cli.Annotation):
+    name = 'integer range'
+    default_step = 1
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = cli.next_token(text)
+        try:
+            s = tuple(int(f) for f in token.split(','))
+        except:
+            s = ()
+        n = len(s)
+        if n < 2 or n > 3:
+            raise cli.UserError('Range argument must be 2 or 3 comma-separateed integer values, got %s' % text)
+        i0,i1 = s[:2]
+        step = s[2] if n >= 3 else default_step
+        return (i0,i1,step), text, rest
