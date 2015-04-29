@@ -281,10 +281,10 @@ class ToolUI(ToolInstance):
     SIZE = (300, 200)
     VERSION = 1
 
-    def __init__(self, session, name, **kw):
+    def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow(name, session, size=self.SIZE)
+        self.tool_window = session.ui.create_main_tool_window(self,
+            size=self.SIZE)
         parent = self.tool_window.ui_area
 
         # UI content code
@@ -295,7 +295,8 @@ class ToolUI(ToolInstance):
         self.view.camera = OrthoCamera()
         self.opengl_canvas = SideViewCanvas(
             parent, self.view, session.main_view, self.SIZE,
-            side=SideViewCanvas.TOP_SIDE if name.startswith('Top')
+            side=SideViewCanvas.TOP_SIDE
+            if self.display_name.startswith('Top')
             else SideViewCanvas.RIGHT_SIDE)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -344,6 +345,3 @@ class ToolUI(ToolInstance):
 
     def display(self, b):
         self.tool_window.shown = b
-
-    def display_name(self):
-        return "Side View"

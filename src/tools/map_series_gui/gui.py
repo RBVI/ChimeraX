@@ -18,9 +18,9 @@ class MapSeries(ToolInstance):
         n = max(ser.number_of_times() for ser in series)
         sname = ', '.join('#%d' % ser.id for ser in series) + (' length %d' % n)
 
-        from ..core.ui.tool_api import ToolWindow
-        title = "Map series %s" % ', '.join(s.name for s in series)
-        tw = ToolWindow(title, session,
+
+        self.display_name = "Map series %s" % ', '.join(s.name for s in series)
+        tw = session.ui.create_main_tool_window(self,
                         size=self.SIZE, destroy_hides=True)
         self.tool_window = tw
         parent = tw.ui_area

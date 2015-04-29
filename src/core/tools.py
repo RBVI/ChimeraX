@@ -44,7 +44,15 @@ class ToolInstance(State):
     id : readonly int
         `id` is a unique identifier among ToolInstance instances
         registered with the session state manager.
-
+    display_name : str
+        Name to display to user for this ToolInstance.  Defaults to
+        class name with:
+            1) Spaces inserted before upper case characters that follow
+                lower case characters
+            2) Underscores changed to spaces
+            3) Any trailing 'UI' or 'GUI' dropped
+        If a different name is desired (e.g. multi-instance tool) make sure
+        to set the attribute before creating the first tool window.
     """
 
     def __init__(self, session, id=None, **kw):
@@ -59,21 +67,27 @@ class ToolInstance(State):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
+        disp_name = ""
+        preceding_lower = False
+        for c in self.__class__.__name__:
+            if preceding_lower and c.isupper():
+                disp_name += " "
+            if c == '_':
+                disp_name += ' '
+            else:
+                disp_name += c
+            preceding_lower = c.islower()
+        if disp_name.endswith('GUI'):
+            disp_name = disp_name[:-3]
+        elif disp_name.endswith('UI'):
+            disp_name = disp_name[:-2]
+        self.display_name = disp_name
         # TODO: track.created(ToolInstance, [self])
 
     @property
     def session(self):
         """Read-only property for session that contains this tool instance."""
         return self._session()
-
-    def display_name(self):
-        """Name to display to user for this ToolInstance.
-
-        This method should be overridden, particularly
-        for multi-instance tools.
-
-        """
-        return self.__class__.__name__
 
     def delete(self):
         """Delete this tool instance.
@@ -180,11 +194,16 @@ class Tools(State):
                     cls = session.class_of_unique_id(uid, ToolInstance)
                 except KeyError:
                     class_name = session.class_name_of_unique_id(uid)
-                    session.log.warning("Unable to restore tool instance %s (%s)"
+                    session.logger.warning("Unable to restore tool instance %s (%s)"
                                         % (tid, class_name))
                     continue
-                ti = cls(session, id=tid)
-                session.restore_unique_id(ti, uid)
+                try:
+                    ti = cls(session, id=tid)
+                    session.restore_unique_id(ti, uid)
+                except Exception as e:
+                    class_name = session.class_name_of_unique_id(uid)
+                    session.logger.error("Code error restoring tool instance: %s (%s): %s" % (tid, class_name, str(e)))
+                    raise
             else:
                 ti = session.unique_obj(uid)
             ti.restore_snapshot(phase, session, ti_version, ti_data)

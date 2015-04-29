@@ -20,8 +20,12 @@ class ToolUI(ToolInstance):
 
     def __init__(self, session):
         super().__init__(session)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("TOOL_NAME", session, size=self.SIZE)
+        # 'display_name' defaults to class name with spaces inserted
+        # between lower-then-upper-case characters (therefore "Tool UI"
+        # in this case), so only override if different name desired
+        self.display_name = "custom name for running tool"
+        self.tool_window = session.ui.creat_main_tool_window(self,
+            size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         self.tool_window.manage(placement="bottom")
@@ -61,6 +65,3 @@ class ToolUI(ToolInstance):
 
     def display(self, b):
         self.tool_window.shown = b
-
-    def display_name(self):
-        return "custom name for running tool"
