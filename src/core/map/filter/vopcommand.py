@@ -30,141 +30,221 @@
 # laplacian, gaussian, permuteAxes, bin, median, scale, boxes, morph, cover,
 # flatten, unbend, tile.
 #
-def vop_command(cmd_name, args, session):
+from ...cli import UserError as CommandError
 
-    from ...commands.parse import volumes_arg, volume_arg, int1or3_arg, int_arg
-    from ...commands.parse import volume_region_arg, model_id_arg, perform_operation
-    from ...commands.parse import float1or3_arg, floats_arg, float_arg, value_type_arg, bool_arg
-    ops = {
-        'bin': (bin_op,
-                (('volumes', volumes_arg),),
-                (),
-                (('binSize', int1or3_arg),
-                 ('subregion', volume_region_arg),
-                 ('step', int1or3_arg),
-                 ('modelId', model_id_arg),)),
-        'falloff': (falloff_op,
-                    (('volumes', volumes_arg),),
-                    (),
-                    (('iterations', int_arg),
-                     ('inPlace', bool_arg),
-                     ('subregion', volume_region_arg),
-                     ('step', int1or3_arg),
-                       ('modelId', model_id_arg),)),
-        'gaussian': (gaussian_op,
-                (('volumes', volumes_arg),),
-                (),
-                (('sDev', float1or3_arg),
-                 ('subregion', volume_region_arg),
-                 ('step', int1or3_arg),
-                 ('valueType', value_type_arg),
-                 ('modelId', model_id_arg),)),
-        'maximum': (maximum_op,
-                    (('volumes', volumes_arg),),
-                    (),
-                    (('onGrid', volumes_arg),
-                     ('boundingGrid', bool_arg),
-                     ('subregion', volume_region_arg),
-                     ('step', int1or3_arg),
-                     ('gridSubregion', volume_region_arg),
-                     ('gridStep', int1or3_arg),
-                     ('inPlace', bool_arg),
-                     ('scaleFactors', floats_arg),
-                     ('modelId', model_id_arg),)),
-        'threshold': (threshold_op,
-                      (('volumes', volumes_arg),),
-                      (),
-                      (('minimum', float_arg),
-                       ('set', float_arg),
-                       ('maximum', float_arg),
-                       ('setMaximum', float_arg),
-                       ('subregion', volume_region_arg),
-                       ('step', int1or3_arg),
-                       ('modelId', model_id_arg),)),
-    }
-    perform_operation(cmd_name, args, ops, session)
+def register_vop_command():
 
-#
-def old_vop_command(cmdname, args):
+    from ...cli import CmdDesc, register, BoolArg, EnumOf, IntArg, Int3Arg
+    from ...cli import FloatArg, Float3Arg, FloatsArg, ModelIdArg
+    from ..mapargs import MapsArg, MapStepArg, MapRegionArg, Float1or3Arg, ValueTypeArg
+    from ..mapargs import BoxArg, Float2Arg
+    from ...structure import AtomsArg
 
-    vspec = ('volumeSpec','volumes','models')
-    gspec = ('onGridSpec', 'onGrid', 'models')
-    operations = {
-        'add': (add_op, [vspec, gspec]),
-        'boxes': (boxes_op, [vspec, ('markersSpec', 'markers', 'atoms')]),
-        'cover': (cover_op, [vspec, ('atomBoxSpec', 'atomBox', 'atoms')]),
-        'flatten': (flatten_op, [vspec]),
-        'flip': (flip_op, [vspec]),
-        'fourier': (fourier_op, [vspec]),
-        'laplacian': (laplacian_op, [vspec]),
-        'localCorrelation': (local_correlation_op,
-                             [('map1Spec','map1','models'),
-                              ('map2Spec','map2','models')]),
-        'median': (median_op, [vspec]),
-        'morph': (morph_op, [vspec]),
-        'multiply': (multiply_op, [vspec, gspec]),
-        'octant': (octant_op, [vspec]),
-        '~octant': (octant_complement_op, [vspec]),
-        'permuteAxes': (permute_axes_op, [vspec]),
-        'resample': (resample_op, [vspec, gspec]),
-        'ridges': (ridges_op, [vspec]),
-        'scale': (scale_op, [vspec]),
-        'subtract': (subtract_op, [('volume1Spec','vol1','models'),
-                                   ('volume2Spec','vol2','models'),
-                                   gspec]),
-        'tile': (tile_op, [vspec]),
-        'unbend': (unbend_op, [vspec, ('pathSpec', 'path', 'atoms')]),
-        'unroll': (unroll_op, [vspec]),
-        'zFlip': (flip_op, [vspec]),
-        'zone': (zone_op, [vspec, ('atomSpec', 'atoms', 'atoms')]),
-        }
-    ops = operations.keys()
+    varg = [('volumes', MapsArg)]
+    ssm_kw = [
+        ('subregion', MapRegionArg),
+        ('step', MapStepArg),
+        ('modelId', ModelIdArg),
+    ]
+    resample_kw = [
+        ('onGrid', MapsArg),
+        ('boundingGrid', BoolArg),
+        ('gridSubregion', MapRegionArg),
+        ('gridStep', MapStepArg),
+    ] + ssm_kw
+    add_kw = resample_kw + [
+        ('inPlace', BoolArg),
+        ('scaleFactors', FloatsArg),
+    ]
+    add_desc = CmdDesc(required = varg, keyword = add_kw)
+    register('vop add', add_desc, add_op)
 
-    sa = args.split(None, 2)
-    if len(sa) < 2:
-        raise CommandError('vop requires at least 2 arguments: vop <operation> <args...>')
+    bin_desc = CmdDesc(required = varg,
+                       keyword = [('binSize', MapStepArg)] + ssm_kw
+    )
+    register('vop bin', bin_desc, bin_op)
 
-    from Commands import parse_enumeration
-    op = parse_enumeration(sa[0], ops)
-    if op is None:
-        # Handle old syntax where operation argument followed volume spec
-        op = parse_enumeration(sa[1], ops)
-        if op:
-            sa = [sa[1], sa[0]] + sa[2:]
-        else:
-            raise CommandError('Unknown vop operation: %s' % sa[0])
+    boxes_desc = CmdDesc(required = varg + [('markers', AtomsArg)],
+                         keyword = [('size', FloatArg),
+                                    ('useMarkerSize', BoolArg)] + ssm_kw)
+    register('vop boxes', boxes_desc, boxes_op)
 
-    func, spec = operations[op]
-    from Commands import doExtensionFunc
-    fargs = ' '.join(sa[1:])
-    doExtensionFunc(func, fargs, specInfo = spec)
+    cover_desc = CmdDesc(required = varg,
+        keyword = [('atomBox', AtomsArg),
+                   ('pad', FloatArg),
+                   ('box', BoxArg), ('x', Float2Arg), ('y', Float2Arg), ('z', Float2Arg),
+                   ('fbox', BoxArg), ('fx', Float2Arg), ('fy', Float2Arg), ('fz', Float2Arg),
+                   ('ibox', BoxArg), ('ix', Float2Arg), ('iy', Float2Arg), ('iz', Float2Arg),
+                   ('useSymmetry', BoolArg),
+                   ('cellSize', Int3Arg),
+                   ('step', MapStepArg),
+                   ('modelId', ModelIdArg)]
+    )
+    register('vop cover', cover_desc, cover_op)
+
+    falloff_desc = CmdDesc(required = varg,
+        keyword = [('iterations', IntArg), ('inPlace', BoolArg)] + ssm_kw
+    )
+    register('vop falloff', falloff_desc, falloff_op)
+
+    flatten_desc = CmdDesc(required = varg,
+                           keyword = [('method', EnumOf(('multiplyLinear', 'divideLinear'))),
+                                      ('fitregion', MapRegionArg)] + ssm_kw)
+    register('vop flatten', flatten_desc, flatten_op)
+
+    flip_desc = CmdDesc(required = varg,
+                        keyword = [('axis', EnumOf(('x','y','z','xy', 'yz','xyz'))),
+                                   ('inPlace', BoolArg)] + ssm_kw)
+    register('vop flip', flip_desc, flip_op)
+
+    fourier_desc = CmdDesc(required = varg,
+                           keyword = [('phase', BoolArg)] + ssm_kw)
+    register('vop fourier', fourier_desc, fourier_op)
+
+    gaussian_desc = CmdDesc(required = varg,
+        keyword = [('sDev', Float1or3Arg), ('valueType', ValueTypeArg)] + ssm_kw
+    )
+    register('vop gaussian', gaussian_desc, gaussian_op)
+
+    laplacian_desc = CmdDesc(required = varg, keyword = ssm_kw)
+    register('vop laplacian', laplacian_desc, laplacian_op)
+
+    localcorr_desc = CmdDesc(required = varg,
+                             keyword = [('windowSize', IntArg),
+                                        ('subtractMean', BoolArg),
+                                        ('modelId', ModelIdArg)])
+    register('vop localCorrelation', localcorr_desc, local_correlation_op)
+
+    maximum_desc = CmdDesc(required = varg, keyword = add_kw)
+    register('vop maximum', maximum_desc, maximum_op)
+
+    median_desc = CmdDesc(required = varg,
+                          keyword = [('binSize', MapStepArg),
+                                     ('iterations', IntArg)] + ssm_kw)
+    register('vop median', median_desc, median_op)
+
+    morph_desc = CmdDesc(required = varg,
+                         keyword = [('frames', IntArg),
+                                    ('start', FloatArg),
+                                    ('playStep', FloatArg),
+                                    ('playDirection', IntArg),
+                                    ('playRange', Float2Arg),
+                                    ('addMode', BoolArg),
+                                    ('constantVolume', BoolArg),
+                                    ('scaleFactors', FloatsArg),
+                                    ('hideOriginalMaps', BoolArg),
+                                    ('interpolateColors', BoolArg)] + ssm_kw)
+    register('vop morph', morph_desc, morph_op)
+
+    multiply_desc = CmdDesc(required = varg, keyword = add_kw)
+    register('vop multiply', multiply_desc, multiply_op)
+
+    oct_kw = [('center', Float3Arg),
+              ('iCenter', Int3Arg),
+              ('fillValue', FloatArg),
+              ('inPlace', BoolArg)]
+    octant_desc = CmdDesc(required = varg,
+                          keyword = oct_kw + ssm_kw)
+    register('vop octant', octant_desc, octant_op)
+
+    unoctant_desc = CmdDesc(required = varg,
+                            keyword = oct_kw + ssm_kw)
+    register('vop ~octant', unoctant_desc, octant_complement_op)
+
+    permuteaxes_desc = CmdDesc(required = varg,
+                               keyword = [('axisOrder', EnumOf(('xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx')))] + ssm_kw)
+    register('vop permuteaxes', permuteaxes_desc, permute_axes_op)
+
+    resample_desc = CmdDesc(required = varg, keyword = resample_kw)
+    register('vop resample', resample_desc, resample_op)
+
+    ridges_desc = CmdDesc(required = varg,
+                          keyword = [('level', FloatArg)] + ssm_kw)
+    register('vop ridges', ridges_desc, ridges_op)
+
+    scale_desc = CmdDesc(required = varg,
+                         keyword = [('shift', FloatArg),
+                                    ('factor', FloatArg),
+                                    ('sd', FloatArg),
+                                    ('rms', FloatArg),
+                                    ('valueType', ValueTypeArg),
+                                    ('type', ValueTypeArg)] + ssm_kw)
+    register('vop scale', scale_desc, scale_op)
+
+    subtract_desc = CmdDesc(required = varg,
+                            keyword = add_kw + [('minRMS', BoolArg)])
+    register('vop subtract', subtract_desc, subtract_op)
+
+    threshold_desc = CmdDesc(required = varg,
+        keyword = [('minimum', FloatArg), ('set', FloatArg),
+                   ('maximum', FloatArg), ('setMaximum', FloatArg)] + ssm_kw
+    )
+    register('vop threshold', threshold_desc, threshold_op)
+
+    orders = ('ulh', 'ulv', 'urh', 'urv', 'llh', 'llv', 'lrh', 'lrv',
+              'ulhr', 'ulvr', 'urhr', 'urvr', 'llhr', 'llvr', 'lrhr', 'lrvr')
+    tile_desc = CmdDesc(required = varg,
+                        keyword = [('axis', EnumOf(('x','y','z'))),
+                                   ('pstep', IntArg),
+                                   ('trim', IntArg),
+                                   ('columns', IntArg),
+                                   ('rows', IntArg),
+                                   ('fillOrder', EnumOf(orders))] + ssm_kw)
+    register('vop tile', tile_desc, tile_op)
+
+    unbend_desc = CmdDesc(required = varg + [('path', AtomsArg),
+                                             ('yaxis', Float3Arg),
+                                             ('xsize', FloatArg),
+                                             ('ysize', FloatArg)],
+                          keyword = [('gridSpacing', FloatArg)] + ssm_kw)
+    register('vop unbend', unbend_desc, unbend_op)
+
+    unroll_desc = CmdDesc(required = varg,
+                          keyword = [('innerRadius', FloatArg),
+                                     ('outerRadius', FloatArg),
+                                     ('length', FloatArg),
+                                     ('gridSpacing', FloatArg),
+                                     ('axis', Float3Arg),
+                                     ('center', Float3Arg)] + ssm_kw)
+    register('vop unroll', unroll_desc, unroll_op)
+
+    zflip_desc = CmdDesc(required = varg,
+                         keyword = [('axis', EnumOf(('x','y','z','xy', 'yz','xyz'))),
+                                    ('inPlace', BoolArg)] + ssm_kw)
+    register('vop zFlip', zflip_desc, flip_op)
+
+    zone_desc = CmdDesc(required = varg + [('atoms', AtomsArg), ('radius', FloatArg)],
+                        keyword = [('bondPointSpacing', FloatArg),
+                                   ('minimalBounds', BoolArg),
+                                   ('invert', BoolArg)] + ssm_kw)
+    register('vop zone', zone_desc, zone_op)
 
 # -----------------------------------------------------------------------------
 #
-def add_op(volumes, onGrid = None, boundingGrid = None,
+def add_op(session, volumes, onGrid = None, boundingGrid = None,
            subregion = 'all', step = 1,
            gridSubregion = 'all', gridStep = 1,
-           inPlace = False, scaleFactors = None, modelId = None, session = None):
+           inPlace = False, scaleFactors = None, modelId = None):
 
     combine_op(volumes, 'add', onGrid, boundingGrid, subregion, step,
                gridSubregion, gridStep, inPlace, scaleFactors, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
-def maximum_op(volumes, onGrid = None, boundingGrid = None,
+def maximum_op(session, volumes, onGrid = None, boundingGrid = None,
                subregion = 'all', step = 1,
                gridSubregion = 'all', gridStep = 1,
-               inPlace = False, scaleFactors = None, modelId = None, session = None):
+               inPlace = False, scaleFactors = None, modelId = None):
 
     combine_op(volumes, 'maximum', onGrid, boundingGrid, subregion, step,
                gridSubregion, gridStep, inPlace, scaleFactors, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
-def multiply_op(volumes, onGrid = None, boundingGrid = None,
+def multiply_op(session, volumes, onGrid = None, boundingGrid = None,
                 subregion = 'all', step = 1,
                 gridSubregion = 'all', gridStep = 1,
-                inPlace = False, scaleFactors = None, modelId = None, session = None):
+                inPlace = False, scaleFactors = None, modelId = None):
 
     combine_op(volumes, 'multiply', onGrid, boundingGrid, subregion, step,
                gridSubregion, gridStep, inPlace, scaleFactors, modelId, session)
@@ -265,23 +345,20 @@ def same_grids(volumes, subregion, step, gv, gr):
 
 # -----------------------------------------------------------------------------
 #
-def volume_corners(volumes, subregion, step, xform):
+def volume_corners(volumes, subregion, step, place):
 
     from ..data import box_corners
     corners = []
     for v in volumes:
         xyz_min, xyz_max = v.xyz_bounds(step = step, subregion = subregion)
         vc = box_corners(xyz_min, xyz_max)
-        from ..volume import transformed_points
-        xf = xform.inverse()
-        xf.multiply(v.model_transform())
-        c = transformed_points(vc, xf)
+        c = place.inverse() * v.position * vc
         corners.extend(c)
     return corners
 
 # -----------------------------------------------------------------------------
 #
-def bin_op(volumes, session, subregion = 'all', step = 1,
+def bin_op(session, volumes, subregion = 'all', step = 1,
            binSize = (2,2,2), modelId = None):
 
     from .bin import bin
@@ -290,17 +367,12 @@ def bin_op(volumes, session, subregion = 'all', step = 1,
 
 # -----------------------------------------------------------------------------
 #
-def boxes_op(volumes, markers, size = 0, useMarkerSize = False,
+def boxes_op(session, volumes, markers, size = 0, useMarkerSize = False,
              subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    check_number(size, 'size')
     if size <= 0 and not useMarkerSize:
+        from ... import cli
         raise CommandError('Must specify size or enable useMarkerSize')
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    if not modelId is None:
-        modelId = parse_model_id(modelId)
 
     from .boxes import boxes
     for v in volumes:
@@ -308,15 +380,12 @@ def boxes_op(volumes, markers, size = 0, useMarkerSize = False,
 
 # -----------------------------------------------------------------------------
 #
-def cover_op(volumes, atomBox = None, pad = 5.0, 
+def cover_op(session, volumes, atomBox = None, pad = 5.0, 
              box = None, x = None, y = None, z = None,
              fBox = None, fx = None, fy = None, fz = None,
              iBox = None, ix = None, iy = None, iz = None,
              useSymmetry = True, cellSize = None,
              step = 1, modelId = None):
-
-    volumes = filter_volumes(volumes)
-    check_number(pad, 'pad')
 
     if not atomBox is None and len(atomBox) == 0:
         raise CommandError('No atoms specified')
@@ -328,11 +397,6 @@ def cover_op(volumes, atomBox = None, pad = 5.0,
         raise CommandError('Must specify box to cover')
     if bc > 1:
         raise CommandError('Specify covering box in one way')
-
-    if not cellSize is None:
-        cellSize = parse_ints(cellSize, 'cellSize', 3)
-    step = parse_step(step, require_3_tuple = True)
-    modelId = parse_model_id(modelId)
 
     from .. import volume_from_grid_data
     from .cover import cover_box_bounds, map_covering_box
@@ -356,8 +420,7 @@ def parse_box(box, x, y, z, bname, xname, yname, zname):
     if box is None and x is None and y is None and z is None:
         return None
     if box:
-        b6 = parse_floats(box, bname, 6)
-        return (b6[:3], b6[3:])
+        return box
     box = ([None,None,None], [None,None,None])
     for a,x,name in zip((0,1,2),(x,y,z),(xname,yname,zname)):
         if x:
@@ -366,8 +429,8 @@ def parse_box(box, x, y, z, bname, xname, yname, zname):
 
 # -----------------------------------------------------------------------------
 #
-def falloff_op(volumes, iterations = 10, inPlace = False,
-               subregion = 'all', step = 1, modelId = None, session = None):
+def falloff_op(session, volumes, iterations = 10, inPlace = False,
+               subregion = 'all', step = 1, modelId = None):
 
     if inPlace:
         ro = [v for v in volumes if not v.data.writable]
@@ -385,20 +448,11 @@ def falloff_op(volumes, iterations = 10, inPlace = False,
 
 # -----------------------------------------------------------------------------
 #
-def flatten_op(volumes, method = 'multiply linear',
+def flatten_op(session, volumes, method = 'multiplyLinear',
                fitregion = None, subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    if method.startswith('m'):
-        method = 'multiply linear'
-    elif method.startswith('d'):
-        method = 'divide linear'
-    else:
-        CommandError('Flatten method must be "multiplyLinear" or "divideLinear"')
-    subregion = parse_subregion(subregion)
-    fitregion = subregion if fitregion is None else parse_subregion(fitregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
+    if fitregion is None:
+        fitregion = subregion
 
     from .flatten import flatten
     for v in volumes:
@@ -406,13 +460,7 @@ def flatten_op(volumes, method = 'multiply linear',
 
 # -----------------------------------------------------------------------------
 #
-def fourier_op(volumes, subregion = 'all', step = 1, modelId = None,
-               phase = False):
-
-    volumes = filter_volumes(volumes)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
+def fourier_op(session, volumes, subregion = 'all', step = 1, modelId = None, phase = False):
 
     from .fourier import fourier_transform
     for v in volumes:
@@ -420,7 +468,7 @@ def fourier_op(volumes, subregion = 'all', step = 1, modelId = None,
 
 # -----------------------------------------------------------------------------
 #
-def gaussian_op(volumes, session, sDev = (1.0,1.0,1.0),
+def gaussian_op(session, volumes, sDev = (1.0,1.0,1.0),
                 subregion = 'all', step = 1, valueType = None, modelId = None):
 
     from .gaussian import gaussian_convolve
@@ -429,34 +477,26 @@ def gaussian_op(volumes, session, sDev = (1.0,1.0,1.0),
 
 # -----------------------------------------------------------------------------
 #
-def laplacian_op(volumes, subregion = 'all', step = 1, modelId = None):
+def laplacian_op(session, volumes, subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
-    
     from .laplace import laplacian
     for v in volumes:
         laplacian(v, step, subregion, modelId)
 
 # -----------------------------------------------------------------------------
 #
-def local_correlation_op(map1, map2, windowSize = 5, subtractMean = False, modelId = None):
+def local_correlation_op(session, volumes, windowSize = 5, subtractMean = False, modelId = None):
 
-    v1 = filter_volumes(map1)
-    v2 = filter_volumes(map2)
-    if len(v1) != 1 or len(v2) != 1:
+    if len(volumes) != 2:
         raise CommandError('vop localCorrelation operation requires '
                            'exactly two map arguments')
-    v1, v2 = v1[0], v2[0]
-    if not isinstance(windowSize,int) or windowSize < 2:
+    v1, v2 = volumes
+    if windowSize < 2:
         raise CommandError('vop localCorrelation windowSize must be '
                            'an integer >= 2')
     if windowSize > min(v1.data.size):
         raise CommandError('vop localCorrelation windowSize must be '
                            'smaller than map size')
-    modelId = parse_model_id(modelId)
 
     from .localcorr import local_correlation
     mapc = local_correlation(v1, v2, windowSize, subtractMean, modelId)
@@ -464,18 +504,12 @@ def local_correlation_op(map1, map2, windowSize = 5, subtractMean = False, model
 
 # -----------------------------------------------------------------------------
 #
-def median_op(volumes, binSize = 3, iterations = 1,
+def median_op(session, volumes, binSize = 3, iterations = 1,
               subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    check_number(iterations, 'iterations', positive = True)
-    binSize = parse_step(binSize, 'binSize', require_3_tuple = True)
     for b in binSize:
         if b <= 0 or b % 2 == 0:
             raise CommandError('Bin size must be positive odd integer, got %d' % b)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
 
     from .median import median_filter
     for v in volumes:
@@ -483,28 +517,23 @@ def median_op(volumes, binSize = 3, iterations = 1,
 
 # -----------------------------------------------------------------------------
 #
-def morph_op(volumes, frames = 25, start = 0, playStep = 0.04,
+def morph_op(session, volumes, frames = 25, start = 0, playStep = 0.04,
              playDirection = 1, playRange = None, addMode = False,
              constantVolume = False, scaleFactors = None,
              hideOriginalMaps = True, interpolateColors = True,
              subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    check_number(frames, 'frames', int, nonnegative = True)
-    check_number(start, 'start')
-    check_number(playStep, 'playStep', nonnegative = True)
     if playRange is None:
         if addMode:
             prange = (-1.0,1.0)
         else:
             prange = (0.0,1.0)
     else:
-        prange = parse_floats(playRange, 'playRange', 2)
-    check_number(playDirection, 'playDirection')
-    sfactors = parse_floats(scaleFactors, 'scaleFactors', len(volumes))
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
+        prange = playRange
+
+    if not scaleFactors is None and len(volumes) != len(scaleFactors):
+        raise CommandError('Number of scale factors (%d) doesn not match number of volumes (%d)'
+                           % (len(scaleFactors), len(volumes)))
     vs = [tuple(v.matrix_size(step = step, subregion = subregion))
           for v in volumes]
     if len(set(vs)) > 1:
@@ -517,18 +546,11 @@ def morph_op(volumes, frames = 25, start = 0, playStep = 0.04,
         
 # -----------------------------------------------------------------------------
 #
-def octant_op(volumes, center = None, iCenter = None,
+def octant_op(session, volumes, center = None, iCenter = None,
               subregion = 'all', step = 1, inPlace = False,
               fillValue = 0, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    center = parse_floats(center, 'center', 3)
-    iCenter = parse_floats(iCenter, 'iCenter', 3)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
     check_in_place(inPlace, volumes)
-    check_number(fillValue, 'fillValue')
-    modelId = parse_model_id(modelId)
     outside = True
     for v in volumes:
         octant_operation(v, outside, center, iCenter, subregion, step,
@@ -536,18 +558,11 @@ def octant_op(volumes, center = None, iCenter = None,
 
 # -----------------------------------------------------------------------------
 #
-def octant_complement_op(volumes, center = None, iCenter = None,
-              subregion = 'all', step = 1, inPlace = False,
-              fillValue = 0, modelId = None):
+def octant_complement_op(session, volumes, center = None, iCenter = None,
+                         subregion = 'all', step = 1, inPlace = False,
+                         fillValue = 0, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    center = parse_floats(center, 'center', 3)
-    iCenter = parse_floats(iCenter, 'iCenter', 3)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
     check_in_place(inPlace, volumes)
-    check_number(fillValue, 'fillValue')
-    modelId = parse_model_id(modelId)
     outside = False
     for v in volumes:
         octant_operation(v, outside, center, iCenter, subregion, step,
@@ -570,38 +585,24 @@ def octant_operation(v, outside, center, iCenter,
 
 # -----------------------------------------------------------------------------
 #
-def permute_axes_op(volumes, axisOrder = 'xyz',
+def permute_axes_op(session, volumes, axisOrder = 'xyz',
                     subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
     ao = {'xyz':(0,1,2), 'xzy':(0,2,1), 'yxz':(1,0,2), 
           'yzx':(1,2,0), 'zxy':(2,0,1), 'zyx':(2,1,0)}
-    if not axisOrder in ao:
-        raise CommandError('Axis order must be xyz, xzy, zxy, zyx, yxz, or yzx')
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
-
     from .permute import permute_axes
     for v in volumes:
         permute_axes(v, ao[axisOrder], step, subregion, modelId)
 
 # -----------------------------------------------------------------------------
 #
-def resample_op(volumes, onGrid = None, boundingGrid = False,
+def resample_op(session, volumes, onGrid = None, boundingGrid = False,
                 subregion = 'all', step = 1,
                 gridSubregion = 'all', gridStep = 1,
-                modelId = None, session = None):
+                modelId = None):
 
-    volumes = filter_volumes(volumes)
     if onGrid is None:
         raise CommandError('Resample operation must specify onGrid option')
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    gridSubregion = parse_subregion(gridSubregion, 'gridSubregion')
-    gridStep = parse_step(gridStep, 'gridStep')
-    onGrid = filter_volumes(onGrid, 'onGrid')
-    modelId = parse_model_id(modelId)
     for v in volumes:
         for gv in onGrid:
             combine_operation([v], 'add', subregion, step,
@@ -610,13 +611,7 @@ def resample_op(volumes, onGrid = None, boundingGrid = False,
 
 # -----------------------------------------------------------------------------
 #
-def ridges_op(volumes, level = None, subregion = 'all', step = 1, modelId = None):
-
-    volumes = filter_volumes(volumes)
-    check_number(level, 'level', allow_none = True)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
+def ridges_op(session, volumes, level = None, subregion = 'all', step = 1, modelId = None):
 
     from .ridges import ridges
     for v in volumes:
@@ -624,21 +619,13 @@ def ridges_op(volumes, level = None, subregion = 'all', step = 1, modelId = None
 
 # -----------------------------------------------------------------------------
 #
-def scale_op(volumes, shift = 0, factor = 1, sd = None, rms = None,
+def scale_op(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
              valueType = None, type = None,
              subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    check_number(shift, 'shift')
-    check_number(factor, 'factor')
-    check_number(sd, 'sd', allow_none = True)
-    check_number(rms, 'rms', allow_none = True)
     if not sd is None and not rms is None:
         raise CommandError('vop scale: Cannot specify both sd and rms options')
-    value_type = parse_value_type(type if valueType is None else valueType)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
+    value_type = type if valueType is None else valueType
 
     from .scale import scaled_volume
     for v in volumes:
@@ -646,28 +633,28 @@ def scale_op(volumes, shift = 0, factor = 1, sd = None, rms = None,
 
 # -----------------------------------------------------------------------------
 #
-def subtract_op(vol1, vol2, onGrid = None, boundingGrid = False,
+def subtract_op(session, volumes, onGrid = None, boundingGrid = False,
                 subregion = 'all', step = 1,
                 gridSubregion = 'all', gridStep = 1,
                 inPlace = False, scaleFactors = None, minRMS = False,
-                modelId = None, session = None):
+                modelId = None):
 
-    vol1 = filter_volumes(vol1)
-    vol2 = filter_volumes(vol2)
-    if len(vol1) != 1 or len(vol2) != 1:
+    if len(volumes) != 2:
+        from ... import cli
         raise CommandError('vop subtract operation requires exactly two volumes')
     if minRMS and scaleFactors:
+        from ... import cli
         raise CommandError('vop subtract cannot specify both minRMS and scaleFactors options.')
     mult = (1,'minrms') if minRMS else scaleFactors
 
-    combine_op(vol1+vol2, 'subtract', onGrid, boundingGrid, subregion, step,
+    combine_op(volumes, 'subtract', onGrid, boundingGrid, subregion, step,
                gridSubregion, gridStep, inPlace, mult, modelId, session)
 
 # -----------------------------------------------------------------------------
 #
-def threshold_op(volumes, minimum = None, set = None,
+def threshold_op(session, volumes, minimum = None, set = None,
                  maximum = None, setMaximum = None,
-                 subregion = 'all', step = 1, modelId = None, session = None):
+                 subregion = 'all', step = 1, modelId = None):
 
     from .threshold import threshold
     for v in volumes:
@@ -676,29 +663,9 @@ def threshold_op(volumes, minimum = None, set = None,
 
 # -----------------------------------------------------------------------------
 #
-def tile_op(volumes, axis = 'z', pstep = 1, trim = 0,
+def tile_op(session, volumes, axis = 'z', pstep = 1, trim = 0,
             columns = None, rows = None, fillOrder = 'ulh',
             subregion = 'shown', step = 1, modelId = None):
-
-    volumes = filter_volumes(volumes)
-    if not axis in ('x', 'y', 'z'):
-        raise CommandError('vop tile axis must be "x", "y", or "z"')
-    if not isinstance(pstep,int) or pstep <= 0:
-        raise CommandError('vop tile pstep must be positive integer')
-    if not isinstance(trim,int):
-        raise CommandError('vop tile trim must be an integer')
-    if not columns is None and (not isinstance(columns,int) or columns <= 0):
-        raise CommandError('vop tile columns must be positive integer')
-    if not rows is None and (not isinstance(rows,int) or rows <= 0):
-        raise CommandError('vop tile rows must be positive integer')
-    orders = ('ulh', 'ulv', 'urh', 'urv', 'llh', 'llv', 'lrh', 'lrv',
-              'ulhr', 'ulvr', 'urhr', 'urvr', 'llhr', 'llvr', 'lrhr', 'lrvr')
-    if not fillOrder in orders:
-        raise CommandError('vop tile fillOrder must be one of %s'
-                           % ', '.join(orders))
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
 
     from .tile import tile_planes
     for v in volumes:
@@ -709,61 +676,35 @@ def tile_op(volumes, axis = 'z', pstep = 1, trim = 0,
 
 # -----------------------------------------------------------------------------
 #
-def unbend_op(volumes, path, yaxis, xsize, ysize, gridSpacing = None,
+def unbend_op(session, volumes, path, yaxis, xsize, ysize, gridSpacing = None,
               subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
     if len(path) < 2:
         raise CommandError('vop unbend path must have 2 or more nodes')
-    yaxis, axis_pt, csys = parse_axis(yaxis, 'vop unbend')
-    if not (isinstance(xsize, (int,float)) and isinstance(ysize, (int,float))):
-        raise CommandError('vop unbend xsize/ysize must be float values')
-    modelId = parse_model_id(modelId)
 
     from . import unbend
     p = unbend.atom_path(path)
     for v in volumes:
         gs = min(v.data.step) if gridSpacing is None else gridSpacing
-        xf = v.openState.xform if csys is None else csys.xform
+        xf = v.openState.xform
         yax = xf.apply(yaxis).data()
         unbend.unbend_volume(v, p, yax, xsize, ysize, gs,
                              subregion, step, modelId)
 
 # -----------------------------------------------------------------------------
 #
-def unroll_op(volumes, innerRadius = None, outerRadius = None, length = None,
-              gridSpacing = None, axis = 'z', center = (0,0,0),
-              coordinateSystem = None,
+def unroll_op(session, volumes, innerRadius = None, outerRadius = None, length = None,
+              gridSpacing = None, axis = (0,0,1), center = (0,0,0),
               subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step, require_3_tuple = True)
-    modelId = parse_model_id(modelId)
 
     for v in volumes:
-        c, a, csys = parse_center_axis(center, axis, coordinateSystem,
-                                       'vop unroll')
-        if not csys is None:
-            c, a = transform_center_axis(c, a, csys.xform, v.openState.xform)
         r0, r1, h = parse_cylinder_size(innerRadius, outerRadius, length,
-                                        c, a, v, subregion, step)
+                                        center, axis, v, subregion, step)
         gsp = parse_grid_spacing(gridSpacing, v, step)
         from . import unroll
-        unroll.unroll_operation(v, r0, r1, h, c, a, gsp,
+        unroll.unroll_operation(v, r0, r1, h, center, axis, gsp,
                                 subregion, step, modelId)
-    
-# -----------------------------------------------------------------------------
-#
-def transform_center_axis(c, a, from_xf, to_xf):
-
-    from chimera import Point, Vector
-    to_xf_inv = to_xf.inverse()
-    tc = to_xf_inv.apply(from_xf.apply(Point(*tuple(c)))).data()
-    ta = to_xf_inv.apply(from_xf.apply(Vector(*tuple(a)))).data()
-    return tc, ta
 
 # -----------------------------------------------------------------------------
 #
@@ -808,20 +749,11 @@ def parse_grid_spacing(gridSpacing, v, step):
 
 # -----------------------------------------------------------------------------
 #
-def flip_op(volumes, axis = 'z', subregion = 'all', step = 1,
-              inPlace = False, modelId = None):
-
-    volumes = filter_volumes(volumes)
-    axes = ''.join(a for a in str(axis).lower() if a in ('x','y','z'))
-    if len(axes) == 0:
-        raise CommandError('flip axes must be one or more letters x, y, z, got "%s"' % axis)
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    check_in_place(inPlace, volumes[:1])
-    modelId = parse_model_id(modelId)
+def flip_op(session, volumes, axis = 'z', subregion = 'all', step = 1,
+            inPlace = False, modelId = None):
 
     for v in volumes:
-        flip_operation(v, axes, subregion, step, inPlace, modelId)
+        flip_operation(v, axis, subregion, step, inPlace, modelId)
         
 # -----------------------------------------------------------------------------
 #
@@ -862,18 +794,12 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 
 # -----------------------------------------------------------------------------
 #
-def zone_op(volumes, atoms, radius, bondPointSpacing = None,
+def zone_op(session, volumes, atoms, radius, bondPointSpacing = None,
             minimalBounds = False, invert = False,
             subregion = 'all', step = 1, modelId = None):
 
-    volumes = filter_volumes(volumes)
     if len(atoms) == 0:
         raise CommandError('no atoms specified for zone')
-    if not isinstance(radius, (float, int)):
-        raise CommandError('radius value must be a number')
-    subregion = parse_subregion(subregion)
-    step = parse_step(step)
-    modelId = parse_model_id(modelId)
 
     for v in volumes:
         zone_operation(v, atoms, radius, bondPointSpacing,
