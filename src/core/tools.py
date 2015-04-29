@@ -46,8 +46,11 @@ class ToolInstance(State):
         registered with the session state manager.
     display_name : str
         Name to display to user for this ToolInstance.  Defaults to
-        class name with spaces inserted before upper case characters that
-        follow lower case characters (so "SideView" would become "Side View").
+        class name with:
+            1) Spaces inserted before upper case characters that follow
+                lower case characters
+            2) Underscores changed to spaces
+            3) Any trailing 'UI' or 'GUI' dropped
         If a different name is desired (e.g. multi-instance tool) make sure
         to set the attribute before creating the first tool window.
     """
@@ -69,8 +72,15 @@ class ToolInstance(State):
         for c in self.__class__.__name__:
             if preceding_lower and c.isupper():
                 disp_name += " "
-            disp_name += c
+            if c == '_':
+                disp_name += ' '
+            else:
+                disp_name += c
             preceding_lower = c.islower()
+        if disp_name.endswith('GUI'):
+            disp_name = disp_name[:-3]
+        elif disp_name.endswith('UI'):
+            disp_name = disp_name[:-2]
         self.display_name = disp_name
         # TODO: track.created(ToolInstance, [self])
 

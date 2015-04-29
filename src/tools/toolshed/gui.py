@@ -49,7 +49,6 @@ class ToolshedUI(ToolInstance):
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        self.display_name = "Toolshed"
         self.tool_window = session.ui.create_main_tool_window(self)
         parent = self.tool_window.ui_area
         from wx import html2
