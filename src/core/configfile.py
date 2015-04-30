@@ -68,7 +68,8 @@ and :py:class:`Section` subclasses (next example) can be combined into one::
         }
 
         def __init__(self, session):
-            SingleSectionPreferences.__init__(self, "Blast Protein", "params")
+            SingleSectionPreferences.__init__(self, session, "Blast Protein",
+                                              "params")
 
     def get_preferences():
         global _prefs
@@ -114,7 +115,7 @@ Multi-section Configuration Example::
     class _BPPreferences(configfile.ConfigFile):
 
         def __init__(self, session):
-            ConfigFile.__init__(self, "Blast Protein")
+            ConfigFile.__init__(self, session, "Blast Protein")
             self.params = _Params(self, 'params')
             self.hidden = _Params(self, 'hidden')
 
@@ -213,7 +214,7 @@ Migrating Example::
     class _BPPreferences(configfile.ConfigFile):
 
         def __init__(self, session):
-            ConfigFile.__init__(self, "Blast Protein")
+            ConfigFile.__init__(self, session, "Blast Protein")
             self.params = _Params_V1(self, 'params')
 
 
@@ -233,7 +234,8 @@ Migrating Example::
     class _BPPreferences(configfile.ConfigFile):
 
         def __init__(self, session):
-            ConfigFile.__init__(self, "Blast Protein", "2")  # added version
+            # add version
+            ConfigFile.__init__(self, session, "Blast Protein", "2")
             self.params = _Params(self, 'params')
             if not self.on_disk():
                 old = _BPPreferences()
@@ -464,7 +466,7 @@ class Section:
         if name not in self.PROPERTY_INFO:
             raise AttributeError(name)
         if name not in self._section or only_use_defaults:
-            value = self.PROPERTY_INFO[name].default()
+            value = self.PROPERTY_INFO[name].default
         else:
             try:
                 value = self.PROPERTY_INFO[name].convert_from_string(
@@ -473,7 +475,7 @@ class Section:
                 self._config._session.logger.warning(
                     "Invalid %s.%s value, using default: %s" %
                     (self._name, name, e))
-                value = self.PROPERTY_INFO[name].default()
+                value = self.PROPERTY_INFO[name].default
         self._cache[name] = value
         return value
 
@@ -499,7 +501,7 @@ class Section:
         """
         for name in self._cache:
             value = self._cache[name]
-            default = self.PROPERTY_INFO[name].default()
+            default = self.PROPERTY_INFO[name].default
             if value == default:
                 if name in self._section:
                     del self._section[name]
@@ -577,9 +579,9 @@ class SingleSectionPreferences(ConfigFile, Section):
     property names.
     """
 
-    def __init__(self, tool_name, section_name, version="1"):
+    def __init__(self, session, tool_name, section_name, version="1"):
         assert(section_name not in self.PROPERTY_INFO)
-        ConfigFile.__init__(self, tool_name, version)
+        ConfigFile.__init__(self, session, tool_name, version)
         Section.__init__(self, self, section_name)
 
     def save(self, _all=True):

@@ -821,7 +821,8 @@ Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
 Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
-PositiveIntArg = Bounded(IntArg, min=1, name="a natural number")
+NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
+PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
 ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix='#')
 
 

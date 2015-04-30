@@ -243,7 +243,7 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
                             next(splash_step), num_splash_steps)
     from chimera.core import preferences
     # Only pass part of session needed in function call
-    preferences.init(sess.app_dirs)
+    preferences.init(sess)
 
     # common core initialization
     if not opts.silent:
