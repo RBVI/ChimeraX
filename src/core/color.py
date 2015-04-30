@@ -269,6 +269,18 @@ class Color:
         else:
             raise ValueError("Not a color")
 
+    def __eq__(self, other):
+        if not isinstance(other, Color):
+            return False
+        import numpy
+        return numpy.array_equal(self.rgba, other.rgba)
+
+    def __ne__(self, other):
+        if not isinstance(other, Color):
+            return False
+        import numpy
+        return not numpy.array_equal(self.rgba, other.rgba)
+
     def opaque(self):
         """Return if the color is opaque."""
         return self.rgba[3] >= 1.0
@@ -598,3 +610,4 @@ def test():
             print(ColorArg.parse(t))
         except ValueError as err:
             print(err)
+    print('same:', ColorArg.parse('white')[0] == Color('#ffffff'))
