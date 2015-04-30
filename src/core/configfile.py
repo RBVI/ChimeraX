@@ -269,23 +269,9 @@ then it looked for the old value and migrates it.
 If the old value isn't present, then the new default value is used.
 """
 from .cli import UserError
-from . import triggerset
 from collections import OrderedDict
 
 only_use_defaults = False   # if True, do not read nor write configuration data
-triggers = triggerset.TriggerSet()
-
-
-def _quote(s):
-    """Return representation that will unquote."""
-    from urllib.parse import quote
-    return quote(s)
-
-
-def _unquote(s):
-    """Return original representation."""
-    from urllib.parse import unquote
-    return unquote(s)
 
 
 class ConfigFile:
@@ -293,7 +279,7 @@ class ConfigFile:
 
     A trigger with :py:meth:`trigger_name` is created
     that is activated when a property value is set.
-    The trigger data is (section name, property name, value).
+    The trigger data is (session, section name, property name, value).
 
     Parameters
     ----------
@@ -314,7 +300,7 @@ class ConfigFile:
             epoch, ver, *_ = NormalizedVersion("1").parse(version)
         major_version = ver[0]
         self._trigger_name = "confinfo %s-%s" % (tool_name, major_version)
-        triggers.add_trigger(self._trigger_name)
+        session.triggers.add_trigger(self._trigger_name)
         self._sections = OrderedDict()
         self._session = session
         self._on_disk = False
@@ -402,7 +388,8 @@ class Value:
 
     def convert_from_string(self, session, str_value):
         if hasattr(self.from_str, 'parse'):
-            return self.from_str.parse(str_value, session)
+            value, consumed, rest = self.from_str.parse(str_value, session)
+            return value
         else:
             return self.from_str(str_value)
 
@@ -410,7 +397,7 @@ class Value:
         str_value = self.to_str(value)
         # confirm that value can be restored from disk,
         # by converting to a string and back
-        new_value = self._convert_from_string(session, str_value)
+        new_value = self.convert_from_string(session, str_value)
         if new_value != value:
             raise ValueError('value changed while saving it')
         return str_value
@@ -486,13 +473,14 @@ class Section:
             raise UserError("Custom configuration is disabled")
         try:
             self.PROPERTY_INFO[name].convert_to_string(
-                value, self._config._session)
+                self._config._session, value)
         except ValueError:
             raise UserError("Illegal %s.%s value, unchanged" %
                             (self._name, name))
         self._cache[name] = value
-        triggers.activate_trigger(self._config._trigger_name,
-                                  (self._name, name, value))
+        self._config._session.triggers.activate_trigger(
+            self._config._trigger_name,
+            (self._config._session, self._name, name, value))
 
     def save(self, _skip_save=False):
         """Store section contents
@@ -507,7 +495,7 @@ class Section:
                     del self._section[name]
                 continue
             str_value = self.PROPERTY_INFO[name].convert_to_string(
-                value, self._config._session)
+                self._config._session, value)
             self._section[name] = str_value
         if _skip_save:
             return
@@ -548,8 +536,8 @@ class Section:
             session = self._config._session
             try:
                 if hasattr(old_from_str, 'parse'):
-                    old_value = old_from_str.parse(self._section[old_name],
-                                                   session)
+                    old_value, consumed, rest = old_from_str.parse(
+                        self._section[old_name], session)
                 else:
                     old_value = old_from_str(self._section[old_name])
             except ValueError:
