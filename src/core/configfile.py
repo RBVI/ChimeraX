@@ -349,6 +349,11 @@ class ConfigFile:
         with SaveTextFile(self._filename) as f:
             self._config.write(f)
 
+    def reset(self):
+        """Revert all properties to their default state"""
+        for section in self._sections.values():
+            section.reset()
+
     def migrate_from(self, old, version):
         """Migrate identical settings from old configuration."""
         for name, section in self._sections.items():
@@ -426,6 +431,7 @@ class Section:
     config : :py:class:`ConfigFile` instance
     section_name : str
         The name of the section.
+    auto_save : bool, optional
 
     Attributes
     ----------
@@ -440,11 +446,12 @@ class Section:
 
     PROPERTY_INFO = {}
 
-    def __init__(self, config, section_name):
+    def __init__(self, config, section_name, auto_save=False):
         assert('save' not in self.PROPERTY_INFO)
         self._config = config
         self._name = section_name
         self._cache = {}
+        self._auto_save = auto_save
         # convert all property information to Values
         for name, value in self.PROPERTY_INFO.items():
             if not isinstance(value, Value):
@@ -489,6 +496,8 @@ class Section:
             raise UserError("Illegal %s.%s value, unchanged" %
                             (self._name, name))
         self._cache[name] = value
+        if self._auto_save:
+            self.save()
         self._config._session.triggers.activate_trigger(
             self._config._trigger_name,
             (self._config._session, self._name, name, value))
@@ -511,6 +520,14 @@ class Section:
         if _skip_save:
             return
         self._config.save(_all=False)
+
+    def reset(self):
+        """Revert properties to their default state"""
+        for name in self._cache:
+            value = self._cache[name]
+            default = self.PROPERTY_INFO[name].default
+            if value != default:
+                setattr(self, name, default)
 
     def migrate_from(self, old, version):
         """Migrate identical settings from old section to current section
