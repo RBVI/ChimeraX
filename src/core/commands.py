@@ -17,22 +17,24 @@ from . import cli
 def pwd(session):
     import os
     session.logger.info('current working directory: %s' % os.getcwd())
-_pwd_desc = cli.CmdDesc()
+_pwd_desc = cli.CmdDesc(synopsis='print current working directory')
 
 
 def exit(session):
     session.ui.quit()
-_exit_desc = cli.CmdDesc()
+_exit_desc = cli.CmdDesc(synopsis='exit application')
 
 
 def stop(session, ignore=None):
     raise cli.UserError('use "exit" or "quit" instead of "stop"')
-_stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)])
+_stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)],
+                         synopsis='retired command')
 
 
 def echo(session, text=''):
     session.logger.info(text)
-_echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
+_echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)],
+                         synopsis='show text in log')
 
 
 def open(session, filename, id=None, as_=None):
@@ -42,7 +44,8 @@ def open(session, filename, id=None, as_=None):
         raise cli.UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                          keyword=[('id', cli.ModelIdArg),
-                                  ('as', cli.StringArg)])
+                                  ('as', cli.StringArg)],
+                         synopsis='incorporate data into application')
 
 
 def export(session, filename, **kw):
@@ -51,7 +54,9 @@ def export(session, filename, **kw):
         return io.export(session, filename, **kw)
     except OSError as e:
         raise cli.UserError(e)
-_export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
+_export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
+                           synopsis='export data in format'
+                           ' matching filename suffix')
 
 
 def close(session, model_ids):
@@ -61,7 +66,8 @@ def close(session, model_ids):
     except ValueError as e:
         raise cli.UserError(e)
     m.close(mlist)
-_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))])
+_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))],
+                          synopsis='close model')
 
 
 def list(session):
@@ -81,7 +87,7 @@ def list(session):
         info += ", ".join(id_str(id) for id in ids[:-1]) + " and"
     info += " %s" % id_str(ids[-1])
     session.logger.info(info)
-_list_desc = cli.CmdDesc()
+_list_desc = cli.CmdDesc(synopsis='list open model ids')
 
 
 def help(session, command_name=None):
@@ -118,7 +124,8 @@ def help(session, command_name=None):
         return
     status(usage)
     info(cli.html_usage(command_name), is_html=True)
-_help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)])
+_help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)],
+                         synopsis='show command usage')
 
 
 def display(session, spec=None):
@@ -128,7 +135,8 @@ def display(session, spec=None):
     results.atoms.displays = True
     for m in results.models:
         m.update_graphics()
-_display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+_display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display specified atoms')
 
 
 def undisplay(session, spec=None):
@@ -138,12 +146,13 @@ def undisplay(session, spec=None):
     results.atoms.displays = False
     for m in results.models:
         m.update_graphics()
-_undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+_undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                              synopsis='undisplay specified atoms')
 
 
 def window(session):
     session.main_view.view_all()
-_window_desc = cli.CmdDesc()
+_window_desc = cli.CmdDesc(synopsis='reset view so everything is visible in window')
 
 
 def camera(session, mode=None, field_of_view=None, eye_separation=None,
@@ -185,13 +194,16 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
             ', %.5g degree field of view' % cam.field_of_view)
         session.logger.status(msg)
 
-_camera_desc = cli.CmdDesc(optional=[
-    # ('mode', CameraModeArg),
-    ('field_of_view', cli.FloatArg),
-    ('eye_separation', cli.FloatArg),
-    ('screen_width', cli.FloatArg),
-    ('depth_scale', cli.FloatArg),
-])
+_camera_desc = cli.CmdDesc(
+    optional=[
+        # ('mode', CameraModeArg),
+        ('field_of_view', cli.FloatArg),
+        ('eye_separation', cli.FloatArg),
+        ('screen_width', cli.FloatArg),
+        ('depth_scale', cli.FloatArg),
+    ],
+    synopsis='adjust camara parameters'
+)
 
 def save(session, filename, width = None, height = None, format = None, supersample = None):
     from os.path import splitext
@@ -208,11 +220,15 @@ def save(session, filename, width = None, height = None, format = None, supersam
 
 _save_desc = cli.CmdDesc(
     required = [('filename', cli.StringArg),],
-    keyword=[('width', cli.IntArg),
-             ('height', cli.IntArg),
-             ('supersample', cli.IntArg),
-             ('quality', cli.IntArg),
-             ('format', cli.StringArg),])
+    keyword=[
+        ('width', cli.IntArg),
+        ('height', cli.IntArg),
+        ('supersample', cli.IntArg),
+        ('quality', cli.IntArg),
+        ('format', cli.StringArg),
+    ],
+    synopsis='save session or image'
+)
 
 # Table mapping file suffix to Pillow image format.
 image_formats = {
