@@ -174,7 +174,7 @@ the previous example, to ``e_value``, extend the _Params class with::
             'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
 
-        @getter
+        @property
         def e_value(self):
             return 10 ** -self.e_exp
 
@@ -255,7 +255,7 @@ function::
             'matrix': configfile.Value('BLOSUM62', BlastMatrixArg, str)
         }
 
-        @getter
+        @property
         def e_value(self):
             def migrate_e_exp(value):
                 # conversion function
@@ -288,6 +288,10 @@ class ConfigFile:
     tool_name : the name of the tool
     version : configuration file version, optional
         Only the major version part of the version is used.
+
+    Attributes
+    ----------
+    filename : the name of the file used to store the preferences
     """
 
     def __init__(self, session, tool_name, version="1"):
@@ -324,6 +328,10 @@ class ConfigFile:
         This information is useful when deciding whether or not to migrate
         settings from a previous configuration version."""
         return self._on_disk
+
+    @property
+    def filename(self):
+        return self._filename
 
     def trigger_name(self):
         """Return trigger name to use to monitor for value changes."""
@@ -469,7 +477,9 @@ class Section:
 
     def __setattr__(self, name, value):
         if name not in self.PROPERTY_INFO:
-            return object.__setattr__(self, name, value)
+            if name[0] == '_':
+                return object.__setattr__(self, name, value)
+            raise AttributeError("Unknown property name: %s" % name)
         if only_use_defaults:
             raise UserError("Custom configuration is disabled")
         try:
