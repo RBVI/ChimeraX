@@ -365,7 +365,9 @@ class Value:
         can be either a function that takes a string
         and returns a value of the right type, or a cli
         :py:class:`~chimera.core.cli.Annotation`.
+        Defaults to py:func:`ast.literal_eval`.
     to_str : function returning a string, optional
+        Defaults to :py:func:`repr`.
 
     Attributes
     ----------
@@ -373,18 +375,17 @@ class Value:
 
     """
 
-    def __init__(self, *args):
-        if len(args) == 1:
+    def __init__(self, default, from_str=None, to_str=None):
+        self.default = default
+        if from_str is None:
             import ast
             self.from_str = ast.literal_eval
-            self.to_str = repr
-            self.default = args[0]
-        elif len(args) == 3:
-            self.default = args[0]
-            self.from_str = args[1]
-            self.to_str = args[2]
         else:
-            raise ValueError()
+            self.from_str = from_str
+        if to_str is None:
+            self.to_str = repr
+        else:
+            self.to_str = to_str
 
     def convert_from_string(self, session, str_value):
         if hasattr(self.from_str, 'parse'):
@@ -457,7 +458,7 @@ class Section:
         else:
             try:
                 value = self.PROPERTY_INFO[name].convert_from_string(
-                    self._section[name], self._config._session)
+                    self._config._session, self._section[name])
             except ValueError as e:
                 self._config._session.logger.warning(
                     "Invalid %s.%s value, using default: %s" %
@@ -589,7 +590,7 @@ if __name__ == '__main__':
     class LogSection(Section):
 
         PROPERTY_INFO = {
-            'log_level': (cli.Bounded(cli.IntArg, 1, 9), str, 1),
+            'log_level': Value(1, cli.Bounded(cli.IntArg, 1, 9)),
         }
 
     class _ToolPreferences(ConfigFile):
