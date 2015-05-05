@@ -79,7 +79,7 @@ test_peg:	_atomspec.py
 _appdirs.install: appdirs_cpp.install
 atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
 	chutil_cpp.install ioutil_cpp.install pseudobond_cpp.install
-blob_cpp.install: atomstruct_cpp.install
+blob_cpp.install: atomstruct_cpp.install basegeom_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
 _mmcif.install: readcif_cpp.install atomstruct_cpp.install blob_cpp.install

@@ -16,6 +16,7 @@ static void
 ResBlob_dealloc(PyObject* obj)
 {
     ResBlob* self = static_cast<ResBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);

@@ -174,7 +174,7 @@ the previous example, to ``e_value``, extend the _Params class with::
             'matrix': ( BlastMatrixArg, str, 'BLOSUM62' )
         }
 
-        @getter
+        @property
         def e_value(self):
             return 10 ** -self.e_exp
 
@@ -255,7 +255,7 @@ function::
             'matrix': configfile.Value('BLOSUM62', BlastMatrixArg, str)
         }
 
-        @getter
+        @property
         def e_value(self):
             def migrate_e_exp(value):
                 # conversion function
@@ -288,6 +288,10 @@ class ConfigFile:
     tool_name : the name of the tool
     version : configuration file version, optional
         Only the major version part of the version is used.
+
+    Attributes
+    ----------
+    filename : the name of the file used to store the preferences
     """
 
     def __init__(self, session, tool_name, version="1"):
@@ -325,6 +329,10 @@ class ConfigFile:
         settings from a previous configuration version."""
         return self._on_disk
 
+    @property
+    def filename(self):
+        return self._filename
+
     def trigger_name(self):
         """Return trigger name to use to monitor for value changes."""
         return self._trigger_name
@@ -340,6 +348,11 @@ class ConfigFile:
         from .safesave import SaveTextFile
         with SaveTextFile(self._filename) as f:
             self._config.write(f)
+
+    def reset(self):
+        """Revert all properties to their default state"""
+        for section in self._sections.values():
+            section.reset()
 
     def migrate_from(self, old, version):
         """Migrate identical settings from old configuration."""
@@ -365,7 +378,9 @@ class Value:
         can be either a function that takes a string
         and returns a value of the right type, or a cli
         :py:class:`~chimera.core.cli.Annotation`.
+        Defaults to py:func:`ast.literal_eval`.
     to_str : function returning a string, optional
+        Defaults to :py:func:`repr`.
 
     Attributes
     ----------
@@ -373,18 +388,17 @@ class Value:
 
     """
 
-    def __init__(self, *args):
-        if len(args) == 1:
+    def __init__(self, default, from_str=None, to_str=None):
+        self.default = default
+        if from_str is None:
             import ast
             self.from_str = ast.literal_eval
-            self.to_str = repr
-            self.default = args[0]
-        elif len(args) == 3:
-            self.default = args[0]
-            self.from_str = args[1]
-            self.to_str = args[2]
         else:
-            raise ValueError()
+            self.from_str = from_str
+        if to_str is None:
+            self.to_str = repr
+        else:
+            self.to_str = to_str
 
     def convert_from_string(self, session, str_value):
         if hasattr(self.from_str, 'parse'):
@@ -417,6 +431,7 @@ class Section:
     config : :py:class:`ConfigFile` instance
     section_name : str
         The name of the section.
+    auto_save : bool, optional
 
     Attributes
     ----------
@@ -431,11 +446,12 @@ class Section:
 
     PROPERTY_INFO = {}
 
-    def __init__(self, config, section_name):
+    def __init__(self, config, section_name, auto_save=False):
         assert('save' not in self.PROPERTY_INFO)
         self._config = config
         self._name = section_name
         self._cache = {}
+        self._auto_save = auto_save
         # convert all property information to Values
         for name, value in self.PROPERTY_INFO.items():
             if not isinstance(value, Value):
@@ -457,7 +473,7 @@ class Section:
         else:
             try:
                 value = self.PROPERTY_INFO[name].convert_from_string(
-                    self._section[name], self._config._session)
+                    self._config._session, self._section[name])
             except ValueError as e:
                 self._config._session.logger.warning(
                     "Invalid %s.%s value, using default: %s" %
@@ -468,7 +484,9 @@ class Section:
 
     def __setattr__(self, name, value):
         if name not in self.PROPERTY_INFO:
-            return object.__setattr__(self, name, value)
+            if name[0] == '_':
+                return object.__setattr__(self, name, value)
+            raise AttributeError("Unknown property name: %s" % name)
         if only_use_defaults:
             raise UserError("Custom configuration is disabled")
         try:
@@ -478,6 +496,8 @@ class Section:
             raise UserError("Illegal %s.%s value, unchanged" %
                             (self._name, name))
         self._cache[name] = value
+        if self._auto_save:
+            self.save()
         self._config._session.triggers.activate_trigger(
             self._config._trigger_name,
             (self._config._session, self._name, name, value))
@@ -500,6 +520,14 @@ class Section:
         if _skip_save:
             return
         self._config.save(_all=False)
+
+    def reset(self):
+        """Revert properties to their default state"""
+        for name in self._cache:
+            value = self._cache[name]
+            default = self.PROPERTY_INFO[name].default
+            if value != default:
+                setattr(self, name, default)
 
     def migrate_from(self, old, version):
         """Migrate identical settings from old section to current section
@@ -589,7 +617,7 @@ if __name__ == '__main__':
     class LogSection(Section):
 
         PROPERTY_INFO = {
-            'log_level': (cli.Bounded(cli.IntArg, 1, 9), str, 1),
+            'log_level': Value(1, cli.Bounded(cli.IntArg, 1, 9)),
         }
 
     class _ToolPreferences(ConfigFile):

@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <basegeom/destruct.h>
+
 namespace pseudobond {
 
 template <class EndPoint, class PBond>
@@ -15,7 +17,7 @@ protected:
 public:
     virtual void  clear() = 0;
     Group(const std::string& cat): _category(cat) {}
-    virtual  ~Group() {}
+    virtual  ~Group() { auto du = basegeom::DestructionUser(this); }
     virtual PBond*  new_pseudobond(EndPoint* e1, EndPoint* e2) = 0;
     virtual const std::set<PBond*>&  pseudobonds() const = 0;
 };

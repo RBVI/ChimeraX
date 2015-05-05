@@ -21,10 +21,10 @@ const char*  AtomicStructure::PBG_MISSING_STRUCTURE = "missing structure";
 const char*  AtomicStructure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 
 AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
-    _being_destroyed(false), _chains(nullptr), _idatm_valid(false),
-    _logger(logger), _name("unknown AtomicStructure"), _pb_mgr(this),
-    _recompute_rings(true), asterisks_translated(false), is_traj(false),
-    lower_case_chains(false), pdb_version(0)
+    _chains(nullptr), _idatm_valid(false), _logger(logger),
+    _name("unknown AtomicStructure"), _pb_mgr(this), _recompute_rings(true),
+    asterisks_translated(false), is_traj(false), lower_case_chains(false),
+    pdb_version(0)
 {
 }
 

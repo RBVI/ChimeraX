@@ -2,9 +2,11 @@
 #ifndef atomstruct_Residue
 #define atomstruct_Residue
 
-#include <vector>
 #include <map>
 #include <string>
+#include <vector>
+
+#include <basegeom/destruct.h>
 #include "imex.h"
 #include "string_types.h"
 
@@ -16,11 +18,13 @@ class Bond;
 
 class ATOMSTRUCT_IMEX Residue {
     friend class AtomicStructure;
+    friend std::unique_ptr<Residue>::deleter_type; // to access destructor
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
 private:
     Residue(AtomicStructure *as, const std::string &name, const std::string &chain, int pos, char insert);
+    virtual  ~Residue() { basegeom::DestructionUser(this); }
     char  _alt_loc;
     Atoms  _atoms;
     std::string  _chain_id;

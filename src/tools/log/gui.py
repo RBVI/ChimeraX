@@ -129,6 +129,7 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         self.tool_window.shown = False
         self.tool_window.destroy()
+        session.logger.remove_log(self)
         session.tools.remove([self])
         super().delete()
 

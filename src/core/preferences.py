@@ -50,25 +50,45 @@ def _update_prefs(trigger, data):
             view.background_color = value.rgba
             view.redraw_needed = True
         elif name == 'shilhouette':
-            view.silhouettes = value
+            view.silhouette = value
             view.redraw_needed = True
 
 
-def set_cmd(session, bg_color=None, silhouette=None, multisample_threshold=None):
+def _set_cmd(session, bg_color=None, silhouette=None, multisample_threshold=None):
     prefs = get()
+    had_arg = False
     if bg_color is not None:
+        had_arg = True
         prefs.graphics.bg_color = bg_color
     if silhouette is not None:
-        prefs.graphics.silhouettes = silhouette
+        had_arg = True
+        prefs.graphics.silhouette = silhouette
     if multisample_threshold is not None:
+        had_arg = True
         prefs.graphics.multisample_threshold = multisample_threshold
+    if had_arg:
+        return
+    print('Preferences:\n'
+          '  bg_color:', prefs.graphics.bg_color, '\n'
+          '  silhouette:', prefs.graphics.silhouette, '\n'
+          '  multisample-threshold:', prefs.graphics.multisample_threshold)
 
 _set_desc = cli.CmdDesc(
     keyword=[('bg_color', color.ColorArg),
              ('silhouette', cli.BoolArg),
-             ('multisample_threshold', cli.NonNegativeIntArg), ]
+             ('multisample_threshold', cli.NonNegativeIntArg), ],
+    synopsis="set preferences"
 )
 
 
+def _save_cmd(session):
+    # for testing only
+    prefs = get()
+    print('Preferences file:', prefs.filename)
+    prefs.save()
+
+
 def register_set_command():
-    cli.register('set', _set_desc, set_cmd)
+    cli.register('set', _set_desc, _set_cmd)
+    cli.register('psave', cli.CmdDesc(
+        synopsis="for testing, explicitly save preferences"), _save_cmd)

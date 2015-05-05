@@ -7,6 +7,7 @@
 #include <string>
 
 #include "Group.h"
+#include <basegeom/destruct.h>
 
 namespace pseudobond {
 
@@ -21,7 +22,10 @@ public:
 protected:
     mutable GroupMap  _groups;
 public:
-    virtual  ~Base_Manager() { for (auto i: _groups) delete i.second; }
+    virtual  ~Base_Manager() {
+        basegeom::DestructionUser(this);
+        for (auto i: _groups) delete i.second;
+    }
     virtual Grp_Class*  get_group(
             const std::string& name, int create = GRP_NONE) const = 0;
     const GroupMap&  group_map() const { return _groups; }
