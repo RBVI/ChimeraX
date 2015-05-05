@@ -19,6 +19,7 @@ static void
 PseudoBlob_dealloc(PyObject* obj)
 {
     PseudoBlob* self = static_cast<PseudoBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);

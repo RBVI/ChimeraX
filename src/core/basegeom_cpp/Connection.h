@@ -6,6 +6,7 @@
 
 #include "Real.h"
 #include "Rgba.h"
+#include "destruct.h"
 
 namespace basegeom {
     
@@ -31,7 +32,7 @@ protected:
 public:
     Connection(End *e1, End *e2);
     void  finish_construction(); // virtual calls now working...
-    virtual  ~Connection() {}
+    virtual  ~Connection() { DestructionUser(this); }
     bool  contains(End* e) const {
         return e == _end_points[0] || e == _end_points[1];
     }

@@ -8,6 +8,7 @@
 #include "Coord.h"
 #include "Connection.h"
 #include "Rgba.h"
+#include "destruct.h"
 
 namespace basegeom {
     
@@ -30,7 +31,7 @@ protected:
         _neighbors.push_back(
             c->other_end(static_cast<FinalConnectible *>(this)));
     }
-    virtual  ~Connectible() {}
+    virtual  ~Connectible() { DestructionUser(this); }
     const Connections&  connections() const { return _connections; }
     void  remove_connection(FinalConnection *c) {
         auto cnti = std::find(_connections.begin(), _connections.end(), c);

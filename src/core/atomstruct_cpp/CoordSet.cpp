@@ -1,9 +1,11 @@
 // vi: set expandtab ts=4 sw=4:
+
+#include <utility>  // for pair
+
 #include "Atom.h"
 #include "AtomicStructure.h"
 #include "CoordSet.h"
-
-#include <utility>  // for pair
+#include <basegeom/destruct.h>
 
 namespace atomstruct {
 
@@ -20,7 +22,7 @@ CoordSet::CoordSet(AtomicStructure* as, int cs_id, int size):
 
 CoordSet::~CoordSet()
 {
-    if (!_structure->being_destroyed())
+    if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
         _structure->pb_mgr().remove_cs(this);
 }
 

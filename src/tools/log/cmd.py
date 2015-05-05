@@ -29,7 +29,7 @@ show_desc = cli.CmdDesc()
 
 def test(session):
     session.logger.info("Something in <i>italics</i>!", is_html=True)
-    #session.logger.error("HTML <i>error</i> message", is_html=True)
+    session.logger.error("HTML <i>error</i> message", is_html=True)
     #session.logger.error("\n".join(["%d" % i for i in range(200)]))
     #session.logger.warning("Plain text warning")
     from PIL import Image
