@@ -97,9 +97,9 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_MOTION, self.on_motion)
 
         self.locations = loc = _PixelLocations()
-        loc.eye = 0, 0, 0   # x, y coords of eye
-        loc.near = 0        # X coord of near plane
-        loc.far = 0         # Y coord of near plane
+        loc.eye = 0, 0, 0   # x, y coordinates of eye
+        loc.near = 0        # X coordinate of near plane
+        loc.far = 0         # Y coordinate of near plane
         loc.bottom = 0      # bottom of clipping planes
         loc.top = 0         # top of clipping planes
         loc.far_bottom = 0  # right clip intersect far
@@ -132,7 +132,11 @@ class SideViewCanvas(glcanvas.GLCanvas):
         event.Skip()
 
     def set_viewport(self):
-        self.view.resize(*self.GetClientSize())
+        try:
+            self.view.resize(*self.GetClientSize())
+        except RuntimeError:
+            # wx.CallAfter executes after being destroyed
+            pass
 
     def make_current(self):
         self.SetCurrent(self.view.opengl_context())
