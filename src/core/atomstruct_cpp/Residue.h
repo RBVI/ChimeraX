@@ -3,6 +3,7 @@
 #define atomstruct_Residue
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
