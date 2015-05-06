@@ -896,9 +896,9 @@ class Drawing:
         return self.DRAWING_STATE_VERSION, data
 
     def restore_snapshot(self, phase, session, version, data):
-        from ..session import State
+        from ..session import State, RestoreError
         if version != self.DRAWING_STATE_VERSION:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version or data")
         if phase != State.PHASE1:
             return
         for child_data in data['children']:

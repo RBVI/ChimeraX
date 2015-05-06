@@ -18,6 +18,7 @@ static void
 BondBlob_dealloc(PyObject* obj)
 {
     BondBlob* self = static_cast<BondBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);

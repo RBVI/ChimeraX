@@ -9,7 +9,7 @@ class GraphicsWindow(wx.Panel):
 
     def __init__(self, parent, ui):
         wx.Panel.__init__(self, parent,
-            style=wx.TAB_TRAVERSAL|wx.NO_BORDER|wx.WANTS_CHARS)
+            style=wx.TAB_TRAVERSAL | wx.NO_BORDER | wx.WANTS_CHARS)
         self.timer = None
         self.view = ui.session.main_view
         self.opengl_canvas = OpenGLCanvas(self, self.view, ui)
@@ -22,7 +22,7 @@ class GraphicsWindow(wx.Panel):
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
         self.SetSizerAndFit(sizer)
 
-        self.redraw_interval = 16 # milliseconds
+        self.redraw_interval = 16  # milliseconds
         # perhaps redraw interval should be 10 to reduce
         # frame drops at 60 frames/sec
 
@@ -30,9 +30,9 @@ class GraphicsWindow(wx.Panel):
         self.mouse_modes = MouseModes(self, ui.session)
 
     def set_redraw_interval(self, msec):
-        self.redraw_interval = msec # milliseconds
+        self.redraw_interval = msec  # milliseconds
         t = self.timer
-        if not t is None:
+        if t is not None:
             t.Start(self.redraw_interval)
 
     def make_context_current(self):
@@ -52,11 +52,20 @@ class GraphicsWindow(wx.Panel):
 
 
 from wx import glcanvas
+
+
 class OpenGLCanvas(glcanvas.GLCanvas):
 
     def __init__(self, parent, view, ui=None, size=None):
         self.view = view
-        attribs = [ glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER ]
+        attribs = [glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER]
+        from .. import preferences
+        prefs = preferences.get()
+        ppi = max(wx.GetDisplayPPI())
+        if ppi < prefs.graphics.multisample_threshold:
+            # TODO: how to pick number of samples
+            attribs += [glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
+                        glcanvas.WX_GL_SAMPLES, 4]
         import sys
         if sys.platform.startswith('darwin'):
             attribs += [
@@ -84,7 +93,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
             pass
         else:
             print("Stereo mode is not supported by OpenGL driver")
-        ckw = {} if size is None else {'size':size}
+        ckw = {} if size is None else {'size': size}
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs + [0],
                                    style=wx.WANTS_CHARS, **ckw)
 
@@ -96,7 +105,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
     def OnPaint(self, event):
-        #self.SetCurrent(view.opengl_context())
+        # self.SetCurrent(view.opengl_context())
         self.view.draw()
 
     def OnSize(self, event):
@@ -106,21 +115,24 @@ class OpenGLCanvas(glcanvas.GLCanvas):
     def set_viewport(self):
         self.view.resize(*self.GetClientSize())
 
+
 class OculusGraphicsWindow(wx.Frame):
     """
     The graphics window for using Oculus Rift goggles.
     """
 
-    def __init__(self, view, parent = None):
+    def __init__(self, view, parent=None):
 
-        wx.Frame.__init__(self, parent, title = "Oculus Rift")
+        wx.Frame.__init__(self, parent, title="Oculus Rift")
 
         class View:
+
             def draw(self):
                 pass
+
             def resize(self, *args):
                 pass
-        self.opengl_canvas = c = OpenGLCanvas(self, View())
+        self.opengl_canvas = OpenGLCanvas(self, View())
 
         from wx.glcanvas import GLContext
         oc = self.opengl_context = GLContext(self.opengl_canvas, view._opengl_context)
@@ -155,8 +167,8 @@ class OculusGraphicsWindow(wx.Frame):
                 g = d.GetGeometry()
                 s = g.GetSize()
                 if s.GetWidth() == width and s.GetHeight() == height:
-                    self.Move(g.GetX(),g.GetY())
-                    self.SetSize(width,height)
+                    self.Move(g.GetX(), g.GetY())
+                    self.SetSize(width, height)
                     break
         # self.EnableFullScreenView(True) # Not available in wxpython
         # TODO: full screen always shows on primary display.

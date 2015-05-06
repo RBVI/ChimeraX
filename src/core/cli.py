@@ -47,6 +47,10 @@ Words in the command name may be truncated
 and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
+Keywords are case sensitive, and are expected to be all lowercase.
+Underscores are supported, but are documented as and accepted as dashes.
+For example, a ``bg_color`` keyword would be documented as ``bg-color``.
+
 Registering Commands
 --------------------
 
@@ -183,7 +187,7 @@ Command Aliases
 """
 
 import abc
-from keyword import iskeyword
+from keyword import iskeyword as is_python_keyword
 import re
 import sys
 from collections import OrderedDict
@@ -224,7 +228,7 @@ class Annotation(metaclass=abc.ABCMeta):
         the leading article, *e.g.*, `"a truth value"`.
     """
     name = "** article name, e.g., _a_ _truth value_ **"
-    help = None  #: placeholder for help information (e.g., URL)
+    url = None  #: URL for help information
 
     @staticmethod
     def parse(text, session):
@@ -269,7 +273,7 @@ class Aggregate(Annotation):
     separator = ','
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None):
+                 max_size=None, name=None, prefix=None):
         if (not issubclass(annotation, Annotation) and
                 not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
@@ -286,6 +290,7 @@ class Aggregate(Annotation):
                 name = annotation.name.split(None, 1)[1]
                 name = "%s(s)" % name
         self.name = name
+        self.prefix = prefix
 
     def add_to(self, container, element):
         """Add to add an element to the container
@@ -300,6 +305,8 @@ class Aggregate(Annotation):
     def parse(self, text, session):
         result = self.constructor()
         used = ''
+        if self.prefix and text.startswith(self.prefix):
+            text = text[len(self.prefix):]
         while 1:
             i = text.find(self.separator)
             if i == -1:
@@ -412,8 +419,8 @@ class DottedTupleOf(Aggregate):
     constructor = tuple
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None):
-        Aggregate.__init__(self, annotation, min_size, max_size, name)
+                 max_size=None, name=None, prefix=None):
+        Aggregate.__init__(self, annotation, min_size, max_size, name, prefix)
         if name is None:
             if ',' in annotation.name:
                 name = "dotted list of %s" % annotation.name
@@ -440,6 +447,15 @@ class BoolArg(Annotation):
         if token == "1" or "true".startswith(token) or token == "on":
             return True, "true", rest
         raise AnnotationError("Expected true or false (or 1 or 0)")
+
+
+class NoArg(Annotation):
+    """Annotation for keyword with no value"""
+    name = ""
+
+    @staticmethod
+    def parse(text, session):
+        return True, "", text
 
 
 class IntArg(Annotation):
@@ -809,8 +825,9 @@ Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
 Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
-PositiveIntArg = Bounded(IntArg, min=1, name="a natural number")
-ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id")
+NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
+PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
+ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix='#')
 
 
 class Postcondition(metaclass=abc.ABCMeta):
@@ -930,7 +947,9 @@ class CmdDesc:
     :param required: required positional arguments tuple
     :param optional: optional positional arguments tuple
     :param keyword: keyword arguments tuple
-    :param help: placeholder for help information (e.g., URL)
+    :param url: URL to help page
+    :param synopsis: one line description
+    :param official: True if officially supported command
 
     .. data: function
 
@@ -943,17 +962,18 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword',
         '_postconditions', '_function',
-        'help',
+        'url', 'synopsis', 'official',
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
-                 postconditions=(), help=None):
+                 postconditions=(), url=None, synopsis=None, official=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
         self._keyword.update(self._optional)
         self._postconditions = postconditions
-        self.help = help
+        self.url = url
+        self.synopsis = synopsis
         self._function = None
 
     @property
@@ -1300,8 +1320,8 @@ class Command:
     def _replace(self, chars, replacement):
         # insert replacement taking into account quotes
         i = len(chars)
-        c = chars[0]
-        if c != '"' or chars[-1] != c:
+        c = chars[0] if i > 0 else ''
+        if i < 2 or c != '"' or chars[-1] != c:
             completion = replacement
         else:
             completion = c + replacement + c
@@ -1411,7 +1431,7 @@ class Command:
                 break
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                if iskeyword(name):
+                if is_python_keyword(name):
                     self._kwargs['%s_' % name] = value
                 else:
                     self._kwargs[name] = value
@@ -1473,16 +1493,17 @@ class Command:
             if start:
                 self.amount_parsed += start
                 text = text[start:]
-            if not text:
+
+            anno = self._ci._keyword[arg_name]
+            if not text and anno != NoArg:
                 self._error = "Missing argument %r" % arg_name
                 break
 
-            anno = self._ci._keyword[arg_name]
             self.completion_prefix = ''
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                if iskeyword(arg_name):
+                if is_python_keyword(arg_name):
                     self._kwargs['%s_' % arg_name] = value
                 else:
                     self._kwargs[arg_name] = value
@@ -1551,18 +1572,18 @@ def command_function(name):
     return cmd._ci.function
 
 
-def command_help(name):
-    """Return help for given command name
+def command_url(name):
+    """Return help URL for given command name
 
     :param name: the name of the command
-    :returns: the help object registered with the command
+    :returns: the URL registered with the command
     """
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
         raise ValueError("'%s' is not a command name" % name)
-    return cmd._ci.help
+    return cmd._ci.url
 
 
 def usage(name):
@@ -1592,6 +1613,8 @@ def usage(name):
         type = ci._keyword[arg_name].name
         arg_name = arg_name.replace('_', '-')
         usage += ' [%s _%s_]' % (arg_name, type.replace(' ', '_'))
+    if ci.synopsis:
+        usage += ' -- %s' % ci.synopsis
     return usage
 
 
@@ -1608,20 +1631,20 @@ def html_usage(name):
         raise ValueError("'%s' is not a command name" % name)
 
     from html import escape
-    if cmd._ci.help is None:
+    if cmd._ci.url is None:
         usage = '<b>%s</b>' % escape(cmd.command_name)
     else:
         usage = '<b><a href="%s">%s</a></b>' % (
-            cmd._ci.help, escape(cmd.command_name))
+            cmd._ci.url, escape(cmd.command_name))
     ci = cmd._ci
     for arg_name in ci._required:
         arg = ci._required[arg_name]
         arg_name = arg_name.replace('_', '-')
         type = arg.name
-        if arg.help is None:
+        if arg.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
         usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
     for arg_name in ci._optional:
@@ -1629,20 +1652,22 @@ def html_usage(name):
         arg = ci._optional[arg_name]
         arg_name = arg_name.replace('_', '-')
         type = arg.name
-        if arg.help is None:
+        if arg.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
         usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
     for arg_name in ci._keyword:
         arg = ci._keyword[arg_name]
         arg_name = arg_name.replace('_', '-')
-        if arg.help is None:
+        if arg.url is None:
             type = escape(arg.name)
         else:
-            type = '<a href="%s">%s</a>' % (arg.help, escape(arg.name))
+            type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
         usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
+    if ci.synopsis:
+        usage += '<br>%s' % ci.synopsis
     return usage
 
 
@@ -1695,11 +1720,12 @@ class _Alias:
             self.parts.append(i - 1)     # convert to a 0-based index
             start = end
 
-    def desc(self):
+    def desc(self, **kw):
         required = [((i + 1), StringArg) for i in range(self.num_args)]
         if not self.optional_rest_of_line:
             return CmdDesc(required=required)
-        return CmdDesc(required=required, optional=[('optional', RestOfLine)])
+        return CmdDesc(required=required, optional=[('optional', RestOfLine)],
+                       **kw)
 
     def __call__(self, session, *args, optional='', used_aliases=None):
         assert(len(args) >= self.num_args)
@@ -1757,7 +1783,7 @@ def alias(session, name='', text=''):
     name = ' '.join(name.split())   # canonicalize
     cmd = _Alias(text)
     try:
-        register(name, cmd.desc(), cmd, logger=logger)
+        register(name, cmd.desc(synopsis='command alias'), cmd, logger=logger)
         _cmd_aliases.add(name)
     except:
         raise
@@ -1959,16 +1985,16 @@ if __name__ == '__main__':
         register('xyzzy subcmd', test11_desc, test11)
     delay_registration('xyzzy', lazy_reg)
 
+    @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
+    def echo(session, text=''):
+        return text
+
     if len(sys.argv) > 1:
         _debugging = 'd' in sys.argv[1]
 
         @register('exit')
         def exit(session):
             raise SystemExit(0)
-
-        @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
-        def echo(session, text=''):
-            return text
 
         register('usage', CmdDesc(required=[('name', RestOfLine)]), usage)
 
@@ -2054,6 +2080,9 @@ if __name__ == '__main__':
         (False, False, 'test10 red 2; test10 li gr 3'),
         (True, False, 'test10 red 2; test10 3 red'),
         (True, False, 'test10 red 2; test6 123, red'),
+        (False, True, 'echo hi there'),
+        (False, True, 'alias plugh echo $* $*'),
+        (False, True, 'plugh who'),
     ]
     # TODO: delayed registration tests
     sys.stdout = sys.stderr

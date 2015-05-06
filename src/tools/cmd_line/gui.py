@@ -3,15 +3,14 @@
 from chimera.core.tools import ToolInstance
 
 
-class CmdLine(ToolInstance):
+class CommandLine(ToolInstance):
 
     SIZE = (500, 25)
     VERSION = 1
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Command Line", session,
+        self.tool_window = session.ui.create_main_tool_window(self,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx
@@ -105,7 +104,9 @@ class CmdLine(ToolInstance):
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State
+        from chimera.core.session import State, RestoreError
+        if version != self.VERSION:
+            raise RestoreError("unexpected version")
         if phase == State.PHASE1:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved

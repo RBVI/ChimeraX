@@ -25,6 +25,7 @@ static void
 StructBlob_dealloc(PyObject* obj)
 {
     StructBlob* self = static_cast<StructBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);

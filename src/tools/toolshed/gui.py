@@ -49,8 +49,7 @@ class ToolshedUI(ToolInstance):
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Toolshed", session)
+        self.tool_window = session.ui.create_main_tool_window(self)
         parent = self.tool_window.ui_area
         from wx import html2
         import wx
@@ -102,7 +101,7 @@ class ToolshedUI(ToolInstance):
                 hide_link = _HIDE_LINK % t.id
                 kill_link = _KILL_LINK % t.id
                 print("<li>%s. %s %s %s</li>"
-                      % (t.display_name(), show_link,
+                      % (t.display_name, show_link,
                          hide_link, kill_link), file=s)
         print("</ul>", file=s)
         page = page.replace("RUNNING_TOOLS", s.getvalue())
@@ -207,9 +206,9 @@ class ToolshedUI(ToolInstance):
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
+        from chimera.core.session import State, RestoreError
         if version != self.VERSION:
-            raise RuntimeError("unexpected version or data")
-        from chimera.core.session import State
+            raise RestoreError("unexpected version")
         if phase == State.PHASE1:
             # Restore all basic-type attributes
             pass

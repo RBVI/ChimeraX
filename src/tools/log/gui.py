@@ -11,8 +11,7 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Log", session,
+        self.tool_window = session.ui.create_main_tool_window(self,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx
@@ -72,6 +71,12 @@ class Log(ToolInstance, HtmlLog):
                     dlg_msg = html_to_plain(msg)
                 else:
                     dlg_msg = msg
+                if dlg_msg.count('\n') > 50:
+                    # avoid excessively high error dialogs where
+                    # both the bottom buttons and top controls
+                    # may be off the screen!
+                    lines = dlg_msg.split('\n')
+                    dlg_msg = '\n'.join(lines[:20] + ["..."] + lines[-20:])
                 dlg = wx.MessageDialog(graphics, dlg_msg,
                     caption=caption, style=style)
                 dlg.ShowModal()
@@ -104,7 +109,9 @@ class Log(ToolInstance, HtmlLog):
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State
+        from chimera.core.session import State, RestoreError
+        if version != self.STATE_VERSION:
+            raise RestoreError("unexpected version")
         if phase == State.PHASE1:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved
@@ -122,6 +129,7 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         self.tool_window.shown = False
         self.tool_window.destroy()
+        session.logger.remove_log(self)
         session.tools.remove([self])
         super().delete()
 

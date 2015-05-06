@@ -1,6 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from . import io
 from . import models
+from .session import RestoreError
 
 CATEGORY = io.STRUCTURE
 
@@ -20,8 +21,10 @@ class StructureModel(models.Model):
         models.Model.__init__(self, name)
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
+        self.pseudobond_radius = 0.05
         self._atoms_drawing = None
         self._bonds_drawing = None
+        self._pseudobond_group_drawings = {}    # Map name to drawing
         self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
 
@@ -31,7 +34,7 @@ class StructureModel(models.Model):
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.STRUCTURE_STATE_VERSION or len(data) > 0:
-            raise RuntimeError("Unexpected version or data")
+            raise RestoreError("Unexpected version or data")
 
     def reset_state(self):
         pass
@@ -71,6 +74,11 @@ class StructureModel(models.Model):
         a.colors = element_colors(a.element_numbers)
         b = m.bonds
         b.radii = self.bond_radius
+        pb_colors = {'metal coordination bonds':(147,112,219,255)}
+        for name, pb in m.pbg_map.items():
+            pb.radii = self.pseudobond_radius
+            pb.halfbonds = False
+            pb.colors = pb_colors.get(name, (255,255,0,255))
 
     def make_drawing(self):
 
@@ -83,13 +91,13 @@ class StructureModel(models.Model):
         colors = a.colors
         display = a.displays
         b = m.bonds
-        bradii = b.radii
-        halfbond = b.halfbonds
-        bcolors = b.colors
+        pbg = m.pbg_map
 
         # Create graphics
         self.create_atom_spheres(coords, radii, colors, display)
-        self.update_bond_graphics(b.atoms, a.draw_modes, bradii, bcolors, halfbond)
+        self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
+        for name, pb in pbg.items():
+            self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
 
     def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -113,6 +121,9 @@ class StructureModel(models.Model):
         b = m.bonds
         self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
         self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
+        pbg = m.pbg_map
+        for name, pb in pbg.items():
+            self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
 
     def update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -179,10 +190,10 @@ class StructureModel(models.Model):
 
         p.positions = bond_cylinder_placements(bond_atoms, radii, half_bond_coloring)
         p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self.set_bond_colors(bond_atoms, bond_colors, half_bond_coloring)
+        self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
-    def set_bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
-        p = self._bonds_drawing
+    def set_bond_colors(self, drawing, bond_atoms, bond_colors, half_bond_coloring):
+        p = drawing
         if p is None:
             return
 
@@ -203,6 +214,21 @@ class StructureModel(models.Model):
             sb2 = numpy.concatenate((sb,sb))
             return sb2
         return sb
+
+    def update_pseudobond_graphics(self, name, bond_atoms, radii,
+                                   bond_colors, half_bond_coloring):
+        pg = self._pseudobond_group_drawings
+        if not name in pg:
+            pg[name] = p = self.new_drawing(name)
+            va, na, ta = pseudobond_geometry()
+            p.geometry = va, ta
+            p.normals = na
+        else:
+            p = pg[name]
+
+        p.positions = bond_cylinder_placements(bond_atoms, radii, half_bond_coloring)
+        p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
+        self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
     def hide_chain(self, cid):
         a = self.mol_blob.atoms
@@ -245,8 +271,6 @@ class StructureModel(models.Model):
         if fa is None:
             s = None
         else:
-            ai = self.mol_blob.atoms.displays.nonzero()[0]
-            fa = ai[fa]
             s = Picked_Atom(self, fa)
 
         return f, s
@@ -413,20 +437,135 @@ def bond_cylinder_placements(bond_atoms, radius, half_bond):
 
 # -----------------------------------------------------------------------------
 #
+def pseudobond_geometry(segments = 9):
+    from . import surface
+    return surface.dashed_cylinder_geometry(segments)
+
+# -----------------------------------------------------------------------------
+#
 element_rgba_256 = None
 def element_colors(element_numbers):
     global element_rgba_256
     if element_rgba_256 is None:
         from numpy import empty, uint8
         element_rgba_256 = ec = empty((256, 4), uint8)
-        ec[:, :3] = 180
-        ec[:, 3] = 255
-        ec[6, :] = (255, 255, 255, 255)     # H
-        ec[6, :] = (144, 144, 144, 255)     # C
-        ec[7, :] = (48, 80, 248, 255)       # N
-        ec[8, :] = (255, 13, 13, 255)       # O
-        ec[15, :] = (255, 128, 0, 255)      # P
-        ec[16, :] = (255, 255, 48, 255)     # S
+        ec[:,:3] = 180
+        ec[:,3] = 255
+        # jmol element colors
+        colors = (
+            (1,	(255,255,255)),	 # H
+            (2,	(217,255,255)),	 # He
+            (3,	(204,128,255)),	 # Li
+            (4,	(194,255,0)),	 # Be  
+            (5,	(255,181,181)),	 # B
+            (6,	(144,144,144)),	 # C
+            (7,	(48,80,248)),	 # N  
+            (8,	(255,13,13)),	 # O  
+            (9, (144,224,80)),	 # F 
+            (10, (179,227,245)), # Ne
+            (11, (171,92,242)),	 # Na 
+            (12, (138,255,0)),	 # Mg  
+            (13, (191,166,166)), # Al
+            (14, (240,200,160)), # Si
+            (15, (255,128,0)),	 # P  
+            (16, (255,255,48)),	 # S 
+            (17, (31,240,31)),	 # Cl  
+            (18, (128,209,227)), # Ar
+            (19, (143,64,212)),	 # K 
+            (20, (61,255,0)),	 # Ca   
+            (21, (230,230,230)), # Sc
+            (22, (191,194,199)), # Ti
+            (23, (166,166,171)), # V
+            (24, (138,153,199)), # Cr
+            (25, (156,122,199)), # Mn
+            (26, (224,102,51)),	 # Fe 
+            (27, (240,144,160)), # Co
+            (28, (80,208,80)),	 # Ni  
+            (29, (200,128,51)),	 # Cu 
+            (30, (125,128,176)), # Zn
+            (31, (194,143,143)), # Ga
+            (32, (102,143,143)), # Ge
+            (33, (189,128,227)), # As
+            (34, (255,161,0)),	 # Se  
+            (35, (166,41,41)),	 # Br  
+            (36, (92,184,209)),	 # Kr 
+            (37, (112,46,176)),	 # Rb 
+            (38, (0,255,0)),	 # Sr    
+            (39, (148,255,255)), # Y
+            (40, (148,224,224)), # Zr
+            (41, (115,194,201)), # Nb
+            (42, (84,181,181)),	 # Mo 
+            (43, (59,158,158)),	 # Tc 
+            (44, (36,143,143)),	 # Ru 
+            (45, (10,125,140)),	 # Rh 
+            (46, (0,105,133)),	 # Pd  
+            (47, (192,192,192)), # Ag
+            (48, (255,217,143)), # Cd
+            (49, (166,117,115)), # In
+            (50, (102,128,128)), # Sn
+            (51, (158,99,181)),	 # Sb 
+            (52, (212,122,0)),	 # Te  
+            (53, (148,0,148)),	 # I  
+            (54, (66,158,176)),	 # Xe 
+            (55, (87,23,143)),	 # Cs  
+            (56, (0,201,0)),	 # Ba    
+            (57, (112,212,255)), # La
+            (58, (255,255,199)), # Ce
+            (59, (217,255,199)), # Pr
+            (60, (199,255,199)), # Nd
+            (61, (163,255,199)), # Pm
+            (62, (143,255,199)), # Sm
+            (63, (97,255,199)),	 # Eu 
+            (64, (69,255,199)),	 # Gd 
+            (65, (48,255,199)),	 # Tb 
+            (66, (31,255,199)),	 # Dy 
+            (67, (0,255,156)),	 # Ho  
+            (68, (0,230,117)),	 # Er  
+            (69, (0,212,82)),	 # Tm   
+            (70, (0,191,56)),	 # Yb   
+            (71, (0,171,36)),	 # Lu   
+            (72, (77,194,255)),	 # Hf 
+            (73, (77,166,255)),	 # Ta 
+            (74, (33,148,214)),	 # W 
+            (75, (38,125,171)),	 # Re 
+            (76, (38,102,150)),	 # Os 
+            (77, (23,84,135)),	 # Ir  
+            (78, (208,208,224)), # Pt
+            (79, (255,209,35)),	 # Au 
+            (80, (184,184,208)), # Hg
+            (81, (166,84,77)),	 # Tl  
+            (82, (87,89,97)),	 # Pb   
+            (83, (158,79,181)),	 # Bi 
+            (84, (171,92,0)),	 # Po   
+            (85, (117,79,69)),	 # At  
+            (86, (66,130,150)),	 # Rn 
+            (87, (66,0,102)),	 # Fr   
+            (88, (0,125,0)),	 # Ra    
+            (89, (112,171,250)), # Ac
+            (90, (0,186,255)),	 # Th  
+            (91, (0,161,255)),	 # Pa  
+            (92, (0,143,255)),	 # U  
+            (93, (0,128,255)),	 # Np  
+            (94, (0,107,255)),	 # Pu  
+            (95, (84,92,242)),	 # Am  
+            (96, (120,92,227)),	 # Cm 
+            (97, (138,79,227)),	 # Bk 
+            (98, (161,54,212)),	 # Cf 
+            (99, (179,31,212)),	 # Es 
+            (100, (179,31,186)), # Fm 
+            (101, (179,13,166)), # Md 
+            (102, (189,13,135)), # No 
+            (103, (199,0,102)),	 # Lr  
+            (104, (204,0,89)),	 # Rf   
+            (105, (209,0,79)),	 # Db   
+            (106, (217,0,69)),	 # Sg   
+            (107, (224,0,56)),	 # Bh   
+            (108, (230,0,46)),	 # Hs   
+            (109, (235,0,38)),	 # Mt   
+        )
+        for e, rgb in colors:
+            ec[e,:3] = rgb
+
     colors = element_rgba_256[element_numbers]
     return colors
 
@@ -581,6 +720,45 @@ def show_atoms(show, atoms, session):
         asr = atoms.evaluate(session)
         asr.atoms.displays = show
         update_model_graphics(asr.models)
+
+# -----------------------------------------------------------------------------
+# Wrap an AtomBlob and have a molecules attribute.
+#
+class Atoms:
+    def __init__(self, aspec = None):
+        if aspec is None:
+            from . import structaccess
+            atoms = structaccess.AtomBlob()
+            mols = ()
+        else:
+            atoms = aspec.atoms
+            mols = tuple(m for m in aspec.models if isinstance(m, StructureModel)) 
+        self._atoms = atoms
+        self.molecules = mols
+    def __len__(self):
+        return len(self._atoms)
+    def __getattr__(self, name):
+        return getattr(self._atoms, name)
+#    def __setattr__(self, name, value):
+#        return setattr(self._atoms, name, value)
+    def move_atoms(self, tf):
+        if len(self._atoms) > 0:
+            self._atoms.coords = tf * self._atoms.coords
+
+# -----------------------------------------------------------------------------
+# Wrap an AtomBlob and have a molecules attribute.
+#
+from . import cli
+class AtomsArg(cli.Annotation):
+    """Annotation for atoms"""
+    name = "atoms"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        asr = aspec.evaluate(session)
+        return Atoms(asr), text, rest
 
 # -----------------------------------------------------------------------------
 #

@@ -17,6 +17,7 @@ static void
 AtomBlob_dealloc(PyObject* obj)
 {
     AtomBlob* self = static_cast<AtomBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);

@@ -13,6 +13,7 @@
 #include "Pseudobond.h"
 #include "Ring.h"
 #include <basegeom/Graph.h>
+#include <basegeom/destruct.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -45,7 +46,6 @@ public:
     typedef std::unordered_set<Ring> Rings;
 private:
     CoordSet *  _active_coord_set;
-    bool  _being_destroyed;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
     mutable Chains *  _chains;
@@ -72,11 +72,16 @@ private:
     mutable std::set<const Residue *>*  _rings_last_ignore;
 public:
     AtomicStructure(PyObject* logger = nullptr);
-    virtual  ~AtomicStructure() { _being_destroyed = true; }
+    virtual  ~AtomicStructure() {
+        // assign to variable so that it lives to end of destructor
+        auto du = basegeom::DestructionUser(this);
+        // force immediate destruction of certain items
+        // while DestructionUser active
+        _residues.clear();
+    }
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    bool  being_destroyed() const { return _being_destroyed; }
     std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
@@ -129,6 +134,8 @@ public:
 #include "Atom.h"
 inline void
 atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
+    // assign to DestructionUser to var so it's not immediately destroyed!
+    auto du = basegeom::DestructionUser(a);
     for (auto b: a->bonds()) delete_bond(b);
     delete_vertex(a);
     if (a->element().number() == 1)

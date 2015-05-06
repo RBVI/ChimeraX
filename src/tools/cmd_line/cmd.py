@@ -4,13 +4,13 @@ from chimera.core import cli
 
 
 def _get_gui(session, create=False):
-    from .gui import CmdLine
-    running = session.tools.find_by_class(CmdLine)
+    from .gui import CommandLine
+    running = session.tools.find_by_class(CommandLine)
     if len(running) > 1:
         raise RuntimeError("too many command line instances running")
     if not running:
         if create:
-            return CmdLine(session)
+            return CommandLine(session)
         else:
             return None
     else:
