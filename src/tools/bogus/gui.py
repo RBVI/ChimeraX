@@ -37,8 +37,8 @@ ACTION_BUTTONS
 </body>
 </html>"""
 
-    def __init__(self, session):
-        super().__init__(session)
+    def __init__(self, session, tool_info):
+        super().__init__(session, tool_info)
 
         self.display_name = "Open Models"
         self.tool_window = session.ui.create_main_tool_window(self,

@@ -980,7 +980,7 @@ class ToolInfo:
         True if this tool is installed locally; False otherwise.
     menu_categories : list of str
         List of categories in which this tool belong.
-    name : str
+    name : readonly str
         The internal name of the tool.
     synopsis : readonly str
         Short description of this tool.

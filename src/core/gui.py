@@ -6,6 +6,7 @@ import wx
 class UI(wx.App):
 
     def __init__(self, session):
+        self.is_gui = True
         self.session = session
         wx.App.__init__(self)
 
@@ -41,20 +42,13 @@ class UI(wx.App):
 
         self._keystroke_sinks = []
 
-    def build(self, load_tools):
-        self.splash.Close()
+    def build(self):
         self.main_window = MainWindow(self, self.session)
         self.main_window.Show(True)
         self.SetTopWindow(self.main_window)
-        if load_tools:
-            from .toolshed import ToolshedError
-            for ti in self.session.toolshed.tool_info():
-                try:
-                    ti.start(self.session)
-                except ToolshedError as e:
-                    self.session.logger.info("Tool \"%s\" failed to start"
-                                             % ti.name)
-                    print("{}".format(e))
+
+    def close_splash(self):
+        self.splash.Close()
 
     def create_child_tool_window(self, tool_instance, title=None,
             size=None, destroy_hides=False):
@@ -301,6 +295,8 @@ class MainWindow(wx.Frame, PlainTextLog):
             for cat in ti.menu_categories:
                 categories.setdefault(cat, {})[ti.display_name] = ti
         for cat in sorted(categories.keys()):
+            if cat == "Hidden":
+                continue
             cat_menu = wx.Menu()
             tools_menu.Append(wx.ID_ANY, cat, cat_menu)
             cat_info = categories[cat]

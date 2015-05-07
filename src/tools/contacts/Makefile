@@ -16,7 +16,7 @@ PKG_DESCRIPTION = Display chain contact maps
 TOOL_NAME = contacts
 TOOL_PKG_NAME = chimera.contacts
 TOOL_DISPLAY_NAME = Chain Contacts
-TOOL_CATEGORY = General
+TOOL_CATEGORY = Hidden
 TOOL_SYNOPSIS = Display chain contact graph
 COMMAND_NAME = contacts
 

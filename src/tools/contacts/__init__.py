@@ -5,8 +5,14 @@
 # 'start_tool' is called to start an instance of the tool
 #
 def start_tool(session, ti):
-    # GUI started by command
-    pass
+    # GUI started by command, so this is for restoring sessions
+    if not session.ui.is_gui:
+        return None
+    from .gui import Plot
+    return Plot(session, ti)
+
+
+# no commands
 
 #
 # 'register_command' is called by the toolshed on start up

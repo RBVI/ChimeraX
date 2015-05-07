@@ -21,12 +21,21 @@ class _Graphics(configfile.Section):
         'silhouette': False,
     }
 
+class _Tools(configfile.Section):
+
+    PROPERTY_INFO = {
+        # autostart map_series_gui until alternate means of installing
+        # trigger is found
+        'autostart': ['cmd_line', 'log', 'sideview', 'map_series_gui'],
+    }
+
 
 class _Preferences(configfile.ConfigFile):
 
     def __init__(self, session):
         configfile.ConfigFile.__init__(self, session, "chimera.core")
         self.graphics = _Graphics(self, 'graphics')
+        self.tools = _Tools(self, 'tools')
 
 
 def get():

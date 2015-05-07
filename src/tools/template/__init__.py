@@ -9,9 +9,10 @@ def start_tool(session, ti):
     # look at the name in 'ti.name' to see which is being started.
 
     # Starting tools may only work in GUI mode, or in all modes.
-    # Here, we check for GUI-only tool.
+    # If a tool instance is SESSION_ENDURING, then return the
+    # singleton.
     from .gui import ToolUI
-    ToolUI(session)     # UI should register itself with tool state manager
+    return ToolUI(session, ti)     # UI should register itself with tool state manager
 
 
 #

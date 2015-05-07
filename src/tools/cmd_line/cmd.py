@@ -3,14 +3,17 @@
 from chimera.core import cli
 
 
-def _get_gui(session, create=False):
+def get_singleton(session, create=False):
+    if not session.ui.is_gui:
+        return None
     from .gui import CommandLine
     running = session.tools.find_by_class(CommandLine)
     if len(running) > 1:
         raise RuntimeError("too many command line instances running")
     if not running:
         if create:
-            return CommandLine(session)
+            tool_info = session.toolshed.find_tool('cmd_line')
+            return CommandLine(session, tool_info)
         else:
             return None
     else:
@@ -18,14 +21,14 @@ def _get_gui(session, create=False):
 
 
 def hide(session):
-    cmdline = _get_gui(session)
+    cmdline = get_singleton(session)
     if cmdline is not None:
         cmdline.display(False)
 hide_desc = cli.CmdDesc()
 
 
 def show(session):
-    cmdline = _get_gui(session, create=True)
+    cmdline = get_singleton(session, create=True)
     if cmdline is not None:
         cmdline.display(True)
 show_desc = cli.CmdDesc()

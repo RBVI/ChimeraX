@@ -287,8 +287,8 @@ class SideViewUI(ToolInstance):
     SIZE = (300, 200)
     VERSION = 1
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
         self.tool_window = session.ui.create_main_tool_window(
             self, size=self.SIZE)
         parent = self.tool_window.ui_area

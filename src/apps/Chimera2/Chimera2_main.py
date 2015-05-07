@@ -234,7 +234,11 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
     # splash step "0" will happen in the above initialization
-    num_splash_steps = 4 if opts.gui else 3
+    num_splash_steps = 3
+    if opts.gui:
+        num_splash_steps += 1
+    if not opts.gui and opts.load_tools:
+        num_splash_steps += 1
     import itertools
     splash_step = itertools.count()
 
@@ -284,11 +288,20 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         if not opts.silent:
             sess.ui.splash_info("Starting main interface",
                                 next(splash_step), num_splash_steps)
-        sess.ui.build(opts.load_tools)
+        sess.ui.build()
+
+    if opts.load_tools:
+        if not opts.silent:
+            sess.ui.splash_info("loading autostart tools",
+                                next(splash_step), num_splash_steps)
+        sess.tools.autostart()
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
+
+    if opts.gui:
+        sess.ui.close_splash()
 
     if opts.module:
         import runpy
