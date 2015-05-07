@@ -73,7 +73,9 @@ class ToolInstance(State):
 
     @property
     def session(self):
-        """Read-only property for session that contains this tool instance.""" return self._session() 
+        """Read-only property for session that contains this tool instance."""
+        return self._session() 
+
     def delete(self):
         """Delete this tool instance.
 
