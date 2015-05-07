@@ -8,6 +8,9 @@ class CommandLine(ToolInstance):
     SIZE = (500, 25)
     VERSION = 1
 
+    record_label = "Command History..."
+    compact_label = "Remove duplicate consecutive commands"
+
     def __init__(self, session, **kw):
         super().__init__(session, **kw)
         self.tool_window = session.ui.create_main_tool_window(self,
@@ -19,9 +22,11 @@ class CommandLine(ToolInstance):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
+        self.history_dialog = _HistoryDialog(self)
         self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
         self.text.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.tool_window.manage(placement="bottom")
+        self.history_dialog.populate()
         session.ui.register_for_keystrokes(self)
         session.tools.add([self])
         self._last_thumb = None
@@ -131,3 +136,23 @@ class CommandLine(ToolInstance):
     def display(self, b):
         """Show or hide command line user interface."""
         self.tool_window.shown = b
+
+class _HistoryDialog:
+    def __init__(self, controller):
+        # make dialog hidden initially
+        self.controller = controller
+        self.window = controller.session.ui.create_child_tool_window(
+            controller, title="Command History", destroy_hides=True)
+
+        parent = self.window.ui_area
+        import wx
+        self.listbox = wx.ListBox(parent,
+                                style=wx.LB_EXTENDED | wx.LB_NEEDED_SB)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.listbox, 1, wx.EXPAND)
+        parent.SetSizerAndFit(sizer)
+        self.window.manage(placement=None)
+        self.window.shown = False
+
+    def populate(self):
+        pass # waiting for Greg to implement non-auto-unique-ifying history
