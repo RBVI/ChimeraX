@@ -289,7 +289,7 @@ class Tools(State):
         from . import preferences
         prefs = preferences.get()
         for ti in session.toolshed.tool_info():
-            if ti.name not in prefs.tools.autostart:
+            if ti.name not in prefs.autostart:
                 continue
             try:
                 ti.start(session)
