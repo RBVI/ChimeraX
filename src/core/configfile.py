@@ -251,8 +251,10 @@ class ConfigFile:
         major_version = ver[0]
         self._session = session
         self._on_disk = False
+        # affirm that properties don't conflict with methods
+        for method in dir(self):
+            assert(method not in self.PROPERTY_INFO)
         # convert all property information to Values
-        assert('save' not in self.PROPERTY_INFO)
         for name, value in self.PROPERTY_INFO.items():
             if not isinstance(value, Value):
                 self.PROPERTY_INFO[name] = Value(value)
@@ -299,30 +301,17 @@ class ConfigFile:
         self._config['DEFAULT'].clear()
         self.save()
 
-    def migrate_from(self, old, version):
-        """Migrate identical settings from old configuration.
-
-        Parameters
-        ----------
-        old : instance Section-subclass for old section
-        version : old version "number"
-        """
-        for name in self.PROPERTY_INFO:
-            if hasattr(old._config['DEFAULT'], name):
-                setattr(self, name, old._config['DEFAULT'][name])
-        self.save()
-
     def __getattr__(self, name):
         if name not in self.PROPERTY_INFO:
             raise AttributeError(name)
-        if name not in self._config['DEFAULT'] or only_use_defaults:
+        if only_use_defaults or name not in self._config['DEFAULT']:
             value = self.PROPERTY_INFO[name].default
         else:
             try:
                 value = self.PROPERTY_INFO[name].convert_from_string(
-                    self._config._session, self._section['DEFAULT'][name])
+                    self._session, self._section['DEFAULT'][name])
             except ValueError as e:
-                self._config._session.logger.warning(
+                self._session.logger.warning(
                     "Invalid %s.%s value, using default: %s" %
                     (self._name, name, e))
                 value = self.PROPERTY_INFO[name].default
@@ -343,11 +332,49 @@ class ConfigFile:
         else:
             try:
                 str_value = self.PROPERTY_INFO[name].convert_to_string(
-                    self._config._session, value)
+                    self._session, value)
             except ValueError:
                 raise UserError("Illegal %s.%s value, unchanged" %
                                 (self._name, name))
             self._config['DEFAULT'][name] = str_value
+        self.save()
+
+    def update(self, dict_iter=None, **kw):
+        """Update all corresponding items from dict or iterator or keywords.
+
+        Treat preferences as a dictionary and :py:meth:`~dict.update` them.
+
+        Parameters
+        ----------
+        dict_iter : dict/iterator
+        **kw : optional name, value items
+        """
+        if hasattr(dict_iter, 'keys'):
+            for name, value in dict_iter.items():
+                if name not in self._config:
+                    continue
+                setattr(self, name, value)
+        elif dict_iter:
+            for name, value in dict_iter:
+                if name not in self._config:
+                    continue
+                setattr(self, name, value)
+        for name, value in kw.items():
+            if name not in self._config:
+                continue
+            setattr(self, name, value)
+
+    def migrate_from(self, old, version):
+        """Migrate identical settings from old configuration.
+
+        Parameters
+        ----------
+        old : instance Section-subclass for old section
+        version : old version "number"
+        """
+        for name in self.PROPERTY_INFO:
+            if hasattr(old._config['DEFAULT'], name):
+                setattr(self, name, old._config['DEFAULT'][name])
         self.save()
 
     def migrate_value(self, name, old_name, old_from_str, convert):
@@ -461,13 +488,14 @@ if __name__ == '__main__':
 
     assert(not prefs.on_disk())
 
-    prefs.log.log_level = 4
-    prefs.log.save()
+    prefs.log_level = 4
+    prefs.save()
     # confirm log level is in file
     assert(0 == os.system("grep -q log_level '%s'" % prefs._filename))
+    raise SystemExit(42)
 
-    prefs.log.log_level = 1
-    prefs.log.save()
+    prefs.log_level = 1
+    prefs.save()
     # confirm log level is not in file
     assert(0 != os.system("grep -q log_level '%s'" % prefs._filename))
 
