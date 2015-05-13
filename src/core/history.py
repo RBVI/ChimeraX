@@ -15,12 +15,12 @@ from .orderedset import OrderedSet
 
 
 def filename(session, tag, unversioned=True):
-    """Return appropriate filename for history file.
+    """Return appropriate filename for cache file.
     
     Parameters
     ----------
     session : :py:class:`~chimera.core.session.Session` instance
-    tag : str, a "unique" tag to identify the history
+    tag : str, a unique tag to identify the history
     unversioned : bool, optional
 
         If *unversioned* is True, then the history is kept
@@ -33,14 +33,18 @@ def filename(session, tag, unversioned=True):
     return os.path.join(cache_dir, tag)
 
 
-class JSONHistory:
-    """Use JSON to serialize and deserialize history object.
+class ObjectCache:
+    """Maintain an object in application's cache on disk.
 
     Parameters
     ----------
     session : :py:class:`~chimera.core.session.Session` instance
-    tag : str, a "unique" tag to identify the history
+    tag : str, a unique tag to identify the cache
     unversioned : bool, optional, defaults to False
+
+    Notes
+    -----
+    Uses JSON to serialize and deserialize history object.
     """
 
     def __init__(self, session, tag, unversioned=True):
@@ -69,8 +73,78 @@ class JSONHistory:
             json.dump(obj, f, ensure_ascii=False)
 
 
+class FIFOHistory:
+    """A fixed capacity FIFO queue with backing store.
+
+    Parameters
+    ----------
+    capacity : int, a limit on the number of items in the history
+    session : :py:class:`~chimera.core.session.Session` instance
+    tag : str, a unique tag to identify the history
+    unversioned : bool, optional, defaults to True
+    auto_save : bool, optional, defaults to True
+
+        If *unversioned* is true, then the history is
+        for all versions of application.
+        If *auto_save* is true, then the history is flushed to disk everyime
+        it is updated.
+
+    Notes
+    -----
+    Iterating returns oldest first.
+    """
+    # FIFO from http://code.activestate.com/recipes/68436/
+
+    def __init__(self, capacity, session, tag, unversioned=True,
+            auto_save=True):
+        self._capacity = capacity
+        self._auto_save = auto_save
+        self._history = ObjectCache(session, tag, unversioned)
+        obj = self._history.load()
+        if obj is None:
+            obj = ([], [])
+        if (not isinstance(obj, list) or len(obj) != 2 or
+                not isinstance(obj[0], list) or not isinstance(obj[1], list)):
+            session.logger.warning("Corrupt %s history: cleared" % tag)
+            obj = ([], [])
+        self._front, self._back = obj
+        while len(self._front) + len(self._back) > self._capacity:
+            self.dequeue()
+
+    def enqueue(self, value):
+        self._back.append(value)
+        while len(self._front) + len(self._back) > self._capacity:
+            self.dequeue(_skip_save=True)
+        if self._auto_save:
+            self.save()
+
+    def dequeue(self, _skip_save=False):
+        front = self._front
+        if not front:
+            self._front, self._back = self.back, front
+            front = self._front
+            front.reverse()
+        value = front.pop()
+        if not _skip_save and self._auto_save:
+            self.save()
+        return value
+
+    def clear(self):
+        self._front.clear()
+        self._back.clear()
+
+    def save(self):
+        """Save fifo to history file."""
+        obj = (self._front, self._back)
+        self._history.save(obj)
+
+    def __iter__(self):
+        import itertools
+        return itertools.chain(self._front, reversed(self._back))
+
+
 class LRUSetHistory(OrderedSet):
-    """LRU set with fixed capacity with backing store.
+    """A fixed capacity LRU set with backing store.
 
     Saves and restores a set of data from a history file.
     Use the :py:meth:`add` method to put items into the set
@@ -82,7 +156,7 @@ class LRUSetHistory(OrderedSet):
     ----------
     capacity : int, a limit on the number of items in the history
     session : :py:class:`~chimera.core.session.Session` instance
-    tag : str, a "unique" tag to identify the history
+    tag : str, a unique tag to identify the history
     unversioned : bool, optional, defaults to True
     auto_save : bool, optional, defaults to True
 
@@ -96,7 +170,7 @@ class LRUSetHistory(OrderedSet):
             auto_save=True):
         self._capacity = capacity
         self._auto_save = auto_save
-        self._history = JSONHistory(session, tag, unversioned)
+        self._history = ObjectCache(session, tag, unversioned)
         obj = self._history.load()
         if obj is None:
             obj = []

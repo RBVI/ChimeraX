@@ -22,9 +22,11 @@ PYSRCS = $(wildcard *.py) $(GENSRCS)
 CORE_VERSION = 2.0
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
+.FORCE: wheel
+
 all: $(PYOBJS)
 
-install: dir _atomspec.py
+install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
@@ -34,7 +36,7 @@ app-install: wheel
 	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
-wheel: setup.py timestamp always
+wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
 
 setup.py: setup.py.in
@@ -50,8 +52,6 @@ setup.py: setup.py.in
 
 timestamp:
 	echo "chimera.core" > timestamp
-
-always:
 
 lint:
 	$(PYLINT) $(PYSRCS)
