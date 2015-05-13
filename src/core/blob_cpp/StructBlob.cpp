@@ -202,6 +202,20 @@ sb_pbg_map(PyObject* self, void*)
 }
 
 static PyObject*
+sb_residues(PyObject* self, void*)
+{
+    PyObject* py_rb = new_blob<ResBlob>(&ResBlob_type);
+    ResBlob* rb = static_cast<ResBlob*>(py_rb);
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
+        const AtomicStructure::Residues& residues = (*si).get()->residues();
+        for (auto ri = residues.begin(); ri != residues.end(); ++ri)
+            rb->_items->emplace_back((*ri).get());
+    }
+    return py_rb;
+}
+
+static PyObject*
 sb_structures(PyObject* self, void*)
 {
     StructBlob* sb = static_cast<StructBlob*>(self);
@@ -217,20 +231,6 @@ sb_structures(PyObject* self, void*)
         single_sb->_items->push_back(*si);
     }
     return struct_list;
-}
-
-static PyObject*
-sb_residues(PyObject* self, void*)
-{
-    PyObject* py_rb = new_blob<ResBlob>(&ResBlob_type);
-    ResBlob* rb = static_cast<ResBlob*>(py_rb);
-    StructBlob* sb = static_cast<StructBlob*>(self);
-    for (auto si = sb->_items->begin(); si != sb->_items->end(); ++si) {
-        const AtomicStructure::Residues& residues = (*si).get()->residues();
-        for (auto ri = residues.begin(); ri != residues.end(); ++ri)
-            rb->_items->emplace_back((*ri).get());
-    }
-    return py_rb;
 }
 
 static PyMethodDef StructBlob_methods[] = {
