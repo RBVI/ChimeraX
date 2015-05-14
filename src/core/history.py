@@ -103,11 +103,11 @@ class FIFOHistory:
         self._history = ObjectCache(session, tag, unversioned)
         obj = self._history.load()
         if obj is None:
-            obj = ([], [])
+            obj = [[], []]
         if (not isinstance(obj, list) or len(obj) != 2 or
                 not isinstance(obj[0], list) or not isinstance(obj[1], list)):
             session.logger.warning("Corrupt %s history: cleared" % tag)
-            obj = ([], [])
+            obj = [[], []]
         self._front, self._back = obj
         while len(self._front) + len(self._back) > self._capacity:
             self.dequeue()
@@ -138,6 +138,9 @@ class FIFOHistory:
         """Save fifo to history file."""
         obj = (self._front, self._back)
         self._history.save(obj)
+
+    def __len__(self):
+        return len(self._front) + len(self._back)
 
     def __iter__(self):
         import itertools
