@@ -30,6 +30,7 @@ def filename(session, tag, unversioned=True):
         cache_dir = session.app_dirs_unversioned.user_cache_dir
     else:
         cache_dir = session.app_dirs.user_cache_dir
+    import os
     return os.path.join(cache_dir, tag)
 
 
