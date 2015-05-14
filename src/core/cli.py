@@ -1684,7 +1684,7 @@ def html_usage(name):
             type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
         usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
     if ci.synopsis:
-        usage += '<br>%s' % ci.synopsis
+        usage += '<br/>%s' % ci.synopsis
     return usage
 
 
