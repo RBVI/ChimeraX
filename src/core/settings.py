@@ -14,18 +14,17 @@ def _set_cmd(session, bg_color=None, silhouette=None):
     view = session.main_view
     if bg_color is not None:
         had_arg = True
-        view.background_color = value.rgba
+        view.background_color = bg_color.rgba
         view.redraw_needed = True
     if silhouette is not None:
         had_arg = True
-        view.silhouette = value
+        view.silhouette = silhouette
         view.redraw_needed = True
     if had_arg:
         return
     print('Current settings:\n'
-      '  bg_color:', view.gbackground_color, '\n'
-      '  silhouette:', view.silhouette, '\n'
-    )
+          '  bg_color:', view.gbackground_color, '\n'
+          '  silhouette:', view.silhouette, '\n')
 
 _set_desc = cli.CmdDesc(
     keyword=[('bg_color', color.ColorArg),
