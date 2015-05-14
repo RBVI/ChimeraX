@@ -199,6 +199,12 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
+def _user_kw(kw_name):
+    """Return user version of a keyword argument name."""
+    # Remove punctuation and case from keyword argument name.
+    return ''.join([c for c in kw_name if c not in '-_ ']).casefold()
+
+
 class UserError(ValueError):
     """An exception provoked by the user's input.
 
@@ -972,7 +978,7 @@ class CmdDesc:
         self._keyword = OrderedDict(keyword)
         self._keyword.update(self._optional)
         # keyword_map is what would user would type
-        self._keyword_map = dict([(_strip_punct(n), n) for n in self._keyword])
+        self._keyword_map = dict([(_user_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
         self.url = url
         self.synopsis = synopsis
@@ -1214,13 +1220,7 @@ def add_keyword_arguments(name, kw_info):
         raise ValueError("'%s' is not a command name" % name)
     # TODO: fail if there are conflicts with existing keywords?
     cmd._ci._keyword.update(kw_info)
-    cmd._ci._keyword_map = dict([(_strip_punct(n), n) for n in kw_info])
-    # TODO: save appropriate kw_info, if reregistered?
-
-
-def _strip_punct(s):
-    """remove punctuation from string"""
-    return ''.join([c for c in s if c.isalpha()]).casefold()
+    cmd._ci._keyword_map.update([(_user_kw(n), n) for n in kw_info])
 
 
 class Command:
@@ -1364,6 +1364,7 @@ class Command:
         #   updates possible completions
         #   if successful, sets self._ci
         self._error = "Missing command"
+        self.word_map = None  # filled in when partial command is matched
         word_map = _commands
         start = self.amount_parsed
         while 1:
@@ -1371,6 +1372,7 @@ class Command:
             self.amount_parsed = m.end()
             text = self.current_text[self.amount_parsed:]
             if not text:
+                self.word_map = word_map  # if caller interested in partial cmds
                 return
             word, chars, text = next_token(text)
             if _debugging:
@@ -1484,7 +1486,7 @@ class Command:
             if not word or word == ';':
                 break
 
-            arg_name = _strip_punct(word)
+            arg_name = _user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 self.completions = [x for x in self._ci._keyword_map
@@ -1612,23 +1614,30 @@ def usage(name):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(True)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed != len(cmd.current_text):
         raise ValueError("'%s' is not a command name" % name)
+
+    if cmd.word_map is not None:
+        # partial command match
+        usage = 'Choices are:\n'
+        usage += '\n'.join(['  %s %s' % (name, w)
+                                         for w in cmd.word_map])
+        return usage
 
     usage = cmd.command_name
     ci = cmd._ci
     for arg_name in ci._required:
-        arg_name = _strip_punct(arg_name)
-        usage += ' %s' % arg_name
+        type = ci._required[arg_name].name
+        usage += ' _%s_' % type
     num_opt = 0
     for arg_name in ci._optional:
-        arg_name = _strip_punct(arg_name)
-        usage += ' [%s' % arg_name
+        type = ci._optional[arg_name].name
+        usage += ' [_%s_' % type
         num_opt += 1
     usage += ']' * num_opt
     for arg_name in ci._keyword:
         type = ci._keyword[arg_name].name
-        arg_name = _strip_punct(arg_name)
+        arg_name = _user_kw(arg_name)
         usage += ' [%s _%s_]' % (arg_name, type)
     if ci.synopsis:
         usage += ' -- %s' % ci.synopsis
@@ -1644,10 +1653,18 @@ def html_usage(name):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(True)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
+    if cmd.amount_parsed != len(cmd.current_text):
         raise ValueError("'%s' is not a command name" % name)
-
     from html import escape
+
+    if cmd.word_map is not None:
+        # partial command match
+        usage = 'Choices are:<br/><ul>'
+        usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
+                                              for w in cmd.word_map])
+        usage += '</ul>'
+        return usage
+
     if cmd._ci.url is None:
         usage = '<b>%s</b>' % escape(cmd.command_name)
     else:
@@ -1656,7 +1673,7 @@ def html_usage(name):
     ci = cmd._ci
     for arg_name in ci._required:
         arg = ci._required[arg_name]
-        arg_name = _strip_punct(arg_name)
+        arg_name = _user_kw(arg_name)
         type = arg.name
         if arg.url is None:
             name = escape(arg_name)
@@ -1667,7 +1684,7 @@ def html_usage(name):
     for arg_name in ci._optional:
         num_opt += 1
         arg = ci._optional[arg_name]
-        arg_name = _strip_punct(arg_name)
+        arg_name = _user_kw(arg_name)
         type = arg.name
         if arg.url is None:
             name = escape(arg_name)
@@ -1677,7 +1694,7 @@ def html_usage(name):
     usage += ']' * num_opt
     for arg_name in ci._keyword:
         arg = ci._keyword[arg_name]
-        arg_name = _strip_punct(arg_name)
+        arg_name = _user_kw(arg_name)
         if arg.url is None:
             type = escape(arg.name)
         else:
@@ -2101,7 +2118,6 @@ if __name__ == '__main__':
         (False, True, 'alias plugh echo $* $*'),
         (False, True, 'plugh who'),
     ]
-    # TODO: delayed registration tests
     sys.stdout = sys.stderr
     successes = 0
     failures = 0
