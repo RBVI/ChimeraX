@@ -278,8 +278,8 @@ def register(session):
     cli.register('~display', _undisplay_desc, undisplay)
     cli.register('camera', _camera_desc, camera)
     cli.register('save', _save_desc, save)
-    from . import preferences
-    preferences.register_set_command()
+    from . import settings
+    settings.register_set_command()
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()

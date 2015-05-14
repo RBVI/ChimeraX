@@ -7,9 +7,9 @@ class Plot(ToolInstance):
 
     SIZE = (300, 300)
 
-    def __init__(self, session, title = 'Plot'):
+    def __init__(self, session, tool_info, title = 'Plot'):
 
-        super().__init__(session)
+        super().__init__(session, tool_info)
 
         from ..core.ui.tool_api import ToolWindow
         tw = ToolWindow(title, session, size=self.SIZE)

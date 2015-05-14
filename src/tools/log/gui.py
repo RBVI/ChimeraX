@@ -6,13 +6,14 @@ from chimera.core.logger import HtmlLog
 
 class Log(ToolInstance, HtmlLog):
 
+    SESSION_ENDURING = True
     SIZE = (300, 500)
     STATE_VERSION = 1
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
-        self.tool_window = session.ui.create_main_tool_window(self,
-                                      size=self.SIZE, destroy_hides=True)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
+        self.tool_window = session.ui.create_main_tool_window(
+            self, size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx
         wx.FileSystem.AddHandler(wx.MemoryFSHandler())
@@ -22,6 +23,8 @@ class Log(ToolInstance, HtmlLog):
         # so use HtmlWindow
         from wx.html import HtmlWindow
         self.log_window = HtmlWindow(parent, size=self.SIZE)
+        if "gtk2" in wx.PlatformInfo:
+            self.log_window.SetStandardFonts()
         self.page_source = ""
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.log_window, 1, wx.EXPAND)
@@ -50,7 +53,7 @@ class Log(ToolInstance, HtmlLog):
             png_data = img_io.getvalue()
             bitmap = wx.Bitmap.NewFromPNGData(png_data, len(png_data))
             wx.MemoryFSHandler.AddFile(mem_name, bitmap.ConvertToImage(),
-                wx.BITMAP_TYPE_PNG)
+                                       wx.BITMAP_TYPE_PNG)
             w, h = image.size
             self.page_source += '<img src="memory:{}" width={} height={}' \
                 ' style="vertical-align:middle">'.format(mem_name, w, h)
@@ -78,14 +81,14 @@ class Log(ToolInstance, HtmlLog):
                     lines = dlg_msg.split('\n')
                     dlg_msg = '\n'.join(lines[:20] + ["..."] + lines[-20:])
                 dlg = wx.MessageDialog(graphics, dlg_msg,
-                    caption=caption, style=style)
+                                       caption=caption, style=style)
                 dlg.ShowModal()
 
             if not is_html:
                 from html import escape
                 msg = escape(msg)
                 msg = msg.replace("\n", "<br>")
-            
+
             if level == self.LEVEL_ERROR:
                 msg = '<font color="red">' + msg + '</font>'
             elif level == self.LEVEL_WARNING:

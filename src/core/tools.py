@@ -39,55 +39,42 @@ class ToolInstance(State):
     In particularly, methods from `session.State` should be defined
     so that saving and restoring of scenes and sessions work properly.
 
+    Parameters
+    ----------
+    session : instance of chimera.core.session.Session
+        Session in which this tool instance was created.
+    tool_info : a :py:class:`~chimera.core.toolshed.ToolInfo` instance
+        The tool information used to create this tool.
+    id : int, optional
+        See attribute.
+
     Attributes
     ----------
     id : readonly int
         `id` is a unique identifier among ToolInstance instances
         registered with the session state manager.
     display_name : str
-        Name to display to user for this ToolInstance.  Defaults to
-        class name with:
-            1) Spaces inserted before upper case characters that follow
-                lower case characters
-            2) Underscores changed to spaces
-            3) Any trailing 'UI' or 'GUI' dropped
         If a different name is desired (e.g. multi-instance tool) make sure
         to set the attribute before creating the first tool window.
+        Defaults to ``tool_info.display_name``.
+    SESSION_ENDURING : bool, class-level optional
+        If True, then tools survives across sessions.
     """
 
-    def __init__(self, session, id=None, **kw):
-        """Initialize a ToolInstance.
+    SESSION_ENDURING = False
 
-        Parameters
-        ----------
-        session : instance of chimera.core.session.Session
-            Session in which this tool instance was created.
-
-        """
+    def __init__(self, session, tool_info, id=None, **kw):
         self.id = id
         import weakref
         self._session = weakref.ref(session)
-        disp_name = ""
-        preceding_lower = False
-        for c in self.__class__.__name__:
-            if preceding_lower and c.isupper():
-                disp_name += " "
-            if c == '_':
-                disp_name += ' '
-            else:
-                disp_name += c
-            preceding_lower = c.islower()
-        if disp_name.endswith('GUI'):
-            disp_name = disp_name[:-3]
-        elif disp_name.endswith('UI'):
-            disp_name = disp_name[:-2]
-        self.display_name = disp_name
+        self.tool_info = tool_info
+        self.display_name = tool_info.display_name
         # TODO: track.created(ToolInstance, [self])
 
     @property
     def session(self):
         """Read-only property for session that contains this tool instance."""
-        return self._session()
+        return self._session() 
 
     def delete(self):
         """Delete this tool instance.
@@ -161,7 +148,8 @@ class Tools(State):
         data = {}
         for tid, ti in self._tool_instances.items():
             assert(isinstance(ti, ToolInstance))
-            data[tid] = [session.unique_id(ti), ti.take_snapshot(session, flags)]
+            data[tid] = [ti.tool_info.name, ti.tool_info.version,
+                         session.unique_id(ti), ti.take_snapshot(session, flags)]
         return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
@@ -188,18 +176,15 @@ class Tools(State):
             raise RestoreError("Unexpected version or data")
 
         session = self._session()   # resolve back reference
-        for tid, [uid, [ti_version, ti_data]] in data.items():
+        for tid, [tool_name, tool_version, uid, [ti_version, ti_data]] in data.items():
             if phase == State.PHASE1:
+                t = session.toolshed.find_tool(tool_name, version=tool_version)
+                if t is None:
+                    # TODO: load tool from toolshed
+                    session.logger.error("Missing '%s' (internal name) tool" % tool_name)
+                    return
                 try:
-                    cls = session.class_of_unique_id(uid, ToolInstance)
-                except KeyError:
-                    class_name = session.class_name_of_unique_id(uid)
-                    session.logger.warning(
-                        "Unable to restore tool instance %s (%s)" %
-                        (tid, class_name))
-                    continue
-                try:
-                    ti = cls(session, id=tid)
+                    ti = t.start(session)
                     session.restore_unique_id(ti, uid)
                 except Exception as e:
                     class_name = session.class_name_of_unique_id(uid)
@@ -219,10 +204,12 @@ class Tools(State):
         tools, all registered tool instances are deleted.
 
         """
-        ti_list = list(self._tool_instances.values())
-        for ti in ti_list:
+        items = list(self._tool_instances.items())
+        for id, ti in items:
+            if ti.SESSION_ENDURING:
+                continue
             ti.delete()
-        self._tool_instances.clear()
+            assert(id not in self._tool_instances)
 
     def list(self):
         """Return list of running tools.
@@ -294,3 +281,19 @@ class Tools(State):
 
         """
         return [ti for ti in self._tool_instances.values() if isinstance(ti, cls)]
+
+    def autostart(self):
+        """Start tools that should start when applications starts up."""
+        session = self._session()   # resolve back reference
+        from .toolshed import ToolshedError
+        from . import preferences
+        prefs = preferences.get()
+        for ti in session.toolshed.tool_info():
+            if ti.name not in prefs.autostart:
+                continue
+            try:
+                ti.start(session)
+            except ToolshedError as e:
+                self.session.logger.info("Tool \"%s\" failed to start"
+                                         % ti.name)
+                print("{}".format(e))

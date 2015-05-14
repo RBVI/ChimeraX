@@ -20,7 +20,12 @@ class View:
         self._opengl_context = opengl_context
 
         # Red, green, blue, opacity, 0-1 range.
-        self._background_rgba = (0, 0, 0, 1)
+        try:
+            from .. import preferences
+            prefs = preferences.get()
+            self._background_rgba = prefs.bg_color.rgba
+        except ImportError:
+            self._background_rgba = (0, 0, 0, 1)
 
         # Create camera
         from .camera import Camera

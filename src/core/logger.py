@@ -6,8 +6,6 @@ logger: application log support
 This module is very important.
 """
 
-from abc import ABCMeta, abstractmethod
-
 
 class Log:
     """Base class for the "real" log classes: :py:class:`HtmlLog` and :py:class:`PlainTextLog`.
@@ -211,7 +209,8 @@ class Logger:
         self.logs.discard(log)
 
     def status(self, msg, color="black", log=False, secondary=False,
-            blank_after=None, follow_with="", follow_time=20, follow_log=None):
+               blank_after=None, follow_with="", follow_time=20,
+               follow_log=None):
         """Show status."""
         if log:
             self.info(msg)
@@ -236,9 +235,10 @@ class Logger:
 
         from threading import Timer
         if follow_with:
-            follow_timer = Timer(follow_time, lambda fw=follow_with,
-                clr=color, log=log, sec=secondary, fl=follow_log:
-                self._follow_timeout(fw, clr, log, sec, fl))
+            follow_timer = Timer(
+                follow_time,
+                lambda fw=follow_with, clr=color, log=log, sec=secondary,
+                fl=follow_log: self._follow_timeout(fw, clr, log, sec, fl))
             follow_timer.start()
         elif msg:
             if blank_after is None:
@@ -246,7 +246,7 @@ class Logger:
             if blank_after:
                 from threading import Timer
                 status_timer = Timer(blank_after, lambda sec=secondary:
-                    self._status_timeout(sec))
+                                     self._status_timeout(sec))
                 status_timer.start()
 
         if secondary:
@@ -273,7 +273,7 @@ class Logger:
         if follow_log is None:
             follow_log = log
         self.status(follow_with, color=color, log=follow_log,
-            secondary=secondary)
+                    secondary=secondary)
 
     def _html_to_plain(self, msg, image, is_html):
         if image:
@@ -294,7 +294,7 @@ class Logger:
 
         if add_newline:
             if is_html:
-                msg += "<br>"
+                msg += "<br/>"
             else:
                 msg += "\n"
 
@@ -324,7 +324,14 @@ class Logger:
             self._status_timer1 = None
         self.status("", secondary=secondary)
 
+
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
     from bs4 import BeautifulSoup
-    return BeautifulSoup(html).get_text()
+    # return BeautifulSoup(html).get_text() -- loses line breaks
+    bs = BeautifulSoup(html)
+    x = []
+    for result in bs:
+        s = result.string
+        x.append(s if s is not None else '\n')
+    return ''.join(x)

@@ -8,9 +8,9 @@ def start_tool(session, ti):
     # This function is simple because we "know" we only provide
     # a single tool in the entire package, so we do not need to
     # look at the name in 'ti.name'
-    from chimera.core import cli
-    cmd = cli.Command(session, "command_line show", final=True)
-    cmd.execute()
+    from . import cmd
+    cmd.show(session)
+    return cmd.get_singleton(session)
 
 
 #

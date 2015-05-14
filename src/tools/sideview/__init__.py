@@ -10,8 +10,10 @@ def start_tool(session, ti):
 
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
+    if not session.ui.is_gui:
+        return None
     from .gui import SideViewUI
-    SideViewUI(session)
+    return SideViewUI(session, ti)
 
 
 # no commands

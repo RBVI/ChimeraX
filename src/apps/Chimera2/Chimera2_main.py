@@ -168,12 +168,9 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     sess = session.Session()
     sess.app_name = app_name
     sess.debug = opts.debug
-    session.common_startup(sess)
-    # or:
-    #   sess.add_state_manager('scenes', session.Scenes(sess))
-    #   from chimera.core import models
-    #   sess.add_state_manager('models', models.Models(sess))
-    # etc.
+
+    from chimera.core import logger
+    sess.logger = logger.Logger(sess)
 
     # figure out the user/system directories for application
     executable = os.path.abspath(sys.argv[0])
@@ -223,6 +220,16 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
                         ad.site_config_dir, ad.user_log_dir, sess.app_data_dir,
                         adu.user_cache_dir)
 
+    from chimera.core import preferences
+    preferences.init(sess)
+
+    session.common_startup(sess)
+    # or:
+    #   sess.add_state_manager('scenes', session.Scenes(sess))
+    #   from chimera.core import models
+    #   sess.add_state_manager('models', models.Models(sess))
+    # etc.
+
     # initialize the user interface
     if opts.gui:
         from chimera.core import gui
@@ -234,16 +241,13 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
     # splash step "0" will happen in the above initialization
-    num_splash_steps = 4 if opts.gui else 3
+    num_splash_steps = 2
+    if opts.gui:
+        num_splash_steps += 1
+    if not opts.gui and opts.load_tools:
+        num_splash_steps += 1
     import itertools
     splash_step = itertools.count()
-
-    if not opts.silent:
-        sess.ui.splash_info("Getting preferences",
-                            next(splash_step), num_splash_steps)
-    from chimera.core import preferences
-    # Only pass part of session needed in function call
-    preferences.init(sess)
 
     # common core initialization
     if not opts.silent:
@@ -284,11 +288,20 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         if not opts.silent:
             sess.ui.splash_info("Starting main interface",
                                 next(splash_step), num_splash_steps)
-        sess.ui.build(opts.load_tools)
+        sess.ui.build()
+
+    if opts.load_tools:
+        if not opts.silent:
+            sess.ui.splash_info("loading autostart tools",
+                                next(splash_step), num_splash_steps)
+        sess.tools.autostart()
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
+
+    if opts.gui:
+        sess.ui.close_splash()
 
     if opts.module:
         import runpy

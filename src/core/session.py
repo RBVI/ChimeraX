@@ -107,14 +107,19 @@ class ParentState(State):
     """
 
     VERSION = 0
+    SKIP = 'skip'
     _child_attr_name = None  # replace in subclass
 
     def take_snapshot(self, session, flags):
         """Return snapshot of current state"""
         child_dict = getattr(self, self._child_attr_name)
-        data = {}
+        my_data = []
         for name, child in child_dict.items():
-            data[name] = child.take_snapshot(session, flags)
+            snapshot = child.take_snapshot(session, flags)
+            if snapshot is None:
+                continue
+            version, data = snapshot
+            my_data.append([tag, version, data])
         return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
@@ -123,12 +128,13 @@ class ParentState(State):
         if version != self.VERSION or not data:
             raise RestoreError("Unexpected version or data")
         child_dict = getattr(self, self._child_attr_name)
-        for name, [child_version, child_data] in data.items():
-            if name not in child_dict:
-                # TODO: warn about missing child
-                #       or create missing child to fill in
-                continue
-            child = child_dict[name]
+        for name, child_version, child_data in data:
+            if name in child_dict:
+                child = child_dict[name]
+            else:
+                child =self.missing_child(name)
+                if child is self.SKIP:
+                    continue
             child.restore_snapshot(phase, session, child_version, child_data)
 
     def reset_state(self):
@@ -136,6 +142,11 @@ class ParentState(State):
         child_dict = getattr(self, self._child_attr_name)
         for child in child_dict.values():
             child.reset_state()
+
+    def missing_child(self, name):
+        # TODO: warn about missing child (return self.SKIP)
+        #       or create missing child to fill in and return child
+        return self.SKIP
 
 
 class Scenes(State):
@@ -550,8 +561,6 @@ def common_startup(sess):
     """Initialize session with common data managers"""
     assert(hasattr(sess, 'app_name'))
     assert(hasattr(sess, 'debug'))
-    from . import logger
-    sess.logger = logger.Logger(sess)
     from . import triggerset
     sess.triggers = triggerset.TriggerSet()
     sess.scenes = Scenes(sess)

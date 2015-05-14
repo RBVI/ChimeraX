@@ -10,7 +10,7 @@ def start_tool(session, ti):
     except AttributeError:
         raise RuntimeError("cannot find UI for tool \"%s\"" % ti.name)
     else:
-        ui(session)
+        return ui(session, ti)
 
 
 def register_command(command_name):

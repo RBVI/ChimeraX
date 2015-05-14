@@ -62,7 +62,7 @@ class OpenGLCanvas(glcanvas.GLCanvas):
         from .. import preferences
         prefs = preferences.get()
         ppi = max(wx.GetDisplayPPI())
-        if ppi < prefs.graphics.multisample_threshold:
+        if ppi < prefs.multisample_threshold:
             # TODO: how to pick number of samples
             attribs += [glcanvas.WX_GL_SAMPLE_BUFFERS, 1,
                         glcanvas.WX_GL_SAMPLES, 4]

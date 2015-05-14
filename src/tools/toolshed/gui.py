@@ -44,18 +44,19 @@ from chimera.core.tools import ToolInstance
 
 class ToolshedUI(ToolInstance):
 
+    SESSION_ENDURING = True
     SIZE = (800, 50)
     VERSION = 1
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
         self.tool_window = session.ui.create_main_tool_window(self)
         parent = self.tool_window.ui_area
         from wx import html2
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
-                          self._OnNavigating,
+                          self._on_navigating,
                           id=self.webview.GetId())
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
@@ -68,7 +69,7 @@ class ToolshedUI(ToolInstance):
                                                        self._make_page)]
         session.tools.add([self])
 
-    def _OnNavigating(self, event):
+    def _on_navigating(self, event):
         session = self.session
         # Handle event
         url = event.GetURL()
@@ -183,15 +184,15 @@ class ToolshedUI(ToolInstance):
         return t
 
     def _show_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).display(True)
+        self._find_tool(session, tool_id).display(True)
         self._make_page()
 
     def _hide_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).display(False)
+        self._find_tool(session, tool_id).display(False)
         self._make_page()
 
     def _kill_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).delete()
+        self._find_tool(session, tool_id).delete()
         self._make_page()
 
     def button_test(self, session, *args):

@@ -5,14 +5,15 @@ from chimera.core.tools import ToolInstance
 
 class CommandLine(ToolInstance):
 
+    SESSION_ENDURING = True
     SIZE = (500, 25)
     VERSION = 1
 
     record_label = "Command History..."
     compact_label = "Remove duplicate consecutive commands"
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
         self.tool_window = session.ui.create_main_tool_window(self,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
@@ -23,8 +24,8 @@ class CommandLine(ToolInstance):
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
         self.history_dialog = _HistoryDialog(self)
-        self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
-        self.text.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+        self.text.Bind(wx.EVT_TEXT_ENTER, self.on_enter)
+        self.text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         self.tool_window.manage(placement="bottom")
         self.history_dialog.populate()
         session.ui.register_for_keystrokes(self)
@@ -33,7 +34,7 @@ class CommandLine(ToolInstance):
 
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
-            self.OnEnter(event)
+            self.on_enter(event)
         elif event.KeyCode == 315:        # Up arrow
             self.session.selection.promote()
         elif event.KeyCode == 317:        # Down arrow
@@ -43,7 +44,7 @@ class CommandLine(ToolInstance):
         else:
             self.text.EmulateKeyPress(event)
 
-    def OnEnter(self, event):
+    def on_enter(self, event):
         session = self.session
         logger = session.logger
         text = self.text.Value
@@ -73,8 +74,6 @@ class CommandLine(ToolInstance):
             else:
                 thumb = session.main_view.image(width=100, height=100)
                 log_thumb = False
-                from time import time
-                s_t = time()
                 if thumb.getcolors(1) is None:
                     # image not just a solid background color;
                     # ensure it differs from previous thumbnail
@@ -90,7 +89,7 @@ class CommandLine(ToolInstance):
         self.text.SetValue(text)
         self.text.SelectAll()
 
-    def OnKeyDown(self, event):
+    def on_key_down(self, event):
         # intercept up/down arrow
         if event.KeyCode == 315:  # up arrow
             self.session.logger.info("Up arrow")
