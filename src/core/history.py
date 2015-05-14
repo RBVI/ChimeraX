@@ -139,6 +139,9 @@ class FIFOHistory:
         obj = (self._front, self._back)
         self._history.save(obj)
 
+    def __len__(self):
+        return len(self._front) + len(self._back)
+
     def __iter__(self):
         import itertools
         return itertools.chain(self._front, reversed(self._back))
