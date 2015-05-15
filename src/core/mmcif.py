@@ -29,13 +29,12 @@ def open_mmcif(session, filename, name, *args, **kw):
     num_atoms = 0
     num_bonds = 0
     for structure_blob in structures:
-        model = structure.StructureModel(name)
+        model = structure.StructureModel(name, structure_blob)
         models.append(model)
-        model.mol_blob = structure_blob
         model.make_drawing()
 
-        num_atoms += model.mol_blob.num_atoms
-        num_bonds += model.mol_blob.num_bonds
+        num_atoms += structure_blob.num_atoms
+        num_bonds += structure_blob.num_bonds
 
     return models, ("Opened mmCIF data containing %d atoms and %d bonds"
                     % (num_atoms, num_bonds))

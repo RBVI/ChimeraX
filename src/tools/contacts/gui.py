@@ -11,8 +11,7 @@ class Plot(ToolInstance):
 
         super().__init__(session, tool_info)
 
-        from ..core.ui.tool_api import ToolWindow
-        tw = ToolWindow(title, session, size=self.SIZE)
+        tw = session.ui.create_main_tool_window(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -29,6 +28,9 @@ class Plot(ToolInstance):
         tw.manage(placement="right")
 
         self.axes = axes = f.gca()
+
+        # Add to running tool list for session (not required)
+        session.tools.add([self])
 
     def show(self):
         self.tool_window.shown = True
@@ -66,7 +68,8 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
     pos = nx.spring_layout(G) # positions for all nodes
 
     # Create matplotlib panel
-    p = Plot(session, 'Chain Contacts')
+    tool_info = session.toolshed.find_tool('contacts')
+    p = Plot(session, tool_info)
     a = p.axes
 
     # Draw nodes

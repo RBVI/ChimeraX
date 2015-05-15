@@ -55,7 +55,7 @@ def atom_spec_spheres(atom_spec, session, chains = False):
         from .structure import StructureModel
         for m in session.models.list():
             if isinstance(m, StructureModel):
-                a = m.mol_blob.atoms
+                a = m.atoms
                 if chains:
                     for cname, ci in chain_indices(a):
                         xyz, r = a.coords, a.radii
@@ -107,7 +107,9 @@ def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
     return surf
 
 def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
-    a = mol.atoms(exclude_water = True)
+    a = mol.atoms
+    from numpy import array
+    a = a.filter(array(a.residues.names) != 'HOH')     # exclude waters
     xyz, r = a.coords, a.radii
     from .surface import ses_surface_geometry
     va, na, ta = ses_surface_geometry(xyz, r, probe_radius, grid_spacing)
