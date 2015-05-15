@@ -143,23 +143,27 @@ class FIFOHistory:
         return len(self._front) + len(self._back)
 
     def __iter__(self):
+        # return oldest first
         import itertools
-        return itertools.chain(reversed(self._back), self._front)
+        return itertools.chain(reversed(self._front), self._back)
 
     def __getitem__(self, index):
-        if isinstance(index, slice):
-            raise NotImplemented
+        # return oldest first
         front_len = len(self._front)
         back_len = len(self._back)
         total_len = front_len + back_len
-        if i < -total_len or i >= total_len:
-            raise IndexError("index out of range")
-        if index < 0:
-            index += total_len
-        if index < back_len:
-            return self._back[back_len - 1 - index]
-        index -= back_len
-        return self._front[index]
+        if isinstance(index, int):
+            if index < -total_len or index >= total_len:
+                raise IndexError("index out of range")
+            if index < 0:
+                index += total_len
+            if index < front_len:
+                return self._front[front_len - 1 - index]
+            index -= front_len
+            return self._back[index]
+        if isinstance(index, slice):
+            return [self[i] for i in range(*index.indices(total_len))]
+        raise TypeError("Expected integer or slice")
 
 
 class LRUSetHistory(OrderedSet):
@@ -276,8 +280,9 @@ if __name__ == '__main__':
             assert(history[i] == v)
 
         print('test updated history', flush=True)
-        history.enqueue(2)
-        check_contents(testfile, [2, 3, 2])
+        history.enqueue(4)
+        check_contents(testfile, [4, 3, 2])
+        assert(history[-2:] == [3, 4])
 
     finally:
         if os.path.exists(testfile):
