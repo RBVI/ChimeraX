@@ -199,10 +199,16 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def _user_kw(kw_name):
-    """Return user version of a keyword argument name."""
+def _canonical_kw(kw_name):
+    """Return canonical version of a keyword argument name."""
     # Remove punctuation and case from keyword argument name.
     return ''.join([c for c in kw_name if c not in '-_ ']).casefold()
+
+
+def _user_kw(kw_name):
+    """Return user version of a keyword argument name."""
+    words = kw_name.split('_')
+    return words[0].lower() + ''.join([x.capitalize() for x in words[1:]])
 
 
 class UserError(ValueError):
@@ -978,7 +984,7 @@ class CmdDesc:
         self._keyword = OrderedDict(keyword)
         self._keyword.update(self._optional)
         # keyword_map is what would user would type
-        self._keyword_map = dict([(_user_kw(n), n) for n in self._keyword])
+        self._keyword_map = dict([(_canonical_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
         self.url = url
         self.synopsis = synopsis
@@ -1220,7 +1226,7 @@ def add_keyword_arguments(name, kw_info):
         raise ValueError("'%s' is not a command name" % name)
     # TODO: fail if there are conflicts with existing keywords?
     cmd._ci._keyword.update(kw_info)
-    cmd._ci._keyword_map.update([(_user_kw(n), n) for n in kw_info])
+    cmd._ci._keyword_map.update([(_canonical_kw(n), n) for n in kw_info])
 
 
 class Command:
@@ -1486,7 +1492,7 @@ class Command:
             if not word or word == ';':
                 break
 
-            arg_name = _user_kw(word)
+            arg_name = _canonical_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 self.completions = [x for x in self._ci._keyword_map
