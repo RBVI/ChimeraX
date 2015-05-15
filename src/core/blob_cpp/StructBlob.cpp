@@ -35,6 +35,20 @@ StructBlob_dealloc(PyObject* obj)
 static const char StructBlob_doc[] = "StructBlob documentation";
 
 static PyObject*
+sb_pointers(PyObject* self, void*)
+{
+    StructBlob* sb = static_cast<StructBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    unsigned int shape[1] = {(unsigned int)sb->_items->size()};
+    PyObject* ptrs = allocate_python_array(1, shape, NPY_UINTP);
+    void **p = (void **) PyArray_DATA((PyArrayObject*)ptrs);
+    for (auto s: *(sb->_items))
+      *p++ = s.get();
+    return ptrs;
+}
+
+static PyObject*
 sb_atoms(PyObject* self, void*)
 {
     PyObject* py_ab = new_blob<AtomBlob>(&AtomBlob_type);
@@ -278,6 +292,8 @@ static PyNumberMethods StructBlob_as_number = {
 };
 
 static PyGetSetDef StructBlob_getset[] = {
+    { (char*)"_struct_pointers", sb_pointers, NULL,
+        (char*)"numpy array of atomic structure pointers", NULL},
     { (char*)"atoms", sb_atoms, NULL,
         (char*)"AtomBlob", NULL},
     { (char*)"ball_scales", sb_ball_scales, sb_set_ball_scales,
