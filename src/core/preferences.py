@@ -17,7 +17,7 @@ class _Preferences(configfile.ConfigFile):
         'bg_color': configfile.Value(
             color.Color('#000'), color.ColorArg, color.Color.hex_with_alpha),
         'multisample_threshold': configfile.Value(
-            120, cli.NonNegativeIntArg, str),
+            0, cli.NonNegativeIntArg, str),
         'silhouette': False,
         # autostart map_series_gui until alternate means of installing
         # trigger is found
