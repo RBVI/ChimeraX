@@ -122,9 +122,12 @@ def help(session, command_name=None):
     except ValueError as e:
         status(str(e))
         return
-    status(usage)
-    info(cli.html_usage(command_name), is_html=True)
-_help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)],
+    if session.ui.is_gui:
+        status(usage)
+        info(cli.html_usage(command_name), is_html=True)
+    else:
+        info(usage)
+_help_desc = cli.CmdDesc(optional=[('command_name', cli.RestOfLine)],
                          synopsis='show command usage')
 
 

@@ -24,7 +24,9 @@ from __future__ import print_function
 import os
 import sys
 import plistlib
-from chimera.core import io, session
+from chimera.core import io, session, logger, configfile, preferences
+
+configfile.only_use_defaults = True
 
 app_name = sys.argv[1]
 
@@ -105,6 +107,8 @@ def dump_format(f):
 sess = session.Session()
 sess.app_name = "unknown"
 sess.debug = False
+sess.logger = logger.Logger(sess)
+preferences.init(sess)
 session.common_startup(sess)
 
 chimera_types = [f for f in io.formats() if f.startswith('Chimera')]
