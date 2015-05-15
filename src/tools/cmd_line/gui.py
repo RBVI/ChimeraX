@@ -31,6 +31,15 @@ class CommandLine(ToolInstance):
         session.ui.register_for_keystrokes(self)
         session.tools.add([self])
         self._last_thumb = None
+        # since only TextCtrls have the EmulateKeyPress method,
+        # create a completely hidden TextCtrl so that we can
+        # process forwarded keystrokes and copy the result back
+        # into the ComboBox!
+        self.kludge_text = wx.TextCtrl(parent)
+        self.kludge_text.Hide()
+
+    def cmd_replace(self, cmd):
+        self.text.SetValue(cmd)
 
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
@@ -42,7 +51,17 @@ class CommandLine(ToolInstance):
         elif event.KeyCode == 27:         # Escape
             self.session.keyboard_shortcuts.enable_shortcuts()
         else:
-            self.text.EmulateKeyPress(event)
+            # Only TextCtrls handle forwarded keystroke events,
+            # so copy the current ComboBox text state into a
+            # TextCtrl, apply the forwarded keystroke, and copy
+            # the result back (ugh)
+            self.kludge_text.Value = self.text.Value
+            self.kludge_text.SetInsertionPoint(self.text.InsertionPoint)
+            self.kludge_text.SetSelection(*self.text.GetTextSelection())
+            self.kludge_text.EmulateKeyPress(event)
+            self.text.Value = self.kludge_text.Value
+            self.text.SetInsertionPoint(self.kludge_text.InsertionPoint)
+            self.text.SetSelection(*self.kludge_text.GetSelection())
 
     def on_enter(self, event):
         session = self.session
@@ -53,7 +72,7 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
-            self.text.SetItems([cmd_text] + list(self.text.GetItems()[:19]))
+            self.history_dialog.add(cmd_text)
             try:
                 cmd = cli.Command(session, cmd_text, final=True)
                 cmd.execute()
@@ -64,9 +83,9 @@ class CommandLine(ToolInstance):
                 rest = cmd.current_text[cmd.amount_parsed:]
                 spaces = len(rest) - len(rest.lstrip())
                 error_at = cmd.amount_parsed + spaces
-                text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
+                err_text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
                     cmd.current_text, '.' * error_at, str(err))
-                logger.info(text, is_html=True)
+                logger.info(err_text, is_html=True)
                 logger.status(str(err))
             except:
                 import traceback
@@ -86,15 +105,15 @@ class CommandLine(ToolInstance):
                 session.logger.info(cmd_text)
                 if log_thumb:
                     session.logger.info("graphics image", image=thumb)
-        self.text.SetValue(text)
+        self.text.SetValue(cmd_text)
         self.text.SelectAll()
 
     def on_key_down(self, event):
         # intercept up/down arrow
         if event.KeyCode == 315:  # up arrow
-            self.session.logger.info("Up arrow")
+            self.history_dialog.up()
         elif event.KeyCode == 317:  # down arrow
-            self.session.logger.info("Down arrow")
+            self.history_dialog.down()
         else:
             # pass through other keys
             event.Skip()
@@ -137,6 +156,7 @@ class CommandLine(ToolInstance):
         self.tool_window.shown = b
 
 class _HistoryDialog:
+
     def __init__(self, controller):
         # make dialog hidden initially
         self.controller = controller
@@ -152,6 +172,48 @@ class _HistoryDialog:
         parent.SetSizerAndFit(sizer)
         self.window.manage(placement=None)
         self.window.shown = False
+        from chimera.core.history import FIFOHistory
+        self.history = FIFOHistory(500, controller.session, "command line")
+
+    def add(self, item):
+        self.listbox.Append(item)
+        self.history.enqueue(item)
+        self.listbox.SetSelection(len(self.history)-1)
+        self.update_list()
+
+    def down(self):
+        #TODO
+        pass
 
     def populate(self):
-        pass # waiting for Greg to implement non-auto-unique-ifying history
+        self.controller.session.logger.info("Setting items to: {}".format(repr([cmd for cmd in self.history])))
+        self.listbox.Items = [cmd for cmd in self.history]
+        self.listbox.selection = len(self.history) - 1
+        self.controller.text.SetSelection(-1, -1)
+        self.select()
+        self.update_list()
+        cursel = self.listbox.selection
+        import wx
+        if cursel != wx.NOT_FOUND:
+            self.listbox.EnsureVisible(cursel)
+
+    def select(self):
+        sels = self.listbox.GetSelections()
+        if len(sels) != 1:
+            return
+        self.controller.cmd_replace(sels[0])
+
+    def up(self):
+        sels = self.listbox.GetSelections()
+        if len(sels) != 1:
+            return
+        sel = sels[0]
+        if sel == 0:
+            return
+        #TODO
+        
+    def update_list(self):
+        c = self.controller
+        last8 = self.history[-8:]
+        last8.reverse()
+        c.text.Items = last8 + [c.record_label, c.compact_label]
