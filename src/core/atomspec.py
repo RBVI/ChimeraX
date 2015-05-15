@@ -408,7 +408,7 @@ class _Model(_SubPart):
     def find_sub_parts(self, session, model, results):
         results.add_model(model)
         try:
-            atoms = model.mol_blob.atoms
+            atoms = model.atoms
         except AttributeError:
             # No atoms, just go home
             return
@@ -727,10 +727,10 @@ class AtomSpecResults:
         for m in models:
             if m in self._models:
                 # Was selected, so invert model atoms
-                keep = m.mol_blob.atoms - self._atoms
+                keep = m.atoms - self._atoms
             else:
                 # Was not selected, so include all atoms
-                keep = m.mol_blob.atoms
+                keep = m.atoms
             if len(keep) > 0:
                 atoms = atoms | keep
         self._atoms = atoms

@@ -118,6 +118,7 @@ def standard_shortcuts(session):
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('ce', color_by_element, 'Color atoms by element', molcat, atomsarg, mlmenu),
+        ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
         ('cc', color_by_chain, 'Color chains', molcat, atomsarg, mlmenu, sep),
 
         ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, atomsarg, mlmenu),
@@ -339,7 +340,7 @@ def shortcut_atoms(session):
         from .structure import StructureModel
         for m in session.models.list():
             if isinstance(m, StructureModel):
-                a = m.atoms()
+                a = m.atoms
                 if len(a) > 0:
                     matoms.append((m,a))
     return matoms
@@ -595,6 +596,15 @@ def show_molecular_surface(atoms, session):
 def color_by_element(atoms):
     for m, a in atoms:
         m.color_by_element(a)
+
+def color_by_bfactor(atoms):
+    for m, matoms in atoms:
+        for a in matoms:
+            b = a.bfactor
+            f = min(1.0, b/50)
+            a.color = (max(128,int((1-f)*255)),128,max(128,int(f*255)),255)
+        m.update_graphics()
+
 def color_by_chain(atoms):
     for m, a in atoms:
         m.color_by_chain(a)

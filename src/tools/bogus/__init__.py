@@ -37,4 +37,4 @@ def _odd_models(session, models, results):
     for m in models:
         if m.id[0] % 2:
             results.add_model(m)
-            results.add_atoms(m.mol_blob.atoms)
+            results.add_atoms(m.atoms)

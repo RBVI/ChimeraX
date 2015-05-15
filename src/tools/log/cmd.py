@@ -51,27 +51,27 @@ def test(session):
         f = open("/Users/pett/rm/diff.txt", "w")
         import io
         log_string = io.StringIO("")
-        s1_sb = structures[0].mol_blob
-        s2_sb = structures[1].mol_blob
-        s1_ab = s1_sb.atoms
-        s2_ab = s2_sb.atoms
+        s1 = structures[0]
+        s2 = structures[1]
+        s1_ab = s1.atoms
+        s2_ab = s2.atoms
         s1_id = structures[0].id
         s2_id = structures[1].id
         s1_rb = s1_ab.residues
         s2_rb = s2_ab.residues
-        s1_bb = s1_sb.bonds
-        s2_bb = s2_sb.bonds
-        print("# chains in model {}: {}".format(s1_id, s1_sb.num_chains), file=log_string)
-        print("# chains in model {}: {}".format(s1_id, s1_sb.num_chains), file=f)
-        print("# chains in model {}: {}".format(s2_id, s2_sb.num_chains), file=log_string)
-        print("# chains in model {}: {}".format(s2_id, s2_sb.num_chains), file=f)
+        s1_bb = s1.bonds
+        s2_bb = s2.bonds
+        print("# chains in model {}: {}".format(s1_id, s1.num_chains), file=log_string)
+        print("# chains in model {}: {}".format(s1_id, s1.num_chains), file=f)
+        print("# chains in model {}: {}".format(s2_id, s2.num_chains), file=log_string)
+        print("# chains in model {}: {}".format(s2_id, s2.num_chains), file=f)
         s1_set = set(zip(s1_rb.strs, s1_ab.names))
         print("{} residues in model {} and {} in model {}".format(
-            len(structures[0].mol_blob.residues), s1_id,
-            len(structures[1].mol_blob.residues), s2_id), file=f)
+            len(s1.residues), s1_id,
+            len(s2.residues), s2_id), file=f)
         print("{} residues in model {} and {} in model {}".format(
-            len(structures[0].mol_blob.residues), s1_id,
-            len(structures[1].mol_blob.residues), s2_id), file=log_string)
+            len(s1.residues), s1_id,
+            len(s2.residues), s2_id), file=log_string)
         print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=log_string)
         print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=f)
         print("# atoms in model {}: {}".format(s1_id, len(s1_ab)), file=log_string)
@@ -125,8 +125,8 @@ def test(session):
         for bond_info in s2_bond_set - s1_bond_set:
             print("\t" + bond_info, file=f)
             print("\t" + bond_info, file=log_string)
-        pb_map1 = structures[0].mol_blob.pbg_map
-        pb_map2 = structures[1].mol_blob.pbg_map
+        pb_map1 = s1.pseudobond_groups
+        pb_map2 = s2.pseudobond_groups
         for name, pblob in pb_map1.items():
             if name in pb_map2:
                 if len(pblob) == len(pb_map2[name]):

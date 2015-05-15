@@ -75,9 +75,9 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 pdb_id = "%s#%d" % (save_pdb_id, i)
             # atoms
             pdb_atoms = ['%s@%s' % (r, a) for r, a in zip(
-                    p.mol_blob.atoms.residues.strs, p.mol_blob.atoms.names)]
+                    p.atoms.residues.strs, p.atoms.names)]
             mmcif_atoms = ['%s@%s' % (r, a) for r, a in zip(
-                    m.mol_blob.atoms.residues.strs, m.mol_blob.atoms.names)]
+                    m.atoms.residues.strs, m.atoms.names)]
             pdb_tmp = set(pdb_atoms)
             mmcif_tmp = set(mmcif_atoms)
             common = pdb_tmp & mmcif_tmp
@@ -98,7 +98,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
 
             # bonds
             pdb_bonds = set()
-            a0s, a1s = p.mol_blob.bonds.atoms
+            a0s, a1s = p.bonds.atoms
             for rstr0, aname0, rstr1, aname1 in zip(
                     a0s.residues.strs, a0s.names, a1s.residues.strs,
                     a1s.names):
@@ -108,7 +108,7 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                     id0, id1 = id1, id0
                 pdb_bonds.add("%s@%s/%s@%s" % (id0 + id1))
             mmcif_bonds = set()
-            a0s, a1s = m.mol_blob.bonds.atoms
+            a0s, a1s = m.bonds.atoms
             for rstr0, aname0, rstr1, aname1 in zip(
                     a0s.residues.strs, a0s.names, a1s.residues.strs,
                     a1s.names):
@@ -134,8 +134,8 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
 
             # residues
-            pdb_residues = set(p.mol_blob.residues.strs)
-            mmcif_residues = set(m.mol_blob.residues.strs)
+            pdb_residues = set(p.residues.strs)
+            mmcif_residues = set(m.residues.strs)
             common = pdb_residues & mmcif_residues
             extra = pdb_residues - common
             if extra:
@@ -153,23 +153,23 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
 
             # chains
-            diff = p.mol_blob.num_chains - m.mol_blob.num_chains
+            diff = p.num_chains - m.num_chains
             if diff != 0:
                 print("error: %s: pdb has %d chain(s) vs. %d mmcif chain(s)" %
-                      (pdb_id, p.mol_blob.num_chains, m.mol_blob.num_chains))
+                      (pdb_id, p.num_chains, m.num_chains))
                 same = False
 
             # coord_sets
-            diff = p.mol_blob.num_coord_sets - m.mol_blob.num_coord_sets
+            diff = p.num_coord_sets - m.num_coord_sets
             if diff != 0:
                 print("error: %s: pdb has %d coord_set(s) %s than mmcif" % (
                     pdb_id, abs(diff), "fewer" if diff < 0 else "more"))
                 same = False
 
             # pseudobonds
-            pdb_pbg_map = p.mol_blob.pbg_map
+            pdb_pbg_map = p.pseudobond_groups
             pdb_pbgs = set(pdb_pbg_map.keys())
-            mmcif_pbg_map = m.mol_blob.pbg_map
+            mmcif_pbg_map = m.pseudobond_groups
             mmcif_pbgs = set(mmcif_pbg_map.keys())
             common_pbgs = pdb_pbgs & mmcif_pbgs
             extra = pdb_pbgs - common_pbgs

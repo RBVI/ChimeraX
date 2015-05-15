@@ -16,9 +16,21 @@ class StructureModel(models.Model):
     BALL_STYLE = 2
     STICK_STYLE = 3
 
-    def __init__(self, name):
+    def __init__(self, name, atomic_structure):
 
         models.Model.__init__(self, name)
+
+        self._use_ctypes_wrapping = False
+
+        if self._use_ctypes_wrapping:
+            self._atomic_structure_orig = atomic_structure      # Hold reference so C++ objects not destroyed
+            from . import molecule
+            atomic_structure = molecule.atomic_structure_from_blob(atomic_structure)
+
+        self._mol = atomic_structure	# Wrapped C++ AtomicStructure object
+
+        self._atoms = None              # Cached atoms array
+
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
         self.pseudobond_radius = 0.05
@@ -39,43 +51,65 @@ class StructureModel(models.Model):
     def reset_state(self):
         pass
 
-    def atoms(self, exclude_water = False):
-        atoms = self.mol_blob.atoms
-        if exclude_water:
-            from numpy import array
-            atoms = atoms.filter(array(atoms.residues.names) != 'HOH')
-        return atoms
+    @property
+    def atoms(self):
+        if self._atoms is None:
+            self._atoms = self._mol.atoms
+        return self._atoms
+
+    @property
+    def num_atoms(self):
+        return self._mol.num_atoms
+
+    @property
+    def bonds(self):
+        return self._mol.bonds
+
+    @property
+    def residues(self):
+        return self._mol.residues
+
+    @property
+    def num_chains(self):
+        return self._mol.num_chains
+
+    @property
+    def num_coord_sets(self):
+        return self._mol.num_coord_sets
+
+    @property
+    def pseudobond_groups(self):
+        return self._mol.pbg_map
 
     def shown_atom_count(self):
-        na = sum(self.atoms().displays) if self.display else 0
+        na = sum(self.atoms.displays) if self.display else 0
         return na
 
     def solvent_atoms(self):
-        atoms = self.mol_blob.atoms
+        atoms = self.atoms
         from numpy import array
         return atoms.filter(array(atoms.residues.names) == 'HOH')
 
     def show_atoms(self, atoms = None):
         if atoms is None:
-            atoms = self.mol_blob.atoms
+            atoms = self.atoms
         atoms.displays = True
         self.update_graphics()
 
     def hide_atoms(self, atoms = None):
         if atoms is None:
-            atoms = self.mol_blob.atoms
+            atoms = self.atoms
         atoms.displays = False
         self.update_graphics()
 
     def initialize_graphical_attributes(self):
-        m = self.mol_blob
-        a = m.atoms
+        a = self.atoms
         a.draw_modes = self.SPHERE_STYLE
         a.colors = element_colors(a.element_numbers)
-        b = m.bonds
+        b = self.bonds
         b.radii = self.bond_radius
         pb_colors = {'metal coordination bonds':(147,112,219,255)}
-        for name, pb in m.pbg_map.items():
+        for name, pb in self.pseudobond_groups.items():
             pb.radii = self.pseudobond_radius
             pb.halfbonds = False
             pb.colors = pb_colors.get(name, (255,255,0,255))
@@ -84,14 +118,13 @@ class StructureModel(models.Model):
 
         self.initialize_graphical_attributes()
 
-        m = self.mol_blob
-        a = m.atoms
+        a = self.atoms
         coords = a.coords
         radii = self.atom_display_radii()
         colors = a.colors
         display = a.displays
-        b = m.bonds
-        pbg = m.pbg_map
+        b = self.bonds
+        pbg = self.pseudobond_groups
 
         # Create graphics
         self.create_atom_spheres(coords, radii, colors, display)
@@ -116,12 +149,11 @@ class StructureModel(models.Model):
         self.update_atom_graphics(coords, radii, colors, display)
 
     def update_graphics(self):
-        m = self.mol_blob
-        a = m.atoms
-        b = m.bonds
+        a = self.atoms
+        b = self.bonds
         self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
         self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
-        pbg = m.pbg_map
+        pbg = self.pseudobond_groups
         for name, pb in pbg.items():
             self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
 
@@ -149,8 +181,7 @@ class StructureModel(models.Model):
             p.selected_positions = asel if asel.sum() > 0 else None
 
     def atom_display_radii(self):
-        m = self.mol_blob
-        a = m.atoms
+        a = self.atoms
         r = a.radii.copy()
         dm = a.draw_modes
         r[dm == self.BALL_STYLE] *= self.ball_scale
@@ -159,19 +190,19 @@ class StructureModel(models.Model):
 
     def set_atom_style(self, style, atoms = None):
         if atoms is None:
-            atoms = self.mol_blob.atoms
+            atoms = self.atoms
         atoms.draw_modes = style
         self.update_graphics()
 
     def color_by_element(self, atoms = None):
         if atoms is None:
-            atoms = self.mol_blob.atoms
+            atoms = self.atoms
         atoms.colors = element_colors(atoms.element_numbers)
         self.update_graphics()
 
     def color_by_chain(self, atoms = None):
         if atoms is None:
-            atoms = self.mol_blob.atoms
+            atoms = self.atoms
         atoms.colors = chain_colors(atoms.residues.chain_ids)
         self.update_graphics()
 
@@ -231,17 +262,17 @@ class StructureModel(models.Model):
         self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
     def hide_chain(self, cid):
-        a = self.mol_blob.atoms
+        a = self.atoms
         a.displays &= self.chain_atom_mask(cid, invert = True)
         self.update_graphics()
 
     def show_chain(self, cid):
-        a = self.mol_blob.atoms
+        a = self.atoms
         a.displays |= self.chain_atom_mask(cid)
         self.update_graphics()
 
     def chain_atom_mask(self, cid, invert = False):
-        a = self.mol_blob.atoms
+        a = self.atoms
         cids = a.residues.chain_ids
         from numpy import array, bool, logical_not
         d = array(tuple((cid != c) for c in cids), bool)
@@ -277,7 +308,7 @@ class StructureModel(models.Model):
 
     def bounds(self, positions = True):
         # TODO: Cache bounds
-        a = self.mol_blob.atoms
+        a = self.atoms
         xyz = a.coords[a.displays]
         if len(xyz) == 0:
             return None
@@ -289,7 +320,7 @@ class StructureModel(models.Model):
         return b
 
     def atom_index_description(self, a):
-        atoms = self.mol_blob.atoms
+        atoms = self.atoms
         r = atoms.residues
         id = '.'.join(str(i) for i in self.id)
         d = '%s %s.%s %s %d %s' % (self.name, id, r.chain_ids[a], r.names[a], r.numbers[a], atoms.names[a])
@@ -298,7 +329,7 @@ class StructureModel(models.Model):
     def select_atom(self, a, toggle = False):
         asel = self._selected_atoms
         if asel is None:
-            na = self.mol_blob.num_atoms
+            na = self.num_atoms
             from numpy import zeros, bool
             asel = self._selected_atoms = zeros(na, bool)
         asel[a] = (not asel[a]) if toggle else True
@@ -308,7 +339,7 @@ class StructureModel(models.Model):
         if itype == 'atoms':
             asel = self._selected_atoms
             if not asel is None and asel.sum() > 0:
-                atoms = self.mol_blob.atoms
+                atoms = self.atoms
                 sa = atoms.filter(asel)
                 return [(self,sa)]
         return []
@@ -337,7 +368,7 @@ class StructureModel(models.Model):
             return
         self._selection_promotion_history.append(asel.copy())
 
-        atoms = self.mol_blob.atoms
+        atoms = self.atoms
         r = atoms.residues
         rids = r.unique_ids
         from numpy import unique, in1d
@@ -714,7 +745,7 @@ def show_atoms(show, atoms, session):
     if atoms is None:
         for m in session.models.list():
             if isinstance(m, StructureModel):
-                m.mol_blob.atoms.displays = show
+                m.atoms.displays = show
                 m.update_graphics()
     else:
         asr = atoms.evaluate(session)
