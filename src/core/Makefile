@@ -82,6 +82,7 @@ atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
 blob_cpp.install: atomstruct_cpp.install basegeom_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
+molecule.install: atomstruct_cpp.install blob_cpp.install
 _mmcif.install: readcif_cpp.install atomstruct_cpp.install blob_cpp.install
 pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install \
 	blob_cpp.install basegeom_cpp.install
