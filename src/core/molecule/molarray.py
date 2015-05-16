@@ -61,6 +61,18 @@ class Atoms:
         return get_value('atom_element_number', self._atoms, int32)
     element_numbers = property(get_element_number, None)
 
+    def get_molecule(self):
+        "numpy array of molecule for each atom"
+        mp = get_value('atom_molecule', self._atoms, cptr)
+        return AtomicStructures(mp)
+    molecules = property(get_molecule, None)
+
+    def get_unique_molecules(self):
+        mp = get_value('atom_molecule', self._atoms, cptr)
+        import numpy
+        return AtomicStructures(numpy.unique(mp))
+    unique_molecules = property(get_unique_molecules, None)
+
     def get_name(self):
         "numpy array of atom names"
         return get_value('atom_name', self._atoms, string)
@@ -224,6 +236,12 @@ class Residues:
         return get_value('residue_chain_id', self._res, string)
     chain_ids = property(get_chain_id, None)
 
+    def get_molecule(self):
+        "numpy array of molecule for each residue"
+        mp = get_value('residue_molecule', self._res, cptr)
+        return AtomicStructures(mp)
+    molecules = property(get_molecule, None)
+
     def get_name(self):
         "numpy array of residue names"
         return get_value('residue_name', self._res, string)
@@ -263,6 +281,11 @@ class Chains:
     def get_chain_id(self):
         return get_value('chain_chain_id', self._chains, string)
     chain_ids = property(get_chain_id, None)
+
+    def get_molecule(self):
+        mp = get_value('chain_molecule', self._chains, cptr)
+        return AtomicStructures(mp)
+    molecule = property(get_molecule, None)
 
     def get_residues(self):
         "residues for all chains in one array"

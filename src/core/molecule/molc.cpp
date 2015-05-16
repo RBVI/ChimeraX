@@ -115,6 +115,13 @@ extern "C" void atom_element_number(void *atoms, int n, int *nums)
     nums[i] = a[i]->element().number();
 }
 
+extern "C" void atom_molecule(void *atoms, int n, void **molp)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    molp[i] = a[i]->structure();
+}
+
 extern "C" void atom_name(void *atoms, int n, void **names)
 {
   Atom **a = static_cast<Atom **>(atoms);
@@ -321,6 +328,13 @@ extern "C" void residue_chain_id(void *residues, int n, void **cids)
     cids[i] = PyUnicode_FromString(r[i]->chain_id().c_str());
 }
 
+extern "C" void residue_molecule(void *residues, int n, void **molp)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    molp[i] = r[i]->structure();
+}
+
 extern "C" void residue_name(void *residues, int n, void **names)
 {
   Residue **r = static_cast<Residue **>(residues);
@@ -370,6 +384,13 @@ extern "C" void chain_chain_id(void *chains, int n, void **cids)
   Chain **c = static_cast<Chain **>(chains);
   for (int i = 0 ; i < n ; ++i)
     cids[i] = PyUnicode_FromString(c[i]->chain_id().c_str());
+}
+
+extern "C" void chain_molecule(void *chains, int n, void **molp)
+{
+  Chain **c = static_cast<Chain **>(chains);
+  for (int i = 0 ; i < n ; ++i)
+      *molp++ = c[i]->structure();
 }
 
 extern "C" void chain_num_residues(void *chains, int n, int *nres)
