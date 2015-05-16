@@ -118,6 +118,13 @@ class FIFOHistory:
         if self._auto_save:
             self.save()
 
+    def extend(self, iterable):
+        self._back.extend(iterable)
+        while len(self._front) + len(self._back) > self._capacity:
+            self.dequeue(_skip_save=True)
+        if self._auto_save:
+            self.save()
+
     def dequeue(self, _skip_save=False):
         front = self._front
         if not front:
