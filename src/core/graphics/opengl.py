@@ -349,7 +349,7 @@ class Render:
         m = self._max_multishadows
         if m is None:
             m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
-            m = m//64						    # 64 bytes per matrix.
+            m = m // 64                                             # 64 bytes per matrix.
             self._max_multishadows = m
         return m
 
@@ -629,7 +629,7 @@ class Render:
 
         # Render region with texture red > 0.
         # Texture map a full-screen quad to blend texture with frame buffer.
-        tc = Texture_Window(self, self.SHADER_TEXTURE_MASK)
+        tc = TextureWindow(self, self.SHADER_TEXTURE_MASK)
         texture.bind_texture()
 
         # Draw 4 shifted copies of mask
@@ -701,7 +701,7 @@ class Render:
         # Render pixels with depth less than neighbor pixel by at least
         # depth_jump.  Texture map a full-screen quad to blend depth jump
         # pixels with frame buffer.
-        tc = Texture_Window(self, self.SHADER_DEPTH_OUTLINE)
+        tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
         depth_texture.bind_texture()
 
         # Draw 4 shifted copies of mask
@@ -1088,7 +1088,7 @@ def deactivate_bindings():
 from numpy import uint8, uint32, float32
 
 
-class Buffer_Type:
+class BufferType:
     '''
     Describes a shader variable and the vertex buffer object value type
     required and what rendering capabilities are required to use this
@@ -1107,25 +1107,25 @@ class Buffer_Type:
         self.requires_capabilities = requires_capabilities
 
 # Buffer types with associated shader variable names
-VERTEX_BUFFER = Buffer_Type('position')
-NORMAL_BUFFER = Buffer_Type(
+VERTEX_BUFFER = BufferType('position')
+NORMAL_BUFFER = BufferType(
     'normal', requires_capabilities=Render.SHADER_LIGHTING)
-VERTEX_COLOR_BUFFER = Buffer_Type(
+VERTEX_COLOR_BUFFER = BufferType(
     'vcolor', value_type=uint8, normalize=True,
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
-INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type(
+INSTANCE_SHIFT_AND_SCALE_BUFFER = BufferType(
     'instance_shift_and_scale', instance_buffer=True)
-INSTANCE_MATRIX_BUFFER = Buffer_Type(
+INSTANCE_MATRIX_BUFFER = BufferType(
     'instance_placement', instance_buffer=True)
-INSTANCE_COLOR_BUFFER = Buffer_Type(
+INSTANCE_COLOR_BUFFER = BufferType(
     'vcolor', instance_buffer=True, value_type=uint8, normalize=True,
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
-TEXTURE_COORDS_2D_BUFFER = Buffer_Type(
+TEXTURE_COORDS_2D_BUFFER = BufferType(
     'tex_coord_2d',
     requires_capabilities=Render.SHADER_TEXTURE_2D | Render.SHADER_TEXTURE_MASK
     | Render.SHADER_DEPTH_OUTLINE)
-ELEMENT_BUFFER = Buffer_Type(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
-                             value_type=uint32)
+ELEMENT_BUFFER = BufferType(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
+                            value_type=uint32)
 
 
 class Buffer:
@@ -1321,7 +1321,6 @@ class Shader:
 
         return prog_id
 
-
     # Add #define lines after #version line of shader
     def insert_define_macros(self, shader, capabilities, max_shadows):
         '''Private. Puts "#define" statements in shader program templates
@@ -1375,7 +1374,7 @@ class Texture:
 
         format = GL.GL_RED
         # TODO: PyOpenGL-20130502 does not have GL_R8.
-        GL_R8 = 0x8229
+        GL_R8 = 0x8229  # noqa
         iformat = GL_R8
         tdtype = GL.GL_UNSIGNED_BYTE
         ncomp = 1
@@ -1527,7 +1526,7 @@ class Texture:
         return format, iformat, tdtype, ncomp
 
 
-class Texture_Window:
+class TextureWindow:
     '''Draw a texture on a full window rectangle.'''
     def __init__(self, render, shader_options):
 
@@ -1567,6 +1566,29 @@ class Texture_Window:
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
         GL.glDepthMask(True)
+
+
+def print_debug_log(tag, count=None):
+    # GLuint glGetDebugMessageLog(GLuint count, GLsizei bufSize,
+    #   GLenum *sources, Glenum *types, GLuint *ids, GLenum *severities,
+    #   GLsizei *lengths, GLchar *messageLog)
+    if count is None:
+        while print_debug_log(tag, 1) > 0:
+            continue
+        return
+    print('print_debug_log', GL.glIsEnabled(GL.GL_DEBUG_OUTPUT))
+    buf = bytes(8192)
+    sources = pyopengl_null()
+    types = pyopengl_null()
+    ids = pyopengl_null()
+    severities = pyopengl_null()
+    lengths = pyopengl_null()
+    num_messages = GL.glGetDebugMessageLog(count, len(buf), sources, types,
+                                           ids, severities, lengths, buf)
+    if num_messages == 0:
+        return 0
+    print(tag, buf.decode('utf-8', 'replace'))
+    return num_messages
 
 
 def pyopengl_null():
