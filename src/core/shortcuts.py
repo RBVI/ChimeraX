@@ -598,11 +598,17 @@ def color_by_element(atoms):
         m.color_by_element(a)
 
 def color_by_bfactor(atoms):
+    from time import time
     for m, matoms in atoms:
+        t0 = time()
         for a in matoms:
             b = a.bfactor
             f = min(1.0, b/50)
+#            a.radius = 1+f
             a.color = (max(128,int((1-f)*255)),128,max(128,int(f*255)),255)
+        t1 = time()
+        print ('set colors by b-factors for %d atoms in %.3f seconds, %.0f atoms/sec'
+               % (len(matoms), t1-t0, len(matoms)/(t1-t0)))
         m.update_graphics()
 
 def color_by_chain(atoms):

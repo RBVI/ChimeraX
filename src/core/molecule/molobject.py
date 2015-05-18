@@ -47,6 +47,11 @@ class Atom:
         return get_value('atom_element_number', self._atom, int32)
     element_number = property(get_element_number, None)
 
+    def get_molecule(self):
+        mp = get_value('atom_molecule', self._atom, cptr)
+        return object_map(mp, AtomicStructure)
+    molecule = property(get_molecule, None)
+
     def get_name(self):
         return get_value('atom_name', self._atom, string)
     name = property(get_name, None)
@@ -61,7 +66,6 @@ class Atom:
         rp = get_value('atom_residue', self._atom, cptr)
         return object_map(rp, Residue)
     residue = property(get_residue, None)
-
 
 # -----------------------------------------------------------------------------
 #
@@ -155,9 +159,16 @@ class Residue:
         return get_value('residue_num_atoms', self._res, int32)
     num_atoms = property(get_num_atoms, None)
 
+    # TODO: Currently no C++ method to get Chain
+
     def get_chain_id(self):
         return get_value('residue_chain_id', self._res, string)
     chain_id = property(get_chain_id, None)
+
+    def get_molecule(self):
+        mp = get_value('residue_molecule', self._res, cptr)
+        return object_map(mp, AtomicStructure)
+    molecule = property(get_molecule, None)
 
     def get_name(self):
         "residue name"
@@ -190,6 +201,11 @@ class Chain:
     def get_chain_id(self):
         return get_value('chain_chain_id', self._chain, string)
     chain_id = property(get_chain_id, None)
+
+    def get_molecule(self):
+        mp = get_value('chain_molecule', self._chain, cptr)
+        return object_map(mp, AtomicStructure)
+    molecule = property(get_molecule, None)
 
     def get_residues(self):
         r = get_value('chain_residues', self._chain, cptr, self.num_residues)
