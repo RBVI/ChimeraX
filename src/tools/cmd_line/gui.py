@@ -48,11 +48,11 @@ class CommandLine(ToolInstance):
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
             self.on_enter(event)
-        elif event.KeyCode == 14:        # Ctrl-N
+        elif event.KeyCode == 78:        # Ctrl-N
             self.history_dialog.down()
-        elif event.KeyCode == 16:        # Ctrl-P
+        elif event.KeyCode == 80:        # Ctrl-P
             self.history_dialog.up()
-        elif event.KeyCode == 21:        # Ctrl-U
+        elif event.KeyCode == 85:        # Ctrl-U
             self.cmd_clear()
         elif event.KeyCode == 315:        # Up arrow
             self.session.selection.promote()
@@ -137,11 +137,11 @@ class CommandLine(ToolInstance):
 
     def on_key_down(self, event):
         # intercept up/down arrow
-        if event.KeyCode in (16, 315):  # ctrl-p, up arrow
+        if event.KeyCode in (80, 315):  # ctrl-p, up arrow
             self.history_dialog.up()
-        elif event.KeyCode in (14, 317):  # ctrl-n, down arrow
+        elif event.KeyCode in (78, 317):  # ctrl-n, down arrow
             self.history_dialog.down()
-        elif event.KeyCode == 21:  # ctrl-u
+        elif event.KeyCode == 85:  # ctrl-u
             self.cmd_clear()
         else:
             # pass through other keys
