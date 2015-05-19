@@ -580,7 +580,7 @@ class Render:
                                          | self.SHADER_TEXTURE_2D
                                          | self.SHADER_LIGHTING)
         # Depth test GL_LEQUAL results in z-fighting:
-        self.set_depth_range(0, 0.99999)
+        self.set_depth_range(0, 0.999999)
         # Copy depth to outline framebuffer:
         self.copy_from_framebuffer(fb, color=False)
 
