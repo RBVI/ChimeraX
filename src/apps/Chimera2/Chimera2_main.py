@@ -253,10 +253,14 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     if not opts.silent:
         sess.ui.splash_info("Initializing core",
                             next(splash_step), num_splash_steps)
+        if sess.ui.is_gui and opts.debug:
+            print("Initializing core", flush=True)
 
     if not opts.silent:
         sess.ui.splash_info("Initializing tools",
                             next(splash_step), num_splash_steps)
+        if sess.ui.is_gui and opts.debug:
+            print("Initializing tools", flush=True)
     from chimera.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
@@ -288,17 +292,23 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         if not opts.silent:
             sess.ui.splash_info("Starting main interface",
                                 next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print("Starting main interface", flush=True)
         sess.ui.build()
 
     if opts.load_tools:
         if not opts.silent:
-            sess.ui.splash_info("loading autostart tools",
+            sess.ui.splash_info("Loading autostart tools",
                                 next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print("Loading autostart tools", flush=True)
         sess.tools.autostart()
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
+        if sess.ui.is_gui and opts.debug:
+            print("Finished initialization", flush=True)
 
     if opts.gui:
         sess.ui.close_splash()
