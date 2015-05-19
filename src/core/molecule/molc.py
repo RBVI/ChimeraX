@@ -4,76 +4,152 @@ from numpy import empty, ndarray
 from ctypes import byref
 
 # -----------------------------------------------------------------------------
-# Call a C function that takes an array of object pointers and returns an
-# array of values.  This routine allocates the array of returned values.
+# Create a property that calls a C library function using ctypes.
 #
-def get_value(func_name, c_pointers, value_type, value_count = 1, per_object = True):
+def c_property(func_name, value_type, value_count = 1, read_only = False, astype = None):
 
-    cfunc = c_array_function(func_name, value_type)
+    if isinstance(value_count,str):
+        return c_varlen_property(func_name, value_type, value_count, read_only, astype)
+    elif value_count > 1:
+        return c_array_property(func_name, value_type, value_count, read_only, astype)
 
-    if isinstance(c_pointers, cptr):
-        # Getting attribute for one object.
-        _c_void_p_temp.value = int(c_pointers)
-        if value_count == 1:
-            # Single return value.
-            v = ctype_temp[value_type]
-            cfunc(byref(_c_void_p_temp), 1, byref(v))
+    vtype = numpy_type_to_ctype[value_type]
+    v = vtype()
+    v_ref = byref(v)
+
+    cget = c_array_function(func_name, value_type)
+    if astype is None:
+        def get_prop(self):
+            cget(self._c_pointer_ref, 1, v_ref)
             return v.value
-        else:
-            value = empty((value_count,), value_type)
-            cfunc(byref(_c_void_p_temp), 1, pointer(value))
-            return value
     else:
-        # Getting an attribute for multiple objects.
-        n = len(c_pointers)
-        shape = (n,) if value_count == 1 or not per_object else (n,value_count)
-        values = empty(shape, value_type)
-        cfunc(pointer(c_pointers), n, pointer(values))
-        return values
+        def get_prop(self):
+            cget(self._c_pointer_ref, 1, v_ref)
+            return astype(v.value)
+
+    if read_only:
+        set_prop = None
+    else:
+        cset = c_array_function('set_'+func_name, value_type)
+        def set_prop(self, value):
+            v.value = value
+            cset(self._c_pointer_ref, 1, v_ref)
+
+    return property(get_prop, set_prop)
+ 
+# -----------------------------------------------------------------------------
+# Create a property which has a fixed length array value obtained by
+# calling a C library function using ctypes.
+#
+def c_array_property(func_name, value_type, value_count, read_only = False, astype = None):
+
+    v = empty((value_count,), value_type)       # Numpy array return value
+    v_ref = pointer(v)
+
+    cget = c_array_function(func_name, value_type)
+    if astype is None:
+        def get_prop(self):
+            cget(self._c_pointer_ref, 1, v_ref)
+            return astype(v)
+    else:
+        def get_prop(self):
+            cget(self._c_pointer_ref, 1, v_ref)
+            return v.copy()
+
+    if read_only:
+        set_prop = None
+    else:
+        cset = c_array_function('set_'+func_name, value_type)
+        vtype = numpy_type_to_ctype[value_type]
+        vs = (vtype*value_count)()      # ctypes array is faster than numpy
+        def set_prop(self, value):
+            vs[:] = value
+            cset(self._c_pointer_ref, 1, vs)
+
+    return property(get_prop, set_prop)
+ 
+# -----------------------------------------------------------------------------
+# Create a property which has a variable length array value obtained by
+# calling a C library function using ctypes.
+#
+def c_varlen_property(func_name, value_type, value_count, read_only = False, astype = None):
+
+    cget = c_array_function(func_name, value_type)
+    def get_prop(self):
+        vcount = getattr(self, value_count)
+        v = empty((vcount,), value_type)       # Numpy array return value
+        cget(self._c_pointer_ref, 1, pointer(v))
+        return v if astype is None else astype(v)
+
+    if read_only:
+        set_prop = None
+    else:
+        cset = c_array_function('set_'+func_name, value_type)
+        def set_prop(self, value):
+            vtype = numpy_type_to_ctype[value_type]
+            vcount = getattr(self, value_count)
+            vs = (vtype*vcount)()      # ctypes array is faster than numpy
+            vs[:] = value
+            cset(self._c_pointer_ref, 1, vs)
+
+    return property(get_prop, set_prop)
 
 # -----------------------------------------------------------------------------
-# Call a C function that sets an attribute for objects.  Takes an array of
-# object pointers and array of values.
+# Create a property that calls a C library function using ctypes taking an
+# array of pointer to objects.
 #
-def set_value(func_name, c_pointers, values, value_type, value_count = 1):
+def cvec_property(func_name, value_type, value_count = 1, read_only = False, astype = None, per_object = True):
 
-    cfunc = c_array_function(func_name, value_type)
+    if isinstance(value_count,str):
+        return c_varlen_property(func_name, value_type, value_count, read_only, astype)
 
-    if isinstance(c_pointers, cptr):
-        # Optimize setting attribute for one object.
-        _c_void_p_temp.value = int(c_pointers)
-        if value_count == 1:
-            vp = ctype_temp[value_type]
-            vp.value = values
-        elif isinstance(values,ndarray):
-            vp = pointer(values)
-        else:
-            vtype = (value_type,value_count)
-            vp = ctype_temp.get(vtype, None)
-            if vp is None:
-                ctype_temp[vtype] = vp = (numpy_type_to_ctype[value_type]*value_count)()
-            vp[:] = values
-        cfunc(byref(_c_void_p_temp), 1, vp)
-        return
+    cget = c_array_function(func_name, value_type)
+    def get_prop(self):
+        # Get an attribute for multiple objects.
+        n = self._nobj
+        vc = getattr(self,value_count) if isinstance(value_count,str) else value_count
+        shape = ((n,) if vc == 1 or not per_object else (n,vc)) if per_object else (vc.sum(),)
+        values = empty(shape, value_type)
+        cget(self._c_pointers, n, pointer(values))
+        return values if astype is None else astype(values)
 
-    # Setting attribute for multiple objects
-    cp = pointer(c_pointers)
-    n = len(c_pointers)
-
-    vdim = 1 if value_count == 1 else 2
-    if isinstance(values,ndarray) and values.ndim == vdim:
-        # Values are already specified as a numpy array.
-        if len(values) != n:
-            raise ValueError('Values array length %d does not match objects array length %d'
-                             % (len(values), n))
-        v = pointer(values)
+    if read_only:
+        set_prop = None
     else:
-        # Allocate numpy array of values to pass to C.
-        va = empty((n,value_count), value_type)
-        va[:] = values
-        v = pointer(va)
+        cset = c_array_function('set_'+func_name, value_type)
+        def set_prop(self, values):
+            n = self._nobj
+            vdim = 1 if value_count == 1 else 2
+            if isinstance(values,ndarray) and values.ndim == vdim:
+                # Values are already specified as a numpy array.
+                if len(values) != n:
+                    raise ValueError('Values array length %d does not match objects array length %d'
+                                     % (len(values), n))
+                v = pointer(values)
+            else:
+                # Allocate numpy array of values to pass to C.
+                va = empty((n,value_count), value_type)
+                va[:] = values
+                v = pointer(va)
+            cset(self._c_pointers, n, v)
 
-    cfunc(cp, n, v)
+    return property(get_prop, set_prop)
+
+# -----------------------------------------------------------------------------
+# Set the object C pointer used as the first argument of C get/set methods
+# for that object.
+#
+def set_c_pointer(self, pointer):
+    self._c_pointer = cp = ctypes.c_void_p(int(pointer))
+    self._c_pointer_ref = byref(cp)
+
+# -----------------------------------------------------------------------------
+# Set the object C pointer used as the first argument of C get/set methods
+# for that object.
+#
+def set_cvec_pointer(self, pointers):
+    self._c_pointers = pointer(pointers)
+    self._nobj = len(pointers)
 
 # -----------------------------------------------------------------------------
 # Look up a C function and set its argument types if they have not been set.
@@ -114,9 +190,6 @@ numpy_type_to_ctype = {
     numpy.object_: ctypes.py_object,
     numpy.object: ctypes.py_object,
 }
-
-ctype_temp = dict((nt,ct()) for nt,ct in numpy_type_to_ctype.items())
-_c_void_p_temp = ctypes.c_void_p()
 
 # -----------------------------------------------------------------------------
 # Create ctypes pointer to numpy array data.
