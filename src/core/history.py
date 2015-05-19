@@ -112,13 +112,23 @@ class FIFOHistory:
             self.dequeue()
 
     def enqueue(self, value):
+        """Add newest item"""
         self._back.append(value)
         while len(self._front) + len(self._back) > self._capacity:
             self.dequeue(_skip_save=True)
         if self._auto_save:
             self.save()
 
+    def extend(self, iterable):
+        """Add newest items"""
+        self._back.extend(iterable)
+        while len(self._front) + len(self._back) > self._capacity:
+            self.dequeue(_skip_save=True)
+        if self._auto_save:
+            self.save()
+
     def dequeue(self, _skip_save=False):
+        """Remove and return oldest item"""
         front = self._front
         if not front:
             self._front, self._back = self.back, front
@@ -130,11 +140,20 @@ class FIFOHistory:
         return value
 
     def clear(self):
+        """Remove all items"""
         self._front.clear()
         self._back.clear()
+        if self._auto_save:
+            self.save()
+
+    def replace(self, iterable):
+        """Replace current items"""
+        self._front.clear()
+        self._back.clear()
+        self.extend(iterable)
 
     def save(self):
-        """Save fifo to history file."""
+        """Save to history file."""
         self._front = list(reversed(self._back)) + self._front
         self._back = []
         self._history.save(self._front)
