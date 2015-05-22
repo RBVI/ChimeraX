@@ -43,7 +43,7 @@ class Grid_Data:
                path = '',       # Can be list of paths
                file_type = '',
                grid_id = '',
-               default_color = (.7,.7,.7,1)):
+               default_color = None):
 
     # Path, file_type and grid_id are for reloading data sets.
     self.path = path
