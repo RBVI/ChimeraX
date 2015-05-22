@@ -73,6 +73,7 @@ class UI(wx.App):
                 self._keystroke_sinks[i + 1:]
 
     def event_loop(self):
+        redirect_stderr_to_logger(self.session.logger)
         self.MainLoop()
         self.session.logger.clear()
 
@@ -104,6 +105,16 @@ class UI(wx.App):
         """
         wx.CallAfter(func, *args, **kw)
 
+def redirect_stderr_to_logger(logger):
+    # Redirect stderr to log
+    class LogStderr:
+        def __init__(self, logger):
+            self.logger = logger
+        def write(self, s):
+            self.logger.info(s, add_newline = False)
+    import sys
+    sys.orig_stderr = sys.stderr
+    sys.stderr = LogStderr(logger)
 
 from .logger import PlainTextLog
 class MainWindow(wx.Frame, PlainTextLog):
