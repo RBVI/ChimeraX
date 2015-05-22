@@ -404,7 +404,7 @@ def level_and_color_settings(v, options):
         if levels and len(levels) < 4:
             from .. import cli
             raise cli.UserError('Must specify 2 or more levels for solid style')
-        levels = zip(levels[::2], levels[1::2])
+        levels = tuple(zip(levels[::2], levels[1::2]))
 
     if levels:
         kw[style+'_levels'] = levels
