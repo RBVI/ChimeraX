@@ -77,7 +77,7 @@ class _RestrictedUnpickler(pickle.Unpickler):
         'collections': {'deque', 'Counter', 'OrderedDict'},
         'datetime': {'date', 'time', 'timedelta', 'datetime', 'timezone'},
         'numpy': {'ndarray', 'dtype'},
-        'numpy.core.multiarray': {'_reconstruct'},
+        'numpy.core.multiarray': {'_reconstruct', 'scalar'},
         'PIL.Image': {'Image'},
     }
     from .geometry.place import Place, Places
