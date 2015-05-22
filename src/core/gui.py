@@ -158,9 +158,8 @@ class MainWindow(wx.Frame, PlainTextLog):
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
 
-        mlist = []
-        for p in dlg.GetPaths():
-            mlist.extend(session.models.open(p))
+        paths = dlg.GetPaths()
+        mlist = session.models.open(paths)
         from .models import ADD_MODEL_GROUP
         session.triggers.activate_trigger(ADD_MODEL_GROUP, mlist)
 

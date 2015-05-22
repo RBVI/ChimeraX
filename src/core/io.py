@@ -159,6 +159,7 @@ class _FileFormatInfo:
         self.fetch_func = None
         self.export_func = None
         self.export_notes = None
+        self.batch = False
 
 _file_formats = {}
 
@@ -207,7 +208,7 @@ def register_format(format_name, category, extensions, prefixes=(), mime=(),
                                                       mime, reference,
                                                       dangerous)
     for attr in ['open_func', 'requires_filename', 'fetch_func',
-                 'export_func', 'export_notes']:
+                 'export_func', 'export_notes', 'batch']:
         if attr in kw:
             setattr(ff, attr, kw[attr])
 
@@ -323,6 +324,15 @@ def requires_filename(format_name):
     """Return whether named format can needs a seekable file"""
     try:
         return _file_formats[format_name].requires_filename
+    except KeyError:
+        return False
+
+
+def batched_format(format_name):
+    """Return whether format reader opens wants all paths as a group,
+    such as reading image stacks as volumes."""
+    try:
+        return _file_formats[format_name].batch
     except KeyError:
         return False
 
@@ -576,6 +586,37 @@ def open(session, filespec, format=None, as_=None, **kw):
             m.name = as_
     return models, status
 
+def open_multiple(session, filespecs, **kw):
+    '''Open one or more files, including handling formats where multiple files
+    contribute to a single model, such as image stacks.'''
+    if isinstance(filespecs, str):
+        filespecs = [filespecs]
+
+    batch = {}
+    unbatched = []
+    for filespec in filespecs:
+        format_name, prefix, filename, compression = deduce_format(filespec)
+        if format_name is not None and batched_format(format_name):
+            if format_name in batch:
+                batch[format_name].append(filespec)
+            else:
+                batch[format_name] = [filespec]
+        else:
+            unbatched.append(filespec)
+
+    mlist = []
+    status = None
+    import os.path
+    for format_name, paths in batch.items():
+        name = os.path.basename(paths[0])
+        open_func = open_function(format_name)
+        models, status = open_func(session, paths, name)
+        mlist.extend(models)
+    for fspec in unbatched:
+        models, status = open(session, fspec, **kw)
+        mlist.extend(models)
+
+    return mlist, status
 
 def export(session, filename, **kw):
     from .cli import UserError
