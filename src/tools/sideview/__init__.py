@@ -13,7 +13,19 @@ def start_tool(session, ti):
     if not session.ui.is_gui:
         return None
     from .gui import SideViewUI
-    return SideViewUI(session, ti)
+    #return SideViewUI(session, ti)
+    s = SideViewUI(session, ti)
+    return s
 
 
 # no commands
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'SideViewUI':
+        from . import gui
+        return gui.SideViewUI
+    return None

@@ -22,3 +22,13 @@ def register_command(command_name):
     cli.register(command_name + " hide", cmd.hide_desc, cmd.hide)
     cli.register(command_name + " show", cmd.show_desc, cmd.show)
     cli.register(command_name + " test", cmd.test_desc, cmd.test)
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'Log':
+        from . import gui
+        return gui.Log
+    return None

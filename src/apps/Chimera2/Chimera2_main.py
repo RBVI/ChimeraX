@@ -333,6 +333,10 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
             sess.models.open(arg)
         except (IOError, cli.UserError) as e:
             sess.logger.error(str(e))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return os.EX_SOFTWARE
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
@@ -341,6 +345,10 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
             sess.ui.event_loop()
         except SystemExit as e:
             return e.code
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return os.EX_SOFTWARE
     return os.EX_OK
 
 if __name__ == '__main__':

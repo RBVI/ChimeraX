@@ -71,6 +71,9 @@ class UI:
 
 class _Input(Task):
 
+    SESSION_ENDURING = True
+    SESSION_SKIP = True
+
     def __init__(self, session):
         # Initializer, runs in UI thread
         super().__init__(session)
@@ -116,8 +119,12 @@ class _Input(Task):
             rest = self._cmd.current_text[self._cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = self._cmd.amount_parsed + spaces
-            print("%s^" % ('.' * error_at))
+            if error_at < len(self._cmd_current_text):
+                print("%s^" % ('.' * error_at))
             print(err)
+        except Exception as e:
+            print("\nUnexpected exception, save your work and exit:\n")
+            print(e)
 
     #
     # Required State methods, do nothing

@@ -24,3 +24,13 @@ def register_command(command_name):
     cli.register(command_name + " SUBCOMMAND_NAME",
                  cmd.subcommand_desc, cmd.subcommand_function)
     # TODO: Register more subcommands here
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'ToolUI':
+        from . import gui
+        return gui.ToolUI
+    return None

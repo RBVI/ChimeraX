@@ -38,3 +38,13 @@ def _odd_models(session, models, results):
         if m.id[0] % 2:
             results.add_model(m)
             results.add_atoms(m.atoms)
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'BogusUI':
+        from . import gui
+        return gui.BogusUI
+    return None
