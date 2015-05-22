@@ -67,7 +67,7 @@ class Volume(Model):
     self.transparency_depth = 0.5               # for solid
     self.solid_brightness_factor = 1
 
-    self.default_rgba = data.rgba
+    self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
 
     self.change_callbacks = []
 
@@ -2676,7 +2676,8 @@ def volume_from_grid_data(grid_data, session, representation = None,
     grid_data = d
   v = Volume(grid_data, session, region, ro, model_id, open_model)
   v.set_representation(representation)
-  set_initial_volume_color(v, session)
+  if grid_data.rgba is None:
+    set_initial_volume_color(v, session)
 
   # Show data
   if show_data:
@@ -2771,8 +2772,11 @@ def open_map(session, stream, *args, **kw):
     '''
     Open a density map file having any of the known density map formats.
     '''
-    map_path = stream.name
-    stream.close()
+    if isinstance(stream, list):
+      map_path = stream         # Batched paths
+    else:
+      map_path = stream.name
+      stream.close()
 
     maps = []
     from . import data
@@ -2801,4 +2805,4 @@ def register_map_file_readers():
     from .data.fileformats import file_types
     for d,t,prefixes,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, io.VOLUME, suf, open_func=open_map)
+      io.register_format(d, io.VOLUME, suf, open_func=open_map, batch=batch)
