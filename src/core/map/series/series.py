@@ -9,25 +9,13 @@ class Map_Series(Model):
     Model.__init__(self, name)
     self.maps = maps
 
-    for m in maps:
-      self.add_model(m)
+    self.add(maps)
 
     self.shown_times = t = set(i for i,m in enumerate(maps) if m.display)
     self.last_shown_time = tuple(t)[0] if len(t) > 0 else 0
 
     self.surface_level_ranks = []  # Cached for normalization calculation
     self.solid_level_ranks = []  # Cached for normalization calculation
-
-  # ---------------------------------------------------------------------------
-  #
-  def add_model(self, m):
-    if hasattr(Model, 'add_model'):
-      Model.add_model(self, m)          # Hydra
-    else:
-      # Chimera 2
-      self.add_drawing(m)
-      if m.id is None:
-        m.id = len(self.child_drawings())
 
   # ---------------------------------------------------------------------------
   #
