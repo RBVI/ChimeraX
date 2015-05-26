@@ -59,14 +59,17 @@ _export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                            ' matching filename suffix')
 
 
-def close(session, model_ids):
+def close(session, model_ids = None):
     m = session.models
-    try:
-        mlist = sum((m.list(model_id) for model_id in model_ids), [])
-    except ValueError as e:
-        raise cli.UserError(e)
+    if model_ids is None:
+        mlist = m.list()
+    else:
+        try:
+            mlist = sum((m.list(model_id) for model_id in model_ids), [])
+        except ValueError as e:
+            raise cli.UserError(e)
     m.close(mlist)
-_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))],
+_close_desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
                           synopsis='close model')
 
 
