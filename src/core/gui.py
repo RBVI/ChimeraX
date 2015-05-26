@@ -166,9 +166,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             return
 
         paths = dlg.GetPaths()
-        mlist = session.models.open(paths)
-        from .models import ADD_MODEL_GROUP
-        session.triggers.activate_trigger(ADD_MODEL_GROUP, mlist)
+        session.models.open(paths)
 
     def OnPaneClose(self, event):
         pane_info = event.GetPane()
