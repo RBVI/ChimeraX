@@ -73,7 +73,7 @@ class UI(wx.App):
                 self._keystroke_sinks[i + 1:]
 
     def event_loop(self):
-        redirect_stderr_to_logger(self.session.logger)
+        redirect_stdio_to_logger(self.session.logger)
         self.MainLoop()
         self.session.logger.clear()
 
@@ -105,14 +105,21 @@ class UI(wx.App):
         """
         wx.CallAfter(func, *args, **kw)
 
-def redirect_stderr_to_logger(logger):
+def redirect_stdio_to_logger(logger):
     # Redirect stderr to log
-    class LogStderr:
+    class LogStdout:
         def __init__(self, logger):
             self.logger = logger
         def write(self, s):
             self.logger.info(s, add_newline = False)
+    LogStderr = LogStdout
     import sys
+    sys.orig_stdout = sys.stdout
+    sys.stdout = LogStdout(logger)
+    # TODO: Should raise an error dialog for exceptions, but traceback
+    #       is written to stderr with a separate call to the write() method
+    #       for each line, making it hard to aggregate the lines into one
+    #       error dialog.
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
