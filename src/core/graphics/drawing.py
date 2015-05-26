@@ -280,7 +280,7 @@ class Drawing:
         else:
             self._selected_positions = None
             self._selected_triangles_mask = None
-        self.redraw_needed()
+        self.redraw_needed(selection_changed=True)
 
     selected = property(get_selected, set_selected)
     '''Whether or not the drawing is selected.'''
