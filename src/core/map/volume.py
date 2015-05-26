@@ -2783,7 +2783,7 @@ def open_map(session, stream, *args, **kw):
     from . import data
     grids = data.open_file(map_path)
     for i,d in enumerate(grids):
-        show = (i == 0 or not hasattr(d, 'vseries_index'))
+        show = (i == 0 or not hasattr(d, 'series_index'))
         v = volume_from_grid_data(d, session, open_model = False, show_data = show)
         v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)
