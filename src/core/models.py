@@ -9,7 +9,6 @@ import weakref
 from .graphics.drawing import Drawing
 from .session import State, RestoreError
 ADD_MODELS = 'add models'
-ADD_MODEL_GROUP = 'add model group'
 REMOVE_MODELS = 'remove models'
 # TODO: register Model as data event type
 
@@ -33,6 +32,10 @@ class Model(State, Drawing):
 
     def id_string(self):
         return '.'.join(str(i) for i in self.id)
+
+    def add(self, models):
+        for m in models:
+            self.add_drawing(m)
 
     def delete(self):
         if self.id is not None:
@@ -61,7 +64,6 @@ class Models(State):
     def __init__(self, session):
         self._session = weakref.ref(session)
         session.triggers.add_trigger(ADD_MODELS)
-        session.triggers.add_trigger(ADD_MODEL_GROUP)
         session.triggers.add_trigger(REMOVE_MODELS)
         self._models = {}
         from .graphics.drawing import Drawing
@@ -125,30 +127,40 @@ class Models(State):
             models = [self._models[x] for x in model_ids]
         return models
 
-    def add(self, models, id=None):
-        session = self._session()  # resolve back reference
-        if id is not None:
-            base_model_id = id
+    def add(self, models, parent = None):
+        if parent is None:
+            d = self.drawing
+            for m in models:
+                d.add_drawing(m)
+
+        # Assign id numbers
+        if parent is None:
+            base_id = ()
+            counter = self._id_counter
         else:
-            base_model_id = (next(self._id_counter), )  # model id's are tuples
-        multi_model = len(models) > 1
-        if not multi_model:
-            parent = self.drawing
-        else:
-            parent = Model('container')  # TODO: replace with appropriate name
-            parent.id = base_model_id
-            self._models[parent.id] = parent
-            self.drawing.add_drawing(parent)
+            base_id = parent.id
             from itertools import count as count
             counter = count(1)
+        m_all = list(models)
         for model in models:
-            if not multi_model:
-                model.id = base_model_id
-            else:
-                model.id = base_model_id + (next(counter),)
+            m_id = (next(counter), )  # model id's are tuples
+            model.id = base_id + m_id
             self._models[model.id] = model
-            parent.add_drawing(model)
-        session.triggers.activate_trigger(ADD_MODELS, models)
+            children = [c for c in model.child_drawings() if isinstance(c, Model)]
+            if children:
+                m_all.extend(self.add(children, model))
+                    
+        if parent is None:
+            session = self._session()
+            session.triggers.activate_trigger(ADD_MODELS, m_all)
+
+        return m_all
+
+    def add_group(self, models, name = 'group'):
+        parent = Model(name)
+        parent.add(models)
+        m_all = self.add([parent])
+        return [parent] + m_all
 
     def remove(self, models):
         session = self._session()  # resolve back reference
@@ -165,6 +177,10 @@ class Models(State):
                 parent = self._models[model_id[:-1]]
             parent.remove_drawing(model)
 
+        if len(self._models) == 0:
+            from itertools import count as _count
+            self._id_counter = _count(1)
+
     def close(self, models):
         self.remove(models)
         for m in models:
@@ -178,7 +194,10 @@ class Models(State):
             session.logger.status(status)
         if models:
             start_count = len(self._models)
-            self.add(models, id=id)
+            if len(models) > 1:
+                self.add_group(models)
+            else:
+                self.add(models)
             if start_count == 0 and len(self._models) > 0:
                 session.main_view.initial_camera_view()
         return models
