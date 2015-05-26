@@ -2787,7 +2787,7 @@ def open_map(session, stream, *args, **kw):
         v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)
 
-    if len(maps) > 1:
+    if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
         from os.path import basename
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
