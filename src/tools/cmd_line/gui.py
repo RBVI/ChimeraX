@@ -99,6 +99,7 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
+            session.logger.info(cmd_text)
             try:
                 cmd = cli.Command(session, cmd_text, final=True)
                 cmd.execute()
@@ -129,7 +130,6 @@ class CommandLine(ToolInstance):
                         log_thumb = True
                 else:
                    self._last_thumb = None
-                session.logger.info(cmd_text)
                 if log_thumb:
                     session.logger.info("graphics image", image=thumb)
         self.text.SetValue(cmd_text)
