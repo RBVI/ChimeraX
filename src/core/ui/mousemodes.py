@@ -213,7 +213,7 @@ class RotateMouseMode(MouseMode):
 
         x,y = event.position()
         v = self.view
-        p, pick = v.first_intercept(x,y)
+        pick = v.first_intercept(x,y)
         ses = self.session
         toggle = event.shift_down()
         if pick is None:
@@ -278,7 +278,7 @@ class ObjectIdMouseMode(MouseMode):
 
     def pause(self, position):
         x,y = position
-        f, p = self.view.first_intercept(x,y)
+        p = self.view.first_intercept(x,y)
         if p:
             self.session.logger.status('Mouse over %s' % p.description())
         # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.

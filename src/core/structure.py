@@ -284,7 +284,7 @@ class StructureModel(models.Model):
         # TODO check intercept of bounding box as optimization
         p = self._atoms_drawing
         if p is None:
-            return None, None
+            return None
         xyzr = p.positions.shift_and_scale_array()
         xyz = xyzr[:,:3]
         r = xyzr[:,3]
@@ -302,9 +302,9 @@ class StructureModel(models.Model):
         if fa is None:
             s = None
         else:
-            s = Picked_Atom(self, fa)
+            s = PickedAtom(self, fa, f)
 
-        return f, s
+        return s
 
     def bounds(self, positions = True):
         # TODO: Cache bounds
@@ -403,8 +403,9 @@ class StructureModel(models.Model):
 # -----------------------------------------------------------------------------
 #
 from .graphics import Pick
-class Picked_Atom(Pick):
-  def __init__(self, mol, a):
+class PickedAtom(Pick):
+  def __init__(self, mol, a, distance):
+    Pick.__init__(self, distance)
     self.molecule = mol
     self.atom = a
   def description(self):

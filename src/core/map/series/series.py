@@ -133,17 +133,6 @@ class Map_Series(Model):
     v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
     self.solid_level_ranks = ranks
 
-  # ---------------------------------------------------------------------------
-  #
-  def first_intercept(self, mxyz1, mxyz2, exclude = None):
-    fmin = pmin = None
-    for m in self.maps:
-      if m.display:
-        f,p = m.first_intercept(mxyz1, mxyz2, exclude)
-        if not f is None and (fmin is None or f < fmin):
-          fmin,pmin = f,p
-    return fmin,pmin
-
   # State save/restore in Chimera 2
   def take_snapshot(self, session, flags):
     pass

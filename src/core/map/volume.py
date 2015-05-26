@@ -1060,15 +1060,15 @@ class Volume(Model):
           return None, None
         from ..geometry.vector import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-        return f, Picked_Map(self)
+        return PickedMap(self, f)
 
     from ..graphics import Drawing
-    f, p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
     if p:
       d = p.drawing()
       detail = '%s triangles %d' % (d.name, len(d.triangles))
-      p = Picked_Map(self, detail)
-    return f,p
+      p = PickedMap(self, p.distance, detail)
+    return p
 
   # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
@@ -1823,8 +1823,9 @@ class Volume(Model):
 # -----------------------------------------------------------------------------
 #
 from ..graphics import Pick
-class Picked_Map(Pick):
-  def __init__(self, v, detail = ''):
+class PickedMap(Pick):
+  def __init__(self, v, distance, detail = ''):
+    Pick.__init__(self, distance)
     self.map = v
     self.detail = detail
   def description(self):
@@ -2782,7 +2783,7 @@ def open_map(session, stream, *args, **kw):
     from . import data
     grids = data.open_file(map_path)
     for i,d in enumerate(grids):
-        show = (i == 0)
+        show = (i == 0 or not hasattr(d, 'vseries_index'))
         v = volume_from_grid_data(d, session, open_model = False, show_data = show)
         v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)

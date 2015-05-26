@@ -760,28 +760,19 @@ class View:
 
     def first_intercept(self, win_x, win_y):
         '''
-        Return the position of the front-most object below the given
-        screen window position (in pixels) and also return a Pick object
-        describing the object.  This is used when hovering the mouse
-        over an object (e.g. an atom) to get a description of that object.
+        Return a Pick object for the front-most object below the given
+        screen window position (specified in pixels).  This Pick object will
+        have an attribute position giving the point where the intercept occurs.
+        This is used when hovering the mouse over an object (e.g. an atom)
+        to get a description of that object.
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
-        f = None
-        s = None
-        drawings = self.drawing.child_drawings()
-        for d in drawings:
-            if d.display:
-                fmin, smin = d.first_intercept(xyz1, xyz2,
-                                               exclude='is_outline_box')
-                if fmin is not None and (f is None or fmin < f):
-                    f = fmin
-                    s = smin
-#        f, s = self.drawing.first_intercept(xyz1, xyz2,
-#                                            exclude='is_outline_box')
-        if f is None:
-            return None, None
-        p = (1.0 - f) * xyz1 + f * xyz2
-        return p, s
+        p = self.drawing.first_intercept(xyz1, xyz2, exclude='is_outline_box')
+        if p is None:
+            return None
+        f = p.distance
+        p.position = (1.0 - f) * xyz1 + f * xyz2
+        return p
 
     def _update_projection(self, view_num=None, camera=None):
 
