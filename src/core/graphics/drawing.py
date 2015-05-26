@@ -1205,19 +1205,20 @@ class Pick:
     def id_string(self):
         '''
         A text identifier that can be used in commands to specified the
-        picked Model.  This is a concatenation of integer id numbers for
-        the chain of drawings.  The id number is not a standard attribute
-        of Drawing, only of Model which is a subclass of Drawing.
+        picked Model. The id number is not a standard attribute
+        of Drawing, only of Model which is a subclass of Drawing,
+        and is a tuple of integers.
         '''
         d = self.drawing()
-        id_chain = []
-        while d:
+        while True:
             if hasattr(d, 'id') and d.id is not None:
-                id_chain.append(d.id)
-            d = getattr(d, 'parent', None)
-        s = '#' + '.'.join(('%d' % id) for id in id_chain[1::-1])
-        return s
-
+                s = '#' + '.'.join(('%d' % id) for id in d.id)
+                return s
+            if hasattr(d, 'parent') and not d.parent is None:
+                d = d.parent
+            else:
+                break
+        return '?'
 
 class _PickedDrawing(Pick):
     '''
