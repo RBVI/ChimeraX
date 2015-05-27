@@ -229,8 +229,18 @@ class RotateMouseMode(MouseMode):
 class RotateSelectedMouseMode(RotateMouseMode):
 
     def models(self):
-        m = self.session.selection.models()
-        return None if len(m) == 0 else m
+        return top_selected(self.session)
+
+def top_selected(session):
+    # Don't include parents of selected models.
+    mlist = [m for m in session.selection.models()
+             if (len(m.child_models()) == 0 or m.selected) and not any_parent_selected(m)]
+    return None if len(mlist) == 0 else mlist
+
+def any_parent_selected(m):
+    if not hasattr(m, 'parent') or m.parent is None:
+        return False
+    return m.parent.selected or any_parent_selected(m.parent)
 
 class TranslateMouseMode(MouseMode):
 
@@ -253,8 +263,7 @@ class TranslateMouseMode(MouseMode):
 class TranslateSelectedMouseMode(TranslateMouseMode):
 
     def models(self):
-        m = self.session.selection.models()
-        return None if len(m) == 0 else m
+        return top_selected(self.session)
 
 class ZoomMouseMode(MouseMode):
 
