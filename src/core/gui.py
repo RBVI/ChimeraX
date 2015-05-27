@@ -73,6 +73,10 @@ class UI(wx.App):
                 self._keystroke_sinks[i + 1:]
 
     def event_loop(self):
+# This turns Python deprecation warnings into exceptions, useful for debugging.
+#        import warnings
+#        warnings.filterwarnings('error')
+
         redirect_stdio_to_logger(self.session.logger)
         self.MainLoop()
         self.session.logger.clear()
