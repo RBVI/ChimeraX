@@ -362,13 +362,13 @@ class ToolWindow:
         self.__toolkit.destroy(**kw)
         self.__toolkit = None
 
-    def manage(self, placement):
+    def manage(self, placement, fixed_size = False):
         """ Tool will be docked into main window on the side indicated by
             'placement' (which should be a value from self.placements or None);
             if 'placement' is None, the tool will be detached from the main
             window.
         """
-        self.__toolkit.manage(placement)
+        self.__toolkit.manage(placement, fixed_size)
 
     def get_destroy_hides(self):
         return self.__toolkit.destroy_hides
@@ -427,7 +427,7 @@ class _Wx:
         self.main_window = None
         self._pane_info = None
 
-    def manage(self, placement):
+    def manage(self, placement, fixed_size = False):
         import wx
         placements = self.tool_window.placements
         if placement is None:
@@ -453,6 +453,8 @@ class _Wx:
                 layer = max(layer, pane_info.dock_layer)
         """
         mw.aui_mgr.AddPane(self.ui_area, side, self.title)
+        if fixed_size:
+            mw.aui_mgr.GetPane(self.ui_area).Fixed()
         """
         mw.aui_mgr.GetPane(self.ui_area).Layer(layer+1)
         """
