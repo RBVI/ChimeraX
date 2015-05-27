@@ -317,3 +317,15 @@ def register(session):
     #     import .lighting.cmd as cmd
     #     cmd.register()
     # cli.delay_registration('lighting', lighting_cmds)
+
+    from . import atomspec
+    atomspec.register_selector(None, "sel", _sel_selector)
+
+def _sel_selector(session, models, results):
+    from .structure import StructureModel
+    for m in models:
+        if m.any_part_selected():
+            results.add_model(m)
+            if isinstance(m, StructureModel):
+                for m, atoms in m.selected_items('atoms'):
+                    results.add_atoms(atoms)
