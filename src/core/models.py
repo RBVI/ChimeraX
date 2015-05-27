@@ -37,11 +37,13 @@ class Model(State, Drawing):
         for m in models:
             self.add_drawing(m)
 
-    def delete(self):
-        if self.id is not None:
-            raise ValueError("model is still open")
-        Drawing.delete(self)
-        # TODO: track.deleted(Model, [self])
+    def all_models(self):
+        '''Return all models including self and children at all levels.'''
+        dlist = [self]
+        for d in self.child_drawings():
+            if isinstance(d, Model):
+                dlist.extend(d.all_models())
+        return dlist
 
     def take_snapshot(self, session, flags):
         return [self.MODEL_STATE_VERSION, self.name]
@@ -163,19 +165,21 @@ class Models(State):
         return [parent] + m_all
 
     def remove(self, models):
+        # Also remove all child models, and remove deepest children first.
+        mlist = descendant_models(models)
+        mlist.sort(key = lambda m: len(m.id), reverse = True)
         session = self._session()  # resolve back reference
-        session.triggers.activate_trigger(REMOVE_MODELS, models)
-        for model in models:
+        session.triggers.activate_trigger(REMOVE_MODELS, mlist)
+        for model in mlist:
             model_id = model.id
-            if model_id is None:
-                continue
-            model.id = None
-            del self._models[model_id]
-            if len(model_id) == 1:
-                parent = self.drawing
-            else:
-                parent = self._models[model_id[:-1]]
-            parent.remove_drawing(model)
+            if model_id is not None:
+                del self._models[model_id]
+                model.id = None
+                if len(model_id) == 1:
+                    parent = self.drawing
+                else:
+                    parent = self._models[model_id[:-1]]
+                parent.remove_drawing(model)
 
         if len(self._models) == 0:
             from itertools import count as _count
@@ -201,3 +205,9 @@ class Models(State):
             if start_count == 0 and len(self._models) > 0:
                 session.main_view.initial_camera_view()
         return models
+
+def descendant_models(models, mset = None):
+    mlist = []
+    for m in models:
+        mlist.extend(m.all_models())
+    return mlist
