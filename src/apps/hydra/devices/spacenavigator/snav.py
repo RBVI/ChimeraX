@@ -2,19 +2,21 @@
 #
 class Space_Navigator:
 
-    def __init__(self):
+    def __init__(self, view, log):
+
+        self.view = view
+        self.log = log
 
         self.speed = 1
         self.dominant = True    # Don't simultaneously rotate and translate
         self.fly_mode = False   # Control camera instead of models.
-        self.session = None
         self.device = None
         self.processing_events = False
         self.collision_map = None        # Volume data mask where camera cannot go
         self.button_1_action = 'view all'
         self.button_2_action = 'toggle dominant mode'
 
-    def start_event_processing(self, session):
+    def start_event_processing(self):
 
         if self.processing_events:
             return True
@@ -26,17 +28,16 @@ class Space_Navigator:
                 return False     # Connection failed.
 
         if self.device:
-            self.session = session
-            session.view.add_new_frame_callback(self.check_space_navigator)
+            self.view.add_new_frame_callback(self.check_space_navigator)
             self.processing_events = True
             return True
 
         return False
 
-    def stop_event_processing(self, session):
+    def stop_event_processing(self):
 
         if self.processing_events:
-            session.view.remove_new_frame_callback(self.check_space_navigator)
+            self.view.remove_new_frame_callback(self.check_space_navigator)
             self.processing_events = False
 
     def check_space_navigator(self):
@@ -80,7 +81,7 @@ class Space_Navigator:
         if tmag > 0:
             axis = array((tx/tmag, ty/tmag, tz/tmag), float32)
 #            view_width = v.camera.view_width(v.center_of_rotation)
-            b = self.session.bounds()
+            b = self.view.drawing_bounds()
             if not b is None:
                 f = .1 if self.fly_mode else 1
                 view_width = b.xyz_max - b.xyz_min
@@ -106,7 +107,7 @@ class Space_Navigator:
     # Transform is in camera coordinates, with rotation about 0.
     def apply_transform(self, tf):
 
-        v = self.session.view
+        v = self.view
         cam = v.camera
         cp = cam.position
         cpinv = cp.inverse()
@@ -135,8 +136,8 @@ class Space_Navigator:
     def toggle_dominant_mode(self):
 
         self.dominant = not self.dominant
-        self.session.show_status('simultaneous rotation and translation: %s'
-                                 % (not self.dominant))
+        self.log.status('simultaneous rotation and translation: %s'
+                        % (not self.dominant))
 
     def toggle_fly_mode(self):
 
@@ -144,7 +145,7 @@ class Space_Navigator:
 
     def view_all(self):
 
-        self.session.view.view_all()
+        self.view.view_all()
 
 # -----------------------------------------------------------------------------
 #
@@ -168,7 +169,8 @@ def find_device():
 def space_navigator(session):
     sn = session.space_navigator
     if sn is None:
-        sn = Space_Navigator()
+        log = session
+        sn = Space_Navigator(session.view, log)
         session.space_navigator = sn
     return sn
 
@@ -177,9 +179,9 @@ def space_navigator(session):
 def toggle_space_navigator(session):
     sn = space_navigator(session)
     if sn.processing_events:
-        sn.stop_event_processing(session)
+        sn.stop_event_processing()
     else:
-        success = sn.start_event_processing(session)
+        success = sn.start_event_processing()
         session.show_info('started space navigator: %s' % str(bool(success)))
 
 # -----------------------------------------------------------------------------
@@ -210,9 +212,9 @@ def snav_command(enable = None, fly = None, session = None):
     sn = space_navigator(session)
     if not enable is None:
         if enable:
-            sn.start_event_processing(session)
+            sn.start_event_processing()
         else:
-            sn.stop_event_processing(session)
+            sn.stop_event_processing()
         
     if not fly is None:
         sn.fly_mode = bool(fly)

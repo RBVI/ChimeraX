@@ -10,6 +10,8 @@ class Session(Models):
 
         Models.__init__(self)		# Manages list of open models
 
+        self.models = self      	# For compatibility with Chimera 2
+
         from . import ui
         ui.choose_window_toolkit()
 
@@ -33,6 +35,8 @@ class Session(Models):
 
         self.log = None
         'Command, error, info log, :py:class:`~.ui.qt.gui.Log`'
+
+        self.logger = self       # For compatibility with Chimera 2 code.
 
         self.file_readers = None
         'Table of file types that can be read, used by :py:func:`~.files.opensave.file_readers`'
@@ -81,6 +85,7 @@ class Session(Models):
         self.application = app = ui.Hydra_App(sys.argv, self)
         self.main_window = mw = app.main_window
         self.view = v = mw.view
+        self.main_view = v              # For compatibility with Chimera 2
         self.log = log = ui.Log(mw)
         from .commands import commands, shortcuts
         commands.register_commands(self.commands)
@@ -115,15 +120,18 @@ class Session(Models):
     def show_status(self, msg, append = False):
         '''Show a status message at the bottom of the main window.'''
         self.main_window.show_status(msg, append)
+    status = show_status        # Compatibility with Chimera 2
 
     def show_info(self, msg, color = None):
         '''Write information such as command output to the log window.'''
         self.log.log_message(msg, color)
+    info = show_info		# Compatibility with Chimera 2
 
     def show_warning(self, msg):
         '''Write warning such as command output to the log window.'''
         self.show_status(msg)
         self.show_info(msg, color = 'red')
+    warning = show_warning	# Compatibility with Chimera 2
 
     def executable_directory(self):
          return self.bin_dir

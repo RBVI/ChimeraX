@@ -10,19 +10,22 @@ def start_tool(session, ti):
 
     # Starting tools may only work in GUI mode, or in all modes.
     # Here, we check for GUI-only tool.
-    from chimera.core import gui
-    if isinstance(session.ui, gui.UI):
-        if not hasattr(session.ui, ti.name):
-            from .gui import ToolUI
-            setattr(session.ui, ti.name, ToolUI(session))
+    if not session.ui.is_gui:
+        return None
+    from .gui import SideViewUI
+    #return SideViewUI(session, ti)
+    s = SideViewUI(session, ti)
+    return s
+
+
+# no commands
 
 
 #
-# 'register_command' is called by the toolshed on start up
+# 'get_class' is called by session code to get class saved in a session
 #
-def register_command(command_name):
-    from . import cmd
-    from chimera.core import cli
-    cli.register(command_name + " SUBCOMMAND_NAME",
-                 cmd.subcommand_desc, cmd.subcommand_function)
-    # TODO: Register more subcommands here
+def get_class(class_name):
+    if class_name == 'SideViewUI':
+        from . import gui
+        return gui.SideViewUI
+    return None

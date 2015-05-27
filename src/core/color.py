@@ -1,7 +1,13 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
-color: color cli annotation and evaluation
-==========================================
+color: basic color support
+===========================
+
+A :py:class:`Color` class that hold a :py:class:`numpy.array` of
+four 32-bit floats.
+
+Also, a :py:`ColorArg` :py:mod:`cli` :py:class:`Annotation` for
+command line parsing.
 
 CSS3 colors are supported with the addition of the gray() specification
 from the CSS4 draft and the CSS4 color names.
@@ -9,7 +15,7 @@ from the CSS4 draft and the CSS4 color names.
 import re
 from sortedcontainers import SortedDict
 from . import cli
-from .session import State
+from .session import State, RestoreError
 
 # CSS4 colors
 _BuiltinColors = SortedDict({
@@ -166,6 +172,10 @@ _BuiltinColors['transparent'] = (0, 0, 0, 0)
 
 
 class UserColors(SortedDict, State):
+    """Support for per-session colors.
+
+    Accessed through the session object as ``session.user_colors``.
+    """
 
     USER_COLORS_VERSION = 1
 
@@ -174,30 +184,44 @@ class UserColors(SortedDict, State):
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.USER_COLORS_VERSION:
-            raise RuntimeError("Unexpected UserColors version")
+            raise RestoreError("Unexpected UserColors version")
         self.clear()
         self.update(data)
 
     def reset_state(self):
         """Reset state to data-less state"""
-        self.colors.clear()
+        self.clear()
 
 
 class Color:
+    """Basic color support.
+
+    The color components are stored as a 4-element float32 numpy array
+    in RGBA order: red, green, blue, and alpha.
+    Alpha is the opacity.
+
+    Parameters
+    ----------
+    rgba : color components
+        3- or 4-component array of integers (0-255), or floating point (0-1),
+        or # followed by 3 (4), 6 (8), or 12 (16) hex digits (with alpha).
+    limit : True
+        Clip color array values to [0, 1] inclusive.
+    """
 
     def __init__(self, rgba=None, limit=True):
         from numpy import array, float32, uint8, clip, ndarray, empty
         if isinstance(rgba, ndarray):
-            uint8x4 = rgba.dtype == uint8
+            is_uint8 = rgba.dtype == uint8
             a = self.rgba = empty(4, dtype=float32)
             if len(rgba) == 3:
                 a[0:3] = rgba
-                a[3] = 255 if uint8x4 else 1
+                a[3] = 255 if is_uint8 else 1
             elif len(rgba) == 4:
                 a[0:4] = rgba
             else:
                 raise ValueError("expected 3 or 4 element array")
-            if uint8x4:
+            if is_uint8:
                 self.rgba /= 255
         elif isinstance(rgba, (tuple, list)):
             if len(rgba) == 3:
@@ -212,23 +236,71 @@ class Color:
             self.rgba = rgba.rgba[:]    # copy
             if limit:
                 clip(self.rgba, 0, 1, out=self.rgba)
+        elif isinstance(rgba, str):
+            # Hex: #DDD, #DDDDDD, or #DDDDDDDDDDDD
+            try:
+                if rgba[0] != '#':
+                    raise ValueError
+                int(rgba[1:], 16)
+            except ValueError:
+                raise ValueError("expected hexadecimal digits after #")
+            if len(rgba) == 4:
+                digits = (x for x in rgba[1:])
+                values = [int(x, 16) / 15 for x in digits] + [1.0]
+            elif len(rgba) == 5:
+                digits = (x for x in rgba[1:])
+            elif len(rgba) == 7:
+                digits = (rgba[x:x + 2] for x in range(1, 7, 2))
+                values = [int(x, 16) / 255 for x in digits] + [1.0]
+            elif len(rgba) == 9:
+                digits = (rgba[x:x + 2] for x in range(1, 9, 2))
+                values = [int(x, 16) / 255 for x in digits]
+            elif len(rgba) == 13:
+                digits = (rgba[x:x + 4] for x in range(1, 13, 4))
+                values = [int(x, 16) / 65535 for x in digits] + [1.0]
+            elif len(rgba) == 17:
+                digits = (rgba[x:x + 4] for x in range(1, 17, 4))
+                values = [int(x, 16) / 65535 for x in digits]
+            else:
+                raise ValueError(
+                    "Color constant should have 3 (4), 6 (8), or 12 (16)"
+                    " hexadecimal digits")
+            self.rgba = array(values, dtype=float32)
         else:
             raise ValueError("Not a color")
 
+    def __eq__(self, other):
+        if not isinstance(other, Color):
+            return False
+        import numpy
+        return numpy.array_equal(self.rgba, other.rgba)
+
+    def __ne__(self, other):
+        if not isinstance(other, Color):
+            return False
+        import numpy
+        return not numpy.array_equal(self.rgba, other.rgba)
+
     def opaque(self):
+        """Return if the color is opaque."""
         return self.rgba[3] >= 1.0
 
     def __repr__(self):
         return '%s' % self.rgba
 
     def uint8x4(self):
+        """Return uint8x4 version color"""
         from numpy import trunc, uint8
         return trunc(self.rgba * 255 + .5).astype(uint8)
 
     def hex(self):
         """Return CSS hex representation (no alpha)"""
         red, green, blue, alpha = self.uint8x4()
-        return '#%06x' % (red << 16 | green << 8 | blue)
+        return '#%02x%02x%02x' % (red, green, blue)
+
+    def hex_with_alpha(self):
+        """Return hex representation"""
+        return '#%02x%02x%02x%02x' % tuple(self.uint8x4())
 
 
 _color_func = re.compile(r"^(rgb|rgba|hsl|hsla|gray)\s*\(([^)]*)\)")
@@ -260,8 +332,8 @@ def _parse_numbers(text):
 
 
 def _convert_number(number, maximum=255, require_percent=False):
+    """Return number scaled to 0 <= n <= 1"""
     n, n_pos, u, u_pos = number
-    # return number scaled to 0 <= n <= 1
     if require_percent and u != '%':
         raise cli.AnnotationError("Must give a percentage", u_pos)
     if u == '':
@@ -286,38 +358,31 @@ def _convert_angle(number):
 
 
 class ColorArg(cli.Annotation):
+    """Support color names and CSS3 color specifications.
+
+    The CSS3 color specifications supported are: rgb, rgba, hsl, hsla, and
+    gray from CSS4.
+
+    The following examples are all ``red``, except for the gray ones::
+
+        red
+        #f00
+        #0xff0000
+        rgb(255, 0, 0)
+        rgb(100%, 0, 0)
+        rgba(100%, 0, 0, 1)
+        rgba(100%, 0, 0, 100%)
+        hsl(0, 100%, 50%)
+        gray(128)
+        gray(50%)
+    """
     name = 'a color'
 
     @staticmethod
     def parse(text, session):
         if text[0] == '#':
             token, text, rest = cli.next_token(text)
-            # Hex: #DDD, #DDDDDD, or #DDDDDDDDDDDD
-            try:
-                int(token[1:], 16)
-            except ValueError:
-                raise ValueError("expected hexadecimal digits")
-            if len(token) == 4:
-                digits = (x for x in token[1:])
-                return Color([int(x, 16) / 15 for x in digits]), text, rest
-            elif len(token) == 5:
-                digits = (x for x in token[1:])
-            elif len(token) == 7:
-                digits = (token[x:x + 2] for x in range(1, 7, 2))
-                return Color([int(x, 16) / 255 for x in digits]), text, rest
-            elif len(token) == 9:
-                digits = (token[x:x + 2] for x in range(1, 9, 2))
-                return Color([int(x, 16) / 255 for x in digits]), text, rest
-            elif len(token) == 13:
-                digits = (token[x:x + 4] for x in range(1, 13, 4))
-                return Color([int(x, 16) / 65535 for x in digits]), text, rest
-            elif len(token) == 17:
-                digits = (token[x:x + 4] for x in range(1, 17, 4))
-                return Color([int(x, 16) / 65535 for x in digits]), text, rest
-            else:
-                raise ValueError(
-                    "Color constant should have 3 (4), 6 (8), or 12 (16)"
-                    " hexadecimal digits")
+            return Color(token), text, rest
         m = _color_func.match(text)
         if m is None:
             token, text, rest = cli.next_token(text)
@@ -412,6 +477,7 @@ class ColorArg(cli.Annotation):
 
 
 def define_color(session, name, color=None):
+    """Create a user defined color."""
     if ' ' in name:
         raise cli.UserError("Sorry, spaces are not alllowed in color names")
     if color is None:
@@ -461,19 +527,64 @@ def define_color(session, name, color=None):
 
 
 def undefine_color(session, name):
+    """Remove a user defined color."""
     del session.user_colors[name]
 
 
+def color(session, color, spec=None):
+    """Color an object specification."""
+    from . import atomspec
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+
+    rgba8 = color.uint8x4()
+    atoms = results.atoms
+    if atoms is None:
+        na = 0
+    else:
+        atoms.colors = rgba8
+        na = len(atoms)
+
+    ns = 0
+    from .structure import StructureModel
+    for m in results.models:
+        if isinstance(m, StructureModel):
+            m.update_graphics()
+        else:
+            m.color = rgba8
+            ns += 1
+
+    what = []
+    if na > 0:
+        what.append('%d atoms' % na)
+    if ns > 0:
+        what.append('%d surfaces' % ns)
+    if na == 0 and ns == 0:
+        what.append('nothing')
+    session.logger.status('Colored %s' % ', '.join(what))
+
+
 def register_commands():
+    from . import atomspec
+    cli.register(
+        'color',
+        cli.CmdDesc(required=[("color", ColorArg)],
+                    optional=[("spec", atomspec.AtomSpecArg)],
+                    synopsis="color specified objects"),
+        color
+    )
     cli.register(
         'colordef',
         cli.CmdDesc(required=[('name', cli.StringArg)],
-                    optional=[('color', ColorArg)]),
+                    optional=[('color', ColorArg)],
+                    synopsis="define a custom color"),
         define_color
     )
     cli.register(
         '~colordef',
-        cli.CmdDesc(required=[('name', cli.StringArg)]),
+        cli.CmdDesc(required=[('name', cli.StringArg)],
+                    synopsis="remove color definition"),
         undefine_color
     )
 
@@ -502,3 +613,4 @@ def test():
             print(ColorArg.parse(t))
         except ValueError as err:
             print(err)
+    print('same:', ColorArg.parse('white')[0] == Color('#ffffff'))

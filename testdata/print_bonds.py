@@ -1,31 +1,36 @@
 from chimera.core.structure import StructureModel
-from pprint import pprint
-import numpy
 
-def osl_ident(i, atom_names, atom_residue_numbers, atom_chain_ids):
-    return '%s:%s@%s' % (atom_chain_ids[i], atom_residue_numbers[i],
-                         atom_names[i])
+
+def osl_ident(chain_id, residue_number, atom_name):
+    # Chimera 1 style oslIdent without the model number
+    return ':%s.%s@%s' % (residue_number, chain_id, atom_name)
+
 
 for m in Chimera2_session.models.list():
     if not isinstance(m, StructureModel):
         continue
-    an = m.mol_blob.atoms.names
-    arn = m.mol_blob.atoms.residues.numbers
-    arc = m.mol_blob.atoms.residues.chain_ids
-    bond_indices = m.mol_blob.bond_indices
-    
-    atoms = [None] * len(an)
-    for i in range(len(atoms)):
-        atoms[i] = []
-    for a0, a1 in bond_indices:
-        if a0 < a1:
-            atoms[a0].append(a1)
-        else:
-            atoms[a1].append(a0)
+    bonds = {}
+    a0s, a1s = m.mol_blob.bonds.atoms
+    a0names = a0s.names
+    a0rn = a0s.residues.numbers
+    a0rc = a0s.residues.chain_ids
+    a1names = a1s.names
+    a1rn = a1s.residues.numbers
+    a1rc = a1s.residues.chain_ids
+    # print(len(a0names), 'bonds', flush=True)
+    for i in range(len(a0names)):
+        a0 = (a0rc[i], a0rn[i], a0names[i])
+        a1 = (a1rc[i], a1rn[i], a1names[i])
+        bonds.setdefault(a0, []).append(a1)
+        bonds.setdefault(a1, []).append(a0)
+    # print(len(bonds), 'atoms', flush=True)
+    atoms = list(bonds)
+    atoms.sort()
+    for a in atoms:
+        other_atoms = bonds[a]
+        other_atoms.sort()
+        print("%s: %s" % (osl_ident(*a),
+                          ', '.join([osl_ident(*x) for x in other_atoms])))
 
-    for i in range(len(atoms)):
-        bond_names = ' '.join(osl_ident(j, an, arn, arc) for j in atoms[i])
-        if bond_names:
-            print('%s: %s' % (osl_ident(i, an, arn, arc), bond_names))
-            
+Chimera2_session.logger.clear()
 raise SystemExit(0)

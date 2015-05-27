@@ -67,7 +67,7 @@ class Volume(Model):
     self.transparency_depth = 0.5               # for solid
     self.solid_brightness_factor = 1
 
-    self.default_rgba = data.rgba
+    self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
 
     self.change_callbacks = []
 
@@ -673,15 +673,15 @@ class Volume(Model):
                                                calculate_normals = True)
     except MemoryError:
       ses = self.session
-      ses.show_warning('Ran out of memory contouring at level %.3g.\n' % level +
-                       'Try a higher contour level.')
+      ses.warning('Ran out of memory contouring at level %.3g.\n' % level +
+                  'Try a higher contour level.')
       return False
 
     for a in plane_axis:
       varray[:,2-a] = 0
     
     if ro.flip_normals and level < 0:
-      from _surface import invert_vertex_normals
+      from ..surface import invert_vertex_normals
       invert_vertex_normals(narray, tarray)
 
     # Preserve triangle vertex traversal direction about normal.
@@ -703,7 +703,7 @@ class Volume(Model):
 
     if ro.surface_smoothing:
       sf, si = ro.smoothing_factor, ro.smoothing_iterations
-      from _surface import smooth_vertex_positions
+      from ..surface import smooth_vertex_positions
       smooth_vertex_positions(varray, tarray, sf, si)
       smooth_vertex_positions(narray, tarray, sf, si)
 
@@ -755,7 +755,7 @@ class Volume(Model):
     try:
       level = data.surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
     except MemoryError as e:
-      self.session.show_warning(str(e))
+      self.session.warning(str(e))
       level = None
     return level
     
@@ -1439,9 +1439,9 @@ class Volume(Model):
       level = min(v.surface_levels) if v.surface_levels else 0
       scale = -minimum_rms_scale(values, m, level)
       ses = self.session
-      ses.show_info('Minimum RMS scale factor for "%s" above level %.5g\n'
-                    '  subtracted from "%s" is %.5g\n'
-                    % (v.name_with_id(), level, self.name_with_id(), scale))
+      ses.info('Minimum RMS scale factor for "%s" above level %.5g\n'
+               '  subtracted from "%s" is %.5g\n'
+               % (v.name_with_id(), level, self.name_with_id(), scale))
     if scale != 1:
       # Copy array only if scaling.
       if const_values:
@@ -2676,7 +2676,8 @@ def volume_from_grid_data(grid_data, session, representation = None,
     grid_data = d
   v = Volume(grid_data, session, region, ro, model_id, open_model)
   v.set_representation(representation)
-  set_initial_volume_color(v, session)
+  if grid_data.rgba is None:
+    set_initial_volume_color(v, session)
 
   # Show data
   if show_data:
@@ -2687,7 +2688,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
       v.message('%s not shown' % v.name)
 
   if open_model:
-    session.add_model(v)
+    session.models.add([v])
 
   return v
 
@@ -2771,8 +2772,11 @@ def open_map(session, stream, *args, **kw):
     '''
     Open a density map file having any of the known density map formats.
     '''
-    map_path = stream.name
-    stream.close()
+    if isinstance(stream, list):
+      map_path = stream         # Batched paths
+    else:
+      map_path = stream.name
+      stream.close()
 
     maps = []
     from . import data
@@ -2801,4 +2805,4 @@ def register_map_file_readers():
     from .data.fileformats import file_types
     for d,t,prefixes,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, io.VOLUME, suf, open_func=open_map)
+      io.register_format(d, io.VOLUME, suf, open_func=open_map, batch=batch)

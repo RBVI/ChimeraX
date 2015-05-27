@@ -37,6 +37,8 @@ Here is an example of a function that may be registered with cli:
     from chimera.core import cli, atomspec
 
     def move(session, by, modelspec=None):
+        if modelspec is None:
+            modelspec = atomspec.everything(session)
         spec = modelspec.evaluate(session)
         import numpy
         by_vector = numpy.array(by)
@@ -58,7 +60,9 @@ all atoms.
 """
 
 import re
-from .cli import Annotation
+from .cli import Annotation, UserError
+
+_double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 
 
 class AtomSpecArg(Annotation):
@@ -71,104 +75,78 @@ class AtomSpecArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_atomspec(text)
+        """Parse text and return an atomspec parse tree"""
+        assert(text and not text[0].isspace())
+        if text[0] == '"':
+            return AtomSpecArg._parse_quoted(text, session)
+        else:
+            return AtomSpecArg._parse_unquoted(text, session)
+
+    @staticmethod
+    def _parse_quoted(text, session):
+        # Split out quoted argument
+        start = 0
+        m = _double_quote.match(text, start)
+        if m is None:
+            from .cli import AnnotationError
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if text[end - 1].isspace():
+            end -= 1
+        # Quoted argument is consumed on success
+        # Text after quote is unused
+        consumed = text[start:end]
+        rest = text[end:]
+        # Convert quote contents to string
+        from .cli import unescape_with_index_map
+        token, index_map = unescape_with_index_map(text[start + 1:end - 1])
+        # Create parser and parse converted token
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
         semantics = _AtomSpecSemantics(session)
         from grako.exceptions import FailedParse
         try:
             ast = parser.parse(token, "atom_specifier", semantics=semantics)
+        except FailedSemantics as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
         except FailedParse as e:
-            raise ValueError(str(e))
+            from .cli import AnnotationError
+            # Add one to offset for leading quote
+            offset = index_map[e.pos]
+            raise AnnotationError(str(e), offset=offset)
+        # Must consume everything inside quotes
         if ast.parseinfo.endpos != len(token):
-            # TODO: better error message on syntax error
-            raise ValueError("mangled atom specifier")
-        return ast, text, rest
+            from .cli import AnnotationError
+            offset = index_map[ast.parseinfo.endpos] + 1
+            raise AnnotationError("mangled atom specifier", offset=offset)
+        # Success!
+        return ast, consumed, rest
 
-
-#
-# Lexical analysis functions
-#
-_double_quote = re.compile(r'"(.|\")*?"(\s|$)')
-_operator = re.compile(r'\s+[&~|]+\s+')
-
-
-def _next_atomspec(text):
-    # Modeled after .cli._next_token()
-    #
-    # Return a 3-tuple of first argument in text, the actual text used,
-    # and the rest of the text.
-    #
-    # Arguments may be quoted, in which case the text between
-    # the quotes is returned.
-    assert(text and not text[0].isspace())
-    start = 0
-    if text[start] == '"':
-        m = _double_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
+    @staticmethod
+    def _parse_unquoted(text, session):
+        # Try to parse the entire line.
+        # If we get nothing, then raise AnnotationError.
+        # Otherwise, consume what we can use and call it a success.
+        from ._atomspec import _atomspecParser
+        parser = _atomspecParser(parseinfo=True)
+        semantics = _AtomSpecSemantics(session)
+        from grako.exceptions import FailedParse, FailedSemantics
+        try:
+            ast = parser.parse(text, "atom_specifier", semantics=semantics)
+        except FailedSemantics as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
+        except FailedParse as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
         else:
-            end = len(text)
-            token = text[start + 1:end]
-            raise ValueError("incomplete quoted text")
-        from .cli import unescape
-        token = unescape(token)
-    else:
-        # Do space collapsing around operators
-        eol = len(text)
-        if text[0] == '~':
-            token = "~"
-            end = 1
-            while end < eol:
-                if not text[end].isspace():
-                    break
-                else:
-                    end += 1
-        else:
-            token = ""
-            end = 0
-        while end < eol:
-            # Look for the next operator.  If there is a space
-            # between here and the next operator, then the space
-            # terminates the atom specifier.
-            m = _operator.search(text, end)
-            if m:
-                # An operator appears later in the line
-                group_start = m.start()
-                n = _find_intervening_space(text, end, group_start)
-                if n is None:
-                    # No intervening spaces, operator is part of atomspec
-                    token += text[end:group_start] + m.group()
-                    end = m.end()
-                else:
-                    # Add remainder of atomspec and terminate
-                    token += text[end:n]
-                    end = n
-                    break
-            else:
-                # No operator appears in rest of line
-                n = _find_intervening_space(text, end, eol)
-                if n is None:
-                    # No intervening spaces, rest of line is part of atomspec
-                    token += text[end:]
-                    end = eol
-                else:
-                    # Add remainder of atomspec and terminate
-                    token += text[end:n]
-                    end = n
-                break
-    return token, text[:end], text[end:]
-
-
-def _find_intervening_space(text, start, end):
-    for n in range(start, end):
-        if text[n].isspace():
-            return n
-    else:
-        return None
+            end = ast.parseinfo.endpos
+            if end == 0:
+                from .cli import AnnotationError
+                raise AnnotationError("not an atom specifier")
+            # Consume what we used and return the remainder
+            return ast, text[:end], text[end:]
 
 
 #
@@ -182,6 +160,7 @@ class _AtomSpecSemantics:
         self._session = session
 
     def atom_specifier(self, ast):
+        # print("atom_specifier", ast)
         atom_spec = AtomSpec(ast.operator, ast.left, ast.right)
         try:
             atom_spec.parseinfo = ast.parseinfo
@@ -190,34 +169,44 @@ class _AtomSpecSemantics:
         return atom_spec
 
     def as_term(self, ast):
-        if ast.term is not None:
-            return ast.term
+        # print("as_term", ast)
+        if ast.atomspec is not None:
+            return ast.atomspec
+        elif ast.tilde is not None:
+            return _Invert(ast.tilde)
         elif ast.models is not None:
             return _Term(ast.models)
         else:
             return _Term(ast.selector)
 
     def selector_name(self, ast):
+        # print("selector_name", ast)
         if (get_selector(self._session, ast.name) is None and
            get_selector(None, ast.name) is None):
-                # TODO: generate better error message in cli
-                raise ValueError("\"%s\" is not a selector name" % ast.name)
+                from grako.exceptions import FailedSemantics
+                e = FailedSemantics("\"%s\" is not a selector name" % ast.name)
+                e.pos = ast.parseinfo.pos
+                e.endpos = ast.parseinfo.endpos
+                raise e
         return _SelectorName(ast.name)
 
     def model_list(self, ast):
-        if ast.model_list is None:
-            model_list = _ModelList(ast.model)
-        else:
-            model_list = ast.model_list
-            model_list.append(ast.model)
+        # print("model_list", ast)
+        model_list = _ModelList()
+        if ast.model:
+            model_list.extend(ast.model)
         return model_list
 
     def model(self, ast):
-        m = _Model(ast.hierarchy)
+        m = _Model(ast.hierarchy, ast.attrs)
         if ast.parts is not None:
             for p in ast.parts:
-                m.add(p)
-        return m
+                m.add_part(p)
+        if ast.zone is None:
+            # print("model", m)
+            return m
+        ast.zone.model = m
+        return ast.zone
 
     def model_hierarchy(self, ast):
         hierarchy = _ModelHierarchy(ast.range_list)
@@ -250,45 +239,47 @@ class _AtomSpecSemantics:
         return ast.chain
 
     def chain(self, ast):
-        if ast.parts is None and not ast.residue:
-            return None
-        c = _Chain(ast.parts)
+        c = _Chain(ast.parts, ast.attrs)
         if ast.residue:
             for r in ast.residue:
-                c.add(r)
+                c.add_part(r)
         return c
 
     def residue(self, ast):
-        if ast.parts is None and not ast.atom:
-            return None
-        r = _Residue(ast.parts)
+        r = _Residue(ast.parts, ast.attrs)
         if ast.atom:
             for a in ast.atom:
-                r.add(a)
+                r.add_part(a)
         return r
 
     def atom(self, ast):
-        return _Atom(ast.parts)
+        return _Atom(ast.parts, ast.attrs)
 
     def part_list(self, ast):
         if ast.part is None:
             return _PartList(ast.range)
         else:
-            return ast.part.add(ast.range)
+            return ast.part.add_parts(ast.range)
 
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
 
+    def zone_selector(self, ast):
+        operator, distance = ast
+        return _ZoneSelector(operator, distance)
+
+    def zone_operator(self, ast):
+        return ast
+
+    def real_number(self, ast):
+        return float(ast)
+
 
 class _ModelList(list):
     """Stores list of model hierarchies."""
-    def __init__(self, h):
-        super().__init__()
-        self.append(h)
-
     def __str__(self):
         if not self:
-            return "[empty]"
+            return "<no model specifier>"
         return "".join(str(mr) for mr in self)
 
     def find_matches(self, session, model_list, results):
@@ -363,8 +354,9 @@ class _ModelRange:
 
 class _SubPart:
     """Stores part list for one item and subparts of the item."""
-    def __init__(self, my_parts):
+    def __init__(self, my_parts, my_attrs):
         self.my_parts = my_parts
+        self.my_attrs = my_attrs
         self.sub_parts = None
 
     def __str__(self):
@@ -379,7 +371,7 @@ class _SubPart:
         # print("_SubPart.__str__", self.__class__, r)
         return r
 
-    def add(self, subpart):
+    def add_part(self, subpart):
         if subpart is None:
             return
         if self.sub_parts is None:
@@ -387,18 +379,19 @@ class _SubPart:
         else:
             self.sub_parts.append(subpart)
 
-    def find_selected_parts(self, atoms, num_atoms):
+    def find_selected_parts(self, model, atoms, num_atoms):
         # Only filter if a spec for this level is present
+        # TODO: account for my_attrs in addition to my_parts
         import numpy
         if self.my_parts is not None:
-            my_selected = self._filter_parts(atoms, num_atoms)
+            my_selected = self._filter_parts(model, atoms, num_atoms)
         else:
             my_selected = numpy.ones(num_atoms)
         if self.sub_parts is None:
             return my_selected
         sub_selected = numpy.zeros(num_atoms)
         for subpart in self.sub_parts:
-            s = subpart.find_selected_parts(atoms, num_atoms)
+            s = subpart.find_selected_parts(model, atoms, num_atoms)
             sub_selected = numpy.logical_or(sub_selected, s)
         return numpy.logical_and(my_selected, sub_selected)
 
@@ -414,16 +407,20 @@ class _Model(_SubPart):
 
     def find_sub_parts(self, session, model, results):
         results.add_model(model)
-        atoms = model.mol_blob.atoms
+        try:
+            atoms = model.atoms
+        except AttributeError:
+            # No atoms, just go home
+            return
         if not self.sub_parts:
             # No chain specifier, select all atoms
             results.add_atoms(atoms)
         else:
             import numpy
-            num_atoms = len(atoms.displays)
+            num_atoms = len(atoms)
             selected = numpy.zeros(num_atoms)
             for chain_spec in self.sub_parts:
-                s = chain_spec.find_selected_parts(atoms, num_atoms)
+                s = chain_spec.find_selected_parts(model, atoms, num_atoms)
                 selected = numpy.logical_or(selected, s)
             results.add_atoms(atoms.filter(selected))
 
@@ -432,20 +429,37 @@ class _Chain(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '/'
 
-    def _filter_parts(self, atoms, num_atoms):
+    def _filter_parts(self, model, atoms, num_atoms):
         chain_ids = atoms.residues.chain_ids
+        try:
+            case_insensitive = model._atomspec_chain_ci
+        except AttributeError:
+            any_upper = any([c.isupper() for c in chain_ids])
+            any_lower = any([c.islower() for c in chain_ids])
+            case_insensitive = not any_upper or not any_lower
+            model._atomspec_chain_ci = case_insensitive
         import numpy
         selected = numpy.zeros(num_atoms)
+        # TODO: account for my_attrs in addition to my_parts
         for part in self.my_parts.parts:
             if part.end is None:
-                def choose(chain_id, v=part.start):
-                    return chain_id == v
+                if case_insensitive:
+                    def choose(chain_id, v=part.start.lower()):
+                        return chain_id.lower() == v
+                else:
+                    def choose(chain_id, v=part.start):
+                        return chain_id == v
             else:
-                def choose(chain_id, s=part.start, e=part.end):
-                    return chain_id >= part.start and chain_id <= part.end
+                if case_insensitive:
+                    def choose(chain_id, s=part.start.lower(), e=part.end.lower()):
+                        cid = chain_id.lower()
+                        return cid >= s and cid <= e
+                else:
+                    def choose(chain_id, s=part.start, e=part.end):
+                        return chain_id >= s and chain_id <= e
             s = numpy.vectorize(choose)(chain_ids)
             selected = numpy.logical_or(selected, s)
-        print("_Chain._filter_parts", selected)
+        # print("_Chain._filter_parts", selected)
         return selected
 
 
@@ -453,43 +467,67 @@ class _Residue(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = ':'
 
-    def _filter_parts(self, atoms, num_atoms):
+    def _filter_parts(self, model, atoms, num_atoms):
         import numpy
         res_names = numpy.array(atoms.residues.names)
-        res_numbers = numpy.array([str(s) for s in atoms.residues.numbers])
+        res_numbers = atoms.residues.numbers
         selected = numpy.zeros(num_atoms)
+        # TODO: account for my_attrs in addition to my_parts
         for part in self.my_parts.parts:
+            start_number = self._number(part.start)
             if part.end is None:
-                def choose(value, v=part.start):
-                    return value == v
+                end_number = None
+                def choose_type(value, v=part.start.lower()):
+                    return value.lower() == v
             else:
-                def choose(value, s=part.start, e=part.end):
-                    return value >= part.start and value <= part.end
-            s = numpy.vectorize(choose)(res_names)
+                end_number = self._number(part.end)
+                def choose_type(value, s=part.start.lower(), e=part.end.lower()):
+                    v = value.lower()
+                    return v >= s and v <= e
+            if start_number:
+                if end_number is None:
+                    def choose_number(value, v=start_number):
+                        return value == v
+                else:
+                    def choose_number(value, s=start_number, e=end_number):
+                        return value >=s and value <= e
+            else:
+                choose_number = None
+            s = numpy.vectorize(choose_type)(res_names)
             selected = numpy.logical_or(selected, s)
-            s = numpy.vectorize(choose)(res_numbers)
-            selected = numpy.logical_or(selected, s)
+            if choose_number:
+                s = numpy.vectorize(choose_number)(res_numbers)
+                selected = numpy.logical_or(selected, s)
+        # print("_Residue._filter_parts", selected)
         return selected
+
+    def _number(self, n):
+        try:
+            return int(n)
+        except ValueError:
+            return None
 
 
 class _Atom(_SubPart):
     """Stores residue part list and atom spec."""
     Symbol = '@'
 
-    def _filter_parts(self, atoms, num_atoms):
+    def _filter_parts(self, model, atoms, num_atoms):
         import numpy
         names = numpy.array(atoms.names)
         selected = numpy.zeros(num_atoms)
+        # TODO: account for my_attrs in addition to my_parts
         for part in self.my_parts.parts:
             if part.end is None:
-                def choose(chain_id, v=part.start):
-                    return chain_id == v
+                def choose(name, v=part.start.lower()):
+                    return name.lower() == v
             else:
-                def choose(chain_id, s=part.start, e=part.end):
-                    return chain_id >= part.start and chain_id <= part.end
+                def choose(name, s=part.start.lower(), e=part.end.lower()):
+                    n = name.lower()
+                    return n >= s and n <= e
             s = numpy.vectorize(choose)(names)
             selected = numpy.logical_or(selected, s)
-        print("_Atom._filter_parts", selected)
+        # print("_Atom._filter_parts", selected)
         return selected
 
 
@@ -501,7 +539,7 @@ class _PartList:
     def __str__(self):
         return ','.join([str(p) for p in self.parts])
 
-    def add(self, part_range):
+    def add_parts(self, part_range):
         self.parts.append(part_range)
 
 
@@ -532,6 +570,37 @@ class _SelectorName:
             f(session, models, results)
 
 
+class _ZoneSelector:
+    """Stores zone operator and distance information."""
+    def __init__(self, operator, distance):
+        self.distance = distance
+        self.target_type = operator[0]  # '@', ':' or '#'
+        self.operator = operator[1:]    # '<', '<=', '>', '>='
+        self.model = None
+
+    def __str__(self):
+        return "%s%s%.3f" % (self.target_type, self.operator, self.distance)
+
+    def find_matches(self, session, models, results):
+        if self.model is None:
+            # No reference atomspec, so do nothing
+            return
+        return self.model.find_matches(session, models, results)
+
+    def matches(self, session, model):
+        if self.model is None:
+            return False
+        return self.model.matches(session, model)
+
+    def find_sub_parts(self, session, model, results):
+        if self.model is None:
+            return
+        my_results = AtomSpecResults()
+        self.model.find_sub_parts(session, model, my_results)
+        # TODO: expand my_results before combining with results
+        results.combine(my_results)
+
+
 class _Term:
     """A term in an atom specifier."""
     def __init__(self, spec):
@@ -547,6 +616,22 @@ class _Term:
         return results
 
 
+class _Invert:
+    """A "not" (~) term in an atom specifier."""
+    def __init__(self, atomspec):
+        self._atomspec = atomspec
+
+    def __str__(self):
+        return "~%s" % str(self._atomspec)
+
+    def evaluate(self, session, models=None, **kw):
+        if models is None:
+            models = session.models.list(**kw)
+        results = self._atomspec.evaluate(session, models)
+        results.invert(session, models)
+        return results
+
+
 class AtomSpec:
     """AtomSpec instances store and evaluate atom specifiers.
 
@@ -555,17 +640,17 @@ class AtomSpec:
     When evaluated, the model elements that match the specifier
     are returned.
     """
-    def __init__(self, operator, left_term, right_term):
+    def __init__(self, operator, left_spec, right_spec):
         self._operator = operator
-        self._left_term = left_term
-        self._right_term = right_term
+        self._left_spec = left_spec
+        self._right_spec = right_spec
 
     def __str__(self):
         if self._operator is None:
-            return str(self._left_term)
+            return str(self._left_spec)
         else:
-            return "%s %s %s" % (str(self._left_term), self._operator,
-                                 str(self._right_term))
+            return "%s %s %s" % (str(self._left_spec), self._operator,
+                                 str(self._right_spec))
 
     def evaluate(self, session, models=None, **kw):
         """Return results of evaluating atom specifier for given models.
@@ -586,18 +671,18 @@ class AtomSpec:
             Instance containing data (atoms, bonds, etc) that match
             this atom specifier.
         """
-        print("evaluate:", str(self))
+        # print("evaluate:", str(self))
         if models is None:
             models = session.models.list(**kw)
         if self._operator is None:
-            results = self._left_term.evaluate(session, models)
+            results = self._left_spec.evaluate(session, models)
         elif self._operator == '|':
-            left_results = self._left_term.evaluate(session, models)
-            right_results = self._right_term.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models)
+            right_results = self._right_spec.evaluate(session, models)
             results = AtomSpecResults._union(left_results, right_results)
         elif self._operator == '&':
-            left_results = self._left_term.evaluate(session, models)
-            right_results = self._right_term.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models)
+            right_results = self._right_spec.evaluate(session, models)
             results = AtomSpecResults._intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
@@ -629,7 +714,26 @@ class AtomSpecResults:
         if self._atoms is None:
             self._atoms = atom_blob
         else:
-            self._atoms.merge(atom_blob)
+            self._atoms = self._atoms | atom_blob
+
+    def combine(self, other):
+        for m in other.models:
+            self.add_model(m)
+        self.add_atoms(other.atoms)
+
+    def invert(self, session, models):
+        from . import structaccess
+        atoms = structaccess.AtomBlob()
+        for m in models:
+            if m in self._models:
+                # Was selected, so invert model atoms
+                keep = m.atoms - self._atoms
+            else:
+                # Was not selected, so include all atoms
+                keep = m.atoms
+            if len(keep) > 0:
+                atoms = atoms | keep
+        self._atoms = atoms
 
     @property
     def models(self):
@@ -658,7 +762,7 @@ class AtomSpecResults:
         if left._atoms is None or right._atoms is None:
             atom_spec._atoms = None
         else:
-            atom_spec._atoms = right._atoms.intersect(left._atoms)
+            atom_spec._atoms = right._atoms & left._atoms
         return atom_spec
 
 #
@@ -754,3 +858,19 @@ def get_selector(session, name):
 
     """
     return _get_selector_map(session).get(name, None)
+
+
+def everything(session):
+    """Return AtomSpec that matches everything.
+
+    Parameters
+    ----------
+    session : instance of chimera.core.session.Session
+        Session in which the name may be used.  If None, name is global.
+
+    Returns
+    -------
+    AtomSpec instance
+        An AtomSpec instance that matches everything in session.
+    """
+    return AtomSpecArg.parse('#*', session)[0]

@@ -792,7 +792,10 @@ extern "C" PyObject *surface_area_of_spheres(PyObject *, PyObject *args, PyObjec
     }
 
   // Returned sphere area of -1 means calculation failed for that sphere.
+  Py_BEGIN_ALLOW_THREADS
   surface_area_of_spheres(ca.values(), ca.size(0), ra.values(), areas.values());
+  Py_END_ALLOW_THREADS
+
   PyObject *py_areas = array_python_source(areas);
   if (!alloc_areas)
     Py_INCREF(py_areas);    

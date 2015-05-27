@@ -67,6 +67,18 @@ public:
         out << cstr._data;
         return out;
     }
+
+    size_t hash() const {
+        // From Dan Bernstein post in comp.lang.c on 12/5/1990.
+        size_t hash = 5381;
+        int c;
+        const char *str = _data;
+
+        while ((c = *str++) != 0) {
+            hash = ((hash << 5) + hash) ^ c;
+        }
+        return hash;
+    }
 };
 
 }  // namespace chutil

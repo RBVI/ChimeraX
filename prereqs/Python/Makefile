@@ -3,7 +3,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).3
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
@@ -34,6 +34,11 @@ ifeq ($(OS),Linux)
 # On linux have to disable IPV6 socket support or _socket doesn't compile.
 CONFIG_OPTIONS += --disable-ipv6 --enable-shared
 endif
+ifeq ($(OS),Darwin)
+ifndef USE_MAC_FRAMEWORKS
+CONFIG_OPTIONS += --enable-shared
+endif
+endif
 
 ifndef USE_MAC_FRAMEWORKS
 LDFLAGS += -Wl,-rpath,"$(libdir)"
@@ -41,7 +46,7 @@ ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 else
 LDFLAGS += -Wl,-rpath,"$(libdir)"
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --exec_prefix=$(build_prefix)
+CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
 pyappdir = $(PYTHON_FRAMEWORK)/Resources/Python.app/Contents/MacOS
 endif
 
@@ -85,6 +90,7 @@ all:
 
 install: $(SOURCE)
 	$(RSYNC) $(SOURCE)/Tools/freeze $(datadir)
+
 ifeq ($(OS),Windows)
 	#cd $(SOURCE)/PCbuild ; cmd /c build.bat -p $(PLATFORM) 
 	#cd $(SOURCE)/PCbuild ; env HOST_PYTHON=`cygpath -m '$(SOURCE)/PCbuild/amd64/python3.exe'` devenv.com pcbuild.sln /build $(CONFIG_PLATFORM) /project _ssl
@@ -97,27 +103,63 @@ ifeq ($(OS),Windows)
 	  $(PYDIR)/python.exe \
 	  $(PYDIR)/pythonw.exe \
 	  $(bindir)
+
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) -j1 install
 	rm -rf '$(build_prefix)/Applications/Python $(PYTHON_VERSION)'
-	cp $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)/pyconfig.h $(frameworkdir)/Python.framework/Headers/
-	$(PYTHON_EXE) fixsymlinks.py $(PYTHON_FRAMEWORK)/lib/* \
-		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
-	chmod 644 $(PYTHON_FRAMEWORK)/Python
+
+	# copy bin, include, lib, and share to common location and leave symbolic links
+	dir=$(PYTHON_FRAMEWORK)/bin; \
+	if [ ! -L $$dir ]; \
+	then \
+		cd $$dir ; for i in *; do \
+			rm -f $(bindir)/$$i; \
+		done; \
+		$(RSYNC) * $(bindir); \
+		cd ..; rm -rf $$dir ; \
+		ln -s $(shell python -c 'import os; print(os.path.relpath("$(bindir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+	fi
+	dir=$(PYTHON_FRAMEWORK)/include; \
+	if [ ! -L $$dir ]; \
+	then \
+		cp -r $$dir/* $(includedir); \
+		rm -rf $$dir ; \
+		ln -s $(shell python -c 'import os; print(os.path.relpath("$(includedir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+	fi
+	dir=$(PYTHON_FRAMEWORK)/lib; \
+	if [ ! -L $$dir ]; \
+	then \
+		cp -r $$dir/* $(libdir); \
+		rm -rf $$dir ; \
+		ln -s $(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+	fi
+	dir=$(PYTHON_FRAMEWORK)/share; \
+	if [ ! -L $$dir ]; \
+	then \
+		cp -r $$dir/* $(datadir); \
+		rm -rf $$dir ; \
+		ln -s $(shell python -c 'import os; print(os.path.relpath("$(datadir)", "$(PYTHON_FRAMEWORK)"))') $$dir ; \
+	fi
+
 	# replace python executable with version that doesn't invoke Python.app
-	cp $(SOURCE)/python.exe $(bindir)/python$(PYTHON_VERSION)
+	cp $(SOURCE)/python.exe $(PYTHON_EXE)
+	install_name_tool -rpath $(libdir) '@executable_path/../lib' \
+		$(PYTHON_EXE)
+	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
+		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
+		$(PYTHON_EXE)
+
+	$(PYTHON_EXE) fixsymlinks.py $(libdir) \
+		$(libdir)/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION)$(PYTHON_ABI)/*
+
+	chmod 644 $(PYTHON_FRAMEWORK)/Python
 	install_name_tool -id \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
 		$(PYTHON_FRAMEWORK)/Python
 	chmod 444 $(PYTHON_FRAMEWORK)/Python
-# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
-	install_name_tool -rpath $(libdir) \
-		'@executable_path/../lib' \
-		$(bindir)/python$(PYTHON_VERSION)
-	install_name_tool -change $(PYTHON_FRAMEWORK)/Python \
-		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(bindir)"))') \
-		$(bindir)/python$(PYTHON_VERSION)
+
+	# In Python 3.4 framework install only installs a python executable that uses Python.app in the framework.
 	install_name_tool -rpath $(libdir)  \
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(libdir)", "$(pyappdir)"))') \
 		$(pyappdir)/Python
@@ -125,6 +167,7 @@ else ifdef USE_MAC_FRAMEWORKS
 		@executable_path/$(shell python -c 'import os; print(os.path.relpath("$(PYTHON_FRAMEWORK)/Python", "$(pyappdir)"))') \
 		$(pyappdir)/Python
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
+
 else
 	# Linux or Mac OS X without framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
@@ -133,9 +176,14 @@ ifeq ($(OS),Linux)
 endif
 ifeq ($(OS),Darwin)
 	install_name_tool -rpath $(libdir) '@executable_path/../lib' $(bindir)/python$(PYTHON_VERSION)
+	pylib=libpython$(PYTHON_VERSION)$(PYTHON_ABI).dylib ;\
+		chmod 644 $(libdir)/$$pylib ;\
+		install_name_tool -id @rpath/$$pylib $(libdir)/$$pylib ;\
+		chmod 444 $(libdir)/$$pylib
 endif
 	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
 endif
+
 	# double check that _ssl was successfully made
 	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)
 	# double check that pyexpat was successfully made
@@ -154,15 +202,15 @@ else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
+	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
 else
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ \
 		$(libdir)/libpython*.$(SHLIB_EXT)* \
 		$(PYTHON_LIBRARY_DIR) $(app_libdir)
-	-mkdir $(app_prefix)/include
-	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_prefix)/include
+	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 endif
-	$(RSYNC) $(PYSITEDIR)/pip $(PYSITEDIR)/pip-*-info $(APP_PYSITEDIR)
+	$(APP_PYTHON_EXE) -m ensurepip --upgrade
 
 $(SOURCE):
 ifneq ($(OS),Windows)

@@ -108,4 +108,4 @@ void main(void)
   gl_Position = projection_matrix * vEye;
 }
 
-#endif	// USE_IMAGE_BLEND
+#endif

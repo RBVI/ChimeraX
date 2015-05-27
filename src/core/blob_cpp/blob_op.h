@@ -73,6 +73,14 @@ blob_intersect(PyObject* self, PyObject* py_other_blob)
 }
 
 template<typename BlobType>
+Py_ssize_t
+blob_len(PyObject* self)
+{
+    BlobType* blob = static_cast<BlobType*>(self);
+    return blob->_items->size();
+}
+
+template<typename BlobType>
 PyObject*
 blob_merge(PyObject* self, PyObject* py_other_blob)
 {
@@ -93,10 +101,36 @@ blob_merge(PyObject* self, PyObject* py_other_blob)
         seen.insert(i.get());
     }
     for (auto i: *(other_blob->_items)) {
-        if (seen.find(i.get()) != seen.end())
+        if (seen.find(i.get()) == seen.end())
             merged->_items->emplace_back(i);
     }
     return merged;
+}
+
+template<typename BlobType>
+PyObject*
+blob_subtract(PyObject* self, PyObject* py_other_blob)
+{
+    if (self->ob_type != py_other_blob->ob_type) {
+        PyErr_SetString(PyExc_ValueError,
+            "Subtracted blobs must be same type");
+        return NULL;
+    }
+    BlobType* my_blob = static_cast<BlobType*>(self);
+    BlobType* other_blob = static_cast<BlobType*>(py_other_blob);
+    BlobType* subtracted = static_cast<BlobType*>(
+        new_blob<BlobType>(self->ob_type));
+
+    std::unordered_set<typename BlobType::MolType*> contents(
+        other_blob->_items->size());
+    for (auto i: *(other_blob->_items)) {
+        contents.insert(i.get());
+    }
+    for (auto i: *(my_blob->_items)) {
+        if (contents.find(i.get()) == contents.end())
+            subtracted->_items->emplace_back(i);
+    }
+    return subtracted;
 }
 
 }  // namespace blob

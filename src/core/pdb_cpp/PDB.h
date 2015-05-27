@@ -454,12 +454,9 @@ public:
     static int  pdb_input_version() { return input_version; }
     static RecordType get_type(const char *buf);
     static int  sscanf(const char *, const char *, ...);
-#ifdef UNPORTED
     static int  sprintf(char *, const char *, ...);
-#endif  // UNPORTED
     static void reset_state();
 
-#ifdef UNPORTED
     inline bool operator==(const PDB &r) const {
                 if (r_type != r.r_type)
                     return 0;
@@ -470,7 +467,6 @@ public:
                     return 1;
                 return byte_cmp(*this, r) != 0;
             }
-#endif  // UNPORTED
 
     friend std::istream &operator>>(std::istream &s, PDB &p);
 };

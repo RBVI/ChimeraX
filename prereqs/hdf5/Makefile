@@ -34,6 +34,7 @@ ifeq ($(OS),Darwin)
 endif
 
 app-install:;
+	$(RSYNC) $(includedir)/hdf5*.h $(includedir)/H5* $(app_includedir)
 	$(RSYNC) $(shlibdir)/libhdf5.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE):

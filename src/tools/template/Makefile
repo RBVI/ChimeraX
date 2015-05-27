@@ -2,7 +2,7 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 PKG_NAME = Replace with fully qualified Python package name
-PKG_VERSION = Replace with package version number
+PKG_VERSION = Replace with package version number (PEP 440 style)
 PKG_DESCRIPTION = Replace with short description of tool
 # Example:
 # PKG_NAME = chimera.cmd_line
@@ -55,6 +55,8 @@ setup.py: setup.py.in Makefile
 		-e 's,LIB_DIR,$(libdir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
 		-e 's,TOOL_NAME,$(TOOL_NAME),' \
 		-e 's,TOOL_PKG_NAME,$(TOOL_PKG_NAME),' \
 		-e 's,TOOL_DISPLAY_NAME,$(TOOL_DISPLAY_NAME),' \

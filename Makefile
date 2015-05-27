@@ -29,15 +29,15 @@ build-dirs:
 ifneq ($(libdir), $(shlibdir))
 	-mkdir $(shlibdir)
 endif
-ifdef USE_MAC_FRAMEWORKS
-	-mkdir $(frameworkdir) $(build_prefix)/Library
-	-cd $(build_prefix)/Library && ln -nfs ../Frameworks .
+ifeq ($(OS),Darwin)
+	-mkdir -p $(frameworkdir) $(build_prefix)/Library
+	#-cd $(build_prefix)/Library && ln -nfs ../Frameworks .
 endif
 
 build-app-dirs:
 	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
-		$(APP_PYSITEDIR)
-ifdef USE_MAC_FRAMEWORKS
+		$(app_includedir) $(APP_PYSITEDIR)
+ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
 		$(app_frameworkdir)
 endif

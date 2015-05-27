@@ -16,7 +16,7 @@ PKG_DESCRIPTION = User interface for density map series
 TOOL_NAME = map_series_gui
 TOOL_PKG_NAME = chimera.map_series_gui
 TOOL_DISPLAY_NAME = Map Series
-TOOL_CATEGORY = General
+TOOL_CATEGORY = Hidden
 TOOL_SYNOPSIS = Play through density map time series
 COMMAND_NAME = 
 

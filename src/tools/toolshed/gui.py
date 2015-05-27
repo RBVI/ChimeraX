@@ -9,6 +9,8 @@ function button_test() { window.location.href = "toolshed:button_test:arg"; }
 <style>
 .refresh { color: blue; font-size: 80%; font-family: monospace; }
 .install { color: green; font-family: monospace; }
+.start { color: green; font-family: monospace; }
+.update { color: blue; font-family: monospace; }
 .remove { color: red; font-family: monospace; }
 .show { color: green; font-family: monospace; }
 .hide { color: blue; font-family: monospace; }
@@ -29,6 +31,8 @@ INSTALLED_TOOLS
 AVAILABLE_TOOLS
 </body>
 </html>"""
+_START_LINK = '<a href="toolshed:_start_tool:%s" class="start">start</a>'
+_UPDATE_LINK = '<a href="toolshed:_update_tool:%s" class="update">update</a>'
 _REMOVE_LINK = '<a href="toolshed:_remove_tool:%s" class="remove">remove</a>'
 _INSTALL_LINK = '<a href="toolshed:_install_tool:%s" class="install">install</a>'
 _SHOW_LINK = '<a href="toolshed:_show_tool:%s" class="show">show</a>'
@@ -40,19 +44,19 @@ from chimera.core.tools import ToolInstance
 
 class ToolshedUI(ToolInstance):
 
+    SESSION_ENDURING = True
     SIZE = (800, 50)
     VERSION = 1
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Toolshed", session)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
+        self.tool_window = session.ui.create_main_tool_window(self)
         parent = self.tool_window.ui_area
         from wx import html2
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
-                          self._OnNavigating,
+                          self._on_navigating,
                           id=self.webview.GetId())
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
@@ -65,7 +69,7 @@ class ToolshedUI(ToolInstance):
                                                        self._make_page)]
         session.tools.add([self])
 
-    def _OnNavigating(self, event):
+    def _on_navigating(self, event):
         session = self.session
         # Handle event
         url = event.GetURL()
@@ -98,7 +102,7 @@ class ToolshedUI(ToolInstance):
                 hide_link = _HIDE_LINK % t.id
                 kill_link = _KILL_LINK % t.id
                 print("<li>%s. %s %s %s</li>"
-                      % (t.display_name(), show_link,
+                      % (t.display_name, show_link,
                          hide_link, kill_link), file=s)
         print("</ul>", file=s)
         page = page.replace("RUNNING_TOOLS", s.getvalue())
@@ -111,9 +115,12 @@ class ToolshedUI(ToolInstance):
             print("<li>No installed tools found.</li>", file=s)
         else:
             for ti in ti_list:
-                link = _REMOVE_LINK % ti.name
-                print("<li>%s - %s. %s</li>"
-                      % (ti.display_name, ti.synopsis, link), file=s)
+                start_link = _START_LINK % ti.name
+                update_link = _UPDATE_LINK % ti.name
+                remove_link = _REMOVE_LINK % ti.name
+                print("<li>%s - %s. %s %s %s</li>"
+                      % (ti.display_name, ti.synopsis, start_link,
+                         update_link, remove_link), file=s)
         print("</ul>", file=s)
         page = page.replace("INSTALLED_TOOLS", s.getvalue())
 
@@ -146,6 +153,18 @@ class ToolshedUI(ToolInstance):
         cmd.ts_refresh(session, tool_type="available")
         self._make_page()
 
+    def _start_tool(self, session, tool_name):
+        # start installed tool
+        from . import cmd
+        cmd.ts_start(session, tool_name)
+        self._make_page()
+
+    def _update_tool(self, session, tool_name):
+        # update installed tool
+        from . import cmd
+        cmd.ts_update(session, tool_name)
+        self._make_page()
+
     def _remove_tool(self, session, tool_name):
         # remove installed tool
         from . import cmd
@@ -165,15 +184,15 @@ class ToolshedUI(ToolInstance):
         return t
 
     def _show_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).display(True)
+        self._find_tool(session, tool_id).display(True)
         self._make_page()
 
     def _hide_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).display(False)
+        self._find_tool(session, tool_id).display(False)
         self._make_page()
 
     def _kill_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).delete()
+        self._find_tool(session, tool_id).delete()
         self._make_page()
 
     def button_test(self, session, *args):
@@ -188,9 +207,9 @@ class ToolshedUI(ToolInstance):
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
+        from chimera.core.session import State, RestoreError
         if version != self.VERSION:
-            raise RuntimeError("unexpected version or data")
-        from chimera.core.session import State
+            raise RestoreError("unexpected version")
         if phase == State.PHASE1:
             # Restore all basic-type attributes
             pass

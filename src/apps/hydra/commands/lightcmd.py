@@ -62,7 +62,7 @@ def lighting(session, direction = None, intensity = None, color = None,
         else:
             from .parse import int_arg
             size = int_arg(qualityOfShadows, session)
-        v.shadow_map_size = size
+        v.set_shadow_map_size(size)
     if not multiShadow is None:
         v.set_multishadow(multiShadow)
     if not default is None:
@@ -72,8 +72,8 @@ def lighting(session, direction = None, intensity = None, color = None,
     if not full is None:
         v.shadows = True
         v.set_multishadow(64)
-        lp.key_light_intensity = 1
-        lp.fill_light_intensity = 0
+        lp.key_light_intensity = 0.7
+        lp.fill_light_intensity = 0.3
         lp.ambient_light_intensity = 1
     if not soft is None:
         v.shadows = False
