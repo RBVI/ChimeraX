@@ -124,7 +124,7 @@ class CommandLine(ToolInstance):
                 if thumb.getcolors(1) is None:
                     # image not just a solid background color;
                     # ensure it differs from previous thumbnail
-                    thumb_data = thumb.tostring()
+                    thumb_data = thumb.tobytes()
                     if thumb_data != self._last_thumb:
                         self._last_thumb = thumb_data
                         log_thumb = True
