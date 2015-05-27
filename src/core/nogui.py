@@ -46,13 +46,13 @@ class UI:
         import weakref
         self._session = weakref.ref(session)
         self._queue = None
-        import os, sys
-        if os.isatty(sys.stdout.fileno()):
+        import sys
+        if sys.stdout.isatty():
             try:
                 import colorama
                 colorama.init()
                 _color_output = True
-                print(colorama.Back.BLACK, end='')
+                print(colorama.Fore.WHITE + colorama.Back.BLACK, end='')
             except ImportError:
                 pass
 
@@ -111,8 +111,8 @@ class _Input(Task):
         # Schedules calls to self.execute in UI thread
         prompt = 'cmd> '
         if _color_output:
-            from colorama import Fore
-            prompt = Fore.GREEN + prompt + Fore.RESET
+            from colorama import Fore, Style
+            prompt = Fore.GREEN + Style.BRIGHT + prompt + Fore.RESET
         ui = self.session.ui
         while True:
             try:
@@ -150,10 +150,11 @@ class _Input(Task):
             if error_at < len(self._cmd.current_text):
                 logger.error("%s^" % ('.' * error_at))
             logger.error(str(err))
-        except Exception as e:
+        except Exception:
             logger = self.session.logger
             logger.error("\nUnexpected exception, save your work and exit:\n")
-            logger.error(str(e))
+            import traceback
+            logger.error(traceback.format_exc())
 
     #
     # Required State methods, do nothing
