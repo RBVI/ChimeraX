@@ -21,3 +21,13 @@ def register_command(command_name):
     from chimera.core import cli
     cli.register(command_name + " hide", cmd.hide_desc, cmd.hide)
     cli.register(command_name + " show", cmd.show_desc, cmd.show)
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'CommandLine':
+        from . import gui
+        return gui.CommandLine
+    return None

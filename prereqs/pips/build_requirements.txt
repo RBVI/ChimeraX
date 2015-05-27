@@ -1,6 +1,7 @@
 appdirs==1.4.0
 beautifulsoup4==4.3.2
 blockdiag==1.5.1
+colorama==0.3.3
 Cython==0.22
 distlib==0.2.0
 #distribute==0.7.3

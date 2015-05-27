@@ -7,30 +7,54 @@ Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
 from .tasks import Task
 from .logger import PlainTextLog
+_color_output = False
 
 
 class NoGuiLog(PlainTextLog):
 
     def log(self, level, msg):
-        print("%s: %s" % (level, msg))
+        if not _color_output:
+            print("%s: %s" % (level, msg))
+        else:
+            from colorama import Fore
+            if level == self.LEVEL_INFO:
+                print(Fore.GREEN + msg + Fore.RESET, end='')
+            elif level == self.LEVEL_ERROR:
+                print(Fore.RED + msg + Fore.RESET, end='')
+            elif level == self.LEVEL_WARNING:
+                print(Fore.YELLOW + msg + Fore.RESET, end='')
         return True
 
     def status(self, msg, color, secondary):
         if secondary:
             return False
         if msg:
-            print("status: %s" % msg)
+            if not _color_output:
+                print("status: %s" % msg)
+            else:
+                from colorama import Fore
+                print(Fore.MAGENTA + msg + Fore.RESET)
         return True
 
 
 class UI:
 
     def __init__(self, session):
+        global _color_output
         self.is_gui = False
         session.logger.add_log(NoGuiLog())
         import weakref
         self._session = weakref.ref(session)
         self._queue = None
+        import sys
+        if sys.stdout.isatty():
+            try:
+                import colorama
+                colorama.init()
+                _color_output = True
+                print(colorama.Fore.WHITE + colorama.Back.BLACK, end='')
+            except ImportError:
+                pass
 
     def splash_info(self, message, splash_step, num_splash_steps):
         import sys
@@ -71,6 +95,9 @@ class UI:
 
 class _Input(Task):
 
+    SESSION_ENDURING = True
+    SESSION_SKIP = True
+
     def __init__(self, session):
         # Initializer, runs in UI thread
         super().__init__(session)
@@ -83,6 +110,9 @@ class _Input(Task):
         # Actual event loop, runs in our own thread
         # Schedules calls to self.execute in UI thread
         prompt = 'cmd> '
+        if _color_output:
+            from colorama import Fore, Style
+            prompt = Fore.GREEN + Style.BRIGHT + prompt + Fore.RESET
         ui = self.session.ui
         while True:
             try:
@@ -110,14 +140,21 @@ class _Input(Task):
             return
         try:
             self._cmd.parse_text(text, final=True)
-            results = self._cmd.execute()
+            self._cmd.execute()
         except cli.UserError as err:
-            print(self._cmd.current_text)
+            logger = self.session.logger
+            logger.info(self._cmd.current_text)
             rest = self._cmd.current_text[self._cmd.amount_parsed:]
             spaces = len(rest) - len(rest.lstrip())
             error_at = self._cmd.amount_parsed + spaces
-            print("%s^" % ('.' * error_at))
-            print(err)
+            if error_at < len(self._cmd.current_text):
+                logger.error("%s^" % ('.' * error_at))
+            logger.error(str(err))
+        except Exception:
+            logger = self.session.logger
+            logger.error("\nUnexpected exception, save your work and exit:\n")
+            import traceback
+            logger.error(traceback.format_exc())
 
     #
     # Required State methods, do nothing

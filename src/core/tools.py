@@ -58,10 +58,13 @@ class ToolInstance(State):
         to set the attribute before creating the first tool window.
         Defaults to ``tool_info.display_name``.
     SESSION_ENDURING : bool, class-level optional
-        If True, then tools survives across sessions.
+        If True, then tool survives across sessions.
+    SESSION_SKIP : bool, class-level optional
+        If True, then tool is not saved in sessions.
     """
 
     SESSION_ENDURING = False
+    SESSION_SKIP = False
 
     def __init__(self, session, tool_info, id=None, **kw):
         self.id = id
@@ -148,6 +151,8 @@ class Tools(State):
         data = {}
         for tid, ti in self._tool_instances.items():
             assert(isinstance(ti, ToolInstance))
+            if ti.SESSION_SKIP:
+                continue
             data[tid] = [ti.tool_info.name, ti.tool_info.version,
                          session.unique_id(ti), ti.take_snapshot(session, flags)]
         return [self.VERSION, data]
@@ -173,7 +178,7 @@ class Tools(State):
 
         """
         if version != self.VERSION or not data:
-            raise RestoreError("Unexpected version or data")
+            raise RestoreError("Unexpected version")
 
         session = self._session()   # resolve back reference
         for tid, [tool_name, tool_version, uid, [ti_version, ti_data]] in data.items():
@@ -185,6 +190,9 @@ class Tools(State):
                     return
                 try:
                     ti = t.start(session)
+                    if ti is None:
+                        # GUI tool restored in nogui application
+                        continue
                     session.restore_unique_id(ti, uid)
                 except Exception as e:
                     class_name = session.class_name_of_unique_id(uid)
@@ -194,6 +202,9 @@ class Tools(State):
                     raise
             else:
                 ti = session.unique_obj(uid)
+                if ti is None:
+                    # GUI tool restored in nogui application
+                    continue
             ti.restore_snapshot(phase, session, ti_version, ti_data)
 
     def reset_state(self):

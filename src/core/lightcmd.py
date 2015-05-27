@@ -19,7 +19,8 @@ _lighting_desc = CmdDesc(
         ('multiShadow', IntArg),
         ('msMapSize', IntArg),
         ('msDepthBias', FloatArg),
-    ])
+    ],
+    synopsis="report or alter lighting parameters")
 
 def lighting(session, preset = None, direction = None, intensity = None, color = None, 
              fillDirection = None, fillIntensity = None, fillColor = None,
@@ -135,7 +136,8 @@ _material_desc = CmdDesc(
         ('specularReflectivity', FloatArg),
         ('exponent', FloatArg),
         ('ambientReflectivity', FloatArg),
-    ])
+    ],
+    synopsis="report or alter material parameters")
 
 def material(session, preset = None, reflectivity = None,
              specularReflectivity = None, exponent = None,

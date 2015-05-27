@@ -21,13 +21,33 @@ class Model(State, Drawing):
 
     Every model subclass that can be in a session file, needs to be
     registered.
+
+    Parameters
+    ----------
+    name : str
+        The name of the model.
+
+    Attributes
+    ----------
+    id : None or tuple of int
+        Model/submodel identification: *e.g.*, 1.3.2 is (1, 3, 2).
+        Set and unset by :py:class:`Models` instance.
+    tool_info : a :py:class:`~chimera.core.toolshed.ToolInfo` instance
+        The tool that provides the subclass.
+    SESSION_ENDURING : bool, class-level optional
+        If True, then model survives across sessions.
+    SESSION_SKIP : bool, class-level optional
+        If True, then model is not saved in sessions.
     """
 
     MODEL_STATE_VERSION = 1
+    SESSION_ENDURING = False
+    SESSION_SKIP = False
+    tool_info = None    # default, should be set in subclass
 
     def __init__(self, name):
         Drawing.__init__(self, name)
-        self.id = None  # tuple: e.g., 1.2.1 is (1, 2, 1)
+        self.id = None
         # TODO: track.created(Model, [self])
 
     def id_string(self):
@@ -83,6 +103,8 @@ class Models(State):
         data = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
+            if model.SESSION_SKIP:
+                continue
             data[id] = [session.unique_id(model),
                         model.take_snapshot(session, flags)]
         return [self.VERSION, data]
@@ -93,6 +115,7 @@ class Models(State):
 
         for id, [uid, [model_version, model_data]] in data.items():
             if phase == State.PHASE1:
+                print('restoring1', uid)
                 try:
                     cls = session.class_of_unique_id(uid, Model)
                 except KeyError:
@@ -117,6 +140,8 @@ class Models(State):
         models = self._models.values()
         self._models.clear()
         for model in models:
+            if model.SESSION_ENDURING:
+                continue
             model.delete()
 
     def list(self, model_id = None):

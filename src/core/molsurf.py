@@ -17,7 +17,8 @@ _surface_desc = cli.CmdDesc(
                ('color', color.ColorArg),
                ('transparency', cli.FloatArg),
                ('chains', cli.BoolArg),
-               ('nthread', cli.IntArg)])
+               ('nthread', cli.IntArg)],
+    synopsis = 'create molecular surface')
 
 def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
                     color = None, transparency = 0, chains = False, nthread = None):
@@ -123,7 +124,8 @@ def register_surface_command():
 
 _sasa_desc = cli.CmdDesc(
     optional = [('atoms', atomspec.AtomSpecArg)],
-    keyword = [('probeRadius', cli.FloatArg),])
+    keyword = [('probeRadius', cli.FloatArg),],
+    synopsis = 'compute solvent accessible surface area')
 
 def sasa_command(session, atoms = None, probeRadius = 1.4):
     '''
@@ -145,7 +147,8 @@ def register_sasa_command():
 
 _buriedarea_desc = cli.CmdDesc(
     required = [('atoms1', atomspec.AtomSpecArg), ('atoms2', atomspec.AtomSpecArg)],
-    keyword = [('probeRadius', cli.FloatArg),])
+    keyword = [('probeRadius', cli.FloatArg),],
+    synopsis = 'compute buried area')
 
 def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
     '''

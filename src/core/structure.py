@@ -672,7 +672,8 @@ def chain_rgba8(cid):
 #
 from . import cli
 from . import atomspec
-_ccolor_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+_ccolor_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
+                           synopsis='color by chain')
 def ccolor_command(session, atoms = None):
     if atoms is None:
         for m in session.models.list():
@@ -690,7 +691,8 @@ def ccolor_command(session, atoms = None):
 #
 from . import cli
 from . import atomspec
-_celement_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+_celement_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
+                             synopsis='color by element')
 def celement_command(session, atoms = None):
     if atoms is None:
         for m in session.models.list():
@@ -711,7 +713,8 @@ def update_model_graphics(models):
 #
 from . import cli
 _style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball', 'stick')))],
-                          optional=[("atoms", atomspec.AtomSpecArg)])
+                          optional=[("atoms", atomspec.AtomSpecArg)],
+                          synopsis='change atom depiction')
 def style_command(session, atom_style, atoms = None):
     s = {'sphere':StructureModel.SPHERE_STYLE,
          'ball':StructureModel.BALL_STYLE,
@@ -729,14 +732,16 @@ def style_command(session, atom_style, atoms = None):
 # -----------------------------------------------------------------------------
 #
 from . import cli
-_hide_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+_hide_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
+                         synopsis='hide atoms')
 def hide_command(session, atoms = None):
     show_atoms(False, atoms, session)
 
 # -----------------------------------------------------------------------------
 #
 from . import cli
-_show_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)])
+_show_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
+                         synopsis='show atoms')
 def show_command(session, atoms = None):
     show_atoms(True, atoms, session)
 

@@ -71,8 +71,14 @@ class Task(State):
     state : readonly str
         ``state`` is one of ``PENDING``, ``RUNNING``, ``TERMINATING``
         ``TERMINATED``, and ``FINISHED``.
-
+    SESSION_ENDURING : bool, class-level optional
+        If True, then task survives across sessions.
+    SESSION_SKIP : bool, class-level optional
+        If True, then task is not saved in sessions.
     """
+
+    SESSION_ENDURING = False
+    SESSION_SKIP = False
 
     def __init__(self, session, id=None, **kw):
         """Initialize a Task.
@@ -115,6 +121,7 @@ class Task(State):
         called as the last step of task deletion.
 
         """
+        self.session.tasks.remove(self)
         if self._terminate is not None:
             self._terminate.set()
         self._update_state(TERMINATING)
@@ -351,7 +358,7 @@ class Tasks(State):
         data = {}
         for tid, t in self._tasks.items():
             assert(isinstance(t, Task))
-            if t.state == RUNNING:
+            if t.state == RUNNING and not t.SESSION_SKIP:
                 data[tid] = [session.unique_id(t),
                              t.take_snapshot(session, flags)]
         return [self.VERSION, data]
@@ -405,9 +412,13 @@ class Tasks(State):
 
         """
         task_list = list(self._tasks.values())
-        for task in task_list:
+        for tid, t in self._tasks.items():
+            if t.SESSION_SKIP or t.SESSION_ENDURING:
+                continue
             task.terminate()
-        self._tasks.clear()
+            # ?assert(tid not in self._tasks)
+            if tid in self._tasks:
+                del self._tasks[tid]
 
     def list(self):
         """Return list of tasks.

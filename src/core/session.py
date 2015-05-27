@@ -9,7 +9,7 @@ like the current directory, nor the environment,
 nor any Python interpreter state
 -- e.g., the exception hook, module globals, etc.
 
-Code should be designed to support mutiple sessions per process
+Code should be designed to support multiple sessions per process
 since it is easier to start with that assumption rather than add it later.
 Possible uses of multiple sessions include:
 one session per tabbed graphics window,
@@ -24,11 +24,11 @@ from . import cli
 from . import serialize
 
 _builtin_open = open
-SUFFIX = ".c2ses"
+SESSION_SUFFIX = ".c2ses"
 
 
 class RestoreError(RuntimeError):
-    """Raised when session file has a problem being retored"""
+    """Raised when session file has a problem being restored"""
     pass
 
 
@@ -132,7 +132,7 @@ class ParentState(State):
             if name in child_dict:
                 child = child_dict[name]
             else:
-                child =self.missing_child(name)
+                child = self.missing_child(name)
                 if child is self.SKIP:
                     continue
             child.restore_snapshot(phase, session, child_version, child_data)
@@ -287,13 +287,42 @@ class Session:
         """Explictly replace attribute with alternate implementation"""
         object.__setattr__(self, name, value)
 
-    def unique_id(self, obj):
+    def unique_id(self, obj, tool_info=None):
         """Return a unique identifier for an object in session
 
-        Consequently, the identifier is composed of simple data types."""
+        Consequently, the identifier is composed of simple data types.
+
+        Parameters
+        ----------
+        obj : any object
+        tool_info : optional :py:class:`~chimera.core.toolshed.ToolInfo` instance
+            Explicitly denote which tool object comes from.
+        """
 
         cls = obj.__class__
-        class_name = '%s.%s' % (cls.__module__, cls.__name__)
+        if hasattr(obj, 'tool_info'):
+            tool_info = obj.tool_info
+        elif hasattr(cls, 'tool_info'):
+            tool_info = cls.tool_info
+        if tool_info is not None:
+            class_name = (tool_info.name, tool_info.version, cls.__name__)
+            if 1:  # DEBUG
+                # double check that class will be able to be restored
+                t = self.toolshed.find_tool(tool_info.name,
+                                            version=tool_info.version)
+                if cls != t.get_class(cls.__name__):
+                    raise RuntimeError(
+                        'unable to restore objects of %s class in %s tool' %
+                        (class_name, tool_info.name))
+        else:
+            if not cls.__module__.startswith('chimera.core.'):
+                raise RuntimeError('No tool information for %s.%s' % (
+                    cls.__module__, cls.__name__))
+            class_name = cls.__name__
+            # double check that class will be able to be restored
+            from chimera.core import get_class
+            if cls != get_class(class_name):
+                raise RuntimeError('unable to restore objects of %s class' % class_name)
         if hasattr(obj, "_cache_uid"):
             ordinal = obj._cache_uid
             uid = (class_name, ordinal)
@@ -322,8 +351,11 @@ class Session:
             self._cls_ordinals[class_name] = ordinal
 
     def class_name_of_unique_id(self, uid):
-        """Extract class name associated with unique id"""
-        return uid[0]
+        """Extract class name associated with unique id for messages"""
+        class_name = uid[0]
+        if isinstance(class_name, str):
+            return class_name
+        return "Tool %s %s's %s" % class_name
 
     def class_of_unique_id(self, uid, base_class):
         """Return class associated with unique id
@@ -332,17 +364,29 @@ class Session:
         ----------
         uid : unique identifer for class
         base_class : the expected base class of the class
+        tool_name : internal name of tool that provides class
+            If not given, then it must be in the chimera core.
+        tool_version : the tool's version
+            If not given, then it must be in the chimera core.
 
         Raises
         ------
         KeyError
         """
-        from importlib import import_module
-        full_class_name, ordinal = uid
-        module_name, class_name = full_class_name.rsplit('.', 1)
+        class_name, ordinal = uid
+        if isinstance(class_name, str):
+            from chimera.core import get_class
+            cls = get_class(class_name)
+        else:
+            tool_name, tool_version, class_name = class_name
+            t = self.toolshed.find_tool(tool_name, version=tool_version)
+            if t is None:
+                # TODO: load tool from toolshed
+                session.logger.error("Missing '%s' (internal name) tool" % tool_name)
+                return
+            cls = t.get_class(class_name)
+
         try:
-            module = import_module(module_name)
-            cls = getattr(module, class_name)
             assert(issubclass(cls, base_class))
         except Exception as e:
             raise KeyError(str(e))
@@ -381,17 +425,27 @@ class Session:
         # TODO: how much typechecking?
         assert(type(self._cls_ordinals) is dict)
         managers = []
-        while True:
-            tag, version, data = serialize.deserialize(stream)
-            if tag is None:
-                break
-            if tag not in self._state_managers:
-                continue
-            manager = self._state_managers[tag]
-            manager.restore_snapshot(State.PHASE1, self, version, data)
-            managers.append((manager, version, data))
-        for manager, version, data in managers:
-            manager.restore_snapshot(State.PHASE2, self, version, data)
+        try:
+            tag = ''
+            while True:
+                tag, version, data = serialize.deserialize(stream)
+                print('restoring', tag, version)
+                if tag is None:
+                    break
+                if tag not in self._state_managers:
+                    continue
+                manager = self._state_managers[tag]
+                manager.restore_snapshot(State.PHASE1, self, version, data)
+                managers.append((tag, manager, version, data))
+        except RestoreError as e:
+            e.args = ("While restoring phase1 %s: %s" % (tag, e.args[0]),)
+            raise
+        for tag, manager, version, data in managers:
+            try:
+                manager.restore_snapshot(State.PHASE2, self, version, data)
+            except RestoreError as e:
+                e.args = ("While restoring phase2 %s: %s" % (tag, e.args[0]),)
+                raise
 
     def read_metadata(self, stream, skip_version=False):
         """Deserialize session metadata from stream."""
@@ -412,8 +466,8 @@ def save(session, filename, **kw):
     else:
         from os.path import expanduser
         filename = expanduser(filename)         # Tilde expansion
-        if not filename.endswith(SUFFIX):
-            filename += SUFFIX
+        if not filename.endswith(SESSION_SUFFIX):
+            filename += SESSION_SUFFIX
         from .safesave import SaveBinaryFile, SaveFile
         my_open = SaveBinaryFile
         try:
@@ -443,12 +497,13 @@ def save(session, filename, **kw):
             output.close()
 
 
-@cli.register('dump', cli.CmdDesc(required=[('filename', cli.StringArg)],
-                                  optional=[('output', cli.StringArg)]))
+@cli.register('sdump', cli.CmdDesc(required=[('filename', cli.StringArg)],
+                                   optional=[('output', cli.StringArg)],
+                                   synopsis="create human-readable session"))
 def dump(session, filename, output=None):
     """dump contents of session for debugging"""
-    if not filename.endswith(SUFFIX):
-        filename += SUFFIX
+    if not filename.endswith(SESSION_SUFFIX):
+        filename += SESSION_SUFFIX
     input = None
     try:
         input = _builtin_open(filename, 'rb')
@@ -496,17 +551,14 @@ def open(session, stream, *args, **kw):
         input = _builtin_open(stream, 'rb')
     # TODO: active trigger to allow user to stop overwritting
     # current session
-    try:
-        session.restore(input)
-    except RestoreError as e:
-        pass
+    session.restore(input)
     return [], "opened chimera session"
 
 
 def _initialize():
     from . import io
     io.register_format(
-        "Chimera session", io.SESSION, SUFFIX,
+        "Chimera session", io.SESSION, SESSION_SUFFIX,
         prefixes="ses",
         mime="application/x-chimera2-session",
         reference="http://www.rbvi.ucsf.edu/chimera/",
