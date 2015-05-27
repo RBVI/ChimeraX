@@ -37,6 +37,10 @@ class Model(State, Drawing):
         for m in models:
             self.add_drawing(m)
 
+    def child_models(self):
+        '''Return all models including self and children at all levels.'''
+        return [d for d in self.child_drawings() if isinstance(d,Model)]
+
     def all_models(self):
         '''Return all models including self and children at all levels.'''
         dlist = [self]
