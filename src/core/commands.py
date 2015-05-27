@@ -28,7 +28,7 @@ _exit_desc = cli.CmdDesc(synopsis='exit application')
 def stop(session, ignore=None):
     raise cli.UserError('use "exit" or "quit" instead of "stop"')
 _stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)],
-                         synopsis='retired command')
+                         synopsis='DO NOT USE')
 
 
 def echo(session, text=''):
@@ -44,8 +44,9 @@ def open(session, filename, id=None, as_=None):
         raise cli.UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                          keyword=[('id', cli.ModelIdArg),
-                                  ('as', cli.StringArg)],
-                         synopsis='incorporate data into application')
+                                  ('as_a', cli.StringArg),
+                                  ('label', cli.StringArg)],
+                         synopsis='read and display data')
 
 
 def export(session, filename, **kw):
@@ -194,7 +195,7 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
         )
         session.logger.info(msg)
         msg = (cam.mode.name() +
-            ', %.5g degree field of view' % cam.field_of_view)
+               ', %.5g degree field of view' % cam.field_of_view)
         session.logger.status(msg)
 
 _camera_desc = cli.CmdDesc(
@@ -208,7 +209,8 @@ _camera_desc = cli.CmdDesc(
     synopsis='adjust camara parameters'
 )
 
-def save(session, filename, width = None, height = None, format = None, supersample = None):
+
+def save(session, filename, width=None, height=None, format=None, supersample=None):
     from os.path import splitext
     e = splitext(filename)[1].lower()
     from . import session as ses
@@ -222,7 +224,7 @@ def save(session, filename, width = None, height = None, format = None, supersam
                             % (e, ','.join(suffixes)))
 
 _save_desc = cli.CmdDesc(
-    required = [('filename', cli.StringArg),],
+    required=[('filename', cli.StringArg), ],
     keyword=[
         ('width', cli.IntArg),
         ('height', cli.IntArg),
@@ -243,7 +245,10 @@ image_formats = {
     'bmp': 'BMP',
 }
 image_file_suffixes = tuple(image_formats.keys())
-def save_image(session, path, format = None, width = None, height = None, supersample = None, quality = 95):
+
+
+def save_image(session, path, format=None, width=None, height=None,
+               supersample=None, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -255,17 +260,17 @@ def save_image(session, path, format = None, width = None, height = None, supers
 
     if format is None:
         suffix = splitext(path)[1][1:].lower()
-        if not suffix in image_file_suffixes:
+        if suffix not in image_file_suffixes:
             raise cli.UserError('Unrecognized image file suffix "%s"' % format)
         format = image_formats[suffix]
 
     view = session.main_view
-    i = view.image(width, height, supersample = supersample)
-    i.save(path, format, quality = quality)
+    i = view.image(width, height, supersample=supersample)
+    i.save(path, format, quality=quality)
+
 
 def register(session):
     """Register common cli commands"""
-    import sys
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)

@@ -497,8 +497,9 @@ def save(session, filename, **kw):
             output.close()
 
 
-@cli.register('dump', cli.CmdDesc(required=[('filename', cli.StringArg)],
-                                  optional=[('output', cli.StringArg)]))
+@cli.register('sdump', cli.CmdDesc(required=[('filename', cli.StringArg)],
+                                   optional=[('output', cli.StringArg)],
+                                   synopsis="create human-readable session"))
 def dump(session, filename, output=None):
     """dump contents of session for debugging"""
     if not filename.endswith(SESSION_SUFFIX):
