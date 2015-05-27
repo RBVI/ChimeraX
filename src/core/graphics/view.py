@@ -755,8 +755,8 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p, s = self.first_intercept(0.5 * w, 0.5 * h)
-        return p
+        p = self.first_intercept(0.5 * w, 0.5 * h)
+        return p.position
 
     def first_intercept(self, win_x, win_y):
         '''
