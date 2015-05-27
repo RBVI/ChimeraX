@@ -21,7 +21,7 @@ class _Preferences(configfile.ConfigFile):
         'silhouette': False,
         # autostart map_series_gui until alternate means of installing
         # trigger is found
-        'autostart': ['cmd_line', 'log', 'sideview', 'map_series_gui'],
+        'autostart': ['cmd_line', 'mouse_modes', 'log', 'sideview', 'map_series_gui'],
     }
 
     def __init__(self, session):
