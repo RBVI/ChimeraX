@@ -21,3 +21,13 @@ def register_command(command_name):
     from chimera.core import cli
     from . import cmd
     cli.register('contacts', cmd.contact_desc, cmd.contact_command)
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'Plot':
+        from . import gui
+        return gui.Plot
+    return None

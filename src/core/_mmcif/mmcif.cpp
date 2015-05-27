@@ -66,6 +66,8 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_audit_conform(bool in_loop);
     void parse_atom_site(bool in_loop);
     void parse_struct_conn(bool in_loop);
+    void parse_struct_conf(bool in_loop);
+    void parse_struct_sheet_range(bool in_loop);
     void parse_entity_poly_seq(bool in_loop);
 
     vector<AtomicStructure*> all_molecules;
@@ -193,6 +195,14 @@ ExtractMolecule::ExtractMolecule(PyObject* logger):
         [this] (bool in_loop) {
             parse_struct_conn(in_loop);
         }, { "atom_site" });
+    register_category("struct_conf",
+        [this] (bool in_loop) {
+            parse_struct_conf(in_loop);
+        }, { "struct_conn" });
+    register_category("struct_sheet_range",
+        [this] (bool in_loop) {
+            parse_struct_sheet_range(in_loop);
+        }, { "struct_conn" });
     register_category("entity_poly_seq",
         [this] (bool in_loop) {
             parse_entity_poly_seq(in_loop);
@@ -874,6 +884,269 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
     #undef ALT_ID
     #undef INS_CODE
     #undef SYMMETRY
+}
+
+void
+ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
+{
+    if (molecules.empty())
+        return;
+
+    // these strings are concatenated to make the column headers needed
+    #define BEG "beg"
+    #define END "end"
+    #define ASYM_ID "_label_asym_id"
+    #define COMP_ID "_label_comp_id"
+    #define SEQ_ID "_label_seq_id"
+    #define INS_CODE "_PDB_ins_code" // pdbx
+    string conf_type;                       // conf_type_id
+    string id;                              // id
+    string chain_id1, chain_id2;            // (beg|end)_label_asym_id
+    long position1, position2;              // (beg|end)_label_seq_id
+    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
+    string residue_name1, residue_name2;    // (beg|end)_label_comp_id
+
+    CIFFile::ParseValues pv;
+    pv.reserve(32);
+    pv.emplace_back(get_column("id", true), true,
+        [&] (const char* start, const char* end) {
+            id = string(start, end - start);
+        });
+    pv.emplace_back(get_column("conf_type_id", true), true,
+        [&] (const char* start, const char* end) {
+            conf_type = string(start, end - start);
+        });
+
+    pv.emplace_back(get_column(BEG COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG ASYM_ID, true), true,
+        [&] (const char* start, const char* end) {
+            chain_id1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column("pdbx_" BEG INS_CODE, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1 && (*start == '.' || *start == '?'))
+                ins_code1 = ' ';
+            else {
+                // TODO: check if more than one character
+                ins_code1 = *start;
+            }
+        });
+    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position1 = readcif::str_to_int(start);
+        });
+
+    pv.emplace_back(get_column(END COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END ASYM_ID, true), true,
+        [&] (const char* start, const char* end) {
+            chain_id2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column("pdbx_" END INS_CODE, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 2 && (*start == '.' || *start == '?'))
+                ins_code2 = ' ';
+            else {
+                // TODO: check if more than one character
+                ins_code2 = *start;
+            }
+        });
+    pv.emplace_back(get_column(END SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position2 = readcif::str_to_int(start);
+        });
+
+    #undef BEG
+    #undef END
+    #undef ASYM_ID
+    #undef COMP_ID
+    #undef SEQ_ID
+    #undef INS_CODE
+
+    auto mol = all_residues.begin()->second.begin()->second->structure();
+    while (parse_row(pv)) {
+        if (conf_type.empty())
+            continue;
+        Residue *init_res = mol->find_residue(chain_id1, position1, ins_code1,
+                                        residue_name1);
+        if (init_res == NULL) {
+            logger::error(_logger, "Start residue of secondary structure"
+                " not found: ", conf_type);
+            continue;
+        }
+        Residue *end_res = mol->find_residue(chain_id2, position2, ins_code2,
+                                        residue_name2);
+        if (end_res == NULL) {
+            logger::error(_logger, "End residue of secondary structure"
+                " not found: ", conf_type);
+            continue;
+        }
+        const auto& residues = mol->residues();
+        auto first = residues.end();
+        auto last = residues.end();
+        for (auto ri = residues.begin(); ri != last; ++ri) {
+            Residue *r = ri->get();
+            if (r == init_res)
+                first = ri;
+            if (r == end_res) {
+                last = ri;
+                break;
+            }
+        }
+        if (first == residues.end() || last == residues.end()) {
+            logger::error(_logger, "Bad residue range for secondary"
+                " structure: ", conf_type);
+            continue;
+        }
+        // Only expect helixes and turns, strands were in mmCIF v. 2,
+        // but are not in mmCIF v. 4.
+        bool is_helix = conf_type[0] == 'H' || conf_type[0] == 'h';
+        bool is_strnd = conf_type[0] == 'S' || conf_type[0] == 's';
+        if (!is_helix || !is_strnd) {
+            // ignore turns
+            continue;
+        }
+        // TODO: figure out ss_id
+        for (auto ri = first; ri != last; ++ri) {
+            Residue *r = ri->get();
+            if (is_helix) {
+                r->set_is_helix(true);
+                //r->set_ss_id(ss_id);
+            } else {
+                r->set_is_sheet(true);
+                //r->set_ss_id(ss_id);
+            }
+        }
+    }
+}
+
+void
+ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
+{
+    if (molecules.empty())
+        return;
+    //
+    // these strings are concatenated to make the column headers needed
+    #define BEG "beg"
+    #define END "end"
+    #define ASYM_ID "_label_asym_id"
+    #define COMP_ID "_label_comp_id"
+    #define SEQ_ID "_label_seq_id"
+    #define INS_CODE "_PDB_ins_code"        // pdbx
+    string chain_id1, chain_id2;            // (beg|end)_label_asym_id
+    long position1, position2;              // (beg|end)_label_seq_id
+    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
+    string residue_name1, residue_name2;    // (beg|end)_label_comp_id
+    string sheet_id;                        // sheet_id
+    string id;                              // id
+
+    CIFFile::ParseValues pv;
+    pv.reserve(32);
+    pv.emplace_back(get_column("sheet_id", true), true,
+        [&] (const char* start, const char* end) {
+            sheet_id = string(start, end - start);
+        });
+    pv.emplace_back(get_column("id", true), true,
+        [&] (const char* start, const char* end) {
+            id = string(start, end - start);
+        });
+
+    pv.emplace_back(get_column(BEG COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG ASYM_ID, true), true,
+        [&] (const char* start, const char* end) {
+            chain_id1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column("pdbx_" BEG INS_CODE, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1 && (*start == '.' || *start == '?'))
+                ins_code1 = ' ';
+            else {
+                // TODO: check if more than one character
+                ins_code1 = *start;
+            }
+        });
+    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position1 = readcif::str_to_int(start);
+        });
+
+    pv.emplace_back(get_column(END COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END ASYM_ID, true), true,
+        [&] (const char* start, const char* end) {
+            chain_id2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column("pdbx_" END INS_CODE, false), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 2 && (*start == '.' || *start == '?'))
+                ins_code2 = ' ';
+            else {
+                // TODO: check if more than one character
+                ins_code2 = *start;
+            }
+        });
+    pv.emplace_back(get_column(END SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position2 = readcif::str_to_int(start);
+        });
+
+    #undef BEG
+    #undef END
+    #undef ASYM_ID
+    #undef COMP_ID
+    #undef SEQ_ID
+    #undef INS_CODE
+
+    auto mol = all_residues.begin()->second.begin()->second->structure();
+    while (parse_row(pv)) {
+        Residue *init_res = mol->find_residue(chain_id1, position1, ins_code1,
+                                        residue_name1);
+        if (init_res == NULL) {
+            logger::error(_logger, "Start residue of sheet not found: ",
+                          sheet_id, ' ', id);
+            continue;
+        }
+        Residue *end_res = mol->find_residue(chain_id2, position2, ins_code2,
+                                        residue_name2);
+        if (end_res == NULL) {
+            logger::error(_logger, "End residue of sheet not found: ",
+                          sheet_id, ' ', id);
+            continue;
+        }
+        const auto& residues = mol->residues();
+        auto first = residues.end();
+        auto last = residues.end();
+        for (auto ri = residues.begin(); ri != last; ++ri) {
+            Residue *r = ri->get();
+            if (r == init_res)
+                first = ri;
+            if (r == end_res) {
+                last = ri;
+                break;
+            }
+        }
+        if (first == residues.end() || last == residues.end()) {
+            logger::error(_logger, "Bad residue range for sheet: ",
+                          sheet_id, ' ', id);
+            continue;
+        }
+        // TODO: figure out ss_id
+        for (auto ri = first; ri != last; ++ri) {
+            Residue *r = ri->get();
+            r->set_is_sheet(true);
+            //r->set_ss_id(ss_id);
+        }
+    }
 }
 
 void

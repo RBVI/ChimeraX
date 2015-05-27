@@ -27,3 +27,13 @@ def start_tool(session, ti):
 #
 def register_command(command_name):
     pass        # No command
+
+
+#
+# 'get_class' is called by session code to get class saved in a session
+#
+def get_class(class_name):
+    if class_name == 'MapSeries':
+        from . import gui
+        return gui.MapSeries
+    return None

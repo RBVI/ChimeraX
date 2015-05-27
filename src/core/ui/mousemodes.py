@@ -1,3 +1,5 @@
+# vi: set expandtab ts=4 sw=4:
+
 class MouseModes:
 
     def __init__(self, graphics_window, session):
@@ -21,23 +23,29 @@ class MouseModes:
         import wx
         gw = self.graphics_window
         gw.opengl_canvas.Bind(wx.EVT_LEFT_DOWN,
-                              lambda e: self.dispatch_mouse_event(e, "left", "mouse_down"))
+              lambda e: self.dispatch_mouse_event(e, "left", "mouse_down"))
         gw.opengl_canvas.Bind(wx.EVT_MIDDLE_DOWN,
-                              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_down"))
+              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_down"))
         gw.opengl_canvas.Bind(wx.EVT_RIGHT_DOWN,
-                              lambda e: self.dispatch_mouse_event(e, "right", "mouse_down"))
+              lambda e: self.dispatch_mouse_event(e, "right", "mouse_down"))
         gw.opengl_canvas.Bind(wx.EVT_MOTION,
-                              lambda e: self.dispatch_mouse_event(e, None, "mouse_drag"))
+              lambda e: self.dispatch_mouse_event(e, None, "mouse_drag"))
         gw.opengl_canvas.Bind(wx.EVT_LEFT_UP,
-                              lambda e: self.dispatch_mouse_event(e, "left", "mouse_up"))
+              lambda e: self.dispatch_mouse_event(e, "left", "mouse_up"))
         gw.opengl_canvas.Bind(wx.EVT_MIDDLE_UP,
-                              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_up"))
+              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_up"))
         gw.opengl_canvas.Bind(wx.EVT_RIGHT_UP,
-                              lambda e: self.dispatch_mouse_event(e, "right", "mouse_up"))
+              lambda e: self.dispatch_mouse_event(e, "right", "mouse_up"))
+        gw.opengl_canvas.Bind(wx.EVT_LEFT_DCLICK,
+              lambda e: self.dispatch_mouse_event(e, "left", "mouse_double"))
+        gw.opengl_canvas.Bind(wx.EVT_MIDDLE_DCLICK,
+              lambda e: self.dispatch_mouse_event(e, "middle", "mouse_double"))
+        gw.opengl_canvas.Bind(wx.EVT_RIGHT_DCLICK,
+              lambda e: self.dispatch_mouse_event(e, "right", "mouse_double"))
         gw.opengl_canvas.Bind(wx.EVT_MOUSEWHEEL, self.wheel_event)
 
     def dispatch_mouse_event(self, event, button, action):
-        if action == 'mouse_down':
+        if action in ('mouse_down', 'mouse_double'):
             # remember button for later drag events
             self.graphics_window.opengl_canvas.CaptureMouse()
         elif action == 'mouse_drag':

@@ -1109,6 +1109,10 @@ class ToolInfo:
             _debug("deregister_command", command_name)
             cli.deregister(command_name)
 
+    def get_class(self, class_name):
+        """Return tool's class with given name."""
+        return self._get_module().get_class(class_name)
+
     def _get_module(self):
         """Return module for this tool."""
         if not self._module_name:
@@ -1152,7 +1156,7 @@ class ToolInfo:
             raise ToolshedError("bad start callable specified for tool \"%s\""
                                 % self.name)
         else:
-            f(session, self, *args, **kw)
+            return f(session, self, *args, **kw)
 
     def newer_than(self, ti):
         """Return whether this :py:class:`ToolInfo` instance is newer than given one

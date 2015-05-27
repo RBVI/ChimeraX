@@ -570,18 +570,21 @@ def register_commands():
     cli.register(
         'color',
         cli.CmdDesc(required=[("color", ColorArg)],
-                    optional=[("spec", atomspec.AtomSpecArg)]),
+                    optional=[("spec", atomspec.AtomSpecArg)],
+                    synopsis="color specified objects"),
         color
     )
     cli.register(
         'colordef',
         cli.CmdDesc(required=[('name', cli.StringArg)],
-                    optional=[('color', ColorArg)]),
+                    optional=[('color', ColorArg)],
+                    synopsis="define a custom color"),
         define_color
     )
     cli.register(
         '~colordef',
-        cli.CmdDesc(required=[('name', cli.StringArg)]),
+        cli.CmdDesc(required=[('name', cli.StringArg)],
+                    synopsis="remove color definition"),
         undefine_color
     )
 

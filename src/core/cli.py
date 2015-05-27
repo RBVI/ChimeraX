@@ -199,6 +199,22 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
+def _dq_repr(obj):
+    """Like repr, but use double quotes"""
+    r = repr(obj)
+    if r[0] != "'":
+        return r
+    result = []
+    for c in r:
+        if c == '"':
+            result.append("'")
+        elif c == "'":
+            result.append('"')
+        else:
+            result.append(c)
+    return ''.join(result)
+
+
 def _canonical_kw(kw_name):
     """Return canonical version of a keyword argument name."""
     # Remove punctuation and case from keyword argument name.
@@ -897,7 +913,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid argument %r: " % self.name
+        message = "Invalid argument %s: " % _dq_repr(self.name)
         if self.min and self.max:
             return message + ("Must be greater than or equal to %s and less"
                               " than or equal to %s" % (self.min, self.max))
@@ -1127,7 +1143,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         if not isinstance(function, _Alias):
             raise
         if logger is not None:
-            logger.warn("alias %r hides existing command" % name)
+            logger.warn("alias %s hides existing command" % _dq_repr(name))
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1146,7 +1162,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
             _aliased_commands[name] = cmd_desc
         else:
             if logger is not None:
-                logger.warn("command %r is replacing existing command" % name)
+                logger.warn("command %s is replacing existing command" %
+                            _dq_repr(name))
             cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1443,7 +1460,7 @@ class Command:
                     # exactly matches keyword, so done with positional arguments
                     break
             else:
-                self._error = "Missing required argument %s" % kw_name
+                self._error = 'Missing required "%s" argument' % _user_kw(kw_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -1466,10 +1483,12 @@ class Command:
                     # argument was partially matched, so assume that is the
                     # error the user wants to see.
                     self.amount_parsed += err.offset
-                    self._error = "Invalid argument %r: %s" % (kw_name, err)
+                    self._error = 'Invalid "%s" argument: %s' % (
+                        _user_kw(kw_name), err)
                     return
                 if kw_name in self._ci._required:
-                    self._error = "Invalid argument %r: %s" % (kw_name, err)
+                    self._error = 'Invalid "%s" argument: %s' % (
+                        _user_kw(kw_name), err)
                     return
                 # optional and wrong type, try as keyword
                 break
@@ -1521,7 +1540,7 @@ class Command:
             kw_name = self._ci._keyword_map[arg_name]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
-                self._error = "Missing argument %r" % arg_name
+                self._error = 'Missing "%s" argument' % _user_kw(kw_name)
                 break
 
             self.completion_prefix = ''
@@ -1535,7 +1554,8 @@ class Command:
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
-                self._error = "Invalid argument %r: %s" % (arg_name, err)
+                self._error = 'Invalid "%s" argument: %s' % (
+                    _user_kw(kw_name), err)
                 return
             m = _whitespace.match(text)
             start = m.end()
@@ -1593,7 +1613,7 @@ def command_function(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
     return cmd._ci.function
 
 
@@ -1607,7 +1627,7 @@ def command_url(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
     return cmd._ci.url
 
 
@@ -1621,13 +1641,13 @@ def usage(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
 
     if cmd.word_map is not None:
         # partial command match
         usage = 'Choices are:\n'
         usage += '\n'.join(['  %s %s' % (name, w)
-                                         for w in cmd.word_map])
+                            for w in cmd.word_map])
         return usage
 
     usage = cmd.command_name
@@ -1660,14 +1680,14 @@ def html_usage(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
     from html import escape
 
     if cmd.word_map is not None:
         # partial command match
         usage = 'Choices are:<br/><ul>'
         usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
-                                              for w in cmd.word_map])
+                               for w in cmd.word_map])
         usage += '</ul>'
         return usage
 
@@ -1785,7 +1805,7 @@ class _Alias:
         return self.cmd.execute(_used_aliases=used_aliases)
 
 
-_cmd_aliases = set()
+_cmd_aliases = {}
 
 
 @register('alias', CmdDesc(optional=[('name', StringArg),
@@ -1812,19 +1832,27 @@ def alias(session, name='', text=''):
                 logger.status('No aliases.')
         return
     if not text:
-        if name not in _cmd_aliases:
-            if logger is not None:
-                logger.status('No alias named %r found.' % name)
-        else:
-            if logger is not None:
-                logger.info('Aliased %r to %r'
-                            % (name, _cmd_aliases[name].original_text))
+        if logger is not None:
+            if name not in _cmd_aliases:
+                logger.status('No alias named %s found.' % _dq_repr(name))
+            else:
+                logger.info('Aliased %s to %s' % (
+                    _dq_repr(name),
+                    _dq_repr(_cmd_aliases[name].original_text)))
         return
     name = ' '.join(name.split())   # canonicalize
     cmd = _Alias(text)
+    tmp = Command(None)
+    tmp.current_text = text
+    tmp._find_command_name(True)
+    if tmp.word_map is None:
+        aliasing = tmp.command_name
+    else:
+        aliasing = text[0:text.find('$')].strip()
     try:
-        register(name, cmd.desc(synopsis='command alias'), cmd, logger=logger)
-        _cmd_aliases.add(name)
+        register(name, cmd.desc(synopsis='alias of "%s"' % aliasing), cmd,
+                 logger=logger)
+        _cmd_aliases[name] = cmd
     except:
         raise
 
@@ -1839,9 +1867,9 @@ def unalias(session, name):
     words = name.split()
     name = ' '.join(words)  # canonicalize
     try:
-        _cmd_aliases.remove(name)
+        del _cmd_aliases[name]
     except KeyError:
-        raise UserError('No alias named %r exists' % name)
+        raise UserError('No alias named %s exists' % _dq_repr(name))
 
     cmd_map = _commands
     for word in words[:-1]:
