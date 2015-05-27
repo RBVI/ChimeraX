@@ -68,7 +68,7 @@ def close(session, model_ids):
         raise cli.UserError(e)
     m.close(mlist)
 _close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))],
-                          synopsis='close model')
+                          synopsis='close models')
 
 
 def list(session):

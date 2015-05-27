@@ -1460,7 +1460,7 @@ class Command:
                     # exactly matches keyword, so done with positional arguments
                     break
             else:
-                self._error = "Missing required argument %s" % kw_name
+                self._error = 'Missing required "%s" argument' % _user_kw(kw_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -1483,12 +1483,12 @@ class Command:
                     # argument was partially matched, so assume that is the
                     # error the user wants to see.
                     self.amount_parsed += err.offset
-                    self._error = "Invalid argument %s: %s" % (
-                        _dq_repr(kw_name), err)
+                    self._error = 'Invalid "%s" argument: %s' % (
+                        _user_kw(kw_name), err)
                     return
                 if kw_name in self._ci._required:
-                    self._error = "Invalid argument %r: %s" % (
-                        _dq_repr(kw_name), err)
+                    self._error = 'Invalid "%s" argument: %s' % (
+                        _user_kw(kw_name), err)
                     return
                 # optional and wrong type, try as keyword
                 break
@@ -1540,7 +1540,7 @@ class Command:
             kw_name = self._ci._keyword_map[arg_name]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
-                self._error = "Missing argument %s" % _dq_repr(arg_name)
+                self._error = 'Missing "%s" argument' % _user_kw(kw_name)
                 break
 
             self.completion_prefix = ''
@@ -1554,8 +1554,8 @@ class Command:
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
-                self._error = "Invalid argument %s: %s" % (
-                    _dq_repr(arg_name), err)
+                self._error = 'Invalid "%s" argument: %s' % (
+                    _user_kw(kw_name), err)
                 return
             m = _whitespace.match(text)
             start = m.end()
@@ -1613,7 +1613,7 @@ def command_function(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
     return cmd._ci.function
 
 
@@ -1627,7 +1627,7 @@ def command_url(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
     return cmd._ci.url
 
 
@@ -1641,7 +1641,7 @@ def usage(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
 
     if cmd.word_map is not None:
         # partial command match
@@ -1680,7 +1680,7 @@ def html_usage(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
     from html import escape
 
     if cmd.word_map is not None:
