@@ -718,6 +718,34 @@ PyObject *python_double_array(int size, double **data)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_voidp_array(int size, void ***data)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int dimensions[1] = {size};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_UINTP);
+  if (data)
+    *data = (void **)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
+PyObject *python_object_array(int size, PyObject **data)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int dimensions[1] = {size};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_OBJECT);
+  if (data)
+    *data = (PyObject *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_1d_array(PyObject *arg, void *array)
 {
   Numeric_Array *na = static_cast<Numeric_Array *>(array);
@@ -912,6 +940,8 @@ static int parse_float_nm(PyObject *arg, int m, void *farray, bool allow_copy, b
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_float_n2_array(PyObject *arg, void *farray)
+  { return parse_float_nm(arg, 2, farray, true, false); }
 extern "C" int parse_float_n3_array(PyObject *arg, void *farray)
   { return parse_float_nm(arg, 3, farray, true, false); }
 extern "C" int parse_writable_float_n3_array(PyObject *arg, void *farray)
@@ -1125,6 +1155,15 @@ PyObject *python_none()
 {
   Py_INCREF(Py_None);
   return Py_None;
+}
+
+// ----------------------------------------------------------------------------
+//
+PyObject *python_bool(bool b)
+{
+  PyObject *bpy = (b ? Py_True : Py_False);
+  Py_INCREF(bpy);
+  return bpy;
 }
 
 // ----------------------------------------------------------------------------

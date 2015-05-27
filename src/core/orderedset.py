@@ -1,12 +1,21 @@
-# Inspiration and code expanded from:
-# Raymond Hettinger:
-# http://stackoverflow.com/questions/7828444/indexable-weak-ordered-set-in-python
-# and Stephan Schroevers:
-# http://stackoverflow.com/questions/1653970/does-python-have-an-ordered-set
+# vi: set expandtab shiftwidth=4 softtabstop=4:
+"""
+orderedset: An ordered set
+==========================
+Inspiration and code expanded from
+Raymond Hettinger's `indexable weak ordered set
+<http://stackoverflow.com/questions/7828444/indexable-weak-ordered-set-in-python>`_
+and Stephan Schroevers' `does python have an ordered set
+<http://stackoverflow.com/questions/1653970/does-python-have-an-ordered-set>`_
+`stackoverflow.com <http://stackoverflow.com/>`_ postings.
+"""
 
 import collections, weakref
 
 class OrderedSet(collections.MutableSet):
+    """Ordered set.
+    
+    Supports all of the operations that can happen on a :py:class:`set`."""
 
     # TODO: replace generic MutableSet/Set algorithms with ones optimized
     # for OrderedDicts
@@ -79,6 +88,7 @@ class OrderedSet(collections.MutableSet):
 #   isdisjoint, issubset, issuperset, pop, remove,
 
 class OrderedWeakrefSet(weakref.WeakSet):
+    """Ordered set of weak references"""
     def __init__(self, values=()):
         super(OrderedWeakrefSet, self).__init__()
         self.data = OrderedSet()

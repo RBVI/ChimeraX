@@ -28,8 +28,6 @@ Modules
 
     core/session.rst
 
-    core/serialize.rst
-
     core/triggerset.rst
 
     core/data_events.rst
@@ -42,11 +40,9 @@ Structure-related Modules
 .. toctree::
     :maxdepth: 2
 
-    pdbio.rst
+    core/pdbio.rst
 
-    structaccess.rst
-
-    connectivity.rst
+    core/structaccess.rst
 
 Graphics-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,9 +50,9 @@ Graphics-related Modules
 .. toctree::
     :maxdepth: 2
 
-    hydra_geometry.rst
+    core/geometry/public.rst
 
-    hydra_graphics.rst
+    core/graphics/public.rst
 
 C++ helper Modules
 ~~~~~~~~~~~~~~~~~~
@@ -65,6 +61,8 @@ C++ helper Modules
     :maxdepth: 2
 
     core/appdirs_cpp/appdirs_cpp.rst
+
+    core/connectivity.rst
 
 .. seealso::
 

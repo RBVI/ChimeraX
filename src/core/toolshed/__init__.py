@@ -7,58 +7,58 @@ installation from a remote server.
 The Toolshed can handle updating, installing and uninstalling
 distributions while taking care of inter-distribution dependencies.
 
-The Toolshed interface uses `distlib` heavily.
-For example, `Distribution` instances from `distlib`
+The Toolshed interface uses :py:mod:`distlib` heavily.
+For example, `Distribution` instances from :py:mod:`distlib`
 are tracked for both available and installed tools;
-the `distlib` `Locator` class is used for finding
-installed `Distribution`s.
+the :py:class:`distlib.locators.Locator` class is used for finding
+an installed :py:class:`distlib.database.Distribution`.
 
-Each Python distribution (Chimera uses `wheels`) may contain
-multiple tools.
+Each Python distribution (Chimera uses :py:class:`distlib.wheel.Wheel`)
+may contain multiple tools.
 Metadata blocks in each distribution contain descriptions for tools.
 Each tool is described by a 'Chimera-Tool' entry that consists of
-seven fields separated by double colons (' :: ').
+seven fields separated by double colons (``::``).
 
-1. 'Chimera-Tools' : str constant
+1. ``Chimera-Tools`` : str constant
     Field identifying entry as tool metadata.
-2. name : str
+2. ``name`` : str
     Internal name of tool.  This must be unique across all tools.
-3. module_name : str
+3. ``module_name`` : str
     Name of module or package that implements the tool.
-4. display_name : str
+4. ``display_name`` : str
     Name of tool to display to users.
-5. commands : str
+5. ``commands`` : str
     Comma-separated list of cli commands that the tool provides.
-6. menu_categories :: str
+6. ``menu_categories`` : str
     Comma-separated list of menu categories in which the tool belong.
-7. synopsis :: str
+7. ``synopsis`` : str
     A short description of the tool.
 
 Modules referenced in distribution metadata must define:
 
-  `register_command(command_name)`
+  ``register_command(command_name)``
     Called when delayed command line registration occurs.
-    `command_name` is a string of the command to be registered.
+    ``command_name`` is a string of the command to be registered.
 
-  `start_tool(session, ti, *args, **kw)`
+  ``start_tool(session, ti, *args, **kw)``
     Called to create a tool instance.
-    `session` is a `chimera.core.Session` instance for the current session.
-    `ti` is a `chimera.core.toolshed.ToolInfo` instance for the tool to be started.
+    ``session`` is a :py:class:`~chimera.core.session.Session` instance for the current session.
+    ``ti`` is a :py:class:`ToolInfo` instance for the tool to be started.
 
 Attributes
 ----------
 TOOLSHED_TOOL_INFO_ADDED : str
     Name of trigger fired when new tool metadata is registered.
-    The trigger data is a ToolInfo instance.
+    The trigger data is a :py:class:`ToolInfo` instance.
 TOOLSHED_TOOL_INSTALLED : str
     Name of trigger fired when a new tool is installed.
-    The trigger data is a ToolInfo instance.
+    The trigger data is a :py:class:`ToolInfo` instance.
 TOOLSHED_TOOL_UNINSTALLED : str
     Name of trigger fired when an installed tool is removed.
-    The trigger data is a ToolInfo instance.
+    The trigger data is a :py:class:`ToolInfo` instance.
 
-Note
-----
+Notes
+-----
 The term 'installed' refers to tools whose corresponding Python
 module or package is installed on the local machine.  The term
 'available' refers to tools that are listed on a remote server
@@ -121,14 +121,14 @@ class ToolshedError(Exception):
 class ToolshedUninstalledError(ToolshedError):
     """Uninstalled-tool error.
     
-    This exception derives from `ToolshedError` and is usually
+    This exception derives from :py:class:`ToolshedError` and is usually
     raised when trying to uninstall a tool that has not been installed."""
 
 
 class ToolshedInstalledError(ToolshedError):
     """Tool-already-installed error.
     
-    This exception derives from `ToolshedError` and is usually
+    This exception derives from :py:class:`ToolshedError` and is usually
     raised when trying to install a tool that is already installed."""
 
 
@@ -143,7 +143,7 @@ class ToolshedUnavailableError(ToolshedError):
 
 
 class Toolshed:
-    """Toolshed keeps track of the list of tool metadata, aka `ToolInfo`.
+    """Toolshed keeps track of the list of tool metadata, aka :py:class:`ToolInfo`.
 
     Tool metadata may be for "installed" tools, where their code
     is already downloaded from the remote server and installed
@@ -152,7 +152,7 @@ class Toolshed:
     
     Attributes
     ----------
-    triggers : chimera.core.triggerset.TriggerSet instance
+    triggers : :py:class:`~chimera.core.triggerset.TriggerSet` instance
         Where to register handlers for toolshed triggers
     
     """
@@ -163,9 +163,9 @@ class Toolshed:
 
         Parameters
         ----------
-        logger : chimera.core.logger.Logger instance
+        logger : :py:class:`~chimera.core.logger.Logger` instance
             A logging object where warning and error messages are sent.
-        appdirs : chimera.core.appdirs.AppDirs instance
+        appdirs : :py:class:`~chimera.core.appdirs.AppDirs` instance
             Location information about Chimera data and code directories.
         rebuild_cache : boolean
             True to ignore local cache of installed tool information and
@@ -225,12 +225,12 @@ class Toolshed:
 
         Parameters
         ----------
-        logger : chimera.core.logger.Logger instance
+        logger : :py:class:`~chimera.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
             
         Returns
         -------
-        list of ToolInfo instances
+        list of :py:class:`ToolInfo` instances
             List of tool metadata from remote server.
         
         """
@@ -251,7 +251,7 @@ class Toolshed:
 
         Parameters
         ----------
-        logger : chimera.core.logger.Logger instance
+        logger : :py:class:`~chimera.core.logger.Logger` instance
             A logging object where warning and error messages are sent.
         rebuild_cache : boolean
             True to ignore local cache of installed tool information and
@@ -294,7 +294,7 @@ class Toolshed:
 
         Returns
         -------
-        list of ToolInfo instances
+        list of :py:class:`ToolInfo` instances
             Combined list of all selected types of tool metadata.
         """
 
@@ -313,13 +313,13 @@ class Toolshed:
 
         Parameters
         ----------
-        ti : ToolInfo instance
-            Must be a constructed instance, i.e., not an existing instance
-            returned by `tool_info`.
+        ti : :py:class:`ToolInfo` instance
+            Must be a constructed instance, *i.e.*, not an existing instance
+            returned by :py:func:`tool_info`.
 
-        Note
-        ----
-        A `TOOLSHED_TOOL_INFO_ADDED` trigger is fired after the addition.
+        Notes
+        -----
+        A :py:const:`TOOLSHED_TOOL_INFO_ADDED` trigger is fired after the addition.
         
         """
         _debug("add_tool_info", ti)
@@ -335,12 +335,12 @@ class Toolshed:
 
         Parameters
         ----------
-        ti : ToolInfo instance
+        ti : :py:class:`ToolInfo` instance
             Should be from the available tool list.
         system : boolean
             False to install tool only for the current user (default);
             True to install for everyone.
-        logger : chimera.core.logger.Logger instance
+        logger : :py:class:`~chimera.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
 
         Raises
@@ -348,9 +348,9 @@ class Toolshed:
         ToolshedInstalledError
             Raised if the tool is already installed.
 
-        Note
-        ----
-        A `TOOLSHED_TOOL_INSTALLED` trigger is fired after installation.
+        Notes
+        -----
+        A :py:const:`TOOLSHED_TOOL_INSTALLED` trigger is fired after installation.
         
         """
         _debug("install_tool", ti)
@@ -366,9 +366,9 @@ class Toolshed:
 
         Parameters
         ----------
-        ti : ToolInfo instance
+        ti : :py:class:`ToolInfo` instance
             Should be from the installed tool list.
-        logger : chimera.core.logger.Logger instance
+        logger : :py:class:`~chimera.core.logger.Logger` instance
             Logging object where warning and error messages are sent.
 
         Raises
@@ -376,9 +376,9 @@ class Toolshed:
         ToolshedInstalledError
             Raised if the tool is not installed.
 
-        Note
-        ----
-        A `TOOLSHED_TOOL_UNINSTALLED` trigger is fired after package removal.
+        Notes
+        -----
+        A :py:const:`TOOLSHED_TOOL_UNINSTALLED` trigger is fired after package removal.
         
         """
         _debug("uninstall_tool", ti)
@@ -405,12 +405,24 @@ class Toolshed:
             container = self._installed_tool_info
         else:
             container = self._available_tool_info
-        # TODO: if version is None, should return newest version
+        from distlib.version import NormalizedVersion as Version
+        best_ti = None
+        best_version = None
         for ti in container:
-            if ((ti.name == name or ti.display_name == name)
-               and (version is None or version == ti.version)):
+            if ti.name != name and ti.display_name != name:
+                continue
+            if version == ti.version:
                 return ti
-        return None
+            if version is None:
+                if best_ti is None:
+                    best_ti = ti
+                    best_version = Version(ti.version)
+                else:
+                    v = Version(ti.version)
+                    if v > best_version:
+                        best_ti = ti
+                        best_version = v
+        return best_ti
 
     #
     # End public API
@@ -556,7 +568,7 @@ class Toolshed:
             print(time.ctime(), file=f)
 
     def _make_tool_info(self, d, installed, logger):
-        """Convert distribution into a list of ToolInfo instances."""
+        """Convert distribution into a list of :py:class:`ToolInfo` instances."""
         name = d.name
         version = d.version
         md = d.metadata
@@ -955,7 +967,7 @@ class Toolshed:
 class ToolInfo:
     """Metadata about a tool, whether installed or available.
 
-    A ToolInfo instance stores the properties about a tool and
+    A :py:class:`ToolInfo` instance stores the properties about a tool and
     can create a tool instance.
 
     Attributes
@@ -968,7 +980,7 @@ class ToolInfo:
         True if this tool is installed locally; False otherwise.
     menu_categories : list of str
         List of categories in which this tool belong.
-    name : str
+    name : readonly str
         The internal name of the tool.
     synopsis : readonly str
         Short description of this tool.
@@ -1051,7 +1063,7 @@ class ToolInfo:
         Returns
         -------
         2-tuple of (list, dict)
-            List and dictionary suitable for passing to ToolInfo(*args, **kw).
+            List and dictionary suitable for passing to :py:class:`ToolInfo`.
         
         """
         args = (self.name, self.installed)
@@ -1097,6 +1109,10 @@ class ToolInfo:
             _debug("deregister_command", command_name)
             cli.deregister(command_name)
 
+    def get_class(self, class_name):
+        """Return tool's class with given name."""
+        return self._get_module().get_class(class_name)
+
     def _get_module(self):
         """Return module for this tool."""
         if not self._module_name:
@@ -1111,7 +1127,7 @@ class ToolInfo:
 
         Parameters
         ----------
-        session : chimera.core.session.Session instance
+        session : :py:class:`~chimera.core.session.Session` instance
             The session in which the tool will run.
         args : any
             Positional arguments to pass to tool instance initializer.
@@ -1120,7 +1136,7 @@ class ToolInfo:
 
         Returns
         -------
-        chimera.core.tools.ToolInstance instance
+        :py:class:`~chimera.core.tools.ToolInstance` instance
             The registered running tool instance.
 
         Raises
@@ -1128,7 +1144,7 @@ class ToolInfo:
         ToolshedUninstalledError
             If the tool is not installed.
         ToolshedError
-            If the tool cannot be started,
+            If the tool cannot be started.
 
         """
         if not self.installed:
@@ -1140,7 +1156,24 @@ class ToolInfo:
             raise ToolshedError("bad start callable specified for tool \"%s\""
                                 % self.name)
         else:
-            f(session, self, *args, **kw)
+            return f(session, self, *args, **kw)
+
+    def newer_than(self, ti):
+        """Return whether this :py:class:`ToolInfo` instance is newer than given one
+
+        Parameters
+        ----------
+        ti : :py:class:`ToolInfo` instance
+            The instance to compare against
+
+        Returns
+        -------
+        Boolean
+            True if this instance is newer; False if 'ti' is newer.
+
+        """
+        from distlib.version import NormalizedVersion as Version
+        return Version(self.version) > Version(ti.version)
 
 
 # Toolshed is a singleton.  Multiple calls to init returns the same instance.
@@ -1155,8 +1188,8 @@ def init(*args, debug=False, **kw):
     calls return the same instance.  The toolshed debugging
     state is updated at each call.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     debug : boolean
         If true, debugging messages are sent to standard output.
         Default value is false.
@@ -1165,7 +1198,7 @@ def init(*args, debug=False, **kw):
 
     Returns
     -------
-    chimera.core.toolshed.Toolshed instance
+    :py:class:`Toolshed` instance
         The toolshed singleton.
         
     """

@@ -6,6 +6,8 @@
 #include <memory>
 #include <algorithm>
 
+#include "destruct.h"
+
 namespace basegeom {
     
 template <class Vertex, class Edge>
@@ -16,6 +18,9 @@ protected:
 private:
     Vertices  _vertices;
     Edges  _edges;
+
+    float  _ball_scale;
+
 protected:
     void  add_edge(Edge *e) { _edges.emplace_back(e); }
     void  add_vertex(Vertex *v) { _vertices.emplace_back(v); }
@@ -23,8 +28,20 @@ protected:
     void  delete_vertex(Vertex *v);
     const Edges &  edges() const { return _edges; }
     const Vertices &  vertices() const { return _vertices; }
+
 public:
-    virtual  ~Graph() {}
+    virtual  ~Graph() {
+        // need to assign to variable make it live to end of destructor
+        auto du = DestructionUser(this);
+        // need to force destruction of edges/vertices, otherwise they
+        // may only get destroyed after destructor exits;
+        _edges.clear();
+        _vertices.clear();
+    }
+
+    // graphics related
+    float  ball_scale() const { return _ball_scale; }
+    void  set_ball_scale(float bs) { _ball_scale = bs; }
 
     // temporary until a Model class exists
 private:

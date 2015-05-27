@@ -4,9 +4,10 @@ from ..mousemodes import MouseModes
 class QtMouseModes(MouseModes):
 
     def __init__(self, graphics_window):
-        MouseModes.__init__(self, graphics_window)
+        MouseModes.__init__(self, graphics_window, graphics_window.session)
         self.view.add_new_frame_callback(self.collapse_touch_events)
         self.recent_touch_points = None
+        self.MouseEvent = MouseEvent
 
     def set_mouse_event_handlers(self):
         gw = self.graphics_window
@@ -17,18 +18,19 @@ class QtMouseModes(MouseModes):
         gw.touchEvent = self.touch_event
         
     def mouse_press_event(self, event):
-        self.dispatch_mouse_event(event, 0)
+        self.dispatch_mouse_event(event, 'mouse_down')
     def mouse_move_event(self, event):
-        self.dispatch_mouse_event(event, 1)
+        self.dispatch_mouse_event(event, 'mouse_drag')
     def mouse_release_event(self, event):
-        self.dispatch_mouse_event(event, 2)
+        self.dispatch_mouse_event(event, 'mouse_up')
         
-    def dispatch_mouse_event(self, event, fnum):
+    def dispatch_mouse_event(self, event, action):
 
         b = self.event_button_name(event)
-        f = self.mouse_modes.get(b)
-        if f and f[fnum]:
-            f[fnum](event)
+        m = self.mouse_modes.get(b)
+        if m:
+            f = getattr(m, action)
+            f(MouseEvent(event))
 
     def event_button_name(self, event):
 
@@ -52,18 +54,9 @@ class QtMouseModes(MouseModes):
             bname = None
         return bname
 
-    def shift_down(self, event):
-        return bool(event.modifiers() & QtCore.Qt.ShiftModifier)
-
-    def event_position(self, event):
-        return event.x(), event.y()
-
     def cursor_position(self):
         p = self.graphics_window.mapFromGlobal(QtGui.QCursor.pos())
         return p.x(), p.y()
-
-    def wheel_value(self, event):
-        return event.angleDelta().y()/120.0   # Usually one wheel click is delta of 120
 
     # Appears that Qt has disabled touch events on Mac due to unresolved scrolling lag problems.
     # Searching for qt setAcceptsTouchEvents shows they were disabled Oct 17, 2012.
@@ -83,7 +76,10 @@ class QtMouseModes(MouseModes):
         elif t == QtCore.QEvent.TouchEnd:
             self.last_trackpad_touch_count = 0
             self.recent_touch_points = None
-            self.mouse_up(event = None)
+            from ..mousemodes import MouseMode
+            for m in self.mouse_modes.values():
+                m.mouse_up(self.trackpad_event(0,0))
+            self.trackpad_xy = None
 
     def collapse_touch_events(self):
         touches = self.recent_touch_points
@@ -92,12 +88,7 @@ class QtMouseModes(MouseModes):
             self.process_touches(txy)
             self.recent_touch_points = None
 
-    def trackpad_event(self, dx, dy):
-        p = self.last_mouse_position
-        if p is None:
-            x,y = cp = self.cursor_position()
-        else:
-            x,y = p[0]+dx, p[1]+dy
+    def trackpad_event(self, x, y):
         class Trackpad_Event:
             def __init__(self,x,y):
                 self._x, self._y = x,y
@@ -107,5 +98,22 @@ class QtMouseModes(MouseModes):
                 return self._y
             def pos(self):
                 return (self._x,self._y)
+            def position(self):
+                return (self._x,self._y)
+            def shift_down(self):
+                return False
         e = Trackpad_Event(x,y)
         return e
+
+class MouseEvent:
+    def __init__(self, event):
+        self.event = event
+
+    def shift_down(self):
+        return bool(self.event.modifiers() & QtCore.Qt.ShiftModifier)
+
+    def position(self):
+        return self.event.x(), self.event.y()
+
+    def wheel_value(self):
+        return self.event.angleDelta().y()/120.0   # Usually one wheel click is delta of 120

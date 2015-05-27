@@ -4,6 +4,7 @@
 
 #include "connected.h"			// use connected_triangles, ...
 #include "measure.h"			// use enclosed_volume, surface_area, ...
+#include "normals.h"			// use calculate_vertex_normals, invert_vertex_normals
 #include "parse_stl.h"			// use parse_stl
 #include "sasa.h"			// use surface_area_of_spheres
 #include "subdivide.h"			// use subdivide_triangles
@@ -34,6 +35,12 @@ static struct PyMethodDef surface_cpp_methods[] =
   {const_cast<char*>("boundary_edges"), (PyCFunction)boundary_edges,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("boundary_loops"), (PyCFunction)boundary_loops,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* normals.h */
+  {const_cast<char*>("calculate_vertex_normals"), (PyCFunction)calculate_vertex_normals,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("invert_vertex_normals"), (PyCFunction)invert_vertex_normals,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* parse_stl.h */

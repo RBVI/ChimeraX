@@ -18,15 +18,18 @@ init_paths(PyObject* /*self*/, PyObject* args)
     const char* site_config_dir;
     const char* user_log_dir;
     const char* app_data_dir;
+    const char* user_cache_dir_unversioned;
 
-    if (!PyArg_ParseTuple(args, "ssssssss", &path_sep, &user_data_dir,
+    if (!PyArg_ParseTuple(args, "sssssssss", &path_sep, &user_data_dir,
                 &user_config_dir, &user_cache_dir, &site_data_dir,
-                &site_config_dir, &user_log_dir, &app_data_dir))
+                &site_config_dir, &user_log_dir, &app_data_dir,
+                &user_cache_dir_unversioned))
         return NULL;
     try {
         appdirs::AppDirs::init_app_dirs(path_sep, user_data_dir,
                 user_config_dir, user_cache_dir, site_data_dir,
-                site_config_dir, user_log_dir, app_data_dir);
+                site_config_dir, user_log_dir, app_data_dir,
+                user_cache_dir_unversioned);
     } catch (std::logic_error &e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
         return NULL;
@@ -36,7 +39,7 @@ init_paths(PyObject* /*self*/, PyObject* args)
 
 
 static const char* init_paths_doc =
-"Initialize C++ app paths.  The eight arguments are strings.  The first string"
+"Initialize C++ app paths.  The nine arguments are strings.  The first string"
 " is the character used to separate path name components and the next six"
 " correspond to the following appdir module variables (in order):\n\n"
 
@@ -47,7 +50,8 @@ static const char* init_paths_doc =
 "site_config_dir\n"
 "user_log_dir\n\n"
 
-"The final argument is the data/share path within the app itself\n";
+"The next argument is the data/share path within the app itself.\n"
+"And the final argument is the unversioned variation of user_cache_dir.\n";
 
 static struct PyMethodDef appdirs_cpp_functions[] =
 {

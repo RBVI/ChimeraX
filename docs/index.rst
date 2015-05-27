@@ -23,3 +23,13 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+
+********
+License
+********
+:doc:`Non-Commercial Software License Agreement <license>`
+
+.. |copy| unicode:: 0xA9 .. copyright sign
+
+Copright |copy| 2015 by the Regents of the University of California.
+All Rights Reserved.

@@ -3,64 +3,151 @@
 from chimera.core.tools import ToolInstance
 
 
-class CmdLine(ToolInstance):
+class CommandLine(ToolInstance):
 
+    SESSION_ENDURING = True
     SIZE = (500, 25)
     VERSION = 1
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Command Line", session,
+    show_history_label = "Command History..."
+    compact_label = "Remove duplicate consecutive commands"
+
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
+        self.tool_window = session.ui.create_main_tool_window(self,
                                       size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx
-        self.text = wx.TextCtrl(parent, size=self.SIZE,
+        self.text = wx.ComboBox(parent, size=self.SIZE,
                                 style=wx.TE_PROCESS_ENTER | wx.TE_NOHIDESEL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.text, 1, wx.EXPAND)
         parent.SetSizerAndFit(sizer)
-        self.text.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
+        self.history_dialog = _HistoryDialog(self)
+        self.text.Bind(wx.EVT_COMBOBOX, self.on_combobox)
+        self.text.Bind(wx.EVT_TEXT_ENTER, self.on_enter)
+        self.text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         self.tool_window.manage(placement="bottom")
+        self.history_dialog.populate()
         session.ui.register_for_keystrokes(self)
         session.tools.add([self])
+        self._last_thumb = None
+        # since only TextCtrls have the EmulateKeyPress method,
+        # create a completely hidden TextCtrl so that we can
+        # process forwarded keystrokes and copy the result back
+        # into the ComboBox!
+        self.kludge_text = wx.TextCtrl(parent)
+        self.kludge_text.Hide()
+
+    def cmd_clear(self):
+        self.text.SetValue("")
+
+    def cmd_replace(self, cmd):
+        self.text.SetValue(cmd)
 
     def forwarded_keystroke(self, event):
         if event.KeyCode == 13:
-            self.OnEnter(event)
+            self.on_enter(event)
+        #elif event.KeyCode == 78:        # Ctrl-N
+        #    self.history_dialog.down()
+        #elif event.KeyCode == 80:        # Ctrl-P
+        #    self.history_dialog.up()
+        #elif event.KeyCode == 85:        # Ctrl-U
+        #    self.cmd_clear()
+        elif event.KeyCode == 315:        # Up arrow
+            self.session.selection.promote()
+        elif event.KeyCode == 317:        # Down arrow
+            self.session.selection.demote()
+        elif event.KeyCode == 27:         # Escape
+            self.session.keyboard_shortcuts.enable_shortcuts()
         else:
-            self.text.EmulateKeyPress(event)
+            # Only TextCtrls handle forwarded keystroke events,
+            # so copy the current ComboBox text state into a
+            # TextCtrl, apply the forwarded keystroke, and copy
+            # the result back (ugh)
+            self.kludge_text.Value = self.text.Value
+            self.kludge_text.SetInsertionPoint(self.text.InsertionPoint)
+            self.kludge_text.SetSelection(*self.text.GetTextSelection())
+            self.kludge_text.EmulateKeyPress(event)
+            self.text.Value = self.kludge_text.Value
+            self.text.SetInsertionPoint(self.kludge_text.InsertionPoint)
+            self.text.SetSelection(*self.kludge_text.GetSelection())
 
-    def OnEnter(self, event):
+    def on_combobox(self, event):
+        val = self.text.GetValue()
+        if val == self.show_history_label:
+            self.history_dialog.window.shown = True
+        elif val == self.compact_label:
+            self.cmd_clear()
+            prev_cmd = None
+            unique_cmds = []
+            for cmd in self.history_dialog.history:
+                if cmd != prev_cmd:
+                    unique_cmds.append(cmd)
+                    prev_cmd = cmd
+            self.history_dialog.history.replace(unique_cmds)
+            self.history_dialog.populate()
+        else:
+            event.Skip()
+
+    def on_enter(self, event):
         session = self.session
         logger = session.logger
-        text = self.text.GetLineText(0)
-        self.text.SelectAll()
+        text = self.text.Value
         logger.status("")
         from chimera.core import cli
-        try:
-            cmd = cli.Command(session, text, final=True)
-            cmd.execute()
-        except SystemExit:
-            # TODO: somehow quit application
-            raise
-        except cli.UserError as err:
-            rest = cmd.current_text[cmd.amount_parsed:]
-            spaces = len(rest) - len(rest.lstrip())
-            error_at = cmd.amount_parsed + spaces
-            text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
-                cmd.current_text, '.' * error_at, str(err))
-            logger.info(text, is_html=True)
-            logger.status(str(err))
-        except:
-            import traceback
-            session.logger.error(traceback.format_exc())
+        for cmd_text in text.split("\n"):
+            if not cmd_text:
+                continue
+            try:
+                cmd = cli.Command(session, cmd_text, final=True)
+                cmd.execute()
+            except SystemExit:
+                # TODO: somehow quit application
+                raise
+            except cli.UserError as err:
+                rest = cmd.current_text[cmd.amount_parsed:]
+                spaces = len(rest) - len(rest.lstrip())
+                error_at = cmd.amount_parsed + spaces
+                err_text = "<pre>%s<br>\n%s^<br>\n%s\n</pre>" % (
+                    cmd.current_text, '.' * error_at, str(err))
+                logger.info(err_text, is_html=True)
+                logger.status(str(err))
+            except:
+                import traceback
+                session.logger.error(traceback.format_exc())
+            else:
+                self.history_dialog.add(cmd_text)
+                thumb = session.main_view.image(width=100, height=100)
+                log_thumb = False
+                if thumb.getcolors(1) is None:
+                    # image not just a solid background color;
+                    # ensure it differs from previous thumbnail
+                    thumb_data = thumb.tostring()
+                    if thumb_data != self._last_thumb:
+                        self._last_thumb = thumb_data
+                        log_thumb = True
+                else:
+                   self._last_thumb = None
+                session.logger.info(cmd_text)
+                if log_thumb:
+                    session.logger.info("graphics image", image=thumb)
+        self.text.SetValue(cmd_text)
+        self.text.SelectAll()
+
+    def on_key_down(self, event):
+        # intercept up/down arrow
+        #if event.KeyCode in (80, 315):  # ctrl-p, up arrow
+        if event.KeyCode == 315:  # ctrl-p, up arrow
+            self.history_dialog.up()
+        #elif event.KeyCode in (78, 317):  # ctrl-n, down arrow
+        elif event.KeyCode == 317:  # ctrl-n, down arrow
+            self.history_dialog.down()
+        #elif event.KeyCode == 85:  # ctrl-u
+        #    self.cmd_clear()
         else:
-            thumb = session.main_view.image(
-                    width=100, height=100, supersample=3)
-            session.logger.info(text, add_newline=False)
-            session.logger.info("&nbsp;", is_html=True, add_newline=False)
-            session.logger.info("graphics image", image=thumb)
+            # pass through other keys
+            event.Skip()
 
     #
     # Implement session.State methods if deriving from ToolInstance
@@ -71,7 +158,9 @@ class CmdLine(ToolInstance):
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State
+        from chimera.core.session import State, RestoreError
+        if version != self.VERSION:
+            raise RestoreError("unexpected version")
         if phase == State.PHASE1:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved
@@ -96,3 +185,127 @@ class CmdLine(ToolInstance):
     def display(self, b):
         """Show or hide command line user interface."""
         self.tool_window.shown = b
+
+class _HistoryDialog:
+
+    record_label = "Record..."
+    execute_label = "Execute"
+
+    def __init__(self, controller):
+        # make dialog hidden initially
+        self.controller = controller
+        self.window = controller.session.ui.create_child_tool_window(
+            controller, title="Command History", destroy_hides=True)
+
+        parent = self.window.ui_area
+        import wx
+        self.listbox = wx.ListBox(parent, size=(100, 400),
+                                style=wx.LB_EXTENDED | wx.LB_NEEDED_SB)
+        self.listbox.Bind(wx.EVT_LISTBOX, self.on_listbox)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(self.listbox, 1, wx.EXPAND)
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(button_sizer)
+        record_button = wx.Button(parent, label=self.record_label)
+        record_button.Disable()
+        button_sizer.Add(record_button)
+        button_sizer.Add(wx.Button(parent, label=self.execute_label))
+        for stock_id in [wx.ID_DELETE, wx.ID_COPY, wx.ID_HELP]:
+            sz = button_sizer.Add(wx.Button(parent, id=stock_id))
+        sz.GetWindow().Disable()
+        parent.SetSizerAndFit(main_sizer)
+        parent.Bind(wx.EVT_BUTTON, self.button_cb)
+        self.window.manage(placement=None)
+        self.window.shown = False
+        from chimera.core.history import FIFOHistory
+        self.history = FIFOHistory(500, controller.session, "command line")
+
+    def add(self, item):
+        self.listbox.Append(item)
+        self.history.enqueue(item)
+        for sel in self.listbox.GetSelections():
+            self.listbox.Deselect(sel)
+        self.listbox.SetSelection(len(self.history)-1)
+        self.update_list()
+
+    def button_cb(self, event):
+        label = event.GetEventObject().GetLabelText()
+        if label == self.record_label:
+            #TODO
+            return
+        if label == self.execute_label:
+            for index in self.listbox.GetSelections():
+                self.controller.cmd_replace(self.listbox.GetString(index))
+                self.controller.on_enter(None)
+            return
+        stock_id = event.GetEventObject().GetId()
+        import wx
+        if stock_id == wx.ID_DELETE:
+            self.history.replace([self.history[i]
+                for i in range(len(self.history))
+                if i not in self.listbox.GetSelections()])
+            self.populate()
+            return
+        if stock_id == wx.ID_COPY:
+            if not wx.TheClipboard.Open():
+                self.controller.session.logger.error("Could not access the"
+                    " system clipboard")
+                return
+            wx.TheClipboard.SetData(wx.TextDataObject("\n".join(
+                [self.listbox.GetString(i)
+                for i in self.listbox.GetSelections()])))
+            wx.TheClipboard.Flush()
+            wx.TheClipboard.Close()
+            return
+        if stock_id == wx.ID_HELP:
+            #TODO
+            return
+
+    def down(self):
+        sels = self.listbox.GetSelections()
+        if len(sels) != 1:
+            return
+        sel = sels[0]
+        if sel == self.listbox.GetCount() - 1:
+            return
+        self.listbox.Deselect(sel)
+        self.listbox.SetSelection(sel+1)
+        self.controller.cmd_replace(self.listbox.GetString(sel+1))
+
+    def on_listbox(self, event):
+        self.select()
+
+    def populate(self):
+        self.listbox.Items = [cmd for cmd in self.history]
+        self.listbox.Selection = len(self.history) - 1
+        self.update_list()
+        self.select()
+        self.controller.text.SetFocus()
+        self.controller.text.SetSelection(-1, -1)
+        cursel = self.listbox.Selection
+        import wx
+        if cursel != wx.NOT_FOUND:
+            self.listbox.EnsureVisible(cursel)
+
+    def select(self):
+        sels = self.listbox.GetSelections()
+        if len(sels) != 1:
+            return
+        self.controller.cmd_replace(self.listbox.GetString(sels[0]))
+
+    def up(self):
+        sels = self.listbox.GetSelections()
+        if len(sels) != 1:
+            return
+        sel = sels[0]
+        if sel == 0:
+            return
+        self.listbox.Deselect(sel)
+        self.listbox.SetSelection(sel-1)
+        self.controller.cmd_replace(self.listbox.GetString(sel-1))
+        
+    def update_list(self):
+        c = self.controller
+        last8 = self.history[-8:]
+        last8.reverse()
+        c.text.Items = last8 + [c.show_history_label, c.compact_label]

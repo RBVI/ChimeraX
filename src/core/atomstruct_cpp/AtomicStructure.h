@@ -4,14 +4,16 @@
 
 #include <vector>
 #include <string>
+#include <map>
 #include <memory>
-#include <unordered_map>
+#include <set>
 #include <unordered_set>
 
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
 #include <basegeom/Graph.h>
+#include <basegeom/destruct.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -39,22 +41,21 @@ public:
     typedef std::map<std::string, std::vector<std::string>>  InputSeqInfo;
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
+    static const char*  PBG_HYDROGEN_BONDS;
     typedef std::vector<std::unique_ptr<Residue>>  Residues;
     typedef std::unordered_set<Ring> Rings;
 private:
     CoordSet *  _active_coord_set;
-    bool  _being_destroyed;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
-            std::unordered_set<const Residue *>* ignore) const;
+            std::set<const Residue *>* ignore) const;
     mutable Chains *  _chains;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
-    void  _fast_calculate_rings(
-            std::unordered_set<const Residue *>* ignore) const;
+    void  _fast_calculate_rings(std::set<const Residue *>* ignore) const;
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
-            std::unordered_set<const Residue *>* ignore) const;
+            std::set<const Residue *>* ignore) const;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
@@ -65,18 +66,23 @@ private:
     Residues  _residues;
     mutable Rings  _rings;
     bool  _rings_cached (bool cross_residues, unsigned int all_size_threshold,
-        std::unordered_set<const Residue *>* ignore = nullptr) const;
+        std::set<const Residue *>* ignore = nullptr) const;
     mutable unsigned int  _rings_last_all_size_threshold;
     mutable bool  _rings_last_cross_residues;
-    mutable std::unordered_set<const Residue *>*  _rings_last_ignore;
+    mutable std::set<const Residue *>*  _rings_last_ignore;
 public:
     AtomicStructure(PyObject* logger = nullptr);
-    virtual  ~AtomicStructure() { _being_destroyed = true; }
+    virtual  ~AtomicStructure() {
+        // assign to variable so that it lives to end of destructor
+        auto du = basegeom::DestructionUser(this);
+        // force immediate destruction of certain items
+        // while DestructionUser active
+        _residues.clear();
+    }
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    bool  being_destroyed() const { return _being_destroyed; }
-    std::unordered_map<Residue *, char>  best_alt_locs() const;
+    std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
@@ -103,20 +109,23 @@ public:
     CoordSet *  new_coord_set(int index, int size);
     Residue *  new_residue(const std::string &name, const std::string &chain,
         int pos, char insert, Residue *neighbor=NULL, bool after=true);
-    int  num_atoms() const { return atoms().size(); }
-    int  num_bonds() const { return bonds().size(); }
-    int  num_hyds() const { return _num_hyds; }
+    size_t  num_atoms() const { return atoms().size(); }
+    size_t  num_bonds() const { return bonds().size(); }
+    size_t  num_hyds() const { return _num_hyds; }
+    size_t  num_residues() const { return residues().size(); }
+    size_t  num_chains() const { return chains().size(); }
+    size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
-    std::unordered_map<std::string, std::vector<std::string>> pdb_headers;
+    std::map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
     std::vector<Chain::Residues>  polymers() const;
     const Residues &  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
-        std::unordered_set<const Residue *>* ignore = nullptr) const;
+        std::set<const Residue *>* ignore = nullptr) const;
     void  set_active_coord_set(CoordSet *cs);
-    void  set_input_seq_info(std::string& chain_id, std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
-    void  set_name(std::string& name) { _name = name; }
+    void  set_input_seq_info(const std::string& chain_id, const std::vector<std::string>& res_names) { _input_seq_info[chain_id] = res_names; }
+    void  set_name(const std::string& name) { _name = name; }
     void  use_best_alt_locs();
 };
 
@@ -125,6 +134,8 @@ public:
 #include "Atom.h"
 inline void
 atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
+    // assign to DestructionUser to var so it's not immediately destroyed!
+    auto du = basegeom::DestructionUser(a);
     for (auto b: a->bonds()) delete_bond(b);
     delete_vertex(a);
     if (a->element().number() == 1)

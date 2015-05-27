@@ -47,6 +47,10 @@ Words in the command name may be truncated
 and are automatically completed to the first registered
 command with the given prefix.  Likewise for keyword arguments.
 
+Keywords are case sensitive, and are expected to be all lowercase.
+Underscores are supported, but are documented as and accepted as dashes.
+For example, a ``bg_color`` keyword would be documented as ``bg-color``.
+
 Registering Commands
 --------------------
 
@@ -183,7 +187,7 @@ Command Aliases
 """
 
 import abc
-from keyword import iskeyword
+from keyword import iskeyword as is_python_keyword
 import re
 import sys
 from collections import OrderedDict
@@ -193,6 +197,34 @@ _normal_token = re.compile(r"[^;\s]*")
 _single_quote = re.compile(r"'(.|\')*?'(\s|$)")
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
+
+
+def _dq_repr(obj):
+    """Like repr, but use double quotes"""
+    r = repr(obj)
+    if r[0] != "'":
+        return r
+    result = []
+    for c in r:
+        if c == '"':
+            result.append("'")
+        elif c == "'":
+            result.append('"')
+        else:
+            result.append(c)
+    return ''.join(result)
+
+
+def _canonical_kw(kw_name):
+    """Return canonical version of a keyword argument name."""
+    # Remove punctuation and case from keyword argument name.
+    return ''.join([c for c in kw_name if c not in '-_ ']).casefold()
+
+
+def _user_kw(kw_name):
+    """Return user version of a keyword argument name."""
+    words = kw_name.split('_')
+    return words[0].lower() + ''.join([x.capitalize() for x in words[1:]])
 
 
 class UserError(ValueError):
@@ -224,7 +256,7 @@ class Annotation(metaclass=abc.ABCMeta):
         the leading article, *e.g.*, `"a truth value"`.
     """
     name = "** article name, e.g., _a_ _truth value_ **"
-    help = None  #: placeholder for help information (e.g., URL)
+    url = None  #: URL for help information
 
     @staticmethod
     def parse(text, session):
@@ -269,7 +301,7 @@ class Aggregate(Annotation):
     separator = ','
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None):
+                 max_size=None, name=None, prefix=None):
         if (not issubclass(annotation, Annotation) and
                 not isinstance(annotation, Annotation)):
             raise ValueError("need an annotation, not %s" % annotation)
@@ -286,6 +318,7 @@ class Aggregate(Annotation):
                 name = annotation.name.split(None, 1)[1]
                 name = "%s(s)" % name
         self.name = name
+        self.prefix = prefix
 
     def add_to(self, container, element):
         """Add to add an element to the container
@@ -300,6 +333,8 @@ class Aggregate(Annotation):
     def parse(self, text, session):
         result = self.constructor()
         used = ''
+        if self.prefix and text.startswith(self.prefix):
+            text = text[len(self.prefix):]
         while 1:
             i = text.find(self.separator)
             if i == -1:
@@ -412,8 +447,8 @@ class DottedTupleOf(Aggregate):
     constructor = tuple
 
     def __init__(self, annotation, min_size=None,
-                 max_size=None, name=None):
-        Aggregate.__init__(self, annotation, min_size, max_size, name)
+                 max_size=None, name=None, prefix=None):
+        Aggregate.__init__(self, annotation, min_size, max_size, name, prefix)
         if name is None:
             if ',' in annotation.name:
                 name = "dotted list of %s" % annotation.name
@@ -435,11 +470,20 @@ class BoolArg(Annotation):
     def parse(text, session):
         token, text, rest = next_token(text)
         token = token.casefold()
-        if token == "0" or "false".startswith(token):
+        if token == "0" or "false".startswith(token) or token == "off":
             return False, "false", rest
-        if token == "1" or "true".startswith(token):
+        if token == "1" or "true".startswith(token) or token == "on":
             return True, "true", rest
         raise AnnotationError("Expected true or false (or 1 or 0)")
+
+
+class NoArg(Annotation):
+    """Annotation for keyword with no value"""
+    name = ""
+
+    @staticmethod
+    def parse(text, session):
+        return True, "", text
 
 
 class IntArg(Annotation):
@@ -618,8 +662,20 @@ def unescape(text):
 
     Follows Python's :ref:`string literal <python:literals>` syntax
     for escape sequences."""
+    return unescape_with_index_map(text)[0]
+
+
+def unescape_with_index_map(text):
+    """Replace backslash escape sequences with actual character.
+
+    :param text: the input text
+    :returns: the processed text and index map from processed to input text
+
+    Follows Python's :ref:`string literal <python:literals>` syntax
+    for escape sequences."""
     # standard Python backslashes including \N{unicode name}
     start = 0
+    index_map = range(len(text))
     while start < len(text):
         index = text.find('\\', start)
         if index == -1:
@@ -629,11 +685,14 @@ def unescape(text):
         escaped = text[index + 1]
         if escaped in _escape_table:
             text = text[:index] + _escape_table[escaped] + text[index + 2:]
+            # Assumes that replacement is a single character
+            index_map = index_map[:index] + index_map[index + 1:]
             start = index + 1
         elif escaped == 'o':
             try:
                 char = chr(int(text[index + 2: index + 5], 8))
                 text = text[:index] + char + text[index + 5:]
+                index_map = index_map[:index] + index_map[index + 4:]
             except ValueError:
                 pass
             start = index + 1
@@ -641,6 +700,7 @@ def unescape(text):
             try:
                 char = chr(int(text[index + 2: index + 4], 16))
                 text = text[:index] + char + text[index + 4:]
+                index_map = index_map[:index] + index_map[index + 3:]
             except ValueError:
                 pass
             start = index + 1
@@ -648,6 +708,7 @@ def unescape(text):
             try:
                 char = chr(int(text[index + 2: index + 6], 16))
                 text = text[:index] + char + text[index + 6:]
+                index_map = index_map[:index] + index_map[index + 5:]
             except ValueError:
                 pass
             start = index + 1
@@ -655,6 +716,7 @@ def unescape(text):
             try:
                 char = chr(int(text[index + 2: index + 10], 16))
                 text = text[:index] + char + text[index + 10:]
+                index_map = index_map[:index] + index_map[index + 9:]
             except ValueError:
                 pass
             start = index + 1
@@ -669,13 +731,14 @@ def unescape(text):
                 try:
                     char = unicodedata.lookup(name)
                     text = text[:index] + char + text[end + 1:]
+                    index_map = index_map[:index] + index_map[end:]
                 except KeyError:
                     pass
             start = index + 1
         else:
             # leave backslash in text like Python
             start = index + 1
-    return text
+    return text, index_map
 
 
 def next_token(text):
@@ -790,8 +853,9 @@ Int3Arg = TupleOf(IntArg, 3)
 FloatsArg = ListOf(FloatArg)
 Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
-PositiveIntArg = Bounded(IntArg, min=1, name="a natural number")
-ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id")
+NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
+PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
+ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix='#')
 
 
 class Postcondition(metaclass=abc.ABCMeta):
@@ -849,7 +913,7 @@ class Limited(Postcondition):
             return True
 
     def error_message(self):
-        message = "Invalid argument %r: " % self.name
+        message = "Invalid argument %s: " % _dq_repr(self.name)
         if self.min and self.max:
             return message + ("Must be greater than or equal to %s and less"
                               " than or equal to %s" % (self.min, self.max))
@@ -911,7 +975,9 @@ class CmdDesc:
     :param required: required positional arguments tuple
     :param optional: optional positional arguments tuple
     :param keyword: keyword arguments tuple
-    :param help: placeholder for help information (e.g., URL)
+    :param url: URL to help page
+    :param synopsis: one line description
+    :param official: True if officially supported command
 
     .. data: function
 
@@ -922,19 +988,23 @@ class CmdDesc:
     keyword arguments.
     """
     __slots__ = [
-        '_required', '_optional', '_keyword',
+        '_required', '_optional', '_keyword', '_keyword_map',
         '_postconditions', '_function',
-        'help',
+        'url', 'synopsis', 'official'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
-                 postconditions=(), help=None):
+                 postconditions=(), url=None, synopsis=None, official=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = OrderedDict(keyword)
         self._keyword.update(self._optional)
+        # keyword_map is what would user would type
+        self._keyword_map = dict([(_canonical_kw(n), n) for n in self._keyword])
         self._postconditions = postconditions
-        self.help = help
+        self.url = url
+        self.synopsis = synopsis
+        self.official = official
         self._function = None
 
     @property
@@ -1043,6 +1113,11 @@ def register(name, cmd_desc=(), function=None, logger=None):
     if isinstance(cmd_desc, tuple):
         cmd_desc = CmdDesc(*cmd_desc)
 
+    # TODO:
+    # if production_release and not cmd_desc.official:
+    #    # don't have unoffical commands in official releases
+    #    return
+
     words = name.split()
     name = ' '.join(words)  # canonicalize
     cmd_map = _commands
@@ -1068,7 +1143,7 @@ def register(name, cmd_desc=(), function=None, logger=None):
         if not isinstance(function, _Alias):
             raise
         if logger is not None:
-            logger.warn("alias %r hides existing command" % name)
+            logger.warn("alias %s hides existing command" % _dq_repr(name))
     if isinstance(function, _Defer):
         cmd_desc = function
     else:
@@ -1087,7 +1162,8 @@ def register(name, cmd_desc=(), function=None, logger=None):
             _aliased_commands[name] = cmd_desc
         else:
             if logger is not None:
-                logger.warn("command %r is replacing existing command" % name)
+                logger.warn("command %s is replacing existing command" %
+                            _dq_repr(name))
             cmd_map[word] = cmd_desc
     return function     # needed when used as a decorator
 
@@ -1158,6 +1234,8 @@ def add_keyword_arguments(name, kw_info):
     :param name: the name of the command
     :param kw_info: { keyword: annotation }
     """
+    if not isinstance(kw_info, dict):
+        raise ValueError("kw_info must be a dictionary")
     cmd = Command(None, name, final=True)
     cmd.current_text = name
     cmd._find_command_name(True)
@@ -1165,7 +1243,7 @@ def add_keyword_arguments(name, kw_info):
         raise ValueError("'%s' is not a command name" % name)
     # TODO: fail if there are conflicts with existing keywords?
     cmd._ci._keyword.update(kw_info)
-    # TODO: save appropriate kw_info, if reregistered?
+    cmd._ci._keyword_map.update([(_canonical_kw(n), n) for n in kw_info])
 
 
 class Command:
@@ -1281,8 +1359,8 @@ class Command:
     def _replace(self, chars, replacement):
         # insert replacement taking into account quotes
         i = len(chars)
-        c = chars[0]
-        if c != '"' or chars[-1] != c:
+        c = chars[0] if i > 0 else ''
+        if i < 2 or c != '"' or chars[-1] != c:
             completion = replacement
         else:
             completion = c + replacement + c
@@ -1309,6 +1387,7 @@ class Command:
         #   updates possible completions
         #   if successful, sets self._ci
         self._error = "Missing command"
+        self.word_map = None  # filled in when partial command is matched
         word_map = _commands
         start = self.amount_parsed
         while 1:
@@ -1316,6 +1395,7 @@ class Command:
             self.amount_parsed = m.end()
             text = self.current_text[self.amount_parsed:]
             if not text:
+                self.word_map = word_map  # if caller interested in partial cmds
                 return
             word, chars, text = next_token(text)
             if _debugging:
@@ -1370,17 +1450,17 @@ class Command:
         positional.update(self._ci._optional)
         self.completion_prefix = ''
         self.completions = []
-        for name, anno in positional.items():
-            if name in self._ci._optional:
+        for kw_name, anno in positional.items():
+            if kw_name in self._ci._optional:
                 self._error = ""
                 tmp = text.split(None, 1)
                 if not tmp:
                     break
-                if tmp[0] in self._ci._keyword:
-                    # matches keyword, so done with positional arguments
+                if tmp[0] in self._ci._keyword_map:
+                    # exactly matches keyword, so done with positional arguments
                     break
             else:
-                self._error = "Missing required argument %s" % name
+                self._error = 'Missing required "%s" argument' % _user_kw(kw_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -1392,10 +1472,10 @@ class Command:
                 break
             try:
                 value, text = self._parse_arg(anno, text, session, False)
-                if iskeyword(name):
-                    self._kwargs['%s_' % name] = value
+                if is_python_keyword(kw_name):
+                    self._kwargs['%s_' % kw_name] = value
                 else:
-                    self._kwargs[name] = value
+                    self._kwargs[kw_name] = value
                 self._error = ""
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
@@ -1403,10 +1483,12 @@ class Command:
                     # argument was partially matched, so assume that is the
                     # error the user wants to see.
                     self.amount_parsed += err.offset
-                    self._error = "Invalid argument %r: %s" % (name, err)
+                    self._error = 'Invalid "%s" argument: %s' % (
+                        _user_kw(kw_name), err)
                     return
-                if name in self._ci._required:
-                    self._error = "Invalid argument %r: %s" % (name, err)
+                if kw_name in self._ci._required:
+                    self._error = 'Invalid "%s" argument: %s' % (
+                        _user_kw(kw_name), err)
                     return
                 # optional and wrong type, try as keyword
                 break
@@ -1429,10 +1511,10 @@ class Command:
             if not word or word == ';':
                 break
 
-            arg_name = word.replace('-', '_')
-            if arg_name not in self._ci._keyword:
+            arg_name = _canonical_kw(word)
+            if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
-                self.completions = [x for x in self._ci._keyword
+                self.completions = [x for x in self._ci._keyword_map
                                     if x.startswith(arg_name)]
                 if (final or len(text) > len(chars)) and self.completions:
                     # If final version of text, or if there
@@ -1443,7 +1525,7 @@ class Command:
                     text = self.current_text[self.amount_parsed:]
                     self.completions = []
                     continue
-                if len(self._ci._keyword) > 0:
+                if len(self._ci._keyword_map) > 0:
                     self._error = "Expected keyword, got '%s'" % word
                 else:
                     self._error = "Too many arguments"
@@ -1454,23 +1536,26 @@ class Command:
             if start:
                 self.amount_parsed += start
                 text = text[start:]
-            if not text:
-                self._error = "Missing argument %r" % arg_name
+
+            kw_name = self._ci._keyword_map[arg_name]
+            anno = self._ci._keyword[kw_name]
+            if not text and anno != NoArg:
+                self._error = 'Missing "%s" argument' % _user_kw(kw_name)
                 break
 
-            anno = self._ci._keyword[arg_name]
             self.completion_prefix = ''
             self.completions = []
             try:
                 value, text = self._parse_arg(anno, text, session, final)
-                if iskeyword(arg_name):
-                    self._kwargs['%s_' % arg_name] = value
+                if is_python_keyword(kw_name):
+                    self._kwargs['%s_' % kw_name] = value
                 else:
-                    self._kwargs[arg_name] = value
+                    self._kwargs[kw_name] = value
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
-                self._error = "Invalid argument %r: %s" % (arg_name, err)
+                self._error = 'Invalid "%s" argument: %s' % (
+                    _user_kw(kw_name), err)
                 return
             m = _whitespace.match(text)
             start = m.end()
@@ -1528,22 +1613,22 @@ def command_function(name):
     cmd.current_text = name
     cmd._find_command_name(True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+        raise ValueError('"%s" is not a command name' % name)
     return cmd._ci.function
 
 
-def command_help(name):
-    """Return help for given command name
+def command_url(name):
+    """Return help URL for given command name
 
     :param name: the name of the command
-    :returns: the help object registered with the command
+    :returns: the URL registered with the command
     """
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(True)
     if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
-    return cmd._ci.help
+        raise ValueError('"%s" is not a command name' % name)
+    return cmd._ci.url
 
 
 def usage(name):
@@ -1555,24 +1640,33 @@ def usage(name):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(True)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
+    if cmd.amount_parsed != len(cmd.current_text):
+        raise ValueError('"%s" is not a command name' % name)
+
+    if cmd.word_map is not None:
+        # partial command match
+        usage = 'Choices are:\n'
+        usage += '\n'.join(['  %s %s' % (name, w)
+                            for w in cmd.word_map])
+        return usage
 
     usage = cmd.command_name
     ci = cmd._ci
     for arg_name in ci._required:
-        arg_name = arg_name.replace('_', '-')
-        usage += ' %s' % arg_name
+        type = ci._required[arg_name].name
+        usage += ' _%s_' % type
     num_opt = 0
     for arg_name in ci._optional:
-        arg_name = arg_name.replace('_', '-')
-        usage += ' [%s' % arg_name
+        type = ci._optional[arg_name].name
+        usage += ' [_%s_' % type
         num_opt += 1
     usage += ']' * num_opt
     for arg_name in ci._keyword:
         type = ci._keyword[arg_name].name
-        arg_name = arg_name.replace('_', '-')
-        usage += ' [%s _%s_]' % (arg_name, type.replace(' ', '_'))
+        arg_name = _user_kw(arg_name)
+        usage += ' [%s _%s_]' % (arg_name, type)
+    if ci.synopsis:
+        usage += ' -- %s' % ci.synopsis
     return usage
 
 
@@ -1585,45 +1679,55 @@ def html_usage(name):
     cmd = Command(None)
     cmd.current_text = name
     cmd._find_command_name(True)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
-
+    if cmd.amount_parsed != len(cmd.current_text):
+        raise ValueError('"%s" is not a command name' % name)
     from html import escape
-    if cmd._ci.help is None:
+
+    if cmd.word_map is not None:
+        # partial command match
+        usage = 'Choices are:<br/><ul>'
+        usage += '<br/>'.join(['<li> %s %s' % (escape(name), w)
+                               for w in cmd.word_map])
+        usage += '</ul>'
+        return usage
+
+    if cmd._ci.url is None:
         usage = '<b>%s</b>' % escape(cmd.command_name)
     else:
         usage = '<b><a href="%s">%s</a></b>' % (
-            cmd._ci.help, escape(cmd.command_name))
+            cmd._ci.url, escape(cmd.command_name))
     ci = cmd._ci
     for arg_name in ci._required:
         arg = ci._required[arg_name]
-        arg_name = arg_name.replace('_', '-')
+        arg_name = _user_kw(arg_name)
         type = arg.name
-        if arg.help is None:
+        if arg.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
         usage += ' <span title="%s"><i>%s</i></span>' % (escape(type), name)
     num_opt = 0
     for arg_name in ci._optional:
         num_opt += 1
         arg = ci._optional[arg_name]
-        arg_name = arg_name.replace('_', '-')
+        arg_name = _user_kw(arg_name)
         type = arg.name
-        if arg.help is None:
+        if arg.url is None:
             name = escape(arg_name)
         else:
-            name = '<a href="%s">%s</a>' % (arg.help, escape(arg_name))
+            name = '<a href="%s">%s</a>' % (arg.url, escape(arg_name))
         usage += ' [<span title="%s"><i>%s</i></span>' % (escape(type), name)
     usage += ']' * num_opt
     for arg_name in ci._keyword:
         arg = ci._keyword[arg_name]
-        arg_name = arg_name.replace('_', '-')
-        if arg.help is None:
+        arg_name = _user_kw(arg_name)
+        if arg.url is None:
             type = escape(arg.name)
         else:
-            type = '<a href="%s">%s</a>' % (arg.help, escape(arg.name))
+            type = '<a href="%s">%s</a>' % (arg.url, escape(arg.name))
         usage += ' [<b>%s</b> <i>%s</i>]' % (escape(arg_name), type)
+    if ci.synopsis:
+        usage += '<br/>%s' % ci.synopsis
     return usage
 
 
@@ -1676,11 +1780,12 @@ class _Alias:
             self.parts.append(i - 1)     # convert to a 0-based index
             start = end
 
-    def desc(self):
+    def desc(self, **kw):
         required = [((i + 1), StringArg) for i in range(self.num_args)]
         if not self.optional_rest_of_line:
             return CmdDesc(required=required)
-        return CmdDesc(required=required, optional=[('optional', RestOfLine)])
+        return CmdDesc(required=required, optional=[('optional', RestOfLine)],
+                       **kw)
 
     def __call__(self, session, *args, optional='', used_aliases=None):
         assert(len(args) >= self.num_args)
@@ -1700,7 +1805,7 @@ class _Alias:
         return self.cmd.execute(_used_aliases=used_aliases)
 
 
-_cmd_aliases = set()
+_cmd_aliases = {}
 
 
 @register('alias', CmdDesc(optional=[('name', StringArg),
@@ -1727,19 +1832,27 @@ def alias(session, name='', text=''):
                 logger.status('No aliases.')
         return
     if not text:
-        if name not in _cmd_aliases:
-            if logger is not None:
-                logger.status('No alias named %r found.' % name)
-        else:
-            if logger is not None:
-                logger.info('Aliased %r to %r'
-                            % (name, _cmd_aliases[name].original_text))
+        if logger is not None:
+            if name not in _cmd_aliases:
+                logger.status('No alias named %s found.' % _dq_repr(name))
+            else:
+                logger.info('Aliased %s to %s' % (
+                    _dq_repr(name),
+                    _dq_repr(_cmd_aliases[name].original_text)))
         return
     name = ' '.join(name.split())   # canonicalize
     cmd = _Alias(text)
+    tmp = Command(None)
+    tmp.current_text = text
+    tmp._find_command_name(True)
+    if tmp.word_map is None:
+        aliasing = tmp.command_name
+    else:
+        aliasing = text[0:text.find('$')].strip()
     try:
-        register(name, cmd.desc(), cmd, logger=logger)
-        _cmd_aliases.add(name)
+        register(name, cmd.desc(synopsis='alias of "%s"' % aliasing), cmd,
+                 logger=logger)
+        _cmd_aliases[name] = cmd
     except:
         raise
 
@@ -1754,9 +1867,9 @@ def unalias(session, name):
     words = name.split()
     name = ' '.join(words)  # canonicalize
     try:
-        _cmd_aliases.remove(name)
+        del _cmd_aliases[name]
     except KeyError:
-        raise UserError('No alias named %r exists' % name)
+        raise UserError('No alias named %s exists' % _dq_repr(name))
 
     cmd_map = _commands
     for word in words[:-1]:
@@ -1940,16 +2053,16 @@ if __name__ == '__main__':
         register('xyzzy subcmd', test11_desc, test11)
     delay_registration('xyzzy', lazy_reg)
 
+    @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
+    def echo(session, text=''):
+        return text
+
     if len(sys.argv) > 1:
         _debugging = 'd' in sys.argv[1]
 
         @register('exit')
         def exit(session):
             raise SystemExit(0)
-
-        @register('echo', CmdDesc(optional=[('text', RestOfLine)]))
-        def echo(session, text=''):
-            return text
 
         register('usage', CmdDesc(required=[('name', RestOfLine)]), usage)
 
@@ -2035,8 +2148,10 @@ if __name__ == '__main__':
         (False, False, 'test10 red 2; test10 li gr 3'),
         (True, False, 'test10 red 2; test10 3 red'),
         (True, False, 'test10 red 2; test6 123, red'),
+        (False, True, 'echo hi there'),
+        (False, True, 'alias plugh echo $* $*'),
+        (False, True, 'plugh who'),
     ]
-    # TODO: delayed registration tests
     sys.stdout = sys.stderr
     successes = 0
     failures = 0

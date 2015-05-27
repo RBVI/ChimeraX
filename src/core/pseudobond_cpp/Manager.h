@@ -7,6 +7,7 @@
 #include <string>
 
 #include "Group.h"
+#include <basegeom/destruct.h>
 
 namespace pseudobond {
 
@@ -17,12 +18,14 @@ public:
     // so that subclasses can create multiple types of groups...
     static const int GRP_NONE = 0;
     static const int GRP_NORMAL = GRP_NONE + 1;
+    typedef std::map<std::string, Grp_Class*>  GroupMap;
 protected:
-    mutable std::map<std::string, Grp_Class*>  _groups;
+    mutable GroupMap  _groups;
 public:
     virtual  ~Base_Manager() { for (auto i: _groups) delete i.second; }
-    virtual Grp_Class*  get_group(const std::string& name,
-        int create = GRP_NONE) const = 0;
+    virtual Grp_Class*  get_group(
+            const std::string& name, int create = GRP_NONE) const = 0;
+    const GroupMap&  group_map() const { return _groups; }
 };
 
 template <class Grp_Class>
@@ -31,7 +34,7 @@ private:
     static Global_Manager  _manager;
 public:
     virtual Grp_Class*  get_group(const std::string& name,
-        int create = Base_Manager<Grp_Class>::GRP_NONE) const;
+            int create = Base_Manager<Grp_Class>::GRP_NONE) const;
     virtual  ~Global_Manager() {};
     static Global_Manager&  manager() { return _manager; }
 };
@@ -43,7 +46,14 @@ protected:
 public:
     virtual Grp_Class*  get_group(const std::string& name,
             int create = Base_Manager<Grp_Class>::GRP_NONE) const;
-    Owned_Manager(Owner* owner): _owner(owner) {}
+    Owned_Manager(Owner* owner): _owner(owner) {
+        // assign to var so it lives to end of destructor,
+        // and only do this in owned managers and not the
+        // global manager since the global manager is only
+        // destroyed at program exit (and therefore races
+        // against the destruction of the DestructionCoordinator)
+        auto du = basegeom::DestructionUser(this);
+    }
     virtual  ~Owned_Manager() {};
 };
 

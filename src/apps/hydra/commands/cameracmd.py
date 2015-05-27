@@ -33,8 +33,8 @@ def camera(session, mono = None, stereo = None, oculus = None, fieldOfView = Non
         from ..graphics import stereo_camera_mode
         c.mode = stereo_camera_mode
     elif oculus:
-        from ..devices.oculus import OculusRiftCameraMode
-        c.mode = OculusRiftCameraMode()
+        from ..devices import oculus 
+        c.mode = oculus.Oculus_Rift_Camera_Mode()
 
     if not fieldOfView is None:
         c.field_of_view = fieldOfView

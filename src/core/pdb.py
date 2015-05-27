@@ -21,7 +21,7 @@ def open_pdb(session, filename, name, *args, **kw):
         input = _builtin_open(filename, 'rb')
 
     from . import pdbio
-    mol_blob = pdbio.read_pdb_file(input)
+    mol_blob = pdbio.read_pdb_file(input, log=session.logger)
     if input != filename:
         input.close()
 
@@ -30,15 +30,12 @@ def open_pdb(session, filename, name, *args, **kw):
     num_atoms = 0
     num_bonds = 0
     for structure_blob in structures:
-        model = structure.StructureModel(name)
+        model = structure.StructureModel(name, structure_blob)
         models.append(model)
-        model.mol_blob = structure_blob
         model.make_drawing()
 
-        coords = model.mol_blob.atoms.coords
-        bond_list = model.mol_blob.bond_indices
-        num_atoms += len(coords)
-        num_bonds += len(bond_list)
+        num_atoms += structure_blob.num_atoms
+        num_bonds += structure_blob.num_bonds
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
                     % (num_atoms, num_bonds))
@@ -53,10 +50,13 @@ def fetch_pdb(session, pdb_id):
     subdir = lower[1:3]
     sys_filename = "/databases/mol/pdb/%s/pdb%s.ent" % (subdir, lower)
     if os.path.exists(sys_filename):
-        return _builtin_open(sys_filename, 'rb')
+        return sys_filename, pdb_id
 
     filename = "~/Downloads/Chimera/PDB/%s.pdb" % pdb_id.upper()
     filename = os.path.expanduser(filename)
+
+    if os.path.exists(filename):
+        return filename, pdb_id  # TODO: check if cache needs updating
 
     dirname = os.path.dirname(filename)
     os.makedirs(dirname, exist_ok=True)

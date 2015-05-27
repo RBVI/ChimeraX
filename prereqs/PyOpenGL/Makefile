@@ -30,8 +30,10 @@ install: $(PYOPENGL_SOURCE) $(ACCELERATE_SOURCE)
 	cd $(ACCELERATE_SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:
-	$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
-	$(RSYNC) $(PYSITEDIR)/PyOpenGL_accelerate-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
+	#$(RSYNC) $(PYSITEDIR)/PyOpenGL-$(VERSION)-py$(PYTHON_VERSION).egg $(APP_PYSITEDIR)
+	#$(RSYNC) $(PYSITEDIR)/PyOpenGL_accelerate-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
+	cd $(PYOPENGL_SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
+	cd $(ACCELERATE_SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 $(PYOPENGL_SOURCE):
 	tar zxf $(PYOPENGL_DISTRIBUTION) -C $(tmpdir)

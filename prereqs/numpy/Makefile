@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 1.9.1
+VERSION = 1.9.2
 DISTRIBUTION = numpy-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numpy-$(VERSION)
 
@@ -30,8 +30,9 @@ install: $(SOURCE)
 	cd $(SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:;
-	$(RSYNC) $(PYSITEDIR)/numpy-$(VERSION)-py$(PYTHON_VERSION).egg-info \
-		$(PYSITEDIR)/numpy $(APP_PYSITEDIR)
+	#$(RSYNC) $(PYSITEDIR)/numpy-$(VERSION)-py$(PYTHON_VERSION).egg-info \
+	#	$(PYSITEDIR)/numpy $(APP_PYSITEDIR)
+	cd $(SOURCE) && $(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

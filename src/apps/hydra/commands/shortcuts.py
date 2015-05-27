@@ -55,7 +55,9 @@ def standard_shortcuts(session):
 
         # Scene
         ('va', view_all, 'View all', gcat, viewarg, smenu),
-        ('dv', default_view, 'Default orientation', gcat, viewarg, smenu, sep),
+        ('dv', default_view, 'Default orientation', gcat, viewarg, smenu),
+        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
+        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
         ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
         ('dm', display_selected_models, 'Display selected models', ocat, sesarg, smenu),
@@ -144,7 +146,7 @@ def standard_shortcuts(session):
         ('mo', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
         ('Mp', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
-        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, sesarg, msmenu),
+        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, mmarg, msmenu),
         ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
         # Devices
@@ -153,7 +155,6 @@ def standard_shortcuts(session):
         ('nc', space_navigator_collisions, 'Toggle space navigator collision avoidance', gcat, sesarg),
 
         ('oc', start_oculus, 'Start Oculus Rift stereo', gcat, sesarg, dmenu),
-        ('Oc', oculus_mode, 'Set Oculus Rift stereo mode', gcat, viewarg),
         ('om', oculus_move, 'Move Oculus window to primary display', gcat, sesarg, dmenu),
 
         ('lp', toggle_leap, 'Toggle leap motion input device', gcat, sesarg, dmenu),
@@ -392,31 +393,37 @@ def toggle_box_faces(m):
   m.show('solid')
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
-
-  m = mouse_modes
-  from ..map.moveplanes import planes_mouse_mode as pmm
-  m.bind_mouse_mode(button,
-                    lambda e,s=m.session: pmm.mouse_down(s,e),
-                    lambda e,s=m.session: pmm.mouse_drag(s,e),
-                    lambda e,s=m.session: pmm.mouse_up(s,e))
+    m = mouse_modes
+    from ..map import PlanesMouseMode
+    m.bind_mouse_mode(button, PlanesMouseMode(m.session))
 
 def enable_contour_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_mouse_mode(button, m.mouse_down, m.mouse_contour_level, m.mouse_up)
+    m = mouse_modes
+    from ..map import ContourLevelMouseMode
+    m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
-def enable_map_series_mouse_mode(s, button = 'right'):
-  from ..map import series
-  series.enable_map_series_mouse_mode(s, button)
+def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
+    m = mouse_modes
+    from ..map import series
+    mode = series.map_series_mouse_mode(m.session)
+    if mode:
+        m.bind_mouse_mode(button, mode)
 
 def enable_move_selected_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_standard_mouse_modes()
-  m.move_selected = True
+    from .. import  ui
+    m = mouse_modes
+    m.bind_mouse_mode('left', ui.RotateSelectedMouseMode(m.session))
+    tm = ui.TranslateSelectedMouseMode(m.session)
+    m.bind_mouse_mode('middle', tm)
+    m.bind_mouse_mode('right', tm)
 
 def enable_move_mouse_mode(mouse_modes, button = 'right'):
-  m = mouse_modes
-  m.bind_standard_mouse_modes()
-  m.move_selected = False
+    from .. import  ui
+    m = mouse_modes
+    m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
+    tm = ui.TranslateMouseMode(m.session)
+    m.bind_mouse_mode('middle', tm)
+    m.bind_mouse_mode('right', tm)
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()
@@ -724,9 +731,6 @@ def mono_mode(viewer):
 def stereo_mode(viewer):
     from .. import graphics
     viewer.camera.mode = graphics.stereo_camera_mode
-def oculus_mode(viewer):
-    from ..devices import oculus
-    viewer.camera.mode = oculus.OculusRiftCameraMode()
 def start_oculus(session):
     from ..devices import oculus
     if session.view.camera.mode.name() == 'oculus':
@@ -784,3 +788,12 @@ def display_all_positions(session):
         for c in m.all_drawings():
             if c.display:
                 c.display_positions = None
+
+def save_position(session):
+    c = session.view.camera
+    session._saved_camera_view = c.position
+
+def restore_position(session):
+    if hasattr(session, '_saved_camera_view'):
+        c = session.view.camera
+        c.position = session._saved_camera_view

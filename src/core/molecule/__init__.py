@@ -1,0 +1,1 @@
+from .molobject import atomic_structure_from_blob

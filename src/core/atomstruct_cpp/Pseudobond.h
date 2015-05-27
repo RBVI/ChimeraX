@@ -41,6 +41,7 @@ public:
     void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         PBond* pb = new PBond(a1, a2);
+        pb->finish_construction();
         _pbonds.insert(pb);
         return pb;
     }
@@ -66,14 +67,16 @@ class Owned_PBGroup: public Owned_PBGroup_Base {
 private:
     std::set<PBond*>  _pbonds;
 public:
+    Owned_PBGroup(const std::string& cat, AtomicStructure* as):
+        Owned_PBGroup_Base(cat, as) {}
+    ~Owned_PBGroup() { clear(); }
     void  clear() { for (auto pb : _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         _check_ownership(a1, a2);
         PBond* pb = new PBond(a1, a2);
+        pb->finish_construction();
         _pbonds.insert(pb); return pb;
     }
-    Owned_PBGroup(const std::string& cat, AtomicStructure* as):
-        Owned_PBGroup_Base(cat, as) {}
     const std::set<PBond*>&  pseudobonds() const { return _pbonds; }
 };
 
@@ -86,13 +89,14 @@ private:
     mutable std::unordered_map<const CoordSet*, std::set<PBond*>>  _pbonds;
     void  remove_cs(const CoordSet* cs) { _pbonds.erase(cs); }
 public:
+    CS_PBGroup(const std::string& cat, AtomicStructure* as):
+        Owned_PBGroup_Base(cat, as) {}
+    ~CS_PBGroup() { clear(); }
     void  clear() {
         for (auto cat_set : _pbonds)
             for (auto pb: cat_set.second) delete pb;
         _pbonds.clear();
     }
-    CS_PBGroup(const std::string& cat, AtomicStructure* as):
-        Owned_PBGroup_Base(cat, as) {}
     PBond*  new_pseudobond(Atom* a1, Atom* a2);
     PBond*  new_pseudobond(Atom* a1, Atom* a2, CoordSet* cs);
     const std::set<PBond*>&  pseudobonds() const;

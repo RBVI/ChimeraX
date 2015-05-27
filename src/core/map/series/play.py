@@ -313,26 +313,36 @@ class Play_Series:
             uncolor_zone(model)
             delattr(model, 'series_zone_coloring')
 
+from ...ui import MouseMode
+class Play_Series_Mouse_Mode(MouseMode):
+
+  def __init__(self, play_series):
+    MouseMode.__init__(self, play_series.session)
+    self.play_series = play_series
+    self.last_mouse_x = None
+
   def mouse_up(self, event):
     self.last_mouse_x = None
 
   def mouse_down(self, event):
-    self.last_mouse_x = event.x()
+    x,y = event.position()
+    self.last_mouse_x = x
   
   def mouse_drag(self, event):
 
-    if not hasattr(self, 'last_mouse_x') or self.last_mouse_x is None:
-      self.last_mouse_x = event.x()
+    x,y = event.position()
+    if self.last_mouse_x is None:
+      self.last_mouse_x = x
       return
 
-    x = event.x()
     dx = x - self.last_mouse_x
     tstep = int(round(dx/50))
     if tstep == 0:
       return
     self.last_mouse_x = x
 
-    ser = self.series
+    p = self.play_series
+    ser = p.series
     if len(ser) == 0:
       return 
     s0 = ser[0]
@@ -344,8 +354,8 @@ class Play_Series:
     elif tn < 0:
       tn = 0
     if tn != t:
-      self.change_time(tn)
-    self.session.show_status('%s time %d' % (s0.name, tn+1))
+      p.change_time(tn)
+    p.session.logger.status('%s time %d' % (s0.name, tn+1))
 
 # -----------------------------------------------------------------------------
 #
@@ -358,12 +368,11 @@ def label_value_in_range(text, imin, imax):
   return i >= imin and i <= imax
   
 # -----------------------------------------------------------------------------
+# TODO: If no series opened it should still work after one does get opened.
 #
-def enable_map_series_mouse_mode(session, button = 'right'):
+def map_series_mouse_mode(session):
   from . import Map_Series
-  series = [m for m in session.model_list() if isinstance(m, Map_Series)]
-  if series:
-    p = Play_Series(series, session, rendering_cache_size = 10)
-    mm = session.view.mouse_modes
-    mm.bind_mouse_mode(button, mm.mouse_down, p.mouse_drag, mm.mouse_up)
-    # TODO: If no series opened it should still work after one does get opened.
+  series = [m for m in session.models.list() if isinstance(m, Map_Series)]
+  p = Play_Series(series, session, rendering_cache_size = 10) if series else None
+  m = Play_Series_Mouse_Mode(p)
+  return m

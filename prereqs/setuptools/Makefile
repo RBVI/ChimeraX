@@ -2,31 +2,16 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 12.1
-DISTRIBUTION = setuptools-$(VERSION).tar.gz
-SOURCE = $(tmpdir)/setuptools-$(VERSION)
+VERSION = 15.1
 
-SETUP_BUILD =
-ifdef DEBUG
-ifndef WIN32
-SETUP_BUILD += --debug
-endif
-endif
+# Need to install from source, so don't put in pips
 
 all:
 
-
-install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
+install:
+	$(PYTHON_EXE) -m pip install --no-use-wheel setuptools==$(VERSION)
 
 app-install:
-	cd $(PYSITEDIR); $(RSYNC) \
-		setuptools-$(VERSION)-py$(PYTHON_VERSION).egg \
-		easy-install.pth easy_install.py pkg_resources.py _markerlib \
-		$(APP_PYSITEDIR)
-
-$(SOURCE):
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+	$(APP_PYTHON_EXE) -m pip install --no-use-wheel setuptools==$(VERSION)
 
 clean:
-	rm -rf $(SOURCE)

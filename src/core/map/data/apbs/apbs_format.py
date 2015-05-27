@@ -57,51 +57,51 @@ class APBS_Data:
       sline = line.strip()
 
       if len(sline) == 0:
-        raise SyntaxError, 'Incorrect format: blank header line.  Comments must begin with # character.'
+        raise SyntaxError('Incorrect format: blank header line.  Comments must begin with # character.')
       elif sline[0] == '#':
         comments.append(line)
-      elif sline.startswith('object 1 class gridpositions counts '):
+      elif sline.startswith(b'object 1 class gridpositions counts '):
         fields = sline.split()
         if len(fields) < 8:
-          raise SyntaxError, ('Less than 8 fields in line: %s' % line)
+          raise SyntaxError('Less than 8 fields in line: %s' % line)
         try:
-          grid_size = tuple(map(int, fields[5:8]))
+          grid_size = tuple(int(s) for s in fields[5:8])
         except ValueError:
-          raise SyntaxError, ('Fields 6-8 are not integers in line: %s' % line)
-      elif sline.startswith('origin '):
+          raise SyntaxError('Fields 6-8 are not integers in line: %s' % line)
+      elif sline.startswith(b'origin '):
         fields = sline.split()
         if len(fields) < 4:
-          raise SyntaxError, ('Less than 4 fields in line: %s' % line)
+          raise SyntaxError('Less than 4 fields in line: %s' % line)
         try:
-          xyz_origin = tuple(map(float, fields[1:4]))
+          xyz_origin = tuple(float(o) for o in fields[1:4])
         except ValueError:
-          raise SyntaxError, ('Fields 2-5 are not floats in line: %s' % line)
-      elif sline.startswith('delta '):
+          raise SyntaxError('Fields 2-5 are not floats in line: %s' % line)
+      elif sline.startswith(b'delta '):
         fields = sline.split()
         if len(fields) < 4:
-          raise SyntaxError, ('Less than 4 fields in line: %s' % line)
+          raise SyntaxError('Less than 4 fields in line: %s' % line)
         try:
-          delta = map(float, fields[1:4])
+          delta = tuple(float(d) for d in fields[1:4])
         except ValueError:
-          raise SyntaxError, ('Fields 2-5 are not floats in line: %s' % line)
+          raise SyntaxError('Fields 2-5 are not floats in line: %s' % line)
         n = len(xyz_step)
         if n == 3:
-          raise SyntaxError, 'More than 3 lines starting with "delta"'
+          raise SyntaxError('More than 3 lines starting with "delta"')
         xyz_step.append(delta[n])
-      elif sline.endswith('data follows'):
+      elif sline.endswith(b'data follows'):
         data_offset = f.tell()
         break
 
     xyz_step = tuple(xyz_step)
     
     if grid_size == None:
-      raise SyntaxError, 'Missing "object 1 class gridpositions counts <l> <m> <n>" header line'
+      raise SyntaxError('Missing "object 1 class gridpositions counts <l> <m> <n>" header line')
     if xyz_origin == None:
-      raise SyntaxError, 'Missing "origin" header line'
+      raise SyntaxError('Missing "origin" header line')
     if len(xyz_step) != 3:
-      raise SyntaxError, ('Only found %d "delta" lines, require 3' % len(xyz_step))
+      raise SyntaxError('Only found %d "delta" lines, require 3' % len(xyz_step))
     if data_offset == None:
-      raise SyntaxError, 'Missing header line ending with "data follows"'
+      raise SyntaxError('Missing header line ending with "data follows"')
 
     return comments, grid_size, xyz_origin, xyz_step, data_offset
 

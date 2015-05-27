@@ -2,9 +2,9 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	= commands devices docs example_sessions files \
-	  mac_os_cpp map measure molecule movie ui
+	  mac_os_cpp measure molecule movie ui
 
-COREPY = geometry graphics surface
+COREPY = devices geometry graphics map surface
 CORECPP = arrays_cpp
 
 PKG_DIR = $(PYSITEDIR)/hydra
@@ -18,6 +18,7 @@ ifeq ($(OS),Darwin)
   APP = $(APPS_DIR)/$(APP_NAME)
   APP_PY_EXE = $(APP)/Contents/MacOS/python
   APP_FW_DIR = $(APP)/Contents/Frameworks
+  APP_LIBRARY_DIR = $(APP)/Contents/Library
   APP_LIB_DIR = $(APP)/Contents/lib
   APP_BIN_DIR = $(APP)/Contents/Resources/bin
   APP_PY_DIR = $(APP_FW_DIR)/Python.framework/Versions/$(PYTHON_VERSION)
@@ -43,10 +44,8 @@ ifeq ($(OS),Darwin)
   PYCOLLADA_VERSION = 0.4.1
   PYCOLLADA_EGG = pycollada-$(PYCOLLADA_VERSION)-py$(PYTHON_VERSION).egg
   HDF_VERSION = 5.9
-  SIX_VERSION = 1.8.0
-  SIX_EGG = six-$(SIX_VERSION)-py$(PYTHON_VERSION).egg
-  APPDIRS_VERSION = 1.4.0
-  APPDIRS_EGG = appdirs-$(APPDIRS_VERSION)-py$(PYTHON_VERSION).egg
+  SIX_MODULE = six.py
+  APPDIRS_MODULE = appdirs.py
 endif
 
 # All needed subdirectories must be set by now.
@@ -60,7 +59,6 @@ install: all $(PKG_DIR) install_app_prereqs
 	for cpy in $(COREPY) ; do \
 		$(RSYNC) $(PYSITEDIR)/chimera/core/$$cpy $(PKG_DIR) ; \
 	done
-	$(RSYNC) --exclude __init__.py $(PYSITEDIR)/chimera/core/map $(PKG_DIR)
 	$(RSYNC) $(libdir)/libarrays.$(SHLIB_EXT) $(APP_LIB_DIR)
 ifeq ($(OS),Darwin)
 	$(RSYNC) $(PKG_DIR) $(APP_PY_SITE)
@@ -78,7 +76,8 @@ install_core:
 $(APP) update_prereqs:
 
 # Make directories
-	-mkdir -p $(APPS_DIR) $(APP_FW_DIR) $(APP_LIB_DIR)
+	-mkdir -p $(APPS_DIR) $(APP_FW_DIR) $(APP_LIBRARY_DIR) $(APP_LIB_DIR)
+	-ln -s ../Frameworks $(APP_LIBRARY_DIR)
 
 # Build application directory hierarchy
 	$(RSYNC) $(APP_NAME) $(APPS_DIR)
@@ -92,9 +91,9 @@ $(APP) update_prereqs:
 
 # Copy only the Python packages needed for distribution.
 	cd $(libdir)/python$(PYTHON_VERSION)/site-packages ; \
-	$(RSYNC) $(APPDIRS_EGG) dateutil easy-install.pth LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
+	$(RSYNC) $(APPDIRS_MODULE) dateutil easy-install.pth LeapMotion $(NUMEXPR_EGG)/numexpr numpy PIL \
 		$(PYCOLLADA_EGG)/collada $(PYOPENGL_EGG)/OpenGL $(PYOPENGL_ACCELERATE_EGG)/OpenGL_accelerate \
-		PyQt5 sip.so $(SIX_EGG)/six.py tables webcolors.py wx $(APP_PY_SITE)
+		PyQt5 sip.so $(SIX_MODULE) tables webcolors.py wx $(APP_PY_SITE)
 
 # Copy Qt frameworks into PyQt5 python module
 	-mkdir $(APP_PYQT)/frameworks

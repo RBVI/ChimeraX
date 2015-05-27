@@ -1,25 +1,30 @@
-atom_specifier   = left:atom_specifier operator:'&' right:as_term
-                 | left:atom_specifier operator:'|' right:as_term
+(* vi: set expandtab shiftwidth=4 softtabstop=4: *)
+
+(* Remember to use left recursion when needed, not right *)
+
+atom_specifier   = left:as_term operator:'&' right:atom_specifier
+                 | left:as_term operator:'|' right:atom_specifier
                  | left:as_term
                  ;
 
-as_term          = '(' term:as_term  ')'
-                 | models:model_list
+as_term          = '(' atomspec:atom_specifier ')'
+                 | '~' tilde:as_term
                  | selector:selector_name
+                 | models:model_list
                  ;
 
 selector_name    = name:/[a-zA-Z_][a-zA-Z0-9_]*/
                  ;
 
-model_list       = model_list:model_list model:model
-                 | model:model
+model_list       = { model+:model }+
                  ;
 
-model            = '#' hierarchy:model_hierarchy parts:model_parts
+model            = '##' attrs:attribute_list [ parts:model_parts ] [ zone:zone_selector ]
+                 | '#' hierarchy:model_hierarchy [ parts:model_parts ] [ zone:zone_selector ]
+		 | parts:model_parts [ zone:zone_selector ]
                  ;
 
-model_hierarchy  = range_list:model_range_list
-                   { '.' hierarchy:model_range_list }*
+model_hierarchy  = range_list:model_range_list { '.' hierarchy:model_range_list }*
                  ;
 
 model_range_list = range:model_range { ',' range_list:model_range_list }*
@@ -33,21 +38,73 @@ model_spec       = number:/[0-9]+/
                  | star:'*'
                  ;
 
-model_parts      = { chain:chain }*
+model_parts      = { chain+:chain }+
                  ;
 
-chain            = [ '/' parts:part_list ] { residue:residue }*
+chain            = '//' attrs:attribute_list { residue+:residue }*
+                 | '/' parts:part_list { residue+:residue }*
+		 | { residue+:residue }+
                  ;
 
-residue          = [ ':' parts:part_list ] { atom:atom }*
+residue          = '::' attrs:attribute_list { atom+:atom }*
+                 | ':' parts:part_list { atom+:atom }*
+		 | { atom+:atom }+
                  ;
 
-atom             = '@' parts:part_list
+atom             = '@@' attrs:attribute_list
+                 | '@' parts:part_list
                  ;
 
-part_list        = part:part_list ',' range:part_range_list
+part_list        = range:part_range_list ',' part_list
                  | range:part_range_list 
                  ;
 
-part_range_list  = start:/[-a-zA-Z0-9]+/ [ '-' end:/[-a-zA-Z0-9]+/ ]
+part_range_list  = start:/-?[a-zA-Z0-9]+/ [ '-' end:/[-a-zA-Z0-9]+/ ]
+                 ;
+
+attribute_list   = attr_test { ',' attr_test }*
+                 ;
+
+attr_test        = attr_name attr_operator attr_value
+                 | attr_name
+                 | '~' attr_name
+                 ;
+
+attr_name        = /[a-zA-Z_][a-zA-Z0-9_]*/
+                 ;
+
+attr_operator    = '>='
+                 | '>'
+                 | '<='
+                 | '<'
+                 | '='
+                 | '!='
+                 | '<>'
+                 ;
+
+attr_value       = ?/[^,#/:@]+/?
+                 ;
+
+zone_selector    = zone_operator real_number
+                 ;
+
+zone_operator    = '@>='
+                 | '@>'
+                 | '@<='
+                 | '@<'
+                 | ':>='
+                 | ':>'
+                 | ':<='
+                 | ':<'
+                 | '/>='
+                 | '/>'
+                 | '/<='
+                 | '/<'
+                 | '#>='
+                 | '#>'
+                 | '#<='
+                 | '#<'
+		 ;
+
+real_number      = /[0-9]*\.?[0-9]+/
                  ;

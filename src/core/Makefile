@@ -3,8 +3,9 @@ include $(TOP)/mk/config.make
 
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
 	   basegeom_cpp blob_cpp \
+	   devices \
 	   geometry graphics \
-	   _mmcif \
+	   molecule _mmcif \
 	   ioutil_cpp logger_cpp \
 	   pdb_cpp pdbio pseudobond_cpp \
 	   readcif_cpp \
@@ -16,13 +17,16 @@ include $(TOP)/mk/subdir.make
 PKG_DIR = $(PYSITEDIR)/chimera/core
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimera/core
 
-PYSRCS = $(wildcard *.py) _atomspec.py
+GENSRCS = _atomspec.py
+PYSRCS = $(wildcard *.py) $(GENSRCS)
 CORE_VERSION = 2.0
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
+.FORCE: wheel
+
 all: $(PYOBJS)
 
-install: dir _atomspec.py
+install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
@@ -32,7 +36,7 @@ app-install: wheel
 	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
-wheel: setup.py timestamp always
+wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
 
 setup.py: setup.py.in
@@ -41,13 +45,13 @@ setup.py: setup.py.in
 		-e 's,DATA_DIR,$(datadir),' \
 		-e 's,PYMOD_EXT,$(PYMOD_EXT),' \
 		-e 's,SHLIB_EXT,$(SHLIB_EXT),' \
+		-e 's,#$(OS)#,,' \
+		-e 's,#$(OSARCH)#,,' \
 		-e 's,CORE_VERSION,$(CORE_VERSION),' \
 		< setup.py.in > setup.py
 
 timestamp:
 	echo "chimera.core" > timestamp
-
-always:
 
 lint:
 	$(PYLINT) $(PYSRCS)
@@ -62,19 +66,23 @@ test:
 	$(APP_PYTHON_EXE)
 
 clean:
-	rm -rf __pycache__ build dist chimera.core.egg-info setup.py
+	rm -rf __pycache__ build dist chimera.core.egg-info setup.py timestamp $(GENSRCS)
 
 .SUFFIXES: .peg
 
 .peg.py:
 	$(PYTHON_EXE) -m grako -o $@ $^
 
+test_peg:	_atomspec.py
+	$(PYTHON_EXE) _atomspec.py --trace test.in atom_specifier
+
 _appdirs.install: appdirs_cpp.install
 atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
 	chutil_cpp.install ioutil_cpp.install pseudobond_cpp.install
-blob_cpp.install: atomstruct_cpp.install
+blob_cpp.install: atomstruct_cpp.install basegeom_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
+molecule.install: atomstruct_cpp.install blob_cpp.install
 _mmcif.install: readcif_cpp.install atomstruct_cpp.install blob_cpp.install
 pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install \
 	blob_cpp.install basegeom_cpp.install

@@ -5,11 +5,6 @@ PKG_DIR = $(PYSITEDIR)/hydra/devices
 
 PYSRCS = c2leap.py device.py
 
-ifeq ($(OS),Darwin)
-	SUBDIRS	= spacenavigator oculus
-	include $(TOP)/mk/subdir.make
-endif
-
 all: $(PYOBJS)
 
 install: all $(PKG_DIR)

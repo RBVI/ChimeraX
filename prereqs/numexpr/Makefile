@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 2.4
+VERSION = 2.4.2
 DISTRIBUTION = numexpr-$(VERSION).tar.gz
 SOURCE = $(tmpdir)/numexpr-$(VERSION)
 
@@ -19,7 +19,8 @@ install: $(SOURCE)
 	cd $(SOURCE) &&	$(PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 app-install:
-	$(RSYNC) $(PYSITEDIR)/numexpr-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
+	#$(RSYNC) $(PYSITEDIR)/numexpr-$(VERSION)-py$(PYTHON_VERSION)-*.egg $(APP_PYSITEDIR)
+	cd $(SOURCE) &&	$(APP_PYTHON_EXE) setup.py build $(SETUP_BUILD) install
 
 $(SOURCE):
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)

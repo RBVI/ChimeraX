@@ -84,6 +84,8 @@ else ifneq (,$(wildcard $(XCODE_SDKS)/MacOSX10.6.sdk))
 else
 	$(error Unable to find Xcode sysroot)
 endif
+	# sysctl needs to be on path for numpy, numexpr, pytables
+	export PATH := $(PATH):/usr/sbin
 ifdef DEBUG
 	OPT = -g -Wall -Wextra
 else
