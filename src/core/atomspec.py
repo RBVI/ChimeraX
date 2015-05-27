@@ -306,9 +306,9 @@ class _ModelHierarchy(list):
                 mid = model.id[i]
             except IndexError:
                 mid = 1
-            if mrl.matches(mid):
-                return True
-        return False
+            if not mrl.matches(mid):
+                return False
+        return True
 
 
 class _ModelRangeList(list):
