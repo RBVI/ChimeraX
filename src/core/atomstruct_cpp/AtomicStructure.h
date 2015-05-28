@@ -77,7 +77,10 @@ public:
         auto du = basegeom::DestructionUser(this);
         // force immediate destruction of certain items
         // while DestructionUser active
+        if (_chains != nullptr)
+            _chains->clear();
         _residues.clear();
+        _coord_sets.clear();
     }
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
