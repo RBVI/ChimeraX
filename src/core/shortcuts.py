@@ -145,6 +145,7 @@ def standard_shortcuts(session):
         ('cl', command_line, 'Enter command', gcat, sesarg),
 
         # Mouse
+        ('zm', enable_zoom_mouse_mode, 'Zoom mouse mode', gcat, mmarg, msmenu),
         ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, mmarg, msmenu),
         ('mS', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
         ('mP', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
@@ -449,11 +450,26 @@ def enable_move_selected_mouse_mode(mouse_modes):
     m.bind_mouse_mode('left', ui.RotateSelectedMouseMode(m.session))
     m.bind_mouse_mode('middle', ui.TranslateSelectedMouseMode(m.session))
 
+def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.TranslateSelectedMouseMode(m.session))
+
+def enable_rotate_selected_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.RotateSelectedMouseMode(m.session))
+
 def enable_move_mouse_mode(mouse_modes):
     from . import  ui
     m = mouse_modes
     m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
     m.bind_mouse_mode('middle', ui.TranslateMouseMode(m.session))
+
+def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.ZoomMouseMode(m.session))
 
 def fit_molecule_in_map(session):
     mols, maps = session.molecules(), session.maps()
