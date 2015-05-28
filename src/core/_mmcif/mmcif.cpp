@@ -476,12 +476,12 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
     int model_num = 0;            // pdbx_PDB_model_num
 
 
-    pv.emplace_back(get_column("id", false), false,
+    pv.emplace_back(get_column("id"), false,
         [&] (const char* start, const char*) {
             serial_num = readcif::str_to_int(start);
         });
 
-    pv.emplace_back(get_column("label_entity_id", false), true,
+    pv.emplace_back(get_column("label_entity_id"), true,
         [&] (const char* start, const char* end) {
             entity_id = string(start, end - start);
         });
@@ -490,14 +490,13 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             chain_id = string(start, end - start);
         });
-    int auth_asym_column = get_column("auth_asym_id");
-    pv.emplace_back(auth_asym_column, true,
+    pv.emplace_back(get_column("auth_asym_id"), true,
         [&] (const char* start, const char* end) {
             auth_chain_id = string(start, end - start);
             if (auth_chain_id == "." || auth_chain_id == "?")
                 auth_chain_id.clear();
         });
-    pv.emplace_back(get_column("pdbx_PDB_ins_code", false), true,
+    pv.emplace_back(get_column("pdbx_PDB_ins_code"), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code = ' ';
@@ -518,7 +517,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
                 auth_position = readcif::str_to_int(start);
         });
 
-    pv.emplace_back(get_column("label_alt_id", false), true,
+    pv.emplace_back(get_column("label_alt_id"), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -551,8 +550,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             residue_name = string(start, end - start);
         });
-    int auth_comp_column = get_column("auth_comp_id");
-    pv.emplace_back(auth_comp_column, true,
+    pv.emplace_back(get_column("auth_comp_id"), true,
         [&] (const char* start, const char* end) {
             auth_residue_name = string(start, end - start);
             if (auth_residue_name == "." || auth_residue_name == "?")
@@ -619,11 +617,11 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         || cur_comp_id != residue_name) {
             string rname, cid;
             long pos;
-            if (auth_comp_column != -1 && !auth_residue_name.empty())
+            if (!auth_residue_name.empty())
                 rname = auth_residue_name;
             else
                 rname = residue_name;
-            if (auth_asym_column != -1 && !auth_chain_id.empty())
+            if (!auth_chain_id.empty())
                 cid = auth_chain_id;
             else
                 cid = chain_id;
@@ -717,7 +715,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             chain_id1 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" P1 INS_CODE, false), true,
+    pv.emplace_back(get_column("pdbx_" P1 INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code1 = ' ';
@@ -737,7 +735,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
             else
                 auth_position1 = readcif::str_to_int(start);
         });
-    pv.emplace_back(get_column("pdbx_" P1 ALT_ID, false), true,
+    pv.emplace_back(get_column("pdbx_" P1 ALT_ID), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -764,7 +762,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             chain_id2 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" P2 INS_CODE, false), true,
+    pv.emplace_back(get_column("pdbx_" P2 INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code2 = ' ';
@@ -784,7 +782,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
             else
                 auth_position2 = readcif::str_to_int(start);
         });
-    pv.emplace_back(get_column("pdbx_" P2 ALT_ID, false), true,
+    pv.emplace_back(get_column("pdbx_" P2 ALT_ID), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -898,13 +896,21 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
     #define ASYM_ID "_label_asym_id"
     #define COMP_ID "_label_comp_id"
     #define SEQ_ID "_label_seq_id"
+    #define AUTH_ASYM_ID "_auth_asym_id"
+    #define AUTH_COMP_ID "_auth_comp_id"
+    #define AUTH_SEQ_ID "_auth_seq_id"
     #define INS_CODE "_PDB_ins_code" // pdbx
     string conf_type;                       // conf_type_id
     string id;                              // id
     string chain_id1, chain_id2;            // (beg|end)_label_asym_id
     long position1, position2;              // (beg|end)_label_seq_id
-    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
     string residue_name1, residue_name2;    // (beg|end)_label_comp_id
+    string auth_chain_id1, auth_chain_id2;  // (beg|end)_auth_asym_id
+    long auth_position1 = INT_MAX;          // beg_auth_seq_id
+    long auth_position2 = INT_MAX;          // end_auth_seq_id
+    string auth_residue_name1;              // beg_auth_comp_id
+    string auth_residue_name2;              // end_auth_comp_id
+    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
@@ -917,15 +923,34 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
             conf_type = string(start, end - start);
         });
 
-    pv.emplace_back(get_column(BEG COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name1 = string(start, end - start);
-        });
     pv.emplace_back(get_column(BEG ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id1 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" BEG INS_CODE, false), true,
+    pv.emplace_back(get_column(BEG COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position1 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column(BEG AUTH_ASYM_ID), true,
+        [&] (const char* start, const char* end) {
+            auth_chain_id1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG AUTH_COMP_ID), true,
+        [&] (const char* start, const char* end) {
+            auth_residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG AUTH_SEQ_ID), false,
+        [&] (const char* start, const char*) {
+            if (*start == '.' || *start == '?')
+                auth_position1 = INT_MAX;
+            else
+                auth_position1 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code1 = ' ';
@@ -934,20 +959,32 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
                 ins_code1 = *start;
             }
         });
-    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position1 = readcif::str_to_int(start);
-        });
 
-    pv.emplace_back(get_column(END COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name2 = string(start, end - start);
-        });
     pv.emplace_back(get_column(END ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id2 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" END INS_CODE, false), true,
+    pv.emplace_back(get_column(END COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position2 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column(END AUTH_ASYM_ID, true), true,
+        [&] (const char* start, const char* end) {
+            auth_chain_id2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END AUTH_COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            auth_residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END AUTH_SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            auth_position2 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 2 && (*start == '.' || *start == '?'))
                 ins_code2 = ' ';
@@ -956,34 +993,75 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
                 ins_code2 = *start;
             }
         });
-    pv.emplace_back(get_column(END SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position2 = readcif::str_to_int(start);
-        });
 
     #undef BEG
     #undef END
     #undef ASYM_ID
     #undef COMP_ID
     #undef SEQ_ID
+    #undef AUTH_ASYM_ID
+    #undef AUTH_COMP_ID
+    #undef AUTH_SEQ_ID
     #undef INS_CODE
 
+    int helix_id = 0;
+    int strand_id = 0;
+    string last_chain_id;
     auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
         if (conf_type.empty())
             continue;
-        Residue *init_res = mol->find_residue(chain_id1, position1, ins_code1,
-                                        residue_name1);
-        if (init_res == NULL) {
-            logger::error(_logger, "Start residue of secondary structure"
-                " not found: ", conf_type);
+        if (chain_id1 != chain_id2) {
+            logger::error(_logger, "Start and end residues of secondary structure"
+                " are in different chains: ", id);
             continue;
         }
-        Residue *end_res = mol->find_residue(chain_id2, position2, ins_code2,
-                                        residue_name2);
+        // Only expect helixes and turns, strands were in mmCIF v. 2,
+        // but are not in mmCIF v. 4.
+        bool is_helix = conf_type[0] == 'H' || conf_type[0] == 'h';
+        bool is_strnd = conf_type[0] == 'S' || conf_type[0] == 's';
+        if (!is_helix || !is_strnd) {
+            // ignore turns
+            continue;
+        }
+
+        string cid, rname;
+        long pos;
+        if (!auth_chain_id1.empty())
+            cid = auth_chain_id1;
+        else
+            cid = chain_id1;
+        if (!auth_residue_name1.empty())
+            rname = auth_residue_name1;
+        else
+            rname = residue_name1;
+        if (auth_position1 != INT_MAX)
+            pos = auth_position1;
+        else
+            pos = position1;
+        Residue *init_res = mol->find_residue(cid, pos, ins_code1, rname);
+        if (init_res == NULL) {
+            logger::error(_logger, "Start residue of secondary structure"
+                " not found: ", id);
+            continue;
+        }
+
+        if (!auth_chain_id2.empty())
+            cid = auth_chain_id2;
+        else
+            cid = chain_id2;
+        if (!auth_residue_name2.empty())
+            rname = auth_residue_name2;
+        else
+            rname = residue_name2;
+        if (auth_position2 != INT_MAX)
+            pos = auth_position2;
+        else
+            pos = position2;
+        Residue *end_res = mol->find_residue(cid, pos, ins_code2, rname);
         if (end_res == NULL) {
             logger::error(_logger, "End residue of secondary structure"
-                " not found: ", conf_type);
+                " not found: ", id);
             continue;
         }
         const auto& residues = mol->residues();
@@ -1000,26 +1078,21 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
         }
         if (first == residues.end() || last == residues.end()) {
             logger::error(_logger, "Bad residue range for secondary"
-                " structure: ", conf_type);
+                " structure: ", id);
             continue;
         }
-        // Only expect helixes and turns, strands were in mmCIF v. 2,
-        // but are not in mmCIF v. 4.
-        bool is_helix = conf_type[0] == 'H' || conf_type[0] == 'h';
-        bool is_strnd = conf_type[0] == 'S' || conf_type[0] == 's';
-        if (!is_helix || !is_strnd) {
-            // ignore turns
-            continue;
-        }
-        // TODO: figure out ss_id
         for (auto ri = first; ri != last; ++ri) {
             Residue *r = ri->get();
             if (is_helix) {
                 r->set_is_helix(true);
-                //r->set_ss_id(ss_id);
+                r->set_ss_id(++helix_id);
             } else {
+                if (chain_id1 != last_chain_id) {
+                    strand_id = 0;
+                    last_chain_id = chain_id1;
+                }
                 r->set_is_sheet(true);
-                //r->set_ss_id(ss_id);
+                r->set_ss_id(++strand_id);
             }
         }
     }
@@ -1037,13 +1110,21 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
     #define ASYM_ID "_label_asym_id"
     #define COMP_ID "_label_comp_id"
     #define SEQ_ID "_label_seq_id"
+    #define AUTH_ASYM_ID "_auth_asym_id"
+    #define AUTH_COMP_ID "_auth_comp_id"
+    #define AUTH_SEQ_ID "_auth_seq_id"
     #define INS_CODE "_PDB_ins_code"        // pdbx
+    string sheet_id;                        // sheet_id
+    string id;                              // id
     string chain_id1, chain_id2;            // (beg|end)_label_asym_id
     long position1, position2;              // (beg|end)_label_seq_id
     char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
     string residue_name1, residue_name2;    // (beg|end)_label_comp_id
-    string sheet_id;                        // sheet_id
-    string id;                              // id
+    string auth_chain_id1, auth_chain_id2;  // (beg|end)_auth_asym_id
+    long auth_position1 = INT_MAX;          // beg_auth_seq_id
+    long auth_position2 = INT_MAX;          // end_auth_seq_id
+    string auth_residue_name1;              // beg_auth_comp_id
+    string auth_residue_name2;              // end_auth_comp_id
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
@@ -1056,15 +1137,31 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
             id = string(start, end - start);
         });
 
-    pv.emplace_back(get_column(BEG COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name1 = string(start, end - start);
-        });
     pv.emplace_back(get_column(BEG ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id1 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" BEG INS_CODE, false), true,
+    pv.emplace_back(get_column(BEG COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position1 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column(BEG AUTH_ASYM_ID), true,
+        [&] (const char* start, const char* end) {
+            auth_chain_id1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG AUTH_COMP_ID), true,
+        [&] (const char* start, const char* end) {
+            auth_residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG AUTH_SEQ_ID), false,
+        [&] (const char* start, const char*) {
+            auth_position1 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code1 = ' ';
@@ -1073,31 +1170,39 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
                 ins_code1 = *start;
             }
         });
-    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position1 = readcif::str_to_int(start);
-        });
 
-    pv.emplace_back(get_column(END COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name2 = string(start, end - start);
-        });
     pv.emplace_back(get_column(END ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id2 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" END INS_CODE, false), true,
+    pv.emplace_back(get_column(END COMP_ID, true), true,
         [&] (const char* start, const char* end) {
-            if (end == start + 2 && (*start == '.' || *start == '?'))
+            residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position2 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column(END AUTH_ASYM_ID), true,
+        [&] (const char* start, const char* end) {
+            auth_chain_id2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END AUTH_COMP_ID), true,
+        [&] (const char* start, const char* end) {
+            auth_residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END AUTH_SEQ_ID), false,
+        [&] (const char* start, const char*) {
+            auth_position2 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code2 = ' ';
             else {
                 // TODO: check if more than one character
                 ins_code2 = *start;
             }
-        });
-    pv.emplace_back(get_column(END SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position2 = readcif::str_to_int(start);
         });
 
     #undef BEG
@@ -1105,19 +1210,55 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
     #undef ASYM_ID
     #undef COMP_ID
     #undef SEQ_ID
+    #undef AUTH_ASYM_ID
+    #undef AUTH_COMP_ID
+    #undef AUTH_SEQ_ID
     #undef INS_CODE
 
+    string last_chain_id;
+    int strand_id = 0;
     auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
-        Residue *init_res = mol->find_residue(chain_id1, position1, ins_code1,
-                                        residue_name1);
+        if (chain_id1 != chain_id2) {
+            logger::error(_logger, "Start and end residues of strand"
+                " are in different chains: ", sheet_id, ' ', id);
+            continue;
+        }
+
+        string cid, rname;
+        long pos;
+        if (!auth_chain_id1.empty())
+            cid = auth_chain_id1;
+        else
+            cid = chain_id1;
+        if (!auth_residue_name1.empty())
+            rname = auth_residue_name1;
+        else
+            rname = residue_name1;
+        if (auth_position1 != INT_MAX)
+            pos = auth_position1;
+        else
+            pos = position1;
+        Residue *init_res = mol->find_residue(cid, pos, ins_code1, rname);
         if (init_res == NULL) {
             logger::error(_logger, "Start residue of sheet not found: ",
                           sheet_id, ' ', id);
             continue;
         }
-        Residue *end_res = mol->find_residue(chain_id2, position2, ins_code2,
-                                        residue_name2);
+
+        if (!auth_chain_id2.empty())
+            cid = auth_chain_id2;
+        else
+            cid = chain_id2;
+        if (!auth_residue_name2.empty())
+            rname = auth_residue_name2;
+        else
+            rname = residue_name2;
+        if (auth_position2 != INT_MAX)
+            pos = auth_position2;
+        else
+            pos = position2;
+        Residue *end_res = mol->find_residue(cid, pos, ins_code2, rname);
         if (end_res == NULL) {
             logger::error(_logger, "End residue of sheet not found: ",
                           sheet_id, ' ', id);
@@ -1144,7 +1285,11 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
         for (auto ri = first; ri != last; ++ri) {
             Residue *r = ri->get();
             r->set_is_sheet(true);
-            //r->set_ss_id(ss_id);
+            if (chain_id1 != last_chain_id) {
+                strand_id = 0;
+                last_chain_id = chain_id1;
+            }
+            r->set_ss_id(strand_id);
         }
     }
 }
