@@ -44,22 +44,23 @@ class CommandLine(ToolInstance):
 
     def cmd_replace(self, cmd):
         self.text.SetValue(cmd)
+        self.text.SetInsertionPointEnd()
 
     def forwarded_keystroke(self, event):
-        if event.KeyCode == 13:
+        if event.KeyCode == 13:          # Return
             self.on_enter(event)
-        #elif event.KeyCode == 78:        # Ctrl-N
-        #    self.history_dialog.down()
-        #elif event.KeyCode == 80:        # Ctrl-P
-        #    self.history_dialog.up()
-        #elif event.KeyCode == 85:        # Ctrl-U
-        #    self.cmd_clear()
+        elif event.KeyCode == 14:        # Ctrl-N
+            self.history_dialog.down()
+        elif event.KeyCode == 16:        # Ctrl-P
+            self.history_dialog.up()
+        elif event.KeyCode == 21:        # Ctrl-U
+            self.cmd_clear()
+        elif event.KeyCode == 27:         # Escape
+            self.session.keyboard_shortcuts.enable_shortcuts()
         elif event.KeyCode == 315:        # Up arrow
             self.session.selection.promote()
         elif event.KeyCode == 317:        # Down arrow
             self.session.selection.demote()
-        elif event.KeyCode == 27:         # Escape
-            self.session.keyboard_shortcuts.enable_shortcuts()
         else:
             # Only TextCtrls handle forwarded keystroke events,
             # so copy the current ComboBox text state into a
@@ -136,17 +137,26 @@ class CommandLine(ToolInstance):
         self.text.SelectAll()
 
     def on_key_down(self, event):
-        # intercept up/down arrow
-        #if event.KeyCode in (80, 315):  # ctrl-p, up arrow
-        if event.KeyCode == 315:  # ctrl-p, up arrow
+        import wx
+        # prevent combobox from responding to up/down arrow key
+        # (opening/closing dropdown listbox), and handle it as
+        # history forward/back, as well as getting other relevant
+        # control-key events before the ComboBox KeyDown handler
+        # consumes them
+        if event.KeyCode == 315:  # up arrow
             self.history_dialog.up()
-        #elif event.KeyCode in (78, 317):  # ctrl-n, down arrow
-        elif event.KeyCode == 317:  # ctrl-n, down arrow
+        elif event.KeyCode == 317:  # down arrow
             self.history_dialog.down()
-        #elif event.KeyCode == 85:  # ctrl-u
-        #    self.cmd_clear()
+        elif event.GetModifiers() & wx.MOD_RAW_CONTROL:
+            if event.KeyCode == 78:
+                self.history_dialog.down()
+            elif event.KeyCode == 80:
+                self.history_dialog.up()
+            elif event.KeyCode == 85:
+                self.cmd_clear()
+            else:
+                event.Skip()
         else:
-            # pass through other keys
             event.Skip()
 
     #
