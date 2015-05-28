@@ -19,30 +19,45 @@ class MouseModePanel(ToolInstance):
         parent = tw.ui_area
 
         import wx
-        tb = wx.ToolBar(parent)
-        mvmode = tb.AddTool(1, 'move models', self.bitmap('move.png'))
-        parent.Bind(wx.EVT_TOOL, self.move_mode, mvmode)
-        msmode = tb.AddTool(2, 'move selected models', self.bitmap('move_h2o.png'))
-        parent.Bind(wx.EVT_TOOL, self.move_selected_mode, msmode)
-        clmode = tb.AddTool(3, 'contour level', self.bitmap('contour.png'))
-        parent.Bind(wx.EVT_TOOL, self.contour_mode, clmode)
-        mpmode = tb.AddTool(4, 'crop map', self.bitmap('cubearrow.png'))
-        parent.Bind(wx.EVT_TOOL, self.move_planes_mode, mpmode)
-        sermode = tb.AddTool(5, 'play map series', self.bitmap('vseries.png'))
-        parent.Bind(wx.EVT_TOOL, self.map_series_mode, sermode)
-        tb.Realize()
+        buttons = (('zoom', 'zoom.png', self.zoom_mode),
+                   ('move selected models', 'move_h2o.png', self.move_selected_mode),
+                   ('rotate selected models', 'rotate_h2o.png', self.rotate_selected_mode),
+                   ('contour level', 'contour.png', self.contour_mode),
+                   ('move planes', 'cubearrow.png', self.move_planes_mode),
+                   ('play map series', 'vseries.png', self.map_series_mode),
+               )
+        self.buttons = []
+        size = self.SIZE[1]
+        for i, (name, icon, callback) in enumerate(buttons):
+            tb = wx.BitmapToggleButton(parent, i+1, self.bitmap(icon), (i*size,0))
+            def button_press_cb(event, cb=callback, tb=tb):
+                self.unset_other_buttons(tb)
+                cb(event)
+            parent.Bind(wx.EVT_TOGGLEBUTTON, button_press_cb, id=i+1)
+            tb.SetToolTip(wx.ToolTip(name))
+            self.buttons.append(tb)
+        self.buttons[0].SetValue(True)
 
         tw.manage(placement="right", fixed_size = True)
 
         session.tools.add([self])
 
-    def move_mode(self, event):
+    def unset_other_buttons(self, button):
+        for b in self.buttons:
+            if b != button:
+                b.SetValue(False)
+
+    def zoom_mode(self, event):
         from chimera.core import shortcuts
-        shortcuts.enable_move_mouse_mode(self.mouse_modes)
+        shortcuts.enable_zoom_mouse_mode(self.mouse_modes)
 
     def move_selected_mode(self, event):
         from chimera.core import shortcuts
-        shortcuts.enable_move_selected_mouse_mode(self.mouse_modes)
+        shortcuts.enable_translate_selected_mouse_mode(self.mouse_modes)
+
+    def rotate_selected_mode(self, event):
+        from chimera.core import shortcuts
+        shortcuts.enable_rotate_selected_mouse_mode(self.mouse_modes)
 
     def contour_mode(self, event):
         from chimera.core import shortcuts

@@ -59,7 +59,7 @@ class Model(State, Drawing):
 
     def child_models(self):
         '''Return all models including self and children at all levels.'''
-        return [d for d in self.child_drawings() if isinstance(d,Model)]
+        return [d for d in self.child_drawings() if isinstance(d, Model)]
 
     def all_models(self):
         '''Return all models including self and children at all levels.'''
@@ -82,6 +82,7 @@ class Model(State, Drawing):
 
     def selected_items(self, itype):
         return ()
+
 
 class Models(State):
 
@@ -144,7 +145,7 @@ class Models(State):
                 continue
             model.delete()
 
-    def list(self, model_id = None):
+    def list(self, model_id=None):
         if model_id is None:
             models = list(self._models.values())
         else:
@@ -158,7 +159,7 @@ class Models(State):
             models = [self._models[x] for x in model_ids]
         return models
 
-    def add(self, models, parent = None):
+    def add(self, models, parent=None):
         if parent is None:
             d = self.drawing
             for m in models:
@@ -180,14 +181,14 @@ class Models(State):
             children = [c for c in model.child_drawings() if isinstance(c, Model)]
             if children:
                 m_all.extend(self.add(children, model))
-                    
+
         if parent is None:
             session = self._session()
             session.triggers.activate_trigger(ADD_MODELS, m_all)
 
         return m_all
 
-    def add_group(self, models, name = 'group'):
+    def add_group(self, models, name='group'):
         parent = Model(name)
         parent.add(models)
         m_all = self.add([parent])
@@ -196,7 +197,7 @@ class Models(State):
     def remove(self, models):
         # Also remove all child models, and remove deepest children first.
         mlist = descendant_models(models)
-        mlist.sort(key = lambda m: len(m.id), reverse = True)
+        mlist.sort(key=lambda m: len(m.id), reverse=True)
         session = self._session()  # resolve back reference
         session.triggers.activate_trigger(REMOVE_MODELS, mlist)
         for model in mlist:
@@ -235,7 +236,8 @@ class Models(State):
                 session.main_view.initial_camera_view()
         return models
 
-def descendant_models(models, mset = None):
+
+def descendant_models(models, mset=None):
     mlist = []
     for m in models:
         mlist.extend(m.all_models())
