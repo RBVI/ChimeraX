@@ -374,5 +374,8 @@ def map_series_mouse_mode(session):
   from . import Map_Series
   series = [m for m in session.models.list() if isinstance(m, Map_Series)]
   p = Play_Series(series, session, rendering_cache_size = 10) if series else None
-  m = Play_Series_Mouse_Mode(p)
+  if p is None:
+    m = None
+  else:
+    m = Play_Series_Mouse_Mode(p)
   return m
