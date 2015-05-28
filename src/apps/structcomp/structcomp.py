@@ -33,14 +33,17 @@ class FlushFile:
 sys.stdout = FlushFile(sys.stdout)
 
 
-def pseudo_bonds(atom_strs, bond_indices):
+def bonds(atoms):
+    a0s, a1s = atoms
     bonds = set()
-    for i0, i1 in bond_indices:
-        a0 = atom_strs[i0]
-        a1 = atom_strs[i1]
-        if a1 < a0:
-            a0, a1 = a1, a0
-        bonds.add("%s/%s" % (a0, a1))
+    for rstr0, aname0, rstr1, aname1 in zip(
+            a0s.residues.strs, a0s.names, a1s.residues.strs,
+            a1s.names):
+        id0 = (rstr0, aname0)
+        id1 = (rstr1, aname1)
+        if id0 > id1:
+            id0, id1 = id1, id0
+        bonds.add("%s@%s/%s@%s" % (id0 + id1))
     return bonds
 
 
@@ -97,26 +100,8 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
 
             # bonds
-            pdb_bonds = set()
-            a0s, a1s = p.bonds.atoms
-            for rstr0, aname0, rstr1, aname1 in zip(
-                    a0s.residues.strs, a0s.names, a1s.residues.strs,
-                    a1s.names):
-                id0 = (rstr0, aname0)
-                id1 = (rstr1, aname1)
-                if id0 > id1:
-                    id0, id1 = id1, id0
-                pdb_bonds.add("%s@%s/%s@%s" % (id0 + id1))
-            mmcif_bonds = set()
-            a0s, a1s = m.bonds.atoms
-            for rstr0, aname0, rstr1, aname1 in zip(
-                    a0s.residues.strs, a0s.names, a1s.residues.strs,
-                    a1s.names):
-                id0 = (rstr0, aname0)
-                id1 = (rstr1, aname1)
-                if id0 > id1:
-                    id0, id1 = id1, id0
-                mmcif_bonds.add("%s@%s/%s@%s" % (id0 + id1))
+            pdb_bonds = bonds(p.bonds.atoms)
+            mmcif_bonds = bonds(m.bonds.atoms)
             common = pdb_bonds & mmcif_bonds
             extra = pdb_bonds - common
             if extra:
@@ -181,11 +166,11 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
             pbg = 'missing structure'
             if pbg in extra:
-                bonds = pseudo_bonds(pdb_atoms, pdb_pbg_map[pbg].bond_indices)
-                bonds = list(bonds)
-                bonds.sort()
+                pdb_bonds = bonds(pdb_pbg_map[pbg].atoms)
+                pdb_bonds = list(pdb_bonds)
+                pdb_bonds.sort()
                 print('error: %s:' % pdb_id, len(extra),
-                      'extra pdb', pbg, 'bond(s):', bonds)
+                      'extra pdb', pbg, 'bond(s):', pdb_bonds)
             extra = mmcif_pbgs - common_pbgs
             if extra:
                 extra = list(extra)
@@ -195,17 +180,14 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 same = False
             pbg = 'missing structure'
             if pbg in extra:
-                bonds = pseudo_bonds(mmcif_atoms,
-                                     mmcif_pbg_map[pbg].bond_indices)
-                bonds = list(bonds)
-                bonds.sort()
+                mmcif_bonds = bonds(mmcif_pbg_map[pbg].atoms)
+                mmcif_bonds = list(mmcif_bonds)
+                mmcif_bonds.sort()
                 print('error: %s:' % pdb_id, len(extra),
-                      'extra mmcif', pbg, 'bond(s):', bonds)
+                      'extra mmcif', pbg, 'bond(s):', mmcif_bonds)
             for pbg in common_pbgs:
-                pdb_bonds = pseudo_bonds(pdb_atoms,
-                                         pdb_pbg_map[pbg].bond_indices)
-                mmcif_bonds = pseudo_bonds(mmcif_atoms,
-                                           mmcif_pbg_map[pbg].bond_indices)
+                pdb_bonds = bonds(pdb_pbg_map[pbg].atoms)
+                mmcif_bonds = bonds(mmcif_pbg_map[pbg].atoms)
                 common = pdb_bonds & mmcif_bonds
                 extra = pdb_bonds - common
                 if extra:
