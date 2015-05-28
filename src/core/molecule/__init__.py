@@ -1,1 +1,2 @@
-from .molobject import atomic_structure_from_blob
+from .molobject import CAtomicStructure
+from .molarray import Atoms

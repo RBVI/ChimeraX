@@ -21,24 +21,15 @@ def open_pdb(session, filename, name, *args, **kw):
         input = _builtin_open(filename, 'rb')
 
     from . import pdbio
-    mol_blob = pdbio.read_pdb_file(input, log=session.logger)
+    pointers = pdbio.read_pdb_file(input, log=session.logger)
     if input != filename:
         input.close()
 
-    structures = mol_blob.structures
-    models = []
-    num_atoms = 0
-    num_bonds = 0
-    for structure_blob in structures:
-        model = structure.StructureModel(name, structure_blob)
-        models.append(model)
-        model.make_drawing()
-
-        num_atoms += structure_blob.num_atoms
-        num_bonds += structure_blob.num_bonds
+    models = [structure.StructureModel(name, p) for p in pointers]
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
-                    % (num_atoms, num_bonds))
+                    % (sum(m.num_atoms for m in models),
+                       sum(m.num_bonds for m in models)))
 
 
 def fetch_pdb(session, pdb_id):

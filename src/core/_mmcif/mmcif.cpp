@@ -5,11 +5,11 @@
 #include <atomstruct/Bond.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/CoordSet.h>
-#include <blob/StructBlob.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/Residue.h>
 #include <logger/logger.h>
+#include "pythonarray.h"	// Use python_voidp_array()
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -271,7 +271,6 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
     // -- Assumes atoms were added in the exact same order
 
     // Bonds:
-    auto& atoms = from->atoms();
     auto& bonds = from->bonds();
     auto& to_atoms = to->atoms();
     size_t to_size = to_atoms.size();
@@ -1327,6 +1326,26 @@ ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
         poly_seq[entity_id].push_back(PolySeq(seq_id, mon_id, hetero));
 }
 
+static PyObject*
+structure_pointers(ExtractMolecule &e, const char *filename)
+{
+    int count = 0;
+    for (auto m: e.all_molecules)
+        if (m->atoms().size() > 0) {
+	    m->set_name(filename);
+	    count += 1;
+	}
+
+    void **sa;
+    PyObject *s_array = python_voidp_array(count, &sa);
+    int i = 0;
+    for (auto m: e.all_molecules)
+        if (m->atoms().size() > 0)
+	  sa[i++] = static_cast<void *>(m);
+
+    return s_array;
+}
+
 PyObject*
 parse_mmCIF_file(const char *filename, PyObject* logger)
 {
@@ -1334,18 +1353,8 @@ parse_mmCIF_file(const char *filename, PyObject* logger)
 clock_t start_t, end_t;
 #endif
     ExtractMolecule extract(logger);
-
     extract.parse_file(filename);
-
-    using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
-    for (auto m: extract.all_molecules) {
-        if (m->atoms().size() == 0)
-            continue;
-        m->set_name(filename);
-        sb->_items->emplace_back(m);
-    }
-    return sb;
+    return structure_pointers(extract, filename);
 }
 
 PyObject*
@@ -1355,18 +1364,8 @@ parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger)
 clock_t start_t, end_t;
 #endif
     ExtractMolecule extract(logger);
-
     extract.parse(reinterpret_cast<const char *>(whole_file));
-
-    using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
-    for (auto m: extract.all_molecules) {
-        if (m->atoms().size() == 0)
-            continue;
-        m->set_name("unknown mmCIF file");
-        sb->_items->emplace_back(m);
-    }
-    return sb;
+    return structure_pointers(extract, "unknown mmCIF file");
 }
 
 // connect_residue_by_template:

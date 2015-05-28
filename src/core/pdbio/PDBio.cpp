@@ -14,8 +14,8 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
-#include <blob/StructBlob.h>
 #include <logger/logger.h>
+#include "pythonarray.h"	// Use python_voidp_array()
 
 namespace pdb {
 
@@ -1129,18 +1129,15 @@ start_t = end_t;
 std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
-    // ensure structaccess module objects are initialized
-    if (!blob::init_structaccess()) {
-        delete structs;
-        return NULL;
-    }
-    using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
-    for (auto si = structs->begin(); si != structs->end(); ++si) {
-        sb->_items->emplace_back(*si);
-    }
+
+    void **sa;
+    PyObject *s_array = python_voidp_array(structs->size(), &sa);
+    int i = 0;
+    for (auto si = structs->begin(); si != structs->end(); ++si)
+      sa[i++] = static_cast<void *>(*si);
+
     delete structs;
-    return sb;
+    return s_array;
 }
 
 static const char*
@@ -1156,7 +1153,7 @@ docstr_read_pdb_file =
 "  Controls whether NMR ensembles will be handled as separate models (True)\n" \
 "  or as one model with multiple coordinate sets (False)\n" \
 "\n" \
-"Returns a structaccess.StructBlob.";
+"Returns a numpy array of C++ pointers to AtomicStructure objects.";
 
 extern "C" PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)

@@ -722,8 +722,8 @@ class AtomSpecResults:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from . import structaccess
-        atoms = structaccess.AtomBlob()
+        from .molecule import Atoms
+        atoms = Atoms()
         for m in models:
             if m in self._models:
                 # Was selected, so invert model atoms

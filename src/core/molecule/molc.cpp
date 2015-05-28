@@ -3,7 +3,7 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/Residue.h"
 #include "blob/StructBlob.h"
-#include "pythonarray.h"	// Use python_object_array()
+#include "pythonarray.h"	// Use python_voidp_array()
 
 //#include <iostream>
 

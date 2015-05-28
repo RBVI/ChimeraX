@@ -2,11 +2,12 @@
 from . import io
 from . import models
 from .session import RestoreError
+from .molecule import CAtomicStructure
 
 CATEGORY = io.STRUCTURE
 
 
-class StructureModel(models.Model):
+class StructureModel(CAtomicStructure, models.Model):
     """Commom base class for atomic structures"""
 
     STRUCTURE_STATE_VERSION = 0
@@ -16,18 +17,10 @@ class StructureModel(models.Model):
     BALL_STYLE = 2
     STICK_STYLE = 3
 
-    def __init__(self, name, atomic_structure):
+    def __init__(self, name, atomic_structure_pointer):
 
+        CAtomicStructure.__init__(self, atomic_structure_pointer)
         models.Model.__init__(self, name)
-
-        self._use_ctypes_wrapping = False
-
-        if self._use_ctypes_wrapping:
-            self._atomic_structure_orig = atomic_structure      # Hold reference so C++ objects not destroyed
-            from . import molecule
-            atomic_structure = molecule.atomic_structure_from_blob(atomic_structure)
-
-        self._mol = atomic_structure	# Wrapped C++ AtomicStructure object
 
         self._atoms = None              # Cached atoms array
 
@@ -39,6 +32,8 @@ class StructureModel(models.Model):
         self._pseudobond_group_drawings = {}    # Map name to drawing
         self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
+
+        self.make_drawing()
 
     def take_snapshot(self, session, flags):
         data = {}
@@ -54,32 +49,12 @@ class StructureModel(models.Model):
     @property
     def atoms(self):
         if self._atoms is None:
-            self._atoms = self._mol.atoms
+            self._atoms = CAtomicStructure.atoms.fget(self)
         return self._atoms
 
     @property
-    def num_atoms(self):
-        return self._mol.num_atoms
-
-    @property
-    def bonds(self):
-        return self._mol.bonds
-
-    @property
-    def residues(self):
-        return self._mol.residues
-
-    @property
-    def num_chains(self):
-        return self._mol.num_chains
-
-    @property
-    def num_coord_sets(self):
-        return self._mol.num_coord_sets
-
-    @property
     def pseudobond_groups(self):
-        return self._mol.pbg_map
+        return self.pbg_map
 
     def shown_atom_count(self):
         na = sum(self.atoms.displays) if self.display else 0
@@ -762,16 +737,9 @@ def show_atoms(show, atoms, session):
 # Wrap an AtomBlob and have a molecules attribute.
 #
 class Atoms:
-    def __init__(self, aspec = None):
-        if aspec is None:
-            from . import structaccess
-            atoms = structaccess.AtomBlob()
-            mols = ()
-        else:
-            atoms = aspec.atoms
-            mols = tuple(m for m in aspec.models if isinstance(m, StructureModel)) 
-        self._atoms = atoms
-        self.molecules = mols
+    def __init__(self, aspec):
+        self._atoms = aspec.atoms
+        self.molecules = tuple(m for m in aspec.models if isinstance(m, StructureModel)) 
     def __len__(self):
         return len(self._atoms)
     def __getattr__(self, name):

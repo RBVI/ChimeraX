@@ -60,7 +60,11 @@ class SetOperators:
 #
 class Atoms(SetOperators):
 
-    def __init__(self, atom_pointers):
+    def __init__(self, atom_pointers = None):
+        if atom_pointers is None:
+            # Empty Atoms
+            import numpy
+            atom_pointers = numpy.empty((0,), cptr)
         from .molobject import Atom
         SetOperators.__init__(self, atom_pointers, Atom, Atoms)
         set_cvec_pointer(self, atom_pointers)
@@ -143,11 +147,11 @@ class Chains:
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructures:
+class CAtomicStructures:
 
     def __init__(self, mol_pointers):
-        from .molobject import AtomicStructure
-        SetOperators.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
+        from .molobject import CAtomicStructure
+        SetOperators.__init__(self, mol_pointers, CAtomicStructure, CAtomicStructures)
         set_cvec_pointer(self, mol_pointers)
 
     atoms = cvec_property('molecule_atoms', cptr, 'num_atoms', astype = _atoms,

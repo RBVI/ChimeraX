@@ -6,7 +6,7 @@ from .molc import string, cptr, pyobject, c_property, set_c_pointer
 # the object properties.
 #
 def _atomic_structure(p):
-    return object_map(p, AtomicStructure)
+    return object_map(p, CAtomicStructure)
 def _residue(p):
     return object_map(p, Residue)
 def _atom_pair(p):
@@ -94,7 +94,7 @@ class Chain:
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructure:
+class CAtomicStructure:
 
     def __init__(self, mol_pointer):
         set_c_pointer(self, mol_pointer)
@@ -109,12 +109,6 @@ class AtomicStructure:
     num_residues = c_property('molecule_num_residues', int32, read_only = True)
     residues = c_property('molecule_residues', cptr, 'num_residues', astype = _residues, read_only = True)
     pbg_map = c_property('molecule_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
-
-# -----------------------------------------------------------------------------
-# Return an AtomicStructure for a C++ StructBlob.
-#
-def atomic_structure_from_blob(struct_blob):
-    return object_map(struct_blob._struct_pointers[0], AtomicStructure)
 
 # -----------------------------------------------------------------------------
 #
