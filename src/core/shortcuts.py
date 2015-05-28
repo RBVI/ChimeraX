@@ -86,7 +86,7 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
-#        ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
+        ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
@@ -472,21 +472,26 @@ def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
     m.bind_mouse_mode(button, ui.ZoomMouseMode(m.session))
 
 def fit_molecule_in_map(session):
-    mols, maps = session.molecules(), session.maps()
+    mols, maps = shortcut_molecules(session), shortcut_maps(session)
     if len(mols) != 1 or len(maps) != 1:
-        print('ft: Fit molecule in map requires exactly one open molecule and one open map.')
+        session.logger.status('Fit molecule in map requires one displayed or selected molecule and map.')
         return
 
     mol, map = mols[0], maps[0]
-    points = mol.xyz
+    points = mol.atoms.coords
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
     from .map import fit
     move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.position = mol.position * move_tf
-    for k,v in stats.items():
-        print(k,v)
+
+    msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
+           % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
+    log = session.logger
+    log.status(msg)
+    from .map.fit import fitmap
+    log.info(fitmap.atom_fit_message(mols, map, stats))
 
 def show_biological_unit(m, session):
 
