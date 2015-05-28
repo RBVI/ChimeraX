@@ -11,7 +11,7 @@ PKG_DESCRIPTION = Mouse mode buttons
 # you need manually edit all the files.
 TOOL_NAME = mouse_modes
 TOOL_PKG_NAME = chimera.mouse_modes
-TOOL_DISPLAY_NAME = Mouse Modes
+TOOL_DISPLAY_NAME = Mouse Modes for Right Button
 TOOL_CATEGORY = General
 TOOL_SYNOPSIS = Choose mouse mode
 COMMAND_NAME = mousemodes
