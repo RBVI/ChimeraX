@@ -121,7 +121,9 @@ public:
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
-    std::vector<Chain::Residues>  polymers() const;
+    std::vector<Chain::Residues>  polymers(
+        bool consider_missing_structure = true,
+        bool consider_chain_ids = true) const;
     const Residues &  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,

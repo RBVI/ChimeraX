@@ -282,7 +282,11 @@ class _HistoryDialog:
         self.select()
         self.controller.text.SetFocus()
         self.controller.text.SetSelection(-1, -1)
-        cursel = self.listbox.Selection
+        try:
+            cursel = self.listbox.Selection
+        except AssertionError:
+            # not supported on Linux yet (28 May 2015)
+            return
         import wx
         if cursel != wx.NOT_FOUND:
             self.listbox.EnsureVisible(cursel)
