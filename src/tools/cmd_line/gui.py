@@ -292,14 +292,9 @@ class _HistoryDialog:
         self.select()
         self.controller.text.SetFocus()
         self.controller.text.SetSelection(-1, -1)
-        try:
-            cursel = self.listbox.Selection
-        except AssertionError:
-            # not supported on Linux yet (28 May 2015)
-            return
-        import wx
-        if cursel != wx.NOT_FOUND:
-            self.listbox.EnsureVisible(cursel)
+        cursels = self.listbox.GetSelections()
+        if len(cursels) == 1:
+            self.listbox.EnsureVisible(cursels[0])
 
     def select(self):
         sels = self.listbox.GetSelections()
