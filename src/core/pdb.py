@@ -25,7 +25,7 @@ def open_pdb(session, filename, name, *args, **kw):
     if input != filename:
         input.close()
 
-    models = [structure.StructureModel(name, p) for p in pointers]
+    models = [structure.AtomicStructure(name, p) for p in pointers]
 
     return models, ("Opened PDB data containing %d atoms and %d bonds"
                     % (sum(m.num_atoms for m in models),

@@ -375,8 +375,8 @@ def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                 raise cli.UserError('Fit sequence requires 2 or more maps'
                                    ' to place')
     else:
-        from ...structure import StructureModel
-        mlist = [m for m in atomsOrMap.models if isinstance(m, StructureModel)]
+        from ...structure import AtomicStructure
+        mlist = [m for m in atomsOrMap.models if isinstance(m, AtomicStructure)]
         if len(mlist) < 2:
             raise cli.UserError('Fit sequence requires 2 or more molecules')
         if not moveWholeMolecules:

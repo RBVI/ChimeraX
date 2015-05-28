@@ -7,7 +7,7 @@ from .molecule import CAtomicStructure
 CATEGORY = io.STRUCTURE
 
 
-class StructureModel(CAtomicStructure, models.Model):
+class AtomicStructure(CAtomicStructure, models.Model):
     """Commom base class for atomic structures"""
 
     STRUCTURE_STATE_VERSION = 0
@@ -652,14 +652,14 @@ _ccolor_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
 def ccolor_command(session, atoms = None):
     if atoms is None:
         for m in session.models.list():
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 m.color_by_chain()
     else:
         asr = atoms.evaluate(session)
         a = asr.atoms
         a.colors = chain_colors(a.residues.chain_ids)
         for m in asr.models:
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 m.update_graphics()
 
 # -----------------------------------------------------------------------------
@@ -671,7 +671,7 @@ _celement_desc = cli.CmdDesc(optional=[("atoms", atomspec.AtomSpecArg)],
 def celement_command(session, atoms = None):
     if atoms is None:
         for m in session.models.list():
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 m.color_by_element()
     else:
         asr = atoms.evaluate(session)
@@ -681,7 +681,7 @@ def celement_command(session, atoms = None):
 
 def update_model_graphics(models):
     for m in models:
-        if isinstance(m, StructureModel):
+        if isinstance(m, AtomicStructure):
             m.update_graphics()
 
 # -----------------------------------------------------------------------------
@@ -691,13 +691,13 @@ _style_desc = cli.CmdDesc(required = [('atom_style', cli.EnumOf(('sphere', 'ball
                           optional=[("atoms", atomspec.AtomSpecArg)],
                           synopsis='change atom depiction')
 def style_command(session, atom_style, atoms = None):
-    s = {'sphere':StructureModel.SPHERE_STYLE,
-         'ball':StructureModel.BALL_STYLE,
-         'stick':StructureModel.STICK_STYLE,
+    s = {'sphere':AtomicStructure.SPHERE_STYLE,
+         'ball':AtomicStructure.BALL_STYLE,
+         'stick':AtomicStructure.STICK_STYLE,
          }[atom_style.lower()]
     if atoms is None:
         for m in session.models.list():
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 m.set_atom_style(s)
     else:
         asr = atoms.evaluate(session)
@@ -725,7 +725,7 @@ def show_command(session, atoms = None):
 def show_atoms(show, atoms, session):
     if atoms is None:
         for m in session.models.list():
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 m.atoms.displays = show
                 m.update_graphics()
     else:
@@ -739,7 +739,7 @@ def show_atoms(show, atoms, session):
 class Atoms:
     def __init__(self, aspec):
         self._atoms = aspec.atoms
-        self.molecules = tuple(m for m in aspec.models if isinstance(m, StructureModel)) 
+        self.molecules = tuple(m for m in aspec.models if isinstance(m, AtomicStructure)) 
     def __len__(self):
         return len(self._atoms)
     def __getattr__(self, name):

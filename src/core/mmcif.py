@@ -24,7 +24,7 @@ def open_mmcif(session, filename, name, *args, **kw):
         lambda name: _get_template(name, session.app_dirs, session.logger))
     pointers = _mmcif.parse_mmCIF_file(filename, session.logger)
 
-    models = [structure.StructureModel(name, p) for p in pointers]
+    models = [structure.AtomicStructure(name, p) for p in pointers]
 
     return models, ("Opened mmCIF data containing %d atoms and %d bonds"
                     % (sum(m.num_atoms for m in models),

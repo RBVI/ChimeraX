@@ -53,9 +53,9 @@ def calc_surf(name, xyz, r, place, probe_radius, grid_spacing):
 def atom_spec_spheres(atom_spec, session, chains = False):
     if atom_spec is None:
         s = []
-        from .structure import StructureModel
+        from .structure import AtomicStructure
         for m in session.models.list():
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 a = m.atoms
                 if chains:
                     for cname, ci in chain_indices(a):

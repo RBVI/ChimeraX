@@ -326,10 +326,10 @@ def register(session):
     atomspec.register_selector(None, "sel", _sel_selector)
 
 def _sel_selector(session, models, results):
-    from .structure import StructureModel
+    from .structure import AtomicStructure
     for m in models:
         if m.any_part_selected():
             results.add_model(m)
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 for m, atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)

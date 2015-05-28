@@ -330,17 +330,17 @@ def shortcut_maps(session):
     return maps
 
 def shortcut_molecules(session):
-    from .structure import StructureModel
-    mols = [m for m in shortcut_models(session) if isinstance(m, StructureModel)]
+    from .structure import AtomicStructure
+    mols = [m for m in shortcut_models(session) if isinstance(m, AtomicStructure)]
     return mols
 
 def shortcut_atoms(session):
     sel = session.selection
     matoms = sel.items('atoms')
     if len(matoms) == 0 and sel.empty():
-        from .structure import StructureModel
+        from .structure import AtomicStructure
         for m in session.models.list():
-            if isinstance(m, StructureModel):
+            if isinstance(m, AtomicStructure):
                 a = m.atoms
                 if len(a) > 0:
                     matoms.append((m,a))
@@ -357,17 +357,17 @@ def shortcut_selection(session):
 def shortcut_surfaces(session):
     sel = session.selection
     models = session.models.list() if sel.empty() else sel.models()
-    from .structure import StructureModel
+    from .structure import AtomicStructure
     from .map import Volume
-    surfs = [m for m in models if not isinstance(m, (StructureModel, Volume))]
+    surfs = [m for m in models if not isinstance(m, (AtomicStructure, Volume))]
     # TODO: Only include displayed surfaces if nothing selected?
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
     models = session.models.list() if sel.empty() else sel.models()
-    from .structure import StructureModel
-    sm = [m for m in models if not isinstance(m, StructureModel)]
+    from .structure import AtomicStructure
+    sm = [m for m in models if not isinstance(m, AtomicStructure)]
     # TODO: Only include displayed surfaces if nothing selected?
     return sm
 
@@ -777,8 +777,8 @@ def show_framerate(session):
 
 def show_triangle_count(session):
     models = session.models.list()
-    from .structure import StructureModel
-    mols = [m for m in models if isinstance(m, StructureModel)]
+    from .structure import AtomicStructure
+    mols = [m for m in models if isinstance(m, AtomicStructure)]
     na = sum(m.shown_atom_count() for m in mols) if mols else 0
     nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in mols) if mols else 0
     n = len(models)
