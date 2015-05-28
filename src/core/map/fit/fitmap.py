@@ -60,7 +60,7 @@ def move_atoms_to_maximum(atoms, volume,
                                        ijk_step_size_min, ijk_step_size_max,
                                        optimize_translation, optimize_rotation,
                                        metric, symmetries, request_stop_cb)
-    stats['molecules'] = list(atoms.molecules)
+    stats['molecules'] = list(atoms.unique_molecules)
 
     from . import move
     move.move_models_and_atoms(move_tf, [], atoms, move_whole_molecules, volume)

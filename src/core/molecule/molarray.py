@@ -10,9 +10,10 @@ def _residues(a):
 def _chains(a):
     return Chains(a)
 def _atomic_structures(p):
-    return Atomic_Structures(p)
+    return CAtomicStructures(p)
 def _unique_atomic_structures(p):
-    return Atomic_Structures(numpy.unique(p))
+    import numpy
+    return CAtomicStructures(numpy.unique(p))
 def _residues(p):
     return Residues(p)
 def _atoms_pair(p):
@@ -99,7 +100,7 @@ class Bonds(SetOperators):
 
 # -----------------------------------------------------------------------------
 #
-class PseudoBonds:
+class PseudoBonds(SetOperators):
 
     def __init__(self, pbond_pointers):
         from .molobject import PseudoBond
@@ -114,7 +115,7 @@ class PseudoBonds:
 
 # -----------------------------------------------------------------------------
 #
-class Residues:
+class Residues(SetOperators):
 
     def __init__(self, residue_pointers):
         from .molobject import Residue
@@ -132,7 +133,7 @@ class Residues:
 
 # -----------------------------------------------------------------------------
 #
-class Chains:
+class Chains(SetOperators):
 
     def __init__(self, chain_pointers):
         from .molobject import Chain
@@ -147,7 +148,7 @@ class Chains:
 
 # -----------------------------------------------------------------------------
 #
-class CAtomicStructures:
+class CAtomicStructures(SetOperators):
 
     def __init__(self, mol_pointers):
         from .molobject import CAtomicStructure

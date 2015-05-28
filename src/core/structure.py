@@ -20,6 +20,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
     def __init__(self, name, atomic_structure_pointer):
 
         CAtomicStructure.__init__(self, atomic_structure_pointer)
+        from . import molecule
+        molecule.set_object_map(atomic_structure_pointer, self)
+
         models.Model.__init__(self, name)
 
         self._atoms = None              # Cached atoms array
@@ -736,23 +739,6 @@ def show_atoms(show, atoms, session):
 # -----------------------------------------------------------------------------
 # Wrap an AtomBlob and have a molecules attribute.
 #
-class Atoms:
-    def __init__(self, aspec):
-        self._atoms = aspec.atoms
-        self.molecules = tuple(m for m in aspec.models if isinstance(m, AtomicStructure)) 
-    def __len__(self):
-        return len(self._atoms)
-    def __getattr__(self, name):
-        return getattr(self._atoms, name)
-#    def __setattr__(self, name, value):
-#        return setattr(self._atoms, name, value)
-    def move_atoms(self, tf):
-        if len(self._atoms) > 0:
-            self._atoms.coords = tf * self._atoms.coords
-
-# -----------------------------------------------------------------------------
-# Wrap an AtomBlob and have a molecules attribute.
-#
 from . import cli
 class AtomsArg(cli.Annotation):
     """Annotation for atoms"""
@@ -762,8 +748,8 @@ class AtomsArg(cli.Annotation):
     def parse(text, session):
         from . import atomspec
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
-        asr = aspec.evaluate(session)
-        return Atoms(asr), text, rest
+        atoms = aspec.evaluate(session).atoms
+        return atoms, text, rest
 
 # -----------------------------------------------------------------------------
 #

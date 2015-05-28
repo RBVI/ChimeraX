@@ -119,3 +119,6 @@ def object_map(p, object_type):
     if o is None:
         _object_map[p] = o = object_type(p)
     return o
+
+def set_object_map(p, object):
+    _object_map[p] = object
