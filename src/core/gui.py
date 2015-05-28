@@ -419,7 +419,10 @@ class _Wx:
         if not self.tool_window:
             # already destroyed
             return
-        del self.main_window.tool_pane_to_window[self.ui_area]
+        try:
+            del self.main_window.tool_pane_to_window[self.ui_area]
+        except KeyError:
+            pass
         if not from_destructor:
             self.ui_area.Destroy()
         # free up references

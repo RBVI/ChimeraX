@@ -346,7 +346,6 @@ class SideViewUI(ToolInstance):
     #
     def delete(self):
         self.tool_window.shown = False
-        self.tool_window.destroy()
         self.session.tools.remove([self])
         super().delete()
 
