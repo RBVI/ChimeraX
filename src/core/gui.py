@@ -419,8 +419,8 @@ class _Wx:
         if not self.tool_window:
             # already destroyed
             return
-        del self.main_window.tool_pane_to_window[self.ui_area]
         if not from_destructor:
+            del self.main_window.tool_pane_to_window[self.ui_area]
             self.ui_area.Destroy()
         # free up references
         self.tool_window = None
