@@ -77,6 +77,7 @@ class CommandLine(ToolInstance):
     def on_combobox(self, event):
         val = self.text.GetValue()
         if val == self.show_history_label:
+            self.cmd_clear()
             self.history_dialog.window.shown = True
         elif val == self.compact_label:
             self.cmd_clear()
