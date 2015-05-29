@@ -50,11 +50,11 @@ def c_array_property(func_name, value_type, value_count, read_only = False, asty
     if astype is None:
         def get_prop(self):
             cget(self._c_pointer_ref, 1, v_ref)
-            return astype(v)
+            return v.copy()
     else:
         def get_prop(self):
             cget(self._c_pointer_ref, 1, v_ref)
-            return v.copy()
+            return astype(v)
 
     if read_only:
         set_prop = None
