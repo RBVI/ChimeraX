@@ -6,18 +6,28 @@ import ctypes
 # These routines convert C++ pointers to Python objects and are used for defining
 # the object properties.
 #
-def _atomic_structure(p):
-    return object_map(p, CAtomicStructure)
-def _residue(p):
-    return object_map(p, Residue)
+def _atoms(a):
+    from .molarray import Atoms
+    return Atoms(a)
 def _atom_pair(p):
     return (object_map(p[0],Atom), object_map(p[1],Atom))
+def _bonds(a):
+    from .molarray import Bonds
+    return Bonds(a)
+def _residue(p):
+    return object_map(p, Residue)
+def _residues(a):
+    from .molarray import Residues
+    return Residues(a)
+def _chains(a):
+    from .molarray import Chains
+    return Chains(a)
+def _atomic_structure(p):
+    return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
     from .molarray import PseudoBonds
     pbg_map = dict((name, PseudoBonds(pbg)) for name, pbg in pbgc_map.items())
     return pbg_map
-
-from .molarray import _atoms, _bonds, _residues, _chains
 
 # -----------------------------------------------------------------------------
 #

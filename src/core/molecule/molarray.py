@@ -1,5 +1,6 @@
 from numpy import uint8, int32, float64, float32, bool as npy_bool
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer
+from . import molobject
 
 def _atoms(a):
     return Atoms(a)
@@ -24,11 +25,16 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
-class SetOperators:
+class PointerArray:
     def __init__(self, pointers, object_class, objects_class):
+        if pointers is None:
+            # Empty Atoms
+            import numpy
+            pointers = numpy.empty((0,), cptr)
         self._pointers = pointers
         self._object_class = object_class
         self._objects_class = objects_class
+        set_cvec_pointer(self, pointers)
 
     def __len__(self):
         return len(self._pointers)
@@ -59,16 +65,10 @@ class SetOperators:
 
 # -----------------------------------------------------------------------------
 #
-class Atoms(SetOperators):
+class Atoms(PointerArray):
 
     def __init__(self, atom_pointers = None):
-        if atom_pointers is None:
-            # Empty Atoms
-            import numpy
-            atom_pointers = numpy.empty((0,), cptr)
-        from .molobject import Atom
-        SetOperators.__init__(self, atom_pointers, Atom, Atoms)
-        set_cvec_pointer(self, atom_pointers)
+        PointerArray.__init__(self, atom_pointers, molobject.Atom, Atoms)
 
     bfactors = cvec_property('atom_bfactor', float32)
     colors = cvec_property('atom_color', uint8, 4)
@@ -85,12 +85,10 @@ class Atoms(SetOperators):
 
 # -----------------------------------------------------------------------------
 #
-class Bonds(SetOperators):
+class Bonds(PointerArray):
 
     def __init__(self, bond_pointers):
-        from .molobject import Bond
-        SetOperators.__init__(self, bond_pointers, Bond, Bonds)
-        set_cvec_pointer(self, bond_pointers)
+        PointerArray.__init__(self, bond_pointers, molobject.Bond, Bonds)
 
     atoms = cvec_property('bond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
     colors = cvec_property('bond_color', uint8, 4)
@@ -100,12 +98,10 @@ class Bonds(SetOperators):
 
 # -----------------------------------------------------------------------------
 #
-class PseudoBonds(SetOperators):
+class PseudoBonds(PointerArray):
 
     def __init__(self, pbond_pointers):
-        from .molobject import PseudoBond
-        SetOperators.__init__(self, pbond_pointers, PseudoBond, PseudoBonds)
-        set_cvec_pointer(self, pbond_pointers)
+        PointerArray.__init__(self, pbond_pointers, molobject.PseudoBond, PseudoBonds)
 
     atoms = cvec_property('pseudobond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
     colors = cvec_property('pseudobond_color', uint8, 4)
@@ -115,12 +111,10 @@ class PseudoBonds(SetOperators):
 
 # -----------------------------------------------------------------------------
 #
-class Residues(SetOperators):
+class Residues(PointerArray):
 
     def __init__(self, residue_pointers):
-        from .molobject import Residue
-        SetOperators.__init__(self, residue_pointers, Residue, Residues)
-        set_cvec_pointer(self, residue_pointers)
+        PointerArray.__init__(self, residue_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)
     chain_ids = cvec_property('residue_chain_id', string, read_only = True)
@@ -133,12 +127,10 @@ class Residues(SetOperators):
 
 # -----------------------------------------------------------------------------
 #
-class Chains(SetOperators):
+class Chains(PointerArray):
 
     def __init__(self, chain_pointers):
-        from .molobject import Chain
-        SetOperators.__init__(self, chain_pointers, Chain, Chains)
-        set_cvec_pointer(self, chain_pointers)
+        PointerArray.__init__(self, chain_pointers, molobject.Chain, Chains)
 
     chain_ids = cvec_property('chain_chain_id', string, read_only = True)
     molecules = cvec_property('chain_molecule', cptr, astype = _atomic_structures, read_only = True)
@@ -148,12 +140,10 @@ class Chains(SetOperators):
 
 # -----------------------------------------------------------------------------
 #
-class CAtomicStructures(SetOperators):
+class CAtomicStructures(PointerArray):
 
     def __init__(self, mol_pointers):
-        from .molobject import CAtomicStructure
-        SetOperators.__init__(self, mol_pointers, CAtomicStructure, CAtomicStructures)
-        set_cvec_pointer(self, mol_pointers)
+        PointerArray.__init__(self, mol_pointers, molobject.CAtomicStructure, CAtomicStructures)
 
     atoms = cvec_property('molecule_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
