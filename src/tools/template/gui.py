@@ -26,13 +26,13 @@ class ToolUI(ToolInstance):
         # in this case), so only override if different name desired
         self.display_name = "custom name for running tool"
         if session.ui.is_gui:
-            self.tool_window = session.ui.creat_main_tool_window(
+            self.tool_window = session.ui.create_main_tool_window(
                 self, size=self.SIZE)
             parent = self.tool_window.ui_area
             # UI content code
             self.tool_window.manage(placement="bottom")
-            # Add to running tool list for session if tool should be saved
-            # in and restored from session and scenes
+        # Add to running tool list for session if tool should be saved
+        # in and restored from session and scenes
         session.tools.add([self])
 
     #
