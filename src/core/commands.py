@@ -218,10 +218,10 @@ def save(session, filename, width=None, height=None, format=None, supersample=No
     from . import session as ses
     if e[1:] in image_file_suffixes:
         save_image(session, filename, width, height, format, supersample)
-    elif e == ses.SUFFIX:
+    elif e == ses.SESSION_SUFFIX:
         ses.save(session, filename)
     else:
-        suffixes = image_file_suffixes + (ses.SUFFIX[1:],)
+        suffixes = image_file_suffixes + (ses.SESSION_SUFFIX[1:],)
         raise cli.UserError('Unrecognized file suffix "%s", require one of %s'
                             % (e, ','.join(suffixes)))
 
