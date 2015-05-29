@@ -201,7 +201,9 @@ class ToolshedUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.VERSION
         data = {"shown": self.tool_window.shown}
         return [version, data]
@@ -210,7 +212,7 @@ class ToolshedUI(ToolInstance):
         from chimera.core.session import State, RestoreError
         if version != self.VERSION:
             raise RestoreError("unexpected version")
-        if phase == State.PHASE1:
+        if phase == self.CREATE_PHASE:
             # Restore all basic-type attributes
             pass
         else:

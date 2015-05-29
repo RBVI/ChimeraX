@@ -322,7 +322,9 @@ class SideViewUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.VERSION
         data = {}
         return [version, data]
@@ -331,7 +333,7 @@ class SideViewUI(ToolInstance):
         if version != self.VERSION or len(data) > 0:
             raise RuntimeError("unexpected version or data")
         from chimera.core.session import State
-        if phase == State.PHASE1:
+        if phase == self.CREATE_PHASE:
             # Restore all basic-type attributes
             pass
         else:
@@ -346,6 +348,7 @@ class SideViewUI(ToolInstance):
     #
     def delete(self):
         self.tool_window.shown = False
+        self.tool_window.destroy()
         self.session.tools.remove([self])
         super().delete()
 

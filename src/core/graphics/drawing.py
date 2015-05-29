@@ -837,10 +837,17 @@ class Drawing:
 
     DRAWING_STATE_VERSION = 1
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        from ..session import State
+        if phase == State.CLEANUP_PHASE:
+            for c in self.child_drawings():
+                c.take_snapshot(session, phase, flags)
+            return
+        if phase != State.SAVE_PHASE:
+            return
         # all drawing objects should have the same version
         data = {
-            'children': [c.take_snapshot(session, flags)[1]
+            'children': [c.take_snapshot(session, phase, flags)[1]
                          for c in self.child_drawings()],
             'name': self.name,
             'vertices': self.vertices,
@@ -872,7 +879,7 @@ class Drawing:
         from ..session import State, RestoreError
         if version != self.DRAWING_STATE_VERSION:
             raise RestoreError("Unexpected version or data")
-        if phase != State.PHASE1:
+        if phase != State.CREATE_PHASE:
             return
         for child_data in data['children']:
             child = self.new_drawing()

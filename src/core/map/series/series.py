@@ -122,7 +122,7 @@ class Map_Series(Model):
     self.solid_level_ranks = ranks
 
   # State save/restore in Chimera 2
-  def take_snapshot(self, session, flags):
+  def take_snapshot(self, phase, session, flags):
     pass
   def restore_snapshot(self, phase, session, version, data):
     pass

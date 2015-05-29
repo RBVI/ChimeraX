@@ -168,7 +168,7 @@ class MapSeries(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         pass
 
     def restore_snapshot(self, phase, session, version, data):

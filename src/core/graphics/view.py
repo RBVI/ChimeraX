@@ -72,22 +72,25 @@ class View:
         if track:
             drawing.set_redraw_callback(dm)
 
-    def take_snapshot(self, session, flags):
-        data = [self.center_of_rotation, self.window_size,
-                self.background_color,
-                self.camera.take_snapshot(session, flags)]
-        return [self.VIEW_STATE_VERSION, data]
+    def take_snapshot(self, phase, session, flags):
+        from ..session import State
+        if phase == State.SAVE_PHASE:
+            data = [self.center_of_rotation, self.window_size,
+                    self.background_color,
+                    self.camera.take_snapshot(session, phase, flags)]
+            return [self.VIEW_STATE_VERSION, data]
+        if phase == State.CLEANUP_PHASE:
+            self.camera.take_snapshot(session, phase, flags)
 
     def restore_snapshot(self, phase, session, version, data):
         from ..session import State, RestoreError
         if version != self.VIEW_STATE_VERSION or len(data) == 0:
             raise RestoreError("Unexpected version or data")
-        if phase != State.PHASE1:
-            return
-        (self.center_of_rotation, self.window_size,
-         self.background_color) = data[:3]
-        from .camera import Camera
-        self.camera = Camera()
+        if phase == State.CREATE_PHASE:
+            (self.center_of_rotation, self.window_size,
+             self.background_color) = data[:3]
+            from .camera import Camera
+            self.camera = Camera()
         self.camera.restore_snapshot(phase, session, data[3][0], data[3][1])
 
     def reset_state(self):

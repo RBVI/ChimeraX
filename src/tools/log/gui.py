@@ -106,16 +106,18 @@ class Log(ToolInstance, HtmlLog):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.STATE_VERSION
         data = {"shown": self.tool_window.shown}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State, RestoreError
+        from chimera.core.session import RestoreError
         if version != self.STATE_VERSION:
             raise RestoreError("unexpected version")
-        if phase == State.PHASE1:
+        if phase == self.CREATE_PHASE:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved
             pass

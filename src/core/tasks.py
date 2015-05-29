@@ -338,7 +338,7 @@ class Tasks(State):
         import itertools
         self._id_counter = itertools.count(1)
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         """Save state of running tasks.
 
         Overrides :py:class:`~chimera.core.session.State` default method
@@ -355,13 +355,18 @@ class Tasks(State):
             more details.
 
         """
-        data = {}
-        for tid, t in self._tasks.items():
-            assert(isinstance(t, Task))
-            if t.state == RUNNING and not t.SESSION_SKIP:
-                data[tid] = [session.unique_id(t),
-                             t.take_snapshot(session, flags)]
-        return [self.VERSION, data]
+        if phase == self.SAVE_PHASE:
+            data = {}
+            for tid, t in self._tasks.items():
+                assert(isinstance(t, Task))
+                if t.state == RUNNING and not t.SESSION_SKIP:
+                    data[tid] = [session.unique_id(t),
+                                 t.take_snapshot(session, phase, flags)]
+            return [self.VERSION, data]
+        elif phase == self.CLEANUP_PHASE:
+            for tid, t in self._tasks.items():
+                if t.state == RUNNING and not t.SESSION_SKIP:
+                    t.take_snapshot(session, phase, flags)
 
     def restore_snapshot(self, phase, session, version, data):
         """Restore state of running tasks.
@@ -389,7 +394,7 @@ class Tasks(State):
 
         session = self._session()   # resolve back reference
         for tid, [uid, [task_version, task_data]] in data.items():
-            if phase == State.PHASE1:
+            if phase == self.CREATE_PHASE:
                 try:
                     cls = session.class_of_unique_id(uid, Task)
                 except KeyError:
