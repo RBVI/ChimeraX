@@ -318,7 +318,7 @@ extern "C" void residue_atoms(void *residues, int n, void **atoms)
     {
       const Residue::Atoms &a = r[i]->atoms();
       for (int j = 0 ; j < a.size() ; ++j)
-	*atoms++ = a[i];
+	*atoms++ = a[j];
     }
 }
 
