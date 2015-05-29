@@ -1,6 +1,7 @@
 #include <Python.h>	// Use PyUnicode_FromString
 
 #include "atomstruct/Atom.h"
+#include "atomstruct/Chain.h"
 #include "atomstruct/Residue.h"
 #include "blob/StructBlob.h"
 #include "pythonarray.h"	// Use python_voidp_array()
@@ -523,4 +524,28 @@ extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
     }
 
   PyGILState_Release(gstate);
+}
+
+extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
+{
+  // To use Python in this function which is called by ctypes,
+  // must acquire the global interpreter lock.
+  PyGILState_STATE gstate;
+  gstate = PyGILState_Ensure();
+
+  AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+  std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
+  PyObject *poly = PyTuple_New(polymers.size());
+  int p = 0;
+  for (auto resvec: polymers) {
+	void **ra;
+	PyObject *r_array = python_voidp_array(resvec.size(), &ra);
+	int i = 0;
+        for (auto r: resvec)
+	  ra[i++] = static_cast<void *>(r);
+	PyTuple_SetItem(poly, p++, r_array);
+  }	
+
+  PyGILState_Release(gstate);
+  return poly;
 }

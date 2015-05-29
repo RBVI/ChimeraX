@@ -155,17 +155,14 @@ def set_cvec_pointer(self, pointers):
 # Look up a C function and set its argument types if they have not been set.
 #
 def c_array_function(name, dtype):
-    f = molc_function(name)
-    if f.argtypes is None:
-        f.restype = None
-        import ctypes
-        f.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(numpy_type_to_ctype[dtype])]
-    return f
+    import ctypes
+    args = (ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(numpy_type_to_ctype[dtype]))
+    return c_function(name, args = args)
 
 # -----------------------------------------------------------------------------
 #
 _molc_lib = None
-def molc_function(func_name, lib_name = 'libmolc.dylib'):
+def c_function(func_name, lib_name = 'libmolc.dylib', args = None, ret = None):
     global _molc_lib
     if _molc_lib is None:
         from os import path
@@ -173,6 +170,9 @@ def molc_function(func_name, lib_name = 'libmolc.dylib'):
         from numpy import ctypeslib
         _molc_lib = ctypeslib.load_library(libpath, '.')
     f = getattr(_molc_lib, func_name)
+    if not args is None and f.argtypes is None:
+        f.argtypes = args
+        f.restype = ret
     return f
 
 # -----------------------------------------------------------------------------

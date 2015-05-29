@@ -1,5 +1,6 @@
 from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, c_property, set_c_pointer
+from .molc import string, cptr, pyobject, c_property, set_c_pointer, c_function
+import ctypes
 
 # -------------------------------------------------------------------------------
 # These routines convert C++ pointers to Python objects and are used for defining
@@ -109,6 +110,14 @@ class CAtomicStructure:
     num_residues = c_property('molecule_num_residues', int32, read_only = True)
     residues = c_property('molecule_residues', cptr, 'num_residues', astype = _residues, read_only = True)
     pbg_map = c_property('molecule_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
+
+    def polymers(self, consider_missing_structure = True, consider_chains_ids = True):
+        f = c_function('molecule_polymers',
+                       args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int),
+                       ret = ctypes.py_object)
+        resarrays = f(self._c_pointer, consider_missing_structure, consider_chains_ids)
+        from .molarray import Residues
+        return tuple(Residues(ra) for ra in resarrays)
 
 # -----------------------------------------------------------------------------
 #
