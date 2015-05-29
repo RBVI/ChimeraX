@@ -69,10 +69,14 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         return [self.MODEL_STATE_VERSION, self.name]
 
     def restore_snapshot(self, phase, session, version, data):
+        if phase != self.CREATE_PHASE:
+            return
         if version != self.MODEL_STATE_VERSION:
             raise RestoreError("Unexpected version")
         self.name = data
@@ -100,14 +104,22 @@ class Models(State):
         from itertools import count as _count
         self._id_counter = _count(1)
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase == self.CLEANUP_PHASE:
+            for model in self._models.values():
+                if model.SESSION_SKIP:
+                    continue
+                model.take_snapshot(session, phase, flags)
+            return
+        if phase != self.SAVE_PHASE:
+            return
         data = {}
         for id, model in self._models.items():
             assert(isinstance(model, Model))
             if model.SESSION_SKIP:
                 continue
             data[id] = [session.unique_id(model),
-                        model.take_snapshot(session, flags)]
+                        model.take_snapshot(session, phase, flags)]
         return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
@@ -115,7 +127,7 @@ class Models(State):
             raise RestoreError("Unexpected version")
 
         for id, [uid, [model_version, model_data]] in data.items():
-            if phase == State.PHASE1:
+            if phase == self.CREATE_PHASE:
                 print('restoring1', uid)
                 try:
                     cls = session.class_of_unique_id(uid, Model)

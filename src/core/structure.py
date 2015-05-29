@@ -38,7 +38,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
         self.make_drawing()
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         data = {}
         return [self.STRUCTURE_STATE_VERSION, data]
 
