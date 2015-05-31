@@ -106,7 +106,7 @@ def cvec_property(func_name, value_type, value_count = 1, read_only = False, ast
     cget = c_array_function(func_name, value_type)
     def get_prop(self):
         # Get an attribute for multiple objects.
-        n = self._nobj
+        n = len(self._pointer_array)
         vc = getattr(self,value_count) if isinstance(value_count,str) else value_count
         shape = ((n,) if vc == 1 or not per_object else (n,vc)) if per_object else (vc.sum(),)
         values = empty(shape, value_type)
@@ -118,7 +118,7 @@ def cvec_property(func_name, value_type, value_count = 1, read_only = False, ast
     else:
         cset = c_array_function('set_'+func_name, value_type)
         def set_prop(self, values):
-            n = self._nobj
+            n = len(self._pointer_array)
             vdim = 1 if value_count == 1 else 2
             if isinstance(values,ndarray) and values.ndim == vdim:
                 # Values are already specified as a numpy array.
@@ -149,7 +149,7 @@ def set_c_pointer(self, pointer):
 #
 def set_cvec_pointer(self, pointers):
     self._c_pointers = pointer(pointers)
-    self._nobj = len(pointers)
+    self._pointer_array = pointers
 
 # -----------------------------------------------------------------------------
 # Look up a C function and set its argument types if they have not been set.
