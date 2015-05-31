@@ -529,7 +529,7 @@ extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
     {
       PyObject* pbg_map = PyDict_New();
       for (auto grp_info: m[i]->pb_mgr().group_map()) {
-        Pyobject* name = PyUnicode_FromString(grp_info.first.c_str());
+        PyObject* name = PyUnicode_FromString(grp_info.first.c_str());
 	// Put these in numpy array: grp_info.second->pseudobonds() (type std::set<PBond*>)
 	int np = grp_info.second->pseudobonds().size();
 	void **pbga;
