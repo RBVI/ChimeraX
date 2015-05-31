@@ -24,6 +24,8 @@ class MouseModePanel(ToolInstance):
                    ('rotate selected models', 'rotate_h2o.png', self.rotate_selected_mode),
                    ('contour level', 'contour.png', self.contour_mode),
                    ('move planes', 'cubearrow.png', self.move_planes_mode),
+                   ('place marker', 'marker.png', self.marker_mode),
+                   ('mark centroid', 'marker2.png', self.mark_center_mode),
                    ('play map series', 'vseries.png', self.map_series_mode),
                )
         self.buttons = []
@@ -66,6 +68,14 @@ class MouseModePanel(ToolInstance):
     def move_planes_mode(self, event):
         from chimera.core import shortcuts
         shortcuts.enable_move_planes_mouse_mode(self.mouse_modes)
+
+    def marker_mode(self, event):
+        from chimera.core import shortcuts
+        shortcuts.enable_marker_mouse_mode(self.mouse_modes)
+
+    def mark_center_mode(self, event):
+        from chimera.core import shortcuts
+        shortcuts.enable_mark_center_mouse_mode(self.mouse_modes)
 
     def map_series_mode(self, event):
         from chimera.core import shortcuts
