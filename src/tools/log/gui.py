@@ -33,6 +33,7 @@ class Log(ToolInstance, HtmlLog):
         session.tools.add([self])
         session.logger.add_log(self)
         self.log_window.Bind(wx.EVT_CLOSE, self.window_close)
+        self.log_window.Bind(wx.EVT_SIZE, self.window_size)
 
     #
     # Implement logging
@@ -102,6 +103,10 @@ class Log(ToolInstance, HtmlLog):
 
     def window_close(self, event):
         self.session.logger.remove_log(self)
+
+    def window_size(self, event):
+        # try to get to same scroll position
+        self.log_window.HistoryBack()
 
     #
     # Implement session.State methods if deriving from ToolInstance

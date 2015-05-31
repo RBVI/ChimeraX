@@ -145,8 +145,8 @@ class MainWindow(wx.Frame, PlainTextLog):
         self._build_menus(session)
 
         session.logger.add_log(self)
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
-        self.Bind(EVT_AUI_PANE_CLOSE, self.OnPaneClose)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+        self.Bind(EVT_AUI_PANE_CLOSE, self.on_pane_close)
 
     def close(self):
         self.aui_mgr.UnInit()
@@ -158,10 +158,20 @@ class MainWindow(wx.Frame, PlainTextLog):
     def log(self, *args, **kw):
         return False
 
-    def OnClose(self, event):
+    def on_close(self, event):
         self.close()
 
-    def OnOpen(self, event, session):
+    def on_copy(self, event):
+        widget = self.FindFocus()
+        if self._widget_editable(widget):
+            widget.Copy()
+
+    def on_cut(self, event):
+        widget = self.FindFocus()
+        if self._widget_editable(widget):
+            widget.Cut()
+
+    def on_open(self, event, session):
         from . import io
         dlg = wx.FileDialog(self, "Open file",
             wildcard=io.wx_open_file_filter(all=True),
@@ -172,7 +182,7 @@ class MainWindow(wx.Frame, PlainTextLog):
         paths = dlg.GetPaths()
         session.models.open(paths)
 
-    def OnPaneClose(self, event):
+    def on_pane_close(self, event):
         pane_info = event.GetPane()
         tool_window = self.tool_pane_to_window[pane_info.window]
         tool_instance = tool_window.tool_instance
@@ -197,10 +207,15 @@ class MainWindow(wx.Frame, PlainTextLog):
             if not destroy_hides:
                 del self.tool_instance_to_windows[tool_instance]
 
-    def OnQuit(self, event):
+    def on_paste(self, event):
+        widget = self.FindFocus()
+        if self._widget_editable(widget):
+            widget.Paste()
+
+    def on_quit(self, event):
         self.close()
 
-    def OnSaveSession(self, event, ses):
+    def on_save_session(self, event, ses):
         from . import io
         try:
             ses_filter = io.wx_export_file_filter(io.SESSION)
@@ -300,14 +315,22 @@ class MainWindow(wx.Frame, PlainTextLog):
         file_menu = wx.Menu()
         menu_bar.Append(file_menu, "&File")
         item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
-        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnOpen(evt, ses),
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_open(evt, ses),
             item)
         item = file_menu.Append(wx.ID_ANY, "Save Session...", "Save session file")
-        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnSaveSession(evt, ses),
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save_session(evt, ses),
             item)
         if not sys.platform.startswith("darwin"):
             item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
-            self.Bind(wx.EVT_MENU, self.OnQuit, item)
+            self.Bind(wx.EVT_MENU, self.on_quit, item)
+        edit_menu = wx.Menu()
+        menu_bar.Append(edit_menu, "&Edit")
+        item = edit_menu.Append(wx.ID_CUT, "Cut\tCtrl-X", "Cut text")
+        self.Bind(wx.EVT_MENU, self.on_cut, item)
+        item = edit_menu.Append(wx.ID_COPY, "Copy\tCtrl-C", "Copy text")
+        self.Bind(wx.EVT_MENU, self.on_copy, item)
+        item = edit_menu.Append(wx.ID_PASTE, "Paste\tCtrl-V", "Paste text")
+        self.Bind(wx.EVT_MENU, self.on_paste, item)
         tools_menu = wx.Menu()
         categories = {}
         for ti in session.toolshed.tool_info():
@@ -334,6 +357,9 @@ class MainWindow(wx.Frame, PlainTextLog):
         if is_main_window:
             for window in all_windows[1:]:
                 window._set_shown(shown)
+
+    def _widget_editable(widget):
+        return widget and widget != self.graphics_window.opengl_canvas
 
 class ToolWindow:
     """An area that a tool can populate with widgets.

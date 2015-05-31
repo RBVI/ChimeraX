@@ -162,7 +162,7 @@ def c_array_function(name, dtype):
 # -----------------------------------------------------------------------------
 #
 _molc_lib = None
-def c_function(func_name, lib_name = 'libmolc.dylib', args = None, ret = None):
+def c_function(func_name, lib_name = 'libmolc', args = None, ret = None):
     global _molc_lib
     if _molc_lib is None:
         from os import path

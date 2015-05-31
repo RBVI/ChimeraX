@@ -101,14 +101,14 @@ class OpenGLCanvas(glcanvas.GLCanvas):
 
         if ui:
             self.Bind(wx.EVT_CHAR, ui.forward_keystroke)
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_SIZE, self.on_size)
 
-    def OnPaint(self, event):
+    def on_paint(self, event):
         # self.SetCurrent(view.opengl_context())
         self.view.draw()
 
-    def OnSize(self, event):
+    def on_size(self, event):
         wx.CallAfter(self.set_viewport)
         event.Skip()
 
