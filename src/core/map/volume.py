@@ -1063,11 +1063,15 @@ class Volume(Model):
         return PickedMap(self, f)
 
     from ..graphics import Drawing
-    p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
-    if p:
-      d = p.drawing()
+    pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    if pd:
+      d = pd.drawing()
       detail = '%s triangles %d' % (d.name, len(d.triangles))
-      p = PickedMap(self, p.distance, detail)
+      p = PickedMap(self, pd.distance, detail)
+      p.triangle_pick = pd
+    else:
+      p = None
+
     return p
 
   # ---------------------------------------------------------------------------
