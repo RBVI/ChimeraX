@@ -660,3 +660,42 @@ extern "C" void pointer_array_freed(void *numpy_array)
     array_updater->remove_array(numpy_array);
 }
 
+class Object_Map_Deletion_Handler : DestructionObserver
+{
+public:
+  Object_Map_Deletion_Handler(PyObject *object_map) : object_map(object_map) {}
+private:
+  PyObject *object_map;	// Dictionary from C++ pointer to Python wrapped object having a _c_pointer attribute.
+  virtual void  destructors_done(const std::set<void*>& destroyed)
+  {
+    // Make sure we have the Python global interpreter lock.
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+    remove_deleted_objects(destroyed);
+    PyGILState_Release(gstate);
+  }
+  void remove_deleted_objects(const std::set<void*>& destroyed)
+  {
+    if (PyDict_Size(object_map) == 0)
+      return;
+    // TODO: Optimize by looping over object_map if it is smaller than destroyed.
+    for (auto d: destroyed)
+      {
+	PyObject *dp = PyLong_FromVoidPtr(d);
+	if (PyDict_Contains(object_map, dp))
+	  {
+	    PyObject *po = PyDict_GetItem(object_map, dp);
+	    PyObject_DelAttrString(po, "_c_pointer");
+	    PyObject_DelAttrString(po, "_c_pointer_ref");
+	    PyDict_DelItem(object_map, dp);
+	  }
+	Py_DECREF(dp);
+      }
+  }
+};
+
+extern "C" void object_map_deletion_handler(void *object_map)
+{
+  new Object_Map_Deletion_Handler(static_cast<PyObject *>(object_map));
+}
+

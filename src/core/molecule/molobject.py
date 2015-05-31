@@ -144,3 +144,15 @@ def object_map(p, object_type):
 
 def set_object_map(p, object):
     _object_map[p] = object
+
+def register_object_map_deletion_handler(omap):
+    '''
+    When a C++ object such as an Atom is deleted the pointer is removed
+    from the object map if it exists and the Python object has its _c_pointer
+    attribute deleted.
+    '''
+    f = c_function('object_map_deletion_handler', args = [ctypes.c_void_p])
+    p = ctypes.c_void_p(id(omap))
+    f(p)
+
+register_object_map_deletion_handler(_object_map)
