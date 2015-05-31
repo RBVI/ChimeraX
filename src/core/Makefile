@@ -2,15 +2,15 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
-	   basegeom_cpp \
+	   basegeom_cpp chutil_cpp \
 	   devices \
 	   geometry graphics \
-	   molecule _mmcif \
 	   ioutil_cpp logger_cpp \
+	   map molecule _mmcif \
 	   pdb_cpp pdbio pseudobond_cpp \
 	   readcif_cpp \
-	   surface toolshed ui chutil_cpp \
-	   map webservices
+	   surface toolshed ui \
+	   webservices
 
 include $(TOP)/mk/subdir.make
 
