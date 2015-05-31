@@ -399,6 +399,12 @@ extern "C" void residue_unique_id(void *residues, int n, int *rids)
     }
 }
 
+extern "C" void residue_add_atom(void *res, void *atom)
+{
+  Residue *r = static_cast<Residue *>(res);
+  r->add_atom(static_cast<Atom *>(atom));
+}
+
 extern "C" void chain_chain_id(void *chains, int n, void **cids)
 {
   Chain **c = static_cast<Chain **>(chains);
@@ -569,10 +575,37 @@ extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure
   return poly;
 }
 
+extern "C" void *molecule_new()
+{
+  AtomicStructure *m = new AtomicStructure();
+  return m;
+}
+
 extern "C" void molecule_delete(void *mol)
 {
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
   delete m;
+}
+
+extern "C" void *molecule_new_atom(void *mol, const char *atom_name, const char *element_name)
+{
+  AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+  Atom *a = m->new_atom(atom_name, Element(element_name));
+  return a;
+}
+
+extern "C" void *molecule_new_bond(void *mol, void *atom1, void *atom2)
+{
+  AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+  Bond *b = m->new_bond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
+  return b;
+}
+
+extern "C" void *molecule_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos)
+{
+  AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+  Residue *r = m->new_residue(residue_name, chain_id, pos, ' ');
+  return r;
 }
 
 static void *init_numpy()
@@ -589,7 +622,11 @@ class Array_Updater : DestructionObserver
 public:
   Array_Updater()
     {
+      // Make sure we have the Python global interpreter lock.
+      PyGILState_STATE gstate;
+      gstate = PyGILState_Ensure();
       init_numpy();
+      PyGILState_Release(gstate);
     }
   void add_array(PyObject *numpy_array)
     { arrays.insert(reinterpret_cast<PyArrayObject *>(numpy_array)); }
@@ -642,16 +679,10 @@ class Array_Updater *array_updater = NULL;
 
 extern "C" void remove_deleted_c_pointers(PyObject *numpy_array)
 {
-  // Make sure we have the Python global interpreter lock.
-  PyGILState_STATE gstate;
-  gstate = PyGILState_Ensure();
-
   if (array_updater == NULL)
     array_updater = new Array_Updater();
 
   array_updater->add_array(numpy_array);
-
-  PyGILState_Release(gstate);
 }
 
 extern "C" void pointer_array_freed(void *numpy_array)

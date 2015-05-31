@@ -17,7 +17,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
     BALL_STYLE = 2
     STICK_STYLE = 3
 
-    def __init__(self, name, atomic_structure_pointer):
+    def __init__(self, name, atomic_structure_pointer = None):
 
         CAtomicStructure.__init__(self, atomic_structure_pointer)
         from . import molecule
@@ -132,6 +132,10 @@ class AtomicStructure(CAtomicStructure, models.Model):
         p.normals = na
 
         self.update_atom_graphics(coords, radii, colors, display)
+
+    def new_atoms(self):
+        self._atoms = None
+        self.update_graphics()
 
     def update_graphics(self):
         a = self.atoms

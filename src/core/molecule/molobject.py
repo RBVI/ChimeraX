@@ -91,6 +91,10 @@ class Residue:
     unique_id = c_property('residue_unique_id', int32, read_only = True)
     # TODO: Currently no C++ method to get Chain
 
+    def add_atom(self, atom):
+        f = c_function('residue_add_atom', args = (ctypes.c_void_p, ctypes.c_void_p))
+        f(self._c_pointer, atom._c_pointer)
+
 # -----------------------------------------------------------------------------
 #
 class Chain:
@@ -107,7 +111,10 @@ class Chain:
 #
 class CAtomicStructure:
 
-    def __init__(self, mol_pointer):
+    def __init__(self, mol_pointer = None):
+        if mol_pointer is None:
+            # Create a new molecule
+            mol_pointer = c_function('molecule_new', args = (), ret = ctypes.c_void_p)()
         set_c_pointer(self, mol_pointer)
 
     def delete(self):
@@ -123,6 +130,27 @@ class CAtomicStructure:
     num_residues = c_property('molecule_num_residues', int32, read_only = True)
     residues = c_property('molecule_residues', cptr, 'num_residues', astype = _residues, read_only = True)
     pbg_map = c_property('molecule_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
+
+    def new_atom(self, atom_name, element_name):
+        f = c_function('molecule_new_atom',
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p),
+                       ret = ctypes.c_void_p)
+        ap = f(self._c_pointer, atom_name.encode('utf-8'), element_name.encode('utf-8'))
+        return object_map(ap, Atom)
+
+    def new_bond(self, atom1, atom2):
+        f = c_function('molecule_new_bond',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
+                       ret = ctypes.c_void_p)
+        bp = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
+        return object_map(bp, Bond)
+
+    def new_residue(self, residue_name, chain_id, pos):
+        f = c_function('molecule_new_residue',
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int),
+                       ret = ctypes.c_void_p)
+        rp = f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos)
+        return object_map(rp, Residue)
 
     def polymers(self, consider_missing_structure = True, consider_chains_ids = True):
         f = c_function('molecule_polymers',
