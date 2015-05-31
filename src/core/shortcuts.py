@@ -150,6 +150,8 @@ def standard_shortcuts(session):
         ('mS', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
         ('mP', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
+        ('mk', enable_marker_mouse_mode, 'Place marker mouse mode', mapcat, mmarg, msmenu),
+        ('mc', enable_mark_center_mouse_mode, 'Mark center mouse mode', mapcat, mmarg, msmenu),
         ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, mmarg, msmenu),
 #        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
@@ -436,6 +438,18 @@ def enable_contour_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
     from .map import ContourLevelMouseMode
     m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
+
+def enable_marker_mouse_mode(mouse_modes, button = 'right', center = False):
+    m = mouse_modes
+    if not hasattr(m, '_marker_mouse_mode'):
+        from .markers import MarkerMouseMode
+        m._marker_mouse_mode = MarkerMouseMode(m.session)
+    mode = m._marker_mouse_mode
+    mode.center = center
+    m.bind_mouse_mode(button, mode)
+
+def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
+    enable_marker_mouse_mode(mouse_modes, button, center = True)
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
