@@ -50,6 +50,9 @@ class Model(State, Drawing):
         self.id = None
         # TODO: track.created(Model, [self])
 
+    def delete(self):
+        Drawing.delete(self)
+
     def id_string(self):
         return '.'.join(str(i) for i in self.id)
 
@@ -221,7 +224,7 @@ class Models(State):
                     parent = self.drawing
                 else:
                     parent = self._models[model_id[:-1]]
-                parent.remove_drawing(model)
+                parent.remove_drawing(model, delete = False)
 
         if len(self._models) == 0:
             from itertools import count as _count
