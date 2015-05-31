@@ -1,12 +1,16 @@
 #include <Python.h>	// Use PyUnicode_FromString
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
+
 #include "atomstruct/Atom.h"
 #include "atomstruct/Chain.h"
 #include "atomstruct/Residue.h"
+#include "basegeom/destruct.h"		// Use DestructionObserver
 #include "blob/StructBlob.h"
-#include "pythonarray.h"	// Use python_voidp_array()
+#include "pythonarray.h"		// Use python_voidp_array()
 
-//#include <iostream>
+#include <iostream>
 
 using namespace atomstruct;
 using namespace basegeom;
@@ -72,6 +76,21 @@ extern "C" void set_atom_coord(void *atoms, int n, double *xyz)
       Real x = *xyz++, y = *xyz++, z = *xyz++;
       a[i]->set_coord(Coord(x,y,z));
     }
+}
+
+extern "C" void atom_delete(void *atoms, int n)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+
+  // Copy because deleting atoms modifies the input array.
+  Atom **acopy = new Atom*[n];
+  for (int i = 0 ; i < n ; ++i)
+    acopy[i] = a[i];
+  
+  for (int i = 0 ; i < n ; ++i)
+    acopy[i]->structure()->delete_atom(acopy[i]);
+
+  delete [] acopy;
 }
 
 extern "C" void atom_display(void *atoms, int n, unsigned char *disp)
@@ -510,7 +529,7 @@ extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
     {
       PyObject* pbg_map = PyDict_New();
       for (auto grp_info: m[i]->pb_mgr().group_map()) {
-        PyObject* name = PyUnicode_FromString(grp_info.first.c_str());
+        Pyobject* name = PyUnicode_FromString(grp_info.first.c_str());
 	// Put these in numpy array: grp_info.second->pseudobonds() (type std::set<PBond*>)
 	int np = grp_info.second->pseudobonds().size();
 	void **pbga;
@@ -549,3 +568,95 @@ extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure
   PyGILState_Release(gstate);
   return poly;
 }
+
+extern "C" void molecule_delete(void *mol)
+{
+  AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+  delete m;
+}
+
+static void *init_numpy()
+{
+  import_array(); // Initialize use of numpy
+  return NULL;
+}
+
+// ---------------------------------------------------------------------------
+// When a C++ object is deleted eliminate it from numpy arrays of pointers.
+//
+class Array_Updater : DestructionObserver
+{
+public:
+  Array_Updater()
+    {
+      init_numpy();
+    }
+  void add_array(PyObject *numpy_array)
+    { arrays.insert(reinterpret_cast<PyArrayObject *>(numpy_array)); }
+  void remove_array(void *numpy_array)
+    { arrays.erase(reinterpret_cast<PyArrayObject *>(numpy_array)); }
+private:
+  virtual void  destructors_done(const std::set<void*>& destroyed)
+  {
+    // Make sure we have the Python global interpreter lock.
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
+    for (auto a: arrays)
+      filter_array(a, destroyed);
+
+    PyGILState_Release(gstate);
+  }
+  void filter_array(PyArrayObject *a, const std::set<void*>& destroyed)
+  {
+    // Remove any destroyed pointers from numpy array and shrink the array in place.
+    // Numpy array must be contiguous, 1 dimensional array.
+    void **ae = static_cast<void **>(PyArray_DATA(a));
+    npy_intp s = PyArray_SIZE(a);
+    npy_intp j = 0;
+    for (npy_intp i = 0; i < s ; ++i)
+      if (destroyed.find(ae[i]) == destroyed.end())
+	ae[j++] = ae[i];
+    if (j < s)
+      {
+	//std::cerr << "resizing array " << a << " from " << s << " to " << j << std::endl;
+	*PyArray_DIMS(a) = j;	// TODO: This hack may break numpy.
+	/*
+	// Numpy array can't be resized with weakref made by weakref.finalize().  Not sure why.
+	// Won't work anyways because array will reallocate while looping over old array of atoms being deleted.
+	PyArray_Dims dims;
+	dims.len = 1;
+	dims.ptr = &j;
+	std::cerr << " base " << PyArray_BASE(a) << " weak " << ((PyArrayObject_fields *)a)->weakreflist << std::endl;
+	if (PyArray_Resize(a, &dims, 0, NPY_CORDER) == NULL)
+	  {
+	    std::cerr << "Failed to delete molecule object pointers from numpy array." << std::endl;
+	    PyErr_Print();
+	  }
+	*/
+      }
+  }
+  std::set<PyArrayObject *> arrays;
+};
+class Array_Updater *array_updater = NULL;
+
+extern "C" void remove_deleted_c_pointers(PyObject *numpy_array)
+{
+  // Make sure we have the Python global interpreter lock.
+  PyGILState_STATE gstate;
+  gstate = PyGILState_Ensure();
+
+  if (array_updater == NULL)
+    array_updater = new Array_Updater();
+
+  array_updater->add_array(numpy_array);
+
+  PyGILState_Release(gstate);
+}
+
+extern "C" void pointer_array_freed(void *numpy_array)
+{
+  if (array_updater)
+    array_updater->remove_array(numpy_array);
+}
+
