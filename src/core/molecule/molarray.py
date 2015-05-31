@@ -1,5 +1,5 @@
 from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer
+from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function
 from . import molobject
 
 def _atoms(a):
@@ -35,6 +35,7 @@ class PointerArray:
         self._object_class = object_class
         self._objects_class = objects_class
         set_cvec_pointer(self, pointers)
+        remove_deleted_pointers(pointers)
 
     def __len__(self):
         return len(self._pointers)
@@ -82,6 +83,14 @@ class Atoms(PointerArray):
     names = cvec_property('atom_name', string, read_only = True)
     radii = cvec_property('atom_radius', float32)
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
+
+    def delete(self):
+        '''Delete the C++ Atom objects'''
+        mols = self.unique_molecules
+        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_int])(self._c_pointers, len(self))
+        # TODO: Graphics update should be handled by notifiers.
+        for m in mols:
+            m.update_graphics()
 
 # -----------------------------------------------------------------------------
 #
@@ -159,3 +168,15 @@ class CAtomicStructures(PointerArray):
     residues = cvec_property('molecule_residues', cptr, 'num_residues', astype = _residues,
                              read_only = True, per_object = False)
     pbg_maps = cvec_property('molecule_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
+
+# -----------------------------------------------------------------------------
+# When C++ object is deleted, delete it from the specified pointer array.
+#
+def remove_deleted_pointers(array):
+    remove_deleted_c_pointers(array)
+    import weakref
+    weakref.finalize(array, pointer_array_freed, id(array))
+
+import ctypes
+remove_deleted_c_pointers = c_function('remove_deleted_c_pointers', args = [ctypes.py_object])
+pointer_array_freed = c_function('pointer_array_freed', args = [ctypes.c_void_p])
