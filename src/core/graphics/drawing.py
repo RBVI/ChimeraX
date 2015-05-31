@@ -1209,7 +1209,7 @@ class TrianglePick(Pick):
     '''
     def __init__(self, distance, triangle_number, copy_number, drawing):
         Pick.__init__(self, distance)
-        self._triangle = triangle_number
+        self.triangle_number = triangle_number
         self._copy = copy_number
         self._drawing = drawing
 
@@ -1220,7 +1220,7 @@ class TrianglePick(Pick):
             fields.append(d.name)
         if len(d.positions) > 1:
             fields.append('copy %d' % self._copy)
-        fields.append('triangle %d of %d' % (self._triangle, len(d.triangles)))
+        fields.append('triangle %d of %d' % (self.triangle_number, len(d.triangles)))
         desc = ' '.join(fields)
         return desc
 
