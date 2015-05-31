@@ -38,6 +38,11 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
         self.make_drawing()
 
+    def delete(self):
+        self._atoms = None
+        CAtomicStructure.delete(self)
+        models.Model.delete(self)
+
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
             return
@@ -158,7 +163,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
         asel = self._selected_atoms
         if not asel is None:
-            p.selected_positions = asel if asel.sum() > 0 else None
+            # If the selected atoms array has wrong length, atoms deleted, clear selection.
+            p.selected_positions = asel if asel.sum() > 0 and len(asel) == n else None
 
     def atom_display_radii(self):
         a = self.atoms
@@ -228,6 +234,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
     def update_pseudobond_graphics(self, name, bond_atoms, radii,
                                    bond_colors, half_bond_coloring):
+#        print ('pseudobond chain ids', bond_atoms[0].residues.chain_ids, bond_atoms[1].residues.chain_ids)
         pg = self._pseudobond_group_drawings
         if not name in pg:
             pg[name] = p = self.new_drawing(name)
