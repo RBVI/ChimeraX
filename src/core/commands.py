@@ -73,6 +73,12 @@ def close(session, model_ids = None):
 _close_desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
                           synopsis='close models')
 
+def delete(session, atoms):
+    atoms.delete()
+from .structure import AtomsArg
+_delete_desc = cli.CmdDesc(required=[('atoms', AtomsArg)],
+                           synopsis='delete atoms')
+
 def list(session):
     models = session.models.list()
     if len(models) == 0:
@@ -277,6 +283,7 @@ def register(session):
     cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)
     cli.register('close', _close_desc, close)
+    cli.register('delete', _delete_desc, delete)
     cli.register('export', _export_desc, export)
     cli.register('list', _list_desc, list)
     cli.register('stop', _stop_desc, stop)
