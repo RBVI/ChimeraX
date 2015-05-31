@@ -110,6 +110,9 @@ class CAtomicStructure:
     def __init__(self, mol_pointer):
         set_c_pointer(self, mol_pointer)
 
+    def delete(self):
+        c_function('molecule_delete', args = (ctypes.c_void_p,))(self._c_pointer)
+
     atoms = c_property('molecule_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     bonds = c_property('molecule_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     chains = c_property('molecule_chains', cptr, 'num_chains', astype = _chains, read_only = True)
