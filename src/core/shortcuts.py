@@ -337,24 +337,19 @@ def shortcut_molecules(session):
     return mols
 
 def shortcut_atoms(session):
+    matoms = []
     sel = session.selection
-    matoms = sel.items('atoms')
-    if len(matoms) == 0 and sel.empty():
+    atoms_list = sel.items('atoms')
+    if atoms_list:
+        for atoms in atoms_list:
+            matoms.extend(atoms.by_molecule)
+    elif sel.empty():
+        # Nothing selected, so operate on all atoms
         from .structure import AtomicStructure
         for m in session.models.list():
-            if isinstance(m, AtomicStructure):
-                a = m.atoms
-                if len(a) > 0:
-                    matoms.append((m,a))
+            if isinstance(m, AtomicStructure) and m.num_atoms > 0:
+                matoms.append((m,m.atoms))
     return matoms
-
-def shortcut_selection(session):
-  from .parse import Selection
-  sel = Selection()
-  sel.add_atoms(shortcut_atoms(session))
-  sel.add_models(shortcut_surfaces(session))
-  sel.add_models(shortcut_maps(session))
-  return sel
 
 def shortcut_surfaces(session):
     sel = session.selection

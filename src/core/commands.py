@@ -338,5 +338,5 @@ def _sel_selector(session, models, results):
         if m.any_part_selected():
             results.add_model(m)
             if isinstance(m, AtomicStructure):
-                for m, atoms in m.selected_items('atoms'):
+                for atoms in m.selected_items('atoms'):
                     results.add_atoms(atoms)
