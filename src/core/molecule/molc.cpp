@@ -29,6 +29,28 @@ extern "C" void set_atom_bfactor(void *atoms, int n, float *bfactors)
     a[i]->set_bfactor(bfactors[i]);
 }
 
+extern "C" void atom_bonds(void *atoms, int n, void **bonds)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    {
+      const Atom::Bonds &b = a[i]->bonds();
+      for (int j = 0 ; j < b.size() ; ++j)
+	*bonds++ = b[j];
+    }
+}
+
+extern "C" void atom_bonded_atoms(void *atoms, int n, void **batoms)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    {
+      const Atom::Bonds &b = a[i]->bonds();
+      for (int j = 0 ; j < b.size() ; ++j)
+	*batoms++ = b[j]->other_atom(a[i]);
+    }
+}
+
 extern "C" void atom_color(void *atoms, int n, unsigned char *rgba)
 {
   Atom **a = static_cast<Atom **>(atoms);
@@ -54,6 +76,12 @@ extern "C" void set_atom_color(void *atoms, int n, unsigned char *rgba)
       c.a = *rgba++;
       a[i]->set_color(c);
     }
+}
+
+extern "C" int atom_connects_to(void *atom, void *atom2)
+{
+  Atom *a = static_cast<Atom *>(atom), *a2 = static_cast<Atom *>(atom2);
+  return (a->connects_to(a2) ? 1 : 0);
 }
 
 extern "C" void atom_coord(void *atoms, int n, double *xyz)
@@ -147,6 +175,13 @@ extern "C" void atom_name(void *atoms, int n, void **names)
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
     names[i] = PyUnicode_FromString(a[i]->name());
+}
+
+extern "C" void atom_num_bonds(void *atoms, int n, int *nbonds)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    nbonds[i] = a[i]->bonds().size();
 }
 
 extern "C" void atom_radius(void *atoms, int n, float *radii)
