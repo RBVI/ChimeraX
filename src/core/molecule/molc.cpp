@@ -7,7 +7,6 @@
 #include "atomstruct/Chain.h"
 #include "atomstruct/Residue.h"
 #include "basegeom/destruct.h"		// Use DestructionObserver
-#include "blob/StructBlob.h"
 #include "pythonarray.h"		// Use python_voidp_array()
 
 #include <iostream>
