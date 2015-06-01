@@ -88,7 +88,7 @@ class Model(State, Drawing):
         pass
 
     def selected_items(self, itype):
-        return ()
+        return []
 
 
 class Models(State):
