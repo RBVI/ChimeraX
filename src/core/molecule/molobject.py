@@ -83,7 +83,9 @@ class Residue:
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     chain_id = c_property('residue_chain_id', string, read_only = True)
-    molecule = c_property('residue_molecule', cptr, astype = _atomic_structure, read_only = True)
+    is_helix = c_property('residue_is_helix', npy_bool, read_only = True)
+    is_sheet = c_property('residue_is_sheet', npy_bool, read_only = True)
+    ss_id = c_property('residue_ss_id', int32, read_only = True)
     name = c_property('residue_name', string, read_only = True)
     num_atoms = c_property('residue_num_atoms', int32, read_only = True)
     number = c_property('residue_number', int32, read_only = True)

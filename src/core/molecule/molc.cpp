@@ -348,6 +348,27 @@ extern "C" void residue_chain_id(void *residues, int n, void **cids)
     cids[i] = PyUnicode_FromString(r[i]->chain_id().c_str());
 }
 
+extern "C" void residue_is_helix(void *residues, int n, unsigned char *is_helix)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+	  is_helix[i] = r[i]->is_helix();
+}
+
+extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+	  is_sheet[i] = r[i]->is_sheet();
+}
+
+extern "C" void residue_ss_id(void *residues, int n, int *ss_id)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+	  ss_id[i] = r[i]->ss_id();
+}
+
 extern "C" void residue_molecule(void *residues, int n, void **molp)
 {
   Residue **r = static_cast<Residue **>(residues);
