@@ -141,7 +141,9 @@ inline void
 atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
     // assign to DestructionUser to var so it's not immediately destroyed!
     auto du = basegeom::DestructionUser(a);
-    for (auto b: a->bonds()) delete_bond(b);
+    // iterate through a _copy_ of the bonds, since we're deleting them!
+    Atom::Bonds bonds = a->bonds();
+    for (auto b: bonds) delete_bond(b);
     delete_vertex(a);
     if (a->element().number() == 1)
         --_num_hyds;

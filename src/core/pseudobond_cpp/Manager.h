@@ -46,15 +46,15 @@ protected:
 public:
     virtual Grp_Class*  get_group(const std::string& name,
             int create = Base_Manager<Grp_Class>::GRP_NONE) const;
-    Owned_Manager(Owner* owner): _owner(owner) {
+    Owned_Manager(Owner* owner): _owner(owner) {}
+    virtual  ~Owned_Manager() {
         // assign to var so it lives to end of destructor,
         // and only do this in owned managers and not the
         // global manager since the global manager is only
         // destroyed at program exit (and therefore races
         // against the destruction of the DestructionCoordinator)
         auto du = basegeom::DestructionUser(this);
-    }
-    virtual  ~Owned_Manager() {};
+    };
 };
 
 // methods
