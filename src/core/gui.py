@@ -358,7 +358,7 @@ class MainWindow(wx.Frame, PlainTextLog):
             for window in all_windows[1:]:
                 window._set_shown(shown)
 
-    def _widget_editable(widget):
+    def _widget_editable(self, widget):
         return widget and widget != self.graphics_window.opengl_canvas
 
 class ToolWindow:
