@@ -55,7 +55,7 @@ atom             = '@@' attrs:attribute_list
                  | '@' parts:part_list
                  ;
 
-part_list        = range:part_range_list ',' part_list
+part_list        = range:part_range_list ',' part:part_list
                  | range:part_range_list 
                  ;
 
