@@ -845,9 +845,7 @@ class Framebuffer:
 
         depth_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
-        # AMD driver requires GL_DEPTH24_STENCIL8 for blitting instead of
-        # GL_DEPTH_COMPONENT24 even though we don't have any stencil planes
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8,
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT24,
                                  width, height)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
         return depth_rb
