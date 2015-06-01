@@ -90,6 +90,13 @@ class Atoms(PointerArray):
     radii = cvec_property('atom_radius', float32)
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
 
+    @property
+    def by_molecule(self):
+        '''Return list of pairs of molecule and Atoms for that molecule.'''
+        amol = self.molecules
+        from numpy import array
+        return [(m, self.filter(array(amol)==m)) for m in self.unique_molecules]
+
     def delete(self):
         '''Delete the C++ Atom objects'''
         mols = self.unique_molecules
