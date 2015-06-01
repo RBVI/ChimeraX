@@ -6,39 +6,51 @@ from chimera.core.tools import ToolInstance
 #
 class MouseModePanel(ToolInstance):
 
-    SIZE = (-1, 32)
-
     def __init__(self, session, tool_info):
 
         super().__init__(session, tool_info)
 
         self.mouse_modes = session.ui.main_window.graphics_window.mouse_modes
+        self.button = 'right'
 
-        tw = session.ui.create_main_tool_window(self, size=self.SIZE, destroy_hides=True)
+        self.icon_size = 48
+        self.icon_border = 4
+        self.rows = 2
+        self.columns = 6
+
+        panel_size = (-1, self.rows * self.icon_size)
+        tw = session.ui.create_main_tool_window(self, size=panel_size, destroy_hides=True)
         self.tool_window = tw
         parent = tw.ui_area
 
+        from chimera.core import map, ui, markers
+        from chimera.core.map import series
         import wx
-        buttons = (('zoom', 'zoom.png', self.zoom_mode),
-                   ('move selected models', 'move_h2o.png', self.move_selected_mode),
-                   ('rotate selected models', 'rotate_h2o.png', self.rotate_selected_mode),
-                   ('contour level', 'contour.png', self.contour_mode),
-                   ('move planes', 'cubearrow.png', self.move_planes_mode),
-                   ('place marker', 'marker.png', self.marker_mode),
-                   ('mark centroid', 'marker2.png', self.mark_center_mode),
-                   ('play map series', 'vseries.png', self.map_series_mode),
-               )
+        modes = (
+            ui.SelectMouseMode,
+            ui.RotateMouseMode,
+            ui.TranslateMouseMode,
+            ui.ZoomMouseMode,
+            ui.TranslateSelectedMouseMode,
+            ui.RotateSelectedMouseMode,
+            map.ContourLevelMouseMode,
+            map.PlanesMouseMode,
+            markers.MarkerMouseMode,
+            markers.MarkCenterMouseMode,
+            markers.ConnectMouseMode,
+            series.PlaySeriesMouseMode,
+            )
         self.buttons = []
-        size = self.SIZE[1]
-        for i, (name, icon, callback) in enumerate(buttons):
-            tb = wx.BitmapToggleButton(parent, i+1, self.bitmap(icon), (i*size,0))
-            def button_press_cb(event, cb=callback, tb=tb):
+        for i, mode in enumerate(modes):
+            location = ((i%self.columns)*self.icon_size,(i//self.columns)*self.icon_size)
+            tb = wx.BitmapToggleButton(parent, i+1, self.bitmap(mode.icon_file), location)
+            def button_press_cb(event, mode=mode, tb=tb):
                 self.unset_other_buttons(tb)
-                cb(event)
+                self.mouse_modes.bind_mouse_mode(self.button, mode(self.session))
             parent.Bind(wx.EVT_TOGGLEBUTTON, button_press_cb, id=i+1)
-            tb.SetToolTip(wx.ToolTip(name))
+            tb.SetToolTip(wx.ToolTip(mode.name))
             self.buttons.append(tb)
-        self.buttons[0].SetValue(True)
+        self.buttons[3].SetValue(True)          # Zoom id default mode
 
         tw.manage(placement="right", fixed_size = True)
 
@@ -49,40 +61,8 @@ class MouseModePanel(ToolInstance):
             if b != button:
                 b.SetValue(False)
 
-    def zoom_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_zoom_mouse_mode(self.mouse_modes)
-
-    def move_selected_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_translate_selected_mouse_mode(self.mouse_modes)
-
-    def rotate_selected_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_rotate_selected_mouse_mode(self.mouse_modes)
-
-    def contour_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_contour_mouse_mode(self.mouse_modes)
-
-    def move_planes_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_move_planes_mouse_mode(self.mouse_modes)
-
-    def marker_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_marker_mouse_mode(self.mouse_modes)
-
-    def mark_center_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_mark_center_mouse_mode(self.mouse_modes)
-
-    def map_series_mode(self, event):
-        from chimera.core import shortcuts
-        shortcuts.enable_map_series_mouse_mode(self.mouse_modes)
-
-    def bitmap(self, filename, border = 3):
-        width = height = self.SIZE[1] - 2*border
+    def bitmap(self, filename):
+        width = height = self.icon_size - 2*self.icon_border
         from os import path
         icondir = path.join(path.dirname(__file__), 'icons')
         import wx
