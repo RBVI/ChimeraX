@@ -314,12 +314,24 @@ class Play_Series:
             delattr(model, 'series_zone_coloring')
 
 from ...ui import MouseMode
-class Play_Series_Mouse_Mode(MouseMode):
+class PlaySeriesMouseMode(MouseMode):
 
-  def __init__(self, play_series):
-    MouseMode.__init__(self, play_series.session)
-    self.play_series = play_series
+  name = 'play map series'
+  icon_file = 'vseries.png'
+
+  def __init__(self, session):
+    MouseMode.__init__(self, session)
+  
+    self._series = None
+    self._player = None
     self.last_mouse_x = None
+
+  def play_series(self):
+    from . import Map_Series
+    series = tuple(m for m in self.session.models.list() if isinstance(m, Map_Series))
+    if series != self._series:
+      self._player = Play_Series(series, self.session, rendering_cache_size = 10) if series else None
+    return self._player
 
   def mouse_up(self, event):
     self.last_mouse_x = None
@@ -341,7 +353,10 @@ class Play_Series_Mouse_Mode(MouseMode):
       return
     self.last_mouse_x = x
 
-    p = self.play_series
+    p = self.play_series()
+    if p is None:
+      return
+
     ser = p.series
     if len(ser) == 0:
       return 
@@ -366,16 +381,3 @@ def label_value_in_range(text, imin, imax):
   except:
     return False
   return i >= imin and i <= imax
-  
-# -----------------------------------------------------------------------------
-# TODO: If no series opened it should still work after one does get opened.
-#
-def map_series_mouse_mode(session):
-  from . import Map_Series
-  series = [m for m in session.models.list() if isinstance(m, Map_Series)]
-  p = Play_Series(series, session, rendering_cache_size = 10) if series else None
-  if p is None:
-    m = None
-  else:
-    m = Play_Series_Mouse_Mode(p)
-  return m

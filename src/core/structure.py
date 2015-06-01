@@ -21,7 +21,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
         CAtomicStructure.__init__(self, atomic_structure_pointer)
         from . import molecule
-        molecule.set_object_map(atomic_structure_pointer, self)
+        molecule.add_to_object_map(self)
 
         models.Model.__init__(self, name)
 
@@ -390,6 +390,15 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
     def clear_selection_promotion_history(self):
         self._selection_promotion_history = []
+
+def selected_atoms(session):
+    from .molecule import Atoms
+    atoms = Atoms()
+    for m in session.models.list():
+        if isinstance(m, AtomicStructure):
+            for ma, matoms in m.selected_items('atoms'):
+                atoms = atoms | matoms
+    return atoms
 
 # -----------------------------------------------------------------------------
 #

@@ -1,6 +1,8 @@
 # Mouse mode to place markers on surfaces
 from .ui import MouseMode
 class MarkerMouseMode(MouseMode):
+    name = 'place marker'
+    icon_file = 'marker.png'
 
     def __init__(self, session):
 
@@ -11,15 +13,19 @@ class MarkerMouseMode(MouseMode):
 
         self.center = False             # Place at centroid of surface
 
-        self._marker_molecule = None
-        self._next_marker_num = 1
-        self._marker_chain_id = 'M'
+        if not hasattr(session, '_marker_mouse_mode'):
+            session._marker_mouse_mode = {'molecule': None,
+                                          'next_marker_num': 1,
+                                          'marker_chain_id': 'M',
+                                          'color': (255,255,0,255),
+                                          'radius': 1.0}
 
     def marker_molecule(self):
-        m = self._marker_molecule
+        ms = self.session._marker_mouse_mode
+        m = ms['molecule']
         if m is None:
             from . import structure
-            self._marker_molecule = m = structure.AtomicStructure('markers')
+            ms['molecule'] = m = structure.AtomicStructure('markers')
             self.session.models.add([m])
         return m
 
@@ -41,11 +47,12 @@ class MarkerMouseMode(MouseMode):
         m = self.marker_molecule()
         a = m.new_atom('', 'H')
         a.coord = c
-        a.radius = 3
-        a.color = (255,255,0,255)
-        r = m.new_residue('marker', self._marker_chain_id, self._next_marker_num)
+        ms = s._marker_mouse_mode
+        a.radius = ms['radius']
+        a.color = ms['color']
+        r = m.new_residue('marker', ms['marker_chain_id'], ms['next_marker_num'])
         r.add_atom(a)
-        self._next_marker_num += 1
+        ms['next_marker_num'] += 1
         m.new_atoms()
         log.status('Placed marker')
 
@@ -54,6 +61,14 @@ class MarkerMouseMode(MouseMode):
 
     def mouse_up(self, event):
         pass
+
+class MarkCenterMouseMode(MarkerMouseMode):
+    name = 'mark centroid'
+    icon_file = 'marker2.png'
+
+    def __init__(self, session):
+        MarkerMouseMode.__init__(self, session)
+        self.center = True
 
 def connected_center(triangle_pick):
     d = triangle_pick.drawing()
@@ -67,4 +82,24 @@ def connected_center(triangle_pick):
     c = varea.dot(va)/a
     # TODO: Apply drawing transform to map to global coordinates
     return c
-    
+
+class ConnectMouseMode(MouseMode):
+    name = 'connect markers'
+    icon_file = 'bond.png'
+
+    def mouse_down(self, event):
+        s = self.session
+        from .structure import selected_atoms
+        atoms1 = selected_atoms(s)
+        from .ui.mousemodes import mouse_select
+        mouse_select(event, s, self.view)
+        atoms2 = selected_atoms(s)
+        if len(atoms1) == 1 and len(atoms2) == 1:
+            a1, a2 = atoms1[0], atoms2[0]
+            if a1.molecule != a2.molecule:
+                s.logger.status('Cannot connect atoms from different molecules')
+            elif not a1.connects_to(a2):
+                m = a1.molecule
+                m.new_bond(a1,a2)
+                m.update_graphics()
+                s.logger.status('Made connection')

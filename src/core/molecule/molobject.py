@@ -37,6 +37,8 @@ class Atom:
         set_c_pointer(self, atom_pointer)
 
     bfactor = c_property('atom_bfactor', float32)
+    bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
+    bonded_atoms = c_property('atom_bonded_atoms', cptr, 'num_bonds', astype = _atoms, read_only = True)
     color = c_property('atom_color', uint8, 4)
     coord = c_property('atom_coord', float64, 3)
     display = c_property('atom_display', npy_bool)
@@ -45,8 +47,16 @@ class Atom:
     element_number = c_property('atom_element_number', int32, read_only = True)
     molecule = c_property('atom_molecule', cptr, astype = _atomic_structure, read_only = True)
     name = c_property('atom_name', string, read_only = True)
+    num_bonds = c_property('atom_num_bonds', int32, read_only = True)
     radius = c_property('atom_radius', float32)
     residue = c_property('atom_residue', cptr, astype = _residue, read_only = True)
+
+    def connects_to(self, atom):
+        f = c_function('atom_connects_to',
+                       args = (ctypes.c_void_p, ctypes.c_void_p),
+                       ret = ctypes.c_int)
+        c = f(self._c_pointer, atom._c_pointer)
+        return c
 
 # -----------------------------------------------------------------------------
 #
@@ -172,8 +182,8 @@ def object_map(p, object_type):
         _object_map[p] = o = object_type(p)
     return o
 
-def set_object_map(p, object):
-    _object_map[p] = object
+def add_to_object_map(object):
+    _object_map[object._c_pointer.value] = object
 
 def register_object_map_deletion_handler(omap):
     '''

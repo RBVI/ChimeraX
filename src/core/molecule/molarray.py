@@ -41,10 +41,16 @@ class PointerArray:
         return len(self._pointers)
     def __iter__(self):
         if not hasattr(self, '_object_list'):
-            from .molobject import Atom, object_map
+            from .molobject import object_map
             c = self._object_class
             self._object_list = [object_map(p,c) for p in self._pointers]
         return iter(self._object_list)
+    def __getitem__(self, i):
+        if not isinstance(i,int):
+            raise IndexError('Only integer indices allowed for Atoms, got %s' % str(type(i)))
+        from .molobject import object_map
+        return object_map(self._pointers[i], self._object_class)
+
     def __or__(self, objects):
         return self.merge(objects)
     def __and__(self, objects):

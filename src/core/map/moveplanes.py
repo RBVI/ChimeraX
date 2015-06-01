@@ -1,6 +1,8 @@
 # Mouse mode to move map planes or move faces of bounding box.
 from ..ui import MouseMode
 class PlanesMouseMode(MouseMode):
+    name = 'move planes'
+    icon_file = 'cubearrow.png'
 
     def __init__(self, session):
 
