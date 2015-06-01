@@ -1,5 +1,7 @@
 from ..ui import MouseMode
 class ContourLevelMouseMode(MouseMode):
+    name = 'contour level'
+    icon_file = 'contour.png'
 
     def __init__(self, session):
 
