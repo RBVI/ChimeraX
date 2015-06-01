@@ -439,24 +439,20 @@ def enable_contour_mouse_mode(mouse_modes, button = 'right'):
     from .map import ContourLevelMouseMode
     m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
-def enable_marker_mouse_mode(mouse_modes, button = 'right', center = False):
+def enable_marker_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
-    if not hasattr(m, '_marker_mouse_mode'):
-        from .markers import MarkerMouseMode
-        m._marker_mouse_mode = MarkerMouseMode(m.session)
-    mode = m._marker_mouse_mode
-    mode.center = center
-    m.bind_mouse_mode(button, mode)
+    from . import markers
+    m.bind_mouse_mode(button, markers.MarkerMouseMode(m.session))
 
 def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
-    enable_marker_mouse_mode(mouse_modes, button, center = True)
+    m = mouse_modes
+    from . import markers
+    m.bind_mouse_mode(button, markers.MarkCenterMouseMode(m.session))
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
     from .map import series
-    mode = series.map_series_mouse_mode(m.session)
-    if mode:
-        m.bind_mouse_mode(button, mode)
+    m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
     from . import  ui
@@ -479,6 +475,21 @@ def enable_move_mouse_mode(mouse_modes):
     m = mouse_modes
     m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
     m.bind_mouse_mode('middle', ui.TranslateMouseMode(m.session))
+
+def enable_select_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.SelectMouseMode(m.session))
+
+def enable_rotate_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.RotateMouseMode(m.session))
+
+def enable_translate_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.TranslateMouseMode(m.session))
 
 def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
     from . import  ui
