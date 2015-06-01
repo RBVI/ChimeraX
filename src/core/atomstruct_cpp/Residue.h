@@ -47,7 +47,10 @@ public:
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     char  insertion_code() const { return _insertion_code; }
+    bool  is_helix() const { return _is_helix; }
     bool  is_het() const { return _is_het; }
+    bool  is_sheet() const { return _is_sheet; }
+    int   ss_id() const { return _ss_id; }
     const std::string &  name() const { return _name; }
     int  position() const { return _position; }
     void  set_alt_loc(char alt_loc);
