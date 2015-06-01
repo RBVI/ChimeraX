@@ -540,7 +540,8 @@ class _PartList:
         return ','.join([str(p) for p in self.parts])
 
     def add_parts(self, part_range):
-        self.parts.append(part_range)
+        self.parts.insert(0, part_range)
+        return self
 
 
 class _Part:
