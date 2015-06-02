@@ -161,15 +161,12 @@ class MainWindow(wx.Frame, PlainTextLog):
     def on_close(self, event):
         self.close()
 
-    def on_copy(self, event):
+    def on_edit(self, event, func):
         widget = self.FindFocus()
-        if self._widget_editable(widget):
-            widget.Copy()
-
-    def on_cut(self, event):
-        widget = self.FindFocus()
-        if self._widget_editable(widget):
-            widget.Cut()
+        if widget and hasattr(widget, func):
+            getattr(widget, func)()
+        else:
+            event.Skip()
 
     def on_open(self, event, session):
         from . import io
@@ -206,11 +203,6 @@ class MainWindow(wx.Frame, PlainTextLog):
                     window.destroy(from_destructor=True)
             if not destroy_hides:
                 del self.tool_instance_to_windows[tool_instance]
-
-    def on_paste(self, event):
-        widget = self.FindFocus()
-        if self._widget_editable(widget):
-            widget.Paste()
 
     def on_quit(self, event):
         self.close()
@@ -325,12 +317,13 @@ class MainWindow(wx.Frame, PlainTextLog):
             self.Bind(wx.EVT_MENU, self.on_quit, item)
         edit_menu = wx.Menu()
         menu_bar.Append(edit_menu, "&Edit")
-        item = edit_menu.Append(wx.ID_CUT, "Cut\tCtrl-X", "Cut text")
-        self.Bind(wx.EVT_MENU, self.on_cut, item)
-        item = edit_menu.Append(wx.ID_COPY, "Copy\tCtrl-C", "Copy text")
-        self.Bind(wx.EVT_MENU, self.on_copy, item)
-        item = edit_menu.Append(wx.ID_PASTE, "Paste\tCtrl-V", "Paste text")
-        self.Bind(wx.EVT_MENU, self.on_paste, item)
+        for wx_id, letter, func in [
+                (wx.ID_CUT, "X", "Cut"),
+                (wx.ID_COPY, "C", "Copy"),
+                (wx.ID_PASTE, "V", "Paste")]:
+            self.Bind(wx.EVT_MENU, lambda e, f=func: self.on_edit(e, f),
+                edit_menu.Append(wx_id, "{}\tCtrl-{}".format(func, letter),
+                "{} text".format(func)))
         tools_menu = wx.Menu()
         categories = {}
         for ti in session.toolshed.tool_info():
@@ -357,9 +350,6 @@ class MainWindow(wx.Frame, PlainTextLog):
         if is_main_window:
             for window in all_windows[1:]:
                 window._set_shown(shown)
-
-    def _widget_editable(widget):
-        return widget and widget != self.graphics_window.opengl_canvas
 
 class ToolWindow:
     """An area that a tool can populate with widgets.
