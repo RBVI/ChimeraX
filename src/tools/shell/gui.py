@@ -24,10 +24,12 @@ class ShellUI(ToolInstance):
         from wx.py.shell import Shell
         self.shell = Shell(parent, -1, locals={
                 'Chimera2_session': session
-            })
+            },
+            introText='Use Chimera2_session to access the current session.')
         self.shell.redirectStdin(True)
         self.shell.redirectStdout(True)
         self.shell.redirectStderr(True)
+        self.shell.setFocus()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.shell, 1, wx.EXPAND)
