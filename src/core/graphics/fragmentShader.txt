@@ -52,6 +52,23 @@ uniform float depth_cue_distance;
 uniform float depth_cue_darkest;
 #endif
 
+#ifdef USE_SHADOWS
+in vec3 shadow_tex_coord;
+uniform sampler2DShadow shadow_map;
+#endif
+
+#ifdef USE_MULTISHADOW
+// in vec3 vscene;
+// in vec3 nscene;
+uniform sampler2DShadow multishadow_map;
+uniform shadow_matrix_block 
+{
+  mat4 shadow_transforms[MAX_SHADOWS];
+};
+uniform	int shadow_count;
+uniform float shadow_depth;
+#endif
+
 #endif
 
 #ifdef USE_VERTEX_COLORS
@@ -68,23 +85,6 @@ uniform sampler2D tex2d;
 #ifdef USE_TEXTURE_3D_AMBIENT
 in vec3 ambient_tex_coord;
 uniform sampler3D tex3d;
-#endif
-
-#ifdef USE_SHADOWS
-in vec3 shadow_tex_coord;
-uniform sampler2DShadow shadow_map;
-#endif
-
-#ifdef USE_MULTISHADOW
-// in vec3 vscene;
-// in vec3 nscene;
-uniform sampler2DShadow multishadow_map;
-uniform shadow_matrix_block 
-{
-  mat4 shadow_transforms[MAX_SHADOWS];
-};
-uniform	int shadow_count;
-uniform float shadow_depth;
 #endif
 
 out vec4 frag_color;

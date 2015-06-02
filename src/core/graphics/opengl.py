@@ -318,8 +318,10 @@ class Render:
 #                                                  for tf in stf], float32)
         self._multishadow_depth = shadow_depth
         p = self.current_shader_program
-        if p is not None and self.SHADER_MULTISHADOW & p.capabilities:
-            self.set_shadow_shader_variables(p)
+        if p is not None:
+            c = p.capabilities
+            if self.SHADER_MULTISHADOW & c and self.SHADER_LIGHTING & c:
+                self.set_shadow_shader_variables(p)
 
     def set_shadow_shader_variables(self, shader):
         shader.set_integer("multishadow_map", self.multishadow_texture_unit)
