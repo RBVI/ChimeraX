@@ -332,7 +332,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
             if not asel is None and asel.sum() > 0:
                 atoms = self.atoms
                 sa = atoms.filter(asel)
-                return [(self,sa)]
+                return [sa]
         return []
 
     def any_part_selected(self):
@@ -396,7 +396,7 @@ def selected_atoms(session):
     atoms = Atoms()
     for m in session.models.list():
         if isinstance(m, AtomicStructure):
-            for ma, matoms in m.selected_items('atoms'):
+            for matoms in m.selected_items('atoms'):
                 atoms = atoms | matoms
     return atoms
 

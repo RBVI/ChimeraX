@@ -22,6 +22,7 @@ class DestructionCoordinator {
     static void*  _destruction_parent;
     static std::set<DestructionObserver*>  _observers;
     static std::set<void*>  _destroyed;
+    static int _num_notifications_off;
 public:
     static void  deregister_observer(DestructionObserver* d_o) {
         _observers.erase(d_o);
@@ -29,8 +30,10 @@ public:
     static void*  destruction_parent() { return _destruction_parent; }
     static void  finalizing_destruction(void* instance) {
         if (_destruction_parent == instance) {
-            for (auto o: _observers) {
-                o->destructors_done(_destroyed);
+            if (_num_notifications_off == 0) {
+                for (auto o: _observers) {
+                    o->destructors_done(_destroyed);
+                }
             }
             _destruction_parent = nullptr;
             _destroyed.clear();
@@ -41,6 +44,8 @@ public:
             _destruction_parent = instance;
         _destroyed.insert(instance);
     }
+    static void  notifications_off() { _num_notifications_off++; }
+    static void  notifications_on() { _num_notifications_off--; }
     static void  register_observer(DestructionObserver* d_o) {
         _observers.insert(d_o);
     }
@@ -69,6 +74,19 @@ inline DestructionObserver::~DestructionObserver()
 {
     DestructionCoordinator::deregister_observer(this);
 }
+
+class DestructionNotificationsOff {
+// Used in routines where destruction notifications are not useful,
+// such as in code that reads structures and makes temporary items
+// that are destroyed before the final structures are delivered
+public:
+    DestructionNotificationsOff() {
+        DestructionCoordinator::notifications_off();
+    }
+    ~DestructionNotificationsOff() {
+        DestructionCoordinator::notifications_on();
+    }
+};
 
 }  // namespace basegeom
 

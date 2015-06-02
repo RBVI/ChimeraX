@@ -5,13 +5,14 @@
 #include <stdlib.h>
 
 #include "Atom.h"
-#include "Residue.h"
 #include "AtomicStructure.h"
+#include <basegeom/destruct.h>
+#include "connect.h"
+#include "MolResId.h"
+#include "Residue.h"
 #include "tmpl/Residue.h"
 #include "tmpl/Atom.h"
 #include "tmpl/residues.h"
-#include "MolResId.h"
-#include "connect.h"
 #include "string_types.h"
 
 namespace atomstruct {
@@ -363,6 +364,7 @@ void
 find_and_add_metal_coordination_bonds(AtomicStructure* as)
 {
     // make metal-coordination complexes
+    auto notifications_off = basegeom::DestructionNotificationsOff();
     auto mc_bonds = metal_coordination_bonds(as);
     if (mc_bonds.size() > 0) {
         auto pbg = as->pb_mgr().get_group(as->PBG_METAL_COORDINATION, 
@@ -528,6 +530,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
             }
         }
     }
+    auto notifications_off = basegeom::DestructionNotificationsOff();
     if (break_long) {
         std::vector<Bond *> break_these;
         for (AtomicStructure::Bonds::const_iterator bi = as->bonds().begin();

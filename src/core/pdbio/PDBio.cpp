@@ -14,6 +14,7 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
+#include <basegeom/destruct.h>
 #include <logger/logger.h>
 #include "pythonarray.h"	// Use python_voidp_array()
 
@@ -937,6 +938,7 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
+    auto notifications_off = basegeom::DestructionNotificationsOff();
     PyObject *http_mod = PyImport_ImportModule("http.client");
     if (http_mod == NULL)
         return NULL;

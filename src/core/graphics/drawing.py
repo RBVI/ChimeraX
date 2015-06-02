@@ -913,7 +913,7 @@ class Drawing:
         raise NotImplemented()
 
 
-def draw_drawings(renderer, cvinv, drawings):
+def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
     '''
     Render opaque and transparent draw passes for a given set of drawings,
     and given camera view (inverse camera transform).
@@ -923,7 +923,7 @@ def draw_drawings(renderer, cvinv, drawings):
     from ..geometry.place import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
-    if _any_transparent_drawings(drawings):
+    if not opaque_only and _any_transparent_drawings(drawings):
         r.draw_transparent(
             lambda: _draw_multiple(drawings, r, p,
                                    Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
@@ -944,12 +944,12 @@ def _any_transparent_drawings(drawings):
     return False
 
 
-def draw_depth(renderer, cvinv, drawings):
+def draw_depth(renderer, cvinv, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_VERTEX_COLORS |
                                   r.SHADER_TEXTURE_2D)
-    draw_drawings(r, cvinv, drawings)
+    draw_drawings(r, cvinv, drawings, opaque_only)
     r.disable_shader_capabilities(0)
 
 
