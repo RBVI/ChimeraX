@@ -393,14 +393,28 @@ extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
 {
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-	  is_sheet[i] = r[i]->is_sheet();
+    is_sheet[i] = r[i]->is_sheet();
 }
 
 extern "C" void residue_ss_id(void *residues, int n, int *ss_id)
 {
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
-	  ss_id[i] = r[i]->ss_id();
+    ss_id[i] = r[i]->ss_id();
+}
+
+extern "C" void residue_ribbon_display(void *residues, int n, unsigned char *ribbon_display)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    ribbon_display[i] = r[i]->ribbon_display();
+}
+
+extern "C" void set_residue_ribbon_display(void *residues, int n, unsigned char *ribbon_display)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    r[i]->set_ribbon_display(ribbon_display[i]);
 }
 
 extern "C" void residue_molecule(void *residues, int n, void **molp)
