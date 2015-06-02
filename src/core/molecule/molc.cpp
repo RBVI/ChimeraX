@@ -5,6 +5,7 @@
 
 #include "atomstruct/Atom.h"
 #include "atomstruct/Chain.h"
+#include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"
 #include "basegeom/destruct.h"		// Use DestructionObserver
 #include "pythonarray.h"		// Use python_voidp_array()
@@ -364,6 +365,41 @@ extern "C" void set_pseudobond_radius(void *pbonds, int n, float *radii)
     b[i]->set_radius(*radii++);
 }
 
+extern "C" void *pseudobond_group_get(const char *name)
+{
+  int create = PBManager::GRP_NORMAL;	// Create if not yet created.
+  PBGroup *pbg = PBManager::manager().get_group(name, create);
+  return pbg;
+}
+
+extern "C" void pseudobond_group_delete(void *pbgroup)
+{
+  PBGroup *pbg = static_cast<PBGroup *>(pbgroup);
+  delete pbg;
+}
+
+extern "C" void *pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
+{
+  PBGroup *pbg = static_cast<PBGroup *>(pbgroup);
+  PBond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
+  return b;
+}
+
+extern "C" void pseudobond_group_num_pseudobonds(void *pbgroups, int n, int *num_pseudobonds)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    *num_pseudobonds++ = pbg[i]->pseudobonds().size();
+}
+
+extern "C" void pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseudobonds)
+{
+  PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    for (auto pb: pbg[i]->pseudobonds())
+      *pseudobonds++ = pb;
+}
+
 extern "C" void residue_atoms(void *residues, int n, void **atoms)
 {
   Residue **r = static_cast<Residue **>(residues);
@@ -687,6 +723,8 @@ public:
     { arrays.insert(reinterpret_cast<PyArrayObject *>(numpy_array)); }
   void remove_array(void *numpy_array)
     { arrays.erase(reinterpret_cast<PyArrayObject *>(numpy_array)); }
+  size_t array_count()
+    { return arrays.size(); }
 private:
   virtual void  destructors_done(const std::set<void*>& destroyed)
   {
@@ -743,7 +781,14 @@ extern "C" void remove_deleted_c_pointers(PyObject *numpy_array)
 extern "C" void pointer_array_freed(void *numpy_array)
 {
   if (array_updater)
-    array_updater->remove_array(numpy_array);
+    {
+      array_updater->remove_array(numpy_array);
+      if (array_updater->array_count() == 0)
+	{
+	  delete array_updater;
+	  array_updater = NULL;
+	}
+    }
 }
 
 class Object_Map_Deletion_Handler : DestructionObserver
@@ -780,8 +825,13 @@ private:
   }
 };
 
-extern "C" void object_map_deletion_handler(void *object_map)
+extern "C" void *object_map_deletion_handler(void *object_map)
 {
-  new Object_Map_Deletion_Handler(static_cast<PyObject *>(object_map));
+  return new Object_Map_Deletion_Handler(static_cast<PyObject *>(object_map));
+}
+
+extern "C" void delete_object_map_deletion_handler(void *handler)
+{
+  delete static_cast<Object_Map_Deletion_Handler *>(handler);
 }
 
