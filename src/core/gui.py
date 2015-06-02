@@ -312,9 +312,8 @@ class MainWindow(wx.Frame, PlainTextLog):
         item = file_menu.Append(wx.ID_ANY, "Save Session...", "Save session file")
         self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save_session(evt, ses),
             item)
-        if not sys.platform.startswith("darwin"):
-            item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
-            self.Bind(wx.EVT_MENU, self.on_quit, item)
+        item = file_menu.Append(wx.ID_EXIT, "Quit\tCtrl-Q", "Quit application")
+        self.Bind(wx.EVT_MENU, self.on_quit, item)
         edit_menu = wx.Menu()
         menu_bar.Append(edit_menu, "&Edit")
         for wx_id, letter, func in [
