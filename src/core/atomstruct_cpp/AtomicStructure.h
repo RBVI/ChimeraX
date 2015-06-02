@@ -2,18 +2,18 @@
 #ifndef atomstruct_AtomicStructure
 #define atomstruct_AtomicStructure
 
-#include <vector>
-#include <string>
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
+#include <basegeom/Graph.h>
+#include <basegeom/destruct.h>
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
-#include <basegeom/Graph.h>
-#include <basegeom/destruct.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -90,6 +90,7 @@ public:
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_atom(Atom* a);
+    void  delete_atoms(std::vector<Atom*> atoms);
     void  delete_bond(Bond* b);
     void  extend_input_seq_info(std::string& chain_id, std::string& res_name) {
         _input_seq_info[chain_id].push_back(res_name);
@@ -147,6 +148,15 @@ atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
     delete_vertex(a);
     if (a->element().number() == 1)
         --_num_hyds;
+}
+
+inline void
+atomstruct::AtomicStructure::delete_atoms(std::vector<atomstruct::Atom*> atoms)
+{
+    // prevent per-atom notifications
+    auto du = basegeom::DestructionUser(this);
+    for (auto a: atoms)
+        delete_atom(a);
 }
 
 #include "Bond.h"
