@@ -54,6 +54,10 @@ public:
         // destroyed at program exit (and therefore races
         // against the destruction of the DestructionCoordinator)
         auto du = basegeom::DestructionUser(this);
+        // delete groups while DestructionUser active
+        for (auto name_grp: this->_groups) {
+            delete name_grp.second;
+        }
     };
 };
 

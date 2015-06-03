@@ -140,10 +140,13 @@ class Residues(PointerArray):
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)
     chain_ids = cvec_property('residue_chain_id', string, read_only = True)
+    is_helix = cvec_property('residue_is_helix', npy_bool)
+    is_sheet = cvec_property('residue_is_sheet', npy_bool)
     molecules = cvec_property('residue_molecule', cptr, astype = _atomic_structures, read_only = True)
     names = cvec_property('residue_name', string, read_only = True)
     num_atoms = cvec_property('residue_num_atoms', int32, read_only = True)
     numbers = cvec_property('residue_number', int32, read_only = True)
+    ss_id = cvec_property('residue_ss_id', int32)
     strs = cvec_property('residue_str', string, read_only = True)
     unique_ids = cvec_property('residue_unique_id', int32, read_only = True)
     ribbon_displays = cvec_property('residue_ribbon_display', npy_bool)

@@ -425,6 +425,13 @@ extern "C" void residue_is_helix(void *residues, int n, unsigned char *is_helix)
 	  is_helix[i] = r[i]->is_helix();
 }
 
+extern "C" void set_residue_is_helix(void *residues, int n, unsigned char *is_helix)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+	  r[i]->set_is_helix(is_helix[i]);
+}
+
 extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
 {
   Residue **r = static_cast<Residue **>(residues);
@@ -432,11 +439,25 @@ extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
     is_sheet[i] = r[i]->is_sheet();
 }
 
+extern "C" void set_residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    r[i]->set_is_sheet(is_sheet[i]);
+}
+
 extern "C" void residue_ss_id(void *residues, int n, int *ss_id)
 {
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
     ss_id[i] = r[i]->ss_id();
+}
+
+extern "C" void set_residue_ss_id(void *residues, int n, int *ss_id)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    r[i]->set_ss_id(ss_id[i]);
 }
 
 extern "C" void residue_ribbon_display(void *residues, int n, unsigned char *ribbon_display)
@@ -608,6 +629,13 @@ extern "C" void molecule_residues(void *mols, int n, void **res)
       for (int j = 0 ; j < r.size() ; ++j)
 	*res++ = r[j].get();
     }
+}
+
+extern "C" void molecule_num_coord_sets(void *mols, int n, int *ncoord_sets)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    ncoord_sets[i] = m[i]->coord_sets().size();
 }
 
 extern "C" void molecule_num_chains(void *mols, int n, int *nchains)

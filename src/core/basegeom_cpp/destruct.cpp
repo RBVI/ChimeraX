@@ -3,6 +3,7 @@
 
 namespace basegeom {
 
+void*  DestructionCoordinator::_destruction_batcher = nullptr;
 void*  DestructionCoordinator::_destruction_parent = nullptr;
 std::set<DestructionObserver*>  DestructionCoordinator::_observers;
 std::set<void*>  DestructionCoordinator::_destroyed;

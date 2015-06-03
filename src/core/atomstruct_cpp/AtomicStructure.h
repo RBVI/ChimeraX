@@ -154,7 +154,7 @@ inline void
 atomstruct::AtomicStructure::delete_atoms(std::vector<atomstruct::Atom*> atoms)
 {
     // prevent per-atom notifications
-    auto du = basegeom::DestructionUser(this);
+    auto du = basegeom::DestructionBatcher(this);
     for (auto a: atoms)
         delete_atom(a);
 }
