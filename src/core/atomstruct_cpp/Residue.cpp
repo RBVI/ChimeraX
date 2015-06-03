@@ -13,7 +13,7 @@ Residue::Residue(AtomicStructure *as, const std::string &name,
     const std::string &chain, int pos, char insert): _alt_loc(' '),
     _chain_id(chain), _insertion_code(insert), _is_helix(false),
     _is_het(false), _is_sheet(false), _name(name), _position(pos),
-    _ss_id(-1), _structure(as)
+    _ss_id(-1), _ribbon_display(false), _structure(as)
 {
 }
 

@@ -26,7 +26,7 @@ class Chimera_HDF_Data:
         self.name = os.path.basename(path)
     
         import tables
-        f = tables.openFile(path)
+        f = tables.open_file(path)
 
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
@@ -51,7 +51,7 @@ class Chimera_HDF_Data:
         groups = []
         from tables.array import Array
         from tables.group import Group
-        for node in parent._f_iterNodes():
+        for node in parent._f_iter_nodes():
             if isinstance(node, Array):
                 dims = len(node.shape)
                 if dims == 3:
@@ -79,28 +79,28 @@ class Chimera_HDF_Data:
         isz,jsz,ksz = ijk_size
         istep,jstep,kstep = ijk_step
         import tables
-        f = tables.openFile(self.path)
+        f = tables.open_file(self.path)
         if progress:
             progress.close_on_cancel(f)
         array_path = choose_chunk_size(f, array_paths, ijk_size)
-        a = f.getNode(array_path)
+        a = f.get_node(array_path)
         cshape = a._v_chunkshape
         csmin = min(cshape)
         if cshape[0] == csmin:
             for k in range(k0,k0+ksz,kstep):
-                array[(k-k0)/kstep,:,:] = a[k,j0:j0+jsz:jstep,i0:i0+isz:istep]
+                array[(k-k0)//kstep,:,:] = a[k,j0:j0+jsz:jstep,i0:i0+isz:istep]
                 if progress:
-                    progress.plane((k-k0)/kstep)
+                    progress.plane((k-k0)//kstep)
         elif cshape[1] == csmin:
             for j in range(j0,j0+jsz,jstep):
-                array[:,(j-j0)/jstep,:] = a[k0:k0+ksz:kstep,j,i0:i0+isz:istep]
+                array[:,(j-j0)//jstep,:] = a[k0:k0+ksz:kstep,j,i0:i0+isz:istep]
                 if progress:
-                    progress.plane((j-j0)/jstep)
+                    progress.plane((j-j0)//jstep)
         else:
             for i in range(i0,i0+isz,istep):
-                array[:,:,(i-i0)/istep] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i]
+                array[:,:,(i-i0)//istep] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i]
                 if progress:
-                    progress.plane((i-i0)/istep)
+                    progress.plane((i-i0)//istep)
         if progress:
             progress.done()
 
@@ -266,7 +266,7 @@ def choose_chunk_size(f, array_paths, ijk_size):
     alist = []
     shape = tuple(reversed(ijk_size))
     for p in array_paths:
-        a = f.getNode(p)
+        a = f.get_node(p)
         cshape = a._v_chunkshape
         pad = [(cshape[i] - (shape[i]%cshape[i]))%cshape[i] for i in (0,1,2)]
         extra = sum([pad[i] * shape[(i+1)%3] * shape[(i+2)%3] for i in (0,1,2)])

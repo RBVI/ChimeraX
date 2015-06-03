@@ -51,21 +51,27 @@ class State(metaclass=abc.ABCMeta):
     SESSION = 0x2
     ALL = SCENE | SESSION
 
+    #: state take phase
+    SAVE_PHASE = 'save data'
+    #: state take phase
+    CLEANUP_PHASE = 'cleanup temporary data structures'
     #: state restoration phase
-    PHASE1 = 'create objects'
+    CREATE_PHASE = 'create objects'
     #: state restoration phase
-    PHASE2 = 'resolve object references'
+    RESOLVE_PHASE = 'resolve object references'
 
     #: common exception for needing a newer version of the application
     NeedNewerError = RestoreError(
         "Need newer version of application to restore session")
 
     @abc.abstractmethod
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         """Return snapshot of current state, [version, data], of instance.
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
+        if phase != self.SAVE_PHASE:
+            return
         version = 0
         data = {}
         return [version, data]
@@ -74,7 +80,7 @@ class State(metaclass=abc.ABCMeta):
     def restore_snapshot(self, phase, session, version, data):
         """Restore data snapshot into instance.
 
-        Restoration is done in two phases: PHASE1 and PHASE2.  The
+        Restoration is done in two phases: CREATE_PHASE and RESOLVE_PHASE.  The
         first phase should restore all of the data.  The
         second phase should restore references to other objects (data is None).
         The session instance is used to convert unique ids into instances.
@@ -110,12 +116,18 @@ class ParentState(State):
     SKIP = 'skip'
     _child_attr_name = None  # replace in subclass
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         """Return snapshot of current state"""
         child_dict = getattr(self, self._child_attr_name)
+        if phase == self.CLEANUP_PHASE:
+            for child in child_dict.values():
+                child.take_snapshot(session, phase, flags)
+            return
+        if phase != self.SAVE_PHASE:
+            return
         my_data = []
         for name, child in child_dict.items():
-            snapshot = child.take_snapshot(session, flags)
+            snapshot = child.take_snapshot(session, phase, flags)
             if snapshot is None:
                 continue
             version, data = snapshot
@@ -169,11 +181,14 @@ class Scenes(State):
         scene = []
         for tag in session._state_managers:
             manager = session._state_managers[tag]
-            snapshot = manager.take_snapshot(scene, State.SCENE)
+            snapshot = manager.take_snapshot(scene, self.SAVE_PHASE, State.SCENE)
             if snapshot is None:
                 continue
             version, data = snapshot
             scene.append([tag, version, data])
+        for tag in session._state_managers:
+            manager = session._state_managers[tag]
+            manager.take_snapshot(scene, self.CLEANUP_PHASE, State.SCENE)
         self._scenes[name] = [metadata, scene]
 
     def restore(self, name):
@@ -187,10 +202,10 @@ class Scenes(State):
             if tag not in session._state_managers:
                 continue
             manager = session._state_managers[tag]
-            manager.restore_snapshot(State.PHASE1, session, version, data)
+            manager.restore_snapshot(self.CREATE_PHASE, session, version, data)
             managers.append((manager, version))
         for manager, version in managers:
-            manager.restore_snapshot(State.PHASE2, session, version, None)
+            manager.restore_snapshot(self.RESOLVE_PHASE, session, version, None)
 
     def delete(self, name):
         """Delete named scene"""
@@ -206,20 +221,23 @@ class Scenes(State):
         """Return list of scene names"""
         return list(self._scenes.keys())
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         # documentation from base class
+        if phase == self.CLEANUP_PHASE:
+            return
+        if phase != self.SAVE_PHASE:
+            return
         if (flags & State.SESSION) == 0:
             # don't save scene in scenes
-            return None
+            return
         return [self.VERSION, self._scenes]
 
     def restore_snapshot(self, phase, session, version, data):
         # documentation from base class
-        if phase != State.PHASE1:
-            return
         if version > self.VERSION:
             raise State.NeedNewerError
-        self._scenes = data
+        if phase == self.CREATE_PHASE:
+            self._scenes = data
 
     def reset_state(self):
         # documentation from base class
@@ -403,13 +421,17 @@ class Session:
         if 'tools' in self._state_managers:
             managers.remove('tools')
             managers.insert(0, 'tools')
-        for tag in managers:
+        for tag in list(managers):
             manager = self._state_managers[tag]
-            snapshot = manager.take_snapshot(self, State.SESSION)
+            snapshot = manager.take_snapshot(self, State.SAVE_PHASE, State.SESSION)
             if snapshot is None:
+                managers.remove(tag)
                 continue
             version, data = snapshot
             serialize.serialize(stream, [tag, version, data])
+        for tag in managers:
+            manager = self._state_managers[tag]
+            snapshot = manager.take_snapshot(self, State.CLEANUP_PHASE, State.SESSION)
         serialize.serialize(stream, [None, 0, None])
 
     def restore(self, stream, version=None):
@@ -429,20 +451,19 @@ class Session:
             tag = ''
             while True:
                 tag, version, data = serialize.deserialize(stream)
-                print('restoring', tag, version)
                 if tag is None:
                     break
                 if tag not in self._state_managers:
                     continue
                 manager = self._state_managers[tag]
-                manager.restore_snapshot(State.PHASE1, self, version, data)
+                manager.restore_snapshot(State.CREATE_PHASE, self, version, data)
                 managers.append((tag, manager, version, data))
         except RestoreError as e:
             e.args = ("While restoring phase1 %s: %s" % (tag, e.args[0]),)
             raise
         for tag, manager, version, data in managers:
             try:
-                manager.restore_snapshot(State.PHASE2, self, version, data)
+                manager.restore_snapshot(State.RESOLVE_PHASE, self, version, data)
             except RestoreError as e:
                 e.args = ("While restoring phase2 %s: %s" % (tag, e.args[0]),)
                 raise
@@ -651,3 +672,5 @@ def common_startup(sess):
     from . import map
     map.register_map_file_readers()
     map.register_emdb_fetch()
+    from . import readpbonds
+    readpbonds.register()

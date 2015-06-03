@@ -1057,18 +1057,22 @@ class Volume(Model):
         from . import slice
         xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
         if xyz_in is None or xyz_out is None:
-          return None, None
+          return None
         from ..geometry.vector import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-        return f, Picked_Map(self)
+        return PickedMap(self, f)
 
     from ..graphics import Drawing
-    f, p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
-    if p:
-      d = p.drawing()
+    pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    if pd:
+      d = pd.drawing()
       detail = '%s triangles %d' % (d.name, len(d.triangles))
-      p = Picked_Map(self, detail)
-    return f,p
+      p = PickedMap(self, pd.distance, detail)
+      p.triangle_pick = pd
+    else:
+      p = None
+
+    return p
 
   # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
@@ -1813,7 +1817,7 @@ class Volume(Model):
 
 
   # State save/restore in Chimera 2
-  def take_snapshot(self, session, flags):
+  def take_snapshot(self, phase, session, flags):
     pass
   def restore_snapshot(self, phase, session, version, data):
     pass
@@ -1823,8 +1827,9 @@ class Volume(Model):
 # -----------------------------------------------------------------------------
 #
 from ..graphics import Pick
-class Picked_Map(Pick):
-  def __init__(self, v, detail = ''):
+class PickedMap(Pick):
+  def __init__(self, v, distance, detail = ''):
+    Pick.__init__(self, distance)
     self.map = v
     self.detail = detail
   def description(self):
@@ -2782,12 +2787,12 @@ def open_map(session, stream, *args, **kw):
     from . import data
     grids = data.open_file(map_path)
     for i,d in enumerate(grids):
-        show = (i == 0)
+        show = (i == 0 or not hasattr(d, 'series_index'))
         v = volume_from_grid_data(d, session, open_model = False, show_data = show)
         v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)
 
-    if len(maps) > 1:
+    if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
         from os.path import basename
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series

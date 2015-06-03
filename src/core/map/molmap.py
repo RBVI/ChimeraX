@@ -50,7 +50,7 @@ def molecule_map(session,
 		 showDialog = True
                  ):
 
-    molecules = atoms.molecules
+    molecules = atoms.unique_molecules
     if len(molecules) > 1:
         name = 'map %.3g' % (resolution,)
     else:

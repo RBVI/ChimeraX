@@ -22,23 +22,13 @@ def open_mmcif(session, filename, name, *args, **kw):
     from . import _mmcif
     _mmcif.set_Python_locate_function(
         lambda name: _get_template(name, session.app_dirs, session.logger))
-    mol_blob = _mmcif.parse_mmCIF_file(filename, session.logger)
+    pointers = _mmcif.parse_mmCIF_file(filename, session.logger)
 
-    structures = mol_blob.structures
-    models = []
-    num_atoms = 0
-    num_bonds = 0
-    for structure_blob in structures:
-        model = structure.StructureModel(name, structure_blob)
-        models.append(model)
-        model.make_drawing()
-
-        num_atoms += structure_blob.num_atoms
-        num_bonds += structure_blob.num_bonds
+    models = [structure.AtomicStructure(name, p) for p in pointers]
 
     return models, ("Opened mmCIF data containing %d atoms and %d bonds"
-                    % (num_atoms, num_bonds))
-
+                    % (sum(m.num_atoms for m in models),
+                       sum(m.num_bonds for m in models)))
 
 def fetch_mmcif(session, pdb_id):
     if len(pdb_id) != 4:

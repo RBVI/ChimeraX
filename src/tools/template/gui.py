@@ -26,28 +26,30 @@ class ToolUI(ToolInstance):
         # in this case), so only override if different name desired
         self.display_name = "custom name for running tool"
         if session.ui.is_gui:
-            self.tool_window = session.ui.creat_main_tool_window(
+            self.tool_window = session.ui.create_main_tool_window(
                 self, size=self.SIZE)
             parent = self.tool_window.ui_area
             # UI content code
             self.tool_window.manage(placement="bottom")
-            # Add to running tool list for session if tool should be saved
-            # in and restored from session and scenes
+        # Add to running tool list for session if tool should be saved
+        # in and restored from session and scenes
         session.tools.add([self])
 
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.VERSION
         data = {}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State, RestoreError
+        from chimera.core.session import RestoreError
         if version != self.VERSION or len(data) > 0:
             raise RestoreError("unexpected version or data")
-        if phase == State.PHASE1:
+        if phase == self.CREATE_PHASE:
             # Restore all basic-type attributes
             pass
         else:

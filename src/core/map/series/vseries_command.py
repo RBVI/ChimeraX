@@ -347,9 +347,10 @@ def release_stopped_players():
 #
 def slider_op(session, series):
 
-    from . import slider
-    vss = slider.Volume_Series_Slider(series, session)
-    vss.show()
+    tool_info = session.toolshed.find_tool('map_series_gui')
+    if tool_info:
+        from chimera.map_series_gui.gui import MapSeries
+        MapSeries(session, tool_info, series).show()
 
 # -----------------------------------------------------------------------------
 #

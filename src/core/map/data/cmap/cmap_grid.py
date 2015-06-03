@@ -56,6 +56,11 @@ def read_chimera_map(path):
       g = add_subsamples(d, i, g)
     glist.append(g)
 
+  # Mark as volume series
+  if len(glist) > 1 and len(set(tuple(g.size) for g in glist)) == 1:
+      for i,g in enumerate(glist):
+        g.series_index = i
+
   return glist
     
 # -----------------------------------------------------------------------------

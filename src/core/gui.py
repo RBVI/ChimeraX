@@ -73,7 +73,11 @@ class UI(wx.App):
                 self._keystroke_sinks[i + 1:]
 
     def event_loop(self):
-        redirect_stderr_to_logger(self.session.logger)
+# This turns Python deprecation warnings into exceptions, useful for debugging.
+#        import warnings
+#        warnings.filterwarnings('error')
+
+        redirect_stdio_to_logger(self.session.logger)
         self.MainLoop()
         self.session.logger.clear()
 
@@ -105,14 +109,24 @@ class UI(wx.App):
         """
         wx.CallAfter(func, *args, **kw)
 
-def redirect_stderr_to_logger(logger):
+def redirect_stdio_to_logger(logger):
     # Redirect stderr to log
-    class LogStderr:
+    class LogStdout:
         def __init__(self, logger):
             self.logger = logger
+            self.closed = False
         def write(self, s):
             self.logger.info(s, add_newline = False)
+        def flush(self):
+            return
+    LogStderr = LogStdout
     import sys
+    sys.orig_stdout = sys.stdout
+    sys.stdout = LogStdout(logger)
+    # TODO: Should raise an error dialog for exceptions, but traceback
+    #       is written to stderr with a separate call to the write() method
+    #       for each line, making it hard to aggregate the lines into one
+    #       error dialog.
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
@@ -134,8 +148,8 @@ class MainWindow(wx.Frame, PlainTextLog):
         self._build_menus(session)
 
         session.logger.add_log(self)
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
-        self.Bind(EVT_AUI_PANE_CLOSE, self.OnPaneClose)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+        self.Bind(EVT_AUI_PANE_CLOSE, self.on_pane_close)
 
     def close(self):
         self.aui_mgr.UnInit()
@@ -147,10 +161,17 @@ class MainWindow(wx.Frame, PlainTextLog):
     def log(self, *args, **kw):
         return False
 
-    def OnClose(self, event):
+    def on_close(self, event):
         self.close()
 
-    def OnOpen(self, event, session):
+    def on_edit(self, event, func):
+        widget = self.FindFocus()
+        if widget and hasattr(widget, func):
+            getattr(widget, func)()
+        else:
+            event.Skip()
+
+    def on_open(self, event, session):
         from . import io
         dlg = wx.FileDialog(self, "Open file",
             wildcard=io.wx_open_file_filter(all=True),
@@ -159,11 +180,9 @@ class MainWindow(wx.Frame, PlainTextLog):
             return
 
         paths = dlg.GetPaths()
-        mlist = session.models.open(paths)
-        from .models import ADD_MODEL_GROUP
-        session.triggers.activate_trigger(ADD_MODEL_GROUP, mlist)
+        session.models.open(paths)
 
-    def OnPaneClose(self, event):
+    def on_pane_close(self, event):
         pane_info = event.GetPane()
         tool_window = self.tool_pane_to_window[pane_info.window]
         tool_instance = tool_window.tool_instance
@@ -188,10 +207,10 @@ class MainWindow(wx.Frame, PlainTextLog):
             if not destroy_hides:
                 del self.tool_instance_to_windows[tool_instance]
 
-    def OnQuit(self, event):
+    def on_quit(self, event):
         self.close()
 
-    def OnSaveSession(self, event, ses):
+    def on_save_session(self, event, ses):
         from . import io
         try:
             ses_filter = io.wx_export_file_filter(io.SESSION)
@@ -291,14 +310,22 @@ class MainWindow(wx.Frame, PlainTextLog):
         file_menu = wx.Menu()
         menu_bar.Append(file_menu, "&File")
         item = file_menu.Append(wx.ID_OPEN, "Open...", "Open input file")
-        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnOpen(evt, ses),
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_open(evt, ses),
             item)
         item = file_menu.Append(wx.ID_ANY, "Save Session...", "Save session file")
-        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.OnSaveSession(evt, ses),
+        self.Bind(wx.EVT_MENU, lambda evt, ses=session: self.on_save_session(evt, ses),
             item)
-        if not sys.platform.startswith("darwin"):
-            item = file_menu.Append(wx.ID_EXIT, "Quit", "Quit application")
-            self.Bind(wx.EVT_MENU, self.OnQuit, item)
+        item = file_menu.Append(wx.ID_EXIT, "Quit\tCtrl-Q", "Quit application")
+        self.Bind(wx.EVT_MENU, self.on_quit, item)
+        edit_menu = wx.Menu()
+        menu_bar.Append(edit_menu, "&Edit")
+        for wx_id, letter, func in [
+                (wx.ID_CUT, "X", "Cut"),
+                (wx.ID_COPY, "C", "Copy"),
+                (wx.ID_PASTE, "V", "Paste")]:
+            self.Bind(wx.EVT_MENU, lambda e, f=func: self.on_edit(e, f),
+                edit_menu.Append(wx_id, "{}\tCtrl-{}".format(func, letter),
+                "{} text".format(func)))
         tools_menu = wx.Menu()
         categories = {}
         for ti in session.toolshed.tool_info():
@@ -353,13 +380,13 @@ class ToolWindow:
         self.__toolkit.destroy(**kw)
         self.__toolkit = None
 
-    def manage(self, placement):
+    def manage(self, placement, fixed_size = False):
         """ Tool will be docked into main window on the side indicated by
             'placement' (which should be a value from self.placements or None);
             if 'placement' is None, the tool will be detached from the main
             window.
         """
-        self.__toolkit.manage(placement)
+        self.__toolkit.manage(placement, fixed_size)
 
     def get_destroy_hides(self):
         return self.__toolkit.destroy_hides
@@ -410,15 +437,15 @@ class _Wx:
         if not self.tool_window:
             # already destroyed
             return
-        del self.main_window.tool_pane_to_window[self.ui_area]
         if not from_destructor:
+            del self.main_window.tool_pane_to_window[self.ui_area]
             self.ui_area.Destroy()
         # free up references
         self.tool_window = None
         self.main_window = None
         self._pane_info = None
 
-    def manage(self, placement):
+    def manage(self, placement, fixed_size = False):
         import wx
         placements = self.tool_window.placements
         if placement is None:
@@ -444,6 +471,8 @@ class _Wx:
                 layer = max(layer, pane_info.dock_layer)
         """
         mw.aui_mgr.AddPane(self.ui_area, side, self.title)
+        if fixed_size:
+            mw.aui_mgr.GetPane(self.ui_area).Fixed()
         """
         mw.aui_mgr.GetPane(self.ui_area).Layer(layer+1)
         """

@@ -100,8 +100,7 @@ class MapSeries(ToolInstance):
         if t >= n - 1:
             t = 0
         from chimera.core.map.series.vseries_command import play_op
-        p = play_op(self.series, session=self.session, start=t, loop=True,
-                    cacheFrames=n)
+        p = play_op(self.session, self.series, start=t, loop=True, cacheFrames=n)
 
         def update_slider(t, self=self):
             self.slider.SetValue(t)
@@ -114,7 +113,7 @@ class MapSeries(ToolInstance):
         if self.series is None:
             return
         from chimera.core.map.series.vseries_command import stop_op
-        stop_op(self.series)
+        stop_op(self.session, self.series)
         self.playing = False
         self.set_play_button_icon(play=True)
 
@@ -169,7 +168,7 @@ class MapSeries(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         pass
 
     def restore_snapshot(self, phase, session, version, data):
@@ -183,9 +182,9 @@ def show_slider_on_open(session):
     # Register callback to show slider when a map series is opened
     if not hasattr(session, '_registered_map_series_slider'):
         session._registered_map_series_slider = True
-        from chimera.core.models import ADD_MODEL_GROUP
+        from chimera.core.models import ADD_MODELS
         session.triggers.add_handler(
-            ADD_MODEL_GROUP, lambda name, m, s=session: models_added_cb(m, s))
+            ADD_MODELS, lambda name, m, s=session: models_added_cb(m, s))
 
 
 def models_added_cb(models, session):

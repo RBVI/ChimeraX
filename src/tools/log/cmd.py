@@ -46,7 +46,7 @@ def test(session):
     session.logger.status("Status test", follow_with="follow text", follow_time=5)
     session.logger.status("Secondary text", blank_after=20, secondary=True)
     structures = [model for model in session.models.list()
-                  if model.__class__.__name__ == "StructureModel"]
+                  if model.__class__.__name__ == "AtomicStructure"]
     if len(structures) == 2:
         f = open("/Users/pett/rm/diff.txt", "w")
         import io

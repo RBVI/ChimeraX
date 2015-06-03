@@ -86,7 +86,7 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
-#        ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
+        ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
@@ -145,10 +145,13 @@ def standard_shortcuts(session):
         ('cl', command_line, 'Enter command', gcat, sesarg),
 
         # Mouse
+        ('zm', enable_zoom_mouse_mode, 'Zoom mouse mode', gcat, mmarg, msmenu),
         ('mv', enable_move_mouse_mode, 'Movement mouse mode', gcat, mmarg, msmenu),
         ('mS', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
         ('mP', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
+        ('mk', enable_marker_mouse_mode, 'Place marker mouse mode', mapcat, mmarg, msmenu),
+        ('mc', enable_mark_center_mouse_mode, 'Mark center mouse mode', mapcat, mmarg, msmenu),
         ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, mmarg, msmenu),
 #        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
@@ -329,44 +332,39 @@ def shortcut_maps(session):
     return maps
 
 def shortcut_molecules(session):
-    from .structure import StructureModel
-    mols = [m for m in shortcut_models(session) if isinstance(m, StructureModel)]
+    from .structure import AtomicStructure
+    mols = [m for m in shortcut_models(session) if isinstance(m, AtomicStructure)]
     return mols
 
 def shortcut_atoms(session):
+    matoms = []
     sel = session.selection
-    matoms = sel.items('atoms')
-    if len(matoms) == 0 and sel.empty():
-        from .structure import StructureModel
+    atoms_list = sel.items('atoms')
+    if atoms_list:
+        for atoms in atoms_list:
+            matoms.extend(atoms.by_molecule)
+    elif sel.empty():
+        # Nothing selected, so operate on all atoms
+        from .structure import AtomicStructure
         for m in session.models.list():
-            if isinstance(m, StructureModel):
-                a = m.atoms
-                if len(a) > 0:
-                    matoms.append((m,a))
+            if isinstance(m, AtomicStructure) and m.num_atoms > 0:
+                matoms.append((m,m.atoms))
     return matoms
-
-def shortcut_selection(session):
-  from .parse import Selection
-  sel = Selection()
-  sel.add_atoms(shortcut_atoms(session))
-  sel.add_models(shortcut_surfaces(session))
-  sel.add_models(shortcut_maps(session))
-  return sel
 
 def shortcut_surfaces(session):
     sel = session.selection
     models = session.models.list() if sel.empty() else sel.models()
-    from .structure import StructureModel
+    from .structure import AtomicStructure
     from .map import Volume
-    surfs = [m for m in models if not isinstance(m, (StructureModel, Volume))]
+    surfs = [m for m in models if not isinstance(m, (AtomicStructure, Volume))]
     # TODO: Only include displayed surfaces if nothing selected?
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
     models = session.models.list() if sel.empty() else sel.models()
-    from .structure import StructureModel
-    sm = [m for m in models if not isinstance(m, StructureModel)]
+    from .structure import AtomicStructure
+    sm = [m for m in models if not isinstance(m, AtomicStructure)]
     # TODO: Only include displayed surfaces if nothing selected?
     return sm
 
@@ -436,12 +434,20 @@ def enable_contour_mouse_mode(mouse_modes, button = 'right'):
     from .map import ContourLevelMouseMode
     m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
+def enable_marker_mouse_mode(mouse_modes, button = 'right'):
+    m = mouse_modes
+    from . import markers
+    m.bind_mouse_mode(button, markers.MarkerMouseMode(m.session))
+
+def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
+    m = mouse_modes
+    from . import markers
+    m.bind_mouse_mode(button, markers.MarkCenterMouseMode(m.session))
+
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
     from .map import series
-    mode = series.map_series_mouse_mode(m.session)
-    if mode:
-        m.bind_mouse_mode(button, mode)
+    m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
     from . import  ui
@@ -449,28 +455,63 @@ def enable_move_selected_mouse_mode(mouse_modes):
     m.bind_mouse_mode('left', ui.RotateSelectedMouseMode(m.session))
     m.bind_mouse_mode('middle', ui.TranslateSelectedMouseMode(m.session))
 
+def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.TranslateSelectedMouseMode(m.session))
+
+def enable_rotate_selected_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.RotateSelectedMouseMode(m.session))
+
 def enable_move_mouse_mode(mouse_modes):
     from . import  ui
     m = mouse_modes
     m.bind_mouse_mode('left', ui.RotateMouseMode(m.session))
     m.bind_mouse_mode('middle', ui.TranslateMouseMode(m.session))
 
+def enable_select_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.SelectMouseMode(m.session))
+
+def enable_rotate_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.RotateMouseMode(m.session))
+
+def enable_translate_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.TranslateMouseMode(m.session))
+
+def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
+    from . import  ui
+    m = mouse_modes
+    m.bind_mouse_mode(button, ui.ZoomMouseMode(m.session))
+
 def fit_molecule_in_map(session):
-    mols, maps = session.molecules(), session.maps()
+    mols, maps = shortcut_molecules(session), shortcut_maps(session)
     if len(mols) != 1 or len(maps) != 1:
-        print('ft: Fit molecule in map requires exactly one open molecule and one open map.')
+        session.logger.status('Fit molecule in map requires one displayed or selected molecule and map.')
         return
 
     mol, map = mols[0], maps[0]
-    points = mol.xyz
+    points = mol.atoms.coords
     point_weights = None        # Equal weight for each atom
     data_array = map.full_matrix()
     xyz_to_ijk_transform = map.data.xyz_to_ijk_transform * map.position.inverse() * mol.position
     from .map import fit
     move_tf, stats = fit.locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform)
     mol.position = mol.position * move_tf
-    for k,v in stats.items():
-        print(k,v)
+
+    msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
+           % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
+    log = session.logger
+    log.status(msg)
+    from .map.fit import fitmap
+    log.info(fitmap.atom_fit_message(mols, map, stats))
 
 def show_biological_unit(m, session):
 
@@ -756,8 +797,8 @@ def show_framerate(session):
 
 def show_triangle_count(session):
     models = session.models.list()
-    from .structure import StructureModel
-    mols = [m for m in models if isinstance(m, StructureModel)]
+    from .structure import AtomicStructure
+    mols = [m for m in models if isinstance(m, AtomicStructure)]
     na = sum(m.shown_atom_count() for m in mols) if mols else 0
     nt = sum(m.shown_atom_count() * m.triangles_per_sphere for m in mols) if mols else 0
     n = len(models)

@@ -1,5 +1,6 @@
 from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer
+from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function
+from . import molobject
 
 def _atoms(a):
     return Atoms(a)
@@ -10,9 +11,10 @@ def _residues(a):
 def _chains(a):
     return Chains(a)
 def _atomic_structures(p):
-    return Atomic_Structures(p)
+    return CAtomicStructures(p)
 def _unique_atomic_structures(p):
-    return Atomic_Structures(numpy.unique(p))
+    import numpy
+    return CAtomicStructures(numpy.unique(p))
 def _residues(p):
     return Residues(p)
 def _atoms_pair(p):
@@ -23,20 +25,32 @@ def _pseudobond_group_map(a):
 
 # -----------------------------------------------------------------------------
 #
-class SetOperators:
+class PointerArray:
     def __init__(self, pointers, object_class, objects_class):
+        if pointers is None:
+            # Empty Atoms
+            import numpy
+            pointers = numpy.empty((0,), cptr)
         self._pointers = pointers
         self._object_class = object_class
         self._objects_class = objects_class
+        set_cvec_pointer(self, pointers)
+        remove_deleted_pointers(pointers)
 
     def __len__(self):
         return len(self._pointers)
     def __iter__(self):
         if not hasattr(self, '_object_list'):
-            from .molobject import Atom, object_map
+            from .molobject import object_map
             c = self._object_class
             self._object_list = [object_map(p,c) for p in self._pointers]
         return iter(self._object_list)
+    def __getitem__(self, i):
+        if not isinstance(i,int):
+            raise IndexError('Only integer indices allowed for Atoms, got %s' % str(type(i)))
+        from .molobject import object_map
+        return object_map(self._pointers[i], self._object_class)
+
     def __or__(self, objects):
         return self.merge(objects)
     def __and__(self, objects):
@@ -58,12 +72,10 @@ class SetOperators:
 
 # -----------------------------------------------------------------------------
 #
-class Atoms(SetOperators):
+class Atoms(PointerArray):
 
-    def __init__(self, atom_pointers):
-        from .molobject import Atom
-        SetOperators.__init__(self, atom_pointers, Atom, Atoms)
-        set_cvec_pointer(self, atom_pointers)
+    def __init__(self, atom_pointers = None):
+        PointerArray.__init__(self, atom_pointers, molobject.Atom, Atoms)
 
     bfactors = cvec_property('atom_bfactor', float32)
     colors = cvec_property('atom_color', uint8, 4)
@@ -78,14 +90,27 @@ class Atoms(SetOperators):
     radii = cvec_property('atom_radius', float32)
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
 
+    @property
+    def by_molecule(self):
+        '''Return list of pairs of molecule and Atoms for that molecule.'''
+        amol = self.molecules
+        from numpy import array
+        return [(m, self.filter(array(amol)==m)) for m in self.unique_molecules]
+
+    def delete(self):
+        '''Delete the C++ Atom objects'''
+        mols = self.unique_molecules
+        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_int])(self._c_pointers, len(self))
+        # TODO: Graphics update should be handled by notifiers.
+        for m in mols:
+            m.update_graphics()
+
 # -----------------------------------------------------------------------------
 #
-class Bonds(SetOperators):
+class Bonds(PointerArray):
 
     def __init__(self, bond_pointers):
-        from .molobject import Bond
-        SetOperators.__init__(self, bond_pointers, Bond, Bonds)
-        set_cvec_pointer(self, bond_pointers)
+        PointerArray.__init__(self, bond_pointers, molobject.Bond, Bonds)
 
     atoms = cvec_property('bond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
     colors = cvec_property('bond_color', uint8, 4)
@@ -95,12 +120,10 @@ class Bonds(SetOperators):
 
 # -----------------------------------------------------------------------------
 #
-class PseudoBonds:
+class PseudoBonds(PointerArray):
 
     def __init__(self, pbond_pointers):
-        from .molobject import PseudoBond
-        SetOperators.__init__(self, pbond_pointers, PseudoBond, PseudoBonds)
-        set_cvec_pointer(self, pbond_pointers)
+        PointerArray.__init__(self, pbond_pointers, molobject.PseudoBond, PseudoBonds)
 
     atoms = cvec_property('pseudobond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
     colors = cvec_property('pseudobond_color', uint8, 4)
@@ -110,12 +133,10 @@ class PseudoBonds:
 
 # -----------------------------------------------------------------------------
 #
-class Residues:
+class Residues(PointerArray):
 
     def __init__(self, residue_pointers):
-        from .molobject import Residue
-        SetOperators.__init__(self, residue_pointers, Residue, Residues)
-        set_cvec_pointer(self, residue_pointers)
+        PointerArray.__init__(self, residue_pointers, molobject.Residue, Residues)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False)
     chain_ids = cvec_property('residue_chain_id', string, read_only = True)
@@ -125,15 +146,14 @@ class Residues:
     numbers = cvec_property('residue_number', int32, read_only = True)
     strs = cvec_property('residue_str', string, read_only = True)
     unique_ids = cvec_property('residue_unique_id', int32, read_only = True)
+    ribbon_displays = cvec_property('residue_ribbon_display', npy_bool)
 
 # -----------------------------------------------------------------------------
 #
-class Chains:
+class Chains(PointerArray):
 
     def __init__(self, chain_pointers):
-        from .molobject import Chain
-        SetOperators.__init__(self, chain_pointers, Chain, Chains)
-        set_cvec_pointer(self, chain_pointers)
+        PointerArray.__init__(self, chain_pointers, molobject.Chain, Chains)
 
     chain_ids = cvec_property('chain_chain_id', string, read_only = True)
     molecules = cvec_property('chain_molecule', cptr, astype = _atomic_structures, read_only = True)
@@ -143,12 +163,10 @@ class Chains:
 
 # -----------------------------------------------------------------------------
 #
-class AtomicStructures:
+class CAtomicStructures(PointerArray):
 
     def __init__(self, mol_pointers):
-        from .molobject import AtomicStructure
-        SetOperators.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
-        set_cvec_pointer(self, mol_pointers)
+        PointerArray.__init__(self, mol_pointers, molobject.CAtomicStructure, CAtomicStructures)
 
     atoms = cvec_property('molecule_atoms', cptr, 'num_atoms', astype = _atoms,
                           read_only = True, per_object = False)
@@ -164,3 +182,15 @@ class AtomicStructures:
     residues = cvec_property('molecule_residues', cptr, 'num_residues', astype = _residues,
                              read_only = True, per_object = False)
     pbg_maps = cvec_property('molecule_pbg_map', pyobject, astype = _pseudobond_group_map, read_only = True)
+
+# -----------------------------------------------------------------------------
+# When C++ object is deleted, delete it from the specified pointer array.
+#
+def remove_deleted_pointers(array):
+    remove_deleted_c_pointers(array)
+    import weakref
+    weakref.finalize(array, pointer_array_freed, id(array))
+
+import ctypes
+remove_deleted_c_pointers = c_function('remove_deleted_c_pointers', args = [ctypes.py_object])
+pointer_array_freed = c_function('pointer_array_freed', args = [ctypes.c_void_p])

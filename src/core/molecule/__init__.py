@@ -1,1 +1,2 @@
-from .molobject import atomic_structure_from_blob
+from .molobject import CAtomicStructure, add_to_object_map, CPseudoBondGroup
+from .molarray import Atoms
