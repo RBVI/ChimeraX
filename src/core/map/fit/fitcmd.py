@@ -26,7 +26,7 @@ def register_fitmap_command():
             ('clusterAngle', cli.FloatArg),
             ('clusterShift', cli.FloatArg),
             ('asymmetricUnit', cli.BoolArg),
-            ('inside', cli.FloatArg),
+            ('levelInside', cli.FloatArg),
             ('sequence', cli.IntArg),
             ('maxSteps', cli.IntArg),
             ('gridStepMax', cli.FloatArg),
@@ -45,7 +45,7 @@ def fitmap(session, atomsOrMap, inMap = None,
            moveWholeMolecules = True,
            search = 0, placement = 'sr', radius = None,
            clusterAngle = 6, clusterShift = 3,
-           asymmetricUnit = True, inside = 0.1, sequence = 0,
+           asymmetricUnit = True, levelInside = 0.1, sequence = 0,
            maxSteps = 2000, gridStepMin = 0.01, gridStepMax = 0.5,
            listFits = None, eachModel = False):
 
@@ -69,7 +69,7 @@ def fitmap(session, atomsOrMap, inMap = None,
                         shift, rotate, symmetric, moveWholeMolecules, search,
                         placement, radius,
                         clusterAngle, clusterShift, asymmetricUnit,
-                        inside, sequence, maxSteps, gridStepMin, gridStepMax,
+                        levelInside, sequence, maxSteps, gridStepMin, gridStepMax,
                         listFits)
           flist.extend(fits)
       return flist
@@ -78,8 +78,7 @@ def fitmap(session, atomsOrMap, inMap = None,
       metric = 'correlation' if symmetric else 'overlap'
 
   if sequence == 0:
-      from ...structure import Atoms
-      atoms = Atoms(atomsOrMap)
+      atoms = atomsOrMap.atoms
       if len(atoms) == 0:
           v = map_to_fit(atomsOrMap)
       elif resolution is None:
@@ -133,7 +132,7 @@ def fitmap(session, atomsOrMap, inMap = None,
           raise cli.UserError('Symmetric fitting not available with fit search')
       flist = fit_search(atoms, v, volume, metric, envelope, shift, rotate,
                          moveWholeMolecules, search, placement, radius,
-                         clusterAngle, clusterShift, asymmetricUnit, inside,
+                         clusterAngle, clusterShift, asymmetricUnit, levelInside,
                          maxSteps, gridStepMin, gridStepMax, session.logger)
 
   if listFits:
@@ -188,7 +187,7 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
                                     maxSteps, gridStepMin, gridStepMax, 
                                     shift, rotate, moveWholeMolecules,
                                     request_stop_cb = report_status(log))
-    mols = atoms.molecules
+    mols = atoms.unique_molecules
     if log and stats:
         log.info(F.atom_fit_message(mols, volume, stats))
         if moveWholeMolecules:
@@ -287,7 +286,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
 #
 def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
                moveWholeMolecules, search, placement, radius,
-               clusterAngle, clusterShift, asymmetricUnit, inside,
+               clusterAngle, clusterShift, asymmetricUnit, levelInside,
                maxSteps, gridStepMin, gridStepMax, log = None):
     
     # TODO: Handle case where not moving whole molecules.
@@ -304,7 +303,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
     from . import search as FS
     rotations = 'r' in placement
     shifts = 's' in placement
-    mlist = list(atoms.molecules)
+    mlist = list(atoms.unique_molecules)
     if v:
         mlist.append(v)
 
@@ -317,13 +316,13 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 #    try:
     flist, outside = FS.fit_search(
             mlist, points, point_weights, volume, search, rotations, shifts,
-            radius, clusterAngle, clusterShift, asymmetricUnit, inside,
+            radius, clusterAngle, clusterShift, asymmetricUnit, levelInside,
             me, shift, rotate, maxSteps, gridStepMin, gridStepMax, stop_cb)
 #    finally:
 #        task.finished()
 
     if log:
-        report_fit_search_results(flist, search, outside, inside, log)
+        report_fit_search_results(flist, search, outside, levelInside, log)
     return flist
 
 # -----------------------------------------------------------------------------
@@ -339,12 +338,12 @@ def request_stop_cb(message, task):
 
 # -----------------------------------------------------------------------------
 #
-def report_fit_search_results(flist, search, outside, inside, log):
+def report_fit_search_results(flist, search, outside, levelInside, log):
 
     log.info('Found %d unique fits from %d random placements ' %
              (len(flist), search) +
              'having fraction of points inside contour >= %.3f (%d of %d).\n'
-             % (inside, search-outside,  search))
+             % (levelInside, search-outside,  search))
 
     if len(flist) == 0:
         return
@@ -375,8 +374,8 @@ def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                 raise cli.UserError('Fit sequence requires 2 or more maps'
                                    ' to place')
     else:
-        from ...structure import StructureModel
-        mlist = [m for m in atomsOrMap.models if isinstance(m, StructureModel)]
+        from ...structure import AtomicStructure
+        mlist = [m for m in atomsOrMap.models if isinstance(m, AtomicStructure)]
         if len(mlist) < 2:
             raise cli.UserError('Fit sequence requires 2 or more molecules')
         if not moveWholeMolecules:

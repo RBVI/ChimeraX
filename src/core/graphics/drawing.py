@@ -280,7 +280,7 @@ class Drawing:
         else:
             self._selected_positions = None
             self._selected_triangles_mask = None
-        self.redraw_needed()
+        self.redraw_needed(selection_changed=True)
 
     selected = property(get_selected, set_selected)
     '''Whether or not the drawing is selected.'''
@@ -697,83 +697,56 @@ class Drawing:
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         '''
-        Find the first intercept of a line segment with the drawing and
-        its children.  Return the fraction of the distance along the segment
-        where the intersection occurs and a Pick object for the intercepted
-        piece.  For no intersection two None values are returned.  This
-        routine is used for selecting objects, for identifying objects
-        during mouse-over, and to determine the front-most point in the
-        center of view to be used as the interactive center of rotation.
+        Find the first intercept of a line segment with the displayed part
+        of this drawing and its children.  Return a Pick object for the intercepted item.
+        The Pick object has a distance attribute giving the fraction (0-1)
+        along the segment where the intersection occurs.
+        For no intersection None is returned.  This routine is used for
+        selecting objects, for identifying objects during mouse-over, and
+        to determine the front-most point in the center of view to be used
+        as the interactive center of rotation.
         '''
-        f, dpchain = self._first_drawing_intercept(mxyz1, mxyz2, exclude)
-        s = _PickedDrawing(dpchain) if dpchain else None
-        return f, s
-
-    def _first_drawing_intercept(self, mxyz1, mxyz2, exclude=None):
-        '''
-        Find the first intercept of a line segment with the drawing or its
-        descendants and return the fraction of the distance along the segment
-        where the intersection occurs or None if no intersection occurs.
-        Also return a list of pairs of drawing and copy number descending
-        to the intercepted child drawing.
-        '''
-        f = dpchain = None
+        pclosest = None
         if self.display and (exclude is None or not hasattr(self, exclude)):
             if not self.empty_drawing():
-                fmin, pnum = self._first_intercept_excluding_children(mxyz1,
-                                                                      mxyz2)
-                if fmin is not None and (f is None or fmin < f):
-                    f = fmin
-                    dpchain = [(self, pnum)]
+                p = self._first_intercept_excluding_children(mxyz1, mxyz2)
+                if p and (pclosest is None or p.distance < pclosest.distance):
+                    pclosest = p
             cd = self.child_drawings()
             if cd:
                 pos = [p.inverse() * (mxyz1, mxyz2) for p in self.positions]
                 for d in cd:
-                    if d.display and (exclude is None or
-                                      not hasattr(d, exclude)):
+                    if d.display and (exclude is None or not hasattr(d, exclude)):
                         for cp, (cxyz1, cxyz2) in enumerate(pos):
-                            fmin, dc = d._first_drawing_intercept(cxyz1, cxyz2,
-                                                                  exclude)
-                            if fmin is not None and (f is None or fmin < f):
-                                f = fmin
-                                dpchain = [(self, cp)] + dc
-        return f, dpchain
+                            p = d.first_intercept(cxyz1, cxyz2, exclude)
+                            if p and (pclosest is None or p.distance < pclosest.distance):
+                                pclosest = p
+        return pclosest
 
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
-        '''
-        Find the first intercept of a line segment with the drawing and
-        return the fraction of the distance along the segment where
-        the intersection occurs or None if no intersection occurs.
-        Intercepts with masked triangle are included.  Children drawings
-        are not considered.
-        '''
-        # TODO check intercept of bounding box as optimization
-        f = None
-        p = None    # Position number
         if self.empty_drawing():
-            return f, p
+            return None
         va, ta = self.geometry
         if ta.shape[1] != 3:
             # TODO: Intercept only for triangles, not lines or points.
-            return f, p
+            return None
+        # TODO: Check intercept of bounding box as optimization
+        p = None
         from ._graphics import closest_geometry_intercept
         if self.positions.is_identity():
             fmin, tmin = closest_geometry_intercept(va, ta, mxyz1, mxyz2)
-            if fmin is not None and (f is None or fmin < f):
-                f = fmin
-                p = 0
+            if fmin is not None:
+                p = TrianglePick(fmin, tmin, 0, self)
         else:
             # TODO: This will be very slow for large numbers of copies.
             dp = self._displayed_positions
             for c, tf in enumerate(self.positions):
                 if dp is None or dp[c]:
                     cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-                    fmin, tmin = closest_geometry_intercept(va, ta, cxyz1,
-                                                            cxyz2)
-                    if fmin is not None and (f is None or fmin < f):
-                        f = fmin
-                        p = c
-        return f, p
+                    fmin, tmin = closest_geometry_intercept(va, ta, cxyz1, cxyz2)
+                    if fmin is not None and (p is None or fmin < p.distance):
+                        p = TrianglePick(fmin, tmin, c, self)
+        return p
 
     def delete(self):
         '''
@@ -864,10 +837,17 @@ class Drawing:
 
     DRAWING_STATE_VERSION = 1
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        from ..session import State
+        if phase == State.CLEANUP_PHASE:
+            for c in self.child_drawings():
+                c.take_snapshot(session, phase, flags)
+            return
+        if phase != State.SAVE_PHASE:
+            return
         # all drawing objects should have the same version
         data = {
-            'children': [c.take_snapshot(session, flags)[1]
+            'children': [c.take_snapshot(session, phase, flags)[1]
                          for c in self.child_drawings()],
             'name': self.name,
             'vertices': self.vertices,
@@ -899,7 +879,7 @@ class Drawing:
         from ..session import State, RestoreError
         if version != self.DRAWING_STATE_VERSION:
             raise RestoreError("Unexpected version or data")
-        if phase != State.PHASE1:
+        if phase != State.CREATE_PHASE:
             return
         for child_data in data['children']:
             child = self.new_drawing()
@@ -933,7 +913,7 @@ class Drawing:
         raise NotImplemented()
 
 
-def draw_drawings(renderer, cvinv, drawings):
+def draw_drawings(renderer, cvinv, drawings, opaque_only = False):
     '''
     Render opaque and transparent draw passes for a given set of drawings,
     and given camera view (inverse camera transform).
@@ -943,7 +923,7 @@ def draw_drawings(renderer, cvinv, drawings):
     from ..geometry.place import Place
     p = Place()
     _draw_multiple(drawings, r, p, Drawing.OPAQUE_DRAW_PASS)
-    if _any_transparent_drawings(drawings):
+    if not opaque_only and _any_transparent_drawings(drawings):
         r.draw_transparent(
             lambda: _draw_multiple(drawings, r, p,
                                    Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
@@ -964,12 +944,12 @@ def _any_transparent_drawings(drawings):
     return False
 
 
-def draw_depth(renderer, cvinv, drawings):
+def draw_depth(renderer, cvinv, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_VERTEX_COLORS |
                                   r.SHADER_TEXTURE_2D)
-    draw_drawings(r, cvinv, drawings)
+    draw_drawings(r, cvinv, drawings, opaque_only)
     r.disable_shader_capabilities(0)
 
 
@@ -1190,6 +1170,9 @@ class Pick:
     '''
     A picked object returned by first_intercept() method of the Drawing class.
     '''
+    def __init__(self, distance):
+        self.distance = distance
+
     def description(self):
         '''Text description of the picked object.'''
         return None
@@ -1205,48 +1188,52 @@ class Pick:
     def id_string(self):
         '''
         A text identifier that can be used in commands to specified the
-        picked Model.  This is a concatenation of integer id numbers for
-        the chain of drawings.  The id number is not a standard attribute
-        of Drawing, only of Model which is a subclass of Drawing.
+        picked Model. The id number is not a standard attribute
+        of Drawing, only of Model which is a subclass of Drawing,
+        and is a tuple of integers.
         '''
         d = self.drawing()
-        id_chain = []
-        while d:
+        while True:
             if hasattr(d, 'id') and d.id is not None:
-                id_chain.append(d.id)
-            d = getattr(d, 'parent', None)
-        s = '#' + '.'.join(('%d' % id) for id in id_chain[1::-1])
-        return s
+                s = '#' + '.'.join(('%d' % id) for id in d.id)
+                return s
+            if hasattr(d, 'parent') and not d.parent is None:
+                d = d.parent
+            else:
+                break
+        return '?'
 
-
-class _PickedDrawing(Pick):
+class TrianglePick(Pick):
     '''
-    Represent a drawing chosen with the mouse as a generic selection object.
+    A picked triangle of a drawing.
     '''
-    def __init__(self, drawing_chain):
-        self.drawing_chain = drawing_chain
+    def __init__(self, distance, triangle_number, copy_number, drawing):
+        Pick.__init__(self, distance)
+        self.triangle_number = triangle_number
+        self._copy = copy_number
+        self._drawing = drawing
 
     def description(self):
-        d, c = self.drawing_chain[-1]
+        d = self.drawing()
         fields = [self.id_string()]
         if d.name is not None:
             fields.append(d.name)
         if len(d.positions) > 1:
-            fields.append('copy %d' % c)
-        fields.append('triangles %d' % len(d.triangles))
+            fields.append('copy %d' % self._copy)
+        fields.append('triangle %d of %d' % (self.triangle_number, len(d.triangles)))
         desc = ' '.join(fields)
         return desc
 
     def drawing(self):
-        d = self.drawing_chain[-1][0]
-        return d
+        return self._drawing
 
     def select(self, toggle=False):
-        d, c = self.drawing_chain[-1]
+        d = self.drawing()
         pmask = d.selected_positions
         if pmask is None:
             from numpy import zeros, bool
             pmask = zeros((len(d.positions),), bool)
+        c = self._copy
         pmask[c] = not pmask[c] if toggle else 1
         d.selected_positions = pmask
 

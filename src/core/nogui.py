@@ -162,8 +162,8 @@ class _Input(Task):
     def reset_state(self):
         pass
 
-    def take_snapshot(self, session, flags):
-        return [1, None]
+    def take_snapshot(self, phase, session, flags):
+        return
 
     def restore_snapshot(self, phase, session, version, data):
         pass

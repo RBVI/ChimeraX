@@ -62,7 +62,6 @@ setup(
             os.path.join(lib_dir, "liblogger.SHLIB_EXT"),
             os.path.join(lib_dir, "libtmpl.SHLIB_EXT"),
             os.path.join(lib_dir, "libatomstruct.SHLIB_EXT"),
-            os.path.join(lib_dir, "libblob.SHLIB_EXT"),
         ]),
         (os.path.join("share", "idatm", "templates"),
 			glob(os.path.join(data_dir, "idatm", "templates", "*"))),

@@ -9,25 +9,13 @@ class Map_Series(Model):
     Model.__init__(self, name)
     self.maps = maps
 
-    for m in maps:
-      self.add_model(m)
+    self.add(maps)
 
     self.shown_times = t = set(i for i,m in enumerate(maps) if m.display)
     self.last_shown_time = tuple(t)[0] if len(t) > 0 else 0
 
     self.surface_level_ranks = []  # Cached for normalization calculation
     self.solid_level_ranks = []  # Cached for normalization calculation
-
-  # ---------------------------------------------------------------------------
-  #
-  def add_model(self, m):
-    if hasattr(Model, 'add_model'):
-      Model.add_model(self, m)          # Hydra
-    else:
-      # Chimera 2
-      self.add_drawing(m)
-      if m.id is None:
-        m.id = len(self.child_drawings())
 
   # ---------------------------------------------------------------------------
   #
@@ -133,19 +121,8 @@ class Map_Series(Model):
     v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
     self.solid_level_ranks = ranks
 
-  # ---------------------------------------------------------------------------
-  #
-  def first_intercept(self, mxyz1, mxyz2, exclude = None):
-    fmin = pmin = None
-    for m in self.maps:
-      if m.display:
-        f,p = m.first_intercept(mxyz1, mxyz2, exclude)
-        if not f is None and (fmin is None or f < fmin):
-          fmin,pmin = f,p
-    return fmin,pmin
-
   # State save/restore in Chimera 2
-  def take_snapshot(self, session, flags):
+  def take_snapshot(self, phase, session, flags):
     pass
   def restore_snapshot(self, phase, session, version, data):
     pass

@@ -9,8 +9,8 @@ CATEGORY = io.GENERIC3D
 class Generic3DModel(models.Model):
     """Commom base class for generic 3D data"""
 
-    def take_snapshot(self, session, flags):
-        return Drawing.take_snapshot(self, session, flags)
+    def take_snapshot(self, phase, session, flags):
+        return Drawing.take_snapshot(self, phase, session, flags)
 
     def restore_snapshot(self, phase, session, version, data):
         return Drawing.restore_snapshot(self, phase, session, version, data)

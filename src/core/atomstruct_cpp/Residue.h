@@ -36,6 +36,7 @@ private:
     std::string  _name;
     int  _position;
     int  _ss_id;
+    bool  _ribbon_display;
     AtomicStructure *  _structure;
 public:
     void  add_atom(Atom *);
@@ -47,7 +48,11 @@ public:
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     char  insertion_code() const { return _insertion_code; }
+    bool  is_helix() const { return _is_helix; }
     bool  is_het() const { return _is_het; }
+    bool  is_sheet() const { return _is_sheet; }
+    int   ss_id() const { return _ss_id; }
+    bool  ribbon_display() const { return _ribbon_display; }
     const std::string &  name() const { return _name; }
     int  position() const { return _position; }
     void  set_alt_loc(char alt_loc);
@@ -55,6 +60,7 @@ public:
     void  set_is_het(bool ih) { _is_het = ih; }
     void  set_is_sheet(bool is) { _is_sheet = is; }
     void  set_ss_id(int ssid) { _ss_id = ssid; }
+    void  set_ribbon_display(bool d) { _ribbon_display = d; }
     std::string  str() const;
     AtomicStructure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(

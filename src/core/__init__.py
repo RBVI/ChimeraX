@@ -18,9 +18,9 @@ def get_class(class_name):
         return _class_cache[class_name]
     except KeyError:
         pass
-    if class_name == 'StructureModel':
+    if class_name == 'AtomicStructure':
         from . import structure
-        cls = structure.StructureModel
+        cls = structure.AtomicStructure
     elif class_name == 'Generic3DModel':
         from . import generic3d
         cls = generic3d.Generic3DModel

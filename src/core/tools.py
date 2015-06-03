@@ -131,7 +131,7 @@ class Tools(State):
         import itertools
         self._id_counter = itertools.count(1)
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         """Save state of running tools.
 
         Overrides chimera.core.session.State default method to save
@@ -142,20 +142,30 @@ class Tools(State):
         session : instance of chimera.core.session.Session
             Session for which state is being saved.
             Should match the `session` argument given to `__init__`.
+        phase : str
+            Take phase.  See `chimera.core.session` for more details.
         flags : int
             Flags indicating whether snapshot is being taken to
             save scene or session.  See `chimera.core.session` for
             more details.
 
         """
-        data = {}
-        for tid, ti in self._tool_instances.items():
-            assert(isinstance(ti, ToolInstance))
-            if ti.SESSION_SKIP:
-                continue
-            data[tid] = [ti.tool_info.name, ti.tool_info.version,
-                         session.unique_id(ti), ti.take_snapshot(session, flags)]
-        return [self.VERSION, data]
+        if phase == self.CLEANUP_PHASE:
+            for ti in self._tool_instances.values():
+                if ti.SESSION_SKIP:
+                    continue
+                ti.take_snapshot(session, phase, flags)
+            return
+        if phase == self.SAVE_PHASE:
+            data = {}
+            for tid, ti in self._tool_instances.items():
+                assert(isinstance(ti, ToolInstance))
+                if ti.SESSION_SKIP:
+                    continue
+                data[tid] = [ti.tool_info.name, ti.tool_info.version,
+                             session.unique_id(ti),
+                             ti.take_snapshot(session, phase, flags)]
+            return [self.VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
         """Restore state of running tools.
@@ -182,7 +192,7 @@ class Tools(State):
 
         session = self._session()   # resolve back reference
         for tid, [tool_name, tool_version, uid, [ti_version, ti_data]] in data.items():
-            if phase == State.PHASE1:
+            if phase == State.CREATE_PHASE:
                 t = session.toolshed.find_tool(tool_name, version=tool_version)
                 if t is None:
                     # TODO: load tool from toolshed

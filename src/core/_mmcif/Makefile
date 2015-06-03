@@ -24,7 +24,7 @@ OBJS = $(SRCS:.cpp=.$(OBJ_EXT)) $(GENSRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
 CXXFLAGS += -I$(includedir) $(PYTHON_INCLUDE_DIRS)
-LIBS += -L$(shlibdir) -latomstruct -ltmpl -lblob -lbasegeom -lreadcif -lwrappy3 -llogger
+LIBS += -L$(shlibdir) -latomstruct -ltmpl -lbasegeom -lreadcif -lwrappy3 -llogger -larrays
 
 $(PYMOD): $(OBJS)
 	$(PYMOD_LINK)

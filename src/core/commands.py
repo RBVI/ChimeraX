@@ -60,16 +60,24 @@ _export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                            ' matching filename suffix')
 
 
-def close(session, model_ids):
+def close(session, model_ids = None):
     m = session.models
-    try:
-        mlist = sum((m.list(model_id) for model_id in model_ids), [])
-    except ValueError as e:
-        raise cli.UserError(e)
+    if model_ids is None:
+        mlist = m.list()
+    else:
+        try:
+            mlist = sum((m.list(model_id) for model_id in model_ids), [])
+        except ValueError as e:
+            raise cli.UserError(e)
     m.close(mlist)
-_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))],
+_close_desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
                           synopsis='close models')
 
+def delete(session, atoms):
+    atoms.delete()
+from .structure import AtomsArg
+_delete_desc = cli.CmdDesc(required=[('atoms', AtomsArg)],
+                           synopsis='delete atoms')
 
 def list(session):
     models = session.models.list()
@@ -216,10 +224,10 @@ def save(session, filename, width=None, height=None, format=None, supersample=No
     from . import session as ses
     if e[1:] in image_file_suffixes:
         save_image(session, filename, width, height, format, supersample)
-    elif e == ses.SUFFIX:
+    elif e == ses.SESSION_SUFFIX:
         ses.save(session, filename)
     else:
-        suffixes = image_file_suffixes + (ses.SUFFIX[1:],)
+        suffixes = image_file_suffixes + (ses.SESSION_SUFFIX[1:],)
         raise cli.UserError('Unrecognized file suffix "%s", require one of %s'
                             % (e, ','.join(suffixes)))
 
@@ -269,12 +277,35 @@ def save_image(session, path, format=None, width=None, height=None,
     i.save(path, format, quality=quality)
 
 
+def ribbon(session, spec=None):
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    results.atoms.residues.ribbon_displays = True
+    for m in results.models:
+        m.update_graphics()
+_ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display ribbon for specified residues')
+
+
+def unribbon(session, spec=None):
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    results.atoms.residues.ribbon_displays = False
+    for m in results.models:
+        m.update_graphics()
+_unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display ribbon for specified residues')
+
+
 def register(session):
     """Register common cli commands"""
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)
     cli.register('close', _close_desc, close)
+    cli.register('delete', _delete_desc, delete)
     cli.register('export', _export_desc, export)
     cli.register('list', _list_desc, list)
     cli.register('stop', _stop_desc, stop)
@@ -286,6 +317,8 @@ def register(session):
     cli.register('~display', _undisplay_desc, undisplay)
     cli.register('camera', _camera_desc, camera)
     cli.register('save', _save_desc, save)
+    cli.register('ribbon', _ribbon_desc, ribbon)
+    cli.register('~ribbon', _unribbon_desc, unribbon)
     from . import settings
     settings.register_set_command()
     from . import molsurf
@@ -319,3 +352,15 @@ def register(session):
     #     import .lighting.cmd as cmd
     #     cmd.register()
     # cli.delay_registration('lighting', lighting_cmds)
+
+    from . import atomspec
+    atomspec.register_selector(None, "sel", _sel_selector)
+
+def _sel_selector(session, models, results):
+    from .structure import AtomicStructure
+    for m in models:
+        if m.any_part_selected():
+            results.add_model(m)
+            if isinstance(m, AtomicStructure):
+                for atoms in m.selected_items('atoms'):
+                    results.add_atoms(atoms)

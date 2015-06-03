@@ -179,14 +179,17 @@ class UserColors(SortedDict, State):
 
     USER_COLORS_VERSION = 1
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         return [self.USER_COLORS_VERSION, dict(self)]
 
     def restore_snapshot(self, phase, session, version, data):
         if version != self.USER_COLORS_VERSION:
             raise RestoreError("Unexpected UserColors version")
-        self.clear()
-        self.update(data)
+        if phase == self.CREATE_PHASE:
+            self.clear()
+            self.update(data)
 
     def reset_state(self):
         """Reset state to data-less state"""
@@ -547,9 +550,9 @@ def color(session, color, spec=None):
         na = len(atoms)
 
     ns = 0
-    from .structure import StructureModel
+    from .structure import AtomicStructure
     for m in results.models:
-        if isinstance(m, StructureModel):
+        if isinstance(m, AtomicStructure):
             m.update_graphics()
         else:
             m.color = rgba8

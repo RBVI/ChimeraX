@@ -33,6 +33,7 @@ class Log(ToolInstance, HtmlLog):
         session.tools.add([self])
         session.logger.add_log(self)
         self.log_window.Bind(wx.EVT_CLOSE, self.window_close)
+        self.log_window.Bind(wx.EVT_SIZE, self.window_size)
 
     #
     # Implement logging
@@ -74,12 +75,12 @@ class Log(ToolInstance, HtmlLog):
                     dlg_msg = html_to_plain(msg)
                 else:
                     dlg_msg = msg
-                if dlg_msg.count('\n') > 50:
+                if dlg_msg.count('\n') > 30:
                     # avoid excessively high error dialogs where
                     # both the bottom buttons and top controls
                     # may be off the screen!
                     lines = dlg_msg.split('\n')
-                    dlg_msg = '\n'.join(lines[:20] + ["..."] + lines[-20:])
+                    dlg_msg = '\n'.join(lines[:15] + ["..."] + lines[-15:])
                 dlg = wx.MessageDialog(graphics, dlg_msg,
                                        caption=caption, style=style)
                 dlg.ShowModal()
@@ -103,19 +104,25 @@ class Log(ToolInstance, HtmlLog):
     def window_close(self, event):
         self.session.logger.remove_log(self)
 
+    def window_size(self, event):
+        # try to get to same scroll position
+        self.log_window.HistoryBack()
+
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.STATE_VERSION
         data = {"shown": self.tool_window.shown}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State, RestoreError
+        from chimera.core.session import RestoreError
         if version != self.STATE_VERSION:
             raise RestoreError("unexpected version")
-        if phase == State.PHASE1:
+        if phase == self.CREATE_PHASE:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved
             pass

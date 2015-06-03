@@ -6,7 +6,6 @@
 #include <atomstruct/Atom.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
-#include <blob/StructBlob.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/restmpl.h>
 #include <readcif.h>

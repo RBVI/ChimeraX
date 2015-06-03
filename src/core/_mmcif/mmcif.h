@@ -2,7 +2,6 @@
 #include <Python.h>
 #include <string>
 #include <functional>
-#include <blob/Blob.h>
 
 namespace tmpl {
     class Residue;

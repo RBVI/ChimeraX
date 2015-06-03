@@ -13,6 +13,8 @@ between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
 from OpenGL import GL
+# OpenGL workarounds:
+stencil8_needed = False
 
 
 class Render:
@@ -316,8 +318,10 @@ class Render:
 #                                                  for tf in stf], float32)
         self._multishadow_depth = shadow_depth
         p = self.current_shader_program
-        if p is not None and self.SHADER_MULTISHADOW & p.capabilities:
-            self.set_shadow_shader_variables(p)
+        if p is not None:
+            c = p.capabilities
+            if self.SHADER_MULTISHADOW & c and self.SHADER_LIGHTING & c:
+                self.set_shadow_shader_variables(p)
 
     def set_shadow_shader_variables(self, shader):
         shader.set_integer("multishadow_map", self.multishadow_texture_unit)
@@ -379,6 +383,13 @@ class Render:
         fb = self.default_framebuffer()
         fb.width, fb.height = width, height
         self.set_viewport(0, 0, width, height)
+
+        # Detect OpenGL workarounds
+        vendor = GL.glGetString(GL.GL_VENDOR)
+        import sys
+        global stencil8_needed
+        stencil8_needed = (sys.platform.startswith('linux') and
+                           vendor.startswith((b'AMD', b'ATI')))
 
     def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
@@ -845,10 +856,13 @@ class Framebuffer:
 
         depth_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
-        # AMD driver requires GL_DEPTH24_STENCIL8 for blitting instead of
-        # GL_DEPTH_COMPONENT24 even though we don't have any stencil planes
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8,
-                                 width, height)
+        if stencil8_needed:
+            # AMD driver requires GL_DEPTH24_STENCIL8 for blitting instead of
+            # GL_DEPTH_COMPONENT24 even though we don't have any stencil planes
+            iformat = GL.GL_DEPTH24_STENCIL8
+        else:
+            iformat = GL.GL_DEPTH_COMPONENT24
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, iformat, width, height)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
         return depth_rb
 
@@ -1383,7 +1397,11 @@ class Texture:
     def initialize_depth(self, size, depth_compare_mode=True):
 
         format = GL.GL_DEPTH_COMPONENT
-        iformat = GL.GL_DEPTH_COMPONENT24
+        if stencil8_needed:
+            # for compatibility with glRenderbufferStorage
+            iformat = GL.GL_DEPTH24_STENCIL8
+        else:
+            iformat = GL.GL_DEPTH_COMPONENT24
         tdtype = GL.GL_FLOAT
         ncomp = 1
         self.initialize_texture(size, format, iformat, tdtype, ncomp,

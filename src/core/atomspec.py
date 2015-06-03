@@ -306,9 +306,9 @@ class _ModelHierarchy(list):
                 mid = model.id[i]
             except IndexError:
                 mid = 1
-            if mrl.matches(mid):
-                return True
-        return False
+            if not mrl.matches(mid):
+                return False
+        return True
 
 
 class _ModelRangeList(list):
@@ -540,7 +540,8 @@ class _PartList:
         return ','.join([str(p) for p in self.parts])
 
     def add_parts(self, part_range):
-        self.parts.append(part_range)
+        self.parts.insert(0, part_range)
+        return self
 
 
 class _Part:
@@ -722,8 +723,8 @@ class AtomSpecResults:
         self.add_atoms(other.atoms)
 
     def invert(self, session, models):
-        from . import structaccess
-        atoms = structaccess.AtomBlob()
+        from .molecule import Atoms
+        atoms = Atoms()
         for m in models:
             if m in self._models:
                 # Was selected, so invert model atoms

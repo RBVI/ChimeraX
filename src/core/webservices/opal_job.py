@@ -166,11 +166,13 @@ class OpalJob(Job):
     #
     # Define chimera.core.session.State ABC methods
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         """Return snapshot of current state, [version, data], of instance.
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
+        if phase != self.SAVE_PHASE:
+            return
         version = 1
         data = [
             self.service_url,
@@ -187,11 +189,13 @@ class OpalJob(Job):
     def restore_snapshot(self, phase, session, version, data):
         """Restore data snapshot into instance.
 
-        Restoration is done in two phases: PHASE1 and PHASE2.  The
+        Restoration is done in two phases: CREATE_PHASE and RESOLVE_PHASE.  The
         first phase should restore all of the data.  The
         second phase should restore references to other objects (data is None).
         The session instance is used to convert unique ids into instances.
         """
+        if phase != self.CREATE_PHASE:
+            return
         if version == 1:
             self.service_url = data[0]
             self.job_id = data[1]
@@ -201,6 +205,7 @@ class OpalJob(Job):
             self._status_message = data[5]
             self._status_url = data[6]
             self._outputs = data[7]
+            return
         from ..session import RestoreError
         raise RestoreError("Unexpected version")
 

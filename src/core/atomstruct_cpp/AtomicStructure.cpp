@@ -337,8 +337,14 @@ AtomicStructure::new_residue(const std::string &name, const std::string &chain,
 }
 
 std::vector<Chain::Residues>
-AtomicStructure::polymers() const
+AtomicStructure::polymers(bool consider_missing_structure,
+    bool consider_chain_ids) const
 {
+    // if consider_missing_structure is false, just consider actual
+    // existing polymeric bonds (not missing-segment pseudobonds);
+    // if consider_chain_ids is true, don't have a polymer span
+    // a change in chain ID
+
     // connected polymeric residues have to be adjacent in the residue list,
     // so make an index map
     int i = 0;
@@ -357,7 +363,8 @@ AtomicStructure::polymers() const
             Residue* sr = start->residue();
             Residue* nr = b->other_atom(start)->residue();
             if (res_lookup[sr] + 1 == res_lookup[nr]
-            && sr->chain_id() == nr->chain_id())
+            && (!consider_chain_ids || sr->chain_id() == nr->chain_id()))
+                // If consider_chain_ids is true,
                 // if an artificial linker is used to join
                 // otherwise unconnected amino acid chains,
                 // they all can have different chain IDs,
@@ -366,18 +373,22 @@ AtomicStructure::polymers() const
         }
     }
 
-    // go through missing-structure pseudobonds
-    auto pbg = (Owned_PBGroup*) _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
-    if (pbg != nullptr) {
-        for (auto& pb: pbg->pseudobonds()) {
-            Residue *r1 = pb->atoms()[0]->residue();
-            Residue *r2 = pb->atoms()[1]->residue();
-            int index1 = res_lookup[r1], index2 = res_lookup[r2];
-            if (abs(index1 - index2) == 1 && r1->chain_id() == r2->chain_id()) {
-                if (index1 < index2) {
-                    connected[r1] = true;
-                } else {
-                    connected[r2] = true;
+    if (consider_missing_structure) {
+        // go through missing-structure pseudobonds
+        auto pbg = (Owned_PBGroup*) _pb_mgr.get_group(PBG_MISSING_STRUCTURE,
+            AS_PBManager::GRP_NONE);
+        if (pbg != nullptr) {
+            for (auto& pb: pbg->pseudobonds()) {
+                Residue *r1 = pb->atoms()[0]->residue();
+                Residue *r2 = pb->atoms()[1]->residue();
+                int index1 = res_lookup[r1], index2 = res_lookup[r2];
+                if (abs(index1 - index2) == 1
+                && r1->chain_id() == r2->chain_id()) {
+                    if (index1 < index2) {
+                        connected[r1] = true;
+                    } else {
+                        connected[r2] = true;
+                    }
                 }
             }
         }

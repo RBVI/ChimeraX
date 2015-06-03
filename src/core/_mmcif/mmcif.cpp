@@ -5,11 +5,11 @@
 #include <atomstruct/Bond.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/CoordSet.h>
-#include <blob/StructBlob.h>
 #include <atomstruct/connect.h>
 #include <atomstruct/tmpl/Atom.h>
 #include <atomstruct/tmpl/Residue.h>
 #include <logger/logger.h>
+#include "pythonarray.h"	// Use python_voidp_array()
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
@@ -18,9 +18,11 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <unordered_map>
+#include <set>
 
 using std::hash;
 using std::map;
+using std::multiset;
 using std::set;
 using std::string;
 using std::unordered_map;
@@ -130,6 +132,7 @@ struct ExtractMolecule: public readcif::CIFFile
         }
     };
     unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
+    map<string, string> chain_entity_map;
     struct ResidueKey {
         string entity_id;
         long seq_id;
@@ -167,8 +170,11 @@ struct ExtractMolecule: public readcif::CIFFile
         bool hetero;
         PolySeq(long s, const string& m, bool h):
             seq_id(s), mon_id(m), hetero(h) {}
+        bool operator<(const PolySeq& p) const {
+            return this->seq_id < p.seq_id;
+        }
     };
-    typedef vector<PolySeq> EntityPolySeq;
+    typedef multiset<PolySeq> EntityPolySeq;
     map<string /* entity_id */, EntityPolySeq> poly_seq;
     int first_model_num;
 };
@@ -215,6 +221,7 @@ ExtractMolecule::reset_parse()
     all_molecules.clear();
     molecules.clear();
     atom_map.clear();
+    chain_entity_map.clear();
     all_residues.clear();
 }
 
@@ -271,7 +278,6 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
     // -- Assumes atoms were added in the exact same order
 
     // Bonds:
-    auto& atoms = from->atoms();
     auto& bonds = from->bonds();
     auto& to_atoms = to->atoms();
     size_t to_size = to_atoms.size();
@@ -344,7 +350,7 @@ ExtractMolecule::finished_parse()
         const string& entity_id = ri->first.entity_id;
         if (poly_seq.find(entity_id) == poly_seq.end())
             continue;
-        PolySeq* lastp = nullptr;
+        const PolySeq* lastp = nullptr;
         bool gap = false;
         vector<Residue*> previous, current;
         string auth_chain_id;
@@ -476,12 +482,12 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
     int model_num = 0;            // pdbx_PDB_model_num
 
 
-    pv.emplace_back(get_column("id", false), false,
+    pv.emplace_back(get_column("id"), false,
         [&] (const char* start, const char*) {
             serial_num = readcif::str_to_int(start);
         });
 
-    pv.emplace_back(get_column("label_entity_id", false), true,
+    pv.emplace_back(get_column("label_entity_id"), true,
         [&] (const char* start, const char* end) {
             entity_id = string(start, end - start);
         });
@@ -490,14 +496,13 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             chain_id = string(start, end - start);
         });
-    int auth_asym_column = get_column("auth_asym_id");
-    pv.emplace_back(auth_asym_column, true,
+    pv.emplace_back(get_column("auth_asym_id"), true,
         [&] (const char* start, const char* end) {
             auth_chain_id = string(start, end - start);
             if (auth_chain_id == "." || auth_chain_id == "?")
                 auth_chain_id.clear();
         });
-    pv.emplace_back(get_column("pdbx_PDB_ins_code", false), true,
+    pv.emplace_back(get_column("pdbx_PDB_ins_code"), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code = ' ';
@@ -518,7 +523,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
                 auth_position = readcif::str_to_int(start);
         });
 
-    pv.emplace_back(get_column("label_alt_id", false), true,
+    pv.emplace_back(get_column("label_alt_id"), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -551,8 +556,7 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             residue_name = string(start, end - start);
         });
-    int auth_comp_column = get_column("auth_comp_id");
-    pv.emplace_back(auth_comp_column, true,
+    pv.emplace_back(get_column("auth_comp_id"), true,
         [&] (const char* start, const char* end) {
             auth_residue_name = string(start, end - start);
             if (auth_residue_name == "." || auth_residue_name == "?")
@@ -617,13 +621,14 @@ ExtractMolecule::parse_atom_site(bool /*in_loop*/)
         || cur_auth_seq_id != auth_position
         || cur_chain_id != chain_id
         || cur_comp_id != residue_name) {
+            chain_entity_map[chain_id] = entity_id;
             string rname, cid;
             long pos;
-            if (auth_comp_column != -1 && !auth_residue_name.empty())
+            if (!auth_residue_name.empty())
                 rname = auth_residue_name;
             else
                 rname = residue_name;
-            if (auth_asym_column != -1 && !auth_chain_id.empty())
+            if (!auth_chain_id.empty())
                 cid = auth_chain_id;
             else
                 cid = chain_id;
@@ -717,7 +722,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             chain_id1 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" P1 INS_CODE, false), true,
+    pv.emplace_back(get_column("pdbx_" P1 INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code1 = ' ';
@@ -737,7 +742,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
             else
                 auth_position1 = readcif::str_to_int(start);
         });
-    pv.emplace_back(get_column("pdbx_" P1 ALT_ID, false), true,
+    pv.emplace_back(get_column("pdbx_" P1 ALT_ID), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -764,7 +769,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
         [&] (const char* start, const char* end) {
             chain_id2 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" P2 INS_CODE, false), true,
+    pv.emplace_back(get_column("pdbx_" P2 INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code2 = ' ';
@@ -784,7 +789,7 @@ ExtractMolecule::parse_struct_conn(bool /*in_loop*/)
             else
                 auth_position2 = readcif::str_to_int(start);
         });
-    pv.emplace_back(get_column("pdbx_" P2 ALT_ID, false), true,
+    pv.emplace_back(get_column("pdbx_" P2 ALT_ID), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1
             && (*start == '.' || *start == '?' || *start == ' '))
@@ -903,8 +908,8 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
     string id;                              // id
     string chain_id1, chain_id2;            // (beg|end)_label_asym_id
     long position1, position2;              // (beg|end)_label_seq_id
-    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
     string residue_name1, residue_name2;    // (beg|end)_label_comp_id
+    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
@@ -917,15 +922,19 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
             conf_type = string(start, end - start);
         });
 
-    pv.emplace_back(get_column(BEG COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name1 = string(start, end - start);
-        });
     pv.emplace_back(get_column(BEG ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id1 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" BEG INS_CODE, false), true,
+    pv.emplace_back(get_column(BEG COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position1 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code1 = ' ';
@@ -934,31 +943,27 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
                 ins_code1 = *start;
             }
         });
-    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position1 = readcif::str_to_int(start);
-        });
 
-    pv.emplace_back(get_column(END COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name2 = string(start, end - start);
-        });
     pv.emplace_back(get_column(END ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id2 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" END INS_CODE, false), true,
+    pv.emplace_back(get_column(END COMP_ID, true), true,
         [&] (const char* start, const char* end) {
-            if (end == start + 2 && (*start == '.' || *start == '?'))
+            residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position2 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code2 = ' ';
             else {
                 // TODO: check if more than one character
                 ins_code2 = *start;
             }
-        });
-    pv.emplace_back(get_column(END SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position2 = readcif::str_to_int(start);
         });
 
     #undef BEG
@@ -968,58 +973,60 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
     #undef SEQ_ID
     #undef INS_CODE
 
-    auto mol = all_residues.begin()->second.begin()->second->structure();
+    int helix_id = 0;
+    int strand_id = 0;
+    string last_chain_id;
     while (parse_row(pv)) {
         if (conf_type.empty())
             continue;
-        Residue *init_res = mol->find_residue(chain_id1, position1, ins_code1,
-                                        residue_name1);
-        if (init_res == NULL) {
-            logger::error(_logger, "Start residue of secondary structure"
-                " not found: ", conf_type);
-            continue;
-        }
-        Residue *end_res = mol->find_residue(chain_id2, position2, ins_code2,
-                                        residue_name2);
-        if (end_res == NULL) {
-            logger::error(_logger, "End residue of secondary structure"
-                " not found: ", conf_type);
-            continue;
-        }
-        const auto& residues = mol->residues();
-        auto first = residues.end();
-        auto last = residues.end();
-        for (auto ri = residues.begin(); ri != last; ++ri) {
-            Residue *r = ri->get();
-            if (r == init_res)
-                first = ri;
-            if (r == end_res) {
-                last = ri;
-                break;
-            }
-        }
-        if (first == residues.end() || last == residues.end()) {
-            logger::error(_logger, "Bad residue range for secondary"
-                " structure: ", conf_type);
+        if (chain_id1 != chain_id2) {
+            logger::error(_logger, "Start and end residues of secondary"
+                          " structure are in different chains: ", id);
             continue;
         }
         // Only expect helixes and turns, strands were in mmCIF v. 2,
         // but are not in mmCIF v. 4.
         bool is_helix = conf_type[0] == 'H' || conf_type[0] == 'h';
         bool is_strnd = conf_type[0] == 'S' || conf_type[0] == 's';
-        if (!is_helix || !is_strnd) {
+        if (!is_helix && !is_strnd) {
             // ignore turns
             continue;
         }
-        // TODO: figure out ss_id
-        for (auto ri = first; ri != last; ++ri) {
-            Residue *r = ri->get();
+        if (is_helix)
+            ++helix_id;
+        else if (is_strnd)
+            ++strand_id;
+
+        const ResidueMap& residue_map = all_residues[chain_id1];
+        string entity_id = chain_entity_map[chain_id1];
+        auto& entity_poly_seq = poly_seq[entity_id];
+
+        auto init_ps = entity_poly_seq.lower_bound(
+                       PolySeq(position1, residue_name1, false));
+        auto end_ps = entity_poly_seq.upper_bound(
+                       PolySeq(position2, residue_name2, false));
+        if (init_ps == entity_poly_seq.end()) {
+        // TODO: || end_ps == entity_poly_seq.end()) {
+            logger::error(_logger, "Bad residue range for secondary strcture: ",
+                          id);
+            continue;
+        }
+        for (auto pi = init_ps; pi != end_ps; ++pi) {
+            auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
+                                                  pi->mon_id));
+            if (ri == residue_map.end())
+                continue;
+            Residue *r = ri->second;
             if (is_helix) {
                 r->set_is_helix(true);
-                //r->set_ss_id(ss_id);
+                r->set_ss_id(helix_id);
             } else {
+                if (chain_id1 != last_chain_id) {
+                    strand_id = 1;
+                    last_chain_id = chain_id1;
+                }
                 r->set_is_sheet(true);
-                //r->set_ss_id(ss_id);
+                r->set_ss_id(strand_id);
             }
         }
     }
@@ -1038,12 +1045,12 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
     #define COMP_ID "_label_comp_id"
     #define SEQ_ID "_label_seq_id"
     #define INS_CODE "_PDB_ins_code"        // pdbx
+    string sheet_id;                        // sheet_id
+    string id;                              // id
     string chain_id1, chain_id2;            // (beg|end)_label_asym_id
     long position1, position2;              // (beg|end)_label_seq_id
     char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_(beg|end)_PDB_ins_code
     string residue_name1, residue_name2;    // (beg|end)_label_comp_id
-    string sheet_id;                        // sheet_id
-    string id;                              // id
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
@@ -1056,15 +1063,19 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
             id = string(start, end - start);
         });
 
-    pv.emplace_back(get_column(BEG COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name1 = string(start, end - start);
-        });
     pv.emplace_back(get_column(BEG ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id1 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" BEG INS_CODE, false), true,
+    pv.emplace_back(get_column(BEG COMP_ID, true), true,
+        [&] (const char* start, const char* end) {
+            residue_name1 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position1 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" BEG INS_CODE), true,
         [&] (const char* start, const char* end) {
             if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code1 = ' ';
@@ -1073,31 +1084,27 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
                 ins_code1 = *start;
             }
         });
-    pv.emplace_back(get_column(BEG SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position1 = readcif::str_to_int(start);
-        });
 
-    pv.emplace_back(get_column(END COMP_ID, true), true,
-        [&] (const char* start, const char* end) {
-            residue_name2 = string(start, end - start);
-        });
     pv.emplace_back(get_column(END ASYM_ID, true), true,
         [&] (const char* start, const char* end) {
             chain_id2 = string(start, end - start);
         });
-    pv.emplace_back(get_column("pdbx_" END INS_CODE, false), true,
+    pv.emplace_back(get_column(END COMP_ID, true), true,
         [&] (const char* start, const char* end) {
-            if (end == start + 2 && (*start == '.' || *start == '?'))
+            residue_name2 = string(start, end - start);
+        });
+    pv.emplace_back(get_column(END SEQ_ID, true), false,
+        [&] (const char* start, const char*) {
+            position2 = readcif::str_to_int(start);
+        });
+    pv.emplace_back(get_column("pdbx_" END INS_CODE), true,
+        [&] (const char* start, const char* end) {
+            if (end == start + 1 && (*start == '.' || *start == '?'))
                 ins_code2 = ' ';
             else {
                 // TODO: check if more than one character
                 ins_code2 = *start;
             }
-        });
-    pv.emplace_back(get_column(END SEQ_ID, true), false,
-        [&] (const char* start, const char*) {
-            position2 = readcif::str_to_int(start);
         });
 
     #undef BEG
@@ -1107,44 +1114,42 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
     #undef SEQ_ID
     #undef INS_CODE
 
-    auto mol = all_residues.begin()->second.begin()->second->structure();
+    string last_chain_id;
+    int strand_id = 0;
     while (parse_row(pv)) {
-        Residue *init_res = mol->find_residue(chain_id1, position1, ins_code1,
-                                        residue_name1);
-        if (init_res == NULL) {
-            logger::error(_logger, "Start residue of sheet not found: ",
+        if (chain_id1 != chain_id2) {
+            logger::error(_logger, "Start and end residues of strand"
+                " are in different chains: ", sheet_id, ' ', id);
+            continue;
+        }
+        ++strand_id;
+
+        const ResidueMap& residue_map = all_residues[chain_id1];
+        string entity_id = chain_entity_map[chain_id1];
+        auto& entity_poly_seq = poly_seq[entity_id];
+
+        auto init_ps = entity_poly_seq.lower_bound(
+                       PolySeq(position1, residue_name1, false));
+        auto end_ps = entity_poly_seq.upper_bound(
+                       PolySeq(position2, residue_name2, false));
+        if (init_ps == entity_poly_seq.end()) {
+        // TODO: || end_ps == entity_poly_seq.end()) {
+            logger::error(_logger, "Bad residue range for strand: ",
                           sheet_id, ' ', id);
             continue;
         }
-        Residue *end_res = mol->find_residue(chain_id2, position2, ins_code2,
-                                        residue_name2);
-        if (end_res == NULL) {
-            logger::error(_logger, "End residue of sheet not found: ",
-                          sheet_id, ' ', id);
-            continue;
-        }
-        const auto& residues = mol->residues();
-        auto first = residues.end();
-        auto last = residues.end();
-        for (auto ri = residues.begin(); ri != last; ++ri) {
-            Residue *r = ri->get();
-            if (r == init_res)
-                first = ri;
-            if (r == end_res) {
-                last = ri;
-                break;
-            }
-        }
-        if (first == residues.end() || last == residues.end()) {
-            logger::error(_logger, "Bad residue range for sheet: ",
-                          sheet_id, ' ', id);
-            continue;
-        }
-        // TODO: figure out ss_id
-        for (auto ri = first; ri != last; ++ri) {
-            Residue *r = ri->get();
+        for (auto pi = init_ps; pi != end_ps; ++pi) {
+            auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
+                                                  pi->mon_id));
+            if (ri == residue_map.end())
+                continue;
+            Residue *r = ri->second;
             r->set_is_sheet(true);
-            //r->set_ss_id(ss_id);
+            if (chain_id1 != last_chain_id) {
+                strand_id = 1;
+                last_chain_id = chain_id1;
+            }
+            r->set_ss_id(strand_id);
         }
     }
 }
@@ -1179,7 +1184,27 @@ ExtractMolecule::parse_entity_poly_seq(bool /*in_loop*/)
         });
 
     while (parse_row(pv))
-        poly_seq[entity_id].push_back(PolySeq(seq_id, mon_id, hetero));
+        poly_seq[entity_id].emplace(seq_id, mon_id, hetero);
+}
+
+static PyObject*
+structure_pointers(ExtractMolecule &e, const char *filename)
+{
+    int count = 0;
+    for (auto m: e.all_molecules)
+        if (m->atoms().size() > 0) {
+	    m->set_name(filename);
+	    count += 1;
+	}
+
+    void **sa;
+    PyObject *s_array = python_voidp_array(count, &sa);
+    int i = 0;
+    for (auto m: e.all_molecules)
+        if (m->atoms().size() > 0)
+	  sa[i++] = static_cast<void *>(m);
+
+    return s_array;
 }
 
 PyObject*
@@ -1189,18 +1214,8 @@ parse_mmCIF_file(const char *filename, PyObject* logger)
 clock_t start_t, end_t;
 #endif
     ExtractMolecule extract(logger);
-
     extract.parse_file(filename);
-
-    using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
-    for (auto m: extract.all_molecules) {
-        if (m->atoms().size() == 0)
-            continue;
-        m->set_name(filename);
-        sb->_items->emplace_back(m);
-    }
-    return sb;
+    return structure_pointers(extract, filename);
 }
 
 PyObject*
@@ -1210,18 +1225,8 @@ parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger)
 clock_t start_t, end_t;
 #endif
     ExtractMolecule extract(logger);
-
     extract.parse(reinterpret_cast<const char *>(whole_file));
-
-    using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
-    for (auto m: extract.all_molecules) {
-        if (m->atoms().size() == 0)
-            continue;
-        m->set_name("unknown mmCIF file");
-        sb->_items->emplace_back(m);
-    }
-    return sb;
+    return structure_pointers(extract, "unknown mmCIF file");
 }
 
 // connect_residue_by_template:

@@ -125,6 +125,9 @@ class MouseModes:
 
 class MouseMode:
 
+    name = 'mode name'
+    icon_file = None
+
     def __init__(self, session):
         self.session = session
         self.view = session.main_view
@@ -168,7 +171,32 @@ class MouseMode:
             psize = max(psize, w*min_scene_frac)
         return psize
 
+class SelectMouseMode(MouseMode):
+    name = 'select'
+    icon_file = 'select.png'
+
+    def mouse_down(self, event):
+        mouse_select(event, self.session, self.view)
+
+def mouse_select(event, session, view):
+
+    x,y = event.position()
+    pick = view.first_intercept(x,y)
+    toggle = event.shift_down()
+    sel = session.selection
+    if pick is None:
+        if not toggle:
+            sel.clear()
+            session.logger.status('cleared selection')
+    else:
+        if not toggle:
+            sel.clear()
+        pick.select(toggle)
+    sel.clear_hierarchy()
+
 class RotateMouseMode(MouseMode):
+    name = 'rotate'
+    icon_file = 'rotate.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
@@ -184,7 +212,7 @@ class RotateMouseMode(MouseMode):
 
     def mouse_up(self, event):
         if event.position() == self.mouse_down_position:
-            self.mouse_select(event)
+            mouse_select(event, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def mouse_drag(self, event):
@@ -217,30 +245,27 @@ class RotateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def mouse_select(self, event):
-
-        x,y = event.position()
-        v = self.view
-        p, pick = v.first_intercept(x,y)
-        ses = self.session
-        toggle = event.shift_down()
-        if pick is None:
-            if not toggle:
-                ses.selection.clear()
-                ses.logger.status('cleared selection')
-        else:
-            if not toggle:
-                ses.selection.clear()
-            pick.select(toggle)
-        ses.selection.clear_hierarchy()
-
 class RotateSelectedMouseMode(RotateMouseMode):
+    name = 'rotate selected models'
+    icon_file = 'rotate_h2o.png'
 
     def models(self):
-        m = self.session.selection.models()
-        return None if len(m) == 0 else m
+        return top_selected(self.session)
+
+def top_selected(session):
+    # Don't include parents of selected models.
+    mlist = [m for m in session.selection.models()
+             if (len(m.child_models()) == 0 or m.selected) and not any_parent_selected(m)]
+    return None if len(mlist) == 0 else mlist
+
+def any_parent_selected(m):
+    if not hasattr(m, 'parent') or m.parent is None:
+        return False
+    return m.parent.selected or any_parent_selected(m.parent)
 
 class TranslateMouseMode(MouseMode):
+    name = 'translate'
+    icon_file = 'translate.png'
 
     def mouse_drag(self, event):
 
@@ -259,12 +284,16 @@ class TranslateMouseMode(MouseMode):
         return None
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
+    name = 'move selected models'
+    icon_file = 'move_h2o.png'
 
     def models(self):
-        m = self.session.selection.models()
-        return None if len(m) == 0 else m
+        return top_selected(self.session)
 
 class ZoomMouseMode(MouseMode):
+
+    name = 'zoom'
+    icon_file = 'zoom.png'
 
     def mouse_drag(self, event):        
 
@@ -286,7 +315,7 @@ class ObjectIdMouseMode(MouseMode):
 
     def pause(self, position):
         x,y = position
-        f, p = self.view.first_intercept(x,y)
+        p = self.view.first_intercept(x,y)
         if p:
             self.session.logger.status('Mouse over %s' % p.description())
         # TODO: Clear status if it is still showing mouse over message but mouse is over nothing.

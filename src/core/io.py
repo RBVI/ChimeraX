@@ -586,6 +586,9 @@ def open(session, filespec, as_a=None, label=None, **kw):
         # TODO: Windows might need tf to be closed before reading with
         # a different file descriptor
     models, status = open_func(session, stream, name, **kw)
+    if not stream.closed:
+        stream.close()
+
     if label is not None:
         for m in models:
             m.name = label

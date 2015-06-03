@@ -44,22 +44,23 @@ class CommandLine(ToolInstance):
 
     def cmd_replace(self, cmd):
         self.text.SetValue(cmd)
+        self.text.SetInsertionPointEnd()
 
     def forwarded_keystroke(self, event):
-        if event.KeyCode == 13:
+        if event.KeyCode == 13:          # Return
             self.on_enter(event)
-        #elif event.KeyCode == 78:        # Ctrl-N
-        #    self.history_dialog.down()
-        #elif event.KeyCode == 80:        # Ctrl-P
-        #    self.history_dialog.up()
-        #elif event.KeyCode == 85:        # Ctrl-U
-        #    self.cmd_clear()
+        elif event.KeyCode == 14:        # Ctrl-N
+            self.history_dialog.down()
+        elif event.KeyCode == 16:        # Ctrl-P
+            self.history_dialog.up()
+        elif event.KeyCode == 21:        # Ctrl-U
+            self.cmd_clear()
+        elif event.KeyCode == 27:         # Escape
+            self.session.keyboard_shortcuts.enable_shortcuts()
         elif event.KeyCode == 315:        # Up arrow
             self.session.selection.promote()
         elif event.KeyCode == 317:        # Down arrow
             self.session.selection.demote()
-        elif event.KeyCode == 27:         # Escape
-            self.session.keyboard_shortcuts.enable_shortcuts()
         else:
             # Only TextCtrls handle forwarded keystroke events,
             # so copy the current ComboBox text state into a
@@ -76,6 +77,7 @@ class CommandLine(ToolInstance):
     def on_combobox(self, event):
         val = self.text.GetValue()
         if val == self.show_history_label:
+            self.cmd_clear()
             self.history_dialog.window.shown = True
         elif val == self.compact_label:
             self.cmd_clear()
@@ -99,6 +101,7 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
+            session.logger.info(cmd_text)
             try:
                 cmd = cli.Command(session, cmd_text, final=True)
                 cmd.execute()
@@ -123,45 +126,55 @@ class CommandLine(ToolInstance):
                 if thumb.getcolors(1) is None:
                     # image not just a solid background color;
                     # ensure it differs from previous thumbnail
-                    thumb_data = thumb.tostring()
+                    thumb_data = thumb.tobytes()
                     if thumb_data != self._last_thumb:
                         self._last_thumb = thumb_data
                         log_thumb = True
                 else:
                    self._last_thumb = None
-                session.logger.info(cmd_text)
                 if log_thumb:
                     session.logger.info("graphics image", image=thumb)
         self.text.SetValue(cmd_text)
         self.text.SelectAll()
 
     def on_key_down(self, event):
-        # intercept up/down arrow
-        #if event.KeyCode in (80, 315):  # ctrl-p, up arrow
-        if event.KeyCode == 315:  # ctrl-p, up arrow
+        import wx
+        # prevent combobox from responding to up/down arrow key
+        # (opening/closing dropdown listbox), and handle it as
+        # history forward/back, as well as getting other relevant
+        # control-key events before the ComboBox KeyDown handler
+        # consumes them
+        if event.KeyCode == 315:  # up arrow
             self.history_dialog.up()
-        #elif event.KeyCode in (78, 317):  # ctrl-n, down arrow
-        elif event.KeyCode == 317:  # ctrl-n, down arrow
+        elif event.KeyCode == 317:  # down arrow
             self.history_dialog.down()
-        #elif event.KeyCode == 85:  # ctrl-u
-        #    self.cmd_clear()
+        elif event.GetModifiers() & wx.MOD_RAW_CONTROL:
+            if event.KeyCode == 78:
+                self.history_dialog.down()
+            elif event.KeyCode == 80:
+                self.history_dialog.up()
+            elif event.KeyCode == 85:
+                self.cmd_clear()
+            else:
+                event.Skip()
         else:
-            # pass through other keys
             event.Skip()
 
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.VERSION
         data = {"shown": self.tool_window.shown}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State, RestoreError
+        from chimera.core.session import RestoreError
         if version != self.VERSION:
             raise RestoreError("unexpected version")
-        if phase == State.PHASE1:
+        if phase == self.CREATE_PHASE:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved
             pass
@@ -282,10 +295,9 @@ class _HistoryDialog:
         self.select()
         self.controller.text.SetFocus()
         self.controller.text.SetSelection(-1, -1)
-        cursel = self.listbox.Selection
-        import wx
-        if cursel != wx.NOT_FOUND:
-            self.listbox.EnsureVisible(cursel)
+        cursels = self.listbox.GetSelections()
+        if len(cursels) == 1:
+            self.listbox.EnsureVisible(cursels[0])
 
     def select(self):
         sels = self.listbox.GetSelections()
