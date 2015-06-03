@@ -11,13 +11,26 @@
 namespace pseudobond {
 
 template <class EndPoint, class PBond>
-class Group {
+class Group: public basegeom::DestructionObserver {
 protected:
     std::string  _category;
+    bool  _destruction_relevant;
 public:
     virtual void  clear() = 0;
-    Group(const std::string& cat): _category(cat) {}
-    virtual  ~Group() { auto du = basegeom::DestructionUser(this); }
+    Group(const std::string& cat): _category(cat), _destruction_relevant(true) {}
+    virtual  ~Group() {
+        _destruction_relevant = false;
+        auto du = basegeom::DestructionUser(this);
+        for (auto pb: pseudobonds())
+            delete pb;
+        clear();
+    }
+    virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;
+    virtual void  destructors_done(const std::set<void*>& destroyed) {
+        if (!_destruction_relevant)
+            return;
+        check_destroyed_atoms(destroyed);
+    }
     virtual PBond*  new_pseudobond(EndPoint* e1, EndPoint* e2) = 0;
     virtual const std::set<PBond*>&  pseudobonds() const = 0;
 };
