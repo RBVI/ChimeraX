@@ -11,17 +11,20 @@ def _atoms(a):
     return Atoms(a)
 def _atom_pair(p):
     return (object_map(p[0],Atom), object_map(p[1],Atom))
-def _bonds(a):
+def _bonds(b):
     from .molarray import Bonds
-    return Bonds(a)
+    return Bonds(b)
+def _pseudobonds(b):
+    from .molarray import PseudoBonds
+    return PseudoBonds(b)
 def _residue(p):
     return object_map(p, Residue)
-def _residues(a):
+def _residues(r):
     from .molarray import Residues
-    return Residues(a)
-def _chains(a):
+    return Residues(r)
+def _chains(c):
     from .molarray import Chains
-    return Chains(a)
+    return Chains(c)
 def _atomic_structure(p):
     return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
@@ -83,6 +86,30 @@ class PseudoBond:
     display = c_property('pseudobond_display', int32)
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     radius = c_property('pseudobond_radius', float32)
+
+# -----------------------------------------------------------------------------
+#
+class CPseudoBondGroup:
+
+    def __init__(self, name):
+        f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
+        pbg_pointer = f(name.encode('utf-8'))
+        set_c_pointer(self, pbg_pointer)
+        add_to_object_map(self)
+
+    num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', int32, read_only = True)
+    pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
+                             astype = _pseudobonds, read_only = True)
+
+    def new_pseudobond(self, atom1, atom2):
+        f = c_function('pseudobond_group_new_pseudobond',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
+                       ret = ctypes.c_void_p)
+        pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
+        return object_map(pb, PseudoBond)
+
+    def delete(self):
+        c_function('pseudobond_group_delete', args = [ctypes.c_void_p])(self._c_pointer)
 
 # -----------------------------------------------------------------------------
 #
@@ -192,8 +219,19 @@ def register_object_map_deletion_handler(omap):
     from the object map if it exists and the Python object has its _c_pointer
     attribute deleted.
     '''
-    f = c_function('object_map_deletion_handler', args = [ctypes.c_void_p])
+    f = c_function('object_map_deletion_handler', args = [ctypes.c_void_p], ret = ctypes.c_void_p)
     p = ctypes.c_void_p(id(omap))
-    f(p)
+    global _omd_handler
+    _omd_handler = Object_Map_Deletion_Handler(f(p))
+
+_omd_handler = None
+class Object_Map_Deletion_Handler:
+    def __init__(self, h):
+        self.h = h
+        self.delete_handler = c_function('delete_object_map_deletion_handler', args = [ctypes.c_void_p])
+    def __del__(self):
+        # Make sure object map deletion handler is removed before Python exits
+        # so later C++ deletes don't cause segfault on exit.
+        self.delete_handler(self.h)
 
 register_object_map_deletion_handler(_object_map)

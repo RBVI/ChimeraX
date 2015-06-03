@@ -672,3 +672,5 @@ def common_startup(sess):
     from . import map
     map.register_map_file_readers()
     map.register_emdb_fetch()
+    from . import readpbonds
+    readpbonds.register()
