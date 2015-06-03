@@ -38,6 +38,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
         self._ribbon_drawing = None
         self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
+        self._atom_bounds = None
+        self._atom_bounds_needs_update = True
 
         self.make_drawing()
 
@@ -150,6 +152,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
         for name, pb in pbg.items():
             self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
         self.update_ribbon_graphics()
+        self._atom_bounds_needs_update = False
 
     def update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -380,16 +383,30 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
     def bounds(self, positions = True):
         # TODO: Cache bounds
-        a = self.atoms
-        xyz = a.coords[a.displays]
-        if len(xyz) == 0:
-            return None
-        xyz_min, xyz_max = xyz.min(axis = 0), xyz.max(axis = 0)
+        ab = self.atom_bounds()
+        rb = self.ribbon_bounds()
         from .geometry import bounds
-        b = bounds.Bounds(xyz_min, xyz_max)
+        b = bounds.union_bounds((ab, rb))
         if positions:
             b = bounds.copies_bounding_box(b, self.positions)
         return b
+
+    def atom_bounds(self):
+        if not self._atom_bounds_needs_update:
+            return self._atom_bounds
+        a = self.atoms
+        xyz = a.coords[a.displays]
+        from .geometry import bounds
+        b = bounds.point_bounds(xyz)
+        self._atom_bounds = b
+        self._atom_bounds_needs_update = False
+        return b
+
+    def ribbon_bounds(self):
+        rd = self._ribbon_drawing
+        if rd is None or not rd.display:
+            return None
+        return rd.bounds()
 
     def atom_index_description(self, a):
         atoms = self.atoms
