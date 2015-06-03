@@ -8,6 +8,15 @@ class Rgba {
 public:
     typedef unsigned char  Channel;
     Channel  r=255, g=255, b=255, a=255;
+    Rgba(std::initializer_list<Channel> const rgba) {
+        static_assert(rgba.size() != 4,
+            "Rgba initializer list must have exactly 4 values");
+        auto i = rgba.begin();
+        r = *i++;
+        g = *i++;
+        b = *i++;
+        a = *i;
+    }
 };
 
 } //  namespace basegeom

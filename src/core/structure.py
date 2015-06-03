@@ -26,13 +26,16 @@ class AtomicStructure(CAtomicStructure, models.Model):
         models.Model.__init__(self, name)
 
         self._atoms = None              # Cached atoms array
+        self._residues = None           # Cached residues array
 
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
         self.pseudobond_radius = 0.05
+        self.ribbon_divisions = 10
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._pseudobond_group_drawings = {}    # Map name to drawing
+        self._ribbon_drawing = None
         self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
 
@@ -116,6 +119,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
         self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
         for name, pb in pbg.items():
             self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+        self.update_ribbon_graphics()
 
     def create_atom_spheres(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -145,6 +149,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
         pbg = self.pseudobond_groups
         for name, pb in pbg.items():
             self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
+        self.update_ribbon_graphics()
 
     def update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -251,6 +256,82 @@ class AtomicStructure(CAtomicStructure, models.Model):
         p.positions = bond_cylinder_placements(bond_atoms, radii, half_bond_coloring)
         p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
         self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
+
+    def update_ribbon_graphics(self):
+        from .ribbon import Ribbon, XSection
+        from .geometry import place
+        from numpy import concatenate, array, uint8
+        polymers = self.polymers(False, False)
+        xsc = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
+        # xsc = [(0.5,-0.1),(-0.5,-0.1),(-0.5,0.1),(0.5,0.1)]
+        # xsc = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        # xsc = [( 0.5, 0.1),(0.0, 0.15),(-0.5, 0.1),(-0.6,0.0),
+        #        (-0.5,-0.1),(0.0,-0.15),( 0.5,-0.1),( 0.6,0.0)]
+        xs = XSection(xsc, faceted=True)
+        if self._ribbon_drawing is None:
+            self._ribbon_drawing = p = self.new_drawing('ribbon')
+            p.display = True
+        else:
+            p = self._ribbon_drawing
+            p.remove_all_drawings()
+        for rlist in polymers:
+            displays = rlist.ribbon_displays
+            if displays.sum() == 0:
+                continue
+            coords, guides = self._get_polymer_spline(rlist)
+            if len(coords) < 4:
+                continue
+            ribbon = Ribbon(coords, guides)
+            offset = 0
+            vertex_list = []
+            normal_list = []
+            triangle_list = []
+            for seg in range(ribbon.num_segments):
+                show = 0
+                if displays[seg]:
+                    show |= XSection.FRONT
+                if displays[seg + 1]:
+                    show |= XSection.BACK
+                if not show:
+                    continue
+                centers, tangents, normals = ribbon.segment(seg, self.ribbon_divisions)
+                va, na, ta = xs.extrude(centers, tangents, normals, show, XSection.BOTH, offset)
+                offset += len(va)
+                vertex_list.append(va)
+                normal_list.append(na)
+                triangle_list.append(ta)
+            rp = p.new_drawing(rlist.strs[seg])
+            rp.display = True
+            rp.vertices = concatenate(vertex_list)
+            rp.normals = concatenate(normal_list)
+            rp.triangles = concatenate(triangle_list)
+            rp.color = array((160,160,0,255), uint8)
+
+    def _get_polymer_spline(self, rlist):
+            # Get coordinates for spline and orientation atoms
+            coords = []
+            guides = []
+            has_guides = True
+            for r in rlist:
+                c = None
+                g = None
+                for a in r.atoms:
+                    atom_name = a.name
+                    if atom_name in [ "CA", "C5'" ]:
+                        c = a.coord
+                    elif atom_name in [ "O", "C1'" ]:
+                        g = a.coord
+                if c is None:
+                    continue
+                coords.append(c)
+                if g is None:
+                    has_guides = False
+                else:
+                    guides.append(g)
+            if has_guides:
+                return coords, guides
+            else:
+                return coords, None
 
     def hide_chain(self, cid):
         a = self.atoms

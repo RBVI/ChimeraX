@@ -146,6 +146,7 @@ class Residues(PointerArray):
     numbers = cvec_property('residue_number', int32, read_only = True)
     strs = cvec_property('residue_str', string, read_only = True)
     unique_ids = cvec_property('residue_unique_id', int32, read_only = True)
+    ribbon_displays = cvec_property('residue_ribbon_display', npy_bool)
 
 # -----------------------------------------------------------------------------
 #

@@ -123,6 +123,7 @@ class Residue:
     is_helix = c_property('residue_is_helix', npy_bool, read_only = True)
     is_sheet = c_property('residue_is_sheet', npy_bool, read_only = True)
     ss_id = c_property('residue_ss_id', int32, read_only = True)
+    ribbon_display = c_property('residue_ribbon_display', npy_bool)
     name = c_property('residue_name', string, read_only = True)
     num_atoms = c_property('residue_num_atoms', int32, read_only = True)
     number = c_property('residue_number', int32, read_only = True)

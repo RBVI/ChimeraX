@@ -277,6 +277,28 @@ def save_image(session, path, format=None, width=None, height=None,
     i.save(path, format, quality=quality)
 
 
+def ribbon(session, spec=None):
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    results.atoms.residues.ribbon_displays = True
+    for m in results.models:
+        m.update_graphics()
+_ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display ribbon for specified residues')
+
+
+def unribbon(session, spec=None):
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    results.atoms.residues.ribbon_displays = False
+    for m in results.models:
+        m.update_graphics()
+_unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display ribbon for specified residues')
+
+
 def register(session):
     """Register common cli commands"""
     cli.register('exit', _exit_desc, exit)
@@ -295,6 +317,8 @@ def register(session):
     cli.register('~display', _undisplay_desc, undisplay)
     cli.register('camera', _camera_desc, camera)
     cli.register('save', _save_desc, save)
+    cli.register('ribbon', _ribbon_desc, ribbon)
+    cli.register('~ribbon', _unribbon_desc, unribbon)
     from . import settings
     settings.register_set_command()
     from . import molsurf
