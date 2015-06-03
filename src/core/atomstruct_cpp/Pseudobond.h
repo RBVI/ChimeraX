@@ -40,6 +40,7 @@ class PBGroup: pseudobond::Group<Atom, PBond>
 private:
     PBonds  _pbonds;
 public:
+    ~PBGroup() { dtor_code(); }
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
@@ -72,7 +73,7 @@ private:
 public:
     Owned_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) {}
-    ~Owned_PBGroup() { clear(); }
+    ~Owned_PBGroup() { dtor_code(); }
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() { for (auto pb : _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
@@ -95,7 +96,16 @@ private:
 public:
     CS_PBGroup(const std::string& cat, AtomicStructure* as):
         Owned_PBGroup_Base(cat, as) {}
-    ~CS_PBGroup() { clear(); }
+    ~CS_PBGroup() {
+        _destruction_relevant = false;
+        auto du = basegeom::DestructionUser(this);
+        for (auto name_pbs: _pbonds) {
+            for (auto pb: name_pbs.second)
+                delete pb;
+        }
+        clear();
+    }
+    void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() {
         for (auto cat_set : _pbonds)
             for (auto pb: cat_set.second) delete pb;
@@ -144,6 +154,12 @@ private:
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);
     }
 public:
+    void  check_destroyed_atoms(const std::set<void*>& destroyed) {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->check_destroyed_atoms(destroyed);
+        else
+            static_cast<CS_PBGroup*>(_proxied)->check_destroyed_atoms(destroyed);
+    }
     void  clear() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<Owned_PBGroup*>(_proxied)->clear();

@@ -37,7 +37,7 @@ _check_destroyed_atoms(PBonds &pbonds, const std::set<void*>& destroyed)
     }
     if (remaining.size() == 0) {
         pbonds.clear();
-    } else if (remaining.size() != _pbonds.size()) {
+    } else if (remaining.size() != pbonds.size()) {
         pbonds.swap(remaining);
     }
 }

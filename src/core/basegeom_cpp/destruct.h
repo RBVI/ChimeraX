@@ -6,6 +6,15 @@
 
 namespace basegeom {
 
+class DestructionObserver {
+// Base class for classes that are interested in getting only one
+// notification once a releted set of destructors have executed
+public:
+    DestructionObserver();
+    virtual ~DestructionObserver();
+    virtual void  destructors_done(const std::set<void*>& destroyed) = 0;
+};
+
 class DestructionCoordinator {
 // Keeps track of what object starts a possible chain of destructor
 // calls; when the parent destructor finishes, make callbacks to
@@ -67,14 +76,6 @@ public:
     virtual ~DestructionBatcher() {
         DestructionCoordinator::finalizing_destruction(_instance);
     }
-}
-class DestructionObserver {
-// Base class for classes that are interested in getting only one
-// notification once a releted set of destructors have executed
-public:
-    DestructionObserver();
-    virtual ~DestructionObserver();
-    virtual void  destructors_done(const std::set<void*>& destroyed) = 0;
 };
 
 class DestructionUser {
