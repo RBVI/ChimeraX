@@ -136,6 +136,25 @@ def compare(session, pdb_id, pdb_path, mmcif_path):
                 print('error: %s:' % pdb_id, len(extra),
                       'extra mmcif residue(s):', extra)
                 same = False
+            pdb_helix = p.residues.is_helix
+            mmcif_helix = m.residues.is_helix
+            for (pr, ph, mr, mh) in zip(pdb_residues, pdb_helix, mmcif_residues, mmcif_helix):
+                if ph == mh:
+                    continue
+                if ph:
+                    print('pdb', pr, 'is a helix, and mmcif', mr, 'is not')
+                if mh:
+                    print('mmcif', mr, 'is a helix, and pdb', pr, 'is not')
+
+            pdb_sheet = p.residues.is_sheet
+            mmcif_sheet = m.residues.is_sheet
+            for (pr, ps, mr, ms) in zip(pdb_residues, pdb_sheet, mmcif_residues, mmcif_sheet):
+                if ps == ms:
+                    continue
+                if ps:
+                    print('pdb', pr, 'is a sheet, and mmcif', mr, 'is not')
+                if ms:
+                    print('mmcif', mr, 'is a sheet, and pdb', pr, 'is not')
 
             # chains
             diff = p.num_chains - m.num_chains
