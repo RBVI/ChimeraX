@@ -17,6 +17,9 @@ def _unique_atomic_structures(p):
     return CAtomicStructures(numpy.unique(p))
 def _residues(p):
     return Residues(p)
+def _unique_residues(p):
+    import numpy
+    return Residues(numpy.unique(p))
 def _atoms_pair(p):
     return (Atoms(p[:,0].copy()), Atoms(p[:,1].copy()))
 def _pseudobond_group_map(a):
@@ -89,6 +92,7 @@ class Atoms(PointerArray):
     names = cvec_property('atom_name', string, read_only = True)
     radii = cvec_property('atom_radius', float32)
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
+    unique_residues = cvec_property('atom_residue', cptr, astype = _unique_residues, read_only = True)
 
     @property
     def by_molecule(self):
@@ -150,6 +154,7 @@ class Residues(PointerArray):
     strs = cvec_property('residue_str', string, read_only = True)
     unique_ids = cvec_property('residue_unique_id', int32, read_only = True)
     ribbon_displays = cvec_property('residue_ribbon_display', npy_bool)
+    ribbon_colors = cvec_property('residue_ribbon_color', uint8, 4)
 
 # -----------------------------------------------------------------------------
 #
