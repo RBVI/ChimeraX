@@ -32,30 +32,35 @@ public:
     }
     static void*  destruction_parent() { return _destruction_parent; }
     static void  finalizing_destruction(void* instance) {
-        if (_destruction_parent == instance || _destruction_batcher == instance) {
-            if (_num_notifications_off == 0 && _destroyed.size() > 0) {
-                // copy the _destroyed set in case
-                // the observers destroy anything
-                auto destroyed_copy = _destroyed;
-                for (auto o: _observers) {
-                    o->destructors_done(destroyed_copy);
+        bool notification_time = _destruction_batcher == instance
+        || (_destruction_batcher == nullptr && _destruction_parent == instance);
+        if (notification_time) {
+            // copy the _destroyed set in case
+            // the observers destroy anything
+            auto destroyed_copy = _destroyed;
+            _destroyed.clear();
+            if (destroyed_copy.size() > 0) {
+                auto observers_copy = _observers;
+                for (auto o: observers_copy) {
+                    if (_observers.find(o) != _observers.end())
+                        o->destructors_done(destroyed_copy);
                 }
             }
-            if (_destruction_parent == instance)
-                _destruction_parent = nullptr;
-            else
-                _destruction_batcher = nullptr;
-            _destroyed.clear();
+            _destruction_batcher = nullptr;
         };
+        if (_destruction_parent == instance)
+            _destruction_parent = nullptr;
     }
     static void  initiating_destruction(void* instance, bool batcher = false) {
         if (batcher) {
-            if (_destruction_batcher == nullptr)
+            if (_destruction_batcher == nullptr
+            && _destruction_parent == nullptr)
                 _destruction_batcher = instance;
         } else {
             if (_destruction_parent == nullptr)
                 _destruction_parent = instance;
-            _destroyed.insert(instance);
+            if (_num_notifications_off == 0)
+                _destroyed.insert(instance);
         }
     }
     static void  notifications_off() { _num_notifications_off++; }

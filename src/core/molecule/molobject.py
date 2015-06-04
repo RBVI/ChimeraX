@@ -124,6 +124,7 @@ class Residue:
     is_sheet = c_property('residue_is_sheet', npy_bool)
     ss_id = c_property('residue_ss_id', int32)
     ribbon_display = c_property('residue_ribbon_display', npy_bool)
+    ribbon_color = c_property('residue_ribbon_color', uint8, 4)
     name = c_property('residue_name', string, read_only = True)
     num_atoms = c_property('residue_num_atoms', int32, read_only = True)
     number = c_property('residue_number', int32, read_only = True)

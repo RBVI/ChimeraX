@@ -28,6 +28,7 @@ public:
     virtual void  clear() = 0;
     Group(const std::string& cat): _category(cat), _destruction_relevant(true) {}
     virtual  ~Group() {}
+    virtual const std::string&  category() const { return _category; }
     virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;
     virtual void  destructors_done(const std::set<void*>& destroyed) {
         if (!_destruction_relevant)

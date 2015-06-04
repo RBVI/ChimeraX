@@ -48,7 +48,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
     // keep a list of fundamental rings per spanning tree to
     // optimize the ring summing step to follow
     for (auto& uat: atoms()) {
-        Atom* at = uat.get();
+        Atom* at = uat;
         if (visited.find(at) != visited.end())
             continue;
         if (ignore != nullptr && ignore->find(at->residue()) != ignore->end())
@@ -399,7 +399,7 @@ AtomicStructure::_calculate_rings(bool cross_residue,
 
         std::MAP<Residue *, Rings> ring_lists;
         if (cross_residue) {
-            ring_lists[residues()[0].get()] = _rings;
+            ring_lists[residues()[0]] = _rings;
         } else {
             for (auto& r: _rings) {
                 ring_lists[(*r.bonds().begin())->atoms()[0]

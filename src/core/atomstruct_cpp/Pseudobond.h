@@ -154,6 +154,12 @@ private:
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);
     }
 public:
+    const std::string&  category() const {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            static_cast<Owned_PBGroup*>(_proxied)->category();
+        else
+            static_cast<CS_PBGroup*>(_proxied)->category();
+    }
     void  check_destroyed_atoms(const std::set<void*>& destroyed) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<Owned_PBGroup*>(_proxied)->check_destroyed_atoms(destroyed);

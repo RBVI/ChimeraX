@@ -287,7 +287,7 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
         auto a1_index = bond_atoms[1]->coord_index();
         if (a0_index >= to_size || a1_index >= to_size)
             continue;
-        to->new_bond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+        to->new_bond(to_atoms[a0_index], to_atoms[a1_index]);
     }
 
     // Pseudobonds:
@@ -301,7 +301,7 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
             auto a1_index = bond_atoms[1]->coord_index();
             if (a0_index >= to_size || a1_index >= to_size)
                 continue;
-            to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+            to_pbg->new_pseudobond(to_atoms[a0_index], to_atoms[a1_index]);
         }
     }
     auto hydro_pbg = from->pb_mgr().get_group(from->PBG_HYDROGEN_BONDS);
@@ -314,7 +314,7 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
             auto a1_index = bond_atoms[1]->coord_index();
             if (a0_index >= to_size || a1_index >= to_size)
                 continue;
-            to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+            to_pbg->new_pseudobond(to_atoms[a0_index], to_atoms[a1_index]);
         }
     }
 
@@ -336,9 +336,9 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
-            connect_residue_by_distance(r.get());
+            connect_residue_by_distance(r);
         } else {
-            connect_residue_by_template(r.get(), tr);
+            connect_residue_by_template(r, tr);
         }
     }
     // Connect residues in entity_poly_seq.
