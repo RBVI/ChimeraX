@@ -12,6 +12,7 @@ atomstruct::PBManager Global_Manager<atomstruct::PBGroup>::_manager = Global_Man
 
 }  // namespace pseudobond
 
+#include <iostream>
 namespace atomstruct {
 
 void
@@ -23,7 +24,7 @@ Owned_PBGroup_Base::_check_ownership(Atom* a1, Atom* a2)
 }
 
 static void
-_check_destroyed_atoms(PBonds &pbonds, const std::set<void*>& destroyed)
+_check_destroyed_atoms(PBonds& pbonds, const std::set<void*>& destroyed)
 {
     PBonds remaining;
     for (auto pb: pbonds) {
@@ -46,9 +47,8 @@ void
 CS_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
 {
     auto db = basegeom::DestructionBatcher(this);
-    for (auto cs_pbs: _pbonds) {
+    for (auto& cs_pbs: _pbonds)
         _check_destroyed_atoms(cs_pbs.second, destroyed);
-    }
 }
 
 void

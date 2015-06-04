@@ -28,6 +28,19 @@ AtomicStructure::AtomicStructure(PyObject* logger): _active_coord_set(NULL),
 {
 }
 
+AtomicStructure::~AtomicStructure() {
+    // assign to variable so that it lives to end of destructor
+    auto du = basegeom::DestructionUser(this);
+    if (_chains != nullptr) {
+        for (auto c: *_chains)
+            delete c;
+    }
+    for (auto r: _residues)
+        delete r;
+    for (auto cs: _coord_sets)
+        delete cs;
+}
+
 std::map<Residue *, char>
 AtomicStructure::best_alt_locs() const
 {
@@ -51,7 +64,7 @@ AtomicStructure::best_alt_locs() const
     //  the lowest bfactors; if tied, first alphabetically
     std::set<Residue *> seen;
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
-        Residue *r = (*ri).get();
+        Residue *r = *ri;
         if (seen.find(r) != seen.end())
             continue;
         seen.insert(r);
@@ -149,7 +162,7 @@ AtomicStructure::find_coord_set(int id) const
 {
     for (auto csi = _coord_sets.begin(); csi != _coord_sets.end(); ++csi) {
         if ((*csi)->id() == id)
-            return csi->get();
+            return *csi;
     }
 
     return NULL;
@@ -159,7 +172,7 @@ Residue *
 AtomicStructure::find_residue(std::string &chain_id, int pos, char insert) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
-        Residue *r = (*ri).get();
+        Residue *r = *ri;
         if (r->position() == pos && r->chain_id() == chain_id
         && r->insertion_code() == insert)
             return r;
@@ -171,7 +184,7 @@ Residue *
 AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::string &name) const
 {
     for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
-        Residue *r = (*ri).get();
+        Residue *r = *ri;
         if (r->position() == pos && r->name() == name && r->chain_id() == chain_id
         && r->insertion_code() == insert)
             return r;
@@ -278,18 +291,19 @@ AtomicStructure::new_coord_set()
 
 static void
 _coord_set_insert(AtomicStructure::CoordSets &coord_sets,
-    std::unique_ptr<CoordSet>& cs, int index)
+    CoordSet* cs, int index)
 {
     if (coord_sets.empty() || coord_sets.back()->id() < index) {
-        coord_sets.emplace_back(cs.release());
+        coord_sets.emplace_back(cs);
         return;
     }
     for (auto csi = coord_sets.begin(); csi != coord_sets.end(); ++csi) {
         if (index < (*csi)->id()) {
-            coord_sets.insert(csi, std::move(cs));
+            coord_sets.insert(csi, cs);
             return;
         } else if (index == (*csi)->id()) {
-            (*csi).reset(cs.release());
+            delete *csi;
+            coord_sets.insert(csi, cs);
             return;
         }
     }
@@ -301,19 +315,17 @@ AtomicStructure::new_coord_set(int index)
 {
     if (!_coord_sets.empty())
         return new_coord_set(index, _coord_sets.back()->coords().size());
-    std::unique_ptr<CoordSet> cs(new CoordSet(this, index));
-    CoordSet* retval = cs.get();
+    CoordSet* cs = new CoordSet(this, index);
     _coord_set_insert(_coord_sets, cs, index);
-    return retval;
+    return cs;
 }
 
 CoordSet*
 AtomicStructure::new_coord_set(int index, int size)
 {
-    std::unique_ptr<CoordSet> cs(new CoordSet(this, index, size));
-    CoordSet* retval = cs.get();
+    CoordSet* cs = new CoordSet(this, index, size);
     _coord_set_insert(_coord_sets, cs, index);
-    return retval;
+    return cs;
 }
 
 Residue*
@@ -322,17 +334,16 @@ AtomicStructure::new_residue(const std::string &name, const std::string &chain,
 {
     if (neighbor == NULL) {
         _residues.emplace_back(new Residue(this, name, chain, pos, insert));
-        return _residues.back().get();
+        return _residues.back();
     }
     auto ri = std::find_if(_residues.begin(), _residues.end(),
-                [&neighbor](std::unique_ptr<Residue>& vr)
-                { return vr.get() == neighbor; });
+                [&neighbor](Residue* vr) { return vr == neighbor; });
     if (ri == _residues.end())
         throw std::out_of_range("Waypoint residue not in residue list");
     if (after)
         ++ri;
     Residue *r = new Residue(this, name, chain, pos, insert);
-    _residues.insert(ri, std::unique_ptr<Residue>(r));
+    _residues.insert(ri, r);
     return r;
 }
 
@@ -350,7 +361,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     int i = 0;
     std::map<const Residue*, int> res_lookup;
     for (auto& r: _residues) {
-        res_lookup[r.get()] = i++;
+        res_lookup[r] = i++;
     }
 
     // Find all polymeric connections and make a map
@@ -399,7 +410,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     Chain::Residues chain;
     bool in_chain = false;
     for (auto& upr: _residues) {
-        Residue* r = upr.get();
+        Residue* r = upr;
         auto connection = connected.find(r);
         if (connection == connected.end()) {
             if (in_chain) {
@@ -472,10 +483,10 @@ AtomicStructure::set_active_coord_set(CoordSet *cs)
     if (cs == NULL) {
         if (_coord_sets.empty())
             return;
-        new_active = _coord_sets.front().get();
+        new_active = _coord_sets.front();
     } else {
         CoordSets::iterator csi = std::find_if(_coord_sets.begin(), _coord_sets.end(),
-                [&cs](std::unique_ptr<CoordSet>& vcs) { return vcs.get() == cs; });
+                [&cs](CoordSet* vcs) { return vcs == cs; });
         if (csi == _coord_sets.end())
             throw std::out_of_range("Requested active coord set not in coord sets");
         new_active = cs;

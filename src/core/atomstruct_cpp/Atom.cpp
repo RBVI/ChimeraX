@@ -81,7 +81,7 @@ Atom::_new_coord(const Point &coord)
     unsigned int index = COORD_UNASSIGNED;
     auto& css = structure()->coord_sets();
     for (auto csi = css.begin(); csi != css.end(); ++csi) {
-        CoordSet *cs = (*csi).get();
+        CoordSet *cs = *csi;
         if (index == COORD_UNASSIGNED) {
             index = cs->coords().size();
             cs->add_coord(coord);

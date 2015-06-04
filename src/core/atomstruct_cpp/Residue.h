@@ -3,7 +3,6 @@
 #define atomstruct_Residue
 
 #include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -19,7 +18,6 @@ class Bond;
 
 class ATOMSTRUCT_IMEX Residue {
     friend class AtomicStructure;
-    friend std::unique_ptr<Residue>::deleter_type; // to access destructor
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;

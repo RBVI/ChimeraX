@@ -591,7 +591,7 @@ extern "C" void molecule_atoms(void *mols, int n, void **atoms)
     {
       const AtomicStructure::Atoms &a = m[i]->atoms();
       for (int j = 0 ; j < a.size() ; ++j)
-	*atoms++ = a[j].get();
+	*atoms++ = a[j];
     }
 }
 
@@ -609,7 +609,7 @@ extern "C" void molecule_bonds(void *mols, int n, void **bonds)
     {
       const AtomicStructure::Bonds &b = m[i]->bonds();
       for (int j = 0 ; j < b.size() ; ++j)
-	*bonds++ = b[j].get();
+	*bonds++ = b[j];
     }
 }
 
@@ -627,7 +627,7 @@ extern "C" void molecule_residues(void *mols, int n, void **res)
     {
       const AtomicStructure::Residues &r = m[i]->residues();
       for (int j = 0 ; j < r.size() ; ++j)
-	*res++ = r[j].get();
+	*res++ = r[j];
     }
 }
 
@@ -652,7 +652,7 @@ extern "C" void molecule_chains(void *mols, int n, void **chains)
     {
       const AtomicStructure::Chains &c = m[i]->chains();
       for (int j = 0 ; j < c.size() ; ++j)
-	*chains++ = c[j].get();
+	*chains++ = c[j];
     }
 }
 
