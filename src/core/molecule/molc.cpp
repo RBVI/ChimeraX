@@ -531,6 +531,33 @@ extern "C" void residue_add_atom(void *res, void *atom)
   r->add_atom(static_cast<Atom *>(atom));
 }
 
+extern "C" void residue_ribbon_color(void *residues, int n, unsigned char *rgba)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    {
+      const Rgba &c = r[i]->ribbon_color();
+      *rgba++ = c.r;
+      *rgba++ = c.g;
+      *rgba++ = c.b;
+      *rgba++ = c.a;
+    }
+}
+
+extern "C" void set_residue_ribbon_color(void *residues, int n, unsigned char *rgba)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  Rgba c;
+  for (int i = 0 ; i < n ; ++i)
+    {
+      c.r = *rgba++;
+      c.g = *rgba++;
+      c.b = *rgba++;
+      c.a = *rgba++;
+      r[i]->set_ribbon_color(c);
+    }
+}
+
 extern "C" void chain_chain_id(void *chains, int n, void **cids)
 {
   Chain **c = static_cast<Chain **>(chains);
