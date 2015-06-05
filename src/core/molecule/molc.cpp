@@ -11,6 +11,8 @@
 #include "pythonarray.h"		// Use python_voidp_array()
 
 #include <iostream>
+#include <map>
+#include <vector>
 
 using namespace atomstruct;
 using namespace basegeom;
@@ -110,15 +112,12 @@ extern "C" void atom_delete(void *atoms, int n)
 {
   Atom **a = static_cast<Atom **>(atoms);
 
-  // Copy because deleting atoms modifies the input array.
-  Atom **acopy = new Atom*[n];
+  std::map<AtomicStructure *, std::vector<Atom *> > matoms;
   for (int i = 0 ; i < n ; ++i)
-    acopy[i] = a[i];
-  
-  for (int i = 0 ; i < n ; ++i)
-    acopy[i]->structure()->delete_atom(acopy[i]);
+    matoms[a[i]->structure()].push_back(a[i]);
 
-  delete [] acopy;
+  for (auto ma: matoms)
+    ma.first->delete_atoms(ma.second);
 }
 
 extern "C" void atom_display(void *atoms, int n, unsigned char *disp)
@@ -553,7 +552,7 @@ extern "C" void set_molecule_name(void *mols, int n, void **names)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
-    m[i]->set_name(PyUnicode_AS_DATA(static_cast<PyObject *>(names[i])));
+    m[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
 }
 
 extern "C" void molecule_num_atoms(void *mols, int n, int *natoms)
