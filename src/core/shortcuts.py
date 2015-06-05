@@ -98,6 +98,7 @@ def standard_shortcuts(session):
         ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),
         ('o3', toggle_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
+        ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
         # Molecules
         ('da', show_atoms, 'Display atoms', molcat, atomsarg, mlmenu),
@@ -151,7 +152,7 @@ def standard_shortcuts(session):
         ('mP', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
         ('mk', enable_marker_mouse_mode, 'Place marker mouse mode', mapcat, mmarg, msmenu),
-        ('mc', enable_mark_center_mouse_mode, 'Mark center mouse mode', mapcat, mmarg, msmenu),
+        ('mC', enable_mark_center_mouse_mode, 'Mark center mouse mode', mapcat, mmarg, msmenu),
         ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, mmarg, msmenu),
 #        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
@@ -423,6 +424,10 @@ def toggle_box_faces(m):
                    color_mode = 'l8' if s else 'auto8',
                    orthoplanes_shown = (False, False, False))
   m.show('solid')
+
+def mark_map_surface_center(m):
+    from . import markers
+    markers.mark_map_center(m)
 
 def enable_move_planes_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
