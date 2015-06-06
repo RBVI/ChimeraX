@@ -1,4 +1,4 @@
-def read_pseudobond_file(session, file, name, radius = 0.1, color = (255,0,255,255), as_ = None):
+def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,255), as_ = None):
     lines = file.readlines()
     file.close()
 
