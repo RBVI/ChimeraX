@@ -184,24 +184,25 @@ class XSection:
         v[:,0] /= lens
         v[:,1] /= lens
 
-    def _extrude_smooth(self, centers, tangents, normals, show, cap, offset):
+    def _extrude_smooth(self, centers, tangents, normals, colors, show, cap, offset):
         from numpy import cross, concatenate, array
         import numpy
+        split = len(centers) // 2 + 1
         if show == self.FRONT:
-            end = len(centers) // 2 + 1
-            centers = centers[:end]
-            tangents = tangents[:end]
-            normals = normals[:end]
+            centers = centers[:split]
+            tangents = tangents[:split]
+            normals = normals[:split]
         elif show == self.BACK:
-            start = len(centers) // 2 + 1
-            centers = centers[start:]
-            tangents = tangents[start:]
-            normals = normals[start:]
+            centers = centers[split:]
+            tangents = tangents[split:]
+            normals = normals[split:]
+        sc = array([colors[0]] * split + [colors[1]] * (len(centers) - split))
         binormals = cross(tangents, normals)
         # Generate spline coordinates
         num_splines = len(self.xs_coords)
         vertex_list = []
         normal_list = []
+        color_list = []
         for i in range(num_splines):
             # xc, xn = extrusion coordinates and normals
             n, b = self.xs_coords[i]
@@ -210,8 +211,10 @@ class XSection:
             n, b = self.xs_normals[i]
             xn = normals * n + binormals * b
             normal_list.append(xn)
+            color_list.append(sc)
         va = concatenate(vertex_list)
         na = concatenate(normal_list)
+        ca = concatenate(color_list)
         # Generate triangle list
         num_pts_per_spline = len(centers)
         triangle_list = []
@@ -226,26 +229,27 @@ class XSection:
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
         ta = array(triangle_list)
-        return va, na, ta
+        return va, na, ta, ca
 
-    def _extrude_faceted(self, centers, tangents, normals, show, cap, offset):
+    def _extrude_faceted(self, centers, tangents, normals, colors, show, cap, offset):
         from numpy import cross, concatenate, array
         import numpy
+        split = len(centers) // 2 + 1
         if show == self.FRONT:
-            end = len(centers) // 2 + 1
-            centers = centers[:end]
-            tangents = tangents[:end]
-            normals = normals[:end]
+            centers = centers[:split]
+            tangents = tangents[:split]
+            normals = normals[:split]
         elif show == self.BACK:
-            start = len(centers) // 2 + 1
-            centers = centers[start:]
-            tangents = tangents[start:]
-            normals = normals[start:]
+            centers = centers[split:]
+            tangents = tangents[split:]
+            normals = normals[split:]
+        sc = array([colors[0]] * split + [colors[1]] * (len(centers) - split))
         binormals = cross(tangents, normals)
         # Generate spline coordinates
         num_splines = len(self.xs_coords)
         vertex_list = []
         normal_list = []
+        color_list = []
         for i in range(num_splines):
             # xc, xn = extrusion coordinates and normals
             n, b = self.xs_coords[i]
@@ -259,8 +263,11 @@ class XSection:
             n, b = self.xs_normals2[i]
             xn = normals * n + binormals * b
             normal_list.append(xn)
+            color_list.append(sc)
+            color_list.append(sc)
         va = concatenate(vertex_list)
         na = concatenate(normal_list)
+        ca = concatenate(color_list)
         # Generate triangle list
         num_pts_per_spline = len(centers)
         triangle_list = []
@@ -275,7 +282,7 @@ class XSection:
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
         ta = array(triangle_list)
-        return va, na, ta
+        return va, na, ta, ca
 
 
 def normalize(v):

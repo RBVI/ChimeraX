@@ -446,6 +446,13 @@ extern "C" void residue_is_helix(void *residues, int n, unsigned char *is_helix)
 	  is_helix[i] = r[i]->is_helix();
 }
 
+extern "C" void set_residue_is_helix(void *residues, int n, unsigned char *is_helix)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+	  r[i]->set_is_helix(is_helix[i]);
+}
+
 extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
 {
   Residue **r = static_cast<Residue **>(residues);
@@ -453,11 +460,25 @@ extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
     is_sheet[i] = r[i]->is_sheet();
 }
 
+extern "C" void set_residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    r[i]->set_is_sheet(is_sheet[i]);
+}
+
 extern "C" void residue_ss_id(void *residues, int n, int *ss_id)
 {
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
     ss_id[i] = r[i]->ss_id();
+}
+
+extern "C" void set_residue_ss_id(void *residues, int n, int *ss_id)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    r[i]->set_ss_id(ss_id[i]);
 }
 
 extern "C" void residue_ribbon_display(void *residues, int n, unsigned char *ribbon_display)
@@ -531,6 +552,33 @@ extern "C" void residue_add_atom(void *res, void *atom)
   r->add_atom(static_cast<Atom *>(atom));
 }
 
+extern "C" void residue_ribbon_color(void *residues, int n, unsigned char *rgba)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    {
+      const Rgba &c = r[i]->ribbon_color();
+      *rgba++ = c.r;
+      *rgba++ = c.g;
+      *rgba++ = c.b;
+      *rgba++ = c.a;
+    }
+}
+
+extern "C" void set_residue_ribbon_color(void *residues, int n, unsigned char *rgba)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  Rgba c;
+  for (int i = 0 ; i < n ; ++i)
+    {
+      c.r = *rgba++;
+      c.g = *rgba++;
+      c.b = *rgba++;
+      c.a = *rgba++;
+      r[i]->set_ribbon_color(c);
+    }
+}
+
 extern "C" void chain_chain_id(void *chains, int n, void **cids)
 {
   Chain **c = static_cast<Chain **>(chains);
@@ -591,7 +639,7 @@ extern "C" void molecule_atoms(void *mols, int n, void **atoms)
     {
       const AtomicStructure::Atoms &a = m[i]->atoms();
       for (int j = 0 ; j < a.size() ; ++j)
-	*atoms++ = a[j].get();
+	*atoms++ = a[j];
     }
 }
 
@@ -609,7 +657,7 @@ extern "C" void molecule_bonds(void *mols, int n, void **bonds)
     {
       const AtomicStructure::Bonds &b = m[i]->bonds();
       for (int j = 0 ; j < b.size() ; ++j)
-	*bonds++ = b[j].get();
+	*bonds++ = b[j];
     }
 }
 
@@ -627,8 +675,15 @@ extern "C" void molecule_residues(void *mols, int n, void **res)
     {
       const AtomicStructure::Residues &r = m[i]->residues();
       for (int j = 0 ; j < r.size() ; ++j)
-	*res++ = r[j].get();
+	*res++ = r[j];
     }
+}
+
+extern "C" void molecule_num_coord_sets(void *mols, int n, int *ncoord_sets)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    ncoord_sets[i] = m[i]->coord_sets().size();
 }
 
 extern "C" void molecule_num_chains(void *mols, int n, int *nchains)
@@ -645,7 +700,7 @@ extern "C" void molecule_chains(void *mols, int n, void **chains)
     {
       const AtomicStructure::Chains &c = m[i]->chains();
       for (int j = 0 ; j < c.size() ; ++j)
-	*chains++ = c[j].get();
+	*chains++ = c[j];
     }
 }
 

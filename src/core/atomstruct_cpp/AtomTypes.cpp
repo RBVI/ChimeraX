@@ -513,7 +513,7 @@ clock_t start_t = clock();
             auto templated_atoms = r->template_assign(
                 &Atom::set_computed_idatm_type,
                 "idatm", "templates", "idatmres");
-            templated_residues.push_back(r.get());
+            templated_residues.push_back(r);
             if (templated_atoms.size() == r->atoms().size())
                 continue;
             std::set<Atom*> rta_set(templated_atoms.begin(),
@@ -596,11 +596,7 @@ clock_t start_t = clock();
                 heavy_count++;
             }
         }
-#ifdef TRACK_UNTYPED
         heavys[a] = heavy_count;
-#else
-        heavys[a.get()] = heavy_count;
-#endif
     }
 
 #ifdef TRACK_UNTYPED
@@ -628,7 +624,7 @@ clock_t start_t = clock();
     for (auto a: untyped_atoms) {
 #else
     for (auto& a: atoms()) {
-        if (mapped[a.get()])
+        if (mapped[a])
             continue;
 #endif
         const Element &element = a->element();
@@ -757,51 +753,27 @@ clock_t start_t = clock();
             if (element == Element::C) {
                 if (ang < angle23val1) {
                     a->set_computed_idatm_type("C3");
-#ifdef TRACK_UNTYPED
                     redo[a] = 1;
-#else
-                    redo[a.get()] = 1;
-#endif
                     if (ang > angle23val1_tmin)
-#ifdef TRACK_UNTYPED
                         ambiguous_val2Cs.insert(a);
-#else
-                        ambiguous_val2Cs.insert(a.get());
-#endif
                 } else if (ang < angle12val) {
                     a->set_computed_idatm_type("C2");
                     if (ang < angle23val2) {
-#ifdef TRACK_UNTYPED
                         redo[a] = 3;
-#else
-                        redo[a.get()] = 3;
-#endif
                     } else {
                         // allow ring bond-order code
                         // to change this assignment
-#ifdef TRACK_UNTYPED
                         redo[a] = -1;
-#else
-                        redo[a.get()] = -1;
-#endif
                     }
                     if (ang < angle23val1_tmax)
-#ifdef TRACK_UNTYPED
                         ambiguous_val2Cs.insert(a);
-#else
-                        ambiguous_val2Cs.insert(a.get());
-#endif
                 } else {
                     a->set_computed_idatm_type("C1");
                 }
             } else if (element == Element::N) {
                 if (ang < angle23val1) {
                     a->set_computed_idatm_type("N3");
-#ifdef TRACK_UNTYPED
                     redo[a] = 2;
-#else
-                    redo[a.get()] = 2;
-#endif
                 } else {
                     a->set_computed_idatm_type(
                       ang < angle12val ?  "Npl" : "N1+");
@@ -835,7 +807,7 @@ clock_t start_t = clock();
         
         if (a->idatm_type() == "C") {
 #ifndef TRACK_UNTYPED
-            if (mapped[a.get()])
+            if (mapped[a])
                 continue;
 #endif
             if (sqlen <= p3c1c1 && bondee_type == "C1") {
@@ -855,7 +827,7 @@ clock_t start_t = clock();
             }
         } else if (a->idatm_type() == "N") {
 #ifndef TRACK_UNTYPED
-            if (mapped[a.get()])
+            if (mapped[a])
                 continue;
 #endif
             if ((sqlen <= p3n1c1 && bondee_type == "C1" ||
@@ -878,14 +850,14 @@ clock_t start_t = clock();
             if (bondee_type == "Cac" || bondee_type == "Ntr" ||
               bondee_type == "N1+") {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("O2-");
             } else if (bondee_type == "Pac" || bondee_type == "Sac"
               || bondee_type == "N3+" || bondee_type == "Pox"
               || bondee_type == "Son" || bondee_type == "Sxd") {
 #ifndef TRACK_UNTYPED
-                if (mapped[a.get()])
+                if (mapped[a])
                     continue;
 #endif
                 a->set_computed_idatm_type("O3-");
@@ -906,11 +878,7 @@ clock_t start_t = clock();
                 Real len = bondee->coord().distance(a->coord());
                 bool longer = true;
                 for (auto bp: bondee->neighbors()) {
-#ifdef TRACK_UNTYPED
                     if (bp == a || bp->neighbors().size() > 1
-#else
-                    if (bp == a.get() || bp->neighbors().size() > 1
-#endif
                     || bp->element() != Element::O)
                         continue;
                     if (len < bondee->coord().distance(bp->coord()) + 0.05) {
@@ -924,13 +892,13 @@ clock_t start_t = clock();
               bondee->element() == Element::C &&
               bondee->neighbors().size() == 1) {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("O1+");
             } else if (sqlen <= p3o2c2 &&
               bondee->element() == Element::C) {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("O2");
 #ifdef TRACK_UNTYPED
@@ -943,7 +911,7 @@ clock_t start_t = clock();
             } else if (sqlen <= p3o2as &&
               bondee->element() == Element::As) {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("O2");
             } else if (sqlen <= p3o2o3 &&
@@ -952,37 +920,37 @@ clock_t start_t = clock();
                 // distinguish oxygen molecule from
                 // hydrogen peroxide
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("O2");
             } else if (sqlen <= p3n1o1 &&
               bondee->element() == Element::N &&
               bondee->neighbors().size() == 1) {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("O1");
             } else {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("O3");
             }
         } else if (a->idatm_type() == "S") {
             if (bondee->element() == Element::P) {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("S3-");
             } else if (bondee_type == "N1+") {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("S2");
             } else if (sqlen <= p3s2c2 &&
               bondee->element() == Element::C) {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("S2");
 #ifdef TRACK_UNTYPED
@@ -995,12 +963,12 @@ clock_t start_t = clock();
             } else if (sqlen <= p3s2as &&
               bondee->element() == Element::As) {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("S2");
             } else {
 #ifndef TRACK_UNTYPED
-                if (!mapped[a.get()])
+                if (!mapped[a])
 #endif
                     a->set_computed_idatm_type("S3");
             }
@@ -1014,10 +982,10 @@ clock_t start_t = clock();
 #else
     for (auto& a: atoms()) {
 
-        if (mapped[a.get()])
-            redo[a.get()] = 0;
+        if (mapped[a])
+            redo[a] = 0;
 
-        if (redo[a.get()] == 0)
+        if (redo[a] == 0)
             continue;
 #endif
         
@@ -1026,11 +994,7 @@ clock_t start_t = clock();
             const Element &bondee_element = bondee->element();
             Real sqlen = bondee->coord().sqdistance(a->coord());
 
-#ifdef TRACK_UNTYPED
             if (redo[a] == 1) {
-#else
-            if (redo[a.get()] == 1) {
-#endif
                 if ((sqlen <= p4c2c && bondee_element == Element::C)
                 || (sqlen <= p4c2n && bondee_element == Element::N)) {
                     a->set_computed_idatm_type("C2");
@@ -1041,19 +1005,11 @@ clock_t start_t = clock();
                 || (sqlen > p4c3o && bondee_element == Element::O)) {
                     a->set_computed_idatm_type("C3");
                 }
-#ifdef TRACK_UNTYPED
             } else if (redo[a] == 2) {
-#else
-            } else if (redo[a.get()] == 2) {
-#endif
                 if ((sqlen <= p4n2c && bondee_element == Element::C)
                 || (sqlen <= p4n2n && bondee_element == Element::N)) {
                     // explicit hydrogen(s): N2
-#ifdef TRACK_UNTYPED
                     if (heavys[a] < 2)
-#else
-                    if (heavys[a.get()] < 2)
-#endif
                         a->set_computed_idatm_type("N2");
                     else
                         a->set_computed_idatm_type("Npl");
@@ -1682,7 +1638,7 @@ clock_t start_t = clock();
             continue;
 
 #ifndef TRACK_UNTYPED
-        if (mapped[a.get()])
+        if (mapped[a])
             continue;
 #endif
         
@@ -1768,7 +1724,7 @@ clock_t start_t = clock();
         const Element &element = a->element();
         if (element == Element::N && a->idatm_type() != "N3+") {
 #ifndef TRACK_UNTYPED
-            if (mapped[a.get()])
+            if (mapped[a])
                 continue;
 #endif
             if (is_N3plus_okay(a->neighbors()))
@@ -1846,25 +1802,17 @@ clock_t start_t = clock();
 #else
     for (auto& a: atoms()) {
 
-        if (mapped[a.get()])
+        if (mapped[a])
             continue;
 #endif
 
         if (a->idatm_type() != "Npl")
             continue;
         
-#ifdef TRACK_UNTYPED
         if (heavys[a] != 2)
-#else
-        if (heavys[a.get()] != 2)
-#endif
             continue;
 
-#ifdef TRACK_UNTYPED
         if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
-#else
-        if (ring_assigned_Ns.find(a.get()) != ring_assigned_Ns.end())
-#endif
             continue;
         
         if (a->neighbors().size() > 2)
@@ -1902,11 +1850,7 @@ clock_t start_t = clock();
 
             bool double_okay = true;
             for (auto grand_bondee: bondee->neighbors()) {
-#ifdef TRACK_UNTYPED
                 if (grand_bondee == a)
-#else
-                if (grand_bondee == a.get())
-#endif
                     continue;
                 auto gb_type = grand_bondee->idatm_type();
 
@@ -1947,15 +1891,11 @@ clock_t start_t = clock();
 #else
     for (auto& a: atoms()) {
 
-        if (mapped[a.get()])
+        if (mapped[a])
             continue;
 #endif
 
-#ifdef TRACK_UNTYPED
         if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
-#else
-        if (ring_assigned_Ns.find(a.get()) != ring_assigned_Ns.end())
-#endif
             continue;
         
         auto idatm_type = a->idatm_type();
@@ -1988,11 +1928,7 @@ clock_t start_t = clock();
                 }
             }
             if (aro_ring) {
-#ifdef TRACK_UNTYPED
                 if (heavys[a] == 1) { // aniline
-#else
-                if (heavys[a.get()] == 1) { // aniline
-#endif
                     a->set_computed_idatm_type("Npl");
                     break;
                 }
@@ -2005,11 +1941,7 @@ clock_t start_t = clock();
                 continue;
             bsp2list.push_back(bondee);
         }
-#ifdef TRACK_UNTYPED
         bonded_sp2s[a] = bsp2list;
-#else
-        bonded_sp2s[a.get()] = bsp2list;
-#endif
     }
 
     // order typing by easiest-figure-out (1 sp2 bonded) to hardest (3)
@@ -2071,7 +2003,7 @@ clock_t start_t = clock();
 #else
     for (auto& a: atoms()) {
 
-        if (mapped[a.get()])
+        if (mapped[a])
             continue;
 #endif
 
@@ -2103,11 +2035,7 @@ clock_t start_t = clock();
             continue;
         bool remote_sp2 = false;
         for (auto grand_bondee: bondee->neighbors()) {
-#ifdef TRACK_UNTYPED
             if (grand_bondee == a)
-#else
-            if (grand_bondee == a.get())
-#endif
                 continue;
             Atom::IdatmInfoMap::const_iterator gi =
                 info_map.find(grand_bondee->idatm_type());
@@ -2129,7 +2057,7 @@ clock_t start_t = clock();
 #else
     for (auto& a: atoms()) {
 
-        if (mapped[a.get()])
+        if (mapped[a])
             continue;
 #endif
 

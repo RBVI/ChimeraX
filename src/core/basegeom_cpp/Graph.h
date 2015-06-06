@@ -3,7 +3,6 @@
 #define basegeom_Graph
 
 #include <vector>
-#include <memory>
 #include <algorithm>
 
 #include "destruct.h"
@@ -13,8 +12,8 @@ namespace basegeom {
 template <class Vertex, class Edge>
 class Graph {
 protected:
-    typedef std::vector<std::unique_ptr<Vertex>>  Vertices;
-    typedef std::vector<std::unique_ptr<Edge>>  Edges;
+    typedef std::vector<Vertex*>  Vertices;
+    typedef std::vector<Edge*>  Edges;
 private:
     Vertices  _vertices;
     Edges  _edges;
@@ -33,10 +32,10 @@ public:
     virtual  ~Graph() {
         // need to assign to variable make it live to end of destructor
         auto du = DestructionUser(this);
-        // need to force destruction of edges/vertices, otherwise they
-        // may only get destroyed after destructor exits;
-        _edges.clear();
-        _vertices.clear();
+        for (auto e: _edges)
+            delete e;
+        for (auto v: _vertices)
+            delete v;
     }
 
     // graphics related
@@ -56,7 +55,7 @@ void
 Graph<Vertex, Edge>::delete_edge(Edge *e)
 {
     typename Edges::iterator i = std::find_if(_edges.begin(), _edges.end(),
-        [&e](std::unique_ptr<Edge>& ue) { return ue.get() == e; });
+        [&e](Edge* ue) { return ue == e; });
     if (i == _edges.end())
         throw std::invalid_argument("delete_edge called for Edge not in Graph");
     _edges.erase(i);
@@ -67,7 +66,7 @@ void
 Graph<Vertex, Edge>::delete_vertex(Vertex *v)
 {
     typename Vertices::iterator i = std::find_if(_vertices.begin(), _vertices.end(),
-        [&v](std::unique_ptr<Vertex>& uv) { return uv.get() == v; });
+        [&v](Vertex* uv) { return uv == v; });
     if (i == _vertices.end())
         throw std::invalid_argument("delete_vertex called for Vertex not in Graph");
     _vertices.erase(i);

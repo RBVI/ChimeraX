@@ -290,6 +290,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
             offset = 0
             vertex_list = []
             normal_list = []
+            color_list = []
             triangle_list = []
             for seg in range(ribbon.num_segments):
                 show = 0
@@ -300,17 +301,21 @@ class AtomicStructure(CAtomicStructure, models.Model):
                 if not show:
                     continue
                 centers, tangents, normals = ribbon.segment(seg, self.ribbon_divisions)
-                va, na, ta = xs.extrude(centers, tangents, normals, show, XSection.BOTH, offset)
+                colors = [rlist[seg].ribbon_color, rlist[seg + 1].ribbon_color]
+                va, na, ta, ca = xs.extrude(centers, tangents, normals, colors,
+                                            show, XSection.BOTH, offset)
                 offset += len(va)
                 vertex_list.append(va)
                 normal_list.append(na)
                 triangle_list.append(ta)
+                color_list.append(ca)
             rp = p.new_drawing(rlist.strs[seg])
             rp.display = True
             rp.vertices = concatenate(vertex_list)
             rp.normals = concatenate(normal_list)
             rp.triangles = concatenate(triangle_list)
-            rp.color = array((160,160,0,255), uint8)
+            #rp.color = array((160,160,160,255), uint8)
+            rp.vertex_colors = concatenate(color_list)
 
     def _get_polymer_spline(self, rlist):
             # Get coordinates for spline and orientation atoms
