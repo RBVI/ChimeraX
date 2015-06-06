@@ -217,7 +217,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
             p.geometry = va, ta
             p.normals = na
 
-        p.positions = bond_cylinder_placements(bond_atoms, radii, half_bond_coloring)
+        xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
+        p.positions = bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
         p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
         self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
@@ -256,7 +257,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
         else:
             p = pg[name]
 
-        p.positions = bond_cylinder_placements(bond_atoms, radii, half_bond_coloring)
+        xyz1, xyz2 = bond_atoms[0].coords, bond_atoms[1].coords
+        p.positions = bond_cylinder_placements(xyz1, xyz2, radii, half_bond_coloring)
         p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
         self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
@@ -520,18 +522,17 @@ class PickedAtom(Pick):
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
 #
-def bond_cylinder_placements(bond_atoms, radius, half_bond):
+def bond_cylinder_placements(axyz0, axyz1, radius, half_bond):
 
   # TODO: Allow per-bound variation in half-bond mode.
   half_bond = half_bond.any()
 
-  n = len(bond_atoms[0])
+  n = len(axyz0)
   from numpy import empty, float32, transpose, sqrt, array
   nc = 2*n if half_bond else n
   p = empty((nc,4,4), float32)
   
   p[:,3,:] = (0,0,0,1)
-  axyz0, axyz1 = bond_atoms[0].coords, bond_atoms[1].coords
   if half_bond:
     p[:n,:3,3] = 0.75*axyz0 + 0.25*axyz1
     p[n:,:3,3] = 0.25*axyz0 + 0.75*axyz1
