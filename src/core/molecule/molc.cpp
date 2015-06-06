@@ -204,6 +204,28 @@ extern "C" void atom_residue(void *atoms, int n, void **resp)
     resp[i] = a[i]->residue();
 }
 
+// Apply per-molecule transform to atom coordinates.
+extern "C" void atom_scene_coords(void *atoms, int n, void *mols, int m, double *mtf, double *xyz)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  AtomicStructure **ma = static_cast<AtomicStructure **>(mols);
+
+  std::map<AtomicStructure *, double *> tf;
+  for (int i = 0 ; i < m ; ++i)
+    tf[ma[i]] = mtf + 12*i;
+
+  for (int i = 0 ; i < n ; ++i)
+    {
+      AtomicStructure *s = a[i]->structure();
+      double *t = tf[s];
+      const Coord &c = a[i]->coord();
+      double x = c[0], y = c[1], z = c[2];
+      *xyz++ = t[0]*x + t[1]*y + t[2]*z + t[3];
+      *xyz++ = t[4]*x + t[5]*y + t[6]*z + t[7];
+      *xyz++ = t[8]*x + t[9]*y + t[10]*z + t[11];
+    }
+}
+
 extern "C" void bond_atoms(void *bonds, int n, void **atoms)
 {
   Bond **b = static_cast<Bond **>(bonds);
