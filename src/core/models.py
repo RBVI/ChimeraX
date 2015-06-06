@@ -72,6 +72,9 @@ class Model(State, Drawing):
                 dlist.extend(d.all_models())
         return dlist
 
+    def update_graphics(self):
+        pass
+
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
             return
