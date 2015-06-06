@@ -284,6 +284,7 @@ def ribbon(session, spec=None):
     results.atoms.residues.ribbon_displays = True
     for m in results.models:
         m.update_graphics()
+
 _ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
 
@@ -347,6 +348,8 @@ def register(session):
     spacenavigator.register_snav_command()
     from . import shortcuts
     shortcuts.register_shortcut_command()
+    from . import crosslinks
+    crosslinks.register_crosslink_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
