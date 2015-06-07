@@ -48,8 +48,11 @@ class AtomicStructure(CAtomicStructure, models.Model):
         xsc = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
         self._ribbon_xs_helix = XSection(xsc, faceted=True)
         self._ribbon_xs_strand = self._ribbon_xs_helix
-        xsc = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
-        self._ribbon_xs_turn = XSection(xsc, faceted=True)
+        xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
+        xsc_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
+        xsc_tail = xsc_turn
+        self._ribbon_xs_arrow = XSection(xsc_head, xsc_tail, faceted=True)
 
         self.make_drawing()
 
@@ -309,11 +312,20 @@ class AtomicStructure(CAtomicStructure, models.Model):
             is_sheet = rlist.is_sheet
             colors = rlist.ribbon_colors
             # Assign cross sections
-            xss = [(is_helix[i] and self._ribbon_xs_helix)
-                   or (is_sheet[i] and self._ribbon_xs_strand)
-                   or self._ribbon_xs_turn
-                   for i in range(len(rlist)) ]
-            # TODO: Handle arrow xs for last helix residue
+            xss = []
+            was_strand = False
+            for i in range(len(rlist)):
+                if is_sheet[i]:
+                    xss.append(self._ribbon_xs_strand)
+                    was_strand = True
+                else:
+                    if was_strand:
+                        xss[-1] = self._ribbon_xs_arrow
+                    if is_helix[i]:
+                        xss.append(self._ribbon_xs_helix)
+                    else:
+                        xss.append(self._ribbon_xs_turn)
+                    was_strand = False
             # First residues
             if displays[0]:
                 capped = displays[0] != displays[1] or xss[0] != xss[1]

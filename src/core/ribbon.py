@@ -151,9 +151,13 @@ ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals", "triangles", "
 
 class XSection:
 
-    def __init__(self, coords, normals=None, normals2=None, faceted=False):
+    def __init__(self, coords, coords2=None, normals=None, normals2=None, faceted=False):
         import numpy
         self.xs_coords = numpy.array(coords)
+        if coords2 is not None:
+            self.xs_coords2 = numpy.array(coords2)
+        else:
+            self.xs_coords2 = None
         if normals is None:
             self._generate_normals(faceted)
         elif normals2 is None:
@@ -215,12 +219,26 @@ class XSection:
         color_list = []
         for i in range(num_splines):
             # xc, xn = extrusion coordinates and normals
-            n, b = self.xs_coords[i]
+            if self.xs_coords2 is None:
+                n, b = self.xs_coords[i]
+            else:
+                n1, b1 = self.xs_coords[i]
+                n2, b2 = self.xs_coords2[i]
+                steps = len(centers)
+                from numpy import linspace
+                n = linspace(n1, n2, steps)
+                b = linspace(b1, b2, steps)
             xc = centers + normals * n + binormals * b
             vertex_list.append(xc)
             n, b = self.xs_normals[i]
             xn = normals * n + binormals * b
             normal_list.append(xn)
+            # XXX: These normals are not quite right for an arrow because
+            # they should be slanted proportionally to the arrow angle.
+            # However, to compute them correctly , we would need to compute
+            # the path length and width rates in order to get the correct
+            # proportion and the difference visually is not great.
+            # So we ignore the problem for now.
             color_list.append(sc)
         va = concatenate(vertex_list)
         na = concatenate(normal_list)
@@ -269,7 +287,20 @@ class XSection:
         color_list = []
         for i in range(num_splines):
             # xc, xn = extrusion coordinates and normals
-            n, b = self.xs_coords[i]
+            if self.xs_coords2 is None:
+                n, b = self.xs_coords[i]
+            else:
+                n1, b1 = self.xs_coords[i]
+                n2, b2 = self.xs_coords2[i]
+                steps = len(centers)
+                front = steps // 2
+                from numpy import ones, linspace
+                n = ones(steps, float) * n2
+                b = ones(steps, float) * b2
+                n[:front] = linspace(n1, n2, front)
+                b[:front] = linspace(b1, b2, front)
+                n.shape = (steps, 1)
+                b.shape = (steps, 1)
             xc = centers + normals * n + binormals * b
             # append vertex twice for different normals
             vertex_list.append(xc)
