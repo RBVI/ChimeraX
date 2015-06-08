@@ -225,6 +225,14 @@ class Drawing:
         '''Remove all child drawings.'''
         self.remove_drawings(self.child_drawings(), delete)
 
+    @property
+    def drawing_lineage(self):
+        '''Return a sequence of drawings from the root down to the current drawing.'''
+        if hasattr(self, 'parent'):
+            return self.parent.drawing_lineage + [self]
+        else:
+            return [self]
+
     def set_redraw_callback(self, redraw_needed):
         self._redraw_needed = redraw_needed
         for d in self.child_drawings():
@@ -395,6 +403,11 @@ class Drawing:
         from ..geometry.place import Places
         self._positions = Places([pos])
         self.redraw_needed(shape_changed=True)
+
+    @property
+    def scene_position(self):
+        from ..geometry.place import product
+        return product([d.position for d in self.drawing_lineage])
 
     position = property(get_position, set_position)
     '''Position and orientation of the surface in space.'''

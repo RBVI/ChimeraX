@@ -287,7 +287,7 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
         auto a1_index = bond_atoms[1]->coord_index();
         if (a0_index >= to_size || a1_index >= to_size)
             continue;
-        to->new_bond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+        to->new_bond(to_atoms[a0_index], to_atoms[a1_index]);
     }
 
     // Pseudobonds:
@@ -301,7 +301,7 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
             auto a1_index = bond_atoms[1]->coord_index();
             if (a0_index >= to_size || a1_index >= to_size)
                 continue;
-            to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+            to_pbg->new_pseudobond(to_atoms[a0_index], to_atoms[a1_index]);
         }
     }
     auto hydro_pbg = from->pb_mgr().get_group(from->PBG_HYDROGEN_BONDS);
@@ -314,7 +314,7 @@ copy_nmr_info(AtomicStructure* from, AtomicStructure* to, PyObject* _logger)
             auto a1_index = bond_atoms[1]->coord_index();
             if (a0_index >= to_size || a1_index >= to_size)
                 continue;
-            to_pbg->new_pseudobond(to_atoms[a0_index].get(), to_atoms[a1_index].get());
+            to_pbg->new_pseudobond(to_atoms[a0_index], to_atoms[a1_index]);
         }
     }
 
@@ -336,9 +336,9 @@ ExtractMolecule::finished_parse()
     for (auto&& r : mol->residues()) {
         auto tr = find_template_residue(r->name());
         if (tr == nullptr) {
-            connect_residue_by_distance(r.get());
+            connect_residue_by_distance(r);
         } else {
-            connect_residue_by_template(r.get(), tr);
+            connect_residue_by_template(r, tr);
         }
     }
     // Connect residues in entity_poly_seq.
@@ -975,6 +975,7 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
 
     int helix_id = 0;
     int strand_id = 0;
+    map<string /* chain_id */, int> strand_ids;
     string last_chain_id;
     while (parse_row(pv)) {
         if (conf_type.empty())
@@ -994,8 +995,15 @@ ExtractMolecule::parse_struct_conf(bool /*in_loop*/)
         }
         if (is_helix)
             ++helix_id;
-        else if (is_strnd)
-            ++strand_id;
+        else if (is_strnd) {
+            auto si = strand_ids.find(chain_id1);
+            if (si == strand_ids.end()) {
+                strand_ids[chain_id1] = 1;
+                strand_id = 1;
+            } else {
+                strand_id = ++(si->second);
+            }
+        }
 
         const ResidueMap& residue_map = all_residues[chain_id1];
         string entity_id = chain_entity_map[chain_id1];
@@ -1114,15 +1122,13 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
     #undef SEQ_ID
     #undef INS_CODE
 
-    string last_chain_id;
-    int strand_id = 0;
+    map<string /* chain_id */, int> strand_ids;
     while (parse_row(pv)) {
         if (chain_id1 != chain_id2) {
             logger::error(_logger, "Start and end residues of strand"
                 " are in different chains: ", sheet_id, ' ', id);
             continue;
         }
-        ++strand_id;
 
         const ResidueMap& residue_map = all_residues[chain_id1];
         string entity_id = chain_entity_map[chain_id1];
@@ -1138,6 +1144,14 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
                           sheet_id, ' ', id);
             continue;
         }
+        int strand_id;
+        auto si = strand_ids.find(chain_id1);
+        if (si == strand_ids.end()) {
+            strand_ids[chain_id1] = 1;
+            strand_id = 1;
+        } else {
+            strand_id = ++(si->second);
+        }
         for (auto pi = init_ps; pi != end_ps; ++pi) {
             auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
                                                   pi->mon_id));
@@ -1145,10 +1159,6 @@ ExtractMolecule::parse_struct_sheet_range(bool /*in_loop*/)
                 continue;
             Residue *r = ri->second;
             r->set_is_sheet(true);
-            if (chain_id1 != last_chain_id) {
-                strand_id = 1;
-                last_chain_id = chain_id1;
-            }
             r->set_ss_id(strand_id);
         }
     }

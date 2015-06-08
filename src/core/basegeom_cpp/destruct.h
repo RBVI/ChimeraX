@@ -19,6 +19,9 @@ class DestructionCoordinator {
 // Keeps track of what object starts a possible chain of destructor
 // calls; when the parent destructor finishes, make callbacks to
 // registered functions
+// 'parent' is when the destruction initiator should also be destroyed itself,
+// 'batcher' when it shouldn't
+    static void*  _destruction_batcher;
     static void*  _destruction_parent;
     static std::set<DestructionObserver*>  _observers;
     static std::set<void*>  _destroyed;
@@ -29,25 +32,54 @@ public:
     }
     static void*  destruction_parent() { return _destruction_parent; }
     static void  finalizing_destruction(void* instance) {
-        if (_destruction_parent == instance) {
-            if (_num_notifications_off == 0) {
-                for (auto o: _observers) {
-                    o->destructors_done(_destroyed);
+        bool notification_time = _destruction_batcher == instance
+        || (_destruction_batcher == nullptr && _destruction_parent == instance);
+        if (notification_time) {
+            // copy the _destroyed set in case
+            // the observers destroy anything
+            auto destroyed_copy = _destroyed;
+            _destroyed.clear();
+            if (destroyed_copy.size() > 0) {
+                auto observers_copy = _observers;
+                for (auto o: observers_copy) {
+                    if (_observers.find(o) != _observers.end())
+                        o->destructors_done(destroyed_copy);
                 }
             }
-            _destruction_parent = nullptr;
-            _destroyed.clear();
+            _destruction_batcher = nullptr;
         };
+        if (_destruction_parent == instance)
+            _destruction_parent = nullptr;
     }
-    static void  initiating_destruction(void* instance) {
-        if (_destruction_parent == nullptr)
-            _destruction_parent = instance;
-        _destroyed.insert(instance);
+    static void  initiating_destruction(void* instance, bool batcher = false) {
+        if (batcher) {
+            if (_destruction_batcher == nullptr
+            && _destruction_parent == nullptr)
+                _destruction_batcher = instance;
+        } else {
+            if (_destruction_parent == nullptr)
+                _destruction_parent = instance;
+            if (_num_notifications_off == 0)
+                _destroyed.insert(instance);
+        }
     }
     static void  notifications_off() { _num_notifications_off++; }
     static void  notifications_on() { _num_notifications_off--; }
     static void  register_observer(DestructionObserver* d_o) {
         _observers.insert(d_o);
+    }
+};
+
+class DestructionBatcher {
+// Used when an object will be initiating a chain of sub-object destructions,
+// but the object itself is not being destroyed
+    void*  _instance;
+public:
+    DestructionBatcher(void* instance): _instance(instance) {
+        DestructionCoordinator::initiating_destruction(_instance, true);
+    }
+    virtual ~DestructionBatcher() {
+        DestructionCoordinator::finalizing_destruction(_instance);
     }
 };
 

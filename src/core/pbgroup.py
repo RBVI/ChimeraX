@@ -7,36 +7,46 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
 
         CPseudoBondGroup.__init__(self, name)
         Model.__init__(self, name)
-        self.pseudobond_radius = 0.05
+        self._pbond_drawing = None
 
         self.update_graphics()
 
     def update_graphics(self):
 
-        from . import structure
-        if self.vertices is None:
-            va, na, ta = structure.pseudobond_geometry()
-            self.vertices = va
-            self.normals = na
-            self.triangles = ta
-
         pbonds = self.pseudobonds
+        d = self._pbond_drawing
+        if len(pbonds) == 0:
+            if d:
+                d.delete()
+                self._pbond_drawing = None
+            return
+
+        from . import structure
+        if d is None:
+            self._pbond_drawing = d = self.new_drawing('pbonds')
+            va, na, ta = structure.pseudobond_geometry()
+            d.vertices = va
+            d.normals = na
+            d.triangles = ta
+
         bond_atoms = pbonds.atoms
         radii = pbonds.radii
         bond_colors = pbonds.colors
         half_bond_coloring = pbonds.halfbonds
-        self.positions = structure.bond_cylinder_placements(bond_atoms, radii, half_bond_coloring)
-        self.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
-        self.set_bond_colors(bond_atoms, bond_colors, half_bond_coloring)
+        to_pbg = self.scene_position.inverse()
+        axyz0, axyz1 = to_pbg*bond_atoms[0].scene_coords, to_pbg*bond_atoms[1].scene_coords
+        d.positions = structure.bond_cylinder_placements(axyz0, axyz1, radii, half_bond_coloring)
+        d.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
+        d.colors = self.bond_colors(bond_atoms, bond_colors, half_bond_coloring)
 
-    def set_bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
+    def bond_colors(self, bond_atoms, bond_colors, half_bond_coloring):
         if half_bond_coloring.any():
             bc0,bc1 = bond_atoms[0].colors, bond_atoms[1].colors
             from numpy import concatenate
             c = concatenate((bc0,bc1))
         else:
             c = bond_colors
-        self.colors = c
+        return c
 
     def shown_bond_cylinders(self, bond_atoms, half_bond_coloring):
         sb = bond_atoms[0].displays & bond_atoms[1].displays  # Show bond if both atoms shown

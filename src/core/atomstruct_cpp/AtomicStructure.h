@@ -3,7 +3,6 @@
 #define atomstruct_AtomicStructure
 
 #include <map>
-#include <memory>
 #include <set>
 #include <string>
 #include <unordered_set>
@@ -36,13 +35,13 @@ class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
 public:
     typedef Vertices  Atoms;
     typedef Edges  Bonds;
-    typedef std::vector<std::unique_ptr<Chain>>  Chains;
-    typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
+    typedef std::vector<Chain*>  Chains;
+    typedef std::vector<CoordSet*>  CoordSets;
     typedef std::map<std::string, std::vector<std::string>>  InputSeqInfo;
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
-    typedef std::vector<std::unique_ptr<Residue>>  Residues;
+    typedef std::vector<Residue*>  Residues;
     typedef std::unordered_set<Ring> Rings;
 private:
     CoordSet *  _active_coord_set;
@@ -72,16 +71,7 @@ private:
     mutable std::set<const Residue *>*  _rings_last_ignore;
 public:
     AtomicStructure(PyObject* logger = nullptr);
-    virtual  ~AtomicStructure() {
-        // assign to variable so that it lives to end of destructor
-        auto du = basegeom::DestructionUser(this);
-        // force immediate destruction of certain items
-        // while DestructionUser active
-        if (_chains != nullptr)
-            _chains->clear();
-        _residues.clear();
-        _coord_sets.clear();
-    }
+    virtual  ~AtomicStructure();
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
@@ -154,7 +144,7 @@ inline void
 atomstruct::AtomicStructure::delete_atoms(std::vector<atomstruct::Atom*> atoms)
 {
     // prevent per-atom notifications
-    auto du = basegeom::DestructionUser(this);
+    auto du = basegeom::DestructionBatcher(this);
     for (auto a: atoms)
         delete_atom(a);
 }
@@ -165,9 +155,5 @@ atomstruct::AtomicStructure::delete_bond(atomstruct::Bond* b) {
     for (auto a: b->atoms()) a->remove_bond(b);
     delete_edge(b);
 }
-
-// for unique_ptr template expansion
-#include "CoordSet.h"
-#include "Residue.h"
 
 #endif  // atomstruct_AtomicStructure
