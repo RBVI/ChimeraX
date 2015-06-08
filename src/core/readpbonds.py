@@ -3,7 +3,7 @@ def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,2
     file.close()
 
     from . import pbgroup
-    g = pbgroup.PseudoBondGroup(name)
+    g = pbgroup.PseudoBondGroup(name, session.main_view)
 
     from .structure import AtomsArg
     for i, line in enumerate(lines):
