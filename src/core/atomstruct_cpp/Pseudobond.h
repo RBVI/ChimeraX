@@ -156,28 +156,24 @@ private:
 public:
     const std::string&  category() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
-            static_cast<Owned_PBGroup*>(_proxied)->category();
-        else
-            static_cast<CS_PBGroup*>(_proxied)->category();
+            return static_cast<Owned_PBGroup*>(_proxied)->category();
+        return static_cast<CS_PBGroup*>(_proxied)->category();
     }
     void  check_destroyed_atoms(const std::set<void*>& destroyed) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<Owned_PBGroup*>(_proxied)->check_destroyed_atoms(destroyed);
-        else
-            static_cast<CS_PBGroup*>(_proxied)->check_destroyed_atoms(destroyed);
+        static_cast<CS_PBGroup*>(_proxied)->check_destroyed_atoms(destroyed);
     }
     void  clear() {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             static_cast<Owned_PBGroup*>(_proxied)->clear();
-        else
-            static_cast<CS_PBGroup*>(_proxied)->clear();
+        static_cast<CS_PBGroup*>(_proxied)->clear();
     }
     int  group_type() const { return _group_type; }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<Owned_PBGroup*>(_proxied)->new_pseudobond(a1, a2);
-        else
-            return static_cast<CS_PBGroup*>(_proxied)->new_pseudobond(a1, a2);
+        return static_cast<CS_PBGroup*>(_proxied)->new_pseudobond(a1, a2);
     }
     PBond*  new_pseudobond(Atom* const ends[2]) {
         // should be in base class, but C++ won't look in base
@@ -199,8 +195,7 @@ public:
     const std::set<PBond*>&  pseudobonds() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<Owned_PBGroup*>(_proxied)->pseudobonds();
-        else
-            return static_cast<CS_PBGroup*>(_proxied)->pseudobonds();
+        return static_cast<CS_PBGroup*>(_proxied)->pseudobonds();
     }
     const std::set<PBond*>&  pseudobonds(const CoordSet* cs) const {
         if (_group_type == AS_PBManager::GRP_NORMAL)

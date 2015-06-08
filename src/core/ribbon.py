@@ -341,7 +341,7 @@ class XSection:
         # Generate caps
         offset += num_splines * num_pts_per_spline * 2
         if cap_front:
-            vlist = [vertex_list[i][0] for i in range(0, len(vertex_list), 2)]
+            vlist = [vertex_list[i * 2][0] for i in range(num_splines)]
             vertex_list.append(vlist)
             nlist = [-tangents[0]] * num_splines
             normal_list.append(nlist)
@@ -351,7 +351,7 @@ class XSection:
                 triangle_list.append((k + offset, j + offset, i + offset))
             offset += num_splines
         if cap_back:
-            vlist = [vertex_list[i][-1] for i in range(0, len(vertex_list), 2)]
+            vlist = [vertex_list[i * 2][-1] for i in range(num_splines)]
             vertex_list.append(vlist)
             nlist = [tangents[-1]] * num_splines
             normal_list.append(nlist)
