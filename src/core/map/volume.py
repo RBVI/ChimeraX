@@ -2766,10 +2766,7 @@ def data_already_opened(path, grid_id, session):
 # -----------------------------------------------------------------------------
 #
 def volume_list(session):
-  if hasattr(session, 'maps'):
-    return session.maps()       # Hydra
-  else:
-    return [m for m in session.models.list() if isinstance(m, Volume)]
+  return [m for m in session.models.list() if isinstance(m, Volume)]
 
 # -----------------------------------------------------------------------------
 #
