@@ -1531,7 +1531,7 @@ class Volume(Model):
     if source_to_scene_transform:
       # Handle case where vertices and volume have different model transforms.
       scene_to_source_tf = source_to_scene_transform.inverse()
-      m2s_transform = scene_to_source_tf * self.position * m2s_transform
+      m2s_transform = scene_to_source_tf * self.scene_position * m2s_transform
       
     s2m_transform = m2s_transform.inverse()
 

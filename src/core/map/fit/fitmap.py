@@ -51,7 +51,7 @@ def move_atoms_to_maximum(atoms, volume,
     values at specified atom positions.
     '''
 
-    points = atoms.coords
+    points = atoms.scene_coords
     point_weights = None        # Each atom give equal weight in fit.
 
     metric = 'sum product'
