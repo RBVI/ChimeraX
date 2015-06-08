@@ -95,6 +95,7 @@ def fitmap(session, atomsOrMap, inMap = None,
           raise cli.UserError('Must specify a map resolution when'
                              ' fitting an atomic model using correlation')
 
+  log = session.logger
   if sequence > 0:
       if search > 0:
           raise cli.UserError('Cannot use "sequence" and "search" options together.')
@@ -102,9 +103,8 @@ def fitmap(session, atomsOrMap, inMap = None,
           raise cli.UserError('Cannot use "sequence" and "symmetric" options together.')
       flist = fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                            shift, rotate, moveWholeMolecules, sequence,
-                           maxSteps, gridStepMin, gridStepMax)
+                           maxSteps, gridStepMin, gridStepMax, log)
   elif search == 0:
-      log = session.logger
       if v is None:
           f = fit_atoms_in_map(atoms, volume, shift, rotate, moveWholeMolecules,
                                maxSteps, gridStepMin, gridStepMax, log)
@@ -293,7 +293,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
 
     me = fitting_metric(metric)
     if v is None:
-        points = atoms.coordinates()
+        points = atoms.scene_coords
         volume.position.inverse().move(points)
         point_weights = None
     else:
@@ -361,7 +361,7 @@ def report_fit_search_results(flist, search, outside, levelInside, log):
 #
 def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
                  shift, rotate, moveWholeMolecules, sequence,
-                 maxSteps, gridStepMin, gridStepMax):
+                 maxSteps, gridStepMin, gridStepMax, log):
 
     if resolution is None:
         from .. import Volume
@@ -373,6 +373,7 @@ def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
             else:
                 raise cli.UserError('Fit sequence requires 2 or more maps'
                                    ' to place')
+        mlist = []
     else:
         from ...structure import AtomicStructure
         mlist = [m for m in atomsOrMap.models if isinstance(m, AtomicStructure)]
@@ -382,25 +383,30 @@ def fit_sequence(atomsOrMap, volume, session, metric, envelope, resolution,
             raise cli.UserError('Fit sequence does not support'
                                ' moving partial molecules')
             # TODO: Handle case where not moving whole molecules.
-        import fitmap as F
+        from . import fitmap as F
         vlist = [F.simulated_map(m.atoms, resolution, moveWholeMolecules, session)
                  for m in mlist]
 
     me = fitting_metric(metric)
 
-    import sequence as S
-    from chimera import tasks
-    task = tasks.Task("Fit sequence", modal=True)
-    def stop_cb(msg, task = task):
-        return request_stop_cb(msg, task)
+    from . import sequence as S
+#    from chimera import tasks
+#    task = tasks.Task("Fit sequence", modal=True)
+#    def stop_cb(msg, task = task):
+#        return request_stop_cb(msg, task)
+    stop_cb = None
     flist = []
-    try:
-        flist = S.fit_sequence(vlist, volume, sequence,
-                               envelope, me, shift, rotate,
-                               maxSteps, gridStepMin, gridStepMax, stop_cb)
-    finally:
-        task.finished()
+#    try:
+    flist = S.fit_sequence(vlist, volume, sequence, envelope, me, shift, rotate,
+                               maxSteps, gridStepMin, gridStepMax, stop_cb, log)
+#    finally:
+#        task.finished()
 
+    if mlist: 
+        # Align molecules to their corresponding maps. 
+        for m,v in zip(mlist, vlist): 
+            m.position = v.position
+ 
     return flist
 
 # -----------------------------------------------------------------------------

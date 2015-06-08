@@ -3,10 +3,10 @@
 #define atomstruct_Residue
 
 #include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
+#include <basegeom/Rgba.h>
 #include <basegeom/destruct.h>
 #include "imex.h"
 #include "string_types.h"
@@ -17,9 +17,10 @@ class Atom;
 class AtomicStructure;
 class Bond;
 
+using basegeom::Rgba;
+
 class ATOMSTRUCT_IMEX Residue {
     friend class AtomicStructure;
-    friend std::unique_ptr<Residue>::deleter_type; // to access destructor
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
@@ -37,6 +38,7 @@ private:
     int  _position;
     int  _ss_id;
     bool  _ribbon_display;
+    Rgba  _ribbon_rgba;
     AtomicStructure *  _structure;
 public:
     void  add_atom(Atom *);
@@ -53,6 +55,7 @@ public:
     bool  is_sheet() const { return _is_sheet; }
     int   ss_id() const { return _ss_id; }
     bool  ribbon_display() const { return _ribbon_display; }
+    const Rgba& ribbon_color() const { return _ribbon_rgba; }
     const std::string &  name() const { return _name; }
     int  position() const { return _position; }
     void  set_alt_loc(char alt_loc);
@@ -61,6 +64,7 @@ public:
     void  set_is_sheet(bool is) { _is_sheet = is; }
     void  set_ss_id(int ssid) { _ss_id = ssid; }
     void  set_ribbon_display(bool d) { _ribbon_display = d; }
+    void  set_ribbon_color(const Rgba& rgba) { _ribbon_rgba = rgba; }
     std::string  str() const;
     AtomicStructure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(

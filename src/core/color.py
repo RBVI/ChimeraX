@@ -568,6 +568,34 @@ def color(session, color, spec=None):
     session.logger.status('Colored %s' % ', '.join(what))
 
 
+def rcolor(session, color, spec=None):
+    """Color ribbons for an object specification."""
+    from . import atomspec
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+
+    rgba8 = color.uint8x4()
+    residues = results.atoms.unique_residues
+    if residues is None:
+        nr = 0
+    else:
+        residues.ribbon_colors = rgba8
+        nr = len(residues)
+
+    from .structure import AtomicStructure
+    for m in results.models:
+        if isinstance(m, AtomicStructure):
+            m.update_graphics()
+
+    what = []
+    if nr > 0:
+        what.append('%d residues' % nr)
+    else:
+        what.append('nothing')
+    session.logger.status('Colored %s' % ', '.join(what))
+
+
 def register_commands():
     from . import atomspec
     cli.register(
@@ -576,6 +604,13 @@ def register_commands():
                     optional=[("spec", atomspec.AtomSpecArg)],
                     synopsis="color specified objects"),
         color
+    )
+    cli.register(
+        'rcolor',
+        cli.CmdDesc(required=[("color", ColorArg)],
+                    optional=[("spec", atomspec.AtomSpecArg)],
+                    synopsis="color specified ribbons"),
+        rcolor
     )
     cli.register(
         'colordef',

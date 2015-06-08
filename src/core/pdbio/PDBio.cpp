@@ -189,7 +189,7 @@ start_t = end_t;
           case PDB::MODEL: {
             cur_res_index = 0;
             if (in_model && !as->residues().empty())
-                cur_residue = as->residues()[0].get();
+                cur_residue = as->residues()[0];
             else {
                 cur_residue = NULL;
                 if (in_model)
@@ -283,7 +283,7 @@ start_t = end_t;
                 || cur_residue->name() != rname) {
                     if (explode) {
                         if (cur_res_index + 1 < as->residues().size())
-                            cur_residue = as->residues()[++cur_res_index].get();
+                            cur_residue = as->residues()[++cur_res_index];
                     } else {
                         // Monte-Carlo traj?
                         std::string string_cid;
@@ -748,7 +748,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         AtomicStructure::Residues::const_iterator last = as->residues().end();
         for (AtomicStructure::Residues::const_iterator
         ri = as->residues().begin(); ri != as->residues().end(); ++ri) {
-            Residue *r = (*ri).get();
+            Residue *r = *ri;
             if (r == init_res)
                 first = ri;
             if (r == end_res) {
@@ -787,7 +787,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         ++id;
         for (AtomicStructure::Residues::const_iterator ri = sri->first;
         ri != as->residues().end(); ++ri) {
-            Residue *r = (*ri).get();
+            Residue *r = *ri;
             r->set_ss_id(id);
             r->set_is_sheet(true);
             if (ri == sri->second)
@@ -819,7 +819,7 @@ void prune_short_bonds(AtomicStructure *as)
 
     const AtomicStructure::Bonds &bonds = as->bonds();
     for (AtomicStructure::Bonds::const_iterator bi = bonds.begin(); bi != bonds.end(); ++bi) {
-        Bond *b = (*bi).get();
+        Bond *b = *bi;
         Coord c1 = b->atoms()[0]->coord();
         Coord c2 = b->atoms()[1]->coord();
         if (c1.sqdistance(c2) < 0.001)

@@ -11,6 +11,8 @@
 #include "pythonarray.h"		// Use python_voidp_array()
 
 #include <iostream>
+#include <map>
+#include <vector>
 
 using namespace atomstruct;
 using namespace basegeom;
@@ -110,15 +112,12 @@ extern "C" void atom_delete(void *atoms, int n)
 {
   Atom **a = static_cast<Atom **>(atoms);
 
-  // Copy because deleting atoms modifies the input array.
-  Atom **acopy = new Atom*[n];
+  std::map<AtomicStructure *, std::vector<Atom *> > matoms;
   for (int i = 0 ; i < n ; ++i)
-    acopy[i] = a[i];
-  
-  for (int i = 0 ; i < n ; ++i)
-    acopy[i]->structure()->delete_atom(acopy[i]);
+    matoms[a[i]->structure()].push_back(a[i]);
 
-  delete [] acopy;
+  for (auto ma: matoms)
+    ma.first->delete_atoms(ma.second);
 }
 
 extern "C" void atom_display(void *atoms, int n, unsigned char *disp)
@@ -203,6 +202,28 @@ extern "C" void atom_residue(void *atoms, int n, void **resp)
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
     resp[i] = a[i]->residue();
+}
+
+// Apply per-molecule transform to atom coordinates.
+extern "C" void atom_scene_coords(void *atoms, int n, void *mols, int m, double *mtf, double *xyz)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  AtomicStructure **ma = static_cast<AtomicStructure **>(mols);
+
+  std::map<AtomicStructure *, double *> tf;
+  for (int i = 0 ; i < m ; ++i)
+    tf[ma[i]] = mtf + 12*i;
+
+  for (int i = 0 ; i < n ; ++i)
+    {
+      AtomicStructure *s = a[i]->structure();
+      double *t = tf[s];
+      const Coord &c = a[i]->coord();
+      double x = c[0], y = c[1], z = c[2];
+      *xyz++ = t[0]*x + t[1]*y + t[2]*z + t[3];
+      *xyz++ = t[4]*x + t[5]*y + t[6]*z + t[7];
+      *xyz++ = t[8]*x + t[9]*y + t[10]*z + t[11];
+    }
 }
 
 extern "C" void bond_atoms(void *bonds, int n, void **atoms)
@@ -425,6 +446,13 @@ extern "C" void residue_is_helix(void *residues, int n, unsigned char *is_helix)
 	  is_helix[i] = r[i]->is_helix();
 }
 
+extern "C" void set_residue_is_helix(void *residues, int n, unsigned char *is_helix)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+	  r[i]->set_is_helix(is_helix[i]);
+}
+
 extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
 {
   Residue **r = static_cast<Residue **>(residues);
@@ -432,11 +460,25 @@ extern "C" void residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
     is_sheet[i] = r[i]->is_sheet();
 }
 
+extern "C" void set_residue_is_sheet(void *residues, int n, unsigned char *is_sheet)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    r[i]->set_is_sheet(is_sheet[i]);
+}
+
 extern "C" void residue_ss_id(void *residues, int n, int *ss_id)
 {
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
     ss_id[i] = r[i]->ss_id();
+}
+
+extern "C" void set_residue_ss_id(void *residues, int n, int *ss_id)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    r[i]->set_ss_id(ss_id[i]);
 }
 
 extern "C" void residue_ribbon_display(void *residues, int n, unsigned char *ribbon_display)
@@ -510,6 +552,33 @@ extern "C" void residue_add_atom(void *res, void *atom)
   r->add_atom(static_cast<Atom *>(atom));
 }
 
+extern "C" void residue_ribbon_color(void *residues, int n, unsigned char *rgba)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  for (int i = 0 ; i < n ; ++i)
+    {
+      const Rgba &c = r[i]->ribbon_color();
+      *rgba++ = c.r;
+      *rgba++ = c.g;
+      *rgba++ = c.b;
+      *rgba++ = c.a;
+    }
+}
+
+extern "C" void set_residue_ribbon_color(void *residues, int n, unsigned char *rgba)
+{
+  Residue **r = static_cast<Residue **>(residues);
+  Rgba c;
+  for (int i = 0 ; i < n ; ++i)
+    {
+      c.r = *rgba++;
+      c.g = *rgba++;
+      c.b = *rgba++;
+      c.a = *rgba++;
+      r[i]->set_ribbon_color(c);
+    }
+}
+
 extern "C" void chain_chain_id(void *chains, int n, void **cids)
 {
   Chain **c = static_cast<Chain **>(chains);
@@ -553,7 +622,7 @@ extern "C" void set_molecule_name(void *mols, int n, void **names)
 {
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
-    m[i]->set_name(PyUnicode_AS_DATA(static_cast<PyObject *>(names[i])));
+    m[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
 }
 
 extern "C" void molecule_num_atoms(void *mols, int n, int *natoms)
@@ -570,7 +639,7 @@ extern "C" void molecule_atoms(void *mols, int n, void **atoms)
     {
       const AtomicStructure::Atoms &a = m[i]->atoms();
       for (int j = 0 ; j < a.size() ; ++j)
-	*atoms++ = a[j].get();
+	*atoms++ = a[j];
     }
 }
 
@@ -588,7 +657,7 @@ extern "C" void molecule_bonds(void *mols, int n, void **bonds)
     {
       const AtomicStructure::Bonds &b = m[i]->bonds();
       for (int j = 0 ; j < b.size() ; ++j)
-	*bonds++ = b[j].get();
+	*bonds++ = b[j];
     }
 }
 
@@ -606,8 +675,15 @@ extern "C" void molecule_residues(void *mols, int n, void **res)
     {
       const AtomicStructure::Residues &r = m[i]->residues();
       for (int j = 0 ; j < r.size() ; ++j)
-	*res++ = r[j].get();
+	*res++ = r[j];
     }
+}
+
+extern "C" void molecule_num_coord_sets(void *mols, int n, int *ncoord_sets)
+{
+  AtomicStructure **m = static_cast<AtomicStructure **>(mols);
+  for (int i = 0 ; i < n ; ++i)
+    ncoord_sets[i] = m[i]->coord_sets().size();
 }
 
 extern "C" void molecule_num_chains(void *mols, int n, int *nchains)
@@ -624,7 +700,7 @@ extern "C" void molecule_chains(void *mols, int n, void **chains)
     {
       const AtomicStructure::Chains &c = m[i]->chains();
       for (int j = 0 ; j < c.size() ; ++j)
-	*chains++ = c[j].get();
+	*chains++ = c[j];
     }
 }
 

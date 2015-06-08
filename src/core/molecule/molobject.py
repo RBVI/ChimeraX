@@ -61,6 +61,10 @@ class Atom:
         c = f(self._c_pointer, atom._c_pointer)
         return c
 
+    @property
+    def scene_coord(self):
+        return self.molecule.scene_position * self.coord
+
 # -----------------------------------------------------------------------------
 #
 class Bond:
@@ -86,6 +90,13 @@ class PseudoBond:
     display = c_property('pseudobond_display', int32)
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     radius = c_property('pseudobond_radius', float32)
+
+    @property
+    def length(self):
+        a1, a2 = self.atoms
+        v = a1.scene_coord - a2.scene_coord
+        from math import sqrt
+        return sqrt((v*v).sum())
 
 # -----------------------------------------------------------------------------
 #
@@ -120,10 +131,11 @@ class Residue:
 
     atoms = c_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True)
     chain_id = c_property('residue_chain_id', string, read_only = True)
-    is_helix = c_property('residue_is_helix', npy_bool, read_only = True)
-    is_sheet = c_property('residue_is_sheet', npy_bool, read_only = True)
-    ss_id = c_property('residue_ss_id', int32, read_only = True)
+    is_helix = c_property('residue_is_helix', npy_bool)
+    is_sheet = c_property('residue_is_sheet', npy_bool)
+    ss_id = c_property('residue_ss_id', int32)
     ribbon_display = c_property('residue_ribbon_display', npy_bool)
+    ribbon_color = c_property('residue_ribbon_color', uint8, 4)
     name = c_property('residue_name', string, read_only = True)
     num_atoms = c_property('residue_num_atoms', int32, read_only = True)
     number = c_property('residue_number', int32, read_only = True)
@@ -166,6 +178,7 @@ class CAtomicStructure:
     name = c_property('molecule_name', string)
     num_atoms = c_property('molecule_num_atoms', int32, read_only = True)
     num_bonds = c_property('molecule_num_bonds', int32, read_only = True)
+    num_coord_sets = c_property('molecule_num_coord_sets', int32, read_only = True)
     num_chains = c_property('molecule_num_chains', int32, read_only = True)
     num_residues = c_property('molecule_num_residues', int32, read_only = True)
     residues = c_property('molecule_residues', cptr, 'num_residues', astype = _residues, read_only = True)

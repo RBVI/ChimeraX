@@ -51,7 +51,7 @@ def move_atoms_to_maximum(atoms, volume,
     values at specified atom positions.
     '''
 
-    points = atoms.coords
+    points = atoms.scene_coords
     point_weights = None        # Each atom give equal weight in fit.
 
     metric = 'sum product'
@@ -748,6 +748,10 @@ def simulated_map(atoms, res, mwm, session):
       v = molecule_map(session, atoms, res)
       v.display = False
       v.fitsim_params = (array_checksum(atoms.coords), res, mwm)
+    else:
+      # If molecules are moved, realign maps with molecules.
+      m0 = atoms.unique_molecules[0]
+      v.position = m0.position
     return v
 
 # -----------------------------------------------------------------------------
@@ -756,16 +760,18 @@ def find_simulated_map(atoms, res, mwm, session):
 
     a = array_checksum(atoms.coords)
     from ..volume import volume_list
-    for v in volume_list(session):
-      if hasattr(v, 'fitsim_params') and v.fitsim_params == (a, res, mwm):
-        return v
+    vlist = volume_list(session)
+    for v in vlist:
+      if hasattr(v, 'fitsim_params'):
+        if v.fitsim_params == (a, res, mwm):
+          return v
     return None
 
 # -----------------------------------------------------------------------------
 #
 def array_checksum(a):
     import hashlib, numpy
-    return hashlib.sha1(a.view(numpy.uint8))
+    return hashlib.sha1(a.view(numpy.uint8)).digest()
 
 # -----------------------------------------------------------------------------
 # Geometric center of points above contour level.

@@ -301,7 +301,7 @@ metal_coordination_bonds(AtomicStructure* as)
     std::set<Atom*> metals;
     for (auto& a: as->atoms())
         if (a->element().is_metal())
-            metals.insert(a.get());
+            metals.insert(a);
 
     for (auto metal: metals) {
         // skip large inorganic residues (that typically
@@ -371,7 +371,7 @@ find_and_add_metal_coordination_bonds(AtomicStructure* as)
             AS_PBManager::GRP_PER_CS);
         for (auto mc: mc_bonds) {
             for (auto& cs: as->coord_sets()) {
-                pbg->new_pseudobond(mc->atoms(), cs.get());
+                pbg->new_pseudobond(mc->atoms(), cs);
             }
             as->delete_bond(mc);
         }
@@ -393,7 +393,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     AtomName link_atom_name;
     for (AtomicStructure::Residues::const_iterator ri = as->residues().begin();
     ri != as->residues().end(); ++ri) {
-        Residue *r = (*ri).get();
+        Residue *r = *ri;
 
         if (!first_res)
             first_res = r;
@@ -521,7 +521,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
     if (conect_atoms->empty() && mod_res->empty()) {
         for (AtomicStructure::Residues::const_iterator ri=as->residues().begin()
         ; ri != as->residues().end(); ++ri) {
-            Residue *r = (*ri).get();
+            Residue *r = *ri;
             if (standard_residue(r->name()) || r->name() == "UNK")
                 continue;
             if (!r->is_het()) {
@@ -535,7 +535,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
         std::vector<Bond *> break_these;
         for (AtomicStructure::Bonds::const_iterator bi = as->bonds().begin();
         bi != as->bonds().end(); ++bi) {
-            Bond *b = (*bi).get();
+            Bond *b = *bi;
             const Bond::Atoms & atoms = b->atoms();
             Residue *r1 = atoms[0]->residue();
             Residue *r2 = atoms[1]->residue();
@@ -575,7 +575,7 @@ connect_structure(AtomicStructure* as, std::vector<Residue *>* start_residues,
                 // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
                 // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
                 // to not be classified as missing seqments)
-                long_bonds.push_back(b.get());
+                long_bonds.push_back(b);
         }
         if (long_bonds.size() > 0) {
             auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE,
