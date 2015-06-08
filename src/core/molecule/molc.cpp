@@ -14,6 +14,30 @@
 #include <map>
 #include <vector>
 
+namespace {
+
+class AcquireGIL {
+    // RAII for Python GIL
+    //
+    // All calls to the Python/NumPy API need to be protected by aquiring
+    // the Python GIL since this library is loaded as a ctypes cdll
+    // instead of a pydll.
+    //
+    // The indirect calls to the Python logger do not mean that every call
+    // need to be protected because those calls are independently protected.
+    //
+    PyGILState_STATE gil_state;
+public:
+    AcquireGIL() {
+        gil_state = PyGILState_Ensure();
+    }
+    ~AcquireGIL() {
+        PyGILState_Release(gil_state);
+    }
+};
+
+}
+
 using namespace atomstruct;
 using namespace basegeom;
 
@@ -150,6 +174,7 @@ extern "C" void set_atom_draw_mode(void *atoms, int n, int *modes)
 
 extern "C" void atom_element_name(void *atoms, int n, void **names)
 {
+  AcquireGIL g;
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
     names[i] = PyUnicode_FromString(a[i]->element().name());
@@ -171,6 +196,7 @@ extern "C" void atom_molecule(void *atoms, int n, void **molp)
 
 extern "C" void atom_name(void *atoms, int n, void **names)
 {
+  AcquireGIL g;
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
     names[i] = PyUnicode_FromString(a[i]->name());
@@ -434,6 +460,7 @@ extern "C" void residue_atoms(void *residues, int n, void **atoms)
 
 extern "C" void residue_chain_id(void *residues, int n, void **cids)
 {
+  AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
     cids[i] = PyUnicode_FromString(r[i]->chain_id().c_str());
@@ -504,6 +531,7 @@ extern "C" void residue_molecule(void *residues, int n, void **molp)
 
 extern "C" void residue_name(void *residues, int n, void **names)
 {
+  AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
     names[i] = PyUnicode_FromString(r[i]->name().c_str());
@@ -525,6 +553,7 @@ extern "C" void residue_number(void *residues, int n, int *nums)
 
 extern "C" void residue_str(void *residues, int n, void **strs)
 {
+  AcquireGIL g;
   Residue **r = static_cast<Residue **>(residues);
   for (int i = 0 ; i < n ; ++i)
     strs[i] = PyUnicode_FromString(r[i]->str().c_str());
@@ -581,6 +610,7 @@ extern "C" void set_residue_ribbon_color(void *residues, int n, unsigned char *r
 
 extern "C" void chain_chain_id(void *chains, int n, void **cids)
 {
+  AcquireGIL g;
   Chain **c = static_cast<Chain **>(chains);
   for (int i = 0 ; i < n ; ++i)
     cids[i] = PyUnicode_FromString(c[i]->chain_id().c_str());
@@ -613,6 +643,7 @@ extern "C" void chain_residues(void *chains, int n, void **res)
 
 extern "C" void molecule_name(void *mols, int n, void **names)
 {
+  AcquireGIL g;
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     names[i] = PyUnicode_FromString(m[i]->name().c_str());
@@ -620,6 +651,7 @@ extern "C" void molecule_name(void *mols, int n, void **names)
 
 extern "C" void set_molecule_name(void *mols, int n, void **names)
 {
+  AcquireGIL g;
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     m[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
@@ -708,9 +740,7 @@ extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
 {
   // To use Python in this function which is called by ctypes,
   // must acquire the global interpreter lock.
-  PyGILState_STATE gstate;
-  gstate = PyGILState_Ensure();
-
+  AcquireGIL g;
   AtomicStructure **m = static_cast<AtomicStructure **>(mols);
   for (int i = 0 ; i < n ; ++i)
     {
@@ -728,17 +758,13 @@ extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
       }
       pbgs[i] = pbg_map;
     }
-
-  PyGILState_Release(gstate);
 }
 
 extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
   // To use Python in this function which is called by ctypes,
   // must acquire the global interpreter lock.
-  PyGILState_STATE gstate;
-  gstate = PyGILState_Ensure();
-
+  AcquireGIL g;
   AtomicStructure *m = static_cast<AtomicStructure *>(mol);
   std::vector<Chain::Residues> polymers = m->polymers(consider_missing_structure, consider_chains_ids);
   PyObject *poly = PyTuple_New(polymers.size());
@@ -751,8 +777,6 @@ extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure
 	  ra[i++] = static_cast<void *>(r);
 	PyTuple_SetItem(poly, p++, r_array);
   }	
-
-  PyGILState_Release(gstate);
   return poly;
 }
 
@@ -804,10 +828,8 @@ public:
   Array_Updater()
     {
       // Make sure we have the Python global interpreter lock.
-      PyGILState_STATE gstate;
-      gstate = PyGILState_Ensure();
+      AcquireGIL g;
       init_numpy();
-      PyGILState_Release(gstate);
     }
   void add_array(PyObject *numpy_array)
     { arrays.insert(reinterpret_cast<PyArrayObject *>(numpy_array)); }
@@ -819,13 +841,9 @@ private:
   virtual void  destructors_done(const std::set<void*>& destroyed)
   {
     // Make sure we have the Python global interpreter lock.
-    PyGILState_STATE gstate;
-    gstate = PyGILState_Ensure();
-
+    AcquireGIL g;
     for (auto a: arrays)
       filter_array(a, destroyed);
-
-    PyGILState_Release(gstate);
   }
   void filter_array(PyArrayObject *a, const std::set<void*>& destroyed)
   {
@@ -890,13 +908,12 @@ private:
   virtual void  destructors_done(const std::set<void*>& destroyed)
   {
     // Make sure we have the Python global interpreter lock.
-    PyGILState_STATE gstate;
-    gstate = PyGILState_Ensure();
+    AcquireGIL g;
     remove_deleted_objects(destroyed);
-    PyGILState_Release(gstate);
   }
   void remove_deleted_objects(const std::set<void*>& destroyed)
   {
+    AcquireGIL g;
     if (PyDict_Size(object_map) == 0)
       return;
     // TODO: Optimize by looping over object_map if it is smaller than destroyed.
