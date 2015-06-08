@@ -172,6 +172,12 @@ class XSection:
             self.normalize_normals(self.xs_normals2)
             self.extrude = self._extrude_faceted
             self.blend = self._blend_faceted
+        # XXX: create tesselation indices for xsection
+        # We should use something like poly2tri to do it right,
+        # but we assume convexity for now
+        self.tesselation = []
+        for i in range(1, len(self.xs_coords) - 1):
+            self.tesselation.append((0, i, i + 1))
 
     def _generate_normals(self, faceted):
         import numpy
@@ -240,10 +246,7 @@ class XSection:
             # proportion and the difference visually is not great.
             # So we ignore the problem for now.
             color_list.append(sc)
-        va = concatenate(vertex_list)
-        na = concatenate(normal_list)
-        ca = concatenate(color_list)
-        # Generate triangle list
+        # Generate triangle list for sides
         num_pts_per_spline = len(centers)
         triangle_list = []
         front_band = []
@@ -260,6 +263,9 @@ class XSection:
                 # Comment out next statement for "reptile" mode
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
+        va = concatenate(vertex_list)
+        na = concatenate(normal_list)
+        ca = concatenate(color_list)
         ta = array(triangle_list)
         return ExtrudeValue(va, na, ta, ca, front_band, back_band)
 
@@ -313,9 +319,6 @@ class XSection:
             normal_list.append(xn)
             color_list.append(sc)
             color_list.append(sc)
-        va = concatenate(vertex_list)
-        na = concatenate(normal_list)
-        ca = concatenate(color_list)
         # Generate triangle list
         num_pts_per_spline = len(centers)
         triangle_list = []
@@ -335,6 +338,31 @@ class XSection:
                 # Comment out next statement for "reptile" mode
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
+        # Generate caps
+        offset += num_splines * num_pts_per_spline * 2
+        if cap_front:
+            vlist = [vertex_list[i][0] for i in range(0, len(vertex_list), 2)]
+            vertex_list.append(vlist)
+            nlist = [-tangents[0]] * num_splines
+            normal_list.append(nlist)
+            clist = [color] * num_splines
+            color_list.append(clist)
+            for i, j, k in self.tesselation:
+                triangle_list.append((k + offset, j + offset, i + offset))
+            offset += num_splines
+        if cap_back:
+            vlist = [vertex_list[i][-1] for i in range(0, len(vertex_list), 2)]
+            vertex_list.append(vlist)
+            nlist = [tangents[-1]] * num_splines
+            normal_list.append(nlist)
+            clist = [color] * num_splines
+            color_list.append(clist)
+            for i, j, k in self.tesselation:
+                triangle_list.append((i + offset, j + offset, k + offset))
+        # Combine all arrays and return
+        va = concatenate(vertex_list)
+        na = concatenate(normal_list)
+        ca = concatenate(color_list)
         ta = array(triangle_list)
         return ExtrudeValue(va, na, ta, ca, front_band, back_band)
 
