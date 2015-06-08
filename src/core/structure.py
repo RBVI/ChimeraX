@@ -31,15 +31,28 @@ class AtomicStructure(CAtomicStructure, models.Model):
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
         self.pseudobond_radius = 0.05
-        self.ribbon_divisions = 10
         self._atoms_drawing = None
         self._bonds_drawing = None
         self._pseudobond_group_drawings = {}    # Map name to drawing
-        self._ribbon_drawing = None
         self._selected_atoms = None	# Numpy array of bool, size equal number of atoms
         self.triangles_per_sphere = None
         self._atom_bounds = None
         self._atom_bounds_needs_update = True
+
+        self.ribbon_divisions = 10
+        self._ribbon_drawing = None
+        # xsc = [(0.5,-0.1),(-0.5,-0.1),(-0.5,0.1),(0.5,0.1)]
+        # xsc = [( 0.5, 0.1),(0.0, 0.15),(-0.5, 0.1),(-0.6,0.0),
+        #        (-0.5,-0.1),(0.0,-0.15),( 0.5,-0.1),( 0.6,0.0)]
+        from .ribbon import XSection
+        xsc = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
+        self._ribbon_xs_helix = XSection(xsc, faceted=True)
+        self._ribbon_xs_strand = self._ribbon_xs_helix
+        xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
+        xsc_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
+        xsc_tail = xsc_turn
+        self._ribbon_xs_arrow = XSection(xsc_head, xsc_tail, faceted=True)
 
         self.make_drawing()
 
@@ -267,12 +280,6 @@ class AtomicStructure(CAtomicStructure, models.Model):
         from .geometry import place
         from numpy import concatenate, array, uint8
         polymers = self.polymers(False, False)
-        xsc = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
-        # xsc = [(0.5,-0.1),(-0.5,-0.1),(-0.5,0.1),(0.5,0.1)]
-        # xsc = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
-        # xsc = [( 0.5, 0.1),(0.0, 0.15),(-0.5, 0.1),(-0.6,0.0),
-        #        (-0.5,-0.1),(0.0,-0.15),( 0.5,-0.1),( 0.6,0.0)]
-        xs = XSection(xsc, faceted=True)
         if self._ribbon_drawing is None:
             self._ribbon_drawing = p = self.new_drawing('ribbon')
             p.display = True
@@ -292,23 +299,88 @@ class AtomicStructure(CAtomicStructure, models.Model):
             normal_list = []
             color_list = []
             triangle_list = []
-            for seg in range(ribbon.num_segments):
-                show = 0
-                if displays[seg]:
-                    show |= XSection.FRONT
-                if displays[seg + 1]:
-                    show |= XSection.BACK
-                if not show:
+            # Draw first and last residue differently because they
+            # are each only a single half segment, where the middle
+            # residues are each two half segments.
+            if self.ribbon_divisions % 2 == 1:
+                seg_cap = self.ribbon_divisions
+                seg_blend = seg_cap + 1
+            else:
+                seg_blend = self.ribbon_divisions
+                seg_cap = seg_blend + 1
+            is_helix = rlist.is_helix
+            is_sheet = rlist.is_sheet
+            colors = rlist.ribbon_colors
+            # Assign cross sections
+            xss = []
+            was_strand = False
+            for i in range(len(rlist)):
+                if is_sheet[i]:
+                    xss.append(self._ribbon_xs_strand)
+                    was_strand = True
+                else:
+                    if was_strand:
+                        xss[-1] = self._ribbon_xs_arrow
+                    if is_helix[i]:
+                        xss.append(self._ribbon_xs_helix)
+                    else:
+                        xss.append(self._ribbon_xs_turn)
+                    was_strand = False
+            # First residues
+            if displays[0]:
+                capped = displays[0] != displays[1] or xss[0] != xss[1]
+                seg = capped and seg_cap or seg_blend
+                centers, tangents, normals = ribbon.segment(0, ribbon.FRONT, seg)
+                s = xss[0].extrude(centers, tangents, normals, colors[0],
+                                   True, capped, offset)
+                offset += len(s.vertices)
+                vertex_list.append(s.vertices)
+                normal_list.append(s.normals)
+                triangle_list.append(s.triangles)
+                color_list.append(s.colors)
+                prev_band = s.back_band
+            else:
+                capped = True
+                prev_band = None
+            # Middle residues
+            for i in range(1, len(rlist) - 1):
+                if not displays[i]:
                     continue
-                centers, tangents, normals = ribbon.segment(seg, self.ribbon_divisions)
-                colors = [rlist[seg].ribbon_color, rlist[seg + 1].ribbon_color]
-                va, na, ta, ca = xs.extrude(centers, tangents, normals, colors,
-                                            show, XSection.BOTH, offset)
-                offset += len(va)
-                vertex_list.append(va)
-                normal_list.append(na)
-                triangle_list.append(ta)
-                color_list.append(ca)
+                seg = capped and seg_cap or seg_blend
+                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
+                next_cap = displays[i] != displays[i + 1] or xss[i] != xss[i + 1]
+                seg = next_cap and seg_cap or seg_blend
+                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
+                centers = concatenate((front_c, back_c))
+                tangents = concatenate((front_t, back_t))
+                normals = concatenate((front_n, back_n))
+                s = xss[i].extrude(centers, tangents, normals, colors[i],
+                                   capped, next_cap, offset)
+                offset += len(s.vertices)
+                vertex_list.append(s.vertices)
+                normal_list.append(s.normals)
+                triangle_list.append(s.triangles)
+                color_list.append(s.colors)
+                if prev_band:
+                    triangle_list.append(xss[i].blend(prev_band, s.front_band))
+                if next_cap:
+                    prev_band = None
+                else:
+                    prev_band = s.back_band
+                capped = next_cap
+            # Last residue
+            if displays[-1]:
+                seg = capped and seg_cap or seg_blend
+                centers, tangents, normals = ribbon.segment(-1, ribbon.BACK, seg, last=True)
+                s = xss[-1].extrude(centers, tangents, normals, colors[-1],
+                                    capped, True, offset)
+                vertex_list.append(s.vertices)
+                normal_list.append(s.normals)
+                triangle_list.append(s.triangles)
+                color_list.append(s.colors)
+                if prev_band:
+                    triangle_list.append(xss[-1].blend(prev_band, s.front_band))
+            # Create drawing from arrays
             rp = p.new_drawing(rlist.strs[seg])
             rp.display = True
             rp.vertices = concatenate(vertex_list)

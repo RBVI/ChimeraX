@@ -4,6 +4,9 @@ EPSILON = 1e-6
 
 class Ribbon:
 
+    FRONT = 1
+    BACK = 2
+
     def __init__(self, coords, guides):
         if guides is None or len(coords) != len(guides):
             raise ValueError("different number of coordinates and guides")
@@ -100,7 +103,7 @@ class Ribbon:
     def normal(self, n):
         return self.normals[n]
 
-    def segment(self, seg, divisions):
+    def segment(self, seg, side, divisions, last=False):
         xc = self.coefficients[0][seg]
         yc = self.coefficients[1][seg]
         zc = self.coefficients[2][seg]
@@ -124,33 +127,57 @@ class Ribbon:
             tangents.append(normalize(array([x, y, z])))
         coords = array(coords)
         tangents = array(tangents)
-        ns = self.normal(seg)
-        ne = self.normal(seg + 1)
-        normals = constrained_normals(tangents, ns, ne)
-        return coords, tangents, normals
+        ns = self.normals[seg]
+        ne = self.normals[seg + 1]
+        normals, flipped = constrained_normals(tangents, ns, ne)
+        if flipped:
+            self.normals[seg + 1] = -ne
+        if side is self.FRONT:
+            start = 0
+            end = (divisions + 1) // 2
+        else:
+            start = divisions // 2
+            if last:
+                end = divisions
+            else:
+                end = divisions - 1
+        return coords[start:end], tangents[start:end], normals[start:end]
+
+
+from collections import namedtuple
+ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals", "triangles", "colors",
+                                           "front_band", "back_band"])
 
 
 class XSection:
 
-    FRONT = 0x1
-    BACK = 0x2
-    BOTH = FRONT | BACK
-
-    def __init__(self, coords, normals=None, normals2=None, faceted=False):
+    def __init__(self, coords, coords2=None, normals=None, normals2=None, faceted=False):
         import numpy
         self.xs_coords = numpy.array(coords)
+        if coords2 is not None:
+            self.xs_coords2 = numpy.array(coords2)
+        else:
+            self.xs_coords2 = None
         if normals is None:
             self._generate_normals(faceted)
         elif normals2 is None:
             self.xs_normals = numpy.array(normals)
             self.normalize_normals(self.xs_normals)
             self.extrude = self._extrude_smooth
+            self.blend = self._blend_smooth
         else:
             self.xs_normals = numpy.array(normals)
             self.normalize_normals(self.xs_normals)
             self.xs_normals2 = numpy.array(normals2)
             self.normalize_normals(self.xs_normals2)
             self.extrude = self._extrude_faceted
+            self.blend = self._blend_faceted
+        # XXX: create tesselation indices for xsection
+        # We should use something like poly2tri to do it right,
+        # but we assume convexity for now
+        self.tesselation = []
+        for i in range(1, len(self.xs_coords) - 1):
+            self.tesselation.append((0, i, i + 1))
 
     def _generate_normals(self, faceted):
         import numpy
@@ -158,6 +185,7 @@ class XSection:
             self.xs_normals = numpy.array(self.xs_coords)
             self.normalize_normals(self.xs_normals)
             self.extrude = self._extrude_smooth
+            self.blend = self._blend_smooth
         else:
             num_coords = len(self.xs_coords)
             xs_normals = [None] * num_coords
@@ -176,6 +204,7 @@ class XSection:
             self.xs_normals2 = numpy.array(xs_normals2)
             self.normalize_normals(self.xs_normals2)
             self.extrude = self._extrude_faceted
+            self.blend = self._blend_faceted
 
     def normalize_normals(self, v):
         # normalize an array of vectors
@@ -184,19 +213,10 @@ class XSection:
         v[:,0] /= lens
         v[:,1] /= lens
 
-    def _extrude_smooth(self, centers, tangents, normals, colors, show, cap, offset):
+    def _extrude_smooth(self, centers, tangents, normals, color, cap_front, cap_back, offset):
         from numpy import cross, concatenate, array
         import numpy
-        split = len(centers) // 2 + 1
-        if show == self.FRONT:
-            centers = centers[:split]
-            tangents = tangents[:split]
-            normals = normals[:split]
-        elif show == self.BACK:
-            centers = centers[split:]
-            tangents = tangents[split:]
-            normals = normals[split:]
-        sc = array([colors[0]] * split + [colors[1]] * (len(centers) - split))
+        sc = array([color] * len(centers))
         binormals = cross(tangents, normals)
         # Generate spline coordinates
         num_splines = len(self.xs_coords)
@@ -205,21 +225,36 @@ class XSection:
         color_list = []
         for i in range(num_splines):
             # xc, xn = extrusion coordinates and normals
-            n, b = self.xs_coords[i]
+            if self.xs_coords2 is None:
+                n, b = self.xs_coords[i]
+            else:
+                n1, b1 = self.xs_coords[i]
+                n2, b2 = self.xs_coords2[i]
+                steps = len(centers)
+                from numpy import linspace
+                n = linspace(n1, n2, steps)
+                b = linspace(b1, b2, steps)
             xc = centers + normals * n + binormals * b
             vertex_list.append(xc)
             n, b = self.xs_normals[i]
             xn = normals * n + binormals * b
             normal_list.append(xn)
+            # XXX: These normals are not quite right for an arrow because
+            # they should be slanted proportionally to the arrow angle.
+            # However, to compute them correctly , we would need to compute
+            # the path length and width rates in order to get the correct
+            # proportion and the difference visually is not great.
+            # So we ignore the problem for now.
             color_list.append(sc)
-        va = concatenate(vertex_list)
-        na = concatenate(normal_list)
-        ca = concatenate(color_list)
-        # Generate triangle list
+        # Generate triangle list for sides
         num_pts_per_spline = len(centers)
         triangle_list = []
+        front_band = []
+        back_band = []
         for s in range(num_splines):
             i_start = s * num_pts_per_spline + offset
+            front_band.append(i_start)
+            back_band.append(i_start + num_pts_per_spline - 1)
             j = (s + 1) % num_splines
             j_start = j * num_pts_per_spline + offset
             for k in range(num_pts_per_spline - 1):
@@ -228,22 +263,28 @@ class XSection:
                 # Comment out next statement for "reptile" mode
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
+        va = concatenate(vertex_list)
+        na = concatenate(normal_list)
+        ca = concatenate(color_list)
         ta = array(triangle_list)
-        return va, na, ta, ca
+        return ExtrudeValue(va, na, ta, ca, front_band, back_band)
 
-    def _extrude_faceted(self, centers, tangents, normals, colors, show, cap, offset):
+    def _blend_smooth(self, back_band, front_band):
+        size = len(back_band)
+        if len(front_band) != size:
+            raise ValueError("blending non-identical cross sections")
+        triangle_list = []
+        for i in range(size):
+            j = (i + 1) % size
+            triangle_list.append((back_band[i], back_band[j], front_band[i]))
+            triangle_list.append((front_band[i], back_band[j], front_band[j]))
+        from numpy import array
+        return array(triangle_list)
+
+    def _extrude_faceted(self, centers, tangents, normals, color, cap_front, cap_back, offset):
         from numpy import cross, concatenate, array
         import numpy
-        split = len(centers) // 2 + 1
-        if show == self.FRONT:
-            centers = centers[:split]
-            tangents = tangents[:split]
-            normals = normals[:split]
-        elif show == self.BACK:
-            centers = centers[split:]
-            tangents = tangents[split:]
-            normals = normals[split:]
-        sc = array([colors[0]] * split + [colors[1]] * (len(centers) - split))
+        sc = array([color] * len(centers))
         binormals = cross(tangents, normals)
         # Generate spline coordinates
         num_splines = len(self.xs_coords)
@@ -252,7 +293,20 @@ class XSection:
         color_list = []
         for i in range(num_splines):
             # xc, xn = extrusion coordinates and normals
-            n, b = self.xs_coords[i]
+            if self.xs_coords2 is None:
+                n, b = self.xs_coords[i]
+            else:
+                n1, b1 = self.xs_coords[i]
+                n2, b2 = self.xs_coords2[i]
+                steps = len(centers)
+                front = steps // 2
+                from numpy import ones, linspace
+                n = ones(steps, float) * n2
+                b = ones(steps, float) * b2
+                n[:front] = linspace(n1, n2, front)
+                b[:front] = linspace(b1, b2, front)
+                n.shape = (steps, 1)
+                b.shape = (steps, 1)
             xc = centers + normals * n + binormals * b
             # append vertex twice for different normals
             vertex_list.append(xc)
@@ -265,14 +319,17 @@ class XSection:
             normal_list.append(xn)
             color_list.append(sc)
             color_list.append(sc)
-        va = concatenate(vertex_list)
-        na = concatenate(normal_list)
-        ca = concatenate(color_list)
         # Generate triangle list
         num_pts_per_spline = len(centers)
         triangle_list = []
+        front_band = []
+        back_band = []
         for i in range(num_splines):
             i_start = (i * 2) * num_pts_per_spline + offset
+            front_band.append(i_start)
+            front_band.append(i_start + num_pts_per_spline)
+            back_band.append(i_start + num_pts_per_spline - 1)
+            back_band.append(i_start + 2 * num_pts_per_spline - 1)
             j = (i + 1) % num_splines
             j_start = (j * 2 + 1) * num_pts_per_spline + offset
             for k in range(num_pts_per_spline - 1):
@@ -281,8 +338,45 @@ class XSection:
                 # Comment out next statement for "reptile" mode
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
+        # Generate caps
+        offset += num_splines * num_pts_per_spline * 2
+        if cap_front:
+            vlist = [vertex_list[i][0] for i in range(0, len(vertex_list), 2)]
+            vertex_list.append(vlist)
+            nlist = [-tangents[0]] * num_splines
+            normal_list.append(nlist)
+            clist = [color] * num_splines
+            color_list.append(clist)
+            for i, j, k in self.tesselation:
+                triangle_list.append((k + offset, j + offset, i + offset))
+            offset += num_splines
+        if cap_back:
+            vlist = [vertex_list[i][-1] for i in range(0, len(vertex_list), 2)]
+            vertex_list.append(vlist)
+            nlist = [tangents[-1]] * num_splines
+            normal_list.append(nlist)
+            clist = [color] * num_splines
+            color_list.append(clist)
+            for i, j, k in self.tesselation:
+                triangle_list.append((i + offset, j + offset, k + offset))
+        # Combine all arrays and return
+        va = concatenate(vertex_list)
+        na = concatenate(normal_list)
+        ca = concatenate(color_list)
         ta = array(triangle_list)
-        return va, na, ta, ca
+        return ExtrudeValue(va, na, ta, ca, front_band, back_band)
+
+    def _blend_faceted(self, back_band, front_band):
+        size = len(back_band)
+        if len(front_band) != size:
+            raise ValueError("blending non-identical cross sections")
+        triangle_list = []
+        for i in range(0, size, 2):
+            j = (i + 3) % size
+            triangle_list.append((back_band[i], back_band[j], front_band[i]))
+            triangle_list.append((front_band[i], back_band[j], front_band[j]))
+        from numpy import array
+        return array(triangle_list)
 
 
 def normalize(v):
@@ -364,9 +458,11 @@ def constrained_normals(tangents, n_start, n_end):
     n = normals[-1]
     other_end = n_end
     twist = acos(inner(n, n_end))
+    flipped = False
     if twist > pi / 2:
         other_end = -n_end
         twist = acos(inner(n, other_end))
+        flipped = True
     delta = twist / (len(normals) - 1)
     if inner(cross(n, other_end), tangents[-1]) < 0:
         delta = -delta
@@ -374,4 +470,4 @@ def constrained_normals(tangents, n_start, n_end):
         c = cos(i * delta)
         s = sin(i * delta)
         normals[i] = _rotate_around(tangents[i], c, s, normals[i])
-    return normals
+    return normals, flipped
