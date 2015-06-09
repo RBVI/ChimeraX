@@ -41,9 +41,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
         self.ribbon_divisions = 10
         self._ribbon_drawing = None
-        # xsc = [(0.5,-0.1),(-0.5,-0.1),(-0.5,0.1),(0.5,0.1)]
-        # xsc = [( 0.5, 0.1),(0.0, 0.15),(-0.5, 0.1),(-0.6,0.0),
-        #        (-0.5,-0.1),(0.0,-0.15),( 0.5,-0.1),( 0.6,0.0)]
+        # Cross section coordinates are 2D and counterclockwise
         from .ribbon import XSection
         xsc = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
         self._ribbon_xs_helix = XSection(xsc, faceted=True)

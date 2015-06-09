@@ -154,6 +154,7 @@ ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals", "triangles", "
 class XSection:
 
     def __init__(self, coords, coords2=None, normals=None, normals2=None, faceted=False):
+        # XSection coordinates are 2D and counterclockwise
         import numpy
         self.xs_coords = numpy.array(coords)
         if coords2 is not None:
@@ -174,24 +175,34 @@ class XSection:
             self.normalize_normals(self.xs_normals2)
             self.extrude = self._extrude_faceted
             self.blend = self._blend_faceted
-        # XXX: create tesselation indices for xsection
-        # We should use something like poly2tri to do it right,
-        # but we assume convexity for now
-        self.tesselation = []
-        for i in range(1, len(self.xs_coords) - 1):
-            self.tesselation.append((0, i, i + 1))
+        self.tessellation = tessellate(self.xs_coords)
 
     def _generate_normals(self, faceted):
         import numpy
         if not faceted:
-            self.xs_normals = numpy.array(self.xs_coords)
+            num_coords = len(self.xs_coords)
+            self.xs_normals = numpy.zeros((num_coords, 2), float)
+            for i in range(num_coords):
+                ci = self.xs_coords[i]
+                j = (i + 1) % num_coords
+                cj = self.xs_coords[j]
+                k = (i + 2) % num_coords
+                ck = self.xs_coords[k]
+                n = ck - ci
+                if is_concave(ci, cj, ck):
+                    x = -n[1]
+                    y = n[0]
+                else:
+                    x = n[1]
+                    y = -n[0]
+                self.xs_normals[j][:] = (x, y)
             self.normalize_normals(self.xs_normals)
             self.extrude = self._extrude_smooth
             self.blend = self._blend_smooth
         else:
             num_coords = len(self.xs_coords)
-            xs_normals = [None] * num_coords
-            xs_normals2 = [None] * num_coords
+            self.xs_normals = numpy.zeros((num_coords, 2), float)
+            self.xs_normals2 = numpy.zeros((num_coords, 2), float)
             from math import sqrt
             for i in range(num_coords):
                 j = (i + 1) % num_coords
@@ -199,11 +210,9 @@ class XSection:
                 dy = self.xs_coords[j][1] - self.xs_coords[i][1]
                 d = sqrt(dx * dx + dy * dy)
                 n = (dy / d, -dx / d)
-                xs_normals[i] = n
-                xs_normals2[j] = n
-            self.xs_normals = numpy.array(xs_normals)
+                self.xs_normals[i] = n
+                self.xs_normals2[j] = n
             self.normalize_normals(self.xs_normals)
-            self.xs_normals2 = numpy.array(xs_normals2)
             self.normalize_normals(self.xs_normals2)
             self.extrude = self._extrude_faceted
             self.blend = self._blend_faceted
@@ -274,7 +283,7 @@ class XSection:
             normal_list.append(nlist)
             clist = [color] * num_splines
             color_list.append(clist)
-            for i, j, k in self.tesselation:
+            for i, j, k in self.tessellation:
                 triangle_list.append((k + offset, j + offset, i + offset))
             offset += num_splines
         if cap_back:
@@ -284,7 +293,7 @@ class XSection:
             normal_list.append(nlist)
             clist = [color] * num_splines
             color_list.append(clist)
-            for i, j, k in self.tesselation:
+            for i, j, k in self.tessellation:
                 triangle_list.append((i + offset, j + offset, k + offset))
         # Combine arrays and return
         va = concatenate(vertex_list)
@@ -371,7 +380,7 @@ class XSection:
             normal_list.append(nlist)
             clist = [color] * num_splines
             color_list.append(clist)
-            for i, j, k in self.tesselation:
+            for i, j, k in self.tessellation:
                 triangle_list.append((k + offset, j + offset, i + offset))
             offset += num_splines
         if cap_back:
@@ -381,7 +390,7 @@ class XSection:
             normal_list.append(nlist)
             clist = [color] * num_splines
             color_list.append(clist)
-            for i, j, k in self.tesselation:
+            for i, j, k in self.tessellation:
                 triangle_list.append((i + offset, j + offset, k + offset))
         # Combine all arrays and return
         va = concatenate(vertex_list)
@@ -495,3 +504,66 @@ def constrained_normals(tangents, n_start, n_end):
         s = sin(i * delta)
         normals[i] = _rotate_around(tangents[i], c, s, normals[i])
     return normals, flipped
+
+def tessellate(coords):
+    tess = []
+    if False:
+        for i in range(1, len(coords) - 1):
+            tess.append((0, i, i + 1))
+    # "indices" is the array of vertex indices remaining in the tessellation
+    # the vertices are ordered counterclockwise
+    indices = list(range(len(coords)))
+    while len(indices) > 3:
+        num_indices = len(indices)
+        for i in range(num_indices):
+            ni = indices[i]
+            nj = indices[(i + 1) % num_indices]
+            nk = indices[(i + 2) % num_indices]
+            # Consider whether we can form triangle from the
+            # consecutive sequence of 3 vertices
+            ci = coords[ni]
+            cj = coords[nj]
+            ck = coords[nk]
+            # Compute cross product to check whether vertices
+            # result in a triangle on the inside of the polygon
+            if is_concave(ci, cj, ck):
+                continue
+            # Check if any segments intersect ci-ck
+            for m in range(num_indices):
+                # Skip edges from candidate triangle
+                if m >= i and m <= i + 2:
+                    continue
+                cm = coords[indices[m]]
+                cn = coords[indices[(m + 1) % num_indices]]
+                if intersects(ci, ck, cm, cn):
+                    break
+            else:
+                # No intersections, triangle should be okay
+                tess.append((ni, nj, nk))
+                # i and k are still part of polygon to be tessellated, but j is done
+                del indices[(i + 1) % num_indices]
+                break
+        else:
+            raise RuntimeError("cannot tessellate cross section")
+    tess.append((indices[0], indices[1], indices[2]))
+    return tess
+
+def is_concave(c0, c1, c2):
+    u01 = c0 - c1
+    u21 = c2 - c1
+    return (u01[0] * u21[1] - u01[1] * u21[0]) >= 0
+
+def intersects(p0, p1, q0, q1):
+    # From http://geomalgorithms.com/a05-_intersect-1.html
+    from numpy import array
+    u = p1 - p0
+    v = q1 - q0
+    w = p0 - q0
+    #u_p = array([-u[1], u[0])    # u perpendicular
+    #v_p = array([-v[1], v[0])    # v perpendicular
+    #s_i = -(v_p[0] * w[0] + v_p[1] * w[1]) / (v_p[0] * u[0] + v_p[1] * u[1])
+    #t_i = (u_p[0] * w[0] + u_p[1] * w[1]) / (u_p[0] * v[0] + u_p[1] * v[1])
+    det = (-u[1] * v[0] + u[0] * v[1])
+    s_i = (v[0] * w[1] - v[1] * w[0]) / det
+    t_i = (u[0] * w[0] - u[1] * w[0]) / det
+    return s_i > 0 and s_i < 1 and t_i > 0 and t_i < 1
