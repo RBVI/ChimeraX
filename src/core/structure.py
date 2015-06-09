@@ -303,11 +303,11 @@ class AtomicStructure(CAtomicStructure, models.Model):
             # are each only a single half segment, where the middle
             # residues are each two half segments.
             if self.ribbon_divisions % 2 == 1:
-                seg_cap = self.ribbon_divisions
-                seg_blend = seg_cap + 1
-            else:
                 seg_blend = self.ribbon_divisions
                 seg_cap = seg_blend + 1
+            else:
+                seg_cap = self.ribbon_divisions
+                seg_blend = seg_cap + 1
             is_helix = rlist.is_helix
             is_sheet = rlist.is_sheet
             colors = rlist.ribbon_colors
@@ -371,7 +371,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
             # Last residue
             if displays[-1]:
                 seg = capped and seg_cap or seg_blend
-                centers, tangents, normals = ribbon.segment(-1, ribbon.BACK, seg, last=True)
+                centers, tangents, normals = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, last=True)
                 s = xss[-1].extrude(centers, tangents, normals, colors[-1],
                                     capped, True, offset)
                 vertex_list.append(s.vertices)
@@ -386,7 +386,6 @@ class AtomicStructure(CAtomicStructure, models.Model):
             rp.vertices = concatenate(vertex_list)
             rp.normals = concatenate(normal_list)
             rp.triangles = concatenate(triangle_list)
-            #rp.color = array((160,160,160,255), uint8)
             rp.vertex_colors = concatenate(color_list)
 
     def _get_polymer_spline(self, rlist):

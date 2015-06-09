@@ -33,13 +33,14 @@ class Ribbon:
         size = len(coords)
         a = numpy.ones((size,), float)
         b = numpy.ones((size,), float) * 4
-        b[0] = b[-1] = 2
+        #b[0] = b[-1] = 2
+        b[0] = b[-1] = 1
         c = numpy.ones((size,), float)
         d = numpy.zeros((size,), float)
         d[0] = coords[1][n] - coords[0][n]
         for i in range(1, size - 1):
             d[i] = 3 * (coords[i + 1][n] - coords[i - 1][n])
-        d[-1] = coords[-1][n] - coords[-2][n]
+        d[-1] = 3 * (coords[-1][n] - coords[-2][n])
         D = tridiagonal(a, b, c, d)
         coeffs = []
         for i in range(0, size - 1):
@@ -132,15 +133,16 @@ class Ribbon:
         normals, flipped = constrained_normals(tangents, ns, ne)
         if flipped:
             self.normals[seg + 1] = -ne
+        # divisions = number of segments = number of vertices + 1
         if side is self.FRONT:
             start = 0
-            end = (divisions + 1) // 2
+            end = (divisions // 2) + 1
         else:
-            start = divisions // 2
+            start = (divisions + 1) // 2
             if last:
-                end = divisions
+                end = divisions + 1
             else:
-                end = divisions - 1
+                end = divisions
         return coords[start:end], tangents[start:end], normals[start:end]
 
 
@@ -263,6 +265,28 @@ class XSection:
                 # Comment out next statement for "reptile" mode
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
+        # Generate caps
+        offset += num_splines * num_pts_per_spline * 2
+        if cap_front:
+            vlist = [vertex_list[i][0] for i in range(num_splines)]
+            vertex_list.append(vlist)
+            nlist = [-tangents[0]] * num_splines
+            normal_list.append(nlist)
+            clist = [color] * num_splines
+            color_list.append(clist)
+            for i, j, k in self.tesselation:
+                triangle_list.append((k + offset, j + offset, i + offset))
+            offset += num_splines
+        if cap_back:
+            vlist = [vertex_list[i][-1] for i in range(num_splines)]
+            vertex_list.append(vlist)
+            nlist = [tangents[-1]] * num_splines
+            normal_list.append(nlist)
+            clist = [color] * num_splines
+            color_list.append(clist)
+            for i, j, k in self.tesselation:
+                triangle_list.append((i + offset, j + offset, k + offset))
+        # Combine arrays and return
         va = concatenate(vertex_list)
         na = concatenate(normal_list)
         ca = concatenate(color_list)
