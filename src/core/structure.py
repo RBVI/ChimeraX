@@ -935,11 +935,10 @@ def show_atoms(show, atoms, session):
         update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
-# Wrap an AtomBlob and have a molecules attribute.
 #
 from . import cli
 class AtomsArg(cli.Annotation):
-    """Annotation for atoms"""
+    """Parse command atoms specifier"""
     name = "atoms"
 
     @staticmethod
@@ -948,6 +947,20 @@ class AtomsArg(cli.Annotation):
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         atoms = aspec.evaluate(session).atoms
         return atoms, text, rest
+
+# -----------------------------------------------------------------------------
+#
+class AtomicStructuresArg(cli.Annotation):
+    """Parse command atomic structures specifier"""
+    name = "atomic structures"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        return mols, text, rest
 
 # -----------------------------------------------------------------------------
 #
