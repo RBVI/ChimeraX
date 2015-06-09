@@ -275,7 +275,7 @@ class XSection:
                 triangle_list.append((i_start + k + 1, j_start + k,
                                       j_start + k + 1))
         # Generate caps
-        offset += num_splines * num_pts_per_spline * 2
+        offset += num_splines * num_pts_per_spline
         if cap_front:
             vlist = [vertex_list[i][0] for i in range(num_splines)]
             vertex_list.append(vlist)
