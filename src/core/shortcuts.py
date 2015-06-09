@@ -125,6 +125,8 @@ def standard_shortcuts(session):
         ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, atomsarg, mlmenu),
         ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, atomsarg, mlmenu, sep),
 
+        ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
+
 #        ('bu', lambda m,s=s: show_biological_unit(m,s), 'Show biological unit', molcat, molarg, mlmenu),
 #        ('au', lambda m,s=s: show_asymmetric_unit(m,s), 'Show asymmetric unit', molcat, molarg, mlmenu),
 
@@ -922,6 +924,11 @@ def restore_position(session):
     if hasattr(session, '_saved_camera_view'):
         c = session.view.camera
         c.position = session._saved_camera_view
+
+def minimize_crosslinks(atoms, session):
+    mols = [m for m, a in atoms]
+    from .crosslinks import crosslink
+    crosslink(session, minimize = mols, frames = 30)
 
 def shortcut_command(session, shortcut = None):
     ks = session.keyboard_shortcuts
