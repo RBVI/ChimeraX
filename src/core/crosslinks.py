@@ -1,4 +1,4 @@
-def crosslink(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10):
+def crosslink(session, pbgroups = None, color = None, radius = None, minimize = None, iterations = 10, frames = None):
 
     if pbgroups is None:
         from . import pbgroup
@@ -21,34 +21,42 @@ def crosslink(session, pbgroups = None, color = None, radius = None, minimize = 
             pb.radius = radius
 
     if minimize:
-        mols = minimize
-        if len(mols) == 0:
-            from .cli import UserError        
-            raise UserError('No structures specified for minimizing crosslinks.')
-        mol_links, mol_pbonds = links_by_molecule(pbonds, mols)
-        if len(mol_links) == 0:
-            from .cli import UserError        
-            raise UserError('No pseudobonds to minimize for specified molecules.')
-        if len(mols) == 1:
-            iterations = min(1,iterations)
-        from numpy import array, float64
-        from . import align
-        for i in range(iterations):
-            for m in mols:
-                if m in mol_links:
-                    atom_pairs = mol_links[m]
-                    moving = array([a1.scene_coord for a1,a2 in atom_pairs], float64)
-                    fixed = array([a2.scene_coord for a1,a2 in atom_pairs], float64)
-                    tf, rms = align.align_points(moving, fixed)
-                    m.position = tf * m.position
-
-        lengths = [pb.length for pb in mol_pbonds]
-        lengths.sort(reverse = True)
-        lentext = ', '.join('%.1f' % d for d in lengths)
-        session.logger.info('%d crosslinks, lengths: %s' % (len(mol_pbonds), lentext))
+        minimize_link_lengths(minimize, pbonds, iterations, frames, session)
 
     for pbg in pbgroups:
-        pbg.update_graphics()	# TODO: pseudobonds should update automatically
+        pbg.update_graphics()	# TODO: pseudobond graphics should update automatically
+
+def minimize_link_lengths(mols, pbonds, iterations, frames, session):
+    if len(mols) == 0:
+        from .cli import UserError        
+        raise UserError('No structures specified for minimizing crosslinks.')
+    mol_links, mol_pbonds = links_by_molecule(pbonds, mols)
+    if len(mol_links) == 0:
+        from .cli import UserError        
+        raise UserError('No pseudobonds to minimize for specified molecules.')
+    if len(mols) == 1:
+        iterations = min(1,iterations)
+    if not frames is None:
+        pos0 = dict((m,m.position) for m in mols)
+    from numpy import array, float64
+    from . import align
+    for i in range(iterations):
+        for m in mols:
+            if m in mol_links:
+                atom_pairs = mol_links[m]
+                moving = array([a1.scene_coord for a1,a2 in atom_pairs], float64)
+                fixed = array([a2.scene_coord for a1,a2 in atom_pairs], float64)
+                tf, rms = align.align_points(moving, fixed)
+                m.position = tf * m.position
+
+    lengths = [pb.length for pb in mol_pbonds]
+    lengths.sort(reverse = True)
+    lentext = ', '.join('%.1f' % d for d in lengths)
+    session.logger.info('%d crosslinks, lengths: %s' % (len(mol_pbonds), lentext))
+
+    if not frames is None:
+        for m in mols:
+            interpolate_position(m, pos0[m], m.position, frames, session.main_view)
 
 def links_by_molecule(pbonds, mols):
     mol_links = {}
@@ -66,6 +74,37 @@ def links_by_molecule(pbonds, mols):
                 mol_pbonds.add(pb)
     return mol_links, mol_pbonds
 
+class interpolate_position:
+
+    def __init__(self, model, pos0, pos1, frames, view):
+        self.model = model
+        self.pos0 = pos0
+        self.pos1 = pos1
+        self.frames = frames
+        self.frame = 1
+        self.view = view
+
+        b = model.bounds()
+        if b is None:
+            model.position = pos1
+        else:
+            center = 0.5*(b.xyz_min + b.xyz_max)
+            self.c0, self.c1 = pos0*center, pos1*center
+            self.axis, self.angle = (pos1*pos0.inverse()).rotation_axis_and_angle()
+            view.add_new_frame_callback(self.update_position)
+
+    def update_position(self):
+        m = self.model
+        fr = self.frame
+        if fr >= self.frames:
+            m.position = self.pos1
+            self.view.remove_new_frame_callback(self.update_position)
+        else:
+            f = fr / self.frames
+            from .geometry.place import translation, rotation
+            m.position = translation(f*(self.c1-self.c0)) * rotation(self.axis, f*self.angle, self.c0) * self.pos0
+            self.frame += 1
+
 def register_crosslink_command():
     from . import cli
     from .pbgroup import PseudoBondGroupsArg
@@ -76,5 +115,6 @@ def register_crosslink_command():
                                   ('radius', cli.FloatArg),
                                   ('minimize', AtomicStructuresArg),
                                   ('iterations', cli.IntArg),
+                                  ('frames', cli.IntArg),
                               ])
     cli.register('crosslink', desc, crosslink)
