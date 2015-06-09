@@ -77,3 +77,17 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
 
     def reset_state(self):
         pass
+
+def all_pseudobond_groups(models):
+    return [m for m in models.list() if isinstance(m, PseudoBondGroup)]
+
+from .cli import Annotation
+class PseudoBondGroupsArg(Annotation):
+    name = 'pseudobond groups'
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        value, used, rest = AtomSpecArg.parse(text, session)
+        models = value.evaluate(session).models
+        pbgs = [m for m in models if isinstance(m, PseudoBondGroup)]
+        return pbgs, used, rest
