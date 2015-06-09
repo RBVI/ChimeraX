@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
-#include "Element.h"
-#include <basegeom/Point.h>
 #include <basegeom/Coord.h>
+#include <basegeom/Point.h>
 #include <basegeom/Sphere.h>
+#include "Element.h"
 #include "imex.h"
 #include "string_types.h"
 

@@ -1,11 +1,14 @@
 // vi: set expandtab ts=4 sw=4:
+
+#include <algorithm>
+#include <set>
+#include <sstream>
+#include <utility>  // for pair
+
 #include "Atom.h"
 #include "Bond.h"
 #include "Residue.h"
 #include "tmpl/TemplateCache.h"
-#include <utility>  // for pair
-#include <sstream>
-#include <set>
 
 namespace atomstruct {
 
@@ -19,7 +22,7 @@ Residue::Residue(AtomicStructure *as, const std::string &name,
 }
 
 void
-Residue::add_atom(Atom *a)
+Residue::add_atom(Atom* a)
 {
     a->_residue = this;
     _atoms.push_back(a);
@@ -74,6 +77,13 @@ Residue::find_atom(const AtomName& name) const
             return a;
     }
     return nullptr;
+}
+
+void
+Residue::remove_atom(Atom* a)
+{
+    a->_residue = nullptr;
+    _atoms.erase(std::find(_atoms.begin(), _atoms.end(), a));
 }
 
 void
