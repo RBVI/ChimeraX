@@ -101,6 +101,22 @@ class Atoms(PointerArray):
         from numpy import array
         return [(m, self.filter(array(amol)==m)) for m in self.unique_molecules]
 
+    @property
+    def scene_coords(self):
+        n = len(self)
+        from numpy import array, empty, float64
+        xyz = empty((n,3), float64)
+        if n == 0:
+            return xyz
+        mols = self.unique_molecules
+        mtable = array(tuple(m.scene_position.matrix for m in mols), float64)
+        from .molc import pointer
+        f = c_function('atom_scene_coords', args = [ctypes.c_void_p, ctypes.c_int,
+                                                    ctypes.c_void_p, ctypes.c_int,
+                                                    ctypes.c_void_p, ctypes.c_void_p])
+        f(self._c_pointers, n, mols._c_pointers, len(mols), pointer(mtable), pointer(xyz))
+        return xyz
+
     def delete(self):
         '''Delete the C++ Atom objects'''
         mols = self.unique_molecules

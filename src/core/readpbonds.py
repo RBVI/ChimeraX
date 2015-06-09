@@ -1,4 +1,4 @@
-def read_pseudobond_file(session, file, name, radius = 0.1, color = (255,0,255,255), as_ = None):
+def read_pseudobond_file(session, file, name, radius = 0.5, color = (255,255,0,255), as_ = None):
     lines = file.readlines()
     file.close()
 
@@ -10,7 +10,7 @@ def read_pseudobond_file(session, file, name, radius = 0.1, color = (255,0,255,2
         aspec1, aspec2 = line.decode('utf-8').split()[:2]
         a1, used, rest = AtomsArg.parse(aspec1, session)
         a2, used, rest = AtomsArg.parse(aspec2, session)
-        for a, apsec in ((a1,aspec1), (a2,aspec2)):
+        for a, aspec in ((a1,aspec1), (a2,aspec2)):
             if len(a) != 1:
                 raise SyntaxError('Line %d, got %d atoms for spec "%s", require exactly 1'
                                   % (i, len(a), aspec))

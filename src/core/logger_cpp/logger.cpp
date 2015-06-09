@@ -7,6 +7,22 @@
 #include "Python.h"
 #include "logger.h"
 
+namespace {
+
+class AcquireGIL {
+    // RAII for Python GIL
+    PyGILState_STATE gil_state;
+public:
+    AcquireGIL() {
+        gil_state = PyGILState_Ensure();
+    }
+    ~AcquireGIL() {
+        PyGILState_Release(gil_state);
+    }
+};
+
+}
+
 namespace logger {
 
 static std::string
@@ -30,6 +46,8 @@ void  _log(PyObject* logger, std::stringstream& msg, _LogLevel level)
             std::cout << msg.str() << "\n";
     } else {
         // Python logging
+        AcquireGIL gil;   // guarantee that we can call Python functions
+
         const char* method_name;
         if (level == _LogLevel::ERROR)
             method_name = "error";

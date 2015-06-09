@@ -13,22 +13,6 @@ class MarkerMouseMode(MouseMode):
 
         self.center = False             # Place at centroid of surface
 
-        if not hasattr(session, '_marker_mouse_mode'):
-            session._marker_mouse_mode = {'molecule': None,
-                                          'next_marker_num': 1,
-                                          'marker_chain_id': 'M',
-                                          'color': (255,255,0,255),
-                                          'radius': 1.0}
-
-    def marker_molecule(self):
-        ms = self.session._marker_mouse_mode
-        m = ms['molecule']
-        if m is None:
-            from . import structure
-            ms['molecule'] = m = structure.AtomicStructure('markers')
-            self.session.models.add([m])
-        return m
-
     def mouse_down(self, event):
         x,y = event.position()
         s = self.session
@@ -44,23 +28,47 @@ class MarkerMouseMode(MouseMode):
         if c is None:
             log.status('No marker placed')
             return
-        m = self.marker_molecule()
-        a = m.new_atom('', 'H')
-        a.coord = c
-        ms = s._marker_mouse_mode
-        a.radius = ms['radius']
-        a.color = ms['color']
-        r = m.new_residue('marker', ms['marker_chain_id'], ms['next_marker_num'])
-        r.add_atom(a)
-        ms['next_marker_num'] += 1
-        m.new_atoms()
-        log.status('Placed marker')
+        place_marker(session, c)
 
     def mouse_drag(self, event):
         pass
 
     def mouse_up(self, event):
         pass
+
+def marker_settings(session):
+    if not hasattr(session, '_marker_settings'):
+        session._marker_settings = {
+            'molecule': None,
+            'next_marker_num': 1,
+            'marker_chain_id': 'M',
+            'color': (255,255,0,255),
+            'radius': 1.0
+        }
+    s = session._marker_settings
+    return s
+
+def marker_molecule(session):
+    ms = marker_settings(session)
+    m = ms['molecule']
+    if m is None:
+        from . import structure
+        ms['molecule'] = m = structure.AtomicStructure('markers')
+        session.models.add([m])
+    return m
+
+def place_marker(session, center):
+    m = marker_molecule(session)
+    a = m.new_atom('', 'H')
+    a.coord = c
+    ms = marker_settings(session)
+    a.radius = ms['radius']
+    a.color = ms['color']
+    r = m.new_residue('marker', ms['marker_chain_id'], ms['next_marker_num'])
+    r.add_atom(a)
+    ms['next_marker_num'] += 1
+    m.new_atoms()
+    session.logger.status('Placed marker')
 
 class MarkCenterMouseMode(MarkerMouseMode):
     name = 'mark centroid'
@@ -103,3 +111,13 @@ class ConnectMouseMode(MouseMode):
                 m.new_bond(a1,a2)
                 m.update_graphics()
                 s.logger.status('Made connection')
+
+def mark_map_center(volume):
+    for s in volume.surface_drawings:
+        va, ta = d.vertices, d.triangles
+        from . import surface
+        varea = surface.vertex_areas(va, ta)
+        a = varea.sum()
+        c = varea.dot(va)/a
+        place_marker(volume.session, c)
+        

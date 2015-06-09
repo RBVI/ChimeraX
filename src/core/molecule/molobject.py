@@ -61,6 +61,10 @@ class Atom:
         c = f(self._c_pointer, atom._c_pointer)
         return c
 
+    @property
+    def scene_coord(self):
+        return self.molecule.scene_position * self.coord
+
 # -----------------------------------------------------------------------------
 #
 class Bond:
@@ -86,6 +90,13 @@ class PseudoBond:
     display = c_property('pseudobond_display', int32)
     halfbond = c_property('pseudobond_halfbond', npy_bool)
     radius = c_property('pseudobond_radius', float32)
+
+    @property
+    def length(self):
+        a1, a2 = self.atoms
+        v = a1.scene_coord - a2.scene_coord
+        from math import sqrt
+        return sqrt((v*v).sum())
 
 # -----------------------------------------------------------------------------
 #

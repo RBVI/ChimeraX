@@ -292,6 +292,12 @@ def identity():
     '''Return the identity transform.'''
     return Place()
 
+def product(plist):
+    '''Product of a sequence of Place transforms.'''
+    p = plist[0]
+    for p2 in plist[1:]:
+        p = p*p2
+    return p
 
 class Places:
     ''' The Places class represents a list of 0 or more Place objects.
