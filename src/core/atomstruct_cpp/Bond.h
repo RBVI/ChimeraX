@@ -30,6 +30,7 @@ private:
     mutable Rings  _rings;
 
 public:
+    virtual ~Bond() {}
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
     const Atoms&  atoms() const { return end_points(); }

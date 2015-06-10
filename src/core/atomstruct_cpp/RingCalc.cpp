@@ -9,6 +9,7 @@
 #define SET set
 
 #include "AtomicStructure.h"
+#include "Bond.h"
 
 namespace atomstruct {
 

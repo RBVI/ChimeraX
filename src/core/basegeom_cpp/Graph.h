@@ -2,8 +2,8 @@
 #ifndef basegeom_Graph
 #define basegeom_Graph
 
+#include <set>
 #include <vector>
-#include <algorithm>
 
 #include "destruct.h"
 
@@ -25,6 +25,10 @@ protected:
     void  add_vertex(Vertex *v) { _vertices.emplace_back(v); }
     void  delete_edge(Edge *e);
     void  delete_vertex(Vertex *v);
+    void  delete_vertices(const Vertices& vs) {
+        delete_vertices(std::set<Vertex*>(vs.begin(), vs.end()));
+    }
+    void  delete_vertices(const std::set<Vertex*>& vs);
     const Edges &  edges() const { return _edges; }
     const Vertices &  vertices() const { return _vertices; }
 
@@ -49,28 +53,6 @@ public:
     bool  display() const { return _display; }
     void  set_display(bool d) { _display = d; }
 };
-
-template <class Vertex, class Edge>
-void
-Graph<Vertex, Edge>::delete_edge(Edge *e)
-{
-    typename Edges::iterator i = std::find_if(_edges.begin(), _edges.end(),
-        [&e](Edge* ue) { return ue == e; });
-    if (i == _edges.end())
-        throw std::invalid_argument("delete_edge called for Edge not in Graph");
-    _edges.erase(i);
-}
-
-template <class Vertex, class Edge>
-void
-Graph<Vertex, Edge>::delete_vertex(Vertex *v)
-{
-    typename Vertices::iterator i = std::find_if(_vertices.begin(), _vertices.end(),
-        [&v](Vertex* uv) { return uv == v; });
-    if (i == _vertices.end())
-        throw std::invalid_argument("delete_vertex called for Vertex not in Graph");
-    _vertices.erase(i);
-}
 
 } //  namespace basegeom
 

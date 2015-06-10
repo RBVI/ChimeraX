@@ -26,7 +26,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
 private:
     Residue(AtomicStructure *as, const std::string &name, const std::string &chain, int pos, char insert);
-    virtual  ~Residue() { basegeom::DestructionUser(this); }
+    virtual  ~Residue() {}
     char  _alt_loc;
     Atoms  _atoms;
     std::string  _chain_id;
@@ -41,7 +41,7 @@ private:
     Rgba  _ribbon_rgba;
     AtomicStructure *  _structure;
 public:
-    void  add_atom(Atom *);
+    void  add_atom(Atom*);
     const Atoms &  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res,
@@ -54,6 +54,7 @@ public:
     bool  is_het() const { return _is_het; }
     bool  is_sheet() const { return _is_sheet; }
     int   ss_id() const { return _ss_id; }
+    void  remove_atom(Atom*);
     bool  ribbon_display() const { return _ribbon_display; }
     const Rgba& ribbon_color() const { return _ribbon_rgba; }
     const std::string &  name() const { return _name; }
