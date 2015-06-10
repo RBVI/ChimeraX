@@ -41,18 +41,18 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
         self.ribbon_divisions = 10
         self._ribbon_drawing = None
-        # xsc = [(0.5,-0.1),(-0.5,-0.1),(-0.5,0.1),(0.5,0.1)]
-        # xsc = [( 0.5, 0.1),(0.0, 0.15),(-0.5, 0.1),(-0.6,0.0),
-        #        (-0.5,-0.1),(0.0,-0.15),( 0.5,-0.1),( 0.6,0.0)]
+        # Cross section coordinates are 2D and counterclockwise
         from .ribbon import XSection
-        xsc = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
-        self._ribbon_xs_helix = XSection(xsc, faceted=True)
-        self._ribbon_xs_strand = self._ribbon_xs_helix
+        xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
+                     (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]
+        xsc_strand = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
         xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        xsc_arrow_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
+        xsc_arrow_tail = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
+        self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
-        xsc_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
-        xsc_tail = xsc_turn
-        self._ribbon_xs_arrow = XSection(xsc_head, xsc_tail, faceted=True)
+        self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
 
         self.make_drawing()
 
@@ -934,11 +934,10 @@ def show_atoms(show, atoms, session):
         update_model_graphics(asr.models)
 
 # -----------------------------------------------------------------------------
-# Wrap an AtomBlob and have a molecules attribute.
 #
 from . import cli
 class AtomsArg(cli.Annotation):
-    """Annotation for atoms"""
+    """Parse command atoms specifier"""
     name = "atoms"
 
     @staticmethod
@@ -947,6 +946,20 @@ class AtomsArg(cli.Annotation):
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         atoms = aspec.evaluate(session).atoms
         return atoms, text, rest
+
+# -----------------------------------------------------------------------------
+#
+class AtomicStructuresArg(cli.Annotation):
+    """Parse command atomic structures specifier"""
+    name = "atomic structures"
+
+    @staticmethod
+    def parse(text, session):
+        from . import atomspec
+        aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        return mols, text, rest
 
 # -----------------------------------------------------------------------------
 #

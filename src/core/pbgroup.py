@@ -3,13 +3,23 @@ from .models import Model
 class PseudoBondGroup(CPseudoBondGroup, Model):
     """Pseudobond group model"""
 
-    def __init__(self, name):
+    def __init__(self, name, view):
 
         CPseudoBondGroup.__init__(self, name)
         Model.__init__(self, name)
         self._pbond_drawing = None
 
         self.update_graphics()
+
+        self._view = view
+        view.add_shape_changed_callback(self.update_graphics)
+
+    def delete(self):
+        self._view.remove_shape_changed_callback(self.update_graphics)
+        self._view = None
+        Model.delete(self)
+        self._pbond_drawing = None
+        CPseudoBondGroup.delete(self)
 
     def update_graphics(self):
 
@@ -67,3 +77,17 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
 
     def reset_state(self):
         pass
+
+def all_pseudobond_groups(models):
+    return [m for m in models.list() if isinstance(m, PseudoBondGroup)]
+
+from .cli import Annotation
+class PseudoBondGroupsArg(Annotation):
+    name = 'pseudobond groups'
+    @staticmethod
+    def parse(text, session):
+        from .atomspec import AtomSpecArg
+        value, used, rest = AtomSpecArg.parse(text, session)
+        models = value.evaluate(session).models
+        pbgs = [m for m in models if isinstance(m, PseudoBondGroup)]
+        return pbgs, used, rest

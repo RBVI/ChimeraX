@@ -73,6 +73,12 @@ class PointerArray:
         import numpy
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
+def concatenate(pointer_arrays):
+    ac = pointer_arrays[0]
+    for a in pointer_arrays[1:]:
+        ac.merge(a)
+    return ac
+
 # -----------------------------------------------------------------------------
 #
 class Atoms(PointerArray):
