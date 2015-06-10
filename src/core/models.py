@@ -193,8 +193,12 @@ class Models(State):
             counter = count(1)
         m_all = list(models)
         for model in models:
-            m_id = (next(counter), )  # model id's are tuples
-            model.id = base_id + m_id
+            if model.id is None:
+                while True:
+                    id = base_id + (next(counter), )  # model id's are tuples
+                    if not id in self._models:
+                        break
+                model.id = id
             self._models[model.id] = model
             children = [c for c in model.child_drawings() if isinstance(c, Model)]
             if children:
