@@ -43,14 +43,16 @@ class AtomicStructure(CAtomicStructure, models.Model):
         self._ribbon_drawing = None
         # Cross section coordinates are 2D and counterclockwise
         from .ribbon import XSection
-        xsc = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
-        self._ribbon_xs_helix = XSection(xsc, faceted=True)
-        self._ribbon_xs_strand = self._ribbon_xs_helix
+        xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
+                     (-0.5,-0.1),(0.0,-0.2),( 0.5,-0.1),( 0.6,0.0)]
+        xsc_strand = [(0.5,0.1),(-0.5,0.1),(-0.5,-0.1),(0.5,-0.1)]
         xsc_turn = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        xsc_arrow_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
+        xsc_arrow_tail = [(0.1,0.1),(-0.1,0.1),(-0.1,-0.1),(0.1,-0.1)]
+        self._ribbon_xs_helix = XSection(xsc_helix, faceted=False)
+        self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
-        xsc_head = [(1.0,0.1),(-1.0,0.1),(-1.0,-0.1),(1.0,-0.1)]
-        xsc_tail = xsc_turn
-        self._ribbon_xs_arrow = XSection(xsc_head, xsc_tail, faceted=True)
+        self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
 
         self.make_drawing()
 
