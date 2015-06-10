@@ -78,6 +78,10 @@ class Bond:
     halfbond = c_property('bond_halfbond', npy_bool)
     radius = c_property('bond_radius', float32)
 
+    def other_atom(self, atom):
+        a1,a2 = self.atoms
+        return a2 if atom is a1 else a1
+
 # -----------------------------------------------------------------------------
 #
 class PseudoBond:
@@ -212,6 +216,13 @@ class CAtomicStructure:
         resarrays = f(self._c_pointer, consider_missing_structure, consider_chains_ids)
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
+
+    def pseudobond_group(self, name):
+        f = c_function('molecule_pseudobond_group',
+                       args = (ctypes.c_void_p, ctypes.c_char_p),
+                       ret = ctypes.c_void_p)
+        pbg = f(self._c_pointer, name.encode('utf-8'))
+        return object_map(pbg, CPseudoBondGroup)
 
 # -----------------------------------------------------------------------------
 #
