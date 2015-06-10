@@ -1,4 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
+#ifndef basegeom_Graph_tcc
+#define basegeom_Graph_tcc
 
 #include <algorithm>
 #include <set>
@@ -74,3 +76,5 @@ Graph<Vertex, Edge>::delete_vertices(const std::set<Vertex*>& vertices)
 }
 
 } //  namespace basegeom
+
+#endif  // basegeom_Graph_tcc

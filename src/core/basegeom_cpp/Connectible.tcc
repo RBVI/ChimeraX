@@ -1,4 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
+#ifndef basegeom_Connectible_tcc
+#define basegeom_Connectible_tcc
 
 #include <algorithm>
 
@@ -27,3 +29,5 @@ Connectible<FinalConnection, FinalConnectible>::remove_connection(
 }
 
 } //  namespace basegeom
+
+#endif  // basegeom_Connectible_tcc
