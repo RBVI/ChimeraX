@@ -760,6 +760,13 @@ extern "C" void molecule_pbg_map(void *mols, int n, void **pbgs)
     }
 }
 
+extern "C" Proxy_PBGroup *molecule_pseudobond_group(void *mol, const char *name)
+{
+  AtomicStructure *m = static_cast<AtomicStructure *>(mol);
+  Proxy_PBGroup *pbg = m->pb_mgr().get_group(name, AS_PBManager::GRP_NORMAL);
+  return pbg;
+}
+
 extern "C" PyObject *molecule_polymers(void *mol, int consider_missing_structure, int consider_chains_ids)
 {
   // To use Python in this function which is called by ctypes,
