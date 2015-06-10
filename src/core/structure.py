@@ -152,6 +152,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
     def new_atoms(self):
         self._atoms = None
+        self._atom_bounds_needs_update = True
+        self.redraw_needed(shape_changed = True)
         self.update_graphics()
 
     def update_graphics(self):
@@ -163,7 +165,6 @@ class AtomicStructure(CAtomicStructure, models.Model):
         for name, pb in pbg.items():
             self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
         self.update_ribbon_graphics()
-        self._atom_bounds_needs_update = False
 
     def update_atom_graphics(self, coords, radii, colors, display):
         p = self._atoms_drawing
@@ -930,6 +931,11 @@ def show_atoms(show, atoms, session):
         asr = atoms.evaluate(session)
         asr.atoms.displays = show
         update_model_graphics(asr.models)
+
+# -----------------------------------------------------------------------------
+#
+def all_atomic_structures(session):
+    return [m for m in session.models.list() if isinstance(c, AtomicStructure)]
 
 # -----------------------------------------------------------------------------
 #
