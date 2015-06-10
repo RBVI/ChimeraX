@@ -15,6 +15,7 @@
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
 #include <basegeom/destruct.h>
+#include <basegeom/Graph.tcc>
 #include <logger/logger.h>
 #include "pythonarray.h"	// Use python_voidp_array()
 

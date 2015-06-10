@@ -4,6 +4,7 @@
 #include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
 
 #include "atomstruct/Atom.h"
+#include "atomstruct/Bond.h"
 #include "atomstruct/Chain.h"
 #include "atomstruct/Pseudobond.h"
 #include "atomstruct/Residue.h"

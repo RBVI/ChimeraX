@@ -925,4 +925,13 @@ Atom::set_serial_number(int sn)
     }
 }
 
+std::string
+Atom::str() const
+{
+    std::string ret = residue()->str();
+    ret += " @";
+    ret += name();
+    return ret;
+}
+
 }  // namespace atomstruct

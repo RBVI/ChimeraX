@@ -1,6 +1,8 @@
 // vi: set expandtab ts=4 sw=4:
 #include "Atom.h"
 #include "AtomicStructure.h"
+#include <basegeom/destruct.h>
+#include <basegeom/Graph.tcc>
 #include "Bond.h"
 #include "CoordSet.h"
 #include <logger/logger.h>
@@ -9,7 +11,7 @@
 #include "Pseudobond.h"
 #include "seq_assoc.h"
 
-#include <algorithm>  // for std::find, std::sort
+#include <algorithm>  // for std::find, std::sort, std::remove_if
 #include <map>
 #include <stdexcept>
 #include <set>
@@ -155,6 +157,96 @@ AtomicStructure::best_alt_locs() const
     }
 
     return best_locs;
+}
+
+void
+AtomicStructure::delete_atom(Atom* a)
+{
+    if (a->structure() != this) {
+        logger::error(_logger, "Atom ", a->residue()->str(), " ", a->name(),
+            " does not belong to the structure that it's being deleted from.");
+        return;
+    }
+    if (atoms().size() == 1) {
+        delete this;
+        return;
+    }
+    auto r = a->residue();
+    if (r->atoms().size() == 1) {
+        _delete_residue(r, std::find(_residues.begin(), _residues.end(), r));
+        return;
+    }
+    _delete_atom(a);
+}
+
+void
+AtomicStructure::delete_atoms(std::vector<Atom*> del_atoms)
+{
+    auto du = basegeom::DestructionBatcher(this);
+
+    // construct set first to ensure uniqueness before tests...
+    auto del_atoms_set = std::set<Atom*>(del_atoms.begin(), del_atoms.end());
+    if (del_atoms_set.size() == atoms().size()) {
+        delete this;
+        return;
+    }
+    std::map<Residue*, std::vector<Atom*>> res_del_atoms;
+    for (auto a: del_atoms_set) {
+        res_del_atoms[a->residue()].push_back(a);
+    }
+    std::set<Residue*> res_removals;
+    for (auto& r_atoms: res_del_atoms) {
+        auto r = r_atoms.first;
+        auto& dels = r_atoms.second;
+        if (dels.size() == r->atoms().size()) {
+            res_removals.insert(r);
+        } else {
+            for (auto a: dels)
+                r->remove_atom(a);
+        }
+    }
+    if (res_removals.size() > 0) {
+        // remove_if apparently doesn't guarantee that the _back_ of
+        // the vector is all the removed items -- there could be second
+        // copies of the retained values in there, so do the delete as
+        // part of the lambda rather than in a separate pass through
+        // the end of the vector
+        auto new_end = std::remove_if(_residues.begin(), _residues.end(),
+            [&res_removals](Residue* r) {
+                bool rm = res_removals.find(r) != res_removals.end();
+                if (rm) delete r; return rm;
+            });
+        _residues.erase(new_end, _residues.end());
+    }
+    delete_vertices(std::set<Atom*>(del_atoms.begin(), del_atoms.end()));
+}
+
+void
+AtomicStructure::_delete_residue(Residue* r,
+    const AtomicStructure::Residues::iterator& ri)
+{
+    auto db = basegeom::DestructionBatcher(r);
+    for (auto a: r->atoms()) {
+        _delete_atom(a);
+    }
+    _residues.erase(ri);
+    delete r;
+}
+
+void
+AtomicStructure::delete_residue(Residue* r)
+{
+    auto ri = std::find(_residues.begin(), _residues.end(), r);
+    if (ri == _residues.end()) {
+        logger::error(_logger, "Residue ", r->str(),
+            " does not belong to the structure that it's being deleted from.");
+        return;
+    }
+    if (residues().size() == 1) {
+        delete this;
+        return;
+    }
+    _delete_residue(r, ri);
 }
 
 CoordSet *
@@ -360,7 +452,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     // so make an index map
     int i = 0;
     std::map<const Residue*, int> res_lookup;
-    for (auto& r: _residues) {
+    for (auto r: _residues) {
         res_lookup[r] = i++;
     }
 
@@ -368,7 +460,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     // keyed on residue with value of whether that residue
     // is connected to the next one
     std::map<Residue*, bool> connected;
-    for (auto& b: bonds()) {
+    for (auto b: bonds()) {
         Atom* start = b->polymeric_start_atom();
         if (start != nullptr) {
             Residue* sr = start->residue();
