@@ -350,6 +350,8 @@ def register(session):
     shortcuts.register_shortcut_command()
     from . import crosslinks
     crosslinks.register_crosslink_command()
+    from . import split
+    split.register_split_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
