@@ -179,11 +179,9 @@ AtomicStructure::delete_atom(Atom* a)
     _delete_atom(a);
 }
 
-#include <iostream>
 void
 AtomicStructure::delete_atoms(std::vector<Atom*> del_atoms)
 {
-std::cerr << "Start delete_atoms\n";
     auto du = basegeom::DestructionBatcher(this);
 
     // construct set first to ensure uniqueness before tests...
@@ -194,7 +192,6 @@ std::cerr << "Start delete_atoms\n";
     }
     std::map<Residue*, std::vector<Atom*>> res_del_atoms;
     for (auto a: del_atoms_set) {
-std::cerr << "\tclean up residues\n";
         res_del_atoms[a->residue()].push_back(a);
     }
     std::set<Residue*> res_removals;
@@ -208,19 +205,20 @@ std::cerr << "\tclean up residues\n";
                 r->remove_atom(a);
         }
     }
-std::cerr << "\tremove residues\n";
     if (res_removals.size() > 0) {
+        // remove_if apparently doesn't guarantee that the _back_ of
+        // the vector is all the removed items -- there could be second
+        // copies of the retained values in there, so do the delete as
+        // part of the lambda rather than in a separate pass through
+        // the end of the vector
         auto new_end = std::remove_if(_residues.begin(), _residues.end(),
             [&res_removals](Residue* r) {
-                return res_removals.find(r) != res_removals.end();
+                bool rm = res_removals.find(r) != res_removals.end();
+                if (rm) delete r; return rm;
             });
-        for (auto ri = new_end; ri != _residues.end(); ++ri)
-            delete *ri;
         _residues.erase(new_end, _residues.end());
     }
-std::cerr << "\tcall delete_vertices\n";
     delete_vertices(std::set<Atom*>(del_atoms.begin(), del_atoms.end()));
-std::cerr << "Finishing delete_atoms\n";
 }
 
 void
@@ -454,7 +452,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     // so make an index map
     int i = 0;
     std::map<const Residue*, int> res_lookup;
-    for (auto& r: _residues) {
+    for (auto r: _residues) {
         res_lookup[r] = i++;
     }
 
@@ -462,7 +460,7 @@ AtomicStructure::polymers(bool consider_missing_structure,
     // keyed on residue with value of whether that residue
     // is connected to the next one
     std::map<Residue*, bool> connected;
-    for (auto& b: bonds()) {
+    for (auto b: bonds()) {
         Atom* start = b->polymeric_start_atom();
         if (start != nullptr) {
             Residue* sr = start->residue();

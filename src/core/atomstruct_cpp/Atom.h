@@ -113,6 +113,7 @@ public:
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
+    std::string  str() const;
     AtomicStructure *  structure() const { return _structure; }
 };
 
