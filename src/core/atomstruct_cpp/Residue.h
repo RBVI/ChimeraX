@@ -26,7 +26,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
 private:
     Residue(AtomicStructure *as, const std::string &name, const std::string &chain, int pos, char insert);
-    virtual  ~Residue() { auto du = DestructionUser(this); }
+    virtual  ~Residue() { auto du = basegeom::DestructionUser(this); }
     char  _alt_loc;
     Atoms  _atoms;
     std::string  _chain_id;
