@@ -12,7 +12,6 @@ atomstruct::PBManager Global_Manager<atomstruct::PBGroup>::_manager = Global_Man
 
 }  // namespace pseudobond
 
-#include <iostream>
 namespace atomstruct {
 
 void
