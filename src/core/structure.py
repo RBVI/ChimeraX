@@ -443,8 +443,11 @@ class AtomicStructure(CAtomicStructure, models.Model):
         if p is None:
             return None
         xyzr = p.positions.shift_and_scale_array()
-        xyz = xyzr[:,:3]
-        r = xyzr[:,3]
+        dp = p.display_positions
+        if dp is None:
+            xyz, r = xyzr[:,:3], xyzr[:,3]
+        else:
+            xyz, r = xyzr[dp,:3], xyzr[dp,3]
 
         f = fa = None
         from . import graphics
@@ -459,6 +462,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
         if fa is None:
             s = None
         else:
+            if not dp is None:
+                fa = dp.nonzero()[0][fa]        # Remap index to include undisplayed positions
             s = PickedAtom(self, fa, f)
 
         return s
