@@ -1,5 +1,5 @@
-from numpy import uint8, int32, float64, float32, bool as npy_bool
-from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function
+from numpy import uint8, int32, float64, float32, bool as npy_bool, integer, empty
+from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer
 from . import molobject
 
 def _atoms(a):
@@ -49,10 +49,14 @@ class PointerArray:
             self._object_list = [object_map(p,c) for p in self._pointers]
         return iter(self._object_list)
     def __getitem__(self, i):
-        if not isinstance(i,int):
+        if not isinstance(i,(int,integer)):
             raise IndexError('Only integer indices allowed for Atoms, got %s' % str(type(i)))
         from .molobject import object_map
         return object_map(self._pointers[i], self._object_class)
+    def index(self, object):
+        f = c_function('pointer_index', args = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p], ret = ctypes.c_int)
+        i = f(self._c_pointers, len(self), object._c_pointer)
+        return i
 
     def __or__(self, objects):
         return self.merge(objects)
@@ -66,6 +70,12 @@ class PointerArray:
         return self._objects_class(numpy.intersect1d(self._pointers, objects._pointers))
     def filter(self, mask):
         return self._objects_class(self._pointers[mask])
+    def mask(self, atoms):
+        f = c_function('pointer_mask', args = [ctypes.c_void_p, ctypes.c_int,
+                                               ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p])
+        mask = empty((len(self),), npy_bool)
+        f(self._c_pointers, len(self), atoms._c_pointers, len(atoms), pointer(mask))
+        return mask
     def merge(self, objects):
         import numpy
         return self._objects_class(numpy.union1d(self._pointers, objects._pointers))

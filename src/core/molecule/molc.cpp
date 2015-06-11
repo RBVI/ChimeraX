@@ -14,6 +14,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <set>
 
 namespace {
 
@@ -944,3 +945,22 @@ extern "C" void delete_object_map_deletion_handler(void *handler)
   delete static_cast<Object_Map_Deletion_Handler *>(handler);
 }
 
+extern "C" int pointer_index(void *pointer_array, int n, void *pointer)
+{
+  void **pa = static_cast<void **>(pointer_array);
+  for (int i = 0 ; i < n ; ++i)
+    if (pa[i] == pointer)
+      return i;
+  return -1;
+}
+
+extern "C" void pointer_mask(void *pointer_array, int n, void *pointer_array2, int n2, unsigned char *mask)
+{
+  void **pa = static_cast<void **>(pointer_array);
+  void **pa2 = static_cast<void **>(pointer_array2);
+  std::set<void *> s;
+  for (int i = 0 ; i < n2 ; ++i)
+    s.insert(pa2[i]);
+  for (int i = 0 ; i < n ; ++i)
+    mask[i] = (s.find(pa[i]) == s.end() ? 0 : 1);
+}
