@@ -464,7 +464,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
         else:
             if not dp is None:
                 fa = dp.nonzero()[0][fa]        # Remap index to include undisplayed positions
-            s = PickedAtom(self, fa, f)
+            atom = self.atoms[fa]
+            s = PickedAtom(atom, f)
 
         return s
 
@@ -495,20 +496,24 @@ class AtomicStructure(CAtomicStructure, models.Model):
             return None
         return rd.bounds()
 
-    def atom_index_description(self, a):
-        atoms = self.atoms
-        r = atoms.residues
-        id = '.'.join(str(i) for i in self.id)
-        d = '%s %s.%s %s %d %s' % (self.name, id, r.chain_ids[a], r.names[a], r.numbers[a], atoms.names[a])
-        return d
-
-    def select_atom(self, a, toggle = False):
+    def select_atom(self, atom, toggle = False):
         asel = self._selected_atoms
         if asel is None:
             na = self.num_atoms
             from numpy import zeros, bool
             asel = self._selected_atoms = zeros(na, bool)
-        asel[a] = (not asel[a]) if toggle else True
+        i = self.atoms.index(atom)
+        asel[i] = (not asel[i]) if toggle else True
+        self._selection_changed()
+
+    def select_atoms(self, atoms, toggle = False):
+        asel = self._selected_atoms
+        if asel is None:
+            na = self.num_atoms
+            from numpy import zeros, bool
+            asel = self._selected_atoms = zeros(na, bool)
+        m = self.atoms.mask(atoms)
+        asel[m] = (not asel[m]) if toggle else True
         self._selection_changed()
 
     def selected_items(self, itype):
@@ -589,20 +594,24 @@ def selected_atoms(session):
 #
 from .graphics import Pick
 class PickedAtom(Pick):
-  def __init__(self, mol, a, distance):
-    Pick.__init__(self, distance)
-    self.molecule = mol
-    self.atom = a
-  def description(self):
-    m, a = self.molecule, self.atom
-    if a is None:
-      return m.name
-    return m.atom_index_description(a)
-  def drawing(self):
-    return self.molecule
-  def select(self, toggle = False):
-    m = self.molecule
-    m.select_atom(self.atom, toggle)
+    def __init__(self, atom, distance):
+        Pick.__init__(self, distance)
+        self.atom = atom
+    def description(self):
+        return atom_description(self.atom)
+    def drawing(self):
+        return self.atom.molecule
+    def select(self, toggle = False):
+        a = self.atom
+        a.molecule.select_atom(a, toggle)
+
+# -----------------------------------------------------------------------------
+#
+def atom_description(atom):
+    m = atom.molecule
+    r = atom.residue
+    d = '%s #%s.%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
+    return d
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
