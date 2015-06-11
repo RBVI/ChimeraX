@@ -5,7 +5,7 @@ class PseudoBondGroup(CPseudoBondGroup, Model):
 
     def __init__(self, name, view):
 
-        CPseudoBondGroup.__init__(self, name)
+        CPseudoBondGroup.__init__(self, name = name)
         Model.__init__(self, name)
         self._pbond_drawing = None
 

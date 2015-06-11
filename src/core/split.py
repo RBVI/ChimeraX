@@ -213,16 +213,19 @@ def molecule_from_atoms(m, atoms, name = None):
         cb.halfbond = b.halfbond
 
     for name, pbg in m.pbg_map.items():
-        apairs = []
-        for pb in pbg.pseudoBonds:
+        cpbgs = {}
+        for pb in pbg.pseudobonds:
             a1, a2 = pb.atoms
             if a1 not in amap or a2 not in amap:
                 continue
-            apairs.append((amap[a1], amap[a2]))
-        if apairs:
-            cpbg = cm.pseudobond_group(name)
-            for a1, a2 in apairs:
-                cpbg.new_pseudobond(a1,a2)
+            cpbg = cpbgs.get(name)
+            if cpbg is None:
+                cpbgs[name] = cpbg = cm.pseudobond_group(name)
+            cpb = cpbg.new_pseudobond(amap[a1],amap[a2])
+            cpb.display = pb.display
+            cpb.color = pb.color
+            cpb.radius = pb.radius
+            cpb.halfbond = pb.halfbond
 
     cm.new_atoms()
 

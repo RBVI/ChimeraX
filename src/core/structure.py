@@ -112,7 +112,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
         b = self.bonds
         b.radii = self.bond_radius
         pb_colors = {'metal coordination bonds':(147,112,219,255)}
-        for name, pb in self.pseudobond_groups.items():
+        for name, pbg in self.pseudobond_groups.items():
+            pb = pbg.pseudobonds
             pb.radii = self.pseudobond_radius
             pb.halfbonds = False
             pb.colors = pb_colors.get(name, (255,255,0,255))
@@ -127,12 +128,13 @@ class AtomicStructure(CAtomicStructure, models.Model):
         colors = a.colors
         display = a.displays
         b = self.bonds
-        pbg = self.pseudobond_groups
+        pbgs = self.pseudobond_groups
 
         # Create graphics
         self.create_atom_spheres(coords, radii, colors, display)
         self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
-        for name, pb in pbg.items():
+        for name, pbg in pbgs.items():
+            pb = pbg.pseudobonds
             self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
         self.update_ribbon_graphics()
 
@@ -163,8 +165,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
         b = self.bonds
         self.update_atom_graphics(a.coords, self.atom_display_radii(), a.colors, a.displays)
         self.update_bond_graphics(b.atoms, a.draw_modes, b.radii, b.colors, b.halfbonds)
-        pbg = self.pseudobond_groups
-        for name, pb in pbg.items():
+        pbgs = self.pseudobond_groups
+        for name, pbg in pbgs.items():
+            pb = pbg.pseudobonds
             self.update_pseudobond_graphics(name, pb.atoms, pb.radii, pb.colors, pb.halfbonds)
         self.update_ribbon_graphics()
 

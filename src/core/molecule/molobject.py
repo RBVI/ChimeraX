@@ -29,7 +29,7 @@ def _atomic_structure(p):
     return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
     from .molarray import PseudoBonds
-    pbg_map = dict((name, PseudoBonds(pbg)) for name, pbg in pbgc_map.items())
+    pbg_map = dict((name, object_map(pbg,CPseudoBondGroup)) for name, pbg in pbgc_map.items())
     return pbg_map
 
 # -----------------------------------------------------------------------------
@@ -106,11 +106,14 @@ class PseudoBond:
 #
 class CPseudoBondGroup:
 
-    def __init__(self, name):
-        f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
-        pbg_pointer = f(name.encode('utf-8'))
-        set_c_pointer(self, pbg_pointer)
-        add_to_object_map(self)
+    def __init__(self, pbg_pointer = None, name = None):
+        if pbg_pointer is None:
+            f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
+            pbg_pointer = f(name.encode('utf-8'))
+            set_c_pointer(self, pbg_pointer)
+            add_to_object_map(self)
+        else:
+            set_c_pointer(self, pbg_pointer)
 
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', int32, read_only = True)
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
