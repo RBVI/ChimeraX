@@ -29,7 +29,7 @@ def _atomic_structure(p):
     return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
     from .molarray import PseudoBonds
-    pbg_map = dict((name, object_map(pbg,CPseudoBondGroup)) for name, pbg in pbgc_map.items())
+    pbg_map = dict((name, object_map(pbg,ASPseudoBondGroup)) for name, pbg in pbgc_map.items())
     return pbg_map
 
 # -----------------------------------------------------------------------------
@@ -104,7 +104,27 @@ class PseudoBond:
 
 # -----------------------------------------------------------------------------
 #
+class ASPseudoBondGroup:
+    '''AtomicStructure pseudobond group.'''
+
+    def __init__(self, pbg_pointer = None):
+        set_c_pointer(self, pbg_pointer)
+
+    num_pseudobonds = c_property('as_pseudobond_group_num_pseudobonds', int32, read_only = True)
+    pseudobonds = c_property('as_pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
+                             astype = _pseudobonds, read_only = True)
+
+    def new_pseudobond(self, atom1, atom2):
+        f = c_function('as_pseudobond_group_new_pseudobond',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
+                       ret = ctypes.c_void_p)
+        pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
+        return object_map(pb, PseudoBond)
+
+# -----------------------------------------------------------------------------
+#
 class CPseudoBondGroup:
+    '''Global pseudobond group.'''
 
     def __init__(self, pbg_pointer = None, name = None):
         if pbg_pointer is None:
@@ -225,7 +245,7 @@ class CAtomicStructure:
                        args = (ctypes.c_void_p, ctypes.c_char_p),
                        ret = ctypes.c_void_p)
         pbg = f(self._c_pointer, name.encode('utf-8'))
-        return object_map(pbg, CPseudoBondGroup)
+        return object_map(pbg, ASPseudoBondGroup)
 
 # -----------------------------------------------------------------------------
 #

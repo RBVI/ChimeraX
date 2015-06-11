@@ -449,6 +449,28 @@ extern "C" void pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseud
       *pseudobonds++ = pb;
 }
 
+extern "C" void *as_pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
+{
+  Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+  PBond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
+  return b;
+}
+
+extern "C" void as_pseudobond_group_num_pseudobonds(void *pbgroups, int n, int *num_pseudobonds)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    *num_pseudobonds++ = pbg[i]->pseudobonds().size();
+}
+
+extern "C" void as_pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseudobonds)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    for (auto pb: pbg[i]->pseudobonds())
+      *pseudobonds++ = pb;
+}
+
 extern "C" void residue_atoms(void *residues, int n, void **atoms)
 {
   Residue **r = static_cast<Residue **>(residues);
