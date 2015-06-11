@@ -28,6 +28,7 @@ protected:
     const char*  err_msg_not_end() const
         { return "Atom given to other_end() not in pseudobond!"; }
 public:
+    virtual ~PBond() {}
     typedef End_points  Atoms;
     const Atoms&  atoms() const { return end_points(); }
 };
@@ -40,7 +41,7 @@ class PBGroup: pseudobond::Group<Atom, PBond>
 private:
     PBonds  _pbonds;
 public:
-    ~PBGroup() { dtor_code(); }
+    virtual ~PBGroup() { dtor_code(); }
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() { for (auto pb: _pbonds) delete pb; _pbonds.clear(); }
     PBond*  new_pseudobond(Atom* a1, Atom* a2) {
@@ -103,7 +104,6 @@ public:
             for (auto pb: name_pbs.second)
                 delete pb;
         }
-        clear();
     }
     void  check_destroyed_atoms(const std::set<void*>& destroyed);
     void  clear() {
@@ -154,6 +154,16 @@ private:
             static_cast<CS_PBGroup*>(_proxied)->remove_cs(cs);
     }
 public:
+    Proxy_PBGroup(const std::string& cat, AtomicStructure* as):
+        Owned_PBGroup_Base(cat, as) { init(AS_PBManager::GRP_NORMAL); }
+    Proxy_PBGroup(const std::string& cat, AtomicStructure* as, int grp_type):
+        Owned_PBGroup_Base(cat, as) { init(grp_type); }
+    ~Proxy_PBGroup() {
+        if (_group_type == AS_PBManager::GRP_NORMAL)
+            delete static_cast<Owned_PBGroup*>(_proxied);
+        else
+            delete static_cast<CS_PBGroup*>(_proxied);
+    }
     const std::string&  category() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<Owned_PBGroup*>(_proxied)->category();
@@ -188,10 +198,6 @@ public:
     PBond*  new_pseudobond(Atom* const ends[2], CoordSet* cs) {
         return new_pseudobond(ends[0], ends[1], cs);
     }
-    Proxy_PBGroup(const std::string& cat, AtomicStructure* as):
-        Owned_PBGroup_Base(cat, as) { init(AS_PBManager::GRP_NORMAL); }
-    Proxy_PBGroup(const std::string& cat, AtomicStructure* as, int grp_type):
-        Owned_PBGroup_Base(cat, as) { init(grp_type); }
     const std::set<PBond*>&  pseudobonds() const {
         if (_group_type == AS_PBManager::GRP_NORMAL)
             return static_cast<Owned_PBGroup*>(_proxied)->pseudobonds();
