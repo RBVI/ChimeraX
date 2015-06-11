@@ -356,19 +356,20 @@ def shortcut_atoms(session):
 
 def shortcut_surfaces(session):
     sel = session.selection
-    models = session.models.list() if sel.empty() else sel.models()
+    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
     from .structure import AtomicStructure
     from .map import Volume
-    surfs = [m for m in models if not isinstance(m, (AtomicStructure, Volume))]
-    # TODO: Only include displayed surfaces if nothing selected?
+    # Avoid group nodes by only taking non-empty models.
+    surfs = [m for m in models if not m.empty_drawing()]
+    # TODO: Need a Surface base class.
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
-    models = session.models.list() if sel.empty() else sel.models()
-    from .structure import AtomicStructure
-    sm = [m for m in models if not isinstance(m, AtomicStructure)]
-    # TODO: Only include displayed surfaces if nothing selected?
+    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
+    # Avoid group nodes by only taking non-empty models.
+    from .map import Volume
+    sm = [m for m in models if isinstance(m,Volume) or not m.empty_drawing()]
     return sm
 
 def close_all_models(session):
@@ -568,7 +569,7 @@ def toggle_surface_transparency(session):
         if isinstance(m, Volume):
             m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
             m.show()
-        elif isinstance(m, Drawing):
+        else:
             for d in m.all_drawings():
                 c = d.colors
                 opaque = (c[:,3] == 255)
@@ -579,7 +580,10 @@ def toggle_surface_transparency(session):
 def show_surface_transparent(session, alpha = 0.5):
     from .map import Volume
     from .graphics import Drawing
+    from .structure import AtomicStructure
     for m in shortcut_surfaces_and_maps(session):
+        if not m.display:
+            continue
         if isinstance(m, Volume):
             m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
             m.show()
