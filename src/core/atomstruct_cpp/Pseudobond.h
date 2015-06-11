@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include <basegeom/Connection.h>
+#include <basegeom/destruct.h>
 #include "imex.h"
 #include <pseudobond/Manager.h>
 
@@ -159,6 +160,7 @@ public:
     Proxy_PBGroup(const std::string& cat, AtomicStructure* as, int grp_type):
         Owned_PBGroup_Base(cat, as) { init(grp_type); }
     ~Proxy_PBGroup() {
+        auto du = basegeom::DestructionUser(this);
         if (_group_type == AS_PBManager::GRP_NORMAL)
             delete static_cast<Owned_PBGroup*>(_proxied);
         else
