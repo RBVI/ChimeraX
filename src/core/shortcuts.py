@@ -87,6 +87,7 @@ def standard_shortcuts(session):
 
         # Maps
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
+        ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
@@ -324,20 +325,21 @@ class Keyboard_Shortcuts:
         s.logger.info(msg)
         sc.run(s)
 
-def shortcut_models(session):
+def shortcut_models(session, mclass = None):
     sel = session.selection
-    m = sel.all_models() if sel.empty() else sel.models()
-    return m
+    mlist = [m for m in sel.models() if mclass is None or isinstance(m,mclass)]
+    if len(mlist) == 0:
+        mlist = [m for m in session.models.list()
+                 if (mclass is None or isinstance(m,mclass)) and m.display]
+    return mlist
 
 def shortcut_maps(session):
     from .map import Volume
-    maps = [m for m in shortcut_models(session) if isinstance(m, Volume)]
-    return maps
+    return shortcut_models(session, Volume)
 
 def shortcut_molecules(session):
     from .structure import AtomicStructure
-    mols = [m for m in shortcut_models(session) if isinstance(m, AtomicStructure)]
-    return mols
+    return shortcut_models(session, AtomicStructure)
 
 def shortcut_atoms(session):
     matoms = []
@@ -501,8 +503,11 @@ def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
 
 def fit_molecule_in_map(session):
     mols, maps = shortcut_molecules(session), shortcut_maps(session)
+    log = session.logger
     if len(mols) != 1 or len(maps) != 1:
-        session.logger.status('Fit molecule in map requires one displayed or selected molecule and map.')
+        log.status('Fit molecule in map requires one '
+                   'displayed or selected molecule (got %d) and map (got %d).'
+                   % (len(mols), len(maps)))
         return
 
     mol, map = mols[0], maps[0]
@@ -516,10 +521,38 @@ def fit_molecule_in_map(session):
 
     msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
            % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
-    log = session.logger
     log.status(msg)
     from .map.fit import fitmap
     log.info(fitmap.atom_fit_message(mols, map, stats))
+
+def fit_subtract(session):
+    models = session.models.list()
+    from .map import Volume
+    maps = [m for m in models if isinstance(m, Volume) and m.any_part_selected()]
+    if len(maps) == 0:
+        maps = [m for m in models if isinstance(m, Volume) and m.display]
+    molfit = [m for m in shortcut_molecules(session) if m.display]
+    mfitset = set(molfit)
+    from .structure import AtomicStructure
+    molsub = [m for m in models
+              if isinstance(m, AtomicStructure) and m.display and not m in mfitset]
+    print ('fs', len(maps), len(molfit), len(molsub))
+    log = session.logger
+    if len(maps) != 1:
+        log.status('Fit subtract requires one displayed or selected map.')
+        return
+    if len(molfit) == 0:
+        log.status('Fit subtract requires at least one displayed or selected molecule.')
+        return
+
+    v = maps[0]
+    res = 3*min(v.data.step)
+    from .map.fit.fitmap import simulated_map
+    mfit = [simulated_map(m.atoms, res, session) for m in molfit]
+    msub = [simulated_map(m.atoms, res, session) for m in molsub]
+    from .map.fit.fitcmd import fit_sequence
+    fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
+    print ('fit seq')
 
 def show_biological_unit(m, session):
 
