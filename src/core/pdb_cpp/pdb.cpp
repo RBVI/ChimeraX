@@ -24,13 +24,11 @@ PDB::set_type(RecordType t)
     }
 }
 
-#ifdef UNPORTED
 int
-PDB::byteCmp(const PDB &l, const PDB &r)
+PDB::byte_cmp(const PDB &l, const PDB &r)
 {
     return memcmp(&l, &r, sizeof (PDB));
 }
-#endif  // UNPORTED
 
 void
 PDB::reset_state()

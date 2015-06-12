@@ -2,20 +2,39 @@
 #ifndef blob_blob
 #define blob_blob
 
+#include <memory>
 #include <Python.h>
 #include <vector>
-#include <memory>
+
+#include <basegeom/destruct.h>
 #include "imex.h"
 
 namespace blob {
     
+template <class ItemsType>
+class BlobObserver: public basegeom::DestructionObserver {
+private:
+    ItemsType*  _items;
+public:
+    BlobObserver(ItemsType* items): _items(items) {}
+    void  destructors_done(const std::set<void*>& destroyed) {
+        ItemsType remaining;
+        for (auto i: *_items) {
+            if (destroyed.find((void*)(i.get())) == destroyed.end())
+                remaining.push_back(i);
+        }
+        _items->swap(remaining);
+    }
+};
+
 template <class MolItem, class PtrClass>
-struct Blob: public PyObject {
+class Blob: public PyObject, public basegeom::DestructionObserver {
 public:
     typedef MolItem  MolType;
-    PyObject* _weaklist;
+    PyObject*  _weaklist;
     typedef std::vector<PtrClass>  ItemsType;
     ItemsType*  _items;
+    BlobObserver<ItemsType>*  _observer;
 };
 
 template <class MolItem>
@@ -35,6 +54,8 @@ new_blob(PyTypeObject* type)
     self = static_cast<BlobType*>(type->tp_alloc(type, 0));
     if (self != NULL) {
         self->_items = new typename BlobType::ItemsType;
+        self->_observer =
+            new BlobObserver<typename BlobType::ItemsType>(self->_items);
     }
     return static_cast<PyObject*>(self);
 }

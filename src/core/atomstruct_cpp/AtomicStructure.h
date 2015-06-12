@@ -2,17 +2,17 @@
 #ifndef atomstruct_AtomicStructure
 #define atomstruct_AtomicStructure
 
-#include <vector>
-#include <string>
 #include <map>
-#include <memory>
 #include <set>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
+#include <basegeom/Graph.h>
+#include <basegeom/destruct.h>
 #include "Chain.h"
 #include "Pseudobond.h"
 #include "Ring.h"
-#include <basegeom/Graph.h>
 
 // "forward declare" PyObject, which is a typedef of a struct,
 // as per the python mailing list:
@@ -35,23 +35,24 @@ class ATOMSTRUCT_IMEX AtomicStructure: public basegeom::Graph<Atom, Bond> {
 public:
     typedef Vertices  Atoms;
     typedef Edges  Bonds;
-    typedef std::vector<std::unique_ptr<Chain>>  Chains;
-    typedef std::vector<std::unique_ptr<CoordSet>>  CoordSets;
+    typedef std::vector<Chain*>  Chains;
+    typedef std::vector<CoordSet*>  CoordSets;
     typedef std::map<std::string, std::vector<std::string>>  InputSeqInfo;
     static const char*  PBG_METAL_COORDINATION;
     static const char*  PBG_MISSING_STRUCTURE;
     static const char*  PBG_HYDROGEN_BONDS;
-    typedef std::vector<std::unique_ptr<Residue>>  Residues;
+    typedef std::vector<Residue*>  Residues;
     typedef std::unordered_set<Ring> Rings;
 private:
     CoordSet *  _active_coord_set;
-    bool  _being_destroyed;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
     mutable Chains *  _chains;
     void  _compute_atom_types();
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     CoordSets  _coord_sets;
+    void  _delete_atom(Atom* a);
+    void  _delete_residue(Residue* r, const Residues::iterator& ri);
     void  _fast_calculate_rings(std::set<const Residue *>* ignore) const;
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
@@ -72,17 +73,18 @@ private:
     mutable std::set<const Residue *>*  _rings_last_ignore;
 public:
     AtomicStructure(PyObject* logger = nullptr);
-    virtual  ~AtomicStructure() { _being_destroyed = true; }
+    virtual  ~AtomicStructure();
     const Atoms &    atoms() const { return vertices(); }
     CoordSet *  active_coord_set() const { return _active_coord_set; };
     bool  asterisks_translated;
-    bool  being_destroyed() const { return _being_destroyed; }
     std::map<Residue *, char>  best_alt_locs() const;
     const Bonds &    bonds() const { return edges(); }
     const Chains &  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     const CoordSets &  coord_sets() const { return _coord_sets; }
     void  delete_atom(Atom* a);
-    void  delete_bond(Bond* b);
+    void  delete_atoms(std::vector<Atom*> atoms);
+    void  delete_bond(Bond* b) { delete_edge(b); }
+    void  delete_residue(Residue* r);
     void  extend_input_seq_info(std::string& chain_id, std::string& res_name) {
         _input_seq_info[chain_id].push_back(res_name);
     }
@@ -113,7 +115,9 @@ public:
     AS_PBManager&  pb_mgr() { return _pb_mgr; }
     std::map<std::string, std::vector<std::string>> pdb_headers;
     int  pdb_version;
-    std::vector<Chain::Residues>  polymers() const;
+    std::vector<Chain::Residues>  polymers(
+        bool consider_missing_structure = true,
+        bool consider_chain_ids = true) const;
     const Residues &  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
@@ -128,22 +132,10 @@ public:
 
 #include "Atom.h"
 inline void
-atomstruct::AtomicStructure::delete_atom(atomstruct::Atom* a) {
-    for (auto b: a->bonds()) delete_bond(b);
-    delete_vertex(a);
+atomstruct::AtomicStructure::_delete_atom(atomstruct::Atom* a) {
     if (a->element().number() == 1)
         --_num_hyds;
+    delete_vertex(a);
 }
-
-#include "Bond.h"
-inline void
-atomstruct::AtomicStructure::delete_bond(atomstruct::Bond* b) {
-    for (auto a: b->atoms()) a->remove_bond(b);
-    delete_edge(b);
-}
-
-// for unique_ptr template expansion
-#include "CoordSet.h"
-#include "Residue.h"
 
 #endif  // atomstruct_AtomicStructure

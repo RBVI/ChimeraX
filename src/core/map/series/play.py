@@ -313,26 +313,51 @@ class Play_Series:
             uncolor_zone(model)
             delattr(model, 'series_zone_coloring')
 
+from ...ui import MouseMode
+class PlaySeriesMouseMode(MouseMode):
+
+  name = 'play map series'
+  icon_file = 'vseries.png'
+
+  def __init__(self, session):
+    MouseMode.__init__(self, session)
+  
+    self._series = None
+    self._player = None
+    self.last_mouse_x = None
+
+  def play_series(self):
+    from . import Map_Series
+    series = tuple(m for m in self.session.models.list() if isinstance(m, Map_Series))
+    if series != self._series:
+      self._player = Play_Series(series, self.session, rendering_cache_size = 10) if series else None
+    return self._player
+
   def mouse_up(self, event):
     self.last_mouse_x = None
 
   def mouse_down(self, event):
-    self.last_mouse_x = event.x()
+    x,y = event.position()
+    self.last_mouse_x = x
   
   def mouse_drag(self, event):
 
-    if not hasattr(self, 'last_mouse_x') or self.last_mouse_x is None:
-      self.last_mouse_x = event.x()
+    x,y = event.position()
+    if self.last_mouse_x is None:
+      self.last_mouse_x = x
       return
 
-    x = event.x()
     dx = x - self.last_mouse_x
     tstep = int(round(dx/50))
     if tstep == 0:
       return
     self.last_mouse_x = x
 
-    ser = self.series
+    p = self.play_series()
+    if p is None:
+      return
+
+    ser = p.series
     if len(ser) == 0:
       return 
     s0 = ser[0]
@@ -344,8 +369,8 @@ class Play_Series:
     elif tn < 0:
       tn = 0
     if tn != t:
-      self.change_time(tn)
-    self.session.status('%s time %d' % (s0.name, tn+1))
+      p.change_time(tn)
+    p.session.logger.status('%s time %d' % (s0.name, tn+1))
 
 # -----------------------------------------------------------------------------
 #
@@ -356,14 +381,3 @@ def label_value_in_range(text, imin, imax):
   except:
     return False
   return i >= imin and i <= imax
-  
-# -----------------------------------------------------------------------------
-#
-def enable_map_series_mouse_mode(session, button = 'right'):
-  from . import Map_Series
-  series = [m for m in session.model_list() if isinstance(m, Map_Series)]
-  if series:
-    p = Play_Series(series, session, rendering_cache_size = 10)
-    mm = session.view.mouse_modes
-    mm.bind_mouse_mode(button, mm.mouse_down, p.mouse_drag, mm.mouse_up)
-    # TODO: If no series opened it should still work after one does get opened.

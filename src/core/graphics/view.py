@@ -20,7 +20,12 @@ class View:
         self._opengl_context = opengl_context
 
         # Red, green, blue, opacity, 0-1 range.
-        self._background_rgba = (0, 0, 0, 1)
+        try:
+            from .. import preferences
+            prefs = preferences.get()
+            self._background_rgba = prefs.bg_color.rgba
+        except ImportError:
+            self._background_rgba = (0, 0, 0, 1)
 
         # Create camera
         from .camera import Camera
@@ -35,7 +40,10 @@ class View:
         self._opengl_initialized = False
         self._shadows = False
         self._shadow_map_size = 2048
-        self.multishadow = 0                    # Number of shadows
+        self._shadow_depth_bias = 0.005
+        self._multishadow = 0                    # Number of shadows
+        self._multishadow_map_size = 128
+        self._multishadow_depth_bias = 0.05
         self._multishadow_dir = None
         self._multishadow_transforms = []
         self._multishadow_depth = None
@@ -64,22 +72,25 @@ class View:
         if track:
             drawing.set_redraw_callback(dm)
 
-    def take_snapshot(self, session, flags):
-        data = [self.center_of_rotation, self.window_size,
-                self.background_color,
-                self.camera.take_snapshot(session, flags)]
-        return [self.VIEW_STATE_VERSION, data]
+    def take_snapshot(self, phase, session, flags):
+        from ..session import State
+        if phase == State.SAVE_PHASE:
+            data = [self.center_of_rotation, self.window_size,
+                    self.background_color,
+                    self.camera.take_snapshot(session, phase, flags)]
+            return [self.VIEW_STATE_VERSION, data]
+        if phase == State.CLEANUP_PHASE:
+            self.camera.take_snapshot(session, phase, flags)
 
     def restore_snapshot(self, phase, session, version, data):
-        from ..session import State
+        from ..session import State, RestoreError
         if version != self.VIEW_STATE_VERSION or len(data) == 0:
-            raise RuntimeError("Unexpected version or data")
-        if phase != State.PHASE1:
-            return
-        (self.center_of_rotation, self.window_size,
-         self.background_color) = data[:3]
-        from .camera import Camera
-        self.camera = Camera()
+            raise RestoreError("Unexpected version or data")
+        if phase == State.CREATE_PHASE:
+            (self.center_of_rotation, self.window_size,
+             self.background_color) = data[:3]
+            from .camera import Camera
+            self.camera = Camera()
         self.camera.restore_snapshot(phase, session, data[3][0], data[3][1])
 
     def reset_state(self):
@@ -174,7 +185,7 @@ class View:
     def depth_cue_enabled(self):
         '''Is depth cue enabled. Boolean value.'''
         r = self._render
-        return bool(r.enable_capabilities | r.SHADER_DEPTH_CUE)
+        return bool(r.enable_capabilities & r.SHADER_DEPTH_CUE)
 
     def get_shadows(self):
         return self._shadows
@@ -193,6 +204,10 @@ class View:
     shadows = property(get_shadows, set_shadows)
     '''Is a shadow cast by the key light enabled? Boolean value.'''
 
+    def max_multishadow(self):
+        return self._render.max_multishadows()
+    def get_multishadow(self):
+        return self._multishadow
     def set_multishadow(self, n):
         '''
         Specify the number of shadows to use for ambient shadowing,
@@ -200,7 +215,7 @@ class View:
         shadows.  Shadows are cast from uniformly distributed directions.
         This is GPU intensive, each shadow requiring a texture lookup.
         '''
-        self.multishadow = n
+        self._multishadow = n
         r = self._render
         if n > 0:
             r.enable_capabilities |= r.SHADER_MULTISHADOW
@@ -209,7 +224,25 @@ class View:
             self._multishadow_transforms = []
             r.enable_capabilities &= ~r.SHADER_MULTISHADOW
         self.redraw_needed = True
+    multishadow = property(get_multishadow, set_multishadow)
 
+    def get_shadow_depth_bias(self):
+        return self._shadow_depth_bias
+    def set_shadow_depth_bias(self, bias):
+        self._shadow_depth_bias = bias
+        self.redraw_needed = True
+    shadow_depth_bias = property(get_shadow_depth_bias, set_shadow_depth_bias)
+
+    def get_multishadow_depth_bias(self):
+        return self._multishadow_depth_bias
+    def set_multishadow_depth_bias(self, bias):
+        self._multishadow_depth_bias = bias
+        self._multishadow_transforms = []
+        self.redraw_needed = True
+    multishadow_depth_bias = property(get_multishadow_depth_bias, set_multishadow_depth_bias)
+    
+    def get_shadow_map_size(self):
+        return self._shadow_map_size
     def set_shadow_map_size(self, size):
         '''
         Set the size of the 2-d texture for casting shadows.
@@ -218,8 +251,21 @@ class View:
         '''
         if size != self._shadow_map_size:
             self._shadow_map_size = size
+            self.redraw_needed = True
+    shadow_map_size = property(get_shadow_map_size, set_shadow_map_size)
+    
+    def get_multishadow_map_size(self):
+        return self._multishadow_map_size
+    def set_multishadow_map_size(self, size):
+        '''
+        Set the size of the 2-d texture for casting shadows.
+        Small values (128, 256) give nicer smoother appearance.
+        '''
+        if size != self._multishadow_map_size:
+            self._multishadow_map_size = size
             self._multishadow_transforms = []   # Cause shadow recomputation
             self.redraw_needed = True
+    multishadow_map_size = property(get_multishadow_map_size, set_multishadow_map_size)
 
     def add_overlay(self, overlay):
         '''
@@ -587,12 +633,13 @@ class View:
             return None
 
         # Compute shadow map depth texture
-        size = self._shadow_map_size
+        size = self.shadow_map_size
         r.start_rendering_shadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
         # Compute light view and scene to shadow map transforms
-        lvinv, stf = r.shadow_transforms(light_direction, center, radius)
+        bias = self._shadow_depth_bias
+        lvinv, stf = r.shadow_transforms(light_direction, center, radius, bias)
         from .drawing import draw_drawings
         draw_drawings(r, lvinv, bdrawings)
 
@@ -618,7 +665,7 @@ class View:
             return None, None
 
         # Compute shadow map depth texture
-        size = self._shadow_map_size
+        size = self.multishadow_map_size
         r.start_rendering_multishadowmap(center, radius, size)
         r.draw_background()             # Clear shadow depth buffer
 
@@ -630,11 +677,11 @@ class View:
         from math import ceil, sqrt
         d = int(ceil(sqrt(nl)))     # Number of subtextures along each axis
         s = size // d               # Subtexture size.
+        bias = self._multishadow_depth_bias
         for l in range(nl):
             x, y = (l % d), (l // d)
             r.set_viewport(x * s, y * s, s, s)
-            lvinv, tf = r.shadow_transforms(light_directions[l], center,
-                                            radius)
+            lvinv, tf = r.shadow_transforms(light_directions[l], center, radius, bias)
             mstf.append(tf)
             draw_drawings(r, lvinv, bdrawings)
 
@@ -711,33 +758,24 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p, s = self.first_intercept(0.5 * w, 0.5 * h)
-        return p
+        p = self.first_intercept(0.5 * w, 0.5 * h)
+        return p.position if p else None
 
     def first_intercept(self, win_x, win_y):
         '''
-        Return the position of the front-most object below the given
-        screen window position (in pixels) and also return a Pick object
-        describing the object.  This is used when hovering the mouse
-        over an object (e.g. an atom) to get a description of that object.
+        Return a Pick object for the front-most object below the given
+        screen window position (specified in pixels).  This Pick object will
+        have an attribute position giving the point where the intercept occurs.
+        This is used when hovering the mouse over an object (e.g. an atom)
+        to get a description of that object.
         '''
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
-        f = None
-        s = None
-        drawings = self.drawing.child_drawings()
-        for d in drawings:
-            if d.display:
-                fmin, smin = d.first_intercept(xyz1, xyz2,
-                                               exclude='is_outline_box')
-                if fmin is not None and (f is None or fmin < f):
-                    f = fmin
-                    s = smin
-#        f, s = self.drawing.first_intercept(xyz1, xyz2,
-#                                            exclude='is_outline_box')
-        if f is None:
-            return None, None
-        p = (1.0 - f) * xyz1 + f * xyz2
-        return p, s
+        p = self.drawing.first_intercept(xyz1, xyz2, exclude='is_outline_box')
+        if p is None:
+            return None
+        f = p.distance
+        p.position = (1.0 - f) * xyz1 + f * xyz2
+        return p
 
     def _update_projection(self, view_num=None, camera=None):
 

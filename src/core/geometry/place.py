@@ -169,6 +169,10 @@ class Place:
         a = acos(cosa)
         return a
 
+    def rotation_axis_and_angle(self):
+        '''Return the rotation axis and angle (degrees) of the transform.'''
+        return m34.rotation_axis_angle(self.matrix)
+
     def shift_and_angle(self, center):
         '''Return the shift distance and rotation angle for the transform.
         The rotation angle is in radians the same as returned by
@@ -292,6 +296,12 @@ def identity():
     '''Return the identity transform.'''
     return Place()
 
+def product(plist):
+    '''Product of a sequence of Place transforms.'''
+    p = plist[0]
+    for p2 in plist[1:]:
+        p = p*p2
+    return p
 
 class Places:
     ''' The Places class represents a list of 0 or more Place objects.

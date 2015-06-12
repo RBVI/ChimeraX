@@ -80,7 +80,7 @@ class SideViewCanvas(glcanvas.GLCanvas):
             ]
         if not glcanvas.GLCanvas.IsDisplaySupported(attribs):
             raise AssertionError(
-                    "Missing required OpenGL capabilities for Side View")
+                "Missing required OpenGL capabilities for Side View")
         self.view = view
         self.main_view = main_view
         self.side = side
@@ -93,13 +93,13 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.on_size)
         self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
-        self.Bind(wx.EVT_LEFT_UP,  self.on_left_up)
+        self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
         self.Bind(wx.EVT_MOTION, self.on_motion)
 
         self.locations = loc = _PixelLocations()
-        loc.eye = 0, 0, 0   # x, y coords of eye
-        loc.near = 0        # X coord of near plane
-        loc.far = 0         # Y coord of near plane
+        loc.eye = 0, 0, 0   # x, y coordinates of eye
+        loc.near = 0        # X coordinate of near plane
+        loc.far = 0         # Y coordinate of near plane
         loc.bottom = 0      # bottom of clipping planes
         loc.top = 0         # top of clipping planes
         loc.far_bottom = 0  # right clip intersect far
@@ -132,7 +132,11 @@ class SideViewCanvas(glcanvas.GLCanvas):
         event.Skip()
 
     def set_viewport(self):
-        self.view.resize(*self.GetClientSize())
+        try:
+            self.view.resize(*self.GetClientSize())
+        except RuntimeError:
+            # wx.CallAfter executes after being destroyed
+            pass
 
     def make_current(self):
         self.SetCurrent(self.view.opengl_context())
@@ -142,7 +146,10 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
     def draw(self):
         ww, wh = self.main_view.window_size
-        if ww == 0 or wh == 0:
+        if ww <= 0 or wh <= 0:
+            return
+        width, height = self.view.window_size
+        if width <= 0 or height <= 0:
             return
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
@@ -194,7 +201,6 @@ class SideViewCanvas(glcanvas.GLCanvas):
 
             # figure out how big to make applique
             # eye and lines to far plane must be on screen
-            width, height = self.view.window_size
             loc = self.locations
             loc.bottom = .05 * height
             loc.top = .95 * height
@@ -276,15 +282,15 @@ class SideViewCanvas(glcanvas.GLCanvas):
         self.x, self.y = x, y
 
 
-class ToolUI(ToolInstance):
+class SideViewUI(ToolInstance):
 
     SIZE = (300, 200)
     VERSION = 1
 
-    def __init__(self, session, name, **kw):
-        super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow(name, session, size=self.SIZE)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
+        self.tool_window = session.ui.create_main_tool_window(
+            self, size=self.SIZE)
         parent = self.tool_window.ui_area
 
         # UI content code
@@ -293,10 +299,12 @@ class ToolUI(ToolInstance):
         self.view = View(session.models.drawing, wx.DefaultSize, oc,
                          session.logger, track=False)
         self.view.camera = OrthoCamera()
+        if self.display_name.startswith('Top'):
+            side = SideViewCanvas.TOP_SIDE
+        else:
+            side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(
-            parent, self.view, session.main_view, self.SIZE,
-            side=SideViewCanvas.TOP_SIDE if name.startswith('Top')
-            else SideViewCanvas.RIGHT_SIDE)
+            parent, self.view, session.main_view, self.SIZE, side=side)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.opengl_canvas, 1, wx.EXPAND)
@@ -314,7 +322,9 @@ class ToolUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.VERSION
         data = {}
         return [version, data]
@@ -323,7 +333,7 @@ class ToolUI(ToolInstance):
         if version != self.VERSION or len(data) > 0:
             raise RuntimeError("unexpected version or data")
         from chimera.core.session import State
-        if phase == State.PHASE1:
+        if phase == self.CREATE_PHASE:
             # Restore all basic-type attributes
             pass
         else:
@@ -344,6 +354,3 @@ class ToolUI(ToolInstance):
 
     def display(self, b):
         self.tool_window.shown = b
-
-    def display_name(self):
-        return "Side View"

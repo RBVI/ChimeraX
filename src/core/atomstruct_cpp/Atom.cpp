@@ -81,7 +81,7 @@ Atom::_new_coord(const Point &coord)
     unsigned int index = COORD_UNASSIGNED;
     auto& css = structure()->coord_sets();
     for (auto csi = css.begin(); csi != css.end(); ++csi) {
-        CoordSet *cs = (*csi).get();
+        CoordSet *cs = *csi;
         if (index == COORD_UNASSIGNED) {
             index = cs->coords().size();
             cs->add_coord(coord);
@@ -923,6 +923,15 @@ Atom::set_serial_number(int sn)
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         (*i).second.serial_number = sn;
     }
+}
+
+std::string
+Atom::str() const
+{
+    std::string ret = residue()->str();
+    ret += " @";
+    ret += name();
+    return ret;
 }
 
 }  // namespace atomstruct

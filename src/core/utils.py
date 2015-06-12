@@ -1,6 +1,7 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 utils -- generically useful stuff that doesn't fit elsewhere
+============================================================
 """
 
 
@@ -8,7 +9,16 @@ utils -- generically useful stuff that doesn't fit elsewhere
 # via http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
 # Except called flattened, like sorted, since it is nondestructive
 def flattened(input, return_types=(list, tuple, set)):
-    """Return new flattened version of input"""
+    """Return new flattened version of input
+
+    Parameters
+    ----------
+    input : a sequence instance (list, tuple, or set)
+
+    Returns
+    -------
+    A sequence of the same type as the input.
+    """
     return_type = type(input)
     output = list(input)
     i = 0
@@ -27,7 +37,28 @@ def flattened(input, return_types=(list, tuple, set)):
 
 
 def html_user_agent(app_dirs):
-    """"Return HTML User-Agent header according to RFC 2068"""
+    """"Return HTML User-Agent header according to RFC 2068
+
+    Parameters
+    ----------
+    app_dirs : a :py:class:`appdirs.AppDirs` instance (session.app_dirs)
+
+    Notes
+    -----
+
+    Typical use::
+
+        url = "http://www.example.com/example_file"
+        from urllib.request import URLError, Request
+        from chimera.core import utils
+        request = Request(url, unverifiable=True, headers={
+            "User-Agent": utils.html_user_agent(session.app_dirs),
+        })
+        try:
+            utils.retrieve_cached_url(request, filename, session.logger)
+        except URLError as e:
+            raise UserError(str(e))
+    """
     # The name, author, and version must be "tokens"
     #
     #   token          = 1*<any CHAR except CTLs or tspecials>

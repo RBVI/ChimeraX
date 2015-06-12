@@ -17,7 +17,8 @@ _surface_desc = cli.CmdDesc(
                ('color', color.ColorArg),
                ('transparency', cli.FloatArg),
                ('chains', cli.BoolArg),
-               ('nthread', cli.IntArg)])
+               ('nthread', cli.IntArg)],
+    synopsis = 'create molecular surface')
 
 def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
                     color = None, transparency = 0, chains = False, nthread = None):
@@ -52,10 +53,10 @@ def calc_surf(name, xyz, r, place, probe_radius, grid_spacing):
 def atom_spec_spheres(atom_spec, session, chains = False):
     if atom_spec is None:
         s = []
-        from .structure import StructureModel
+        from .structure import AtomicStructure
         for m in session.models.list():
-            if isinstance(m, StructureModel):
-                a = m.mol_blob.atoms
+            if isinstance(m, AtomicStructure):
+                a = m.atoms
                 if chains:
                     for cname, ci in chain_indices(a):
                         xyz, r = a.coords, a.radii
@@ -106,12 +107,25 @@ def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
     surf.color = color
     return surf
 
+def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
+    a = mol.atoms
+    from numpy import array
+    a = a.filter(array(a.residues.names) != 'HOH')     # exclude waters
+    xyz, r = a.coords, a.radii
+    from .surface import ses_surface_geometry
+    va, na, ta = ses_surface_geometry(xyz, r, probe_radius, grid_spacing)
+    from numpy import array, uint8
+    color = array((180,180,180,255), uint8)
+    surf = show_surface(mol.name + ' surface', va, na, ta, color, mol.position)
+    return surf
+
 def register_surface_command():
     cli.register('surface', _surface_desc, surface_command)
 
 _sasa_desc = cli.CmdDesc(
     optional = [('atoms', atomspec.AtomSpecArg)],
-    keyword = [('probeRadius', cli.FloatArg),])
+    keyword = [('probeRadius', cli.FloatArg),],
+    synopsis = 'compute solvent accessible surface area')
 
 def sasa_command(session, atoms = None, probeRadius = 1.4):
     '''
@@ -133,7 +147,8 @@ def register_sasa_command():
 
 _buriedarea_desc = cli.CmdDesc(
     required = [('atoms1', atomspec.AtomSpecArg), ('atoms2', atomspec.AtomSpecArg)],
-    keyword = [('probeRadius', cli.FloatArg),])
+    keyword = [('probeRadius', cli.FloatArg),],
+    synopsis = 'compute buried area')
 
 def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
     '''

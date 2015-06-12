@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 
+#include "AtomBlob.h"
 #include "atomstruct/AtomicStructure.h"
 #include "PseudoBlob.h"
 #include "numpy_common.h"
@@ -18,6 +19,7 @@ static void
 PseudoBlob_dealloc(PyObject* obj)
 {
     PseudoBlob* self = static_cast<PseudoBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);
@@ -28,33 +30,24 @@ PseudoBlob_dealloc(PyObject* obj)
 static const char PseudoBlob_doc[] = "PseudoBlob documentation";
 
 static PyObject*
-pb_bond_indices(PyObject* self, void*)
+pb_atoms(PyObject* self, void*)
 {
     PseudoBlob* pb = static_cast<PseudoBlob*>(self);
-    if (PyArray_API == NULL)
-        import_array1(NULL); // initialize NumPy
-    if (pb->_items->size() == 0) {
-        unsigned int shape[2] = {0, 2};
-        return allocate_python_array(2, shape, NPY_INT);
+    PyObject* py_ab1 = new_blob<AtomBlob>(&AtomBlob_type);
+    AtomBlob* ab1 = static_cast<AtomBlob*>(py_ab1);
+    PyObject* py_ab2 = new_blob<AtomBlob>(&AtomBlob_type);
+    AtomBlob* ab2 = static_cast<AtomBlob*>(py_ab2);
+    for (auto& b: *pb->_items) {
+        auto& atoms = b->atoms();
+        ab1->_items->emplace_back(atoms[0]);
+        ab2->_items->emplace_back(atoms[1]);
     }
-
-    using atomstruct::AtomicStructure;
-    using atomstruct::Atom;
-    AtomicStructure* as = (*pb->_items)[0]->atoms()[0]->structure();
-    std::map<Atom *, AtomicStructure::Atoms::size_type> atom_map;
-    decltype(atom_map)::mapped_type i = 0;
-    for (auto ai = as->atoms().begin(); ai != as->atoms().end(); ++ai, ++i) {
-        atom_map[(*ai).get()] = i;
-    }
-
-    unsigned int shape[2] = {(unsigned int)pb->_items->size(), 2};
-    PyObject* bond_list = allocate_python_array(2, shape, NPY_INT);
-    int* index_data = (int*) PyArray_DATA((PyArrayObject*)bond_list);
-    for (auto b: *(pb->_items)) {
-        *index_data++ = atom_map[b->atoms()[0]];
-        *index_data++ = atom_map[b->atoms()[1]];
-    }
-    return bond_list;
+    PyObject* blob_list = PyTuple_New(2);
+    if (blob_list == NULL)
+        return NULL;
+    PyTuple_SET_ITEM(blob_list, 0, py_ab1);
+    PyTuple_SET_ITEM(blob_list, 1, py_ab2);
+    return blob_list;
 }
 
 static PyObject*
@@ -155,12 +148,48 @@ static PyMethodDef PseudoBlob_methods[] = {
         (char*)"filter pseudobond blob based on array/list of booleans" },
     { (char*)"intersect", blob_intersect<PseudoBlob>, METH_O,
         (char*)"intersect pseudobond blobs" },
+    { (char*)"merge", blob_merge<PseudoBlob>, METH_O,
+        (char*)"merge atom blobs" },
+    { (char*)"subtract", blob_subtract<PseudoBlob>, METH_O,
+        (char*)"subtract atom blobs" },
     { NULL, NULL, 0, NULL }
 };
 
+static PyNumberMethods PseudoBlob_as_number = {
+    0,                                      // nb_add
+    (binaryfunc)blob_subtract<PseudoBlob>,  // nb_subtract
+    0,                                      // nb_multiply
+    0,                                      // nb_remainder
+    0,                                      // nb_divmod
+    0,                                      // nb_power
+    0,                                      // nb_negative
+    0,                                      // nb_positive
+    0,                                      // nb_absolute
+    0,                                      // nb_bool
+    0,                                      // nb_invert
+    0,                                      // nb_lshift
+    0,                                      // nb_rshift
+    (binaryfunc)blob_intersect<PseudoBlob>, // nb_and
+    0,                                      // nb_xor
+    (binaryfunc)blob_merge<PseudoBlob>,     // nb_or
+    0,                                      // nb_int
+    0,                                      // nb_reserved
+    0,                                      // nb_float
+    0,                                      // nb_inplace_add
+    0,                                      // nb_inplace_subtract
+    0,                                      // nb_inplace_multiply
+    0,                                      // nb_inplace_remainder
+    0,                                      // nb_inplace_power
+    0,                                      // nb_inplace_lshift
+    0,                                      // nb_inplace_rshift
+    0,                                      // nb_inplace_and
+    0,                                      // nb_inplace_xor
+    0,                                      // nb_inplace_or
+};
+
 static PyGetSetDef PseudoBlob_getset[] = {
-    { "bond_indices", pb_bond_indices, NULL,
-        "Nx2 numpy array of indices into the corresponding AtomBlob", NULL},
+    { (char*)"atoms", pb_atoms, NULL,
+        (char*)"2-tuple of atom blobs", NULL},
     { (char*)"colors", pb_colors, pb_set_colors,
         (char*)"numpy Nx4 array of (unsigned char) RGBA values", NULL},
     { (char*)"displays", pb_displays, pb_set_displays,
@@ -187,7 +216,7 @@ PyTypeObject PseudoBlob_type = {
     0, // tp_setattr
     0, // tp_reserved
     0, // tp_repr
-    0, // tp_as_number
+    &PseudoBlob_as_number, // tp_as_number
     0, // tp_as_sequence
     &PseudoBlob_len, // tp_as_mapping
     0, // tp_hash

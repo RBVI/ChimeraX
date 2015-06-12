@@ -2,17 +2,18 @@
 #ifndef basegeom_Graph
 #define basegeom_Graph
 
+#include <set>
 #include <vector>
-#include <memory>
-#include <algorithm>
+
+#include "destruct.h"
 
 namespace basegeom {
     
 template <class Vertex, class Edge>
 class Graph {
 protected:
-    typedef std::vector<std::unique_ptr<Vertex>>  Vertices;
-    typedef std::vector<std::unique_ptr<Edge>>  Edges;
+    typedef std::vector<Vertex*>  Vertices;
+    typedef std::vector<Edge*>  Edges;
 private:
     Vertices  _vertices;
     Edges  _edges;
@@ -24,11 +25,22 @@ protected:
     void  add_vertex(Vertex *v) { _vertices.emplace_back(v); }
     void  delete_edge(Edge *e);
     void  delete_vertex(Vertex *v);
+    void  delete_vertices(const Vertices& vs) {
+        delete_vertices(std::set<Vertex*>(vs.begin(), vs.end()));
+    }
+    void  delete_vertices(const std::set<Vertex*>& vs);
     const Edges &  edges() const { return _edges; }
     const Vertices &  vertices() const { return _vertices; }
 
 public:
-    virtual  ~Graph() {}
+    virtual  ~Graph() {
+        // need to assign to variable make it live to end of destructor
+        auto du = DestructionUser(this);
+        for (auto e: _edges)
+            delete e;
+        for (auto v: _vertices)
+            delete v;
+    }
 
     // graphics related
     float  ball_scale() const { return _ball_scale; }
@@ -41,28 +53,6 @@ public:
     bool  display() const { return _display; }
     void  set_display(bool d) { _display = d; }
 };
-
-template <class Vertex, class Edge>
-void
-Graph<Vertex, Edge>::delete_edge(Edge *e)
-{
-    typename Edges::iterator i = std::find_if(_edges.begin(), _edges.end(),
-        [&e](std::unique_ptr<Edge>& ue) { return ue.get() == e; });
-    if (i == _edges.end())
-        throw std::invalid_argument("delete_edge called for Edge not in Graph");
-    _edges.erase(i);
-}
-
-template <class Vertex, class Edge>
-void
-Graph<Vertex, Edge>::delete_vertex(Vertex *v)
-{
-    typename Vertices::iterator i = std::find_if(_vertices.begin(), _vertices.end(),
-        [&v](std::unique_ptr<Vertex>& uv) { return uv.get() == v; });
-    if (i == _vertices.end())
-        throw std::invalid_argument("delete_vertex called for Vertex not in Graph");
-    _vertices.erase(i);
-}
 
 } //  namespace basegeom
 

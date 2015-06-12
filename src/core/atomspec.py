@@ -62,6 +62,8 @@ all atoms.
 import re
 from .cli import Annotation, UserError
 
+_double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+
 
 class AtomSpecArg(Annotation):
     """Command line type annotation for atom specifiers.
@@ -73,104 +75,78 @@ class AtomSpecArg(Annotation):
 
     @staticmethod
     def parse(text, session):
-        token, text, rest = _next_atomspec(text)
+        """Parse text and return an atomspec parse tree"""
+        assert(text and not text[0].isspace())
+        if text[0] == '"':
+            return AtomSpecArg._parse_quoted(text, session)
+        else:
+            return AtomSpecArg._parse_unquoted(text, session)
+
+    @staticmethod
+    def _parse_quoted(text, session):
+        # Split out quoted argument
+        start = 0
+        m = _double_quote.match(text, start)
+        if m is None:
+            from .cli import AnnotationError
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if text[end - 1].isspace():
+            end -= 1
+        # Quoted argument is consumed on success
+        # Text after quote is unused
+        consumed = text[start:end]
+        rest = text[end:]
+        # Convert quote contents to string
+        from .cli import unescape_with_index_map
+        token, index_map = unescape_with_index_map(text[start + 1:end - 1])
+        # Create parser and parse converted token
         from ._atomspec import _atomspecParser
         parser = _atomspecParser(parseinfo=True)
         semantics = _AtomSpecSemantics(session)
         from grako.exceptions import FailedParse
         try:
             ast = parser.parse(token, "atom_specifier", semantics=semantics)
+        except FailedSemantics as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
         except FailedParse as e:
-            raise ValueError(str(e))
+            from .cli import AnnotationError
+            # Add one to offset for leading quote
+            offset = index_map[e.pos]
+            raise AnnotationError(str(e), offset=offset)
+        # Must consume everything inside quotes
         if ast.parseinfo.endpos != len(token):
-            # TODO: better error message on syntax error
-            raise UserError("mangled atom specifier")
-        return ast, text, rest
+            from .cli import AnnotationError
+            offset = index_map[ast.parseinfo.endpos] + 1
+            raise AnnotationError("mangled atom specifier", offset=offset)
+        # Success!
+        return ast, consumed, rest
 
-
-#
-# Lexical analysis functions
-#
-_double_quote = re.compile(r'"(.|\")*?"(\s|$)')
-_operator = re.compile(r'\s+[&~|]+\s+')
-
-
-def _next_atomspec(text):
-    # Modeled after .cli._next_token()
-    #
-    # Return a 3-tuple of first argument in text, the actual text used,
-    # and the rest of the text.
-    #
-    # Arguments may be quoted, in which case the text between
-    # the quotes is returned.
-    assert(text and not text[0].isspace())
-    start = 0
-    if text[start] == '"':
-        m = _double_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
+    @staticmethod
+    def _parse_unquoted(text, session):
+        # Try to parse the entire line.
+        # If we get nothing, then raise AnnotationError.
+        # Otherwise, consume what we can use and call it a success.
+        from ._atomspec import _atomspecParser
+        parser = _atomspecParser(parseinfo=True)
+        semantics = _AtomSpecSemantics(session)
+        from grako.exceptions import FailedParse, FailedSemantics
+        try:
+            ast = parser.parse(text, "atom_specifier", semantics=semantics)
+        except FailedSemantics as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
+        except FailedParse as e:
+            from .cli import AnnotationError
+            raise AnnotationError(str(e), offset=e.pos)
         else:
-            end = len(text)
-            token = text[start + 1:end]
-            raise ValueError("incomplete quoted text")
-        from .cli import unescape
-        token = unescape(token)
-    else:
-        # Do space collapsing around operators
-        eol = len(text)
-        if text[0] == '~':
-            token = "~"
-            end = 1
-            while end < eol:
-                if not text[end].isspace():
-                    break
-                else:
-                    end += 1
-        else:
-            token = ""
-            end = 0
-        while end < eol:
-            # Look for the next operator.  If there is a space
-            # between here and the next operator, then the space
-            # terminates the atom specifier.
-            m = _operator.search(text, end)
-            if m:
-                # An operator appears later in the line
-                group_start = m.start()
-                n = _find_intervening_space(text, end, group_start)
-                if n is None:
-                    # No intervening spaces, operator is part of atomspec
-                    token += text[end:group_start] + m.group()
-                    end = m.end()
-                else:
-                    # Add remainder of atomspec and terminate
-                    token += text[end:n]
-                    end = n
-                    break
-            else:
-                # No operator appears in rest of line
-                n = _find_intervening_space(text, end, eol)
-                if n is None:
-                    # No intervening spaces, rest of line is part of atomspec
-                    token += text[end:]
-                    end = eol
-                else:
-                    # Add remainder of atomspec and terminate
-                    token += text[end:n]
-                    end = n
-                break
-    return token, text[:end], text[end:]
-
-
-def _find_intervening_space(text, start, end):
-    for n in range(start, end):
-        if text[n].isspace():
-            return n
-    else:
-        return None
+            end = ast.parseinfo.endpos
+            if end == 0:
+                from .cli import AnnotationError
+                raise AnnotationError("not an atom specifier")
+            # Consume what we used and return the remainder
+            return ast, text[:end], text[end:]
 
 
 #
@@ -184,6 +160,7 @@ class _AtomSpecSemantics:
         self._session = session
 
     def atom_specifier(self, ast):
+        # print("atom_specifier", ast)
         atom_spec = AtomSpec(ast.operator, ast.left, ast.right)
         try:
             atom_spec.parseinfo = ast.parseinfo
@@ -192,21 +169,29 @@ class _AtomSpecSemantics:
         return atom_spec
 
     def as_term(self, ast):
-        if ast.term is not None:
-            return ast.term
+        # print("as_term", ast)
+        if ast.atomspec is not None:
+            return ast.atomspec
+        elif ast.tilde is not None:
+            return _Invert(ast.tilde)
         elif ast.models is not None:
             return _Term(ast.models)
         else:
             return _Term(ast.selector)
 
     def selector_name(self, ast):
+        # print("selector_name", ast)
         if (get_selector(self._session, ast.name) is None and
            get_selector(None, ast.name) is None):
-                # TODO: generate better error message in cli
-                raise ValueError("\"%s\" is not a selector name" % ast.name)
+                from grako.exceptions import FailedSemantics
+                e = FailedSemantics("\"%s\" is not a selector name" % ast.name)
+                e.pos = ast.parseinfo.pos
+                e.endpos = ast.parseinfo.endpos
+                raise e
         return _SelectorName(ast.name)
 
     def model_list(self, ast):
+        # print("model_list", ast)
         model_list = _ModelList()
         if ast.model:
             model_list.extend(ast.model)
@@ -218,6 +203,7 @@ class _AtomSpecSemantics:
             for p in ast.parts:
                 m.add_part(p)
         if ast.zone is None:
+            # print("model", m)
             return m
         ast.zone.model = m
         return ast.zone
@@ -320,9 +306,9 @@ class _ModelHierarchy(list):
                 mid = model.id[i]
             except IndexError:
                 mid = 1
-            if mrl.matches(mid):
-                return True
-        return False
+            if not mrl.matches(mid):
+                return False
+        return True
 
 
 class _ModelRangeList(list):
@@ -422,7 +408,7 @@ class _Model(_SubPart):
     def find_sub_parts(self, session, model, results):
         results.add_model(model)
         try:
-            atoms = model.mol_blob.atoms
+            atoms = model.atoms
         except AttributeError:
             # No atoms, just go home
             return
@@ -431,7 +417,7 @@ class _Model(_SubPart):
             results.add_atoms(atoms)
         else:
             import numpy
-            num_atoms = len(atoms.displays)
+            num_atoms = len(atoms)
             selected = numpy.zeros(num_atoms)
             for chain_spec in self.sub_parts:
                 s = chain_spec.find_selected_parts(model, atoms, num_atoms)
@@ -554,7 +540,8 @@ class _PartList:
         return ','.join([str(p) for p in self.parts])
 
     def add_parts(self, part_range):
-        self.parts.append(part_range)
+        self.parts.insert(0, part_range)
+        return self
 
 
 class _Part:
@@ -630,6 +617,22 @@ class _Term:
         return results
 
 
+class _Invert:
+    """A "not" (~) term in an atom specifier."""
+    def __init__(self, atomspec):
+        self._atomspec = atomspec
+
+    def __str__(self):
+        return "~%s" % str(self._atomspec)
+
+    def evaluate(self, session, models=None, **kw):
+        if models is None:
+            models = session.models.list(**kw)
+        results = self._atomspec.evaluate(session, models)
+        results.invert(session, models)
+        return results
+
+
 class AtomSpec:
     """AtomSpec instances store and evaluate atom specifiers.
 
@@ -638,17 +641,17 @@ class AtomSpec:
     When evaluated, the model elements that match the specifier
     are returned.
     """
-    def __init__(self, operator, left_term, right_term):
+    def __init__(self, operator, left_spec, right_spec):
         self._operator = operator
-        self._left_term = left_term
-        self._right_term = right_term
+        self._left_spec = left_spec
+        self._right_spec = right_spec
 
     def __str__(self):
         if self._operator is None:
-            return str(self._left_term)
+            return str(self._left_spec)
         else:
-            return "%s %s %s" % (str(self._left_term), self._operator,
-                                 str(self._right_term))
+            return "%s %s %s" % (str(self._left_spec), self._operator,
+                                 str(self._right_spec))
 
     def evaluate(self, session, models=None, **kw):
         """Return results of evaluating atom specifier for given models.
@@ -673,14 +676,14 @@ class AtomSpec:
         if models is None:
             models = session.models.list(**kw)
         if self._operator is None:
-            results = self._left_term.evaluate(session, models)
+            results = self._left_spec.evaluate(session, models)
         elif self._operator == '|':
-            left_results = self._left_term.evaluate(session, models)
-            right_results = self._right_term.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models)
+            right_results = self._right_spec.evaluate(session, models)
             results = AtomSpecResults._union(left_results, right_results)
         elif self._operator == '&':
-            left_results = self._left_term.evaluate(session, models)
-            right_results = self._right_term.evaluate(session, models)
+            left_results = self._left_spec.evaluate(session, models)
+            right_results = self._right_spec.evaluate(session, models)
             results = AtomSpecResults._intersect(left_results, right_results)
         else:
             raise RuntimeError("unknown operator: %s" % repr(self._operator))
@@ -701,7 +704,8 @@ class AtomSpecResults:
     """
     def __init__(self):
         self._models = set()
-        self._atoms = None
+        from .molecule import Atoms
+        self._atoms = Atoms()
 
     def add_model(self, m):
         """Add model to atom spec results."""
@@ -709,15 +713,26 @@ class AtomSpecResults:
 
     def add_atoms(self, atom_blob):
         """Add atoms to atom spec results."""
-        if self._atoms is None:
-            self._atoms = atom_blob
-        else:
-            self._atoms.merge(atom_blob)
+        self._atoms = self._atoms | atom_blob
 
     def combine(self, other):
         for m in other.models:
             self.add_model(m)
         self.add_atoms(other.atoms)
+
+    def invert(self, session, models):
+        from .molecule import Atoms
+        atoms = Atoms()
+        for m in models:
+            if m in self._models:
+                # Was selected, so invert model atoms
+                keep = m.atoms - self._atoms
+            else:
+                # Was not selected, so include all atoms
+                keep = m.atoms
+            if len(keep) > 0:
+                atoms = atoms | keep
+        self._atoms = atoms
 
     @property
     def models(self):
@@ -731,22 +746,14 @@ class AtomSpecResults:
     def _union(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models | right._models
-        if left._atoms is None:
-            atom_spec._atoms = right._atoms
-        elif right._atoms is None:
-            atom_spec._atoms = left._atoms
-        else:
-            atom_spec._atoms = right._atoms.merge(left._atoms)
+        atom_spec._atoms = right._atoms.merge(left._atoms)
         return atom_spec
 
     @staticmethod
     def _intersect(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models & right._models
-        if left._atoms is None or right._atoms is None:
-            atom_spec._atoms = None
-        else:
-            atom_spec._atoms = right._atoms.intersect(left._atoms)
+        atom_spec._atoms = right._atoms & left._atoms
         return atom_spec
 
 #

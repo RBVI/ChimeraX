@@ -17,22 +17,24 @@ from . import cli
 def pwd(session):
     import os
     session.logger.info('current working directory: %s' % os.getcwd())
-_pwd_desc = cli.CmdDesc()
+_pwd_desc = cli.CmdDesc(synopsis='print current working directory')
 
 
 def exit(session):
     session.ui.quit()
-_exit_desc = cli.CmdDesc()
+_exit_desc = cli.CmdDesc(synopsis='exit application')
 
 
 def stop(session, ignore=None):
     raise cli.UserError('use "exit" or "quit" instead of "stop"')
-_stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)])
+_stop_desc = cli.CmdDesc(optional=[('ignore', cli.RestOfLine)],
+                         synopsis='DO NOT USE')
 
 
 def echo(session, text=''):
     session.logger.info(text)
-_echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)])
+_echo_desc = cli.CmdDesc(optional=[('text', cli.RestOfLine)],
+                         synopsis='show text in log')
 
 
 def open(session, filename, id=None, as_=None):
@@ -42,7 +44,9 @@ def open(session, filename, id=None, as_=None):
         raise cli.UserError(e)
 _open_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
                          keyword=[('id', cli.ModelIdArg),
-                                  ('as', cli.StringArg)])
+                                  ('as_a', cli.StringArg),
+                                  ('label', cli.StringArg)],
+                         synopsis='read and display data')
 
 
 def export(session, filename, **kw):
@@ -51,17 +55,29 @@ def export(session, filename, **kw):
         return io.export(session, filename, **kw)
     except OSError as e:
         raise cli.UserError(e)
-_export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)])
+_export_desc = cli.CmdDesc(required=[('filename', cli.StringArg)],
+                           synopsis='export data in format'
+                           ' matching filename suffix')
 
 
-def close(session, model_ids):
-    try:
-        for model_id in model_ids:
-            session.models.close(model_id)
-    except ValueError as e:
-        raise cli.UserError(e)
-_close_desc = cli.CmdDesc(required=[('model_ids', cli.ListOf(cli.ModelIdArg))])
+def close(session, model_ids = None):
+    m = session.models
+    if model_ids is None:
+        mlist = m.list()
+    else:
+        try:
+            mlist = sum((m.list(model_id) for model_id in model_ids), [])
+        except ValueError as e:
+            raise cli.UserError(e)
+    m.close(mlist)
+_close_desc = cli.CmdDesc(optional=[('model_ids', cli.ListOf(cli.ModelIdArg))],
+                          synopsis='close models')
 
+def delete(session, atoms):
+    atoms.delete()
+from .structure import AtomsArg
+_delete_desc = cli.CmdDesc(required=[('atoms', AtomsArg)],
+                           synopsis='delete atoms')
 
 def list(session):
     models = session.models.list()
@@ -80,7 +96,7 @@ def list(session):
         info += ", ".join(id_str(id) for id in ids[:-1]) + " and"
     info += " %s" % id_str(ids[-1])
     session.logger.info(info)
-_list_desc = cli.CmdDesc()
+_list_desc = cli.CmdDesc(synopsis='list open model ids')
 
 
 def help(session, command_name=None):
@@ -99,14 +115,29 @@ def help(session, command_name=None):
             info("The following commands are available: %s, and %s"
                  % (', '.join(cmds[:-1]), cmds[-1]))
         return
+    elif command_name == 'all':
+        info("Syntax for all commands.")
+        cmds = cli.registered_commands()
+        cmds.sort()
+        for name in cmds:
+            try:
+                info(cli.html_usage(name), is_html=True)
+            except:
+                info('<b>%s</b> no documentation' % name, is_html=True)
+        return
+
     try:
         usage = cli.usage(command_name)
     except ValueError as e:
         status(str(e))
         return
-    status(usage)
-    info(cli.html_usage(command_name), is_html=True)
-_help_desc = cli.CmdDesc(optional=[('command_name', cli.StringArg)])
+    if session.ui.is_gui:
+        status(usage)
+        info(cli.html_usage(command_name), is_html=True)
+    else:
+        info(usage)
+_help_desc = cli.CmdDesc(optional=[('command_name', cli.RestOfLine)],
+                         synopsis='show command usage')
 
 
 def display(session, spec=None):
@@ -116,7 +147,8 @@ def display(session, spec=None):
     results.atoms.displays = True
     for m in results.models:
         m.update_graphics()
-_display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+_display_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display specified atoms')
 
 
 def undisplay(session, spec=None):
@@ -126,12 +158,13 @@ def undisplay(session, spec=None):
     results.atoms.displays = False
     for m in results.models:
         m.update_graphics()
-_undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)])
+_undisplay_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                              synopsis='undisplay specified atoms')
 
 
 def window(session):
     session.main_view.view_all()
-_window_desc = cli.CmdDesc()
+_window_desc = cli.CmdDesc(synopsis='reset view so everything is visible in window')
 
 
 def camera(session, mode=None, field_of_view=None, eye_separation=None,
@@ -170,37 +203,45 @@ def camera(session, mode=None, field_of_view=None, eye_separation=None,
         )
         session.logger.info(msg)
         msg = (cam.mode.name() +
-            ', %.5g degree field of view' % cam.field_of_view)
+               ', %.5g degree field of view' % cam.field_of_view)
         session.logger.status(msg)
 
-_camera_desc = cli.CmdDesc(optional=[
-    # ('mode', CameraModeArg),
-    ('field_of_view', cli.FloatArg),
-    ('eye_separation', cli.FloatArg),
-    ('screen_width', cli.FloatArg),
-    ('depth_scale', cli.FloatArg),
-])
+_camera_desc = cli.CmdDesc(
+    optional=[
+        # ('mode', CameraModeArg),
+        ('field_of_view', cli.FloatArg),
+        ('eye_separation', cli.FloatArg),
+        ('screen_width', cli.FloatArg),
+        ('depth_scale', cli.FloatArg),
+    ],
+    synopsis='adjust camara parameters'
+)
 
-def save(session, filename, width = None, height = None, format = None, supersample = None):
+
+def save(session, filename, width=None, height=None, format=None, supersample=None):
     from os.path import splitext
     e = splitext(filename)[1].lower()
     from . import session as ses
     if e[1:] in image_file_suffixes:
         save_image(session, filename, width, height, format, supersample)
-    elif e == ses.SUFFIX:
+    elif e == ses.SESSION_SUFFIX:
         ses.save(session, filename)
     else:
-        suffixes = image_file_suffixes + (ses.SUFFIX[1:],)
+        suffixes = image_file_suffixes + (ses.SESSION_SUFFIX[1:],)
         raise cli.UserError('Unrecognized file suffix "%s", require one of %s'
                             % (e, ','.join(suffixes)))
 
 _save_desc = cli.CmdDesc(
-    required = [('filename', cli.StringArg),],
-    keyword=[('width', cli.IntArg),
-             ('height', cli.IntArg),
-             ('supersample', cli.IntArg),
-             ('quality', cli.IntArg),
-             ('format', cli.StringArg),])
+    required=[('filename', cli.StringArg), ],
+    keyword=[
+        ('width', cli.IntArg),
+        ('height', cli.IntArg),
+        ('supersample', cli.IntArg),
+        ('quality', cli.IntArg),
+        ('format', cli.StringArg),
+    ],
+    synopsis='save session or image'
+)
 
 # Table mapping file suffix to Pillow image format.
 image_formats = {
@@ -212,7 +253,10 @@ image_formats = {
     'bmp': 'BMP',
 }
 image_file_suffixes = tuple(image_formats.keys())
-def save_image(session, path, format = None, width = None, height = None, supersample = None, quality = 95):
+
+
+def save_image(session, path, format=None, width=None, height=None,
+               supersample=None, quality=95):
     '''
     Save an image of the current graphics window contents.
     '''
@@ -224,37 +268,45 @@ def save_image(session, path, format = None, width = None, height = None, supers
 
     if format is None:
         suffix = splitext(path)[1][1:].lower()
-        if not suffix in image_file_suffixes:
+        if suffix not in image_file_suffixes:
             raise cli.UserError('Unrecognized image file suffix "%s"' % format)
         format = image_formats[suffix]
 
     view = session.main_view
-    i = view.image(width, height, supersample = supersample)
-    i.save(path, format, quality = quality)
+    i = view.image(width, height, supersample=supersample)
+    i.save(path, format, quality=quality)
 
-def set(session, bgColor = None, silhouette = None):
-    view = session.main_view
-    if not bgColor is None:
-        view.background_color = bgColor.rgba
-        view.redraw_needed = True
-    if not silhouette is None:
-        view.silhouettes = silhouette
-        view.redraw_needed = True
 
-from .color import ColorArg
-_set_desc = cli.CmdDesc(
-    keyword = [('bgColor', ColorArg),
-               ('silhouette', cli.BoolArg),
-           ]
-)
+def ribbon(session, spec=None):
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    results.atoms.residues.ribbon_displays = True
+    for m in results.models:
+        m.update_graphics()
+
+_ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display ribbon for specified residues')
+
+
+def unribbon(session, spec=None):
+    if spec is None:
+        spec = atomspec.everything(session)
+    results = spec.evaluate(session)
+    results.atoms.residues.ribbon_displays = False
+    for m in results.models:
+        m.update_graphics()
+_unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
+                            synopsis='display ribbon for specified residues')
+
 
 def register(session):
     """Register common cli commands"""
-    import sys
     cli.register('exit', _exit_desc, exit)
     cli.alias(session, "quit", "exit $*")
     cli.register('open', _open_desc, open)
     cli.register('close', _close_desc, close)
+    cli.register('delete', _delete_desc, delete)
     cli.register('export', _export_desc, export)
     cli.register('list', _list_desc, list)
     cli.register('stop', _stop_desc, stop)
@@ -266,7 +318,10 @@ def register(session):
     cli.register('~display', _undisplay_desc, undisplay)
     cli.register('camera', _camera_desc, camera)
     cli.register('save', _save_desc, save)
-    cli.register('set', _set_desc, set)
+    cli.register('ribbon', _ribbon_desc, ribbon)
+    cli.register('~ribbon', _unribbon_desc, unribbon)
+    from . import settings
+    settings.register_set_command()
     from . import molsurf
     molsurf.register_surface_command()
     molsurf.register_sasa_command()
@@ -278,6 +333,11 @@ def register(session):
     lightcmd.register_material_command()
     from . import map
     map.register_volume_command()
+    map.register_molmap_command()
+    from .map import filter
+    filter.register_vop_command()
+    from .map import fit
+    fit.register_fitmap_command()
     from .map import series
     series.register_vseries_command()
     from . import color
@@ -286,8 +346,26 @@ def register(session):
     oculus.register_oculus_command()
     from .devices import spacenavigator
     spacenavigator.register_snav_command()
+    from . import shortcuts
+    shortcuts.register_shortcut_command()
+    from . import crosslinks
+    crosslinks.register_crosslink_command()
+    from . import split
+    split.register_split_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd
     #     cmd.register()
     # cli.delay_registration('lighting', lighting_cmds)
+
+    from . import atomspec
+    atomspec.register_selector(None, "sel", _sel_selector)
+
+def _sel_selector(session, models, results):
+    from .structure import AtomicStructure
+    for m in models:
+        if m.any_part_selected():
+            results.add_model(m)
+            if isinstance(m, AtomicStructure):
+                for atoms in m.selected_items('atoms'):
+                    results.add_atoms(atoms)

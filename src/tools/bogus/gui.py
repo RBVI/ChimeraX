@@ -37,10 +37,12 @@ ACTION_BUTTONS
 </body>
 </html>"""
 
-    def __init__(self, session):
-        super().__init__(session)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Open Models", session, size=self.SIZE)
+    def __init__(self, session, tool_info):
+        super().__init__(session, tool_info)
+
+        self.display_name = "Open Models"
+        self.tool_window = session.ui.create_main_tool_window(self,
+            size=self.SIZE)
         parent = self.tool_window.ui_area
         # UI content code
         from wx import html2
@@ -111,16 +113,18 @@ ACTION_BUTTONS
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.VERSION
         data = {}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
+        from chimera.core.session import RestoreError
         if version != self.VERSION or len(data) > 0:
-            raise RuntimeError("unexpected version or data")
-        from chimera.core.session import State
-        if phase == State.PHASE1:
+            raise RestoreError("unexpected version or data")
+        if phase == self.CREATE_PHASE:
             # Restore all basic-type attributes
             pass
         else:
@@ -141,6 +145,3 @@ ACTION_BUTTONS
 
     def display(self, b):
         self.tool_window.shown = b
-
-    def display_name(self):
-        return "Select open model(s)"

@@ -14,8 +14,10 @@
 #include <atomstruct/connect.h>
 #include <atomstruct/CoordSet.h>
 #include <atomstruct/Sequence.h>
-#include <blob/StructBlob.h>
+#include <basegeom/destruct.h>
+#include <basegeom/Graph.tcc>
 #include <logger/logger.h>
+#include "pythonarray.h"	// Use python_voidp_array()
 
 namespace pdb {
 
@@ -188,7 +190,7 @@ start_t = end_t;
           case PDB::MODEL: {
             cur_res_index = 0;
             if (in_model && !as->residues().empty())
-                cur_residue = as->residues()[0].get();
+                cur_residue = as->residues()[0];
             else {
                 cur_residue = NULL;
                 if (in_model)
@@ -282,7 +284,7 @@ start_t = end_t;
                 || cur_residue->name() != rname) {
                     if (explode) {
                         if (cur_res_index + 1 < as->residues().size())
-                            cur_residue = as->residues()[++cur_res_index].get();
+                            cur_residue = as->residues()[++cur_res_index];
                     } else {
                         // Monte-Carlo traj?
                         std::string string_cid;
@@ -747,7 +749,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         AtomicStructure::Residues::const_iterator last = as->residues().end();
         for (AtomicStructure::Residues::const_iterator
         ri = as->residues().begin(); ri != as->residues().end(); ++ri) {
-            Residue *r = (*ri).get();
+            Residue *r = *ri;
             if (r == init_res)
                 first = ri;
             if (r == end_res) {
@@ -786,7 +788,7 @@ assign_secondary_structure(AtomicStructure *as, const std::vector<PDB> &ss, PyOb
         ++id;
         for (AtomicStructure::Residues::const_iterator ri = sri->first;
         ri != as->residues().end(); ++ri) {
-            Residue *r = (*ri).get();
+            Residue *r = *ri;
             r->set_ss_id(id);
             r->set_is_sheet(true);
             if (ri == sri->second)
@@ -818,7 +820,7 @@ void prune_short_bonds(AtomicStructure *as)
 
     const AtomicStructure::Bonds &bonds = as->bonds();
     for (AtomicStructure::Bonds::const_iterator bi = bonds.begin(); bi != bonds.end(); ++bi) {
-        Bond *b = (*bi).get();
+        Bond *b = *bi;
         Coord c1 = b->atoms()[0]->coord();
         Coord c2 = b->atoms()[1]->coord();
         if (c1.sqdistance(c2) < 0.001)
@@ -937,6 +939,7 @@ read_pdb(PyObject *pdb_file, PyObject *py_logger, bool explode)
 #ifdef CLOCK_PROFILING
 clock_t start_t, end_t;
 #endif
+    auto notifications_off = basegeom::DestructionNotificationsOff();
     PyObject *http_mod = PyImport_ImportModule("http.client");
     if (http_mod == NULL)
         return NULL;
@@ -1129,18 +1132,15 @@ start_t = end_t;
 std::cerr << "tot: " << ((float)clock() - start_t)/CLOCKS_PER_SEC << "\n";
 std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER_SEC << "  loop, pre-switch " << cum_loop_preswitch_t/(float)CLOCKS_PER_SEC << "  loop, switch " << cum_loop_switch_t/(float)CLOCKS_PER_SEC << "  loop, post-switch " << cum_loop_postswitch_t/(float)CLOCKS_PER_SEC << "  post-loop " << cum_postloop_t/(float)CLOCKS_PER_SEC << "\n";
 #endif
-    // ensure structaccess module objects are initialized
-    if (!blob::init_structaccess()) {
-        delete structs;
-        return NULL;
-    }
-    using blob::StructBlob;
-    StructBlob* sb = static_cast<StructBlob*>(blob::new_blob<StructBlob>(&blob::StructBlob_type));
-    for (auto si = structs->begin(); si != structs->end(); ++si) {
-        sb->_items->emplace_back(*si);
-    }
+
+    void **sa;
+    PyObject *s_array = python_voidp_array(structs->size(), &sa);
+    int i = 0;
+    for (auto si = structs->begin(); si != structs->end(); ++si)
+      sa[i++] = static_cast<void *>(*si);
+
     delete structs;
-    return sb;
+    return s_array;
 }
 
 static const char*
@@ -1156,7 +1156,7 @@ docstr_read_pdb_file =
 "  Controls whether NMR ensembles will be handled as separate models (True)\n" \
 "  or as one model with multiple coordinate sets (False)\n" \
 "\n" \
-"Returns a structaccess.StructBlob.";
+"Returns a numpy array of C++ pointers to AtomicStructure objects.";
 
 extern "C" PyObject *
 read_pdb_file(PyObject *, PyObject *args, PyObject *keywords)

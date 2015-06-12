@@ -7,12 +7,11 @@ class Plot(ToolInstance):
 
     SIZE = (300, 300)
 
-    def __init__(self, session, title = 'Plot'):
+    def __init__(self, session, tool_info, title = 'Plot'):
 
-        super().__init__(session)
+        super().__init__(session, tool_info)
 
-        from ..core.ui.tool_api import ToolWindow
-        tw = ToolWindow(title, session, size=self.SIZE)
+        tw = session.ui.create_main_tool_window(self, size=self.SIZE)
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -30,6 +29,9 @@ class Plot(ToolInstance):
 
         self.axes = axes = f.gca()
 
+        # Add to running tool list for session (not required)
+        session.tools.add([self])
+
     def show(self):
         self.tool_window.shown = True
 
@@ -46,7 +48,7 @@ class Plot(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         pass
     def restore_snapshot(self, phase, session, version, data):
         pass
@@ -66,7 +68,8 @@ def show_contact_graph(node_weights, edge_weights, short_names, session):
     pos = nx.spring_layout(G) # positions for all nodes
 
     # Create matplotlib panel
-    p = Plot(session, 'Chain Contacts')
+    tool_info = session.toolshed.find_tool('contacts')
+    p = Plot(session, tool_info)
     a = p.axes
 
     # Draw nodes

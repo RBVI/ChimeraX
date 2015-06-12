@@ -2,7 +2,7 @@ FOREIGN_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 12.4
+VERSION = 15.1
 
 # Need to install from source, so don't put in pips
 

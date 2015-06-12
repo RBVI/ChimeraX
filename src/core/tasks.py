@@ -1,5 +1,9 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-"""This module defines classes for tasks and their state manager.
+"""
+tasks: task creation and monitoring
+===================================
+
+This module defines classes for tasks and their state manager.
 
 Tasks are threads of execution that continue independently from
 the main UI thread.  They can be used for web services or local
@@ -19,22 +23,22 @@ REMOVE_TASK : str
 Notes
 -----
 
-The 'Tasks' instance is a singleton per session and may be
-referenced as `session.tasks`.  It is the state manager for
+The :py:class:`Tasks` instance is a singleton per session and may be
+referenced as ``session.tasks``.  It is the state manager for
 'Task' instances.
 
-A 'Task' instance represents one thread of execution
+A :py:class:`Task` instance represents one thread of execution
 and should be registered with 'session.tasks' when
 instantiated and deregistered when terminated.
 
 Session-specific triggers are fired when tasks
 are registered and deregistered.  To add and remove
-'Task' handlers, use `session.trigger.add_handler`
-and `session.trigger.delete_handler`.
+:py:class:`Task` handlers, use ``session.trigger.add_handler``
+and ``session.trigger.delete_handler``.
 """
 
 import abc
-from .session import State
+from .session import State, RestoreError
 
 ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
@@ -52,29 +56,36 @@ FINISHED = "finished"       # Finished
 class Task(State):
     """Base class for instances of tasks.
 
-    Classes for tasks should inherit from 'Task' and override methods
+    Classes for tasks should inherit from :py:class:`Task` and override methods
     to implement task-specific functionality.  In particularly, methods
-    from `session.State` should be defined so that saving and restoring
-    of scenes and sessions work properly, and the 'run' method should
-    be overriden to provide actual functionality.
+    from session :py:class:`~chimera.core.session.State` should be defined
+    so that saving and restoring of scenes and sessions work properly,
+    and the :py:meth:`run` method should be overriden
+    to provide actual functionality.
 
     Attributes
     ----------
     id : readonly int
-        'id' is a unique identifier among Task instances
+        ``id`` is a unique identifier among Task instances
         registered with the session state manager.
     state : readonly str
-        'state' is one of 'PENDING', 'RUNNING', 'TERMINATING'
-        'TERMINATED', and 'FINISHED'.
-
+        ``state`` is one of ``PENDING``, ``RUNNING``, ``TERMINATING``
+        ``TERMINATED``, and ``FINISHED``.
+    SESSION_ENDURING : bool, class-level optional
+        If True, then task survives across sessions.
+    SESSION_SKIP : bool, class-level optional
+        If True, then task is not saved in sessions.
     """
+
+    SESSION_ENDURING = False
+    SESSION_SKIP = False
 
     def __init__(self, session, id=None, **kw):
         """Initialize a Task.
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of :py:class:`~chimera.core.session.Session`
             Session in which this task was created.
 
         """
@@ -92,7 +103,7 @@ class Task(State):
         return self._session()
 
     def display_name(self):
-        """Name to display to user for this Task.
+        """Name to display to user for this task.
 
         This method should be overridden to return a task-specific name.
 
@@ -110,6 +121,7 @@ class Task(State):
         called as the last step of task deletion.
 
         """
+        self.session.tasks.remove(self)
         if self._terminate is not None:
             self._terminate.set()
         self._update_state(TERMINATING)
@@ -146,7 +158,7 @@ class Task(State):
     def _cleanup(self):
         """Clean up after thread has ended.
 
-        This is usually called from the Tasks instance after a task
+        This is usually called from the :py:class:`Tasks` instance after a task
         declares itself finished.
 
         """
@@ -168,7 +180,7 @@ class Task(State):
         """Run the task.
 
         This method must be overridden to implement actual functionality.
-        'self.terminating()' should be checked regularly to see whether
+        :py:meth:`terminating` should be checked regularly to see whether
         user has requested termination.
 
         """
@@ -178,7 +190,7 @@ class Task(State):
         """Callback method executed after task thread terminates.
 
         This callback is executed in the UI thread after the
-        'run' method returns.  By default, it does nothing.
+        :py:meth:`run` method returns.  By default, it does nothing.
 
         """
         pass
@@ -193,21 +205,22 @@ class Job(Task):
     is modeled as process launch followed by multiple checks
     for process termination.
 
-    'Job' is implemented by overriding the 'run' method to
+    'Job' is implemented by overriding the :py:meth:`run` method to
     launch and monitor the background process.  Subclasses
     should override the 'launch' and 'monitor' methods to
     implement actual functionality.
 
     Classes deriving from 'Job' indirectly inherits from
-    'Task' and should override methods to implement
+    :py:class:`Task` and should override methods to implement
     task-specific functionality.  In particularly, methods
-    from `session.State` should be defined so that saving
+    from session :py:class:`~chimera.core.session.State`
+    should be defined so that saving
     and restoring of scenes and sessions work properly.
 
-    Note
-    ----
-    'start' is still the main entry point for callers
-    to 'Job' instances, not 'run'.
+    Notes
+    -----
+    :py:meth:`start` is still the main entry point for callers
+    to 'Job' instances, not :py:meth:`run`.
 
     """
     CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275]
@@ -220,10 +233,10 @@ class Job(Task):
         """Launch and monitor a background process.
 
         This method is run in the task thread (not the UI
-        thread.  'run' calls the abstract methods 'launch'
-        'running' and 'monitor' to initiate and check status
+        thread.  ``run`` calls the abstract methods :py:meth:`launch`,
+        :py:meth:`running` and :py:meth:`monitor` to initiate and check status
         of the background process.  Timing of the checks
-        are handled by the 'next_check' method, which may
+        are handled by the :py:meth:`next_check` method, which may
         be overridden to provide custom timing.
 
         """
@@ -300,7 +313,7 @@ class JobMonitorError(JobError):
 class Tasks(State):
     """A per-session state manager for tasks.
 
-    'Tasks' instances are per-session singletons that track
+    :py:class:`Tasks` instances are per-session singletons that track
     tasks in the session, as well as managing saving and restoring
     task states for scenes and sessions.
     """
@@ -311,7 +324,7 @@ class Tasks(State):
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of :py:class:`~chimera.core.session.Session`
             Session for which this state manager was created.
 
         """
@@ -325,57 +338,63 @@ class Tasks(State):
         import itertools
         self._id_counter = itertools.count(1)
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
         """Save state of running tasks.
 
-        Overrides chimera.session.State default method to save
-        state of all registered running tasks.
+        Overrides :py:class:`~chimera.core.session.State` default method
+        to save state of all registered running tasks.
 
         Parameters
         ----------
-        session : instance of chimera.session.Session
+        session : instance of :py:class:`~chimera.core.session.Session`
             Session for which state is being saved.
-            Should match the `session` argument given to `__init__`.
+            Should match the ``session`` argument given to ``__init__``.
         flags : int
             Flags indicating whether snapshot is being taken to
-            save scene or session.  See `chimera.session`_ for
+            save scene or session.  See :py:mod:`chimera.core.session` for
             more details.
 
         """
-        data = {}
-        for tid, t in self._tasks.items():
-            assert(isinstance(t, Task))
-            if t.state == RUNNING:
-                data[tid] = [session.unique_id(t),
-                             t.take_snapshot(session, flags)]
-        return [self.VERSION, data]
+        if phase == self.SAVE_PHASE:
+            data = {}
+            for tid, t in self._tasks.items():
+                assert(isinstance(t, Task))
+                if t.state == RUNNING and not t.SESSION_SKIP:
+                    data[tid] = [session.unique_id(t),
+                                 t.take_snapshot(session, phase, flags)]
+            return [self.VERSION, data]
+        elif phase == self.CLEANUP_PHASE:
+            for tid, t in self._tasks.items():
+                if t.state == RUNNING and not t.SESSION_SKIP:
+                    t.take_snapshot(session, phase, flags)
 
     def restore_snapshot(self, phase, session, version, data):
         """Restore state of running tasks.
 
-        Overrides chimera.session.State default method to restore
-        state of all registered running tasks.
+        Overrides :py:class:`~chimera.core.session.State` default method to
+        restore state of all registered running tasks.
 
         Parameters
         ----------
         phase : str
-            Restoration phase.  See `chimera.session`_ for more details.
-        session : instance of chimera.session.Session
+            Restoration phase.  See :py:mod:`chimera.core.session` for more
+            details.
+        session : instance of :py:class:`~chimera.core.session.Session`
             Session for which state is being saved.
-            Should match the `session` argument given to `__init__`.
+            Should match the ``session`` argument given to ``__init__``.
         version : any
             Version of state manager that saved the data.
-            Used for determining how to parse the `data` argument.
+            Used for determining how to parse the ``data`` argument.
         data : any
-            Data saved by state manager during `take_snapshot`.
+            Data saved by state manager during :py:meth:`take_snapshot`.
 
         """
-        if version != self.VERSION or not data:
-            raise RuntimeError("Unexpected version or data")
+        if version != self.VERSION:
+            raise RestoreError("Unexpected version")
 
         session = self._session()   # resolve back reference
         for tid, [uid, [task_version, task_data]] in data.items():
-            if phase == State.PHASE1:
+            if phase == self.CREATE_PHASE:
                 try:
                     cls = session.class_of_unique_id(uid, Task)
                 except KeyError:
@@ -392,15 +411,19 @@ class Tasks(State):
     def reset_state(self):
         """Reset state manager to default state.
 
-        Overrides chimera.session.State default method to reset
-        to default state.  Since the default state has no running
+        Overrides :py:class:`~chimera.core.session.State` default method
+        to reset to default state.  Since the default state has no running
         tasks, all registered tasks are terminated.
 
         """
         task_list = list(self._tasks.values())
-        for task in task_list:
+        for tid, t in self._tasks.items():
+            if t.SESSION_SKIP or t.SESSION_ENDURING:
+                continue
             task.terminate()
-        self._tasks.clear()
+            # ?assert(tid not in self._tasks)
+            if tid in self._tasks:
+                del self._tasks[tid]
 
     def list(self):
         """Return list of tasks.
@@ -408,7 +431,7 @@ class Tasks(State):
         Returns
         -------
         list
-            List of Task instances.
+            List of :py:class:`Task` instances.
 
         """
         return list(self._tasks.values())
@@ -418,7 +441,7 @@ class Tasks(State):
 
         Parameters
         ----------
-        task : Task instances
+        task : :py:class:`Task` instances
             A newly created task.
 
         """
@@ -433,7 +456,7 @@ class Tasks(State):
 
         Parameters
         ----------
-        task_list : list of Task instances
+        task_list : list of :py:class:`Task` instances
             List of registered tasks.
 
         """
@@ -456,11 +479,11 @@ class Tasks(State):
 
         Parameters
         ----------
-        task : Task instance
+        task : :py:class:`Task` instance
             Task whose state just changed
         new_state : str
-            New state of the task (one of PENDING, RUNNING, TERMINATING
-            or FINISHED).
+            New state of the task (one of ``PENDING``, ``RUNNING``,
+            ``TERMINATING`` or ``FINISHED``).
 
         """
         task.state = new_state
@@ -472,7 +495,7 @@ class Tasks(State):
             session.triggers.activate_trigger(UPDATE_TASK, task)
 
     def find_by_id(self, tid):
-        """Return a Task instance with the matching identifier.
+        """Return a :py:class:`Task` instance with the matching identifier.
 
         Parameters
         ----------
@@ -485,7 +508,7 @@ class Tasks(State):
     def find_by_class(self, cls):
         """Return a list of tasks of the given class.
 
-        All tasks that match `cls` as defined by `isinstance`
+        All tasks that match ``cls`` as defined by :py:func:`isinstance`
         are returned.
 
         Parameters

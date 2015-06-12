@@ -18,6 +18,7 @@ static void
 BondBlob_dealloc(PyObject* obj)
 {
     BondBlob* self = static_cast<BondBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);
@@ -146,7 +147,43 @@ static PyMethodDef BondBlob_methods[] = {
         (char*)"filter bond blob based on array/list of booleans" },
     { (char*)"intersect", blob_intersect<BondBlob>, METH_O,
         (char*)"intersect bond blobs" },
+    { (char*)"merge", blob_merge<BondBlob>, METH_O,
+        (char*)"merge atom blobs" },
+    { (char*)"subtract", blob_subtract<BondBlob>, METH_O,
+        (char*)"subtract atom blobs" },
     { NULL, NULL, 0, NULL }
+};
+
+static PyNumberMethods BondBlob_as_number = {
+    0,                                    // nb_add
+    (binaryfunc)blob_subtract<BondBlob>,  // nb_subtract
+    0,                                    // nb_multiply
+    0,                                    // nb_remainder
+    0,                                    // nb_divmod
+    0,                                    // nb_power
+    0,                                    // nb_negative
+    0,                                    // nb_positive
+    0,                                    // nb_absolute
+    0,                                    // nb_bool
+    0,                                    // nb_invert
+    0,                                    // nb_lshift
+    0,                                    // nb_rshift
+    (binaryfunc)blob_intersect<BondBlob>, // nb_and
+    0,                                    // nb_xor
+    (binaryfunc)blob_merge<BondBlob>,     // nb_or
+    0,                                    // nb_int
+    0,                                    // nb_reserved
+    0,                                    // nb_float
+    0,                                    // nb_inplace_add
+    0,                                    // nb_inplace_subtract
+    0,                                    // nb_inplace_multiply
+    0,                                    // nb_inplace_remainder
+    0,                                    // nb_inplace_power
+    0,                                    // nb_inplace_lshift
+    0,                                    // nb_inplace_rshift
+    0,                                    // nb_inplace_and
+    0,                                    // nb_inplace_xor
+    0,                                    // nb_inplace_or
 };
 
 static PyGetSetDef BondBlob_getset[] = {
@@ -178,7 +215,7 @@ PyTypeObject BondBlob_type = {
     0, // tp_setattr
     0, // tp_reserved
     0, // tp_repr
-    0, // tp_as_number
+    &BondBlob_as_number, // tp_as_number
     0, // tp_as_sequence
     &BondBlob_len, // tp_as_mapping
     0, // tp_hash

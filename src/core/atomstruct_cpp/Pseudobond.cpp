@@ -2,6 +2,7 @@
 
 #include "Atom.h"
 #include "AtomicStructure.h"
+#include <basegeom/destruct.h>
 #include "Pseudobond.h"
 
 namespace pseudobond {
@@ -19,6 +20,48 @@ Owned_PBGroup_Base::_check_ownership(Atom* a1, Atom* a2)
     if (a1->structure() != _owner || a2->structure() != _owner)
         throw std::invalid_argument("Pseudobond endpoints not in "
             " atomic structure associated with group");
+}
+
+static void
+_check_destroyed_atoms(PBonds& pbonds, const std::set<void*>& destroyed)
+{
+    PBonds remaining;
+    for (auto pb: pbonds) {
+        auto& pb_atoms = pb->atoms();
+        if (destroyed.find(static_cast<void*>(pb_atoms[0])) != destroyed.end()
+        || destroyed.find(static_cast<void*>(pb_atoms[1])) != destroyed.end()) {
+            delete pb;
+        } else {
+            remaining.insert(pb);
+        }
+    }
+    if (remaining.size() == 0) {
+        pbonds.clear();
+    } else if (remaining.size() != pbonds.size()) {
+        pbonds.swap(remaining);
+    }
+}
+
+void
+CS_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
+{
+    auto db = basegeom::DestructionBatcher(this);
+    for (auto& cs_pbs: _pbonds)
+        _check_destroyed_atoms(cs_pbs.second, destroyed);
+}
+
+void
+Owned_PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
+{
+    auto db = basegeom::DestructionBatcher(this);
+    _check_destroyed_atoms(_pbonds, destroyed);
+}
+
+void
+PBGroup::check_destroyed_atoms(const std::set<void*>& destroyed)
+{
+    auto db = basegeom::DestructionBatcher(this);
+    _check_destroyed_atoms(_pbonds, destroyed);
 }
 
 Proxy_PBGroup*

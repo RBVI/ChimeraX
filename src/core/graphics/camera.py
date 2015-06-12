@@ -46,15 +46,18 @@ class Camera:
 
     CAMERA_STATE_VERSION = 1
 
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        from ..session import State
+        if phase != State.SAVE_PHASE:
+            return
         data = [self.position, self.field_of_view]
         return [self.CAMERA_STATE_VERSION, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from ..session import State
+        from ..session import State, RestoreError
         if version != self.CAMERA_STATE_VERSION or len(data) == 0:
-            raise RuntimeError("Unexpected version or data")
-        if phase != State.PHASE1:
+            raise RestoreError("Unexpected version or data")
+        if phase != State.CREATE_PHASE:
             return
         (self.position, self.field_of_view) = data
 

@@ -32,6 +32,7 @@ class Models:
     def model_list(self):
         '''List of all models in drawing tree.'''
         return self._root_model.all_models()[1:]
+    list = model_list   # For compatibility with Chimera 2
 
     def drawing(self):
         return self._root_model

@@ -16,6 +16,7 @@ static void
 ResBlob_dealloc(PyObject* obj)
 {
     ResBlob* self = static_cast<ResBlob*>(obj);
+    delete self->_observer;
     delete self->_items;
     if (self->_weaklist)
         PyObject_ClearWeakRefs(obj);
@@ -78,21 +79,85 @@ rb_strs(PyObject* self, void*)
     return list;
 }
 
+static PyObject*
+rb_unique_ids(PyObject* self, void*)
+{
+    ResBlob* rb = static_cast<ResBlob*>(self);
+    if (PyArray_API == NULL)
+        import_array1(NULL); // initialize NumPy
+    static_assert(sizeof(unsigned int) >= 4, "need 32-bit ints");
+    unsigned int shape[1] = {(unsigned int)rb->_items->size()};
+    PyObject* unique_ids = allocate_python_array(1, shape, NPY_INT);
+    int* data = (int*) PyArray_DATA((PyArrayObject*)unique_ids);
+    // TODO: Don't assume residue atoms are consecutive.
+    int rid = -1;
+    const atomstruct::Residue *rprev = NULL;
+    for (auto ri = rb->_items->begin(); ri != rb->_items->end(); ++ri){
+        const atomstruct::Residue *r = ri->get();
+	if (rprev == NULL || r->position() != rprev->position() || r->chain_id() != rprev->chain_id()) {
+	    rid += 1;
+	    rprev = r;
+	}
+        *data++ = rid;
+    }
+    return unique_ids;
+}
+
 static PyMethodDef ResBlob_methods[] = {
     { (char*)"filter", blob_filter<ResBlob>, METH_O,
         (char*)"filter residue blob based on array/list of booleans" },
     { (char*)"intersect", blob_intersect<ResBlob>, METH_O,
         (char*)"intersect residue blobs" },
+    { (char*)"merge", blob_merge<ResBlob>, METH_O,
+        (char*)"merge atom blobs" },
+    { (char*)"subtract", blob_subtract<ResBlob>, METH_O,
+        (char*)"subtract atom blobs" },
     { NULL, NULL, 0, NULL }
 };
 
+static PyNumberMethods ResBlob_as_number = {
+    0,                                   // nb_add
+    (binaryfunc)blob_subtract<ResBlob>,  // nb_subtract
+    0,                                   // nb_multiply
+    0,                                   // nb_remainder
+    0,                                   // nb_divmod
+    0,                                   // nb_power
+    0,                                   // nb_negative
+    0,                                   // nb_positive
+    0,                                   // nb_absolute
+    0,                                   // nb_bool
+    0,                                   // nb_invert
+    0,                                   // nb_lshift
+    0,                                   // nb_rshift
+    (binaryfunc)blob_intersect<ResBlob>, // nb_and
+    0,                                   // nb_xor
+    (binaryfunc)blob_merge<ResBlob>,     // nb_or
+    0,                                   // nb_int
+    0,                                   // nb_reserved
+    0,                                   // nb_float
+    0,                                   // nb_inplace_add
+    0,                                   // nb_inplace_subtract
+    0,                                   // nb_inplace_multiply
+    0,                                   // nb_inplace_remainder
+    0,                                   // nb_inplace_power
+    0,                                   // nb_inplace_lshift
+    0,                                   // nb_inplace_rshift
+    0,                                   // nb_inplace_and
+    0,                                   // nb_inplace_xor
+    0,                                   // nb_inplace_or
+};
+
 static PyGetSetDef ResBlob_getset[] = {
-    { "chain_ids", rb_chain_ids, NULL, "list of chain IDs", NULL},
-    { "names", rb_names, NULL, "list of residue names", NULL},
-    { "numbers", rb_numbers, NULL,
-        "numpy array of residue sequence numbers", NULL},
-    { "strs", rb_strs, NULL,
-        "list of human-friendly residue identifiers", NULL},
+    { (char*)"chain_ids", rb_chain_ids, NULL,
+        (char*)"list of chain IDs", NULL},
+    { (char*)"names", rb_names, NULL,
+        (char*)"list of residue names", NULL},
+    { (char*)"numbers", rb_numbers, NULL,
+        (char*)"numpy array of residue sequence numbers", NULL},
+    { (char*)"strs", rb_strs, NULL,
+        (char*)"list of human-friendly residue identifiers", NULL},
+    { (char*)"unique_ids", rb_unique_ids, NULL,
+        (char*)"numpy array of integer ids unique for each chain and residue number", NULL},
     { NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -111,7 +176,7 @@ PyTypeObject ResBlob_type = {
     0, // tp_setattr
     0, // tp_reserved
     0, // tp_repr
-    0, // tp_as_number
+    &ResBlob_as_number, // tp_as_number
     0, // tp_as_sequence
     &ResBlob_len, // tp_as_mapping
     0, // tp_hash

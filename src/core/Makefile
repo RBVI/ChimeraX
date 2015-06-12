@@ -2,15 +2,15 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp atomstruct_cpp \
-	   basegeom_cpp blob_cpp \
+	   basegeom_cpp chutil_cpp \
 	   devices \
 	   geometry graphics \
-	   _mmcif \
 	   ioutil_cpp logger_cpp \
+	   map molecule _mmcif \
 	   pdb_cpp pdbio pseudobond_cpp \
 	   readcif_cpp \
-	   structaccess surface toolshed ui chutil_cpp \
-	   map webservices
+	   surface toolshed ui \
+	   webservices
 
 include $(TOP)/mk/subdir.make
 
@@ -22,9 +22,11 @@ PYSRCS = $(wildcard *.py) $(GENSRCS)
 CORE_VERSION = 2.0
 WHEEL = dist/chimera.core-$(CORE_VERSION)-py3-none-any.whl
 
+.FORCE: wheel
+
 all: $(PYOBJS)
 
-install: dir _atomspec.py
+install: dir all
 	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
@@ -34,7 +36,7 @@ app-install: wheel
 	$(APP_PYTHON_EXE) -m pip install -U --no-deps $(WHEEL)
 	$(RSYNC) $(WHEEL) $(wheelhouse)
 
-wheel: setup.py timestamp always
+wheel: setup.py timestamp
 	$(PYTHON_EXE) setup.py bdist_wheel
 
 setup.py: setup.py.in
@@ -50,8 +52,6 @@ setup.py: setup.py.in
 
 timestamp:
 	echo "chimera.core" > timestamp
-
-always:
 
 lint:
 	$(PYLINT) $(PYSRCS)
@@ -73,16 +73,18 @@ clean:
 .peg.py:
 	$(PYTHON_EXE) -m grako -o $@ $^
 
+test_peg:	_atomspec.py
+	$(PYTHON_EXE) _atomspec.py --trace test.in atom_specifier
+
 _appdirs.install: appdirs_cpp.install
 atomstruct_cpp.install: basegeom_cpp.install logger_cpp.install \
 	chutil_cpp.install ioutil_cpp.install pseudobond_cpp.install
-blob_cpp.install: atomstruct_cpp.install
 geometry.install: arrays_cpp.install
 graphics.install: arrays_cpp.install
-_mmcif.install: readcif_cpp.install atomstruct_cpp.install blob_cpp.install
+molecule.install: atomstruct_cpp.install
+_mmcif.install: readcif_cpp.install atomstruct_cpp.install
 pdbio.install: atomstruct_cpp.install logger_cpp.install pdb_cpp.install \
-	blob_cpp.install basegeom_cpp.install
+	basegeom_cpp.install
 pseudobond_cpp.install: basegeom_cpp.install
 surface.install: arrays_cpp.install
 map.install: arrays_cpp.install
-structaccess.install: atomstruct_cpp.install basegeom_cpp.install blob_cpp.install

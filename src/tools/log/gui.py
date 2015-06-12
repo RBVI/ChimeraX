@@ -6,14 +6,14 @@ from chimera.core.logger import HtmlLog
 
 class Log(ToolInstance, HtmlLog):
 
+    SESSION_ENDURING = True
     SIZE = (300, 500)
     STATE_VERSION = 1
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Log", session,
-                                      size=self.SIZE, destroy_hides=True)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
+        self.tool_window = session.ui.create_main_tool_window(
+            self, size=self.SIZE, destroy_hides=True)
         parent = self.tool_window.ui_area
         import wx
         wx.FileSystem.AddHandler(wx.MemoryFSHandler())
@@ -23,6 +23,8 @@ class Log(ToolInstance, HtmlLog):
         # so use HtmlWindow
         from wx.html import HtmlWindow
         self.log_window = HtmlWindow(parent, size=self.SIZE)
+        if "gtk2" in wx.PlatformInfo:
+            self.log_window.SetStandardFonts()
         self.page_source = ""
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.log_window, 1, wx.EXPAND)
@@ -31,6 +33,7 @@ class Log(ToolInstance, HtmlLog):
         session.tools.add([self])
         session.logger.add_log(self)
         self.log_window.Bind(wx.EVT_CLOSE, self.window_close)
+        self.log_window.Bind(wx.EVT_SIZE, self.window_size)
 
     #
     # Implement logging
@@ -51,7 +54,7 @@ class Log(ToolInstance, HtmlLog):
             png_data = img_io.getvalue()
             bitmap = wx.Bitmap.NewFromPNGData(png_data, len(png_data))
             wx.MemoryFSHandler.AddFile(mem_name, bitmap.ConvertToImage(),
-                wx.BITMAP_TYPE_PNG)
+                                       wx.BITMAP_TYPE_PNG)
             w, h = image.size
             self.page_source += '<img src="memory:{}" width={} height={}' \
                 ' style="vertical-align:middle">'.format(mem_name, w, h)
@@ -72,15 +75,21 @@ class Log(ToolInstance, HtmlLog):
                     dlg_msg = html_to_plain(msg)
                 else:
                     dlg_msg = msg
+                if dlg_msg.count('\n') > 30:
+                    # avoid excessively high error dialogs where
+                    # both the bottom buttons and top controls
+                    # may be off the screen!
+                    lines = dlg_msg.split('\n')
+                    dlg_msg = '\n'.join(lines[:15] + ["..."] + lines[-15:])
                 dlg = wx.MessageDialog(graphics, dlg_msg,
-                    caption=caption, style=style)
+                                       caption=caption, style=style)
                 dlg.ShowModal()
 
             if not is_html:
                 from html import escape
                 msg = escape(msg)
                 msg = msg.replace("\n", "<br>")
-            
+
             if level == self.LEVEL_ERROR:
                 msg = '<font color="red">' + msg + '</font>'
             elif level == self.LEVEL_WARNING:
@@ -95,17 +104,25 @@ class Log(ToolInstance, HtmlLog):
     def window_close(self, event):
         self.session.logger.remove_log(self)
 
+    def window_size(self, event):
+        # try to get to same scroll position
+        self.log_window.HistoryBack()
+
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.STATE_VERSION
         data = {"shown": self.tool_window.shown}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
-        from chimera.core.session import State
-        if phase == State.PHASE1:
+        from chimera.core.session import RestoreError
+        if version != self.STATE_VERSION:
+            raise RestoreError("unexpected version")
+        if phase == self.CREATE_PHASE:
             # All the action is in phase 2 because we do not
             # want to restore until all objects have been resolved
             pass
@@ -122,6 +139,7 @@ class Log(ToolInstance, HtmlLog):
         session = self.session
         self.tool_window.shown = False
         self.tool_window.destroy()
+        session.logger.remove_log(self)
         session.tools.remove([self])
         super().delete()
 

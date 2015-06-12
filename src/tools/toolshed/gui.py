@@ -44,19 +44,19 @@ from chimera.core.tools import ToolInstance
 
 class ToolshedUI(ToolInstance):
 
+    SESSION_ENDURING = True
     SIZE = (800, 50)
     VERSION = 1
 
-    def __init__(self, session, **kw):
-        super().__init__(session, **kw)
-        from chimera.core.ui.tool_api import ToolWindow
-        self.tool_window = ToolWindow("Toolshed", session)
+    def __init__(self, session, tool_info, **kw):
+        super().__init__(session, tool_info, **kw)
+        self.tool_window = session.ui.create_main_tool_window(self)
         parent = self.tool_window.ui_area
         from wx import html2
         import wx
         self.webview = html2.WebView.New(parent, wx.ID_ANY, size=self.SIZE)
         self.webview.Bind(html2.EVT_WEBVIEW_NAVIGATING,
-                          self._OnNavigating,
+                          self._on_navigating,
                           id=self.webview.GetId())
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.webview, 1, wx.EXPAND)
@@ -69,7 +69,7 @@ class ToolshedUI(ToolInstance):
                                                        self._make_page)]
         session.tools.add([self])
 
-    def _OnNavigating(self, event):
+    def _on_navigating(self, event):
         session = self.session
         # Handle event
         url = event.GetURL()
@@ -102,7 +102,7 @@ class ToolshedUI(ToolInstance):
                 hide_link = _HIDE_LINK % t.id
                 kill_link = _KILL_LINK % t.id
                 print("<li>%s. %s %s %s</li>"
-                      % (t.display_name(), show_link,
+                      % (t.display_name, show_link,
                          hide_link, kill_link), file=s)
         print("</ul>", file=s)
         page = page.replace("RUNNING_TOOLS", s.getvalue())
@@ -184,15 +184,15 @@ class ToolshedUI(ToolInstance):
         return t
 
     def _show_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).display(True)
+        self._find_tool(session, tool_id).display(True)
         self._make_page()
 
     def _hide_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).display(False)
+        self._find_tool(session, tool_id).display(False)
         self._make_page()
 
     def _kill_tool(self, session, tool_id):
-        t = self._find_tool(session, tool_id).delete()
+        self._find_tool(session, tool_id).delete()
         self._make_page()
 
     def button_test(self, session, *args):
@@ -201,16 +201,18 @@ class ToolshedUI(ToolInstance):
     #
     # Implement session.State methods if deriving from ToolInstance
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, phase, session, flags):
+        if phase != self.SAVE_PHASE:
+            return
         version = self.VERSION
         data = {"shown": self.tool_window.shown}
         return [version, data]
 
     def restore_snapshot(self, phase, session, version, data):
+        from chimera.core.session import State, RestoreError
         if version != self.VERSION:
-            raise RuntimeError("unexpected version or data")
-        from chimera.core.session import State
-        if phase == State.PHASE1:
+            raise RestoreError("unexpected version")
+        if phase == self.CREATE_PHASE:
             # Restore all basic-type attributes
             pass
         else:

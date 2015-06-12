@@ -67,7 +67,7 @@ class Volume(Model):
     self.transparency_depth = 0.5               # for solid
     self.solid_brightness_factor = 1
 
-    self.default_rgba = data.rgba
+    self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
 
     self.change_callbacks = []
 
@@ -1057,18 +1057,22 @@ class Volume(Model):
         from . import slice
         xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
         if xyz_in is None or xyz_out is None:
-          return None, None
+          return None
         from ..geometry.vector import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-        return f, Picked_Map(self)
+        return PickedMap(self, f)
 
     from ..graphics import Drawing
-    f, p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
-    if p:
-      d = p.drawing()
+    pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    if pd:
+      d = pd.drawing()
       detail = '%s triangles %d' % (d.name, len(d.triangles))
-      p = Picked_Map(self, detail)
-    return f,p
+      p = PickedMap(self, pd.distance, detail)
+      p.triangle_pick = pd
+    else:
+      p = None
+
+    return p
 
   # ---------------------------------------------------------------------------
   # The data ijk bounds with half a step size padding on all sides.
@@ -1527,7 +1531,7 @@ class Volume(Model):
     if source_to_scene_transform:
       # Handle case where vertices and volume have different model transforms.
       scene_to_source_tf = source_to_scene_transform.inverse()
-      m2s_transform = scene_to_source_tf * self.position * m2s_transform
+      m2s_transform = scene_to_source_tf * self.scene_position * m2s_transform
       
     s2m_transform = m2s_transform.inverse()
 
@@ -1813,7 +1817,7 @@ class Volume(Model):
 
 
   # State save/restore in Chimera 2
-  def take_snapshot(self, session, flags):
+  def take_snapshot(self, phase, session, flags):
     pass
   def restore_snapshot(self, phase, session, version, data):
     pass
@@ -1823,8 +1827,9 @@ class Volume(Model):
 # -----------------------------------------------------------------------------
 #
 from ..graphics import Pick
-class Picked_Map(Pick):
-  def __init__(self, v, detail = ''):
+class PickedMap(Pick):
+  def __init__(self, v, distance, detail = ''):
+    Pick.__init__(self, distance)
     self.map = v
     self.detail = detail
   def description(self):
@@ -2676,7 +2681,8 @@ def volume_from_grid_data(grid_data, session, representation = None,
     grid_data = d
   v = Volume(grid_data, session, region, ro, model_id, open_model)
   v.set_representation(representation)
-  set_initial_volume_color(v, session)
+  if grid_data.rgba is None:
+    set_initial_volume_color(v, session)
 
   # Show data
   if show_data:
@@ -2687,7 +2693,7 @@ def volume_from_grid_data(grid_data, session, representation = None,
       v.message('%s not shown' % v.name)
 
   if open_model:
-    session.add_model(v)
+    session.models.add([v])
 
   return v
 
@@ -2760,10 +2766,7 @@ def data_already_opened(path, grid_id, session):
 # -----------------------------------------------------------------------------
 #
 def volume_list(session):
-  if hasattr(session, 'maps'):
-    return session.maps()       # Hydra
-  else:
-    return [m for m in session.models.list() if isinstance(m, Volume)]
+  return [m for m in session.models.list() if isinstance(m, Volume)]
 
 # -----------------------------------------------------------------------------
 #
@@ -2771,19 +2774,22 @@ def open_map(session, stream, *args, **kw):
     '''
     Open a density map file having any of the known density map formats.
     '''
-    map_path = stream.name
-    stream.close()
+    if isinstance(stream, list):
+      map_path = stream         # Batched paths
+    else:
+      map_path = stream.name
+      stream.close()
 
     maps = []
     from . import data
     grids = data.open_file(map_path)
     for i,d in enumerate(grids):
-        show = (i == 0)
+        show = (i == 0 or not hasattr(d, 'series_index'))
         v = volume_from_grid_data(d, session, open_model = False, show_data = show)
         v.new_region(ijk_step = (1,1,1), adjust_step = False, show = show)
         maps.append(v)
 
-    if len(maps) > 1:
+    if len(maps) > 1 and len([d for d in grids if hasattr(d, 'series_index')]) == len(grids):
         from os.path import basename
         name = basename(map_path if isinstance(map_path, str) else map_path[0])
         from .series import Map_Series
@@ -2801,4 +2807,4 @@ def register_map_file_readers():
     from .data.fileformats import file_types
     for d,t,prefixes,suffixes,batch in file_types:
       suf = tuple('.' + s for s in suffixes)
-      io.register_format(d, io.VOLUME, suf, open_func=open_map)
+      io.register_format(d, io.VOLUME, suf, open_func=open_map, batch=batch)

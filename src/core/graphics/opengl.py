@@ -13,6 +13,8 @@ between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
 from OpenGL import GL
+# OpenGL workarounds:
+stencil8_needed = False
 
 
 class Render:
@@ -55,7 +57,7 @@ class Render:
         self._shadow_transform = None
         self.multishadow_map_framebuffer = None
         self.multishadow_texture_unit = 2
-        self.max_multishadows = 256
+        self._max_multishadows = None
         self._multishadow_transforms = None
         # near to far clip depth for shadow map:
         self._multishadow_depth = None
@@ -166,7 +168,7 @@ class Render:
         if capabilities in sp:
             p = sp[capabilities]
         else:
-            p = Shader(capabilities)
+            p = Shader(capabilities, self.max_multishadows())
             sp[capabilities] = p
 
         return p
@@ -316,8 +318,10 @@ class Render:
 #                                                  for tf in stf], float32)
         self._multishadow_depth = shadow_depth
         p = self.current_shader_program
-        if p is not None and self.SHADER_MULTISHADOW & p.capabilities:
-            self.set_shadow_shader_variables(p)
+        if p is not None:
+            c = p.capabilities
+            if self.SHADER_MULTISHADOW & c and self.SHADER_LIGHTING & c:
+                self.set_shadow_shader_variables(p)
 
     def set_shadow_shader_variables(self, shader):
         shader.set_integer("multishadow_map", self.multishadow_texture_unit)
@@ -328,20 +332,30 @@ class Render:
         # Setup uniform buffer object for shadow matrices.
         # It can have larger size than an array of uniforms.
         b = self._multishadow_matrix_buffer
+        maxs = self.max_multishadows()
         if b is None:
             self._multishadow_matrix_buffer = b = GL.glGenBuffers(1)
             GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, b)
-            GL.glBufferData(GL.GL_UNIFORM_BUFFER, self.max_multishadows * 64,
+            GL.glBufferData(GL.GL_UNIFORM_BUFFER, maxs * 64,
                             pyopengl_null(), GL.GL_DYNAMIC_DRAW)
             bi = GL.glGetUniformBlockIndex(shader.program_id, b'shadow_matrix_block')
             GL.glUniformBlockBinding(shader.program_id, bi, self._multishadow_uniform_block)
         GL.glBindBufferBase(GL.GL_UNIFORM_BUFFER, self._multishadow_uniform_block, b)
         # TODO: Issue warning if maximum number of shadows exceeded.
-        mm = m[:self.max_multishadows, :, :]
+        mm = m[:maxs, :, :]
         GL.glBufferSubData(GL.GL_UNIFORM_BUFFER, 0, len(mm) * 64, mm)
 #        shader.set_matrices("shadow_transforms", m)
         shader.set_integer("shadow_count", len(mm))
         shader.set_float("shadow_depth", self._multishadow_depth)
+
+    def max_multishadows(self):
+        'Maximum number of shadows to cast.'
+        m = self._max_multishadows
+        if m is None:
+            m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
+            m = m // 64                                             # 64 bytes per matrix.
+            self._max_multishadows = m
+        return m
 
     def opengl_version(self):
         'String description of the OpenGL version for the current context.'
@@ -369,6 +383,13 @@ class Render:
         fb = self.default_framebuffer()
         fb.width, fb.height = width, height
         self.set_viewport(0, 0, width, height)
+
+        # Detect OpenGL workarounds
+        vendor = GL.glGetString(GL.GL_VENDOR)
+        import sys
+        global stencil8_needed
+        stencil8_needed = (sys.platform.startswith('linux') and
+                           vendor.startswith((b'AMD', b'ATI')))
 
     def set_viewport(self, x, y, w, h):
         'Set the OpenGL viewport.'
@@ -570,7 +591,7 @@ class Render:
                                          | self.SHADER_TEXTURE_2D
                                          | self.SHADER_LIGHTING)
         # Depth test GL_LEQUAL results in z-fighting:
-        self.set_depth_range(0, 0.99999)
+        self.set_depth_range(0, 0.999999)
         # Copy depth to outline framebuffer:
         self.copy_from_framebuffer(fb, color=False)
 
@@ -619,7 +640,7 @@ class Render:
 
         # Render region with texture red > 0.
         # Texture map a full-screen quad to blend texture with frame buffer.
-        tc = Texture_Window(self, self.SHADER_TEXTURE_MASK)
+        tc = TextureWindow(self, self.SHADER_TEXTURE_MASK)
         texture.bind_texture()
 
         # Draw 4 shifted copies of mask
@@ -691,7 +712,7 @@ class Render:
         # Render pixels with depth less than neighbor pixel by at least
         # depth_jump.  Texture map a full-screen quad to blend depth jump
         # pixels with frame buffer.
-        tc = Texture_Window(self, self.SHADER_DEPTH_OUTLINE)
+        tc = TextureWindow(self, self.SHADER_DEPTH_OUTLINE)
         depth_texture.bind_texture()
 
         # Draw 4 shifted copies of mask
@@ -835,8 +856,13 @@ class Framebuffer:
 
         depth_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT24,
-                                 width, height)
+        if stencil8_needed:
+            # AMD driver requires GL_DEPTH24_STENCIL8 for blitting instead of
+            # GL_DEPTH_COMPONENT24 even though we don't have any stencil planes
+            iformat = GL.GL_DEPTH24_STENCIL8
+        else:
+            iformat = GL.GL_DEPTH_COMPONENT24
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, iformat, width, height)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
         return depth_rb
 
@@ -1076,7 +1102,7 @@ def deactivate_bindings():
 from numpy import uint8, uint32, float32
 
 
-class Buffer_Type:
+class BufferType:
     '''
     Describes a shader variable and the vertex buffer object value type
     required and what rendering capabilities are required to use this
@@ -1095,25 +1121,25 @@ class Buffer_Type:
         self.requires_capabilities = requires_capabilities
 
 # Buffer types with associated shader variable names
-VERTEX_BUFFER = Buffer_Type('position')
-NORMAL_BUFFER = Buffer_Type(
+VERTEX_BUFFER = BufferType('position')
+NORMAL_BUFFER = BufferType(
     'normal', requires_capabilities=Render.SHADER_LIGHTING)
-VERTEX_COLOR_BUFFER = Buffer_Type(
+VERTEX_COLOR_BUFFER = BufferType(
     'vcolor', value_type=uint8, normalize=True,
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
-INSTANCE_SHIFT_AND_SCALE_BUFFER = Buffer_Type(
+INSTANCE_SHIFT_AND_SCALE_BUFFER = BufferType(
     'instance_shift_and_scale', instance_buffer=True)
-INSTANCE_MATRIX_BUFFER = Buffer_Type(
+INSTANCE_MATRIX_BUFFER = BufferType(
     'instance_placement', instance_buffer=True)
-INSTANCE_COLOR_BUFFER = Buffer_Type(
+INSTANCE_COLOR_BUFFER = BufferType(
     'vcolor', instance_buffer=True, value_type=uint8, normalize=True,
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
-TEXTURE_COORDS_2D_BUFFER = Buffer_Type(
+TEXTURE_COORDS_2D_BUFFER = BufferType(
     'tex_coord_2d',
     requires_capabilities=Render.SHADER_TEXTURE_2D | Render.SHADER_TEXTURE_MASK
     | Render.SHADER_DEPTH_OUTLINE)
-ELEMENT_BUFFER = Buffer_Type(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
-                             value_type=uint32)
+ELEMENT_BUFFER = BufferType(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
+                            value_type=uint32)
 
 
 class Buffer:
@@ -1239,10 +1265,10 @@ class Buffer:
 class Shader:
     '''OpenGL shader program with specified capabilities.'''
 
-    def __init__(self, capabilities):
+    def __init__(self, capabilities, max_shadows):
 
         self.capabilities = capabilities
-        self.program_id = self.compile_shader(capabilities)
+        self.program_id = self.compile_shader(capabilities, max_shadows)
         self.uniform_ids = {}
 
     def set_integer(self, name, value):
@@ -1272,16 +1298,16 @@ class Shader:
             uids[name] = uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
         return uid
 
-    def compile_shader(self, capabilities):
+    def compile_shader(self, capabilities, max_shadows):
 
         from os.path import dirname, join
         d = dirname(__file__)
         f = open(join(d, 'vertexShader.txt'), 'r')
-        vshader = insert_define_macros(f.read(), capabilities)
+        vshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
 
         f = open(join(d, 'fragmentShader.txt'), 'r')
-        fshader = insert_define_macros(f.read(), capabilities)
+        fshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
 
         from OpenGL.GL import shaders
@@ -1309,18 +1335,19 @@ class Shader:
 
         return prog_id
 
-
-# Add #define lines after #version line of shader
-def insert_define_macros(shader, capabilities):
-    '''Private. Puts "#define" statements in shader program templates
-    to specify shader capabilities.'''
-    defs = '\n'.join('#define %s 1' % sopt.replace('SHADER_', 'USE_')
-                     for i, sopt in enumerate(shader_options)
-                     if capabilities & (1 << i))
-    v = shader.find('#version')
-    eol = shader[v:].find('\n') + 1
-    s = shader[:eol] + defs + '\n' + shader[eol:]
-    return s
+    # Add #define lines after #version line of shader
+    def insert_define_macros(self, shader, capabilities, max_shadows):
+        '''Private. Puts "#define" statements in shader program templates
+        to specify shader capabilities.'''
+        deflines = ['#define %s 1' % sopt.replace('SHADER_', 'USE_')
+                    for i, sopt in enumerate(shader_options)
+                    if capabilities & (1 << i)]
+        deflines.append('#define MAX_SHADOWS %d' % max_shadows)
+        defs = '\n'.join(deflines)
+        v = shader.find('#version')
+        eol = shader[v:].find('\n') + 1
+        s = shader[:eol] + defs + '\n' + shader[eol:]
+        return s
 
 
 class Texture:
@@ -1361,7 +1388,7 @@ class Texture:
 
         format = GL.GL_RED
         # TODO: PyOpenGL-20130502 does not have GL_R8.
-        GL_R8 = 0x8229
+        GL_R8 = 0x8229  # noqa
         iformat = GL_R8
         tdtype = GL.GL_UNSIGNED_BYTE
         ncomp = 1
@@ -1370,7 +1397,11 @@ class Texture:
     def initialize_depth(self, size, depth_compare_mode=True):
 
         format = GL.GL_DEPTH_COMPONENT
-        iformat = GL.GL_DEPTH_COMPONENT24
+        if stencil8_needed:
+            # for compatibility with glRenderbufferStorage
+            iformat = GL.GL_DEPTH24_STENCIL8
+        else:
+            iformat = GL.GL_DEPTH_COMPONENT24
         tdtype = GL.GL_FLOAT
         ncomp = 1
         self.initialize_texture(size, format, iformat, tdtype, ncomp,
@@ -1513,7 +1544,7 @@ class Texture:
         return format, iformat, tdtype, ncomp
 
 
-class Texture_Window:
+class TextureWindow:
     '''Draw a texture on a full window rectangle.'''
     def __init__(self, render, shader_options):
 
@@ -1553,6 +1584,29 @@ class Texture_Window:
         eb = self.element_buf
         eb.draw_elements(eb.triangles)
         GL.glDepthMask(True)
+
+
+def print_debug_log(tag, count=None):
+    # GLuint glGetDebugMessageLog(GLuint count, GLsizei bufSize,
+    #   GLenum *sources, Glenum *types, GLuint *ids, GLenum *severities,
+    #   GLsizei *lengths, GLchar *messageLog)
+    if count is None:
+        while print_debug_log(tag, 1) > 0:
+            continue
+        return
+    print('print_debug_log', GL.glIsEnabled(GL.GL_DEBUG_OUTPUT))
+    buf = bytes(8192)
+    sources = pyopengl_null()
+    types = pyopengl_null()
+    ids = pyopengl_null()
+    severities = pyopengl_null()
+    lengths = pyopengl_null()
+    num_messages = GL.glGetDebugMessageLog(count, len(buf), sources, types,
+                                           ids, severities, lengths, buf)
+    if num_messages == 0:
+        return 0
+    print(tag, buf.decode('utf-8', 'replace'))
+    return num_messages
 
 
 def pyopengl_null():

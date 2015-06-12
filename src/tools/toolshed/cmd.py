@@ -103,12 +103,12 @@ def ts_update(session, tool_name, version=None):
         logger.error("\"%s\" does not match any installed tools" % tool_name)
         return
     if (version is None and not new_ti.newer_than(ti)
-        or new_ti.version == ti.version):
-         logger.info("\"%s\" is up to date" % tool_name)
-         return
+            or new_ti.version == ti.version):
+        logger.info("\"%s\" is up to date" % tool_name)
+        return
     ts.install_tool(new_ti, logger)
 ts_update_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)],
-                              optional=[("version", cli.StringArg)])
+                             optional=[("version", cli.StringArg)])
 
 
 #
@@ -116,14 +116,17 @@ ts_update_desc = cli.CmdDesc(required=[("tool_name", cli.StringArg)],
 #
 
 
-def _get_gui(session, create=False):
+def get_singleton(session, create=False):
+    if not session.ui.is_gui:
+        return None
     from .gui import ToolshedUI
     running = session.tools.find_by_class(ToolshedUI)
     if len(running) > 1:
         raise RuntimeError("too many toolshed instances running")
     if not running:
         if create:
-            return ToolshedUI(session)
+            tool_info = session.toolshed.find_tool('toolshed')
+            return ToolshedUI(session, tool_info)
         else:
             return None
     else:
@@ -131,14 +134,14 @@ def _get_gui(session, create=False):
 
 
 def ts_hide(session):
-    ts = _get_gui(session)
+    ts = get_singleton(session)
     if ts is not None:
         ts.display(False)
 ts_hide_desc = cli.CmdDesc()
 
 
 def ts_show(session):
-    ts = _get_gui(session, create=True)
+    ts = get_singleton(session, create=True)
     if ts is not None:
         ts.display(True)
 ts_show_desc = cli.CmdDesc()

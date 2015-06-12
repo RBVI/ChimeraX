@@ -2,9 +2,12 @@
 #ifndef atomstruct_Residue
 #define atomstruct_Residue
 
-#include <vector>
 #include <map>
 #include <string>
+#include <vector>
+
+#include <basegeom/Rgba.h>
+#include <basegeom/destruct.h>
 #include "imex.h"
 #include "string_types.h"
 
@@ -14,6 +17,8 @@ class Atom;
 class AtomicStructure;
 class Bond;
 
+using basegeom::Rgba;
+
 class ATOMSTRUCT_IMEX Residue {
     friend class AtomicStructure;
 public:
@@ -21,6 +26,7 @@ public:
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
 private:
     Residue(AtomicStructure *as, const std::string &name, const std::string &chain, int pos, char insert);
+    virtual  ~Residue() { auto du = basegeom::DestructionUser(this); }
     char  _alt_loc;
     Atoms  _atoms;
     std::string  _chain_id;
@@ -31,9 +37,11 @@ private:
     std::string  _name;
     int  _position;
     int  _ss_id;
+    bool  _ribbon_display;
+    Rgba  _ribbon_rgba;
     AtomicStructure *  _structure;
 public:
-    void  add_atom(Atom *);
+    void  add_atom(Atom*);
     const Atoms &  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res,
@@ -42,7 +50,13 @@ public:
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     char  insertion_code() const { return _insertion_code; }
+    bool  is_helix() const { return _is_helix; }
     bool  is_het() const { return _is_het; }
+    bool  is_sheet() const { return _is_sheet; }
+    int   ss_id() const { return _ss_id; }
+    void  remove_atom(Atom*);
+    bool  ribbon_display() const { return _ribbon_display; }
+    const Rgba& ribbon_color() const { return _ribbon_rgba; }
     const std::string &  name() const { return _name; }
     int  position() const { return _position; }
     void  set_alt_loc(char alt_loc);
@@ -50,6 +64,8 @@ public:
     void  set_is_het(bool ih) { _is_het = ih; }
     void  set_is_sheet(bool is) { _is_sheet = is; }
     void  set_ss_id(int ssid) { _ss_id = ssid; }
+    void  set_ribbon_display(bool d) { _ribbon_display = d; }
+    void  set_ribbon_color(const Rgba& rgba) { _ribbon_rgba = rgba; }
     std::string  str() const;
     AtomicStructure*  structure() const { return _structure; }
     std::vector<Atom*>  template_assign(

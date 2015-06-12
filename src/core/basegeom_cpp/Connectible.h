@@ -5,11 +5,16 @@
 #include <algorithm>
 #include <vector>
 
-#include "Coord.h"
 #include "Connection.h"
+#include "Coord.h"
 #include "Rgba.h"
+#include "destruct.h"
 
 namespace basegeom {
+
+using ::basegeom::Coord;
+using ::basegeom::Point;
+using ::basegeom::UniqueConnection;
     
 template <class FinalConnection, class FinalConnectible>
 class Connectible {
@@ -24,26 +29,17 @@ private:
 
     bool  _display = true;
     Rgba  _rgba;
-protected:
-    void  add_connection(FinalConnection *c) {
-        _connections.push_back(c);
-        _neighbors.push_back(
-            c->other_end(static_cast<FinalConnectible *>(this)));
-    }
-    virtual  ~Connectible() {}
-    const Connections&  connections() const { return _connections; }
-    void  remove_connection(FinalConnection *c) {
-        auto cnti = std::find(_connections.begin(), _connections.end(), c);
-        _neighbors.erase(_neighbors.begin() + (cnti - _connections.begin()));
-        _connections.erase(cnti);
-    }
 public:
+    virtual  ~Connectible() { DestructionUser(this); }
+    void  add_connection(FinalConnection *c);
+    const Connections&  connections() const { return _connections; }
     bool  connects_to(FinalConnectible *c) const {
         return std::find(_neighbors.begin(), _neighbors.end(), c)
             != _neighbors.end();
     }
     virtual const Coord &  coord() const = 0;
     const Neighbors&  neighbors() const { return _neighbors; }
+    void  remove_connection(FinalConnection *c);
     virtual void  set_coord(const Point & coord) = 0;
 
     // graphics related

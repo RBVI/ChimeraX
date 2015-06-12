@@ -30,17 +30,17 @@ def hidewater(session, modelspec=None):
     spec = modelspec.evaluate(session)
     import numpy
     for m in spec.models:
-        atom_res_types = numpy.array(m.mol_blob.atoms.residues.names)
+        atom_res_types = numpy.array(m.atoms.residues.names)
         indices = numpy.where(atom_res_types == "HOH")
         if True:
-            atom_draw_modes = m.mol_blob.atoms.draw_modes
+            atom_draw_modes = m.atoms.draw_modes
             atom_draw_modes[indices] = m.BALL_STYLE
             ad = numpy.array(atom_draw_modes)
-            m.mol_blob.atoms.draw_modes = ad
+            m.atoms.draw_modes = ad
         if True:
-            atom_displays = m.mol_blob.atoms.displays
+            atom_displays = m.atoms.displays
             atom_displays[indices] = False
-            m.mol_blob.atoms.displays = atom_displays
+            m.atoms.displays = atom_displays
         m.update_graphics()
 hidewater_desc = cli.CmdDesc(optional=[("modelspec", atomspec.AtomSpecArg)])
 
@@ -90,7 +90,7 @@ _ATOM_FMT = ("ATOM  %5d %-4s%1s"                # serial, atom name, altloc
              "%8.3f%8.3f%8.3f%6.2f%6.2f      "  # xyz, occupancy, bfactor
              "%4s%2s%2s")                       # segment, element, charge
 def _write_pdb(m, filename):
-    atoms = m.mol_blob.atoms
+    atoms = m.atoms
     coords = atoms.coords
     atom_names = atoms.names
     element_names = atoms.element_names
@@ -268,7 +268,7 @@ class MyPsize(Psize):
         self.setAll()
 
     def _parse_molecule(self, m):
-        atoms = m.mol_blob.atoms
+        atoms = m.atoms
         coords = atoms.coords
         radii = atoms.radii
         num_atoms = len(coords)

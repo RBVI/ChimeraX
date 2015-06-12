@@ -26,19 +26,22 @@ def cylinder_geometry(radius = 1, height = 1, nz = 2, nc = 10, caps = True):
     if not caps:
         return varray, narray, tarray
 
+    # Duplicate end rings to make sharp crease at cap edge.
     vc = varray.shape[0]
-    varray.resize((vc+2,3))
-    narray.resize((vc+2,3))
-    varray[vc,:] = (0,0,-0.5*height)
-    varray[vc+1,:] = (0,0,0.5*height)
-    narray[vc,:] = (0,0,-1)
-    narray[vc+1,:] = (0,0,1)
+    varray.resize((vc+2*nc+2,3))
+    narray.resize((vc+2*nc+2,3))
+    varray[vc:vc+nc,:] = varray[0:nc,:] # Copy circle
+    varray[vc+nc,:] = (0,0,-0.5*height) # Center of circle
+    varray[vc+nc+1:vc+2*nc+1,:] = varray[vc-nc:vc,:] # Copy circle
+    varray[vc+2*nc+1,:] = (0,0,0.5*height) # Center of circle
+    narray[vc:vc+nc+1,:] = (0,0,-1)
+    narray[vc+nc+1:,:] = (0,0,1)
 
     tc = tarray.shape[0]
     tarray.resize((tc+2*nc,3))
     for i in range(nc):
-        tarray[tc+i,:] = (vc,(i+1)%nc,i)
-        tarray[tc+nc+i,:] = (vc+1,vc-nc+i,vc-nc+(i+1)%nc)
+        tarray[tc+i,:] = (vc+nc,vc+(i+1)%nc,vc+i)
+        tarray[tc+nc+i,:] = (vc+2*nc+1,vc+nc+1+i,vc+nc+1+(i+1)%nc)
 
     return varray, narray, tarray
 
@@ -81,3 +84,21 @@ def unit_cylinder_geometry(nz, nc):
         t[z,:,:] += z*nc
 
     return varray, narray, tarray
+
+def dashed_cylinder_geometry(segments = 5, radius = 1, height = 1, nz = 2, nc = 10, caps = True):
+    va, na, ta = cylinder_geometry(radius, height, nz, nc, caps)
+    h = 0.5/segments
+    va[:,2] *= h
+    nv = len(va)
+    vs = []
+    ns = []
+    ts = []
+    for s in range(segments):
+        v = va.copy()
+        v[:,2] += (s - (segments-1)/2)*2*h
+        vs.append(v)
+        ns.append(na)
+        ts.append(ta + s*nv)
+    from numpy import concatenate
+    vd, nd, td = concatenate(vs), concatenate(ns), concatenate(ts)
+    return vd, nd, td

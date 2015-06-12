@@ -718,6 +718,34 @@ PyObject *python_double_array(int size, double **data)
 
 // ----------------------------------------------------------------------------
 //
+PyObject *python_voidp_array(int size, void ***data)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int dimensions[1] = {size};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_UINTP);
+  if (data)
+    *data = (void **)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
+PyObject *python_object_array(int size, PyObject **data)
+{
+  initialize_numpy();       // required before using NumPy.
+
+  int dimensions[1] = {size};
+  PyObject *a = allocate_python_array(1, dimensions, NPY_OBJECT);
+  if (data)
+    *data = (PyObject *)PyArray_DATA((PyArrayObject *)a);
+
+  return a;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_1d_array(PyObject *arg, void *array)
 {
   Numeric_Array *na = static_cast<Numeric_Array *>(array);

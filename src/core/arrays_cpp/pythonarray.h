@@ -116,6 +116,8 @@ PyObject *python_float_array(int size, float **data = NULL);
 PyObject *python_float_array(int size1, int size2, float **data = NULL);
 PyObject *python_float_array(int size1, int size2, int size3, float **data = NULL);
 PyObject *python_double_array(int size, double **data = NULL);
+PyObject *python_voidp_array(int size, void ***data = NULL);
+PyObject *python_object_array(int size, PyObject **data = NULL);
 
 PyObject *python_none();
 PyObject *python_bool(bool b);

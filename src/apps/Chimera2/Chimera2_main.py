@@ -5,13 +5,12 @@
 # duplication and use.  This notice must be embedded in or
 # attached to all copies, including partial copies, of the
 # software or any revisions or derivations thereof.
-
-__version__ = "0.1.0a0"
-__app_name__ = "Chimera2"
-__app_author__ = "UCSF"
-
 import sys
 import os
+
+__version__ = "0.1.0a0"     # PEP 440 compatible
+__app_name__ = "Chimera2"
+__app_author__ = "UCSF"
 
 
 def parse_arguments(argv):
@@ -43,10 +42,11 @@ def parse_arguments(argv):
     opts.load_tools = True
     opts.silent = False
     opts.status = True
+    opts.use_defaults = False
     opts.version = False
 
     # Will build usage string from list of arguments
-    ARGS = [
+    arguments = [
         "--debug",
         "--nogui",
         "--help",
@@ -55,18 +55,20 @@ def parse_arguments(argv):
         "--silent",
         "--nostatus",
         "--notools",
+        "--usedefaults",
         "--version",
     ]
     if sys.platform.startswith("win"):
-        ARGS.extend(["--console", "--noconsole"])
-    USAGE = '[' + "] [".join(ARGS) + ']'
-    USAGE += " or -m module_name [args]"
+        arguments += ["--console", "--noconsole"]
+    usage = '[' + "] [".join(arguments) + ']'
+    usage += " or -m module_name [args]"
     # add in default argument values
-    ARGS += [
+    arguments += [
         "--nodebug",
         "--gui",
         "--nolineprofile",
         "--nosilent",
+        "--nousedefaults",
         "--status",
         "--tools",
     ]
@@ -79,7 +81,7 @@ def parse_arguments(argv):
     try:
         shortopts = ""
         longopts = []
-        for a in ARGS:
+        for a in arguments:
             if a.startswith("--"):
                 i = a.find(' ')
                 if i == -1:
@@ -95,7 +97,7 @@ def parse_arguments(argv):
         options, args = getopt.getopt(argv[1:], shortopts, longopts)
     except getopt.error as message:
         print("%s: %s" % (argv[0], message), file=sys.stderr)
-        print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
+        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
 
     help = False
@@ -116,12 +118,14 @@ def parse_arguments(argv):
             opts.status = opt[2] == 's'
         elif opt in ("--tools", "--notools"):
             opts.load_tools = opt[2] == 't'
+        elif opt in ("--usedefaults", "--nousedefaults"):
+            opts.load_tools = opt[2] == 'u'
         elif opt == "--version":
             opts.version = True
     if help:
-        print("usage: %s %s\n" % (argv[0], USAGE), file=sys.stderr)
+        print("usage: %s %s\n" % (argv[0], usage), file=sys.stderr)
         raise SystemExit(os.EX_USAGE)
-    if opts.list_file_types:
+    if opts.version or opts.list_file_types:
         opts.gui = False
         opts.silent = True
     return opts, args
@@ -141,11 +145,8 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     if app_author is None:
         app_author = __app_author__
     if version is None:
-        version = __version__
+        version = __version__       # TODO: use chimera.core's version
     opts, args = parse_arguments(argv)
-    if opts.version:
-        print(version)
-        return os.EX_OK
 
     # install line_profile decorator
     import builtins
@@ -159,16 +160,17 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         builtins.__dict__['line_profile'] = prof
         atexit.register(prof.dump_stats, "%s.lprof" % app_name)
 
+    if opts.use_defaults:
+        from chimera.core import configinfo
+        configinfo.only_use_defaults = True
+
     from chimera.core import session
     sess = session.Session()
     sess.app_name = app_name
     sess.debug = opts.debug
-    session.common_startup(sess)
-    # or:
-    #   sess.add_state_manager('scenes', session.Scenes(sess))
-    #   from chimera.core import models
-    #   sess.add_state_manager('models', models.Models(sess))
-    # etc.
+
+    from chimera.core import logger
+    sess.logger = logger.Logger(sess)
 
     # figure out the user/system directories for application
     executable = os.path.abspath(sys.argv[0])
@@ -179,20 +181,54 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         else:
             configdir = bindir
         os.environ['XDG_CONFIG_DIRS'] = configdir
+
+    from distlib.version import NormalizedVersion as Version
+    epoch, ver, *_ = Version(version).parse(version)
+    partial_version = '%s.%s' % (ver[0], ver[1])
+
     import appdirs
-    partial_version = '%s.%s' % tuple(version.split('.')[0:2])
     ad = sess.app_dirs = appdirs.AppDirs(app_name, appauthor=app_author,
                                          version=partial_version)
+    # make sure app_dirs.user_* directories exist
+    for var, name in (
+            ('user_data_dir', "user's data"),
+            ('user_config_dir', "user's configuration"),
+            ('user_cache_dir', "user's cache")):
+        dir = getattr(ad, var)
+        try:
+            os.makedirs(dir, exist_ok=True)
+        except OSError as e:
+            sess.logger.error("Unable to make %s directory: %s: %s" % (
+                name, e.strerror, e.filename))
+            raise SystemExit(1)
+
+    # app_dirs_unversioned is primarily for caching data files that will
+    # open in any version
+    # app_dirs_unversioned.user_* directories are parents of those in app_dirs
+    adu = sess.app_dirs_unversioned = appdirs.AppDirs(app_name,
+                                                      appauthor=app_author)
+
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    share_dir = os.path.join(os.path.dirname(bindir), "share")
+    sess.app_data_dir = os.path.join(os.path.dirname(bindir), "share")
 
     # inform the C++ layer of the appdirs paths
     from chimera.core import _appdirs
     _appdirs.init_paths(os.sep, ad.user_data_dir, ad.user_config_dir,
                         ad.user_cache_dir, ad.site_data_dir,
-                        ad.site_config_dir, ad.user_log_dir, share_dir)
+                        ad.site_config_dir, ad.user_log_dir, sess.app_data_dir,
+                        adu.user_cache_dir)
+
+    from chimera.core import preferences
+    preferences.init(sess)
+
+    session.common_startup(sess)
+    # or:
+    #   sess.add_state_manager('scenes', session.Scenes(sess))
+    #   from chimera.core import models
+    #   sess.add_state_manager('models', models.Models(sess))
+    # etc.
 
     # initialize the user interface
     if opts.gui:
@@ -205,25 +241,26 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     # calls "sess.save_in_session(self)"
     sess.ui = ui_class(sess)
     # splash step "0" will happen in the above initialization
-    num_splash_steps = 4 if opts.gui else 3
+    num_splash_steps = 2
+    if opts.gui:
+        num_splash_steps += 1
+    if not opts.gui and opts.load_tools:
+        num_splash_steps += 1
     import itertools
     splash_step = itertools.count()
-
-    if not opts.silent:
-        sess.ui.splash_info("Getting preferences",
-                            next(splash_step), num_splash_steps)
-    from chimera.core import preferences
-    # Only pass part of session needed in function call
-    preferences.init(sess.app_dirs)
 
     # common core initialization
     if not opts.silent:
         sess.ui.splash_info("Initializing core",
                             next(splash_step), num_splash_steps)
+        if sess.ui.is_gui and opts.debug:
+            print("Initializing core", flush=True)
 
     if not opts.silent:
         sess.ui.splash_info("Initializing tools",
                             next(splash_step), num_splash_steps)
+        if sess.ui.is_gui and opts.debug:
+            print("Initializing tools", flush=True)
     from chimera.core import toolshed
     # toolshed.init returns a singleton so it's safe to call multiple times
     sess.toolshed = toolshed.init(sess.logger, sess.app_dirs, debug=sess.debug)
@@ -233,6 +270,17 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
     from chimera.core import tasks
     sess.tasks = tasks.Tasks(sess)
     sess.add_state_manager('tasks', sess.tasks)
+
+    if opts.version:
+        print("%s: %s" % (app_name, version))
+        print("Installed tools:")
+        tool_info = sess.toolshed.tool_info()
+        if tool_info:
+            for t in tool_info:
+                print("    %s: %s" % (t.name, t.version))
+        else:
+            print("    None.")
+        return os.EX_OK
 
     if opts.list_file_types:
         from chimera.core import io
@@ -244,11 +292,26 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
         if not opts.silent:
             sess.ui.splash_info("Starting main interface",
                                 next(splash_step), num_splash_steps)
-        sess.ui.build(opts.load_tools)
+            if sess.ui.is_gui and opts.debug:
+                print("Starting main interface", flush=True)
+        sess.ui.build()
+
+    if opts.load_tools:
+        if not opts.silent:
+            sess.ui.splash_info("Loading autostart tools",
+                                next(splash_step), num_splash_steps)
+            if sess.ui.is_gui and opts.debug:
+                print("Loading autostart tools", flush=True)
+        sess.tools.autostart()
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
                             next(splash_step), num_splash_steps)
+        if sess.ui.is_gui and opts.debug:
+            print("Finished initialization", flush=True)
+
+    if opts.gui:
+        sess.ui.close_splash()
 
     if opts.module:
         import runpy
@@ -270,6 +333,10 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
             sess.models.open(arg)
         except (IOError, cli.UserError) as e:
             sess.logger.error(str(e))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return os.EX_SOFTWARE
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
@@ -278,6 +345,10 @@ def init(argv, app_name=None, app_author=None, version=None, event_loop=True):
             sess.ui.event_loop()
         except SystemExit as e:
             return e.code
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return os.EX_SOFTWARE
     return os.EX_OK
 
 if __name__ == '__main__':

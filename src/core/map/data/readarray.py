@@ -176,7 +176,7 @@ def allocate_array(size, value_type = float32, step = None, progress = None,
     if step is None:
         msize = size
     else:
-        msize = [1+(sz-1)/st for sz,st in zip(size, step)]
+        msize = [1+(sz-1)//st for sz,st in zip(size, step)]
 
     shape = list(msize)
     if reverse_indices:

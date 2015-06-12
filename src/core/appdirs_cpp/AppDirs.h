@@ -13,14 +13,16 @@ namespace appdirs {
 class APPDIRS_IMEX AppDirs {
 private:
     static AppDirs*  _app_dirs;
-    AppDirs(std::string& path_sep, std::string& user_data_dir,
-        std::string& user_config_dir, std::string& user_cache_dir,
-        std::string& site_data_dir, std::string& site_config_dir,
-        std::string& user_log_dir, std::string& app_data_dir):
+    AppDirs(const std::string& path_sep, const std::string& user_data_dir,
+        const std::string& user_config_dir, const std::string& user_cache_dir,
+        const std::string& site_data_dir, const std::string& site_config_dir,
+        const std::string& user_log_dir, const std::string& app_data_dir,
+        const std::string& user_cache_dir_unversioned):
         _path_sep(path_sep), site_config_dir(site_config_dir),
         site_data_dir(site_data_dir), user_cache_dir(user_cache_dir),
         user_config_dir(user_config_dir), user_data_dir(user_data_dir),
-        user_log_dir(user_log_dir), app_data_dir(app_data_dir) {}
+        user_log_dir(user_log_dir), app_data_dir(app_data_dir),
+        user_cache_dir_unversioned(user_cache_dir_unversioned) {}
     const std::string  _path_sep;
 
 public:
@@ -31,11 +33,12 @@ public:
             " initialized");
         return *_app_dirs;
     }
-    static void  init_app_dirs(std::string path_sep,
-        std::string user_data_dir, std::string user_config_dir,
-        std::string user_cache_dir, std::string site_data_dir,
-        std::string site_config_dir, std::string user_log_dir,
-        std::string app_data_dir);
+    static void  init_app_dirs(const std::string& path_sep,
+        const std::string& user_data_dir, const std::string& user_config_dir,
+        const std::string& user_cache_dir, const std::string& site_data_dir,
+        const std::string& site_config_dir, const std::string& user_log_dir,
+        const std::string& app_data_dir,
+        const std::string& user_cache_dir_unversioned);
     const std::string  site_config_dir;
     const std::string  site_data_dir;
     const std::string  user_cache_dir;
@@ -43,6 +46,7 @@ public:
     const std::string  user_data_dir;
     const std::string  user_log_dir;
     const std::string  app_data_dir;
+    const std::string  user_cache_dir_unversioned;
 };
 
 }  // namespace appdirs
