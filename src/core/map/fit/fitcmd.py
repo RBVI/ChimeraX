@@ -112,8 +112,6 @@ def atoms_and_map(atoms_or_map, resolution, moveWholeMolecules, sequence, eachMo
                 raise UserError('No molecules specified for fitting')
             from . import fitmap as F
             vlist = [F.simulated_map(m.atoms, resolution, session) for m in mlist]
-            for v,m in zip(vlist, mlist):
-                v.molecule = m
         from ...molecule import Atoms
         return [(Atoms(), vlist)]
 
@@ -357,9 +355,10 @@ def report_fit_search_results(flist, search, outside, levelInside, log):
 
 # -----------------------------------------------------------------------------
 #
-def fit_sequence(vlist, volume, subtract_maps, metric, envelope, resolution,
-                 shift, rotate, moveWholeMolecules, sequence,
-                 maxSteps, gridStepMin, gridStepMax, log):
+def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope = True,
+                 resolution = None, shift = True, rotate = True, moveWholeMolecules = True,
+                 sequence = 1, maxSteps = 2000, gridStepMin = 0.01, gridStepMax = 0.5,
+                 log = None):
 
     me = fitting_metric(metric)
 
@@ -379,8 +378,9 @@ def fit_sequence(vlist, volume, subtract_maps, metric, envelope, resolution,
     # Align molecules to their corresponding maps. 
     # TODO: Handle case where not moving whole molecules.
     for v in vlist: 
-        if hasattr(v, 'molecule'):
-            v.molecule.position = v.position
+        if hasattr(v, 'atoms'):
+            for m in v.atoms.unique_molecules:
+                m.position = v.position
  
     return flist
 

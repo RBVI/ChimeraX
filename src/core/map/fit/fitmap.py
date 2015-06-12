@@ -748,6 +748,7 @@ def simulated_map(atoms, res, session):
       v = molecule_map(session, atoms, res)
       v.display = False
       v.fitsim_params = (array_checksum(atoms.coords), res)
+      v.atoms = atoms
     else:
       # If molecules are moved, realign maps with molecules.
       m0 = atoms.unique_molecules[0]
