@@ -91,9 +91,9 @@ def standard_shortcuts(session):
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
-        ('sf', show_surface, 'Show surface', mapcat, maparg, mmenu),
-        ('me', show_mesh, 'Show mesh', mapcat, maparg, mmenu),
-        ('gs', show_grayscale, 'Show grayscale', mapcat, maparg, mmenu, sep),
+        ('sf', show_surface, 'Show map as surface', mapcat, maparg, mmenu),
+        ('me', show_mesh, 'Show map as mesh', mapcat, maparg, mmenu),
+        ('gs', show_grayscale, 'Show map as grayscale', mapcat, maparg, mmenu, sep),
 
         ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
         ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),
@@ -359,8 +359,6 @@ def shortcut_atoms(session):
 def shortcut_surfaces(session):
     sel = session.selection
     models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
-    from .structure import AtomicStructure
-    from .map import Volume
     # Avoid group nodes by only taking non-empty models.
     surfs = [m for m in models if not m.empty_drawing()]
     # TODO: Need a Surface base class.
@@ -570,7 +568,10 @@ def show_asymmetric_unit(m, session):
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
-    for m in shortcut_surfaces(session):
+    surfs = shortcut_surfaces(session)
+    if len(surfs) == 0 or session.selection.empty():
+        surfs = [m for m in session.models.list() if not m.empty_drawing()]
+    for m in surfs:
         sp = m.selected_positions
         if sp is None or sp.sum() == len(sp):
             m.display = True
@@ -614,6 +615,7 @@ def show_surface_transparent(session, alpha = 0.5):
     from .map import Volume
     from .graphics import Drawing
     from .structure import AtomicStructure
+    a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
             continue
@@ -623,8 +625,12 @@ def show_surface_transparent(session, alpha = 0.5):
         elif isinstance(m, Drawing):
             for d in m.all_drawings():
                 c = d.colors
-                c[:,3] = int(255*alpha)
+                c[:,3] = a
                 d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+                if not d.vertex_colors is None:
+                    vcolors = d.vertex_colors
+                    vcolors[:,3] = a
+                    d.vertex_colors = vcolors.copy()
 
 def show_surface_opaque(session):
     show_surface_transparent(session, alpha = 1)
