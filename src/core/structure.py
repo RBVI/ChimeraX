@@ -1,13 +1,13 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from . import io
-from . import models
+from .models import Model
 from .session import RestoreError
 from .molecule import CAtomicStructure
 
 CATEGORY = io.STRUCTURE
 
 
-class AtomicStructure(CAtomicStructure, models.Model):
+class AtomicStructure(CAtomicStructure, Model):
     """Commom base class for atomic structures"""
 
     STRUCTURE_STATE_VERSION = 0
@@ -23,7 +23,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
         from . import molecule
         molecule.add_to_object_map(self)
 
-        models.Model.__init__(self, name)
+        Model.__init__(self, name)
 
         self._atoms = None              # Cached atoms array
         self._residues = None           # Cached residues array
@@ -59,7 +59,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
     def delete(self):
         self._atoms = None
         CAtomicStructure.delete(self)
-        models.Model.delete(self)
+        Model.delete(self)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
@@ -142,6 +142,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
         p = self._atoms_drawing
         if p is None:
             self._atoms_drawing = p = self.new_drawing('atoms')
+            # Add atom picking method to the atom drawing
+            from types import MethodType
+            p.first_intercept = MethodType(atom_first_intercept, p)
 
         n = len(coords)
         self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
@@ -437,38 +440,6 @@ class AtomicStructure(CAtomicStructure, models.Model):
             logical_not(d,d)
         return d
 
-    def first_intercept(self, mxyz1, mxyz2, exclude = None):
-        # TODO check intercept of bounding box as optimization
-        p = self._atoms_drawing
-        if p is None:
-            return None
-        xyzr = p.positions.shift_and_scale_array()
-        dp = p.display_positions
-        if dp is None:
-            xyz, r = xyzr[:,:3], xyzr[:,3]
-        else:
-            xyz, r = xyzr[dp,:3], xyzr[dp,3]
-
-        f = fa = None
-        from . import graphics
-        for tf in self.positions:
-            cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-            # Check for atom sphere intercept
-            fmin, anum = graphics.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
-            if not fmin is None and (f is None or fmin < f):
-                f, fa = fmin, anum
-
-        # Create pick object
-        if fa is None:
-            s = None
-        else:
-            if not dp is None:
-                fa = dp.nonzero()[0][fa]        # Remap index to include undisplayed positions
-            atom = self.atoms[fa]
-            s = PickedAtom(atom, f)
-
-        return s
-
     def bounds(self, positions = True):
         # TODO: Cache bounds
         ab = self.atom_bounds()
@@ -527,7 +498,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
     def any_part_selected(self):
         asel = self._selected_atoms
-        return not asel is None and asel.sum() > 0
+        if not asel is None and asel.sum() > 0:
+            return True
+        return Model.any_part_selected(self)
 
     def clear_selection(self):
         asel = self._selected_atoms
@@ -589,6 +562,28 @@ def selected_atoms(session):
             for matoms in m.selected_items('atoms'):
                 atoms = atoms | matoms
     return atoms
+
+def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
+    # TODO check intercept of bounding box as optimization
+    xyzr = self.positions.shift_and_scale_array()
+    dp = self.display_positions
+    xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
+
+    # Check for atom sphere intercept
+    from . import graphics
+    fmin, anum = graphics.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
+
+    if fmin is None:
+        return None
+
+    if not dp is None:
+        anum = dp.nonzero()[0][anum]    # Remap index to include undisplayed positions
+    atom = self.parent.atoms[anum]
+
+    # Create pick object
+    s = PickedAtom(atom, fmin)
+
+    return s
 
 # -----------------------------------------------------------------------------
 #
@@ -954,7 +949,16 @@ def show_atoms(show, atoms, session):
 # -----------------------------------------------------------------------------
 #
 def all_atomic_structures(session):
-    return [m for m in session.models.list() if isinstance(c, AtomicStructure)]
+    return [m for m in session.models.list() if isinstance(m,AtomicStructure)]
+
+# -----------------------------------------------------------------------------
+#
+def all_atoms(session):
+    from .molecule import Atoms
+    atoms = Atoms()
+    for m in all_atomic_structures(session):
+        atoms = atoms | m.atoms
+    return atoms
 
 # -----------------------------------------------------------------------------
 #
@@ -968,6 +972,7 @@ class AtomsArg(cli.Annotation):
         from . import atomspec
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         atoms = aspec.evaluate(session).atoms
+        atoms.spec = str(aspec)
         return atoms, text, rest
 
 # -----------------------------------------------------------------------------
