@@ -178,10 +178,9 @@ class Models(State):
         return models
 
     def add(self, models, parent=None):
-        if parent is None:
-            d = self.drawing
-            for m in models:
-                d.add_drawing(m)
+        d = self.drawing if parent is None else parent
+        for m in models:
+            d.add_drawing(m)
 
         # Assign id numbers
         if parent is None:
