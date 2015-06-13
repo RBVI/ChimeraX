@@ -42,6 +42,7 @@ class Atom:
     bfactor = c_property('atom_bfactor', float32)
     bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     bonded_atoms = c_property('atom_bonded_atoms', cptr, 'num_bonds', astype = _atoms, read_only = True)
+    chain_id = c_property('atom_chain_id', string, read_only = True)
     color = c_property('atom_color', uint8, 4)
     coord = c_property('atom_coord', float64, 3)
     display = c_property('atom_display', npy_bool)

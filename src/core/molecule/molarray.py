@@ -1,4 +1,4 @@
-from numpy import uint8, int32, float64, float32, bool as npy_bool, integer, empty
+from numpy import uint8, int32, float64, float32, bool as npy_bool, integer, empty, unique
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer
 from . import molobject
 
@@ -12,14 +12,8 @@ def _chains(a):
     return Chains(a)
 def _atomic_structures(p):
     return CAtomicStructures(p)
-def _unique_atomic_structures(p):
-    import numpy
-    return CAtomicStructures(numpy.unique(p))
 def _residues(p):
     return Residues(p)
-def _unique_residues(p):
-    import numpy
-    return Residues(numpy.unique(p))
 def _atoms_pair(p):
     return (Atoms(p[:,0].copy()), Atoms(p[:,1].copy()))
 def _pseudobond_group_map(a):
@@ -97,6 +91,7 @@ class Atoms(PointerArray):
         PointerArray.__init__(self, atom_pointers, molobject.Atom, Atoms)
 
     bfactors = cvec_property('atom_bfactor', float32)
+    chain_ids = cvec_property('atom_chain_id', string, read_only = True)
     colors = cvec_property('atom_color', uint8, 4)
     coords = cvec_property('atom_coord', float64, 3)
     displays = cvec_property('atom_display', npy_bool)
@@ -104,18 +99,35 @@ class Atoms(PointerArray):
     element_names = cvec_property('atom_element_name', string, read_only = True)
     element_numbers = cvec_property('atom_element_number', int32, read_only = True)
     molecules = cvec_property('atom_molecule', cptr, astype = _atomic_structures, read_only = True)
-    unique_molecules = cvec_property('atom_molecule', cptr, astype = _unique_atomic_structures, read_only = True)
     names = cvec_property('atom_name', string, read_only = True)
     radii = cvec_property('atom_radius', float32)
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True)
-    unique_residues = cvec_property('atom_residue', cptr, astype = _unique_residues, read_only = True)
+
+    @property
+    def unique_molecules(self):
+        return CAtomicStructures(unique(self.molecules._pointers))
+
+    @property
+    def unique_residues(self):
+        return Residues(unique(self.residues._pointers))
 
     @property
     def by_molecule(self):
         '''Return list of pairs of molecule and Atoms for that molecule.'''
-        amol = self.molecules
+        amol = self.molecules._pointers
         from numpy import array
-        return [(m, self.filter(array(amol)==m)) for m in self.unique_molecules]
+        return [(m, self.filter(amol==m._c_pointer.value)) for m in self.unique_molecules]
+
+    @property
+    def by_chain(self):
+        '''Return list of triples of molecule, chain id, and Atoms for each chain.'''
+        chains = []
+        for m, atoms in self.by_molecule:
+            r = atoms.residues
+            cids = r.chain_ids
+            for cid in r.unique_chain_ids:
+                chains.append((m, cid, atoms.filter(cids == cid)))
+        return chains
 
     @property
     def scene_coords(self):
@@ -187,6 +199,10 @@ class Residues(PointerArray):
     unique_ids = cvec_property('residue_unique_id', int32, read_only = True)
     ribbon_displays = cvec_property('residue_ribbon_display', npy_bool)
     ribbon_colors = cvec_property('residue_ribbon_color', uint8, 4)
+
+    @property
+    def unique_chain_ids(self):
+        return unique(self.chain_ids)
 
 # -----------------------------------------------------------------------------
 #

@@ -79,6 +79,13 @@ extern "C" void atom_bonded_atoms(void *atoms, int n, void **batoms)
     }
 }
 
+extern "C" void atom_chain_id(void *atoms, int n, void **cids)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id().c_str());
+}
+
 extern "C" void atom_color(void *atoms, int n, unsigned char *rgba)
 {
   Atom **a = static_cast<Atom **>(atoms);
