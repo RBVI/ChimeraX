@@ -865,3 +865,15 @@ def everything(session):
         An AtomSpec instance that matches everything in session.
     """
     return AtomSpecArg.parse('#*', session)[0]
+
+# -----------------------------------------------------------------------------
+#
+class ModelsArg(Annotation):
+    """Parse command models specifier"""
+    name = "models"
+
+    @staticmethod
+    def parse(text, session):
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        return models, text, rest
