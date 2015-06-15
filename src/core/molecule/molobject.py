@@ -169,6 +169,7 @@ class Residue:
     number = c_property('residue_number', int32, read_only = True)
     str = c_property('residue_str', string, read_only = True)
     unique_id = c_property('residue_unique_id', int32, read_only = True)
+    molecule = c_property('residue_molecule', cptr, astype = _atomic_structure, read_only = True)
     # TODO: Currently no C++ method to get Chain
 
     def add_atom(self, atom):
