@@ -696,8 +696,8 @@ class Volume(Model):
         varray, tarray, narray = subdivide_triangles(varray, tarray, narray)
 
     if ro.square_mesh:
-      from numpy import empty, int32
-      hidden_edges = empty((len(tarray),), int32)
+      from numpy import empty, uint8
+      hidden_edges = empty((len(tarray),), uint8)
       from . import _map
       _map.principle_plane_edges(varray, tarray, hidden_edges)
 
@@ -720,11 +720,7 @@ class Volume(Model):
     p.geometry = varray, tarray
     p.normals = narray
     p.vertex_colors = None
-
-    if ro.square_mesh:
-      p.set_edge_mask(hidden_edges)
-    else:
-      p.set_edge_mask(None)
+    p.edge_mask = hidden_edges if ro.square_mesh else None
 
     self.message('')
 
@@ -1902,7 +1898,7 @@ class Outline_Box:
     # coloring and capping of outline boxes.
     from numpy import array
     p.geometry = array(vlist), array(tlist)
-    p.triangle_and_edge_mask = hide_diagonals
+    p.edge_mask = hide_diagonals
     p.color = tuple(int(255*r) for r in rgba)
 
     self.piece = p
