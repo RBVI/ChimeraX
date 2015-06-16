@@ -108,7 +108,7 @@ class SurfCalc:
             session.models.add([surf], parent = self.mol)
         c = surf._calc_surf
 #        surf.vertex_colors = c.vertex_atom_colors()
-        surf.triangle_and_edge_mask = c.patch_display_mask(self.patoms)
+        surf.triangle_mask = c.patch_display_mask(self.patoms)
         return surf
 
     # Chain atoms with solvent, ligands and ions filtered out.
@@ -148,13 +148,12 @@ class SurfCalc:
         shown_vertices = shown_atoms[v2a]
 #        print('shown vertices', shown_vertices.sum(), 'of', len(shown_vertices))
         t = self.triangles
-        from numpy import logical_and, empty, int32
-        shown_triangles = empty((len(t),), int32)
+        from numpy import logical_and, empty, bool
+        shown_triangles = empty((len(t),), bool)
         logical_and(shown_vertices[t[:,0]], shown_vertices[t[:,1]], shown_triangles)
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
 #        print ('show patch', len(patch_atoms), 'of', len(surf_atoms), 'atoms',
 #               shown_triangles.sum(), 'of', len(shown_triangles), 'triangles')
-        shown_triangles *= 0xf          # Bits 0-3 are edge and triangle mask
         return shown_triangles
 
 def surface_rgba(color, transparency, chain_id):
