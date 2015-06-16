@@ -300,7 +300,7 @@ class AtomicStructure(CAtomicStructure, Model):
             self._ribbon_r2t = {}
             for rlist in polymers:
                 rp = p.new_drawing(rlist.strs[0])
-                print("ribbon drawing", rlist.strs[0], rp)
+#                print("ribbon drawing", rlist.strs[0], rp)
                 t2r = []
                 displays = rlist.ribbon_displays
                 if displays.sum() == 0:
@@ -430,7 +430,7 @@ class AtomicStructure(CAtomicStructure, Model):
 
         # Set selected ribbons in graphics
         asel = self._selected_atoms
-        if asel is not None:
+        if asel is not None and asel.sum() > 0:
             for r in self.atoms.filter(asel).unique_residues:
                 try:
                     tr = self._ribbon_r2t[r]
@@ -443,9 +443,12 @@ class AtomicStructure(CAtomicStructure, Model):
                     m = numpy.zeros((p.number_of_triangles(),), bool)
                 m[tr.start:tr.end] = True
                 p.selected_triangles_mask = m
-                p.redraw_needed(selection_changed=True)
-                import numpy
-                print(residue_description(tr.residue), tr.start, tr.end, numpy.sum(m), len(m), p.number_of_triangles(), p)
+#                print(residue_description(tr.residue), tr.start, tr.end, m.sum(), len(m), p.number_of_triangles(), p)
+        else:
+            p = self._ribbon_drawing
+            if p:
+                for c in p.child_drawings():
+                    c.selected_triangles_mask = None
 
     def _get_polymer_spline(self, rlist):
             # Get coordinates for spline and orientation atoms
@@ -536,7 +539,8 @@ class AtomicStructure(CAtomicStructure, Model):
             from numpy import zeros, bool
             asel = self._selected_atoms = zeros(na, bool)
         m = self.atoms.mask(atoms)
-        asel[m] = (not asel[m]) if toggle else True
+        from numpy import logical_not
+        asel[m] = logical_not(asel[m]) if toggle else True
         self._selection_changed()
 
     def selected_items(self, itype):
