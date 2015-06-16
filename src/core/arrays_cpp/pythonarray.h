@@ -45,6 +45,7 @@ int parse_writable_float_n3_array(PyObject *arg, void *farray);
 int parse_double_n3_array(PyObject *arg, void *darray);
 int parse_writable_double_n3_array(PyObject *arg, void *darray);
 int parse_uint8_n_array(PyObject *arg, void *carray);
+int parse_writable_uint8_n_array(PyObject *arg, void *carray);
 int parse_uint8_n4_array(PyObject *arg, void *carray);
 int parse_float_n4_array(PyObject *arg, void *farray);
 int parse_writable_float_n4_array(PyObject *arg, void *farray);
