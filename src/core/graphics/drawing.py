@@ -654,24 +654,25 @@ class Drawing:
     # if associated arrays have changed.
     def _update_buffers(self):
 
-        p, c = self.positions, self.colors
-        pm = self._position_mask()
-        pmsel = self._position_mask(True)
         ta = self.triangles
         em = self._edge_mask if self.display_style == self.Mesh else None
         tm = self._triangle_mask
-        tmsel = self._selected_triangles_mask
-        if tm is not None:
-            # Combine selected and displayed triangle masks
-            if tmsel is not None:
-                from numpy import logical_and
-                tmsel = logical_and(tmsel, tm)
-            else:
-                tmsel = tm
+        tmsel = self.selected_displayed_triangles_mask
 
+        # Update drawing and selection triangle buffers
         ds, dss = self._draw_shape, self._draw_selection
-        ds.update_buffers(p, c, pm, ta, tm, em)		# Update drawing buffers
-        dss.update_buffers(p, c, pmsel, ta, tmsel, em)  # Update selection buffers
+        ds.update_element_buffer(ta, tm, em)
+        dss.update_element_buffer(ta, tmsel, em)
+
+        # Update instancing buffers
+        p = self.positions
+        instancing = (p.shift_and_scale_array() is not None or len(p) > 1)
+        if instancing:
+            c = self.colors
+            pm = self._position_mask()
+            pmsel = self._position_mask(True)
+            ds.update_instance_buffers(p, c, pm)
+            dss.update_instance_buffers(p, c, pmsel)
 
         # Update buffers shared by drawing and selection
         for b in self._vertex_buffers:
@@ -841,6 +842,20 @@ class Drawing:
     length equal to the number of triangles used to control display
     of individual triangles.
     '''
+
+    @property
+    def selected_displayed_triangles_mask(self):
+        '''Mask of selected and displayed triangles.'''
+        tm = self._triangle_mask
+        tmsel = self._selected_triangles_mask
+        if tm is not None:
+            # Combine selected and displayed triangle masks
+            if tmsel is not None:
+                from numpy import logical_and
+                tmsel = logical_and(tmsel, tm)
+            else:
+                tmsel = tm
+        return tmsel
 
     def get_edge_mask(self):
         return self._edge_mask
@@ -1077,46 +1092,85 @@ class _DrawShape:
     def draw(self, display_style):
 
         eb = self.element_buffer
+        if eb is None:
+            return
         etype = _element_type(display_style)
         ni = self.instance_count()
         if ni > 0:
             eb.draw_elements(etype, ni)
 
-    def create_opengl_buffers(self):
+    def create_element_buffer(self):
 
         from . import opengl
-        a, v = ('elements', opengl.ELEMENT_BUFFER)
-        self.element_buffer = eb = opengl.Buffer(v)
-        eb.buffer_attribute_name = a
-
+        eb = opengl.Buffer(opengl.ELEMENT_BUFFER)
+        eb.buffer_attribute_name = 'elements'
         ub = self._update_buffer_bindings
         ub.add(eb)
+        return eb
 
+    def update_element_buffer(self, triangles, triangle_mask, edge_mask):
+
+        self.elements = e = self.masked_elements(triangles, triangle_mask, edge_mask)
+
+        eb = self.element_buffer
+        if len(e) > 0 and eb is None:
+            self.element_buffer = eb = self.create_element_buffer()
+        elif len(e) == 0 and eb:
+            eb.delete_buffer()
+            self.element_buffer = eb = None
+
+        if eb and eb.update_buffer_data(self.elements):
+            self._update_buffer_bindings.add(eb)
+
+    def masked_elements(self, triangles, tmask, edge_mask):
+
+        ta = triangles
+        if ta is None:
+            return None
+        if tmask is not None:
+            ta = ta[tmask, :]
+        if edge_mask is not None:
+            # TODO: Need to reset masked_edges if edge_mask changed.
+            me = self.masked_edges
+            if (me is None or edge_mask is not self._edge_mask or
+                    tmask is not self._tri_mask):
+                kw = {}
+                if edge_mask is not None:
+                    kw['edge_mask'] = edge_mask
+                if tmask is not None:
+                    kw['triangle_mask'] = tmask
+                from ._graphics import masked_edges
+                self.masked_edges = me = masked_edges(ta, **kw)
+                self._edge_mask, self._tri_mask = edge_mask, tmask
+            ta = me
+        return ta
+
+    def create_instance_buffers(self):
+
+        from . import opengl
         ibufs = (
-            ('instance_shift_and_scale',
-                opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
+            ('instance_shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
             ('instance_matrices', opengl.INSTANCE_MATRIX_BUFFER),
             ('instance_colors', opengl.INSTANCE_COLOR_BUFFER),
         )
-        self.instance_buffers = ib = []
+        ib = []
         for a, v in ibufs:
             b = opengl.Buffer(v)
             b.buffer_attribute_name = a
             ib.append(b)
 
-        ub.update(ib)
+        self._update_buffer_bindings.update(ib)
 
-    def update_buffers(self, positions, colors, position_mask, triangles,
-                       tmask, edge_mask):
+        return ib
 
-        if self.element_buffer is None:
-            self.create_opengl_buffers()
-
-        self.elements = self.masked_elements(triangles, tmask, edge_mask)
+    def update_instance_buffers(self, positions, colors, position_mask):
 
         self.update_instance_arrays(positions, colors, position_mask)
 
-        for b in self.instance_buffers + [self.element_buffer]:
+        ib = self.instance_buffers
+        if len(ib) == 0:
+            self.instance_buffers = ib = self.create_instance_buffers()
+        for b in ib:
             data = getattr(self, b.buffer_attribute_name)
             if b.update_buffer_data(data):
                 self._update_buffer_bindings.add(b)
@@ -1147,29 +1201,6 @@ class _DrawShape:
         else:
             ninst = 1
         return ninst
-
-    def masked_elements(self, triangles, tmask, edge_mask):
-
-        ta = triangles
-        if ta is None:
-            return None
-        if tmask is not None:
-            ta = ta[tmask, :]
-        if edge_mask is not None:
-            # TODO: Need to reset masked_edges if edge_mask changed.
-            me = self.masked_edges
-            if (me is None or edge_mask is not self._edge_mask or
-                    tmask is not self._tri_mask):
-                kw = {}
-                if edge_mask is not None:
-                    kw['edge_mask'] = edge_mask
-                if tmask is not None:
-                    kw['triangle_mask'] = tmask
-                from ._graphics import masked_edges
-                self.masked_edges = me = masked_edges(ta, **kw)
-                self._edge_mask, self._tri_mask = edge_mask, tmask
-            ta = me
-        return ta
 
     def activate_shader_and_bindings(self, renderer, sopt):
         # Need OpenGL VAO bound to compile shader
