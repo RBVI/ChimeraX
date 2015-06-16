@@ -12,6 +12,9 @@ void
 Chain::bulk_set(const Chain::Residues& residues,
     const Sequence::Contents* chars)
 {
+    for (auto r: _residues)
+        if (r != nullptr)
+            r->set_chain(nullptr);
     bool del_chars = chars == nullptr;
     if (del_chars) {
         auto res_chars = new Sequence::Contents(residues.size());
@@ -27,12 +30,20 @@ Chain::bulk_set(const Chain::Residues& residues,
     _res_map.clear();
     int i = 0;
     for (auto ri = residues.begin(); ri != residues.end(); ++ri, ++i) {
-        if (*ri != nullptr)
+        if (*ri != nullptr) {
             _res_map[*ri] = i;
+            (*ri)->set_chain(this);
+        }
     }
 
     if (del_chars)
         delete chars;
+}
+
+void
+Chain::remove_residue(Residue* r) {
+    auto ri = std::find(_residues.begin(), _residues.end(), r);
+    *ri = nullptr;
 }
 
 void 
@@ -49,13 +60,17 @@ Chain::set(unsigned i, Residue *r, char character)
         push_back(c);
     } else {
         auto& res_at_i = _residues.at(i);
-        if (res_at_i != nullptr)
+        if (res_at_i != nullptr) {
             _res_map.erase(res_at_i);
+            res_at_i->set_chain(nullptr);
+        }
         res_at_i = r;
         at(i) = c;
     }
-    if (r != nullptr)
+    if (r != nullptr) {
         _res_map[r] = i;
+        r->set_chain(this);
+    }
 }
 
 void

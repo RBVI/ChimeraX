@@ -18,7 +18,11 @@ class ATOMSTRUCT_IMEX Chain: public Sequence {
 public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
+
 private:
+    friend class Residue;
+    void  remove_residue(Residue* r);
+
     std::string  _chain_id;
     bool  _from_seqres;
     std::map<Residue*, SeqPos>  _res_map;
@@ -32,16 +36,8 @@ public:
     bool  from_seqres() const { return _from_seqres; }
     const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
-    void  pop_back() {
-        Sequence::pop_back();
-        if (_residues.back() != nullptr) _res_map.erase(_residues.back());
-        _residues.pop_back();
-    }
-    void  pop_front() {
-        Sequence::pop_front();
-        if (_residues.front() != nullptr) _res_map.erase(_residues.front());
-        _residues.erase(_residues.begin());
-    }
+    void  pop_back();
+    void  pop_front();
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
     AtomicStructure*  structure() const;
@@ -52,7 +48,37 @@ public:
 }  // namespace atomstruct
 
 #include "Residue.h"
+inline void
+atomstruct::Chain::pop_back()
+{
+    atomstruct::Sequence::pop_back();
+    auto back = _residues.back();
+    if (back != nullptr) {
+        _res_map.erase(back);
+        back->set_chain(nullptr);
+    }
+    _residues.pop_back();
+}
+
+inline void
+atomstruct::Chain::pop_front()
+{
+    atomstruct::Sequence::pop_front();
+    auto front = _residues.front();
+    if (front != nullptr) {
+        _res_map.erase(front);
+        front->set_chain(nullptr);
+    }
+    _residues.erase(_residues.begin());
+}
+
 inline atomstruct::AtomicStructure*
-atomstruct::Chain::structure() const { return _residues.front()->structure(); }
+atomstruct::Chain::structure() const {
+    for (auto ri = _residues.begin(); ri != _residues.end(); ++ri) {
+        if (*ri != nullptr)
+            return (*ri)->structure();
+    }
+    throw std::logic_error("No actual residues in chain?!?");
+}
 
 #endif  // atomstruct_chain
