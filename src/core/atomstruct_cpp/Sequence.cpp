@@ -80,8 +80,7 @@ Sequence::Sequence(const std::vector<std::string>& res_names) // 3-letter codes
 }
 
 void
-Sequence::assign_rname3to1(const std::string& rname, unsigned char let,
-    bool protein)
+Sequence::assign_rname3to1(const std::string& rname, char let, bool protein)
 {
     if (protein)
         _protein3to1[rname] = let;
@@ -101,7 +100,7 @@ Sequence::gapped_to_ungapped(unsigned int index) const
     return _cache_g2ug[index];
 }
 
-unsigned char
+char
 Sequence::nucleic3to1(const std::string& rn)
 {
     _1Letter_Map::const_iterator l1i = _nucleic3to1.find(rn);
@@ -111,7 +110,7 @@ Sequence::nucleic3to1(const std::string& rn)
     return (*l1i).second;
 }
 
-unsigned char
+char
 Sequence::protein3to1(const std::string& rn)
 {
     _1Letter_Map::const_iterator l1i = _protein3to1.find(rn);
@@ -121,7 +120,7 @@ Sequence::protein3to1(const std::string& rn)
     return (*l1i).second;
 }
 
-unsigned char
+char
 Sequence::rname3to1(const std::string& rn)
 {
     if (_rname3to1.empty())

@@ -9,16 +9,18 @@
 namespace atomstruct {
 
 void
-Chain::bulk_set(Chain::Residues& residues, std::vector<unsigned char>* chars)
+Chain::bulk_set(const Chain::Residues& residues,
+    const Sequence::Contents* chars)
 {
     bool del_chars = chars == nullptr;
     if (del_chars) {
-        chars = new std::vector<unsigned char>(residues.size());
-        auto chars_ptr = chars->begin();
+        auto res_chars = new Sequence::Contents(residues.size());
+        auto chars_ptr = res_chars->begin();
         for (auto ri = residues.begin(); ri != residues.end();
         ++ri, ++chars_ptr) {
             (*chars_ptr) = Sequence::rname3to1((*ri)->name());
         }
+        chars = res_chars;
     }
     _residues = residues;
     assign(chars->begin(), chars->end());

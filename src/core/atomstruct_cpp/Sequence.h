@@ -27,11 +27,11 @@ protected:
     // can't inherit from vector, since we need to clear caches on changes
     Contents  _contents;
 public:
-    static void  assign_rname3to1(const std::string& rname, unsigned char let,
+    static void  assign_rname3to1(const std::string& rname, char let,
         bool protein);
-    static unsigned char  nucleic3to1(const std::string &rn);
-    static unsigned char  protein3to1(const std::string &rn);
-    static unsigned char  rname3to1(const std::string &rn);
+    static char  nucleic3to1(const std::string &rn);
+    static char  protein3to1(const std::string &rn);
+    static char  rname3to1(const std::string &rn);
 
     Sequence() {}
     Sequence(const std::vector<std::string>& res_names);  // 3-letter codes
@@ -47,6 +47,7 @@ public:
     Contents::const_reference  back() const { return _contents.back(); }
     Contents::const_iterator  begin() const { return _contents.begin(); }
     void  clear() { _clear_cache(); _contents.clear(); }
+    const Contents&  contents() const { return _contents; }
     Contents::reference  front() { _clear_cache(); return _contents.front(); }
     Contents::const_reference  front() const { return _contents.front(); }
     Contents::const_iterator  end() const { return _contents.end(); }

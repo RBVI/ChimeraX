@@ -15,7 +15,6 @@ class AtomicStructure;
 class Residue;
 
 class ATOMSTRUCT_IMEX Chain: public Sequence {
-    friend class AtomicStructure;
 public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
@@ -34,20 +33,20 @@ public:
     const Residues&  residues() const { return _residues; }
     Residue*  get(unsigned i) const { return _residues[i]; }
     void  pop_back() {
-        Chain::pop_back();
+        Sequence::pop_back();
         if (_residues.back() != nullptr) _res_map.erase(_residues.back());
         _residues.pop_back();
     }
     void  pop_front() {
-        Chain::pop_front();
+        Sequence::pop_front();
         if (_residues.front() != nullptr) _res_map.erase(_residues.front());
         _residues.erase(_residues.begin());
     }
     void  set(unsigned i, Residue* r, char character = -1);
     void  set_from_seqres(bool fs);
     AtomicStructure*  structure() const;
-    void  bulk_set(Residues& residues,
-            std::vector<unsigned char>* chars = nullptr);
+    void  bulk_set(const Residues& residues,
+            const Sequence::Contents* chars = nullptr);
 };
 
 }  // namespace atomstruct

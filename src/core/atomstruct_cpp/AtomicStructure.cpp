@@ -436,9 +436,7 @@ AtomicStructure::make_chains() const
                 else
                     new_residues.push_back((*pi).second);
             }
-            chain->_residues.swap(new_residues);
-            chain->_res_map = retvals.match_map.res_to_pos();
-            chain->assign(sr_seq.begin(), sr_seq.end());
+            chain->bulk_set(new_residues, &sr_seq.contents());
         }
     }
 }
