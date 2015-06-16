@@ -91,13 +91,19 @@ class Drawing:
         (attribute color) is used for the object.
         '''
 
+        self._triangle_mask = None
+        '''
+        A mask that allows hiding some triangles, a numpy array of
+        length M (# of triangles) of type bool. This is used for
+        showing just a patch of a surface.
+        '''
+
         self._edge_mask = None
         '''
-        A mask that allows hiding some triangles and edges, a numpy
-        array of length M (# of triangles) of type int32, where bits
-        0, 1, and 2 are whether to display each edge of the triangle,
-        and bit 3 is whether to display the triangle.  This is used for
-        square mesh density map display and for showing partial surfaces.
+        A mask that allows hiding some edges, a numpy array of length M
+        (# of triangles) of type uint8, where bits 0, 1, and 2 are whether
+        to display each edge of the triangle.  This is used for
+        square mesh density map display.
         '''
 
         self.display_style = self.Solid
@@ -139,8 +145,8 @@ class Drawing:
         # OpenGL drawing
         self._draw_shape = None
         self._draw_selection = None
-        self._shader_opt = None             # Cached shader options
-        self._vertex_buffers = []
+        self._shader_opt = None                 # Cached shader options
+        self._vertex_buffers = []               # Buffers used by both drawing and selection
         self._need_buffer_update = True
 
         self.was_deleted = False
@@ -487,6 +493,7 @@ class Drawing:
     def set_geometry(self, g):
         self.vertices, self.triangles = g
         self._edge_mask = None
+        self._triangle_mask = None
         self.redraw_needed(shape_changed=True)
 
     geometry = property(get_geometry, set_geometry)
@@ -596,11 +603,8 @@ class Drawing:
             # avoid changing the element buffer binding for the previously
             # active bindings.
             self._update_buffers()
-            # TODO: If the element buffer is updated it clears the element buffer binding,
-            # and the follow update_bindings() does not set the element buffer if another
-            # draw shapes object other than the one we are drawing changed it.
-            ds.update_bindings()
             self._need_buffer_update = False
+        ds.update_bindings()
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:
@@ -654,11 +658,8 @@ class Drawing:
         pm = self._position_mask()
         pmsel = self._position_mask(True)
         ta = self.triangles
-        emask = self._edge_mask
-        em = emask if self.display_style == self.Mesh else None
-        # TODO: Computing triangle mask is inefficient.
-        from numpy import bool
-        tm = None if emask is None else (emask & self.TRIANGLE_DISPLAY_MASK).astype(bool)
+        em = self._edge_mask if self.display_style == self.Mesh else None
+        tm = self._triangle_mask
         tmsel = self._selected_triangles_mask
         if tm is not None:
             # Combine selected and displayed triangle masks
@@ -667,18 +668,17 @@ class Drawing:
                 tmsel = logical_and(tmsel, tm)
             else:
                 tmsel = tm
-        ds, dss = self._draw_shape, self._draw_selection
-        ds.update_buffers(p, c, pm, ta, tm, em)
-        dss.update_buffers(p, c, pmsel, ta, tmsel, em)
 
-        bchange = False
+        ds, dss = self._draw_shape, self._draw_selection
+        ds.update_buffers(p, c, pm, ta, tm, em)		# Update drawing buffers
+        dss.update_buffers(p, c, pmsel, ta, tmsel, em)  # Update selection buffers
+
+        # Update buffers shared by drawing and selection
         for b in self._vertex_buffers:
             data = getattr(self, b.buffer_attribute_name)
             if b.update_buffer_data(data):
-                bchange = True
-
-        if bchange:
-            ds.reset_bindings = dss.reset_bindings = True
+                ds._update_buffer_bindings.add(b)
+                dss._update_buffer_bindings.add(b)
 
     def _position_mask(self, selected_only=False):
         dp = self._displayed_positions        # bool array
@@ -792,6 +792,7 @@ class Drawing:
         self.triangles = None
         self.normals = None
         self._edge_mask = None
+        self._triangle_mask = None
         self.texture = None
         self.texture_coordinates = None
 
@@ -820,59 +821,48 @@ class Drawing:
 
     _effects_buffers = set(
         ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
-         '_displayed_positions', '_colors', '_positions', '_edge_mask',
-         '_selected_triangles_mask'))
+         '_displayed_positions', '_colors', '_positions',
+         '_edge_mask', '_triangle_mask', '_selected_triangles_mask'))
 
-    TRIANGLE_DISPLAY_MASK = 8
-    '''Edge mask for displaying a triangle (bit 3).'''
     EDGE0_DISPLAY_MASK = 1
     ALL_EDGES_DISPLAY_MASK = 7
     '''Edge mask for displaying all three triangle edges (bits 0, 1, 2).'''
 
-    def get_triangle_and_edge_mask(self):
+    def get_triangle_mask(self):
+        return self._triangle_mask
+
+    def set_triangle_mask(self, tmask):
+        self._triangle_mask = tmask
+        self.redraw_needed(shape_changed=True)
+
+    triangle_mask = property(get_triangle_mask, set_triangle_mask)
+    '''
+    The triangle mask is a 1-dimensional bool numpy array of
+    length equal to the number of triangles used to control display
+    of individual triangles.
+    '''
+
+    def get_edge_mask(self):
         return self._edge_mask
 
-    def set_triangle_and_edge_mask(self, temask):
-        self._edge_mask = temask
-        self.redraw_needed(shape_changed=True)
-
-    triangle_and_edge_mask = property(get_triangle_and_edge_mask,
-                                      set_triangle_and_edge_mask)
-    '''
-    The triangle and edge mask is a 1-dimensional int32 numpy array of
-    length equal to the number of triangles.  The lowest 4 bits are used
-    to control display of the corresponding triangle and display of its
-    3 edges in mesh mode.
-    '''
-
     def set_edge_mask(self, emask):
-        '''Set the edge mask leaving the current triangle mask unchanged.'''
-        em = self._edge_mask
-        if em is None:
-            if emask is None:
-                return
-            em = (emask & self.ALL_EDGES_DISPLAY_MASK)
-            em |= self.TRIANGLE_DISPLAY_MASK
-            self._edge_mask = em
-        else:
-            if emask is None:
-                em |= self.ALL_EDGES_DISPLAY_MASK
-            else:
-                em = (em & self.TRIANGLE_DISPLAY_MASK) | (em & emask)
-            self._edge_mask = em
-
+        self._edge_mask = emask
         self.redraw_needed(shape_changed=True)
+
+    edge_mask = property(get_edge_mask, set_edge_mask)
+    '''
+    The edge mask is a 1-dimensional uint8 numpy array of
+    length equal to the number of triangles.  The lowest 3 bits are used
+    to control display of the 3 triangle edges in mesh mode.
+    '''
 
     DRAWING_STATE_VERSION = 1
 
     @property
     def masked_triangles(self):
         ta = self.triangles
-        em = self._edge_mask
-        if em is None:
-            return ta
-        tm = (em & self.TRIANGLE_DISPLAY_MASK).astype(bool)
-        return ta[tm,:]
+        tm = self._triangle_mask
+        return ta if tm is None else ta[tm,:]
 
     def take_snapshot(self, phase, session, flags):
         from ..session import State
@@ -891,6 +881,7 @@ class Drawing:
             'triangles': self.triangles,
             'normals': self.normals,
             'vertex_colors': self.vertex_colors,
+            'triangle_mask': self._triangle_mask,
             'edge_mask': self._edge_mask,
             'display_style': self.display_style,
             'texture': self.texture,
@@ -908,7 +899,6 @@ class Drawing:
             'color': self.color,
             'colors': self.colors,
             'geometry': self.geometry,
-            'triangle_and_edge_mask': self.triangle_and_edge_mask,
         }
         return self.DRAWING_STATE_VERSION, data
 
@@ -926,6 +916,7 @@ class Drawing:
         self.triangles = data['triangles']
         self.normals = data['normals']
         self.vertex_colors = data['vertex_colors']
+        self._triangle_mask = data['triangle_mask']
         self._edge_mask = data['edge_mask']
         self.display_style = data['display_style']
         self.texture = data['texture']
@@ -941,7 +932,6 @@ class Drawing:
         self.color = data['color']
         self.colors = data['colors']
         self.geometry = data['geometry']
-        self.triangle_and_edge_mask = data['triangle_and_edge_mask']
         self.display_positions = data['display_positions']
         self.selected_positions = data['selected_positions']
 
@@ -1064,7 +1054,9 @@ class _DrawShape:
         self._tri_mask = None
 
         # OpenGL rendering
-        self.bindings = None    # buffer pointers and shader variable bindings
+        self.bindings = None    	      # Shader variable bindings in an opengl vertex array object
+        self._update_buffer_bindings = set(vertex_buffers)  # New or reallocated buffers requiring update of
+                                                            #   shader variable bindings
         self.vertex_buffers = vertex_buffers
         self.element_buffer = None
         self.instance_buffers = []
@@ -1097,6 +1089,9 @@ class _DrawShape:
         self.element_buffer = eb = opengl.Buffer(v)
         eb.buffer_attribute_name = a
 
+        ub = self._update_buffer_bindings
+        ub.add(eb)
+
         ibufs = (
             ('instance_shift_and_scale',
                 opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
@@ -1109,6 +1104,8 @@ class _DrawShape:
             b.buffer_attribute_name = a
             ib.append(b)
 
+        ub.update(ib)
+
     def update_buffers(self, positions, colors, position_mask, triangles,
                        tmask, edge_mask):
 
@@ -1119,14 +1116,10 @@ class _DrawShape:
 
         self.update_instance_arrays(positions, colors, position_mask)
 
-        bchange = False
         for b in self.instance_buffers + [self.element_buffer]:
             data = getattr(self, b.buffer_attribute_name)
             if b.update_buffer_data(data):
-                bchange = True
-
-        if bchange:
-            self.reset_bindings = True
+                self._update_buffer_bindings.add(b)
 
     def update_instance_arrays(self, positions, colors, position_mask):
         sas = positions.shift_and_scale_array()
@@ -1167,12 +1160,13 @@ class _DrawShape:
             me = self.masked_edges
             if (me is None or edge_mask is not self._edge_mask or
                     tmask is not self._tri_mask):
-                em = edge_mask if tmask is None else edge_mask[tmask]
+                kw = {}
+                if edge_mask is not None:
+                    kw['edge_mask'] = edge_mask
+                if tmask is not None:
+                    kw['triangle_mask'] = tmask
                 from ._graphics import masked_edges
-                if em is None:
-                    self.masked_edges = me = masked_edges(ta)
-                else:
-                    self.masked_edges = me = masked_edges(ta, em)
+                self.masked_edges = me = masked_edges(ta, **kw)
                 self._edge_mask, self._tri_mask = edge_mask, tmask
             ta = me
         return ta
@@ -1182,26 +1176,28 @@ class _DrawShape:
         self.activate_bindings()
         shader = renderer.shader(sopt)
         renderer.use_shader(shader)
-        self.update_bindings()
 
     def update_bindings(self):
-        if self.reset_bindings and self.element_buffer:
-            self.bind_buffers(self.vertex_buffers + [self.element_buffer] +
-                              self.instance_buffers)
-            self.reset_bindings = False
+        bufs = self._update_buffer_bindings
+        if bufs:
+            bi = self.bindings
+            for b in bufs:
+                bi.bind_shader_variable(b)
+            bufs.clear()
 
     def activate_bindings(self):
         if self.bindings is None:
             from . import opengl
             self.bindings = opengl.Bindings()
-            self.reset_bindings = True
+            self._update_buffer_bindings.update(self.all_buffers())
         self.bindings.activate()
 
-    def bind_buffers(self, bufs):
-        bi = self.bindings
-        for b in bufs:
-            bi.bind_shader_variable(b)
-
+    def all_buffers(self):
+        bufs = self.vertex_buffers + self.instance_buffers
+        ebuf = self.element_buffer
+        if ebuf:
+            bufs += [ebuf]
+        return bufs
 
 class Pick:
     '''
