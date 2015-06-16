@@ -91,7 +91,7 @@ class Drawing:
         (attribute color) is used for the object.
         '''
 
-        self.edge_mask = None
+        self._edge_mask = None
         '''
         A mask that allows hiding some triangles and edges, a numpy
         array of length M (# of triangles) of type int32, where bits
@@ -486,7 +486,7 @@ class Drawing:
 
     def set_geometry(self, g):
         self.vertices, self.triangles = g
-        self.edge_mask = None
+        self._edge_mask = None
         self.redraw_needed(shape_changed=True)
 
     geometry = property(get_geometry, set_geometry)
@@ -596,6 +596,9 @@ class Drawing:
             # avoid changing the element buffer binding for the previously
             # active bindings.
             self._update_buffers()
+            # TODO: If the element buffer is updated it clears the element buffer binding,
+            # and the follow update_bindings() does not set the element buffer if another
+            # draw shapes object other than the one we are drawing changed it.
             ds.update_bindings()
             self._need_buffer_update = False
 
@@ -651,9 +654,19 @@ class Drawing:
         pm = self._position_mask()
         pmsel = self._position_mask(True)
         ta = self.triangles
-        em = self.edge_mask if self.display_style == self.Mesh else None
-        tm = None
+        emask = self._edge_mask
+        em = emask if self.display_style == self.Mesh else None
+        # TODO: Computing triangle mask is inefficient.
+        from numpy import bool
+        tm = None if emask is None else (emask & self.TRIANGLE_DISPLAY_MASK).astype(bool)
         tmsel = self._selected_triangles_mask
+        if tm is not None:
+            # Combine selected and displayed triangle masks
+            if tmsel is not None:
+                from numpy import logical_and
+                tmsel = logical_and(tmsel, tm)
+            else:
+                tmsel = tm
         ds, dss = self._draw_shape, self._draw_selection
         ds.update_buffers(p, c, pm, ta, tm, em)
         dss.update_buffers(p, c, pmsel, ta, tmsel, em)
@@ -739,7 +752,8 @@ class Drawing:
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
         if self.empty_drawing():
             return None
-        va, ta = self.geometry
+        va = self.vertices
+        ta = self.masked_triangles
         if ta.shape[1] != 3:
             # TODO: Intercept only for triangles, not lines or points.
             return None
@@ -777,7 +791,7 @@ class Drawing:
         self.vertices = None
         self.triangles = None
         self.normals = None
-        self.edge_mask = None
+        self._edge_mask = None
         self.texture = None
         self.texture_coordinates = None
 
@@ -806,7 +820,8 @@ class Drawing:
 
     _effects_buffers = set(
         ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
-         '_displayed_positions', '_colors', '_positions'))
+         '_displayed_positions', '_colors', '_positions', '_edge_mask',
+         '_selected_triangles_mask'))
 
     TRIANGLE_DISPLAY_MASK = 8
     '''Edge mask for displaying a triangle (bit 3).'''
@@ -815,10 +830,10 @@ class Drawing:
     '''Edge mask for displaying all three triangle edges (bits 0, 1, 2).'''
 
     def get_triangle_and_edge_mask(self):
-        return self.edge_mask
+        return self._edge_mask
 
     def set_triangle_and_edge_mask(self, temask):
-        self.edge_mask = temask
+        self._edge_mask = temask
         self.redraw_needed(shape_changed=True)
 
     triangle_and_edge_mask = property(get_triangle_and_edge_mask,
@@ -832,23 +847,32 @@ class Drawing:
 
     def set_edge_mask(self, emask):
         '''Set the edge mask leaving the current triangle mask unchanged.'''
-        em = self.edge_mask
+        em = self._edge_mask
         if em is None:
             if emask is None:
                 return
             em = (emask & self.ALL_EDGES_DISPLAY_MASK)
             em |= self.TRIANGLE_DISPLAY_MASK
-            self.edge_mask = em
+            self._edge_mask = em
         else:
             if emask is None:
                 em |= self.ALL_EDGES_DISPLAY_MASK
             else:
                 em = (em & self.TRIANGLE_DISPLAY_MASK) | (em & emask)
-            self.edge_mask = em
+            self._edge_mask = em
 
         self.redraw_needed(shape_changed=True)
 
     DRAWING_STATE_VERSION = 1
+
+    @property
+    def masked_triangles(self):
+        ta = self.triangles
+        em = self._edge_mask
+        if em is None:
+            return ta
+        tm = (em & self.TRIANGLE_DISPLAY_MASK).astype(bool)
+        return ta[tm,:]
 
     def take_snapshot(self, phase, session, flags):
         from ..session import State
@@ -867,7 +891,7 @@ class Drawing:
             'triangles': self.triangles,
             'normals': self.normals,
             'vertex_colors': self.vertex_colors,
-            'edge_mask': self.edge_mask,
+            'edge_mask': self._edge_mask,
             'display_style': self.display_style,
             'texture': self.texture,
             'ambient_texture ': self.ambient_texture,
@@ -902,7 +926,7 @@ class Drawing:
         self.triangles = data['triangles']
         self.normals = data['normals']
         self.vertex_colors = data['vertex_colors']
-        self.edge_mask = data['edge_mask']
+        self._edge_mask = data['edge_mask']
         self.display_style = data['display_style']
         self.texture = data['texture']
         self.ambient_texture = data['ambient_texture ']
