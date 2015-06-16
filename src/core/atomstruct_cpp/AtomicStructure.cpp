@@ -313,7 +313,7 @@ AtomicStructure::make_chains() const
     }
     for (auto polymer: polys) {
         const std::string& chain_id = polymer[0]->chain_id();
-        auto chain = new Chain(chain_id);
+        auto chain = new Chain(chain_id, (AtomicStructure*)this);
         _chains->emplace_back(chain);
 
         // first, create chain directly from structure

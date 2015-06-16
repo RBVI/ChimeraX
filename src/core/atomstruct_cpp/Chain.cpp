@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "AtomicStructure.h"
 #include "Chain.h"
 #include "Sequence.h"
 #include "Residue.h"
@@ -41,9 +42,45 @@ Chain::bulk_set(const Chain::Residues& residues,
 }
 
 void
+Chain::pop_back()
+{
+    atomstruct::Sequence::pop_back();
+    _residues.pop_back();
+    auto back = _residues.back();
+    if (back != nullptr) {
+        _res_map.erase(back);
+        back->set_chain(nullptr);
+        if (no_structure_left()) {
+            _structure->remove_chain(this);
+            _structure = nullptr;
+        }
+    }
+}
+
+void
+Chain::pop_front()
+{
+    atomstruct::Sequence::pop_front();
+    auto front = _residues.front();
+    _residues.erase(_residues.begin());
+    if (front != nullptr) {
+        _res_map.erase(front);
+        front->set_chain(nullptr);
+        if (no_structure_left()) {
+            _structure->remove_chain(this);
+            _structure = nullptr;
+        }
+    }
+}
+
+void
 Chain::remove_residue(Residue* r) {
     auto ri = std::find(_residues.begin(), _residues.end(), r);
     *ri = nullptr;
+    if (no_structure_left()) {
+        _structure->remove_chain(this);
+        _structure = nullptr;
+    }
 }
 
 void 
@@ -70,6 +107,11 @@ Chain::set(unsigned i, Residue *r, char character)
     if (r != nullptr) {
         _res_map[r] = i;
         r->set_chain(this);
+    } else {
+        if (no_structure_left()) {
+            _structure->remove_chain(this);
+            _structure = nullptr;
+        }
     }
 }
 

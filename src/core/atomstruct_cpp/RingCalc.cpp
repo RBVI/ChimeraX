@@ -10,6 +10,7 @@
 
 #include "AtomicStructure.h"
 #include "Bond.h"
+#include "Residue.h"
 
 namespace atomstruct {
 
