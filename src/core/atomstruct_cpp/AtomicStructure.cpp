@@ -5,10 +5,10 @@
 #include <basegeom/Graph.tcc>
 #include "Bond.h"
 #include "CoordSet.h"
-#include <logger/logger.h>
 #include "Element.h"
-#include "Residue.h"
+#include <logger/logger.h>
 #include "Pseudobond.h"
+#include "Residue.h"
 #include "seq_assoc.h"
 
 #include <algorithm>  // for std::find, std::sort, std::remove_if
@@ -36,6 +36,7 @@ AtomicStructure::~AtomicStructure() {
     if (_chains != nullptr) {
         for (auto c: *_chains)
             delete c;
+        delete _chains;
     }
     for (auto r: _residues)
         delete r;
@@ -287,8 +288,11 @@ AtomicStructure::find_residue(std::string &chain_id, int pos, char insert, std::
 void
 AtomicStructure::make_chains() const
 {
-    if (_chains != nullptr)
+    if (_chains != nullptr) {
+        for (auto c: *_chains)
+            delete c;
         delete _chains;
+    }
 
     _chains = new Chains();
     auto polys = polymers();
@@ -409,7 +413,6 @@ AtomicStructure::make_chains() const
             // a _lot_ of errors can make it take a very long time to find the
             // answer, so limit the maximum...
             // (1vqn, chain 0 is > 2700 residues)
-#ifdef TODO
             unsigned int seq_len = chain->size();
             unsigned int gap_sum = 0;
             for (auto gap: ap.gaps) {
@@ -417,8 +420,25 @@ AtomicStructure::make_chains() const
             }
             unsigned int max_errs = std::min(seq_len/2,
                 std::max(seq_len/10, gap_sum));
-            //TODO: try_assoc
-#endif
+            AssocRetvals retvals;
+            try {
+                retvals = try_assoc(sr_seq, *chain, ap, max_errs);
+            } catch (SA_AssocFailure) {
+                chain->set_from_seqres(false);
+                continue;
+            }
+            auto& p2r = retvals.match_map.pos_to_res();
+            Chain::Residues new_residues;
+            for (Chain::SeqPos i = 0; i < sr_seq.size(); ++i ) {
+                auto pi = p2r.find(i);
+                if (pi == p2r.end())
+                    new_residues.push_back(nullptr);
+                else
+                    new_residues.push_back((*pi).second);
+            }
+            chain->_residues.swap(new_residues);
+            chain->_res_map = retvals.match_map.res_to_pos();
+            chain->assign(sr_seq.begin(), sr_seq.end());
         }
     }
 }

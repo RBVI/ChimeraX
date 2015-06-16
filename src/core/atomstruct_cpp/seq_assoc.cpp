@@ -401,11 +401,61 @@ try_assoc(const Sequence& align_seq, const Chain& mseq,
     if (!assoc_failure && retvals.num_errors == 0)
         return retvals;
 
-#ifdef TODO
     // prune off 'X' residues and see how that works...
-    if mseq[0] != 'X'
-    // TODO
-#endif
+    if (mseq.front() != 'X' && mseq.back() != 'X') {
+        if (assoc_failure)
+            throw SA_AssocFailure("bad assoc");
+        return retvals;
+    }
+    auto no_X = mseq;
+    auto no_X_ap = AssocParams(ap.est_len, ap.segments.begin(),
+        ap.segments.end(), ap.gaps.begin(), ap.gaps.end());
+    while (no_X.front() == 'X') {
+        no_X.pop_front();
+        --no_X_ap.est_len;
+    }
+    if (no_X.size() == 0) {
+        if (assoc_failure)
+            throw SA_AssocFailure("bad assoc");
+        return retvals;
+    }
+    int offset = mseq.size() - no_X.size();
+    while (offset > 0 && offset >= no_X_ap.segments.front().size()) {
+        offset -= no_X_ap.segments.front().size();
+        no_X_ap.segments.erase(no_X_ap.segments.begin());
+        no_X_ap.est_len -= no_X_ap.gaps.front();
+        no_X_ap.gaps.erase(no_X_ap.gaps.begin());
+    }
+    while (offset-- > 0)
+        no_X_ap.segments.front().erase(no_X_ap.segments.front().begin());
+    int tail_loss = 0;
+    while (no_X.back() == 'X') {
+        no_X.pop_back();
+        --no_X_ap.est_len;
+        ++tail_loss;
+    }
+    while (tail_loss > 0 && tail_loss >= no_X_ap.segments.back().size()) {
+        tail_loss -= no_X_ap.segments.back().size();
+        no_X_ap.segments.pop_back();
+        no_X_ap.est_len -= no_X_ap.gaps.back();
+        no_X_ap.gaps.pop_back();
+    }
+    while (tail_loss-- > 0)
+        no_X_ap.segments.back().pop_back();
+    AssocRetvals no_X_retvals;
+    try {
+        if (aseq.size() >= no_X_ap.est_len)
+            no_X_retvals = constrained_match(aseq, no_X, no_X_ap, max_errors);
+        else
+            no_X_retvals = gapped_match(aseq, no_X, no_X_ap, max_errors);
+    } catch (SA_AssocFailure) {
+        if (assoc_failure)
+            throw;
+        return retvals;
+    }
+    if (assoc_failure || no_X_retvals.num_errors < retvals.num_errors)
+        return no_X_retvals;
+    return retvals;
 }
 
 }  // namespace atomstruct

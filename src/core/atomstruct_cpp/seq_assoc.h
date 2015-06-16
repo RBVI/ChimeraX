@@ -2,17 +2,16 @@
 #ifndef atomstruct_seq_assoc
 #define atomstruct_seq_assoc
 
+#include <map>
 #include <stdexcept>
-#include <unordered_map>
 #include <valarray>
 #include <vector>
 
+#include "Chain.h"
 #include "imex.h"
-#include "Sequence.h"
 
 namespace atomstruct {
 
-class Chain;
 class Residue;
 
 struct AssocParams {
@@ -33,16 +32,20 @@ AssocParams  estimate_assoc_params(Chain&);
 
 class ATOMSTRUCT_IMEX MatchMap {
 public:
-    typedef std::vector<unsigned char>::size_type  SeqPos;
+    typedef std::map<Chain::SeqPos, Residue*>  PosToRes;
+    typedef std::map<Residue*, Chain::SeqPos>  ResToPos;
+
 private:
-    std::unordered_map<SeqPos, Residue*>  _pos_to_res;
-    std::unordered_map<Residue*, SeqPos>  _res_to_pos;
+    PosToRes  _pos_to_res;
+    ResToPos  _res_to_pos;
 
 public:
     Sequence*  aseq;
     Chain*  mseq;
-    Residue*&  operator[](SeqPos pos) { return _pos_to_res[pos]; }
-    SeqPos&  operator[](Residue* r) { return _res_to_pos[r]; }
+    Residue*&  operator[](Chain::SeqPos pos) { return _pos_to_res[pos]; }
+    Chain::SeqPos&  operator[](Residue* r) { return _res_to_pos[r]; }
+    const PosToRes&  pos_to_res() const { return _pos_to_res; }
+    const ResToPos&  res_to_pos() const { return _res_to_pos; }
 };
 
 struct AssocRetvals {

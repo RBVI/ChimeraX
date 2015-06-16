@@ -22,6 +22,12 @@ Chain::bulk_set(Chain::Residues& residues, std::vector<unsigned char>* chars)
     }
     _residues = residues;
     assign(chars->begin(), chars->end());
+    _res_map.clear();
+    int i = 0;
+    for (auto ri = residues.begin(); ri != residues.end(); ++ri, ++i) {
+        if (*ri != nullptr)
+            _res_map[*ri] = i;
+    }
 
     if (del_chars)
         delete chars;
@@ -40,9 +46,14 @@ Chain::set(unsigned i, Residue *r, char character)
         _residues.push_back(r);
         push_back(c);
     } else {
-        _residues.at(i) = r;
+        auto& res_at_i = _residues.at(i);
+        if (res_at_i != nullptr)
+            _res_map.erase(res_at_i);
+        res_at_i = r;
         at(i) = c;
     }
+    if (r != nullptr)
+        _res_map[r] = i;
 }
 
 void
@@ -56,12 +67,15 @@ Chain::set_from_seqres(bool fs)
         if (std::find(_residues.begin(), _residues.end(), nullptr)
         != _residues.end()) {
             // there actually are seqres portions
+            _res_map.clear();
             Chain::Residues new_residues;
             Sequence::Contents new_contents;
             auto ri = _residues.begin();
+            int i = 0;
             for (auto si = begin(); si != end(); ++si, ++ri) {
                 if (*ri == nullptr)
                     continue;
+                _res_map[*ri] = ++i;
                 new_residues.push_back(*ri);
                 new_contents.push_back(*si);
             }

@@ -33,26 +33,33 @@ public:
     static unsigned char  protein3to1(const std::string &rn);
     static unsigned char  rname3to1(const std::string &rn);
 
+    Sequence() {}
+    Sequence(const std::vector<std::string>& res_names);  // 3-letter codes
+    virtual  ~Sequence() {}
+
     template <class InputIterator> void  assign(InputIterator first,
         InputIterator last) { _clear_cache(); _contents.assign(first, last); }
     Contents::reference  at(Contents::size_type n)
         { _clear_cache(); return _contents.at(n); }
     Contents::const_reference  at(Contents::size_type n) const
         { return _contents.at(n); }
+    Contents::reference  back() { _clear_cache(); return _contents.back(); }
+    Contents::const_reference  back() const { return _contents.back(); }
     Contents::const_iterator  begin() const { return _contents.begin(); }
     void  clear() { _clear_cache(); _contents.clear(); }
+    Contents::reference  front() { _clear_cache(); return _contents.front(); }
+    Contents::const_reference  front() const { return _contents.front(); }
     Contents::const_iterator  end() const { return _contents.end(); }
     unsigned int  gapped_to_ungapped(unsigned int index) const;
     Contents::iterator  insert(Contents::const_iterator pos,
         Contents::size_type n, Contents::value_type val)
         { _clear_cache(); return _contents.insert(pos, n, val); }
+    void  pop_back() { _clear_cache(); _contents.pop_back(); }
+    void  pop_front() { _clear_cache(); _contents.erase(_contents.begin()); }
     void  push_back(unsigned char c) { _clear_cache(); _contents.push_back(c); }
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
-    Sequence() {}
-    Sequence(const std::vector<std::string>& res_names);  // 3-letter codes
-    virtual  ~Sequence() {}
     Contents::size_type  size() const { return _contents.size(); }
     void  swap(Contents& x) { _clear_cache(); _contents.swap(x); }
     const Contents&  ungapped() const;
