@@ -79,6 +79,13 @@ extern "C" void atom_bonded_atoms(void *atoms, int n, void **batoms)
     }
 }
 
+extern "C" void atom_chain_id(void *atoms, int n, void **cids)
+{
+  Atom **a = static_cast<Atom **>(atoms);
+  for (int i = 0 ; i < n ; ++i)
+    cids[i] = PyUnicode_FromString(a[i]->residue()->chain_id().c_str());
+}
+
 extern "C" void atom_color(void *atoms, int n, unsigned char *rgba)
 {
   Atom **a = static_cast<Atom **>(atoms);
@@ -444,6 +451,28 @@ extern "C" void pseudobond_group_num_pseudobonds(void *pbgroups, int n, int *num
 extern "C" void pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseudobonds)
 {
   PBGroup **pbg = static_cast<PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    for (auto pb: pbg[i]->pseudobonds())
+      *pseudobonds++ = pb;
+}
+
+extern "C" void *as_pseudobond_group_new_pseudobond(void *pbgroup, void *atom1, void *atom2)
+{
+  Proxy_PBGroup *pbg = static_cast<Proxy_PBGroup *>(pbgroup);
+  PBond *b = pbg->new_pseudobond(static_cast<Atom *>(atom1), static_cast<Atom *>(atom2));
+  return b;
+}
+
+extern "C" void as_pseudobond_group_num_pseudobonds(void *pbgroups, int n, int *num_pseudobonds)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
+  for (int i = 0 ; i < n ; ++i)
+    *num_pseudobonds++ = pbg[i]->pseudobonds().size();
+}
+
+extern "C" void as_pseudobond_group_pseudobonds(void *pbgroups, int n, void **pseudobonds)
+{
+  Proxy_PBGroup **pbg = static_cast<Proxy_PBGroup **>(pbgroups);
   for (int i = 0 ; i < n ; ++i)
     for (auto pb: pbg[i]->pseudobonds())
       *pseudobonds++ = pb;

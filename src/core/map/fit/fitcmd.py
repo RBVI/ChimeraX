@@ -2,7 +2,7 @@ from ...cli import UserError
 
 # -----------------------------------------------------------------------------
 #
-def fitmap(session, atomsOrMap, inMap = None,
+def fitmap(session, atomsOrMap, inMap = None, subtract_maps = None,
            metric = None, envelope = True, resolution = None,
            shift = True, rotate = True, symmetric = False,
            moveWholeMolecules = True,
@@ -18,6 +18,10 @@ def fitmap(session, atomsOrMap, inMap = None,
     if metric is None:
         metric = 'correlation' if symmetric else 'overlap'
     mwm = moveWholeMolecules
+    if subtract_maps:
+        smaps = subtraction_maps(subtract_maps.evaluate(session), resolution, session)
+        if sequence == 0:
+            sequence = 1
 
     check_fit_options(atoms_or_map, volume, metric, resolution,
                       symmetric, mwm, search, sequence)
@@ -26,8 +30,8 @@ def fitmap(session, atomsOrMap, inMap = None,
     log = session.logger
     amlist = atoms_and_map(atoms_or_map, resolution, mwm, sequence, eachModel, session)
     for atoms, v in amlist:
-        if sequence > 0:
-            fits = fit_sequence(v, volume, metric, envelope, resolution,
+        if sequence > 0 or subtract_maps:
+            fits = fit_sequence(v, volume, smaps, metric, envelope, resolution,
                                 shift, rotate, mwm, sequence,
                                 maxSteps, gridStepMin, gridStepMax, log)
         elif search:
@@ -80,12 +84,16 @@ def check_fit_options(atoms_or_map, volume, metric, resolution,
             raise UserError('Must specify a map resolution when'
                             ' fitting an atomic model using correlation')
 
+    if sequence > 0 and not moveWholeMolecules:
+        raise UserError('Fit sequence does not support'
+                        ' moving partial molecules')
+
 # -----------------------------------------------------------------------------
 #
 def atoms_and_map(atoms_or_map, resolution, moveWholeMolecules, sequence, eachModel, session):
 
     if eachModel and sequence == 0:
-        return split_by_model(atoms_or_map, resolution, moveWholeMolecules, session)
+        return split_by_model(atoms_or_map, resolution, session)
 
     if sequence > 0:
         if resolution is None:
@@ -100,17 +108,10 @@ def atoms_and_map(atoms_or_map, resolution, moveWholeMolecules, sequence, eachMo
         else:
             from ...structure import AtomicStructure
             mlist = [m for m in atoms_or_map.models if isinstance(m, AtomicStructure)]
-            if len(mlist) < 2:
-                raise UserError('Fit sequence requires 2 or more molecules')
-            if not moveWholeMolecules:
-                raise UserError('Fit sequence does not support'
-                                ' moving partial molecules')
-                # TODO: Handle case where not moving whole molecules.
+            if len(mlist) == 0:
+                raise UserError('No molecules specified for fitting')
             from . import fitmap as F
-            vlist = [F.simulated_map(m.atoms, resolution, moveWholeMolecules, session)
-                     for m in mlist]
-            for v,m in zip(vlist, mlist):
-                v.molecule = m
+            vlist = [F.simulated_map(m.atoms, resolution, session) for m in mlist]
         from ...molecule import Atoms
         return [(Atoms(), vlist)]
 
@@ -121,30 +122,46 @@ def atoms_and_map(atoms_or_map, resolution, moveWholeMolecules, sequence, eachMo
         v = None
     else:
         from . import fitmap as F
-        v = F.simulated_map(atoms, resolution, moveWholeMolecules, session)
+        v = F.simulated_map(atoms, resolution, session)
     return [(atoms, v)]
 
 # -----------------------------------------------------------------------------
 #
-def split_by_model(sel, resolution, moveWholeMolecules, session):
+def subtraction_maps(spec, resolution, session):
+    vlist = []
+    atoms = spec.atoms
+    if len(atoms) > 0:
+        if resolution is None:
+            raise UserError('Require resolution keyword for atomic models used '
+                            'in subtract maps option')
+        for m, matoms in atoms.by_molecule:
+            from .fitmap import simulated_map
+            vlist.append(simulated_map(matoms, resolution, session))
+    from .. import Volume
+    vlist.extend([v for v in spec.models if isinstance(v, Volume)])
+    return vlist
+    
+# -----------------------------------------------------------------------------
+#
+def split_by_model(sel, resolution, session):
 
     aom = [(atoms, None) for m,atoms in sel.atoms.by_molecule]
     from .. import Volume
     aom.extend([(None, v) for v in sel.models if isinstance(v, Volume)])
     if not resolution is None:
-        aom = remove_atoms_with_volumes(aom, resolution, moveWholeMolecules, session)
+        aom = remove_atoms_with_volumes(aom, resolution, session)
     return aom
 
 # -----------------------------------------------------------------------------
 # When fitting each model exclude atoms where a corresponding simulated map
 # is also specified.
 #
-def remove_atoms_with_volumes(aom, res, mwm, session):
+def remove_atoms_with_volumes(aom, res, session):
 
     maps = set(v for v,a in aom)
     from .fitmap import find_simulated_map
     faom = [(atoms,v) for atoms,v in aom
-            if atoms is None or not find_simulated_map(atoms, res, mwm, session) in maps]
+            if atoms is None or not find_simulated_map(atoms, res, session) in maps]
     return faom
 
 # -----------------------------------------------------------------------------
@@ -338,9 +355,10 @@ def report_fit_search_results(flist, search, outside, levelInside, log):
 
 # -----------------------------------------------------------------------------
 #
-def fit_sequence(vlist, volume, metric, envelope, resolution,
-                 shift, rotate, moveWholeMolecules, sequence,
-                 maxSteps, gridStepMin, gridStepMax, log):
+def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope = True,
+                 resolution = None, shift = True, rotate = True, moveWholeMolecules = True,
+                 sequence = 1, maxSteps = 2000, gridStepMin = 0.01, gridStepMax = 0.5,
+                 log = None):
 
     me = fitting_metric(metric)
 
@@ -352,15 +370,17 @@ def fit_sequence(vlist, volume, metric, envelope, resolution,
     stop_cb = None
     flist = []
 #    try:
-    flist = S.fit_sequence(vlist, volume, sequence, envelope, me, shift, rotate,
-                               maxSteps, gridStepMin, gridStepMax, stop_cb, log)
+    flist = S.fit_sequence(vlist, volume, sequence, subtract_maps, envelope, me, shift, rotate,
+                           maxSteps, gridStepMin, gridStepMax, stop_cb, log)
 #    finally:
 #        task.finished()
 
     # Align molecules to their corresponding maps. 
+    # TODO: Handle case where not moving whole molecules.
     for v in vlist: 
-        if hasattr(v, 'molecule'):
-            v.molecule.position = v.position
+        if hasattr(v, 'atoms'):
+            for m in v.atoms.unique_molecules:
+                m.position = v.position
  
     return flist
 
@@ -421,15 +441,17 @@ def report_status(log):
 #
 def register_fitmap_command():
 
-    from ... import cli, atomspec
+    from ... import cli
+    from ...atomspec import AtomSpecArg
     from ..mapargs import MapArg
 
     fitmap_desc = cli.CmdDesc(
         required = [
-            ('atomsOrMap', atomspec.AtomSpecArg),
+            ('atomsOrMap', AtomSpecArg),
         ],
         keyword = [
             ('inMap', MapArg),	# Require keyword to avoid two consecutive atom specs.
+            ('subtract_maps', AtomSpecArg),
 
 # Four modes, default is single fit mode (no option)
             ('eachModel', cli.BoolArg),

@@ -1,13 +1,14 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 from . import io
-from . import models
+from .models import Model
+from . import profile
 from .session import RestoreError
 from .molecule import CAtomicStructure
 
 CATEGORY = io.STRUCTURE
 
 
-class AtomicStructure(CAtomicStructure, models.Model):
+class AtomicStructure(CAtomicStructure, Model):
     """Commom base class for atomic structures"""
 
     STRUCTURE_STATE_VERSION = 0
@@ -23,10 +24,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
         from . import molecule
         molecule.add_to_object_map(self)
 
-        models.Model.__init__(self, name)
+        Model.__init__(self, name)
 
         self._atoms = None              # Cached atoms array
-        self._residues = None           # Cached residues array
 
         self.ball_scale = 0.3		# Scales sphere radius in ball and stick style
         self.bond_radius = 0.2
@@ -41,6 +41,8 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
         self.ribbon_divisions = 10
         self._ribbon_drawing = None
+        self._ribbon_t2r = {}         # ribbon triangles-to-residue map
+        self._ribbon_r2t = {}         # ribbon residue-to-triangles map
         # Cross section coordinates are 2D and counterclockwise
         from .ribbon import XSection
         xsc_helix = [( 0.5, 0.1),(0.0, 0.2),(-0.5, 0.1),(-0.6,0.0),
@@ -59,7 +61,7 @@ class AtomicStructure(CAtomicStructure, models.Model):
     def delete(self):
         self._atoms = None
         CAtomicStructure.delete(self)
-        models.Model.delete(self)
+        Model.delete(self)
 
     def take_snapshot(self, phase, session, flags):
         if phase != self.SAVE_PHASE:
@@ -142,6 +144,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
         p = self._atoms_drawing
         if p is None:
             self._atoms_drawing = p = self.new_drawing('atoms')
+            # Add atom picking method to the atom drawing
+            from types import MethodType
+            p.first_intercept = MethodType(atom_first_intercept, p)
 
         n = len(coords)
         self.triangles_per_sphere = 320 if n < 30000 else 80 if n < 120000 else 20
@@ -279,118 +284,168 @@ class AtomicStructure(CAtomicStructure, models.Model):
         p.display_positions = self.shown_bond_cylinders(bond_atoms, half_bond_coloring)
         self.set_bond_colors(p, bond_atoms, bond_colors, half_bond_coloring)
 
-    def update_ribbon_graphics(self):
-        from .ribbon import Ribbon, XSection
-        from .geometry import place
-        from numpy import concatenate, array, uint8
-        polymers = self.polymers(False, False)
-        if self._ribbon_drawing is None:
-            self._ribbon_drawing = p = self.new_drawing('ribbon')
-            p.display = True
-        else:
-            p = self._ribbon_drawing
-            p.remove_all_drawings()
-        for rlist in polymers:
-            displays = rlist.ribbon_displays
-            if displays.sum() == 0:
-                continue
-            coords, guides = self._get_polymer_spline(rlist)
-            if len(coords) < 4:
-                continue
-            ribbon = Ribbon(coords, guides)
-            offset = 0
-            vertex_list = []
-            normal_list = []
-            color_list = []
-            triangle_list = []
-            # Draw first and last residue differently because they
-            # are each only a single half segment, where the middle
-            # residues are each two half segments.
-            if self.ribbon_divisions % 2 == 1:
-                seg_blend = self.ribbon_divisions
-                seg_cap = seg_blend + 1
+    def update_ribbon_graphics(self, rebuild=False):
+        if rebuild:
+            from .ribbon import Ribbon, XSection
+            from .geometry import place
+            from numpy import concatenate, array, uint8
+            polymers = self.polymers(False, False)
+            if self._ribbon_drawing is None:
+                self._ribbon_drawing = p = self.new_drawing('ribbon')
+                p.display = True
             else:
-                seg_cap = self.ribbon_divisions
-                seg_blend = seg_cap + 1
-            is_helix = rlist.is_helix
-            is_sheet = rlist.is_sheet
-            colors = rlist.ribbon_colors
-            # Assign cross sections
-            xss = []
-            was_strand = False
-            for i in range(len(rlist)):
-                if is_sheet[i]:
-                    xss.append(self._ribbon_xs_strand)
-                    was_strand = True
-                else:
-                    if was_strand:
-                        xss[-1] = self._ribbon_xs_arrow
-                    if is_helix[i]:
-                        xss.append(self._ribbon_xs_helix)
-                    else:
-                        xss.append(self._ribbon_xs_turn)
-                    was_strand = False
-            # First residues
-            if displays[0]:
-                capped = displays[0] != displays[1] or xss[0] != xss[1]
-                seg = capped and seg_cap or seg_blend
-                centers, tangents, normals = ribbon.segment(0, ribbon.FRONT, seg)
-                s = xss[0].extrude(centers, tangents, normals, colors[0],
-                                   True, capped, offset)
-                offset += len(s.vertices)
-                vertex_list.append(s.vertices)
-                normal_list.append(s.normals)
-                triangle_list.append(s.triangles)
-                color_list.append(s.colors)
-                prev_band = s.back_band
-            else:
-                capped = True
-                prev_band = None
-            # Middle residues
-            for i in range(1, len(rlist) - 1):
-                if not displays[i]:
+                p = self._ribbon_drawing
+                p.remove_all_drawings()
+            self._ribbon_t2r = {}
+            self._ribbon_r2t = {}
+            for rlist in polymers:
+                rp = p.new_drawing(rlist.strs[0])
+                print("ribbon drawing", rlist.strs[0], rp)
+                t2r = []
+                displays = rlist.ribbon_displays
+                if displays.sum() == 0:
                     continue
-                seg = capped and seg_cap or seg_blend
-                front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
-                next_cap = displays[i] != displays[i + 1] or xss[i] != xss[i + 1]
-                seg = next_cap and seg_cap or seg_blend
-                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
-                centers = concatenate((front_c, back_c))
-                tangents = concatenate((front_t, back_t))
-                normals = concatenate((front_n, back_n))
-                s = xss[i].extrude(centers, tangents, normals, colors[i],
-                                   capped, next_cap, offset)
-                offset += len(s.vertices)
-                vertex_list.append(s.vertices)
-                normal_list.append(s.normals)
-                triangle_list.append(s.triangles)
-                color_list.append(s.colors)
-                if prev_band:
-                    triangle_list.append(xss[i].blend(prev_band, s.front_band))
-                if next_cap:
-                    prev_band = None
+                coords, guides = self._get_polymer_spline(rlist)
+                if len(coords) < 4:
+                    continue
+                any_ribbon = True
+                ribbon = Ribbon(coords, guides)
+                offset = 0
+                vertex_list = []
+                normal_list = []
+                color_list = []
+                triangle_list = []
+                # Draw first and last residue differently because they
+                # are each only a single half segment, where the middle
+                # residues are each two half segments.
+                if self.ribbon_divisions % 2 == 1:
+                    seg_blend = self.ribbon_divisions
+                    seg_cap = seg_blend + 1
                 else:
+                    seg_cap = self.ribbon_divisions
+                    seg_blend = seg_cap + 1
+                is_helix = rlist.is_helix
+                is_sheet = rlist.is_sheet
+                colors = rlist.ribbon_colors
+                # Assign cross sections
+                xss = []
+                was_strand = False
+                for i in range(len(rlist)):
+                    if is_sheet[i]:
+                        xss.append(self._ribbon_xs_strand)
+                        was_strand = True
+                    else:
+                        if was_strand:
+                            xss[-1] = self._ribbon_xs_arrow
+                        if is_helix[i]:
+                            xss.append(self._ribbon_xs_helix)
+                        else:
+                            xss.append(self._ribbon_xs_turn)
+                        was_strand = False
+                # Per-residue state variables
+                t_start = 0
+                # First residues
+                if displays[0]:
+                    capped = displays[0] != displays[1] or xss[0] != xss[1]
+                    seg = capped and seg_cap or seg_blend
+                    centers, tangents, normals = ribbon.segment(0, ribbon.FRONT, seg)
+                    s = xss[0].extrude(centers, tangents, normals, colors[0],
+                                       True, capped, offset)
+                    offset += len(s.vertices)
+                    t_end = t_start + len(s.triangles)
+                    vertex_list.append(s.vertices)
+                    normal_list.append(s.normals)
+                    triangle_list.append(s.triangles)
+                    color_list.append(s.colors)
                     prev_band = s.back_band
-                capped = next_cap
-            # Last residue
-            if displays[-1]:
-                seg = capped and seg_cap or seg_blend
-                centers, tangents, normals = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, last=True)
-                s = xss[-1].extrude(centers, tangents, normals, colors[-1],
-                                    capped, True, offset)
-                vertex_list.append(s.vertices)
-                normal_list.append(s.normals)
-                triangle_list.append(s.triangles)
-                color_list.append(s.colors)
-                if prev_band:
-                    triangle_list.append(xss[-1].blend(prev_band, s.front_band))
-            # Create drawing from arrays
-            rp = p.new_drawing(rlist.strs[seg])
-            rp.display = True
-            rp.vertices = concatenate(vertex_list)
-            rp.normals = concatenate(normal_list)
-            rp.triangles = concatenate(triangle_list)
-            rp.vertex_colors = concatenate(color_list)
+                    triangle_range = RibbonTriangleRange(t_start, t_end, rp, rlist[0])
+                    t2r.append(triangle_range)
+                    self._ribbon_r2t[rlist[0]] = triangle_range
+                    t_start = t_end
+                else:
+                    capped = True
+                    prev_band = None
+                # Middle residues
+                for i in range(1, len(rlist) - 1):
+                    if not displays[i]:
+                        continue
+                    seg = capped and seg_cap or seg_blend
+                    front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg)
+                    next_cap = displays[i] != displays[i + 1] or xss[i] != xss[i + 1]
+                    seg = next_cap and seg_cap or seg_blend
+                    back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg)
+                    centers = concatenate((front_c, back_c))
+                    tangents = concatenate((front_t, back_t))
+                    normals = concatenate((front_n, back_n))
+                    s = xss[i].extrude(centers, tangents, normals, colors[i],
+                                       capped, next_cap, offset)
+                    offset += len(s.vertices)
+                    t_end = t_start + len(s.triangles)
+                    vertex_list.append(s.vertices)
+                    normal_list.append(s.normals)
+                    triangle_list.append(s.triangles)
+                    color_list.append(s.colors)
+                    if prev_band:
+                        triangle_list.append(xss[i].blend(prev_band, s.front_band))
+                        t_end += len(triangle_list[-1])
+                    if next_cap:
+                        prev_band = None
+                    else:
+                        prev_band = s.back_band
+                    capped = next_cap
+                    triangle_range = RibbonTriangleRange(t_start, t_end, rp, rlist[i])
+                    t2r.append(triangle_range)
+                    self._ribbon_r2t[rlist[i]] = triangle_range
+                    t_start = t_end
+                # Last residue
+                if displays[-1]:
+                    seg = capped and seg_cap or seg_blend
+                    centers, tangents, normals = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, last=True)
+                    s = xss[-1].extrude(centers, tangents, normals, colors[-1],
+                                        capped, True, offset)
+                    offset += len(s.vertices)
+                    t_end = t_start + len(s.triangles)
+                    vertex_list.append(s.vertices)
+                    normal_list.append(s.normals)
+                    triangle_list.append(s.triangles)
+                    color_list.append(s.colors)
+                    if prev_band:
+                        triangle_list.append(xss[-1].blend(prev_band, s.front_band))
+                        t_end += len(triangle_list[-1])
+                    triangle_range = RibbonTriangleRange(t_start, t_end, rp, rlist[-1])
+                    t2r.append(triangle_range)
+                    self._ribbon_r2t[rlist[-1]] = triangle_range
+                    t_start = t_end
+                # Create drawing from arrays
+                rp.display = True
+                rp.vertices = concatenate(vertex_list)
+                rp.normals = concatenate(normal_list)
+                rp.triangles = concatenate(triangle_list)
+                rp.vertex_colors = concatenate(color_list)
+                rp.atomic_structure = self
+                from types import MethodType
+                rp.first_intercept = MethodType(ribbon_first_intercept, rp)
+                # Save mappings for picking
+                self._ribbon_t2r[rp] = t2r
+
+        # Set selected ribbons in graphics
+        asel = self._selected_atoms
+        if asel is not None:
+            for r in self.atoms.filter(asel).unique_residues:
+                try:
+                    tr = self._ribbon_r2t[r]
+                except KeyError:
+                    continue
+                p = tr.drawing
+                m = p.selected_triangles_mask
+                if m is None:
+                    import numpy
+                    m = numpy.zeros((p.number_of_triangles(),), bool)
+                m[tr.start:tr.end] = True
+                p.selected_triangles_mask = m
+                p.redraw_needed(selection_changed=True)
+                import numpy
+                print(residue_description(tr.residue), tr.start, tr.end, numpy.sum(m), len(m), p.number_of_triangles(), p)
 
     def _get_polymer_spline(self, rlist):
             # Get coordinates for spline and orientation atoms
@@ -436,38 +491,6 @@ class AtomicStructure(CAtomicStructure, models.Model):
         if invert:
             logical_not(d,d)
         return d
-
-    def first_intercept(self, mxyz1, mxyz2, exclude = None):
-        # TODO check intercept of bounding box as optimization
-        p = self._atoms_drawing
-        if p is None:
-            return None
-        xyzr = p.positions.shift_and_scale_array()
-        dp = p.display_positions
-        if dp is None:
-            xyz, r = xyzr[:,:3], xyzr[:,3]
-        else:
-            xyz, r = xyzr[dp,:3], xyzr[dp,3]
-
-        f = fa = None
-        from . import graphics
-        for tf in self.positions:
-            cxyz1, cxyz2 = tf.inverse() * (mxyz1, mxyz2)
-            # Check for atom sphere intercept
-            fmin, anum = graphics.closest_sphere_intercept(xyz, r, cxyz1, cxyz2)
-            if not fmin is None and (f is None or fmin < f):
-                f, fa = fmin, anum
-
-        # Create pick object
-        if fa is None:
-            s = None
-        else:
-            if not dp is None:
-                fa = dp.nonzero()[0][fa]        # Remap index to include undisplayed positions
-            atom = self.atoms[fa]
-            s = PickedAtom(atom, f)
-
-        return s
 
     def bounds(self, positions = True):
         # TODO: Cache bounds
@@ -527,7 +550,9 @@ class AtomicStructure(CAtomicStructure, models.Model):
 
     def any_part_selected(self):
         asel = self._selected_atoms
-        return not asel is None and asel.sum() > 0
+        if not asel is None and asel.sum() > 0:
+            return True
+        return Model.any_part_selected(self)
 
     def clear_selection(self):
         asel = self._selected_atoms
@@ -590,6 +615,43 @@ def selected_atoms(session):
                 atoms = atoms | matoms
     return atoms
 
+def atom_first_intercept(self, mxyz1, mxyz2, exclude = None):
+    # TODO check intercept of bounding box as optimization
+    xyzr = self.positions.shift_and_scale_array()
+    dp = self.display_positions
+    xyz,r = (xyzr[:,:3], xyzr[:,3]) if dp is None else (xyzr[dp,:3], xyzr[dp,3])
+
+    # Check for atom sphere intercept
+    from . import graphics
+    fmin, anum = graphics.closest_sphere_intercept(xyz, r, mxyz1, mxyz2)
+
+    if fmin is None:
+        return None
+
+    if not dp is None:
+        anum = dp.nonzero()[0][anum]    # Remap index to include undisplayed positions
+    atom = self.parent.atoms[anum]
+
+    # Create pick object
+    s = PickedAtom(atom, fmin)
+
+    return s
+
+def ribbon_first_intercept(self, mxyz1, mxyz2, exclude=None):
+    # TODO check intercept of bounding box as optimization
+    from .graphics import Drawing
+    pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
+    if pd is None:
+        return None
+    best = pd.distance
+    t2r = self.atomic_structure._ribbon_t2r[pd.drawing()]
+    from bisect import bisect_right
+    n = bisect_right(t2r, pd.triangle_number)
+    if not n:
+        return None
+    triangle_range = t2r[n - 1]
+    return PickedResidue(triangle_range.residue, pd.distance)
+
 # -----------------------------------------------------------------------------
 #
 from .graphics import Pick
@@ -612,6 +674,45 @@ def atom_description(atom):
     r = atom.residue
     d = '%s #%s.%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
     return d
+
+# -----------------------------------------------------------------------------
+#
+from .graphics import Pick
+class PickedResidue(Pick):
+    def __init__(self, residue, distance):
+        Pick.__init__(self, distance)
+        self.residue = residue
+    def description(self):
+        return residue_description(self.residue)
+    def drawing(self):
+        return self.residue.molecule
+    def select(self, toggle = False):
+        r = self.residue
+        import sys
+        r.molecule.select_atoms(r.atoms, toggle)
+
+# -----------------------------------------------------------------------------
+#
+def residue_description(r):
+    m = r.molecule
+    d = '%s #%s.%s %s %d' % (m.name, m.id_string(), r.chain_id, r.name, r.number)
+    return d
+
+# -----------------------------------------------------------------------------
+#
+class RibbonTriangleRange:
+    __slots__ = ["start", "end", "drawing", "residue"]
+    def __init__(self, start, end, drawing, residue):
+        self.start = start
+        self.end = end
+        self.drawing = drawing
+        self.residue = residue
+    def __lt__(self, other): return self.start < other
+    def __le__(self, other): return self.start <= other
+    def __eq__(self, other): return self.start == other
+    def __ne__(self, other): return self.start != other
+    def __gt__(self, other): return self.start > other
+    def __gt__(self, other): return self.start >= other
 
 # -----------------------------------------------------------------------------
 # Return 4x4 matrices taking prototype cylinder to bond location.
@@ -954,7 +1055,16 @@ def show_atoms(show, atoms, session):
 # -----------------------------------------------------------------------------
 #
 def all_atomic_structures(session):
-    return [m for m in session.models.list() if isinstance(c, AtomicStructure)]
+    return [m for m in session.models.list() if isinstance(m,AtomicStructure)]
+
+# -----------------------------------------------------------------------------
+#
+def all_atoms(session):
+    from .molecule import Atoms
+    atoms = Atoms()
+    for m in all_atomic_structures(session):
+        atoms = atoms | m.atoms
+    return atoms
 
 # -----------------------------------------------------------------------------
 #
@@ -968,6 +1078,7 @@ class AtomsArg(cli.Annotation):
         from . import atomspec
         aspec, text, rest = atomspec.AtomSpecArg.parse(text, session)
         atoms = aspec.evaluate(session).atoms
+        atoms.spec = str(aspec)
         return atoms, text, rest
 
 # -----------------------------------------------------------------------------
