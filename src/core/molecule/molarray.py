@@ -34,6 +34,8 @@ class PointerArray:
         set_cvec_pointer(self, pointers)
         remove_deleted_pointers(pointers)
 
+    def __eq__(self, atoms):
+        return (atoms._pointers == self._pointers).all()
     def __len__(self):
         return len(self._pointers)
     def __iter__(self):
@@ -65,6 +67,8 @@ class PointerArray:
     def filter(self, mask):
         return self._objects_class(self._pointers[mask])
     def mask(self, atoms):
+        '''Return bool array indicating for each atom in current set whether that
+        atom appears in the argument atoms.'''
         f = c_function('pointer_mask', args = [ctypes.c_void_p, ctypes.c_int,
                                                ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p])
         mask = empty((len(self),), npy_bool)

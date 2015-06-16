@@ -29,20 +29,8 @@ def surface_command(session, atoms = None, enclose = None,
 #        p.calculate_surface_geometry()
 
     # Creates surface models
-    surfs = []
-    for p in pieces:
-        # Create surface model to show surface
-        sname = '%s_%s SES surface' % (p.mol.name, p.chain_id)
-        rgba = surface_rgba(color, transparency, p.chain_id)
-        surf = show_surface(sname, p.vertices, p.normals, p.triangles, rgba)
-#        vatom = p.vertex_to_atom_map()
-#        surf.vertex_colors = p.catoms.colors[vatom,:].copy()
-        session.models.add([surf], parent = p.mol)
-        surfs.append(surf)
+    surfs = [p.create_surface(color, transparency, session) for p in pieces]
 
-    for p in pieces:
-        if len(p.patoms) < len(p.catoms):
-            print ('show patch', len(p.patoms), len(p.catoms))
     return surfs
 
 def register_surface_command():
@@ -79,12 +67,26 @@ class SurfCalc:
         self.catoms = self.remove_solvent_ligands_ions(catoms)
         self.probe_radius = probe_radius
         self.grid_spacing = grid_spacing
+        self.vertices = None
+        self.normals = None
+        self.triangles = None
+        self.surface_model = self.find_matching_surface()
+        self._vertex_to_atom = None
 
+    def find_matching_surface(self):
+        for s in self.mol.child_drawings():
+            if isinstance(s, MolecularSurface):
+                if len(s.atoms) == len(self.catoms) and s.atoms == self.catoms:
+                    return s
+        return None
+                
     @property
     def atom_count(self):
         return len(self.catoms)
 
     def calculate_surface_geometry(self):
+        if not self.vertices is None or not self.surface_model is None:
+            return              # Geometry already computed
         atoms = self.catoms
         xyz = atoms.coords
         r = atoms.radii
@@ -93,6 +95,21 @@ class SurfCalc:
         self.vertices = va
         self.normals = na
         self.triangles = ta
+
+    def create_surface(self, color, transparency, session):
+        surf = self.surface_model
+        if not surf:
+            # Create surface model to show surface
+            sname = '%s_%s SES surface' % (self.mol.name, self.chain_id)
+            rgba = surface_rgba(color, transparency, self.chain_id)
+            surf = show_surface(sname, self.vertices, self.normals, self.triangles, rgba)
+            surf.atoms = self.catoms
+            surf._calc_surf = self
+            session.models.add([surf], parent = self.mol)
+        c = surf._calc_surf
+#        surf.vertex_colors = c.vertex_atom_colors()
+        surf.triangle_and_edge_mask = c.patch_display_mask(self.patoms)
+        return surf
 
     # Chain atoms with solvent, ligands and ions filtered out.
     def chain_atoms(self, mol, chain_id):
@@ -105,15 +122,40 @@ class SurfCalc:
         return atoms.subtract(solvent) if len(solvent) > 0 else atoms
 
     def vertex_to_atom_map(self):
-        xyz1 = self.vertices
-        xyz2 = self.catoms.coords
-        max_dist = 3
-        from . import geometry
-        i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
-        from numpy import empty, int32
-        v2a = empty((len(xyz1),), int32)
-        v2a[i1] = nearest1
+        v2a = self._vertex_to_atom
+        if v2a is None:
+            xyz1 = self.vertices
+            xyz2 = self.catoms.coords
+            max_dist = 3
+            from . import geometry
+            i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
+            from numpy import empty, int32
+            v2a = empty((len(xyz1),), int32)
+            v2a[i1] = nearest1
+            self._vertex_to_atom = v2a
         return v2a
+
+    def vertex_atom_colors(self):
+        vatom = self.vertex_to_atom_map()
+        return self.catoms.colors[vatom,:]
+
+    def patch_display_mask(self, patch_atoms):
+        surf_atoms = self.catoms
+        if len(patch_atoms) == len(surf_atoms):
+            return None
+        v2a = self.vertex_to_atom_map()
+        shown_atoms = surf_atoms.mask(patch_atoms)
+        shown_vertices = shown_atoms[v2a]
+#        print('shown vertices', shown_vertices.sum(), 'of', len(shown_vertices))
+        t = self.triangles
+        from numpy import logical_and, empty, int32
+        shown_triangles = empty((len(t),), int32)
+        logical_and(shown_vertices[t[:,0]], shown_vertices[t[:,1]], shown_triangles)
+        logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
+#        print ('show patch', len(patch_atoms), 'of', len(surf_atoms), 'atoms',
+#               shown_triangles.sum(), 'of', len(shown_triangles), 'triangles')
+        shown_triangles *= 0xf          # Bits 0-3 are edge and triangle mask
+        return shown_triangles
 
 def surface_rgba(color, transparency, chain_id):
     if color is None:

@@ -12,7 +12,6 @@ grako==3.5.1
 Jinja2==2.7.3
 line_profiler==1.0
 markupsafe==0.23
-matplotlib==1.4.3
 mccabe==0.3
 networkx==1.9.1
 numpydoc==0.5
