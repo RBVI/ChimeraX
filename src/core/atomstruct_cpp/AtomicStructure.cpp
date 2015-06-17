@@ -34,8 +34,9 @@ AtomicStructure::~AtomicStructure() {
     // assign to variable so that it lives to end of destructor
     auto du = basegeom::DestructionUser(this);
     if (_chains != nullptr) {
-        for (auto c: *_chains)
-            delete c;
+        // don't delete the actual chains -- they may be being
+        // used as Sequences and the Python layer will delete 
+        // them (as sequences) as appropriate
         delete _chains;
     }
     for (auto r: _residues)
