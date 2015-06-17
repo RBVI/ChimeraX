@@ -12,7 +12,8 @@ class MolecularSurface(generic3d.Generic3DModel):
 
 def surface_command(session, atoms = None, enclose = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
-                    color = None, transparency = 0, nthread = None):
+                    color = None, transparency = 0, nthread = None,
+                    close = False, hide = False):
     '''
     Compute and display solvent excluded molecular surfaces.
     '''
@@ -45,6 +46,13 @@ def surface_command(session, atoms = None, enclose = None,
     # Creates surface models
     surfs = [p.create_surface(session) for p in pieces]
 
+    if close:
+        close_surfaces(atoms, session.models)
+        surfs = []
+
+    if hide:
+        hide_surfaces(atoms, session.models)
+
     return surfs
 
 def register_surface_command():
@@ -57,7 +65,9 @@ def register_surface_command():
                    ('grid_spacing', cli.FloatArg),
                    ('color', color.ColorArg),
                    ('transparency', cli.FloatArg),
-                   ('nthread', cli.IntArg)],
+                   ('nthread', cli.IntArg),
+                   ('close', cli.NoArg),
+                   ('hide', cli.NoArg)],
         synopsis = 'create molecular surface')
     cli.register('surface', _surface_desc, surface_command)
 
@@ -114,7 +124,9 @@ class SurfCalc:
 
     def create_surface(self, session):
         surf = self.surface_model
-        if not surf:
+        if surf:
+            surf.display = True
+        else:
             # Create surface model to show surface
             surf = show_surface(self.name, self.vertices, self.normals, self.triangles, self.color)
             surf.atoms = self.atoms
@@ -193,6 +205,24 @@ def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
     color = array((180,180,180,255), uint8)
     surf = show_surface(mol.name + ' surface', va, na, ta, color, mol.position)
     return surf
+
+def surfaces_with_atoms(atoms, models):
+    surfs = []
+    for m in list(atoms.unique_molecules) + [models.drawing]:
+        for s in m.child_drawings():
+            if isinstance(s, MolecularSurface):
+                if len(atoms.intersect(s.atoms)) > 0:
+                    surfs.append(s)
+    return surfs
+
+def hide_surfaces(atoms, models):
+    for s in surfaces_with_atoms(atoms, models):
+        s.display = False
+
+def close_surfaces(atoms, models):
+    surfs = surfaces_with_atoms(atoms, models)
+    if surfs:
+        models.close(surfs)
 
 def sasa_command(session, atoms = None, probe_radius = 1.4):
     '''
