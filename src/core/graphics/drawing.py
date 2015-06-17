@@ -45,6 +45,7 @@ class Drawing:
     def __init__(self, name):
 
         self._redraw_needed = None
+        self._attribute_changes = set()         # Attribute names of changed data for updating buffers
 
         self.name = name
         "Name of this drawing."
@@ -147,7 +148,6 @@ class Drawing:
         self._draw_selection = None
         self._shader_opt = None                 # Cached shader options
         self._vertex_buffers = []               # Buffers used by both drawing and selection
-        self._need_buffer_update = True
 
         self.was_deleted = False
         "Indicates whether this Drawing has been deleted."
@@ -164,7 +164,7 @@ class Drawing:
             self._shader_opt = None       # Cause shader update
             self.redraw_needed()
         if key in self._effects_buffers:
-            self._need_buffer_update = True
+            self._attribute_changes.add(key)
             gc = key in ('vertices', 'triangles')
             if gc:
                 self._cached_bounds = None
@@ -595,16 +595,15 @@ class Drawing:
         if len(self._vertex_buffers) == 0:
             self._create_vertex_buffers()
 
-        ds = self._draw_selection if selected_only else self._draw_shape
-        ds.activate_shader_and_bindings(renderer, self._shader_options())
+        # Update opengl buffers to reflect drawing changes
+        self._update_buffers()
 
-        if self._need_buffer_update:
-            # Updating buffers has to be done after activating bindings to
-            # avoid changing the element buffer binding for the previously
-            # active bindings.
-            self._update_buffers()
-            self._need_buffer_update = False
-        ds.update_bindings()
+        ds = self._draw_selection if selected_only else self._draw_shape
+        ds.activate_bindings()
+
+        sopt = self._shader_options()
+        shader = renderer.shader(sopt)
+        renderer.use_shader(shader)
 
         # Set color
         if self.vertex_colors is None and len(self._colors) == 1:
@@ -650,36 +649,52 @@ class Drawing:
         ('use_lighting', 'vertex_colors', '_colors', 'texture',
          'ambient_texture', '_positions'))
 
-    # Update the contents of vertex, element and instance buffers
-    # if associated arrays have changed.
+    # Update the contents of vertex, element and instance buffers if associated
+    #  arrays have changed.
     def _update_buffers(self):
 
-        ta = self.triangles
-        em = self._edge_mask if self.display_style == self.Mesh else None
-        tm = self._triangle_mask
-        tmsel = self.selected_displayed_triangles_mask
+        changes = self._attribute_changes
+        if len(changes) == 0:
+            return
+
+        ds, dss = self._draw_shape, self._draw_selection
 
         # Update drawing and selection triangle buffers
-        ds, dss = self._draw_shape, self._draw_selection
-        ds.update_element_buffer(ta, tm, em)
-        dss.update_element_buffer(ta, tmsel, em)
+        if ('triangles' in changes or
+            'display_style' in changes or
+            '_triangle_mask' in changes or
+            (self.display_style == self.Mesh and '_edge_mask' in changes) or
+            '_selected_triangles_mask' in changes):
+            ta = self.triangles
+            em = self._edge_mask if self.display_style == self.Mesh else None
+            tm = self._triangle_mask
+            tmsel = self.selected_displayed_triangles_mask
+            ds.update_element_buffer(ta, tm, em)
+            dss.update_element_buffer(ta, tmsel, em)
 
         # Update instancing buffers
         p = self.positions
         instancing = (p.shift_and_scale_array() is not None or len(p) > 1)
         if instancing:
-            c = self.colors
-            pm = self._position_mask()
-            pmsel = self._position_mask(True)
-            ds.update_instance_buffers(p, c, pm)
-            dss.update_instance_buffers(p, c, pmsel)
+            if ('_colors' in changes or
+                '_positions' in changes or
+                '_displayed_positions' in changes or
+                '_selected_positions' in changes):
+                c = self.colors
+                pm = self._position_mask()
+                pmsel = self._position_mask(True)
+                ds.update_instance_buffers(p, c, pm)
+                dss.update_instance_buffers(p, c, pmsel)
 
         # Update buffers shared by drawing and selection
         for b in self._vertex_buffers:
-            data = getattr(self, b.buffer_attribute_name)
-            if b.update_buffer_data(data):
-                ds._update_buffer_bindings.add(b)
-                dss._update_buffer_bindings.add(b)
+            aname = b.buffer_attribute_name
+            if aname in changes:
+                data = getattr(self, aname)
+                ds.update_vertex_buffer(b, data)
+                dss.update_vertex_buffer(b, data)
+
+        changes.clear()
 
     def _position_mask(self, selected_only=False):
         dp = self._displayed_positions        # bool array
@@ -822,7 +837,7 @@ class Drawing:
 
     _effects_buffers = set(
         ('vertices', 'normals', 'vertex_colors', 'texture_coordinates',
-         '_displayed_positions', '_colors', '_positions',
+         'triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
          '_edge_mask', '_triangle_mask', '_selected_triangles_mask'))
 
     EDGE0_DISPLAY_MASK = 1
@@ -1068,10 +1083,15 @@ class _DrawShape:
         self._edge_mask = None
         self._tri_mask = None
 
+        # Vertex buffer data
+        self.vertices = None
+        self.normals = None
+        self.vertex_colors = None
+        self.texture_coordinates = None
+
         # OpenGL rendering
         self.bindings = None    	      # Shader variable bindings in an opengl vertex array object
-        self._update_buffer_bindings = set(vertex_buffers)  # New or reallocated buffers requiring update of
-                                                            #   shader variable bindings
+        self._buffers_need_update = set()     # Buffers that need data copied to opengl buffer object
         self.vertex_buffers = vertex_buffers
         self.element_buffer = None
         self.instance_buffers = []
@@ -1099,13 +1119,16 @@ class _DrawShape:
         if ni > 0:
             eb.draw_elements(etype, ni)
 
+    def update_vertex_buffer(self, b, data):
+
+        setattr(self, b.buffer_attribute_name, data)
+        self.buffer_needs_update(b)
+
     def create_element_buffer(self):
 
         from . import opengl
         eb = opengl.Buffer(opengl.ELEMENT_BUFFER)
         eb.buffer_attribute_name = 'elements'
-        ub = self._update_buffer_bindings
-        ub.add(eb)
         return eb
 
     def update_element_buffer(self, triangles, triangle_mask, edge_mask):
@@ -1119,8 +1142,8 @@ class _DrawShape:
             eb.delete_buffer()
             self.element_buffer = eb = None
 
-        if eb and eb.update_buffer_data(self.elements):
-            self._update_buffer_bindings.add(eb)
+        if eb:
+            self.buffer_needs_update(eb)
 
     def masked_elements(self, triangles, tmask, edge_mask):
 
@@ -1158,9 +1181,6 @@ class _DrawShape:
             b = opengl.Buffer(v)
             b.buffer_attribute_name = a
             ib.append(b)
-
-        self._update_buffer_bindings.update(ib)
-
         return ib
 
     def update_instance_buffers(self, positions, colors, position_mask):
@@ -1170,10 +1190,9 @@ class _DrawShape:
         ib = self.instance_buffers
         if len(ib) == 0:
             self.instance_buffers = ib = self.create_instance_buffers()
+
         for b in ib:
-            data = getattr(self, b.buffer_attribute_name)
-            if b.update_buffer_data(data):
-                self._update_buffer_bindings.add(b)
+            self.buffer_needs_update(b)
 
     def update_instance_arrays(self, positions, colors, position_mask):
         sas = positions.shift_and_scale_array()
@@ -1202,33 +1221,26 @@ class _DrawShape:
             ninst = 1
         return ninst
 
-    def activate_shader_and_bindings(self, renderer, sopt):
-        # Need OpenGL VAO bound to compile shader
-        self.activate_bindings()
-        shader = renderer.shader(sopt)
-        renderer.use_shader(shader)
-
-    def update_bindings(self):
-        bufs = self._update_buffer_bindings
-        if bufs:
-            bi = self.bindings
-            for b in bufs:
-                bi.bind_shader_variable(b)
-            bufs.clear()
+    def buffer_needs_update(self, b):
+        self._buffers_need_update.add(b)
+        b.up_to_date = False
 
     def activate_bindings(self):
-        if self.bindings is None:
+        bi = self.bindings
+        if bi is None:
             from . import opengl
-            self.bindings = opengl.Bindings()
-            self._update_buffer_bindings.update(self.all_buffers())
-        self.bindings.activate()
+            self.bindings = bi = opengl.Bindings()
 
-    def all_buffers(self):
-        bufs = self.vertex_buffers + self.instance_buffers
-        ebuf = self.element_buffer
-        if ebuf:
-            bufs += [ebuf]
-        return bufs
+        bi.activate()
+
+        bu = self._buffers_need_update
+        for b in bu:
+            if not b.up_to_date:
+                data = getattr(self, b.buffer_attribute_name)
+                b.update_buffer_data(data)
+                b.up_to_date = True
+            bi.bind_shader_variable(b)
+        bu.clear()
 
 class Pick:
     '''
