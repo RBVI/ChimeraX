@@ -1,4 +1,5 @@
 // vi: set expandtab ts=4 sw=4:
+#include <cctype>
 #include "Sequence.h"
 
 namespace atomstruct {
@@ -74,13 +75,12 @@ Sequence::_init_rname_map()
 Sequence::Sequence(const std::vector<std::string>& res_names) // 3-letter codes
 {
     for (auto rn: res_names) {
-        _sequence.push_back(rname3to1(rn));
+        this->push_back(rname3to1(rn));
     }
 }
 
 void
-Sequence::assign_rname3to1(const std::string& rname, unsigned char let,
-    bool protein)
+Sequence::assign_rname3to1(const std::string& rname, char let, bool protein)
 {
     if (protein)
         _protein3to1[rname] = let;
@@ -91,7 +91,16 @@ Sequence::assign_rname3to1(const std::string& rname, unsigned char let,
     _rname3to1[rname] = let;
 }
 
-unsigned char
+unsigned int
+Sequence::gapped_to_ungapped(unsigned int index) const
+{
+    if (_cache_ungapped.empty()) {
+        (void) ungapped();
+    }
+    return _cache_g2ug[index];
+}
+
+char
 Sequence::nucleic3to1(const std::string& rn)
 {
     _1Letter_Map::const_iterator l1i = _nucleic3to1.find(rn);
@@ -101,7 +110,7 @@ Sequence::nucleic3to1(const std::string& rn)
     return (*l1i).second;
 }
 
-unsigned char
+char
 Sequence::protein3to1(const std::string& rn)
 {
     _1Letter_Map::const_iterator l1i = _protein3to1.find(rn);
@@ -111,7 +120,7 @@ Sequence::protein3to1(const std::string& rn)
     return (*l1i).second;
 }
 
-unsigned char
+char
 Sequence::rname3to1(const std::string& rn)
 {
     if (_rname3to1.empty())
@@ -122,6 +131,34 @@ Sequence::rname3to1(const std::string& rn)
         return 'X';
     }
     return (*l1i).second;
+}
+
+const Sequence::Contents&
+Sequence::ungapped() const
+{
+    if (_cache_ungapped.empty()) {
+        unsigned int ug_index = 0;
+        auto gi = begin();
+        for (unsigned int i = 0; gi != end(); ++gi, ++i) {
+            auto c = *gi;
+            if (std::isalpha(c) || c == '?') {
+                _cache_ungapped.push_back(c);
+                _cache_g2ug[i] = ug_index;
+                _cache_ug2g[ug_index] = i;
+                ug_index++;
+            }
+        }
+    }
+    return _cache_ungapped;
+}
+
+unsigned int
+Sequence::ungapped_to_gapped(unsigned int index) const
+{
+    if (_cache_ungapped.empty()) {
+        (void) ungapped();
+    }
+    return _cache_ug2g[index];
 }
 
 }  // namespace atomstruct

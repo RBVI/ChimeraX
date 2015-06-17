@@ -2,6 +2,7 @@
 #ifndef atomstruct_AtomicStructure
 #define atomstruct_AtomicStructure
 
+#include <algorithm>
 #include <map>
 #include <set>
 #include <string>
@@ -26,6 +27,7 @@ namespace atomstruct {
 
 class Atom;
 class Bond;
+class Chain;
 class CoordSet;
 class Element;
 class Residue;
@@ -44,6 +46,9 @@ public:
     typedef std::vector<Residue*>  Residues;
     typedef std::unordered_set<Ring> Rings;
 private:
+    friend class Chain;
+    void  remove_chain(Chain* chain);
+
     CoordSet *  _active_coord_set;
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
@@ -132,10 +137,17 @@ public:
 
 #include "Atom.h"
 inline void
-atomstruct::AtomicStructure::_delete_atom(atomstruct::Atom* a) {
+atomstruct::AtomicStructure::_delete_atom(atomstruct::Atom* a)
+{
     if (a->element().number() == 1)
         --_num_hyds;
     delete_vertex(a);
+}
+
+inline void
+atomstruct::AtomicStructure::remove_chain(Chain* chain)
+{
+    _chains->erase(std::find(_chains->begin(), _chains->end(), chain));
 }
 
 #endif  // atomstruct_AtomicStructure

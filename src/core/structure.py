@@ -55,6 +55,7 @@ class AtomicStructure(CAtomicStructure, Model):
         self._ribbon_xs_strand = XSection(xsc_strand, faceted=True)
         self._ribbon_xs_turn = XSection(xsc_turn, faceted=True)
         self._ribbon_xs_arrow = XSection(xsc_arrow_head, xsc_arrow_tail, faceted=True)
+        self._ribbon_selected_residues = set()
 
         self.make_drawing()
 
@@ -300,7 +301,6 @@ class AtomicStructure(CAtomicStructure, Model):
             self._ribbon_r2t = {}
             for rlist in polymers:
                 rp = p.new_drawing(rlist.strs[0])
-#                print("ribbon drawing", rlist.strs[0], rp)
                 t2r = []
                 displays = rlist.ribbon_displays
                 if displays.sum() == 0:
@@ -431,24 +431,40 @@ class AtomicStructure(CAtomicStructure, Model):
         # Set selected ribbons in graphics
         asel = self._selected_atoms
         if asel is not None and asel.sum() > 0:
-            for r in self.atoms.filter(asel).unique_residues:
+            rsel = set([r for r in self.atoms.filter(asel).unique_residues
+                        if r in self._ribbon_r2t])
+        else:
+            rsel = set()
+        hide = self._ribbon_selected_residues - rsel
+        keep = self._ribbon_selected_residues & rsel
+        show = rsel - self._ribbon_selected_residues
+        self._ribbon_selected_residues = keep | show
+        # Change the selected triangles in drawings
+        da = {}         # actions - 0=hide, 1=keep, 2=show
+        residues = [hide, keep, show]
+        # Partition by drawing
+        for i in range(len(residues)):
+            for r in residues[i]:
+                tr = self._ribbon_r2t[r]
                 try:
-                    tr = self._ribbon_r2t[r]
+                    a = da[tr.drawing]
                 except KeyError:
-                    continue
-                p = tr.drawing
+                    a = da[tr.drawing] = ([], [], [])
+                a[i].append((tr.start, tr.end))
+        for p, residues in da.items():
+            if not residues[1] and not residues[2]:
+                # No residues being kept or added
+                p.selected_triangles_mask = None
+            else:
                 m = p.selected_triangles_mask
                 if m is None:
                     import numpy
                     m = numpy.zeros((p.number_of_triangles(),), bool)
-                m[tr.start:tr.end] = True
+                for start, end in residues[0]:
+                    m[start:end] = False
+                for start, end in residues[2]:
+                    m[start:end] = True
                 p.selected_triangles_mask = m
-#                print(residue_description(tr.residue), tr.start, tr.end, m.sum(), len(m), p.number_of_triangles(), p)
-        else:
-            p = self._ribbon_drawing
-            if p:
-                for c in p.child_drawings():
-                    c.selected_triangles_mask = None
 
     def _get_polymer_spline(self, rlist):
             # Get coordinates for spline and orientation atoms
@@ -522,17 +538,17 @@ class AtomicStructure(CAtomicStructure, Model):
             return None
         return rd.bounds()
 
-    def select_atom(self, atom, toggle = False):
+    def select_atom(self, atom, toggle=False, selected=True):
         asel = self._selected_atoms
         if asel is None:
             na = self.num_atoms
             from numpy import zeros, bool
             asel = self._selected_atoms = zeros(na, bool)
         i = self.atoms.index(atom)
-        asel[i] = (not asel[i]) if toggle else True
+        asel[i] = (not asel[i]) if toggle else selected
         self._selection_changed()
 
-    def select_atoms(self, atoms, toggle = False):
+    def select_atoms(self, atoms, toggle=False, selected=True):
         asel = self._selected_atoms
         if asel is None:
             na = self.num_atoms
@@ -540,8 +556,13 @@ class AtomicStructure(CAtomicStructure, Model):
             asel = self._selected_atoms = zeros(na, bool)
         m = self.atoms.mask(atoms)
         from numpy import logical_not
-        asel[m] = logical_not(asel[m]) if toggle else True
+        asel[m] = logical_not(asel[m]) if toggle else selected
         self._selection_changed()
+
+    def select_residue(self, residue, toggle=False, selected=True):
+        if toggle:
+            selected = residue not in self._ribbon_selected_residues
+        self.select_atoms(residue.atoms, toggle=False, selected=selected)
 
     def selected_items(self, itype):
         if itype == 'atoms':
@@ -690,10 +711,9 @@ class PickedResidue(Pick):
         return residue_description(self.residue)
     def drawing(self):
         return self.residue.molecule
-    def select(self, toggle = False):
+    def select(self, toggle=False):
         r = self.residue
-        import sys
-        r.molecule.select_atoms(r.atoms, toggle)
+        r.molecule.select_residue(r, toggle)
 
 # -----------------------------------------------------------------------------
 #
