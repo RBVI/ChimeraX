@@ -8,14 +8,18 @@ APP_PIP	= $(APP_PYTHON_EXE) -m pip --log pip.log
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-PATCHES	= matplotlib-1.4.3-wxphoenix.patch
+MPL_VERSION	= 1.4.3
+MPL_PATCHES	= matplotlib-$(MPL_VERSION)-wxphoenix.patch
 
 all:
 
-install: $(SOURCE)
+install:	$(PYSITEDIR)/matplotlib
 	LANG=$(LANG) $(PIP) install -r build_requirements.txt
-	for p in $(PATCHES); do \
-		(cd $(PYSITEDIR) && patch -N -p0) < $$p ; \
+
+$(PYSITEDIR)/matplotlib:
+	LANG=$(LANG) $(PIP) install matplotlib==$(MPL_VERSION)
+	for p in $(MPL_PATCHES); do \
+		patch -d $(PYSITEDIR) -N -p0 < $$p ; \
 	done
 
 list:
@@ -24,10 +28,13 @@ list:
 upgrade:
 	$(PIP) install -U -r build_requirements.txt
 
-app-install:
+app-install:	$(APP_PYSITEDIR)/matplotlib
 	$(APP_PIP) install -r app_requirements.txt
-	for p in $(PATCHES); do \
-		(cd $(APP_PYSITEDIR) && patch -N -p0) < $$p ; \
+
+$(APP_PYSITEDIR)/matplotlib:
+	LANG=$(LANG) $(APP_PIP) install matplotlib==$(MPL_VERSION)
+	for p in $(MPL_PATCHES); do \
+		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
 
 clean:

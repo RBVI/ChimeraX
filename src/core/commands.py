@@ -283,7 +283,7 @@ def ribbon(session, spec=None):
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = True
     for m in results.models:
-        m.update_graphics()
+        m.update_ribbon_graphics(rebuild=True)
 
 _ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
@@ -295,7 +295,7 @@ def unribbon(session, spec=None):
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = False
     for m in results.models:
-        m.update_graphics()
+        m.update_ribbon_graphics(rebuild=True)
 _unribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')
 
@@ -350,6 +350,8 @@ def register(session):
     shortcuts.register_shortcut_command()
     from . import crosslinks
     crosslinks.register_crosslink_command()
+    from . import split
+    split.register_split_command()
 
     # def lighting_cmds():
     #     import .lighting.cmd as cmd

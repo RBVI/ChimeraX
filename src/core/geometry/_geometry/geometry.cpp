@@ -3,6 +3,7 @@
 #include <Python.h>			// use PyObject
 
 #include "bounds.h"			// use sphere_bounds, ...
+#include "closepoints.h"		// use find_close_points, ...
 #include "distancespy.h"		// use py_distances_from_origin, ...
 #include "spline.h"			// use natural_cubic_spline
 #include "transform.h"			// use affine_transform_vertices, ...
@@ -20,6 +21,11 @@ static struct PyMethodDef geometry_cpp_methods[] =
   {const_cast<char*>("sphere_bounds"), (PyCFunction)sphere_bounds, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("spheres_in_bounds"), (PyCFunction)spheres_in_bounds, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("bounds_overlap"), (PyCFunction)bounds_overlap, METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* closepoints.h */
+  {const_cast<char*>("find_close_points"), (PyCFunction)find_close_points, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("find_closest_points"), (PyCFunction)find_closest_points, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("find_close_points_sets"), (PyCFunction)find_close_points_sets, METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* distancepy.h */
   {const_cast<char*>("distances_from_origin"), py_distances_from_origin, METH_VARARGS, NULL},

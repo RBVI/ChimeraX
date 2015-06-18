@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
-#include "Element.h"
-#include <basegeom/Point.h>
 #include <basegeom/Coord.h>
+#include <basegeom/Point.h>
 #include <basegeom/Sphere.h>
+#include "Element.h"
 #include "imex.h"
 #include "string_types.h"
 
@@ -113,6 +113,7 @@ public:
     void  set_occupancy(float);
     void  set_radius(float);
     void  set_serial_number(int);
+    std::string  str() const;
     AtomicStructure *  structure() const { return _structure; }
 };
 

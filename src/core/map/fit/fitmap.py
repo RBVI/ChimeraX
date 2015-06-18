@@ -738,16 +738,17 @@ def transformation_matrix_message(model, map):
 
 # -----------------------------------------------------------------------------
 #
-def simulated_map(atoms, res, mwm, session):
+def simulated_map(atoms, res, session):
 
-    v = find_simulated_map(atoms, res, mwm, session)
+    v = find_simulated_map(atoms, res, session)
     if v is None:
       # Need to be able to move map independent of molecule if changing
       #  atom coordinates if not mwm.
       from ..molmap import molecule_map
       v = molecule_map(session, atoms, res)
       v.display = False
-      v.fitsim_params = (array_checksum(atoms.coords), res, mwm)
+      v.fitsim_params = (array_checksum(atoms.coords), res)
+      v.atoms = atoms
     else:
       # If molecules are moved, realign maps with molecules.
       m0 = atoms.unique_molecules[0]
@@ -756,14 +757,14 @@ def simulated_map(atoms, res, mwm, session):
 
 # -----------------------------------------------------------------------------
 #
-def find_simulated_map(atoms, res, mwm, session):
+def find_simulated_map(atoms, res, session):
 
     a = array_checksum(atoms.coords)
     from ..volume import volume_list
     vlist = volume_list(session)
     for v in vlist:
       if hasattr(v, 'fitsim_params'):
-        if v.fitsim_params == (a, res, mwm):
+        if v.fitsim_params == (a, res):
           return v
     return None
 

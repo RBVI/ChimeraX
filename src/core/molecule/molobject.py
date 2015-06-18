@@ -29,7 +29,7 @@ def _atomic_structure(p):
     return object_map(p, CAtomicStructure)
 def _pseudobond_group_map(pbgc_map):
     from .molarray import PseudoBonds
-    pbg_map = dict((name, PseudoBonds(pbg)) for name, pbg in pbgc_map.items())
+    pbg_map = dict((name, object_map(pbg,ASPseudoBondGroup)) for name, pbg in pbgc_map.items())
     return pbg_map
 
 # -----------------------------------------------------------------------------
@@ -42,6 +42,7 @@ class Atom:
     bfactor = c_property('atom_bfactor', float32)
     bonds = c_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True)
     bonded_atoms = c_property('atom_bonded_atoms', cptr, 'num_bonds', astype = _atoms, read_only = True)
+    chain_id = c_property('atom_chain_id', string, read_only = True)
     color = c_property('atom_color', uint8, 4)
     coord = c_property('atom_coord', float64, 3)
     display = c_property('atom_display', npy_bool)
@@ -78,6 +79,10 @@ class Bond:
     halfbond = c_property('bond_halfbond', npy_bool)
     radius = c_property('bond_radius', float32)
 
+    def other_atom(self, atom):
+        a1,a2 = self.atoms
+        return a2 if atom is a1 else a1
+
 # -----------------------------------------------------------------------------
 #
 class PseudoBond:
@@ -100,13 +105,36 @@ class PseudoBond:
 
 # -----------------------------------------------------------------------------
 #
-class CPseudoBondGroup:
+class ASPseudoBondGroup:
+    '''AtomicStructure pseudobond group.'''
 
-    def __init__(self, name):
-        f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
-        pbg_pointer = f(name.encode('utf-8'))
+    def __init__(self, pbg_pointer = None):
         set_c_pointer(self, pbg_pointer)
-        add_to_object_map(self)
+
+    num_pseudobonds = c_property('as_pseudobond_group_num_pseudobonds', int32, read_only = True)
+    pseudobonds = c_property('as_pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
+                             astype = _pseudobonds, read_only = True)
+
+    def new_pseudobond(self, atom1, atom2):
+        f = c_function('as_pseudobond_group_new_pseudobond',
+                       args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
+                       ret = ctypes.c_void_p)
+        pb = f(self._c_pointer, atom1._c_pointer, atom2._c_pointer)
+        return object_map(pb, PseudoBond)
+
+# -----------------------------------------------------------------------------
+#
+class CPseudoBondGroup:
+    '''Global pseudobond group.'''
+
+    def __init__(self, pbg_pointer = None, name = None):
+        if pbg_pointer is None:
+            f = c_function('pseudobond_group_get', args = [ctypes.c_char_p], ret = ctypes.c_void_p)
+            pbg_pointer = f(name.encode('utf-8'))
+            set_c_pointer(self, pbg_pointer)
+            add_to_object_map(self)
+        else:
+            set_c_pointer(self, pbg_pointer)
 
     num_pseudobonds = c_property('pseudobond_group_num_pseudobonds', int32, read_only = True)
     pseudobonds = c_property('pseudobond_group_pseudobonds', cptr, 'num_pseudobonds',
@@ -141,6 +169,7 @@ class Residue:
     number = c_property('residue_number', int32, read_only = True)
     str = c_property('residue_str', string, read_only = True)
     unique_id = c_property('residue_unique_id', int32, read_only = True)
+    molecule = c_property('residue_molecule', cptr, astype = _atomic_structure, read_only = True)
     # TODO: Currently no C++ method to get Chain
 
     def add_atom(self, atom):
@@ -212,6 +241,13 @@ class CAtomicStructure:
         resarrays = f(self._c_pointer, consider_missing_structure, consider_chains_ids)
         from .molarray import Residues
         return tuple(Residues(ra) for ra in resarrays)
+
+    def pseudobond_group(self, name):
+        f = c_function('molecule_pseudobond_group',
+                       args = (ctypes.c_void_p, ctypes.c_char_p),
+                       ret = ctypes.c_void_p)
+        pbg = f(self._c_pointer, name.encode('utf-8'))
+        return object_map(pbg, ASPseudoBondGroup)
 
 # -----------------------------------------------------------------------------
 #

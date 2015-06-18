@@ -2,7 +2,7 @@
 # Optimize placement of 2 or more models, fitting one at a time with others
 # subtracted from map.
 #
-def fit_sequence(models, volume, steps,
+def fit_sequence(models, volume, steps, subtract_maps = [],
                  envelope = True, metric = 'overlap',
                  optimize_translation = True, optimize_rotation = True,
                  max_steps = 2000,
@@ -39,7 +39,7 @@ def fit_sequence(models, volume, steps,
             return
         # Subtract off other maps.
         d[:] = data_array
-        for m in models:
+        for m in models + subtract_maps:
             if not m is v:
                 values = m.interpolated_values(grid_points, grid_points_to_scene_transform,
                                                subregion = None, step = None)

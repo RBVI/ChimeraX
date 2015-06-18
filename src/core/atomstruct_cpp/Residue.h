@@ -16,19 +16,29 @@ namespace atomstruct {
 class Atom;
 class AtomicStructure;
 class Bond;
+class Chain;
 
 using basegeom::Rgba;
 
 class ATOMSTRUCT_IMEX Residue {
-    friend class AtomicStructure;
 public:
     typedef std::vector<Atom *>  Atoms;
     typedef std::multimap<AtomName, Atom *>  AtomsMap;
 private:
+    friend class AtomicStructure;
     Residue(AtomicStructure *as, const std::string &name, const std::string &chain, int pos, char insert);
-    virtual  ~Residue() { basegeom::DestructionUser(this); }
+    virtual  ~Residue() {
+        auto du = basegeom::DestructionUser(this);
+        if (_chain != nullptr)
+            _chain->remove_residue(this);
+    }
+
+    friend class Chain;
+    void  set_chain(Chain* chain) { _chain = chain; }
+
     char  _alt_loc;
     Atoms  _atoms;
+    Chain*  _chain;
     std::string  _chain_id;
     char  _insertion_code;
     bool  _is_helix;
@@ -41,12 +51,13 @@ private:
     Rgba  _ribbon_rgba;
     AtomicStructure *  _structure;
 public:
-    void  add_atom(Atom *);
+    void  add_atom(Atom*);
     const Atoms &  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res,
         bool just_first=false) const;
-    const std::string &  chain_id() const { return _chain_id; }
+    Chain*  chain() const { return _chain; }
+    const std::string &  chain_id() const;
     int  count_atom(const AtomName&) const;
     Atom *  find_atom(const AtomName&) const;
     char  insertion_code() const { return _insertion_code; }
@@ -54,6 +65,7 @@ public:
     bool  is_het() const { return _is_het; }
     bool  is_sheet() const { return _is_sheet; }
     int   ss_id() const { return _ss_id; }
+    void  remove_atom(Atom*);
     bool  ribbon_display() const { return _ribbon_display; }
     const Rgba& ribbon_color() const { return _ribbon_rgba; }
     const std::string &  name() const { return _name; }
@@ -71,6 +83,15 @@ public:
         void (Atom::*assign_func)(const char*), const char* app,
         const char* template_dir, const char* extension) const;
 };
+
+#include "Chain.h"
+inline const std::string&
+Residue::chain_id() const
+{
+    if (_chain != nullptr)
+        return _chain->chain_id();
+    return _chain_id;
+}
 
 }  // namespace atomstruct
 

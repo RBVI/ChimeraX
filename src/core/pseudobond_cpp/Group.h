@@ -22,11 +22,11 @@ protected:
         auto du = basegeom::DestructionUser(this);
         for (auto pb: pseudobonds())
             delete pb;
-        clear();
     }
 public:
     virtual void  clear() = 0;
-    Group(const std::string& cat): _category(cat), _destruction_relevant(true) {}
+    Group(const std::string& cat):
+        _category(cat), _destruction_relevant(true) { }
     virtual  ~Group() {}
     virtual const std::string&  category() const { return _category; }
     virtual void  check_destroyed_atoms(const std::set<void*>& destroyed) = 0;

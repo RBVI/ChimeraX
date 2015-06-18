@@ -5,7 +5,10 @@
 #include <stdlib.h>
 
 #include "Atom.h"
+#include "Bond.h"
 #include "AtomicStructure.h"
+#include <basegeom/Connectible.tcc>
+#include <basegeom/Graph.tcc>
 #include <basegeom/destruct.h>
 #include "connect.h"
 #include "MolResId.h"
