@@ -13,7 +13,7 @@ OBJS	= $(SRCS:.cpp=.o)
 INCS	+= -I$(includedir)
 ifneq ($(OS),Windows)
 CXXFLAGS	+= -Wno-logical-op-parentheses
-seq_assoc.o : CXXFLAGS += -Wno-sign-compare
+#seq_assoc.o : CXXFLAGS += -Wno-sign-compare
 endif
 LIBS	+= -L$(libdir) -ltmpl -llogger -lbasegeom
 
