@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "AtomicStructure.h"
+#include <basegeom/destruct.h>
 #include "Chain.h"
 #include "Sequence.h"
 #include "Residue.h"
@@ -78,7 +79,8 @@ Chain::remove_residue(Residue* r) {
     auto ri = std::find(_residues.begin(), _residues.end(), r);
     *ri = nullptr;
     if (no_structure_left()) {
-        _structure->remove_chain(this);
+        if (basegeom::DestructionCoordinator::destruction_parent() != _structure)
+            _structure->remove_chain(this);
         _structure = nullptr;
     }
 }
