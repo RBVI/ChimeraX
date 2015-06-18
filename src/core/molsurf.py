@@ -111,8 +111,11 @@ class SurfCalc:
         return len(self.atoms)
 
     def calculate_surface_geometry(self):
-        if not self.vertices is None or not self.surface_model is None:
+        if not self.vertices is None:
             return              # Geometry already computed
+        s = self.surface_model
+        if s and s.probe_radius == self.probe_radius and s.grid_spacing == self.grid_spacing:
+            return
         atoms = self.atoms
         xyz = atoms.coords
         r = atoms.radii
@@ -126,21 +129,39 @@ class SurfCalc:
         surf = self.surface_model
         if surf:
             surf.display = True
+        if self.vertices is None:
+            # Show new patch of existing surface
+            surf.triangle_mask = surf._calc_surf.patch_display_mask(self.show_atoms)
         else:
-            # Create surface model to show surface
-            surf = show_surface(self.name, self.vertices, self.normals, self.triangles, self.color)
+            # Update existing surface geometry or create new surface.
+            new_surf = surf is None
+            if new_surf:
+                surf = MolecularSurface(self.name)
+            surf.geometry = self.vertices, self.triangles
+            surf.normals = self.normals
+            surf.triangle_mask = self.patch_display_mask(self.show_atoms)
+            surf.color = self.color
             surf.atoms = self.atoms
+            surf.probe_radius = self.probe_radius
+            surf.grid_spacing = self.grid_spacing
             surf._calc_surf = self
-            session.models.add([surf], parent = self.parent_drawing)
-        c = surf._calc_surf
+            if new_surf:
+                session.models.add([surf], parent = self.parent_drawing)
 #        surf.vertex_colors = c.vertex_atom_colors()
-        surf.triangle_mask = c.patch_display_mask(self.show_atoms)
         return surf
 
     def remove_solvent_ligands_ions(self, atoms):
-        # TODO: Remove ligands and ions
+        '''Remove solvent, ligands and ions unless that removes all atoms
+        in which case don't remove any.'''
+        # TODO: Properly identify solvent, ligands and ions.
+        # Currently simply remove every atom is does not belong to a chain.
+        # TODO: The following crashes, bug #105
+#        fatoms = atoms.filter(atoms.in_chains)
         solvent = atoms.filter(atoms.residues.names == 'HOH')
-        return atoms.subtract(solvent) if len(solvent) > 0 else atoms
+        fatoms = atoms.subtract(solvent) if len(solvent) > 0 else atoms
+        if len(fatoms) == 0:
+            return atoms
+        return fatoms
 
     def vertex_to_atom_map(self):
         v2a = self._vertex_to_atom
