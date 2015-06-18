@@ -64,7 +64,7 @@ def links_by_molecule(pbonds, mols):
     mset = set(mols)
     for pb in pbonds:
         a1, a2 = pb.atoms
-        m1, m2 = a1.molecule, a2.molecule
+        m1, m2 = a1.structure, a2.structure
         if m1 != m2:
             if m1 in mset:
                 mol_links.setdefault(m1,[]).append((a1,a2))

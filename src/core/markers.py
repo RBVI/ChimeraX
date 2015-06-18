@@ -104,10 +104,10 @@ class ConnectMouseMode(MouseMode):
         atoms2 = selected_atoms(s)
         if len(atoms1) == 1 and len(atoms2) == 1:
             a1, a2 = atoms1[0], atoms2[0]
-            if a1.molecule != a2.molecule:
+            if a1.structure != a2.structure:
                 s.logger.status('Cannot connect atoms from different molecules')
             elif not a1.connects_to(a2):
-                m = a1.molecule
+                m = a1.structure
                 m.new_bond(a1,a2)
                 m.update_graphics()
                 s.logger.status('Made connection')

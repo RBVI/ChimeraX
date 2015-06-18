@@ -687,15 +687,15 @@ class PickedAtom(Pick):
     def description(self):
         return atom_description(self.atom)
     def drawing(self):
-        return self.atom.molecule
+        return self.atom.structure
     def select(self, toggle = False):
         a = self.atom
-        a.molecule.select_atom(a, toggle)
+        a.structure.select_atom(a, toggle)
 
 # -----------------------------------------------------------------------------
 #
 def atom_description(atom):
-    m = atom.molecule
+    m = atom.structure
     r = atom.residue
     d = '%s #%s.%s %s %d %s' % (m.name, m.id_string(), r.chain_id, r.name, r.number, atom.name)
     return d
@@ -710,15 +710,15 @@ class PickedResidue(Pick):
     def description(self):
         return residue_description(self.residue)
     def drawing(self):
-        return self.residue.molecule
+        return self.residue.structure
     def select(self, toggle=False):
         r = self.residue
-        r.molecule.select_residue(r, toggle)
+        r.structure.select_residue(r, toggle)
 
 # -----------------------------------------------------------------------------
 #
 def residue_description(r):
-    m = r.molecule
+    m = r.structure
     d = '%s #%s.%s %s %d' % (m.name, m.id_string(), r.chain_id, r.name, r.number)
     return d
 

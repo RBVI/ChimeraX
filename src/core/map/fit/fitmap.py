@@ -60,7 +60,7 @@ def move_atoms_to_maximum(atoms, volume,
                                        ijk_step_size_min, ijk_step_size_max,
                                        optimize_translation, optimize_rotation,
                                        metric, symmetries, request_stop_cb)
-    stats['molecules'] = list(atoms.unique_molecules)
+    stats['molecules'] = list(atoms.unique_structures)
 
     from . import move
     move.move_models_and_atoms(move_tf, [], atoms, move_whole_molecules, volume)
@@ -636,7 +636,7 @@ def move_atom_to_maximum(a, max_steps = 2000,
                                        optimize_rotation = False)
 
     # Update atom position.
-    p = a.molecule.position.inverse() * (move_tf * a.xformCoord())
+    p = a.structure.position.inverse() * (move_tf * a.xformCoord())
     a.setCoord(p)
 
 # -----------------------------------------------------------------------------
@@ -751,7 +751,7 @@ def simulated_map(atoms, res, session):
       v.atoms = atoms
     else:
       # If molecules are moved, realign maps with molecules.
-      m0 = atoms.unique_molecules[0]
+      m0 = atoms.unique_structures[0]
       v.position = m0.position
     return v
 

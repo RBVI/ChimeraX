@@ -34,7 +34,7 @@ def surface_command(session, atoms = None, enclose = None,
             pieces.append(s)
     else:
         show_atoms = enclose if atoms is None else atoms
-        mols = enclose.unique_molecules
+        mols = enclose.unique_structures
         parent = mols[0] if len(mols) == 1 else session.models.drawing
         name = 'Surface %s' % enclose.spec
         rgba = (170,170,170,255) if color is None else color.uint8x4()
@@ -245,7 +245,7 @@ def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
 
 def surfaces_with_atoms(atoms, models):
     surfs = []
-    for m in list(atoms.unique_molecules) + [models.drawing]:
+    for m in list(atoms.unique_structures) + [models.drawing]:
         for s in m.child_drawings():
             if isinstance(s, MolecularSurface):
                 if len(atoms.intersect(s.atoms)) > 0:
