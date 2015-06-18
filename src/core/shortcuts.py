@@ -87,12 +87,13 @@ def standard_shortcuts(session):
 
         # Maps
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
+        ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('fr', show_map_full_resolution, 'Show map at full resolution', mapcat, maparg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
-        ('sf', show_surface, 'Show surface', mapcat, maparg, mmenu),
-        ('me', show_mesh, 'Show mesh', mapcat, maparg, mmenu),
-        ('gs', show_grayscale, 'Show grayscale', mapcat, maparg, mmenu, sep),
+        ('sf', show_surface, 'Show map as surface', mapcat, maparg, mmenu),
+        ('me', show_mesh, 'Show map as mesh', mapcat, maparg, mmenu),
+        ('gs', show_grayscale, 'Show map as grayscale', mapcat, maparg, mmenu, sep),
 
         ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
         ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),
@@ -124,6 +125,8 @@ def standard_shortcuts(session):
 
         ('ms', lambda m,s=s: show_molecular_surface(m,s), 'Show molecular surface', molcat, atomsarg, mlmenu),
         ('sa', lambda m,s=s: accessible_surface_area(m,s), 'Compute solvent accesible surface area', molcat, atomsarg, mlmenu, sep),
+
+        ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 
 #        ('bu', lambda m,s=s: show_biological_unit(m,s), 'Show biological unit', molcat, molarg, mlmenu),
 #        ('au', lambda m,s=s: show_asymmetric_unit(m,s), 'Show asymmetric unit', molcat, molarg, mlmenu),
@@ -322,20 +325,21 @@ class Keyboard_Shortcuts:
         s.logger.info(msg)
         sc.run(s)
 
-def shortcut_models(session):
+def shortcut_models(session, mclass = None):
     sel = session.selection
-    m = sel.all_models() if sel.empty() else sel.models()
-    return m
+    mlist = [m for m in sel.models() if mclass is None or isinstance(m,mclass)]
+    if len(mlist) == 0:
+        mlist = [m for m in session.models.list()
+                 if (mclass is None or isinstance(m,mclass)) and m.display]
+    return mlist
 
 def shortcut_maps(session):
     from .map import Volume
-    maps = [m for m in shortcut_models(session) if isinstance(m, Volume)]
-    return maps
+    return shortcut_models(session, Volume)
 
 def shortcut_molecules(session):
     from .structure import AtomicStructure
-    mols = [m for m in shortcut_models(session) if isinstance(m, AtomicStructure)]
-    return mols
+    return shortcut_models(session, AtomicStructure)
 
 def shortcut_atoms(session):
     matoms = []
@@ -354,19 +358,18 @@ def shortcut_atoms(session):
 
 def shortcut_surfaces(session):
     sel = session.selection
-    models = session.models.list() if sel.empty() else sel.models()
-    from .structure import AtomicStructure
-    from .map import Volume
-    surfs = [m for m in models if not isinstance(m, (AtomicStructure, Volume))]
-    # TODO: Only include displayed surfaces if nothing selected?
+    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
+    # Avoid group nodes by only taking non-empty models.
+    surfs = [m for m in models if not m.empty_drawing()]
+    # TODO: Need a Surface base class.
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
-    models = session.models.list() if sel.empty() else sel.models()
-    from .structure import AtomicStructure
-    sm = [m for m in models if not isinstance(m, AtomicStructure)]
-    # TODO: Only include displayed surfaces if nothing selected?
+    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
+    # Avoid group nodes by only taking non-empty models.
+    from .map import Volume
+    sm = [m for m in models if isinstance(m,Volume) or not m.empty_drawing()]
     return sm
 
 def close_all_models(session):
@@ -498,8 +501,11 @@ def enable_zoom_mouse_mode(mouse_modes, button = 'right'):
 
 def fit_molecule_in_map(session):
     mols, maps = shortcut_molecules(session), shortcut_maps(session)
+    log = session.logger
     if len(mols) != 1 or len(maps) != 1:
-        session.logger.status('Fit molecule in map requires one displayed or selected molecule and map.')
+        log.status('Fit molecule in map requires one '
+                   'displayed or selected molecule (got %d) and map (got %d).'
+                   % (len(mols), len(maps)))
         return
 
     mol, map = mols[0], maps[0]
@@ -513,10 +519,38 @@ def fit_molecule_in_map(session):
 
     msg = ('Fit %s in %s, %d steps, shift %.3g, rotation %.3g degrees, average map value %.4g'
            % (mol.name, map.name, stats['steps'], stats['shift'], stats['angle'], stats['average map value']))
-    log = session.logger
     log.status(msg)
     from .map.fit import fitmap
     log.info(fitmap.atom_fit_message(mols, map, stats))
+
+def fit_subtract(session):
+    models = session.models.list()
+    from .map import Volume
+    maps = [m for m in models if isinstance(m, Volume) and m.any_part_selected()]
+    if len(maps) == 0:
+        maps = [m for m in models if isinstance(m, Volume) and m.display]
+    molfit = [m for m in shortcut_molecules(session) if m.display]
+    mfitset = set(molfit)
+    from .structure import AtomicStructure
+    molsub = [m for m in models
+              if isinstance(m, AtomicStructure) and m.display and not m in mfitset]
+    print ('fs', len(maps), len(molfit), len(molsub))
+    log = session.logger
+    if len(maps) != 1:
+        log.status('Fit subtract requires one displayed or selected map.')
+        return
+    if len(molfit) == 0:
+        log.status('Fit subtract requires at least one displayed or selected molecule.')
+        return
+
+    v = maps[0]
+    res = 3*min(v.data.step)
+    from .map.fit.fitmap import simulated_map
+    mfit = [simulated_map(m.atoms, res, session) for m in molfit]
+    msub = [simulated_map(m.atoms, res, session) for m in molsub]
+    from .map.fit.fitcmd import fit_sequence
+    fit_sequence(mfit, v, msub, resolution = res, sequence = len(mfit), log = log)
+    print ('fit seq')
 
 def show_biological_unit(m, session):
 
@@ -534,7 +568,10 @@ def show_asymmetric_unit(m, session):
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
-    for m in shortcut_surfaces(session):
+    surfs = shortcut_surfaces(session)
+    if len(surfs) == 0 or session.selection.empty():
+        surfs = [m for m in session.models.list() if not m.empty_drawing()]
+    for m in surfs:
         sp = m.selected_positions
         if sp is None or sp.sum() == len(sp):
             m.display = True
@@ -566,7 +603,7 @@ def toggle_surface_transparency(session):
         if isinstance(m, Volume):
             m.surface_colors = tuple((r,g,b,(0.5 if a == 1 else 1)) for r,g,b,a in m.surface_colors)
             m.show()
-        elif isinstance(m, Drawing):
+        else:
             for d in m.all_drawings():
                 c = d.colors
                 opaque = (c[:,3] == 255)
@@ -577,15 +614,23 @@ def toggle_surface_transparency(session):
 def show_surface_transparent(session, alpha = 0.5):
     from .map import Volume
     from .graphics import Drawing
+    from .structure import AtomicStructure
+    a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
+        if not m.display:
+            continue
         if isinstance(m, Volume):
             m.surface_colors = tuple((r,g,b,alpha) for r,g,b,a in m.surface_colors)
             m.show()
         elif isinstance(m, Drawing):
             for d in m.all_drawings():
                 c = d.colors
-                c[:,3] = int(255*alpha)
+                c[:,3] = a
                 d.colors = c.copy()         # TODO: Need copy or opengl color buffer does not update.
+                if not d.vertex_colors is None:
+                    vcolors = d.vertex_colors
+                    vcolors[:,3] = a
+                    d.vertex_colors = vcolors.copy()
 
 def show_surface_opaque(session):
     show_surface_transparent(session, alpha = 1)
@@ -922,6 +967,11 @@ def restore_position(session):
     if hasattr(session, '_saved_camera_view'):
         c = session.view.camera
         c.position = session._saved_camera_view
+
+def minimize_crosslinks(atoms, session):
+    mols = [m for m, a in atoms]
+    from .crosslinks import crosslink
+    crosslink(session, minimize = mols, frames = 30)
 
 def shortcut_command(session, shortcut = None):
     ks = session.keyboard_shortcuts

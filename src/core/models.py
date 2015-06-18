@@ -178,10 +178,9 @@ class Models(State):
         return models
 
     def add(self, models, parent=None):
-        if parent is None:
-            d = self.drawing
-            for m in models:
-                d.add_drawing(m)
+        d = self.drawing if parent is None else parent
+        for m in models:
+            d.add_drawing(m)
 
         # Assign id numbers
         if parent is None:
@@ -193,8 +192,12 @@ class Models(State):
             counter = count(1)
         m_all = list(models)
         for model in models:
-            m_id = (next(counter), )  # model id's are tuples
-            model.id = base_id + m_id
+            if model.id is None:
+                while True:
+                    id = base_id + (next(counter), )  # model id's are tuples
+                    if not id in self._models:
+                        break
+                model.id = id
             self._models[model.id] = model
             children = [c for c in model.child_drawings() if isinstance(c, Model)]
             if children:

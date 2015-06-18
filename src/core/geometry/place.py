@@ -169,6 +169,10 @@ class Place:
         a = acos(cosa)
         return a
 
+    def rotation_axis_and_angle(self):
+        '''Return the rotation axis and angle (degrees) of the transform.'''
+        return m34.rotation_axis_angle(self.matrix)
+
     def shift_and_angle(self, center):
         '''Return the shift distance and rotation angle for the transform.
         The rotation angle is in radians the same as returned by

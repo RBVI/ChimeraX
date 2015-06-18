@@ -704,7 +704,8 @@ class AtomSpecResults:
     """
     def __init__(self):
         self._models = set()
-        self._atoms = None
+        from .molecule import Atoms
+        self._atoms = Atoms()
 
     def add_model(self, m):
         """Add model to atom spec results."""
@@ -712,10 +713,7 @@ class AtomSpecResults:
 
     def add_atoms(self, atom_blob):
         """Add atoms to atom spec results."""
-        if self._atoms is None:
-            self._atoms = atom_blob
-        else:
-            self._atoms = self._atoms | atom_blob
+        self._atoms = self._atoms | atom_blob
 
     def combine(self, other):
         for m in other.models:
@@ -748,22 +746,14 @@ class AtomSpecResults:
     def _union(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models | right._models
-        if left._atoms is None:
-            atom_spec._atoms = right._atoms
-        elif right._atoms is None:
-            atom_spec._atoms = left._atoms
-        else:
-            atom_spec._atoms = right._atoms.merge(left._atoms)
+        atom_spec._atoms = right._atoms.merge(left._atoms)
         return atom_spec
 
     @staticmethod
     def _intersect(left, right):
         atom_spec = AtomSpecResults()
         atom_spec._models = left._models & right._models
-        if left._atoms is None or right._atoms is None:
-            atom_spec._atoms = None
-        else:
-            atom_spec._atoms = right._atoms & left._atoms
+        atom_spec._atoms = right._atoms & left._atoms
         return atom_spec
 
 #
@@ -875,3 +865,15 @@ def everything(session):
         An AtomSpec instance that matches everything in session.
     """
     return AtomSpecArg.parse('#*', session)[0]
+
+# -----------------------------------------------------------------------------
+#
+class ModelsArg(Annotation):
+    """Parse command models specifier"""
+    name = "models"
+
+    @staticmethod
+    def parse(text, session):
+        aspec, text, rest = AtomSpecArg.parse(text, session)
+        models = aspec.evaluate(session).models
+        return models, text, rest

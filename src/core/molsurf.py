@@ -5,103 +5,173 @@ molsurf -- Compute molecular surfaces
 """
 
 from . import generic3d
+from . import cli
 
 class MolecularSurface(generic3d.Generic3DModel):
     pass
 
-from . import cli, atomspec, color
-_surface_desc = cli.CmdDesc(
-    optional = [('atoms', atomspec.AtomSpecArg)],
-    keyword = [('probeRadius', cli.FloatArg),
-               ('gridSpacing', cli.FloatArg),
-               ('color', color.ColorArg),
-               ('transparency', cli.FloatArg),
-               ('chains', cli.BoolArg),
-               ('nthread', cli.IntArg)],
-    synopsis = 'create molecular surface')
-
-def surface_command(session, atoms = None, probeRadius = 1.4, gridSpacing = 0.5,
-                    color = None, transparency = 0, chains = False, nthread = None):
+def surface_command(session, atoms = None, enclose = None,
+                    probe_radius = 1.4, grid_spacing = 0.5,
+                    color = None, transparency = 0, nthread = None):
     '''
-    Compute and display a solvent excluded molecular surface for each molecule.
+    Compute and display solvent excluded molecular surfaces.
     '''
-    surfs = []
+    atoms = check_atoms(atoms, session)
+    pieces = [SurfCalc(m, cid, catoms, probe_radius, grid_spacing)
+              for m, cid, catoms in atoms.by_chain]
 
     # Compute surfaces using multiple threads
-    spheres = atom_spec_spheres(atoms,session,chains)
-    args = [(name,xyz,r,place,probeRadius,gridSpacing)
-            for name, xyz, r, place in spheres]
-    args.sort(key = lambda a: len(a[1]), reverse = True)        # Largest first
+    args = [(p,) for p in pieces]
+    args.sort(key = lambda p: p[0].atom_count, reverse = True)      # Largest first for load balancing
     from . import threadq
-    geom = threadq.apply_to_list(calc_surf, args, nthread)	# geom does not match args ordering
+    threadq.apply_to_list(lambda p: p.calculate_surface_geometry(), args, nthread)
+#    for p in pieces:
+#        p.calculate_surface_geometry()
 
     # Creates surface models
-    for name, place, va, na, ta in geom:
-        # Create surface model to show surface
-        sname = '%s SES surface' % name
-        rgba = surface_rgba(color, transparency, chains, name)
-        surf = show_surface(sname, va, na, ta, rgba, place)
-        session.models.add([surf])
-        surfs.append(surf)
+    surfs = [p.create_surface(color, transparency, session) for p in pieces]
+
     return surfs
 
-def calc_surf(name, xyz, r, place, probe_radius, grid_spacing):
-    from .surface import ses_surface_geometry
-    va, na, ta = ses_surface_geometry(xyz, r, probe_radius, grid_spacing)
-    return (name, place, va, na, ta)
+def register_surface_command():
+    from .structure import AtomsArg
+    from . import cli, color
+    _surface_desc = cli.CmdDesc(
+        optional = [('atoms', AtomsArg)],
+        keyword = [('enclose', AtomsArg),
+                   ('probe_radius', cli.FloatArg),
+                   ('grid_spacing', cli.FloatArg),
+                   ('color', color.ColorArg),
+                   ('transparency', cli.FloatArg),
+                   ('nthread', cli.IntArg)],
+        synopsis = 'create molecular surface')
+    cli.register('surface', _surface_desc, surface_command)
 
-def atom_spec_spheres(atom_spec, session, chains = False):
-    if atom_spec is None:
-        s = []
-        from .structure import AtomicStructure
-        for m in session.models.list():
-            if isinstance(m, AtomicStructure):
-                a = m.atoms
-                if chains:
-                    for cname, ci in chain_indices(a):
-                        xyz, r = a.coords, a.radii
-                        s.append(('%s/%s'%(m.name,cname), xyz[ci], r[ci], m.position))
-                else:
-                    s.append((m.name, a.coords, a.radii, m.position))
-    else:
-        a = atom_spec.evaluate(session).atoms
-        if a is None or len(a) == 0:
-            raise cli.AnnotationError('No atoms specified by %s' % (str(atom_spec),))
-        if chains:
-            s = []
-            for cname, ci in chain_indices(a):
-                xyz, r = a.coords, a.radii
-                s.append(('%s/%s'%(str(atom_spec),cname), xyz[ci], r[ci], None))
-        else:
-            s = [(str(atom_spec), a.coords, a.radii, None)]
-        # TODO: Use correct position matrix for atoms
-    return s
+def check_atoms(atoms, session):
+    if atoms is None:
+        from .structure import all_atoms
+        atoms = all_atoms(session)
+        if len(atoms) == 0:
+            raise cli.AnnotationError('No atomic models open.')
+    elif len(atoms) == 0:
+        raise cli.AnnotationError('No atoms specified by %s' % (atoms.spec,))
+    return atoms
 
-def chain_indices(atoms):
-    import numpy
-    atom_cids = numpy.array(atoms.residues.chain_ids)
-    cids = numpy.unique(atom_cids)
-    cid_masks = [(cid,(atom_cids == cid)) for cid in cids]
-    return cid_masks
+class SurfCalc:
 
-def surface_rgba(color, transparency, chains, cid):
+    def __init__(self, mol, chain_id, atoms, probe_radius, grid_spacing):
+        self.mol = mol
+        self.chain_id = chain_id
+        self.patoms = self.remove_solvent_ligands_ions(atoms)	# Atoms for surface patch to show
+        catoms = self.chain_atoms(mol, chain_id)		# Full chain atoms
+        self.catoms = self.remove_solvent_ligands_ions(catoms)
+        self.probe_radius = probe_radius
+        self.grid_spacing = grid_spacing
+        self.vertices = None
+        self.normals = None
+        self.triangles = None
+        self.surface_model = self.find_matching_surface()
+        self._vertex_to_atom = None
+
+    def find_matching_surface(self):
+        for s in self.mol.child_drawings():
+            if isinstance(s, MolecularSurface):
+                if len(s.atoms) == len(self.catoms) and s.atoms == self.catoms:
+                    return s
+        return None
+                
+    @property
+    def atom_count(self):
+        return len(self.catoms)
+
+    def calculate_surface_geometry(self):
+        if not self.vertices is None or not self.surface_model is None:
+            return              # Geometry already computed
+        atoms = self.catoms
+        xyz = atoms.coords
+        r = atoms.radii
+        from .surface import ses_surface_geometry
+        va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
+
+    def create_surface(self, color, transparency, session):
+        surf = self.surface_model
+        if not surf:
+            # Create surface model to show surface
+            sname = '%s_%s SES surface' % (self.mol.name, self.chain_id)
+            rgba = surface_rgba(color, transparency, self.chain_id)
+            surf = show_surface(sname, self.vertices, self.normals, self.triangles, rgba)
+            surf.atoms = self.catoms
+            surf._calc_surf = self
+            session.models.add([surf], parent = self.mol)
+        c = surf._calc_surf
+#        surf.vertex_colors = c.vertex_atom_colors()
+        surf.triangle_and_edge_mask = c.patch_display_mask(self.patoms)
+        return surf
+
+    # Chain atoms with solvent, ligands and ions filtered out.
+    def chain_atoms(self, mol, chain_id):
+        atoms = mol.atoms
+        return atoms.filter(atoms.chain_ids == chain_id)
+
+    def remove_solvent_ligands_ions(self, atoms):
+        # TODO: Remove ligands and ions
+        solvent = atoms.filter(atoms.residues.names == 'HOH')
+        return atoms.subtract(solvent) if len(solvent) > 0 else atoms
+
+    def vertex_to_atom_map(self):
+        v2a = self._vertex_to_atom
+        if v2a is None:
+            xyz1 = self.vertices
+            xyz2 = self.catoms.coords
+            max_dist = 3
+            from . import geometry
+            i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
+            from numpy import empty, int32
+            v2a = empty((len(xyz1),), int32)
+            v2a[i1] = nearest1
+            self._vertex_to_atom = v2a
+        return v2a
+
+    def vertex_atom_colors(self):
+        vatom = self.vertex_to_atom_map()
+        return self.catoms.colors[vatom,:]
+
+    def patch_display_mask(self, patch_atoms):
+        surf_atoms = self.catoms
+        if len(patch_atoms) == len(surf_atoms):
+            return None
+        v2a = self.vertex_to_atom_map()
+        shown_atoms = surf_atoms.mask(patch_atoms)
+        shown_vertices = shown_atoms[v2a]
+#        print('shown vertices', shown_vertices.sum(), 'of', len(shown_vertices))
+        t = self.triangles
+        from numpy import logical_and, empty, int32
+        shown_triangles = empty((len(t),), int32)
+        logical_and(shown_vertices[t[:,0]], shown_vertices[t[:,1]], shown_triangles)
+        logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
+#        print ('show patch', len(patch_atoms), 'of', len(surf_atoms), 'atoms',
+#               shown_triangles.sum(), 'of', len(shown_triangles), 'triangles')
+        shown_triangles *= 0xf          # Bits 0-3 are edge and triangle mask
+        return shown_triangles
+
+def surface_rgba(color, transparency, chain_id):
     if color is None:
-        if chains:
-            from . import structure
-            rgba8 = structure.chain_rgba8(cid.split('/',1)[-1])
-        else:
+        if chain_id is None:
             from numpy import array, uint8
             rgba8 = array((180,180,180,255), uint8)
+        else:
+            from . import structure
+            rgba8 = structure.chain_rgba8(chain_id)
     else:
         rgba8 = color.uint8x4()
         rgba8[3] = int(rgba8[3] * (100.0-transparency)/100.0)
     return rgba8
 
-def show_surface(name, va, na, ta, color = (180,180,180,255), place = None):
-
+def show_surface(name, va, na, ta, color = (180,180,180,255)):
     surf = MolecularSurface(name)
-    if not place is None:
-        surf.position = place
     surf.geometry = va, ta
     surf.normals = na
     surf.color = color
@@ -119,57 +189,48 @@ def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
     surf = show_surface(mol.name + ' surface', va, na, ta, color, mol.position)
     return surf
 
-def register_surface_command():
-    cli.register('surface', _surface_desc, surface_command)
-
-_sasa_desc = cli.CmdDesc(
-    optional = [('atoms', atomspec.AtomSpecArg)],
-    keyword = [('probeRadius', cli.FloatArg),],
-    synopsis = 'compute solvent accessible surface area')
-
-def sasa_command(session, atoms = None, probeRadius = 1.4):
+def sasa_command(session, atoms = None, probe_radius = 1.4):
     '''
     Compute solvent accessible surface area.
     Only the specified atoms are considered.
     '''
+    atoms = check_atoms(atoms, session)
+    r = atoms.radii
+    r += probe_radius
+    from . import surface
+    areas = surface.spheres_surface_area(atoms.scene_coords, r)
+    area = areas.sum()
+    msg = 'Solvent accessible area for %s = %.5g' % (atoms.spec, area)
     log = session.logger
-    for name, xyz, r, place in atom_spec_spheres(atoms,session):
-        r += probeRadius
-        from . import surface
-        areas = surface.spheres_surface_area(xyz, r)
-        area = areas.sum()
-        msg = 'Solvent accessible area for %s = %.5g' % (name, area)
-        log.info(msg)
-        log.status(msg)
+    log.info(msg)
+    log.status(msg)
 
 def register_sasa_command():
+    from .structure import AtomsArg
+    _sasa_desc = cli.CmdDesc(
+        optional = [('atoms', AtomsArg)],
+        keyword = [('probe_radius', cli.FloatArg),],
+        synopsis = 'compute solvent accessible surface area')
     cli.register('sasa', _sasa_desc, sasa_command)
 
-_buriedarea_desc = cli.CmdDesc(
-    required = [('atoms1', atomspec.AtomSpecArg), ('atoms2', atomspec.AtomSpecArg)],
-    keyword = [('probeRadius', cli.FloatArg),],
-    synopsis = 'compute buried area')
-
-def buriedarea_command(session, atoms1, atoms2, probeRadius = 1.4):
+def buriedarea_command(session, atoms1, atoms2, probe_radius = 1.4):
     '''
     Compute solvent accessible surface area.
     Only the specified atoms are considered.
     '''
-    a1 = atoms1.evaluate(session).atoms
-    a2 = atoms2.evaluate(session).atoms
-    ni = len(a1.intersect(a2))
+    ni = len(atoms1.intersect(atoms2))
     if ni > 0:
         raise cli.AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
-                                  % (ni, str(atoms1), str(atoms2)))
+                                  % (ni, atoms1.spec, atoms2.spec))
 
-    ba, a1a, a2a, a12a = buried_area(a1, a2, probeRadius)
+    ba, a1a, a2a, a12a = buried_area(atoms1, atoms2, probe_radius)
 
     # Report result
-    msg = 'Buried area between %s and %s = %.5g' % (str(atoms1), str(atoms2), ba)
+    msg = 'Buried area between %s and %s = %.5g' % (atoms1.spec, atoms2.spec, ba)
     log = session.logger
     log.status(msg)
     msg += ('\n  area %s = %.5g, area %s = %.5g, area both = %.5g'
-            % (str(atoms1), a1a, str(atoms2), a2a, a12a))
+            % (atoms1.spec, a1a, atoms2.spec, a2a, a12a))
     log.info(msg)
 
 def buried_area(a1, a2, probe_radius):
@@ -191,4 +252,9 @@ def atom_spheres(atoms, probe_radius = 1.4):
     return xyz, r
 
 def register_buriedarea_command():
+    from .structure import AtomsArg
+    _buriedarea_desc = cli.CmdDesc(
+        required = [('atoms1', AtomsArg), ('atoms2', AtomsArg)],
+        keyword = [('probe_radius', cli.FloatArg),],
+        synopsis = 'compute buried area')
     cli.register('buriedarea', _buriedarea_desc, buriedarea_command)

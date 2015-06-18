@@ -6,11 +6,12 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <basegeom/Coord.h>
-#include <logger/logger.h>
-#include "tmpl/TAexcept.h"
 #include "AtomTypes.h"
+#include <basegeom/Coord.h>
+#include "Bond.h"
+#include <logger/logger.h>
 #include "Residue.h"
+#include "tmpl/TAexcept.h"
 
 namespace atomstruct {
 

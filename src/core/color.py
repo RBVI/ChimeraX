@@ -586,7 +586,7 @@ def rcolor(session, color, spec=None):
     from .structure import AtomicStructure
     for m in results.models:
         if isinstance(m, AtomicStructure):
-            m.update_graphics()
+            m.update_ribbon_graphics(rebuild=True)
 
     what = []
     if nr > 0:

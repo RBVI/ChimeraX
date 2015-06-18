@@ -1,3 +1,4 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
 """
 chimera.core: collection of base chimera functionality
 ======================================================
@@ -40,3 +41,14 @@ def get_class(class_name):
         return None
     _class_cache[class_name] = cls
     return cls
+
+def profile(func):
+    def wrapper(*args, **kw):
+        import cProfile, pstats, sys
+        prof = cProfile.Profile()
+        v = prof.runcall(func, *args, **kw)
+        print(func.__name__, file=sys.__stderr__)
+        p = pstats.Stats(prof, stream=sys.__stderr__)
+        p.strip_dirs().sort_stats("cumulative", "time").print_callers(40)
+        return v
+    return wrapper
