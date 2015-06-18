@@ -200,10 +200,7 @@ extern "C" void atom_in_chain(void *atoms, int n, unsigned char *in_chain)
 {
   Atom **a = static_cast<Atom **>(atoms);
   for (int i = 0 ; i < n ; ++i)
-    {
-      a[i]->structure()->chains();  // TODO: Remove this once residues assure chains have been made.
-      in_chain[i] = (a[i]->residue()->chain() != NULL);
-    }
+    in_chain[i] = (a[i]->residue()->chain() != NULL);
 }
 
 extern "C" void atom_molecule(void *atoms, int n, void **molp)
