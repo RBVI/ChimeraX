@@ -16,22 +16,21 @@ namespace Map_Cpp
 // are only listed once.
 //
 static IArray calculate_masked_edges(const IArray &triangles,
-				     const IArray &mask)
+				     const CArray &tmask, const CArray &emask)
 {
   std::set< std::pair<int,int> > edges;
 
-  int *show_te = (mask.size() > 0 ? mask.values() : NULL);
+  char *show_t = (tmask.size() > 0 ? tmask.values() : NULL);
+  char *show_e = (emask.size() > 0 ? emask.values() : NULL);
   int n = triangles.size(0);
   int *tarray = triangles.values();
   for (int k = 0 ; k < n ; ++k, tarray += 3)
     {
-      int display_bits = (show_te ?
-			  show_te[k] :
-			  TRIANGLE_DISPLAY_MASK | ALL_EDGES_DISPLAY_MASK);
-      if (display_bits & TRIANGLE_DISPLAY_MASK)
+      if (show_t == NULL || show_t[k])
 	{
+	  char ebits = (show_e == NULL ? 7 : show_e[k]);
 	  for (int j = 0 ; j < 3 ; ++j)
-	    if (display_bits & (EDGE0_DISPLAY_MASK << j))
+	    if (ebits & (EDGE0_DISPLAY_MASK << j))
 	      {
 		int i0 = tarray[j], i1 = tarray[(j+1)%3];
 		edges.insert(i0 < i1 ? std::pair<int,int>(i0, i1) :
@@ -56,27 +55,35 @@ static IArray calculate_masked_edges(const IArray &triangles,
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-masked_edges(PyObject *s, PyObject *args, PyObject *keywds)
+masked_edges(PyObject *, PyObject *args, PyObject *keywds)
 {
-  IArray triangles, mask;
-  const char *kwlist[] = {"triangles", "mask", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|O&"),
+  IArray triangles;
+  CArray tmask, emask;
+  const char *kwlist[] = {"triangles", "triangle_mask", "edge_mask", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|O&O&"),
 				   (char **)kwlist,
 				   parse_int_n3_array, &triangles,
-				   parse_int_n_array, &mask))
+				   parse_uint8_n_array, &tmask,
+				   parse_uint8_n_array, &emask))
     return NULL;
 
-  if (mask.size() > 0 && triangles.size(0) != mask.size(0))
+  if (tmask.size() > 0 && tmask.size(0) != triangles.size(0))
     {
       PyErr_SetString(PyExc_TypeError,
-		      "masked_edges(): mask array size does not "
+		      "masked_edges(): triangle mask array size does not "
+		      "equal triangle array size");
+      return NULL;
+    }
+  if (emask.size() > 0 && emask.size(0) != triangles.size(0))
+    {
+      PyErr_SetString(PyExc_TypeError,
+		      "masked_edges(): edge mask array size does not "
 		      "equal triangle array size");
       return NULL;
     }
 
-  IArray edges = calculate_masked_edges(triangles, mask);
-  PyObject *edges_py = c_array_to_python(edges.values(),
-					 edges.size(0), edges.size(1));
+  IArray edges = calculate_masked_edges(triangles, tmask, emask);
+  PyObject *edges_py = c_array_to_python(edges.values(), edges.size(0), edges.size(1));
   return edges_py;
 }
 

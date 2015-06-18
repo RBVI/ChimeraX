@@ -1202,7 +1202,7 @@ class Buffer:
     def update_buffer_data(self, data):
         '''
         Update the buffer with data supplied by a numpy array and bind it to
-        the associated shader variable.
+        the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
         bdata = self.buffered_data
         if data is bdata:
@@ -1234,7 +1234,7 @@ class Buffer:
             self.buffered_array = d
             self.buffered_data = data
 
-        return True
+        return replace_buffer
 
     # Element types for Buffer draw_elements()
     triangles = GL.GL_TRIANGLES
