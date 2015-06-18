@@ -282,8 +282,10 @@ def ribbon(session, spec=None):
         spec = atomspec.everything(session)
     results = spec.evaluate(session)
     results.atoms.residues.ribbon_displays = True
+    from .structure import AtomicStructure
     for m in results.models:
-        m.update_ribbon_graphics(rebuild=True)
+        if isinstance(m, AtomicStructure):
+            m.update_ribbon_graphics(rebuild=True)
 
 _ribbon_desc = cli.CmdDesc(optional=[("spec", atomspec.AtomSpecArg)],
                             synopsis='display ribbon for specified residues')

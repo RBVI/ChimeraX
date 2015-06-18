@@ -28,7 +28,7 @@ class MarkerMouseMode(MouseMode):
         if c is None:
             log.status('No marker placed')
             return
-        place_marker(session, c)
+        place_marker(self.session, c)
 
     def mouse_drag(self, event):
         pass
@@ -60,7 +60,7 @@ def marker_molecule(session):
 def place_marker(session, center):
     m = marker_molecule(session)
     a = m.new_atom('', 'H')
-    a.coord = c
+    a.coord = center
     ms = marker_settings(session)
     a.radius = ms['radius']
     a.color = ms['color']

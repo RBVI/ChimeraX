@@ -102,6 +102,7 @@ class Atoms(PointerArray):
     draw_modes = cvec_property('atom_draw_mode', int32)
     element_names = cvec_property('atom_element_name', string, read_only = True)
     element_numbers = cvec_property('atom_element_number', int32, read_only = True)
+    in_chains = cvec_property('atom_in_chain', npy_bool, read_only = True)
     molecules = cvec_property('atom_molecule', cptr, astype = _atomic_structures, read_only = True)
     names = cvec_property('atom_name', string, read_only = True)
     radii = cvec_property('atom_radius', float32)
