@@ -1000,3 +1000,40 @@ extern "C" void pointer_mask(void *pointer_array, int n, void *pointer_array2, i
   for (int i = 0 ; i < n ; ++i)
     mask[i] = (s.find(pa[i]) == s.end() ? 0 : 1);
 }
+
+extern "C" int pointer_intersects(void *pointer_array, int n, void *pointer_array2, int n2)
+{
+  void **pa = static_cast<void **>(pointer_array);
+  void **pa2 = static_cast<void **>(pointer_array2);
+  std::set<void *> s;
+  for (int i = 0 ; i < n2 ; ++i)
+    s.insert(pa2[i]);
+  for (int i = 0 ; i < n ; ++i)
+    if (s.find(pa[i]) != s.end())
+      return 1;
+  return 0;
+}
+
+extern "C" void pointer_intersects_each(void *pointer_arrays, int na, int *sizes,
+					void *pointer_array, int n,
+					void *intersects)
+{
+  void ***pas = static_cast<void ***>(pointer_arrays);
+  void **pa = static_cast<void **>(pointer_array);
+  unsigned char *ia = static_cast<unsigned char *>(intersects);
+  std::set<void *> s;
+  for (int i = 0 ; i < n ; ++i)
+    s.insert(pa[i]);
+  for (int i = 0 ; i < na ; ++i)
+    {
+      int m = sizes[i];
+      void **pai = pas[i];
+      ia[i] = 0;
+      for (int j = 0 ; j < m ; ++j)
+	if (s.find(pai[j]) != s.end())
+	  {
+	    ia[i] = 1;
+	    break;
+	  }
+    }
+}

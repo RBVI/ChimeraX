@@ -1,4 +1,4 @@
-from numpy import uint8, int32, float64, float32, bool as npy_bool, integer, empty, unique
+from numpy import uint8, int32, float64, float32, bool as npy_bool, integer, empty, unique, array
 from .molc import string, cptr, pyobject, cvec_property, set_cvec_pointer, c_function, pointer
 from . import molobject
 
@@ -36,6 +36,9 @@ class PointerArray:
 
     def __eq__(self, atoms):
         return (atoms._pointers == self._pointers).all()
+    def hash(self):
+        from hashlib import sha1
+        return sha1(self._pointers.view(uint8)).digest()
     def __len__(self):
         return len(self._pointers)
     def __iter__(self):
@@ -64,15 +67,33 @@ class PointerArray:
     def intersect(self, objects):
         import numpy
         return self._objects_class(numpy.intersect1d(self._pointers, objects._pointers))
+    def intersects(self, objects):
+        f = c_function('pointer_intersects',
+                       args = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int],
+                       ret = ctypes.c_int)
+        return f(self._c_pointers, len(self), objects._c_pointers, len(objects))
+    def intersects_each(self, objects_list):
+        '''Check if each of serveral pointer arrays intersects this array.
+        Return a boolean array of length equal to the length of objects_list.
+        '''
+        f = c_function('pointer_intersects_each',
+                       args = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p,
+                               ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p])
+        sizes = array(tuple(len(a) for a in objects_list), int32)
+        arrays = array(tuple(a._pointers.ctypes.data_as(ctypes.c_void_p).value for a in objects_list), cptr)
+        n = len(objects_list)
+        iarray = empty((n,), npy_bool)
+        f(pointer(arrays), n, pointer(sizes), self._c_pointers, len(self), pointer(iarray))
+        return iarray
     def filter(self, mask):
         return self._objects_class(self._pointers[mask])
-    def mask(self, atoms):
-        '''Return bool array indicating for each atom in current set whether that
-        atom appears in the argument atoms.'''
+    def mask(self, objects):
+        '''Return bool array indicating for each object in current set whether that
+        object appears in the argument objects.'''
         f = c_function('pointer_mask', args = [ctypes.c_void_p, ctypes.c_int,
                                                ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p])
         mask = empty((len(self),), npy_bool)
-        f(self._c_pointers, len(self), atoms._c_pointers, len(atoms), pointer(mask))
+        f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(mask))
         return mask
     def merge(self, objects):
         import numpy
@@ -82,10 +103,11 @@ class PointerArray:
         return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
 
 def concatenate(pointer_arrays):
-    ac = pointer_arrays[0]
-    for a in pointer_arrays[1:]:
-        ac.merge(a)
-    return ac
+    
+    cl = pointer_arrays[0]._objects_class
+    from numpy import concatenate as concat
+    c = cl(concat([a._pointers for a in pointer_arrays]))
+    return c
 
 # -----------------------------------------------------------------------------
 #
