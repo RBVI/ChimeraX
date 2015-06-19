@@ -12,8 +12,8 @@ class MolecularSurface(generic3d.Generic3DModel):
 
 def surface_command(session, atoms = None, enclose = None, include = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
-                    color = None, transparency = 0, nthread = None,
-                    replace = True, hide = False, close = False):
+                    color = None, transparency = 0, visible_patches = None,
+                    nthread = None, replace = True, hide = False, close = False):
     '''
     Compute and display solvent excluded molecular surfaces.
     '''
@@ -35,7 +35,8 @@ def surface_command(session, atoms = None, enclose = None, include = None,
                 enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             name = '%s_%s SES surface' % (m.name, chain_id)
             rgba = surface_rgba(color, transparency, chain_id)
-            s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, m, name, rgba)
+            s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing,
+                         m, name, rgba, visible_patches)
             pieces.append(s)
     else:
         enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
@@ -44,7 +45,8 @@ def surface_command(session, atoms = None, enclose = None, include = None,
         parent = mols[0] if len(mols) == 1 else session.models.drawing
         name = 'Surface %s' % enclose.spec
         rgba = (170,170,170,255) if color is None else color.uint8x4()
-        s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, parent, name, rgba)
+        s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing,
+                     parent, name, rgba, visible_patches)
         pieces.append(s)
 
     # Replace existing surfaces and close overlapping surfaces.
@@ -84,6 +86,7 @@ def register_surface_command():
                    ('grid_spacing', cli.FloatArg),
                    ('color', color.ColorArg),
                    ('transparency', cli.FloatArg),
+                   ('visible_patches', cli.IntArg),
                    ('nthread', cli.IntArg),
                    ('replace', cli.BoolArg),
                    ('hide', cli.NoArg),
@@ -117,7 +120,8 @@ def remove_solvent_ligands_ions(atoms, keep = None):
 
 class SurfCalc:
 
-    def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing, parent_drawing, name, color):
+    def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing,
+                 parent_drawing, name, color, visible_patches):
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
         self.probe_radius = probe_radius
@@ -125,6 +129,7 @@ class SurfCalc:
         self.parent_drawing = parent_drawing
         self.name = name
         self.color = color
+        self.visible_patches = visible_patches
         self.vertices = None
         self.normals = None
         self.triangles = None
@@ -161,6 +166,11 @@ class SurfCalc:
         surf.probe_radius = self.probe_radius
         surf.grid_spacing = self.grid_spacing
         surf._calc_surf = self
+        if not self.visible_patches is None:
+            from . import surface
+            surface.show_only_largest_blobs(surf, visible_only = True,
+                                            blob_count = self.visible_patches,
+                                            rank_metric = 'area rank')
         if new_surf:
             session.models.add([surf], parent = self.parent_drawing)
         return surf
