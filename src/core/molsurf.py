@@ -25,20 +25,22 @@ def surface_command(session, atoms = None, enclose = None,
 
     pieces = []
     if enclose is None:
+        atoms, all_small = remove_solvent_ligands_ions(atoms)
         for m, chain_id, show_atoms in atoms.by_chain:
-            matoms = m.atoms
+            matoms = atoms if all_small else m.atoms
             enclose_atoms = matoms.filter(matoms.chain_ids == chain_id)
             name = '%s_%s SES surface' % (m.name, chain_id)
             rgba = surface_rgba(color, transparency, chain_id)
             s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, m, name, rgba)
             pieces.append(s)
     else:
-        show_atoms = enclose if atoms is None else atoms
+        enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose)
+        show_atoms = enclose_atoms if atoms is None else atoms.intersect(enclose_atoms)
         mols = enclose.unique_structures
         parent = mols[0] if len(mols) == 1 else session.models.drawing
         name = 'Surface %s' % enclose.spec
         rgba = (170,170,170,255) if color is None else color.uint8x4()
-        s = SurfCalc(enclose, show_atoms, probe_radius, grid_spacing, parent, name, rgba)
+        s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, parent, name, rgba)
         pieces.append(s)
 
     # Replace existing surfaces and close overlapping surfaces.
@@ -95,11 +97,22 @@ def check_atoms(atoms, session):
         raise cli.AnnotationError('No atoms specified by %s' % (atoms.spec,))
     return atoms
 
+def remove_solvent_ligands_ions(atoms):
+    '''Remove solvent, ligands and ions unless that removes all atoms
+    in which case don't remove any.'''
+    # TODO: Properly identify solvent, ligands and ions.
+    # Currently simply remove every atom is does not belong to a chain.
+    fatoms = atoms.filter(atoms.in_chains)
+    all_small = (len(fatoms) == 0)
+    if all_small:
+        return atoms, all_small
+    return fatoms, all_small
+
 class SurfCalc:
 
     def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing, parent_drawing, name, color):
-        self.atoms = self.remove_solvent_ligands_ions(enclose_atoms)
-        self.show_atoms = self.remove_solvent_ligands_ions(show_atoms)	# Atoms for surface patch to show
+        self.atoms = enclose_atoms
+        self.show_atoms = show_atoms	# Atoms for surface patch to show
         self.probe_radius = probe_radius
         self.grid_spacing = grid_spacing
         self.parent_drawing = parent_drawing
@@ -152,18 +165,6 @@ class SurfCalc:
         sc = surf._calc_surf
         self._max_radius = sc._max_radius
         self._vertex_to_atom = sc._vertex_to_atom
-
-    def remove_solvent_ligands_ions(self, atoms):
-        '''Remove solvent, ligands and ions unless that removes all atoms
-        in which case don't remove any.'''
-        # TODO: Properly identify solvent, ligands and ions.
-        # Currently simply remove every atom is does not belong to a chain.
-        fatoms = atoms.filter(atoms.in_chains)
-#        solvent = atoms.filter(atoms.residues.names == 'HOH')
-#        fatoms = atoms.subtract(solvent) if len(solvent) > 0 else atoms
-        if len(fatoms) == 0:
-            return atoms
-        return fatoms
 
     def vertex_to_atom_map(self):
         v2a = self._vertex_to_atom
