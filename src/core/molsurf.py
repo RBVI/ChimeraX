@@ -10,7 +10,7 @@ from . import cli
 class MolecularSurface(generic3d.Generic3DModel):
     pass
 
-def surface_command(session, atoms = None, enclose = None,
+def surface_command(session, atoms = None, enclose = None, include = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
                     color = None, transparency = 0, nthread = None,
                     replace = True, hide = False, close = False):
@@ -25,16 +25,20 @@ def surface_command(session, atoms = None, enclose = None,
 
     pieces = []
     if enclose is None:
-        atoms, all_small = remove_solvent_ligands_ions(atoms)
+        atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
-            matoms = atoms if all_small else m.atoms
-            enclose_atoms = matoms.filter(matoms.chain_ids == chain_id)
+            if all_small:
+                enclose_atoms = atoms.filter(atoms.chain_ids == chain_id)
+            else:
+                matoms = m.atoms
+                chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
+                enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             name = '%s_%s SES surface' % (m.name, chain_id)
             rgba = surface_rgba(color, transparency, chain_id)
             s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, m, name, rgba)
             pieces.append(s)
     else:
-        enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose)
+        enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
         show_atoms = enclose_atoms if atoms is None else atoms.intersect(enclose_atoms)
         mols = enclose.unique_structures
         parent = mols[0] if len(mols) == 1 else session.models.drawing
@@ -75,6 +79,7 @@ def register_surface_command():
     _surface_desc = cli.CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),
+                   ('include', AtomsArg),
                    ('probe_radius', cli.FloatArg),
                    ('grid_spacing', cli.FloatArg),
                    ('color', color.ColorArg),
@@ -97,12 +102,14 @@ def check_atoms(atoms, session):
         raise cli.AnnotationError('No atoms specified by %s' % (atoms.spec,))
     return atoms
 
-def remove_solvent_ligands_ions(atoms):
+def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms
     in which case don't remove any.'''
     # TODO: Properly identify solvent, ligands and ions.
     # Currently simply remove every atom is does not belong to a chain.
     fatoms = atoms.filter(atoms.in_chains)
+    if keep:
+        fatoms = fatoms.merge(atoms.intersect(keep))
     all_small = (len(fatoms) == 0)
     if all_small:
         return atoms, all_small
