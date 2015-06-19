@@ -1,37 +1,39 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
-"""
-settings: manage settings
-=========================
 
-TODO
-"""
-from . import cli
-from . import color
+from .configfile import ConfigFile, only_use_defaults
 
+class Settings(ConfigFile):
+    AUTO_SAVE = EXPLICIT_SAVE = {}
 
-def _set_cmd(session, bg_color=None, silhouettes=None):
-    had_arg = False
-    view = session.main_view
-    if bg_color is not None:
-        had_arg = True
-        view.background_color = bg_color.rgba
-        view.redraw_needed = True
-    if silhouettes is not None:
-        had_arg = True
-        view.silhouettes = silhouettes
-        view.redraw_needed = True
-    if had_arg:
-        return
-    print('Current settings:\n'
-          '  bg_color:', view.background_color, '\n'
-          '  silhouettes:', view.silhouettes, '\n')
+    def __init__(self, session, tool_name, version="1"):
+        self.__class__.PROPERTY_INFO {}
+        self.__class__.PROPERTY_INFO.update(self.__class__.AUTO_SAVE)
+        self.__class__.PROPERTY_INFO.update(self.__class__.EXPLICIT_SAVE)
+        ConfigFile.__init__(self, session, tool_name, version=version)
+        self.__cur_values = {}
+        for attr_name in self.__class__.PROPERTY_INFO.keys():
+            self.__cur_values[attr_name] = getattr(self, attr_name)
 
-_set_desc = cli.CmdDesc(
-    keyword=[('bg_color', color.ColorArg),
-             ('silhouettes', cli.BoolArg)],
-    synopsis="set preferences"
-)
+    def __getattr__(self, name):
+        if only_use_defaults:
+            return ConfigFile.__getattr__(self, name)
+        try:
+            return self.__cur_values[name]
+        except KeyError:
+            raise AttributeError(name)
 
+    def __setattr__(self, name, value):
+        if name in self.__cur_values:
+            self.__cur_values[name] = value
+            if name in self.__class__.AUTO_SAVE:
+                ConfigFile.__setattr__(self, name, value)
+        else:
+            ConfigFile.__setattr__(self, name, value)
 
-def register_set_command():
-    cli.register('set', _set_desc, _set_cmd)
+    def save(self):
+        for name in self.__class__.EXPLICIT_SAVE.keys():
+            ConfigFile.__setattr__(self, name, self.__cur_values[name])
+        ConfigFile.save()
+
+    def update(self, *args, **kw):
+        raise ValueError("update() disabled for Settings class")
