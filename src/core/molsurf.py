@@ -109,6 +109,7 @@ class SurfCalc:
         self.normals = None
         self.triangles = None
         self._vertex_to_atom = None
+        self._max_radius = None
                 
     @property
     def atom_count(self):
@@ -120,6 +121,7 @@ class SurfCalc:
         atoms = self.atoms
         xyz = atoms.coords
         r = atoms.radii
+        self._max_radius = r.max()
         from .surface import ses_surface_geometry
         va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
         self.vertices = va
@@ -147,17 +149,18 @@ class SurfCalc:
         self.vertices = surf.vertices
         self.normals = surf.normals
         self.triangles = surf.triangles
-        self._vertex_to_atom = surf._calc_surf._vertex_to_atom
+        sc = surf._calc_surf
+        self._max_radius = sc._max_radius
+        self._vertex_to_atom = sc._vertex_to_atom
 
     def remove_solvent_ligands_ions(self, atoms):
         '''Remove solvent, ligands and ions unless that removes all atoms
         in which case don't remove any.'''
         # TODO: Properly identify solvent, ligands and ions.
         # Currently simply remove every atom is does not belong to a chain.
-        # TODO: The following crashes, bug #105
-#        fatoms = atoms.filter(atoms.in_chains)
-        solvent = atoms.filter(atoms.residues.names == 'HOH')
-        fatoms = atoms.subtract(solvent) if len(solvent) > 0 else atoms
+        fatoms = atoms.filter(atoms.in_chains)
+#        solvent = atoms.filter(atoms.residues.names == 'HOH')
+#        fatoms = atoms.subtract(solvent) if len(solvent) > 0 else atoms
         if len(fatoms) == 0:
             return atoms
         return fatoms
@@ -167,7 +170,7 @@ class SurfCalc:
         if v2a is None:
             xyz1 = self.vertices
             xyz2 = self.atoms.coords
-            max_dist = 3
+            max_dist = 1.1 * (self.probe_radius + self._max_radius)
             from . import geometry
             i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
             from numpy import empty, int32
