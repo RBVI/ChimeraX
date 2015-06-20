@@ -55,7 +55,7 @@ ifneq ($(OS),Darwin)
 endif
 endif
 
-$(SOURCE):
+$(SOURCE) source:
 	tar zxf $(DISTRIBUTION) -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for f in $(PATCHES) ; do \
