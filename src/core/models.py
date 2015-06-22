@@ -163,7 +163,7 @@ class Models(State):
                 continue
             model.delete()
 
-    def list(self, model_id=None):
+    def list(self, model_id=None, type=None):
         if model_id is None:
             models = list(self._models.values())
         else:
@@ -175,6 +175,8 @@ class Models(State):
             # sort so submodels are removed before parent models
             model_ids.sort(key=len, reverse=True)
             models = [self._models[x] for x in model_ids]
+        if not type is None:
+            models = [m for m in models if isinstance(m,type)]
         return models
 
     def add(self, models, parent=None):

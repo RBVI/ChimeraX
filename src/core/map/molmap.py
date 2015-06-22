@@ -50,7 +50,7 @@ def molecule_map(session,
 		 showDialog = True
                  ):
 
-    molecules = atoms.unique_molecules
+    molecules = atoms.unique_structures
     if len(molecules) > 1:
         name = 'map %.3g' % (resolution,)
     else:
@@ -79,7 +79,7 @@ def molecule_map(session,
             csys = openstate_arg(coordinateSystem)
         from .SymmetryCopies.symcmd import parse_symmetry
         transforms, csys = parse_symmetry(symmetry, center, axis, csys,
-                                          atoms[0].molecule, 'molmap')
+                                          atoms[0].structure, 'molmap')
 
     if not modelId is None:
         from ..commands.parse import parse_model_id
@@ -129,7 +129,7 @@ def molecule_grid_data(atoms, resolution, step, pad,
 
     # Transform coordinates to local coordinates of the molecule containing
     # the first atom.  This handles multiple unaligned molecules.
-#    m0 = atoms[0].molecule
+#    m0 = atoms[0].structure
 #    tf = m0.position
 #    tf.inverse().move(xyz)
 #    if csys:

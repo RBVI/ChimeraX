@@ -10,32 +10,54 @@ from . import cli
 class MolecularSurface(generic3d.Generic3DModel):
     pass
 
-def surface_command(session, atoms = None, enclose = None,
+def surface_command(session, atoms = None, enclose = None, include = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
                     color = None, transparency = 0, nthread = None,
-                    close = False, hide = False):
+                    replace = True, hide = False, close = False):
     '''
     Compute and display solvent excluded molecular surfaces.
     '''
     atoms = check_atoms(atoms, session) # Warn if no atoms specifed
 
+    if close:
+        close_surfaces(atoms, session.models)
+        return []
+
     pieces = []
     if enclose is None:
+        atoms, all_small = remove_solvent_ligands_ions(atoms, include)
         for m, chain_id, show_atoms in atoms.by_chain:
-            matoms = m.atoms
-            enclose_atoms = matoms.filter(matoms.chain_ids == chain_id)
+            if all_small:
+                enclose_atoms = atoms.filter(atoms.chain_ids == chain_id)
+            else:
+                matoms = m.atoms
+                chain_atoms = matoms.filter(matoms.chain_ids == chain_id)
+                enclose_atoms = remove_solvent_ligands_ions(chain_atoms, include)[0]
             name = '%s_%s SES surface' % (m.name, chain_id)
             rgba = surface_rgba(color, transparency, chain_id)
             s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, m, name, rgba)
             pieces.append(s)
     else:
-        show_atoms = enclose if atoms is None else atoms
-        mols = enclose.unique_molecules
+        enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
+        show_atoms = enclose_atoms if atoms is None else atoms.intersect(enclose_atoms)
+        mols = enclose.unique_structures
         parent = mols[0] if len(mols) == 1 else session.models.drawing
         name = 'Surface %s' % enclose.spec
         rgba = (170,170,170,255) if color is None else color.uint8x4()
-        s = SurfCalc(enclose, show_atoms, probe_radius, grid_spacing, parent, name, rgba)
+        s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing, parent, name, rgba)
         pieces.append(s)
+
+    # Replace existing surfaces and close overlapping surfaces.
+    if replace:
+        all_surfs = session.models.list(type = MolecularSurface)
+        msurfs = find_matching_surfaces(pieces, all_surfs)
+        asurfs = set(all_surfs) - set(msurfs)
+        from .molecule import concatenate
+        osurfs = surfaces_overlapping_atoms(asurfs, concatenate([p.atoms for p in pieces]))
+        if osurfs:
+            session.models.close(osurfs)
+    else:
+        msurfs = [None]*len(pieces)
 
     # Compute surfaces using multiple threads
     args = [(p,) for p in pieces]
@@ -44,11 +66,7 @@ def surface_command(session, atoms = None, enclose = None,
     threadq.apply_to_list(lambda p: p.calculate_surface_geometry(), args, nthread)
 
     # Creates surface models
-    surfs = [p.create_surface(session) for p in pieces]
-
-    if close:
-        close_surfaces(atoms, session.models)
-        surfs = []
+    surfs = [p.update_surface_model(session, s) for p,s in zip(pieces,msurfs)]
 
     if hide:
         hide_surfaces(atoms, session.models)
@@ -61,13 +79,15 @@ def register_surface_command():
     _surface_desc = cli.CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),
+                   ('include', AtomsArg),
                    ('probe_radius', cli.FloatArg),
                    ('grid_spacing', cli.FloatArg),
                    ('color', color.ColorArg),
                    ('transparency', cli.FloatArg),
                    ('nthread', cli.IntArg),
-                   ('close', cli.NoArg),
-                   ('hide', cli.NoArg)],
+                   ('replace', cli.BoolArg),
+                   ('hide', cli.NoArg),
+                   ('close', cli.NoArg)],
         synopsis = 'create molecular surface')
     cli.register('surface', _surface_desc, surface_command)
 
@@ -82,11 +102,24 @@ def check_atoms(atoms, session):
         raise cli.AnnotationError('No atoms specified by %s' % (atoms.spec,))
     return atoms
 
+def remove_solvent_ligands_ions(atoms, keep = None):
+    '''Remove solvent, ligands and ions unless that removes all atoms
+    in which case don't remove any.'''
+    # TODO: Properly identify solvent, ligands and ions.
+    # Currently simply remove every atom is does not belong to a chain.
+    fatoms = atoms.filter(atoms.in_chains)
+    if keep:
+        fatoms = fatoms.merge(atoms.intersect(keep))
+    all_small = (len(fatoms) == 0)
+    if all_small:
+        return atoms, all_small
+    return fatoms, all_small
+
 class SurfCalc:
 
     def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing, parent_drawing, name, color):
-        self.atoms = self.remove_solvent_ligands_ions(enclose_atoms)
-        self.show_atoms = self.remove_solvent_ligands_ions(show_atoms)	# Atoms for surface patch to show
+        self.atoms = enclose_atoms
+        self.show_atoms = show_atoms	# Atoms for surface patch to show
         self.probe_radius = probe_radius
         self.grid_spacing = grid_spacing
         self.parent_drawing = parent_drawing
@@ -95,16 +128,8 @@ class SurfCalc:
         self.vertices = None
         self.normals = None
         self.triangles = None
-        self.surface_model = self.find_matching_surface()
         self._vertex_to_atom = None
-
-    def find_matching_surface(self):
-        d = self.parent_drawing
-        for s in d.child_drawings():
-            if isinstance(s, MolecularSurface):
-                if len(s.atoms) == self.atom_count and s.atoms == self.atoms:
-                    return s
-        return None
+        self._max_radius = None
                 
     @property
     def atom_count(self):
@@ -113,62 +138,47 @@ class SurfCalc:
     def calculate_surface_geometry(self):
         if not self.vertices is None:
             return              # Geometry already computed
-        s = self.surface_model
-        if s and s.probe_radius == self.probe_radius and s.grid_spacing == self.grid_spacing:
-            return
         atoms = self.atoms
         xyz = atoms.coords
         r = atoms.radii
+        self._max_radius = r.max()
         from .surface import ses_surface_geometry
         va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
         self.vertices = va
         self.normals = na
         self.triangles = ta
 
-    def create_surface(self, session):
-        surf = self.surface_model
-        if surf:
-            surf.display = True
-        if self.vertices is None:
-            # Show new patch of existing surface
-            surf.triangle_mask = surf._calc_surf.patch_display_mask(self.show_atoms)
-        else:
-            # Update existing surface geometry or create new surface.
-            new_surf = surf is None
-            if new_surf:
-                surf = MolecularSurface(self.name)
-            surf.geometry = self.vertices, self.triangles
-            surf.normals = self.normals
-            surf.triangle_mask = self.patch_display_mask(self.show_atoms)
-            surf.color = self.color
-            surf.atoms = self.atoms
-            surf.probe_radius = self.probe_radius
-            surf.grid_spacing = self.grid_spacing
-            surf._calc_surf = self
-            if new_surf:
-                session.models.add([surf], parent = self.parent_drawing)
-#        surf.vertex_colors = c.vertex_atom_colors()
+    def update_surface_model(self, session, surf = None):
+        new_surf = surf is None
+        if new_surf:
+            surf = MolecularSurface(self.name)
+        surf.display = True
+        surf.geometry = self.vertices, self.triangles
+        surf.normals = self.normals
+        surf.triangle_mask = self.patch_display_mask(self.show_atoms)
+        surf.color = self.color
+        surf.atoms = self.atoms
+        surf.probe_radius = self.probe_radius
+        surf.grid_spacing = self.grid_spacing
+        surf._calc_surf = self
+        if new_surf:
+            session.models.add([surf], parent = self.parent_drawing)
         return surf
 
-    def remove_solvent_ligands_ions(self, atoms):
-        '''Remove solvent, ligands and ions unless that removes all atoms
-        in which case don't remove any.'''
-        # TODO: Properly identify solvent, ligands and ions.
-        # Currently simply remove every atom is does not belong to a chain.
-        # TODO: The following crashes, bug #105
-#        fatoms = atoms.filter(atoms.in_chains)
-        solvent = atoms.filter(atoms.residues.names == 'HOH')
-        fatoms = atoms.subtract(solvent) if len(solvent) > 0 else atoms
-        if len(fatoms) == 0:
-            return atoms
-        return fatoms
+    def copy_geometry(self, surf):
+        self.vertices = surf.vertices
+        self.normals = surf.normals
+        self.triangles = surf.triangles
+        sc = surf._calc_surf
+        self._max_radius = sc._max_radius
+        self._vertex_to_atom = sc._vertex_to_atom
 
     def vertex_to_atom_map(self):
         v2a = self._vertex_to_atom
         if v2a is None:
             xyz1 = self.vertices
             xyz2 = self.atoms.coords
-            max_dist = 3
+            max_dist = 1.1 * (self.probe_radius + self._max_radius)
             from . import geometry
             i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist)
             from numpy import empty, int32
@@ -179,7 +189,9 @@ class SurfCalc:
 
     def vertex_atom_colors(self):
         vatom = self.vertex_to_atom_map()
-        return self.atoms.colors[vatom,:]
+        vcolors = self.atoms.colors[vatom,:]
+#        surf.vertex_colors = vcolors
+        return vcolors
 
     def patch_display_mask(self, patch_atoms):
         surf_atoms = self.atoms
@@ -208,6 +220,21 @@ def surface_rgba(color, transparency, chain_id):
         rgba8[3] = int(rgba8[3] * (100.0-transparency)/100.0)
     return rgba8
 
+def find_matching_surfaces(surf_calcs, surfs):
+    smap = dict((s.atoms.hash(), s) for s in surfs)
+    msurfs = []
+    for sc in surf_calcs:
+        s = smap.get(sc.atoms.hash())
+        msurfs.append(s)
+        if s and s.probe_radius == sc.probe_radius and s.grid_spacing == sc.grid_spacing:
+            sc.copy_geometry(s)
+    return msurfs
+
+def surfaces_overlapping_atoms(surfs, atoms):
+    si = atoms.intersects_each([s.atoms for s in surfs])
+    osurfs = [s for s,i in zip(surfs,si) if i]
+    return osurfs
+
 def show_surface(name, va, na, ta, color = (180,180,180,255)):
     surf = MolecularSurface(name)
     surf.geometry = va, ta
@@ -229,7 +256,7 @@ def molecule_surface(mol, probe_radius = 1.4, grid_spacing = 0.5):
 
 def surfaces_with_atoms(atoms, models):
     surfs = []
-    for m in list(atoms.unique_molecules) + [models.drawing]:
+    for m in list(atoms.unique_structures) + [models.drawing]:
         for s in m.child_drawings():
             if isinstance(s, MolecularSurface):
                 if len(atoms.intersect(s.atoms)) > 0:

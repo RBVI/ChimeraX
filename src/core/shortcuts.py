@@ -347,7 +347,7 @@ def shortcut_atoms(session):
     atoms_list = sel.items('atoms')
     if atoms_list:
         for atoms in atoms_list:
-            matoms.extend(atoms.by_molecule)
+            matoms.extend(atoms.by_structure)
     elif sel.empty():
         # Nothing selected, so operate on all atoms
         from .structure import AtomicStructure
