@@ -149,9 +149,21 @@ class SurfCalc:
         self._max_radius = r.max()
         from .surface import ses_surface_geometry
         va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
-        self.vertices = va
-        self.normals = na
-        self.triangles = ta
+#        self.vertices = va
+#        self.normals = na
+#        self.triangles = ta
+        from .surface import sharp_edge_patches
+        vsa, nsa, tsa, v2a = sharp_edge_patches(va, na, ta, self.vertex_to_atom_map(va), xyz)
+        for i in range(3):
+            vsa, nsa, tsa, v2a = sharp_edge_patches(vsa, nsa, tsa, v2a, xyz)
+#        print ('vsa', vsa[:5])
+#        print ('nsa', nsa[:5])
+#        print ('tsa', tsa[:5])
+#        print ('v2a', v2a[:5])
+        self.vertices = vsa
+        self.normals = nsa
+        self.triangles = tsa
+        self._vertex_to_atom = v2a
 
     def update_surface_model(self, session, surf = None):
         new_surf = surf is None
@@ -162,6 +174,7 @@ class SurfCalc:
         surf.normals = self.normals
         surf.triangle_mask = self.patch_display_mask(self.show_atoms)
         surf.color = self.color
+        surf.vertex_colors = self.vertex_atom_colors()
         surf.atoms = self.atoms
         surf.probe_radius = self.probe_radius
         surf.grid_spacing = self.grid_spacing
@@ -183,10 +196,10 @@ class SurfCalc:
         self._max_radius = sc._max_radius
         self._vertex_to_atom = sc._vertex_to_atom
 
-    def vertex_to_atom_map(self):
+    def vertex_to_atom_map(self, vertices = None):
         v2a = self._vertex_to_atom
         if v2a is None:
-            xyz1 = self.vertices
+            xyz1 = self.vertices if vertices is None else vertices
             xyz2 = self.atoms.coords
             max_dist = 1.1 * (self.probe_radius + self._max_radius)
             from . import geometry
@@ -200,7 +213,6 @@ class SurfCalc:
     def vertex_atom_colors(self):
         vatom = self.vertex_to_atom_map()
         vcolors = self.atoms.colors[vatom,:]
-#        surf.vertex_colors = vcolors
         return vcolors
 
     def patch_display_mask(self, patch_atoms):
