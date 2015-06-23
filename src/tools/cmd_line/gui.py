@@ -220,7 +220,6 @@ class _HistoryDialog:
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(button_sizer)
         record_button = wx.Button(parent, label=self.record_label)
-        record_button.Disable()
         button_sizer.Add(record_button)
         button_sizer.Add(wx.Button(parent, label=self.execute_label))
         for stock_id in [wx.ID_DELETE, wx.ID_COPY, wx.ID_HELP]:
@@ -243,8 +242,22 @@ class _HistoryDialog:
 
     def button_cb(self, event):
         label = event.GetEventObject().GetLabelText()
+        import wx
         if label == self.record_label:
-            #TODO
+            from chimera.core.io import extensions
+            ext = extensions("Chimera")[0]
+            wc = "Chimera commands (*{})|*{}".format(ext, ext)
+            #TODO: wrap this in a class so that "confirm overwrite"
+            # can be a preference, and so that maybe offer non-modal version
+            dlg = wx.FileDialog(self.window.ui_area, "Record Commands",
+                "", "", wc, wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+            dlg.SetExtraControlCreator(self._recordCustomizeCB)
+            if dlg.ShowModal() == wx.ID_CANCEL:
+                return
+            fname = dlg.GetPath()
+            #TODO: wrap class around open() to handle tilde expansion and
+            # other conveniences
+
             return
         if label == self.execute_label:
             for index in self.listbox.GetSelections():
@@ -252,7 +265,6 @@ class _HistoryDialog:
                 self.controller.on_enter(None)
             return
         stock_id = event.GetEventObject().GetId()
-        import wx
         if stock_id == wx.ID_DELETE:
             self.history.replace([self.history[i]
                 for i in range(len(self.history))
@@ -321,3 +333,15 @@ class _HistoryDialog:
         last8 = self.history[-8:]
         last8.reverse()
         c.text.Items = last8 + [c.show_history_label, c.compact_label]
+
+    def _recordCustomizeCB(self, frame):
+        import wx
+        amount_label1 = wx.StaticText(frame, label="Record")
+        amount = wx.Choice(frame, choices=["all", "selected"])
+        amount.SetSelection(0)
+        amount_label2 = wx.StaticText(frame, label="commands")
+        amount_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        amount_sizer.Add(amount_label1)
+        amount_sizer.Add(amount)
+        amount_sizer.Add(amount_label2)
+        frame.SetSizerAndFit(amount_sizer)
