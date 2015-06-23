@@ -13,6 +13,7 @@ class MolecularSurface(generic3d.Generic3DModel):
 def surface_command(session, atoms = None, enclose = None, include = None,
                     probe_radius = 1.4, grid_spacing = 0.5,
                     color = None, transparency = 0, visible_patches = None,
+                    sharp_boundaries = True,
                     nthread = None, replace = True, hide = False, close = False):
     '''
     Compute and display solvent excluded molecular surfaces.
@@ -36,7 +37,7 @@ def surface_command(session, atoms = None, enclose = None, include = None,
             name = '%s_%s SES surface' % (m.name, chain_id)
             rgba = surface_rgba(color, transparency, chain_id)
             s = SurfCalc(enclose_atoms, show_atoms, probe_radius, grid_spacing,
-                         m, name, rgba, visible_patches)
+                         m, name, rgba, visible_patches, sharp_boundaries)
             pieces.append(s)
     else:
         enclose_atoms, eall_small = remove_solvent_ligands_ions(enclose, include)
@@ -87,6 +88,7 @@ def register_surface_command():
                    ('color', color.ColorArg),
                    ('transparency', cli.FloatArg),
                    ('visible_patches', cli.IntArg),
+                   ('sharp_boundaries', cli.BoolArg),
                    ('nthread', cli.IntArg),
                    ('replace', cli.BoolArg),
                    ('hide', cli.NoArg),
@@ -121,7 +123,7 @@ def remove_solvent_ligands_ions(atoms, keep = None):
 class SurfCalc:
 
     def __init__(self, enclose_atoms, show_atoms, probe_radius, grid_spacing,
-                 parent_drawing, name, color, visible_patches):
+                 parent_drawing, name, color, visible_patches, sharp_boundaries):
         self.atoms = enclose_atoms
         self.show_atoms = show_atoms	# Atoms for surface patch to show
         self.probe_radius = probe_radius
@@ -130,6 +132,7 @@ class SurfCalc:
         self.name = name
         self.color = color
         self.visible_patches = visible_patches
+        self.sharp_boundaries = sharp_boundaries
         self.vertices = None
         self.normals = None
         self.triangles = None
@@ -149,21 +152,15 @@ class SurfCalc:
         self._max_radius = r.max()
         from .surface import ses_surface_geometry
         va, na, ta = ses_surface_geometry(xyz, r, self.probe_radius, self.grid_spacing)
-#        self.vertices = va
-#        self.normals = na
-#        self.triangles = ta
-        from .surface import sharp_edge_patches
-        vsa, nsa, tsa, v2a = sharp_edge_patches(va, na, ta, self.vertex_to_atom_map(va), xyz)
-        for i in range(3):
-            vsa, nsa, tsa, v2a = sharp_edge_patches(vsa, nsa, tsa, v2a, xyz)
-#        print ('vsa', vsa[:5])
-#        print ('nsa', nsa[:5])
-#        print ('tsa', tsa[:5])
-#        print ('v2a', v2a[:5])
-        self.vertices = vsa
-        self.normals = nsa
-        self.triangles = tsa
-        self._vertex_to_atom = v2a
+        if self.sharp_boundaries:
+            from .surface import sharp_edge_patches
+            va, na, ta, v2a = sharp_edge_patches(va, na, ta, self.vertex_to_atom_map(va), xyz)
+            self._vertex_to_atom = v2a
+#        for i in range(3):
+#            vsa, nsa, tsa, v2a = sharp_edge_patches(vsa, nsa, tsa, v2a, xyz)
+        self.vertices = va
+        self.normals = na
+        self.triangles = ta
 
     def update_surface_model(self, session, surf = None):
         new_surf = surf is None
@@ -248,7 +245,10 @@ def find_matching_surfaces(surf_calcs, surfs):
     for sc in surf_calcs:
         s = smap.get(sc.atoms.hash())
         msurfs.append(s)
-        if s and s.probe_radius == sc.probe_radius and s.grid_spacing == sc.grid_spacing:
+        if (s and
+            s.probe_radius == sc.probe_radius and
+            s.grid_spacing == sc.grid_spacing and
+            s._calc_surf.sharp_boundaries == sc.sharp_boundaries):
             sc.copy_geometry(s)
     return msurfs
 
